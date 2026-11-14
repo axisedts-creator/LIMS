@@ -1,0 +1,11 @@
+CR_NEEDED — the spec itself is contradictory/missing (CR text in `.orchestra/cr/API-T06.md`)
+
+Reasons:
+1. Item 1 (E02 fixture nulls): `spec/chunks/C7-instrument-integration/02-TRD.md:403` shows the signed document with `"target": null` and `"window": null`; `02-TRD.md:416` says `null` is allowed inside the document and that it is declared `type: object, additionalProperties: true`; `02-TRD.md:418,420,422` define `target: Target | null` and `window: Window | null` ("No active release → `target: null`", "`null` when unset").
+2. `contracts/openapi/instruments.yaml:6755-6765` (ConfigDocument.update) types `target` as `$ref ConfigUpdateTarget` and `window` as `type: object`, neither nullable, so a TRD-conformant document fails E02 response validation. The contract also contradicts TRD:416's "opaque payload" declaration.
+3. The producers already follow the TRD: `services/worker/src/jobs/instruments/configs.ts:77` and the golden vector `__tests__/fixtures/config/canonical.vector.json:2` emit `null`. Omitting the keys in the test fixture (writer's fix) would make the test pass while real stored documents still fail E02. That would hide the defect, and the signed bytes cannot be changed by the service.
+4. Precedence (CLAUDE.md): neither 08-CR-REGISTER nor 03-INTERFACE-CATALOG settles this (grep finds no `ConfigDocument` or `update.target` entry). C0-0C must decide between "contract allows null" and "TRD omits the keys, and the producer plus golden vector change".
+5. Until the CR is decided, `releases.service.test.ts:25` stays red. Do not change the fixture or the implementation for item 1.
+6. Item 2 (`boot.test.ts:39-43` `IMPLEMENTED`) is a separate TESTS_WRONG and is not blocked by the CR. Per the comment at `boot.test.ts:38`, the tester adds `enrolAgent`, `getAgentConfig`, `submitAgentHeartbeat`, `submitAgentLogBundle` and `downloadAgentRelease` (the API-T06 stubs replaced per the task brief).
+7. The fixture's `target` (`device.helpers.ts:41`) also lacks the fields that ConfigUpdateTarget requires (`package_sha256`, `package_size`, `signature`, `key_id`, `authenticode_publisher`; `instruments.yaml:6565-6572`, TRD:419). The tester should fill them in whatever way the CR is decided.
+8. The `boot.test.ts` real-repo timeout and the `drivers-generic.test.ts:298` timing failures come from outside API-T06. No ruling.

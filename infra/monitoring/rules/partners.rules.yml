@@ -1,0 +1,88 @@
+---
+# yamllint disable rule:line-length
+# Transcribed by C1 (02-TRD s11.3 intake row) from:
+#   C13 02-TRD s13 alerts table
+# Thresholds verbatim from the owner's list;
+# alert names and unstated `for` are [CONV].
+groups:
+  - name: partners
+    rules:
+      - alert: PartnersConversionFailures
+        expr: >-
+          sum(increase(lims_partners_line_conversions_total{outcome="failed_infra"}[15m]))
+          > 5
+        for: 0m
+        labels:
+          severity: warn
+          team: ops
+        annotations:
+          summary: >-
+            More than 5 manifest line conversions failed (infra) in 15 min.
+          runbook_url: >-
+            infra/runbooks/partners.md#partnersconversionfailures
+      - alert: PartnersConsumerMismatch
+        expr: >-
+          sum(increase(lims_partners_events_consumed_total{outcome="mismatch"}[15m]))
+          > 0
+        for: 0m
+        labels:
+          severity: page
+          team: ops
+        annotations:
+          summary: >-
+            A partner event consumer saw a mismatch (possible wrong partner
+            attribution).
+          runbook_url: >-
+            infra/runbooks/partners.md#partnersconsumermismatch
+      - alert: PartnersDownloadDeniedSpike
+        expr: >-
+          sum(increase(lims_partners_report_downloads_total{outcome="denied"}[10m]))
+          > 20
+        for: 0m
+        labels:
+          severity: warn
+          team: ops
+        annotations:
+          summary: >-
+            More than 20 partner report downloads denied in 10 min (id guessing).
+          runbook_url: >-
+            infra/runbooks/partners.md#partnersdownloaddeniedspike
+      - alert: PartnersStatementsProjectionStale
+        expr: >-
+          max(lims_partners_projection_lag_seconds{projection="statements"})
+          > 10800
+        for: 0m
+        labels:
+          severity: warn
+          team: ops
+        annotations:
+          summary: >-
+            Partner statements projection lag above 3 h.
+          runbook_url: >-
+            infra/runbooks/partners.md#partnersstatementsprojectionstale
+      - alert: PartnersPriceListProjectionStale
+        expr: >-
+          max(lims_partners_projection_lag_seconds{projection="price_list"})
+          > 93600
+        for: 0m
+        labels:
+          severity: warn
+          team: ops
+        annotations:
+          summary: >-
+            Partner price list projection lag above 26 h.
+          runbook_url: >-
+            infra/runbooks/partners.md#partnerspricelistprojectionstale
+      - alert: PartnersDeadLetter
+        expr: >-
+          increase(lims_core_dead_letters_total{task=~"partners.*|evt.partners.*"}[5m])
+          > 0
+        for: 0m
+        labels:
+          severity: warn
+          team: ops
+        annotations:
+          summary: >-
+            A partners job or event consumer dead-lettered.
+          runbook_url: >-
+            infra/runbooks/partners.md#partnersdeadletter

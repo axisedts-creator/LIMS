@@ -1,0 +1,8 @@
+APPROVE
+# T-P3 review (reviewer), diff b84ef43d..HEAD
+- Names match the spec word for word: listMyReports/downloadMyReport, routes, `reporting.portal.view`/`.download` (03-IC §11), tier `report_download` key `l:<link_id>`, `report.download` access log, `common.not_found`/`common.rate_limited`/`common.dependency_unavailable`, the PatientReport fields (TRD §4, profile_id = link id per Profile), filename `report-<v>.pdf`, the existing metric `lims_engagement_report_downloads_total`.
+- Tenant isolation: every query binds tenant_id, `ANY($2::uuid[])`, the account comes from claims membership_id, and visible_from is enforced. A foreign, hidden or unknown report gets one uniform 404 before the limiter or the port is called. No new tables, so no RLS change is needed.
+- E23: assertRole runs before any I/O. The sha256 check runs before the access log; a mismatch gives a 503 with no bytes and no log row. The signed URL stays on the server. Headers: no-store, nosniff, attachment. Nothing logs PHI and there are no secrets.
+- App: the dialog's null-on-cancel contract is honoured. The temp file has a uuidv7 name in the SecureTempFiles dir and is deleted on close, back, dispose and logout. LD-140 holds (lims_ui and tokens only).
+- Ran: vitest reports.handlers 45/45; flutter test test/features/reports 47/47. The tests cover all four briefed cases: 21st download -> 429, account B -> 404, superseded listing, temp file deleted on close/logout.
+- Not blocking: the impl notes cite `.orchestra/cr/T-P3.md` but the file is `T-P3.nonblocking.md`. Two gaps remain open under that CR: the binary transport and the sharer.

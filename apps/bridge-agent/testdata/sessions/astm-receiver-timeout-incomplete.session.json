@@ -1,0 +1,11 @@
+{"name": "astm-receiver-timeout-incomplete", "protocol": "astm", "transport": "pipe", "instrument_profile": "astm_generic_e1394", "options": {"receiver_frame_wait_s": 5},
+ "steps": [
+  {"from": "instrument", "bytes": "<ENQ>"},
+  {"expect": "agent", "bytes": "<ACK>", "within_ms": 200},
+  {"from": "instrument", "bytes": "<STX>1H|\\^&|||SIM-ANALYSER^0.1|||||||P|1<CR><ETX>1C<CR><LF>"},
+  {"expect": "agent", "bytes": "<ACK>", "within_ms": 200},
+  {"wait_ms": 4000},
+  {"expect_queue": {"items": 0, "note": "5 s frame wait not yet reached: the session is still open, no item"}},
+  {"wait_ms": 1000},
+  {"expect_queue": {"items": 1, "kind": "incomplete", "raw_sha256": "59bb7d6da6e23605a00caeb8326e397a10f22aa709cd7588175249fa6daddfbd"}}
+ ]}

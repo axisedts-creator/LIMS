@@ -1,0 +1,12 @@
+[Unit]
+Description=Restore drill: ansible-playbook restore-drill.yml (02-TRD s9.6)
+After=docker.service network-online.target
+Requires=docker.service
+
+[Service]
+Type=oneshot
+# DRILL_REPO_DIR (checkout of this repository) and LIMS_ENV (dev|staging|prod); no secrets in it.
+EnvironmentFile=/etc/lims/restore-drill.env
+# 03-APP-FLOW s4.3: the drill lock is held <= 3 h
+TimeoutStartSec=3h
+ExecStart=/bin/sh -c 'exec ansible-playbook -i "$DRILL_REPO_DIR/infra/ansible/inventories/$LIMS_ENV/hosts.yml" "$DRILL_REPO_DIR/infra/ansible/playbooks/restore-drill.yml"'

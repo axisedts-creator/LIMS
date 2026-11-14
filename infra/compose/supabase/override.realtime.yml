@@ -1,0 +1,47 @@
+# Realtime layer (02-TRD s7.2/s7.3; T-33; LD-45 both topology profiles). Passed ONLY when realtime_enabled (default false):
+#   -f upstream/docker-compose.yml -f override.app.yml -f override.realtime.yml   (this file LAST: override.app.yml `!reset`s realtime)
+# Snapshot v2.148.3 (upstream/docker-compose.yml). Image digest: UPSTREAM.lock `images` has no realtime entry yet (D-208), so the
+# T-26 placeholder pattern applies: REALTIME_IMAGE_DIGEST unset = all-zero digest = fails closed at pull.
+# REQ-SEC-036 / 04 S5: Realtime is never public. No port is published, no edge route exists (nginx 404s /realtime/v1/ on every origin;
+# api-gw has no realtime route) and no environment key below enables public access. The self-hosted "allow public access" setting
+# name is UNVERIFIED, so nothing is added that could switch it on; verify before any realtime_public CR.
+# db_net only: Realtime reaches Postgres directly at POSTGRES_HOST (logical replication; never PgBouncer). No host names here.
+services:
+  realtime:
+    # This container name looks inconsistent but is correct: Realtime derives its tenant id by parsing it (upstream comment).
+    container_name: realtime-dev.supabase-realtime
+    image: supabase/realtime@${REALTIME_IMAGE_DIGEST:-sha256:0000000000000000000000000000000000000000000000000000000000000000}
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -sSfL --head -o /dev/null -H \"Authorization: Bearer ${ANON_KEY}\" http://localhost:4000/api/tenants/realtime-dev/health"
+        ]
+      timeout: 5s
+      interval: 30s
+      retries: 3
+      start_period: 10s
+    environment:
+      PORT: 4000
+      DB_HOST: ${POSTGRES_HOST}
+      DB_PORT: ${POSTGRES_PORT}
+      DB_USER: supabase_admin
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_NAME: ${POSTGRES_DB}
+      DB_AFTER_CONNECT_QUERY: 'SET search_path TO _realtime'
+      DB_ENC_KEY: ${REALTIME_DB_ENC_KEY:?set REALTIME_DB_ENC_KEY (16 chars); upstream default is not allowed}
+      API_JWT_SECRET: ${JWT_SECRET}
+      SECRET_KEY_BASE: ${SECRET_KEY_BASE}
+      METRICS_JWT_SECRET: ${JWT_SECRET}
+      ERL_AFLAGS: -proto_dist inet_tcp
+      DNS_NODES: "''"
+      RLIMIT_NOFILE: "10000"
+      APP_NAME: realtime
+      SEED_SELF_HOST: "true"
+      RUN_JANITOR: "true"
+      DISABLE_HEALTHCHECK_LOGGING: "true"
+    networks:
+      - db_net
+    mem_limit: 1g            # 02-TRD s3.1 "Realtime adds its own limit"; lean prod-1 budget holds it inside Supabase 2.75 GiB
+    pids_limit: 256

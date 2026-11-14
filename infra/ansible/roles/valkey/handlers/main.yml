@@ -1,0 +1,5 @@
+---
+# runs at play end, after lims_runtime started the stack
+- name: Restart valkey
+  ansible.builtin.command: "{{ valkey_compose }} restart valkey"
+  changed_when: true

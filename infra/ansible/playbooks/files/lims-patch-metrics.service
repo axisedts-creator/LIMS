@@ -1,0 +1,12 @@
+[Unit]
+Description=LIMS last patch timestamp metric (lims_ops_last_patch_timestamp_seconds, 02-TRD s13)
+
+[Service]
+Type=oneshot
+User=root
+Environment=TEXTFILE_DIR=/var/lib/node_exporter/textfile
+ExecStart=/bin/bash /usr/local/lib/lims/patch_metrics.sh
+ProtectSystem=strict
+ReadWritePaths=/var/lib/node_exporter/textfile
+PrivateTmp=true
+NoNewPrivileges=true

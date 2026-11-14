@@ -1,0 +1,8 @@
+# HC-T11 impl (writer)
+- Files: `snapshot.service.ts`, `handlers/{getSyncSnapshot,ackSync}.ts`, `index.ts` (A2/A4 wired), `repository/routes.repo.ts` (+`updateRouteStamps`), `device.service.ts` (export validators). Ruling round 2 items were test-side.
+- LD-156 (2) applied: per-visit `lookupSpecimens` + `getOrderBalance` (changed) and balances (unchanged) run 8 at a time (`settledPortCalls`); [CONV] one `ctx.db.tx` savepoint per group, since core `tx.savepoint` (core/db/tx.ts:87) cannot interleave on one connection; a failed call rolls the group savepoint back, fulfilled results still used; an SQL error may degrade siblings in the group to `*_stale` for that pull (ponytail comment).
+- access_log NOT batched: core writer `core/audit/access.ts` has no batch API (one INSERT per visit, REQ-SEC-096 kept).
+- [CONV] route stamps without version bump; A4 wipe only from `wipe_requested`; only caller's own routes stamped.
+- Review #1 (LD-156 (3)) runs, code unchanged: run4 with no other lane container up = 84/84, 0 errors (`HC-T11-impl-run4.log`); run2 with `lims_c12t03_*` up = 83/84, changed p95 2629 ms (`HC-T11-impl-run2.log`). Temporary phase timers (reverted) on a changed 40-visit pull: device+settings 6-52, routes+visits 10-92, demographics 53-73, port groups 287-338, 40 access_log inserts 295-1040, stamps 8-98, config 5-71 ms; unchanged ~20-110 ms. All-lookups-fail: port groups 416 ms, total ~660 ms, so the earlier 9988 ms was host load, not code. No dispute written (passes on a quiet run).
+- Risk: the remaining variance is the 40 sequential access_log INSERTs (one per visit, REQ-SEC-096). A batch writer in core/audit would remove it. Not an owned path.
+- Open: `__tests__/boot.test.ts` (HC-T01) still treats all 26 ops as stubs.

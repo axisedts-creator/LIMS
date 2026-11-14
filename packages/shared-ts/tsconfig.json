@@ -1,0 +1,11 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist",
+    "rewriteRelativeImportExtensions": true
+  },
+  "include": ["src"],
+  "//": "errors/validation/types excluded: CR T0A-08 resolved (LD-03), but contracts/ports/common.ts (C0-0C owned) has TS2835 extensionless imports; remove exclude once C0-0C fixes them",
+  "exclude": ["src/errors", "src/validation", "src/types.ts"]
+}

@@ -1,0 +1,7 @@
+# T02 impl (writer)
+- Files: `services/api/src/modules/smartreport/repository/{common,library,blocks,rules,mappings,groups,denyTerms,summaries,bindings,reviews,llmRuns,codedSets}.repo.ts` (common = shared insert/update/get plumbing, kept `.repo.ts` to stay in owned paths).
+- [CONV] Column names only via per-repo allow-lists; values always bound; jsonb cols (content, llm_overlay, items) JSON.stringify'd; bad insert/patch keys throw plain Error before any SQL.
+- [CONV] updateRow: 0 rows -> extra tenant-filtered SELECT 1 -> `common.version_conflict` | `common.not_found`; non-integer/out-of-range expected version takes the same classification path.
+- [CONV] insertSummary excludes status/approved_*/rejected_*/superseded_* (new summary = draft); insertLibraryVersion likewise excludes status/submitted_*/approved_*/approval_note/returned_*/return_comment/retired_at (review fix); updateSummary allows lifecycle cols only (matches the two enforce_mutable_columns triggers).
+- Decision: listReviewQueue returns a column list WITHOUT content/llm_overlay/input_result_versions (P3 bodies; use getSummary). listLibraryVersions has no is_active filter (history list; versions retire by status).
+- Ran: static 19/19 + integration (run.sh, pinned PG17) 141/141 incl. EXPLAIN on all §5 indexes. NOT run: eslint (not installed in services/api); tsc --noEmit shows only a pre-existing error in contracts/ports/common.ts (none in smartreport).

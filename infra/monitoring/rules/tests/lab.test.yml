@@ -1,0 +1,136 @@
+# T-21 (tester, LD-39): promtool tests for ../imported/lab.rules.yml. Synthetic series only (no real tenant or patient data).
+# Per alert one firing case (labels carry the rule's severity and team), one not-firing case, and for rules with a
+# `for` clause a pending-before-`for` + firing-after-`for` check. Thresholds are the owner's (02-TRD s11.3).
+rule_files:
+  - ../imported/lab.rules.yml
+evaluation_interval: 1m
+tests:
+
+  - interval: 1m
+    name: "LabCriticalValueUnnotified fires"
+    input_series:
+      - series: 'lims_lab_critical_unnotified_oldest_age_seconds{tenant_id="t1"}'
+        values: "1801x6"
+    alert_rule_test:
+      - alertname: LabCriticalValueUnnotified
+        eval_time: 30s
+        exp_alerts: []
+      - alertname: LabCriticalValueUnnotified
+        eval_time: 3m
+        exp_alerts:
+          - exp_labels: {severity: "page", team: "ops", tenant_id: "t1"}
+            exp_annotations: {summary: "A critical value has been unnotified for more than 30 min.", runbook_url: "infra/runbooks/lab.md#labcriticalvalueunnotified"}
+
+  - interval: 1m
+    name: "LabCriticalValueUnnotified quiet"
+    input_series:
+      - series: 'lims_lab_critical_unnotified_oldest_age_seconds{tenant_id="t1"}'
+        values: "1800x6"
+    alert_rule_test:
+      - alertname: LabCriticalValueUnnotified
+        eval_time: 3m
+        exp_alerts: []
+
+  - interval: 1m
+    name: "LabIngestExceptionStale fires"
+    input_series:
+      - series: 'lims_lab_ingest_exception_oldest_open_age_seconds{tenant_id="t1",reason="parse"}'
+        values: "86401x20"
+    alert_rule_test:
+      - alertname: LabIngestExceptionStale
+        eval_time: 4m
+        exp_alerts: []
+      - alertname: LabIngestExceptionStale
+        eval_time: 17m
+        exp_alerts:
+          - exp_labels: {severity: "warn", team: "ops", tenant_id: "t1", reason: "parse"}
+            exp_annotations: {summary: "An instrument ingest exception has been open for over 24 h.", runbook_url: "infra/runbooks/lab.md#labingestexceptionstale"}
+
+  - interval: 1m
+    name: "LabIngestExceptionStale quiet"
+    input_series:
+      - series: 'lims_lab_ingest_exception_oldest_open_age_seconds{tenant_id="t1",reason="parse"}'
+        values: "86400x20"
+    alert_rule_test:
+      - alertname: LabIngestExceptionStale
+        eval_time: 17m
+        exp_alerts: []
+
+  - interval: 1m
+    name: "LabConsumerDeadLetter fires"
+    input_series:
+      - series: 'lims_core_dead_letters_total{task="evt.lab.result"}'
+        values: "0+1x15"
+    alert_rule_test:
+      - alertname: LabConsumerDeadLetter
+        eval_time: 12m
+        exp_alerts:
+          - exp_labels: {severity: "page", team: "ops", task: "evt.lab.result"}
+            exp_annotations: {summary: "A lab job or event consumer dead-lettered.", runbook_url: "infra/runbooks/lab.md#labconsumerdeadletter"}
+
+  - interval: 1m
+    name: "LabConsumerDeadLetter quiet"
+    input_series:
+      - series: 'lims_core_dead_letters_total{task="evt.lab.result"}'
+        values: "0+0x15"
+      - series: 'lims_core_dead_letters_total{task="quality.x"}'
+        values: "0+1x15"
+    alert_rule_test:
+      - alertname: LabConsumerDeadLetter
+        eval_time: 12m
+        exp_alerts: []
+
+  - interval: 1m
+    name: "LabHostQuerySlow fires"
+    input_series:
+      - series: 'lims_lab_host_query_duration_seconds_bucket{le="0.15"}'
+        values: "0+0x30"
+      - series: 'lims_lab_host_query_duration_seconds_bucket{le="3"}'
+        values: "0+1x30"
+      - series: 'lims_lab_host_query_duration_seconds_bucket{le="+Inf"}'
+        values: "0+1x30"
+    alert_rule_test:
+      - alertname: LabHostQuerySlow
+        eval_time: 14m
+        exp_alerts: []
+      - alertname: LabHostQuerySlow
+        eval_time: 27m
+        exp_alerts:
+          - exp_labels: {severity: "warn", team: "ops"}
+            exp_annotations: {summary: "Instrument host query p95 above 300 ms for 15 min.", runbook_url: "infra/runbooks/lab.md#labhostqueryslow"}
+
+  - interval: 1m
+    name: "LabHostQuerySlow quiet"
+    input_series:
+      - series: 'lims_lab_host_query_duration_seconds_bucket{le="0.15"}'
+        values: "0+1x30"
+      - series: 'lims_lab_host_query_duration_seconds_bucket{le="3"}'
+        values: "0+1x30"
+      - series: 'lims_lab_host_query_duration_seconds_bucket{le="+Inf"}'
+        values: "0+1x30"
+    alert_rule_test:
+      - alertname: LabHostQuerySlow
+        eval_time: 27m
+        exp_alerts: []
+
+  - interval: 1m
+    name: "LabBarcodeAllocationFailure fires"
+    input_series:
+      - series: 'lims_lab_barcode_alloc_failures_total'
+        values: "0+1x15"
+    alert_rule_test:
+      - alertname: LabBarcodeAllocationFailure
+        eval_time: 12m
+        exp_alerts:
+          - exp_labels: {severity: "page", team: "ops"}
+            exp_annotations: {summary: "Barcode allocation failed in the last 5 min.", runbook_url: "infra/runbooks/lab.md#labbarcodeallocationfailure"}
+
+  - interval: 1m
+    name: "LabBarcodeAllocationFailure quiet"
+    input_series:
+      - series: 'lims_lab_barcode_alloc_failures_total'
+        values: "0+0x15"
+    alert_rule_test:
+      - alertname: LabBarcodeAllocationFailure
+        eval_time: 12m
+        exp_alerts: []

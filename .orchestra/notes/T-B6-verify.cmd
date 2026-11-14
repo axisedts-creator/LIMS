@@ -1,0 +1,1 @@
+cd /d "%~dp0..\.." && pnpm --dir packages/ui exec vitest run src/components/__tests__/weekday-time-range-editor.test.tsx && pnpm --dir apps/web exec vitest run -c src/features/engagement/__tests__/vitest.t-b6.config.ts

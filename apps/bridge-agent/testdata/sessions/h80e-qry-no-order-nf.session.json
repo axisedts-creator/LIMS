@@ -1,0 +1,8 @@
+{"name": "h80e-qry-no-order-nf", "protocol": "hl7v2", "transport": "tcp_server", "instrument_profile": "truth_h80e", "options": {},
+ "steps": [
+  {"note": "server stub answers: tube registered but no pending HbA1c test mapped to this instrument -> QCK NF only, no DSR (s5 table)", "host_query": {"reply": [
+   "MSH|^~\\&|Truth|Truth-H80E|||20261105||QCK^Q02|12701|P|2.3|||||UTF-8||||<CR>MSA|AA|127|Message accepted|||0<CR>ERR|0<CR>QAK|SR|NF|||||<CR>"]}},
+  {"from": "instrument", "bytes": "<VT>MSH|^~\\&|Truth|Truth-H80E|||20261105||QRY^Q02|127|P|2.3||||||UTF-8||||<CR>QRD|20261105|R|D|65|||RD|E2600000043||||<CR>QRF|||||RCT|COR|ALL|||<CR><FS><CR>"},
+  {"expect": "agent", "bytes": "<VT>MSH|^~\\&|Truth|Truth-H80E|||20261105||QCK^Q02|12701|P|2.3|||||UTF-8||||<CR>MSA|AA|127|Message accepted|||0<CR>ERR|0<CR>QAK|SR|NF|||||<CR><FS><CR>", "within_ms": 200},
+  {"expect_queue": {"items": 1, "kind": "data", "raw_sha256": "70f370fb4027b1fea54d329e76b66b0973df6ef3eadc570663cdff8a6cb68e6a"}}
+ ]}

@@ -1,0 +1,9 @@
+[Unit]
+Description=LIMS object replica every {{ object_replica_interval_min }} min
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec={{ object_replica_interval_min | int }}min
+
+[Install]
+WantedBy=timers.target

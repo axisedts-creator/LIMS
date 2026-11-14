@@ -1,0 +1,4740 @@
+# contracts/openapi/homecollection.yaml (C17) — transcription of spec/chunks/C17-home-collection/02-TRD.md §5.1 (H1–H21), §5.2 (A1–A5), §5.3/§5.3.1 (DTOs),
+# §6.3 (Mutation union), §11.2 (settings); 26 ops (T0C-10.C17; AC-0C-1.4/1.5).
+# LD-103 (2026-11-11): wave-2 transcription scheduled by the human lead; owner approval given by that decision. Generated once from the TRD tables, then owned by C17.
+# Notes:
+# - Examples are synthetic (uuids 01950c17-0000-7000-8000-…, "Synthetic …" labels, "Test Patient 00nn", phone +1555…). The TRD §6.2 example phone is replaced.
+# - Every op lists the five common codes; common.not_found on ops with a path parameter (and H11, §5.4.4); A1–A5 add app_version_unsupported (426),
+#   device_not_registered (409) and common.id_mismatch; privileged permissions add auth.mfa_required; required-idempotency ops add the three idempotency
+#   codes and the Idempotency-Key header; optional-idempotency ops declare no header (wave-1 convention). Error responses derive from errors.yaml http.
+# - [CONV] If-Match on H3 H4 H5 H6 H8 H9 H11 H15 H17 H19 (actions on versioned resources, TRD §5 preamble); none on H7 (creates a new visit), H21 (no state),
+#   A1–A5 (device-id binding instead).
+# - [CONV] §5.3.1 "if" presence rules (08 A13 P-5) are kept as optional fields: lint rule 2 forbids if/then in OAS 3.0 schemas; the server enforces presence.
+#   visit_id is absent from MutationHandoverRecorded. SnapshotDto.visits = oneOf [SnapshotVisit, SnapshotStub] with discriminator status.
+# - [CONV] Detail DTOs (VisitDetailDto, HandoverDetailDto) are flat copies of the summary fields (closed schemas cannot be combined with allOf).
+# - [CONV] enums copied from 05-SCHEMA CHECK constraints; coded sets homecollection.<set_code> (05-SCHEMA §2); X-Lims-App-Version / min_app_version use the
+#   settings__min_app_version__ck pattern; payment amount 1..50,000,000 paisa (TRD §6.3 [CONV]).
+openapi: 3.0.3
+info:
+  title: LIMS home collection (C17)
+  version: 1.0.0
+  description: Transcribed from spec/chunks/C17-home-collection/02-TRD.md §5.1–§5.3.1, §6.3, §11.2 (T0C-10.C17, LD-103).
+paths:
+  /v1/homecollection/visits:
+    get:
+      operationId: listHomeVisits
+      tags:
+        - homecollection
+      summary: List home visits for the dispatch board (TRD §5 H1)
+      security:
+        - bearerJwt: []
+      x-permission: homecollection.visit.read
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.invalid_cursor
+      parameters:
+        - name: route_date
+          in: query
+          required: false
+          schema:
+            $ref: _common.yaml#/components/schemas/IsoDate
+        - name: window_from
+          in: query
+          required: false
+          schema:
+            $ref: _common.yaml#/components/schemas/IsoUtc
+        - name: window_to
+          in: query
+          required: false
+          schema:
+            $ref: _common.yaml#/components/schemas/IsoUtc
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 120
+            pattern: ^[a-z_]+(,[a-z_]+)*$
+            description: csv of visit statuses
+        - name: centre_id
+          in: query
+          required: false
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - name: phlebotomist_membership_id
+          in: query
+          required: false
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - name: unassigned_only
+          in: query
+          required: false
+          schema:
+            type: boolean
+        - name: has_open_flags
+          in: query
+          required: false
+          schema:
+            type: boolean
+        - name: kind
+          in: query
+          required: false
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 80
+            pattern: ^[a-z_]+(,[a-z_]+)*$
+            description: csv of visit kinds
+        - name: sort
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 14
+            enum:
+              - window_start
+              - -window_start
+              - route_sequence
+              - created_at
+              - -created_at
+        - $ref: _common.yaml#/components/parameters/Limit
+        - $ref: _common.yaml#/components/parameters/Cursor
+      responses:
+        "200":
+          description: Page of visits.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                  - data
+                  - page
+                properties:
+                  data:
+                    type: array
+                    maxItems: 200
+                    items:
+                      $ref: "#/components/schemas/VisitSummaryDto"
+                  page:
+                    $ref: _common.yaml#/components/schemas/PageInfo
+              examples:
+                synthetic:
+                  value:
+                    data:
+                      - id: 01950c17-0000-7000-8000-000000130001
+                        version: 3
+                        kind: booking
+                        status: assigned
+                        centre_id: 01950c17-0000-7000-8000-000000020009
+                        branch_id: 01950c17-0000-7000-8000-000000020010
+                        order_id: 01950c17-0000-7000-8000-000000050002
+                        patient_id: 01950c17-0000-7000-8000-000000040042
+                        patient_display_name: Test Patient 0042
+                        window_start: 2026-11-06T01:15:00.000Z
+                        window_end: 2026-11-06T01:45:00.000Z
+                        route_id: 01950c17-0000-7000-8000-000000170001
+                        route_date: 2026-11-06
+                        route_sequence: 1
+                        phlebotomist:
+                          membership_id: 01950c17-0000-7000-8000-000000160001
+                          display_name: Synthetic Phlebotomist 01
+                        area_hint: House 12, Synthetic Tole, Ward 4
+                        open_flag_kinds: []
+                        specimens_summary:
+                          expected: 1
+                          collected: 0
+                          held: 0
+                          received: 0
+                          rejected: 0
+                    page:
+                      limit: 50
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/homecollection/visits/{visit_id}:
+    get:
+      operationId: getHomeVisit
+      tags:
+        - homecollection
+      summary: Get a home visit (writes access-log home_visit.view) (TRD §5 H2)
+      security:
+        - bearerJwt: []
+      x-permission: homecollection.visit.read
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - homecollection.visit_not_assigned
+        - common.not_found
+      parameters:
+        - name: visit_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VisitDetailDto"
+              examples:
+                synthetic:
+                  value:
+                    id: 01950c17-0000-7000-8000-000000900001
+                    version: 3
+                    kind: booking
+                    status: assigned
+                    centre_id: 01950c17-0000-7000-8000-000000020009
+                    branch_id: 01950c17-0000-7000-8000-000000020010
+                    order_id: 01950c17-0000-7000-8000-000000050002
+                    patient_id: 01950c17-0000-7000-8000-000000040042
+                    patient_display_name: Test Patient 0042
+                    window_start: 2026-11-06T01:15:00.000Z
+                    window_end: 2026-11-06T01:45:00.000Z
+                    route_id: 01950c17-0000-7000-8000-000000170001
+                    route_date: 2026-11-06
+                    route_sequence: 1
+                    phlebotomist:
+                      membership_id: 01950c17-0000-7000-8000-000000160001
+                      display_name: Synthetic Phlebotomist 01
+                    area_hint: House 12, Synthetic Tole, Ward 4
+                    open_flag_kinds: []
+                    specimens_summary:
+                      expected: 1
+                      collected: 0
+                      held: 0
+                      received: 0
+                      rejected: 0
+                    booking_id: 01950c17-0000-7000-8000-000000060001
+                    registration_no: SYN-000042
+                    address:
+                      address_text: House 12, Synthetic Tole, Ward 4
+                      landmark: Near the blue gate
+                    note_for_phlebotomist: Fasting sample
+                    assigned_at: 2026-11-05T10:00:00.000Z
+                    specimens:
+                      - specimen_id: 01950c17-0000-7000-8000-000000090011
+                        specimen_type_code: EDTA_WB
+                        container_code: LAV_3ML
+                        status: ordered
+                    collections: []
+                    flags: []
+                    assignments:
+                      - membership_id: 01950c17-0000-7000-8000-000000160001
+                        display_name: Synthetic Phlebotomist 01
+                        route_date: 2026-11-06
+                        assigned_at: 2026-11-05T10:00:00.000Z
+                        assigned_by_display: Synthetic Dispatcher 01
+                    transitions:
+                      - from: unassigned
+                        to: assigned
+                        at: 2026-11-05T10:00:00.000Z
+                        actor_display: Synthetic Dispatcher 01
+                    payments: []
+                    balance:
+                      balance_due:
+                        amount_paisa: 180000
+                        currency: NPR
+                      as_of: 2026-11-06T00:30:00.000Z
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/homecollection/visits/{visit_id}/assign:
+    post:
+      operationId: assignHomeVisit
+      tags:
+        - homecollection
+      summary: Assign a visit to a phlebotomist route (TRD §5 H3)
+      security:
+        - bearerJwt: []
+      x-permission: homecollection.visit.assign
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - homecollection.visit_closed
+        - homecollection.visit_incomplete
+        - homecollection.phlebotomist_not_eligible
+        - frontdesk.consent_required
+        - frontdesk.booking_already_converted
+        - frontdesk.patient_duplicate_suspected
+        # LD-118 (2026-11-12) option 1b: catalog.test_inactive / catalog.no_price not listed (C17 does not consume CatalogPort)
+        - common.not_found
+        - common.idempotency_key_required
+        - common.idempotency_key_reused
+        - common.idempotency_in_progress
+        - common.version_conflict
+        - common.precondition_required
+      parameters:
+        - name: visit_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - $ref: _common.yaml#/components/parameters/IdempotencyKey
+        - $ref: _common.yaml#/components/parameters/IfMatch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - phlebotomist_membership_id
+                - route_date
+              properties:
+                phlebotomist_membership_id:
+                  $ref: _common.yaml#/components/schemas/Uuid
+                route_date:
+                  $ref: _common.yaml#/components/schemas/IsoDate
+                route_sequence:
+                  type: integer
+                  minimum: 1
+                  maximum: 60
+            examples:
+              synthetic:
+                value:
+                  phlebotomist_membership_id: 01950c17-0000-7000-8000-000000160001
+                  route_date: 2026-11-06
+                  route_sequence: 1
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VisitDetailDto"
+              examples:
+                synthetic:
+                  value:
+                    id: 01950c17-0000-7000-8000-000000900002
+                    version: 3
+                    kind: booking
+                    status: assigned
+                    centre_id: 01950c17-0000-7000-8000-000000020009
+                    branch_id: 01950c17-0000-7000-8000-000000020010
+                    order_id: 01950c17-0000-7000-8000-000000050002
+                    patient_id: 01950c17-0000-7000-8000-000000040042
+                    patient_display_name: Test Patient 0042
+                    window_start: 2026-11-06T01:15:00.000Z
+                    window_end: 2026-11-06T01:45:00.000Z
+                    route_id: 01950c17-0000-7000-8000-000000170001
+                    route_date: 2026-11-06
+                    route_sequence: 1
+                    phlebotomist:
+                      membership_id: 01950c17-0000-7000-8000-000000160001
+                      display_name: Synthetic Phlebotomist 01
+                    area_hint: House 12, Synthetic Tole, Ward 4
+                    open_flag_kinds: []
+                    specimens_summary:
+                      expected: 1
+                      collected: 0
+                      held: 0
+                      received: 0
+                      rejected: 0
+                    booking_id: 01950c17-0000-7000-8000-000000060001
+                    registration_no: SYN-000042
+                    address:
+                      address_text: House 12, Synthetic Tole, Ward 4
+                      landmark: Near the blue gate
+                    note_for_phlebotomist: Fasting sample
+                    assigned_at: 2026-11-05T10:00:00.000Z
+                    specimens:
+                      - specimen_id: 01950c17-0000-7000-8000-000000090011
+                        specimen_type_code: EDTA_WB
+                        container_code: LAV_3ML
+                        status: ordered
+                    collections: []
+                    flags: []
+                    assignments:
+                      - membership_id: 01950c17-0000-7000-8000-000000160001
+                        display_name: Synthetic Phlebotomist 01
+                        route_date: 2026-11-06
+                        assigned_at: 2026-11-05T10:00:00.000Z
+                        assigned_by_display: Synthetic Dispatcher 01
+                    transitions:
+                      - from: unassigned
+                        to: assigned
+                        at: 2026-11-05T10:00:00.000Z
+                        actor_display: Synthetic Dispatcher 01
+                    payments: []
+                    balance:
+                      balance_due:
+                        amount_paisa: 180000
+                        currency: NPR
+                      as_of: 2026-11-06T00:30:00.000Z
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "428":
+          $ref: _common.yaml#/components/responses/PreconditionRequired
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/homecollection/visits/{visit_id}/unassign:
+    post:
+      operationId: unassignHomeVisit
+      tags:
+        - homecollection
+      summary: Unassign a visit (TRD §5 H4)
+      security:
+        - bearerJwt: []
+      x-permission: homecollection.visit.assign
+      x-context: tenant
+      x-idempotency: optional
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - homecollection.visit_closed
+        - homecollection.mutation_superseded
+        - common.not_found
+        - common.version_conflict
+        - common.precondition_required
+      parameters:
+        - name: visit_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - $ref: _common.yaml#/components/parameters/IfMatch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - reason_code
+              properties:
+                reason_code:
+                  type: string
+                  minLength: 1
+                  maxLength: 64
+                  pattern: ^[a-z0-9_]{1,64}$
+                  x-coded-set: homecollection.unassign_reasons
+                reason_text:
+                  type: string
+                  minLength: 1
+                  maxLength: 500
+            examples:
+              synthetic:
+                value:
+                  reason_code: rebalance_routes
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VisitDetailDto"
+              examples:
+                synthetic:
+                  value:
+                    id: 01950c17-0000-7000-8000-000000900003
+                    version: 3
+                    kind: booking
+                    status: unassigned
+                    centre_id: 01950c17-0000-7000-8000-000000020009
+                    branch_id: 01950c17-0000-7000-8000-000000020010
+                    order_id: 01950c17-0000-7000-8000-000000050002
+                    patient_id: 01950c17-0000-7000-8000-000000040042
+                    patient_display_name: Test Patient 0042
+                    window_start: 2026-11-06T01:15:00.000Z
+                    window_end: 2026-11-06T01:45:00.000Z
+                    route_date: 2026-11-06
+                    route_sequence: 1
+                    phlebotomist:
+                      membership_id: 01950c17-0000-7000-8000-000000160001
+                      display_name: Synthetic Phlebotomist 01
+                    area_hint: House 12, Synthetic Tole, Ward 4
+                    open_flag_kinds: []
+                    specimens_summary:
+                      expected: 1
+                      collected: 0
+                      held: 0
+                      received: 0
+                      rejected: 0
+                    booking_id: 01950c17-0000-7000-8000-000000060001
+                    registration_no: SYN-000042
+                    address:
+                      address_text: House 12, Synthetic Tole, Ward 4
+                      landmark: Near the blue gate
+                    note_for_phlebotomist: Fasting sample
+                    assigned_at: 2026-11-05T10:00:00.000Z
+                    specimens:
+                      - specimen_id: 01950c17-0000-7000-8000-000000090011
+                        specimen_type_code: EDTA_WB
+                        container_code: LAV_3ML
+                        status: ordered
+                    collections: []
+                    flags: []
+                    assignments:
+                      - membership_id: 01950c17-0000-7000-8000-000000160001
+                        display_name: Synthetic Phlebotomist 01
+                        route_date: 2026-11-06
+                        assigned_at: 2026-11-05T10:00:00.000Z
+                        assigned_by_display: Synthetic Dispatcher 01
+                    transitions:
+                      - from: unassigned
+                        to: assigned
+                        at: 2026-11-05T10:00:00.000Z
+                        actor_display: Synthetic Dispatcher 01
+                    payments: []
+                    balance:
+                      balance_due:
+                        amount_paisa: 180000
+                        currency: NPR
+                      as_of: 2026-11-06T00:30:00.000Z
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "428":
+          $ref: _common.yaml#/components/responses/PreconditionRequired
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/homecollection/visits/{visit_id}/schedule:
+    post:
+      operationId: scheduleHomeVisit
+      tags:
+        - homecollection
+      summary: Set a visit's window, address and note (TRD §5 H5)
+      security:
+        - bearerJwt: []
+      x-permission: homecollection.visit.assign
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - homecollection.visit_closed
+        - common.not_found
+        - common.idempotency_key_required
+        - common.idempotency_key_reused
+        - common.idempotency_in_progress
+        - common.version_conflict
+        - common.precondition_required
+      parameters:
+        - name: visit_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - $ref: _common.yaml#/components/parameters/IdempotencyKey
+        - $ref: _common.yaml#/components/parameters/IfMatch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - window_start
+                - window_end
+              properties:
+                window_start:
+                  $ref: _common.yaml#/components/schemas/IsoUtc
+                window_end:
+                  $ref: _common.yaml#/components/schemas/IsoUtc
+                address:
+                  $ref: "#/components/schemas/Address"
+                note_for_phlebotomist:
+                  type: string
+                  minLength: 1
+                  maxLength: 500
+                unset:
+                  type: array
+                  maxItems: 3
+                  items:
+                    type: string
+                    maxLength: 21
+                    enum:
+                      - note_for_phlebotomist
+                      - landmark
+                      - coordinates
+            examples:
+              synthetic:
+                value:
+                  window_start: 2026-11-06T01:15:00.000Z
+                  window_end: 2026-11-06T01:45:00.000Z
+                  address:
+                    address_text: House 12, Synthetic Tole, Ward 4
+                    landmark: Near the blue gate
+                  unset:
+                    - coordinates
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VisitDetailDto"
+              examples:
+                synthetic:
+                  value:
+                    id: 01950c17-0000-7000-8000-000000900004
+                    version: 3
+                    kind: booking
+                    status: assigned
+                    centre_id: 01950c17-0000-7000-8000-000000020009
+                    branch_id: 01950c17-0000-7000-8000-000000020010
+                    order_id: 01950c17-0000-7000-8000-000000050002
+                    patient_id: 01950c17-0000-7000-8000-000000040042
+                    patient_display_name: Test Patient 0042
+                    window_start: 2026-11-06T01:15:00.000Z
+                    window_end: 2026-11-06T01:45:00.000Z
+                    route_id: 01950c17-0000-7000-8000-000000170001
+                    route_date: 2026-11-06
+                    route_sequence: 1
+                    phlebotomist:
+                      membership_id: 01950c17-0000-7000-8000-000000160001
+                      display_name: Synthetic Phlebotomist 01
+                    area_hint: House 12, Synthetic Tole, Ward 4
+                    open_flag_kinds: []
+                    specimens_summary:
+                      expected: 1
+                      collected: 0
+                      held: 0
+                      received: 0
+                      rejected: 0
+                    booking_id: 01950c17-0000-7000-8000-000000060001
+                    registration_no: SYN-000042
+                    address:
+                      address_text: House 12, Synthetic Tole, Ward 4
+                      landmark: Near the blue gate
+                    note_for_phlebotomist: Fasting sample
+                    assigned_at: 2026-11-05T10:00:00.000Z
+                    specimens:
+                      - specimen_id: 01950c17-0000-7000-8000-000000090011
+                        specimen_type_code: EDTA_WB
+                        container_code: LAV_3ML
+                        status: ordered
+                    collections: []
+                    flags: []
+                    assignments:
+                      - membership_id: 01950c17-0000-7000-8000-000000160001
+                        display_name: Synthetic Phlebotomist 01
+                        route_date: 2026-11-06
+                        assigned_at: 2026-11-05T10:00:00.000Z
+                        assigned_by_display: Synthetic Dispatcher 01
+                    transitions:
+                      - from: unassigned
+                        to: assigned
+                        at: 2026-11-05T10:00:00.000Z
+                        actor_display: Synthetic Dispatcher 01
+                    payments: []
+                    balance:
+                      balance_due:
+                        amount_paisa: 180000
+                        currency: NPR
+                      as_of: 2026-11-06T00:30:00.000Z
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "428":
+          $ref: _common.yaml#/components/responses/PreconditionRequired
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/homecollection/visits/{visit_id}/cancel:
+    post:
+      operationId: cancelHomeVisit
+      tags:
+        - homecollection
+      summary: Cancel a visit (TRD §5 H6)
+      security:
+        - bearerJwt: []
+      x-permission: homecollection.visit.assign
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - homecollection.visit_closed
+        - homecollection.mutation_superseded
+        - common.not_found
+        - common.idempotency_key_required
+        - common.idempotency_key_reused
+        - common.idempotency_in_progress
+        - common.version_conflict
+        - common.precondition_required
+      parameters:
+        - name: visit_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - $ref: _common.yaml#/components/parameters/IdempotencyKey
+        - $ref: _common.yaml#/components/parameters/IfMatch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - reason_code
+              properties:
+                reason_code:
+                  type: string
+                  minLength: 1
+                  maxLength: 64
+                  pattern: ^[a-z0-9_]{1,64}$
+                  x-coded-set: homecollection.visit_cancel_reasons
+                reason_text:
+                  type: string
+                  minLength: 1
+                  maxLength: 500
+            examples:
+              synthetic:
+                value:
+                  reason_code: patient_request
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VisitDetailDto"
+              examples:
+                synthetic:
+                  value:
+                    id: 01950c17-0000-7000-8000-000000900005
+                    version: 3
+                    kind: booking
+                    status: cancelled
+                    centre_id: 01950c17-0000-7000-8000-000000020009
+                    branch_id: 01950c17-0000-7000-8000-000000020010
+                    order_id: 01950c17-0000-7000-8000-000000050002
+                    patient_id: 01950c17-0000-7000-8000-000000040042
+                    patient_display_name: Test Patient 0042
+                    window_start: 2026-11-06T01:15:00.000Z
+                    window_end: 2026-11-06T01:45:00.000Z
+                    route_id: 01950c17-0000-7000-8000-000000170001
+                    route_date: 2026-11-06
+                    route_sequence: 1
+                    phlebotomist:
+                      membership_id: 01950c17-0000-7000-8000-000000160001
+                      display_name: Synthetic Phlebotomist 01
+                    area_hint: House 12, Synthetic Tole, Ward 4
+                    open_flag_kinds: []
+                    specimens_summary:
+                      expected: 1
+                      collected: 0
+                      held: 0
+                      received: 0
+                      rejected: 0
+                    booking_id: 01950c17-0000-7000-8000-000000060001
+                    registration_no: SYN-000042
+                    address:
+                      address_text: House 12, Synthetic Tole, Ward 4
+                      landmark: Near the blue gate
+                    note_for_phlebotomist: Fasting sample
+                    assigned_at: 2026-11-05T10:00:00.000Z
+                    specimens:
+                      - specimen_id: 01950c17-0000-7000-8000-000000090011
+                        specimen_type_code: EDTA_WB
+                        container_code: LAV_3ML
+                        status: ordered
+                    collections: []
+                    flags: []
+                    assignments:
+                      - membership_id: 01950c17-0000-7000-8000-000000160001
+                        display_name: Synthetic Phlebotomist 01
+                        route_date: 2026-11-06
+                        assigned_at: 2026-11-05T10:00:00.000Z
+                        assigned_by_display: Synthetic Dispatcher 01
+                    transitions:
+                      - from: unassigned
+                        to: assigned
+                        at: 2026-11-05T10:00:00.000Z
+                        actor_display: Synthetic Dispatcher 01
+                    payments: []
+                    balance:
+                      balance_due:
+                        amount_paisa: 180000
+                        currency: NPR
+                      as_of: 2026-11-06T00:30:00.000Z
+                    cancelled_at: 2026-11-06T00:45:00.000Z
+                    status_reason_code: patient_request
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "428":
+          $ref: _common.yaml#/components/responses/PreconditionRequired
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/homecollection/visits/{visit_id}/revisits:
+    post:
+      operationId: createHomeRevisit
+      tags:
+        - homecollection
+      summary: Create a revisit for a failed or partial visit (TRD §5 H7)
+      security:
+        - bearerJwt: []
+      x-permission: homecollection.visit.assign
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - homecollection.visit_closed
+        - common.not_found
+        - common.idempotency_key_required
+        - common.idempotency_key_reused
+        - common.idempotency_in_progress
+      parameters:
+        - name: visit_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - $ref: _common.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - reason_code
+              properties:
+                reason_code:
+                  type: string
+                  minLength: 1
+                  maxLength: 64
+                  pattern: ^[a-z0-9_]{1,64}$
+                  x-coded-set: homecollection.revisit_reasons
+                reason_text:
+                  type: string
+                  minLength: 1
+                  maxLength: 500
+            examples:
+              synthetic:
+                value:
+                  reason_code: failed_visit
+                  reason_text: Synthetic note
+      responses:
+        "201":
+          description: Created (new visit).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VisitDetailDto"
+              examples:
+                synthetic:
+                  value:
+                    id: 01950c17-0000-7000-8000-000000130003
+                    version: 1
+                    kind: revisit
+                    status: unassigned
+                    centre_id: 01950c17-0000-7000-8000-000000020009
+                    branch_id: 01950c17-0000-7000-8000-000000020010
+                    order_id: 01950c17-0000-7000-8000-000000050002
+                    patient_id: 01950c17-0000-7000-8000-000000040042
+                    patient_display_name: Test Patient 0042
+                    open_flag_kinds: []
+                    specimens_summary:
+                      expected: 1
+                      collected: 0
+                      held: 0
+                      received: 0
+                      rejected: 0
+                    booking_id: 01950c17-0000-7000-8000-000000060001
+                    registration_no: SYN-000042
+                    address:
+                      address_text: House 12, Synthetic Tole, Ward 4
+                      landmark: Near the blue gate
+                    note_for_phlebotomist: Fasting sample
+                    specimens:
+                      - specimen_id: 01950c17-0000-7000-8000-000000090011
+                        specimen_type_code: EDTA_WB
+                        container_code: LAV_3ML
+                        status: ordered
+                    collections: []
+                    flags: []
+                    assignments: []
+                    transitions: []
+                    payments: []
+                    balance:
+                      balance_due:
+                        amount_paisa: 180000
+                        currency: NPR
+                      as_of: 2026-11-06T00:30:00.000Z
+                    parent_visit_id: 01950c17-0000-7000-8000-000000130001
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/homecollection/visits/{visit_id}/flags/{flag_id}/resolve:
+    post:
+      operationId: resolveHomeVisitFlag
+      tags:
+        - homecollection
+      summary: Resolve a visit flag (TRD §5 H8)
+      security:
+        - bearerJwt: []
+      x-permission: homecollection.visit.assign
+      x-context: tenant
+      x-idempotency: optional
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.not_found
+        - common.version_conflict
+        - common.precondition_required
+      parameters:
+        - name: visit_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - name: flag_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - $ref: _common.yaml#/components/parameters/IfMatch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - resolution_code
+              properties:
+                resolution_code:
+                  type: string
+                  minLength: 1
+                  maxLength: 64
+                  pattern: ^[a-z0-9_]{1,64}$
+                  x-coded-set: homecollection.flag_resolutions
+                note:
+                  type: string
+                  minLength: 1
+                  maxLength: 500
+            examples:
+              synthetic:
+                value:
+                  resolution_code: handled
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VisitFlagDto"
+              examples:
+                synthetic:
+                  value:
+                    id: 01950c17-0000-7000-8000-000000190001
+                    version: 2
+                    kind: held_collection
+                    status: resolved
+                    created_at: 2026-11-06T02:40:00.000Z
+                    resolved_at: 2026-11-06T03:00:00.000Z
+                    resolution_code: handled
+                    resolved_by_display: Synthetic Dispatcher 01
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "428":
+          $ref: _common.yaml#/components/responses/PreconditionRequired
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/homecollection/collections/{collection_id}/review:
+    post:
+      operationId: reviewHeldCollection
+      tags:
+        - homecollection
+      summary: Apply or discard a held collection (TRD §5 H9)
+      security:
+        - bearerJwt: []
+      x-permission: homecollection.visit.assign
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - homecollection.collection_not_held
+        - homecollection.mutation_superseded
+        - homecollection.barcode_mismatch
+        - common.not_found
+        - common.idempotency_key_required
+        - common.idempotency_key_reused
+        - common.idempotency_in_progress
+        - common.version_conflict
+        - common.precondition_required
+      parameters:
+        - name: collection_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - $ref: _common.yaml#/components/parameters/IdempotencyKey
+        - $ref: _common.yaml#/components/parameters/IfMatch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - decision
+                - reason_code
+              properties:
+                decision:
+                  type: string
+                  maxLength: 7
+                  enum:
+                    - apply
+                    - discard
+                reason_code:
+                  type: string
+                  minLength: 1
+                  maxLength: 64
+                  pattern: ^[a-z0-9_]{1,64}$
+                  x-coded-set: homecollection.review_reasons
+                reason_text:
+                  type: string
+                  minLength: 1
+                  maxLength: 500
+            examples:
+              synthetic:
+                value:
+                  decision: apply
+                  reason_code: confirmed_with_phlebotomist
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CollectionDto"
+              examples:
+                synthetic:
+                  value:
+                    id: 01950c17-0000-7000-8000-000000180001
+                    version: 2
+                    visit_id: 01950c17-0000-7000-8000-000000130001
+                    specimen_id: 01950c17-0000-7000-8000-000000090011
+                    client_mutation_id: 01950c17-0000-7000-8000-0000001a0001
+                    status: applied
+                    hold_code: homecollection.barcode_mismatch
+                    scan_method: camera
+                    barcode_verified: true
+                    collected_at: 2026-11-06T01:26:41.000Z
+                    collected_by:
+                      membership_id: 01950c17-0000-7000-8000-000000160001
+                      display_name: Synthetic Phlebotomist 01
+                    review:
+                      decision: apply
+                      reason_code: confirmed_with_phlebotomist
+                      by_display: Synthetic Dispatcher 01
+                      at: 2026-11-06T03:00:00.000Z
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "428":
+          $ref: _common.yaml#/components/responses/PreconditionRequired
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/homecollection/routes:
+    get:
+      operationId: listHomeRoutes
+      tags:
+        - homecollection
+      summary: List routes of a date (no cursor, ≤200) (TRD §5 H10)
+      security:
+        - bearerJwt: []
+      x-permission: homecollection.visit.read
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+      parameters:
+        - name: route_date
+          in: query
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/IsoDate
+        - name: centre_id
+          in: query
+          required: false
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+      responses:
+        "200":
+          description: Routes.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                  - data
+                properties:
+                  data:
+                    type: array
+                    maxItems: 200
+                    items:
+                      $ref: "#/components/schemas/RouteDto"
+              examples:
+                synthetic:
+                  value:
+                    data:
+                      - id: 01950c17-0000-7000-8000-000000170001
+                        version: 4
+                        centre_id: 01950c17-0000-7000-8000-000000020009
+                        route_date: 2026-11-06
+                        phlebotomist:
+                          membership_id: 01950c17-0000-7000-8000-000000160001
+                          display_name: Synthetic Phlebotomist 01
+                        visit_ids_in_order:
+                          - 01950c17-0000-7000-8000-000000130001
+                        active_visits: 1
+                        completed_visits: 0
+                        last_snapshot_at: 2026-11-06T00:30:00.000Z
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/homecollection/routes/{route_id}/sequence:
+    post:
+      operationId: resequenceHomeRoute
+      tags:
+        - homecollection
+      summary: Reorder a route's visits (TRD §5 H11)
+      security:
+        - bearerJwt: []
+      x-permission: homecollection.visit.assign
+      x-context: tenant
+      x-idempotency: optional
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.not_found
+        - common.version_conflict
+        - common.precondition_required
+      parameters:
+        - name: route_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - $ref: _common.yaml#/components/parameters/IfMatch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - visit_ids
+              properties:
+                visit_ids:
+                  type: array
+                  minItems: 1
+                  maxItems: 60
+                  items:
+                    $ref: _common.yaml#/components/schemas/Uuid
+            examples:
+              synthetic:
+                value:
+                  visit_ids:
+                    - 01950c17-0000-7000-8000-000000130001
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RouteDto"
+              examples:
+                synthetic:
+                  value:
+                    id: 01950c17-0000-7000-8000-000000900006
+                    version: 5
+                    centre_id: 01950c17-0000-7000-8000-000000020009
+                    route_date: 2026-11-06
+                    phlebotomist:
+                      membership_id: 01950c17-0000-7000-8000-000000160001
+                      display_name: Synthetic Phlebotomist 01
+                    visit_ids_in_order:
+                      - 01950c17-0000-7000-8000-000000130001
+                    active_visits: 1
+                    completed_visits: 0
+                    last_snapshot_at: 2026-11-06T00:30:00.000Z
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "428":
+          $ref: _common.yaml#/components/responses/PreconditionRequired
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/homecollection/phlebotomists:
+    get:
+      operationId: listEligiblePhlebotomists
+      tags:
+        - homecollection
+      summary: List phlebotomists eligible for a centre (TRD §5 H12)
+      security:
+        - bearerJwt: []
+      x-permission: homecollection.visit.assign
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+      parameters:
+        - name: centre_id
+          in: query
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - name: route_date
+          in: query
+          required: false
+          schema:
+            $ref: _common.yaml#/components/schemas/IsoDate
+      responses:
+        "200":
+          description: Phlebotomists.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                  - data
+                properties:
+                  data:
+                    type: array
+                    maxItems: 200
+                    items:
+                      type: object
+                      additionalProperties: false
+                      required:
+                        - membership_id
+                        - display_name
+                        - active_visits
+                        - route_full
+                      properties:
+                        membership_id:
+                          $ref: _common.yaml#/components/schemas/Uuid
+                        display_name:
+                          type: string
+                          minLength: 1
+                          maxLength: 200
+                        route_id:
+                          $ref: _common.yaml#/components/schemas/Uuid
+                        active_visits:
+                          type: integer
+                          minimum: 0
+                          maximum: 60
+                        route_full:
+                          type: boolean
+              examples:
+                synthetic:
+                  value:
+                    data:
+                      - membership_id: 01950c17-0000-7000-8000-000000160001
+                        display_name: Synthetic Phlebotomist 01
+                        route_id: 01950c17-0000-7000-8000-000000170001
+                        active_visits: 1
+                        route_full: false
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/homecollection/handovers:
+    get:
+      operationId: listHandovers
+      tags:
+        - homecollection
+      summary: List specimen handovers (TRD §5 H13)
+      security:
+        - bearerJwt: []
+      x-permission: homecollection.handover.receive
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 40
+            pattern: ^(pending|confirmed|discrepancy)(,(pending|confirmed|discrepancy))*$
+            description: csv of handover statuses
+        - name: to_centre_id
+          in: query
+          required: false
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - name: handed_over_from
+          in: query
+          required: false
+          schema:
+            $ref: _common.yaml#/components/schemas/IsoUtc
+        - name: handed_over_to
+          in: query
+          required: false
+          schema:
+            $ref: _common.yaml#/components/schemas/IsoUtc
+        - $ref: _common.yaml#/components/parameters/Limit
+        - $ref: _common.yaml#/components/parameters/Cursor
+      responses:
+        "200":
+          description: Page of handovers.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                  - data
+                  - page
+                properties:
+                  data:
+                    type: array
+                    maxItems: 200
+                    items:
+                      $ref: "#/components/schemas/HandoverSummaryDto"
+                  page:
+                    $ref: _common.yaml#/components/schemas/PageInfo
+              examples:
+                synthetic:
+                  value:
+                    data:
+                      - id: 01950c17-0000-7000-8000-0000001e0001
+                        version: 1
+                        status: pending
+                        from:
+                          membership_id: 01950c17-0000-7000-8000-000000160001
+                          display_name: Synthetic Phlebotomist 01
+                        to_centre_id: 01950c17-0000-7000-8000-000000020002
+                        handed_over_at: 2026-11-06T04:00:00.000Z
+                        item_count: 1
+                    page:
+                      limit: 50
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/homecollection/handovers/{handover_id}:
+    get:
+      operationId: getHandover
+      tags:
+        - homecollection
+      summary: Get a handover with its items (TRD §5 H14)
+      security:
+        - bearerJwt: []
+      x-permission: homecollection.handover.receive
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.not_found
+      parameters:
+        - name: handover_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HandoverDetailDto"
+              examples:
+                synthetic:
+                  value:
+                    id: 01950c17-0000-7000-8000-000000900007
+                    version: 1
+                    status: pending
+                    from:
+                      membership_id: 01950c17-0000-7000-8000-000000160001
+                      display_name: Synthetic Phlebotomist 01
+                    to_centre_id: 01950c17-0000-7000-8000-000000020002
+                    handed_over_at: 2026-11-06T04:00:00.000Z
+                    item_count: 1
+                    items:
+                      - specimen_id: 01950c17-0000-7000-8000-000000090011
+                        visit_id: 01950c17-0000-7000-8000-000000130001
+                        barcode: E2600000042
+                        specimen_type_code: EDTA_WB
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/homecollection/handovers/{handover_id}/confirm:
+    post:
+      operationId: confirmHandover
+      tags:
+        - homecollection
+      summary: Confirm receipt of a handover (TRD §5 H15)
+      security:
+        - bearerJwt: []
+      x-permission: homecollection.handover.receive
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.not_found
+        - common.idempotency_key_required
+        - common.idempotency_key_reused
+        - common.idempotency_in_progress
+        - common.version_conflict
+        - common.precondition_required
+      parameters:
+        - name: handover_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - $ref: _common.yaml#/components/parameters/IdempotencyKey
+        - $ref: _common.yaml#/components/parameters/IfMatch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - items
+              properties:
+                items:
+                  type: array
+                  minItems: 1
+                  maxItems: 50
+                  items:
+                    type: object
+                    additionalProperties: false
+                    required:
+                      - specimen_id
+                      - received
+                    properties:
+                      specimen_id:
+                        $ref: _common.yaml#/components/schemas/Uuid
+                      received:
+                        type: boolean
+                note:
+                  type: string
+                  minLength: 1
+                  maxLength: 500
+            examples:
+              synthetic:
+                value:
+                  items:
+                    - specimen_id: 01950c17-0000-7000-8000-000000090011
+                      received: true
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HandoverDetailDto"
+              examples:
+                synthetic:
+                  value:
+                    id: 01950c17-0000-7000-8000-000000900008
+                    version: 2
+                    status: confirmed
+                    from:
+                      membership_id: 01950c17-0000-7000-8000-000000160001
+                      display_name: Synthetic Phlebotomist 01
+                    to_centre_id: 01950c17-0000-7000-8000-000000020002
+                    handed_over_at: 2026-11-06T04:00:00.000Z
+                    item_count: 1
+                    received_count: 1
+                    items:
+                      - specimen_id: 01950c17-0000-7000-8000-000000090011
+                        visit_id: 01950c17-0000-7000-8000-000000130001
+                        barcode: E2600000042
+                        specimen_type_code: EDTA_WB
+                        outcome: received
+                    received_by_display: Synthetic Receiver 01
+                    received_at: 2026-11-06T05:00:00.000Z
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "428":
+          $ref: _common.yaml#/components/responses/PreconditionRequired
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/homecollection/devices:
+    get:
+      operationId: listPhleboDevices
+      tags:
+        - homecollection
+      summary: List phlebotomist devices (TRD §5 H16)
+      security:
+        - bearerJwt: []
+      x-permission: homecollection.device.manage
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - auth.mfa_required
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 14
+            enum:
+              - active
+              - signed_off
+              - wipe_requested
+              - wiped
+        - name: membership_id
+          in: query
+          required: false
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - $ref: _common.yaml#/components/parameters/Limit
+        - $ref: _common.yaml#/components/parameters/Cursor
+      responses:
+        "200":
+          description: Page of devices.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                  - data
+                  - page
+                properties:
+                  data:
+                    type: array
+                    maxItems: 200
+                    items:
+                      $ref: "#/components/schemas/DeviceDto"
+                  page:
+                    $ref: _common.yaml#/components/schemas/PageInfo
+              examples:
+                synthetic:
+                  value:
+                    data:
+                      - id: 01950c17-0000-7000-8000-0000001b0001
+                        version: 1
+                        membership_id: 01950c17-0000-7000-8000-000000160001
+                        display_name: Synthetic Phlebotomist 01
+                        platform: android
+                        os_version: "14"
+                        app_version: 1.0.0
+                        model: Synthetic Phone A
+                        status: active
+                        registered_at: 2026-11-01T03:00:00.000Z
+                        max_device_seq_received: 0
+                    page:
+                      limit: 50
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+    post:
+      operationId: registerPhleboDevice
+      tags:
+        - homecollection
+      summary: Register this phone for the signed-in phlebotomist (TRD §5 A1)
+      security:
+        - bearerJwt: []
+      x-permission: homecollection.sync.upload
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.idempotency_key_required
+        - common.idempotency_key_reused
+        - common.idempotency_in_progress
+        - homecollection.device_not_registered
+        - common.id_mismatch
+        - homecollection.app_version_unsupported
+      parameters:
+        - $ref: "#/components/parameters/AppVersion"
+        - $ref: "#/components/parameters/DeviceId"
+        - $ref: _common.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - device_id
+                - platform
+                - os_version
+                - app_version
+              properties:
+                device_id:
+                  $ref: _common.yaml#/components/schemas/Uuidv7
+                platform:
+                  type: string
+                  maxLength: 7
+                  enum:
+                    - android
+                    - ios
+                os_version:
+                  type: string
+                  minLength: 1
+                  maxLength: 40
+                app_version:
+                  type: string
+                  minLength: 1
+                  maxLength: 20
+                model:
+                  type: string
+                  minLength: 1
+                  maxLength: 80
+            examples:
+              synthetic:
+                value:
+                  device_id: 01950c17-0000-7000-8000-0000001b0001
+                  platform: android
+                  os_version: "14"
+                  app_version: 1.0.0
+                  model: Synthetic Phone A
+      responses:
+        "200":
+          description: Already registered (replay or same membership).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeviceDto"
+              examples:
+                synthetic:
+                  value:
+                    id: 01950c17-0000-7000-8000-000000900009
+                    version: 1
+                    membership_id: 01950c17-0000-7000-8000-000000160001
+                    display_name: Synthetic Phlebotomist 01
+                    platform: android
+                    os_version: "14"
+                    app_version: 1.0.0
+                    model: Synthetic Phone A
+                    status: active
+                    registered_at: 2026-11-01T03:00:00.000Z
+                    max_device_seq_received: 0
+        "201":
+          description: Registered.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeviceDto"
+              examples:
+                synthetic:
+                  value:
+                    id: 01950c17-0000-7000-8000-000000900010
+                    version: 1
+                    membership_id: 01950c17-0000-7000-8000-000000160001
+                    display_name: Synthetic Phlebotomist 01
+                    platform: android
+                    os_version: "14"
+                    app_version: 1.0.0
+                    model: Synthetic Phone A
+                    status: active
+                    registered_at: 2026-11-01T03:00:00.000Z
+                    max_device_seq_received: 0
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "426":
+          $ref: "#/components/responses/AppVersionUnsupported"
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/homecollection/devices/{device_id}/wipe:
+    post:
+      operationId: requestDeviceWipe
+      tags:
+        - homecollection
+      summary: Request a remote wipe of a device (TRD §5 H17)
+      security:
+        - bearerJwt: []
+      x-permission: homecollection.device.manage
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.not_found
+        - common.idempotency_key_required
+        - common.idempotency_key_reused
+        - common.idempotency_in_progress
+        - common.version_conflict
+        - common.precondition_required
+        - auth.mfa_required
+      parameters:
+        - name: device_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - $ref: _common.yaml#/components/parameters/IdempotencyKey
+        - $ref: _common.yaml#/components/parameters/IfMatch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - reason_code
+              properties:
+                reason_code:
+                  type: string
+                  minLength: 1
+                  maxLength: 64
+                  pattern: ^[a-z0-9_]{1,64}$
+                  x-coded-set: homecollection.wipe_reasons
+                reason_text:
+                  type: string
+                  minLength: 1
+                  maxLength: 500
+            examples:
+              synthetic:
+                value:
+                  reason_code: lost
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeviceDto"
+              examples:
+                synthetic:
+                  value:
+                    id: 01950c17-0000-7000-8000-000000900011
+                    version: 2
+                    membership_id: 01950c17-0000-7000-8000-000000160001
+                    display_name: Synthetic Phlebotomist 01
+                    platform: android
+                    os_version: "14"
+                    app_version: 1.0.0
+                    model: Synthetic Phone A
+                    status: wipe_requested
+                    registered_at: 2026-11-01T03:00:00.000Z
+                    max_device_seq_received: 0
+                    wipe_requested_at: 2026-11-06T06:00:00.000Z
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "428":
+          $ref: _common.yaml#/components/responses/PreconditionRequired
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/homecollection/settings:
+    get:
+      operationId: getHomecollectionSettings
+      tags:
+        - homecollection
+      summary: Get home-collection settings (TRD §5 H18)
+      security:
+        - bearerJwt: []
+      x-permission: homecollection.settings.manage
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - auth.mfa_required
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SettingsDto"
+              examples:
+                synthetic:
+                  value:
+                    version: 1
+                    min_app_version: 1.0.0
+                    sync_interval_seconds: 300
+                    offline_purge_hours: 16
+                    capture_gps: false
+                    gps_retention_days: 90
+                    map_handoff_enabled: true
+                    manual_barcode_entry_allowed: true
+                    second_identifier: phone
+                    collection_consent_text_version: hc-consent-v1
+                    collection_consent_text: "Synthetic consent text: I agree to give a blood sample."
+                    payment_methods:
+                      - code: cash
+                        display: Cash
+                        requires_reference: false
+                      - code: fonepay_qr
+                        display: Fonepay QR
+                        requires_reference: true
+                    handover_confirmation_required: true
+                    handover_overdue_hours: 4
+                    max_visits_per_route: 40
+                    notify_phlebotomist_on_assign: false
+                    notify_patient_on_assign: false
+                    clock_tolerance_seconds: 600
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+    put:
+      operationId: updateHomecollectionSettings
+      tags:
+        - homecollection
+      summary: Replace home-collection settings (TRD §5 H19)
+      security:
+        - bearerJwt: []
+      x-permission: homecollection.settings.manage
+      x-context: tenant
+      x-idempotency: optional
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.version_conflict
+        - common.precondition_required
+        - auth.mfa_required
+      parameters:
+        - $ref: _common.yaml#/components/parameters/IfMatch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SettingsUpdate"
+            examples:
+              synthetic:
+                value:
+                  min_app_version: 1.0.0
+                  sync_interval_seconds: 300
+                  offline_purge_hours: 16
+                  capture_gps: false
+                  gps_retention_days: 90
+                  map_handoff_enabled: true
+                  manual_barcode_entry_allowed: true
+                  second_identifier: phone
+                  collection_consent_text_version: hc-consent-v1
+                  collection_consent_text: "Synthetic consent text: I agree to give a blood sample."
+                  payment_methods:
+                    - code: cash
+                      display: Cash
+                      requires_reference: false
+                    - code: fonepay_qr
+                      display: Fonepay QR
+                      requires_reference: true
+                  handover_confirmation_required: true
+                  handover_overdue_hours: 4
+                  max_visits_per_route: 40
+                  notify_phlebotomist_on_assign: false
+                  notify_patient_on_assign: false
+                  clock_tolerance_seconds: 600
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SettingsDto"
+              examples:
+                synthetic:
+                  value:
+                    version: 2
+                    min_app_version: 1.0.0
+                    sync_interval_seconds: 300
+                    offline_purge_hours: 16
+                    capture_gps: false
+                    gps_retention_days: 90
+                    map_handoff_enabled: true
+                    manual_barcode_entry_allowed: true
+                    second_identifier: phone
+                    collection_consent_text_version: hc-consent-v1
+                    collection_consent_text: "Synthetic consent text: I agree to give a blood sample."
+                    payment_methods:
+                      - code: cash
+                        display: Cash
+                        requires_reference: false
+                      - code: fonepay_qr
+                        display: Fonepay QR
+                        requires_reference: true
+                    handover_confirmation_required: true
+                    handover_overdue_hours: 4
+                    max_visits_per_route: 40
+                    notify_phlebotomist_on_assign: false
+                    notify_patient_on_assign: false
+                    clock_tolerance_seconds: 600
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "428":
+          $ref: _common.yaml#/components/responses/PreconditionRequired
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/homecollection/reasons:
+    get:
+      operationId: listHomecollectionReasons
+      tags:
+        - homecollection
+      summary: List reason codes of a set (global seeds) (TRD §5 H20)
+      security:
+        - bearerJwt: []
+      x-permission: homecollection.visit.read
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+      parameters:
+        - name: set
+          in: query
+          required: true
+          schema:
+            type: string
+            maxLength: 30
+            enum:
+              - visit_cancel_reasons
+              - unassign_reasons
+              - visit_fail_reasons
+              - specimen_not_collected_reasons
+              - revisit_reasons
+              - review_reasons
+              - flag_resolutions
+              - wipe_reasons
+      responses:
+        "200":
+          description: Reasons.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                  - data
+                properties:
+                  data:
+                    type: array
+                    maxItems: 200
+                    items:
+                      type: object
+                      additionalProperties: false
+                      required:
+                        - code
+                        - display
+                        - requires_text
+                        - is_active
+                      properties:
+                        code:
+                          $ref: _common.yaml#/components/schemas/Code
+                        display:
+                          type: string
+                          minLength: 1
+                          maxLength: 80
+                        requires_text:
+                          type: boolean
+                        is_active:
+                          type: boolean
+              examples:
+                synthetic:
+                  value:
+                    data:
+                      - code: patient_not_home
+                        display: Patient not at home
+                        requires_text: false
+                        is_active: true
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/homecollection/visits/{visit_id}/phone-reveal:
+    post:
+      operationId: revealHomeVisitPhone
+      tags:
+        - homecollection
+      summary: Reveal the patient phone (writes access-log) (TRD §5 H21)
+      security:
+        - bearerJwt: []
+      x-permission: homecollection.visit.assign
+      x-context: tenant
+      x-idempotency: optional
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.not_found
+      parameters:
+        - name: visit_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties: {}
+            examples:
+              synthetic:
+                value: {}
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  phone_e164:
+                    type: string
+                    minLength: 8
+                    maxLength: 16
+                    pattern: ^\+[1-9][0-9]{6,14}$
+              examples:
+                synthetic:
+                  value:
+                    phone_e164: "+15550100142"
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/homecollection/sync/snapshot:
+    get:
+      operationId: getSyncSnapshot
+      tags:
+        - homecollection
+      summary: Pull today's route snapshot (TRD §5 A2)
+      security:
+        - bearerJwt: []
+      x-permission: homecollection.sync.upload
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - homecollection.device_not_registered
+        - common.id_mismatch
+        - homecollection.app_version_unsupported
+      parameters:
+        - $ref: "#/components/parameters/AppVersion"
+        - $ref: "#/components/parameters/DeviceId"
+        - name: device_id
+          in: query
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuidv7
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 512
+            pattern: ^[A-Za-z0-9_-]+$
+      responses:
+        "200":
+          description: Snapshot.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SnapshotDto"
+              examples:
+                changed:
+                  value:
+                    server_time: 2026-11-06T00:30:00.000Z
+                    cursor: c3ludGhldGljLWN1cnNvci0wMDAx
+                    unchanged: false
+                    route_date: 2026-11-06
+                    device_command: none
+                    config:
+                      sync_interval_seconds: 300
+                      offline_purge_hours: 16
+                      capture_gps: false
+                      map_handoff_enabled: true
+                      manual_barcode_entry_allowed: true
+                      second_identifier: phone
+                      collection_consent_text_version: hc-consent-v1
+                      collection_consent_text: "Synthetic consent text: I agree to give a blood sample."
+                      payment_methods:
+                        - code: cash
+                          display: Cash
+                          requires_reference: false
+                        - code: fonepay_qr
+                          display: Fonepay QR
+                          requires_reference: true
+                      reasons:
+                        visit_fail_reasons:
+                          - code: patient_not_home
+                            display: Patient not at home
+                        specimen_not_collected_reasons:
+                          - code: unable_to_draw
+                            display: Unable to draw
+                      handover_centres:
+                        - centre_id: 01950c17-0000-7000-8000-000000020002
+                          name: Synthetic Centre A2
+                      min_app_version: 1.0.0
+                    routes:
+                      - route_id: 01950c17-0000-7000-8000-000000170001
+                        centre_id: 01950c17-0000-7000-8000-000000020009
+                        version: 4
+                    visits:
+                      - visit_id: 01950c17-0000-7000-8000-000000130001
+                        version: 3
+                        route_id: 01950c17-0000-7000-8000-000000170001
+                        route_sequence: 1
+                        status: assigned
+                        kind: booking
+                        window_start: 2026-11-06T01:15:00.000Z
+                        window_end: 2026-11-06T01:45:00.000Z
+                        order_id: 01950c17-0000-7000-8000-000000050002
+                        patient:
+                          full_name: Test Patient 0042
+                          phone_e164: "+15550100142"
+                        address:
+                          address_text: House 12, Synthetic Tole, Ward 4
+                          landmark: Near the blue gate
+                        note_for_phlebotomist: Fasting sample
+                        specimens:
+                          - specimen_id: 01950c17-0000-7000-8000-000000090011
+                            barcode: E2600000042
+                            specimen_type_code: EDTA_WB
+                            container_code: LAV_3ML
+                            status: ordered
+                        balance:
+                          balance_due:
+                            amount_paisa: 180000
+                            currency: NPR
+                          as_of: 2026-11-06T00:30:00.000Z
+                      - visit_id: 01950c17-0000-7000-8000-000000130002
+                        version: 5
+                        route_id: 01950c17-0000-7000-8000-000000170001
+                        route_sequence: 2
+                        status: cancelled
+                        kind: front_desk
+                    balances: []
+                unchanged:
+                  value:
+                    server_time: 2026-11-06T00:30:00.000Z
+                    cursor: c3ludGhldGljLWN1cnNvci0wMDAx
+                    unchanged: true
+                    device_command: none
+                    balances:
+                      - visit_id: 01950c17-0000-7000-8000-000000130001
+                        balance_due:
+                          amount_paisa: 180000
+                          currency: NPR
+                        as_of: 2026-11-06T00:30:00.000Z
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "426":
+          $ref: "#/components/responses/AppVersionUnsupported"
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/homecollection/sync/mutations:
+    post:
+      operationId: pushSyncMutations
+      tags:
+        - homecollection
+      summary: Push a batch of offline mutations (Idempotency-Key = batch_id) (TRD §5 A3)
+      security:
+        - bearerJwt: []
+      x-permission: homecollection.sync.upload
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.payload_too_large
+        - common.dependency_unavailable
+        - common.idempotency_key_required
+        - common.idempotency_key_reused
+        - common.idempotency_in_progress
+        - homecollection.device_not_registered
+        - common.id_mismatch
+        - homecollection.app_version_unsupported
+      parameters:
+        - $ref: "#/components/parameters/AppVersion"
+        - $ref: "#/components/parameters/DeviceId"
+        - $ref: _common.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PushRequest"
+            examples:
+              synthetic:
+                value:
+                  device_id: 01950c17-0000-7000-8000-0000001b0001
+                  batch_id: 01950c17-0000-7000-8000-0000001c0001
+                  sent_at_device: 2026-11-06T02:39:58.000Z
+                  anchors:
+                    - anchor_id: 01950c17-0000-7000-8000-0000001d0001
+                      server_time: 2026-11-06T00:30:00.000Z
+                      device_wall_time: 2026-11-06T00:29:41.000Z
+                      monotonic_ms: 86400123
+                      boot_id: b-0000000017
+                  now:
+                    device_wall_time: 2026-11-06T02:39:58.000Z
+                    monotonic_ms: 94198123
+                    boot_id: b-0000000017
+                  mutations:
+                    - client_mutation_id: 01950c17-0000-7000-8000-0000001a0001
+                      device_seq: 41
+                      type: specimen.collected
+                      visit_id: 01950c17-0000-7000-8000-000000130001
+                      captured:
+                        device_wall_time: 2026-11-06T01:26:41.000Z
+                        anchor_id: 01950c17-0000-7000-8000-0000001d0001
+                        elapsed_since_anchor_ms: 3401000
+                      payload:
+                        specimen_id: 01950c17-0000-7000-8000-000000090011
+                        scanned_barcode: E2600000042
+                        scan_method: camera
+                        specimen_type_code: EDTA_WB
+                        gps:
+                          status: off
+                    - client_mutation_id: 01950c17-0000-7000-8000-0000001a0002
+                      device_seq: 42
+                      type: payment.captured
+                      visit_id: 01950c17-0000-7000-8000-000000130001
+                      captured:
+                        device_wall_time: 2026-11-06T01:26:41.000Z
+                        anchor_id: 01950c17-0000-7000-8000-0000001d0001
+                        elapsed_since_anchor_ms: 3401000
+                      payload:
+                        order_id: 01950c17-0000-7000-8000-000000050002
+                        payment_method_code: cash
+                        amount:
+                          amount_paisa: 180000
+                          currency: NPR
+                    - client_mutation_id: 01950c17-0000-7000-8000-0000001a0003
+                      device_seq: 43
+                      type: handover.recorded
+                      captured:
+                        device_wall_time: 2026-11-06T01:26:41.000Z
+                        anchor_id: 01950c17-0000-7000-8000-0000001d0001
+                        elapsed_since_anchor_ms: 3401000
+                      payload:
+                        handover_id: 01950c17-0000-7000-8000-0000001e0001
+                        to_centre_id: 01950c17-0000-7000-8000-000000020002
+                        specimen_ids:
+                          - 01950c17-0000-7000-8000-000000090011
+      responses:
+        "200":
+          description: Per-mutation outcomes.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PushResponse"
+              examples:
+                synthetic:
+                  value:
+                    server_time: 2026-11-06T02:40:00.000Z
+                    batch_id: 01950c17-0000-7000-8000-0000001c0001
+                    results:
+                      - client_mutation_id: 01950c17-0000-7000-8000-0000001a0001
+                        device_seq: 41
+                        outcome: applied
+                      - client_mutation_id: 01950c17-0000-7000-8000-0000001a0002
+                        device_seq: 42
+                        outcome: applied
+                      - client_mutation_id: 01950c17-0000-7000-8000-0000001a0003
+                        device_seq: 43
+                        outcome: applied
+                    handover_items:
+                      - handover_id: 01950c17-0000-7000-8000-0000001e0001
+                        specimen_id: 01950c17-0000-7000-8000-000000090011
+                        outcome: included
+                    device_command: none
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "413":
+          $ref: _common.yaml#/components/responses/PayloadTooLarge
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "426":
+          $ref: "#/components/responses/AppVersionUnsupported"
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+        "503":
+          $ref: _common.yaml#/components/responses/ServiceUnavailable
+  /v1/homecollection/sync/ack:
+    post:
+      operationId: ackSync
+      tags:
+        - homecollection
+      summary: Acknowledge an applied snapshot (TRD §5 A4)
+      security:
+        - bearerJwt: []
+      x-permission: homecollection.sync.upload
+      x-context: tenant
+      x-idempotency: optional
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - homecollection.device_not_registered
+        - common.id_mismatch
+        - homecollection.app_version_unsupported
+      parameters:
+        - $ref: "#/components/parameters/AppVersion"
+        - $ref: "#/components/parameters/DeviceId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - device_id
+                - cursor
+                - applied_at_device
+                - max_device_seq_acked
+              properties:
+                device_id:
+                  $ref: _common.yaml#/components/schemas/Uuidv7
+                cursor:
+                  type: string
+                  minLength: 1
+                  maxLength: 512
+                  pattern: ^[A-Za-z0-9_-]+$
+                applied_at_device:
+                  $ref: _common.yaml#/components/schemas/IsoUtc
+                max_device_seq_acked:
+                  type: integer
+                  minimum: 0
+                  maximum: 9007199254740991
+                wipe_completed:
+                  type: boolean
+            examples:
+              synthetic:
+                value:
+                  device_id: 01950c17-0000-7000-8000-0000001b0001
+                  cursor: c3ludGhldGljLWN1cnNvci0wMDAx
+                  applied_at_device: 2026-11-06T00:30:05.000Z
+                  max_device_seq_acked: 43
+      responses:
+        "204":
+          description: Acknowledged.
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "426":
+          $ref: "#/components/responses/AppVersionUnsupported"
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/homecollection/devices/{device_id}/sign-off:
+    post:
+      operationId: signOffPhleboDevice
+      tags:
+        - homecollection
+      summary: Sign this phone off (refused while unsynced) (TRD §5 A5)
+      security:
+        - bearerJwt: []
+      x-permission: homecollection.sync.upload
+      x-context: tenant
+      x-idempotency: optional
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - homecollection.unsynced_changes
+        - common.not_found
+        - homecollection.device_not_registered
+        - common.id_mismatch
+        - homecollection.app_version_unsupported
+      parameters:
+        - $ref: "#/components/parameters/AppVersion"
+        - $ref: "#/components/parameters/DeviceId"
+        - name: device_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuidv7
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - last_device_seq
+              properties:
+                last_device_seq:
+                  type: integer
+                  minimum: 0
+                  maximum: 9007199254740991
+            examples:
+              synthetic:
+                value:
+                  last_device_seq: 43
+      responses:
+        "204":
+          description: Signed off.
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "426":
+          $ref: "#/components/responses/AppVersionUnsupported"
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+components:
+  parameters:
+    AppVersion:
+      name: X-Lims-App-Version
+      in: header
+      required: true
+      schema:
+        type: string
+        minLength: 5
+        maxLength: 20
+        pattern: ^[0-9]{1,4}\.[0-9]{1,4}\.[0-9]{1,4}$
+    DeviceId:
+      name: X-Lims-Device-Id
+      in: header
+      required: true
+      description: Must equal every device_id in path, query or body (TRD §5 preamble).
+      schema:
+        $ref: _common.yaml#/components/schemas/Uuidv7
+  responses:
+    AppVersionUnsupported:
+      description: App version below the tenant minimum (REQ-SEC-113, CR-C17-007).
+      content:
+        application/problem+json:
+          schema:
+            $ref: _common.yaml#/components/schemas/Problem
+          examples:
+            app_version_unsupported:
+              value:
+                type: urn:lims:error:homecollection.app_version_unsupported
+                title: App update required
+                status: 426
+                code: homecollection.app_version_unsupported
+                request_id: 01950c17-0000-7000-8000-0000001f0001
+  schemas:
+    MembershipRef:
+      type: object
+      additionalProperties: false
+      required:
+        - membership_id
+        - display_name
+      properties:
+        membership_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        display_name:
+          type: string
+          minLength: 1
+          maxLength: 200
+    SpecimensSummary:
+      type: object
+      additionalProperties: false
+      required:
+        - expected
+        - collected
+        - held
+        - received
+        - rejected
+      properties:
+        expected:
+          type: integer
+          minimum: 0
+          maximum: 1000
+        collected:
+          type: integer
+          minimum: 0
+          maximum: 1000
+        held:
+          type: integer
+          minimum: 0
+          maximum: 1000
+        received:
+          type: integer
+          minimum: 0
+          maximum: 1000
+        rejected:
+          type: integer
+          minimum: 0
+          maximum: 1000
+    Address:
+      type: object
+      additionalProperties: false
+      required:
+        - address_text
+      properties:
+        address_text:
+          type: string
+          minLength: 1
+          maxLength: 500
+        landmark:
+          type: string
+          minLength: 1
+          maxLength: 200
+        latitude:
+          $ref: _common.yaml#/components/schemas/DecimalString
+        longitude:
+          $ref: _common.yaml#/components/schemas/DecimalString
+    Gps:
+      type: object
+      additionalProperties: false
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          maxLength: 11
+          enum:
+            - off
+            - denied
+            - unavailable
+            - ok
+        latitude:
+          $ref: _common.yaml#/components/schemas/DecimalString
+        longitude:
+          $ref: _common.yaml#/components/schemas/DecimalString
+        accuracy_m:
+          type: integer
+          minimum: 0
+          maximum: 10000
+    PaymentMethod:
+      type: object
+      additionalProperties: false
+      required:
+        - code
+        - display
+        - requires_reference
+      properties:
+        code:
+          $ref: _common.yaml#/components/schemas/Code
+        display:
+          type: string
+          minLength: 1
+          maxLength: 40
+        requires_reference:
+          type: boolean
+    VisitSummaryDto:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - version
+        - kind
+        - status
+        - centre_id
+        - branch_id
+        - patient_id
+        - patient_display_name
+        - open_flag_kinds
+        - specimens_summary
+      properties:
+        id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        version:
+          $ref: _common.yaml#/components/schemas/Version
+        kind:
+          type: string
+          maxLength: 12
+          enum:
+            - booking
+            - front_desk
+            - recollection
+            - revisit
+        status:
+          type: string
+          maxLength: 11
+          enum:
+            - unassigned
+            - assigned
+            - in_progress
+            - completed
+            - failed
+            - cancelled
+        outcome:
+          type: string
+          maxLength: 9
+          enum:
+            - collected
+            - partial
+            - none
+        centre_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        branch_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        order_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        patient_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        patient_display_name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        window_start:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        window_end:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        route_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        route_date:
+          $ref: _common.yaml#/components/schemas/IsoDate
+        route_sequence:
+          type: integer
+          minimum: 1
+          maximum: 60
+        phlebotomist:
+          $ref: "#/components/schemas/MembershipRef"
+        area_hint:
+          type: string
+          minLength: 1
+          maxLength: 60
+        open_flag_kinds:
+          type: array
+          maxItems: 12
+          items:
+            type: string
+            maxLength: 28
+            enum:
+              - address_missing
+              - collected_after_cancel
+              - held_collection
+              - cancel_requested_after_start
+              - order_cancel_required
+              - missed
+              - recollection_required
+              - handover_overdue
+              - handover_discrepancy
+              - identity_mismatch
+              - specimen_not_collected
+              - payment_rejected
+        specimens_summary:
+          $ref: "#/components/schemas/SpecimensSummary"
+        last_device_ack_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+    CollectionDto:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - version
+        - visit_id
+        - specimen_id
+        - client_mutation_id
+        - status
+        - scan_method
+        - barcode_verified
+        - collected_at
+        - collected_by
+      properties:
+        id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        version:
+          $ref: _common.yaml#/components/schemas/Version
+        visit_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        specimen_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        client_mutation_id:
+          $ref: _common.yaml#/components/schemas/Uuidv7
+        status:
+          type: string
+          maxLength: 9
+          enum:
+            - applied
+            - held
+            - discarded
+        hold_code:
+          $ref: _common.yaml#/components/schemas/Code
+        scan_method:
+          type: string
+          maxLength: 6
+          enum:
+            - camera
+            - hid
+            - manual
+        barcode_verified:
+          type: boolean
+        collected_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        collected_by:
+          $ref: "#/components/schemas/MembershipRef"
+        review:
+          type: object
+          additionalProperties: false
+          required:
+            - decision
+            - reason_code
+            - by_display
+            - at
+          properties:
+            decision:
+              type: string
+              maxLength: 7
+              enum:
+                - apply
+                - discard
+            reason_code:
+              type: string
+              minLength: 1
+              maxLength: 64
+              pattern: ^[a-z0-9_]{1,64}$
+              x-coded-set: homecollection.review_reasons
+            reason_text:
+              type: string
+              minLength: 1
+              maxLength: 500
+            by_display:
+              type: string
+              minLength: 1
+              maxLength: 200
+            at:
+              $ref: _common.yaml#/components/schemas/IsoUtc
+    VisitFlagDto:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - version
+        - kind
+        - status
+        - created_at
+      properties:
+        id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        version:
+          $ref: _common.yaml#/components/schemas/Version
+        kind:
+          type: string
+          maxLength: 28
+          enum:
+            - address_missing
+            - collected_after_cancel
+            - held_collection
+            - cancel_requested_after_start
+            - order_cancel_required
+            - missed
+            - recollection_required
+            - handover_overdue
+            - handover_discrepancy
+            - identity_mismatch
+            - specimen_not_collected
+            - payment_rejected
+        status:
+          type: string
+          maxLength: 8
+          enum:
+            - open
+            - resolved
+        created_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        detail_code:
+          $ref: _common.yaml#/components/schemas/Code
+        resolved_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        resolution_code:
+          type: string
+          minLength: 1
+          maxLength: 64
+          pattern: ^[a-z0-9_]{1,64}$
+          x-coded-set: homecollection.flag_resolutions
+        resolved_by_display:
+          type: string
+          minLength: 1
+          maxLength: 200
+    VisitDetailDto:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - version
+        - kind
+        - status
+        - centre_id
+        - branch_id
+        - patient_id
+        - patient_display_name
+        - open_flag_kinds
+        - specimens_summary
+      properties:
+        id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        version:
+          $ref: _common.yaml#/components/schemas/Version
+        kind:
+          type: string
+          maxLength: 12
+          enum:
+            - booking
+            - front_desk
+            - recollection
+            - revisit
+        status:
+          type: string
+          maxLength: 11
+          enum:
+            - unassigned
+            - assigned
+            - in_progress
+            - completed
+            - failed
+            - cancelled
+        outcome:
+          type: string
+          maxLength: 9
+          enum:
+            - collected
+            - partial
+            - none
+        centre_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        branch_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        order_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        patient_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        patient_display_name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        window_start:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        window_end:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        route_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        route_date:
+          $ref: _common.yaml#/components/schemas/IsoDate
+        route_sequence:
+          type: integer
+          minimum: 1
+          maximum: 60
+        phlebotomist:
+          $ref: "#/components/schemas/MembershipRef"
+        area_hint:
+          type: string
+          minLength: 1
+          maxLength: 60
+        open_flag_kinds:
+          type: array
+          maxItems: 12
+          items:
+            type: string
+            maxLength: 28
+            enum:
+              - address_missing
+              - collected_after_cancel
+              - held_collection
+              - cancel_requested_after_start
+              - order_cancel_required
+              - missed
+              - recollection_required
+              - handover_overdue
+              - handover_discrepancy
+              - identity_mismatch
+              - specimen_not_collected
+              - payment_rejected
+        specimens_summary:
+          $ref: "#/components/schemas/SpecimensSummary"
+        last_device_ack_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        booking_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        parent_visit_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        registration_no:
+          type: string
+          minLength: 1
+          maxLength: 40
+        address:
+          $ref: "#/components/schemas/Address"
+        note_for_phlebotomist:
+          type: string
+          minLength: 1
+          maxLength: 500
+        status_reason_code:
+          $ref: _common.yaml#/components/schemas/Code
+        status_reason_text:
+          type: string
+          minLength: 1
+          maxLength: 500
+        assigned_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        arrived_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        completed_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        cancelled_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        specimens:
+          type: array
+          maxItems: 50
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - specimen_id
+              - specimen_type_code
+              - status
+            properties:
+              specimen_id:
+                $ref: _common.yaml#/components/schemas/Uuid
+              specimen_type_code:
+                $ref: _common.yaml#/components/schemas/Code
+              container_code:
+                $ref: _common.yaml#/components/schemas/Code
+              status:
+                type: string
+                maxLength: 20
+                enum:
+                  - ordered
+                  - collected
+                  - in_transit
+                  - received
+                  - aliquoted
+                  - in_process
+                  - resulted
+                  - verified
+                  - approved
+                  - reported
+                  - rejected
+                  - recollection_ordered
+                  - stored
+                  - discarded
+              collected_at:
+                $ref: _common.yaml#/components/schemas/IsoUtc
+              collection_status:
+                type: string
+                maxLength: 9
+                enum:
+                  - applied
+                  - held
+                  - discarded
+              scan_method:
+                type: string
+                maxLength: 6
+                enum:
+                  - camera
+                  - hid
+                  - manual
+              barcode_verified:
+                type: boolean
+        collections:
+          type: array
+          maxItems: 100
+          items:
+            $ref: "#/components/schemas/CollectionDto"
+        flags:
+          type: array
+          maxItems: 100
+          items:
+            $ref: "#/components/schemas/VisitFlagDto"
+        assignments:
+          type: array
+          maxItems: 100
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - membership_id
+              - display_name
+              - route_date
+              - assigned_at
+              - assigned_by_display
+            properties:
+              membership_id:
+                $ref: _common.yaml#/components/schemas/Uuid
+              display_name:
+                type: string
+                minLength: 1
+                maxLength: 200
+              route_date:
+                $ref: _common.yaml#/components/schemas/IsoDate
+              assigned_at:
+                $ref: _common.yaml#/components/schemas/IsoUtc
+              assigned_by_display:
+                type: string
+                minLength: 1
+                maxLength: 200
+        transitions:
+          type: array
+          maxItems: 100
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - to
+              - at
+              - actor_display
+            properties:
+              from:
+                type: string
+                maxLength: 11
+                enum:
+                  - unassigned
+                  - assigned
+                  - in_progress
+                  - completed
+                  - failed
+                  - cancelled
+              to:
+                type: string
+                maxLength: 11
+                enum:
+                  - unassigned
+                  - assigned
+                  - in_progress
+                  - completed
+                  - failed
+                  - cancelled
+              at:
+                $ref: _common.yaml#/components/schemas/IsoUtc
+              actor_display:
+                type: string
+                minLength: 1
+                maxLength: 200
+              reason_code:
+                $ref: _common.yaml#/components/schemas/Code
+        payments:
+          type: array
+          maxItems: 100
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - client_mutation_id
+              - method_code
+              - amount
+              - captured_at
+              - outcome
+            properties:
+              client_mutation_id:
+                $ref: _common.yaml#/components/schemas/Uuidv7
+              method_code:
+                $ref: _common.yaml#/components/schemas/Code
+              amount:
+                $ref: _common.yaml#/components/schemas/Money
+              captured_at:
+                $ref: _common.yaml#/components/schemas/IsoUtc
+              outcome:
+                type: string
+                maxLength: 8
+                enum:
+                  - applied
+                  - held
+                  - rejected
+        balance:
+          type: object
+          additionalProperties: false
+          required:
+            - balance_due
+            - as_of
+          properties:
+            balance_due:
+              $ref: _common.yaml#/components/schemas/Money
+            as_of:
+              $ref: _common.yaml#/components/schemas/IsoUtc
+    RouteDto:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - version
+        - centre_id
+        - route_date
+        - phlebotomist
+        - visit_ids_in_order
+        - active_visits
+        - completed_visits
+      properties:
+        id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        version:
+          $ref: _common.yaml#/components/schemas/Version
+        centre_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        route_date:
+          $ref: _common.yaml#/components/schemas/IsoDate
+        phlebotomist:
+          $ref: "#/components/schemas/MembershipRef"
+        visit_ids_in_order:
+          type: array
+          maxItems: 60
+          items:
+            $ref: _common.yaml#/components/schemas/Uuid
+        active_visits:
+          type: integer
+          minimum: 0
+          maximum: 60
+        completed_visits:
+          type: integer
+          minimum: 0
+          maximum: 60
+        last_snapshot_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        last_ack_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+    HandoverSummaryDto:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - version
+        - status
+        - from
+        - to_centre_id
+        - handed_over_at
+        - item_count
+      properties:
+        id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        version:
+          $ref: _common.yaml#/components/schemas/Version
+        status:
+          type: string
+          maxLength: 11
+          enum:
+            - pending
+            - confirmed
+            - discrepancy
+        from:
+          $ref: "#/components/schemas/MembershipRef"
+        to_centre_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        handed_over_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        item_count:
+          type: integer
+          minimum: 1
+          maximum: 50
+        received_count:
+          type: integer
+          minimum: 0
+          maximum: 50
+    HandoverDetailDto:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - version
+        - status
+        - from
+        - to_centre_id
+        - handed_over_at
+        - item_count
+        - items
+      properties:
+        id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        version:
+          $ref: _common.yaml#/components/schemas/Version
+        status:
+          type: string
+          maxLength: 11
+          enum:
+            - pending
+            - confirmed
+            - discrepancy
+        from:
+          $ref: "#/components/schemas/MembershipRef"
+        to_centre_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        handed_over_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        item_count:
+          type: integer
+          minimum: 1
+          maximum: 50
+        received_count:
+          type: integer
+          minimum: 0
+          maximum: 50
+        items:
+          type: array
+          maxItems: 50
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - specimen_id
+              - visit_id
+              - barcode
+              - specimen_type_code
+            properties:
+              specimen_id:
+                $ref: _common.yaml#/components/schemas/Uuid
+              visit_id:
+                $ref: _common.yaml#/components/schemas/Uuid
+              barcode:
+                type: string
+                minLength: 1
+                maxLength: 20
+                pattern: ^[A-Z0-9]{1,20}$
+              specimen_type_code:
+                $ref: _common.yaml#/components/schemas/Code
+              outcome:
+                type: string
+                maxLength: 8
+                enum:
+                  - received
+                  - missing
+        received_by_display:
+          type: string
+          minLength: 1
+          maxLength: 200
+        received_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        note:
+          type: string
+          minLength: 1
+          maxLength: 500
+    DeviceDto:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - version
+        - membership_id
+        - display_name
+        - platform
+        - os_version
+        - app_version
+        - status
+        - registered_at
+        - max_device_seq_received
+      properties:
+        id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        version:
+          $ref: _common.yaml#/components/schemas/Version
+        membership_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        display_name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        platform:
+          type: string
+          maxLength: 7
+          enum:
+            - android
+            - ios
+        os_version:
+          type: string
+          minLength: 1
+          maxLength: 40
+        app_version:
+          type: string
+          minLength: 1
+          maxLength: 20
+        model:
+          type: string
+          minLength: 1
+          maxLength: 80
+        status:
+          type: string
+          maxLength: 14
+          enum:
+            - active
+            - signed_off
+            - wipe_requested
+            - wiped
+        registered_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        last_seen_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        last_snapshot_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        last_push_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        max_device_seq_received:
+          type: integer
+          minimum: 0
+          maximum: 9007199254740991
+        wipe_requested_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        wiped_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+    SettingsUpdate:
+      type: object
+      additionalProperties: false
+      required:
+        - min_app_version
+        - sync_interval_seconds
+        - offline_purge_hours
+        - capture_gps
+        - gps_retention_days
+        - map_handoff_enabled
+        - manual_barcode_entry_allowed
+        - second_identifier
+        - collection_consent_text_version
+        - collection_consent_text
+        - payment_methods
+        - handover_confirmation_required
+        - handover_overdue_hours
+        - max_visits_per_route
+        - notify_phlebotomist_on_assign
+        - notify_patient_on_assign
+        - clock_tolerance_seconds
+      properties:
+        min_app_version:
+          type: string
+          minLength: 5
+          maxLength: 20
+          pattern: ^[0-9]{1,4}\.[0-9]{1,4}\.[0-9]{1,4}$
+        sync_interval_seconds:
+          type: integer
+          minimum: 60
+          maximum: 900
+        offline_purge_hours:
+          type: integer
+          minimum: 4
+          maximum: 24
+        capture_gps:
+          type: boolean
+        gps_retention_days:
+          type: integer
+          minimum: 7
+          maximum: 365
+        map_handoff_enabled:
+          type: boolean
+        manual_barcode_entry_allowed:
+          type: boolean
+        second_identifier:
+          type: string
+          maxLength: 10
+          enum:
+            - phone
+            - birth_date
+        collection_consent_text_version:
+          type: string
+          minLength: 1
+          maxLength: 40
+        collection_consent_text:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        payment_methods:
+          type: array
+          minItems: 1
+          maxItems: 10
+          items:
+            $ref: "#/components/schemas/PaymentMethod"
+        handover_confirmation_required:
+          type: boolean
+        handover_overdue_hours:
+          type: integer
+          minimum: 1
+          maximum: 24
+        max_visits_per_route:
+          type: integer
+          minimum: 1
+          maximum: 60
+        notify_phlebotomist_on_assign:
+          type: boolean
+        notify_patient_on_assign:
+          type: boolean
+        clock_tolerance_seconds:
+          type: integer
+          minimum: 60
+          maximum: 3600
+    SettingsDto:
+      type: object
+      additionalProperties: false
+      required:
+        - version
+        - min_app_version
+        - sync_interval_seconds
+        - offline_purge_hours
+        - capture_gps
+        - gps_retention_days
+        - map_handoff_enabled
+        - manual_barcode_entry_allowed
+        - second_identifier
+        - collection_consent_text_version
+        - collection_consent_text
+        - payment_methods
+        - handover_confirmation_required
+        - handover_overdue_hours
+        - max_visits_per_route
+        - notify_phlebotomist_on_assign
+        - notify_patient_on_assign
+        - clock_tolerance_seconds
+      properties:
+        version:
+          $ref: _common.yaml#/components/schemas/Version
+        min_app_version:
+          type: string
+          minLength: 5
+          maxLength: 20
+          pattern: ^[0-9]{1,4}\.[0-9]{1,4}\.[0-9]{1,4}$
+        sync_interval_seconds:
+          type: integer
+          minimum: 60
+          maximum: 900
+        offline_purge_hours:
+          type: integer
+          minimum: 4
+          maximum: 24
+        capture_gps:
+          type: boolean
+        gps_retention_days:
+          type: integer
+          minimum: 7
+          maximum: 365
+        map_handoff_enabled:
+          type: boolean
+        manual_barcode_entry_allowed:
+          type: boolean
+        second_identifier:
+          type: string
+          maxLength: 10
+          enum:
+            - phone
+            - birth_date
+        collection_consent_text_version:
+          type: string
+          minLength: 1
+          maxLength: 40
+        collection_consent_text:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        payment_methods:
+          type: array
+          minItems: 1
+          maxItems: 10
+          items:
+            $ref: "#/components/schemas/PaymentMethod"
+        handover_confirmation_required:
+          type: boolean
+        handover_overdue_hours:
+          type: integer
+          minimum: 1
+          maximum: 24
+        max_visits_per_route:
+          type: integer
+          minimum: 1
+          maximum: 60
+        notify_phlebotomist_on_assign:
+          type: boolean
+        notify_patient_on_assign:
+          type: boolean
+        clock_tolerance_seconds:
+          type: integer
+          minimum: 60
+          maximum: 3600
+    BalanceItem:
+      type: object
+      additionalProperties: false
+      required:
+        - visit_id
+        - balance_due
+        - as_of
+      properties:
+        visit_id:
+          $ref: _common.yaml#/components/schemas/Uuidv7
+        balance_due:
+          $ref: _common.yaml#/components/schemas/Money
+        as_of:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+    SnapshotBalance:
+      type: object
+      additionalProperties: false
+      required:
+        - balance_due
+        - as_of
+      properties:
+        balance_due:
+          $ref: _common.yaml#/components/schemas/Money
+        as_of:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+    SnapshotConfig:
+      type: object
+      additionalProperties: false
+      required:
+        - sync_interval_seconds
+        - offline_purge_hours
+        - capture_gps
+        - map_handoff_enabled
+        - manual_barcode_entry_allowed
+        - second_identifier
+        - collection_consent_text_version
+        - collection_consent_text
+        - payment_methods
+        - reasons
+        - handover_centres
+        - min_app_version
+      properties:
+        sync_interval_seconds:
+          type: integer
+          minimum: 60
+          maximum: 900
+        offline_purge_hours:
+          type: integer
+          minimum: 4
+          maximum: 24
+        capture_gps:
+          type: boolean
+        map_handoff_enabled:
+          type: boolean
+        manual_barcode_entry_allowed:
+          type: boolean
+        second_identifier:
+          type: string
+          maxLength: 10
+          enum:
+            - phone
+            - birth_date
+        collection_consent_text_version:
+          type: string
+          minLength: 1
+          maxLength: 40
+        collection_consent_text:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        payment_methods:
+          type: array
+          minItems: 1
+          maxItems: 10
+          items:
+            $ref: "#/components/schemas/PaymentMethod"
+        reasons:
+          type: object
+          additionalProperties: false
+          required:
+            - visit_fail_reasons
+            - specimen_not_collected_reasons
+          properties:
+            visit_fail_reasons:
+              type: array
+              maxItems: 50
+              items:
+                type: object
+                additionalProperties: false
+                required:
+                  - code
+                  - display
+                properties:
+                  code:
+                    $ref: _common.yaml#/components/schemas/Code
+                  display:
+                    type: string
+                    minLength: 1
+                    maxLength: 80
+            specimen_not_collected_reasons:
+              type: array
+              maxItems: 50
+              items:
+                type: object
+                additionalProperties: false
+                required:
+                  - code
+                  - display
+                properties:
+                  code:
+                    $ref: _common.yaml#/components/schemas/Code
+                  display:
+                    type: string
+                    minLength: 1
+                    maxLength: 80
+        handover_centres:
+          type: array
+          maxItems: 200
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - centre_id
+              - name
+            properties:
+              centre_id:
+                $ref: _common.yaml#/components/schemas/Uuid
+              name:
+                type: string
+                minLength: 1
+                maxLength: 200
+        min_app_version:
+          type: string
+          minLength: 5
+          maxLength: 20
+          pattern: ^[0-9]{1,4}\.[0-9]{1,4}\.[0-9]{1,4}$
+    SnapshotStub:
+      type: object
+      additionalProperties: false
+      required:
+        - visit_id
+        - version
+        - route_id
+        - route_sequence
+        - status
+        - kind
+      properties:
+        visit_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        version:
+          $ref: _common.yaml#/components/schemas/Version
+        route_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        route_sequence:
+          type: integer
+          minimum: 1
+          maximum: 60
+        status:
+          type: string
+          maxLength: 9
+          enum:
+            - cancelled
+        kind:
+          type: string
+          maxLength: 12
+          enum:
+            - booking
+            - front_desk
+            - recollection
+            - revisit
+        window_start:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        window_end:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+    SnapshotVisit:
+      type: object
+      additionalProperties: false
+      required:
+        - visit_id
+        - version
+        - route_id
+        - route_sequence
+        - status
+        - kind
+        - order_id
+        - specimens
+      properties:
+        visit_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        version:
+          $ref: _common.yaml#/components/schemas/Version
+        route_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        route_sequence:
+          type: integer
+          minimum: 1
+          maximum: 60
+        status:
+          type: string
+          maxLength: 11
+          enum:
+            - assigned
+            - in_progress
+            - completed
+            - failed
+        kind:
+          type: string
+          maxLength: 12
+          enum:
+            - booking
+            - front_desk
+            - recollection
+            - revisit
+        window_start:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        window_end:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        order_id:
+          $ref: _common.yaml#/components/schemas/Uuidv7
+        outcome:
+          type: string
+          maxLength: 9
+          enum:
+            - collected
+            - partial
+            - none
+        patient:
+          type: object
+          additionalProperties: false
+          required:
+            - full_name
+          properties:
+            full_name:
+              type: string
+              minLength: 1
+              maxLength: 200
+            phone_e164:
+              type: string
+              minLength: 8
+              maxLength: 16
+              pattern: ^\+[1-9][0-9]{6,14}$
+            birth_on:
+              $ref: _common.yaml#/components/schemas/IsoDate
+        patient_unavailable:
+          type: boolean
+          enum:
+            - true
+        address:
+          $ref: "#/components/schemas/Address"
+        note_for_phlebotomist:
+          type: string
+          minLength: 1
+          maxLength: 500
+        specimens:
+          type: array
+          maxItems: 50
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - specimen_id
+              - barcode
+              - specimen_type_code
+              - status
+            properties:
+              specimen_id:
+                $ref: _common.yaml#/components/schemas/Uuid
+              barcode:
+                type: string
+                minLength: 1
+                maxLength: 20
+                pattern: ^[A-Z0-9]{1,20}$
+              specimen_type_code:
+                $ref: _common.yaml#/components/schemas/Code
+              container_code:
+                $ref: _common.yaml#/components/schemas/Code
+              status:
+                type: string
+                maxLength: 20
+                enum:
+                  - ordered
+                  - collected
+                  - in_transit
+                  - received
+                  - aliquoted
+                  - in_process
+                  - resulted
+                  - verified
+                  - approved
+                  - reported
+                  - rejected
+                  - recollection_ordered
+                  - stored
+                  - discarded
+        specimens_stale:
+          type: boolean
+          enum:
+            - true
+        balance:
+          $ref: "#/components/schemas/SnapshotBalance"
+        balance_unavailable:
+          type: boolean
+          enum:
+            - true
+    SnapshotDto:
+      type: object
+      additionalProperties: false
+      required:
+        - server_time
+        - cursor
+        - unchanged
+        - device_command
+        - balances
+      properties:
+        server_time:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        cursor:
+          type: string
+          minLength: 1
+          maxLength: 512
+        unchanged:
+          type: boolean
+        device_command:
+          type: string
+          maxLength: 4
+          enum:
+            - none
+            - wipe
+        balances:
+          type: array
+          maxItems: 60
+          items:
+            $ref: "#/components/schemas/BalanceItem"
+        route_date:
+          $ref: _common.yaml#/components/schemas/IsoDate
+        config:
+          $ref: "#/components/schemas/SnapshotConfig"
+        routes:
+          type: array
+          maxItems: 20
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - route_id
+              - centre_id
+              - version
+            properties:
+              route_id:
+                $ref: _common.yaml#/components/schemas/Uuid
+              centre_id:
+                $ref: _common.yaml#/components/schemas/Uuid
+              version:
+                $ref: _common.yaml#/components/schemas/Version
+        visits:
+          type: array
+          maxItems: 60
+          items:
+            oneOf:
+              - $ref: "#/components/schemas/SnapshotVisit"
+              - $ref: "#/components/schemas/SnapshotStub"
+            discriminator:
+              propertyName: status
+              mapping:
+                assigned: "#/components/schemas/SnapshotVisit"
+                in_progress: "#/components/schemas/SnapshotVisit"
+                completed: "#/components/schemas/SnapshotVisit"
+                failed: "#/components/schemas/SnapshotVisit"
+                cancelled: "#/components/schemas/SnapshotStub"
+    Anchor:
+      type: object
+      additionalProperties: false
+      required:
+        - anchor_id
+        - server_time
+        - device_wall_time
+        - monotonic_ms
+        - boot_id
+      properties:
+        anchor_id:
+          $ref: _common.yaml#/components/schemas/Uuidv7
+        server_time:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        device_wall_time:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        monotonic_ms:
+          type: integer
+          minimum: 0
+          maximum: 9007199254740991
+        boot_id:
+          type: string
+          minLength: 1
+          maxLength: 64
+    Captured:
+      type: object
+      additionalProperties: false
+      required:
+        - device_wall_time
+        - anchor_id
+        - elapsed_since_anchor_ms
+      properties:
+        device_wall_time:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        anchor_id:
+          $ref: _common.yaml#/components/schemas/Uuidv7
+        elapsed_since_anchor_ms:
+          type: integer
+          minimum: -9007199254740991
+          maximum: 9007199254740991
+    PaymentAmount:
+      type: object
+      additionalProperties: false
+      required:
+        - amount_paisa
+        - currency
+      properties:
+        amount_paisa:
+          type: integer
+          format: int64
+          minimum: 1
+          maximum: 50000000
+        currency:
+          type: string
+          maxLength: 3
+          enum:
+            - NPR
+    MutationVisitArrived:
+      type: object
+      additionalProperties: false
+      required:
+        - client_mutation_id
+        - device_seq
+        - type
+        - visit_id
+        - captured
+        - payload
+      properties:
+        client_mutation_id:
+          $ref: _common.yaml#/components/schemas/Uuidv7
+        device_seq:
+          type: integer
+          minimum: 1
+          maximum: 9007199254740991
+        type:
+          type: string
+          maxLength: 13
+          enum:
+            - visit.arrived
+        visit_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        captured:
+          $ref: "#/components/schemas/Captured"
+        payload:
+          type: object
+          additionalProperties: false
+          required:
+            - gps
+          properties:
+            gps:
+              $ref: "#/components/schemas/Gps"
+    MutationVisitIdentityChecked:
+      type: object
+      additionalProperties: false
+      required:
+        - client_mutation_id
+        - device_seq
+        - type
+        - visit_id
+        - captured
+        - payload
+      properties:
+        client_mutation_id:
+          $ref: _common.yaml#/components/schemas/Uuidv7
+        device_seq:
+          type: integer
+          minimum: 1
+          maximum: 9007199254740991
+        type:
+          type: string
+          maxLength: 22
+          enum:
+            - visit.identity_checked
+        visit_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        captured:
+          $ref: "#/components/schemas/Captured"
+        payload:
+          type: object
+          additionalProperties: false
+          required:
+            - name_check
+            - second_identifier
+            - second_check
+          properties:
+            name_check:
+              type: string
+              maxLength: 8
+              enum:
+                - matches
+                - mismatch
+            second_identifier:
+              type: string
+              maxLength: 10
+              enum:
+                - phone
+                - birth_date
+            second_check:
+              type: string
+              maxLength: 8
+              enum:
+                - matches
+                - mismatch
+    MutationVisitConsentRecorded:
+      type: object
+      additionalProperties: false
+      required:
+        - client_mutation_id
+        - device_seq
+        - type
+        - visit_id
+        - captured
+        - payload
+      properties:
+        client_mutation_id:
+          $ref: _common.yaml#/components/schemas/Uuidv7
+        device_seq:
+          type: integer
+          minimum: 1
+          maximum: 9007199254740991
+        type:
+          type: string
+          maxLength: 22
+          enum:
+            - visit.consent_recorded
+        visit_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        captured:
+          $ref: "#/components/schemas/Captured"
+        payload:
+          type: object
+          additionalProperties: false
+          required:
+            - consent_text_version
+            - given
+          properties:
+            consent_text_version:
+              type: string
+              minLength: 1
+              maxLength: 40
+            given:
+              type: boolean
+    MutationSpecimenCollected:
+      type: object
+      additionalProperties: false
+      required:
+        - client_mutation_id
+        - device_seq
+        - type
+        - visit_id
+        - captured
+        - payload
+      properties:
+        client_mutation_id:
+          $ref: _common.yaml#/components/schemas/Uuidv7
+        device_seq:
+          type: integer
+          minimum: 1
+          maximum: 9007199254740991
+        type:
+          type: string
+          maxLength: 18
+          enum:
+            - specimen.collected
+        visit_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        captured:
+          $ref: "#/components/schemas/Captured"
+        payload:
+          type: object
+          additionalProperties: false
+          required:
+            - specimen_id
+            - scanned_barcode
+            - scan_method
+            - specimen_type_code
+            - gps
+          properties:
+            specimen_id:
+              $ref: _common.yaml#/components/schemas/Uuid
+            scanned_barcode:
+              type: string
+              minLength: 1
+              maxLength: 20
+              pattern: ^[A-Z0-9]{1,20}$
+            scan_method:
+              type: string
+              maxLength: 6
+              enum:
+                - camera
+                - hid
+                - manual
+            specimen_type_code:
+              $ref: _common.yaml#/components/schemas/Code
+            gps:
+              $ref: "#/components/schemas/Gps"
+    MutationSpecimenNotCollected:
+      type: object
+      additionalProperties: false
+      required:
+        - client_mutation_id
+        - device_seq
+        - type
+        - visit_id
+        - captured
+        - payload
+      properties:
+        client_mutation_id:
+          $ref: _common.yaml#/components/schemas/Uuidv7
+        device_seq:
+          type: integer
+          minimum: 1
+          maximum: 9007199254740991
+        type:
+          type: string
+          maxLength: 22
+          enum:
+            - specimen.not_collected
+        visit_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        captured:
+          $ref: "#/components/schemas/Captured"
+        payload:
+          type: object
+          additionalProperties: false
+          required:
+            - specimen_id
+            - reason_code
+          properties:
+            specimen_id:
+              $ref: _common.yaml#/components/schemas/Uuid
+            reason_code:
+              type: string
+              minLength: 1
+              maxLength: 64
+              pattern: ^[a-z0-9_]{1,64}$
+              x-coded-set: homecollection.specimen_not_collected_reasons
+            reason_text:
+              type: string
+              minLength: 1
+              maxLength: 200
+    MutationPaymentCaptured:
+      type: object
+      additionalProperties: false
+      required:
+        - client_mutation_id
+        - device_seq
+        - type
+        - visit_id
+        - captured
+        - payload
+      properties:
+        client_mutation_id:
+          $ref: _common.yaml#/components/schemas/Uuidv7
+        device_seq:
+          type: integer
+          minimum: 1
+          maximum: 9007199254740991
+        type:
+          type: string
+          maxLength: 16
+          enum:
+            - payment.captured
+        visit_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        captured:
+          $ref: "#/components/schemas/Captured"
+        payload:
+          type: object
+          additionalProperties: false
+          required:
+            - order_id
+            - payment_method_code
+            - amount
+          properties:
+            order_id:
+              $ref: _common.yaml#/components/schemas/Uuid
+            payment_method_code:
+              $ref: _common.yaml#/components/schemas/Code
+            amount:
+              $ref: "#/components/schemas/PaymentAmount"
+            reference:
+              type: string
+              minLength: 1
+              maxLength: 100
+    MutationVisitCompleted:
+      type: object
+      additionalProperties: false
+      required:
+        - client_mutation_id
+        - device_seq
+        - type
+        - visit_id
+        - captured
+        - payload
+      properties:
+        client_mutation_id:
+          $ref: _common.yaml#/components/schemas/Uuidv7
+        device_seq:
+          type: integer
+          minimum: 1
+          maximum: 9007199254740991
+        type:
+          type: string
+          maxLength: 15
+          enum:
+            - visit.completed
+        visit_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        captured:
+          $ref: "#/components/schemas/Captured"
+        payload:
+          type: object
+          additionalProperties: false
+          required:
+            - outcome
+          properties:
+            outcome:
+              type: string
+              maxLength: 9
+              enum:
+                - collected
+                - partial
+    MutationVisitFailed:
+      type: object
+      additionalProperties: false
+      required:
+        - client_mutation_id
+        - device_seq
+        - type
+        - visit_id
+        - captured
+        - payload
+      properties:
+        client_mutation_id:
+          $ref: _common.yaml#/components/schemas/Uuidv7
+        device_seq:
+          type: integer
+          minimum: 1
+          maximum: 9007199254740991
+        type:
+          type: string
+          maxLength: 12
+          enum:
+            - visit.failed
+        visit_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        captured:
+          $ref: "#/components/schemas/Captured"
+        payload:
+          type: object
+          additionalProperties: false
+          required:
+            - reason_code
+            - gps
+          properties:
+            reason_code:
+              type: string
+              minLength: 1
+              maxLength: 64
+              pattern: ^[a-z0-9_]{1,64}$
+              x-coded-set: homecollection.visit_fail_reasons
+            reason_text:
+              type: string
+              minLength: 1
+              maxLength: 200
+            gps:
+              $ref: "#/components/schemas/Gps"
+    MutationHandoverRecorded:
+      type: object
+      additionalProperties: false
+      required:
+        - client_mutation_id
+        - device_seq
+        - type
+        - captured
+        - payload
+      properties:
+        client_mutation_id:
+          $ref: _common.yaml#/components/schemas/Uuidv7
+        device_seq:
+          type: integer
+          minimum: 1
+          maximum: 9007199254740991
+        type:
+          type: string
+          maxLength: 17
+          enum:
+            - handover.recorded
+        captured:
+          $ref: "#/components/schemas/Captured"
+        payload:
+          type: object
+          additionalProperties: false
+          required:
+            - handover_id
+            - to_centre_id
+            - specimen_ids
+          properties:
+            handover_id:
+              $ref: _common.yaml#/components/schemas/Uuidv7
+            to_centre_id:
+              $ref: _common.yaml#/components/schemas/Uuid
+            specimen_ids:
+              type: array
+              minItems: 1
+              maxItems: 50
+              items:
+                $ref: _common.yaml#/components/schemas/Uuid
+    Mutation:
+      oneOf:
+        - $ref: "#/components/schemas/MutationVisitArrived"
+        - $ref: "#/components/schemas/MutationVisitIdentityChecked"
+        - $ref: "#/components/schemas/MutationVisitConsentRecorded"
+        - $ref: "#/components/schemas/MutationSpecimenCollected"
+        - $ref: "#/components/schemas/MutationSpecimenNotCollected"
+        - $ref: "#/components/schemas/MutationPaymentCaptured"
+        - $ref: "#/components/schemas/MutationVisitCompleted"
+        - $ref: "#/components/schemas/MutationVisitFailed"
+        - $ref: "#/components/schemas/MutationHandoverRecorded"
+      discriminator:
+        propertyName: type
+        mapping:
+          visit.arrived: "#/components/schemas/MutationVisitArrived"
+          visit.identity_checked: "#/components/schemas/MutationVisitIdentityChecked"
+          visit.consent_recorded: "#/components/schemas/MutationVisitConsentRecorded"
+          specimen.collected: "#/components/schemas/MutationSpecimenCollected"
+          specimen.not_collected: "#/components/schemas/MutationSpecimenNotCollected"
+          payment.captured: "#/components/schemas/MutationPaymentCaptured"
+          visit.completed: "#/components/schemas/MutationVisitCompleted"
+          visit.failed: "#/components/schemas/MutationVisitFailed"
+          handover.recorded: "#/components/schemas/MutationHandoverRecorded"
+    PushRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - device_id
+        - batch_id
+        - sent_at_device
+        - anchors
+        - now
+        - mutations
+      properties:
+        device_id:
+          $ref: _common.yaml#/components/schemas/Uuidv7
+        batch_id:
+          $ref: _common.yaml#/components/schemas/Uuidv7
+        sent_at_device:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        anchors:
+          type: array
+          maxItems: 20
+          items:
+            $ref: "#/components/schemas/Anchor"
+        now:
+          type: object
+          additionalProperties: false
+          required:
+            - device_wall_time
+            - monotonic_ms
+            - boot_id
+          properties:
+            device_wall_time:
+              $ref: _common.yaml#/components/schemas/IsoUtc
+            monotonic_ms:
+              type: integer
+              minimum: 0
+              maximum: 9007199254740991
+            boot_id:
+              type: string
+              minLength: 1
+              maxLength: 64
+        mutations:
+          type: array
+          minItems: 1
+          maxItems: 100
+          items:
+            $ref: "#/components/schemas/Mutation"
+    PushResult:
+      type: object
+      additionalProperties: false
+      required:
+        - client_mutation_id
+        - device_seq
+        - outcome
+      properties:
+        client_mutation_id:
+          $ref: _common.yaml#/components/schemas/Uuidv7
+        device_seq:
+          type: integer
+          minimum: 1
+          maximum: 9007199254740991
+        outcome:
+          type: string
+          maxLength: 9
+          enum:
+            - applied
+            - duplicate
+            - held
+            - rejected
+        code:
+          $ref: _common.yaml#/components/schemas/Code
+    HandoverItemResult:
+      type: object
+      additionalProperties: false
+      required:
+        - handover_id
+        - specimen_id
+        - outcome
+      properties:
+        handover_id:
+          $ref: _common.yaml#/components/schemas/Uuidv7
+        specimen_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        outcome:
+          type: string
+          maxLength: 27
+          enum:
+            - included
+            - skipped_not_collected
+            - skipped_already_handed_over
+    PushResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - server_time
+        - batch_id
+        - results
+        - handover_items
+        - device_command
+      properties:
+        server_time:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        batch_id:
+          $ref: _common.yaml#/components/schemas/Uuidv7
+        results:
+          type: array
+          maxItems: 100
+          items:
+            $ref: "#/components/schemas/PushResult"
+        handover_items:
+          type: array
+          maxItems: 5000
+          items:
+            $ref: "#/components/schemas/HandoverItemResult"
+        device_command:
+          type: string
+          maxLength: 4
+          enum:
+            - none
+            - wipe

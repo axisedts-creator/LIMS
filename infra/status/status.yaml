@@ -1,0 +1,16 @@
+# Public status page source (REQ-SEC-142). Rendered by roles/status_page into static HTML.
+# Components and maintenance notices only: no names of labs or people, no health data, no contacts.
+# States: operational, degraded, partial_outage, major_outage, maintenance.
+# Edit `state` and `updated` (UTC) by pull request; the page shows "status unknown" when `updated` is over 15 minutes old.
+updated: "2026-11-08T00:00:00Z"
+components:
+  - id: staff_web
+    name: Staff web application
+    state: operational
+  - id: portal
+    name: Results portal
+    state: operational
+  - id: api
+    name: API
+    state: operational
+notices: []

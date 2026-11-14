@@ -1,0 +1,5 @@
+// H4 POST /v1/homecollection/visits/{visit_id}/unassign (homecollection.visit.assign; If-Match required)
+import type { Handler } from '../../../core/module.js';
+import { unassignHomeVisit } from '../visit.service.js';
+
+export const handler: Handler = (req, ctx) => unassignHomeVisit(ctx, req.params, req.headers, req.body);

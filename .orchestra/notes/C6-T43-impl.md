@@ -1,0 +1,6 @@
+C6-T43 impl (writer). Files: service/release.service.ts (rule 8 `queueDuesReminder`, `amountPaisa` key fix), service/portal.service.ts + handlers/portal.handlers.ts (P7 getDues), apps/portal: app/r/[token]/dues/page.tsx, features/portal/actions.ts (link_purpose routing), pay/route.ts (`from=dues` whitelist), server/api.ts (PortalDues).
+- [CONV] rule 8 runs in releaseVersion auto path only (worker task + sweep); manual/bulk unchanged. Channel = first usable of patient_mobile_channel_order (whatsapp/sms); none usable -> ONE suppressed row on the first mobile channel. Skips quietly when ctx has no IdentityPort (release-only callers/tests).
+- OPEN: P7 lab_name for a dues session: qr_tokens invisible under RLS -> falls back to 'Laboratory'; needs a source (CR).
+- Round 3 (after tester stub fix, 2026-11-11): api portal.dues/resolver/service 77/77 (first cold run 2 timeouts, rerun green), worker 162/162, static 5/5, Playwright dues 7/7. LD-96/A37: portal.resolver.ts emits `portal_link_purpose` from DEFINER row `purpose`. No code change this round.
+- Stale tests (tester): manifest.test / settings.handlers "501 stubs" list lacks getPortalDues (+T42 PP1/PP2); no reporting pending.json exists (LD-70 nothing to remove).
+- Not run: Playwright dues e2e (needs stub/browser), pgTAP, A21.4 migration (already present). Static portal 29/29, tsc portal clean.

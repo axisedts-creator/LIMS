@@ -1,0 +1,22 @@
+/* RS-C6 (LD-140; 10-DESIGN-SYSTEM s5 portal rules): token vars only, no fallback literals; mobile first (no max-width queries); 44 px targets. */
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--lims-neutral-50); color: var(--lims-neutral-900); font-family: var(--lims-font-family-sans); font-size: 16px; line-height: 24px; }
+.portal-main { max-width: 560px; margin: 0 auto; padding: 16px 12px; }
+.portal-footer { max-width: 560px; margin: 0 auto; padding: 8px 12px 24px; font-size: 14px; color: var(--lims-neutral-700); }
+h1 { font-size: 24px; line-height: 32px; margin: 0 0 12px; overflow-wrap: anywhere; }
+h2 { font-size: 18px; line-height: 28px; margin: 0 0 8px; }
+h3 { font-size: 16px; margin: 12px 0 4px; }
+p, ul { overflow-wrap: anywhere; }
+.portal-card { background: var(--lims-neutral-0); border: 1px solid var(--lims-neutral-300); border-radius: var(--lims-radius-lg); padding: 12px; margin: 0 0 12px; }
+.portal-btn { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; min-width: 44px; padding: 8px 16px; margin: 4px 8px 4px 0; border: 1px solid var(--lims-neutral-500); border-radius: var(--lims-radius-full); background: var(--lims-neutral-0); color: var(--lims-neutral-900); font: inherit; font-weight: 500; text-decoration: none; cursor: pointer; }
+.portal-btn-primary { background: var(--lims-accent); color: var(--lims-accent-fg); border-color: var(--lims-accent); }
+.portal-btn:focus-visible, .portal-alert:focus-visible { outline: 2px solid var(--lims-focus-ring); outline-offset: 2px; }
+.portal-alert { border: 1px solid var(--lims-tone-danger-border); background: var(--lims-tone-danger-bg); color: var(--lims-tone-danger-fg); border-radius: var(--lims-radius-md); padding: 8px 12px; margin: 0 0 12px; }
+.portal .lims-otp { gap: 6px; margin: 4px 0 12px; }
+.portal .lims-otp-cell { flex: 1 1 0; width: auto; min-width: 0; min-height: 44px; padding: 0; font-size: 16px; }
+.portal .lims-field { display: block; }
+.portal .lims-label { display: block; margin-bottom: 4px; font-weight: 500; }
+dd { margin: 0 0 8px; overflow-wrap: anywhere; } dt { font-weight: 600; }
+.portal-sr { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.portal-notice { margin: 0 0 12px; padding: 8px 12px; border: 1px solid var(--lims-neutral-300); border-radius: var(--lims-radius-md); }
+.portal-notice p { margin: 0; }

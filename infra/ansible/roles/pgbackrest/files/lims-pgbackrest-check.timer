@@ -1,0 +1,9 @@
+[Unit]
+Description=pgBackRest archive check every 15 min (02-TRD s9.3)
+
+[Timer]
+OnCalendar=*:0/15
+AccuracySec=1s
+
+[Install]
+WantedBy=timers.target

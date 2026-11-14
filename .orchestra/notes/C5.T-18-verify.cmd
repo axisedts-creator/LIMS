@@ -1,0 +1,1 @@
+cd /d "%~dp0..\.." && pnpm --dir services/api exec vitest run src/modules/lab/service/__tests__/result.service.shortcodes.test.ts src/modules/lab/service/__tests__/result.service.enter.test.ts src/modules/lab/handlers/__tests__/resultEntry.handlers.test.ts && node node_modules\vitest\vitest.mjs run --config apps/web/src/features/lab/__tests__/vitest.c5-t18.config.ts

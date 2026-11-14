@@ -1,0 +1,9 @@
+[Unit]
+Description=pgBackRest metrics every minute (02-TRD s9.3)
+
+[Timer]
+OnCalendar=minutely
+AccuracySec=1s
+
+[Install]
+WantedBy=timers.target

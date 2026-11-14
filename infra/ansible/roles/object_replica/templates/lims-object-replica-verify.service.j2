@@ -1,0 +1,16 @@
+[Unit]
+Description=LIMS object replica nightly checksum pass (read-only, 02-TRD s9.5)
+After=network-online.target wg-quick@wg0.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+Environment=REPLICA_SRC={{ object_replica_src }}
+Environment=REPLICA_DEST={{ object_replica_dest }}
+Environment=TEXTFILE_DIR=/var/lib/node_exporter/textfile
+ExecStart=/usr/local/lib/lims/bin/lims-object-replica.sh verify
+Nice=10
+IOSchedulingClass=idle
+ProtectSystem=strict
+PrivateTmp=true
+NoNewPrivileges=true

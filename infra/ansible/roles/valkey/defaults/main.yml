@@ -1,0 +1,10 @@
+---
+# 02-TRD s7.4 / s8.2: ACL file of the compose service valkey (AC-11.1).
+# Password = secret id valkey_lims_api_password, decrypted by role
+# secrets_render earlier in the same play (never in git / inventory).
+valkey_lims_api_password: >-
+  {{ secrets_render_values['valkey_lims_api_password'] | default('') }}
+valkey_acl_dir: /run/lims/secrets/valkey
+valkey_uid: 999  # = compose `user:` of service valkey
+valkey_compose: >-
+  docker compose -p lims -f /srv/lims/compose/lims/compose.app.yml

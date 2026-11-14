@@ -1,0 +1,76 @@
+---
+# 02-TRD s11.3 host family (TargetDown lives in ops.rules.yml, T-18).
+# LD-45: site A = data-/app- hosts (full profile) or prod-1 (lean profile).
+# Every rule: summary + runbook_url + team; no label from the s11.2 drop list.
+groups:
+  - name: host
+    rules:
+      - alert: DiskFillForecast
+        expr: >-
+          predict_linear(node_filesystem_avail_bytes{fstype!~"tmpfs|overlay|squashfs"}[6h], 24*3600) < 0
+        for: 5m
+        labels:
+          severity: page
+          team: ops
+        annotations:
+          summary: >-
+            Filesystem {{ $labels.mountpoint }} on {{ $labels.host }}
+            is forecast to fill within 24 h.
+          runbook_url: "infra/runbooks/host.md#diskfillforecast"
+      - alert: StorageVolumeForecastFull
+        expr: >-
+          predict_linear(node_filesystem_avail_bytes{mountpoint="/srv/lims/storage"}[30d], 90*86400) < 0
+        labels:
+          severity: warn
+          team: ops
+        annotations:
+          summary: >-
+            Object storage volume on {{ $labels.host }} is forecast to
+            fill within 90 days; grow the LV (04 I1).
+          runbook_url: "infra/runbooks/host.md#storagevolumeforecastfull"
+      - alert: ClockSkew
+        expr: abs(node_timex_offset_seconds) > 0.5
+        for: 5m
+        labels:
+          severity: warn
+          team: ops
+        annotations:
+          summary: "Clock offset on {{ $labels.host }} exceeds 0.5 s."
+          runbook_url: "infra/runbooks/host.md#clockskew"
+      - alert: HostMemoryPressure
+        expr: node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes < 0.10
+        for: 10m
+        labels:
+          severity: warn
+          team: ops
+        annotations:
+          summary: "Available memory on {{ $labels.host }} is below 10 %."
+          runbook_url: "infra/runbooks/host.md#hostmemorypressure"
+      - alert: PatchOverdue
+        expr: time() - lims_ops_last_patch_timestamp_seconds > 35 * 86400
+        labels:
+          severity: warn
+          team: ops
+        annotations:
+          summary: "{{ $labels.host }} has not been patched for more than 35 days (04 I9)."
+          runbook_url: "infra/runbooks/host.md#patchoverdue"
+      - alert: ConfigDrift
+        expr: lims_ops_config_drift_changes > 0
+        for: 5m
+        labels:
+          severity: warn
+          team: ops
+        annotations:
+          summary: "{{ $labels.host }} drifted from the playbook ({{ $value }} changes)."
+          runbook_url: "infra/runbooks/host.md#configdrift"
+      # Every site-A target down (max over them is 0); also the inhibition
+      # source of s11.4. Site-B hosts (dr-1, ops-1, backup-1) never count.
+      - alert: SiteADown
+        expr: max(up{host=~"(data|app|prod)-.+"}) == 0
+        for: 5m
+        labels:
+          severity: page
+          team: ops
+        annotations:
+          summary: "Every site A target is down."
+          runbook_url: "infra/runbooks/host.md#siteadown"

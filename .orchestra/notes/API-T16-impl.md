@@ -1,0 +1,5 @@
+# API-T16 impl (writer)
+Files: `drivers/micro-code.ts` (new: MAX_ANALYTE_CODE_LENGTH, orgCode, astCode, applyMicroCode), `events/publish.ts` (+CALIBRATION_EVENT, calibrationIdempotencyKey, calibrationReceived), `service/ingest.service.ts` (step 11 calibrator branch; outside the brief's file list but required by the tester's seam list). `drivers/types.ts` unchanged: already has `capabilities.calibration` and the calibrator fields.
+Decisions: [CONV] too-long micro code => code unset + warning `instrument_analyte_code_too_long`, never truncated; ingest then marks the record skipped_invalid via the missing code. [CONV] calibrator: `!driver.capabilities.calibration` => not_applicable; not live => shadow; live => publish; IC-limit breach => skipped_invalid (counts in skipped_records).
+Ran: micro-code, calibration.events, calibration.service, directory-view.contract, ingest.service, ingest.events = 6 files, 159 tests pass.
+Open: applyMicroCode is not yet called by any driver (none is verified). Calibrators don't update observed_codes or unmapped_records (spec silent). Full suite and tsc not run here.

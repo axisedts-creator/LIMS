@@ -1,0 +1,287 @@
+# T-21 (tester, LD-39): promtool tests for ../identity.rules.yml. Synthetic series only (no real tenant or patient data).
+# Per alert one firing case (labels carry the rule's severity and team), one not-firing case, and for rules with a
+# `for` clause a pending-before-`for` + firing-after-`for` check. Thresholds are the owner's (02-TRD s11.3).
+rule_files:
+  - ../identity.rules.yml
+evaluation_interval: 1m
+tests:
+
+  - interval: 1m
+    name: "IdentityLoginFailureSpike fires (variant 1)"
+    input_series:
+      - series: 'lims_identity_logins_total{outcome="failed"}'
+        values: "0+20x15"
+    alert_rule_test:
+      - alertname: IdentityLoginFailureSpike
+        eval_time: 12m
+        exp_alerts:
+          - exp_labels: {severity: "warn", team: "ops"}
+            exp_annotations: {summary: "Login failures above the platform or per-tenant 5-min limit.", runbook_url: "infra/runbooks/identity.md#identityloginfailurespike"}
+
+  - interval: 1m
+    name: "IdentityLoginFailureSpike fires (variant 2)"
+    input_series:
+      - series: 'lims_identity_login_failures_by_tenant_5m{tenant_id="t1"}'
+        values: "21x15"
+    alert_rule_test:
+      - alertname: IdentityLoginFailureSpike
+        eval_time: 12m
+        exp_alerts:
+          - exp_labels: {severity: "warn", team: "ops", tenant_id: "t1"}
+            exp_annotations: {summary: "Login failures above the platform or per-tenant 5-min limit.", runbook_url: "infra/runbooks/identity.md#identityloginfailurespike"}
+
+  - interval: 1m
+    name: "IdentityLoginFailureSpike quiet"
+    input_series:
+      - series: 'lims_identity_logins_total{outcome="failed"}'
+        values: "0+5x15"
+      - series: 'lims_identity_login_failures_by_tenant_5m{tenant_id="t1"}'
+        values: "20x15"
+    alert_rule_test:
+      - alertname: IdentityLoginFailureSpike
+        eval_time: 12m
+        exp_alerts: []
+
+  - interval: 1m
+    name: "IdentityCredentialStuffing fires"
+    input_series:
+      - series: 'lims_identity_stuffing_distinct_accounts_15m'
+        values: "30x15"
+      - series: 'lims_identity_stuffing_distinct_ips_15m'
+        values: "10x15"
+    alert_rule_test:
+      - alertname: IdentityCredentialStuffing
+        eval_time: 12m
+        exp_alerts:
+          - exp_labels: {severity: "page", team: "ops"}
+            exp_annotations: {summary: "Credential-stuffing pattern: 30+ accounts from 10+ IPs in 15 min.", runbook_url: "infra/runbooks/identity.md#identitycredentialstuffing"}
+
+  - interval: 1m
+    name: "IdentityCredentialStuffing quiet (variant 1)"
+    input_series:
+      - series: 'lims_identity_stuffing_distinct_accounts_15m'
+        values: "29x15"
+      - series: 'lims_identity_stuffing_distinct_ips_15m'
+        values: "10x15"
+    alert_rule_test:
+      - alertname: IdentityCredentialStuffing
+        eval_time: 12m
+        exp_alerts: []
+
+  - interval: 1m
+    name: "IdentityCredentialStuffing quiet (variant 2)"
+    input_series:
+      - series: 'lims_identity_stuffing_distinct_accounts_15m'
+        values: "30x15"
+      - series: 'lims_identity_stuffing_distinct_ips_15m'
+        values: "9x15"
+    alert_rule_test:
+      - alertname: IdentityCredentialStuffing
+        eval_time: 12m
+        exp_alerts: []
+
+  - interval: 1m
+    name: "IdentityLoginIpThrottleEngaged fires (variant 1)"
+    input_series:
+      - series: 'lims_identity_logins_total{outcome="ip_throttled"}'
+        values: "0+1x15"
+    alert_rule_test:
+      - alertname: IdentityLoginIpThrottleEngaged
+        eval_time: 12m
+        exp_alerts:
+          - exp_labels: {severity: "page", team: "ops", outcome: "ip_throttled"}
+            exp_annotations: {summary: "The per-IP login failure throttle is engaged.", runbook_url: "infra/runbooks/identity.md#identityloginipthrottleengaged"}
+
+  - interval: 1m
+    name: "IdentityLoginIpThrottleEngaged fires (variant 2)"
+    input_series:
+      - series: 'lims_identity_login_ip_throttles_active'
+        values: "1x15"
+    alert_rule_test:
+      - alertname: IdentityLoginIpThrottleEngaged
+        eval_time: 12m
+        exp_alerts:
+          - exp_labels: {severity: "page", team: "ops"}
+            exp_annotations: {summary: "The per-IP login failure throttle is engaged.", runbook_url: "infra/runbooks/identity.md#identityloginipthrottleengaged"}
+
+  - interval: 1m
+    name: "IdentityLoginIpThrottleEngaged quiet"
+    input_series:
+      - series: 'lims_identity_logins_total{outcome="ip_throttled"}'
+        values: "0+0x15"
+      - series: 'lims_identity_login_ip_throttles_active'
+        values: "0x15"
+    alert_rule_test:
+      - alertname: IdentityLoginIpThrottleEngaged
+        eval_time: 12m
+        exp_alerts: []
+
+  - interval: 1m
+    name: "IdentityPlatformIpDenied fires"
+    input_series:
+      - series: 'lims_identity_logins_total{outcome="ip_denied"}'
+        values: "0+1x15"
+    alert_rule_test:
+      - alertname: IdentityPlatformIpDenied
+        eval_time: 12m
+        exp_alerts:
+          - exp_labels: {severity: "page", team: "ops", outcome: "ip_denied"}
+            exp_annotations: {summary: "A platform login came from a denied IP.", runbook_url: "infra/runbooks/identity.md#identityplatformipdenied"}
+
+  - interval: 1m
+    name: "IdentityPlatformIpDenied quiet"
+    input_series:
+      - series: 'lims_identity_logins_total{outcome="ip_denied"}'
+        values: "0+0x15"
+      - series: 'lims_identity_logins_total{outcome="failed"}'
+        values: "0+1x15"
+    alert_rule_test:
+      - alertname: IdentityPlatformIpDenied
+        eval_time: 12m
+        exp_alerts: []
+
+  - interval: 1m
+    name: "IdentitySupportSessionOpened fires"
+    input_series:
+      - series: 'lims_identity_support_sessions_opened_total'
+        values: "0+1x15"
+    alert_rule_test:
+      - alertname: IdentitySupportSessionOpened
+        eval_time: 12m
+        exp_alerts:
+          - exp_labels: {severity: "info", team: "ops"}
+            exp_annotations: {summary: "A support session was opened.", runbook_url: "infra/runbooks/identity.md#identitysupportsessionopened"}
+
+  - interval: 1m
+    name: "IdentitySupportSessionOpened quiet"
+    input_series:
+      - series: 'lims_identity_support_sessions_opened_total'
+        values: "0+0x15"
+    alert_rule_test:
+      - alertname: IdentitySupportSessionOpened
+        eval_time: 12m
+        exp_alerts: []
+
+  - interval: 1m
+    name: "IdentityAuditExportsHigh fires"
+    input_series:
+      - series: 'lims_identity_audit_exports_tenant_day{tenant_id="t1"}'
+        values: "4x15"
+    alert_rule_test:
+      - alertname: IdentityAuditExportsHigh
+        eval_time: 12m
+        exp_alerts:
+          - exp_labels: {severity: "warn", team: "ops", tenant_id: "t1"}
+            exp_annotations: {summary: "A tenant created more than 3 audit exports today.", runbook_url: "infra/runbooks/identity.md#identityauditexportshigh"}
+
+  - interval: 1m
+    name: "IdentityAuditExportsHigh quiet"
+    input_series:
+      - series: 'lims_identity_audit_exports_tenant_day{tenant_id="t1"}'
+        values: "3x15"
+    alert_rule_test:
+      - alertname: IdentityAuditExportsHigh
+        eval_time: 12m
+        exp_alerts: []
+
+  - interval: 1m
+    name: "IdentityGoTrueUnavailable fires"
+    input_series:
+      - series: 'lims_identity_gotrue_requests_total{outcome="error"}'
+        values: "0+30x20"
+      - series: 'lims_identity_gotrue_requests_total{outcome="ok"}'
+        values: "0+70x20"
+    alert_rule_test:
+      - alertname: IdentityGoTrueUnavailable
+        eval_time: 4m
+        exp_alerts: []
+      - alertname: IdentityGoTrueUnavailable
+        eval_time: 17m
+        exp_alerts:
+          - exp_labels: {severity: "page", team: "ops"}
+            exp_annotations: {summary: "More than 20 % of GoTrue requests failing for 5 min.", runbook_url: "infra/runbooks/identity.md#identitygotrueunavailable"}
+
+  - interval: 1m
+    name: "IdentityGoTrueUnavailable quiet"
+    input_series:
+      - series: 'lims_identity_gotrue_requests_total{outcome="error"}'
+        values: "0+10x20"
+      - series: 'lims_identity_gotrue_requests_total{outcome="ok"}'
+        values: "0+90x20"
+    alert_rule_test:
+      - alertname: IdentityGoTrueUnavailable
+        eval_time: 17m
+        exp_alerts: []
+
+  - interval: 1m
+    name: "IdentityRefreshFailures fires"
+    input_series:
+      - series: 'lims_identity_session_resolves_total{outcome="refresh_failed"}'
+        values: "0+2x20"
+    alert_rule_test:
+      - alertname: IdentityRefreshFailures
+        eval_time: 17m
+        exp_alerts:
+          - exp_labels: {severity: "warn", team: "ops", outcome: "refresh_failed"}
+            exp_annotations: {summary: "More than 10 session refresh failures in 10 min.", runbook_url: "infra/runbooks/identity.md#identityrefreshfailures"}
+
+  - interval: 1m
+    name: "IdentityRefreshFailures quiet"
+    input_series:
+      - series: 'lims_identity_session_resolves_total{outcome="refresh_failed"}'
+        values: "0+0x20"
+      - series: 'lims_identity_session_resolves_total{outcome="ok"}'
+        values: "0+5x20"
+    alert_rule_test:
+      - alertname: IdentityRefreshFailures
+        eval_time: 17m
+        exp_alerts: []
+
+  - interval: 1m
+    name: "IdentityBreachedListMissing fires"
+    input_series:
+      - series: 'lims_identity_breached_list_loaded{env="production"}'
+        values: "0x25"
+    alert_rule_test:
+      - alertname: IdentityBreachedListMissing
+        eval_time: 9m
+        exp_alerts: []
+      - alertname: IdentityBreachedListMissing
+        eval_time: 22m
+        exp_alerts:
+          - exp_labels: {severity: "page", team: "ops", env: "production"}
+            exp_annotations: {summary: "The breached-password list is not loaded in production.", runbook_url: "infra/runbooks/identity.md#identitybreachedlistmissing"}
+
+  - interval: 1m
+    name: "IdentityBreachedListMissing quiet"
+    input_series:
+      - series: 'lims_identity_breached_list_loaded{env="production"}'
+        values: "1x25"
+    alert_rule_test:
+      - alertname: IdentityBreachedListMissing
+        eval_time: 22m
+        exp_alerts: []
+
+  - interval: 1m
+    name: "IdentityDeadLetter fires"
+    input_series:
+      - series: 'lims_core_dead_letters_total{task="identity.sync"}'
+        values: "0+1x15"
+    alert_rule_test:
+      - alertname: IdentityDeadLetter
+        eval_time: 12m
+        exp_alerts:
+          - exp_labels: {severity: "page", team: "ops", task: "identity.sync"}
+            exp_annotations: {summary: "An identity job dead-lettered.", runbook_url: "infra/runbooks/identity.md#identitydeadletter"}
+
+  - interval: 1m
+    name: "IdentityDeadLetter quiet"
+    input_series:
+      - series: 'lims_core_dead_letters_total{task="identity.sync"}'
+        values: "0+0x15"
+      - series: 'lims_core_dead_letters_total{task="lab.x"}'
+        values: "0+1x15"
+    alert_rule_test:
+      - alertname: IdentityDeadLetter
+        eval_time: 12m
+        exp_alerts: []

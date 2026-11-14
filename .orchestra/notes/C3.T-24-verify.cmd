@@ -1,0 +1,1 @@
+pnpm --dir packages/shared-ts build && pnpm --dir services/api exec vitest run src/modules/catalog/__tests__/integration/exports src/modules/catalog/__tests__/helpers/exportsDb && pnpm --dir services/worker exec vitest run src/jobs/catalog/__tests__/integration/exportBuild

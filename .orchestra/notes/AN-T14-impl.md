@@ -1,0 +1,7 @@
+# AN-T14 impl (writer)
+Files: service/dashboard.service.ts (new), handlers/getAnalyticsDashboard.ts (new: 3 handlers), handlers/index.ts (3 stubs replaced), mappers/reports.dto.ts (+toFreshnessDto, toDashboardDto).
+Run: 4 AN-T14 files = 141/141 pass with `--testTimeout=30000`; full `src/modules/analytics` = 1376 pass, 2 fail (boot.test.ts, see below). `tsc --noEmit`: no analytics errors.
+[CONV] one rollup read per family over [previous.from, period.to), split by date (5 reads, flat in period length); `[]` families = all; Retry-After = ceil(last_manual_at+5min-ctx.now()) clamped [1,300]; job key `analytics.refresh_tenant:<tenant>`; live freshness entries = pending_items, agent_status (GET only; dashboard = pending_items); department_top label = plain name (no inactive suffix, DTO has no flag).
+OPEN 1 closed by ruling (e8c503db): rerun 2026-11-09, 4 AN-T14 files + boot.test = all pass; boot.test alone 117/117. Full analytics run: 1376 pass, 2 fail = 5 s/30 s timeouts only (boot 30-of-30 mount, ci/no-commission) under parallel load; both pass in isolation. No code change this round.
+OPEN 2: first test of dashboard/freshness files takes 3.7-8 s cold (module import + Ajv deref in contractErrors) and hits the 5 s default under parallel load; tester should add a warm-up/`{timeout}`.
+Not verified: real SQL (BACKLOG_SQL, PENDING_SQL, THROTTLE_SQL vs real schema/RLS), `app.enqueue_job` signature beyond the 3-arg form used by other modules.

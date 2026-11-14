@@ -1,0 +1,6 @@
+TESTS_WRONG — all 4 disputed points are test defects; no spec rule is in question. Change the tests as follows:
+1. referral.handler.test.ts:414 — the key filter `/rate|…/i` matches `generated_at`, which the same test requires at l.410 and contracts/openapi/analytics.yaml:4813 lists as required (schema at :4805, additionalProperties:false). Match whole snake_case segments instead, e.g. `/(^|_)(rate|percent|pct|share|payable|payout|pay|paid|status|action|href|url|link|due)(_|$)|incentive_amount/i`.
+2. referral.handler.test.ts:309-315 — the `narrowed` OWNER call leaves its 2 reads in `db.calls`, so `expect(reads()).toEqual([])` can never pass. Add `db.calls.length = 0;` before `makeCtx10(OWNER_A1…)` (same pattern as l.41). The 404 rule itself is correct (01-PRD.md:191) and stays.
+3. __tests__/boot.test.ts:39-43 — add `'getReferralIncentiveReport', // AN-T10` to IMPLEMENTED. The list says tasks move their ids there once implemented (l.38), and AN-T10 implements this handler.
+4. __tests__/ci/no-commission.test.ts:34, :70 — give these 2 tests an explicit timeout (`it(…, 60_000)`) or set a suite timeout. They spawn the c8-no-commission script (02-TRD.md:875); the 5 s vitest default is a test-harness choice, not a spec rule.
+None of the changes weakens an assertion. The implementation needs no change for these points.

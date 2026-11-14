@@ -1,0 +1,15 @@
+# Managed by Ansible (role ci_runner) - 02-TRD s12.2: the prod key is released by this root service for ONE
+# approved release id (instance %i), invoked by the runner (polkit rule allows only this unit pattern).
+# The runner holds no key of its own; the released copy is removed on stop and after {{ ci_runner_prod_key_ttl }}.
+[Unit]
+Description=Release the prod secrets key for approved release %i
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+User=root
+Environment=RELEASE_ID=%i
+ExecStart=/usr/local/sbin/lims-prod-decrypt start
+ExecStop=/usr/local/sbin/lims-prod-decrypt stop
+NoNewPrivileges=true
+PrivateTmp=true

@@ -1,0 +1,4 @@
+/* RS-C6 (LD-140; 10-DESIGN-SYSTEM s4 "Report preview and release"): paper-white preview on neutral.100. Kit tokens only. */
+.rpt-preview { padding: var(--lims-space-4); border: 1px solid var(--lims-neutral-200); border-radius: var(--lims-radius-lg); background: var(--lims-neutral-100); }
+.rpt-preview-paper { display: block; width: 100%; padding: var(--lims-space-4); border: 1px solid var(--lims-neutral-200); border-radius: var(--lims-radius-sm); background: var(--lims-neutral-0); }
+.rpt-chips { display: flex; flex-wrap: wrap; gap: var(--lims-space-2); margin: 0 0 var(--lims-space-2); padding: 0; list-style: none; }

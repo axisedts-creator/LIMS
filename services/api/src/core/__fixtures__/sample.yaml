@@ -1,0 +1,57 @@
+# Core sample module spec (02-TRD §14). Test-only: mounted when LIMS_CORE_ENV=ci and LIMS_CORE_LOAD_SAMPLE_MODULE=1, never deployed.
+openapi: 3.0.3
+info: { title: core sample module, version: 1.0.0 }
+paths:
+  /v1/core/sample/items:
+    get:
+      operationId: listSampleItems
+      security: []
+      x-public: "core sample module (ci only)"
+      x-idempotency: none
+      x-rate-limit-tier: general
+      parameters:
+        - { name: limit, in: query, required: false, schema: { type: integer, minimum: 1, maximum: 200 } }
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SampleItems' }
+    post:
+      operationId: createSampleItem
+      security: []
+      x-public: "core sample module (ci only)"
+      x-idempotency: none
+      x-rate-limit-tier: general
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SampleItemInput' }
+      responses:
+        '201':
+          description: created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SampleItem' }
+components:
+  schemas:
+    SampleItem:
+      type: object
+      additionalProperties: false
+      required: [id, label]
+      properties:
+        id: { type: string, maxLength: 36 }
+        label: { type: string, maxLength: 100 }
+    SampleItemInput:
+      type: object
+      additionalProperties: false
+      required: [label]
+      properties:
+        label: { type: string, maxLength: 100 }
+    SampleItems:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties:
+        items: { type: array, maxItems: 200, items: { $ref: '#/components/schemas/SampleItem' } }

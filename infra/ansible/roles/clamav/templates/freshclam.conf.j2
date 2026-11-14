@@ -1,0 +1,12 @@
+# Managed by Ansible, role clamav (02-TRD s7.4, PRD B11, F-01 default).
+# Runs on the ops host only, through the allowlisted Squid. No NotifyClamd: clamd is a
+# container on the app host; lims-clamav-sync.sh copies the databases and reloads it.
+DatabaseDirectory /var/lib/clamav
+DatabaseOwner clamav
+LogSyslog yes
+Foreground yes
+{% for m in clamav_mirrors %}
+DatabaseMirror {{ m }}
+{% endfor %}
+HTTPProxyServer {{clamav_proxy_server}}
+HTTPProxyPort {{ clamav_proxy_port }}

@@ -1,0 +1,6 @@
+{"name": "metis-oru-qc", "protocol": "hl7v2", "transport": "tcp_server", "instrument_profile": "getein_metis", "options": {},
+ "steps": [
+  {"note": "s4: QC ORU (no patient segment), same ACK form with MSH-16 2 echoed", "from": "instrument", "bytes": "<VT>MSH|^~\\&|GP|Metis|||20261114||ORU^R01|58|P|2.3.1||||2||UTF8|||<CR>OBR|1|7|AST|^|||20261114||||2|1^2|QCSYN1^QCSYN2|LOT111^LOT222|20300101^20300101||L^H|45.0^120.0|4.5^9.0|44.1^123.4|U/L<CR><FS><CR>"},
+  {"expect": "agent", "bytes": "<VT>MSH|^~\\&|LIS|LIMS|||{now}||ACK^R01|58|P|2.3.1||||2||UTF8|||<CR>MSA|AA|58|Message accepted|||0|<CR><FS><CR>", "within_ms": 200},
+  {"expect_queue": {"items": 1, "kind": "data", "raw_sha256": "1c4352919130e6d640883c635cae9869e2dcbc1c762eaf11d07eead8f34f385e"}}
+ ]}

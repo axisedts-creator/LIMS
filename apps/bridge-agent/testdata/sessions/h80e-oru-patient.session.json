@@ -1,0 +1,6 @@
+{"name": "h80e-oru-patient", "protocol": "hl7v2", "transport": "tcp_server", "instrument_profile": "truth_h80e", "options": {},
+ "steps": [
+  {"note": "08-ADDENDUM-TRUTH-H80E s3 M1/M2: a patient result is committed, then acknowledged AA with the ORU's MSH-10 (D-02)", "from": "instrument", "bytes": "<VT>MSH|^~\\&|Truth|Truth-H80E|||20261105||ORU^R01|7|P|2.3||||0||UTF-8||||<CR>PID|1||P0000123<CR>OBR|1|0001|E2600000042<CR>OBX|1|NM|HbA1c_NGSP||5.63|%||0<CR><FS><CR>"},
+  {"expect": "agent", "bytes": "<VT>MSH|^~\\&|LIMS||Truth|Truth-H80E|{now}||ACK|ACK0001|P|2.3<CR>MSA|AA|7<CR><FS><CR>", "within_ms": 200},
+  {"expect_queue": {"items": 1, "kind": "data", "raw_sha256": "0eba7c5caa77cc702b92e6086a3db3c9cf95e46e9eed5e9c92eaff4020cf5416"}}
+ ]}

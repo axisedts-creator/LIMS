@@ -1,0 +1,33 @@
+name: patient_app
+description: LIMS patient app (C16 T-A1 skeleton, 02-TRD §3.5).
+version: 0.1.0+1
+publish_to: none
+environment:
+  sdk: 3.13.7
+  flutter: 3.47.9
+# Exact pins only (CV §15.1, REQ-SEC-129); every row is in db/meta/decisions/T0-03-dependencies.md.
+# No local DB, key-value store, push or analytics SDK (REQ-SEC-103, 07 T-SEC1).
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_riverpod: 3.5.0
+  flutter_secure_storage: 11.2.0
+  go_router: 18.1.3
+  local_auth: 3.0.2
+  sentry_flutter: 10.3.0
+  url_launcher: 6.3.3
+  # workspace members (packages/shared-dart, packages/ui-flutter); lims_api_client joins when generated (CR-C16-016/017)
+  lims_shared: any
+  lims_ui: any
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  integration_test:
+    sdk: flutter
+# [CONV] The root workspace list (pubspec.yaml, C0-owned) does not name apps/patient_app yet; until it does, resolve the
+# two workspace packages by path so this app builds and tests on its own.
+dependency_overrides:
+  lims_shared:
+    path: ../../packages/shared-dart
+  lims_ui:
+    path: ../../packages/ui-flutter

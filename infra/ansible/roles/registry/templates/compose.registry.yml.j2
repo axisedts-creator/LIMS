@@ -1,0 +1,28 @@
+# 02-TRD s12.2 / s3.3: Nepal image registry on ops-1 (compose project
+# `registry`). Host network, listens on {{ registry_wg_ip }}:5000 only
+# (wg0; nftables admits product hosts). TLS from the internal CA leaf,
+# htpasswd auth, no upstream / pull-through configuration.
+name: registry
+services:
+  registry:
+    image: {{ registry_image }}
+    network_mode: host
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    user: "{{ registry_uid }}:{{ registry_uid }}"
+    environment:
+      REGISTRY_HTTP_ADDR: "{{ registry_wg_ip }}:{{ registry_port }}"
+      REGISTRY_HTTP_DEBUG_ADDR: "127.0.0.1:5001"
+      REGISTRY_HTTP_TLS_CERTIFICATE: /certs/cert.pem
+      REGISTRY_HTTP_TLS_KEY: /certs/key.pem
+      REGISTRY_AUTH: htpasswd
+      REGISTRY_AUTH_HTPASSWD_PATH: /auth/htpasswd
+      REGISTRY_AUTH_HTPASSWD_REALM: "LIMS registry ({{ env }})"
+      REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY: /var/lib/registry
+      REGISTRY_STORAGE_DELETE_ENABLED: "true"
+    volumes:
+      - {{ registry_pki }}:/certs:ro
+      - {{ registry_auth_dir }}:/auth:ro
+      - {{ registry_storage }}:/var/lib/registry

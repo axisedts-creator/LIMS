@@ -1,0 +1,7 @@
+# BL-T03 tests (tester)
+Files (services/api/src/modules/billing/repository/__tests__/): repo.static.test.ts (16 TRD §3.2 repo files exist; no DELETE except exports/export_jobs; no UPDATE on 8 append-only tables; invoices UPDATE only mutable cols; counter only `last_no = last_no + 1`; bound SQL; no pg/role/GUC), repo.unit.test.ts (fake tx), immutability.live.test.ts (real DB as lims_app, §9.3/.4/.6).
+Run: `.orchestra\notes\BL-T03-verify.cmd`. Expected now: static fails (repo files missing), unit fails on missing `../counters.repo.js`/`../invoices.repo.js`; live is SKIPPED without DB.
+Live: set LIMS_TEST_DATABASE_URL (superuser, migrated+seeded) and LIMS_TEST_APP_DATABASE_URL (logs in as / may SET ROLE lims_app); needs `pg` installed. Same gating as identity sessions.repo.live.test.ts.
+Assumed API (spec silent; writer: object if wrong): counters.repo `bumpCounter(tx,{tenantId,series,fiscalYearBs}) -> number|undefined`; invoices.repo `getInvoice(tx,{tenantId,invoiceId})`, `markInvoicePrinted(tx,{tenantId,invoiceId,userId}) -> number|undefined`; P0001 immutable_row on billing.invoices re-thrown as {code:'billing.invoice_immutable', statusCode:409}, other errors pass through raw.
+Static rules may flag a legit dynamic-SQL pattern (no `${}` in SQL templates; invoices SET parsing is regex-based): raise a dispute rather than loosening.
+Not verifiable here: live DB run (no DB in this session); DB triggers/grants themselves are already proven by db/tests/frontdesk_billing/T0B-10.C4_behaviour.test.sql.

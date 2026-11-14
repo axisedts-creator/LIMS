@@ -1,0 +1,8 @@
+#!/bin/sh
+# Managed by Ansible (role auditstore, T-15): psql inside the audit-store
+# container as a job role. PGUSER / PGPASSWORD / PGDATABASE come from the
+# calling unit's environment (never argv). PGHOST=127.0.0.1 forces TCP
+# loopback (scram line in pg_hba): the unix socket maps to `peer
+# map=supabase_map`, which has no job roles (review T-15 item 1).
+exec docker exec -i -e PGUSER -e PGPASSWORD -e PGDATABASE -e PGHOST=127.0.0.1 \
+  {{ auditstore_container }} psql "$@"

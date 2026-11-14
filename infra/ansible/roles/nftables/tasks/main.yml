@@ -1,0 +1,23 @@
+---
+# 02-TRD s5.5 (AC-01.4). Lockout guard: the ruleset is checked with
+# `nft -c -f` before it replaces /etc/nftables.conf.
+- name: Install nftables
+  ansible.builtin.apt:
+    name: nftables
+    state: present
+
+- name: Ruleset /etc/nftables.conf
+  ansible.builtin.template:
+    src: nftables.conf.j2
+    dest: /etc/nftables.conf
+    owner: root
+    group: root
+    mode: "0600"
+    validate: nft -c -f %s
+  notify: Reload nftables
+
+- name: Nftables enabled at boot
+  ansible.builtin.systemd_service:
+    name: nftables
+    state: started
+    enabled: true

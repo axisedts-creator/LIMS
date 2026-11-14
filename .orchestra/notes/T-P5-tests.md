@@ -1,0 +1,7 @@
+# T-P5 tests (tester) — Notifications E45/E46 + A20
+API: `services/api/src/modules/engagement/service/__tests__/notification.handlers.test.ts` (29 tests, fail now: placeholder 503) + world `__tests__/notifications.world.ts` + self-test `__tests__/notifications.world.test.ts` (6, pass).
+App (`apps/patient_app/test/`): `features/notifications/{notifications_api_wire,a20_notifications_screen,notification_bell,design_rules,no_push_sdk}_test.dart`, support `support/notifications_fakes.dart` (holds the IMPL CONTRACT header: file/class names for lib/features/notifications).
+Run: `.orchestra\notes\T-P5-verify.cmd`. Before impl: API handler tests + Flutter widget/wire/design tests fail (missing handlers/files); no_push_sdk + world self-test pass (regression guards).
+Covers: mixed-ids bulk -> per-id not_found (own account, other account, other tenant, unknown), read_at only written, no text on DTO, per-kind rendering (9 kinds), "9+" bell, refresh on launch/resume/pull, no push SDK (pubspec, lock, android/ios, lib imports).
+Assumptions (stated in test headers): already-read own row -> `updated`, read_at not moved; list order created_at DESC; profile_id = link id; booking kinds render without booking_no; "Mark all read" label; onOpen(NotificationItem) callback.
+Not verified: widget tests were only compiled/run against a throwaway stub (deleted), so a few may need arbiter review once the real impl exists. The "CI script" is the Dart test itself; no tools/ script added (not a tester path).

@@ -1,0 +1,169 @@
+# T-21 (tester, LD-39): promtool tests for ../imported/catalog.rules.yml. Synthetic series only (no real tenant or patient data).
+# Per alert one firing case (labels carry the rule's severity and team), one not-firing case, and for rules with a
+# `for` clause a pending-before-`for` + firing-after-`for` check. Thresholds are the owner's (02-TRD s11.3).
+rule_files:
+  - ../imported/catalog.rules.yml
+evaluation_interval: 1m
+tests:
+
+  - interval: 1m
+    name: "CatalogImportQuarantined fires"
+    input_series:
+      - series: 'lims_catalog_imports_total{outcome="quarantined"}'
+        values: "0+1x15"
+    alert_rule_test:
+      - alertname: CatalogImportQuarantined
+        eval_time: 12m
+        exp_alerts:
+          - exp_labels: {severity: "page", team: "ops", outcome: "quarantined"}
+            exp_annotations: {summary: "A catalog import file was quarantined (malware scan).", runbook_url: "infra/runbooks/catalog.md#catalogimportquarantined"}
+
+  - interval: 1m
+    name: "CatalogImportQuarantined quiet"
+    input_series:
+      - series: 'lims_catalog_imports_total{outcome="quarantined"}'
+        values: "0+0x15"
+      - series: 'lims_catalog_imports_total{outcome="ok"}'
+        values: "0+1x15"
+    alert_rule_test:
+      - alertname: CatalogImportQuarantined
+        eval_time: 12m
+        exp_alerts: []
+
+  - interval: 1m
+    name: "CatalogNoPriceSpike fires"
+    input_series:
+      - series: 'lims_catalog_port_calls_total{method="priceFor",outcome="no_price"}'
+        values: "0+10x40"
+      - series: 'lims_catalog_port_calls_total{method="priceFor",outcome="ok"}'
+        values: "0+90x40"
+    alert_rule_test:
+      - alertname: CatalogNoPriceSpike
+        eval_time: 14m
+        exp_alerts: []
+      - alertname: CatalogNoPriceSpike
+        eval_time: 37m
+        exp_alerts:
+          - exp_labels: {severity: "warn", team: "ops"}
+            exp_annotations: {summary: "More than 5 % of priceFor calls return no_price for 15 min.", runbook_url: "infra/runbooks/catalog.md#catalognopricespike"}
+
+  - interval: 1m
+    name: "CatalogNoPriceSpike quiet"
+    input_series:
+      - series: 'lims_catalog_port_calls_total{method="priceFor",outcome="no_price"}'
+        values: "0+0x40"
+      - series: 'lims_catalog_port_calls_total{method="priceFor",outcome="ok"}'
+        values: "0+100x40"
+    alert_rule_test:
+      - alertname: CatalogNoPriceSpike
+        eval_time: 37m
+        exp_alerts: []
+
+  - interval: 1m
+    name: "CatalogNoRangeSpike fires"
+    input_series:
+      - series: 'lims_catalog_port_calls_total{method="referenceRangeFor",outcome="no_reference_range"}'
+        values: "0+10x40"
+      - series: 'lims_catalog_port_calls_total{method="referenceRangeFor",outcome="ok"}'
+        values: "0+90x40"
+    alert_rule_test:
+      - alertname: CatalogNoRangeSpike
+        eval_time: 14m
+        exp_alerts: []
+      - alertname: CatalogNoRangeSpike
+        eval_time: 37m
+        exp_alerts:
+          - exp_labels: {severity: "warn", team: "ops"}
+            exp_annotations: {summary: "More than 5 % of referenceRangeFor calls find no range for 15 min.", runbook_url: "infra/runbooks/catalog.md#catalognorangespike"}
+
+  - interval: 1m
+    name: "CatalogNoRangeSpike quiet"
+    input_series:
+      - series: 'lims_catalog_port_calls_total{method="referenceRangeFor",outcome="no_reference_range"}'
+        values: "0+0x40"
+      - series: 'lims_catalog_port_calls_total{method="referenceRangeFor",outcome="ok"}'
+        values: "0+100x40"
+    alert_rule_test:
+      - alertname: CatalogNoRangeSpike
+        eval_time: 37m
+        exp_alerts: []
+
+  - interval: 1m
+    name: "CatalogPortLatency fires"
+    input_series:
+      - series: 'lims_catalog_port_duration_seconds_bucket{le="0.025"}'
+        values: "0+0x25"
+      - series: 'lims_catalog_port_duration_seconds_bucket{le="0.5"}'
+        values: "0+1x25"
+      - series: 'lims_catalog_port_duration_seconds_bucket{le="+Inf"}'
+        values: "0+1x25"
+    alert_rule_test:
+      - alertname: CatalogPortLatency
+        eval_time: 9m
+        exp_alerts: []
+      - alertname: CatalogPortLatency
+        eval_time: 22m
+        exp_alerts:
+          - exp_labels: {severity: "warn", team: "ops"}
+            exp_annotations: {summary: "Catalog port p95 latency above 50 ms for 10 min.", runbook_url: "infra/runbooks/catalog.md#catalogportlatency"}
+
+  - interval: 1m
+    name: "CatalogPortLatency quiet"
+    input_series:
+      - series: 'lims_catalog_port_duration_seconds_bucket{le="0.025"}'
+        values: "0+1x25"
+      - series: 'lims_catalog_port_duration_seconds_bucket{le="0.5"}'
+        values: "0+1x25"
+      - series: 'lims_catalog_port_duration_seconds_bucket{le="+Inf"}'
+        values: "0+1x25"
+    alert_rule_test:
+      - alertname: CatalogPortLatency
+        eval_time: 22m
+        exp_alerts: []
+
+  - interval: 1m
+    name: "CatalogImportStuck fires"
+    input_series:
+      - series: 'lims_catalog_import_tasks_inflight'
+        values: "1x30"
+    alert_rule_test:
+      - alertname: CatalogImportStuck
+        eval_time: 14m
+        exp_alerts: []
+      - alertname: CatalogImportStuck
+        eval_time: 27m
+        exp_alerts:
+          - exp_labels: {severity: "warn", team: "ops"}
+            exp_annotations: {summary: "A catalog import task has been in flight for 15 min.", runbook_url: "infra/runbooks/catalog.md#catalogimportstuck"}
+
+  - interval: 1m
+    name: "CatalogImportStuck quiet"
+    input_series:
+      - series: 'lims_catalog_import_tasks_inflight'
+        values: "0x30"
+    alert_rule_test:
+      - alertname: CatalogImportStuck
+        eval_time: 27m
+        exp_alerts: []
+
+  - interval: 1m
+    name: "CatalogContactReadsSpike fires"
+    input_series:
+      - series: 'lims_catalog_contact_reads_total{purpose="notification"}'
+        values: "0x3000 50+50x70"
+    alert_rule_test:
+      - alertname: CatalogContactReadsSpike
+        eval_time: 3070m
+        exp_alerts:
+          - exp_labels: {severity: "warn", team: "ops"}
+            exp_annotations: {summary: "Notification contact reads in the last hour above 10x the 7-day hourly median.", runbook_url: "infra/runbooks/catalog.md#catalogcontactreadsspike"}
+
+  - interval: 1m
+    name: "CatalogContactReadsSpike quiet"
+    input_series:
+      - series: 'lims_catalog_contact_reads_total{purpose="notification"}'
+        values: "0+10x3073"
+    alert_rule_test:
+      - alertname: CatalogContactReadsSpike
+        eval_time: 3070m
+        exp_alerts: []

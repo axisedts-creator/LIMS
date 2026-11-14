@@ -1,0 +1,116 @@
+# T-19 (tester, LD-39): hour-scale backup rules. Series interval = evaluation_interval = 10 m and every
+# eval_time sits on a sample (so the 5 m lookback never hides a series). Synthetic series only.
+# BackupMissed (page): last success > 26 h PER REPO (any backup type counts; labels = repo only).
+# ObjectReplicaStale: warn when last success > 1 h or lag > 1800 s; page when last success > 3 h. The warn tier
+# keeps firing while the page tier fires (same pattern as RestoreDrillOverdue). Lag alone never pages.
+# A "fresh" last-success series advances by 600 s per 10 m sample, so its age is always 0.
+rule_files:
+  - ../backup.rules.yml
+evaluation_interval: 10m
+tests:
+  - interval: 10m
+    name: BackupMissed - repo 2 stale for 27 h, repo 1 fresh incr -> page for repo 2 only
+    input_series:
+      - series: 'lims_ops_backup_last_success_timestamp_seconds{repo="1", type="incr"}'
+        values: "0+600x200"
+      - series: 'lims_ops_backup_last_success_timestamp_seconds{repo="1", type="full"}'
+        values: "0x200"
+      - series: 'lims_ops_backup_last_success_timestamp_seconds{repo="2", type="incr"}'
+        values: "0x200"
+      - series: 'lims_ops_backup_last_success_timestamp_seconds{repo="2", type="full"}'
+        values: "0x200"
+    alert_rule_test:
+      - alertname: BackupMissed
+        eval_time: 25h
+        exp_alerts: []
+      - alertname: BackupMissed
+        eval_time: 27h
+        exp_alerts:
+          - exp_labels: {severity: page, team: ops, repo: "2"}
+
+  - interval: 10m
+    name: BackupMissed - both repos fresh -> quiet
+    input_series:
+      - series: 'lims_ops_backup_last_success_timestamp_seconds{repo="1", type="full"}'
+        values: "0+600x200"
+      - series: 'lims_ops_backup_last_success_timestamp_seconds{repo="2", type="full"}'
+        values: "0+600x200"
+    alert_rule_test:
+      - alertname: BackupMissed
+        eval_time: 30h
+        exp_alerts: []
+
+  - interval: 10m
+    name: ObjectReplicaStale - fresh replica, small lag -> quiet
+    input_series:
+      - series: 'lims_ops_object_replica_last_success_timestamp_seconds'
+        values: "0+600x60"
+      - series: 'lims_ops_object_replica_lag_seconds'
+        values: "100x60"
+    alert_rule_test:
+      - alertname: ObjectReplicaStale
+        eval_time: 5h
+        exp_alerts: []
+
+  - interval: 10m
+    name: ObjectReplicaStale - last success older than 1 h (age = eval time, > 1 h from 70 m) -> warn only
+    input_series:
+      - series: 'lims_ops_object_replica_last_success_timestamp_seconds'
+        values: "0x60"
+      - series: 'lims_ops_object_replica_lag_seconds'
+        values: "100x60"
+    alert_rule_test:
+      - alertname: ObjectReplicaStale
+        eval_time: 50m
+        exp_alerts: []
+      - alertname: ObjectReplicaStale
+        eval_time: 90m
+        exp_alerts:
+          - exp_labels: {severity: warn, team: ops}
+
+  - interval: 10m
+    name: ObjectReplicaStale - last success older than 3 h (page tier true from 190 m) -> warn and page
+    input_series:
+      - series: 'lims_ops_object_replica_last_success_timestamp_seconds'
+        values: "0x60"
+      - series: 'lims_ops_object_replica_lag_seconds'
+        values: "100x60"
+    alert_rule_test:
+      - alertname: ObjectReplicaStale
+        eval_time: 170m
+        exp_alerts:
+          - exp_labels: {severity: warn, team: ops}
+      - alertname: ObjectReplicaStale
+        eval_time: 200m
+        exp_alerts:
+          - exp_labels: {severity: page, team: ops}
+          - exp_labels: {severity: warn, team: ops}
+
+  - interval: 10m
+    name: ObjectReplicaStale - lag 2000 s with a fresh success -> warn, never page
+    input_series:
+      - series: 'lims_ops_object_replica_last_success_timestamp_seconds'
+        values: "0+600x60"
+      - series: 'lims_ops_object_replica_lag_seconds'
+        values: "2000x60"
+    alert_rule_test:
+      - alertname: ObjectReplicaStale
+        eval_time: 60m
+        exp_alerts:
+          - exp_labels: {severity: warn, team: ops}
+      - alertname: ObjectReplicaStale
+        eval_time: 5h
+        exp_alerts:
+          - exp_labels: {severity: warn, team: ops}
+
+  - interval: 10m
+    name: ObjectReplicaStale - lag exactly 1800 s -> quiet
+    input_series:
+      - series: 'lims_ops_object_replica_last_success_timestamp_seconds'
+        values: "0+600x60"
+      - series: 'lims_ops_object_replica_lag_seconds'
+        values: "1800x60"
+    alert_rule_test:
+      - alertname: ObjectReplicaStale
+        eval_time: 5h
+        exp_alerts: []

@@ -1,0 +1,21 @@
+{
+  "name": "@lims/test-fixtures",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/test-fixtures/src/index.d.ts",
+      "default": "./dist/test-fixtures/src/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "devDependencies": {
+    "@sbmdkl/nepali-date-converter": "2.0.5",
+    "bikram-sambat": "1.8.1",
+    "typescript": "7.0.2"
+  }
+}

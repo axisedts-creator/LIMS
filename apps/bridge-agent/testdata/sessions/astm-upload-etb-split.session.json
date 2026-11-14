@@ -1,0 +1,21 @@
+{"name": "astm-upload-etb-split", "protocol": "astm", "transport": "pipe", "instrument_profile": "astm_generic_e1394", "options": {},
+ "steps": [
+  {"from": "instrument", "bytes": "<ENQ>"},
+  {"expect": "agent", "bytes": "<ACK>", "within_ms": 200},
+  {"from": "instrument", "bytes": "<STX>1H|\\^&|||SIM-ANALYSER^0.1|||||||P|1<CR><ETX>1C<CR><LF>"},
+  {"expect": "agent", "bytes": "<ACK>", "within_ms": 200},
+  {"from": "instrument", "bytes": "<STX>2P|1<CR><ETX>3F<CR><LF>"},
+  {"expect": "agent", "bytes": "<ACK>", "within_ms": 200},
+  {"from": "instrument", "bytes": "<STX>3O|1|E2600000042||^^^GLU<CR><ETX>E8<CR><LF>"},
+  {"expect": "agent", "bytes": "<ACK>", "within_ms": 200},
+  {"from": "instrument", "bytes": "<STX>4R|1|^^^GLU|5.4|mmol/L||N||F<CR><ETX>04<CR><LF>"},
+  {"expect": "agent", "bytes": "<ACK>", "within_ms": 200},
+  {"from": "instrument", "bytes": "<STX>5C|1|I|synthetic comment synthetic comment synthetic comment synthetic comment synthetic comment synthetic comment synthetic comment synthetic comment synthetic comment synthetic comment synthetic comment synthetic comment synthetic comment <ETB>33<CR><LF>"},
+  {"expect": "agent", "bytes": "<ACK>", "within_ms": 200},
+  {"from": "instrument", "bytes": "<STX>6synthetic comment synthetic comment synthetic comment synth<CR><ETX>A6<CR><LF>"},
+  {"expect": "agent", "bytes": "<ACK>", "within_ms": 200},
+  {"from": "instrument", "bytes": "<STX>7L|1|N<CR><ETX>0A<CR><LF>"},
+  {"expect": "agent", "bytes": "<ACK>", "within_ms": 200},
+  {"from": "instrument", "bytes": "<EOT>"},
+  {"expect_queue": {"items": 1, "kind": "data", "raw_sha256": "9bb94cbbfcd4fc774cbcf4d15dd6e45fb4ff5f690b76d369bfc0a66faded9568"}}
+ ]}

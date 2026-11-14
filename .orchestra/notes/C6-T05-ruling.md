@@ -1,0 +1,8 @@
+TESTS_WRONG — saturation test (pool.test.ts:111-128) still requires the waiter to fail, and the spec does not require that; implementation unchanged.
+Reasons (round 3, supersedes round-2 item 3 only; round-2 items 1–2 stand as applied):
+1. spec/chunks/C6-reporting-delivery/02-TRD.md:440 lists `503 pool saturated` as a status the renderer may return. It does not say a queued job must be refused while a context frees up within its wait. 03-APP-FLOW.md:450 (E10) only says what the worker does when it does get a 503.
+2. 02-TRD.md:422 sets one `LIMS_RENDERER_TIMEOUT_MS` "per job". No queue-wait bound is defined, and nothing forbids a waiter from taking a context freed before its deadline (round-2 ruling item 3). With contexts=1 and timeoutMs=1000, LONG times out (408) at about t=1000 ms and frees the context. WAIT, queued at about t=50 ms, takes it before its own deadline and renders. That is spec-compliant behaviour.
+3. Tester, at pool.test.ts:119-120: the waiter outcome must be one of (a) resolves with a PDF whose text contains `WAIT-P1`, or (b) rejects with `httpStatus` 503 or 408. Use `Promise.allSettled` or `.then(ok, err)` and assert one of those holds. Rename the `it(...)` title to say the waiter is bounded, not that it must reject.
+4. Keep unchanged: the `< 4000 ms` bound from t0 (this is the real AC: the wait is bounded, not unbounded), `await long` settling, `contextsBusy === 0`, and the NEXT no-leak render check.
+5. Optional, not required: also assert `long` settled as `err408` (02-TRD.md:422,440: 1500 ms of work > 1000 ms timeout).
+No CR is needed. A separate queue-wait bound would be optional hardening that the spec does not define.

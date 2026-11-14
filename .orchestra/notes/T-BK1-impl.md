@@ -1,0 +1,6 @@
+# T-BK1 impl (writer)
+- Files (commit 456f623e): API engagement `service/booking.service.ts`, `service/slot.service.ts`, `service/address.service.ts`, `repository/mybooking.repo.ts`, `repository/address.repo.ts`, `handlers/mybooking.handlers.ts`, `handlers/index.ts`, `domain/slots.ts`; app `lib/features/bookings/*` (api, providers, format, list/detail/wizard/addresses screens).
+- Round 2: no impl change; tester fixed a19 re-pump per ruling. Verify run: vitest 121/121 pass; flutter test bookings 77/77 pass; `flutter analyze lib/features/bookings` clean; tsc shows no errors in modules/engagement (pre-existing TS2835/TS5097 in contracts/ports, packages/shared-ts — not owned).
+- [CONV] If-Match absent -> 428 before DB; foreign/staff/tenant-B ids -> 404 before version check; writes in one tx (reschedule = cancel old + create new, rollback on full slot); patient cancel reason `patient_request`; Idempotency-Key per review step (new key per submit attempt) in app.
+- [CONV] Profile sex taken from link `sex_snapshot` (API) / `BookingProfile.sex` (app); unknown sex -> all items + "Suitability is confirmed at the lab". LD-140: lims_ui components only.
+- Open: CR needed to add `sex` to E13 `Profile` (tester GAP); `LimsSlotPicker` "9+ left" vs E32 cap at 9 mismatch; real Postgres RLS not exercised.

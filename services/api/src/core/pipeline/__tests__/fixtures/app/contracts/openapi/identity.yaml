@@ -1,0 +1,20 @@
+# T0D-18 test fixture (not a real contract): identity module providing the claimsResolver and a real IdentityPort for the pipeline tests.
+openapi: 3.0.3
+info: { title: fixture identity (T0D-18 pipeline tests), version: 1.0.0 }
+components:
+  securitySchemes:
+    bearerJwt: { type: http, scheme: bearer, bearerFormat: JWT }
+paths:
+  /v1/identity/ping:
+    get:
+      operationId: getIdentityPing
+      security: []
+      x-public: "fixture"
+      x-idempotency: none
+      x-rate-limit-tier: general
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: true }

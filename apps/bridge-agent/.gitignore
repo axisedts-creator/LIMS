@@ -1,0 +1,3 @@
+# Root .gitignore ignores build/; build/ here holds CI scripts, not artefacts.
+!build/
+out/

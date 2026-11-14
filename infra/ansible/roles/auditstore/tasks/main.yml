@@ -1,0 +1,367 @@
+---
+# 02-TRD s10.3, 05-SCHEMA s3 (T-15; AC-18.2, AC-18.3). LD-45: profile from
+# the inventory; the store host is groups[auditstore_host_group][0] and the
+# publisher is groups['data'][0]. No host names or addresses here.
+# Requires CR-C1-002 (role lims_audit_ship + publication lims_audit_ship on
+# the primary). Subscription owner / RLS: infra/auditstore/DECISION.md.
+- name: topology_profile set (LD-45 fail closed)
+  ansible.builtin.assert:
+    that:
+      - topology_profile is defined
+      - topology_profile in ['full', 'lean', 'dev']
+    fail_msg: >-
+      auditstore: set topology_profile ('full' | 'lean' | 'dev') in the
+      inventory; LD-45 forbids guessing a profile
+
+- name: Only on the audit-store host of the active profile
+  ansible.builtin.meta: end_host
+  when: >-
+    not (auditstore_enabled | bool)
+    or groups[auditstore_host_group] | default([]) | length == 0
+    or inventory_hostname != groups[auditstore_host_group][0]
+
+- name: Preconditions (secrets, publisher, full-profile image)
+  ansible.builtin.assert:
+    that:
+      - audit_writer_password | default('') | length >= 16
+      - audit_digest_password | default('') | length >= 16
+      - audit_reader_password | default('') | length >= 16
+      - lims_monitor_password | default('') | length >= 16
+      - lims_audit_ship_password | default('') | length >= 16
+      - app_db_name | default('') | length > 0
+      - env | default('') in ['dev', 'staging', 'prod']
+      - groups['data'] | default([]) | length > 0
+      - >-
+        topology_profile != 'full' or (
+        auditstore_superuser_password | default('') | length >= 16
+        and auditstore_image_digest | default('')
+        is match('^sha256:[0-9a-f]{64}$')
+        and hostvars[groups['data'][0]].wg_ip | default('') | length > 0
+        and wg_ip | default('') | length > 0)
+    fail_msg: >-
+      auditstore: needs the five role passwords, app_db_name, env and a data
+      host; full also auditstore_superuser_password, auditstore_image_digest
+      and wg_ip of both hosts
+  no_log: true
+
+- name: Secrets parent directory is tmpfs (never a disk path)
+  ansible.builtin.command: findmnt -n -o FSTYPE --target /run/lims/secrets
+  register: auditstore_fstype
+  changed_when: false
+  failed_when: auditstore_fstype.stdout | trim != 'tmpfs'
+
+- name: Directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+  loop:
+    - "{{ auditstore_secret_dir }}"
+    - "{{ auditstore_lib_dir }}"
+    - "{{ auditstore_lib_dir }}/bin"
+
+- name: Textfile collector directory
+  ansible.builtin.file:
+    path: /var/lib/node_exporter/textfile
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+# Host psql wrappers: `psql-super` = instance superuser of the store (break-
+# glass/provisioning only); `psql` = job roles, PGUSER/PGPASSWORD/PGDATABASE
+# from the unit environment, password never on argv.
+- name: psql wrappers
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: "{{ auditstore_lib_dir }}/bin/{{ item }}"
+    owner: root
+    group: root
+    mode: "0750"
+  loop:
+    - psql
+    - psql-super
+
+# ---- full: own PostgreSQL 17 instance on the dr host (02-TRD s10.3)
+- name: Own store instance (LD-45 full only)
+  when: topology_profile == 'full'
+  no_log: true
+  block:
+    - name: Data directory (own LUKS volume, luks_volumes)
+      ansible.builtin.file:
+        path: "{{ auditstore_root }}/pgdata"
+        state: directory
+        owner: "{{ auditstore_pg_uid }}"
+        group: "{{ auditstore_pg_gid }}"
+        mode: "0700"
+
+    - name: Superuser password file on tmpfs (split founder + ops lead)
+      ansible.builtin.copy:
+        content: "{{ auditstore_superuser_password }}"
+        dest: "{{ auditstore_secret_dir }}/postgres_password"
+        owner: "{{ auditstore_pg_uid }}"
+        group: "{{ auditstore_pg_gid }}"
+        mode: "0400"
+      no_log: true
+
+    - name: Store container present?
+      ansible.builtin.command:
+        argv: [docker, inspect, --type=container, "{{ auditstore_container }}"]
+      register: auditstore_inspect
+      changed_when: false
+      failed_when: false
+
+    # 05-SCHEMA s5: max_connections 50, shared_buffers 4GB,
+    # log_parameter_max_length 0 [CONV]. wal_level logical is not needed on
+    # a subscriber. Published on the wg0 address only (02-TRD s3.3).
+    - name: Start the store instance
+      ansible.builtin.command:
+        argv:
+          - docker
+          - run
+          - --detach
+          - --name={{ auditstore_container }}
+          - --restart=unless-stopped
+          - --security-opt=no-new-privileges
+          - --publish={{ wg_ip }}:{{ auditstore_port }}:5432
+          - --volume={{ auditstore_root }}/pgdata:/var/lib/postgresql/data
+          - --volume={{ auditstore_secret_dir }}:/run/secrets:ro
+          - --env=POSTGRES_PASSWORD_FILE=/run/secrets/postgres_password
+          - --env=POSTGRES_DB={{ auditstore_db_name }}
+          - "{{ auditstore_image }}"
+          - -c
+          - max_connections=50
+          - -c
+          - shared_buffers=4GB
+          - -c
+          - log_parameter_max_length=0
+      when: auditstore_inspect.rc != 0
+      changed_when: true
+
+    - name: Wait for the store instance
+      ansible.builtin.command:
+        argv:
+          - docker
+          - exec
+          - "{{ auditstore_container }}"
+          - pg_isready
+          - -U
+          - postgres
+      register: auditstore_ready
+      retries: 30
+      delay: 2
+      until: auditstore_ready.rc == 0
+      changed_when: false
+
+# ---- database + schema (once; later changes only via gen-schema.sh --apply)
+- name: Store database exists?
+  ansible.builtin.command:
+    argv:
+      - "{{ auditstore_lib_dir }}/bin/psql-super"
+      - -At
+      - -d
+      - postgres
+      - -c
+      - SELECT 1 FROM pg_database WHERE datname = '{{ auditstore_db_name }}'
+  register: auditstore_db_exists
+  changed_when: false
+
+- name: Create the store database (lean - next to the app database)
+  ansible.builtin.command:
+    argv:
+      - "{{ auditstore_lib_dir }}/bin/psql-super"
+      - -v
+      - ON_ERROR_STOP=1
+      - -d
+      - postgres
+      - -c
+      - CREATE DATABASE {{ auditstore_db_name }}
+  when: auditstore_db_exists.stdout | trim != '1'
+  changed_when: true
+
+- name: Schema applied?
+  ansible.builtin.command:
+    argv:
+      - "{{ auditstore_lib_dir }}/bin/psql-super"
+      - -At
+      - -d
+      - "{{ auditstore_db_name }}"
+      - -c
+      - SELECT to_regclass('audit.audit_log') IS NOT NULL
+  register: auditstore_schema_done
+  changed_when: false
+
+# Passwords travel as psql \set lines on stdin: never argv, never logged.
+- name: Apply schema.sql (roles, tables, append-only grants; AC-18.3)
+  ansible.builtin.command:
+    argv:
+      - "{{ auditstore_lib_dir }}/bin/psql-super"
+      - -v
+      - ON_ERROR_STOP=1
+      # single transaction: a partial failure must not leave roles
+      # without tables, so a rerun stays idempotent (review T-15 item 4)
+      - "-1"
+      - -d
+      - "{{ auditstore_db_name }}"
+      - -f
+      - "-"
+    stdin: |
+      \set audit_writer_pw '{{ audit_writer_password
+        | replace('\\', '\\\\') | replace("'", "\\'") }}'
+      \set audit_digest_pw '{{ audit_digest_password
+        | replace('\\', '\\\\') | replace("'", "\\'") }}'
+      \set audit_reader_pw '{{ audit_reader_password
+        | replace('\\', '\\\\') | replace("'", "\\'") }}'
+      \set lims_monitor_pw '{{ lims_monitor_password
+        | replace('\\', '\\\\') | replace("'", "\\'") }}'
+      {{ lookup('ansible.builtin.file',
+                role_path ~ '/../../../auditstore/schema.sql') }}
+  when: auditstore_schema_done.stdout | trim != 't'
+  changed_when: true
+  no_log: true
+
+- name: Role assertions (infra/tests/internal/auditstore_roles.sql)
+  ansible.builtin.command:
+    argv:
+      - "{{ auditstore_lib_dir }}/bin/psql-super"
+      - -X
+      - -q
+      - -v
+      - ON_ERROR_STOP=1
+      - -d
+      - "{{ auditstore_db_name }}"
+      - -f
+      - "-"
+    stdin: >-
+      {{ lookup('ansible.builtin.file', role_path
+      ~ '/../../../tests/internal/auditstore_roles.sql') }}
+  changed_when: false
+
+# ---- subscription audit_ship (AC-18.2). Slot pre-created on the publisher,
+# create_slot = false: in lean the publisher is the same cluster, where
+# CREATE SUBSCRIPTION with create_slot = true hangs (DECISION.md).
+- name: Logical slot audit_ship on the publisher (idempotent)
+  ansible.builtin.command:
+    argv:
+      - docker
+      - exec
+      - -i
+      - "{{ auditstore_publisher_container }}"
+      - sh
+      - -c
+      - >-
+        PGPASSWORD="$POSTGRES_PASSWORD" exec psql -X -At -v ON_ERROR_STOP=1
+        -U supabase_admin -d {{ app_db_name }} -c "SELECT
+        pg_create_logical_replication_slot('audit_ship', 'pgoutput') WHERE
+        NOT EXISTS (SELECT 1 FROM pg_replication_slots WHERE slot_name =
+        'audit_ship')"
+  delegate_to: "{{ groups['data'][0] }}"
+  register: auditstore_slot
+  no_log: true
+  changed_when: auditstore_slot.stdout | trim | length > 0
+
+- name: Subscription present?
+  ansible.builtin.command:
+    argv:
+      - "{{ auditstore_lib_dir }}/bin/psql-super"
+      - -At
+      - -d
+      - "{{ auditstore_db_name }}"
+      - -c
+      - SELECT count(*) FROM pg_subscription WHERE subname = 'audit_ship'
+  register: auditstore_sub
+  changed_when: false
+
+# Owner audit_writer, run_as_owner = true (INSERT only, no table ownership;
+# DECISION.md). Non-superuser owner => the conninfo must carry the password.
+- name: Create subscription audit_ship as audit_writer
+  vars:
+    auditstore_conninfo: >-
+      host={{ 'localhost' if topology_profile != 'full'
+      else hostvars[groups['data'][0]].wg_ip }}
+      port={{ auditstore_publisher_port }} dbname={{ app_db_name }}
+      user=lims_audit_ship password='{{ lims_audit_ship_password
+      | replace('\\', '\\\\') | replace("'", "\\'") }}'
+  ansible.builtin.command:
+    argv:
+      - "{{ auditstore_lib_dir }}/bin/psql-super"
+      - -X
+      - -v
+      - ON_ERROR_STOP=1
+      - -d
+      - "{{ auditstore_db_name }}"
+      - -f
+      - "-"
+    stdin: |
+      SET ROLE audit_writer;
+      CREATE SUBSCRIPTION audit_ship
+        CONNECTION '{{ auditstore_conninfo | replace("'", "''") }}'
+        PUBLICATION lims_audit_ship
+        WITH (copy_data = false, streaming = on, create_slot = false,
+              slot_name = 'audit_ship', run_as_owner = true);
+      RESET ROLE;
+  when: auditstore_sub.stdout | trim == '0'
+  changed_when: true
+  no_log: true
+
+# ---- job credentials (tmpfs, systemd EnvironmentFile; values quoted)
+- name: Job environment files (audit_digest, lims_monitor)
+  ansible.builtin.copy:
+    content: |
+      PGPASSWORD="{{ item.pw | replace('\\', '\\\\') | replace('"', '\\"') }}"
+    dest: "{{ auditstore_secret_dir }}/{{ item.role }}.env"
+    owner: root
+    group: root
+    mode: "0600"
+  loop:
+    - {role: audit_digest, pw: "{{ audit_digest_password }}"}
+    - {role: lims_monitor, pw: "{{ lims_monitor_password }}"}
+  no_log: true
+
+# ---- nightly digest (REQ-SEC-097) + lag metric (02-TRD s11 AuditShipping*)
+- name: digest.sql
+  ansible.builtin.copy:
+    src: ../../../../auditstore/digest.sql
+    dest: "{{ auditstore_lib_dir }}/digest.sql"
+    owner: root
+    group: root
+    mode: "0640"
+
+- name: Job scripts (lims-auditstore-digest.sh, lims-auditstore-metrics.sh)
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: "{{ auditstore_lib_dir }}/{{ item }}"
+    owner: root
+    group: root
+    mode: "0750"
+  loop:
+    - lims-auditstore-digest.sh
+    - lims-auditstore-metrics.sh
+
+- name: Units
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: "/etc/systemd/system/{{ item }}"
+    owner: root
+    group: root
+    mode: "0644"
+  loop:
+    - lims-auditstore-digest.service
+    - lims-auditstore-digest.timer
+    - lims-auditstore-metrics.service
+    - lims-auditstore-metrics.timer
+  notify: Reload systemd
+
+- name: Load new units before enabling the timers
+  ansible.builtin.meta: flush_handlers
+
+- name: Timers enabled
+  ansible.builtin.systemd_service:
+    name: "{{ item }}"
+    state: started
+    enabled: true
+  loop:
+    - lims-auditstore-digest.timer
+    - lims-auditstore-metrics.timer

@@ -1,0 +1,1 @@
+cd /d "%~dp0..\.." && pnpm --filter @lims/api exec vitest run src/modules/catalog/__tests__/helpers/doctorsDb.test.ts src/modules/catalog/__tests__/integration/referrers.service.test.ts src/modules/catalog/__tests__/integration/referrers.handlers.test.ts src/modules/catalog/__tests__/probes/referrers.wording.test.ts

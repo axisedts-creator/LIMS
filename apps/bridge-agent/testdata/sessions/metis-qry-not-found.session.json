@@ -1,0 +1,8 @@
+{"name": "metis-qry-not-found", "protocol": "hl7v2", "transport": "tcp_server", "instrument_profile": "getein_metis", "options": {},
+ "steps": [
+  {"note": "server stub: barcode unknown, so NF only", "host_query": {"reply": [
+   "MSH|^~\\&|||||20261114||QCK^Q02|61|P|2.3.1||||||UTF8|||<CR>MSA|AA|61|Message accepted|||0|<CR>ERR|0|<CR>QAK|SR|NF|<CR>"]}},
+  {"from": "instrument", "bytes": "<VT>MSH|^~\\&|||||20261114||QRY^Q02|61|P|2.3.1||||||UTF8|||<CR>QRD|20261114|R|D|9|||RD|MT2600000099|OTH|||T|<CR>QRF||||||RCT|COR|ALL||<CR><FS><CR>"},
+  {"note": "only the NF reply, nothing follows it", "expect": "agent", "bytes": "<VT>MSH|^~\\&|||||20261114||QCK^Q02|61|P|2.3.1||||||UTF8|||<CR>MSA|AA|61|Message accepted|||0|<CR>ERR|0|<CR>QAK|SR|NF|<CR><FS><CR>", "within_ms": 200},
+  {"expect_queue": {"items": 1, "kind": "data", "raw_sha256": "0f491684bf3ee7c9031f731cae15697d894d3ba7c3796f5caa7b135ae3942a3a"}}
+ ]}

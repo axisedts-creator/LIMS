@@ -1,0 +1,5 @@
+# T-07 dispute (writer)
+Test: `analyteVersions.service.test.ts` › "REQ-SEC-082 / defence in depth: every SELECT/UPDATE … carries an explicit tenant_id" (line ~870–890) — the ONLY failing case (2327/2328 catalog tests pass).
+Why the test is wrong: `d = await draft(e, HB.id)` (version 1) → `patchV(e, d.id, { decimals: 3 })` bumps the draft to version 2 (the suite itself asserts that, e.g. "200 … version 2") → `publish(e, d.id, pBody(...))` then sends the default `expectedVersion = 1` = a stale If-Match → 409 `common.version_conflict`, as spec'd (02-TRD §5.0). Fix: `publish(e, d.id, pBody({ change_reason: planted }), 2)`.
+Also (not failing, FYI): fixture `B_V1 = pubOf(4, HB_B.id)` is stamped `TENANT_A` by `pubOf` (it points at tenant B's analyte). The S-1 cases for #33/#35 only pass because the service resolves the version's analyte in the caller's tenant (404); `pubOf` should take a tenant.
+Also: tester's note says `probes/pending.json` had the 7 ops removed, but the commit did not include it; the writer removed them (as T-06 did) so `skeleton.test.ts` + the probes test pass.

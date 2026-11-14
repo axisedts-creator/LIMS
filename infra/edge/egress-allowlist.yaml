@@ -1,0 +1,76 @@
+---
+# 02-TRD s5.5 last bullet: every egress destination of the product hosts
+# (07-BLOCKERS F-01 swap point, B11). Role egress_proxy loads Squid with the
+# `via: squid` + `f01_status: approved` entries only; pending/refused = 403.
+# via: squid (api/worker HTTPS CONNECT :443) | smtp (GoTrue on db_net,
+# nftables set @smtp_relay_ips) | acme (app host output, role acme).
+# fqdn: DNS name or `{{ inventory_var }}`; no IPs, no wildcards.
+# T-35: owner-C15 gateway FQDNs per environment. Role egress_proxy loads an owner-C15
+# entry only if its fqdn is listed for the active `env` (fail closed: unlisted = never
+# loaded). dev uses simulators: no gateway egress. Other owners are not scoped.
+env_scope:
+  dev: []
+  staging: [uat.esewa.com.np, dev.khalti.com]
+  prod: [epay.esewa.com.np, khalti.com]
+destinations:
+  - fqdn: "{{ smtp_relay_fqdn }}"
+    port: 587
+    via: smtp
+    owner: C2
+    purpose: GoTrue transactional mail relay (s5.5 rule 5, 08 A25 D-203 (3))
+    section_04_11: Transactional email relay
+    f01_status: approved  # 04 s11 "pre-allowed pattern"
+  - fqdn: acme-v02.api.letsencrypt.org
+    port: 443
+    via: acme
+    owner: C1
+    purpose: ACME CA, edge certificates (s6.2, acme_mode letsencrypt)
+    section_04_11: none (F-01 register, ACME CA)
+    f01_status: pending
+  - fqdn: acme-staging-v02.api.letsencrypt.org
+    port: 443
+    via: acme
+    owner: C1
+    purpose: ACME staging directory (acme_mode staging, dev/staging runs)
+    section_04_11: none (F-01 register, ACME CA)
+    f01_status: pending
+  # T-22, PRD B11: freshclam on the ops host only, through this Squid (F-01 default).
+  # pending until F-01 approves it; until then Squid answers 403 and the signatures
+  # are imported by hand (role clamav, lims-clamav-sync.service).
+  - fqdn: database.clamav.net
+    port: 443
+    via: squid
+    owner: C1
+    purpose: ClamAV signature mirror for freshclam on the ops host (REQ-SEC-084)
+    section_04_11: Foreign touchpoints, ClamAV signature download (B11)
+    f01_status: pending
+  # CR-C15-008 item 4: prod gateways; enabled at C15 PG-T23 (T-35)
+  - fqdn: epay.esewa.com.np
+    port: 443
+    via: squid
+    owner: C15
+    purpose: eSewa payment gateway, prod (CR-C15-008 item 4)
+    section_04_11: Payment gateways (eSewa, Khalti, Fonepay)
+    f01_status: pending
+  - fqdn: khalti.com
+    port: 443
+    via: squid
+    owner: C15
+    purpose: Khalti payment gateway, prod (CR-C15-008 item 4)
+    section_04_11: Payment gateways (eSewa, Khalti, Fonepay)
+    f01_status: pending
+  # staging UAT hosts (CR-C15-008 item 4; eSewa UAT form host: C15 to name)
+  - fqdn: uat.esewa.com.np
+    port: 443
+    via: squid
+    owner: C15
+    purpose: eSewa UAT gateway, staging (CR-C15-008 item 4)
+    section_04_11: Payment gateways (eSewa, Khalti, Fonepay)
+    f01_status: approved  # T-35 done_when: staging worker reaches it
+  - fqdn: dev.khalti.com
+    port: 443
+    via: squid
+    owner: C15
+    purpose: Khalti UAT gateway, staging (CR-C15-008 item 4)
+    section_04_11: Payment gateways (eSewa, Khalti, Fonepay)
+    f01_status: approved  # T-35 done_when: staging worker reaches it

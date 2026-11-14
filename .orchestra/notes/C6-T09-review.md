@@ -1,0 +1,3 @@
+APPROVE
+Round 3. Re-reviewed `git diff 9863d01..HEAD` (new commits 8f6f954 and afc8697). Round-2 #1 is applied as specified. The fake tx in `consumers.helpers.ts:227-239` snapshots on SAVEPOINT. On ROLLBACK TO SAVEPOINT it restores the rows in place and truncates `jobs`, and it still records every statement in `stmts`. `render.fake.test.ts:22-26` proves that ROLLBACK undoes an UPDATE made after the savepoint. The implementation and the expectation at `render_report_version.test.ts:230` are unchanged. The earlier checks still pass: names, tenant_id in every statement, PHI-free logs and owned paths.
+Ran the suites from `C6-T09-verify.cmd`: worker 73/73 and API 107/107, all passing.

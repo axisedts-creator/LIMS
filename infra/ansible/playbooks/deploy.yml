@@ -1,0 +1,316 @@
+---
+# 02-TRD s12.3 / s7.9 / AC-20.x / AC-21.2: app release. Called by infra/ci/deploy.sh and rollback.sh with
+# -e deploy_release=<id> and -e deploy_<name>_image=<repo@sha256:...> (digests from releases/<env>.lock.yaml).
+# Order: [prod] pre-deploy backup on `data` -> preconditions + mail-sink guard -> migrations (lims_migrator)
+# -> registry-sync -> seeds, all in the one-shot `migrate` container on the app host, connecting directly to
+# {{ db_primary_wg_ip }}:5432, so the source address is the app wg IP that pg_hba admits; nothing connects
+# to the application DB from the ops host -> rolling app update -> ops_audit release record.
+# Any failure stops the play on every host (any_errors_fatal); app containers keep the previous digests.
+# LD-45: groups `data`/`app` in every profile (lean/dev: the same host); `topology_profile` selects the
+# full-only second worker/web instance.
+# NOT done here: audit store schema sync (s12.3 step 3, T-15 owns the store) and the status page
+# "deployed vX.Y.Z" (no status-page update interface in the spec).
+- name: Pre-deploy backup (prod only)
+  hosts: data
+  become: true
+  gather_facts: false
+  any_errors_fatal: true
+  tasks:
+    # 02-TRD s7.9 step 2: the wrapper runs pgbackrest inside the db container (role pgbackrest). A failure
+    # stops the deploy on every host before any migration runs.
+    - name: Backup before migrations (pgbackrest incr, repo1)
+      ansible.builtin.command:
+        cmd: /usr/local/lib/lims/bin/pgbackrest --stanza=lims backup --type=incr --repo=1
+      when: env == 'prod'
+
+- name: Deploy DB flow
+  hosts: app
+  become: true
+  gather_facts: false
+  any_errors_fatal: true
+  vars:
+    deploy_compose_dir: /srv/lims/compose/lims
+    deploy_ops_note: "{{ playbook_dir }}/../../ci/ops-note.sh"
+    deploy_core_env: {dev: dev, staging: staging, prod: production}
+    # Compose interpolates the whole file, so every `:?` variable is set here as lims_runtime sets it (T-14).
+    # Digests of valkey/squid/clamd come from lims_runtime_images (inventory/lock); empty -> compose fails closed.
+    deploy_mem_keys:
+      api: LIMS_API_MEM_LIMIT
+      worker: LIMS_WORKER_MEM_LIMIT
+      web: LIMS_WEB_MEM_LIMIT
+      portal: LIMS_PORTAL_MEM_LIMIT
+      partner: LIMS_PARTNER_MEM_LIMIT
+    deploy_compose_env_mem: >-
+      {% set e = {} %}{% for k, v in deploy_mem_keys.items()
+      if mem_limit_gib is defined and k in mem_limit_gib and mem_limit_gib[k].gib > 0
+      %}{% set _ = e.update({v: ((mem_limit_gib[k].gib * 1024) | int) ~ 'm'}) %}{% endfor %}{{ e }}
+    deploy_compose_env_base:
+      COMPOSE_PROFILES: >-
+        {{ ((['full'] if topology_profile == 'full' else [])
+        + (['partner'] if partner_enabled | default(false) | bool else [])) | join(',') }}
+      APP_WG_IP: "{{ wg_ip }}"
+      LIMS_API_IMAGE: "{{ deploy_api_image }}"
+      LIMS_WORKER_IMAGE: "{{ deploy_worker_image }}"
+      LIMS_WEB_IMAGE: "{{ deploy_web_image }}"
+      LIMS_PORTAL_IMAGE: "{{ deploy_portal_image }}"
+      LIMS_PARTNER_IMAGE: "{{ lims_runtime_images.partner | default('partner-disabled.invalid') }}"
+      LIMS_RENDERER_IMAGE: "{{ deploy_renderer_image }}"
+      LIMS_PDF_SANDBOX_IMAGE: "{{ deploy_pdf_sandbox_image }}"
+      LIMS_VALKEY_IMAGE: "{{ lims_runtime_images.valkey | default('') }}"
+      LIMS_CLAMD_IMAGE: "{{ lims_runtime_images.clamd | default('') }}"
+      LIMS_SQUID_IMAGE: "{{ lims_runtime_images.squid | default('') }}"
+    deploy_compose_env: "{{ deploy_compose_env_base | combine(deploy_compose_env_mem) }}"
+  tasks:
+    - name: Preconditions (env, DB address, api image, secrets file)
+      ansible.builtin.assert:
+        that:
+          - env in ['dev', 'staging', 'prod']
+          - db_primary_wg_ip | default('') | length > 0
+          - app_db_name | default('') | length > 0
+          - topology_profile | default('') in ['lean', 'full']
+          - deploy_release | default('') | length > 0
+          - deploy_api_image | default('') is search('@sha256:[0-9a-f]{64}$')
+          - deploy_worker_image | default('') is search('@sha256:[0-9a-f]{64}$')
+          - deploy_web_image | default('') is search('@sha256:[0-9a-f]{64}$')
+          - deploy_portal_image | default('') is search('@sha256:[0-9a-f]{64}$')
+          - deploy_renderer_image | default('') is search('@sha256:[0-9a-f]{64}$')
+          - deploy_pdf_sandbox_image | default('') is search('@sha256:[0-9a-f]{64}$')
+          - secrets_render_enc_file | default('') | length > 0
+        fail_msg: >-
+          deploy: env, topology_profile, deploy_release, db_primary_wg_ip, app_db_name,
+          deploy_{api,worker,web,portal,renderer,pdf_sandbox}_image (each by digest) or
+          secrets_render_enc_file unset
+
+    # AC-21.2 / LD-90 (a,d): dev AND staging mail only to the local Mailpit sink `mail_sink_fqdn`
+    # (overrides the staging half of 02-TRD s7 line 495); a real smtp_relay_fqdn there fails the deploy.
+    - name: Non-prod GoTrue mail goes to the local sink, not a real relay
+      ansible.builtin.assert:
+        that:
+          - mail_sink_fqdn | default('') | length > 0
+          - smtp_relay_fqdn | default(mail_sink_fqdn) == mail_sink_fqdn
+        fail_msg: >-
+          deploy: env {{ env }} must set smtp_relay_fqdn equal to mail_sink_fqdn
+          (non-prod never uses a real SMTP relay)
+      when: env != 'prod'
+
+    - name: Compose directory of the LIMS runtime
+      ansible.builtin.file:
+        path: "{{ deploy_compose_dir }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0750"
+
+    - name: Install the LIMS runtime compose file (migrate service)
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/../../compose/lims/compose.app.yml"
+        dest: "{{ deploy_compose_dir }}/compose.app.yml"
+        owner: root
+        group: root
+        mode: "0640"
+
+    - name: Decrypt the migrator credential on the controller (stdout only)
+      ansible.builtin.command:
+        argv:
+          - sops
+          - -d
+          - --extract
+          - '["lims_migrator_password"]'
+          - "{{ secrets_render_enc_file }}"
+      delegate_to: localhost
+      run_once: true
+      changed_when: false
+      register: deploy_migrator_secret
+      no_log: true
+
+    - name: ops_audit line for the decrypt (who/what/when only, s8.4)
+      ansible.builtin.command:
+        argv:
+          - "{{ deploy_ops_note }}"
+          - >-
+            deploy decrypted the migrator credential
+            for {{ ansible_play_hosts | join(',') }}
+      delegate_to: localhost
+      run_once: true
+      changed_when: false
+
+    # PGPASSWORD reaches the container through the compose service's
+    # `environment: [PGPASSWORD]` pass-through: never in argv or the log.
+    - name: DB flow as lims_migrator (credential only in this block's env)
+      environment: "{{ deploy_compose_env | combine({'PGPASSWORD': deploy_migrator_secret.stdout}) }}"
+      block:
+        - name: Apply migrations
+          ansible.builtin.command:
+            cmd: >-
+              docker compose -p lims
+              -f {{ deploy_compose_dir }}/compose.app.yml run --rm
+              -e PGHOST={{ db_primary_wg_ip }} -e PGPORT=5432
+              -e PGUSER=lims_migrator -e PGDATABASE={{ app_db_name }}
+              -e LIMS_CORE_ENV={{ deploy_core_env[env] }}
+              migrate pnpm db:migrate
+          run_once: true
+
+        - name: Sync the task registry
+          ansible.builtin.command:
+            cmd: >-
+              docker compose -p lims
+              -f {{ deploy_compose_dir }}/compose.app.yml run --rm
+              -e PGHOST={{ db_primary_wg_ip }} -e PGPORT=5432
+              -e PGUSER=lims_migrator -e PGDATABASE={{ app_db_name }}
+              -e LIMS_CORE_ENV={{ deploy_core_env[env] }}
+              migrate pnpm worker:registry-sync
+          run_once: true
+
+        # Seed runner `pnpm db:seed` is UNVERIFIED - pending CR T-08
+        # (.orchestra/cr/T-08.md; C0 names no seed command).
+        # C0 02-TRD s4.6: production runs only 001-003; staging/dev all.
+        - name: Apply seeds (prod 001-003, staging/dev all)
+          ansible.builtin.command:
+            cmd: >-
+              docker compose -p lims
+              -f {{ deploy_compose_dir }}/compose.app.yml run --rm
+              -e PGHOST={{ db_primary_wg_ip }} -e PGPORT=5432
+              -e PGUSER=lims_migrator -e PGDATABASE={{ app_db_name }}
+              -e LIMS_CORE_ENV={{ deploy_core_env[env] }}
+              migrate pnpm db:seed
+              {{ 'db/seeds/001_core__g_permissions.sql
+              db/seeds/002_core__g_system_actors.sql
+              db/seeds/003_audit__g_cs_access_actions.sql'
+              if env == 'prod' else '--all' }}
+          run_once: true
+
+    # 02-TRD s7.11 / CR-C7-012 (T-34): C7 agent release, only when a release manifest is passed
+    # (-e agent_release_manifest='{"version":"1.2.3"}'). The key and certificate are read by the script on the
+    # ops host only (delegated; no secret value here); the app host receives the signed zip + seed SQL.
+    - name: Agent release - sign and stage on the ops host (agent-release.sh)
+      ansible.builtin.command:
+        argv:
+          - "{{ agent_release_bin_dir | default('/usr/local/lib/lims/bin') }}/agent-release.sh"
+          - "{{ agent_release_manifest.version }}"
+      environment: "{{ {'LIMS_AGENT_RELEASE_APP_TARGET': agent_release_app_target} if (agent_release_app_target | default('')) | length > 0 else {} }}"
+      delegate_to: "{{ groups['ops'][0] }}"
+      run_once: true
+      when: agent_release_manifest is defined and agent_release_manifest.version is defined
+
+    - name: Agent release - apply the g_agent_releases seed as lims_migrator (one-shot migrate container)
+      environment: "{{ deploy_compose_env | combine({'PGPASSWORD': deploy_migrator_secret.stdout}) }}"
+      ansible.builtin.shell:
+        cmd: >-
+          docker compose -p lims
+          -f {{ deploy_compose_dir }}/compose.app.yml run --rm -T
+          -e PGHOST={{ db_primary_wg_ip }} -e PGPORT=5432
+          -e PGUSER=lims_migrator -e PGDATABASE={{ app_db_name }}
+          migrate psql -v ON_ERROR_STOP=1 -f -
+          < /srv/lims/agent-releases/{{ agent_release_manifest.version | quote }}.seed.sql
+      run_once: true
+      when: agent_release_manifest is defined and agent_release_manifest.version is defined
+
+    # 03-APP-FLOW s2.1: from here a failure is a health timeout -> deploy.sh rolls back (marker path from deploy.sh).
+    - name: Mark the rolling update as started
+      ansible.builtin.file:
+        path: "{{ deploy_roll_marker }}"
+        state: touch
+        mode: "0644"
+      delegate_to: localhost
+      run_once: true
+      become: false
+      when: deploy_roll_marker is defined
+
+    # 02-TRD s12.3 step 5: rolling update, health wait 5 min [CONV]. `up --wait` returns only when the container is healthy, so api-a is
+    # ready before api-b is touched. worker-b and web-b exist only in the `full` profile (LD-45).
+    - name: Roll api-a (wait healthy)
+      ansible.builtin.command:
+        cmd: >-
+          docker compose -p lims -f {{ deploy_compose_dir }}/compose.app.yml
+          up -d --no-deps --wait --wait-timeout 300 api-a
+      environment: "{{ deploy_compose_env }}"
+
+    - name: Roll api-b (wait healthy)
+      ansible.builtin.command:
+        cmd: >-
+          docker compose -p lims -f {{ deploy_compose_dir }}/compose.app.yml
+          up -d --no-deps --wait --wait-timeout 300 api-b
+      environment: "{{ deploy_compose_env }}"
+
+    - name: Roll worker-a (wait healthy)
+      ansible.builtin.command:
+        cmd: >-
+          docker compose -p lims -f {{ deploy_compose_dir }}/compose.app.yml
+          up -d --no-deps --wait --wait-timeout 300 worker-a
+      environment: "{{ deploy_compose_env }}"
+
+    - name: Roll worker-b (wait healthy, full profile)
+      ansible.builtin.command:
+        cmd: >-
+          docker compose -p lims -f {{ deploy_compose_dir }}/compose.app.yml
+          up -d --no-deps --wait --wait-timeout 300 worker-b
+      environment: "{{ deploy_compose_env }}"
+      when: topology_profile == 'full'
+
+    - name: Roll web-a (wait healthy)
+      ansible.builtin.command:
+        cmd: >-
+          docker compose -p lims -f {{ deploy_compose_dir }}/compose.app.yml
+          up -d --no-deps --wait --wait-timeout 300 web-a
+      environment: "{{ deploy_compose_env }}"
+
+    - name: Roll web-b (wait healthy, full profile)
+      ansible.builtin.command:
+        cmd: >-
+          docker compose -p lims -f {{ deploy_compose_dir }}/compose.app.yml
+          up -d --no-deps --wait --wait-timeout 300 web-b
+      environment: "{{ deploy_compose_env }}"
+      when: topology_profile == 'full'
+
+    - name: Roll portal (wait healthy)
+      ansible.builtin.command:
+        cmd: >-
+          docker compose -p lims -f {{ deploy_compose_dir }}/compose.app.yml
+          up -d --no-deps --wait --wait-timeout 300 portal
+      environment: "{{ deploy_compose_env }}"
+
+    - name: Roll renderer (wait healthy)
+      ansible.builtin.command:
+        cmd: >-
+          docker compose -p lims -f {{ deploy_compose_dir }}/compose.app.yml
+          up -d --no-deps --wait --wait-timeout 300 renderer
+      environment: "{{ deploy_compose_env }}"
+
+    - name: Roll pdf-sandbox (wait healthy)
+      ansible.builtin.command:
+        cmd: >-
+          docker compose -p lims -f {{ deploy_compose_dir }}/compose.app.yml
+          up -d --no-deps --wait --wait-timeout 300 pdf-sandbox
+      environment: "{{ deploy_compose_env }}"
+
+    # LD-90 (b): staging runs one Mailpit container (dev uses the C0 dev-stack sink; prod the relay).
+    # After the rolls: every `compose up` here is a health-gated roll step (marker semantics).
+    - name: Staging mail sink (Mailpit on auth_net, nothing published)
+      when: env == 'staging'
+      block:
+        - name: Install the staging mail-sink compose file
+          ansible.builtin.copy:
+            src: "{{ playbook_dir }}/../../compose/lims/compose.mailsink.yml"
+            dest: "{{ deploy_compose_dir }}/compose.mailsink.yml"
+            owner: root
+            group: root
+            mode: "0640"
+
+        - name: Start the staging mail sink (wait healthy)
+          ansible.builtin.command:
+            cmd: >-
+              docker compose -p lims-mailsink -f {{ deploy_compose_dir }}/compose.mailsink.yml
+              up -d --wait --wait-timeout 300
+          environment: "{{ deploy_compose_env }}"  # no vars in this file; uniform for every compose task
+          changed_when: false
+
+    - name: ops_audit release record (what/who/when only, s8.4)
+      ansible.builtin.command:
+        argv:
+          - "{{ deploy_ops_note }}"
+          - >-
+            deploy release {{ deploy_release }} applied to {{ env }}
+            on {{ ansible_play_hosts | join(',') }}
+      delegate_to: localhost
+      run_once: true
+      changed_when: false

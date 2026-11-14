@@ -1,0 +1,33 @@
+# Renderer image (02-TRD §5.1; REQ-SEC-129/130). Build context: repo root.
+#   docker build -f services/renderer/Dockerfile.renderer .
+# Nothing sensitive in the image: the bearer token is mounted at runtime, path in LIMS_RENDERER_TOKEN_FILE (C1).
+# Network isolation (render_net only, no egress) and the 1.5 GB memory limit are set by C1.
+
+FROM node:26.13.0-bookworm-slim@sha256:add5c17c14752c54d2f3d519ec46a3815684d41c33f198bcb09fb998f7dcbf68 AS build
+WORKDIR /repo
+RUN corepack enable
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json ./
+COPY services/renderer/package.json services/renderer/
+RUN pnpm install --frozen-lockfile --ignore-scripts --filter @lims/renderer
+COPY services/renderer/ services/renderer/
+RUN pnpm --filter @lims/renderer exec tsc -p tsconfig.json --noEmit false --outDir dist --rootDir src \
+ && pnpm --filter @lims/renderer deploy --prod --ignore-scripts /out
+
+FROM node:26.13.0-bookworm-slim@sha256:add5c17c14752c54d2f3d519ec46a3815684d41c33f198bcb09fb998f7dcbf68
+ENV NODE_ENV=production \
+    PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+WORKDIR /app
+COPY --from=build /out/package.json ./package.json
+COPY --from=build /out/node_modules ./node_modules
+COPY --from=build /repo/services/renderer/dist ./dist
+# Bundled fonts: installed system-wide into fontconfig (02-TRD §5.1: system fonts in the image only, no @font-face).
+COPY services/renderer/fonts/ /usr/share/fonts/truetype/lims/
+# Playwright-managed Chromium at the pinned playwright version (+ its OS deps), then the font cache.
+RUN node node_modules/playwright/cli.js install --with-deps chromium \
+ && apt-get install -y --no-install-recommends fontconfig \
+ && fc-cache -f \
+ && rm -rf /var/lib/apt/lists/* \
+ && useradd --system --uid 10001 --no-create-home --shell /usr/sbin/nologin renderer
+USER 10001:10001
+EXPOSE 8080
+CMD ["node", "dist/server.js"]

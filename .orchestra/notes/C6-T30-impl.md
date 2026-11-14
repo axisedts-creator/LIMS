@@ -1,0 +1,8 @@
+C6-T30 impl: apps/portal (package, next config, middleware, server/{api,session,origin}.ts, features/portal/*, pages r/[token]{,/code,/report}, download/reissue/signout routes, v/[token]{page,not-found}, app fallbacks, .well-known stubs). Round 3: v/[token] calls notFound() on Q1 404 -> HTTP 404 via v/[token]/not-found.tsx (AC-10.3, ruling round 2 note).
+Checks: static 12/12; tsc clean; Playwright 47/48 full run (AC-11.3 "can no longer be used" 5s timeout; passed 2/2 on rerun -> timing flake), AC-10.* 4/4 x2. Port 3200 was held by a leftover `next dev` of this worktree; ran via a temp config with reuseExistingServer (deleted) - verify.cmd as-is fails until that process is killed.
+[CONV] challenge id in 2nd cookie `__Host-lims_portal_ch`; `Origin: null` accepted only with Sec-Fetch-Site same-origin (no-referrer makes browsers send null).
+[CONV] /v/<tok> middleware-rewritten to /v/_ with token in header x-qr-token (payload independent of token). Sign-out = POST route /r/[token]/signout.
+[CONV] CSP enforced in production, report-only under next dev. Banner/Button of @lims/ui are client-only (react-aria) -> server-safe Notice with kit CSS classes.
+Open: assetlinks/AASA empty stubs (ids from C16/C17); dues pages ship with C15; footer lab phone not in API; "{n} tries left" omitted (API gives no count).
+Side effects: tracked root test-results/ churns on every run (not mine); pnpm-lock.yaml has new workspace member.
+Re-run 2026-11-09 16:30: static 12/12; Playwright 47/48 full run; AC-11.3 (attempts) fails only under full-run load (test has fixed 150ms wait; CodeForm drops input while a verify is in flight, by design), 3/3 pass in isolation. No impl change this round.

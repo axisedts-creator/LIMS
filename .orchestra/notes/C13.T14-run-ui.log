@@ -1,0 +1,146 @@
+
+ RUN  v5.1.0 C:/LIMS-lanes/C13/apps/partner
+
+ ❯ tests/t14/slip.test.ts (9 tests | 8 failed) 95ms
+   ❯ slip polling: every 1 s, give up after 30 s (accepted, 08 A5.3) (4)
+     × constants: 1000 ms interval, 30000 ms limit 17ms
+     × polls once per second while requested; resolves at once with the slip when it is issued 8ms
+     × failed and expired are terminal too 3ms
+     × gives up after 30 s of `requested`: still pending at 29 s, timedOut at 30 s with the last slip, no fetch afterwards 4ms
+   ❯ slip page PR-2: texts, no-phone warning, LD-140, no secret in the browser (4)
+     × the slip page exists at /reports/[report_id]/slip 49ms
+     × shows every specified text (04-UI-UX PR-2) incl. the D-105 warning with its key partners.slip.no_phone_warning 3ms
+     × LD-140: no hex colour, no inline style object, no pixel radius; components come from @lims/ui 4ms
+     × the browser never handles a link: no portal url / token field, no QR library, the PDF comes from the R6 route 3ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 8 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/t14/slip.test.ts > slip polling: every 1 s, give up after 30 s (accepted, 08 A5.3) > constants: 1000 ms interval, 30000 ms limit
+Error: Cannot find module '/src/core/slip-poll' imported from C:/LIMS-lanes/C13/apps/partner/tests/t14/slip.test.ts
+ ❯ tests/t14/slip.test.ts:28:15
+     26|
+     27|   it('constants: 1000 ms interval, 30000 ms limit', async () => {
+     28|     const m = await load();
+       |               ^
+     29|     expect(m.SLIP_POLL_INTERVAL_MS).toBe(1000);
+     30|     expect(m.SLIP_POLL_TIMEOUT_MS).toBe(30000);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/8]⎯
+
+ FAIL  tests/t14/slip.test.ts > slip polling: every 1 s, give up after 30 s (accepted, 08 A5.3) > polls once per second while requested; resolves at once with the slip when it is issued
+Error: Cannot find module '/src/core/slip-poll' imported from C:/LIMS-lanes/C13/apps/partner/tests/t14/slip.test.ts
+ ❯ tests/t14/slip.test.ts:34:52
+     32|
+     33|   it('polls once per second while requested; resolves at once with the…
+     34|     vi.useFakeTimers(); const { pollAccessSlip } = await load();
+       |                                                    ^
+     35|     const stamps: number[] = []; let n = 0;
+     36|     const fetchSlip = vi.fn(async () => { stamps.push(Date.now()); ret…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/8]⎯
+
+ FAIL  tests/t14/slip.test.ts > slip polling: every 1 s, give up after 30 s (accepted, 08 A5.3) > failed and expired are terminal too
+Error: Cannot find module '/src/core/slip-poll' imported from C:/LIMS-lanes/C13/apps/partner/tests/t14/slip.test.ts
+ ❯ tests/t14/slip.test.ts:49:52
+     47|
+     48|   it('failed and expired are terminal too', async () => {
+     49|     vi.useFakeTimers(); const { pollAccessSlip } = await load();
+       |                                                    ^
+     50|     for (const state of ['failed', 'expired']) {
+     51|       const f = vi.fn(async () => slip(state)); const p = pollAccessSl…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/8]⎯
+
+ FAIL  tests/t14/slip.test.ts > slip polling: every 1 s, give up after 30 s (accepted, 08 A5.3) > gives up after 30 s of `requested`: still pending at 29 s, timedOut at 30 s with the last slip, no fetch afterwards
+Error: Cannot find module '/src/core/slip-poll' imported from C:/LIMS-lanes/C13/apps/partner/tests/t14/slip.test.ts
+ ❯ tests/t14/slip.test.ts:58:52
+     56|
+     57|   it('gives up after 30 s of `requested`: still pending at 29 s, timed…
+     58|     vi.useFakeTimers(); const { pollAccessSlip } = await load();
+       |                                                    ^
+     59|     const f = vi.fn(async () => slip('requested')); let done: { slip: …
+     60|     void pollAccessSlip(f).then((x) => { done = x; });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/8]⎯
+
+ FAIL  tests/t14/slip.test.ts > slip page PR-2: texts, no-phone warning, LD-140, no secret in the browser > the slip page exists at /reports/[report_id]/slip
+AssertionError: apps/partner/src/app/**/reports/[report_id]/slip/page.tsx: expected undefined to be truthy
+
+- Expected:
+true
+
++ Received:
+undefined
+
+ ❯ tests/t14/slip.test.ts:71:85
+     69| describe('slip page PR-2: texts, no-phone warning, LD-140, no secret i…
+     70|   it('the slip page exists at /reports/[report_id]/slip', () => {
+     71|     expect(pageFile(), 'apps/partner/src/app/**/reports/[report_id]/sl…
+       |                                                                                     ^
+     72|     expect(existsSync(join(SRC, 'core', 'slip-poll.ts'))).toBe(true);
+     73|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/8]⎯
+
+ FAIL  tests/t14/slip.test.ts > slip page PR-2: texts, no-phone warning, LD-140, no secret in the browser > shows every specified text (04-UI-UX PR-2) incl. the D-105 warning with its key partners.slip.no_phone_warning
+AssertionError: Preparing the slip…: expected '' to contain 'Preparing the slip…'
+
+- Expected
++ Received
+
+- Preparing the slip…
+
+ ❯ tests/t14/slip.test.ts:79:153
+     77|     for (const t of ['Preparing the slip…', 'The slip is taking longer…
+     78|       'The slip opens only if the lab has a mobile number for this pat…
+     79|       'This report has a newer version. Make the slip from the latest …
+       |                                                                                                                                                         ^
+     80|   });
+     81|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/8]⎯
+
+ FAIL  tests/t14/slip.test.ts > slip page PR-2: texts, no-phone warning, LD-140, no secret in the browser > LD-140: no hex colour, no inline style object, no pixel radius; components come from @lims/ui
+AssertionError: expected '' to match /@lims\/ui/ui
+
+- Expected:
+/@lims\/ui/
+
++ Received:
+""
+
+ ❯ tests/t14/slip.test.ts:87:15
+     85|     expect(s).not.toMatch(/style=\{\{/);
+     86|     expect(s).not.toMatch(/border-?[rR]adius\s*:|rounded-\[\d+px\]/);
+     87|     expect(s).toMatch(/@lims\/ui/);
+       |               ^
+     88|   });
+     89|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/8]⎯
+
+ FAIL  tests/t14/slip.test.ts > slip page PR-2: texts, no-phone warning, LD-140, no secret in the browser > the browser never handles a link: no portal url / token field, no QR library, the PDF comes from the R6 route
+AssertionError: expected '' to match /access-slips/
+
+- Expected:
+/access-slips/
+
++ Received:
+""
+
+ ❯ tests/t14/slip.test.ts:94:15
+     92|     expect(s).not.toMatch(/portalUrl|portal_url|link_token|\.url\b|sig…
+     93|     expect(s).not.toMatch(/from ['"](qrcode|qrcode\.react|react-qr-cod…
+     94|     expect(s).toMatch(/access-slips/);
+       |               ^
+     95|   });
+     96| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/8]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  8 failed | 1 passed (9)
+   Start at  11:44:48
+   Duration  2.83s (tests 48%, transform 33%, import 12%, worker 7%)
+

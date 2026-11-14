@@ -1,0 +1,15 @@
+name: lims_workspace
+publish_to: none
+environment:
+  # T0-03 [PIN-C0] (CV §1.1): exact Dart + Flutter SDK; table: db/meta/decisions/T0-03-dependencies.md (LD-04).
+  # LD-46 (2026-11-07): bumped to newest 3.47.x stable (3.47.9, bundled Dart 3.13.7) for nepali_date_picker 8.0.0.
+  sdk: 3.13.7
+  flutter: 3.47.9
+workspace:
+  - packages/shared-dart
+  - packages/ui-flutter
+  - apps/phlebo_app
+hooks:
+  user_defines:
+    sqlite3:
+      source: sqlcipher

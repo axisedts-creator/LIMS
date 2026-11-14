@@ -1,0 +1,3 @@
+---
+# Non-secret vars for group `app`, env dev (02-TRD s15).
+# Filled by the role tasks that need them (T-03 onward).

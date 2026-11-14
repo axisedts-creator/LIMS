@@ -1,0 +1,21 @@
+{
+  "rule": "no-foreign-schema-sql",
+  "decision": "D-T12 (C2 07-SECURITY, 08 A8.6, C0 AB-21): SQL naming core.dead_letters is allowed only in services/api/src/core/**",
+  "cases": [
+    {
+      "path": "services/api/src/modules/identity/repository/dead-letters.ts",
+      "source": "export const q = `SELECT * FROM core.dead_letters`;",
+      "expect": "violation"
+    },
+    {
+      "path": "services/api/src/modules/identity/service/dead-letter.service.ts",
+      "source": "export const q = `UPDATE core.dead_letters SET status = 'resolved'`;",
+      "expect": "violation"
+    },
+    {
+      "path": "services/api/src/modules/identity/service/dead-letter.service.ts",
+      "source": "export const r = (ctx) => ctx.core.deadLetters.list({ status: 'open' });",
+      "expect": "clean"
+    }
+  ]
+}

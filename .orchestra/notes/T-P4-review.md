@@ -1,0 +1,5 @@
+APPROVE
+Scope: given range af2a00d5..HEAD holds only the ruling-driven test reset (3x `pumpWidget(SizedBox())`, assertions unchanged, matches T-P4-ruling.md). Full T-P4 implementation (9c6b6bf3^..HEAD) also reviewed.
+- Names verbatim: E24 `getMySmartSummary`, `reporting.portal.view`, idempotency none, tier general, `404 common.not_found` (02-TRD:453); access log `smart_summary.view` / entityType `report` (02-TRD:747); task `engagement.fetch_smart_summary` (02-TRD:658); `smart_summaries` columns + `reminders__tenant_id_source_ref__p_uq` (05-SCHEMA:833, 1086); reason `follow_up_test` (05-SCHEMA:1817).
+- Approved-only storage via `ReportingPort.openReleasedReportFile().smartSummary`, no SmartReportPort (US-EN-09.1/09.3, 02-TRD:621). Follow-up due = released_at + intervalDays - lead days, `source:'smart_report'` (US-EN-24.1). View allowlists fields, ids stripped (02-TRD:413). No PHI/text in logs; no secrets; no new tables, so no RLS change.
+- Tests run by reviewer: api 24/24, worker 33/33, app 43/43 (`flutter test test/features/smart`).

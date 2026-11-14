@@ -1,0 +1,10 @@
+---
+# 02-TRD s11.5: dashboard JSON in infra/monitoring/grafana/dashboards/ (T-19)
+apiVersion: 1
+providers:
+  - name: lims
+    type: file
+    disableDeletion: true
+    allowUiUpdates: false
+    options:
+      path: /var/lib/grafana/dashboards

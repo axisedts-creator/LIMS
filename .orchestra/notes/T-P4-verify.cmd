@@ -1,0 +1,1 @@
+cd /d "%~dp0..\.." && pnpm --dir services/api exec vitest run src/modules/engagement/service/__tests__/reports.smart.handlers.test.ts && pnpm --dir services/worker exec vitest run src/jobs/engagement/__tests__/fetch_smart_summary.test.ts && cd apps\patient_app && flutter test test/features/smart

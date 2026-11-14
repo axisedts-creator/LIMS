@@ -1,0 +1,8 @@
+APPROVE
+
+Reviewed `078a5bb5..HEAD` (link.service.ts `reconcile`, projection.service.ts `deleteForPatients`, cron.ts row + `reconcileLinks`, index.ts manifest, link.world.ts, reconcile_links.test.ts).
+- Rules match TRD §4.3.5: phone_mismatch (skipped when `record_phone_hmac_at_link` NULL, timingSafeEqual on 32-byte HMAC), patient_merged / patient_anonymised, dormant (strict `<`, `settings.dormant_after_days`, default 180 per 05-SCHEMA); suspend only `active`, never reactivates; reasons in the 05-SCHEMA CHECK list.
+- Names verbatim: `engagement.reconcile_links`, purpose `patient_app_link` (03 §FrontdeskPort, CR-C16-007), `profile_paused` / entity_type `profile` (05-SCHEMA CHECKs), notification expiry 180 days (TRD §4.9 [CONV]); cron 02:20 Asia/Kathmandu = `35 20 * * *` (TRD §8.2).
+- Tenant isolation: every statement has `tenant_id = $1`; `::uuid[]` casts; tenant guard (REQ-SEC-024) as close_queue_day; system actor; DELETEs are SYS-only per 05-SCHEMA RLS matrix. No PHI in logs/metric labels (metric labels method + outcome only). No secrets. Paths owned by C16.
+- Tests: `pnpm --dir services/worker exec vitest run src/jobs/engagement/__tests__/reconcile_links.test.ts` -> 38/38 pass (run by reviewer). Cover all four plan test bullets and US-EN-06.1/2/3; US-EN-06.5 covered at data level only (no read endpoints yet).
+- Not defects, noted for follow-up: TRD §8.2 projection drift repair (orders updated in last 30 days, `lims_engagement_projection_drift_total`) is not in the T-L5 plan row/done_when and is not implemented; whole-tenant scan in one tx (`ponytail:` comment); no pgTAP/real-Postgres run.

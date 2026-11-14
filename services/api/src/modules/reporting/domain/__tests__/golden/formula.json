@@ -1,0 +1,37 @@
+{
+  "reportKind": "final",
+  "statusLabel": "Final",
+  "amendmentNotes": [],
+  "sections": [
+    {
+      "kind": "department",
+      "departmentId": "01900000-0000-7000-8000-000000000010",
+      "departmentName": "Biochemistry",
+      "approvedBy": [
+        "Dr. Synthetic Signatory D"
+      ],
+      "blocks": [
+        {
+          "comments": [],
+          "panelName": "BUN/CREATININE RATIO",
+          "specimenLine": "SERUM",
+          "subgroups": [
+            {
+              "lines": [
+                {
+                  "analyteId": "01900000-0000-7000-8000-00000000004b",
+                  "resultId": "01900000-0000-7000-8000-00000000100c",
+                  "versionNo": 1,
+                  "valueBold": false,
+                  "images": [],
+                  "name": "BUN/Creatinine ratio",
+                  "valueText": "12.5"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+---
+- name: Restart squid
+  ansible.builtin.command: "{{ egress_proxy_compose }} restart squid"
+  changed_when: true

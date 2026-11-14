@@ -1,0 +1,8 @@
+# T-14 tests (tester)
+- `infra/tests/static/test_t14_runtime.py`: compose.app.yml shape/hardening/env/secrets/ports/profiles, renderer+sandbox envelope, Valkey, Squid, egress-allowlist schema, squid.conf.j2 + valkey ACL render, site.yml wiring, nftables worker IPs, memory-budget tool + lean inventory budget (LD-45).
+- `infra/tests/static/test_t14_probes.py`: renderer_egress.sh, sandbox_envelope.sh, valkey_ephemeral.sh, egress_probe.sh (modes db|edge|proxy; `auth` stays T-05) driven by a fake `docker`. Fail-closed/vacuity guards included.
+- `infra/tests/integration/test_t14_live.py`: healthy, SIGKILL<=10 s, SIGTERM drain, real probes; only `LIMS_T14_LIVE=1`. NEVER RUN here.
+- Run: `.orchestra\notes\T-14-verify.cmd`. Now 88 tests: 82 fail (files missing), 6 pass (tool-intact/budget-arithmetic/inventory guards). CONTRACTS (names/interfaces the spec lacks) are in the two module docstrings; writer disputes if wrong.
+- Proven satisfiable with throwaway references (deleted): the 4 probe scripts + container_hardening `--memory-budget` pass 100 % of their tests; a reference compose passes all compose tests except nftables defaults (`nftables_render_worker_ips` still [] -> writer must fill). NOT covered by a reference: Ansible roles, squid.conf.j2/ACL template tests, allowlist, site.yml tests.
+- Writer must keep T-03/T-05 tests green: `container_hardening.py --daemon-json` unchanged; `egress_probe.sh auth` unchanged. Valkey image declares VOLUME /data -> tmpfs /data needed. If `default` ACL user is off, valkey healthcheck must authenticate.
+- NOT verified: real containers, DOCKER-USER/br_netfilter (live only; failure => record in DECISION.md), AC-08.3/AC-11.3 alerts (T-18/T-21 tests), AC-32.1 forged-XFF request, clamd (T-22).

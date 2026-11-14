@@ -1,0 +1,7 @@
+# T6 impl (writer)
+Files: service/auth.service.ts (new), handlers/loginStaff.ts (new; AuthLimits adapter + wiring), repository/auth-events.repo.ts (new; events + login AuthRepo + AES-256-GCM token sealer), repository/breached.repo.ts (new), handlers/index.ts (wire loginStaff), claims/resolver.ts (export cidrList/ipAllowed, no behaviour change).
+[CONV] P-42 in the handler: after commitOnError() the error is returned out of the identityAuthTx callback (tx COMMITs) and re-thrown; ctl.noRetry() (GoTrue/limiter not replayable).
+[CONV] login AuthRepo lives in auth-events.repo.ts (T6 owns no other repo); sealed token = iv||tag||ct, AAD = key id, last key id in LIMS_IDENTITY_TOKEN_ENC_KEYS encrypts.
+[CONV] floor applies to every failure exit incl. 429/step-up, not to 200 or 400; GoTrue outage -> 503 common.dependency_unavailable, not counted; inactive platform staff -> 401 login_failed + sign-out job; global LIMS_IDENTITY_PLATFORM_ALLOWED_CIDRS AND per-staff list.
+Open (CR .orchestra/cr/C2.T6.nonblocking.md): account-failure + f:<ip> windows are process-local Maps (C0 has no f: rule / failure read); SessionState.actor omitted (no source); touchMembershipLogin writes core.memberships.last_login_at only (not core.users).
+Checks: T6-verify 109/109; identity+core vitest 3392 pass/68 skipped; tsc clean in identity (25 pre-existing errors in contracts/, packages/); eslint not installed. Not run: live DB / real GoTrue.

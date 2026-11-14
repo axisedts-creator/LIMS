@@ -1,0 +1,77 @@
+# contracts/openapi/core.yaml (C0) — endpoints the core implements (02-TRD §8).
+# `health` is singular: CV §3 exception recorded as CR-C0-006. Exposed by nginx on the internal interface only.
+openapi: 3.0.3
+info:
+  title: LIMS core
+  version: 1.0.0
+paths:
+  /v1/core/health/live:
+    get:
+      operationId: getLiveness
+      tags: [core]
+      summary: Process liveness
+      security: []
+      x-public: "process liveness for the orchestrator; no data"
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes: [common.service_unavailable]
+      responses:
+        '200':
+          description: Process is alive.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Liveness' }
+              examples:
+                ok: { value: { status: ok } }
+        '503':
+          $ref: '_common.yaml#/components/responses/ServiceUnavailable'
+  /v1/core/health/ready:
+    get:
+      operationId: getReadiness
+      tags: [core]
+      summary: Readiness with dependency checks
+      security: []
+      x-public: "readiness for the orchestrator; dependency names only, no versions or hosts"
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes: [common.dependency_unavailable]
+      responses:
+        '200':
+          description: All dependencies ready.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Readiness' }
+              examples:
+                ok: { value: { status: ok, checks: { db: ok, ratelimit: ok } } }
+        '503':
+          description: A dependency is unavailable (common.dependency_unavailable); same body shape with the failing checks.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Readiness' }
+              examples:
+                db_down: { value: { status: down, checks: { db: down, ratelimit: ok } } }
+components:
+  schemas:
+    Liveness:
+      type: object
+      additionalProperties: false
+      required: [status]
+      properties:
+        status: { type: string, maxLength: 2, enum: [ok] }
+    CheckState:
+      type: string
+      maxLength: 8
+      enum: [ok, degraded, down]
+    Readiness:
+      type: object
+      additionalProperties: false
+      required: [status, checks]
+      properties:
+        status: { $ref: '#/components/schemas/CheckState' }
+        checks:
+          type: object
+          additionalProperties: false
+          required: [db, ratelimit]
+          properties:
+            db: { $ref: '#/components/schemas/CheckState' }
+            ratelimit: { $ref: '#/components/schemas/CheckState' }

@@ -1,0 +1,21 @@
+{
+  "//": "SYNTHETIC. Golden cases for @lims/shared-ts/spreadsheet (02-TRD §3.1; 08 A13 P-9). neutralised = neutraliseFormula(input); restoreNeutralised(neutralised) === input.",
+  "cases": [
+    { "input": "=HYPERLINK(\"http://example.invalid\",\"x\")", "neutralised": "'=HYPERLINK(\"http://example.invalid\",\"x\")" },
+    { "input": "=1+1", "neutralised": "'=1+1" },
+    { "input": "+1+1", "neutralised": "'+1+1" },
+    { "input": "-2+3", "neutralised": "'-2+3" },
+    { "input": "@SUM(A1)", "neutralised": "'@SUM(A1)" },
+    { "input": "\t=1", "neutralised": "'\t=1" },
+    { "input": "\r=1", "neutralised": "'\r=1" },
+    { "input": "'=1", "neutralised": "''=1" },
+    { "input": "'", "neutralised": "''" },
+    { "input": "-", "neutralised": "'-" },
+    { "input": "", "neutralised": "" },
+    { "input": "Synthetic Sample 001", "neutralised": "Synthetic Sample 001" },
+    { "input": "a=b", "neutralised": "a=b" },
+    { "input": "12.5", "neutralised": "12.5" },
+    { "input": " =1", "neutralised": " =1" },
+    { "input": "नमस्ते", "neutralised": "नमस्ते" }
+  ]
+}

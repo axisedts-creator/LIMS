@@ -1,0 +1,6 @@
+# MET-T06 tests (tester)
+- File: `tests/docs/MET-T06.commissioning.test.mjs` (node:test; reads `docs/manual/instruments/getein-metis-commissioning.md`; no fixtures).
+- Run: `.orchestra\notes\MET-T06-verify.cmd` (= `node --test tests/docs/MET-T06.commissioning.test.mjs`). Fails now: runbook file does not exist.
+- Format the writer must follow (assumed, header of the test): headings `## Step 1` .. `## Step 9` in addendum section 9 order; each U item names its id (`U1`..`U15`) on a line with a blank `____` on that line or the next 2 lines, labelled "Observed"/"Record"; U ids sit in the step the addendum assigns (U1:1, U2:4, U3/4/5/8/12/13:3, U7/9/14:5, U6:6, U11/15:7, U10:8).
+- Checks: nine steps in order; per-step content from section 9 (static IP, LIS address, CR-C7-021, tcp_server, 5 patient + 2 QC per level, "the analyser itself" item list, QCK OK/DSR/ACK^Q03, NF cases, range queries, CR-C7-022, Devanagari, calibration, offline, verified/migration/aal2); 15 U blanks; vendor engineer vs lab staff; sign-off blanks; sentences <= 40 words; synthetic data (MT26xxxxxxxx barcodes, Test Patient, private IPs only).
+- Not tested: wording quality beyond these checks (needs a human read-through); no ACs in 07-SECURITY apply to a doc.

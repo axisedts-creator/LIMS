@@ -1,0 +1,1 @@
+pnpm --dir services/api exec vitest run src/modules/payments/__tests__/contract/PaymentProviderPort.real.contract.test.ts src/modules/payments/__tests__/contract/PaymentProviderPort.phase1stub.contract.test.ts src/modules/payments/__tests__/integration/intent.service.test.ts src/modules/payments/__tests__/helpers

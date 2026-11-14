@@ -1,0 +1,5 @@
+# HC-T11 dispute (writer), round 2
+Run after the ruling (`HC-T11-impl-run.log`): Test Files 5 passed, Tests 84/84 passed, but vitest reports "3 errors" (Unhandled Rejection) and exits non-zero.
+Cause is the test, not the implementation: `ack.test.ts:130` `refused(p, ...)` gets a promise that is already running (`ack(...)` evaluated at the call site, lines 157, 162, 163), then does `await deviceRow(d.id)` (line 131) before attaching a handler with `p.then(...)` (line 132). The handler rejects during that DB round trip, so Node flags the rejection as unhandled; vitest counts it as an error.
+The implementation cannot avoid this: `ackSync` validates (`sameDevice`, `assertRole`) and rejects before any DB I/O, as the spec requires ("nothing changes").
+Fix (test only): snapshot the row before creating the promise, e.g. `refused(() => ack(...), ...)` and call `p()` after `before` is read; or attach the handler at once: `const settled = p.then(() => { throw new Error('expected rejection'); }, (x) => x);` as the first line of `refused`, then `await` it after `deviceRow`.

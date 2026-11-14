@@ -1,0 +1,40 @@
+{
+  "vectors": [
+    {
+      "name": "rfc9562-a6",
+      "unixMs": 1645557742000,
+      "randHex": "0cc318c4dc0c0c07398f",
+      "expected": "017f22e2-79b0-7cc3-98c4-dc0c0c07398f"
+    },
+    {
+      "name": "rfc9562-a6-junk-high-bits",
+      "unixMs": 1645557742000,
+      "randHex": "fcc3d8c4dc0c0c07398f",
+      "expected": "017f22e2-79b0-7cc3-98c4-dc0c0c07398f"
+    },
+    {
+      "name": "epoch-zero-rand",
+      "unixMs": 0,
+      "randHex": "00000000000000000000",
+      "expected": "00000000-0000-7000-8000-000000000000"
+    },
+    {
+      "name": "max-48bit-all-ff",
+      "unixMs": 281474976710655,
+      "randHex": "ffffffffffffffffffff",
+      "expected": "ffffffff-ffff-7fff-bfff-ffffffffffff"
+    },
+    {
+      "name": "mid-2023",
+      "unixMs": 1700000000000,
+      "randHex": "0123456789abcdef0123",
+      "expected": "018bcfe5-6800-7123-8567-89abcdef0123"
+    },
+    {
+      "name": "counter-max-rand-a",
+      "unixMs": 1700000000001,
+      "randHex": "0fff3fa5a5a5a5a5a5a5",
+      "expected": "018bcfe5-6801-7fff-bfa5-a5a5a5a5a5a5"
+    }
+  ]
+}

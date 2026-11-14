@@ -1,0 +1,1 @@
+pnpm --dir services/api exec vitest run src/modules/instruments/__tests__/attachments.service.test.ts src/modules/instruments/__tests__/attachments.handlers.test.ts src/modules/instruments/__tests__/unit/attachments.contract.test.ts src/modules/instruments/__tests__/boot.test.ts && pnpm --dir services/worker exec vitest run src/jobs/instruments/__tests__/scan-attachment.test.ts

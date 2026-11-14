@@ -1,0 +1,2674 @@
+{
+  "compared_months": 1200,
+  "coverage": {
+    "bikram-sambat@1.8.1": 1092,
+    "@sbmdkl/nepali-date-converter@2.0.5": 1200
+  },
+  "entries": [
+    {
+      "key": {
+        "bs_year": 2084,
+        "bs_month": 2
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 32,
+          "ad_first_day": "2027-05-15"
+        },
+        "bikram-sambat@1.8.1": {
+          "days": 31,
+          "ad_first_day": "2027-05-15"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 31,
+          "ad_first_day": "2027-05-15"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 32,
+        "ad_first_day": "2027-05-15"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2084,
+        "bs_month": 3
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 31,
+          "ad_first_day": "2027-06-16"
+        },
+        "bikram-sambat@1.8.1": {
+          "days": 32,
+          "ad_first_day": "2027-06-15"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 32,
+          "ad_first_day": "2027-06-15"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 31,
+        "ad_first_day": "2027-06-16"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2084,
+        "bs_month": 4
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 32,
+          "ad_first_day": "2027-07-17"
+        },
+        "bikram-sambat@1.8.1": {
+          "days": 31,
+          "ad_first_day": "2027-07-17"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 31,
+          "ad_first_day": "2027-07-17"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 32,
+        "ad_first_day": "2027-07-17"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2084,
+        "bs_month": 5
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 31,
+          "ad_first_day": "2027-08-18"
+        },
+        "bikram-sambat@1.8.1": {
+          "days": 31,
+          "ad_first_day": "2027-08-17"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 31,
+          "ad_first_day": "2027-08-17"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 31,
+        "ad_first_day": "2027-08-18"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2084,
+        "bs_month": 6
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 30,
+          "ad_first_day": "2027-09-18"
+        },
+        "bikram-sambat@1.8.1": {
+          "days": 30,
+          "ad_first_day": "2027-09-17"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 30,
+          "ad_first_day": "2027-09-17"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 30,
+        "ad_first_day": "2027-09-18"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2084,
+        "bs_month": 7
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 30,
+          "ad_first_day": "2027-10-18"
+        },
+        "bikram-sambat@1.8.1": {
+          "days": 30,
+          "ad_first_day": "2027-10-17"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 30,
+          "ad_first_day": "2027-10-17"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 30,
+        "ad_first_day": "2027-10-18"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2084,
+        "bs_month": 8
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 30,
+          "ad_first_day": "2027-11-17"
+        },
+        "bikram-sambat@1.8.1": {
+          "days": 30,
+          "ad_first_day": "2027-11-16"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 30,
+          "ad_first_day": "2027-11-16"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 30,
+        "ad_first_day": "2027-11-17"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2084,
+        "bs_month": 9
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 29,
+          "ad_first_day": "2027-12-17"
+        },
+        "bikram-sambat@1.8.1": {
+          "days": 29,
+          "ad_first_day": "2027-12-16"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 29,
+          "ad_first_day": "2027-12-16"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 29,
+        "ad_first_day": "2027-12-17"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2084,
+        "bs_month": 10
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 29,
+          "ad_first_day": "2028-01-15"
+        },
+        "bikram-sambat@1.8.1": {
+          "days": 30,
+          "ad_first_day": "2028-01-14"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 30,
+          "ad_first_day": "2028-01-14"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 29,
+        "ad_first_day": "2028-01-15"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2084,
+        "bs_month": 12
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 31,
+          "ad_first_day": "2028-03-14"
+        },
+        "bikram-sambat@1.8.1": {
+          "days": 30,
+          "ad_first_day": "2028-03-14"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 30,
+          "ad_first_day": "2028-03-14"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 31,
+        "ad_first_day": "2028-03-14"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2085,
+        "bs_month": 1
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 30,
+          "ad_first_day": "2028-04-14"
+        },
+        "bikram-sambat@1.8.1": {
+          "days": 31,
+          "ad_first_day": "2028-04-13"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 31,
+          "ad_first_day": "2028-04-13"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 30,
+        "ad_first_day": "2028-04-14"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2085,
+        "bs_month": 5
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 31,
+          "ad_first_day": "2028-08-17"
+        },
+        "bikram-sambat@1.8.1": {
+          "days": 30,
+          "ad_first_day": "2028-08-17"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 30,
+          "ad_first_day": "2028-08-17"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 31,
+        "ad_first_day": "2028-08-17"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2085,
+        "bs_month": 6
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 30,
+          "ad_first_day": "2028-09-17"
+        },
+        "bikram-sambat@1.8.1": {
+          "days": 31,
+          "ad_first_day": "2028-09-16"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 31,
+          "ad_first_day": "2028-09-16"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 30,
+        "ad_first_day": "2028-09-17"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2085,
+        "bs_month": 11
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 29,
+          "ad_first_day": "2029-02-13"
+        },
+        "bikram-sambat@1.8.1": {
+          "days": 30,
+          "ad_first_day": "2029-02-13"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 30,
+          "ad_first_day": "2029-02-13"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 29,
+        "ad_first_day": "2029-02-13"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2085,
+        "bs_month": 12
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 31,
+          "ad_first_day": "2029-03-14"
+        },
+        "bikram-sambat@1.8.1": {
+          "days": 30,
+          "ad_first_day": "2029-03-15"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 30,
+          "ad_first_day": "2029-03-15"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 31,
+        "ad_first_day": "2029-03-14"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2086,
+        "bs_month": 1
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 31,
+          "ad_first_day": "2029-04-14"
+        },
+        "bikram-sambat@1.8.1": {
+          "days": 30,
+          "ad_first_day": "2029-04-14"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 30,
+          "ad_first_day": "2029-04-14"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 31,
+        "ad_first_day": "2029-04-14"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2086,
+        "bs_month": 2
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 31,
+          "ad_first_day": "2029-05-15"
+        },
+        "bikram-sambat@1.8.1": {
+          "days": 32,
+          "ad_first_day": "2029-05-14"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 32,
+          "ad_first_day": "2029-05-14"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 31,
+        "ad_first_day": "2029-05-15"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2086,
+        "bs_month": 3
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 32,
+          "ad_first_day": "2029-06-15"
+        },
+        "bikram-sambat@1.8.1": {
+          "days": 31,
+          "ad_first_day": "2029-06-15"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 31,
+          "ad_first_day": "2029-06-15"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 32,
+        "ad_first_day": "2029-06-15"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2086,
+        "bs_month": 4
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 31,
+          "ad_first_day": "2029-07-17"
+        },
+        "bikram-sambat@1.8.1": {
+          "days": 32,
+          "ad_first_day": "2029-07-16"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 32,
+          "ad_first_day": "2029-07-16"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 31,
+        "ad_first_day": "2029-07-17"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2086,
+        "bs_month": 6
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 31,
+          "ad_first_day": "2029-09-17"
+        },
+        "bikram-sambat@1.8.1": {
+          "days": 30,
+          "ad_first_day": "2029-09-17"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 30,
+          "ad_first_day": "2029-09-17"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 31,
+        "ad_first_day": "2029-09-17"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2086,
+        "bs_month": 7
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 30,
+          "ad_first_day": "2029-10-18"
+        },
+        "bikram-sambat@1.8.1": {
+          "days": 30,
+          "ad_first_day": "2029-10-17"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 30,
+          "ad_first_day": "2029-10-17"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 30,
+        "ad_first_day": "2029-10-18"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2086,
+        "bs_month": 8
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 29,
+          "ad_first_day": "2029-11-17"
+        },
+        "bikram-sambat@1.8.1": {
+          "days": 30,
+          "ad_first_day": "2029-11-16"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 30,
+          "ad_first_day": "2029-11-16"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 29,
+        "ad_first_day": "2029-11-17"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2086,
+        "bs_month": 9
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 30,
+          "ad_first_day": "2029-12-16"
+        },
+        "bikram-sambat@1.8.1": {
+          "days": 29,
+          "ad_first_day": "2029-12-16"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 29,
+          "ad_first_day": "2029-12-16"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 30,
+        "ad_first_day": "2029-12-16"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2086,
+        "bs_month": 10
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 29,
+          "ad_first_day": "2030-01-15"
+        },
+        "bikram-sambat@1.8.1": {
+          "days": 30,
+          "ad_first_day": "2030-01-14"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 30,
+          "ad_first_day": "2030-01-14"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 29,
+        "ad_first_day": "2030-01-15"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2087,
+        "bs_month": 4
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 32,
+          "ad_first_day": "2030-07-17"
+        },
+        "bikram-sambat@1.8.1": {
+          "days": 31,
+          "ad_first_day": "2030-07-17"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 31,
+          "ad_first_day": "2030-07-17"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 32,
+        "ad_first_day": "2030-07-17"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2087,
+        "bs_month": 5
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 31,
+          "ad_first_day": "2030-08-18"
+        },
+        "bikram-sambat@1.8.1": {
+          "days": 31,
+          "ad_first_day": "2030-08-17"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 31,
+          "ad_first_day": "2030-08-17"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 31,
+        "ad_first_day": "2030-08-18"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2087,
+        "bs_month": 6
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 30,
+          "ad_first_day": "2030-09-18"
+        },
+        "bikram-sambat@1.8.1": {
+          "days": 31,
+          "ad_first_day": "2030-09-17"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 31,
+          "ad_first_day": "2030-09-17"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 30,
+        "ad_first_day": "2030-09-18"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2087,
+        "bs_month": 8
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 29,
+          "ad_first_day": "2030-11-17"
+        },
+        "bikram-sambat@1.8.1": {
+          "days": 30,
+          "ad_first_day": "2030-11-17"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 30,
+          "ad_first_day": "2030-11-17"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 29,
+        "ad_first_day": "2030-11-17"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2087,
+        "bs_month": 9
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 30,
+          "ad_first_day": "2030-12-16"
+        },
+        "bikram-sambat@1.8.1": {
+          "days": 29,
+          "ad_first_day": "2030-12-17"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 29,
+          "ad_first_day": "2030-12-17"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 30,
+        "ad_first_day": "2030-12-16"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2087,
+        "bs_month": 10
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 29,
+          "ad_first_day": "2031-01-15"
+        },
+        "bikram-sambat@1.8.1": {
+          "days": 30,
+          "ad_first_day": "2031-01-15"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 30,
+          "ad_first_day": "2031-01-15"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 29,
+        "ad_first_day": "2031-01-15"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2087,
+        "bs_month": 11
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 30,
+          "ad_first_day": "2031-02-13"
+        },
+        "bikram-sambat@1.8.1": {
+          "days": 30,
+          "ad_first_day": "2031-02-14"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 30,
+          "ad_first_day": "2031-02-14"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 30,
+        "ad_first_day": "2031-02-13"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2087,
+        "bs_month": 12
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 30,
+          "ad_first_day": "2031-03-15"
+        },
+        "bikram-sambat@1.8.1": {
+          "days": 30,
+          "ad_first_day": "2031-03-16"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 30,
+          "ad_first_day": "2031-03-16"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 30,
+        "ad_first_day": "2031-03-15"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2088,
+        "bs_month": 1
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 31,
+          "ad_first_day": "2031-04-14"
+        },
+        "bikram-sambat@1.8.1": {
+          "days": 30,
+          "ad_first_day": "2031-04-15"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 30,
+          "ad_first_day": "2031-04-15"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 31,
+        "ad_first_day": "2031-04-14"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2088,
+        "bs_month": 2
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 32,
+          "ad_first_day": "2031-05-15"
+        },
+        "bikram-sambat@1.8.1": {
+          "days": 31,
+          "ad_first_day": "2031-05-15"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 31,
+          "ad_first_day": "2031-05-15"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 32,
+        "ad_first_day": "2031-05-15"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2088,
+        "bs_month": 3
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 31,
+          "ad_first_day": "2031-06-16"
+        },
+        "bikram-sambat@1.8.1": {
+          "days": 32,
+          "ad_first_day": "2031-06-15"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 32,
+          "ad_first_day": "2031-06-15"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 31,
+        "ad_first_day": "2031-06-16"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2088,
+        "bs_month": 5
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 31,
+          "ad_first_day": "2031-08-18"
+        },
+        "bikram-sambat@1.8.1": {
+          "days": 30,
+          "ad_first_day": "2031-08-18"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 30,
+          "ad_first_day": "2031-08-18"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 31,
+        "ad_first_day": "2031-08-18"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2088,
+        "bs_month": 6
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 30,
+          "ad_first_day": "2031-09-18"
+        },
+        "bikram-sambat@1.8.1": {
+          "days": 31,
+          "ad_first_day": "2031-09-17"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 31,
+          "ad_first_day": "2031-09-17"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 30,
+        "ad_first_day": "2031-09-18"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2088,
+        "bs_month": 10
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 29,
+          "ad_first_day": "2032-01-15"
+        },
+        "bikram-sambat@1.8.1": {
+          "days": 30,
+          "ad_first_day": "2032-01-15"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 30,
+          "ad_first_day": "2032-01-15"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 29,
+        "ad_first_day": "2032-01-15"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2088,
+        "bs_month": 11
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 30,
+          "ad_first_day": "2032-02-13"
+        },
+        "bikram-sambat@1.8.1": {
+          "days": 30,
+          "ad_first_day": "2032-02-14"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 30,
+          "ad_first_day": "2032-02-14"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 30,
+        "ad_first_day": "2032-02-13"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2088,
+        "bs_month": 12
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 31,
+          "ad_first_day": "2032-03-14"
+        },
+        "bikram-sambat@1.8.1": {
+          "days": 30,
+          "ad_first_day": "2032-03-15"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 30,
+          "ad_first_day": "2032-03-15"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 31,
+        "ad_first_day": "2032-03-14"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2089,
+        "bs_month": 11
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 29,
+          "ad_first_day": "2033-02-13"
+        },
+        "bikram-sambat@1.8.1": {
+          "days": 30,
+          "ad_first_day": "2033-02-13"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 30,
+          "ad_first_day": "2033-02-13"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 29,
+        "ad_first_day": "2033-02-13"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2089,
+        "bs_month": 12
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 31,
+          "ad_first_day": "2033-03-14"
+        },
+        "bikram-sambat@1.8.1": {
+          "days": 30,
+          "ad_first_day": "2033-03-15"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 30,
+          "ad_first_day": "2033-03-15"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 31,
+        "ad_first_day": "2033-03-14"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2090,
+        "bs_month": 1
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 31,
+          "ad_first_day": "2033-04-14"
+        },
+        "bikram-sambat@1.8.1": {
+          "days": 30,
+          "ad_first_day": "2033-04-14"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 30,
+          "ad_first_day": "2033-04-14"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 31,
+        "ad_first_day": "2033-04-14"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2090,
+        "bs_month": 2
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 31,
+          "ad_first_day": "2033-05-15"
+        },
+        "bikram-sambat@1.8.1": {
+          "days": 32,
+          "ad_first_day": "2033-05-14"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 32,
+          "ad_first_day": "2033-05-14"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 31,
+        "ad_first_day": "2033-05-15"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2090,
+        "bs_month": 3
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 32,
+          "ad_first_day": "2033-06-15"
+        },
+        "bikram-sambat@1.8.1": {
+          "days": 31,
+          "ad_first_day": "2033-06-15"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 31,
+          "ad_first_day": "2033-06-15"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 32,
+        "ad_first_day": "2033-06-15"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2090,
+        "bs_month": 4
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 31,
+          "ad_first_day": "2033-07-17"
+        },
+        "bikram-sambat@1.8.1": {
+          "days": 32,
+          "ad_first_day": "2033-07-16"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 32,
+          "ad_first_day": "2033-07-16"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 31,
+        "ad_first_day": "2033-07-17"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2090,
+        "bs_month": 6
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 31,
+          "ad_first_day": "2033-09-17"
+        },
+        "bikram-sambat@1.8.1": {
+          "days": 30,
+          "ad_first_day": "2033-09-17"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 30,
+          "ad_first_day": "2033-09-17"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 31,
+        "ad_first_day": "2033-09-17"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2090,
+        "bs_month": 7
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 30,
+          "ad_first_day": "2033-10-18"
+        },
+        "bikram-sambat@1.8.1": {
+          "days": 30,
+          "ad_first_day": "2033-10-17"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 30,
+          "ad_first_day": "2033-10-17"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 30,
+        "ad_first_day": "2033-10-18"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2090,
+        "bs_month": 8
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 29,
+          "ad_first_day": "2033-11-17"
+        },
+        "bikram-sambat@1.8.1": {
+          "days": 30,
+          "ad_first_day": "2033-11-16"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 30,
+          "ad_first_day": "2033-11-16"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 29,
+        "ad_first_day": "2033-11-17"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2090,
+        "bs_month": 9
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 30,
+          "ad_first_day": "2033-12-16"
+        },
+        "bikram-sambat@1.8.1": {
+          "days": 29,
+          "ad_first_day": "2033-12-16"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 29,
+          "ad_first_day": "2033-12-16"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 30,
+        "ad_first_day": "2033-12-16"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2090,
+        "bs_month": 10
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 29,
+          "ad_first_day": "2034-01-15"
+        },
+        "bikram-sambat@1.8.1": {
+          "days": 30,
+          "ad_first_day": "2034-01-14"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 30,
+          "ad_first_day": "2034-01-14"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 29,
+        "ad_first_day": "2034-01-15"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2091,
+        "bs_month": 4
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 32,
+          "ad_first_day": "2034-07-17"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 31,
+          "ad_first_day": "2034-07-17"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 32,
+        "ad_first_day": "2034-07-17"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2091,
+        "bs_month": 5
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 31,
+          "ad_first_day": "2034-08-18"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 31,
+          "ad_first_day": "2034-08-17"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 31,
+        "ad_first_day": "2034-08-18"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2091,
+        "bs_month": 6
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 30,
+          "ad_first_day": "2034-09-18"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 31,
+          "ad_first_day": "2034-09-17"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 30,
+        "ad_first_day": "2034-09-18"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2091,
+        "bs_month": 8
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 29,
+          "ad_first_day": "2034-11-17"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 30,
+          "ad_first_day": "2034-11-17"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 29,
+        "ad_first_day": "2034-11-17"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2091,
+        "bs_month": 9
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 30,
+          "ad_first_day": "2034-12-16"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 29,
+          "ad_first_day": "2034-12-17"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 30,
+        "ad_first_day": "2034-12-16"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2091,
+        "bs_month": 10
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 29,
+          "ad_first_day": "2035-01-15"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 30,
+          "ad_first_day": "2035-01-15"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 29,
+        "ad_first_day": "2035-01-15"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2091,
+        "bs_month": 11
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 30,
+          "ad_first_day": "2035-02-13"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 30,
+          "ad_first_day": "2035-02-14"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 30,
+        "ad_first_day": "2035-02-13"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2091,
+        "bs_month": 12
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 30,
+          "ad_first_day": "2035-03-15"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 30,
+          "ad_first_day": "2035-03-16"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 30,
+        "ad_first_day": "2035-03-15"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2092,
+        "bs_month": 1
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 31,
+          "ad_first_day": "2035-04-14"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 30,
+          "ad_first_day": "2035-04-15"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 31,
+        "ad_first_day": "2035-04-14"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2092,
+        "bs_month": 2
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 32,
+          "ad_first_day": "2035-05-15"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 31,
+          "ad_first_day": "2035-05-15"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 32,
+        "ad_first_day": "2035-05-15"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2092,
+        "bs_month": 3
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 31,
+          "ad_first_day": "2035-06-16"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 32,
+          "ad_first_day": "2035-06-15"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 31,
+        "ad_first_day": "2035-06-16"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2092,
+        "bs_month": 10
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 29,
+          "ad_first_day": "2036-01-15"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 30,
+          "ad_first_day": "2036-01-15"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 29,
+        "ad_first_day": "2036-01-15"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2092,
+        "bs_month": 11
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 30,
+          "ad_first_day": "2036-02-13"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 30,
+          "ad_first_day": "2036-02-14"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 30,
+        "ad_first_day": "2036-02-13"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2092,
+        "bs_month": 12
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 31,
+          "ad_first_day": "2036-03-14"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 30,
+          "ad_first_day": "2036-03-15"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 31,
+        "ad_first_day": "2036-03-14"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2093,
+        "bs_month": 1
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 31,
+          "ad_first_day": "2036-04-14"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 30,
+          "ad_first_day": "2036-04-14"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 31,
+        "ad_first_day": "2036-04-14"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2093,
+        "bs_month": 2
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 31,
+          "ad_first_day": "2036-05-15"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 32,
+          "ad_first_day": "2036-05-14"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 31,
+        "ad_first_day": "2036-05-15"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2093,
+        "bs_month": 6
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 31,
+          "ad_first_day": "2036-09-17"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 30,
+          "ad_first_day": "2036-09-17"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 31,
+        "ad_first_day": "2036-09-17"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2093,
+        "bs_month": 7
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 29,
+          "ad_first_day": "2036-10-18"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 30,
+          "ad_first_day": "2036-10-17"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 29,
+        "ad_first_day": "2036-10-18"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2093,
+        "bs_month": 9
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 30,
+          "ad_first_day": "2036-12-16"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 29,
+          "ad_first_day": "2036-12-16"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 30,
+        "ad_first_day": "2036-12-16"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2093,
+        "bs_month": 10
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 29,
+          "ad_first_day": "2037-01-15"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 30,
+          "ad_first_day": "2037-01-14"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 29,
+        "ad_first_day": "2037-01-15"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2093,
+        "bs_month": 11
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 29,
+          "ad_first_day": "2037-02-13"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 30,
+          "ad_first_day": "2037-02-13"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 29,
+        "ad_first_day": "2037-02-13"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2093,
+        "bs_month": 12
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 31,
+          "ad_first_day": "2037-03-14"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 30,
+          "ad_first_day": "2037-03-15"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 31,
+        "ad_first_day": "2037-03-14"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2094,
+        "bs_month": 6
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 31,
+          "ad_first_day": "2037-09-17"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 30,
+          "ad_first_day": "2037-09-17"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 31,
+        "ad_first_day": "2037-09-17"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2094,
+        "bs_month": 7
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 30,
+          "ad_first_day": "2037-10-18"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 30,
+          "ad_first_day": "2037-10-17"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 30,
+        "ad_first_day": "2037-10-18"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2094,
+        "bs_month": 8
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 29,
+          "ad_first_day": "2037-11-17"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 30,
+          "ad_first_day": "2037-11-16"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 29,
+        "ad_first_day": "2037-11-17"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2094,
+        "bs_month": 9
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 30,
+          "ad_first_day": "2037-12-16"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 29,
+          "ad_first_day": "2037-12-16"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 30,
+        "ad_first_day": "2037-12-16"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2094,
+        "bs_month": 10
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 29,
+          "ad_first_day": "2038-01-15"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 30,
+          "ad_first_day": "2038-01-14"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 29,
+        "ad_first_day": "2038-01-15"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2095,
+        "bs_month": 4
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 32,
+          "ad_first_day": "2038-07-17"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 31,
+          "ad_first_day": "2038-07-17"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 32,
+        "ad_first_day": "2038-07-17"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2095,
+        "bs_month": 5
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 31,
+          "ad_first_day": "2038-08-18"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 31,
+          "ad_first_day": "2038-08-17"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 31,
+        "ad_first_day": "2038-08-18"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2095,
+        "bs_month": 6
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 30,
+          "ad_first_day": "2038-09-18"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 31,
+          "ad_first_day": "2038-09-17"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 30,
+        "ad_first_day": "2038-09-18"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2095,
+        "bs_month": 10
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 29,
+          "ad_first_day": "2039-01-15"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 30,
+          "ad_first_day": "2039-01-15"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 29,
+        "ad_first_day": "2039-01-15"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2095,
+        "bs_month": 11
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 30,
+          "ad_first_day": "2039-02-13"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 30,
+          "ad_first_day": "2039-02-14"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 30,
+        "ad_first_day": "2039-02-13"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2095,
+        "bs_month": 12
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 30,
+          "ad_first_day": "2039-03-15"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 30,
+          "ad_first_day": "2039-03-16"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 30,
+        "ad_first_day": "2039-03-15"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2096,
+        "bs_month": 1
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 31,
+          "ad_first_day": "2039-04-14"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 30,
+          "ad_first_day": "2039-04-15"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 31,
+        "ad_first_day": "2039-04-14"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2096,
+        "bs_month": 2
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 32,
+          "ad_first_day": "2039-05-15"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 31,
+          "ad_first_day": "2039-05-15"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 32,
+        "ad_first_day": "2039-05-15"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2096,
+        "bs_month": 3
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 31,
+          "ad_first_day": "2039-06-16"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 32,
+          "ad_first_day": "2039-06-15"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 31,
+        "ad_first_day": "2039-06-16"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2096,
+        "bs_month": 8
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 30,
+          "ad_first_day": "2039-11-17"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 29,
+          "ad_first_day": "2039-11-17"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 30,
+        "ad_first_day": "2039-11-17"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2096,
+        "bs_month": 9
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 29,
+          "ad_first_day": "2039-12-17"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 30,
+          "ad_first_day": "2039-12-16"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 29,
+        "ad_first_day": "2039-12-17"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2096,
+        "bs_month": 12
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 31,
+          "ad_first_day": "2040-03-14"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 30,
+          "ad_first_day": "2040-03-14"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 31,
+        "ad_first_day": "2040-03-14"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2097,
+        "bs_month": 1
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 31,
+          "ad_first_day": "2040-04-14"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 31,
+          "ad_first_day": "2040-04-13"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 31,
+        "ad_first_day": "2040-04-14"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2097,
+        "bs_month": 2
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 31,
+          "ad_first_day": "2040-05-15"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 32,
+          "ad_first_day": "2040-05-14"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 31,
+        "ad_first_day": "2040-05-15"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2097,
+        "bs_month": 6
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 31,
+          "ad_first_day": "2040-09-17"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 30,
+          "ad_first_day": "2040-09-17"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 31,
+        "ad_first_day": "2040-09-17"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2097,
+        "bs_month": 7
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 29,
+          "ad_first_day": "2040-10-18"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 30,
+          "ad_first_day": "2040-10-17"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 29,
+        "ad_first_day": "2040-10-18"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2097,
+        "bs_month": 9
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 30,
+          "ad_first_day": "2040-12-16"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 29,
+          "ad_first_day": "2040-12-16"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 30,
+        "ad_first_day": "2040-12-16"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2097,
+        "bs_month": 10
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 29,
+          "ad_first_day": "2041-01-15"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 30,
+          "ad_first_day": "2041-01-14"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 29,
+        "ad_first_day": "2041-01-15"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2098,
+        "bs_month": 7
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 30,
+          "ad_first_day": "2041-10-18"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 29,
+          "ad_first_day": "2041-10-18"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 30,
+        "ad_first_day": "2041-10-18"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2098,
+        "bs_month": 8
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 29,
+          "ad_first_day": "2041-11-17"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 30,
+          "ad_first_day": "2041-11-16"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 29,
+        "ad_first_day": "2041-11-17"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2098,
+        "bs_month": 9
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 30,
+          "ad_first_day": "2041-12-16"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 29,
+          "ad_first_day": "2041-12-16"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 30,
+        "ad_first_day": "2041-12-16"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2098,
+        "bs_month": 10
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 29,
+          "ad_first_day": "2042-01-15"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 30,
+          "ad_first_day": "2042-01-14"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 29,
+        "ad_first_day": "2042-01-15"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2098,
+        "bs_month": 11
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 30,
+          "ad_first_day": "2042-02-13"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 29,
+          "ad_first_day": "2042-02-13"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 30,
+        "ad_first_day": "2042-02-13"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2098,
+        "bs_month": 12
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 30,
+          "ad_first_day": "2042-03-15"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 31,
+          "ad_first_day": "2042-03-14"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 30,
+        "ad_first_day": "2042-03-15"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2099,
+        "bs_month": 2
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 31,
+          "ad_first_day": "2042-05-15"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 32,
+          "ad_first_day": "2042-05-15"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 31,
+        "ad_first_day": "2042-05-15"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2099,
+        "bs_month": 3
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 32,
+          "ad_first_day": "2042-06-15"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 31,
+          "ad_first_day": "2042-06-16"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 32,
+        "ad_first_day": "2042-06-15"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2099,
+        "bs_month": 8
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 29,
+          "ad_first_day": "2042-11-17"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 30,
+          "ad_first_day": "2042-11-17"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 29,
+        "ad_first_day": "2042-11-17"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2099,
+        "bs_month": 9
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 30,
+          "ad_first_day": "2042-12-16"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 29,
+          "ad_first_day": "2042-12-17"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 30,
+        "ad_first_day": "2042-12-16"
+      },
+      "verify_before_golive": true
+    },
+    {
+      "key": {
+        "bs_year": 2099,
+        "bs_month": 12
+      },
+      "values": {
+        "@remotemerge/nepali-date-converter@1.2.7": {
+          "days": 30,
+          "ad_first_day": "2043-03-15"
+        },
+        "@sbmdkl/nepali-date-converter@2.0.5": {
+          "days": 31,
+          "ad_first_day": "2043-03-15"
+        }
+      },
+      "status": "resolved",
+      "resolved_by": "LD-08",
+      "resolution": {
+        "days": 30,
+        "ad_first_day": "2043-03-15"
+      },
+      "verify_before_golive": true
+    }
+  ]
+}

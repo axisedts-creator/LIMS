@@ -1,0 +1,129 @@
+---
+# 02-TRD s11.3 backup rules. T-10 adds RestoreDrillOverdue (AC-13.2,
+# 04 I3 "last drill < 35 days"); T-19 extends this file with the rest of
+# the backup family. Every rule: summary + runbook_url + team. The metric is
+# written by infra/drill/report.sh only on a drill that succeeded with 0
+# failed checks.
+groups:
+  - name: backup
+    rules:
+      # 02-TRD s9.4 arithmetic (08 A25 D-205): warn 600 s, page 840 s (one
+      # minute before the 15 min RPO), only while WAL is unarchived, so an
+      # idle database never alerts. `for` stays <= 2 m so a database that
+      # becomes busy pages within the RPO.
+      - alert: WalArchiveLagging
+        expr: >-
+          lims_ops_wal_repo2_newest_age_seconds > 600
+          and on() lims_ops_wal_unarchived_bytes > 0
+        for: 2m
+        labels:
+          severity: warn
+          team: ops
+        annotations:
+          summary: "Newest WAL in the site-B repo is over 10 min old while WAL waits to be archived."
+          runbook_url: "infra/runbooks/backup.md#walarchivelagging"
+      - alert: RpoAtRisk
+        expr: >-
+          lims_ops_wal_repo2_newest_age_seconds > 840
+          and on() lims_ops_wal_unarchived_bytes > 0
+        for: 2m
+        labels:
+          severity: page
+          team: ops
+        annotations:
+          summary: "Newest WAL in the site-B repo is over 14 min old; the 15 min RPO is at risk."
+          runbook_url: "infra/runbooks/backup.md#rpoatrisk"
+      - alert: WalArchiveFailing
+        expr: lims_ops_wal_check_consecutive_failures >= 2
+        for: 1m
+        labels:
+          severity: page
+          team: ops
+        annotations:
+          summary: "pgbackrest check failed twice in a row (04 I2)."
+          runbook_url: "infra/runbooks/backup.md#walarchivefailing"
+      # 08 A25 D-210.
+      - alert: NoOffsiteArchive
+        expr: lims_ops_offsite_archive_configured == 0
+        for: 5m
+        labels:
+          severity: page
+          team: ops
+        annotations:
+          summary: "No healthy pgBackRest repo on a site other than the primary's."
+          runbook_url: "infra/runbooks/backup.md#nooffsitearchive"
+      # Per repo, any backup type counts.
+      - alert: BackupMissed
+        expr: >-
+          time() - max by (repo) (lims_ops_backup_last_success_timestamp_seconds)
+          > 26 * 3600
+        for: 5m
+        labels:
+          severity: page
+          team: ops
+        annotations:
+          summary: "No successful backup to repo {{ $labels.repo }} for over 26 h."
+          runbook_url: "infra/runbooks/backup.md#backupmissed"
+      - alert: RestoreDrillFailed
+        expr: lims_ops_restore_drill_checks_failed > 0
+        for: 1m
+        labels:
+          severity: page
+          team: ops
+        annotations:
+          summary: "The last restore drill failed or had failed checks."
+          runbook_url: "infra/runbooks/drill.md#restoredrillfailed"
+      # Full profile only: the lean profile has no standby (LD-45).
+      - alert: StandbyLagHigh
+        expr: pg_replication_lag_seconds > 60
+        for: 10m
+        labels:
+          severity: warn
+          team: ops
+        annotations:
+          summary: "Standby on {{ $labels.host }} replays more than 60 s behind."
+          runbook_url: "infra/runbooks/backup.md#standbylaghigh"
+      - alert: ObjectReplicaStale
+        expr: >-
+          time() - lims_ops_object_replica_last_success_timestamp_seconds > 3600
+          or lims_ops_object_replica_lag_seconds > 1800
+        for: 5m
+        labels:
+          severity: warn
+          team: ops
+        annotations:
+          summary: "Object replica last succeeded over 1 h ago or lags over 30 min."
+          runbook_url: "infra/runbooks/backup.md#objectreplicastale"
+      - alert: ObjectReplicaStale
+        expr: >-
+          time() - lims_ops_object_replica_last_success_timestamp_seconds > 3 * 3600
+        for: 5m
+        labels:
+          severity: page
+          team: ops
+        annotations:
+          summary: "Object replica last succeeded over 3 h ago."
+          runbook_url: "infra/runbooks/backup.md#objectreplicastale"
+      - alert: RestoreDrillOverdue
+        expr: >-
+          time() - lims_ops_restore_drill_last_success_timestamp_seconds
+          > 35 * 86400
+        labels:
+          severity: warn
+          team: ops
+        annotations:
+          summary: >-
+            No successful restore drill for more than 35 days
+            (04 I3); pages at 40 days.
+          runbook_url: "infra/runbooks/backup.md#restoredrilloverdue"
+      - alert: RestoreDrillOverdue
+        expr: >-
+          time() - lims_ops_restore_drill_last_success_timestamp_seconds
+          > 40 * 86400
+        labels:
+          severity: page
+          team: ops
+        annotations:
+          summary: >-
+            No successful restore drill for more than 40 days (04 I3).
+          runbook_url: "infra/runbooks/backup.md#restoredrilloverdue"

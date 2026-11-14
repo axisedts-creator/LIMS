@@ -1,0 +1,18 @@
+---
+# 02-TRD s6: public edge nginx on the app host. Host names are inventory
+# values (`origins.{staff_web,portal,api,partner}`; LD-45: nothing
+# host-specific here). Image: same nginx pin as the ops nginx
+# (roles/monitoring, 02-TRD s2 "C1 pins").
+edge_nginx_image: nginx:1.30.6
+edge_nginx_container: lims-edge          # [CONV] running edge container
+edge_nginx_dir: /srv/lims/edge/nginx     # [CONV] = /etc/nginx in container
+edge_nginx_stage: /srv/lims/edge/nginx.next
+edge_nginx_certs: /srv/lims/edge/certs   # <origin>/{fullchain,privkey}.pem
+edge_nginx_webroot: /var/www/acme        # ACME HTTP-01 webroot (s6.2)
+edge_nginx_src: "{{ playbook_dir }}/../../edge"
+# Resolved to 127.0.0.1 only inside the throw-away `nginx -t` container.
+edge_nginx_upstreams: [web, portal, partner, api-a, api-b]
+edge_nginx_sites: [staff_web, portal, partner, api, acme]
+edge_nginx_tls_origins: >-
+  {{ ['staff_web', 'portal', 'api']
+  + (['partner'] if partner_enabled | bool else []) }}

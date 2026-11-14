@@ -1,0 +1,15 @@
+# Managed by Ansible (02-TRD s5.4) [CONV unless stated]
+net.ipv4.tcp_syncookies = 1
+net.ipv4.tcp_max_syn_backlog = 8192
+net.core.somaxconn = 4096
+net.ipv4.tcp_fin_timeout = 15
+net.ipv4.conf.all.rp_filter = 1
+net.ipv4.conf.all.accept_redirects = 0
+net.ipv4.conf.all.send_redirects = 0
+net.ipv4.icmp_echo_ignore_broadcasts = 1
+net.ipv6.conf.all.accept_ra = 0
+fs.file-max = 1048576
+# 10 by default, 1 on data hosts (base_os_swappiness)
+vm.swappiness = {{ base_os_swappiness }}
+kernel.kptr_restrict = 2
+kernel.dmesg_restrict = 1

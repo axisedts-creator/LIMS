@@ -1,0 +1,7 @@
+# T-P4 dispute (writer) — worker test fixture never reaches the fake port
+Test: `services/worker/src/jobs/engagement/__tests__/fetch_smart_summary.test.ts`, `setup()` (lines 70-79) and `f.setFixture` (also used in the v2 / other-report tests).
+Defect: `createFakeReportingPort({ fixtures: { reports: fixtures } })` is built while `fixtures` is EMPTY; `makeFake` -> `mergeFixtures` copies rows (`clone`) and deep-freezes at construction (packages/fakes/src/base.ts:61-100, 118). `setFixture` later does `fixtures.push(...)` on the test's own array, which the fake no longer holds.
+Effect: `openReleasedReportFile` throws `common.not_found` for every call (ReportingPort.fake.ts:104) -> the task (correctly) resolves with no row. Observed: 15 of 33 fail (every test that expects a stored row, a reminder, or a port call count / actor); the other 18 pass vacuously.
+Proof: a stack trace of the caught port error shows `notFound` from ReportingPort.fake.ts:104 called from the test's wrapper (test.ts:73); the settings row and patient_reports row are found (smart_report_in_app true, row present).
+Fix (tests only): seed through the fake, e.g. `setFixture = (over) => inner.__seed({ reports: [{ id: ID(0xb00 + n++), ... }] })` (rows keyed by `id`, upserted), or build the fake lazily after the fixtures are known. The task itself needs no change for this.
+Status: E24 API tests 24/24 pass. Worker implementation written (tasks/fetch_smart_summary.ts, manifest wired) but cannot be proven until the fixture is fixed. App part (A14) NOT started: stopped per rules.

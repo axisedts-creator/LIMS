@@ -1,0 +1,9 @@
+{"name": "h80e-api-down", "protocol": "hl7v2", "transport": "tcp_server", "instrument_profile": "truth_h80e", "options": {},
+ "steps": [
+  {"note": "PRD AC-10.6 / D-H80-1: the server stub is unreachable (no reply at all)", "host_query": {"reply": []}},
+  {"from": "instrument", "bytes": "<VT>MSH|^~\\&|Truth|Truth-H80E|||20261105||QRY^Q02|126|P|2.3||||||UTF-8||||<CR>QRD|20261105|R|D|65|||RD|E2600000042||||<CR>QRF|||||RCT|COR|ALL|||<CR><FS><CR>"},
+  {"note": "the agent writes nothing: no acknowledgement, no error reply; the analyser times out", "expect": "agent", "bytes": "", "within_ms": 200},
+  {"note": "results still flow while the query path is down", "from": "instrument", "bytes": "<VT>MSH|^~\\&|Truth|Truth-H80E|||20261105||ORU^R01|7|P|2.3||||0||UTF-8||||<CR>PID|1||P0000123<CR>OBR|1|0001|E2600000042<CR>OBX|1|NM|HbA1c_NGSP||5.63|%||0<CR><FS><CR>"},
+  {"expect": "agent", "bytes": "<VT>MSH|^~\\&|LIMS||Truth|Truth-H80E|{now}||ACK|ACK0001|P|2.3<CR>MSA|AA|7<CR><FS><CR>", "within_ms": 200},
+  {"note": "expect_queue: the query stays committed (pending), the result is queued too", "expect_queue": {"items": 2, "kind": "data", "raw_sha256": "133e3a641761f4e6eef204ca8a539b7f6f7260e470c0e0de44db1c1fb75d3dbd"}}
+ ]}

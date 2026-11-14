@@ -1,0 +1,10 @@
+// Managed by Ansible (role ci_runner): the runner user may START only lims-prod-decrypt@vX.Y.Z.service
+// (no sudo: the runner unit has NoNewPrivileges). Anything else stays denied.
+polkit.addRule(function(action, subject) {
+  if (action.id == "org.freedesktop.systemd1.manage-units" &&
+      subject.user == "{{ ci_runner_user }}" &&
+      action.lookup("verb") == "start" &&
+      /^lims-prod-decrypt@v[0-9]+\.[0-9]+\.[0-9]+\.service$/.test(action.lookup("unit"))) {
+    return polkit.Result.YES;
+  }
+});

@@ -1,0 +1,7 @@
+# MET-T01 tests (tester) — LD-163; run: `.orchestra\notes\MET-T01-verify.cmd` (Go, from apps/bridge-agent)
+- `internal/drivers/getein_metis_test.go` (profile §7, new opt-in `HL7AckFullForm`, others unchanged) + `registry_test.go` (six→seven profiles, precedent H80-T01).
+- `internal/mllp/getein_metis_test.go`: ACK echoes MSH-10/12/16 + MSH-18 UTF8 byte-for-byte (§6), AR 207, last-policy QCK→DSR→ACK^Q03 with other MSA-2, API down silent (AC-10.6), U3/U7/U8 configurable.
+- `internal/simulator/metis_sessions_test.go`: 8 sessions `metis-{oru-patient,oru-qc,oru-calibration,qry-found,qry-not-found,qry-sample-range-nf,q03-id-mismatch,api-down}.session.json` — WRITER creates them (as H80-T01); tests pin profile, run-green, exact bytes.
+- Writer contract: `Config.AckFullForm`/`hl7.AckOptions.FullForm` (ACK^<trigger>, sender default LIS/LIMS, trailing pipes); wire it in `simulator/run.go` and `cmd/agent/e2e_main.go`. ASSUMPTION: §7 literal has no field for the §6 ACK form (H80E's short ACK is pinned by its sessions), so one new bool is needed — raise a CR if the lead disagrees.
+- BLOCKER for the writer: `truth_h80e_test.go` `TestH80E_OtherProfilesKeepTodaysBehaviour` asserts every profile except truth_h80e has ExpectAckOnReply=false; it will fail once getein_metis (true, per §7) is registered. I may not edit H80E tests: lead must allow a one-line `|| code == "getein_metis"` skip.
+- State now: packages do not compile (missing `AckFullForm`/`HL7AckFullForm`) — red for the right reason; sessions missing. Not run green: nothing to implement against yet.

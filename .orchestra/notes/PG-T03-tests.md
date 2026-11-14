@@ -1,0 +1,6 @@
+# PG-T03 tests (tester)
+File: `services/api/src/modules/payments/__tests__/unit/service/credentials.test.ts` (unit + planted-secret log scan via real `@lims/shared-ts` logger, console and stdout/stderr spies).
+Run: `.orchestra\notes\PG-T03-verify.cmd` (api package vitest). Now red: `service/credentials.js` does not exist.
+Covers: KEK load fails closed (missing/bad JSON/no active/non-base64/≠32 bytes, no key material in errors); AES-256-GCM round trip, 12-byte nonce unique x200, 16-byte tag, no plaintext in ciphertext; fingerprint = sha256 first 8 hex; each AAD field wrong throws; row ciphertext swap refused; delimiter-split AAD refused; wrong KEK / unknown kekId / tampered ct|nonce|tag throw; rotation (old kek id opens, new writes use active); SecretHandle not serialisable.
+Assumed seams (spec names no API; writer may dispute): exports `loadKek(path)`, `encryptSecret(kek, plaintext, aad) -> {ciphertext, nonce, authTag, kekId, fingerprint}`, `openSecret(kek, stored, aad) -> SecretHandle{use(fn)}`, `secretFingerprint(plaintext)`; aad = `{tenantId, gateway, environment, merchantAccountId}`; empty secret rejected.
+Not tested: Buffer zeroing after use (unobservable); DB columns/audit trigger (PG-T17).

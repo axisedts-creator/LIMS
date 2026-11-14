@@ -1,0 +1,23 @@
+# 02-TRD s10.1: VictoriaLogs on the ops host {{ inventory_hostname }} (compose project `vlogs`).
+# Host network: listeners are 127.0.0.1:9428 (ops nginx /victorialogs/) and
+# {{ wg_ip }}:9428 (shippers over wg0); flags come from infra/logging/victorialogs/flags.env.
+name: vlogs
+services:
+  victoria-logs:
+    image: {{ logging_images.victoria_logs }}
+    network_mode: host
+    restart: unless-stopped
+    mem_limit: 1g
+    read_only: true
+    user: "65534:65534"
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    command:
+{% for flag in logging_vl_flags %}
+      - "{{ flag }}"
+{% endfor %}
+      - "-httpListenAddr={{ wg_ip }}:9428"
+    volumes:
+      - {{ logging_vl_data }}:/victoria-logs-data

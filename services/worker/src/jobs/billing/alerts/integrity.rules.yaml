@@ -1,0 +1,36 @@
+# C4 billing metric + DB alert rules for C1 to wire (02-TRD §15, 08 A13 P-14). for / severity / route are [CONV].
+# Routes are C1's receivers. DB rules (exports, refunds) are evaluated by a C1 SQL-alert runner; the query is carried in annotations.query.
+groups:
+  - name: billing_integrity
+    rules:
+      - alert: BillingIntegrityViolation
+        expr: increase(lims_billing_integrity_violations_total[1d]) > 0
+        for: 0m
+        labels: { severity: page, route: on-call }
+        annotations: { summary: "Billing integrity violation recorded in the last day" }
+      - alert: BillingCounterBusy
+        expr: increase(lims_billing_counter_busy_total[5m]) > 5
+        for: 0m
+        labels: { severity: warn, route: on-call }
+        annotations: { summary: "Billing number counter busy more than 5 times in 5 minutes" }
+      - alert: BillingNumberingPatternInvalid
+        expr: increase(lims_billing_numbering_pattern_invalid_total[15m]) > 0
+        for: 0m
+        labels: { severity: warn, route: "on-call + tenant-admin" }
+        annotations: { summary: "A tenant numbering pattern is invalid (08 A13 D-23)" }
+  - name: billing_db_rules
+    rules:
+      - alert: BillingExportsPerUser
+        expr: db_rule_exports_per_user_per_day > 10
+        for: 0m
+        labels: { severity: warn, route: security }
+        annotations:
+          summary: "A user created more than 10 exports in a day (REQ-SEC-045)"
+          query: "audit.access_log: count where action = 'data.export' and detail.stage = 'create' per actor_id per day > 10"
+      - alert: BillingRefundsPerTenant
+        expr: db_rule_refunds_per_tenant_per_day > on(tenant_id) billing_settings_refund_alert_per_day
+        for: 0m
+        labels: { severity: warn, route: "finance + security" }
+        annotations:
+          summary: "Refund count for a tenant today exceeds its limit"
+          query: "billing.activity_log: count where action = 'refund_recorded' per tenant per day > billing.settings.refund_alert_per_day (refund_alert_per_day)"

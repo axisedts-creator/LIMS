@@ -1,0 +1,45 @@
+# PDF sandbox image (02-TRD §5.2; REQ-SEC-087/129/130). Build context: repo root.
+#   docker build -f services/renderer/Dockerfile.sandbox .
+# No browser. Nothing sensitive in the image: the bearer token is mounted at runtime, path in LIMS_RENDER_SANDBOX_TOKEN_FILE (C1).
+# C1 enforces: no network egress, read-only root FS, tmpfs on /work (wiped per job), 1 vCPU / 512 MB, 60 s per call.
+
+FROM node:26.13.0-bookworm-slim@sha256:add5c17c14752c54d2f3d519ec46a3815684d41c33f198bcb09fb998f7dcbf68 AS build
+WORKDIR /repo
+# Node 25+ ships no corepack; pnpm version = root package.json "packageManager".
+RUN npm install -g pnpm@12.18.0
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json ./
+COPY services/renderer/package.json services/renderer/
+RUN pnpm install --frozen-lockfile --ignore-scripts --filter @lims/renderer
+COPY services/renderer/ services/renderer/
+# No tsc: the sandbox is one self-contained file (node: builtins + pdf-lib) run via Node's built-in type stripping.
+RUN pnpm --filter @lims/renderer deploy --prod --ignore-scripts /out
+
+# qpdf 12.4.2 from the upstream source release (Debian bookworm ships an older qpdf).
+# QPDF_SHA256 = qpdf-12.4.2.tar.gz line of the release asset qpdf-12.4.2.sha256 (PGP-signed file; signature not checked here).
+FROM node:26.13.0-bookworm-slim@sha256:add5c17c14752c54d2f3d519ec46a3815684d41c33f198bcb09fb998f7dcbf68 AS qpdf
+ARG QPDF_VERSION=12.4.2
+ARG QPDF_SHA256=8a58af5b6141319287c1883bec8bd1bd545b7567b7fc5e6ce5d25a1c85f36397
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends build-essential cmake ca-certificates curl libjpeg62-turbo-dev zlib1g-dev libssl-dev \
+ && curl -fsSL -o /tmp/qpdf.tgz "https://github.com/qpdf/qpdf/releases/download/v${QPDF_VERSION}/qpdf-${QPDF_VERSION}.tar.gz" \
+ && echo "${QPDF_SHA256}  /tmp/qpdf.tgz" | sha256sum -c - \
+ && mkdir /src && tar -xzf /tmp/qpdf.tgz -C /src --strip-components=1 \
+ && cmake -S /src -B /src/build -DCMAKE_BUILD_TYPE=Release -DBUILD_STATIC_LIBS=OFF -DCMAKE_INSTALL_PREFIX=/opt/qpdf \
+ && cmake --build /src/build -j2 && cmake --install /src/build
+
+FROM node:26.13.0-bookworm-slim@sha256:add5c17c14752c54d2f3d519ec46a3815684d41c33f198bcb09fb998f7dcbf68
+ENV NODE_ENV=production \
+    PATH=/opt/qpdf/bin:$PATH \
+    LD_LIBRARY_PATH=/opt/qpdf/lib
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends libjpeg62-turbo zlib1g libssl3 \
+ && rm -rf /var/lib/apt/lists/* \
+ && useradd --system --uid 10002 --no-create-home --shell /usr/sbin/nologin sandbox
+WORKDIR /app
+COPY --from=qpdf /opt/qpdf /opt/qpdf
+COPY --from=build /out/package.json ./package.json
+COPY --from=build /out/node_modules ./node_modules
+COPY --from=build /repo/services/renderer/src/sandbox/server.ts ./src/sandbox/server.ts
+USER 10002:10002
+EXPOSE 8080
+CMD ["node", "src/sandbox/server.ts"]

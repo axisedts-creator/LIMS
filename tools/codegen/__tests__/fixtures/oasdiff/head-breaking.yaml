@@ -1,0 +1,19 @@
+# Breaking vs base.yaml: removes GET /v1/widgets/{id} and response property "name".
+openapi: 3.0.3
+info:
+  title: Fixture
+  version: 1.0.0
+paths:
+  /v1/widgets:
+    get:
+      operationId: listWidgets
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [id]
+                properties:
+                  id: {type: string}

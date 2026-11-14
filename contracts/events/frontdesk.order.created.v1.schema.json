@@ -1,0 +1,154 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:lims:event:frontdesk.order.created.v1",
+  "allOf": [
+    {
+      "$ref": "urn:lims:event:_envelope.v1"
+    },
+    {
+      "type": "object",
+      "properties": {
+        "event_type": {
+          "const": "frontdesk.order.created.v1"
+        },
+        "producer": {
+          "const": "frontdesk"
+        },
+        "aggregate": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "order"
+            }
+          }
+        },
+        "payload": {
+          "$ref": "#/$defs/Payload"
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "Payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "order_id",
+        "patient_id",
+        "branch_id",
+        "centre_id",
+        "visit_type",
+        "billing_mode",
+        "priority",
+        "collection_mode",
+        "source",
+        "registered_at",
+        "items"
+      ],
+      "properties": {
+        "order_id": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+        },
+        "patient_id": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+        },
+        "branch_id": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+        },
+        "centre_id": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+        },
+        "visit_type": {
+          "enum": [
+            "opd",
+            "ipd"
+          ]
+        },
+        "billing_mode": {
+          "enum": [
+            "cash",
+            "credit"
+          ]
+        },
+        "credit_party_id": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+        },
+        "referrer_id": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+        },
+        "priority": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Priority"
+        },
+        "collection_mode": {
+          "enum": [
+            "walk_in",
+            "home",
+            "centre",
+            "partner"
+          ]
+        },
+        "source": {
+          "enum": [
+            "front_desk",
+            "engagement_booking",
+            "home_collection",
+            "partner_manifest"
+          ]
+        },
+        "source_ref_id": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+        },
+        "registered_at": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/IsoUtc"
+        },
+        "items": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 200,
+          "items": {
+            "$ref": "#/$defs/Item"
+          }
+        }
+      }
+    },
+    "Item": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "order_item_id",
+        "orderable_id",
+        "orderable_kind",
+        "test_ids",
+        "priority"
+      ],
+      "properties": {
+        "order_item_id": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+        },
+        "orderable_id": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+        },
+        "orderable_kind": {
+          "enum": [
+            "test",
+            "panel"
+          ]
+        },
+        "test_ids": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 200,
+          "items": {
+            "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+          }
+        },
+        "priority": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Priority"
+        },
+        "outsourced": {
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}

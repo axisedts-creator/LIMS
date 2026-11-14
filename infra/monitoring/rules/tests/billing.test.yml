@@ -1,0 +1,73 @@
+# T-21 (tester, LD-39): promtool tests for ../imported/billing.rules.yml. Synthetic series only (no real tenant or patient data).
+# Per alert one firing case (labels carry the rule's severity and team), one not-firing case, and for rules with a
+# `for` clause a pending-before-`for` + firing-after-`for` check. Thresholds are the owner's (02-TRD s11.3).
+rule_files:
+  - ../imported/billing.rules.yml
+evaluation_interval: 1m
+tests:
+
+  - interval: 1m
+    name: "BillingIntegrityViolation fires"
+    input_series:
+      - series: 'lims_billing_integrity_violations_total'
+        values: "0+1x1505"
+    alert_rule_test:
+      - alertname: BillingIntegrityViolation
+        eval_time: 25h
+        exp_alerts:
+          - exp_labels: {severity: "page", team: "ops"}
+            exp_annotations: {summary: "A billing integrity violation was recorded in the last day.", runbook_url: "infra/runbooks/billing.md#billingintegrityviolation"}
+
+  - interval: 1m
+    name: "BillingIntegrityViolation quiet"
+    input_series:
+      - series: 'lims_billing_integrity_violations_total'
+        values: "0+0x1505"
+    alert_rule_test:
+      - alertname: BillingIntegrityViolation
+        eval_time: 25h
+        exp_alerts: []
+
+  - interval: 1m
+    name: "BillingCounterBusy fires"
+    input_series:
+      - series: 'lims_billing_counter_busy_total'
+        values: "0+2x15"
+    alert_rule_test:
+      - alertname: BillingCounterBusy
+        eval_time: 12m
+        exp_alerts:
+          - exp_labels: {severity: "warn", team: "ops"}
+            exp_annotations: {summary: "Invoice number counter busy more than 5 times in 5 min.", runbook_url: "infra/runbooks/billing.md#billingcounterbusy"}
+
+  - interval: 1m
+    name: "BillingCounterBusy quiet"
+    input_series:
+      - series: 'lims_billing_counter_busy_total'
+        values: "0+0x15"
+    alert_rule_test:
+      - alertname: BillingCounterBusy
+        eval_time: 12m
+        exp_alerts: []
+
+  - interval: 1m
+    name: "BillingNumberingPatternInvalid fires"
+    input_series:
+      - series: 'lims_billing_numbering_pattern_invalid_total'
+        values: "0+1x30"
+    alert_rule_test:
+      - alertname: BillingNumberingPatternInvalid
+        eval_time: 27m
+        exp_alerts:
+          - exp_labels: {severity: "warn", team: "ops"}
+            exp_annotations: {summary: "A tenant's invoice numbering pattern was rejected as invalid in the last 15 min.", runbook_url: "infra/runbooks/billing.md#billingnumberingpatterninvalid"}
+
+  - interval: 1m
+    name: "BillingNumberingPatternInvalid quiet"
+    input_series:
+      - series: 'lims_billing_numbering_pattern_invalid_total'
+        values: "0+0x30"
+    alert_rule_test:
+      - alertname: BillingNumberingPatternInvalid
+        eval_time: 27m
+        exp_alerts: []

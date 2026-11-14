@@ -1,0 +1,16 @@
+# C4 frontdesk alert rules for C1 to wire (02-TRD §15, 08 A13 P-14). for / severity / route are [CONV].
+groups:
+  - name: frontdesk
+    rules:
+      - alert: FrontdeskTrfQuarantineBurst
+        expr: sum by (tenant_id) (increase(lims_frontdesk_trf_scans_total{outcome="quarantined"}[1h])) > 3
+        for: 0m
+        labels: { severity: warn, route: on-call }
+        annotations: { summary: "More than 3 TRF uploads quarantined in an hour (tenant {{ $labels.tenant_id }})" }
+      - alert: FrontdeskPatientSearchVolumePerUser
+        expr: db_rule_patient_search_per_user_per_hour > 300
+        for: 0m
+        labels: { severity: warn, route: security }
+        annotations:
+          summary: "A user ran more than 300 patient searches in an hour (REQ-SEC-045)"
+          query: "audit.access_log: count where action = 'patient.search' per actor_id per hour > 300"

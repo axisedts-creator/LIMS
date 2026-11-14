@@ -1,0 +1,20 @@
+{
+  "name": "@lims/codegen",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "lint:openapi": "tsx lint-openapi.ts",
+    "codegen": "tsx codegen.ts",
+    "codegen:check": "tsx codegen.ts --check",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "ajv": "8.17.1",
+    "ajv-draft-04": "1.0.0",
+    "yaml": "2.8.1"
+  },
+  "devDependencies": {
+    "tsx": "4.23.15",
+    "vitest": "3.2.4"
+  }
+}

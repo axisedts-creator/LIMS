@@ -1,0 +1,240 @@
+# contracts/permissions.yaml (C0) — version 1
+version: 1
+roles:   # default tenant roles [CONV]; actor types device/portal/patient/partner/system get fixed permission sets (below)
+  - { code: tenant_admin,      mfa_required: true,  description: "Lab owner / IT admin of the tenant" }
+  - { code: front_desk,        mfa_required: false, description: "Registration + cashier at a centre/branch" }
+  - { code: finance,           mfa_required: true,  description: "Accounts: invoices, cancellations, refunds, credit parties" }
+  - { code: lab_technologist,  mfa_required: false, description: "Sample handling, result entry, first verification" }
+  - { code: pathologist,       mfa_required: true,  description: "Approval, amendment, critical-value sign-off" }
+  - { code: lab_manager,       mfa_required: true,  description: "Catalog, instruments, QC, worklists, MIS" }
+  - { code: centre_staff,      mfa_required: false, description: "Collection-centre staff (collect, dispatch, view status)" }
+  - { code: phlebotomist,      mfa_required: false, description: "Home-collection app user" }
+  - { code: owner_viewer,      mfa_required: true,  description: "Owner dashboard + exports (data export → MFA, 04 A4)" }
+  - { code: radiologist,       mfa_required: true,  description: "Writes and signs imaging/endoscopy narrative reports" }   # added by 08 (CR-C6-003)
+partner_roles:   # added by 08 (CR-C13-002); partner actors only, never tenant roles
+  - { code: partner_member, mfa_required: false }
+  - { code: partner_admin,  mfa_required: true }
+platform_roles:   # The LIMS provider staff, separate identity (REQ-SEC-063); act in a tenant only via support session
+  - { code: platform_superadmin, mfa_required: true }
+  - { code: platform_support,    mfa_required: true }
+fixed_actor_permissions:        # replaced by 08 §4.1
+  device:                       # by claims device_kind; absent = bridge_agent (CR-C16-002)
+    bridge_agent:  [instruments.ingest.submit, instruments.ingest.heartbeat, instruments.ingest.host_query,
+                    instruments.ingest.config_read, instruments.ingest.enrol]                     # REQ-SEC-072; + CR-C7-001
+    queue_display: [engagement.queue.board_read]
+  portal:  [reporting.portal.view, reporting.portal.download, reporting.portal.challenge]          # + CR-C6-003
+  patient: [engagement.self.read, engagement.booking.create, engagement.booking.cancel, reporting.portal.view,
+            reporting.portal.download, engagement.self.manage, engagement.link.redeem, engagement.payment.create,
+            engagement.enquiry.create]                                                            # + CR-C16-002
+  patient_pre_auth: [engagement.auth.challenge]                                                   # new key
+  partner:                      # by partner role (CR-C13-002)
+    partner_member: [partners.order.read, partners.manifest.submit, partners.report.read, partners.statement.read,
+                     partners.price_list.read, partners.pickup.request, partners.referrer.read,
+                     identity.self.manage]   # 08 A19 D-101 (partner self-service; partner_admin inherits)
+    partner_admin:  [<partner_member set>, partners.referrer.manage, partners.partner_user.manage]
+  system:  declared per worker manifest (02-CV §2.3), subset of tenant permissions, never platform.*
+permissions:
+  # identity / admin / audit / platform (C2)
+  - { code: identity.user.read,          privileged: false, roles: [tenant_admin] }
+  - { code: identity.user.manage,        privileged: true,  roles: [tenant_admin] }          # create, lock/unlock (00 E1)
+  - { code: identity.role.manage,        privileged: true,  roles: [tenant_admin] }
+  - { code: identity.centre.manage,      privileged: true,  roles: [tenant_admin] }          # branches/centres (00 E2)
+  - { code: identity.centre.read, privileged: false, roles: [tenant_admin, front_desk, finance, lab_technologist, pathologist, lab_manager, centre_staff, owner_viewer] }   # [CONV] centre directory (P0); C2 listCentres — 08 A13 D-16
+  - { code: identity.settings.manage,    privileged: true,  roles: [tenant_admin] }
+  - { code: identity.session.revoke,     privileged: true,  roles: [tenant_admin] }          # REQ-SEC-073
+  - { code: audit.log.read,              privileged: true,  roles: [tenant_admin] }
+  - { code: platform.tenant.read,        privileged: true,  roles: [platform_superadmin, platform_support] }
+  - { code: platform.tenant.manage,      privileged: true,  roles: [platform_superadmin] }
+  - { code: platform.support_session.open, privileged: true, roles: [platform_superadmin, platform_support] }
+  - { code: platform.dead_letter.manage, privileged: true,  roles: [platform_superadmin] }
+  # added by 08 §4.1
+  - { code: audit.log.export, privileged: true, roles: [tenant_admin] }   # insider-export control (02 failure mode #10)   # CR-C2-006
+  - { code: identity.self.manage, privileged: false, roles: [tenant_admin, front_desk, finance, lab_technologist, pathologist, lab_manager, centre_staff, phlebotomist, owner_viewer, radiologist] }   # CR-C2-006
+  - { code: platform.staff.manage, privileged: true, roles: [platform_superadmin] }   # CR-C2-006
+  - { code: identity.signatory.read, privileged: false, roles: [] }   # system actor of reporting only   # CR-C6-007
+  # catalog (C3)
+  - { code: catalog.test.read,           privileged: false, roles: [tenant_admin, lab_manager, front_desk, lab_technologist, pathologist, finance] }
+  - { code: catalog.test.manage,         privileged: false, roles: [lab_manager] }
+  - { code: catalog.price_list.read,     privileged: false, roles: [tenant_admin, lab_manager, finance, front_desk] }
+  - { code: catalog.price_list.manage,   privileged: true,  roles: [tenant_admin, finance] }  # incl. Excel import/export (00 E4)
+  - { code: catalog.referrer.manage,     privileged: false, roles: [tenant_admin, lab_manager, front_desk] }  # quick-add doctor (00 A5)
+  - { code: catalog.instrument_code_map.manage, privileged: true, roles: [lab_manager] }    # used by C7 UI (X4); privileged by 08 A13 D-18 (aal2 on map edits)
+  # added by 08 §4.1
+  - { code: catalog.referrer.read, privileged: false, roles: [tenant_admin, lab_manager, front_desk, finance, centre_staff] }   # CR-C3-003
+  - { code: catalog.reference_range.publish, privileged: true, roles: [pathologist, lab_manager] }   # clinical sign-off: analyte versions, ranges, critical limits (08 A13 D-18)   # CR-C3-003
+  - { code: catalog.referrer.export, privileged: true, roles: [tenant_admin, lab_manager] }   # doctors' contacts (04 A4 data export)   # CR-C3-003
+  # frontdesk (C4)
+  - { code: frontdesk.registration.create, privileged: false, roles: [front_desk, centre_staff] }
+  - { code: frontdesk.patient.read,      privileged: false, roles: [front_desk, centre_staff, lab_technologist, pathologist, tenant_admin] }   # tenant_admin: 08 A13 D-28
+  - { code: frontdesk.patient.merge,     privileged: true,  roles: [tenant_admin] }
+  - { code: frontdesk.order.read,        privileged: false, roles: [front_desk, centre_staff, lab_technologist, pathologist, finance, tenant_admin] }   # tenant_admin: 08 A13 D-28
+  - { code: frontdesk.order.edit,        privileged: false, roles: [front_desk] }
+  - { code: frontdesk.order.cancel,      privileged: false, roles: [front_desk, tenant_admin] }
+  - { code: frontdesk.discount.apply,    privileged: false, roles: [front_desk] }
+  - { code: frontdesk.discount.approve,  privileged: true,  roles: [tenant_admin, finance] }  # approver captured (00 A8)
+  - { code: frontdesk.trf.upload,        privileged: false, roles: [front_desk, centre_staff] }
+  # added by 08 §4.1
+  - { code: frontdesk.settings.manage, privileged: true, roles: [tenant_admin] }   # CR-C4-008
+  - { code: frontdesk.patient.anonymise, privileged: true, roles: [tenant_admin] }   # 02-CV §5.6, REQ-SEC-139   # CR-C4-008
+  # billing (C4)
+  - { code: billing.invoice.read,        privileged: false, roles: [front_desk, finance, tenant_admin] }
+  - { code: billing.invoice.issue,       privileged: false, roles: [front_desk, finance] }
+  - { code: billing.invoice.reprint,     privileged: false, roles: [front_desk, finance] }    # "Copy of Original" (04 L26 च)
+  - { code: billing.invoice.cancel,      privileged: true,  roles: [finance] }
+  - { code: billing.payment.record,      privileged: false, roles: [front_desk, finance, phlebotomist] }
+  - { code: billing.payment.reverse,     privileged: true,  roles: [finance] }
+  - { code: billing.refund.approve,      privileged: true,  roles: [finance] }                # REQ-SEC-055
+  - { code: billing.refund.request, privileged: true, roles: [finance] }   # two-person refund (08 R15) — 08 A13 D-24; approver ≠ requester → billing.refund_self_approval_forbidden
+  - { code: billing.credit_party.read,   privileged: false, roles: [finance, tenant_admin] }
+  - { code: billing.credit_party.manage, privileged: true,  roles: [finance] }
+  - { code: billing.cash_report.read,    privileged: false, roles: [finance, tenant_admin, owner_viewer] }
+  - { code: billing.data.export,         privileged: true,  roles: [finance] }                # Excel/XML/PDF (04 L26 ठ), sales register
+  - { code: billing.release.override,   privileged: true,  roles: [finance, tenant_admin] }  # hold-till-paid override (01 §1.4)
+  # added by 08 §4.1
+  - { code: billing.settings.manage, privileged: true, roles: [tenant_admin, finance] }   # "Billing settings: invoice series scope, CBMS retry, payment methods (tax rules live in C3)" (R18)   # CR-C4-008
+  # lab (C5)
+  - { code: lab.status_board.read,       privileged: false, roles: [front_desk, centre_staff, lab_technologist, pathologist, lab_manager] }
+  - { code: lab.specimen.read,           privileged: false, roles: [centre_staff, lab_technologist, pathologist, lab_manager, front_desk, phlebotomist] }   # front_desk, phlebotomist: 08 A13 D-4 (RLS keeps centre scope)
+  - { code: lab.specimen.collect,        privileged: false, roles: [front_desk, centre_staff, phlebotomist, lab_technologist] }
+  - { code: lab.specimen.receive,        privileged: false, roles: [lab_technologist] }
+  - { code: lab.specimen.reject,         privileged: false, roles: [lab_technologist] }
+  - { code: lab.specimen.label_print,    privileged: false, roles: [front_desk, centre_staff, lab_technologist] }
+  - { code: lab.worklist.read,           privileged: false, roles: [lab_technologist, pathologist, lab_manager] }
+  - { code: lab.result.read,             privileged: false, roles: [lab_technologist, pathologist, lab_manager] }
+  - { code: lab.result.enter,            privileged: false, roles: [lab_technologist] }
+  - { code: lab.result.verify,           privileged: false, roles: [lab_technologist, pathologist] }
+  - { code: lab.result.approve,          privileged: true,  roles: [pathologist] }            # 00 C5
+  - { code: lab.result.amend,            privileged: true,  roles: [pathologist] }            # 00 C6
+  - { code: lab.critical_value.read,     privileged: false, roles: [lab_technologist, pathologist] }
+  - { code: lab.critical_value.log_notification, privileged: false, roles: [lab_technologist, pathologist] }
+  - { code: lab.qc.capture,              privileged: false, roles: [lab_technologist] }
+  # added by 08 §4.1
+  - { code: lab.worksheet.manage, privileged: false, roles: [lab_technologist, lab_manager] }   # CR-C5-004
+  - { code: lab.config.manage, privileged: true, roles: [lab_manager, pathologist] }   # CR-C5-004
+  - { code: lab.qc_hold.release, privileged: true, roles: [lab_manager, pathologist] }   # CR-C5-004
+  # reporting (C6)
+  - { code: reporting.report.read,       privileged: false, roles: [front_desk, centre_staff, lab_technologist, pathologist, lab_manager, tenant_admin, radiologist] }   # roles += CR-C6-003; radiologist 08 A21.3
+  - { code: reporting.report.release,    privileged: false, roles: [pathologist, front_desk] }
+  - { code: reporting.report.bulk_release, privileged: true, roles: [pathologist, lab_manager] }   # REQ-SEC-100
+  - { code: reporting.report.print,      privileged: false, roles: [front_desk, centre_staff] }
+  - { code: reporting.delivery.read,     privileged: false, roles: [front_desk, tenant_admin] }
+  - { code: reporting.delivery.resend,   privileged: false, roles: [front_desk] }
+  - { code: reporting.template.manage,   privileged: true,  roles: [tenant_admin, lab_manager] }  # letterhead, signatures (00 D7)
+  - { code: reporting.outsourced.attach, privileged: false, roles: [lab_technologist, front_desk] }
+  - { code: reporting.portal.view,       privileged: false, roles: [] }                       # portal/patient actors only
+  - { code: reporting.portal.download,   privileged: false, roles: [] }
+  # added by 08 §4.1
+  - { code: reporting.report.render, privileged: false, roles: [pathologist, lab_manager] }   # CR-C6-003
+  - { code: reporting.report.regenerate, privileged: true, roles: [pathologist, lab_manager] }   # CR-C6-003
+  - { code: reporting.report.bulk_download, privileged: true, roles: [lab_manager, tenant_admin] }   # REQ-SEC-100   # CR-C6-003
+  - { code: reporting.token.revoke, privileged: true, roles: [tenant_admin] }   # CR-C6-003
+  - { code: reporting.narrative.write, privileged: false, roles: [pathologist, radiologist, lab_technologist] }   # CR-C6-003
+  - { code: reporting.narrative.sign, privileged: true, roles: [pathologist, radiologist] }   # CR-C6-003
+  - { code: reporting.message_template.manage, privileged: true, roles: [tenant_admin] }   # CR-C6-003
+  - { code: reporting.channel.manage, privileged: true, roles: [tenant_admin] }   # CR-C6-003
+  - { code: reporting.settings.manage, privileged: true, roles: [tenant_admin, lab_manager] }   # CR-C6-003
+  - { code: reporting.portal.challenge, privileged: false, roles: [] }   # added to fixed_actor_permissions.portal   # CR-C6-003
+  # instruments (C7)
+  - { code: instruments.agent.read,      privileged: false, roles: [lab_manager] }
+  - { code: instruments.agent.manage,    privileged: true,  roles: [lab_manager, tenant_admin] }  # device token issue/revoke (04 A13)
+  - { code: instruments.message.read,    privileged: false, roles: [lab_manager, lab_technologist] }
+  - { code: instruments.message.rematch, privileged: false, roles: [lab_technologist] }       # X2 replay path
+  - { code: instruments.ingest.submit,   privileged: false, roles: [] }                       # device actors only
+  - { code: instruments.ingest.heartbeat,privileged: false, roles: [] }
+  - { code: instruments.ingest.host_query, privileged: false, roles: [] }
+  - { code: instruments.ingest.config_read, privileged: false, roles: [] }
+  # added by 08 §4.1
+  - { code: instruments.instrument.read, privileged: false, roles: [lab_manager, lab_technologist, pathologist] }   # CR-C7-001; pathologist: 08 A13 D-14
+  - { code: instruments.instrument.manage, privileged: true, roles: [lab_manager] }   # CR-C7-001
+  - { code: instruments.ingest.enrol, privileged: false, roles: [] }   # CR-C7-001
+  # analytics (C8)
+  - { code: analytics.dashboard.read,    privileged: false, roles: [owner_viewer, tenant_admin, lab_manager] }
+  - { code: analytics.referral_report.read, privileged: true, roles: [owner_viewer] }         # 04 L19/B13; gated by tenant flag
+  - { code: analytics.data.export,      privileged: true,  roles: [owner_viewer, tenant_admin] }   # renamed by 08 R19
+  # added by 08 §4.1
+  - { code: analytics.collections.read, privileged: false, roles: [owner_viewer, tenant_admin, finance] }   # CR-C8-001
+  - { code: analytics.schedule.manage, privileged: false, roles: [owner_viewer, tenant_admin] }   # CR-C8-001
+  # wave 2/3 modules
+  - { code: quality.qc_run.read,         privileged: false, roles: [lab_technologist, lab_manager, pathologist], phase: 2 }
+  - { code: quality.qc.manage,           privileged: false, roles: [lab_manager], phase: 2 }
+  - { code: quality.autoverify.manage,   privileged: true,  roles: [pathologist, lab_manager], phase: 2 }
+  - { code: micro.culture.read,          privileged: false, roles: [lab_technologist, pathologist, lab_manager], phase: 2 }   # lab_manager 08 A17 D-64 (one x-permission for micro config reads)
+  - { code: micro.culture.work,          privileged: false, roles: [lab_technologist, pathologist], phase: 2 }   # roles = CR-C10-004
+  - { code: anatomic.case.read,          privileged: false, roles: [lab_technologist, pathologist, lab_manager], phase: 2 }   # roles += CR-C11-002
+  - { code: anatomic.case.signout,       privileged: true,  roles: [pathologist], phase: 2 }
+  - { code: inventory.item.read,         privileged: false, roles: [lab_manager, lab_technologist, finance, owner_viewer], phase: 2 }   # roles = CR-C12-001
+  - { code: inventory.stock.manage,      privileged: false, roles: [lab_manager], phase: 2 }
+  - { code: partners.partner.manage,     privileged: true,  roles: [tenant_admin], phase: 2 }
+  - { code: partners.order.read,         privileged: false, roles: [], phase: 2 }             # partner actors
+  - { code: partners.manifest.submit,    privileged: false, roles: [], phase: 2 }
+  - { code: partners.report.read,        privileged: false, roles: [], phase: 2 }
+  - { code: partners.statement.read,     privileged: false, roles: [], phase: 2 }
+  - { code: partners.price_list.read,    privileged: false, roles: [], phase: 2 }
+  - { code: smartreport.summary.read,    privileged: false, roles: [pathologist, front_desk], phase: 2 }
+  - { code: smartreport.template.approve,privileged: true,  roles: [pathologist], phase: 2 }  # B14
+  - { code: payments.intent.create,      privileged: false, roles: [front_desk, finance], phase: 1.5 }   # roles += CR-C15-005
+  - { code: payments.reconciliation.read,privileged: true,  roles: [finance], phase: 1.5 }
+  - { code: engagement.booking.read,     privileged: false, roles: [front_desk, centre_staff, tenant_admin, lab_manager], phase: 3 }   # roles += CR-C16-002
+  - { code: engagement.booking.manage,   privileged: false, roles: [front_desk, centre_staff], phase: 3 }   # roles += CR-C16-002
+  - { code: engagement.self.read,        privileged: false, roles: [], phase: 3 }             # patient actors
+  - { code: engagement.booking.create,   privileged: false, roles: [], phase: 3 }
+  - { code: engagement.booking.cancel,   privileged: false, roles: [front_desk], phase: 3 }
+  - { code: homecollection.visit.read,   privileged: false, roles: [phlebotomist, front_desk, lab_manager], phase: 3 }   # roles += CR-C17-008
+  - { code: homecollection.visit.assign, privileged: false, roles: [front_desk, lab_manager], phase: 3 }
+  - { code: homecollection.sync.upload,  privileged: false, roles: [phlebotomist], phase: 3 }
+  # added by 08 §4.1
+  - { code: quality.qc_run.review, privileged: false, roles: [lab_technologist, lab_manager, pathologist], phase: 2 }   # CR-C9-001
+  - { code: quality.autoverify.read, privileged: false, roles: [lab_technologist, pathologist, lab_manager], phase: 2 }   # CR-C9-001
+  - { code: quality.tat_alert.read, privileged: false, roles: [lab_technologist, pathologist, lab_manager], phase: 2 }   # CR-C9-001
+  - { code: quality.tat_alert.ack, privileged: false, roles: [lab_technologist, pathologist, lab_manager], phase: 2 }   # CR-C9-001
+  - { code: quality.config.manage, privileged: false, roles: [lab_manager], phase: 2 }   # CR-C9-001
+  - { code: micro.config.manage, privileged: false, roles: [lab_manager], phase: 2 }   # CR-C10-004
+  - { code: micro.breakpoint.manage, privileged: true, roles: [lab_manager, pathologist], phase: 2 }   # CR-C10-004
+  - { code: anatomic.case.work, privileged: false, roles: [lab_technologist, pathologist], phase: 2 }   # CR-C11-002
+  - { code: anatomic.config.manage, privileged: true, roles: [pathologist, lab_manager], phase: 2 }   # CR-C11-002
+  - { code: inventory.master.manage, privileged: false, roles: [lab_manager] }   # CR-C12-001
+  - { code: inventory.stock.adjust, privileged: true, roles: [lab_manager] }   # CR-C12-001
+  - { code: inventory.po.manage, privileged: false, roles: [lab_manager, finance] }   # CR-C12-001
+  - { code: inventory.po.approve, privileged: true, roles: [lab_manager, finance] }   # CR-C12-001
+  - { code: inventory.cost.read, privileged: false, roles: [lab_manager, finance, owner_viewer] }   # CR-C12-001
+  - { code: inventory.report.export, privileged: true, roles: [lab_manager, finance, owner_viewer] }   # CR-C12-001
+  - { code: inventory.bench.record, privileged: false, roles: [lab_technologist, lab_manager] }   # CR-C12-001
+  - { code: partners.partner.read, privileged: false, roles: [tenant_admin, front_desk, centre_staff, finance, lab_manager], phase: 2 }   # CR-C13-002
+  - { code: partners.manifest.receive, privileged: false, roles: [front_desk, centre_staff, lab_technologist], phase: 2 }   # CR-C13-002
+  - { code: partners.pickup.manage, privileged: false, roles: [front_desk, centre_staff], phase: 2 }   # CR-C13-002
+  - { code: partners.referrer.map, privileged: false, roles: [tenant_admin, lab_manager], phase: 2 }   # CR-C13-002
+  - { code: partners.pickup.request, privileged: false, roles: [], phase: 2 }   # partner actors   # CR-C13-002
+  - { code: partners.referrer.read, privileged: false, roles: [], phase: 2 }   # partner actors   # CR-C13-002
+  - { code: partners.referrer.manage, privileged: false, roles: [], phase: 2 }   # partner_admin only   # CR-C13-002
+  - { code: partners.partner_user.manage, privileged: true, roles: [], phase: 2 }   # partner_admin only   # CR-C13-002
+  - { code: smartreport.template.manage, privileged: false, roles: [pathologist, lab_manager], phase: 2 }   # CR-C14-003
+  - { code: smartreport.summary.approve, privileged: true, roles: [pathologist], phase: 2 }   # per-summary approval (03-IC §4.10 invariant)   # CR-C14-003
+  - { code: payments.intent.resolve, privileged: true, roles: [finance], phase: 1.5 }   # CR-C15-005
+  - { code: payments.refund.request, privileged: true, roles: [finance], phase: 1.5 }   # CR-C15-005
+  - { code: payments.refund.approve, privileged: true, roles: [finance], phase: 1.5 }   # CR-C15-005
+  - { code: payments.merchant_config.read, privileged: false, roles: [tenant_admin, finance], phase: 1.5 }   # CR-C15-005
+  - { code: payments.merchant_config.manage, privileged: true, roles: [tenant_admin], phase: 1.5 }   # CR-C15-005
+  - { code: engagement.auth.challenge, privileged: false, roles: [], phase: 3 }   # patient pre_auth stage only   # CR-C16-002
+  - { code: engagement.self.manage, privileged: false, roles: [], phase: 3 }   # patient   # CR-C16-002
+  - { code: engagement.link.redeem, privileged: false, roles: [], phase: 3 }   # patient   # CR-C16-002
+  - { code: engagement.payment.create, privileged: false, roles: [], phase: 3 }   # patient   # CR-C16-002
+  - { code: engagement.enquiry.create, privileged: false, roles: [], phase: 3 }   # patient   # CR-C16-002
+  - { code: engagement.queue.board_read, privileged: false, roles: [], phase: 2 }   # device kind queue_display   # CR-C16-002
+  - { code: engagement.slot.manage, privileged: false, roles: [tenant_admin, lab_manager], phase: 3 }   # CR-C16-002
+  - { code: engagement.bookable_item.manage, privileged: false, roles: [tenant_admin, lab_manager], phase: 3 }   # CR-C16-002
+  - { code: engagement.queue.operate, privileged: false, roles: [front_desk, centre_staff], phase: 2 }   # CR-C16-002
+  - { code: engagement.queue.manage, privileged: false, roles: [tenant_admin, lab_manager], phase: 2 }   # CR-C16-002
+  - { code: engagement.link.issue, privileged: false, roles: [front_desk, centre_staff], phase: 3 }   # CR-C16-002
+  - { code: engagement.link.read, privileged: false, roles: [front_desk, centre_staff, tenant_admin], phase: 3 }   # CR-C16-002
+  - { code: engagement.link.revoke, privileged: false, roles: [front_desk, tenant_admin], phase: 3 }   # CR-C16-002
+  - { code: engagement.reminder.read, privileged: false, roles: [front_desk, tenant_admin], phase: 2 }   # CR-C16-002
+  - { code: engagement.reminder.manage, privileged: false, roles: [front_desk], phase: 2 }   # CR-C16-002
+  - { code: engagement.membership.read, privileged: false, roles: [front_desk, finance, tenant_admin], phase: 3 }   # CR-C16-002
+  - { code: engagement.membership.enrol, privileged: false, roles: [front_desk], phase: 3 }   # CR-C16-002
+  - { code: engagement.membership_plan.manage, privileged: true, roles: [tenant_admin, finance], phase: 3 }   # CR-C16-002
+  - { code: engagement.enquiry.read, privileged: false, roles: [front_desk], phase: 3 }   # CR-C16-002
+  - { code: engagement.enquiry.respond, privileged: false, roles: [front_desk], phase: 3 }   # CR-C16-002
+  - { code: engagement.settings.manage, privileged: true, roles: [tenant_admin], phase: 2 }   # CR-C16-002
+  - { code: homecollection.handover.receive, privileged: false, roles: [centre_staff, front_desk, lab_technologist], phase: 3 }   # CR-C17-008
+  - { code: homecollection.device.manage, privileged: true, roles: [tenant_admin, lab_manager], phase: 3 }   # CR-C17-008
+  - { code: homecollection.settings.manage, privileged: true, roles: [tenant_admin, lab_manager], phase: 3 }   # CR-C17-008

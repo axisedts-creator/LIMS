@@ -1,0 +1,37 @@
+# C13 T23: partners alert rules imported by C1 (Prometheus rule format; C1 adds team / runbook_url / receiver). Registered with C1 per REQ-SEC-133.
+# Thresholds verbatim from C13 02-TRD §13 "Alerts" [CONV]. Metric names and labels are the §13 table; no id / personal data in summaries (no label interpolation).
+# Not expressible with the §13 metrics, so NOT shipped here (see CR-C13-T23): "any line converting > 30 min" and "any user > 80 % of daily cap" (no metric / no per-user label allowed),
+# and the per-tenant split of "Download denied spike" (tenant_id is not a label of lims_partners_report_downloads_total).
+groups:
+  - name: partners
+    rules:
+      - alert: PartnersConversionFailures
+        expr: sum(increase(lims_partners_line_conversions_total{outcome="failed_infra"}[15m])) > 5
+        for: 0m
+        labels: { severity: page, route: ops }
+        annotations: { summary: "More than 5 manifest line conversions failed on infrastructure errors in 15 minutes" }
+      - alert: PartnersConsumerMismatch
+        expr: sum(increase(lims_partners_events_consumed_total{outcome="mismatch"}[5m])) > 0
+        for: 0m
+        labels: { severity: page, route: security }
+        annotations: { summary: "A partner event consumer saw a partner mismatch, possible wrong partner attribution" }
+      - alert: PartnersDownloadDeniedSpike
+        expr: sum(increase(lims_partners_report_downloads_total{outcome="denied"}[10m])) > 20
+        for: 0m
+        labels: { severity: page, route: security }
+        annotations: { summary: "More than 20 denied partner report downloads in 10 minutes, possible id guessing" }
+      - alert: PartnersStatementsProjectionStale
+        expr: max(lims_partners_projection_lag_seconds{projection="statements"}) > 10800
+        for: 0m
+        labels: { severity: ticket, route: ops }
+        annotations: { summary: "The partner statements projection is more than 3 hours behind" }
+      - alert: PartnersPriceListProjectionStale
+        expr: max(lims_partners_projection_lag_seconds{projection="price_list"}) > 93600
+        for: 0m
+        labels: { severity: ticket, route: ops }
+        annotations: { summary: "The partner price list projection is more than 26 hours behind" }
+      - alert: PartnersDeadLetters
+        expr: sum(increase(lims_core_dead_letters_total{task=~"partners.*|evt.partners.*"}[15m])) > 0
+        for: 0m
+        labels: { severity: ticket, route: ops }
+        annotations: { summary: "A partners task or event consumer job was dead-lettered" }

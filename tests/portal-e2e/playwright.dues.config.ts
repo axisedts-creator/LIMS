@@ -1,0 +1,25 @@
+import { defineConfig } from '@playwright/test';
+import { join } from 'node:path';
+
+const here = __dirname; // root package.json has no "type":"module" -> Playwright loads this config as CJS
+const PORTAL = 'http://localhost:3202';
+const API = 'http://127.0.0.1:4128';
+
+// C6-T43: apps/portal dues page against stub-reporting-dues.mjs. Own ports (T30 :3200/:4126, T42 :3201/:4127). *.e2e.ts so the T30 config (*.spec.ts) does not pick it up.
+export default defineConfig({
+  testDir: here,
+  testMatch: /C6-T43\.dues\.e2e\.ts/,
+  workers: 1,
+  timeout: 120_000,
+  use: { baseURL: PORTAL },
+  webServer: [
+    { command: `node "${join(here, 'stub-reporting-dues.mjs')}"`, url: `${API}/__health`, reuseExistingServer: false, timeout: 20_000 },
+    {
+      command: 'pnpm --filter @lims/portal exec next dev -p 3202',
+      url: PORTAL,
+      reuseExistingServer: false,
+      timeout: 180_000,
+      env: { LIMS_CORE_ENV: 'staging', LIMS_ORIGIN_API: API, LIMS_ORIGIN_PORTAL: PORTAL, LIMS_PORTAL_BFF_KEY_FILE: join(here, 'fixtures', 'bff-key.txt') },
+    },
+  ],
+});

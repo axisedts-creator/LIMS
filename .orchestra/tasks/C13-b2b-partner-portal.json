@@ -1,0 +1,602 @@
+[
+ {
+  "id": "T01",
+  "title": "Module scaffold (API + worker + partner app + staff feature)",
+  "depends": [],
+  "files": [
+   "services/api/src/modules/partners/index.ts",
+   "services/api/src/modules/partners/permissions.ts",
+   "services/api/src/modules/partners/config.ts",
+   "services/worker/src/jobs/partners/index.ts",
+   "apps/partner/package.json",
+   "apps/partner/next.config.ts",
+   "apps/web/src/features/partners/nav.manifest.ts"
+  ],
+  "done_when": "API boots with empty handler map against draft spec (handler stubs return 501 in dev only); worker manifest loads; partner app renders a placeholder; nav build check passes",
+  "tests": "boot test",
+  "acs": [],
+  "verify": "pnpm -s verify"
+ },
+ {
+  "id": "T03",
+  "title": "Partner context + authz helpers",
+  "depends": [
+   "T01"
+  ],
+  "files": [
+   "services/api/src/modules/partners/service/partner-context.service.ts",
+   "services/api/src/modules/partners/handlers/getPartnerContext.ts",
+   "services/api/src/modules/partners/mappers/partner.dto.ts"
+  ],
+  "done_when": "A1 works; inactive partner/deactivated user -> 403; invited -> active flip; staff token -> 403",
+  "tests": "unit + integration + probes",
+  "acs": [
+   "US-02.6",
+   "US-15.3",
+   "US-15.4"
+  ],
+  "verify": "pnpm -s verify"
+ },
+ {
+  "id": "T04",
+  "title": "Domain state tables + tracking derivation",
+  "depends": [
+   "T01"
+  ],
+  "files": [
+   "services/api/src/modules/partners/domain/*.state.ts",
+   "services/api/src/modules/partners/domain/tracking-status.ts",
+   "services/api/src/modules/partners/domain/manifest-number.ts",
+   "services/api/src/modules/partners/domain/line-validation.ts"
+  ],
+  "done_when": "every transition in 03-APP-FLOW §2 allowed + one forbidden per state; every rule T1-T7 incl. precedence",
+  "tests": "unit",
+  "acs": [
+   "US-04.7",
+   "US-04.10",
+   "US-07.1",
+   "US-07.5"
+  ],
+  "verify": "pnpm -s verify"
+ },
+ {
+  "id": "T05",
+  "title": "Partner BFF session layer + auth pages",
+  "depends": [
+   "T01"
+  ],
+  "files": [
+   "apps/partner/src/core/session.ts",
+   "apps/partner/src/core/api.ts",
+   "apps/partner/src/core/auth-guard.ts",
+   "apps/partner/src/core/csrf.ts",
+   "apps/partner/src/app/(auth)/auth/**"
+  ],
+  "done_when": "login -> cookie set, no JWT in browser (assert response bodies + document.cookie HttpOnly); MFA/enrol redirects; session-expired redirect; Origin check on POST (against C2 MSW mocks)",
+  "tests": "component + E2E (mock)",
+  "acs": [
+   "US-03.1",
+   "US-03.2",
+   "US-03.3",
+   "US-03.4",
+   "US-03.5",
+   "US-02.7"
+  ],
+  "verify": "pnpm -s verify"
+ },
+ {
+  "id": "T06",
+  "title": "Partner users (partner admin + staff)",
+  "depends": [
+   "T03"
+  ],
+  "files": [
+   "services/api/src/modules/partners/service/partner-user.service.ts",
+   "services/api/src/modules/partners/handlers/ (U1-U6, SA8-SA10)"
+  ],
+  "done_when": "provisioning in same tx (rollback test: IdentityPort fake throws -> no partner_users row); last-admin + self-action guards; aal1 -> mfa_required; U3-U5/SA10 If-Match = partner_users.version, row locked FOR UPDATE, port called without expectedVersion, returned status stored (08 A19 D-100); member under partner claims cannot write another user's row (trigger, D-103)",
+  "tests": "unit + integration + probes",
+  "acs": [
+   "US-02.1",
+   "US-02.2",
+   "US-02.3",
+   "US-02.4",
+   "US-02.5",
+   "US-02.6",
+   "US-02.7"
+  ],
+  "verify": "pnpm -s verify"
+ },
+ {
+  "id": "T07",
+  "title": "Partner accounts (staff)",
+  "depends": [
+   "T03"
+  ],
+  "files": [
+   "services/api/src/modules/partners/service/partner.service.ts",
+   "services/api/src/modules/partners/handlers/ (SA1-SA7)"
+  ],
+  "done_when": "create/update/suspend/reactivate; duplicate code/credit party; foreign credit party -> 404; syncs enqueued (CatalogPort fake)",
+  "tests": "integration + probes",
+  "acs": [
+   "US-01.1",
+   "US-01.2",
+   "US-01.3",
+   "US-01.4",
+   "US-01.5",
+   "US-01.6"
+  ],
+  "verify": "pnpm -s verify"
+ },
+ {
+  "id": "T08",
+  "title": "Manifest drafting",
+  "depends": [
+   "T04",
+   "T07"
+  ],
+  "files": [
+   "services/api/src/modules/partners/service/manifest.service.ts",
+   "services/api/src/modules/partners/repository/manifests.repo.ts",
+   "services/api/src/modules/partners/repository/manifest-lines.repo.ts",
+   "services/api/src/modules/partners/repository/counters.repo.ts",
+   "services/api/src/modules/partners/handlers/ (M1-M7, M10, P2)"
+  ],
+  "done_when": "numbering format + per-partner uniqueness under concurrency (20 parallel creates); If-Match; orderable-not-offered; line limit; DELETE only draft (price projection seeded)",
+  "tests": "unit + integration + probes (partner X vs Y ids)",
+  "acs": [
+   "US-04.1",
+   "US-04.2",
+   "US-04.3",
+   "US-04.7",
+   "US-04.8"
+  ],
+  "verify": "pnpm -s verify"
+ },
+ {
+  "id": "T09",
+  "title": "Submit / withdraw / print",
+  "depends": [
+   "T08"
+  ],
+  "files": [
+   "services/api/src/modules/partners/handlers/ (M8, M9, M11)",
+   "services/api/src/modules/partners/service/manifest.service.ts"
+  ],
+  "done_when": "all-errors-at-once; idempotent submit replay (no duplicate jobs); withdraw race with receive serialised; print access-log row",
+  "tests": "integration",
+  "acs": [
+   "US-04.4",
+   "US-04.5",
+   "US-04.6",
+   "US-04.9",
+   "US-04.10",
+   "US-05.1",
+   "US-05.2"
+  ],
+  "verify": "pnpm -s verify"
+ },
+ {
+  "id": "T10",
+  "title": "Conversion task + staff receipt",
+  "depends": [
+   "T09"
+  ],
+  "files": [
+   "services/api/src/modules/partners/service/conversion.service.ts",
+   "services/worker/src/jobs/partners/tasks/partners.convert_manifest_line.ts",
+   "services/api/src/modules/partners/handlers/ (SI1-SI5)"
+  ],
+  "done_when": "BookingOrderInput exactly as 02-TRD §6.2 (snapshot of FrontdeskPort fake's recorded call); port call inside a savepoint - marker-row test: fake writes marker then failNext('createOrderFromBooking','frontdesk.patient_duplicate_suspected') -> marker absent after commit (08 A19 P-44); business vs infra failure split; duplicate job no-op; retry with patient_id; centre scoping; on_submit receipt flags, pending-receipt closure and has_missing_samples filter (D-104)",
+  "tests": "unit + integration (fake failNext per code) + probes (centre C1 vs C2)",
+  "acs": [
+   "US-06.1",
+   "US-06.2",
+   "US-06.3",
+   "US-06.4",
+   "US-06.5",
+   "US-06.6",
+   "US-06.7",
+   "US-06.8",
+   "US-06.9",
+   "US-06.10",
+   "US-06.11"
+  ],
+  "verify": "pnpm -s verify"
+ },
+ {
+  "id": "T11",
+  "title": "Referrers + mapping",
+  "depends": [
+   "T08"
+  ],
+  "files": [
+   "services/api/src/modules/partners/service/referrer.service.ts",
+   "services/api/src/modules/partners/handlers/ (F1-F5, SR1-SR3)"
+  ],
+  "done_when": "duplicate rule; member 403; mapping validates via getReferrer (CatalogPort fake); mapping re-enqueues failed lines; samples_this_month",
+  "tests": "integration + probes",
+  "acs": [
+   "US-13.1",
+   "US-13.2",
+   "US-13.3",
+   "US-13.4",
+   "US-13.5",
+   "US-13.6"
+  ],
+  "verify": "pnpm -s verify"
+ },
+ {
+  "id": "T12",
+  "title": "Event consumers + reconcile",
+  "depends": [
+   "T10"
+  ],
+  "files": [
+   "services/worker/src/jobs/partners/consumers/lab.specimen.status_changed.v1.ts",
+   "services/worker/src/jobs/partners/consumers/reporting.report.released.v1.ts",
+   "services/worker/src/jobs/partners/tasks/partners.reconcile_orders.ts",
+   "services/worker/src/jobs/partners/tasks/partners.enrich_report.ts"
+  ],
+  "done_when": "each 03 example; duplicate; stale seq; unknown order; partner_id mismatch ignored + metric; reconcile fills rejection reason and cancellations from views (ReportingPort fake)",
+  "tests": "consumer contract + integration",
+  "acs": [
+   "US-07.1",
+   "US-07.2",
+   "US-07.3",
+   "US-07.4",
+   "US-07.5",
+   "US-07.7",
+   "US-08.1"
+  ],
+  "verify": "pnpm -s verify"
+ },
+ {
+  "id": "T13",
+  "title": "Tracking + reports API",
+  "depends": [
+   "T12"
+  ],
+  "files": [
+   "services/api/src/modules/partners/service/tracking.service.ts",
+   "services/api/src/modules/partners/service/report.service.ts",
+   "services/api/src/modules/partners/handlers/ (O1-O3, R1-R3)"
+  ],
+  "done_when": "partner isolation on lists/search/detail; POST search (no PHI in URL - asserted on BFF request log); download streams with sha256 check, access log allowed/denied (denied committed), rate tier + daily cap (ReportingPort fake, CR-C13-005)",
+  "tests": "integration + probes + log-scan",
+  "acs": [
+   "US-07.6",
+   "US-07.8",
+   "US-08.2",
+   "US-08.3",
+   "US-08.4",
+   "US-08.5",
+   "US-08.6",
+   "US-08.7"
+  ],
+  "verify": "pnpm -s verify"
+ },
+ {
+  "id": "T14",
+  "title": "Access slip (08 A2.1; D-105 no-phone warning)",
+  "depends": [
+   "T13"
+  ],
+  "files": [
+   "services/api/src/modules/partners/handlers/ (R4-R6)",
+   "services/api/src/modules/partners/service/access-slip.service.ts",
+   "services/worker/src/jobs/partners/tasks/partners.issue_access_slip.ts",
+   "services/worker/src/jobs/partners/tasks/partners.purge_access_slips.ts",
+   "apps/partner slip page (polling)"
+  ],
+  "done_when": "feature flag 403; R4 makes no port call (partner claims); worker calls issuePortalLink as system with exact args; worker calls RenderPort.renderPdf with templateKey 'partners.access_slip' and exactly the seven A5.1 data keys; slip PDF stored once in partners-slips at the registered path; URL/token absent from every column, job payload, log (logger spy), R4/R5/R6 response and core.idempotency_keys; poll every 1 s, give up after 30 s (08 A5.3); purge 02:50 at link_expires_at; access-log row on every download; R6 with no file -> 404 common.not_found; no-phone warning on PR-2 (D-105). Table partners.access_slips is C0-owned (05-SCHEMA §3.7a); no QR library; RenderPort fake",
+  "tests": "integration + log-scan + probes",
+  "acs": [
+   "US-09.1",
+   "US-09.2",
+   "US-09.3",
+   "US-09.4",
+   "US-09.5",
+   "US-09.6"
+  ],
+  "verify": "pnpm -s verify"
+ },
+ {
+  "id": "T15",
+  "title": "Pickups",
+  "depends": [
+   "T09"
+  ],
+  "files": [
+   "services/api/src/modules/partners/service/pickup.service.ts",
+   "services/api/src/modules/partners/handlers/ (K1-K4, SP1-SP4)"
+  ],
+  "done_when": "window rules; one open pickup per manifest (concurrent create test); state machine; manifest in_transit_at",
+  "tests": "unit + integration + probes",
+  "acs": [
+   "US-10.1",
+   "US-10.2",
+   "US-10.3",
+   "US-10.4",
+   "US-10.5"
+  ],
+  "verify": "pnpm -s verify"
+ },
+ {
+  "id": "T16",
+  "title": "Staff screens",
+  "depends": [
+   "T06",
+   "T07",
+   "T10",
+   "T11",
+   "T15"
+  ],
+  "files": [
+   "apps/web/src/app/(staff)/partners/**",
+   "apps/web/src/features/partners/**"
+  ],
+  "done_when": "every screen (SP-1...SS-1) with loading/error/empty; nav entries; BarcodeInput matching; patient search dialog via C4 API (MSW). Needs CR-C13-001/008",
+  "tests": "component (MSW) + E2E",
+  "acs": [
+   "US-01.1",
+   "US-01.2",
+   "US-01.3",
+   "US-01.4",
+   "US-01.5",
+   "US-01.6",
+   "US-06.1",
+   "US-06.2",
+   "US-06.3",
+   "US-06.4",
+   "US-06.5",
+   "US-06.6",
+   "US-06.7",
+   "US-06.8",
+   "US-06.9",
+   "US-06.10",
+   "US-06.11",
+   "US-10.3",
+   "US-10.4",
+   "US-13.3"
+  ],
+  "verify": "pnpm -s verify"
+ },
+ {
+  "id": "T17",
+  "title": "Projections: price list + statements",
+  "depends": [
+   "T07"
+  ],
+  "files": [
+   "services/api/src/modules/partners/service/catalog-projection.service.ts",
+   "services/api/src/modules/partners/service/statement.service.ts",
+   "services/worker/src/jobs/partners/tasks/partners.sync_price_list.ts",
+   "services/worker/src/jobs/partners/tasks/partners.sync_statements.ts",
+   "services/api/src/modules/partners/handlers/ (P1, S1, S2)",
+   "services/worker/src/jobs/partners/consumers/catalog.changed.v1.ts"
+  ],
+  "done_when": "precedence partner > standard; no other party's prices projected (test with 3 credit parties); delete-insert atomic; statement upsert + is_stale; outstanding = latest closing balance. catalog.changed.v1 consumer behind CR-C13-006",
+  "tests": "integration (views seeded in compose DB)",
+  "acs": [
+   "US-11.1",
+   "US-11.2",
+   "US-11.3",
+   "US-11.4",
+   "US-11.5",
+   "US-12.1",
+   "US-12.2",
+   "US-12.3",
+   "US-12.4"
+  ],
+  "verify": "pnpm -s verify"
+ },
+ {
+  "id": "T18",
+  "title": "Dashboard",
+  "depends": [
+   "T13",
+   "T15",
+   "T17"
+  ],
+  "files": [
+   "services/api/src/modules/partners/service/dashboard.service.ts",
+   "services/api/src/modules/partners/handlers/ (A2)",
+   "apps/partner PH-1"
+  ],
+  "done_when": "counts correct on seeded data; empty state",
+  "tests": "integration + component",
+  "acs": [
+   "US-14.1",
+   "US-14.2"
+  ],
+  "verify": "pnpm -s verify"
+ },
+ {
+  "id": "T19",
+  "title": "Partner app screens",
+  "depends": [
+   "T05",
+   "T08",
+   "T09",
+   "T10",
+   "T11",
+   "T12",
+   "T13",
+   "T14",
+   "T15",
+   "T16",
+   "T17",
+   "T18"
+  ],
+  "files": [
+   "apps/partner/src/app/(app)/**",
+   "apps/partner/src/features/**"
+  ],
+  "done_when": "every screen (PH-1...PX-1) per 04-UI-UX with all states; 320 px reflow; cards on phones",
+  "tests": "component (MSW/Prism) + E2E",
+  "acs": [
+   "US-04.1",
+   "US-04.2",
+   "US-04.3",
+   "US-04.4",
+   "US-04.5",
+   "US-04.6",
+   "US-04.7",
+   "US-04.8",
+   "US-04.9",
+   "US-04.10",
+   "US-07.1",
+   "US-07.2",
+   "US-07.3",
+   "US-07.4",
+   "US-07.5",
+   "US-07.6",
+   "US-07.7",
+   "US-07.8",
+   "US-08.1",
+   "US-08.2",
+   "US-08.3",
+   "US-08.4",
+   "US-08.5",
+   "US-08.6",
+   "US-08.7",
+   "US-10.1",
+   "US-10.2",
+   "US-10.3",
+   "US-10.4",
+   "US-10.5",
+   "US-11.1",
+   "US-11.2",
+   "US-11.3",
+   "US-11.4",
+   "US-11.5",
+   "US-12.1",
+   "US-12.2",
+   "US-12.3",
+   "US-12.4",
+   "US-13.1",
+   "US-13.2",
+   "US-13.3",
+   "US-13.4",
+   "US-13.5",
+   "US-13.6",
+   "US-14.1",
+   "US-14.2",
+   "US-16.1"
+  ],
+  "verify": "pnpm -s verify"
+ },
+ {
+  "id": "T20",
+  "title": "PWA + headers",
+  "depends": [
+   "T19"
+  ],
+  "files": [
+   "apps/partner/public/manifest.webmanifest",
+   "apps/partner/public/sw.js",
+   "apps/partner/next.config.ts"
+  ],
+  "done_when": "sw caches only hashed static assets + /offline (test enumerates Cache Storage after browsing PHI pages: no HTML/JSON entries); Cache-Control: no-store on all authenticated responses; CSP report-only then enforced",
+  "tests": "E2E (browser automation)",
+  "acs": [
+   "US-16.2"
+  ],
+  "verify": "pnpm -s verify"
+ },
+ {
+  "id": "T21",
+  "title": "Housekeeping jobs",
+  "depends": [
+   "T08"
+  ],
+  "files": [
+   "services/worker/src/jobs/partners/tasks/partners.expire_drafts.ts",
+   "services/worker/src/jobs/partners/tasks/partners.redact_expired_lines.ts",
+   "services/worker/src/jobs/partners/cron.ts"
+  ],
+  "done_when": "every cron task tenantScope 'per_tenant' (A13 P-6); drafts discarded + redacted after TTL; redaction via owner function partners.redact_lines gated by app.maintenance = 'partners_redact_lines' with non-zero rows under FORCE RLS (08 A10.5, A12.2); trigger blocks redaction columns outside it; download counters past expires_at deleted by system actor (A17 P-18(c)). Maps to 05-SCHEMA §6",
+  "tests": "integration",
+  "acs": [],
+  "verify": "pnpm -s verify"
+ },
+ {
+  "id": "T22",
+  "title": "Security test pack",
+  "depends": [
+   "T03",
+   "T04",
+   "T05",
+   "T06",
+   "T07",
+   "T08",
+   "T09",
+   "T10",
+   "T11",
+   "T12",
+   "T13",
+   "T14",
+   "T15",
+   "T16",
+   "T17",
+   "T18",
+   "T19",
+   "T20",
+   "T21"
+  ],
+  "files": [
+   "services/api/src/modules/partners/__tests__/probes/**",
+   "apps/partner/tests/e2e/security.*"
+  ],
+  "done_when": "every item of 07-SECURITY §6 present and green",
+  "tests": "probes, E2E, log-scan",
+  "acs": [
+   "US-15.1",
+   "US-15.2",
+   "US-15.3",
+   "US-15.4",
+   "US-15.5"
+  ],
+  "verify": "pnpm -s verify"
+ },
+ {
+  "id": "T23",
+  "title": "Observability",
+  "depends": [
+   "T10",
+   "T11",
+   "T12",
+   "T13",
+   "T14",
+   "T15",
+   "T17"
+  ],
+  "files": [
+   "services/api/src/modules/partners/ (metrics/alerts registration, log fields)",
+   "C1 hand-off doc in PR description"
+  ],
+  "done_when": "metrics in 02-TRD §13 emitted; alert rules delivered to C1 (PRD §6)",
+  "tests": "unit (metric spies)",
+  "acs": [],
+  "verify": "pnpm -s verify"
+ },
+ {
+  "id": "T25",
+  "title": "Manual + in-app help",
+  "depends": [
+   "T16",
+   "T19"
+  ],
+  "files": [
+   "docs/manual/partners/**",
+   "apps/partner/src/features/*/help",
+   "apps/web/src/features/partners/help"
+  ],
+  "done_when": "every PageHeader.helpKey has a help file (build check); manual pages for partner and staff roles",
+  "tests": "build check",
+  "acs": [],
+  "verify": "pnpm -s verify"
+ }
+]

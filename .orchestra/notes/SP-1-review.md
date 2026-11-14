@@ -1,0 +1,4 @@
+APPROVE
+
+Range 848be63..HEAD: `git rm tests/spikes/SP-1.decision.test.mjs` and `tests/spikes/SP-2.decision.test.mjs` exactly per LD-18; notes SP-1-impl.md updated; SP-1-verify.cmd added. Prior review item 1 (stale root copy) resolved.
+Checked OK (2026-11-07): `node --test db/tests/spikes/SP-1.decision.test.mjs` → pass 8, fail 0; `node --test db/tests/spikes/SP-2.decision.test.mjs` → pass 15, fail 0. db/tests copy differs from removed root copy only in run comment and record path; assertions unchanged and cover done_when (session_id+aal present or C2 T1 blocker; `LIMS_CORE_JWT_ALG`; session_id stable across refresh). No remaining tracked refs to the root paths outside .orchestra notes. Record db/meta/decisions/SP-1.md unchanged in range. No secrets/PHI. RLS/permissions/idempotency/rate tier/error codes: N/A (decision-record spike, no DB/API surface).

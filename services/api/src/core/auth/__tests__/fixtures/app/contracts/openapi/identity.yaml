@@ -1,0 +1,74 @@
+openapi: 3.0.3
+info: { title: fixture identity (T0D-02 auth tests), version: 1.0.0 }
+components:
+  securitySchemes:
+    bearerJwt:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+paths:
+  /v1/identity/whoami:
+    get:
+      operationId: getIdentityWhoami
+      security:
+        - bearerJwt: []
+      x-idempotency: none
+      x-rate-limit-tier: general
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [ok, clientIp]
+                properties:
+                  ok: { type: boolean }
+                  clientIp: { type: string }
+  /v1/identity/ping:
+    get:
+      operationId: getIdentityPing
+      security: []
+      x-public: "fixture"
+      x-idempotency: none
+      x-rate-limit-tier: general
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [clientIp]
+                properties:
+                  clientIp: { type: string }
+  /v1/identity/echo:
+    post:
+      operationId: postIdentityEcho
+      security:
+        - bearerJwt: []
+      x-idempotency: none
+      x-rate-limit-tier: general
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [name]
+              properties:
+                name: { type: string, maxLength: 64 }
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [name]
+                properties:
+                  name: { type: string }

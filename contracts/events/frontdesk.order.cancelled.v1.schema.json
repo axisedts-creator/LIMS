@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:lims:event:frontdesk.order.cancelled.v1",
+  "allOf": [
+    {
+      "$ref": "urn:lims:event:_envelope.v1"
+    },
+    {
+      "type": "object",
+      "properties": {
+        "event_type": {
+          "const": "frontdesk.order.cancelled.v1"
+        },
+        "producer": {
+          "const": "frontdesk"
+        },
+        "aggregate": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "order"
+            }
+          }
+        },
+        "payload": {
+          "$ref": "#/$defs/Payload"
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "Payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "order_id",
+        "reason_code",
+        "cancelled_at",
+        "requires_credit_note"
+      ],
+      "properties": {
+        "order_id": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+        },
+        "reason_code": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Code"
+        },
+        "cancelled_at": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/IsoUtc"
+        },
+        "requires_credit_note": {
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}

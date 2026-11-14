@@ -1,0 +1,16 @@
+# Managed by Ansible (02-TRD s5.3). Unlocks the LIMS data volumes at boot:
+# key from ops-1 over wg0, else the console passphrase (no timeout).
+[Unit]
+Description=LIMS LUKS unlock (ops-1 key over wg0, console passphrase fallback)
+Wants=wg-quick@wg0.service network-online.target
+After=wg-quick@wg0.service network-online.target
+Before=docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/sbin/lims-luks-unlock.sh
+TimeoutStartSec=infinity
+
+[Install]
+WantedBy=multi-user.target

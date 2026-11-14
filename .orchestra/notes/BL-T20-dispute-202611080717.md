@@ -1,0 +1,4 @@
+# BL-T20 dispute (writer) — 2 tests in `bl-t20.screens.test.tsx` §8.2 cannot pass without breaking spec/kit rules
+1. `Cancel (B4)` and `Print (B3)` use `getByRole('combobox', {name:/reason/i})`. Kit `Select` (used by kit `ConfirmDialog.requireReason`, 04-UI-UX §2 "no local look-alikes") renders the trigger as `button` (haspopup=listbox); the native `<select>` is aria-hidden. Kit's own test (`packages/ui/.../overlays.test.tsx:113`) uses `getByRole('button', {name:/reason/i})` + `getByRole('option', …)`. Fix: query role `button` for the trigger, then click the option.
+2. `Cancel (B4)` selects reason `entered_in_error`. Spec seed `billing.invoice_cancel_reasons` (05-SCHEMA §2, l.1849) = `order_cancelled, billing_error, duplicate_invoice, patient_request, other`. `entered_in_error` is not a billing code; sending it would fail coded-set validation. Fix: use `billing_error` / "Billing error".
+Impl is otherwise complete: 52/54 pass; these 2 are the only failures.

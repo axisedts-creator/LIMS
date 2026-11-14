@@ -1,0 +1,1 @@
+cd /d "%~dp0..\.." && pnpm --dir services/api exec vitest run src/modules/partners/__tests__/conversion src/modules/partners/__tests__/staff-receipt && pnpm --dir services/worker exec vitest run src/jobs/partners/__tests__/convert-savepoint

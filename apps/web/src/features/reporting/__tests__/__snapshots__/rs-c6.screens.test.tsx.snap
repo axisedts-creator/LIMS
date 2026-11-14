@@ -1,0 +1,86 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`RS-C6 key-screen outline snapshots (recorded once by the writer, LD-170; a baseline, not proof the look is right) > delivery detail 1`] = `
+"section Delivery
+a Delivery log
+h1 Delivery
+span Failed
+button Resend
+button Help
+a Back to delivery log
+a Open report
+h2 Attempts
+span Failed"
+`;
+
+exports[`RS-C6 key-screen outline snapshots (recorded once by the writer, LD-170; a baseline, not proof the look is right) > report detail 1`] = `
+"section Report
+a Reports
+h1 Report · R2611050001
+span Ready to release
+button ReleaseAlt+R
+button PrintAlt+P
+a Download
+button More actions
+button Help
+section Report preview
+a Download the report PDF
+h2 Report
+h2 Items
+h2 Versions
+span Rendered
+a Download version 2
+h2 Deliveries
+span Queued 0
+span Sent 1
+span Delivered 2
+span Read 0
+span Failed 1
+span Suppressed 0
+a Open delivery log filtered to this report"
+`;
+
+exports[`RS-C6 key-screen outline snapshots (recorded once by the writer, LD-170; a baseline, not proof the look is right) > report detail, held for dues 1`] = `
+"section Report
+a Reports
+h1 Report · R2611050001
+span Held
+button ReleaseAlt+R
+button PrintAlt+P
+a Download
+button More actions
+button Help
+button Record override
+section Report preview
+a Download the report PDF
+h2 Report
+h2 Items
+h2 Versions
+span Rendered
+a Download version 2
+h2 Deliveries
+span Queued 0
+span Sent 1
+span Delivered 2
+span Read 0
+span Failed 1
+span Suppressed 0
+a Open delivery log filtered to this report"
+`;
+
+exports[`RS-C6 key-screen outline snapshots (recorded once by the writer, LD-170; a baseline, not proof the look is right) > worklist 1`] = `
+"section Reports
+h1 Reports
+button Help
+button Search
+button Select an item
+button Select an item
+button Open calendar for From
+button Open calendar for To
+button Select an item
+button Reset filters
+input Select all rows
+input Select R2611050001
+a R2611050001
+span Ready to release"
+`;

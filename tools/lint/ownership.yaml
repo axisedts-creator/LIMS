@@ -1,0 +1,351 @@
+# Path ownership (CM s3 "Repository layout and path ownership" + module table; 02-TRD s1.1).
+# Owner: C0-0A. One owner per path; most specific pattern wins (longest literal prefix, then longest pattern).
+# Glob: ** any depth, * one segment, {a,b} alternation, trailing / = /**. No catch-all rules.
+rules:
+  # C0-0A (CM s3, TRD s1.1)
+  - pattern: ".github/**"
+    owner: C0-0A
+  - pattern: "package.json"
+    owner: C0-0A
+  - pattern: "pnpm-workspace.yaml"
+    owner: C0-0A
+  - pattern: "pnpm-lock.yaml"
+    owner: C0-0A
+  - pattern: "pubspec.yaml"
+    owner: C0-0A
+  - pattern: "analysis_options.yaml"
+    owner: C0-0A
+  - pattern: "tsconfig.base.json"
+    owner: C0-0A
+  - pattern: ".eslintrc*"
+    owner: C0-0A
+  - pattern: "eslint.config.*"
+    owner: C0-0A
+  - pattern: ".prettierrc*"
+    owner: C0-0A
+  - pattern: ".nvmrc"
+    owner: C0-0A
+  - pattern: "turbo.json"
+    owner: C0-0A
+  - pattern: ".gitignore"
+    owner: C0-0A
+  - pattern: ".gitleaks.toml"
+    owner: C0-0A
+  - pattern: "packages/shared-ts/**"
+    owner: C0-0A
+  - pattern: "packages/shared-dart/**"
+    owner: C0-0A
+  - pattern: "packages/test-fixtures/**"
+    owner: C0-0A
+  - pattern: "tools/devstack/**"
+    owner: C0-0A
+  - pattern: "tools/lint/**"
+    owner: C0-0A
+  # C0-0B
+  - pattern: "db/**"
+    owner: C0-0B
+  # C0-0C
+  - pattern: "contracts/**"
+    owner: C0-0C
+  - pattern: "tools/codegen/**"
+    owner: C0-0C
+  - pattern: "packages/api-client-ts/**"
+    owner: C0-0C
+  - pattern: "packages/api-client-dart/**"
+    owner: C0-0C
+  - pattern: "packages/fakes/**"
+    owner: C0-0C
+  # C0-0D
+  - pattern: "packages/ui/**"
+    owner: C0-0D
+  - pattern: "packages/ui-flutter/**"
+    owner: C0-0D
+  - pattern: "services/api/package.json"
+    owner: C0-0D
+  - pattern: "services/api/tsconfig.json"
+    owner: C0-0D
+  - pattern: "services/api/Dockerfile"
+    owner: C0-0D
+  - pattern: "services/api/src/main.ts"
+    owner: C0-0D
+  - pattern: "services/api/src/core/**"
+    owner: C0-0D
+  - pattern: "services/worker/package.json"
+    owner: C0-0D
+  - pattern: "services/worker/tsconfig.json"
+    owner: C0-0D
+  - pattern: "services/worker/Dockerfile"
+    owner: C0-0D
+  - pattern: "services/worker/src/main.ts"
+    owner: C0-0D
+  - pattern: "services/worker/src/core/**"
+    owner: C0-0D
+  - pattern: "apps/web/package.json"
+    owner: C0-0D
+  - pattern: "apps/web/tsconfig.json"
+    owner: C0-0D
+  - pattern: "apps/web/next.config.*"
+    owner: C0-0D
+  - pattern: "apps/web/Dockerfile"
+    owner: C0-0D
+  - pattern: "apps/web/src/core/**"
+    owner: C0-0D
+  - pattern: "apps/web/src/middleware.ts"
+    owner: C0-0D
+  - pattern: "apps/web/src/app/layout.tsx"
+    owner: C0-0D
+  - pattern: "apps/web/src/app/(staff)/layout.tsx"
+    owner: C0-0D
+  # Docs (founder)
+  - pattern: "docs/program/**"
+    owner: DOC-OWNER
+  - pattern: "docs/chunks/**"
+    owner: DOC-OWNER
+  # Feature chunks outside module table
+  - pattern: "infra/**"
+    owner: C1
+  - pattern: "apps/web/src/app/(auth)/**"
+    owner: C2
+  - pattern: "apps/web/src/app/(platform)/**"
+    owner: C2
+  - pattern: "apps/web/src/app/(display)/**"
+    owner: C16
+  - pattern: "services/renderer/**"
+    owner: C6
+  - pattern: "services/renderer/templates/smart/**"
+    owner: C14
+  - pattern: "services/renderer/templates/billing/**"
+    owner: C4
+  - pattern: "services/renderer/templates/analytics/**"
+    owner: C8
+  - pattern: "apps/portal/**"
+    owner: C6
+  - pattern: "apps/partner/**"
+    owner: C13
+  - pattern: "apps/patient_app/**"
+    owner: C16
+  - pattern: "apps/phlebo_app/**"
+    owner: C17
+  - pattern: "apps/bridge-agent/**"
+    owner: C7
+  - pattern: "tools/migration/**"
+    owner: C18
+  # Module table (CM s3): api, worker, web (staff)/features/e2e, manual
+  - pattern: "services/api/src/modules/identity/**"
+    owner: C2
+  - pattern: "services/worker/src/jobs/identity/**"
+    owner: C2
+  - pattern: "apps/web/src/app/(staff)/identity/**"
+    owner: C2
+  - pattern: "apps/web/src/features/identity/**"
+    owner: C2
+  - pattern: "apps/web/tests/e2e/identity/**"
+    owner: C2
+  - pattern: "docs/manual/identity/**"
+    owner: C2
+  - pattern: "apps/web/src/app/(staff)/admin/**"
+    owner: C2
+  - pattern: "apps/web/src/features/admin/**"
+    owner: C2
+  - pattern: "apps/web/tests/e2e/admin/**"
+    owner: C2
+  - pattern: "docs/manual/admin/**"
+    owner: C2
+  - pattern: "apps/web/src/features/platform/**"
+    owner: C2
+  - pattern: "apps/web/tests/e2e/platform/**"
+    owner: C2
+  - pattern: "docs/manual/platform/**"
+    owner: C2
+  - pattern: "services/api/src/modules/catalog/**"
+    owner: C3
+  - pattern: "services/worker/src/jobs/catalog/**"
+    owner: C3
+  - pattern: "apps/web/src/app/(staff)/catalog/**"
+    owner: C3
+  - pattern: "apps/web/src/features/catalog/**"
+    owner: C3
+  - pattern: "apps/web/tests/e2e/catalog/**"
+    owner: C3
+  - pattern: "docs/manual/catalog/**"
+    owner: C3
+  - pattern: "services/api/src/modules/frontdesk/**"
+    owner: C4
+  - pattern: "services/worker/src/jobs/frontdesk/**"
+    owner: C4
+  - pattern: "apps/web/src/app/(staff)/frontdesk/**"
+    owner: C4
+  - pattern: "apps/web/src/features/frontdesk/**"
+    owner: C4
+  - pattern: "apps/web/tests/e2e/frontdesk/**"
+    owner: C4
+  - pattern: "docs/manual/frontdesk/**"
+    owner: C4
+  - pattern: "services/api/src/modules/billing/**"
+    owner: C4
+  - pattern: "services/worker/src/jobs/billing/**"
+    owner: C4
+  - pattern: "apps/web/src/app/(staff)/billing/**"
+    owner: C4
+  - pattern: "apps/web/src/features/billing/**"
+    owner: C4
+  - pattern: "apps/web/tests/e2e/billing/**"
+    owner: C4
+  - pattern: "docs/manual/billing/**"
+    owner: C4
+  - pattern: "services/api/src/modules/lab/**"
+    owner: C5
+  - pattern: "services/worker/src/jobs/lab/**"
+    owner: C5
+  - pattern: "apps/web/src/app/(staff)/lab/**"
+    owner: C5
+  - pattern: "apps/web/src/features/lab/**"
+    owner: C5
+  - pattern: "apps/web/tests/e2e/lab/**"
+    owner: C5
+  - pattern: "docs/manual/lab/**"
+    owner: C5
+  - pattern: "services/api/src/modules/reporting/**"
+    owner: C6
+  - pattern: "services/worker/src/jobs/reporting/**"
+    owner: C6
+  - pattern: "apps/web/src/app/(staff)/reporting/**"
+    owner: C6
+  - pattern: "apps/web/src/features/reporting/**"
+    owner: C6
+  - pattern: "apps/web/tests/e2e/reporting/**"
+    owner: C6
+  - pattern: "docs/manual/reporting/**"
+    owner: C6
+  - pattern: "services/api/src/modules/instruments/**"
+    owner: C7
+  - pattern: "services/worker/src/jobs/instruments/**"
+    owner: C7
+  - pattern: "apps/web/src/app/(staff)/instruments/**"
+    owner: C7
+  - pattern: "apps/web/src/features/instruments/**"
+    owner: C7
+  - pattern: "apps/web/tests/e2e/instruments/**"
+    owner: C7
+  - pattern: "docs/manual/instruments/**"
+    owner: C7
+  - pattern: "services/api/src/modules/analytics/**"
+    owner: C8
+  - pattern: "services/worker/src/jobs/analytics/**"
+    owner: C8
+  - pattern: "apps/web/src/app/(staff)/analytics/**"
+    owner: C8
+  - pattern: "apps/web/src/features/analytics/**"
+    owner: C8
+  - pattern: "apps/web/tests/e2e/analytics/**"
+    owner: C8
+  - pattern: "docs/manual/analytics/**"
+    owner: C8
+  - pattern: "services/api/src/modules/quality/**"
+    owner: C9
+  - pattern: "services/worker/src/jobs/quality/**"
+    owner: C9
+  - pattern: "apps/web/src/app/(staff)/quality/**"
+    owner: C9
+  - pattern: "apps/web/src/features/quality/**"
+    owner: C9
+  - pattern: "apps/web/tests/e2e/quality/**"
+    owner: C9
+  - pattern: "docs/manual/quality/**"
+    owner: C9
+  - pattern: "services/api/src/modules/micro/**"
+    owner: C10
+  - pattern: "services/worker/src/jobs/micro/**"
+    owner: C10
+  - pattern: "apps/web/src/app/(staff)/micro/**"
+    owner: C10
+  - pattern: "apps/web/src/features/micro/**"
+    owner: C10
+  - pattern: "apps/web/tests/e2e/micro/**"
+    owner: C10
+  - pattern: "docs/manual/micro/**"
+    owner: C10
+  - pattern: "services/api/src/modules/anatomic/**"
+    owner: C11
+  - pattern: "services/worker/src/jobs/anatomic/**"
+    owner: C11
+  - pattern: "apps/web/src/app/(staff)/anatomic/**"
+    owner: C11
+  - pattern: "apps/web/src/features/anatomic/**"
+    owner: C11
+  - pattern: "apps/web/tests/e2e/anatomic/**"
+    owner: C11
+  - pattern: "docs/manual/anatomic/**"
+    owner: C11
+  - pattern: "services/api/src/modules/inventory/**"
+    owner: C12
+  - pattern: "services/worker/src/jobs/inventory/**"
+    owner: C12
+  - pattern: "apps/web/src/app/(staff)/inventory/**"
+    owner: C12
+  - pattern: "apps/web/src/features/inventory/**"
+    owner: C12
+  - pattern: "apps/web/tests/e2e/inventory/**"
+    owner: C12
+  - pattern: "docs/manual/inventory/**"
+    owner: C12
+  - pattern: "services/api/src/modules/partners/**"
+    owner: C13
+  - pattern: "services/worker/src/jobs/partners/**"
+    owner: C13
+  - pattern: "apps/web/src/app/(staff)/partners/**"
+    owner: C13
+  - pattern: "apps/web/src/features/partners/**"
+    owner: C13
+  - pattern: "apps/web/tests/e2e/partners/**"
+    owner: C13
+  - pattern: "docs/manual/partners/**"
+    owner: C13
+  - pattern: "services/api/src/modules/smartreport/**"
+    owner: C14
+  - pattern: "services/worker/src/jobs/smartreport/**"
+    owner: C14
+  - pattern: "apps/web/src/app/(staff)/smartreport/**"
+    owner: C14
+  - pattern: "apps/web/src/features/smartreport/**"
+    owner: C14
+  - pattern: "apps/web/tests/e2e/smartreport/**"
+    owner: C14
+  - pattern: "docs/manual/smartreport/**"
+    owner: C14
+  - pattern: "services/api/src/modules/payments/**"
+    owner: C15
+  - pattern: "services/worker/src/jobs/payments/**"
+    owner: C15
+  - pattern: "apps/web/src/app/(staff)/payments/**"
+    owner: C15
+  - pattern: "apps/web/src/features/payments/**"
+    owner: C15
+  - pattern: "apps/web/tests/e2e/payments/**"
+    owner: C15
+  - pattern: "docs/manual/payments/**"
+    owner: C15
+  - pattern: "services/api/src/modules/engagement/**"
+    owner: C16
+  - pattern: "services/worker/src/jobs/engagement/**"
+    owner: C16
+  - pattern: "apps/web/src/app/(staff)/engagement/**"
+    owner: C16
+  - pattern: "apps/web/src/features/engagement/**"
+    owner: C16
+  - pattern: "apps/web/tests/e2e/engagement/**"
+    owner: C16
+  - pattern: "docs/manual/engagement/**"
+    owner: C16
+  - pattern: "services/api/src/modules/homecollection/**"
+    owner: C17
+  - pattern: "services/worker/src/jobs/homecollection/**"
+    owner: C17
+  - pattern: "apps/web/src/app/(staff)/homecollection/**"
+    owner: C17
+  - pattern: "apps/web/src/features/homecollection/**"
+    owner: C17
+  - pattern: "apps/web/tests/e2e/homecollection/**"
+    owner: C17
+  - pattern: "docs/manual/homecollection/**"
+    owner: C17

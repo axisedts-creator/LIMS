@@ -1,0 +1,12 @@
+---
+# Validate inside the running container before the graceful reload.
+- name: Reload edge nginx
+  ansible.builtin.command:
+    argv:
+      - docker
+      - exec
+      - "{{ edge_nginx_container }}"
+      - sh
+      - -c
+      - nginx -t && nginx -s reload
+  changed_when: true

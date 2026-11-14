@@ -1,0 +1,11 @@
+[Unit]
+Description=Monthly restore drill, first Saturday 02:00 NPT (02-TRD s9.6, 04 I3)
+
+[Timer]
+# [CONV] first Saturday of the month; the NPT zone is explicit because a UTC calendar
+# (Fri 20:15) cannot express "first Saturday in NPT" exactly.
+OnCalendar=Sat *-*-01..07 02:00:00 Asia/Kathmandu
+Persistent=true
+
+[Install]
+WantedBy=timers.target

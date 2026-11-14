@@ -1,0 +1,11 @@
+# T-09 debugger
+- Cause: 4 fails = missing real-world values, not code bugs. (1) Dockerfile `ARG PGBACKREST_TARBALL_SHA256=` empty; (2-4) DECISION.md T-09 section says "NOT yet run"/"NOT measured"/"still OPEN" (no check/full+incr results, no pgbackrest.org 2.60 re-check, no measured WAL/day).
+- Fix: none applied. Values need network (curl to github denied here) and image build + data-1/dr-1 runs; inventing them violates CLAUDE.md. Tests are correct vs done_when, so no dispute.
+- Needed from CI/host: sha256sum of github.com/pgbackrest/pgbackrest/archive/release/2.60.0.tar.gz -> Dockerfile ARG; check/full/incr results, multi-repo re-check, `WAL volume per day (measured ...): <n> GiB/day` -> DECISION.md.
+- Remaining: 31/35 pass; T-09 done_when NOT met until the above is recorded.
+- Round 2 (2026-11-07): re-read verify log, same 4 fails, same cause. No code change: values need network + image build + data-1/dr-1 run. Not invented. Escalate to human/CI.
+- Round 3 (2026-11-07): same 4 fails, same cause (real-world values: tarball sha256, check/full+incr results, pgbackrest.org 2.60 re-check, measured WAL/day). No code change; not invented. Needs CI/host run, then human/CI fills Dockerfile ARG + DECISION.md.
+- Round 4 (LD-34): curl worked. Dockerfile `ARG PGBACKREST_TARBALL_SHA256` = 7409309d...22d0 (sha256sum of release/2.60.0.tar.gz). DECISION.md: pgbackrest.org re-check recorded (2.60.0 current stable; archive-push multi-repo note); check/full/incr + WAL/day marked open (B12).
+- Still failing by design: test_check_ok_both_repos_and_full_incr_recorded, test_records_wal_per_day_measured need tester to mark skip `needs data-1/dr-1 hosts (B12)`; I may not edit tests.
+- Round 5: verify log = 1 fail of 35: test_records_wal_per_day_measured (line 488 wants measured `<n> MiB|GiB/day`). Cause: test lacks LD-34 skip. DECISION.md correct (WAL/day open, B12). No impl change; value not invented. Dispute filed: T-09-dispute.md.
+- Round 6: same 1 fail (test_records_wal_per_day_measured, no LD-34 skip). Impl/DECISION.md correct; value not invented. Dispute T-09-dispute.md stands; waiting on tester to add skip `needs data-1/dr-1 hosts (B12)`.

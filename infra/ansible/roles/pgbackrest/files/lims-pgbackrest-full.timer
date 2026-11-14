@@ -1,0 +1,9 @@
+[Unit]
+Description=pgBackRest full backup, Saturday 01:30 NPT (02-TRD s9.3)
+
+[Timer]
+OnCalendar=Fri *-*-* 19:45:00 UTC
+Persistent=true
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,1 @@
+pnpm --dir services/api exec vitest run src/modules/instruments/__tests__/unit/drivers-getein-metis.test.ts src/modules/instruments/__tests__/ingest.getein_metis.test.ts src/modules/instruments/__tests__/unit/drivers-registry.test.ts src/modules/instruments/__tests__/unit/drivers-golden.test.ts

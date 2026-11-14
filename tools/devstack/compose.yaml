@@ -1,0 +1,192 @@
+# tools/devstack/compose.yaml — LIMS local dev stack. C0 02-TRD §3.6 (CR-C0-001), 04 S3/S5/S6/S8/S11, REQ-SEC-037.
+# Run only through tools/devstack/{up,down,reset}.ts (pnpm dev:up / dev:down / dev:reset); they pass --env-file .env.devstack.
+# Every secret comes from .env.devstack (init-secrets.ts) as ${VAR}; no literal secret in this file.
+#
+# Images: the official Supabase self-hosting set, pinned by digest (one snapshot, never mixed tags; REQ-ARCH-012).
+# Tags = C1 02-TRD §2 pin candidates (fetched 2026-11-06); digests resolved from the registry for those tags on 2026-11-07.
+# C1 infra/compose/supabase/upstream/UPSTREAM.lock is the single source (08 A25 D-208); it does not exist yet — when it lands,
+# CI job supabase-pin fails until the digests below equal it.
+#
+# Published ports (04 S6: every one is 127.0.0.1:<port>:<port>; nothing on 0.0.0.0, no host networking):
+#   | service   | host port      | profile   | what                                          |
+#   |-----------|----------------|-----------|-----------------------------------------------|
+#   | db        | 127.0.0.1:5432 | default   | Postgres direct (migrations, workers)         |
+#   | pgbouncer | 127.0.0.1:6432 | default   | PgBouncer, transaction mode (API)             |
+#   | api-gw    | 127.0.0.1:8000 | default   | Envoy gateway: /auth/v1 /rest/v1 /storage/v1 |
+#   | mailpit   | 127.0.0.1:8025 | default   | mail sink web UI (SMTP 1025 internal only)    |
+#   | studio    | 127.0.0.1:3000 | studio    | Supabase Studio (meta: internal only)         |
+#   | redis     | 127.0.0.1:6379 | ratelimit | ephemeral rate-limit cache                    |
+#   auth, rest, storage, realtime, meta publish nothing (reached through api-gw / the compose network).
+# Not here: Supavisor (disabled, 04 S8; PgBouncer replaces it as in the official docker-compose.pgbouncer.yml override),
+# Edge Functions, analytics/vector, imgproxy (image transformation off). Prism mocks: see .orchestra/cr/T0A-09.md.
+name: lims-devstack
+# SP-3: Supabase services and LIMS share the image's init database `postgres`.
+
+services:
+  db:
+    image: supabase/postgres:17.6.1.136@sha256:f371b5f3f2ac0a05703f33d6e6134515fb2498cab708fb948a0aeb7481467c00
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5432:5432"
+    environment:
+      POSTGRES_HOST: /var/run/postgresql
+      POSTGRES_PORT: "5432"
+      PGPORT: "5432"
+      POSTGRES_DB: postgres
+      PGDATABASE: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?run tools/devstack/init-secrets.ts}
+      PGPASSWORD: ${POSTGRES_PASSWORD:?run tools/devstack/init-secrets.ts}
+      JWT_SECRET: ${JWT_SECRET:?run tools/devstack/init-secrets.ts}
+      JWT_EXP: "3600"
+    volumes:
+      - ./db-init/99-service-roles.sql:/docker-entrypoint-initdb.d/init-scripts/99-service-roles.sql:ro
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres", "-h", "localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  auth:
+    image: supabase/gotrue:v2.197.0@sha256:1736a63078f5922b198c4cbe50f80ab9a2d3b54fe8b7b6cfb2e9dc5dbbc12c6b
+    restart: unless-stopped
+    depends_on:
+      db: { condition: service_healthy }
+      mailpit: { condition: service_started }
+    env_file: [./env/auth.env]
+    environment:
+      GOTRUE_DB_DATABASE_URL: postgres://supabase_auth_admin:${POSTGRES_PASSWORD:?}@db:5432/postgres
+      GOTRUE_JWT_SECRET: ${JWT_SECRET:?}
+      GOTRUE_SMTP_HOST: mailpit
+      GOTRUE_SMTP_PORT: "1025"
+      GOTRUE_SMTP_PASS: ${SMTP_PASS:-}
+      # 08 R10: the custom access-token hook is not used; its variables stay unset.
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:9999/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  rest:
+    image: postgrest/postgrest:v14.18@sha256:c7cd7e265a85b05248abf53f4473fcec7e327c282d0bd0cf60f1551996d09fcf
+    restart: unless-stopped
+    depends_on:
+      db: { condition: service_healthy }
+    env_file: [./env/rest.env]
+    environment:
+      PGRST_DB_URI: postgres://authenticator:${POSTGRES_PASSWORD:?}@db:5432/postgres
+      PGRST_DB_SCHEMAS: api          # 04 S3: only the api schema is exposed
+      PGRST_DB_MAX_ROWS: "1000"      # 04 S3: db-max-rows set [CONV value]
+      PGRST_JWT_SECRET: ${JWT_SECRET:?}
+    # No healthcheck: the api schema exists only after migrations, which run after `up --wait`; PostgREST retries itself.
+
+  storage:
+    image: supabase/storage-api:v1.89.12@sha256:8526956cb462e9f7d392e9848ec77133b2769982ed614e9753cc687e8e4339a6
+    restart: unless-stopped
+    depends_on:
+      db: { condition: service_healthy }
+      rest: { condition: service_started }
+    env_file: [./env/storage.env]
+    environment:
+      DATABASE_URL: postgres://supabase_storage_admin:${POSTGRES_PASSWORD:?}@db:5432/postgres
+      ANON_KEY: ${ANON_KEY:?}
+      SERVICE_KEY: ${SERVICE_ROLE_KEY:?}
+      PGRST_JWT_SECRET: ${JWT_SECRET:?}
+      AUTH_JWT_SECRET: ${JWT_SECRET:?}
+    volumes:
+      - storage-data:/var/lib/storage
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:5000/status"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  api-gw:                            # default Supabase API gateway (Envoy), 04 S6
+    image: envoyproxy/envoy:v1.39.6@sha256:1fde8efee875e4e4f6a39a90fe49d9338e1caacce5762034ef9fb4bbb9ad6aed
+    restart: unless-stopped
+    depends_on: [auth, rest, storage]
+    command: ["envoy", "-c", "/etc/envoy/envoy.yaml", "--log-level", "warn"]
+    volumes:
+      - ./envoy/envoy.yaml:/etc/envoy/envoy.yaml:ro
+    ports:
+      - "127.0.0.1:8000:8000"
+
+  pgbouncer:                         # 04 S8: PgBouncer transaction mode; Supavisor disabled
+    image: edoburu/pgbouncer:v1.25.2-p0@sha256:7d7a27d9e90985cab5cf42256f5c13a3120baa4b055b69df37beb272b89b2340
+    restart: unless-stopped
+    depends_on:
+      db: { condition: service_healthy }
+    env_file: [./env/pgbouncer.env]
+    environment:
+      DB_USER: lims_api
+      DB_PASSWORD: ${LIMS_API_PASSWORD:?}
+    ports:
+      - "127.0.0.1:6432:6432"
+
+  mailpit:                           # SMTP sink for GoTrue (mailpit:1025); the 04 S20 relay is never called from dev
+    image: axllent/mailpit:v1.33.0@sha256:9b3a463be15354c0f0eba91697d80e3e0d8a5623ef0e627cacc836bc17fd5231
+    restart: unless-stopped
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: "1"
+      MP_SMTP_AUTH_ALLOW_INSECURE: "1"
+    ports:
+      - "127.0.0.1:8025:8025"
+
+  realtime:                          # 04 S5: Flutter apps only
+    profiles: [flutter]
+    image: supabase/realtime:v2.148.3@sha256:25cf375b9b7cb71d90cdf6e04a1a30996e39a8df866ebd0525bba1d959edc8d6
+    restart: unless-stopped
+    depends_on:
+      db: { condition: service_healthy }
+    env_file: [./env/realtime.env]
+    environment:
+      DB_PASSWORD: ${POSTGRES_PASSWORD:?}
+      API_JWT_SECRET: ${JWT_SECRET:?}
+      SECRET_KEY_BASE: ${SECRET_KEY_BASE:?}
+
+  meta:
+    profiles: [studio]
+    image: supabase/postgres-meta:v0.100.0@sha256:145325b7e39f8ef4931d6e8cfd3f6f4d655de09d72a2ccc96d9513542c2202bd
+    restart: unless-stopped
+    depends_on:
+      db: { condition: service_healthy }
+    env_file: [./env/meta.env]
+    environment:
+      PG_META_DB_PASSWORD: ${POSTGRES_PASSWORD:?}
+
+  studio:                            # REQ-SEC-037: Studio bound to 127.0.0.1 only
+    profiles: [studio]
+    image: supabase/studio:2026.11.02-sha-a05e7ec@sha256:727a7f37b15f4c76c44e0d765e6be231d8d71c67f2933b2df8c6cbcc9b04c5d0
+    restart: unless-stopped
+    depends_on: [meta]
+    env_file: [./env/studio.env]
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?}
+      AUTH_JWT_SECRET: ${JWT_SECRET:?}
+      SUPABASE_ANON_KEY: ${ANON_KEY:?}
+      SUPABASE_SERVICE_KEY: ${SERVICE_ROLE_KEY:?}
+    ports:
+      - "127.0.0.1:3000:3000"
+
+  redis:                             # 04 S11: ephemeral rate-limit counters only; Valkey 9.1.3 as C1 02-TRD §7.4
+    profiles: [ratelimit]
+    image: valkey/valkey:9.1.3@sha256:3add1a336a920ea54770a001ab6feb3da5fceea96a40373a3a2cd469b815f0b7
+    restart: unless-stopped
+    command: valkey-server --save '' --appendonly no
+    ports:
+      - "127.0.0.1:6379:6379"
+
+  migrate:                           # one-shot runner used by up.ts (SP-5 runner contract); never started by `up`
+    profiles: [tools]
+    image: arigaio/atlas:1.3.1-community@sha256:76cc66fb31f99d5d316676b8a9866ef4b6d6bf5aacc0639485d04848670839e4
+    environment:
+      ATLAS_NO_UPDATE_NOTIFIER: "1"
+      PGPASSWORD: ${LIMS_MIGRATOR_PASSWORD:?}
+    volumes:
+      - ../../db/migrations:/migrations:ro
+    command: ["migrate", "apply", "--dir", "file:///migrations", "--revisions-schema", "migrations_meta", "--allow-dirty",
+              "--url", "postgres://lims_migrator@db:5432/postgres?sslmode=disable&lock_timeout=5s&statement_timeout=15min"]
+
+volumes:
+  db-data:
+  storage-data:

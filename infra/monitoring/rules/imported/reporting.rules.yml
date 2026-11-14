@@ -1,0 +1,101 @@
+---
+# yamllint disable rule:line-length
+# Imported from C6
+#   services/worker/src/jobs/reporting/alerts/reporting.rules.yaml
+# (C6 02-TRD "Alert rules for C1").
+# expr/for verbatim; C1 adds only severity, team, runbook_url (s11.3).
+# The source file is not in this lane yet: transcribed from the TRD
+# table; ci/import-rules.sh overwrites it, alert-import-drift checks.
+groups:
+  - name: reporting
+    rules:
+      - alert: ReportingRenderFailureRate
+        expr: >-
+          sum(increase(lims_reporting_render_failures_total[15m])) / clamp_min(sum(increase(lims_reporting_versions_total[15m])),
+          1) > 0.05
+        for: 15m
+        labels:
+          severity: warn
+          team: ops
+        annotations:
+          summary: >-
+            More than 5 % of report renders failed over 15 min.
+          runbook_url: >-
+            infra/runbooks/reporting.md#reportingrenderfailurerate
+      - alert: ReportingDeliveryFailureRate
+        expr: >-
+          sum by (channel) (increase(lims_reporting_deliveries_total{status="failed"}[1h]))
+          / clamp_min(sum by (channel) (increase(lims_reporting_deliveries_total[1h])),
+          1) > 0.2
+        for: 1h
+        labels:
+          severity: warn
+          team: ops
+        annotations:
+          summary: >-
+            More than 20 % of report deliveries failed on one channel over
+            1 h.
+          runbook_url: >-
+            infra/runbooks/reporting.md#reportingdeliveryfailurerate
+      - alert: ReportingOtpVerifyBruteForce
+        expr: >-
+          sum by (tenant_id) (increase(lims_reporting_otp_verify_failures_total[1h]))
+          > 50
+        for: 0m
+        labels:
+          severity: warn
+          team: ops
+        annotations:
+          summary: >-
+            More than 50 OTP verify failures for one tenant in 1 h.
+          runbook_url: >-
+            infra/runbooks/reporting.md#reportingotpverifybruteforce
+      - alert: ReportingQrEnumeration
+        expr: >-
+          sum(increase(lims_reporting_qr_verify_total{outcome="not_found"}[1h]))
+          > 500
+        for: 0m
+        labels:
+          severity: warn
+          team: ops
+        annotations:
+          summary: >-
+            More than 500 QR verify lookups not found in 1 h (enumeration).
+          runbook_url: >-
+            infra/runbooks/reporting.md#reportingqrenumeration
+      - alert: ReportingRendererBlockedRequest
+        expr: >-
+          increase(lims_renderer_blocked_requests_total[5m]) > 0
+        for: 0m
+        labels:
+          severity: page
+          team: ops
+        annotations:
+          summary: >-
+            The renderer blocked an outbound request (possible template injection).
+          runbook_url: >-
+            infra/runbooks/reporting.md#reportingrendererblockedrequest
+      - alert: ReportingSandboxRejectionSpike
+        expr: >-
+          sum(increase(lims_reporting_sandbox_rejections_total[1h])) > 20
+        for: 0m
+        labels:
+          severity: warn
+          team: ops
+        annotations:
+          summary: >-
+            More than 20 PDF sandbox rejections in 1 h.
+          runbook_url: >-
+            infra/runbooks/reporting.md#reportingsandboxrejectionspike
+      - alert: ReportingRendererDown
+        expr: >-
+          lims_ops_container_health{service=~"renderer|pdf-sandbox"} == 0
+        for: 2m
+        labels:
+          severity: page
+          team: ops
+        annotations:
+          summary: >-
+            Renderer or PDF sandbox container unhealthy for 2 min.
+          runbook_url: >-
+            infra/runbooks/reporting.md#reportingrendererdown

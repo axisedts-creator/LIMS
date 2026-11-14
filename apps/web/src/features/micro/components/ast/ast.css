@@ -1,0 +1,7 @@
+/* C10.T-21: AST grid. LD-140 (2026-11-13): tokens and kit classes only. The kit has no table-with-fields class yet (CR candidate), so the few layout rules live here.
+   The per-row text-field and select labels stay in the accessibility tree ("{antibiotic} raw value", 04-UI-UX §8) but are not repeated visually; the column header says it. */
+.lims-ast-grid { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.lims-ast-grid th,
+.lims-ast-grid td { padding: var(--lims-space-1) var(--lims-space-2); text-align: start; vertical-align: top; }
+.lims-ast-grid .lims-field > .lims-label { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; border: 0; }
+.lims-ast-note { display: flex; align-items: center; gap: var(--lims-space-1); }

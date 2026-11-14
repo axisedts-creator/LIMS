@@ -1,0 +1,16 @@
+# C4 billing CBMS alert rules for C1 to wire (02-TRD §"Alert rules for C1": CBMS pending > 1 h = page; attempts >= 10 and still pending = warn).
+# Source: gauge lims_billing_cbms_pending_documents{tenant_id,state}, set every 15 min by billing.cbms_sweep (state = pending | stale_1h | attempts_10_plus).
+# Routes are C1's receivers: page -> oncall-email, warn -> ops-digest-email. Thresholds [CONV].
+groups:
+  - name: billing_cbms
+    rules:
+      - alert: BillingCbmsPendingOverOneHour
+        expr: max by (tenant_id) (lims_billing_cbms_pending_documents{state="stale_1h"}) > 0
+        for: 0m
+        labels: { severity: page, route: oncall-email }
+        annotations: { summary: "A billing document has been pending CBMS submission for over 1 hour (tenant {{ $labels.tenant_id }})" }
+      - alert: BillingCbmsTenAttemptsStillPending
+        expr: max by (tenant_id) (lims_billing_cbms_pending_documents{state="attempts_10_plus"}) > 0
+        for: 0m
+        labels: { severity: warn, route: ops-digest-email }
+        annotations: { summary: "A CBMS document reached 10 or more attempts and is still pending (tenant {{ $labels.tenant_id }})" }

@@ -1,0 +1,5 @@
+TESTS_WRONG — `dispatch/helpers.ts` exports `seedWorld` twice, so the test helper fails to compile and no test runs; this is a test-file defect, not a spec or implementation question.
+1. Confirmed: helpers.ts:20 re-export list names `seedWorld`, and helpers.ts:211 declares `export const seedWorld`. The import at helpers.ts:15 is aliased `seedWorld as seedBaseWorld`, so line 20 now points at the local const and exports it a second time. esbuild error: HC-T09-run.log:43 "Multiple exports with the same name "seedWorld"".
+2. Change in the test: remove `seedWorld` from the `export { ... }` list at helpers.ts:19-20. Keep the line-211 wrapper, which calls `ensureTaskRegistry()` before `seedBaseWorld`, as required by the previous ruling.
+3. That wrapper is still required by the spec: enqueue at assign is mandated by C17 02-TRD.md:484 and :514; `app.enqueue_job` rejects unregistered identifiers (C0 05-SCHEMA.md:1060-1063); the registry is deploy-time data, not a static seed (C0 05-SCHEMA.md:1783).
+4. No change to assertions in assign.test.ts or the other dispatch suites. No implementation change.

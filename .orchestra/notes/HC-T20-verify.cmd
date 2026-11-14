@@ -1,0 +1,1 @@
+cd /d "%~dp0..\.." && node node_modules\vitest\vitest.mjs run --config apps/web/src/features/homecollection/__tests__/vitest.hc-t20.config.ts --maxWorkers=1 --testTimeout=60000 --hookTimeout=120000 --teardownTimeout=120000

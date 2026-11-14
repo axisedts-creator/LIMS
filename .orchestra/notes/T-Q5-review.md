@@ -1,0 +1,6 @@
+APPROVE
+
+Round 4 (diff 13b8a741..HEAD). Round-3 item 1 fixed: QueueDisplay.tsx no longer renders its own stale banner; the `hhmm` helper is gone and nothing else uses the `lims-queue-display-stale` class. The kit QueueBoard is now the only `role="status"` "Connection lost" region (LD-145). The tester changed t-q5.source.test.ts as asked: `all()` also reads the kit QueueBoard.tsx (the relative path resolves to the repo root), and the new assertion stops "Connection lost" from coming back into the (display) sources. queueboard.test.tsx:78-79 follows the ruling: Asia/Kathmandu, 02:50 PM / 14:50.
+I ran the T-Q5 verify: web t-q5 passed 19/19 and queueboard passed 10/10. packages/ui tsc gave 0 errors. apps/web tsc gave no errors in the (display)/QueueDisplay/QueueBoard files.
+Checked OK (unchanged since round 3): the QueueBoard props match 04-UI-UX §9.2. The cookie name and attributes, the BFF display-token relay and the layout with no shell are unchanged. There is no PHI and there are no secrets. Only owned paths and the LD-145 kit paths are touched. There is no DB/RLS work.
+Non-blocking (carried over): `soundEnabled={false}` is hardcoded, so there is no operator control yet. The stale banner has no icon (LD-140). The e2e still needs a compose run. W7 pairing belongs to T-Q4.

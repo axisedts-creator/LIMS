@@ -1,0 +1,58 @@
+{
+  "reportKind": "final",
+  "statusLabel": "Final",
+  "amendmentNotes": [],
+  "sections": [
+    {
+      "kind": "department",
+      "departmentId": "01900000-0000-7000-8000-000000000012",
+      "departmentName": "Clinical Pathology",
+      "approvedBy": [
+        "Dr. Synthetic Signatory A"
+      ],
+      "blocks": [
+        {
+          "comments": [],
+          "panelName": "URINE R/E",
+          "specimenLine": "URINE (RANDOM)",
+          "subgroups": [
+            {
+              "subheading": "Chemical examination",
+              "lines": [
+                {
+                  "analyteId": "01900000-0000-7000-8000-000000000048",
+                  "resultId": "01900000-0000-7000-8000-000000001009",
+                  "versionNo": 1,
+                  "valueBold": false,
+                  "images": [],
+                  "name": "pH",
+                  "valueText": "6.0"
+                },
+                {
+                  "analyteId": "01900000-0000-7000-8000-000000000049",
+                  "resultId": "01900000-0000-7000-8000-00000000100a",
+                  "versionNo": 1,
+                  "valueBold": true,
+                  "images": [],
+                  "name": "Protein",
+                  "valueText": "2+",
+                  "flagLabel": "Abnormal",
+                  "refRangeText": "Negative"
+                },
+                {
+                  "analyteId": "01900000-0000-7000-8000-00000000004a",
+                  "resultId": "01900000-0000-7000-8000-00000000100b",
+                  "versionNo": 1,
+                  "valueBold": false,
+                  "images": [],
+                  "name": "Sugar",
+                  "valueText": "Negative"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

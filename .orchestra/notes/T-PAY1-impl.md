@@ -1,0 +1,7 @@
+# T-PAY1 impl (writer)
+- API: `service/payment.service.ts` (E41/E42), `handlers/payment.handlers.ts`, wired in `handlers/index.ts`. Worker: `tasks/payment_tasks.ts` (create_payment_intent, refresh_payment_request, expire_payment_requests), registered in worker `index.ts` + cron row `*/10 * * * *` in `cron.ts`. App: `lib/features/payments/{payments_api,payments_providers,pay_due_screen,payment_result_screen}.dart`.
+- Tests run: API payment.handlers 29/29, worker payment.tasks 30/30, Flutter test/features/payments 51/51, flutter analyze clean. Wider: worker engagement 392 pass; API engagement 1520 pass, 1 fail = `boot.test.ts` phase-stub (pre-existing, not T-PAY1).
+- [CONV] E41 cross-account open request (RLS hides it, partial unique stops insert) -> `ON CONFLICT DO NOTHING`, none inserted -> `common.idempotency_in_progress` (declared on E41). Not covered by the fake world.
+- [CONV] refresh task touches `updated_at` on every check (E42's "last checked"); unusable createIntent answer (no url / amount) rejects -> retry then dead-letter, row stays queued.
+- [CONV] app: key reset after a terminal failure or a gateway change, kept after an E41 network error (P-8); only an https action url is opened; "Try again" = `Navigator.maybePop` (back to A11).
+- OPEN: no route for `/payments/:id/done` and no "Pay" entry on A11 (router.dart / orders feature are not owned by T-PAY1); `payment_completed` notification is T-N1. Real-Postgres RLS and the 426 guard untested.

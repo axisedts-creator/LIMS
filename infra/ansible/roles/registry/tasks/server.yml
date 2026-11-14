@@ -1,0 +1,137 @@
+---
+# ops-1 only (gated in main.yml). No pull-through cache: third-party images
+# are mirrored by digest with `ci/push.sh mirror` (02-TRD s12.2).
+- name: Preconditions (ops host, registry_htpasswd present)
+  ansible.builtin.assert:
+    that:
+      - "'ops' in group_names"
+      - registry_htpasswd | default('') | length > 0
+    fail_msg: "registry: not the ops host or secret registry_htpasswd missing"
+  no_log: true
+
+- name: /run/lims is tmpfs (never a disk path)
+  ansible.builtin.command: findmnt -n -o FSTYPE --target /run/lims
+  register: registry_fstype
+  changed_when: false
+  failed_when: registry_fstype.stdout | trim != 'tmpfs'
+
+- name: Directories
+  ansible.builtin.file:
+    path: "{{ item.0 }}"
+    state: directory
+    owner: "{{ item.1 }}"
+    group: "{{ item.1 }}"
+    mode: "{{ item.2 }}"
+  loop:
+    - ["{{ registry_etc }}", root, "0755"]
+    - ["{{ registry_storage }}", "{{ registry_uid }}", "0750"]
+    - ["{{ registry_auth_dir }}", "{{ registry_uid }}", "0500"]
+  loop_control:
+    label: "{{ item.0 }}"
+
+- name: htpasswd on tmpfs (registry_htpasswd)
+  ansible.builtin.copy:
+    content: "{{ registry_htpasswd }}\n"
+    dest: "{{ registry_auth_dir }}/htpasswd"
+    owner: "{{ registry_uid }}"
+    group: "{{ registry_uid }}"
+    mode: "0400"
+  no_log: true
+  register: registry_auth_file
+
+# The docker daemon (not the CLI) pulls; it reaches upstream registries only
+# via the ops Squid proxy. Own wg names stay direct.
+- name: Docker daemon upstream proxy (ops Squid :3128)
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/docker.service.d/20-lims-ops-proxy.conf
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      [Service]
+      Environment="HTTPS_PROXY={{ registry_upstream_proxy }}"
+      Environment="HTTP_PROXY={{ registry_upstream_proxy }}"
+      Environment="NO_PROXY={{ no_proxy }}"
+  vars:
+    no_proxy: "localhost,127.0.0.1,{{ registry_name }},{{ registry_wg_ip }}"
+  notify: Restart docker
+
+- name: Flush handlers (docker proxy before the first pull)
+  ansible.builtin.meta: flush_handlers
+
+- name: Compose file
+  ansible.builtin.template:
+    src: compose.registry.yml.j2
+    dest: "{{ registry_etc }}/compose.yml"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Registry up
+  ansible.builtin.command: >-
+    docker compose -f {{ registry_etc }}/compose.yml up -d --remove-orphans
+  register: registry_up
+  changed_when: registry_up.stderr is search('Creat|Start')
+
+# pki/README: the registry keeps the old cert (and htpasswd) in memory
+# until restarted.
+- name: Restart registry after a leaf re-issue (internal_ca_reissued)
+  ansible.builtin.command: >-
+    docker compose -f {{ registry_etc }}/compose.yml restart registry
+  when: >-
+    'registry' in internal_ca_reissued | default([])
+    or registry_auth_file is changed
+  changed_when: true
+
+- name: Retention + garbage-collect script
+  ansible.builtin.template:
+    src: registry-gc.sh.j2
+    dest: /usr/local/sbin/lims-registry-gc
+    owner: root
+    group: root
+    mode: "0750"
+  vars:
+    # Digests pinned in infra/releases/*.lock.yaml are never pruned
+    # (02-TRD s12.3 step 1, AC-20.3 rollback). Re-run the play after a
+    # lock change so the script picks up new pins.
+    registry_lock_text: >-
+      {% for f in query('ansible.builtin.fileglob',
+      registry_releases_dir ~ '/*.lock.yaml') %}{{
+      lookup('ansible.builtin.file', f) }}
+      {% endfor %}
+    registry_pinned_digests: >-
+      {{ registry_lock_text | regex_findall('sha256:[0-9a-f]{64}') | unique }}
+
+- name: Retention + garbage-collect systemd units
+  ansible.builtin.copy:
+    dest: "/etc/systemd/system/{{ item.name }}"
+    content: "{{ item.content }}"
+    owner: root
+    group: root
+    mode: "0644"
+  loop:
+    - name: lims-registry-gc.service
+      content: |
+        [Unit]
+        Description=LIMS registry retention + garbage-collect
+        [Service]
+        Type=oneshot
+        ExecStart=/usr/local/sbin/lims-registry-gc
+    - name: lims-registry-gc.timer
+      content: |
+        [Unit]
+        Description=Weekly LIMS registry garbage-collect
+        [Timer]
+        OnCalendar={{ registry_gc_on_calendar }}
+        Persistent=true
+        [Install]
+        WantedBy=timers.target
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: Garbage-collect timer enabled
+  ansible.builtin.systemd_service:
+    name: lims-registry-gc.timer
+    enabled: true
+    state: started
+    daemon_reload: true

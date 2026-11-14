@@ -1,0 +1,8 @@
+# MET-T03 tests (tester)
+- Test: `services/api/src/modules/instruments/__tests__/hostQuery.getein_metis.test.ts` (58 cases: 54 run, 4 `it.todo`). Goldens: `drivers/getein_metis/testdata/{qry-found(.qck,.dsr),qry-not-found(.qck),qry-no-mapped-test(.qck),qry-sample-range(.qck),qry-time-range(.qck),ack-q03-mismatched-id}.hl7`.
+- Run: `.orchestra/notes/MET-T03-verify.cmd` (= `pnpm --dir services/api exec vitest run src/modules/instruments/__tests__/hostQuery.getein_metis.test.ts`). Now: 48 fail (extractHostQueryBarcodes / buildHostQueryReply missing, parse() gives kind other for QRY), 6 pass (ACK^Q03, schema, inert-while-generic).
+- SEAMS: parse(QRY^Q02) = host_query + one record {host_query, sampleBarcode} for mode (a), none for (b)/(c); QRD/QRF echoed byte for byte from the query (the manual's DSR example differs, U14); QCK/DSR MSH-3..6 blank as in §5 (LIS/LIMS is for ACK^R01 only); MSH-10 = MSA-2 = query id, no suffix.
+- SPEC GAP 1: `HostQueryAnswer` has no patient id, name, DOB, collection/received time or specimen type (CR-C7-018 pending). Tests pin DSP-1,3,4,12,23 empty, DSP-24 Y/N from priority, DSP-26 = `others`, DSP-5 M/F/O. name_script / specimen_type_map: schema tests plus "no effect today"; data effects are `it.todo`.
+- SPEC GAP 2: `service/hostQuery.service.ts` parseQuery() rejects an empty barcode list, so modes (b)/(c) cannot reach the NF reply through the service. Driver-level NF is tested; the end-to-end case is `it.todo`. Needs a CR (not C7b-owned in this task).
+- `dsr_item_details = full`: HostQueryAnswer has no name/unit/range, so only "same ids, four ^-components" is asserted.
+- Not verified: ordering of replies vs the real analyser (U7, U9, U14); E2E tests go through the helpers' fake lab (barcode E2600000042).

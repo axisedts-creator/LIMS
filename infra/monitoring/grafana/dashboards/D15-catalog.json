@@ -1,0 +1,147 @@
+{
+  "uid": "lims-d15-catalog",
+  "title": "D15 Modules / Catalog & pricing",
+  "description": "04-UI-UX s3 D15 for C3; panels from the chunk TRD observability section (T-21).",
+  "tags": [
+    "modules",
+    "c3"
+  ],
+  "editable": false,
+  "schemaVersion": 39,
+  "version": 1,
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "refresh": "1m",
+  "templating": {
+    "list": []
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "text",
+      "title": "About this dashboard",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 2
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "Owner C3. Alert rules: `rules/imported/catalog.rules.yml`. Runbook: `infra/runbooks/catalog.md`."
+      }
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "lims_catalog_contact_reads_total",
+      "description": "Owner C3 (Catalog & pricing). Metric lims_catalog_contact_reads_total from api-a/b /metrics (02-TRD s11.2). Alerts: CatalogContactReadsSpike.",
+      "gridPos": {
+        "x": 0,
+        "y": 2,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(lims_catalog_contact_reads_total{purpose=\"notification\"}[5m]))"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "lims_catalog_import_tasks_inflight",
+      "description": "Owner C3 (Catalog & pricing). Metric lims_catalog_import_tasks_inflight from api-a/b /metrics (02-TRD s11.2). Alerts: CatalogImportStuck.",
+      "gridPos": {
+        "x": 12,
+        "y": 2,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max(lims_catalog_import_tasks_inflight)"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "lims_catalog_imports_total",
+      "description": "Owner C3 (Catalog & pricing). Metric lims_catalog_imports_total from api-a/b /metrics (02-TRD s11.2). Alerts: CatalogImportQuarantined.",
+      "gridPos": {
+        "x": 0,
+        "y": 10,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(lims_catalog_imports_total{outcome=\"quarantined\"}[5m]))"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "lims_catalog_port_calls_total",
+      "description": "Owner C3 (Catalog & pricing). Metric lims_catalog_port_calls_total from api-a/b /metrics (02-TRD s11.2). Alerts: CatalogNoPriceSpike, CatalogNoRangeSpike.",
+      "gridPos": {
+        "x": 12,
+        "y": 10,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(lims_catalog_port_calls_total{method=\"priceFor\",outcome=\"no_price\"}[5m]))"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "lims_catalog_port_duration_seconds_bucket",
+      "description": "Owner C3 (Catalog & pricing). Metric lims_catalog_port_duration_seconds_bucket from api-a/b /metrics (02-TRD s11.2). Alerts: CatalogPortLatency.",
+      "gridPos": {
+        "x": 0,
+        "y": 18,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(lims_catalog_port_duration_seconds_bucket[5m])))"
+        }
+      ]
+    }
+  ]
+}

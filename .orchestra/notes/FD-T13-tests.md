@@ -1,0 +1,8 @@
+# FD-T13 tests (registration page; US-FD-03.6, US-FD-15.1; LD-25 downtime toggle)
+- apps/web/src/features/frontdesk/__tests__/: vitest.fd-t13.config.ts, fd-t13.harness.tsx (MSW + fixtures; header = ASSUMED contract), fd-t13.static.test.ts, fd-t13.keyboard.test.tsx (§3.7 script ≤12 groups/no pointer, §3.5 shortcuts, reserved keys, double-submit), fd-t13.states.test.tsx (states, F9 error table, payment, credit badge, success panel, label flow D-4, LD-25 limits, PHI, axe).
+- Run: `.orchestra\notes\FD-T13-verify.cmd` (vitest via the repo-root binary + the test config; jsdom, MSW, axe).
+- ASSUMED seam: `features/frontdesk/components/RegistrationForm.tsx` exports `RegistrationForm({centres, permissions, defaultCentreId})`; page.tsx renders it; API only via server actions (serverFetch). Paths/labels/regexes are in the harness header; disputes via writer.
+- LD-25: toggle "Downtime back-entry" → fields "Original time" (kit DateTimePicker, Kathmandu) + "Paper form serial"; F9 adds entry_mode/occurred_at/downtime_ref; constant 72 h window (setting unreadable by front_desk, CR FD-T06-ld25-gaps). Limits tested: future, >72 h, 71 h ok, ref missing/33/32.
+- Ran: 63 fail / 0 pass for the right reason (RegistrationForm + route files missing). Not type-checked against real impl.
+- Not covered: duplicate-patient dialog (no payload shape in contract), barcode-wedge scan, TRF upload UI (FD-T10 API), Pay-by-QR (Phase 1.5), discount dialog submit, referrer/doctor quick-add, new-patient submit, <1280 px layouts. `@lims/shared-ts/routes` is not exported by package.json nor a dependency of apps/web: label route asserted via iframe src path only; writer needs the export (CR) or a local builder.
+- LD-70: probes/pending.json untouched.

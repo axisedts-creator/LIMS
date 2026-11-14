@@ -1,0 +1,5 @@
+# T0D-UI-R04 dispute (writer) — 1 test, test-isolation defect
+Test: `r04.keys.test.tsx` > scanner wedge > "after the search is submitted and the field is left, the next scan starts a fresh query".
+Fails only in the full file (86/87 pass); passes alone: `vitest run --config src/core/shell/__tests__/vitest.r04.config.ts --pool=threads src/core/shell/__tests__/r04.keys.test.tsx -t "fresh query"` -> 1 passed.
+Why: the previous test "an open dialog is never hijacked" appends `<div role=dialog aria-modal=true><button>` to document.body, focuses the button and never removes it (RTL cleanup only unmounts its own containers). The next test starts with focus still on that dialog button, so the scanner is (correctly, per the contract "never captured: an open dialog / interactive element") not captured and router.push is never called.
+Proposed fix (tester): in the dialog test, `dlg.remove()` at the end (or try/finally), or an afterEach that removes stray `[role=dialog]` nodes and blurs document.activeElement. No implementation change needed.

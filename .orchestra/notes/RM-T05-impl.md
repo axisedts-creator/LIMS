@@ -1,0 +1,7 @@
+# RM-T05 impl (writer)
+Files: contracts/openapi/identity.yaml (+listRolePacks, +applyRolePack, LD-150), contracts/routes.yaml (+staff.admin.role_packs), apps/web/src/app/(staff)/admin/roles/packs/page.tsx, apps/web/src/features/admin/roles/{RolePackApply.tsx,actions.ts}; review fix (LD-158): services/api/src/modules/identity/handlers/index.ts adds listRolePacks, applyRolePack to OPERATION_IDS, so both get the shared notImplemented stub (common.internal), no data access or logic.
+Result: RM-T05-verify.cmd suites pass: web 26/26, handlers-cover-contract 116/116. tsc: no errors in handlers/index.ts. Identity module suite: 4615 pass, 2 fail (below), 72 skipped.
+[CONV] applyRolePack schemas inline; diff mirrors RM-T02 (existing roles never rewritten, `updated` always []); Apply latches after success.
+OPEN (tester/lead): __tests__/role-packs/role-pack.service.test.ts "no applyRolePack operation in the identity OpenAPI contract or the handlers index" contradicts LD-150/LD-158; it has failed since the contract rows went in (9fd800f6), and it needs updating on the test side.
+OPEN (other chunks): role-packs/route-guard.test.ts fails on duplicate nav chord "g t" (anatomic.tracking vs homecollection.handovers); this is not RM-T05.
+OPEN (C0): t0d-12d / registry-equality route tests need updating for CR-C2-RM-001. Real role-pack handlers are not in this task. The Playwright spec has not been run (needs the stack).

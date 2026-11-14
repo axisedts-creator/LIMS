@@ -1,0 +1,11 @@
+---
+# 02-TRD s11.5: Prometheus on ops-1 only; no SQL datasource (no PHI).
+apiVersion: 1
+datasources:
+  - name: Prometheus
+    type: prometheus
+    uid: prometheus  # dashboards reference it (D12, T-20)
+    access: proxy
+    url: http://127.0.0.1:9090
+    isDefault: true
+    editable: false

@@ -1,0 +1,6 @@
+# T-L3 impl (writer)
+- Added `service/link.service.ts` (E15 flow), `handlers/link.handlers.ts` (assertRole `engagement.link.redeem` before any query); wired in `handlers/index.ts`.
+- Flow: strict body + URL check (`LIMS_ORIGIN_PORTAL` read lazily, unset -> 503 fail closed) -> account by `membership_id` -> `ReportingPort.redeemPortalLinkForApp` (any `reporting.link_invalid` -> 422 `engagement.link_code_invalid`, no detail) -> `app.engagement_apply_report_link` (200) else limit + insert `report_link` (201).
+- [CONV] insert wrapped in SAVEPOINT; 23505 lost race re-runs apply once, then 409 `engagement.link_limit_reached` (never 5xx). Job `engagement.backfill_link`, key `backfill:<link_id>`, max 10 (TRD §8.1). New-link `display_name` placeholder 'Linked patient' until backfill.
+- Run: `.orchestra/notes/T-L3-verify.cmd` -> 58/58 pass. Whole engagement dir: 1367 pass, 1 fail (`__tests__/boot.test.ts:92` PHASE_STUBS expects ['QualityPort'], got [] — not touched by T-L3). tsc: no errors in my files (repo-wide tsc has pre-existing contracts/ import errors).
+- Open: per-patient limit `max_accounts_per_patient` not enforced — CR filed `.orchestra/cr/T-L3.md` (DEFINER count), `// CR pending` comment at `checkLimit`; no E15 failure counter (C6 counts per token).

@@ -1,0 +1,7 @@
+# HC-T21 tests (tester)
+- apps/phlebo_app/__tests__/pinned_http_test.dart — REQ-SEC-104 MITM: real TLS server signed by an untrusted CA (same subject DN as pinned CA) -> HandshakeException, 0 requests reach it, refused on every retry; backup pin; empty/garbage pin set -> ArgumentError.
+- .../api_factory_test.dart — headers (Bearer, X-Lims-App-Version/Device-Id, Idempotency-Key grammar), https-only base URL, problem+json -> LimsException mapping (unregistered code / HTML / bad JSON -> common.internal, no leak), ApiTransportException.isTlsFailure.
+- .../app_skeleton_test.dart — Flavor/AppConfig.fromDefines, LD-24 error tracking (DSN unset -> off, limsBeforeSend), router paths from limsRoutePaths, location builders, LimsTheme.
+- .../ci_guards_test.dart — CI grep (no badCertificateCallback/HttpOverrides/raw HttpClient( in lib/), withTrustedRoots:false, no secrets, pubspec pins + root workspace entry, Android productFlavors dev/staging/prod.
+- support/tls_fixture.dart — builds throw-away PKI with `openssl` at test time (no committed keys; gitleaks has no allowlist). Needs openssl: $OPENSSL_BIN, PATH, or C:\Program Files\Git\usr\bin\openssl.exe. NOT run by me (openssl was blocked here).
+Run: .orchestra\notes\HC-T21-verify.cmd. Tests live in __tests__/ (tester path rule), not test/. ASSUMED API (file names/signatures) is in each test header; impl must create apps/phlebo_app/pubspec.yaml, add it to root workspace, and add sentry_flutter/go_router exact pins.

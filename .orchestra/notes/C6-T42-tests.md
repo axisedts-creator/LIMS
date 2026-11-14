@@ -1,0 +1,8 @@
+C6-T42 tests (portal dues payment, AC-18.1–18.7). Red now: PP1/PP2 are 501 stubs; tasks create/refresh, expire cron, purge_ephemeral and portal pay pages do not exist.
+- api: services/api/src/modules/reporting/__tests__/portal.payment.test.ts (+ portal.payment.helpers.ts; portal.helpers.ts extended additively: fake `portal_payment_requests` with CHECKs/guard/open-index/system DELETE).
+- worker: services/worker/src/jobs/reporting/__tests__/portal_payment.tasks.test.ts (manifest, create, refresh, expire, purge, API+worker flow). Task ids/payload { tenant_id, portal_payment_request_id }; expire/purge payload { tenant_id }.
+- portal: tests/portal-e2e/C6-T42.static.test.mjs (node:test) + C6-T42.pay.e2e.ts (Playwright, own config playwright.pay.config.ts, portal :3201, stub-reporting-pay.mjs :4127; *.e2e.ts so the T30 config ignores it).
+- Run all: .orchestra\notes\C6-T42-verify.cmd. Checked red now: api 27 fail/4 pass, worker 21 fail/2 pass, static fail; Playwright NOT run (needs the pages).
+- Assumptions: handlers createPortalPaymentRequest/getPortalPaymentRequest as P1–P6; PP2 headers incl. cache-control no-store; 409 detail `payment_in_progress` in LimsError.detail; 400 path `/gateway` in errors[]; eSewa needs `launchUrl` else failed `unsupported_action`.
+- Scope note: `reporting.purge_ephemeral` is in no plan task and not yet in the manifest; only its payment-row purge is tested (fake allows DELETE on payment/otp/session tables for it). Idempotency-Key replay (AC-18.4) is core middleware: covered only by the contract test (x-idempotency required).
+- Page copy/markup (button names, "Continue to eSewa", meta refresh) taken from 04-UI-UX §4 / 03-APP-FLOW rows 6–8; E2E selectors are writer assumptions.

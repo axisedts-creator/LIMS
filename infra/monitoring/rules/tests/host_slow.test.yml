@@ -1,0 +1,61 @@
+# T-19 (tester, LD-39): slow host rules. evaluation_interval = series interval = 1d, every eval_time sits on a
+# sample (same technique as restore_drill_overdue.test.yml). Synthetic series only.
+# AC-16.1 PatchOverdue: > 35 d since lims_ops_last_patch_timestamp_seconds{host} -> warn.
+# StorageVolumeForecastFull: predict_linear(avail{mountpoint="/srv/lims/storage"}[30d], 90 d) < 0 -> warn.
+rule_files:
+  - ../host.rules.yml
+evaluation_interval: 1d
+tests:
+  - interval: 1d
+    name: PatchOverdue - last patch at epoch 0, 34 d later -> quiet
+    input_series:
+      - series: 'lims_ops_last_patch_timestamp_seconds{host="app-1"}'
+        values: "0x40"
+    alert_rule_test:
+      - alertname: PatchOverdue
+        eval_time: 34d
+        exp_alerts: []
+
+  - interval: 1d
+    name: PatchOverdue - 36 d later -> warn for that host only
+    input_series:
+      - series: 'lims_ops_last_patch_timestamp_seconds{host="app-1"}'
+        values: "0x40"
+      - series: 'lims_ops_last_patch_timestamp_seconds{host="data-1"}'
+        values: "2592000x40"
+    alert_rule_test:
+      - alertname: PatchOverdue
+        eval_time: 36d
+        exp_alerts:
+          - exp_labels: {severity: warn, team: ops, host: app-1}
+
+  - interval: 1d
+    name: StorageVolumeForecastFull - 30 d decline projects empty within 90 d -> warn
+    input_series:
+      - series: 'node_filesystem_avail_bytes{host="app-1", mountpoint="/srv/lims/storage"}'
+        values: "1000000000000-20000000000x30"
+    alert_rule_test:
+      - alertname: StorageVolumeForecastFull
+        eval_time: 30d
+        exp_alerts:
+          - exp_labels: {severity: warn, team: ops, host: app-1, mountpoint: /srv/lims/storage}
+
+  - interval: 1d
+    name: StorageVolumeForecastFull - flat storage volume -> quiet
+    input_series:
+      - series: 'node_filesystem_avail_bytes{host="app-1", mountpoint="/srv/lims/storage"}'
+        values: "1000000000000x30"
+    alert_rule_test:
+      - alertname: StorageVolumeForecastFull
+        eval_time: 30d
+        exp_alerts: []
+
+  - interval: 1d
+    name: StorageVolumeForecastFull - only the storage mountpoint is judged
+    input_series:
+      - series: 'node_filesystem_avail_bytes{host="app-1", mountpoint="/"}'
+        values: "1000000000000-20000000000x30"
+    alert_rule_test:
+      - alertname: StorageVolumeForecastFull
+        eval_time: 30d
+        exp_alerts: []

@@ -1,0 +1,4 @@
+- Cause: verify log fails in bootstrap, not in HC-T13 code: migration 20261113230000_instruments__add_truth_h80e_driver.sql (C7/H80-T05) lacks `SET LOCAL ROLE lims_owner;`, so lims_migrator gets "permission denied for schema instruments". review.test.ts never ran.
+- Fix: none in C17b-owned code (file not ours, CLAUDE.md). Filed `.orchestra/cr/HC-T13.md` with the one-line fix for C7. Re-run HC-T13-verify.cmd after it lands.
+- Round 2: verify log unchanged (same bootstrap error). Migration 20261113230000_instruments__add_truth_h80e_driver.sql still has no `SET LOCAL ROLE lims_owner;`. CR .orchestra/cr/HC-T13.md still open. No C17b code change possible; blocked on C7 fix.
+- Round 3: verify log still ends at same bootstrap error (`permission denied for schema instruments`); migration still lacks `SET LOCAL ROLE lims_owner;`; CR .orchestra/cr/HC-T13.md still open. No C17b-owned change possible. Not re-run (nothing changed). Needs C7 fix merged first.

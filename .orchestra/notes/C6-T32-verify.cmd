@@ -1,0 +1,1 @@
+cd /d "%~dp0..\.." && node --test --test-name-pattern="view column contract|views: the 3" tests/db/T0B-10.C6.reporting.test.mjs && pnpm --dir services/worker exec vitest run src/jobs/reporting/__tests__/assemble_modules.test.ts && pnpm --dir services/renderer exec vitest run src/templates/__tests__/modules-smart.test.ts

@@ -1,0 +1,22 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`RS-C6 portal key-screen outline snapshots (recorded once by the writer, LD-170; a baseline, not proof the look is right) > app fallback 1`] = `"h1  Lab app"`;
+
+exports[`RS-C6 portal key-screen outline snapshots (recorded once by the writer, LD-170; a baseline, not proof the look is right) > link landing 1`] = `
+"h1  View your lab report
+form javascript:throw new Error('React form unexpectedly submitted.') Send me a code
+button  Send me a code"
+`;
+
+exports[`RS-C6 portal key-screen outline snapshots (recorded once by the writer, LD-170; a baseline, not proof the look is right) > report page with dues 1`] = `
+"h1  Your lab report
+h2  Synthetic Lab
+a /r/AbCdEfGhIjKlMnOpQrStUv/download Download PDF
+form /r/AbCdEfGhIjKlMnOpQrStUv/signout Sign out
+button  Sign out
+h2  Payment
+form /r/AbCdEfGhIjKlMnOpQrStUv/pay Pay with eSewa
+input gateway 
+input nonce 
+button  Pay with eSewa"
+`;

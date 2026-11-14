@@ -1,0 +1,6 @@
+APPROVE
+- Scope: probes/* (coverage.test.ts, probes.test.ts, harness.ts, matrix.device.ts, matrix.staff.ts) + per ruling: boot.test.ts IMPLEMENTED list, handlers/instruments.handlers.ts, handlers/index.ts. All inside C7 module paths.
+- done_when "100 % operation coverage (07-SECURITY §6)": coverage.test.ts derives the op list from contracts/openapi/instruments.yaml (41 ops, no E09) and fails on any op without a probe or still served by the `common.internal` stub; probes.test.ts runs S-01 + S-02 per op and S-05 credential kind for the 8 device ops.
+- Handler wiring matches the existing service signatures (instruments/settings/observedCodes/hostQuery .service.ts); names snake_case per contract; If-Match parse identical to agents.handlers.ts; fail closed (auth.unauthenticated) without ctx. No invented names, no PHI in logs, no secrets.
+- Ran: `npx vitest run src/modules/instruments/__tests__/probes src/modules/instruments/__tests__/boot.test.ts` -> 3 files, 166/166 pass.
+- Not defects of this task (carry forward): config publisher still `unwiredPublisher` (E26-E31/E41 changes that publish answer common.internal until a publisher is injected); real RLS/FORCE RLS/column grants are covered by db/tests (S-03/S-14/S-15), not here; probes do not re-run the core pipeline (scheme/aal2/rate tier).

@@ -1,0 +1,17 @@
+[Unit]
+Description=LIMS object replica sync to the DR host (02-TRD s9.5)
+After=network-online.target wg-quick@wg0.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+Environment=REPLICA_SRC={{ object_replica_src }}
+Environment=REPLICA_DEST={{ object_replica_dest }}
+Environment=TEXTFILE_DIR=/var/lib/node_exporter/textfile
+ExecStart=/usr/local/lib/lims/bin/lims-object-replica.sh
+Nice=10
+IOSchedulingClass=idle
+ProtectSystem=strict
+ReadWritePaths=/var/lib/node_exporter/textfile
+PrivateTmp=true
+NoNewPrivileges=true

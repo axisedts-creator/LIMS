@@ -1,0 +1,5 @@
+TESTS_WRONG — all 3 disputed assertions in c6-t31.screens.test.tsx contradict the spec/contract; implementation stays as is.
+1. Revoke QR (screens L483): fixture `ADMIN` (c6-t31.fixtures.ts:9) lacks `reporting.token.revoke`, yet R14 `revokeReportQrToken` requires it (spec/chunks/C6-reporting-delivery/02-TRD.md:572; contracts/openapi/reporting.yaml:1229) and actions are shown "by version status and permission" (03-APP-FLOW.md:367); tenant_admin holds it (01-PRD.md:39, 02-TRD.md:1161). Fix: add `'reporting.token.revoke'` to `ADMIN` in c6-t31.fixtures.ts:9.
+2. Edit drawer (screens L872): user-event parses `{lab_name}` as a key descriptor, so the typed value is 'Synthetic body for '; the spec'd expectation at L877 is right but the input is wrong. Fix: L872 type `'Synthetic body for {{lab_name}'` (`{{` = literal `{`); keep L877 unchanged.
+3. Generate callback URL (handler L82, test L890): contract op `rotateChannelCallbackToken` is `POST /v1/reporting/channel-accounts/{channel}/callback-token` (reporting.yaml:4687-4689); handler at L82 omits `/callback-token`. Fix: L82 path `${R}/channel-accounts/:channel/callback-token`.
+LD-70 (pending.json) not involved.

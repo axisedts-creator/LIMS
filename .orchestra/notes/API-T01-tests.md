@@ -1,0 +1,6 @@
+# API-T01 tests
+- File (vitest): `services/api/src/modules/instruments/__tests__/boot.test.ts` (modelled on `modules/lab/__tests__/boot.test.ts`). Run: `.orchestra\notes\API-T01-verify.cmd` (needs `pnpm install`).
+- Covers: manifest passes core `validateManifest` (name, openapi, 4 produced events, no ports/claimsResolver); handler keys == 41 instruments.yaml operationIds, stubs throw `common.internal`; missing/extra handler rejected; `INSTRUMENTS_PERMISSIONS` == 11 `instruments.*` codes, 8 deviceToken ops <-> `instruments.ingest.*` (REQ-SEC-072); config (TRD §11 defaults, ranges, fail-fast, AC-21.3 sketch drivers, required keys in staging/prod); real `bootstrap` mounts all routes, unauthenticated user/device calls 401, non-spec path 404.
+- SEAMS (header comment fixes them): exports `handlers`, `INSTRUMENTS_PERMISSIONS`, `loadInstrumentsConfig(env)` + field names; "production-like" = NODE_ENV=production or LIMS_CORE_ENV staging/production.
+- Fails now because `../index.ts`, `../config.ts`, `../permissions.ts`, `../handlers/index.ts` do not exist (import error).
+- Not run here: no node_modules in this worktree. Later tasks move replaced operationIds into the test's `IMPLEMENTED` list.

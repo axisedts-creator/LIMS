@@ -1,0 +1,18 @@
+{
+  "ok": true,
+  "messageKind": "results",
+  "messageTimeLocal": "2026-11-07T10:15:00",
+  "records": [
+    {
+      "recordSeq": 1, "recordClass": "patient", "sampleBarcode": "E2600000042", "recordKind": "quantitative",
+      "instrumentAnalyteCode": "GLU", "valueRaw": "5.4", "unitRaw": "mmol/L", "instrumentFlags": ["N"],
+      "instrumentResultTimeLocal": "2026-11-07T10:12:00", "isRerun": false, "warnings": []
+    },
+    {
+      "recordSeq": 2, "recordClass": "patient", "sampleBarcode": "E2600000042", "recordKind": "quantitative",
+      "instrumentAnalyteCode": "NA", "valueRaw": "141", "unitRaw": "mmol/L", "instrumentFlags": ["H", "A"],
+      "instrumentResultTimeLocal": "2026-11-07T10:12:00", "isRerun": false, "warnings": []
+    }
+  ],
+  "warnings": []
+}

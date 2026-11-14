@@ -1,0 +1,7 @@
+# T0B-03 impl (writer)
+- Files: `db/migrations/20261105000{200_core__create_tenants,300_core__create_branches_and_centres,400_core__create_users_and_memberships,500_core__create_roles_and_permissions,600_audit__create_audit_tables}.sql`, `db/policies/core.sql` (34 core policies, copied from the migrations). DDL/policies/grants verbatim from 05-SCHEMA §10.
+- [CONV] `app.enforce_mutable_columns` + `app.tg_row_audit` live in the tenants file (first audited table); REVOKE ALL FROM PUBLIC on them and on has_all_centres/current_centre_ids.
+- [CONV] audit.g_cs_access_actions/audit_log/access_log created here in an `_audit__` file (tests need them); T0B-04 keeps seed + `db/policies/audit.sql`. g_system_actors/g_task_registry grants left to T0B-05 (tables not created).
+- Run: `node --test "tests/**/*.test.mjs"` 158/158 (T0B-03 20/20). pgTAP on throwaway supabase/postgres:17.11.0.018, migrations from empty OK: isolation 216/216, audit 92/93, schema aborts at line 152 (test defect; 168/168 with the cast).
+- Open: see `T0B-03-dispute.md` (schema test cast; audit test 78 = spec CHECK NULL hole → `.orchestra/cr/T0B-03.md`). membership_branches + tg_scope_user_only = T0B-06.
+- Review fix: LD-02 applied, `audit_log__actor__ck` 2nd branch = `coalesce(detail ? 'maintenance', false)` (audit migration :26). Static T0B-03 20/20. pgTAP NOT re-run (docker not approved). Full node suite 183/191; the 8 failures are T0A-02 lockfile/TRD tests (pnpm-lock.yaml gone after T0D-12b merge), not T0B-03.

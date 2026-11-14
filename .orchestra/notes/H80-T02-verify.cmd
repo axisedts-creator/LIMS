@@ -1,0 +1,1 @@
+pnpm --dir services/api exec vitest run src/modules/instruments/__tests__/unit/drivers-truth-h80e.test.ts src/modules/instruments/__tests__/unit/drivers-registry.test.ts src/modules/instruments/__tests__/unit/drivers-golden.test.ts

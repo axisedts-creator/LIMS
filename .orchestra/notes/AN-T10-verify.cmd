@@ -1,0 +1,1 @@
+cd /d "%~dp0..\.." && pnpm --dir services/api exec vitest run --no-file-parallelism src/modules/analytics/handlers/__tests__/referral.handler.test.ts src/modules/analytics/__tests__/ci/no-commission.test.ts

@@ -1,0 +1,60 @@
+---
+# yamllint disable rule:line-length
+# Transcribed by C1 (02-TRD s11.3 intake row) from:
+#   C11 02-TRD alerts list
+# Thresholds verbatim from the owner's list;
+# alert names and unstated `for` are [CONV].
+groups:
+  - name: anatomic
+    rules:
+      - alert: AnatomicConsumerDeadLetter
+        expr: >-
+          increase(lims_core_dead_letters_total{task=~"evt.anatomic.*"}[5m])
+          > 0
+        for: 0m
+        labels:
+          severity: warn
+          team: ops
+        annotations:
+          summary: >-
+            An anatomic pathology event consumer dead-lettered.
+          runbook_url: >-
+            infra/runbooks/anatomic.md#anatomicconsumerdeadletter
+      - alert: AnatomicImageQuarantined
+        expr: >-
+          sum by (tenant_id) (increase(lims_anatomic_image_processing_total{outcome="quarantined"}[1h]))
+          > 5
+        for: 0m
+        labels:
+          severity: warn
+          team: ops
+        annotations:
+          summary: >-
+            More than 5 images quarantined for one tenant in 1 h (security).
+          runbook_url: >-
+            infra/runbooks/anatomic.md#anatomicimagequarantined
+      - alert: AnatomicSubmitFailures
+        expr: >-
+          sum(rate(lims_anatomic_submit_failures_total[5m])) * 60 > 0.1
+        for: 10m
+        labels:
+          severity: warn
+          team: ops
+        annotations:
+          summary: >-
+            Anatomic pathology submit failures above 0.1/min for 10 min.
+          runbook_url: >-
+            infra/runbooks/anatomic.md#anatomicsubmitfailures
+      - alert: AnatomicLookupNotFoundSpike
+        expr: >-
+          sum(rate(lims_anatomic_lookup_total{result="not_found"}[5m])) *
+          60 > 50
+        for: 0m
+        labels:
+          severity: warn
+          team: ops
+        annotations:
+          summary: >-
+            Case/block/slide lookups not found above 50/min (possible enumeration).
+          runbook_url: >-
+            infra/runbooks/anatomic.md#anatomiclookupnotfoundspike

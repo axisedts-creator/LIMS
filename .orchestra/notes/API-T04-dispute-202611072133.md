@@ -1,0 +1,7 @@
+# API-T04 dispute (writer) — 3 test defects; implementation otherwise green (145/148 in the 4 API-T04 files)
+
+1. `agents.service.test.ts` E19 (line 337-338): reads `callsOf('listTransitions')[0].args[2]`, but the FakeRepo records `rec('listTransitions', t, [id, q], ...)` (agents.helpers.ts:166) — `args` has 2 entries, so `args[2]` is always `undefined` whatever the service passes. Fix: `args[1]` (same as revokeCredentials `[id, o]` → `args[1]`). Service passes `{ changedAtFrom, changedAtTo, cursor, limit: 50 }`.
+2. `unit/agents.mapper.test.ts` "does not mutate its input" (line 70): `structuredClone(row)` turns the fixture's `Buffer` secret_sha256 into a plain `Uint8Array`, and `toEqual` distinguishes the two, so it fails even for an untouched row (diff shows only Buffer vs Uint8Array on `secret_sha256`). Fix: compare `JSON.stringify` or clone with `Buffer.from` for that field, or use a hex fixture.
+3. `boot.test.ts` (API-T01, tester-owned) line 39: `IMPLEMENTED` is still `[]`, so the 12 "stub X throws common.internal" cases fail now that API-T04 replaced E10-E21 stubs (as the file's own comment says the replacing task's ids move there). Fix: add listAgents … listAgentReleases to `IMPLEMENTED`.
+
+Not disputed (pre-existing, unrelated): boot "against the real repo" cases in instruments/lab/catalog fail on `LIMS_CORE_ENV must be one of dev|ci|staging|production` (reporting config); core download.test.ts.

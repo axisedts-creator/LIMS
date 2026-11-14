@@ -1,0 +1,6 @@
+TESTS_WRONG (round 3) — the test's API stack calls `createIngestService()` with no repo, so the service uses the real SQL repo against the in-memory `world.tx` (whose `query` returns `{ rows: [] }` for anything but event_log). Every `findInstrument` misses, and every message is rejected `instruments.instrument_unknown`.
+1. Evidence (debug copy, since deleted): the agent posts well-formed batches (instrument_id = INS(1)/INS(2), base64 raw, sha256) and the API answers 200 with `results[*].outcome: "rejected", error_code: "instruments.instrument_unknown"`. `world.messages` = 0, events = 0.
+2. Every other test that uses this world passes its repo: `createIngestService({ repo: w.repo } as any)` (ingest.service.test.ts:15, ingest.logscan.test.ts:20, calibration.service.test.ts:14, perf/ingest.perf.test.ts:10). The seam in ingest.helpers.ts:7 says `createIngestService(deps?: { repo?, … })`. The header of this test says "FAKED: the DB (in-memory world of API-T09)", so the repo must be `world.repo`.
+3. Change (test line 81): `const service = createIngestService({ repo: world.repo } as any);` Keep every assertion unchanged.
+4. Checked: with only that line changed (in a scratch copy), all 4 tests pass: p95, archive count + exact raw bytes, retransmit dedupe, and TLS refusal (vitest 4 passed, 39 s).
+5. The tester owns the fix. The writer has not edited the test.

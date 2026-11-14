@@ -1,0 +1,3 @@
+user default off resetkeys resetchannels -@all
+user lims_api on #{{ valkey_lims_api_password | hash('sha256') }} ~* &* +@all -@dangerous
+user probe on nopass resetkeys resetchannels -@all +ping +config|get

@@ -1,0 +1,12 @@
+[Unit]
+Description=LIMS ClamAV signature age metric (lims_ops_scanner_signature_age_seconds, AC-28.2)
+
+[Service]
+Type=oneshot
+Environment=CLAMAV_DB_DIR=/srv/lims/clamav-db
+Environment=TEXTFILE_DIR=/var/lib/node_exporter/textfile
+ExecStart=/usr/local/lib/lims/bin/lims-clamav-metrics.sh
+ProtectSystem=strict
+ReadWritePaths=/var/lib/node_exporter/textfile
+PrivateTmp=true
+NoNewPrivileges=true

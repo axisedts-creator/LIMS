@@ -1,0 +1,198 @@
+---
+# 02-TRD s8.2: internal CA (5 years) issues the ops nginx and registry leaf
+# certificates (1 year). The CA key comes from secret id internal_ca_key,
+# is written to tmpfs only while signing and is removed in `always`.
+- name: Preconditions (ops host, CA key secret present)
+  ansible.builtin.assert:
+    that:
+      - "'ops' in group_names"
+      - internal_ca_key | default('') | length > 0
+    fail_msg: "internal_ca: not the ops host or secret internal_ca_key missing"
+  no_log: true
+
+- name: /run/lims is tmpfs (never a disk path)
+  ansible.builtin.command: findmnt -n -o FSTYPE --target /run/lims
+  register: internal_ca_fstype
+  changed_when: false
+  failed_when: internal_ca_fstype.stdout | trim != 'tmpfs'
+
+- name: PKI directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop: "{{ [internal_ca_dir] + leaf_dirs }}"
+  vars:
+    leaf_dirs: >-
+      {{ internal_ca_leaves | map(attribute='name')
+      | map('regex_replace', '^', internal_ca_dir ~ '/') | list }}
+
+- name: Signing work directory on tmpfs
+  ansible.builtin.file:
+    path: "{{ internal_ca_tmp }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+
+- name: Leaf private keys (generated on ops-1, never leave it)
+  ansible.builtin.command:
+    argv:
+      - openssl
+      - genpkey
+      - -algorithm
+      - EC
+      - -pkeyopt
+      - "ec_paramgen_curve:{{ internal_ca_leaf_curve }}"
+      - -out
+      - "{{ internal_ca_dir }}/{{ item.name }}/key.pem"
+    creates: "{{ internal_ca_dir }}/{{ item.name }}/key.pem"
+  loop: "{{ internal_ca_leaves }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: Leaf key mode
+  ansible.builtin.file:
+    path: "{{ internal_ca_dir }}/{{ item.name }}/key.pem"
+    owner: "{{ item.owner | default('root') }}"
+    group: root
+    mode: "0600"
+  loop: "{{ internal_ca_leaves }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: CA certificate present?
+  ansible.builtin.stat:
+    path: "{{ internal_ca_dir }}/ca.crt"
+  register: internal_ca_cert
+
+- name: Leaf certificates valid for 30 more days?
+  ansible.builtin.command:
+    argv:
+      - openssl
+      - x509
+      - -noout
+      - -checkend
+      - "{{ internal_ca_renew_before_s }}"
+      - -in
+      - "{{ internal_ca_dir }}/{{ item.name }}/cert.pem"
+  loop: "{{ internal_ca_leaves }}"
+  loop_control:
+    label: "{{ item.name }}"
+  register: internal_ca_leaf_check
+  changed_when: false
+  failed_when: false
+
+- name: Sign with the CA key on tmpfs only
+  when: >-
+    not internal_ca_cert.stat.exists or
+    internal_ca_leaf_check.results | selectattr('rc', 'ne', 0) | list
+    | length > 0
+  no_log: true
+  block:
+    - name: CA key to tmpfs (internal_ca_key)
+      ansible.builtin.copy:
+        content: "{{ internal_ca_key }}\n"
+        dest: "{{ internal_ca_tmp }}/ca.key"
+        owner: root
+        group: root
+        mode: "0400"
+      no_log: true
+
+    - name: CA certificate (self-signed, 5 years) from internal_ca_key
+      ansible.builtin.command:
+        argv:
+          - openssl
+          - req
+          - -x509
+          - -new
+          - -key
+          - "{{ internal_ca_tmp }}/ca.key"
+          - -days
+          - "{{ internal_ca_days }}"
+          - -subj
+          - "{{ internal_ca_subject }}"
+          - -addext
+          - "basicConstraints=critical,CA:TRUE,pathlen:0"
+          - -addext
+          - "keyUsage=critical,keyCertSign,cRLSign"
+          - -out
+          - "{{ internal_ca_dir }}/ca.crt"
+        creates: "{{ internal_ca_dir }}/ca.crt"
+      no_log: true
+
+    - name: Leaf CSR with subjectAltName
+      ansible.builtin.command:
+        argv:
+          - openssl
+          - req
+          - -new
+          - -key
+          - "{{ internal_ca_dir }}/{{ item.item.name }}/key.pem"
+          - -subj
+          - "/CN={{ item.item.name }}.{{ env }}.lims-ops"
+          - -addext
+          - "subjectAltName={{ item.item.san }}"
+          - -out
+          - "{{ internal_ca_tmp }}/{{ item.item.name }}.csr"
+      loop: "{{ internal_ca_leaf_check.results }}"
+      loop_control:
+        label: "{{ item.item.name }}"
+      when: item.rc != 0
+      changed_when: true
+
+    - name: Issue leaf certificate (1 year) with internal_ca_key
+      ansible.builtin.command:
+        argv:
+          - openssl
+          - x509
+          - -req
+          - -in
+          - "{{ internal_ca_tmp }}/{{ item.item.name }}.csr"
+          - -CA
+          - "{{ internal_ca_dir }}/ca.crt"
+          - -CAkey
+          - "{{ internal_ca_tmp }}/ca.key"
+          - -set_serial
+          - "{{ (2 ** 63) | random }}"
+          - -days
+          - "{{ internal_ca_leaf_days }}"
+          - -copy_extensions
+          - copy
+          - -extfile
+          - /dev/stdin
+          - -out
+          - "{{ internal_ca_dir }}/{{ item.item.name }}/cert.pem"
+        stdin: |
+          basicConstraints=critical,CA:FALSE
+          keyUsage=critical,digitalSignature
+          extendedKeyUsage=serverAuth
+      loop: "{{ internal_ca_leaf_check.results }}"
+      loop_control:
+        label: "{{ item.item.name }}"
+      when: item.rc != 0
+      changed_when: true
+      register: internal_ca_issued
+      no_log: true
+
+    # Consumers keep the old cert in memory: they restart on this list
+    # (ops-nginx: roles/monitoring; registry: T-23).
+    - name: Names of re-issued leaves (internal_ca_reissued)
+      ansible.builtin.set_fact:
+        internal_ca_reissued: >-
+          {{ internal_ca_issued.results | selectattr('changed')
+          | map(attribute='item.item.name') | list }}
+  always:
+    - name: Remove CA key and CSRs from tmpfs (internal_ca_key absent)
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop: "{{ [internal_ca_tmp ~ '/ca.key'] + csrs }}"
+      vars:
+        csrs: >-
+          {{ internal_ca_leaves | map(attribute='name')
+          | map('regex_replace', '^', internal_ca_tmp ~ '/')
+          | map('regex_replace', '$', '.csr') | list }}
+      no_log: true

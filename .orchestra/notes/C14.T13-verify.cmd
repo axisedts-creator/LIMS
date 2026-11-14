@@ -1,0 +1,1 @@
+pnpm --dir services/api exec vitest run src/modules/smartreport/__tests__/SmartReportPort.impl.contract.test.ts src/modules/smartreport/__tests__/SmartReportPort.impl.test.ts src/modules/smartreport/__tests__/SmartReportPort.phase1stub.contract.test.ts

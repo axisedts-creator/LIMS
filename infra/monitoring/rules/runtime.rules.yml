@@ -1,0 +1,79 @@
+---
+# 02-TRD s11.3 runtime family. Labels (service, host, instance) are added by
+# the scrape config (s11.2 item 1).
+groups:
+  - name: runtime
+    rules:
+      - alert: WorkerDown
+        expr: up{service=~"worker.*"} == 0
+        for: 2m
+        labels:
+          severity: page
+          team: ops
+        annotations:
+          summary: "Worker {{ $labels.service }} on {{ $labels.host }} is down."
+          runbook_url: "infra/runbooks/runtime.md#workerdown"
+      - alert: QueueBacklog
+        expr: lims_queue_depth > 500
+        for: 10m
+        labels:
+          severity: warn
+          team: ops
+        annotations:
+          summary: "Queue {{ $labels.task }} holds more than 500 jobs."
+          runbook_url: "infra/runbooks/runtime.md#queuebacklog"
+      # cAdvisor: a changed start time is a restart.
+      - alert: RendererRestarting
+        expr: changes(container_start_time_seconds{name=~".*renderer.*"}[1h]) > 3
+        labels:
+          severity: warn
+          team: ops
+        annotations:
+          summary: "Container {{ $labels.name }} restarted more than 3 times in an hour."
+          runbook_url: "infra/runbooks/runtime.md#rendererrestarting"
+      - alert: ScannerDown
+        expr: up{service="clamd"} == 0
+        for: 1m
+        labels:
+          severity: page
+          team: ops
+        annotations:
+          summary: "The malware scanner (clamd) on {{ $labels.host }} is down."
+          runbook_url: "infra/runbooks/runtime.md#scannerdown"
+      - alert: ScannerSignaturesStale
+        expr: lims_ops_scanner_signature_age_seconds > 3 * 86400
+        for: 5m
+        labels:
+          severity: warn
+          team: ops
+        annotations:
+          summary: "Scanner signatures on {{ $labels.host }} are older than 3 days."
+          runbook_url: "infra/runbooks/runtime.md#scannersignaturesstale"
+      - alert: StudioEnabled
+        expr: lims_ops_studio_enabled == 1
+        for: 5m
+        labels:
+          severity: info
+          team: ops
+        annotations:
+          summary: "Supabase Studio is enabled; switch it off after use."
+          runbook_url: "infra/runbooks/runtime.md#studioenabled"
+      # AC-11.3. C0 02-TRD: login/OTP/QR/report download fail closed with
+      # 503 common.dependency_unavailable while the backend is down.
+      - alert: ValkeyDown
+        expr: up{service="valkey"} == 0
+        for: 1m
+        labels:
+          severity: page
+          team: ops
+        annotations:
+          summary: "Valkey on {{ $labels.host }}: rate-limit backend down, logins/OTP fail closed."
+          runbook_url: "infra/runbooks/runtime.md#valkeydown"
+      - alert: DeployRolledBack
+        expr: increase(lims_ops_deploy_rolled_back_total[10m]) > 0
+        labels:
+          severity: page
+          team: ops
+        annotations:
+          summary: "A deploy was rolled back by ci/rollback.sh."
+          runbook_url: "infra/runbooks/runtime.md#deployrolledback"

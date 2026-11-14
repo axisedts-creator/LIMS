@@ -1,0 +1,7 @@
+# WEB-T03 impl (writer)
+- Files: forms/{transport,errors,instrument}.ts (pure; same rules client + BFF); server/{listDrivers,getInstrument,createInstrument,updateInstrument,startInstrumentCommissioning,goLiveInstrument,suspendInstrument,resumeInstrument,retireInstrument,shared}.server.ts, listInstruments (agentId optional + filters), types.ts (parseInstrumentQuery, DTOs), actions.ts (E24–E31 + errors[] in ActionResult); components/{InstrumentsList,InstrumentForm,InstrumentDetail}.tsx, labels.tsx; pages instruments/page.tsx, instruments/[instrument_id]/page.tsx; help/instruments.instruments.ts.
+- LD-79: Alt+I "New instrument" registered on SCR-05 (staff.instruments.instruments, manage only) + help entry; Alt+N never registered.
+- [CONV] texts (field errors, dialogs, 409/422 messages) not in spec; problem code always shown. BFF re-validates before any call. Idempotency-Key per form instance; one transition per instrument version.
+- [CONV] DescribedSwitch re-applies aria-describedby via MutationObserver; Timezone Select memoised; InstrumentForm handles Ctrl/Cmd+Enter in capture phase (react-aria buttons swallow Enter before Form sees it).
+- Tests (vitest.web-t03 config): 98/98 pass after ruling r2. tsc: 0 errors in owned impl files (fixed useRef arg, edit→'update' validate mode); remaining errors are test files (msw types) + app/layout.tsx css (not owned).
+- Open/CR: parser options from driver optionsSchema (E22 has none), History tab audit link (no audit id), centres empty (CR WEB-T02 b).

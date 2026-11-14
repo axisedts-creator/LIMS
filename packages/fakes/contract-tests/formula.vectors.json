@@ -1,0 +1,22 @@
+{
+  "//": "SYNTHETIC golden vectors for @lims/shared-ts/formula (C3 02-TRD §7.1; 08 R12a; CR-C3-002, CR-C5-002). Values are decimal strings compared numerically. X7 = log10 inexact case (C3 TRD §14). Inputs not given by the TRD table (G6 TC/HDL, G7 NEUT_ABS, G8 TP) are [CONV] synthetic fillers.",
+  "vectors": [
+    { "id": "G1", "expression": "MCV / RBC", "inputs": { "MCV": "70.0", "RBC": "5.60" }, "expected": { "ok": true, "value": "12.5", "inexact": false } },
+    { "id": "G2", "expression": "NEUT_ABS / LYMPH_ABS", "inputs": { "NEUT_ABS": "4.20", "LYMPH_ABS": "2.10" }, "expected": { "ok": true, "value": "2", "inexact": false } },
+    { "id": "G3", "expression": "PLT / LYMPH_ABS", "inputs": { "PLT": "250", "LYMPH_ABS": "2.00" }, "expected": { "ok": true, "value": "125", "inexact": false } },
+    { "id": "G4", "expression": "WBC * NEUT_PCT / 100", "inputs": { "WBC": "8.50", "NEUT_PCT": "60.0" }, "expected": { "ok": true, "value": "5.1", "inexact": false } },
+    { "id": "G5", "expression": "if(TG >= 400, invalid(\"tg_over_400\"), TC - HDL - TG / 5)", "inputs": { "TC": "200", "HDL": "50", "TG": "150" }, "expected": { "ok": true, "value": "120", "inexact": false } },
+    { "id": "G6", "expression": "if(TG >= 400, invalid(\"tg_over_400\"), TC - HDL - TG / 5)", "inputs": { "TC": "200", "HDL": "50", "TG": "450" }, "expected": { "ok": false, "reason": "tg_over_400" } },
+    { "id": "G7", "expression": "NEUT_ABS / LYMPH_ABS", "inputs": { "NEUT_ABS": "4.20", "LYMPH_ABS": "0" }, "expected": { "ok": false, "reason": "division_by_zero" } },
+    { "id": "G8", "expression": "TP - ALB", "inputs": { "TP": "7.0", "ALB": null }, "expected": { "ok": false, "reason": "missing_input:ALB" } },
+    { "id": "G9", "expression": "round(2 ^ 0.5, 3)", "inputs": {}, "expected": { "ok": true, "value": "1.414", "inexact": true } },
+    { "id": "G10", "expression": "if(@is_female == 1, A * 0.9, A)", "inputs": { "A": "10" }, "ctx": { "sex": "female" }, "expected": { "ok": true, "value": "9.0", "inexact": false } },
+    { "id": "X1", "expression": "0.1 + 0.2", "inputs": {}, "expected": { "ok": true, "value": "0.3", "inexact": false } },
+    { "id": "X2", "expression": "2 / 3", "inputs": {}, "expected": { "ok": true, "value": "0.6666666666666666666666666667", "inexact": false } },
+    { "id": "X3", "expression": "round(0.125, 2)", "inputs": {}, "expected": { "ok": true, "value": "0.13", "inexact": false } },
+    { "id": "X4", "expression": "sqrt(-1)", "inputs": {}, "expected": { "ok": false, "reason": "domain_error" } },
+    { "id": "X5", "expression": "if(@is_male == 1, A * 0.9, A)", "inputs": { "A": "10" }, "ctx": { "sex": "female" }, "expected": { "ok": true, "value": "10", "inexact": false } },
+    { "id": "X6", "expression": "@age_years", "inputs": {}, "ctx": { "sex": "unknown", "ageDays": 15341, "ageYears": 42 }, "expected": { "ok": true, "value": "42", "inexact": false } },
+    { "id": "X7", "expression": "log10(A)", "inputs": { "A": "50" }, "expected": { "ok": true, "value": "1.69897000433602", "inexact": true } }
+  ]
+}

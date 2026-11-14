@@ -1,0 +1,30 @@
+{
+  "name": "@lims/shared-ts",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./spreadsheet": {
+      "types": "./dist/spreadsheet/index.d.ts",
+      "default": "./dist/spreadsheet/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "26.6.6",
+    "typescript": "7.0.2"
+  },
+  "dependencies": {
+    "@lims/contracts": "workspace:*",
+    "@remotemerge/nepali-date-converter": "1.2.7",
+    "ajv": "8.17.1",
+    "pino": "10.4.0"
+  }
+}

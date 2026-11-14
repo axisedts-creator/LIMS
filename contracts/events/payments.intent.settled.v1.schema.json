@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:lims:event:payments.intent.settled.v1",
+  "allOf": [
+    {
+      "$ref": "urn:lims:event:_envelope.v1"
+    },
+    {
+      "type": "object",
+      "properties": {
+        "event_type": {
+          "const": "payments.intent.settled.v1"
+        },
+        "producer": {
+          "const": "payments"
+        },
+        "aggregate": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "payment_intent"
+            }
+          }
+        },
+        "payload": {
+          "$ref": "#/$defs/Payload"
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "Payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "intent_id",
+        "order_id",
+        "gateway",
+        "gateway_txn_ref",
+        "amount",
+        "verified_at",
+        "verification_method"
+      ],
+      "properties": {
+        "intent_id": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+        },
+        "order_id": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+        },
+        "invoice_id": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+        },
+        "gateway": {
+          "enum": [
+            "esewa",
+            "khalti",
+            "fonepay"
+          ]
+        },
+        "gateway_txn_ref": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "amount": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Money"
+        },
+        "verified_at": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/IsoUtc"
+        },
+        "verification_method": {
+          "enum": [
+            "esewa_status_check",
+            "khalti_lookup",
+            "fonepay_verification"
+          ]
+        },
+        "ledger_entry_id": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,7 @@
+# C6-T09 dispute (writer, round 2)
+Test: `services/worker/src/jobs/reporting/__tests__/render_report_version.test.ts:226-231` ("final attempt, the release enqueue rejects ... render_failed committed").
+Defect: harness bug. The fake tx (`consumers.helpers.ts:221-229`) logs `SAVEPOINT` / `ROLLBACK TO SAVEPOINT` as 'other' and does not snapshot/restore the store. In this case the `rendered` UPDATE succeeds and mutates the fake row, then the enqueue throws. `ROLLBACK TO SAVEPOINT render_attempt` is issued as the review prescribes, but the fake keeps `status = 'rendered'`. The render_failed UPDATE (`WHERE ... AND status = 'rendering'`, the guard that keeps a duplicate job from clobbering a finished version) then matches 0 rows. Received 'rendered', expected 'render_failed'.
+On real Postgres the rollback restores `rendering`, so the implementation is correct. The test expectation itself is right.
+Fix (tester): make the fake honour savepoints. On `SAVEPOINT x`, deep-copy `store` (and the length of `jobs`) under name x. On `ROLLBACK TO SAVEPOINT x`, restore them. Ignore `RELEASE SAVEPOINT`.
+Not done: I won't widen the render_failed WHERE or reorder the enqueue ahead of the UPDATE just to satisfy the fake.
+State: review #1 (release_if_eligible stub, maxAttempts 10) and #2 (SAVEPOINT render_attempt / ROLLBACK TO SAVEPOINT before fail) are applied. Worker reporting is 295/296; the only failure is the test above.

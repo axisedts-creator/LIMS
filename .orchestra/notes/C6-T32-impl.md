@@ -1,0 +1,7 @@
+# C6-T32 impl (writer) — done after ruling (fixture fixed by tester; no `?? 'active'` added)
+Files: api domain/document.ts (moduleKey, `moduleContent` input, micro/anatomic sections + KindSection phase), api service/assembly.service.ts (loadModuleContent hook), worker tasks/assemble_report.ts (VIEWS, single-table SELECT by tenant_id+entity_id+version_no, jsonb parse, missing/other-tenant row -> reject; tsc typing fix), renderer templates/lab/modules.ts (new) + lab/index.ts.
+[CONV] content = view row with 03-IC column names (explicit column list per §6.8); AST unit by method (mic µg/mL, zone_diameter mm), category + standard/version per row; images via assets.dataUri({source:'module_image', id=sha256, sha256}).
+Results: T0B-10 view contract 2/2, worker assemble_modules 27/27, renderer modules-smart 20/20. Worker reporting 411/411. tsc: no errors in lane files (pre-existing contracts/ports + shared-ts errors remain).
+Not mine, still red: api repository.static (portal.service.ts has 26 inline SQL, C6-T20); renderer sandbox.test.ts 23 fails (qpdf env). Neither touched by T32.
+Review fix: document.ts module loop now pushes micro/anatomic kindSections with amendmentReason and a lineNote (testName) for non-excluded reasons (02-TRD §4.5 rules 1–2). Worker reporting 418/418, api domain+modules 315/315, tsc clean for domain.
+Open: render task does not yet collect module_image bytes (P-13, render task).

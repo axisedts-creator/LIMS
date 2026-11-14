@@ -1,0 +1,22 @@
+# Managed by Ansible (02-TRD s5.6, REQ-SEC-137).
+{% if 'ops' in group_names %}
+# ops-1: internal server; syncs to ntp_upstreams from the inventory
+# (Nepal sources preferred - UNVERIFIED which exist; inventory value).
+{% for s in ntp_upstreams %}
+server {{ s }} iburst
+{% endfor %}
+# Serve the wg overlay only (nftables also limits udp 123 to wg peers).
+allow {{ wg_subnet }}
+{% else %}
+# Other hosts: ops-1 over wg0, plus the provider NTP (inventory, optional).
+{% for h in groups['ops'] %}
+server {{ hostvars[h].wg_ip }} iburst prefer
+{% endfor %}
+{% for s in provider_ntp_servers | default([]) %}
+server {{ s }} iburst
+{% endfor %}
+{% endif %}
+driftfile /var/lib/chrony/chrony.drift
+makestep 1.0 3
+rtcsync
+logdir /var/log/chrony

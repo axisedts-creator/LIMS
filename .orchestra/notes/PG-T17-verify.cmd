@@ -1,0 +1,1 @@
+pnpm --dir services/api exec vitest run src/modules/payments/__tests__/integration/merchant.service.test.ts src/modules/payments/__tests__/contract/merchant.contract.test.ts src/modules/payments/__tests__/helpers/merchantDb.test.ts && pnpm --dir services/worker exec vitest run src/jobs/payments/__tests__/integration/rewrap_credentials.test.ts

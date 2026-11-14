@@ -1,0 +1,90 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:lims:event:catalog.changed.v1",
+  "allOf": [
+    {
+      "$ref": "urn:lims:event:_envelope.v1"
+    },
+    {
+      "type": "object",
+      "properties": {
+        "event_type": {
+          "const": "catalog.changed.v1"
+        },
+        "producer": {
+          "const": "catalog"
+        },
+        "aggregate": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "catalog"
+            }
+          }
+        },
+        "payload": {
+          "$ref": "#/$defs/Payload"
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "Payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "catalog_revision",
+        "entity_type",
+        "entity_id",
+        "change_kind",
+        "effective_from"
+      ],
+      "properties": {
+        "catalog_revision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "entity_type": {
+          "enum": [
+            "department",
+            "specimen_type",
+            "container",
+            "test",
+            "analyte",
+            "panel",
+            "reference_range",
+            "critical_limit",
+            "comment_code",
+            "doctor",
+            "credit_party",
+            "price_list",
+            "surcharge_rule",
+            "tat_target",
+            "instrument_code_map",
+            "global_reference",
+            "method",
+            "unit",
+            "value_set",
+            "tax_rule",
+            "catalog_import"
+          ],
+          "x-extensible": true
+        },
+        "entity_id": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+        },
+        "change_kind": {
+          "enum": [
+            "created",
+            "updated",
+            "deactivated",
+            "versioned"
+          ]
+        },
+        "effective_from": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/IsoUtc"
+        }
+      }
+    }
+  }
+}

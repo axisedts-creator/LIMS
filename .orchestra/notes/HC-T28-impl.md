@@ -1,0 +1,7 @@
+# HC-T28 impl (writer)
+- NEW apps/phlebo_app/lib/core/sync/purge_triggers.dart (PurgeTriggers, PurgeReason); EDIT lib/core/sync/sync_engine.dart (SyncStatus.purged/wiped, optional purge/onWiped, cycle-start purge, session-end purge, wipe-after-drain + ack wipe_completed + sign-out). wipe.dart unchanged.
+- Tests: purge_triggers_test, purge_engine_test, purge_ci_guards_test all pass (42/42). `flutter test __tests__`: all pass EXCEPT db_ci_guards_test "no \blog\s*\( in core/db" — PRE-EXISTING: comment "mutation log (" at lib/core/db/outbox_db.dart:1 (HC-T22 file, not mine, untouched). Fix = reword that comment.
+- [CONV] stale at elapsed >= limit; limit = config_json.offline_purge_hours (default 16, non-int/<=0 -> 16); date = local y/m/d > meta.route_date; no route_date (cache never filled by a pull) / no last pull = never purged, so an empty cache rebuilt after an offline purge lets the next pull run (review #1); malformed route_date ignored.
+- [CONV] wipe is checked right after the pull (full or unchanged) and skips applying the snapshot; drained = no pending/sending rows; max_device_seq_acked read before destruction.
+- [CONV] a failed wipe ack is swallowed (DBs gone, nothing to retry from); sign-out still runs, status wiped, acked=false.
+- Open: spec silent on re-sending the wipe ack after a failure; an engine reused after purgeOnSessionEnd hits a closed cache (callers must build a new engine); analyze warnings only in test files (unused imports).

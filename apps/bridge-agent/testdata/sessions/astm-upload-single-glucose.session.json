@@ -1,0 +1,17 @@
+{"name": "astm-upload-single-glucose", "protocol": "astm", "transport": "pipe", "instrument_profile": "astm_generic_e1394", "options": {"receiver_frame_wait_s": 30},
+ "steps": [
+  {"from": "instrument", "bytes": "<ENQ>"},
+  {"expect": "agent", "bytes": "<ACK>", "within_ms": 200},
+  {"from": "instrument", "bytes": "<STX>1H|\\^&|||SIM-ANALYSER^0.1|||||||P|1<CR><ETX>1C<CR><LF>"},
+  {"expect": "agent", "bytes": "<ACK>", "within_ms": 200},
+  {"from": "instrument", "bytes": "<STX>2P|1<CR><ETX>3F<CR><LF>"},
+  {"expect": "agent", "bytes": "<ACK>", "within_ms": 200},
+  {"from": "instrument", "bytes": "<STX>3O|1|E2600000042||^^^GLU<CR><ETX>E8<CR><LF>"},
+  {"expect": "agent", "bytes": "<ACK>", "within_ms": 200},
+  {"from": "instrument", "bytes": "<STX>4R|1|^^^GLU|5.4|mmol/L||N||F<CR><ETX>04<CR><LF>"},
+  {"expect": "agent", "bytes": "<ACK>", "within_ms": 200},
+  {"from": "instrument", "bytes": "<STX>5L|1|N<CR><ETX>08<CR><LF>"},
+  {"expect": "agent", "bytes": "<ACK>", "within_ms": 200},
+  {"from": "instrument", "bytes": "<EOT>"},
+  {"expect_queue": {"items": 1, "kind": "data", "raw_sha256": "56ebd538f73ae63fd6cdc8ffc3bc2e4c948482e9570b7146c20f6c7878d0baaf"}}
+ ]}

@@ -1,0 +1,6 @@
+TESTS_WRONG — the test asserts something the spec does not require (say precisely what to change in the test)
+- Disputed case: services/worker/src/jobs/engagement/__tests__/close_queue_day.test.ts:112 "payload tenant_id but ctx without tenant".
+- Defect is JavaScript, not spec: `setup(nowIso, tenantId: string | undefined = TA)` (test:27) — a default parameter replaces an explicit `undefined`, so row 112 builds ctx.tenantId = TA. That is the same input as "matching tenant" (test:122), which the spec requires to expire tokens (spec/chunks/C16-patient-engagement/02-TRD.md:678; plan row 06-IMPLEMENTATION-PLAN.md:38). No implementation can satisfy both, so the test is self-contradictory.
+- Tenant guard intent stays valid (07-SECURITY.md:18 REQ-SEC-024 explicit tenant_id filters); only the fixture is wrong.
+- Required change (tester): make setup's ctx really lack a tenant for that row. E.g. drop the default, `function setup(nowIso: string, tenantId?: string | null)`, and in ctx use `tenantId: tenantId === null ? undefined : (tenantId ?? TA)`; change row 112's third element from `undefined` to `null`. Keep every other row and all assertions (0 db.calls, resolves undefined, 1 expired) unchanged.
+- Implementation needs no change for this case: guard `ctx.tenantId !== payload.tenant_id -> return` already returns with no statements when ctx.tenantId is undefined.

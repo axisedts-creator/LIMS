@@ -1,0 +1,19 @@
+{"name": "astm-send-6-failed-eot", "protocol": "astm", "transport": "pipe", "instrument_profile": "astm_generic_e1394", "options": {},
+ "steps": [
+  {"outbound": ["H|\\^&|||SIM-HOST^0.1|||||||P|1<CR>", "L|1|N<CR>"]},
+  {"expect": "agent", "bytes": "<ENQ>", "within_ms": 200},
+  {"from": "instrument", "bytes": "<ACK>"},
+  {"expect": "agent", "bytes": "<STX>1H|\\^&|||SIM-HOST^0.1|||||||P|1<CR><ETX>FB<CR><LF>", "within_ms": 200},
+  {"from": "instrument", "bytes": "<NAK>"},
+  {"expect": "agent", "bytes": "<STX>1H|\\^&|||SIM-HOST^0.1|||||||P|1<CR><ETX>FB<CR><LF>", "within_ms": 200},
+  {"from": "instrument", "bytes": "<NAK>"},
+  {"expect": "agent", "bytes": "<STX>1H|\\^&|||SIM-HOST^0.1|||||||P|1<CR><ETX>FB<CR><LF>", "within_ms": 200},
+  {"from": "instrument", "bytes": "<NAK>"},
+  {"expect": "agent", "bytes": "<STX>1H|\\^&|||SIM-HOST^0.1|||||||P|1<CR><ETX>FB<CR><LF>", "within_ms": 200},
+  {"from": "instrument", "bytes": "<NAK>"},
+  {"expect": "agent", "bytes": "<STX>1H|\\^&|||SIM-HOST^0.1|||||||P|1<CR><ETX>FB<CR><LF>", "within_ms": 200},
+  {"from": "instrument", "bytes": "<NAK>"},
+  {"expect": "agent", "bytes": "<STX>1H|\\^&|||SIM-HOST^0.1|||||||P|1<CR><ETX>FB<CR><LF>", "within_ms": 200},
+  {"from": "instrument", "bytes": "<NAK>"},
+  {"expect": "agent", "bytes": "<EOT>", "within_ms": 200}
+ ]}

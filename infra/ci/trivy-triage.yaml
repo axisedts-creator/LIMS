@@ -1,0 +1,4 @@
+# Triage list for scan.sh (02-TRD s12.2, 04 I9): a CRITICAL finding passes only with an entry here.
+# Each entry: id (CVE-/GHSA-), added and expires (ISO-8601 UTC); expires - added <= 72 h, else ignored.
+# Expired entries are ignored (the scan fails again). Keep this list empty unless triaged by on-call.
+entries: []

@@ -1,0 +1,9 @@
+# T-L2 impl (writer)
+- Files: api `service/link.service.ts` (`redeem`), `handlers/link.handlers.ts` (`redeemLinkCode`), `repository/linkCodes.repo.ts` (E14 queries), NEW `repository/views.repo.ts`, `service/projection.service.ts`; worker NEW `tasks/backfill_link.ts`, `index.ts` (manifest entry).
+- Results: API link.redeem 45/45; worker backfill_link 22/22; api `src/modules/engagement` 1269 pass, 1 FAIL `boot.test.ts` PHASE_STUBS (QualityPort) - not my files; worker `jobs/engagement` 245 pass; tsc: no errors in my files (upstream `contracts/ports` TS2835 noise). pgTAP .sql NOT run (needs live DB).
+- [CONV] DEFINER SQL sits in link.service.ts (source guard requires the name there); failure counter bucket = UTC `yyyymmddhh`, `expires_at` +24h (05-SCHEMA §7, review #3), 429 carries `retryAfterSeconds` to the hour end.
+- [CONV] backfill: report pages of 100 (C6 port/fake cap; TRD says 200); seq guard = `FOR UPDATE` pre-read + skip (specimens `status_seq`, orders `balance_version`), not `DO UPDATE .. WHERE` (world cannot evaluate it); `visible_at = registered_at ?? view.updated_at` for pre_registered.
+- [CONV] backfill of a merged / anonymised patient suspends the link and projects nothing; `display_name` / `sex_snapshot` refreshed only for `method = 'report_link'`.
+- Round 2: review #1/#2 filed as `.orchestra/cr/T-L2.md` (CR-pending comment in redeem); re-run API 45/45, worker 22/22.
+- OPEN (CR #1): per-patient limit (`max_accounts_per_patient`) counts links of OTHER accounts; real RLS PAT_ACC hides them from a patient actor, so `count(*)` in prod would see only own links -> needs a DEFINER count or CR (tester flagged the same).
+- OPEN (CR #2): US-EN-03 AC4 "re-redeem an already redeemed code -> 200" vs DEFINER `status='issued'`; implemented per DEFINER (422). Orders `status_version` bumps on every re-sync (no change detection).

@@ -1,0 +1,7 @@
+# WEB-T04 impl — SCR-08 mappings via C3 #92–#95 + E32 (188/188 after ruling 2026-11-10 22:20; no impl change needed; tsc clean for server/components)
+- New: server/{listInstrumentCodeMaps,listObservedInstrumentCodes,createInstrumentCodeMap,updateInstrumentCodeMap,upsertInstrumentCodeMaps,catalogLookups}.server.ts, server/codeMaps.ts (DTOs + #93/#94/#95 rules, shared with the editor), components/InstrumentMappings.tsx, app/(staff)/instruments/instruments/[instrument_id]/mappings/page.tsx. Edited: server/actions.ts (+7 actions), server/shared.server.ts (requirePermission, idemKey).
+- C3 fns check session `catalog.instrument_code_map.manage` (exact match) → 403 auth.forbidden before any request; page makes zero /v1/catalog/* calls without it (D-39/S-04). flag_map = JSON object text, limits on the parsed form (ruling).
+- [CONV] catalogLookups.server.ts = own thin searchOrderables/getTestDetail/listUnits (no cross-feature import, 02-CONVENTIONS); gated by the same permission.
+- [CONV] plain <table>s (row buttons + copy outcome table must be role=table); Idempotency-Key kept only across the mfa retry; mfa banner has a "Continue" (retry) button — C2 step-up link target is not in the spec (open point).
+- [CONV] Copy sends the source's active maps, first 200 only (shown as text); page shows the first 200 observed codes (no paging).
+- Open: unit_to_code contract pattern `^[A-Za-z0-9_]{1,32}$` is NOT enforced in the BFF — tests require 'g/dL' to pass; C3 will reject it. Needs a C3/test ruling.

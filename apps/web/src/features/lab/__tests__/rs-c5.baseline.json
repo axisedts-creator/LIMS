@@ -1,0 +1,32 @@
+{
+ "server": {
+  "apps/web/src/features/lab/server/actions.ts": "09ba068409cbc0769239092f7064e3a2b6eac99e74042ef88065346c3fc0987f",
+  "apps/web/src/features/lab/server/config.actions.ts": "9f67b3304c7a54fff6f12bc9c928867ea53dc6cedc1fd4ee77f19fb38aea58dd",
+  "apps/web/src/features/lab/server/config.types.ts": "2665bd392ed7bd4db8a8dd94782d1954ae86b8f6c9dce0d20a390c422c10b4bc",
+  "apps/web/src/features/lab/server/printSpecimenLabels.server.ts": "8c3e1512c3c7d37ede262df80d5d195369ad4c2d645fd15bf2ce40f66cadcec0",
+  "apps/web/src/features/lab/server/qc.actions.ts": "91609a731f0d26575d9044fad4ff5b4696e7be8efab883d21810d3922080f8b1",
+  "apps/web/src/features/lab/server/qc.types.ts": "2ba04f706d98e77a495176ad4da37f09f5d185953dcb0354a916029dcb7fcf50",
+  "apps/web/src/features/lab/server/read.server.ts": "05c5fa174c4a5a3dbd01da95fc899c818f4720609abfd696f5447f54626b7ecb",
+  "apps/web/src/features/lab/server/types.ts": "1e53f58592e5f87f56cbec362d892088962cc9a46c26c6a0ad4866fe19d95b01",
+  "apps/web/src/features/lab/server/worklist.actions.ts": "f97b012b3db120a42803ba066bf9b370afc0cc5e5772741a319fbc90ddc0bf20",
+  "apps/web/src/features/lab/server/write.server.ts": "9a312136f15c2286e8eb171f67374eca6a32a94982a10c88897726d7e39236d1"
+ },
+ "routes": [
+  "apps/web/src/app/(staff)/lab/approval/page.tsx",
+  "apps/web/src/app/(staff)/lab/collect/page.tsx",
+  "apps/web/src/app/(staff)/lab/ingest-exceptions/[exception_id]/page.tsx",
+  "apps/web/src/app/(staff)/lab/ingest-exceptions/page.tsx",
+  "apps/web/src/app/(staff)/lab/orders/[order_id]/labels/page.tsx",
+  "apps/web/src/app/(staff)/lab/orders/[order_id]/results/page.tsx",
+  "apps/web/src/app/(staff)/lab/pending/page.tsx",
+  "apps/web/src/app/(staff)/lab/qc/page.tsx",
+  "apps/web/src/app/(staff)/lab/receive/page.tsx",
+  "apps/web/src/app/(staff)/lab/settings/page.tsx",
+  "apps/web/src/app/(staff)/lab/specimens/[specimen_id]/page.tsx",
+  "apps/web/src/app/(staff)/lab/status-board/page.tsx",
+  "apps/web/src/app/(staff)/lab/verification/page.tsx",
+  "apps/web/src/app/(staff)/lab/worklists/[department_id]/page.tsx",
+  "apps/web/src/app/(staff)/lab/worksheets/[worksheet_id]/page.tsx",
+  "apps/web/src/app/(staff)/lab/worksheets/page.tsx"
+ ]
+}

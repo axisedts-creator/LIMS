@@ -1,0 +1,21 @@
+openapi: 3.0.3
+info: { title: fixture identity, version: 1.0.0 }
+paths:
+  /v1/identity/probe:
+    get:
+      operationId: getIdentityProbe
+      security: []
+      x-public: "fixture"
+      x-idempotency: none
+      x-rate-limit-tier: general
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [ok]
+                properties:
+                  ok: { type: boolean }

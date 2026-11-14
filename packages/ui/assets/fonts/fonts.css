@@ -1,0 +1,15 @@
+/* Bundled fonts (SIL OFL-1.1, see OFL.txt and OFL-PlusJakartaSans.txt). Woff2 copied from @fontsource 5.3.0. No external request (AC-0D-8.7). */
+/* LD-140 / CR-UI-R-001 (T0D-UI-R02): Plus Jakarta Sans latin 400-700 is the primary face; Devanagari falls back to Noto Sans Devanagari. */
+@font-face { font-family: 'Plus Jakarta Sans'; font-style: normal; font-display: swap; font-weight: 400; src: url(./plus-jakarta-sans-latin-400-normal.woff2) format('woff2'); }
+@font-face { font-family: 'Plus Jakarta Sans'; font-style: normal; font-display: swap; font-weight: 500; src: url(./plus-jakarta-sans-latin-500-normal.woff2) format('woff2'); }
+@font-face { font-family: 'Plus Jakarta Sans'; font-style: normal; font-display: swap; font-weight: 600; src: url(./plus-jakarta-sans-latin-600-normal.woff2) format('woff2'); }
+@font-face { font-family: 'Plus Jakarta Sans'; font-style: normal; font-display: swap; font-weight: 700; src: url(./plus-jakarta-sans-latin-700-normal.woff2) format('woff2'); }
+@font-face { font-family: 'Noto Sans'; font-style: normal; font-display: swap; font-weight: 400; src: url(./noto-sans-latin-400-normal.woff2) format('woff2'); }
+@font-face { font-family: 'Noto Sans'; font-style: normal; font-display: swap; font-weight: 500; src: url(./noto-sans-latin-500-normal.woff2) format('woff2'); }
+@font-face { font-family: 'Noto Sans'; font-style: normal; font-display: swap; font-weight: 600; src: url(./noto-sans-latin-600-normal.woff2) format('woff2'); }
+@font-face { font-family: 'Noto Sans'; font-style: normal; font-display: swap; font-weight: 700; src: url(./noto-sans-latin-700-normal.woff2) format('woff2'); }
+@font-face { font-family: 'Noto Sans Devanagari'; font-style: normal; font-display: swap; font-weight: 400; src: url(./noto-sans-devanagari-devanagari-400-normal.woff2) format('woff2'); }
+@font-face { font-family: 'Noto Sans Devanagari'; font-style: normal; font-display: swap; font-weight: 500; src: url(./noto-sans-devanagari-devanagari-500-normal.woff2) format('woff2'); }
+@font-face { font-family: 'Noto Sans Devanagari'; font-style: normal; font-display: swap; font-weight: 600; src: url(./noto-sans-devanagari-devanagari-600-normal.woff2) format('woff2'); }
+@font-face { font-family: 'Noto Sans Devanagari'; font-style: normal; font-display: swap; font-weight: 700; src: url(./noto-sans-devanagari-devanagari-700-normal.woff2) format('woff2'); }
+@font-face { font-family: 'Noto Sans Mono'; font-style: normal; font-display: swap; font-weight: 400; src: url(./noto-sans-mono-latin-400-normal.woff2) format('woff2'); }

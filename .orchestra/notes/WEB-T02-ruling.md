@@ -1,0 +1,6 @@
+TESTS_WRONG — both disputed tests assert things the spec does not require; change the tests as below.
+1. "manage actions are enabled, not disabled stubs" (web-t02.components.test.tsx:374-377): spec/chunks/C7-instrument-integration/04-UI-UX.md:115 says Retire is "disabled with tooltip when instruments are not retired"; the render1 fixture (test:287) has a `state: 'live'` instrument, so Retire must be disabled there.
+   Change: keep the enabled assertion for Request command / Revoke / Edit with the default fixture; assert Retire enabled only when rendered with `instruments={[]}` (or all `state: 'retired'`); add a case asserting Retire `disabled === true` (with tooltip) when any instrument is not retired.
+2. "Instruments tab also shows 'Last error code' and 'Silence status' columns" (test:369): 04-UI-UX.md:106 requires both "state chip" and "link state" columns, but the unanchored `new RegExp('State','i')` matches both headers, so `getByRole` throws on multiple matches and the test can never pass.
+   Change: anchor the regex (`new RegExp(`^${h}$`, 'i')`) or pass exact string names; keep all six headers and the `firewall_rule_missing` value assertion.
+Not ruled on: the `last_link_error_code` / `silent_since` contract gap; the writer's CR in .orchestra/cr/WEB-T02.md covers it.

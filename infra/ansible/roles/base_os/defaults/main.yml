@@ -1,0 +1,15 @@
+---
+# 02-TRD s5.1. One named account per ops engineer: user ops_<name>.
+# Entries: {name: <short name>, ssh_keys: [<public key>, ...]}.
+# Password hashes are secrets: they come from secrets_render as
+# base_os_password_hashes[<name>] (never from git); locked until then.
+base_os_ops_users: []
+base_os_password_hashes: {}
+# 02-TRD s5.4: vm.swappiness 10, data-1 1.
+base_os_swappiness: "{{ 1 if 'data' in group_names else 10 }}"
+base_os_removed_packages:
+  - snapd
+  - cups
+  - avahi-daemon
+  - rpcbind
+  - telnet

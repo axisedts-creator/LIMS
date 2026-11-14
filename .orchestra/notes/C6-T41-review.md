@@ -1,0 +1,6 @@
+APPROVE
+Review #2 (diff 10be1feb..24b8248f). Review #1 item 1 is resolved as far as this lane can go. CR-C6-028 is filed in `.orchestra/cr/C6-T41.md` with a proper template, an additive DDL, and a correct note that `app.enqueue_job` uses `unsafe_dedupe`. The KNOWN GAP test in assemble_regeneration.test.ts pins today's behaviour. No code change was needed until the ruling.
+CONDITION: C6-T41 must not be marked released/done until CR-C6-028 is ruled and the KNOWN GAP test is flipped. AC-02.6 still fails when another `assemble:<id>` job is already pending.
+Re-checked, all OK: the R9 opId and permission `reporting.report.regenerate`. The error codes `common.validation_failed` (/reason_text, /reason_code), `reporting.report_cancelled`, `common.not_found` and `auth.mfa_required` (via assertRole, before any read). Tenant_id is bound in every statement and there is no RLS/DDL change. reason_text is never logged or echoed. Paths are owned by C6 (the edit to assemble_report.ts is a T08 file, already flagged to the lead).
+Ran `.orchestra/notes/C6-T41-verify.cmd` suites: api 104/104 pass, worker 79/79 pass.
+Non-blocking: the KNOWN GAP test comment says `job_key_mode=replace`, but the mode is `unsafe_dedupe` (see the CR). Fix the comment when the test is flipped. The display-vs-code reason note from review #1 still stands, as its own CR.

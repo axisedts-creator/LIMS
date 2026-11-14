@@ -1,0 +1,23 @@
+{
+  "name": "@lims/worker",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "worker:replay": "node src/core/replay.ts"
+  },
+  "dependencies": {
+    "@lims/shared-ts": "workspace:*",
+    "ajv": "8.17.1",
+    "graphile-worker": "0.18.0",
+    "read-excel-file": "9.3.14",
+    "write-excel-file": "4.1.1"
+  },
+  "devDependencies": {
+    "@types/node": "26.6.6",
+    "typescript": "7.0.2",
+    "vitest": "5.1.0"
+  }
+}

@@ -1,0 +1,8 @@
+TESTS_WRONG — two test changes; no implementation change.
+1. t-b6.bookings.test.tsx:322-336 ("max 20 tests"): spec requires only the cap (04-UI-UX.md:197 "Tests (`Combobox` multi from S12 list, max 20)"); nothing requires typing the full display name. Change the test to keep its assertions but shorten the typed text (e.g. type `Test ${i}` / a short unique filter string the kit Combobox matches, keep the exact-name option regex `Synthetic Test ${i}$`), or add a per-test timeout of 90000 ms. Do not loosen the 21st-item assertion.
+2. t-q4.source.test.ts:76-79 and :109-115: their own titles say "any queue source" / "declared in the queue sources" (also line 1 header scopes T-Q4 to queue/** W6/W7), but featFiles() scans all of features/engagement/{components,server}, which now also holds T-B6 W1-W5 code.
+   - W1-W3 legitimately carry patient_id/patient name (04-UI-UX.md:189 "Patient (name fetched from C4 via GET /v1/frontdesk/patients/{patient_id})", :197 Patient Combobox → C4); AC "tokens carry only booking_id" is about queue tokens, not bookings.
+   - W1 legitimately binds Alt+C (04-UI-UX.md:190). Registry checks are per page id (core/shortcuts/registry.ts:15); W1 and W6 are different pages, so a cross-page duplicate is not a C0 conflict.
+   Fix: in both tests filter featFiles() to queue sources only (e.g. `.filter((p) => /queue|Queue/i.test(p))`, mirroring t-b6.source.test.ts:28 inverted). Keep all other assertions unchanged.
+Note: writer's claim "W6 also uses Alt+C" is not in spec (04-UI-UX.md:227 lists Alt+N for Call next); QueueConsole.tsx:135 uses Alt+C, presumably because Alt+N is global (registry.ts:3). Not a T-B6 issue; leave to T-Q4 owner.
+Other T-Q4 timeouts/"Failed to start forks worker": environmental; re-run idle, not ruled on.

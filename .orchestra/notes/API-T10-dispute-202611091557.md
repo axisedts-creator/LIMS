@@ -1,0 +1,6 @@
+# API-T10 dispute (writer)
+Tests wrong: 2 of 41 fail because of a helper bug, not the service. The other 39 pass; `hostQuery.perf.test.ts` passes.
+- `__tests__/hostQuery.helpers.ts:98` — `return { world, driver, lab, catalog, commitOnError, ...c, repo }`. `c = makeIngestCtx(world)` also has a `catalog` key (the INBOUND `makeCatalog()` fake). `...c` comes after `catalog`, so it overwrites the outbound catalog fake. The ctx is wired with the outbound one (line 97), so the service calls that. `s.catalog.calls` is then the unused inbound fake's list and is always `[]`.
+- Failing: `service.test.ts:24` (AC-10.1 catalog call list) and `:273` (`catalog.calls.length > 0`). Same shadowing makes `s.catalog.calls` `toHaveLength(0)` (AC-10.2, AC-10.4) pass trivially.
+- Fix (tester): move `...c` before `catalog` — `{ world, driver, lab, ...c, catalog, commitOnError, repo }`. The service already calls CatalogPort OUTBOUND once per distinct analyte, in order (glu, na, k) — confirmed by the passing reply-bytes assertions.
+Writer state: `service/hostQuery.service.ts` new; `repo/ingest.repo.ts` adds `HostQueryRepo.findMessageRaw`, `cap_host_query` in `findInstrument`, `detail` column in `insertRecords` (default `{}`). tsc/lint not yet run; no impl note until the dispute is resolved.

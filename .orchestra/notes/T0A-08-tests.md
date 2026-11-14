@@ -1,0 +1,7 @@
+# T0A-08 tests (tester)
+- Files: `packages/shared-ts/test/{logger,crypto,clock,validation,errors}.test.mjs`. Run: `node --test packages/shared-ts/test/<name>.test.mjs` (all in `pnpm verify` glob). Impl dirs: `src/{logger,crypto,clock,validation,errors}/index.ts`, `src/types.ts`.
+- Covers AC-0A-5.1 (key denylist any case/substring/nested/arrays/child; allowed UUID/invoice fields kept), 5.2 (6 Nepali phone shapes + JWT in msg/fields/errors; UUID/ts/numbers not mangled; AB-19 corpus), 5.3 (one JSON line/newline-safe, ts/level/service/env/version/msg, §9.1 ctx fields, child isolation, base fields not overridable, no console.*). Crypto: token sizes 16→22/32→43 chars, bad sizes throw, RFC 4231 HMAC, sha256 vectors, OTP ≥6.
+- ASSUMED: `createLogger` opts accept extra `destination: { write(line) }` (test sink); message key `msg`; mask hides all original chars; `[REDACTED]` for denylist keys; `level` default = info.
+- ASSUMED: `fixedClock` throws on non-IsoUtc; `assertValid(..., path)` prefixes JSON pointer; required→`common.field_required`; `toProblem` = CV §4.6 shape (`type: urn:lims:error:<code>`, `errors` only for fieldErrors).
+- `validation` + `errors` tests need `@lims/contracts` (T0C-03) and `ajv`; `logger` needs `pino`. None installed now → all 5 files fail with module-not-found (impl absent) — expected.
+- Not tested: ERROR_HTTP completeness vs errors.yaml (generated, T0C-03); types.ts compile-level checks (only re-export text); log redaction of PHI categories not named in spec beyond keys listed.

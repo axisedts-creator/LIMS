@@ -1,0 +1,92 @@
+---
+# yamllint disable rule:line-length
+# Imported from C3
+#   services/api/src/modules/catalog/ops/alerts.yaml
+# (C3 02-TRD "Alert rules for C1").
+# expr/for verbatim; C1 adds only severity, team, runbook_url (s11.3).
+# The source file is not in this lane yet: transcribed from the TRD
+# table; ci/import-rules.sh overwrites it, alert-import-drift checks.
+groups:
+  - name: catalog
+    rules:
+      - alert: CatalogImportQuarantined
+        expr: >-
+          increase(lims_catalog_imports_total{outcome="quarantined"}[5m])
+          > 0
+        for: 0m
+        labels:
+          severity: page
+          team: ops
+        annotations:
+          summary: >-
+            A catalog import file was quarantined (malware scan).
+          runbook_url: >-
+            infra/runbooks/catalog.md#catalogimportquarantined
+      - alert: CatalogNoPriceSpike
+        expr: >-
+          sum(rate(lims_catalog_port_calls_total{method="priceFor",outcome="no_price"}[15m]))
+          / sum(rate(lims_catalog_port_calls_total{method="priceFor"}[15m]))
+          > 0.05
+        for: 15m
+        labels:
+          severity: warn
+          team: ops
+        annotations:
+          summary: >-
+            More than 5 % of priceFor calls return no_price for 15 min.
+          runbook_url: >-
+            infra/runbooks/catalog.md#catalognopricespike
+      - alert: CatalogNoRangeSpike
+        expr: >-
+          sum(rate(lims_catalog_port_calls_total{method="referenceRangeFor",outcome="no_reference_range"}[15m]))
+          / sum(rate(lims_catalog_port_calls_total{method="referenceRangeFor"}[15m]))
+          > 0.05
+        for: 15m
+        labels:
+          severity: warn
+          team: ops
+        annotations:
+          summary: >-
+            More than 5 % of referenceRangeFor calls find no range for 15
+            min.
+          runbook_url: >-
+            infra/runbooks/catalog.md#catalognorangespike
+      - alert: CatalogPortLatency
+        expr: >-
+          histogram_quantile(0.95, sum by (le) (rate(lims_catalog_port_duration_seconds_bucket[5m])))
+          > 0.05
+        for: 10m
+        labels:
+          severity: warn
+          team: ops
+        annotations:
+          summary: >-
+            Catalog port p95 latency above 50 ms for 10 min.
+          runbook_url: >-
+            infra/runbooks/catalog.md#catalogportlatency
+      - alert: CatalogImportStuck
+        expr: >-
+          sum(lims_catalog_import_tasks_inflight) > 0
+        for: 15m
+        labels:
+          severity: warn
+          team: ops
+        annotations:
+          summary: >-
+            A catalog import task has been in flight for 15 min.
+          runbook_url: >-
+            infra/runbooks/catalog.md#catalogimportstuck
+      - alert: CatalogContactReadsSpike
+        expr: >-
+          sum(increase(lims_catalog_contact_reads_total{purpose="notification"}[1h]))
+          > 10 * quantile_over_time(0.5, sum(increase(lims_catalog_contact_reads_total{purpose="notification"}[1h]))[7d:1h])
+        for: 0m
+        labels:
+          severity: warn
+          team: ops
+        annotations:
+          summary: >-
+            Notification contact reads in the last hour above 10x the 7-day
+            hourly median.
+          runbook_url: >-
+            infra/runbooks/catalog.md#catalogcontactreadsspike

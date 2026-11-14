@@ -1,0 +1,64 @@
+---
+# 02-TRD s7.11: script + one-shot unit on the ops host only. Never delegates to or touches the app group.
+# Until the CR pins the tool the role still installs script + unit (so site.yml is not blocked) and
+# agent-release.sh fails closed on the missing tool; the tool tasks run only with a complete pin.
+- name: Authenticode pin missing (release runs fail closed until CR .orchestra/cr/C1.T-34.md is decided)
+  ansible.builtin.debug:
+    msg: "agent_release_authenticode_* not pinned"
+  when: agent_release_authenticode_sha256 | length == 0
+
+- name: Release tooling packages
+  ansible.builtin.apt:
+    name: [unzip, zip, openssl, rsync]
+    state: present
+
+- name: Directories (bin, tool, release store)
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - "{{ agent_release_bin_dir }}"
+    - "{{ agent_release_authenticode_dir }}"
+    - "{{ agent_release_out_dir }}"
+
+- name: Authenticode tool archive (checksum pinned)
+  ansible.builtin.get_url:
+    url: "{{ agent_release_authenticode_url }}"
+    dest: "{{ agent_release_authenticode_dir }}/tool-{{ agent_release_authenticode_version }}.archive"
+    checksum: "sha256:{{ agent_release_authenticode_sha256 }}"
+    owner: root
+    group: root
+    mode: "0644"
+  when: agent_release_authenticode_sha256 | length > 0
+
+- name: Unpack the Authenticode tool
+  ansible.builtin.unarchive:
+    src: "{{ agent_release_authenticode_dir }}/tool-{{ agent_release_authenticode_version }}.archive"
+    dest: "{{ agent_release_authenticode_dir }}"
+    remote_src: true
+    creates: "{{ agent_release_authenticode_dir }}/{{ agent_release_authenticode_bin_relpath }}"
+  when: agent_release_authenticode_sha256 | length > 0
+
+- name: Release script and ops-note helper
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../../ci/{{ item }}"
+    dest: "{{ agent_release_bin_dir }}/{{ item }}"
+    owner: root
+    group: root
+    mode: "0755"
+  loop: [agent-release.sh, ops-note.sh]
+
+- name: One-shot release unit (lims-agent-release.service)
+  ansible.builtin.template:
+    src: lims-agent-release.service.j2
+    dest: /etc/systemd/system/lims-agent-release.service
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: systemd reload
+  ansible.builtin.systemd:
+    daemon_reload: true

@@ -1,0 +1,127 @@
+---
+# 02-TRD s13 (patching; 04 I9, REQ-SEC-129/138) / AC-16.1 / AC-16.2: monthly OS patching,
+# one environment per run, in the order dev -> staging -> prod. LD-45: plays use group
+# names only; the hosts behind them come from the active profile's inventory (`lean` or
+# `full`), both run the same plays.
+#   ansible-playbook -i inventories/<env>/hosts.yml playbooks/patch.yml \
+#     -e patch_previous_done_at=<epoch of the previous environment's patch run>
+#   dev needs no evidence; staging and prod do. Prod needs it to be >= 24 h old (the soak,
+#   [CONV]). Add --check for a dry run (the stamp is then not written).
+#   -e patch_emergency=true  = `patch.yml --emergency` of 02-TRD s13: skips only the 24 h
+#   soak guard; staging evidence is still required and the host is still patched + stamped.
+# Guards run on the controller before the first change. Then per host (serial, a failure
+# stops the run): apt dist upgrade, reboot only if /var/run/reboot-required exists, then
+# ONE stamp /var/lib/lims/patch/last_patch_timestamp (epoch s) read by patch_metrics.sh ->
+# lims_ops_last_patch_timestamp_seconds (PatchOverdue, 35 days). Image digests are bumped by
+# deploy.yml, not here. Procedure: infra/runbooks/patching.md.
+- name: Patch guards (order dev -> staging -> prod, soak)
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Controller clock (epoch seconds)
+      ansible.builtin.set_fact:
+        patch_now_epoch: "{{ now(utc=true).timestamp() | int }}"
+
+    - name: Environment is dev, staging or prod
+      ansible.builtin.assert:
+        that:
+          - env | default('') in ['dev', 'staging', 'prod']
+        fail_msg: "env must be dev, staging or prod (group_vars of the inventory)"
+
+    - name: Previous environment's patch run is recorded and plausible
+      ansible.builtin.assert:
+        that:
+          - (patch_previous_done_at | default('') | string) is match('^[0-9]{1,12}$')
+          - (patch_previous_done_at | int) > 0
+          - (patch_previous_done_at | int) <= (patch_now_epoch | int)
+        fail_msg: "-e patch_previous_done_at=<epoch s of the previous environment's run> is required for staging and prod"
+      when: env != 'dev'
+
+    - name: Prod waits the 24 h soak after staging (skipped by patch_emergency only)
+      ansible.builtin.assert:
+        that:
+          - (patch_now_epoch | int) - (patch_previous_done_at | int) >= 86400  # [CONV] 24 h soak
+        fail_msg: "staging was patched less than 24 h ago; wait, or -e patch_emergency=true (critical CVE, runbook)"
+      when:
+        - env == 'prod'
+        - not (patch_emergency | default(false) | bool)
+
+- name: Patch hosts
+  hosts: all
+  become: true
+  serial: 1  # ponytail: one host at a time in inventory order; per-group ordering if the fleet grows
+  any_errors_fatal: true
+  vars:
+    patch_state_dir: /var/lib/lims/patch
+    patch_lib_dir: /usr/local/lib/lims
+  tasks:
+    - name: OS packages upgraded (apt cache refreshed first)
+      ansible.builtin.apt:
+        update_cache: true
+        upgrade: dist
+
+    - name: Does the host ask for a reboot
+      ansible.builtin.stat:
+        path: /var/run/reboot-required
+      register: patch_reboot_required
+
+    - name: Reboot (kernel and libc updates; LUKS unlock per host runbook)
+      ansible.builtin.reboot:
+        reboot_timeout: 1800
+      when: patch_reboot_required.stat.exists
+
+    - name: Clock after the reboot
+      ansible.builtin.setup:
+        gather_subset:
+          - date_time
+
+    - name: Patch state directory
+      ansible.builtin.file:
+        path: "{{ patch_state_dir }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Patch stamp written after upgrade and reboot (epoch seconds)
+      ansible.builtin.copy:
+        content: "{{ ansible_date_time.epoch }}\n"
+        dest: /var/lib/lims/patch/last_patch_timestamp
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: patch_metrics.sh and its timer installed
+      ansible.builtin.copy:
+        src: "{{ item.src }}"
+        dest: "{{ item.dest }}"
+        owner: root
+        group: root
+        mode: "{{ item.mode }}"
+      loop:
+        - src: "{{ playbook_dir }}/../../monitoring/textfile/patch_metrics.sh"
+          dest: "{{ patch_lib_dir }}/patch_metrics.sh"
+          mode: "0755"
+        - src: lims-patch-metrics.service
+          dest: /etc/systemd/system/lims-patch-metrics.service
+          mode: "0644"
+        - src: lims-patch-metrics.timer
+          dest: /etc/systemd/system/lims-patch-metrics.timer
+          mode: "0644"
+      loop_control:
+        label: "{{ item.dest }}"
+
+    - name: Patch metric timer enabled
+      ansible.builtin.systemd_service:
+        name: lims-patch-metrics.timer
+        enabled: true
+        state: started
+        daemon_reload: true
+      when: not ansible_check_mode
+
+    - name: Patch metric refreshed now
+      ansible.builtin.systemd_service:
+        name: lims-patch-metrics.service
+        state: restarted
+      when: not ansible_check_mode

@@ -1,0 +1,422 @@
+---
+# 02-TRD s7.10 / 03-APP-FLOW s9 / 04-UI-UX s5 / AC-06.3 (T-26): Studio + pg-meta break-glass.
+#   ansible-playbook -i inventories/<env>/hosts.yml playbooks/studio-breakglass.yml \
+#       -e action=enable -e hours=2 -e approval=<founder approval ref>
+#   ansible-playbook ... -e action=disable            (also what the timer runs)
+# Runs on group `app` only (LD-45: the host behind `app` comes from the active profile's inventory,
+# `full` or `lean`; no host names here). Studio connects as BYPASSRLS `postgres` (04 D5), so enable
+# needs a founder approval reference (recorded in ops_audit) and N <= 4 h (07-SEC AB-12).
+# ENABLE: validate -> ops_audit -> rotate DASHBOARD_PASSWORD -> absolute timer (Persistent) ->
+#   gateway+studio+meta up with override.breakglass.yml (gateway gets 127.0.0.1:8000 + breakglass_net)
+#   -> metric lims_ops_studio_enabled=1 (alert StudioEnabled, hourly). Any failure: rescue tears it
+#   all down and fails the play (never rc 0 with Studio half up).
+# DISABLE (idempotent, needs no other input): rotate again, remove studio+meta, recreate the gateway
+#   WITHOUT the override (no port, back to the trimmed baseline, AC-06.2), remove breakglass_net,
+#   timer off, metric 0.
+# [CONV] the timer runs this same playbook on the app host through a local inventory (needs
+#   ansible-playbook there: UNVERIFIED, see impl note). The new Studio password is never printed:
+#   it goes to the env file compose reads and to a tmpfs file readable by group `ops` only.
+- name: Studio / pg-meta break-glass (02-TRD s7.10)
+  hosts: app
+  become: true
+  gather_facts: false
+  vars:
+    bg_dir: /srv/lims/compose/supabase            # [CONV] = deploy compose dir layout (/srv/lims/compose/<stack>)
+    bg_lib: /usr/local/lib/lims
+    bg_pw_dir: /run/lims/studio-breakglass        # tmpfs
+    bg_ansible_playbook: /usr/bin/ansible-playbook
+    bg_ci_dir: "{{ playbook_dir }}/../../ci"      # holds ops-note.sh (on the app host: bg_lib)
+    bg_helpers:                                   # copied to the app host for the timer run
+      - {src: "{{ playbook_dir }}/studio-breakglass.yml", dest: "{{ bg_lib }}/studio-breakglass.yml", mode: "0644"}
+      - {src: "{{ bg_ci_dir }}/ops-note.sh", dest: "{{ bg_lib }}/ops-note.sh", mode: "0755"}
+  tasks:
+    # ------------------------------------------------ validation: before ANY state change
+    - name: Action is enable or disable
+      ansible.builtin.assert:
+        that:
+          - action is defined
+          - action in ['enable', 'disable']
+        fail_msg: "studio-breakglass: -e action=enable|disable required"
+        quiet: true
+
+    - name: Enable needs hours 1..4 and a founder approval reference
+      ansible.builtin.assert:
+        that:
+          - hours is defined
+          - hours | string in ['1', '2', '3', '4']
+          - approval is defined
+          - approval | string | trim != ''
+          - approval | string | length < 201
+        fail_msg: >-
+          studio-breakglass enable: -e hours=1..4 (cap 4 h) and
+          -e approval=<founder approval ref> are required
+        quiet: true
+      when: action == 'enable'
+
+    # ------------------------------------------------ ENABLE
+    - name: ops_audit - enable requested (approval, hours)
+      ansible.builtin.command:
+        argv:
+          - "{{ bg_ci_dir }}/ops-note.sh"
+          - "studio-breakglass enable approval={{ approval | string | trim }} hours={{ hours | int }}"
+      delegate_to: localhost
+      become: false
+      changed_when: false
+      when: action == 'enable'
+
+    - name: Enable Studio break-glass
+      when: action == 'enable'
+      block:
+        - name: Generate the new Studio basic-auth secret (48 random characters, controller side)
+          ansible.builtin.set_fact:
+            bg_secret: "{{ lookup('ansible.builtin.password', '/dev/null length=48 chars=ascii_letters,digits') }}"
+          no_log: true
+
+        - name: Rotate DASHBOARD_PASSWORD in the env file compose reads
+          ansible.builtin.lineinfile:
+            path: /run/lims/env/supabase.env
+            regexp: '^DASHBOARD_PASSWORD='
+            line: "DASHBOARD_PASSWORD={{ bg_secret }}"
+            owner: root
+            group: root
+            mode: "0400"
+          no_log: true
+
+        - name: Directory for the operator copy of the secret (tmpfs, group ops)
+          ansible.builtin.file:
+            path: "{{ bg_pw_dir }}"
+            state: directory
+            owner: root
+            group: ops
+            mode: "0750"
+
+        - name: Operator copy of the new Studio secret (removed on disable)
+          ansible.builtin.copy:
+            content: "{{ bg_secret }}\n"
+            dest: "{{ bg_pw_dir }}/studio_basic_auth"
+            owner: root
+            group: ops
+            mode: "0640"
+          no_log: true
+
+        - name: Absolute deadline now + hours (host clock, UTC)
+          ansible.builtin.command:
+            argv: [date, -u, -d, "+{{ hours | int }} hours", "+%Y-%m-%d %H:%M:%S UTC"]
+          register: bg_deadline
+          changed_when: false
+
+        - name: Helper copies for the timer run (this playbook and the audit helper)
+          ansible.builtin.copy:
+            src: "{{ item.src }}"
+            dest: "{{ item.dest }}"
+            owner: root
+            group: root
+            mode: "{{ item.mode }}"
+          loop: "{{ bg_helpers }}"
+
+        - name: Local inventory for the timer run
+          ansible.builtin.copy:
+            content: |
+              [app]
+              localhost ansible_connection=local
+            dest: /etc/lims/studio-breakglass.inv
+            owner: root
+            group: root
+            mode: "0644"
+
+        - name: Unit lims-studio-breakglass.service (runs the disable)
+          ansible.builtin.copy:
+            content: |
+              [Unit]
+              Description=Studio break-glass auto-disable ({{ hours | int }} h window; T-26, LD-45)
+              [Service]
+              Type=oneshot
+              TimeoutStartSec=15min
+              ExecStart={{ bg_ansible_playbook }} -i /etc/lims/studio-breakglass.inv {{ bg_lib }}/studio-breakglass.yml -e action=disable -e bg_ci_dir={{ bg_lib }} -e bg_dir={{ bg_dir }}
+            dest: /etc/systemd/system/lims-studio-breakglass.service
+            owner: root
+            group: root
+            mode: "0644"
+
+        - name: Unit lims-studio-breakglass.timer (absolute time, survives a reboot)
+          ansible.builtin.copy:
+            content: |
+              [Unit]
+              Description=Studio break-glass deadline ({{ hours | int }} h)
+              [Timer]
+              OnCalendar={{ bg_deadline.stdout }}
+              Persistent=true
+              AccuracySec=1s
+              Unit=lims-studio-breakglass.service
+              [Install]
+              WantedBy=timers.target
+            dest: /etc/systemd/system/lims-studio-breakglass.timer
+            owner: root
+            group: root
+            mode: "0644"
+
+        - name: Start the deadline timer BEFORE anything is exposed
+          ansible.builtin.systemd_service:
+            name: lims-studio-breakglass.timer
+            state: restarted
+            enabled: true
+            daemon_reload: true
+
+        - name: Gateway (new password, studio routes, loopback port), studio and meta up
+          ansible.builtin.command:
+            argv:
+              - docker
+              - compose
+              - -p
+              - supabase
+              - --env-file
+              - /run/lims/env/supabase.env
+              - -f
+              - upstream/docker-compose.yml
+              - -f
+              - override.app.yml
+              - -f
+              - override.breakglass.yml
+              - up
+              - -d
+              - --force-recreate
+              - --wait
+              - api-gw
+              - studio
+              - meta
+            chdir: "{{ bg_dir }}"
+          changed_when: true
+
+        - name: Metric lims_ops_studio_enabled=1 (alert StudioEnabled)
+          ansible.builtin.copy:
+            content: |
+              # HELP lims_ops_studio_enabled 1 while Studio break-glass is on (T-26)
+              # TYPE lims_ops_studio_enabled gauge
+              lims_ops_studio_enabled 1
+            dest: /var/lib/node_exporter/textfile/lims_ops_studio_enabled.prom
+            owner: root
+            group: root
+            mode: "0644"
+
+        - name: ops_audit - enabled until the deadline
+          ansible.builtin.command:
+            argv:
+              - "{{ bg_ci_dir }}/ops-note.sh"
+              - "studio-breakglass enabled until {{ bg_deadline.stdout }} (approval={{ approval | string | trim }} hours={{ hours | int }})"
+          delegate_to: localhost
+          become: false
+          changed_when: false
+
+      rescue:
+        - name: Rescue - remove studio and meta
+          ansible.builtin.command:
+            argv:
+              - docker
+              - compose
+              - -p
+              - supabase
+              - --env-file
+              - /run/lims/env/supabase.env
+              - -f
+              - upstream/docker-compose.yml
+              - -f
+              - override.app.yml
+              - -f
+              - override.breakglass.yml
+              - rm
+              - -f
+              - -s
+              - -v
+              - studio
+              - meta
+            chdir: "{{ bg_dir }}"
+          changed_when: true
+          failed_when: false
+
+        - name: Rescue - gateway back to the baseline (no port, trimmed config)
+          ansible.builtin.command:
+            argv:
+              - docker
+              - compose
+              - -p
+              - supabase
+              - --env-file
+              - /run/lims/env/supabase.env
+              - -f
+              - upstream/docker-compose.yml
+              - -f
+              - override.app.yml
+              - up
+              - -d
+              - --force-recreate
+              - --no-deps
+              - api-gw
+            chdir: "{{ bg_dir }}"
+          changed_when: true
+          failed_when: false
+
+        - name: Rescue - remove breakglass_net
+          ansible.builtin.command:
+            argv: [docker, network, rm, breakglass_net]
+          changed_when: false
+          failed_when: false
+
+        - name: Rescue - timer off
+          ansible.builtin.systemd_service:
+            name: lims-studio-breakglass.timer
+            state: stopped
+            enabled: false
+          failed_when: false
+
+        - name: Rescue - remove the operator copy of the secret
+          ansible.builtin.file:
+            path: "{{ bg_pw_dir }}"
+            state: absent
+          failed_when: false
+
+        - name: Rescue - metric lims_ops_studio_enabled=0
+          ansible.builtin.copy:
+            content: |
+              # HELP lims_ops_studio_enabled 1 while Studio break-glass is on (T-26)
+              # TYPE lims_ops_studio_enabled gauge
+              lims_ops_studio_enabled 0
+            dest: /var/lib/node_exporter/textfile/lims_ops_studio_enabled.prom
+            owner: root
+            group: root
+            mode: "0644"
+          failed_when: false
+
+        - name: Rescue - ops_audit enable failed and was rolled back
+          ansible.builtin.command:
+            argv: ["{{ bg_ci_dir }}/ops-note.sh", "studio-breakglass enable FAILED, rolled back"]
+          delegate_to: localhost
+          become: false
+          changed_when: false
+          failed_when: false
+
+        - name: Rescue - fail the play (a failed enable never exits 0)
+          ansible.builtin.fail:
+            msg: studio-breakglass enable failed; studio, meta, the gateway port and the timer were removed
+
+    # ------------------------------------------------ DISABLE (idempotent; no hours/approval)
+    - name: Disable Studio break-glass
+      when: action == 'disable'
+      block:
+        - name: ops_audit - disable
+          ansible.builtin.command:
+            argv: ["{{ bg_ci_dir }}/ops-note.sh", "studio-breakglass disable"]
+          delegate_to: localhost
+          become: false
+          changed_when: false
+
+        - name: Generate a throw-away Studio basic-auth secret (48 random characters)
+          ansible.builtin.set_fact:
+            bg_secret: "{{ lookup('ansible.builtin.password', '/dev/null length=48 chars=ascii_letters,digits') }}"
+          no_log: true
+
+        - name: Rotate DASHBOARD_PASSWORD again (the Studio secret is dead; nobody receives this one)
+          ansible.builtin.lineinfile:
+            path: /run/lims/env/supabase.env
+            regexp: '^DASHBOARD_PASSWORD='
+            line: "DASHBOARD_PASSWORD={{ bg_secret }}"
+            owner: root
+            group: root
+            mode: "0400"
+          no_log: true
+
+        # studio+meta exist only with the break-glass file (the app layer !reset's them)
+        - name: Remove studio and meta
+          ansible.builtin.command:
+            argv:
+              - docker
+              - compose
+              - -p
+              - supabase
+              - --env-file
+              - /run/lims/env/supabase.env
+              - -f
+              - upstream/docker-compose.yml
+              - -f
+              - override.app.yml
+              - -f
+              - override.breakglass.yml
+              - rm
+              - -f
+              - -s
+              - -v
+              - studio
+              - meta
+            chdir: "{{ bg_dir }}"
+          changed_when: true
+
+        - name: Gateway back to the baseline (no published port, trimmed config)
+          ansible.builtin.command:
+            argv:
+              - docker
+              - compose
+              - -p
+              - supabase
+              - --env-file
+              - /run/lims/env/supabase.env
+              - -f
+              - upstream/docker-compose.yml
+              - -f
+              - override.app.yml
+              - up
+              - -d
+              - --force-recreate
+              - --wait
+              - --no-deps
+              - api-gw
+            chdir: "{{ bg_dir }}"
+          changed_when: true
+
+        - name: Remove the temporary network breakglass_net
+          ansible.builtin.command:
+            argv: [docker, network, rm, breakglass_net]
+          register: bg_net_rm
+          changed_when: bg_net_rm.rc == 0
+          failed_when: >-
+            bg_net_rm.rc != 0 and 'not found' not in bg_net_rm.stderr
+            and 'No such network' not in bg_net_rm.stderr
+
+        - name: Remove the operator copy of the secret
+          ansible.builtin.file:
+            path: "{{ bg_pw_dir }}"
+            state: absent
+
+        - name: Metric lims_ops_studio_enabled=0
+          ansible.builtin.copy:
+            content: |
+              # HELP lims_ops_studio_enabled 1 while Studio break-glass is on (T-26)
+              # TYPE lims_ops_studio_enabled gauge
+              lims_ops_studio_enabled 0
+            dest: /var/lib/node_exporter/textfile/lims_ops_studio_enabled.prom
+            owner: root
+            group: root
+            mode: "0644"
+
+        # Last: when the timer runs this play, these files are the running playbook and ops-note.
+        # The .service is deleted but never stopped (that would kill this very run).
+        - name: Timer stopped and disabled
+          ansible.builtin.systemd_service:
+            name: lims-studio-breakglass.timer
+            state: stopped
+            enabled: false
+          register: bg_timer_off
+          failed_when: >-
+            bg_timer_off is failed and 'Could not find' not in (bg_timer_off.msg | default(''))
+            and 'not found' not in (bg_timer_off.msg | default(''))
+
+        - name: Timer units, local inventory and helper copies absent
+          ansible.builtin.file:
+            path: "{{ item }}"
+            state: absent
+          loop: >-
+            {{ ['/etc/systemd/system/lims-studio-breakglass.timer',
+            '/etc/systemd/system/lims-studio-breakglass.service',
+            '/etc/lims/studio-breakglass.inv'] + (bg_helpers | map(attribute='dest') | list) }}
+
+        - name: systemd forgets the removed units
+          ansible.builtin.systemd_service:
+            daemon_reload: true

@@ -1,0 +1,10 @@
+openapi: 3.0.3
+info: { title: fixture local different, version: 1.0.0 }
+paths: {}
+components:
+  securitySchemes:
+    bffSession:
+      type: http
+      scheme: bearer
+  responses:
+    Other: { $ref: _common.yaml#/components/securitySchemes/bffSession }

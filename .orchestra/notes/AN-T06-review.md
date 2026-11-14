@@ -1,0 +1,7 @@
+APPROVE
+# AN-T06 review (reviewer) — diff e11d54ff..50b1dcab
+- Ran `.orchestra\notes\AN-T06-verify.cmd` equivalent: 5 files, 85/85 pass.
+- done_when: crontab + taskOptions 120 s for sweep_nightly/backfill match TRD §9.4; self_check R2/R3/R4 → markDirty + `lims_analytics_reconciliation_mismatch_total{rule,family}` + `reconciliation_mismatch` log (TRD §9.3); purge 10,000-row ctid batches, E tables by `expires_at < now()`, exports by `requested_at` (TRD §9.5, 05-SCHEMA §9); backfill seed SQL = TRD §9.3 D-50 verbatim (from/to bound as Kathmandu local midnight).
+- Tenant: every statement binds `tenant_id = $1` from `jobTenant` (payload == ctx.tenantId, uuid-checked before any SQL); E-table DELETE / exports UPDATE run as system actor under `<t>__delete__tenant` / `exports__update__tenant`; `ready→expired` is an allowed transition (05-SCHEMA exports_transition_guard). No new tables/policies in this task.
+- retentionYears read via `IdentityPort.getTenantSettings` (IC: default 5 supplied by the port), fail-closed on invalid. Logs/metrics carry family/rule/date only — no PHI, no secrets. Only `services/worker/src/jobs/analytics/**` touched.
+- Non-blocking: TRD §9.5 lists `report_backlog` under `business_date` purge but the table has no such column; impl correctly skips it — orchestrator should file a CR for the TRD wording (none exists under `.orchestra/cr/`). SQL of compares/seed verified only against the text-classifying fake; real-DB run still pending (writer note).

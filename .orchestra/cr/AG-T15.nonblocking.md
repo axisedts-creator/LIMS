@@ -1,0 +1,12 @@
+Title: CR-C7-AG-T15: which program the opt-in LAN-listener firewall rule must name, and who keeps it current across updates
+From chunk: C7            To owner: C7 (spec owner of 02-TRD §5.11/§5.12, 04-UI-UX §2) via lead
+Type: bug
+Blocking? no for AG-T15 default install (no listener, no rule by default); yes for the `--allow-lan-listener` / `firewall enable` path being usable by tcp_server instruments, and for AG-T16 (update) which would have to rewrite the rule.
+Problem (what you cannot do today, with the user story / acceptance criterion it serves):
+02-TRD §5.12 and 04-UI-UX §2 say the opt-in inbound rule is "program-scoped" but do not say which program. AG-T15 names `<ProgramDir>\bridge-launcher.exe` (svc.go, install.go, cli.go). Per 02-TRD §5.11 the LAN listener runs in `versions\<version>\agent.exe`, a separate process started by the launcher. A program-scoped inbound rule matches only the process that owns the listening socket, so with the rule enabled tcp_server instruments are still blocked. The agent path changes with every version, so a rule naming agent.exe goes stale on each update. (AG-T15 review item 3.)
+Proposed change (exact): add to 02-TRD §5.12: "The inbound rule `<FirewallRuleName>` names `program=%ProgramData%\LIMS\BridgeAgent\versions\<active version>\agent.exe`. AG-T16 (update/rollback) deletes and re-adds the rule with the new path whenever the rule exists and the active version changes; uninstall deletes it." Alternative wording if preferred: scope the rule by service SID (`service=LimsBridgeAgent`) instead of program — only valid if the listener runs inside the service process, which §5.11 currently says it does not.
+Backward compatible? yes — no rule exists by default; only the opt-in path changes.
+Tenant/security impact: no RLS change, no PHI. Public surface: opt-in LAN listener only; the rule stays local-subnet and off by default (07-SECURITY no-listener-by-default unchanged).
+IRD/regulatory impact: none.
+Alternatives considered: (a) keep launcher.exe — does not work (socket owner is agent.exe); (b) port-only rule — broader than "program-scoped"; (c) stable agent path via a copy/hardlink outside versions\ — conflicts with §5.11 versioned layout.
+Tests that will prove it: unit test that FirewallAddArgs is built from the active version's agent.exe path; AG-T16 test that an update with the rule present re-adds it with the new path; [manual] with the rule enabled, a tcp_server instrument connects to agent.exe on the LAN.

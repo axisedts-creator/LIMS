@@ -1,0 +1,25 @@
+---
+# Docker Engine + Compose v2 from the Ubuntu 24.04 archive (02-TRD s2:
+# "C1 pins"; exact versions are recorded when the dev VM exists).
+docker_engine_packages: [docker.io, docker-compose-v2]
+# 02-TRD s3.2: shared networks, created on app hosts; compose files
+# attach to them as external networks.
+docker_engine_networks:
+  - name: edge_net
+    subnet: "{{ docker_subnets.edge }}"
+    internal: false
+  - name: app_net
+    subnet: "{{ docker_subnets.app }}"
+    internal: true
+  - name: auth_net
+    subnet: "{{ docker_subnets.auth }}"
+    internal: true
+  - name: render_net
+    subnet: "{{ docker_subnets.render }}"
+    internal: true
+  - name: db_net
+    subnet: "{{ docker_subnets.db }}"
+    internal: false
+  - name: egress_net
+    subnet: "{{ docker_subnets.egress }}"
+    internal: false

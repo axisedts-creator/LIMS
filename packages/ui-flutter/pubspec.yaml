@@ -1,0 +1,66 @@
+name: lims_ui
+description: LIMS Flutter UI kit (C0 04-UI-UX §8).
+version: 0.0.0
+publish_to: none
+environment:
+  # LD-46 (2026-11-07): newest 3.47.x stable + bundled Dart, same as root pubspec.yaml.
+  sdk: 3.13.7
+  flutter: 3.47.9
+resolution: workspace
+# Exact pins only (CV §15.1, REQ-SEC-129); every row is in db/meta/decisions/T0-03-dependencies.md.
+dependencies:
+  flutter:
+    sdk: flutter
+  # workspace member (resolves to packages/shared-dart)
+  lims_shared: any
+  # 04 D13, LimsDatePicker only
+  nepali_date_picker: 8.0.0
+  # LimsBarcodeScanner
+  mobile_scanner: 7.5.0
+  # LD-24: GlitchTip, DSN from runtime config
+  sentry_flutter: 10.3.0
+  # CR-C16-017 router / app links
+  go_router: 18.1.3
+  # CR-C16-017 external browser, CR-C17-010 tel:/maps hand-off
+  url_launcher: 6.3.3
+  # CR-C17-010 / CR-C16-017 biometric (LimsAppLockGate consumers)
+  local_auth: 3.0.2
+  # CR-C16-017 PDF render (LimsPdfViewer)
+  flutter_pdfview: 1.4.5
+  # CR-C16-017 QR render (LimsQrCode)
+  qr: 4.0.1
+  # CR-C17-010 location capture
+  geolocator: 14.1.2
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+flutter:
+  fonts:
+    # LD-140 / CR-UI-R-001 (T0D-UI-R02): latin TTFs made by tool/woff2ttf.py from @fontsource/plus-jakarta-sans 5.3.0 woff.
+    - family: Plus Jakarta Sans
+      fonts:
+        - asset: assets/fonts/PlusJakartaSans-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/PlusJakartaSans-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/PlusJakartaSans-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/PlusJakartaSans-Bold.ttf
+          weight: 700
+    - family: Noto Sans
+      fonts:
+        - asset: assets/fonts/NotoSans-Regular.ttf
+        - asset: assets/fonts/NotoSans-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/NotoSans-Bold.ttf
+          weight: 700
+    - family: Noto Sans Devanagari
+      fonts:
+        - asset: assets/fonts/NotoSansDevanagari-Regular.ttf
+        - asset: assets/fonts/NotoSansDevanagari-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/NotoSansDevanagari-Bold.ttf
+          weight: 700
+    - family: Noto Sans Mono
+      fonts:
+        - asset: assets/fonts/NotoSansMono-Regular.ttf

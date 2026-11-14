@@ -1,0 +1,8 @@
+title = "infra gitleaks config"
+
+[extend]
+useDefault = true
+
+# Compiled test bytecode folds the runtime-built scanner fixtures into literals.
+[allowlist]
+paths = ['''infra/tests/static/__pycache__/''']

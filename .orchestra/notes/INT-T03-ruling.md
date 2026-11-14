@@ -1,0 +1,7 @@
+TESTS_WRONG — `services/api/src/modules/instruments/__tests__/boot.test.ts` line 39 `IMPLEMENTED` is stale; append the 14 operationIds INT-T03 wired.
+- Change: add to `IMPLEMENTED` (comment `// INT-T03 (wiring of API-T05 E22-E32/E40/E41, API-T10 E05)`): 'submitHostQuery', 'listDrivers', 'listInstruments', 'createInstrument', 'getInstrument', 'updateInstrument', 'startInstrumentCommissioning', 'goLiveInstrument', 'suspendInstrument', 'resumeInstrument', 'retireInstrument', 'listObservedInstrumentCodes', 'getInstrumentSettings', 'updateInstrumentSettings'. No other test change.
+- boot.test.ts:38 says the list is tester-owned and each task moves its replaced-stub ids there; the 14 failures are "stub X throws common.internal" for ops no longer stubs — bookkeeping, not a spec assertion.
+- Spec requires these ops live: 06-IMPLEMENTATION-PLAN.md:52 (API-T05 = E22–E32, E40–E41), :57 (API-T10 = E05); INT-T03 depends on "all" (:83).
+- 07-SECURITY.md:17 and :103 (S-01) require cross-tenant probes for every operation E01–E42; probes against `common.internal` stubs cannot show 404/rejection, so wiring the real handlers is needed for INT-T03 done_when "100 % operation coverage" (:83).
+- Wiring reuses existing services (instruments/settings/observedCodes/hostQuery .service.ts); no invented names.
+- `unit/signing.test.ts` "Go copy of the fixtures" failure is outside INT-T03 (API-T08/AG-T11, plan :55); not ruled here.

@@ -1,0 +1,10 @@
+#!/bin/sh
+# Managed by Ansible (role auditstore, T-15): instance superuser of the audit
+# store (provisioning and break-glass only, 05-SCHEMA s3.2). LD-45: lean uses
+# the app db container's provisioning superuser, full the store's own.
+{% if topology_profile == 'full' %}
+exec docker exec -i {{ auditstore_container }} psql -X -U postgres "$@"
+{% else %}
+exec docker exec -i {{ auditstore_container }} sh -c \
+  'PGPASSWORD="$POSTGRES_PASSWORD" exec psql -X -U supabase_admin "$@"' psql "$@"
+{% endif %}

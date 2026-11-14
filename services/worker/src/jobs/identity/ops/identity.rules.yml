@@ -1,0 +1,45 @@
+# C2 identity alert rules (02-TRD §13 "Alert rules for C1"; 08 A13 P-14; REQ-SEC-133). expr / for / severity verbatim from the TRD table.
+# C1 wires this file through CR-C2-019 and adds only `team` and `runbook_url` (C1 02-TRD §11.3); routes are C1's receivers.
+groups:
+  - name: identity
+    rules:
+      - alert: IdentityLoginFailureSpike
+        expr: 'sum(increase(lims_identity_logins_total{outcome="failed"}[5m])) > 50 or max by (tenant_id) (lims_identity_login_failures_by_tenant_5m) > 20'
+        for: 0m
+        labels: { severity: warn }
+      - alert: IdentityCredentialStuffing
+        expr: 'lims_identity_stuffing_distinct_accounts_15m >= 30 and lims_identity_stuffing_distinct_ips_15m >= 10'
+        for: 0m
+        labels: { severity: page }
+      - alert: IdentityLoginIpThrottleEngaged
+        expr: 'increase(lims_identity_logins_total{outcome="ip_throttled"}[5m]) > 0 or lims_identity_login_ip_throttles_active > 0'
+        for: 0m
+        labels: { severity: page }
+      - alert: IdentityPlatformIpDenied
+        expr: 'increase(lims_identity_logins_total{outcome="ip_denied"}[5m]) > 0'
+        for: 0m
+        labels: { severity: page }
+      - alert: IdentitySupportSessionOpened
+        expr: 'increase(lims_identity_support_sessions_opened_total[5m]) > 0'
+        for: 0m
+        labels: { severity: info }
+      - alert: IdentityAuditExportsHigh
+        expr: 'max by (tenant_id) (lims_identity_audit_exports_tenant_day) > 3'
+        for: 0m
+        labels: { severity: warn }
+      - alert: IdentityGoTrueUnavailable
+        expr: 'sum(rate(lims_identity_gotrue_requests_total{outcome="error"}[5m])) / sum(rate(lims_identity_gotrue_requests_total[5m])) > 0.2'
+        for: 5m
+        labels: { severity: page }
+      - alert: IdentityRefreshFailures
+        expr: 'increase(lims_identity_session_resolves_total{outcome="refresh_failed"}[10m]) > 10'
+        for: 0m
+        labels: { severity: warn }
+      - alert: IdentityBreachedListMissing
+        expr: 'lims_identity_breached_list_loaded{env="production"} == 0'
+        for: 10m
+        labels: { severity: page }
+      - alert: IdentityDeadLetter
+        expr: 'increase(lims_core_dead_letters_total{task=~"identity\\..*"}[5m]) > 0'
+        for: 0m
+        labels: { severity: page }

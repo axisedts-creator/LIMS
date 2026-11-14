@@ -1,0 +1,4 @@
+# FD-T12 dispute (harness, not behaviour)
+`__tests__/consumers/names.ts` fails to load the worker consumer files under vitest: `Cannot find module '/worker/src/jobs/frontdesk/consumers/<x>.js' imported from .../consumers/names.ts` (tests that import it: static manifest-wiring test, every DB test via `consume()`; 55 failures in tests/frontdesk/FD-T12.pg.sh).
+Evidence it is not the implementation: a byte-identical copy of names.ts under another filename (`names2.ts`, same directory, helpers.ts pointed at it) resolves the same specifiers and the whole copied recollection/booking/catalog suite passes against the writer's code; a direct `import()` of the same files from a test file also works. `cmp` shows the files identical.
+Ask: tester to investigate why this one file path resolves its dynamic imports differently (vite-node root-relative clamp to `/worker/...`), e.g. by renaming/moving it. Writer did not edit any test file; the copy was deleted.

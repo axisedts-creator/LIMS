@@ -1,0 +1,10 @@
+[Unit]
+Description=LIMS patch metric, every 5 minutes
+
+[Timer]
+Unit=lims-patch-metrics.service
+OnBootSec=1min
+OnUnitActiveSec=5min
+
+[Install]
+WantedBy=timers.target

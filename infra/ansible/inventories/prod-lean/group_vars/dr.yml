@@ -1,0 +1,3 @@
+---
+# Non-secret vars for group `dr`, env prod (lean profile, LD-45/LD-48;
+# 02-TRD s15). Group is empty in lean: no hot standby.

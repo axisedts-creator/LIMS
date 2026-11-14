@@ -1,0 +1,9 @@
+---
+# 02-TRD s12.2: product hosts pull only from registry.lims.internal:5000.
+# Server (Distribution, TLS, htpasswd, GC) on ops only; client trust on all.
+- name: Registry server
+  ansible.builtin.include_tasks: server.yml
+  when: "'ops' in group_names"
+
+- name: Registry client
+  ansible.builtin.include_tasks: client.yml

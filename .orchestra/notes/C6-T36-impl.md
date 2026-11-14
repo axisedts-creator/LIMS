@@ -1,0 +1,8 @@
+# C6-T36 impl
+- Files: api `modules/reporting/ports/RenderPort.impl.ts` (new); renderer `src/templates/{registry.ts,print.css}` (new), `contract.ts` (+RenderTemplateKey, DataTemplateModule), `src/render.ts` + `src/server.ts` (optional `registry`; second /internal/render shape, 400 without `data`, module throw -> 422).
+- Order in renderPdf: actor (auth.forbidden) -> idempotencyKey (P-40) -> key (common.validation_failed) -> schema/5,000-row cap (reporting.template_invalid) -> POST.
+- [CONV] output cap 10 MiB on raw PDF bytes; 422 -> template_invalid, any other non-2xx/timeout/refused -> render_unavailable; no logging, no ctx.db/storage, no fs.
+- [CONV] default schemas read via `require` of contracts/render/<key>.schema.json (static test bans node:fs in the impl); file absent -> render_unavailable (fail closed). The files do not exist yet (C0), so only injected `schemas` work today.
+- [CONV] registry loads `<templatesRoot>/{billing,analytics,smart}/index.ts`, dir may only register its own prefix; default root `services/renderer/templates`.
+- Open: shape 1 (report TemplateModule) is still not wired into /internal/render (unchanged, no registry path); print.css is not yet inlined into lab/narrative shell; `partners.access_slip` module = C6-T40. Tests: api render.port 35/35; renderer 174 pass (sandbox excluded), renderer tsc clean; api tsc errors are pre-existing (contracts/, shared-ts).
+- Review fix 1: `render.ts` renderData pins PDF /CreationDate,/ModDate to epoch and drops trailer /ID via `@cantoo/pdf-lib` (updateMetadata:false), so same data = same sha256. Renderer 175 pass (sandbox excl.), tsc clean; api render.port 35/35.

@@ -1,0 +1,49 @@
+---
+# 02-TRD s11.3 / s11.4. Core ops rules owned by T-18 (Watchdog, TargetDown);
+# T-19 adds the rest of the catalogue. Every rule: summary + runbook_url +
+# team; no label from the s11.2 drop list.
+groups:
+  - name: ops
+    rules:
+      - alert: Watchdog
+        expr: vector(1)
+        labels:
+          severity: none
+          team: ops
+        annotations:
+          summary: >-
+            Always firing. If this mail stops arriving every 6 h,
+            alerting is broken.
+          runbook_url: "infra/runbooks/ops.md#watchdog"
+      # page for site A hosts (data/app; prod-1 in the lean profile, LD-45),
+      # warn for the others (s11.3).
+      - alert: TargetDown
+        expr: up == 0
+        for: 2m
+        labels:
+          severity: >-
+            {{ if match "^(data|app|prod)-" $labels.host }}page{{ else
+            }}warn{{ end }}
+          team: ops
+        annotations:
+          summary: >-
+            Target {{ $labels.job }} on {{ $labels.host }}
+            ({{ $labels.instance }}) is down.
+          runbook_url: "infra/runbooks/host.md#targetdown"
+      # 02-TRD s11.2 item 2: ingest gate. ponytail: scans every series each
+      # evaluation; add a `lims_.+` name filter if Prometheus CPU shows it.
+      - record: lims_ops_series_per_metric
+        expr: >-
+          label_replace(count by (__name__) ({__name__=~".+"}),
+          "metric", "$1", "__name__", "(.+)")
+      - alert: MetricCardinalityHigh
+        expr: lims_ops_series_per_metric > 5000
+        for: 10m
+        labels:
+          severity: warn
+          team: ops
+        annotations:
+          summary: >-
+            Metric {{ $labels.metric }} has more than 5000 series
+            ({{ $value }}); check for an unbounded label.
+          runbook_url: "infra/runbooks/ops.md#metriccardinalityhigh"

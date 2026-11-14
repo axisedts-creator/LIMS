@@ -1,0 +1,5132 @@
+# contracts/openapi/smartreport.yaml (C14) — transcription of spec/chunks/C14-smart-report/02-TRD.md §5 (#1–#35) and §5.1, 35 ops (T0C-10.C14; AC-0C-1.4/1.5).
+# LD-103 (2026-11-11): wave-2 transcription scheduled by the human lead; owner approval given by that decision. Generated once from the TRD tables, then owned by C14.
+# Notes:
+# - Examples are synthetic (uuids 01940e00-0000-7000-8000-…, "Synthetic …" labels, registration SYN-…); no secret or token appears anywhere.
+# - [CONV] every operation lists the six common codes (TRD §5 intro); privileged permissions (template.approve, summary.approve) add auth.mfa_required;
+#   required-idempotency ops add the three idempotency codes; If-Match (✓) ops add version_conflict + precondition_required; error responses derive from errors.yaml http.
+# - [CONV] #14 putSmartAnalyteGroup ("✓ when the row exists"): optional If-Match header, lists only common.version_conflict. Optional-idempotency ops declare no
+#   Idempotency-Key header (wave-1 convention). #18 validate and #22 preview are read-only POSTs (E3, LD-10). DELETE #8 #12 #15 deactivate → 204.
+# - [CONV] TRD-open shapes: status csv filters as patterned strings; group_code fields x-coded-set smartreport.organ_groups; #22 response = SmartSummaryPreview
+#   (SmartSummaryView fields, no required id/order fields, + unmapped_result_count, ignored_duplicate_count); deny term / coded set / validation report / LLM run
+#   are named components; text maxima 2000 where the TRD gives none; trend direction improved|worsened|stable and BandStatus from 03-IC §4.10.
+openapi: 3.0.3
+info:
+  title: LIMS smartreport (C14)
+  version: 1.0.0
+  description: Transcribed from spec/chunks/C14-smart-report/02-TRD.md §5, §5.1 (T0C-10.C14, LD-103).
+paths:
+  /v1/smartreport/library-versions:
+    get:
+      operationId: listSmartLibraryVersions
+      tags:
+        - smartreport
+      summary: "List template library versions (TRD §5 #1)"
+      security:
+        - bearerJwt: []
+      x-permission: smartreport.template.manage
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.invalid_cursor
+      parameters:
+        - name: status
+          in: query
+          required: false
+          description: Comma-separated library statuses.
+          schema:
+            type: string
+            maxLength: 64
+            pattern: ^(draft|in_review|approved|retired)(,(draft|in_review|approved|retired)){0,3}$
+        - name: sort
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 11
+            enum:
+              - -version_no
+            default: -version_no
+        - $ref: _common.yaml#/components/parameters/Cursor
+        - $ref: _common.yaml#/components/parameters/Limit
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                  - data
+                  - page
+                properties:
+                  data:
+                    type: array
+                    maxItems: 200
+                    items:
+                      $ref: "#/components/schemas/LibraryVersionSummary"
+                  page:
+                    $ref: _common.yaml#/components/schemas/PageInfo
+              examples:
+                synthetic:
+                  value:
+                    data:
+                      - id: 01940e00-0000-7000-8000-000000000001
+                        version_no: 2
+                        status: approved
+                        language: en
+                        approved_at: 2026-01-15T05:10:00.000Z
+                        approved_by_membership_id: 01940e00-0000-7000-8000-a00000000015
+                        approved_by_display_name: Synthetic Pathologist
+                        updated_at: 2026-01-15T05:10:00.000Z
+                        version: 5
+                    page:
+                      limit: 50
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+    post:
+      operationId: createSmartLibraryVersion
+      tags:
+        - smartreport
+      summary: "Create a draft library version (starter or clone) (TRD §5 #2)"
+      description: source_version_id is required iff source = clone_version (handler check, common.validation_failed pointer /source_version_id).
+      security:
+        - bearerJwt: []
+      x-permission: smartreport.template.manage
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - smartreport.library_invalid_transition
+        - common.idempotency_key_required
+        - common.idempotency_key_reused
+        - common.idempotency_in_progress
+      parameters:
+        - $ref: _common.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - source
+              properties:
+                source:
+                  type: string
+                  maxLength: 13
+                  enum:
+                    - starter
+                    - clone_active
+                    - clone_version
+                source_version_id:
+                  $ref: _common.yaml#/components/schemas/Uuid
+                change_summary:
+                  type: string
+                  maxLength: 500
+            examples:
+              synthetic:
+                value:
+                  source: clone_version
+                  source_version_id: 01940e00-0000-7000-8000-a00000000014
+                  change_summary: Synthetic clone for wording update
+      responses:
+        "201":
+          description: Created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LibraryVersion"
+              examples:
+                synthetic:
+                  value:
+                    id: 01940e00-0000-7000-8000-000000000002
+                    version_no: 3
+                    status: draft
+                    language: en
+                    formula_version: hs-1
+                    params:
+                      score_enabled: true
+                      credit_in_range_bp: 10000
+                      credit_borderline_bp: 5000
+                      credit_out_of_range_bp: 0
+                      credit_critical_bp: 0
+                      min_groups_scored: 3
+                      band_good_min: 80
+                      band_fair_min: 60
+                      critical_forces_needs_attention: true
+                      borderline_fraction_bp: 0
+                      min_mapped_results: 3
+                      trend_enabled: true
+                      trend_max_points: 3
+                      trend_lookback_days: 365
+                      trend_stable_bp: 500
+                      trends_max: 6
+                      advice_max_blocks: 5
+                      followup_max: 3
+                    source_version_id: 01940e00-0000-7000-8000-a00000000014
+                    change_summary: "Synthetic edit: wording update"
+                    counts:
+                      blocks: 42
+                      rules: 60
+                      analyte_groups: 35
+                      groups_shown: 12
+                    version: 4
+                    created_at: 2026-01-15T04:30:00.000Z
+                    updated_at: 2026-01-15T05:10:00.000Z
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/smartreport/library-versions/{library_version_id}:
+    get:
+      operationId: getSmartLibraryVersion
+      tags:
+        - smartreport
+      summary: "Get a library version (TRD §5 #3)"
+      security:
+        - bearerJwt: []
+      x-permission: smartreport.template.manage
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+      parameters:
+        - $ref: "#/components/parameters/LibraryVersionId"
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LibraryVersion"
+              examples:
+                synthetic:
+                  value:
+                    id: 01940e00-0000-7000-8000-000000000003
+                    version_no: 3
+                    status: approved
+                    language: en
+                    formula_version: hs-1
+                    params:
+                      score_enabled: true
+                      credit_in_range_bp: 10000
+                      credit_borderline_bp: 5000
+                      credit_out_of_range_bp: 0
+                      credit_critical_bp: 0
+                      min_groups_scored: 3
+                      band_good_min: 80
+                      band_fair_min: 60
+                      critical_forces_needs_attention: true
+                      borderline_fraction_bp: 0
+                      min_mapped_results: 3
+                      trend_enabled: true
+                      trend_max_points: 3
+                      trend_lookback_days: 365
+                      trend_stable_bp: 500
+                      trends_max: 6
+                      advice_max_blocks: 5
+                      followup_max: 3
+                    source_version_id: 01940e00-0000-7000-8000-a00000000014
+                    change_summary: "Synthetic edit: wording update"
+                    content_sha256: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+                    submitted_at: 2026-01-15T04:30:00.000Z
+                    submitted_by_membership_id: 01940e00-0000-7000-8000-a00000000004
+                    approved_at: 2026-01-15T05:10:00.000Z
+                    approved_by_membership_id: 01940e00-0000-7000-8000-a00000000015
+                    approved_by_display_name: Synthetic Pathologist
+                    approval_note: Synthetic review complete
+                    counts:
+                      blocks: 42
+                      rules: 60
+                      analyte_groups: 35
+                      groups_shown: 12
+                    version: 4
+                    created_at: 2026-01-15T04:30:00.000Z
+                    updated_at: 2026-01-15T05:10:00.000Z
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+    patch:
+      operationId: updateSmartLibraryVersion
+      tags:
+        - smartreport
+      summary: "Update a draft library version (TRD §5 #4)"
+      security:
+        - bearerJwt: []
+      x-permission: smartreport.template.manage
+      x-context: tenant
+      x-idempotency: optional
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - smartreport.library_invalid_transition
+        - common.version_conflict
+        - common.precondition_required
+      parameters:
+        - $ref: "#/components/parameters/LibraryVersionId"
+        - $ref: _common.yaml#/components/parameters/IfMatch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                language:
+                  type: string
+                  maxLength: 2
+                  enum:
+                    - en
+                    - ne
+                change_summary:
+                  type: string
+                  maxLength: 500
+                params:
+                  $ref: "#/components/schemas/LibraryParams"
+            examples:
+              synthetic:
+                value:
+                  change_summary: Synthetic threshold change
+                  params:
+                    band_good_min: 85
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LibraryVersion"
+              examples:
+                synthetic:
+                  value:
+                    id: 01940e00-0000-7000-8000-000000000004
+                    version_no: 3
+                    status: draft
+                    language: en
+                    formula_version: hs-1
+                    params:
+                      score_enabled: true
+                      credit_in_range_bp: 10000
+                      credit_borderline_bp: 5000
+                      credit_out_of_range_bp: 0
+                      credit_critical_bp: 0
+                      min_groups_scored: 3
+                      band_good_min: 80
+                      band_fair_min: 60
+                      critical_forces_needs_attention: true
+                      borderline_fraction_bp: 0
+                      min_mapped_results: 3
+                      trend_enabled: true
+                      trend_max_points: 3
+                      trend_lookback_days: 365
+                      trend_stable_bp: 500
+                      trends_max: 6
+                      advice_max_blocks: 5
+                      followup_max: 3
+                    source_version_id: 01940e00-0000-7000-8000-a00000000014
+                    change_summary: "Synthetic edit: wording update"
+                    counts:
+                      blocks: 42
+                      rules: 60
+                      analyte_groups: 35
+                      groups_shown: 12
+                    version: 4
+                    created_at: 2026-01-15T04:30:00.000Z
+                    updated_at: 2026-01-15T05:10:00.000Z
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "428":
+          $ref: _common.yaml#/components/responses/PreconditionRequired
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/smartreport/library-versions/{library_version_id}/blocks:
+    get:
+      operationId: listSmartTemplateBlocks
+      tags:
+        - smartreport
+      summary: "List active template blocks (TRD §5 #5)"
+      security:
+        - bearerJwt: []
+      x-permission: smartreport.template.manage
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+      parameters:
+        - $ref: "#/components/parameters/LibraryVersionId"
+        - name: kind
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 17
+            enum:
+              - deranged
+              - advice
+              - followup
+              - disclaimer
+              - score_explanation
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                  - data
+                properties:
+                  data:
+                    type: array
+                    maxItems: 500
+                    items:
+                      $ref: "#/components/schemas/TemplateBlock"
+              examples:
+                synthetic:
+                  value:
+                    data:
+                      - id: 01940e00-0000-7000-8000-000000000005
+                        block_key: deranged.glucose.high
+                        kind: deranged
+                        text_en: Your {analyte_name} result is above the reference range.
+                        note: Synthetic block
+                        placeholders:
+                          - analyte_name
+                        version: 1
+                        updated_at: 2026-01-15T04:30:00.000Z
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+    post:
+      operationId: createSmartTemplateBlock
+      tags:
+        - smartreport
+      summary: "Create a template block (TRD §5 #6)"
+      security:
+        - bearerJwt: []
+      x-permission: smartreport.template.manage
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - smartreport.library_invalid_transition
+        - smartreport.library_invalid
+        - common.idempotency_key_required
+        - common.idempotency_key_reused
+        - common.idempotency_in_progress
+      parameters:
+        - $ref: "#/components/parameters/LibraryVersionId"
+        - $ref: _common.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - block_key
+                - kind
+              properties:
+                block_key:
+                  type: string
+                  maxLength: 80
+                  pattern: ^[a-z][a-z0-9_.]{2,79}$
+                kind:
+                  type: string
+                  maxLength: 17
+                  enum:
+                    - deranged
+                    - advice
+                    - followup
+                    - disclaimer
+                    - score_explanation
+                text_en:
+                  type: string
+                  maxLength: 600
+                text_ne:
+                  type: string
+                  maxLength: 600
+                note:
+                  type: string
+                  maxLength: 500
+            examples:
+              synthetic:
+                value:
+                  block_key: deranged.glucose.high
+                  kind: deranged
+                  text_en: Your {analyte_name} result is above the reference range.
+                  note: Synthetic block
+      responses:
+        "201":
+          description: Created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TemplateBlock"
+              examples:
+                synthetic:
+                  value:
+                    id: 01940e00-0000-7000-8000-000000000006
+                    block_key: deranged.glucose.high
+                    kind: deranged
+                    text_en: Your {analyte_name} result is above the reference range.
+                    note: Synthetic block
+                    placeholders:
+                      - analyte_name
+                    version: 1
+                    updated_at: 2026-01-15T04:30:00.000Z
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/smartreport/library-versions/{library_version_id}/blocks/{block_id}:
+    put:
+      operationId: replaceSmartTemplateBlock
+      tags:
+        - smartreport
+      summary: "Replace a template block (TRD §5 #7)"
+      description: block_key and kind are immutable on PUT (smartreport.library_invalid).
+      security:
+        - bearerJwt: []
+      x-permission: smartreport.template.manage
+      x-context: tenant
+      x-idempotency: optional
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - smartreport.library_invalid_transition
+        - smartreport.library_invalid
+        - common.version_conflict
+        - common.precondition_required
+      parameters:
+        - $ref: "#/components/parameters/LibraryVersionId"
+        - $ref: "#/components/parameters/BlockId"
+        - $ref: _common.yaml#/components/parameters/IfMatch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - block_key
+                - kind
+              properties:
+                block_key:
+                  type: string
+                  maxLength: 80
+                  pattern: ^[a-z][a-z0-9_.]{2,79}$
+                kind:
+                  type: string
+                  maxLength: 17
+                  enum:
+                    - deranged
+                    - advice
+                    - followup
+                    - disclaimer
+                    - score_explanation
+                text_en:
+                  type: string
+                  maxLength: 600
+                text_ne:
+                  type: string
+                  maxLength: 600
+                note:
+                  type: string
+                  maxLength: 500
+            examples:
+              synthetic:
+                value:
+                  block_key: deranged.glucose.high
+                  kind: deranged
+                  text_en: Your {analyte_name} result is above the reference range.
+                  note: Synthetic block
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TemplateBlock"
+              examples:
+                synthetic:
+                  value:
+                    id: 01940e00-0000-7000-8000-000000000007
+                    block_key: deranged.glucose.high
+                    kind: deranged
+                    text_en: Your {analyte_name} result is above the reference range.
+                    note: Synthetic block
+                    placeholders:
+                      - analyte_name
+                    version: 1
+                    updated_at: 2026-01-15T04:30:00.000Z
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "428":
+          $ref: _common.yaml#/components/responses/PreconditionRequired
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+    delete:
+      operationId: deleteSmartTemplateBlock
+      tags:
+        - smartreport
+      summary: "Deactivate a template block (TRD §5 #8)"
+      description: Deactivates (is_active = false, 08 A17 P-18(a)); smartreport.library_invalid when an active rule references it.
+      security:
+        - bearerJwt: []
+      x-permission: smartreport.template.manage
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - smartreport.library_invalid_transition
+        - smartreport.library_invalid
+        - common.version_conflict
+        - common.precondition_required
+      parameters:
+        - $ref: "#/components/parameters/LibraryVersionId"
+        - $ref: "#/components/parameters/BlockId"
+        - $ref: _common.yaml#/components/parameters/IfMatch
+      responses:
+        "204":
+          description: Deactivated (is_active = false; 08 A17 P-18(a)), no content.
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "428":
+          $ref: _common.yaml#/components/responses/PreconditionRequired
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/smartreport/library-versions/{library_version_id}/rules:
+    get:
+      operationId: listSmartRules
+      tags:
+        - smartreport
+      summary: "List active rules (TRD §5 #9)"
+      security:
+        - bearerJwt: []
+      x-permission: smartreport.template.manage
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+      parameters:
+        - $ref: "#/components/parameters/LibraryVersionId"
+        - name: rule_kind
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 8
+            enum:
+              - deranged
+              - advice
+              - followup
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                  - data
+                properties:
+                  data:
+                    type: array
+                    maxItems: 1000
+                    items:
+                      $ref: "#/components/schemas/Rule"
+              examples:
+                synthetic:
+                  value:
+                    data:
+                      - id: 01940e00-0000-7000-8000-000000000008
+                        rule_kind: deranged
+                        trigger_kind: analyte
+                        analyte_id: 01940e00-0000-7000-8000-a00000000005
+                        direction: high
+                        min_severity: out_of_range
+                        priority: 100
+                        block_id: 01940e00-0000-7000-8000-a00000000006
+                        version: 1
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+    post:
+      operationId: createSmartRule
+      tags:
+        - smartreport
+      summary: "Create a rule (TRD §5 #10)"
+      description: Combination rules = DB CHECKs (05-SCHEMA §3.7) mirrored in the handler; block_id must reference an active block of the same version (common.validation_failed, /block_id).
+      security:
+        - bearerJwt: []
+      x-permission: smartreport.template.manage
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - smartreport.library_invalid_transition
+        - smartreport.library_invalid
+        - common.idempotency_key_required
+        - common.idempotency_key_reused
+        - common.idempotency_in_progress
+      parameters:
+        - $ref: "#/components/parameters/LibraryVersionId"
+        - $ref: _common.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - rule_kind
+                - trigger_kind
+                - direction
+                - block_id
+              properties:
+                rule_kind:
+                  type: string
+                  maxLength: 8
+                  enum:
+                    - deranged
+                    - advice
+                    - followup
+                trigger_kind:
+                  type: string
+                  maxLength: 12
+                  enum:
+                    - analyte
+                    - group
+                    - any
+                    - all_in_range
+                analyte_id:
+                  $ref: _common.yaml#/components/schemas/Uuid
+                group_code:
+                  type: string
+                  minLength: 1
+                  maxLength: 100
+                  pattern: ^[a-z][a-z0-9_]{0,99}$
+                  x-coded-set: smartreport.organ_groups
+                direction:
+                  type: string
+                  maxLength: 8
+                  enum:
+                    - low
+                    - high
+                    - abnormal
+                    - any
+                min_severity:
+                  type: string
+                  maxLength: 12
+                  enum:
+                    - borderline
+                    - out_of_range
+                    - critical
+                priority:
+                  type: integer
+                  minimum: 1
+                  maximum: 999
+                  default: 100
+                block_id:
+                  $ref: _common.yaml#/components/schemas/Uuid
+                suggested_test_id:
+                  $ref: _common.yaml#/components/schemas/Uuid
+                interval_days:
+                  type: integer
+                  minimum: 1
+                  maximum: 730
+            examples:
+              synthetic:
+                value:
+                  rule_kind: deranged
+                  trigger_kind: analyte
+                  analyte_id: 01940e00-0000-7000-8000-a00000000005
+                  direction: high
+                  min_severity: out_of_range
+                  priority: 100
+                  block_id: 01940e00-0000-7000-8000-a00000000006
+      responses:
+        "201":
+          description: Created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Rule"
+              examples:
+                synthetic:
+                  value:
+                    id: 01940e00-0000-7000-8000-000000000009
+                    rule_kind: deranged
+                    trigger_kind: analyte
+                    analyte_id: 01940e00-0000-7000-8000-a00000000005
+                    direction: high
+                    min_severity: out_of_range
+                    priority: 100
+                    block_id: 01940e00-0000-7000-8000-a00000000006
+                    version: 1
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/smartreport/library-versions/{library_version_id}/rules/{rule_id}:
+    put:
+      operationId: replaceSmartRule
+      tags:
+        - smartreport
+      summary: "Replace a rule (TRD §5 #11)"
+      description: Combination rules = DB CHECKs (05-SCHEMA §3.7) mirrored in the handler; block_id must reference an active block of the same version (common.validation_failed, /block_id).
+      security:
+        - bearerJwt: []
+      x-permission: smartreport.template.manage
+      x-context: tenant
+      x-idempotency: optional
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - smartreport.library_invalid_transition
+        - smartreport.library_invalid
+        - common.version_conflict
+        - common.precondition_required
+      parameters:
+        - $ref: "#/components/parameters/LibraryVersionId"
+        - $ref: "#/components/parameters/RuleId"
+        - $ref: _common.yaml#/components/parameters/IfMatch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - rule_kind
+                - trigger_kind
+                - direction
+                - block_id
+              properties:
+                rule_kind:
+                  type: string
+                  maxLength: 8
+                  enum:
+                    - deranged
+                    - advice
+                    - followup
+                trigger_kind:
+                  type: string
+                  maxLength: 12
+                  enum:
+                    - analyte
+                    - group
+                    - any
+                    - all_in_range
+                analyte_id:
+                  $ref: _common.yaml#/components/schemas/Uuid
+                group_code:
+                  type: string
+                  minLength: 1
+                  maxLength: 100
+                  pattern: ^[a-z][a-z0-9_]{0,99}$
+                  x-coded-set: smartreport.organ_groups
+                direction:
+                  type: string
+                  maxLength: 8
+                  enum:
+                    - low
+                    - high
+                    - abnormal
+                    - any
+                min_severity:
+                  type: string
+                  maxLength: 12
+                  enum:
+                    - borderline
+                    - out_of_range
+                    - critical
+                priority:
+                  type: integer
+                  minimum: 1
+                  maximum: 999
+                  default: 100
+                block_id:
+                  $ref: _common.yaml#/components/schemas/Uuid
+                suggested_test_id:
+                  $ref: _common.yaml#/components/schemas/Uuid
+                interval_days:
+                  type: integer
+                  minimum: 1
+                  maximum: 730
+            examples:
+              synthetic:
+                value:
+                  rule_kind: deranged
+                  trigger_kind: analyte
+                  analyte_id: 01940e00-0000-7000-8000-a00000000005
+                  direction: high
+                  min_severity: out_of_range
+                  priority: 100
+                  block_id: 01940e00-0000-7000-8000-a00000000006
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Rule"
+              examples:
+                synthetic:
+                  value:
+                    id: 01940e00-0000-7000-8000-00000000000a
+                    rule_kind: deranged
+                    trigger_kind: analyte
+                    analyte_id: 01940e00-0000-7000-8000-a00000000005
+                    direction: high
+                    min_severity: out_of_range
+                    priority: 100
+                    block_id: 01940e00-0000-7000-8000-a00000000006
+                    version: 1
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "428":
+          $ref: _common.yaml#/components/responses/PreconditionRequired
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+    delete:
+      operationId: deleteSmartRule
+      tags:
+        - smartreport
+      summary: "Deactivate a rule (TRD §5 #12)"
+      description: Deactivates (08 A17 P-18(a)).
+      security:
+        - bearerJwt: []
+      x-permission: smartreport.template.manage
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - smartreport.library_invalid_transition
+        - common.version_conflict
+        - common.precondition_required
+      parameters:
+        - $ref: "#/components/parameters/LibraryVersionId"
+        - $ref: "#/components/parameters/RuleId"
+        - $ref: _common.yaml#/components/parameters/IfMatch
+      responses:
+        "204":
+          description: Deactivated (is_active = false; 08 A17 P-18(a)), no content.
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "428":
+          $ref: _common.yaml#/components/responses/PreconditionRequired
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/smartreport/library-versions/{library_version_id}/analyte-groups:
+    get:
+      operationId: listSmartAnalyteGroups
+      tags:
+        - smartreport
+      summary: "List active analyte-group mappings (TRD §5 #13)"
+      security:
+        - bearerJwt: []
+      x-permission: smartreport.template.manage
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+      parameters:
+        - $ref: "#/components/parameters/LibraryVersionId"
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                  - data
+                properties:
+                  data:
+                    type: array
+                    maxItems: 2000
+                    items:
+                      $ref: "#/components/schemas/AnalyteGroup"
+              examples:
+                synthetic:
+                  value:
+                    data:
+                      - analyte_id: 01940e00-0000-7000-8000-a00000000005
+                        group_code: glucose
+                        include_in_score: true
+                        trend_enabled: false
+                        sort_order: 10
+                        version: 2
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/smartreport/library-versions/{library_version_id}/analyte-groups/{analyte_id}:
+    put:
+      operationId: putSmartAnalyteGroup
+      tags:
+        - smartreport
+      summary: "Create or replace an analyte-group mapping (TRD §5 #14)"
+      description: "If-Match required when the mapping row exists (TRD §5 #14); a PUT on an analyte whose mapping was removed inserts a new active row (201)."
+      security:
+        - bearerJwt: []
+      x-permission: smartreport.template.manage
+      x-context: tenant
+      x-idempotency: optional
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - smartreport.library_invalid_transition
+        - common.version_conflict
+      parameters:
+        - $ref: "#/components/parameters/LibraryVersionId"
+        - $ref: "#/components/parameters/AnalyteId"
+        - name: If-Match
+          in: header
+          required: false
+          description: "Required when the mapping row exists (TRD §5 #14); absent on create."
+          schema:
+            type: string
+            maxLength: 12
+            pattern: ^"[1-9][0-9]*"$
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - group_code
+              properties:
+                group_code:
+                  type: string
+                  minLength: 1
+                  maxLength: 100
+                  pattern: ^[a-z][a-z0-9_]{0,99}$
+                  x-coded-set: smartreport.organ_groups
+                include_in_score:
+                  type: boolean
+                  default: true
+                trend_enabled:
+                  type: boolean
+                  default: false
+                borderline_fraction_bp:
+                  type: integer
+                  minimum: 0
+                  maximum: 2500
+                trend_stable_bp:
+                  type: integer
+                  minimum: 0
+                  maximum: 5000
+                sort_order:
+                  type: integer
+                  minimum: 0
+                  maximum: 9999
+            examples:
+              synthetic:
+                value:
+                  group_code: glucose
+                  include_in_score: true
+                  trend_enabled: false
+                  sort_order: 10
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnalyteGroup"
+              examples:
+                synthetic:
+                  value:
+                    analyte_id: 01940e00-0000-7000-8000-a00000000005
+                    group_code: glucose
+                    include_in_score: true
+                    trend_enabled: false
+                    sort_order: 10
+                    version: 2
+        "201":
+          description: Created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnalyteGroup"
+              examples:
+                synthetic:
+                  value:
+                    analyte_id: 01940e00-0000-7000-8000-a00000000005
+                    group_code: glucose
+                    include_in_score: true
+                    trend_enabled: false
+                    sort_order: 10
+                    version: 1
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+    delete:
+      operationId: deleteSmartAnalyteGroup
+      tags:
+        - smartreport
+      summary: "Deactivate an analyte-group mapping (TRD §5 #15)"
+      description: Deactivates the active mapping (08 A17 P-18(a)).
+      security:
+        - bearerJwt: []
+      x-permission: smartreport.template.manage
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - smartreport.library_invalid_transition
+        - common.version_conflict
+        - common.precondition_required
+      parameters:
+        - $ref: "#/components/parameters/LibraryVersionId"
+        - $ref: "#/components/parameters/AnalyteId"
+        - $ref: _common.yaml#/components/parameters/IfMatch
+      responses:
+        "204":
+          description: Deactivated (is_active = false; 08 A17 P-18(a)), no content.
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "428":
+          $ref: _common.yaml#/components/responses/PreconditionRequired
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/smartreport/library-versions/{library_version_id}/groups:
+    get:
+      operationId: listSmartGroupSettings
+      tags:
+        - smartreport
+      summary: "List organ-group settings (TRD §5 #16)"
+      security:
+        - bearerJwt: []
+      x-permission: smartreport.template.manage
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+      parameters:
+        - $ref: "#/components/parameters/LibraryVersionId"
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                  - data
+                properties:
+                  data:
+                    type: array
+                    maxItems: 200
+                    items:
+                      $ref: "#/components/schemas/GroupSetting"
+              examples:
+                synthetic:
+                  value:
+                    data:
+                      - group_code: liver
+                        display_en: Liver
+                        display_ne: कलेजो
+                        score_weight: 1
+                        sort_order: 40
+                        is_shown: true
+                        version: 2
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/smartreport/library-versions/{library_version_id}/groups/{group_code}:
+    put:
+      operationId: putSmartGroupSetting
+      tags:
+        - smartreport
+      summary: "Replace an organ-group setting (TRD §5 #17)"
+      security:
+        - bearerJwt: []
+      x-permission: smartreport.template.manage
+      x-context: tenant
+      x-idempotency: optional
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - smartreport.library_invalid_transition
+        - common.version_conflict
+        - common.precondition_required
+      parameters:
+        - $ref: "#/components/parameters/LibraryVersionId"
+        - $ref: "#/components/parameters/GroupCode"
+        - $ref: _common.yaml#/components/parameters/IfMatch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - display_en
+                - score_weight
+                - sort_order
+                - is_shown
+              properties:
+                display_en:
+                  type: string
+                  maxLength: 60
+                  minLength: 1
+                display_ne:
+                  type: string
+                  maxLength: 60
+                score_weight:
+                  type: integer
+                  minimum: 0
+                  maximum: 10
+                sort_order:
+                  type: integer
+                  minimum: 0
+                  maximum: 9999
+                is_shown:
+                  type: boolean
+            examples:
+              synthetic:
+                value:
+                  display_en: Liver
+                  display_ne: कलेजो
+                  score_weight: 1
+                  sort_order: 40
+                  is_shown: true
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GroupSetting"
+              examples:
+                synthetic:
+                  value:
+                    group_code: liver
+                    display_en: Liver
+                    display_ne: कलेजो
+                    score_weight: 1
+                    sort_order: 40
+                    is_shown: true
+                    version: 2
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "428":
+          $ref: _common.yaml#/components/responses/PreconditionRequired
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/smartreport/library-versions/{library_version_id}/validate:
+    post:
+      operationId: validateSmartLibraryVersion
+      tags:
+        - smartreport
+      summary: "Validate a library version (report in body) (TRD §5 #18)"
+      security:
+        - bearerJwt: []
+      x-permission: smartreport.template.manage
+      x-context: tenant
+      x-idempotency: none
+      x-idempotency-justification: "E3 read-only POST (LD-10): computes a report from stored rows, no state written, nothing to replay."
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+      parameters:
+        - $ref: "#/components/parameters/LibraryVersionId"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties: {}
+            examples:
+              synthetic:
+                value: {}
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationReport"
+              examples:
+                synthetic:
+                  value:
+                    valid: false
+                    issues:
+                      - code: no_mappings
+                        severity: error
+                        detail: "Synthetic: no analyte is mapped to a group."
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/smartreport/library-versions/{library_version_id}/submit:
+    post:
+      operationId: submitSmartLibraryVersion
+      tags:
+        - smartreport
+      summary: "Submit a draft for approval (TRD §5 #19)"
+      security:
+        - bearerJwt: []
+      x-permission: smartreport.template.manage
+      x-context: tenant
+      x-idempotency: optional
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - smartreport.library_invalid
+        - smartreport.library_invalid_transition
+        - common.version_conflict
+        - common.precondition_required
+      parameters:
+        - $ref: "#/components/parameters/LibraryVersionId"
+        - $ref: _common.yaml#/components/parameters/IfMatch
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties: {}
+            examples:
+              synthetic:
+                value: {}
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LibraryVersion"
+              examples:
+                synthetic:
+                  value:
+                    id: 01940e00-0000-7000-8000-00000000000b
+                    version_no: 3
+                    status: in_review
+                    language: en
+                    formula_version: hs-1
+                    params:
+                      score_enabled: true
+                      credit_in_range_bp: 10000
+                      credit_borderline_bp: 5000
+                      credit_out_of_range_bp: 0
+                      credit_critical_bp: 0
+                      min_groups_scored: 3
+                      band_good_min: 80
+                      band_fair_min: 60
+                      critical_forces_needs_attention: true
+                      borderline_fraction_bp: 0
+                      min_mapped_results: 3
+                      trend_enabled: true
+                      trend_max_points: 3
+                      trend_lookback_days: 365
+                      trend_stable_bp: 500
+                      trends_max: 6
+                      advice_max_blocks: 5
+                      followup_max: 3
+                    source_version_id: 01940e00-0000-7000-8000-a00000000014
+                    change_summary: "Synthetic edit: wording update"
+                    content_sha256: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+                    submitted_at: 2026-01-15T04:30:00.000Z
+                    submitted_by_membership_id: 01940e00-0000-7000-8000-a00000000004
+                    counts:
+                      blocks: 42
+                      rules: 60
+                      analyte_groups: 35
+                      groups_shown: 12
+                    version: 4
+                    created_at: 2026-01-15T04:30:00.000Z
+                    updated_at: 2026-01-15T05:10:00.000Z
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "428":
+          $ref: _common.yaml#/components/responses/PreconditionRequired
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/smartreport/library-versions/{library_version_id}/approve:
+    post:
+      operationId: approveSmartLibraryVersion
+      tags:
+        - smartreport
+      summary: "Approve a library version (TRD §5 #20)"
+      security:
+        - bearerJwt: []
+      x-permission: smartreport.template.approve
+      x-context: tenant
+      x-idempotency: optional
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - auth.mfa_required
+        - smartreport.library_invalid_transition
+        - common.version_conflict
+        - common.precondition_required
+      parameters:
+        - $ref: "#/components/parameters/LibraryVersionId"
+        - $ref: _common.yaml#/components/parameters/IfMatch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - attestation
+              properties:
+                attestation:
+                  type: boolean
+                  enum:
+                    - true
+                  description: "Must be true: I have reviewed every text in this library."
+                note:
+                  type: string
+                  maxLength: 500
+            examples:
+              synthetic:
+                value:
+                  attestation: true
+                  note: Synthetic approval note
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LibraryVersion"
+              examples:
+                synthetic:
+                  value:
+                    id: 01940e00-0000-7000-8000-00000000000c
+                    version_no: 3
+                    status: approved
+                    language: en
+                    formula_version: hs-1
+                    params:
+                      score_enabled: true
+                      credit_in_range_bp: 10000
+                      credit_borderline_bp: 5000
+                      credit_out_of_range_bp: 0
+                      credit_critical_bp: 0
+                      min_groups_scored: 3
+                      band_good_min: 80
+                      band_fair_min: 60
+                      critical_forces_needs_attention: true
+                      borderline_fraction_bp: 0
+                      min_mapped_results: 3
+                      trend_enabled: true
+                      trend_max_points: 3
+                      trend_lookback_days: 365
+                      trend_stable_bp: 500
+                      trends_max: 6
+                      advice_max_blocks: 5
+                      followup_max: 3
+                    source_version_id: 01940e00-0000-7000-8000-a00000000014
+                    change_summary: "Synthetic edit: wording update"
+                    content_sha256: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+                    submitted_at: 2026-01-15T04:30:00.000Z
+                    submitted_by_membership_id: 01940e00-0000-7000-8000-a00000000004
+                    approved_at: 2026-01-15T05:10:00.000Z
+                    approved_by_membership_id: 01940e00-0000-7000-8000-a00000000015
+                    approved_by_display_name: Synthetic Pathologist
+                    approval_note: Synthetic review complete
+                    counts:
+                      blocks: 42
+                      rules: 60
+                      analyte_groups: 35
+                      groups_shown: 12
+                    version: 4
+                    created_at: 2026-01-15T04:30:00.000Z
+                    updated_at: 2026-01-15T05:10:00.000Z
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "428":
+          $ref: _common.yaml#/components/responses/PreconditionRequired
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/smartreport/library-versions/{library_version_id}/return:
+    post:
+      operationId: returnSmartLibraryVersion
+      tags:
+        - smartreport
+      summary: "Return a library version to draft (TRD §5 #21)"
+      security:
+        - bearerJwt: []
+      x-permission: smartreport.template.approve
+      x-context: tenant
+      x-idempotency: optional
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - auth.mfa_required
+        - smartreport.library_invalid_transition
+        - common.version_conflict
+        - common.precondition_required
+      parameters:
+        - $ref: "#/components/parameters/LibraryVersionId"
+        - $ref: _common.yaml#/components/parameters/IfMatch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - comment
+              properties:
+                comment:
+                  type: string
+                  maxLength: 1000
+                  minLength: 1
+            examples:
+              synthetic:
+                value:
+                  comment: "Synthetic: please reword the liver advice block."
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LibraryVersion"
+              examples:
+                synthetic:
+                  value:
+                    id: 01940e00-0000-7000-8000-00000000000d
+                    version_no: 3
+                    status: draft
+                    language: en
+                    formula_version: hs-1
+                    params:
+                      score_enabled: true
+                      credit_in_range_bp: 10000
+                      credit_borderline_bp: 5000
+                      credit_out_of_range_bp: 0
+                      credit_critical_bp: 0
+                      min_groups_scored: 3
+                      band_good_min: 80
+                      band_fair_min: 60
+                      critical_forces_needs_attention: true
+                      borderline_fraction_bp: 0
+                      min_mapped_results: 3
+                      trend_enabled: true
+                      trend_max_points: 3
+                      trend_lookback_days: 365
+                      trend_stable_bp: 500
+                      trends_max: 6
+                      advice_max_blocks: 5
+                      followup_max: 3
+                    source_version_id: 01940e00-0000-7000-8000-a00000000014
+                    change_summary: "Synthetic edit: wording update"
+                    counts:
+                      blocks: 42
+                      rules: 60
+                      analyte_groups: 35
+                      groups_shown: 12
+                    version: 4
+                    created_at: 2026-01-15T04:30:00.000Z
+                    updated_at: 2026-01-15T05:10:00.000Z
+                    returned_at: 2026-01-15T05:10:00.000Z
+                    return_comment: "Synthetic: please reword the liver advice block."
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "428":
+          $ref: _common.yaml#/components/responses/PreconditionRequired
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/smartreport/library-versions/{library_version_id}/preview:
+    post:
+      operationId: previewSmartLibraryVersion
+      tags:
+        - smartreport
+      summary: "Preview a summary with this library version (TRD §5 #22)"
+      description: With order_id the handler also asserts lab.result.read for the order's centre (08 A13 P-10) and access-logs smart_summary.view / smart_summary_preview.
+      security:
+        - bearerJwt: []
+      x-permission: smartreport.template.manage
+      x-context: tenant
+      x-idempotency: none
+      x-idempotency-justification: "E3 read-only POST (LD-10): computes a report from stored rows, no state written, nothing to replay."
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - smartreport.no_eligible_results
+      parameters:
+        - $ref: "#/components/parameters/LibraryVersionId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - type: object
+                  additionalProperties: false
+                  required:
+                    - order_id
+                  properties:
+                    order_id:
+                      $ref: _common.yaml#/components/schemas/Uuid
+                - type: object
+                  additionalProperties: false
+                  required:
+                    - fixture_code
+                  properties:
+                    fixture_code:
+                      type: string
+                      maxLength: 22
+                      enum:
+                        - synthetic_basic
+                        - synthetic_all_in_range
+                        - synthetic_critical
+            examples:
+              synthetic:
+                value:
+                  fixture_code: synthetic_basic
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SmartSummaryPreview"
+              examples:
+                synthetic:
+                  value:
+                    status: preview
+                    library_version_id: 01940e00-0000-7000-8000-a00000000001
+                    template_library_version: 3
+                    formula_version: hs-1
+                    language: en
+                    built_at: 2026-01-15T04:30:00.000Z
+                    report_version_nos:
+                      - 1
+                    health_score:
+                      value: 81
+                      band: good
+                      formula_version: hs-1
+                      panels_scored: 3
+                      explanation_text: Synthetic explanation of the score.
+                    panels:
+                      - panel_code: glucose
+                        display_name: Blood sugar
+                        status: out_of_range
+                        result_ids:
+                          - 01940e00-0000-7000-8000-a00000000008
+                      - panel_code: liver
+                        display_name: Liver
+                        status: in_range
+                        result_ids:
+                          - 01940e00-0000-7000-8000-a00000000009
+                    deranged:
+                      - result_id: 01940e00-0000-7000-8000-a00000000008
+                        analyte_id: 01940e00-0000-7000-8000-a00000000005
+                        analyte_name: Synthetic Glucose
+                        direction: high
+                        severity: out_of_range
+                        template_block_id: 01940e00-0000-7000-8000-a00000000006
+                        text: Your Synthetic Glucose result is above the reference range.
+                    advice:
+                      - template_block_id: 01940e00-0000-7000-8000-a0000000001e
+                        text: Synthetic advice text.
+                    follow_ups:
+                      - rule_id: 01940e00-0000-7000-8000-a00000000007
+                        suggested_test_code: SYN-HBA1C
+                        suggested_test_name: Synthetic HbA1c
+                        interval_days: 90
+                        text: Consider a repeat test in 90 days.
+                    trends:
+                      - analyte_id: 01940e00-0000-7000-8000-a00000000005
+                        analyte_name: Synthetic Glucose
+                        unit_code: mg_dl
+                        direction: worsened
+                        point_result_ids:
+                          - 01940e00-0000-7000-8000-a0000000000a
+                          - 01940e00-0000-7000-8000-a00000000008
+                        points:
+                          - result_id: 01940e00-0000-7000-8000-a0000000000a
+                            approved_at: 2025-10-01T04:00:00.000Z
+                            value_numeric: "98"
+                          - result_id: 01940e00-0000-7000-8000-a00000000008
+                            approved_at: 2026-01-15T04:30:00.000Z
+                            value_numeric: "132"
+                    disclaimer_block_id: 01940e00-0000-7000-8000-a0000000000d
+                    disclaimer_text: This summary is not a diagnosis. Discuss your results with your doctor.
+                    counts:
+                      deranged: 1
+                      critical: 0
+                      unmapped_results: 2
+                      ignored_duplicates: 0
+                    llm:
+                      enabled: false
+                      use_llm_text: false
+                    reviews: []
+                    unmapped_result_count: 2
+                    ignored_duplicate_count: 0
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/smartreport/wording-deny-terms:
+    get:
+      operationId: listSmartDenyTerms
+      tags:
+        - smartreport
+      summary: "List wording deny terms (TRD §5 #23)"
+      security:
+        - bearerJwt: []
+      x-permission: smartreport.template.manage
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+      parameters:
+        - name: include_global
+          in: query
+          required: false
+          schema:
+            type: boolean
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                  - data
+                properties:
+                  data:
+                    type: array
+                    maxItems: 1000
+                    items:
+                      $ref: "#/components/schemas/DenyTerm"
+              examples:
+                synthetic:
+                  value:
+                    data:
+                      - id: 01940e00-0000-7000-8000-00000000000e
+                        term: guaranteed cure
+                        language: en
+                        scope: tenant
+                        reason: Synthetic wording rule
+                        is_active: true
+                        version: 1
+                      - term: http
+                        language: any
+                        scope: global
+                        reason: global wording rule (04 R8)
+                        is_active: true
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+    post:
+      operationId: createSmartDenyTerm
+      tags:
+        - smartreport
+      summary: "Add a tenant wording deny term (TRD §5 #24)"
+      security:
+        - bearerJwt: []
+      x-permission: smartreport.template.manage
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.idempotency_key_required
+        - common.idempotency_key_reused
+        - common.idempotency_in_progress
+      parameters:
+        - $ref: _common.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - term
+                - language
+              properties:
+                term:
+                  type: string
+                  maxLength: 60
+                  minLength: 2
+                language:
+                  type: string
+                  maxLength: 3
+                  enum:
+                    - en
+                    - ne
+                    - any
+                reason:
+                  type: string
+                  maxLength: 200
+            examples:
+              synthetic:
+                value:
+                  term: guaranteed cure
+                  language: en
+                  reason: Synthetic wording rule
+      responses:
+        "201":
+          description: Created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DenyTerm"
+              examples:
+                synthetic:
+                  value:
+                    id: 01940e00-0000-7000-8000-00000000000f
+                    term: guaranteed cure
+                    language: en
+                    scope: tenant
+                    reason: Synthetic wording rule
+                    is_active: true
+                    version: 1
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/smartreport/wording-deny-terms/{term_id}/deactivate:
+    post:
+      operationId: deactivateSmartDenyTerm
+      tags:
+        - smartreport
+      summary: "Deactivate a tenant wording deny term (TRD §5 #25)"
+      description: Global term ids are not addressable (common.not_found).
+      security:
+        - bearerJwt: []
+      x-permission: smartreport.template.manage
+      x-context: tenant
+      x-idempotency: optional
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.immutable_record
+        - common.version_conflict
+        - common.precondition_required
+      parameters:
+        - $ref: "#/components/parameters/TermId"
+        - $ref: _common.yaml#/components/parameters/IfMatch
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties: {}
+            examples:
+              synthetic:
+                value: {}
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DenyTerm"
+              examples:
+                synthetic:
+                  value:
+                    id: 01940e00-0000-7000-8000-000000000010
+                    term: guaranteed cure
+                    language: en
+                    scope: tenant
+                    reason: Synthetic wording rule
+                    is_active: false
+                    version: 2
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "428":
+          $ref: _common.yaml#/components/responses/PreconditionRequired
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/smartreport/coded-sets/{set_code}:
+    get:
+      operationId: getSmartCodedSet
+      tags:
+        - smartreport
+      summary: "Get a smart-report coded set (TRD §5 #26)"
+      security:
+        - bearerJwt: []
+      x-permission: smartreport.summary.read
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CodedSet"
+              examples:
+                synthetic:
+                  value:
+                    set_code: summary_reject_reasons
+                    items:
+                      - code: wording_problem
+                        display: Wording not appropriate
+                        sort_order: 10
+                        is_active: true
+                      - code: library_error
+                        display: Library rule or text error
+                        sort_order: 20
+                        is_active: true
+                      - code: not_appropriate_for_patient
+                        display: Not appropriate for this patient
+                        sort_order: 30
+                        is_active: true
+                      - code: results_under_review
+                        display: Results under review
+                        sort_order: 40
+                        is_active: true
+                      - code: other
+                        display: Other
+                        sort_order: 90
+                        is_active: true
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+      parameters:
+        - name: set_code
+          in: path
+          required: true
+          schema:
+            type: string
+            maxLength: 22
+            enum:
+              - summary_reject_reasons
+  /v1/smartreport/summaries:
+    get:
+      operationId: listSmartSummaries
+      tags:
+        - smartreport
+      summary: "List smart summaries (review queue) (TRD §5 #27)"
+      security:
+        - bearerJwt: []
+      x-permission: smartreport.summary.read
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.invalid_cursor
+      parameters:
+        - name: status
+          in: query
+          required: false
+          description: Comma-separated summary statuses; default draft.
+          schema:
+            type: string
+            maxLength: 64
+            pattern: ^(draft|approved|rejected|superseded)(,(draft|approved|rejected|superseded)){0,3}$
+            default: draft
+        - name: centre_id
+          in: query
+          required: false
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - name: built_at_from
+          in: query
+          required: false
+          schema:
+            $ref: _common.yaml#/components/schemas/IsoUtc
+        - name: built_at_to
+          in: query
+          required: false
+          schema:
+            $ref: _common.yaml#/components/schemas/IsoUtc
+        - name: has_critical
+          in: query
+          required: false
+          schema:
+            type: boolean
+        - name: sort
+          in: query
+          required: false
+          description: Default built_at (oldest first).
+          schema:
+            type: string
+            maxLength: 9
+            enum:
+              - built_at
+              - -built_at
+            default: built_at
+        - $ref: _common.yaml#/components/parameters/Cursor
+        - $ref: _common.yaml#/components/parameters/Limit
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                  - data
+                  - page
+                properties:
+                  data:
+                    type: array
+                    maxItems: 200
+                    items:
+                      $ref: "#/components/schemas/SmartSummaryListItem"
+                  page:
+                    $ref: _common.yaml#/components/schemas/PageInfo
+              examples:
+                synthetic:
+                  value:
+                    data:
+                      - id: 01940e00-0000-7000-8000-000000000011
+                        order_id: 01940e00-0000-7000-8000-a00000000002
+                        centre_id: 01940e00-0000-7000-8000-a00000000003
+                        status: draft
+                        built_at: 2026-01-15T04:30:00.000Z
+                        health_score_band: good
+                        deranged_count: 1
+                        critical_count: 0
+                        registration_no: SYN-000123
+                        patient_display_name: Synthetic Patient A
+                        version: 1
+                    page:
+                      limit: 50
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/smartreport/summaries/{summary_id}:
+    get:
+      operationId: getSmartSummary
+      tags:
+        - smartreport
+      summary: "Get a smart summary (TRD §5 #28)"
+      security:
+        - bearerJwt: []
+      x-permission: smartreport.summary.read
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+      parameters:
+        - $ref: "#/components/parameters/SummaryId"
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SmartSummaryView"
+              examples:
+                synthetic:
+                  value:
+                    id: 01940e00-0000-7000-8000-000000000012
+                    order_id: 01940e00-0000-7000-8000-a00000000002
+                    centre_id: 01940e00-0000-7000-8000-a00000000003
+                    status: draft
+                    library_version_id: 01940e00-0000-7000-8000-a00000000001
+                    template_library_version: 3
+                    formula_version: hs-1
+                    language: en
+                    built_at: 2026-01-15T04:30:00.000Z
+                    report_version_nos:
+                      - 1
+                    health_score:
+                      value: 81
+                      band: good
+                      formula_version: hs-1
+                      panels_scored: 3
+                      explanation_text: Synthetic explanation of the score.
+                    panels:
+                      - panel_code: glucose
+                        display_name: Blood sugar
+                        status: out_of_range
+                        result_ids:
+                          - 01940e00-0000-7000-8000-a00000000008
+                      - panel_code: liver
+                        display_name: Liver
+                        status: in_range
+                        result_ids:
+                          - 01940e00-0000-7000-8000-a00000000009
+                    deranged:
+                      - result_id: 01940e00-0000-7000-8000-a00000000008
+                        analyte_id: 01940e00-0000-7000-8000-a00000000005
+                        analyte_name: Synthetic Glucose
+                        direction: high
+                        severity: out_of_range
+                        template_block_id: 01940e00-0000-7000-8000-a00000000006
+                        text: Your Synthetic Glucose result is above the reference range.
+                    advice:
+                      - template_block_id: 01940e00-0000-7000-8000-a0000000001e
+                        text: Synthetic advice text.
+                    follow_ups:
+                      - rule_id: 01940e00-0000-7000-8000-a00000000007
+                        suggested_test_code: SYN-HBA1C
+                        suggested_test_name: Synthetic HbA1c
+                        interval_days: 90
+                        text: Consider a repeat test in 90 days.
+                    trends:
+                      - analyte_id: 01940e00-0000-7000-8000-a00000000005
+                        analyte_name: Synthetic Glucose
+                        unit_code: mg_dl
+                        direction: worsened
+                        point_result_ids:
+                          - 01940e00-0000-7000-8000-a0000000000a
+                          - 01940e00-0000-7000-8000-a00000000008
+                        points:
+                          - result_id: 01940e00-0000-7000-8000-a0000000000a
+                            approved_at: 2025-10-01T04:00:00.000Z
+                            value_numeric: "98"
+                          - result_id: 01940e00-0000-7000-8000-a00000000008
+                            approved_at: 2026-01-15T04:30:00.000Z
+                            value_numeric: "132"
+                    disclaimer_block_id: 01940e00-0000-7000-8000-a0000000000d
+                    disclaimer_text: This summary is not a diagnosis. Discuss your results with your doctor.
+                    counts:
+                      deranged: 1
+                      critical: 0
+                      unmapped_results: 2
+                      ignored_duplicates: 0
+                    llm:
+                      enabled: false
+                      use_llm_text: false
+                    registration_no: SYN-000123
+                    patient_display_name: Synthetic Patient A
+                    review_inputs:
+                      - result_id: 01940e00-0000-7000-8000-a00000000008
+                        analyte_id: 01940e00-0000-7000-8000-a00000000005
+                        analyte_name: Synthetic Glucose
+                        value_text: "132"
+                        unit_code: mg_dl
+                        flag: H
+                        ref_range_text: 70-110
+                        band_status: out_of_range
+                        group_code: glucose
+                    reviews: []
+                    version: 2
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/smartreport/orders/{order_id}/summary:
+    get:
+      operationId: getCurrentSmartSummary
+      tags:
+        - smartreport
+      summary: "Get the live smart summary of an order (TRD §5 #29)"
+      description: common.not_found when the order has no live summary.
+      security:
+        - bearerJwt: []
+      x-permission: smartreport.summary.read
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+      parameters:
+        - $ref: "#/components/parameters/OrderId"
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SmartSummaryView"
+              examples:
+                synthetic:
+                  value:
+                    id: 01940e00-0000-7000-8000-000000000013
+                    order_id: 01940e00-0000-7000-8000-a00000000002
+                    centre_id: 01940e00-0000-7000-8000-a00000000003
+                    status: approved
+                    library_version_id: 01940e00-0000-7000-8000-a00000000001
+                    template_library_version: 3
+                    formula_version: hs-1
+                    language: en
+                    built_at: 2026-01-15T04:30:00.000Z
+                    report_version_nos:
+                      - 1
+                    health_score:
+                      value: 81
+                      band: good
+                      formula_version: hs-1
+                      panels_scored: 3
+                      explanation_text: Synthetic explanation of the score.
+                    panels:
+                      - panel_code: glucose
+                        display_name: Blood sugar
+                        status: out_of_range
+                        result_ids:
+                          - 01940e00-0000-7000-8000-a00000000008
+                      - panel_code: liver
+                        display_name: Liver
+                        status: in_range
+                        result_ids:
+                          - 01940e00-0000-7000-8000-a00000000009
+                    deranged:
+                      - result_id: 01940e00-0000-7000-8000-a00000000008
+                        analyte_id: 01940e00-0000-7000-8000-a00000000005
+                        analyte_name: Synthetic Glucose
+                        direction: high
+                        severity: out_of_range
+                        template_block_id: 01940e00-0000-7000-8000-a00000000006
+                        text: Your Synthetic Glucose result is above the reference range.
+                    advice:
+                      - template_block_id: 01940e00-0000-7000-8000-a0000000001e
+                        text: Synthetic advice text.
+                    follow_ups:
+                      - rule_id: 01940e00-0000-7000-8000-a00000000007
+                        suggested_test_code: SYN-HBA1C
+                        suggested_test_name: Synthetic HbA1c
+                        interval_days: 90
+                        text: Consider a repeat test in 90 days.
+                    trends:
+                      - analyte_id: 01940e00-0000-7000-8000-a00000000005
+                        analyte_name: Synthetic Glucose
+                        unit_code: mg_dl
+                        direction: worsened
+                        point_result_ids:
+                          - 01940e00-0000-7000-8000-a0000000000a
+                          - 01940e00-0000-7000-8000-a00000000008
+                        points:
+                          - result_id: 01940e00-0000-7000-8000-a0000000000a
+                            approved_at: 2025-10-01T04:00:00.000Z
+                            value_numeric: "98"
+                          - result_id: 01940e00-0000-7000-8000-a00000000008
+                            approved_at: 2026-01-15T04:30:00.000Z
+                            value_numeric: "132"
+                    disclaimer_block_id: 01940e00-0000-7000-8000-a0000000000d
+                    disclaimer_text: This summary is not a diagnosis. Discuss your results with your doctor.
+                    counts:
+                      deranged: 1
+                      critical: 0
+                      unmapped_results: 2
+                      ignored_duplicates: 0
+                    llm:
+                      enabled: false
+                      use_llm_text: false
+                    registration_no: SYN-000123
+                    patient_display_name: Synthetic Patient A
+                    review_inputs:
+                      - result_id: 01940e00-0000-7000-8000-a00000000008
+                        analyte_id: 01940e00-0000-7000-8000-a00000000005
+                        analyte_name: Synthetic Glucose
+                        value_text: "132"
+                        unit_code: mg_dl
+                        flag: H
+                        ref_range_text: 70-110
+                        band_status: out_of_range
+                        group_code: glucose
+                    reviews:
+                      - action: approved
+                        actor_display_name: Synthetic Pathologist
+                        at: 2026-01-15T05:10:00.000Z
+                    approved_at: 2026-01-15T05:10:00.000Z
+                    approved_by_membership_id: 01940e00-0000-7000-8000-a00000000015
+                    approved_by_display_name: Synthetic Pathologist
+                    version: 2
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/smartreport/orders/{order_id}/summaries:
+    post:
+      operationId: buildSmartSummary
+      tags:
+        - smartreport
+      summary: "Build (or return) the draft smart summary of an order (TRD §5 #30)"
+      security:
+        - bearerJwt: []
+      x-permission: smartreport.summary.approve
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - auth.mfa_required
+        - smartreport.feature_disabled
+        - smartreport.template_not_approved
+        - smartreport.no_eligible_results
+        - common.idempotency_key_required
+        - common.idempotency_key_reused
+        - common.idempotency_in_progress
+      parameters:
+        - $ref: "#/components/parameters/OrderId"
+        - $ref: _common.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - mode
+              properties:
+                mode:
+                  type: string
+                  maxLength: 27
+                  enum:
+                    - current
+                    - rebuild_with_active_library
+            examples:
+              synthetic:
+                value:
+                  mode: current
+      responses:
+        "200":
+          description: Existing summary.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SmartSummaryView"
+              examples:
+                synthetic:
+                  value:
+                    id: 01940e00-0000-7000-8000-000000000015
+                    order_id: 01940e00-0000-7000-8000-a00000000002
+                    centre_id: 01940e00-0000-7000-8000-a00000000003
+                    status: draft
+                    library_version_id: 01940e00-0000-7000-8000-a00000000001
+                    template_library_version: 3
+                    formula_version: hs-1
+                    language: en
+                    built_at: 2026-01-15T04:30:00.000Z
+                    report_version_nos:
+                      - 1
+                    health_score:
+                      value: 81
+                      band: good
+                      formula_version: hs-1
+                      panels_scored: 3
+                      explanation_text: Synthetic explanation of the score.
+                    panels:
+                      - panel_code: glucose
+                        display_name: Blood sugar
+                        status: out_of_range
+                        result_ids:
+                          - 01940e00-0000-7000-8000-a00000000008
+                      - panel_code: liver
+                        display_name: Liver
+                        status: in_range
+                        result_ids:
+                          - 01940e00-0000-7000-8000-a00000000009
+                    deranged:
+                      - result_id: 01940e00-0000-7000-8000-a00000000008
+                        analyte_id: 01940e00-0000-7000-8000-a00000000005
+                        analyte_name: Synthetic Glucose
+                        direction: high
+                        severity: out_of_range
+                        template_block_id: 01940e00-0000-7000-8000-a00000000006
+                        text: Your Synthetic Glucose result is above the reference range.
+                    advice:
+                      - template_block_id: 01940e00-0000-7000-8000-a0000000001e
+                        text: Synthetic advice text.
+                    follow_ups:
+                      - rule_id: 01940e00-0000-7000-8000-a00000000007
+                        suggested_test_code: SYN-HBA1C
+                        suggested_test_name: Synthetic HbA1c
+                        interval_days: 90
+                        text: Consider a repeat test in 90 days.
+                    trends:
+                      - analyte_id: 01940e00-0000-7000-8000-a00000000005
+                        analyte_name: Synthetic Glucose
+                        unit_code: mg_dl
+                        direction: worsened
+                        point_result_ids:
+                          - 01940e00-0000-7000-8000-a0000000000a
+                          - 01940e00-0000-7000-8000-a00000000008
+                        points:
+                          - result_id: 01940e00-0000-7000-8000-a0000000000a
+                            approved_at: 2025-10-01T04:00:00.000Z
+                            value_numeric: "98"
+                          - result_id: 01940e00-0000-7000-8000-a00000000008
+                            approved_at: 2026-01-15T04:30:00.000Z
+                            value_numeric: "132"
+                    disclaimer_block_id: 01940e00-0000-7000-8000-a0000000000d
+                    disclaimer_text: This summary is not a diagnosis. Discuss your results with your doctor.
+                    counts:
+                      deranged: 1
+                      critical: 0
+                      unmapped_results: 2
+                      ignored_duplicates: 0
+                    llm:
+                      enabled: false
+                      use_llm_text: false
+                    registration_no: SYN-000123
+                    patient_display_name: Synthetic Patient A
+                    review_inputs:
+                      - result_id: 01940e00-0000-7000-8000-a00000000008
+                        analyte_id: 01940e00-0000-7000-8000-a00000000005
+                        analyte_name: Synthetic Glucose
+                        value_text: "132"
+                        unit_code: mg_dl
+                        flag: H
+                        ref_range_text: 70-110
+                        band_status: out_of_range
+                        group_code: glucose
+                    reviews: []
+                    version: 2
+        "201":
+          description: Built.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SmartSummaryView"
+              examples:
+                synthetic:
+                  value:
+                    id: 01940e00-0000-7000-8000-000000000014
+                    order_id: 01940e00-0000-7000-8000-a00000000002
+                    centre_id: 01940e00-0000-7000-8000-a00000000003
+                    status: draft
+                    library_version_id: 01940e00-0000-7000-8000-a00000000001
+                    template_library_version: 3
+                    formula_version: hs-1
+                    language: en
+                    built_at: 2026-01-15T04:30:00.000Z
+                    report_version_nos:
+                      - 1
+                    health_score:
+                      value: 81
+                      band: good
+                      formula_version: hs-1
+                      panels_scored: 3
+                      explanation_text: Synthetic explanation of the score.
+                    panels:
+                      - panel_code: glucose
+                        display_name: Blood sugar
+                        status: out_of_range
+                        result_ids:
+                          - 01940e00-0000-7000-8000-a00000000008
+                      - panel_code: liver
+                        display_name: Liver
+                        status: in_range
+                        result_ids:
+                          - 01940e00-0000-7000-8000-a00000000009
+                    deranged:
+                      - result_id: 01940e00-0000-7000-8000-a00000000008
+                        analyte_id: 01940e00-0000-7000-8000-a00000000005
+                        analyte_name: Synthetic Glucose
+                        direction: high
+                        severity: out_of_range
+                        template_block_id: 01940e00-0000-7000-8000-a00000000006
+                        text: Your Synthetic Glucose result is above the reference range.
+                    advice:
+                      - template_block_id: 01940e00-0000-7000-8000-a0000000001e
+                        text: Synthetic advice text.
+                    follow_ups:
+                      - rule_id: 01940e00-0000-7000-8000-a00000000007
+                        suggested_test_code: SYN-HBA1C
+                        suggested_test_name: Synthetic HbA1c
+                        interval_days: 90
+                        text: Consider a repeat test in 90 days.
+                    trends:
+                      - analyte_id: 01940e00-0000-7000-8000-a00000000005
+                        analyte_name: Synthetic Glucose
+                        unit_code: mg_dl
+                        direction: worsened
+                        point_result_ids:
+                          - 01940e00-0000-7000-8000-a0000000000a
+                          - 01940e00-0000-7000-8000-a00000000008
+                        points:
+                          - result_id: 01940e00-0000-7000-8000-a0000000000a
+                            approved_at: 2025-10-01T04:00:00.000Z
+                            value_numeric: "98"
+                          - result_id: 01940e00-0000-7000-8000-a00000000008
+                            approved_at: 2026-01-15T04:30:00.000Z
+                            value_numeric: "132"
+                    disclaimer_block_id: 01940e00-0000-7000-8000-a0000000000d
+                    disclaimer_text: This summary is not a diagnosis. Discuss your results with your doctor.
+                    counts:
+                      deranged: 1
+                      critical: 0
+                      unmapped_results: 2
+                      ignored_duplicates: 0
+                    llm:
+                      enabled: false
+                      use_llm_text: false
+                    registration_no: SYN-000123
+                    patient_display_name: Synthetic Patient A
+                    review_inputs:
+                      - result_id: 01940e00-0000-7000-8000-a00000000008
+                        analyte_id: 01940e00-0000-7000-8000-a00000000005
+                        analyte_name: Synthetic Glucose
+                        value_text: "132"
+                        unit_code: mg_dl
+                        flag: H
+                        ref_range_text: 70-110
+                        band_status: out_of_range
+                        group_code: glucose
+                    reviews: []
+                    version: 2
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/smartreport/summaries/{summary_id}/approve:
+    post:
+      operationId: approveSmartSummary
+      tags:
+        - smartreport
+      summary: "Approve a smart summary (TRD §5 #31)"
+      security:
+        - bearerJwt: []
+      x-permission: smartreport.summary.approve
+      x-context: tenant
+      x-idempotency: optional
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - auth.mfa_required
+        - smartreport.summary_invalid_transition
+        - smartreport.summary_superseded
+        - common.version_conflict
+        - common.precondition_required
+      parameters:
+        - $ref: "#/components/parameters/SummaryId"
+        - $ref: _common.yaml#/components/parameters/IfMatch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - attestation
+              properties:
+                attestation:
+                  type: boolean
+                  enum:
+                    - true
+                  description: Must be true.
+                use_llm_text:
+                  type: boolean
+                  default: false
+            examples:
+              synthetic:
+                value:
+                  attestation: true
+                  use_llm_text: false
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SmartSummaryView"
+              examples:
+                synthetic:
+                  value:
+                    id: 01940e00-0000-7000-8000-000000000016
+                    order_id: 01940e00-0000-7000-8000-a00000000002
+                    centre_id: 01940e00-0000-7000-8000-a00000000003
+                    status: approved
+                    library_version_id: 01940e00-0000-7000-8000-a00000000001
+                    template_library_version: 3
+                    formula_version: hs-1
+                    language: en
+                    built_at: 2026-01-15T04:30:00.000Z
+                    report_version_nos:
+                      - 1
+                    health_score:
+                      value: 81
+                      band: good
+                      formula_version: hs-1
+                      panels_scored: 3
+                      explanation_text: Synthetic explanation of the score.
+                    panels:
+                      - panel_code: glucose
+                        display_name: Blood sugar
+                        status: out_of_range
+                        result_ids:
+                          - 01940e00-0000-7000-8000-a00000000008
+                      - panel_code: liver
+                        display_name: Liver
+                        status: in_range
+                        result_ids:
+                          - 01940e00-0000-7000-8000-a00000000009
+                    deranged:
+                      - result_id: 01940e00-0000-7000-8000-a00000000008
+                        analyte_id: 01940e00-0000-7000-8000-a00000000005
+                        analyte_name: Synthetic Glucose
+                        direction: high
+                        severity: out_of_range
+                        template_block_id: 01940e00-0000-7000-8000-a00000000006
+                        text: Your Synthetic Glucose result is above the reference range.
+                    advice:
+                      - template_block_id: 01940e00-0000-7000-8000-a0000000001e
+                        text: Synthetic advice text.
+                    follow_ups:
+                      - rule_id: 01940e00-0000-7000-8000-a00000000007
+                        suggested_test_code: SYN-HBA1C
+                        suggested_test_name: Synthetic HbA1c
+                        interval_days: 90
+                        text: Consider a repeat test in 90 days.
+                    trends:
+                      - analyte_id: 01940e00-0000-7000-8000-a00000000005
+                        analyte_name: Synthetic Glucose
+                        unit_code: mg_dl
+                        direction: worsened
+                        point_result_ids:
+                          - 01940e00-0000-7000-8000-a0000000000a
+                          - 01940e00-0000-7000-8000-a00000000008
+                        points:
+                          - result_id: 01940e00-0000-7000-8000-a0000000000a
+                            approved_at: 2025-10-01T04:00:00.000Z
+                            value_numeric: "98"
+                          - result_id: 01940e00-0000-7000-8000-a00000000008
+                            approved_at: 2026-01-15T04:30:00.000Z
+                            value_numeric: "132"
+                    disclaimer_block_id: 01940e00-0000-7000-8000-a0000000000d
+                    disclaimer_text: This summary is not a diagnosis. Discuss your results with your doctor.
+                    counts:
+                      deranged: 1
+                      critical: 0
+                      unmapped_results: 2
+                      ignored_duplicates: 0
+                    llm:
+                      enabled: false
+                      use_llm_text: false
+                    registration_no: SYN-000123
+                    patient_display_name: Synthetic Patient A
+                    review_inputs:
+                      - result_id: 01940e00-0000-7000-8000-a00000000008
+                        analyte_id: 01940e00-0000-7000-8000-a00000000005
+                        analyte_name: Synthetic Glucose
+                        value_text: "132"
+                        unit_code: mg_dl
+                        flag: H
+                        ref_range_text: 70-110
+                        band_status: out_of_range
+                        group_code: glucose
+                    reviews:
+                      - action: approved
+                        actor_display_name: Synthetic Pathologist
+                        at: 2026-01-15T05:10:00.000Z
+                    approved_at: 2026-01-15T05:10:00.000Z
+                    approved_by_membership_id: 01940e00-0000-7000-8000-a00000000015
+                    approved_by_display_name: Synthetic Pathologist
+                    version: 2
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "428":
+          $ref: _common.yaml#/components/responses/PreconditionRequired
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/smartreport/summaries/{summary_id}/reject:
+    post:
+      operationId: rejectSmartSummary
+      tags:
+        - smartreport
+      summary: "Reject a smart summary (TRD §5 #32)"
+      security:
+        - bearerJwt: []
+      x-permission: smartreport.summary.approve
+      x-context: tenant
+      x-idempotency: optional
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - auth.mfa_required
+        - smartreport.summary_invalid_transition
+        - common.version_conflict
+        - common.precondition_required
+      parameters:
+        - $ref: "#/components/parameters/SummaryId"
+        - $ref: _common.yaml#/components/parameters/IfMatch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - reason_code
+              properties:
+                reason_code:
+                  type: string
+                  minLength: 1
+                  maxLength: 100
+                  pattern: ^[a-z][a-z0-9_]{0,99}$
+                  x-coded-set: smartreport.summary_reject_reasons
+                  description: comment is required when reason_code = other.
+                comment:
+                  type: string
+                  maxLength: 500
+            examples:
+              synthetic:
+                value:
+                  reason_code: wording_problem
+                  comment: Synthetic wording comment
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SmartSummaryView"
+              examples:
+                synthetic:
+                  value:
+                    id: 01940e00-0000-7000-8000-000000000017
+                    order_id: 01940e00-0000-7000-8000-a00000000002
+                    centre_id: 01940e00-0000-7000-8000-a00000000003
+                    status: rejected
+                    library_version_id: 01940e00-0000-7000-8000-a00000000001
+                    template_library_version: 3
+                    formula_version: hs-1
+                    language: en
+                    built_at: 2026-01-15T04:30:00.000Z
+                    report_version_nos:
+                      - 1
+                    health_score:
+                      value: 81
+                      band: good
+                      formula_version: hs-1
+                      panels_scored: 3
+                      explanation_text: Synthetic explanation of the score.
+                    panels:
+                      - panel_code: glucose
+                        display_name: Blood sugar
+                        status: out_of_range
+                        result_ids:
+                          - 01940e00-0000-7000-8000-a00000000008
+                      - panel_code: liver
+                        display_name: Liver
+                        status: in_range
+                        result_ids:
+                          - 01940e00-0000-7000-8000-a00000000009
+                    deranged:
+                      - result_id: 01940e00-0000-7000-8000-a00000000008
+                        analyte_id: 01940e00-0000-7000-8000-a00000000005
+                        analyte_name: Synthetic Glucose
+                        direction: high
+                        severity: out_of_range
+                        template_block_id: 01940e00-0000-7000-8000-a00000000006
+                        text: Your Synthetic Glucose result is above the reference range.
+                    advice:
+                      - template_block_id: 01940e00-0000-7000-8000-a0000000001e
+                        text: Synthetic advice text.
+                    follow_ups:
+                      - rule_id: 01940e00-0000-7000-8000-a00000000007
+                        suggested_test_code: SYN-HBA1C
+                        suggested_test_name: Synthetic HbA1c
+                        interval_days: 90
+                        text: Consider a repeat test in 90 days.
+                    trends:
+                      - analyte_id: 01940e00-0000-7000-8000-a00000000005
+                        analyte_name: Synthetic Glucose
+                        unit_code: mg_dl
+                        direction: worsened
+                        point_result_ids:
+                          - 01940e00-0000-7000-8000-a0000000000a
+                          - 01940e00-0000-7000-8000-a00000000008
+                        points:
+                          - result_id: 01940e00-0000-7000-8000-a0000000000a
+                            approved_at: 2025-10-01T04:00:00.000Z
+                            value_numeric: "98"
+                          - result_id: 01940e00-0000-7000-8000-a00000000008
+                            approved_at: 2026-01-15T04:30:00.000Z
+                            value_numeric: "132"
+                    disclaimer_block_id: 01940e00-0000-7000-8000-a0000000000d
+                    disclaimer_text: This summary is not a diagnosis. Discuss your results with your doctor.
+                    counts:
+                      deranged: 1
+                      critical: 0
+                      unmapped_results: 2
+                      ignored_duplicates: 0
+                    llm:
+                      enabled: false
+                      use_llm_text: false
+                    registration_no: SYN-000123
+                    patient_display_name: Synthetic Patient A
+                    review_inputs:
+                      - result_id: 01940e00-0000-7000-8000-a00000000008
+                        analyte_id: 01940e00-0000-7000-8000-a00000000005
+                        analyte_name: Synthetic Glucose
+                        value_text: "132"
+                        unit_code: mg_dl
+                        flag: H
+                        ref_range_text: 70-110
+                        band_status: out_of_range
+                        group_code: glucose
+                    reviews:
+                      - action: rejected
+                        actor_display_name: Synthetic Pathologist
+                        reason_code: wording_problem
+                        at: 2026-01-15T05:10:00.000Z
+                    rejected_at: 2026-01-15T05:10:00.000Z
+                    rejected_by_display_name: Synthetic Pathologist
+                    reject_reason_code: wording_problem
+                    reject_comment: Synthetic wording comment
+                    version: 2
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "428":
+          $ref: _common.yaml#/components/responses/PreconditionRequired
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/smartreport/summaries/{summary_id}/llm-rephrase:
+    post:
+      operationId: requestSmartLlmRephrase
+      tags:
+        - smartreport
+      summary: "Request an LLM rephrase (Phase 3) (TRD §5 #33)"
+      security:
+        - bearerJwt: []
+      x-permission: smartreport.summary.approve
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - auth.mfa_required
+        - smartreport.feature_disabled
+        - smartreport.summary_invalid_transition
+        - common.version_conflict
+        - common.precondition_required
+        - common.idempotency_key_required
+        - common.idempotency_key_reused
+        - common.idempotency_in_progress
+      parameters:
+        - $ref: "#/components/parameters/SummaryId"
+        - $ref: _common.yaml#/components/parameters/IdempotencyKey
+        - $ref: _common.yaml#/components/parameters/IfMatch
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties: {}
+            examples:
+              synthetic:
+                value: {}
+      responses:
+        "202":
+          description: Accepted.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                  - summary_id
+                  - requested_at
+                properties:
+                  summary_id:
+                    $ref: _common.yaml#/components/schemas/Uuid
+                  requested_at:
+                    $ref: _common.yaml#/components/schemas/IsoUtc
+              examples:
+                synthetic:
+                  value:
+                    summary_id: 01940e00-0000-7000-8000-a00000000028
+                    requested_at: 2026-01-15T05:10:00.000Z
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "428":
+          $ref: _common.yaml#/components/responses/PreconditionRequired
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/smartreport/summaries/{summary_id}/llm-runs:
+    get:
+      operationId: listSmartLlmRuns
+      tags:
+        - smartreport
+      summary: "List LLM runs of a summary (Phase 3) (TRD §5 #34)"
+      security:
+        - bearerJwt: []
+      x-permission: smartreport.summary.approve
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - auth.mfa_required
+      parameters:
+        - $ref: "#/components/parameters/SummaryId"
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                  - data
+                properties:
+                  data:
+                    type: array
+                    maxItems: 200
+                    items:
+                      $ref: "#/components/schemas/LlmRun"
+              examples:
+                synthetic:
+                  value:
+                    data:
+                      - id: 01940e00-0000-7000-8000-000000000018
+                        status: succeeded
+                        prompt_template_version: p1
+                        model_ref: synthetic-model
+                        items:
+                          - item_ref: deranged/0
+                            template_text: Your Synthetic Glucose result is above the reference range.
+                            output_text: Your Synthetic Glucose is higher than the usual range.
+                            passed: true
+                            failure_codes: []
+                        latency_ms: 850
+                        created_at: 2026-01-15T05:10:00.000Z
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/smartreport/library/coded-sets/{set_code}:
+    get:
+      operationId: getSmartLibraryCodedSet
+      tags:
+        - smartreport
+      summary: "Get a library coded set (TRD §5 #35)"
+      security:
+        - bearerJwt: []
+      x-permission: smartreport.template.manage
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CodedSet"
+              examples:
+                synthetic:
+                  value:
+                    set_code: organ_groups
+                    items:
+                      - code: blood_counts
+                        display: Blood counts
+                        sort_order: 10
+                        is_active: true
+                      - code: glucose
+                        display: Blood sugar
+                        sort_order: 20
+                        is_active: true
+                      - code: liver
+                        display: Liver
+                        sort_order: 40
+                        is_active: true
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+      parameters:
+        - name: set_code
+          in: path
+          required: true
+          schema:
+            type: string
+            maxLength: 12
+            enum:
+              - organ_groups
+components:
+  parameters:
+    LibraryVersionId:
+      name: library_version_id
+      in: path
+      required: true
+      schema:
+        $ref: _common.yaml#/components/schemas/Uuid
+    BlockId:
+      name: block_id
+      in: path
+      required: true
+      schema:
+        $ref: _common.yaml#/components/schemas/Uuid
+    RuleId:
+      name: rule_id
+      in: path
+      required: true
+      schema:
+        $ref: _common.yaml#/components/schemas/Uuid
+    AnalyteId:
+      name: analyte_id
+      in: path
+      required: true
+      schema:
+        $ref: _common.yaml#/components/schemas/Uuid
+    GroupCode:
+      name: group_code
+      in: path
+      required: true
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 100
+        pattern: ^[a-z][a-z0-9_]{0,99}$
+        x-coded-set: smartreport.organ_groups
+    TermId:
+      name: term_id
+      in: path
+      required: true
+      schema:
+        $ref: _common.yaml#/components/schemas/Uuid
+    SummaryId:
+      name: summary_id
+      in: path
+      required: true
+      schema:
+        $ref: _common.yaml#/components/schemas/Uuid
+    OrderId:
+      name: order_id
+      in: path
+      required: true
+      schema:
+        $ref: _common.yaml#/components/schemas/Uuid
+  schemas:
+    LibraryParams:
+      type: object
+      additionalProperties: false
+      properties:
+        score_enabled:
+          type: boolean
+        credit_in_range_bp:
+          type: integer
+          minimum: 0
+          maximum: 10000
+        credit_borderline_bp:
+          type: integer
+          minimum: 0
+          maximum: 10000
+        credit_out_of_range_bp:
+          type: integer
+          minimum: 0
+          maximum: 10000
+        credit_critical_bp:
+          type: integer
+          minimum: 0
+          maximum: 10000
+        min_groups_scored:
+          type: integer
+          minimum: 1
+          maximum: 20
+        band_good_min:
+          type: integer
+          minimum: 1
+          maximum: 100
+        band_fair_min:
+          type: integer
+          minimum: 0
+          maximum: 99
+        critical_forces_needs_attention:
+          type: boolean
+        borderline_fraction_bp:
+          type: integer
+          minimum: 0
+          maximum: 2500
+        min_mapped_results:
+          type: integer
+          minimum: 1
+          maximum: 50
+        trend_enabled:
+          type: boolean
+        trend_max_points:
+          type: integer
+          minimum: 2
+          maximum: 6
+        trend_lookback_days:
+          type: integer
+          minimum: 30
+          maximum: 3650
+        trend_stable_bp:
+          type: integer
+          minimum: 0
+          maximum: 5000
+        trends_max:
+          type: integer
+          minimum: 0
+          maximum: 12
+        advice_max_blocks:
+          type: integer
+          minimum: 0
+          maximum: 10
+        followup_max:
+          type: integer
+          minimum: 0
+          maximum: 5
+      description: TRD §5.1; all optional on PATCH (full on GET, see LibraryVersion.params).
+    LibraryVersionSummary:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - version_no
+        - status
+        - language
+        - updated_at
+        - version
+      properties:
+        id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        version_no:
+          type: integer
+          minimum: 1
+          maximum: 2147483647
+        status:
+          type: string
+          maxLength: 9
+          enum:
+            - draft
+            - in_review
+            - approved
+            - retired
+        language:
+          type: string
+          maxLength: 2
+          enum:
+            - en
+            - ne
+        approved_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        approved_by_membership_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        approved_by_display_name:
+          type: string
+          maxLength: 200
+        updated_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        version:
+          $ref: _common.yaml#/components/schemas/Version
+    LibraryVersion:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - version_no
+        - status
+        - language
+        - formula_version
+        - params
+        - counts
+        - version
+        - created_at
+        - updated_at
+      properties:
+        id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        version_no:
+          type: integer
+          minimum: 1
+          maximum: 2147483647
+        status:
+          type: string
+          maxLength: 9
+          enum:
+            - draft
+            - in_review
+            - approved
+            - retired
+        language:
+          type: string
+          maxLength: 2
+          enum:
+            - en
+            - ne
+        formula_version:
+          type: string
+          maxLength: 4
+          enum:
+            - hs-1
+        params:
+          type: object
+          additionalProperties: false
+          required:
+            - score_enabled
+            - credit_in_range_bp
+            - credit_borderline_bp
+            - credit_out_of_range_bp
+            - credit_critical_bp
+            - min_groups_scored
+            - band_good_min
+            - band_fair_min
+            - critical_forces_needs_attention
+            - borderline_fraction_bp
+            - min_mapped_results
+            - trend_enabled
+            - trend_max_points
+            - trend_lookback_days
+            - trend_stable_bp
+            - trends_max
+            - advice_max_blocks
+            - followup_max
+          properties:
+            score_enabled:
+              type: boolean
+            credit_in_range_bp:
+              type: integer
+              minimum: 0
+              maximum: 10000
+            credit_borderline_bp:
+              type: integer
+              minimum: 0
+              maximum: 10000
+            credit_out_of_range_bp:
+              type: integer
+              minimum: 0
+              maximum: 10000
+            credit_critical_bp:
+              type: integer
+              minimum: 0
+              maximum: 10000
+            min_groups_scored:
+              type: integer
+              minimum: 1
+              maximum: 20
+            band_good_min:
+              type: integer
+              minimum: 1
+              maximum: 100
+            band_fair_min:
+              type: integer
+              minimum: 0
+              maximum: 99
+            critical_forces_needs_attention:
+              type: boolean
+            borderline_fraction_bp:
+              type: integer
+              minimum: 0
+              maximum: 2500
+            min_mapped_results:
+              type: integer
+              minimum: 1
+              maximum: 50
+            trend_enabled:
+              type: boolean
+            trend_max_points:
+              type: integer
+              minimum: 2
+              maximum: 6
+            trend_lookback_days:
+              type: integer
+              minimum: 30
+              maximum: 3650
+            trend_stable_bp:
+              type: integer
+              minimum: 0
+              maximum: 5000
+            trends_max:
+              type: integer
+              minimum: 0
+              maximum: 12
+            advice_max_blocks:
+              type: integer
+              minimum: 0
+              maximum: 10
+            followup_max:
+              type: integer
+              minimum: 0
+              maximum: 5
+        source_version_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        change_summary:
+          type: string
+          maxLength: 500
+        content_sha256:
+          type: string
+          maxLength: 64
+          pattern: ^[0-9a-f]{64}$
+        submitted_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        submitted_by_membership_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        approved_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        approved_by_membership_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        approved_by_display_name:
+          type: string
+          maxLength: 200
+        approval_note:
+          type: string
+          maxLength: 500
+        returned_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        return_comment:
+          type: string
+          maxLength: 1000
+        retired_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        counts:
+          type: object
+          additionalProperties: false
+          required:
+            - blocks
+            - rules
+            - analyte_groups
+            - groups_shown
+          properties:
+            blocks:
+              type: integer
+              minimum: 0
+              maximum: 100000
+            rules:
+              type: integer
+              minimum: 0
+              maximum: 100000
+            analyte_groups:
+              type: integer
+              minimum: 0
+              maximum: 100000
+            groups_shown:
+              type: integer
+              minimum: 0
+              maximum: 100000
+        version:
+          $ref: _common.yaml#/components/schemas/Version
+        created_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        updated_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+    TemplateBlock:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - block_key
+        - kind
+        - placeholders
+        - version
+        - updated_at
+      properties:
+        id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        block_key:
+          type: string
+          maxLength: 80
+          pattern: ^[a-z][a-z0-9_.]{2,79}$
+        kind:
+          type: string
+          maxLength: 17
+          enum:
+            - deranged
+            - advice
+            - followup
+            - disclaimer
+            - score_explanation
+        text_en:
+          type: string
+          maxLength: 600
+        text_ne:
+          type: string
+          maxLength: 600
+        note:
+          type: string
+          maxLength: 500
+        placeholders:
+          type: array
+          maxItems: 20
+          items:
+            type: string
+            maxLength: 64
+        version:
+          $ref: _common.yaml#/components/schemas/Version
+        updated_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+    Rule:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - rule_kind
+        - trigger_kind
+        - direction
+        - block_id
+        - version
+      properties:
+        id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        rule_kind:
+          type: string
+          maxLength: 8
+          enum:
+            - deranged
+            - advice
+            - followup
+        trigger_kind:
+          type: string
+          maxLength: 12
+          enum:
+            - analyte
+            - group
+            - any
+            - all_in_range
+        analyte_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        group_code:
+          type: string
+          minLength: 1
+          maxLength: 100
+          pattern: ^[a-z][a-z0-9_]{0,99}$
+          x-coded-set: smartreport.organ_groups
+        direction:
+          type: string
+          maxLength: 8
+          enum:
+            - low
+            - high
+            - abnormal
+            - any
+        min_severity:
+          type: string
+          maxLength: 12
+          enum:
+            - borderline
+            - out_of_range
+            - critical
+        priority:
+          type: integer
+          minimum: 1
+          maximum: 999
+          default: 100
+        block_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        suggested_test_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        interval_days:
+          type: integer
+          minimum: 1
+          maximum: 730
+        version:
+          $ref: _common.yaml#/components/schemas/Version
+    AnalyteGroup:
+      type: object
+      additionalProperties: false
+      required:
+        - analyte_id
+        - group_code
+        - include_in_score
+        - trend_enabled
+        - sort_order
+        - version
+      properties:
+        analyte_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        group_code:
+          type: string
+          minLength: 1
+          maxLength: 100
+          pattern: ^[a-z][a-z0-9_]{0,99}$
+          x-coded-set: smartreport.organ_groups
+        include_in_score:
+          type: boolean
+        trend_enabled:
+          type: boolean
+        borderline_fraction_bp:
+          type: integer
+          minimum: 0
+          maximum: 2500
+        trend_stable_bp:
+          type: integer
+          minimum: 0
+          maximum: 5000
+        sort_order:
+          type: integer
+          minimum: 0
+          maximum: 9999
+        version:
+          $ref: _common.yaml#/components/schemas/Version
+    GroupSetting:
+      type: object
+      additionalProperties: false
+      required:
+        - group_code
+        - display_en
+        - score_weight
+        - sort_order
+        - is_shown
+        - version
+      properties:
+        group_code:
+          type: string
+          minLength: 1
+          maxLength: 100
+          pattern: ^[a-z][a-z0-9_]{0,99}$
+          x-coded-set: smartreport.organ_groups
+        display_en:
+          type: string
+          maxLength: 60
+          minLength: 1
+        display_ne:
+          type: string
+          maxLength: 60
+        score_weight:
+          type: integer
+          minimum: 0
+          maximum: 10
+        sort_order:
+          type: integer
+          minimum: 0
+          maximum: 9999
+        is_shown:
+          type: boolean
+        version:
+          $ref: _common.yaml#/components/schemas/Version
+    DenyTerm:
+      type: object
+      additionalProperties: false
+      required:
+        - term
+        - language
+        - scope
+        - is_active
+      properties:
+        id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        term:
+          type: string
+          maxLength: 60
+          minLength: 2
+        language:
+          type: string
+          maxLength: 3
+          enum:
+            - en
+            - ne
+            - any
+        scope:
+          type: string
+          maxLength: 6
+          enum:
+            - global
+            - tenant
+        reason:
+          type: string
+          maxLength: 200
+        is_active:
+          type: boolean
+        version:
+          $ref: _common.yaml#/components/schemas/Version
+    CodedSet:
+      type: object
+      additionalProperties: false
+      required:
+        - set_code
+        - items
+      properties:
+        set_code:
+          type: string
+          maxLength: 100
+        items:
+          type: array
+          maxItems: 200
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - code
+              - display
+              - sort_order
+              - is_active
+            properties:
+              code:
+                $ref: _common.yaml#/components/schemas/Code
+              display:
+                type: string
+                maxLength: 200
+              sort_order:
+                type: integer
+                minimum: 0
+                maximum: 9999
+              is_active:
+                type: boolean
+    SmartSummaryListItem:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - order_id
+        - centre_id
+        - status
+        - built_at
+        - deranged_count
+        - critical_count
+        - registration_no
+        - version
+      properties:
+        id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        order_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        centre_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        status:
+          type: string
+          maxLength: 10
+          enum:
+            - draft
+            - approved
+            - rejected
+            - superseded
+        built_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        health_score_band:
+          type: string
+          maxLength: 15
+          enum:
+            - good
+            - fair
+            - needs_attention
+        deranged_count:
+          type: integer
+          minimum: 0
+          maximum: 100000
+        critical_count:
+          type: integer
+          minimum: 0
+          maximum: 100000
+        registration_no:
+          type: string
+          maxLength: 40
+        patient_display_name:
+          type: string
+          maxLength: 200
+        version:
+          $ref: _common.yaml#/components/schemas/Version
+    SmartSummaryView:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - order_id
+        - centre_id
+        - status
+        - library_version_id
+        - template_library_version
+        - formula_version
+        - language
+        - built_at
+        - report_version_nos
+        - panels
+        - deranged
+        - advice
+        - follow_ups
+        - trends
+        - disclaimer_block_id
+        - disclaimer_text
+        - counts
+        - llm
+        - registration_no
+        - reviews
+        - version
+      properties:
+        id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        order_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        centre_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        status:
+          type: string
+          maxLength: 10
+          enum:
+            - draft
+            - approved
+            - rejected
+            - superseded
+            - preview
+        library_version_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        template_library_version:
+          type: integer
+          minimum: 1
+          maximum: 2147483647
+        formula_version:
+          type: string
+          maxLength: 4
+          enum:
+            - hs-1
+        language:
+          type: string
+          maxLength: 2
+          enum:
+            - en
+            - ne
+        built_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        report_version_nos:
+          type: array
+          maxItems: 100
+          items:
+            type: integer
+            minimum: 1
+            maximum: 2147483647
+        approved_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        approved_by_membership_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        approved_by_display_name:
+          type: string
+          maxLength: 200
+        rejected_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        rejected_by_display_name:
+          type: string
+          maxLength: 200
+        reject_reason_code:
+          type: string
+          minLength: 1
+          maxLength: 100
+          pattern: ^[a-z][a-z0-9_]{0,99}$
+          x-coded-set: smartreport.summary_reject_reasons
+        reject_comment:
+          type: string
+          maxLength: 500
+        superseded_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        superseded_reason:
+          type: string
+          maxLength: 200
+        superseded_by_summary_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        health_score:
+          type: object
+          additionalProperties: false
+          required:
+            - value
+            - band
+            - formula_version
+            - panels_scored
+          properties:
+            value:
+              type: integer
+              minimum: 0
+              maximum: 100
+            band:
+              type: string
+              maxLength: 15
+              enum:
+                - good
+                - fair
+                - needs_attention
+            formula_version:
+              type: string
+              maxLength: 4
+              enum:
+                - hs-1
+            panels_scored:
+              type: integer
+              minimum: 0
+              maximum: 100
+            explanation_text:
+              type: string
+              maxLength: 2000
+        panels:
+          type: array
+          maxItems: 100
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - panel_code
+              - display_name
+              - status
+              - result_ids
+            properties:
+              panel_code:
+                type: string
+                minLength: 1
+                maxLength: 100
+                pattern: ^[a-z][a-z0-9_]{0,99}$
+                x-coded-set: smartreport.organ_groups
+              display_name:
+                type: string
+                maxLength: 60
+              status:
+                type: string
+                maxLength: 12
+                enum:
+                  - in_range
+                  - borderline
+                  - out_of_range
+                  - critical
+              result_ids:
+                type: array
+                maxItems: 500
+                items:
+                  $ref: _common.yaml#/components/schemas/Uuid
+        deranged:
+          type: array
+          maxItems: 500
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - result_id
+              - analyte_id
+              - analyte_name
+              - direction
+              - severity
+              - template_block_id
+              - text
+            properties:
+              result_id:
+                $ref: _common.yaml#/components/schemas/Uuid
+              analyte_id:
+                $ref: _common.yaml#/components/schemas/Uuid
+              analyte_name:
+                type: string
+                maxLength: 200
+              direction:
+                type: string
+                maxLength: 8
+                enum:
+                  - low
+                  - high
+                  - abnormal
+              severity:
+                type: string
+                maxLength: 12
+                enum:
+                  - in_range
+                  - borderline
+                  - out_of_range
+                  - critical
+              template_block_id:
+                $ref: _common.yaml#/components/schemas/Uuid
+              text:
+                type: string
+                maxLength: 2000
+              llm_text:
+                type: string
+                maxLength: 2000
+        advice:
+          type: array
+          maxItems: 10
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - template_block_id
+              - text
+            properties:
+              template_block_id:
+                $ref: _common.yaml#/components/schemas/Uuid
+              text:
+                type: string
+                maxLength: 2000
+              llm_text:
+                type: string
+                maxLength: 2000
+        follow_ups:
+          type: array
+          maxItems: 5
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - rule_id
+              - suggested_test_code
+              - suggested_test_name
+              - interval_days
+              - text
+            properties:
+              rule_id:
+                $ref: _common.yaml#/components/schemas/Uuid
+              suggested_test_code:
+                $ref: _common.yaml#/components/schemas/Code
+              suggested_test_name:
+                type: string
+                maxLength: 200
+              interval_days:
+                type: integer
+                minimum: 1
+                maximum: 730
+              text:
+                type: string
+                maxLength: 2000
+              llm_text:
+                type: string
+                maxLength: 2000
+        trends:
+          type: array
+          maxItems: 12
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - analyte_id
+              - analyte_name
+              - direction
+              - point_result_ids
+              - points
+            properties:
+              analyte_id:
+                $ref: _common.yaml#/components/schemas/Uuid
+              analyte_name:
+                type: string
+                maxLength: 200
+              unit_code:
+                $ref: _common.yaml#/components/schemas/Code
+              direction:
+                type: string
+                maxLength: 8
+                enum:
+                  - improved
+                  - worsened
+                  - stable
+              point_result_ids:
+                type: array
+                maxItems: 6
+                items:
+                  $ref: _common.yaml#/components/schemas/Uuid
+              points:
+                type: array
+                maxItems: 6
+                items:
+                  type: object
+                  additionalProperties: false
+                  required:
+                    - result_id
+                    - approved_at
+                    - value_numeric
+                  properties:
+                    result_id:
+                      $ref: _common.yaml#/components/schemas/Uuid
+                    approved_at:
+                      $ref: _common.yaml#/components/schemas/IsoUtc
+                    value_numeric:
+                      $ref: _common.yaml#/components/schemas/DecimalString
+        disclaimer_block_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        disclaimer_text:
+          type: string
+          maxLength: 2000
+        counts:
+          type: object
+          additionalProperties: false
+          required:
+            - deranged
+            - critical
+            - unmapped_results
+            - ignored_duplicates
+          properties:
+            deranged:
+              type: integer
+              minimum: 0
+              maximum: 100000
+            critical:
+              type: integer
+              minimum: 0
+              maximum: 100000
+            unmapped_results:
+              type: integer
+              minimum: 0
+              maximum: 100000
+            ignored_duplicates:
+              type: integer
+              minimum: 0
+              maximum: 100000
+        llm:
+          type: object
+          additionalProperties: false
+          required:
+            - enabled
+            - use_llm_text
+          properties:
+            enabled:
+              type: boolean
+            use_llm_text:
+              type: boolean
+            last_run_id:
+              $ref: _common.yaml#/components/schemas/Uuid
+        registration_no:
+          type: string
+          maxLength: 40
+        patient_display_name:
+          type: string
+          maxLength: 200
+        review_inputs:
+          type: array
+          maxItems: 500
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - result_id
+              - analyte_id
+              - analyte_name
+              - value_text
+              - band_status
+            properties:
+              result_id:
+                $ref: _common.yaml#/components/schemas/Uuid
+              analyte_id:
+                $ref: _common.yaml#/components/schemas/Uuid
+              analyte_name:
+                type: string
+                maxLength: 200
+              value_text:
+                type: string
+                maxLength: 200
+              unit_code:
+                $ref: _common.yaml#/components/schemas/Code
+              flag:
+                type: string
+                maxLength: 8
+                pattern: ^[A-Z]{1,8}$
+              ref_range_text:
+                type: string
+                maxLength: 200
+              band_status:
+                type: string
+                maxLength: 12
+                enum:
+                  - in_range
+                  - borderline
+                  - out_of_range
+                  - critical
+              group_code:
+                type: string
+                minLength: 1
+                maxLength: 100
+                pattern: ^[a-z][a-z0-9_]{0,99}$
+                x-coded-set: smartreport.organ_groups
+        reviews:
+          type: array
+          maxItems: 200
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - action
+              - at
+            properties:
+              action:
+                type: string
+                maxLength: 22
+                enum:
+                  - approved
+                  - rejected
+                  - superseded
+                  - llm_rephrase_requested
+              actor_display_name:
+                type: string
+                maxLength: 200
+              reason_code:
+                $ref: _common.yaml#/components/schemas/Code
+              at:
+                $ref: _common.yaml#/components/schemas/IsoUtc
+        version:
+          $ref: _common.yaml#/components/schemas/Version
+    SmartSummaryPreview:
+      type: object
+      additionalProperties: false
+      required:
+        - status
+        - library_version_id
+        - template_library_version
+        - formula_version
+        - language
+        - built_at
+        - report_version_nos
+        - panels
+        - deranged
+        - advice
+        - follow_ups
+        - trends
+        - disclaimer_block_id
+        - disclaimer_text
+        - counts
+        - llm
+        - reviews
+        - unmapped_result_count
+        - ignored_duplicate_count
+      properties:
+        id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        order_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        centre_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        status:
+          type: string
+          maxLength: 10
+          enum:
+            - draft
+            - approved
+            - rejected
+            - superseded
+            - preview
+        library_version_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        template_library_version:
+          type: integer
+          minimum: 1
+          maximum: 2147483647
+        formula_version:
+          type: string
+          maxLength: 4
+          enum:
+            - hs-1
+        language:
+          type: string
+          maxLength: 2
+          enum:
+            - en
+            - ne
+        built_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        report_version_nos:
+          type: array
+          maxItems: 100
+          items:
+            type: integer
+            minimum: 1
+            maximum: 2147483647
+        approved_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        approved_by_membership_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        approved_by_display_name:
+          type: string
+          maxLength: 200
+        rejected_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        rejected_by_display_name:
+          type: string
+          maxLength: 200
+        reject_reason_code:
+          type: string
+          minLength: 1
+          maxLength: 100
+          pattern: ^[a-z][a-z0-9_]{0,99}$
+          x-coded-set: smartreport.summary_reject_reasons
+        reject_comment:
+          type: string
+          maxLength: 500
+        superseded_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        superseded_reason:
+          type: string
+          maxLength: 200
+        superseded_by_summary_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        health_score:
+          type: object
+          additionalProperties: false
+          required:
+            - value
+            - band
+            - formula_version
+            - panels_scored
+          properties:
+            value:
+              type: integer
+              minimum: 0
+              maximum: 100
+            band:
+              type: string
+              maxLength: 15
+              enum:
+                - good
+                - fair
+                - needs_attention
+            formula_version:
+              type: string
+              maxLength: 4
+              enum:
+                - hs-1
+            panels_scored:
+              type: integer
+              minimum: 0
+              maximum: 100
+            explanation_text:
+              type: string
+              maxLength: 2000
+        panels:
+          type: array
+          maxItems: 100
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - panel_code
+              - display_name
+              - status
+              - result_ids
+            properties:
+              panel_code:
+                type: string
+                minLength: 1
+                maxLength: 100
+                pattern: ^[a-z][a-z0-9_]{0,99}$
+                x-coded-set: smartreport.organ_groups
+              display_name:
+                type: string
+                maxLength: 60
+              status:
+                type: string
+                maxLength: 12
+                enum:
+                  - in_range
+                  - borderline
+                  - out_of_range
+                  - critical
+              result_ids:
+                type: array
+                maxItems: 500
+                items:
+                  $ref: _common.yaml#/components/schemas/Uuid
+        deranged:
+          type: array
+          maxItems: 500
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - result_id
+              - analyte_id
+              - analyte_name
+              - direction
+              - severity
+              - template_block_id
+              - text
+            properties:
+              result_id:
+                $ref: _common.yaml#/components/schemas/Uuid
+              analyte_id:
+                $ref: _common.yaml#/components/schemas/Uuid
+              analyte_name:
+                type: string
+                maxLength: 200
+              direction:
+                type: string
+                maxLength: 8
+                enum:
+                  - low
+                  - high
+                  - abnormal
+              severity:
+                type: string
+                maxLength: 12
+                enum:
+                  - in_range
+                  - borderline
+                  - out_of_range
+                  - critical
+              template_block_id:
+                $ref: _common.yaml#/components/schemas/Uuid
+              text:
+                type: string
+                maxLength: 2000
+              llm_text:
+                type: string
+                maxLength: 2000
+        advice:
+          type: array
+          maxItems: 10
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - template_block_id
+              - text
+            properties:
+              template_block_id:
+                $ref: _common.yaml#/components/schemas/Uuid
+              text:
+                type: string
+                maxLength: 2000
+              llm_text:
+                type: string
+                maxLength: 2000
+        follow_ups:
+          type: array
+          maxItems: 5
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - rule_id
+              - suggested_test_code
+              - suggested_test_name
+              - interval_days
+              - text
+            properties:
+              rule_id:
+                $ref: _common.yaml#/components/schemas/Uuid
+              suggested_test_code:
+                $ref: _common.yaml#/components/schemas/Code
+              suggested_test_name:
+                type: string
+                maxLength: 200
+              interval_days:
+                type: integer
+                minimum: 1
+                maximum: 730
+              text:
+                type: string
+                maxLength: 2000
+              llm_text:
+                type: string
+                maxLength: 2000
+        trends:
+          type: array
+          maxItems: 12
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - analyte_id
+              - analyte_name
+              - direction
+              - point_result_ids
+              - points
+            properties:
+              analyte_id:
+                $ref: _common.yaml#/components/schemas/Uuid
+              analyte_name:
+                type: string
+                maxLength: 200
+              unit_code:
+                $ref: _common.yaml#/components/schemas/Code
+              direction:
+                type: string
+                maxLength: 8
+                enum:
+                  - improved
+                  - worsened
+                  - stable
+              point_result_ids:
+                type: array
+                maxItems: 6
+                items:
+                  $ref: _common.yaml#/components/schemas/Uuid
+              points:
+                type: array
+                maxItems: 6
+                items:
+                  type: object
+                  additionalProperties: false
+                  required:
+                    - result_id
+                    - approved_at
+                    - value_numeric
+                  properties:
+                    result_id:
+                      $ref: _common.yaml#/components/schemas/Uuid
+                    approved_at:
+                      $ref: _common.yaml#/components/schemas/IsoUtc
+                    value_numeric:
+                      $ref: _common.yaml#/components/schemas/DecimalString
+        disclaimer_block_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        disclaimer_text:
+          type: string
+          maxLength: 2000
+        counts:
+          type: object
+          additionalProperties: false
+          required:
+            - deranged
+            - critical
+            - unmapped_results
+            - ignored_duplicates
+          properties:
+            deranged:
+              type: integer
+              minimum: 0
+              maximum: 100000
+            critical:
+              type: integer
+              minimum: 0
+              maximum: 100000
+            unmapped_results:
+              type: integer
+              minimum: 0
+              maximum: 100000
+            ignored_duplicates:
+              type: integer
+              minimum: 0
+              maximum: 100000
+        llm:
+          type: object
+          additionalProperties: false
+          required:
+            - enabled
+            - use_llm_text
+          properties:
+            enabled:
+              type: boolean
+            use_llm_text:
+              type: boolean
+            last_run_id:
+              $ref: _common.yaml#/components/schemas/Uuid
+        registration_no:
+          type: string
+          maxLength: 40
+        patient_display_name:
+          type: string
+          maxLength: 200
+        review_inputs:
+          type: array
+          maxItems: 500
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - result_id
+              - analyte_id
+              - analyte_name
+              - value_text
+              - band_status
+            properties:
+              result_id:
+                $ref: _common.yaml#/components/schemas/Uuid
+              analyte_id:
+                $ref: _common.yaml#/components/schemas/Uuid
+              analyte_name:
+                type: string
+                maxLength: 200
+              value_text:
+                type: string
+                maxLength: 200
+              unit_code:
+                $ref: _common.yaml#/components/schemas/Code
+              flag:
+                type: string
+                maxLength: 8
+                pattern: ^[A-Z]{1,8}$
+              ref_range_text:
+                type: string
+                maxLength: 200
+              band_status:
+                type: string
+                maxLength: 12
+                enum:
+                  - in_range
+                  - borderline
+                  - out_of_range
+                  - critical
+              group_code:
+                type: string
+                minLength: 1
+                maxLength: 100
+                pattern: ^[a-z][a-z0-9_]{0,99}$
+                x-coded-set: smartreport.organ_groups
+        reviews:
+          type: array
+          maxItems: 200
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - action
+              - at
+            properties:
+              action:
+                type: string
+                maxLength: 22
+                enum:
+                  - approved
+                  - rejected
+                  - superseded
+                  - llm_rephrase_requested
+              actor_display_name:
+                type: string
+                maxLength: 200
+              reason_code:
+                $ref: _common.yaml#/components/schemas/Code
+              at:
+                $ref: _common.yaml#/components/schemas/IsoUtc
+        version:
+          $ref: _common.yaml#/components/schemas/Version
+        unmapped_result_count:
+          type: integer
+          minimum: 0
+          maximum: 100000
+        ignored_duplicate_count:
+          type: integer
+          minimum: 0
+          maximum: 100000
+      description: "TRD §5.1 #22: SmartSummaryView without id (status preview) plus unmapped_result_count and ignored_duplicate_count; order fields only for an order_id preview."
+    ValidationReport:
+      type: object
+      additionalProperties: false
+      required:
+        - valid
+        - issues
+      properties:
+        valid:
+          type: boolean
+        issues:
+          type: array
+          maxItems: 1000
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - code
+              - severity
+              - detail
+            properties:
+              code:
+                $ref: _common.yaml#/components/schemas/Code
+              severity:
+                type: string
+                maxLength: 7
+                enum:
+                  - error
+                  - warning
+              path:
+                type: string
+                maxLength: 512
+              block_key:
+                type: string
+                maxLength: 80
+                pattern: ^[a-z][a-z0-9_.]{2,79}$
+              rule_id:
+                $ref: _common.yaml#/components/schemas/Uuid
+              analyte_id:
+                $ref: _common.yaml#/components/schemas/Uuid
+              detail:
+                type: string
+                maxLength: 200
+    LlmRun:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - status
+        - prompt_template_version
+        - model_ref
+        - items
+        - created_at
+      properties:
+        id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        status:
+          type: string
+          maxLength: 16
+          enum:
+            - succeeded
+            - partially_passed
+            - validator_failed
+            - failed
+        prompt_template_version:
+          type: string
+          maxLength: 20
+        model_ref:
+          type: string
+          maxLength: 100
+        items:
+          type: array
+          maxItems: 100
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - item_ref
+              - template_text
+              - passed
+              - failure_codes
+            properties:
+              item_ref:
+                type: string
+                maxLength: 100
+              template_text:
+                type: string
+                maxLength: 2000
+              output_text:
+                type: string
+                maxLength: 2000
+              passed:
+                type: boolean
+              failure_codes:
+                type: array
+                maxItems: 20
+                items:
+                  $ref: _common.yaml#/components/schemas/Code
+        latency_ms:
+          type: integer
+          minimum: 0
+          maximum: 600000
+        created_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc

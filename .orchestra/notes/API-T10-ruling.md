@@ -1,0 +1,6 @@
+TESTS_WRONG — the test helper reads the wrong catalog fake; the spec assertions themselves are fine.
+1. `services/api/src/modules/instruments/__tests__/hostQuery.helpers.ts:98` returns `{ ..., catalog, commitOnError, ...c, ... }`. `c = makeIngestCtx(world)` also returns `catalog`: the INBOUND `makeCatalog()` fake (`__tests__/ingest.helpers.ts:162,172`). Because `...c` comes later, it overwrites the outbound fake that line 97 wires into `ctx.ports.CatalogPort`.
+2. So `s.catalog.calls` always reads the unused inbound fake (`[]`). That makes `hostQuery.service.test.ts:24` and `:273` fail no matter what the service does. It also makes `:72` and `:140` (`toHaveLength(0)`) pass without checking anything.
+3. Change for the tester: line 98 becomes `return { world, driver, lab, ...c, catalog, commitOnError, repo: hqRepo(world) };`. Change no assertions.
+4. The assertions match the spec. spec/chunks/C7-instrument-integration/01-PRD.md:183 (AC-10.1) requires each analyte to be mapped through `CatalogPort.mapInstrumentCode` with direction `outbound`. :184 (AC-10.2) requires `no_mapped_tests` when no outbound map exists. :186 (AC-10.4) requires rejection on the capability gate before any lookup.
+5. After the fix, rerun all 41 tests. `:72` and `:140` will then really check behaviour. If either fails, the implementation is wrong, not the test.

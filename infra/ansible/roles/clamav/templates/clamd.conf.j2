@@ -1,0 +1,12 @@
+# Managed by Ansible, role clamav (02-TRD s7.4, 08 A25 D-209, AC-28.1).
+# Container-internal listener: the clamd container is only on app_net and has no published port.
+TCPSocket 3310
+TCPAddr 0.0.0.0
+# Image entrypoint waits for this socket before going healthy (tmpfs /run/clamav in compose); TCP 3310 stays the app path.
+LocalSocket /run/clamav/clamd.sock
+Foreground yes
+StreamMaxLength {{ clamav_stream_max_length }}
+MaxFileSize {{ clamav_max_file_size }}
+MaxScanSize {{ clamav_max_scan_size }}
+LogClean no
+LogTime yes

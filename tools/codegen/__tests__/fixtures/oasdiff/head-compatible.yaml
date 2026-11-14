@@ -1,0 +1,36 @@
+# Compatible vs base.yaml: adds optional response property "colour" and new endpoint /v1/gizmos.
+openapi: 3.0.3
+info:
+  title: Fixture
+  version: 1.0.0
+paths:
+  /v1/widgets:
+    get:
+      operationId: listWidgets
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [id]
+                properties:
+                  id: {type: string}
+                  name: {type: string}
+                  colour: {type: string}
+  /v1/widgets/{id}:
+    get:
+      operationId: getWidget
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string}
+      responses:
+        "200": {description: ok}
+  /v1/gizmos:
+    get:
+      operationId: listGizmos
+      responses:
+        "200": {description: ok}

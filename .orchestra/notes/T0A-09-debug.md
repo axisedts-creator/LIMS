@@ -1,0 +1,8 @@
+# T0A-09 debug
+- Cause: tools/devstack/upstream.env.example absent (both failing tests need it); not a code defect. LD-23(1) fix = curl byte-for-byte from the Supabase commit matching C1 02-TRD §2 tags, first-line comment naming the commit.
+- Not fixed: sandbox denies network (curl "requires approval", non-interactive). Commit sha not resolvable offline; not invented. Needs a human/orchestrator with network to run the curl, then re-run verify.
+- Round 2 (LD-23): cause unchanged, upstream.env.example still absent. curl/git ls-remote to github need approval; denied non-interactively. Commit for C1 02-TRD §2 tags (gotrue v2.197.0, studio 2026.11.02-sha-a05e7ec) not resolvable offline; not invented.
+- Needs human/orchestrator with network: find commit, `curl -sSfL https://raw.githubusercontent.com/supabase/supabase/<commit>/docker/.env.example` + first-line comment naming commit, then re-run verify.
+- Round 4 (network now OK): cause = upstream.env.example absent. Fix: curl'd docker/.env.example at supabase commit 189adda99d1b56da55fc5a6ee3f849354aaea92a (its docker-compose.yml tags match C1 02-TRD §2 exactly: gotrue v2.197.0, studio 2026.11.02-sha-a05e7ec, storage v1.89.12, realtime v2.148.3, envoy v1.39.6, imgproxy v4.0.21), LF, + first-line commit comment. devstack tests 12 pass / 0 fail / 1 live skip.
+- HANDOFF (C1 UPSTREAM.lock): Supabase docker commit = 189adda99d1b56da55fc5a6ee3f849354aaea92a.
+- Round 3: unchanged. tools/devstack/upstream.env.example absent; repo has no recorded Supabase commit (no UPSTREAM.lock, no sha in THIRD-PARTY-OPS/check-supabase-pin). curl to raw.githubusercontent.com denied (needs approval, non-interactive). Not fixable offline; sha not invented. No code change.

@@ -1,0 +1,1 @@
+cd /d "%~dp0..\.." && pnpm --dir services/api exec vitest run src/modules/instruments/__tests__/unit/drivers-getein-metis-registry.test.ts src/modules/instruments/__tests__/e2e/simulator-agent-api-metis.e2e.test.ts

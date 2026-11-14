@@ -1,0 +1,252 @@
+---
+# 02-TRD s7.4 clamd paragraph (T-22, AC-28.1, AC-28.2, 08 A25 D-209). One play over `ops` and `app`
+# (lean: the same host), BEFORE "LIMS runtime": clamd needs a populated /srv/lims/clamav-db when
+# compose starts. Linear strategy: every app-side task finishes before the ops side runs, so the
+# first copy finds its target. Hosts come from groups['ops'] / groups['app'][0] (LD-45), no literals.
+# ops: freshclam through the allowlisted Squid (F-01 default) -> lims-clamav-sync.sh (rsync over wg0 + RELOAD).
+# app: signature copy (read-only bind into clamd), clamd.conf, signature age metric.
+- name: Preconditions (hosts, allowlisted mirrors, secrets)
+  ansible.builtin.assert:
+    that:
+      - groups['ops'] | default([]) | length > 0
+      - groups['app'] | default([]) | length > 0
+      - hostvars[groups['app'][0]].wg_ip | default('') | length > 0
+      - hostvars[groups['ops'][0]].wg_ip | default('') | length > 0
+      - clamav_mirrors | length > 0
+      - clamav_mirrors | difference(clamav_allowed_mirrors) | length == 0
+      - clamav_sync_ssh_pubkey | default('') | length > 0
+      - "'ops' not in group_names or (clamav_sync_ssh_key | default('') | length > 0 and clamav_sync_host_key | default('') | length > 0)"
+    fail_msg: >-
+      clamav: needs groups ops and app with wg_ip; every clamav_mirrors entry must be a clamav.net
+      entry of egress-allowlist.yaml (else Squid answers 403); clamav_sync_ssh_pubkey, clamav_sync_ssh_key
+      and clamav_sync_host_key must be set
+  vars:
+    clamav_allowed_mirrors: >-
+      {{ (lookup('ansible.builtin.file', clamav_allowlist) | from_yaml).destinations
+      | map(attribute='fqdn') | select('match', '.*clamav\.net$') | list }}
+  no_log: true
+
+# ---------------------------------------------------------------- app side
+- name: App side (signature copy, clamd.conf, metric)
+  when: "'app' in group_names"
+  block:
+    - name: Packages (rsync incl. rrsync, sudo)
+      ansible.builtin.apt:
+        name: [rsync, sudo]
+        state: present
+
+    - name: Group ops exists (sshd AllowGroups ops, s5.2)
+      ansible.builtin.group:
+        name: ops
+        state: present
+
+    - name: Sync account (forced command only, no password)
+      ansible.builtin.user:
+        name: "{{ clamav_sync_user }}"
+        system: true
+        shell: /bin/sh
+        groups: ops
+        append: true
+        home: "/var/lib/{{ clamav_sync_user }}"
+        password: "*"
+
+    - name: Directories
+      ansible.builtin.file:
+        path: "{{ item.path }}"
+        state: directory
+        owner: "{{ item.owner }}"
+        group: "{{ item.group }}"
+        mode: "{{ item.mode }}"
+      loop:
+        - {path: /usr/local/lib/lims/bin, owner: root, group: root, mode: "0755"}
+        - {path: /srv/lims/clamav, owner: root, group: root, mode: "0755"}
+        # the copy clamd trusts: only the sync account writes it, nobody else
+        - {path: /srv/lims/clamav-db, owner: "{{ clamav_sync_user }}", group: "{{ clamav_sync_user }}", mode: "0755"}
+        - {path: "/var/lib/{{ clamav_sync_user }}/.ssh", owner: "{{ clamav_sync_user }}", group: "{{ clamav_sync_user }}", mode: "0700"}
+        - {path: /var/lib/node_exporter/textfile, owner: root, group: root, mode: "0755"}
+      loop_control:
+        label: "{{ item.path }}"
+
+    - name: clamd.conf (bind-mounted read-only into clamd)
+      ansible.builtin.template:
+        src: clamd.conf.j2
+        dest: /srv/lims/clamav/clamd.conf
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Restart clamd
+
+    - name: Receive wrapper (forced command of the sync key)
+      ansible.builtin.template:
+        src: lims-clamav-recv.sh.j2
+        dest: /usr/local/lib/lims/bin/lims-clamav-recv.sh
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: sudo for the wrapper's reload helper only
+      ansible.builtin.copy:
+        content: >-
+          {{ clamav_sync_user }} ALL=(root) NOPASSWD:
+          /usr/local/lib/lims/bin/lims-clamav-recv.sh --reload
+        dest: "/etc/sudoers.d/{{ clamav_sync_user }}"
+        owner: root
+        group: root
+        mode: "0440"
+        validate: /usr/sbin/visudo -cf %s
+
+    - name: Sync key authorized with the forced command only
+      ansible.builtin.copy:
+        content: >-
+          restrict,command="/usr/local/lib/lims/bin/lims-clamav-recv.sh"
+          {{ clamav_sync_ssh_pubkey }}
+        dest: "/var/lib/{{ clamav_sync_user }}/.ssh/authorized_keys"
+        owner: "{{ clamav_sync_user }}"
+        group: "{{ clamav_sync_user }}"
+        mode: "0600"
+
+    - name: Signature age metric script
+      ansible.builtin.copy:
+        src: lims-clamav-metrics.sh
+        dest: /usr/local/lib/lims/bin/lims-clamav-metrics.sh
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Metric units
+      ansible.builtin.template:
+        src: "{{ item }}.j2"
+        dest: "/etc/systemd/system/{{ item }}"
+        owner: root
+        group: root
+        mode: "0644"
+      loop: [lims-clamav-metrics.service, lims-clamav-metrics.timer]
+      notify: Reload systemd
+
+# ---------------------------------------------------------------- ops side
+- name: Ops side (freshclam via Squid, copy to the app host)
+  when: "'ops' in group_names"
+  block:
+    - name: Packages (freshclam, rsync, ssh client)
+      ansible.builtin.apt:
+        name: [clamav-freshclam, rsync, openssh-client]
+        state: present
+
+    - name: Distribution freshclam daemon off (the timer below is the only updater)
+      ansible.builtin.systemd_service:
+        name: clamav-freshclam.service
+        state: stopped
+        enabled: false
+        masked: true
+
+    - name: Directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "{{ '0700' if 'secrets' in item else '0755' }}"
+      loop: [/usr/local/lib/lims/bin, /etc/lims, /run/lims/secrets/clamav_sync]
+
+    - name: freshclam.conf (mirrors from the allowlist, HTTPProxyServer = ops Squid)
+      ansible.builtin.template:
+        src: freshclam.conf.j2
+        dest: /etc/clamav/freshclam.conf
+        owner: root
+        group: clamav
+        mode: "0640"
+
+    - name: Sync key on tmpfs
+      ansible.builtin.copy:
+        content: "{{ clamav_sync_ssh_key }}\n"
+        dest: /run/lims/secrets/clamav_sync/ssh_key
+        owner: root
+        group: root
+        mode: "0600"
+      no_log: true
+
+    - name: Pinned host key of the app host sshd
+      ansible.builtin.copy:
+        content: >-
+          {{ hostvars[groups['app'][0]].wg_ip }}
+          {{ clamav_sync_host_key }}
+        dest: /etc/lims/clamav_sync_known_hosts
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Copy script
+      ansible.builtin.copy:
+        src: lims-clamav-sync.sh
+        dest: /usr/local/lib/lims/bin/lims-clamav-sync.sh
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Copy settings (env file for both units)
+      ansible.builtin.template:
+        src: clamav-sync.env.j2
+        dest: /etc/lims/clamav-sync.env
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Units
+      ansible.builtin.template:
+        src: "{{ item }}.j2"
+        dest: "/etc/systemd/system/{{ item }}"
+        owner: root
+        group: root
+        mode: "0644"
+      loop: [lims-freshclam.service, lims-freshclam.timer, lims-clamav-sync.service]
+      notify: Reload systemd
+
+    - name: Load new units
+      ansible.builtin.meta: flush_handlers
+
+    # F-01 pending/refused: freshclam may fail here; manual import (database files in /var/lib/clamav on
+    # this host) still works through the second command. No database at all fails the run (fail closed).
+    - name: First download (tolerated to fail until F-01 approves the mirror)
+      ansible.builtin.command: systemctl start lims-freshclam.service
+      register: clamav_first_download
+      failed_when: false
+      changed_when: clamav_first_download.rc == 0
+
+    - name: Copy to the app host and reload clamd
+      ansible.builtin.command: systemctl start lims-clamav-sync.service
+      changed_when: true
+
+    - name: Updater timer on
+      ansible.builtin.systemd_service:
+        name: lims-freshclam.timer
+        state: started
+        enabled: true
+
+# ---------------------------------------------------------------- app side, after the first copy
+- name: App side, signatures present and metric running
+  when: "'app' in group_names"
+  block:
+    - name: Signature databases in the copy
+      ansible.builtin.find:
+        paths: /srv/lims/clamav-db
+        patterns: ["*.cvd", "*.cld"]
+      register: clamav_db_files
+
+    - name: clamd cannot start without signatures
+      ansible.builtin.assert:
+        that: clamav_db_files.matched > 0
+        fail_msg: >-
+          /srv/lims/clamav-db has no signature database. freshclam on the ops host could not download
+          (F-01 mirror approved in egress-allowlist.yaml?). Manual import: put main/daily/bytecode .cvd files
+          in /var/lib/clamav on the ops host, then systemctl start lims-clamav-sync.service.
+
+    - name: Metric timer on
+      ansible.builtin.systemd_service:
+        name: lims-clamav-metrics.timer
+        state: started
+        enabled: true
+        daemon_reload: true
+
+    - name: First metric value
+      ansible.builtin.command: systemctl start lims-clamav-metrics.service
+      changed_when: false

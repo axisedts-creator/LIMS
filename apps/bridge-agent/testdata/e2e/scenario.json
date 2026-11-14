@@ -1,0 +1,27 @@
+{
+  "_comment": "INT-T01 nightly E2E scenario. Synthetic data only. Message shapes copied from the API driver goldens (astm_generic_e1394/patient-two-results, hl7v2_generic_oru/oru-patient); {barcode} and {msgid} are filled per round by the test. E2E_ROUNDS overrides rounds.",
+  "rounds": 20,
+  "p95_budget_ms": 5000,
+  "flush_interval_ms": 250,
+  "astm": {
+    "barcode_base": 10000,
+    "lines": [
+      "H|\\^&|||SIM-ANALYSER^0.1|||||||P|1|20261107101500",
+      "P|1",
+      "O|1|{barcode}||^^^GLU",
+      "R|1|^^^GLU|5.4|mmol/L||N||F||||20261107101200",
+      "R|2|^^^NA|141|mmol/L||H\\A||F||||20261107101200",
+      "L|1|N"
+    ]
+  },
+  "hl7": {
+    "barcode_base": 20000,
+    "segments": [
+      "MSH|^~\\&|SIM|LAB|LIS|CTR|20261107101500||ORU^R01|MSG{msgid}|P|2.3.1",
+      "PID|1||P0001",
+      "OBR|1||{barcode}|GLU^Glucose|||20261107101000",
+      "OBX|1|NM|GLU^Glucose||5.4|mmol/L|3.9-6.1|N|||F|||20261107101200",
+      "OBX|2|ST|HBSAG^HBsAg||Negative||||||F"
+    ]
+  }
+}

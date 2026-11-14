@@ -1,0 +1,4 @@
+# C6-T42 dispute (lead, 2026-11-11) - verify fails on timeouts only
+Failing tests differ on every run and none fails on an assertion: Playwright pay E2E (tests/portal-e2e/playwright.pay.config.ts, 60 s), worker E2E (portal_payment.tasks.test.ts, 30 s) and portal.payment.test.ts 'both operations have a registered handler' (30 s). api 31/31, worker 23/23, static 5/5 otherwise green.
+Cause (debugger rounds 1-3, .orchestra/notes/C6-T42-debug.md): the first `import('../index.js')` loads jsdom synchronously (domain/sanitise.ts pre-warm, a C6-T33 [CONV]); cold it takes 25-60 s while several lanes, docker and `next dev` share the machine. Not an implementation defect.
+Ruling requested: TESTS_WRONG on the timeouts only. Exact change: lead-decisions.md LD-91 (testTimeout and hookTimeout 120_000 in the two vitest files, Playwright timeout 120_000). The implementation does not change.

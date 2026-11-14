@@ -1,0 +1,1 @@
+pnpm --dir services/api exec vitest run src/modules/reporting/__tests__/bulk-release.test src/modules/reporting/__tests__/manifest && pnpm --dir services/api exec vitest run src/modules/reporting/__tests__/bulk-release.load

@@ -1,0 +1,9 @@
+# FD-T15 impl
+- Files: service/settings.service.ts (F24, F25); service/patient.service.ts (+anonymisePatient, +listPossibleDuplicates, tenantInfo returns tz); repository/{settings,patients,trf,orders}.repo.ts (+queries); handlers/{getFrontdeskSettings,updateFrontdeskSettings,listFrontdeskCodes,anonymisePatient,listPossibleDuplicatePatients}.ts + handlers/index.ts; probes/pending.json -> [] (LD-70).
+- [CONV] If-Match via expectedVersion (428/400/409); UPDATE-first in F7 so a race loser has no side effects; TRF objects deleted last via ctx.storage.delete(bucket, path); reason_text validated, never stored/logged.
+- [CONV] retention: max(COALESCE(registered_at, cancelled_at, created_at)) + retentionYears (default 5) strictly < now; no order -> patient created_at. Open order = pre_registered (blocks outright) or registered/in_progress not derived `completed` (needs LabPort, fails closed with service_unavailable).
+- Run 2026-11-11: unit/boot.test.ts 30/30 pass (after ruling). FD-T15.pg.sh admin suites 74/78; the 4 failures (duplicates.test.ts) are fixture bugs -> FD-T15-dispute.md (seedPatient default random phone makes "twins" non-suspects).
+- Run 2026-11-11 09:25 (revised tests): 77/78; the 1 fail (duplicates.test.ts:93 `previous` stamp 18:29Z is 00:14 KTM on 11-10, not 23:59 on 11-09) -> FD-T15-dispute.md. No code change.
+- Run 2026-11-11 09:35 (tests @236ab378): FD-T15.pg.sh admin suites 78/78 pass; unit/boot.test.ts 30/30. tsc: 0 errors in modules/frontdesk (25 pre-existing in contracts/ports, packages/shared-ts). No code change.
+- Review fix 2026-11-11 10:06 [CONV]: F7 fails closed (403 auth.forbidden) right after the role check unless getActor().centreScope.all (REQ-SEC-139); admin suites 79/79, unit 30/30, tsc frontdesk 0 errors.
+- Open: centre-scoped admins cannot anonymise until C0-0B adds an all-centre DEFINER path -> .orchestra/cr/FD-T15.md (non-blocking).

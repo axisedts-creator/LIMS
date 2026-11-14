@@ -1,0 +1,210 @@
+# T-19 (tester, LD-39): promtool tests for rules/edge.rules.yml (1 m series). Synthetic series only.
+# AC-02.3 (TLS 21 d / 7 d), AC-04.7 (EdgeNotFoundSpike: warn, > 30 for 15 m, never a ban), 02-TRD s11.3.
+# CONTRACT (spec silent on log/ban metric names; the writer must meet them):
+#   lims_ops_edge_requests_total{status_class="2xx|3xx|4xx|5xx"}  counter (Fluent Bit log-to-metrics, T-17)
+#   lims_ops_fail2ban_bans_total{jail}                            counter (textfile, 02-TRD s6.8)
+#   probe_success{job="blackbox_tcp_forbidden"}, probe_ssl_earliest_cert_expiry (blackbox, T-18)
+# Rate-limit spike is in edge_ratelimit.test.yml (7 d baseline).
+rule_files:
+  - ../edge.rules.yml
+evaluation_interval: 1m
+tests:
+  - interval: 1m
+    name: AC-02.3 cert with 20 d left -> TLSCertExpiringSoon only
+    input_series:
+      - series: 'probe_ssl_earliest_cert_expiry{job="blackbox_http", instance="https://lab.example.test"}'
+        values: "1728000x120"
+    alert_rule_test:
+      - alertname: TLSCertExpiringSoon
+        eval_time: 1h
+        exp_alerts:
+          - exp_labels:
+              severity: warn
+              team: ops
+              job: blackbox_http
+              instance: "https://lab.example.test"
+      - alertname: TLSCertExpiryCritical
+        eval_time: 1h
+        exp_alerts: []
+
+  - interval: 1m
+    name: AC-02.3 cert with 6 d left -> TLSCertExpiryCritical (page)
+    input_series:
+      - series: 'probe_ssl_earliest_cert_expiry{job="blackbox_http", instance="https://lab.example.test"}'
+        values: "518400x120"
+    alert_rule_test:
+      - alertname: TLSCertExpiryCritical
+        eval_time: 1h
+        exp_alerts:
+          - exp_labels:
+              severity: page
+              team: ops
+              job: blackbox_http
+              instance: "https://lab.example.test"
+
+  - interval: 1m
+    name: AC-02.3 cert with 22 d left -> neither
+    input_series:
+      - series: 'probe_ssl_earliest_cert_expiry{job="blackbox_http", instance="https://lab.example.test"}'
+        values: "1900800x120"
+    alert_rule_test:
+      - alertname: TLSCertExpiringSoon
+        eval_time: 1h
+        exp_alerts: []
+      - alertname: TLSCertExpiryCritical
+        eval_time: 1h
+        exp_alerts: []
+
+  - interval: 1m
+    name: Edge5xxRate page when 5xx is 2.9 % of all requests
+    input_series:
+      - series: 'lims_ops_edge_requests_total{status_class="2xx"}'
+        values: "0+100x30"
+      - series: 'lims_ops_edge_requests_total{status_class="5xx"}'
+        values: "0+3x30"
+    alert_rule_test:
+      - alertname: Edge5xxRate
+        eval_time: 20m
+        exp_alerts:
+          - exp_labels: {severity: page, team: ops}
+
+  - interval: 1m
+    name: Edge5xxRate quiet at 1 % 5xx
+    input_series:
+      - series: 'lims_ops_edge_requests_total{status_class="2xx"}'
+        values: "0+100x30"
+      - series: 'lims_ops_edge_requests_total{status_class="5xx"}'
+        values: "0+1x30"
+    alert_rule_test:
+      - alertname: Edge5xxRate
+        eval_time: 20m
+        exp_alerts: []
+
+  - interval: 1m
+    name: Edge5xxRate - denominator is ALL requests (4xx counts), 1.5 % stays quiet
+    input_series:
+      - series: 'lims_ops_edge_requests_total{status_class="2xx"}'
+        values: "0+100x30"
+      - series: 'lims_ops_edge_requests_total{status_class="4xx"}'
+        values: "0+100x30"
+      - series: 'lims_ops_edge_requests_total{status_class="5xx"}'
+        values: "0+3x30"
+    alert_rule_test:
+      - alertname: Edge5xxRate
+        eval_time: 20m
+        exp_alerts: []
+
+  - interval: 1m
+    name: Edge5xxRate quiet with no traffic (0/0)
+    input_series:
+      - series: 'lims_ops_edge_requests_total{status_class="2xx"}'
+        values: "0x30"
+      - series: 'lims_ops_edge_requests_total{status_class="5xx"}'
+        values: "0x30"
+    alert_rule_test:
+      - alertname: Edge5xxRate
+        eval_time: 20m
+        exp_alerts: []
+
+  - interval: 1m
+    name: ForbiddenPortOpen page when the TCP probe to a forbidden port succeeds
+    input_series:
+      - series: 'probe_success{job="blackbox_tcp_forbidden", instance="203.0.113.10:5432"}'
+        values: "1x30"
+      - series: 'probe_success{job="blackbox_tcp_forbidden", instance="203.0.113.10:6379"}'
+        values: "0x30"
+    alert_rule_test:
+      - alertname: ForbiddenPortOpen
+        eval_time: 10m
+        exp_alerts:
+          - exp_labels:
+              severity: page
+              team: ops
+              job: blackbox_tcp_forbidden
+              instance: "203.0.113.10:5432"
+
+  - interval: 1m
+    name: ForbiddenPortOpen quiet when every forbidden port refuses
+    input_series:
+      - series: 'probe_success{job="blackbox_tcp_forbidden", instance="203.0.113.10:5432"}'
+        values: "0x30"
+    alert_rule_test:
+      - alertname: ForbiddenPortOpen
+        eval_time: 10m
+        exp_alerts: []
+
+  - interval: 1m
+    name: Fail2banBanSpike warn above 50 bans/h (60/h)
+    input_series:
+      - series: 'lims_ops_fail2ban_bans_total'
+        values: "0+1x180"
+    alert_rule_test:
+      - alertname: Fail2banBanSpike
+        eval_time: 90m
+        exp_alerts:
+          - exp_labels: {severity: warn, team: ops}
+
+  - interval: 1m
+    name: Fail2banBanSpike quiet at 30 bans/h
+    input_series:
+      - series: 'lims_ops_fail2ban_bans_total'
+        values: "0+0.5x180"
+    alert_rule_test:
+      - alertname: Fail2banBanSpike
+        eval_time: 90m
+        exp_alerts: []
+
+  - interval: 1m
+    name: AC-04.7 EdgeNotFoundSpike - 31 per IP for 15m -> warn at 15m, not at 14m
+    input_series:
+      - series: 'lims_ops_edge_not_found_max_per_ip_5m'
+        values: "31x30"
+    alert_rule_test:
+      - alertname: EdgeNotFoundSpike
+        eval_time: 14m
+        exp_alerts: []
+      - alertname: EdgeNotFoundSpike
+        eval_time: 15m
+        exp_alerts:
+          - exp_labels: {severity: warn, team: ops}
+
+  - interval: 1m
+    name: AC-04.7 EdgeNotFoundSpike - exactly 30 per IP never fires
+    input_series:
+      - series: 'lims_ops_edge_not_found_max_per_ip_5m'
+        values: "30x30"
+    alert_rule_test:
+      - alertname: EdgeNotFoundSpike
+        eval_time: 30m
+        exp_alerts: []
+
+  - interval: 1m
+    name: AC-04.7 EdgeNotFoundSpike - a burst that clears before 15m never fires
+    input_series:
+      - series: 'lims_ops_edge_not_found_max_per_ip_5m'
+        values: "45x10 3x20"
+    alert_rule_test:
+      - alertname: EdgeNotFoundSpike
+        eval_time: 25m
+        exp_alerts: []
+
+  - interval: 1m
+    name: EgressDenied warn when the Squid 403 counter increases
+    input_series:
+      - series: 'lims_ops_egress_denied_total{dest_class="unlisted"}'
+        values: "0x4 1x15"
+    alert_rule_test:
+      - alertname: EgressDenied
+        eval_time: 7m
+        exp_alerts:
+          - exp_labels: {severity: warn, team: ops, dest_class: unlisted}
+
+  - interval: 1m
+    name: EgressDenied quiet when the counter is flat
+    input_series:
+      - series: 'lims_ops_egress_denied_total{dest_class="unlisted"}'
+        values: "7x20"
+    alert_rule_test:
+      - alertname: EgressDenied
+        eval_time: 15m
+        exp_alerts: []

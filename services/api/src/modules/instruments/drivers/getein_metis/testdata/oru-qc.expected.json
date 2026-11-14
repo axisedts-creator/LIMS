@@ -1,0 +1,19 @@
+{
+  "ok": true,
+  "messageKind": "results",
+  "messageControlId": "58",
+  "messageTimeLocal": "2026-11-14T10:15:02",
+  "records": [
+    {
+      "recordSeq": 1, "recordClass": "qc", "controlIdRaw": "QCSYN1", "controlLotRaw": "LOT111", "controlLevel": "low", "recordKind": "quantitative",
+      "instrumentAnalyteCode": "7", "valueRaw": "44.1", "unitRaw": "U/L",
+      "instrumentFlags": [], "instrumentResultTimeLocal": "2026-11-14T10:14:55", "warnings": []
+    },
+    {
+      "recordSeq": 2, "recordClass": "qc", "controlIdRaw": "QCSYN2", "controlLotRaw": "LOT222", "controlLevel": "high", "recordKind": "quantitative",
+      "instrumentAnalyteCode": "7", "valueRaw": "123.4", "unitRaw": "U/L",
+      "instrumentFlags": [], "instrumentResultTimeLocal": "2026-11-14T10:14:55", "warnings": []
+    }
+  ],
+  "warnings": []
+}

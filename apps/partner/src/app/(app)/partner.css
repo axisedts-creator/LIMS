@@ -1,0 +1,32 @@
+/* C13.T19 partner app layout additions. Kit tokens only (LD-140: no hex colours, no pixel radii). */
+
+/* Cards on phones (04-UI-UX §7): table below md becomes a card list. */
+.partner-cards { display: none; }
+@media (max-width: 767px) {
+  .partner-table { display: none; }
+  .partner-cards { display: grid; gap: var(--lims-space-3); }
+  .partner-bottom-nav { display: block; }
+  .partner-shell-main { padding-bottom: calc(var(--lims-space-8) * 2); }
+}
+.partner-bottom-nav { display: none; position: fixed; inset-inline: 0; bottom: 0; z-index: var(--lims-z-nav); background: var(--lims-neutral-0); border-top: 1px solid var(--lims-neutral-200); }
+.partner-card-head { font-weight: 600; margin-bottom: var(--lims-space-2); }
+.partner-card-actions { display: flex; gap: var(--lims-space-2); margin-top: var(--lims-space-3); }
+.partner-topbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--lims-space-2); width: 100%; }
+.partner-toolbar { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--lims-space-3); margin-bottom: var(--lims-space-4); }
+.partner-nav-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--lims-space-1); }
+.partner-nav-list a { display: block; padding: var(--lims-space-3); min-height: 44px; }
+.partner-actions-cell { display: flex; flex-wrap: wrap; gap: var(--lims-space-2); }
+
+/* Print view (04-UI-UX PM-4): A4 portrait, 12 mm margins, black on white, no nav. */
+@page { size: A4 portrait; margin: 12mm; }
+.partner-print-table { width: 100%; border-collapse: collapse; }
+.partner-print-table th, .partner-print-table td { border: 1px solid CanvasText; padding: var(--lims-space-1) var(--lims-space-2); text-align: start; }
+.partner-print-no { font-family: var(--lims-font-mono, monospace); font-size: 1.5rem; }
+.partner-print-foot { margin-top: var(--lims-space-8); display: flex; gap: var(--lims-space-8); }
+@media print {
+  .lims-shell-top, .lims-shell-nav, .lims-shell-help, .lims-shell-banner, .lims-skip-link, .partner-bottom-nav, .partner-no-print { display: none; }
+  .lims-shell-main { padding: 0; }
+  body, .partner-print { color: CanvasText; background: Canvas; }
+  .partner-print-table { page-break-inside: auto; }
+  .partner-print-table tr { page-break-inside: avoid; }
+}

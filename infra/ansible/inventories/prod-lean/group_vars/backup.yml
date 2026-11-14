@@ -1,0 +1,6 @@
+---
+# Non-secret vars for group `backup`, env prod (lean profile, LD-45/LD-48;
+# 02-TRD s15). Site B, different provider. Runs ONLY: pgBackRest repo2 (SFTP
+# target, continuous WAL archiving), object-storage replica, audit digests +
+# ops_audit copy, blackbox external check + alert relay. Filled by the role
+# tasks that need them (T-03 onward).

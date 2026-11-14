@@ -1,0 +1,15 @@
+#!/bin/sh
+# Forced command of the clamav sync key on the app host (02-TRD s7.4); also the root reload helper.
+# ssh only gets: rsync write-only into the signature copy (rrsync) or `reload` (clamd RELOAD).
+set -eu
+C={{ clamav_container }}
+if [ "${1:-}" = --reload ]; then  # root, via sudo -n
+  [ "$(docker inspect -f '{% raw %}{{.State.Running}}{% endraw %}' "$C" 2>/dev/null)" = true ] \
+    || { echo "clamd not running; it loads the databases when it starts"; exit 0; }
+  exec docker exec "$C" clamdscan --reload
+fi
+case "${SSH_ORIGINAL_COMMAND:-}" in
+  reload) exec sudo -n /usr/local/lib/lims/bin/lims-clamav-recv.sh --reload ;;
+  "rsync --server "*) exec /usr/bin/rrsync -wo /srv/lims/clamav-db ;;
+  *) echo "denied" >&2; exit 126 ;;
+esac

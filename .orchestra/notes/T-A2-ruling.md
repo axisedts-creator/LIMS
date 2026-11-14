@@ -1,0 +1,7 @@
+TESTS_WRONG — the test-world seeds rows that the schema itself forbids; the implementation's UPDATE is correct.
+1. spec/chunks/C16-patient-engagement/05-SCHEMA.md:254 `otp_challenges__tenant_id_token__uq UNIQUE (tenant_id, token_sha256)`: two rows in one tenant cannot share a token_sha256. `otp.world.ts:242` `seedChallenge` defaults every row to `Buffer.alloc(32, 7)` and pushes without `challengeCheck`, so the supersession test (send_login_otp.test.ts:86-88, six TENANT_A seeds) starts from a state real Postgres would reject at the 2nd INSERT.
+2. The 23505 comes from emulator line 112 re-checking that already-invalid neighbour set during a status/updated_at UPDATE. The supersede statement never writes token_sha256 (05-SCHEMA.md:1436 policy; TRD §4.1 step 2), so a real DB raises no error.
+3. Fix (tester, in `services/api/src/modules/engagement/__tests__/otp.world.ts`): `seedChallenge` defaults `token_sha256` to a fresh `randomBytes(32)` per row, and `...over` still overrides it.
+4. Fix (tester, in send_login_otp.test.ts:48-49 "two distinct ids ... DO collide"): pass the same token explicitly to both seeds, e.g. `const tok = Buffer.alloc(32, 7); w.seedChallenge({ token_sha256: tok }); const b = w.seedChallenge({ token_sha256: tok });`, so the guard still proves 05-SCHEMA.md:254.
+5. Optional hardening: run `challengeCheck` (incl. the line-112 uniqueness check) inside `seedChallenge`, so an invalid seed fails at seed time and not later inside the implementation.
+No implementation change. Do not weaken the uniqueness check at line 112.

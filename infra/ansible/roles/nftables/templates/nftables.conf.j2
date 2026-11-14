@@ -1,0 +1,115 @@
+#!/usr/sbin/nft -f
+# Managed by Ansible (02-TRD s3.3, s5.5; AC-01.4). Validated with nft -c
+# before install. Only table inet filter is replaced: no `flush ruleset`,
+# which would also wipe the tables Docker manages through iptables-nft.
+# Reload with `systemctl reload nftables` (never stop/restart: the stock
+# unit's ExecStop flushes the whole ruleset).
+{% set ip = {
+     'data': groups['data'] | default([]) | map('extract', hostvars, 'wg_ip') | list,
+     'app': groups['app'] | default([]) | map('extract', hostvars, 'wg_ip') | list,
+     'dr': groups['dr'] | default([]) | map('extract', hostvars, 'wg_ip') | list,
+     'ops': groups['ops'] | default([]) | map('extract', hostvars, 'wg_ip') | list,
+   } %}
+{% set engineers = wg_engineer_peers | default([]) | map(attribute='wg_ip') | list %}
+{% set peers = (groups['all'] | difference([inventory_hostname]) | map('extract', hostvars, 'public_ip') | list)
+               + (wg_engineer_peers | default([]) | selectattr('source', 'defined') | map(attribute='source') | list) %}
+table inet filter
+delete table inet filter
+
+table inet filter {
+    # public IPs allowed to reach udp 51820: the other hosts (+ engineers' sources)
+    set wg_peers {
+        type ipv4_addr
+        flags interval
+{% if peers %}
+        elements = { {{ peers | unique | join(', ') }} }
+{% endif %}
+    }
+
+    # IPs of smtp_relay_fqdn; filled and refreshed hourly by role egress_proxy
+    set smtp_relay_ips {
+        type ipv4_addr
+    }
+
+    chain input {
+        type filter hook input priority filter; policy drop;
+        ct state established,related accept
+        ct state invalid drop
+        iif "lo" accept
+        icmp type echo-request limit rate 10/second accept
+        icmpv6 type { nd-neighbor-solicit, nd-neighbor-advert } accept
+        icmpv6 type echo-request limit rate 10/second accept
+        udp dport 51820 ip saddr @wg_peers accept
+{% if 'app' in group_names %}
+        iifname "{{ nftables_public_iface }}" tcp dport { 80, 443 } accept
+{% endif %}
+        iifname "wg0" jump wg_in
+    }
+
+    # 02-TRD s3.3 port map on wg0, each port only from its expected sources.
+    # ops-1 never reaches the application DB (5432/6432).
+    chain wg_in {
+        tcp dport 22 ip saddr { {{ (ip.ops + engineers) | join(', ') }} } accept
+        tcp dport { 9100, 2020 } ip saddr { {{ ip.ops | join(', ') }} } accept
+{% if 'data' in group_names %}
+        tcp dport 5432 ip saddr { {{ (ip.app + ip.dr) | join(', ') }} } accept
+        tcp dport 6432 ip saddr { {{ ip.app | join(', ') }} } accept
+        tcp dport { 9187, 9127, 8081 } ip saddr { {{ ip.ops | join(', ') }} } accept
+{% endif %}
+{% if 'app' in group_names %}
+        tcp dport { 9464, 9465, 9466, 9467, 9113, 8081, 8090 } ip saddr { {{ ip.ops | join(', ') }} } accept
+{% endif %}
+{% if 'dr' in group_names %}
+        # standby: app-1 after a DR promotion (db_primary_wg_ip)
+        tcp dport 5432 ip saddr { {{ ip.app | join(', ') }} } accept
+        tcp dport { 9187, 9188 } ip saddr { {{ ip.ops | join(', ') }} } accept
+        # SFTP: repo2 (data-1), object replica (app-1), drill + ops rsync (ops-1)
+        tcp dport 2222 ip saddr { {{ (ip.data + ip.app + ip.ops) | unique | join(', ') }} } accept
+{% endif %}
+{% if 'ops' in group_names %}
+        tcp dport 443 ip saddr { {{ (ip.data + ip.app + ip.dr + engineers) | unique | join(', ') }} } accept
+        tcp dport { 5000, 3128 } ip saddr { {{ (ip.data + ip.app + ip.dr) | unique | join(', ') }} } accept
+        udp dport 123 ip saddr { {{ (ip.data + ip.app + ip.dr) | unique | join(', ') }} } accept
+{% endif %}
+    }
+
+    # Runs before Docker's own FORWARD chain (priority filter = 0), whose
+    # policy is drop. A drop here is final; an accept only lets Docker's
+    # chain decide, so this chain only ever narrows what Docker allows.
+    chain forward {
+        type filter hook forward priority filter - 10;
+        jump DOCKER-USER
+    }
+
+    # 02-TRD s5.5 forward rules, in the order of 08 A25 D-203.
+    chain DOCKER-USER {
+        # 1
+        ct state established,related accept
+        # 2 public interface -> nginx container only, 80/443
+        iifname "{{ nftables_public_iface }}" ip daddr {{ nftables_nginx_edge_ip }} tcp dport { 80, 443 } accept
+        iifname "{{ nftables_public_iface }}" drop
+        # 3 wg0 -> published container ports: same source rules as the port map.
+        # [CONV] wg-published containers use the same host and container port
+        # (api/worker metrics: container 9464, covered by the app rule).
+        iifname "wg0" ct status dnat jump wg_in
+        iifname "wg0" ct status dnat drop
+        # 4 edge_net: only to/from nginx
+        ip saddr {{ docker_subnets.edge }} ip saddr != {{ nftables_nginx_edge_ip }} ip daddr != {{ nftables_nginx_edge_ip }} drop
+        ip daddr {{ docker_subnets.edge }} ip daddr != {{ nftables_nginx_edge_ip }} ip saddr != {{ nftables_nginx_edge_ip }} drop
+        # 5 db_net: the DB primary on 5432/6432, GoTrue -> SMTP relay 587
+        ip saddr {{ docker_subnets.db }} ip daddr {{ db_primary_wg_ip }} tcp dport { 5432, 6432 } ct state new accept
+        ip saddr {{ nftables_auth_ip }} ip daddr @smtp_relay_ips tcp dport 587 ct state new accept
+        ip saddr {{ docker_subnets.db }} drop
+        # 6 render_net: nothing leaves; sandbox only from worker-a/b
+        ip saddr {{ docker_subnets.render }} ip daddr != {{ docker_subnets.render }} drop
+{% if nftables_render_worker_ips %}
+        ip daddr {{ nftables_pdf_sandbox_ip }} ct state new ip saddr != { {{ nftables_render_worker_ips | join(', ') }} } drop
+{% endif %}
+        # 7 app_net / auth_net are internal; defence in depth
+        ip saddr {{ docker_subnets.app }} ip daddr != {{ docker_subnets.app }} drop
+        ip saddr {{ docker_subnets.auth }} ip daddr != {{ docker_subnets.auth }} drop
+        # 8 egress_net: Squid only, tcp 443 (Squid enforces the FQDN allowlist)
+        ip saddr {{ docker_subnets.egress }} tcp dport 443 accept
+        ip saddr {{ docker_subnets.egress }} drop
+    }
+}

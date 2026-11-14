@@ -1,0 +1,1 @@
+cd /d "%~dp0..\.." && pnpm --dir services/api exec vitest run src/modules/engagement/service/__tests__/selfreg.handlers.test.ts && pnpm --dir services/worker exec vitest run src/jobs/engagement/__tests__/create_self_patient.test.ts

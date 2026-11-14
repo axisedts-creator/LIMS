@@ -1,0 +1,28 @@
+# Tables in module schemas without ENABLE + FORCE ROW LEVEL SECURITY, with the reason (AC-0B-2.1; CV §5.8). Format: <schema.table><whitespace><reason>
+core.g_permissions          global permission registry; no tenant data (CV §5.8)
+core.g_system_actors        global system-actor ids; no tenant data
+core.g_task_registry        global task identifiers; no tenant data
+audit.g_cs_access_actions   global coded set; no tenant data
+core.rate_limit_counters    UNLOGGED hashed counters; no grants to any app role; accessed only via app.ratelimit_hit (04 S11)
+identity.g_feature_flags      global feature-flag catalogue; no tenant data (CV §5.8)
+identity.g_breached_passwords global breached-password hash list; no tenant data (CV §5.8)
+catalog.g_units               global reference vocabulary, no tenant data (CV §5.8)
+catalog.g_value_sets          global reference vocabulary, no tenant data (CV §5.8)
+catalog.g_value_set_values    global reference vocabulary, no tenant data (CV §5.8)
+catalog.g_tax_types           global reference vocabulary, no tenant data (CV §5.8)
+catalog.g_reference_release   global reference vocabulary (release counter singleton), no tenant data (CV §5.8)
+frontdesk.g_cs_reasons         global coded reason set; no tenant data (CV §5.8)
+billing.g_cs_payment_methods  global coded payment-method set; no tenant data (CV §5.8)
+billing.g_cs_reasons          global coded reason set; no tenant data (CV §5.8)
+lab.g_cs_rejection_reasons           global coded rejection-reason set; no tenant data (CV §5.8)
+lab.g_cs_return_reasons              global coded return-reason set; no tenant data (CV §5.8)
+lab.g_cs_amendment_reasons           global coded amendment-reason set; no tenant data (CV §5.8)
+lab.g_cs_exception_discard_reasons   global coded exception-discard-reason set; no tenant data (CV §5.8)
+instruments.g_drivers               global driver catalogue; no tenant data (CV §5.8)
+instruments.g_agent_releases        global agent-release catalogue; no tenant data (CV §5.8)
+instruments.g_cs_revoke_reasons     global coded revoke-reason set; no tenant data (CV §5.8)
+instruments.g_cs_reprocess_reasons  global coded reprocess-reason set; no tenant data (CV §5.8)
+analytics.g_cs_families             global coded family set; no tenant data (CV §5.8)
+analytics.g_cs_report_codes         global coded report-code set; no tenant data (CV §5.8)
+reporting.g_message_templates       global catalogue; no tenant data (CV §5.8)
+reporting.g_cs_reasons              global catalogue; no tenant data (CV §5.8)

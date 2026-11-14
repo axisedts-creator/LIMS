@@ -1,0 +1,6 @@
+# C6-T12 impl (writer) — review round
+Files: `services/renderer/src/sandbox/{server.ts,DECISIONS.md}`, `services/renderer/Dockerfile.sandbox`.
+Review 1: DECISIONS.md options checked against `qpdf --help=all` from the built image (`qpdf version 12.4.2`); help topic cited per option. 2: stamp anchored to CropBox (else MediaBox) origin and rotated by `/Rotate`, so it stays upright bottom-right/left on screen. 3: `/XFA` added to deny list. 4: `QPDF_SHA256` pinned from upstream `qpdf-12.4.2.sha256` and checked with `sha256sum -c` (build log: `/tmp/qpdf.tgz: OK`). PGP signature on that file is not verified.
+[CONV] Build fixes found once Docker was up: node 26 ships no corepack, so `npm i -g pnpm@12.18.0` (root packageManager). Whole-renderer `tsc` fails in the image (templates import `packages/shared-ts` outside the build context), so the image runs `src/sandbox/server.ts` with Node's built-in type stripping. The `Reject` parameter property became a plain field.
+Run: sandbox `vitest` 69/69 pass, container tests included (image built, `--network none`). Full renderer suite: 265 pass, 6 skipped. `tsc --noEmit` clean.
+Open: rejecting `/URI` may bounce legitimate hyperlinked outsourced PDFs (lead question). 512 MB cap not tested. `Dockerfile.renderer` has the same `corepack` problem (not my task's file; flag to its owner).

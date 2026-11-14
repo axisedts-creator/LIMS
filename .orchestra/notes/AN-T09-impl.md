@@ -1,0 +1,6 @@
+# AN-T09 impl (writer)
+- New: `handlers/{getVolumeReport,getTopReferrersReport,getCollectionsReport}.ts` (7 ops), edited `handlers/index.ts`, `handlers/reportRequest.ts` (+`holds()`), `service/reports.service.ts`, `mappers/reports.dto.ts`, `repository/rollups.repo.ts` (volume/topCentres/referrerVolume/collection/paymentMethodCodes/specimenTypeCodes), `repository/labels.repo.ts` (searchReferrers).
+- Result: 6 AN-T09 files 321/321 pass (boot.test needs `--testTimeout 170000`; default 5s/30s timeouts hit under load, no code cause); handlers dir + rollups09 repo 286/286; tsc: no errors in analytics non-test files. No tests edited.
+- [CONV] top centres/referrers totals cover all rows in scope before `limit`; rank within caller scope. [CONV] payment method label/display = code (no catalog yet); gateway key `gateway`/"Online gateway"; NULL centre `none`/"No centre"; sort default -orders.
+- [CONV] `recipients` and `daily_cash_route_id` decided by actor `permissions` (getActor), not assertRole, so no 403 on the conditional parts. recipients memoised per ctx.
+- Open: SQL (volume FULL JOIN, topCentres CTE) only shape-tested, no live DB/RLS run; `freshness: []` as AN-T08; full-suite default-timeout failures in period.test/boot.test are load-related, not rerun at default; lint not run.

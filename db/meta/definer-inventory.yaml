@@ -1,0 +1,141 @@
+# db/meta/definer-inventory.yaml — every SECURITY DEFINER function in db/migrations (04 D7; REQ-SEC-020; 05-SCHEMA §4.3).
+# Content transcribed from the 05-SCHEMA §4.3 tables. Lists the functions that exist in db/migrations today; each later
+# migration that adds a DEFINER of 05-SCHEMA §4.3 adds its row here in the same PR (CI asserts prosecdef set = this list, T0B-08).
+# Fields: owner, execute (roles granted EXECUTE), why, touches (FORCE-RLS table · command), policies (owner policies that admit it),
+# reviewer (null until the gate-9 reviewer signs the row). Every entry has SET search_path = '' (check-migrations.ts enforces it).
+# Format: JSON subset of YAML 1.2 (see tables.yaml).
+{
+ "definers": {
+  "app.is_platform_actor": {
+   "owner": "lims_owner", "execute": ["lims_app"], "why": "platform-context predicate (CR-C2-004; 08 A15.6)",
+   "touches": ["identity.platform_staff SELECT"], "policies": ["platform_staff__select__owner_only"], "reviewer": null
+  },
+  "app.current_partner_id": {
+   "owner": "lims_owner", "execute": ["lims_app"], "why": "partner actor scope (CR-C13-004); helpers stage (08 A30.1)",
+   "touches": ["partners.partner_users SELECT", "partners.partners SELECT"], "policies": ["owner_only (C13 05-SCHEMA)"], "reviewer": null
+  },
+  "app.engagement_account_id": {
+   "owner": "lims_owner", "execute": ["lims_app"], "why": "patient actor scope (CR-C16-006); helpers stage (08 A30.1)",
+   "touches": ["engagement.accounts SELECT", "core.memberships SELECT"], "policies": ["accounts__select__owner_only", "memberships__select__owner_only"], "reviewer": null
+  },
+  "app.engagement_patient_ids": {
+   "owner": "lims_owner", "execute": ["lims_app"], "why": "patient actor scope (CR-C16-006); helpers stage (08 A30.1)",
+   "touches": ["engagement.account_patient_links SELECT"], "policies": ["account_patient_links__select__owner_only"], "reviewer": null
+  },
+  "app.engagement_patient_visible": {
+   "owner": "lims_owner", "execute": ["lims_app"], "why": "patient actor scope (CR-C16-006); helpers stage (08 A30.1)",
+   "touches": ["engagement.account_patient_links SELECT"], "policies": ["account_patient_links__select__owner_only"], "reviewer": null
+  },
+  "app.tg_row_audit": {
+   "owner": "lims_owner", "execute": [], "why": "trigger; lims_app must not be able to insert audit rows directly (AC-0B-5.3)",
+   "touches": ["audit.audit_log INSERT"], "policies": ["audit_log__insert__owner_only"], "reviewer": null
+  },
+  "app.has_all_centres": {
+   "owner": "lims_owner", "execute": ["lims_app", "lims_queue"], "why": "membership lookup inside policies without recursion (REQ-SEC-021; 08 R3)",
+   "touches": ["core.memberships SELECT"], "policies": ["memberships__select__owner_only"], "reviewer": null
+  },
+  "app.current_centre_ids": {
+   "owner": "lims_owner", "execute": ["lims_app", "lims_queue"], "why": "membership lookup inside policies without recursion (REQ-SEC-021)",
+   "touches": ["core.memberships SELECT", "core.membership_centres SELECT"], "policies": ["memberships__select__owner_only", "membership_centres__select__owner_only"], "reviewer": null
+  },
+  "app.identity_resolve_session": {
+   "owner": "lims_owner", "execute": ["lims_api"], "why": "claims resolution before tenant context (CR-C2-005)",
+   "touches": ["per C2 05-SCHEMA §5.4"], "policies": ["owner_only per C2 05-SCHEMA §5.4 (app.pre_* GUCs, 08 A12.1)"], "reviewer": null
+  },
+  "app.identity_session_by_token": {
+   "owner": "lims_owner", "execute": ["lims_api"], "why": "session lookup by token hash before tenant context (CR-C2-005, CR-C2-018)",
+   "touches": ["per C2 05-SCHEMA §5.4"], "policies": ["owner_only per C2 05-SCHEMA §5.4 (app.pre_* GUCs, 08 A12.1)"], "reviewer": null
+  },
+  "app.identity_login_context": {
+   "owner": "lims_owner", "execute": ["lims_api"], "why": "login before tenant context (CR-C2-005)",
+   "touches": ["per C2 05-SCHEMA §5.4"], "policies": ["owner_only per C2 05-SCHEMA §5.4; roles__select__owner_only, membership_roles__select__owner_only"], "reviewer": null
+  },
+  "app.identity_user_exists": {
+   "owner": "lims_owner", "execute": ["lims_api"], "why": "user existence check before tenant context (CR-C2-005)",
+   "touches": ["core.users SELECT"], "policies": ["users__select__owner_only"], "reviewer": null
+  },
+  "app.identity_record_auth_event": {
+   "owner": "lims_owner", "execute": ["lims_api"], "why": "auth event write before tenant context (CR-C2-005)",
+   "touches": ["per C2 05-SCHEMA §5.4"], "policies": ["owner_only per C2 05-SCHEMA §5.4"], "reviewer": null
+  },
+  "app.identity_bootstrap_platform_admin": {
+   "owner": "lims_owner", "execute": ["lims_api"], "why": "platform admin bootstrap with no claims (CR-C2-005)",
+   "touches": ["per C2 05-SCHEMA §5.4"], "policies": ["owner_only per C2 05-SCHEMA §5.4"], "reviewer": null
+  },
+  "app.identity_purge_sessions": {
+   "owner": "lims_owner", "execute": ["lims_worker"], "why": "cross-tenant maintenance of identity tables (C2 cron; 08 A15.3)",
+   "touches": ["identity.sessions SELECT, DELETE", "identity.admin_notices SELECT, DELETE"], "policies": ["sessions__{select,delete}__owner_only", "admin_notices__{select,delete}__owner_only"], "reviewer": null
+  },
+  "app.identity_expire_support_sessions": {
+   "owner": "lims_owner", "execute": ["lims_worker"], "why": "cross-tenant maintenance of identity tables (C2 cron; 08 A15.3)",
+   "touches": ["identity.support_sessions SELECT, UPDATE"], "policies": ["support_sessions__{select,update}__owner_only"], "reviewer": null
+  },
+  "app.identity_expire_invitations": {
+   "owner": "lims_owner", "execute": ["lims_worker"], "why": "cross-tenant maintenance of identity tables (C2 cron; 08 A15.3)",
+   "touches": ["identity.invitations SELECT, UPDATE"], "policies": ["invitations__{select,update}__owner_only"], "reviewer": null
+  },
+  "app.identity_expire_audit_exports": {
+   "owner": "lims_owner", "execute": ["lims_worker"], "why": "cross-tenant maintenance of identity tables (C2 cron; 08 A15.3)",
+   "touches": ["identity.audit_exports SELECT, UPDATE, DELETE"], "policies": ["audit_exports__{select,update}__owner_only"], "reviewer": null
+  },
+  "app.identity_purge_auth_events": {
+   "owner": "lims_owner", "execute": ["lims_worker"], "why": "cross-tenant retention of auth events (C2 cron; 08 A12.2)",
+   "touches": ["identity.tenant_settings SELECT", "identity.auth_events SELECT, DELETE"], "policies": ["tenant_settings__select__owner_only", "auth_events__{select,delete}__owner_only"], "reviewer": null
+  },
+  "app.identity_load_breached_batch": {
+   "owner": "lims_owner", "execute": ["lims_worker"], "why": "breached-password list import into class G identity.g_breached_passwords",
+   "touches": [], "policies": [], "reviewer": null
+  },
+  "app.identity_finish_breached_import": {
+   "owner": "lims_owner", "execute": ["lims_worker"], "why": "breached-password list import into class G identity.g_breached_passwords",
+   "touches": [], "policies": [], "reviewer": null
+  },
+  "app.identity_platform_auth_write_session_insert": {
+   "owner": "lims_owner", "execute": ["lims_api"], "why": "platform-staff session write before a platform session exists (08 A28.1)",
+   "touches": ["identity.sessions"], "policies": ["owner policies tenant_id IS NULL AND user_id = app.pre_user_id (C2 05-SCHEMA §5.4)"], "reviewer": null
+  },
+  "app.identity_platform_auth_write_session_update": {
+   "owner": "lims_owner", "execute": ["lims_api"], "why": "platform-staff session write before a platform session exists (08 A28.1)",
+   "touches": ["identity.sessions"], "policies": ["owner policies tenant_id IS NULL AND user_id = app.pre_user_id (C2 05-SCHEMA §5.4)"], "reviewer": null
+  },
+  "app.identity_platform_auth_write_mfa_factor": {
+   "owner": "lims_owner", "execute": ["lims_api"], "why": "platform-staff MFA write before a platform session exists (08 A28.1)",
+   "touches": ["identity.mfa_factors"], "policies": ["owner policies tenant_id IS NULL AND user_id = app.pre_user_id (C2 05-SCHEMA §5.4)"], "reviewer": null
+  },
+  "app.identity_platform_auth_write_invitation_accept": {
+   "owner": "lims_owner", "execute": ["lims_api"], "why": "platform-staff invitation write before a platform session exists (08 A28.1)",
+   "touches": ["identity.invitations"], "policies": ["owner policies tenant_id IS NULL AND user_id = app.pre_user_id (C2 05-SCHEMA §5.4)"], "reviewer": null
+  },
+  "app.identity_platform_auth_write_staff_login": {
+   "owner": "lims_owner", "execute": ["lims_api"], "why": "platform-staff last-login write before a platform session exists (08 A28.1)",
+   "touches": ["identity.platform_staff UPDATE"], "policies": ["platform_staff__update__owner_only"], "reviewer": null
+  },
+  "app.identity_notify_ip_throttle_hmacs": {
+   "owner": "lims_owner", "execute": ["lims_worker"], "why": "tenant-less auth_events read for the throttle notice (08 A28.4)",
+   "touches": ["identity.auth_events SELECT"], "policies": ["auth_events__select__owner_only (app.maintenance = 'identity_notify_ip_throttle')"], "reviewer": null
+  },
+  "app.enqueue_job": {"owner":"lims_queue","execute":["lims_app","lims_queue"],"why":"graphile_worker.add_job needs queue-owner rights; checks registry + tenant match (IC §12)","touches":[],"policies":[],"reviewer":null},
+  "app.queue_depth": {"owner":"lims_queue","execute":["lims_queue","lims_worker"],"why":"queue counts for lims_queue_depth{task}; never payloads or keys (review C0 m#37)","touches":[],"policies":[],"reviewer":null},
+  "app.ratelimit_hit": {"owner":"lims_owner","execute":["lims_api","lims_worker"],"why":"no table grants on counters (04 S11)","touches":[],"policies":[],"reviewer":null},
+  "app.purge_event_log": {"owner":"lims_owner","execute":["lims_worker"],"why":"retention purge, batched, 4-minute cap (CV §5.11; 08 A25 D-200)","touches":["core.event_log SELECT","core.event_log DELETE"],"policies":["event_log__select__owner_only","event_log__delete__owner_only"],"reviewer":null},
+  "app.purge_event_inboxes": {"owner":"lims_owner","execute":["lims_worker"],"why":"retention purge, batched, 4-minute cap (CV §5.11; 08 A25 D-200)","touches":["<m>.event_inbox SELECT","<m>.event_inbox DELETE"],"policies":["event_inbox__select__owner_only","event_inbox__delete__owner_only"],"reviewer":null},
+  "app.purge_idempotency_keys": {"owner":"lims_owner","execute":["lims_worker"],"why":"retention purge, batched, 4-minute cap (CV §5.11; 08 A25 D-200)","touches":["core.idempotency_keys SELECT","core.idempotency_keys DELETE"],"policies":["idempotency_keys__select__owner_only","idempotency_keys__delete__owner_only"],"reviewer":null},
+  "app.purge_dead_letters": {"owner":"lims_owner","execute":["lims_worker"],"why":"retention purge, batched, 4-minute cap (CV §5.11; 08 A25 D-200)","touches":["core.dead_letters SELECT","core.dead_letters DELETE"],"policies":["dead_letters__select__owner_only","dead_letters__delete__owner_only"],"reviewer":null},
+  "app.purge_ratelimit_counters": {"owner":"lims_owner","execute":["lims_worker"],"why":"retention purge, batched, 4-minute cap (CV §5.11; 08 A25 D-200)","touches":[],"policies":[],"reviewer":null},
+  "app.dl_insert_platform": {"owner":"lims_owner","execute":["lims_worker"],"why":"platform-task dead letter, tenant_id NULL (IC §12; 08 A9.4)","touches":["core.dead_letters INSERT"],"policies":["dead_letters__insert__owner_only"],"reviewer":null},
+  "app.dl_list_platform": {"owner":"lims_owner","execute":["lims_api"],"why":"platform dead-letter list/get, platform context only (08 A9.4)","touches":["core.dead_letters SELECT"],"policies":["dead_letters__select__owner_only"],"reviewer":null},
+  "app.dl_resolve": {"owner":"lims_owner","execute":["lims_api"],"why":"platform dead-letter replay/discard, version-guarded (08 A6.4, A9.4)","touches":["core.dead_letters UPDATE"],"policies":["dead_letters__update__owner_only","dead_letters__select__owner_only"],"reviewer":null},
+  "app.platform_list_tenants": {"owner":"lims_owner","execute":["lims_api"],"why":"platform tenant list, platform context only (CR-C0-004; 08 A12.3)","touches":["core.tenants SELECT","identity.platform_staff SELECT"],"policies":["tenants__select__owner_only (app.maintenance = 'platform_list_tenants')"],"reviewer":null},
+  "app.cron_tenant_ids": {"owner":"lims_owner","execute":["lims_worker"],"why":"per_tenant cron fan-out (08 A13 P-6, A23.1)","touches":["core.tenants SELECT"],"policies":["tenants__select__owner_only (app.maintenance = 'cron_tenant_ids')"],"reviewer":null},
+  "app.core_resolve_tenant_code": {"owner":"lims_owner","execute":["lims_api"],"why":"patient pre-auth tenant resolution (08 A19 D-121)","touches":["core.tenants SELECT"],"policies":["tenants__select__owner_only (app.pre_tenant_code)"],"reviewer":null},
+  "app.identity_tenants_for_email_hmacs": {"owner":"lims_owner","execute":["lims_worker"],"why":"tenants targeted by a throttled IP (08 A25 D-217)","touches":["core.users SELECT"],"policies":["users__select__owner_only (app.maintenance = 'identity_tenants_for_email_hmacs')"],"reviewer":null},
+  "frontdesk.purge_trf_drafts": {"owner":"lims_owner","execute":["lims_worker"],"why":"TRF draft purge (class E, 24 h); DELETE has no lims_app grant/policy (C4 05-SCHEMA §2, §3; 08 A10.5)","touches":["frontdesk.trf_attachments SELECT","frontdesk.trf_attachments DELETE"],"policies":["trf_attachments__select__owner_only","trf_attachments__delete__owner_only (app.maintenance = 'frontdesk_purge_trf_drafts')"],"reviewer":null},
+  "app.reporting_verify_qr": {"owner":"lims_reporting_lookup","execute":["lims_api"],"why":"public QR verification, pre-tenant (CR-C6-002; 08 A21.4 GUC app.pre_qr_token_sha256)","touches":["reporting.qr_tokens SELECT","reporting.report_versions SELECT"],"policies":["qr_tokens__select__lookup","report_versions__select__lookup"],"reviewer":null},
+  "app.reporting_resolve_portal_credential": {"owner":"lims_reporting_lookup","execute":["lims_api"],"why":"portal link/session token resolution, pre-tenant (CR-C6-002; 08 A21.1, A21.4 GUC app.pre_portal_credential_sha256)","touches":["reporting.portal_links SELECT","reporting.portal_sessions SELECT"],"policies":["portal_links__select__lookup","portal_sessions__select__lookup"],"reviewer":null},
+  "app.reporting_ingest_provider_callback": {"owner":"lims_reporting_lookup","execute":["lims_api"],"why":"provider status callback ingest, pre-tenant (CR-C6-002; 08 §4.7, A21.4 GUCs app.pre_callback_*); enqueues reporting.apply_provider_events","touches":["reporting.channel_accounts SELECT","reporting.provider_events INSERT","reporting.provider_events SELECT"],"policies":["channel_accounts__select__lookup","provider_events__insert__lookup","provider_events__select__lookup"],"reviewer":null},
+  "app.reporting_redeem_link_for_app": {"owner":"lims_reporting_lookup","execute":["lims_api"],"why":"ReportingPort.redeemPortalLinkForApp, pre-tenant; only write = redeem_failures counter (08 A13 D-30; GUC app.pre_portal_token_sha256)","touches":["reporting.portal_links SELECT","reporting.portal_links UPDATE","reporting.reports SELECT","reporting.report_versions SELECT","reporting.deliveries SELECT"],"policies":["portal_links__select__owner_only","portal_links__update__owner_only","reports__select__owner_only","report_versions__select__owner_only","deliveries__select__owner_only"],"reviewer":null},
+  "app.instruments_resolve_device_credential": {"owner":"lims_owner","execute":["lims_api"],"why":"device-credential resolver, pre-tenant (CR-C7-006; 08 A12.1 GUCs app.pre_device_secret_sha256, app.pre_device_agent_id)","touches":["instruments.agent_credentials SELECT","instruments.agents SELECT"],"policies":["agent_credentials__select__owner_only","agents__select__owner_only"],"reviewer":null},
+  "app.instruments_agent_state_snapshot": {"owner":"lims_owner","execute":["lims_worker"],"why":"P0 agent-state metrics snapshot across tenants for the platform-scope task (CR-C7-006; 08 A12.2 app.maintenance = instruments_agent_state_snapshot)","touches":["instruments.agent_status SELECT","instruments.agents SELECT"],"policies":["agent_status__select__owner_only","agents__select__owner_only"],"reviewer":null},
+  "app.purge_instruments_archive": {"owner":"lims_owner","execute":["lims_worker"],"why":"raw archive + operational retention purge, one tenant per call (CR-C7-006; 08 A13 P-6 / D-42; app.maintenance = purge_instruments_archive)","touches":["instruments.messages DELETE","instruments.processing_runs DELETE","instruments.message_records DELETE","instruments.message_duplicates DELETE","instruments.message_rejections DELETE","instruments.attachments DELETE","instruments.agent_log_bundles DELETE","instruments.agent_commands DELETE","instruments.agent_health_transitions DELETE","instruments.observed_codes DELETE","instruments.messages SELECT","instruments.processing_runs SELECT","instruments.message_records SELECT","instruments.message_duplicates SELECT","instruments.message_rejections SELECT","instruments.attachments SELECT","instruments.agent_log_bundles SELECT","instruments.agent_commands SELECT","instruments.agent_health_transitions SELECT","instruments.observed_codes SELECT"],"policies":["messages__select__owner_only","messages__delete__owner_only","processing_runs__select__owner_only","processing_runs__delete__owner_only","message_records__select__owner_only","message_records__delete__owner_only","message_duplicates__select__owner_only","message_duplicates__delete__owner_only","message_rejections__select__owner_only","message_rejections__delete__owner_only","attachments__select__owner_only","attachments__delete__owner_only","agent_log_bundles__select__owner_only","agent_log_bundles__delete__owner_only","agent_commands__select__owner_only","agent_commands__delete__owner_only","agent_health_transitions__select__owner_only","agent_health_transitions__delete__owner_only","observed_codes__select__owner_only","observed_codes__delete__owner_only"],"reviewer":null}
+ }
+}

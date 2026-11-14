@@ -1,0 +1,125 @@
+{
+  "uid": "lims-d15-anatomic",
+  "title": "D15 Modules / Anatomic pathology",
+  "description": "04-UI-UX s3 D15 for C11; panels from the chunk TRD observability section (T-21).",
+  "tags": [
+    "modules",
+    "c11"
+  ],
+  "editable": false,
+  "schemaVersion": 39,
+  "version": 1,
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "refresh": "1m",
+  "templating": {
+    "list": []
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "text",
+      "title": "About this dashboard",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 2
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "Owner C11. Alert rules: `rules/anatomic.rules.yml`. Runbook: `infra/runbooks/anatomic.md`."
+      }
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "lims_anatomic_image_processing_total",
+      "description": "Owner C11 (Anatomic pathology). Metric lims_anatomic_image_processing_total from worker-a/b /metrics (02-TRD s11.2). Alerts: AnatomicImageQuarantined.",
+      "gridPos": {
+        "x": 0,
+        "y": 2,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(lims_anatomic_image_processing_total{outcome=\"quarantined\"}[5m]))"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "lims_anatomic_lookup_total",
+      "description": "Owner C11 (Anatomic pathology). Metric lims_anatomic_lookup_total from worker-a/b /metrics (02-TRD s11.2). Alerts: AnatomicLookupNotFoundSpike.",
+      "gridPos": {
+        "x": 12,
+        "y": 2,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(lims_anatomic_lookup_total{result=\"not_found\"}[5m]))"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "lims_anatomic_submit_failures_total",
+      "description": "Owner C11 (Anatomic pathology). Metric lims_anatomic_submit_failures_total from worker-a/b /metrics (02-TRD s11.2). Alerts: AnatomicSubmitFailures.",
+      "gridPos": {
+        "x": 0,
+        "y": 10,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(lims_anatomic_submit_failures_total[5m]))"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "lims_core_dead_letters_total",
+      "description": "Owner C11 (Anatomic pathology). Metric lims_core_dead_letters_total from worker-a/b /metrics (02-TRD s11.2). Alerts: AnatomicConsumerDeadLetter.",
+      "gridPos": {
+        "x": 12,
+        "y": 10,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(lims_core_dead_letters_total{task=~\"evt.anatomic.*\"}[5m]))"
+        }
+      ]
+    }
+  ]
+}

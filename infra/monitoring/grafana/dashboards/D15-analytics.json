@@ -1,0 +1,147 @@
+{
+  "uid": "lims-d15-analytics",
+  "title": "D15 Modules / Analytics & MIS",
+  "description": "04-UI-UX s3 D15 for C8; panels from the chunk TRD observability section (T-21).",
+  "tags": [
+    "modules",
+    "c8"
+  ],
+  "editable": false,
+  "schemaVersion": 39,
+  "version": 1,
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "refresh": "1m",
+  "templating": {
+    "list": []
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "text",
+      "title": "About this dashboard",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 2
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "Owner C8. Alert rules: `rules/imported/analytics.rules.yml`. Runbook: `infra/runbooks/analytics.md`."
+      }
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "lims_analytics_exports_total",
+      "description": "Owner C8 (Analytics & MIS). Metric lims_analytics_exports_total from worker-a/b /metrics (02-TRD s11.2). Alerts: AnalyticsExportSpike.",
+      "gridPos": {
+        "x": 0,
+        "y": 2,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(lims_analytics_exports_total[5m]))"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "lims_analytics_family_stale",
+      "description": "Owner C8 (Analytics & MIS). Metric lims_analytics_family_stale from worker-a/b /metrics (02-TRD s11.2). Alerts: AnalyticsFamilyStale.",
+      "gridPos": {
+        "x": 12,
+        "y": 2,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max(lims_analytics_family_stale)"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "lims_analytics_reconciliation_mismatch_total",
+      "description": "Owner C8 (Analytics & MIS). Metric lims_analytics_reconciliation_mismatch_total from worker-a/b /metrics (02-TRD s11.2). Alerts: AnalyticsReconciliationMismatch.",
+      "gridPos": {
+        "x": 0,
+        "y": 10,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(lims_analytics_reconciliation_mismatch_total[5m]))"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "lims_analytics_refresh_failures_total",
+      "description": "Owner C8 (Analytics & MIS). Metric lims_analytics_refresh_failures_total from worker-a/b /metrics (02-TRD s11.2). Alerts: AnalyticsRefreshFailing.",
+      "gridPos": {
+        "x": 12,
+        "y": 10,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(lims_analytics_refresh_failures_total[5m]))"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "lims_core_dead_letters_total",
+      "description": "Owner C8 (Analytics & MIS). Metric lims_core_dead_letters_total from worker-a/b /metrics (02-TRD s11.2). Alerts: AnalyticsConsumerDeadLetter.",
+      "gridPos": {
+        "x": 0,
+        "y": 18,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(lims_core_dead_letters_total{task=~\"(evt\\\\.)?analytics\\\\..*\"}[5m]))"
+        }
+      ]
+    }
+  ]
+}

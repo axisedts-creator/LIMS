@@ -1,0 +1,15 @@
+[Unit]
+Description=LIMS freshclam on the ops host via the ops Squid, then copy to the app host (02-TRD s7.4)
+After=network-online.target wg-quick@wg0.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/lims/clamav-sync.env
+# freshclam drops to DatabaseOwner clamav; the copy runs only if freshclam succeeded
+ExecStart=/usr/bin/freshclam --config-file=/etc/clamav/freshclam.conf
+ExecStartPost=/usr/local/lib/lims/bin/lims-clamav-sync.sh
+TimeoutStartSec=30min
+PrivateTmp=true
+NoNewPrivileges=true
+ProtectHome=true

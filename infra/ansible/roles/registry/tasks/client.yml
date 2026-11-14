@@ -1,0 +1,34 @@
+---
+# Every host: trust the internal CA for registry.lims.internal:5000 and
+# resolve the name to the ops-1 wg IP. TLS verification stays on.
+- name: Internal CA certificate from ops-1
+  ansible.builtin.slurp:
+    src: /srv/lims/pki/ca.crt
+  delegate_to: "{{ groups['ops'][0] }}"
+  run_once: true
+  register: registry_ca
+
+- name: Docker certs.d directory for the Nepal registry
+  ansible.builtin.file:
+    path: "/etc/docker/certs.d/{{ registry_name }}:{{ registry_port }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Registry CA (/etc/docker/certs.d/registry.lims.internal:5000/ca.crt)
+  ansible.builtin.copy:
+    content: "{{ registry_ca.content | b64decode }}"
+    dest: "/etc/docker/certs.d/{{ registry_name }}:{{ registry_port }}/ca.crt"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: /etc/hosts entry registry.lims.internal -> ops-1 wg IP (hostvars)
+  ansible.builtin.lineinfile:
+    path: /etc/hosts
+    regexp: '\sregistry\.lims\.internal$'
+    line: "{{ registry_wg_ip }} {{ registry_name }}"
+    owner: root
+    group: root
+    mode: "0644"

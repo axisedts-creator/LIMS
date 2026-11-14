@@ -1,0 +1,8 @@
+openapi: 3.0.3
+info: { title: fixture alias with sibling keys, version: 1.0.0 }
+paths: {}
+components:
+  securitySchemes:
+    bffSession:
+      $ref: _common.yaml#/components/securitySchemes/bffSession
+      description: local override, not an exact alias

@@ -1,0 +1,15 @@
+{
+  "source": "spec/chunks/C7-instrument-integration/02-TRD.md section 5.2.6 (synthetic data). Shared by Go internal/astm tests and TS drivers/astm/tokenizer.test.ts.",
+  "rule": "checksum = (byte(FN) + sum(text bytes) + byte(terminator)) mod 256, two uppercase hex chars",
+  "terminators": { "ETX": 3, "ETB": 23 },
+  "frames": [
+    { "fn": 1, "text": "H|\\^&|||SIM-ANALYSER^0.1|||||||P|1\r", "terminator": "ETX", "checksum": "1C" },
+    { "fn": 2, "text": "P|1\r", "terminator": "ETX", "checksum": "3F" },
+    { "fn": 3, "text": "O|1|E2600000042||^^^GLU\r", "terminator": "ETX", "checksum": "E8" },
+    { "fn": 4, "text": "R|1|^^^GLU|5.4|mmol/L||N||F\r", "terminator": "ETX", "checksum": "04" },
+    { "fn": 5, "text": "L|1|N\r", "terminator": "ETX", "checksum": "08" },
+    { "fn": 0, "text": "R|8|^^^K|4.1\r", "terminator": "ETB", "checksum": "4A" }
+  ],
+  "assembled_from_first_n_frames": 5,
+  "assembled_sha256": "56ebd538f73ae63fd6cdc8ffc3bc2e4c948482e9570b7146c20f6c7878d0baaf"
+}

@@ -1,0 +1,5 @@
+# T0A-06 impl (writer, round 5) — LD-08 applied, both sides pass
+- Files: `packages/test-fixtures/bsdate/{generate.mjs,review.json,golden-2000-2099.json}` (rounds 1–3: 107 entries resolved_by "LD-08", value from @remotemerge/nepali-date-converter 1.2.7, `verify_before_golive: true`); round 5: `packages/shared-dart/lib/src/bsdate/bsdate.dart` adds LD-08 first-day override for B.S. 2093-10.
+- [CONV] Diff of nepali_utils 3.0.8 vs golden over all 1200 months: only 2093-09 (lib 29, golden 30) and 2093-10 (lib 30, golden 29) differ; per LD-08 the golden (package value) wins, so Dart overrides first day of 2093-10 to 2037-01-15. nepali_utils covers B.S. 2100-01 (2099-12 OK).
+- RAN: `node --test packages/shared-ts/test/bsdate.test.mjs` 20/20 pass; `cd packages/shared-dart && dart test test/bsdate_golden_test.dart` 9/9 pass; `dart analyze lib/src/bsdate` no issues.
+- Open: all 107 LD-08 months (B.S. 2084–2097, incl. 2093-09/10 where the two libraries disagree) must be checked against an official calendar before go-live.

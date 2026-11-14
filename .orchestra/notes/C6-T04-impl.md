@@ -1,0 +1,7 @@
+# C6-T04 impl (writer)
+Files: services/api/src/modules/reporting/service/reports.service.ts (shell/items/narratives + all consumer state SQL); services/worker/src/jobs/reporting/consumers/{8 event types}.ts (thin handlers); jobs/reporting/index.ts (subscriptions).
+Verify: 91/91 pass after fixture fix per C6-T04-ruling.md; impl unchanged. api tsc: only the existing shared-ts bsdate TS5097 error. The worker has no tsconfig, so it isn't type-checked.
+[CONV] envelope tenant_id ≠ job tenant → reject; unknown workflowType → requires_lab; no narrative template → kind `other`, sections [], template_id null; specimen without order_item_ids → no-op.
+[CONV] summary-built shell (ready-before-created / unknown order) inserts summary items with their status (removed/cancelled kept) so a late order.created can't revive them; items_version null until the first items_changed.
+[CONV] assemble job: core ENQUEUE_SQL, run_at = ctx.now() + ASSEMBLY_DEBOUNCE_MS, max_attempts 10, key assemble:<report_id>.
+Open: narrative sections are bound as a parsed array to `$n::jsonb` (the test requires it). Raw node-pg would encode a JS array as a PG array literal, so the tx adapter must JSON-encode it. catalog.changed is a no-op (no cache exists). billing.balance.changed / critical_value consumers aren't wired (not in T04). specimen seq is per item, not per specimen: CR-C6-022 filed (.orchestra/cr/C6-T04.md), code unchanged until ruled.

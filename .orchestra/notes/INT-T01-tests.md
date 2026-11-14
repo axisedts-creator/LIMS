@@ -1,0 +1,7 @@
+# INT-T01 tests (tester) — nightly E2E simulator -> agent -> API -> C5 fake -> resulted
+Files: `services/api/src/modules/instruments/__tests__/e2e/simulator-agent-api-c5.e2e.test.ts` (4 tests: p95 <= 5 s for ASTM-over-pipe + HL7/TCP; archive count = sent count + raw bytes exact; HL7 retransmit not archived/applied twice; SEC untrusted TLS cert uploads nothing), fixture `apps/bridge-agent/testdata/e2e/scenario.json` (rounds, budget, message templates; `E2E_ROUNDS` env overrides).
+Run: `.orchestra\notes\INT-T01-verify.cmd` (needs `go` and `openssl` on PATH; openssl makes the throwaway test cert).
+Real: agent binary, link layers, queue, uploader, TLS; API ingest service + real drivers; LabPort fake as C5 consumer. Faked: DB (API-T09 world), CatalogPort, HTTPS front (in this file), event fan-out poller. Nightly compose swaps the three fakes.
+Seams the writer must provide (header of the test): `go build -tags e2e ./cmd/agent`; `agent -config <json>` + env `AGENT_E2E_DEVICE_TOKEN`; prints `READY`; config keys `api_base_url, tls_root_ca_pem_path, state_dir, flush_interval_ms, instruments[]` (ASTM `serial_pipe`+`pipe_path`, HL7 `tcp_listen`+`listen`); archived raw = record text / message without framing.
+Fails now because: `cmd/agent` is the AG-T01 stub (exits 2 "not implemented"), so `agent did not print READY` / `agent exited early (code 2)`.
+NOT covered: real Postgres/RLS, real C5 consumer (INT-T02), file-drop, host query, outage/restart recovery (crash tests live in AG-T*), Windows-only parts (DPAPI/ACL/service).

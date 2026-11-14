@@ -1,0 +1,4 @@
+APPROVE
+Round 2. Review #1 is fixed in 1c8e0938. `orders.service.ts` E21 `get` no longer calls `hiddenCancelled`, which is now used only by the E20 list (line 102), matching 02-TRD §4.4. The header comment and the inline comment are updated. The unused `nowMs` is dropped from E21, and `reports: Row[]` gets a type. Nothing else changed since round 1, so every item checked OK in round 1 still holds (names, `engagement.self.read`, `general` tier, error codes, tenant_id + `ANY($2::uuid[])`, the 404 check before the 304 check, `no-store`, no logging, LD-140 lims_ui only, owned paths, 30 s foreground polling that stops in background).
+Ran: vitest orders.handlers.test.ts 32/32 pass; `flutter test test/features/orders` 41/41 pass.
+Still open, not blocking (listed in T-P2-impl.md): the 426 `engagement.app_version_unsupported` guard, `order_poll_seconds`, real-Postgres PAT_VIS RLS not exercised, and no test that pins E21 showing a cancelled order older than 30 days.

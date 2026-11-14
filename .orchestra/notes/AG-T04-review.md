@@ -1,0 +1,6 @@
+APPROVE
+
+Round 2 (diff 35ed357f..7ae2f7bc). Round-1 item 1 fixed: queue.go:30 `tsFormat = "..."`, imports sorted, diskfree_other.go reflowed.
+Ran by reviewer this session: `go run cmd/gofmt -l ./internal/queue ./internal/secrets` = no output; `go vet ./internal/queue/... ./internal/secrets/...` = clean; `go test -count=1 ./internal/queue/... ./internal/secrets/...` = ok (queue 18.5s, secrets 3.2s), Windows 11.
+Re-checked, no defect: schema = TRD 5.6; pragmas (auto_vacuum INCREMENTAL first, WAL, synchronous FULL, secure_delete, foreign_keys, busy_timeout 5000); AES-256-GCM, 96-bit random nonce, AAD `table:id:seq` (items seq 0, `items_meta` [CONV]); data key only DPAPI-wrapped, unwrap failure fails Open, no re-mint; DPAPI user scope primary / machine fallback cites LD-94; AppendChunk one tx per frame; FinalizeSession atomic; Truncate only `uploaded`, clamp 1-72 h, outbound sent/failed 24 h, incremental_vacuum; disk guard 500 MiB injectable; token file `device-token.bin` atomic write (REQ-SEC-118); AC-05.7 kill test + AC-08.4 truncation tests present. No PHI in logs, no secrets, only owned paths. RLS/permissions/rate tier/error codes N/A (agent-local store).
+Non-blocking: go.mod `golang.org/x/sys` still `// indirect`; `go mod tidy` when go.mod is next touched.

@@ -1,0 +1,13 @@
+Title: CR-C8-AN-T04: worker task needs independent committed transactions (per family-range + failure record) for `analytics.refresh_tenant`
+From chunk: C8            To owner: C0-0D (worker runtime, services/worker/src/core)
+Type: bug + port
+Blocking? no for the fake-DB tests; yes for AN-T04 done_when on a real DB ("atomic replace ... advisory lock per family-range tx", failure recorded in a separate tx)
+Problem: C8 02-TRD §9.3 (`analytics.refresh_tenant` row, :634) and 03-APP-FLOW:66,73,272 require ONE tx per family-range (advisory xact lock at its start) and, on failure, `refresh_state` upserted "in a separate tx" before the rethrow (US-20.4, refresh_state.last_error_code persisted). Today services/worker/src/core/consumer.ts `taskRun` runs the whole handler in ONE job tx (deps.db.tx(..., tx => handler(...))) and `jobContext` sets `db: { tx: (fn) => fn(ctx) }` — not even the SAVEPOINT nesting C0 02-TRD:497,602 specifies. Consequences on a real DB: (a) after a statement error the job tx is aborted, so the failure record and every later range fail with 25P02; (b) the rethrow rolls back ALL successful ranges and the failure record, so last_error_code is never persisted; (c) every advisory xact lock is held to job end, not per range.
+Proposed change (exact):
+ 1. (bug, C0 02-TRD:602) `jobContext.db.tx(fn)` = `SAVEPOINT s<n>` / `RELEASE` / `ROLLBACK TO`, as specified.
+ 2. (port) `WorkerManifest` gains `taskOptions?: Record<string, { ownTransactions?: true }>`; for such a task `taskRun` does NOT open the job tx and `ctx.db.tx(fn)` opens an independent, committed tx with the same claims (tenant claims, system actor, statement timeout) per call. C8 manifest sets `taskOptions['analytics.refresh_tenant'] = { ownTransactions: true }` (exact field name is C0's choice).
+Backward compatible? yes — opt-in per task; (1) only changes behaviour after a caught error inside ctx.db.tx (today undefined: the aborted job tx).
+Tenant/security impact: no RLS change; every independent tx must set the same tenant claims as the job tx (no claims-less tx). No PHI (C8 stores error CODE only).
+IRD/regulatory impact: none.
+Alternatives considered: run each range as its own Graphile job (loses the run-level marks read / run_started_at guard, multiplies jobs); keep one job tx (violates §9.3 and US-20.4).
+Tests that will prove it: worker core test — ownTransactions task: two ctx.db.tx calls commit independently, a throw in the 2nd leaves the 1st committed, claims set in each; savepoint test — statement error inside ctx.db.tx, caught, next statement succeeds (no 25P02). C8: refresh.service.test.ts job-tx block + refresh.live.test.ts re-run; re-enable "failure record survives the rethrow" assertion.

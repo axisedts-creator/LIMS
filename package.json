@@ -1,0 +1,43 @@
+{
+  "name": "lims",
+  "private": true,
+  "packageManager": "pnpm@12.18.0",
+  "engines": {
+    "node": "26.13.0"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "verify": "turbo run build typecheck && node --test \"tools/lint/tests/*.test.mjs\" && node --test \"packages/shared-ts/test/*.test.mjs\"",
+    "typecheck": "turbo run typecheck",
+    "worker:replay": "pnpm --filter @lims/worker worker:replay",
+    "dev:up": "node tools/devstack/up.ts",
+    "dev:down": "node tools/devstack/down.ts",
+    "dev:reset": "node tools/devstack/reset.ts",
+    "mock:core": "prism mock contracts/openapi/core.yaml --host 127.0.0.1 --port 4100",
+    "mock:identity": "prism mock contracts/openapi/identity.yaml --host 127.0.0.1 --port 4101",
+    "mock:catalog": "prism mock contracts/openapi/catalog.yaml --host 127.0.0.1 --port 4102",
+    "mock:frontdesk": "prism mock contracts/openapi/frontdesk.yaml --host 127.0.0.1 --port 4103",
+    "mock:billing": "prism mock contracts/openapi/billing.yaml --host 127.0.0.1 --port 4104",
+    "mock:lab": "prism mock contracts/openapi/lab.yaml --host 127.0.0.1 --port 4105",
+    "mock:reporting": "prism mock contracts/openapi/reporting.yaml --host 127.0.0.1 --port 4106",
+    "mock:instruments": "prism mock contracts/openapi/instruments.yaml --host 127.0.0.1 --port 4107",
+    "mock:analytics": "prism mock contracts/openapi/analytics.yaml --host 127.0.0.1 --port 4108",
+    "mock:quality": "prism mock contracts/openapi/quality.yaml --host 127.0.0.1 --port 4109",
+    "mock:micro": "prism mock contracts/openapi/micro.yaml --host 127.0.0.1 --port 4110",
+    "mock:anatomic": "prism mock contracts/openapi/anatomic.yaml --host 127.0.0.1 --port 4111",
+    "mock:inventory": "prism mock contracts/openapi/inventory.yaml --host 127.0.0.1 --port 4112",
+    "mock:partners": "prism mock contracts/openapi/partners.yaml --host 127.0.0.1 --port 4113",
+    "mock:payments": "prism mock contracts/openapi/payments.yaml --host 127.0.0.1 --port 4115",
+    "mock:smartreport": "prism mock contracts/openapi/smartreport.yaml --host 127.0.0.1 --port 4114",
+    "mock:engagement": "prism mock contracts/openapi/engagement.yaml --host 127.0.0.1 --port 4116",
+    "mock:homecollection": "prism mock contracts/openapi/homecollection.yaml --host 127.0.0.1 --port 4117",
+    "mock:list": "node -p \"Object.entries(require('./package.json').scripts).filter(([k])=>k.startsWith('mock:')&&k!=='mock:list').map(([k,v])=>k.slice(5)+' http://127.0.0.1:'+v.split('--port ')[1]).join('\\n')\""
+  },
+  "devDependencies": {
+    "@stoplight/prism-cli": "5.16.0",
+    "graphile-worker": "0.18.0",
+    "turbo": "2.11.10",
+    "typescript": "7.0.2",
+    "vitest": "5.1.0"
+  }
+}

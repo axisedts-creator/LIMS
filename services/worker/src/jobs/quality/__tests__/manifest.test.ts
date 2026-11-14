@@ -8,10 +8,13 @@ import { EVENT_CONSUMERS } from '../../../../../../contracts/ports/generated/eve
 import { setup } from '../../../core/__tests__/helpers.js';
 import { validateManifests } from '../../../core/manifest.js';
 import { manifest } from '../index.js';
+import { handle as qcReceived } from '../consumers/instruments.qc.received.v1.js';
+import { crontab } from '../cron.js';
 
 const REPROCESS = 'quality.reprocess_pending_observations';
 /** T-01: exactly this task. Later tasks append their ids here. */
-const EXPECTED_TASKS = [REPROCESS];
+const SYNC = 'quality.sync_qc_observations';
+const EXPECTED_TASKS = [REPROCESS, SYNC];   // + T-09
 /** TRD §10.3 / manifest literal: the complete C9 task set (a T-01 task list may only be a subset). */
 const TRD_TASKS = ['quality.sync_qc_observations', 'quality.close_stale_runs', REPROCESS, 'quality.tat_sweep', 'quality.tat_refresh_order', 'quality.purge_tat_items'];
 const TRD_SUBSCRIPTIONS = ['instruments.qc.received.v1', 'instruments.result.received.v1', 'lab.result.verified.v1', 'lab.specimen.status_changed.v1', 'reporting.report.released.v1'];
@@ -27,7 +30,7 @@ describe('C9 T-01 worker manifest (quality)', () => {
     expect(() => validateManifests([manifest])).not.toThrow();
   });
 
-  it('declares exactly the T-01 task set, every id quality.* in the TRD §10.3 list, each with a handler', () => {
+  it('declares exactly the task set so far (T-01 + T-09), every id quality.* in the TRD §10.3 list, each with a handler', () => {
     expect(Object.keys(manifest.tasks ?? {}).sort()).toEqual([...EXPECTED_TASKS].sort());
     for (const [id, h] of Object.entries(manifest.tasks ?? {})) {
       expect(TRD_TASKS, id).toContain(id);
@@ -77,5 +80,22 @@ describe('C9 T-01 worker manifest (quality)', () => {
     const s = await setup([manifest]);
     expect(s.entry(REPROCESS)).toMatchObject({ module: 'quality', kind: 'task', scope: 'per_tenant' });
     expect(s.built.cronItems.filter((x: any) => x.identifier === REPROCESS)).toEqual([]);
+  });
+
+  // ---- T-09 ------------------------------------------------------------------------------------------------------------------------------
+  it('T-09: quality.sync_qc_observations is registered with max attempts 5 (TRD §10.3) and is scheduled `* * * * *` per_tenant (cron.ts exports the same entry the manifest uses)', () => {
+    expect(manifest.maxAttempts?.[SYNC]).toBe(5);
+    expect(crontab).toHaveLength(1);
+    expect(crontab[0]).toMatchObject({ identifier: SYNC, schedule: '* * * * *', tenantScope: 'per_tenant' });
+    expect(manifest.crontab).toEqual(crontab);
+  });
+  it('T-09: the only subscription so far is instruments.qc.received.v1, wired to the consumer `handle` (a trigger only: TRD §6.1)', () => {
+    expect(Object.keys(manifest.subscriptions ?? {})).toEqual(['instruments.qc.received.v1']);
+    expect(manifest.subscriptions!['instruments.qc.received.v1']).toBe(qcReceived);
+  });
+  it('T-09: the built task list has the sync task per tenant plus its cron item, and the consumer entry', async () => {
+    const s = await setup([manifest]);
+    expect(s.entry(SYNC)).toMatchObject({ module: 'quality', kind: 'task', scope: 'per_tenant' });
+    expect(s.built.cronItems.filter((x: any) => x.identifier === SYNC)).toHaveLength(1);
   });
 });

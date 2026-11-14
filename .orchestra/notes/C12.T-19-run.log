@@ -28,27 +28,9 @@ inventory DDL: extracted from spec 05-SCHEMA §8 (+ §4 RLS/grants)
 
  RUN  v5.1.0 C:/LIMS-lanes/C12/services/api
 
- ❯ src/modules/inventory/handlers/__tests__/reports.contract.test.ts (42 tests | 1 failed) 204ms
-   ❯ T-19 #93 exportInventoryReport: privileged export permission first, same gates as #92, nothing logged on a refusal (AC-21.8, PE-1) (11)
-     × without inventory.report.export -> 403 auth.forbidden; assertRole({permission}) without branchId; tx untouched; no access log 7ms
 
-⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
-
- FAIL  src/modules/inventory/handlers/__tests__/reports.contract.test.ts > T-19 #93 exportInventoryReport: privileged export permission first, same gates as #92, nothing logged on a refusal (AC-21.8, PE-1) > without inventory.report.export -> 403 auth.forbidden; assertRole({permission}) without branchId; tx untouched; no access log
-ReferenceError: READER is not defined
- ❯ src/modules/inventory/handlers/__tests__/reports.contract.test.ts:115:21
-    113|   const op = OPS.csv;
-    114|   it('without inventory.report.export -> 403 auth.forbidden; assertRol…
-    115|     const c = fresh(READER);
-       |                     ^
-    116|     await expectLims(call(op, c.ctx, rep('daily_consumption', W)), 'au…
-    117|     expect(c.roleCalls[0]).toEqual({ permission: EXPORT });
-
-⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
-
-
- Test Files  1 failed | 1 passed (2)
-      Tests  1 failed | 95 passed (96)
-   Start at  20:58:34
-   Duration  7.22s (tests 38%, import 37%, transform 23%, setup 1%, worker 1%)
+ Test Files  2 passed (2)
+      Tests  96 passed (96)
+   Start at  21:03:57
+   Duration  7.33s (tests 48%, import 33%, transform 17%, setup 1%, worker 1%)
 

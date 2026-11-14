@@ -749,10 +749,11 @@ describe('R8 createAnatomicAddendum (AC-10.4 start, AC-10.6)', () => {
     nothingHappened(w, before);
   });
   it('07-SECURITY §5.1: body ids that are not THIS case\'s (stain order of another case, stain order / add-on item of another tenant, a PRIMARY item, the inactive item) → 400 at the pointer, never linked', async () => {
-    const w = world({ n: 44 }); const before = stored();
+    const w = world({ n: 44 });
     const other = world({ n: 45 }); const foreignCase = stainOrder(other, 2);                                  // same tenant, other case
     const foreignTenant = uid(8200); S.stainOrders.set(foreignTenant, { id: foreignTenant, tenant_id: T_OTHER, case_id: w.caseId, centre_id: C_A1, stain_code: 'X', stain_kind: 'ihc', status: 'completed', version: 1 });
     const foreignItem = uid(8201); S.items.set(foreignItem, { id: foreignItem, tenant_id: T_OTHER, case_id: w.caseId, order_item_id: uid(8202), role: 'addon', is_active: true, version: 1 });
+    const before = stored();                                                                                    // ruling: snapshot after the fixtures are seeded
     for (const [body, path] of [
       [{ kind: 'ihc', text: 't', stain_order_ids: [foreignCase] }, '/stain_order_ids/0'], [{ kind: 'ihc', text: 't', stain_order_ids: [foreignTenant] }, '/stain_order_ids/0'],
       [{ kind: 'ihc', text: 't', stain_order_ids: [uid(8299)] }, '/stain_order_ids/0'],
@@ -1010,7 +1011,7 @@ describe('R10 guards, privilege and failure handling (07-SECURITY §5.3, AC-09.4
     nothingHappened(w, before);
   });
   it('privilege: anatomic.case.signout is asserted (not case.work); auth.mfa_required / auth.forbidden pass through BEFORE any lab call; system actor → 403; other tenant / unknown / malformed id → 404', async () => {
-    const w = world({ n: 82 }); const id = await newAddendum(w); const before = stored();
+    const w = world({ n: 82 }); const id = await newAddendum(w); calls.assertRole.length = 0; const before = stored();
     is(await rejects(signAdd(w, id, { ctx: mkCtx(w, { deny: { 'anatomic.case.signout': 'auth.mfa_required' } }) })), 'auth.mfa_required', 403);
     is(await rejects(signAdd(w, id, { ctx: mkCtx(w, { deny: { 'anatomic.case.signout': 'auth.forbidden' } }) })), 'auth.forbidden', 403);
     expect(calls.assertRole.map((a) => a['permission'])).toEqual(['anatomic.case.signout', 'anatomic.case.signout']);

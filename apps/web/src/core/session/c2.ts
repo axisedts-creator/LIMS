@@ -1,7 +1,7 @@
 // Production session path (08 R10, 02-TRD §12.1): forward the opaque __Host-lims_sid cookie to C2 resolveSession
 // with the BFF's own X-Lims-Bff-Key. C2 decides idle/absolute expiry and refreshes tokens server-side;
 // its 401 auth.session_expired is relayed unchanged.
-import { readFileSync } from 'node:fs';
+import { readBffKey } from './bff-key';
 import { SESSION_COOKIE } from './cookie';
 import { problem, type Problem, type Resolution, type SessionResolver } from './types';
 
@@ -11,11 +11,7 @@ const TIMEOUT_MS = 5_000;
 let cachedKey: string | undefined;
 function bffKey(): string {
   if (cachedKey) return cachedKey;
-  const file = process.env.LIMS_WEB_BFF_KEY_FILE;
-  if (!file) throw new Error('LIMS_WEB_BFF_KEY_FILE is not set');
-  const key = readFileSync(file, 'utf8').trim();
-  if (!key) throw new Error('LIMS_WEB_BFF_KEY_FILE is empty');
-  return (cachedKey = key);
+  return (cachedKey = readBffKey()); // LD-174
 }
 
 const unavailable = () => ({ ok: false, status: 503, problem: problem('common.dependency_unavailable', 'Dependency unavailable', 503) }) as const;

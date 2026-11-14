@@ -196,7 +196,8 @@ function parseSelectList(list: string): SelItem[] {
 }
 
 // ------------------------------------------------------------------ table definitions (05-SCHEMA)
-interface Def { pk: string[]; notNull: string[]; bigint: string[]; defaults: Record<string, () => any>; check?: (r: Row) => string | null; fk?: boolean }
+/** `fkCheck` (T12): extra FK emulation hook, called on INSERT with the whole table map; returns a constraint name to raise 23503, else null. */
+export interface Def { pk: string[]; notNull: string[]; bigint: string[]; defaults: Record<string, () => any>; check?: (r: Row) => string | null; fk?: boolean; fkCheck?: (r: Row, t: Record<string, Row[]>) => string | null }
 const nowD = () => NOW;
 const DEFS: Record<string, Def> = {
   'partners.price_list_items': {
@@ -221,10 +222,13 @@ const READ_ONLY = ['catalog.v_pub_price_list_items', 'catalog.v_pub_test_directo
 
 // ------------------------------------------------------------------ world
 export interface Job { identifier: string; payload: any; jobKey: string | null; runAt: unknown }
-export function makeWorld() {
+/** T12: `extra.defs` adds writable tables, `extra.tables` adds (empty) readable ones; the T17 world is unchanged when omitted. */
+export function makeWorld(extra: { defs?: Record<string, Def>; tables?: string[] } = {}) {
+  const defs: Record<string, Def> = { ...DEFS, ...(extra.defs ?? {}) };
   const t: Record<string, Row[]> = {
     'catalog.v_pub_price_list_items': [], 'catalog.v_pub_test_directory': [], 'billing.v_pub_credit_party_statement': [],
     'partners.partners': [], 'partners.settings': [], 'partners.partner_users': [], 'partners.price_list_items': [], 'partners.price_list_syncs': [], 'partners.statement_months': [],
+    ...Object.fromEntries([...Object.keys(extra.defs ?? {}), ...(extra.tables ?? [])].map((n) => [n, [] as Row[]])),
   };
   const w = {
     t, jobs: [] as Job[], log: [] as Array<{ text: string; values: unknown[] }>, portCalls: [] as string[], audit: [] as any[],
@@ -268,7 +272,7 @@ export function makeWorld() {
     const seg = (k: string) => { const n = pos.findIndex((x) => x.k === k); return n < 0 ? undefined : s.slice(pos[n]!.i + k.length, pos[n + 1]?.i ?? s.length).trim(); };
     const from = seg(' FROM ')!; const m = /^([a-z_]+\.[a-z_0-9]+)(?: (?:AS )?([a-z_]\w*))?$/i.exec(from);
     if (!m) throw new Error(`fake SQL: unsupported FROM "${from}" (no joins/subqueries)`);
-    const name = m[1]!; const def = DEFS[name];
+    const name = m[1]!; const def = defs[name];
     const where = seg(' WHERE '); const pred = where ? parseExpr(where) : undefined;
     let rows = table(name).filter((r) => rlsOk(name, r)).filter((r) => (pred ? pred(env(values, r)) === true : true));
     const ob = seg(' ORDER BY ');
@@ -286,7 +290,7 @@ export function makeWorld() {
   function insert(s: string, values: unknown[]) {
     const m = /^INSERT INTO ([a-z_]+\.[a-z_0-9]+) \(([^)]*)\) VALUES /i.exec(s);
     if (!m) throw new Error(`fake SQL: unsupported INSERT: ${s.slice(0, 80)}`);
-    const name = m[1]!; const def = DEFS[name]; if (!def) throw new Error(`fake SQL: table ${name} is not writable here`);
+    const name = m[1]!; const def = defs[name]; if (!def) throw new Error(`fake SQL: table ${name} is not writable here`);
     const cols = m[2]!.split(',').map((c) => c.trim());
     const rest = s.slice(m[0].length); const oc = topLevelIndex(rest, ' ON CONFLICT '); const ret = topLevelIndex(rest, ' RETURNING ');
     const valuesPart = rest.slice(0, [oc, ret].filter((x) => x >= 0).sort((a, b) => a - b)[0] ?? rest.length);
@@ -310,6 +314,7 @@ export function makeWorld() {
       for (const c of def.bigint) if (row[c] != null) row[c] = String(row[c]);
       const bad = def.check?.(row); if (bad) throw pgErr('23514', bad);
       if (def.fk && !t['partners.partners']!.some((p) => p.tenant_id === row.tenant_id && p.id === row.partner_id)) throw pgErr('23503', `${name}__partner__fk`);
+      const fkBad = def.fkCheck?.(row, t); if (fkBad) throw pgErr('23503', fkBad);
       const key = def.pk.map((c) => String(row[c] instanceof Date ? row[c].toISOString() : row[c])).join('|');
       const hit = rows.find((r) => def.pk.every((c) => String(r[c]) === String(row[c])));
       if (hit) {
@@ -329,7 +334,7 @@ export function makeWorld() {
   function update(s: string, values: unknown[]) {
     const m = /^UPDATE ([a-z_]+\.[a-z_0-9]+)(?: (?:AS )?([a-z_]\w*))? SET /i.exec(s);
     if (!m) throw new Error(`fake SQL: unsupported UPDATE: ${s.slice(0, 80)}`);
-    const name = m[1]!; const def = DEFS[name]; if (!def) throw new Error(`fake SQL: table ${name} is not writable here`);
+    const name = m[1]!; const def = defs[name]; if (!def) throw new Error(`fake SQL: table ${name} is not writable here`);
     const w0 = topLevelIndex(s, ' WHERE '); if (w0 < 0) throw new Error('fake SQL: UPDATE without WHERE refused');
     const setStr = s.slice(m[0].length, w0); const r0 = topLevelIndex(s, ' RETURNING ');
     const pred = parseExpr(s.slice(w0 + 7, r0 >= 0 ? r0 : undefined));
@@ -342,7 +347,7 @@ export function makeWorld() {
   function del(s: string, values: unknown[]) {
     const m = /^DELETE FROM ([a-z_]+\.[a-z_0-9]+)(?: (?:AS )?([a-z_]\w*))? WHERE /i.exec(s);
     if (!m) throw new Error(`fake SQL: unsupported DELETE (a WHERE is mandatory): ${s.slice(0, 80)}`);
-    const name = m[1]!; if (!DEFS[name]) throw new Error(`fake SQL: table ${name} is not writable here`);
+    const name = m[1]!; if (!defs[name]) throw new Error(`fake SQL: table ${name} is not writable here`);
     const r0 = topLevelIndex(s, ' RETURNING '); const pred = parseExpr(s.slice(m[0].length, r0 >= 0 ? r0 : undefined));
     const all = table(name); const gone = all.filter((r) => pred(env(values, r)) === true);
     w.t[name] = all.filter((r) => !gone.includes(r));

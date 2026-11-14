@@ -36,6 +36,8 @@ type SessionProfile struct {
 	// CR-C7-016 (08-ADDENDUM-TRUTH-H80E §7, LD-139). Zero values keep today's behaviour.
 	ReplyAckPolicy         string // "" | "each" (an ACK after every reply message) | "last" (after the final one only) | "none"
 	ReplyAckMatchControlId bool   // true: the awaited ACK's MSA-2 must equal the MSH-10 of the reply it acknowledges
+	// MET-T01 (09-ADDENDUM-GETEIN-METIS §6, LD-163). false = today's two short ACK segments.
+	HL7AckFullForm bool // true: ACK built per addendum §6 (MSH-16 echoed, MSH-18 UTF8, MSA text + error code)
 }
 
 // Resolution is the outcome of Resolve.

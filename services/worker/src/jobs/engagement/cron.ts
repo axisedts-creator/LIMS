@@ -24,6 +24,7 @@ export const crontab: readonly CronEntry[] = Object.freeze([
   Object.freeze({ identifier: 'engagement.mark_no_shows', schedule: '*/15 * * * *', tenantScope: 'per_tenant' as const, maxAttempts: 3 }), // T-B4 (TRD §8.2)
   Object.freeze({ identifier: 'engagement.sync_bookable_items_nightly', schedule: '55 19 * * *', tenantScope: 'per_tenant' as const, maxAttempts: 3 }), // T-B1: 01:40 Asia/Kathmandu = 19:55 UTC
   Object.freeze({ identifier: 'engagement.expire_memberships', schedule: '35 18 * * *', tenantScope: 'per_tenant' as const, maxAttempts: 3 }), // T-M1: 00:20 NPT = 18:35 UTC (TRD §8.2)
+  Object.freeze({ identifier: 'engagement.expire_payment_requests', schedule: '*/10 * * * *', tenantScope: 'per_tenant' as const, maxAttempts: 3 }), // T-PAY1 (TRD §8.2)
   Object.freeze({ identifier: RECONCILE_LINKS, schedule: '35 20 * * *', tenantScope: 'per_tenant' as const, maxAttempts: 3 }), // T-L5: 02:20 Asia/Kathmandu = 20:35 UTC (TRD §8.2)
 ]);
 

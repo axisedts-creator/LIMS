@@ -55,6 +55,11 @@ function isoWeekday(localDate: string): number {
   return new Date(Date.UTC(y, m - 1, d)).getUTCDay() || 7;
 }
 
+/** UTC instant of local midnight (00:00) of the local day that contains `instant` (T-BK1: per-account day cap). */
+export function startOfLocalDay(instant: Date, timeZone: string): Date {
+  return localToUtc(localDateOf(instant, timeZone), 0, timeZone);
+}
+
 /** Slots of one template on one local date: t + slot_minutes <= end_local (a partial last slot is dropped). Ascending. */
 export function generateSlots(i: { template: SlotTemplate; localDate: string; timeZone: string }): Slot[] {
   const { template: t, localDate, timeZone } = i;

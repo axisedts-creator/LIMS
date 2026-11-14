@@ -170,7 +170,7 @@ describe('RS-C3 specimen types and containers (s4 Masters; container colour as a
     const swatch = row.querySelector<HTMLElement>('[class*="swatch"]');
     expect(swatch, 'cap colour swatch element (class contains "swatch")').toBeTruthy();
     expect(swatch!.getAttribute('style')).toBeNull();
-    expect(within(row).getByText(/lavender/i)).toBeTruthy(); // the name stays as text
+    expect(within(row).getByText('Lavender', { exact: true })).toBeTruthy(); // the colour name stays as text next to the swatch
     expect(swatch!.getAttribute('aria-hidden') === 'true' || !!swatch!.getAttribute('aria-label') || swatch!.getAttribute('role') === 'img').toBe(true); // decorative or named, never a bare div
     await noSeriousAxe();
   });

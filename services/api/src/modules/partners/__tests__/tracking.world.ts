@@ -18,7 +18,7 @@ const iso = (v: unknown) => (v instanceof Date ? v.toISOString() : String(v));
 const SPECIMEN_STATUSES = ['ordered', 'collected', 'in_transit', 'received', 'aliquoted', 'in_process', 'resulted', 'verified', 'approved', 'reported', 'rejected', 'recollection_ordered', 'stored', 'discarded'];
 const hasTracking = (t: Record<string, Row[]>, r: Row) => t['partners.order_tracking']!.some((o) => o.tenant_id === r.tenant_id && o.order_id === r.order_id && o.partner_id === r.partner_id);
 
-const TRACKING_DEFS: Record<string, Def> = {
+export const TRACKING_DEFS: Record<string, Def> = {
   'partners.manifest_lines': {
     pk: ['tenant_id', 'id'], bigint: [], defaults: { created_at: nowD, updated_at: nowD, failure_code: () => null, failed_at: () => null },
     notNull: ['tenant_id', 'id', 'state'],

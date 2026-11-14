@@ -9,6 +9,7 @@ import { setup } from '../../../core/__tests__/helpers.js';
 import { validateManifests } from '../../../core/manifest.js';
 import { manifest } from '../index.js';
 import { handle as qcReceived } from '../consumers/instruments.qc.received.v1.js';
+import { handle as resultReceived } from '../consumers/instruments.result.received.v1.js';
 import { crontab } from '../cron.js';
 import { handle as closeStaleRuns } from '../tasks/close_stale_runs.js';
 
@@ -99,9 +100,10 @@ describe('C9 T-01 worker manifest (quality)', () => {
     expect(s.entry(CLOSE_STALE)).toMatchObject({ module: 'quality', kind: 'task', scope: 'per_tenant' });
     expect(s.built.cronItems.filter((x: any) => x.identifier === CLOSE_STALE)).toHaveLength(1);
   });
-  it('T-09: the only subscription so far is instruments.qc.received.v1, wired to the consumer `handle` (a trigger only: TRD §6.1)', () => {
-    expect(Object.keys(manifest.subscriptions ?? {})).toEqual(['instruments.qc.received.v1']);
+  it('T-09 + T-13: the subscriptions so far are instruments.qc.received.v1 (a trigger only: TRD §6.1) and instruments.result.received.v1 (qc_activity counter: TRD §10.2), each wired to its consumer `handle`', () => {
+    expect(Object.keys(manifest.subscriptions ?? {}).sort()).toEqual(['instruments.qc.received.v1', 'instruments.result.received.v1']);   // T-17 / T-19 add the other three
     expect(manifest.subscriptions!['instruments.qc.received.v1']).toBe(qcReceived);
+    expect(manifest.subscriptions!['instruments.result.received.v1']).toBe(resultReceived);
   });
   it('T-09: the built task list has the sync task per tenant plus its cron item, and the consumer entry', async () => {
     const s = await setup([manifest]);

@@ -309,7 +309,7 @@ describe.skipIf(!live)('T-16 AC-12.3 in-use lot, else FEFO', () => {
 });
 
 // ========================================================================================================== AC-12.4 duplicates
-describe.skipIf(!live)('T-16 AC-12.4 duplicate delivery and re-verification', () => {
+describe.skipIf(!live)('T-16 IT-4 AC-12.4 duplicate delivery (same event_id) and re-verification (same basis key) cause no change', () => {
   run('a LATER re-verification of the same result (new event id, result_version_no 2) never deducts twice; the event counter counts both verifications (D-73)', async (s) => {
     await enable(s, ENABLED); const t0 = await startedAt(s); const p = payload({ test_id: TI, analyte_id: ANI });
     await deliver(s, envelope(p)); await deliver(s, envelope({ ...p, result_version_no: 2 })); await deliver(s, envelope({ ...p, result_version_no: 3, verified_at: '2026-11-13T20:00:00.000Z' }));

@@ -88,7 +88,8 @@ function synth(schema: any, depth = 0): unknown {
 }
 /** Replaces every `*_id` string (and `*_ids` array) with the id of tenant B's row; returns how many ids were replaced and the (B,A) id pairs for bulk mixing. */
 export function swapIds(v: unknown, who: 'B' | 'A', aIds: Map<string, string>, stats = { n: 0 }): unknown {
-  const pick = (k: string) => { const t = tableOfField(k); if (!t) return null; stats.n++; return who === 'B' ? bId(t) : (aIds.get(t) ?? randomUUID()); };
+  // ruling C12.T-26 #2: to_store_id is a SECOND store (05-SCHEMA transfers CHECK from_store_id <> to_store_id), so a B request is schema-valid and reaches the 404 lookup
+  const pick = (k: string) => { const t = k === 'to_store_id' ? TO_STORE : tableOfField(k); if (!t) return null; stats.n++; return who === 'B' ? bId(t) : (aIds.get(t) ?? randomUUID()); };
   if (Array.isArray(v)) return v.map((x) => swapIds(x, who, aIds, stats));
   if (v && typeof v === 'object') {
     const o: Record<string, unknown> = {};
@@ -120,10 +121,32 @@ export function buildRequest(o: Operation, who: 'B' | 'A', aIds: Map<string, str
   if (o.body) {
     const ex = o.body.examples ? Object.values<any>(o.body.examples)[0]?.value : o.body.example;
     body = swapIds(ex !== undefined ? clone(ex) : synth(o.body.schema), who, aIds, stats);
+    body = schemaValid(o.op, body, who);
   }
   return { req: { params, query, headers, ...(body !== undefined ? { body } : {}) }, bIds: stats.n, queryIds };
 }
 export const B_BARCODE = 'T26-B-BARCODE-0001';
+/** second tenant-B / tenant-A store (key in B_IDS / aIds), the target of every `to_store_id` */
+export const TO_STORE = 'inventory.stores:to';
+/** B_IDS key of the seeded tenant-B stock count line */
+export const COUNT_LINE = 'inventory.stock_count_lines';
+/**
+ * ruling C12.T-26 #3/#4: the contract's synthetic examples are not always accepted by the strict validators once the ids are swapped (a field combination the rule kind forbids, a line_id that is
+ * not a real line, a settings date in the past). The probe must be schema-valid apart from the tenant-B ids, so the 404 lookup is reached. Nothing here touches an id.
+ */
+function schemaValid(op: string, body: unknown, who: 'B' | 'A'): unknown {
+  const b = body as any;
+  if (!b || typeof b !== 'object') return body;
+  switch (op) {
+    case 'recordStockCountLines': // #66: lines from a real seeded count line + a valid counted_qty_base (07 §6.1 P-T4)
+      if (who === 'B') b.lines = [{ line_id: bId(COUNT_LINE), item_id: bId('inventory.items'), lot_id: bId('inventory.lots'), counted_qty_base: '10', counted_at: NOW }];
+      break;
+    case 'createConsumptionRule': if (b.rule_kind === 'per_test') delete b.analyte_id; break; // #70: per_test forbids analyte_id
+    case 'logConsumptionEvent': if (b.fact_kind === 'calibration') delete b.observations; break; // #76: observations only for qc
+    case 'updateInventorySettings': b.consumption_enabled_at = null; break; // #27: a set date must not be in the past
+  }
+  return body;
+}
 
 // ------------------------------------------------------------------------------------------------------------------------------------------------ sessions (one request-shaped transaction, ROLLED BACK)
 export interface Sess {
@@ -242,6 +265,13 @@ export async function seedTenantB(admin: pg.Pool): Promise<string[]> {
     ];
     B_IDS.set('core.branches', BR_B);
     for (const [table, row] of rows) { const err = await put(c, table, [row]); if (err) { failed.push(err); B_IDS.delete(table); } }
+    // ruling C12.T-26 #2/#3: a second B store (to_store_id) and a real B count line (recordStockCountLines)
+    B_IDS.set(TO_STORE, uid(26500));
+    const e2 = await put(c, 'inventory.stores', [{ id: bId(TO_STORE), ...tb, branch_id: BR_B, store_code: 'T26-BS2', name: 'T26 store B 2', store_kind: 'bench', is_default_consumption: false, is_active: true }]);
+    if (e2) { failed.push(e2); B_IDS.delete(TO_STORE); }
+    B_IDS.set(COUNT_LINE, uid(26501));
+    const e3 = await put(c, 'inventory.stock_count_lines', [{ id: bId(COUNT_LINE), ...tb, count_id: bId('inventory.stock_counts'), item_id: bId('inventory.items'), lot_id: null, book_qty_snapshot: 0 }]);
+    if (e3) { failed.push(e3); B_IDS.delete(COUNT_LINE); }
     await c.query('COMMIT');
   } catch (e) { await c.query('ROLLBACK').catch(() => undefined); throw e; } finally { c.release(); }
   return failed;

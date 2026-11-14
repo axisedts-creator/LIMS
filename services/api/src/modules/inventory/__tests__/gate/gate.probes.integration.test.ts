@@ -6,7 +6,7 @@ import { randomUUID } from 'node:crypto';
 import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
-  ADMIN_URL, API_URL, A, B, B_IDS, applyFixtures, LimsError, OPERATIONS, buildRequest, claims, live, put, seedTenantB, snapshotB, tableOfField, tenantTables, withSession, type Operation,
+  ADMIN_URL, API_URL, A, B, B_IDS, applyFixtures, LimsError, OPERATIONS, buildRequest, claims, live, put, seedTenantB, snapshotB, tableOfField, tenantTables, TO_STORE, withSession, type Operation,
 } from './gate.helpers.js';
 
 let api: pg.Pool;
@@ -22,6 +22,8 @@ beforeAll(async () => {
   await applyFixtures(admin);
   seedFailures = await seedTenantB(admin);
   tables = await tenantTables(admin);
+  const second = await admin.query(`SELECT id FROM inventory.stores WHERE tenant_id = $1 ORDER BY id OFFSET 1 LIMIT 1`, [A]); // A's to_store_id (ruling #2)
+  if (second.rows[0]) aIds.set(TO_STORE, second.rows[0].id);
   for (const t of ['inventory.stores', 'inventory.items', 'inventory.lots', 'inventory.suppliers', 'inventory.item_packs', 'inventory.transfers', 'instruments.instruments', 'catalog.tests', 'core.branches']) {
     const r = await admin.query(`SELECT id FROM ${t} WHERE tenant_id = $1 ORDER BY id LIMIT 1`, [A]);
     if (r.rows[0]) aIds.set(t, r.rows[0].id);

@@ -202,6 +202,14 @@ expect(within(table).queryByRole('columnheader', { name: /price/i })).toBeNull()
     expect(screen.queryByRole('textbox', { name: /last price/i })).toBeNull();
   });
 
+  it('manage without inventory.cost.read: existing rows get no Edit (PUT #22 is a full replace and would wipe the hidden last price); Add stays', async () => {
+    state.permissions = PERM_MANAGE;
+    await itemsTab();
+    const row = (await screen.findByText('SYN-CODE-1')).closest('tr')!;
+    expect(within(row).queryByRole('button', { name: /edit/i })).toBeNull();
+    expect(screen.getByRole('button', { name: /add item|set item|link item/i })).toBeTruthy();
+  });
+
   it('set (SUP, GLU-R1, BOX) with last price Rs 4,500 (=450000 paisa) and lead time 7 -> PUT .../items/{item}/packs/{pack} with integer paisa; new row has no If-Match', async () => {
     state.permissions = PERM_COST;
     api.use(http.put(`${ORIGIN}/v1/inventory/suppliers/:sid/items/:iid/packs/:pid`, () => HttpResponse.json(supplierItem({ version: 1 }))));

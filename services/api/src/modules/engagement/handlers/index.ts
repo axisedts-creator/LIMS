@@ -7,6 +7,7 @@ import { bookableHandlers } from './bookable.handlers.js';
 import { bookingHandlers } from './booking.handlers.js';
 import { displayHandlers } from './display.handlers.js';
 import { linkHandlers } from './link.handlers.js';
+import { myBookingHandlers } from './mybooking.handlers.js';
 import { ordersHandlers } from './orders.handlers.js';
 import { queueHandlers } from './queue.handlers.js';
 import { reportHandlers } from './report.handlers.js';
@@ -51,4 +52,5 @@ export const handlers: Readonly<Record<(typeof OPERATION_IDS)[number], Handler>>
   ...linkHandlers, // T-L1: L1-L4
   ...ordersHandlers, // T-P2: E20, E21
   ...reportHandlers, // T-P3: E22, E23
+  ...myBookingHandlers, // T-BK1: E30-E40
 });

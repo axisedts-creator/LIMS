@@ -3,11 +3,12 @@
 // RenderPort.renderPdf (template partners.access_slip, idempotencyKey = slip id, exactly the seven A5.1 data keys), put the PDF ONCE in partners-slips, mark the row `issued`.
 // The link URL lives only in this function's memory, the render input and the PDF (ST12): it is never put in a column, job payload, log line, metric or error. This task logs nothing (port / DB errors can echo values) and rethrows port errors unchanged for the retry.
 // Business refusals (report not released / superseded, template invalid, payload too large) end the slip as `failed` + the error code and RESOLVE (no retry); everything else rejects (retry) and the row stays `requested`.
-// [CONV] the two *Local strings are AD ("13 Dec 2026, 11:45 am") in the tenant timezone (IdentityPort timezone). ponytail: calendarDisplay BS is not rendered; add a BS formatter when C13 asks for it.
+// [CONV] the two *Local strings follow tenant calendarDisplay (02-TRD §8.1; IC §4): AD "13 Dec 2026, 11:45 am", BS "YYYY-MM-DD B.S., 11:45 am" (shared bsdate), AD_BS / BS_AD both, primary first; default AD.
 // [CONV] storage path from ctx.now() (UTC yyyy/mm); a retry before `issued` replaces the object (08 §4.8, no ifAbsent).
 // Open (C6/C0 ruling, see C13.T14-impl.md): a retry after a successful render whose DB update then fails mints a new link, and RenderPort refuses the same idempotencyKey with different data.
 import { createHash } from 'node:crypto';
 import type { TaskHandler } from '../../../core/manifest.js';
+import { formatBs, instantToBs, type IsoUtc } from '../../../../../../packages/shared-ts/src/bsdate/index.js';
 
 const BUCKET = 'partners-slips';
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -18,7 +19,15 @@ const RENDER_REFUSALS = new Set(['reporting.template_invalid', 'common.payload_t
 type Row = Record<string, any>;
 const codeOf = (e: unknown): string | undefined => (typeof (e as { code?: unknown } | null)?.code === 'string' ? (e as { code: string }).code : undefined);
 
-const local = (iso: string, timeZone: string): string => new Intl.DateTimeFormat('en-GB', { timeZone, day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true }).format(new Date(iso));
+const adLocal = (iso: string, timeZone: string): string => new Intl.DateTimeFormat('en-GB', { timeZone, day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true }).format(new Date(iso));
+const bsLocal = (iso: string, timeZone: string): string =>
+  `${formatBs(instantToBs(new Date(iso).toISOString() as IsoUtc, timeZone), 'display')}, ${new Intl.DateTimeFormat('en-GB', { timeZone, hour: '2-digit', minute: '2-digit', hour12: true }).format(new Date(iso))}`;
+const local = (iso: string, timeZone: string, cal: unknown): string => {
+  if (cal === 'BS') return bsLocal(iso, timeZone);
+  if (cal === 'AD_BS') return `${adLocal(iso, timeZone)} (${bsLocal(iso, timeZone)})`;
+  if (cal === 'BS_AD') return `${bsLocal(iso, timeZone)} (${adLocal(iso, timeZone)})`;
+  return adLocal(iso, timeZone);
+};
 
 export const issueAccessSlip: TaskHandler = async (payload, ctx) => {
   const c = ctx as any;
@@ -46,7 +55,9 @@ export const issueAccessSlip: TaskHandler = async (payload, ctx) => {
   const line: Row | undefined = (await tx.query('SELECT registration_no, patient_full_name FROM partners.manifest_lines WHERE tenant_id = $1 AND partner_id = $2 AND order_id = $3 LIMIT 1', [tenantId, slip.partner_id, slip.order_id])).rows[0];
   const partner: Row | undefined = (await tx.query('SELECT name FROM partners.partners WHERE tenant_id = $1 AND id = $2', [tenantId, slip.partner_id])).rows[0];
   if (!line || !partner) throw new Error('partners.issue_access_slip: order line or partner of the slip not found'); // cannot happen under the FKs
-  const tz = (await c.ports.IdentityPort.getTenantSettings(ctx, { keys: ['timezone'] }))?.timezone;
+  const settings = await c.ports.IdentityPort.getTenantSettings(ctx, { keys: ['timezone', 'calendarDisplay'] });
+  const tz = settings?.timezone;
+  const cal = settings?.calendarDisplay;
   if (typeof tz !== 'string' || !tz) throw new Error('partners.issue_access_slip: tenant timezone missing');
   const tenantDisplayName = (await c.core.tenant(ctx)).displayName;
 
@@ -54,7 +65,7 @@ export const issueAccessSlip: TaskHandler = async (payload, ctx) => {
   try {
     pdf = await c.ports.RenderPort.renderPdf(ctx, {
       templateKey: 'partners.access_slip', idempotencyKey: slipId,
-      data: { tenantDisplayName, partnerName: partner.name, patientDisplayName: line.patient_full_name, orderRef: line.registration_no, portalUrl: link.url, expiresAtLocal: local(link.expiresAt, tz), issuedAtLocal: local(now, tz) },
+      data: { tenantDisplayName, partnerName: partner.name, patientDisplayName: line.patient_full_name, orderRef: line.registration_no, portalUrl: link.url, expiresAtLocal: local(link.expiresAt, tz, cal), issuedAtLocal: local(now, tz, cal) },
     });
   } catch (e) {
     const code = codeOf(e); if (code && RENDER_REFUSALS.has(code)) return fail(code);

@@ -63,7 +63,7 @@ export function SlipPanel({ reportId }: { reportId: string }) {
           {phase.slip.failure_code === 'reporting.report_superseded' ? 'This report has a newer version. Make the slip from the latest version.' : null}
         </Banner>
       ) : null}
-      {phase.kind === 'done' && phase.slip.state === 'expired' ? <p>This slip has expired.</p> : null}
+      {phase.kind === 'done' && phase.slip.state === 'expired' ? <Banner tone="neutral" title="This slip has expired." /> : null /* LD-140: tone + icon + word */}
     </div>
   );
 }

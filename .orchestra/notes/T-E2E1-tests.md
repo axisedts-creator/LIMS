@@ -4,3 +4,4 @@
 - Implementer: add the step to `.github/workflows/nightly.yml` (e.g. `pnpm exec vitest run tests/e2e/engagement-journey.e2e.ts`), supply the three env values from secrets/job, and mount the test-support routes of `.orchestra/cr/T-E2E1.md` in compose.
 - Now: static tests FAIL (no C16 step in nightly.yml). The e2e file is not run here (no stack).
 - NOT covered: a real run against compose; test-support routes are a CR proposal (assumed Bearer `t.`/`c.` credentials too); the plan lists no ACs.
+Review fixes applied: events now carry envelope aggregate_seq + full §3.7/§3.17 payloads; redeem #2 must be 200. CR must add `aggregate_seq` to POST /events and `centre_id`,`specimen_type_code` to /scenarios 201 (CR file not tester-owned; lead to update).

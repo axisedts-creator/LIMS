@@ -72,8 +72,8 @@ const scenario = async (name: string, phi: string[], extra: J = {}) => {
   phi.push(r.json.patient_display_name, r.json.patient_phone);
   return r.json;
 };
-const publish = async (event_type: string, payload: J) => {
-  const r = await call('POST', `${TS}/events`, staff({ idem: true }), { event_type, payload });
+const publish = async (event_type: string, aggregate_seq: number, payload: J) => {
+  const r = await call('POST', `${TS}/events`, staff({ idem: true }), { event_type, aggregate_seq, payload });
   expect(r.status).toBe(202);
   return r;
 };
@@ -109,18 +109,21 @@ describe('C16 nightly E2E (compose stack)', () => {
       expect(a.json.patient_id ?? a.json.id).toBeTruthy();
       j.profile_id = a.json.id;
       const b = await call('POST', `${API}/me/profiles/redeem-code`, P(me, { idem: true }), { code: j.code });
-      expect([200, 422]).toContain(b.status); // already linked -> 200; a spent code never creates a second link
+      expect(b.status).toBe(200); // 02-TRD E14: already-linked account -> 200 Profile
+      expect(b.json.id).toBe(j.profile_id);
       const list = await call('GET', `${API}/me/profiles`, P(me));
       expect(list.status).toBe(200);
       expect(list.json.data).toHaveLength(1);
     });
 
     it('C5 fake events move the order stage; a stale seq never moves it back (consumer: inbox + seq)', async () => {
-      await publish('lab.specimen.status_changed.v1', { order_id: j.order_id, patient_id: j.patient_id, specimen_id: j.specimen_id, status: 'received', seq: 2 });
+      // 03-INTERFACE-CATALOG §3.7: seq is envelope.aggregate.seq (specimen version), not a payload field.
+      const sp = { specimen_id: j.specimen_id, order_id: j.order_id, patient_id: j.patient_id, centre_id: j.centre_id, specimen_type_code: j.specimen_type_code };
+      await publish('lab.specimen.status_changed.v1', 2, { ...sp, to_status: 'received', changed_at: new Date().toISOString() });
       let stage = '';
       await pollUntil(async () => { const o = await call('GET', `${API}/me/orders/${j.order_id}`, P(me)); stage = o.json.stage ?? ''; return o.status === 200 && stage !== '' && stage !== 'registered'; });
       const before = stage;
-      await publish('lab.specimen.status_changed.v1', { order_id: j.order_id, patient_id: j.patient_id, specimen_id: j.specimen_id, status: 'collected', seq: 1 });
+      await publish('lab.specimen.status_changed.v1', 1, { ...sp, to_status: 'collected', changed_at: new Date().toISOString() });
       await new Promise((r) => setTimeout(r, 3000));
       const after = await call('GET', `${API}/me/orders/${j.order_id}`, P(me));
       expect(after.json.stage).toBe(before);
@@ -129,7 +132,7 @@ describe('C16 nightly E2E (compose stack)', () => {
     });
 
     it('C6 fake reporting.report.released.v1 (audiences incl. patient) -> report listed + report_ready notification (E22, E45)', async () => {
-      await publish('reporting.report.released.v1', { order_id: j.order_id, patient_id: j.patient_id, report_id: j.report_id, version_no: 1, audiences: ['patient'], released_at: new Date().toISOString() });
+      await publish('reporting.report.released.v1', 1, { order_id: j.order_id, patient_id: j.patient_id, centre_id: j.centre_id, report_id: j.report_id, report_kind: 'final', release_basis: 'paid_in_full', version_no: 1, audiences: ['patient'], released_at: new Date().toISOString() });
       await pollUntil(async () => (await call('GET', `${API}/me/reports?order_id=${j.order_id}`, P(me))).json.data?.length > 0);
       const reps = await call('GET', `${API}/me/reports?order_id=${j.order_id}`, P(me));
       expect(reps.json.data[0].id ?? reps.json.data[0].report_id).toBe(j.report_id);

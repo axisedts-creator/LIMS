@@ -484,7 +484,11 @@ describe('S6 detail of a non-draft PO and its actions (AC-05.2 frozen, AC-05.4, 
     return dialogNamed(/purchase order PO-000002/i);
   };
   const isoAt = (hours: number) => new Date(Date.now() + hours * 3_600_000).toISOString();
-  const btn = (dlg: HTMLElement, re: RegExp) => within(dlg).queryByRole('button', { name: re });
+  // Ruling C12.T-22: ignore the kit overlay dismiss IconButton (also named "Close"); only the PO action counts.
+  const btn = (dlg: HTMLElement, re: RegExp) =>
+    within(dlg)
+      .queryAllByRole('button', { name: re })
+      .find((b) => !b.classList.contains('lims-icon-btn')) ?? null;
 
   it.each([
     ['approved', ['mark as sent', 'receive', 'cancel'], ['approve', 'close', 'save draft']],

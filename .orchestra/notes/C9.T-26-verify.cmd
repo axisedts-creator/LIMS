@@ -1,1 +1,1 @@
-pnpm --dir services/api exec vitest run src/modules/quality/__tests__/observability.test.ts src/core/observability/__tests__/metrics.test.ts
+cd /d "%~dp0..\.." && pnpm --dir services/api exec vitest run src/modules/quality/__tests__/observability.test.ts src/core/observability/__tests__/metrics.test.ts && pnpm --dir services/worker exec vitest run src/jobs/quality/__tests__/sync_qc_observations.metrics.test.ts

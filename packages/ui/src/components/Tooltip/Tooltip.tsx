@@ -1,3 +1,4 @@
+'use client';
 import type { ComponentProps } from 'react';
 import { Focusable, Tooltip as RacTooltip, TooltipTrigger } from 'react-aria-components';
 

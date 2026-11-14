@@ -154,7 +154,7 @@ function NewRuleDialog({ taxTypes, departments, onClose }: { taxTypes: readonly 
           <Select<Scope> label="Applies to" name="scope" isRequired options={SCOPE_OPTIONS} {...(scope ? { value: scope } : {})} onChange={(v) => { setScope(v); setScopeError(undefined); }} />
           {scope === 'department' ? <Select label="Department" name="department_id" isRequired options={departments.map((d) => ({ value: d.id, label: d.name }))} {...(deptId ? { value: deptId } : {})} onChange={setDeptId} {...(scopeError ? { error: scopeError } : {})} /> : null}
           {scope === 'orderable' ? (
-            <Combobox<OrderableSummary> label="Test or panel" name="orderable_id" isRequired {...(orderable ? { value: orderable } : {})} onChange={setOrderable} loadOptions={searchOrderablesAction} getKey={(o) => o.id} renderOption={(o) => `${o.code} — ${o.name}`} renderValue={(o) => `${o.code} — ${o.name}`} {...(scopeError ? { error: scopeError } : {})} />
+            <Combobox<OrderableSummary> label="Test or panel" name="orderable_id" isRequired {...(orderable ? { value: orderable } : {})} onChange={setOrderable} loadOptions={(q) => searchOrderablesAction(q)} getKey={(o) => o.id} renderOption={(o) => `${o.code} — ${o.name}`} renderValue={(o) => `${o.code} — ${o.name}`} {...(scopeError ? { error: scopeError } : {})} />
           ) : null}
           <RadioGroup<Vat> label="VAT treatment" name="vat_treatment" isRequired options={[{ value: 'exempt', label: 'Exempt' }, { value: 'taxable', label: 'Taxable' }]} {...(vat ? { value: vat } : {})} onChange={setVat} />
           <Select label="Other tax type" name="other_tax_code" value={other} onChange={setOther} options={[{ value: NONE, label: 'None' }, ...rated.map((t) => ({ value: t.code, label: `${t.code} — ${t.display} (${pct(t.rate_bp!)})` }))]} {...(errAt(fail, '/other_tax_code') ? { error: errAt(fail, '/other_tax_code')! } : {})} />
@@ -193,7 +193,7 @@ function NewTypeDialog({ onClose }: { onClose: () => void }) {
           <TaxDisclaimer />
           <CodeField label="Code" name="code" maxLength={16} pattern={TAX_CODE_RE.source} patternHint="Capital letters, digits and _, up to 16." isRequired value={code} onChange={setCode} />
           <TextField label="Name" name="display" maxLength={60} isRequired value={name} onChange={setName} />
-          <TextField label="Rate (%)" name="rate_bp" inputMode="decimal" description="0 to 100. May stay empty: the type then cannot be used in rules." value={rate} onChange={(v) => { setRate(v); setRateError(undefined); }} {...(rateError ? { error: rateError } : {})} />
+          <TextField label="Rate (%)" name="rate_bp" inputMode="decimal" maxLength={7} description="0 to 100. May stay empty: the type then cannot be used in rules." value={rate} onChange={(v) => { setRate(v); setRateError(undefined); }} {...(rateError ? { error: rateError } : {})} />
           <DateTimePicker label="Effective from" name="effective_from" value={when.value} onChange={when.onChange} {...(errAt(fail, '/effective_from') ? { error: errAt(fail, '/effective_from')! } : {})} />
         </>
       )}
@@ -218,7 +218,7 @@ function EditTypeDialog({ type, onClose }: { type: TaxType; onClose: () => void 
         <>
           <TaxDisclaimer />
           <TextField label="Name" name="display" maxLength={60} isRequired value={name} onChange={setName} />
-          <TextField label="Rate (%)" name="rate_bp" inputMode="decimal" description="A new rate starts at the date below; earlier rates stay unchanged." value={rate} onChange={(v) => { setRate(v); setRateError(undefined); }} {...(rateError ? { error: rateError } : {})} />
+          <TextField label="Rate (%)" name="rate_bp" inputMode="decimal" maxLength={7} description="A new rate starts at the date below; earlier rates stay unchanged." value={rate} onChange={(v) => { setRate(v); setRateError(undefined); }} {...(rateError ? { error: rateError } : {})} />
           <DateTimePicker label="Effective from" name="effective_from" value={when.value} onChange={when.onChange} {...(errAt(fail, '/effective_from') ? { error: errAt(fail, '/effective_from')! } : {})} />
         </>
       )}

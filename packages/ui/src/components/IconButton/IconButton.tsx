@@ -1,3 +1,4 @@
+'use client';
 import { Button as RacButton } from 'react-aria-components';
 import { Icon, type IconName } from '../Icon/Icon';
 

@@ -1,3 +1,4 @@
+'use client';
 import type { ReactNode } from 'react';
 import { Tab, TabList, TabPanel, Tabs as RacTabs } from 'react-aria-components';
 

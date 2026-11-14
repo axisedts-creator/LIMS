@@ -1,3 +1,4 @@
+'use client';
 // 04-UI-UX §2.5 FilterBar. date_range values are [from, to] A.D. IsoDates ([CONV]: the value map only holds string | string[]).
 import { useId } from 'react';
 import { Label, ListBox, ListBoxItem, type Selection } from 'react-aria-components';

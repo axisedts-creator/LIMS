@@ -114,6 +114,16 @@ describe('S17 filters and request (TRD #92)', () => {
     const target = String([...router.push.mock.calls, ...router.replace.mock.calls].at(-1)![0]);
     expect(new URL(target, 'http://app.test').searchParams.get('item')).toBe('01950c12-0000-7000-8000-000000000011');
   });
+  it('review item 1: with ?item=<id> the Item combobox shows "item_code · name" (resolved server-side); clearing it navigates without item', async () => {
+    await mount({ item: '01950c12-0000-7000-8000-000000000011' });
+    await screen.findByRole('grid');
+    const combo = screen.getByRole('combobox', { name: /^item/i }) as HTMLInputElement;
+    await waitFor(() => expect(combo.value).toMatch(/GLU-R1\s*·\s*Synthetic glucose reagent/));
+    await userEvent.clear(combo);
+    await waitFor(() => expect(router.push.mock.calls.length + router.replace.mock.calls.length).toBeGreaterThan(0));
+    const target = String([...router.push.mock.calls, ...router.replace.mock.calls].at(-1)![0]);
+    expect(new URL(target, 'http://app.test').searchParams.has('item')).toBe(false);
+  });
   it('the date control is the kit DateRangePicker with a 366-day maximum', async () => {
     await mount();
     const group = await screen.findByRole('group', { name: /period|date range|dates/i });

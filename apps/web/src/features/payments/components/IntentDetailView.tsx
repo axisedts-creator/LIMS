@@ -17,7 +17,7 @@ import { Tabs } from '@lims/ui/components/Tabs';
 import { Timeline } from '@lims/ui/components/Timeline';
 import { useToast } from '@lims/ui/components/Toast';
 import { cancelAction, recheckAction, resolveAction, type ActionResult } from '../server/actions';
-import { gatewayLabel, hasPerm, humanize, lower, nprText, statusLabel, statusTone } from '../labels';
+import { gatewayLabel, hasPerm, humanize, lower, nprText, refundStatus, statusLabel, statusTone } from '../labels';
 import { RefundRequestDialog } from './RefundRequestDialog';
 import type { CodedValue, IntentCodes, PaymentCallback, PaymentGatewayCheck, PaymentIntentDetail, PaymentMoney, PaymentRefund } from '../types';
 
@@ -164,7 +164,7 @@ export function IntentDetailView({ intent, permissions, codes, overpaid }: { int
   const refundCols: ColumnDef<PaymentRefund & { _id: string }>[] = [
     { id: 'requested', header: 'Requested', isRowHeader: true, cell: (r) => when(r.requested_at) },
     { id: 'amount', header: 'Amount', align: 'end', cell: (r) => <MoneyText value={{ amountPaisa: r.amount.amount_paisa, currency: 'NPR' }} /> },
-    { id: 'status', header: 'Status', cell: (r) => <StatusChip kind="generic" status={r.status} label={humanize(r.status)} /> },
+    { id: 'status', header: 'Status', cell: (r) => { const [tone, label] = refundStatus(r.status); return <StatusChip kind="generic" status={r.status} tone={tone} label={label} />; } }, // RS-C15 A2 (LD-140): same tones/words as the Refunds list
     { id: 'reason', header: 'Reason', cell: (r) => humanize(r.reason_code) },
   ];
   const table = <Row extends { _id: string }>(caption: string, cols: ColumnDef<Row>[], rows: Row[], empty: string) => (

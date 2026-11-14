@@ -17,7 +17,7 @@ import { Tabs } from '@lims/ui/components/Tabs';
 import { useToast } from '@lims/ui/components/Toast';
 import { failText } from '../errors';
 import { MoneyText } from '@lims/ui/components/MoneyText';
-import { hasPerm, humanize, instantText, kitMoney, statusLabel } from '../labels';
+import { hasPerm, humanize, instantText, kitMoney, statusLabel, statusTone } from '../labels';
 import { resolveFindingAction, startReconciliationAction, type ActionResult } from '../server/actions';
 import type { FindingDto, PaymentMoney, ReconCodes, ReconStats, ReconciliationRunDto } from '../types';
 
@@ -103,7 +103,7 @@ export function ReconciliationView({ runs, findings, stats, permissions, codes, 
     { id: 'severity', header: 'Severity', cell: (f) => { const [tone, label] = sev(f.severity); return <StatusChip kind="generic" status={f.severity} tone={tone} label={label} />; } },
     { id: 'kind', header: 'Kind', cell: (f) => kindName.get(f.kind) ?? humanize(f.kind) },
     { id: 'intent', header: 'Intent', cell: (f) => (f.intent_id ? <a href={`/payments/intents/${f.intent_id}`} aria-label={`Payment ${f.intent_id.slice(0, 8)}`}><IdText value={f.intent_id} /></a> : '—') },
-    { id: 'our_status', header: 'Our status', cell: (f) => ourStatus(f.our_status) },
+    { id: 'our_status', header: 'Our status', cell: (f) => (f.our_status ? <StatusChip kind="generic" status={f.our_status} tone={statusTone(f.our_status)} label={ourStatus(f.our_status)} /> : '—') }, // RS-C15 A1 (LD-140): chip = tone + icon + word
     { id: 'provider_status', header: 'Provider status', cell: (f) => f.gateway_status_raw ?? '—' },
     { id: 'our_amount', header: 'Our amount', align: 'end', cell: (f) => amt(f.our_amount) },
     { id: 'provider_amount', header: 'Provider amount', align: 'end', cell: (f) => amt(f.gateway_amount) },

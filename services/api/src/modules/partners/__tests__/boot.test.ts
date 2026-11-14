@@ -46,6 +46,7 @@ const IMPLEMENTED: readonly string[] = [
   'submitManifest', 'withdrawManifest', 'getManifestPrintView', // T09 (M8, M9, M11)
   'listInboundManifests', 'getInboundManifest', 'receiveManifest', 'retryManifestLineConversion', 'markManifestLineNotReceived', // T10 (SI1-SI5)
   'listPartnerOrders', 'searchPartnerOrders', 'getPartnerOrder', 'listPartnerReports', 'markPartnerReportsSeen', 'downloadPartnerReport', // T13 (O1-O3, R1-R3)
+  'issuePatientAccessSlip', 'getPatientAccessSlip', 'downloadPatientAccessSlip', // T14 (R4-R6)
 ];
 
 const FAKE_REQ = { params: {}, query: {}, headers: {}, body: {} };

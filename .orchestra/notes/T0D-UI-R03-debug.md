@@ -24,3 +24,7 @@ Fix: none in code. Orchestrator must free host memory / stop stale node+vitest p
 ## Round 6
 Cause: unchanged, environment. Re-ran verify.cmd: vitest hung >200s, 0 tests reported (same forks-worker startup stall as rounds 4-5). No impl/test defect found; snapshot tracked.
 Fix: none in code. Orchestrator must free host memory / kill stale node+vitest before re-running verify.cmd.
+
+## Round 7 (after LD-165 reset)
+Cause: unchanged, host. verify log and my own re-run (09:28) both: "Failed to start forks worker ... Timeout waiting for worker to respond", 60s, 0 tests run. Snapshot tracked, tree clean.
+Fix: none; per LD-165 no code edits to work around the host. STOPPED. Needs host RAM/stale node processes cleared, then re-run verify.cmd.

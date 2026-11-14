@@ -10,6 +10,7 @@ import { EXPIRE_MEMBERSHIPS, expireMemberships } from './tasks/expire_membership
 import { createDispatchDueReminders } from './tasks/dispatch_due_reminders.js';
 import { PURGE_EPHEMERAL, PURGE_QUEUE, purgeEphemeral, purgeQueue } from './tasks/purge.js';
 import { SYNC_BOOKING_CENTRES, SYNC_BOOKING_CENTRES_NIGHTLY, syncBookingCentres, syncBookingCentresNightly } from './tasks/sync_booking_centres.js';
+import { createCreateSelfPatient } from './tasks/create_self_patient.js';
 import { createSendLoginOtp } from './tasks/send_login_otp.js';
 import { createSendBookingMessage } from './tasks/send_booking_message.js';
 import { createSendReminder } from './tasks/send_reminder.js';
@@ -37,6 +38,7 @@ export const manifest: WorkerManifest = Object.freeze({
     ...Object.fromEntries(Object.keys(TASKS).map((id) => [id, task(id)])),
     [CLOSE_QUEUE_DAY]: closeQueueDay, // T-Q2: close_queue_day
     'engagement.send_login_otp': createSendLoginOtp(), // T-A2
+    'engagement.create_self_patient': createCreateSelfPatient(), // T-L4
     'engagement.send_booking_message': createSendBookingMessage(), // T-B5
     'engagement.send_reminder': createSendReminder(), // T-R1
     'engagement.dispatch_due_reminders': createDispatchDueReminders(), // T-R1 (cron-only task: no §8.1 row)

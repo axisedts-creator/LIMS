@@ -10,6 +10,7 @@ import { linkHandlers } from './link.handlers.js';
 import { membershipHandlers } from './membership.handlers.js';
 import { queueHandlers } from './queue.handlers.js';
 import { reminderHandlers } from './reminder.handlers.js';
+import { selfregHandlers } from './selfreg.handlers.js';
 import { slotHandlers } from './slot.handlers.js';
 import { settingsHandlers } from './settings.handlers.js';
 import { tokenHandlers } from './token.handlers.js';
@@ -49,4 +50,5 @@ export const handlers: Readonly<Record<(typeof OPERATION_IDS)[number], Handler>>
   ...bookingHandlers, // T-B3: S1-S5
   ...membershipHandlers, // T-M1: M1a-M5, E47
   ...linkHandlers, // T-L3: E15
+  ...selfregHandlers, // T-L4: E16, E17
 });

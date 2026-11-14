@@ -64,13 +64,16 @@ describe('ids in the body (AB3 / AB4)', () => {
   it('createPickupRequest with a manifest id nobody owns -> an error, no write, no enqueue_job, and the id is not echoed (AB3)', async () => {
     const o = ALL.find((x) => x.operationId === 'createPickupRequest')!;
     const k = recCtx('partner', { activePartner: true });
-    const body = { ...bodyFor(o), manifest_ids: [OTHER] };
+    // window inside the allowed range relative to recCtx's pinned now (2026-11-14T06:00Z), so the handler reaches the manifest lookup instead of failing window validation first
+    const body = { ...bodyFor(o), manifest_ids: [OTHER], window_start: '2026-11-14T08:00:00.000Z', window_end: '2026-11-14T09:00:00.000Z' };
     const r = await settle(H.createPickupRequest!(reqFor(o, { headers: IDEM, body }), k.ctx));
     expect(r.ok, 'resolved for a foreign manifest id').toBe(false);
     if (!r.ok) {
-      expect(r.error.statusCode).toBeGreaterThanOrEqual(400);
+      expect(r.error.code, String(r.error.message)).toBe('common.not_found');
+      expect(r.error.statusCode).toBe(404);
       expect(JSON.stringify(Object.fromEntries(Object.getOwnPropertyNames(r.error).map((n) => [n, r.error[n]])))).not.toContain(OTHER);
     }
+    expect(k.sql.some((s) => s.values.some((v) => JSON.stringify(v).includes(OTHER))), 'the manifest lookup ran with the foreign id').toBe(true);
     expect(k.writes()).toEqual([]);
   });
 

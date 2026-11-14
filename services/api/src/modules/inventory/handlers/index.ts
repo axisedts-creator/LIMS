@@ -6,6 +6,7 @@ import { documentHandlers } from './documents.js';
 import { itemHandlers } from './items.js';
 import { lotHandlers } from './lots.js';
 import { masterHandlers } from './masters.js';
+import { purchasingHandlers } from './purchasing.js';
 import { settingsHandlers } from './settings.handlers.js';
 import { transferHandlers } from './transfers.js';
 
@@ -49,16 +50,7 @@ export const handlers: Readonly<Record<string, Handler>> = {
   resolveConsumptionFact: stub,
   dismissConsumptionFact: stub,
   reverseConsumptionFact: stub,
-  listPurchaseOrders: stub,
-  createPurchaseOrder: stub,
-  getPurchaseOrder: stub,
-  replacePurchaseOrderDraft: stub,
-  approvePurchaseOrder: stub,
-  markPurchaseOrderSent: stub,
-  cancelPurchaseOrder: stub,
-  closePurchaseOrder: stub,
-  createPurchaseOrdersFromReorder: stub,
-  getPurchaseOrderPrintView: stub,
+  ...purchasingHandlers, // #80-#89 (T-11)
   listInventoryAlerts: stub,
   acknowledgeInventoryAlert: stub,
   getInventoryReport: stub,

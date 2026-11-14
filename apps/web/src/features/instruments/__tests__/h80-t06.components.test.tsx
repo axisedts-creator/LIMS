@@ -50,7 +50,8 @@ const OPTIONS_SCHEMA = {
   properties: {
     detection_mode_field: { type: 'string', title: 'Detection mode field', default: 'OBR.15', maxLength: 64 },
     type_flag_field: { type: 'string', title: 'Type flag field', default: 'MSH.16', maxLength: 64 },
-    host_query_detection_mode: { type: 'string', title: 'Host query detection mode', enum: ['0', '1', '2'], default: '0' },
+    // real driver shape (drivers/truth_h80e/index.ts): numeric enum, NO `type` — review item 2; the form must still render it and send a number.
+    host_query_detection_mode: { title: 'Host query detection mode', enum: [0, 1, 2], default: 0 },
     name_script: { type: 'string', title: 'Name script', enum: ['as_registered', 'latin_if_available'], default: 'as_registered' },
     qc_level_map: { type: 'object', title: 'QC level map', default: { L: 'low' } },
   },
@@ -245,8 +246,22 @@ describe('H80-T06 preset — options form from the driver schema (done_when 3, a
     await submit();
     await waitFor(() => expect(calls).toHaveLength(1));
     const po = calls[0]!.body.parser_options as Record<string, unknown>;
-    expect(po).toMatchObject({ detection_mode_field: 'OBR.16', host_query_detection_mode: '1', name_script: 'latin_if_available' });
+    expect(po).toMatchObject({ detection_mode_field: 'OBR.16', host_query_detection_mode: 1, name_script: 'latin_if_available' });
+    expect(typeof po['host_query_detection_mode']).toBe('number'); // server schema rejects "1"
     for (const k of Object.keys(po)) expect(Object.keys(OPTIONS_SCHEMA.properties)).toContain(k);
+  });
+
+  it('a type-less numeric enum property is rendered as a select and its chosen value is sent as a number', async () => {
+    const schema = { type: 'object', additionalProperties: false, properties: { host_query_detection_mode: { title: 'Host query detection mode', enum: [0, 1, 2], default: 0 } } };
+    const b = await withPreset([base(), h80({ options_schema: schema })]);
+    await fillCommon(b);
+    await userEvent.type(input('transport.bind_address')!, '192.168.1.2');
+    await userEvent.type(within(b).getByLabelText(/^port/i), '5100');
+    await userEvent.type(input('transport.allowed_peers')!, '192.168.1.3');
+    await choose(b, /host query detection mode/i, '2');
+    await submit();
+    await waitFor(() => expect(calls).toHaveLength(1));
+    expect(calls[0]!.body.parser_options).toEqual({ host_query_detection_mode: 2 });
   });
 
   it('schema text is rendered as text, never as HTML; a "__proto__" property is not turned into a field or sent', async () => {

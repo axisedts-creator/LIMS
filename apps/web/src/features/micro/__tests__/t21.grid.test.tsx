@@ -25,9 +25,9 @@ const mount = async (isolate: Record<string, unknown> = astIsolate(), over: Over
   await grid();
   return r;
 };
-const stdBtn = () => screen.getByRole('button', { name: /^standard/i });
+const stdBtn = () => screen.getByRole('button', { name: /standard$/i });
 const verBox = () => screen.getByRole('textbox', { name: /^(standard )?version/i }) as HTMLInputElement;
-const type = async (abx: string, v: string) => { const b = rawBox(abx); await userEvent.clear(b); await userEvent.type(b, v); await userEvent.tab(); };
+const type = async (abx: string, v: string) => { const b = rawBox(abx); await userEvent.clear(b); if (v) await userEvent.type(b, v); await userEvent.tab(); };
 
 describe('layout (04-UI-UX §3.3)', () => {
   it('table caption "AST results for isolate {n}"; header shows panel name + version and the method', async () => {

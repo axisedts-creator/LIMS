@@ -80,7 +80,7 @@ describe('tenant standard (settings.manual_ast_standard)', () => {
     await mount();
     await selectIsolate(1);
     await grid();
-    await waitFor(() => expect(screen.getByRole('button', { name: /^standard/i }).textContent).toMatch(/CLSI/));
+    await waitFor(() => expect(screen.getByRole('button', { name: /standard$/i }).textContent).toMatch(/CLSI/));
     expect(hit('GET', /\/v1\/micro\/settings$/).length).toBeGreaterThan(0);
   });
   it('no standard configured -> empty selector', async () => {
@@ -89,7 +89,7 @@ describe('tenant standard (settings.manual_ast_standard)', () => {
     await selectIsolate(1);
     await grid();
     await waitFor(() => expect(hit('GET', /\/v1\/micro\/settings$/).length).toBeGreaterThan(0));
-    expect(screen.getByRole('button', { name: /^standard/i }).textContent).not.toMatch(/CLSI|EUCAST|ECOFF/);
+    expect(screen.getByRole('button', { name: /standard$/i }).textContent).not.toMatch(/CLSI|EUCAST|ECOFF/);
   });
   it('a technologist who may not read settings (403) still gets a working grid with an empty standard', async () => {
     api.use(http.get(`${ORIGIN}/v1/micro/settings`, () => problem('auth.forbidden', 403)));
@@ -98,7 +98,7 @@ describe('tenant standard (settings.manual_ast_standard)', () => {
     await grid();
     await waitFor(() => expect(hit('GET', /\/v1\/micro\/settings$/).length).toBeGreaterThan(0));
     expect(rawBox('Synthetic cefA')).toBeTruthy();
-    expect(screen.getByRole('button', { name: /^standard/i }).textContent).not.toMatch(/CLSI|EUCAST|ECOFF/);
+    expect(screen.getByRole('button', { name: /standard$/i }).textContent).not.toMatch(/CLSI|EUCAST|ECOFF/);
   });
 });
 
@@ -132,7 +132,7 @@ describe('unsaved-changes guard: leaving the tab asks "Discard unsaved AST chang
     await dirty();
     await userEvent.click(screen.getByRole('tab', { name: /^reads & stains/i }));
     expect(await screen.findByText(/discard unsaved ast changes\?/i)).toBeTruthy();
-    expect(screen.getByRole('tab', { name: /^isolates & ast/i }).getAttribute('aria-selected')).toBe('true');
+    expect(screen.getByRole('tab', { name: /^isolates & ast/i, hidden: true }).getAttribute('aria-selected')).toBe('true');
   });
   it('Cancel keeps the tab and the typed value', async () => {
     await dirty();

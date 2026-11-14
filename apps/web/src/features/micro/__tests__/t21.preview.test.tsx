@@ -25,7 +25,7 @@ const mount = async (isolate: Record<string, unknown> = astIsolate(), standard: 
 };
 const previews = () => hit('POST', PREVIEW);
 const verBox = () => screen.getByRole('textbox', { name: /^(standard )?version/i }) as HTMLInputElement;
-const type = async (abx: string, v: string, blur = true) => { const b = rawBox(abx); await userEvent.clear(b); await userEvent.type(b, v); if (blur) await userEvent.tab(); };
+const type = async (abx: string, v: string, blur = true) => { const b = rawBox(abx); await userEvent.clear(b); if (v) await userEvent.type(b, v); if (blur) await userEvent.tab(); };
 const settle = (ms = 700) => new Promise((r) => setTimeout(r, ms));
 
 describe('debounced preview (AC-07.1 UI; 03-APP-FLOW §4.5 step 5)', () => {
@@ -140,7 +140,7 @@ describe('"Use" sets the fields (done_when; AC-07.5)', () => {
     await type('Synthetic genB', '18');
     await userEvent.click(await screen.findByRole('button', { name: /use suggested category S for Synthetic genB/i }, { timeout: 3000 }));
     expect(catBtn('Synthetic genB').textContent).toMatch(/\bS\b/);
-    expect(screen.getByRole('button', { name: /^standard/i }).textContent).toMatch(/CLSI/);
+    expect(screen.getByRole('button', { name: /standard$/i }).textContent).toMatch(/CLSI/);
     expect(verBox().value).toBe('M100-Ed36');
     expect(hit('POST', /bulk-record$/)).toHaveLength(0);
   });

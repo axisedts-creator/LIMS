@@ -1,6 +1,7 @@
-# WEB-BUILD-1 impl (writer) - PARTIAL, blocked by dispute
+# WEB-BUILD-1 impl (writer) - BLOCKED by CR .orchestra/cr/WEB-BUILD-1.md
 - config.actions.ts: getLabSettingsAction, listDeltaRulesAction now `export async function` (same bodies/names) [LD-194].
-- lab/components/shared.tsx: useSerial/useRef removed; new `useSerial.ts` ('use client'); CollectDispatch.tsx + ReceiveScreen.tsx import it from './useSerial'. NO_ACCESS stays plain in shared.tsx.
-- 'use client' added first line: packages/ui DiffTable.tsx and PageShell.tsx (extra, flagged by tester guard).
-- Tests: 15/16 pass; 1 fails = disputed test (see WEB-BUILD-1-dispute.md).
-- Real `pnpm --filter @lims/web build`: NOT run yet (needs approval in this session); no apps/web/.next exists in this lane, so verify never built web before (observation, not proven why).
+- lab shared.tsx: useRef hook moved to new 'use client' useSerial.ts; CollectDispatch/ReceiveScreen import it; NO_ACCESS stays plain [LD-194].
+- 'use client' first line: packages/ui DiffTable.tsx, PageShell.tsx (extra, flagged by guard) [LD-194].
+- Tests: build-boundaries 16/16 pass (after ruling revision).
+- Real build run: compile OK ("Compiled successfully in 26.4s", 8 boundary errors gone); TypeScript step FAILS: 279 errors/165 files (160 test files, 2 portal via rs-c6 test import, 3 catalog ui-kit prop mismatches). Over the 15-file cap and needs API decisions, so I stopped and filed the CR (LD-194 RULES b).
+- Before this fix: no apps/web/.next existed in this lane, so verify had not built web before (likely turbo cache/filter; not proven). No passing build output to paste.

@@ -1,6 +1,6 @@
 # T-L6 impl (writer)
 Files (apps/patient_app/lib/features/profiles/): profiles_api, profiles_providers, profile_copy, profiles_screen (A6), link_code_screen (A7), report_link_screen (A8), register_screen (A9), name_text.
-Run: scratch copy with the fakes `Override` import patched = 111/113 pass; real `flutter test test/features/profiles` does not compile until dispute item 1 is fixed. See `T-L6-dispute.md` (3 test defects). Analyzer clean.
+Run (after ruling + revised tests, impl unchanged): `flutter test test/features/profiles` = 135/135 pass; `flutter analyze` on lib/features/profiles + tests = no issues.
 [CONV] E1 read through existing `patientAuthApiProvider.getAppConfig()`; A6/A9 hide Register when `consent.text_version` is absent; one `FilledButton` per page via `LimsButton`; all three error sentences live once in `profile_copy.dart`.
 [CONV] Errors map from the code only (no server detail, no typed code or link); A8 reads a server 400 as the invalid sentence; A9 400 `/age_years` and `/birth_on` show the server's fixed field message inline.
 Open: E18/E19 need `If-Match` but Profile has no version on the wire, so no header is sent (spec gap, lead decides). US-EN-05.2 "link earlier visits" has no wire flag, so not built.

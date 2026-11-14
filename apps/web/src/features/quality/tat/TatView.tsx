@@ -29,7 +29,10 @@ const LEVEL_OPTIONS = (['warning', 'breached', 'escalated'] as const).map((l) =>
 const SEGMENT_OPTIONS = (Object.keys(SEGMENT_SHORT) as TatAlert['segment'][]).map((s) => ({ value: s, label: SEGMENT_SHORT[s] }));
 const PRIORITY_OPTIONS = [{ value: 'routine', label: 'Routine' }, { value: 'urgent', label: 'Urgent' }];
 
-export function TatView({ page, generatedAt, sp, canAck }: { page: ListPage<TatAlert>; generatedAt: string; sp: Record<string, string>; canAck: boolean }) {
+type Opt = { value: string; label: string };
+export function TatView({ page, generatedAt, sp, canAck, departments = [], centres = [] }: {
+  page: ListPage<TatAlert>; generatedAt: string; sp: Record<string, string>; canAck: boolean; departments?: Opt[]; centres?: Opt[];
+}) {
   const router = useRouter();
   const { data, updatedAt, lost } = usePolled(page, generatedAt, () => pollTatAction(sp), JSON.stringify(sp), POLL_MS);
   const [ackFor, setAckFor] = useState<TatAlert>();
@@ -46,7 +49,7 @@ export function TatView({ page, generatedAt, sp, canAck }: { page: ListPage<TatA
   }, [escalated]);
 
   const go = (patch: Record<string, string | undefined>) => router.push(`${BASE}${qs({ ...sp, cursor: undefined, ...patch })}`); // a changed filter starts again at the first page
-  const filter: FilterValue = { level: sp['level']?.split(','), segment: sp['segment'], priority: sp['priority'] };
+  const filter: FilterValue = { level: sp['level']?.split(','), segment: sp['segment'], priority: sp['priority'], department_id: sp['department_id'], centre_id: sp['centre_id'] };
   const one = (v: FilterValue[string]) => (typeof v === 'string' ? v : undefined);
 
   // Row shortcut A (02-TRD §14 keyboard-only): only while a row (not a field or button) has focus.
@@ -115,10 +118,15 @@ export function TatView({ page, generatedAt, sp, canAck }: { page: ListPage<TatA
         filters={[
           { id: 'level', label: 'Level', kind: 'select', multiple: true, options: LEVEL_OPTIONS },
           { id: 'segment', label: 'Segment', kind: 'select', options: SEGMENT_OPTIONS },
+          { id: 'department_id', label: 'Department', kind: 'select', options: departments },
+          { id: 'centre_id', label: 'Centre', kind: 'select', options: centres },
           { id: 'priority', label: 'Priority', kind: 'select', options: PRIORITY_OPTIONS },
         ]}
         value={filter}
-        onChange={(v) => go({ level: Array.isArray(v['level']) ? v['level'].join(',') : undefined, segment: one(v['segment']), priority: one(v['priority']) })}
+        onChange={(v) => go({
+          level: Array.isArray(v['level']) ? v['level'].join(',') : undefined, segment: one(v['segment']), priority: one(v['priority']),
+          department_id: one(v['department_id']), centre_id: one(v['centre_id']), // a narrowing filter only; RLS still decides which centres exist (AC-14.7)
+        })}
         onReset={() => router.push(BASE)}
       />
       <Checkbox label="Acknowledged only" isSelected={sp['acknowledged'] === 'true'} onChange={(on) => go({ acknowledged: on ? 'true' : undefined })} />

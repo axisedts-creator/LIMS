@@ -8,6 +8,7 @@ import { DescriptionList } from '@lims/ui/components/DescriptionList';
 import { Form } from '@lims/ui/components/Form';
 import { IntegerField } from '@lims/ui/components/IntegerField';
 import { PageHeader } from '@lims/ui/components/PageHeader';
+import { Select } from '@lims/ui/components/Select';
 import { Switch } from '@lims/ui/components/Switch';
 import { Tabs } from '@lims/ui/components/Tabs';
 import { FormMessage, useSetupAction } from '../forms/fields';
@@ -15,9 +16,15 @@ import { MODE } from '../format';
 import type { QualityCode, QualitySettings } from '../types';
 import { saveSettingsAction } from './actions';
 import { CodedSetsView } from './CodedSetsView';
-import { RANGES, settingsBody, settingsValid, type CodedSetName, type NumKey } from './validate';
+import { PLAN_WINDOWS } from '../forms/validate';
+import { MEAN_RULES, RANGES, settingsBody, settingsValid, type CodedSetName, type NumKey } from './validate';
 
-type Draft = { [K in NumKey]: number | undefined } & { tat_alerts_enabled: boolean };
+type Plan = Record<string, unknown>;
+type Draft = { [K in NumKey]: number | undefined } & { tat_alerts_enabled: boolean; default_plan_params: Plan };
+type Window = keyof typeof PLAN_WINDOWS;
+// Labels as the plan form (forms/PlansView.tsx) so a default reads the same as the plan field it pre-fills.
+const FLAGS = [['two_two_s_across_runs', '2-2s also across runs'], ['count_rules_across_materials', 'Count rules across levels'], ['exclude_rejected_runs_from_history', 'Ignore rejected runs in history']] as const;
+const WINDOWS: [Window, string][] = [['run_window_minutes', 'Run window (minutes)'], ['qc_validity_hours', 'QC valid for (hours)'], ['hold_lookback_hours', 'Hold look-back (hours)']];
 const TABS = [{ id: 'settings', label: 'Settings' }, { id: 'coded', label: 'Coded sets' }] as const;
 
 export function SettingsView({ settings, sets, canManage }: { settings: QualitySettings; sets: Record<CodedSetName, QualityCode[]>; canManage: boolean }) {
@@ -25,7 +32,7 @@ export function SettingsView({ settings, sets, canManage }: { settings: QualityS
   const [draft, setDraft] = useState<Draft>(() => {
     const b = settingsBody(settings);
     return { tat_alerts_enabled: b.tat_alerts_enabled, tat_warn_pct: b.tat_warn_pct, tat_escalate_pct: b.tat_escalate_pct, tat_orphan_close_hours: b.tat_orphan_close_hours, target_min_points: b.target_min_points,
-      sim_min_days: b.sim_min_days, sim_min_decisions: b.sim_min_decisions, reprocess_window_days: b.reprocess_window_days };
+      sim_min_days: b.sim_min_days, sim_min_decisions: b.sim_min_decisions, reprocess_window_days: b.reprocess_window_days, default_plan_params: { ...b.default_plan_params } };
   });
   const num = (k: NumKey, label: string, description?: string) => (
     <IntegerField
@@ -33,6 +40,8 @@ export function SettingsView({ settings, sets, canManage }: { settings: QualityS
       {...(draft[k] !== undefined ? { value: draft[k] } : {})} onChange={(v) => setDraft((d) => ({ ...d, [k]: v }))} {...(description ? { description } : {})}
     />
   );
+  const plan = draft.default_plan_params;
+  const setPlan = (k: string, v: unknown) => setDraft((d) => ({ ...d, default_plan_params: { ...d.default_plan_params, [k]: v } }));
   const card = (title: string, keys: (keyof Draft)[], fields: ReactNode) => (
     <SettingsCard title={title} keys={keys} settings={settings} draft={draft} canManage={canManage}>{fields}</SettingsCard>
   );
@@ -51,10 +60,24 @@ export function SettingsView({ settings, sets, canManage }: { settings: QualityS
                 {num('tat_orphan_close_hours', 'Close orphan clocks after h')}
               </>
             ))}
-            {card('QC', ['target_min_points', 'reprocess_window_days'], (
+            {card('QC', ['target_min_points', 'reprocess_window_days', 'default_plan_params'], (
               <>
                 {num('target_min_points', 'Minimum points to establish a target', 'Common practice is about 20; check your SOP.')}
                 {num('reprocess_window_days', 'Re-process window days')}
+                {/* 04-UI-UX §2.11 "default plan options" = QcPlanParamsDefaults; an unset key stays unset (server default) */}
+                <Select<string>
+                  label="n-x rule" name="mean_rule" isReadOnly={!canManage} options={MEAN_RULES.map((x) => ({ value: x, label: x }))}
+                  {...(typeof plan['mean_rule'] === 'string' ? { value: plan['mean_rule'] } : {})} onChange={(v) => setPlan('mean_rule', v)}
+                />
+                {FLAGS.map(([k, label]) => (
+                  <Switch key={k} label={label} isSelected={plan[k] !== false} isDisabled={!canManage} onChange={(on) => setPlan(k, on)} />
+                ))}
+                {WINDOWS.map(([k, label]) => (
+                  <IntegerField
+                    key={k} label={label} name={k} isReadOnly={!canManage} min={PLAN_WINDOWS[k][0]} max={PLAN_WINDOWS[k][1]}
+                    {...(typeof plan[k] === 'number' ? { value: plan[k] as number } : {})} onChange={(v) => setPlan(k, v)}
+                  />
+                ))}
               </>
             ))}
             {card('Auto-verification', ['sim_min_days', 'sim_min_decisions'], (

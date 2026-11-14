@@ -30,6 +30,21 @@ export function tatQuery(sp: SP): URLSearchParams {
   return q;
 }
 
+export interface FilterOption { value: string; label: string }
+type Named = { id?: string; centre_id?: string; name?: string; is_active?: boolean };
+const options = (path: string) =>
+  serverFetch<{ data?: Named[] }>(path)
+    .then((r) => (Array.isArray(r?.data) ? r.data : []).filter((x) => x.is_active !== false).flatMap((x) => {
+      const id = uuid(x.centre_id ?? x.id);
+      return id && typeof x.name === 'string' ? [{ value: id, label: x.name }] : [];
+    }))
+    .catch((): FilterOption[] => []);
+/** Department / centre filter options (C3 listDepartments, C2 listCentres; 04-UI-UX §2.10). A failing picker only empties its filter, never the page. */
+export const getTatFilterOptions = async () => {
+  const [departments, centres] = await Promise.all([options('/v1/catalog/departments?limit=200'), options('/v1/identity/centres?limit=200')]);
+  return { departments, centres };
+};
+
 export async function getTatAlerts(q: URLSearchParams): Promise<ListPage<TatAlert>> {
   const p = await serverFetch<{ data?: TatAlert[]; page?: { next_cursor?: string } }>(`/v1/quality/tat-alerts?${q.toString()}`);
   return { rows: Array.isArray(p?.data) ? p.data : [], ...(p?.page?.next_cursor ? { next: p.page.next_cursor } : {}) };

@@ -4,12 +4,13 @@ import 'server-only';
 import { QualityNotice } from '../components/Shared';
 import { gated } from '../server/quality.server';
 import { TatView } from './TatView';
-import { TAT_ACK, TAT_READ, getTatAlerts, tatQuery } from './tat.server';
+import { TAT_ACK, TAT_READ, getTatAlerts, getTatFilterOptions, tatQuery } from './tat.server';
 
 export async function tatAlertsPage(sp: Record<string, string | string[] | undefined>) {
   const q = tatQuery(sp);
-  const r = await gated(() => getTatAlerts(q), TAT_READ);
+  const r = await gated(() => Promise.all([getTatAlerts(q), getTatFilterOptions()]), TAT_READ);
   if ('gate' in r) return <QualityNotice kind={r.gate} title="TAT alerts" helpKey="quality.tat_alerts" />;
+  const [page, opts] = r.data;
   const clean = Object.fromEntries([...q].filter(([k]) => k !== 'limit' && k !== 'sort'));
-  return <TatView key={JSON.stringify(clean)} page={r.data} generatedAt={new Date().toISOString()} sp={clean} canAck={r.perms.includes(TAT_ACK)} />;
+  return <TatView key={JSON.stringify(clean)} page={page} generatedAt={new Date().toISOString()} sp={clean} canAck={r.perms.includes(TAT_ACK)} {...opts} />;
 }

@@ -89,9 +89,18 @@ export function validatePlanParams(p: {
   else if (new Set(rows.map((r) => r.level_id)).size !== rows.length) e['composition'] = 'Each level can be used once.';
   else if (rows.some((r) => !intIn(r.count, 1, 4))) e['composition'] = 'Each count must be between 1 and 4.';
   else if (rows.reduce((s, r) => s + (r.count ?? 0), 0) !== n) e['composition'] = `Counts must add up to N = ${n}`;
-  if (p.run_window_minutes !== undefined && !intIn(p.run_window_minutes, 5, 240)) e['run_window'] = 'Run window must be between 5 and 240';
-  if (p.qc_validity_hours !== undefined && !intIn(p.qc_validity_hours, 1, 168)) e['qc_validity'] = 'QC valid for must be between 1 and 168';
-  if (p.hold_lookback_hours !== undefined && !intIn(p.hold_lookback_hours, 1, 168)) e['hold_lookback'] = 'Hold look-back must be between 1 and 168';
+  return Object.assign(e, planWindowErrors(p));
+}
+
+/** Inclusive limits of the plan time windows (QcPlanParams); shared with the settings default_plan_params (T-24). */
+export const PLAN_WINDOWS = { run_window_minutes: [5, 240], qc_validity_hours: [1, 168], hold_lookback_hours: [1, 168] } as const;
+/** Range errors of the optional plan time windows; an absent value is not checked here. */
+export function planWindowErrors(p: { run_window_minutes?: unknown; qc_validity_hours?: unknown; hold_lookback_hours?: unknown }): Errors {
+  const e: Errors = {};
+  const W = PLAN_WINDOWS;
+  if (p.run_window_minutes !== undefined && !intIn(p.run_window_minutes, ...W.run_window_minutes)) e['run_window'] = 'Run window must be between 5 and 240';
+  if (p.qc_validity_hours !== undefined && !intIn(p.qc_validity_hours, ...W.qc_validity_hours)) e['qc_validity'] = 'QC valid for must be between 1 and 168';
+  if (p.hold_lookback_hours !== undefined && !intIn(p.hold_lookback_hours, ...W.hold_lookback_hours)) e['hold_lookback'] = 'Hold look-back must be between 1 and 168';
   return e;
 }
 

@@ -1,4 +1,5 @@
 // C9 T-24 settings rules (contracts/openapi/quality.yaml: updateQualitySettings #52, upsertQualityCode #54). One source for the form limits and the server-action re-check.
+import { PLAN_WINDOWS, planWindowErrors } from '../forms/validate';
 import type { QualitySettings } from '../types';
 
 export const MANAGE_CONFIG = 'quality.config.manage';
@@ -25,8 +26,20 @@ export const settingsBody = (s: QualitySettings): SettingsBody => ({
 });
 
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
+
+/** QcPlanParamsDefaults (contracts/openapi/quality.yaml): every key optional, additionalProperties: false. No N here, so all five n-x rules are offered. */
+export const MEAN_RULES = ['8x', '10x', '12x', '6x', '9x'] as const;
+export const PLAN_FLAGS = ['two_two_s_across_runs', 'count_rules_across_materials', 'exclude_rejected_runs_from_history'] as const;
+const PLAN_KEYS = new Set<string>(['mean_rule', ...PLAN_FLAGS, ...Object.keys(PLAN_WINDOWS)]);
+export function planDefaultsValid(p: unknown): p is Record<string, unknown> {
+  if (!isObject(p) || Object.keys(p).some((k) => !PLAN_KEYS.has(k))) return false;
+  if (p['mean_rule'] !== undefined && !(MEAN_RULES as readonly unknown[]).includes(p['mean_rule'])) return false;
+  if (PLAN_FLAGS.some((k) => p[k] !== undefined && typeof p[k] !== 'boolean')) return false;
+  return Object.keys(planWindowErrors(p)).length === 0; // same limits as the plan form (forms/validate.ts)
+}
+
 export function settingsValid(b: unknown): b is SettingsBody {
-  if (!isObject(b) || typeof b['tat_alerts_enabled'] !== 'boolean' || !isObject(b['default_plan_params'])) return false;
+  if (!isObject(b) || typeof b['tat_alerts_enabled'] !== 'boolean' || !planDefaultsValid(b['default_plan_params'])) return false;
   return NUM_KEYS.every((k) => {
     const v = b[k];
     return typeof v === 'number' && Number.isInteger(v) && v >= RANGES[k][0] && v <= RANGES[k][1];

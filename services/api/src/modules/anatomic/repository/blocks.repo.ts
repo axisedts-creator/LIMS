@@ -26,6 +26,21 @@ export async function listBlocks(tx: Q, i: { tenantId: string; caseId: string })
   return rows;
 }
 
+/** M12: tenant-wide block list with the case accession_no, slide count and last movement time; RLS limits it to the caller's centres. Newest first. */
+export async function listBlocksPage(
+  tx: Q, i: { tenantId: string; locationStatuses?: string[]; caseId?: string; limit: number; offset: number },
+): Promise<Row[]> {
+  const { rows } = await tx.query(
+    `SELECT b.*, c.accession_no,
+            (SELECT count(*)::int FROM anatomic.slides s WHERE s.tenant_id = $1 AND s.block_id = b.id) AS slide_count,
+            (SELECT max(m.created_at) FROM anatomic.object_movements m WHERE m.tenant_id = $1 AND m.object_kind = 'block' AND m.object_id = b.id) AS last_movement_at
+       FROM anatomic.blocks b JOIN anatomic.cases c ON c.tenant_id = b.tenant_id AND c.id = b.case_id
+      WHERE b.tenant_id = $1 AND ($2::text[] IS NULL OR b.location_status = ANY($2::text[])) AND ($3::uuid IS NULL OR b.case_id = $3::uuid)
+      ORDER BY b.created_at DESC, b.id LIMIT $4 OFFSET $5`,
+    [i.tenantId, i.locationStatuses ?? null, i.caseId ?? null, i.limit, i.offset]);
+  return rows;
+}
+
 /** Optimistic update: matches only while version = expectedVersion; undefined means stale or not visible. Only the listed columns can change. */
 export async function updateBlock(
   tx: Q, i: { tenantId: string; id: string; expectedVersion: number; actorId: string; patch: Row },

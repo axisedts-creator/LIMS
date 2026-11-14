@@ -9,6 +9,7 @@ import type { HandlerContext } from '../../../core/module.js';
 import { loadInventoryConfig } from '../config.js';
 import { Dec, toCsv, type CsvCell } from '../domain/csv.js';
 import { scaled } from '../domain/quantity.js';
+import { matchRules, type Rule } from '../domain/rules.js';
 import { nowMs } from '../domain/tenantTime.js';
 import type { ReportCode, ReportQuery } from '../handlers/reports.schemas.js';
 import { toReportResultDto } from '../mappers/report.dto.js';
@@ -31,14 +32,14 @@ const COLS: Record<ReportCode, readonly string[]> = {
   daily_consumption: ['business_date', 'store_id', 'store_code', 'item_id', 'item_code', 'item_name', 'base_uom_code', 'movement_kind', 'qty_consumed', 'value_consumed_paisa', 'movements'],
   analyser_consumption: ['instrument_id', 'instrument_label', 'item_id', 'item_code', 'movement_kind', 'qty_consumed', 'value_consumed_paisa', 'movements', 'tests'],
   cost_per_test: ['test_id', 'test_code', 'test_name', 'instrument_id', 'tests_counted', 'direct_value_paisa', 'fixed_value_on_instrument_paisa', 'fixed_share_paisa', 'cpt_direct_paisa', 'cpt_loaded_paisa',
-    'cpt_standard_paisa', 'standard_is_complete', 'breakdown'],
-  wastage: ['store_id', 'store_code', 'item_id', 'item_code', 'category', 'qty', 'value_paisa'],
-  expiry: ['store_id', 'store_code', 'item_id', 'item_code', 'lot_id', 'lot_no', 'expiry_on', 'days_to_expiry', 'qty_base', 'value_paisa', 'lot_status', 'has_open_container'],
-  stock_valuation: ['store_id', 'store_code', 'item_id', 'item_code', 'lot_id', 'lot_no', 'qty_base', 'value_paisa', 'avg_unit_cost_paisa_x1e6'],
-  consumption_reconciliation: ['business_date', 'test_id', 'test_code', 'c12_verified_result_events', 'lab_results_verified', 'diff', 'diff_bp', 'instrument_id', 'instrument_label', 'c12_qc_observations',
+    'cpt_standard_paisa', 'standard_is_complete', 'missing_item_ids', 'breakdown'],
+  wastage: ['store_id', 'item_id', 'item_code', 'category', 'qty', 'value_paisa'],
+  expiry: ['store_id', 'item_id', 'item_code', 'lot_id', 'lot_no', 'expiry_on', 'days_to_expiry', 'qty_base', 'value_paisa', 'lot_status', 'has_open_container'],
+  stock_valuation: ['store_id', 'item_id', 'item_code', 'lot_id', 'lot_no', 'qty_base', 'value_paisa', 'avg_unit_cost_paisa_x1e6'],
+  consumption_reconciliation: ['business_date', 'test_id', 'test_code', 'c12_verified_result_events', 'lab_results_verified', 'diff', 'diff_bp', 'instrument_id', 'c12_qc_observations',
     'instrument_qc_records'],
 };
-const COST_ONLY = new Set(['standard_is_complete', 'breakdown']); // cost_per_test columns without a *_paisa name that are still †
+const COST_ONLY = new Set(['standard_is_complete', 'missing_item_ids', 'breakdown']); // cost_per_test columns without a *_paisa name that are still †
 const isCost = (k: string): boolean => k.endsWith('_paisa') || k.endsWith('_paisa_x1e6') || COST_ONLY.has(k);
 const label = (k: string): string => (k.charAt(0).toUpperCase() + k.slice(1)).replaceAll('_', ' ');
 const columnsOf = (code: ReportCode) => COLS[code].map((key) => ({ key, label: label(key), is_cost: isCost(key) }));
@@ -76,26 +77,31 @@ async function addStandard(ctx: HandlerContext, rc: RepoCtx, rows: Row[], nowIso
       reportable.set(t, new Set((test?.analytes ?? []).filter((a: Row) => a['reportable'] !== false).map((a: Row) => a['id'] as string)));
     } catch (e) { if (!(e instanceof LimsError && e.code === 'common.not_found')) throw e; reportable.set(t, new Set()); }
   }
+  // TRD §8.3 matching (active, effective window at now, instrument-specific rule drops the generic rule of the same item): one test fact + one fact per reportable analyte.
+  const rs = rules as unknown as Rule[];
   const hits = rows.map((r) => {
     const store = bind.get(r['instrument_id'] as string) ?? dflt;
-    const rs = rules.filter((x) => x['test_id'] === r['test_id'] && (x['instrument_id'] === null || x['instrument_id'] === r['instrument_id'])
-      && (x['rule_kind'] === 'per_test' || reportable.get(x['test_id'])?.has(x['analyte_id']) === true));
-    return { store, rs };
+    const fact = { occurred_at: nowIso, instrument_id: (r['instrument_id'] ?? null) as string | null, test_id: r['test_id'] as string, multiplier: 1 };
+    const needs = [...matchRules({ ...fact, fact_kind: 'test', analyte_id: null }, rs),
+      ...[...(reportable.get(r['test_id'] as string) ?? [])].flatMap((a) => matchRules({ ...fact, fact_kind: 'analyte', analyte_id: a }, rs))];
+    return { store, needs };
   });
   const stores = [...new Set(hits.flatMap((h) => (h.store === null ? [] : [h.store])))];
-  const items = [...new Set(hits.flatMap((h) => h.rs.map((x) => x['item_id'] as string)))];
+  const items = [...new Set(hits.flatMap((h) => h.needs.map((x) => x.item_id)))];
   const cost = new Map((stores.length === 0 || items.length === 0 ? [] : await v.averageCosts(rc, stores, items)).map((c) => [`${c['store_id']}|${c['item_id']}`, c]));
   rows.forEach((r, i) => {
-    const { store, rs } = hits[i]!;
-    let micro = 0n; let complete = rs.length > 0 && store !== null;
-    for (const x of rs) {
-      const c = store === null ? undefined : cost.get(`${store}|${x['item_id']}`);
-      if (c === undefined) { complete = false; continue; }
-      const qty = scaled(x['qty_base'], 6); const bal = scaled(c['qty_base'], 6);
+    const { store, needs } = hits[i]!;
+    let micro = 0n; const missing = new Set<string>();
+    for (const x of needs) {
+      const c = store === null ? undefined : cost.get(`${store}|${x.item_id}`);
+      if (c === undefined) { missing.add(x.item_id); continue; }
+      const qty = scaled(x.qty_base, 6); const bal = scaled(c['qty_base'], 6);
       micro += (qty * BigInt(c['value_paisa']) * MICRO * 2n + bal) / (bal * 2n); // qty x value / balance in micro-paisa, half up
     }
+    const complete = needs.length > 0 && missing.size === 0;
     r['standard_is_complete'] = complete;
-    if (rs.length > 0 && (micro > 0n || complete)) r['cpt_standard_paisa'] = Number((micro + MICRO / 2n) / MICRO); // rounded once, half up
+    if (missing.size > 0) r['missing_item_ids'] = [...missing].sort(); // PRD §8.3
+    if (needs.length > 0 && (micro > 0n || complete)) r['cpt_standard_paisa'] = Number((micro + MICRO / 2n) / MICRO); // rounded once, half up
   });
 }
 

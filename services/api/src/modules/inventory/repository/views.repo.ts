@@ -27,7 +27,8 @@ async function paged(rc: RepoCtx, q: Q, base: string, order: string, sums: reado
   const totals: Record<string, string> = {};
   for (const c of sums) totals[c] = String(rows[0]?.[`_t_${c}`] ?? '0');
   const count = Number(rows[0]?._n ?? 0);
-  return { rows: rows.map((r) => Object.fromEntries(Object.entries(r).filter(([k]) => k !== '_n' && !k.startsWith('_t_')))), count, totals };
+  // `_sort_*` = sort keys that are not report columns (TRD §5.11: the columns are fixed).
+  return { rows: rows.map((r) => Object.fromEntries(Object.entries(r).filter(([k]) => k !== '_n' && !k.startsWith('_t_') && !k.startsWith('_sort_')))), count, totals };
 }
 
 /** consumption_daily filters shared by the consumption reports (alias `cd`, store alias `s`). */
@@ -115,10 +116,11 @@ export function costPerTest(rc: RepoCtx, f: Flt, limit: number): Promise<Page> {
   return paged(rc, q, base, 'test_code, instrument_id NULLS LAST, test_id', ['tests_counted', 'direct_value_paisa'], limit);
 }
 
-/** cpt_standard inputs: current per_test / per_analyte rules of the tests, active instrument bindings, and the average cost of (store, item) = Σ value / Σ qty over rows with qty > 0 (TRD §4.3 step 4). */
+/** cpt_standard inputs: active per_test / per_analyte rules of the tests (window + instrument precedence: domain/rules.ts matchRules, TRD §8.3), active instrument bindings, and the average cost of (store, item) = Σ value / Σ qty over rows with qty > 0 (TRD §4.3 step 4). */
 export const standardRules = (rc: RepoCtx, testIds: readonly string[]): Promise<Row[]> =>
-  query(rc, `SELECT rule_kind, test_id, analyte_id, instrument_id, item_id, qty_base::text AS qty_base FROM inventory.consumption_rules
-              WHERE tenant_id = $1 AND is_active AND effective_to IS NULL AND rule_kind IN ('per_test','per_analyte') AND test_id = ANY($2::uuid[]) ORDER BY id`, [[...testIds]]);
+  query(rc, `SELECT id, rule_kind, test_id, analyte_id, instrument_id, item_id, qty_base::text AS qty_base, to_json(effective_from) #>> '{}' AS effective_from,
+                    to_json(effective_to) #>> '{}' AS effective_to, is_active FROM inventory.consumption_rules
+              WHERE tenant_id = $1 AND is_active AND rule_kind IN ('per_test','per_analyte') AND test_id = ANY($2::uuid[]) ORDER BY id`, [[...testIds]]);
 export const activeBindings = (rc: RepoCtx): Promise<Row[]> => query(rc, 'SELECT instrument_id, store_id FROM inventory.instrument_bindings WHERE tenant_id = $1 AND is_active');
 export const averageCosts = (rc: RepoCtx, storeIds: readonly string[], itemIds: readonly string[]): Promise<Row[]> =>
   query(rc, `SELECT store_id, item_id, sum(value_paisa)::text AS value_paisa, sum(qty_base)::text AS qty_base FROM inventory.stock_balances
@@ -140,10 +142,10 @@ export function wastage(rc: RepoCtx, f: Flt, limit: number): Promise<Page> {
         UNION ALL
         SELECT cd.store_id, cd.item_id, 'count_variance', cd.qty_consumed, cd.value_consumed_paisa
           FROM inventory.consumption_daily cd WHERE cd.tenant_id = $1 AND cd.movement_kind IN ('count_adjust_out','count_adjust_in') AND cd.business_date >= ${from}::date AND cd.business_date < ${to}::date${cItem})
-      SELECT w.store_id, s.store_code, w.item_id, i.item_code, w.category, sum(w.qty)::text AS qty, sum(w.val)::bigint AS value_paisa
+      SELECT w.store_id, s.store_code AS _sort_store_code, w.item_id, i.item_code, w.category, sum(w.qty)::text AS qty, sum(w.val)::bigint AS value_paisa
         FROM w JOIN inventory.stores s ON s.tenant_id = $1 AND s.id = w.store_id${on} JOIN inventory.items i ON i.tenant_id = $1 AND i.id = w.item_id
        GROUP BY w.store_id, s.store_code, w.item_id, i.item_code, w.category`;
-  return paged(rc, q, base, 'store_code, item_code, category', ['value_paisa'], limit);
+  return paged(rc, q, base, '_sort_store_code, item_code, category', ['value_paisa'], limit);
 }
 
 // ---------------------------------------------------------------- expiry (AC-21.5): lots with stock whose expiry is on or before today + within_days (expired included)
@@ -152,7 +154,7 @@ export function expiry(rc: RepoCtx, f: Scope & { today: string; withinDays: numb
   const on = storeOn(q, f);
   const today = q.p(f.today), within = q.p(f.withinDays);
   const item = f.itemId === undefined ? '' : ` AND sb.item_id = ${q.p(f.itemId)}`;
-  const base = `SELECT sb.store_id, s.store_code, sb.item_id, i.item_code, sb.lot_id, l.lot_no, to_char(l.expiry_on, 'YYYY-MM-DD') AS expiry_on, (l.expiry_on - ${today}::date)::int AS days_to_expiry,
+  const base = `SELECT sb.store_id, s.store_code AS _sort_store_code, sb.item_id, i.item_code, sb.lot_id, l.lot_no, to_char(l.expiry_on, 'YYYY-MM-DD') AS expiry_on, (l.expiry_on - ${today}::date)::int AS days_to_expiry,
         sb.qty_base::text AS qty_base, sb.value_paisa::bigint AS value_paisa, l.status AS lot_status,
         EXISTS (SELECT 1 FROM inventory.opened_containers oc WHERE oc.tenant_id = sb.tenant_id AND oc.store_id = sb.store_id AND oc.item_id = sb.item_id AND oc.lot_id = sb.lot_id AND oc.status = 'open') AS has_open_container
       FROM inventory.stock_balances sb
@@ -160,7 +162,7 @@ export function expiry(rc: RepoCtx, f: Scope & { today: string; withinDays: numb
       JOIN inventory.stores s ON s.tenant_id = sb.tenant_id AND s.id = sb.store_id${on}
       JOIN inventory.items i ON i.tenant_id = sb.tenant_id AND i.id = sb.item_id
      WHERE sb.tenant_id = $1 AND sb.qty_base <> 0 AND l.expiry_on IS NOT NULL AND l.expiry_on <= ${today}::date + ${within}::int${item}`;
-  return paged(rc, q, base, 'expiry_on, store_code, item_code, lot_no', ['value_paisa'], limit);
+  return paged(rc, q, base, 'expiry_on, _sort_store_code, item_code, lot_no', ['value_paisa'], limit);
 }
 
 // ---------------------------------------------------------------- stock_valuation (AC-21.6): now = stock_balances; as_of = Σ stock_movements with occurred_at < start of that tenant day
@@ -172,14 +174,14 @@ export function stockValuation(rc: RepoCtx, f: Scope & { asOf?: string; tz: stri
     ? 'SELECT tenant_id, store_id, item_id, lot_id, qty_base, value_paisa FROM inventory.stock_balances WHERE tenant_id = $1'
     : `SELECT tenant_id, store_id, item_id, lot_id, sum(qty_base) AS qty_base, sum(value_paisa) AS value_paisa FROM inventory.stock_movements
         WHERE tenant_id = $1 AND occurred_at < (${q.p(f.asOf)}::date::timestamp AT TIME ZONE ${q.p(f.tz)}::text) GROUP BY tenant_id, store_id, item_id, lot_id`;
-  const base = `SELECT sb.store_id, s.store_code, sb.item_id, i.item_code, sb.lot_id, l.lot_no, sb.qty_base::text AS qty_base, sb.value_paisa::bigint AS value_paisa,
+  const base = `SELECT sb.store_id, s.store_code AS _sort_store_code, sb.item_id, i.item_code, sb.lot_id, l.lot_no, sb.qty_base::text AS qty_base, sb.value_paisa::bigint AS value_paisa,
         floor(sb.value_paisa::numeric * 1000000 / sb.qty_base + 0.5)::bigint AS avg_unit_cost_paisa_x1e6
       FROM (${src}) sb
       JOIN inventory.stores s ON s.tenant_id = sb.tenant_id AND s.id = sb.store_id${on}
       JOIN inventory.items i ON i.tenant_id = sb.tenant_id AND i.id = sb.item_id
       LEFT JOIN inventory.lots l ON l.tenant_id = sb.tenant_id AND l.id = sb.lot_id
      WHERE sb.qty_base <> 0${item}`;
-  return paged(rc, q, base, 'store_code, item_code, lot_no NULLS FIRST', ['value_paisa'], limit);
+  return paged(rc, q, base, '_sort_store_code, item_code, lot_no NULLS FIRST', ['value_paisa'], limit);
 }
 
 // ---------------------------------------------------------------- consumption_reconciliation (AC-21.7)
@@ -211,10 +213,10 @@ export function reconInstruments(rc: RepoCtx, f: { from: string; to: string; ins
              WHERE tenant_id = $1 AND business_date >= ${from}::date AND business_date < ${to}::date${i} GROUP BY instrument_id, business_date),
       j AS (SELECT coalesce(c.instrument_id, m.instrument_id) AS instrument_id, coalesce(c.business_date, m.business_date) AS business_date, coalesce(c.c12, 0) AS c12, coalesce(m.recs, 0) AS recs
               FROM c FULL JOIN m ON m.instrument_id = c.instrument_id AND m.business_date = c.business_date)
-      SELECT j.instrument_id, coalesce(d.display_name, j.instrument_id::text) AS instrument_label, to_char(j.business_date, 'YYYY-MM-DD') AS business_date,
+      SELECT j.instrument_id, coalesce(d.display_name, j.instrument_id::text) AS _sort_instrument_label, to_char(j.business_date, 'YYYY-MM-DD') AS business_date,
              j.c12 AS c12_qc_observations, j.recs AS instrument_qc_records, (j.c12 - j.recs) AS diff
         FROM j LEFT JOIN instruments.v_pub_instrument_directory d ON d.tenant_id = $1 AND d.instrument_id = j.instrument_id WHERE j.c12 <> 0 OR j.recs <> 0`;
-  return paged(rc, q, base, 'business_date, instrument_label, instrument_id', [], limit);
+  return paged(rc, q, base, 'business_date, _sort_instrument_label, instrument_id', [], limit);
 }
 
 /** Open (`unresolved`) and `dismissed` consumption facts of the tenant with business_date in the window. */

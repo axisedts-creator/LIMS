@@ -24,10 +24,11 @@ void main() {
     );
   }
 
-  testWidgets('header is the sync status chip; empty list says nothing is waiting', (t) async {
+  testWidgets('header is the sync status chip; empty list says "Everything is uploaded." (03-APP-FLOW:121)', (t) async {
     await open(t, const []);
     expect(find.text('0 waiting · Last upload 09:15'), findsOneWidget);
     expect(find.byType(LimsEmptyState), findsOneWidget);
+    expect(find.text('Everything is uploaded.'), findsOneWidget);
   });
 
   testWidgets('every mutation type has its plain label', (t) async {

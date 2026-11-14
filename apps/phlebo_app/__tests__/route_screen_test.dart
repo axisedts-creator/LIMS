@@ -18,6 +18,8 @@ void main() {
     List<RouteVisit> visits, {
     bool purged = false,
     bool offline = false,
+    DateTime? dataAsOf,
+    bool loading = false,
     SyncSummary? sync,
     double textScale = 1.0,
   }) async {
@@ -31,6 +33,8 @@ void main() {
         visits: visits,
         purged: purged,
         offline: offline,
+        dataAsOf: dataAsOf,
+        loading: loading,
         sync: sync ?? SyncSummary(waiting: 3, lastUpload: DateTime(2026, 11, 14, 9, 15)),
         onRefresh: () async => refreshes++,
         onOpenVisit: opened.add,
@@ -150,6 +154,21 @@ void main() {
     expect(find.byType(LimsOfflineBanner), findsOneWidget);
     await open(t, [routeVisit(1)]);
     expect(find.byType(LimsOfflineBanner), findsNothing);
+  });
+
+  // 03-APP-FLOW:117 — banner copy "Offline — showing data from hh:mm".
+  testWidgets('offline banner text: "Offline — showing data from hh:mm" of the last successful pull', (t) async {
+    await open(t, [routeVisit(1)], offline: true, dataAsOf: DateTime(2026, 11, 14, 7, 5));
+    expect(find.text('Offline — showing data from 07:05'), findsOneWidget);
+  });
+
+  // 03-APP-FLOW:117 — first pull shows LimsLoading, not the empty copy.
+  testWidgets('first pull: LimsLoading shows and the empty copy does not', (t) async {
+    await open(t, const [], loading: true);
+    expect(find.byType(LimsLoading), findsOneWidget);
+    expect(find.text('No visits assigned for today. Pull down to refresh.'), findsNothing);
+    await open(t, const []);
+    expect(find.byType(LimsLoading), findsNothing);
   });
 
   testWidgets('LD-140: LimsSecureScreen + LimsScaffold, at most one primary button, 2.0 text scale does not overflow', (t) async {

@@ -1,10 +1,19 @@
-// Catalog module manifest (02-TRD §3; core autoloader 02-TRD §6.3 of C0). ports.CatalogPort lands with its task.
+// Catalog module manifest (02-TRD §3; core autoloader 02-TRD §6.3 of C0).
+// LD-185 (WIRE-CAT): ports.CatalogPort = the real port over ONE process-wide read cache (C3 02-TRD §6.3), bounds from loadCatalogConfig(process.env) (defaults apply, no env var needed).
+// Construction does no I/O: the cache is an in-memory Map and the port only queries inside a request ctx.tx.
 import type { ModuleManifest } from '../../core/module.js';
+import { createCatalogCache } from './cache/catalogCache.js';
+import { loadCatalogConfig } from './config.js';
 import { handlers } from './handlers/index.js';
+import { createCatalogPort } from './ports/CatalogPort.impl.js';
+
+const config = loadCatalogConfig(process.env);
+const CatalogPort = createCatalogPort({ cache: createCatalogCache({ maxEntries: config.cacheMaxEntries, ttlSeconds: config.cacheTtlSeconds }) });
 
 export const manifest = {
   name: 'catalog',
   openapi: 'contracts/openapi/catalog.yaml',
   handlers,
   produces: ['catalog.changed.v1'],
+  ports: { CatalogPort },
 } as const satisfies ModuleManifest;

@@ -19,6 +19,9 @@ import { portalHandlers } from './handlers/portal.handlers.js';
 import { verifyHandlers } from './handlers/verify.handlers.js';
 import { portalSessionResolver } from './auth/portal.resolver.js';
 import { REPORTING_SYSTEM_PERMISSIONS } from './permissions.js';
+import { createNotificationPort } from './ports/NotificationPort.impl.js';
+import { createReportingPort } from './ports/ReportingPort.impl.js';
+import { createLazyRenderPort } from './ports/renderPort.lazy.js';
 
 /** Read at import, so a bad LIMS_REPORTING_* value fails API boot. */
 export const config = loadReportingConfig(process.env);
@@ -37,4 +40,10 @@ export const manifest: ModuleManifest = Object.freeze({
   produces: Object.freeze(['reporting.report.released.v1', 'reporting.delivery.status_changed.v1']),
   systemPermissions: REPORTING_SYSTEM_PERMISSIONS,
   authResolvers: Object.freeze({ portalSession: portalSessionResolver }),   // CR-C6-001
+  // LD-186 (C1 WIRE-REP): real ports for the registry (02-TRD §6.3). RenderPort is lazy: renderer settings are worker-only, read on first call.
+  ports: Object.freeze({
+    ReportingPort: createReportingPort({ env: process.env }),
+    NotificationPort: createNotificationPort({ env: process.env }),
+    RenderPort: createLazyRenderPort(process.env),
+  }),
 });

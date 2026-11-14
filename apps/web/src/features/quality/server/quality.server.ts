@@ -7,7 +7,7 @@ import type { CodeOption, LjChart, ListPage, RunDetail, RunSummary, StatusRow, U
 import { UNASSIGNED_STATUSES } from '../format';
 
 type SP = Record<string, string | string[] | undefined>;
-const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
+export const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
 
 export const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const ISO_UTC = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,3})?Z$/;
@@ -15,17 +15,17 @@ const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 const CURSOR = /^[A-Za-z0-9_-]{1,512}$/;
 
 /** Comma list of distinct allowed values (order kept); undefined when nothing valid is left. */
-function enumList(v: string | undefined, allowed: readonly string[]): string | undefined {
+export function enumList(v: string | undefined, allowed: readonly string[]): string | undefined {
   const l = [...new Set((v ?? '').split(',').filter((x) => allowed.includes(x)))];
   return l.length ? l.join(',') : undefined;
 }
-function put(q: URLSearchParams, k: string, v: string | undefined) {
+export function put(q: URLSearchParams, k: string, v: string | undefined) {
   if (v !== undefined) q.set(k, v);
 }
-const uuid = (v: string | undefined) => (v && UUID.test(v) ? v : undefined);
-const bool = (v: string | undefined) => (v === 'true' || v === 'false' ? v : undefined);
+export const uuid = (v: string | undefined) => (v && UUID.test(v) ? v : undefined);
+export const bool = (v: string | undefined) => (v === 'true' || v === 'false' ? v : undefined);
 const iso = (v: string | undefined) => (v && ISO_UTC.test(v) ? v : undefined);
-const cursor = (v: string | undefined) => (v && CURSOR.test(v) ? v : undefined);
+export const cursor = (v: string | undefined) => (v && CURSOR.test(v) ? v : undefined);
 
 export const RUN_STATUSES = ['collecting', 'evaluated', 'closed'] as const;
 export const OUTCOMES = ['accepted', 'accepted_warning', 'incomplete', 'rejected'] as const;
@@ -97,10 +97,10 @@ export async function permissions(): Promise<readonly string[]> {
 }
 export const isFeatureDisabled = (e: unknown) => e instanceof ApiError && e.problem.code === 'common.feature_disabled';
 
-/** Runs `load` only when the session holds `quality.qc_run.read`. A switched-off module is a normal state, anything else rethrows to error.tsx. */
-export async function gated<T>(load: (perms: readonly string[]) => Promise<T>): Promise<{ gate: Gate } | { perms: readonly string[]; data: T }> {
+/** Runs `load` only when the session holds `need` (default `quality.qc_run.read`). A switched-off module is a normal state, anything else rethrows to error.tsx. */
+export async function gated<T>(load: (perms: readonly string[]) => Promise<T>, need: string = READ): Promise<{ gate: Gate } | { perms: readonly string[]; data: T }> {
   const perms = await permissions();
-  if (!perms.includes(READ)) return { gate: 'denied' };
+  if (!perms.includes(need)) return { gate: 'denied' };
   try {
     return { perms, data: await load(perms) };
   } catch (e) {

@@ -219,7 +219,7 @@ describe('#47 getAutoverifyDecision — AC-13.7, P3 inputs', () => {
     const s = setup(); await one(s); expect(s.audits).toEqual([entry('autoverify_decision.view', 'autoverify_decision', DEC(1))]);
   });
   it('unknown / malformed / other-tenant decision -> 404 and NO access-log row', async () => {
-    for (const id of [DEC(99), 'nope', DEC_B, undefined]) { const s = setup(); expect(code(await rejection(one(s, id)))).toBe('common.not_found'); expect(s.audits).toEqual([]); }
+    for (const id of [DEC(99), 'nope', DEC_B, undefined]) { const s = setup(); expect(code(await rejection(svc(s).getAutoverifyDecision(s.ctx, { decisionId: id } as any)))).toBe('common.not_found'); expect(s.audits).toEqual([]); }
   });
   it('read permission first; forbidden -> nothing read, no row; failing access-log write fails the read', async () => {
     const s = setup({ held: [] }); expect(code(await rejection(one(s)))).toBe('auth.forbidden'); expect(s.sim.calls).toEqual([]); expect(s.audits).toEqual([]);

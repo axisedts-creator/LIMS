@@ -10,7 +10,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const PURGE_DAYS = 30; // TRD §4.3.4: personal fields NULLed 30 days after the terminal state (purge_ephemeral keys on expires_at)
 const dateOnly = (v: unknown): string => (v instanceof Date ? `${v.getFullYear()}-${String(v.getMonth() + 1).padStart(2, '0')}-${String(v.getDate()).padStart(2, '0')}` : String(v).slice(0, 10)); // pg `date` -> YYYY-MM-DD
 /** Only a registry error code (e.g. frontdesk.consent_required) is stored; anything else is the generic code. */
-const failureCode = (e: unknown): string => { const c = (e as { code?: unknown } | null)?.code; return typeof c === 'string' && /^[A-Za-z][A-Za-z0-9_]*(\.[A-Za-z0-9_]+)+$/.test(c) && c.length <= 64 ? c : 'engagement.self_registration_failed'; };
+const failureCode = (e: unknown): string => { const c = (e as { code?: unknown } | null)?.code; return typeof c === 'string' && /^[A-Za-z][A-Za-z0-9_]*(\.[A-Za-z0-9_]+)+$/.test(c) && c.length <= 64 ? c : 'common.internal'; };
 
 export function createCreateSelfPatient(): TaskHandler {
   return async (payload, jobCtx) => {
@@ -32,7 +32,7 @@ export function createCreateSelfPatient(): TaskHandler {
       await tx.query(`UPDATE engagement.self_registrations SET status = 'failed', failure_code = $3, expires_at = $4, updated_at = now() WHERE tenant_id = $1 AND id = $2 AND status = 'queued'`, [tenantId, id, code, horizon]);
       ctx.log?.warn?.({ event: 'create_self_patient_failed', failure_code: code });
     };
-    if (!account || !consent) return fail('engagement.self_registration_failed'); // dangling references can never succeed
+    if (!account || !consent) return fail('common.internal'); // dangling references can never succeed
 
     const lastAttempt = !(typeof ctx.attempt === 'number' && typeof ctx.maxAttempts === 'number' && ctx.attempt < ctx.maxAttempts);
     await tx.query('SAVEPOINT create_self_patient'); // so the failed mark can be written after a failed statement

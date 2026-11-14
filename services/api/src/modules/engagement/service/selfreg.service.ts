@@ -49,7 +49,7 @@ function parse(body: unknown): Form {
   const birthOn = b['birth_on'], ageYears = b['age_years'];
   if (birthOn !== undefined && !isDate(birthOn)) bad('/birth_on');
   if (ageYears !== undefined && !(Number.isInteger(ageYears) && (ageYears as number) >= 0 && (ageYears as number) <= 150)) bad('/age_years');
-  if (birthOn !== undefined && ageYears !== undefined) bad('/age_years', 'common.field_conflict', 'Give birth_on or age_years, not both');
+  if (birthOn !== undefined && ageYears !== undefined) bad('/age_years', 'common.field_invalid', 'Give birth_on or age_years, not both');
   if (birthOn === undefined && ageYears === undefined) bad('/birth_on', 'common.field_required', 'Give birth_on or age_years');
   return { relationship: relationship as 'self' | 'child', fullName: fullName as string, sex: sex as string, sms: sms as boolean, whatsapp: whatsapp as boolean, version: version as string,
     ...(birthOn === undefined ? {} : { birthOn: birthOn as string }), ...(ageYears === undefined ? {} : { ageYears: ageYears as number }) };

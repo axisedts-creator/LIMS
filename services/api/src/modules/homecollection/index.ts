@@ -12,6 +12,7 @@ import { handler as resolveHomeVisitFlag } from './handlers/resolveHomeVisitFlag
 import { handler as scheduleHomeVisit } from './handlers/scheduleHomeVisit.js';
 import { handler as unassignHomeVisit } from './handlers/unassignHomeVisit.js';
 import { handler as ackSync } from './handlers/ackSync.js';
+import { handler as pushSyncMutations } from './handlers/pushSyncMutations.js';
 import { handler as getSyncSnapshot } from './handlers/getSyncSnapshot.js';
 import { handler as getHomecollectionSettings } from './handlers/getHomecollectionSettings.js';
 import { handler as getHomeVisit } from './handlers/getHomeVisit.js';
@@ -25,6 +26,9 @@ import { handler as requestDeviceWipe } from './handlers/requestDeviceWipe.js';
 import { handler as revealHomeVisitPhone } from './handlers/revealHomeVisitPhone.js';
 import { handler as signOffPhleboDevice } from './handlers/signOffPhleboDevice.js';
 import { handler as updateHomecollectionSettings } from './handlers/updateHomecollectionSettings.js';
+import { handler as listHandovers } from './handlers/listHandovers.js';
+import { handler as getHandover } from './handlers/getHandover.js';
+import { handler as confirmHandover } from './handlers/confirmHandover.js';
 
 const OPERATION_IDS = [
   'listHomeVisits', 'getHomeVisit', 'assignHomeVisit', 'unassignHomeVisit', 'scheduleHomeVisit', 'cancelHomeVisit', 'createHomeRevisit',
@@ -49,6 +53,8 @@ const implemented: Partial<Record<HomecollectionOperationId, Handler>> = {
   listPhleboDevices, requestDeviceWipe,   // HC-T15: H16, H17
   assignHomeVisit, unassignHomeVisit, scheduleHomeVisit, cancelHomeVisit, createHomeRevisit, resolveHomeVisitFlag, resequenceHomeRoute,   // HC-T09: H3-H8, H11
   getSyncSnapshot, ackSync,   // HC-T11: A2, A4
+  pushSyncMutations,   // HC-T12: A3
+  listHandovers, getHandover, confirmHandover,   // HC-T14: H13-H15
 };
 
 const handlers = Object.freeze(

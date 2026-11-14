@@ -214,7 +214,7 @@ export async function getProtocol(tx: Q, a: { tenantId: string; id: string }): P
 /** The culture row the write handlers need, locked for the request (serialises setup / plates / reads of one culture). RLS applies the centre scope. */
 export async function lockCulture(tx: Q, a: { tenantId: string; id: string }): Promise<Row | undefined> {
   const { rows } = await tx.query(
-    `SELECT id, version, status, centre_id, test_id, specimen_type_code, specimen_site_code, plating_protocol_id, planted_at, next_read_due_at
+    `SELECT id, version, status, centre_id, specimen_id, test_id, specimen_type_code, specimen_site_code, plating_protocol_id, planted_at, next_read_due_at
        FROM micro.cultures WHERE tenant_id = $1 AND id = $2 FOR UPDATE`, [a.tenantId, a.id]);
   return rows[0];
 }
@@ -239,6 +239,33 @@ export async function setupCulture(tx: Q, a: {
       WHERE tenant_id = $1 AND id = $2 AND version = $3 AND status = 'awaiting_setup' RETURNING id, version`,
     [a.tenantId, a.id, a.expectedVersion, a.plantedAt, a.nextReadDueAt, a.finalDueAt, a.protocolId, a.siteCode, a.userId]);
   return rows[0];
+}
+
+// ================================================================ T-16 (M17 reopenCulture C8, M18 cancelCulture C9; 02-TRD §5, 03-APP-FLOW §2.1)
+/** C8: final_submitted -> amending with the reason; undefined = the version or state moved (the caller already holds the row lock, so only a bug gets here). */
+export async function reopenCulture(tx: Q, a: { tenantId: string; id: string; expectedVersion: number; userId: string; reasonCode: string; reasonText: string | null }): Promise<Row | undefined> {
+  const { rows } = await tx.query(
+    `UPDATE micro.cultures SET status = 'amending', amendment_reason_code = $4, amendment_reason_text = $5, version = version + 1, updated_at = now(), updated_by = $6
+      WHERE tenant_id = $1 AND id = $2 AND version = $3 AND status = 'final_submitted' RETURNING id, version`,
+    [a.tenantId, a.id, a.expectedVersion, a.reasonCode, a.reasonText, a.userId]);
+  return rows[0];
+}
+
+/** C9 by a person: the open states only; cancel_reason_code + cancelled_at + status move together (cultures__cancel__ck). */
+export async function cancelCulture(tx: Q, a: { tenantId: string; id: string; expectedVersion: number; userId: string; reasonCode: string; comment: string | null }): Promise<Row | undefined> {
+  const { rows } = await tx.query(
+    `UPDATE micro.cultures SET status = 'cancelled', cancel_reason_code = $4, cancel_comment = $5, cancelled_at = now(), version = version + 1, updated_at = now(), updated_by = $6
+      WHERE tenant_id = $1 AND id = $2 AND version = $3 RETURNING id, version`,
+    [a.tenantId, a.id, a.expectedVersion, a.reasonCode, a.comment, a.userId]);
+  return rows[0];
+}
+
+/** C9 effect (AC-01.6): the culture's open instrument records wait for a match again, reason culture_cancelled. applied / ignored records are history and stay. */
+export async function releaseOpenRecords(tx: Q, a: { tenantId: string; cultureId: string; userId: string }): Promise<void> {
+  await tx.query(
+    `UPDATE micro.instrument_records SET match_status = 'pending_match', match_reason = 'culture_cancelled', version = version + 1, updated_at = now(), updated_by = $3
+      WHERE tenant_id = $1 AND culture_id = $2 AND match_status = ANY($4::text[])`,
+    [a.tenantId, a.cultureId, a.userId, ['pending_match', 'needs_mapping', 'conflict']]);
 }
 
 /** After a plate_read: new status (C3; same value when unchanged) and the recomputed next_read_due_at. */

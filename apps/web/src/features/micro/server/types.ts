@@ -72,3 +72,21 @@ export interface VocabMapInput { instrument_id: string; kind: 'organism' | 'anti
 export interface InstrumentAstDefaultDto { instrument_id: string; standard: Standard; standard_version: string; version?: number }
 export interface InstrumentLite { id: string; code: string; name: string }
 export interface TestLite { id: string; code: string; name: string }
+
+// ---- T-19 worklist (CultureSummaryDto in micro.yaml; SpecimenDto in lab.yaml; centre in identity.yaml) — only the fields the screen reads.
+export const TAB_IDS = ['setup', 'incubating', 'workup', 'amending', 'recent'] as const;
+export type TabId = (typeof TAB_IDS)[number];
+export interface CultureSummaryDto {
+  id: string; version: number; status: string; specimen_id: string; centre_id: string; test_code: string; test_name: string; specimen_type_code: string; specimen_site_code?: string;
+  received_at: string; next_read_due_at?: string; is_read_overdue: boolean; current_report_version_no: number; last_report_phase?: 'preliminary' | 'final';
+  open_instrument_record_count: number; barcode?: string;
+}
+export interface CulturePage { data: CultureSummaryDto[]; page: { next_cursor?: string; limit: number; total?: number } }
+export interface CentreLite { centre_id: string; name: string }
+export interface SpecimenLite { registration_no?: string; barcode?: string }
+/** Scan outcome. `none` covers unknown barcode, no culture and a refused lookup alike (07-SECURITY S-02: no existence oracle). */
+export type ScanResult =
+  | { kind: 'open'; cultureId: string }
+  | { kind: 'choose'; cultures: { id: string; test_code: string; test_name: string; status: string }[] }
+  | { kind: 'none' }
+  | { kind: 'error' };

@@ -1,3 +1,5 @@
+import { Icon } from '../Icon/Icon';
+
 export interface StatTileProps {
   label: string;
   value: string;
@@ -8,7 +10,8 @@ export interface StatTileProps {
 }
 
 const WORD = { up: 'Up', down: 'Down', flat: 'No change' } as const;
-const ARROW = { up: '▲', down: '▼', flat: '▬' } as const;
+// One icon family: svg icons, no text glyphs (LD-140, 10-DESIGN-SYSTEM §6).
+const ARROW = { up: 'arrow-up', down: 'arrow-down', flat: 'minus' } as const;
 const safeHref = (h: string | undefined) => (h && /^\/(?!\/)/.test(h.trim()) ? h.trim() : undefined);
 
 export function StatTile({ label, value, delta, href, ...rest }: StatTileProps) {
@@ -19,8 +22,7 @@ export function StatTile({ label, value, delta, href, ...rest }: StatTileProps) 
       <span className="lims-stat-value">{value}</span>
       {delta ? (
         <span className={`lims-stat-delta lims-tone-${tone}`} data-tone={tone}>
-          <span aria-hidden="true">{ARROW[delta.direction]} </span>
-          {WORD[delta.direction]} {delta.value}
+          <Icon name={ARROW[delta.direction]} size={14} /> {WORD[delta.direction]} {delta.value}
           {delta.isGood !== undefined && delta.direction !== 'flat' ? <span className="lims-stat-judgement">{delta.isGood ? ' (better)' : ' (worse)'}</span> : null}
         </span>
       ) : null}

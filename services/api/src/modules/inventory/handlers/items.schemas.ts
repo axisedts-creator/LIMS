@@ -3,31 +3,31 @@
 import { LimsError, type FieldError } from '../../../core/errors.js';
 import { isUuid } from '../repository/_base.js';
 
-type Rule = (v: unknown) => boolean;
-type Obj = Record<string, any>;
+export type Rule = (v: unknown) => boolean;
+export type Obj = Record<string, any>;
 const MSG = { 'common.field_required': 'Field required', 'common.unknown_field': 'Unknown field', 'common.field_invalid': 'Field invalid' } as const;
 
 export const fieldError = (path: string, code: keyof typeof MSG = 'common.field_invalid'): FieldError => ({ path, code, message: MSG[code] });
 export const invalid = (...errs: FieldError[]): LimsError => new LimsError('common.validation_failed', undefined, errs);
 const pointer = (k: string): string => `/${k.slice(0, 64).replaceAll('~', '~0').replaceAll('/', '~1')}`;
-const isObj = (v: unknown): v is Obj => typeof v === 'object' && v !== null && !Array.isArray(v);
+export const isObj = (v: unknown): v is Obj => typeof v === 'object' && v !== null && !Array.isArray(v);
 
 const cp = (s: string): number => [...s].length; // DB char_length counts code points
-const text = (min: number, max: number): Rule => (v) => typeof v === 'string' && cp(v) >= min && cp(v) <= max && (min === 0 || v.trim() !== '');
-const pat = (re: RegExp, max: number): Rule => (v) => typeof v === 'string' && v.length <= max && re.test(v);
-const oneOf = (...vals: string[]): Rule => (v) => typeof v === 'string' && vals.includes(v);
-const bool: Rule = (v) => typeof v === 'boolean';
-const int = (min: number, max: number): Rule => (v) => typeof v === 'number' && Number.isInteger(v) && v >= min && v <= max;
+export const text = (min: number, max: number): Rule => (v) => typeof v === 'string' && cp(v) >= min && cp(v) <= max && (min === 0 || v.trim() !== '');
+export const pat = (re: RegExp, max: number): Rule => (v) => typeof v === 'string' && v.length <= max && re.test(v);
+export const oneOf = (...vals: string[]): Rule => (v) => typeof v === 'string' && vals.includes(v);
+export const bool: Rule = (v) => typeof v === 'boolean';
+export const int = (min: number, max: number): Rule => (v) => typeof v === 'number' && Number.isInteger(v) && v >= min && v <= max;
 /** DecimalStringPositive: numeric(18,6) as a string; the server also checks > 0. */
-const posDec: Rule = (v) => typeof v === 'string' && /^[0-9]{1,12}(\.[0-9]{1,6})?$/.test(v) && /[1-9]/.test(v);
+export const posDec: Rule = (v) => typeof v === 'string' && /^[0-9]{1,12}(\.[0-9]{1,6})?$/.test(v) && /[1-9]/.test(v);
 
 export const ITEM_CODE = /^[A-Z0-9][A-Z0-9_.\-]{0,31}$/;
 const UOM = pat(/^[a-z][a-z0-9_]{0,31}$/, 32);
-const CATEGORIES = ['reagent', 'kit', 'consumable', 'control', 'calibrator', 'other'];
+export const CATEGORIES = ['reagent', 'kit', 'consumable', 'control', 'calibrator', 'other'];
 export const UNSET_FIELDS = ['manufacturer', 'catalogue_no', 'storage_condition', 'open_stability_days', 'container_qty_base', 'hs_code', 'default_tax_code', 'notes'] as const;
 const BARCODE_RAW = /^[\x21-\x7E]{1,64}$/; // checked on the RAW text: 'straße' / 'ıd' upper-case into ASCII and must not sneak past
 
-function parse(body: unknown, rules: Record<string, Rule>, required: readonly string[] = []): Obj {
+export function parse(body: unknown, rules: Record<string, Rule>, required: readonly string[] = []): Obj {
   if (!isObj(body)) throw invalid(fieldError('/'));
   const errs: FieldError[] = [];
   const out: Obj = {};

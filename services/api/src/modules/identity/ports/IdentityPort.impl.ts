@@ -1,6 +1,7 @@
 // IdentityPort implementation (02-TRD §7; 03-IC §4.6; 08 A4.2, A19 D-100/D-119, A21.2, A22.2, A26.1, A28.3; CR-C2-013).
 // Per-request memo (keyed by ctx.tx + requestId + tenant + actor), per-process settings cache (TTL 30 s), privileged re-validation
 // without memo. All reads go through CoreAdminRepo in ctx.tx; nothing here touches the db directly.
+import { idMetrics } from '../metrics.js';
 import type {
   ActorProfile, IdentityPort, PartnerRole, Signatory, TenantSettings,
 } from '../../../../../../contracts/ports/IdentityPort.js';
@@ -116,6 +117,8 @@ export function createIdentityPort(deps: IdentityPortDeps): IdentityPortImpl {
   const unwired = () => err('common.internal', 'identity: patient writer not wired');
   const ttl = deps.settingsTtlMs ?? 30_000;                                                  // 02-TRD §7.3 [CONV]
   const memo = new WeakMap<object, Map<string, Promise<Resolved>>>();
+  // T28: default sink = the identity process sink (metrics.ts); a test may inject its own.
+  const authzMetric = (o: AuthzOutcome, privileged: boolean) => (deps.metrics ? deps.metrics.authzDecision(o, privileged) : idMetrics.authz(undefined, o, privileged));
   const settingsCache = new Map<string, { value: TenantSettings; loadedAt: number }>();
 
   const tenantOf = (ctx: any): string => {
@@ -253,7 +256,8 @@ export function createIdentityPort(deps: IdentityPortDeps): IdentityPortImpl {
   async function settings(ctx: any): Promise<TenantSettings> {
     const t = tenantOf(ctx);
     const hit = settingsCache.get(t);
-    if (hit && nowMs() - hit.loadedAt < ttl) return hit.value;
+    if (hit && nowMs() - hit.loadedAt < ttl) { idMetrics.settingsCache(undefined, 'hit'); return hit.value; }
+    idMetrics.settingsCache(undefined, 'miss');   // T28 (02-TRD §13)
     const loaded = (await repo.tenantSettings(ctx)) ?? DEFAULT_SETTINGS;
     const value = copy(loaded);
     settingsCache.set(t, { value, loadedAt: nowMs() });
@@ -274,10 +278,10 @@ export function createIdentityPort(deps: IdentityPortDeps): IdentityPortImpl {
         await authorize(ctx, req, privileged);
       } catch (e) {
         const o = outcomeOf(e);
-        if (o) deps.metrics?.authzDecision(o, privileged);
+        if (o) authzMetric(o, privileged);
         throw e;
       }
-      deps.metrics?.authzDecision('allow', privileged);
+      authzMetric('allow', privileged);
     },
 
     async getTenantSettings(ctx, input) {

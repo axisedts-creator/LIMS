@@ -248,7 +248,7 @@ describe('rejection event + hold_since (AC-06.8; 02-TRD §7.7 H1-H4; 03-IC §3.2
   it('the payload holds the 03-IC keys only (no values, no observation ids, no tenant, no actor)', async () => {
     const h = makeRunHarness();
     await rejectAt(h, D('09:00:00'), D('09:00:05'));
-    expect(Object.keys(payloadOf(h)).sort()).toEqual(['analyte_ids', 'controls_per_run', 'hold_since', 'instrument_id', 'qc_run_id', 'rejected_at', 'rule_mode', 'run_at', 'rules_violated']);
+    expect(Object.keys(payloadOf(h)).sort()).toEqual(['analyte_ids', 'controls_per_run', 'hold_since', 'instrument_id', 'qc_run_id', 'rejected_at', 'rule_mode', 'rules_violated', 'run_at']);
   });
   it('rules_violated is in canonical order and within the event enum (2-2s + R-4s + 1-3s at completion)', async () => {
     const h = makeRunHarness();

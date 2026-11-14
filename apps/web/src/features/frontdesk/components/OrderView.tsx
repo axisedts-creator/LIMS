@@ -19,6 +19,7 @@ import { PAYMENT_METHODS } from '@/features/billing/server/types';
 import { cancelOrderAction, changeOrderItemsAction, quoteItemsChangeAction, recordPaymentAction, uploadTrfAction } from '../server/actions';
 import type { CatalogOption, Coded, Order, OrderBilling, OrderItem } from '../server/types';
 import { BsAd, Status, errorText, formatNpr, hasPerm, humanize, npr } from './format';
+import './frontdesk.css';
 
 type Tab = 'items' | 'billing' | 'attachments';
 type Open = { kind: 'none' } | { kind: 'cancel' } | { kind: 'add' } | { kind: 'pay' } | { kind: 'remove'; item: OrderItem };
@@ -71,7 +72,7 @@ export function OrderView({ order, billing, permissions, cancelReasons, removalR
         <div><dt>Billing mode</dt><dd>{humanize(order.billing_mode)}</dd></div>
         {order.referrer_name ? <div><dt>Referrer</dt><dd>{order.referrer_name}</dd></div> : null}
         {order.registered_at ? <div><dt>Registered</dt><dd><BsAd utc={order.registered_at} /></dd></div> : null}
-        {order.flags.length ? <div><dt>Flags</dt><dd>{order.flags.map((f) => <span key={f.id} className="lims-chip" style={{ marginRight: 4 }}>{humanize(f.kind)} ({f.status})</span>)}</dd></div> : null}
+        {order.flags.length ? <div><dt>Flags</dt><dd>{order.flags.map((f) => <span key={f.id} className="lims-chip lims-chip-gap">{humanize(f.kind)} ({f.status})</span>)}</dd></div> : null}
       </dl>
 
       {notice ? <div role="alert"><Banner tone="danger" title={notice} /></div> : null}
@@ -84,11 +85,11 @@ export function OrderView({ order, billing, permissions, cancelReasons, removalR
             {editable ? <Button variant="primary" onPress={() => openDialog({ kind: 'add' })}>Add tests</Button> : null}
             <table>
               <caption>Order items</caption>
-              <thead><tr><th scope="col">Code</th><th scope="col">Name</th><th scope="col">Priority</th><th scope="col">Status</th><th scope="col" style={{ textAlign: 'end' }}>Price</th><th scope="col">Actions</th></tr></thead>
+              <thead><tr><th scope="col">Code</th><th scope="col">Name</th><th scope="col">Priority</th><th scope="col">Status</th><th scope="col" className="lims-cell-end">Price</th><th scope="col">Actions</th></tr></thead>
               <tbody>
                 {order.items.map((i) => (
                   <tr key={i.id}>
-                    <td>{i.code}</td><td>{i.name}</td><td>{humanize(i.priority)}</td><td>{humanize(i.status)}</td><td style={{ textAlign: 'end' }}>{npr(i.unit_price)}</td>
+                    <td>{i.code}</td><td>{i.name}</td><td>{humanize(i.priority)}</td><td>{humanize(i.status)}</td><td className="lims-cell-end">{npr(i.unit_price)}</td>
                     <td>{editable && !GONE.includes(i.status) ? <Button size="sm" onPress={() => openDialog({ kind: 'remove', item: i })}>Remove</Button> : null}</td>
                   </tr>
                 ))}

@@ -1,0 +1,33 @@
+/* RS-C4 (LD-140; 10-DESIGN-SYSTEM s4 Register, s6): tokens only, no raw colour, no pixel radius.
+   Register = Patient / Tests / Billing stacked in one left column + a sticky summary on the right. */
+.lims-reg-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(16rem, 22rem); gap: var(--lims-space-4); align-items: start; }
+.lims-reg-main { display: flex; flex-direction: column; gap: var(--lims-space-4); min-width: 0; }
+/* the shell top bar is sticky and 56 px tall: stay clear of it (space-16 = 64 px) */
+.lims-reg-summary { position: sticky; top: var(--lims-space-16); display: flex; flex-direction: column; gap: var(--lims-space-3); padding: var(--lims-space-4); border: 1px solid var(--lims-neutral-200); border-radius: var(--lims-radius-lg); background: var(--lims-neutral-0); box-shadow: var(--lims-elevation-1); }
+.lims-reg-summary-title { margin: 0; font-size: var(--lims-font-size-md-size); }
+.lims-reg-summary-list { display: flex; flex-direction: column; gap: var(--lims-space-2); margin: 0; }
+.lims-reg-summary-row { display: flex; justify-content: space-between; align-items: baseline; gap: var(--lims-space-3); }
+.lims-reg-summary-row dt { color: var(--lims-neutral-600); }
+.lims-reg-summary-row dd { margin: 0; text-align: end; }
+.lims-reg-summary-tests { margin: 0; padding: 0; list-style: none; color: var(--lims-neutral-600); font-size: var(--lims-font-size-sm-size); }
+.lims-reg-summary-balance { padding-top: var(--lims-space-2); border-top: 1px solid var(--lims-neutral-200); font-size: var(--lims-font-size-lg-size); font-weight: var(--lims-font-weight-bold); }
+.lims-reg-summary-balance dt { color: inherit; }
+@media (max-width: 1023px) {
+  .lims-reg-layout { grid-template-columns: minmax(0, 1fr); }
+  .lims-reg-summary { position: static; }
+}
+
+.lims-reg-section { display: flex; flex-direction: column; gap: var(--lims-space-3); }
+.lims-reg-pair { display: flex; flex-wrap: wrap; gap: var(--lims-space-3); }
+.lims-reg-pay-row { display: flex; flex-direction: column; gap: var(--lims-space-1); margin-bottom: var(--lims-space-3); }
+.lims-reg-actions { display: flex; flex-wrap: wrap; gap: var(--lims-space-2); margin-top: var(--lims-space-4); }
+.lims-reg-fieldset { min-width: 0; margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: var(--lims-space-2); }
+.lims-reg-fieldset legend { padding: 0; font-weight: var(--lims-font-weight-semibold); }
+.lims-reg-hint { margin: 0; color: var(--lims-neutral-600); font-size: var(--lims-font-size-sm-size); }
+.lims-total-net { font-size: var(--lims-font-size-lg-size); font-weight: var(--lims-font-weight-bold); }
+
+.lims-reg-no { font-size: var(--lims-font-size-2xl-size); font-weight: var(--lims-font-weight-bold); user-select: all; }
+.lims-reg-paid-due { display: flex; gap: var(--lims-space-6); }
+
+.lims-chip-gap { margin-inline-end: var(--lims-space-1); }
+.lims-cell-end { text-align: end; }

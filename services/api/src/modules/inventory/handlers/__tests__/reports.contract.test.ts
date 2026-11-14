@@ -5,7 +5,7 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { A, BR1_ONLY, COST, EXPORT, NO_COST, OPS, PERMISSION, READ, READ_ONLY, REPORTS, call, deadTx, expectLims, makeRepCtx, rej, rep, uid, win, type RepOpts } from './reports.helpers.js';
+import { A, BR1_ONLY, COST, EXPORT, NO_COST, OPS, PERMISSION, READ, READER, READ_ONLY, REPORTS, call, deadTx, expectLims, makeRepCtx, rej, rep, uid, win, type RepOpts } from './reports.helpers.js';
 
 const fresh = (o: RepOpts = {}) => { const tx = deadTx(); return { tx, ...makeRepCtx(tx, A, o) }; };
 const W = win('2026-03-02', '2026-03-05');

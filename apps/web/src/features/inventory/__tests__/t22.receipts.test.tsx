@@ -181,7 +181,12 @@ describe('S7 receive against a PO (F-04 step 6, F-05; AC-06.1, AC-06.2)', () => 
     expect(puts()[0]!.headers.get('if-match')).toBe('"3"');
     expect(puts()[0]!.path).toBe(`/v1/inventory/goods-receipts/${GRN1}`);
     expect(creates()).toHaveLength(1);
+    // contract PUT /v1/inventory/goods-receipts/{grn_id} = GrnDraft minus kind, store_id (additionalProperties: false)
+    expect(puts()[0]!.json).not.toHaveProperty('kind');
+    expect(puts()[0]!.json).not.toHaveProperty('store_id');
+    expect(puts()[0]!.json).toMatchObject({ lines: expect.any(Array) });
   });
+
 
   it('AC-06.1 Post receipt: ConfirmDialog "Post this receipt? Stock will be added and the receipt can no longer be edited."; confirm POSTs /post with Idempotency-Key + If-Match; toast "Receipt posted — 1 lots"', async () => {
     api.use(drafted({ version: 2 }), http.post(`${ORIGIN}/v1/inventory/goods-receipts/:id/post`, () => HttpResponse.json(grn(5, { id: GRN1, status: 'posted', posted_at: new Date().toISOString(), version: 3 }))));
@@ -396,6 +401,24 @@ describe('S7 opening balance and step-up (AC-06.7, PE-1)', () => {
     await userEvent.click(await screen.findByRole('button', { name: /^new receipt$/i }));
     return dialogNamed(/new receipt/i);
   };
+
+  it('after the first save the Kind radio is gone and the Store cannot be changed (kind and store_id are fixed once a draft exists)', async () => {
+    api.use(drafted({ kind: 'opening_balance', supplier_id: undefined, po_id: undefined }));
+    const dlg = await openNew(PERM_STOCK_ADJUST);
+    expect(within(dlg).getByRole('radio', { name: /opening balance/i })).toBeTruthy(); // editable before the first save
+    await userEvent.click(within(dlg).getByRole('radio', { name: /opening balance/i }));
+    await choose(dlg, /^store/i, /synthetic store 1/i);
+    await userEvent.type(within(dlg).getAllByRole('combobox', { name: /^item/i })[0]!, 'GLU');
+    await userEvent.click(await screen.findByRole('option', { name: /GLU-R1/ }));
+    await userEvent.clear(qtyBox(dlg)); await userEvent.type(qtyBox(dlg), '3');
+    await fillLot(dlg, 'L-OPEN-1');
+    await userEvent.click(saveBtn(dlg));
+    await waitFor(() => expect(creates()).toHaveLength(1));
+    await waitFor(() => expect(within(dlg).queryByRole('radio', { name: /opening balance/i })).toBeNull());
+    expect(within(dlg).queryByRole('radio', { name: /^purchase$/i })).toBeNull();
+    const store = within(dlg).queryByRole('button', { name: /^store/i }); // read-only text, or a disabled Select
+    expect(store === null || disabled(store)).toBe(true);
+  });
 
   it('"Opening balance" is offered only with inventory.stock.adjust', async () => {
     const plain = await openNew(PERM_STOCK);

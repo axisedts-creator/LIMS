@@ -120,6 +120,8 @@ const OPERATION_IDS = [
   'listUsers', 'inviteUser', 'searchUsers', 'getUser', 'updateUser', 'setUserRoles', 'setUserCentreScope', 'lockUser',
   'unlockUser', 'deactivateUser', 'reactivateUser', 'resendInvitation', 'resetUserMfa', 'revokeUserSessions',
   'uploadUserSignature', 'listPermissions', 'listRoles', 'createRole', 'getRole', 'updateRole', 'deactivateRole',
+  // RM-T05 / LD-158: CR-C2-RM-001 (LD-150) ops; stubs only (not-implemented), real applyRolePack is not part of RM-T05.
+  'listRolePacks', 'applyRolePack',
   'listBranches', 'createBranch', 'updateBranch', 'deactivateBranch', 'reactivateBranch', 'listCentres', 'createCentre',
   'updateCentre', 'deactivateCentre', 'reactivateCentre', 'getSettings', 'updateSettings', 'uploadBrandingAsset',
   'getBrandingAssetContent', 'listFeatureFlags', 'setTenantFeatureFlag', 'listOwnIrdAnnexes', 'listSessions', 'revokeSession',

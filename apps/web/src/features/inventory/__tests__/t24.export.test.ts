@@ -70,30 +70,65 @@ describe('export route: abuse and failure', () => {
     expect(res.status).toBe(401);
     expect(hits).toHaveLength(0);
   });
-  it.each([403, 404, 422])('upstream %i is passed through with an EMPTY body (inventory.export_too_large / range_too_large / forbidden text is not echoed)', async (status) => {
-    api.use(http.get(`${ORIGIN}/v1/inventory/reports/:code/export.csv`, () => HttpResponse.json({ code: 'inventory.export_too_large', detail: 'secret upstream detail', request_id: 'r' }, { status })));
+  // Review item 4: a plain <a href> download must never land the user on a blank page. Any non-200 -> 303 to /inventory/reports?<same page query>&export_error=<code>,
+  // <code> = the upstream problem `code` if it is a contract x-error-code for #93, else common.internal. Upstream text is never echoed.
+  const where = (res: Response) => new URL(res.headers.get('location') ?? '', 'http://app.test');
+  const fail = (status: number, body: unknown) => api.use(http.get(`${ORIGIN}/v1/inventory/reports/:code/export.csv`, () => HttpResponse.json(body as never, { status })));
+  it.each([
+    [403, 'auth.forbidden'], [403, 'auth.mfa_required'], [404, 'common.not_found'], [422, 'inventory.export_too_large'], [422, 'inventory.range_too_large'],
+  ])('upstream %i %s -> 303 to /inventory/reports with export_error=<that code>; empty body; upstream text is not echoed', async (status, code) => {
+    fail(status, { type: `urn:lims:error:${code}`, code, title: 'secret upstream title', detail: 'secret upstream detail', request_id: 'r' });
     const res = await GET('daily_consumption');
-    expect(res.status).toBe(status);
+    expect(res.status).toBe(303);
+    const u = where(res);
+    expect(u.pathname).toBe('/inventory/reports');
+    expect(u.searchParams.get('export_error')).toBe(code);
+    expect(res.headers.get('location')).not.toMatch(/secret|jwt-synthetic/);
     expect(await res.text()).toBe('');
   });
-  it.each([500, 502, 503, 429])('upstream %i -> 502, empty body', async (status) => {
-    api.use(http.get(`${ORIGIN}/v1/inventory/reports/:code/export.csv`, () => HttpResponse.json({ detail: 'stack trace' }, { status })));
+  it('the redirect keeps the page query (tab + filters) so the banner appears on the same report', async () => {
+    fail(422, { code: 'inventory.export_too_large', request_id: 'r' });
+    const res = await GET('wastage', '?business_date_from=2026-10-01&business_date_to=2026-10-31&store_id=S-1');
+    const u = where(res);
+    expect(u.searchParams.get('report')).toBe('wastage');
+    expect(u.searchParams.get('store')).toBe('S-1');
+    expect(u.searchParams.get('export_error')).toBe('inventory.export_too_large');
+  });
+  it('an upstream code that is not a contract code for #93 (or is garbage/script) becomes common.internal', async () => {
+    for (const code of ['inventory.made_up', '<script>alert(1)</script>', 'x'.repeat(500)]) {
+      resetHits(); api.resetHandlers();
+      fail(422, { code, detail: 'secret upstream detail', request_id: 'r' });
+      const res = await GET('daily_consumption');
+      expect(res.status, code).toBe(303);
+      expect(where(res).searchParams.get('export_error'), code).toBe('common.internal');
+    }
+  });
+  it.each([500, 502, 503, 429])('upstream %i -> 303 with export_error=common.internal (no stack trace echoed)', async (status) => {
+    fail(status, { detail: 'stack trace' });
     const res = await GET('daily_consumption');
-    expect(res.status).toBe(502);
+    expect(res.status).toBe(303);
+    expect(where(res).searchParams.get('export_error')).toBe('common.internal');
+    expect(res.headers.get('location')).not.toMatch(/stack/);
     expect(await res.text()).toBe('');
   });
-  it('upstream 401 -> 401 (session expired), not 502', async () => {
+  it('upstream 401 (session expired) -> 303 with export_error=<its code> or common.internal; never a blank 401 page', async () => {
     api.use(http.get(`${ORIGIN}/v1/inventory/reports/:code/export.csv`, () => new HttpResponse(null, { status: 401 })));
-    expect((await GET('wastage')).status).toBe(401);
+    const res = await GET('wastage');
+    expect(res.status).toBe(303);
+    expect(where(res).searchParams.get('export_error')).toBeTruthy();
   });
-  it('network failure -> 502 (no throw)', async () => {
+  it('network failure -> 303 with export_error=common.internal (no throw)', async () => {
     api.use(http.get(`${ORIGIN}/v1/inventory/reports/:code/export.csv`, () => HttpResponse.error()));
-    expect((await GET('wastage')).status).toBe(502);
+    const res = await GET('wastage');
+    expect(res.status).toBe(303);
+    expect(where(res).searchParams.get('export_error')).toBe('common.internal');
   });
-  it('an upstream redirect is never followed (no token forwarded to another host)', async () => {
+  it('an upstream redirect is never followed (no token forwarded to another host); the user gets the common.internal banner redirect', async () => {
     api.use(http.get(`${ORIGIN}/v1/inventory/reports/:code/export.csv`, () => new HttpResponse(null, { status: 302, headers: { location: 'http://evil.test/steal' } })));
     const res = await GET('wastage');
-    expect(res.status).toBe(502);
+    expect(res.status).toBe(303);
+    expect(where(res).pathname).toBe('/inventory/reports');
+    expect(where(res).host).toBe('app.test'); // our own origin, not evil.test
     expect(hits.some((h) => /evil\.test/.test(h.path))).toBe(false);
   });
   it('query parameters that are not report filters are not forwarded (no header/param smuggling)', async () => {

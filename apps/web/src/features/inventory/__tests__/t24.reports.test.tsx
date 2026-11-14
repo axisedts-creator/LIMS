@@ -102,7 +102,17 @@ describe('S17 filters and request (TRD #92)', () => {
     await waitFor(() => expect(reportCalls('daily_consumption')).toHaveLength(1));
     const p = q(reportCalls('daily_consumption')[0]!);
     expect(Object.fromEntries(['business_date_from', 'business_date_to', 'store_id', 'instrument_id', 'test_id', 'item_id'].map((k) => [k, p.get(k)])))
-      .toEqual({ business_date_from: '2026-10-01', business_date_to: '2026-10-31', store_id: 'S-1', instrument_id: 'I-1', test_id: 'T-1', item_id: 'M-1' });
+      .toEqual({ business_date_from: '2026-10-01', business_date_to: '2026-11-01', store_id: 'S-1', instrument_id: 'I-1', test_id: 'T-1', item_id: 'M-1' }); // contract: business_date_to is EXCLUSIVE (CV §4.4) -> picked end date + 1 day
+  });
+  it('Item filter control (04-UI-UX S17 "Common filters: … analyser, test, item"): picking an item navigates with item=<id>; with ?item= the request carries item_id', async () => {
+    await mount();
+    await screen.findByRole('grid');
+    const combo = screen.getByRole('combobox', { name: /^item/i });
+    await userEvent.type(combo, 'GLU');
+    await userEvent.click(await screen.findByRole('option', { name: /GLU-R1/ }));
+    await waitFor(() => expect(router.push.mock.calls.length + router.replace.mock.calls.length).toBeGreaterThan(0));
+    const target = String([...router.push.mock.calls, ...router.replace.mock.calls].at(-1)![0]);
+    expect(new URL(target, 'http://app.test').searchParams.get('item')).toBe('01950c12-0000-7000-8000-000000000011');
   });
   it('the date control is the kit DateRangePicker with a 366-day maximum', async () => {
     await mount();
@@ -137,7 +147,7 @@ describe('S17 filters and request (TRD #92)', () => {
     cleanup(); resetHits();
     await mount({ report: 'stock_valuation', as_of: '2026-10-15T00:00:00.000Z' });
     await waitFor(() => expect(reportCalls('stock_valuation')).toHaveLength(1));
-    expect(q(reportCalls('stock_valuation')[0]!).get('as_of')).toBe('2026-10-15T00:00:00.000Z');
+    expect(q(reportCalls('stock_valuation')[0]!).get('as_of')).toBe('2026-10-15'); // contract #92 as_of is IsoDate (YYYY-MM-DD, Asia/Kathmandu calendar date of the picked instant)
   });
 });
 
@@ -288,9 +298,25 @@ describe('AC-21.8 export affordance', () => {
     const u = new URL(a.getAttribute('href')!, 'http://app.test');
     expect(u.pathname).toBe('/inventory/reports/daily_consumption/export');
     expect(u.searchParams.get('business_date_from')).toBe('2026-10-01');
-    expect(u.searchParams.get('business_date_to')).toBe('2026-10-31');
+    expect(u.searchParams.get('business_date_to')).toBe('2026-11-01'); // exclusive upper bound
     expect(u.searchParams.get('store_id')).toBe('S-1');
     expect(u.search).not.toMatch(/token|bearer|jwt/i);
+  });
+  it('?export_error=<contract code> (set by the export route on failure) shows a ProblemBanner alert; the report stays usable', async () => {
+    state.permissions = PERM_EXPORT;
+    await mount({ export_error: 'inventory.export_too_large' });
+    await screen.findByRole('grid');
+    expect(screen.getAllByRole('alert').some((a) => a.textContent && a.textContent.trim().length > 0)).toBe(true);
+  });
+  it('?export_error=auth.mfa_required shows the step-up copy; an unknown ?export_error value is not echoed into the page', async () => {
+    state.permissions = PERM_EXPORT;
+    await mount({ export_error: 'auth.mfa_required' });
+    await screen.findByRole('grid');
+    expect(screen.getAllByRole('alert').map((a) => a.textContent).join(' ')).toMatch(/step.?up|verify|multi-factor|mfa|second factor|authenticat/i);
+    cleanup(); resetHits();
+    await mount({ export_error: '<img src=x onerror=alert(1)>' });
+    await screen.findByRole('grid');
+    expect(document.body.innerHTML).not.toContain('onerror=alert');
   });
   it('it follows the tab: Wastage exports wastage', async () => {
     state.permissions = PERM_EXPORT;

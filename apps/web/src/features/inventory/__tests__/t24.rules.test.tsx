@@ -96,6 +96,14 @@ describe('S13 list (TRD #69)', () => {
     await screen.findByRole('grid');
     expect(new URLSearchParams(hit('GET', /^\/v1\/inventory\/consumption-rules$/)[0]!.search).get(api_)).toBe(v);
   });
+  it('Item filter control (04-UI-UX S13 "Filters: kind, test, analyser, item, show history"): picking an item in the filter row navigates with item=<id>, which the list sends as item_id', async () => {
+    await mount();
+    await screen.findByRole('grid');
+    await pick(document.body, /^item/i, /GLU-R1/, 'GLU'); // filter row Combobox (searchItemsAction); the New-rule Drawer is closed so this is the only Item control
+    await waitFor(() => expect(router.push.mock.calls.length + router.replace.mock.calls.length).toBeGreaterThan(0));
+    const target = String([...router.push.mock.calls, ...router.replace.mock.calls].at(-1)![0]);
+    expect(new URL(target, 'http://app.test').searchParams.get('item')).toBe(ID(11));
+  });
   it('status shows tone + icon + word: Current / Superseded / Inactive (E9: rules of inactive items are flagged)', async () => {
     api.use(http.get(`${ORIGIN}/v1/inventory/consumption-rules`, () => page([
       rule(1), rule(2, { effective_to: isoAgo(1), supersedes_rule_id: undefined }), rule(3, { is_active: false }),

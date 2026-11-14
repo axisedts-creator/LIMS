@@ -2,6 +2,7 @@
 // ponytail: local PasswordField (show/hide toggle, 04-UI-UX §2.1) — the kit has no PasswordField yet; swap for
 // @lims/ui/components/PasswordField once C0-0D ships it.
 import { useId, useState } from 'react';
+import { RequiredNote } from '../ui';
 
 export interface PasswordFieldProps {
   label: string;
@@ -22,6 +23,7 @@ export function PasswordField({ label, name, autoComplete, maxLength, value, onC
       <label className="lims-label" htmlFor={id}>
         {label}
       </label>
+      <RequiredNote />
       <div className="lims-input-group">
         <input
           id={id}

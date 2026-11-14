@@ -1,4 +1,5 @@
 // SCR-06 Tests list — server component; rows link to the detail page. Cursor paging via ?cursor= (CV §4.3).
+import { Stack } from '@lims/ui/components/Stack';
 import { getShellSession } from '@/core/session/server';
 import { listTests } from '@/features/catalog/server/listTests.server';
 
@@ -11,7 +12,7 @@ export default async function TestsPage({ searchParams }: { searchParams: Promis
   const cursor = typeof sp['cursor'] === 'string' ? sp['cursor'] : undefined;
   const { data, page } = await listTests(cursor);
   return (
-    <div className="lims-stack" style={{ gap: 'var(--lims-space-3)' }}>
+    <Stack gap={3}>
       <h1 className="lims-page-title">Tests</h1>
       {data.length === 0 ? (
         <p>No tests yet.</p>
@@ -33,6 +34,6 @@ export default async function TestsPage({ searchParams }: { searchParams: Promis
         </table>
       )}
       {page.next_cursor ? <a href={`/catalog/tests?cursor=${encodeURIComponent(page.next_cursor)}`}>Next</a> : null}
-    </div>
+    </Stack>
   );
 }

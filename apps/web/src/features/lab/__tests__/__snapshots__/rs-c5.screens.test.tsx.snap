@@ -1,0 +1,509 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`RS-C5 key screens (DOM snapshots) > collect / dispatch: tabs with counts 1`] = `
+"<section aria-label="Collect and dispatch">
+<div class="lims-page-header">
+<div class="lims-page-header-row">
+<h1 class="lims-page-title">Collect &amp; dispatch</h1>
+<div class="lims-page-actions">
+<span data-help-key="lab.collect">
+<button class="lims-btn lims-btn-ghost lims-btn-md" data-rac="" type="button" tabindex="0" data-ID="true" id="ID">
+<svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 3a9 9 0 100 18 9 9 0 000-18zM9.5 9.5a2.5 2.5 0 115 0c0 2-2.5 2-2.5 4M12 17h.01">
+</path>
+</svg>
+<span class="lims-btn-label">Help</span>
+</button>
+</span>
+</div>
+</div>
+</div>
+<template>
+</template>
+<div class="lims-tabs" data-rac="" data-orientation="horizontal" data-focused="true" data-focus-visible="true">
+<div class="lims-tablist" data-rac="" data-collection="ID" id="ID" aria-label="Collect and dispatch" role="tablist" aria-orientation="horizontal" data-orientation="horizontal">
+<div class="lims-tab" data-rac="" tabindex="0" data-collection="ID" data-key="collect" data-ID="true" id="ID" aria-selected="true" aria-controls="ID" role="tab" data-selected="true">Collect <span class="lims-tab-badge">0</span>
+</div>
+<div class="lims-tab" data-rac="" tabindex="-1" data-collection="ID" data-key="dispatch" data-ID="true" id="ID" aria-selected="false" role="tab">Dispatch <span class="lims-tab-badge">0</span>
+</div>
+</div>
+<div id="ID" aria-labelledby="ID" role="tabpanel" class="lims-tabpanel" data-rac="">
+<div>
+<div class="lims-field lims-barcode">
+<label class="lims-label" for="_r_t_">Scan barcode or enter registration number</label>
+<input id="_r_t_" class="lims-input lims-mono" autocomplete="off" autocapitalize="characters" spellcheck="false" type="text" name="scan">
+<span role="status" class="lims-visually-hidden">
+</span>
+</div>
+<p role="status" class="lims-description">
+</p>
+<div class="lims-state">
+<svg aria-hidden="true" focusable="false" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M4 7h16v12H4zM4 7l3-3h10l3 3">
+</path>
+</svg>
+<p class="lims-state-title">Scan a label to start.</p>
+</div>
+</div>
+</div>
+</div>
+</section>
+<div class="lims-toast-region">
+</div>"
+`;
+
+exports[`RS-C5 key screens (DOM snapshots) > receive: scan box, location, session-log tabs with counts 1`] = `
+"<section aria-label="Receive specimens">
+<div class="lims-page-header">
+<div class="lims-page-header-row">
+<h1 class="lims-page-title">Receive specimens</h1>
+<div class="lims-page-actions">
+<span data-help-key="lab.receive">
+<button class="lims-btn lims-btn-ghost lims-btn-md" data-rac="" type="button" tabindex="0" data-ID="true" id="ID">
+<svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 3a9 9 0 100 18 9 9 0 000-18zM9.5 9.5a2.5 2.5 0 115 0c0 2-2.5 2-2.5 4M12 17h.01">
+</path>
+</svg>
+<span class="lims-btn-label">Help</span>
+</button>
+</span>
+</div>
+</div>
+</div>
+<div>
+<template>
+</template>
+<div class="lims-field" data-rac="" data-required="true">
+<span class="lims-label" id="ID">Receiving location<span aria-hidden="true"> *</span>
+</span>
+<button id="ID" class="lims-input lims-select-trigger" data-rac="" type="button" tabindex="0" data-ID="true" aria-labelledby="ID ID" aria-haspopup="listbox" aria-expanded="false">
+<span id="ID" class="ID" data-rac="">Synthetic Central Lab</span>
+<svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M6 9l6 6 6-6">
+</path>
+</svg>
+</button>
+<div style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: fixed; width: 1px; white-space: nowrap; top: 0px; left: 0px;" aria-hidden="true" data-ID="true" data-a11y-ignore="aria-hidden-focus" data-testid="hidden-select-container">
+<label>
+<select tabindex="-1" name="location">
+<option value="" label="&nbsp;">&nbsp;</option>
+<option value="01a1a98a-ac40-7000-8000-000000002001">Synthetic Central Lab</option>
+</select>
+</label>
+</div>
+</div>
+<label data-ID="true" class="lims-switch" data-rac="">
+<span style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: absolute; width: 1px; white-space: nowrap;">
+<input data-ID="true" tabindex="0" role="switch" type="checkbox" aria-checked="false">
+</span>
+<span class="lims-switch-track" aria-hidden="true">
+<span class="lims-switch-thumb">
+</span>
+</span>Auto-accept</label>
+</div>
+<div>
+<div class="lims-field lims-barcode">
+<label class="lims-label" for="_r_e_">Scan barcode</label>
+<input id="_r_e_" class="lims-input lims-mono" autocomplete="off" autocapitalize="characters" spellcheck="false" type="text" name="scan">
+<span role="status" class="lims-visually-hidden">
+</span>
+</div>
+</div>
+<p role="status" class="lims-description">
+</p>
+<template>
+</template>
+<div class="lims-tabs" data-rac="" data-orientation="horizontal">
+<div class="lims-tablist" data-rac="" data-collection="ID" id="ID" aria-label="Session log" role="tablist" aria-orientation="horizontal" data-orientation="horizontal">
+<div class="lims-tab" data-rac="" tabindex="0" data-collection="ID" data-key="all" data-ID="true" id="ID" aria-selected="true" aria-controls="ID" role="tab" data-selected="true">All <span class="lims-tab-badge">0</span>
+</div>
+<div class="lims-tab" data-rac="" tabindex="-1" data-collection="ID" data-key="received" data-ID="true" id="ID" aria-selected="false" role="tab">Received <span class="lims-tab-badge">0</span>
+</div>
+<div class="lims-tab" data-rac="" tabindex="-1" data-collection="ID" data-key="rejected" data-ID="true" id="ID" aria-selected="false" role="tab">Rejected <span class="lims-tab-badge">0</span>
+</div>
+<div class="lims-tab" data-rac="" tabindex="-1" data-collection="ID" data-key="errors" data-ID="true" id="ID" aria-selected="false" role="tab">Errors <span class="lims-tab-badge">0</span>
+</div>
+</div>
+<div id="ID" aria-labelledby="ID" tabindex="0" role="tabpanel" class="lims-tabpanel" data-rac="">
+</div>
+</div>
+</section>
+<div class="lims-toast-region">
+</div>"
+`;
+
+exports[`RS-C5 key screens (DOM snapshots) > result entry: three-step tracks (Entered / Senior technician / Pathologist), source chip, delta 1`] = `
+"<section aria-label="Result entry">
+<div class="lims-page-header">
+<div class="lims-page-header-row">
+<h1 class="lims-page-title">Results — REG0042</h1>
+<div class="lims-page-actions">
+<span data-help-key="lab.results">
+<button class="lims-btn lims-btn-ghost lims-btn-md" data-rac="" type="button" tabindex="0" data-ID="true" id="ID">
+<svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 3a9 9 0 100 18 9 9 0 000-18zM9.5 9.5a2.5 2.5 0 115 0c0 2-2.5 2-2.5 4M12 17h.01">
+</path>
+</svg>
+<span class="lims-btn-label">Help</span>
+</button>
+</span>
+</div>
+</div>
+</div>
+<div>
+<label data-ID="true" class="lims-switch" data-rac="">
+<span style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: absolute; width: 1px; white-space: nowrap;">
+<input data-ID="true" tabindex="0" role="switch" type="checkbox">
+</span>
+<span class="lims-switch-track" aria-hidden="true">
+<span class="lims-switch-thumb">
+</span>
+</span>Downtime back-entry</label>
+</div>
+<div>
+<div class="lims-egrid">
+<table role="grid" aria-label="Results of REG0042" aria-rowcount="6" aria-colcount="11" class="lims-table lims-egrid-table">
+<thead>
+<tr role="row" aria-rowindex="1">
+<th role="columnheader" aria-colindex="1" scope="col">Analyte</th>
+<th role="columnheader" aria-colindex="2" scope="col">Value</th>
+<th role="columnheader" aria-colindex="3" scope="col">Unit</th>
+<th role="columnheader" aria-colindex="4" scope="col">Flag</th>
+<th role="columnheader" aria-colindex="5" scope="col">Ref range</th>
+<th role="columnheader" aria-colindex="6" scope="col">Δ</th>
+<th role="columnheader" aria-colindex="7" scope="col">Calculation</th>
+<th role="columnheader" aria-colindex="8" scope="col">Origin</th>
+<th role="columnheader" aria-colindex="9" scope="col">Entry</th>
+<th role="columnheader" aria-colindex="10" scope="col">Test</th>
+<th role="columnheader" aria-colindex="11" scope="col">Status</th>
+<th role="columnheader" scope="col" data-slot="comment" aria-colindex="12">Comment</th>
+</tr>
+</thead>
+<tbody>
+<tr role="row" aria-rowindex="2" data-status="saved">
+<td role="gridcell" aria-colindex="1" tabindex="0" aria-readonly="true">Hemoglobin HB</td>
+<td role="gridcell" aria-colindex="2" tabindex="-1" aria-readonly="true">13.50</td>
+<td role="gridcell" aria-colindex="3" tabindex="-1" aria-readonly="true">g_dl</td>
+<td role="gridcell" aria-colindex="4" tabindex="-1" aria-readonly="true">
+</td>
+<td role="gridcell" aria-colindex="5" tabindex="-1" aria-readonly="true">
+</td>
+<td role="gridcell" aria-colindex="6" tabindex="-1" aria-readonly="true">No previous</td>
+<td role="gridcell" aria-colindex="7" tabindex="-1" aria-readonly="true">
+</td>
+<td role="gridcell" aria-colindex="8" tabindex="-1" aria-readonly="true">Manual</td>
+<td role="gridcell" aria-colindex="9" tabindex="-1" aria-readonly="true">
+</td>
+<td role="gridcell" aria-colindex="10" tabindex="-1" aria-readonly="true">CBC</td>
+<td role="gridcell" aria-colindex="11" tabindex="-1" class="lims-egrid-status">Verified</td>
+<td role="gridcell" data-slot="comment" aria-colindex="12">
+</td>
+</tr>
+<tr role="row" aria-rowindex="3" data-status="saved">
+<td role="gridcell" aria-colindex="1" tabindex="-1" aria-readonly="true">Leukocytes WBC</td>
+<td role="gridcell" aria-colindex="2" tabindex="-1" aria-readonly="true">12.40</td>
+<td role="gridcell" aria-colindex="3" tabindex="-1" aria-readonly="true">g_dl</td>
+<td role="gridcell" aria-colindex="4" tabindex="-1" aria-readonly="true">
+</td>
+<td role="gridcell" aria-colindex="5" tabindex="-1" aria-readonly="true">
+</td>
+<td role="gridcell" aria-colindex="6" tabindex="-1" aria-readonly="true">Δ +2.4 vs 10.0 (13 d ago)</td>
+<td role="gridcell" aria-colindex="7" tabindex="-1" aria-readonly="true">
+</td>
+<td role="gridcell" aria-colindex="8" tabindex="-1" aria-readonly="true">
+<span class="lims-chip lims-chip-sm lims-tone-info" data-tone="info">
+<svg aria-hidden="true" focusable="false" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 8h.01M11 12h1v5h1M12 3a9 9 0 100 18 9 9 0 000-18z">
+</path>
+</svg>Instrument</span>
+</td>
+<td role="gridcell" aria-colindex="9" tabindex="-1" aria-readonly="true">
+</td>
+<td role="gridcell" aria-colindex="10" tabindex="-1" aria-readonly="true">CBC</td>
+<td role="gridcell" aria-colindex="11" tabindex="-1" class="lims-egrid-status">Verified</td>
+<td role="gridcell" data-slot="comment" aria-colindex="12">
+</td>
+</tr>
+<tr role="row" aria-rowindex="4" data-status="saved">
+<td role="gridcell" aria-colindex="1" tabindex="-1" aria-readonly="true">Total cholesterol TC</td>
+<td role="gridcell" aria-colindex="2" tabindex="-1">4.10</td>
+<td role="gridcell" aria-colindex="3" tabindex="-1" aria-readonly="true">g_dl</td>
+<td role="gridcell" aria-colindex="4" tabindex="-1" aria-readonly="true">
+</td>
+<td role="gridcell" aria-colindex="5" tabindex="-1" aria-readonly="true">
+</td>
+<td role="gridcell" aria-colindex="6" tabindex="-1" aria-readonly="true">No previous</td>
+<td role="gridcell" aria-colindex="7" tabindex="-1" aria-readonly="true">
+</td>
+<td role="gridcell" aria-colindex="8" tabindex="-1" aria-readonly="true">Manual</td>
+<td role="gridcell" aria-colindex="9" tabindex="-1" aria-readonly="true">
+</td>
+<td role="gridcell" aria-colindex="10" tabindex="-1" aria-readonly="true">LIPID</td>
+<td role="gridcell" aria-colindex="11" tabindex="-1" class="lims-egrid-status">Resulted</td>
+<td role="gridcell" data-slot="comment" aria-colindex="12">
+<div>
+<textarea aria-label="Comment" rows="2">
+</textarea>
+</div>
+</td>
+</tr>
+<tr role="row" aria-rowindex="5" data-status="saved">
+<td role="gridcell" aria-colindex="1" tabindex="-1" aria-readonly="true">High density chol. HDL</td>
+<td role="gridcell" aria-colindex="2" tabindex="-1">1.20</td>
+<td role="gridcell" aria-colindex="3" tabindex="-1" aria-readonly="true">g_dl</td>
+<td role="gridcell" aria-colindex="4" tabindex="-1" aria-readonly="true">
+</td>
+<td role="gridcell" aria-colindex="5" tabindex="-1" aria-readonly="true">
+</td>
+<td role="gridcell" aria-colindex="6" tabindex="-1" aria-readonly="true">No previous</td>
+<td role="gridcell" aria-colindex="7" tabindex="-1" aria-readonly="true">
+</td>
+<td role="gridcell" aria-colindex="8" tabindex="-1" aria-readonly="true">Manual</td>
+<td role="gridcell" aria-colindex="9" tabindex="-1" aria-readonly="true">
+</td>
+<td role="gridcell" aria-colindex="10" tabindex="-1" aria-readonly="true">LIPID</td>
+<td role="gridcell" aria-colindex="11" tabindex="-1" class="lims-egrid-status">Resulted</td>
+<td role="gridcell" data-slot="comment" aria-colindex="12">
+<div>
+<textarea aria-label="Comment" rows="2">
+</textarea>
+</div>
+</td>
+</tr>
+<tr role="row" aria-rowindex="6" data-status="saved">
+<td role="gridcell" aria-colindex="1" tabindex="-1" aria-readonly="true">Glucose GLU</td>
+<td role="gridcell" aria-colindex="2" tabindex="-1" aria-readonly="true">5.10</td>
+<td role="gridcell" aria-colindex="3" tabindex="-1" aria-readonly="true">g_dl</td>
+<td role="gridcell" aria-colindex="4" tabindex="-1" aria-readonly="true">
+</td>
+<td role="gridcell" aria-colindex="5" tabindex="-1" aria-readonly="true">
+</td>
+<td role="gridcell" aria-colindex="6" tabindex="-1" aria-readonly="true">No previous</td>
+<td role="gridcell" aria-colindex="7" tabindex="-1" aria-readonly="true">
+</td>
+<td role="gridcell" aria-colindex="8" tabindex="-1" aria-readonly="true">Manual</td>
+<td role="gridcell" aria-colindex="9" tabindex="-1" aria-readonly="true">
+</td>
+<td role="gridcell" aria-colindex="10" tabindex="-1" aria-readonly="true">GLU</td>
+<td role="gridcell" aria-colindex="11" tabindex="-1" class="lims-egrid-status">Approved v1</td>
+<td role="gridcell" data-slot="comment" aria-colindex="12">
+</td>
+</tr>
+</tbody>
+</table>
+<span style="position: absolute; width: 1px; height: 1px; padding: 0px; margin: -1px; overflow: hidden; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); white-space: nowrap; border: 0px;">
+<span aria-live="polite">
+</span>
+</span>
+</div>
+</div>
+<section aria-label="Progress of CBC">
+<div class="lims-stepper">
+<ol class="lims-stepper-list">
+<li class="lims-step lims-step-done" data-tone="success">
+<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 3a9 9 0 100 18 9 9 0 000-18zM8 12l3 3 5-6">
+</path>
+</svg>
+<span class="lims-step-label">Entered</span> <span class="lims-step-state">(Complete)</span>
+</li>
+<li class="lims-step lims-step-current" data-tone="info" aria-current="step">
+<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 3a9 9 0 100 18 9 9 0 000-18zM12 9a3 3 0 100 6 3 3 0 000-6z">
+</path>
+</svg>
+<span class="lims-step-label">Senior technician</span> <span class="lims-step-state">(Current)</span>
+</li>
+<li class="lims-step lims-step-upcoming" data-tone="neutral">
+<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 3a9 9 0 100 18 9 9 0 000-18z">
+</path>
+</svg>
+<span class="lims-step-label">Pathologist</span> <span class="lims-step-state">(Upcoming)</span>
+</li>
+</ol>
+</div>
+<p class="lims-description">Next: Pathologist</p>
+</section>
+<section aria-label="Progress of LIPID">
+<div class="lims-stepper">
+<ol class="lims-stepper-list">
+<li class="lims-step lims-step-current" data-tone="info" aria-current="step">
+<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 3a9 9 0 100 18 9 9 0 000-18zM12 9a3 3 0 100 6 3 3 0 000-6z">
+</path>
+</svg>
+<span class="lims-step-label">Entered</span> <span class="lims-step-state">(Current)</span>
+</li>
+<li class="lims-step lims-step-upcoming" data-tone="neutral">
+<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 3a9 9 0 100 18 9 9 0 000-18z">
+</path>
+</svg>
+<span class="lims-step-label">Senior technician</span> <span class="lims-step-state">(Upcoming)</span>
+</li>
+<li class="lims-step lims-step-upcoming" data-tone="neutral">
+<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 3a9 9 0 100 18 9 9 0 000-18z">
+</path>
+</svg>
+<span class="lims-step-label">Pathologist</span> <span class="lims-step-state">(Upcoming)</span>
+</li>
+</ol>
+</div>
+<p class="lims-description">Next: Senior technician</p>
+</section>
+<section aria-label="Progress of GLU">
+<div class="lims-stepper">
+<ol class="lims-stepper-list">
+<li class="lims-step lims-step-done" data-tone="success">
+<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 3a9 9 0 100 18 9 9 0 000-18zM8 12l3 3 5-6">
+</path>
+</svg>
+<span class="lims-step-label">Entered</span> <span class="lims-step-state">(Complete)</span>
+</li>
+<li class="lims-step lims-step-done" data-tone="success">
+<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 3a9 9 0 100 18 9 9 0 000-18zM8 12l3 3 5-6">
+</path>
+</svg>
+<span class="lims-step-label">Senior technician</span> <span class="lims-step-state">(Complete)</span>
+</li>
+<li class="lims-step lims-step-current" data-tone="info" aria-current="step">
+<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 3a9 9 0 100 18 9 9 0 000-18zM12 9a3 3 0 100 6 3 3 0 000-6z">
+</path>
+</svg>
+<span class="lims-step-label">Pathologist</span> <span class="lims-step-state">(Current)</span>
+</li>
+</ol>
+</div>
+</section>
+<div role="toolbar" aria-label="Result actions">
+<button class="lims-btn lims-btn-primary lims-btn-md" data-rac="" type="button" tabindex="0" data-ID="true" id="ID">
+<span class="lims-btn-label">Save</span>
+</button>
+<button class="lims-btn lims-btn-secondary lims-btn-md" data-rac="" type="button" tabindex="0" data-ID="true" id="ID">
+<span class="lims-btn-label">Save &amp; verify</span>
+</button>
+<button class="lims-btn lims-btn-secondary lims-btn-md" data-rac="" type="button" tabindex="0" data-ID="true" id="ID">
+<span class="lims-btn-label">Approve</span>
+</button>
+<button class="lims-btn lims-btn-ghost lims-btn-md" data-rac="" type="button" tabindex="0" data-ID="true" id="ID">
+<span class="lims-btn-label">Return</span>
+</button>
+</div>
+</section>
+<div class="lims-toast-region">
+</div>"
+`;
+
+exports[`RS-C5 key screens (DOM snapshots) > worklist: table with the right panel open on the first sample 1`] = `
+"<section aria-label="Worklist">
+<h1>Worklist</h1>
+<div class="lims-toolbar">
+<label class="lims-field">Priority<select class="lims-input">
+<option value="">All</option>
+<option value="urgent">★ Urgent</option>
+<option value="routine">Routine</option>
+</select>
+</label>
+<label class="lims-field">Instrument<select class="lims-input">
+<option value="">All instruments</option>
+<option value="01a1a98a-ac40-7000-8000-000000000026">Synthetic Analyser A</option>
+</select>
+</label>
+<button class="lims-btn lims-btn-primary lims-btn-md" data-rac="" type="button" disabled="" data-ID="true" id="ID" data-disabled="true">
+<span class="lims-btn-label">Create worksheet</span>
+</button>
+</div>
+<div class="lims-grid lims-cols-2" style="gap: var(--lims-space-4);">
+<div>
+<table class="lims-table" aria-label="Worklist">
+<thead>
+<tr>
+<th scope="col">
+<span class="lims-visually-hidden">Select</span>
+</th>
+<th scope="col">Barcode</th>
+<th scope="col">Reg no</th>
+<th scope="col">Patient</th>
+<th scope="col">Test</th>
+<th scope="col">Priority</th>
+<th scope="col">Status</th>
+<th scope="col">Received</th>
+<th scope="col">Age since received</th>
+<th scope="col">TAT target</th>
+<th scope="col">Result entry</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<input aria-label="Select E2600000101 CBC" type="checkbox">
+</td>
+<td>E2600000101</td>
+<td>R2611050001</td>
+<td>Synthetic Patient 1 <span class="lims-muted">34Y/F</span>
+</td>
+<td>CBC</td>
+<td>★ Urgent</td>
+<td>In process</td>
+<td>2026-11-05 04:15 UTC</td>
+<td>220:45</td>
+<td>—</td>
+<td>
+<button class="lims-btn lims-btn-ghost lims-btn-sm" data-rac="" type="button" tabindex="0" data-ID="true" id="ID" data-hovered="true">
+<span class="lims-btn-label">Enter results E2600000101 CBC</span>
+</button>
+</td>
+</tr>
+<tr>
+<td>
+<input aria-label="Select E2600000102 CBC" type="checkbox">
+</td>
+<td>E2600000102</td>
+<td>R2611050002</td>
+<td>Synthetic Patient 2 <span class="lims-muted">34Y/F</span>
+</td>
+<td>CBC</td>
+<td>
+</td>
+<td>In process</td>
+<td>2026-11-05 04:15 UTC</td>
+<td>220:45</td>
+<td>—</td>
+<td>
+<button class="lims-btn lims-btn-ghost lims-btn-sm" data-rac="" type="button" tabindex="0" data-ID="true" id="ID">
+<span class="lims-btn-label">Enter results E2600000102 CBC</span>
+</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<aside aria-label="Result entry">
+<div class="lims-card">
+<h2 class="lims-card-title">Result entry</h2>
+<dl>
+<dt>Reg no</dt>
+<dd>R2611050001</dd>
+<dt>Patient</dt>
+<dd>Synthetic Patient 1 <span class="lims-muted">34Y/F</span>
+</dd>
+<dt>Test</dt>
+<dd>CBC</dd>
+</dl>
+<p>1 of 3 resulted</p>
+<a href="/lab/orders/01a1a98a-ac40-7000-8000-000000000513/results">Open result entry</a>
+<button class="lims-btn lims-btn-ghost lims-btn-md" data-rac="" type="button" tabindex="0" data-ID="true" id="ID">
+<span class="lims-btn-label">Close panel</span>
+</button>
+</div>
+</aside>
+</div>
+</section>
+<div class="lims-toast-region">
+</div>"
+`;

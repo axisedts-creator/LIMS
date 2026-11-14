@@ -142,7 +142,7 @@ export async function bootPipeline(o: {
       let p = cache.get(module);
       if (!p) {
         p = createPipeline({
-          env: config.env, db, idempotency, rateLimiter, authz, ports, services, log, metrics,
+          env: config.env, db, idempotency, rateLimiter, authz, ports, services, log, metrics, coreMetrics: o.metrics,
           shared: { ...shared, events: createEvents({ producer: module, log, metrics }) },
         });
         cache.set(module, p);

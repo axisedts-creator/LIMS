@@ -24,6 +24,8 @@ export function CreditPartyDetail({ party, charges, statement }: { party: Credit
   const stmtCols: ColumnDef<StatementMonth>[] = [
     { id: 'month', header: 'Month', isRowHeader: true, cell: (m) => m.period_month },
     { id: 'fy', header: 'Fiscal year', cell: (m) => m.fiscal_year_bs },
+    // RS-C4 / LD-140 (10-DESIGN-SYSTEM s4 Accounts): Opening is derived from served data (closing - invoiced + paid + credited = previous month's closing); no new field.
+    { id: 'opening', header: 'Opening', align: 'end', cell: (m) => npr({ ...m.closing_balance, amount_paisa: m.closing_balance.amount_paisa - m.invoiced.amount_paisa + m.paid.amount_paisa + m.credited.amount_paisa }) },
     { id: 'invoiced', header: 'Invoiced', align: 'end', cell: (m) => npr(m.invoiced) },
     { id: 'paid', header: 'Paid', align: 'end', cell: (m) => npr(m.paid) },
     { id: 'credited', header: 'Credited', align: 'end', cell: (m) => npr(m.credited) },

@@ -117,6 +117,15 @@ const DEFS = {
   lims_identity_stuffing_distinct_accounts_15m: ['gauge', [], 'Distinct failing accounts in the last 15 minutes'],
   lims_identity_stuffing_distinct_ips_15m: ['gauge', [], 'Distinct failing client IPs in the last 15 minutes'],
   lims_identity_audit_exports_tenant_day: ['gauge', ['tenant_id'], 'Audit exports created today by tenant'],
+  // C17 home collection (CR-C17-HC-T17-REG; LD-162 2026-11-14; C17 02-TRD §14 lines 589-596; names, types, labels verbatim)
+  lims_homecollection_mutations_total: ['counter', ['type', 'outcome'], 'Home-collection sync mutations by type and outcome'],
+  lims_homecollection_push_duration_seconds: ['histogram', [], 'Home-collection sync push duration in seconds'],
+  lims_homecollection_snapshot_duration_seconds: ['histogram', ['changed'], 'Home-collection sync snapshot duration in seconds by changed flag'],
+  lims_homecollection_held_open: ['gauge', ['tenant_id'], 'Open held home-collection mutations by tenant'],
+  lims_homecollection_clock_skew_seconds: ['histogram', ['clock_source'], 'Device clock skew in seconds by clock source'],
+  lims_homecollection_devices_stale_total: ['gauge', ['tenant_id'], 'Stale phlebotomy devices (pending sync, last seen over 2 h ago) by tenant'],
+  lims_homecollection_handover_overdue_open: ['gauge', ['tenant_id'], 'Open overdue sample handovers by tenant'],
+  lims_homecollection_events_published_total: ['counter', [], 'Home-collection domain events published'],
   // C13 b2b partner portal (CR-C13-T23; 02-TRD §13 lines 530-539; names, types, labels verbatim; lead T23-01)
   lims_partners_manifests_total: ['counter', ['transition'], 'Partner manifest transitions by transition'],
   lims_partners_line_conversions_total: ['counter', ['outcome', 'failure_code'], 'Partner manifest line conversions by outcome and failure code'],
@@ -128,6 +137,31 @@ const DEFS = {
   lims_partners_access_slip_issue_seconds: ['histogram', [], 'Partner access slip issue duration in seconds'],
   lims_partners_pickups_total: ['counter', ['transition'], 'Partner pickup transitions by transition'],
   lims_partners_partner_inactive_rejections_total: ['counter', [], 'Requests rejected because the partner is inactive'],
+  // C11 anatomic (02-TRD §12; LD-181 / CR-C11-T24). No tenant_id label: REQ-SEC-098 keeps ids out of labels.
+  lims_anatomic_cases_created_total: ['counter', ['case_kind'], 'Anatomic cases created by case kind'],
+  lims_anatomic_consumer_ignored_total: ['counter', ['reason'], 'Anatomic event-consumer messages ignored by reason'],
+  lims_anatomic_signouts_total: ['counter', ['version_kind'], 'Anatomic sign-outs by report version kind'],
+  lims_anatomic_submit_failures_total: ['counter', ['error_code'], 'Anatomic submit failures by error code'],
+  lims_anatomic_image_processing_total: ['counter', ['outcome'], 'Anatomic image processing by outcome'],
+  lims_anatomic_image_processing_seconds: ['histogram', [], 'Anatomic image processing duration in seconds'],
+  lims_anatomic_lookup_total: ['counter', ['result'], 'Anatomic lookups by result'],
+  // C9 quality (02-TRD §14; CR-C9-T26-001, lead ruling 2026-11-14). tenant_id on the 7 gauges only (REQ-SEC-098).
+  lims_quality_qc_observations_total: ['counter', ['status'], 'QC observations by status'],
+  lims_quality_qc_sync_last_success_timestamp_seconds: ['gauge', ['tenant_id'], 'Unix time of the last successful QC sync'],
+  lims_quality_qc_rejected_without_action_oldest_age_seconds: ['gauge', ['tenant_id'], 'Age of the oldest rejected QC run without corrective action in seconds'],
+  lims_quality_qc_runs_total: ['counter', ['outcome', 'rule_mode', 'n'], 'Evaluated QC runs by outcome, rule mode and n'],
+  lims_quality_qc_rule_hits_total: ['counter', ['rule'], 'QC rule hits by rule'],
+  lims_quality_qc_eval_lag_seconds: ['histogram', [], 'Lag from observation creation to QC evaluation in seconds'],
+  lims_quality_qc_open_rejected_runs: ['gauge', ['tenant_id'], 'Open rejected QC runs'],
+  lims_quality_qc_overdue_pairs: ['gauge', ['tenant_id'], 'Overdue QC test and instrument pairs'],
+  lims_quality_unassigned_observations: ['gauge', ['status', 'tenant_id'], 'Unassigned QC observations by status'],
+  lims_quality_port_duration_seconds: ['histogram', ['method'], 'Quality port call duration in seconds by method'],
+  lims_quality_autoverify_decisions_total: ['counter', ['mode', 'decision', 'reason'], 'Auto-verification decisions by mode, decision and reason'],
+  lims_quality_autoverify_short_circuit_total: ['counter', ['reason'], 'Auto-verification short circuits by reason'],
+  lims_quality_tat_sweep_duration_seconds: ['histogram', [], 'TAT sweep duration in seconds'],
+  lims_quality_tat_alerts_total: ['counter', ['level', 'segment'], 'TAT alerts raised by level and segment'],
+  lims_quality_tat_open_alerts: ['gauge', ['level', 'tenant_id'], 'Open TAT alerts by level'],
+  lims_quality_tat_alert_lag_seconds: ['histogram', [], 'Lag from TAT threshold crossing to alert row in seconds'],
 } as const satisfies Record<string, readonly [Kind, readonly string[], string]>;
 
 export type MetricName = keyof typeof DEFS;

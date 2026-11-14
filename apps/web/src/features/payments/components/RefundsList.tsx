@@ -121,12 +121,12 @@ export function RefundsList({ refunds, permissions, currentMembershipId, codes, 
           {isOwn(r) && !ownAllowed(r) ? (
             <SecondPersonHint />
           ) : (
-            <Button size="sm" variant="primary" onPress={() => open('approve', r)}>Approve</Button>
+            <Button size="sm" variant="secondary" onPress={() => open('approve', r)}>Approve</Button>
           )}
           <Button size="sm" variant="danger" onPress={() => open('reject', r)}>Reject</Button>
         </>
       ) : null}
-      {canApprove && OPEN_STATES.includes(r.status) && r.mode !== 'api' ? <Button size="sm" variant="primary" onPress={() => open('confirm', r)}>Confirm refund done</Button> : null}
+      {canApprove && OPEN_STATES.includes(r.status) && r.mode !== 'api' ? <Button size="sm" variant="secondary" onPress={() => open('confirm', r)}>Confirm refund done</Button> : null}
       {canRecheck && OPEN_STATES.includes(r.status) ? <Button size="sm" onPress={() => void recheck(r)}>Re-check</Button> : null}
       {canApprove && OPEN_STATES.includes(r.status) ? <Button size="sm" variant="danger" onPress={() => open('fail', r)}>Mark refund failed</Button> : null}
     </div>
@@ -228,7 +228,7 @@ function SecondPersonHint() {
       tabIndex={0} {...(show ? { 'aria-describedby': id } : {})} onMouseEnter={() => setShow(true)} onMouseLeave={() => setShow(false)} onFocus={() => setShow(true)}
       onBlur={() => setShow(false)} onKeyDown={(e) => { if (e.key === 'Escape') setShow(false); }}
     >
-      <Button size="sm" variant="primary" isDisabled>Approve</Button>
+      <Button size="sm" variant="secondary" isDisabled>Approve</Button>
       {show ? <span id={id} role="tooltip" className="lims-tooltip">{SECOND_PERSON}</span> : null}
     </span>
   );

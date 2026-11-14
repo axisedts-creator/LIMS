@@ -2,7 +2,7 @@
 // Order of every operation: assertRole (aal2 for quality.autoverify.manage is enforced by the port: auth.mfa_required propagates unchanged) -> validate body ->
 // If-Match present? -> load through the tenant-scoped repo (404 when invisible) -> version check -> state machine -> DSL + catalog -> write.
 // Tenant, actor, ids and the clock come from ctx / the service, never from a body. Errors throw LimsError; the core rolls the request transaction back (02-CV §4.6).
-// Activation (#43, AV5) and the access-log rows are T-17. Nothing here deletes: stopped shadow rows stay (D-55).
+// Activation (#43, AV5) is activation.service.ts (T-17); #44 writes its access-log row here. Nothing here deletes: stopped shadow rows stay (D-55).
 import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';
 import { LimsError, isLimsError } from '../../../core/errors.js';
 import { referencedTestIds, validateRuleSetDefinition, type CatalogTest } from '../domain/autoverify-dsl.js';
@@ -17,6 +17,7 @@ export interface AutoverifyCtx {
   readonly tx: any;
   readonly now: () => string;
   readonly ports?: any;
+  readonly audit?: { access(entry: Record<string, unknown>): Promise<void> };
 }
 export interface Result { status: number; body: unknown; version?: number }
 
@@ -219,6 +220,8 @@ export function createAutoverifyService(deps: { repo?: AutoverifyRepo } = {}) {
       const { cur, to } = await loadForAction(ctx, i.versionId, i.expectedVersion, 'retire');
       const row = await writeVersion(ctx, cur, { status: to, retired_at: ctx.now(), retired_by: ctx.actor.id, retire_reason: reason });
       await clearPointer(ctx, cur['id'], 'active_version_id');   // all live decisions are then `rule_missing` (TRD §8.4)
+      if (!ctx.audit) throw new LimsError('common.internal');   // T-17, AC-13.7: access-log row after the write; fail closed (the request tx rolls the retire back)
+      await ctx.audit.access({ action: 'autoverify.retire', entityType: 'autoverify_version', entityId: cur['id'], outcome: 'allowed' });
       return ok(ctx, row);
     },
 

@@ -39,10 +39,16 @@ const EXPECTED_OPS = [
 ];
 /** operationIds whose stub a later task has replaced; that task moves its ids here (tester-owned list). T-06 moved #1-#13 here. */
 const IMPLEMENTED: readonly string[] = [
-  ...EXPECTED_OPS.slice(0, 33),   // T-06 #1-#13, T-07 #14-#19, T-08 #20-#25, T-12 #26-#33 (listQcObservations … acknowledgeQcRun; ruling C9.T-12-ruling.md #4)
+  ...EXPECTED_OPS.slice(0, 35),   // T-06 #1-#13, T-07 #14-#19, T-08 #20-#25, T-12 #26-#33 (listQcObservations … acknowledgeQcRun; ruling C9.T-12-ruling.md #4), T-13 #34 (getQcStatusBoard), T-14 #35 (getLeveyJenningsChart)
   // T-15 real handlers (#36-#41, #44, #45) — arbiter ruling .orchestra/notes/C9.T-06-ruling.md
   'getAutoverifyRuleSet', 'createAutoverifyVersion', 'getAutoverifyVersion', 'replaceAutoverifyDraft', 'startAutoverifySimulation',
   'stopAutoverifySimulation', 'retireAutoverifyVersion', 'discardAutoverifyDraft',
+  // T-17 real handlers (#42, #43, #46, #47: simulation report, activation, decisions)
+  'getAutoverifySimulationReport', 'activateAutoverifyVersion', 'listAutoverifyDecisions', 'getAutoverifyDecision',
+  // T-19 real handlers (#48-#50)
+  'listTatAlerts', 'getTatAlert', 'acknowledgeTatAlert',
+  // T-20 real handlers (#51-#54: settings + coded sets)
+  'getQualitySettings', 'updateQualitySettings', 'listQualityCodedSet', 'upsertQualityCode',
 ];
 
 const FAKE_REQ = { params: {}, query: {}, headers: {}, body: {} };
@@ -163,9 +169,11 @@ describe('C9 T-01 phase switch LIMS_QUALITY_ENABLED (02-TRD §12.2)', () => {
   it('flipping the flag to true changes the answer from feature_disabled to the stub (the flag is honoured, not hard-coded)', async () => {
     const off = await withEnv('dev', 'false');
     const on = await withEnv('dev', 'true');
-    const op = OPS.find((o) => !IMPLEMENTED.includes(o))!;
+    const stub = OPS.find((o) => !IMPLEMENTED.includes(o));   // none left once T-19 lands (all 54 real); then the flag-on answer must simply not be feature_disabled
+    const op = stub ?? OPS[0]!;
     expect((await outcome(off.m.handlers[op]!(FAKE_REQ, fakeCtx(op)))).ok).toBe(false);
-    expect(await on.m.handlers[op]!(FAKE_REQ, fakeCtx(op))).toMatchObject({ status: 501 });
+    if (stub) expect(await on.m.handlers[op]!(FAKE_REQ, fakeCtx(op))).toMatchObject({ status: 501 });
+    else { const r = await outcome(on.m.handlers[op]!(FAKE_REQ, fakeCtx(op))); if (!r.ok) expect(on.isLimsError(r.e, 'common.feature_disabled')).toBe(false); }
   });
 });
 

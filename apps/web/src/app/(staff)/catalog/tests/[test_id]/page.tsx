@@ -1,4 +1,5 @@
 // SCR-06…08 Test detail — server component. 404 (incl. another tenant's test) and non-UUID ids → notFound(); other errors → error.tsx.
+import { Stack } from '@lims/ui/components/Stack';
 import { notFound } from 'next/navigation';
 import { ApiError } from '@/core/api/server-fetch';
 import { getShellSession } from '@/core/session/server';
@@ -97,9 +98,9 @@ export default async function TestPage({ params, searchParams }: { params: Promi
   }
 
   return (
-    <div className="lims-stack" style={{ gap: 'var(--lims-space-4)' }}>
+    <Stack gap={4}>
       <TestHeader test={test as TestDto} />
       <TestTabs testId={test_id} tab={tab} analyteId={analyteId}>{body}</TestTabs>
-    </div>
+    </Stack>
   );
 }

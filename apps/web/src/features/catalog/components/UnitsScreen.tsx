@@ -17,7 +17,8 @@ import { DUPLICATE, EditorDialog, MasterTable, canManage, changed, statusText, u
 
 const scope = (r: { scope: 'global' | 'tenant' }) => (r.scope === 'global' ? 'Global' : 'Lab');
 const SYSTEM = 'Provided by the system';
-const lock = (r: { scope: string }) => (r.scope === 'global' ? <span role="img" aria-label={SYSTEM} title={SYSTEM}>🔒</span> : null);
+// 10-DESIGN-SYSTEM §6: no emoji; system rows say so with a text Badge (named "Provided by the system") instead of a lock glyph.
+const lock = (r: { scope: string }) => (r.scope === 'global' ? <span role="img" aria-label={SYSTEM} title={SYSTEM}><Badge tone="neutral">System</Badge></span> : null);
 const IN_USE = 'This value set is used by a published analyte version; values can be added or hidden, not removed or re-ordered.';
 
 export function UnitsScreen({ units, valueSets, permissions }: { units: readonly Unit[]; valueSets: readonly ValueSet[]; permissions: readonly string[] }) {
@@ -119,6 +120,7 @@ function ValueSetDialog({ item, onClose }: { item: ValueSet | undefined; onClose
   };
   return (
     <EditorDialog
+      width="lg"
       title={item ? 'Edit value set' : 'New value set'}
       savedText="Value set saved."
       onClose={onClose}

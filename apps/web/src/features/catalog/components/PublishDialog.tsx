@@ -85,8 +85,8 @@ export function PublishDialog({ analyte, version, rangeDraft, criticalDraft, uni
         ) : null}
         {criticalDraft ? <Checkbox label={`Also publish critical-limit draft (version ${criticalDraft.version_no})`} isSelected={withCritical} onChange={setWithCritical} /> : null}
         {needsAck ? <Checkbox label="Publish without reference ranges" isSelected={withoutRanges} onChange={setWithoutRanges} /> : null}
-        <p><span aria-hidden="true">🔒</span> Requires two-step verification</p>
-        <div className="lims-inline" style={{ gap: 'var(--lims-space-2)', justifyContent: 'flex-end' }}>
+        <p>Requires two-step verification</p>
+        <div className="lims-inline catalog-gap-2 catalog-end">
           <Button variant="ghost" onPress={onClose}>Cancel</Button>
           <GatedButton type="submit" variant="primary" shortcut="Ctrl+Enter" isLoading={busy} missing={missing} {...(blocked ? { isDisabled: true } : {})}>Publish</GatedButton>
         </div>

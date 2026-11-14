@@ -2,7 +2,7 @@ import 'server-only';
 // BFF reads for the inventory master-data screens (S2-S5, S14). Every call carries the session bearer on the server only (REQ-SEC-068).
 import { notFound } from 'next/navigation';
 import { ApiError, serverFetch } from '@/core/api/server-fetch';
-import { UUID_RE, type Analyte, type BalanceRow, type Binding, type Branch, type CodedValue, type Container, type Count, type CountLine, type CountSummary, type Department, type FefoSuggestion, type Instrument, type Item, type ItemSummary, type Lot, type Page, type StockFilters, type StockMovement, type Store, type StoreItemSetting, type Supplier, type SupplierItem, type SupplierSummary, type TestRef, type Transfer, type TransferSummary, type TransferTarget } from './types';
+import { UUID_RE, type Alert, type AlertFilters, type FactRef, type Settings, type Analyte, type BalanceRow, type Binding, type Branch, type CodedValue, type Container, type Count, type CountLine, type CountSummary, type Department, type FefoSuggestion, type Grn, type GrnFilters, type GrnSummary, type Po, type PoFilters, type PoPrintView, type PoSummary, type Instrument, type Item, type ItemSummary, type Lot, type Page, type StockFilters, type StockMovement, type Store, type StoreItemSetting, type Supplier, type SupplierItem, type SupplierSummary, type TestRef, type Transfer, type TransferSummary, type TransferTarget } from './types';
 
 const uuid = (v: string) => {
   if (!UUID_RE.test(v)) notFound();
@@ -85,3 +85,24 @@ export async function lotsByItems(itemIds: readonly string[]): Promise<Lot[]> {
 export const listSuppliers =(f: { cursor?: string } = {}) => serverFetch<Page<SupplierSummary>>(`/v1/inventory/suppliers${qs({ cursor: f.cursor, limit: 100 })}`);
 export const getSupplier = (id: string) => serverFetch<Supplier>(`/v1/inventory/suppliers/${uuid(id)}`);
 export const listSupplierItems = (id: string) => serverFetch<Page<SupplierItem>>(`/v1/inventory/suppliers/${uuid(id)}/items${qs({ limit: 200 })}`);
+
+// ---- T-22 purchasing + receiving (S6, S7). The API omits cost fields for callers without inventory.cost.read.
+export const listPos = (f: PoFilters = {}) =>
+  serverFetch<Page<PoSummary>>(`/v1/inventory/purchase-orders${qs({ status: f.status, supplier_id: f.supplier, branch_id: f.branch, created_at_from: f.createdFrom, created_at_to: f.createdTo, limit: 100 })}`);
+export const getPo = (id: string) => serverFetch<Po>(`/v1/inventory/purchase-orders/${uuid(id)}`);
+export const getPoPrintView = (id: string) => serverFetch<PoPrintView>(`/v1/inventory/purchase-orders/${uuid(id)}/print-view`);
+export const listGrns = (f: GrnFilters = {}) =>
+  serverFetch<Page<GrnSummary>>(`/v1/inventory/goods-receipts${qs({ status: f.status, store_id: f.store, supplier_id: f.supplier, po_id: f.poId, limit: 100 })}`);
+export const getGrn = (id: string) => serverFetch<Grn>(`/v1/inventory/goods-receipts/${uuid(id)}`);
+// ---- T-20 shell (S1 home, S16 alerts, S18 settings)
+export const listAlerts = (f: AlertFilters = {}) =>
+  serverFetch<Page<Alert>>(`/v1/inventory/alerts${qs({ status: f.status?.join(','), alert_kind: f.alertKind, store_id: f.storeId, limit: f.limit ?? 200 })}`);
+export const listUnresolvedFacts = () => serverFetch<Page<FactRef>>(`/v1/inventory/consumption-facts${qs({ status: 'unresolved', limit: 200 })}`);
+// Set-up checklist probes (S1): one row is enough to know a step has been started.
+export const listRules = () => serverFetch<Page<{ id: string }>>(`/v1/inventory/consumption-rules${qs({ limit: 1 })}`);
+export const listOpeningMovements = () => serverFetch<Page<{ id: string }>>(`/v1/inventory/movements${qs({ movement_kind: 'opening_balance', limit: 1 })}`);
+export const getSettings = () => serverFetch<Settings>('/v1/inventory/settings');
+
+/** Reason codes live in the shared `reasons` coded set, selected by reason_group (contract form; there is no /coded-sets/po_cancel). */
+export const listReasons = (group: 'po_cancel' | 'po_close') =>
+  serverFetch<Page<CodedValue & { is_active?: boolean }>>(`/v1/inventory/coded-sets/reasons${qs({ reason_group: group, limit: 200 })}`).then((r) => r.data.filter((c) => c.is_active !== false));

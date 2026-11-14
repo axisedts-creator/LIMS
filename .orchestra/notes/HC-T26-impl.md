@@ -1,0 +1,6 @@
+# HC-T26 impl (writer)
+- Files: features/visit/{data/mutation_sink,domain/visit_models,domain/visit_guard,ui/save_once,ui/visit_screen,ui/visit_flow_screen}.dart · identity/ui/identity_screen · consent/ui/consent_screen · collect/ui/collect_screen · payment/ui/payment_screen · outcome/ui/{complete,fail_visit}_screen. Also outbox/data/outbox_repository.dart: `implements MutationSink` + `@override` (tests require it).
+- Run (after tester fix eca0476c, no impl change): HC-T26-verify.cmd, all 6 files, 146/146 pass. flutter analyze lib/features + __tests__: no errors; only info/warning on unused imports in test files (not writer-owned).
+- [CONV] mismatch recorded once; further Continue only re-shows the Fail visit/Back dialog; choices freeze after the mismatch. Flow keeps an in-memory copy of the log (wrapper sink) and rebuilds progress with VisitGuard; stale visit + consent given shows a blocking "Tubes unavailable" screen with "Can't do this visit".
+- [CONV] M8 clears older snackbars at the start of each Finish attempt.
+- Open: lims_ui LimsTextField has no onSubmitted, so HID/manual submit listens for focus loss after the done action (tapping elsewhere also submits leftover text); needs onSubmitted in lims_ui. HID burst timing (≤30 ms/≥4 chars) and re-auth (US-07-8) not implemented. HID refocus after scan is untested on a device.

@@ -35,7 +35,7 @@ function Screen() {
       <PageHeader title="Collect & dispatch" helpKey="lab.collect" />
       <Tabs
         aria-label="Collect and dispatch"
-        items={[{ id: 'collect', label: 'Collect' }, { id: 'dispatch', label: 'Dispatch' }]}
+        items={[{ id: 'collect', label: 'Collect', count: pick.length }, { id: 'dispatch', label: 'Dispatch', count: batch.length }]}
         selectedId={tab}
         onChange={(id) => setTab(id === 'dispatch' ? 'dispatch' : 'collect')}
       >

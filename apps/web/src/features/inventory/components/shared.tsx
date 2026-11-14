@@ -136,11 +136,15 @@ export const yesNo = (b: boolean) => (b ? 'Yes' : 'No');
 export const isoDate = (s: string | undefined) => (s ? s.slice(0, 10) : '—');
 
 /** Filters live in the URL (shareable, the server component re-fetches). Text is debounced. */
-export function useUrlFilters(keys: readonly string[]) {
+export function useUrlFilters(keys: readonly string[], ranges: readonly { id: string; from: string; to: string }[] = []) {
   const router = useRouter();
   const pathname = usePathname();
   const sp = useSearchParams();
-  const [value, setValue] = useState<FilterValue>(() => Object.fromEntries(keys.map((k) => [k, sp.get(k) ?? undefined])));
+  // A range filter (FilterBar date_range = [from, to]) lives in two query params: `from` / `to` hold the UTC day bounds.
+  const [value, setValue] = useState<FilterValue>(() => ({
+    ...Object.fromEntries(keys.map((k) => [k, sp.get(k) ?? undefined])),
+    ...Object.fromEntries(ranges.map((r) => [r.id, sp.get(r.from) && sp.get(r.to) ? [sp.get(r.from)!.slice(0, 10), sp.get(r.to)!.slice(0, 10)] : undefined])),
+  }));
   const first = useRef(true);
   useEffect(() => {
     if (first.current) {
@@ -153,6 +157,16 @@ export function useUrlFilters(keys: readonly string[]) {
         const x = value[k];
         if (typeof x === 'string' && x) p.set(k, x);
         else p.delete(k);
+      }
+      for (const r of ranges) {
+        const x = value[r.id];
+        if (Array.isArray(x) && x.length === 2) {
+          p.set(r.from, `${x[0]}T00:00:00.000Z`);
+          p.set(r.to, `${x[1]}T23:59:59.999Z`);
+        } else {
+          p.delete(r.from);
+          p.delete(r.to);
+        }
       }
       p.delete('cursor');
       const qs = p.toString();

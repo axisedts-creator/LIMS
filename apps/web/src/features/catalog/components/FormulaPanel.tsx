@@ -8,6 +8,7 @@ import { IntegerField } from '@lims/ui/components/IntegerField';
 import { Select } from '@lims/ui/components/Select';
 import { validateFormulaAction } from '../server/actions';
 import { SEXES, type FormulaValidation } from '../server/types';
+import './catalog.css';
 
 const DEBOUNCE_MS = 400;
 /** '/expression/4' → 4 (character offset); anything else → 0. */
@@ -66,7 +67,7 @@ export function FormulaPanel({ analyteId, value, onChange, error, isReadOnly }: 
   };
 
   return (
-    <div className="lims-stack" style={{ gap: 'var(--lims-space-3)' }}>
+    <div className="lims-stack catalog-gap-3">
       <div aria-live="polite">
         <FormulaEditor
           label="Formula"
@@ -92,8 +93,7 @@ export function FormulaPanel({ analyteId, value, onChange, error, isReadOnly }: 
       {codes.length > 0 ? (
         // Enter here must not submit the surrounding analyte form; it runs the sample instead.
         <div
-          className="lims-stack"
-          style={{ gap: 'var(--lims-space-2)' }}
+          className="lims-stack catalog-gap-2"
           onKeyDown={(e) => {
             if (e.key === 'Enter' && !e.ctrlKey && !e.metaKey) {
               e.preventDefault();

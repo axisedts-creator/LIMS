@@ -85,6 +85,12 @@ export function focusFirstInvalid(root: HTMLElement | null) {
 }
 
 // ---------------------------------------------------------------- fields
+/** LD-140 / 10-DESIGN-SYSTEM §3: required fields say "Required" in words, next to (not inside) the label so label names stay exact. */
+export function RequiredNote() {
+  // the spaces keep the field's text "Email Required Show" (not "EmailRequiredShow") for text readers and search
+  return <>{' '}<p className="lims-description">Required</p>{' '}</>;
+}
+
 interface FieldProps {
   label: string; value: string; onChange?: (v: string) => void; error?: string | undefined; hint?: string | undefined; type?: string; readOnly?: boolean | undefined;
   maxLength?: number; inputMode?: 'text' | 'numeric' | 'tel' | 'email'; multiline?: boolean; id?: string; autoComplete?: string; required?: boolean;
@@ -101,6 +107,7 @@ export function Field({ label, value, onChange, error, hint, type = 'text', read
   return (
     <div className="lims-field">
       <label htmlFor={fid} className="lims-label">{label}</label>
+      {required ? <RequiredNote /> : null}
       {multiline ? <textarea rows={3} {...common} /> : <input type={type} {...common} {...(inputMode ? { inputMode } : {})} {...(autoComplete ? { autoComplete } : {})} />}
       {hint ? <p id={`${fid}-hint`} className="lims-description">{hint}</p> : null}
       {error ? <p id={`${fid}-err`} className="lims-error">{error}</p> : null}

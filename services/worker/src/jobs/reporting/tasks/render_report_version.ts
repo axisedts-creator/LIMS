@@ -30,7 +30,7 @@ export const json = (v: unknown) => (typeof v === 'string' ? JSON.parse(v) : v);
 export const codeOf =(e: unknown) => String((e as Row)?.code ?? '');
 
 /** A failure that no retry can fix: the version goes straight to render_failed with `code`. */
-export class Permanent extends Error { constructor(readonly code: string) { super(code); } }
+export class Permanent extends Error { readonly code: string; constructor(code: string) { super(code); this.code = code; } }
 
 /** D15: {tenant}/{yyyy}/{mm}/{report_id}-v{n}.pdf, yyyy/mm = version created_at in UTC (not the run date). */
 function objectPath(tenantId: string, v: Row): string {

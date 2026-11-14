@@ -115,6 +115,15 @@ const EXPECTED: Record<string, 'counter' | 'gauge' | 'histogram'> = {
   lims_identity_stuffing_distinct_accounts_15m: 'gauge',
   lims_identity_stuffing_distinct_ips_15m: 'gauge',
   lims_identity_audit_exports_tenant_day: 'gauge',
+  // LD-162 (CR-C17-HC-T17-REG): C17 02-TRD §14 lines 589-596, verbatim.
+  lims_homecollection_mutations_total: 'counter',
+  lims_homecollection_push_duration_seconds: 'histogram',
+  lims_homecollection_snapshot_duration_seconds: 'histogram',
+  lims_homecollection_held_open: 'gauge',
+  lims_homecollection_clock_skew_seconds: 'histogram',
+  lims_homecollection_devices_stale_total: 'gauge',
+  lims_homecollection_handover_overdue_open: 'gauge',
+  lims_homecollection_events_published_total: 'counter',
 
   // C13 additions — CR-C13-T23 / lead T23-01, names and types from C13 02-TRD section 13 (lines 530-539).
   lims_partners_manifests_total: 'counter',
@@ -127,6 +136,32 @@ const EXPECTED: Record<string, 'counter' | 'gauge' | 'histogram'> = {
   lims_partners_access_slip_issue_seconds: 'histogram',
   lims_partners_pickups_total: 'counter',
   lims_partners_partner_inactive_rejections_total: 'counter',
+
+  // C11 additions — LD-181 / CR-C11-T24, names and types from C11 02-TRD section 12.
+  lims_anatomic_cases_created_total: 'counter',
+  lims_anatomic_consumer_ignored_total: 'counter',
+  lims_anatomic_signouts_total: 'counter',
+  lims_anatomic_submit_failures_total: 'counter',
+  lims_anatomic_image_processing_total: 'counter',
+  lims_anatomic_image_processing_seconds: 'histogram',
+  lims_anatomic_lookup_total: 'counter',
+  // C9 additions — CR-C9-T26-001, names and types from C9 02-TRD section 14 (16 metrics).
+  lims_quality_qc_observations_total: 'counter',
+  lims_quality_qc_sync_last_success_timestamp_seconds: 'gauge',
+  lims_quality_qc_rejected_without_action_oldest_age_seconds: 'gauge',
+  lims_quality_qc_runs_total: 'counter',
+  lims_quality_qc_rule_hits_total: 'counter',
+  lims_quality_qc_eval_lag_seconds: 'histogram',
+  lims_quality_qc_open_rejected_runs: 'gauge',
+  lims_quality_qc_overdue_pairs: 'gauge',
+  lims_quality_unassigned_observations: 'gauge',
+  lims_quality_port_duration_seconds: 'histogram',
+  lims_quality_autoverify_decisions_total: 'counter',
+  lims_quality_autoverify_short_circuit_total: 'counter',
+  lims_quality_tat_sweep_duration_seconds: 'histogram',
+  lims_quality_tat_alerts_total: 'counter',
+  lims_quality_tat_open_alerts: 'gauge',
+  lims_quality_tat_alert_lag_seconds: 'histogram',
 };
 
 // LD-88: TRD §13 fixes this C8 histogram as a row count, so it cannot end in _seconds.

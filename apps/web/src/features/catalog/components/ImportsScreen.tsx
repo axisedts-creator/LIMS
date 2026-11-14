@@ -192,7 +192,7 @@ export function ImportsScreen({ imports, exports: initialExports, priceLists, pe
               options={priceLists.map((p) => ({ value: p.id, label: `${p.code} — ${p.name}` }))}
             />
           ) : null}
-          <div className="lims-inline" style={{ gap: 'var(--lims-space-3)' }}>
+          <div className="lims-inline catalog-gap-3">
             {kind ? <a className="lims-link" href={`/catalog/import-templates/${kind}`}>Download blank template</a> : null}
             {exportKind ? (
               <GatedButton missing={exportMissing} variant="secondary" isLoading={exporting} isDisabled={needsList && !pl} onPress={() => void startExport()}>Download current data</GatedButton>

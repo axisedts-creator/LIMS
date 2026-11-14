@@ -7,9 +7,12 @@ import { useRouter } from 'next/navigation';
 import { Banner } from '@lims/ui/components/Banner';
 import { Button } from '@lims/ui/components/Button';
 import { Dialog } from '@lims/ui/components/Dialog';
+import { Drawer } from '@lims/ui/components/Drawer';
 import { Form } from '@lims/ui/components/Form';
+import { Inline } from '@lims/ui/components/Inline';
 import { useToast } from '@lims/ui/components/Toast';
 import { formatNpr, TAX_DISCLAIMER, type ActionResult } from '../server/types';
+import { FormSection } from './master-ui';
 import { FailBanner, newKey, type Fail } from './shared';
 
 export const PERM_READ = 'catalog.price_list.read';
@@ -39,8 +42,10 @@ export function useWhen() {
 
 const DUP = 'This code is already used, or a default price list already exists.';
 
-export function ActionDialog({ title, submit = 'Save', savedText, onClose, check, run, children, onDone }: {
+export function ActionDialog({ title, submit = 'Save', savedText, onClose, check, run, children, onDone, drawer = false }: {
   title: string;
+  /** Render as a sectioned drawer (create/edit forms) instead of a centred dialog (confirmations). */
+  drawer?: boolean;
   submit?: string;
   savedText: string;
   onClose: () => void;
@@ -81,17 +86,33 @@ export function ActionDialog({ title, submit = 'Save', savedText, onClose, check
     }
   };
 
+  const banner = fail?.code === 'catalog.code_duplicate' ? (
+    <div role="alert"><Banner tone="danger" title={DUP} /></div>
+  ) : fail ? <FailBanner fail={fail} /> : null;
+  const body = typeof children === 'function' ? children(fail) : children;
+
+  // LD-140 (10-DESIGN-SYSTEM §4): create forms (`drawer`) open in a kit Drawer with one section and its own Save.
+  if (drawer) {
+    return (
+      <Drawer title={title} isOpen onClose={onClose} width="md">
+        <Form onSubmit={go} errorSummary={false}>
+          {banner}
+          <FormSection title="Details" action={<Button type="submit" size="sm" variant="primary" isLoading={busy}>{submit}</Button>}>
+            {body}
+          </FormSection>
+        </Form>
+      </Drawer>
+    );
+  }
   return (
     <Dialog title={title} isOpen onClose={onClose} size="md">
       <Form onSubmit={go} errorSummary={false}>
-        {fail?.code === 'catalog.code_duplicate' ? (
-          <div role="alert"><Banner tone="danger" title={DUP} /></div>
-        ) : fail ? <FailBanner fail={fail} /> : null}
-        {typeof children === 'function' ? children(fail) : children}
-        <div className="lims-inline" style={{ gap: 'var(--lims-space-2)', justifyContent: 'flex-end' }}>
+        {banner}
+        {body}
+        <Inline gap={2} justify="end">
           <Button variant="ghost" onPress={onClose}>Cancel</Button>
           <Button type="submit" variant="primary" isLoading={busy}>{submit}</Button>
-        </div>
+        </Inline>
       </Form>
     </Dialog>
   );

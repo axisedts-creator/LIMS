@@ -7,6 +7,7 @@ import { Button, type ButtonProps } from '@lims/ui/components/Button';
 import { Tooltip } from '@lims/ui/components/Tooltip';
 import { VisuallyHidden } from '@lims/ui/components/VisuallyHidden';
 import type { ActionResult } from '../server/types';
+import './catalog.css';
 
 export type Tone = BannerProps['tone'];
 
@@ -45,7 +46,7 @@ export function FailBanner({ fail, extra }: { fail: Fail; extra?: ReactNode }) {
   const router = useRouter();
   const m = MESSAGES[fail.code] ?? { tone: 'danger' as const, title: 'Something went wrong. Try again.' };
   return (
-    <div className="lims-stack" style={{ gap: 'var(--lims-space-2)' }}>
+    <div className="lims-stack catalog-gap-2">
       <div role="alert">
         <Banner tone={m.tone} title={m.title} {...(fail.code === 'common.version_conflict' ? { action: { label: 'Reload', onPress: () => router.refresh() } } : {})} />
       </div>
@@ -73,7 +74,7 @@ export function MirrorInvalid({ children }: { children: ReactNode }) {
     mo.observe(root, { subtree: true, childList: true, attributes: true, attributeFilter: ['data-invalid'] });
     return () => mo.disconnect();
   }, []);
-  return <div ref={ref} style={{ display: 'contents' }}>{children}</div>;
+  return <div ref={ref} className="catalog-contents">{children}</div>;
 }
 
 /**

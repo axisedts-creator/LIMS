@@ -82,7 +82,8 @@ export function MessagesList({ messages, rejections, instruments, agents }: {
   const columns: ColumnDef<MessageSummary>[] = [
     { id: 'received', header: 'Received', cell: (m) => <a className="lims-link" href={`/instruments/messages/${m.id}`}><DateText value={m.received_at as never} withTime /></a> },
     { id: 'instrument', header: 'Instrument', isRowHeader: true, cell: (m) => m.instrument_code },
-    { id: 'kind', header: 'Kind', cell: (m) => KIND_LABEL[m.message_kind] ?? m.message_kind },
+    // RS-C7 (LD-140): Kind is a second row header so each grid row is named "<instrument> <kind>" for screen readers; a11y markup only.
+    { id: 'kind', header: 'Kind', isRowHeader: true, cell: (m) => KIND_LABEL[m.message_kind] ?? m.message_kind },
     { id: 'records', header: 'Records (patient / QC)', align: 'end', cell: (m) => (m.latest_run ? `${m.latest_run.patient_records} / ${m.latest_run.qc_records}` : '—') },
     { id: 'unmapped', header: 'Unmapped', align: 'end', cell: (m) => m.latest_run?.unmapped_records ?? '—' },
     { id: 'events', header: 'Events', align: 'end', cell: (m) => m.latest_run?.emitted_events ?? '—' },

@@ -307,7 +307,7 @@ function PublishVersionDialog({ version, onClose, onDone }: { version: PriceList
         <>
           <DateTimePicker label="Effective from" name="effective_from" value={when.value} onChange={when.onChange} {...(errAt(fail, '/effective_from') ? { error: errAt(fail, '/effective_from')! } : {})} />
           <TextArea label="Change reason" name="change_reason" maxLength={500} isRequired value={reason} onChange={setReason} {...(errAt(fail, '/change_reason') ? { error: errAt(fail, '/change_reason')! } : {})} />
-          <p><span aria-hidden="true">🔒</span> Requires two-step verification</p>
+          <p>Requires two-step verification</p>
         </>
       )}
     </ActionDialog>

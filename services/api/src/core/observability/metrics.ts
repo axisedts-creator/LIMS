@@ -117,6 +117,26 @@ const DEFS = {
   lims_identity_stuffing_distinct_accounts_15m: ['gauge', [], 'Distinct failing accounts in the last 15 minutes'],
   lims_identity_stuffing_distinct_ips_15m: ['gauge', [], 'Distinct failing client IPs in the last 15 minutes'],
   lims_identity_audit_exports_tenant_day: ['gauge', ['tenant_id'], 'Audit exports created today by tenant'],
+  // C17 home collection (CR-C17-HC-T17-REG; LD-162 2026-11-14; C17 02-TRD §14 lines 589-596; names, types, labels verbatim)
+  lims_homecollection_mutations_total: ['counter', ['type', 'outcome'], 'Home-collection sync mutations by type and outcome'],
+  lims_homecollection_push_duration_seconds: ['histogram', [], 'Home-collection sync push duration in seconds'],
+  lims_homecollection_snapshot_duration_seconds: ['histogram', ['changed'], 'Home-collection sync snapshot duration in seconds by changed flag'],
+  lims_homecollection_held_open: ['gauge', ['tenant_id'], 'Open held home-collection mutations by tenant'],
+  lims_homecollection_clock_skew_seconds: ['histogram', ['clock_source'], 'Device clock skew in seconds by clock source'],
+  lims_homecollection_devices_stale_total: ['gauge', ['tenant_id'], 'Stale phlebotomy devices (pending sync, last seen over 2 h ago) by tenant'],
+  lims_homecollection_handover_overdue_open: ['gauge', ['tenant_id'], 'Open overdue sample handovers by tenant'],
+  lims_homecollection_events_published_total: ['counter', [], 'Home-collection domain events published'],
+  // C13 b2b partner portal (CR-C13-T23; 02-TRD §13 lines 530-539; names, types, labels verbatim; lead T23-01)
+  lims_partners_manifests_total: ['counter', ['transition'], 'Partner manifest transitions by transition'],
+  lims_partners_line_conversions_total: ['counter', ['outcome', 'failure_code'], 'Partner manifest line conversions by outcome and failure code'],
+  lims_partners_conversion_duration_seconds: ['histogram', [], 'Partner manifest line conversion duration in seconds'],
+  lims_partners_events_consumed_total: ['counter', ['event_type', 'outcome'], 'Partner events consumed by event type and outcome'],
+  lims_partners_projection_lag_seconds: ['gauge', ['projection'], 'Partner projection lag in seconds by projection'],
+  lims_partners_report_downloads_total: ['counter', ['outcome'], 'Partner report downloads by outcome'],
+  lims_partners_access_slips_total: ['counter', ['outcome'], 'Partner access slips by outcome'],
+  lims_partners_access_slip_issue_seconds: ['histogram', [], 'Partner access slip issue duration in seconds'],
+  lims_partners_pickups_total: ['counter', ['transition'], 'Partner pickup transitions by transition'],
+  lims_partners_partner_inactive_rejections_total: ['counter', [], 'Requests rejected because the partner is inactive'],
 } as const satisfies Record<string, readonly [Kind, readonly string[], string]>;
 
 export type MetricName = keyof typeof DEFS;

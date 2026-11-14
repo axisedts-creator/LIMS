@@ -9,9 +9,23 @@ import { Select } from '@lims/ui/components/Select';
 import { Switch } from '@lims/ui/components/Switch';
 import { Tabs } from '@lims/ui/components/Tabs';
 import { TextField } from '@lims/ui/components/TextField';
+import './catalog.css';
 import { createMasterAction, updateMasterAction } from '../server/actions';
 import { CODE_RE, type Container, type SpecimenType } from '../server/types';
 import { CODE_HINT, DUPLICATE, EditorDialog, MasterTable, canManage, changed, statusText, useListFilter, useListShortcuts, type Col } from './master-ui';
+
+/** LD-140 / 10-DESIGN-SYSTEM §6: cap colour as a swatch (decorative, class-styled) plus its name; never colour-only. No colour → dash, no swatch. */
+const SWATCH: Record<string, string> = { red: 'red', green: 'green', blue: 'blue', grey: 'grey', gray: 'grey', black: 'black' };
+function CapColour({ name }: { name: string | undefined }) {
+  if (!name) return <>—</>;
+  const tone = SWATCH[name.trim().toLowerCase()];
+  return (
+    <span className="catalog-colour-cell">
+      <span className={`catalog-swatch${tone ? ` catalog-swatch-${tone}` : ''}`} aria-hidden="true" />
+      {name}
+    </span>
+  );
+}
 
 const status = (r: { is_active: boolean }) => <Badge tone={r.is_active ? 'success' : 'neutral'}>{statusText(r.is_active)}</Badge>;
 
@@ -84,7 +98,7 @@ function ContainersTab({ rows, specimenTypes, permissions }: { rows: readonly Co
     { header: 'Code', cell: (r) => r.code },
     { header: 'Name', cell: (r) => r.name },
     { header: 'Additive', cell: (r) => r.additive || '—' },
-    { header: 'Cap colour', cell: (r) => r.cap_colour_display || '—' },
+    { header: 'Cap colour', cell: (r) => <CapColour name={r.cap_colour_display} /> },
     { header: 'Default specimen type', cell: (r) => (r.default_specimen_type_id ? (typeName.get(r.default_specimen_type_id) ?? '—') : '—') },
     { header: 'Status', cell: status },
   ];

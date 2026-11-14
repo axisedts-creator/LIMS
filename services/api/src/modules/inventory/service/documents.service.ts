@@ -71,7 +71,7 @@ async function clock(ctx: HandlerContext): Promise<Clock> {
 }
 
 /** AC-19.4: with settings.count_locks_store, a store with an open count takes no manual movement. */
-async function assertNotCounting(rc: RepoCtx, storeId: string): Promise<void> {
+export async function assertNotCounting(rc: RepoCtx, storeId: string): Promise<void> {
   if ((await getSettings(rc))?.['count_locks_store'] !== true) return;
   const open = await first(rc, "SELECT 1 AS x FROM inventory.stock_counts WHERE tenant_id = $1 AND status = 'open' AND store_id = $2 LIMIT 1", [storeId]);
   if (open !== null) throw new LimsError('inventory.store_locked_for_count');

@@ -1,0 +1,1 @@
+cd /d "%~dp0..\.." && pnpm --dir services/api exec vitest run src/modules/homecollection/__tests__/observability/observability.test.ts && "C:\Program Files\Git\bin\bash.exe" tests/homecollection/HC-T17.pg.sh

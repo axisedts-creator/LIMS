@@ -8,6 +8,7 @@ import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js
 import { LimsError } from '../../../core/errors.js';
 import type { HandlerContext, HandlerRequest, HandlerResult } from '../../../core/module.js';
 import { assertTransition, PICKUP_STATES, type PickupState } from '../domain/pickup.state.js';
+import { pickupTransition } from './observability.js';
 import { partnerContext } from './partner-context.service.js';
 import { bad, closed, ifMatch, isObj, uuidParam } from './partner-user.service.js';
 import { listParams, page } from './referrer.service.js';
@@ -190,7 +191,9 @@ export async function createPickup(req: HandlerRequest, ctx: HandlerContext): Pr
     for (const m of locked) await tx.query(INSERT_LINK_SQL, [ctx.tenantId, pid, m['id'], partnerId, centre, actor]);
   } catch (e) { throw (e as { code?: string })?.code === '23505' ? invalid() : e; } // unique index: one open pickup per manifest
   const manifests = locked.map((m) => ({ id: String(m['id']), manifest_no: String(m['manifest_no']) })).sort((x, y) => x.manifest_no.localeCompare(y.manifest_no) || x.id.localeCompare(y.id));
-  return { status: 201, body: toDto(await reread(ctx, rows[0]!['id']), manifests) };
+  const out = { status: 201, body: toDto(await reread(ctx, rows[0]!['id']), manifests) };
+  pickupTransition(ctx, 'requested'); // T23
+  return out;
 }
 
 // ---------------------------------------------------------------- K2 / K3 / SP1
@@ -280,7 +283,9 @@ async function transition(req: HandlerRequest, ctx: HandlerContext, op: Op): Pro
     if (open.length) await tx.query(IN_TRANSIT_SQL, [ctx.tenantId, open, args[0], actor]);
   }
   if (op !== 'schedule') await tx.query(CLOSE_LINKS_SQL, [ctx.tenantId, row.id, actor]); // the open-link slot is free again
-  return { status: 200, body: (await hydrate(ctx, [await reread(ctx, row.id)], op !== 'cancel'))[0]! };
+  const out = { status: 200, body: (await hydrate(ctx, [await reread(ctx, row.id)], op !== 'cancel'))[0]! };
+  pickupTransition(ctx, TARGET[op]); // T23: the state reached (a reschedule is one more `scheduled`)
+  return out;
 }
 
 /** K4 */ export const cancelOwn = (req: HandlerRequest, ctx: HandlerContext) => transition(req, ctx, 'cancel');

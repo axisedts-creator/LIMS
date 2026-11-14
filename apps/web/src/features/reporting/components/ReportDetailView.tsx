@@ -19,6 +19,7 @@ import { NumberInput, rangeError } from './NumberInput';
 import { ReasonDialog } from './ReasonDialog';
 import { SimpleTable, type Col } from './SimpleTable';
 import { useShortcuts } from './useShortcuts';
+import './report-preview.css';
 
 type Dlg = 'release' | 'print' | 'regenerate' | 'revoke' | 'override' | null;
 const AUDIENCE: Record<string, string> = { patient: 'Patient', referrer: 'Referring doctor', centre: 'Centre' };
@@ -176,6 +177,14 @@ export function ReportDetailView({ report, permissions }: ReportDetailViewProps)
         </p>
       ) : null}
 
+      {downloadable[0] ? (
+        <section className="rpt-preview" aria-label="Report preview">
+          {/* LD-140: no inline <object> preview; it would call the logged, rate-limited download route on every render (needs a CR for an inline view endpoint). */}
+          <div className="rpt-preview-paper">
+            <a className="lims-link" href={pdfHref(downloadable[0].id)}>Download the report PDF</a>
+          </div>
+        </section>
+      ) : null}
       <div className="lims-card">
         <h2>Report</h2>
         <dl className="lims-dl">
@@ -201,7 +210,9 @@ export function ReportDetailView({ report, permissions }: ReportDetailViewProps)
       </div>
       <div className="lims-card">
         <h2>Deliveries</h2>
-        <p>{`Queued ${ds.queued} · Sent ${ds.sent} · Delivered ${ds.delivered} · Read ${ds.read} · Failed ${ds.failed} · Suppressed ${ds.suppressed}`}</p>
+        <ul className="rpt-chips" aria-label="Delivery counts">
+          {(['queued', 'sent', 'delivered', 'read', 'failed', 'suppressed'] as const).map((s) => <li key={s}><Chip status={s} label={`${humanize(s)} ${ds[s]}`} /></li>)}
+        </ul>
         <a className="lims-link" href={`/reporting/deliveries?report_id=${report.id}`}>Open delivery log filtered to this report</a>
       </div>
 

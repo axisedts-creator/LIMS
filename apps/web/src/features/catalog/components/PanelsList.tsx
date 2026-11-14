@@ -73,6 +73,7 @@ function PanelDialog({ departments, onClose }: { departments: readonly Departmen
   };
   return (
     <EditorDialog
+      width="lg"
       title="New panel"
       savedText="Panel saved."
       onClose={onClose}

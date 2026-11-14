@@ -1,0 +1,6 @@
+# RS-C3 tests
+- Files (apps/web/src/features/catalog/__tests__/): `rs-c3.static.test.ts`, `rs-c3.screens.test.tsx`, helper `rs-c3.surface.ts`, fixture `rs-c3.baseline.json` (API surface captured before restyle), config `vitest.rs-c3.config.ts`.
+- Run: `.orchestra/notes/RS-C3-verify.cmd` (pnpm --dir apps/web exec vitest run --config ...vitest.rs-c3.config.ts).
+- Now: 16 fail, right reason (25 inline `style={{` hits, 🔒 emoji in UnitsScreen, forms open in Dialog not Drawer, no swatch). 9 pass as guards: server layer byte-identical, route tree, imported server symbols, detector self-check, dept primary-button/permission checks.
+- Assumed contract (writer may dispute): forms in kit `Drawer` (`.lims-drawer`) made of `DrawerSection`s each with a "Save…" button; Ctrl+S still saves; cap colour = element with class containing "swatch", no inline style, colour name still printed, aria-hidden/role=img/aria-label. t31 queries `button name /^save$/` will need a plain "Save" in single-section drawers (dispute-free: keep that button name).
+- NOT covered: visual snapshots (need running app + Playwright), axe colour-contrast (jsdom has no colours), test-detail 5-tab page (TestTabs; conflicts with chunk tests t32, needs lead ruling), price-list/panel/doctor detail pages.

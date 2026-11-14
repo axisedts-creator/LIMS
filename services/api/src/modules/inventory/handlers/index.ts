@@ -1,11 +1,14 @@
 // Handler map: one entry per operationId of 02-TRD §5 (core validateManifest checks it against contracts/openapi/inventory.yaml).
 // T-01 stubs: every operation rejects common.internal until its owning task (T-06+) replaces the entry.
 import type { Handler } from '../../../core/module.js';
+import { consumptionHandlers } from './consumption.js';
 import { countHandlers } from './counts.js';
 import { documentHandlers } from './documents.js';
 import { itemHandlers } from './items.js';
 import { lotHandlers } from './lots.js';
 import { masterHandlers } from './masters.js';
+import { purchasingHandlers } from './purchasing.js';
+import { receiptHandlers } from './receipts.js';
 import { settingsHandlers } from './settings.handlers.js';
 import { transferHandlers } from './transfers.js';
 
@@ -29,36 +32,11 @@ export const handlers: Readonly<Record<string, Handler>> = {
   ...settingsHandlers, // #26-#29 (T-06)
   ...lotHandlers, // #30-#39 (T-09)
   ...documentHandlers, // #40-#48 (T-10)
-  listGoodsReceipts: stub,
-  createGoodsReceipt: stub,
-  getGoodsReceipt: stub,
-  replaceGoodsReceiptDraft: stub,
-  postGoodsReceipt: stub,
-  cancelGoodsReceipt: stub,
-  exportGoodsReceiptsCsv: stub,
+  ...receiptHandlers, // #49-#55 (T-12)
   ...transferHandlers, // #56-#62 (T-13)
   ...countHandlers, // #63-#68 (T-14)
-  listConsumptionRules: stub,
-  createConsumptionRule: stub,
-  getConsumptionRule: stub,
-  supersedeConsumptionRule: stub,
-  deactivateConsumptionRule: stub,
-  previewConsumption: stub,
-  listConsumptionFacts: stub,
-  logConsumptionEvent: stub,
-  resolveConsumptionFact: stub,
-  dismissConsumptionFact: stub,
-  reverseConsumptionFact: stub,
-  listPurchaseOrders: stub,
-  createPurchaseOrder: stub,
-  getPurchaseOrder: stub,
-  replacePurchaseOrderDraft: stub,
-  approvePurchaseOrder: stub,
-  markPurchaseOrderSent: stub,
-  cancelPurchaseOrder: stub,
-  closePurchaseOrder: stub,
-  createPurchaseOrdersFromReorder: stub,
-  getPurchaseOrderPrintView: stub,
+  ...consumptionHandlers, // #69-#79 (T-15)
+  ...purchasingHandlers, // #80-#89 (T-11)
   listInventoryAlerts: stub,
   acknowledgeInventoryAlert: stub,
   getInventoryReport: stub,

@@ -1,12 +1,12 @@
 'use client';
 // Shared pieces of the SCR-02…05 master screens (04-UI-UX §3/§4): list table, toolbar (search + status), list shortcuts
 // (`/`, `n`), and the editor dialog (Ctrl+S, one Idempotency-Key per open, 409 handling). Manage affordances are a UI hint; the API enforces.
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { Badge } from '@lims/ui/components/Badge';
 import { Banner } from '@lims/ui/components/Banner';
 import { Button } from '@lims/ui/components/Button';
-import { Dialog } from '@lims/ui/components/Dialog';
+import { Drawer } from '@lims/ui/components/Drawer';
 import { EmptyState } from '@lims/ui/components/EmptyState';
 import { Form } from '@lims/ui/components/Form';
 import { RadioGroup } from '@lims/ui/components/RadioGroup';
@@ -14,6 +14,7 @@ import { TextField } from '@lims/ui/components/TextField';
 import { useToast } from '@lims/ui/components/Toast';
 import { VisuallyHidden } from '@lims/ui/components/VisuallyHidden';
 import type { ActionResult } from '../server/types';
+import './catalog.css';
 
 export const canManage = (permissions: readonly string[]) => permissions.includes('catalog.test.manage');
 export const statusText = (active: boolean) => (active ? 'Active' : 'Inactive');
@@ -215,18 +216,44 @@ export function SaveForm({ savedText, onDone, check, save, onSaved, onDuplicate,
             <Banner tone="danger" title="Could not save. Try again." />
           </div>
         ) : null}
-        {children}
-        <Button type="submit" variant="primary" shortcut="Ctrl+S">Save</Button>
+        {keepOpen ? (
+          <>
+            {children}
+            <Button type="submit" variant="primary" shortcut="Ctrl+S">Save</Button>
+          </>
+        ) : (
+          <FormSection title="Details" action={<Button type="submit" size="sm" variant="primary" shortcut="Ctrl+S">Save</Button>}>
+            {children}
+          </FormSection>
+        )}
       </Form>
     </div>
   );
 }
 
-/** Editor dialog: SaveForm inside a modal; Esc / close = onClose. */
-export function EditorDialog({ title, onClose, ...rest }: { title: string; onClose: () => void } & Omit<Parameters<typeof SaveForm>[0], 'onDone' | 'keepOpen'>) {
+/**
+ * One drawer section with its own Save (LD-140, 10-DESIGN-SYSTEM §4). Same markup as the kit `DrawerSection`, but the Save button
+ * is a plain "Save" (the chunk tests find it by that exact name) and it submits the surrounding form, so Ctrl+S and the button
+ * share one path. `action` is the Save button.
+ */
+export function FormSection({ title, action, children }: { title: string; action: ReactNode; children: ReactNode }) {
+  const id = useId();
   return (
-    <Dialog title={title} isOpen onClose={onClose} size="md">
+    <section className="lims-drawer-section" aria-labelledby={id}>
+      <div className="lims-drawer-section-header">
+        <h3 id={id} className="lims-drawer-section-title">{title}</h3>
+        {action}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+/** Editor drawer (LD-140, 10-DESIGN-SYSTEM §4 Masters): SaveForm in a kit Drawer, one section with its own Save; Esc / close = onClose. */
+export function EditorDialog({ title, onClose, width = 'md', ...rest }: { title: string; onClose: () => void; width?: 'sm' | 'md' | 'lg' } & Omit<Parameters<typeof SaveForm>[0], 'onDone' | 'keepOpen'>) {
+  return (
+    <Drawer title={title} isOpen onClose={onClose} width={width}>
       <SaveForm {...rest} onDone={onClose} />
-    </Dialog>
+    </Drawer>
   );
 }

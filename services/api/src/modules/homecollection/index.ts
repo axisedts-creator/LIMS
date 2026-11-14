@@ -9,6 +9,7 @@ import { handler as cancelHomeVisit } from './handlers/cancelHomeVisit.js';
 import { handler as createHomeRevisit } from './handlers/createHomeRevisit.js';
 import { handler as resequenceHomeRoute } from './handlers/resequenceHomeRoute.js';
 import { handler as resolveHomeVisitFlag } from './handlers/resolveHomeVisitFlag.js';
+import { handler as reviewHeldCollection } from './handlers/reviewHeldCollection.js';
 import { handler as scheduleHomeVisit } from './handlers/scheduleHomeVisit.js';
 import { handler as unassignHomeVisit } from './handlers/unassignHomeVisit.js';
 import { handler as ackSync } from './handlers/ackSync.js';
@@ -54,6 +55,7 @@ const implemented: Partial<Record<HomecollectionOperationId, Handler>> = {
   assignHomeVisit, unassignHomeVisit, scheduleHomeVisit, cancelHomeVisit, createHomeRevisit, resolveHomeVisitFlag, resequenceHomeRoute,   // HC-T09: H3-H8, H11
   getSyncSnapshot, ackSync,   // HC-T11: A2, A4
   pushSyncMutations,   // HC-T12: A3
+  reviewHeldCollection,   // HC-T13: H9
   listHandovers, getHandover, confirmHandover,   // HC-T14: H13-H15
 };
 

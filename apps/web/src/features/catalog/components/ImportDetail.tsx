@@ -157,7 +157,7 @@ export function ImportDetail({ importRow, issues: initialIssues, priceList, perm
       {fail ? <ImportNotice tone={fail.code === 'auth.mfa_required' ? 'warning' : 'danger'} text={failText(fail)} /> : null}
 
       {s !== 'quarantined' ? (
-        <div className="lims-inline" style={{ gap: 'var(--lims-space-3)', flexWrap: 'wrap' }}>
+        <div className="lims-inline catalog-gap-3 catalog-wrap">
           <Tile label="Rows" value={sum.rows} />
           <Tile label="Added" value={sum.added} />
           <Tile label="Changed" value={sum.changed} />
@@ -168,7 +168,7 @@ export function ImportDetail({ importRow, issues: initialIssues, priceList, perm
         </div>
       ) : null}
 
-      <div className="lims-inline" style={{ gap: 'var(--lims-space-3)' }}>
+      <div className="lims-inline catalog-gap-3">
         {hasReport ? <a className="lims-link" href={`/catalog/imports/${id}/report`}>Download annotated file</a> : null}
         {canDiscard ? <GatedButton missing={missingManage} variant="secondary" isLoading={discarding} onPress={() => void discard()}>Discard</GatedButton> : null}
         {canCommit ? <GatedButton missing={missingCommit} variant="primary" onPress={() => setOpen(true)}>Commit…</GatedButton> : null}

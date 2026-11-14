@@ -1,0 +1,5 @@
+# RS-C5 impl (writer)
+Files: ReceiveScreen.tsx (Session log = kit Tabs All/Received/Rejected/Errors + counts, filters table), CollectDispatch.tsx (tab counts), WorklistPage.tsx (Grid: table + aside "Result entry", row button, Card panel, Esc closes), grid/ResultGrid.tsx (StatusStepper track per item, "Next: ..", StatusChip "Instrument" portalled in Origin cell), WorksheetPrintPage.tsx (#000 -> currentColor), __snapshots__/rs-c5.screens.test.tsx.snap (4 written with -u, LD-170).
+[CONV] LD-140 restyle only: server/**, routes, permissions untouched (static baseline green). Track current step = least advanced result (pending -> none current).
+Round 2 (after ruling, no impl change): CI=true rs-c5 27/27; c5-t20 57/57; lab-t26 36/36; lab-t11 73/74; tsc clean on non-test lab files.
+Open: lab-t11.static fails on components/labels/LabelPage.tsx:160 (T-10, untouched on this lane; ruling routes it to lead/tester as T-10/T-11 conflict). Lead: drop apps/web/src/features/lab from raw-style-pending.json.

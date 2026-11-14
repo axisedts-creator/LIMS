@@ -1,0 +1,1598 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`RS-C15 key-screen snapshots > Gateway settings 1`] = `
+"<div class="lims-page-header">
+<div class="lims-page-header-row">
+<h1 class="lims-page-title">Payment gateways</h1>
+<div class="lims-page-actions">
+<span data-help-key="payments.settings">
+<button class="lims-btn lims-btn-ghost lims-btn-md" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID">
+<svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 3a9 9 0 100 18 9 9 0 000-18zM9.5 9.5a2.5 2.5 0 115 0c0 2-2.5 2-2.5 4M12 17h.01">
+</path>
+</svg>
+<span class="lims-btn-label">Help</span>
+</button>
+</span>
+</div>
+</div>
+</div>
+<div class="lims-banner lims-tone-neutral" data-tone="neutral">
+<svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 8h.01M11 12h1v5h1M12 3a9 9 0 100 18 9 9 0 000-18z">
+</path>
+</svg>
+<div class="lims-banner-text">
+<p class="lims-banner-title">
+<span style="position: absolute; width: 1px; height: 1px; padding: 0px; margin: -1px; overflow: hidden; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); white-space: nowrap; border: 0px;">Note: </span>Environment: Production</p>
+</div>
+</div>
+<div class="lims-card">
+<h2 class="lims-card-title">eSewa</h2>
+<span class="lims-chip lims-chip-md lims-tone-success" data-tone="success">
+<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 3a9 9 0 100 18 9 9 0 000-18zM8 12l3 3 5-6">
+</path>
+</svg>Enabled</span>
+<label data-aria-id="true" class="lims-switch" data-rac="" data-selected="true">
+<span style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: absolute; width: 1px; white-space: nowrap;">
+<input data-aria-id="true" tabindex="0" role="switch" type="checkbox" checked="">
+</span>
+<span class="lims-switch-track" aria-hidden="true">
+<span class="lims-switch-thumb">
+</span>
+</span>Enabled</label>
+<div class="lims-field" data-rac="">
+<label class="lims-label" id="ID" for="ID">Product code</label>
+<div class="lims-input-group">
+<input maxlength="64" tabindex="0" id="ID" aria-labelledby="ID" class="lims-input" data-rac="" type="text" value="SYNTH" name="esewa_product_code">
+</div>
+</div>
+<p>Set · fingerprint ab12cd34</p>
+<div class="lims-field">
+<label class="lims-label" for="_r_hl_">Replace secret key</label>
+<div class="lims-input-group">
+<input id="_r_hl_" class="lims-input" autocomplete="new-password" maxlength="256" type="password" value="" name="secret_input">
+</div>
+</div>
+<button class="lims-btn lims-btn-primary lims-btn-md" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID">
+<span class="lims-btn-label">Save</span>
+</button>
+<button class="lims-btn lims-btn-secondary lims-btn-md" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID">
+<span class="lims-btn-label">Test connection</span>
+</button>
+</div>
+<div class="lims-card">
+<h2 class="lims-card-title">Khalti</h2>
+<span class="lims-chip lims-chip-md lims-tone-neutral" data-tone="neutral">
+<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 3a9 9 0 100 18 9 9 0 000-18z">
+</path>
+</svg>Disabled</span>
+<label data-aria-id="true" class="lims-switch" data-rac="">
+<span style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: absolute; width: 1px; white-space: nowrap;">
+<input data-aria-id="true" tabindex="0" role="switch" type="checkbox">
+</span>
+<span class="lims-switch-track" aria-hidden="true">
+<span class="lims-switch-thumb">
+</span>
+</span>Enabled</label>
+<div class="lims-field" data-rac="">
+<label class="lims-label" id="ID" for="ID">Website URL</label>
+<div class="lims-input-group">
+<input maxlength="300" tabindex="0" id="ID" aria-labelledby="ID" aria-describedby="ID" class="lims-input" data-rac="" type="text" value="https://synthetic.example" name="khalti_website_url">
+</div>
+<span class="lims-description" id="ID" slot="description">Khalti requires your website address.</span>
+</div>
+<label data-aria-id="true" class="lims-switch" data-rac="">
+<span style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: absolute; width: 1px; white-space: nowrap;">
+<input data-aria-id="true" tabindex="0" role="switch" type="checkbox">
+</span>
+<span class="lims-switch-track" aria-hidden="true">
+<span class="lims-switch-thumb">
+</span>
+</span>Use Khalti refund API</label>
+<p class="lims-description">Only after the LIMS provider has confirmed the refund API in the sandbox. Otherwise refunds are done in the Khalti dashboard.</p>
+<div class="lims-field">
+<label class="lims-label" for="_r_i3_">Secret key</label>
+<div class="lims-input-group">
+<input id="_r_i3_" class="lims-input" autocomplete="new-password" maxlength="256" type="password" value="" name="secret_input">
+</div>
+</div>
+<button class="lims-btn lims-btn-primary lims-btn-md" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID">
+<span class="lims-btn-label">Save</span>
+</button>
+<button class="lims-btn lims-btn-secondary lims-btn-md" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID">
+<span class="lims-btn-label">Test connection</span>
+</button>
+</div>
+<div class="lims-card">
+<h2 class="lims-card-title">Fonepay</h2>
+<span class="lims-chip lims-chip-md lims-tone-neutral" data-tone="neutral">
+<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 3a9 9 0 100 18 9 9 0 000-18z">
+</path>
+</svg>Not available yet</span>
+<p>Waiting for the Fonepay merchant integration document from your bank (blocker B8).</p>
+<label data-aria-id="true" class="lims-switch" data-rac="" data-disabled="true">
+<span style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: absolute; width: 1px; white-space: nowrap;">
+<input disabled="" data-aria-id="true" role="switch" type="checkbox">
+</span>
+<span class="lims-switch-track" aria-hidden="true">
+<span class="lims-switch-thumb">
+</span>
+</span>Enabled</label>
+</div>
+<div class="lims-card">
+<h2 class="lims-card-title">Refunds and labels</h2>
+<div class="lims-field" data-rac="">
+<label class="lims-label" id="ID" for="ID">Two-person threshold</label>
+<div class="lims-input-group">
+<span class="lims-affix">Rs.</span>
+<input inputmode="decimal" tabindex="0" id="ID" aria-labelledby="ID" aria-describedby="ID" class="lims-input" data-rac="" type="text" value="10,000.00" name="refund_two_person_threshold">
+</div>
+<span class="lims-description" id="ID" slot="description">Refunds above this amount always need a second approver. 0 = always.</span>
+</div>
+<div class="lims-field" data-rac="">
+<label class="lims-label" id="ID" for="ID">Order label sent to Khalti</label>
+<div class="lims-input-group">
+<input maxlength="50" tabindex="0" id="ID" aria-labelledby="ID" aria-describedby="ID" class="lims-input" data-rac="" type="text" value="PO number" name="purchase_order_label">
+</div>
+<span class="lims-description" id="ID" slot="description">Shown to the patient on the Khalti page. Do not include patient or test names.</span>
+</div>
+<label data-aria-id="true" class="lims-switch" data-rac="" data-selected="true">
+<span style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: absolute; width: 1px; white-space: nowrap;">
+<input data-aria-id="true" tabindex="0" role="switch" type="checkbox" checked="">
+</span>
+<span class="lims-switch-track" aria-hidden="true">
+<span class="lims-switch-thumb">
+</span>
+</span>Nightly reconciliation</label>
+<button class="lims-btn lims-btn-primary lims-btn-md" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID">
+<span class="lims-btn-label">Save</span>
+</button>
+</div>
+<div class="lims-toast-region">
+</div>"
+`;
+
+exports[`RS-C15 key-screen snapshots > Payment detail (timeline) 1`] = `
+"<div class="lims-page-header">
+<div class="lims-page-header-row">
+<h1 class="lims-page-title">Payment</h1>
+<div class="lims-page-status">
+<span class="lims-chip lims-chip-md lims-tone-success" data-tone="success">
+<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 3a9 9 0 100 18 9 9 0 000-18zM8 12l3 3 5-6">
+</path>
+</svg>Paid</span>
+</div>
+<div class="lims-page-actions">
+<button class="lims-btn lims-btn-secondary lims-btn-md" data-rac="" type="button" disabled="" data-aria-id="true" id="ID" data-disabled="true">
+<span class="lims-btn-label">Re-check with provider</span>
+<kbd class="lims-kbd" aria-hidden="true">Alt+C</kbd>
+</button>
+<button class="lims-btn lims-btn-primary lims-btn-md" data-rac="" type="button" disabled="" data-aria-id="true" id="ID" data-disabled="true">
+<span class="lims-btn-label">Mark as paid</span>
+</button>
+<button class="lims-btn lims-btn-danger lims-btn-md" data-rac="" type="button" disabled="" data-aria-id="true" id="ID" data-disabled="true">
+<span class="lims-btn-label">Mark as failed</span>
+</button>
+<button class="lims-btn lims-btn-ghost lims-btn-md" data-rac="" type="button" disabled="" data-aria-id="true" id="ID" data-disabled="true">
+<span class="lims-btn-label">Cancel payment</span>
+</button>
+<button class="lims-btn lims-btn-secondary lims-btn-md" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID">
+<span class="lims-btn-label">Request refund</span>
+</button>
+<span data-help-key="payments.intent">
+<button class="lims-btn lims-btn-ghost lims-btn-md" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID">
+<svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 3a9 9 0 100 18 9 9 0 000-18zM9.5 9.5a2.5 2.5 0 115 0c0 2-2.5 2-2.5 4M12 17h.01">
+</path>
+</svg>
+<span class="lims-btn-label">Help</span>
+</button>
+</span>
+</div>
+</div>
+</div>
+<p>NPR 1,23,456.00 · eSewa</p>
+<dl class="lims-dl lims-cols-2">
+<div class="lims-dl-item">
+<dt>Order</dt>
+<dd>
+<a href="/frontdesk/orders/01a1a98a-ac40-7000-8000-000000000201">
+<span class="lims-id">
+<span class="lims-mono" title="01a1a98a-ac40-7000-8000-000000000201">01a1a98a-ac40-7000-8000-000000000201</span>
+</span>
+</a>
+</dd>
+</div>
+<div class="lims-dl-item">
+<dt>Centre</dt>
+<dd>
+<span class="lims-id">
+<span class="lims-mono" title="01a1a98a-ac40-7000-8000-000000000003">01a1a98a-ac40-7000-8000-000000000003</span>
+</span>
+</dd>
+</div>
+<div class="lims-dl-item">
+<dt>Amount</dt>
+<dd>NPR 1,23,456.00</dd>
+</div>
+<div class="lims-dl-item">
+<dt>Provider reference</dt>
+<dd>
+<span class="lims-id">
+<span class="lims-mono" title="esewa-txn-0001">esewa-txn-0001</span>
+<button class="lims-btn lims-btn-ghost lims-icon-btn" data-rac="" type="button" tabindex="0" data-aria-id="true" aria-label="Copy" id="ID">
+<svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M8 8h11v11H8zM5 16V5h11">
+</path>
+</svg>
+</button>
+</span>
+</dd>
+</div>
+<div class="lims-dl-item">
+<dt>Provider transaction</dt>
+<dd>—</dd>
+</div>
+<div class="lims-dl-item">
+<dt>Created</dt>
+<dd>
+<time class="lims-date-text" datetime="2026-11-10T04:00:00.000Z">10/11/2026 09:45 AM</time>
+</dd>
+</div>
+<div class="lims-dl-item">
+<dt>Expires</dt>
+<dd>—</dd>
+</div>
+<div class="lims-dl-item">
+<dt>Paid at</dt>
+<dd>
+<time class="lims-date-text" datetime="2026-11-10T04:25:00.000Z">10/11/2026 10:10 AM</time>
+</dd>
+</div>
+<div class="lims-dl-item">
+<dt>Verified amount</dt>
+<dd>NPR 1,23,456.00</dd>
+</div>
+<div class="lims-dl-item">
+<dt>Verification</dt>
+<dd>eSewa status check</dd>
+</div>
+<div class="lims-dl-item">
+<dt>Hold reason</dt>
+<dd>—</dd>
+</div>
+<div class="lims-dl-item">
+<dt>Ledger entry</dt>
+<dd>
+<a href="/frontdesk/orders/01a1a98a-ac40-7000-8000-000000000201">
+<span class="lims-id">
+<span class="lims-mono" title="01a1a98a-ac40-7000-8000-000000000301">01a1a98a…</span>
+</span>
+</a>
+</dd>
+</div>
+<div class="lims-dl-item">
+<dt>Refunded</dt>
+<dd>NPR 10,000.00</dd>
+</div>
+</dl>
+<template>
+</template>
+<div class="lims-tabs" data-rac="" data-orientation="horizontal">
+<div class="lims-tablist" data-rac="" data-collection="aria-id" id="ID" aria-label="Payment history" role="tablist" aria-orientation="horizontal" data-orientation="horizontal">
+<div class="lims-tab" data-rac="" tabindex="0" data-collection="aria-id" data-key="timeline" data-aria-id="true" id="ID" aria-selected="true" aria-controls="ID" role="tab" data-selected="true">Timeline</div>
+<div class="lims-tab" data-rac="" tabindex="-1" data-collection="aria-id" data-key="checks" data-aria-id="true" id="ID" aria-selected="false" role="tab">Provider checks</div>
+<div class="lims-tab" data-rac="" tabindex="-1" data-collection="aria-id" data-key="callbacks" data-aria-id="true" id="ID" aria-selected="false" role="tab">Callbacks</div>
+<div class="lims-tab" data-rac="" tabindex="-1" data-collection="aria-id" data-key="refunds" data-aria-id="true" id="ID" aria-selected="false" role="tab">Refunds</div>
+</div>
+<div id="ID" aria-labelledby="ID" tabindex="0" role="tabpanel" class="lims-tabpanel" data-rac="">
+<ol class="lims-timeline">
+<li class="lims-timeline-item" data-tone="info">
+<time class="lims-timeline-time" datetime="2026-11-10T04:00:00.000Z">10/11/2026 09:45 AM</time> <span class="lims-timeline-tone">Information: </span>
+<span class="lims-timeline-label">Created</span> · <span class="lims-timeline-actor">Staff</span>
+</li>
+<li class="lims-timeline-item" data-tone="success">
+<time class="lims-timeline-time" datetime="2026-11-10T04:25:00.000Z">10/11/2026 10:10 AM</time> <span class="lims-timeline-tone">Success: </span>
+<span class="lims-timeline-label">Paid</span> · <span class="lims-timeline-actor">System</span>
+</li>
+</ol>
+</div>
+</div>
+<div class="lims-toast-region">
+</div>"
+`;
+
+exports[`RS-C15 key-screen snapshots > Payment detail: Refunds tab 1`] = `
+"<div class="lims-page-header">
+<div class="lims-page-header-row">
+<h1 class="lims-page-title">Payment</h1>
+<div class="lims-page-status">
+<span class="lims-chip lims-chip-md lims-tone-success" data-tone="success">
+<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 3a9 9 0 100 18 9 9 0 000-18zM8 12l3 3 5-6">
+</path>
+</svg>Paid</span>
+</div>
+<div class="lims-page-actions">
+<button class="lims-btn lims-btn-secondary lims-btn-md" data-rac="" type="button" disabled="" data-aria-id="true" id="ID" data-disabled="true">
+<span class="lims-btn-label">Re-check with provider</span>
+<kbd class="lims-kbd" aria-hidden="true">Alt+C</kbd>
+</button>
+<button class="lims-btn lims-btn-primary lims-btn-md" data-rac="" type="button" disabled="" data-aria-id="true" id="ID" data-disabled="true">
+<span class="lims-btn-label">Mark as paid</span>
+</button>
+<button class="lims-btn lims-btn-danger lims-btn-md" data-rac="" type="button" disabled="" data-aria-id="true" id="ID" data-disabled="true">
+<span class="lims-btn-label">Mark as failed</span>
+</button>
+<button class="lims-btn lims-btn-ghost lims-btn-md" data-rac="" type="button" disabled="" data-aria-id="true" id="ID" data-disabled="true">
+<span class="lims-btn-label">Cancel payment</span>
+</button>
+<button class="lims-btn lims-btn-secondary lims-btn-md" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID">
+<span class="lims-btn-label">Request refund</span>
+</button>
+<span data-help-key="payments.intent">
+<button class="lims-btn lims-btn-ghost lims-btn-md" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID">
+<svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 3a9 9 0 100 18 9 9 0 000-18zM9.5 9.5a2.5 2.5 0 115 0c0 2-2.5 2-2.5 4M12 17h.01">
+</path>
+</svg>
+<span class="lims-btn-label">Help</span>
+</button>
+</span>
+</div>
+</div>
+</div>
+<p>NPR 1,23,456.00 · eSewa</p>
+<dl class="lims-dl lims-cols-2">
+<div class="lims-dl-item">
+<dt>Order</dt>
+<dd>
+<a href="/frontdesk/orders/01a1a98a-ac40-7000-8000-000000000201">
+<span class="lims-id">
+<span class="lims-mono" title="01a1a98a-ac40-7000-8000-000000000201">01a1a98a-ac40-7000-8000-000000000201</span>
+</span>
+</a>
+</dd>
+</div>
+<div class="lims-dl-item">
+<dt>Centre</dt>
+<dd>
+<span class="lims-id">
+<span class="lims-mono" title="01a1a98a-ac40-7000-8000-000000000003">01a1a98a-ac40-7000-8000-000000000003</span>
+</span>
+</dd>
+</div>
+<div class="lims-dl-item">
+<dt>Amount</dt>
+<dd>NPR 1,23,456.00</dd>
+</div>
+<div class="lims-dl-item">
+<dt>Provider reference</dt>
+<dd>
+<span class="lims-id">
+<span class="lims-mono" title="esewa-txn-0001">esewa-txn-0001</span>
+<button class="lims-btn lims-btn-ghost lims-icon-btn" data-rac="" type="button" tabindex="0" data-aria-id="true" aria-label="Copy" id="ID">
+<svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M8 8h11v11H8zM5 16V5h11">
+</path>
+</svg>
+</button>
+</span>
+</dd>
+</div>
+<div class="lims-dl-item">
+<dt>Provider transaction</dt>
+<dd>—</dd>
+</div>
+<div class="lims-dl-item">
+<dt>Created</dt>
+<dd>
+<time class="lims-date-text" datetime="2026-11-10T04:00:00.000Z">10/11/2026 09:45 AM</time>
+</dd>
+</div>
+<div class="lims-dl-item">
+<dt>Expires</dt>
+<dd>—</dd>
+</div>
+<div class="lims-dl-item">
+<dt>Paid at</dt>
+<dd>
+<time class="lims-date-text" datetime="2026-11-10T04:25:00.000Z">10/11/2026 10:10 AM</time>
+</dd>
+</div>
+<div class="lims-dl-item">
+<dt>Verified amount</dt>
+<dd>NPR 1,23,456.00</dd>
+</div>
+<div class="lims-dl-item">
+<dt>Verification</dt>
+<dd>eSewa status check</dd>
+</div>
+<div class="lims-dl-item">
+<dt>Hold reason</dt>
+<dd>—</dd>
+</div>
+<div class="lims-dl-item">
+<dt>Ledger entry</dt>
+<dd>
+<a href="/frontdesk/orders/01a1a98a-ac40-7000-8000-000000000201">
+<span class="lims-id">
+<span class="lims-mono" title="01a1a98a-ac40-7000-8000-000000000301">01a1a98a…</span>
+</span>
+</a>
+</dd>
+</div>
+<div class="lims-dl-item">
+<dt>Refunded</dt>
+<dd>NPR 10,000.00</dd>
+</div>
+</dl>
+<template>
+</template>
+<div class="lims-tabs" data-rac="" data-orientation="horizontal" data-focused="true">
+<div class="lims-tablist" data-rac="" data-collection="aria-id" id="ID" aria-label="Payment history" role="tablist" aria-orientation="horizontal" data-orientation="horizontal">
+<div class="lims-tab" data-rac="" tabindex="-1" data-collection="aria-id" data-key="timeline" data-aria-id="true" id="ID" aria-selected="false" role="tab">Timeline</div>
+<div class="lims-tab" data-rac="" tabindex="-1" data-collection="aria-id" data-key="checks" data-aria-id="true" id="ID" aria-selected="false" role="tab">Provider checks</div>
+<div class="lims-tab" data-rac="" tabindex="-1" data-collection="aria-id" data-key="callbacks" data-aria-id="true" id="ID" aria-selected="false" role="tab">Callbacks</div>
+<div class="lims-tab" data-rac="" tabindex="0" data-collection="aria-id" data-key="refunds" data-aria-id="true" id="ID" aria-selected="true" role="tab" data-hovered="true" aria-controls="ID" data-selected="true" data-focused="true">Refunds</div>
+</div>
+<div id="ID" aria-labelledby="ID" role="tabpanel" class="lims-tabpanel" data-rac="">
+<div class="lims-data-table">
+<template>
+</template>
+<span data-focus-scope-start="true" hidden="">
+</span>
+<table class="lims-table lims-table-compact lims-table-sticky" data-rac="" aria-label="Refunds" id="ID" role="grid" tabindex="0" aria-describedby="" data-collection="aria-id">
+<thead role="rowgroup" class="aria-id" data-rac="">
+<tr role="row">
+<th tabindex="-1" data-collection="aria-id" data-key="requested" id="ID" role="columnheader" aria-colindex="1" data-aria-id="true" class="lims-col lims-align-start" data-rac="">Requested</th>
+<th tabindex="-1" data-collection="aria-id" data-key="amount" id="ID" role="columnheader" aria-colindex="2" data-aria-id="true" class="lims-col lims-align-end" data-rac="">Amount</th>
+<th tabindex="-1" data-collection="aria-id" data-key="status" id="ID" role="columnheader" aria-colindex="3" data-aria-id="true" class="lims-col lims-align-start" data-rac="">Status</th>
+<th tabindex="-1" data-collection="aria-id" data-key="reason" id="ID" role="columnheader" aria-colindex="4" data-aria-id="true" class="lims-col lims-align-start" data-rac="">Reason</th>
+</tr>
+</thead>
+<tbody class="aria-id" data-rac="" role="rowgroup">
+<tr data-row-id="0" data-row-index="0" class="lims-row" style="--table-row-level: 1;" data-rac="" role="row" tabindex="-1" data-collection="aria-id" data-key="0" id="ID" aria-labelledby="ID" data-level="1">
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="rowheader" data-column-index="0" data-level="1">
+<time class="lims-date-text" datetime="2026-11-10T05:00:00.000Z">10/11/2026 10:45 AM</time>
+</td>
+<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="1" data-level="1">
+<span class="lims-money">Rs. 5,000.00</span>
+</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="2" data-level="1">
+<span class="lims-chip lims-chip-md lims-tone-success" data-tone="success">
+<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 3a9 9 0 100 18 9 9 0 000-18zM8 12l3 3 5-6">
+</path>
+</svg>Completed</span>
+</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="3" data-level="1">Overpaid</td>
+</tr>
+<tr data-row-id="1" data-row-index="1" class="lims-row" style="--table-row-level: 1;" data-rac="" role="row" tabindex="-1" data-collection="aria-id" data-key="1" id="ID" aria-labelledby="ID" data-level="1">
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="rowheader" data-column-index="0" data-level="1">
+<time class="lims-date-text" datetime="2026-11-10T05:10:00.000Z">10/11/2026 10:55 AM</time>
+</td>
+<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="1" data-level="1">
+<span class="lims-money">Rs. 3,000.00</span>
+</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="2" data-level="1">
+<span class="lims-chip lims-chip-md lims-tone-danger" data-tone="danger">
+<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 3a9 9 0 100 18 9 9 0 000-18zM9 9l6 6M15 9l-6 6">
+</path>
+</svg>Failed</span>
+</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="3" data-level="1">Overpaid</td>
+</tr>
+<tr data-row-id="2" data-row-index="2" class="lims-row" style="--table-row-level: 1;" data-rac="" role="row" tabindex="-1" data-collection="aria-id" data-key="2" id="ID" aria-labelledby="ID" data-level="1">
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="rowheader" data-column-index="0" data-level="1">
+<time class="lims-date-text" datetime="2026-11-10T05:20:00.000Z">10/11/2026 11:05 AM</time>
+</td>
+<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="1" data-level="1">
+<span class="lims-money">Rs. 2,000.00</span>
+</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="2" data-level="1">
+<span class="lims-chip lims-chip-md lims-tone-warning" data-tone="warning">
+<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 4l9 16H3L12 4zM12 10v4M12 17h.01">
+</path>
+</svg>Waiting for approval</span>
+</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="3" data-level="1">Overpaid</td>
+</tr>
+</tbody>
+</table>
+<span data-focus-scope-end="true" hidden="">
+</span>
+<div role="status" class="lims-visually-hidden">
+</div>
+</div>
+</div>
+</div>
+<div class="lims-toast-region">
+</div>"
+`;
+
+exports[`RS-C15 key-screen snapshots > Payment review queue 1`] = `
+"<div>
+<div class="lims-page-header">
+<div class="lims-page-header-row">
+<h1 class="lims-page-title">Payment review</h1>
+<div class="lims-page-actions">
+<span data-help-key="payments.review">
+<button class="lims-btn lims-btn-ghost lims-btn-md" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID">
+<svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 3a9 9 0 100 18 9 9 0 000-18zM9.5 9.5a2.5 2.5 0 115 0c0 2-2.5 2-2.5 4M12 17h.01">
+</path>
+</svg>
+<span class="lims-btn-label">Help</span>
+</button>
+</span>
+</div>
+</div>
+</div>
+<div role="search" class="lims-filter-bar">
+<div class="lims-field">
+<label class="lims-label" id="_r_2_">Status</label>
+<template>
+</template>
+<span data-focus-scope-start="true" hidden="">
+</span>
+<div class="lims-listbox lims-chip-list" data-rac="" aria-labelledby="_r_2_" aria-multiselectable="true" role="listbox" aria-orientation="horizontal" id="ID" tabindex="0" data-collection="aria-id" data-layout="stack" data-orientation="horizontal">
+<div class="lims-option lims-chip" data-rac="" role="option" aria-selected="true" tabindex="-1" data-collection="aria-id" data-key="held_for_review" data-aria-id="true" id="ID" data-selected="true" data-selection-mode="multiple">Under review</div>
+<div class="lims-option lims-chip" data-rac="" role="option" aria-selected="false" tabindex="-1" data-collection="aria-id" data-key="pending" data-aria-id="true" id="ID" data-selection-mode="multiple">Waiting for provider</div>
+<div class="lims-option lims-chip" data-rac="" role="option" aria-selected="false" tabindex="-1" data-collection="aria-id" data-key="initiated" data-aria-id="true" id="ID" data-selection-mode="multiple">Started</div>
+<div class="lims-option lims-chip" data-rac="" role="option" aria-selected="false" tabindex="-1" data-collection="aria-id" data-key="failed" data-aria-id="true" id="ID" data-selection-mode="multiple">Failed</div>
+<div class="lims-option lims-chip" data-rac="" role="option" aria-selected="false" tabindex="-1" data-collection="aria-id" data-key="expired" data-aria-id="true" id="ID" data-selection-mode="multiple">Expired</div>
+<div class="lims-option lims-chip" data-rac="" role="option" aria-selected="false" tabindex="-1" data-collection="aria-id" data-key="settled" data-aria-id="true" id="ID" data-selection-mode="multiple">Paid</div>
+</div>
+<span data-focus-scope-end="true" hidden="">
+</span>
+</div>
+<template>
+</template>
+<div class="lims-field" data-rac="">
+<span class="lims-label" id="ID">Gateway</span>
+<button id="ID" class="lims-input lims-select-trigger" data-rac="" type="button" tabindex="0" data-aria-id="true" aria-labelledby="ID" aria-haspopup="listbox" aria-expanded="false">
+<span id="ID" class="aria-id" data-rac="">All</span>
+<svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M6 9l6 6 6-6">
+</path>
+</svg>
+</button>
+<div style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: fixed; width: 1px; white-space: nowrap; top: 0px; left: 0px;" aria-hidden="true" data-aria-id="true" data-a11y-ignore="aria-hidden-focus" data-testid="hidden-select-container">
+<label>
+<select tabindex="-1" name="gateway">
+<option value="" label="&nbsp;">&nbsp;</option>
+<option value="all">All</option>
+<option value="esewa">eSewa</option>
+<option value="khalti">Khalti</option>
+<option value="fonepay">Fonepay — not available yet</option>
+</select>
+</label>
+</div>
+</div>
+<template>
+</template>
+<div class="lims-field" data-rac="">
+<span class="lims-label" id="ID">Hold reason</span>
+<button id="ID" class="lims-input lims-select-trigger" data-rac="" type="button" tabindex="0" data-aria-id="true" aria-labelledby="ID" aria-haspopup="listbox" aria-expanded="false">
+<span id="ID" class="aria-id" data-rac="">All</span>
+<svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M6 9l6 6 6-6">
+</path>
+</svg>
+</button>
+<div style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: fixed; width: 1px; white-space: nowrap; top: 0px; left: 0px;" aria-hidden="true" data-aria-id="true" data-a11y-ignore="aria-hidden-focus" data-testid="hidden-select-container">
+<label>
+<select tabindex="-1" name="hold_reason">
+<option value="" label="&nbsp;">&nbsp;</option>
+<option value="all">All</option>
+<option value="amount_mismatch">Amount differs from the due</option>
+</select>
+</label>
+</div>
+</div>
+<div role="group" aria-labelledby="_r_s_-l" class="lims-field lims-date-range">
+<span id="_r_s_-l" class="lims-label">Created</span>
+<div class="lims-inline">
+<div class="lims-field lims-date-field">
+<label class="lims-label" for="_r_t_">From</label>
+<div class="lims-input-group">
+<input id="_r_t_" class="lims-input" placeholder="DD/MM/YYYY" autocomplete="off" type="text" value="" name="created_from">
+<button type="button" class="lims-btn lims-btn-ghost lims-icon-btn" aria-label="Open calendar for From" aria-expanded="false">
+<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+<rect x="4" y="5" width="16" height="15">
+</rect>
+<line x1="4" y1="10" x2="20" y2="10">
+</line>
+</svg>
+</button>
+</div>
+</div>
+<div class="lims-field lims-date-field">
+<label class="lims-label" for="_r_u_">To</label>
+<div class="lims-input-group">
+<input id="_r_u_" class="lims-input" placeholder="DD/MM/YYYY" autocomplete="off" type="text" value="" name="created_to">
+<button type="button" class="lims-btn lims-btn-ghost lims-icon-btn" aria-label="Open calendar for To" aria-expanded="false">
+<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+<rect x="4" y="5" width="16" height="15">
+</rect>
+<line x1="4" y1="10" x2="20" y2="10">
+</line>
+</svg>
+</button>
+</div>
+</div>
+</div>
+</div>
+<button class="lims-btn lims-btn-ghost lims-btn-md" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID">
+<span class="lims-btn-label">Reset filters</span>
+</button>
+</div>
+<div class="lims-data-table">
+<template>
+</template>
+<span data-focus-scope-start="true" hidden="">
+</span>
+<table class="lims-table lims-table-compact lims-table-sticky" data-rac="" aria-label="Payments needing review" id="ID" role="grid" tabindex="0" aria-describedby="" data-collection="aria-id">
+<thead role="rowgroup" class="aria-id" data-rac="">
+<tr role="row">
+<th tabindex="-1" data-collection="aria-id" data-key="created" id="ID" role="columnheader" aria-colindex="1" data-aria-id="true" class="lims-col lims-align-start" data-rac="">Created</th>
+<th tabindex="-1" data-collection="aria-id" data-key="gateway" id="ID" role="columnheader" aria-colindex="2" data-aria-id="true" class="lims-col lims-align-start" data-rac="">Gateway</th>
+<th tabindex="-1" data-collection="aria-id" data-key="amount" id="ID" role="columnheader" aria-colindex="3" data-aria-id="true" class="lims-col lims-align-end" data-rac="">Amount</th>
+<th tabindex="-1" data-collection="aria-id" data-key="status" id="ID" role="columnheader" aria-colindex="4" data-aria-id="true" class="lims-col lims-align-start" data-rac="">Status</th>
+<th tabindex="-1" data-collection="aria-id" data-key="reason" id="ID" role="columnheader" aria-colindex="5" data-aria-id="true" class="lims-col lims-align-start" data-rac="">Reason</th>
+<th tabindex="-1" data-collection="aria-id" data-key="last_checked" id="ID" role="columnheader" aria-colindex="6" data-aria-id="true" class="lims-col lims-align-start" data-rac="">Last checked</th>
+<th tabindex="-1" data-collection="aria-id" data-key="order" id="ID" role="columnheader" aria-colindex="7" data-aria-id="true" class="lims-col lims-align-start" data-rac="">Order</th>
+<th tabindex="-1" data-collection="aria-id" data-key="intent" id="ID" role="columnheader" aria-colindex="8" data-aria-id="true" class="lims-col lims-align-start" data-rac="">Intent</th>
+</tr>
+</thead>
+<tbody class="aria-id" data-rac="" role="rowgroup">
+<tr data-row-id="01a1a98a-ac40-7000-8000-000000000101" data-row-index="0" class="lims-row" style="--table-row-level: 1;" data-rac="" role="row" tabindex="-1" data-collection="aria-id" data-key="01a1a98a-ac40-7000-8000-000000000101" id="ID" aria-labelledby="ID" data-level="1">
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="rowheader" data-column-index="0" data-level="1">
+<time class="lims-date-text" datetime="2026-11-10T04:00:00.000Z">10/11/2026 09:45 AM</time>
+</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="1" data-level="1">eSewa</td>
+<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="2" data-level="1">
+<span class="lims-money">NPR 1,23,456.00</span>
+</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="3" data-level="1">
+<span class="lims-chip lims-chip-md lims-tone-warning" data-tone="warning">
+<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 4l9 16H3L12 4zM12 10v4M12 17h.01">
+</path>
+</svg>Under review</span>
+</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="4" data-level="1">Amount differs from the due</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="5" data-level="1">
+<time class="lims-date-text" datetime="2026-11-10T04:20:00.000Z">10/11/2026 10:05 AM</time>
+</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="6" data-level="1">
+<a href="/frontdesk/orders/01a1a98a-ac40-7000-8000-000000000201" aria-label="Order 01a1a98a">
+<span class="lims-id">
+<span class="lims-mono" title="01a1a98a-ac40-7000-8000-000000000201">01a1a98a…</span>
+</span>
+</a>
+</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="7" data-level="1">
+<a href="/payments/intents/01a1a98a-ac40-7000-8000-000000000101" aria-label="Payment 01a1a98a">
+<span class="lims-id">
+<span class="lims-mono" title="01a1a98a-ac40-7000-8000-000000000101">01a1a98a…</span>
+</span>
+</a>
+</td>
+</tr>
+<tr data-row-id="01a1a98a-ac40-7000-8000-000000000102" data-row-index="1" class="lims-row" style="--table-row-level: 1;" data-rac="" role="row" tabindex="-1" data-collection="aria-id" data-key="01a1a98a-ac40-7000-8000-000000000102" id="ID" aria-labelledby="ID" data-level="1">
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="rowheader" data-column-index="0" data-level="1">
+<time class="lims-date-text" datetime="2026-11-10T03:00:00.000Z">10/11/2026 08:45 AM</time>
+</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="1" data-level="1">Khalti</td>
+<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="2" data-level="1">
+<span class="lims-money">NPR 500.00</span>
+</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="3" data-level="1">
+<span class="lims-chip lims-chip-md lims-tone-danger" data-tone="danger">
+<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 3a9 9 0 100 18 9 9 0 000-18zM9 9l6 6M15 9l-6 6">
+</path>
+</svg>Failed</span>
+</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="4" data-level="1">Provider declined</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="5" data-level="1">—</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="6" data-level="1">
+<a href="/frontdesk/orders/01a1a98a-ac40-7000-8000-000000000202" aria-label="Order 01a1a98a">
+<span class="lims-id">
+<span class="lims-mono" title="01a1a98a-ac40-7000-8000-000000000202">01a1a98a…</span>
+</span>
+</a>
+</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="7" data-level="1">
+<a href="/payments/intents/01a1a98a-ac40-7000-8000-000000000102" aria-label="Payment 01a1a98a">
+<span class="lims-id">
+<span class="lims-mono" title="01a1a98a-ac40-7000-8000-000000000102">01a1a98a…</span>
+</span>
+</a>
+</td>
+</tr>
+<tr data-row-id="01a1a98a-ac40-7000-8000-000000000103" data-row-index="2" class="lims-row" style="--table-row-level: 1;" data-rac="" role="row" tabindex="-1" data-collection="aria-id" data-key="01a1a98a-ac40-7000-8000-000000000103" id="ID" aria-labelledby="ID" data-level="1">
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="rowheader" data-column-index="0" data-level="1">
+<time class="lims-date-text" datetime="2026-11-10T02:00:00.000Z">10/11/2026 07:45 AM</time>
+</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="1" data-level="1">eSewa</td>
+<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="2" data-level="1">
+<span class="lims-money">NPR 750.00</span>
+</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="3" data-level="1">
+<span class="lims-chip lims-chip-md lims-tone-danger" data-tone="danger">
+<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 3a9 9 0 100 18 9 9 0 000-18zM9 9l6 6M15 9l-6 6">
+</path>
+</svg>Expired</span>
+</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="4" data-level="1">—</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="5" data-level="1">—</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="6" data-level="1">
+<a href="/frontdesk/orders/01a1a98a-ac40-7000-8000-000000000203" aria-label="Order 01a1a98a">
+<span class="lims-id">
+<span class="lims-mono" title="01a1a98a-ac40-7000-8000-000000000203">01a1a98a…</span>
+</span>
+</a>
+</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="7" data-level="1">
+<a href="/payments/intents/01a1a98a-ac40-7000-8000-000000000103" aria-label="Payment 01a1a98a">
+<span class="lims-id">
+<span class="lims-mono" title="01a1a98a-ac40-7000-8000-000000000103">01a1a98a…</span>
+</span>
+</a>
+</td>
+</tr>
+</tbody>
+</table>
+<span data-focus-scope-end="true" hidden="">
+</span>
+<div role="status" class="lims-visually-hidden">
+</div>
+</div>
+</div>
+<div class="lims-toast-region">
+</div>"
+`;
+
+exports[`RS-C15 key-screen snapshots > Reconciliation: Open findings tab 1`] = `
+"<div class="lims-page-header">
+<div class="lims-page-header-row">
+<h1 class="lims-page-title">Gateway reconciliation</h1>
+<div class="lims-page-actions">
+<button class="lims-btn lims-btn-primary lims-btn-md" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID">
+<span class="lims-btn-label">Run now</span>
+</button>
+<span data-help-key="payments.reconciliation">
+<button class="lims-btn lims-btn-ghost lims-btn-md" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID">
+<svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 3a9 9 0 100 18 9 9 0 000-18zM9.5 9.5a2.5 2.5 0 115 0c0 2-2.5 2-2.5 4M12 17h.01">
+</path>
+</svg>
+<span class="lims-btn-label">Help</span>
+</button>
+</span>
+</div>
+</div>
+</div>
+<div class="lims-stat-row">
+<div class="lims-stat">
+<span class="lims-stat-label">Last successful run</span>
+<span class="lims-stat-value">11/11/2026 02:50 AM</span>
+</div>
+<div class="lims-stat">
+<span class="lims-stat-label">Open critical findings</span>
+<span class="lims-stat-value"> 2</span>
+</div>
+<a class="lims-stat lims-stat-link" href="/payments/review">
+<span class="lims-stat-label">Payments under review</span>
+<span class="lims-stat-value"> 1</span>
+</a>
+</div>
+<template>
+</template>
+<div class="lims-tabs" data-rac="" data-orientation="horizontal" data-focused="true">
+<div class="lims-tablist" data-rac="" data-collection="aria-id" id="ID" aria-label="Reconciliation" role="tablist" aria-orientation="horizontal" data-orientation="horizontal">
+<div class="lims-tab" data-rac="" tabindex="-1" data-collection="aria-id" data-key="runs" data-aria-id="true" id="ID" aria-selected="false" role="tab">Runs</div>
+<div class="lims-tab" data-rac="" tabindex="0" data-collection="aria-id" data-key="findings" data-aria-id="true" id="ID" aria-selected="true" role="tab" data-hovered="true" aria-controls="ID" data-selected="true" data-focused="true">Open findings</div>
+</div>
+<div id="ID" aria-labelledby="ID" role="tabpanel" class="lims-tabpanel" data-rac="">
+<div role="search" class="lims-filter-bar">
+<div class="lims-field">
+<label class="lims-label" id="_r_6c_">Kind</label>
+<template>
+</template>
+<span data-focus-scope-start="true" hidden="">
+</span>
+<div class="lims-listbox lims-chip-list" data-rac="" aria-labelledby="_r_6c_" aria-multiselectable="true" role="listbox" aria-orientation="horizontal" id="ID" tabindex="0" data-collection="aria-id" data-layout="stack" data-orientation="horizontal">
+<div class="lims-option lims-chip" data-rac="" role="option" aria-selected="false" tabindex="-1" data-collection="aria-id" data-key="missed_settlement" data-aria-id="true" id="ID" data-selection-mode="multiple">Missed settlement</div>
+<div class="lims-option lims-chip" data-rac="" role="option" aria-selected="false" tabindex="-1" data-collection="aria-id" data-key="late_payment_found" data-aria-id="true" id="ID" data-selection-mode="multiple">Late payment found</div>
+<div class="lims-option lims-chip" data-rac="" role="option" aria-selected="false" tabindex="-1" data-collection="aria-id" data-key="amount_mismatch" data-aria-id="true" id="ID" data-selection-mode="multiple">Amount mismatch</div>
+<div class="lims-option lims-chip" data-rac="" role="option" aria-selected="false" tabindex="-1" data-collection="aria-id" data-key="gateway_unreachable" data-aria-id="true" id="ID" data-selection-mode="multiple">Provider unreachable</div>
+</div>
+<span data-focus-scope-end="true" hidden="">
+</span>
+</div>
+<template>
+</template>
+<div class="lims-field" data-rac="">
+<span class="lims-label" id="ID">Severity</span>
+<button id="ID" class="lims-input lims-select-trigger" data-rac="" type="button" tabindex="0" data-aria-id="true" aria-labelledby="ID" aria-haspopup="listbox" aria-expanded="false">
+<span id="ID" class="aria-id" data-rac="">All</span>
+<svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M6 9l6 6 6-6">
+</path>
+</svg>
+</button>
+<div style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: fixed; width: 1px; white-space: nowrap; top: 0px; left: 0px;" aria-hidden="true" data-aria-id="true" data-a11y-ignore="aria-hidden-focus" data-testid="hidden-select-container">
+<label>
+<select tabindex="-1" name="severity">
+<option value="" label="&nbsp;">&nbsp;</option>
+<option value="all">All</option>
+<option value="critical">Critical</option>
+<option value="warning">Warning</option>
+<option value="info">Info</option>
+</select>
+</label>
+</div>
+</div>
+<button class="lims-btn lims-btn-ghost lims-btn-md" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID">
+<span class="lims-btn-label">Reset filters</span>
+</button>
+</div>
+<div class="lims-data-table">
+<template>
+</template>
+<span data-focus-scope-start="true" hidden="">
+</span>
+<table class="lims-table lims-table-compact lims-table-sticky" data-rac="" aria-label="Open findings" id="ID" role="grid" tabindex="0" aria-describedby="" data-collection="aria-id">
+<thead role="rowgroup" class="aria-id" data-rac="">
+<tr role="row">
+<th tabindex="-1" data-collection="aria-id" data-key="found" id="ID" role="columnheader" aria-colindex="1" data-aria-id="true" class="lims-col lims-align-start" data-rac="">Found</th>
+<th tabindex="-1" data-collection="aria-id" data-key="severity" id="ID" role="columnheader" aria-colindex="2" data-aria-id="true" class="lims-col lims-align-start" data-rac="">Severity</th>
+<th tabindex="-1" data-collection="aria-id" data-key="kind" id="ID" role="columnheader" aria-colindex="3" data-aria-id="true" class="lims-col lims-align-start" data-rac="">Kind</th>
+<th tabindex="-1" data-collection="aria-id" data-key="intent" id="ID" role="columnheader" aria-colindex="4" data-aria-id="true" class="lims-col lims-align-start" data-rac="">Intent</th>
+<th tabindex="-1" data-collection="aria-id" data-key="our_status" id="ID" role="columnheader" aria-colindex="5" data-aria-id="true" class="lims-col lims-align-start" data-rac="">Our status</th>
+<th tabindex="-1" data-collection="aria-id" data-key="provider_status" id="ID" role="columnheader" aria-colindex="6" data-aria-id="true" class="lims-col lims-align-start" data-rac="">Provider status</th>
+<th tabindex="-1" data-collection="aria-id" data-key="our_amount" id="ID" role="columnheader" aria-colindex="7" data-aria-id="true" class="lims-col lims-align-end" data-rac="">Our amount</th>
+<th tabindex="-1" data-collection="aria-id" data-key="provider_amount" id="ID" role="columnheader" aria-colindex="8" data-aria-id="true" class="lims-col lims-align-end" data-rac="">Provider amount</th>
+<th tabindex="-1" data-collection="aria-id" data-key="auto" id="ID" role="columnheader" aria-colindex="9" data-aria-id="true" class="lims-col lims-align-start" data-rac="">Automatic action</th>
+<th tabindex="-1" data-collection="aria-id" data-key="actions" id="ID" role="columnheader" aria-colindex="10" data-aria-id="true" class="lims-col lims-align-start" data-rac="">Actions</th>
+</tr>
+</thead>
+<tbody class="aria-id" data-rac="" role="rowgroup">
+<tr data-row-id="01a1a98a-ac40-7000-8000-000000000601" data-row-index="0" class="lims-row" style="--table-row-level: 1;" data-rac="" role="row" tabindex="-1" data-collection="aria-id" data-key="01a1a98a-ac40-7000-8000-000000000601" id="ID" aria-labelledby="ID" data-level="1">
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="rowheader" data-column-index="0" data-level="1">
+<time class="lims-date-text" datetime="2026-11-10T21:00:00.000Z">11/11/2026 02:45 AM</time>
+</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="1" data-level="1">
+<span class="lims-chip lims-chip-md lims-tone-warning" data-tone="warning">
+<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 4l9 16H3L12 4zM12 10v4M12 17h.01">
+</path>
+</svg>Warning</span>
+</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="2" data-level="1">Missed settlement</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="3" data-level="1">
+<a href="/payments/intents/01a1a98a-ac40-7000-8000-000000000101" aria-label="Payment 01a1a98a">
+<span class="lims-id">
+<span class="lims-mono" title="01a1a98a-ac40-7000-8000-000000000101">01a1a98a…</span>
+</span>
+</a>
+</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="4" data-level="1">
+<span class="lims-chip lims-chip-md lims-tone-info" data-tone="info">
+<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 8h.01M11 12h1v5h1M12 3a9 9 0 100 18 9 9 0 000-18z">
+</path>
+</svg>Started</span>
+</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="5" data-level="1">COMPLETE</td>
+<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="6" data-level="1">
+<span class="lims-money">Rs. 500.00</span>
+</td>
+<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="7" data-level="1">
+<span class="lims-money">Rs. 500.00</span>
+</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="8" data-level="1">Marked paid</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="9" data-level="1">
+<button class="lims-btn lims-btn-secondary lims-btn-sm" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID">
+<span class="lims-btn-label">Resolve</span>
+</button>
+</td>
+</tr>
+<tr data-row-id="01a1a98a-ac40-7000-8000-000000000602" data-row-index="1" class="lims-row" style="--table-row-level: 1;" data-rac="" role="row" tabindex="-1" data-collection="aria-id" data-key="01a1a98a-ac40-7000-8000-000000000602" id="ID" aria-labelledby="ID" data-level="1">
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="rowheader" data-column-index="0" data-level="1">
+<time class="lims-date-text" datetime="2026-11-10T21:00:00.000Z">11/11/2026 02:45 AM</time>
+</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="1" data-level="1">
+<span class="lims-chip lims-chip-md lims-tone-danger" data-tone="danger">
+<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 3a9 9 0 100 18 9 9 0 000-18zM9 9l6 6M15 9l-6 6">
+</path>
+</svg>Critical</span>
+</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="2" data-level="1">Amount mismatch</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="3" data-level="1">
+<a href="/payments/intents/01a1a98a-ac40-7000-8000-000000000102" aria-label="Payment 01a1a98a">
+<span class="lims-id">
+<span class="lims-mono" title="01a1a98a-ac40-7000-8000-000000000102">01a1a98a…</span>
+</span>
+</a>
+</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="4" data-level="1">
+<span class="lims-chip lims-chip-md lims-tone-success" data-tone="success">
+<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 3a9 9 0 100 18 9 9 0 000-18zM8 12l3 3 5-6">
+</path>
+</svg>Paid</span>
+</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="5" data-level="1">COMPLETE</td>
+<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="6" data-level="1">
+<span class="lims-money">Rs. 500.00</span>
+</td>
+<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="7" data-level="1">
+<span class="lims-money">Rs. 450.00</span>
+</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="8" data-level="1">—</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="9" data-level="1">
+<button class="lims-btn lims-btn-secondary lims-btn-sm" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID">
+<span class="lims-btn-label">Resolve</span>
+</button>
+</td>
+</tr>
+<tr data-row-id="01a1a98a-ac40-7000-8000-000000000603" data-row-index="2" class="lims-row" style="--table-row-level: 1;" data-rac="" role="row" tabindex="-1" data-collection="aria-id" data-key="01a1a98a-ac40-7000-8000-000000000603" id="ID" aria-labelledby="ID" data-level="1">
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="rowheader" data-column-index="0" data-level="1">
+<time class="lims-date-text" datetime="2026-11-10T21:00:00.000Z">11/11/2026 02:45 AM</time>
+</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="1" data-level="1">
+<span class="lims-chip lims-chip-md lims-tone-danger" data-tone="danger">
+<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 3a9 9 0 100 18 9 9 0 000-18zM9 9l6 6M15 9l-6 6">
+</path>
+</svg>Critical</span>
+</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="2" data-level="1">Late payment found</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="3" data-level="1">
+<a href="/payments/intents/01a1a98a-ac40-7000-8000-000000000103" aria-label="Payment 01a1a98a">
+<span class="lims-id">
+<span class="lims-mono" title="01a1a98a-ac40-7000-8000-000000000103">01a1a98a…</span>
+</span>
+</a>
+</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="4" data-level="1">
+<span class="lims-chip lims-chip-md lims-tone-danger" data-tone="danger">
+<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 3a9 9 0 100 18 9 9 0 000-18zM9 9l6 6M15 9l-6 6">
+</path>
+</svg>Expired</span>
+</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="5" data-level="1">COMPLETE</td>
+<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="6" data-level="1">
+<span class="lims-money">Rs. 500.00</span>
+</td>
+<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="7" data-level="1">
+<span class="lims-money">Rs. 500.00</span>
+</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="8" data-level="1">Put under review</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="9" data-level="1">
+<button class="lims-btn lims-btn-secondary lims-btn-sm" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID">
+<span class="lims-btn-label">Resolve</span>
+</button>
+</td>
+</tr>
+<tr data-row-id="01a1a98a-ac40-7000-8000-000000000604" data-row-index="3" class="lims-row" style="--table-row-level: 1;" data-rac="" role="row" tabindex="-1" data-collection="aria-id" data-key="01a1a98a-ac40-7000-8000-000000000604" id="ID" aria-labelledby="ID" data-level="1">
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="rowheader" data-column-index="0" data-level="1">
+<time class="lims-date-text" datetime="2026-11-10T21:00:00.000Z">11/11/2026 02:45 AM</time>
+</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="1" data-level="1">
+<span class="lims-chip lims-chip-md lims-tone-neutral" data-tone="neutral">
+<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 3a9 9 0 100 18 9 9 0 000-18z">
+</path>
+</svg>Info</span>
+</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="2" data-level="1">Provider unreachable</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="3" data-level="1">—</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="4" data-level="1">—</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="5" data-level="1">—</td>
+<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="6" data-level="1">
+<span class="lims-money">—</span>
+</td>
+<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="7" data-level="1">
+<span class="lims-money">—</span>
+</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="8" data-level="1">—</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="9" data-level="1">
+<button class="lims-btn lims-btn-secondary lims-btn-sm" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID">
+<span class="lims-btn-label">Resolve</span>
+</button>
+</td>
+</tr>
+</tbody>
+</table>
+<span data-focus-scope-end="true" hidden="">
+</span>
+<div role="status" class="lims-visually-hidden">
+</div>
+</div>
+</div>
+</div>
+<div class="lims-toast-region">
+</div>"
+`;
+
+exports[`RS-C15 key-screen snapshots > Reconciliation: Runs tab 1`] = `
+"<div class="lims-page-header">
+<div class="lims-page-header-row">
+<h1 class="lims-page-title">Gateway reconciliation</h1>
+<div class="lims-page-actions">
+<button class="lims-btn lims-btn-primary lims-btn-md" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID">
+<span class="lims-btn-label">Run now</span>
+</button>
+<span data-help-key="payments.reconciliation">
+<button class="lims-btn lims-btn-ghost lims-btn-md" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID">
+<svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 3a9 9 0 100 18 9 9 0 000-18zM9.5 9.5a2.5 2.5 0 115 0c0 2-2.5 2-2.5 4M12 17h.01">
+</path>
+</svg>
+<span class="lims-btn-label">Help</span>
+</button>
+</span>
+</div>
+</div>
+</div>
+<div class="lims-stat-row">
+<div class="lims-stat">
+<span class="lims-stat-label">Last successful run</span>
+<span class="lims-stat-value">11/11/2026 02:50 AM</span>
+</div>
+<div class="lims-stat">
+<span class="lims-stat-label">Open critical findings</span>
+<span class="lims-stat-value"> 2</span>
+</div>
+<a class="lims-stat lims-stat-link" href="/payments/review">
+<span class="lims-stat-label">Payments under review</span>
+<span class="lims-stat-value"> 1</span>
+</a>
+</div>
+<template>
+</template>
+<div class="lims-tabs" data-rac="" data-orientation="horizontal">
+<div class="lims-tablist" data-rac="" data-collection="aria-id" id="ID" aria-label="Reconciliation" role="tablist" aria-orientation="horizontal" data-orientation="horizontal">
+<div class="lims-tab" data-rac="" tabindex="0" data-collection="aria-id" data-key="runs" data-aria-id="true" id="ID" aria-selected="true" aria-controls="ID" role="tab" data-selected="true">Runs</div>
+<div class="lims-tab" data-rac="" tabindex="-1" data-collection="aria-id" data-key="findings" data-aria-id="true" id="ID" aria-selected="false" role="tab">Open findings</div>
+</div>
+<div id="ID" aria-labelledby="ID" role="tabpanel" class="lims-tabpanel" data-rac="">
+<div class="lims-data-table">
+<template>
+</template>
+<span data-focus-scope-start="true" hidden="">
+</span>
+<table class="lims-table lims-table-compact lims-table-sticky" data-rac="" aria-label="Reconciliation runs" id="ID" role="grid" tabindex="0" aria-describedby="" data-collection="aria-id">
+<thead role="rowgroup" class="aria-id" data-rac="">
+<tr role="row">
+<th tabindex="-1" data-collection="aria-id" data-key="date" id="ID" role="columnheader" aria-colindex="1" data-aria-id="true" class="lims-col lims-align-start" data-rac="">Business date</th>
+<th tabindex="-1" data-collection="aria-id" data-key="trigger" id="ID" role="columnheader" aria-colindex="2" data-aria-id="true" class="lims-col lims-align-start" data-rac="">Trigger</th>
+<th tabindex="-1" data-collection="aria-id" data-key="status" id="ID" role="columnheader" aria-colindex="3" data-aria-id="true" class="lims-col lims-align-start" data-rac="">Status</th>
+<th tabindex="-1" data-collection="aria-id" data-key="checked" id="ID" role="columnheader" aria-colindex="4" data-aria-id="true" class="lims-col lims-align-end" data-rac="">Checked</th>
+<th tabindex="-1" data-collection="aria-id" data-key="ok" id="ID" role="columnheader" aria-colindex="5" data-aria-id="true" class="lims-col lims-align-end" data-rac="">OK</th>
+<th tabindex="-1" data-collection="aria-id" data-key="findings" id="ID" role="columnheader" aria-colindex="6" data-aria-id="true" class="lims-col lims-align-end" data-rac="">Findings</th>
+<th tabindex="-1" data-collection="aria-id" data-key="critical" id="ID" role="columnheader" aria-colindex="7" data-aria-id="true" class="lims-col lims-align-end" data-rac="">Critical</th>
+<th tabindex="-1" data-collection="aria-id" data-key="finished" id="ID" role="columnheader" aria-colindex="8" data-aria-id="true" class="lims-col lims-align-start" data-rac="">Finished</th>
+</tr>
+</thead>
+<tbody class="aria-id" data-rac="" role="rowgroup">
+<tr data-row-id="01a1a98a-ac40-7000-8000-000000000501" data-row-index="0" class="lims-row" style="--table-row-level: 1;" data-rac="" role="row" tabindex="-1" data-collection="aria-id" data-key="01a1a98a-ac40-7000-8000-000000000501" id="ID" aria-labelledby="ID" data-level="1">
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="rowheader" data-column-index="0" data-level="1">
+<time class="lims-date-text" datetime="2026-11-10">10/11/2026</time>
+</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="1" data-level="1">Nightly</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="2" data-level="1">
+<span class="lims-chip lims-chip-md lims-tone-success" data-tone="success">
+<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 3a9 9 0 100 18 9 9 0 000-18zM8 12l3 3 5-6">
+</path>
+</svg>Completed</span>
+</td>
+<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="3" data-level="1">120</td>
+<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="4" data-level="1">117</td>
+<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="5" data-level="1">3</td>
+<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="6" data-level="1">1</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="7" data-level="1">
+<time class="lims-date-text" datetime="2026-11-10T21:05:00.000Z">11/11/2026 02:50 AM</time>
+</td>
+</tr>
+<tr data-row-id="01a1a98a-ac40-7000-8000-000000000502" data-row-index="1" class="lims-row" style="--table-row-level: 1;" data-rac="" role="row" tabindex="-1" data-collection="aria-id" data-key="01a1a98a-ac40-7000-8000-000000000502" id="ID" aria-labelledby="ID" data-level="1">
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="rowheader" data-column-index="0" data-level="1">
+<time class="lims-date-text" datetime="2026-11-12">12/11/2026</time>
+</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="1" data-level="1">Manual</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="2" data-level="1">
+<span class="lims-chip lims-chip-md lims-tone-info" data-tone="info">
+<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 8h.01M11 12h1v5h1M12 3a9 9 0 100 18 9 9 0 000-18z">
+</path>
+</svg>Running</span>
+</td>
+<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="3" data-level="1">0</td>
+<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="4" data-level="1">0</td>
+<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="5" data-level="1">0</td>
+<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="6" data-level="1">0</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="7" data-level="1">—</td>
+</tr>
+<tr data-row-id="01a1a98a-ac40-7000-8000-000000000503" data-row-index="2" class="lims-row" style="--table-row-level: 1;" data-rac="" role="row" tabindex="-1" data-collection="aria-id" data-key="01a1a98a-ac40-7000-8000-000000000503" id="ID" aria-labelledby="ID" data-level="1">
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="rowheader" data-column-index="0" data-level="1">
+<time class="lims-date-text" datetime="2026-11-09">09/11/2026</time>
+</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="1" data-level="1">Nightly</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="2" data-level="1">
+<span class="lims-chip lims-chip-md lims-tone-danger" data-tone="danger">
+<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 3a9 9 0 100 18 9 9 0 000-18zM9 9l6 6M15 9l-6 6">
+</path>
+</svg>Failed</span>
+</td>
+<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="3" data-level="1">40</td>
+<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="4" data-level="1">40</td>
+<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="5" data-level="1">0</td>
+<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="6" data-level="1">0</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="7" data-level="1">
+<time class="lims-date-text" datetime="2026-11-09T21:00:00.000Z">10/11/2026 02:45 AM</time>
+</td>
+</tr>
+</tbody>
+</table>
+<span data-focus-scope-end="true" hidden="">
+</span>
+<div role="status" class="lims-visually-hidden">
+</div>
+</div>
+</div>
+</div>
+<div class="lims-toast-region">
+</div>"
+`;
+
+exports[`RS-C15 key-screen snapshots > Refunds list 1`] = `
+"<div class="lims-page-header">
+<div class="lims-page-header-row">
+<h1 class="lims-page-title">Gateway refunds</h1>
+<div class="lims-page-actions">
+<span data-help-key="payments.refunds">
+<button class="lims-btn lims-btn-ghost lims-btn-md" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID">
+<svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 3a9 9 0 100 18 9 9 0 000-18zM9.5 9.5a2.5 2.5 0 115 0c0 2-2.5 2-2.5 4M12 17h.01">
+</path>
+</svg>
+<span class="lims-btn-label">Help</span>
+</button>
+</span>
+</div>
+</div>
+</div>
+<div role="search" class="lims-filter-bar">
+<div class="lims-field">
+<label class="lims-label" id="_r_bu_">Status</label>
+<template>
+</template>
+<span data-focus-scope-start="true" hidden="">
+</span>
+<div class="lims-listbox lims-chip-list" data-rac="" aria-labelledby="_r_bu_" aria-multiselectable="true" role="listbox" aria-orientation="horizontal" id="ID" tabindex="0" data-collection="aria-id" data-layout="stack" data-orientation="horizontal">
+<div class="lims-option lims-chip" data-rac="" role="option" aria-selected="false" tabindex="-1" data-collection="aria-id" data-key="pending_approval" data-aria-id="true" id="ID" data-selection-mode="multiple">Waiting for approval</div>
+<div class="lims-option lims-chip" data-rac="" role="option" aria-selected="false" tabindex="-1" data-collection="aria-id" data-key="approved" data-aria-id="true" id="ID" data-selection-mode="multiple">Approved</div>
+<div class="lims-option lims-chip" data-rac="" role="option" aria-selected="false" tabindex="-1" data-collection="aria-id" data-key="requested" data-aria-id="true" id="ID" data-selection-mode="multiple">Refund in progress</div>
+<div class="lims-option lims-chip" data-rac="" role="option" aria-selected="false" tabindex="-1" data-collection="aria-id" data-key="held_for_review" data-aria-id="true" id="ID" data-selection-mode="multiple">Under review</div>
+<div class="lims-option lims-chip" data-rac="" role="option" aria-selected="false" tabindex="-1" data-collection="aria-id" data-key="completed" data-aria-id="true" id="ID" data-selection-mode="multiple">Completed</div>
+<div class="lims-option lims-chip" data-rac="" role="option" aria-selected="false" tabindex="-1" data-collection="aria-id" data-key="failed" data-aria-id="true" id="ID" data-selection-mode="multiple">Failed</div>
+<div class="lims-option lims-chip" data-rac="" role="option" aria-selected="false" tabindex="-1" data-collection="aria-id" data-key="rejected" data-aria-id="true" id="ID" data-selection-mode="multiple">Rejected</div>
+</div>
+<span data-focus-scope-end="true" hidden="">
+</span>
+</div>
+<template>
+</template>
+<div class="lims-field" data-rac="">
+<span class="lims-label" id="ID">Gateway</span>
+<button id="ID" class="lims-input lims-select-trigger" data-rac="" type="button" tabindex="0" data-aria-id="true" aria-labelledby="ID" aria-haspopup="listbox" aria-expanded="false">
+<span id="ID" class="aria-id" data-rac="">All</span>
+<svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M6 9l6 6 6-6">
+</path>
+</svg>
+</button>
+<div style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: fixed; width: 1px; white-space: nowrap; top: 0px; left: 0px;" aria-hidden="true" data-aria-id="true" data-a11y-ignore="aria-hidden-focus" data-testid="hidden-select-container">
+<label>
+<select tabindex="-1" name="gateway">
+<option value="" label="&nbsp;">&nbsp;</option>
+<option value="all">All</option>
+<option value="esewa">eSewa</option>
+<option value="khalti">Khalti</option>
+</select>
+</label>
+</div>
+</div>
+<div role="group" aria-labelledby="_r_ce_-l" class="lims-field lims-date-range">
+<span id="_r_ce_-l" class="lims-label">Created</span>
+<div class="lims-inline">
+<div class="lims-field lims-date-field">
+<label class="lims-label" for="_r_cf_">From</label>
+<div class="lims-input-group">
+<input id="_r_cf_" class="lims-input" placeholder="DD/MM/YYYY" autocomplete="off" type="text" value="" name="created_from">
+<button type="button" class="lims-btn lims-btn-ghost lims-icon-btn" aria-label="Open calendar for From" aria-expanded="false">
+<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+<rect x="4" y="5" width="16" height="15">
+</rect>
+<line x1="4" y1="10" x2="20" y2="10">
+</line>
+</svg>
+</button>
+</div>
+</div>
+<div class="lims-field lims-date-field">
+<label class="lims-label" for="_r_cg_">To</label>
+<div class="lims-input-group">
+<input id="_r_cg_" class="lims-input" placeholder="DD/MM/YYYY" autocomplete="off" type="text" value="" name="created_to">
+<button type="button" class="lims-btn lims-btn-ghost lims-icon-btn" aria-label="Open calendar for To" aria-expanded="false">
+<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+<rect x="4" y="5" width="16" height="15">
+</rect>
+<line x1="4" y1="10" x2="20" y2="10">
+</line>
+</svg>
+</button>
+</div>
+</div>
+</div>
+</div>
+<button class="lims-btn lims-btn-ghost lims-btn-md" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID">
+<span class="lims-btn-label">Reset filters</span>
+</button>
+</div>
+<div class="lims-data-table">
+<template>
+</template>
+<span data-focus-scope-start="true" hidden="">
+</span>
+<table class="lims-table lims-table-compact lims-table-sticky" data-rac="" aria-label="Gateway refunds" id="ID" role="grid" tabindex="0" aria-describedby="" data-collection="aria-id">
+<thead role="rowgroup" class="aria-id" data-rac="">
+<tr role="row">
+<th tabindex="-1" data-collection="aria-id" data-key="requested" id="ID" role="columnheader" aria-colindex="1" data-aria-id="true" class="lims-col lims-align-start" data-rac="">Requested</th>
+<th tabindex="-1" data-collection="aria-id" data-key="gateway" id="ID" role="columnheader" aria-colindex="2" data-aria-id="true" class="lims-col lims-align-start" data-rac="">Gateway</th>
+<th tabindex="-1" data-collection="aria-id" data-key="amount" id="ID" role="columnheader" aria-colindex="3" data-aria-id="true" class="lims-col lims-align-end" data-rac="">Amount</th>
+<th tabindex="-1" data-collection="aria-id" data-key="status" id="ID" role="columnheader" aria-colindex="4" data-aria-id="true" class="lims-col lims-align-start" data-rac="">Status</th>
+<th tabindex="-1" data-collection="aria-id" data-key="mode" id="ID" role="columnheader" aria-colindex="5" data-aria-id="true" class="lims-col lims-align-start" data-rac="">Mode</th>
+<th tabindex="-1" data-collection="aria-id" data-key="requested_by" id="ID" role="columnheader" aria-colindex="6" data-aria-id="true" class="lims-col lims-align-start" data-rac="">Requested by</th>
+<th tabindex="-1" data-collection="aria-id" data-key="approved_by" id="ID" role="columnheader" aria-colindex="7" data-aria-id="true" class="lims-col lims-align-start" data-rac="">Approved by</th>
+<th tabindex="-1" data-collection="aria-id" data-key="reason" id="ID" role="columnheader" aria-colindex="8" data-aria-id="true" class="lims-col lims-align-start" data-rac="">Reason under review</th>
+<th tabindex="-1" data-collection="aria-id" data-key="intent" id="ID" role="columnheader" aria-colindex="9" data-aria-id="true" class="lims-col lims-align-start" data-rac="">Intent</th>
+<th tabindex="-1" data-collection="aria-id" data-key="actions" id="ID" role="columnheader" aria-colindex="10" data-aria-id="true" class="lims-col lims-align-start" data-rac="">Actions</th>
+</tr>
+</thead>
+<tbody class="aria-id" data-rac="" role="rowgroup">
+<tr data-row-id="01a1a98a-ac40-7000-8000-000000000701" data-row-index="0" class="lims-row" style="--table-row-level: 1;" data-rac="" role="row" tabindex="-1" data-collection="aria-id" data-key="01a1a98a-ac40-7000-8000-000000000701" id="ID" aria-labelledby="ID" data-level="1">
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="rowheader" data-column-index="0" data-level="1">
+<time class="lims-date-text" datetime="2026-11-10T05:00:00.000Z">10/11/2026 10:45 AM</time>
+</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="1" data-level="1">eSewa</td>
+<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="2" data-level="1">
+<span class="lims-money">Rs. 2,000.00</span>
+</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="3" data-level="1">
+<span class="lims-chip lims-chip-md lims-tone-warning" data-tone="warning">
+<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 4l9 16H3L12 4zM12 10v4M12 17h.01">
+</path>
+</svg>Waiting for approval</span>
+</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="4" data-level="1">Manual</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="5" data-level="1">Synthetic Cashier</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="6" data-level="1">—</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="7" data-level="1">—</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="8" data-level="1">
+<a href="/payments/intents/01a1a98a-ac40-7000-8000-000000000101" aria-label="Payment 01a1a98a">
+<span class="lims-id">
+<span class="lims-mono" title="01a1a98a-ac40-7000-8000-000000000101">01a1a98a…</span>
+</span>
+</a>
+</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="9" data-level="1">
+<div class="lims-row-actions">
+<button class="lims-btn lims-btn-secondary lims-btn-sm" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID">
+<span class="lims-btn-label">Approve</span>
+</button>
+<button class="lims-btn lims-btn-danger lims-btn-sm" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID">
+<span class="lims-btn-label">Reject</span>
+</button>
+</div>
+</td>
+</tr>
+<tr data-row-id="01a1a98a-ac40-7000-8000-000000000702" data-row-index="1" class="lims-row" style="--table-row-level: 1;" data-rac="" role="row" tabindex="-1" data-collection="aria-id" data-key="01a1a98a-ac40-7000-8000-000000000702" id="ID" aria-labelledby="ID" data-level="1">
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="rowheader" data-column-index="0" data-level="1">
+<time class="lims-date-text" datetime="2026-11-10T05:00:00.000Z">10/11/2026 10:45 AM</time>
+</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="1" data-level="1">eSewa</td>
+<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="2" data-level="1">
+<span class="lims-money">Rs. 2,000.00</span>
+</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="3" data-level="1">
+<span class="lims-chip lims-chip-md lims-tone-success" data-tone="success">
+<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 3a9 9 0 100 18 9 9 0 000-18zM8 12l3 3 5-6">
+</path>
+</svg>Completed</span>
+</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="4" data-level="1">Manual</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="5" data-level="1">Synthetic Cashier</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="6" data-level="1">Synthetic Finance</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="7" data-level="1">—</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="8" data-level="1">
+<a href="/payments/intents/01a1a98a-ac40-7000-8000-000000000102" aria-label="Payment 01a1a98a">
+<span class="lims-id">
+<span class="lims-mono" title="01a1a98a-ac40-7000-8000-000000000102">01a1a98a…</span>
+</span>
+</a>
+</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="9" data-level="1">
+<div class="lims-row-actions">
+</div>
+</td>
+</tr>
+<tr data-row-id="01a1a98a-ac40-7000-8000-000000000703" data-row-index="2" class="lims-row" style="--table-row-level: 1;" data-rac="" role="row" tabindex="-1" data-collection="aria-id" data-key="01a1a98a-ac40-7000-8000-000000000703" id="ID" aria-labelledby="ID" data-level="1">
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="rowheader" data-column-index="0" data-level="1">
+<time class="lims-date-text" datetime="2026-11-10T05:00:00.000Z">10/11/2026 10:45 AM</time>
+</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="1" data-level="1">eSewa</td>
+<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="2" data-level="1">
+<span class="lims-money">Rs. 2,000.00</span>
+</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="3" data-level="1">
+<span class="lims-chip lims-chip-md lims-tone-danger" data-tone="danger">
+<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 3a9 9 0 100 18 9 9 0 000-18zM9 9l6 6M15 9l-6 6">
+</path>
+</svg>Failed</span>
+</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="4" data-level="1">Manual</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="5" data-level="1">Synthetic Cashier</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="6" data-level="1">—</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="7" data-level="1">—</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="8" data-level="1">
+<a href="/payments/intents/01a1a98a-ac40-7000-8000-000000000103" aria-label="Payment 01a1a98a">
+<span class="lims-id">
+<span class="lims-mono" title="01a1a98a-ac40-7000-8000-000000000103">01a1a98a…</span>
+</span>
+</a>
+</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="9" data-level="1">
+<div class="lims-row-actions">
+</div>
+</td>
+</tr>
+<tr data-row-id="01a1a98a-ac40-7000-8000-000000000704" data-row-index="3" class="lims-row" style="--table-row-level: 1;" data-rac="" role="row" tabindex="-1" data-collection="aria-id" data-key="01a1a98a-ac40-7000-8000-000000000704" id="ID" aria-labelledby="ID" data-level="1">
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="rowheader" data-column-index="0" data-level="1">
+<time class="lims-date-text" datetime="2026-11-10T05:00:00.000Z">10/11/2026 10:45 AM</time>
+</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="1" data-level="1">eSewa</td>
+<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="2" data-level="1">
+<span class="lims-money">Rs. 2,000.00</span>
+</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="3" data-level="1">
+<span class="lims-chip lims-chip-md lims-tone-neutral" data-tone="neutral">
+<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 3a9 9 0 100 18 9 9 0 000-18z">
+</path>
+</svg>Rejected</span>
+</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="4" data-level="1">Manual</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="5" data-level="1">Synthetic Cashier</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="6" data-level="1">—</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="7" data-level="1">—</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="8" data-level="1">
+<a href="/payments/intents/01a1a98a-ac40-7000-8000-000000000104" aria-label="Payment 01a1a98a">
+<span class="lims-id">
+<span class="lims-mono" title="01a1a98a-ac40-7000-8000-000000000104">01a1a98a…</span>
+</span>
+</a>
+</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="9" data-level="1">
+<div class="lims-row-actions">
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+<span data-focus-scope-end="true" hidden="">
+</span>
+<div role="status" class="lims-visually-hidden">
+</div>
+</div>
+<div class="lims-toast-region">
+</div>"
+`;
+
+exports[`RS-C15 key-screen snapshots > Static QR worksheets 1`] = `
+"<div class="lims-page-header">
+<div class="lims-page-header-row">
+<h1 class="lims-page-title">Fonepay QR worksheet</h1>
+<div class="lims-page-actions">
+<span data-help-key="payments.static_qr">
+<button class="lims-btn lims-btn-ghost lims-btn-md" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID">
+<svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 3a9 9 0 100 18 9 9 0 000-18zM9.5 9.5a2.5 2.5 0 115 0c0 2-2.5 2-2.5 4M12 17h.01">
+</path>
+</svg>
+<span class="lims-btn-label">Help</span>
+</button>
+</span>
+</div>
+</div>
+</div>
+<div class="lims-banner lims-tone-info" data-tone="info">
+<svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 8h.01M11 12h1v5h1M12 3a9 9 0 100 18 9 9 0 000-18z">
+</path>
+</svg>
+<div class="lims-banner-text">
+<p class="lims-banner-title">
+<span style="position: absolute; width: 1px; height: 1px; padding: 0px; margin: -1px; overflow: hidden; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); white-space: nowrap; border: 0px;">Information: </span>Fonepay live payments are not available yet. Use this worksheet to compare Fonepay QR payments recorded at the counter with your bank statement.</p>
+</div>
+</div>
+<div class="lims-field lims-date-field">
+<label class="lims-label" for="_r_ff_">Business date<span aria-hidden="true"> *</span>
+</label>
+<div class="lims-input-group">
+<input id="_r_ff_" class="lims-input" placeholder="DD/MM/YYYY" autocomplete="off" required="" aria-describedby="_r_ff_-h" type="text" value="13/11/2026" name="business_date">
+<button type="button" class="lims-btn lims-btn-ghost lims-icon-btn" aria-label="Open calendar for Business date" aria-expanded="false">
+<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+<rect x="4" y="5" width="16" height="15">
+</rect>
+<line x1="4" y1="10" x2="20" y2="10">
+</line>
+</svg>
+</button>
+</div>
+<p id="_r_ff_-h" class="lims-description lims-date-hint">2083-07-27 B.S.</p>
+</div>
+<template>
+</template>
+<div class="lims-field" data-rac="" data-required="true">
+<span class="lims-label" id="ID">Centre<span aria-hidden="true"> *</span>
+</span>
+<button id="ID" class="lims-input lims-select-trigger" data-rac="" type="button" tabindex="0" data-aria-id="true" aria-labelledby="ID" aria-haspopup="listbox" aria-expanded="false">
+<span id="ID" class="aria-id" data-rac="">All centres</span>
+<svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M6 9l6 6 6-6">
+</path>
+</svg>
+</button>
+<div style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: fixed; width: 1px; white-space: nowrap; top: 0px; left: 0px;" aria-hidden="true" data-aria-id="true" data-a11y-ignore="aria-hidden-focus" data-testid="hidden-select-container">
+<label>
+<select tabindex="-1" name="centre_id">
+<option value="" label="&nbsp;">&nbsp;</option>
+<option value="all">All centres</option>
+<option value="01a1a98a-ac40-7000-8000-000000000003">Synthetic Centre</option>
+</select>
+</label>
+</div>
+</div>
+<div class="lims-field">
+<span class="lims-label">System total</span>
+<p>Loading…</p>
+</div>
+<div class="lims-field" data-rac="" data-required="true">
+<label class="lims-label" id="ID" for="ID">Bank statement total<span aria-hidden="true"> *</span>
+</label>
+<div class="lims-input-group">
+<span class="lims-affix">Rs.</span>
+<input aria-required="true" inputmode="decimal" tabindex="0" id="ID" aria-labelledby="ID" class="lims-input" data-rac="" type="text" value="" name="statement_total">
+</div>
+</div>
+<div class="lims-field" data-rac="" data-required="true">
+<label class="lims-label" id="ID" for="ID">Statement reference<span aria-hidden="true"> *</span>
+</label>
+<div class="lims-input-group">
+<input aria-required="true" maxlength="100" tabindex="0" id="ID" aria-labelledby="ID" class="lims-input" data-rac="" type="text" value="" name="statement_reference">
+</div>
+</div>
+<div class="lims-field">
+<span class="lims-label">Difference</span>
+<span class="lims-money">—</span>
+</div>
+<div class="lims-field" data-rac="">
+<label class="lims-label" id="ID" for="ID">Note</label>
+<div class="lims-input-group">
+<textarea maxlength="1000" name="note" tabindex="0" id="ID" aria-labelledby="ID" rows="3" class="lims-input" data-rac="">
+</textarea>
+</div>
+<span class="lims-count" aria-hidden="true">0 / 1000</span>
+</div>
+<button class="lims-btn lims-btn-primary lims-btn-md" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID">
+<span class="lims-btn-label">Save worksheet</span>
+</button>
+<div class="lims-data-table">
+<template>
+</template>
+<span data-focus-scope-start="true" hidden="">
+</span>
+<table class="lims-table lims-table-compact lims-table-sticky" data-rac="" aria-label="Fonepay QR worksheets" id="ID" role="grid" tabindex="0" aria-describedby="" data-collection="aria-id">
+<thead role="rowgroup" class="aria-id" data-rac="">
+<tr role="row">
+<th tabindex="-1" data-collection="aria-id" data-key="date" id="ID" role="columnheader" aria-colindex="1" data-aria-id="true" class="lims-col lims-align-start" data-rac="">Date</th>
+<th tabindex="-1" data-collection="aria-id" data-key="centre" id="ID" role="columnheader" aria-colindex="2" data-aria-id="true" class="lims-col lims-align-start" data-rac="">Centre</th>
+<th tabindex="-1" data-collection="aria-id" data-key="system" id="ID" role="columnheader" aria-colindex="3" data-aria-id="true" class="lims-col lims-align-end" data-rac="">System</th>
+<th tabindex="-1" data-collection="aria-id" data-key="statement" id="ID" role="columnheader" aria-colindex="4" data-aria-id="true" class="lims-col lims-align-end" data-rac="">Statement</th>
+<th tabindex="-1" data-collection="aria-id" data-key="difference" id="ID" role="columnheader" aria-colindex="5" data-aria-id="true" class="lims-col lims-align-end" data-rac="">Difference</th>
+<th tabindex="-1" data-collection="aria-id" data-key="status" id="ID" role="columnheader" aria-colindex="6" data-aria-id="true" class="lims-col lims-align-start" data-rac="">Status</th>
+<th tabindex="-1" data-collection="aria-id" data-key="by" id="ID" role="columnheader" aria-colindex="7" data-aria-id="true" class="lims-col lims-align-start" data-rac="">By</th>
+<th tabindex="-1" data-collection="aria-id" data-key="reference" id="ID" role="columnheader" aria-colindex="8" data-aria-id="true" class="lims-col lims-align-start" data-rac="">Reference</th>
+</tr>
+</thead>
+<tbody class="aria-id" data-rac="" role="rowgroup">
+<tr data-row-id="01a1a98a-ac40-7000-8000-000000000801" data-row-index="0" class="lims-row" style="--table-row-level: 1;" data-rac="" role="row" tabindex="-1" data-collection="aria-id" data-key="01a1a98a-ac40-7000-8000-000000000801" id="ID" aria-labelledby="ID" data-level="1">
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="rowheader" data-column-index="0" data-level="1">
+<time class="lims-date-text" datetime="2026-11-09">09/11/2026</time>
+</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="1" data-level="1">Synthetic Centre</td>
+<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="2" data-level="1">
+<span class="lims-money">Rs. 15,000.00</span>
+</td>
+<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="3" data-level="1">
+<span class="lims-money">Rs. 15,000.00</span>
+</td>
+<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="4" data-level="1">
+<span class="lims-money">Rs. 0.00</span>
+</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="5" data-level="1">
+<span class="lims-chip lims-chip-md lims-tone-success" data-tone="success">
+<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 3a9 9 0 100 18 9 9 0 000-18zM8 12l3 3 5-6">
+</path>
+</svg>Matched</span>
+</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="6" data-level="1">—</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="7" data-level="1">—</td>
+</tr>
+<tr data-row-id="01a1a98a-ac40-7000-8000-000000000802" data-row-index="1" class="lims-row" style="--table-row-level: 1;" data-rac="" role="row" tabindex="-1" data-collection="aria-id" data-key="01a1a98a-ac40-7000-8000-000000000802" id="ID" aria-labelledby="ID" data-level="1">
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="rowheader" data-column-index="0" data-level="1">
+<time class="lims-date-text" datetime="2026-11-08">08/11/2026</time>
+</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="1" data-level="1">Synthetic Centre</td>
+<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="2" data-level="1">
+<span class="lims-money">Rs. 9,000.00</span>
+</td>
+<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="3" data-level="1">
+<span class="lims-money">Rs. 8,950.00</span>
+</td>
+<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="4" data-level="1">
+<span class="lims-money">Rs. -50.00</span>
+</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="5" data-level="1">
+<span class="lims-chip lims-chip-md lims-tone-warning" data-tone="warning">
+<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 4l9 16H3L12 4zM12 10v4M12 17h.01">
+</path>
+</svg>Accepted with difference</span>
+</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="6" data-level="1">—</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="7" data-level="1">STMT-SYN-1</td>
+</tr>
+</tbody>
+</table>
+<span data-focus-scope-end="true" hidden="">
+</span>
+<div role="status" class="lims-visually-hidden">
+</div>
+</div>
+<div class="lims-toast-region">
+</div>"
+`;

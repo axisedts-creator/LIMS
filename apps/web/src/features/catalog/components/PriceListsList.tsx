@@ -68,6 +68,7 @@ function NewPriceListDialog({ onClose }: { onClose: () => void }) {
   return (
     <ActionDialog
       title="New price list"
+      drawer
       savedText="Price list created."
       onClose={onClose}
       run={(key) => createPriceListAction({ code: code.trim(), name: name.trim(), owner_kind: kind, assignments: [] }, key)}

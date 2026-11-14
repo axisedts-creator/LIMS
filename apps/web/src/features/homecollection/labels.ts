@@ -63,13 +63,46 @@ export interface Failure { status: number; code: string; pointers?: readonly str
 
 const COMMON: Record<string, string> = {
   'auth.forbidden': 'You do not have permission to do this.',
+  'auth.mfa_required': 'Confirm it is you with your second sign-in step, then try again.',
   'common.version_conflict': CHANGED,
   'homecollection.visit_closed': 'This visit is closed (completed, failed or cancelled) and can no longer be changed.',
   'homecollection.mutation_superseded': "The phlebotomist has already started this visit, so it can't be changed here. It may have changed; reload the page.",
 };
-export function failText(r: Failure, validation = 'Check the values and try again.'): string {
+export function failText(r: Failure, validation = 'Check the values and try again.', changed = CHANGED): string {
   if (r.code === 'common.validation_failed') return validation;
+  if (r.code === 'common.version_conflict') return changed;
   return COMMON[r.code] ?? OTHER_FAILURE;
+}
+
+// ---- HC-T20: handovers, phones, settings ----
+/** §2.3 "Status (StatusChip generic: Waiting warning / Received success / Missing tubes danger)". */
+export const HANDOVER_STATUS: Record<string, readonly [VisitTone, string]> = {
+  pending: ['warning', 'Waiting'], confirmed: ['success', 'Received'], discrepancy: ['danger', 'Missing tubes'],
+};
+export const handoverStatus = (s: string): readonly [VisitTone, string] => HANDOVER_STATUS[s] ?? ['neutral', humanize(s)];
+/** One tube's outcome in a handled handover. */
+export const TUBE_OUTCOME: Record<string, readonly [VisitTone, string]> = { received: ['success', 'Received'], missing: ['danger', 'Missing'] };
+export const tubeOutcome = (s: string): readonly [VisitTone, string] => TUBE_OUTCOME[s] ?? ['neutral', humanize(s)];
+export const HANDOVER_CHANGED = 'This handover has already been handled or has changed. Close this panel and refresh the page.';
+
+/** §2.4 "Status (Active info, Signed off neutral, Wipe requested warning, Wiped neutral)". */
+export const DEVICE_STATUS: Record<string, readonly [VisitTone, string]> = {
+  active: ['info', 'Active'], signed_off: ['neutral', 'Signed off'], wipe_requested: ['warning', 'Wipe requested'], wiped: ['neutral', 'Wiped'],
+};
+export const deviceStatus = (s: string): readonly [VisitTone, string] => DEVICE_STATUS[s] ?? ['neutral', humanize(s)];
+export const PLATFORM: Record<string, string> = { android: 'Android', ios: 'iOS' };
+export const DEVICE_CHANGED = 'This phone has already changed (for example it was wiped). Refresh the page to see the latest.';
+export const SETTINGS_CHANGED = 'Settings were changed by someone else. Reload the page to see the latest, then make your change again.';
+
+const SEMVER = /^(\d{1,6})\.(\d{1,6})\.(\d{1,6})$/;
+export const isSemver = (v: string): boolean => v.length <= 20 && SEMVER.test(v);
+/** Numeric semver compare (1.9.0 < 1.10.0); undefined when either side is not a plain x.y.z. */
+export function semverLess(a: string, b: string): boolean | undefined {
+  const x = SEMVER.exec(a);
+  const y = SEMVER.exec(b);
+  if (!x || !y) return undefined;
+  for (let i = 1; i <= 3; i++) if (+x[i]! !== +y[i]!) return +x[i]! < +y[i]!;
+  return false;
 }
 
 export function assignFailText(r: Failure): string {

@@ -84,7 +84,7 @@ export function ImportCommitDialog({ row, issues, priceList, isOpen, onClose, on
 
   return (
     <Dialog title="Commit import" isOpen={isOpen} onClose={onClose} size="md">
-      <div ref={box} style={{ display: 'contents' }}>
+      <div ref={box} className="catalog-contents">
       <Form onSubmit={submit} errorSummary={false}>
         {fail ? <ImportNotice tone={fail.code === 'auth.mfa_required' ? 'warning' : 'danger'} text={failText(fail)} /> : null}
         {versioned ? <DateTimePicker label="Effective from" name="effective_from" value={from as never} onChange={(v) => { if (v) { touched.current = true; setFrom(v); } }} /> : null}
@@ -100,7 +100,7 @@ export function ImportCommitDialog({ row, issues, priceList, isOpen, onClose, on
             <p role="alert">The price list for this import could not be loaded, so it cannot be committed from here.</p>
           )
         ) : null}
-        <div className="lims-inline" style={{ gap: 'var(--lims-space-2)', justifyContent: 'flex-end' }}>
+        <div className="lims-inline catalog-gap-2 catalog-end">
           <Button variant="ghost" onPress={onClose}>Cancel</Button>
           <Button type="submit" variant="primary" shortcut="Ctrl+Enter" isLoading={busy} isDisabled={!ready}>Commit</Button>
         </div>

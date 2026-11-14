@@ -19,13 +19,16 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"sync"
 	"syscall"
 	"time"
 
 	"lims/apps/bridge-agent/internal/astm"
+	"lims/apps/bridge-agent/internal/drivers"
 	"lims/apps/bridge-agent/internal/hl7"
+	"lims/apps/bridge-agent/internal/hostquery"
 	"lims/apps/bridge-agent/internal/mllp"
 	"lims/apps/bridge-agent/internal/queue"
 	"lims/apps/bridge-agent/internal/transport/tcp"
@@ -38,6 +41,9 @@ type instrumentCfg struct {
 	Transport    string `json:"transport"` // serial_pipe | tcp_listen
 	PipePath     string `json:"pipe_path"`
 	Listen       string `json:"listen"`
+	// Profile (optional driver code; H80-T05, LD-139): take that SessionProfile (internal/drivers) and relay its host queries
+	// to the API (E05). Empty = today's behaviour (the C5 e2e).
+	Profile string `json:"profile"`
 }
 
 type agentCfg struct {
@@ -111,7 +117,7 @@ func run() error {
 			case in.Protocol == "astm" && in.Transport == "serial_pipe":
 				serveASTM(ctx, db, in, ready)
 			case in.Protocol == "hl7v2" && in.Transport == "tcp_listen":
-				serveHL7(ctx, db, in, ready)
+				serveHL7(ctx, db, in, hqEnv{cfg.APIBaseURL, token, pool}, ready)
 			default:
 				ready <- fmt.Errorf("config: unsupported instrument %s/%s", in.Protocol, in.Transport)
 			}
@@ -206,7 +212,25 @@ func serveASTM(ctx context.Context, db *queue.DB, in instrumentCfg, ready chan<-
 }
 
 // serveHL7 listens for the analyser (MLLP over TCP); ACK is written only after the message is durable (mllp.Serve).
-func serveHL7(ctx context.Context, db *queue.DB, in instrumentCfg, ready chan<- error) {
+func serveHL7(ctx context.Context, db *queue.DB, in instrumentCfg, env hqEnv, ready chan<- error) {
+	var prof *drivers.SessionProfile
+	var relay *hostquery.Relay
+	if in.Profile != "" {
+		res := drivers.Resolve(in.Profile, in.Protocol)
+		if !res.Known {
+			ready <- fmt.Errorf("config: no agent profile %q for %s", in.Profile, in.Protocol)
+			return
+		}
+		prof = &res.Profile
+		c, err := hostquery.NewClient(uploader.Config{BaseURL: env.baseURL, Token: func() string { return env.token }, RootCAs: env.pool})
+		if err == nil {
+			relay, err = hostquery.New(hostquery.Options{Sender: c, Outbound: replies, Items: db, Auth: authOK{}})
+		}
+		if err != nil {
+			ready <- err
+			return
+		}
+	}
 	host, ps, err := net.SplitHostPort(in.Listen)
 	port, perr := strconv.Atoi(ps)
 	if err != nil || perr != nil {
@@ -221,33 +245,90 @@ func serveHL7(ctx context.Context, db *queue.DB, in instrumentCfg, ready chan<- 
 	defer ln.Close()
 	go func() { <-ctx.Done(); _ = ln.Close() }()
 	ready <- nil
-	sink := hl7Sink{db: db, instrumentID: in.InstrumentID}
 	for {
 		conn, err := ln.Accept(ctx)
 		if err != nil {
 			return
 		}
-		go func() { _ = mllp.Serve(conn, mllp.Config{Sink: sink, AckSendingApp: "LIMS-BRIDGE"}) }()
+		sink := &hl7Sink{db: db, instrumentID: in.InstrumentID}
+		cfg := mllp.Config{Sink: sink, AckSendingApp: "LIMS-BRIDGE"}
+		if prof != nil { // LD-139: the analyser's profile; a host query is committed as kind host_query, then relayed (E05)
+			sink.hqTypes = prof.HostQueryMessageTypes
+			cfg.AckMode, cfg.AckTypeFormat = prof.HL7AckMode, prof.HL7AckMessageTypeFormat
+			cfg.HostQueryTypes, cfg.ExpectAckOnReply, cfg.ReplyAckPolicy = prof.HostQueryMessageTypes, prof.ExpectAckOnReply, prof.ReplyAckPolicy
+			cfg.ReplyAckMatchControlId, cfg.ReplyTimeout = prof.ReplyAckMatchControlId, prof.ReplyTimeout
+			cfg.HostQuery = func(raw []byte, _ hl7.MSH) [][]byte {
+				relay.Handle(ctx, hostquery.Query{ItemID: sink.hqItem, InstrumentID: in.InstrumentID, Protocol: "hl7v2",
+					Raw: raw, CapturedAt: time.Now(), ReplyTimeout: prof.ReplyTimeout})
+				return replies.drain() // empty when the API was unreachable: write nothing (AC-10.6)
+			}
+		}
+		go func() { _ = mllp.Serve(conn, cfg) }()
 	}
 }
+
+// hqEnv is what the relay's E05 client needs (same https client settings as the uploader).
+type hqEnv struct {
+	baseURL, token string
+	pool           *x509.CertPool
+}
+
+// replies collects the relay's reply messages for the in-flight query (the test build answers one query at a time).
+var replies = &replyCollector{}
+
+type replyCollector struct {
+	mu   sync.Mutex
+	msgs [][]byte
+}
+
+func (c *replyCollector) Enqueue(_ string, msg []byte, _ time.Time) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.msgs = append(c.msgs, append([]byte(nil), msg...))
+	return nil
+}
+
+func (c *replyCollector) drain() [][]byte {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	out := c.msgs
+	c.msgs = nil
+	return out
+}
+
+type authOK struct{}
+
+func (authOK) AuthState() string { return "ok" }
 
 type hl7Sink struct {
 	db           *queue.DB
 	instrumentID string
+	hqTypes      []string
+	hqItem       string // item id of the host query being answered (one Serve per connection, reads are serial)
 }
 
-func (s hl7Sink) CommitMessage(raw []byte, _ hl7.MSH) error { return s.put("data", raw, "") }
+func (s *hl7Sink) CommitMessage(raw []byte, msh hl7.MSH) error {
+	if slices.Contains(s.hqTypes, msh.MessageType) {
+		s.hqItem = newID()
+		return s.putID(s.hqItem, "host_query", raw, "")
+	}
+	return s.put("data", raw, "")
+}
 
-func (s hl7Sink) CommitIncomplete(raw []byte, reason string) error {
+func (s *hl7Sink) CommitIncomplete(raw []byte, reason string) error {
 	return s.put("incomplete", raw, reason)
 }
 
-func (s hl7Sink) put(kind string, raw []byte, reason string) error {
+func (s *hl7Sink) put(kind string, raw []byte, reason string) error {
+	return s.putID(newID(), kind, raw, reason)
+}
+
+func (s *hl7Sink) putID(id, kind string, raw []byte, reason string) error {
 	meta := []byte(`{}`)
 	if reason != "" {
 		meta, _ = json.Marshal(map[string]any{"link_meta": map[string]string{"incomplete_reason": reason}})
 	}
-	return s.db.InsertItem(queue.ItemInput{ID: newID(), InstrumentID: s.instrumentID, Kind: kind, Protocol: "hl7v2",
+	return s.db.InsertItem(queue.ItemInput{ID: id, InstrumentID: s.instrumentID, Kind: kind, Protocol: "hl7v2",
 		Raw: raw, Meta: meta, CapturedAtAgent: time.Now().UTC().Format(tsFmt)})
 }
 

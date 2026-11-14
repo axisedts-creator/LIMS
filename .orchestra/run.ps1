@@ -139,7 +139,7 @@ function Invoke-Agent([string]$Role, [string]$TaskId, [string]$Brief, [string]$M
     }
     # only a real API/CLI error counts as a usage limit: stderr, or an is_error JSON result - never words in the agent's own work
     # (e.g. a task about nginx "rate-limit zones" must not trigger a 10-minute wait)
-    $limRx = '(?i)usage limit|rate.?limit|\b429\b|overloaded|limit reached|out of (extra )?usage|ENOTFOUND|EAI_AGAIN|ECONNRESET|ETIMEDOUT|connection_failed|reach the API server'
+    $limRx = '(?i)usage limit|rate.?limit|\b429\b|overloaded|limit reached|out of (extra )?usage|ENOTFOUND|EAI_AGAIN|ECONNRESET|ETIMEDOUT|connection_failed|reach the API server|Failed to authenticate|Attention Required|Cloudflare'
     if (("$err" -match $limRx) -or (("$raw" -match '"is_error"\s*:\s*true') -and ("$raw" -match $limRx))) {
       $waits++; if ($waits -gt 100) { Log "$Role $TaskId still limited - giving up for now"; return $false }
       Log "$Role $TaskId usage limit - waiting $LimitWaitMinutes min, then resuming the same session"
@@ -303,7 +303,21 @@ try {
     if (-not $t) { Log "nothing runnable for '$Filter' right now (done, blocked, or waiting on other lanes)"; break }
     $tk = FK $t.id   # file key for notes/cr/inbox names ({TASK} in the role texts)
     Set-Status $t.id ($t.status)
-    if ($Integration) { git merge --no-edit main 2>&1 | Out-Null; if ($LASTEXITCODE -ne 0) { git merge --abort 2>$null } }   # start from everyone's latest work
+    if ($Integration) {   # start from everyone's latest work
+      git merge --no-edit main 2>&1 | Out-Null
+      if ($LASTEXITCODE -ne 0) {
+        # 2026-11-11 lead: a silent abort left lane C5c stale for hours (T-10 could not see BarcodeSymbol or the 300 s vitest timeout). Resolve with the merger agent as Integrate does; if it cannot, abort and say so in the log.
+        $mh = (git rev-parse --git-path MERGE_HEAD).Trim()
+        if (Test-Path $mh) {
+          Log "$($t.id) merge of main into the lane conflicts - merger agent resolving"
+          $okm = Invoke-Agent "merger" $tk "Resolve the in-progress merge of main into the lane branch (task $($t.id) is about to start)."
+          git add -A | Out-Null
+          $leftm = @(git diff --cached --name-only --diff-filter=U) + @(git grep -l -E '^(<<<<<<<|>>>>>>>) ' -- . ':!spec' 2>$null)
+          if (-not $okm -or @($leftm | Where-Object { $_ }).Count) { git merge --abort 2>$null; Log "$($t.id) STALE LANE: merge of main could not be resolved ($(@($leftm) -join ', ')) - starting on the old base" }
+          else { git add -A | Out-Null; git commit -q --no-edit 2>$null | Out-Null; Log "$($t.id) merger resolved the merge of main" }
+        } else { Log "$($t.id) STALE LANE: merge of main did not start (local changes in the way?) - starting on the old base" }
+      }
+    }
     $script:Base = (git rev-parse HEAD).Trim()
     $brief = ($t | Select-Object id,title,files,done_when,tests,acs | ConvertTo-Json -Depth 4) + "`nPlan: spec/chunks/$Chunk/06-IMPLEMENTATION-PLAN.md (row $($t.id)). PRD: spec/chunks/$Chunk/01-PRD.md. Security: spec/chunks/$Chunk/07-SECURITY.md."
     $ld = Join-Path $StateDir "lead-decisions.md"

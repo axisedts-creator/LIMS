@@ -11,7 +11,7 @@ import { bumpAccessionCounter } from '../repository/counters.repo.js';
 /** The part of the request context the anatomic services use (02-TRD §6.2 / §6.3). */
 export interface AnatomicCtx {
   readonly tenantId: string;
-  readonly actor: { readonly id: string };
+  readonly actor: { readonly id: string; readonly membershipId?: string };
   readonly tx: Pick<Tx, 'query'>;
   now(): Date;
   readonly log: { info(o: object, m?: string): void; warn(o: object, m?: string): void; error(o: object, m?: string): void };

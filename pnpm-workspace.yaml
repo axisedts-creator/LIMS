@@ -8,4 +8,5 @@ packages:
   - apps/*
 # T0-03 [CONV]: no dependency install scripts run; esbuild ships its binary via optional platform packages.
 allowBuilds:
+  '@scarf/scarf': set this to true or false
   esbuild: false

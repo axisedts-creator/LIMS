@@ -1,0 +1,5 @@
+{
+  "extends": "../../../tsconfig.json",
+  "compilerOptions": { "incremental": false, "plugins": [], "noEmit": true, "types": ["node"] },
+  "include": ["./SR-T24.journey.spec.ts", "./playwright.config.ts"]
+}

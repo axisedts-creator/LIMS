@@ -254,7 +254,7 @@ SELECT alike(pg_temp.a('DELETE FROM instruments.' || split_part(tt.q, '.', 2), '
 SELECT alike(pg_temp.a('UPDATE instruments.' || split_part(atb.q, '.', 2) || ' SET created_by = created_by', 'w'), 'E42501|%', 'C7 check 14 / AC-0B-4.3: no UPDATE grant on A table ' || atb.q) FROM atb;
 SELECT alike(pg_temp.a('DELETE FROM instruments.' || t, 'w'), 'E42501|%', 'C7 check 14 / AC-0B-4.2: no DELETE on G table instruments.' || t) FROM unnest(ARRAY['g_drivers','g_agent_releases','g_cs_revoke_reasons','g_cs_reprocess_reasons']) t;
 SELECT alike(pg_temp.a('INSERT INTO instruments.g_drivers (code, display_name, protocol, status, driver_version) VALUES (''zz_test'', ''x'', ''astm'', ''generic'', ''1'')', 'w'), 'E42501|%', 'C7 check 14: lims_app cannot write G tables');
-SELECT is(pg_temp.a('SELECT 1 FROM instruments.g_drivers', 'n'), 'n=5', 'C7 check 14: lims_app reads the 5 seeded drivers (G tables are RLS-exempt)');
+SELECT is(pg_temp.a('SELECT 1 FROM instruments.g_drivers', 'n'), 'n=6', 'C7 check 14: lims_app reads the 6 seeded drivers (G tables are RLS-exempt; truth_h80e added by H80-T05)');
 SELECT alike(pg_temp.a('INSERT INTO audit.audit_log (id, tenant_id, schema_name, table_name, action, actor_type) VALUES (gen_random_uuid(), ' || quote_literal(pg_temp.ta()) || ', ''instruments'', ''agents'', ''INSERT'', ''system'')', 'w'), 'E42501|%',
   'AC-0B-5.3: lims_app cannot insert audit rows directly');
 

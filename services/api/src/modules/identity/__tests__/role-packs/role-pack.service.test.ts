@@ -275,9 +275,7 @@ describe('RM-T02 default repo SQL (createRolePackRepo)', () => {
 
 describe('RM-T02 no HTTP operation here (needs CR-C2-RM-001 to C0)', () => {
   const read = (...p: string[]) => readFileSync(join(REPO_ROOT, ...p), 'utf8');
-  it('no applyRolePack operation in the identity OpenAPI contract or the handlers index; the service imports no handler', () => {
-    expect(read('contracts', 'openapi', 'identity.yaml')).not.toMatch(/applyRolePack|apply-role-pack|role-packs?\b/i);
-    expect(read('services', 'api', 'src', 'modules', 'identity', 'handlers', 'index.ts')).not.toMatch(/applyRolePack|role-pack/i);
+  it('the role-pack service imports no handler (LD-150/LD-158: contract + stub handlers exist)', () => {
     expect(read('services', 'api', 'src', 'modules', 'identity', 'service', 'role-pack.service.ts')).not.toMatch(/from\s+['"][^'"]*\/handlers\//);
   });
   it('the service cites LD-141 (binding decision) in a comment', () => {

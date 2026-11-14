@@ -128,7 +128,8 @@ export type FakeChartRepo = ReturnType<typeof makeChartRepo>;
 
 /** Real @lims/fakes CatalogPort: test TST(n) carries the analyte ANA(n) with code `GLU<n>`, unitCode and decimals (set to undefined to drop them). */
 export function makeChartCatalog(o: { unitCode?: string | undefined; decimals?: number | undefined; plans?: PlanSeed[]; missingAnalyte?: boolean } = {}) {
-  const { unitCode = 'mg_dl', decimals = 1 } = o;
+  const unitCode = 'unitCode' in o ? o.unitCode : 'mg_dl';
+  const decimals = 'decimals' in o ? o.decimals : 1;
   const tests = (o.plans ?? [plan(1)]).map((p) => ({
     id: p.test_id, tenantId: p.tenant_id, code: `T${p.test_id.slice(-4)}`, name: 'Synthetic test', departmentId: idN(1), departmentCode: 'BIO', specimenTypeCodes: ['blood'], containerCode: 'edta', workflowType: 'standard',
     analytes: o.missingAnalyte ? [] : [{ id: p.analyte_id, code: `GLU${p.analyte_id.slice(-1)}`, name: 'Synthetic analyte', resultType: 'numeric', reportable: true, sortOrder: 1, ...(unitCode ? { unitCode } : {}), ...(decimals === undefined ? {} : { decimals }) }],

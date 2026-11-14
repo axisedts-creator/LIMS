@@ -6,3 +6,4 @@ Run (after ruling + revised tests, impl unchanged): `flutter test test/features/
 Open: E18/E19 need `If-Match` but Profile has no version on the wire, so no header is sent (spec gap, lead decides). US-EN-05.2 "link earlier visits" has no wire flag, so not built.
 Open: NFC is a table of common Latin letter + mark pairs (126, checked against Python unicodedata), other scripts unchanged; swap for a pinned package via CR if full NFC is needed. A8 is single-line (`LimsTextField` has no multiline).
 Not run: `integration_test/profiles_prism_test.dart` (needs an emulator and Prism).
+2026-11-14 review: items 1+3 filed as `.orchestra/cr/T-L6.md` (Profile.version/If-Match E18/E19; E16 earlier-visits flag; LimsSegmentedControl disabled option, C0-0D). No impl change (packages/ui-flutter not owned; no fake disable per review). Run: 136 pass, 1 fail = A9 "Myself RENDERED disabled", blocked on CR item 3.

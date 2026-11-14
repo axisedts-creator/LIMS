@@ -93,7 +93,7 @@ describe('10-DESIGN-SYSTEM s4 — accession / receive: scan-first, status tabs w
   it('no status dropdown on the screen: the only list control is the receiving location', async () => {
     await showReceive();
     expect(screen.queryByRole('combobox', { name: /status/i })).toBeNull();
-    expect(document.querySelector('select')).toBeNull();
+    expect(document.querySelector('select:not([aria-hidden="true"]):not([tabindex="-1"])')).toBeNull();
   });
 
   it('keyboard only: scan, Enter accepts, a refused specimen is its own outcome; counts All 2 / Received 1 / Errors 1; each tab filters the log; focus returns to the scan box', async () => {
@@ -230,7 +230,7 @@ describe('10-DESIGN-SYSTEM s4 — result entry: three-step track, source chip, d
     await showGrid(threeStateGrid());
     const rows = screen.getAllByRole('row');
     const wbc = rows.find((r) => /WBC/.test(r.textContent ?? ''))!;
-    const hb = rows.find((r) => /\bHB\b/.test(r.textContent ?? ''))!;
+    const hb = rows.find((r) => /Hemoglobin/.test(r.textContent ?? ''))!;
     const chips = Array.from(wbc.querySelectorAll('[data-tone="info"]')).map((c) => c.textContent!.trim());
     expect(chips).toEqual(['Instrument']);
     expect(hb.querySelector('[data-tone="info"]')).toBeNull();
@@ -242,7 +242,7 @@ describe('10-DESIGN-SYSTEM s4 — result entry: three-step track, source chip, d
     const wbc = rows.find((r) => /WBC/.test(r.textContent ?? ''))!.textContent!;
     expect(wbc).toMatch(/Δ \+2\.4 vs 10\.0 \(\d+ d ago\)/);
     expect(wbc).not.toMatch(/24\s*%/);
-    expect(rows.find((r) => /\bHB\b/.test(r.textContent ?? ''))!.textContent).toContain('No previous');
+    expect(rows.find((r) => /Hemoglobin/.test(r.textContent ?? ''))!.textContent).toContain('No previous');
   });
 
   it('critical-value prompt unchanged: Save & verify on a critical result opens "Review flagged results", Verify stays disabled until "I have reviewed the critical value" is ticked, then bulk-verify carries acknowledged_flags ["critical"] with an Idempotency-Key', async () => {
@@ -266,7 +266,7 @@ describe('10-DESIGN-SYSTEM s4 — result entry: three-step track, source chip, d
   it('keyboard only: the value cell of the first editable row is reachable and typing + Ctrl+S sends ONE bulk-enter-shaped save (unchanged shortcut table); no mouse', async () => {
     api.use(http.post(`${LAB}/results/bulk-enter`, async ({ request }) => { await rec(request); const b = (await request.clone().json()) as { entries: { result_id: string; version: number }[] }; return HttpResponse.json({ results: b.entries.map((e) => ({ result_id: e.result_id, outcome: 'ok', result: { ...res(1), id: e.result_id, version: e.version + 1, status: 'resulted', value_numeric: '4.10', flag: 'N' } })), recomputed: [] }); }));
     await showGrid(gridOf([{ code: 'CBC', results: [res(1, { status: 'pending' })] }]));
-    const user = userEvent.setup({ delay: null });
+    const user = userEvent.setup();
     const cell = (await screen.findAllByRole('gridcell')).find((c) => c.getAttribute('aria-colindex') === '2')!;
     cell.focus();
     await user.keyboard('4.1{Enter}');

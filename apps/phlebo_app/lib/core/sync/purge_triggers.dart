@@ -69,6 +69,9 @@ class PurgeTriggers {
       for (final r in await cache.select("SELECT key, value FROM meta WHERE key IN ('config_json', 'route_date')"))
         r['key']! as String: r['value']! as String,
     };
+    // Review #1: only a cache filled by a pull (route_date set by snapshot apply) can be stale;
+    // an empty cache rebuilt after a purge must let the next pull run and reset the clock.
+    if (meta['route_date'] == null) return null;
 
     final pull = await outboxDb.select("SELECT value FROM device_state WHERE key = 'last_successful_pull_at'");
     if (pull.isNotEmpty) {

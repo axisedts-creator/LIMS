@@ -14,7 +14,7 @@ type Load = { s: 'loading' } | { s: 'ok'; sheet: Worksheet; printedAt: string } 
 type Names = { s: 'loading' } | { s: 'ok'; names: Map<string, string> } | { s: 'denied' };
 
 const PRINT_CSS = `@page { size: A4 portrait; margin: 12mm; }
-@media print { .ws-noprint { display: none !important; } .ws-sheet table { width: 100%; border-collapse: collapse; } .ws-sheet th, .ws-sheet td { border: 1px solid #000; padding: 4px 6px; } .ws-sheet td.ws-blank { height: 10mm; } }`;
+@media print { .ws-noprint { display: none !important; } .ws-sheet table { width: 100%; border-collapse: collapse; } .ws-sheet th, .ws-sheet td { border: 1px solid currentColor; padding: 4px 6px; } .ws-sheet td.ws-blank { height: 10mm; } }`;
 
 export function WorksheetPrintPage({ worksheetId }: { worksheetId: string }) {
   const [load, setLoad] = useState<Load>({ s: 'loading' });

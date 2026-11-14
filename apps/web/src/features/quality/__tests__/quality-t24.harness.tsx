@@ -39,9 +39,11 @@ export const TAT_ROWS = [
 ];
 export const tatPage = (rows: unknown[] = TAT_ROWS, extra: Record<string, unknown> = {}) => ({ data: rows, page: { limit: 50 }, generated_at: '2026-11-14T04:00:00.000Z', ...extra });
 
+// Full QcPlanParamsDefaults (contracts/openapi/quality.yaml) so an untouched card re-sends exactly what was stored.
+export const PLAN_DEFAULTS = { mean_rule: '10x', two_two_s_across_runs: true, count_rules_across_materials: true, exclude_rejected_runs_from_history: true, run_window_minutes: 30, qc_validity_hours: 24, hold_lookback_hours: 24 };
 export const settingsDto = (over: Record<string, unknown> = {}) => ({
   version: 7, tat_alerts_enabled: true, tat_warn_pct: 80, tat_escalate_pct: 150, tat_orphan_close_hours: 72, target_min_points: 20, sim_min_days: 14, sim_min_decisions: 500,
-  reprocess_window_days: 7, default_plan_params: { mean_rule: '10x', run_window_minutes: 30 }, activated_at: '2026-11-01T00:00:00.000Z', updated_at: '2026-11-10T00:00:00.000Z',
+  reprocess_window_days: 7, default_plan_params: { ...PLAN_DEFAULTS }, activated_at: '2026-11-01T00:00:00.000Z', updated_at: '2026-11-10T00:00:00.000Z',
   updated_by_display: 'Synthetic Manager', westgard_mode: 'classic', auto_verification_enabled: false, ...over,
 });
 export const codedSet = (rows: Record<string, unknown>[]) => ({ data: rows, page: { limit: 50 } });
@@ -55,6 +57,9 @@ export function resetApi(permissions: string[] = PERM_TAT_READ) {
   resetT22(permissions);
   routes[`GET ${TAT}`] = () => HttpResponse.json(tatPage());
   routes[`GET ${SETTINGS}`] = () => HttpResponse.json(settingsDto());
+  // FilterBar pickers (existing contracts: C2 listCentres, C3 listDepartments); same pattern as features/reporting + inventory.
+  routes['GET /v1/identity/centres'] = () => HttpResponse.json({ data: [{ id: CENTRE_1, name: 'Synthetic Centre One', is_active: true }, { id: CENTRE_2, name: 'Synthetic Centre Two', is_active: true }], page: { limit: 50 } });
+  routes['GET /v1/catalog/departments'] = () => HttpResponse.json({ data: [{ id: DEPT_1, code: 'BIOCHEM', name: 'Biochemistry', is_active: true, version: 1 }], page: { limit: 50 } });
   routes['GET /v1/quality/coded-sets/corrective_actions'] = () => HttpResponse.json(codedSet(CORRECTIVE));
   routes['GET /v1/quality/coded-sets/exclusion_reasons'] = () => HttpResponse.json(codedSet(EXCLUSION));
 }

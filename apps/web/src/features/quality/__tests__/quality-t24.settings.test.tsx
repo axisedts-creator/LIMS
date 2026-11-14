@@ -12,7 +12,7 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, screen, waitFor, within } from '@testing-library/react';
 import {
-  CORRECTIVE, PERM_CFG_READ, PERM_CFG_WRITE, SETTINGS, anyDlg, api, axeClean, bodyOf, calls, callsTo, dataRows, dlg, field, fill, gridNamed, headersOf, json, norm, pageText, problem, resetApi, routes, router,
+  CORRECTIVE, PERM_CFG_READ, PLAN_DEFAULTS, choose, PERM_CFG_WRITE, SETTINGS, anyDlg, api, axeClean, bodyOf, calls, callsTo, dataRows, dlg, field, fill, gridNamed, headersOf, json, norm, pageText, problem, resetApi, routes, router,
   settingsDto, show, showOrThrown, user,
 } from './quality-t24.harness';
 
@@ -119,7 +119,7 @@ describe('save (#52 PUT, full mutable subset)', () => {
     expect(c.headers.get('if-match')).toBe('"7"');
     expect(bodyOf(c)).toEqual({
       tat_alerts_enabled: true, tat_warn_pct: 75, tat_escalate_pct: 150, tat_orphan_close_hours: 72, target_min_points: 20, sim_min_days: 14, sim_min_decisions: 500, reprocess_window_days: 7,
-      default_plan_params: { mean_rule: '10x', run_window_minutes: 30 },
+      default_plan_params: PLAN_DEFAULTS,
     });
     await waitFor(() => expect(router.refresh).toHaveBeenCalled());
   });
@@ -197,6 +197,66 @@ describe('save (#52 PUT, full mutable subset)', () => {
     await user().click(save(card(/^TAT alerts$/)));
     await waitFor(() => expect(callsTo('PUT', SETTINGS)).toHaveLength(1));
     expect(callsTo('PUT', SETTINGS)[0]!.headers.get('if-match')).toBeTruthy();
+  });
+});
+
+// 04-UI-UX §2.11: the QC card lists "default plan options" = QcPlanParamsDefaults (contracts/openapi/quality.yaml). Labels reuse the plan form (PlansView): "n-x rule", "2-2s also across runs",
+// "Count rules across levels", "Ignore rejected runs in history", "Run window (minutes)", "QC valid for (hours)", "Hold look-back (hours)". Ranges as validatePlanParams: 5–240, 1–168, 1–168.
+describe('QC card: default plan options (#52 default_plan_params)', () => {
+  const qc = () => card(/^QC$/);
+  it('shows the stored defaults in the QC card', async () => {
+    await show(PAGE);
+    expect(num(/run window/i, qc()).value).toBe('30');
+    expect(num(/qc valid for/i, qc()).value).toBe('24');
+    expect(num(/hold look-back/i, qc()).value).toBe('24');
+    expect(within(qc()).getByRole('switch', { name: /2-2s also across runs/i })).toBeTruthy();
+    expect(within(qc()).getByRole('switch', { name: /count rules across levels/i })).toBeTruthy();
+    expect(within(qc()).getByRole('switch', { name: /ignore rejected runs in history/i })).toBeTruthy();
+    expect(within(qc()).getByRole('button', { name: /n-x rule/i })).toBeTruthy();
+  });
+  it('editing run window, validity, look-back and a switch sends the new default_plan_params in the #52 body', async () => {
+    routes[`PUT ${SETTINGS}`] = json(settingsDto({ version: 8 }));
+    await show(PAGE);
+    await fill(/run window/i, '45', qc());
+    await fill(/qc valid for/i, '48', qc());
+    await fill(/hold look-back/i, '12', qc());
+    await user().click(within(qc()).getByRole('switch', { name: /2-2s also across runs/i }));
+    await user().click(save(qc()));
+    await waitFor(() => expect(callsTo('PUT', SETTINGS)).toHaveLength(1));
+    expect(bodyOf(callsTo('PUT', SETTINGS)[0]).default_plan_params).toEqual({ ...PLAN_DEFAULTS, run_window_minutes: 45, qc_validity_hours: 48, hold_lookback_hours: 12, two_two_s_across_runs: false });
+  });
+  it('the n-x rule default can be changed (12x) and is sent', async () => {
+    routes[`PUT ${SETTINGS}`] = json(settingsDto({ version: 8 }));
+    await show(PAGE);
+    await choose(/n-x rule/i, /^12x$/, qc());
+    await user().click(save(qc()));
+    await waitFor(() => expect(callsTo('PUT', SETTINGS)).toHaveLength(1));
+    expect(bodyOf(callsTo('PUT', SETTINGS)[0]).default_plan_params).toMatchObject({ mean_rule: '12x' });
+  });
+  it.each([
+    ['Run window', /run window/i, '4'], ['Run window', /run window/i, '241'],
+    ['QC valid for', /qc valid for/i, '0'], ['QC valid for', /qc valid for/i, '169'],
+    ['Hold look-back', /hold look-back/i, '0'], ['Hold look-back', /hold look-back/i, '169'],
+  ])('%s = %s is out of range: field error, NO request', async (_n, label, v) => {
+    await show(PAGE);
+    const el = await fill(label, v, qc());
+    await user().click(save(qc()));
+    expect(callsTo('PUT', SETTINGS)).toHaveLength(0);
+    expect(el.getAttribute('aria-invalid') === 'true' || !!el.closest('.lims-field')?.querySelector('.lims-error')).toBe(true);
+  });
+  it.each([['5', 5], ['240', 240]])('Run window boundary %s is accepted', async (v, n) => {
+    routes[`PUT ${SETTINGS}`] = json(settingsDto({ version: 8 }));
+    await show(PAGE);
+    await fill(/run window/i, v, qc());
+    await user().click(save(qc()));
+    await waitFor(() => expect(callsTo('PUT', SETTINGS)).toHaveLength(1));
+    expect(bodyOf(callsTo('PUT', SETTINGS)[0]).default_plan_params.run_window_minutes).toBe(n);
+  });
+  it('without quality.config.manage the plan options are not editable', async () => {
+    resetApi(PERM_CFG_READ);
+    await show(PAGE);
+    const el = num(/run window/i, qc());
+    expect(el.disabled || el.readOnly).toBe(true);
   });
 });
 

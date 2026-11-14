@@ -14,7 +14,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 import { cleanup, screen, waitFor, within } from '@testing-library/react';
 import { HttpResponse } from 'msw';
 import {
-  CENTRE_1, PERM_TAT_ACK, PERM_TAT_READ, SPEC_1, TAT, TAT_1, TAT_2, TAT_3, TAT_4, TOTAL, WITHIN_LAB, anyDlg, api, axeClean, bodyOf, calls, callsTo, dataRows, dlg, field, fill, gridNamed, headersOf, hrefs,
+  CENTRE_1, CENTRE_2, DEPT_1, choose, lastNav, PERM_TAT_ACK, PERM_TAT_READ, SPEC_1, TAT, TAT_1, TAT_2, TAT_3, TAT_4, TOTAL, WITHIN_LAB, anyDlg, api, axeClean, bodyOf, calls, callsTo, dataRows, dlg, field, fill, gridNamed, headersOf, hrefs,
   json, norm, pageText, problem, resetApi, routes, router, show, showOrThrown, tatAlert, tatPage, user,
 } from './quality-t24.harness';
 
@@ -88,6 +88,25 @@ describe('query (#48) — defaults and whitelist', () => {
     expect(q.get('sort')).toBe('-alert_level_rank');
     expect(q.has('centre_id')).toBe(false);
     expect(q.has('department_id')).toBe(false);
+  });
+  // 04-UI-UX §2.10 filters: level, acknowledged, segment, department, centre, priority. Options come from the existing pickers GET /v1/catalog/departments and GET /v1/identity/centres (harness mounts both).
+  it('department_id is passed through to #48', async () => {
+    await show(PAGE, { searchParams: { department_id: DEPT_1 } });
+    expect(callsTo('GET', TAT)[0]!.url.searchParams.get('department_id')).toBe(DEPT_1);
+  });
+  it.each([
+    ['Department', /^department/i, /Biochemistry/, 'department_id', DEPT_1],
+    ['Centre', /^centre/i, /Synthetic Centre Two/, 'centre_id', CENTRE_2],
+  ])('the %s filter is offered and choosing an option puts %s on the URL that feeds #48', async (_n, label, option, param, value) => {
+    await show(PAGE);
+    await choose(label, option);
+    await waitFor(() => expect(new URL(lastNav() ?? '', 'http://x').searchParams.get(param)).toBe(value));
+  });
+  it('a failing picker only empties that filter; the table still renders', async () => {
+    routes['GET /v1/identity/centres'] = () => problem('common.forbidden', 403);
+    routes['GET /v1/catalog/departments'] = () => problem('common.internal', 500);
+    await show(PAGE);
+    expect(dataRows(grid()).length).toBeGreaterThan(0);
   });
   it('AC-14.7: renders exactly the rows the API returned (centre scoping is RLS on the server; the page adds no centre filter of its own)', async () => {
     routes[`GET ${TAT}`] = json(tatPage([tatAlert({ test_code: 'GLU' })]));

@@ -21,6 +21,7 @@
 //   A6 pushes A7/A8/A9 with Navigator (MaterialPageRoute) and forwards onProfileAdded; every screen is a Riverpod consumer.
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lims_shared/lims_shared.dart';
 import 'package:patient_app/app/providers.dart';

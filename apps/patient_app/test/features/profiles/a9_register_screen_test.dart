@@ -367,7 +367,7 @@ void main() {
       await t.pump(const Duration(seconds: 60));
       expect(api.getRegCalls, after20, reason: 'no polling after 20 s');
       expect(find.text(create), findsNothing);
-      await t.drag(find.byType(Scrollable).first, const Offset(0, 400));
+      await t.drag(find.byType(Scrollable).first, const Offset(0, 1000)); // view is 800x3200: RefreshIndicator arms at 25% of viewport (T-L6 ruling)
       await t.pump(const Duration(milliseconds: 100));
       await t.pump(const Duration(seconds: 1));
       await t.pump(const Duration(seconds: 1));

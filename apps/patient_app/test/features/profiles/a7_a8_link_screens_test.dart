@@ -62,7 +62,8 @@ void main() {
     testWidgets('input is grouped XXXXX-XXXXX, upper-cased, spaces and dashes stripped, capped at 10 symbols', (t) async {
       await open(t);
       await type(t, 'abcde fghjk zzz');
-      final text = t.widget<TextField>(find.byType(TextField)).controller?.text ?? '';
+      // LimsCodeField builds its TextField without a controller; read the EditableText's (T-L6 ruling).
+      final text = t.widget<EditableText>(find.byType(EditableText)).controller.text;
       expect(text.replaceAll('-', ''), 'ABCDEFGHJK');
       expect(text.length, lessThanOrEqualTo(13));
     });
@@ -295,7 +296,7 @@ void main() {
       testWidgets('the pasted link (a secret token) is never repeated in an error message or a toast', (t) async {
         await submitWith(t, invalidCode());
         final texts = t.widgetList<Text>(find.byType(Text)).map((x) => x.data ?? '');
-        final inField = t.widget<TextField>(find.byType(TextField)).controller?.text ?? '';
+        final inField = t.widget<EditableText>(find.byType(EditableText)).controller.text;
         expect(inField, goodLink);
         expect(texts.where((s) => s.contains('AbCdEf0123456789')), isEmpty);
       });

@@ -63,9 +63,9 @@ export function TemplatesTab({ templates }: { templates: readonly TemplateSummar
           getRowId={(t) => t.id}
           emptyState={{ title: 'No templates yet.' }}
           columns={[
-            { id: 'key', header: 'Key', isRowHeader: true, cell: (t) => <a className="lims-link lims-mono" href={`/anatomic/config/templates/${t.id}`}>{t.template_key}</a> },
+            { id: 'key', header: 'Key', cell: (t) => <a className="lims-link lims-mono" href={`/anatomic/config/templates/${t.id}`}>{t.template_key}</a> },
             { id: 'version', header: 'Version', align: 'end', cell: (t) => String(t.version_no) },
-            { id: 'title', header: 'Title', cell: (t) => t.title },
+            { id: 'title', header: 'Title', isRowHeader: true, cell: (t) => t.title },
             { id: 'status', header: 'Status', cell: (t) => <TemplateStatusChip status={t.status} /> },
             { id: 'kinds', header: 'Case kinds', hideBelow: 'md', cell: (t) => t.applies_to_case_kinds.map((k) => KIND_LABEL[k]).join(', ') },
             { id: 'published', header: 'Published', hideBelow: 'md', cell: (t) => <When value={t.published_at} /> },

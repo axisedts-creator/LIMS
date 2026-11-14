@@ -223,7 +223,8 @@ describe('A3 SCR-09 messages: logs stay tables with the existing columns (10-DES
   };
   it('message log: a table named Messages with the eight existing columns, kind words and outcome chips (tone + icon + word)', async () => {
     await show();
-    const table = screen.getByRole('table', { name: /^messages$/i });
+    // ruling: the kit DataTable is an ARIA grid (04-UI-UX.md:214), caption = accessible name (04-UI-UX.md:196)
+    const table = screen.getByRole('grid', { name: /^messages$/i });
     for (const h of ['Received', 'Instrument', 'Kind', 'Records (patient / QC)', 'Unmapped', 'Events', 'Outcome', 'Size'])
       expect(within(table).getByRole('columnheader', { name: h }), h).toBeTruthy();
     const host = within(table).getByRole('row', { name: /Host query/ });
@@ -241,7 +242,7 @@ describe('A3 SCR-09 messages: logs stay tables with the existing columns (10-DES
   it('rejected uploads: a table with the five existing columns', async () => {
     await show();
     await userEvent.click(screen.getByRole('tab', { name: 'Rejected uploads' }));
-    const table = screen.getByRole('table', { name: /rejected uploads/i });
+    const table = screen.getByRole('grid', { name: /rejected uploads/i });
     for (const h of ['Received', 'Agent', 'Claimed instrument', 'Reason', 'Size']) expect(within(table).getByRole('columnheader', { name: h }), h).toBeTruthy();
     expect(within(table).getByText('instruments.device_mismatch')).toBeTruthy();
   });
@@ -260,18 +261,28 @@ describe('A3 SCR-09 messages: logs stay tables with the existing columns (10-DES
     expect(sentCalls).toEqual([]);
   });
 
-  it('keyboard only: Tab reaches the tabs, filters, barcode field and the first message link; no mouse', async () => {
+  it('keyboard only: Tab reaches the tabs, the barcode field and the Messages grid; arrow keys then reach the first message link; no mouse', async () => {
     await show();
     const user = userEvent.setup();
+    const grid = screen.getByRole('grid', { name: /^messages$/i });
     const seen = new Set<string>();
-    for (let i = 0; i < 80; i++) {
+    for (let i = 0; i < 80 && !grid.contains(document.activeElement); i++) {
       await user.tab();
       const el = document.activeElement as HTMLElement;
       if (el.getAttribute('role') === 'tab') seen.add(`tab:${el.textContent}`);
       if (el.tagName === 'INPUT' && el.getAttribute('name') === 'search') seen.add('barcode');
-      if (el.tagName === 'A') seen.add(`link:${el.getAttribute('href')}`);
     }
-    expect([...seen]).toEqual(expect.arrayContaining(['tab:Messages', 'barcode', `link:/instruments/messages/${MESSAGES[0]!.id}`]));
+    expect([...seen]).toEqual(expect.arrayContaining(['tab:Messages', 'barcode']));
+    expect(grid.contains(document.activeElement), 'Tab moves focus into the Messages grid').toBe(true);
+    // ruling: 04-UI-UX.md:214 "Tab enters the grid. Arrow keys move between cells."
+    const href = `/instruments/messages/${MESSAGES[0]!.id}`;
+    const onLink = () => {
+      const a = document.activeElement as HTMLElement | null;
+      return !!a && (a.getAttribute('href') === href || !!a.querySelector(`a[href="${href}"]`) || a.closest(`a[href="${href}"]`) !== null);
+    };
+    const keys = ['{ArrowDown}', '{ArrowRight}'];
+    for (let i = 0; i < 20 && !onLink(); i++) await user.keyboard(keys[i % 2]!);
+    expect(onLink(), 'arrow keys move focus to the first message link (or its cell)').toBe(true);
   });
 
   it('axe (serious/critical): both tabs', async () => {

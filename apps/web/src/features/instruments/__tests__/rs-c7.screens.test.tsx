@@ -46,7 +46,7 @@ describe('RS-C7 key screens (DOM snapshots)', () => {
   it('messages: log table with the existing columns', async () => {
     const { MessagesList } = await import('../components/MessagesList');
     const { container } = wrap(<MessagesList messages={MESSAGES as never} rejections={REJECTIONS as never} instruments={INSTRUMENT_PICK as never} agents={AGENTS_PICK as never} permissions={MANAGE} />);
-    await screen.findByRole('table', { name: /^messages$/i });
+    await screen.findByRole('grid', { name: /^messages$/i });
     expect(normalise(container)).toMatchSnapshot();
   });
 
@@ -54,7 +54,7 @@ describe('RS-C7 key screens (DOM snapshots)', () => {
     const { MessagesList } = await import('../components/MessagesList');
     const { container } = wrap(<MessagesList messages={MESSAGES as never} rejections={REJECTIONS as never} instruments={INSTRUMENT_PICK as never} agents={AGENTS_PICK as never} permissions={MANAGE} />);
     await userEvent.setup({ delay: null }).click(screen.getByRole('tab', { name: 'Rejected uploads' }));
-    await screen.findByRole('table', { name: /rejected uploads/i });
+    await screen.findByRole('grid', { name: /rejected uploads/i });
     expect(normalise(container)).toMatchSnapshot();
   });
 

@@ -50,7 +50,7 @@ export function useAttemptKey() {
   };
 }
 
-export function ProblemBanner({ problem }: { problem: Failure | undefined }) {
+export function ProblemBanner({ problem, hint }: { problem: Failure | undefined; hint?: string | undefined }) {
   if (!problem) return null;
   const stepUp = isStepUp(problem);
   const warn = stepUp || problem.code === 'common.version_conflict';
@@ -58,6 +58,7 @@ export function ProblemBanner({ problem }: { problem: Failure | undefined }) {
     <div role="alert">
       <Banner tone={warn ? 'warning' : 'danger'} title={stepUp ? 'Additional verification required' : problem.title || problem.code}>
         {stepUp ? <p>Verify your identity with your second factor, then submit again. Nothing was saved.</p> : null}
+        {hint ? <p>{hint}</p> : null}
         {problem.requestId ? <p>{`Reference: ${problem.requestId}`}</p> : null}
       </Banner>
     </div>

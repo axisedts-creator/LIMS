@@ -5,9 +5,10 @@
 import 'server-only';
 import { ApiError } from '@/core/api/server-fetch';
 import { getShellSession } from '@/core/session/server';
-import { blindLines, getFefo, getItem, listAnalytes, listItems, listMovements, listStock, listSupplierItems } from './read.server';
-import { approvePo, cancelPo, closePo, createGrn, createPo, markPoSent, postGrn, replaceGrn, replacePo, lookupBarcode, cancelTransfer, createAdjustment, createCount, createExpiryWriteoff, createIssue, createTransfer, createWastage, discardContainer, dispatchTransfer, finishContainer, logConsumptionEvent, openContainer, postCount, putCountLines, receiveTransfer, addBarcode, createItem, createPack, createStore, createSupplier, deactivateBarcode, deactivateBinding, putBinding, putStoreItemSetting, putSupplierItem, setItemActive, updateItem, updateStore, updateSupplier } from './write.server';
-import type { ActionResult, Grn, GrnDraft, GrnReplace, Item, Po, PoCreate, ReasonAction, SentChannel, AdjustmentCreate, Analyte, BalanceRow, ConsumptionEventCreate, ContainerDiscard, ContainerOpen, CountCreate, CountLinePut, ExpiryWriteoffCreate, FefoSuggestion, IssueCreate, StockMovement, TransferCreate, TransferReceive, UncountedPolicy, WastageCreate, BarcodeCreate, ItemCreate, ItemPatch, ItemSummary, Pack, PackCreate, StoreCreate, StoreItemSetting, StoreItemSettingPut, StorePatch, SupplierCreate, SupplierItem, SupplierItemPut, SupplierPatch, Binding, FieldProblem } from './types';
+import { blindLines, getFefo, getItem, listAnalytes, listFacts, listItems, listMovements, listStock, listSupplierItems } from './read.server';
+import { getReport } from './reports.server';
+import { createRule, deactivateRule, dismissFact, previewRule, resolveFact, supersedeRule, approvePo, cancelPo, closePo, createGrn, createPo, markPoSent, postGrn, replaceGrn, replacePo, lookupBarcode, cancelTransfer, createAdjustment, createCount, createExpiryWriteoff, createIssue, createTransfer, createWastage, discardContainer, dispatchTransfer, finishContainer, logConsumptionEvent, openContainer, postCount, putCountLines, receiveTransfer, addBarcode, createItem, createPack, createStore, createSupplier, deactivateBarcode, deactivateBinding, putBinding, putStoreItemSetting, putSupplierItem, setItemActive, updateItem, updateStore, updateSupplier } from './write.server';
+import type { Fact, Page, ReportQuery, ReportResult, Rule, RuleCreate, RulePreview, RulePreviewBody, RuleSupersede, ActionResult, Grn, GrnDraft, GrnReplace, Item, Po, PoCreate, ReasonAction, SentChannel, AdjustmentCreate, Analyte, BalanceRow, ConsumptionEventCreate, ContainerDiscard, ContainerOpen, CountCreate, CountLinePut, ExpiryWriteoffCreate, FefoSuggestion, IssueCreate, StockMovement, TransferCreate, TransferReceive, UncountedPolicy, WastageCreate, BarcodeCreate, ItemCreate, ItemPatch, ItemSummary, Pack, PackCreate, StoreCreate, StoreItemSetting, StoreItemSettingPut, StorePatch, SupplierCreate, SupplierItem, SupplierItemPut, SupplierPatch, Binding, FieldProblem } from './types';
 
 async function run<T>(f: () => Promise<T>): Promise<ActionResult<T>> {
   try {
@@ -99,3 +100,13 @@ export async function closePoAction(id: string, version: number, key: string, b:
 export async function createGrnAction(b: GrnDraft, key: string): Promise<ActionResult<Grn>> { return run(() => createGrn(b, key)); }
 export async function replaceGrnAction(id: string, version: number, b: GrnReplace): Promise<ActionResult<Grn>> { return run(() => replaceGrn(id, version, b)); }
 export async function postGrnAction(id: string, version: number, key: string): Promise<ActionResult<Grn>> { return run(() => postGrn(id, version, key)); }
+
+// ---- T-24 consumption rules (S13), waiting consumption (S15), reports (S17). Same contract: ApiError -> { ok:false, ... }; the token stays on the server.
+export async function createRuleAction(b: RuleCreate, key: string): Promise<ActionResult<Rule>> { return run(() => createRule(b, key)); }
+export async function supersedeRuleAction(id: string, version: number, key: string, b: RuleSupersede): Promise<ActionResult<Rule>> { return run(() => supersedeRule(id, version, key, b)); }
+export async function deactivateRuleAction(id: string, version: number, key: string): Promise<ActionResult<Rule>> { return run(() => deactivateRule(id, version, key)); }
+export async function previewRuleAction(b: RulePreviewBody): Promise<ActionResult<RulePreview>> { return run(() => previewRule(b)); }
+export async function resolveFactAction(id: string, version: number, key: string, storeId: string): Promise<ActionResult<Fact>> { return run(() => resolveFact(id, version, key, storeId)); }
+export async function dismissFactAction(id: string, version: number, key: string, reasonCode: string): Promise<ActionResult<Fact>> { return run(() => dismissFact(id, version, key, reasonCode)); }
+export async function listFactsAction(cursor: string): Promise<ActionResult<Page<Fact>>> { return run(() => listFacts({ status: 'unresolved', cursor })); }
+export async function getReportAction(code: string, q: ReportQuery): Promise<ActionResult<ReportResult>> { return run(() => getReport(code, q)); }

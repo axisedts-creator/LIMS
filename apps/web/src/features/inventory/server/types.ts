@@ -100,7 +100,11 @@ export interface Container {
   id: string; store_id: string; item_id: string; lot_id: string; lot_no?: string; instrument_id?: string; opened_at: string; open_expiry_at?: string;
   status: 'open' | 'finished' | 'discarded'; version: number;
 }
-export interface Fact { id: string; fact_kind: string; status: string; multiplier?: number; rules_applied?: number; movements: StockMovement[] }
+export interface Fact {
+  id: string; fact_kind: string; status: string; multiplier?: number; rules_applied?: number; movements: StockMovement[];
+  // T-24 (S15): the queue shows when/where/what; all optional because manual QC facts carry no analyser
+  source?: string; instrument_id?: string; test_id?: string; analyte_id?: string; occurred_at?: string; business_date?: string; store_id?: string; version?: number;
+}
 export interface Department { id: string; code: string; name: string }
 export interface TestRef { id: string; code: string; name: string }
 export interface Analyte { id: string; code: string; name: string }
@@ -164,3 +168,30 @@ export type GrnReplace = Omit<GrnDraft, 'kind' | 'store_id'>;
 export const PO_REASON_GROUPS = { cancel: 'po_cancel', close: 'po_close' } as const;
 export interface PoFilters { status?: string | undefined; supplier?: string | undefined; branch?: string | undefined; createdFrom?: string | undefined; createdTo?: string | undefined }
 export interface GrnFilters { status?: string | undefined; store?: string | undefined; supplier?: string | undefined; poId?: string | undefined }
+
+// ---- T-24 consumption rules (S13), waiting consumption (S15), reports (S17). Shapes mirror contracts/openapi/inventory.yaml (Rule, Fact, ReportResult, ColumnMeta, ReportRow).
+export const RULE_KINDS = ['per_test', 'per_analyte', 'per_rerun', 'per_qc', 'per_calibration', 'per_day'] as const;
+export type RuleKind = (typeof RULE_KINDS)[number];
+/** fact_kind of POST /consumption-rules/preview for each rule kind (per_day previews as "fixed"). */
+export const PREVIEW_FACT_KIND: Record<RuleKind, string> = { per_test: 'test', per_analyte: 'analyte', per_rerun: 'rerun', per_qc: 'qc', per_calibration: 'calibration', per_day: 'fixed' };
+export interface Rule {
+  id: string; rule_kind: RuleKind; test_id?: string; analyte_id?: string; instrument_id?: string; item_id: string; qty_base: string; entered_qty: string; entered_pack_id?: string;
+  effective_from: string; effective_to?: string; supersedes_rule_id?: string; notes?: string; is_active: boolean; version: number;
+}
+export interface RuleFilters { kind?: string | undefined; test?: string | undefined; analyser?: string | undefined; item?: string | undefined; history?: boolean | undefined }
+export interface RuleCreate { rule_kind: RuleKind; item_id: string; qty: string; test_id?: string; analyte_id?: string; instrument_id?: string; pack_id?: string; notes?: string }
+export interface RuleSupersede { qty: string; pack_id?: string; notes?: string }
+export interface RulePreviewBody { fact_kind: string; test_id?: string; analyte_id?: string; instrument_id?: string }
+export interface RulePreview { store_id?: string; store_resolution_step: number; lines: { rule_id: string; item_id: string; qty_base: string; lot_id?: string; est_value_paisa?: number }[] }
+/** reason_group of GET /coded-sets/reasons for the dismiss dialog of S15 (TRD #78). */
+export const FACT_DISMISS_GROUP = 'fact_dismiss';
+
+export const REPORT_CODES = ['daily_consumption', 'analyser_consumption', 'cost_per_test', 'wastage', 'expiry', 'stock_valuation', 'consumption_reconciliation'] as const;
+export type ReportCode = (typeof REPORT_CODES)[number];
+export interface ColumnMeta { key: string; label: string; is_cost: boolean }
+/** ReportRow = union of the §5.11 report columns, all optional; the screen reads cells through the column list. */
+export type ReportRow = Record<string, unknown>;
+export interface ReportResult { report_code: ReportCode; params: Record<string, unknown>; columns: ColumnMeta[]; rows: ReportRow[]; totals: ReportRow; generated_at: string; truncated: boolean }
+/** Query keys the BFF forwards to GET /reports/{code} and /reports/{code}/export.csv (everything else is dropped). */
+export const REPORT_QUERY_KEYS = ['business_date_from', 'business_date_to', 'store_id', 'branch_id', 'instrument_id', 'test_id', 'item_id', 'as_of', 'within_days', 'group_by'] as const;
+export type ReportQuery = Partial<Record<(typeof REPORT_QUERY_KEYS)[number], string>>;

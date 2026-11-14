@@ -2,13 +2,13 @@ import 'server-only';
 // BFF reads for the inventory master-data screens (S2-S5, S14). Every call carries the session bearer on the server only (REQ-SEC-068).
 import { notFound } from 'next/navigation';
 import { ApiError, serverFetch } from '@/core/api/server-fetch';
-import { UUID_RE, type Analyte, type BalanceRow, type Binding, type Branch, type CodedValue, type Container, type Count, type CountLine, type CountSummary, type Department, type FefoSuggestion, type Grn, type GrnFilters, type GrnSummary, type Po, type PoFilters, type PoPrintView, type PoSummary, type Instrument, type Item, type ItemSummary, type Lot, type Page, type StockFilters, type StockMovement, type Store, type StoreItemSetting, type Supplier, type SupplierItem, type SupplierSummary, type TestRef, type Transfer, type TransferSummary, type TransferTarget } from './types';
+import { FACT_DISMISS_GROUP, UUID_RE, type Fact, type Rule, type RuleFilters, type Analyte, type BalanceRow, type Binding, type Branch, type CodedValue, type Container, type Count, type CountLine, type CountSummary, type Department, type FefoSuggestion, type Grn, type GrnFilters, type GrnSummary, type Po, type PoFilters, type PoPrintView, type PoSummary, type Instrument, type Item, type ItemSummary, type Lot, type Page, type StockFilters, type StockMovement, type Store, type StoreItemSetting, type Supplier, type SupplierItem, type SupplierSummary, type TestRef, type Transfer, type TransferSummary, type TransferTarget } from './types';
 
-const uuid = (v: string) => {
+export const uuid = (v: string) => {
   if (!UUID_RE.test(v)) notFound();
   return v;
 };
-const qs = (o: Record<string, string | number | boolean | undefined>) => {
+export const qs = (o: Record<string, string | number | boolean | undefined>) => {
   const p = new URLSearchParams();
   for (const [k, v] of Object.entries(o)) if (v !== undefined && v !== '') p.set(k, String(v));
   const s = p.toString();
@@ -95,5 +95,11 @@ export const listGrns = (f: GrnFilters = {}) =>
   serverFetch<Page<GrnSummary>>(`/v1/inventory/goods-receipts${qs({ status: f.status, store_id: f.store, supplier_id: f.supplier, po_id: f.poId, limit: 100 })}`);
 export const getGrn = (id: string) => serverFetch<Grn>(`/v1/inventory/goods-receipts/${uuid(id)}`);
 /** Reason codes live in the shared `reasons` coded set, selected by reason_group (contract form; there is no /coded-sets/po_cancel). */
-export const listReasons = (group: 'po_cancel' | 'po_close') =>
+export const listReasons = (group: 'po_cancel' | 'po_close' | typeof FACT_DISMISS_GROUP) =>
   serverFetch<Page<CodedValue & { is_active?: boolean }>>(`/v1/inventory/coded-sets/reasons${qs({ reason_group: group, limit: 200 })}`).then((r) => r.data.filter((c) => c.is_active !== false));
+
+// ---- T-24 consumption rules (S13) and waiting consumption (S15). Names (tests, analytes, analysers, items) are joined by the page from the C3/C7/C12 lists.
+export const listRules = (f: RuleFilters = {}) =>
+  serverFetch<Page<Rule>>(`/v1/inventory/consumption-rules${qs({ rule_kind: f.kind, test_id: f.test, instrument_id: f.analyser, item_id: f.item, current_only: f.history ? false : undefined, limit: 200 })}`);
+export const listFacts = (f: { status: 'unresolved'; cursor?: string | undefined }) =>
+  serverFetch<Page<Fact>>(`/v1/inventory/consumption-facts${qs({ status: f.status, cursor: f.cursor, limit: 50 })}`);

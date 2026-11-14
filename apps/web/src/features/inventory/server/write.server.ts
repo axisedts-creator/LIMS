@@ -3,7 +3,7 @@ import 'server-only';
 // Path ids and keys are checked here because this is the trust boundary between the browser and the API.
 import { ApiError, serverFetch } from '@/core/api/server-fetch';
 import { problem } from '@/core/session/types';
-import { KEY_RE, UUID_RE, type Grn, type GrnDraft, type GrnReplace, type Po, type PoCreate, type ReasonAction, type SentChannel, type AdjustmentCreate, type Barcode, type BarcodeCreate, type Binding, type ConsumptionEventCreate, type Container, type ContainerDiscard, type ContainerOpen, type Count, type CountCreate, type CountLine, type CountLinePut, type ExpiryWriteoffCreate, type Fact, type IssueCreate, type ItemSummary, type StockDocument, type Transfer, type TransferCreate, type TransferReceive, type UncountedPolicy, type WastageCreate, type Item, type ItemCreate, type ItemPatch, type Pack, type PackCreate, type Store, type StoreCreate, type StoreItemSetting, type StoreItemSettingPut, type StorePatch, type Supplier, type SupplierCreate, type SupplierItem, type SupplierItemPut, type SupplierPatch } from './types';
+import { KEY_RE, UUID_RE, type Grn, type GrnDraft, type GrnReplace, type Po, type PoCreate, type ReasonAction, type SentChannel, type AdjustmentCreate, type Barcode, type BarcodeCreate, type Binding, type ConsumptionEventCreate, type Container, type ContainerDiscard, type ContainerOpen, type Count, type CountCreate, type CountLine, type CountLinePut, type ExpiryWriteoffCreate, type Fact, type IssueCreate, type ItemSummary, type StockDocument, type Transfer, type TransferCreate, type TransferReceive, type UncountedPolicy, type WastageCreate, type Item, type ItemCreate, type ItemPatch, type Pack, type PackCreate, type Store, type StoreCreate, type StoreItemSetting, type StoreItemSettingPut, type StorePatch, type Supplier, type SupplierCreate, type SupplierItem, type SupplierItemPut, type SupplierPatch, type Rule, type RuleCreate, type RulePreview, type RulePreviewBody, type RuleSupersede } from './types';
 
 const bad = () => new ApiError(400, problem('common.validation_failed', 'Validation failed', 400));
 const uuid = (v: string) => {
@@ -90,3 +90,12 @@ export const replaceGrn = (id: string, version: number, b: GrnReplace) => {
   return send<Grn>('PUT', `${base}/goods-receipts/${uuid(id)}`, rest, { version });
 };
 export const postGrn = (id: string, version: number, key: string) => send<Grn>('POST', `${base}/goods-receipts/${uuid(id)}/post`, {}, { key, version });
+
+// ---- T-24 consumption rules (#70, #72-#74) and facts (#77, #78). Create / supersede / resolve send an Idempotency-Key; changes to an existing row send If-Match "<version>".
+export const createRule = (b: RuleCreate, key: string) => send<Rule>('POST', `${base}/consumption-rules`, b, { key });
+export const supersedeRule = (id: string, version: number, key: string, b: RuleSupersede) => send<Rule>('POST', `${base}/consumption-rules/${uuid(id)}/supersede`, b, { key, version });
+export const deactivateRule = (id: string, version: number, key: string) => send<Rule>('POST', `${base}/consumption-rules/${uuid(id)}/deactivate`, {}, { key, version });
+/** Dry run (read-only POST): nothing is written. */
+export const previewRule = (b: RulePreviewBody) => send<RulePreview>('POST', `${base}/consumption-rules/preview`, b, {});
+export const resolveFact = (id: string, version: number, key: string, storeId: string) => send<Fact>('POST', `${base}/consumption-facts/${uuid(id)}/resolve`, { store_id: uuid(storeId) }, { key, version });
+export const dismissFact = (id: string, version: number, key: string, reasonCode: string) => send<Fact>('POST', `${base}/consumption-facts/${uuid(id)}/dismiss`, { reason_code: reasonCode }, { key, version });

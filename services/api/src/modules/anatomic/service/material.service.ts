@@ -1,4 +1,4 @@
-// Material — M1 blocks, M2 slides, M3 bulk mark-ready, M5/M7–M10 stain orders, M11 movements, M13/M14 movement history, M15 label data
+// Material — M1 blocks, M2 slides, M3 bulk mark-ready, M4 slide assessment, M6 stain-order list, M12 block list, M5/M7–M10 stain orders, M11 movements, M13/M14 movement history, M15 label data
 // (02-TRD §5.2 M1–M15 + "Movement guards", §4.3 labels, §12 access log; AC-04.x, AC-05.x, AC-06.x).
 // Case-scoped (M1, M2, M5, M15): load case (404) -> IdentityPort.assertRole(case.work, case centre) -> status gate -> body -> write.
 // Object-scoped (M3, M7–M11, M13, M14): the object is loaded tenant-bound (other tenant = not found), its case gives the centre for assertRole.
@@ -9,11 +9,12 @@ import { blockLabel, slideLabelFromBlock, slideLabelFromPart } from '../domain/l
 import { getCase, getCaseItem, insertCaseItem, listCaseItems } from '../repository/cases.repo.js';
 import { getStain, getTestProfileByTestId, listStains } from '../repository/config.repo.js';
 import { getOpenDraft } from '../repository/drafts.repo.js';
-import { getBlock, insertBlock, listBlocks, updateBlock } from '../repository/blocks.repo.js';
+import { getBlock, insertBlock, listBlocks, listBlocksPage, updateBlock } from '../repository/blocks.repo.js';
+import { listCodedCytologyAdequacies } from '../repository/codedValues.repo.js';
 import { insertObjectMovement, listMovementsOfObject } from '../repository/movements.repo.js';
 import { getPart, listParts } from '../repository/parts.repo.js';
 import { getSlide, insertSlide, listSlides, updateSlide } from '../repository/slides.repo.js';
-import { getStainOrder, insertStainOrder, listStainOrders, updateStainOrder } from '../repository/stainOrders.repo.js';
+import { getStainOrder, insertStainOrder, listStainOrders, listStainOrdersPage, updateStainOrder } from '../repository/stainOrders.repo.js';
 import type { Row } from '../repository/_sql.js';
 import { UUID, anatomicCtx, assertAt, bad, isObj, iso, loadCase, put, strict, text, uuid } from './case.service.js';
 import { decodeCursor, encodeCursor } from './config.service.js';
@@ -217,6 +218,107 @@ export async function markSlidesReady(hctx: unknown, body: unknown): Promise<Res
     }
   }
   return { status: 200, body: { results } };
+}
+
+// ---- M4 saveAnatomicSlideAssessment ----
+async function adequacyActive(c: Ctx, code: string): Promise<boolean> {
+  for (let offset = 0; ; offset += 500) {
+    const rows = await listCodedCytologyAdequacies(c.tx, { tenantId: c.tenantId, activeOnly: true, limit: 500, offset });
+    if (rows.some((r) => r['code'] === code)) return true;
+    if (rows.length < 500) return false;
+  }
+}
+const ADEQUACY_CODE = /^[A-Za-z0-9_.:-]{1,64}$/;
+export async function saveSlideAssessment(hctx: unknown, params: unknown, headers: unknown, body: unknown): Promise<Result> {
+  const c = mctx(hctx);
+  const id = isObj(params) ? params['slide_id'] : undefined;
+  if (typeof id !== 'string' || !UUID.test(id)) throw notFound();
+  const s = await getSlide(c.tx, { tenantId: c.tenantId, id });
+  const cs = s ? await getCase(c.tx, { tenantId: c.tenantId, caseId: s['case_id'] }) : undefined;
+  if (!s || !cs) throw notFound();
+  await assertAt(c, 'anatomic.case.work', cs);
+  const status = cs['status'];
+  if (status === 'received' || status === 'cancelled') throw invalid();
+  if (status === 'signed_out' && !(await getOpenDraft(c.tx, { tenantId: c.tenantId, caseId: cs['id'] }))) throw new LimsError('anatomic.signout_locked'); // D-66 (b), AC-03.4
+
+  const version = ifMatch(headers, false);
+  const b = strict(body, ['adequacy_code', 'finding_text', 'include_in_report']);
+  if (typeof b['include_in_report'] !== 'boolean') throw bad('/include_in_report');
+  let adequacy: string | null = null;
+  if (b['adequacy_code'] !== undefined) {
+    const v = b['adequacy_code'];
+    if (typeof v !== 'string' || !ADEQUACY_CODE.test(v) || !(await adequacyActive(c, v))) throw bad('/adequacy_code'); // x-coded-set anatomic.cytology_adequacy
+    adequacy = v;
+  }
+  const finding = b['finding_text'] === undefined ? null : text(b['finding_text'], '/finding_text', 2000);
+  if (Number(s['version']) !== version) throw conflict();
+  const u = await updateSlide(c.tx, { tenantId: c.tenantId, id, expectedVersion: version, actorId: c.actor.id, patch: { adequacy_code: adequacy, finding_text: finding, include_in_report: b['include_in_report'] } });
+  if (!u) throw conflict();
+  const stain = await getStain(c.tx, { tenantId: c.tenantId, id: u['stain_id'] });
+  return { status: 200, body: slideDto(u, stain?.['display']) };
+}
+
+// ---- M6 / M12 lists (tenant-wide; centre scoping is RLS, the route gate is anatomic.case.read) ----
+function csvOf(v: unknown, path: string, ok: (s: string) => boolean, max: number): string[] {
+  if (typeof v !== 'string') throw bad(path);
+  const parts = v.split(',');
+  if (parts.length > max || !parts.every(ok)) throw bad(path);
+  return [...new Set(parts)];
+}
+function pageArgs(q: Obj): { limit: number; offset: number } {
+  let limit = 50;
+  if (q['limit'] !== undefined) {
+    const raw = q['limit']; // query strings arrive as strings
+    const n = typeof raw === 'number' ? raw : typeof raw === 'string' && /^[0-9]{1,3}$/.test(raw) ? Number(raw) : NaN;
+    if (!Number.isInteger(n) || n < 1 || n > 200) throw bad('/limit');
+    limit = n;
+  }
+  return { limit, offset: q['cursor'] === undefined ? 0 : decodeCursor(q['cursor']) };
+}
+const pageInfo = (rows: number, limit: number, offset: number): Obj => ({ limit, ...(rows > limit ? { next_cursor: encodeCursor(offset + limit) } : {}) });
+
+export async function listStainOrdersQueue(hctx: unknown, query: unknown): Promise<Result> {
+  const c = mctx(hctx);
+  const q = strict(query ?? {}, ['status', 'stain_kind', 'centre_id', 'sort', 'limit', 'cursor']);
+  const statuses = q['status'] === undefined ? ['requested', 'in_progress'] : csvOf(q['status'], '/status', (x) => ['requested', 'in_progress', 'completed', 'cancelled'].includes(x), 4);
+  const input: Parameters<typeof listStainOrdersPage>[1] = { tenantId: c.tenantId, statuses, descending: false, limit: 0, offset: 0 };
+  if (q['stain_kind'] !== undefined) input.stainKinds = csvOf(q['stain_kind'], '/stain_kind', (x) => x === 'special' || x === 'ihc', 2);
+  if (q['centre_id'] !== undefined) input.centreIds = csvOf(q['centre_id'], '/centre_id', (x) => UUID.test(x), 20);
+  if (q['sort'] !== undefined) input.descending = oneOf(q['sort'], ['requested_at', '-requested_at'] as const, '/sort') === '-requested_at';
+  const { limit, offset } = pageArgs(q);
+  Object.assign(input, { limit: limit + 1, offset });
+  const rows = await listStainOrdersPage(c.tx, input);
+  const nameOf = names(c);
+  const data: Obj[] = [];
+  for (const o of rows.slice(0, limit)) {
+    const d: Obj = {
+      id: o['id'], stain_code: o['stain_code'], stain_display: o['stain_display'] ?? o['stain_code'], stain_kind: o['stain_kind'], status: o['status'],
+      requested_at: iso(o['requested_at']), requested_by_display_name: await nameOf(o['created_by']), version: Number(o['version']),
+      case_id: o['case_id'], accession_no: o['accession_no'], priority: o['priority'],
+    };
+    put(d, 'block_id', o['block_id']); put(d, 'block_label', o['block_label']); put(d, 'part_id', o['part_id']); put(d, 'note', o['note']); put(d, 'reagent_lot', o['reagent_lot']);
+    put(d, 'addon_order_item_id', o['addon_order_item_id']); put(d, 'completed_at', iso(o['completed_at']));
+    data.push(d);
+  }
+  return { status: 200, body: { data, page: pageInfo(rows.length, limit, offset) } };
+}
+
+export async function listBlocksOverview(hctx: unknown, query: unknown): Promise<Result> {
+  const c = mctx(hctx);
+  const q = strict(query ?? {}, ['location_status', 'case_id', 'limit', 'cursor']);
+  const input: Parameters<typeof listBlocksPage>[1] = { tenantId: c.tenantId, limit: 0, offset: 0 };
+  if (q['location_status'] !== undefined) input.locationStatuses = csvOf(q['location_status'], '/location_status', (x) => ['in_lab', 'stored', 'sent_out', 'discarded'].includes(x), 4);
+  if (q['case_id'] !== undefined) input.caseId = uuid(q['case_id'], '/case_id');
+  const { limit, offset } = pageArgs(q);
+  Object.assign(input, { limit: limit + 1, offset });
+  const rows = await listBlocksPage(c.tx, input);
+  const data = rows.slice(0, limit).map((b) => {
+    const d = blockDto(b, Number(b['slide_count'] ?? 0));
+    d['case_id'] = b['case_id']; d['accession_no'] = b['accession_no'];
+    put(d, 'last_movement_at', iso(b['last_movement_at']));
+    return d;
+  });
+  return { status: 200, body: { data, page: pageInfo(rows.length, limit, offset) } };
 }
 
 // ---- M5 createAnatomicStainOrder ----

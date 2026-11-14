@@ -14,7 +14,7 @@ import {
 } from './config.handlers.js';
 import {
   cancelAnatomicStainOrder, completeAnatomicStainOrder, createAnatomicBlocks, createAnatomicSlides, createAnatomicStainOrder, getAnatomicLabels, linkAnatomicAddonItem,
-  listAnatomicBlockMovements, listAnatomicSlideMovements, markAnatomicSlidesReady, recordAnatomicMovements, startAnatomicStainOrder,
+  listAnatomicBlockMovements, listAnatomicBlocks, listAnatomicSlideMovements, listAnatomicStainOrders, markAnatomicSlidesReady, recordAnatomicMovements, saveAnatomicSlideAssessment, startAnatomicStainOrder,
 } from './material.handlers.js';
 import {
   createAnatomicSynopticTemplate, createAnatomicSynopticTemplateVersion, getAnatomicSynopticTemplate, listAnatomicSynopticTemplates, publishAnatomicSynopticTemplate,
@@ -65,6 +65,7 @@ const implemented: Partial<Record<AnatomicOperationId, Handler>> = {
   saveAnatomicGross, startAnatomicProcessing, markAnatomicCaseReady, cancelAnatomicCase, // C11 T-08
   createAnatomicBlocks, createAnatomicSlides, markAnatomicSlidesReady, createAnatomicStainOrder, startAnatomicStainOrder, completeAnatomicStainOrder, cancelAnatomicStainOrder, // C11 T-09 (M1–M3, M5, M7–M10)
   linkAnatomicAddonItem, recordAnatomicMovements, listAnatomicBlockMovements, listAnatomicSlideMovements, getAnatomicLabels, // M11, M13–M15
+  saveAnatomicSlideAssessment, listAnatomicStainOrders, listAnatomicBlocks, // M4, M6, M12 (C11 T-18 writer: the probes name M6/M12 as list endpoints)
   getAnatomicSettings, updateAnatomicSettings, listAnatomicStains, createAnatomicStain, updateAnatomicStain, listAnatomicTestProfiles, upsertAnatomicTestProfile, // C11 T-11 (K1–K7)
   listAnatomicAssays, createAnatomicAssay, updateAnatomicAssay, listAnatomicCodedValues, upsertAnatomicCodedValue, // K8–K12
   listAnatomicTextTemplates, createAnatomicTextTemplate, updateAnatomicTextTemplate, // K20–K22

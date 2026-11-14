@@ -179,9 +179,10 @@ export function ReportDetailView({ report, permissions }: ReportDetailViewProps)
 
       {downloadable[0] ? (
         <section className="rpt-preview" aria-label="Report preview">
-          <object className="rpt-preview-paper" type="application/pdf" title={`Report preview, version ${downloadable[0].version_no}`} data={pdfHref(downloadable[0].id)}>
+          {/* LD-140: no inline <object> preview; it would call the logged, rate-limited download route on every render (needs a CR for an inline view endpoint). */}
+          <div className="rpt-preview-paper">
             <a className="lims-link" href={pdfHref(downloadable[0].id)}>Download the report PDF</a>
-          </object>
+          </div>
         </section>
       ) : null}
       <div className="lims-card">
@@ -210,7 +211,7 @@ export function ReportDetailView({ report, permissions }: ReportDetailViewProps)
       <div className="lims-card">
         <h2>Deliveries</h2>
         <ul className="rpt-chips" aria-label="Delivery counts">
-          {(['queued', 'sent', 'delivered', 'read', 'failed', 'suppressed'] as const).filter((s) => ds[s] > 0).map((s) => <li key={s}><Chip status={s} label={`${humanize(s)} ${ds[s]}`} /></li>)}
+          {(['queued', 'sent', 'delivered', 'read', 'failed', 'suppressed'] as const).map((s) => <li key={s}><Chip status={s} label={`${humanize(s)} ${ds[s]}`} /></li>)}
         </ul>
         <a className="lims-link" href={`/reporting/deliveries?report_id=${report.id}`}>Open delivery log filtered to this report</a>
       </div>

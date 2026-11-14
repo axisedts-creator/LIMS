@@ -24,7 +24,6 @@ a Download
 button More actions
 button Help
 section Report preview
-object Report preview, version 2
 a Download the report PDF
 h2 Report
 h2 Items
@@ -32,9 +31,12 @@ h2 Versions
 span Rendered
 a Download version 2
 h2 Deliveries
+span Queued 0
 span Sent 1
 span Delivered 2
+span Read 0
 span Failed 1
+span Suppressed 0
 a Open delivery log filtered to this report"
 `;
 
@@ -50,7 +52,6 @@ button More actions
 button Help
 button Record override
 section Report preview
-object Report preview, version 2
 a Download the report PDF
 h2 Report
 h2 Items
@@ -58,9 +59,12 @@ h2 Versions
 span Rendered
 a Download version 2
 h2 Deliveries
+span Queued 0
 span Sent 1
 span Delivered 2
+span Read 0
 span Failed 1
+span Suppressed 0
 a Open delivery log filtered to this report"
 `;
 

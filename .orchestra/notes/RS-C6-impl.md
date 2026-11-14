@@ -1,7 +1,6 @@
-# RS-C6 impl (LD-140, LD-170)
-- apps/portal/src/app/portal.css: token vars only (no fallback hex), card radius-lg on neutral-0, buttons radius-full, alerts/notices radius-md.
-- components/ReportDetailView.tsx: "Report preview" region (`<object type=application/pdf data=pdfHref(newest downloadable)>` + download link fallback, on neutral.100 via new report-preview.css); delivery counts as `Chip` list (zero counts omitted). [CONV] object not iframe: axe frame probe fails in jsdom.
-- components/DeliveryDetail.tsx: attempt outcome is a `Chip`. New components/report-preview.css (kit tokens only).
-- Snapshots recorded: __tests__/__snapshots__/rs-c6.*.snap (7).
-- Run (after ruling; tester fixed test, no impl change): RS-C6-verify.cmd 59/59 pass; vitest.c6-t31.config.ts 200/200 pass.
-- Not done (no data, needs CR): template switcher, per-channel last-sent status.
+RS-C6 impl (review round, LD-140/LD-170)
+- ReportDetailView.tsx: removed inline `<object>` PDF preview (review 1: it hit the logged, rate-limited download route on every render); `.rpt-preview` region now holds only the existing download link. Removed `.filter(ds[s] > 0)` so all six delivery counts show, also at 0 (review 2).
+- report-preview.css: `.rpt-preview-paper` min-height 480px swapped for space-4 padding (box no longer holds a PDF) [CONV].
+- Snapshots re-recorded once: `-u rs-c6.screens` (2 updated).
+- Checks: RS-C6-verify.cmd 60/60 pass (CI=true); C6-T31 config 200/200 pass.
+- Open: inline preview needs a CR (inline-disposition view endpoint not logged as download); per-channel last-sent status needs API data (CR).

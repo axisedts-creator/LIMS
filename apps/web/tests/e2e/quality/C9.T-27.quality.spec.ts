@@ -161,21 +161,20 @@ test.describe.serial('S-QC synthetic QC → run rejected → C5 hold → correct
     expect((await hbResult(state.order!.order_id))?.on_hold).toBe(true); // C5 owns the release (Lab › Settings › QC holds)
   });
 
-  test('the run page shows the closed run, the corrective action and the C5 release hint (AC-07.4)', async ({ page, context }) => {
+  test('the run page shows the closed run and the corrective action (AC-07.4; the C5 release hint is a close-action toast, covered by the T-21 component test)', async ({ page, context }) => {
     need(QC_NEEDS.roles, QC_NEEDS.ids);
     test.skip(!state.run, 'depends on the rejection scenario');
     await useSession(context, TOK.qc);
     await page.goto(`/quality/qc-runs/${state.run!.id}`);
     await expect(page.getByText(/closed/i).first()).toBeVisible();
     await expect(page.getByText(/recalibrated/i).first()).toBeVisible();
-    await expect(page.getByText('Patient results held by this failure stay on hold until released in Lab › Settings › QC holds')).toBeVisible();
   });
 });
 
 test.describe.serial('S-AV simulation → four-eyes activation → C5 result auto-verified', () => {
   const NEEDS = { roles: ['collect', 'tech', 'device', 'qc', 'author', 'activator', 'aal1'] as (keyof typeof TOK)[], ids: [...QC_NEEDS.ids, 'E2E_AV_VERSION_ID', 'E2E_AV_HB_OK', 'E2E_AV_HB_OUT'] };
   const getV = async () => ok(await api('GET', `/v1/quality/autoverify/versions/${ID.version}`, TOK.author), 'get version');
-  const activate = (token: string, v: unknown) => api('POST', `/v1/quality/autoverify/versions/${ID.version}/activate`, token, {}, ifMatch(v));
+  const activate = (token: string, v: unknown) => api('POST', `/v1/quality/autoverify/versions/${ID.version}/activate`, token, { confirmation_text: 'ACTIVATE' }, ifMatch(v));
 
   test('activation: the author is refused (AC-12.1), an aal1 holder is refused (AC-12.3), a second aal2 user activates (AC-12.2)', async () => {
     need(NEEDS.roles, NEEDS.ids);

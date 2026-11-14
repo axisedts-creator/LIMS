@@ -226,6 +226,8 @@ export interface Driver {
   manual?: { title: string; document_id?: string; version?: string };
   is_active: boolean;
   capabilities: { host_query: boolean; worklist_download: boolean; qc: boolean; attachments: boolean; calibration: boolean };
+  /** JSON Schema of the driver's parser options (08-ADDENDUM-TRUTH-H80E §8 optionsSchema). Not in the contract Driver yet: optional, see CR note in .orchestra/notes/H80-T06-impl.md. */
+  options_schema?: Record<string, unknown> | undefined;
 }
 
 export interface GoLiveChecklist { manual_reference_confirmed: boolean; sample_comparison_done: boolean; qc_comparison_done: boolean; mappings_reviewed: boolean }

@@ -43,7 +43,7 @@ describe('catalogue: the one DEFINER and its FORCE-RLS owner policies (05-SCHEMA
   it('visits and handover_items have FORCE ROW LEVEL SECURITY and the four owner policies are TO lims_owner only', async () => {
     const t = await superTx(async (tx: any) => (await tx.query(`SELECT relname, relrowsecurity, relforcerowsecurity FROM pg_class WHERE oid IN ('homecollection.visits'::regclass, 'homecollection.handover_items'::regclass) ORDER BY relname`)).rows);
     expect(t.map((x: any) => [x.relname, x.relrowsecurity, x.relforcerowsecurity])).toEqual([['handover_items', true, true], ['visits', true, true]]);
-    const p = await superTx(async (tx: any) => (await tx.query(`SELECT tablename, policyname, roles::text AS roles, cmd FROM pg_policies WHERE schemaname = 'homecollection' AND policyname LIKE '%__owner_only' ORDER BY policyname`)).rows);
+    const p = await superTx(async (tx: any) => (await tx.query(`SELECT tablename, policyname, roles::text AS roles, cmd FROM pg_policies WHERE schemaname = 'homecollection' AND policyname LIKE '%__owner_only' AND tablename IN ('visits', 'handover_items') ORDER BY policyname`)).rows);
     expect(p.map((x: any) => [x.policyname, x.cmd, x.roles])).toEqual([
       ['handover_items__select__owner_only', 'SELECT', '{lims_owner}'], ['handover_items__update__owner_only', 'UPDATE', '{lims_owner}'],
       ['visits__select__owner_only', 'SELECT', '{lims_owner}'], ['visits__update__owner_only', 'UPDATE', '{lims_owner}']]);

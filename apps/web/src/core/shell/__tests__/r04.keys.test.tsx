@@ -118,11 +118,15 @@ describe('scanner wedge on an empty page', () => {
     dlg.setAttribute('aria-modal', 'true');
     dlg.innerHTML = '<button id="in-dialog">OK</button>';
     document.body.appendChild(dlg);
-    const b = dlg.querySelector('button') as HTMLButtonElement;
-    b.focus();
-    await user().keyboard('E26');
-    expect(document.activeElement).toBe(b);
-    expect(box().value).toBe('');
+    try {
+      const b = dlg.querySelector('button') as HTMLButtonElement;
+      b.focus();
+      await user().keyboard('E26');
+      expect(document.activeElement).toBe(b);
+      expect(box().value).toBe('');
+    } finally {
+      dlg.remove();
+    }
   });
   it('after the search is submitted and the field is left, the next scan starts a fresh query (field is replaced, not appended)', async () => {
     mount();

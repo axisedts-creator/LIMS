@@ -177,9 +177,8 @@ describe('ranges are enforced before anything is sent (TRD §11.2)', () => {
     for (const bad of [lo, hi]) {
       await fill(f(label), bad);
       await submit(f(label));
-      await settle();
+      await waitFor(() => expect(document.body.textContent).toMatch(/between|at least|at most|must be|invalid|required|too/i));
       expect(puts(), `${label} = ${bad}`).toHaveLength(0);
-      expect(document.body.textContent).toMatch(/between|at least|at most|must be|invalid|required|too/i);
     }
   });
   it.each([[/^sync interval/i, '60'], [/^sync interval/i, '900'], [/^clear phone data after offline/i, '4'], [/^clear phone data after offline/i, '24'], [/^max visits per route/i, '60']])('%s = %s (boundary) is accepted', async (label, ok) => {
@@ -248,9 +247,8 @@ describe('payment methods (D-128: only C4\'s six seed codes; 1..10; each code at
     await userEvent.click(within(rows()[2]!).getByRole('button', { name: /code|method/i })); // esewa -> cash
     await userEvent.click(await screen.findByRole('option', { name: 'Cash' }));
     await submit(f(/^sync interval/i));
-    await settle();
+    await waitFor(() => expect(document.body.textContent).toMatch(/once|duplicate|already|unique/i));
     expect(puts()).toHaveLength(0);
-    expect(document.body.textContent).toMatch(/once|duplicate|already|unique/i);
   });
   it('an unknown code in stored data is not silently submitted as another code (no PUT until fixed)', async () => {
     await view({ ...SETTINGS, payment_methods: [{ code: 'bitcoin', display: 'Coin', requires_reference: false }] });

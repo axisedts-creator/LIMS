@@ -5,6 +5,10 @@ import type { ConsumerHandler, TaskHandler, WorkerManifest } from '../../core/ma
 import { CLOSE_QUEUE_DAY, RECONCILE_LINKS, closeQueueDay, crontab, reconcileLinks } from './cron.js';
 import { handle as catalogChanged } from './consumers/catalog.changed.v1.js';
 import { handle as collectionSynced } from './consumers/homecollection.collection.synced.v1.js';
+import { handle as specimenStatusChanged } from './consumers/lab.specimen.status_changed.v1.js';
+import { handle as specimenRejected } from './consumers/lab.specimen.rejected.v1.js';
+import { handle as reportReleased } from './consumers/reporting.report.released.v1.js';
+import { handle as balanceChanged } from './consumers/billing.balance.changed.v1.js';
 import { MARK_NO_SHOWS, RECONCILE_BOOKINGS, markNoShows, reconcileBookings } from './tasks/booking_jobs.js';
 import { createBackfillLink } from './tasks/backfill_link.js';
 import { createDispatchDueReminders } from './tasks/dispatch_due_reminders.js';
@@ -55,6 +59,10 @@ export const manifest: WorkerManifest = Object.freeze({
     ...Object.fromEntries(SUBSCRIPTIONS.map((type) => [type, consumer(type)])),
     'catalog.changed.v1': catalogChanged, // T-B1 (CR-C16-013)
     'homecollection.collection.synced.v1': collectionSynced, // T-B4
+    'lab.specimen.status_changed.v1': specimenStatusChanged, // T-P1
+    'lab.specimen.rejected.v1': specimenRejected, // T-P1
+    'reporting.report.released.v1': reportReleased, // T-P1
+    'billing.balance.changed.v1': balanceChanged, // T-P1
   }),
   crontab, // TRD §8.2 rows live in cron.ts (close_queue_day, dispatch_due_reminders)
   maxAttempts: TASKS,

@@ -1,8 +1,7 @@
-CHANGES
-Lead ruling LD-161 (2026-11-14). One defect in this task's migration; nothing else is requested.
-
-1. WRITER: db/migrations/20261113230000_instruments__add_truth_h80e_driver.sql has no role switch. The verify bootstrap of other lanes (C17 HC-T13 and HC-T16) dies at line 6 of this file: `psql ... ERROR: permission denied for schema instruments`. It is the only one of the 23 migrations on main without `SET LOCAL ROLE lims_owner;` (db/migrations/20261105002000_instruments__create_instruments_schema.sql line 7: "Single role switch: lims_owner"). Fix: add `SET LOCAL ROLE lims_owner;` after the header comments and before the INSERT. Nothing else in the migration changes: same row, status stays 'generic', no UPDATE.
-2. TESTER: no new test is required by this note. If a C7 DB test applies the migration chain, run it.
-3. VERIFY: run the full migration bootstrap, not only the C7 tests; it must pass with no error, and the c7-driver-registry-check must still pass with status generic.
-
-Do not change any other file. Another failure is a new dispute, not part of this change.
+APPROVE
+H80-T05 re-review after LD-161 (diff 161b84d8..d9d50f3e)
+- db/migrations/20261113230000_instruments__add_truth_h80e_driver.sql: only change is `SET LOCAL ROLE lims_owner;` (line 5) before the INSERT, with LD-161 cited (line 4). Same form as 20261105002000_instruments__create_instruments_schema.sql:7. All migrations in db/migrations now contain the role switch (grep -L returned none).
+- INSERT row unchanged: truth_h80e, hl7v2, generic, 0.1.0, caps true/false/true/true/false, manual per addendum §8. No UPDATE, no promotion, no grant/policy/data change, as LD-161 requires.
+- Global reference row: no tenant data, no RLS needed; no PHI, no secrets, no new names.
+- Other files changed: .orchestra/notes only (impl note, archived prior review). No other code paths touched.
+- Writer reports full bootstrap (PG17, all migrations) exit 0 and verify.cmd vitest 14/14. Reviewer did not re-run (no Postgres here); CI must confirm bootstrap and c7-driver-registry-check before merge.

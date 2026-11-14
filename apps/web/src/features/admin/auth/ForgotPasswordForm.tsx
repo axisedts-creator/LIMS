@@ -3,6 +3,7 @@
 // the email is echoed from the form, not from the server.
 import { useState, type FormEvent } from 'react';
 import { Button } from '@lims/ui/components/Button';
+import { RequiredNote } from '../ui';
 import { EMAIL_RE, type ActionResult } from './messages';
 
 export interface ForgotPasswordFormProps {
@@ -46,6 +47,7 @@ export function ForgotPasswordForm({ action }: ForgotPasswordFormProps) {
             <label className="lims-label" htmlFor="forgot-email">
               Email
             </label>
+            <RequiredNote />
             <input
               id="forgot-email"
               className="lims-input"

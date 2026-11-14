@@ -60,6 +60,24 @@ const H80E_CHECKLIST = [ // §9, wording kept close to the addendum
   'Sign off. Promotion to verified is a reviewed migration plus a code change, not a switch in this form.',
 ] as const;
 
+// MET-T05, LD-163 (binding): preset "Getein Metis series" (09-ADDENDUM-GETEIN-METIS §1, §3, §7, §8, §9). Same topology as H80E (D-MET-3): the analyser is
+// assumed to connect out (U1), so transport tcp_server on the lab PC. The ids below are the addendum's examples only (U2): which ids a lab runs is
+// confirmed at commissioning and C3 owns the code-map rows, so nothing is seeded. Driver stays generic and host query inert until a reviewed migration.
+const METIS = { driver: 'getein_metis', vendor: 'Getein', model: 'Metis', protocol: 'hl7v2' as Protocol, kind: 'tcp_server' as TransportKind };
+const METIS_CODES = [['0', 'ALT'], ['1', 'AST'], ['1112', 'CoV2Ag']] as const; // §3 example item ids
+const METIS_RUNBOOK = 'docs/manual/instruments/getein-metis-commissioning.md';
+const METIS_CHECKLIST = [ // §9, wording kept close to the addendum
+  "Vendor engineer sets the analyser's static IP (same subnet as the lab PC) and its LIS settings, and confirms whether the analyser connects out to the LIS address typed into it or listens. If it listens, stop and raise CR-C7-021.",
+  'Install the bridge agent on the lab PC with a static LAN IP. Create this instrument with transport tcp_server, then issue and use the enrolment code.',
+  "Set the instrument state to commissioning (shadow). Run 5 patient samples and 2 QC runs per level in use, capture the raw messages and compare every value with the analyser's printout.",
+  "Read the analyser's own item list and record which ids the lab runs. Map them to the lab's tests and review the mappings.",
+  "Host query in shadow: scan a registered tube. Confirm QCK OK and DSR, that the analyser shows the sample and runs the listed tests, the ACK^Q03 form, and whether the QCK is acknowledged.",
+  'Scan an unregistered tube and a tube registered without any test mapped to this analyser. Record what the analyser does on NF.',
+  "Try the analyser's sample-number-range and time-range download once and record what it shows after NF. Ask the vendor engineer whether this unit accepts a LIS-pushed sample request. Decide with the lab manager whether CR-C7-022 is needed.",
+  'Register a patient with a Devanagari name and record whether the analyser shows it. Record whether a calibration run arrives and is archived harmlessly.',
+  'Pull the internet link, scan a tube and record what happens. Restore the link and confirm queued results upload once, with no duplicates. Sign off. Promotion to verified is a reviewed migration plus a code change, not a switch in this form.',
+] as const;
+
 interface OptionField { key: string; title: string; maxLength?: number; options?: string[]; numeric?: boolean; def: string }
 const UNSAFE_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
 /** One field per string / enum property of the driver's JSON Schema (own keys only; anything else is ignored, never rendered as HTML).
@@ -93,7 +111,7 @@ interface State {
   agent_id?: string | undefined; protocol?: Protocol | undefined; driver_code?: string | undefined;
   transport: Obj; peers: string; file_drop?: Obj | undefined; host_query: boolean;
   astm: Record<string, number | undefined>; hl7: Obj;
-  preset: 'custom' | 'truth_h80e'; popts: Record<string, string>; // popts: parser options the user touched (schema keys only)
+  preset: 'custom' | 'truth_h80e' | 'getein_metis'; popts: Record<string, string>; // popts: parser options the user touched (schema keys only)
   timezone?: string | undefined; qc: string; silence_window?: number | undefined; from: string; to: string;
 }
 
@@ -265,14 +283,17 @@ export function InstrumentForm({ mode, agents, drivers, instrument, permissions 
     patch({ driver_code: code, popts: {}, ...(d?.capabilities.host_query && d.status === 'verified' ? {} : { host_query: false }) }, '/driver_code', '/capabilities/host_query');
   };
   const setPreset = (v: string) => {
-    if (v !== 'truth_h80e') return patch({ preset: 'custom' });
-    const known = drivers.some((d) => d.code === H80E.driver && d.protocol === H80E.protocol);
+    const p = v === 'truth_h80e' ? H80E : v === 'getein_metis' ? METIS : undefined;
+    if (!p) return patch({ preset: 'custom' });
+    const known = drivers.some((d) => d.code === p.driver && d.protocol === p.protocol);
     patch({
-      preset: 'truth_h80e', vendor: H80E.vendor, model: H80E.model, protocol: H80E.protocol, transport: { kind: H80E.kind, ...KIND_DEFAULTS[H80E.kind] }, peers: '',
-      popts: {}, host_query: false, ...(known ? { driver_code: H80E.driver } : { driver_code: undefined }),
+      preset: v as 'truth_h80e' | 'getein_metis', vendor: p.vendor, model: p.model, protocol: p.protocol, transport: { kind: p.kind, ...KIND_DEFAULTS[p.kind] }, peers: '',
+      popts: {}, host_query: false, ...(known ? { driver_code: p.driver } : { driver_code: undefined }),
     }, '/protocol', '/transport/kind', '/driver_code');
   };
   const h80 = s.preset === 'truth_h80e';
+  const metis = s.preset === 'getein_metis';
+  const lanPreset = h80 || metis; // both: analyser connects out to the lab PC (tcp_server)
 
   const agentOptions = agents.filter((a) => a.status === 'active' || a.status === 'pending_enrolment' || a.id === s.agent_id).map((a) => ({ value: a.id, label: `${a.agent_code} — ${a.display_name}` }));
   if (s.agent_id && !agentOptions.some((o) => o.value === s.agent_id)) agentOptions.push({ value: s.agent_id, label: instrument?.['agent_code' as keyof Instrument] as string ?? s.agent_id });
@@ -373,8 +394,9 @@ export function InstrumentForm({ mode, agents, drivers, instrument, permissions 
       ) : null}
 
       {edit ? null : section('Preset', <>
-        <Select<string> label="Preset" name="preset" options={[{ value: 'custom', label: 'Custom' }, { value: 'truth_h80e', label: 'Truth H80E' }]} value={s.preset} onChange={setPreset} />
+        <Select<string> label="Preset" name="preset" options={[{ value: 'custom', label: 'Custom' }, { value: 'truth_h80e', label: 'Truth H80E' }, { value: 'getein_metis', label: 'Getein Metis series' }]} value={s.preset} onChange={setPreset} />
         {h80 ? <p className="lims-description">The Truth-H80E connects out to the address typed into the analyser ([Apply] → [Set] → [Lis]). That address is the lab PC that runs the bridge agent, not the cloud server. Use the lab PC's static LAN IP below, never 0.0.0.0.</p> : null}
+        {metis ? <p className="lims-description">The Metis analyser is assumed to connect out to the LIS address typed into the analyser (confirmed at commissioning, step 1). That address is the lab PC that runs the bridge agent, not the cloud server: the analyser speaks plain MLLP with no TLS. Use the lab PC's static LAN IP below, never 0.0.0.0.</p> : null}
       </>)}
 
       {section('Identity', <>
@@ -413,9 +435,9 @@ export function InstrumentForm({ mode, agents, drivers, instrument, permissions 
         {kind === 'tcp_server' ? (
           <>
             <Banner tone="warning" title="The agent will accept connections on the lab network. Run 'bridge-agent firewall enable' on the PC." />
-            {tf(h80 ? "Listen address: the lab PC's static LAN IP" : 'Listen address', '/transport/bind_address', String(s.transport['bind_address'] ?? ''), 15, (v) => setT('bind_address', v), h80 ? { description: 'Type this same address into the analyser as the LIS address.' } : {})}
+            {tf(lanPreset ? "Listen address: the lab PC's static LAN IP" : 'Listen address', '/transport/bind_address', String(s.transport['bind_address'] ?? ''), 15, (v) => setT('bind_address', v), lanPreset ? { description: 'Type this same address into the analyser as the LIS address.' } : {})}
             {nf('Port', '/transport/port', s.transport['port'] as number | undefined, 1024, 65535, (v) => setT('port', v))}
-            {tf(h80 ? 'Allowed analyser addresses' : 'Allowed instrument addresses', '/transport/allowed_peers', s.peers, 100, (v) => patch({ peers: v }, '/transport/allowed_peers'), { description: h80 ? "The analyser's own static IP. IPv4 addresses, separated by commas (1–8)." : 'IPv4 addresses, separated by commas (1–8).' })}
+            {tf(lanPreset ? 'Allowed analyser addresses' : 'Allowed instrument addresses', '/transport/allowed_peers', s.peers, 100, (v) => patch({ peers: v }, '/transport/allowed_peers'), { description: lanPreset ? "The analyser's own static IP. IPv4 addresses, separated by commas (1–8)." : 'IPv4 addresses, separated by commas (1–8).' })}
           </>
         ) : null}
         {kind === 'file_drop' ? fileDrop('/transport', s.transport) : null}
@@ -478,6 +500,14 @@ export function InstrumentForm({ mode, agents, drivers, instrument, permissions 
       {h80 ? regionCard('checklist', 'Commissioning checklist', <>
         <ol>{H80E_CHECKLIST.map((t, i) => <li key={i}>{t}</li>)}</ol>
         <p className="lims-description">Runbook: {H80E_RUNBOOK}</p>
+      </>) : null}
+      {metis ? regionCard('codes', 'Suggested analyte codes', <>
+        <p className="lims-description">Item ids shown in the addendum's examples. Item ids are the analyser's own; which ones this lab runs is confirmed at commissioning from the analyser's item list. Nothing is created here: map them to the lab's tests on the instrument's code map after it is created.</p>
+        <ul>{METIS_CODES.map(([id, name]) => <li key={id}><code>{id}</code> {name}</li>)}</ul>
+      </>) : null}
+      {metis ? regionCard('checklist', 'Commissioning checklist', <>
+        <ol>{METIS_CHECKLIST.map((t, i) => <li key={i}>{t}</li>)}</ol>
+        <p className="lims-description">Runbook: {METIS_RUNBOOK}</p>
       </>) : null}
 
       {ro ? null : <Button type="submit" variant="primary" shortcut="Ctrl+Enter" isLoading={busy}>{edit ? 'Save' : 'Create instrument'}</Button>}

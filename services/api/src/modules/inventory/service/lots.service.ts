@@ -11,6 +11,7 @@ import { assertTransition } from '../domain/container.state.js';
 import { suggestFefo } from '../domain/fefo.js';
 import { formatScaled, scaled } from '../domain/quantity.js';
 import { addWallDays, assertZone, endOfDay, nowMs, ymdIn } from '../domain/tenantTime.js';
+import type { DiscardInput } from '../handlers/documents.schemas.js';
 import { fieldError, invalid } from '../handlers/items.schemas.js';
 import type { BalanceQuery, ContainerFinishInput, ContainerListQuery, ContainerOpenInput, FefoQuery, LotExpiryInput, LotListQuery, LotStatusInput, MovementQuery } from '../handlers/lots.schemas.js';
 import type { PageQuery } from '../handlers/masters.schemas.js';
@@ -24,6 +25,7 @@ import { getItem } from '../repository/items.repo.js';
 import { updateLot } from '../repository/lots.repo.js';
 import { type RepoCtx, type Row, Q, first, isUuid, query } from '../repository/_base.js';
 import { PERMISSIONS } from '../permissions.js';
+import { postDocument, viewDocument } from './documents.service.js';
 import { assertStoreAccess, listVisibleBranchIds } from './scope.service.js';
 
 type Dto = Record<string, unknown>;
@@ -331,4 +333,27 @@ export async function finishContainer(ctx: HandlerContext, containerId: string, 
   if (at < openedAt || (input.finished_at !== undefined && at > now + FUTURE_SLACK_MS)) throw invalid(fieldError('/finished_at'));
   await updateContainer(rc, containerId, ifMatch, { status: 'finished', finished_at: new Date(at).toISOString(), finished_by: rc.actorId });
   return containerDto((await containerRow(rc, containerId)) as Row);
+}
+
+/**
+ * #40 (03-APP-FLOW §3.5): open -> discarded creates a WASTAGE stock document for the entered remaining quantity (documents.service.postDocument: reason of group wastage, ledger, valuation) and links it.
+ * Order: container (404) -> bench.record at its branch (404 beats 403) -> row lock -> transition (409) -> If-Match (409) -> reason (422) -> document. [CONV] the row lock makes two parallel discards queue:
+ * the loser re-reads status 'discarded' (409 document_invalid_transition), so the quantity leaves the lot once. Any lot status / expiry may be discarded (an expired or quarantined lot is the usual case).
+ */
+export async function discardContainer(ctx: HandlerContext, containerId: string, ifMatch: number, input: DiscardInput): Promise<Dto> {
+  const rc = rcOf(ctx);
+  const cur = await containerRow(rc, containerId);
+  if (cur === null) throw notFound();
+  await assertStoreAccess(sc(ctx), cur['store_id'], BENCH);
+  const locked = await first(rc, 'SELECT status, version FROM inventory.opened_containers WHERE tenant_id = $1 AND id = $2 FOR UPDATE', [containerId]);
+  if (locked === null) throw notFound();
+  assertTransition(locked['status'], 'discarded');
+  if (locked['version'] !== ifMatch) throw new LimsError('common.version_conflict');
+  const docId = await postDocument(ctx, 'wastage', {
+    store_id: cur['store_id'], container_id: containerId, lines: [{ item_id: cur['item_id'], ...(cur['lot_id'] === null ? {} : { lot_id: cur['lot_id'] }), qty: input.qty_base }],
+    ...(input.reason_code === undefined ? {} : { reason_code: input.reason_code }), ...(input.reason_text === undefined ? {} : { reason_text: input.reason_text }),
+  });
+  const finishedAt = Math.max(nowMs((ctx as any).now()), (cur['opened_at'] as Date).getTime()); // never before opened_at (a back-dated / future-dated opened_at)
+  await updateContainer(rc, containerId, ifMatch, { status: 'discarded', finished_at: new Date(finishedAt).toISOString(), finished_by: rc.actorId, discard_document_id: docId });
+  return { container: containerDto((await containerRow(rc, containerId)) as Row), document: await viewDocument(ctx, rc, docId) };
 }

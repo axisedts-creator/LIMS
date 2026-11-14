@@ -10,7 +10,8 @@ import type { Alert, AlertKind, Binding, ItemSummary, Page, Store } from '@/feat
 const NEWEST = 10;
 const empty = <T,>(): Page<T> => ({ data: [], page: { limit: 1 } });
 
-const count = (n: number, more: boolean) => `${n}${more ? '+' : ''}`; // ponytail: one page of 200 per call; "200+" when more exist, add per-kind counts if that is not enough
+// Each tile counts its own kind (alert_kind filter) so one noisy kind cannot hide another; "200+" only when that kind has more pages.
+const count = (p: Page<unknown>) => `${p.data.length}${p.page.next_cursor ? '+' : ''}`;
 
 async function checklist(consumptionOn: boolean) {
   const [stores, items, rules, bindings, opening] = await Promise.all([
@@ -39,12 +40,13 @@ export default async function InventoryHomePage({ searchParams }: { searchParams
   const perms = session?.actor.permissions ?? [];
   if (!perms.includes('inventory.item.read')) return <PermissionDenied />;
 
-  const base = await guarded(() => Promise.all([listAlerts({ status: ['open'] }), listUnresolvedFacts(), getSettings()]));
+  const open = (alertKind?: AlertKind) => listAlerts({ status: ['open'], alertKind });
+  const base = await guarded(() =>
+    Promise.all([open(), open('below_reorder'), open('expiry_soon'), open('expired_on_hand'), listUnresolvedFacts(), getSettings()]),
+  );
   if (base === FORBIDDEN) return <PermissionDenied />;
-  const [alerts, facts, settings] = base;
+  const [alerts, belowReorder, expiring, expired, facts, settings] = base;
 
-  const of = (k: AlertKind) => alerts.data.filter((a) => a.alert_kind === k).length;
-  const more = !!alerts.page.next_cursor;
   const newest: Alert[] = [...alerts.data].sort((a, b) => b.last_raised_at.localeCompare(a.last_raised_at)).slice(0, NEWEST);
 
   const [stores, items, lots, steps] = await Promise.all([
@@ -65,7 +67,7 @@ export default async function InventoryHomePage({ searchParams }: { searchParams
 
   return (
     <InventoryHome
-      counts={{ belowReorder: count(of('below_reorder'), more), expiring: count(of('expiry_soon'), more), expired: count(of('expired_on_hand'), more), waiting: count(facts.data.length, !!facts.page.next_cursor) }}
+      counts={{ belowReorder: count(belowReorder), expiring: count(expiring), expired: count(expired), waiting: count(facts) }}
       expiryDays={settings.expiry_alert_days}
       consumptionOn={!!settings.consumption_enabled_at}
       canManageSettings={perms.includes('inventory.master.manage')}

@@ -1,5 +1,8 @@
-TESTER: the snapshot file packages/ui/src/components/__tests__/__snapshots__/ui-r03-kit-pass.test.tsx.snap was recorded by the debugger three times and reverted by the harness each time (REVERT lines in the C0 log at 14:32, 14:42, 14:50, 14:58: only test files written by the tester survive). You are the only role that may add it.
-1. From packages/ui run the same test file with the update flag, once, without CI=true: pnpm exec vitest run -u src/components/__tests__/ui-r03-kit-pass.test.tsx  (10 snapshots expected).
-2. Re-run the command in T0D-UI-R03-verify.cmd (CI=true) and confirm it passes (the debugger saw 370/370).
-3. Do not change any assertion and do not touch component code; the .snap must stay in your commit.
-WRITER: no change.
+APPROVE
+
+Scope: git diff b6ab4e2d..HEAD (d0b9a178, debugger round 10).
+- QueueBoard.tsx / TokenSlip.tsx: inline `border-radius` removed from CSS strings; same values moved to packages/ui/src/components/kit.css (`var(--lims-radius-md)`, print `0`). Fixes the real failure "component code: no ... border-radius" (10-DESIGN-SYSTEM s2.3, s8; LD-140). Comment cites LD-140.
+- Appearance unchanged (same token, same print override); no API/field/route/permission change. No test edited. Owned paths only (packages/ui/src/components/**, plus the debug note).
+- No colour literals, secrets or PHI added. RLS/idempotency/error codes: not applicable (UI-only diff).
+- Reviewer ran ui-r03-kit-pass.test.tsx: 149/149 pass.
+- Note (not a defect): consumers rendering QueueBoard/TokenSlip must import `@…/ui/kit.css` to get the radius, same as every other kit component (.lims-card etc.).

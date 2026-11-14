@@ -10,6 +10,7 @@ import { Card } from '@lims/ui/components/Card';
 import { DateText, type DateTextProps } from '@lims/ui/components/DateText';
 import { MoneyField, type Money } from '@lims/ui/components/MoneyField';
 import { PageHeader } from '@lims/ui/components/PageHeader';
+import { StatusChip } from '@lims/ui/components/StatusChip';
 import { Switch } from '@lims/ui/components/Switch';
 import { TextField } from '@lims/ui/components/TextField';
 import { useToast } from '@lims/ui/components/Toast';
@@ -50,6 +51,7 @@ export function SettingsView({ environment, accounts, settings, permissions }: S
       <GatewayCard gateway="esewa" environment={environment} account={of('esewa')} canManage={canManage} />
       <GatewayCard gateway="khalti" environment={environment} account={of('khalti')} canManage={canManage} />
       <Card title="Fonepay">
+        <StatusChip kind="generic" status="unavailable" tone="neutral" label="Not available yet" />
         <p>Waiting for the Fonepay merchant integration document from your bank (blocker B8).</p>
         <Switch label="Enabled" isSelected={false} isDisabled />
       </Card>
@@ -141,6 +143,8 @@ function GatewayCard({ gateway, environment, account, canManage }: { gateway: 'e
 
   return (
     <Card title={name}>
+      {/* RS-C15 A3 (LD-140): saved status as tone + icon + word; the Enabled switch below stays the control */}
+      <StatusChip kind="generic" status={account?.is_enabled ? 'enabled' : 'disabled'} tone={account?.is_enabled ? 'success' : 'neutral'} label={account?.is_enabled ? 'Enabled' : 'Disabled'} />
       {msg ? <div role="alert"><Banner tone={msg.tone} title={msg.title} /></div> : null}
       <Switch label="Enabled" isSelected={enabled} onChange={setEnabled} isDisabled={!canManage} />
       {gateway === 'esewa' ? (

@@ -317,7 +317,7 @@ describe('createQcPlanVersion (#17): append-only versions, runs keep theirs (AC-
     const { svc, ctx, fake } = setup();
     await invalid(svc.createQcPlanVersion(ctx, { planId: PLN(1), expectedVersion: 1, body: vbody({ params: params2({ controls_per_run: 5 }) }) }), '/params/controls_per_run');
     await invalid(svc.createQcPlanVersion(ctx, { planId: PLN(1), expectedVersion: 1, body: vbody({ params: params3({ mean_rule: '10x' }) }) }), '/params/mean_rule');
-    await invalid(svc.createQcPlanVersion(ctx, { planId: PLN(1), expectedVersion: 1, body: vbody({ params: params2({ composition: [{ level_id: LVL(1), count: 2 }] }) }) }), '/params/composition', 'common.field_invalid');
+    await invalid(svc.createQcPlanVersion(ctx, { planId: PLN(1), expectedVersion: 1, body: vbody({ params: params2({ composition: [{ level_id: LVL(1), count: 3 }] }) }) }), '/params/composition', 'common.field_invalid'); // sum 3 != N 2 (ruling C9.T-07)
     await invalid(svc.createQcPlanVersion(ctx, { planId: PLN(1), expectedVersion: 1, body: vbody({ params: params2({ composition: [{ level_id: LVL(9), count: 2 }] }) }) }), '/params/composition/0/level_id');
     expect(fake.mutations()).toHaveLength(0);
   });

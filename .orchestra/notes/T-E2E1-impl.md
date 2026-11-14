@@ -5,4 +5,4 @@
 - Open: the e2e journey was NOT run (no compose stack here).
 - Open: test-support routes (CR `.orchestra/cr/T-E2E1.md`) must be mounted in compose by C0-0C/C0-0D; until then the nightly step fails by design.
 - Open: repo variables/secret above must be created by the owner; the staff token is not minted in the job.
-- Open: no vitest config/dependency check done for root-level `pnpm exec vitest` (not an owned path).
+- Review pass: all 4 review items target tests/CR (handled by tester); no impl change. Static suite re-run: 11/11 pass. Open: CR needs `aggregate_seq` on POST /events + `centre_id`,`specimen_type_code` on /scenarios 201 (lead).

@@ -30,7 +30,7 @@ async function closed(s: 'a' | 'b', st: Closed, at: string) {
 }
 const item = async (id: string) => (await ownerRows('homecollection.handover_items', 'id = $1', [id]))[0];
 const run = (o: { tenant?: string; payload?: unknown; retentionYears?: number; raw?: Record<string, unknown>; err?: Error; calls?: unknown[][] } = {}) =>
-  runTask(purgeRetention, o.payload ?? { tenant_id: o.tenant ?? TENANT_A }, o.tenant ?? TENANT_A, { now: NOW, ...(o.retentionYears !== undefined ? { retentionYears: o.retentionYears } : {}), ...(o.raw ? { rawSettings: o.raw } : {}), ...(o.err ? { settingsError: o.err } : {}), ...(o.calls ? { settingsCalls: o.calls } : {}) });
+  runTask(purgeRetention, 'payload' in o ? o.payload : { tenant_id: o.tenant ?? TENANT_A },o.tenant ?? TENANT_A, { now: NOW, ...(o.retentionYears !== undefined ? { retentionYears: o.retentionYears } : {}), ...(o.raw ? { rawSettings: o.raw } : {}), ...(o.err ? { settingsError: o.err } : {}), ...(o.calls ? { settingsCalls: o.calls } : {}) });
 const anonymised = (v: any) => [v.address_text, v.landmark, v.latitude, v.longitude, v.note_for_phlebotomist, v.status_reason_text].every((x) => x === null);
 const intact = (v: any) => v.address_text === PII.address_text && v.landmark === PII.landmark && v.note_for_phlebotomist === PII.note_for_phlebotomist && v.status_reason_text === PII.status_reason_text && Number(v.latitude) === PII.latitude;
 
@@ -73,7 +73,7 @@ describe('retention anonymisation of closed visits past retentionYears (default 
     expect((await run({ retentionYears: 2, calls })).threw).toBeUndefined();
     expect(anonymised(await visitOf(mid.visit.id))).toBe(true);
     expect((await item(mid.item.id)).barcode).toBe('ANONYMISED');
-    expect(JSON.stringify(calls)).toContain('retentionYears');
+    expect(calls.some((a) => JSON.stringify(a[1] ?? {}).includes('retentionYears'))).toBe(true);   // a[0] is ctx (HC-T16 ruling)
   });
   it('idempotent monthly run: a second run changes nothing (no version bump on already anonymised rows)', async () => {
     const old = await closed('a', 'completed', yearsAgo(6));

@@ -47,18 +47,18 @@ const REACTIVATE_SQL = 'UPDATE partners.partner_users SET status = $3, deactivat
 
 const forbidden = () => new LimsError('auth.forbidden');
 const notFound = () => new LimsError('common.not_found');
-const bad = (...paths: string[]): LimsError => new LimsError('common.validation_failed', undefined,
+export const bad = (...paths: string[]): LimsError => new LimsError('common.validation_failed', undefined,
   paths.map((path): FieldError => ({ path, code: 'common.field_invalid', message: 'Field invalid' })));
-const isObj = (v: unknown): v is Obj => typeof v === 'object' && v !== null && !Array.isArray(v);
+export const isObj = (v: unknown): v is Obj => typeof v === 'object' && v !== null && !Array.isArray(v);
 
 /** Closed object: unknown keys and missing required keys -> 400; values are never echoed. */
-function closed(v: unknown, keys: readonly string[]): Obj {
+export function closed(v: unknown, keys: readonly string[]): Obj {
   if (!isObj(v)) throw bad('/body');
   for (const k of Object.keys(v)) if (!keys.includes(k)) throw bad(`/${k}`);
   for (const k of keys) if (v[k] === undefined) throw bad(`/${k}`);
   return v;
 }
-function uuidParam(params: unknown, name: string): string {
+export function uuidParam(params: unknown, name: string): string {
   const v = isObj(params) ? params[name] : undefined;
   if (typeof v !== 'string' || !UUID.test(v)) throw bad(`/${name}`);
   return v;
@@ -68,15 +68,15 @@ const role = (v: unknown): PartnerRole => {
   return v as PartnerRole;
 };
 /** If-Match: `"<version>"` (02-CV §4.2). Absent -> 428; malformed -> 400. */
-function ifMatch(headers: unknown): number {
+export function ifMatch(headers: unknown): number {
   const h = isObj(headers) ? headers['if-match'] : undefined;
   if (h === undefined) throw new LimsError('common.precondition_required');
   const m = typeof h === 'string' ? /^"([1-9][0-9]{0,9})"$/.exec(h) : null;
   if (!m || Number(m[1]) > 2147483647) throw bad('/headers/if-match');
   return Number(m[1]);
 }
-const encodeCursor = (offset: number): string => Buffer.from(JSON.stringify({ o: offset })).toString('base64url');
-function decodeCursor(v: unknown): number {
+export const encodeCursor = (offset: number): string => Buffer.from(JSON.stringify({ o: offset })).toString('base64url');
+export function decodeCursor(v: unknown): number {
   try {
     const o = (JSON.parse(Buffer.from(String(v), 'base64url').toString('utf8')) as { o?: unknown } | null)?.o;
     if (typeof o === 'number' && Number.isInteger(o) && o >= 0 && o <= 1_000_000) return o;

@@ -37,9 +37,15 @@ const IMPLEMENTED: readonly string[] = [
   'listPartnerUsers', 'invitePartnerUser', 'changePartnerUserRole', 'deactivatePartnerUser', 'reactivatePartnerUser', 'resendPartnerInvitation', // T06 U1-U6
   'listPartnerUsersForPartner', 'invitePartnerUserByStaff', 'changePartnerUserRoleByStaff', 'deactivatePartnerUserByStaff', 'reactivatePartnerUserByStaff', // T06 SA8-SA10
   'listPartners', 'createPartner', 'getPartner', 'updatePartner', 'suspendPartner', 'reactivatePartner', 'resyncPartnerProjections', // T07 (SA1-SA7)
+  'listPartnerPriceList', 'listPartnerStatements', 'getPartnerStatement', // T17 (P1, S1, S2)
+  'listPartnerReferrers', 'createPartnerReferrer', 'updatePartnerReferrer', 'deactivatePartnerReferrer', 'reactivatePartnerReferrer', // T11 F1-F5
+  'listReferrerMappings', 'mapPartnerReferrer', 'rejectPartnerReferrerMapping', 'unmapPartnerReferrer', // T11 SR1-SR3 (+ list)
+  'createPickupRequest', 'listPickupRequests', 'getPickupRequest', 'cancelPickupRequest', // T15 K1-K4
+  'listInboundPickups', 'schedulePickup', 'markPickupCollected', 'rejectPickup', // T15 SP1-SP4
   'createManifest', 'listManifests', 'getManifest', 'updateManifest', 'addManifestLine', 'replaceManifestLine', 'deleteManifestLine', 'discardManifest', 'searchPartnerOrderables', // T08 (M1-M7, M10, P2)
   'submitManifest', 'withdrawManifest', 'getManifestPrintView', // T09 (M8, M9, M11)
   'listInboundManifests', 'getInboundManifest', 'receiveManifest', 'retryManifestLineConversion', 'markManifestLineNotReceived', // T10 (SI1-SI5)
+  'listPartnerOrders', 'searchPartnerOrders', 'getPartnerOrder', 'listPartnerReports', 'markPartnerReportsSeen', 'downloadPartnerReport', // T13 (O1-O3, R1-R3)
 ];
 
 const FAKE_REQ = { params: {}, query: {}, headers: {}, body: {} };

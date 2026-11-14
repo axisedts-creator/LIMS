@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import '@lims/ui/fonts.css';
 import '@lims/ui/kit.css';
+import '@/core/shell/shell.css';
 import { Providers } from '@/core/shell/Providers';
 
 export const metadata = { title: 'LIMS' };

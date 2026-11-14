@@ -1,0 +1,7 @@
+TESTS_WRONG — test-isolation defect in apps/web/src/core/shell/__tests__/r04.keys.test.tsx; the asserted behaviour is right, the fixture leaks.
+Reasons:
+1. spec/program/10-DESIGN-SYSTEM.md:92 requires only that "a scanner wedge typing into an empty page lands in search"; a page whose focus sits on a button inside an open aria-modal dialog is not an empty page, so not capturing there is required behaviour (and the file's own test at r04.keys.test.tsx:114-126 asserts exactly that).
+2. r04.keys.test.tsx:116-120 appends a `role=dialog aria-modal=true` node to document.body and focuses its button, but never removes it; RTL cleanup only unmounts its own render containers, so the node and its focus survive into the next test.
+3. r04.keys.test.tsx:127-135 ("next scan starts a fresh query") therefore starts with focus inside a stale dialog, the scanner is correctly not captured, router.push is never called, and the test fails only when run after :114 (writer reports it passes alone; 86/87 in full file).
+4. No spec text requires capture while a dialog is open, so the implementation must not change.
+Change to the test (tester): in the dialog test wrap lines 121-125 in try/finally and call `dlg.remove()` in finally; OR add to the scanner-wedge describe an `afterEach` that removes every `[role="dialog"]` appended to document.body and blurs `document.activeElement`. Do not weaken any assertion in either test.

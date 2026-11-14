@@ -1,21 +1,14 @@
-LEAD RULING LD-169
+APPROVE
 
-Cause: the goldens live in `drivers/getein_metis/testdata/`. That path is not a test path for the harness (`.orchestra/run.ps1:63`), so the tester's goldens were reverted at 11:02 (log `C7-instrument-integration.log:612-621`). This matches LD-148.
+Scope reviewed: `git diff b06de12e..HEAD` (12 new goldens + SOURCE.md rows under `drivers/getein_metis/testdata/`, notes). All paths owned (task `files` glob `drivers/getein_metis/**`); no test, spec, contract or H80E file touched (LD-163, LD-169).
 
-TESTER:
-1. Change nothing. Do not edit `hostQuery.getein_metis.test.ts` or anything under `testdata/` (writes there are reverted). If, after the writer's goldens land, you believe a golden contradicts 09-ADDENDUM-GETEIN-METIS.md ┬º5 (:121) or ┬º6 (:207), write a dispute that cites the exact byte and spec line.
+Checked against 09-ADDENDUM-GETEIN-METIS §5 (:121-205), §6 (:207-228), §8 (:256-259):
+- QCK/DSR MSH-10 = MSA-2 = query MSH-10 (61, 63-66); MSH-7 20261114104701 = ctx.receivedAt 05:02:01Z in Asia/Kathmandu; MSH-3..6 blank, 2.3.1, UTF8; trailing pipe on every segment.
+- QAK OK for qry-found, NF for not-found / no-mapped-test / sample-range / time-range (D-MET-1).
+- DSR: QRD/QRF echo the query's own bytes (QRD-8 carries the barcode; §5 example's empty QRD-8 is U14, the determinism rule at :205 wins); DSP 1-28 present in order, DSP-5 F, DSP-21 barcode, DSP-24 N, DSP-26 others, DSP-29/30 `100^^^`/`101^^^` (id_only), `DSC||`.
+- Mode (b) QRF-4/5 = 1/5 and mode (c) QRF-2/3 = time range sit at the correct field positions; QRD-8 empty.
+- ack-q03-mismatched-id: MSH-10 62, `MSA|AA|99|` as test line 128 needs.
+- Synthetic only (MT26000000nn, no PID, no manual text); no secrets; no PHI in replies beyond the DSP fields the spec requires.
+- Ran `.orchestra/notes/MET-T03-verify.cmd`: 1 file passed, 54 passed, 4 todo (matches MET-T03-impl.md).
 
-WRITER:
-1. Create these new files in `services/api/src/modules/instruments/drivers/getein_metis/testdata/` (required by 09-ADDENDUM-GETEIN-METIS.md:259):
-   - inputs: `qry-found.hl7`, `qry-not-found.hl7`, `qry-no-mapped-test.hl7`, `qry-sample-range.hl7`, `qry-time-range.hl7`, `ack-q03-mismatched-id.hl7`
-   - expected replies: `qry-found.qck.hl7`, `qry-found.dsr.hl7`, `qry-not-found.qck.hl7`, `qry-no-mapped-test.qck.hl7`, `qry-sample-range.qck.hl7`, `qry-time-range.qck.hl7`
-2. Build every byte from the spec text in ┬º5 (:121) and ┬º6 (:207), not by capturing what `hostQuery.ts` outputs:
-   - QCK/DSR MSH-10 = MSA-2 = the query MSH-10
-   - a trailing pipe on every segment
-   - QRD/QRF echoed
-   - DSP 1-28 per the ┬º5 table; DSP-29 and up one per mapped test, as id-only
-   - DSC with an empty field
-   - LF line ends (the test converts them to CR)
-3. Make the files fit the test exactly. `ack-q03-mismatched-id.hl7` must contain `MSA|AA|99|` (test line 128 replaces it). Barcodes, mapped tests and query ids must match what the test's fake lab and assertions expect. Read the test; do not change it.
-4. Synthetic data only: `MT26000000nn` barcodes, empty PID name, no text from the manual (LD-163). Add a row for each `qry-*` case and for `ack-q03-mismatched-id` to `testdata/SOURCE.md`, replacing the line "Host query cases (`qry-*`) belong to MET-T03."
-5. Run `.orchestra/notes/MET-T03-verify.cmd`. Record the real pass/fail/todo counts in MET-T03-impl.md. Expected: 54 passed, 4 todo. If any test fails, record the failing assertion; do not touch the test.
+Non-blocking (outside this task's files, follow-up for lead): `hostQuery.service.ts` rejects an empty barcode list, so modes (b)/(c) cannot reach the NF reply end to end (test it.todo at :447). No CR exists in `.orchestra/cr/` yet; one is needed before go-live. name_script / specimen_type_map effects remain it.todo pending CR-C7-018.

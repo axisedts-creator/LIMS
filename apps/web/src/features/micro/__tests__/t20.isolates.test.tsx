@@ -49,7 +49,9 @@ describe('isolate list (04-UI-UX §3.3)', () => {
     const t = await screen.findByRole('grid', { name: /isolates/i });
     const rows = within(t).getAllByRole('row').slice(1);
     expect(rows).toHaveLength(2);
-    expect(rows.map((r) => within(r).getAllByRole('gridcell')[0]!.textContent?.trim())).toEqual(expect.arrayContaining(['3', '7']));
+    const col = within(t).getAllByRole('columnheader').findIndex((h) => /^isolate no\.?$/i.test(h.textContent?.trim() ?? ''));
+    expect(col).toBeGreaterThanOrEqual(0);
+    expect(rows.map((r) => within(r).getAllByRole('gridcell')[col]!.textContent?.trim())).toEqual(expect.arrayContaining(['3', '7']));
   });
   it('a pending isolate reads "Not identified"; statuses show word + tone + icon (§9)', async () => {
     await mount(incubating({ isolates: [isolate(1, { id: ID(301), status: 'pending_id', organism_code: undefined, organism_display: undefined, organism_source: undefined }), isolate(2, { id: ID(302) }), isolate(3, { id: ID(303), status: 'withdrawn', is_reportable: false, withdraw_reason_code: 'synthetic_contaminant' })] }));
@@ -167,6 +169,7 @@ describe('add isolate (AC-05.1, AC-05.2; 04-UI-UX §3.3)', () => {
   it('text typed in the organism box that is not chosen from the list is never sent as a code (AC-05.2)', async () => {
     const d = await open();
     await userEvent.type(within(d).getByRole('combobox', { name: /organism/i }), 'free typed organism');
+    await userEvent.keyboard('{Escape}'); // close popup so the dialog content is reachable
     await userEvent.click(within(d).getByRole('button', { name: /^(save|add isolate)$/i }));
     const h = await lastHit('POST', /\/isolates$/);
     expect('organism_code' in h.json).toBe(false);

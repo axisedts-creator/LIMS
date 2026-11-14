@@ -30,7 +30,7 @@ const openSetup = async (c: Record<string, unknown> = culture()) => {
   await mount(c);
   await userEvent.click(btn(/^set up culture$/i)!);
   const d = await dialog(/set up culture/i);
-  await within(d).findByText(/synthetic urine protocol/i); // protocols loaded
+  await within(d).findAllByText(/synthetic urine protocol/i); // protocols loaded (kit Select renders label twice)
   return d;
 };
 const planted = (d: HTMLElement) => within(d).getByRole('textbox', { name: /planted at/i }) as HTMLInputElement;
@@ -285,12 +285,12 @@ describe('add plate dialog (04-UI-UX §3.1.2)', () => {
   it('POST /plates with Idempotency-Key, media_code + parent_plate_id; toast "Plate 3 added"', async () => {
     const d = await open();
     await pick(d, /^medium/i, /^synthetic blood agar$/i);
-    await pick(d, /parent plate/i, /./i);
+    await pick(d, /parent plate/i, /plate 1|^1$/i);
     await userEvent.click(within(d).getByRole('button', { name: /^(add plate|save|add)$/i }));
     const h = await lastHit('POST', /\/plates$/);
     expect(h.headers.get('idempotency-key')).toMatch(/^[A-Za-z0-9_-]{16,64}$/);
     expect(h.json.media_code).toBe('synthetic_blood_agar');
-    expect([ID(101), ID(102)]).toContain(h.json.parent_plate_id);
+    expect(h.json.parent_plate_id).toBe(ID(101));
     expect(Object.keys(h.json).every((k) => ['media_code', 'incubation_text', 'parent_plate_id', 'source_isolate_id', 'planted_at'].includes(k))).toBe(true);
     expect(await screen.findByText(/plate 3 added/i)).toBeTruthy();
   });

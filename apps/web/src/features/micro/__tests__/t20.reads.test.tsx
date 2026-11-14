@@ -28,8 +28,8 @@ const btn = (n: RegExp) => screen.queryAllByRole('button', { name: n })[0];
 const posts = () => hit('POST', /\/observations$/);
 const save = (d: HTMLElement) => userEvent.click(within(d).getByRole('button', { name: /^save$/i }));
 const type = (d: HTMLElement) => (name: RegExp) => within(d).getByRole('radio', { name });
-const openRead = async () => { await userEvent.click(btn(/^record read$/i)!); return dialog(/observation|record read|plate read/i); };
-const openStain = async () => { await userEvent.click(btn(/record (gram )?stain/i)!); return dialog(/observation|record stain|stain/i); };
+const openRead = async () => { if (screen.queryAllByRole('tab').length === 0) await mount(); await userEvent.click(btn(/^record read$/i)!); return dialog(/observation|record read|plate read/i); };
+const openStain = async () => { if (screen.queryAllByRole('tab').length === 0) await mount(); await userEvent.click(btn(/record (gram )?stain/i)!); return dialog(/observation|record stain|stain/i); };
 
 describe('timeline (04-UI-UX §3.2)', () => {
   const list = [

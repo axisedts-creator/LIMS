@@ -4,6 +4,7 @@
 // Makes no port call and never reads an object. Logs nothing.
 // [CONV] ponytail: 500 slips per run; the rest is due at the next 02:50 run (raise the batch if a lab issues more slips per day than that).
 import type { TaskHandler } from '../../../core/manifest.js';
+import { slip } from '../../../../../api/src/modules/partners/service/observability.js';
 
 const BUCKET = 'partners-slips';
 const BATCH = 500;
@@ -19,4 +20,5 @@ export const purgeAccessSlips: TaskHandler = async (payload, ctx) => {
     await ctx.tx.query("UPDATE partners.access_slips SET state = 'expired', file_path = NULL, file_sha256 = NULL, file_byte_size = NULL, expired_at = $3, updated_at = $3, updated_by = $4, version = $5 WHERE tenant_id = $1 AND id = $2 AND state = 'issued'",
       [tenantId, s.id, now, ctx.actor.id, Number(s.version) + 1]);
   }
+  if (due.length > 0) slip(ctx, 'expired', due.length); // T23: one inc with by = n, after the last write
 };

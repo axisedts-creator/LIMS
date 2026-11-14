@@ -28,7 +28,7 @@ type Config struct {
 	AckSendingApp, AckSendingFacility string
 	AckTypeFormat                     string
 	AckFullForm                       bool             // profile.HL7AckFullForm: the 09-ADDENDUM-GETEIN-METIS §6 ACK (MET-T01, LD-163)
-	Now                              func() time.Time // default time.Now
+	Now                               func() time.Time // default time.Now
 	NewControlID                      func() string    // default: random 16 hex chars
 	Stats                             *Stats           // default: private counters
 

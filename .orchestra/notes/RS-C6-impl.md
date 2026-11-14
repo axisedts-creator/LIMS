@@ -3,5 +3,5 @@
 - components/ReportDetailView.tsx: "Report preview" region (`<object type=application/pdf data=pdfHref(newest downloadable)>` + download link fallback, on neutral.100 via new report-preview.css); delivery counts as `Chip` list (zero counts omitted). [CONV] object not iframe: axe frame probe fails in jsdom.
 - components/DeliveryDetail.tsx: attempt outcome is a `Chip`. New components/report-preview.css (kit tokens only).
 - Snapshots recorded: __tests__/__snapshots__/rs-c6.*.snap (7).
-- Run: 58/59 pass. Open: keyboard-only test unreachable, see RS-C6-dispute.md.
+- Run (after ruling; tester fixed test, no impl change): RS-C6-verify.cmd 59/59 pass; vitest.c6-t31.config.ts 200/200 pass.
 - Not done (no data, needs CR): template switcher, per-channel last-sent status.

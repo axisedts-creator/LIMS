@@ -67,14 +67,18 @@ function setup(o: Opt = {}): Fx {
   const w = makeLinkWorld({ maxAccountsPerPatient: 10 });
   w.setSetting('smart_report_in_app', o.setting ?? true); w.setSetting('auto_follow_up_reminders', o.auto ?? false); w.setSetting('follow_up_reminder_lead_days', o.lead ?? 3); w.setSetting('reminders_enabled', true);
   if (o.link !== false) { const acct = w.seedAccount(PHONE); w.seedLink(acct['id'], PAT, { method: 'link_code' }); }
-  const fixtures: Row[] = [];
-  const inner: any = createFakeReportingPort({ seed: 7, fixtures: { reports: fixtures } as any });
+  let n = 0; // ruling T-P4: the fake deep-freezes opts.fixtures at build time, so rows are seeded through inner.__seed (02-CONVENTIONS §954)
+  const inner: any = createFakeReportingPort({ seed: 7, fixtures: { reports: [] } as any });
   const calls: Fx['calls'] = []; const smartCalls: string[] = [];
-  const rp = { ...inner, async openReleasedReportFile(ctx: any, input: Row) { calls.push({ actor: ctx?.actor?.type, input: structuredClone(input) }); return inner.openReleasedReportFile(ctx, input); } };
+  // tests may assign rp.openReleasedReportFile to inject a failure: keep it behind the recording wrapper so `calls` still sees the call
+  let open: (ctx: any, input: Row) => Promise<any> = (ctx, input) => inner.openReleasedReportFile(ctx, input);
+  const rp = new Proxy({ ...inner, async openReleasedReportFile(ctx: any, input: Row) { calls.push({ actor: ctx?.actor?.type, input: structuredClone(input) }); return open(ctx, input); } }, {
+    set: (t: any, k, v) => { if (k === 'openReleasedReportFile') open = v; else t[k] = v; return true; },
+  });
   const smartPort = new Proxy({}, { get: (_t, m) => async () => { smartCalls.push(String(m)); throw new Error('C16 must never call SmartReportPort (08 A2.3)'); } });
   const addReport = (over: Row = {}): Row => { const r: Row = { tenant_id: w.tenantId, report_id: RPT, version_no: 1, order_id: ORD, patient_id: PAT, report_kind: 'final', status: 'valid', released_at: REL, supersedes_version_no: null, panel_names: [PANEL], smart_summary_available: true,
     created_by: SYSTEM_ACTOR, updated_by: SYSTEM_ACTOR, created_at: T0, updated_at: T0, ...over }; w.t['patient_reports']!.push(r); return r; };
-  const setFixture = (over: Row = {}) => { fixtures.push({ id: ID(0xb00 + fixtures.length), tenantId: w.tenantId, reportId: RPT, versionNo: 1, orderId: ORD, patientId: PAT, kind: 'final', status: 'valid', released: true, releasedAt: REL, panelNames: [PANEL], smartSummary: summary(), ...over }); };
+  const setFixture = (over: Row = {}) => { inner.__seed({ reports: [{ id: ID(0xb00 + n++), tenantId: w.tenantId, reportId: RPT, versionNo: 1, orderId: ORD, patientId: PAT, kind: 'final', status: 'valid', released: true, releasedAt: REL, panelNames: [PANEL], smartSummary: summary(), ...over }] } as any); };
   if (o.reportRow !== false) addReport();
   setFixture(o.snapshot === undefined ? {} : { smartSummary: o.snapshot });
   const run: Fx['run'] = (payload = { tenant_id: w.tenantId, report_id: RPT, version_no: 1 }, over = {}) => w.inTx(() => handler()(payload, w.jobCtx({ ports: { ...w.ports, ReportingPort: rp, SmartReportPort: smartPort }, ...over })));

@@ -5,7 +5,7 @@
 import { PermissionDenied } from '@/core/errors/PermissionDenied';
 import { getShellSession } from '@/core/session/server';
 import { CountEntry } from '@/features/inventory/components/CountEntry';
-import { FORBIDDEN, getCount, guarded, listItems, listStores, lotsByItems, soft } from '@/features/inventory/server/read.server';
+import { blindLines, FORBIDDEN, getCount, guarded, listItems, listStores, lotsByItems, soft } from '@/features/inventory/server/read.server';
 
 export default async function CountPage({ params }: { params: Promise<{ count_id: string }>; searchParams?: Promise<Record<string, string | string[] | undefined>> }) {
   const [session, { count_id }] = await Promise.all([getShellSession(), params]);
@@ -20,7 +20,7 @@ export default async function CountPage({ params }: { params: Promise<{ count_id
     soft(() => listItems({ limit: 200 }).then((r) => r.data), []),
     lotsByItems(count.lines.map((l) => l.item_id)),
   ]);
-  const view = canAdjust ? count : { ...count, lines: count.lines.map(({ book_qty_snapshot: _s, book_qty_at_count: _b, variance_qty_base: _v, variance_value_paisa: _p, ...rest }) => rest) };
+  const view = { ...count, lines: blindLines(count.lines, perms) };
 
   return <CountEntry count={view} storeName={stores.find((s) => s.id === count.store_id)?.name ?? count.store_id} items={items} lots={lots} canManage={perms.includes('inventory.stock.manage')} canAdjust={canAdjust} />;
 }

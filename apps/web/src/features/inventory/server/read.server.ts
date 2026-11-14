@@ -2,7 +2,7 @@ import 'server-only';
 // BFF reads for the inventory master-data screens (S2-S5, S14). Every call carries the session bearer on the server only (REQ-SEC-068).
 import { notFound } from 'next/navigation';
 import { ApiError, serverFetch } from '@/core/api/server-fetch';
-import { UUID_RE, type Analyte, type BalanceRow, type Binding, type Branch, type CodedValue, type Container, type Count, type CountSummary, type Department, type FefoSuggestion, type Instrument, type Item, type ItemSummary, type Lot, type Page, type StockFilters, type StockMovement, type Store, type StoreItemSetting, type Supplier, type SupplierItem, type SupplierSummary, type TestRef, type Transfer, type TransferSummary, type TransferTarget } from './types';
+import { UUID_RE, type Analyte, type BalanceRow, type Binding, type Branch, type CodedValue, type Container, type Count, type CountLine, type CountSummary, type Department, type FefoSuggestion, type Instrument, type Item, type ItemSummary, type Lot, type Page, type StockFilters, type StockMovement, type Store, type StoreItemSetting, type Supplier, type SupplierItem, type SupplierSummary, type TestRef, type Transfer, type TransferSummary, type TransferTarget } from './types';
 
 const uuid = (v: string) => {
   if (!UUID_RE.test(v)) notFound();
@@ -14,6 +14,13 @@ const qs = (o: Record<string, string | number | boolean | undefined>) => {
   const s = p.toString();
   return s ? `?${s}` : '';
 };
+
+/** BLIND count (04-UI-UX S11, 07-SECURITY.md:57): the API returns book/variance fields to every caller, so the BFF drops them
+ *  for users without inventory.stock.adjust before anything reaches the browser (page props and server-action results). */
+export function blindLines(lines: CountLine[], perms: readonly string[]): CountLine[] {
+  if (perms.includes('inventory.stock.adjust')) return lines;
+  return lines.map(({ book_qty_snapshot: _s, book_qty_at_count: _b, variance_qty_base: _v, variance_value_paisa: _p, ...rest }) => rest);
+}
 
 export const FORBIDDEN = Symbol('forbidden');
 /** 403 -> FORBIDDEN (page shows the no-access state); 404 -> notFound(); anything else goes to error.tsx. */

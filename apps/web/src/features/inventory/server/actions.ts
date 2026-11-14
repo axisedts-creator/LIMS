@@ -4,7 +4,8 @@
 // Only ApiError is mapped; anything else rethrows to the error boundary. Browser code never sees the token (REQ-SEC-068).
 import 'server-only';
 import { ApiError } from '@/core/api/server-fetch';
-import { getFefo, getItem, listAnalytes, listItems, listMovements, listStock } from './read.server';
+import { getShellSession } from '@/core/session/server';
+import { blindLines, getFefo, getItem, listAnalytes, listItems, listMovements, listStock } from './read.server';
 import { lookupBarcode, cancelTransfer, createAdjustment, createCount, createExpiryWriteoff, createIssue, createTransfer, createWastage, discardContainer, dispatchTransfer, finishContainer, logConsumptionEvent, openContainer, postCount, putCountLines, receiveTransfer, addBarcode, createItem, createPack, createStore, createSupplier, deactivateBarcode, deactivateBinding, putBinding, putStoreItemSetting, putSupplierItem, setItemActive, updateItem, updateStore, updateSupplier } from './write.server';
 import type { ActionResult, AdjustmentCreate, Analyte, BalanceRow, ConsumptionEventCreate, ContainerDiscard, ContainerOpen, CountCreate, CountLinePut, ExpiryWriteoffCreate, FefoSuggestion, IssueCreate, StockMovement, TransferCreate, TransferReceive, UncountedPolicy, WastageCreate, BarcodeCreate, ItemCreate, ItemPatch, ItemSummary, Pack, PackCreate, StoreCreate, StoreItemSetting, StoreItemSettingPut, StorePatch, SupplierCreate, SupplierItem, SupplierItemPut, SupplierPatch, Binding, FieldProblem } from './types';
 
@@ -63,8 +64,12 @@ export async function receiveTransferAction(id: string, version: number, key: st
 export async function cancelTransferAction(id: string, version: number, key: string) { return done(() => cancelTransfer(id, version, key)); }
 
 export async function lookupBarcodeAction(value: string): Promise<ActionResult<ItemSummary>> { return run(async () => (await lookupBarcode(value)).item); }
-export async function createCountAction(b: CountCreate, key: string) { return run(() => createCount(b, key)); }
-export async function putCountLinesAction(id: string, lines: CountLinePut[]) { return run(() => putCountLines(id, lines)); }
+// BLIND count (07-SECURITY.md:57): CountsView needs only id/count_no, so the lines (with book_qty_snapshot) never leave the server.
+export async function createCountAction(b: CountCreate, key: string) { return run(async () => { const c = await createCount(b, key); return { id: c.id, count_no: c.count_no }; }); }
+export async function putCountLinesAction(id: string, lines: CountLinePut[]) {
+  const perms = (await getShellSession())?.actor.permissions ?? [];
+  return run(async () => { const r = await putCountLines(id, lines); return { ...r, lines: blindLines(r.lines, perms) }; });
+}
 export async function postCountAction(id: string, version: number, key: string, policy: UncountedPolicy) { return done(() => postCount(id, version, key, policy)); }
 
 export async function openContainerAction(b: ContainerOpen, key: string) { return done(() => openContainer(b, key)); }

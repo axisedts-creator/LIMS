@@ -258,7 +258,8 @@ export function AstGrid({ isolate, defaultStandard, canWork, onSaved, onDirtyCha
       if (std) e.standard = std;
       if (ver.trim()) e.standard_version = ver.trim();
       const a = acc[v.code];
-      if (a && a.category === v.category && a.standard === std && a.version === ver.trim()) { e.accept_suggestion = true; e.breakpoint_band_id = a.band; }
+      // AC-07.5 / 03-APP-FLOW §4.5 step 5: "Use" keeps the suggestion's version as a per-row override (04-UI-UX §3.3), even when the header version differs.
+      if (a && a.category === v.category && a.standard === std) { e.standard = a.standard; e.standard_version = a.version; e.accept_suggestion = true; e.breakpoint_band_id = a.band; }
     }
     if (v.repEdited) e.is_reportable = v.report;
     if (ask[v.code] && d[v.code]?.add) e.add_to_isolate = true;

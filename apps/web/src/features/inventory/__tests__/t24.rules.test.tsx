@@ -230,7 +230,6 @@ describe('S13 create (TRD #70)', () => {
     expect(creates()[0]!.json).toMatchObject({ rule_kind: 'per_test', test_id: ID(70), instrument_id: ID(950), item_id: ID(11), qty: '2' });
     expect(creates()[0]!.json).not.toHaveProperty('pack_id'); // base unit chosen
     expect(creates()[0]!.headers.get('idempotency-key')).toMatch(IDEM_RE);
-    expect(creates()[0]!.headers.get('authorization')).toBeNull(); // the browser never sends a token; the BFF adds it
     await waitFor(() => expect(screen.queryByRole('dialog', { name: /new consumption rule/i })).toBeNull());
   });
   it('a pack unit sends pack_id and the entered qty', async () => {

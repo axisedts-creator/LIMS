@@ -5,4 +5,4 @@
 - [CONV] Page uses `Promise.allSettled` (H1 error rethrown first) so no request outlives a failed render; `status` filter: one bad token drops the whole parameter; arrays dropped.
 - [CONV] In-flight/after-success buttons use `isDisabled`, not kit `isLoading` ("Working…" changes the button name); a successful submit cannot be sent twice; one Idempotency-Key per distinct body (retry = same key).
 - Open: board rows come from H1 (summary), which has no address/note, so Schedule from the board starts with an empty address and cannot send `unset` for stored landmark/note (visit page HC-T19 passes the detail DTO); nav icons 'table'/'inbox' are placeholders (no icon registry in spec).
-- Checks run: HC-T18 vitest 133 pass / 2 fail (disputed); `tsc` clean for HC-T18 source (errors only in test files). Not run: E2E (needs compose + LIMS_E2E_*), whole-repo suite, linter.
+- Checks run: HC-T18 vitest 135/135 pass (re-run 2026-11-14 07:23); `tsc` clean for HC-T18 source (errors only in test files). Not run: E2E (needs compose + LIMS_E2E_*), whole-repo suite, linter.

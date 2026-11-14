@@ -35,6 +35,14 @@ jobs:
         run: pnpm turbo run test:smoke
       - name: E2E journeys that exist (DoD §5.2)
         run: pnpm turbo run test:e2e
+      # T-E2E1 (C16): issue code -> redeem -> C5/C6 fake events -> release -> download; booking -> C4 fake consumer -> completed.
+      # Needs the non-production test-support routes of .orchestra/cr/T-E2E1.md mounted in the compose stack.
+      - name: C16 patient engagement E2E journeys
+        env:
+          E2E_BASE_URL: ${{ vars.E2E_BASE_URL }}
+          E2E_TENANT_CODE: ${{ vars.E2E_TENANT_CODE }}
+          E2E_STAFF_TOKEN_A: ${{ secrets.E2E_STAFF_TOKEN_A }}
+        run: pnpm exec vitest run tests/e2e/engagement-journey.e2e.ts
       - name: isolation suite in full
         run: pnpm turbo run test:isolation
       - name: load smoke on 10x seed (reported, not gated until M4)

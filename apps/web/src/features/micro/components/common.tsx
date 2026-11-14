@@ -33,6 +33,9 @@ const COPY: Record<string, string> = {
   'micro.report_final_locked': 'The final report has been sent. Reopen the culture to make changes.',
   'micro.isolate_invalid_transition': "This isolate can't be changed that way.",
   'micro.organism_code_unknown': 'Choose an organism from the list. Ask your lab manager to add new organisms.',
+  // T-23 instrument data (04-UI-UX §10)
+  'micro.instrument_record_conflict': 'This record conflicts with existing data. Choose which value to keep.',
+  'common.not_found': 'This record was not found. Reload and try again.',
   'common.version_conflict': 'Someone else changed this. Reload and try again.',
   'common.precondition_required': 'Someone else changed this. Reload and try again.',
   'common.validation_failed': 'Check the values and try again.',

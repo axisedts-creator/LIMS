@@ -1,6 +1,16 @@
-CHANGES
-Reviewer, T0B-DBFIX-1, diff ee9ff17a..HEAD (2026-11-15). Scope ok: only db/tests/** (LD-230 suites), run-suites.sh storage stub, .orchestra/notes. No migration/policy/meta/spec change. node --test tests/db/T0B-DBFIX-1.fixtures.test.mjs = 45/45 pass; gen-isolation-probes --check = ok (438 current). Items (1)-(5), (7), (9) and the C6-T43 / like->matches rewrites keep every assertion and are not weaker. The lane could not run SQL: the founder rerun stays required.
+APPROVE
 
-1. db/tests/identity/T0B-10.C2_maintenance.test.sql:184, :185, :186 - LD-230 (6) is only half fixed. auth_events__hmac_len__ck (db/migrations/20261105001300_identity__create_identity_schema.sql:240) requires octet_length(email_hmac) = 32, but fixtures 1904 ('\xbb01'), 1905 ('\xcc01') and 1906 ('\xdd01') are still 2 bytes. pg_temp.ins (line 26) has no exception handler, so the first of these raises 23514 and aborts the suite at line 184 on the real database; §11 test 35 never runs. Fix: pad them the same way as 1901-1903, i.e. '\xbb01' || 60 zeros, '\xcc01' || 60 zeros, '\xdd01' || 60 zeros (64 hex chars each). The expected value at line 187 stays unchanged (these three rows are the negative controls and must be excluded). Also add a check to tests/db/T0B-DBFIX-1.fixtures.test.mjs that every 'email_hmac' literal in identity.auth_events fixtures under db/tests is 64 hex chars, so this cannot pass statically again.
+Reviewer, T0B-DBFIX-1, range ee9ff17a..1cc65dbd (27 files: db/tests/**, db/tests/run-suites.sh, tests/db/T0B-DBFIX-1.fixtures.test.mjs, notes).
 
-Note (not a defect of this task): with the run-suites.sh stub and no bucket rows, db/tests/storage/T0B-12_storage.test.sql:30 ("every 08 §4.8 bucket exists") and :50 will now fail as assertions instead of aborting. That is expected per LD-54 (buckets come from the Storage API), and the lead should triage it from the founder's rerun log. Do not seed fake buckets.
+Checked against LD-230 (1)-(9), LD-243/244/245:
+- (1) every platform_staff fixture now uses platform_superadmin or platform_support (CHECK list); no platform_admin literal left; dependent expectations (role_codes, platform_role) updated consistently.
+- (2)/(4) C12/C13/T9-A38 ins() set the row tenant's system claims and restore the saved claims; T-A2/T-Q3 audited fixture UPDATEs wrapped in tenant-A system claims, then cleared. Policy untouched.
+- (3) like()/unlike() -> matches()/doesnt_match() with anchored regexes equivalent to the LIKE patterns (`_` -> `.`, literal `.` escaped); C6-T43 is() moved after RESET ROLE (lims_app has no USAGE on schema extensions, db/bootstrap/01_database.sql:13). Same assertion count, same messages, none conditional.
+- (5) C16 regprocedure arg lists are types only; C18 DECLARE uses `;`.
+- (6) tenant_settings NOT NULL columns, lock_reason_code 'other', 32-byte email_hmac (expected output updated to match), T0B-03 subquery narrowed to the row of that INSERT.
+- (8) run-suites.sh storage stub (superuser, IF NOT EXISTS, RLS enabled, no rows) before the suite loop; covers the columns T0B-12_storage.test.sql reads (id, name, public, objects RLS). Bucket rows still absent by design (LD-54), CR filed.
+- (9) roles test 17 adds lims_app|lims_migrator|false|true; T0B-02 test 57 now is_empty on PUBLIC entries (per LD-230, not weaker).
+- Out-of-scope tests untouched; 5 non-blocking CRs listed in impl notes. No migration, policy, grant, seed, spec change. Synthetic data only, no secrets, no PHI.
+
+Ran: node --test tests/db/T0B-DBFIX-1.fixtures.test.mjs = 47 pass, 0 fail; gen-isolation-probes --check = ok (438 files current).
+Not verified: SQL suites (lane cannot run SQL). Founder rerun per impl notes line 7: LIMS_SKIP_GEN=1 bash db/tests/run-suites.sh <21 patched suites + 7 partners probes + storage/T0B-12_storage>.

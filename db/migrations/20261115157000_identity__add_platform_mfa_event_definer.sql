@@ -7,15 +7,15 @@
 -- Until C0 transcribes it into C2 05-SCHEMA s4.10 / s5.4 / s10.3 this file is the SQL body of record (see .orchestra/cr/AUTH-MFA-COMPLETE-1.schema.nonblocking.md).
 -- NOT RUN in the lane (no psql / docker): db/tests/identity/AUTH-MFA-COMPLETE-1_platform_event.test.sql has to be run against a migrated database.
 
--- (1) the one additive policy (run as the migration role, before the role switch below)
+SET LOCAL ROLE lims_owner;
+
+-- (1) the one additive policy (as lims_owner, the table owner, as in 20261105001300)
 CREATE POLICY platform_events__insert__owner_mfa_enrolled ON identity.platform_events FOR INSERT TO lims_owner
   WITH CHECK (event_type = 'platform_mfa_enrolled' AND target_type = 'platform_staff' AND target_id = actor_platform_staff_id
     AND EXISTS (SELECT 1 FROM identity.platform_staff s
                  WHERE s.id = target_id AND s.user_id = nullif(current_setting('app.pre_user_id', true), '')::uuid));
 
 -- (2) the one function, owned by lims_owner as in 20261115156000
-SET LOCAL ROLE lims_owner;
-
 CREATE FUNCTION app.identity_platform_auth_write_mfa_enrolled_event(p_user_id uuid, p_row jsonb) RETURNS integer
 LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path = '' AS $$
 -- accepts ONLY event_type platform_mfa_enrolled, target_type platform_staff, target = actor = the platform_staff row of p_user_id; anything else is refused

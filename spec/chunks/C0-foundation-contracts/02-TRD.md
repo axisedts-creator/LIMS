@@ -506,6 +506,7 @@ export interface HandlerContext extends RequestContext {      // RequestContext 
   readonly services: unknown;                       // the module's own services object (typed by the module through createServices)
   readonly operationId: OperationId;
   readonly clientIp: string;                        // 08 A25 P-61 (§6.4); modules never parse a header
+  readonly bffKey?: 'staff_web' | 'partner' | 'portal';  // 08 R10, A13 D-32: kind of the verified X-Lims-Bff-Key (core/auth/bff-key.ts); undefined when the header is absent or not a configured key; set by the core only (AUTH-BFF-1)
   readonly download: {                              // core streaming download helper (08 A13 P-2, D-67; core/storage/download.ts)
     stream(input: { bucket: BucketName; objectPath: string; filename: string; contentType: string;
                     scanState: 'clean' | 'pending' | 'infected' | 'unavailable'; access: AccessLogEntry;

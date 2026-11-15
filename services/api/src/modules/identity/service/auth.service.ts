@@ -11,6 +11,7 @@ import type { GoTrueGateway, GoTrueTokens } from '../gotrue/gateway.js';
 import { cidrList, ipAllowed } from '../claims/resolver.js';
 import type { AuthEvent, NewSession } from '../repository/auth-events.repo.js';
 import { idMetrics, loginOutcomeOf } from '../metrics.js';
+import { loadSessionActor, type ActorKey, type SessionActor } from './session-actor.js';
 
 type Row = Record<string, any>;
 export interface AuthTx { query(text: string, values?: unknown[]): Promise<{ rows: any[] }>; bindTenant?: (tenantId: string) => Promise<void> }
@@ -20,6 +21,8 @@ export interface AuthCtx {
 }
 export interface AuthRepo {
   loginContext(tx: AuthTx, sub: string): Promise<Row | undefined>;
+  /** LD-208 SESSION-ACTOR-1: app.identity_session_actor row { display_name, role_codes, tenant_code } or undefined (read only) */
+  sessionActor(tx: AuthTx, a: ActorKey): Promise<Row | undefined>;
   /** T31 openMobileSession (AU-T17): does the membership hold the permission through an active role? Runs after tx.bindTenant. */
   membershipHasPermission?(tx: AuthTx, a: { tenantId: string; membershipId: string; permission: string }): Promise<boolean>;
   insertSession(tx: AuthTx, s: NewSession): Promise<void>;
@@ -213,6 +216,7 @@ export function createAuthService(deps: AuthDeps) {
     if (mode === 'mobile') { abs = mobileHours(); idle = abs * 60; }   // staff_mobile: no idle timeout, idle = absolute (04 A16, 05-SCHEMA s4.1)
     if (!(idle > 0) || !(abs > 0)) throw new LimsError('common.internal', 'identity: tenant session settings missing');
     const state = row['has_verified_factor'] === true ? 'mfa_pending' : row['mfa_required'] === true ? 'mfa_enrolment_required' : 'active';
+    const actor = await actorOf(ctx, { userId: t.userId, tenantId, membershipId });
     const now = ctx.now();
     const kind = mode === 'partner' ? 'partner' : mode === 'mobile' ? 'staff_mobile' : 'tenant_staff';
     const { s, token } = session(ctx, t, { tenantId, kind, membershipId, platformStaffId: null, state, idle, abs, now });
@@ -222,11 +226,11 @@ export function createAuthService(deps: AuthDeps) {
     await deps.events.recordTenant(tx, ev(state === 'active' ? 'login_succeeded' : 'login_password_ok', { ...who, tenantId, membershipId, sessionId: s.id, emailHmacHex: k }));
     await deps.limits.clearAccountFailures(k);
     if (mode === 'mobile') {
-      const r = result(s, token);
+      const r = result(s, token, actor);
       return { status: 200, body: { session_token: token, access_token: t.accessToken, access_expires_at: s.accessExpiresAt.toISOString(),
         session_expires_at: s.absoluteExpiresAt.toISOString(), session: r.body.session } };
     }
-    return result(s, token);
+    return result(s, token, actor);
   }
 
   async function platformLogin(ctx: AuthCtx, row: Row, t: GoTrueTokens, k: string, ev: (e: string, o?: Partial<AuthEvent>) => AuthEvent,
@@ -245,13 +249,14 @@ export function createAuthService(deps: AuthDeps) {
       return deny(new LimsError('identity.platform_ip_denied'));
     }
     const state = row['has_verified_factor'] === true ? 'mfa_pending' : 'mfa_enrolment_required';   // MFA always required (08 A28.1)
+    const actor = await actorOf(ctx, { userId: t.userId, tenantId: null, membershipId: null });
     const now = ctx.now();
     const { s, token } = session(ctx, t, { tenantId: null, kind: 'platform', membershipId: null, platformStaffId, state, idle: pIdle, abs: pAbs, now });
     await deps.repo.insertPlatformSession(tx, s);
     await deps.repo.platformStaffLogin(tx, { platformStaffId, userId: t.userId, at: now });
     await deps.events.recordTenantless(tx, ev('login_password_ok', { ...who, sessionId: s.id }));
     await deps.limits.clearAccountFailures(k);
-    return result(s, token);
+    return result(s, token, actor);
   }
 
   function session(ctx: AuthCtx, t: GoTrueTokens, o: { tenantId: string | null; kind: string; membershipId: string | null; platformStaffId: string | null;
@@ -267,12 +272,13 @@ export function createAuthService(deps: AuthDeps) {
     return { s, token };
   }
 
-  // SessionState.actor (display_name, roles) has no source in app.identity_login_context: omitted, see .orchestra/cr/T6.md.
-  const result = (s: NewSession, token: string): LoginResult => ({
+  // LD-208 SESSION-ACTOR-1: SessionState.actor from app.identity_session_actor, read BEFORE any session write (no row => common.internal, rollback)
+  const result = (s: NewSession, token: string, actor: SessionActor): LoginResult => ({
     status: 200,
     body: { session_token: token, session: { session_id: s.id, kind: s.kind, state: s.state, aal: s.aal,
-      idle_expires_at: s.idleExpiresAt.toISOString(), absolute_expires_at: s.absoluteExpiresAt.toISOString() } },
+      idle_expires_at: s.idleExpiresAt.toISOString(), absolute_expires_at: s.absoluteExpiresAt.toISOString(), actor } },
   });
+  const actorOf = (ctx: AuthCtx, key: ActorKey) => loadSessionActor((k) => deps.repo.sessionActor(ctx.tx, k), key, ctx.log, ctx.requestId);
 
   /** T28 lims_identity_logins_total{outcome, kind}: kind = login family [CONV]. A 400 (bad input) and an outage are not login attempts. */
   async function counted<T>(ctx: AuthCtx, mode: LoginMode, run: Promise<T>): Promise<T> {

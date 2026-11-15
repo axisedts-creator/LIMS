@@ -259,7 +259,7 @@ const PREAMBLE_ORIGIN = "SET LOCAL session_replication_role = origin;\n";
 // disabled; the replica window of the probe is the core fixtures' own. Synthetic values only. Deterministic.
 type Col = { notNull: boolean; hasDefault: boolean; generated: boolean; type: string; def: string | null };
 type Fk = { cols: string[]; parent: string; pcols: string[] };
-type Tbl = { cols: Map<string, Col>; pk: string[]; uniques: string[][]; soft: string[][]; fks: Fk[]; checks: string[] };
+type Tbl = { cols: Map<string, Col>; pk: string[]; uniques: string[][]; soft: { cols: string[]; where: string }[]; fks: Fk[]; checks: string[] };
 type Val = { sql: string; v: any };
 type Row = Record<string, Val>;
 
@@ -382,10 +382,13 @@ function readMigrations() {
         }
       } else if ((m = /^CREATE\s+UNIQUE\s+INDEX\s+(?:CONCURRENTLY\s+)?(?:IF\s+NOT\s+EXISTS\s+)?\S+\s+ON\s+(?:ONLY\s+)?([a-z_][a-z0-9_]*\.[a-z_][a-z0-9_]*)\s*(?:USING\s+\w+\s*)?\(/i.exec(st))) {
         if (!SCHEMA[m[1]]) continue;
-        const cols = topSplit(paren(st, m[0].length - 1)[0]);
+        const [inner, end] = paren(st, m[0].length - 1);
+        const cols = topSplit(inner);
         if (!cols.every((c) => /^"?[a-z_][a-z0-9_]*"?$/i.test(c))) continue; // expression index: not judged
-        // partial unique indexes are kept as "soft" keys: treated as unconditional where possible (ON CONFLICT DO NOTHING would drop a row)
-        (/\bWHERE\b/i.test(st) ? SCHEMA[m[1]].soft : SCHEMA[m[1]].uniques).push(cols.map(unq));
+        // partial unique indexes are "soft" keys: two rows collide only when both meet the WHERE predicate (or it cannot be evaluated)
+        const where = /\bWHERE\b([\s\S]*)$/i.exec(st.slice(end).replace(/;\s*$/, ""));
+        if (where) SCHEMA[m[1]].soft.push({ cols: cols.map(unq), where: where[1].trim() });
+        else SCHEMA[m[1]].uniques.push(cols.map(unq));
       }
     }
   }
@@ -917,34 +920,70 @@ function buildTable(t: string): Built[] | null {
   for (const c of checks) harvest(c.ast, hv);
   const x: Ctx = { tcol: meta.includes("tenant_id") ? "tenant_id" : "id", cc: ccName(t), own: meta.includes("actor_id") ? "actor_id" : "created_by", checks, hv };
   const keys = [T.pk, ...T.uniques].filter((k) => k.length);
+  // a row is in a partial index unless its WHERE is definitely not true for the row (defaults included; unparsable = in, conservative)
+  const envOf = (r: Row) => { const e: Record<string, any> = {}; for (const [c, k] of T.cols) e[c] = c in r ? r[c].v : k.generated ? UNK : k.hasDefault ? valueOf(k.def) : null; return e; };
+  const inIdx = (r: Row, where: string) => {
+    let ast: Ast; try { ast = parseExpr(where); } catch { return true; }
+    const v = evalAst(ast, envOf(r));
+    return v === true || v === UNK;
+  };
+  const softHits = (r: Row, others: Built[]) => T.soft.filter((k) => { const v = keyOf(r, k.cols); return v !== null && inIdx(r, k.where) && others.some((o) => keyOf(o.row, k.cols) === v && inIdx(o.row, k.where)); });
+  // review 2: a row a partial index would drop may leave the index instead: one predicate column set to another candidate value
+  // (e.g. engagement.patient_memberships status 'expired' instead of the default 'active'), all CHECKs still met, no locked column touched
+  const escape = (r: Row, slot: Slot, a: number, others: Built[]): Row | null => {
+    for (const k of softHits(r, others)) {
+      let cs: Set<string>; try { cs = colsIn(parseExpr(k.where)); } catch { continue; }
+      for (const c of cs) {
+        const col = T.cols.get(c);
+        if (!col || col.generated || k.cols.includes(c) || c === x.tcol || c === x.cc || c === x.own || (slot.forced && c in slot.forced)) continue;
+        for (const v of candidateVals(c, col, slot.n, a, x)) {
+          const r2: Row = {}; for (const [cc] of T.cols) if (cc === c) r2[cc] = v; else if (cc in r) r2[cc] = r[cc];
+          const e = envOf(r2);
+          if (x.checks.some((ch) => evalAst(ch.ast, e) === false)) continue;
+          if (keys.some((kk) => { const kv = keyOf(r2, kk); return kv !== null && others.some((o) => keyOf(o.row, kk) === kv); })) continue;
+          if (!softHits(r2, others).length) return r2;
+        }
+      }
+    }
+    return null;
+  };
   const keyOf = (r: Row, k: string[]) => (k.some((c) => !r[c] || r[c].v === null) ? null : k.map((c) => normSql(r[c].sql)).join("|"));
   const out: Built[] = [];
+  let why: string | null = null; // last CHECK reason seen for the current slot
   const tryBuild = (slot: Slot, others: Built[]): { best: Row | null; bestSoft: number; hit: string[][] } => {
     let best: Row | null = null, bestSoft = Infinity;
     const hit: string[][] = [];
     for (let a = 0; a < 12 && bestSoft > 0; a++) {
       const r = buildRow(t, T, slot, a, x);
-      if (!r) break;
+      if (!r) { if (checkFail) { why = checkFail; continue; } break; }
       const clash = keys.filter((k) => { const v = keyOf(r, k); return v !== null && others.some((o) => keyOf(o.row, k) === v); });
       if (clash.length) { hit.push(...clash); continue; }
-      const sc = T.soft.filter((k) => { const v = keyOf(r, k); return v !== null && others.some((o) => keyOf(o.row, k) === v); }).length;
-      if (sc < bestSoft) { best = r; bestSoft = sc; }
+      let sc = softHits(r, others).length, rr = r;
+      if (sc) { const r2 = escape(r, slot, a, others); if (r2) { rr = r2; sc = 0; } }
+      if (sc < bestSoft) { best = rr; bestSoft = sc; }
     }
     return { best, bestSoft, hit };
   };
   for (const slot of slotsOf(t)) {
+    why = null;
     let { best, bestSoft, hit } = tryBuild(slot, out);
-    if (!best && slot.owner && T.cols.has(x.cc)) ({ best, bestSoft } = tryBuild({ ...slot, centre: "22" }, out)); // actor row on centre A2 instead
+    // T0B-DBSEED-1 review 2: a row a partial UNIQUE index may drop counts as no row, so the fallbacks below also run for it
+    const fits = () => best !== null && bestSoft === 0;
+    if (!fits() && slot.owner && T.cols.has(x.cc)) { // actor row on centre A2 instead
+      const r = tryBuild({ ...slot, centre: "22" }, out);
+      if (r.best && (!best || r.bestSoft < bestSoft)) ({ best, bestSoft } = r);
+    }
     // a step-9 actor row that fits nowhere new: own an existing tenant-A row instead (one row may serve tenant A, a centre and an actor)
-    if (!best && slot.owner) {
-      for (let i = 0; i < out.length && !best; i++) {
+    if (!fits() && slot.owner) {
+      let merged = false;
+      for (let i = 0; i < out.length; i++) {
         const o = out[i];
         if (o.slot === null || o.slot > 3 || slotsOf(t).find((s) => s.n === o.slot)?.ten !== "01") continue;
-        const merged: Slot = { ...slotsOf(t).find((s) => s.n === o.slot)!, owner: slot.owner };
-        const r = tryBuild(merged, out.filter((_, j) => j !== i));
-        if (r.best) { out[i] = { slot: o.slot + 100, row: r.best }; best = null; bestSoft = -1; break; }
+        const m: Slot = { ...slotsOf(t).find((s) => s.n === o.slot)!, owner: slot.owner };
+        const r = tryBuild(m, out.filter((_, j) => j !== i));
+        if (r.best && r.bestSoft === 0) { out[i] = { slot: o.slot + 100, row: r.best }; merged = true; break; }
       }
-      if (bestSoft === -1) continue;
+      if (merged) continue;
     }
     if (!best && hit.length) { // the UNIQUE key runs out of parent rows: ask each FK parent in the key for one more row of this tenant (next round)
       for (const fk of T.fks.filter((f) => f.parent !== t && hit.some((k) => f.cols.some((c) => k.includes(c) && c !== x.tcol && c !== x.cc)))) {
@@ -954,13 +993,18 @@ function buildTable(t: string): Built[] | null {
         if (!ds.some((d) => d.tag === tag)) { ds.push({ ten: slot.ten, centre: slot.centre, forced: {}, tag }); DEMANDS.set(fk.parent, ds); }
       }
     }
-    if (!best) {
-      if (slot.forced) { warnings.push(`${t}: extra parent row ${slot.n} for a child CHECK could not be built`); continue; }
-      exceptionsOut.set(t, `no row for slot ${slot.n} (tenant ${slot.ten === "01" ? "A" : "B"}${slot.owner ? ", owner actor " + slot.owner : ", centre " + slot.centre}) satisfies the PK/UNIQUE keys and foreign keys of the migrations without disabling a constraint`);
+    if (!fits()) {
+      // extra demanded parent rows are optional: dropped, never emitted invalid or droppable (review 1b/2)
+      if (slot.forced || slot.n > 6) { warnings.push(`${t}: extra parent row ${slot.n} could not be built${best ? " (a partial UNIQUE index would drop it)" : ""}`); continue; }
+      const who = `slot ${slot.n} (tenant ${slot.ten === "01" ? "A" : "B"}${slot.owner ? ", owner actor " + slot.owner : ", centre " + slot.centre})`;
+      exceptionsOut.set(t, best
+        ? `every candidate row for ${who} collides with a partial UNIQUE index of the migrations, so ON CONFLICT DO NOTHING would drop it and the step-1 precondition fails`
+        : why
+          ? `no row for ${who} meets ${why} together with its keys and foreign keys, without disabling a constraint`
+          : `no row for ${who} satisfies the PK/UNIQUE keys and foreign keys of the migrations without disabling a constraint`);
       return null;
     }
-    if (bestSoft > 0) warnings.push(`${t}: slot ${slot.n} collides with a partial UNIQUE index (ON CONFLICT DO NOTHING may drop it)`);
-    out.push({ slot: slot.n, row: best });
+    out.push({ slot: slot.n, row: best! });
   }
   return out;
 }
@@ -969,7 +1013,9 @@ type Ctx = { tcol: string; cc: string; own: string; checks: Check[]; hv: Map<str
 type Unit = { fk: Fk; rest: string[]; opts: Built[]; optional: boolean };
 const toVal = (v: any): Val | null => (typeof v === "string" ? sqlStr(v) : typeof v === "number" && Number.isFinite(v) ? { sql: v < 0 ? `(${v})` : String(v), v } : typeof v === "boolean" ? { sql: String(v), v } : null);
 const colOfAst = (x: Ast): string | null => (x?.op === "col" ? x.name : null);
+let checkFail: string | null = null; // set by buildRow when it returns null because a CHECK cannot be met (other attempts may still fit)
 function buildRow(t: string, T: Tbl, slot: Slot, a: number, x: Ctx): Row | null {
+  checkFail = null;
   const row: Row = {};
   const locked = new Set<string>();
   const set = (c: string, v: Val, lock = false) => { row[c] = v; if (lock) locked.add(c); };
@@ -1055,6 +1101,25 @@ function buildRow(t: string, T: Tbl, slot: Slot, a: number, x: Ctx): Row | null 
       if (keep) row[c] = keep; else delete row[c];
       return false;
     };
+    // T0B-DBSEED-1 review 1a: one variable changed alone first (an OR CHECK such as micro.instrument_records__payload__ck needs only
+    // organism_code_raw set; the full product below can exhaust its budget on the other OR branch's columns before reaching it)
+    const ok = () => { const b = bad(); return !b.includes(f) && b.length < failing; };
+    for (const v of vars) {
+      if (v.unit) {
+        const u = v.unit, keep = u.rest.map((c) => row[c]);
+        for (const p of [...u.opts, ...(u.optional ? [null] : [])]) {
+          for (const c of u.rest) { if (p) row[c] = p.row[u.fk.pcols[u.fk.cols.indexOf(c)]]; else delete row[c]; }
+          if (ok()) return true;
+        }
+        u.rest.forEach((c, k) => { if (keep[k]) row[c] = keep[k]; else delete row[c]; });
+        continue;
+      }
+      const c = v.col!, k = T.cols.get(c)!, keep = row[c];
+      const opts: (Val | null)[] = [...dynamic(c), ...free(c)];
+      if (!(k.notNull && !k.hasDefault)) opts.push(null);
+      for (const o of opts) { if (o) row[c] = o; else delete row[c]; if (ok()) return true; }
+      if (keep) row[c] = keep; else delete row[c];
+    }
     return go(0);
   };
   for (let guard = 0; guard < 16; guard++) {
@@ -1084,9 +1149,11 @@ function buildRow(t: string, T: Tbl, slot: Slot, a: number, x: Ctx): Row | null 
       for (const c of Object.keys(row)) if (!(c in snap)) delete row[c];
       Object.assign(row, snap);
     }
-    warnings.push(`${t}: slot ${n}: CHECK not satisfied statically: ${f.src.replace(/\s+/g, " ").slice(0, 140)}`);
-    break;
+    // T0B-DBSEED-1 review 1b: a row known to violate a CHECK is never emitted (it would abort every probe's transaction)
+    checkFail = `CHECK ${f.src.replace(/\s+/g, " ").slice(0, 140)} not satisfiable statically`;
+    return null;
   }
+  { const b = bad(); if (b.length) { checkFail = `CHECK ${b[0].src.replace(/\s+/g, " ").slice(0, 140)} not satisfiable statically`; return null; } }
   const ordered: Row = {};
   for (const [c] of T.cols) if (c in row) ordered[c] = row[c];
   return ordered;

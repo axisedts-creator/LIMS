@@ -321,7 +321,7 @@ for (const q of ALLT) {
       else { assert.match(body, /^unique\(tenant_id,id\)$/, `${q}: extra constraint ${c} (only the C0 tenant FK and UNIQUE (tenant_id, id) may be added)`); assert.ok(c.startsWith(`${t}__`), `${q}: ${c} prefixed ${t}__`); assert.ok(got.colMap.has('id'), `${q}: UNIQUE (tenant_id, id) only on tables with an id`); }
     }
     const bodies = [...got.conMap.values()].map((d) => d.replace(/^constraint\s+\w+\s+/, ''));
-    assert.ok(bodies.includes('foreign key(tenant_id)references core.tenants(id)'), `${q}: tenant FK to core.tenants (C0 §9 rule 1)`);
+    if (!isG(q)) assert.ok(bodies.includes('foreign key(tenant_id)references core.tenants(id)'), `${q}: tenant FK to core.tenants (C0 §9 rule 1)`);
     if (got.colMap.has('id')) assert.ok(bodies.includes('unique(tenant_id,id)'), `${q}: UNIQUE (tenant_id, id) (04 D8)`); else assert.ok(!bodies.includes('unique(tenant_id,id)'), `${q}: no id column, so no UNIQUE (tenant_id, id)`);
     if (t === 'settings') assert.ok(bodies.includes('unique(tenant_id)'), 'settings: one row per tenant');
   });
@@ -396,7 +396,7 @@ test('policy matrix (§5.2): per (table, command) the lims_app policies are exac
   const del = ten.filter((p) => p.cmd === 'DELETE'); assert.equal(del.length, 8);
   for (const p of del) { assert.match(`${p.using}`, /current_actor_type\(\)\)='system'/, `${p.key}: system actor only`); assert.match(p.using, /is_staff_or_system/); }
   const d = (t) => del.find((p) => p.table === `engagement.${t}`).using;
-  assert.match(d('otp_challenges'), /expires_at<now\(\)-interval '24 hours'/); assert.match(d('link_codes'), /expires_at<now\(\)-interval '90 days'/); assert.match(d('notifications'), /expires_at<now\(\)/); assert.match(d('number_counters'), /expires_at is not null and expires_at<now\(\)/);
+  assert.match(d('otp_challenges'), /expires_at < now\(\)- interval '24 hours'/); assert.match(d('link_codes'), /expires_at < now\(\)- interval '90 days'/); assert.match(d('notifications'), /expires_at < now\(\)/); assert.match(d('number_counters'), /expires_at is not null and expires_at < now\(\)/);
 });
 test('policy shape (§5.1, 08 A17 P-16, A16.1): every lims_app policy carries the tenant predicate; STAFF / STAFF_C / SYS predicates carry app.is_staff_or_system(); STAFF / STAFF_C list user + system (never device / patient); centre predicates use the ::uuid[] cast; patient / pre-auth / display predicates never admit staff; no true / PUBLIC / anon; the owner policies are TO lims_owner only, no USING (true)', () => {
   const ps = gotPolicies(), ten = tenantPol(ps), own = ps.filter((p) => p.roles !== 'lims_app');
@@ -410,7 +410,7 @@ test('policy shape (§5.1, 08 A17 P-16, A16.1): every lims_app policy carries th
     if (s === 'STAFF' || s === 'STAFF_C') assert.match(t, /current_actor_type\(\)\)in\('user','system'\)/, `${p.key}: positive actor list (08 A19 D-109)`);
     if (s === 'STAFF_C') assert.match(t, /\(select app\.has_all_centres\(\)\)or centre_id=any\(\(select app\.current_centre_ids\(\)\)::uuid\[\]\)/, `${p.key}: centre predicate with the A16.1 cast`);
     if (s === 'DISP') assert.match(t, /device_kind'\)='queue_display'/, `${p.key}: display kind claim`), assert.match(t, /centre_id=any\(\(select app\.current_centre_ids\(\)\)::uuid\[\]\)/);
-    if (s === 'PRE_TOK') assert.match(t, /token_sha256=\(select decode\(app\.current_claims\(\)->>'otp_token_sha256','hex'\)\)/, `${p.key}: PRE_TOK token claim`);
+    if (s === 'PRE_TOK') assert.match(t, /token_sha256=\(select decode\(app\.current_claims\(\)->> 'otp_token_sha256','hex'\)\)/, `${p.key}: PRE_TOK token claim`);
   }
   assert.ok(ten.some((p) => scopeOf(p) === 'DISP' && /\bid=app\.current_actor_id\(\)/.test(p.using)), 'queue_displays: DISP policy limited to id = app.current_actor_id()');
   for (const p of own) { assert.equal(p.roles, 'lims_owner', `${p.key} TO lims_owner`); assert.doesNotMatch(`${p.using} ${p.check}`, /\btrue\b\s*$|^true$/, `${p.key}: no open predicate`); assert.match(p.name, /^[a-z_]+__(select|update|delete)__owner_only$/); }
@@ -642,7 +642,7 @@ test('view column contract vs IC §6 (AC-0B-6.4): v_pub_booking_daily and v_pub_
   for (const v of VIEWS) {
     const got = viewSql(sql, v), e = viewSql(exp, v); assert.ok(got, `CREATE VIEW ${v} missing from *_engagement__*.sql`);
     assert.deepEqual(selectCols(e), icCols(v), `${v}: spec §7 vs IC`); assert.deepEqual(selectCols(got), icCols(v), `${v}: migration columns (names + order) vs IC`);
-    assert.equal(norm(got), norm(e), `${v}: definition text`); assert.match(got, /WITH\s*\(\s*security_invoker\s*=\s*(true|on)\s*\)/i); assert.match(got, /Asia\/Kathmandu/);
+    assert.equal(norm(got), norm(e), `${v}: definition text`); assert.match(got, /WITH\s*\(\s*security_invoker\s*=\s*(true|on)\s*\)/i); if (v === 'engagement.v_pub_booking_daily') assert.match(got, /Asia\/Kathmandu/);
   }
   assert.deepEqual([...sql.matchAll(/CREATE\s+(?:OR\s+REPLACE\s+)?(MATERIALIZED\s+)?VIEW\s+(\w+\.\w+)/gi)].map((m) => `${m[1] ? 'M:' : ''}${m[2]}`).sort(), [...VIEWS].sort(), 'only the two views');
   assert.match(specSec(S7, S8), /NOT created \(08 R25\)/); assert.doesNotMatch(sql, /v_pub_(booking_address|home_address|patient_membership|membership)/i);

@@ -67,10 +67,11 @@ SELECT is(pg_temp.pre(201, 1, 11, 'SELECT * FROM engagement.accounts WHERE tenan
 
 -- ---------------------------------------------------------------- INSERT: only the verified phone (WITH CHECK)
 SELECT is(pg_temp.pre(204, 1, 14, pg_temp.ins(1, '+99002000005', 204), 'w'), '1', 'INSERT for the phone of the caller''s verified challenge works (first sign-in)');
-SELECT like(pg_temp.pre(201, 1, 11, pg_temp.ins(1, '+99002000008', 201), 'w'), 'E42501:%', 'INSERT for ANOTHER phone is refused by WITH CHECK (42501)');
-SELECT like(pg_temp.pre(202, 1, 12, pg_temp.ins(1, '+99002000002', 202), 'w'), 'E42501:%', 'INSERT for the phone of a challenge that is only `sent` is refused');
-SELECT like(pg_temp.pre(201, 1, NULL, pg_temp.ins(1, '+99002000001', 201), 'w'), 'E42501:%', 'INSERT without otp_token_sha256 is refused');
-SELECT like(pg_temp.pre(201, 1, 11, pg_temp.ins(2, '+99002000001', 201), 'w'), 'E42501:%', 'INSERT into ANOTHER tenant with the right phone is refused');
+-- LD-230 (3): pgTAP has no like()/unlike(); matches()/doesnt_match() with the anchored regex of the same LIKE pattern (% -> .*, _ -> .)
+SELECT matches(pg_temp.pre(201, 1, 11, pg_temp.ins(1, '+99002000008', 201), 'w'), '^E42501:.*$', 'INSERT for ANOTHER phone is refused by WITH CHECK (42501)');
+SELECT matches(pg_temp.pre(202, 1, 12, pg_temp.ins(1, '+99002000002', 202), 'w'), '^E42501:.*$', 'INSERT for the phone of a challenge that is only `sent` is refused');
+SELECT matches(pg_temp.pre(201, 1, NULL, pg_temp.ins(1, '+99002000001', 201), 'w'), '^E42501:.*$', 'INSERT without otp_token_sha256 is refused');
+SELECT matches(pg_temp.pre(201, 1, 11, pg_temp.ins(2, '+99002000001', 201), 'w'), '^E42501:.*$', 'INSERT into ANOTHER tenant with the right phone is refused');
 
 -- ---------------------------------------------------------------- UPDATE / DELETE
 SELECT is(pg_temp.pre(201, 1, 11, 'UPDATE engagement.accounts SET last_app_platform = ''android'' WHERE phone_e164 = ''+99002000001''', 'w'), '1', 'the verify path may update the verified phone''s account (membership_id, last_login_at, last_app_*)');

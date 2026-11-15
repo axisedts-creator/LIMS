@@ -77,9 +77,13 @@ SELECT is(pg_temp.api('SELECT * FROM app.engagement_resolve_preauth(NULL, ' || p
 SELECT is(pg_temp.api('SELECT * FROM app.engagement_resolve_preauth(''tpa_a'', ''\x00''::bytea)', 'n'), '0', 'hash of the wrong length (1 byte) -> no row');
 SELECT is(pg_temp.api('SELECT * FROM app.engagement_resolve_preauth(''tpa_a'', ''\x' || repeat('ab', 33) || '''::bytea)', 'n'), '0', 'hash of the wrong length (33 bytes) -> no row');
 SELECT is(pg_temp.api('SELECT * FROM app.engagement_resolve_preauth(''tpa_a'', ''\x' || encode(pg_temp.h(1), 'hex') || '00''::bytea)', 'n'), '0', 'the right hash plus a trailing byte -> no row (no prefix matching)');
+-- LD-230 (4): the fixture UPDATE is row-audited (app.tg_row_audit needs a claims sub, audit_log__insert__owner_only the row tenant): tenant A system claims
+SELECT set_config('request.jwt.claims', jsonb_build_object('tenant_id', pg_temp.id(1), 'sub', pg_temp.id(99), 'actor_type', 'system')::text, true);
 UPDATE core.tenants SET status = 'suspended' WHERE id = pg_temp.id(1);
 SELECT is(pg_temp.api('SELECT * FROM app.engagement_resolve_preauth(''tpa_a'', ' || pg_temp.qh(1) || ')', 'n'), '0', 'the same credential stops resolving the moment its tenant is suspended');
+SELECT set_config('request.jwt.claims', jsonb_build_object('tenant_id', pg_temp.id(1), 'sub', pg_temp.id(99), 'actor_type', 'system')::text, true);
 UPDATE core.tenants SET status = 'active' WHERE id = pg_temp.id(1);
+SELECT set_config('request.jwt.claims', '', true);
 
 -- ---------------------------------------------------------------- (b) a lims_app / lims_api session that sets the GUC itself sees nothing (owner-only policies, FORCE RLS)
 SELECT is(pg_temp.x('lims_api', NULL, 'SELECT set_config(''app.pre_engagement_otp_token_sha256'', encode(' || pg_temp.qh(1) || ', ''hex''), true)',

@@ -35,7 +35,7 @@ SELECT g.rolname::text AS grp, u.rolname::text AS member, a.inherit_option AS in
   FROM pg_auth_members a JOIN pg_roles g ON g.oid = a.roleid JOIN pg_roles u ON u.oid = a.member
  WHERE u.rolname LIKE 'lims\_%' AND g.rolname LIKE 'lims\_%';
 SELECT is(ARRAY(SELECT grp || '|' || member || '|' || inh::text || '|' || setopt::text FROM m ORDER BY grp || '|' || member || '|' || inh::text || '|' || setopt::text COLLATE "C"),
-  ARRAY['lims_app|lims_api|true|false','lims_app|lims_worker|true|false',
+  ARRAY['lims_app|lims_api|true|false','lims_app|lims_migrator|false|true','lims_app|lims_worker|true|false',
         'lims_owner|lims_migrator|false|true','lims_queue|lims_migrator|false|true',
         'lims_queue|lims_worker|true|false','lims_reporting_lookup|lims_migrator|false|true']::text[],
   'lims_% memberships and INHERIT/SET options match 05-SCHEMA §1 exactly');

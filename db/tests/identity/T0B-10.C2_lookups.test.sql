@@ -101,7 +101,8 @@ SELECT is(pg_temp.v('lims_api', NULL, format($$SELECT tenant_status || '|' || me
 SELECT is(pg_temp.v('lims_api', NULL, format($$SELECT session_id::text FROM app.identity_resolve_session(%L::uuid, %L::uuid)$$, pg_temp.uid(1200), pg_temp.uid(999))), '<none>', 'resolve_session: no row for a wrong sub');
 SELECT is(pg_temp.v('lims_api', NULL, format($$SELECT (SELECT count(*) FROM app.identity_resolve_session(%L::uuid, %L::uuid))::text || '|' || coalesce(current_setting('app.pre_user_id', true), 'NULL') || '|' || coalesce(current_setting('app.pre_gotrue_session_id', true), 'NULL') || '|' || coalesce(current_setting('app.pre_tenant_id', true), 'NULL')$$,
   pg_temp.uid(1200), '01a1a98a-ac40-7000-8000-00000000a300')), '1|||', 'resolve_session leaves app.pre_user_id / pre_gotrue_session_id / pre_tenant_id empty (08 A15.1)');
-UPDATE core.memberships SET locked_at = now(), locked_by = pg_temp.sys(), lock_reason_code = 'admin_lock' WHERE id = '01a1a98a-ac40-7000-8000-00000000a500';
+-- LD-230 (6): memberships__lock_reason__ck allows left_organisation|security_concern|policy_violation|other only
+UPDATE core.memberships SET locked_at = now(), locked_by = pg_temp.sys(), lock_reason_code = 'other' WHERE id = '01a1a98a-ac40-7000-8000-00000000a500';
 SELECT is(pg_temp.v('lims_api', NULL, format($$SELECT membership_locked::text FROM app.identity_resolve_session(%L::uuid, %L::uuid)$$, pg_temp.uid(1200), '01a1a98a-ac40-7000-8000-00000000a300')), 'true', '-- §11 test 18 membership_locked = true exactly when locked_at IS NOT NULL');
 SELECT is(pg_temp.v('lims_api', NULL, format($$SELECT membership_locked::text FROM app.identity_login_context(%L::uuid)$$, '01a1a98a-ac40-7000-8000-00000000a300')), 'true', 'login_context: membership_locked = true for a locked membership');
 UPDATE core.memberships SET locked_at = NULL, locked_by = NULL, lock_reason_code = NULL WHERE id = '01a1a98a-ac40-7000-8000-00000000a500';

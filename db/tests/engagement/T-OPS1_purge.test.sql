@@ -152,7 +152,8 @@ SELECT is(pg_temp.app('system', 1, 'DELETE FROM engagement.number_counters'), '1
 SELECT is(pg_temp.cnt('otp_challenges', 1) || '/' || pg_temp.cnt('notifications', 1) || '/' || pg_temp.cnt('number_counters', 1), '2/1/2', 'tenant A survivors: 2 otp, 1 notification, 2 counters');
 SELECT is(pg_temp.cnt('otp_challenges', 2) || '/' || pg_temp.cnt('notifications', 2) || '/' || pg_temp.cnt('number_counters', 2), '3/2/3', 'tenant B (not the claimed tenant) lost nothing');
 -- link_codes: referenced code kept (task filter) and FK-protected (bare delete)
-SELECT like(pg_temp.app('system', 1, 'DELETE FROM engagement.link_codes WHERE id = ' || quote_literal(pg_temp.id(1012)::text) || '::uuid'), 'E23503:%', 'a bare DELETE of a link_code referenced by a link fails on account_patient_links__code__fk (23503): the data layer protects it even if the task filter were missing');
+-- LD-230 (3): pgTAP has no like()/unlike(); matches()/doesnt_match() with the anchored regex of the same LIKE pattern (% -> .*, _ -> .)
+SELECT matches(pg_temp.app('system', 1, 'DELETE FROM engagement.link_codes WHERE id = ' || quote_literal(pg_temp.id(1012)::text) || '::uuid'), '^E23503:.*$', 'a bare DELETE of a link_code referenced by a link fails on account_patient_links__code__fk (23503): the data layer protects it even if the task filter were missing');
 SELECT is(pg_temp.app('system', 1, 'DELETE FROM engagement.link_codes WHERE NOT EXISTS (SELECT 1 FROM engagement.account_patient_links l WHERE l.tenant_id = link_codes.tenant_id AND l.link_code_id = link_codes.id)'), '1', 'the task''s DELETE (NOT EXISTS link filter) removes only the unreferenced code expired > 90 d ago');
 SELECT is(pg_temp.cnt('link_codes', 1), '2', 'tenant A keeps the REFERENCED expired code (12) and the code expired only 89 d ago (13)');
 SELECT is((SELECT count(*)::int FROM engagement.link_codes WHERE id = pg_temp.id(1012)), 1, 'the referenced link_code row 12 is still there');

@@ -43,6 +43,8 @@ services:
         sync: false
       - key: LIMS_IDENTITY_GOTRUE_SERVICE_KEY
         sync: false
+      - key: LIMS_IDENTITY_GOTRUE_PUBLISHABLE_KEY
+        sync: false
       - key: LIMS_IDENTITY_EMAIL_HMAC_KEY
         sync: false
       - key: LIMS_IDENTITY_TOKEN_ENC_KEYS

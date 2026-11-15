@@ -1268,12 +1268,12 @@ if (check) {
   for (const [f, body] of want) {
     const label = f === "_registry.sql" ? f : f.replace(/\.test\.sql$/, "");
     if (!existsSync(join(out, f))) bad.push(`${label}: probe file ${f} missing (run node db/tools/gen-isolation-probes.ts)`);
-    else if (readFileSync(join(out, f), "utf8") !== body) bad.push(`${label}: probe file ${f} is stale (regenerate)`);
+    else if (readFileSync(join(out, f), "utf8").replace(/\r\n/g, "\n") !== body) bad.push(`${label}: probe file ${f} is stale (regenerate)`);
   }
   for (const f of have) if (!want.has(f)) bad.push(`${f}: orphan probe file for a table no longer probed`);
   for (const [f, body] of fixWant) {
     if (!existsSync(join(fixOut, f))) bad.push(`fixtures/probe-rows/${f}: fixture file missing (run node db/tools/gen-isolation-probes.ts)`);
-    else if (readFileSync(join(fixOut, f), "utf8") !== body) bad.push(`fixtures/probe-rows/${f}: fixture file is stale (regenerate)`);
+    else if (readFileSync(join(fixOut, f), "utf8").replace(/\r\n/g, "\n") !== body) bad.push(`fixtures/probe-rows/${f}: fixture file is stale (regenerate)`);
   }
   for (const f of fixHave) if (!fixWant.has(f)) bad.push(`fixtures/probe-rows/${f}: orphan fixture file`);
   if (bad.length) die(bad);

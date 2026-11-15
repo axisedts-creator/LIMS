@@ -1,0 +1,6 @@
+# AUTH-MFA-QR-2 impl (writer)
+- Files: `handlers/mfaQr.ts` (compact(): dark rects -> one stroke path, 4-module quiet zone, white bg rect, crispEdges; new reason `unsupported_qr`), `apps/web/.../MfaEnrolment.tsx` (visible notice above the key when qr_svg_base64 is absent). startMfaEnrolment and DataUriImage unchanged (log already carries only the reason code; the kit has no length cap).
+- [CONV] MAX_IN = 1_000_000 on the DECODED svg text; cheap pre-decode guard = 3 x MAX_IN on the raw input (a 10201-rect percent-encoded grid is 1.15M chars, so a raw 1M cap cannot also give `unsupported_qr` as the test wants).
+- [CONV] output built only from parsed integer modules; rect attrs limited to x,y,width,height,fill,style; only svg/rect/title/desc beside dark rects; rects with no dark module (or no fill) and no explicit bad fill pass through as before; white rects ignored; all rects count toward the 10000 cap.
+- Result: web t12.mfa-qr 8/8, t12.forms 35/35. API mfa.qr/enrol/integration: 402 pass, 54 fail; the only distinct failure message is `expectCompactShape` forbidding `https?:` (the required xmlns) -> `.orchestra/notes/AUTH-MFA-QR-2-dispute.md`. Not individually verified that all 54 share it.
+- Open: the dispute; full `pnpm -s verify` not run (blocked on it).

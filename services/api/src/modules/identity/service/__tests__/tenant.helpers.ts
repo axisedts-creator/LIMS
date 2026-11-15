@@ -123,7 +123,7 @@ export function makeRepo(seed: { tenants?: Array<{ tenant: TRow; data: TenantDat
     async seedRoles(tx, t, codes, a) { rec('seedRoles', tx, t, codes, a); sc('seedRoles', t); D(t).roles.push(...codes); },
     async insertSettings(tx, t, s) { rec('insertSettings', tx, t, s); sc('insertSettings', t); D(t).settings = { timezone: s.timezone, training_mode: s.trainingMode, version: 1 }; },
     async seedFlags(tx, t, a) { rec('seedFlags', tx, t, a); sc('seedFlags', t); D(t).flags.push({ code: FLAG_PLAIN, requires_founder_approval: false, is_enabled: false, approval_ref: null }); },
-    async seedIrdAnnexes(tx, t, codes, a) { rec('seedIrdAnnexes', tx, t, codes, a); sc('seedIrdAnnexes', t); D(t).annexes.push(...codes.map((c) => ({ annex_code: c, status: 'not_started' }))); },
+    async seedIrdAnnexes(tx, t, codes, a) { rec('seedIrdAnnexes', tx, t, codes, a); if (state.scope !== null) throw new Error(`fake RLS (PLATFORM-DDL-1, LD-223): seedIrdAnnexes must run under PLATFORM claims (ird_annex_records__insert__platform), not inside withTenantScope (scope=${state.scope}): s5.2 gives tenants no INSERT`); D(t).annexes.push(...codes.map((c) => ({ annex_code: c, status: 'not_started' }))); },
     async insertAcceptances(tx, t, rows) { rec('insertAcceptances', tx, t, rows); sc('insertAcceptances', t); D(t).acceptances.push(...rows); },
     async insertAdmin(tx, t, a) { rec('insertAdmin', tx, t, a); sc('insertAdmin', t); D(t).members.push(member({ id: a.membershipId, user_id: a.userId, status: 'invited', accepted: false })); },
     async insertInvitation(tx, t, i) { rec('insertInvitation', tx, t, i); sc('insertInvitation', t); D(t).invitations.push({ ...i }); },

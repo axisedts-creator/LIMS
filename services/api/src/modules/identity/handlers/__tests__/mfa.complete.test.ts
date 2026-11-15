@@ -9,6 +9,8 @@ import { AjvCompiler } from '@fastify/ajv-compiler';
 import { describe, expect, it } from 'vitest';
 import { REPO_ROOT, loadSpec } from '../../../../core/module.js';
 import { AJV_OPTIONS } from '../../../../core/openapi.js';
+import { permissionsOfRoles } from '../../domain/permission-set.js';
+import { TENANT_PERMS } from '../../service/__tests__/auth.helpers.js';
 import { LimsError, MEMB_A, STAFF_ID, SYSTEM_ACTOR, TENANT_A, makeMfaWorld, rejection, totp, type MfaWorld } from './mfa.helpers.js';
 import { createCompleteMfaEnrolment } from '../completeMfaEnrolment.js';
 import { createStartMfaEnrolment } from '../startMfaEnrolment.js';
@@ -28,7 +30,10 @@ const violations = (operationId: string, body: unknown): any[] => { const v = co
 
 const TENANT_ACTOR = { display_name: 'Ana Demo', roles: ['lab_manager', 'technician'], tenant_code: 'lab_a' };
 const PLATFORM_ACTOR = { display_name: 'Sam Staff', roles: ['platform_support'] };
-const ACTOR_KEYS = ['display_name', 'roles', 'tenant_code'];
+/** LD-222: every body here answers state 'active' (decided by the RESPONSE), so `permissions` is allowed */
+const ACTOR_KEYS = ['display_name', 'roles', 'tenant_code', 'permissions'];
+/** exact lists: tenant = the membershipPermissions fake seam (TENANT_PERMS); platform = permissionsOfRoles(actor roles) */
+const PLATFORM_PERMS = permissionsOfRoles(['platform_support']);
 
 const verify = async (w: MfaWorld, token: string, code: string) => { const { hctx } = w.makeHctx({ operationId: 'verifyMfaChallenge' }); return (createVerifyMfaChallenge(w.deps as any) as any)(w.req({ token, body: { code } }), hctx); };
 const start = async (w: MfaWorld, token: string) => { const { hctx } = w.makeHctx({ operationId: 'startMfaEnrolment' }); return (createStartMfaEnrolment(w.deps as any) as any)(w.req({ token, body: {} }), hctx); };
@@ -87,28 +92,28 @@ describe('completeMfaEnrolment, platform branch: the audit event goes ONLY throu
 describe('SessionState.actor on BOTH code steps, tenant and platform paths (LD-208 / LD-221 item 5; the second live defect: response_contract_violation 500)', () => {
   it('verifyMfaChallenge, tenant: 200 body.actor = { display_name, roles, tenant_code }; looked up for (user, tenant, membership)', async () => {
     const w = await makeMfaWorld(); const a = await w.addSession({ verifiedFactor: true }); const r = await verify(w, a.token, totp(a.secret!));
-    expect(r.status).toBe(200); expect(r.body.actor).toEqual(TENANT_ACTOR); expect(Object.keys(r.body.actor).every((k) => ACTOR_KEYS.includes(k))).toBe(true);
+    expect(r.status).toBe(200); expect(r.body.actor).toEqual({ ...TENANT_ACTOR, permissions: TENANT_PERMS }); expect(Object.keys(r.body.actor).every((k) => ACTOR_KEYS.includes(k))).toBe(true);
     expect(w.store.actor.keys).toEqual([{ userId: a.userId, tenantId: TENANT_A, membershipId: MEMB_A }]);
   });
   it('verifyMfaChallenge, platform: actor = { display_name, roles }, NO tenant_code; looked up for (user, null, null)', async () => {
     const w = await makeMfaWorld({ kind: 'platform' }); const a = await w.addSession({ verifiedFactor: true }); const r = await verify(w, a.token, totp(a.secret!));
-    expect(r.body).toMatchObject({ kind: 'platform', state: 'active', aal: 'aal2' }); expect(r.body.actor).toEqual(PLATFORM_ACTOR); expect(r.body.actor).not.toHaveProperty('tenant_code');
+    expect(r.body).toMatchObject({ kind: 'platform', state: 'active', aal: 'aal2' }); expect(r.body.actor).toEqual({ ...PLATFORM_ACTOR, permissions: PLATFORM_PERMS }); expect(r.body.actor).not.toHaveProperty('tenant_code');
     expect(w.store.actor.keys).toEqual([{ userId: a.userId, tenantId: null, membershipId: null }]);
   });
   it('completeMfaEnrolment, tenant (login enrolment) and voluntary (active session): actor present', async () => {
     for (const state of ['mfa_enrolment_required', 'active']) {
       const { w, a, s, code } = await enrolling('tenant_staff', state); const r = await complete(w, a.token, s.body.factor_id, code());
-      expect(r.body.actor, state).toEqual(TENANT_ACTOR); expect(w.store.actor.keys.at(-1)).toEqual({ userId: a.userId, tenantId: TENANT_A, membershipId: MEMB_A });
+      expect(r.body.actor, state).toEqual({ ...TENANT_ACTOR, permissions: TENANT_PERMS }); expect(w.store.actor.keys.at(-1)).toEqual({ userId: a.userId, tenantId: TENANT_A, membershipId: MEMB_A });
     }
   });
   it('completeMfaEnrolment, platform: actor = { display_name, roles }, no tenant_code; looked up for (user, null, null)', async () => {
     const { w, a, s, code } = await enrolling('platform'); const r = await complete(w, a.token, s.body.factor_id, code());
-    expect(r.body.actor).toEqual(PLATFORM_ACTOR); expect(w.store.actor.keys).toEqual([{ userId: a.userId, tenantId: null, membershipId: null }]);
+    expect(r.body.actor).toEqual({ ...PLATFORM_ACTOR, permissions: PLATFORM_PERMS }); expect(w.store.actor.keys).toEqual([{ userId: a.userId, tenantId: null, membershipId: null }]);
   });
   it('a platform row that (wrongly) carries a tenant_code, or extra columns, leaks nothing into the body', async () => {
     const w = await makeMfaWorld({ kind: 'platform' }); const a = await w.addSession({ verifiedFactor: true });
     w.store.actor.impl = () => ({ display_name: 'Sam Staff', role_codes: ['platform_support'], tenant_code: 'lab_a', email: 'leak@example.test', user_id: 'USER-LEAK', access_token: 'TOKEN-LEAK' });
-    const r = await verify(w, a.token, totp(a.secret!)); expect(r.body.actor).toEqual(PLATFORM_ACTOR); expect(JSON.stringify(r.body)).not.toMatch(/leak|LEAK/);
+    const r = await verify(w, a.token, totp(a.secret!)); expect(r.body.actor).toEqual({ ...PLATFORM_ACTOR, permissions: PLATFORM_PERMS }); expect(JSON.stringify(r.body)).not.toMatch(/leak|LEAK/);
   });
   it('all four 200 bodies validate against SessionState of contracts/openapi/identity.yaml (actor required; the staging violation is real)', async () => {
     expect(violations('verifyMfaChallenge', { session_id: '0190a000-0000-7000-8000-000000000001', kind: 'platform', state: 'active', aal: 'aal2', idle_expires_at: '2026-11-15T07:00:00.000Z', absolute_expires_at: '2026-11-15T15:00:00.000Z' })

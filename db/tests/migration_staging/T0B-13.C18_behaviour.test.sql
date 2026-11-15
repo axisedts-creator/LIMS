@@ -36,9 +36,10 @@ END $f$;
 CREATE FUNCTION pg_temp.m(p_type text, p_tenant int, p_sql text, p_mode text DEFAULT 'w') RETURNS text LANGUAGE sql AS $$ SELECT pg_temp.x('lims_migration', pg_temp.cl(p_type, p_tenant), p_sql, p_mode) $$;
 CREATE FUNCTION pg_temp.q(p_sql text) RETURNS text LANGUAGE plpgsql AS $$ DECLARE r text; BEGIN EXECUTE p_sql INTO r; RETURN coalesce(r, '<null>'); END $$;   -- superuser value (RLS bypassed)
 -- one valid INSERT per table. tn = tenant (1 / 2), k = row key (unique per table and tenant), r = run number (run id = tn*1000 + r). Patient rows: id tn*1000 + 100 + r (r = 1..5), extra run-1 patients 106, 107.
+-- LD-230 (5): PL/pgSQL DECLARE takes one declaration per ";" (a comma made the next ":=" a syntax error)
 CREATE FUNCTION pg_temp.ins(p_t text, tn int, k int, r int) RETURNS text LANGUAGE plpgsql AS $$
-DECLARE tid text := format('pg_temp.id(%s)', tn), rid text := format('pg_temp.id(%s)', tn * 1000 + r), me text := 'pg_temp.id(99)', i text := format('pg_temp.id(%s)', tn * 1000 + k),
-        h text := format('md5(%L) || md5(%L)', 'h' || tn || '_' || k, 'k' || tn || '_' || k), a text := replace(translate(k::text, '0123456789', 'abcdefghij'), '-', 'z');
+DECLARE tid text := format('pg_temp.id(%s)', tn); rid text := format('pg_temp.id(%s)', tn * 1000 + r); me text := 'pg_temp.id(99)'; i text := format('pg_temp.id(%s)', tn * 1000 + k);
+        h text := format('md5(%L) || md5(%L)', 'h' || tn || '_' || k, 'k' || tn || '_' || k); a text := replace(translate(k::text, '0123456789', 'abcdefghij'), '-', 'z');
 BEGIN
   RETURN CASE p_t
     WHEN 'runs' THEN format('INSERT INTO migration_staging.runs (id, tenant_id, run_code, source_system, kind, created_by, updated_by) VALUES (%s, %s, %L, %L, %L, %s, %s)', i, tid, 'MR-hc18-2026-' || tn || '-' || k, 'legacy_a', 'full', me, me)

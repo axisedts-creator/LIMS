@@ -214,3 +214,49 @@ CREATE POLICY audit_exports__update__owner_only ON identity.audit_exports FOR UP
   USING (current_setting('app.maintenance', true) = 'identity_expire_audit_exports'
          AND status = 'ready' AND (expires_at <= now() OR downloads_remaining = 0))
   WITH CHECK (current_setting('app.maintenance', true) = 'identity_expire_audit_exports' AND status = 'expired');
+-- PLATFORM-DDL-1 (LD-223): C2 05-SCHEMA s5.3 __platform policies, copied 1:1 from db/migrations/20261115191000_identity__add_platform_policies.sql
+CREATE POLICY platform_staff__select__platform ON identity.platform_staff FOR SELECT TO lims_app
+  USING ((SELECT app.is_platform_actor()));
+CREATE POLICY platform_staff__insert__platform ON identity.platform_staff FOR INSERT TO lims_app
+  WITH CHECK ((SELECT app.is_platform_actor()));
+CREATE POLICY platform_staff__update__platform ON identity.platform_staff FOR UPDATE TO lims_app
+  USING ((SELECT app.is_platform_actor())) WITH CHECK ((SELECT app.is_platform_actor()));
+CREATE POLICY platform_events__select__platform ON identity.platform_events FOR SELECT TO lims_app
+  USING ((SELECT app.is_platform_actor()));
+CREATE POLICY platform_events__insert__platform ON identity.platform_events FOR INSERT TO lims_app
+  WITH CHECK ((SELECT app.is_platform_actor()));
+CREATE POLICY auth_events__select__platform ON identity.auth_events FOR SELECT TO lims_app
+  USING ((SELECT app.is_platform_actor()));
+CREATE POLICY feature_flags__select__platform ON identity.feature_flags FOR SELECT TO lims_app
+  USING ((SELECT app.is_platform_actor()));
+CREATE POLICY feature_flags__update__platform ON identity.feature_flags FOR UPDATE TO lims_app
+  USING ((SELECT app.is_platform_actor())) WITH CHECK ((SELECT app.is_platform_actor()));
+CREATE POLICY support_sessions__select__platform ON identity.support_sessions FOR SELECT TO lims_app
+  USING ((SELECT app.is_platform_actor()));
+CREATE POLICY support_sessions__insert__platform ON identity.support_sessions FOR INSERT TO lims_app
+  WITH CHECK ((SELECT app.is_platform_actor()));
+CREATE POLICY support_sessions__update__platform ON identity.support_sessions FOR UPDATE TO lims_app
+  USING ((SELECT app.is_platform_actor())) WITH CHECK ((SELECT app.is_platform_actor()));
+CREATE POLICY ird_annex_records__select__platform ON identity.ird_annex_records FOR SELECT TO lims_app
+  USING ((SELECT app.is_platform_actor()));
+CREATE POLICY ird_annex_records__insert__platform ON identity.ird_annex_records FOR INSERT TO lims_app
+  WITH CHECK ((SELECT app.is_platform_actor()));
+CREATE POLICY ird_annex_records__update__platform ON identity.ird_annex_records FOR UPDATE TO lims_app
+  USING ((SELECT app.is_platform_actor())) WITH CHECK ((SELECT app.is_platform_actor()));
+CREATE POLICY ird_annex_events__select__platform ON identity.ird_annex_events FOR SELECT TO lims_app
+  USING ((SELECT app.is_platform_actor()));
+CREATE POLICY ird_annex_events__insert__platform ON identity.ird_annex_events FOR INSERT TO lims_app
+  WITH CHECK ((SELECT app.is_platform_actor()));
+CREATE POLICY ird_annex_documents__select__platform ON identity.ird_annex_documents FOR SELECT TO lims_app
+  USING ((SELECT app.is_platform_actor()));
+CREATE POLICY ird_annex_documents__insert__platform ON identity.ird_annex_documents FOR INSERT TO lims_app
+  WITH CHECK ((SELECT app.is_platform_actor()));
+CREATE POLICY ird_annex_documents__update__platform ON identity.ird_annex_documents FOR UPDATE TO lims_app
+  USING ((SELECT app.is_platform_actor())) WITH CHECK ((SELECT app.is_platform_actor()));
+-- PLATFORM-DDL-1 (LD-223; CR C2.T22): copied 1:1 from db/migrations/20261115192000_identity__add_provisioning_schema.sql
+CREATE POLICY tenant_contract_acceptances__select__tenant ON identity.tenant_contract_acceptances FOR SELECT TO lims_app
+  USING (tenant_id=(SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+CREATE POLICY tenant_contract_acceptances__insert__tenant ON identity.tenant_contract_acceptances FOR INSERT TO lims_app
+  WITH CHECK (tenant_id=(SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+CREATE POLICY tenant_contract_acceptances__select__platform ON identity.tenant_contract_acceptances FOR SELECT TO lims_app
+  USING ((SELECT app.is_platform_actor()));

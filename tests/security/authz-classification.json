@@ -1,0 +1,5164 @@
+{
+  "counts": {
+    "guarded-exact": 604,
+    "guarded-other": 55,
+    "identity-session-flow": 6,
+    "inconclusive": 30,
+    "platform": 34,
+    "public": 13,
+    "scheme-callback-token": 6,
+    "scheme-device": 9,
+    "scheme-patient-pre-auth": 3,
+    "scheme-portal": 9,
+    "stub": 38,
+    "unguarded": 211
+  },
+  "operations": {
+    "accessionAnatomicCase": {
+      "class": "guarded-exact",
+      "permission": "anatomic.case.work",
+      "x_permission": "anatomic.case.work"
+    },
+    "ackSync": {
+      "class": "inconclusive",
+      "reason": "assertRole is reachable but no permission code is a literal or a same-module constant (code comes from an imported table, a destructured array or a helper argument); a handler-level read is needed to name it",
+      "x_permission": "homecollection.sync.upload"
+    },
+    "acknowledgeInventoryAlert": {
+      "class": "stub",
+      "reason": "no handler definition found; registered through the module stub (common.internal or 501)",
+      "x_permission": "inventory.stock.manage"
+    },
+    "acknowledgeQcRun": {
+      "class": "guarded-exact",
+      "permission": "quality.qc_run.review",
+      "x_permission": "quality.qc_run.review"
+    },
+    "acknowledgeTatAlert": {
+      "class": "guarded-exact",
+      "permission": "quality.tat_alert.ack",
+      "x_permission": "quality.tat_alert.ack"
+    },
+    "activateAutoverifyVersion": {
+      "class": "guarded-exact",
+      "permission": "quality.autoverify.manage",
+      "x_permission": "quality.autoverify.manage"
+    },
+    "activateBreakpointSet": {
+      "class": "guarded-exact",
+      "permission": "micro.breakpoint.manage",
+      "x_permission": "micro.breakpoint.manage"
+    },
+    "activateQcPlan": {
+      "class": "guarded-exact",
+      "permission": "quality.qc.manage",
+      "x_permission": "quality.qc.manage"
+    },
+    "activateQcTarget": {
+      "class": "guarded-exact",
+      "permission": "quality.qc.manage",
+      "x_permission": "quality.qc.manage"
+    },
+    "activateSupportSession": {
+      "class": "platform",
+      "reason": "platform.* is rejected by IdentityPort.assertRole (IdentityPort.impl.ts:229); needs its own guard in the central stage",
+      "x_permission": "platform.support_session.open"
+    },
+    "activateTenant": {
+      "class": "platform",
+      "reason": "platform.* is rejected by IdentityPort.assertRole (IdentityPort.impl.ts:229); needs its own guard in the central stage",
+      "x_permission": "platform.tenant.manage"
+    },
+    "addAnatomicBatchMembers": {
+      "class": "guarded-exact",
+      "permission": "anatomic.case.work",
+      "x_permission": "anatomic.case.work"
+    },
+    "addAnatomicPart": {
+      "class": "guarded-exact",
+      "permission": "anatomic.case.work",
+      "x_permission": "anatomic.case.work"
+    },
+    "addCulturePlate": {
+      "class": "guarded-exact",
+      "permission": "micro.culture.work",
+      "x_permission": "micro.culture.work"
+    },
+    "addInventoryItemBarcode": {
+      "class": "guarded-exact",
+      "permission": "inventory.master.manage",
+      "x_permission": "inventory.master.manage"
+    },
+    "addManifestLine": {
+      "class": "guarded-exact",
+      "permission": "partners.manifest.submit",
+      "x_permission": "partners.manifest.submit"
+    },
+    "amendResult": {
+      "class": "guarded-exact",
+      "permission": "lab.result.amend",
+      "x_permission": "lab.result.amend"
+    },
+    "anonymisePatient": {
+      "class": "inconclusive",
+      "reason": "assertRole is reachable but no permission code is a literal or a same-module constant (code comes from an imported table, a destructured array or a helper argument); a handler-level read is needed to name it",
+      "x_permission": "frontdesk.patient.anonymise"
+    },
+    "applyMicroInstrumentRecord": {
+      "class": "guarded-exact",
+      "permission": "micro.culture.work",
+      "x_permission": "micro.culture.work"
+    },
+    "applyRolePack": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "identity.role.manage"
+    },
+    "approveDiscount": {
+      "class": "stub",
+      "reason": "no handler definition found; registered through the module stub (common.internal or 501)",
+      "x_permission": "frontdesk.discount.approve"
+    },
+    "approvePaymentRefund": {
+      "class": "guarded-exact",
+      "permission": "payments.refund.approve",
+      "x_permission": "payments.refund.approve"
+    },
+    "approvePurchaseOrder": {
+      "class": "guarded-exact",
+      "permission": "inventory.po.approve",
+      "x_permission": "inventory.po.approve"
+    },
+    "approveRefund": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "billing.refund.approve"
+    },
+    "approveResult": {
+      "class": "guarded-exact",
+      "permission": "lab.result.approve",
+      "x_permission": "lab.result.approve"
+    },
+    "approveSmartLibraryVersion": {
+      "class": "guarded-exact",
+      "permission": "smartreport.template.approve",
+      "x_permission": "smartreport.template.approve"
+    },
+    "approveSmartSummary": {
+      "class": "guarded-exact",
+      "permission": "smartreport.summary.approve",
+      "x_permission": "smartreport.summary.approve"
+    },
+    "approveSupportSession": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "identity.settings.manage"
+    },
+    "assignAstPanel": {
+      "class": "guarded-exact",
+      "permission": "micro.culture.work",
+      "x_permission": "micro.culture.work"
+    },
+    "assignHomeVisit": {
+      "class": "guarded-exact",
+      "permission": "homecollection.visit.assign",
+      "x_permission": "homecollection.visit.assign"
+    },
+    "assignIngestException": {
+      "class": "guarded-exact",
+      "permission": "lab.result.enter",
+      "x_permission": "lab.result.enter"
+    },
+    "assignMicroInstrumentRecord": {
+      "class": "guarded-exact",
+      "permission": "micro.culture.work",
+      "x_permission": "micro.culture.work"
+    },
+    "buildSmartSummary": {
+      "class": "guarded-exact",
+      "permission": "smartreport.summary.approve",
+      "x_permission": "smartreport.summary.approve"
+    },
+    "bulkApproveResults": {
+      "class": "guarded-exact",
+      "permission": "lab.result.approve",
+      "x_permission": "lab.result.approve"
+    },
+    "bulkCollectSpecimens": {
+      "class": "guarded-exact",
+      "permission": "lab.specimen.collect",
+      "x_permission": "lab.specimen.collect"
+    },
+    "bulkDispatchSpecimens": {
+      "class": "guarded-exact",
+      "permission": "lab.specimen.collect",
+      "x_permission": "lab.specimen.collect"
+    },
+    "bulkEnterResults": {
+      "class": "guarded-exact",
+      "permission": "lab.result.enter",
+      "x_permission": "lab.result.enter"
+    },
+    "bulkReceiveSpecimens": {
+      "class": "guarded-exact",
+      "permission": "lab.specimen.receive",
+      "x_permission": "lab.specimen.receive"
+    },
+    "bulkReleaseReportVersions": {
+      "class": "guarded-exact",
+      "permission": "reporting.report.bulk_release",
+      "x_permission": "reporting.report.bulk_release"
+    },
+    "bulkVerifyResults": {
+      "class": "guarded-exact",
+      "permission": "lab.result.verify",
+      "x_permission": "lab.result.verify"
+    },
+    "callNextQueueToken": {
+      "class": "guarded-exact",
+      "permission": "engagement.queue.operate",
+      "x_permission": "engagement.queue.operate"
+    },
+    "cancelAnatomicCase": {
+      "class": "guarded-exact",
+      "permission": "anatomic.case.work",
+      "x_permission": "anatomic.case.work"
+    },
+    "cancelAnatomicStainOrder": {
+      "class": "guarded-exact",
+      "permission": "anatomic.case.work",
+      "x_permission": "anatomic.case.work"
+    },
+    "cancelBooking": {
+      "class": "guarded-exact",
+      "permission": "engagement.booking.cancel",
+      "x_permission": "engagement.booking.cancel"
+    },
+    "cancelCulture": {
+      "class": "guarded-exact",
+      "permission": "micro.culture.work",
+      "x_permission": "micro.culture.work"
+    },
+    "cancelGoodsReceipt": {
+      "class": "guarded-exact",
+      "permission": "inventory.stock.manage",
+      "x_permission": "inventory.stock.manage"
+    },
+    "cancelHomeVisit": {
+      "class": "guarded-exact",
+      "permission": "homecollection.visit.assign",
+      "x_permission": "homecollection.visit.assign"
+    },
+    "cancelInvoice": {
+      "class": "guarded-other",
+      "permission": "billing.invoice.reprint",
+      "reason": "asserts billing.invoice.reprint but x-permission is billing.invoice.cancel",
+      "x_permission": "billing.invoice.cancel"
+    },
+    "cancelMembership": {
+      "class": "guarded-exact",
+      "permission": "engagement.membership.enrol",
+      "x_permission": "engagement.membership.enrol"
+    },
+    "cancelMyBooking": {
+      "class": "inconclusive",
+      "reason": "assertRole is reachable but no permission code is a literal or a same-module constant (code comes from an imported table, a destructured array or a helper argument); a handler-level read is needed to name it",
+      "x_permission": "engagement.booking.cancel"
+    },
+    "cancelOrder": {
+      "class": "guarded-other",
+      "permission": "frontdesk.discount.approve",
+      "reason": "asserts frontdesk.discount.approve but x-permission is frontdesk.order.cancel",
+      "x_permission": "frontdesk.order.cancel"
+    },
+    "cancelPaymentIntent": {
+      "class": "inconclusive",
+      "reason": "assertRole is reachable but no permission code is a literal or a same-module constant (code comes from an imported table, a destructured array or a helper argument); a handler-level read is needed to name it",
+      "x_permission": "payments.intent.create"
+    },
+    "cancelPickupRequest": {
+      "class": "guarded-exact",
+      "permission": "partners.pickup.request",
+      "x_permission": "partners.pickup.request"
+    },
+    "cancelPurchaseOrder": {
+      "class": "guarded-exact",
+      "permission": "inventory.po.manage",
+      "x_permission": "inventory.po.manage"
+    },
+    "cancelQueueToken": {
+      "class": "guarded-exact",
+      "permission": "engagement.queue.operate",
+      "x_permission": "engagement.queue.operate"
+    },
+    "cancelReminder": {
+      "class": "guarded-exact",
+      "permission": "engagement.reminder.manage",
+      "x_permission": "engagement.reminder.manage"
+    },
+    "cancelStockCount": {
+      "class": "guarded-exact",
+      "permission": "inventory.stock.manage",
+      "x_permission": "inventory.stock.manage"
+    },
+    "cancelTransfer": {
+      "class": "guarded-exact",
+      "permission": "inventory.stock.manage",
+      "x_permission": "inventory.stock.manage"
+    },
+    "captureQcResult": {
+      "class": "guarded-exact",
+      "permission": "lab.qc.capture",
+      "x_permission": "lab.qc.capture"
+    },
+    "changeOrderItems": {
+      "class": "stub",
+      "reason": "no handler definition found; registered through the module stub (common.internal or 501)",
+      "x_permission": "frontdesk.order.edit"
+    },
+    "changeOwnPassword": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "identity.self.manage"
+    },
+    "changePartnerUserRole": {
+      "class": "guarded-exact",
+      "permission": "partners.partner_user.manage",
+      "x_permission": "partners.partner_user.manage"
+    },
+    "changePartnerUserRoleByStaff": {
+      "class": "guarded-exact",
+      "permission": "partners.partner.manage",
+      "x_permission": "partners.partner.manage"
+    },
+    "checkInBooking": {
+      "class": "guarded-exact",
+      "permission": "engagement.booking.manage",
+      "x_permission": "engagement.booking.manage"
+    },
+    "closeAnatomicBatch": {
+      "class": "guarded-exact",
+      "permission": "anatomic.case.work",
+      "x_permission": "anatomic.case.work"
+    },
+    "closeCashSession": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "billing.payment.record"
+    },
+    "closeEnquiry": {
+      "class": "guarded-exact",
+      "permission": "engagement.enquiry.respond",
+      "x_permission": "engagement.enquiry.respond"
+    },
+    "closePurchaseOrder": {
+      "class": "guarded-exact",
+      "permission": "inventory.po.manage",
+      "x_permission": "inventory.po.manage"
+    },
+    "closeQcRun": {
+      "class": "guarded-exact",
+      "permission": "quality.qc_run.review",
+      "x_permission": "quality.qc_run.review"
+    },
+    "collectSpecimen": {
+      "class": "guarded-exact",
+      "permission": "lab.specimen.collect",
+      "x_permission": "lab.specimen.collect"
+    },
+    "commitImport": {
+      "class": "guarded-other",
+      "permission": "catalog.price_list.manage,catalog.price_list.read,catalog.reference_range.publish,catalog.referrer.manage,catalog.referrer.read,catalog.test.manage",
+      "reason": "asserts catalog.price_list.manage,catalog.price_list.read,catalog.reference_range.publish,catalog.referrer.manage,catalog.referrer.read,catalog.test.manage but x-permission is catalog.test.read",
+      "x_permission": "catalog.test.read"
+    },
+    "completeAnatomicStainOrder": {
+      "class": "guarded-exact",
+      "permission": "anatomic.case.work",
+      "x_permission": "anatomic.case.work"
+    },
+    "completeMfaEnrolment": {
+      "class": "identity-session-flow",
+      "reason": "identity login and session flow (x-context identity_auth); the session token authenticates, no staff permission",
+      "x_permission": null
+    },
+    "completeQueueToken": {
+      "class": "guarded-exact",
+      "permission": "engagement.queue.operate",
+      "x_permission": "engagement.queue.operate"
+    },
+    "confirmEmailToken": {
+      "class": "public",
+      "reason": "x-public: email link landing (invite/recovery)",
+      "x_permission": null
+    },
+    "confirmHandover": {
+      "class": "guarded-exact",
+      "permission": "homecollection.handover.receive",
+      "x_permission": "homecollection.handover.receive"
+    },
+    "confirmManualPaymentRefund": {
+      "class": "stub",
+      "reason": "no handler definition found; registered through the module stub (common.internal or 501)",
+      "x_permission": "payments.refund.approve"
+    },
+    "confirmOutsourcedReport": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "reporting.outsourced.attach"
+    },
+    "confirmPreRegisteredOrder": {
+      "class": "stub",
+      "reason": "no handler definition found; registered through the module stub (common.internal or 501)",
+      "x_permission": "frontdesk.registration.create"
+    },
+    "correctInventoryLotExpiry": {
+      "class": "guarded-exact",
+      "permission": "inventory.stock.adjust",
+      "x_permission": "inventory.stock.adjust"
+    },
+    "createAgent": {
+      "class": "guarded-exact",
+      "permission": "instruments.agent.manage",
+      "x_permission": "instruments.agent.manage"
+    },
+    "createAliquots": {
+      "class": "guarded-exact",
+      "permission": "lab.specimen.receive",
+      "x_permission": "lab.specimen.receive"
+    },
+    "createAnalyte": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "catalog.test.manage"
+    },
+    "createAnalyteVersionDraft": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "catalog.test.manage"
+    },
+    "createAnalyticsExport": {
+      "class": "guarded-exact",
+      "permission": "analytics.data.export",
+      "x_permission": "analytics.data.export"
+    },
+    "createAnatomicAddendum": {
+      "class": "guarded-exact",
+      "permission": "anatomic.case.work",
+      "x_permission": "anatomic.case.work"
+    },
+    "createAnatomicAssay": {
+      "class": "guarded-exact",
+      "permission": "anatomic.config.manage",
+      "x_permission": "anatomic.config.manage"
+    },
+    "createAnatomicBatch": {
+      "class": "guarded-exact",
+      "permission": "anatomic.case.work",
+      "x_permission": "anatomic.case.work"
+    },
+    "createAnatomicBlocks": {
+      "class": "guarded-exact",
+      "permission": "anatomic.case.work",
+      "x_permission": "anatomic.case.work"
+    },
+    "createAnatomicSlides": {
+      "class": "guarded-exact",
+      "permission": "anatomic.case.work",
+      "x_permission": "anatomic.case.work"
+    },
+    "createAnatomicStain": {
+      "class": "guarded-exact",
+      "permission": "anatomic.config.manage",
+      "x_permission": "anatomic.config.manage"
+    },
+    "createAnatomicStainOrder": {
+      "class": "guarded-exact",
+      "permission": "anatomic.case.work",
+      "x_permission": "anatomic.case.work"
+    },
+    "createAnatomicSynopticTemplate": {
+      "class": "guarded-exact",
+      "permission": "anatomic.config.manage",
+      "x_permission": "anatomic.config.manage"
+    },
+    "createAnatomicSynopticTemplateVersion": {
+      "class": "guarded-exact",
+      "permission": "anatomic.config.manage",
+      "x_permission": "anatomic.config.manage"
+    },
+    "createAnatomicTextTemplate": {
+      "class": "guarded-exact",
+      "permission": "anatomic.config.manage",
+      "x_permission": "anatomic.config.manage"
+    },
+    "createAstPanel": {
+      "class": "guarded-exact",
+      "permission": "micro.config.manage",
+      "x_permission": "micro.config.manage"
+    },
+    "createAuditExport": {
+      "class": "guarded-other",
+      "permission": "audit.log.read",
+      "reason": "asserts audit.log.read but x-permission is audit.log.export",
+      "x_permission": "audit.log.export"
+    },
+    "createAutoverifyVersion": {
+      "class": "guarded-exact",
+      "permission": "quality.autoverify.manage",
+      "x_permission": "quality.autoverify.manage"
+    },
+    "createBillingExport": {
+      "class": "guarded-exact",
+      "permission": "billing.data.export",
+      "x_permission": "billing.data.export"
+    },
+    "createBookingForPatient": {
+      "class": "guarded-exact",
+      "permission": "engagement.booking.manage",
+      "x_permission": "engagement.booking.manage"
+    },
+    "createBranch": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "identity.centre.manage"
+    },
+    "createBreakpointImport": {
+      "class": "guarded-exact",
+      "permission": "micro.breakpoint.manage",
+      "x_permission": "micro.breakpoint.manage"
+    },
+    "createBulkPrint": {
+      "class": "guarded-exact",
+      "permission": "reporting.report.bulk_download",
+      "x_permission": "reporting.report.bulk_download"
+    },
+    "createCentre": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "identity.centre.manage"
+    },
+    "createCentreContact": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "reporting.settings.manage"
+    },
+    "createCommentCode": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "catalog.test.manage"
+    },
+    "createConsumptionRule": {
+      "class": "guarded-exact",
+      "permission": "inventory.master.manage",
+      "x_permission": "inventory.master.manage"
+    },
+    "createContainer": {
+      "class": "stub",
+      "reason": "no handler definition found; registered through the module stub (common.internal or 501)",
+      "x_permission": "catalog.test.manage"
+    },
+    "createControlIdMap": {
+      "class": "guarded-exact",
+      "permission": "quality.qc.manage",
+      "x_permission": "quality.qc.manage"
+    },
+    "createControlLevel": {
+      "class": "guarded-exact",
+      "permission": "quality.qc.manage",
+      "x_permission": "quality.qc.manage"
+    },
+    "createControlLot": {
+      "class": "guarded-exact",
+      "permission": "quality.qc.manage",
+      "x_permission": "quality.qc.manage"
+    },
+    "createControlMaterial": {
+      "class": "guarded-exact",
+      "permission": "quality.qc.manage",
+      "x_permission": "quality.qc.manage"
+    },
+    "createCounter": {
+      "class": "guarded-exact",
+      "permission": "engagement.queue.manage",
+      "x_permission": "engagement.queue.manage"
+    },
+    "createCreditParty": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "catalog.price_list.manage"
+    },
+    "createCriticalLimitSetDraft": {
+      "class": "guarded-other",
+      "permission": "catalog.reference_range.publish",
+      "reason": "asserts catalog.reference_range.publish but x-permission is catalog.test.manage",
+      "x_permission": "catalog.test.manage"
+    },
+    "createDeltaCheckRule": {
+      "class": "guarded-exact",
+      "permission": "lab.config.manage",
+      "x_permission": "lab.config.manage"
+    },
+    "createDepartment": {
+      "class": "stub",
+      "reason": "no handler definition found; registered through the module stub (common.internal or 501)",
+      "x_permission": "catalog.test.manage"
+    },
+    "createDoctor": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "catalog.referrer.manage"
+    },
+    "createExport": {
+      "class": "guarded-other",
+      "permission": "catalog.price_list.manage,catalog.test.manage",
+      "reason": "asserts catalog.price_list.manage,catalog.test.manage but x-permission is catalog.test.read",
+      "x_permission": "catalog.test.read"
+    },
+    "createGoodsReceipt": {
+      "class": "guarded-exact",
+      "permission": "inventory.stock.manage",
+      "x_permission": "inventory.stock.manage"
+    },
+    "createHomeRevisit": {
+      "class": "guarded-exact",
+      "permission": "homecollection.visit.assign",
+      "x_permission": "homecollection.visit.assign"
+    },
+    "createImport": {
+      "class": "guarded-other",
+      "permission": "catalog.price_list.manage,catalog.price_list.read,catalog.reference_range.publish,catalog.referrer.manage,catalog.referrer.read,catalog.test.manage",
+      "reason": "asserts catalog.price_list.manage,catalog.price_list.read,catalog.reference_range.publish,catalog.referrer.manage,catalog.referrer.read,catalog.test.manage but x-permission is catalog.test.read",
+      "x_permission": "catalog.test.read"
+    },
+    "createInstrument": {
+      "class": "guarded-exact",
+      "permission": "instruments.instrument.manage",
+      "x_permission": "instruments.instrument.manage"
+    },
+    "createInstrumentCodeMap": {
+      "class": "guarded-exact",
+      "permission": "catalog.instrument_code_map.manage",
+      "x_permission": "catalog.instrument_code_map.manage"
+    },
+    "createInstrumentVocabMap": {
+      "class": "guarded-exact",
+      "permission": "micro.config.manage",
+      "x_permission": "micro.config.manage"
+    },
+    "createInventoryItem": {
+      "class": "guarded-exact",
+      "permission": "inventory.master.manage",
+      "x_permission": "inventory.master.manage"
+    },
+    "createInventoryItemPack": {
+      "class": "guarded-exact",
+      "permission": "inventory.master.manage",
+      "x_permission": "inventory.master.manage"
+    },
+    "createInventoryStore": {
+      "class": "guarded-exact",
+      "permission": "inventory.master.manage",
+      "x_permission": "inventory.master.manage"
+    },
+    "createInventorySupplier": {
+      "class": "guarded-exact",
+      "permission": "inventory.master.manage",
+      "x_permission": "inventory.master.manage"
+    },
+    "createIsolate": {
+      "class": "guarded-exact",
+      "permission": "micro.culture.work",
+      "x_permission": "micro.culture.work"
+    },
+    "createManifest": {
+      "class": "guarded-exact",
+      "permission": "partners.manifest.submit",
+      "x_permission": "partners.manifest.submit"
+    },
+    "createMembershipPlan": {
+      "class": "guarded-exact",
+      "permission": "engagement.membership_plan.manage",
+      "x_permission": "engagement.membership_plan.manage"
+    },
+    "createMethod": {
+      "class": "stub",
+      "reason": "no handler definition found; registered through the module stub (common.internal or 501)",
+      "x_permission": "catalog.test.manage"
+    },
+    "createMyAddress": {
+      "class": "guarded-other",
+      "permission": "engagement.slot.manage",
+      "reason": "asserts engagement.slot.manage but x-permission is engagement.self.manage",
+      "x_permission": "engagement.self.manage"
+    },
+    "createMyBooking": {
+      "class": "inconclusive",
+      "reason": "assertRole is reachable but no permission code is a literal or a same-module constant (code comes from an imported table, a destructured array or a helper argument); a handler-level read is needed to name it",
+      "x_permission": "engagement.booking.create"
+    },
+    "createMyEnquiry": {
+      "class": "guarded-exact",
+      "permission": "engagement.enquiry.create",
+      "x_permission": "engagement.enquiry.create"
+    },
+    "createNarrativeTemplate": {
+      "class": "guarded-other",
+      "permission": "reporting.narrative.sign",
+      "reason": "asserts reporting.narrative.sign but x-permission is reporting.template.manage",
+      "x_permission": "reporting.template.manage"
+    },
+    "createPanel": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "catalog.test.manage"
+    },
+    "createPartner": {
+      "class": "guarded-exact",
+      "permission": "partners.partner.manage",
+      "x_permission": "partners.partner.manage"
+    },
+    "createPartnerReferrer": {
+      "class": "guarded-exact",
+      "permission": "partners.referrer.manage",
+      "x_permission": "partners.referrer.manage"
+    },
+    "createPatient": {
+      "class": "inconclusive",
+      "reason": "assertRole is reachable but no permission code is a literal or a same-module constant (code comes from an imported table, a destructured array or a helper argument); a handler-level read is needed to name it",
+      "x_permission": "frontdesk.registration.create"
+    },
+    "createPaymentIntent": {
+      "class": "stub",
+      "reason": "no handler definition found; registered through the module stub (common.internal or 501)",
+      "x_permission": "payments.intent.create"
+    },
+    "createPaymentRefundRequest": {
+      "class": "guarded-exact",
+      "permission": "payments.refund.request",
+      "x_permission": "payments.refund.request"
+    },
+    "createPaymentRequest": {
+      "class": "guarded-exact",
+      "permission": "engagement.payment.create",
+      "x_permission": "engagement.payment.create"
+    },
+    "createPickupRequest": {
+      "class": "guarded-exact",
+      "permission": "partners.pickup.request",
+      "x_permission": "partners.pickup.request"
+    },
+    "createPlatformIrdAnnex": {
+      "class": "platform",
+      "reason": "platform.* is rejected by IdentityPort.assertRole (IdentityPort.impl.ts:229); needs its own guard in the central stage",
+      "x_permission": "platform.tenant.manage"
+    },
+    "createPlatingProtocol": {
+      "class": "guarded-exact",
+      "permission": "micro.config.manage",
+      "x_permission": "micro.config.manage"
+    },
+    "createPortalOtpChallenge": {
+      "class": "scheme-portal",
+      "reason": "scheme portalSession",
+      "x_permission": "reporting.portal.challenge"
+    },
+    "createPortalPaymentRequest": {
+      "class": "scheme-portal",
+      "reason": "scheme portalSession",
+      "x_permission": "reporting.portal.view"
+    },
+    "createPriceList": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "catalog.price_list.manage"
+    },
+    "createPriceListVersionDraft": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "catalog.price_list.manage"
+    },
+    "createPurchaseOrder": {
+      "class": "guarded-exact",
+      "permission": "inventory.po.manage",
+      "x_permission": "inventory.po.manage"
+    },
+    "createPurchaseOrdersFromReorder": {
+      "class": "guarded-exact",
+      "permission": "inventory.po.manage",
+      "x_permission": "inventory.po.manage"
+    },
+    "createQcPlan": {
+      "class": "guarded-exact",
+      "permission": "quality.qc.manage",
+      "x_permission": "quality.qc.manage"
+    },
+    "createQcPlanVersion": {
+      "class": "guarded-exact",
+      "permission": "quality.qc.manage",
+      "x_permission": "quality.qc.manage"
+    },
+    "createQcTarget": {
+      "class": "guarded-exact",
+      "permission": "quality.qc.manage",
+      "x_permission": "quality.qc.manage"
+    },
+    "createQueue": {
+      "class": "guarded-exact",
+      "permission": "engagement.queue.manage",
+      "x_permission": "engagement.queue.manage"
+    },
+    "createReferenceRangeSetDraft": {
+      "class": "guarded-other",
+      "permission": "catalog.reference_range.publish",
+      "reason": "asserts catalog.reference_range.publish but x-permission is catalog.test.manage",
+      "x_permission": "catalog.test.manage"
+    },
+    "createRegistration": {
+      "class": "stub",
+      "reason": "no handler definition found; registered through the module stub (common.internal or 501)",
+      "x_permission": "frontdesk.registration.create"
+    },
+    "createReleaseOverride": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "billing.release.override"
+    },
+    "createReminder": {
+      "class": "guarded-exact",
+      "permission": "engagement.reminder.manage",
+      "x_permission": "engagement.reminder.manage"
+    },
+    "createReportPrint": {
+      "class": "guarded-other",
+      "permission": "reporting.report.bulk_download,reporting.report.release",
+      "reason": "asserts reporting.report.bulk_download,reporting.report.release but x-permission is reporting.report.print",
+      "x_permission": "reporting.report.print"
+    },
+    "createReportSchedule": {
+      "class": "guarded-exact",
+      "permission": "analytics.schedule.manage",
+      "x_permission": "analytics.schedule.manage"
+    },
+    "createReportTemplate": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "reporting.template.manage"
+    },
+    "createRole": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "identity.role.manage"
+    },
+    "createSelfRegistration": {
+      "class": "guarded-exact",
+      "permission": "engagement.self.manage",
+      "x_permission": "engagement.self.manage"
+    },
+    "createSlotBlackout": {
+      "class": "guarded-exact",
+      "permission": "engagement.slot.manage",
+      "x_permission": "engagement.slot.manage"
+    },
+    "createSlotTemplate": {
+      "class": "guarded-exact",
+      "permission": "engagement.slot.manage",
+      "x_permission": "engagement.slot.manage"
+    },
+    "createSmartDenyTerm": {
+      "class": "guarded-exact",
+      "permission": "smartreport.template.manage",
+      "x_permission": "smartreport.template.manage"
+    },
+    "createSmartLibraryVersion": {
+      "class": "guarded-exact",
+      "permission": "smartreport.template.manage",
+      "x_permission": "smartreport.template.manage"
+    },
+    "createSmartRule": {
+      "class": "guarded-exact",
+      "permission": "smartreport.template.manage",
+      "x_permission": "smartreport.template.manage"
+    },
+    "createSmartTemplateBlock": {
+      "class": "guarded-exact",
+      "permission": "smartreport.template.manage",
+      "x_permission": "smartreport.template.manage"
+    },
+    "createSpecimenType": {
+      "class": "stub",
+      "reason": "no handler definition found; registered through the module stub (common.internal or 501)",
+      "x_permission": "catalog.test.manage"
+    },
+    "createStaticQrReconciliation": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "payments.intent.resolve"
+    },
+    "createStockAdjustment": {
+      "class": "guarded-exact",
+      "permission": "inventory.stock.adjust",
+      "x_permission": "inventory.stock.adjust"
+    },
+    "createStockIssue": {
+      "class": "guarded-exact",
+      "permission": "inventory.stock.manage",
+      "x_permission": "inventory.stock.manage"
+    },
+    "createStoreReturn": {
+      "class": "guarded-exact",
+      "permission": "inventory.stock.manage",
+      "x_permission": "inventory.stock.manage"
+    },
+    "createSupplierReturn": {
+      "class": "guarded-exact",
+      "permission": "inventory.stock.manage",
+      "x_permission": "inventory.stock.manage"
+    },
+    "createSurchargeRule": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "catalog.price_list.manage"
+    },
+    "createTaxRule": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "catalog.price_list.manage"
+    },
+    "createTaxType": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "catalog.price_list.manage"
+    },
+    "createTest": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "catalog.test.manage"
+    },
+    "createTransfer": {
+      "class": "guarded-exact",
+      "permission": "inventory.stock.manage",
+      "x_permission": "inventory.stock.manage"
+    },
+    "createUnit": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "catalog.test.manage"
+    },
+    "createValueSet": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "catalog.test.manage"
+    },
+    "createWorksheet": {
+      "class": "guarded-exact",
+      "permission": "lab.worksheet.manage",
+      "x_permission": "lab.worksheet.manage"
+    },
+    "deactivateAnatomicImage": {
+      "class": "guarded-exact",
+      "permission": "anatomic.case.work",
+      "x_permission": "anatomic.case.work"
+    },
+    "deactivateAstPanel": {
+      "class": "guarded-exact",
+      "permission": "micro.config.manage",
+      "x_permission": "micro.config.manage"
+    },
+    "deactivateBranch": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "identity.centre.manage"
+    },
+    "deactivateCentre": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "identity.centre.manage"
+    },
+    "deactivateConsumptionRule": {
+      "class": "guarded-exact",
+      "permission": "inventory.master.manage",
+      "x_permission": "inventory.master.manage"
+    },
+    "deactivateControlIdMap": {
+      "class": "guarded-exact",
+      "permission": "quality.qc.manage",
+      "x_permission": "quality.qc.manage"
+    },
+    "deactivateControlMaterial": {
+      "class": "guarded-exact",
+      "permission": "quality.qc.manage",
+      "x_permission": "quality.qc.manage"
+    },
+    "deactivateDeltaCheckRule": {
+      "class": "guarded-exact",
+      "permission": "lab.config.manage",
+      "x_permission": "lab.config.manage"
+    },
+    "deactivateInstrumentBinding": {
+      "class": "guarded-exact",
+      "permission": "inventory.master.manage",
+      "x_permission": "inventory.master.manage"
+    },
+    "deactivateInstrumentVocabMap": {
+      "class": "guarded-exact",
+      "permission": "micro.config.manage",
+      "x_permission": "micro.config.manage"
+    },
+    "deactivateInventoryItemBarcode": {
+      "class": "guarded-exact",
+      "permission": "inventory.master.manage",
+      "x_permission": "inventory.master.manage"
+    },
+    "deactivateMyAddress": {
+      "class": "guarded-other",
+      "permission": "engagement.slot.manage",
+      "reason": "asserts engagement.slot.manage but x-permission is engagement.self.manage",
+      "x_permission": "engagement.self.manage"
+    },
+    "deactivatePartnerReferrer": {
+      "class": "guarded-exact",
+      "permission": "partners.referrer.manage",
+      "x_permission": "partners.referrer.manage"
+    },
+    "deactivatePartnerUser": {
+      "class": "guarded-exact",
+      "permission": "partners.partner_user.manage",
+      "x_permission": "partners.partner_user.manage"
+    },
+    "deactivatePartnerUserByStaff": {
+      "class": "guarded-exact",
+      "permission": "partners.partner.manage",
+      "x_permission": "partners.partner.manage"
+    },
+    "deactivatePlatformStaff": {
+      "class": "platform",
+      "reason": "platform.* is rejected by IdentityPort.assertRole (IdentityPort.impl.ts:229); needs its own guard in the central stage",
+      "x_permission": "platform.staff.manage"
+    },
+    "deactivatePlatingProtocol": {
+      "class": "guarded-exact",
+      "permission": "micro.config.manage",
+      "x_permission": "micro.config.manage"
+    },
+    "deactivateQcPlan": {
+      "class": "guarded-exact",
+      "permission": "quality.qc.manage",
+      "x_permission": "quality.qc.manage"
+    },
+    "deactivateReportSchedule": {
+      "class": "guarded-exact",
+      "permission": "analytics.schedule.manage",
+      "x_permission": "analytics.schedule.manage"
+    },
+    "deactivateRole": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "identity.role.manage"
+    },
+    "deactivateSlotBlackout": {
+      "class": "guarded-exact",
+      "permission": "engagement.slot.manage",
+      "x_permission": "engagement.slot.manage"
+    },
+    "deactivateSlotTemplate": {
+      "class": "guarded-exact",
+      "permission": "engagement.slot.manage",
+      "x_permission": "engagement.slot.manage"
+    },
+    "deactivateSmartDenyTerm": {
+      "class": "guarded-exact",
+      "permission": "smartreport.template.manage",
+      "x_permission": "smartreport.template.manage"
+    },
+    "deactivateUser": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "identity.user.manage"
+    },
+    "deleteManifestLine": {
+      "class": "guarded-exact",
+      "permission": "partners.manifest.submit",
+      "x_permission": "partners.manifest.submit"
+    },
+    "deleteMyAccount": {
+      "class": "guarded-exact",
+      "permission": "engagement.self.manage",
+      "x_permission": "engagement.self.manage"
+    },
+    "deleteSmartAnalyteGroup": {
+      "class": "guarded-exact",
+      "permission": "smartreport.template.manage",
+      "x_permission": "smartreport.template.manage"
+    },
+    "deleteSmartRule": {
+      "class": "guarded-exact",
+      "permission": "smartreport.template.manage",
+      "x_permission": "smartreport.template.manage"
+    },
+    "deleteSmartTemplateBlock": {
+      "class": "guarded-exact",
+      "permission": "smartreport.template.manage",
+      "x_permission": "smartreport.template.manage"
+    },
+    "denySupportSession": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "identity.settings.manage"
+    },
+    "describeIsolate": {
+      "class": "guarded-exact",
+      "permission": "micro.culture.work",
+      "x_permission": "micro.culture.work"
+    },
+    "discardAnalyteVersionDraft": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "catalog.test.manage"
+    },
+    "discardAnatomicCaseChange": {
+      "class": "guarded-exact",
+      "permission": "anatomic.case.signout",
+      "x_permission": "anatomic.case.signout"
+    },
+    "discardAutoverifyDraft": {
+      "class": "guarded-exact",
+      "permission": "quality.autoverify.manage",
+      "x_permission": "quality.autoverify.manage"
+    },
+    "discardBreakpointSet": {
+      "class": "guarded-exact",
+      "permission": "micro.breakpoint.manage",
+      "x_permission": "micro.breakpoint.manage"
+    },
+    "discardContainer": {
+      "class": "guarded-exact",
+      "permission": "inventory.bench.record",
+      "x_permission": "inventory.bench.record"
+    },
+    "discardCriticalLimitSetDraft": {
+      "class": "guarded-other",
+      "permission": "catalog.reference_range.publish",
+      "reason": "asserts catalog.reference_range.publish but x-permission is catalog.test.manage",
+      "x_permission": "catalog.test.manage"
+    },
+    "discardCulturePlate": {
+      "class": "guarded-exact",
+      "permission": "micro.culture.work",
+      "x_permission": "micro.culture.work"
+    },
+    "discardDeadLetter": {
+      "class": "platform",
+      "reason": "platform.* is rejected by IdentityPort.assertRole (IdentityPort.impl.ts:229); needs its own guard in the central stage",
+      "x_permission": "platform.dead_letter.manage"
+    },
+    "discardImport": {
+      "class": "guarded-other",
+      "permission": "catalog.price_list.manage,catalog.price_list.read,catalog.reference_range.publish,catalog.referrer.manage,catalog.referrer.read,catalog.test.manage",
+      "reason": "asserts catalog.price_list.manage,catalog.price_list.read,catalog.reference_range.publish,catalog.referrer.manage,catalog.referrer.read,catalog.test.manage but x-permission is catalog.test.read",
+      "x_permission": "catalog.test.read"
+    },
+    "discardIngestException": {
+      "class": "guarded-exact",
+      "permission": "lab.result.enter",
+      "x_permission": "lab.result.enter"
+    },
+    "discardManifest": {
+      "class": "guarded-exact",
+      "permission": "partners.manifest.submit",
+      "x_permission": "partners.manifest.submit"
+    },
+    "discardPriceListVersionDraft": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "catalog.price_list.manage"
+    },
+    "discardQcTarget": {
+      "class": "guarded-exact",
+      "permission": "quality.qc.manage",
+      "x_permission": "quality.qc.manage"
+    },
+    "discardReferenceRangeSetDraft": {
+      "class": "guarded-other",
+      "permission": "catalog.reference_range.publish",
+      "reason": "asserts catalog.reference_range.publish but x-permission is catalog.test.manage",
+      "x_permission": "catalog.test.manage"
+    },
+    "discardSpecimen": {
+      "class": "guarded-exact",
+      "permission": "lab.specimen.receive",
+      "x_permission": "lab.specimen.receive"
+    },
+    "dismissAdminNotice": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "identity.user.read"
+    },
+    "dismissConsumptionFact": {
+      "class": "guarded-exact",
+      "permission": "inventory.master.manage",
+      "x_permission": "inventory.master.manage"
+    },
+    "dispatchTransfer": {
+      "class": "guarded-exact",
+      "permission": "inventory.stock.manage",
+      "x_permission": "inventory.stock.manage"
+    },
+    "downloadAgentRelease": {
+      "class": "scheme-device",
+      "reason": "scheme deviceToken",
+      "x_permission": "instruments.ingest.config_read"
+    },
+    "downloadAnalyticsExport": {
+      "class": "guarded-exact",
+      "permission": "analytics.data.export",
+      "x_permission": "analytics.data.export"
+    },
+    "downloadAuditExport": {
+      "class": "guarded-other",
+      "permission": "audit.log.read",
+      "reason": "asserts audit.log.read but x-permission is audit.log.export",
+      "x_permission": "audit.log.export"
+    },
+    "downloadBreakpointTemplate": {
+      "class": "guarded-exact",
+      "permission": "micro.breakpoint.manage",
+      "x_permission": "micro.breakpoint.manage"
+    },
+    "downloadExportFile": {
+      "class": "guarded-other",
+      "permission": "catalog.price_list.manage,catalog.test.manage",
+      "reason": "asserts catalog.price_list.manage,catalog.test.manage but x-permission is catalog.test.read",
+      "x_permission": "catalog.test.read"
+    },
+    "downloadImportReport": {
+      "class": "guarded-other",
+      "permission": "catalog.price_list.manage,catalog.price_list.read,catalog.reference_range.publish,catalog.referrer.manage,catalog.referrer.read,catalog.test.manage",
+      "reason": "asserts catalog.price_list.manage,catalog.price_list.read,catalog.reference_range.publish,catalog.referrer.manage,catalog.referrer.read,catalog.test.manage but x-permission is catalog.test.read",
+      "x_permission": "catalog.test.read"
+    },
+    "downloadImportTemplate": {
+      "class": "guarded-other",
+      "permission": "catalog.price_list.manage,catalog.price_list.read,catalog.reference_range.publish,catalog.referrer.manage,catalog.referrer.read,catalog.test.manage",
+      "reason": "asserts catalog.price_list.manage,catalog.price_list.read,catalog.reference_range.publish,catalog.referrer.manage,catalog.referrer.read,catalog.test.manage but x-permission is catalog.test.read",
+      "x_permission": "catalog.test.read"
+    },
+    "downloadInstrumentAttachment": {
+      "class": "guarded-exact",
+      "permission": "instruments.message.read",
+      "x_permission": "instruments.message.read"
+    },
+    "downloadIrdAnnexDocument": {
+      "class": "platform",
+      "reason": "platform.* is rejected by IdentityPort.assertRole (IdentityPort.impl.ts:229); needs its own guard in the central stage",
+      "x_permission": "platform.tenant.read"
+    },
+    "downloadMyReport": {
+      "class": "guarded-exact",
+      "permission": "reporting.portal.download",
+      "x_permission": "reporting.portal.download"
+    },
+    "downloadOutsourcedReport": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "reporting.outsourced.attach"
+    },
+    "downloadPartnerReport": {
+      "class": "guarded-exact",
+      "permission": "partners.report.read",
+      "x_permission": "partners.report.read"
+    },
+    "downloadPatientAccessSlip": {
+      "class": "guarded-exact",
+      "permission": "partners.report.read",
+      "x_permission": "partners.report.read"
+    },
+    "downloadPortalReportPdf": {
+      "class": "scheme-portal",
+      "reason": "scheme portalSession",
+      "x_permission": "reporting.portal.download"
+    },
+    "downloadReportPrintPdf": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "reporting.report.print"
+    },
+    "downloadReportVersionPdf": {
+      "class": "guarded-other",
+      "permission": "lab.specimen.read,reporting.report.release",
+      "reason": "asserts lab.specimen.read,reporting.report.release but x-permission is reporting.report.read",
+      "x_permission": "reporting.report.read"
+    },
+    "endPortalSession": {
+      "class": "scheme-portal",
+      "reason": "scheme portalSession",
+      "x_permission": "reporting.portal.view"
+    },
+    "endSupportSession": {
+      "class": "platform",
+      "reason": "platform.* is rejected by IdentityPort.assertRole (IdentityPort.impl.ts:229); needs its own guard in the central stage",
+      "x_permission": "platform.support_session.open"
+    },
+    "endSurchargeRule": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "catalog.price_list.manage"
+    },
+    "endTaxRule": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "catalog.price_list.manage"
+    },
+    "enrolAgent": {
+      "class": "scheme-device",
+      "reason": "scheme deviceToken",
+      "x_permission": "instruments.ingest.enrol"
+    },
+    "enrolMembership": {
+      "class": "guarded-exact",
+      "permission": "engagement.membership.enrol",
+      "x_permission": "engagement.membership.enrol"
+    },
+    "esewaFailureCallback": {
+      "class": "scheme-callback-token",
+      "reason": "authenticated by a callback or path token, not a session",
+      "x_permission": null
+    },
+    "esewaSuccessCallback": {
+      "class": "scheme-callback-token",
+      "reason": "authenticated by a callback or path token, not a session",
+      "x_permission": null
+    },
+    "establishQcTarget": {
+      "class": "guarded-exact",
+      "permission": "quality.qc.manage",
+      "x_permission": "quality.qc.manage"
+    },
+    "evaluateQcRunNow": {
+      "class": "guarded-exact",
+      "permission": "quality.qc_run.review",
+      "x_permission": "quality.qc_run.review"
+    },
+    "excludeQcObservation": {
+      "class": "guarded-exact",
+      "permission": "quality.qc.manage",
+      "x_permission": "quality.qc.manage"
+    },
+    "exportGoodsReceiptsCsv": {
+      "class": "guarded-exact",
+      "permission": "inventory.report.export",
+      "x_permission": "inventory.report.export"
+    },
+    "exportInventoryReport": {
+      "class": "guarded-exact",
+      "permission": "inventory.report.export",
+      "x_permission": "inventory.report.export"
+    },
+    "failManualPaymentRefund": {
+      "class": "stub",
+      "reason": "no handler definition found; registered through the module stub (common.internal or 501)",
+      "x_permission": "payments.refund.approve"
+    },
+    "finishContainer": {
+      "class": "guarded-exact",
+      "permission": "inventory.bench.record",
+      "x_permission": "inventory.bench.record"
+    },
+    "getAgent": {
+      "class": "guarded-exact",
+      "permission": "instruments.agent.read",
+      "x_permission": "instruments.agent.read"
+    },
+    "getAgentConfig": {
+      "class": "scheme-device",
+      "reason": "scheme deviceToken",
+      "x_permission": "instruments.ingest.config_read"
+    },
+    "getAgentLogBundle": {
+      "class": "guarded-exact",
+      "permission": "instruments.agent.manage",
+      "x_permission": "instruments.agent.manage"
+    },
+    "getAnalyte": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "catalog.test.read"
+    },
+    "getAnalyteTrend": {
+      "class": "guarded-exact",
+      "permission": "lab.result.read",
+      "x_permission": "lab.result.read"
+    },
+    "getAnalyticsDashboard": {
+      "class": "guarded-exact",
+      "permission": "analytics.dashboard.read",
+      "x_permission": "analytics.dashboard.read"
+    },
+    "getAnalyticsExport": {
+      "class": "guarded-exact",
+      "permission": "analytics.data.export",
+      "x_permission": "analytics.data.export"
+    },
+    "getAnalyticsFilterOptions": {
+      "class": "guarded-exact",
+      "permission": "analytics.dashboard.read",
+      "x_permission": "analytics.dashboard.read"
+    },
+    "getAnalyticsFreshness": {
+      "class": "guarded-exact",
+      "permission": "analytics.dashboard.read",
+      "x_permission": "analytics.dashboard.read"
+    },
+    "getAnatomicBatch": {
+      "class": "guarded-exact",
+      "permission": "anatomic.case.read",
+      "x_permission": "anatomic.case.read"
+    },
+    "getAnatomicCase": {
+      "class": "guarded-exact",
+      "permission": "anatomic.case.read",
+      "x_permission": "anatomic.case.read"
+    },
+    "getAnatomicImageContent": {
+      "class": "guarded-exact",
+      "permission": "anatomic.case.read",
+      "x_permission": "anatomic.case.read"
+    },
+    "getAnatomicLabels": {
+      "class": "guarded-exact",
+      "permission": "anatomic.case.work",
+      "x_permission": "anatomic.case.work"
+    },
+    "getAnatomicReportDraft": {
+      "class": "guarded-exact",
+      "permission": "anatomic.case.read",
+      "x_permission": "anatomic.case.read"
+    },
+    "getAnatomicReportVersion": {
+      "class": "guarded-exact",
+      "permission": "anatomic.case.read",
+      "x_permission": "anatomic.case.read"
+    },
+    "getAnatomicSettings": {
+      "class": "guarded-exact",
+      "permission": "anatomic.case.read",
+      "x_permission": "anatomic.case.read"
+    },
+    "getAnatomicSynopticTemplate": {
+      "class": "guarded-exact",
+      "permission": "anatomic.case.read",
+      "x_permission": "anatomic.case.read"
+    },
+    "getAuditEntry": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "audit.log.read"
+    },
+    "getAuditExport": {
+      "class": "guarded-other",
+      "permission": "audit.log.read",
+      "reason": "asserts audit.log.read but x-permission is audit.log.export",
+      "x_permission": "audit.log.export"
+    },
+    "getAuditTrail": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "billing.data.export"
+    },
+    "getAutoverifyDecision": {
+      "class": "guarded-exact",
+      "permission": "quality.autoverify.read",
+      "x_permission": "quality.autoverify.read"
+    },
+    "getAutoverifyRuleSet": {
+      "class": "guarded-exact",
+      "permission": "quality.autoverify.read",
+      "x_permission": "quality.autoverify.read"
+    },
+    "getAutoverifySimulationReport": {
+      "class": "guarded-exact",
+      "permission": "quality.autoverify.read",
+      "x_permission": "quality.autoverify.read"
+    },
+    "getAutoverifyVersion": {
+      "class": "guarded-exact",
+      "permission": "quality.autoverify.read",
+      "x_permission": "quality.autoverify.read"
+    },
+    "getBillingExport": {
+      "class": "guarded-exact",
+      "permission": "billing.data.export",
+      "x_permission": "billing.data.export"
+    },
+    "getBillingExportContent": {
+      "class": "guarded-exact",
+      "permission": "billing.data.export",
+      "x_permission": "billing.data.export"
+    },
+    "getBillingSettings": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "billing.settings.manage"
+    },
+    "getBooking": {
+      "class": "guarded-exact",
+      "permission": "engagement.booking.read",
+      "x_permission": "engagement.booking.read"
+    },
+    "getBrandingAssetContent": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "identity.settings.manage"
+    },
+    "getBreakpointSet": {
+      "class": "guarded-exact",
+      "permission": "micro.culture.read",
+      "x_permission": "micro.culture.read"
+    },
+    "getCancelledInvoiceRegister": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "billing.invoice.read"
+    },
+    "getCatalogHealthReport": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "catalog.test.read"
+    },
+    "getCatalogRevision": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "catalog.test.read"
+    },
+    "getCollectionsFilterOptions": {
+      "class": "guarded-exact",
+      "permission": "analytics.collections.read",
+      "x_permission": "analytics.collections.read"
+    },
+    "getCollectionsReport": {
+      "class": "guarded-exact",
+      "permission": "analytics.collections.read",
+      "x_permission": "analytics.collections.read"
+    },
+    "getConsumptionRule": {
+      "class": "guarded-exact",
+      "permission": "inventory.item.read",
+      "x_permission": "inventory.item.read"
+    },
+    "getControlMaterial": {
+      "class": "guarded-exact",
+      "permission": "quality.qc_run.read",
+      "x_permission": "quality.qc_run.read"
+    },
+    "getCreditAccount": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "billing.credit_party.read"
+    },
+    "getCreditNote": {
+      "class": "guarded-other",
+      "permission": "billing.invoice.reprint",
+      "reason": "asserts billing.invoice.reprint but x-permission is billing.invoice.read",
+      "x_permission": "billing.invoice.read"
+    },
+    "getCreditNoteRegister": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "billing.invoice.read"
+    },
+    "getCreditParty": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "catalog.price_list.read"
+    },
+    "getCreditPartyStatement": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "billing.credit_party.read"
+    },
+    "getCriticalLimitSet": {
+      "class": "guarded-other",
+      "permission": "catalog.reference_range.publish",
+      "reason": "asserts catalog.reference_range.publish but x-permission is catalog.test.read",
+      "x_permission": "catalog.test.read"
+    },
+    "getCriticalValue": {
+      "class": "guarded-exact",
+      "permission": "lab.critical_value.read",
+      "x_permission": "lab.critical_value.read"
+    },
+    "getCulture": {
+      "class": "guarded-exact",
+      "permission": "micro.culture.read",
+      "x_permission": "micro.culture.read"
+    },
+    "getCultureReportVersion": {
+      "class": "guarded-exact",
+      "permission": "micro.culture.read",
+      "x_permission": "micro.culture.read"
+    },
+    "getCurrentSmartSummary": {
+      "class": "guarded-exact",
+      "permission": "smartreport.summary.read",
+      "x_permission": "smartreport.summary.read"
+    },
+    "getDailyCash": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "billing.cash_report.read"
+    },
+    "getDeadLetter": {
+      "class": "platform",
+      "reason": "platform.* is rejected by IdentityPort.assertRole (IdentityPort.impl.ts:229); needs its own guard in the central stage",
+      "x_permission": "platform.dead_letter.manage"
+    },
+    "getDelivery": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "reporting.delivery.read"
+    },
+    "getDeliveryReport": {
+      "class": "guarded-exact",
+      "permission": "analytics.dashboard.read",
+      "x_permission": "analytics.dashboard.read"
+    },
+    "getDepartmentIncomeReport": {
+      "class": "guarded-exact",
+      "permission": "analytics.dashboard.read",
+      "x_permission": "analytics.dashboard.read"
+    },
+    "getDiscountApproval": {
+      "class": "stub",
+      "reason": "no handler definition found; registered through the module stub (common.internal or 501)",
+      "x_permission": "frontdesk.discount.apply"
+    },
+    "getDoctor": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "catalog.referrer.read"
+    },
+    "getEngagementSettings": {
+      "class": "guarded-exact",
+      "permission": "engagement.booking.read",
+      "x_permission": "engagement.booking.read"
+    },
+    "getEnquiry": {
+      "class": "guarded-exact",
+      "permission": "engagement.enquiry.read",
+      "x_permission": "engagement.enquiry.read"
+    },
+    "getExport": {
+      "class": "guarded-other",
+      "permission": "catalog.price_list.manage,catalog.test.manage",
+      "reason": "asserts catalog.price_list.manage,catalog.test.manage but x-permission is catalog.test.read",
+      "x_permission": "catalog.test.read"
+    },
+    "getFefoSuggestion": {
+      "class": "guarded-exact",
+      "permission": "inventory.item.read",
+      "x_permission": "inventory.item.read"
+    },
+    "getFrontdeskSettings": {
+      "class": "inconclusive",
+      "reason": "assertRole is reachable but no permission code is a literal or a same-module constant (code comes from an imported table, a destructured array or a helper argument); a handler-level read is needed to name it",
+      "x_permission": "frontdesk.settings.manage"
+    },
+    "getGoodsReceipt": {
+      "class": "guarded-exact",
+      "permission": "inventory.item.read",
+      "x_permission": "inventory.item.read"
+    },
+    "getHandover": {
+      "class": "guarded-exact",
+      "permission": "homecollection.handover.receive",
+      "x_permission": "homecollection.handover.receive"
+    },
+    "getHomeVisit": {
+      "class": "inconclusive",
+      "reason": "assertRole is reachable but no permission code is a literal or a same-module constant (code comes from an imported table, a destructured array or a helper argument); a handler-level read is needed to name it",
+      "x_permission": "homecollection.visit.read"
+    },
+    "getHomecollectionSettings": {
+      "class": "inconclusive",
+      "reason": "assertRole is reachable but no permission code is a literal or a same-module constant (code comes from an imported table, a destructured array or a helper argument); a handler-level read is needed to name it",
+      "x_permission": "homecollection.settings.manage"
+    },
+    "getImport": {
+      "class": "guarded-other",
+      "permission": "catalog.price_list.manage,catalog.price_list.read,catalog.reference_range.publish,catalog.referrer.manage,catalog.referrer.read,catalog.test.manage",
+      "reason": "asserts catalog.price_list.manage,catalog.price_list.read,catalog.reference_range.publish,catalog.referrer.manage,catalog.referrer.read,catalog.test.manage but x-permission is catalog.test.read",
+      "x_permission": "catalog.test.read"
+    },
+    "getInboundManifest": {
+      "class": "guarded-exact",
+      "permission": "partners.manifest.receive",
+      "x_permission": "partners.manifest.receive"
+    },
+    "getIncomeReport": {
+      "class": "guarded-exact",
+      "permission": "analytics.dashboard.read",
+      "x_permission": "analytics.dashboard.read"
+    },
+    "getIngestException": {
+      "class": "guarded-exact",
+      "permission": "lab.result.read",
+      "x_permission": "lab.result.read"
+    },
+    "getInstrument": {
+      "class": "guarded-exact",
+      "permission": "instruments.instrument.read",
+      "x_permission": "instruments.instrument.read"
+    },
+    "getInstrumentMessage": {
+      "class": "guarded-exact",
+      "permission": "instruments.message.read",
+      "x_permission": "instruments.message.read"
+    },
+    "getInstrumentMessageRaw": {
+      "class": "guarded-exact",
+      "permission": "instruments.message.read",
+      "x_permission": "instruments.message.read"
+    },
+    "getInstrumentSettings": {
+      "class": "guarded-exact",
+      "permission": "instruments.instrument.read",
+      "x_permission": "instruments.instrument.read"
+    },
+    "getInterfacesReport": {
+      "class": "guarded-exact",
+      "permission": "analytics.dashboard.read",
+      "x_permission": "analytics.dashboard.read"
+    },
+    "getInventoryItem": {
+      "class": "guarded-exact",
+      "permission": "inventory.item.read",
+      "x_permission": "inventory.item.read"
+    },
+    "getInventoryLot": {
+      "class": "guarded-exact",
+      "permission": "inventory.item.read",
+      "x_permission": "inventory.item.read"
+    },
+    "getInventoryReport": {
+      "class": "guarded-exact",
+      "permission": "inventory.item.read",
+      "x_permission": "inventory.item.read"
+    },
+    "getInventorySettings": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "inventory.item.read"
+    },
+    "getInventoryStore": {
+      "class": "guarded-exact",
+      "permission": "inventory.item.read",
+      "x_permission": "inventory.item.read"
+    },
+    "getInventorySupplier": {
+      "class": "guarded-exact",
+      "permission": "inventory.item.read",
+      "x_permission": "inventory.item.read"
+    },
+    "getInvoice": {
+      "class": "guarded-other",
+      "permission": "billing.invoice.reprint",
+      "reason": "asserts billing.invoice.reprint but x-permission is billing.invoice.read",
+      "x_permission": "billing.invoice.read"
+    },
+    "getLabOrder": {
+      "class": "stub",
+      "reason": "no handler definition found; registered through the module stub (common.internal or 501)",
+      "x_permission": "lab.specimen.read"
+    },
+    "getLabSettings": {
+      "class": "guarded-exact",
+      "permission": "lab.worklist.read",
+      "x_permission": "lab.worklist.read"
+    },
+    "getLeveyJenningsChart": {
+      "class": "guarded-exact",
+      "permission": "quality.qc_run.read",
+      "x_permission": "quality.qc_run.read"
+    },
+    "getLiveness": {
+      "class": "public",
+      "reason": "x-public: process liveness for the orchestrator; no data",
+      "x_permission": null
+    },
+    "getManifest": {
+      "class": "guarded-exact",
+      "permission": "partners.order.read",
+      "x_permission": "partners.order.read"
+    },
+    "getManifestPrintView": {
+      "class": "guarded-exact",
+      "permission": "partners.order.read",
+      "x_permission": "partners.order.read"
+    },
+    "getMe": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "identity.self.manage"
+    },
+    "getMicroSettings": {
+      "class": "guarded-exact",
+      "permission": "micro.culture.read",
+      "x_permission": "micro.culture.read"
+    },
+    "getMyAccount": {
+      "class": "guarded-exact",
+      "permission": "engagement.self.read",
+      "x_permission": "engagement.self.read"
+    },
+    "getMyBooking": {
+      "class": "guarded-exact",
+      "permission": "engagement.self.read",
+      "x_permission": "engagement.self.read"
+    },
+    "getMyCashSession": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "billing.payment.record"
+    },
+    "getMyEnquiry": {
+      "class": "guarded-exact",
+      "permission": "engagement.self.read",
+      "x_permission": "engagement.self.read"
+    },
+    "getMyOrder": {
+      "class": "guarded-exact",
+      "permission": "engagement.self.read",
+      "x_permission": "engagement.self.read"
+    },
+    "getMySmartSummary": {
+      "class": "guarded-exact",
+      "permission": "reporting.portal.view",
+      "x_permission": "reporting.portal.view"
+    },
+    "getNarrativeImageContent": {
+      "class": "guarded-other",
+      "permission": "reporting.narrative.write",
+      "reason": "asserts reporting.narrative.write but x-permission is reporting.report.read",
+      "x_permission": "reporting.report.read"
+    },
+    "getNarrativeReport": {
+      "class": "guarded-other",
+      "permission": "reporting.narrative.sign",
+      "reason": "asserts reporting.narrative.sign but x-permission is reporting.narrative.write",
+      "x_permission": "reporting.narrative.write"
+    },
+    "getOrder": {
+      "class": "guarded-other",
+      "permission": "frontdesk.discount.approve",
+      "reason": "asserts frontdesk.discount.approve but x-permission is frontdesk.order.read",
+      "x_permission": "frontdesk.order.read"
+    },
+    "getOrderBilling": {
+      "class": "guarded-other",
+      "permission": "billing.invoice.reprint",
+      "reason": "asserts billing.invoice.reprint but x-permission is billing.invoice.read",
+      "x_permission": "billing.invoice.read"
+    },
+    "getPanelDetail": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "catalog.test.read"
+    },
+    "getPartner": {
+      "class": "guarded-exact",
+      "permission": "partners.partner.read",
+      "x_permission": "partners.partner.read"
+    },
+    "getPartnerContext": {
+      "class": "guarded-exact",
+      "permission": "partners.order.read",
+      "x_permission": "partners.order.read"
+    },
+    "getPartnerDashboard": {
+      "class": "guarded-exact",
+      "permission": "partners.order.read",
+      "x_permission": "partners.order.read"
+    },
+    "getPartnerOrder": {
+      "class": "guarded-exact",
+      "permission": "partners.order.read",
+      "x_permission": "partners.order.read"
+    },
+    "getPartnerSettings": {
+      "class": "stub",
+      "reason": "no handler definition found; registered through the module stub (common.internal or 501)",
+      "x_permission": "partners.partner.read"
+    },
+    "getPartnerStatement": {
+      "class": "guarded-exact",
+      "permission": "partners.statement.read",
+      "x_permission": "partners.statement.read"
+    },
+    "getPatient": {
+      "class": "inconclusive",
+      "reason": "assertRole is reachable but no permission code is a literal or a same-module constant (code comes from an imported table, a destructured array or a helper argument); a handler-level read is needed to name it",
+      "x_permission": "frontdesk.patient.read"
+    },
+    "getPatientAccessSlip": {
+      "class": "guarded-exact",
+      "permission": "partners.report.read",
+      "x_permission": "partners.report.read"
+    },
+    "getPatientAppConfig": {
+      "class": "scheme-patient-pre-auth",
+      "reason": "scheme patientPreAuth",
+      "x_permission": "engagement.auth.challenge"
+    },
+    "getPaymentIntent": {
+      "class": "guarded-exact",
+      "permission": "payments.reconciliation.read",
+      "x_permission": "payments.reconciliation.read"
+    },
+    "getPaymentRefund": {
+      "class": "guarded-exact",
+      "permission": "payments.reconciliation.read",
+      "x_permission": "payments.reconciliation.read"
+    },
+    "getPaymentRequest": {
+      "class": "guarded-exact",
+      "permission": "engagement.payment.create",
+      "x_permission": "engagement.payment.create"
+    },
+    "getPaymentResultPage": {
+      "class": "public",
+      "reason": "x-public: static payment outcome page; no data, no DB",
+      "x_permission": null
+    },
+    "getPaymentSettings": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "payments.merchant_config.read"
+    },
+    "getPendingTestsSummary": {
+      "class": "guarded-exact",
+      "permission": "analytics.dashboard.read",
+      "x_permission": "analytics.dashboard.read"
+    },
+    "getPickupRequest": {
+      "class": "guarded-exact",
+      "permission": "partners.order.read",
+      "x_permission": "partners.order.read"
+    },
+    "getPortalDues": {
+      "class": "scheme-portal",
+      "reason": "scheme portalSession",
+      "x_permission": "reporting.portal.view"
+    },
+    "getPortalPaymentRequest": {
+      "class": "scheme-portal",
+      "reason": "scheme portalSession",
+      "x_permission": "reporting.portal.view"
+    },
+    "getPortalReport": {
+      "class": "scheme-portal",
+      "reason": "scheme portalSession",
+      "x_permission": "reporting.portal.view"
+    },
+    "getPriceListDetail": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "catalog.price_list.read"
+    },
+    "getPurchaseOrder": {
+      "class": "guarded-exact",
+      "permission": "inventory.item.read",
+      "x_permission": "inventory.item.read"
+    },
+    "getPurchaseOrderPrintView": {
+      "class": "guarded-exact",
+      "permission": "inventory.cost.read",
+      "x_permission": "inventory.cost.read"
+    },
+    "getQcPlan": {
+      "class": "guarded-exact",
+      "permission": "quality.qc_run.read",
+      "x_permission": "quality.qc_run.read"
+    },
+    "getQcRun": {
+      "class": "guarded-exact",
+      "permission": "quality.qc_run.read",
+      "x_permission": "quality.qc_run.read"
+    },
+    "getQcStatusBoard": {
+      "class": "guarded-exact",
+      "permission": "quality.qc_run.read",
+      "x_permission": "quality.qc_run.read"
+    },
+    "getQualityIndicatorsReport": {
+      "class": "guarded-exact",
+      "permission": "analytics.dashboard.read",
+      "x_permission": "analytics.dashboard.read"
+    },
+    "getQualitySettings": {
+      "class": "guarded-exact",
+      "permission": "quality.qc_run.read",
+      "x_permission": "quality.qc_run.read"
+    },
+    "getQueueBoard": {
+      "class": "scheme-device",
+      "reason": "scheme queueDisplayToken",
+      "x_permission": "engagement.queue.board_read"
+    },
+    "getReadiness": {
+      "class": "public",
+      "reason": "x-public: readiness for the orchestrator; dependency names only, no versions or hosts",
+      "x_permission": null
+    },
+    "getReconciliationRun": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "payments.reconciliation.read"
+    },
+    "getReferenceRangeSet": {
+      "class": "guarded-other",
+      "permission": "catalog.reference_range.publish",
+      "reason": "asserts catalog.reference_range.publish but x-permission is catalog.test.read",
+      "x_permission": "catalog.test.read"
+    },
+    "getReferralIncentiveReport": {
+      "class": "guarded-exact",
+      "permission": "analytics.referral_report.read",
+      "x_permission": "analytics.referral_report.read"
+    },
+    "getReleaseEligibility": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "billing.invoice.read"
+    },
+    "getReport": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "reporting.report.read"
+    },
+    "getReportPrint": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "reporting.report.print"
+    },
+    "getReportRun": {
+      "class": "guarded-exact",
+      "permission": "analytics.dashboard.read",
+      "x_permission": "analytics.dashboard.read"
+    },
+    "getReportSchedule": {
+      "class": "guarded-exact",
+      "permission": "analytics.schedule.manage",
+      "x_permission": "analytics.schedule.manage"
+    },
+    "getReportTemplate": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "reporting.template.manage"
+    },
+    "getReportVersion": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "reporting.report.read"
+    },
+    "getReportingSettings": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "reporting.settings.manage"
+    },
+    "getResult": {
+      "class": "guarded-exact",
+      "permission": "lab.result.read",
+      "x_permission": "lab.result.read"
+    },
+    "getResultHistory": {
+      "class": "guarded-exact",
+      "permission": "lab.result.read",
+      "x_permission": "lab.result.read"
+    },
+    "getRole": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "identity.user.read"
+    },
+    "getSalesRegister": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "billing.invoice.read"
+    },
+    "getSelfRegistration": {
+      "class": "guarded-exact",
+      "permission": "engagement.self.read",
+      "x_permission": "engagement.self.read"
+    },
+    "getSettings": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "identity.settings.manage"
+    },
+    "getSlotAvailability": {
+      "class": "guarded-exact",
+      "permission": "engagement.booking.read",
+      "x_permission": "engagement.booking.read"
+    },
+    "getSmartCodedSet": {
+      "class": "guarded-exact",
+      "permission": "smartreport.summary.read",
+      "x_permission": "smartreport.summary.read"
+    },
+    "getSmartLibraryCodedSet": {
+      "class": "guarded-exact",
+      "permission": "smartreport.template.manage",
+      "x_permission": "smartreport.template.manage"
+    },
+    "getSmartLibraryVersion": {
+      "class": "guarded-exact",
+      "permission": "smartreport.template.manage",
+      "x_permission": "smartreport.template.manage"
+    },
+    "getSmartSummary": {
+      "class": "guarded-exact",
+      "permission": "smartreport.summary.read",
+      "x_permission": "smartreport.summary.read"
+    },
+    "getSpecimen": {
+      "class": "guarded-exact",
+      "permission": "lab.specimen.read",
+      "x_permission": "lab.specimen.read"
+    },
+    "getStatusBoard": {
+      "class": "guarded-exact",
+      "permission": "lab.status_board.read",
+      "x_permission": "lab.status_board.read"
+    },
+    "getStockCount": {
+      "class": "guarded-exact",
+      "permission": "inventory.item.read",
+      "x_permission": "inventory.item.read"
+    },
+    "getStockDocument": {
+      "class": "guarded-exact",
+      "permission": "inventory.item.read",
+      "x_permission": "inventory.item.read"
+    },
+    "getSyncSnapshot": {
+      "class": "inconclusive",
+      "reason": "assertRole is reachable but no permission code is a literal or a same-module constant (code comes from an imported table, a destructured array or a helper argument); a handler-level read is needed to name it",
+      "x_permission": "homecollection.sync.upload"
+    },
+    "getTatAlert": {
+      "class": "guarded-exact",
+      "permission": "quality.tat_alert.read",
+      "x_permission": "quality.tat_alert.read"
+    },
+    "getTatReport": {
+      "class": "guarded-exact",
+      "permission": "analytics.dashboard.read",
+      "x_permission": "analytics.dashboard.read"
+    },
+    "getTenant": {
+      "class": "platform",
+      "reason": "platform.* is rejected by IdentityPort.assertRole (IdentityPort.impl.ts:229); needs its own guard in the central stage",
+      "x_permission": "platform.tenant.read"
+    },
+    "getTenantSettingsAsPlatform": {
+      "class": "platform",
+      "reason": "platform.* is rejected by IdentityPort.assertRole (IdentityPort.impl.ts:229); needs its own guard in the central stage",
+      "x_permission": "platform.tenant.read"
+    },
+    "getTestDetail": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "catalog.test.read"
+    },
+    "getTestsDoneReport": {
+      "class": "guarded-exact",
+      "permission": "analytics.dashboard.read",
+      "x_permission": "analytics.dashboard.read"
+    },
+    "getTopCentresReport": {
+      "class": "guarded-exact",
+      "permission": "analytics.dashboard.read",
+      "x_permission": "analytics.dashboard.read"
+    },
+    "getTopReferrersReport": {
+      "class": "guarded-exact",
+      "permission": "analytics.dashboard.read",
+      "x_permission": "analytics.dashboard.read"
+    },
+    "getTransfer": {
+      "class": "guarded-exact",
+      "permission": "inventory.item.read",
+      "x_permission": "inventory.item.read"
+    },
+    "getTrfAttachment": {
+      "class": "guarded-exact",
+      "permission": "frontdesk.order.read",
+      "x_permission": "frontdesk.order.read"
+    },
+    "getTrfAttachmentContent": {
+      "class": "guarded-exact",
+      "permission": "frontdesk.order.read",
+      "x_permission": "frontdesk.order.read"
+    },
+    "getUser": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "identity.user.read"
+    },
+    "getVolumeReport": {
+      "class": "guarded-exact",
+      "permission": "analytics.dashboard.read",
+      "x_permission": "analytics.dashboard.read"
+    },
+    "getWorksheet": {
+      "class": "guarded-exact",
+      "permission": "lab.worklist.read",
+      "x_permission": "lab.worklist.read"
+    },
+    "goLiveInstrument": {
+      "class": "guarded-exact",
+      "permission": "instruments.instrument.manage",
+      "x_permission": "instruments.instrument.manage"
+    },
+    "identifyIsolate": {
+      "class": "guarded-exact",
+      "permission": "micro.culture.work",
+      "x_permission": "micro.culture.work"
+    },
+    "ignoreMicroInstrumentRecord": {
+      "class": "guarded-exact",
+      "permission": "micro.culture.work",
+      "x_permission": "micro.culture.work"
+    },
+    "invitePartnerUser": {
+      "class": "guarded-exact",
+      "permission": "partners.partner_user.manage",
+      "x_permission": "partners.partner_user.manage"
+    },
+    "invitePartnerUserByStaff": {
+      "class": "guarded-exact",
+      "permission": "partners.partner.manage",
+      "x_permission": "partners.partner.manage"
+    },
+    "invitePlatformStaff": {
+      "class": "platform",
+      "reason": "platform.* is rejected by IdentityPort.assertRole (IdentityPort.impl.ts:229); needs its own guard in the central stage",
+      "x_permission": "platform.staff.manage"
+    },
+    "inviteTenantAdmin": {
+      "class": "platform",
+      "reason": "platform.* is rejected by IdentityPort.assertRole (IdentityPort.impl.ts:229); needs its own guard in the central stage",
+      "x_permission": "platform.tenant.manage"
+    },
+    "inviteUser": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "identity.user.manage"
+    },
+    "issueEnrolmentCode": {
+      "class": "guarded-exact",
+      "permission": "instruments.agent.manage",
+      "x_permission": "instruments.agent.manage"
+    },
+    "issueLinkCode": {
+      "class": "guarded-exact",
+      "permission": "engagement.link.issue",
+      "x_permission": "engagement.link.issue"
+    },
+    "issuePartialCreditNote": {
+      "class": "guarded-other",
+      "permission": "billing.invoice.reprint",
+      "reason": "asserts billing.invoice.reprint but x-permission is billing.invoice.cancel",
+      "x_permission": "billing.invoice.cancel"
+    },
+    "issuePatientAccessSlip": {
+      "class": "guarded-exact",
+      "permission": "partners.report.read",
+      "x_permission": "partners.report.read"
+    },
+    "issuePeriodicInvoice": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "billing.credit_party.manage"
+    },
+    "issueQueueToken": {
+      "class": "guarded-exact",
+      "permission": "engagement.queue.operate",
+      "x_permission": "engagement.queue.operate"
+    },
+    "khaltiReturnCallback": {
+      "class": "scheme-callback-token",
+      "reason": "authenticated by a callback or path token, not a session",
+      "x_permission": null
+    },
+    "launchEsewaPayment": {
+      "class": "scheme-callback-token",
+      "reason": "authenticated by a callback or path token, not a session",
+      "x_permission": null
+    },
+    "linkAnatomicAddonItem": {
+      "class": "guarded-exact",
+      "permission": "anatomic.case.work",
+      "x_permission": "anatomic.case.work"
+    },
+    "listAccessLogEntries": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "audit.log.read"
+    },
+    "listAccessReviews": {
+      "class": "stub",
+      "reason": "no handler definition found; registered through the module stub (common.internal or 501)",
+      "x_permission": "identity.user.read"
+    },
+    "listAdminNotices": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "identity.user.read"
+    },
+    "listAgentCommands": {
+      "class": "guarded-exact",
+      "permission": "instruments.agent.read",
+      "x_permission": "instruments.agent.read"
+    },
+    "listAgentHealthTransitions": {
+      "class": "guarded-exact",
+      "permission": "instruments.agent.read",
+      "x_permission": "instruments.agent.read"
+    },
+    "listAgentReleases": {
+      "class": "guarded-exact",
+      "permission": "instruments.agent.read",
+      "x_permission": "instruments.agent.read"
+    },
+    "listAgents": {
+      "class": "guarded-exact",
+      "permission": "instruments.agent.read",
+      "x_permission": "instruments.agent.read"
+    },
+    "listAnalyticsExports": {
+      "class": "guarded-exact",
+      "permission": "analytics.data.export",
+      "x_permission": "analytics.data.export"
+    },
+    "listAnatomicAssays": {
+      "class": "guarded-exact",
+      "permission": "anatomic.case.read",
+      "x_permission": "anatomic.case.read"
+    },
+    "listAnatomicAssignees": {
+      "class": "guarded-exact",
+      "permission": "anatomic.case.read",
+      "x_permission": "anatomic.case.read"
+    },
+    "listAnatomicBatches": {
+      "class": "guarded-exact",
+      "permission": "anatomic.case.read",
+      "x_permission": "anatomic.case.read"
+    },
+    "listAnatomicBlockMovements": {
+      "class": "guarded-exact",
+      "permission": "anatomic.case.read",
+      "x_permission": "anatomic.case.read"
+    },
+    "listAnatomicBlocks": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "anatomic.case.read"
+    },
+    "listAnatomicCases": {
+      "class": "guarded-exact",
+      "permission": "anatomic.case.read",
+      "x_permission": "anatomic.case.read"
+    },
+    "listAnatomicCodedValues": {
+      "class": "guarded-exact",
+      "permission": "anatomic.case.read",
+      "x_permission": "anatomic.case.read"
+    },
+    "listAnatomicReportVersions": {
+      "class": "guarded-exact",
+      "permission": "anatomic.case.read",
+      "x_permission": "anatomic.case.read"
+    },
+    "listAnatomicSlideMovements": {
+      "class": "guarded-exact",
+      "permission": "anatomic.case.read",
+      "x_permission": "anatomic.case.read"
+    },
+    "listAnatomicStainOrders": {
+      "class": "guarded-exact",
+      "permission": "anatomic.case.read",
+      "x_permission": "anatomic.case.read"
+    },
+    "listAnatomicStains": {
+      "class": "guarded-exact",
+      "permission": "anatomic.case.read",
+      "x_permission": "anatomic.case.read"
+    },
+    "listAnatomicSynopticTemplates": {
+      "class": "guarded-exact",
+      "permission": "anatomic.case.read",
+      "x_permission": "anatomic.case.read"
+    },
+    "listAnatomicTestProfiles": {
+      "class": "guarded-exact",
+      "permission": "anatomic.case.read",
+      "x_permission": "anatomic.case.read"
+    },
+    "listAnatomicTextTemplates": {
+      "class": "guarded-exact",
+      "permission": "anatomic.case.read",
+      "x_permission": "anatomic.case.read"
+    },
+    "listAstPanels": {
+      "class": "guarded-exact",
+      "permission": "micro.culture.read",
+      "x_permission": "micro.culture.read"
+    },
+    "listAuditEntries": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "audit.log.read"
+    },
+    "listAuditExports": {
+      "class": "guarded-other",
+      "permission": "audit.log.read",
+      "reason": "asserts audit.log.read but x-permission is audit.log.export",
+      "x_permission": "audit.log.export"
+    },
+    "listAuthEvents": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "audit.log.read"
+    },
+    "listAutoverifyDecisions": {
+      "class": "guarded-exact",
+      "permission": "quality.autoverify.read",
+      "x_permission": "quality.autoverify.read"
+    },
+    "listBillingCodes": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "billing.invoice.read"
+    },
+    "listBookableItems": {
+      "class": "guarded-exact",
+      "permission": "engagement.bookable_item.manage",
+      "x_permission": "engagement.bookable_item.manage"
+    },
+    "listBookings": {
+      "class": "guarded-exact",
+      "permission": "engagement.booking.read",
+      "x_permission": "engagement.booking.read"
+    },
+    "listBranches": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "identity.user.read"
+    },
+    "listBreakpointImportIssues": {
+      "class": "guarded-exact",
+      "permission": "micro.breakpoint.manage",
+      "x_permission": "micro.breakpoint.manage"
+    },
+    "listBreakpointRows": {
+      "class": "guarded-exact",
+      "permission": "micro.breakpoint.manage",
+      "x_permission": "micro.breakpoint.manage"
+    },
+    "listBreakpointSets": {
+      "class": "guarded-exact",
+      "permission": "micro.culture.read",
+      "x_permission": "micro.culture.read"
+    },
+    "listCbmsDocuments": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "billing.invoice.read"
+    },
+    "listCentreContacts": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "reporting.settings.manage"
+    },
+    "listCentres": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "identity.centre.read"
+    },
+    "listChannelAccounts": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "reporting.channel.manage"
+    },
+    "listCommentCodes": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "catalog.test.read"
+    },
+    "listConsumptionFacts": {
+      "class": "guarded-exact",
+      "permission": "inventory.item.read",
+      "x_permission": "inventory.item.read"
+    },
+    "listConsumptionRules": {
+      "class": "guarded-exact",
+      "permission": "inventory.item.read",
+      "x_permission": "inventory.item.read"
+    },
+    "listContainers": {
+      "class": "stub",
+      "reason": "no handler definition found; registered through the module stub (common.internal or 501)",
+      "x_permission": "catalog.test.read"
+    },
+    "listControlIdMaps": {
+      "class": "guarded-exact",
+      "permission": "quality.qc_run.read",
+      "x_permission": "quality.qc_run.read"
+    },
+    "listControlLots": {
+      "class": "guarded-exact",
+      "permission": "quality.qc_run.read",
+      "x_permission": "quality.qc_run.read"
+    },
+    "listControlMaterials": {
+      "class": "guarded-exact",
+      "permission": "quality.qc_run.read",
+      "x_permission": "quality.qc_run.read"
+    },
+    "listCounterDefinitions": {
+      "class": "guarded-exact",
+      "permission": "engagement.queue.manage",
+      "x_permission": "engagement.queue.manage"
+    },
+    "listCounters": {
+      "class": "guarded-exact",
+      "permission": "engagement.queue.operate",
+      "x_permission": "engagement.queue.operate"
+    },
+    "listCreditAccounts": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "billing.credit_party.read"
+    },
+    "listCreditCharges": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "billing.credit_party.read"
+    },
+    "listCreditNoteTasks": {
+      "class": "guarded-other",
+      "permission": "billing.invoice.reprint",
+      "reason": "asserts billing.invoice.reprint but x-permission is billing.invoice.read",
+      "x_permission": "billing.invoice.read"
+    },
+    "listCreditNotes": {
+      "class": "guarded-other",
+      "permission": "billing.invoice.reprint",
+      "reason": "asserts billing.invoice.reprint but x-permission is billing.invoice.read",
+      "x_permission": "billing.invoice.read"
+    },
+    "listCreditParties": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "catalog.price_list.read"
+    },
+    "listCriticalAlerts": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "reporting.report.read"
+    },
+    "listCriticalLimitSets": {
+      "class": "guarded-other",
+      "permission": "catalog.reference_range.publish",
+      "reason": "asserts catalog.reference_range.publish but x-permission is catalog.test.read",
+      "x_permission": "catalog.test.read"
+    },
+    "listCriticalValues": {
+      "class": "inconclusive",
+      "reason": "assertRole is reachable but no permission code is a literal or a same-module constant (code comes from an imported table, a destructured array or a helper argument); a handler-level read is needed to name it",
+      "x_permission": "lab.critical_value.read"
+    },
+    "listCultureReportVersions": {
+      "class": "guarded-exact",
+      "permission": "micro.culture.read",
+      "x_permission": "micro.culture.read"
+    },
+    "listCultures": {
+      "class": "guarded-exact",
+      "permission": "micro.culture.read",
+      "x_permission": "micro.culture.read"
+    },
+    "listDeadLetters": {
+      "class": "platform",
+      "reason": "platform.* is rejected by IdentityPort.assertRole (IdentityPort.impl.ts:229); needs its own guard in the central stage",
+      "x_permission": "platform.dead_letter.manage"
+    },
+    "listDeliveries": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "reporting.delivery.read"
+    },
+    "listDeltaCheckRules": {
+      "class": "guarded-exact",
+      "permission": "lab.result.read",
+      "x_permission": "lab.result.read"
+    },
+    "listDepartments": {
+      "class": "stub",
+      "reason": "no handler definition found; registered through the module stub (common.internal or 501)",
+      "x_permission": "catalog.test.read"
+    },
+    "listDiscountApprovals": {
+      "class": "stub",
+      "reason": "no handler definition found; registered through the module stub (common.internal or 501)",
+      "x_permission": "frontdesk.discount.approve"
+    },
+    "listDoctors": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "catalog.referrer.read"
+    },
+    "listDrivers": {
+      "class": "guarded-exact",
+      "permission": "instruments.instrument.read",
+      "x_permission": "instruments.instrument.read"
+    },
+    "listDues": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "billing.invoice.read"
+    },
+    "listEligiblePhlebotomists": {
+      "class": "inconclusive",
+      "reason": "assertRole is reachable but no permission code is a literal or a same-module constant (code comes from an imported table, a destructured array or a helper argument); a handler-level read is needed to name it",
+      "x_permission": "homecollection.visit.assign"
+    },
+    "listEngagementCodedSet": {
+      "class": "guarded-exact",
+      "permission": "engagement.booking.read",
+      "x_permission": "engagement.booking.read"
+    },
+    "listEnquiries": {
+      "class": "guarded-exact",
+      "permission": "engagement.enquiry.read",
+      "x_permission": "engagement.enquiry.read"
+    },
+    "listExports": {
+      "class": "guarded-other",
+      "permission": "catalog.price_list.manage,catalog.test.manage",
+      "reason": "asserts catalog.price_list.manage,catalog.test.manage but x-permission is catalog.test.read",
+      "x_permission": "catalog.test.read"
+    },
+    "listFeatureFlags": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "identity.settings.manage"
+    },
+    "listFinanceReviewItems": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "billing.invoice.read"
+    },
+    "listFollowUpSuggestions": {
+      "class": "guarded-exact",
+      "permission": "engagement.reminder.read",
+      "x_permission": "engagement.reminder.read"
+    },
+    "listFrontdeskCodes": {
+      "class": "inconclusive",
+      "reason": "assertRole is reachable but no permission code is a literal or a same-module constant (code comes from an imported table, a destructured array or a helper argument); a handler-level read is needed to name it",
+      "x_permission": "frontdesk.order.read"
+    },
+    "listGoodsReceipts": {
+      "class": "guarded-exact",
+      "permission": "inventory.item.read",
+      "x_permission": "inventory.item.read"
+    },
+    "listHandovers": {
+      "class": "guarded-exact",
+      "permission": "homecollection.handover.receive",
+      "x_permission": "homecollection.handover.receive"
+    },
+    "listHomeRoutes": {
+      "class": "inconclusive",
+      "reason": "assertRole is reachable but no permission code is a literal or a same-module constant (code comes from an imported table, a destructured array or a helper argument); a handler-level read is needed to name it",
+      "x_permission": "homecollection.visit.read"
+    },
+    "listHomeVisits": {
+      "class": "inconclusive",
+      "reason": "assertRole is reachable but no permission code is a literal or a same-module constant (code comes from an imported table, a destructured array or a helper argument); a handler-level read is needed to name it",
+      "x_permission": "homecollection.visit.read"
+    },
+    "listHomecollectionReasons": {
+      "class": "inconclusive",
+      "reason": "assertRole is reachable but no permission code is a literal or a same-module constant (code comes from an imported table, a destructured array or a helper argument); a handler-level read is needed to name it",
+      "x_permission": "homecollection.visit.read"
+    },
+    "listImportIssues": {
+      "class": "guarded-other",
+      "permission": "catalog.price_list.manage,catalog.price_list.read,catalog.reference_range.publish,catalog.referrer.manage,catalog.referrer.read,catalog.test.manage",
+      "reason": "asserts catalog.price_list.manage,catalog.price_list.read,catalog.reference_range.publish,catalog.referrer.manage,catalog.referrer.read,catalog.test.manage but x-permission is catalog.test.read",
+      "x_permission": "catalog.test.read"
+    },
+    "listImports": {
+      "class": "guarded-other",
+      "permission": "catalog.price_list.manage,catalog.price_list.read,catalog.reference_range.publish,catalog.referrer.manage,catalog.referrer.read,catalog.test.manage",
+      "reason": "asserts catalog.price_list.manage,catalog.price_list.read,catalog.reference_range.publish,catalog.referrer.manage,catalog.referrer.read,catalog.test.manage but x-permission is catalog.test.read",
+      "x_permission": "catalog.test.read"
+    },
+    "listInboundManifests": {
+      "class": "guarded-exact",
+      "permission": "partners.manifest.receive",
+      "x_permission": "partners.manifest.receive"
+    },
+    "listInboundPickups": {
+      "class": "guarded-exact",
+      "permission": "partners.pickup.manage",
+      "x_permission": "partners.pickup.manage"
+    },
+    "listIngestExceptions": {
+      "class": "inconclusive",
+      "reason": "assertRole is reachable but no permission code is a literal or a same-module constant (code comes from an imported table, a destructured array or a helper argument); a handler-level read is needed to name it",
+      "x_permission": "lab.result.read"
+    },
+    "listInstrumentAstDefaults": {
+      "class": "guarded-exact",
+      "permission": "micro.culture.read",
+      "x_permission": "micro.culture.read"
+    },
+    "listInstrumentBindings": {
+      "class": "guarded-exact",
+      "permission": "inventory.item.read",
+      "x_permission": "inventory.item.read"
+    },
+    "listInstrumentCodeMaps": {
+      "class": "guarded-exact",
+      "permission": "catalog.instrument_code_map.manage",
+      "x_permission": "catalog.instrument_code_map.manage"
+    },
+    "listInstrumentMessages": {
+      "class": "guarded-exact",
+      "permission": "instruments.message.read",
+      "x_permission": "instruments.message.read"
+    },
+    "listInstrumentVocabMaps": {
+      "class": "guarded-exact",
+      "permission": "micro.culture.read",
+      "x_permission": "micro.culture.read"
+    },
+    "listInstruments": {
+      "class": "guarded-exact",
+      "permission": "instruments.instrument.read",
+      "x_permission": "instruments.instrument.read"
+    },
+    "listInventoryAlerts": {
+      "class": "stub",
+      "reason": "no handler definition found; registered through the module stub (common.internal or 501)",
+      "x_permission": "inventory.item.read"
+    },
+    "listInventoryCodedSet": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "inventory.item.read"
+    },
+    "listInventoryItems": {
+      "class": "guarded-exact",
+      "permission": "inventory.item.read",
+      "x_permission": "inventory.item.read"
+    },
+    "listInventoryLots": {
+      "class": "guarded-exact",
+      "permission": "inventory.item.read",
+      "x_permission": "inventory.item.read"
+    },
+    "listInventoryStores": {
+      "class": "guarded-exact",
+      "permission": "inventory.item.read",
+      "x_permission": "inventory.item.read"
+    },
+    "listInventorySuppliers": {
+      "class": "guarded-exact",
+      "permission": "inventory.item.read",
+      "x_permission": "inventory.item.read"
+    },
+    "listInvoicePrints": {
+      "class": "guarded-other",
+      "permission": "billing.invoice.reprint",
+      "reason": "asserts billing.invoice.reprint but x-permission is billing.invoice.read",
+      "x_permission": "billing.invoice.read"
+    },
+    "listInvoices": {
+      "class": "guarded-other",
+      "permission": "billing.invoice.reprint",
+      "reason": "asserts billing.invoice.reprint but x-permission is billing.invoice.read",
+      "x_permission": "billing.invoice.read"
+    },
+    "listLabCodedSet": {
+      "class": "guarded-exact",
+      "permission": "lab.specimen.read",
+      "x_permission": "lab.specimen.read"
+    },
+    "listLedgerEntries": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "billing.cash_report.read"
+    },
+    "listManifests": {
+      "class": "guarded-exact",
+      "permission": "partners.order.read",
+      "x_permission": "partners.order.read"
+    },
+    "listMembershipPlans": {
+      "class": "guarded-exact",
+      "permission": "engagement.membership.read",
+      "x_permission": "engagement.membership.read"
+    },
+    "listMerchantAccounts": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "payments.merchant_config.read"
+    },
+    "listMessageRejections": {
+      "class": "guarded-exact",
+      "permission": "instruments.message.read",
+      "x_permission": "instruments.message.read"
+    },
+    "listMessageTemplates": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "reporting.message_template.manage"
+    },
+    "listMethods": {
+      "class": "stub",
+      "reason": "no handler definition found; registered through the module stub (common.internal or 501)",
+      "x_permission": "catalog.test.read"
+    },
+    "listMicroCodedSet": {
+      "class": "guarded-exact",
+      "permission": "micro.culture.read",
+      "x_permission": "micro.culture.read"
+    },
+    "listMicroInstrumentRecords": {
+      "class": "guarded-exact",
+      "permission": "micro.culture.read",
+      "x_permission": "micro.culture.read"
+    },
+    "listMyAddresses": {
+      "class": "guarded-exact",
+      "permission": "engagement.self.read",
+      "x_permission": "engagement.self.read"
+    },
+    "listMyAvailableSlots": {
+      "class": "inconclusive",
+      "reason": "assertRole is reachable but no permission code is a literal or a same-module constant (code comes from an imported table, a destructured array or a helper argument); a handler-level read is needed to name it",
+      "x_permission": "engagement.booking.create"
+    },
+    "listMyBookableItems": {
+      "class": "guarded-exact",
+      "permission": "engagement.self.read",
+      "x_permission": "engagement.self.read"
+    },
+    "listMyBookingCentres": {
+      "class": "guarded-exact",
+      "permission": "engagement.self.read",
+      "x_permission": "engagement.self.read"
+    },
+    "listMyBookings": {
+      "class": "guarded-exact",
+      "permission": "engagement.self.read",
+      "x_permission": "engagement.self.read"
+    },
+    "listMyCodedSet": {
+      "class": "guarded-exact",
+      "permission": "engagement.self.read",
+      "x_permission": "engagement.self.read"
+    },
+    "listMyEnquiries": {
+      "class": "guarded-exact",
+      "permission": "engagement.self.read",
+      "x_permission": "engagement.self.read"
+    },
+    "listMyMemberships": {
+      "class": "guarded-exact",
+      "permission": "engagement.self.read",
+      "x_permission": "engagement.self.read"
+    },
+    "listMyNotifications": {
+      "class": "guarded-exact",
+      "permission": "engagement.self.read",
+      "x_permission": "engagement.self.read"
+    },
+    "listMyOrders": {
+      "class": "guarded-exact",
+      "permission": "engagement.self.read",
+      "x_permission": "engagement.self.read"
+    },
+    "listMyProfiles": {
+      "class": "guarded-exact",
+      "permission": "engagement.self.read",
+      "x_permission": "engagement.self.read"
+    },
+    "listMyReports": {
+      "class": "guarded-exact",
+      "permission": "reporting.portal.view",
+      "x_permission": "reporting.portal.view"
+    },
+    "listNarrativeReports": {
+      "class": "guarded-other",
+      "permission": "reporting.narrative.sign",
+      "reason": "asserts reporting.narrative.sign but x-permission is reporting.narrative.write",
+      "x_permission": "reporting.narrative.write"
+    },
+    "listNarrativeTemplates": {
+      "class": "guarded-other",
+      "permission": "reporting.narrative.sign",
+      "reason": "asserts reporting.narrative.sign but x-permission is reporting.narrative.write",
+      "x_permission": "reporting.narrative.write"
+    },
+    "listObservedInstrumentCodes": {
+      "class": "guarded-exact",
+      "permission": "instruments.instrument.read",
+      "x_permission": "instruments.instrument.read"
+    },
+    "listOpenedContainers": {
+      "class": "guarded-exact",
+      "permission": "inventory.item.read",
+      "x_permission": "inventory.item.read"
+    },
+    "listOrderFlags": {
+      "class": "inconclusive",
+      "reason": "assertRole is reachable but no permission code is a literal or a same-module constant (code comes from an imported table, a destructured array or a helper argument); a handler-level read is needed to name it",
+      "x_permission": "frontdesk.order.read"
+    },
+    "listOrderResults": {
+      "class": "guarded-exact",
+      "permission": "lab.result.read",
+      "x_permission": "lab.result.read"
+    },
+    "listOrders": {
+      "class": "guarded-other",
+      "permission": "frontdesk.discount.approve",
+      "reason": "asserts frontdesk.discount.approve but x-permission is frontdesk.order.read",
+      "x_permission": "frontdesk.order.read"
+    },
+    "listOutsourcedItems": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "reporting.outsourced.attach"
+    },
+    "listOutsourcedReports": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "reporting.outsourced.attach"
+    },
+    "listOwnIrdAnnexes": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "identity.settings.manage"
+    },
+    "listOwnMfaFactors": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "identity.self.manage"
+    },
+    "listOwnSessions": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "identity.self.manage"
+    },
+    "listPanels": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "catalog.test.read"
+    },
+    "listPartnerOrders": {
+      "class": "guarded-exact",
+      "permission": "partners.order.read",
+      "x_permission": "partners.order.read"
+    },
+    "listPartnerPriceList": {
+      "class": "guarded-exact",
+      "permission": "partners.price_list.read",
+      "x_permission": "partners.price_list.read"
+    },
+    "listPartnerReferrers": {
+      "class": "guarded-exact",
+      "permission": "partners.referrer.read",
+      "x_permission": "partners.referrer.read"
+    },
+    "listPartnerReports": {
+      "class": "guarded-exact",
+      "permission": "partners.report.read",
+      "x_permission": "partners.report.read"
+    },
+    "listPartnerStatements": {
+      "class": "guarded-exact",
+      "permission": "partners.statement.read",
+      "x_permission": "partners.statement.read"
+    },
+    "listPartnerUsers": {
+      "class": "guarded-exact",
+      "permission": "partners.partner_user.manage",
+      "x_permission": "partners.partner_user.manage"
+    },
+    "listPartnerUsersForPartner": {
+      "class": "guarded-exact",
+      "permission": "partners.partner.read",
+      "x_permission": "partners.partner.read"
+    },
+    "listPartners": {
+      "class": "guarded-exact",
+      "permission": "partners.partner.read",
+      "x_permission": "partners.partner.read"
+    },
+    "listPatientAppLinks": {
+      "class": "guarded-other",
+      "permission": "engagement.booking.read,engagement.link.redeem",
+      "reason": "asserts engagement.booking.read,engagement.link.redeem but x-permission is engagement.link.read",
+      "x_permission": "engagement.link.read"
+    },
+    "listPatientMemberships": {
+      "class": "guarded-exact",
+      "permission": "engagement.membership.read",
+      "x_permission": "engagement.membership.read"
+    },
+    "listPatientOrders": {
+      "class": "inconclusive",
+      "reason": "assertRole is reachable but no permission code is a literal or a same-module constant (code comes from an imported table, a destructured array or a helper argument); a handler-level read is needed to name it",
+      "x_permission": "frontdesk.order.read"
+    },
+    "listPaymentCancelReasons": {
+      "class": "inconclusive",
+      "reason": "assertRole is reachable but no permission code is a literal or a same-module constant (code comes from an imported table, a destructured array or a helper argument); a handler-level read is needed to name it",
+      "x_permission": "payments.intent.create"
+    },
+    "listPaymentCodes": {
+      "class": "guarded-exact",
+      "permission": "payments.reconciliation.read",
+      "x_permission": "payments.reconciliation.read"
+    },
+    "listPaymentIntents": {
+      "class": "guarded-exact",
+      "permission": "payments.reconciliation.read",
+      "x_permission": "payments.reconciliation.read"
+    },
+    "listPaymentRefunds": {
+      "class": "guarded-exact",
+      "permission": "payments.reconciliation.read",
+      "x_permission": "payments.reconciliation.read"
+    },
+    "listPendingItems": {
+      "class": "guarded-exact",
+      "permission": "lab.worklist.read",
+      "x_permission": "lab.worklist.read"
+    },
+    "listPendingTests": {
+      "class": "guarded-exact",
+      "permission": "analytics.dashboard.read",
+      "x_permission": "analytics.dashboard.read"
+    },
+    "listPermissions": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "identity.user.read"
+    },
+    "listPhleboDevices": {
+      "class": "guarded-exact",
+      "permission": "homecollection.device.manage",
+      "x_permission": "homecollection.device.manage"
+    },
+    "listPickupRequests": {
+      "class": "guarded-exact",
+      "permission": "partners.order.read",
+      "x_permission": "partners.order.read"
+    },
+    "listPlatformAuthEvents": {
+      "class": "platform",
+      "reason": "platform.* is rejected by IdentityPort.assertRole (IdentityPort.impl.ts:229); needs its own guard in the central stage",
+      "x_permission": "platform.tenant.read"
+    },
+    "listPlatformIrdAnnexes": {
+      "class": "platform",
+      "reason": "platform.* is rejected by IdentityPort.assertRole (IdentityPort.impl.ts:229); needs its own guard in the central stage",
+      "x_permission": "platform.tenant.read"
+    },
+    "listPlatformSessions": {
+      "class": "platform",
+      "reason": "platform.* is rejected by IdentityPort.assertRole (IdentityPort.impl.ts:229); needs its own guard in the central stage",
+      "x_permission": "platform.staff.manage"
+    },
+    "listPlatformStaff": {
+      "class": "platform",
+      "reason": "platform.* is rejected by IdentityPort.assertRole (IdentityPort.impl.ts:229); needs its own guard in the central stage",
+      "x_permission": "platform.staff.manage"
+    },
+    "listPlatformSupportSessions": {
+      "class": "platform",
+      "reason": "platform.* is rejected by IdentityPort.assertRole (IdentityPort.impl.ts:229); needs its own guard in the central stage",
+      "x_permission": "platform.tenant.read"
+    },
+    "listPlatingProtocols": {
+      "class": "guarded-exact",
+      "permission": "micro.culture.read",
+      "x_permission": "micro.culture.read"
+    },
+    "listPortalLinks": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "reporting.delivery.read"
+    },
+    "listPossibleDuplicatePatients": {
+      "class": "stub",
+      "reason": "no handler definition found; registered through the module stub (common.internal or 501)",
+      "x_permission": "frontdesk.registration.create"
+    },
+    "listPriceListItems": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "catalog.price_list.read"
+    },
+    "listPriceLists": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "catalog.price_list.read"
+    },
+    "listPurchaseOrders": {
+      "class": "guarded-exact",
+      "permission": "inventory.item.read",
+      "x_permission": "inventory.item.read"
+    },
+    "listQcHolds": {
+      "class": "guarded-exact",
+      "permission": "lab.result.read",
+      "x_permission": "lab.result.read"
+    },
+    "listQcObservations": {
+      "class": "guarded-exact",
+      "permission": "quality.qc_run.read",
+      "x_permission": "quality.qc_run.read"
+    },
+    "listQcPlans": {
+      "class": "guarded-exact",
+      "permission": "quality.qc_run.read",
+      "x_permission": "quality.qc_run.read"
+    },
+    "listQcResults": {
+      "class": "guarded-exact",
+      "permission": "lab.qc.capture",
+      "x_permission": "lab.qc.capture"
+    },
+    "listQcRuns": {
+      "class": "guarded-exact",
+      "permission": "quality.qc_run.read",
+      "x_permission": "quality.qc_run.read"
+    },
+    "listQcTargets": {
+      "class": "guarded-exact",
+      "permission": "quality.qc_run.read",
+      "x_permission": "quality.qc_run.read"
+    },
+    "listQualityCodedSet": {
+      "class": "guarded-exact",
+      "permission": "quality.qc_run.read",
+      "x_permission": "quality.qc_run.read"
+    },
+    "listQueueDefinitions": {
+      "class": "guarded-exact",
+      "permission": "engagement.queue.manage",
+      "x_permission": "engagement.queue.manage"
+    },
+    "listQueueDisplays": {
+      "class": "guarded-exact",
+      "permission": "engagement.queue.manage",
+      "x_permission": "engagement.queue.manage"
+    },
+    "listQueueTokens": {
+      "class": "guarded-exact",
+      "permission": "engagement.queue.operate",
+      "x_permission": "engagement.queue.operate"
+    },
+    "listQueues": {
+      "class": "guarded-exact",
+      "permission": "engagement.queue.operate",
+      "x_permission": "engagement.queue.operate"
+    },
+    "listReconciliationFindings": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "payments.reconciliation.read"
+    },
+    "listReconciliationRuns": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "payments.reconciliation.read"
+    },
+    "listReferenceRangeSets": {
+      "class": "guarded-other",
+      "permission": "catalog.reference_range.publish",
+      "reason": "asserts catalog.reference_range.publish but x-permission is catalog.test.read",
+      "x_permission": "catalog.test.read"
+    },
+    "listReferrerMappings": {
+      "class": "guarded-exact",
+      "permission": "partners.referrer.map",
+      "x_permission": "partners.referrer.map"
+    },
+    "listRefundRequests": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "billing.refund.approve"
+    },
+    "listReminders": {
+      "class": "guarded-exact",
+      "permission": "engagement.reminder.read",
+      "x_permission": "engagement.reminder.read"
+    },
+    "listReportSchedules": {
+      "class": "guarded-exact",
+      "permission": "analytics.schedule.manage",
+      "x_permission": "analytics.schedule.manage"
+    },
+    "listReportTemplates": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "reporting.template.manage"
+    },
+    "listReportingCodes": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "reporting.report.read"
+    },
+    "listReports": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "reporting.report.read"
+    },
+    "listResultVersions": {
+      "class": "guarded-exact",
+      "permission": "lab.result.read",
+      "x_permission": "lab.result.read"
+    },
+    "listRolePacks": {
+      "class": "stub",
+      "reason": "no handler definition found; registered through the module stub (common.internal or 501)",
+      "x_permission": "identity.role.manage"
+    },
+    "listRoles": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "identity.user.read"
+    },
+    "listSessions": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "identity.session.revoke"
+    },
+    "listSlotBlackouts": {
+      "class": "guarded-exact",
+      "permission": "engagement.slot.manage",
+      "x_permission": "engagement.slot.manage"
+    },
+    "listSlotTemplates": {
+      "class": "guarded-exact",
+      "permission": "engagement.slot.manage",
+      "x_permission": "engagement.slot.manage"
+    },
+    "listSmartAnalyteGroups": {
+      "class": "guarded-exact",
+      "permission": "smartreport.template.manage",
+      "x_permission": "smartreport.template.manage"
+    },
+    "listSmartDenyTerms": {
+      "class": "guarded-exact",
+      "permission": "smartreport.template.manage",
+      "x_permission": "smartreport.template.manage"
+    },
+    "listSmartGroupSettings": {
+      "class": "guarded-exact",
+      "permission": "smartreport.template.manage",
+      "x_permission": "smartreport.template.manage"
+    },
+    "listSmartLibraryVersions": {
+      "class": "guarded-exact",
+      "permission": "smartreport.template.manage",
+      "x_permission": "smartreport.template.manage"
+    },
+    "listSmartLlmRuns": {
+      "class": "guarded-exact",
+      "permission": "smartreport.summary.approve",
+      "x_permission": "smartreport.summary.approve"
+    },
+    "listSmartRules": {
+      "class": "guarded-exact",
+      "permission": "smartreport.template.manage",
+      "x_permission": "smartreport.template.manage"
+    },
+    "listSmartSummaries": {
+      "class": "guarded-exact",
+      "permission": "smartreport.summary.read",
+      "x_permission": "smartreport.summary.read"
+    },
+    "listSmartTemplateBlocks": {
+      "class": "guarded-exact",
+      "permission": "smartreport.template.manage",
+      "x_permission": "smartreport.template.manage"
+    },
+    "listSpecimenTypes": {
+      "class": "stub",
+      "reason": "no handler definition found; registered through the module stub (common.internal or 501)",
+      "x_permission": "catalog.test.read"
+    },
+    "listSpecimens": {
+      "class": "guarded-exact",
+      "permission": "lab.specimen.read",
+      "x_permission": "lab.specimen.read"
+    },
+    "listStaticQrReconciliations": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "payments.reconciliation.read"
+    },
+    "listStockBalances": {
+      "class": "guarded-exact",
+      "permission": "inventory.item.read",
+      "x_permission": "inventory.item.read"
+    },
+    "listStockCounts": {
+      "class": "guarded-exact",
+      "permission": "inventory.item.read",
+      "x_permission": "inventory.item.read"
+    },
+    "listStockDocuments": {
+      "class": "guarded-exact",
+      "permission": "inventory.item.read",
+      "x_permission": "inventory.item.read"
+    },
+    "listStockMovements": {
+      "class": "guarded-exact",
+      "permission": "inventory.item.read",
+      "x_permission": "inventory.item.read"
+    },
+    "listStoreItemSettings": {
+      "class": "guarded-exact",
+      "permission": "inventory.item.read",
+      "x_permission": "inventory.item.read"
+    },
+    "listSupplierItems": {
+      "class": "guarded-exact",
+      "permission": "inventory.item.read",
+      "x_permission": "inventory.item.read"
+    },
+    "listSurchargeRules": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "catalog.price_list.read"
+    },
+    "listTatAlerts": {
+      "class": "guarded-exact",
+      "permission": "quality.tat_alert.read",
+      "x_permission": "quality.tat_alert.read"
+    },
+    "listTaxRules": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "catalog.price_list.read"
+    },
+    "listTaxTypes": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "catalog.price_list.read"
+    },
+    "listTenantSupportSessions": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "audit.log.read"
+    },
+    "listTenants": {
+      "class": "platform",
+      "reason": "platform.* is rejected by IdentityPort.assertRole (IdentityPort.impl.ts:229); needs its own guard in the central stage",
+      "x_permission": "platform.tenant.read"
+    },
+    "listTests": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "catalog.test.read"
+    },
+    "listTransfers": {
+      "class": "guarded-exact",
+      "permission": "inventory.item.read",
+      "x_permission": "inventory.item.read"
+    },
+    "listUnits": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "catalog.test.read"
+    },
+    "listUsers": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "identity.user.read"
+    },
+    "listValueSets": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "catalog.test.read"
+    },
+    "listVerificationQueue": {
+      "class": "guarded-exact",
+      "permission": "lab.result.read",
+      "x_permission": "lab.result.read"
+    },
+    "listWorklistItems": {
+      "class": "guarded-exact",
+      "permission": "lab.worklist.read",
+      "x_permission": "lab.worklist.read"
+    },
+    "listWorksheets": {
+      "class": "guarded-exact",
+      "permission": "lab.worklist.read",
+      "x_permission": "lab.worklist.read"
+    },
+    "lockUser": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "identity.user.manage"
+    },
+    "logConsumptionEvent": {
+      "class": "guarded-exact",
+      "permission": "inventory.bench.record",
+      "x_permission": "inventory.bench.record"
+    },
+    "logCriticalNotification": {
+      "class": "guarded-exact",
+      "permission": "lab.critical_value.log_notification",
+      "x_permission": "lab.critical_value.log_notification"
+    },
+    "loginPartner": {
+      "class": "public",
+      "reason": "x-public: partner pre-authentication; partner BFF only",
+      "x_permission": null
+    },
+    "loginStaff": {
+      "class": "identity-session-flow",
+      "reason": "identity login and session flow (x-context identity_auth); the session token authenticates, no staff permission",
+      "x_permission": null
+    },
+    "logoutMobileSession": {
+      "class": "public",
+      "reason": "x-public: session token authenticates",
+      "x_permission": null
+    },
+    "logoutPatientSession": {
+      "class": "public",
+      "reason": "x-public: patient app; opaque session token authenticates",
+      "x_permission": null
+    },
+    "logoutSession": {
+      "class": "identity-session-flow",
+      "reason": "identity login and session flow (x-context identity_auth); the session token authenticates, no staff permission",
+      "x_permission": null
+    },
+    "lookupAnatomicObject": {
+      "class": "guarded-exact",
+      "permission": "anatomic.case.read",
+      "x_permission": "anatomic.case.read"
+    },
+    "lookupInventoryBarcode": {
+      "class": "guarded-exact",
+      "permission": "inventory.item.read",
+      "x_permission": "inventory.item.read"
+    },
+    "lookupMembershipCard": {
+      "class": "guarded-exact",
+      "permission": "engagement.membership.read",
+      "x_permission": "engagement.membership.read"
+    },
+    "lookupSpecimenByBarcode": {
+      "class": "guarded-exact",
+      "permission": "lab.specimen.read",
+      "x_permission": "lab.specimen.read"
+    },
+    "mapPartnerReferrer": {
+      "class": "guarded-exact",
+      "permission": "partners.referrer.map",
+      "x_permission": "partners.referrer.map"
+    },
+    "markAnatomicCaseReady": {
+      "class": "guarded-exact",
+      "permission": "anatomic.case.work",
+      "x_permission": "anatomic.case.work"
+    },
+    "markAnatomicSlidesReady": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "anatomic.case.work"
+    },
+    "markManifestLineNotReceived": {
+      "class": "guarded-exact",
+      "permission": "partners.manifest.receive",
+      "x_permission": "partners.manifest.receive"
+    },
+    "markMyNotificationsRead": {
+      "class": "guarded-exact",
+      "permission": "engagement.self.manage",
+      "x_permission": "engagement.self.manage"
+    },
+    "markPartnerReportsSeen": {
+      "class": "guarded-exact",
+      "permission": "partners.report.read",
+      "x_permission": "partners.report.read"
+    },
+    "markPickupCollected": {
+      "class": "guarded-exact",
+      "permission": "partners.pickup.manage",
+      "x_permission": "partners.pickup.manage"
+    },
+    "markPurchaseOrderSent": {
+      "class": "guarded-exact",
+      "permission": "inventory.po.manage",
+      "x_permission": "inventory.po.manage"
+    },
+    "mergeDoctor": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "catalog.referrer.manage"
+    },
+    "openContainer": {
+      "class": "guarded-exact",
+      "permission": "inventory.bench.record",
+      "x_permission": "inventory.bench.record"
+    },
+    "openMobileSession": {
+      "class": "public",
+      "reason": "x-public: phlebotomy app login",
+      "x_permission": null
+    },
+    "openStockCount": {
+      "class": "guarded-exact",
+      "permission": "inventory.stock.manage",
+      "x_permission": "inventory.stock.manage"
+    },
+    "openSupportSession": {
+      "class": "platform",
+      "reason": "platform.* is rejected by IdentityPort.assertRole (IdentityPort.impl.ts:229); needs its own guard in the central stage",
+      "x_permission": "platform.support_session.open"
+    },
+    "pairQueueDisplay": {
+      "class": "guarded-exact",
+      "permission": "engagement.queue.manage",
+      "x_permission": "engagement.queue.manage"
+    },
+    "postGoodsReceipt": {
+      "class": "guarded-exact",
+      "permission": "inventory.stock.manage",
+      "x_permission": "inventory.stock.manage"
+    },
+    "postStockCount": {
+      "class": "guarded-exact",
+      "permission": "inventory.stock.adjust",
+      "x_permission": "inventory.stock.adjust"
+    },
+    "previewAstInterpretation": {
+      "class": "guarded-exact",
+      "permission": "micro.culture.work",
+      "x_permission": "micro.culture.work"
+    },
+    "previewConsumption": {
+      "class": "guarded-exact",
+      "permission": "inventory.item.read",
+      "x_permission": "inventory.item.read"
+    },
+    "previewReferenceRange": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "catalog.test.read"
+    },
+    "previewReportTemplate": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "reporting.template.manage"
+    },
+    "previewSmartLibraryVersion": {
+      "class": "stub",
+      "reason": "no handler definition found; registered through the module stub (common.internal or 501)",
+      "x_permission": "smartreport.template.manage"
+    },
+    "previewStaticQrReconciliation": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "payments.reconciliation.read"
+    },
+    "printCreditNote": {
+      "class": "guarded-exact",
+      "permission": "billing.invoice.reprint",
+      "x_permission": "billing.invoice.reprint"
+    },
+    "printInvoice": {
+      "class": "guarded-exact",
+      "permission": "billing.invoice.reprint",
+      "x_permission": "billing.invoice.reprint"
+    },
+    "printSpecimenLabels": {
+      "class": "guarded-exact",
+      "permission": "lab.specimen.label_print",
+      "x_permission": "lab.specimen.label_print"
+    },
+    "provisionTenant": {
+      "class": "platform",
+      "reason": "platform.* is rejected by IdentityPort.assertRole (IdentityPort.impl.ts:229); needs its own guard in the central stage",
+      "x_permission": "platform.tenant.manage"
+    },
+    "publishAnalyteVersion": {
+      "class": "guarded-exact",
+      "permission": "catalog.reference_range.publish",
+      "x_permission": "catalog.reference_range.publish"
+    },
+    "publishAnatomicSynopticTemplate": {
+      "class": "guarded-exact",
+      "permission": "anatomic.config.manage",
+      "x_permission": "anatomic.config.manage"
+    },
+    "publishCriticalLimitSet": {
+      "class": "guarded-exact",
+      "permission": "catalog.reference_range.publish",
+      "x_permission": "catalog.reference_range.publish"
+    },
+    "publishPriceListVersion": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "catalog.price_list.manage"
+    },
+    "publishReferenceRangeSet": {
+      "class": "guarded-exact",
+      "permission": "catalog.reference_range.publish",
+      "x_permission": "catalog.reference_range.publish"
+    },
+    "publishReportTemplate": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "reporting.template.manage"
+    },
+    "pushSyncMutations": {
+      "class": "guarded-exact",
+      "permission": "homecollection.sync.upload",
+      "x_permission": "homecollection.sync.upload"
+    },
+    "putInstrumentAstDefault": {
+      "class": "guarded-exact",
+      "permission": "micro.config.manage",
+      "x_permission": "micro.config.manage"
+    },
+    "putInstrumentBinding": {
+      "class": "guarded-exact",
+      "permission": "inventory.master.manage",
+      "x_permission": "inventory.master.manage"
+    },
+    "putInventoryTenantCode": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "inventory.master.manage"
+    },
+    "putMerchantAccount": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "payments.merchant_config.manage"
+    },
+    "putSmartAnalyteGroup": {
+      "class": "guarded-exact",
+      "permission": "smartreport.template.manage",
+      "x_permission": "smartreport.template.manage"
+    },
+    "putSmartGroupSetting": {
+      "class": "guarded-exact",
+      "permission": "smartreport.template.manage",
+      "x_permission": "smartreport.template.manage"
+    },
+    "putStoreItemSetting": {
+      "class": "guarded-exact",
+      "permission": "inventory.master.manage",
+      "x_permission": "inventory.master.manage"
+    },
+    "putSupplierItem": {
+      "class": "guarded-exact",
+      "permission": "inventory.master.manage",
+      "x_permission": "inventory.master.manage"
+    },
+    "quoteOrderItemsChange": {
+      "class": "stub",
+      "reason": "no handler definition found; registered through the module stub (common.internal or 501)",
+      "x_permission": "frontdesk.order.edit"
+    },
+    "quotePrices": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "catalog.price_list.read"
+    },
+    "quoteRegistration": {
+      "class": "stub",
+      "reason": "no handler definition found; registered through the module stub (common.internal or 501)",
+      "x_permission": "frontdesk.registration.create"
+    },
+    "reactivateBranch": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "identity.centre.manage"
+    },
+    "reactivateCentre": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "identity.centre.manage"
+    },
+    "reactivatePartner": {
+      "class": "guarded-exact",
+      "permission": "partners.partner.manage",
+      "x_permission": "partners.partner.manage"
+    },
+    "reactivatePartnerReferrer": {
+      "class": "guarded-exact",
+      "permission": "partners.referrer.manage",
+      "x_permission": "partners.referrer.manage"
+    },
+    "reactivatePartnerUser": {
+      "class": "guarded-exact",
+      "permission": "partners.partner_user.manage",
+      "x_permission": "partners.partner_user.manage"
+    },
+    "reactivatePartnerUserByStaff": {
+      "class": "guarded-exact",
+      "permission": "partners.partner.manage",
+      "x_permission": "partners.partner.manage"
+    },
+    "reactivateTenant": {
+      "class": "platform",
+      "reason": "platform.* is rejected by IdentityPort.assertRole (IdentityPort.impl.ts:229); needs its own guard in the central stage",
+      "x_permission": "platform.tenant.manage"
+    },
+    "reactivateUser": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "identity.user.manage"
+    },
+    "reapplyIngestException": {
+      "class": "guarded-exact",
+      "permission": "lab.result.enter",
+      "x_permission": "lab.result.enter"
+    },
+    "recallQueueToken": {
+      "class": "guarded-exact",
+      "permission": "engagement.queue.operate",
+      "x_permission": "engagement.queue.operate"
+    },
+    "receiveManifest": {
+      "class": "guarded-exact",
+      "permission": "partners.manifest.receive",
+      "x_permission": "partners.manifest.receive"
+    },
+    "receiveProviderCallback": {
+      "class": "scheme-callback-token",
+      "reason": "authenticated by a callback or path token, not a session",
+      "x_permission": null
+    },
+    "receiveSpecimen": {
+      "class": "guarded-exact",
+      "permission": "lab.specimen.receive",
+      "x_permission": "lab.specimen.receive"
+    },
+    "receiveTransfer": {
+      "class": "guarded-exact",
+      "permission": "inventory.stock.manage",
+      "x_permission": "inventory.stock.manage"
+    },
+    "recheckPaymentIntent": {
+      "class": "inconclusive",
+      "reason": "assertRole is reachable but no permission code is a literal or a same-module constant (code comes from an imported table, a destructured array or a helper argument); a handler-level read is needed to name it",
+      "x_permission": "payments.intent.resolve"
+    },
+    "recheckPaymentRefund": {
+      "class": "stub",
+      "reason": "no handler definition found; registered through the module stub (common.internal or 501)",
+      "x_permission": "payments.intent.resolve"
+    },
+    "recordAccessReview": {
+      "class": "stub",
+      "reason": "no handler definition found; registered through the module stub (common.internal or 501)",
+      "x_permission": "identity.user.manage"
+    },
+    "recordAnatomicMovements": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "anatomic.case.work"
+    },
+    "recordAstResults": {
+      "class": "guarded-exact",
+      "permission": "micro.culture.work",
+      "x_permission": "micro.culture.work"
+    },
+    "recordCorrectiveAction": {
+      "class": "guarded-exact",
+      "permission": "quality.qc_run.review",
+      "x_permission": "quality.qc_run.review"
+    },
+    "recordCreditPartyPayment": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "billing.payment.record"
+    },
+    "recordCultureObservation": {
+      "class": "guarded-exact",
+      "permission": "micro.culture.work",
+      "x_permission": "micro.culture.work"
+    },
+    "recordPatientConsent": {
+      "class": "inconclusive",
+      "reason": "assertRole is reachable but no permission code is a literal or a same-module constant (code comes from an imported table, a destructured array or a helper argument); a handler-level read is needed to name it",
+      "x_permission": "frontdesk.registration.create"
+    },
+    "recordPayment": {
+      "class": "guarded-other",
+      "permission": "billing.invoice.reprint",
+      "reason": "asserts billing.invoice.reprint but x-permission is billing.payment.record",
+      "x_permission": "billing.payment.record"
+    },
+    "recordStockCountLines": {
+      "class": "guarded-exact",
+      "permission": "inventory.stock.manage",
+      "x_permission": "inventory.stock.manage"
+    },
+    "recordWastage": {
+      "class": "guarded-exact",
+      "permission": "inventory.stock.manage",
+      "x_permission": "inventory.stock.manage"
+    },
+    "redeemLinkCode": {
+      "class": "guarded-exact",
+      "permission": "engagement.link.redeem",
+      "x_permission": "engagement.link.redeem"
+    },
+    "redeemReportLink": {
+      "class": "guarded-exact",
+      "permission": "engagement.link.redeem",
+      "x_permission": "engagement.link.redeem"
+    },
+    "refreshMobileSession": {
+      "class": "public",
+      "reason": "x-public: session token authenticates",
+      "x_permission": null
+    },
+    "regenerateReport": {
+      "class": "guarded-exact",
+      "permission": "reporting.report.regenerate",
+      "x_permission": "reporting.report.regenerate"
+    },
+    "registerPhleboDevice": {
+      "class": "guarded-exact",
+      "permission": "homecollection.sync.upload",
+      "x_permission": "homecollection.sync.upload"
+    },
+    "rejectDiscount": {
+      "class": "stub",
+      "reason": "no handler definition found; registered through the module stub (common.internal or 501)",
+      "x_permission": "frontdesk.discount.approve"
+    },
+    "rejectPartnerReferrerMapping": {
+      "class": "guarded-exact",
+      "permission": "partners.referrer.map",
+      "x_permission": "partners.referrer.map"
+    },
+    "rejectPaymentRefund": {
+      "class": "guarded-exact",
+      "permission": "payments.refund.approve",
+      "x_permission": "payments.refund.approve"
+    },
+    "rejectPickup": {
+      "class": "guarded-exact",
+      "permission": "partners.pickup.manage",
+      "x_permission": "partners.pickup.manage"
+    },
+    "rejectRefund": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "billing.refund.approve"
+    },
+    "rejectSmartSummary": {
+      "class": "guarded-exact",
+      "permission": "smartreport.summary.approve",
+      "x_permission": "smartreport.summary.approve"
+    },
+    "rejectSpecimen": {
+      "class": "guarded-exact",
+      "permission": "lab.specimen.reject",
+      "x_permission": "lab.specimen.reject"
+    },
+    "releaseQcHold": {
+      "class": "guarded-exact",
+      "permission": "lab.qc_hold.release",
+      "x_permission": "lab.qc_hold.release"
+    },
+    "releaseReportVersion": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "reporting.report.release"
+    },
+    "rematchInstrumentRecord": {
+      "class": "guarded-exact",
+      "permission": "instruments.message.rematch",
+      "x_permission": "instruments.message.rematch"
+    },
+    "removeAnatomicBatchMembers": {
+      "class": "guarded-exact",
+      "permission": "anatomic.case.work",
+      "x_permission": "anatomic.case.work"
+    },
+    "removeMyProfile": {
+      "class": "guarded-exact",
+      "permission": "engagement.self.manage",
+      "x_permission": "engagement.self.manage"
+    },
+    "removeOwnMfaFactor": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "identity.self.manage"
+    },
+    "removePriceListItems": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "catalog.price_list.manage"
+    },
+    "reopenCulture": {
+      "class": "guarded-exact",
+      "permission": "micro.culture.work",
+      "x_permission": "micro.culture.work"
+    },
+    "replaceAutoverifyDraft": {
+      "class": "guarded-exact",
+      "permission": "quality.autoverify.manage",
+      "x_permission": "quality.autoverify.manage"
+    },
+    "replaceCriticalLimitSetBands": {
+      "class": "guarded-other",
+      "permission": "catalog.reference_range.publish",
+      "reason": "asserts catalog.reference_range.publish but x-permission is catalog.test.manage",
+      "x_permission": "catalog.test.manage"
+    },
+    "replaceGoodsReceiptDraft": {
+      "class": "guarded-exact",
+      "permission": "inventory.stock.manage",
+      "x_permission": "inventory.stock.manage"
+    },
+    "replaceManifestLine": {
+      "class": "guarded-exact",
+      "permission": "partners.manifest.submit",
+      "x_permission": "partners.manifest.submit"
+    },
+    "replacePanelMembers": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "catalog.test.manage"
+    },
+    "replacePriceListAssignments": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "catalog.price_list.manage"
+    },
+    "replacePurchaseOrderDraft": {
+      "class": "guarded-exact",
+      "permission": "inventory.po.manage",
+      "x_permission": "inventory.po.manage"
+    },
+    "replaceReferenceRangeSetBands": {
+      "class": "guarded-other",
+      "permission": "catalog.reference_range.publish",
+      "reason": "asserts catalog.reference_range.publish but x-permission is catalog.test.manage",
+      "x_permission": "catalog.test.manage"
+    },
+    "replaceSmartRule": {
+      "class": "guarded-exact",
+      "permission": "smartreport.template.manage",
+      "x_permission": "smartreport.template.manage"
+    },
+    "replaceSmartTemplateBlock": {
+      "class": "guarded-exact",
+      "permission": "smartreport.template.manage",
+      "x_permission": "smartreport.template.manage"
+    },
+    "replaceStaffAssignments": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "reporting.settings.manage"
+    },
+    "replaceTestSpecimenRequirements": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "catalog.test.manage"
+    },
+    "replaceTransferDraft": {
+      "class": "guarded-exact",
+      "permission": "inventory.stock.manage",
+      "x_permission": "inventory.stock.manage"
+    },
+    "replayDeadLetter": {
+      "class": "platform",
+      "reason": "platform.* is rejected by IdentityPort.assertRole (IdentityPort.impl.ts:229); needs its own guard in the central stage",
+      "x_permission": "platform.dead_letter.manage"
+    },
+    "replyEnquiry": {
+      "class": "guarded-exact",
+      "permission": "engagement.enquiry.respond",
+      "x_permission": "engagement.enquiry.respond"
+    },
+    "replyMyEnquiry": {
+      "class": "guarded-exact",
+      "permission": "engagement.enquiry.create",
+      "x_permission": "engagement.enquiry.create"
+    },
+    "reprocessInstrumentMessage": {
+      "class": "guarded-exact",
+      "permission": "instruments.message.rematch",
+      "x_permission": "instruments.message.rematch"
+    },
+    "requestAgentCommand": {
+      "class": "guarded-exact",
+      "permission": "instruments.agent.manage",
+      "x_permission": "instruments.agent.manage"
+    },
+    "requestAnalyticsRefresh": {
+      "class": "guarded-exact",
+      "permission": "analytics.dashboard.read",
+      "x_permission": "analytics.dashboard.read"
+    },
+    "requestDeviceWipe": {
+      "class": "guarded-exact",
+      "permission": "homecollection.device.manage",
+      "x_permission": "homecollection.device.manage"
+    },
+    "requestDiscountApproval": {
+      "class": "stub",
+      "reason": "no handler definition found; registered through the module stub (common.internal or 501)",
+      "x_permission": "frontdesk.discount.apply"
+    },
+    "requestOrderLabelPrint": {
+      "class": "guarded-exact",
+      "permission": "lab.specimen.label_print",
+      "x_permission": "lab.specimen.label_print"
+    },
+    "requestPasswordRecovery": {
+      "class": "public",
+      "reason": "x-public: forgot password; constant response (04 A12)",
+      "x_permission": null
+    },
+    "requestPatientOtp": {
+      "class": "scheme-patient-pre-auth",
+      "reason": "scheme patientPreAuth",
+      "x_permission": "engagement.auth.challenge"
+    },
+    "requestPortalLinkReissue": {
+      "class": "scheme-portal",
+      "reason": "scheme portalSession",
+      "x_permission": "reporting.portal.challenge"
+    },
+    "requestRecollection": {
+      "class": "guarded-exact",
+      "permission": "lab.specimen.reject",
+      "x_permission": "lab.specimen.reject"
+    },
+    "requestRefund": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "billing.refund.request"
+    },
+    "requestSmartLlmRephrase": {
+      "class": "guarded-exact",
+      "permission": "smartreport.summary.approve",
+      "x_permission": "smartreport.summary.approve"
+    },
+    "resendInvitation": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "identity.user.manage"
+    },
+    "resendPartnerInvitation": {
+      "class": "guarded-exact",
+      "permission": "partners.partner_user.manage",
+      "x_permission": "partners.partner_user.manage"
+    },
+    "resequenceHomeRoute": {
+      "class": "guarded-exact",
+      "permission": "homecollection.visit.assign",
+      "x_permission": "homecollection.visit.assign"
+    },
+    "resetPlatformStaffMfa": {
+      "class": "platform",
+      "reason": "platform.* is rejected by IdentityPort.assertRole (IdentityPort.impl.ts:229); needs its own guard in the central stage",
+      "x_permission": "platform.staff.manage"
+    },
+    "resetUserMfa": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "identity.user.manage"
+    },
+    "resolveConsumptionFact": {
+      "class": "guarded-exact",
+      "permission": "inventory.master.manage",
+      "x_permission": "inventory.master.manage"
+    },
+    "resolveFinanceReviewItem": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "billing.refund.approve"
+    },
+    "resolveHomeVisitFlag": {
+      "class": "guarded-exact",
+      "permission": "homecollection.visit.assign",
+      "x_permission": "homecollection.visit.assign"
+    },
+    "resolveOrderFlag": {
+      "class": "inconclusive",
+      "reason": "assertRole is reachable but no permission code is a literal or a same-module constant (code comes from an imported table, a destructured array or a helper argument); a handler-level read is needed to name it",
+      "x_permission": "frontdesk.order.edit"
+    },
+    "resolveOrderablesPreview": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "catalog.test.read"
+    },
+    "resolvePatientSession": {
+      "class": "public",
+      "reason": "x-public: patient app; opaque session token authenticates",
+      "x_permission": null
+    },
+    "resolvePaymentIntent": {
+      "class": "inconclusive",
+      "reason": "assertRole is reachable but no permission code is a literal or a same-module constant (code comes from an imported table, a destructured array or a helper argument); a handler-level read is needed to name it",
+      "x_permission": "payments.intent.resolve"
+    },
+    "resolveReconciliationFinding": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "payments.intent.resolve"
+    },
+    "resolveSession": {
+      "class": "identity-session-flow",
+      "reason": "identity login and session flow (x-context identity_auth); the session token authenticates, no staff permission",
+      "x_permission": null
+    },
+    "resumeInstrument": {
+      "class": "guarded-exact",
+      "permission": "instruments.instrument.manage",
+      "x_permission": "instruments.instrument.manage"
+    },
+    "resyncPartnerProjections": {
+      "class": "guarded-exact",
+      "permission": "partners.partner.manage",
+      "x_permission": "partners.partner.manage"
+    },
+    "retireAgent": {
+      "class": "guarded-exact",
+      "permission": "instruments.agent.manage",
+      "x_permission": "instruments.agent.manage"
+    },
+    "retireAnatomicSynopticTemplate": {
+      "class": "guarded-exact",
+      "permission": "anatomic.config.manage",
+      "x_permission": "anatomic.config.manage"
+    },
+    "retireAutoverifyVersion": {
+      "class": "guarded-exact",
+      "permission": "quality.autoverify.manage",
+      "x_permission": "quality.autoverify.manage"
+    },
+    "retireBreakpointSet": {
+      "class": "guarded-exact",
+      "permission": "micro.breakpoint.manage",
+      "x_permission": "micro.breakpoint.manage"
+    },
+    "retireCriticalLimitSet": {
+      "class": "guarded-exact",
+      "permission": "catalog.reference_range.publish",
+      "x_permission": "catalog.reference_range.publish"
+    },
+    "retireInstrument": {
+      "class": "guarded-exact",
+      "permission": "instruments.instrument.manage",
+      "x_permission": "instruments.instrument.manage"
+    },
+    "retireQcTarget": {
+      "class": "guarded-exact",
+      "permission": "quality.qc.manage",
+      "x_permission": "quality.qc.manage"
+    },
+    "retireReferenceRangeSet": {
+      "class": "guarded-exact",
+      "permission": "catalog.reference_range.publish",
+      "x_permission": "catalog.reference_range.publish"
+    },
+    "retryCbmsDocument": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "billing.settings.manage"
+    },
+    "retryDelivery": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "reporting.delivery.resend"
+    },
+    "retryManifestLineConversion": {
+      "class": "guarded-exact",
+      "permission": "partners.manifest.receive",
+      "x_permission": "partners.manifest.receive"
+    },
+    "retryRenderReportVersion": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "reporting.report.render"
+    },
+    "returnResult": {
+      "class": "guarded-exact",
+      "permission": "lab.result.verify",
+      "x_permission": "lab.result.verify"
+    },
+    "returnSmartLibraryVersion": {
+      "class": "guarded-exact",
+      "permission": "smartreport.template.approve",
+      "x_permission": "smartreport.template.approve"
+    },
+    "revealHomeVisitPhone": {
+      "class": "stub",
+      "reason": "no handler definition found; registered through the module stub (common.internal or 501)",
+      "x_permission": "homecollection.visit.assign"
+    },
+    "reverseConsumptionFact": {
+      "class": "guarded-exact",
+      "permission": "inventory.stock.adjust",
+      "x_permission": "inventory.stock.adjust"
+    },
+    "reverseLedgerEntry": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "billing.payment.reverse"
+    },
+    "reviewHeldCollection": {
+      "class": "guarded-exact",
+      "permission": "homecollection.visit.assign",
+      "x_permission": "homecollection.visit.assign"
+    },
+    "revokeAgent": {
+      "class": "guarded-exact",
+      "permission": "instruments.agent.manage",
+      "x_permission": "instruments.agent.manage"
+    },
+    "revokeAppLink": {
+      "class": "guarded-other",
+      "permission": "engagement.link.redeem",
+      "reason": "asserts engagement.link.redeem but x-permission is engagement.link.revoke",
+      "x_permission": "engagement.link.revoke"
+    },
+    "revokeLinkCode": {
+      "class": "guarded-other",
+      "permission": "engagement.link.redeem",
+      "reason": "asserts engagement.link.redeem but x-permission is engagement.link.revoke",
+      "x_permission": "engagement.link.revoke"
+    },
+    "revokeOwnSession": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "identity.self.manage"
+    },
+    "revokePlatformSession": {
+      "class": "platform",
+      "reason": "platform.* is rejected by IdentityPort.assertRole (IdentityPort.impl.ts:229); needs its own guard in the central stage",
+      "x_permission": "platform.staff.manage"
+    },
+    "revokePortalLink": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "reporting.token.revoke"
+    },
+    "revokeQueueDisplay": {
+      "class": "guarded-exact",
+      "permission": "engagement.queue.manage",
+      "x_permission": "engagement.queue.manage"
+    },
+    "revokeReportQrToken": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "reporting.token.revoke"
+    },
+    "revokeSession": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "identity.session.revoke"
+    },
+    "revokeSupportSession": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "identity.settings.manage"
+    },
+    "revokeUserSessions": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "identity.session.revoke"
+    },
+    "rotateChannelCallbackToken": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "reporting.channel.manage"
+    },
+    "saveAnatomicGross": {
+      "class": "guarded-exact",
+      "permission": "anatomic.case.work",
+      "x_permission": "anatomic.case.work"
+    },
+    "saveAnatomicMolecularResults": {
+      "class": "guarded-exact",
+      "permission": "anatomic.case.work",
+      "x_permission": "anatomic.case.work"
+    },
+    "saveAnatomicReportDraft": {
+      "class": "guarded-exact",
+      "permission": "anatomic.case.work",
+      "x_permission": "anatomic.case.work"
+    },
+    "saveAnatomicSlideAssessment": {
+      "class": "guarded-exact",
+      "permission": "anatomic.case.work",
+      "x_permission": "anatomic.case.work"
+    },
+    "saveNarrativeDraft": {
+      "class": "guarded-other",
+      "permission": "reporting.narrative.sign",
+      "reason": "asserts reporting.narrative.sign but x-permission is reporting.narrative.write",
+      "x_permission": "reporting.narrative.write"
+    },
+    "scheduleHomeVisit": {
+      "class": "guarded-exact",
+      "permission": "homecollection.visit.assign",
+      "x_permission": "homecollection.visit.assign"
+    },
+    "schedulePickup": {
+      "class": "guarded-exact",
+      "permission": "partners.pickup.manage",
+      "x_permission": "partners.pickup.manage"
+    },
+    "searchAnalyticsReferrers": {
+      "class": "guarded-exact",
+      "permission": "analytics.dashboard.read",
+      "x_permission": "analytics.dashboard.read"
+    },
+    "searchDoctors": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "catalog.referrer.read"
+    },
+    "searchInstrumentMessages": {
+      "class": "guarded-exact",
+      "permission": "instruments.message.read",
+      "x_permission": "instruments.message.read"
+    },
+    "searchOrderables": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "catalog.test.read"
+    },
+    "searchPartnerOrderables": {
+      "class": "guarded-exact",
+      "permission": "partners.manifest.submit",
+      "x_permission": "partners.manifest.submit"
+    },
+    "searchPartnerOrders": {
+      "class": "guarded-exact",
+      "permission": "partners.order.read",
+      "x_permission": "partners.order.read"
+    },
+    "searchPatients": {
+      "class": "inconclusive",
+      "reason": "assertRole is reachable but no permission code is a literal or a same-module constant (code comes from an imported table, a destructured array or a helper argument); a handler-level read is needed to name it",
+      "x_permission": "frontdesk.patient.read"
+    },
+    "searchReports": {
+      "class": "guarded-other",
+      "permission": "lab.specimen.read,reporting.report.release",
+      "reason": "asserts lab.specimen.read,reporting.report.release but x-permission is reporting.report.read",
+      "x_permission": "reporting.report.read"
+    },
+    "searchUsers": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "identity.user.read"
+    },
+    "sendReportDelivery": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "reporting.delivery.resend"
+    },
+    "setFeatureFlagAsPlatform": {
+      "class": "platform",
+      "reason": "platform.* is rejected by IdentityPort.assertRole (IdentityPort.impl.ts:229); needs its own guard in the central stage",
+      "x_permission": "platform.tenant.manage"
+    },
+    "setInventoryItemActive": {
+      "class": "guarded-exact",
+      "permission": "inventory.master.manage",
+      "x_permission": "inventory.master.manage"
+    },
+    "setInventoryLotStatus": {
+      "class": "guarded-exact",
+      "permission": "inventory.stock.adjust",
+      "x_permission": "inventory.stock.adjust"
+    },
+    "setPasswordFromSetup": {
+      "class": "public",
+      "reason": "x-public: invite/recovery landing; session token from confirmEmailToken authenticates",
+      "x_permission": null
+    },
+    "setTenantFeatureFlag": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "identity.settings.manage"
+    },
+    "setTestTatTargets": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "catalog.test.manage"
+    },
+    "setUserCentreScope": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "identity.user.manage"
+    },
+    "setUserRoles": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "identity.role.manage"
+    },
+    "setupCulture": {
+      "class": "guarded-exact",
+      "permission": "micro.culture.work",
+      "x_permission": "micro.culture.work"
+    },
+    "signAnatomicAddendum": {
+      "class": "guarded-exact",
+      "permission": "anatomic.case.signout",
+      "x_permission": "anatomic.case.signout"
+    },
+    "signNarrativeReport": {
+      "class": "guarded-exact",
+      "permission": "reporting.narrative.sign",
+      "x_permission": "reporting.narrative.sign"
+    },
+    "signOffPhleboDevice": {
+      "class": "guarded-exact",
+      "permission": "homecollection.sync.upload",
+      "x_permission": "homecollection.sync.upload"
+    },
+    "signOutAnatomicCase": {
+      "class": "guarded-exact",
+      "permission": "anatomic.case.signout",
+      "x_permission": "anatomic.case.signout"
+    },
+    "skipQueueToken": {
+      "class": "guarded-exact",
+      "permission": "engagement.queue.operate",
+      "x_permission": "engagement.queue.operate"
+    },
+    "startAnatomicCaseChange": {
+      "class": "guarded-exact",
+      "permission": "anatomic.case.signout",
+      "x_permission": "anatomic.case.signout"
+    },
+    "startAnatomicProcessing": {
+      "class": "guarded-exact",
+      "permission": "anatomic.case.work",
+      "x_permission": "anatomic.case.work"
+    },
+    "startAnatomicStainOrder": {
+      "class": "guarded-exact",
+      "permission": "anatomic.case.work",
+      "x_permission": "anatomic.case.work"
+    },
+    "startAutoverifySimulation": {
+      "class": "guarded-exact",
+      "permission": "quality.autoverify.manage",
+      "x_permission": "quality.autoverify.manage"
+    },
+    "startInstrumentCommissioning": {
+      "class": "guarded-exact",
+      "permission": "instruments.instrument.manage",
+      "x_permission": "instruments.instrument.manage"
+    },
+    "startMfaEnrolment": {
+      "class": "identity-session-flow",
+      "reason": "identity login and session flow (x-context identity_auth); the session token authenticates, no staff permission",
+      "x_permission": null
+    },
+    "startNarrativeAmendment": {
+      "class": "guarded-exact",
+      "permission": "reporting.narrative.sign",
+      "x_permission": "reporting.narrative.sign"
+    },
+    "startReconciliationRun": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "payments.intent.resolve"
+    },
+    "startServingQueueToken": {
+      "class": "guarded-exact",
+      "permission": "engagement.queue.operate",
+      "x_permission": "engagement.queue.operate"
+    },
+    "stopAutoverifySimulation": {
+      "class": "guarded-exact",
+      "permission": "quality.autoverify.manage",
+      "x_permission": "quality.autoverify.manage"
+    },
+    "storeSpecimen": {
+      "class": "guarded-exact",
+      "permission": "lab.specimen.receive",
+      "x_permission": "lab.specimen.receive"
+    },
+    "submitAgentHeartbeat": {
+      "class": "scheme-device",
+      "reason": "scheme deviceToken",
+      "x_permission": "instruments.ingest.heartbeat"
+    },
+    "submitAgentLogBundle": {
+      "class": "scheme-device",
+      "reason": "scheme deviceToken",
+      "x_permission": "instruments.ingest.heartbeat"
+    },
+    "submitAttachment": {
+      "class": "scheme-device",
+      "reason": "scheme deviceToken",
+      "x_permission": "instruments.ingest.submit"
+    },
+    "submitCultureReport": {
+      "class": "guarded-exact",
+      "permission": "micro.culture.work",
+      "x_permission": "micro.culture.work"
+    },
+    "submitHostQuery": {
+      "class": "scheme-device",
+      "reason": "scheme deviceToken",
+      "x_permission": "instruments.ingest.host_query"
+    },
+    "submitManifest": {
+      "class": "guarded-exact",
+      "permission": "partners.manifest.submit",
+      "x_permission": "partners.manifest.submit"
+    },
+    "submitMessageBatch": {
+      "class": "scheme-device",
+      "reason": "scheme deviceToken",
+      "x_permission": "instruments.ingest.submit"
+    },
+    "submitSmartLibraryVersion": {
+      "class": "guarded-exact",
+      "permission": "smartreport.template.manage",
+      "x_permission": "smartreport.template.manage"
+    },
+    "supersedeConsumptionRule": {
+      "class": "guarded-exact",
+      "permission": "inventory.master.manage",
+      "x_permission": "inventory.master.manage"
+    },
+    "suspendInstrument": {
+      "class": "guarded-exact",
+      "permission": "instruments.instrument.manage",
+      "x_permission": "instruments.instrument.manage"
+    },
+    "suspendPartner": {
+      "class": "guarded-exact",
+      "permission": "partners.partner.manage",
+      "x_permission": "partners.partner.manage"
+    },
+    "suspendTenant": {
+      "class": "platform",
+      "reason": "platform.* is rejected by IdentityPort.assertRole (IdentityPort.impl.ts:229); needs its own guard in the central stage",
+      "x_permission": "platform.tenant.manage"
+    },
+    "syncBookableItems": {
+      "class": "guarded-exact",
+      "permission": "engagement.bookable_item.manage",
+      "x_permission": "engagement.bookable_item.manage"
+    },
+    "terminateTenant": {
+      "class": "platform",
+      "reason": "platform.* is rejected by IdentityPort.assertRole (IdentityPort.impl.ts:229); needs its own guard in the central stage",
+      "x_permission": "platform.tenant.manage"
+    },
+    "testMerchantAccount": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "payments.merchant_config.manage"
+    },
+    "transferQueueToken": {
+      "class": "guarded-exact",
+      "permission": "engagement.queue.operate",
+      "x_permission": "engagement.queue.operate"
+    },
+    "transitionIrdAnnex": {
+      "class": "platform",
+      "reason": "platform.* is rejected by IdentityPort.assertRole (IdentityPort.impl.ts:229); needs its own guard in the central stage",
+      "x_permission": "platform.tenant.manage"
+    },
+    "unassignHomeVisit": {
+      "class": "guarded-exact",
+      "permission": "homecollection.visit.assign",
+      "x_permission": "homecollection.visit.assign"
+    },
+    "unlockUser": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "identity.user.manage"
+    },
+    "unmapPartnerReferrer": {
+      "class": "guarded-exact",
+      "permission": "partners.referrer.map",
+      "x_permission": "partners.referrer.map"
+    },
+    "updateAgent": {
+      "class": "guarded-exact",
+      "permission": "instruments.agent.manage",
+      "x_permission": "instruments.agent.manage"
+    },
+    "updateAnalyte": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "catalog.test.manage"
+    },
+    "updateAnalyteVersionDraft": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "catalog.test.manage"
+    },
+    "updateAnatomicAddendum": {
+      "class": "guarded-exact",
+      "permission": "anatomic.case.work",
+      "x_permission": "anatomic.case.work"
+    },
+    "updateAnatomicAssay": {
+      "class": "guarded-exact",
+      "permission": "anatomic.config.manage",
+      "x_permission": "anatomic.config.manage"
+    },
+    "updateAnatomicCaseDetails": {
+      "class": "guarded-exact",
+      "permission": "anatomic.case.work",
+      "x_permission": "anatomic.case.work"
+    },
+    "updateAnatomicImage": {
+      "class": "guarded-exact",
+      "permission": "anatomic.case.work",
+      "x_permission": "anatomic.case.work"
+    },
+    "updateAnatomicPart": {
+      "class": "guarded-exact",
+      "permission": "anatomic.case.work",
+      "x_permission": "anatomic.case.work"
+    },
+    "updateAnatomicSettings": {
+      "class": "guarded-exact",
+      "permission": "anatomic.config.manage",
+      "x_permission": "anatomic.config.manage"
+    },
+    "updateAnatomicStain": {
+      "class": "guarded-exact",
+      "permission": "anatomic.config.manage",
+      "x_permission": "anatomic.config.manage"
+    },
+    "updateAnatomicSynopticTemplate": {
+      "class": "guarded-exact",
+      "permission": "anatomic.config.manage",
+      "x_permission": "anatomic.config.manage"
+    },
+    "updateAnatomicTextTemplate": {
+      "class": "guarded-exact",
+      "permission": "anatomic.config.manage",
+      "x_permission": "anatomic.config.manage"
+    },
+    "updateBillingSettings": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "billing.settings.manage"
+    },
+    "updateBranch": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "identity.centre.manage"
+    },
+    "updateCentre": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "identity.centre.manage"
+    },
+    "updateCentreContact": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "reporting.settings.manage"
+    },
+    "updateCommentCode": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "catalog.test.manage"
+    },
+    "updateContainer": {
+      "class": "stub",
+      "reason": "no handler definition found; registered through the module stub (common.internal or 501)",
+      "x_permission": "catalog.test.manage"
+    },
+    "updateControlLevel": {
+      "class": "guarded-exact",
+      "permission": "quality.qc.manage",
+      "x_permission": "quality.qc.manage"
+    },
+    "updateControlLot": {
+      "class": "guarded-exact",
+      "permission": "quality.qc.manage",
+      "x_permission": "quality.qc.manage"
+    },
+    "updateControlMaterial": {
+      "class": "guarded-exact",
+      "permission": "quality.qc.manage",
+      "x_permission": "quality.qc.manage"
+    },
+    "updateCounter": {
+      "class": "guarded-exact",
+      "permission": "engagement.queue.manage",
+      "x_permission": "engagement.queue.manage"
+    },
+    "updateCreditAccount": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "billing.credit_party.manage"
+    },
+    "updateCreditParty": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "catalog.price_list.manage"
+    },
+    "updateDepartment": {
+      "class": "stub",
+      "reason": "no handler definition found; registered through the module stub (common.internal or 501)",
+      "x_permission": "catalog.test.manage"
+    },
+    "updateDoctor": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "catalog.referrer.manage"
+    },
+    "updateEngagementSettings": {
+      "class": "guarded-exact",
+      "permission": "engagement.settings.manage",
+      "x_permission": "engagement.settings.manage"
+    },
+    "updateFrontdeskSettings": {
+      "class": "inconclusive",
+      "reason": "assertRole is reachable but no permission code is a literal or a same-module constant (code comes from an imported table, a destructured array or a helper argument); a handler-level read is needed to name it",
+      "x_permission": "frontdesk.settings.manage"
+    },
+    "updateHomecollectionSettings": {
+      "class": "inconclusive",
+      "reason": "assertRole is reachable but no permission code is a literal or a same-module constant (code comes from an imported table, a destructured array or a helper argument); a handler-level read is needed to name it",
+      "x_permission": "homecollection.settings.manage"
+    },
+    "updateInstrument": {
+      "class": "guarded-exact",
+      "permission": "instruments.instrument.manage",
+      "x_permission": "instruments.instrument.manage"
+    },
+    "updateInstrumentCodeMap": {
+      "class": "guarded-exact",
+      "permission": "catalog.instrument_code_map.manage",
+      "x_permission": "catalog.instrument_code_map.manage"
+    },
+    "updateInstrumentSettings": {
+      "class": "guarded-exact",
+      "permission": "instruments.instrument.manage",
+      "x_permission": "instruments.instrument.manage"
+    },
+    "updateInstrumentVocabMap": {
+      "class": "guarded-exact",
+      "permission": "micro.config.manage",
+      "x_permission": "micro.config.manage"
+    },
+    "updateInventoryItem": {
+      "class": "guarded-exact",
+      "permission": "inventory.master.manage",
+      "x_permission": "inventory.master.manage"
+    },
+    "updateInventoryItemPack": {
+      "class": "guarded-exact",
+      "permission": "inventory.master.manage",
+      "x_permission": "inventory.master.manage"
+    },
+    "updateInventorySettings": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "inventory.master.manage"
+    },
+    "updateInventoryStore": {
+      "class": "guarded-exact",
+      "permission": "inventory.master.manage",
+      "x_permission": "inventory.master.manage"
+    },
+    "updateInventorySupplier": {
+      "class": "guarded-exact",
+      "permission": "inventory.master.manage",
+      "x_permission": "inventory.master.manage"
+    },
+    "updateIrdAnnex": {
+      "class": "platform",
+      "reason": "platform.* is rejected by IdentityPort.assertRole (IdentityPort.impl.ts:229); needs its own guard in the central stage",
+      "x_permission": "platform.tenant.manage"
+    },
+    "updateLabSettings": {
+      "class": "guarded-exact",
+      "permission": "lab.config.manage",
+      "x_permission": "lab.config.manage"
+    },
+    "updateManifest": {
+      "class": "guarded-exact",
+      "permission": "partners.manifest.submit",
+      "x_permission": "partners.manifest.submit"
+    },
+    "updateMembershipPlan": {
+      "class": "guarded-exact",
+      "permission": "engagement.membership_plan.manage",
+      "x_permission": "engagement.membership_plan.manage"
+    },
+    "updateMethod": {
+      "class": "stub",
+      "reason": "no handler definition found; registered through the module stub (common.internal or 501)",
+      "x_permission": "catalog.test.manage"
+    },
+    "updateMicroSettings": {
+      "class": "guarded-exact",
+      "permission": "micro.config.manage",
+      "x_permission": "micro.config.manage"
+    },
+    "updateMyAccount": {
+      "class": "guarded-exact",
+      "permission": "engagement.self.manage",
+      "x_permission": "engagement.self.manage"
+    },
+    "updateMyAddress": {
+      "class": "guarded-other",
+      "permission": "engagement.slot.manage",
+      "reason": "asserts engagement.slot.manage but x-permission is engagement.self.manage",
+      "x_permission": "engagement.self.manage"
+    },
+    "updateMyProfile": {
+      "class": "guarded-exact",
+      "permission": "engagement.self.manage",
+      "x_permission": "engagement.self.manage"
+    },
+    "updateNarrativeTemplate": {
+      "class": "guarded-other",
+      "permission": "reporting.narrative.sign",
+      "reason": "asserts reporting.narrative.sign but x-permission is reporting.template.manage",
+      "x_permission": "reporting.template.manage"
+    },
+    "updatePanel": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "catalog.test.manage"
+    },
+    "updatePartner": {
+      "class": "guarded-exact",
+      "permission": "partners.partner.manage",
+      "x_permission": "partners.partner.manage"
+    },
+    "updatePartnerReferrer": {
+      "class": "guarded-exact",
+      "permission": "partners.referrer.manage",
+      "x_permission": "partners.referrer.manage"
+    },
+    "updatePartnerSettings": {
+      "class": "stub",
+      "reason": "no handler definition found; registered through the module stub (common.internal or 501)",
+      "x_permission": "partners.partner.manage"
+    },
+    "updatePatient": {
+      "class": "inconclusive",
+      "reason": "assertRole is reachable but no permission code is a literal or a same-module constant (code comes from an imported table, a destructured array or a helper argument); a handler-level read is needed to name it",
+      "x_permission": "frontdesk.registration.create"
+    },
+    "updatePaymentSettings": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "payments.merchant_config.manage"
+    },
+    "updatePlatformStaff": {
+      "class": "platform",
+      "reason": "platform.* is rejected by IdentityPort.assertRole (IdentityPort.impl.ts:229); needs its own guard in the central stage",
+      "x_permission": "platform.staff.manage"
+    },
+    "updatePriceList": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "catalog.price_list.manage"
+    },
+    "updateQualitySettings": {
+      "class": "guarded-exact",
+      "permission": "quality.config.manage",
+      "x_permission": "quality.config.manage"
+    },
+    "updateQueue": {
+      "class": "guarded-exact",
+      "permission": "engagement.queue.manage",
+      "x_permission": "engagement.queue.manage"
+    },
+    "updateReportSchedule": {
+      "class": "guarded-exact",
+      "permission": "analytics.schedule.manage",
+      "x_permission": "analytics.schedule.manage"
+    },
+    "updateReportTemplateDraft": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "reporting.template.manage"
+    },
+    "updateReportingSettings": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "reporting.settings.manage"
+    },
+    "updateRole": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "identity.role.manage"
+    },
+    "updateSettings": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "identity.settings.manage"
+    },
+    "updateSlotTemplate": {
+      "class": "guarded-exact",
+      "permission": "engagement.slot.manage",
+      "x_permission": "engagement.slot.manage"
+    },
+    "updateSmartLibraryVersion": {
+      "class": "guarded-exact",
+      "permission": "smartreport.template.manage",
+      "x_permission": "smartreport.template.manage"
+    },
+    "updateSpecimenType": {
+      "class": "stub",
+      "reason": "no handler definition found; registered through the module stub (common.internal or 501)",
+      "x_permission": "catalog.test.manage"
+    },
+    "updateTaxType": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "catalog.price_list.manage"
+    },
+    "updateTenant": {
+      "class": "platform",
+      "reason": "platform.* is rejected by IdentityPort.assertRole (IdentityPort.impl.ts:229); needs its own guard in the central stage",
+      "x_permission": "platform.tenant.manage"
+    },
+    "updateTenantSettingsAsPlatform": {
+      "class": "platform",
+      "reason": "platform.* is rejected by IdentityPort.assertRole (IdentityPort.impl.ts:229); needs its own guard in the central stage",
+      "x_permission": "platform.tenant.manage"
+    },
+    "updateTest": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "catalog.test.manage"
+    },
+    "updateUnit": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "catalog.test.manage"
+    },
+    "updateUser": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "identity.user.manage"
+    },
+    "updateValueSet": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "catalog.test.manage"
+    },
+    "uploadAnatomicImage": {
+      "class": "guarded-exact",
+      "permission": "anatomic.case.work",
+      "x_permission": "anatomic.case.work"
+    },
+    "uploadBrandingAsset": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "identity.settings.manage"
+    },
+    "uploadIrdAnnexDocument": {
+      "class": "platform",
+      "reason": "platform.* is rejected by IdentityPort.assertRole (IdentityPort.impl.ts:229); needs its own guard in the central stage",
+      "x_permission": "platform.tenant.manage"
+    },
+    "uploadNarrativeImage": {
+      "class": "guarded-exact",
+      "permission": "reporting.narrative.write",
+      "x_permission": "reporting.narrative.write"
+    },
+    "uploadOutsourcedReport": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "reporting.outsourced.attach"
+    },
+    "uploadTrf": {
+      "class": "guarded-exact",
+      "permission": "frontdesk.trf.upload",
+      "x_permission": "frontdesk.trf.upload"
+    },
+    "uploadUserSignature": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "identity.user.manage"
+    },
+    "upsertAnatomicCodedValue": {
+      "class": "guarded-exact",
+      "permission": "anatomic.config.manage",
+      "x_permission": "anatomic.config.manage"
+    },
+    "upsertAnatomicTestProfile": {
+      "class": "guarded-exact",
+      "permission": "anatomic.config.manage",
+      "x_permission": "anatomic.config.manage"
+    },
+    "upsertBookableItem": {
+      "class": "guarded-exact",
+      "permission": "engagement.bookable_item.manage",
+      "x_permission": "engagement.bookable_item.manage"
+    },
+    "upsertChannelAccount": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "reporting.channel.manage"
+    },
+    "upsertInstrumentCodeMaps": {
+      "class": "guarded-exact",
+      "permission": "catalog.instrument_code_map.manage",
+      "x_permission": "catalog.instrument_code_map.manage"
+    },
+    "upsertLabCode": {
+      "class": "guarded-exact",
+      "permission": "lab.config.manage",
+      "x_permission": "lab.config.manage"
+    },
+    "upsertMessageTemplateText": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "reporting.message_template.manage"
+    },
+    "upsertMicroCode": {
+      "class": "guarded-exact",
+      "permission": "micro.config.manage",
+      "x_permission": "micro.config.manage"
+    },
+    "upsertPriceListItems": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "catalog.price_list.manage"
+    },
+    "upsertQualityCode": {
+      "class": "guarded-exact",
+      "permission": "quality.config.manage",
+      "x_permission": "quality.config.manage"
+    },
+    "upsertReferrerPreference": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "reporting.settings.manage"
+    },
+    "validateFormula": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "catalog.test.read"
+    },
+    "validateSmartLibraryVersion": {
+      "class": "guarded-exact",
+      "permission": "smartreport.template.manage",
+      "x_permission": "smartreport.template.manage"
+    },
+    "verifyDoctor": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "catalog.referrer.manage"
+    },
+    "verifyMfaChallenge": {
+      "class": "identity-session-flow",
+      "reason": "identity login and session flow (x-context identity_auth); the session token authenticates, no staff permission",
+      "x_permission": null
+    },
+    "verifyPatientOtp": {
+      "class": "scheme-patient-pre-auth",
+      "reason": "scheme patientPreAuth",
+      "x_permission": "engagement.auth.challenge"
+    },
+    "verifyPaymentIntent": {
+      "class": "stub",
+      "reason": "no handler definition found; registered through the module stub (common.internal or 501)",
+      "x_permission": "payments.intent.create"
+    },
+    "verifyPortalOtp": {
+      "class": "scheme-portal",
+      "reason": "scheme portalSession",
+      "x_permission": "reporting.portal.challenge"
+    },
+    "verifyProviderCallback": {
+      "class": "scheme-callback-token",
+      "reason": "authenticated by a callback or path token, not a session",
+      "x_permission": null
+    },
+    "verifyReportQr": {
+      "class": "public",
+      "reason": "x-public: QR verify page, 04 R3/A11, minimal fields",
+      "x_permission": null
+    },
+    "verifyResult": {
+      "class": "guarded-exact",
+      "permission": "lab.result.verify",
+      "x_permission": "lab.result.verify"
+    },
+    "versionAstPanel": {
+      "class": "guarded-exact",
+      "permission": "micro.config.manage",
+      "x_permission": "micro.config.manage"
+    },
+    "versionDeltaCheckRule": {
+      "class": "guarded-exact",
+      "permission": "lab.config.manage",
+      "x_permission": "lab.config.manage"
+    },
+    "versionPlatingProtocol": {
+      "class": "guarded-exact",
+      "permission": "micro.config.manage",
+      "x_permission": "micro.config.manage"
+    },
+    "withdrawIsolate": {
+      "class": "guarded-exact",
+      "permission": "micro.culture.work",
+      "x_permission": "micro.culture.work"
+    },
+    "withdrawManifest": {
+      "class": "guarded-exact",
+      "permission": "partners.manifest.submit",
+      "x_permission": "partners.manifest.submit"
+    },
+    "withdrawOutsourcedReport": {
+      "class": "unguarded",
+      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "x_permission": "reporting.outsourced.attach"
+    },
+    "writeOffExpiredStock": {
+      "class": "guarded-exact",
+      "permission": "inventory.stock.manage",
+      "x_permission": "inventory.stock.manage"
+    }
+  },
+  "total": 1018
+}

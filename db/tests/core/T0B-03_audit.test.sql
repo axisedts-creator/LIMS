@@ -146,7 +146,8 @@ SELECT is((SELECT row_id FROM audit.audit_log WHERE table_name = 'membership_cen
 SELECT is((SELECT changed_columns FROM audit.audit_log WHERE table_name = 'membership_centres' AND action = 'DELETE'), '{}'::text[], 'DELETE: changed_columns = {}');
 SELECT is(pg_temp.w(pg_temp.uA(), format($$INSERT INTO core.membership_centres (tenant_id, membership_id, centre_id, created_by) VALUES (%L, %L, %L, %L)$$,
   pg_temp.id('01'), pg_temp.id('42'), pg_temp.id('22'), pg_temp.id('31'))), 'n=1', 'INSERT membership_centres');
-SELECT is((SELECT new_values ->> 'membership_id' FROM audit.audit_log WHERE table_name = 'membership_centres' AND action = 'INSERT'), pg_temp.id('42')::text, 'INSERT of an association row: new_values = full row');
+-- LD-230 (6): the seeds and the line-48 fixture also leave membership_centres INSERT audit rows; select the one of this INSERT (tenant 01, centre 22)
+SELECT is((SELECT new_values ->> 'membership_id' FROM audit.audit_log WHERE table_name = 'membership_centres' AND action = 'INSERT' AND tenant_id = pg_temp.id('01') AND new_values ->> 'centre_id' = pg_temp.id('22')::text), pg_temp.id('42')::text, 'INSERT of an association row: new_values = full row');
 
 -- excluded-column argument (CR-C15-013): the column never reaches audit_log
 SELECT is(pg_temp.w(pg_temp.uA(), format($$INSERT INTO core.t0b03_audited_x (id, tenant_id, note, secret) VALUES (%L, %L, 'x0', 'TOP-SECRET')$$, pg_temp.id('ac'), pg_temp.id('01'))), 'n=1', 'excluded-arg stand-in insert');

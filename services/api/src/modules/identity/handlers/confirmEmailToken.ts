@@ -10,16 +10,17 @@ import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js
 import type { GoTrueGateway } from '../gotrue/gateway.js';
 import { createAuthEventsRepo, type AuthEvent, type NewSession } from '../repository/auth-events.repo.js';
 import { createMfaRepo, type MfaRepo } from '../repository/mfa.repo.js';
+import { loadSessionActor, type SessionActor } from '../service/session-actor.js';
 import { bodyObject, gotrueCall, gw, invalid } from './verifyMfaChallenge.js';
 
 export interface ConfirmDeps {
   gotrue: Pick<GoTrueGateway, 'verifyEmailToken'>;
-  repo: Pick<MfaRepo, 'loginContext' | 'insertSession' | 'insertPlatformSession'>;
+  repo: Pick<MfaRepo, 'loginContext' | 'sessionActor' | 'insertSession' | 'insertPlatformSession'>;
   events: { recordTenantless(tx: Tx, e: AuthEvent): Promise<void>; recordTenant(tx: Tx, e: AuthEvent): Promise<void> };
   hmac?: (normalisedEmail: string) => string; newId?: () => string; newToken?: () => string; now?: () => Date;
 }
 interface Hctx extends HandlerContext {
-  requestId: string; bffKey?: string; actor?: { type: string; id: string };
+  requestId: string; bffKey?: string; actor?: { type: string; id: string }; log?: { error(o: object, m?: string): void };
   db: { identityAuthTx<T>(input: TxInput, fn: TxFn<T>): Promise<T> };
 }
 
@@ -61,9 +62,13 @@ export function createConfirmEmailToken(deps: ConfirmDeps) {
       const ev = (o: Partial<AuthEvent>): AuthEvent => ({ id: newId(), eventType: OPENED[type], userId: t.userId, sessionId: base.id,
         clientIp: ctx.clientIp, userAgent, requestId: ctx.requestId, actorId, ...o });
 
-      let s: NewSession;
+      // LD-222 AUTH-ACTOR-2: SessionState.actor (required by the contract) is read before the first write; state is password_setup, so never permissions
+      let s: NewSession; let actor: SessionActor;
+      const actorOf = (tenantId: string | null, membershipId: string | null) => loadSessionActor((k) => deps.repo.sessionActor(tx, k),
+        { userId: t.userId, tenantId, membershipId }, ctx.log, ctx.requestId);
       if (row['platform_staff_id'] && !row['tenant_id']) {
         if (row['platform_active'] !== true) throw bad();
+        actor = await actorOf(null, null);
         s = { ...base, tenantId: null, kind: 'platform', membershipId: null, platformStaffId: row['platform_staff_id'] };
         await deps.repo.insertPlatformSession(tx, s);
         await deps.events.recordTenantless(tx, ev({ platformStaffId: s.platformStaffId! }));
@@ -74,6 +79,7 @@ export function createConfirmEmailToken(deps: ConfirmDeps) {
           || row['membership_locked'] !== false || !['active', 'invited'].includes(row['membership_status'])) throw bad();
         if (!tx.bindTenant) throw new LimsError('common.internal');
         await tx.bindTenant(tenantId);   // D-212: tenant from the DEFINER row only
+        actor = await actorOf(tenantId, membershipId);
         s = { ...base, tenantId, kind: 'tenant_staff', membershipId, platformStaffId: null };
         await deps.repo.insertSession(tx, s);
         await deps.events.recordTenant(tx, ev({ tenantId, membershipId }));
@@ -81,7 +87,7 @@ export function createConfirmEmailToken(deps: ConfirmDeps) {
       return {
         status: 200 as const,
         body: { session_token: token, session: { session_id: s.id, kind: s.kind, state: s.state, aal: s.aal,
-          idle_expires_at: s.idleExpiresAt.toISOString(), absolute_expires_at: s.absoluteExpiresAt.toISOString() } },
+          idle_expires_at: s.idleExpiresAt.toISOString(), absolute_expires_at: s.absoluteExpiresAt.toISOString(), actor } },
       };
     });
   };

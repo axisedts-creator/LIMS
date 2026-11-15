@@ -35,13 +35,20 @@ SELECT is(app.reporting_ingest_provider_callback('recording', decode('ee', 'hex'
 SELECT is(app.reporting_ingest_provider_callback('recording', decode(repeat('ee', 32), 'hex'), '{}'::jsonb), NULL::uuid, 'ingest: non-array payload -> NULL'); SELECT ok(pg_temp.all_empty(), 'ingest: empty after the payload reject');
 
 -- A20 / A12.7: a lims_app session setting the GUC itself sees nothing (policies are TO lims_reporting_lookup only)
+-- LD-230 (3): pgTAP lives in schema extensions and lims_app has no USAGE on it (db/bootstrap/01_database.sql), so is() does not resolve
+-- under SET ROLE lims_app: the counts are taken as lims_app into transaction-local settings and asserted after RESET ROLE.
 SET LOCAL ROLE lims_app;
-SELECT set_config('app.pre_qr_token_sha256', repeat('ab', 32), true); SELECT is((SELECT count(*)::int FROM reporting.qr_tokens), 0, 'A20: lims_app + app.pre_qr_token_sha256 -> 0 qr_tokens');
-SELECT set_config('app.pre_portal_credential_sha256', repeat('11', 32), true); SELECT is((SELECT count(*)::int FROM reporting.portal_links), 0, 'A20: lims_app + app.pre_portal_credential_sha256 -> 0 portal_links');
-SELECT is((SELECT count(*)::int FROM reporting.portal_sessions), 0, 'A20: ... 0 portal_sessions');
-SELECT set_config('app.pre_portal_token_sha256', repeat('11', 32), true); SELECT is((SELECT count(*)::int FROM reporting.portal_links), 0, 'A20: lims_app + app.pre_portal_token_sha256 -> 0 portal_links');
-SELECT set_config('app.pre_callback_token_sha256', repeat('44', 32), true); SELECT is((SELECT count(*)::int FROM reporting.channel_accounts), 0, 'A20: lims_app + app.pre_callback_token_sha256 -> 0 channel_accounts');
+SELECT set_config('app.pre_qr_token_sha256', repeat('ab', 32), true); SELECT set_config('t43.qr_tokens', (SELECT count(*)::int FROM reporting.qr_tokens)::text, true);
+SELECT set_config('app.pre_portal_credential_sha256', repeat('11', 32), true); SELECT set_config('t43.portal_links_cred', (SELECT count(*)::int FROM reporting.portal_links)::text, true);
+SELECT set_config('t43.portal_sessions', (SELECT count(*)::int FROM reporting.portal_sessions)::text, true);
+SELECT set_config('app.pre_portal_token_sha256', repeat('11', 32), true); SELECT set_config('t43.portal_links_tok', (SELECT count(*)::int FROM reporting.portal_links)::text, true);
+SELECT set_config('app.pre_callback_token_sha256', repeat('44', 32), true); SELECT set_config('t43.channel_accounts', (SELECT count(*)::int FROM reporting.channel_accounts)::text, true);
 RESET ROLE;
+SELECT is(current_setting('t43.qr_tokens')::int, 0, 'A20: lims_app + app.pre_qr_token_sha256 -> 0 qr_tokens');
+SELECT is(current_setting('t43.portal_links_cred')::int, 0, 'A20: lims_app + app.pre_portal_credential_sha256 -> 0 portal_links');
+SELECT is(current_setting('t43.portal_sessions')::int, 0, 'A20: ... 0 portal_sessions');
+SELECT is(current_setting('t43.portal_links_tok')::int, 0, 'A20: lims_app + app.pre_portal_token_sha256 -> 0 portal_links');
+SELECT is(current_setting('t43.channel_accounts')::int, 0, 'A20: lims_app + app.pre_callback_token_sha256 -> 0 channel_accounts');
 
 -- (a) A21.1 constraints (checked through scratch tables built from the real CHECK text; no fixtures)
 CREATE TEMP TABLE pl (purpose text, recipient_kind text, channel text);

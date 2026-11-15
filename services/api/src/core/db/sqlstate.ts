@@ -3,7 +3,7 @@
 import { AuthError } from '../auth/errors.js';
 
 export interface DbErrorDeps {
-  readonly log?: { warn(obj: object, msg?: string): void } | undefined;
+  readonly log?: { warn(obj: object, msg?: string): void; error?(obj: object, msg?: string): void } | undefined;
   readonly metrics?: { inc(name: string): void } | undefined;
 }
 

@@ -1,0 +1,7 @@
+# T0D-PLATFORM-CTX-1 tests (tester)
+Files: services/api/src/core/pipeline/__tests__/platform-ctx.test.ts (claim shapes -> ctx); services/api/src/modules/identity/platform/__tests__/platform-ctx.pipeline.test.ts (real pipeline + real handlers + real PlatformAuthz, all 34 platform.* ops from identity.yaml).
+Run: `.orchestra\notes\T0D-PLATFORM-CTX-1-verify.cmd` (pnpm --dir services/api exec vitest run <the two files>). Now: 106 fail / 91 pass, every failure `auth.forbidden` (platformRole never set); non-platform "no keys" cases pass and must stay green.
+Brief says "createTenant": the contract operation is provisionTenant (tested). Support-session sample: openSupportSession.
+Verified the after-fix expectations with a throwaway test calling the 34 handlers with platformRole/aal on ctx (deleted): all pass.
+GAP for the lead (not in this task's scope; tests only assert "gets past PlatformAuthz"): after this fix the real handlers will still not succeed on staging. Service guards also need ctx.platformStaffId (platform-staff, ird, support), ctx.platformSessionId (support), ctx.db.withTenantScope (tenant, support, dead-letter) and none is on the pipeline ctx (claims already carry platform_staff_id). Also stage 9 (authz-guard.ts:45): platform handlers never call assertRole, so a 2xx returns common.internal in non-production (staging). Expect 401/500 on /platform next; suggest a follow-up task.
+Not tested: real DB, real staging.

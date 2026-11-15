@@ -444,7 +444,7 @@ test('audit triggers (app.tg_row_audit, AC-0B-5.x): <t>__audit AFTER INSERT OR U
 });
 
 // ================================================================ DEFINER inventory (db/meta/definer-inventory.yaml; 08 §4.7, A21.4, REQ-SEC-020)
-test('db/meta/definer-inventory.yaml: the 4 reporting DEFINERs registered with owner lims_reporting_lookup, execute [lims_api], a why, the tables they touch and owner policies that exist in db/policies/reporting.sql', () => {
+test('db/meta/definer-inventory.yaml: the 4 reporting DEFINERs registered with owner lims_reporting_lookup, execute [lims_api, lims_reporting_lookup], a why, the tables they touch and owner policies that exist in db/policies/reporting.sql', () => {
   const inv = JSON.parse(readFileSync(root + 'db/meta/definer-inventory.yaml', 'utf8').replace(/^\s*#.*$/gm, '')).definers;
   const touches = {
     'app.reporting_verify_qr': ['reporting.qr_tokens SELECT', 'reporting.report_versions SELECT'],
@@ -455,7 +455,7 @@ test('db/meta/definer-inventory.yaml: the 4 reporting DEFINERs registered with o
   const pols = new Set(policies(polSql()).map((p) => p.name));
   for (const f of DEFINERS) {
     const e = inv[f]; assert.ok(e, `inventory entry ${f}`);
-    assert.equal(e.owner, 'lims_reporting_lookup', `${f} owner`); assert.deepEqual([...e.execute], ['lims_api'], `${f} execute`);
+    assert.equal(e.owner, 'lims_reporting_lookup', `${f} owner`); assert.deepEqual([...e.execute].sort(), ['lims_api', 'lims_reporting_lookup'], `${f} execute (lims_api by GRANT; owner lims_reporting_lookup via proacl, LD-230 item 10)`);
     assert.ok(typeof e.why === 'string' && e.why.length > 5, `${f} why`);
     for (const t of touches[f]) assert.ok(e.touches.some((x) => ws(x).toUpperCase().startsWith(t.toUpperCase())), `${f} touches ${t}`);
     assert.ok(e.policies.length >= 1, `${f} names its owner policies`);

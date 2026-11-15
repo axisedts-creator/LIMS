@@ -49,12 +49,19 @@ done
 if [ "${1:-}" = "--no-seeds" ]; then LIMS_SKIP_SEEDS=1; shift; fi
 if [ -z "${LIMS_SKIP_SEEDS:-}" ]; then for f in $(ls db/seeds/*.sql 2>/dev/null | sort); do MIG --single-transaction -f "/repo/$f"; done; fi
 
+# LD-230 (8): the test image has no Supabase Storage schema; create a minimal stub (superuser, idempotent, never replaces a real one)
+# with the columns db/tests/storage/T0B-12_storage.test.sql reads. No bucket rows: buckets are provisioned by the Storage API (LD-54).
+SU -c "CREATE SCHEMA IF NOT EXISTS storage;
+  CREATE TABLE IF NOT EXISTS storage.buckets (id text PRIMARY KEY, name text NOT NULL, public boolean NOT NULL DEFAULT false);
+  CREATE TABLE IF NOT EXISTS storage.objects (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), bucket_id text, name text);
+  ALTER TABLE storage.buckets ENABLE ROW LEVEL SECURITY; ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;"
+
 if [ "$#" -gt 0 ]; then SUITES=("$@"); else mapfile -t SUITES < <(find db/tests -name '*.test.sql' | sort); fi
 FAIL=0
 for s in "${SUITES[@]}"; do
   echo "# --- $s"
   OUT="$(docker exec -e PGPASSWORD="$SUPER_PW" "$NAME" sh -c "cd /repo && psql -X -q -t -A -h localhost -U supabase_admin -d $DB -v ON_ERROR_STOP=1 -f $s" 2>&1)" || { echo "$OUT"; echo "psql failed: $s"; FAIL=1; continue; }
-  echo "$OUT" | grep -E '^(not ok|# Failed|ok .*# SKIP)' || true
+  echo "$OUT" | grep -E '^(not ok|# |ok .*# SKIP)' || true
   if echo "$OUT" | grep -q '^not ok'; then FAIL=1; fi
 done
 

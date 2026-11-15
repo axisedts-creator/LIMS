@@ -1,5 +1,12 @@
-CHANGES
-1. .orchestra/notes/WEB-STYLE-1-impl.md:4 — done_when and LD-198 (e) require the impl note to paste the real last 15 lines of `pnpm --filter @lims/web build`. Line 4 only paraphrases them ("Full 15-line tail is just the route list end above"). Fix: re-run the build and paste the 15 lines as they print, inside a fenced block.
-2. .orchestra/cr/WEB-STYLE-1.md (missing) — LD-198 rule (b) says: record the unstyled 401 stub (styling it would need CSP or nonce changes; AC-0D-7.2) as a non-blocking CR. impl.md:7 says "non-blocking CR not written yet". Fix: write `.orchestra/cr/WEB-STYLE-1.md` from the CR template in spec/program/04-CHANGE-REQUESTS.md, marked non-blocking, saying the stub stays CSS-free and that redirecting straight to /auth/login is the founder's call.
+APPROVE
+Round 2. Both round-1 items are fixed:
+1. impl.md now pastes the real 15-line build tail in a fenced block.
+2. .orchestra/cr/WEB-STYLE-1.md exists. It follows the template, is marked non-blocking, says the 401 stub stays CSS-free (AC-0D-7.2, CSP), and leaves the redirect-to-login option to the founder.
 
-Checked and OK. Diff stays inside the LD-198 scope: 6 product files plus tests, all under apps/web, under the 10-file cap. Nothing changed in packages/ui, portal, partner, middleware, CSP, spec, db, turbo, lockfile or Dockerfile. tokens.css is imported before kit.css, and body has lims-root. The next.config guard matches the portal one line for line. Every --lims-* token the new CSS uses exists in dist/tokens.css. The new CSS has no hex, px or inline style. lims-error comes from kit.css:66. /auth goes through the middleware SESSION_EXEMPT, the redirect page is correct, and the stub change is the href only. No secrets or PHI. Tests: 57/57 pass (re-run by reviewer), and they include planted-failure fixtures for checks a, c and e.
+Re-checked by the reviewer:
+- Tests: 57/57 pass (WEB-STYLE-1-verify config).
+- Built CSS apps/web/.next/static/chunks/24njjq4-zk5dl.css contains both `--lims-accent:` and `.lims-auth-card`, as the impl note says.
+- Diff stays inside apps/web plus the WEB-STYLE-1 notes and CR, which is the LD-198 scope.
+- The product code is unchanged since round 1, which found it OK on tokens, scope, no hex or px, the redirect, the href-only stub change, and no secrets or PHI.
+
+Not checked: a visual look in a real browser (the impl note says this too). It is not required by done_when.

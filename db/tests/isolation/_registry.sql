@@ -242,6 +242,7 @@ INSERT INTO registry (tbl, class, centre_scoped, audited, shared_with, rls_exemp
   ('identity.platform_staff', 'M', false, false, ARRAY[]::text[], false),
   ('identity.sessions', 'E', false, false, ARRAY['partner']::text[], false),
   ('identity.support_sessions', 'M', false, true, ARRAY[]::text[], false),
+  ('identity.tenant_contract_acceptances', 'A', false, true, ARRAY[]::text[], false),
   ('identity.tenant_settings', 'M', false, true, ARRAY[]::text[], false),
   ('instruments.agent_commands', 'E', true, true, ARRAY[]::text[], false),
   ('instruments.agent_config_versions', 'A', true, false, ARRAY[]::text[], false),

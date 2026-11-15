@@ -12883,6 +12883,7 @@ export interface Operations {
           display_name: string;
           tenant_code?: string;
           roles: string[];
+          permissions?: string[];
           support_session?: {
             id: string;
             tenant_code: string;
@@ -13122,6 +13123,7 @@ export interface Operations {
             display_name: string;
             tenant_code?: string;
             roles: string[];
+            permissions?: string[];
             support_session?: {
               id: string;
               tenant_code: string;
@@ -92427,6 +92429,7 @@ export interface Operations {
             display_name: string;
             tenant_code?: string;
             roles: string[];
+            permissions?: string[];
             support_session?: {
               id: string;
               tenant_code: string;
@@ -92530,6 +92533,7 @@ export interface Operations {
             display_name: string;
             tenant_code?: string;
             roles: string[];
+            permissions?: string[];
             support_session?: {
               id: string;
               tenant_code: string;
@@ -94903,6 +94907,7 @@ export interface Operations {
             display_name: string;
             tenant_code?: string;
             roles: string[];
+            permissions?: string[];
             support_session?: {
               id: string;
               tenant_code: string;
@@ -104471,6 +104476,7 @@ export interface Operations {
             display_name: string;
             tenant_code?: string;
             roles: string[];
+            permissions?: string[];
             support_session?: {
               id: string;
               tenant_code: string;
@@ -113228,6 +113234,7 @@ export interface Operations {
             display_name: string;
             tenant_code?: string;
             roles: string[];
+            permissions?: string[];
             support_session?: {
               id: string;
               tenant_code: string;
@@ -113722,6 +113729,7 @@ export interface Operations {
             display_name: string;
             tenant_code?: string;
             roles: string[];
+            permissions?: string[];
             support_session?: {
               id: string;
               tenant_code: string;
@@ -121496,6 +121504,7 @@ export interface Operations {
           display_name: string;
           tenant_code?: string;
           roles: string[];
+          permissions?: string[];
           support_session?: {
             id: string;
             tenant_code: string;
@@ -143334,6 +143343,7 @@ export interface Operations {
           display_name: string;
           tenant_code?: string;
           roles: string[];
+          permissions?: string[];
           support_session?: {
             id: string;
             tenant_code: string;

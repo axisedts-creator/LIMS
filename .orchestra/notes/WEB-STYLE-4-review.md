@@ -1,0 +1,9 @@
+CHANGES
+
+Scope checked: `git diff 6694966d..HEAD` (14 apps/web files + notes). Re-ran `vitest.web-style-4.config.ts`: 6 files, 146/146 pass. Build not re-run by reviewer (writer reports exit 0).
+
+OK: only LD-213 scope paths touched; no field/name/id/label/copy/action/link change (diff is wrappers, aria-hidden SVG icons, lockup, `lims-qr-card`, badge); no img element, no remote URL/font (CSP img-src 'self' data: holds); new CSS tokens/rem/%/em only, no hex/px, no inline style; SVG colours via currentColor/vars; lime only on `.lims-art-accent` strokes and stepper dots, never text; all durations use motion tokens (150/250), stagger 60 ms, 7 items, played once, no `infinite`; one `prefers-reduced-motion` rule zeroes duration+delay; band hidden >=64rem, panel hidden <64rem (pre-existing rule); arrow hidden on kit `aria-busy`, disabled look via RAC `data-disabled`; no auth logic, PHI or secrets. No DB/RLS/permission/error-code surface in this task.
+
+1. `apps/web/src/features/admin/auth/MfaChallengeForm.tsx:56` and `MfaEnrolment.tsx:133` — LD-213 (4) requires the 6-digit code to be ONE real input (autocomplete one-time-code, inputmode numeric, maxlength, name, id). It is still the kit `OtpInput` (six cells, no name/id/maxlength); writer and tester both flag it (`WEB-STYLE-4-impl.md` "Open", `WEB-STYLE-4-tests.md` DISCREPANCY) but no CR exists, while the brief says "a needed kit rule becomes a blocking CR". Fix: writer files `.orchestra/cr/WEB-STYLE-4.md` (template in spec/program/04-CHANGE-REQUESTS.md) asking the lead/C0 owner for a single-input mode of `packages/ui` OtpInput (or an LD amendment accepting the six cells for this task). No code change in this lane; keeping OtpInput unchanged is correct (no behaviour change allowed).
+
+Not verifiable here: screenshots / page scrollbar at 1440x900, 1920x1080, 390x844, and visual quality (founder/lead check after deploy, per LD-213).

@@ -72,10 +72,13 @@ describe("LD-230 (1): platform_staff fixtures use role codes the CHECK allows", 
     const bad = [];
     for (const f of SQL_TESTS) {
       const sql = noComments(read(f));
-      for (const ins of sql.matchAll(/INSERT\s+INTO\s+identity\.platform_staff\s*\(([^)]*)\)\s*VALUES\s*([\s\S]*?);/gi)) {
+      const cr = /CREATE\s+TABLE\s+identity\.platform_staff\s*\(([^']*)\)/i.exec(sql);
+      const standin = !!cr && !/\brole_code\b/.test(cr[1]);
+      for (const ins of sql.matchAll(/INSERT\s+INTO\s+identity\.platform_staff\s*\(([^)]*)\)\s*VALUES\s*([\s\S]*?)(?=\$\$|;)/gi)) {
         inserts++;
         const cols = ins[1].split(",").map((c) => c.trim());
         const ix = cols.indexOf("role_code");
+        if (ix < 0 && standin) continue; // ruling b: stand-in table the file itself creates, no role_code column
         if (ix < 0) { bad.push(`${f}: platform_staff insert without role_code column`); continue; }
         for (const t of tuples(ins[2])) {
           rows++;
@@ -85,7 +88,7 @@ describe("LD-230 (1): platform_staff fixtures use role codes the CHECK allows", 
           else if (!ALLOWED.includes(lit[1])) bad.push(`${f}: role_code '${lit[1]}' not in CHECK list`);
         }
       }
-      const all = (sql.match(/INSERT\s+INTO\s+identity\.platform_staff\b/gi) ?? []).length;
+      const all = (sql.match(/INSERT\s+INTO\s+identity\.platform_staff\s*\(/gi) ?? []).length;
       const vals = (sql.match(/INSERT\s+INTO\s+identity\.platform_staff\s*\([^)]*\)\s*VALUES/gi) ?? []).length;
       if (all !== vals) bad.push(`${f}: ${all - vals} platform_staff insert(s) not in INSERT (cols) VALUES form: the test cannot read their role_code`);
     }

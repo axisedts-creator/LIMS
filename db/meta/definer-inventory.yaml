@@ -120,6 +120,10 @@
    "owner": "lims_owner", "execute": ["lims_api"], "why": "platform-staff MFA factor list before a platform session claim exists (LD-216 AUTH-PLATFORM-SESSION-1; 08 A28.1)",
    "touches": ["identity.mfa_factors SELECT"], "policies": ["mfa_factors__select__owner_only"], "reviewer": null
   },
+  "app.identity_platform_auth_write_mfa_enrolled_event": {
+   "owner": "lims_owner", "execute": ["lims_api"], "why": "platform-staff platform_mfa_enrolled audit event while the session is still aal1 (LD-221 AUTH-MFA-COMPLETE-1; 08 A28.1, A25 D-215)",
+   "touches": ["identity.platform_events INSERT", "identity.platform_staff SELECT"], "policies": ["platform_events__insert__owner_mfa_enrolled", "platform_staff__select__owner_only"], "reviewer": null
+  },
   "app.identity_platform_auth_write_invitation_accept": {
    "owner": "lims_owner", "execute": ["lims_api"], "why": "platform-staff invitation write before a platform session exists (08 A28.1)",
    "touches": ["identity.invitations"], "policies": ["owner policies tenant_id IS NULL AND user_id = app.pre_user_id (C2 05-SCHEMA §5.4)"], "reviewer": null

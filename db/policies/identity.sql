@@ -132,6 +132,10 @@ CREATE POLICY platform_staff__insert__owner_only ON identity.platform_staff FOR 
   WITH CHECK (role_code = 'platform_superadmin');
 CREATE POLICY platform_events__insert__owner_only ON identity.platform_events FOR INSERT TO lims_owner
   WITH CHECK (event_type = 'bootstrap_admin_created');
+CREATE POLICY platform_events__insert__owner_mfa_enrolled ON identity.platform_events FOR INSERT TO lims_owner
+  WITH CHECK (event_type = 'platform_mfa_enrolled' AND target_type = 'platform_staff' AND target_id = actor_platform_staff_id
+    AND EXISTS (SELECT 1 FROM identity.platform_staff s
+                 WHERE s.id = target_id AND s.user_id = nullif(current_setting('app.pre_user_id', true), '')::uuid));
 CREATE POLICY auth_events__insert__owner_only ON identity.auth_events FOR INSERT TO lims_owner
   WITH CHECK (tenant_id IS NULL);
 CREATE POLICY auth_events__select__owner_only ON identity.auth_events FOR SELECT TO lims_owner

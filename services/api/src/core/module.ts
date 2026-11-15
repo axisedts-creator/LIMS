@@ -37,6 +37,10 @@ export interface HandlerContext {
   // LD-133: `type` optional in the TYPE only (modules identity/lab/smartreport narrow actor to { id }); the pipeline always sets it.
   readonly actor?: { readonly type?: string; readonly id: string; readonly membershipId?: string; readonly supportSessionId?: string } | undefined;
   readonly requestId: string;
+  /** LD-241 / CR-C2-004: platform session only (claims.scope platform, platform_role platform_*); absent for every other session. */
+  readonly platformRole?: string;
+  /** LD-241: the claims' aal, platform session only (PlatformAuthz privileged codes need aal2). */
+  readonly aal?: 'aal1' | 'aal2';
   /** LD-133: `| object` in the TYPE only (lab/smartreport type tx as object); the pipeline always hands the Tx of requestTx. */
   readonly tx?: Tx | object | undefined;
   /**

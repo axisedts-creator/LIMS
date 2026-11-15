@@ -17,7 +17,7 @@ CREATE TEMP TABLE rt(t, cls, u, d, aud, mand) AS VALUES
   ('match_pairs','E',true,true,false,3),('issues','E',false,true,false,3),('samples','E',true,true,false,3);
 
 -- C18 check 1: inventory, owner (AC-0B-1.2, AC-0B-6.3), schema privileges (§1.1, §2 CI assertions), role attributes, no sequences / enums / views
-SELECT is((SELECT count(*)::int FROM pg_class c WHERE c.relnamespace = 'migration_staging'::regnamespace AND c.relkind IN ('r','p')), 16, 'C18 check 1: migration_staging holds exactly the 16 chunk tables (05-SCHEMA §4 CREATE TABLE count; no event_inbox, §1.9)');
+SELECT is((SELECT count(*)::int FROM pg_class c WHERE c.relnamespace = 'migration_staging'::regnamespace AND c.relkind IN ('r','p')), 16, 'C18 check 1: migration_staging holds exactly the 16 chunk tables (05-SCHEMA §4 count of table statements; no event_inbox, §1.9)');
 SELECT is((SELECT array_agg(relname::text ORDER BY relname) FROM pg_class WHERE relnamespace = 'migration_staging'::regnamespace AND relkind IN ('r','p')), (SELECT array_agg(t ORDER BY t) FROM rt), 'C18 check 1: the table set equals the §3 inventory');
 SELECT is((SELECT count(*)::int FROM pg_class c WHERE c.relnamespace = 'migration_staging'::regnamespace AND c.relkind IN ('v','m')), 0, 'C18 check 1 / AC-0B-6.4: no view, no materialized view (§10)');
 SELECT is((SELECT count(*)::int FROM pg_class c WHERE c.relnamespace = 'migration_staging'::regnamespace AND c.relkind = 'S'), 0, 'C18 check 1: no sequences');

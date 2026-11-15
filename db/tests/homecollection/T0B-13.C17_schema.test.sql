@@ -18,7 +18,7 @@ CREATE TEMP TABLE rt(t, cls, u, d, aud, ce) AS VALUES
 CREATE TEMP TABLE rg(t) AS VALUES ('g_cs_reasons');
 
 -- C17 check 1: inventory, owner (AC-0B-1.2, AC-0B-6.3), schema privileges, no sequences / enums / views
-SELECT is((SELECT count(*)::int FROM pg_class c WHERE c.relnamespace = 'homecollection'::regnamespace AND c.relkind IN ('r','p')), 15 + 1 + 1, 'C17 check 1: homecollection holds 15 tenant + 1 G tables + event_inbox (16 chunk tables = 05-SCHEMA §4 CREATE TABLE count)');
+SELECT is((SELECT count(*)::int FROM pg_class c WHERE c.relnamespace = 'homecollection'::regnamespace AND c.relkind IN ('r','p')), 15 + 1 + 1, 'C17 check 1: homecollection holds 15 tenant + 1 G tables + event_inbox (16 chunk tables = 05-SCHEMA §4 count of table statements)');
 SELECT is((SELECT array_agg(relname::text ORDER BY relname) FROM pg_class WHERE relnamespace = 'homecollection'::regnamespace AND relkind IN ('r','p') AND relname <> 'event_inbox'), (SELECT array_agg(t ORDER BY t) FROM (SELECT t FROM rt UNION ALL SELECT t FROM rg) x), 'C17 check 1: the table set equals the §1 / §4 inventory');
 SELECT is((SELECT count(*)::int FROM pg_class c WHERE c.relnamespace = 'homecollection'::regnamespace AND c.relkind IN ('v','m')), 0, 'C17 check 1 / AC-0B-6.4: no view, no materialized view (IC §6 defines none; §1 "this chunk publishes none")');
 SELECT is((SELECT count(*)::int FROM pg_class c WHERE c.relnamespace = 'homecollection'::regnamespace AND c.relkind = 'S'), 0, 'C17 check 1: no sequences');

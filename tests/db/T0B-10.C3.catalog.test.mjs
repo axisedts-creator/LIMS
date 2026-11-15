@@ -199,7 +199,7 @@ test('no ENUM types (CV §5.1); exactly the 43 §1 tables are created (no catalo
   const made = [...sql.matchAll(/CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?catalog\.(\w+)/gi)].map((m) => m[1]);
   assert.deepEqual(made.sort(), ALL43().sort());
   assert.doesNotMatch(sql, /catalog\.event_inbox/i);
-  assert.doesNotMatch(allSql(), /CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?(?!catalog\.|identity\.|core\.|audit\.|frontdesk\.|billing\.|lab\.|instruments\.|reporting\.|analytics\.|quality\.|micro\.|anatomic\.|inventory\.|partners\.|smartreport\.|payments\.|engagement\.|homecollection\.)\w+\./i);
+  assert.doesNotMatch(allSql(), /CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?(?!catalog\.|identity\.|core\.|audit\.|frontdesk\.|billing\.|lab\.|instruments\.|reporting\.|analytics\.|quality\.|micro\.|anatomic\.|inventory\.|partners\.|smartreport\.|payments\.|engagement\.|homecollection\.|migration_staging\.)\w+\./i);
   for (const t of ALL43()) for (const c of ['id', 'tenant_id']) {
     const def = createTable(catSql(), `catalog.${t}`)?.colMap.get(c);
     if (def) assert.doesNotMatch(def, /\bdefault\b/, `catalog.${t}.${c} must have no DEFAULT (UUIDv7 in app code, 04 D9)`);

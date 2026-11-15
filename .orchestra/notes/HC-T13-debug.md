@@ -6,3 +6,5 @@
 - Fix: none in C17b-owned code (db/ and C18 migration not ours). Re-filed `.orchestra/cr/HC-T13.md` to C18/C0-0B. Needs their fix on main, then re-run HC-T13-verify.cmd.
 - Round 5: verify log unchanged (C18 migration 20261115180000...sql:68 `role "lims_migration" does not exist`). main HEAD (9ab81d70) already merged, no C18/C0 fix on it. CR .orchestra/cr/HC-T13.md open. No C17b-owned change possible; blocked on C18/C0-0B.
 - Round 6: verify log unchanged (C18 migration ...:68 `role "lims_migration" does not exist`). main still 9ab81d70, no C18/C0-0B fix on it. CR .orchestra/cr/HC-T13.md open. No C17b-owned change possible; blocked.
+- Round 7: bootstrap OK now; review.test.ts ran, 10 failed: core publish rejected the payload (event_schema_violation, common.internal). Cause: homecollection.collection.synced.v1 schema requires the `payments` key; reviewHeldCollection omitted it.
+- Fix: added `payments: []` to the event payload in collection.service.ts (reviewHeldCollection). Re-ran tests/homecollection/HC-T13.pg.sh: 2 files, 58/58 pass.

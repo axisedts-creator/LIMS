@@ -18,7 +18,7 @@ import { loadSessionActor } from './session-actor.js';
 // [CONV] relative import until @lims/shared-ts is a services/api dependency (same as core/errors.ts).
 import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';
 
-export type SessionRepo = Pick<MfaRepo, 'sessionActor' | 'sessionByToken' | 'loadSession' | 'updateSession' | 'touchSession' | 'expireSession' | 'enqueue'>
+export type SessionRepo = Pick<MfaRepo, 'sessionActor' | 'membershipPermissions' |'sessionByToken' | 'loadSession' | 'updateSession' | 'touchSession' | 'expireSession' | 'enqueue'>
   & Partial<Pick<MfaRepo, 'rotateToken'>>;
 /** LD-81 patient access JWT claims: exactly sub / session_id / aal / iat / exp (the EdDSA signer is the seam) */
 export interface PatientJwtClaims { sub: string; sessionId: string; aal: string; issuedAt: Date; expiresAt: Date }
@@ -201,8 +201,11 @@ export function createSessionService(deps: SessionDeps) {
       await lapse(c, l);
       blocked(l);
       // LD-208 SESSION-ACTOR-1: actor BEFORE the GoTrue refresh, so a missing actor (common.internal, rollback) never loses a rotated refresh token
+      // LD-222 AUTH-ACTOR-2: permissions only when the stored session is active (same tx as the actor read)
       const actor = await loadSessionActor((k) => deps.repo.sessionActor(l.tx, k),
-        { userId: l.s.userId, tenantId: l.s.kind === 'platform' ? null : l.s.tenantId, membershipId: l.s.kind === 'platform' ? null : l.s.membershipId }, c.log, c.requestId);
+        { userId: l.s.userId, tenantId: l.s.kind === 'platform' ? null : l.s.tenantId, membershipId: l.s.kind === 'platform' ? null : l.s.membershipId }, c.log, c.requestId,
+        l.s.kind === 'tenant_staff' || l.s.kind === 'platform'   // partner sessions omit permissions (report-only producer)
+          ? { state: l.load.state, tenantPermissions: (membershipId) => deps.repo.membershipPermissions(l.tx, { tenantId: l.s.tenantId!, membershipId }) } : undefined);
       const { accessToken, accessExpiresAt } = await gotrueRefresh(c, l);
       const idleExpiresAt = await touched(c, l, touch);
       idMetrics.sessionResolve(c, accessToken === l.load.accessToken ? 'ok' : 'refreshed');   // T28 (02-TRD §13)

@@ -100,6 +100,7 @@ export function createMfaRepo(o: { seal?: Sealer; open?: Opener } = {}) {
 
   const repo = {
     sessionActor: auth.sessionActor,   // LD-208 SESSION-ACTOR-1 (resolveSession)
+    membershipPermissions: auth.membershipPermissions,   // LD-222 AUTH-ACTOR-2 (active tenant sessions only)
     loginContext: auth.loginContext, insertSession: auth.insertSession, insertPlatformSession: auth.insertPlatformSession,   // T9 confirmEmailToken
 
     /** T9 SS8: every OTHER non-terminal session of the user -> revoked (password_change). */

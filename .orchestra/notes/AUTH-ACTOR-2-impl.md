@@ -1,0 +1,7 @@
+# AUTH-ACTOR-2 impl (writer)
+- Files (11): contracts/openapi/identity.yaml (actor.permissions, optional; no generated identity types exist in repo); service/session-actor.ts; service/auth.service.ts, session.service.ts; repository/auth-events.repo.ts + mfa.repo.ts (membershipPermissions read); handlers/verifyMfaChallenge.ts, setPasswordFromSetup.ts, confirmEmailToken.ts; apps/web core/session/c2.ts, types.ts. No migration, no DB change.
+- [CONV] permissions only when state==='active'; platform = permissionsOfRoles(roles); tenant = core.membership_roles+roles(is_active)+role_permissions in the request tx; failed/oversize/non-string read => common.internal, never [].
+- [CONV] setPasswordFromSetup: loginContext+state+actor read moved BEFORE adminUpdatePassword/acceptInvitation. confirmEmailToken: actor after validation, before first write (state password_setup => no permissions).
+- [CONV] loginStaff passes perms only for mode staff; resolve only for tenant_staff/platform; partner/mobile unchanged. Web: active tenant_staff/platform w/o string[] => {ok:false,500,common.internal}.
+- Run: 84 api (3 new files) + 27 web pass; identity suite 5189 pass / 11 fail = 10 stale tests (see dispute.md) + 1 pre-existing AppShell route-guard. typecheck: no errors in touched files (42 pre-existing elsewhere). Not run: pnpm verify full, pgTAP.
+- Open: MFA verify reads tenant permissions in the aal1 tx before activation; RLS on core.membership_roles/role_permissions for aal1 not provable in the lane (fakes only) — check live; if blocked, DEFINER migration per LD-222.

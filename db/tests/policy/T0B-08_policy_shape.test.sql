@@ -46,8 +46,18 @@ SELECT is_empty($$SELECT schemaname || '.' || tablename || ' ' || policyname FRO
 SELECT is_empty($$SELECT schemaname || '.' || tablename || ' ' || policyname FROM mod_policies
    WHERE policyname LIKE '%\_\_owner\_only' AND roles <> ARRAY['lims_owner']::name[]$$, 'every *__owner_only policy is TO lims_owner only');
 SELECT is_empty($$SELECT schemaname || '.' || tablename || ' ' || policyname FROM mod_policies
-   WHERE policyname NOT LIKE '%\_\_owner\_only' AND NOT (roles <@ ARRAY['lims_app','lims_api','lims_worker']::name[])$$,
-  'every other policy is TO lims_app / lims_api / lims_worker only (never lims_owner, never PUBLIC)');
+   WHERE policyname NOT LIKE '%\_\_owner\_only' AND NOT (roles <@ ARRAY['lims_app','lims_api','lims_worker']::name[])
+     -- AUTH-MFA-COMPLETE-1 (LD-221): the ONE additive owner policy is named ..__insert__owner_mfa_enrolled (not ..__owner_only); it is TO lims_owner and checked on its own below
+     AND NOT (schemaname = 'identity' AND tablename = 'platform_events' AND policyname = 'platform_events__insert__owner_mfa_enrolled')$$,
+  'every other policy is TO lims_app / lims_api / lims_worker only (never lims_owner, never PUBLIC) - except the one LD-221 owner policy');
+-- AUTH-MFA-COMPLETE-1 (LD-221): that exception is exactly one policy, TO lims_owner only, INSERT only, GUC-bound (so schema test 17 applies), no literal true
+SELECT is((SELECT roles FROM pg_policies WHERE schemaname = 'identity' AND tablename = 'platform_events' AND policyname = 'platform_events__insert__owner_mfa_enrolled'), ARRAY['lims_owner']::name[],
+  'LD-221: platform_events__insert__owner_mfa_enrolled is TO lims_owner only');
+SELECT is((SELECT cmd FROM pg_policies WHERE schemaname = 'identity' AND tablename = 'platform_events' AND policyname = 'platform_events__insert__owner_mfa_enrolled'), 'INSERT', 'LD-221: it is an INSERT policy');
+SELECT ok((SELECT with_check ~ 'app\.pre_user_id' AND with_check ~ 'platform_mfa_enrolled' AND with_check ~ 'platform_staff' FROM pg_policies WHERE schemaname = 'identity' AND tablename = 'platform_events' AND policyname = 'platform_events__insert__owner_mfa_enrolled'),
+  'LD-221: its WITH CHECK is bound to app.pre_user_id, the event type platform_mfa_enrolled and the platform_staff row');
+SELECT is((SELECT count(*)::int FROM pg_policies WHERE schemaname = 'identity' AND tablename = 'platform_events' AND roles = ARRAY['lims_owner']::name[]), 2,
+  'LD-221: identity.platform_events has exactly two lims_owner policies (bootstrap_admin_created + platform_mfa_enrolled)');
 SELECT is_empty($$SELECT schemaname || '.' || tablename || ' ' || policyname FROM mod_policies WHERE permissive <> 'PERMISSIVE'$$,
   'no RESTRICTIVE policies (the staff guard is part of each policy text, 08 A17 P-16)');
 

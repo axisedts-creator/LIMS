@@ -61,7 +61,8 @@ function suite(label: string, gateway: () => GoTrueGateway | undefined, skip = f
       const s = await call(w, startH(w), { token: a.token, body: {} });
       const r = await call(w, completeH(w), { token: a.token, body: { code: totp(s.body.secret_base32) }, params: { factor_id: s.body.factor_id } });
       expect(r.body).toMatchObject({ kind: 'platform', state: 'active', aal: 'aal2' }); expect(w.tx.bindTenant).not.toHaveBeenCalled();
-      expect(w.store.committed('recordPlatformEvent').map((x) => x.arg.eventType)).toEqual(['platform_mfa_enrolled']);
+      // AUTH-MFA-COMPLETE-1 (LD-221): the event goes through the DEFINER method (the repo fixes event_type platform_mfa_enrolled); the plain INSERT is not used on this path
+      expect(w.store.committed('recordPlatformEvent')).toHaveLength(0); expect(w.store.committed('recordPlatformMfaEnrolledEvent')).toHaveLength(1);
     }, T);
 
     it('re-enrolment: a second start deletes the unverified GoTrue factor of the first; only the new secret verifies', async () => {

@@ -48,9 +48,10 @@ describe('qrSvgToBase64 - accepted spellings (LD-214 HELPER RULES)', () => {
     const out = await qr(input);
     expect(out).toBeDefined(); expect(out).not.toMatch(/^data:/i); expect(out).toMatch(/^[A-Za-z0-9+/]+=*$/); expect(unb64(out!)).toBe(SVG);
   });
-  it('an XML declaration first is accepted (bare, percent-encoded and base64) and kept verbatim in the output', async () => {
+  // AUTH-MFA-COMPLETE-1 (LD-221 item 6) changed THIS expectation only: the prolog is now STRIPPED (was "kept verbatim"); the output is the clean <svg> only.
+  it('an XML declaration first is accepted (bare, percent-encoded and base64) and stripped: the output is the clean <svg> only', async () => {
     const doc = XML_DECL + SVG;
-    for (const input of [doc, `data:image/svg+xml;utf-8,${encodeURIComponent(doc)}`, `data:image/svg+xml;base64,${b64(doc)}`]) expect(unb64((await qr(input))!)).toBe(doc);
+    for (const input of [doc, `data:image/svg+xml;utf-8,${encodeURIComponent(doc)}`, `data:image/svg+xml;base64,${b64(doc)}`]) expect(unb64((await qr(input))!)).toBe(SVG);
   });
   it('whitespace before <svg> (and after the XML declaration) is accepted', async () => {
     expect(await qr(`  \n${SVG}`)).toBeDefined(); expect(await qr(`${XML_DECL}\n\n  ${SVG}`)).toBeDefined(); expect(await qr(`data:image/svg+xml,%20%0A${encodeURIComponent(SVG)}`)).toBeDefined();
@@ -81,7 +82,7 @@ describe('qrSvgToBase64 - rejected (return undefined, never sanitise)', () => {
     ['not-svg body (png bytes as base64)', 'data:image/svg+xml;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAB'],
     ['svg not first (wrapped in a div)', `<div>${SVG}</div>`],
     ['svg not first (text before it)', `x ${SVG}`],
-    ['svg not first (a comment first)', `<!-- c -->${SVG}`],
+    // ['svg not first (a comment first)'] moved to mfa.qr.prolog.test.ts: LD-221 item 6 now ACCEPTS a leading comment (stripped)
     ['svg only inside an XML-declared html document', `${XML_DECL}<html>${SVG}</html>`],
     ['<svgfoo> is not <svg', '<svgfoo xmlns="http://www.w3.org/2000/svg"></svgfoo>'],
   ])('%s -> undefined', async (_n, input) => { expect(await qr(input)).toBeUndefined(); });

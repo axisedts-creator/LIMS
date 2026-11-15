@@ -235,3 +235,19 @@ describe("LD-230 rules: no assertion removed, weakened by skipping, or hidden in
       assert.ok(skipsNow <= (SKIP_BASE[f] ?? 0), `skip/todo introduced (${skipsNow} > ${SKIP_BASE[f] ?? 0})`);
     });
 });
+
+describe("LD-230 (6) review round: identity.auth_events email_hmac fixtures are 32 bytes (auth_events__hmac_len__ck)", () => {
+  // 'email_hmac', '\x<hex>' literals on lines that insert into identity.auth_events
+  const LIT = /'email_hmac',\s*'\\x([0-9a-fA-F]*)'/g;
+  it("the CHECK requires 32 bytes (read from the identity migration)", () => {
+    assert.match(read("db/migrations/20261105001300_identity__create_identity_schema.sql"), /auth_events__hmac_len__ck[\s\S]{0,120}octet_length\(email_hmac\)\s*=\s*32/);
+  });
+  it("every auth_events email_hmac literal under db/tests is 64 hex chars", () => {
+    let seen = 0;
+    for (const f of SQL_TESTS)
+      for (const l of noComments(read(f)).split("\n"))
+        if (l.includes("identity.auth_events"))
+          for (const m of l.matchAll(LIT)) { seen++; assert.equal(m[1].length, 64, `${f}: email_hmac '\\x${m[1]}' is ${m[1].length / 2} bytes, CHECK needs 32`); }
+    assert.ok(seen >= 6, `expected the maintenance fixtures to be scanned, saw ${seen}`);
+  });
+});

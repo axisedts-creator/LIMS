@@ -30,8 +30,8 @@ const unauthResolution = (code: 'auth.session_expired' | 'auth.unauthenticated')
   problem: { type: `urn:lims:error:${code}`, title: code, status: 401, code },
 });
 
-/** The Location header resolved against the request origin, as a browser would. */
-const target = (res: Response) => new URL(res.headers.get('location') ?? '', ORIGIN);
+/** WEB-AUTH-REDIRECT-2 (LD-203): Location must be ABSOLUTE (a relative one 500s on the real server). Parsing without a base throws if relative. */
+const target = (res: Response) => new URL(res.headers.get('location') ?? '');
 
 beforeEach(() => {
   resolveMock.mockReset();
@@ -106,6 +106,20 @@ describe('JSON requests keep problem+json 401 exactly as before', () => {
     const res = await middleware(req('/v1/anything', { accept: 'application/json' }));
     expect(res.headers.get('content-security-policy-report-only')).toMatch(/nonce-/);
     expect(res.headers.get('x-content-type-options')).toBe('nosniff');
+  });
+});
+
+describe('WEB-AUTH-REDIRECT-2 (LD-203): Location is an absolute URL, literal path + request origin', () => {
+  it('missing → exactly <origin>/auth/login; expired → exactly <origin>/auth/session-expired', async () => {
+    expect((await middleware(req('/dashboard'))).headers.get('location')).toBe(`${ORIGIN}/auth/login`);
+    resolveMock.mockResolvedValue(unauthResolution('auth.session_expired'));
+    expect((await middleware(req('/dashboard', { cookie: COOKIE }))).headers.get('location')).toBe(`${ORIGIN}/auth/session-expired`);
+  });
+
+  it('origin follows the request (other host and port), not a constant', async () => {
+    const res = await middleware(new NextRequest('http://lab.example.test:4567/no-such-page', { headers: { accept: HTML } }));
+    expect(res.status).toBe(307);
+    expect(res.headers.get('location')).toBe('http://lab.example.test:4567/auth/login');
   });
 });
 
@@ -208,8 +222,9 @@ describe('the redirect target is a literal (no open redirect, no echo)', () => {
 
 describe('source guards (LD-200)', () => {
   const src = readFileSync(resolve(fileURLToPath(new URL('../', import.meta.url)), 'middleware.ts'), 'utf8');
-  it('cites LD-200 and uses the two literal targets', () => {
+  it('cites LD-200 and LD-203 and uses the two literal targets', () => {
     expect(src).toMatch(/LD-200/);
+    expect(src).toMatch(/LD-203/);
     expect(src).toMatch(/['"`]\/auth\/login['"`]/);
     expect(src).toMatch(/['"`]\/auth\/session-expired['"`]/);
   });

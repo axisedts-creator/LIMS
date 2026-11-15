@@ -113,10 +113,19 @@ export function createPipeline(d: PipelineDeps) {
       ...(typeof claims.support_session_id === 'string' ? { supportSessionId: claims.support_session_id } : {}),
     }) : systemActorId ? Object.freeze({ type: 'system' as const, id: systemActorId }) : undefined;
     const noTx = (): never => { throw new LimsError('common.internal'); };
+    // LD-241 / CR-C2-004 (C2 02-TRD 5.10, 7.2 step 3): PlatformAuthz reads platformRole and aal; set ONLY for a platform session
+    // (claims.scope platform + a platform_ role), from the verified claims; every other session kind gets neither key.
+    // [CONV] a platform session is also a user actor without a tenant (identity claims resolver shape); a patient/partner/tenant
+    // claim set carrying stray platform keys gets nothing.
+    const platform = claims?.scope === 'platform' && claims.actor_type === 'user' && claims.tenant_id === undefined
+      && typeof claims.platform_role === 'string' && claims.platform_role.startsWith('platform_')
+      ? { platformRole: claims.platform_role, ...(typeof claims.aal === 'string' ? { aal: claims.aal } : {}) }
+      : {};
     const ctx: HandlerContext = Object.freeze({
       // RequestContext (IC §4.1)
       tenantId: claims?.tenant_id,
       actor,
+      ...platform,
       requestId: c.requestId,
       tx,
       now: () => (tx ? tx.startedAt.toISOString() : new Date().toISOString()),

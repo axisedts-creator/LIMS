@@ -53,7 +53,9 @@ describe('A: migration add_platform_policies (C2 05-SCHEMA s5.3)', () => {
     const sql = strip(read(`db/migrations/${F1}`));
     for (const re of [/\bdrop\b/i, /alter\s+policy/i, /alter\s+table/i, /\bgrant\b/i, /\brevoke\b/i, /create\s+role/i, /security\s+definer/i, /disable\s+row/i, /bypassrls/i, /create\s+function/i, /create\s+table/i])
       expect(sql, String(re)).not.toMatch(re);
-    expect(stmts(sql).every((x) => /^create policy/i.test(x))).toBe(true);
+    const s = stmts(sql);   // 02-TRD:241: first statement is the mandatory role switch; everything after it is CREATE POLICY
+    expect(s[0]).toMatch(/^set\s+local\s+role\s+lims_owner$/i);
+    expect(s.slice(1).every((x) => /^create policy/i.test(x))).toBe(true);
   });
 });
 

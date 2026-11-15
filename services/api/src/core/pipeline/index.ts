@@ -2,6 +2,7 @@
 // observability/logging.ts). One run() per request; the HandlerContext built here has exactly the §6.3 members.
 // Errors thrown by a stage or the handler are rethrown after the rollback and the idempotency key release; a handler RESULT
 // with status >= 400 is returned (and rolled back unless ctx.commitOnError() was called).
+import type { BffKind } from '../auth/bff-key.js';
 import type { DbClaims } from '../auth/claims.js';
 import { access, type AccessLogEntry } from '../audit/access.js';
 import type { Db, Tx, TxControl, TxFn } from '../db/tx.js';
@@ -32,6 +33,10 @@ export interface PipelineDeps {
   readonly env: string;
   /** Absent when LIMS_CORE_DATABASE_URL is unset: only public operations can run (no transaction needed). */
   readonly db?: Db | undefined;
+  /** LD-204 (AUTH-ACTOR-1): lazy identity system actor id from core.g_system_actors (boot.ts); rejects common.internal on any failure. */
+  readonly identityActor?: (() => Promise<string>) | undefined;
+  /** LD-204: Db opened with that actor, used ONLY for ctx.db.identityAuthTx of module identity. */
+  readonly identityAuthDb?: (() => Promise<Db>) | undefined;
   readonly idempotency?: Pick<Idempotency, 'begin' | 'finish' | 'release'> | undefined;
   readonly rateLimiter?: RateLimiter | undefined;
   readonly authz: ReturnType<typeof createAuthzGuard>;
@@ -51,6 +56,8 @@ export interface PipelineCall {
   readonly claims?: DbClaims | undefined;
   readonly requestId: string;
   readonly clientIp: string;
+  /** LD-206 (AUTH-BFF-1): the BffKind the verifier returned for X-Lims-Bff-Key; undefined otherwise. */
+  readonly bffKey?: BffKind | undefined;
   readonly userAgent?: string | undefined;
   readonly idempotencyKey?: string | undefined;
   readonly req: HandlerRequest;
@@ -95,13 +102,16 @@ export function createPipeline(d: PipelineDeps) {
     return Object.freeze(out);
   }
 
-  function buildCtx(c: PipelineCall, az: RequestAuthz, tx: Tx | undefined, ctl: TxControl | undefined, onCommitOnError: () => void): HandlerContext {
+  /** LD-204: identityAuth operation of module identity only (the flag the pipeline already carries); nothing else gets an actor from this path. */
+  const needsIdentityActor = (c: PipelineCall): boolean => !c.claims && c.op.identityAuth === true && c.op.module === 'identity';
+
+  function buildCtx(c: PipelineCall, az: RequestAuthz, tx: Tx | undefined, ctl: TxControl | undefined, onCommitOnError: () => void, systemActorId?: string): HandlerContext {
     const claims = tx ? c.claims : undefined;
-    const actor = claims && Object.freeze({
+    const actor = claims ? Object.freeze({
       type: claims.actor_type, id: claims.sub,
       ...(typeof claims.membership_id === 'string' ? { membershipId: claims.membership_id } : {}),
       ...(typeof claims.support_session_id === 'string' ? { supportSessionId: claims.support_session_id } : {}),
-    });
+    }) : systemActorId ? Object.freeze({ type: 'system' as const, id: systemActorId }) : undefined;
     const noTx = (): never => { throw new LimsError('common.internal'); };
     const ctx: HandlerContext = Object.freeze({
       // RequestContext (IC §4.1)
@@ -119,10 +129,12 @@ export function createPipeline(d: PipelineDeps) {
         identityAuthTx: <T>(a: unknown, b?: TxFn<T>): Promise<T> => {
           const fn = (typeof a === 'function' ? a : b) as TxFn<T>;
           if (!d.db || typeof fn !== 'function') return Promise.reject(new LimsError('common.internal'));
-          return d.db.identityAuthTx({
+          // LD-204: module identity opens through the Db that carries the lazily read identity actor; every other module keeps d.db (which refuses).
+          const open = c.op.module === 'identity' && d.identityAuthDb ? d.identityAuthDb() : Promise.resolve(d.db);
+          return open.then((db) => db.identityAuthTx({
             requestId: c.requestId, clientIp: c.clientIp, userAgent: c.userAgent,
             operation: { module: c.op.module, operationId: c.op.operationId, context: c.op.context },
-          }, fn);
+          }, fn));
         },
       }),
       core: d.shared.core,
@@ -137,6 +149,7 @@ export function createPipeline(d: PipelineDeps) {
       services: d.services?.[c.op.module],
       operationId: c.op.operationId,
       clientIp: c.clientIp,
+      bffKey: c.bffKey,                                                  // LD-206: own key on every request, undefined when absent
       download: d.shared.download,
       commitOnError: () => { onCommitOnError(); },
       noRetry: () => { ctl?.noRetry(); },
@@ -160,6 +173,11 @@ export function createPipeline(d: PipelineDeps) {
 
     await rateLimit(op, claims); // stage 5
 
+    // LD-204 (AUTH-ACTOR-1): before stage 6 so a failed read leaves no idempotency state; fails closed (common.internal), handler never runs.
+    let systemActorId: string | undefined;
+    // No source wired (no database: boot wires one whenever a pool exists) = unchanged: ctx.actor stays undefined and the handler refuses itself.
+    if (d.identityActor && needsIdentityActor(c)) systemActorId = await d.identityActor();
+
     // stage 6 (§6.6): begin() is the single decision point (skip / proceed / replay / throw).
     const begun = d.idempotency
       ? await d.idempotency.begin({
@@ -174,7 +192,7 @@ export function createPipeline(d: PipelineDeps) {
     // stage 7: public operation without tenant -> no transaction.
     if (!claims || !d.db) {
       const az = d.authz.forRequest();
-      const r = await c.handler(c.req, buildCtx(c, az, undefined, undefined, () => undefined)); // stage 8
+      const r = await c.handler(c.req, buildCtx(c, az, undefined, undefined, () => undefined, systemActorId)); // stage 8
       authzCheck(az, op, r.status); // stage 9
       return r;
     }

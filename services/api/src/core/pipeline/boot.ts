@@ -133,20 +133,38 @@ export async function bootPipeline(o: {
   }
   // LD-189: bind now that the pool exists; nothing is read here. The identity actor comes lazily from core.g_system_actors (module 'identity', is_active),
   // exactly one active row, never env/request/JWT. open() exposes only identityAuthTx.
-  if (pg && pool && bindIdentityDb) {
+  // LD-204 (AUTH-ACTOR-1, AUTH-SENSITIVE): ONE reader for the identity system actor, shared by the identity claims binding (above) and the pipeline
+  // (ctx.actor / ctx.db.identityAuthTx of identityAuth operations of module identity). Lazy, UUID-validated, memoised on success only, concurrent
+  // first calls share one read; any failure = common.internal (code only: no id, no driver text). Never env / request / JWT.
+  let identityActor: (() => Promise<string>) | undefined;
+  let identityAuthDb: (() => Promise<Db>) | undefined;
+  if (pg && pool) {
     const pgq = pg;
-    bindIdentityDb({
-      async readActorId() {
-        const r = await pgq.query('SELECT actor_id FROM core.g_system_actors WHERE module = $1 AND is_active', ['identity']);
-        return r.rows.length === 1 ? r.rows[0]?.actor_id : undefined;
-      },
-      open: (identitySystemActorId) => {
-        const d = createDb({
-          pool, log, metrics, retryMax: config.txRetryMax, statementTimeoutMs: config.statementTimeoutMs, lockTimeoutMs: config.lockTimeoutMs,
-          identityAuthOps: config.identityAuthOps, withTenantScopeOps: config.withTenantScopeOps, identitySystemActorId,
-        });
-        return { identityAuthTx: d.identityAuthTx };
-      },
+    const ACTOR_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    let actorId: string | undefined;
+    let actorDb: Db | undefined;
+    let pendingActor: Promise<string> | undefined;
+    identityActor = () => {
+      if (actorId) return Promise.resolve(actorId);
+      pendingActor ??= (async () => {
+        let id: unknown;
+        try {
+          const r = await pgq.query('SELECT actor_id FROM core.g_system_actors WHERE module = $1 AND is_active', ['identity']);
+          id = r.rows.length === 1 ? r.rows[0]?.actor_id : undefined;
+        } catch { throw new LimsError('common.internal'); }
+        if (typeof id !== 'string' || !ACTOR_UUID.test(id)) throw new LimsError('common.internal');
+        return (actorId = id);
+      })().finally(() => { pendingActor = undefined; });
+      return pendingActor;
+    };
+    const openDb = (identitySystemActorId: string): Db => createDb({
+      pool, log, metrics, retryMax: config.txRetryMax, statementTimeoutMs: config.statementTimeoutMs, lockTimeoutMs: config.lockTimeoutMs,
+      identityAuthOps: config.identityAuthOps, withTenantScopeOps: config.withTenantScopeOps, identitySystemActorId,
+    });
+    identityAuthDb = async () => (actorDb ??= openDb(await identityActor!()));
+    bindIdentityDb?.({
+      readActorId: () => identityActor!(),
+      open: (id) => ({ identityAuthTx: openDb(id).identityAuthTx }),
     });
   }
   const idempotency = db && createIdempotency({ db, log });
@@ -173,7 +191,7 @@ export async function bootPipeline(o: {
       let p = cache.get(module);
       if (!p) {
         p = createPipeline({
-          env: config.env, db, idempotency, rateLimiter, authz, ports, services, log, metrics, coreMetrics: o.metrics,
+          env: config.env, db, identityActor, identityAuthDb, idempotency, rateLimiter, authz, ports, services, log, metrics, coreMetrics: o.metrics,
           shared: { ...shared, events: createEvents({ producer: module, log, metrics }) },
         });
         cache.set(module, p);

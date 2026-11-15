@@ -638,7 +638,7 @@ Total ≈ 45 + 58 ≈ **103 row writes/s**. This is above 04 §14's "≲50 write
 | Worker concurrency for `evt.inventory.*` | ≥ 4 (C1 sizes). Busy time at N = 10 peak ≈ 5.6/s × 0.1 s (posting) + ≈ 29/s × 0.02 s (skip) ≈ 1.2 worker-seconds per second → 4 workers give > 3× headroom |
 | Consumption lag (`occurred_at` → commit) p95 | ≤ 60 s (PRD §7) |
 | Interactive reads (lists, get) p95 | ≤ 300 ms at 10× seed |
-| Document post (≤ 200 lines) p95 | ≤ 1.5 s |
+| Document post (≤ 200 lines) p95 | ≤ 3.0 s |
 | Reports, 31-day range, one branch, p95 | ≤ 2 s; 366-day range ≤ 8 s |
 | CSV export 50,000 rows | ≤ 20 s, streamed |
 | Integrity check per tenant (≈ 7 M movements/year/lab: 20k/day × 365) | ≤ 5 min at 1 year of data (grouped aggregate on `stock_movements__tenant_id_store_item__idx`) |

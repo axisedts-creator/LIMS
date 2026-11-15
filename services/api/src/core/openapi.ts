@@ -198,6 +198,7 @@ function wrap(op: PipelineOp, h: Handler, errorCodes: readonly string[], pipelin
     const ra = requestAuth.get(req);
     const r = await pipeline.run({
       op, claims: ra?.claims, requestId: String(req.id), clientIp: ra?.clientIp ?? req.ip,
+      bffKey: ra?.bffKind, // LD-206: only the verifier's result for X-Lims-Bff-Key; never a body/query/cookie field
       userAgent: header(req.headers['user-agent']), idempotencyKey: header(req.headers['idempotency-key']),
       req: { params: req.params, query: req.query, headers: req.headers, body: req.body }, handler: h, log: req.log,
     });

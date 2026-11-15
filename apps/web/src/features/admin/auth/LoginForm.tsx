@@ -59,10 +59,12 @@ export function LoginForm({ action, loggedOut, mfaFailed, next }: LoginFormProps
       <form noValidate onSubmit={onSubmit}>
         {next ? <input type="hidden" name="next" value={next} /> : null}
         <div className="lims-field">
-          <label className="lims-label" htmlFor={`${id}-email`}>
-            Email
-          </label>
-          <RequiredNote />
+          <div className="lims-label-row">
+            <label className="lims-label" htmlFor={`${id}-email`}>
+              Email
+            </label>
+            <RequiredNote />
+          </div>
           <input
             id={`${id}-email`}
             className="lims-input"

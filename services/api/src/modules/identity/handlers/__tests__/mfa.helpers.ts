@@ -31,7 +31,7 @@ import { LimsError } from '../../../../core/errors.js';
 import { createFakeGoTrueGateway } from '../../gotrue/gateway.fake.js';
 import type { GoTrueGateway, GoTrueTokens } from '../../gotrue/gateway.js';
 import { totp } from '../../gotrue/__tests__/helpers.js';
-import { EMAIL, HMAC_KEY, MEMB_A, REQ_ID, START, STAFF_ID, SYSTEM_ACTOR, TENANT_A, hmacHex, idN, makeLimits, rejection } from '../../service/__tests__/auth.helpers.js';
+import { EMAIL, HMAC_KEY, MEMB_A, REQ_ID, START, STAFF_ID, SYSTEM_ACTOR, TENANT_A, TENANT_PERMS, hmacHex, idN, makeLimits, makePerms, rejection, type PermsCall } from '../../service/__tests__/auth.helpers.js';
 
 export { EMAIL, HMAC_KEY, MEMB_A, REQ_ID, STAFF_ID, SYSTEM_ACTOR, TENANT_A, hmacHex, idN, rejection, totp };
 export const CLIENT_IP = '203.0.113.9';
@@ -107,7 +107,12 @@ export function makeStore(clock: { ms: number }) {
     async recordPlatformMfaEnrolledEvent(_tx: unknown, e: any) { rec('recordPlatformMfaEnrolledEvent', e); },
     // AUTH-MFA-COMPLETE-1 (LD-208 / LD-221): read only (never a write); same seam as the session repo: (tx, { userId, tenantId|null, membershipId|null }) -> one row | undefined
     async sessionActor(_tx: unknown, k: { userId: string; tenantId: string | null; membershipId: string | null }) { order.push('sessionActor'); actor.keys.push({ ...k }); return actor.impl(k); },
+    // AUTH-ACTOR-2 (LD-222): repo.membershipPermissions(tx, { tenantId, membershipId }) -> string[], a READ (never a write); `perms.impl` overrides (throw = failed read)
+    async membershipPermissions(tx: unknown, a: { tenantId: string | null; membershipId: string | null }) {
+      order.push('membershipPermissions'); const c: PermsCall = { tx, ...a }; perms.calls.push(c); return perms.impl ? perms.impl(c) : [...TENANT_PERMS];
+    },
   };
+  const perms = makePerms();
   /** the row app.identity_session_actor returns; a test replaces `impl` (return undefined = no usable row) */
   const actor: { keys: Array<{ userId: string; tenantId: string | null; membershipId: string | null }>; impl: (k: { tenantId: string | null }) => Record<string, unknown> | undefined } = {
     keys: [], impl: (k) => (k.tenantId === null ? { display_name: 'Sam Staff', role_codes: ['platform_support'] } : { display_name: 'Ana Demo', role_codes: ['lab_manager', 'technician'], tenant_code: 'lab_a' }),
@@ -123,7 +128,7 @@ export function makeStore(clock: { ms: number }) {
   }
   const committed = (m?: string) => writes.filter((w) => w.committed && (!m || w.m === m));
   const eventsOf = (type: string) => committed().filter((w) => (w.m === 'recordTenant' || w.m === 'recordTenantless') && w.arg.eventType === type).map((w) => w.arg);
-  return { sessions, factors, writes, order, repo, events, envelope, committed, eventsOf, byId, actor, now: () => clock.ms };
+  return { sessions, factors, writes, order, repo, events, envelope, committed, eventsOf, byId, actor, perms, now: () => clock.ms };
 }
 
 export interface MfaWorld extends Awaited<ReturnType<typeof makeMfaWorld>> {}

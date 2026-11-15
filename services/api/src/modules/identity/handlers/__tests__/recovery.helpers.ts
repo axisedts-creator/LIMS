@@ -18,7 +18,7 @@ import { vi } from 'vitest';
 import { LimsError } from '../../../../core/errors.js';
 import { createFakeGoTrueGateway, type FakeGoTrueGateway } from '../../gotrue/gateway.fake.js';
 import type { GoTrueGateway } from '../../gotrue/gateway.js';
-import { EMAIL, HMAC_KEY, MEMB_A, REQ_ID, START, STAFF_ID, SYSTEM_ACTOR, TENANT_A, hmacHex, idN, makeLimits, platformRow, rejection, tenantRow, type LoginRow } from '../../service/__tests__/auth.helpers.js';
+import { EMAIL, HMAC_KEY, MEMB_A, REQ_ID, START, STAFF_ID, SYSTEM_ACTOR, TENANT_A, TENANT_PERMS, hmacHex, idN, makeLimits, makePerms, platformActorRow, platformRow, rejection, tenantActorRow, tenantRow, type ActorCall, type LoginRow, type PermsCall } from '../../service/__tests__/auth.helpers.js';
 
 export { EMAIL, HMAC_KEY, MEMB_A, REQ_ID, START, STAFF_ID, SYSTEM_ACTOR, TENANT_A, hmacHex, idN, platformRow, rejection, tenantRow, LimsError };
 export type { LoginRow };
@@ -48,7 +48,19 @@ export function makeStore(clock: { ms: number }) {
   const pendingInvites = new Set<string>();       // membership ids with a pending invitation
   const live = (s: SetupRow) => s.state !== 'revoked' && s.state !== 'expired';
 
+  // AUTH-ACTOR-2 (LD-222): the two READ seams the set-password / confirm handlers use for SessionState.actor (+ permissions when active). Never in `writes`.
+  //   sessionActor(tx, { userId, tenantId|null, membershipId|null }) -> row | undefined (`actor.impl` overrides; undefined = no row)
+  //   membershipPermissions(tx, { tenantId, membershipId }) -> string[] (`perms.impl` overrides; throw = failed read)
+  const actor = { calls: [] as ActorCall[], impl: undefined as undefined | ((a: ActorCall) => unknown) };
+  const perms = makePerms();
   const repo = {
+    async sessionActor(tx: unknown, a: { userId: string; tenantId: string | null; membershipId: string | null }) {
+      order.push('sessionActor'); const c: ActorCall = { tx, ...a }; actor.calls.push(c);
+      return actor.impl ? actor.impl(c) : (a.tenantId ? tenantActorRow() : platformActorRow());
+    },
+    async membershipPermissions(tx: unknown, a: { tenantId: string | null; membershipId: string | null }) {
+      order.push('membershipPermissions'); const c: PermsCall = { tx, ...a }; perms.calls.push(c); return perms.impl ? perms.impl(c) : [...TENANT_PERMS];
+    },
     async loginContext(_tx: unknown, sub: string) { order.push('loginContext'); return ctxRows.get(sub) ?? defaultRow(sub); },
     async insertSession(_tx: unknown, s: any) {
       const row: SetupRow = { sessionId: s.id, kind: s.kind, state: s.state, tenantId: s.tenantId ?? null, userId: s.userId, membershipId: s.membershipId ?? null, platformStaffId: s.platformStaffId ?? null, tokenReused: false,
@@ -88,7 +100,7 @@ export function makeStore(clock: { ms: number }) {
   }
   const committed = (m?: string) => writes.filter((w) => w.committed && (!m || w.m === m));
   const eventsOf = (type: string) => committed().filter((w) => (w.m === 'recordTenant' || w.m === 'recordTenantless') && w.arg.eventType === type).map((w) => w.arg);
-  return { sessions, writes, order, repo, events, envelope, committed, eventsOf, byId, ctxRows, pendingInvites, setDefaultRow: (f: (sub: string) => LoginRow) => { defaultRow = f; } };
+  return { sessions, writes, order, repo, events, envelope, committed, eventsOf, byId, ctxRows, pendingInvites, actor, perms, setDefaultRow: (f: (sub: string) => LoginRow) => { defaultRow = f; } };
 }
 
 /** One world: GoTrue (fake or HTTP), store, limits on a virtual clock, deps for the three handlers, hctx factory. */

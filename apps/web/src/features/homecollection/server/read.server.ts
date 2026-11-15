@@ -3,11 +3,12 @@ import 'server-only';
 // Every row is rebuilt from an allow-list so nothing else the API sends (phone, coordinates, notes, device ids) can reach a client component.
 import { ApiError, serverFetch } from '@/core/api/server-fetch';
 import { problem } from '@/core/session/types';
-import type { Centre, CodedValue, DeviceRow, HandoverDetail, HandoverItem, HandoverSummary, PersonRef, PhlebotomistOption, RouteDto, SettingsDto, SpecimensSummary, VisitAddress, VisitDto } from '../types';
+import type { Assignment, Centre, Collection, CodedValue, DeviceRow, HandoverDetail, HandoverItem, HandoverSummary, Payment, PersonRef, PhlebotomistOption, RouteDto, SettingsDto, SpecimenRow, SpecimensSummary, Transition, VisitAddress, VisitDetail, VisitDto, VisitFlag } from '../types';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
-export const SETS = ['visit_cancel_reasons', 'unassign_reasons', 'wipe_reasons'] as const;
+export const SETS = ['visit_cancel_reasons', 'unassign_reasons', 'wipe_reasons', 'review_reasons', 'flag_resolutions', 'revisit_reasons'] as const;
+export const isUuid = (v: unknown): v is string => typeof v === 'string' && UUID.test(v);
 export type CodedSetName = (typeof SETS)[number];
 export interface Page<T> { data?: T[]; page?: { limit?: number; next_cursor?: string } }
 
@@ -138,4 +139,52 @@ export async function listPhlebotomists(centreId: string, routeDate: string): Pr
   return arr(await serverFetch<{ data?: PhlebotomistOption[] }>(`/v1/homecollection/phlebotomists?${q.toString()}`))
     .filter((p) => p && typeof p.membership_id === 'string')
     .map((p) => ({ membership_id: p.membership_id, display_name: str(p.display_name) ?? '', active_visits: int(p.active_visits), route_full: p.route_full === true }));
+}
+
+// ---- HC-T19: H2 getHomeVisit (VisitDetailDto, no phone: H21 only). Every nested row is rebuilt from an allow-list. ----
+type Row = Record<string, unknown>;
+const rows = (v: unknown): Row[] => (Array.isArray(v) ? v.filter((r): r is Row => !!r && typeof r === 'object') : []);
+const toSpecimen = (s: Row): SpecimenRow => ({
+  specimen_id: String(s['specimen_id']), specimen_type_code: str(s['specimen_type_code']) ?? '', status: str(s['status']) ?? '',
+  ...opt('container_code', str(s['container_code'])), ...opt('collected_at', str(s['collected_at'])), ...opt('collection_status', str(s['collection_status'])),
+  ...opt('scan_method', str(s['scan_method'])), ...(typeof s['barcode_verified'] === 'boolean' ? { barcode_verified: s['barcode_verified'] } : {}),
+});
+const toCollection = (c: Row): Collection => {
+  const rv = c['review'] as Row | undefined;
+  const by = (c['collected_by'] as Row | undefined)?.['display_name'];
+  return {
+    id: String(c['id']), version: int(c['version']), specimen_id: String(c['specimen_id']), status: str(c['status']) ?? '',
+    ...opt('hold_code', str(c['hold_code'])), ...opt('scan_method', str(c['scan_method'])), ...opt('collected_at', str(c['collected_at'])),
+    ...(typeof c['barcode_verified'] === 'boolean' ? { barcode_verified: c['barcode_verified'] } : {}),
+    ...(typeof by === 'string' ? { collected_by: { display_name: by } } : {}),
+    ...(rv && typeof rv === 'object' && typeof rv['decision'] === 'string'
+      ? { review: { decision: rv['decision'], reason_code: str(rv['reason_code']) ?? '', ...opt('by_display', str(rv['by_display'])), ...opt('at', str(rv['at'])) } }
+      : {}),
+  };
+};
+const toFlag = (f: Row): VisitFlag => ({
+  id: String(f['id']), version: int(f['version']), kind: str(f['kind']) ?? '', status: str(f['status']) ?? '', created_at: str(f['created_at']) ?? '',
+  ...opt('resolved_at', str(f['resolved_at'])), ...opt('resolution_code', str(f['resolution_code'])), ...opt('resolved_by_display', str(f['resolved_by_display'])),
+});
+const toAssignment = (a: Row): Assignment => ({
+  display_name: str(a['display_name']) ?? '', route_date: str(a['route_date']) ?? '', assigned_at: str(a['assigned_at']) ?? '', ...opt('assigned_by_display', str(a['assigned_by_display'])),
+});
+const toTransition = (t: Row): Transition => ({ to: str(t['to']) ?? '', at: str(t['at']) ?? '', ...opt('from', str(t['from'])), ...opt('actor_display', str(t['actor_display'])) });
+const toPayment = (p: Row): Payment => {
+  const m = (p['amount'] ?? {}) as Row;
+  return { method_code: str(p['method_code']) ?? '', amount: { amount_paisa: int(m['amount_paisa']), currency: 'NPR' }, ...opt('captured_at', str(p['captured_at'])), ...opt('outcome', str(p['outcome'])) };
+};
+
+/** H2. One call (it writes the access-log row). Address, landmark, coordinates and note are kept only for `visit.assign` holders (`withPatient`). */
+export async function getVisit(id: string, withPatient: boolean): Promise<VisitDetail> {
+  if (!isUuid(id)) throw bad();
+  const v = await serverFetch<VisitDto & Row>(`/v1/homecollection/visits/${id}`);
+  const s = toVisit(v);
+  if (!withPatient) { delete s.address; delete s.note_for_phlebotomist; }
+  return {
+    ...s,
+    ...opt('outcome', str(v['outcome'])), ...opt('registration_no', str(v['registration_no'])), ...opt('last_device_ack_at', str(v['last_device_ack_at'])),
+    specimens: rows(v['specimens']).map(toSpecimen), collections: rows(v['collections']).map(toCollection), flags: rows(v['flags']).map(toFlag),
+    assignments: rows(v['assignments']).map(toAssignment), transitions: rows(v['transitions']).map(toTransition), payments: rows(v['payments']).map(toPayment),
+  };
 }

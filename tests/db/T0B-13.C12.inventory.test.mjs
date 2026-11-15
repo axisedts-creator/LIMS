@@ -308,7 +308,7 @@ test('indexes: every §8 CREATE INDEX present with identical definition (partial
   for (const n of ['stores__tenant_id_branch_id_default__p_uq', 'item_packs__tenant_id_item_id_default__p_uq', 'item_barcodes__tenant_id_value__p_uq', 'consumption_rules__current__p_uq', 'purchase_order_lines__tenant_id_po_line__p_uq', 'alerts__tenant_id_dedupe__p_uq', 'alerts__tenant_id_expires__p_idx', 'stock_balances__tenant_id_store_nonzero__p_idx', 'stock_movements__tenant_id_lot__p_idx'])
     assert.match(have.get(n) ?? '', /\bwhere\b/, `${n} is partial`);
   assert.match(have.get('consumption_rules__current__p_uq'), /\(tenant_id,rule_kind,test_id,analyte_id,instrument_id,item_id\)nulls not distinct where/, 'NULLS NOT DISTINCT after the column list (PG 15+ syntax, spec NOTE for C0)');
-  assert.match(have.get('alerts__tenant_id_dedupe__p_uq'), /where status<>'resolved'/); assert.match(have.get('stock_movements__tenant_id_store_item__idx'), /occurred_at desc/);
+  assert.match(have.get('alerts__tenant_id_dedupe__p_uq'), /where status <> 'resolved'/); assert.match(have.get('stock_movements__tenant_id_store_item__idx'), /occurred_at desc/);
   const conNames = new Set(ALLT.flatMap((q) => [...createTable(sql, q).conMap.keys()]));
   const missing = [...new Set([...spec10().matchAll(/`([a-z_0-9]+__[a-z_0-9]*(?:uq|idx|pk))\b/g)].map((m) => m[1]))].filter((n) => !have.has(n) && !conNames.has(n) && !n.endsWith('__') );
   assert.deepEqual(missing, [], '§10 index names that exist neither as CREATE INDEX nor as a constraint');
@@ -357,7 +357,7 @@ test('policy shape: names <table>__<cmd>__tenant; all TO lims_app; tenant predic
   }
   for (const t of A_N) assert.equal(ps.filter((p) => p.table === `inventory.${t}` && p.cmd !== 'SELECT' && p.cmd !== 'INSERT').length, 0, `inventory.${t}: only SELECT + INSERT policies (§4.2)`);
   const del = ps.filter((p) => p.cmd === 'DELETE'); assert.deepEqual(del.map((p) => p.key), ['alerts__delete__tenant@inventory.alerts'], 'the only DELETE policy in the schema (draft lines are soft-removed, D-71)');
-  assert.match(del[0].using, /\(select app\.current_actor_type\(\)\)='system'/, 'DELETE: system actor only'); assert.match(del[0].using, /expires_at<now\(\)/, 'DELETE: expired rows only'); assert.match(del[0].using, STAFF, 'DELETE: staff guard (P-16 / gate 9; implied by actor_type = system)');
+  assert.match(del[0].using, /\(select app\.current_actor_type\(\)\)='system'/, 'DELETE: system actor only'); assert.match(del[0].using, /expires_at < now\(\)/, 'DELETE: expired rows only'); assert.match(del[0].using, STAFF, 'DELETE: staff guard (P-16 / gate 9; implied by actor_type = system)');
   assert.equal(del[0].check, '', 'DELETE has no WITH CHECK');
   for (const t of T_N.filter((x) => x !== 'alerts')) assert.equal(ps.filter((p) => p.table === `inventory.${t}` && p.cmd === 'DELETE').length, 0, `inventory.${t}: no DELETE policy`);
 });
@@ -387,7 +387,7 @@ test('grants equal §4.4: lims_app SELECT+INSERT+UPDATE on the 29 UPDATE tables,
     }
   }
   assert.doesNotMatch(sql, /GRANT\s+ALL\b[^;]*\binventory\./i); assert.doesNotMatch(sql, /GRANT\b[^;]*\bON\s+ALL\s+TABLES\s+IN\s+SCHEMA\s+inventory\b/i); assert.doesNotMatch(sql, /ALTER\s+DEFAULT\s+PRIVILEGES[^;]*\binventory\b/i);
-  assert.doesNotMatch(sql, /GRANT\b[^;]*\bDELETE\b[^;]*\bON\b(?![^;]*\binventory\.alerts\s+TO\s+lims_app\s*$)[^;]*\binventory\./i, 'DELETE is granted on inventory.alerts only');
+  assert.doesNotMatch(sql, /GRANT\b[^;]*\bDELETE\b[^;]*\bON\b(?![^;]*\binventory\.alerts\s+TO\s+lims_app\s*(?:;|$))[^;]*\binventory\./i, 'DELETE is granted on inventory.alerts only');
   for (const s of stmts(sql).map(ws)) if (/^GRANT\b/i.test(s) && /\binventory\./i.test(s) && !/FUNCTION/i.test(s)) assert.doesNotMatch(s, /\bTO\b[^;]*\b(PUBLIC|anon|authenticated|service_role|lims_api|lims_worker|lims_owner|lims_analytics)\b/i, s);
   assert.match(sql, /GRANT\s+EXECUTE\s+ON\s+FUNCTION\s+app\.purge_inventory_alerts\s*\(\s*\)\s+TO\s+lims_app\b/i, '§4.4: EXECUTE on the purge function for lims_app');
   for (const t of A_N) assert.ok(!privs(g, `inventory.${t}`, 'lims_app').includes('UPDATE'), `class A inventory.${t}: no UPDATE (AC-0B-4.3)`);

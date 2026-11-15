@@ -27,3 +27,13 @@
 .lims-shell-nav[data-collapsed='true'] .lims-rail-heading,
 .lims-shell-nav[data-collapsed='true'] .lims-rail-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; }
 .lims-shell-nav[data-collapsed='true'] a { justify-content: center; padding: 0; }
+
+/* Auth pages (WEB-STYLE-1, LD-198, LD-140): tokens, rem and % only. */
+.lims-auth-page { display: grid; place-items: center; min-height: 100vh; padding: var(--lims-space-6) var(--lims-space-4); background: var(--lims-neutral-100); box-sizing: border-box; }
+.lims-auth-card { display: flex; flex-direction: column; gap: var(--lims-space-4); box-sizing: border-box; width: 100%; max-width: 26rem; margin-inline: auto; padding: var(--lims-space-8) var(--lims-space-6); border: 0.0625rem solid var(--lims-neutral-200); border-radius: var(--lims-radius-lg); background: var(--lims-neutral-0); }
+.lims-auth-card h1 { margin: 0; font-size: var(--lims-font-size-md-size); font-weight: var(--lims-font-weight-semibold); }
+.lims-auth-card form { display: flex; flex-direction: column; gap: var(--lims-space-4); }
+.lims-auth-card a { color: var(--lims-accent); }
+.lims-auth-card p { margin: 0; }
+.lims-wordmark { margin: 0; color: var(--lims-accent); font-size: var(--lims-font-size-md-size); font-weight: var(--lims-font-weight-semibold); letter-spacing: 0.08em; }
+.lims-checklist { margin: 0; padding-inline-start: var(--lims-space-4); color: var(--lims-neutral-700); font-size: var(--lims-font-size-sm-size); }

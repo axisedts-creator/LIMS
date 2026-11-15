@@ -92,7 +92,12 @@ const MEMBERSHIP_PERMISSION_SQL = `SELECT EXISTS (SELECT 1 FROM core.membership_
     JOIN core.roles r ON r.tenant_id = mr.tenant_id AND r.id = mr.role_id AND r.is_active
     JOIN core.role_permissions rp ON rp.tenant_id = r.tenant_id AND rp.role_id = r.id
   WHERE mr.tenant_id = $1 AND mr.membership_id = $2 AND rp.permission_code = $3) AS ok`;
-const PLATFORM_SESSION_SQL = 'SELECT app.identity_platform_auth_write_session_insert($1::uuid, $2::jsonb)';
+// LD-222 AUTH-ACTOR-2: same read as core-repo membershipPermissions (and the same active-role rule as above), inside the tenant-bound tx
+const MEMBERSHIP_PERMISSIONS_SQL = `SELECT DISTINCT rp.permission_code FROM core.membership_roles mr
+    JOIN core.roles r ON r.tenant_id = mr.tenant_id AND r.id = mr.role_id AND r.is_active
+    JOIN core.role_permissions rp ON rp.tenant_id = r.tenant_id AND rp.role_id = r.id
+  WHERE mr.tenant_id = $1 AND mr.membership_id = $2 ORDER BY rp.permission_code`;
+const PLATFORM_SESSION_SQL ='SELECT app.identity_platform_auth_write_session_insert($1::uuid, $2::jsonb)';
 const STAFF_LOGIN_SQL = 'SELECT app.identity_platform_auth_write_staff_login($1::uuid)';
 const TOUCH_SQL = `UPDATE core.memberships SET last_login_at = $3, updated_at = now(), updated_by = $4 WHERE tenant_id = $1 AND id = $2`;
 const ENQUEUE_SQL = 'SELECT app.enqueue_job($1, $2::jsonb, $3)';
@@ -123,6 +128,9 @@ export function createAuthRepo(o: { seal?: Sealer } = {}) {
     },
     async membershipHasPermission(tx: Q, a: { tenantId: string; membershipId: string; permission: string }): Promise<boolean> {
       return (await tx.query(MEMBERSHIP_PERMISSION_SQL, [a.tenantId, a.membershipId, a.permission])).rows[0]?.ok === true;
+    },
+    async membershipPermissions(tx: Q, a: { tenantId: string; membershipId: string }): Promise<string[]> {
+      return (await tx.query(MEMBERSHIP_PERMISSIONS_SQL, [a.tenantId, a.membershipId])).rows.map((r: any) => r.permission_code as string);
     },
     /** 08 A28.1: jsonb_populate_record + INSERT SELECT v.* means every NOT NULL column (defaults included) is sent explicitly. */
     async insertPlatformSession(tx: Q, s: NewSession): Promise<void> {

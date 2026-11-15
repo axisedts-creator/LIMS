@@ -70,13 +70,14 @@ export interface TenantRepo {
   setStatus(tx: unknown, id: string, expectedVersion: number, p: { status: Status; reason?: string; at: Date; actorId: string }): Promise<TRow | undefined>;
   detail(tx: unknown, id: string): Promise<{ counts: { users: number; branches: number; centres: number }; history: Array<{ from?: string; to: string; at: Date | string }>; annexReadiness: 'complete' | 'incomplete' }>;
   readiness(tx: unknown, id: string): Promise<Readiness>;
+  // PLATFORM claims, NOT scoped (PLATFORM-DDL-1, LD-223: ird_annex_records__insert__platform; s5.2 gives tenants no INSERT)
+  seedIrdAnnexes(tx: unknown, t: string, annexCodes: readonly string[], actorId: string): Promise<void>;
   // ---- SCOPED (inside ctx.db.withTenantScope(tenantId)) ----
   insertBranch(tx: unknown, t: string, b: { id: string; code: string; name: string; addressText?: string; actorId: string }): Promise<void>;
   insertCentre(tx: unknown, t: string, c: { id: string; code: string; name: string; kind: string; branchId: string; addressText?: string; actorId: string }): Promise<void>;
   seedRoles(tx: unknown, t: string, roleCodes: readonly string[], actorId: string): Promise<void>;
   insertSettings(tx: unknown, t: string, s: { timezone: string; calendarDisplay?: string; pan?: string; legalName: string; displayName: string; trainingMode: boolean; actorId: string }): Promise<void>;
   seedFlags(tx: unknown, t: string, actorId: string): Promise<void>;
-  seedIrdAnnexes(tx: unknown, t: string, annexCodes: readonly string[], actorId: string): Promise<void>;
   insertAcceptances(tx: unknown, t: string, rows: Array<{ document: 'tos' | 'dpa'; version: string; acceptedByName: string; acceptedByTitle: string; acceptedAt: string; actorId: string }>): Promise<void>;
   insertAdmin(tx: unknown, t: string, a: { userId: string; membershipId: string; displayName: string; emailNormalized: string; emailHmac: Buffer; actorId: string }): Promise<void>;
   insertInvitation(tx: unknown, t: string, i: { id: string; membershipId: string; userId: string; email: string; expiresAt: Date; actorId: string }): Promise<void>;
@@ -445,6 +446,9 @@ export function createTenantService(deps: {
         if ((e as { code?: unknown })?.code === '23505') throw new LimsError('identity.code_duplicate');   // race on tenants__tenant_code__uq
         throw e;
       }
+      // PLATFORM-DDL-1 (LD-223): C2 05-SCHEMA s5.2 gives tenants no INSERT on identity.ird_annex_records; the s5.3 platform INSERT policy
+      // (ird_annex_records__insert__platform) admits it, so it runs here under the platform claims of the request tx, after core.tenants (FK).
+      await repo.seedIrdAnnexes(s.tx, id, TENANT_ANNEXES, s.actorId);
       const branchId = newId();
       await scoped(ctx, id, async () => {
         await repo.insertBranch(s.tx, id, { id: branchId, code: branch['code'] as string, name: branch['name'] as string, ...optText(branch['addressText'], 'addressText'), actorId: s.actorId });
@@ -453,7 +457,6 @@ export function createTenantService(deps: {
         await repo.seedRoles(s.tx, id, ROLE_CODES, s.actorId);
         await repo.insertSettings(s.tx, id, { timezone: TZ, ...optText(i['calendarDisplay'], 'calendarDisplay'), ...pan, legalName, displayName, trainingMode, actorId: s.actorId });
         await repo.seedFlags(s.tx, id, s.actorId);
-        await repo.seedIrdAnnexes(s.tx, id, TENANT_ANNEXES, s.actorId);
         // LD-29: recorded_by = the platform staff user (platform staff hold no membership) [CONV].
         await repo.insertAcceptances(s.tx, id, [{ document: 'tos', ...tos, actorId: s.actorId }, { document: 'dpa', ...dpa, actorId: s.actorId }]);
         await inviteAdmin(s, id, userId, email, admin['displayName'] as string);

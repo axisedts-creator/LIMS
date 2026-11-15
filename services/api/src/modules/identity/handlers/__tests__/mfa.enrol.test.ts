@@ -106,7 +106,7 @@ describe('completeMfaEnrolment - AC-A3.2 / SS7 / AC-A3.3', () => {
     expect(JSON.parse(Buffer.from(row.accessToken.split('.')[1]!, 'base64url').toString()).aal).toBe('aal2');
     expect(w.store.eventsOf('mfa_enrolled')).toHaveLength(1); expect(w.store.eventsOf('mfa_enrolled')[0]).toMatchObject({ tenantId: TENANT_A, membershipId: MEMB_A, userId: a.userId, sessionId: a.row.sessionId });
     expect(w.store.eventsOf('login_succeeded')).toHaveLength(1);
-    expect(w.store.committed('recordPlatformEvent')).toHaveLength(0);               // tenant factor changes are audit_log rows (trigger), never platform_events
+    expect(w.store.committed('recordPlatformEvent')).toHaveLength(0); expect(w.store.committed('recordPlatformMfaEnrolledEvent')).toHaveLength(0);   // tenant factor changes are audit_log rows (trigger), never platform_events
     expect(r.commitOnError).not.toHaveBeenCalled(); expect(JSON.stringify(r.body)).not.toMatch(/access_token|refresh_token|eyJ/);
   });
   it('AC-A3.3: a voluntary enrolment from an `active` aal1 session verifies, raises it to aal2, writes mfa_enrolled and NOT login_succeeded', async () => {
@@ -118,15 +118,18 @@ describe('completeMfaEnrolment - AC-A3.2 / SS7 / AC-A3.3', () => {
     const w = await makeMfaWorld({ kind: 'platform' }); const a = await w.addSession({ state: 'mfa_enrolment_required' }); const s = await okStart(w, a.token);
     const r = await okComplete(w, a.token, s.body.factor_id, totp(s.body.secret_base32));
     expect(r.body).toMatchObject({ kind: 'platform', state: 'active', aal: 'aal2' }); expect(w.tx.bindTenant).not.toHaveBeenCalled();
-    const pe = w.store.committed('recordPlatformEvent').map((x) => x.arg); expect(pe).toHaveLength(1);
-    expect(pe[0]).toMatchObject({ eventType: 'platform_mfa_enrolled', targetType: 'platform_staff', targetId: STAFF_ID, actorPlatformStaffId: STAFF_ID, requestId: expect.any(String), clientIp: '203.0.113.9' });
+    // AUTH-MFA-COMPLETE-1 (LD-221) changed THIS assertion only: the platform branch no longer issues the plain INSERT (recordPlatformEvent, 42501 live); it calls the DEFINER method.
+    expect(w.store.committed('recordPlatformEvent')).toHaveLength(0);
+    const pe = w.store.committed('recordPlatformMfaEnrolledEvent').map((x) => x.arg); expect(pe).toHaveLength(1);
+    expect(pe[0]).toMatchObject({ userId: a.userId, platformStaffId: STAFF_ID, requestId: expect.any(String), clientIp: '203.0.113.9' });
     expect(JSON.stringify(pe[0].detail ?? {})).not.toMatch(new RegExp(`${s.body.secret_base32}|${a.email}|otpauth`));
     expect(w.store.committed('markFactorVerified').map((x) => x.arg)).toEqual([expect.objectContaining({ tenantId: null, userId: a.userId })]);
     expect(w.store.committed('recordTenant')).toHaveLength(0); expect(w.store.eventsOf('mfa_enrolled')[0]).toMatchObject({ platformStaffId: STAFF_ID });
   });
   it('platform_mfa_enrolled is written only on SUCCESS (not after a wrong code)', async () => {
     const w = await makeMfaWorld({ kind: 'platform' }); const a = await w.addSession({ state: 'mfa_enrolment_required' }); const s = await okStart(w, a.token);
-    await failComplete(w, a.token, s.body.factor_id, badCode(s.body.secret_base32)); expect(w.store.committed('recordPlatformEvent')).toHaveLength(0);
+    await failComplete(w, a.token, s.body.factor_id, badCode(s.body.secret_base32));
+    expect(w.store.committed('recordPlatformEvent')).toHaveLength(0); expect(w.store.committed('recordPlatformMfaEnrolledEvent')).toHaveLength(0);
   });
 });
 

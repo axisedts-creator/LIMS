@@ -8,7 +8,8 @@ import { createAuthService } from '../../service/auth.service.js';
 import { createLoginPartner } from '../loginPartner.js';
 import { createOpenMobileSession } from '../openMobileSession.js';
 import { createResolveSession } from '../resolveSession.js';
-import { ACCESS, EMAIL, PASSWORD, REFRESH, STAFF_ID, SUB, platformActorRow, platformRow, tenantActorRow, tenantRow, type WorldT } from '../../service/__tests__/auth.helpers.js';
+import { permissionsOfRoles } from '../../domain/permission-set.js';
+import { ACCESS, EMAIL, PASSWORD, REFRESH, STAFF_ID, SUB, TENANT_PERMS, platformActorRow, platformRow, tenantActorRow, tenantRow, type WorldT } from '../../service/__tests__/auth.helpers.js';
 import { APP_INSTANCE, MEMB_A, TENANT_A, loginRunner, makeWorld, partnerRow, rejection, staffRow } from './kinds.helpers.js';
 import { makeSessionWorld, type SessionWorld } from './session.helpers.js';
 
@@ -16,8 +17,12 @@ const GOOD = { email: EMAIL, password: PASSWORD };
 const MOBILE_BODY = { ...GOOD, app_instance_id: APP_INSTANCE, app_platform: 'android' };
 /** the only keys an actor may ever carry (contracts/openapi/identity.yaml SessionState.actor; support_session is never filled here) */
 const ACTOR_KEYS = ['display_name', 'roles', 'tenant_code'];
+/** LD-222: ONLY an ACTIVE body (decided by the RESPONSE state) may also carry `permissions`; pre-MFA / partner bodies keep ACTOR_KEYS */
+const ACTIVE_KEYS = [...ACTOR_KEYS, 'permissions'];
 const TENANT_ACTOR = { display_name: 'Ana Demo', roles: ['lab_manager', 'technician'], tenant_code: 'lab_a' };
 const PLATFORM_ACTOR = { display_name: 'Sam Staff', roles: ['platform_support'] };
+/** exact lists: tenant = the membershipPermissions fake seam (TENANT_PERMS); platform = permissionsOfRoles(actor roles) */
+const PLATFORM_PERMS = permissionsOfRoles(['platform_support']);
 /** extra columns a (buggy or future) DEFINER row could carry: none of them may reach the body */
 const HOSTILE = { email: 'leak.me@example.test', user_id: 'USER-ID-LEAK', membership_id: 'MEMB-ID-LEAK', id: 'ID-LEAK', access_token: 'TOKEN-LEAK', password_hash: 'HASH-LEAK' };
 
@@ -47,7 +52,7 @@ describe('loginStaff: platform login carries the platform actor (the live stagin
   it('actor is filled for every session state (mfa_pending too), not only the first one', async () => {
     const w = makeWorld({ rows: { [SUB]: platformRow({ has_verified_factor: true }) } });
     const r: any = await loginStaff(w).run();
-    expect(r.body.session.state).toBe('mfa_pending'); expect(r.body.session.actor).toEqual(PLATFORM_ACTOR);
+    expect(r.body.session.state).toBe('mfa_pending'); expect(r.body.session.actor).toEqual(PLATFORM_ACTOR); expect(r.body.session.actor).not.toHaveProperty('permissions');
   });
   it('tenant_code is only for a tenant session: a platform row that (wrongly) carries a tenant_code does not put one in the body; no support_session either', async () => {
     const w = makeWorld({ rows: { [SUB]: platformRow() } }); w.repo.actor.impl = () => platformActorRow({ tenant_code: 'lab_a' });
@@ -61,14 +66,14 @@ describe('loginStaff: tenant login carries the tenant actor', () => {
     const w = makeWorld({ rows: { [SUB]: tenantRow() } });
     const r: any = await loginStaff(w).run();
     expect(r.status).toBe(200); expect(r.body.session).toMatchObject({ kind: 'tenant_staff', state: 'active' });
-    expect(r.body.session.actor).toEqual(TENANT_ACTOR);
+    expect(r.body.session.actor).toEqual({ ...TENANT_ACTOR, permissions: TENANT_PERMS });   // LD-222: active => permissions
     expect(w.repo.actor.calls).toHaveLength(1);
     expect(w.repo.actor.calls[0]).toMatchObject({ userId: SUB, tenantId: TENANT_A, membershipId: MEMB_A });
   });
   it('mfa_pending tenant session carries the actor too', async () => {
     const w = makeWorld({ rows: { [SUB]: tenantRow({ mfa_required: true, has_verified_factor: true }) } });
     const r: any = await loginStaff(w).run();
-    expect(r.body.session.state).toBe('mfa_pending'); expect(r.body.session.actor).toEqual(TENANT_ACTOR);
+    expect(r.body.session.state).toBe('mfa_pending'); expect(r.body.session.actor).toEqual(TENANT_ACTOR); expect(r.body.session.actor).not.toHaveProperty('permissions');   // LD-222: no pre-MFA session learns its permission set
   });
   it('the tenant and membership of the lookup come from the DEFINER row, never from the request: a hostile input tenant is ignored', async () => {
     const w = makeWorld({ rows: { [SUB]: tenantRow() } }); const k = w.makeCtx();
@@ -82,14 +87,14 @@ describe('loginPartner and openMobileSession (staff form)', () => {
     const w = makeWorld({ rows: { [SUB]: partnerRow() } }); const r = runPartner(w);
     const out: any = await r.call();
     expect(out.status).toBe(200); expect(out.body.session.kind).toBe('partner');
-    expect(out.body.session.actor).toEqual(TENANT_ACTOR);
+    expect(out.body.session.actor).toEqual(TENANT_ACTOR); expect(out.body.session.actor).not.toHaveProperty('permissions');   // LD-222: partner producers omit it
     expect(w.repo.actor.calls).toHaveLength(1); expect(w.repo.actor.calls[0]).toMatchObject({ userId: SUB, tenantId: TENANT_A, membershipId: MEMB_A });
   });
   it('openMobileSession 200 carries the actor inside body.session', async () => {
     const { w, call } = mobile();
     const out: any = await call();
     expect(out.status).toBe(200); expect(out.body.session.kind).toBe('staff_mobile');
-    expect(out.body.session.actor).toEqual(TENANT_ACTOR);
+    expect(out.body.session.actor).toEqual(TENANT_ACTOR); expect(out.body.session.actor).not.toHaveProperty('permissions');
     expect(w.repo.actor.calls).toHaveLength(1);
   });
 });
@@ -127,7 +132,9 @@ describe('nothing sensitive in the actor', () => {
   it('loginStaff: only display_name / roles / tenant_code survive even if the row carries e-mail, ids and tokens; the body holds no e-mail, id or GoTrue token', async () => {
     const w = makeWorld({ rows: { [SUB]: tenantRow() } }); w.repo.actor.impl = () => tenantActorRow(HOSTILE);
     const r: any = await loginStaff(w).run();
-    expect(keys(r.body.session.actor).every((x) => ACTOR_KEYS.includes(x))).toBe(true);
+    expect(r.body.session.state).toBe('active');
+    expect(keys(r.body.session.actor).every((x) => ACTIVE_KEYS.includes(x))).toBe(true);
+    expect(r.body.session.actor.permissions).toEqual(TENANT_PERMS);   // from the permission source, never from extra columns of the actor row
     const text = JSON.stringify(r.body);
     for (const bad of [EMAIL, HOSTILE.email, HOSTILE.user_id, HOSTILE.membership_id, HOSTILE.id, HOSTILE.access_token, HOSTILE.password_hash, SUB, MEMB_A, TENANT_A, STAFF_ID, ACCESS, REFRESH, PASSWORD]) expect(text).not.toContain(bad);
   });
@@ -165,7 +172,7 @@ describe('resolveSession: the 200 body carries the actor', () => {
     const w = await makeSessionWorld(); const { token, row } = w.addSession();
     const out: any = await (await resolve(w, { token })).run();
     expect(out.status).toBe(200); expect(out.body.session.kind).toBe('tenant_staff');
-    expect(out.body.session.actor).toEqual(TENANT_ACTOR);
+    expect(out.body.session.actor).toEqual({ ...TENANT_ACTOR, permissions: TENANT_PERMS });
     expect(w.store.actor.calls).toHaveLength(1);
     expect(w.store.actor.calls[0]).toMatchObject({ userId: row.userId, tenantId: TENANT_A, membershipId: MEMB_A });
     expect(w.store.committed()).toHaveLength(0);
@@ -173,13 +180,13 @@ describe('resolveSession: the 200 body carries the actor', () => {
   it('platform: session.actor = { display_name, roles } (no tenant_code); lookup for (user, null, null)', async () => {
     const w = await makeSessionWorld(); const { token, row } = w.addSession({ kind: 'platform' });
     const out: any = await (await resolve(w, { token })).run();
-    expect(out.body.session.actor).toEqual(PLATFORM_ACTOR); expect(keys(out.body.session.actor)).toEqual(['display_name', 'roles']);
+    expect(out.body.session.actor).toEqual({ ...PLATFORM_ACTOR, permissions: PLATFORM_PERMS }); expect(keys(out.body.session.actor)).toEqual(['display_name', 'permissions', 'roles']);
     expect(w.store.actor.calls[0]).toMatchObject({ userId: row.userId, tenantId: null, membershipId: null });
   });
   it('partner (partner BFF key): actor with tenant_code', async () => {
     const w = await makeSessionWorld(); const { token } = w.addSession({ kind: 'partner' });
     const out: any = await (await resolve(w, { token, key: 'partner' })).run();
-    expect(out.body.session.actor).toEqual(TENANT_ACTOR);
+    expect(out.body.session.actor).toEqual(TENANT_ACTOR); expect(out.body.session.actor).not.toHaveProperty('permissions');   // LD-222: partner omits it
   });
   it('a touch / access refresh does not change the actor lookup count: exactly one lookup per 200', async () => {
     const w = await makeSessionWorld(); const { token } = w.addSession({ accessExpiresAt: new Date(w.clock.ms + 30_000) });   // inside the 120 s refresh window
@@ -189,7 +196,8 @@ describe('resolveSession: the 200 body carries the actor', () => {
   it('actor carries only display_name / roles / tenant_code; no e-mail, id or token from the row or the stored session', async () => {
     const w = await makeSessionWorld(); const { token, row } = w.addSession(); w.store.actor.impl = () => tenantActorRow(HOSTILE);
     const out: any = await (await resolve(w, { token })).run();
-    expect(keys(out.body.session.actor).every((x) => ACTOR_KEYS.includes(x))).toBe(true);
+    expect(keys(out.body.session.actor).every((x) => ACTIVE_KEYS.includes(x))).toBe(true);
+    expect(out.body.session.actor.permissions).toEqual(TENANT_PERMS);
     const text = JSON.stringify(out.body.session);
     for (const bad of [row.email, HOSTILE.email, HOSTILE.user_id, HOSTILE.membership_id, HOSTILE.id, HOSTILE.access_token, row.userId, MEMB_A, TENANT_A, row.refreshToken]) expect(text).not.toContain(bad);
   });

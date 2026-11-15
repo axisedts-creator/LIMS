@@ -33,12 +33,25 @@ test('every spec role is created with the exact attribute set', () => {
   }
 });
 
-test('no superuser/bypassrls/createdb/createrole anywhere; lims_migration not created; no other roles', () => {
+test('no superuser/bypassrls/createdb/createrole anywhere; lims_migration is the one extra role (LD-226); no other roles', () => {
   const s = roles();
   assert.doesNotMatch(s, /(?<!NO)\b(SUPERUSER|BYPASSRLS|CREATEDB|CREATEROLE)\b/i);
-  assert.doesNotMatch(s, /lims_migration\b/);
   const created = [...s.matchAll(/CREATE\s+ROLE\s+(\w+)/gi)].map((m) => m[1]).sort();
-  assert.deepEqual(created, [...NOLOGIN, ...LOGIN].sort());
+  assert.deepEqual(created, [...NOLOGIN, ...LOGIN, 'lims_migration'].sort());
+});
+
+test('lims_migration (LD-226; C18 05-SCHEMA s2 without a password and without the lims_app membership)', () => {
+  const s = roles();
+  const c = stmt(s, /CREATE\s+ROLE\s+lims_migration\b/i);
+  assert.ok(c, 'CREATE ROLE lims_migration');
+  for (const f of ['NOSUPERUSER', 'NOCREATEDB', 'NOCREATEROLE', 'NOREPLICATION', 'NOBYPASSRLS', 'NOLOGIN']) assert.match(c, new RegExp(`\\b${f}\\b`, 'i'), f);
+  assert.doesNotMatch(c, /\bPASSWORD\b/i, 'no password until the migration-window playbook (CR-C18-006)');
+  assert.doesNotMatch(s, /GRANT\s+\w+\s+TO\s+lims_migration\b/i, 'no role membership for lims_migration (D-136 undecided)');
+  assert.doesNotMatch(s, /GRANT\s+lims_migration\s+TO\b/i);
+  assert.match(s, /ALTER\s+ROLE\s+lims_migration\s+SET\s+search_path\s*=\s*''/i);
+  assert.match(s, /ALTER\s+ROLE\s+lims_migration\s+SET\s+idle_in_transaction_session_timeout\s*=\s*'300s'/i);
+  assert.match(s, /ALTER\s+ROLE\s+lims_migration\s+SET\s+statement_timeout\s*=\s*'30min'/i);
+  assert.match(s, /GRANT\s+CONNECT\s+ON\s+DATABASE\s+:"dbname"\s+TO\s+lims_migration\b/i);
 });
 
 test('login passwords come from psql variables, never literals', () => {

@@ -153,7 +153,8 @@ INSERT INTO sigs VALUES
   ('identity_notify_ip_throttle_hmacs(inet,timestamptz)', 'lims_worker'),
   ('identity_session_actor(uuid,uuid,uuid)', 'lims_api'),   -- SESSION-ACTOR-1 (LD-208): additive, behaviour in SESSION-ACTOR-1_session_actor.test.sql
   ('identity_platform_auth_load_session(uuid,uuid)', 'lims_api'), ('identity_platform_auth_read_mfa_factors(uuid)', 'lims_api');   -- AUTH-PLATFORM-SESSION-1 (LD-216): additive reads, behaviour in AUTH-PLATFORM-SESSION-1_platform_reads.test.sql
-SELECT is((SELECT count(*) FROM sigs), 22::bigint, 'inventory: 22 identity DEFINERs of C2 05-SCHEMA §6/§10.3 + SESSION-ACTOR-1 + AUTH-PLATFORM-SESSION-1 (excl. identity_tenants_for_email_hmacs = T0B-05, identity_is_breached = INVOKER)');
+INSERT INTO sigs VALUES ('identity_platform_auth_write_mfa_enrolled_event(uuid,jsonb)', 'lims_api');   -- AUTH-MFA-COMPLETE-1 (LD-221): additive platform_mfa_enrolled write, behaviour in AUTH-MFA-COMPLETE-1_platform_event.test.sql
+SELECT is((SELECT count(*) FROM sigs), 23::bigint, 'inventory: 23 identity DEFINERs of C2 05-SCHEMA §6/§10.3 + SESSION-ACTOR-1 + AUTH-PLATFORM-SESSION-1 + AUTH-MFA-COMPLETE-1 (excl. identity_tenants_for_email_hmacs = T0B-05, identity_is_breached = INVOKER)');
 SELECT ok(to_regprocedure('app.' || sig) IS NOT NULL, 'exists: app.' || sig) FROM sigs ORDER BY sig;
 SELECT ok(p.prosecdef, 'prosecdef: app.' || s.sig) FROM sigs s JOIN pg_proc p ON p.oid = to_regprocedure('app.' || s.sig) ORDER BY s.sig;
 SELECT ok(pg_get_userbyid(p.proowner) = 'lims_owner', 'owner lims_owner: app.' || s.sig) FROM sigs s JOIN pg_proc p ON p.oid = to_regprocedure('app.' || s.sig) ORDER BY s.sig;

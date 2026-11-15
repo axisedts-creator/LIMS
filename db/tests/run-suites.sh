@@ -54,7 +54,7 @@ FAIL=0
 for s in "${SUITES[@]}"; do
   echo "# --- $s"
   OUT="$(docker exec -e PGPASSWORD="$SUPER_PW" "$NAME" sh -c "cd /repo && psql -X -q -t -A -h localhost -U supabase_admin -d $DB -v ON_ERROR_STOP=1 -f $s" 2>&1)" || { echo "$OUT"; echo "psql failed: $s"; FAIL=1; continue; }
-  echo "$OUT" | grep -E '^(not ok|# Failed|ok .*# SKIP)' || true
+  echo "$OUT" | grep -E '^(not ok|# |ok .*# SKIP)' || true
   if echo "$OUT" | grep -q '^not ok'; then FAIL=1; fi
 done
 

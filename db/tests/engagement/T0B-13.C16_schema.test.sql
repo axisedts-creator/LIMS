@@ -26,7 +26,7 @@ CREATE TEMP TABLE rd(f, args, execs, bad) AS VALUES   -- DEFINER inventory (§6.
   ('app.engagement_resolve_display','p_token_sha256 bytea','lims_api','lims_app'),('engagement.purge_payment_requests','','lims_worker','lims_app'),('engagement.purge_queue','','lims_worker','lims_app');
 
 -- C16 check 1: inventory, owner (AC-0B-1.2, AC-0B-6.3), schema privileges, no sequences / enums
-SELECT is((SELECT count(*)::int FROM pg_class c WHERE c.relnamespace = 'engagement'::regnamespace AND c.relkind IN ('r','p')), 36 + 3 + 1, 'C16 check 1: engagement holds 36 tenant + 3 G tables + event_inbox (39 chunk tables = 05-SCHEMA §3 CREATE TABLE count)');
+SELECT is((SELECT count(*)::int FROM pg_class c WHERE c.relnamespace = 'engagement'::regnamespace AND c.relkind IN ('r','p')), 36 + 3 + 1, 'C16 check 1: engagement holds 36 tenant + 3 G tables + event_inbox (39 chunk tables = 05-SCHEMA §3 count of table statements)');
 SELECT is((SELECT array_agg(relname::text ORDER BY relname) FROM pg_class WHERE relnamespace = 'engagement'::regnamespace AND relkind IN ('r','p') AND relname <> 'event_inbox'), (SELECT array_agg(t ORDER BY t) FROM (SELECT t FROM rt UNION ALL SELECT t FROM rg) x), 'C16 check 1: the table set equals the §3 inventory');
 SELECT is((SELECT count(*)::int FROM pg_class c WHERE c.relnamespace = 'engagement'::regnamespace AND c.relkind = 'm'), 0, 'C16 check 1: no materialized view');
 SELECT is((SELECT count(*)::int FROM pg_class c WHERE c.relnamespace = 'engagement'::regnamespace AND c.relkind = 'S'), 0, 'C16 check 1: no sequences');

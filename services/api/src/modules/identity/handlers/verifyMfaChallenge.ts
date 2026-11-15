@@ -15,6 +15,7 @@ import type { GoTrueGateway, GoTrueTokens } from '../gotrue/gateway.js';
 import { createAuthEventsRepo, type AuthEvent } from '../repository/auth-events.repo.js';
 import { createMfaRepo, type MfaRepo, type SessionRef } from '../repository/mfa.repo.js';
 import type { AuthLimits } from '../service/auth.service.js';
+import { loadSessionActor, type SessionActor } from '../service/session-actor.js';
 import { createAuthLimits } from './loginStaff.js';
 
 export interface MfaDeps {
@@ -33,7 +34,7 @@ type Session = NonNullable<Awaited<ReturnType<MfaRepo['sessionByToken']>>>;
 type Loaded = NonNullable<Awaited<ReturnType<MfaRepo['loadSession']>>>;
 export interface MfaCtx {
   tx: Tx; deps: MfaDeps; s: Session; ref: SessionRef; load: Loaded; now: Date; requestId: string; clientIp: string; userAgent?: string | undefined;
-  actorId: string; newId: () => string; accountKey: string; ev(eventType: string, o?: Partial<AuthEvent>): AuthEvent;
+  actorId: string; newId: () => string; accountKey: string; log?: HandlerContext['log'] | undefined; ev(eventType: string, o?: Partial<AuthEvent>): AuthEvent;
   record(e: AuthEvent): Promise<void>; deny(err: LimsError): never;
 }
 
@@ -123,7 +124,7 @@ export function mfaOperation<B, R>(operationId: string, parse: (req: HandlerRequ
         const accountKey = hmac(load.email);
         await deps.limits.consumeAttempt(accountKey);   // x-rate-limit-tier: login (LD-10, 02-CV §10.3): 429 before any GoTrue call / write
         const c: MfaCtx = {
-          tx, deps, s, ref, load, now, requestId: ctx.requestId, clientIp: ctx.clientIp, userAgent, actorId, newId, accountKey,
+          tx, deps, s, ref, load, now, requestId: ctx.requestId, clientIp: ctx.clientIp, userAgent, actorId, newId, accountKey, log: ctx.log,
           ev: (eventType, o = {}) => ({ id: newId(), eventType, ...who, emailHmacHex: accountKey, clientIp: ctx.clientIp, userAgent, requestId: ctx.requestId, actorId, ...o }),
           record: (e) => (s.kind === 'platform' ? deps.events.recordTenantless(tx, e) : deps.events.recordTenant(tx, e)),
           deny: (err) => { keep = true; ctx.commitOnError?.(); throw err; },
@@ -173,11 +174,19 @@ export async function loginSucceeded(c: MfaCtx): Promise<void> {
   await c.deps.limits.clearAccountFailures(c.accountKey);
 }
 
-// SessionState.actor (display_name, roles) has no source on this path: omitted, as in loginStaff (.orchestra/cr/T6.md).
-export const sessionState = (c: MfaCtx) => ({
+/**
+ * LD-221 AUTH-MFA-COMPLETE-1 (LD-208): SessionState.actor (required by contracts/openapi/identity.yaml) via repo.sessionActor + loadSessionActor, exactly as
+ * loginStaff / resolveSession. Call it BEFORE the GoTrue code check: a missing actor (common.internal, rollback) must never consume a code.
+ */
+export const loadActor = (c: MfaCtx): Promise<SessionActor> => loadSessionActor((k) => c.deps.repo.sessionActor(c.tx, k),
+  { userId: c.s.userId, tenantId: c.s.kind === 'platform' ? null : c.s.tenantId, membershipId: c.s.kind === 'platform' ? null : c.s.membershipId }, c.log, c.requestId,
+  // LD-222 AUTH-ACTOR-2: both callers answer an ACTIVE session (aal2), so the permission list rides along; read in the same tx
+  { state: 'active', tenantPermissions: (membershipId) => c.deps.repo.membershipPermissions(c.tx, { tenantId: c.s.tenantId!, membershipId }) });
+
+export const sessionState = (c: MfaCtx, actor: SessionActor) => ({
   status: 200 as const,
   body: { session_id: c.s.sessionId, kind: c.s.kind, state: 'active', aal: 'aal2',
-    idle_expires_at: c.load.idleExpiresAt.toISOString(), absolute_expires_at: c.load.absoluteExpiresAt.toISOString() },
+    idle_expires_at: c.load.idleExpiresAt.toISOString(), absolute_expires_at: c.load.absoluteExpiresAt.toISOString(), actor },
 });
 
 // ---------- wiring (shared by the three handlers) ----------
@@ -203,11 +212,12 @@ export const createVerifyMfaChallenge = mfaOperation('verifyMfaChallenge', (req)
   // [CONV] several verified factors: the most recently verified one is challenged; none (data error) -> 409
   const f = verified.sort((a, b) => (b.verifiedAt?.getTime() ?? 0) - (a.verifiedAt?.getTime() ?? 0))[0];
   if (!f) throw new LimsError('common.version_conflict');
+  const actor = await loadActor(c);
   const t = await checkCode(c, f.gotrueFactorId, code, 'challenge');
   await activate(c, t);
   await c.record(c.ev('mfa_verified'));
   await loginSucceeded(c);
-  return sessionState(c);
+  return sessionState(c, actor);
 });
 
 export const verifyMfaChallenge: Handler = wire(createVerifyMfaChallenge);

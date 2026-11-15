@@ -6,4 +6,4 @@ Files: db/tools/gen-isolation-probes.ts (a registry without columns falls back t
 (8) run-suites.sh: SU stub storage.buckets(id,name,public)+objects, RLS on, no rows. (9) roles +lims_app|lims_migrator; T0B-02 is_empty(PUBLIC grantee in lims_owner 'r' default ACL).
 CRs: T0B-DBFIX-1.1-.5.nonblocking.md (4 out of scope + T0B-12 bucket rows on the stub). Founder rerun: LIMS_SKIP_GEN=1 bash db/tests/run-suites.sh <the 21 patched suites + 7 partners probes + storage/T0B-12_storage>.
 Not mine / pre-existing: ~40 failing gates in tests/db (migration order, policy inventory, check-migrations, missing 'yaml' module). None touch files changed here, but I could not run a baseline worktree to prove it.
-W1 (LD-243 route b, rerun per LD-244, 2026-11-15 23:46 NPT): gen-isolation-probes --check ok (438 current), no regen; no impl change. Fixtures test still fails only on db/tests items pending tester T1 (git apply T0B-DBFIX-1-dbtests.patch); (7) passes.
+W1 (LD-245, 3rd reset): gen-isolation-probes --check ok (438 current), no regen, no impl change; patch now committed (be3206c4); fixtures test 45/45 pass. SQL suites remain a founder rerun.

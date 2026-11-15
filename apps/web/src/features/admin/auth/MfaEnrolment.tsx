@@ -7,6 +7,7 @@ import { Button } from '@lims/ui/components/Button';
 import { DataUriImage } from '@lims/ui/components/DataUriImage';
 import { OtpInput } from '@lims/ui/components/OtpInput';
 import { SecretRevealOnce } from '@lims/ui/components/SecretRevealOnce';
+import { AuthIcon } from './AuthArt';
 import { errorCopy, type ActionResult } from './messages';
 
 type Failure = Extract<ActionResult, { ok: false }>;
@@ -65,6 +66,9 @@ export function MfaEnrolment({ startAction, completeAction, forced }: MfaEnrolme
 
   return (
     <div className="lims-auth-card">
+      <div className="lims-auth-badge">
+        <AuthIcon kind="shield" />
+      </div>
       <h1>Set up two-step verification</h1>
       {forced ? <Banner tone="info" title="Your role requires two-step verification before you can continue." /> : null}
       {step !== 'done' ? <p className="lims-description">Step {step} of 3</p> : null}
@@ -79,6 +83,7 @@ export function MfaEnrolment({ startAction, completeAction, forced }: MfaEnrolme
           <p>Install an authenticator app on your phone (any TOTP app).</p>
           <Button variant="primary" onPress={() => void openStep2()}>
             Continue
+            <AuthIcon kind="arrow" className="lims-btn-arrow" />
           </Button>
         </>
       ) : null}
@@ -86,12 +91,12 @@ export function MfaEnrolment({ startAction, completeAction, forced }: MfaEnrolme
       {step === 2 ? (
         <>
           {enrol ? (
-            <>
+            <div className="lims-qr-card">
               {enrol.qr_svg_base64 ? (
                 <DataUriImage src={`data:image/svg+xml;base64,${enrol.qr_svg_base64}`} alt="QR code for your authenticator app" />
               ) : null}
               <SecretRevealOnce label="Can't scan? Enter this key" secret={enrol.secret_base32} onAcknowledged={() => {}} />
-            </>
+            </div>
           ) : pending ? (
             <p role="status">Loading…</p>
           ) : null}
@@ -111,6 +116,7 @@ export function MfaEnrolment({ startAction, completeAction, forced }: MfaEnrolme
           </div>
           <Button variant="primary" isDisabled={!enrol} onPress={() => setStep(3)}>
             Continue
+            <AuthIcon kind="arrow" className="lims-btn-arrow" />
           </Button>
         </>
       ) : null}
@@ -127,6 +133,7 @@ export function MfaEnrolment({ startAction, completeAction, forced }: MfaEnrolme
           <OtpInput label="Authentication code" length={6} value={code} onChange={setCode} onComplete={(v) => v === code && void confirm(v)} isDisabled={pending} />
           <Button type="submit" variant="primary" isLoading={pending}>
             Confirm
+            <AuthIcon kind="arrow" className="lims-btn-arrow" />
           </Button>
         </form>
       ) : null}

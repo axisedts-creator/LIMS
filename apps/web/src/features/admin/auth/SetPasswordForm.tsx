@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from 'react';
 import { Banner } from '@lims/ui/components/Banner';
 import { Button } from '@lims/ui/components/Button';
+import { AuthIcon } from './AuthArt';
 import { PasswordField } from './PasswordField';
 import { errorCopy, type ActionResult } from './messages';
 
@@ -70,6 +71,7 @@ export function SetPasswordForm({ action, variant, tenantName }: SetPasswordForm
         />
         <Button type="submit" variant="primary" isLoading={pending}>
           Set password
+          <AuthIcon kind="arrow" className="lims-btn-arrow" />
         </Button>
       </form>
     </div>

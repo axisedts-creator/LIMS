@@ -24,6 +24,7 @@
   "app/(auth)/auth/set-password/page.tsx": [
     "action={setPasswordAction}"
   ],
+  "features/admin/auth/AuthArt.tsx": [],
   "features/admin/auth/ConfirmLanding.tsx": [
     "href=\"/auth/forgot\""
   ],

@@ -44,10 +44,12 @@ export function ForgotPasswordForm({ action }: ForgotPasswordFormProps) {
       ) : (
         <form noValidate onSubmit={onSubmit}>
           <div className="lims-field">
-            <label className="lims-label" htmlFor="forgot-email">
-              Email
-            </label>
-            <RequiredNote />
+            <div className="lims-label-row">
+              <label className="lims-label" htmlFor="forgot-email">
+                Email
+              </label>
+              <RequiredNote />
+            </div>
             <input
               id="forgot-email"
               className="lims-input"

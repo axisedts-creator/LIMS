@@ -5,6 +5,7 @@ import { dirname, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { parse } from 'yaml';
 import type { AccessLogEntry } from './audit/access.js';
+import type { BffKind } from './auth/bff-key.js';
 import type { Tx, TxFn, TxInput } from './db/tx.js';
 import type { PortRegistry } from './ports/registry.js';
 import type { RateLimitTier } from './ratelimit/index.js';
@@ -71,6 +72,8 @@ export interface HandlerContext {
   readonly operationId: string;
   /** 08 A25 P-61 (02-TRD §6.4); modules never parse a header. */
   readonly clientIp: string;
+  /** LD-206 / AUTH-BFF-1: verified X-Lims-Bff-Key kind; undefined when the header is absent or not valid. */
+  readonly bffKey?: BffKind | undefined;
   readonly download: unknown;
   /** LD-133: optional in the TYPE only (identity declares it optional). */
   commitOnError?(): void;

@@ -2,6 +2,7 @@
 // observability/logging.ts). One run() per request; the HandlerContext built here has exactly the §6.3 members.
 // Errors thrown by a stage or the handler are rethrown after the rollback and the idempotency key release; a handler RESULT
 // with status >= 400 is returned (and rolled back unless ctx.commitOnError() was called).
+import type { BffKind } from '../auth/bff-key.js';
 import type { DbClaims } from '../auth/claims.js';
 import { access, type AccessLogEntry } from '../audit/access.js';
 import type { Db, Tx, TxControl, TxFn } from '../db/tx.js';
@@ -55,6 +56,8 @@ export interface PipelineCall {
   readonly claims?: DbClaims | undefined;
   readonly requestId: string;
   readonly clientIp: string;
+  /** LD-206 (AUTH-BFF-1): the BffKind the verifier returned for X-Lims-Bff-Key; undefined otherwise. */
+  readonly bffKey?: BffKind | undefined;
   readonly userAgent?: string | undefined;
   readonly idempotencyKey?: string | undefined;
   readonly req: HandlerRequest;
@@ -146,6 +149,7 @@ export function createPipeline(d: PipelineDeps) {
       services: d.services?.[c.op.module],
       operationId: c.op.operationId,
       clientIp: c.clientIp,
+      bffKey: c.bffKey,                                                  // LD-206: own key on every request, undefined when absent
       download: d.shared.download,
       commitOnError: () => { onCommitOnError(); },
       noRetry: () => { ctl?.noRetry(); },

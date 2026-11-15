@@ -1,0 +1,7 @@
+# WEB-STYLE-3 tests (tester)
+- New: apps/web/src/__tests__/web-style-3.test.ts, vitest.web-style-3.config.ts, fixtures/shell.baseline-style-3.css (= shell.css before this task; "added" CSS is diffed against it).
+- Run: `.orchestra\notes\WEB-STYLE-3-verify.cmd` (also runs web-style, web-style-2, build-config, build-boundaries; all must stay green).
+- Class contract for the writer: `lims-auth-panel-body` (inside the aside; holds `.lims-auth-panel-title` + `ol.lims-auth-steps`), `lims-label-row` (div with `<label>` then `<RequiredNote />`, nothing else), `lims-input-wrap` (div around input then button in PasswordField; drop `lims-input-group`), `lims-input-toggle` (the Show/Hide button).
+- CSS contract: `body{margin:0}`; `.lims-auth-page` border-box + one 100dvh|100vh (none on main/panel), wide = no padding/gap/margin, stretch; panel column + justify-content:center + token padding; title 2xl/lg; stepper `li{position:relative}`, `li::before` dot, `li:not(:last-child)::after` thin absolute line; `.lims-auth-card .lims-input{width:100%;box-sizing:border-box}`; toggle absolute at `inset-inline-end`; wordmark lg/2xl + bold + em letter-spacing. rem/tokens only.
+- Now: 12 tests fail for the right reason (missing body margin, wrapper/classes, rules); 97 pass (all planted-failure fixtures and the 4 older suites).
+- NOT provable statically: no page scrollbar at 1440x900, 1920x1080, 390x844 — writer screenshots with Chromium if available, else lead checks live.

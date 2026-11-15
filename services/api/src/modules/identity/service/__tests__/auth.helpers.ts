@@ -110,12 +110,22 @@ export function makeLimits(w: { clock: { ms: number } }) {
 
 /** In-memory AuthRepo + events + enqueue. `writes` = every DB write in call order (the P-42 "no other write survives" oracle). */
 export const DB_WRITES = ['insertSession', 'touchMembershipLogin', 'insertPlatformSession', 'platformStaffLogin', 'recordTenantless', 'recordTenant', 'enqueue'] as const;
+/** SESSION-ACTOR-1 (LD-208): one row of app.identity_session_actor (snake_case verbatim: display_name, role_codes, tenant_code). */
+export const platformActorRow = (o: Record<string, unknown> = {}) => ({ display_name: 'Sam Staff', role_codes: ['platform_support'], tenant_code: null, ...o });
+export const tenantActorRow = (o: Record<string, unknown> = {}) => ({ display_name: 'Ana Demo', role_codes: ['lab_manager', 'technician'], tenant_code: 'lab_a', ...o });
+export interface ActorCall { tx: unknown; userId: string; tenantId: string | null; membershipId: string | null }
 export function makeRepo(rows: Record<string, LoginRow> | ((sub: string) => LoginRow)) {
   const writes: Array<{ m: string; tx: unknown; arg: any }> = [];
   const order: string[] = [];
   const rec = (m: string, tx: unknown, arg: unknown) => { writes.push({ m, tx, arg }); order.push(m); };
+  // sessionActor is a READ (never in `writes`). Default: platform row for tenantId null, tenant row otherwise; `actor.impl` overrides (return undefined = no row).
+  const actor = { calls: [] as ActorCall[], impl: undefined as undefined | ((a: ActorCall) => unknown) };
   const repo = {
     async loginContext(_tx: unknown, sub: string) { order.push('loginContext'); return typeof rows === 'function' ? rows(sub) : (rows[sub] ?? noMembershipRow()); },
+    async sessionActor(tx: unknown, a: { userId: string; tenantId: string | null; membershipId: string | null }) {
+      order.push('sessionActor'); const c: ActorCall = { tx, ...a }; actor.calls.push(c);
+      return actor.impl ? actor.impl(c) : (a.tenantId ? tenantActorRow() : platformActorRow());
+    },
     async insertSession(tx: unknown, s: any) { rec('insertSession', tx, s); },
     async touchMembershipLogin(tx: unknown, a: any) { rec('touchMembershipLogin', tx, a); },
     async insertPlatformSession(tx: unknown, s: any) { rec('insertPlatformSession', tx, s); },
@@ -126,7 +136,7 @@ export function makeRepo(rows: Record<string, LoginRow> | ((sub: string) => Logi
     async recordTenantless(tx: unknown, e: any) { rec('recordTenantless', tx, e); },
     async recordTenant(tx: unknown, e: any) { rec('recordTenant', tx, e); },
   };
-  return { repo, events, writes, order, by: (m: string) => writes.filter((x) => x.m === m).map((x) => x.arg) };
+  return { repo, events, writes, order, actor, by: (m: string) => writes.filter((x) => x.m === m).map((x) => x.arg) };
 }
 
 export const EMAIL = 'ana.demo@example.test';

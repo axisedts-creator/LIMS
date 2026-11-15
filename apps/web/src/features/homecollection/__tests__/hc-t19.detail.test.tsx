@@ -91,7 +91,7 @@ describe('layout (§2.2)', () => {
   });
   it('Tubes table: specimen type, container, lab status, collection chip words (Applied / On hold), scan method ("Typed — not verified" for an unverified typed barcode)', async () => {
     await view();
-    const t = within(card('Tubes')).getByRole('table');
+    const t = within(card('Tubes')).getByRole('grid');
     for (const h of [/specimen type/i, /container/i, /lab status/i, /collected at/i, /collection/i, /scan/i]) expect(within(t).getAllByRole('columnheader').some((c) => h.test(c.textContent ?? '')), String(h)).toBe(true);
     expect(within(t).getAllByRole('row')).toHaveLength(1 + 3);
     expect(t.textContent).toMatch(/Applied/);
@@ -125,7 +125,7 @@ describe('layout (§2.2)', () => {
   it('On hold card is absent when no collection is held; Tubes card shows an empty state, not a broken table, when there are no specimens', async () => {
     await view(detail({ collections: [], specimens: [], flags: [], open_flag_kinds: [] }));
     expect(screen.queryByRole('heading', { level: 2, name: 'On hold' })).toBeNull();
-    expect(within(card('Tubes')).queryByRole('table') ?? card('Tubes')).toBeTruthy();
+    expect(card('Tubes').textContent).toMatch(/no (tubes|specimens)/i);
   });
   it('axe clean', async () => {
     await view();

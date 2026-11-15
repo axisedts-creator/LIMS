@@ -1,10 +1,10 @@
-CHANGES
+APPROVE
 
-1. apps/web/src/features/homecollection/components/VisitDetailView.tsx:271-274 — the Review dialog reason uses `Select`. 04-UI-UX §2.2 (line 62) names `CodedSelect homecollection.review_reasons`, and the kit has it (`@lims/ui/components/CodedSelect`, used the same way in features/inventory/components/WastageView.tsx:96). Fix: replace it with `<CodedSelect label="Reason" name="reason_code" codedSet="homecollection.review_reasons" isRequired options={reasons.map((r) => ({ code: r.code, display: r.display, isActive: r.is_active !== false }))} ... />`, keeping the same value, error and onChange props, and drop the `Select` import.
-2. apps/web/src/features/homecollection/components/VisitDetailView.tsx:260 — the primary button's label is always "Confirm", but the E2E test (apps/web/tests/e2e/homecollection/HC-T19.visit.spec.ts:39) submits with `dlg.getByRole('button', { name: /^discard/i })`. The Discard radio is not a button, so the US-09-3 E2E cannot pass. The spec does not name the label, and the unit `submit()` matcher accepts apply|discard|confirm. Fix: label the button `{decision === 'apply' ? 'Apply' : decision === 'discard' ? 'Discard' : 'Confirm'}`.
+Re-review after writer commit 92cbac07b (review fixes).
+- Finding 1 fixed: Review reason is `CodedSelect codedSet="homecollection.review_reasons"` (04-UI-UX §2.2). The props match the kit's CodedSelectProps (code/display/isActive, onChange(code)), and the unused `Select` import is gone.
+- Finding 2 fixed: the primary button reads Apply, Discard or Confirm by decision, so the E2E `getByRole('button', { name: /^discard/i })` can now resolve.
+- Re-ran HC-T19 vitest config: 4 files, 96/96 pass.
 
-Not blocking. These are spec gaps, so the lead or a CR should decide them; the writer should not invent fields:
-- §2.2 asks for a Tubes column "Clock" ("Device clock adjusted" when `clock_suspect`), but `clock_suspect` is not in VisitDetailDto (02-TRD:214) or CollectionDto (:215). The column is missing correctly for now. It needs a CR to add the field to the DTO.
-- E2E was not run (it needs compose). US-16-1 and US-16-2 access-log rows are written by the API (HC-T13), so this UI task does not assert them.
+Carried over, not blocking: the Tubes "Clock" column needs a CR (`clock_suspect` is not in VisitDetailDto, 02-TRD:214). E2E not run (needs compose). US-16 access-log rows are asserted in HC-T13 (API).
 
-Checked OK: routes, permissions, H2/H7/H8/H9/H20/H21 names and paths match 02-TRD:178-197. Idempotency-Key is sent on H7, H8 and H9, and If-Match carries the version. Error codes are verbatim. The phone is only fetched through H21 and held in one component's state, so it never reaches a URL or a log. H2 is rebuilt from an allow-list, and address and note are kept only for visit.assign holders. 403 visit_not_assigned shows the spec sentence. No secrets and no PHI in logs. All paths are owned (features/homecollection, (staff)/homecollection, tests/e2e/homecollection per 01-CHUNK-MAP:179). No hex colours or inline styles (LD-140). There is no DB or RLS in this diff.
+Earlier checks still hold: names verbatim, Idempotency-Key and If-Match sent, phone only via H21, no PHI or secrets, owned paths only, LD-140 followed, no DB or RLS in this diff.

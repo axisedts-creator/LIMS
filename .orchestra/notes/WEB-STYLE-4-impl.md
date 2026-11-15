@@ -1,0 +1,6 @@
+# WEB-STYLE-4 impl (writer)
+- Files: new `features/admin/auth/AuthArt.tsx` (AuthArt, AuthMark placeholder, AuthIcon); `(auth)/layout.tsx` (band + art in panel); `shell.css` (appended only); LoginForm, ForgotPasswordForm, PasswordField, SetPasswordForm, MfaChallengeForm, MfaEnrolment (wrappers, icons, arrows, lockup, `lims-qr-card`, `lims-auth-badge`). No text, field, id, name, action or logic changed.
+- Run: web-style-4 37/37 pass; web-style, -2, -3, build-config, build-boundaries pass EXCEPT web-style-2 (g) (new AuthArt.tsx missing from its fixture, see WEB-STYLE-4-dispute.md); t12 auth unit tests 120/120; `pnpm --filter @lims/web build` finished with the route table, no error (exit code not captured by the shell wrapper).
+- [CONV] pending spinner is the kit Button's own isLoading; arrow hides on aria-busy. Reduced motion scoped to `.lims-auth-page *` (test allows it). Below 64rem the card lockup is visually hidden (the band shows it) so LIMS is not shown twice.
+- NOT checked: screenshots / page scrollbar at 1440x900, 1920x1080, 390x844 (cannot see outside the worktree to find a Chromium); how it looks; no typecheck or lint run.
+- Open: the 6-digit code is still the kit OtpInput (six inputs), as the tester reported; one input needs a kit CR.

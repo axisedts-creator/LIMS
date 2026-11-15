@@ -4,6 +4,7 @@
 import { useState, type FormEvent } from 'react';
 import { Button } from '@lims/ui/components/Button';
 import { RequiredNote } from '../ui';
+import { AuthIcon } from './AuthArt';
 import { EMAIL_RE, type ActionResult } from './messages';
 
 export interface ForgotPasswordFormProps {
@@ -50,20 +51,23 @@ export function ForgotPasswordForm({ action }: ForgotPasswordFormProps) {
               </label>
               <RequiredNote />
             </div>
-            <input
-              id="forgot-email"
-              className="lims-input"
-              name="email"
-              type="email"
-              autoComplete="username"
-              maxLength={254}
-              required
-              value={email}
-              disabled={pending}
-              aria-invalid={err ? true : undefined}
-              aria-describedby={err ? 'forgot-email-e' : undefined}
-              onChange={(e) => setEmail(e.target.value)}
-            />
+            <div className="lims-input-wrap">
+              <AuthIcon kind="mail" className="lims-input-icon" />
+              <input
+                id="forgot-email"
+                className="lims-input"
+                name="email"
+                type="email"
+                autoComplete="username"
+                maxLength={254}
+                required
+                value={email}
+                disabled={pending}
+                aria-invalid={err ? true : undefined}
+                aria-describedby={err ? 'forgot-email-e' : undefined}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </div>
             {err ? (
               <span id="forgot-email-e" className="lims-error">
                 {err}
@@ -72,6 +76,7 @@ export function ForgotPasswordForm({ action }: ForgotPasswordFormProps) {
           </div>
           <Button type="submit" variant="primary" isLoading={pending}>
             Send reset link
+            <AuthIcon kind="arrow" className="lims-btn-arrow" />
           </Button>
         </form>
       )}

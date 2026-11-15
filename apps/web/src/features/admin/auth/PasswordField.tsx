@@ -3,6 +3,7 @@
 // @lims/ui/components/PasswordField once C0-0D ships it.
 import { useId, useState } from 'react';
 import { RequiredNote } from '../ui';
+import { AuthIcon } from './AuthArt';
 
 export interface PasswordFieldProps {
   label: string;
@@ -27,6 +28,7 @@ export function PasswordField({ label, name, autoComplete, maxLength, value, onC
         <RequiredNote />
       </div>
       <div className="lims-input-wrap">
+        <AuthIcon kind="lock" className="lims-input-icon" />
         <input
           id={id}
           className="lims-input"

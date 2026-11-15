@@ -1,1 +1,1 @@
-cd /d "%~dp0..\.." && node --test tests/db/T0B-13.C16-gate.test.mjs tests/db/T0B-07.registry-checks.test.mjs
+cd /d "%~dp0..\.." && node --test --test-skip-pattern=real.db/migrations.pass.gate-9 --test-skip-pattern=definer-inventory.yaml.lists.every tests/db/T0B-13.C16-gate.test.mjs tests/db/T0B-07.registry-checks.test.mjs

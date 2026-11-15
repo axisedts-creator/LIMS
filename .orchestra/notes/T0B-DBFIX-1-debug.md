@@ -6,3 +6,5 @@ Not verified: the lane cannot run SQL (no Docker); founder reruns the suites in 
 Round 2: verify log unchanged. Only 2 of 45 tests fail (roles 00_bootstrap_roles test 17; app T0B-02_helpers test 57), both because db/tests is unpatched. No implementation fix exists; no test edited. Tester must git apply the saved patch (LD-243 b). git apply --check was not run (not permitted here).
 
 Round 3: unchanged. node --test fixtures test: 9 sub-tests fail (LD-230 1,2,6,8,9), all because db/tests/** and run-suites.sh are unpatched. No implementation fix exists; no test edited. Tester must git apply .orchestra/notes/T0B-DBFIX-1-dbtests.patch (LD-243 b).
+
+Round 4: unchanged. db/tests still unpatched (platform_admin still in T0B-08_contracts_helpers.test.sql). No implementation fix exists; no test edited. Tester must git apply .orchestra/notes/T0B-DBFIX-1-dbtests.patch (LD-243 b, LD-244). No third lead reset: escalate to founder.

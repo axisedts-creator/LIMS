@@ -126,7 +126,17 @@ export function createDb(o: DbOptions) {
           await sleep(Math.round(10 + random() * 40)); // jitter 10-50 ms [CONV]
           continue;
         }
-        throw mapDbError(e, deps);
+        const mapped = mapDbError(e, deps);
+        // LD-224 (RS-12): one error line with the pg coordinates only; never message/detail/hint/where/params/values.
+        if (mapped !== e) {
+          const pg = e as Record<string, unknown>;
+          const s = (k: string) => (typeof pg[k] === 'string' ? pg[k] : null);
+          o.log?.error?.({
+            request_id: input.requestId, sqlstate: code, schema: s('schema'), table: s('table'), column: s('column'),
+            constraint: s('constraint'), routine: s('routine'), operationId: input.operation.operationId,
+          }, 'db_error');
+        }
+        throw mapped;
       }
     }
   }

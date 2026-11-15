@@ -3,4 +3,5 @@
 - Run: `.orchestra/notes/HC-T30-verify.cmd`. Expect now: fail (manuals + integration_test missing; help/spec tests pass).
 - Scenario: `apps/web/src/features/homecollection/tests/e2e/HC-T30.nightly.spec.ts` (Playwright, tester-written, skips without LIMS_E2E_* compose env; env list in its header). Compose run: `pnpm exec playwright test --config apps/web/src/features/homecollection/tests/e2e/playwright.config.ts`.
 - Not covered: no `test:e2e` script in apps/web/package.json / nightly.yml wiring for this spec (outside task files; needs implementer or CR). The Dart integration_test is NOT written by me (not a tester-editable path); the static test requires it.
-- Assumed (spec silent): response field names for specimens/collections (`specimen_id|id`, `barcode|expected_barcode`, `lab_status|status`), handover status `received`.
+- Review fixes applied (items 1-5): Playwright spec now uses spec names only (`unassigned`, A2 snapshot for specimen/barcode/balance, `confirmed` + item `received`), pushes identity/consent/`payment.captured` (new env `LIMS_E2E_PAYMENT_METHOD_CODE`), asserts per-mutation `applied` + `handover_items`, ledger/balance 0 at step 8. Static vitest still 23/23.
+- Not done: review item 6 (Dart token-refresh case) - `integration_test/*.dart` is not a tester-editable path; item 7 (compose run, nightly wiring/CR) is implementer/lead work.

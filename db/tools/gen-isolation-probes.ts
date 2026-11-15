@@ -247,9 +247,861 @@ DO $d$ DECLARE s text; BEGIN
 END $d$;
 SET LOCAL session_replication_role = origin;
 `;
-// ponytail: C0 fixtures are inline above; a table added by a later chunk without a row here fails its step-1 precondition until
-// tables.yaml probe_fixture: (02-TRD §4.5 step 1) is supported. Fixture INSERTs on tables absent from the catalog would abort the probe,
-// so every table above must exist when probes run (true for C0 migrations).
+// The core rows are inline above; every other registry table gets its rows from the generated fixture files (LD-233, T0B-DBSEED-1),
+// \ir'd at the end of the replica window (fixtureIncludes). Fixture INSERTs on tables absent from the catalog would abort the probe,
+// so every table must exist when probes run (true: the rows are derived from db/migrations).
+const PREAMBLE_ORIGIN = "SET LOCAL session_replication_role = origin;\n";
+
+// ================================================================ T0B-DBSEED-1 (LD-233, 2026-11-15): probe fixture rows
+// Module rows for the probe tenants (pg_temp.id('01'|'02'), centres 21/22/23, step-9 actors 35/a3/34) for every registry table, derived
+// statically from db/migrations (columns, NOT NULL, defaults, CHECKs, PK/UNIQUE, FKs). Written to <out>/../fixtures/probe-rows/<schema>.sql
+// (test-only; never db/seeds: push-cloud.ps1 applies db/seeds to staging, REQ-SEC-041/136). Plain INSERT ... VALUES only, no constraint
+// disabled; the replica window of the probe is the core fixtures' own. Synthetic values only. Deterministic.
+type Col = { notNull: boolean; hasDefault: boolean; generated: boolean; type: string; def: string | null };
+type Fk = { cols: string[]; parent: string; pcols: string[] };
+type Tbl = { cols: Map<string, Col>; pk: string[]; uniques: string[][]; soft: string[][]; fks: Fk[]; checks: string[] };
+type Val = { sql: string; v: any };
+type Row = Record<string, Val>;
+
+// ---------- SQL text helpers (comments out, quotes respected; dollar bodies collapsed) - same reading rules as the static test
+function skipQuote(s: string, i: number): number { let j = i + 1; while (j < s.length) { if (s[j] === "'") { if (s[j + 1] === "'") { j += 2; continue; } break; } j++; } return j; }
+function stripComments(s: string): string {
+  let out = "";
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i];
+    if (c === "'") { const j = skipQuote(s, i); out += s.slice(i, j + 1); i = j; continue; }
+    if (s.startsWith("--", i)) { const e = s.indexOf("\n", i); i = e < 0 ? s.length : e - 1; continue; }
+    if (s.startsWith("/*", i)) { const e = s.indexOf("*/", i + 2); i = e < 0 ? s.length : e + 1; out += " "; continue; }
+    out += c;
+  }
+  return out;
+}
+function statements(text: string): string[] {
+  const s = stripComments(text), out: string[] = [];
+  let cur = "";
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i];
+    if (c === "'") { const j = skipQuote(s, i); cur += s.slice(i, j + 1); i = j; continue; }
+    if (c === '"') { const j = s.indexOf('"', i + 1); cur += s.slice(i, j + 1); i = j; continue; }
+    if (c === "$") { const m = /^\$([A-Za-z_][A-Za-z0-9_]*)?\$/.exec(s.slice(i)); if (m) { const e = s.indexOf(m[0], i + m[0].length); cur += "$$"; i = (e < 0 ? s.length : e + m[0].length) - 1; continue; } }
+    if (c === ";") { if (cur.trim()) out.push(cur.trim()); cur = ""; continue; }
+    cur += c;
+  }
+  if (cur.trim()) out.push(cur.trim());
+  return out;
+}
+function paren(s: string, open: number): [string, number] {
+  let d = 0;
+  for (let j = open; j < s.length; j++) {
+    if (s[j] === "'") { j = skipQuote(s, j); continue; }
+    if (s[j] === "(") d++;
+    else if (s[j] === ")" && --d === 0) return [s.slice(open + 1, j), j + 1];
+  }
+  return [s.slice(open + 1), s.length];
+}
+function topSplit(s: string): string[] {
+  const out: string[] = [];
+  let depth = 0, cur = "";
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i];
+    if (c === "'") { const j = skipQuote(s, i); cur += s.slice(i, j + 1); i = j; continue; }
+    if (c === "(" || c === "[") depth++;
+    if (c === ")" || c === "]") depth--;
+    if (c === "," && depth === 0) { out.push(cur.trim()); cur = ""; continue; }
+    cur += c;
+  }
+  if (cur.trim()) out.push(cur.trim());
+  return out;
+}
+const unq = (s: string) => s.replace(/"/g, "").trim();
+const normSql = (v: string) => { let o = ""; for (let i = 0; i < v.length; i++) { if (v[i] === "'") { const j = skipQuote(v, i); o += v.slice(i, j + 1); i = j; continue; } if (!/\s/.test(v[i])) o += v[i].toLowerCase(); } return o; };
+
+// ---------- migrations model
+const SCHEMA: Record<string, Tbl> = {};
+const ENUMS: Record<string, string[]> = {};
+const tblOf = (n: string) => (SCHEMA[n] ??= { cols: new Map(), pk: [], uniques: [], soft: [], fks: [], checks: [] });
+function addColumn(t: string, def: string) {
+  const m = /^("?[a-z_][a-z0-9_]*"?)\s+(.+)$/is.exec(def);
+  if (!m) return;
+  const name = unq(m[1]), rest = m[2];
+  const type = /^([a-z_][a-z0-9_. ]*?(?:\([^)]*\))?(?:\[\])?)(?=\s+(?:NOT|NULL|DEFAULT|REFERENCES|CHECK|PRIMARY|UNIQUE|GENERATED|CONSTRAINT|COLLATE)\b|$)/i.exec(rest)?.[1] ?? rest.split(/\s+/)[0];
+  const dm = /\bDEFAULT\s+/i.exec(rest);
+  let dflt: string | null = null;
+  if (dm) { // the default expression runs to the next column keyword at depth 0
+    const tail = rest.slice(dm.index + dm[0].length);
+    let d = 0, j = 0;
+    for (; j < tail.length; j++) {
+      if (tail[j] === "'") { j = skipQuote(tail, j); continue; }
+      if (tail[j] === "(") d++; else if (tail[j] === ")") d--;
+      if (d === 0 && /^\s+(NOT\s+NULL|NULL|REFERENCES|CHECK|PRIMARY|UNIQUE|CONSTRAINT|GENERATED)\b/i.test(tail.slice(j))) break;
+    }
+    dflt = tail.slice(0, j).trim();
+  }
+  const col: Col = { notNull: /\bNOT\s+NULL\b/i.test(rest) || /\bPRIMARY\s+KEY\b/i.test(rest), hasDefault: !!dm || /\bGENERATED\b/i.test(rest),
+    generated: /\bGENERATED\s+ALWAYS\b/i.test(rest) || /\bGENERATED\s+BY\s+DEFAULT\s+AS\s+IDENTITY\b/i.test(rest), type: type.trim().toLowerCase(), def: dflt };
+  tblOf(t).cols.set(name, col);
+  if (/\bPRIMARY\s+KEY\b/i.test(rest)) tblOf(t).pk = [name];
+  else if (/\bUNIQUE\b/i.test(rest)) tblOf(t).uniques.push([name]);
+  const ref = /\bREFERENCES\s+([a-z_][a-z0-9_]*\.[a-z_][a-z0-9_]*)\s*(?:\(([^)]*)\))?/i.exec(rest);
+  if (ref) tblOf(t).fks.push({ cols: [name], parent: ref[1], pcols: ref[2] ? ref[2].split(",").map((x) => x.trim()) : ["id"] });
+  const ck = /\bCHECK\s*\(/i.exec(rest);
+  if (ck) tblOf(t).checks.push(paren(rest, ck.index + ck[0].length - 1)[0]);
+}
+function addConstraint(t: string, def: string) {
+  const d = def.replace(/^CONSTRAINT\s+"?[a-z_][a-z0-9_]*"?\s+/i, "");
+  let m;
+  if ((m = /^PRIMARY\s+KEY\s*\(([^)]*)\)/i.exec(d))) tblOf(t).pk = m[1].split(",").map(unq);
+  else if ((m = /^UNIQUE\s*(?:NULLS\s+NOT\s+DISTINCT\s*)?\(([^)]*)\)/i.exec(d))) tblOf(t).uniques.push(m[1].split(",").map(unq));
+  else if ((m = /^FOREIGN\s+KEY\s*\(([^)]*)\)\s*REFERENCES\s+([a-z_][a-z0-9_]*\.[a-z_][a-z0-9_]*)\s*\(([^)]*)\)/i.exec(d)))
+    tblOf(t).fks.push({ cols: m[1].split(",").map(unq), parent: m[2], pcols: m[3].split(",").map(unq) });
+  else if ((m = /^CHECK\s*\(/i.exec(d))) tblOf(t).checks.push(paren(d, m[0].length - 1)[0]);
+}
+function readMigrations() {
+  const dir = join(root, "db/migrations");
+  if (!existsSync(dir)) return; // a --root without migrations (generator self-tests): no fixtures, probes as before
+  for (const f of readdirSync(dir).filter((x) => x.endsWith(".sql")).sort()) {
+    for (const st of statements(readFileSync(join(dir, f), "utf8"))) {
+      let m;
+      if ((m = /^CREATE\s+TYPE\s+([a-z_][a-z0-9_]*\.[a-z_][a-z0-9_]*)\s+AS\s+ENUM\s*\(([^)]*)\)/i.exec(st)))
+        ENUMS[m[1]] = [...m[2].matchAll(/'((?:[^']|'')*)'/g)].map((x) => x[1]);
+      else if ((m = /^CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?([a-z_][a-z0-9_]*\.[a-z_][a-z0-9_]*)\s*\(/i.exec(st))) {
+        tblOf(m[1]);
+        for (const el of topSplit(paren(st, m[0].length - 1)[0])) {
+          if (/^(CONSTRAINT|PRIMARY\s+KEY|FOREIGN\s+KEY|UNIQUE|CHECK|EXCLUDE|LIKE)\b/i.test(el)) addConstraint(m[1], el);
+          else addColumn(m[1], el);
+        }
+      } else if ((m = /^ALTER\s+TABLE\s+(?:IF\s+EXISTS\s+)?(?:ONLY\s+)?([a-z_][a-z0-9_]*\.[a-z_][a-z0-9_]*)\s+([\s\S]*)$/i.exec(st))) {
+        const t = m[1];
+        if (!SCHEMA[t]) continue;
+        for (const act of topSplit(m[2])) {
+          let a;
+          if ((a = /^ADD\s+COLUMN\s+(?:IF\s+NOT\s+EXISTS\s+)?([\s\S]*)$/i.exec(act))) addColumn(t, a[1]);
+          else if ((a = /^ADD\s+(CONSTRAINT[\s\S]*|PRIMARY[\s\S]*|FOREIGN[\s\S]*|UNIQUE[\s\S]*|CHECK[\s\S]*)$/i.exec(act))) addConstraint(t, a[1]);
+          else if ((a = /^ALTER\s+COLUMN\s+("?[a-z_][a-z0-9_]*"?)\s+SET\s+NOT\s+NULL/i.exec(act))) { const c = SCHEMA[t].cols.get(unq(a[1])); if (c) c.notNull = true; }
+          else if ((a = /^ALTER\s+COLUMN\s+("?[a-z_][a-z0-9_]*"?)\s+SET\s+DEFAULT\s+([\s\S]*)$/i.exec(act))) { const c = SCHEMA[t].cols.get(unq(a[1])); if (c) { c.hasDefault = true; c.def = a[2].trim(); } }
+        }
+      } else if ((m = /^CREATE\s+UNIQUE\s+INDEX\s+(?:CONCURRENTLY\s+)?(?:IF\s+NOT\s+EXISTS\s+)?\S+\s+ON\s+(?:ONLY\s+)?([a-z_][a-z0-9_]*\.[a-z_][a-z0-9_]*)\s*(?:USING\s+\w+\s*)?\(/i.exec(st))) {
+        if (!SCHEMA[m[1]]) continue;
+        const cols = topSplit(paren(st, m[0].length - 1)[0]);
+        if (!cols.every((c) => /^"?[a-z_][a-z0-9_]*"?$/i.test(c))) continue; // expression index: not judged
+        // partial unique indexes are kept as "soft" keys: treated as unconditional where possible (ON CONFLICT DO NOTHING would drop a row)
+        (/\bWHERE\b/i.test(st) ? SCHEMA[m[1]].soft : SCHEMA[m[1]].uniques).push(cols.map(unq));
+      }
+    }
+  }
+  for (const t of Object.values(SCHEMA)) for (const c of t.pk) { const x = t.cols.get(c); if (x) x.notNull = true; }
+}
+
+// ---------- INSERT reading (probe preamble, db/seeds): rows that already exist when the fixture files run
+function readInserts(text: string): { table: string; rows: Record<string, string>[] }[] {
+  const out: { table: string; rows: Record<string, string>[] }[] = [];
+  for (const st of statements(text)) {
+    const m = /^INSERT\s+INTO\s+([a-z_][a-z0-9_]*\.[a-z_][a-z0-9_]*)\s*\(([^)]*)\)\s*VALUES\s*([\s\S]*?)(?:\s+ON\s+CONFLICT\s+DO\s+NOTHING)?$/i.exec(st);
+    if (!m) continue;
+    const cols = m[2].split(",").map(unq), rows: Record<string, string>[] = [];
+    let i = 0;
+    while (i < m[3].length) {
+      const o = m[3].indexOf("(", i);
+      if (o < 0) break;
+      const [inner, next] = paren(m[3], o);
+      const vals = topSplit(inner);
+      rows.push(Object.fromEntries(cols.map((c, k) => [c, vals[k]])));
+      i = next;
+    }
+    out.push({ table: m[1], rows });
+  }
+  return out;
+}
+
+// ---------- CHECK expression evaluator (3-valued; UNK = not judged statically, left to the founder rerun)
+const UNK = Symbol("unknown");
+type Tok = { k: "s" | "n" | "i" | "o"; v: string };
+function lex(s: string): Tok[] {
+  const t: Tok[] = [];
+  for (let i = 0; i < s.length;) {
+    const c = s[i];
+    if (/\s/.test(c)) { i++; continue; }
+    if (c === "'" || ((c === "E" || c === "e") && s[i + 1] === "'")) { const st = c === "'" ? i : i + 1; const j = skipQuote(s, st); t.push({ k: "s", v: s.slice(st + 1, j).replace(/''/g, "'") }); i = j + 1; continue; }
+    if (/[0-9]/.test(c) || (c === "." && /[0-9]/.test(s[i + 1] ?? ""))) { const m = /^[0-9]*\.?[0-9]+(?:e[+-]?[0-9]+)?/i.exec(s.slice(i))!; t.push({ k: "n", v: m[0] }); i += m[0].length; continue; }
+    if (c === '"') { const j = s.indexOf('"', i + 1); t.push({ k: "i", v: s.slice(i + 1, j) }); i = j + 1; continue; }
+    if (/[a-z_]/i.test(c)) { const m = /^[a-z_][a-z0-9_$]*/i.exec(s.slice(i))!; t.push({ k: "i", v: m[0].toLowerCase() }); i += m[0].length; continue; }
+    const op = ["::", "<=", ">=", "<>", "!=", "||", "!~*", "~*", "!~", "->>", "->", "#>>", "#>", "@>", "<@", "&&", "?|", "?&"].find((o) => s.startsWith(o, i)) ?? c;
+    t.push({ k: "o", v: op }); i += op.length;
+  }
+  return t;
+}
+type Ast = any;
+function parseExpr(src: string): Ast {
+  const t = lex(src);
+  let p = 0;
+  const peek = (o = 0) => t[p + o];
+  const isKw = (w: string, o = 0) => peek(o)?.k === "i" && peek(o).v === w;
+  const isOp = (w: string, o = 0) => peek(o)?.k === "o" && peek(o).v === w;
+  const eat = (w: string) => { if (isKw(w) || isOp(w)) { p++; return true; } return false; };
+  const need = (w: string) => { if (!eat(w)) throw new Error(`expected ${w} at ${p}`); };
+  const or = (): Ast => { let l = and(); while (eat("or")) l = { op: "or", a: l, b: and() }; return l; };
+  const and = (): Ast => { let l = not(); while (eat("and")) l = { op: "and", a: l, b: not() }; return l; };
+  const not = (): Ast => (eat("not") ? { op: "not", a: not() } : is());
+  const is = (): Ast => {
+    let l = cmp();
+    for (;;) {
+      if (isKw("is")) {
+        p++; const neg = eat("not");
+        if (eat("null")) l = { op: "isnull", a: l, neg };
+        else if (eat("true")) l = { op: "istrue", a: l, neg, val: true };
+        else if (eat("false")) l = { op: "istrue", a: l, neg, val: false };
+        else if (eat("distinct")) { need("from"); l = { op: "distinct", a: l, b: cmp(), neg }; }
+        else throw new Error("IS ?");
+      } else if (eat("isnull")) l = { op: "isnull", a: l, neg: false };
+      else if (eat("notnull")) l = { op: "isnull", a: l, neg: true };
+      else return l;
+    }
+  };
+  const CMP = ["=", "<>", "!=", "<", ">", "<=", ">="];
+  const cmp = (): Ast => {
+    let l = between();
+    while (peek()?.k === "o" && CMP.includes(peek().v)) {
+      const op = t[p++].v;
+      if (isKw("any") || isKw("all")) { const q = t[p++].v; need("("); const r = or(); need(")"); l = { op: "anyall", q, cmp: op, a: l, b: r }; continue; }
+      l = { op: "cmp", cmp: op === "!=" ? "<>" : op, a: l, b: between() };
+    }
+    return l;
+  };
+  const between = (): Ast => {
+    let l = other();
+    for (;;) {
+      const neg = isKw("not") && (isKw("in", 1) || isKw("between", 1) || isKw("like", 1) || isKw("ilike", 1));
+      if (neg) p++;
+      if (eat("in")) { need("("); const xs = [or()]; while (eat(",")) xs.push(or()); need(")"); l = { op: "in", a: l, xs, neg }; }
+      else if (eat("between")) { const lo = other(); need("and"); const hi = other(); l = { op: "between", a: l, lo, hi, neg }; }
+      else if (eat("like") || eat("ilike")) { const ci = t[p - 1].v === "ilike"; l = { op: "like", a: l, b: other(), neg, ci }; }
+      else if (eat("similar")) { need("to"); l = { op: "unk", a: l, b: other() }; }
+      else { if (neg) p--; return l; }
+    }
+  };
+  const OTHER = ["~", "~*", "!~", "!~*", "||", "->", "->>", "#>", "#>>", "@>", "<@", "&&", "?", "?|", "?&"];
+  const other = (): Ast => { let l = add(); while (peek()?.k === "o" && OTHER.includes(peek().v)) { const op = t[p++].v; l = { op: "bin", bin: op, a: l, b: add() }; } return l; };
+  const add = (): Ast => { let l = mul(); while (isOp("+") || isOp("-")) { const op = t[p++].v; l = { op: "bin", bin: op, a: l, b: mul() }; } return l; };
+  const mul = (): Ast => { let l = unary(); while (isOp("*") || isOp("/") || isOp("%")) { const op = t[p++].v; l = { op: "bin", bin: op, a: l, b: unary() }; } return l; };
+  const unary = (): Ast => (eat("-") ? { op: "neg", a: unary() } : post());
+  const post = (): Ast => {
+    let l = prim();
+    for (;;) {
+      if (eat("::")) { let ty = t[p++].v; while (isOp(".")) { p++; ty += "." + t[p++].v; } if (isKw("precision")) { p++; } if (isKw("varying")) p++; if (isOp("(")) { need("("); while (!eat(")")) p++; } if (isOp("[")) { p++; need("]"); ty += "[]"; } l = { op: "cast", a: l, ty }; }
+      else if (isOp("[")) { p++; const ix = or(); if (eat(":")) or(); need("]"); l = { op: "unk", a: l, b: ix }; }
+      else if (isKw("at") && isKw("time", 1) && isKw("zone", 2)) { p += 3; l = { op: "unk", a: l, b: prim() }; }
+      else return l;
+    }
+  };
+  const prim = (): Ast => {
+    const k = t[p++];
+    if (!k) throw new Error("eof");
+    if (k.k === "s") return { op: "lit", v: k.v };
+    if (k.k === "n") return { op: "lit", v: Number(k.v) };
+    if (k.k === "o" && k.v === "(") { const e = or(); if (eat(",")) { const xs = [e, or()]; while (eat(",")) xs.push(or()); need(")"); return { op: "row", xs }; } need(")"); return e; }
+    if (k.k === "i") {
+      const w = k.v;
+      if (w === "null") return { op: "lit", v: null };
+      if (w === "true" || w === "false") return { op: "lit", v: w === "true" };
+      if (w === "array") { need("["); const xs: Ast[] = []; if (!isOp("]")) { xs.push(or()); while (eat(",")) xs.push(or()); } need("]"); return { op: "arr", xs }; }
+      if (w === "case") {
+        let subj: Ast = null; if (!isKw("when")) subj = or();
+        const ws: [Ast, Ast][] = []; let el: Ast = { op: "lit", v: null };
+        while (eat("when")) { const c = or(); need("then"); ws.push([c, or()]); }
+        if (eat("else")) el = or(); need("end");
+        return { op: "case", subj, ws, el };
+      }
+      if (w === "interval" && peek()?.k === "s") return { op: "lit", v: interval(t[p++].v) };
+      if ((w === "date" || w === "timestamptz" || w === "timestamp") && peek()?.k === "s") { p++; return { op: "lit", v: UNK }; }
+      if (w === "current_date" || w === "current_timestamp" || w === "localtimestamp") return { op: "lit", v: 0 };
+      if (w === "extract" && isOp("(")) { p++; const field = t[p++].v; need("from"); const a = or(); need(")"); return { op: "fn", name: "extract", field, xs: [a] }; }
+      let name = w;
+      while (isOp(".") && peek(1)?.k === "i") { p++; name += "." + t[p++].v; }
+      if (isOp("(")) {
+        p++; const xs: Ast[] = [];
+        if (!isOp(")")) { eat("distinct"); xs.push(or()); while (eat(",")) xs.push(or()); }
+        need(")");
+        return { op: "fn", name: name.replace(/^(pg_catalog|public|extensions)\./, ""), xs };
+      }
+      return { op: "col", name: name.includes(".") ? name.split(".").pop() : name };
+    }
+    throw new Error(`token ${k.v}`);
+  };
+  const e = or();
+  if (p < t.length) throw new Error(`trailing ${t[p].v}`);
+  return e;
+}
+function interval(s: string): number { const m = /^\s*(-?\d+(?:\.\d+)?)\s*(day|days|hour|hours|minute|minutes|min|mins|second|seconds|sec|secs|year|years|month|months|week|weeks|ms|milliseconds?)?/i.exec(s); if (!m) return 0; const n = Number(m[1]); const u = (m[2] ?? "seconds").toLowerCase(); const f: Record<string, number> = { day: 1, hour: 1 / 24, minute: 1 / 1440, min: 1 / 1440, second: 1 / 86400, sec: 1 / 86400, year: 365, month: 30, week: 7, ms: 1 / 86400000, millisecond: 1 / 86400000 }; return n * (f[u.replace(/s$/, "")] ?? 1 / 86400); }
+function posixToJs(re: string): string {
+  return re.replace(/\[:alpha:\]/g, "A-Za-z").replace(/\[:digit:\]/g, "0-9").replace(/\[:alnum:\]/g, "A-Za-z0-9").replace(/\[:upper:\]/g, "A-Z")
+    .replace(/\[:lower:\]/g, "a-z").replace(/\[:space:\]/g, "\\s").replace(/\[:xdigit:\]/g, "0-9A-Fa-f").replace(/\[:punct:\]/g, "!-\\/:-@\\[-`{-~").replace(/\\m|\\M|\\y/g, "\\b");
+}
+function evalAst(e: Ast, row: Record<string, any>): any {
+  const ev = (x: Ast) => evalAst(x, row);
+  const tv = (x: any) => (x === UNK ? UNK : x === null || x === undefined ? null : !!x);
+  switch (e.op) {
+    case "lit": return e.v;
+    case "col": return e.name in row ? row[e.name] : UNK;
+    case "row": return UNK;
+    case "arr": return e.xs.map(ev);
+    case "or": { const a = tv(ev(e.a)), b = tv(ev(e.b)); if (a === true || b === true) return true; if (a === UNK || b === UNK) return UNK; if (a === null || b === null) return null; return false; }
+    case "and": { const a = tv(ev(e.a)), b = tv(ev(e.b)); if (a === false || b === false) return false; if (a === UNK || b === UNK) return UNK; if (a === null || b === null) return null; return true; }
+    case "not": { const a = tv(ev(e.a)); return a === UNK || a === null ? a : !a; }
+    case "isnull": { const a = ev(e.a); if (a === UNK) return UNK; const r = a === null || (Array.isArray(a) && e.a.op === "row"); return e.neg ? !r : r; }
+    case "istrue": { const a = tv(ev(e.a)); if (a === UNK) return UNK; const r = a === e.val; return e.neg ? !r : r; }
+    case "distinct": { const a = ev(e.a), b = ev(e.b); if (a === UNK || b === UNK) return UNK; const r = !(a === b || (a !== null && b !== null && cmpv(a, b) === 0)); return e.neg ? !r : r; }
+    case "cmp": { const a = ev(e.a), b = ev(e.b); if (a === UNK || b === UNK) return UNK; if (a === null || b === null) return null; const c = cmpv(a, b); if (c === UNK) return UNK; return { "=": c === 0, "<>": c !== 0, "<": c < 0, ">": c > 0, "<=": c <= 0, ">=": c >= 0 }[e.cmp as string]; }
+    case "anyall": {
+      const a = ev(e.a), b = ev(e.b); if (a === UNK || b === UNK || !Array.isArray(b)) return UNK; if (a === null) return null;
+      const rs = b.map((x: any) => (x === null ? null : cmpv(a, x) === UNK ? UNK : ({ "=": cmpv(a, x) === 0, "<>": cmpv(a, x) !== 0, "<": (cmpv(a, x) as number) < 0, ">": (cmpv(a, x) as number) > 0, "<=": (cmpv(a, x) as number) <= 0, ">=": (cmpv(a, x) as number) >= 0 } as any)[e.cmp]));
+      if (rs.includes(UNK)) return UNK;
+      return e.q === "any" ? (rs.includes(true) ? true : rs.includes(null) ? null : false) : (rs.includes(false) ? false : rs.includes(null) ? null : true);
+    }
+    case "in": { const a = ev(e.a); if (a === UNK) return UNK; if (a === null) return null; const xs = e.xs.map(ev); if (xs.includes(UNK)) return UNK; const hit = xs.some((x: any) => x !== null && cmpv(a, x) === 0); const r = hit ? true : xs.includes(null) ? null : false; return e.neg && r !== null ? !r : r; }
+    case "between": { const a = ev(e.a), lo = ev(e.lo), hi = ev(e.hi); if ([a, lo, hi].includes(UNK)) return UNK; if ([a, lo, hi].includes(null)) return null; const r = cmpv(a, lo) >= 0 && cmpv(a, hi) <= 0; return e.neg ? !r : r; }
+    case "like": { const a = ev(e.a), b = ev(e.b); if (a === UNK || b === UNK) return UNK; if (a === null || b === null) return null; const re = new RegExp("^" + String(b).replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/%/g, "[\\s\\S]*").replace(/_/g, ".") + "$", e.ci ? "i" : ""); const r = re.test(String(a)); return e.neg ? !r : r; }
+    case "neg": { const a = ev(e.a); return typeof a === "number" ? -a : a === null ? null : UNK; }
+    case "cast": return cast(ev(e.a), e.ty);
+    case "case": {
+      for (const [c, r] of e.ws) { const x = e.subj ? (() => { const s = ev(e.subj), w = ev(c); return s === UNK || w === UNK ? UNK : s !== null && w !== null && cmpv(s, w) === 0; })() : tv(ev(c)); if (x === UNK) return UNK; if (x === true) return ev(r); }
+      return ev(e.el);
+    }
+    case "bin": {
+      const a = ev(e.a), b = ev(e.b);
+      if (a === UNK || b === UNK) return UNK;
+      if (e.bin === "~" || e.bin === "~*" || e.bin === "!~" || e.bin === "!~*") { if (a === null || b === null) return null; try { const r = new RegExp(posixToJs(String(b)), e.bin.includes("*") ? "i" : "").test(String(a)); return e.bin.startsWith("!") ? !r : r; } catch { return UNK; } }
+      if (a === null || b === null) return null;
+      if (e.bin === "||") return Array.isArray(a) || Array.isArray(b) ? UNK : String(a) + String(b);
+      if (e.bin === "<@" || e.bin === "@>") { if (!Array.isArray(a) || !Array.isArray(b)) return UNK; const [x, y] = e.bin === "<@" ? [a, b] : [b, a]; return x.every((v: any) => y.some((w: any) => cmpv(v, w) === 0)); }
+      if (e.bin === "&&") { if (!Array.isArray(a) || !Array.isArray(b)) return UNK; return a.some((v: any) => b.some((w: any) => cmpv(v, w) === 0)); }
+      if (e.bin === "?") return a && typeof a === "object" && !Array.isArray(a) ? Object.prototype.hasOwnProperty.call(a, b) : Array.isArray(a) ? a.includes(b) : UNK;
+      if (e.bin === "->" || e.bin === "->>") { if (typeof a !== "object") return UNK; const v = (a as any)[b]; return v === undefined ? null : e.bin === "->>" && typeof v !== "string" ? (v === null ? null : JSON.stringify(v)) : v; }
+      if (typeof a === "number" && typeof b === "number") return ({ "+": a + b, "-": a - b, "*": a * b, "/": b === 0 ? UNK : a / b, "%": b === 0 ? UNK : a % b } as any)[e.bin] ?? UNK;
+      return UNK;
+    }
+    case "fn": {
+      const xs = e.xs.map(ev);
+      const f = e.name;
+      if (f === "num_nonnulls" || f === "num_nulls") { if (xs.includes(UNK)) return UNK; const n = xs.filter((x: any) => x !== null).length; return f === "num_nonnulls" ? n : xs.length - n; }
+      if (f === "coalesce") { for (const x of xs) { if (x === UNK) return UNK; if (x !== null) return x; } return null; }
+      if (xs.includes(UNK)) return UNK;
+      if (f === "now" || f === "transaction_timestamp") return 0;
+      if (xs.some((x: any) => x === null) && !["greatest", "least", "concat"].includes(f)) return null;
+      const a = xs[0];
+      switch (f) {
+        case "char_length": case "length": case "character_length": return a && typeof a === "object" && "bytes" in a ? a.bytes : typeof a === "string" ? [...a].length : UNK;
+        case "octet_length": return a && typeof a === "object" && "bytes" in a ? a.bytes : typeof a === "string" ? Buffer.byteLength(a) : UNK;
+        case "lower": return typeof a === "string" ? a.toLowerCase() : UNK;
+        case "upper": return typeof a === "string" ? a.toUpperCase() : UNK;
+        case "btrim": case "trim": return typeof a === "string" && xs.length === 1 ? a.trim() : UNK;
+        case "abs": return typeof a === "number" ? Math.abs(a) : UNK;
+        case "round": return typeof a === "number" && xs.length === 1 ? Math.round(a) : typeof a === "number" && typeof xs[1] === "number" ? Number(a.toFixed(xs[1])) : UNK;
+        case "floor": return typeof a === "number" ? Math.floor(a) : UNK;
+        case "ceil": case "ceiling": return typeof a === "number" ? Math.ceil(a) : UNK;
+        case "greatest": { const v = xs.filter((x: any) => x !== null); return v.length ? v.reduce((m: any, x: any) => (cmpv(x, m) > 0 ? x : m)) : null; }
+        case "least": { const v = xs.filter((x: any) => x !== null); return v.length ? v.reduce((m: any, x: any) => (cmpv(x, m) < 0 ? x : m)) : null; }
+        case "cardinality": return Array.isArray(a) ? a.length : UNK;
+        case "array_length": return Array.isArray(a) ? (a.length ? a.length : null) : UNK;
+        case "jsonb_typeof": case "json_typeof": return a === null ? null : Array.isArray(a) ? "array" : typeof a === "object" ? "object" : typeof a === "string" ? "string" : typeof a === "number" ? "number" : typeof a === "boolean" ? "boolean" : UNK;
+        case "jsonb_array_length": return Array.isArray(a) ? a.length : UNK;
+        case "date_trunc": return UNK;
+        default: return UNK;
+      }
+    }
+    default: return UNK;
+  }
+}
+function cmpv(a: any, b: any): any {
+  if (typeof a === "number" && typeof b === "number") return a - b;
+  if (typeof a === "string" && typeof b === "string") return a === b ? 0 : a < b ? -1 : 1;
+  if (typeof a === "boolean" && typeof b === "boolean") return Number(a) - Number(b);
+  if (typeof a === "string" && typeof b === "number") return Number.isNaN(Number(a)) ? UNK : Number(a) - b;
+  if (typeof a === "number" && typeof b === "string") return Number.isNaN(Number(b)) ? UNK : a - Number(b);
+  if (a && b && typeof a === "object" && typeof b === "object" && !Array.isArray(a) && !Array.isArray(b) && "bytes" in a && "bytes" in b) return a.hex === b.hex ? 0 : 1;
+  if (typeof a === "object" && typeof b === "object" && a && b) return JSON.stringify(a) === JSON.stringify(b) ? 0 : 1;
+  return UNK;
+}
+function cast(v: any, ty: string): any {
+  if (v === UNK || v === null) return v;
+  const t = ty.toLowerCase();
+  if (/^(int|integer|int2|int4|int8|smallint|bigint|numeric|decimal|real|float|double)/.test(t)) return typeof v === "number" ? v : typeof v === "string" && v.trim() !== "" && !Number.isNaN(Number(v)) ? Number(v) : UNK;
+  if (/^(text|varchar|character|char|citext|name|bpchar)$/.test(t)) {
+    if (typeof v === "string" && v.startsWith("uuid:")) return `01900000-0000-7000-8000-0000000000${v.slice(5)}`; // pg_temp.id(k)::text
+    return typeof v === "string" ? v : typeof v === "number" || typeof v === "boolean" ? String(v) : UNK;
+  }
+  if (/^jsonb?$/.test(t)) { if (typeof v !== "string") return v; try { return JSON.parse(v); } catch { return UNK; } }
+  if (t.endsWith("[]")) { if (Array.isArray(v)) return v; if (typeof v === "string") return pgArray(v); return UNK; }
+  if (t === "boolean" || t === "bool") return typeof v === "boolean" ? v : v === "true" || v === "t" ? true : v === "false" || v === "f" ? false : UNK;
+  if (t === "interval") return typeof v === "number" ? v : interval(String(v));
+  if (t === "date" || t === "timestamptz" || t === "timestamp" || t === "time" || t === "uuid" || t === "inet" || t === "bytea" || t === "regclass") return typeof v === "number" || typeof v === "object" ? v : UNK;
+  return v; // enum / domain casts keep the value
+}
+function pgArray(s: string): any { const m = /^\{(.*)\}$/s.exec(s.trim()); if (!m) return UNK; if (!m[1].trim()) return []; return m[1].split(",").map((x) => x.trim().replace(/^"(.*)"$/, "$1")).map((x) => (x.toUpperCase() === "NULL" ? null : x)); }
+/** the JS value of a literal SQL expression written by the preamble / seeds / defaults (UNK when not a plain literal) */
+function valueOf(sql: string | null | undefined): any {
+  if (sql === undefined || sql === null) return null;
+  const s = sql.trim();
+  let m;
+  if ((m = /^pg_temp\.id\(\s*'([0-9a-f]+)'\s*\)$/i.exec(s))) return `uuid:${m[1].padStart(2, "0")}`;
+  if ((m = /^decode\(\s*repeat\(\s*'([0-9a-f]{2})'\s*,\s*(\d+)\s*\)\s*,\s*'hex'\s*\)$/i.exec(s))) return { bytes: Number(m[2]), hex: m[1].repeat(Number(m[2])) };
+  if (/^now\(\)$/i.test(s)) return 0;
+  try { return evalAst(parseExpr(s), {}); } catch { return UNK; }
+}
+
+// ---------- regex sampler: a string matching a simple POSIX regex (classes, groups, alternation, quantifiers), varied by seed
+function sampleRegex(re: string, seed: number): string | null {
+  const src = posixToJs(re);
+  let i = 0, out = "";
+  const pickClass = (body: string, pos: number): string => {
+    let neg = false, b = body;
+    if (b.startsWith("^")) { neg = true; b = b.slice(1); }
+    const chars: string[] = [];
+    for (let k = 0; k < b.length; k++) {
+      let c = b[k];
+      if (c === "\\") { const n = b[++k]; if (n === "d") { for (let x = 48; x < 58; x++) chars.push(String.fromCharCode(x)); continue; } if (n === "w") { chars.push("a", "b", "c", "1"); continue; } if (n === "s") { chars.push(" "); continue; } c = n; }
+      if (b[k + 1] === "-" && k + 2 < b.length) { const e = b[k + 2] === "\\" ? b[k + 3] : b[k + 2]; for (let x = c.charCodeAt(0); x <= e.charCodeAt(0); x++) chars.push(String.fromCharCode(x)); k += b[k + 2] === "\\" ? 3 : 2; continue; }
+      chars.push(c);
+    }
+    if (neg) { const pool = "abcdefghijklmnopqrstuvwxyz0123456789".split("").filter((x) => !chars.includes(x)); return pool[(seed + pos) % pool.length] ?? "a"; }
+    const alnum = chars.filter((x) => /[a-z0-9]/i.test(x));
+    const pool = alnum.length ? alnum : chars;
+    return pool[(seed + pos) % pool.length] ?? "a";
+  };
+  const seq = (stopAt: string): string[] => { // returns alternatives of the sequence up to ')' or end
+    const alts: string[] = [""];
+    while (i < src.length && !stopAt.includes(src[i])) {
+      if (src[i] === "|") { i++; alts.push(""); continue; }
+      let atom = "";
+      const c = src[i];
+      if (c === "^" || c === "$") { i++; continue; }
+      if (c === "(") { i++; if (src.startsWith("?:", i)) i += 2; const inner = seq(")"); i++; atom = inner[seed % inner.length]; }
+      else if (c === "[") { let j = i + 1; if (src[j] === "^") j++; if (src[j] === "]") j++; while (j < src.length && src[j] !== "]") { if (src[j] === "\\") j++; j++; } atom = pickClass(src.slice(i + 1, j), alts[alts.length - 1].length); i = j + 1; }
+      else if (c === "\\") { const n = src[i + 1]; atom = n === "d" ? String((seed + alts[alts.length - 1].length) % 10) : n === "w" ? "a" : n === "s" ? " " : n; i += 2; }
+      else if (c === ".") { atom = "a"; i++; }
+      else { atom = c; i++; }
+      let rep = 1;
+      const q = /^(\{(\d+)(,(\d*))?\}|\*|\+|\?)\??/.exec(src.slice(i));
+      if (q) { i += q[0].length; if (q[2] !== undefined) rep = Math.max(Number(q[2]), q[3] && Number(q[2]) === 0 ? 1 : Number(q[2])); else rep = 1; }
+      let piece = "";
+      for (let r = 0; r < rep; r++) piece += atom.length === 1 && c === "[" && r > 0 ? atom : atom;
+      alts[alts.length - 1] += piece;
+    }
+    return alts;
+  };
+  try { const alts = seq(""); out = alts[seed % alts.length]; } catch { return null; }
+  try { return new RegExp(src).test(out) ? out : null; } catch { return null; }
+}
+
+// ---------- row builder
+type Built = { slot: number | null; row: Row };
+const pid = (k: string): Val => ({ sql: `pg_temp.id('${k}')`, v: `uuid:${k}` });
+const sqlStr = (s: string): Val => ({ sql: lit(s), v: s });
+const colsIn = (e: Ast, acc = new Set<string>()): Set<string> => {
+  if (!e || typeof e !== "object") return acc;
+  if (e.op === "col") acc.add(e.name);
+  for (const k of ["a", "b", "lo", "hi", "subj", "el"]) if (e[k]) colsIn(e[k], acc);
+  for (const k of ["xs"]) if (e[k]) for (const x of e[k]) colsIn(x, acc);
+  if (e.ws) for (const [c, r] of e.ws) { colsIn(c, acc); colsIn(r, acc); }
+  return acc;
+};
+/** literals compared with a column inside the CHECKs (col = 'x', col IN (...), col ~ 're', char_length(col) = n, col ? 'key'): candidate values */
+type Harvest = { lits: any[]; regex: string[]; lens: number[]; keys: string[] };
+function harvest(e: Ast, h: Map<string, Harvest>) {
+  if (!e || typeof e !== "object") return;
+  const colOf = (x: Ast): string | null => (x?.op === "col" ? x.name : x?.op === "cast" ? colOf(x.a) : null);
+  const lenOf = (x: Ast): string | null => (x?.op === "fn" && /^(char_length|length|octet_length|character_length)$/.test(x.name) ? colOf(x.xs[0]) : null);
+  const lits = (x: Ast): any[] => { if (x?.op === "lit") return [x.v]; if (x?.op === "cast") return x.a?.op === "arr" ? lits(x.a) : lits(x.a).map((v) => cast(v, x.ty)); if (x?.op === "arr") return x.xs.flatMap(lits); if (x?.op === "neg" && x.a.op === "lit") return [-x.a.v]; return []; };
+  const H = (c: string) => { if (!h.has(c)) h.set(c, { lits: [], regex: [], lens: [] , keys: [] }); return h.get(c)!; };
+  const pairs: [Ast, Ast[]][] = [];
+  if (e.op === "cmp" || e.op === "distinct" || e.op === "anyall") pairs.push([e.a, [e.b]], [e.b, [e.a]]);
+  if (e.op === "in") pairs.push([e.a, e.xs]);
+  if (e.op === "between") pairs.push([e.a, [e.lo, e.hi]]);
+  for (const [side, others] of pairs) {
+    const c = colOf(side), lc = lenOf(side);
+    const vs = others.flatMap(lits).filter((v) => v !== null && v !== UNK);
+    if (c) H(c).lits.push(...vs.flatMap((v) => (Array.isArray(v) ? v : [v])));
+    if (lc) H(lc).lens.push(...vs.filter((v) => typeof v === "number").flatMap((n: number) => [n, n + 1, n - 1].filter((x) => x > 0)));
+  }
+  if (e.op === "bin" && /^!?~\*?$/.test(e.bin)) { const c = colOf(e.a) ?? (e.a?.op === "fn" ? colOf(e.a.xs?.[0]) : null); const r = lits(e.b)[0]; if (c && typeof r === "string") H(c).regex.push(r); }
+  if (e.op === "bin" && (e.bin === "<@" || e.bin === "@>")) { const c = colOf(e.a) ?? colOf(e.b); const v = lits(colOf(e.a) ? e.b : e.a).flat(); if (c) H(c).lits.push(...v.filter((x: any) => typeof x === "string").map((x: string) => [x])); }
+  if (e.op === "bin" && e.bin === "?") { const c = colOf(e.a); const k = lits(e.b)[0]; if (c && typeof k === "string") H(c).keys.push(k); }
+  for (const k of ["a", "b", "lo", "hi", "subj", "el"]) if (e[k]) harvest(e[k], h);
+  if (e.xs) for (const x of e.xs) harvest(x, h);
+  if (e.ws) for (const [c, r] of e.ws) { harvest(c, h); harvest(r, h); }
+}
+const baseType = (ty: string) => ty.replace(/\(.*\)/, "").replace(/\s+/g, " ").trim();
+function typeVals(ty: string, s: number, a: number, h: Harvest | undefined, colName: string): Val[] {
+  const t = baseType(ty);
+  const n = s + 6 * a;
+  if (t.endsWith("[]")) {
+    const xs: Val[] = [{ sql: "'{}'", v: [] }];
+    for (const l of h?.lits ?? []) if (Array.isArray(l)) xs.push({ sql: lit(`{${l.join(",")}}`), v: l });
+    for (const l of (h?.lits ?? []).filter((x) => typeof x === "string").slice(0, 3)) xs.push({ sql: lit(`{${l}}`), v: [l] });
+    if (t.startsWith("uuid")) xs.push({ sql: `ARRAY[pg_temp.id('${slotKey(s)}')]::uuid[]`, v: [`uuid:${slotKey(s)}`] });
+    else xs.push({ sql: lit(`{probe-${n}}`), v: [`probe-${n}`] });
+    return xs;
+  }
+  if (ENUMS[t]) { const m = ENUMS[t]; return m.map((_, i) => sqlStr(m[(i + a) % m.length])); }
+  if (t === "uuid") return [pid(slotKey(s)), pid(`c${s}`), pid("99")];
+  if (/^(smallint|integer|int|int2|int4|int8|bigint|numeric|decimal|real|double precision|float8|float4|serial|bigserial)$/.test(t)) {
+    const base = [n, 0, 1, 2, 10, 100, 1000, 10000, -1];
+    const hv = (h?.lits ?? []).filter((x) => typeof x === "number").flatMap((x: number) => [x, x + 1, x - 1]);
+    return [...new Set([...base.slice(0, 1), ...hv, ...base.slice(1)])].map((x) => ({ sql: x < 0 ? `(${x})` : String(x), v: x }));
+  }
+  if (t === "boolean" || t === "bool") return [{ sql: "false", v: false }, { sql: "true", v: true }];
+  if (t === "timestamptz" || t === "timestamp with time zone" || t === "timestamp" || t === "timestamp without time zone")
+    return [a ? { sql: `now() + interval '${a} hours'`, v: a / 24 } : { sql: "now()", v: 0 }, { sql: "now() + interval '1 day'", v: 1 }, { sql: "now() - interval '1 day'", v: -1 }, { sql: "now() + interval '2 days'", v: 2 }];
+  if (t === "date" && /month/.test(colName)) return [{ sql: "date_trunc('month', now())::date", v: 0 }, { sql: "(date_trunc('month', now()) - interval '1 month')::date", v: -30 }];
+  if (t === "date") return [{ sql: "now()::date", v: 0 }, { sql: "now()::date + 1", v: 1 }, { sql: "now()::date - 1", v: -1 }, { sql: "now()::date + 2", v: 2 }];
+  if (t === "time" || t === "time without time zone" || t === "timetz") return [sqlStr("08:00"), sqlStr("17:00")];
+  if (t === "interval") return [{ sql: "interval '1 day'", v: 1 }, { sql: "interval '1 hour'", v: 1 / 24 }, { sql: "interval '30 days'", v: 30 }];
+  if (t === "jsonb" || t === "json") {
+    const xs: Val[] = [{ sql: "'{}'", v: {} }, { sql: "'[]'", v: [] }];
+    if (h?.keys.length) { const o = Object.fromEntries(h.keys.map((k) => [k, "probe"])); xs.unshift({ sql: lit(JSON.stringify(o)), v: o }); }
+    xs.push({ sql: `'{"probe": ${n}}'`, v: { probe: n } }, { sql: `'["probe"]'`, v: ["probe"] }, { sql: `'"probe"'`, v: "probe" });
+    return xs;
+  }
+  if (t === "bytea") {
+    const lens = [...new Set([...(h?.lens ?? []), 32])];
+    const byte = ((n % 254) + 1).toString(16).padStart(2, "0");
+    return lens.map((l) => ({ sql: `decode(repeat('${byte}', ${l}), 'hex')`, v: { bytes: l, hex: byte.repeat(l) } }));
+  }
+  if (t === "inet" || t === "cidr") return [sqlStr(`192.0.2.${n % 250 + 1}`)];
+  if (t === "tstzrange") return [{ sql: "tstzrange(now(), now() + interval '1 day')", v: UNK }];
+  if (t === "daterange") return [{ sql: "daterange(now()::date, now()::date + 1)", v: UNK }];
+  if (t === "int4range" || t === "int8range" || t === "numrange") return [{ sql: "'[1,2)'", v: UNK }];
+  // text family (text, varchar, citext, char, unknown domains)
+  const out: Val[] = [];
+  const push = (x: string | null) => { if (x !== null && !out.some((o) => o.v === x)) out.push(sqlStr(x)); };
+  for (const r of h?.regex ?? []) for (const sd of [n, n + 50, n + 100]) push(sampleRegex(r, sd));
+  push(`probe-${n}`);
+  for (const l of h?.lits ?? []) if (typeof l === "string") push(l);
+  for (const len of h?.lens ?? []) if (len <= 300) push(`p${n}`.padEnd(len, "x"));
+  for (const x of [`p${n}`, `P${n}`, `PROBE${n}`, `probe_${n}`, `${n}`, `Probe ${n}`, `probe${n}@example.com`, `https://example.com/probe/${n}`, `+9779800000${String(n).padStart(3, "0")}`, "a", ""]) push(x);
+  if (/email/.test(colName)) out.unshift(sqlStr(`probe${n}@example.com`));
+  return out;
+}
+
+const ROWS = new Map<string, Built[]>();
+const warnings: string[] = [];
+const exceptionsOut = new Map<string, string>();
+// extra parent rows a child needs (a CHECK of the child fixes a column it copies through a composite FK, e.g. owner_kind / kind)
+type Demand = { ten: string; centre: string; forced: Row; tag?: string };
+const DEMANDS = new Map<string, Demand[]>();
+const schemaOf = (t: string) => t.split(".")[0];
+const slotKey = (n: number) => (n <= 6 ? `f${n}` : (0xe0 + n - 7).toString(16)); // uuid key of generated row n (any table)
+
+/** tables in FK dependency order: schema by schema (schema graph over cross-SCC edges, Kahn, alphabetical), inside a schema SCC by SCC */
+function fkOrder(set: string[]): { sorder: string[]; order: string[] } {
+  const inSet = new Set(set);
+  const adj = new Map(set.map((t) => [t, [...new Set(SCHEMA[t].fks.map((f) => f.parent).filter((p) => p !== t && inSet.has(p)))].sort()]));
+  const idx = new Map<string, number>(), low = new Map<string, number>(), onS = new Set<string>(), st: string[] = [], comp = new Map<string, number>(), comps: string[][] = [];
+  let ix = 0;
+  const dfs = (v: string) => {
+    idx.set(v, ix); low.set(v, ix++); st.push(v); onS.add(v);
+    for (const w of adj.get(v)!) { if (!idx.has(w)) { dfs(w); low.set(v, Math.min(low.get(v)!, low.get(w)!)); } else if (onS.has(w)) low.set(v, Math.min(low.get(v)!, idx.get(w)!)); }
+    if (low.get(v) === idx.get(v)) { const c: string[] = []; let w; do { w = st.pop()!; onS.delete(w); comp.set(w, comps.length); c.push(w); } while (w !== v); comps.push(c.sort()); }
+  };
+  for (const v of set) if (!idx.has(v)) dfs(v);
+  const schemas = [...new Set(set.map(schemaOf))].sort();
+  const sdeps = new Map(schemas.map((s) => [s, new Set<string>()]));
+  for (const t of set) for (const p of adj.get(t)!) if (comp.get(p) !== comp.get(t) && schemaOf(p) !== schemaOf(t)) sdeps.get(schemaOf(t))!.add(schemaOf(p));
+  const sorder: string[] = [];
+  const left = new Set(schemas);
+  while (left.size) {
+    const ready = [...left].filter((s) => [...sdeps.get(s)!].every((p) => !left.has(p))).sort();
+    if (!ready.length) die([`fixture schemas have a cyclic cross-schema FK dependency: ${[...left].join(", ")} (no valid file order)`]);
+    sorder.push(ready[0]); left.delete(ready[0]);
+  }
+  const order: string[] = [];
+  for (const s of sorder) {
+    const mine = (c: number) => comps[c].filter((t) => schemaOf(t) === s);
+    const pending = new Set(set.filter((t) => schemaOf(t) === s).map((t) => comp.get(t)!));
+    const done = new Set<number>();
+    while (pending.size) {
+      const ready = [...pending].filter((c) => mine(c).every((t) => adj.get(t)!.every((p) => comp.get(p) === c || schemaOf(p) !== s || done.has(comp.get(p)!))))
+        .sort((p, q) => (mine(p)[0] < mine(q)[0] ? -1 : 1));
+      if (!ready.length) die([`fixture tables of ${s}: no FK order found`]);
+      order.push(...mine(ready[0])); done.add(ready[0]); pending.delete(ready[0]);
+    }
+  }
+  return { sorder, order };
+}
+
+function buildFixtures(): { files: Map<string, string>; order: string[] } {
+  readMigrations();
+  // rows that exist before the fixture files run: the probe's own core preamble (+ the event_inbox DO block) and the class-G seeds
+  const pre = PREAMBLE.slice(PREAMBLE.indexOf("-- probe step 1: fixtures"));
+  const base = new Map<string, Built[]>();
+  const addRows = (table: string, rows: Record<string, string>[]) => {
+    if (!base.has(table)) base.set(table, []);
+    for (const r of rows) base.get(table)!.push({ slot: null, row: Object.fromEntries(Object.entries(r).map(([c, s]) => [c, { sql: s, v: valueOf(s) }])) });
+  };
+  for (const ins of readInserts(pre)) addRows(ins.table, ins.rows);
+  const inbox = /FOREACH\s+s\s+IN\s+ARRAY\s+ARRAY\[([^\]]*)\]/i.exec(pre.replace(/--.*$/gm, ""));
+  for (const s of [...(inbox?.[1] ?? "").matchAll(/'([a-z_]+)'/g)].map((x) => x[1]))
+    addRows(`${s}.event_inbox`, [
+      { tenant_id: "pg_temp.id('01')", event_id: "pg_temp.id('e1')", event_type: "'probe.event'", created_by: "pg_temp.id('99')" },
+      { tenant_id: "pg_temp.id('02')", event_id: "pg_temp.id('e5')", event_type: "'probe.event'", created_by: "pg_temp.id('99')" }]);
+  const preTables = new Set(base.keys());
+  const seedDir = join(root, "db/seeds");
+  if (existsSync(seedDir)) for (const f of readdirSync(seedDir).filter((x) => x.endsWith(".sql")).sort())
+    for (const ins of readInserts(readFileSync(join(seedDir, f), "utf8")))
+      if (tables[ins.table]?.class === "G" && !preTables.has(ins.table)) addRows(ins.table, ins.rows); // probe-tenant rows only for G parents
+
+  const baseEx = new Map<string, string>();
+  const todo: string[] = [];
+  for (const t of names.filter((x) => tables[x].class !== "G" && !tables[x].rls_exempt)) {
+    if (preTables.has(t)) continue;
+    const cc = ccName(t);
+    if (!SCHEMA[t]) { baseEx.set(t, "no CREATE TABLE for this registry table in db/migrations, so no row can be derived"); continue; }
+    if (tables[t].centre_scoped && !Object.keys(tables[t].columns ?? {}).includes(cc))
+      { baseEx.set(t, `registry says centre_scoped but the table has no ${cc} column (tables.yaml / migration mismatch): no centre A1/A2 row can exist`); continue; }
+    todo.push(t);
+  }
+  const gen = fkOrder(todo);
+  const generated = new Set<string>();
+  for (let round = 0; round < 5; round++) { // re-run while children ask for new parent rows (deterministic: demands only grow)
+    const before = [...DEMANDS.values()].reduce((s, d) => s + d.length, 0);
+    ROWS.clear(); for (const [t, b] of base) ROWS.set(t, b);
+    exceptionsOut.clear(); for (const [t, w] of baseEx) exceptionsOut.set(t, w);
+    warnings.length = 0; generated.clear();
+    for (const t of gen.order) { const rows = buildTable(t); if (rows) { ROWS.set(t, rows); generated.add(t); } }
+    if ([...DEMANDS.values()].reduce((s, d) => s + d.length, 0) === before) break;
+  }
+  // render: one file per schema, tables in FK order (recomputed over the tables that got rows), rows grouped by column list
+  const emit = fkOrder(gen.order.filter((t) => generated.has(t)));
+  const files = new Map<string, string>();
+  for (const s of emit.sorder) {
+    const body: string[] = [
+      `-- GENERATED by db/tools/gen-isolation-probes.ts from db/migrations (T0B-DBSEED-1, LD-233). Do not edit.`,
+      `-- Probe fixture rows for schema ${s}: tenant A/B (pg_temp.id('01'|'02')), centres A1/A2/B1 (21/22/23), step-9 actors 35/a3/34.`,
+      `-- Synthetic only; \\ir'd by every db/tests/isolation probe inside its rolled-back step-1 replica window (never db/seeds: REQ-SEC-041/136).`,
+    ];
+    for (const t of emit.order.filter((x) => schemaOf(x) === s)) {
+      const groups = new Map<string, Row[]>();
+      for (const b of ROWS.get(t)!) { const k = Object.keys(b.row).join(","); if (!groups.has(k)) groups.set(k, []); groups.get(k)!.push(b.row); }
+      for (const [k, rows] of groups)
+        body.push(`INSERT INTO ${t} (${k.split(",").join(", ")}) VALUES\n${rows.map((r) => `  (${Object.values(r).map((v) => v.sql).join(", ")})`).join(",\n")} ON CONFLICT DO NOTHING;`);
+    }
+    files.set(s, body.join("\n") + "\n");
+  }
+  return { files, order: emit.sorder };
+}
+function ccName(t: string): string {
+  const cs = Object.keys(tables[t].columns ?? {}).filter((c) => /centre_id$/.test(c));
+  return !cs.includes("centre_id") && cs.length === 1 ? cs[0] : "centre_id";
+}
+type Slot = { n: number; ten: string; centre: string; owner: string | null; forced?: Row };
+function slotsOf(t: string): Slot[] {
+  const d = tables[t];
+  const out: Slot[] = [{ n: 1, ten: "01", centre: "21", owner: null }];
+  if (d.centre_scoped) out.push({ n: 2, ten: "01", centre: "22", owner: null });
+  out.push({ n: 3, ten: "02", centre: "23", owner: null });
+  if (d.shared_with?.length) for (const [n, a] of [[4, "partner"], [5, "portal"], [6, "patient"]] as const) out.push({ n, ten: "01", centre: "21", owner: SUBS[a] });
+  (DEMANDS.get(t) ?? []).slice(0, 32).forEach((dm, i) => out.push({ n: 7 + i, ten: dm.ten, centre: dm.centre, owner: null, forced: dm.forced }));
+  return out;
+}
+
+type Check = { ast: Ast; src: string };
+function conjuncts(e: Ast): Ast[] { return e.op === "and" ? [...conjuncts(e.a), ...conjuncts(e.b)] : [e]; }
+function buildTable(t: string): Built[] | null {
+  const T = SCHEMA[t];
+  const meta = Object.keys(tables[t].columns ?? {});
+  const checks: Check[] = [];
+  for (const c of T.checks) {
+    try { for (const ast of conjuncts(parseExpr(c))) checks.push({ ast, src: c }); }
+    catch { warnings.push(`${t}: CHECK not parsed (left to the founder rerun): ${c.replace(/\s+/g, " ").slice(0, 100)}`); }
+  }
+  const hv = new Map<string, Harvest>();
+  for (const c of checks) harvest(c.ast, hv);
+  const x: Ctx = { tcol: meta.includes("tenant_id") ? "tenant_id" : "id", cc: ccName(t), own: meta.includes("actor_id") ? "actor_id" : "created_by", checks, hv };
+  const keys = [T.pk, ...T.uniques].filter((k) => k.length);
+  const keyOf = (r: Row, k: string[]) => (k.some((c) => !r[c] || r[c].v === null) ? null : k.map((c) => normSql(r[c].sql)).join("|"));
+  const out: Built[] = [];
+  const tryBuild = (slot: Slot, others: Built[]): { best: Row | null; bestSoft: number; hit: string[][] } => {
+    let best: Row | null = null, bestSoft = Infinity;
+    const hit: string[][] = [];
+    for (let a = 0; a < 12 && bestSoft > 0; a++) {
+      const r = buildRow(t, T, slot, a, x);
+      if (!r) break;
+      const clash = keys.filter((k) => { const v = keyOf(r, k); return v !== null && others.some((o) => keyOf(o.row, k) === v); });
+      if (clash.length) { hit.push(...clash); continue; }
+      const sc = T.soft.filter((k) => { const v = keyOf(r, k); return v !== null && others.some((o) => keyOf(o.row, k) === v); }).length;
+      if (sc < bestSoft) { best = r; bestSoft = sc; }
+    }
+    return { best, bestSoft, hit };
+  };
+  for (const slot of slotsOf(t)) {
+    let { best, bestSoft, hit } = tryBuild(slot, out);
+    if (!best && slot.owner && T.cols.has(x.cc)) ({ best, bestSoft } = tryBuild({ ...slot, centre: "22" }, out)); // actor row on centre A2 instead
+    // a step-9 actor row that fits nowhere new: own an existing tenant-A row instead (one row may serve tenant A, a centre and an actor)
+    if (!best && slot.owner) {
+      for (let i = 0; i < out.length && !best; i++) {
+        const o = out[i];
+        if (o.slot === null || o.slot > 3 || slotsOf(t).find((s) => s.n === o.slot)?.ten !== "01") continue;
+        const merged: Slot = { ...slotsOf(t).find((s) => s.n === o.slot)!, owner: slot.owner };
+        const r = tryBuild(merged, out.filter((_, j) => j !== i));
+        if (r.best) { out[i] = { slot: o.slot + 100, row: r.best }; best = null; bestSoft = -1; break; }
+      }
+      if (bestSoft === -1) continue;
+    }
+    if (!best && hit.length) { // the UNIQUE key runs out of parent rows: ask each FK parent in the key for one more row of this tenant (next round)
+      for (const fk of T.fks.filter((f) => f.parent !== t && hit.some((k) => f.cols.some((c) => k.includes(c) && c !== x.tcol && c !== x.cc)))) {
+        if (!(ROWS.get(fk.parent) ?? []).some((b) => b.slot !== null)) continue;
+        const ds = DEMANDS.get(fk.parent) ?? [];
+        const tag = `${t}#${slot.n}`;
+        if (!ds.some((d) => d.tag === tag)) { ds.push({ ten: slot.ten, centre: slot.centre, forced: {}, tag }); DEMANDS.set(fk.parent, ds); }
+      }
+    }
+    if (!best) {
+      if (slot.forced) { warnings.push(`${t}: extra parent row ${slot.n} for a child CHECK could not be built`); continue; }
+      exceptionsOut.set(t, `no row for slot ${slot.n} (tenant ${slot.ten === "01" ? "A" : "B"}${slot.owner ? ", owner actor " + slot.owner : ", centre " + slot.centre}) satisfies the PK/UNIQUE keys and foreign keys of the migrations without disabling a constraint`);
+      return null;
+    }
+    if (bestSoft > 0) warnings.push(`${t}: slot ${slot.n} collides with a partial UNIQUE index (ON CONFLICT DO NOTHING may drop it)`);
+    out.push({ slot: slot.n, row: best });
+  }
+  return out;
+}
+
+type Ctx = { tcol: string; cc: string; own: string; checks: Check[]; hv: Map<string, Harvest> };
+type Unit = { fk: Fk; rest: string[]; opts: Built[]; optional: boolean };
+const toVal = (v: any): Val | null => (typeof v === "string" ? sqlStr(v) : typeof v === "number" && Number.isFinite(v) ? { sql: v < 0 ? `(${v})` : String(v), v } : typeof v === "boolean" ? { sql: String(v), v } : null);
+const colOfAst = (x: Ast): string | null => (x?.op === "col" ? x.name : null);
+function buildRow(t: string, T: Tbl, slot: Slot, a: number, x: Ctx): Row | null {
+  const row: Row = {};
+  const locked = new Set<string>();
+  const set = (c: string, v: Val, lock = false) => { row[c] = v; if (lock) locked.add(c); };
+  const n = slot.n;
+  set(x.tcol, pid(slot.ten), true);
+  if (T.cols.has(x.cc)) set(x.cc, pid(slot.centre), true);
+  if (slot.owner) set(x.own, pid(slot.owner), true);
+  for (const [c, v] of Object.entries(slot.forced ?? {})) set(c, v, true);
+  // foreign keys: a parent row consistent with the columns already fixed (same slot preferred, rotated by attempt); NOT NULL ones are set,
+  // nullable ones stay NULL unless a CHECK needs them. The CHECK search may swap the parent row (units).
+  const units: Unit[] = [];
+  const fks = [...T.fks].filter((f) => f.parent !== t).sort((p, q) => q.cols.filter((c) => c in row).length - p.cols.filter((c) => c in row).length || q.cols.length - p.cols.length);
+  for (const fk of fks) {
+    const rest = fk.cols.filter((c) => !(c in row));
+    if (!rest.length) continue;
+    const needed = rest.some((c) => { const k = T.cols.get(c); return k && k.notNull && !k.hasDefault; });
+    const all = ROWS.get(fk.parent) ?? [];
+    const prows = all.filter((p) => fk.cols.every((c, i) => !(c in row) || (p.row[fk.pcols[i]] && normSql(p.row[fk.pcols[i]].sql) === normSql(row[c].sql)))
+      && rest.every((c) => p.row[fk.pcols[fk.cols.indexOf(c)]]));
+    const same = prows.findIndex((p) => p.slot === n);
+    const start = (same >= 0 ? same : Math.max(0, n - 1)) + a;
+    const ordered = prows.map((_, i) => prows[(start + i) % prows.length]);
+    for (const c of rest) locked.add(c);
+    if (!needed) { if (all.length) units.push({ fk, rest, opts: ordered, optional: true }); continue; }
+    if (!ordered.length) {
+      if (all.length) { warnings.push(`${t}: slot ${n}: FK (${fk.cols.join(",")}) -> ${fk.parent}: no parent row of tenant ${slot.ten} matches the fixed columns`); return null; }
+      // parent without rows (unseeded class G / excepted table): the parent's own slot value; the replica window fires no FK trigger
+      for (const c of rest) set(c, typeVals(T.cols.get(c)?.type ?? "text", n, 0, x.hv.get(c), c)[0]);
+      continue;
+    }
+    for (const c of rest) set(c, ordered[0].row[fk.pcols[fk.cols.indexOf(c)]]);
+    units.push({ fk, rest, opts: ordered, optional: false });
+  }
+  // remaining NOT NULL columns without default; created_by/updated_by = the probe system actor (as the core fixtures)
+  const choice = new Map<string, Val[]>();
+  for (const [c, k] of T.cols) {
+    if (c in row || k.generated) continue;
+    choice.set(c, candidateVals(c, k, n, a, x));
+    if (k.notNull && (!k.hasDefault || c === "created_by" || c === "updated_by"))
+      set(c, c === "created_by" || c === "updated_by" ? pid("99") : c === "actor_id" ? pid(slot.ten === "01" ? "32" : "33") : choice.get(c)![0]);
+  }
+  for (const fk of T.fks) if (fk.parent === t) fk.cols.forEach((c, i) => { const k = T.cols.get(c); if (k?.notNull && !k.hasDefault && row[fk.pcols[i]] && !(c in row)) set(c, row[fk.pcols[i]], true); });
+  // CHECK search: for the first false conjunct, try values of its columns (NULL / default included) and other parent rows of its FKs
+  const implicit = (c: string) => { const k = T.cols.get(c)!; return k.generated ? UNK : k.hasDefault ? valueOf(k.def) : null; };
+  const env = () => { const o: Record<string, any> = {}; for (const [c] of T.cols) o[c] = c in row ? row[c].v : implicit(c); return o; };
+  const bad = () => { const e = env(); return x.checks.filter((c) => evalAst(c.ast, e) === false); };
+  const dynamic = (c: string): Val[] => { // `c = <expr>` / `c LIKE <expr>` conjuncts: the value the expression has for this row
+    const e = env(), out: Val[] = [];
+    for (const { ast } of x.checks) {
+      let v: any = UNK;
+      if (ast.op === "cmp" && ast.cmp === "=" && colOfAst(ast.a) === c && !colsIn(ast.b).has(c)) v = evalAst(ast.b, e);
+      else if (ast.op === "cmp" && ast.cmp === "=" && colOfAst(ast.b) === c && !colsIn(ast.a).has(c)) v = evalAst(ast.a, e);
+      else if (ast.op === "like" && !ast.neg && colOfAst(ast.a) === c) { const p = evalAst(ast.b, e); if (typeof p === "string") v = p.replace(/%/g, "probe").replace(/_/g, "x"); }
+      const tv = v === UNK || v === null ? null : toVal(v);
+      if (tv) out.push(tv);
+    }
+    return out;
+  };
+  type Var = { col?: string; unit?: Unit };
+  const search = (f: Check, failing: number, vars: Var[], free: (c: string) => Val[]): boolean => {
+    let tries = 0;
+    const go = (i: number): boolean => {
+      if (++tries > 4000) return false;
+      if (i === vars.length) { const b = bad(); return !b.includes(f) && b.length < failing; }
+      const v = vars[i];
+      if (v.unit) {
+        const u = v.unit, keep = u.rest.map((c) => row[c]);
+        const opts: (Built | null)[] = [...u.opts, ...(u.optional ? [null] : [])];
+        for (const p of opts) {
+          for (const c of u.rest) { if (p) row[c] = p.row[u.fk.pcols[u.fk.cols.indexOf(c)]]; else delete row[c]; }
+          if (go(i + 1)) return true;
+        }
+        u.rest.forEach((c, k) => { if (keep[k]) row[c] = keep[k]; else delete row[c]; });
+        return false;
+      }
+      const c = v.col!, k = T.cols.get(c)!, keep = row[c];
+      const opts: (Val | null)[] = [keep ?? null, ...dynamic(c), ...free(c)];
+      if (!(k.notNull && !k.hasDefault)) opts.push(null);
+      for (const o of [...new Map(opts.map((o) => [o ? o.sql : "<implicit>", o])).values()]) {
+        if (o) row[c] = o; else delete row[c];
+        if (go(i + 1)) return true;
+      }
+      if (keep) row[c] = keep; else delete row[c];
+      return false;
+    };
+    return go(0);
+  };
+  for (let guard = 0; guard < 16; guard++) {
+    const failing = bad();
+    if (!failing.length) break;
+    const f = failing[0], cs = colsIn(f.ast);
+    const vars: Var[] = [
+      ...units.filter((u) => u.rest.some((c) => cs.has(c))).map((unit) => ({ unit })),
+      ...[...cs].filter((c) => T.cols.has(c) && !locked.has(c) && !T.cols.get(c)!.generated).map((col) => ({ col })),
+    ];
+    if (search(f, failing.length, vars, (c) => choice.get(c) ?? [])) continue;
+    // no parent row has the value the CHECK needs: ask the parent for one (next round), with the FK columns searched freely
+    const fkCols = [...cs].filter((c) => !locked.has(c) ? false : units.some((u) => u.rest.includes(c)));
+    if (fkCols.length && !slot.forced) {
+      const snap = { ...row };
+      const vars2: Var[] = [...cs].filter((c) => T.cols.has(c) && !T.cols.get(c)!.generated && (!locked.has(c) || fkCols.includes(c))).map((col) => ({ col }));
+      if (search(f, failing.length, vars2, (c) => choice.get(c) ?? candidateVals(c, T.cols.get(c)!, n, a, x))) {
+        for (const u of units.filter((u) => u.rest.some((c) => fkCols.includes(c)))) {
+          if (!SCHEMA[u.fk.parent] || !(ROWS.get(u.fk.parent) ?? []).some((b) => b.slot !== null)) continue; // only generated parents grow
+          const forced: Row = {};
+          u.fk.cols.forEach((c, i) => { if (row[c] && fkCols.includes(c)) forced[u.fk.pcols[i]] = row[c]; }); // only the value the CHECK needs, never the parent key
+          const ds = DEMANDS.get(u.fk.parent) ?? [];
+          const key = JSON.stringify([slot.ten, slot.centre, Object.entries(forced).map(([c, v]) => [c, v.sql])]);
+          if (!ds.some((d) => JSON.stringify([d.ten, d.centre, Object.entries(d.forced).map(([c, v]) => [c, v.sql])]) === key)) { ds.push({ ten: slot.ten, centre: slot.centre, forced }); DEMANDS.set(u.fk.parent, ds); }
+        }
+      }
+      for (const c of Object.keys(row)) if (!(c in snap)) delete row[c];
+      Object.assign(row, snap);
+    }
+    warnings.push(`${t}: slot ${n}: CHECK not satisfied statically: ${f.src.replace(/\s+/g, " ").slice(0, 140)}`);
+    break;
+  }
+  const ordered: Row = {};
+  for (const [c] of T.cols) if (c in row) ordered[c] = row[c];
+  return ordered;
+}
+function candidateVals(c: string, k: Col, n: number, a: number, x: Ctx): Val[] {
+  const h = x.hv.get(c);
+  // IN-list CHECK on this column: its members first (rotated by attempt, so a UNIQUE collision can move to the next member)
+  const ins = h?.lits.filter((v) => typeof v === "string") ?? [];
+  const tv = typeVals(k.type, n, a, h, c);
+  if (ins.length && /^(text|varchar|character varying|citext|char|character|bpchar)$/.test(baseType(k.type))) {
+    const u = [...new Set(ins)];
+    return [...u.map((_, i) => sqlStr(u[(i + a) % u.length])), ...tv.filter((v) => !u.includes(v.v))];
+  }
+  return tv;
+}
 
 function probeSql(t: string): string {
   const d = tables[t];
@@ -265,7 +1117,7 @@ function probeSql(t: string): string {
     `-- GENERATED by db/tools/gen-isolation-probes.ts from db/meta/tables.yaml (${t}: class ${d.class}${d.centre_scoped ? ", centre-scoped" : ""}${d.shared_with?.length ? ", shared_with " + d.shared_with.join("|") : ""}). Do not edit.`,
     "-- 02-TRD §4.5 isolation probe; AC-0B-3.1..3.7, AC-0B-3.6 (gate 10). Synthetic data only; one rolled-back transaction; RLS is never disabled.",
     "BEGIN;",
-    PREAMBLE,
+    PROBE_PREAMBLE,
   ];
   const staff = "pg_temp.cl('user', '32', '42')"; // tenant A, all-centres staff
   const sys = "pg_temp.cl('system', '99')"; //      tenant A, system claims
@@ -326,9 +1178,23 @@ function probeSql(t: string): string {
 }
 
 // ---------------------------------------------------------------- write or check
+// fixtures first: the probes \ir every fixture file, in schema dependency order, just before the replica window closes (LD-233)
+const FIX = buildFixtures();
+const fixOut = join(out, "..", "fixtures", "probe-rows");
+// (the step-1 comment above still says db/seeds: it lies inside the baseline window the T0B-DBSEED-1 test keeps byte-identical; this note corrects it)
+const PROBE_PREAMBLE = PREAMBLE.slice(0, -PREAMBLE_ORIGIN.length)
+  + (FIX.order.length ? "-- module rows (LD-233, T0B-DBSEED-1): generated fixture files, schema FK order; test-only, never db/seeds\n" : "")
+  + FIX.order.map((s) => `\\ir ../fixtures/probe-rows/${s}.sql\n`).join("") + PREAMBLE_ORIGIN;
+if (!PREAMBLE.endsWith(PREAMBLE_ORIGIN)) die(["internal: the preamble no longer ends with the replica window close"]);
 const want = new Map<string, string>([["_registry.sql", registrySql()]]);
 for (const t of names) if (tables[t].class !== "G" && !tables[t].rls_exempt) want.set(`${t}.test.sql`, probeSql(t));
 const have = existsSync(out) ? readdirSync(out).filter((f) => GENERATED.test(f) || f === "_registry.sql") : [];
+const fixWant = new Map([...FIX.files].map(([s, body]) => [`${s}.sql`, body]));
+const fixHave = existsSync(fixOut) ? readdirSync(fixOut).filter((f) => f.endsWith(".sql")) : [];
+if (process.argv.includes("--report")) {
+  for (const w of warnings) console.error(`${TOOL}: warning: ${w}`);
+  for (const [t, why] of [...exceptionsOut].sort()) console.error(`${TOOL}: exception: ${t}: ${why}`);
+}
 
 if (check) {
   const bad: string[] = [];
@@ -338,12 +1204,20 @@ if (check) {
     else if (readFileSync(join(out, f), "utf8") !== body) bad.push(`${label}: probe file ${f} is stale (regenerate)`);
   }
   for (const f of have) if (!want.has(f)) bad.push(`${f}: orphan probe file for a table no longer probed`);
+  for (const [f, body] of fixWant) {
+    if (!existsSync(join(fixOut, f))) bad.push(`fixtures/probe-rows/${f}: fixture file missing (run node db/tools/gen-isolation-probes.ts)`);
+    else if (readFileSync(join(fixOut, f), "utf8") !== body) bad.push(`fixtures/probe-rows/${f}: fixture file is stale (regenerate)`);
+  }
+  for (const f of fixHave) if (!fixWant.has(f)) bad.push(`fixtures/probe-rows/${f}: orphan fixture file`);
   if (bad.length) die(bad);
-  console.log(`${TOOL}: ok (${want.size - 1} probe files current)`);
+  console.log(`${TOOL}: ok (${want.size - 1} probe files, ${fixWant.size} fixture files current)`);
   process.exit(0);
 }
 
 mkdirSync(out, { recursive: true });
 for (const f of have) if (!want.has(f)) rmSync(join(out, f));
 for (const [f, body] of want) writeFileSync(join(out, f), body);
-console.log(`${TOOL}: wrote ${want.size - 1} probe files + _registry.sql to ${out}`);
+if (fixWant.size || fixHave.length) mkdirSync(fixOut, { recursive: true });
+for (const f of fixHave) if (!fixWant.has(f)) rmSync(join(fixOut, f));
+for (const [f, body] of fixWant) writeFileSync(join(fixOut, f), body);
+console.log(`${TOOL}: wrote ${want.size - 1} probe files + _registry.sql to ${out}, ${fixWant.size} fixture files to ${fixOut}`);

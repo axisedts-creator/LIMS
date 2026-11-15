@@ -1,0 +1,86 @@
+{
+  "app/(auth)/auth/confirm/page.tsx": [
+    "action={confirmTokenAction}",
+    "type={type}",
+    "href=\"/auth/forgot\""
+  ],
+  "app/(auth)/auth/forgot/page.tsx": [
+    "action={requestRecoveryAction}"
+  ],
+  "app/(auth)/auth/login/page.tsx": [
+    "action={loginStaffAction}"
+  ],
+  "app/(auth)/auth/logout/page.tsx": [
+    "action={logoutAction}",
+    "type=\"submit\"",
+    "href=\"/\""
+  ],
+  "app/(auth)/auth/mfa/enrol/page.tsx": [],
+  "app/(auth)/auth/mfa/page.tsx": [
+    "action={verifyMfaAction}"
+  ],
+  "app/(auth)/auth/page.tsx": [],
+  "app/(auth)/auth/session-expired/page.tsx": [],
+  "app/(auth)/auth/set-password/page.tsx": [
+    "action={setPasswordAction}"
+  ],
+  "features/admin/auth/ConfirmLanding.tsx": [
+    "href=\"/auth/forgot\""
+  ],
+  "features/admin/auth/ForgotPasswordForm.tsx": [
+    "htmlFor=\"forgot-email\"",
+    "id=\"forgot-email\"",
+    "name=\"email\"",
+    "type=\"email\"",
+    "autoComplete=\"username\"",
+    "maxLength={254}",
+    "id=\"forgot-email-e\"",
+    "type=\"submit\"",
+    "href=\"/auth/login\""
+  ],
+  "features/admin/auth/LoginForm.tsx": [
+    "type=\"hidden\"",
+    "name=\"next\"",
+    "name=\"email\"",
+    "type=\"email\"",
+    "autoComplete=\"username\"",
+    "maxLength={254}",
+    "name=\"password\"",
+    "autoComplete=\"current-password\"",
+    "maxLength={128}",
+    "type=\"submit\"",
+    "href=\"/auth/forgot\""
+  ],
+  "features/admin/auth/MfaChallengeForm.tsx": [
+    "type=\"submit\""
+  ],
+  "features/admin/auth/MfaEnrolment.tsx": [
+    "htmlFor=\"mfa-device-name\"",
+    "id=\"mfa-device-name\"",
+    "name=\"friendly_name\"",
+    "maxLength={40}",
+    "type=\"submit\"",
+    "href=\"/\""
+  ],
+  "features/admin/auth/PasswordField.tsx": [
+    "htmlFor={id}",
+    "id={id}",
+    "name={name}",
+    "type={shown ? 'text' : 'password'}",
+    "autoComplete={autoComplete}",
+    "maxLength={maxLength}",
+    "type=\"button\""
+  ],
+  "features/admin/auth/SessionExpiredCard.tsx": [
+    "href=\"/auth/login\""
+  ],
+  "features/admin/auth/SetPasswordForm.tsx": [
+    "name=\"new_password\"",
+    "autoComplete=\"new-password\"",
+    "maxLength={128}",
+    "name=\"confirm_password\"",
+    "autoComplete=\"new-password\"",
+    "maxLength={128}",
+    "type=\"submit\""
+  ]
+}

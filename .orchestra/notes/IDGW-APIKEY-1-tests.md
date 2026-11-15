@@ -1,0 +1,6 @@
+# IDGW-APIKEY-1 tests (tester)
+- File: `services/api/src/modules/identity/gotrue/__tests__/apikey.unit.test.ts` (only file; fake fetch, synthetic keys `synthetic-service` / `synthetic-publishable`).
+- Covers: admin apikey+authorization = service key (all 7 admin call types, key set/empty/unset); non-admin apikey = publishable key, never service key; unset/empty = no apikey and header names exactly as before (+ planted-failure check); no key in GoTrueError/LimsError/metric labels; env read only inside `gotrueGatewayFromEnv`; name in `.env.example` (empty) and `render.yaml` (`sync: false`); mapping.md "Hosted Supabase" note; non-blocking C2 CR in `.orchestra/cr/*.md` (must mention C2, apikey, the variable, "non-blocking").
+- Run: `.orchestra\notes\IDGW-APIKEY-1-verify.cmd` (or `pnpm --dir services/api exec vitest run src/modules/identity/gotrue/__tests__/apikey.unit.test.ts`).
+- Now: 12 fail / 7 pass (the 7 are leak checks, planted-failure, unset-case no-apikey: true today). Failures: apikey header missing, name/note/CR missing.
+- Impl must keep green: gotrue `http.unit`/`mapping`, identity `manifest-ports`, `static.security`, ci-scripts (not re-run here). Parity tests over infra/secrets/schema may force extra entries (LD-199 allows the minimum).

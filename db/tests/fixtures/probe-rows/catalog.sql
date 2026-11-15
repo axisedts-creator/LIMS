@@ -11,8 +11,7 @@ INSERT INTO catalog.credit_parties (id, tenant_id, party_code, name, kind, creat
   (pg_temp.id('f1'), pg_temp.id('01'), 'B', 'probe-1', 'hospital', pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('f3'), pg_temp.id('02'), 'D', 'probe-3', 'hospital', pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('e0'), pg_temp.id('01'), 'H', 'probe-7', 'hospital', pg_temp.id('99'), pg_temp.id('99')),
-  (pg_temp.id('e1'), pg_temp.id('02'), 'I', 'probe-8', 'hospital', pg_temp.id('99'), pg_temp.id('99')),
-  (pg_temp.id('e2'), pg_temp.id('01'), 'J', 'probe-9', 'hospital', pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
+  (pg_temp.id('e1'), pg_temp.id('01'), 'I', 'probe-8', 'hospital', pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
 INSERT INTO catalog.cs_tax_types (id, tenant_id, code, display, effective_from, created_by, updated_by) VALUES
   (pg_temp.id('f1'), pg_temp.id('01'), 'B', 'probe-1', now(), pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('f3'), pg_temp.id('02'), 'D', 'probe-3', now(), pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
@@ -36,9 +35,7 @@ INSERT INTO catalog.comment_code_texts (id, tenant_id, comment_code_id, text_ver
   (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('f3'), 3, 'probe-3', now(), pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
 INSERT INTO catalog.doctors (id, tenant_id, doctor_code, display_name, name_normalised, source, created_by, updated_by) VALUES
   (pg_temp.id('f1'), pg_temp.id('01'), 'B', 'probe-1', 'probe-1', 'back_office', pg_temp.id('99'), pg_temp.id('99')),
-  (pg_temp.id('f3'), pg_temp.id('02'), 'D', 'probe-3', 'probe-3', 'back_office', pg_temp.id('99'), pg_temp.id('99')),
-  (pg_temp.id('e0'), pg_temp.id('01'), 'H', 'probe-7', 'probe-7', 'back_office', pg_temp.id('99'), pg_temp.id('99')),
-  (pg_temp.id('e1'), pg_temp.id('02'), 'I', 'probe-8', 'probe-8', 'back_office', pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
+  (pg_temp.id('f3'), pg_temp.id('02'), 'D', 'probe-3', 'probe-3', 'back_office', pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
 INSERT INTO catalog.exports (id, tenant_id, kind, created_by, updated_by) VALUES
   (pg_temp.id('f1'), pg_temp.id('01'), 'price_list', pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('f3'), pg_temp.id('02'), 'price_list', pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
@@ -51,30 +48,29 @@ INSERT INTO catalog.methods (id, tenant_id, code, name, created_by, updated_by) 
 INSERT INTO catalog.orderables (id, tenant_id, kind, code, name, department_id, created_by, updated_by) VALUES
   (pg_temp.id('f1'), pg_temp.id('01'), 'test', 'BC', 'probe-1', pg_temp.id('f1'), pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('f3'), pg_temp.id('02'), 'test', 'DE', 'probe-3', pg_temp.id('f3'), pg_temp.id('99'), pg_temp.id('99')),
-  (pg_temp.id('c1'), pg_temp.id('01'), 'test', 'JK', 'probe-9', pg_temp.id('f1'), pg_temp.id('99'), pg_temp.id('99')),
+  (pg_temp.id('c1'), pg_temp.id('01'), 'test', 'IJ', 'probe-8', pg_temp.id('f1'), pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('c3'), pg_temp.id('02'), 'test', 'KL', 'probe-10', pg_temp.id('f3'), pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
 INSERT INTO catalog.orderables (id, tenant_id, kind, code, name, created_by, updated_by) VALUES
   (pg_temp.id('e0'), pg_temp.id('01'), 'panel', 'HI', 'probe-7', pg_temp.id('99'), pg_temp.id('99')),
-  (pg_temp.id('e1'), pg_temp.id('02'), 'panel', 'IJ', 'probe-8', pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
+  (pg_temp.id('e2'), pg_temp.id('02'), 'panel', 'JK', 'probe-9', pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
 INSERT INTO catalog.panels (id, tenant_id, kind, panel_kind, created_by, updated_by) VALUES
   (pg_temp.id('e0'), pg_temp.id('01'), 'panel', 'clinical', pg_temp.id('99'), pg_temp.id('99')),
-  (pg_temp.id('e1'), pg_temp.id('02'), 'panel', 'clinical', pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
-INSERT INTO catalog.panels (id, tenant_id, panel_kind, created_by, updated_by) VALUES
-  (pg_temp.id('f1'), pg_temp.id('01'), 'clinical', pg_temp.id('99'), pg_temp.id('99')),
-  (pg_temp.id('f3'), pg_temp.id('02'), 'clinical', pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
+  (pg_temp.id('e2'), pg_temp.id('02'), 'panel', 'clinical', pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
 INSERT INTO catalog.panel_members (tenant_id, panel_id, member_orderable_id, sort_order, created_by) VALUES
   (pg_temp.id('01'), pg_temp.id('e0'), pg_temp.id('f1'), 1, pg_temp.id('99')),
-  (pg_temp.id('02'), pg_temp.id('e1'), pg_temp.id('f3'), 3, pg_temp.id('99')) ON CONFLICT DO NOTHING;
+  (pg_temp.id('02'), pg_temp.id('e2'), pg_temp.id('f3'), 3, pg_temp.id('99')) ON CONFLICT DO NOTHING;
 INSERT INTO catalog.price_lists (id, tenant_id, code, name, owner_kind, created_by, updated_by) VALUES
   (pg_temp.id('f1'), pg_temp.id('01'), 'BC', 'probe-1', 'default', pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('f3'), pg_temp.id('02'), 'DE', 'probe-3', 'default', pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('e0'), pg_temp.id('01'), 'HI', 'probe-7', 'credit_party', pg_temp.id('99'), pg_temp.id('99')),
-  (pg_temp.id('e1'), pg_temp.id('02'), 'IJ', 'probe-8', 'credit_party', pg_temp.id('99'), pg_temp.id('99')),
+  (pg_temp.id('e1'), pg_temp.id('01'), 'IJ', 'probe-8', 'referrer', pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('e2'), pg_temp.id('01'), 'JK', 'probe-9', 'centre', pg_temp.id('99'), pg_temp.id('99')),
-  (pg_temp.id('e3'), pg_temp.id('02'), 'KL', 'probe-10', 'centre', pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
+  (pg_temp.id('e3'), pg_temp.id('02'), 'KL', 'probe-10', 'credit_party', pg_temp.id('99'), pg_temp.id('99')),
+  (pg_temp.id('e4'), pg_temp.id('02'), 'LM', 'probe-11', 'referrer', pg_temp.id('99'), pg_temp.id('99')),
+  (pg_temp.id('e5'), pg_temp.id('02'), 'MN', 'probe-12', 'centre', pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
 INSERT INTO catalog.price_list_assignments (id, tenant_id, price_list_id, owner_kind, centre_id, created_by) VALUES
   (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('e2'), 'centre', pg_temp.id('21'), pg_temp.id('99')),
-  (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('e3'), 'centre', pg_temp.id('23'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
+  (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('e5'), 'centre', pg_temp.id('23'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
 INSERT INTO catalog.price_list_versions (id, tenant_id, price_list_id, version_no, created_by, updated_by) VALUES
   (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('f1'), 1, pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('f3'), 3, pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
@@ -107,11 +103,11 @@ INSERT INTO catalog.tests (id, tenant_id, kind, workflow_type, created_by, updat
 INSERT INTO catalog.analytes (id, tenant_id, test_id, code, name, created_by, updated_by) VALUES
   (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('f1'), 'BC', 'probe-1', pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('f3'), 'DE', 'probe-3', pg_temp.id('99'), pg_temp.id('99')),
-  (pg_temp.id('c1'), pg_temp.id('01'), pg_temp.id('c1'), 'IJ', 'probe-8', pg_temp.id('99'), pg_temp.id('99')),
-  (pg_temp.id('c3'), pg_temp.id('02'), pg_temp.id('c3'), 'KL', 'probe-10', pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
-INSERT INTO catalog.analyte_versions (id, tenant_id, analyte_id, version_no, result_type, decimals, created_by, updated_by) VALUES
-  (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('f1'), 1, 'numeric', 1, pg_temp.id('99'), pg_temp.id('99')),
-  (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('f3'), 3, 'numeric', 3, pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
+  (pg_temp.id('c1'), pg_temp.id('01'), pg_temp.id('c1'), 'HI', 'probe-7', pg_temp.id('99'), pg_temp.id('99')),
+  (pg_temp.id('c3'), pg_temp.id('02'), pg_temp.id('f3'), 'JK', 'probe-9', pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
+INSERT INTO catalog.analyte_versions (id, tenant_id, analyte_id, version_no, result_type, created_by, updated_by) VALUES
+  (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('f1'), 1, 'text', pg_temp.id('99'), pg_temp.id('99')),
+  (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('f3'), 3, 'text', pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
 INSERT INTO catalog.critical_limit_sets (id, tenant_id, analyte_id, version_no, created_by, updated_by) VALUES
   (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('f1'), 1, pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('f3'), 3, pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
@@ -119,15 +115,15 @@ INSERT INTO catalog.critical_limits (id, tenant_id, set_id, sex, created_by) VAL
   (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('f1'), 'any', pg_temp.id('99')),
   (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('f3'), 'any', pg_temp.id('99')) ON CONFLICT DO NOTHING;
 INSERT INTO catalog.formula_dependencies (tenant_id, analyte_version_id, analyte_id, input_analyte_id, created_by) VALUES
-  (pg_temp.id('01'), pg_temp.id('f1'), pg_temp.id('f1'), pg_temp.id('c1'), pg_temp.id('99')),
-  (pg_temp.id('02'), pg_temp.id('f3'), pg_temp.id('f3'), pg_temp.id('c3'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
+  (pg_temp.id('01'), pg_temp.id('f1'), pg_temp.id('c1'), pg_temp.id('f1'), pg_temp.id('99')),
+  (pg_temp.id('02'), pg_temp.id('f3'), pg_temp.id('c3'), pg_temp.id('f3'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
 INSERT INTO catalog.instrument_code_maps (id, tenant_id, instrument_id, direction, instrument_code, analyte_id, test_id, created_by, updated_by) VALUES
   (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('f1'), 'inbound', 'probe-1', pg_temp.id('f1'), pg_temp.id('f1'), pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('f3'), 'inbound', 'probe-3', pg_temp.id('f3'), pg_temp.id('f3'), pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
 INSERT INTO catalog.reference_range_sets (id, tenant_id, analyte_id, version_no, created_by, updated_by) VALUES
   (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('f1'), 1, pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('f3'), 3, pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
-INSERT INTO catalog.reference_ranges (id, tenant_id, set_id, sex, kind, high, created_by) VALUES
+INSERT INTO catalog.reference_ranges (id, tenant_id, set_id, sex, kind, low, created_by) VALUES
   (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('f1'), 'any', 'numeric', 1, pg_temp.id('99')),
   (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('f3'), 'any', 'numeric', 3, pg_temp.id('99')) ON CONFLICT DO NOTHING;
 INSERT INTO catalog.tat_targets (id, tenant_id, test_id, priority, target_seconds, effective_from, created_by, updated_by) VALUES

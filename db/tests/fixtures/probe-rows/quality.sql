@@ -36,16 +36,16 @@ INSERT INTO quality.qc_activity (id, tenant_id, plan_id) VALUES
   (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('f3')) ON CONFLICT DO NOTHING;
 INSERT INTO quality.qc_plan_versions (id, tenant_id, plan_id, version_no, controls_per_run, composition, mean_rule, effective_from, created_by, updated_by) VALUES
   (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('f1'), 1, 2, '["probe"]', '8x', now(), pg_temp.id('99'), pg_temp.id('99')),
-  (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('f3'), 3, 3, '["probe"]', '6x', now(), pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
+  (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('f3'), 3, 2, '["probe"]', '8x', now(), pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
 INSERT INTO quality.qc_runs (id, tenant_id, plan_id, plan_version_no, instrument_id, analyte_id, controls_per_run, rule_mode, mean_rule, run_at, last_member_received_at, last_assembled_at, created_by, updated_by) VALUES
   (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('f1'), 1, pg_temp.id('f1'), pg_temp.id('f1'), 2, 'classic', 'probe-1', now(), now(), now(), pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('f3'), 3, pg_temp.id('f3'), pg_temp.id('f3'), 3, 'classic', 'probe-3', now(), now(), now(), pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
 INSERT INTO quality.qc_corrective_actions (id, tenant_id, qc_run_id, action_code, description, performed_at, performed_by_membership_id, created_by) VALUES
   (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('f1'), 'probe-1', 'probe-1', now(), pg_temp.id('f1'), pg_temp.id('99')),
   (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('f3'), 'probe-3', 'probe-3', now(), pg_temp.id('f3'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
-INSERT INTO quality.qc_run_reviews (id, tenant_id, qc_run_id, kind, comment, reviewed_by_membership_id, created_by) VALUES
-  (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('f1'), 'acknowledge', 'probe-1', pg_temp.id('f1'), pg_temp.id('99')),
-  (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('f3'), 'acknowledge', 'probe-3', pg_temp.id('f3'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
+INSERT INTO quality.qc_run_reviews (id, tenant_id, qc_run_id, kind, reviewed_by_membership_id, created_by) VALUES
+  (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('f1'), 'evaluate_now', pg_temp.id('f1'), pg_temp.id('99')),
+  (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('f3'), 'evaluate_now', pg_temp.id('f3'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
 INSERT INTO quality.qc_targets (id, tenant_id, plan_id, lot_id, level_id, mean, sd, unit_code, source, created_by, updated_by) VALUES
   (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('f1'), pg_temp.id('f1'), pg_temp.id('f1'), 1, 1, 'probe-1', 'manufacturer', pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('f3'), pg_temp.id('f3'), pg_temp.id('f3'), 3, 3, 'probe-3', 'manufacturer', pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
@@ -59,9 +59,9 @@ INSERT INTO quality.sync_state (id, tenant_id, qc_cursor_at) VALUES
   (pg_temp.id('f1'), pg_temp.id('01'), now()),
   (pg_temp.id('f3'), pg_temp.id('02'), now()) ON CONFLICT DO NOTHING;
 INSERT INTO quality.tat_items (id, tenant_id, centre_id, order_id, order_item_id, test_id, specimen_id, priority, segment, target_seconds, start_basis, state, last_seen_sweep_at, created_by, updated_by) VALUES
-  (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('21'), pg_temp.id('f1'), pg_temp.id('f1'), pg_temp.id('f1'), pg_temp.id('f1'), 'routine', 'within_lab', 1, 'specimen_received_at', 'not_started', now(), pg_temp.id('99'), pg_temp.id('99')),
-  (pg_temp.id('f2'), pg_temp.id('01'), pg_temp.id('22'), pg_temp.id('f2'), pg_temp.id('f2'), pg_temp.id('c1'), pg_temp.id('f2'), 'routine', 'within_lab', 2, 'specimen_received_at', 'not_started', now(), pg_temp.id('99'), pg_temp.id('99')),
-  (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('23'), pg_temp.id('f3'), pg_temp.id('f3'), pg_temp.id('f3'), pg_temp.id('f3'), 'routine', 'within_lab', 3, 'specimen_received_at', 'not_started', now(), pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
+  (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('21'), pg_temp.id('f1'), pg_temp.id('f1'), pg_temp.id('f1'), pg_temp.id('f1'), 'routine', 'total', 1, 'registered_at', 'not_started', now(), pg_temp.id('99'), pg_temp.id('99')),
+  (pg_temp.id('f2'), pg_temp.id('01'), pg_temp.id('22'), pg_temp.id('f2'), pg_temp.id('f2'), pg_temp.id('c1'), pg_temp.id('f2'), 'routine', 'total', 2, 'registered_at', 'not_started', now(), pg_temp.id('99'), pg_temp.id('99')),
+  (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('23'), pg_temp.id('f3'), pg_temp.id('f3'), pg_temp.id('f3'), pg_temp.id('f3'), 'routine', 'total', 3, 'registered_at', 'not_started', now(), pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
 INSERT INTO quality.tat_alert_acks (id, tenant_id, centre_id, tat_item_id, level, acknowledged_by_membership_id, created_by) VALUES
   (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('21'), pg_temp.id('f1'), 'warning', pg_temp.id('f1'), pg_temp.id('99')),
   (pg_temp.id('f2'), pg_temp.id('01'), pg_temp.id('22'), pg_temp.id('f2'), 'warning', pg_temp.id('f2'), pg_temp.id('99')),

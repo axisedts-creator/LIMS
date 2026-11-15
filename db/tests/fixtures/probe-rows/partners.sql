@@ -5,7 +5,7 @@ INSERT INTO partners.partners (id, tenant_id, partner_code, name, credit_party_i
   (pg_temp.id('f1'), pg_temp.id('01'), 'B', 'probe-1', pg_temp.id('f1'), pg_temp.id('11'), pg_temp.id('21'), 'on_receipt', pg_temp.id('34'), pg_temp.id('99')),
   (pg_temp.id('f3'), pg_temp.id('02'), 'D', 'probe-3', pg_temp.id('f3'), pg_temp.id('12'), pg_temp.id('23'), 'on_receipt', pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('f4'), pg_temp.id('01'), 'K', 'probe-10', pg_temp.id('e0'), pg_temp.id('11'), pg_temp.id('21'), 'on_submit', pg_temp.id('35'), pg_temp.id('99')),
-  (pg_temp.id('f5'), pg_temp.id('01'), 'L', 'probe-11', pg_temp.id('e2'), pg_temp.id('11'), pg_temp.id('21'), 'on_submit', pg_temp.id('a3'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
+  (pg_temp.id('f5'), pg_temp.id('01'), 'L', 'probe-11', pg_temp.id('e1'), pg_temp.id('11'), pg_temp.id('21'), 'on_submit', pg_temp.id('a3'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
 INSERT INTO partners.manifest_counters (tenant_id, partner_id, yy, last_seq, created_by, updated_by) VALUES
   (pg_temp.id('01'), pg_temp.id('f1'), 1, 1, pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('02'), pg_temp.id('f3'), 3, 3, pg_temp.id('99'), pg_temp.id('99')),
@@ -64,12 +64,12 @@ INSERT INTO partners.download_counters (tenant_id, partner_user_id, day, partner
   (pg_temp.id('01'), pg_temp.id('f5'), now()::date, pg_temp.id('f1'), pg_temp.id('a3'), pg_temp.id('99')),
   (pg_temp.id('01'), pg_temp.id('f6'), now()::date, pg_temp.id('f1'), pg_temp.id('34'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
 INSERT INTO partners.pickup_requests (id, tenant_id, partner_id, receiving_centre_id, window_start, window_end, packages_count, created_by, updated_by) VALUES
-  (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('f1'), pg_temp.id('21'), now(), now() + interval '1 day', 1, pg_temp.id('99'), pg_temp.id('99')),
-  (pg_temp.id('f2'), pg_temp.id('01'), pg_temp.id('f4'), pg_temp.id('22'), now(), now() + interval '1 day', 2, pg_temp.id('99'), pg_temp.id('99')),
-  (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('f3'), pg_temp.id('23'), now(), now() + interval '1 day', 3, pg_temp.id('99'), pg_temp.id('99')),
-  (pg_temp.id('f4'), pg_temp.id('01'), pg_temp.id('f4'), pg_temp.id('21'), now(), now() + interval '1 day', 4, pg_temp.id('35'), pg_temp.id('99')),
-  (pg_temp.id('f5'), pg_temp.id('01'), pg_temp.id('f5'), pg_temp.id('21'), now(), now() + interval '1 day', 5, pg_temp.id('a3'), pg_temp.id('99')),
-  (pg_temp.id('f6'), pg_temp.id('01'), pg_temp.id('f5'), pg_temp.id('21'), now(), now() + interval '1 day', 6, pg_temp.id('34'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
+  (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('f1'), pg_temp.id('21'), now() - interval '1 day', now(), 1, pg_temp.id('99'), pg_temp.id('99')),
+  (pg_temp.id('f2'), pg_temp.id('01'), pg_temp.id('f4'), pg_temp.id('22'), now() - interval '1 day', now(), 2, pg_temp.id('99'), pg_temp.id('99')),
+  (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('f3'), pg_temp.id('23'), now() - interval '1 day', now(), 3, pg_temp.id('99'), pg_temp.id('99')),
+  (pg_temp.id('f4'), pg_temp.id('01'), pg_temp.id('f4'), pg_temp.id('21'), now() - interval '1 day', now(), 4, pg_temp.id('35'), pg_temp.id('99')),
+  (pg_temp.id('f5'), pg_temp.id('01'), pg_temp.id('f5'), pg_temp.id('21'), now() - interval '1 day', now(), 5, pg_temp.id('a3'), pg_temp.id('99')),
+  (pg_temp.id('f6'), pg_temp.id('01'), pg_temp.id('f5'), pg_temp.id('21'), now() - interval '1 day', now(), 6, pg_temp.id('34'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
 INSERT INTO partners.pickup_request_manifests (tenant_id, pickup_request_id, manifest_id, partner_id, receiving_centre_id, created_by, updated_by) VALUES
   (pg_temp.id('01'), pg_temp.id('f1'), pg_temp.id('f1'), pg_temp.id('f1'), pg_temp.id('21'), pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('01'), pg_temp.id('f2'), pg_temp.id('f2'), pg_temp.id('f4'), pg_temp.id('22'), pg_temp.id('99'), pg_temp.id('99')),

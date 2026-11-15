@@ -4,12 +4,12 @@
 INSERT INTO identity.access_reviews (id, tenant_id, reviewed_by_membership_id, memberships_reviewed, created_by) VALUES
   (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('41'), 1, pg_temp.id('99')),
   (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('43'), 3, pg_temp.id('99')) ON CONFLICT DO NOTHING;
-INSERT INTO identity.admin_notices (id, tenant_id, kind, subject_type, expires_at, created_by, updated_by) VALUES
-  (pg_temp.id('f1'), pg_temp.id('01'), 'login_ip_throttled', 'support_session', now(), pg_temp.id('99'), pg_temp.id('99')),
-  (pg_temp.id('f3'), pg_temp.id('02'), 'login_ip_throttled', 'support_session', now(), pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
+INSERT INTO identity.admin_notices (id, tenant_id, kind, subject_type, subject_id, expires_at, created_by, updated_by) VALUES
+  (pg_temp.id('f1'), pg_temp.id('01'), 'support_session_requested', 'support_session', pg_temp.id('f1'), now(), pg_temp.id('99'), pg_temp.id('99')),
+  (pg_temp.id('f3'), pg_temp.id('02'), 'support_session_requested', 'support_session', pg_temp.id('f3'), now(), pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
 INSERT INTO identity.audit_exports (id, tenant_id, requested_by_membership_id, source, filters, range_from, range_to, created_by, updated_by) VALUES
-  (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('41'), 'audit_log', '{}', now() - interval '1 day', now(), pg_temp.id('99'), pg_temp.id('99')),
-  (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('43'), 'audit_log', '{}', now() - interval '1 day', now(), pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
+  (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('41'), 'audit_log', '{}', now(), now() + interval '1 day', pg_temp.id('99'), pg_temp.id('99')),
+  (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('43'), 'audit_log', '{}', now(), now() + interval '1 day', pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
 INSERT INTO identity.auth_events (id, tenant_id, event_type, created_by) VALUES
   (pg_temp.id('f1'), pg_temp.id('01'), 'login_failed', pg_temp.id('99')),
   (pg_temp.id('f3'), pg_temp.id('02'), 'login_failed', pg_temp.id('99')) ON CONFLICT DO NOTHING;
@@ -40,9 +40,9 @@ INSERT INTO identity.platform_events (id, event_type, target_type, created_by) V
 INSERT INTO identity.platform_staff (id, user_id, email_normalized, display_name, role_code, created_by, updated_by) VALUES
   (pg_temp.id('01'), pg_temp.id('f1'), 'probe1@example.com', 'probe-1', 'platform_superadmin', pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('02'), pg_temp.id('f3'), 'probe3@example.com', 'probe-3', 'platform_superadmin', pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
-INSERT INTO identity.invitations (id, tenant_id, user_id, membership_id, status, expires_at, invited_by, created_by, updated_by) VALUES
-  (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('f1'), pg_temp.id('41'), 'accepted', now(), pg_temp.id('f1'), pg_temp.id('99'), pg_temp.id('99')),
-  (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('f3'), pg_temp.id('43'), 'accepted', now(), pg_temp.id('f3'), pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
+INSERT INTO identity.invitations (id, tenant_id, user_id, membership_id, email, status, expires_at, invited_by, created_by, updated_by) VALUES
+  (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('f1'), pg_temp.id('41'), 'probe1@example.com', 'pending', now(), pg_temp.id('f1'), pg_temp.id('99'), pg_temp.id('99')),
+  (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('f3'), pg_temp.id('43'), 'probe3@example.com', 'pending', now(), pg_temp.id('f3'), pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
 INSERT INTO identity.support_sessions (id, tenant_id, platform_staff_id, scope, reason_text, ticket_ref, duration_minutes, status, created_by, updated_by) VALUES
   (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('01'), 'read_only', 'p1xxxxxxxx', 'probe-1', 5, 'requested', pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('02'), 'read_only', 'p3xxxxxxxx', 'probe-3', 5, 'requested', pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;

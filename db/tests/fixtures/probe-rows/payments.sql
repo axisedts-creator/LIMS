@@ -25,9 +25,9 @@ INSERT INTO payments.refunds (id, tenant_id, intent_id, order_id, centre_id, gat
 INSERT INTO payments.gateway_calls (id, tenant_id, gateway, operation, outcome, duration_ms, created_by) VALUES
   (pg_temp.id('f1'), pg_temp.id('01'), 'esewa', 'khalti_initiate', 'answer', 1, pg_temp.id('99')),
   (pg_temp.id('f3'), pg_temp.id('02'), 'esewa', 'khalti_initiate', 'answer', 3, pg_temp.id('99')) ON CONFLICT DO NOTHING;
-INSERT INTO payments.reconciliation_findings (id, tenant_id, run_id, intent_id, refund_id, kind, severity, created_by, updated_by) VALUES
-  (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('f1'), pg_temp.id('f1'), pg_temp.id('f1'), 'probe-1', 'info', pg_temp.id('99'), pg_temp.id('99')),
-  (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('f3'), pg_temp.id('f3'), pg_temp.id('f3'), 'probe-3', 'info', pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
+INSERT INTO payments.reconciliation_findings (id, tenant_id, run_id, intent_id, kind, severity, created_by, updated_by) VALUES
+  (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('f1'), pg_temp.id('f1'), 'probe-1', 'info', pg_temp.id('99'), pg_temp.id('99')),
+  (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('f3'), pg_temp.id('f3'), 'probe-3', 'info', pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
 INSERT INTO payments.settings (tenant_id, created_by, updated_by) VALUES
   (pg_temp.id('01'), pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('02'), pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;

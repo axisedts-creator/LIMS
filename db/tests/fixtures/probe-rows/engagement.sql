@@ -77,11 +77,12 @@ INSERT INTO engagement.otp_challenges (id, tenant_id, token_sha256, phone_e164, 
   (pg_temp.id('f5'), pg_temp.id('01'), decode(repeat('06', 32), 'hex'), '+77777777', decode(repeat('06', 32), 'hex'), pg_temp.id('f5'), 'android', decode(repeat('06', 32), 'hex'), pg_temp.id('a3'), now()),
   (pg_temp.id('f6'), pg_temp.id('01'), decode(repeat('07', 32), 'hex'), '+88888888', decode(repeat('07', 32), 'hex'), pg_temp.id('f6'), 'android', decode(repeat('07', 32), 'hex'), pg_temp.id('34'), now()) ON CONFLICT DO NOTHING;
 INSERT INTO engagement.patient_memberships (id, tenant_id, patient_id, plan_id, card_no, card_token, valid_from, valid_to, enrolled_by, enrolled_centre_id, created_by, updated_by) VALUES
-  (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('f1'), pg_temp.id('f1'), 'MB33333333', '11111111111111111111111111', now()::date - 1, now()::date, pg_temp.id('f1'), pg_temp.id('21'), pg_temp.id('99'), pg_temp.id('99')),
-  (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('f3'), pg_temp.id('f3'), 'MB55555555', '33333333333333333333333333', now()::date - 1, now()::date, pg_temp.id('f3'), pg_temp.id('23'), pg_temp.id('99'), pg_temp.id('99')),
-  (pg_temp.id('f4'), pg_temp.id('01'), pg_temp.id('f1'), pg_temp.id('f4'), 'MB66666666', '44444444444444444444444444', now()::date - 1, now()::date, pg_temp.id('f4'), pg_temp.id('21'), pg_temp.id('35'), pg_temp.id('99')),
-  (pg_temp.id('f5'), pg_temp.id('01'), pg_temp.id('f1'), pg_temp.id('f5'), 'MB77777777', '55555555555555555555555555', now()::date - 1, now()::date, pg_temp.id('f5'), pg_temp.id('21'), pg_temp.id('a3'), pg_temp.id('99')),
-  (pg_temp.id('f6'), pg_temp.id('01'), pg_temp.id('f1'), pg_temp.id('f6'), 'MB88888888', '66666666666666666666666666', now()::date - 1, now()::date, pg_temp.id('f6'), pg_temp.id('21'), pg_temp.id('34'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
+  (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('f1'), pg_temp.id('f1'), 'MB33333333', '11111111111111111111111111', now()::date, now()::date + 1, pg_temp.id('f1'), pg_temp.id('21'), pg_temp.id('99'), pg_temp.id('99')),
+  (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('f3'), pg_temp.id('f3'), 'MB55555555', '33333333333333333333333333', now()::date, now()::date + 1, pg_temp.id('f3'), pg_temp.id('23'), pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
+INSERT INTO engagement.patient_memberships (id, tenant_id, patient_id, plan_id, card_no, card_token, status, valid_from, valid_to, enrolled_by, enrolled_centre_id, created_by, updated_by) VALUES
+  (pg_temp.id('f4'), pg_temp.id('01'), pg_temp.id('f1'), pg_temp.id('f4'), 'MB66666666', '44444444444444444444444444', 'expired', now()::date, now()::date + 1, pg_temp.id('f4'), pg_temp.id('21'), pg_temp.id('35'), pg_temp.id('99')),
+  (pg_temp.id('f5'), pg_temp.id('01'), pg_temp.id('f1'), pg_temp.id('f5'), 'MB77777777', '55555555555555555555555555', 'expired', now()::date, now()::date + 1, pg_temp.id('f5'), pg_temp.id('21'), pg_temp.id('a3'), pg_temp.id('99')),
+  (pg_temp.id('f6'), pg_temp.id('01'), pg_temp.id('f1'), pg_temp.id('f6'), 'MB88888888', '66666666666666666666666666', 'expired', now()::date, now()::date + 1, pg_temp.id('f6'), pg_temp.id('21'), pg_temp.id('34'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
 INSERT INTO engagement.patient_orders (tenant_id, order_id, patient_id, centre_id, branch_id, source, order_status, visible_at, stage, synced_at, created_by, updated_by) VALUES
   (pg_temp.id('01'), pg_temp.id('f1'), pg_temp.id('f1'), pg_temp.id('21'), pg_temp.id('f1'), 'front_desk', 'pre_registered', now(), 'registered', now(), pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('02'), pg_temp.id('f3'), pg_temp.id('f3'), pg_temp.id('23'), pg_temp.id('f3'), 'front_desk', 'pre_registered', now(), 'registered', now(), pg_temp.id('99'), pg_temp.id('99')),
@@ -122,25 +123,25 @@ INSERT INTO engagement.queue_displays (id, tenant_id, centre_id, display_name, q
   (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('21'), 'probe-1', ARRAY[pg_temp.id('f1')]::uuid[], decode(repeat('02', 32), 'hex'), now(), pg_temp.id('f1'), pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('f2'), pg_temp.id('01'), pg_temp.id('22'), 'probe-2', ARRAY[pg_temp.id('f2')]::uuid[], decode(repeat('03', 32), 'hex'), now(), pg_temp.id('f2'), pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('23'), 'probe-3', ARRAY[pg_temp.id('f3')]::uuid[], decode(repeat('04', 32), 'hex'), now(), pg_temp.id('f3'), pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
-INSERT INTO engagement.reminders (id, tenant_id, patient_id, kind, reason_code, source, due_at, created_by, updated_by) VALUES
-  (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('f1'), 'custom', 'probe-1', 'staff', now(), pg_temp.id('99'), pg_temp.id('99')),
-  (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('f3'), 'custom', 'probe-3', 'staff', now(), pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
-INSERT INTO engagement.self_registrations (id, tenant_id, account_id, relationship, full_name, sex, age_years, sms_consent, whatsapp_consent, consent_id, created_by, expires_at) VALUES
-  (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('f1'), 'self', 'probe-1', 'male', 1, false, false, pg_temp.id('f1'), pg_temp.id('99'), now()),
-  (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('f3'), 'self', 'probe-3', 'male', 3, false, false, pg_temp.id('f3'), pg_temp.id('99'), now()),
-  (pg_temp.id('f4'), pg_temp.id('01'), pg_temp.id('f4'), 'self', 'probe-4', 'male', 4, false, false, pg_temp.id('f4'), pg_temp.id('35'), now()),
-  (pg_temp.id('f5'), pg_temp.id('01'), pg_temp.id('f5'), 'self', 'probe-5', 'male', 5, false, false, pg_temp.id('f5'), pg_temp.id('a3'), now()),
-  (pg_temp.id('f6'), pg_temp.id('01'), pg_temp.id('f6'), 'self', 'probe-6', 'male', 6, false, false, pg_temp.id('f6'), pg_temp.id('34'), now()) ON CONFLICT DO NOTHING;
+INSERT INTO engagement.reminders (id, tenant_id, patient_id, kind, source, due_at, created_by, updated_by) VALUES
+  (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('f1'), 'booking', 'staff', now(), pg_temp.id('99'), pg_temp.id('99')),
+  (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('f3'), 'booking', 'staff', now(), pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
+INSERT INTO engagement.self_registrations (id, tenant_id, account_id, relationship, sms_consent, whatsapp_consent, consent_id, status, created_by, expires_at) VALUES
+  (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('f1'), 'self', false, false, pg_temp.id('f1'), 'failed', pg_temp.id('99'), now()),
+  (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('f3'), 'self', false, false, pg_temp.id('f3'), 'failed', pg_temp.id('99'), now()),
+  (pg_temp.id('f4'), pg_temp.id('01'), pg_temp.id('f4'), 'self', false, false, pg_temp.id('f4'), 'failed', pg_temp.id('35'), now()),
+  (pg_temp.id('f5'), pg_temp.id('01'), pg_temp.id('f5'), 'self', false, false, pg_temp.id('f5'), 'failed', pg_temp.id('a3'), now()),
+  (pg_temp.id('f6'), pg_temp.id('01'), pg_temp.id('f6'), 'self', false, false, pg_temp.id('f6'), 'failed', pg_temp.id('34'), now()) ON CONFLICT DO NOTHING;
 INSERT INTO engagement.settings (id, tenant_id, home_collection_centre_id, created_by, updated_by) VALUES
   (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('21'), pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('23'), pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
 INSERT INTO engagement.slot_blackouts (id, tenant_id, centre_id, starts_at, ends_at, reason_code, created_by, updated_by) VALUES
-  (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('21'), now() - interval '1 day', now(), 'holiday', pg_temp.id('99'), pg_temp.id('99')),
-  (pg_temp.id('f2'), pg_temp.id('01'), pg_temp.id('22'), now() - interval '1 day', now(), 'holiday', pg_temp.id('99'), pg_temp.id('99')),
-  (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('23'), now() - interval '1 day', now(), 'holiday', pg_temp.id('99'), pg_temp.id('99')),
-  (pg_temp.id('f4'), pg_temp.id('01'), pg_temp.id('21'), now() - interval '1 day', now(), 'holiday', pg_temp.id('35'), pg_temp.id('99')),
-  (pg_temp.id('f5'), pg_temp.id('01'), pg_temp.id('21'), now() - interval '1 day', now(), 'holiday', pg_temp.id('a3'), pg_temp.id('99')),
-  (pg_temp.id('f6'), pg_temp.id('01'), pg_temp.id('21'), now() - interval '1 day', now(), 'holiday', pg_temp.id('34'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
+  (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('21'), now(), now() + interval '1 day', 'holiday', pg_temp.id('99'), pg_temp.id('99')),
+  (pg_temp.id('f2'), pg_temp.id('01'), pg_temp.id('22'), now(), now() + interval '1 day', 'holiday', pg_temp.id('99'), pg_temp.id('99')),
+  (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('23'), now(), now() + interval '1 day', 'holiday', pg_temp.id('99'), pg_temp.id('99')),
+  (pg_temp.id('f4'), pg_temp.id('01'), pg_temp.id('21'), now(), now() + interval '1 day', 'holiday', pg_temp.id('35'), pg_temp.id('99')),
+  (pg_temp.id('f5'), pg_temp.id('01'), pg_temp.id('21'), now(), now() + interval '1 day', 'holiday', pg_temp.id('a3'), pg_temp.id('99')),
+  (pg_temp.id('f6'), pg_temp.id('01'), pg_temp.id('21'), now(), now() + interval '1 day', 'holiday', pg_temp.id('34'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
 INSERT INTO engagement.slot_templates (id, tenant_id, centre_id, booking_kind, weekdays, start_local, end_local, slot_minutes, capacity, effective_from, created_by, updated_by) VALUES
   (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('21'), 'centre_visit', '{probe-1}', '08:00', '17:00', 5, 1, now()::date, pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('f2'), pg_temp.id('01'), pg_temp.id('22'), 'centre_visit', '{probe-2}', '08:00', '17:00', 5, 2, now()::date, pg_temp.id('99'), pg_temp.id('99')),
@@ -149,18 +150,19 @@ INSERT INTO engagement.slot_templates (id, tenant_id, centre_id, booking_kind, w
   (pg_temp.id('f5'), pg_temp.id('01'), pg_temp.id('21'), 'centre_visit', '{probe-5}', '08:00', '17:00', 5, 5, now()::date, pg_temp.id('a3'), pg_temp.id('99')),
   (pg_temp.id('f6'), pg_temp.id('01'), pg_temp.id('21'), 'centre_visit', '{probe-6}', '08:00', '17:00', 5, 6, now()::date, pg_temp.id('34'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
 INSERT INTO engagement.slot_occupancy (id, tenant_id, centre_id, booking_kind, slot_start, slot_end, template_id, capacity, created_by, updated_by) VALUES
-  (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('21'), 'centre_visit', now() - interval '1 day', now(), pg_temp.id('f1'), 1, pg_temp.id('34'), pg_temp.id('99')),
-  (pg_temp.id('f2'), pg_temp.id('01'), pg_temp.id('22'), 'centre_visit', now() - interval '1 day', now(), pg_temp.id('f2'), 2, pg_temp.id('99'), pg_temp.id('99')),
-  (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('23'), 'centre_visit', now() - interval '1 day', now(), pg_temp.id('f3'), 3, pg_temp.id('99'), pg_temp.id('99')),
-  (pg_temp.id('f4'), pg_temp.id('01'), pg_temp.id('21'), 'home_collection', now() - interval '1 day', now() + interval '1 hours', pg_temp.id('f5'), 10, pg_temp.id('35'), pg_temp.id('99')),
-  (pg_temp.id('f5'), pg_temp.id('01'), pg_temp.id('22'), 'home_collection', now() - interval '1 day', now() + interval '1 hours', pg_temp.id('f6'), 11, pg_temp.id('a3'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
-INSERT INTO engagement.bookings (id, tenant_id, booking_no, account_id, patient_id, link_id, created_via, booking_kind, branch_id, centre_id, slot_occupancy_id, slot_start, slot_end, confirmed_at, created_by, updated_by) VALUES
-  (pg_temp.id('f1'), pg_temp.id('01'), 'BBBB', pg_temp.id('f1'), pg_temp.id('f1'), pg_temp.id('f1'), 'app', 'centre_visit', pg_temp.id('11'), pg_temp.id('21'), pg_temp.id('f1'), now() - interval '1 day', now(), now(), pg_temp.id('99'), pg_temp.id('99')),
-  (pg_temp.id('f2'), pg_temp.id('01'), 'CCCC', pg_temp.id('f4'), pg_temp.id('f1'), pg_temp.id('f4'), 'app', 'centre_visit', pg_temp.id('11'), pg_temp.id('22'), pg_temp.id('f2'), now() - interval '1 day', now(), now(), pg_temp.id('99'), pg_temp.id('99')),
-  (pg_temp.id('f3'), pg_temp.id('02'), 'DDDD', pg_temp.id('f3'), pg_temp.id('f3'), pg_temp.id('f3'), 'app', 'centre_visit', pg_temp.id('12'), pg_temp.id('23'), pg_temp.id('f3'), now() - interval '1 day', now(), now(), pg_temp.id('99'), pg_temp.id('99')),
-  (pg_temp.id('f4'), pg_temp.id('01'), 'EEEE', pg_temp.id('f4'), pg_temp.id('f1'), pg_temp.id('f4'), 'app', 'centre_visit', pg_temp.id('11'), pg_temp.id('21'), pg_temp.id('f4'), now() - interval '1 day', now(), now(), pg_temp.id('35'), pg_temp.id('99')),
-  (pg_temp.id('f5'), pg_temp.id('01'), 'FFFF', pg_temp.id('f5'), pg_temp.id('f1'), pg_temp.id('f5'), 'app', 'centre_visit', pg_temp.id('11'), pg_temp.id('21'), pg_temp.id('f5'), now() - interval '1 day', now(), now(), pg_temp.id('a3'), pg_temp.id('99')),
-  (pg_temp.id('f6'), pg_temp.id('01'), 'GGGG', pg_temp.id('f6'), pg_temp.id('f1'), pg_temp.id('f6'), 'app', 'centre_visit', pg_temp.id('11'), pg_temp.id('21'), pg_temp.id('f2'), now() - interval '1 day', now(), now(), pg_temp.id('34'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
+  (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('21'), 'centre_visit', now(), now() + interval '1 day', pg_temp.id('f1'), 1, pg_temp.id('99'), pg_temp.id('99')),
+  (pg_temp.id('f2'), pg_temp.id('01'), pg_temp.id('22'), 'centre_visit', now(), now() + interval '1 day', pg_temp.id('f2'), 2, pg_temp.id('99'), pg_temp.id('99')),
+  (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('23'), 'centre_visit', now(), now() + interval '1 day', pg_temp.id('f3'), 3, pg_temp.id('99'), pg_temp.id('99')),
+  (pg_temp.id('f4'), pg_temp.id('01'), pg_temp.id('21'), 'home_collection', now() + interval '1 hours', now() + interval '1 day', pg_temp.id('f5'), 10, pg_temp.id('35'), pg_temp.id('99')),
+  (pg_temp.id('f5'), pg_temp.id('01'), pg_temp.id('21'), 'centre_visit', now() + interval '2 hours', now() + interval '1 day', pg_temp.id('f1'), 17, pg_temp.id('a3'), pg_temp.id('99')),
+  (pg_temp.id('f6'), pg_temp.id('01'), pg_temp.id('21'), 'home_collection', now() + interval '3 hours', now() + interval '1 day', pg_temp.id('f4'), 24, pg_temp.id('34'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
+INSERT INTO engagement.bookings (id, tenant_id, booking_no, patient_id, created_via, booking_kind, branch_id, centre_id, slot_occupancy_id, slot_start, slot_end, confirmed_at, created_by, updated_by) VALUES
+  (pg_temp.id('f1'), pg_temp.id('01'), 'BBBB', pg_temp.id('f1'), 'staff', 'centre_visit', pg_temp.id('11'), pg_temp.id('21'), pg_temp.id('f1'), now(), now() + interval '1 day', now(), pg_temp.id('99'), pg_temp.id('99')),
+  (pg_temp.id('f2'), pg_temp.id('01'), 'CCCC', pg_temp.id('f1'), 'staff', 'centre_visit', pg_temp.id('11'), pg_temp.id('22'), pg_temp.id('f2'), now(), now() + interval '1 day', now(), pg_temp.id('99'), pg_temp.id('99')),
+  (pg_temp.id('f3'), pg_temp.id('02'), 'DDDD', pg_temp.id('f3'), 'staff', 'centre_visit', pg_temp.id('12'), pg_temp.id('23'), pg_temp.id('f3'), now(), now() + interval '1 day', now(), pg_temp.id('99'), pg_temp.id('99')),
+  (pg_temp.id('f4'), pg_temp.id('01'), 'EEEE', pg_temp.id('f1'), 'staff', 'centre_visit', pg_temp.id('11'), pg_temp.id('21'), pg_temp.id('f4'), now(), now() + interval '1 day', now(), pg_temp.id('35'), pg_temp.id('99')),
+  (pg_temp.id('f5'), pg_temp.id('01'), 'FFFF', pg_temp.id('f1'), 'staff', 'centre_visit', pg_temp.id('11'), pg_temp.id('21'), pg_temp.id('f5'), now(), now() + interval '1 day', now(), pg_temp.id('a3'), pg_temp.id('99')),
+  (pg_temp.id('f6'), pg_temp.id('01'), 'GGGG', pg_temp.id('f1'), 'staff', 'centre_visit', pg_temp.id('11'), pg_temp.id('21'), pg_temp.id('f6'), now(), now() + interval '1 day', now(), pg_temp.id('34'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
 INSERT INTO engagement.booking_items (id, tenant_id, booking_id, centre_id, orderable_id, orderable_kind, display_name_snapshot, sort_order, created_by) VALUES
   (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('f1'), pg_temp.id('21'), pg_temp.id('f1'), 'test', 'probe-1', 1, pg_temp.id('99')),
   (pg_temp.id('f2'), pg_temp.id('01'), pg_temp.id('f2'), pg_temp.id('22'), pg_temp.id('f2'), 'test', 'probe-2', 2, pg_temp.id('99')),

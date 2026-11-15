@@ -29,7 +29,7 @@ INSERT INTO smartreport.summary_reviews (id, tenant_id, centre_id, summary_id, a
   (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('21'), pg_temp.id('f1'), 'approved', pg_temp.id('99')),
   (pg_temp.id('f2'), pg_temp.id('01'), pg_temp.id('22'), pg_temp.id('f2'), 'approved', pg_temp.id('99')),
   (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('23'), pg_temp.id('f3'), 'approved', pg_temp.id('99')) ON CONFLICT DO NOTHING;
-INSERT INTO smartreport.template_blocks (id, tenant_id, library_version_id, block_key, kind, text_ne, created_by, updated_by) VALUES
+INSERT INTO smartreport.template_blocks (id, tenant_id, library_version_id, block_key, kind, text_en, created_by, updated_by) VALUES
   (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('f1'), 'bcc', 'deranged', 'probe-1', pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('f3'), 'dee', 'deranged', 'probe-3', pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
 INSERT INTO smartreport.rules (id, tenant_id, library_version_id, rule_kind, trigger_kind, analyte_id, direction, min_severity, block_id, block_kind, created_by, updated_by) VALUES

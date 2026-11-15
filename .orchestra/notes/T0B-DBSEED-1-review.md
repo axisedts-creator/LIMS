@@ -26,3 +26,6 @@ byte-identical to baseline; notes state the lane could not run SQL; 28/28 tests 
 
 Non-blocking (no change required): the "extra parent row … could not be built" warnings (catalog.analytes, inventory.stores) only drop optional
 demand rows. They are left to the founder rerun (LIMS_SKIP_GEN=1 bash db/tests/run-suites.sh <probe files>).
+
+
+LEAD NOTE (LD-249, 2026-11-16): the verify failures of rounds 1 to 3 were line endings, not the generator: the Windows worktree had CRLF while the index and the generator output are LF (see T0B-DBSEED-1-debug.md rounds 1 and 2). The lead (a) committed .gitattributes 0b51964cc (eol=lf for db/tests, db/seeds, db/migrations, db/tools, db/meta) and (b) converted the 81 CRLF files under those paths in this worktree to LF. Do NOT edit any test or the --check normalisation for line endings; run the generator once and the tests will compare LF with LF. What is still open are the two review findings above (1: micro.instrument_records rows violate instruments_records__payload__ck, so every probe fails at step 1; 2: partial UNIQUE index drops actor-owned rows without an exceptions entry). Fix both exactly as the review asks, regenerate, keep every probe assertion byte-identical to the baseline.

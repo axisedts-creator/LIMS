@@ -48,10 +48,10 @@ INSERT INTO anatomic.molecular_results (id, tenant_id, centre_id, case_id, assay
   (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('21'), pg_temp.id('f1'), pg_temp.id('f1'), 'probe-1', pg_temp.id('f1'), 'probe-1', pg_temp.id('f1'), 'probe-1', pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('f2'), pg_temp.id('01'), pg_temp.id('22'), pg_temp.id('f2'), pg_temp.id('f1'), 'probe-2', pg_temp.id('f1'), 'probe-2', pg_temp.id('f1'), 'probe-2', pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('23'), pg_temp.id('f3'), pg_temp.id('f3'), 'probe-3', pg_temp.id('f3'), 'probe-3', pg_temp.id('f3'), 'probe-3', pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
-INSERT INTO anatomic.object_movements (id, tenant_id, centre_id, case_id, object_kind, object_id, movement, from_location_status, to_location_status, location_text, created_by) VALUES
-  (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('21'), pg_temp.id('f1'), 'block', pg_temp.id('f1'), 'stored', 'in_lab', 'in_lab', 'probe-1', pg_temp.id('99')),
-  (pg_temp.id('f2'), pg_temp.id('01'), pg_temp.id('22'), pg_temp.id('f2'), 'block', pg_temp.id('f2'), 'stored', 'in_lab', 'in_lab', 'probe-2', pg_temp.id('99')),
-  (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('23'), pg_temp.id('f3'), 'block', pg_temp.id('f3'), 'stored', 'in_lab', 'in_lab', 'probe-3', pg_temp.id('99')) ON CONFLICT DO NOTHING;
+INSERT INTO anatomic.object_movements (id, tenant_id, centre_id, case_id, object_kind, object_id, movement, from_location_status, to_location_status, created_by) VALUES
+  (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('21'), pg_temp.id('f1'), 'block', pg_temp.id('f1'), 'retrieved', 'in_lab', 'in_lab', pg_temp.id('99')),
+  (pg_temp.id('f2'), pg_temp.id('01'), pg_temp.id('22'), pg_temp.id('f2'), 'block', pg_temp.id('f2'), 'retrieved', 'in_lab', 'in_lab', pg_temp.id('99')),
+  (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('23'), pg_temp.id('f3'), 'block', pg_temp.id('f3'), 'retrieved', 'in_lab', 'in_lab', pg_temp.id('99')) ON CONFLICT DO NOTHING;
 INSERT INTO anatomic.parts (id, tenant_id, centre_id, case_id, letter, letter_seq, created_by, updated_by) VALUES
   (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('21'), pg_temp.id('f1'), 'B', 1, pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('f2'), pg_temp.id('01'), pg_temp.id('22'), pg_temp.id('f2'), 'C', 2, pg_temp.id('99'), pg_temp.id('99')),
@@ -74,8 +74,8 @@ INSERT INTO anatomic.report_drafts (id, tenant_id, centre_id, case_id, kind, syn
   (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('23'), pg_temp.id('f3'), 'initial', '[]', '[]', pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
 INSERT INTO anatomic.report_versions (id, tenant_id, centre_id, case_id, version_no, version_kind, synoptic, images, specimen_parts, slides, ancillary, molecular, addenda, diagnosis_codes, signed_by_membership_id, signed_at, created_by) VALUES
   (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('21'), pg_temp.id('f1'), 1, 'original', '[]', '[]', '[]', '[]', '[]', '[]', '[]', '[]', pg_temp.id('41'), now(), pg_temp.id('99')),
-  (pg_temp.id('f2'), pg_temp.id('01'), pg_temp.id('22'), pg_temp.id('f2'), 1, 'original', '[]', '[]', '[]', '[]', '[]', '[]', '[]', '[]', pg_temp.id('42'), now(), pg_temp.id('99')),
-  (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('23'), pg_temp.id('f3'), 1, 'original', '[]', '[]', '[]', '[]', '[]', '[]', '[]', '[]', pg_temp.id('43'), now(), pg_temp.id('99')) ON CONFLICT DO NOTHING;
+  (pg_temp.id('f2'), pg_temp.id('01'), pg_temp.id('22'), pg_temp.id('f2'), 2, 'addendum', '[]', '[]', '[]', '[]', '[]', '[]', '[]', '[]', pg_temp.id('42'), now(), pg_temp.id('99')),
+  (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('23'), pg_temp.id('f3'), 3, 'addendum', '[]', '[]', '[]', '[]', '[]', '[]', '[]', '[]', pg_temp.id('43'), now(), pg_temp.id('99')) ON CONFLICT DO NOTHING;
 INSERT INTO anatomic.item_submissions (id, tenant_id, centre_id, case_id, case_item_id, item_version_no, report_version_id, idempotency_key, lab_result_id, lab_version_no, lab_status, replayed, submitted_at, created_by) VALUES
   (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('21'), pg_temp.id('f1'), pg_temp.id('f1'), 1, pg_temp.id('f1'), 'anatomic:01900000-0000-7000-8000-0000000000f1:1', pg_temp.id('f1'), 1, 'pending', false, now(), pg_temp.id('99')),
   (pg_temp.id('f2'), pg_temp.id('01'), pg_temp.id('22'), pg_temp.id('f2'), pg_temp.id('f2'), 2, pg_temp.id('f2'), 'anatomic:01900000-0000-7000-8000-0000000000f2:2', pg_temp.id('f2'), 2, 'pending', false, now(), pg_temp.id('99')),

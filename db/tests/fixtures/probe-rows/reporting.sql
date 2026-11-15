@@ -44,13 +44,13 @@ INSERT INTO reporting.deliveries (id, tenant_id, centre_id, channel, purpose, te
   (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('21'), 'whatsapp', 'registration_confirmation', 'frontdesk.registration_confirmation', 'patient', '{}', 'probe-1', 'queued', pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('f2'), pg_temp.id('01'), pg_temp.id('22'), 'whatsapp', 'registration_confirmation', 'frontdesk.recollection_request', 'patient', '{}', 'probe-2', 'queued', pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('23'), 'whatsapp', 'registration_confirmation', 'reporting.report_ready', 'patient', '{}', 'probe-3', 'queued', pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
-INSERT INTO reporting.portal_links (id, tenant_id, centre_id, report_id, bound_version_no, channel, recipient_kind, patient_display_snapshot, token_sha256, expires_at, created_at, created_by, updated_by) VALUES
-  (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('21'), pg_temp.id('f1'), 1, 'whatsapp', 'patient', 'probe-1', decode(repeat('02', 32), 'hex'), now(), now() - interval '1 day', pg_temp.id('99'), pg_temp.id('99')),
-  (pg_temp.id('f2'), pg_temp.id('01'), pg_temp.id('22'), pg_temp.id('f2'), 2, 'whatsapp', 'patient', 'probe-2', decode(repeat('03', 32), 'hex'), now(), now() - interval '1 day', pg_temp.id('99'), pg_temp.id('99')),
-  (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('23'), pg_temp.id('f3'), 3, 'whatsapp', 'patient', 'probe-3', decode(repeat('04', 32), 'hex'), now(), now() - interval '1 day', pg_temp.id('99'), pg_temp.id('99')),
-  (pg_temp.id('f4'), pg_temp.id('01'), pg_temp.id('21'), pg_temp.id('f4'), 4, 'whatsapp', 'patient', 'probe-4', decode(repeat('05', 32), 'hex'), now(), now() - interval '1 day', pg_temp.id('35'), pg_temp.id('99')),
-  (pg_temp.id('f5'), pg_temp.id('01'), pg_temp.id('21'), pg_temp.id('f5'), 5, 'whatsapp', 'patient', 'probe-5', decode(repeat('06', 32), 'hex'), now(), now() - interval '1 day', pg_temp.id('a3'), pg_temp.id('99')),
-  (pg_temp.id('f6'), pg_temp.id('01'), pg_temp.id('21'), pg_temp.id('f6'), 6, 'whatsapp', 'patient', 'probe-6', decode(repeat('07', 32), 'hex'), now(), now() - interval '1 day', pg_temp.id('34'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
+INSERT INTO reporting.portal_links (id, tenant_id, centre_id, report_id, bound_version_no, channel, recipient_kind, patient_display_snapshot, token_sha256, expires_at, created_by, updated_by) VALUES
+  (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('21'), pg_temp.id('f1'), 1, 'whatsapp', 'patient', 'probe-1', decode(repeat('02', 32), 'hex'), now() + interval '1 day', pg_temp.id('99'), pg_temp.id('99')),
+  (pg_temp.id('f2'), pg_temp.id('01'), pg_temp.id('22'), pg_temp.id('f2'), 2, 'whatsapp', 'patient', 'probe-2', decode(repeat('03', 32), 'hex'), now() + interval '1 day', pg_temp.id('99'), pg_temp.id('99')),
+  (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('23'), pg_temp.id('f3'), 3, 'whatsapp', 'patient', 'probe-3', decode(repeat('04', 32), 'hex'), now() + interval '1 day', pg_temp.id('99'), pg_temp.id('99')),
+  (pg_temp.id('f4'), pg_temp.id('01'), pg_temp.id('21'), pg_temp.id('f4'), 4, 'whatsapp', 'patient', 'probe-4', decode(repeat('05', 32), 'hex'), now() + interval '1 day', pg_temp.id('35'), pg_temp.id('99')),
+  (pg_temp.id('f5'), pg_temp.id('01'), pg_temp.id('21'), pg_temp.id('f5'), 5, 'whatsapp', 'patient', 'probe-5', decode(repeat('06', 32), 'hex'), now() + interval '1 day', pg_temp.id('a3'), pg_temp.id('99')),
+  (pg_temp.id('f6'), pg_temp.id('01'), pg_temp.id('21'), pg_temp.id('f6'), 6, 'whatsapp', 'patient', 'probe-6', decode(repeat('07', 32), 'hex'), now() + interval '1 day', pg_temp.id('34'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
 INSERT INTO reporting.delivery_attempts (id, tenant_id, delivery_id, attempt_no, started_at, outcome, created_by) VALUES
   (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('f1'), 1, now(), 'accepted', pg_temp.id('99')),
   (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('f3'), 3, now(), 'accepted', pg_temp.id('99')) ON CONFLICT DO NOTHING;
@@ -72,13 +72,13 @@ INSERT INTO reporting.otp_challenges (id, tenant_id, link_id, channel, expires_a
   (pg_temp.id('f4'), pg_temp.id('01'), pg_temp.id('f4'), 'sms', now(), pg_temp.id('35')),
   (pg_temp.id('f5'), pg_temp.id('01'), pg_temp.id('f5'), 'sms', now(), pg_temp.id('a3')),
   (pg_temp.id('f6'), pg_temp.id('01'), pg_temp.id('f6'), 'sms', now(), pg_temp.id('34')) ON CONFLICT DO NOTHING;
-INSERT INTO reporting.portal_payment_requests (id, tenant_id, link_id, report_id, order_id, gateway, expires_at, created_at, created_by, updated_by) VALUES
-  (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('f1'), pg_temp.id('f1'), pg_temp.id('f1'), 'esewa', now(), now() - interval '1 day', pg_temp.id('99'), pg_temp.id('99')),
-  (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('f3'), pg_temp.id('f3'), pg_temp.id('f3'), 'esewa', now(), now() - interval '1 day', pg_temp.id('99'), pg_temp.id('99')),
-  (pg_temp.id('f6'), pg_temp.id('01'), pg_temp.id('f6'), pg_temp.id('f6'), pg_temp.id('e0'), 'esewa', now(), now() - interval '1 day', pg_temp.id('34'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
 INSERT INTO reporting.portal_payment_requests (id, tenant_id, link_id, report_id, order_id, gateway, expires_at, created_by, updated_by) VALUES
-  (pg_temp.id('f4'), pg_temp.id('01'), pg_temp.id('f5'), pg_temp.id('f5'), pg_temp.id('f2'), 'khalti', now() + interval '1 hours', pg_temp.id('35'), pg_temp.id('99')),
-  (pg_temp.id('f5'), pg_temp.id('01'), pg_temp.id('f6'), pg_temp.id('f6'), pg_temp.id('e0'), 'khalti', now() + interval '1 hours', pg_temp.id('a3'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
+  (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('f1'), pg_temp.id('f1'), pg_temp.id('f1'), 'esewa', now() + interval '1 day', pg_temp.id('99'), pg_temp.id('99')),
+  (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('f3'), pg_temp.id('f3'), pg_temp.id('f3'), 'esewa', now() + interval '1 day', pg_temp.id('99'), pg_temp.id('99')),
+  (pg_temp.id('f5'), pg_temp.id('01'), pg_temp.id('f5'), pg_temp.id('f5'), pg_temp.id('f2'), 'esewa', now() + interval '1 day', pg_temp.id('a3'), pg_temp.id('99')),
+  (pg_temp.id('f6'), pg_temp.id('01'), pg_temp.id('f6'), pg_temp.id('f6'), pg_temp.id('e0'), 'esewa', now() + interval '1 day', pg_temp.id('34'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
+INSERT INTO reporting.portal_payment_requests (id, tenant_id, link_id, report_id, order_id, gateway, status, expires_at, created_by, updated_by) VALUES
+  (pg_temp.id('f4'), pg_temp.id('01'), pg_temp.id('f4'), pg_temp.id('f4'), pg_temp.id('f1'), 'esewa', 'expired', now() + interval '1 day', pg_temp.id('35'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
 INSERT INTO reporting.portal_sessions (id, tenant_id, link_id, report_id, token_sha256, last_seen_at, idle_expires_at, absolute_expires_at, created_by) VALUES
   (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('f1'), pg_temp.id('f1'), decode(repeat('02', 32), 'hex'), now(), now(), now(), pg_temp.id('99')),
   (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('f3'), pg_temp.id('f3'), decode(repeat('04', 32), 'hex'), now(), now(), now(), pg_temp.id('99')),
@@ -86,9 +86,9 @@ INSERT INTO reporting.portal_sessions (id, tenant_id, link_id, report_id, token_
   (pg_temp.id('f5'), pg_temp.id('01'), pg_temp.id('f5'), pg_temp.id('f5'), decode(repeat('06', 32), 'hex'), now(), now(), now(), pg_temp.id('a3')),
   (pg_temp.id('f6'), pg_temp.id('01'), pg_temp.id('f6'), pg_temp.id('f6'), decode(repeat('07', 32), 'hex'), now(), now(), now(), pg_temp.id('34')) ON CONFLICT DO NOTHING;
 INSERT INTO reporting.report_order_items (id, tenant_id, centre_id, report_id, order_id, order_item_id, orderable_id, orderable_kind, test_ids, priority, requires_lab, requires_narrative, requires_outsourced, created_by, updated_by) VALUES
-  (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('21'), pg_temp.id('f1'), pg_temp.id('f1'), pg_temp.id('f1'), pg_temp.id('f1'), 'test', ARRAY[pg_temp.id('f1')]::uuid[], 'routine', false, false, true, pg_temp.id('99'), pg_temp.id('99')),
-  (pg_temp.id('f2'), pg_temp.id('01'), pg_temp.id('22'), pg_temp.id('f2'), pg_temp.id('f2'), pg_temp.id('f2'), pg_temp.id('f2'), 'test', ARRAY[pg_temp.id('f2')]::uuid[], 'routine', false, false, true, pg_temp.id('99'), pg_temp.id('99')),
-  (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('23'), pg_temp.id('f3'), pg_temp.id('f3'), pg_temp.id('f3'), pg_temp.id('f3'), 'test', ARRAY[pg_temp.id('f3')]::uuid[], 'routine', false, false, true, pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
+  (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('21'), pg_temp.id('f1'), pg_temp.id('f1'), pg_temp.id('f1'), pg_temp.id('f1'), 'test', ARRAY[pg_temp.id('f1')]::uuid[], 'routine', true, false, false, pg_temp.id('99'), pg_temp.id('99')),
+  (pg_temp.id('f2'), pg_temp.id('01'), pg_temp.id('22'), pg_temp.id('f2'), pg_temp.id('f2'), pg_temp.id('f2'), pg_temp.id('f2'), 'test', ARRAY[pg_temp.id('f2')]::uuid[], 'routine', true, false, false, pg_temp.id('99'), pg_temp.id('99')),
+  (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('23'), pg_temp.id('f3'), pg_temp.id('f3'), pg_temp.id('f3'), pg_temp.id('f3'), 'test', ARRAY[pg_temp.id('f3')]::uuid[], 'routine', true, false, false, pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
 INSERT INTO reporting.report_versions (id, tenant_id, centre_id, report_id, order_id, patient_id, version_no, report_kind, completeness, order_item_ids, content_fingerprint, content_snapshot, content_sha256, template_version_id, reported_at, created_by, updated_by) VALUES
   (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('21'), pg_temp.id('f1'), pg_temp.id('f1'), pg_temp.id('f1'), 1, 'final', 'complete', ARRAY[pg_temp.id('f1')]::uuid[], '1111111111111111111111111111111111111111111111111111111111111111', '{}', '1111111111111111111111111111111111111111111111111111111111111111', pg_temp.id('f1'), now(), pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('f2'), pg_temp.id('01'), pg_temp.id('22'), pg_temp.id('f2'), pg_temp.id('f2'), pg_temp.id('f1'), 2, 'final', 'complete', ARRAY[pg_temp.id('f2')]::uuid[], '2222222222222222222222222222222222222222222222222222222222222222', '{}', '2222222222222222222222222222222222222222222222222222222222222222', pg_temp.id('f1'), now(), pg_temp.id('99'), pg_temp.id('99')),

@@ -37,18 +37,18 @@ INSERT INTO homecollection.handover_items (id, tenant_id, centre_id, to_centre_i
   (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('21'), pg_temp.id('21'), pg_temp.id('f1'), pg_temp.id('f1'), pg_temp.id('f1'), pg_temp.id('f1'), 'B', 'probe-1', pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('f2'), pg_temp.id('01'), pg_temp.id('22'), pg_temp.id('22'), pg_temp.id('f2'), pg_temp.id('f2'), pg_temp.id('f2'), pg_temp.id('f2'), 'C', 'probe-2', pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('23'), pg_temp.id('23'), pg_temp.id('f3'), pg_temp.id('f3'), pg_temp.id('f3'), pg_temp.id('f3'), 'D', 'probe-3', pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
-INSERT INTO homecollection.visit_assignments (id, tenant_id, centre_id, visit_id, route_id, membership_id, action, created_by) VALUES
-  (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('21'), pg_temp.id('f1'), pg_temp.id('f1'), pg_temp.id('41'), 'assign', pg_temp.id('99')),
-  (pg_temp.id('f2'), pg_temp.id('01'), pg_temp.id('22'), pg_temp.id('f2'), pg_temp.id('f2'), pg_temp.id('42'), 'assign', pg_temp.id('99')),
-  (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('23'), pg_temp.id('f3'), pg_temp.id('f3'), pg_temp.id('43'), 'assign', pg_temp.id('99')) ON CONFLICT DO NOTHING;
+INSERT INTO homecollection.visit_assignments (id, tenant_id, centre_id, visit_id, action, created_by) VALUES
+  (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('21'), pg_temp.id('f1'), 'unassign', pg_temp.id('99')),
+  (pg_temp.id('f2'), pg_temp.id('01'), pg_temp.id('22'), pg_temp.id('f2'), 'unassign', pg_temp.id('99')),
+  (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('23'), pg_temp.id('f3'), 'unassign', pg_temp.id('99')) ON CONFLICT DO NOTHING;
 INSERT INTO homecollection.visit_flags (id, tenant_id, centre_id, visit_id, kind, created_by, updated_by) VALUES
   (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('21'), pg_temp.id('f1'), 'address_missing', pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('f2'), pg_temp.id('01'), pg_temp.id('22'), pg_temp.id('f2'), 'address_missing', pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('23'), pg_temp.id('f3'), 'address_missing', pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
 INSERT INTO homecollection.visit_locations (id, tenant_id, centre_id, visit_id, mutation_id, kind, latitude, longitude, captured_at, created_by, expires_at) VALUES
-  (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('21'), pg_temp.id('f1'), pg_temp.id('f1'), 'arrived', 1, 1, now() - interval '1 day', pg_temp.id('99'), now()),
-  (pg_temp.id('f2'), pg_temp.id('01'), pg_temp.id('22'), pg_temp.id('f2'), pg_temp.id('f2'), 'arrived', 2, 2, now() - interval '1 day', pg_temp.id('99'), now()),
-  (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('23'), pg_temp.id('f3'), pg_temp.id('f3'), 'arrived', 3, 3, now() - interval '1 day', pg_temp.id('99'), now()) ON CONFLICT DO NOTHING;
+  (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('21'), pg_temp.id('f1'), pg_temp.id('f1'), 'arrived', 1, 1, now(), pg_temp.id('99'), now() + interval '1 day'),
+  (pg_temp.id('f2'), pg_temp.id('01'), pg_temp.id('22'), pg_temp.id('f2'), pg_temp.id('f2'), 'arrived', 2, 2, now(), pg_temp.id('99'), now() + interval '1 day'),
+  (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('23'), pg_temp.id('f3'), pg_temp.id('f3'), 'arrived', 3, 3, now(), pg_temp.id('99'), now() + interval '1 day') ON CONFLICT DO NOTHING;
 INSERT INTO homecollection.visit_specimens (id, tenant_id, centre_id, visit_id, specimen_id, order_id, specimen_type_code, status, created_by, updated_by) VALUES
   (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('21'), pg_temp.id('f1'), pg_temp.id('f1'), pg_temp.id('f1'), 'probe-1', 'ordered', pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('f2'), pg_temp.id('01'), pg_temp.id('22'), pg_temp.id('f2'), pg_temp.id('f2'), pg_temp.id('f2'), 'probe-2', 'ordered', pg_temp.id('99'), pg_temp.id('99')),

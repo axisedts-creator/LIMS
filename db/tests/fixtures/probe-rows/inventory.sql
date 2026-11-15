@@ -16,9 +16,9 @@ INSERT INTO inventory.items (id, tenant_id, item_code, name, category, base_uom_
 INSERT INTO inventory.item_packs (id, tenant_id, item_id, pack_code, label, uom_code, qty_in_base, created_by, updated_by) VALUES
   (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('f1'), 'B', 'probe-1', 'probe-1', 1, pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('f3'), 'D', 'probe-3', 'probe-3', 3, pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
-INSERT INTO inventory.consumption_rules (id, tenant_id, rule_kind, test_id, analyte_id, instrument_id, item_id, qty_base, entered_qty, entered_pack_id, effective_from, created_by, updated_by) VALUES
-  (pg_temp.id('f1'), pg_temp.id('01'), 'per_analyte', pg_temp.id('f1'), pg_temp.id('f1'), pg_temp.id('f1'), pg_temp.id('f1'), 1, 1, pg_temp.id('f1'), now(), pg_temp.id('99'), pg_temp.id('99')),
-  (pg_temp.id('f3'), pg_temp.id('02'), 'per_analyte', pg_temp.id('f3'), pg_temp.id('f3'), pg_temp.id('f3'), pg_temp.id('f3'), 3, 3, pg_temp.id('f3'), now(), pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
+INSERT INTO inventory.consumption_rules (id, tenant_id, rule_kind, test_id, item_id, qty_base, entered_qty, entered_pack_id, effective_from, created_by, updated_by) VALUES
+  (pg_temp.id('f1'), pg_temp.id('01'), 'per_test', pg_temp.id('f1'), pg_temp.id('f1'), 1, 1, pg_temp.id('f1'), now(), pg_temp.id('99'), pg_temp.id('99')),
+  (pg_temp.id('f3'), pg_temp.id('02'), 'per_test', pg_temp.id('f3'), pg_temp.id('f3'), 3, 3, pg_temp.id('f3'), now(), pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
 INSERT INTO inventory.item_barcodes (id, tenant_id, item_id, pack_id, barcode_value, created_by, updated_by) VALUES
   (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('f1'), pg_temp.id('f1'), '2', pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('f3'), pg_temp.id('f3'), '2', pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
@@ -31,17 +31,17 @@ INSERT INTO inventory.number_counters (tenant_id, series, period_key) VALUES
 INSERT INTO inventory.stores (id, tenant_id, branch_id, store_code, name, store_kind, created_by, updated_by) VALUES
   (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('11'), 'BC', 'probe-1', 'main', pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('12'), 'DE', 'probe-3', 'main', pg_temp.id('99'), pg_temp.id('99')),
-  (pg_temp.id('c1'), pg_temp.id('01'), pg_temp.id('11'), 'IJ', 'probe-8', 'main', pg_temp.id('99'), pg_temp.id('99')),
-  (pg_temp.id('c3'), pg_temp.id('02'), pg_temp.id('12'), 'KL', 'probe-10', 'main', pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
+  (pg_temp.id('c1'), pg_temp.id('01'), pg_temp.id('11'), 'HI', 'probe-7', 'main', pg_temp.id('99'), pg_temp.id('99')),
+  (pg_temp.id('c3'), pg_temp.id('02'), pg_temp.id('12'), 'JK', 'probe-9', 'main', pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
 INSERT INTO inventory.alerts (id, tenant_id, alert_kind, dedupe_key, first_raised_at, last_raised_at, details, created_by, updated_by) VALUES
   (pg_temp.id('f1'), pg_temp.id('01'), 'below_reorder', 'probe-1', now(), now(), '{}', pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('f3'), pg_temp.id('02'), 'below_reorder', 'probe-3', now(), now(), '{}', pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
 INSERT INTO inventory.consumption_daily (id, tenant_id, business_date, store_id, item_id, movement_kind, created_by, updated_by) VALUES
   (pg_temp.id('f1'), pg_temp.id('01'), now()::date, pg_temp.id('f1'), pg_temp.id('f1'), 'issue', pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('f3'), pg_temp.id('02'), now()::date, pg_temp.id('f3'), pg_temp.id('f3'), 'issue', pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
-INSERT INTO inventory.consumption_facts (id, tenant_id, fact_kind, basis_key, source, source_event_id, centre_id, occurred_at, business_date, status, created_by, updated_by) VALUES
-  (pg_temp.id('f1'), pg_temp.id('01'), 'test', 'probe-1', 'event', pg_temp.id('f1'), pg_temp.id('21'), now(), now()::date, 'posted', pg_temp.id('99'), pg_temp.id('99')),
-  (pg_temp.id('f3'), pg_temp.id('02'), 'test', 'probe-3', 'event', pg_temp.id('f3'), pg_temp.id('23'), now(), now()::date, 'posted', pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
+INSERT INTO inventory.consumption_facts (id, tenant_id, fact_kind, basis_key, source, centre_id, occurred_at, business_date, status, created_by, updated_by) VALUES
+  (pg_temp.id('f1'), pg_temp.id('01'), 'test', 'probe-1', 'manual', pg_temp.id('21'), now(), now()::date, 'posted', pg_temp.id('99'), pg_temp.id('99')),
+  (pg_temp.id('f3'), pg_temp.id('02'), 'test', 'probe-3', 'manual', pg_temp.id('23'), now(), now()::date, 'posted', pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
 INSERT INTO inventory.instrument_bindings (id, tenant_id, instrument_id, store_id, created_by, updated_by) VALUES
   (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('f1'), pg_temp.id('f1'), pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('f3'), pg_temp.id('f3'), pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
@@ -75,12 +75,12 @@ INSERT INTO inventory.opened_containers (id, tenant_id, store_id, item_id, lot_i
 INSERT INTO inventory.stock_documents (id, tenant_id, doc_no, doc_kind, store_id, occurred_at, created_by) VALUES
   (pg_temp.id('f1'), pg_temp.id('01'), 'probe-1', 'issue', pg_temp.id('f1'), now(), pg_temp.id('99')),
   (pg_temp.id('f3'), pg_temp.id('02'), 'probe-3', 'issue', pg_temp.id('f3'), now(), pg_temp.id('99')) ON CONFLICT DO NOTHING;
-INSERT INTO inventory.purchase_order_lines (id, tenant_id, po_id, line_no, item_id, pack_id, qty_packs, qty_in_base_snapshot, qty_base, unit_price_paisa, tax_rate_bp, net_paisa, vat_paisa, line_total_paisa, created_by, updated_by) VALUES
-  (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('f1'), 1, pg_temp.id('f1'), pg_temp.id('f1'), 1, 1, 1, 1, 0, 1, 0, 1, pg_temp.id('99'), pg_temp.id('99')),
-  (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('f3'), 3, pg_temp.id('f3'), pg_temp.id('f3'), 3, 1, 3, 3, 0, 3, 0, 3, pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
-INSERT INTO inventory.goods_receipt_lines (id, tenant_id, grn_id, line_no, item_id, pack_id, qty_packs, qty_in_base_snapshot, qty_base, unit_price_paisa, tax_rate_bp, net_paisa, vat_paisa, line_total_paisa, created_by, updated_by) VALUES
-  (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('f1'), 1, pg_temp.id('f1'), pg_temp.id('f1'), 1, 1, 1, 1, 0, 1, 0, 1, pg_temp.id('99'), pg_temp.id('99')),
-  (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('f3'), 3, pg_temp.id('f3'), pg_temp.id('f3'), 3, 1, 3, 3, 0, 3, 0, 3, pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
+INSERT INTO inventory.purchase_order_lines (id, tenant_id, po_id, line_no, item_id, pack_id, qty_packs, qty_in_base_snapshot, qty_base, unit_price_paisa, tax_code, tax_rate_bp, net_paisa, vat_paisa, line_total_paisa, created_by, updated_by) VALUES
+  (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('f1'), 1, pg_temp.id('f1'), pg_temp.id('f1'), 1, 1, 1, 1, 'B', 1, 1, 1, 2, pg_temp.id('99'), pg_temp.id('99')),
+  (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('f3'), 3, pg_temp.id('f3'), pg_temp.id('f3'), 3, 3, 9, 3, 'D', 3, 3, 3, 6, pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
+INSERT INTO inventory.goods_receipt_lines (id, tenant_id, grn_id, line_no, item_id, pack_id, qty_packs, qty_in_base_snapshot, qty_base, unit_price_paisa, tax_code, tax_rate_bp, net_paisa, vat_paisa, line_total_paisa, created_by, updated_by) VALUES
+  (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('f1'), 1, pg_temp.id('f1'), pg_temp.id('f1'), 1, 1, 1, 1, 'B', 1, 1, 1, 2, pg_temp.id('99'), pg_temp.id('99')),
+  (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('f3'), 3, pg_temp.id('f3'), pg_temp.id('f3'), 3, 3, 9, 3, 'D', 3, 3, 3, 6, pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
 INSERT INTO inventory.stock_document_lines (id, tenant_id, document_id, line_no, item_id, lot_id, direction, qty_base, value_paisa, created_by) VALUES
   (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('f1'), 1, pg_temp.id('f1'), pg_temp.id('f1'), 'in', 1, 1, pg_temp.id('99')),
   (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('f3'), 3, pg_temp.id('f3'), pg_temp.id('f3'), 'in', 3, 3, pg_temp.id('99')) ON CONFLICT DO NOTHING;
@@ -94,8 +94,8 @@ INSERT INTO inventory.test_counts_daily (id, tenant_id, business_date, test_id, 
   (pg_temp.id('f1'), pg_temp.id('01'), now()::date, pg_temp.id('f1'), pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('f3'), pg_temp.id('02'), now()::date, pg_temp.id('f3'), pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
 INSERT INTO inventory.transfers (id, tenant_id, transfer_no, from_store_id, to_store_id, created_by, updated_by) VALUES
-  (pg_temp.id('f1'), pg_temp.id('01'), 'probe-1', pg_temp.id('f1'), pg_temp.id('c1'), pg_temp.id('99'), pg_temp.id('99')),
-  (pg_temp.id('f3'), pg_temp.id('02'), 'probe-3', pg_temp.id('f3'), pg_temp.id('c3'), pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
+  (pg_temp.id('f1'), pg_temp.id('01'), 'probe-1', pg_temp.id('c1'), pg_temp.id('f1'), pg_temp.id('99'), pg_temp.id('99')),
+  (pg_temp.id('f3'), pg_temp.id('02'), 'probe-3', pg_temp.id('c3'), pg_temp.id('f3'), pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
 INSERT INTO inventory.transfer_lines (id, tenant_id, transfer_id, line_no, item_id, lot_id, qty_base, created_by, updated_by) VALUES
   (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('f1'), 1, pg_temp.id('f1'), pg_temp.id('f1'), 1, pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('f3'), 3, pg_temp.id('f3'), pg_temp.id('f3'), 3, pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;

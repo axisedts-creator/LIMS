@@ -601,8 +601,8 @@ describe("generator: deterministic, gated by --check, and nothing in the probe a
     assert.equal(r.status, 0, `${r.stdout}\n${r.stderr}`);
     return r.stderr.split(/\r?\n/).filter((l) => /: warning: /.test(l)).map((l) => l.replace(/^.*?: warning: /, ""));
   };
-  it("--report prints no 'CHECK not satisfied statically' line: no emitted row is known to violate a CHECK (e.g. micro.instrument_records__payload__ck)", () => {
-    none(reportWarnings().filter((w) => /CHECK not satisfied statically/.test(w)), "rows statically failing a CHECK");
+  it("--report prints no 'CHECK ... not satisfied/satisfiable statically' line: no emitted row is known to violate a CHECK (e.g. micro.instrument_records__payload__ck)", () => {
+    none(reportWarnings().filter((w) => /\bCHECK\b.*\bnot satisf(ied|iable)\b.*\bstatically\b/.test(w)), "rows statically failing a CHECK");
   });
   it("--report: no non-excepted table has a slot that a partial UNIQUE index would drop under ON CONFLICT DO NOTHING (step-1 actor/tenant/centre preconditions)", () => {
     none(reportWarnings().filter((w) => /collides with a partial UNIQUE index/.test(w)).filter((w) => !EX.tables.has(w.split(":")[0])), "dropped slots not listed in the exceptions CR");

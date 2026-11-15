@@ -83,8 +83,8 @@ INSERT INTO analytics.schedules (id, tenant_id, name, report_codes, frequency, s
   (pg_temp.id('f1'), pg_temp.id('01'), 'probe-1', '{probe-1}', 'daily', '08:00', 'previous_business_day', false, pg_temp.id('41'), pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('f3'), pg_temp.id('02'), 'probe-3', '{probe-3}', 'daily', '08:00', 'previous_business_day', false, pg_temp.id('43'), pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
 INSERT INTO analytics.report_runs (id, tenant_id, schedule_id, slot_start, report_codes, period_from, period_to, scope_all_centres, created_by, expires_at) VALUES
-  (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('f1'), now(), '{}', now()::date - 1, now()::date, false, pg_temp.id('99'), now()),
-  (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('f3'), now(), '{}', now()::date - 1, now()::date, false, pg_temp.id('99'), now()) ON CONFLICT DO NOTHING;
+  (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('f1'), now(), '{}', now()::date, now()::date + 1, false, pg_temp.id('99'), now()),
+  (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('f3'), now(), '{}', now()::date, now()::date + 1, false, pg_temp.id('99'), now()) ON CONFLICT DO NOTHING;
 INSERT INTO analytics.report_run_recipients (id, tenant_id, report_run_id, schedule_id, membership_id, outcome, created_by, expires_at) VALUES
   (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('f1'), pg_temp.id('f1'), pg_temp.id('41'), 'queued', pg_temp.id('99'), now()),
   (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('f3'), pg_temp.id('f3'), pg_temp.id('43'), 'queued', pg_temp.id('99'), now()) ON CONFLICT DO NOTHING;

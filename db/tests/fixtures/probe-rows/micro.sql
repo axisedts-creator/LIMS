@@ -13,10 +13,10 @@ INSERT INTO micro.breakpoint_sets (id, tenant_id, standard, standard_version, ti
 INSERT INTO micro.breakpoint_import_issues (id, tenant_id, set_id, severity, code, message, created_by) VALUES
   (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('f1'), 'error', 'row.ff', 'probe-1', pg_temp.id('99')),
   (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('f3'), 'error', 'row.hh', 'probe-3', pg_temp.id('99')) ON CONFLICT DO NOTHING;
-INSERT INTO micro.breakpoint_rows (id, tenant_id, set_id, line_no, organism_scope, organism_code, antibiotic_code, method, created_by) VALUES
-  (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('f1'), 1, 'organism', 'probe-1', 'probe-1', 'mic', pg_temp.id('99')),
-  (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('f3'), 3, 'organism', 'probe-3', 'probe-3', 'mic', pg_temp.id('99')) ON CONFLICT DO NOTHING;
-INSERT INTO micro.breakpoint_bands (id, tenant_id, set_id, row_id, band_no, category_code, upper_value, created_by) VALUES
+INSERT INTO micro.breakpoint_rows (id, tenant_id, set_id, line_no, organism_scope, antibiotic_code, method, created_by) VALUES
+  (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('f1'), 1, 'any', 'probe-1', 'mic', pg_temp.id('99')),
+  (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('f3'), 3, 'any', 'probe-3', 'mic', pg_temp.id('99')) ON CONFLICT DO NOTHING;
+INSERT INTO micro.breakpoint_bands (id, tenant_id, set_id, row_id, band_no, category_code, lower_value, created_by) VALUES
   (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('f1'), pg_temp.id('f1'), 1, 'probe-1', 1, pg_temp.id('99')),
   (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('f3'), pg_temp.id('f3'), 3, 'probe-3', 3, pg_temp.id('99')) ON CONFLICT DO NOTHING;
 INSERT INTO micro.cs_antibiotics (id, tenant_id, code, display, created_by, updated_by) VALUES
@@ -77,10 +77,10 @@ INSERT INTO micro.ast_results (id, tenant_id, centre_id, culture_id, isolate_id,
   (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('21'), pg_temp.id('f1'), pg_temp.id('f1'), 'probe-1', 'mic', 'manual', pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('f2'), pg_temp.id('01'), pg_temp.id('22'), pg_temp.id('f2'), pg_temp.id('f2'), 'probe-2', 'mic', 'manual', pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('23'), pg_temp.id('f3'), pg_temp.id('f3'), 'probe-3', 'mic', 'manual', pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
-INSERT INTO micro.instrument_records (id, tenant_id, centre_id, event_id, idempotency_key, instrument_message_id, instrument_id, sample_barcode, record_kind, instrument_analyte_code, received_at, match_status, created_by, updated_by) VALUES
-  (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('21'), pg_temp.id('f1'), 'probe-1', pg_temp.id('f1'), pg_temp.id('f1'), 'probe-1', 'organism_id', 'probe-1', now(), 'pending_match', pg_temp.id('99'), pg_temp.id('99')),
-  (pg_temp.id('f2'), pg_temp.id('01'), pg_temp.id('22'), pg_temp.id('f2'), 'probe-2', pg_temp.id('f2'), pg_temp.id('f2'), 'probe-2', 'organism_id', 'probe-2', now(), 'pending_match', pg_temp.id('99'), pg_temp.id('99')),
-  (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('23'), pg_temp.id('f3'), 'probe-3', pg_temp.id('f3'), pg_temp.id('f3'), 'probe-3', 'organism_id', 'probe-3', now(), 'pending_match', pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
+INSERT INTO micro.instrument_records (id, tenant_id, centre_id, event_id, idempotency_key, instrument_message_id, instrument_id, sample_barcode, record_kind, instrument_analyte_code, organism_code_raw, received_at, match_status, created_by, updated_by) VALUES
+  (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('21'), pg_temp.id('f1'), 'probe-1', pg_temp.id('f1'), pg_temp.id('f1'), 'probe-1', 'organism_id', 'probe-1', 'probe-1', now(), 'pending_match', pg_temp.id('99'), pg_temp.id('99')),
+  (pg_temp.id('f2'), pg_temp.id('01'), pg_temp.id('22'), pg_temp.id('f2'), 'probe-2', pg_temp.id('f2'), pg_temp.id('f2'), 'probe-2', 'organism_id', 'probe-2', 'probe-2', now(), 'pending_match', pg_temp.id('99'), pg_temp.id('99')),
+  (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('23'), pg_temp.id('f3'), 'probe-3', pg_temp.id('f3'), pg_temp.id('f3'), 'probe-3', 'organism_id', 'probe-3', 'probe-3', now(), 'pending_match', pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
 INSERT INTO micro.culture_observations (id, tenant_id, centre_id, culture_id, plate_id, kind, growth_code, observed_at, created_by) VALUES
   (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('21'), pg_temp.id('f1'), pg_temp.id('f1'), 'plate_read', 'probe-1', now(), pg_temp.id('99')),
   (pg_temp.id('f2'), pg_temp.id('01'), pg_temp.id('22'), pg_temp.id('f2'), pg_temp.id('f2'), 'plate_read', 'probe-2', now(), pg_temp.id('99')),

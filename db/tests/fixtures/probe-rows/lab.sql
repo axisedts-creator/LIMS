@@ -16,7 +16,7 @@ INSERT INTO lab.cs_rejection_reasons (id, tenant_id, code, display, created_by, 
 INSERT INTO lab.cs_return_reasons (id, tenant_id, code, display, created_by, updated_by) VALUES
   (pg_temp.id('f1'), pg_temp.id('01'), 'b', 'probe-1', pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('f3'), pg_temp.id('02'), 'd', 'probe-3', pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
-INSERT INTO lab.delta_check_rules (id, tenant_id, rule_id, rule_version, analyte_id, unit_code, window_seconds, pct_threshold, effective_from, created_by, updated_by) VALUES
+INSERT INTO lab.delta_check_rules (id, tenant_id, rule_id, rule_version, analyte_id, unit_code, window_seconds, abs_threshold, effective_from, created_by, updated_by) VALUES
   (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('f1'), 1, pg_temp.id('f1'), 'probe-1', 3600, 1, now(), pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('f3'), 3, pg_temp.id('f3'), 'probe-3', 3600, 3, now(), pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
 INSERT INTO lab.lab_settings (tenant_id, created_by, updated_by) VALUES
@@ -83,10 +83,9 @@ INSERT INTO lab.result_observations (id, tenant_id, centre_id, result_id, source
   (pg_temp.id('f2'), pg_temp.id('01'), pg_temp.id('22'), pg_temp.id('f2'), 'instrument', pg_temp.id('99')),
   (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('23'), pg_temp.id('f3'), 'instrument', pg_temp.id('99')) ON CONFLICT DO NOTHING;
 INSERT INTO lab.result_versions (id, tenant_id, centre_id, result_id, version_no, origin, is_critical, approved_at, approved_by_membership_id, created_by, updated_by) VALUES
-  (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('21'), pg_temp.id('f1'), 1, 'instrument', false, now(), pg_temp.id('f1'), pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
-INSERT INTO lab.result_versions (id, tenant_id, centre_id, result_id, version_no, origin, is_critical, approved_at, approved_by_membership_id, amendment_reason_code, created_by, updated_by) VALUES
-  (pg_temp.id('f2'), pg_temp.id('01'), pg_temp.id('22'), pg_temp.id('f2'), 2, 'instrument', false, now(), pg_temp.id('f2'), 'probe-2', pg_temp.id('99'), pg_temp.id('99')),
-  (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('23'), pg_temp.id('f3'), 3, 'instrument', false, now(), pg_temp.id('f3'), 'probe-3', pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
+  (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('21'), pg_temp.id('f1'), 1, 'instrument', false, now(), pg_temp.id('f1'), pg_temp.id('99'), pg_temp.id('99')),
+  (pg_temp.id('f2'), pg_temp.id('01'), pg_temp.id('22'), pg_temp.id('f2'), 1, 'instrument', false, now(), pg_temp.id('f2'), pg_temp.id('99'), pg_temp.id('99')),
+  (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('23'), pg_temp.id('f3'), 1, 'instrument', false, now(), pg_temp.id('f3'), pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
 INSERT INTO lab.specimen_transitions (id, tenant_id, centre_id, specimen_id, transition_code, to_status, specimen_version, occurred_at, actor_type, actor_id, created_by) VALUES
   (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('21'), pg_temp.id('f1'), 'S12', 'probe-1', 1, now(), 'user', pg_temp.id('32'), pg_temp.id('99')),
   (pg_temp.id('f2'), pg_temp.id('01'), pg_temp.id('22'), pg_temp.id('f2'), 'S3', 'probe-2', 2, now(), 'user', pg_temp.id('32'), pg_temp.id('99')),

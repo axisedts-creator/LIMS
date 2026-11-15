@@ -7,9 +7,9 @@ INSERT INTO frontdesk.cs_reasons (tenant_id, set_name, code, display, sort_order
 INSERT INTO frontdesk.number_counters (tenant_id, counter_kind, scope_key, created_by, updated_by) VALUES
   (pg_temp.id('01'), 'patient_code', 'probe-1', pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('02'), 'patient_code', 'probe-3', pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
-INSERT INTO frontdesk.patients (id, tenant_id, patient_code, full_name, sex, registered_centre_id, created_by, updated_by) VALUES
-  (pg_temp.id('f1'), pg_temp.id('01'), 'probe-1', 'probe-1', 'male', pg_temp.id('21'), pg_temp.id('99'), pg_temp.id('99')),
-  (pg_temp.id('f3'), pg_temp.id('02'), 'probe-3', 'probe-3', 'male', pg_temp.id('23'), pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
+INSERT INTO frontdesk.patients (id, tenant_id, patient_code, sex, registered_centre_id, anonymised_at, created_by, updated_by) VALUES
+  (pg_temp.id('f1'), pg_temp.id('01'), 'probe-1', 'male', pg_temp.id('21'), now(), pg_temp.id('99'), pg_temp.id('99')),
+  (pg_temp.id('f3'), pg_temp.id('02'), 'probe-3', 'male', pg_temp.id('23'), now(), pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
 INSERT INTO frontdesk.discount_approvals (id, tenant_id, centre_id, requested_by_membership_id, patient_id, base_fingerprint, discounts, gross_paisa, computed_discount_paisa, percent_of_gross_bp, reason_code, status, expires_at, created_by, updated_by) VALUES
   (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('21'), pg_temp.id('f1'), pg_temp.id('f1'), '1111111111111111111111111111111111111111111111111111111111111111', '{}', 1, 1, 1, 'probe-1', 'pending', now(), pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('f2'), pg_temp.id('01'), pg_temp.id('22'), pg_temp.id('f2'), pg_temp.id('f1'), '2222222222222222222222222222222222222222222222222222222222222222', '{}', 2, 2, 2, 'probe-2', 'pending', now(), pg_temp.id('99'), pg_temp.id('99')),
@@ -22,10 +22,10 @@ INSERT INTO frontdesk.orders (id, tenant_id, branch_id, centre_id, patient_id, r
 INSERT INTO frontdesk.booking_links (tenant_id, source, source_ref_id, state, last_seq, created_by, updated_by) VALUES
   (pg_temp.id('01'), 'engagement_booking', pg_temp.id('f1'), 'converted', 1, pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('02'), 'engagement_booking', pg_temp.id('f3'), 'converted', 3, pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
-INSERT INTO frontdesk.order_flags (id, tenant_id, centre_id, order_id, kind, specimen_id, created_by, updated_by) VALUES
-  (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('21'), pg_temp.id('f1'), 'recollection_required', pg_temp.id('f1'), pg_temp.id('99'), pg_temp.id('99')),
-  (pg_temp.id('f2'), pg_temp.id('01'), pg_temp.id('22'), pg_temp.id('f2'), 'recollection_required', pg_temp.id('f2'), pg_temp.id('99'), pg_temp.id('99')),
-  (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('23'), pg_temp.id('f3'), 'recollection_required', pg_temp.id('f3'), pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
+INSERT INTO frontdesk.order_flags (id, tenant_id, centre_id, order_id, kind, created_by, updated_by) VALUES
+  (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('21'), pg_temp.id('f1'), 'booking_cancelled_after_registration', pg_temp.id('99'), pg_temp.id('99')),
+  (pg_temp.id('f2'), pg_temp.id('01'), pg_temp.id('22'), pg_temp.id('f2'), 'booking_cancelled_after_registration', pg_temp.id('99'), pg_temp.id('99')),
+  (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('23'), pg_temp.id('f3'), 'booking_cancelled_after_registration', pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
 INSERT INTO frontdesk.order_items (id, tenant_id, order_id, centre_id, orderable_id, orderable_kind, code, name, test_ids, priority, unit_price_paisa, price_list_id, price_list_version, price_source, vat_treatment, added_in_items_version, created_by, updated_by) VALUES
   (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('f1'), pg_temp.id('21'), pg_temp.id('f1'), 'test', 'probe-1', 'probe-1', ARRAY[pg_temp.id('f1')]::uuid[], 'routine', 1, pg_temp.id('f1'), 1, 'explicit', 'exempt', 1, pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('f2'), pg_temp.id('01'), pg_temp.id('f2'), pg_temp.id('22'), pg_temp.id('f2'), 'test', 'probe-2', 'probe-2', ARRAY[pg_temp.id('f2')]::uuid[], 'routine', 2, pg_temp.id('f2'), 2, 'explicit', 'exempt', 2, pg_temp.id('99'), pg_temp.id('99')),

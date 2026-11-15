@@ -88,13 +88,15 @@ export async function middleware(req: NextRequest) {
   const path = req.nextUrl.pathname;
   if (!SESSION_EXEMPT.some((re) => re.test(path))) {
     const sid = readSessionId(req.headers.get('cookie'));
-    // LD-200 (2026-11-15, CR-C1-WEB-STYLE-1 option 3): documents go to the real sign-in screen; Location is a
-    // fixed relative literal (never built from request data → no open redirect); JSON keeps problem+json 401.
+    // LD-200 (2026-11-15, CR-C1-WEB-STYLE-1 option 3): documents go to the real sign-in screen; JSON keeps problem+json 401.
+    // LD-203 (2026-11-15, WEB-AUTH-REDIRECT-2): reproduced on `next start`: a relative Location makes Next throw
+    // "TypeError: Invalid URL" → 500. Location is an absolute URL: fixed literal path (never request data → no open
+    // redirect) on the request's own origin.
     const unauth = (p: Problem, reason: 'expired' | 'missing') =>
       wantsJson(req)
         ? problemResponse(p, 401, csp)
         : secure(
-            new NextResponse(null, { status: 307, headers: { location: reason === 'expired' ? '/auth/session-expired' : '/auth/login' } }),
+            NextResponse.redirect(new URL(reason === 'expired' ? '/auth/session-expired' : '/auth/login', req.nextUrl.origin), 307),
             csp,
           );
 

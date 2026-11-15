@@ -1,0 +1,513 @@
+diff --git a/db/tests/app/T0B-02_helpers.test.sql b/db/tests/app/T0B-02_helpers.test.sql
+index 455a9c4b..89adf07a 100644
+--- a/db/tests/app/T0B-02_helpers.test.sql
++++ b/db/tests/app/T0B-02_helpers.test.sql
+@@ -41,8 +41,10 @@ SELECT is(has_schema_privilege('supabase_auth_admin', 'app', 'USAGE'), false, 's
+ SELECT ok(EXISTS (SELECT 1 FROM pg_default_acl d WHERE d.defaclrole = 'lims_owner'::regrole AND d.defaclobjtype = 'f'
+   AND NOT EXISTS (SELECT 1 FROM aclexplode(d.defaclacl) a WHERE a.grantee = 0)),
+   'lims_owner default ACL for functions has no PUBLIC EXECUTE');
+-SELECT ok(EXISTS (SELECT 1 FROM pg_default_acl d WHERE d.defaclrole = 'lims_owner'::regrole AND d.defaclobjtype = 'r'
+-  AND NOT EXISTS (SELECT 1 FROM aclexplode(d.defaclacl) a WHERE a.grantee = 0)),
++-- LD-230 (9): PostgreSQL drops the pg_default_acl row once REVOKE ALL ON TABLES FROM PUBLIC makes it equal the built-in default
++-- (owner-only, no PUBLIC), so assert that no lims_owner tables default-ACL row (global or per schema) grants anything to PUBLIC.
++SELECT is_empty($$SELECT a.privilege_type FROM pg_default_acl d, aclexplode(d.defaclacl) a
++   WHERE d.defaclrole = 'lims_owner'::regrole AND d.defaclobjtype = 'r' AND a.grantee = 0$$,
+   'lims_owner default ACL for tables has no PUBLIC rights');
+ SELECT ok(EXISTS (SELECT 1 FROM pg_default_acl d WHERE d.defaclrole = r::regrole AND d.defaclobjtype = 'f'
+   AND NOT EXISTS (SELECT 1 FROM aclexplode(d.defaclacl) a WHERE a.grantee = 0)),
+diff --git a/db/tests/core/T0B-03_audit.test.sql b/db/tests/core/T0B-03_audit.test.sql
+index 8fe320eb..f5c54a83 100644
+--- a/db/tests/core/T0B-03_audit.test.sql
++++ b/db/tests/core/T0B-03_audit.test.sql
+@@ -146,7 +146,8 @@ SELECT is((SELECT row_id FROM audit.audit_log WHERE table_name = 'membership_cen
+ SELECT is((SELECT changed_columns FROM audit.audit_log WHERE table_name = 'membership_centres' AND action = 'DELETE'), '{}'::text[], 'DELETE: changed_columns = {}');
+ SELECT is(pg_temp.w(pg_temp.uA(), format($$INSERT INTO core.membership_centres (tenant_id, membership_id, centre_id, created_by) VALUES (%L, %L, %L, %L)$$,
+   pg_temp.id('01'), pg_temp.id('42'), pg_temp.id('22'), pg_temp.id('31'))), 'n=1', 'INSERT membership_centres');
+-SELECT is((SELECT new_values ->> 'membership_id' FROM audit.audit_log WHERE table_name = 'membership_centres' AND action = 'INSERT'), pg_temp.id('42')::text, 'INSERT of an association row: new_values = full row');
++-- LD-230 (6): the seeds and the line-48 fixture also leave membership_centres INSERT audit rows; select the one of this INSERT (tenant 01, centre 22)
++SELECT is((SELECT new_values ->> 'membership_id' FROM audit.audit_log WHERE table_name = 'membership_centres' AND action = 'INSERT' AND tenant_id = pg_temp.id('01') AND new_values ->> 'centre_id' = pg_temp.id('22')::text), pg_temp.id('42')::text, 'INSERT of an association row: new_values = full row');
+ 
+ -- excluded-column argument (CR-C15-013): the column never reaches audit_log
+ SELECT is(pg_temp.w(pg_temp.uA(), format($$INSERT INTO core.t0b03_audited_x (id, tenant_id, note, secret) VALUES (%L, %L, 'x0', 'TOP-SECRET')$$, pg_temp.id('ac'), pg_temp.id('01'))), 'n=1', 'excluded-arg stand-in insert');
+diff --git a/db/tests/definers/T0B-08_contracts_helpers.test.sql b/db/tests/definers/T0B-08_contracts_helpers.test.sql
+index 1fa0aaf3..6bc36255 100644
+--- a/db/tests/definers/T0B-08_contracts_helpers.test.sql
++++ b/db/tests/definers/T0B-08_contracts_helpers.test.sql
+@@ -47,8 +47,8 @@ INSERT INTO core.memberships (id, tenant_id, user_id, actor_type, all_centres, c
+   (pg_temp.id('42'), pg_temp.id('01'), pg_temp.id('32'), 'user', true,  pg_temp.id('99'), pg_temp.id('99'));
+ INSERT INTO core.membership_centres (tenant_id, membership_id, centre_id, created_by) VALUES (pg_temp.id('01'), pg_temp.id('41'), pg_temp.id('21'), pg_temp.id('99'));
+ INSERT INTO identity.platform_staff (id, user_id, email_normalized, display_name, role_code, is_active, created_by, updated_by) VALUES
+-  (pg_temp.id('61'), pg_temp.id('81'), 'a@example.test', 'Staff A', 'platform_admin', true,  pg_temp.id('99'), pg_temp.id('99')),
+-  (pg_temp.id('62'), pg_temp.id('82'), 'b@example.test', 'Staff B', 'platform_admin', false, pg_temp.id('99'), pg_temp.id('99'))
++  (pg_temp.id('61'), pg_temp.id('81'), 'a@example.test', 'Staff A', 'platform_superadmin', true,  pg_temp.id('99'), pg_temp.id('99')),
++  (pg_temp.id('62'), pg_temp.id('82'), 'b@example.test', 'Staff B', 'platform_superadmin', false, pg_temp.id('99'), pg_temp.id('99'))
+   ON CONFLICT DO NOTHING;
+ SET LOCAL session_replication_role = origin;
+ 
+diff --git a/db/tests/definers/T0B-08_contracts_platform.test.sql b/db/tests/definers/T0B-08_contracts_platform.test.sql
+index ee4c7aa7..a6fa12d5 100644
+--- a/db/tests/definers/T0B-08_contracts_platform.test.sql
++++ b/db/tests/definers/T0B-08_contracts_platform.test.sql
+@@ -46,7 +46,7 @@ INSERT INTO core.users (tenant_id, id, display_name, email_hmac, created_by, upd
+   (pg_temp.id('01'), pg_temp.id('31'), 'User 31', decode(repeat('ab', 32), 'hex'), pg_temp.id('99'), pg_temp.id('99')),
+   (pg_temp.id('02'), pg_temp.id('33'), 'User 33', decode(repeat('ab', 32), 'hex'), pg_temp.id('99'), pg_temp.id('99'));
+ INSERT INTO identity.platform_staff (id, user_id, email_normalized, display_name, role_code, is_active, created_by, updated_by) VALUES
+-  (pg_temp.id('61'), pg_temp.id('81'), 'a@example.test', 'Staff A', 'platform_admin', true, pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
++  (pg_temp.id('61'), pg_temp.id('81'), 'a@example.test', 'Staff A', 'platform_superadmin', true, pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
+ SET LOCAL session_replication_role = origin;
+ 
+ -- ======================================================================== app.cron_tenant_ids (schema test 22)
+diff --git a/db/tests/engagement/T-A2_resolve_preauth.test.sql b/db/tests/engagement/T-A2_resolve_preauth.test.sql
+index 3edd2547..8e902b20 100644
+--- a/db/tests/engagement/T-A2_resolve_preauth.test.sql
++++ b/db/tests/engagement/T-A2_resolve_preauth.test.sql
+@@ -77,9 +77,13 @@ SELECT is(pg_temp.api('SELECT * FROM app.engagement_resolve_preauth(NULL, ' || p
+ SELECT is(pg_temp.api('SELECT * FROM app.engagement_resolve_preauth(''tpa_a'', ''\x00''::bytea)', 'n'), '0', 'hash of the wrong length (1 byte) -> no row');
+ SELECT is(pg_temp.api('SELECT * FROM app.engagement_resolve_preauth(''tpa_a'', ''\x' || repeat('ab', 33) || '''::bytea)', 'n'), '0', 'hash of the wrong length (33 bytes) -> no row');
+ SELECT is(pg_temp.api('SELECT * FROM app.engagement_resolve_preauth(''tpa_a'', ''\x' || encode(pg_temp.h(1), 'hex') || '00''::bytea)', 'n'), '0', 'the right hash plus a trailing byte -> no row (no prefix matching)');
++-- LD-230 (4): the fixture UPDATE is row-audited (app.tg_row_audit needs a claims sub, audit_log__insert__owner_only the row tenant): tenant A system claims
++SELECT set_config('request.jwt.claims', jsonb_build_object('tenant_id', pg_temp.id(1), 'sub', pg_temp.id(99), 'actor_type', 'system')::text, true);
+ UPDATE core.tenants SET status = 'suspended' WHERE id = pg_temp.id(1);
+ SELECT is(pg_temp.api('SELECT * FROM app.engagement_resolve_preauth(''tpa_a'', ' || pg_temp.qh(1) || ')', 'n'), '0', 'the same credential stops resolving the moment its tenant is suspended');
++SELECT set_config('request.jwt.claims', jsonb_build_object('tenant_id', pg_temp.id(1), 'sub', pg_temp.id(99), 'actor_type', 'system')::text, true);
+ UPDATE core.tenants SET status = 'active' WHERE id = pg_temp.id(1);
++SELECT set_config('request.jwt.claims', '', true);
+ 
+ -- ---------------------------------------------------------------- (b) a lims_app / lims_api session that sets the GUC itself sees nothing (owner-only policies, FORCE RLS)
+ SELECT is(pg_temp.x('lims_api', NULL, 'SELECT set_config(''app.pre_engagement_otp_token_sha256'', encode(' || pg_temp.qh(1) || ', ''hex''), true)',
+diff --git a/db/tests/engagement/T-A3_pre_acc.test.sql b/db/tests/engagement/T-A3_pre_acc.test.sql
+index faed3b23..024fc7bc 100644
+--- a/db/tests/engagement/T-A3_pre_acc.test.sql
++++ b/db/tests/engagement/T-A3_pre_acc.test.sql
+@@ -67,10 +67,11 @@ SELECT is(pg_temp.pre(201, 1, 11, 'SELECT * FROM engagement.accounts WHERE tenan
+ 
+ -- ---------------------------------------------------------------- INSERT: only the verified phone (WITH CHECK)
+ SELECT is(pg_temp.pre(204, 1, 14, pg_temp.ins(1, '+99002000005', 204), 'w'), '1', 'INSERT for the phone of the caller''s verified challenge works (first sign-in)');
+-SELECT like(pg_temp.pre(201, 1, 11, pg_temp.ins(1, '+99002000008', 201), 'w'), 'E42501:%', 'INSERT for ANOTHER phone is refused by WITH CHECK (42501)');
+-SELECT like(pg_temp.pre(202, 1, 12, pg_temp.ins(1, '+99002000002', 202), 'w'), 'E42501:%', 'INSERT for the phone of a challenge that is only `sent` is refused');
+-SELECT like(pg_temp.pre(201, 1, NULL, pg_temp.ins(1, '+99002000001', 201), 'w'), 'E42501:%', 'INSERT without otp_token_sha256 is refused');
+-SELECT like(pg_temp.pre(201, 1, 11, pg_temp.ins(2, '+99002000001', 201), 'w'), 'E42501:%', 'INSERT into ANOTHER tenant with the right phone is refused');
++-- LD-230 (3): pgTAP has no like()/unlike(); matches()/doesnt_match() with the anchored regex of the same LIKE pattern (% -> .*, _ -> .)
++SELECT matches(pg_temp.pre(201, 1, 11, pg_temp.ins(1, '+99002000008', 201), 'w'), '^E42501:.*$', 'INSERT for ANOTHER phone is refused by WITH CHECK (42501)');
++SELECT matches(pg_temp.pre(202, 1, 12, pg_temp.ins(1, '+99002000002', 202), 'w'), '^E42501:.*$', 'INSERT for the phone of a challenge that is only `sent` is refused');
++SELECT matches(pg_temp.pre(201, 1, NULL, pg_temp.ins(1, '+99002000001', 201), 'w'), '^E42501:.*$', 'INSERT without otp_token_sha256 is refused');
++SELECT matches(pg_temp.pre(201, 1, 11, pg_temp.ins(2, '+99002000001', 201), 'w'), '^E42501:.*$', 'INSERT into ANOTHER tenant with the right phone is refused');
+ 
+ -- ---------------------------------------------------------------- UPDATE / DELETE
+ SELECT is(pg_temp.pre(201, 1, 11, 'UPDATE engagement.accounts SET last_app_platform = ''android'' WHERE phone_e164 = ''+99002000001''', 'w'), '1', 'the verify path may update the verified phone''s account (membership_id, last_login_at, last_app_*)');
+diff --git a/db/tests/engagement/T-OPS1_purge.test.sql b/db/tests/engagement/T-OPS1_purge.test.sql
+index 3a86b459..21dad7ec 100644
+--- a/db/tests/engagement/T-OPS1_purge.test.sql
++++ b/db/tests/engagement/T-OPS1_purge.test.sql
+@@ -152,7 +152,8 @@ SELECT is(pg_temp.app('system', 1, 'DELETE FROM engagement.number_counters'), '1
+ SELECT is(pg_temp.cnt('otp_challenges', 1) || '/' || pg_temp.cnt('notifications', 1) || '/' || pg_temp.cnt('number_counters', 1), '2/1/2', 'tenant A survivors: 2 otp, 1 notification, 2 counters');
+ SELECT is(pg_temp.cnt('otp_challenges', 2) || '/' || pg_temp.cnt('notifications', 2) || '/' || pg_temp.cnt('number_counters', 2), '3/2/3', 'tenant B (not the claimed tenant) lost nothing');
+ -- link_codes: referenced code kept (task filter) and FK-protected (bare delete)
+-SELECT like(pg_temp.app('system', 1, 'DELETE FROM engagement.link_codes WHERE id = ' || quote_literal(pg_temp.id(1012)::text) || '::uuid'), 'E23503:%', 'a bare DELETE of a link_code referenced by a link fails on account_patient_links__code__fk (23503): the data layer protects it even if the task filter were missing');
++-- LD-230 (3): pgTAP has no like()/unlike(); matches()/doesnt_match() with the anchored regex of the same LIKE pattern (% -> .*, _ -> .)
++SELECT matches(pg_temp.app('system', 1, 'DELETE FROM engagement.link_codes WHERE id = ' || quote_literal(pg_temp.id(1012)::text) || '::uuid'), '^E23503:.*$', 'a bare DELETE of a link_code referenced by a link fails on account_patient_links__code__fk (23503): the data layer protects it even if the task filter were missing');
+ SELECT is(pg_temp.app('system', 1, 'DELETE FROM engagement.link_codes WHERE NOT EXISTS (SELECT 1 FROM engagement.account_patient_links l WHERE l.tenant_id = link_codes.tenant_id AND l.link_code_id = link_codes.id)'), '1', 'the task''s DELETE (NOT EXISTS link filter) removes only the unreferenced code expired > 90 d ago');
+ SELECT is(pg_temp.cnt('link_codes', 1), '2', 'tenant A keeps the REFERENCED expired code (12) and the code expired only 89 d ago (13)');
+ SELECT is((SELECT count(*)::int FROM engagement.link_codes WHERE id = pg_temp.id(1012)), 1, 'the referenced link_code row 12 is still there');
+diff --git a/db/tests/engagement/T-Q3_resolve_display.test.sql b/db/tests/engagement/T-Q3_resolve_display.test.sql
+index 0e604005..5c7b4d8d 100644
+--- a/db/tests/engagement/T-Q3_resolve_display.test.sql
++++ b/db/tests/engagement/T-Q3_resolve_display.test.sql
+@@ -79,9 +79,13 @@ SELECT is(pg_temp.api('SELECT * FROM app.engagement_resolve_display(' || pg_temp
+ SELECT is(pg_temp.api('SELECT * FROM app.engagement_resolve_display(NULL)', 'n'), '0', 'NULL hash -> no row');
+ SELECT is(pg_temp.api('SELECT * FROM app.engagement_resolve_display(''\x00''::bytea)', 'n'), '0', 'hash of the wrong length (1 byte) -> no row');
+ SELECT is(pg_temp.api('SELECT * FROM app.engagement_resolve_display(''\x' || repeat('ab', 33) || '''::bytea)', 'n'), '0', 'hash of the wrong length (33 bytes) -> no row');
++-- LD-230 (4): the fixture UPDATE is row-audited (app.tg_row_audit needs a claims sub, audit_log__insert__owner_only the row tenant): tenant A system claims
++SELECT set_config('request.jwt.claims', jsonb_build_object('tenant_id', pg_temp.id(1), 'sub', pg_temp.id(99), 'actor_type', 'system')::text, true);
+ UPDATE engagement.queue_displays SET status = 'revoked', revoked_at = now(), revoked_by = pg_temp.id(99) WHERE id = pg_temp.id(101);
+ SELECT is(pg_temp.api('SELECT * FROM app.engagement_resolve_display(' || pg_temp.qh(1) || ')', 'n'), '0', 'the same hash stops resolving the moment the display is revoked');
++SELECT set_config('request.jwt.claims', jsonb_build_object('tenant_id', pg_temp.id(1), 'sub', pg_temp.id(99), 'actor_type', 'system')::text, true);
+ UPDATE engagement.queue_displays SET status = 'active', revoked_at = NULL, revoked_by = NULL WHERE id = pg_temp.id(101);
++SELECT set_config('request.jwt.claims', '', true);
+ 
+ -- ---------------------------------------------------------------- (b) a lims_app / lims_api session that sets the GUC itself sees nothing (owner-only policies, FORCE RLS)
+ SELECT is(pg_temp.x('lims_api', NULL, 'SELECT set_config(''app.pre_engagement_display_token_sha256'', encode(' || pg_temp.qh(1) || ', ''hex''), true)',
+@@ -119,8 +123,9 @@ SELECT is(pg_temp.x('lims_api', pg_temp.cl('device', 101, 21, 'queue_display'),
+ SELECT is(pg_temp.x('lims_api', pg_temp.cl('device', 101, 21, 'queue_display'), NULL, 'SELECT * FROM engagement.queue_displays WHERE tenant_id = ' || quote_literal(pg_temp.id(2)::text) || '::uuid', 'n'), '0', 'display 101 sees no tenant-B display');
+ SELECT is(pg_temp.x('lims_api', pg_temp.cl('device', 101, 21, 'queue_display'), NULL, 'SELECT * FROM engagement.booking_centres', 'n'), '1', 'display 101 reads only the booking_centres row of its own centre (centre name for the board)');
+ SELECT is(pg_temp.x('lims_api', pg_temp.cl('device', 101, 21, 'queue_display'), NULL, 'UPDATE engagement.queue_displays SET last_seen_at = now(), updated_at = now()', 'w'), '1', 'display may update last_seen_at / updated_at');
+-SELECT like(pg_temp.x('lims_api', pg_temp.cl('device', 101, 21, 'queue_display'), NULL, 'UPDATE engagement.queue_displays SET display_name = ''renamed''', 'w'), 'EP0001:immutable_row%', 'display cannot change display_name (guard trigger immutable_row)');
+-SELECT like(pg_temp.x('lims_api', pg_temp.cl('device', 101, 21, 'queue_display'), NULL, 'UPDATE engagement.queue_displays SET status = ''active'', token_sha256 = ' || pg_temp.qh(77), 'w'), 'EP0001:immutable_row%', 'display cannot swap its own token hash');
++-- LD-230 (3): pgTAP has no like()/unlike(); matches()/doesnt_match() with the anchored regex of the same LIKE pattern (% -> .*, _ -> .)
++SELECT matches(pg_temp.x('lims_api', pg_temp.cl('device', 101, 21, 'queue_display'), NULL, 'UPDATE engagement.queue_displays SET display_name = ''renamed''', 'w'), '^EP0001:immutable.row.*$', 'display cannot change display_name (guard trigger immutable_row)');
++SELECT matches(pg_temp.x('lims_api', pg_temp.cl('device', 101, 21, 'queue_display'), NULL, 'UPDATE engagement.queue_displays SET status = ''active'', token_sha256 = ' || pg_temp.qh(77), 'w'), '^EP0001:immutable.row.*$', 'display cannot swap its own token hash');
+ SELECT ok(pg_temp.x('lims_api', pg_temp.cl('device', 101, 21, 'queue_display'), NULL, 'INSERT INTO engagement.queue_displays (id, tenant_id, centre_id, display_name, queue_ids, token_sha256, paired_at, paired_by, created_by, updated_by) SELECT gen_random_uuid(), tenant_id, centre_id, ''x'', queue_ids, ' || pg_temp.qh(78) || ', now(), id, id, id FROM engagement.queue_displays', 'w') ~ '^E', 'display cannot INSERT displays (RLS/privilege error)');
+ 
+ SELECT * FROM finish();
+diff --git a/db/tests/engagement/T0B-13.C16_schema.test.sql b/db/tests/engagement/T0B-13.C16_schema.test.sql
+index 78b1191a..d28aa963 100644
+--- a/db/tests/engagement/T0B-13.C16_schema.test.sql
++++ b/db/tests/engagement/T0B-13.C16_schema.test.sql
+@@ -19,11 +19,11 @@ CREATE TEMP TABLE rt(t, cls, u, d, aud) AS VALUES
+   ('queue_day_counters','M',true,false,true),('queue_tokens','C',true,false,true),('queue_displays','M',true,false,true),('reminders','M',true,false,true),('membership_plans','M',true,false,true),('patient_memberships','M',true,false,true),
+   ('number_counters','E',true,true,false),('enquiries','M',true,false,true),('enquiry_messages','A',false,false,false),('cs_booking_cancel_reasons','M',true,false,true),('cs_reminder_reasons','M',true,false,true),('cs_enquiry_categories','M',true,false,true);
+ CREATE TEMP TABLE rg(t) AS VALUES ('g_cs_booking_cancel_reasons'),('g_cs_reminder_reasons'),('g_cs_enquiry_categories');
+-CREATE TEMP TABLE rd(f, args, execs, bad) AS VALUES   -- DEFINER inventory (§6.6): function, identity arguments, the one EXECUTE role, a role that must not execute
+-  ('app.engagement_account_id','','lims_app','lims_api'),('app.engagement_patient_ids','','lims_app','lims_api'),('app.engagement_patient_visible','p_patient_id uuid, p_at timestamp with time zone','lims_app','lims_api'),
+-  ('app.engagement_redeem_link_code','p_code_hmac bytea','lims_app','lims_api'),('app.engagement_apply_report_link','p_patient_id uuid, p_released_at timestamp with time zone','lims_app','lims_api'),
+-  ('app.engagement_code_redeemed_by_me','p_link_code_id uuid, p_patient_id uuid','lims_app','lims_api'),('app.engagement_resolve_preauth','p_code text, p_token_sha256 bytea','lims_api','lims_app'),
+-  ('app.engagement_resolve_display','p_token_sha256 bytea','lims_api','lims_app'),('engagement.purge_payment_requests','','lims_worker','lims_app'),('engagement.purge_queue','','lims_worker','lims_app');
++CREATE TEMP TABLE rd(f, args, execs, bad) AS VALUES   -- DEFINER inventory (§6.6): function, argument types (LD-230 (5): ::regprocedure rejects parameter names), the one EXECUTE role, a role that must not execute
++  ('app.engagement_account_id','','lims_app','lims_api'),('app.engagement_patient_ids','','lims_app','lims_api'),('app.engagement_patient_visible','uuid, timestamp with time zone','lims_app','lims_api'),
++  ('app.engagement_redeem_link_code','bytea','lims_app','lims_api'),('app.engagement_apply_report_link','uuid, timestamp with time zone','lims_app','lims_api'),
++  ('app.engagement_code_redeemed_by_me','uuid, uuid','lims_app','lims_api'),('app.engagement_resolve_preauth','text, bytea','lims_api','lims_app'),
++  ('app.engagement_resolve_display','bytea','lims_api','lims_app'),('engagement.purge_payment_requests','','lims_worker','lims_app'),('engagement.purge_queue','','lims_worker','lims_app');
+ 
+ -- C16 check 1: inventory, owner (AC-0B-1.2, AC-0B-6.3), schema privileges, no sequences / enums
+ SELECT is((SELECT count(*)::int FROM pg_class c WHERE c.relnamespace = 'engagement'::regnamespace AND c.relkind IN ('r','p')), 36 + 3 + 1, 'C16 check 1: engagement holds 36 tenant + 3 G tables + event_inbox (39 chunk tables = 05-SCHEMA §3 count of table statements)');
+diff --git a/db/tests/identity/AUTH-MFA-COMPLETE-1_platform_event.test.sql b/db/tests/identity/AUTH-MFA-COMPLETE-1_platform_event.test.sql
+index 1ae50869..e6593604 100644
+--- a/db/tests/identity/AUTH-MFA-COMPLETE-1_platform_event.test.sql
++++ b/db/tests/identity/AUTH-MFA-COMPLETE-1_platform_event.test.sql
+@@ -64,8 +64,8 @@ INSERT INTO core.tenants (id, tenant_code, legal_name, display_name, status, cre
+   (pg_temp.id(1), 'lab_a', 'Lab A Pvt Ltd', 'Lab A', 'active', pg_temp.id(99), pg_temp.id(99));
+ -- staff 61 = user 32 (the founder-like platform admin enrolling); staff 62 = user 33 (a second admin); user 34 has NO platform_staff row
+ INSERT INTO identity.platform_staff (id, user_id, email_normalized, display_name, role_code, is_active, created_by, updated_by) VALUES
+-  (pg_temp.id(61), pg_temp.id(32), 'staff32@example.test', 'Staff 32', 'platform_admin', true, pg_temp.id(99), pg_temp.id(99)),
+-  (pg_temp.id(62), pg_temp.id(33), 'staff33@example.test', 'Staff 33', 'platform_admin', true, pg_temp.id(99), pg_temp.id(99));
++  (pg_temp.id(61), pg_temp.id(32), 'staff32@example.test', 'Staff 32', 'platform_superadmin', true, pg_temp.id(99), pg_temp.id(99)),
++  (pg_temp.id(62), pg_temp.id(33), 'staff33@example.test', 'Staff 33', 'platform_superadmin', true, pg_temp.id(99), pg_temp.id(99));
+ SET LOCAL session_replication_role = origin;
+ CREATE TEMP TABLE before_n AS SELECT pg_temp.nev() AS n;
+ 
+@@ -176,18 +176,19 @@ CREATE FUNCTION pg_temp.pre(u int) RETURNS text LANGUAGE sql AS $$ SELECT format
+ SELECT is(pg_temp.ins(pg_temp.pre(32), 601, 'platform_mfa_enrolled', 'platform_staff', 61, 61), 'n=1', 'policy: lims_owner + app.pre_user_id = the staff user + the exact row -> 1 row');
+ SELECT is(pg_temp.ins(NULL, 602, 'platform_mfa_enrolled', 'platform_staff', 61, 61), 'E42501:' || 'new row violates row-level security policy for table "platform_events"', 'policy: no GUC set -> refused');
+ SELECT is(pg_temp.ins($$SELECT set_config('app.pre_user_id', '', true)$$, 603, 'platform_mfa_enrolled', 'platform_staff', 61, 61), 'E42501:' || 'new row violates row-level security policy for table "platform_events"', 'policy: GUC set to the empty string -> refused');
+-SELECT like(pg_temp.ins(pg_temp.pre(33), 604, 'platform_mfa_enrolled', 'platform_staff', 61, 61), 'E42501:%', 'policy: the GUC names another user -> refused');
+-SELECT like(pg_temp.ins(pg_temp.pre(32), 605, 'platform_mfa_enrolled', 'platform_staff', 62, 62), 'E42501:%', 'policy: the row targets another staff row -> refused');
+-SELECT like(pg_temp.ins(pg_temp.pre(32), 606, 'platform_mfa_enrolled', 'platform_staff', 61, 62), 'E42501:%', 'policy: actor differs from target -> refused');
+-SELECT like(pg_temp.ins(pg_temp.pre(32), 608, 'platform_staff_invited', 'platform_staff', 61, 61), 'E42501:%', 'policy: another event_type (platform_staff_invited) -> refused');
+-SELECT like(pg_temp.ins(pg_temp.pre(32), 609, 'platform_mfa_enrolled', 'tenant', 61, 61), 'E42501:%', 'policy: another target_type -> refused');
+-SELECT like(pg_temp.ins(pg_temp.pre(34), 610, 'platform_mfa_enrolled', 'platform_staff', 34, 34), 'E42501:%', 'policy: a user without a staff row -> refused');
++-- LD-230 (3): pgTAP has no like()/unlike(); matches()/doesnt_match() with the anchored regex of the same LIKE pattern (% -> .*, _ -> .)
++SELECT matches(pg_temp.ins(pg_temp.pre(33), 604, 'platform_mfa_enrolled', 'platform_staff', 61, 61), '^E42501:.*$', 'policy: the GUC names another user -> refused');
++SELECT matches(pg_temp.ins(pg_temp.pre(32), 605, 'platform_mfa_enrolled', 'platform_staff', 62, 62), '^E42501:.*$', 'policy: the row targets another staff row -> refused');
++SELECT matches(pg_temp.ins(pg_temp.pre(32), 606, 'platform_mfa_enrolled', 'platform_staff', 61, 62), '^E42501:.*$', 'policy: actor differs from target -> refused');
++SELECT matches(pg_temp.ins(pg_temp.pre(32), 608, 'platform_staff_invited', 'platform_staff', 61, 61), '^E42501:.*$', 'policy: another event_type (platform_staff_invited) -> refused');
++SELECT matches(pg_temp.ins(pg_temp.pre(32), 609, 'platform_mfa_enrolled', 'tenant', 61, 61), '^E42501:.*$', 'policy: another target_type -> refused');
++SELECT matches(pg_temp.ins(pg_temp.pre(34), 610, 'platform_mfa_enrolled', 'platform_staff', 34, 34), '^E42501:.*$', 'policy: a user without a staff row -> refused');
+ SELECT is(pg_temp.nev(601), 1::bigint, 'policy: the accepted row exists'); SELECT is((SELECT count(*) FROM generate_series(602, 606) k WHERE pg_temp.nev(k) > 0) + pg_temp.nev(608) + pg_temp.nev(609) + pg_temp.nev(610), 0::bigint, 'policy: no refused row exists');
+ -- other roles setting the GUC themselves gain nothing (08 A12.7: the policy is TO lims_owner only)
+-SELECT like(pg_temp.x('lims_app', pg_temp.sysclaims(), pg_temp.pre(32), format($$INSERT INTO identity.platform_events (id, event_type, target_type, target_id, actor_platform_staff_id, created_by) VALUES (%L, 'platform_mfa_enrolled', 'platform_staff', %L, %L, %L)$$,
+-            pg_temp.id(620), pg_temp.id(61), pg_temp.id(61), pg_temp.id(99)), 'w'), 'E42501:%', 'lims_app that sets app.pre_user_id itself cannot insert the row (42501)');
+-SELECT like(pg_temp.x('lims_api', pg_temp.sysclaims(), pg_temp.pre(32), format($$INSERT INTO identity.platform_events (id, event_type, target_type, target_id, actor_platform_staff_id, created_by) VALUES (%L, 'platform_mfa_enrolled', 'platform_staff', %L, %L, %L)$$,
+-            pg_temp.id(621), pg_temp.id(61), pg_temp.id(61), pg_temp.id(99)), 'w'), 'E42501:%', 'lims_api that sets app.pre_user_id itself cannot insert the row either (the plain INSERT stays refused)');
++SELECT matches(pg_temp.x('lims_app', pg_temp.sysclaims(), pg_temp.pre(32), format($$INSERT INTO identity.platform_events (id, event_type, target_type, target_id, actor_platform_staff_id, created_by) VALUES (%L, 'platform_mfa_enrolled', 'platform_staff', %L, %L, %L)$$,
++            pg_temp.id(620), pg_temp.id(61), pg_temp.id(61), pg_temp.id(99)), 'w'), '^E42501:.*$', 'lims_app that sets app.pre_user_id itself cannot insert the row (42501)');
++SELECT matches(pg_temp.x('lims_api', pg_temp.sysclaims(), pg_temp.pre(32), format($$INSERT INTO identity.platform_events (id, event_type, target_type, target_id, actor_platform_staff_id, created_by) VALUES (%L, 'platform_mfa_enrolled', 'platform_staff', %L, %L, %L)$$,
++            pg_temp.id(621), pg_temp.id(61), pg_temp.id(61), pg_temp.id(99)), 'w'), '^E42501:.*$', 'lims_api that sets app.pre_user_id itself cannot insert the row either (the plain INSERT stays refused)');
+ SELECT is(pg_temp.nev(620) + pg_temp.nev(621), 0::bigint, 'no row from the non-owner attempts');
+ 
+ -- ================================================================ no RLS or grant weakening (LD-189)
+diff --git a/db/tests/identity/AUTH-PLATFORM-SESSION-1_platform_reads.test.sql b/db/tests/identity/AUTH-PLATFORM-SESSION-1_platform_reads.test.sql
+index 618fcb1a..8b285948 100644
+--- a/db/tests/identity/AUTH-PLATFORM-SESSION-1_platform_reads.test.sql
++++ b/db/tests/identity/AUTH-PLATFORM-SESSION-1_platform_reads.test.sql
+@@ -66,8 +66,8 @@ INSERT INTO core.tenants (id, tenant_code, legal_name, display_name, status, cre
+   (pg_temp.id(1), 'lab_a', 'Lab A Pvt Ltd', 'Lab A', 'active', pg_temp.id(99), pg_temp.id(99));
+ -- staff 61 = user 32 (the founder-like platform admin); staff 62 = user 33 (a second admin); user 34 has NO platform_staff row
+ INSERT INTO identity.platform_staff (id, user_id, email_normalized, display_name, role_code, is_active, created_by, updated_by) VALUES
+-  (pg_temp.id(61), pg_temp.id(32), 'staff32@example.test', 'Staff 32', 'platform_admin', true, pg_temp.id(99), pg_temp.id(99)),
+-  (pg_temp.id(62), pg_temp.id(33), 'staff33@example.test', 'Staff 33', 'platform_admin', true, pg_temp.id(99), pg_temp.id(99));
++  (pg_temp.id(61), pg_temp.id(32), 'staff32@example.test', 'Staff 32', 'platform_superadmin', true, pg_temp.id(99), pg_temp.id(99)),
++  (pg_temp.id(62), pg_temp.id(33), 'staff33@example.test', 'Staff 33', 'platform_superadmin', true, pg_temp.id(99), pg_temp.id(99));
+ -- sessions: 101 platform user 32 (aal1, the live case) · 102 platform user 33 (another user) · 103 TENANT session of user 32 (kind tenant_staff, tenant 1)
+ --           104 platform user 34 (no staff row -> e-mail NULL) · 105 platform user 32, revoked (returned as stored; the service decides) · 106 untouched control (user 33)
+ INSERT INTO identity.sessions (id, tenant_id, user_id, kind, state, aal, membership_id, platform_staff_id, gotrue_session_id, token_sha256,
+diff --git a/db/tests/identity/SESSION-ACTOR-1_session_actor.test.sql b/db/tests/identity/SESSION-ACTOR-1_session_actor.test.sql
+index 33d0d18d..d133ce38 100644
+--- a/db/tests/identity/SESSION-ACTOR-1_session_actor.test.sql
++++ b/db/tests/identity/SESSION-ACTOR-1_session_actor.test.sql
+@@ -71,7 +71,7 @@ INSERT INTO core.membership_roles (tenant_id, membership_id, role_id, created_by
+ INSERT INTO core.membership_roles (tenant_id, membership_id, role_id, created_by)
+   SELECT pg_temp.id(1), pg_temp.id(60), pg_temp.id(100 + n), pg_temp.id(99) FROM generate_series(1, 22) n;
+ INSERT INTO identity.platform_staff (id, user_id, email_normalized, display_name, role_code, is_active, created_by, updated_by) VALUES
+-  (pg_temp.id(61), pg_temp.id(32), 'staff32@example.test', 'Staff 32', 'platform_admin',   true,  pg_temp.id(99), pg_temp.id(99)),
++  (pg_temp.id(61), pg_temp.id(32), 'staff32@example.test', 'Staff 32', 'platform_superadmin',   true,  pg_temp.id(99), pg_temp.id(99)),
+   (pg_temp.id(63), pg_temp.id(42), 'staff42@example.test', 'Staff 42', 'platform_support', false, pg_temp.id(99), pg_temp.id(99));
+ SET LOCAL session_replication_role = origin;
+ 
+@@ -87,8 +87,9 @@ SELECT ok(NOT EXISTS (SELECT 1 FROM pg_roles r WHERE r.rolname IN ('anon', 'auth
+ SELECT ok(has_function_privilege('lims_api', p.oid, 'EXECUTE') AND NOT has_function_privilege('lims_worker', p.oid, 'EXECUTE')
+           AND NOT has_function_privilege('lims_app', p.oid, 'EXECUTE') AND NOT has_function_privilege('lims_queue', p.oid, 'EXECUTE'),
+           'EXECUTE only for lims_api (not lims_worker, lims_app, lims_queue)') FROM pg_proc p WHERE p.oid = to_regprocedure('app.identity_session_actor(uuid,uuid,uuid)');
+-SELECT like(pg_temp.x('lims_worker', 'SELECT count(*) FROM app.identity_session_actor(' || pg_temp.q(31) || ',' || pg_temp.q(1) || ',' || pg_temp.q(41) || ')', 'v'), 'E42501:%', 'lims_worker cannot call it (42501)');
+-SELECT like(pg_temp.x('lims_queue',  'SELECT count(*) FROM app.identity_session_actor(' || pg_temp.q(31) || ',' || pg_temp.q(1) || ',' || pg_temp.q(41) || ')', 'v'), 'E42501:%', 'lims_queue cannot call it (42501)');
++-- LD-230 (3): pgTAP has no like()/unlike(); matches()/doesnt_match() with the anchored regex of the same LIKE pattern (% -> .*, _ -> .)
++SELECT matches(pg_temp.x('lims_worker', 'SELECT count(*) FROM app.identity_session_actor(' || pg_temp.q(31) || ',' || pg_temp.q(1) || ',' || pg_temp.q(41) || ')', 'v'), '^E42501:.*$', 'lims_worker cannot call it (42501)');
++SELECT matches(pg_temp.x('lims_queue',  'SELECT count(*) FROM app.identity_session_actor(' || pg_temp.q(31) || ',' || pg_temp.q(1) || ',' || pg_temp.q(41) || ')', 'v'), '^E42501:.*$', 'lims_queue cannot call it (42501)');
+ -- result shape: exactly (display_name text, role_codes text[], tenant_code text): nothing like an e-mail, an id or a token can leave the function
+ SELECT is(pg_get_function_result(to_regprocedure('app.identity_session_actor(uuid,uuid,uuid)')), 'TABLE(display_name text, role_codes text[], tenant_code text)',
+           'RETURNS TABLE (display_name text, role_codes text[], tenant_code text) and nothing else');
+@@ -107,7 +108,7 @@ SELECT ok((SELECT bool_and(c.relforcerowsecurity AND c.relrowsecurity) FROM pg_c
+ -- ================================================================ platform staff (p_tenant_id NULL)
+ SELECT is(jsonb_array_length(pg_temp.sa(32, 0, 0)), 1, 'platform: active staff user -> exactly one row');
+ SELECT is(pg_temp.sa(32, 0, 0) -> 0 ->> 'display_name', 'Staff 32', 'platform: display_name from identity.platform_staff (the user has no core.users row)');
+-SELECT is(pg_temp.sa(32, 0, 0) -> 0 -> 'role_codes', '["platform_admin"]'::jsonb, 'platform: role_codes = ARRAY[platform_staff.role_code]');
++SELECT is(pg_temp.sa(32, 0, 0) -> 0 -> 'role_codes', '["platform_superadmin"]'::jsonb, 'platform: role_codes = ARRAY[platform_staff.role_code]');
+ SELECT is(pg_temp.sa(32, 0, 0) -> 0 -> 'tenant_code', 'null'::jsonb, 'platform: tenant_code is NULL (a platform session is not a tenant session)');
+ SELECT is(jsonb_array_length(pg_temp.sa(42, 0, 0)), 0, 'platform: INACTIVE staff row -> no row');
+ SELECT is(jsonb_array_length(pg_temp.sa(31, 0, 0)), 0, 'platform: a tenant user without a platform_staff row, NULL tenant -> no row (never falls back to core.users)');
+diff --git a/db/tests/identity/T0B-06_definers.test.sql b/db/tests/identity/T0B-06_definers.test.sql
+index 12cee02e..6785c25b 100644
+--- a/db/tests/identity/T0B-06_definers.test.sql
++++ b/db/tests/identity/T0B-06_definers.test.sql
+@@ -74,12 +74,13 @@ INSERT INTO core.memberships (id, tenant_id, user_id, actor_type, status, partne
+ INSERT INTO core.roles (id, tenant_id, role_code, display_name, mfa_required, created_by, updated_by) VALUES
+   (pg_temp.id(56), pg_temp.id(1), 'admin', 'Admin', true, pg_temp.id(99), pg_temp.id(99));
+ INSERT INTO core.membership_roles (tenant_id, membership_id, role_id, created_by) VALUES (pg_temp.id(1), pg_temp.id(41), pg_temp.id(56), pg_temp.id(99));
+-INSERT INTO identity.tenant_settings (tenant_id, retention_audit_years, idle_timeout_minutes, absolute_session_hours) VALUES
+-  (pg_temp.id(1), 5, 20, 10), (pg_temp.id(2), 7, 30, 12);
++-- LD-230 (6): legal_name_snapshot / display_name / created_by / updated_by are NOT NULL without default (identity migration tenant_settings)
++INSERT INTO identity.tenant_settings (tenant_id, legal_name_snapshot, display_name, retention_audit_years, idle_timeout_minutes, absolute_session_hours, created_by, updated_by) VALUES
++  (pg_temp.id(1), 'Synthetic Lab One', 'Synthetic Lab One', 5, 20, 10, pg_temp.id(99), pg_temp.id(99)), (pg_temp.id(2), 'Synthetic Lab Two', 'Synthetic Lab Two', 7, 30, 12, pg_temp.id(99), pg_temp.id(99));
+ INSERT INTO identity.platform_staff (id, user_id, email_normalized, display_name, role_code, is_active, created_by, updated_by) VALUES
+-  (pg_temp.id(61), pg_temp.id(32), 'staff32@example.test', 'Staff 32', 'platform_admin', true,  pg_temp.id(99), pg_temp.id(99)),
+-  (pg_temp.id(62), pg_temp.id(39), 'staff39@example.test', 'Staff 39', 'platform_admin', true,  pg_temp.id(99), pg_temp.id(99)),
+-  (pg_temp.id(63), pg_temp.id(42), 'staff42@example.test', 'Staff 42', 'platform_admin', false, pg_temp.id(99), pg_temp.id(99));
++  (pg_temp.id(61), pg_temp.id(32), 'staff32@example.test', 'Staff 32', 'platform_support', true,  pg_temp.id(99), pg_temp.id(99)),
++  (pg_temp.id(62), pg_temp.id(39), 'staff39@example.test', 'Staff 39', 'platform_support', true,  pg_temp.id(99), pg_temp.id(99)),
++  (pg_temp.id(63), pg_temp.id(42), 'staff42@example.test', 'Staff 42', 'platform_support', false, pg_temp.id(99), pg_temp.id(99));
+ INSERT INTO identity.mfa_factors (id, tenant_id, user_id, status, created_by, updated_by) VALUES
+   (pg_temp.id(71), pg_temp.id(1), pg_temp.id(31), 'verified', pg_temp.id(99), pg_temp.id(99)),
+   (pg_temp.id(72), NULL,          pg_temp.id(32), 'verified', pg_temp.id(99), pg_temp.id(99)),
+@@ -241,7 +242,7 @@ SELECT is(j -> 0 ->> 'state', 'expired', 'resolve: expired session is returned w
+ SELECT is(j -> 0 ->> 'membership_locked', 'true', 'resolve: locked membership -> membership_locked = true (08 A3.4)') FROM res WHERE k = 'locked';
+ SELECT is(j -> 0 ->> 'tenant_status', 'suspended', 'resolve: suspended tenant -> tenant_status suspended') FROM res WHERE k = 'suspended';
+ SELECT is(j -> 0 ->> 'platform_staff_id', pg_temp.id(61)::text, 'resolve: platform session -> platform_staff_id') FROM res WHERE k = 'plat_sup';
+-SELECT is(j -> 0 ->> 'platform_role', 'platform_admin', 'resolve: platform session -> platform_role') FROM res WHERE k = 'plat_sup';
++SELECT is(j -> 0 ->> 'platform_role', 'platform_support', 'resolve: platform session -> platform_role') FROM res WHERE k = 'plat_sup';
+ SELECT is(j -> 0 ->> 'support_session_id', pg_temp.id(91)::text, 'resolve: active unexpired support session -> support_session_id (08 A15.1)') FROM res WHERE k = 'plat_sup';
+ SELECT is(j -> 0 ->> 'support_tenant_id', pg_temp.id(3)::text, 'resolve: support_tenant_id') FROM res WHERE k = 'plat_sup';
+ SELECT is(j -> 0 ->> 'support_scope', 'read_only', 'resolve: support_scope') FROM res WHERE k = 'plat_sup';
+@@ -299,7 +300,7 @@ SELECT is(pg_temp.lc(37) -> 0 ->> 'tenant_id', pg_temp.id(2)::text, 'test 20: te
+ SELECT is(jsonb_array_length(pg_temp.lc(36)), 1, 'login_context: exactly one row per user (no fan-out from the platform_staff left join)');
+ -- platform staff with no membership (08 A15.2)
+ SELECT is(pg_temp.lc(32) -> 0 ->> 'platform_staff_id', pg_temp.id(61)::text, 'login_context: platform staff user -> platform_staff_id');
+-SELECT is(pg_temp.lc(32) -> 0 ->> 'platform_role', 'platform_admin', 'login_context: platform_role');
++SELECT is(pg_temp.lc(32) -> 0 ->> 'platform_role', 'platform_support', 'login_context: platform_role');
+ SELECT is(pg_temp.lc(32) -> 0 ->> 'platform_active', 'true', 'login_context: platform_active');
+ SELECT is(pg_temp.lc(32) -> 0 ->> 'membership_count', '0', 'login_context: platform staff, no membership -> membership_count 0');
+ SELECT is(pg_temp.lc(32) -> 0 ->> 'tenant_id', NULL, 'login_context: platform staff -> tenant_id NULL');
+diff --git a/db/tests/identity/T0B-10.C2_lookups.test.sql b/db/tests/identity/T0B-10.C2_lookups.test.sql
+index 0d463a01..6ff00a18 100644
+--- a/db/tests/identity/T0B-10.C2_lookups.test.sql
++++ b/db/tests/identity/T0B-10.C2_lookups.test.sql
+@@ -101,7 +101,8 @@ SELECT is(pg_temp.v('lims_api', NULL, format($$SELECT tenant_status || '|' || me
+ SELECT is(pg_temp.v('lims_api', NULL, format($$SELECT session_id::text FROM app.identity_resolve_session(%L::uuid, %L::uuid)$$, pg_temp.uid(1200), pg_temp.uid(999))), '<none>', 'resolve_session: no row for a wrong sub');
+ SELECT is(pg_temp.v('lims_api', NULL, format($$SELECT (SELECT count(*) FROM app.identity_resolve_session(%L::uuid, %L::uuid))::text || '|' || coalesce(current_setting('app.pre_user_id', true), 'NULL') || '|' || coalesce(current_setting('app.pre_gotrue_session_id', true), 'NULL') || '|' || coalesce(current_setting('app.pre_tenant_id', true), 'NULL')$$,
+   pg_temp.uid(1200), '01a1a98a-ac40-7000-8000-00000000a300')), '1|||', 'resolve_session leaves app.pre_user_id / pre_gotrue_session_id / pre_tenant_id empty (08 A15.1)');
+-UPDATE core.memberships SET locked_at = now(), locked_by = pg_temp.sys(), lock_reason_code = 'admin_lock' WHERE id = '01a1a98a-ac40-7000-8000-00000000a500';
++-- LD-230 (6): memberships__lock_reason__ck allows left_organisation|security_concern|policy_violation|other only
++UPDATE core.memberships SET locked_at = now(), locked_by = pg_temp.sys(), lock_reason_code = 'other' WHERE id = '01a1a98a-ac40-7000-8000-00000000a500';
+ SELECT is(pg_temp.v('lims_api', NULL, format($$SELECT membership_locked::text FROM app.identity_resolve_session(%L::uuid, %L::uuid)$$, pg_temp.uid(1200), '01a1a98a-ac40-7000-8000-00000000a300')), 'true', '-- §11 test 18 membership_locked = true exactly when locked_at IS NOT NULL');
+ SELECT is(pg_temp.v('lims_api', NULL, format($$SELECT membership_locked::text FROM app.identity_login_context(%L::uuid)$$, '01a1a98a-ac40-7000-8000-00000000a300')), 'true', 'login_context: membership_locked = true for a locked membership');
+ UPDATE core.memberships SET locked_at = NULL, locked_by = NULL, lock_reason_code = NULL WHERE id = '01a1a98a-ac40-7000-8000-00000000a500';
+diff --git a/db/tests/identity/T0B-10.C2_maintenance.test.sql b/db/tests/identity/T0B-10.C2_maintenance.test.sql
+index d715f317..01371446 100644
+--- a/db/tests/identity/T0B-10.C2_maintenance.test.sql
++++ b/db/tests/identity/T0B-10.C2_maintenance.test.sql
+@@ -177,13 +177,14 @@ SELECT is(pg_temp.st(format($$SELECT pg_temp.ins('identity.admin_notices', %L::j
+   'expires_at', now() + interval '1 day', 'created_by', pg_temp.sys(), 'updated_by', pg_temp.sys())::text)), '23514', 'every other kind rejects subject_id NULL');
+ 
+ -- ===================================================================================================================================== §11 test 35: identity_notify_ip_throttle_hmacs
+-SELECT pg_temp.ins('identity.auth_events', jsonb_build_object('id', pg_temp.uid(1901), 'tenant_id', NULL, 'event_type', 'login_failed', 'email_hmac', '\xaa01', 'client_ip', '192.0.2.10', 'occurred_at', now() - interval '1 hour', 'created_by', pg_temp.sys()));
+-SELECT pg_temp.ins('identity.auth_events', jsonb_build_object('id', pg_temp.uid(1902), 'tenant_id', NULL, 'event_type', 'login_failed', 'email_hmac', '\xaa01', 'client_ip', '192.0.2.10', 'occurred_at', now() - interval '50 minutes', 'created_by', pg_temp.sys()));
+-SELECT pg_temp.ins('identity.auth_events', jsonb_build_object('id', pg_temp.uid(1903), 'tenant_id', NULL, 'event_type', 'login_failed', 'email_hmac', '\xaa02', 'client_ip', '192.0.2.10', 'occurred_at', now() - interval '40 minutes', 'created_by', pg_temp.sys()));
++-- LD-230 (6): auth_events__hmac_len__ck: email_hmac is 32 bytes, so the synthetic hmacs aa01 / aa02 are padded with zero bytes
++SELECT pg_temp.ins('identity.auth_events', jsonb_build_object('id', pg_temp.uid(1901), 'tenant_id', NULL, 'event_type', 'login_failed', 'email_hmac', '\xaa01000000000000000000000000000000000000000000000000000000000000', 'client_ip', '192.0.2.10', 'occurred_at', now() - interval '1 hour', 'created_by', pg_temp.sys()));
++SELECT pg_temp.ins('identity.auth_events', jsonb_build_object('id', pg_temp.uid(1902), 'tenant_id', NULL, 'event_type', 'login_failed', 'email_hmac', '\xaa01000000000000000000000000000000000000000000000000000000000000', 'client_ip', '192.0.2.10', 'occurred_at', now() - interval '50 minutes', 'created_by', pg_temp.sys()));
++SELECT pg_temp.ins('identity.auth_events', jsonb_build_object('id', pg_temp.uid(1903), 'tenant_id', NULL, 'event_type', 'login_failed', 'email_hmac', '\xaa02000000000000000000000000000000000000000000000000000000000000', 'client_ip', '192.0.2.10', 'occurred_at', now() - interval '40 minutes', 'created_by', pg_temp.sys()));
+ SELECT pg_temp.ins('identity.auth_events', jsonb_build_object('id', pg_temp.uid(1904), 'tenant_id', NULL, 'event_type', 'login_failed', 'email_hmac', '\xbb01', 'client_ip', '192.0.2.99', 'occurred_at', now() - interval '30 minutes', 'created_by', pg_temp.sys()));
+ SELECT pg_temp.ins('identity.auth_events', jsonb_build_object('id', pg_temp.uid(1905), 'tenant_id', NULL, 'event_type', 'login_failed', 'email_hmac', '\xcc01', 'client_ip', '192.0.2.10', 'occurred_at', now() - interval '5 hours', 'created_by', pg_temp.sys()));
+ SELECT pg_temp.ins('identity.auth_events', jsonb_build_object('id', pg_temp.uid(1906), 'tenant_id', pg_temp.ta(), 'event_type', 'login_failed', 'email_hmac', '\xdd01', 'client_ip', '192.0.2.10', 'occurred_at', now() - interval '20 minutes', 'created_by', pg_temp.sys()));
+-SELECT is(pg_temp.v('lims_worker', NULL, $$SELECT string_agg(encode(h, 'hex'), ',' ORDER BY h) FROM app.identity_notify_ip_throttle_hmacs('192.0.2.10'::inet, now() - interval '2 hours') h$$), 'aa01,aa02',
++SELECT is(pg_temp.v('lims_worker', NULL, $$SELECT string_agg(encode(h, 'hex'), ',' ORDER BY h) FROM app.identity_notify_ip_throttle_hmacs('192.0.2.10'::inet, now() - interval '2 hours') h$$), 'aa01000000000000000000000000000000000000000000000000000000000000,aa02000000000000000000000000000000000000000000000000000000000000',
+   '-- §11 test 35 distinct tenant-less login_failed HMACs of that IP since p_since (not other IPs, not older events, not tenant rows)');
+ SELECT is(pg_temp.v('lims_worker', NULL, $$SELECT coalesce(current_setting('app.maintenance', true), 'NULL')$$), '', 'app.maintenance empty after identity_notify_ip_throttle_hmacs');
+ SELECT matches(pg_temp.v('lims_api', NULL, $$SELECT count(*)::text FROM app.identity_notify_ip_throttle_hmacs('192.0.2.10'::inet, now() - interval '2 hours')$$), '^E42501', 'lims_api: permission denied (lims_worker only)');
+diff --git a/db/tests/identity/T9-A38_platform_set_password.test.sql b/db/tests/identity/T9-A38_platform_set_password.test.sql
+index a7f6da2f..5b540e31 100644
+--- a/db/tests/identity/T9-A38_platform_set_password.test.sql
++++ b/db/tests/identity/T9-A38_platform_set_password.test.sql
+@@ -14,8 +14,16 @@ CREATE FUNCTION pg_temp.uid(n int) RETURNS uuid LANGUAGE sql IMMUTABLE AS $$ SEL
+ CREATE FUNCTION pg_temp.h32(s text) RETURNS text LANGUAGE sql IMMUTABLE AS $$ SELECT '\x' || encode(sha256(convert_to(s, 'UTF8')), 'hex') $$;
+ CREATE FUNCTION pg_temp.sysclaims() RETURNS jsonb LANGUAGE sql AS $$ SELECT jsonb_build_object('sub', pg_temp.sys(), 'actor_type', 'system') $$;
+ CREATE FUNCTION pg_temp.ins(p_tbl regclass, p_row jsonb) RETURNS void LANGUAGE plpgsql AS $f$
+-DECLARE cols text := (SELECT string_agg(quote_ident(k), ',') FROM jsonb_object_keys(p_row) k);
+-BEGIN EXECUTE format('INSERT INTO %1$s (%2$s) SELECT %2$s FROM jsonb_populate_record(NULL::%1$s, %3$L::jsonb)', p_tbl, cols, p_row::text); END $f$;
++DECLARE cols text := (SELECT string_agg(quote_ident(k), ',') FROM jsonb_object_keys(p_row) k); saved text := current_setting('request.jwt.claims', true);
++BEGIN
++  -- LD-230 (4): a tenant row is row-audited; app.tg_row_audit needs a claims sub (else audit_context_missing) and audit_log__insert__owner_only
++  -- needs the claims tenant = the row tenant, so the fixture writes each tenant row under its own tenant system claims (as db/seeds/010 does)
++  IF nullif(p_row ->> 'tenant_id', '') IS NOT NULL THEN
++    PERFORM set_config('request.jwt.claims', (pg_temp.sysclaims() || jsonb_build_object('tenant_id', p_row ->> 'tenant_id'))::text, true);
++  END IF;
++  EXECUTE format('INSERT INTO %1$s (%2$s) SELECT %2$s FROM jsonb_populate_record(NULL::%1$s, %3$L::jsonb)', p_tbl, cols, p_row::text);
++  PERFORM set_config('request.jwt.claims', coalesce(saved, ''), true);
++END $f$;
+ -- first column of the first row of p_sql, run as p_role with p_claims ('<none>' when no row, 'E<sqlstate>:<message>' on error)
+ CREATE FUNCTION pg_temp.v(p_role text, p_claims jsonb, p_sql text) RETURNS text LANGUAGE plpgsql AS $f$
+ DECLARE r text; saved text := current_setting('request.jwt.claims', true);
+diff --git a/db/tests/inventory/T0B-13.C12_behaviour.test.sql b/db/tests/inventory/T0B-13.C12_behaviour.test.sql
+index 53565a30..ffa2a310 100644
+--- a/db/tests/inventory/T0B-13.C12_behaviour.test.sql
++++ b/db/tests/inventory/T0B-13.C12_behaviour.test.sql
+@@ -20,13 +20,18 @@ CREATE FUNCTION pg_temp.m(s text) RETURNS uuid LANGUAGE sql IMMUTABLE AS $$ SELE
+ SELECT set_config('request.jwt.claims', jsonb_build_object('tenant_id', pg_temp.ta(), 'sub', pg_temp.sys(), 'actor_type', 'system')::text, true);
+ 
+ CREATE FUNCTION pg_temp.ins(p_tbl regclass, p_row jsonb) RETURNS void LANGUAGE plpgsql AS $f$
+-DECLARE r jsonb := p_row; a text; cols text;
++DECLARE r jsonb := p_row; a text; cols text; saved text := current_setting('request.jwt.claims', true);
+ BEGIN
+   FOREACH a IN ARRAY ARRAY['created_by', 'updated_by'] LOOP
+     IF EXISTS (SELECT 1 FROM pg_attribute WHERE attrelid = p_tbl AND attname = a AND NOT attisdropped) AND NOT (r ? a) THEN r := r || jsonb_build_object(a, pg_temp.sys()); END IF;
+   END LOOP;
+   SELECT string_agg(quote_ident(k), ',') INTO cols FROM jsonb_object_keys(r) k;
++  -- LD-230 (2): audit_log__insert__owner_only needs tenant_id = the claims tenant; write each row under its own tenant (as db/seeds/010 does)
++  IF r ? 'tenant_id' THEN
++    PERFORM set_config('request.jwt.claims', jsonb_build_object('tenant_id', r ->> 'tenant_id', 'sub', pg_temp.sys(), 'actor_type', 'system')::text, true);
++  END IF;
+   EXECUTE format('INSERT INTO %1$s (%2$s) SELECT %2$s FROM jsonb_populate_record(NULL::%1$s, %3$L::jsonb)', p_tbl, cols, r::text);
++  PERFORM set_config('request.jwt.claims', coalesce(saved, ''), true);
+ END $f$;
+ -- run p_sql as p_role with p_claims; mode n = count of a query, w = ROW_COUNT of a statement, s = the single scalar; errors -> 'E' || SQLSTATE || '|' || SQLERRM
+ CREATE FUNCTION pg_temp.x(p_role text, p_claims jsonb, p_sql text, p_mode text DEFAULT 'n') RETURNS text LANGUAGE plpgsql AS $f$
+diff --git a/db/tests/migration_staging/T0B-13.C18_behaviour.test.sql b/db/tests/migration_staging/T0B-13.C18_behaviour.test.sql
+index fc04326a..4af189eb 100644
+--- a/db/tests/migration_staging/T0B-13.C18_behaviour.test.sql
++++ b/db/tests/migration_staging/T0B-13.C18_behaviour.test.sql
+@@ -36,9 +36,10 @@ END $f$;
+ CREATE FUNCTION pg_temp.m(p_type text, p_tenant int, p_sql text, p_mode text DEFAULT 'w') RETURNS text LANGUAGE sql AS $$ SELECT pg_temp.x('lims_migration', pg_temp.cl(p_type, p_tenant), p_sql, p_mode) $$;
+ CREATE FUNCTION pg_temp.q(p_sql text) RETURNS text LANGUAGE plpgsql AS $$ DECLARE r text; BEGIN EXECUTE p_sql INTO r; RETURN coalesce(r, '<null>'); END $$;   -- superuser value (RLS bypassed)
+ -- one valid INSERT per table. tn = tenant (1 / 2), k = row key (unique per table and tenant), r = run number (run id = tn*1000 + r). Patient rows: id tn*1000 + 100 + r (r = 1..5), extra run-1 patients 106, 107.
++-- LD-230 (5): PL/pgSQL DECLARE takes one declaration per ";" (a comma made the next ":=" a syntax error)
+ CREATE FUNCTION pg_temp.ins(p_t text, tn int, k int, r int) RETURNS text LANGUAGE plpgsql AS $$
+-DECLARE tid text := format('pg_temp.id(%s)', tn), rid text := format('pg_temp.id(%s)', tn * 1000 + r), me text := 'pg_temp.id(99)', i text := format('pg_temp.id(%s)', tn * 1000 + k),
+-        h text := format('md5(%L) || md5(%L)', 'h' || tn || '_' || k, 'k' || tn || '_' || k), a text := replace(translate(k::text, '0123456789', 'abcdefghij'), '-', 'z');
++DECLARE tid text := format('pg_temp.id(%s)', tn); rid text := format('pg_temp.id(%s)', tn * 1000 + r); me text := 'pg_temp.id(99)'; i text := format('pg_temp.id(%s)', tn * 1000 + k);
++        h text := format('md5(%L) || md5(%L)', 'h' || tn || '_' || k, 'k' || tn || '_' || k); a text := replace(translate(k::text, '0123456789', 'abcdefghij'), '-', 'z');
+ BEGIN
+   RETURN CASE p_t
+     WHEN 'runs' THEN format('INSERT INTO migration_staging.runs (id, tenant_id, run_code, source_system, kind, created_by, updated_by) VALUES (%s, %s, %L, %L, %L, %s, %s)', i, tid, 'MR-hc18-2026-' || tn || '-' || k, 'legacy_a', 'full', me, me)
+diff --git a/db/tests/partners/T0B-13.C13_behaviour.test.sql b/db/tests/partners/T0B-13.C13_behaviour.test.sql
+index 07a36fcc..f3162804 100644
+--- a/db/tests/partners/T0B-13.C13_behaviour.test.sql
++++ b/db/tests/partners/T0B-13.C13_behaviour.test.sql
+@@ -22,13 +22,18 @@ CREATE FUNCTION pg_temp.q(x uuid) RETURNS text LANGUAGE sql IMMUTABLE AS $$ SELE
+ SELECT set_config('request.jwt.claims', jsonb_build_object('tenant_id', pg_temp.ta(), 'sub', pg_temp.sys(), 'actor_type', 'system')::text, true);
+ 
+ CREATE FUNCTION pg_temp.ins(p_tbl regclass, p_row jsonb) RETURNS void LANGUAGE plpgsql AS $f$
+-DECLARE r jsonb := p_row; a text; cols text;
++DECLARE r jsonb := p_row; a text; cols text; saved text := current_setting('request.jwt.claims', true);
+ BEGIN
+   FOREACH a IN ARRAY ARRAY['created_by', 'updated_by'] LOOP
+     IF EXISTS (SELECT 1 FROM pg_attribute WHERE attrelid = p_tbl AND attname = a AND NOT attisdropped) AND NOT (r ? a) THEN r := r || jsonb_build_object(a, pg_temp.sys()); END IF;
+   END LOOP;
+   SELECT string_agg(quote_ident(k), ',') INTO cols FROM jsonb_object_keys(r) k;
++  -- LD-230 (2): audit_log__insert__owner_only needs tenant_id = the claims tenant; write each row under its own tenant (as db/seeds/010 does)
++  IF r ? 'tenant_id' THEN
++    PERFORM set_config('request.jwt.claims', jsonb_build_object('tenant_id', r ->> 'tenant_id', 'sub', pg_temp.sys(), 'actor_type', 'system')::text, true);
++  END IF;
+   EXECUTE format('INSERT INTO %1$s (%2$s) SELECT %2$s FROM jsonb_populate_record(NULL::%1$s, %3$L::jsonb)', p_tbl, cols, r::text);
++  PERFORM set_config('request.jwt.claims', coalesce(saved, ''), true);
+ END $f$;
+ -- run p_sql as p_role with p_claims; mode n = count of a query, w = ROW_COUNT of a statement, s = the single scalar; errors -> 'E' || SQLSTATE || '|' || SQLERRM
+ CREATE FUNCTION pg_temp.x(p_role text, p_claims jsonb, p_sql text, p_mode text DEFAULT 'n') RETURNS text LANGUAGE plpgsql AS $f$
+diff --git a/db/tests/payments/T0B-13.C15_schema.test.sql b/db/tests/payments/T0B-13.C15_schema.test.sql
+index 774f9b9e..9a95a2c3 100644
+--- a/db/tests/payments/T0B-13.C15_schema.test.sql
++++ b/db/tests/payments/T0B-13.C15_schema.test.sql
+@@ -41,7 +41,8 @@ SELECT is((SELECT array_agg(policyname::text ORDER BY policyname::text) FROM pg_
+ SELECT is((SELECT roles FROM pg_policies WHERE schemaname = 'payments' AND policyname = 'intents__select__owner_only'), ARRAY['lims_owner']::name[], 'C15 check 3 / P-41 (b): the owner policy is TO lims_owner only (a lims_api session that sets the GUC itself sees nothing)');
+ SELECT is((SELECT cmd FROM pg_policies WHERE schemaname = 'payments' AND policyname = 'intents__select__owner_only'), 'SELECT', 'C15 check 3: owner policy is FOR SELECT');
+ SELECT matches((SELECT qual FROM pg_policies WHERE schemaname = 'payments' AND policyname = 'intents__select__owner_only'), 'callback_token_sha256 = decode\(current_setting\(''app\.pre_payments_callback_token_sha256''::text, true\), ''hex''::text\)', 'C15 check 3 / P-41 (b): owner policy USING = decode(current_setting(GUC)) on the token hash');
+-SELECT unlike((SELECT qual FROM pg_policies WHERE schemaname = 'payments' AND policyname = 'intents__select__owner_only'), '% OR %', 'C15 check 3 / review m#14: no other disjunct in the owner policy');
++-- LD-230 (3): pgTAP has no like()/unlike(); matches()/doesnt_match() with the anchored regex of the same LIKE pattern (% -> .*, _ -> .)
++SELECT doesnt_match((SELECT qual FROM pg_policies WHERE schemaname = 'payments' AND policyname = 'intents__select__owner_only'), '^.* OR .*$', 'C15 check 3 / review m#14: no other disjunct in the owner policy');
+ SELECT is((SELECT count(*)::int FROM pg_policies WHERE schemaname = 'payments' AND tablename = rt.t AND cmd = 'UPDATE'), CASE WHEN u THEN 1 ELSE 0 END, 'C15 check 3: UPDATE policy on payments.' || t || ' iff a lims_app UPDATE grant exists (class A tables: none)') FROM rt;
+ SELECT is((SELECT count(*)::int FROM pg_policies WHERE schemaname = 'payments' AND cmd = 'DELETE'), 0, 'C15 check 3 / §3: no DELETE policy on any payments table (money records)');
+ SELECT is((SELECT count(*)::int FROM pg_policies WHERE schemaname = 'payments' AND tablename <> 'event_inbox' AND roles = ARRAY['lims_app']::name[] AND NOT (coalesce(qual, '') || coalesce(with_check, '')) LIKE '%is_staff_or_system%'), 0, 'C15 check 3 / P-16: staff-actor guard in every payments tenant policy (gate 9)');
+diff --git a/db/tests/reporting/C6-T43.a21.test.sql b/db/tests/reporting/C6-T43.a21.test.sql
+index 35958ded..17d26db9 100644
+--- a/db/tests/reporting/C6-T43.a21.test.sql
++++ b/db/tests/reporting/C6-T43.a21.test.sql
+@@ -35,13 +35,20 @@ SELECT is(app.reporting_ingest_provider_callback('recording', decode('ee', 'hex'
+ SELECT is(app.reporting_ingest_provider_callback('recording', decode(repeat('ee', 32), 'hex'), '{}'::jsonb), NULL::uuid, 'ingest: non-array payload -> NULL'); SELECT ok(pg_temp.all_empty(), 'ingest: empty after the payload reject');
+ 
+ -- A20 / A12.7: a lims_app session setting the GUC itself sees nothing (policies are TO lims_reporting_lookup only)
++-- LD-230 (3): pgTAP lives in schema extensions and lims_app has no USAGE on it (db/bootstrap/01_database.sql), so is() does not resolve
++-- under SET ROLE lims_app: the counts are taken as lims_app into transaction-local settings and asserted after RESET ROLE.
+ SET LOCAL ROLE lims_app;
+-SELECT set_config('app.pre_qr_token_sha256', repeat('ab', 32), true); SELECT is((SELECT count(*)::int FROM reporting.qr_tokens), 0, 'A20: lims_app + app.pre_qr_token_sha256 -> 0 qr_tokens');
+-SELECT set_config('app.pre_portal_credential_sha256', repeat('11', 32), true); SELECT is((SELECT count(*)::int FROM reporting.portal_links), 0, 'A20: lims_app + app.pre_portal_credential_sha256 -> 0 portal_links');
+-SELECT is((SELECT count(*)::int FROM reporting.portal_sessions), 0, 'A20: ... 0 portal_sessions');
+-SELECT set_config('app.pre_portal_token_sha256', repeat('11', 32), true); SELECT is((SELECT count(*)::int FROM reporting.portal_links), 0, 'A20: lims_app + app.pre_portal_token_sha256 -> 0 portal_links');
+-SELECT set_config('app.pre_callback_token_sha256', repeat('44', 32), true); SELECT is((SELECT count(*)::int FROM reporting.channel_accounts), 0, 'A20: lims_app + app.pre_callback_token_sha256 -> 0 channel_accounts');
++SELECT set_config('app.pre_qr_token_sha256', repeat('ab', 32), true); SELECT set_config('t43.qr_tokens', (SELECT count(*)::int FROM reporting.qr_tokens)::text, true);
++SELECT set_config('app.pre_portal_credential_sha256', repeat('11', 32), true); SELECT set_config('t43.portal_links_cred', (SELECT count(*)::int FROM reporting.portal_links)::text, true);
++SELECT set_config('t43.portal_sessions', (SELECT count(*)::int FROM reporting.portal_sessions)::text, true);
++SELECT set_config('app.pre_portal_token_sha256', repeat('11', 32), true); SELECT set_config('t43.portal_links_tok', (SELECT count(*)::int FROM reporting.portal_links)::text, true);
++SELECT set_config('app.pre_callback_token_sha256', repeat('44', 32), true); SELECT set_config('t43.channel_accounts', (SELECT count(*)::int FROM reporting.channel_accounts)::text, true);
+ RESET ROLE;
++SELECT is(current_setting('t43.qr_tokens')::int, 0, 'A20: lims_app + app.pre_qr_token_sha256 -> 0 qr_tokens');
++SELECT is(current_setting('t43.portal_links_cred')::int, 0, 'A20: lims_app + app.pre_portal_credential_sha256 -> 0 portal_links');
++SELECT is(current_setting('t43.portal_sessions')::int, 0, 'A20: ... 0 portal_sessions');
++SELECT is(current_setting('t43.portal_links_tok')::int, 0, 'A20: lims_app + app.pre_portal_token_sha256 -> 0 portal_links');
++SELECT is(current_setting('t43.channel_accounts')::int, 0, 'A20: lims_app + app.pre_callback_token_sha256 -> 0 channel_accounts');
+ 
+ -- (a) A21.1 constraints (checked through scratch tables built from the real CHECK text; no fixtures)
+ CREATE TEMP TABLE pl (purpose text, recipient_kind text, channel text);
+diff --git a/db/tests/reporting/T0B-10.C6_behaviour.test.sql b/db/tests/reporting/T0B-10.C6_behaviour.test.sql
+index 6ced352f..49a64640 100644
+--- a/db/tests/reporting/T0B-10.C6_behaviour.test.sql
++++ b/db/tests/reporting/T0B-10.C6_behaviour.test.sql
+@@ -346,8 +346,9 @@ SELECT is((SELECT count(*)::int FROM audit.audit_log WHERE schema_name = 'report
+ -- app.reporting_ingest_provider_callback: LD-49 (b) (C6-T29) -- the DEFINER only validates the token and records the events; it returns the resolved tenant id (uuid) or NULL and never enqueues.
+ -- The C6 API handler enqueues reporting.apply_provider_events under withTenantScope(returned tenant, reporting system actor). NULL (not -1) is the reject value: a uuid column cannot hold -1.
+ SELECT is((SELECT pg_get_function_result(p.oid) FROM pg_proc p WHERE p.oid = 'app.reporting_ingest_provider_callback(text, bytea, jsonb)'::regprocedure), 'uuid', 'LD-49 (b): returns the tenant id (uuid)');
+-SELECT unlike((SELECT p.prosrc FROM pg_proc p WHERE p.oid = 'app.reporting_ingest_provider_callback(text, bytea, jsonb)'::regprocedure), '%enqueue_job%', 'LD-49 (b): the DEFINER does not enqueue');
+-SELECT unlike((SELECT p.prosrc FROM pg_proc p WHERE p.oid = 'app.reporting_ingest_provider_callback(text, bytea, jsonb)'::regprocedure), '%request.jwt%', 'LD-49 (b): the DEFINER never sets JWT claims');
++-- LD-230 (3): pgTAP has no like()/unlike(); matches()/doesnt_match() with the anchored regex of the same LIKE pattern (% -> .*, _ -> .)
++SELECT doesnt_match((SELECT p.prosrc FROM pg_proc p WHERE p.oid = 'app.reporting_ingest_provider_callback(text, bytea, jsonb)'::regprocedure), '^.*enqueue.job.*$', 'LD-49 (b): the DEFINER does not enqueue');
++SELECT doesnt_match((SELECT p.prosrc FROM pg_proc p WHERE p.oid = 'app.reporting_ingest_provider_callback(text, bytea, jsonb)'::regprocedure), '^.*request\.jwt.*$', 'LD-49 (b): the DEFINER never sets JWT claims');
+ SELECT is(pg_temp.x('lims_api', NULL, format($$ SELECT app.reporting_ingest_provider_callback('recording', decode(%L, 'hex'), %L::jsonb) $$, repeat('44', 32),
+   jsonb_build_array(jsonb_build_object('id', pg_temp.uid(601), 'provider_message_id', 'pm-1', 'status_raw', 'ok', 'mapped_status', 'sent', 'occurred_at', now()))::text), 's'), pg_temp.ta()::text,
+   'C6 check 14 / LD-49 (b): provider callback with a valid token stores the event and returns the TENANT ID');
+diff --git a/db/tests/roles/00_bootstrap_roles.test.sql b/db/tests/roles/00_bootstrap_roles.test.sql
+index 8adbe8f7..5a0d9bb7 100644
+--- a/db/tests/roles/00_bootstrap_roles.test.sql
++++ b/db/tests/roles/00_bootstrap_roles.test.sql
+@@ -35,7 +35,7 @@ SELECT g.rolname::text AS grp, u.rolname::text AS member, a.inherit_option AS in
+   FROM pg_auth_members a JOIN pg_roles g ON g.oid = a.roleid JOIN pg_roles u ON u.oid = a.member
+  WHERE u.rolname LIKE 'lims\_%' AND g.rolname LIKE 'lims\_%';
+ SELECT is(ARRAY(SELECT grp || '|' || member || '|' || inh::text || '|' || setopt::text FROM m ORDER BY grp || '|' || member || '|' || inh::text || '|' || setopt::text COLLATE "C"),
+-  ARRAY['lims_app|lims_api|true|false','lims_app|lims_worker|true|false',
++  ARRAY['lims_app|lims_api|true|false','lims_app|lims_migrator|false|true','lims_app|lims_worker|true|false',
+         'lims_owner|lims_migrator|false|true','lims_queue|lims_migrator|false|true',
+         'lims_queue|lims_worker|true|false','lims_reporting_lookup|lims_migrator|false|true']::text[],
+   'lims_% memberships and INHERIT/SET options match 05-SCHEMA §1 exactly');
+diff --git a/db/tests/run-suites.sh b/db/tests/run-suites.sh
+index 01c152a5..cd9e2ea3 100644
+--- a/db/tests/run-suites.sh
++++ b/db/tests/run-suites.sh
+@@ -49,6 +49,13 @@ done
+ if [ "${1:-}" = "--no-seeds" ]; then LIMS_SKIP_SEEDS=1; shift; fi
+ if [ -z "${LIMS_SKIP_SEEDS:-}" ]; then for f in $(ls db/seeds/*.sql 2>/dev/null | sort); do MIG --single-transaction -f "/repo/$f"; done; fi
+ 
++# LD-230 (8): the test image has no Supabase Storage schema; create a minimal stub (superuser, idempotent, never replaces a real one)
++# with the columns db/tests/storage/T0B-12_storage.test.sql reads. No bucket rows: buckets are provisioned by the Storage API (LD-54).
++SU -c "CREATE SCHEMA IF NOT EXISTS storage;
++  CREATE TABLE IF NOT EXISTS storage.buckets (id text PRIMARY KEY, name text NOT NULL, public boolean NOT NULL DEFAULT false);
++  CREATE TABLE IF NOT EXISTS storage.objects (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), bucket_id text, name text);
++  ALTER TABLE storage.buckets ENABLE ROW LEVEL SECURITY; ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;"
++
+ if [ "$#" -gt 0 ]; then SUITES=("$@"); else mapfile -t SUITES < <(find db/tests -name '*.test.sql' | sort); fi
+ FAIL=0
+ for s in "${SUITES[@]}"; do

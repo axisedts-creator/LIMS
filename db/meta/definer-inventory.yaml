@@ -12,7 +12,12 @@
   },
   "app.current_partner_id": {
    "owner": "lims_owner", "execute": ["lims_app"], "why": "partner actor scope (CR-C13-004); helpers stage (08 A30.1)",
-   "touches": ["partners.partner_users SELECT", "partners.partners SELECT"], "policies": ["owner_only (C13 05-SCHEMA)"], "reviewer": null
+   "touches": ["partners.partner_users SELECT", "partners.partners SELECT"], "policies": ["partner_users__select__owner_only", "partners__select__owner_only"], "reviewer": null
+  },
+  "partners.redact_lines": {
+   "owner": "lims_owner", "execute": ["lims_worker"], "why": "retention redaction of partner manifest-line patient blocks and report panel names; task partners.redact_expired_lines, tenant-bound, system actor only (C13 05-SCHEMA §8; 08 A12.2, A19 P-41)",
+   "touches": ["partners.manifest_lines SELECT", "partners.manifest_lines UPDATE", "partners.order_reports SELECT", "partners.order_reports UPDATE", "partners.order_tracking SELECT"],
+   "policies": ["manifest_lines__select__owner_only", "manifest_lines__update__owner_only", "order_reports__select__owner_only", "order_reports__update__owner_only", "order_tracking__select__owner_only", "maintenance GUC app.maintenance = 'partners_redact_lines'"], "reviewer": null
   },
   "app.engagement_account_id": {
    "owner": "lims_owner", "execute": ["lims_app"], "why": "patient actor scope (CR-C16-006); helpers stage (08 A30.1)",

@@ -1,0 +1,7 @@
+# T0B-HARDEN-1 impl (writer)
+- Added db/migrations/20261115200000_core__add_mutable_columns_triggers.sql: SET LOCAL ROLE lims_owner + 5 `<table>__mutable_columns` triggers (inventory.consumption_facts C12:259; partners.access_slips C13:1040-1045; partners.pickup_request_manifests C13:180; reporting.report_order_items + reporting.narrative_reports C6:215). Each list is quoted from the spec. No existing object changed. No db/meta change, because the repo keeps no trigger metadata.
+- Added 39 skip CRs `.orchestra/cr/T0B-HARDEN-1.<table>.nonblocking.md`. Reasons: the spec has no list, the list is state- or actor-conditional (guard triggers), or the SET list is built at run time (lab.results, partners.manifests, quality.qc_runs).
+- [CONV] C6:215 "excluding id, tenant_id, order_id, family, created_*": `family` is not a column of either table, so the trigger list is the rest of the DDL. Open point: reporting.reports' own list leaves out centre_id. The lead should confirm centre_id stays mutable on these two tables.
+- Tests: 9/11 pass. The 2 failures are test defects, see T0B-HARDEN-1-dispute.md (line 213 expects >50 migrations, 40 exist; line 226 `UPDATE\s` matches the required `BEFORE UPDATE`).
+- Static only. No SQL was run (no Docker). The founder runs immutability test 1 plus the reporting/partners/inventory behaviour suites after merge (LD-231).
+- Side finding: pickup.service.ts:55-58 UPDATEs of partners.pickup_requests do not bump version/updated_*. This is noted in its CR.

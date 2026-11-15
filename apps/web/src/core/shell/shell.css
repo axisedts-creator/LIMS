@@ -31,6 +31,19 @@
 /* Auth pages (WEB-STYLE-1, LD-198, LD-140): tokens, rem and % only. */
 .lims-auth-page { display: grid; place-items: center; min-height: 100vh; padding: var(--lims-space-6) var(--lims-space-4); background: var(--lims-neutral-100); box-sizing: border-box; }
 .lims-auth-card { display: flex; flex-direction: column; gap: var(--lims-space-4); box-sizing: border-box; width: 100%; max-width: 26rem; margin-inline: auto; padding: var(--lims-space-8) var(--lims-space-6); border: 0.0625rem solid var(--lims-neutral-200); border-radius: var(--lims-radius-lg); background: var(--lims-neutral-0); }
+/* WEB-STYLE-2 (LD-201): split layout; one centred column below 64rem, form column + brand panel from 64rem. Tokens, rem and % only (LD-140). */
+.lims-auth-main { display: grid; place-items: center; width: 100%; box-sizing: border-box; }
+.lims-auth-panel { display: none; box-sizing: border-box; flex-direction: column; justify-content: center; gap: var(--lims-space-6); padding: var(--lims-space-8); background: var(--lims-accent); color: var(--lims-accent-fg); }
+.lims-auth-panel-title { margin: 0; font-size: var(--lims-font-size-md-size); font-weight: var(--lims-font-weight-semibold); }
+.lims-auth-steps { display: flex; flex-direction: column; gap: var(--lims-space-3); margin: 0; padding: 0; list-style: none; }
+.lims-auth-steps li { display: flex; align-items: center; gap: var(--lims-space-3); }
+.lims-auth-steps li::before { content: ''; flex: none; width: 0.5rem; height: 0.5rem; border-radius: var(--lims-radius-full); background: var(--lims-accent-brand); }
+@media (min-width: 64rem) {
+  .lims-auth-page { grid-template-columns: 1fr 1fr; place-items: stretch; padding: 0; }
+  .lims-auth-main { padding: var(--lims-space-6) var(--lims-space-4); background: var(--lims-neutral-0); }
+  .lims-auth-main .lims-auth-card { border: 0; background: transparent; }
+  .lims-auth-panel { display: flex; }
+}
 .lims-auth-card h1 { margin: 0; font-size: var(--lims-font-size-md-size); font-weight: var(--lims-font-weight-semibold); }
 .lims-auth-card form { display: flex; flex-direction: column; gap: var(--lims-space-4); }
 .lims-auth-card a { color: var(--lims-accent); }

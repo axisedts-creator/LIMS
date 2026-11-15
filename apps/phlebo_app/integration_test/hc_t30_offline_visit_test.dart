@@ -8,10 +8,13 @@ import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:phlebo_app/core/db/cache_db.dart';
+import 'package:phlebo_app/core/sync/sync_engine.dart' show SyncStatus;
 import 'package:phlebo_app/features/outbox/data/outbox_repository.dart' show PushOutcome;
 
 import '../__tests__/support/db_fixture.dart';
 import '../__tests__/support/outbox_fixture.dart';
+import '../__tests__/support/sync_fixture.dart';
+import '../__tests__/support/tls_fixture.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
@@ -57,6 +60,41 @@ void main() {
         expect(sandboxContains(fx.dir, 'Zzyxqa Synthetic-Patient'), isFalse);
       } finally {
         await fx.dispose();
+      }
+    });
+  });
+
+  // 02-TRD §15 Device row: "expired token -> refresh -> same key". Reuses the HC-T25 fakes (real pinned ApiClient over TLS,
+  // FakeHcServer, FakeSession); the batch was frozen before an app kill, the first push after restart gets 401
+  // auth.token_expired, the session refreshes and the retry carries the same Idempotency-Key (= batch_id) and identical body.
+  testWidgets('kill mid-batch -> expired token: 401 -> refresh -> same batch_id + identical body -> drained', (t) async {
+    await t.runAsync(() async {
+      final pki = await TestPki.create();
+      final fx = await SyncFx.create(pki);
+      try {
+        await enqueueVisitFlow(fx.ofx);
+        final frozen = (await fx.ofx.repo.formBatch())!;
+        await fx.restart();
+
+        fx.server.validToken = 'tok-2'; // tok-1 expired while the phone was offline
+        fx.session.tokenAfterRefresh = 'tok-2';
+        final r = await fx.sync();
+
+        expect(r.status, SyncStatus.ok);
+        expect(fx.session.refreshCalls, 1);
+        final p = fx.server.pushes;
+        expect(p, hasLength(2));
+        expect(p[0].header('authorization'), 'Bearer tok-1');
+        expect(p[1].header('authorization'), 'Bearer tok-2');
+        for (final push in p) {
+          expect(push.header('idempotency-key'), frozen.batchId);
+          expect(push.body, frozen.bodyJson, reason: 'byte for byte');
+        }
+        expect(await fx.states(), List.filled(7, 'applied'));
+        expect(await fx.ofx.repo.outstandingBatch(), isNull);
+      } finally {
+        await fx.dispose();
+        pki.dispose();
       }
     });
   });

@@ -37,7 +37,7 @@ const instant = (v: string) => {
   return new Date(t).toISOString();
 };
 
-export interface Out { status?: string; version?: number }
+export interface Out { status?: string; version?: number; id?: string }
 const UNSET = ['note_for_phlebotomist', 'landmark', 'coordinates'];
 
 /** H5 scheduleHomeVisit. */
@@ -90,6 +90,43 @@ export function cancelVisit(id: string, version: number, reasonCode: string, rea
   if (!CODE.test(reasonCode)) throw bad();
   const t = text(reasonText, 500);
   return serverFetch<Out>(p, { method: 'POST', headers: { ...json, ...idem(key), ...ver(version) }, body: JSON.stringify({ reason_code: reasonCode, ...(t ? { reason_text: t } : {}) }) });
+}
+
+// ---- HC-T19 ----
+/** H8 resolveHomeVisitFlag: If-Match = the flag's version; the key comes from the caller. */
+export function resolveFlag(id: string, flagId: string, version: number, resolutionCode: string, note: string | undefined, key: string) {
+  if (!UUID.test(id) || !UUID.test(flagId) || !CODE.test(resolutionCode)) throw bad();
+  const t = text(note, 500);
+  return serverFetch<Out>(`/v1/homecollection/visits/${id}/flags/${flagId}/resolve`, {
+    method: 'POST', headers: { ...json, ...idem(key), ...ver(version) }, body: JSON.stringify({ resolution_code: resolutionCode, ...(t ? { note: t } : {}) }),
+  });
+}
+
+/** H9 reviewHeldCollection: Idempotency-Key from the caller (a retry re-sends it) + If-Match = the collection's version. */
+export function reviewCollection(id: string, version: number, decision: string, reasonCode: string, reasonText: string | undefined, key: string) {
+  if (!UUID.test(id) || (decision !== 'apply' && decision !== 'discard') || !CODE.test(reasonCode)) throw bad();
+  const t = text(reasonText, 500);
+  return serverFetch<Out>(`/v1/homecollection/collections/${id}/review`, {
+    method: 'POST', headers: { ...json, ...idem(key), ...ver(version) }, body: JSON.stringify({ decision, reason_code: reasonCode, ...(t ? { reason_text: t } : {}) }),
+  });
+}
+
+/** H7 createHomeRevisit: 201 with the NEW visit; only its id goes back to the browser. */
+export async function createRevisit(id: string, version: number, reasonCode: string, reasonText: string | undefined, key: string): Promise<Out> {
+  if (!UUID.test(id) || !CODE.test(reasonCode)) throw bad();
+  const t = text(reasonText, 500);
+  const r = await serverFetch<Out & { id?: unknown }>(`/v1/homecollection/visits/${id}/revisits`, {
+    method: 'POST', headers: { ...json, ...idem(key), ...ver(version) }, body: JSON.stringify({ reason_code: reasonCode, ...(t ? { reason_text: t } : {}) }),
+  });
+  return { ...(typeof r?.id === 'string' && UUID.test(r.id) ? { id: r.id } : {}) };
+}
+
+const E164 = /^\+[1-9]\d{6,14}$/;
+/** H21 revealHomeVisitPhone: no body, no If-Match; the API writes the access-log row. The number is returned to the caller only, never logged or stored here. */
+export async function revealPhone(id: string): Promise<{ phone?: string }> {
+  if (!UUID.test(id)) throw bad();
+  const r = await serverFetch<{ phone_e164?: unknown }>(`/v1/homecollection/visits/${id}/phone-reveal`, { method: 'POST', headers: json, body: '{}' });
+  return typeof r?.phone_e164 === 'string' && E164.test(r.phone_e164) ? { phone: r.phone_e164 } : {};
 }
 
 /** H15 confirmHandover: exactly the handover's items, each received true/false. Idempotency-Key from the caller (a retry re-sends it) + If-Match = handover version. */

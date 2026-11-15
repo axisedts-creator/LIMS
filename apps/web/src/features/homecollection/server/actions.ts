@@ -6,10 +6,10 @@ import 'server-only';
 import { ApiError } from '@/core/api/server-fetch';
 import type { HandoverDetail, PhlebotomistOption, ScheduleBody, SettingsBody } from '../types';
 import { getHandover, listPhlebotomists } from './read.server';
-import { assignVisit, cancelVisit, confirmHandover, resequenceRoute, saveSettings, scheduleVisit, unassignVisit, wipeDevice } from './write.server';
+import { assignVisit, cancelVisit, confirmHandover, createRevisit, resequenceRoute, resolveFlag, revealPhone, reviewCollection, saveSettings, scheduleVisit, unassignVisit, wipeDevice } from './write.server';
 
 export type ActionResult =
-  | { ok: true; status?: string; version?: number }
+  | { ok: true; status?: string; version?: number; id?: string }
   | { ok: false; status: number; code: string; pointers?: string[] };
 
 const POINTER = /^\/[a-z0-9_/]{1,80}$/;
@@ -19,10 +19,10 @@ function failure(e: unknown): ActionResult {
   const pointers = errs.map((x) => (typeof x?.pointer === 'string' ? x.pointer : typeof x?.path === 'string' ? x.path : '')).filter((p) => POINTER.test(p));
   return { ok: false, status: e.status, code: e.problem.code, ...(pointers.length ? { pointers } : {}) };
 }
-async function run(call: () => Promise<{ status?: string; version?: number } | undefined>): Promise<ActionResult> {
+async function run(call: () => Promise<{ status?: string; version?: number; id?: string } | undefined>): Promise<ActionResult> {
   try {
     const r = await call();
-    return { ok: true, ...(typeof r?.status === 'string' ? { status: r.status } : {}), ...(typeof r?.version === 'number' && Number.isSafeInteger(r.version) ? { version: r.version } : {}) };
+    return { ok: true, ...(typeof r?.status === 'string' ? { status: r.status } : {}), ...(typeof r?.version === 'number' && Number.isSafeInteger(r.version) ? { version: r.version } : {}), ...(typeof r?.id === 'string' ? { id: r.id } : {}) };
   } catch (e) {
     return failure(e);
   }
@@ -42,6 +42,30 @@ export async function cancelAction(id: string, version: number, reasonCode: stri
 }
 export async function resequenceAction(id: string, version: number, visitIds: string[]): Promise<ActionResult> {
   return run(() => resequenceRoute(id, version, visitIds));
+}
+
+/** H8 resolveHomeVisitFlag. */
+export async function resolveFlagAction(id: string, flagId: string, version: number, resolutionCode: string, note: string | undefined, key: string): Promise<ActionResult> {
+  return run(() => resolveFlag(id, flagId, version, resolutionCode, note, key));
+}
+/** H9 reviewHeldCollection. */
+export async function reviewAction(id: string, version: number, decision: 'apply' | 'discard', reasonCode: string, reasonText: string | undefined, key: string): Promise<ActionResult> {
+  return run(() => reviewCollection(id, version, decision, reasonCode, reasonText, key));
+}
+/** H7 createHomeRevisit: `id` = the new visit. */
+export async function revisitAction(id: string, version: number, reasonCode: string, reasonText: string | undefined, key: string): Promise<ActionResult> {
+  return run(() => createRevisit(id, version, reasonCode, reasonText, key));
+}
+
+export type PhoneResult = { ok: true; phone?: string } | { ok: false; status: number; code: string };
+/** H21: the number goes back to the one caller that pressed "Show phone". */
+export async function revealPhoneAction(id: string): Promise<PhoneResult> {
+  try {
+    return { ok: true, ...(await revealPhone(id)) };
+  } catch (e) {
+    const f = failure(e);
+    return f.ok ? { ok: false, status: 500, code: 'common.internal' } : { ok: false, status: f.status, code: f.code };
+  }
 }
 
 /** H15 confirmHandover. */

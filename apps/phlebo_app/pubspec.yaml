@@ -24,6 +24,9 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  # HC-T30: device scenario (TRD §15); SDK package, no version to pin.
+  integration_test:
+    sdk: flutter
 flutter:
   uses-material-design: true
 # HC-T22: package:sqlite3 build hook -> SQLCipher (TRD §2 / 04 A15). [CONV] C0 picks sqlcipher over sqlite3mc.

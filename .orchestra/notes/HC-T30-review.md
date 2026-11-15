@@ -1,10 +1,6 @@
-CHANGES
-# HC-T30 re-review (diff 5ea3e984c..f72f6e62b)
+APPROVE
+# HC-T30 re-review 2 (diff 5ea3e984c..d7e0c23f7)
 
-I re-checked items 1-7 from the first review. Items 1-6 are fixed. Visit and handover statuses now match 05-SCHEMA. Specimens come from A2. The test pushes `payment.captured`, identity and consent, and checks per-mutation `results` and `handover_items`. The Dart test now covers 401 -> refresh -> same key and the same body.
+The last open defect is fixed. The A2 snapshot GET (`HC-T30.nightly.spec.ts:71`) now sends `x-lims-app-version: 1.0.0` and `x-lims-device-id`, the same headers as the A3 push. Items 1-6 from the first review are still fixed.
 
-Item 7: handled as asked. CR `.orchestra/cr/HC-T30.md` was filed to C0-0A, and the impl notes say done_when is NOT met. The task stays open until the nightly run is green.
-
-One defect is left. It would make the scenario fail on the compose stack:
-
-1. `apps/web/src/features/homecollection/tests/e2e/HC-T30.nightly.spec.ts:76`: the A2 snapshot GET sends no `x-lims-app-version` header. 02-TRD §5 preamble says every A* endpoint reads `X-Lims-App-Version`. `services/api/src/modules/homecollection/snapshot.service.ts:67-68` throws `400 common.validation_failed` (`/x-lims-app-version`) when the header is missing, so step 4 fails, and steps 5-11 fail after it. Fix: use `H(DEVICE_TOKEN, { 'x-lims-device-id': DEVICE_ID, 'x-lims-app-version': '1.0.0' })`, the same headers as `push`.
+Note: done_when ("TRD 15 scenario green on compose stack") is still NOT met. Playwright is not installed and there is no compose seed. This is tracked in `.orchestra/cr/HC-T30.md` (to C0-0A), and the impl notes say the task stays open until the nightly run is green. This approval covers the code only. It does not mean done_when is met.

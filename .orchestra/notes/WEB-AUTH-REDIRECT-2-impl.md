@@ -1,7 +1,7 @@
 # WEB-AUTH-REDIRECT-2 impl (writer)
-- Files: apps/web/src/middleware.ts only (unauth() document branch → NextResponse.redirect(new URL(literal, req.nextUrl.origin), 307), secure() kept; LD-203 cited).
+- Files: apps/web/src/middleware.ts only (unauth() document branch → NextResponse.redirect(new URL(literal, req.nextUrl.origin), 307), secure() kept; LD-203 cited). Unchanged after ruling (ruling item 6).
 - Reproduced before: real `next start`, html / /dashboard /no-such-page → 500; log `TypeError: Invalid URL input '/auth/login'`. After: 307 → /auth/login; json 401 problem+json; /auth/login, /auth/session-expired 200.
-- Tests: 85/90 pass. 5 fail on test-side assumptions → see WEB-AUTH-REDIRECT-2-dispute.md (wire Location is relative because Next relativises same-origin redirects; NextURL maps 127.0.0.1→localhost).
-- Build: `pnpm --filter @lims/web build` ran after the fix, compiled and generated all pages (exit code not captured through the pipe; the test suite's beforeAll build ran OK).
-- Last build lines: Route table ends `└ ƒ /smartreport/wording`, `ƒ Proxy (Middleware)`, `○ (Static)`, `ƒ (Dynamic)`.
-- Open: dispute above; not covered: real sign-in session loading staff pages (founder staging test).
+- Tests (revised per ruling): verify config run → 5 files, 90/90 pass (incl. real-server test).
+- Build: `pnpm --filter @lims/web build` exit 0. Last 15 lines: route table ending `├ ƒ /smartreport/summaries/[summary_id]`, `└ ƒ /smartreport/wording`, blank, `ƒ Proxy (Middleware)`, blank, `○  (Static)   prerendered as static content`, `ƒ  (Dynamic)  server-rendered on demand`.
+- [CONV] wire Location is relative: Next's server relativises same-origin redirects; middleware emits absolute (unit-tested).
+- Open: none. Not covered: real sign-in session loading staff pages (founder staging test).

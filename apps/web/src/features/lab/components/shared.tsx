@@ -1,18 +1,9 @@
 // Shared bits of the C5 lab screens. Merge of T-11 helpers (collect / dispatch / receive; was shared.ts) and
 // T-26 worklist / pending / worksheet bits (04-UI-UX §3.4, §3.5, §3.15). Text only: no colour- or icon-only meaning.
-import { useRef } from 'react';
 import { ErrorState } from '@lims/ui/components/ErrorState';
 import type { ActionResult } from '../server/types';
 
 // ---- T-11: collect / dispatch / receive helpers (client side; no network code here) ----
-
-/** Runs scan jobs strictly one after another, so rows / receives follow SCAN order even when lookups answer out of order. */
-export function useSerial() {
-  const tail = useRef<Promise<unknown>>(Promise.resolve());
-  return (job: () => Promise<void>) => {
-    tail.current = tail.current.then(job).catch(() => undefined);
-  };
-}
 
 /** Enter in an empty scan box (the kit already handled it when it consumed a value and called preventDefault). */
 export const enterOnEmptyBox = (e: { key: string; ctrlKey: boolean; defaultPrevented: boolean; target: EventTarget }) =>

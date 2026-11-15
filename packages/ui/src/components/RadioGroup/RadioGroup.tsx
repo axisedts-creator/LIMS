@@ -1,3 +1,4 @@
+'use client';
 import { useRef } from 'react';
 import { Label, Radio, RadioGroup as RacRadioGroup, Text } from 'react-aria-components';
 import { useFormField } from '../Form/FormContext';

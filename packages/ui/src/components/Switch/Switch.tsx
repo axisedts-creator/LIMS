@@ -1,3 +1,4 @@
+'use client';
 import { Switch as RacSwitch } from 'react-aria-components';
 
 export interface SwitchProps {

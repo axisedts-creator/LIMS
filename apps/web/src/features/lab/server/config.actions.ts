@@ -20,14 +20,19 @@ const JSON_HEADERS = { 'content-type': 'application/json' };
 const versionOk = (v: unknown): v is number => typeof v === 'number' && Number.isInteger(v) && v >= 1 && v <= 2_147_483_647;
 const CODE_RE = /^[a-z0-9_]{1,64}$/;
 
-export const getLabSettingsAction = (): Promise<ActionResult<LabSettings>> => run(() => serverFetch<LabSettings>('/v1/lab/settings'));
+// LD-194: 'use server' exports must be async function declarations.
+export async function getLabSettingsAction(): Promise<ActionResult<LabSettings>> {
+  return run(() => serverFetch<LabSettings>('/v1/lab/settings'));
+}
 
 export async function updateLabSettingsAction(version: number, body: LabSettingsUpdate): Promise<ActionResult<LabSettings>> {
   if (!versionOk(version)) return bad();
   return run(() => serverFetch<LabSettings>('/v1/lab/settings', { method: 'PUT', headers: { ...JSON_HEADERS, 'if-match': `"${version}"` }, body: JSON.stringify(body) }));
 }
 
-export const listDeltaRulesAction = (): Promise<ActionResult<DeltaRule[]>> => run(async () => (await serverFetch<{ data: DeltaRule[] }>('/v1/lab/delta-check-rules')).data);
+export async function listDeltaRulesAction(): Promise<ActionResult<DeltaRule[]>> {
+  return run(async () => (await serverFetch<{ data: DeltaRule[] }>('/v1/lab/delta-check-rules')).data);
+}
 
 export async function createDeltaRuleAction(body: DeltaRuleBody, key: string): Promise<ActionResult<DeltaRule>> {
   if (!KEY_RE.test(key) || typeof body?.analyte_id !== 'string' || !UUID_RE.test(body.analyte_id)) return bad();

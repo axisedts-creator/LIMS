@@ -595,6 +595,19 @@ describe("generator: deterministic, gated by --check, and nothing in the probe a
     for (const k of fx) assert.equal(t1[k], createHash("sha256").update(readFileSync(join(REPO, FIX_DIR, k.split(/[\\/]/).pop()))).digest("hex"), `${k} differs from the committed file`);
   });
 
+  // reviewer CHANGES 1c/2 (T0B-DBSEED-1-review.md): the generator must not emit a row it knows is invalid or will be dropped.
+  const reportWarnings = () => {
+    const d = fresh(), r = gen(["--report", "--out", join(d, "isolation")]);
+    assert.equal(r.status, 0, `${r.stdout}\n${r.stderr}`);
+    return r.stderr.split(/\r?\n/).filter((l) => /: warning: /.test(l)).map((l) => l.replace(/^.*?: warning: /, ""));
+  };
+  it("--report prints no 'CHECK not satisfied statically' line: no emitted row is known to violate a CHECK (e.g. micro.instrument_records__payload__ck)", () => {
+    none(reportWarnings().filter((w) => /CHECK not satisfied statically/.test(w)), "rows statically failing a CHECK");
+  });
+  it("--report: no non-excepted table has a slot that a partial UNIQUE index would drop under ON CONFLICT DO NOTHING (step-1 actor/tenant/centre preconditions)", () => {
+    none(reportWarnings().filter((w) => /collides with a partial UNIQUE index/.test(w)).filter((w) => !EX.tables.has(w.split(":")[0])), "dropped slots not listed in the exceptions CR");
+  });
+
   it("--check fails on a missing, edited or orphan fixture file (fixtures are inside the gate)", () => {
     const d = fresh();
     assert.equal(gen(["--out", join(d, "isolation")]).status, 0);

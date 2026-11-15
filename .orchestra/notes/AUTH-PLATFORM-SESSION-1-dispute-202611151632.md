@@ -1,0 +1,4 @@
+# AUTH-PLATFORM-SESSION-1 dispute (writer): one existing test pins the OLD platform factors SQL
+- `services/api/src/modules/identity/repository/__tests__/mfa.repo.test.ts:107` ("factors platform (tenantId null): the query matches tenant_id IS NULL ...") asserts `calls[0].sql` matches `tenant_id IS (NOT DISTINCT FROM|NULL)` for `repo.factors(tx, {tenantId: null})`.
+- LD-216 requires platform factors to call ONLY `app.identity_platform_auth_read_mfa_factors($1::uuid)` (no table text), which the new test `mfa.repo.platform.test.ts` also asserts. The two tests cannot both pass; the old one is superseded by the task.
+- Not edited (writer may not touch tests). Ask: tester replaces that one assertion (its tenant half stays; the platform half is covered by mfa.repo.platform.test.ts). Everything else is implemented.

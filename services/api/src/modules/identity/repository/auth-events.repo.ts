@@ -76,6 +76,8 @@ export function sealerFromEnv(env: NodeJS.ProcessEnv = process.env): Sealer {
 const LOGIN_CONTEXT_SQL = `SELECT platform_staff_id, platform_role, platform_active, platform_allowed_cidrs::text[] AS platform_allowed_cidrs,
   membership_count, tenant_id, tenant_status, membership_id, membership_status, membership_locked, mfa_required, has_verified_factor,
   idle_timeout_minutes, absolute_session_hours FROM app.identity_login_context($1::uuid)`;
+// LD-208 SESSION-ACTOR-1: SessionState.actor source; read-only DEFINER, ids as bind parameters only
+const SESSION_ACTOR_SQL = 'SELECT display_name, role_codes, tenant_code FROM app.identity_session_actor($1::uuid, $2::uuid, $3::uuid)';
 const SESSION_SQL = `INSERT INTO identity.sessions (id, tenant_id, kind, user_id, membership_id, gotrue_session_id, token_sha256, state, aal,
   refresh_token_enc, access_token_enc, enc_key_id, access_expires_at, idle_timeout_minutes, idle_expires_at, absolute_expires_at,
   client_ip, user_agent, expires_at, created_by, updated_by)
@@ -107,6 +109,9 @@ export function createAuthRepo(o: { seal?: Sealer } = {}) {
   return {
     async loginContext(tx: Q, sub: string): Promise<Record<string, unknown> | undefined> {
       return (await tx.query(LOGIN_CONTEXT_SQL, [sub])).rows[0];
+    },
+    async sessionActor(tx: Q, a: { userId: string; tenantId: string | null; membershipId: string | null }): Promise<Record<string, unknown> | undefined> {
+      return (await tx.query(SESSION_ACTOR_SQL, [a.userId, a.tenantId, a.membershipId])).rows[0];
     },
     async insertSession(tx: Q, s: NewSession): Promise<void> {
       const k = sealBoth(s);

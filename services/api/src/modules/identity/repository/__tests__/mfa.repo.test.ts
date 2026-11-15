@@ -104,8 +104,8 @@ describe('factors / insertFactor / markFactorVerified / removeFactor', () => {
     expect(calls[0]!.sql).toMatch(/identity\.mfa_factors/); expect(calls[0]!.sql).toMatch(/removed/); expect(flat(calls[0]!.p)).toContain(T); expect(flat(calls[0]!.p)).toContain(U);
     expect(r).toEqual([{ id: F, gotrueFactorId: G, status: 'verified', verifiedAt: AT, friendlyName: 'Work' }]);
   });
-  it('factors platform (tenantId null): the query matches tenant_id IS NULL (not "= NULL") for that user', async () => {
-    const { tx, calls, repo } = mk([]); await repo.factors(tx, { tenantId: null, userId: U }); expect(calls[0]!.sql).toMatch(/tenant_id\s+IS\s+(NOT\s+DISTINCT\s+FROM|NULL)/i); expect(calls[0]!.sql).not.toMatch(/tenant_id\s*=\s*\$\d[^)]*NULL/i);
+  it('factors platform (tenantId null): only app.identity_platform_auth_read_mfa_factors($1 = user), never a plain FROM identity.mfa_factors (LD-216)', async () => {
+    const { tx, calls, repo } = mk([]); await repo.factors(tx, { tenantId: null, userId: U }); expect(calls[0]!.sql).toMatch(/app\.identity_platform_auth_read_mfa_factors\s*\(\s*\$1/); expect(calls[0]!.sql).not.toMatch(/FROM\s+identity\.mfa_factors/i); expect(calls[0]!.p[0]).toBe(U);
   });
   it('insertFactor tenant: INSERT INTO identity.mfa_factors status unverified, factor_type totp, created_by/updated_by = actor; no secret column', async () => {
     const { tx, calls, repo } = mk([{}]); await repo.insertFactor(tx, { id: F, tenantId: T, userId: U, gotrueFactorId: G, friendlyName: 'Work', actorId: A });

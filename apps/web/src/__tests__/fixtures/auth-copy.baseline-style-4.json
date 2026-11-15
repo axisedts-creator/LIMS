@@ -1,0 +1,87 @@
+{
+  "app/(auth)/auth/confirm/page.tsx": [
+    "Forgot password"
+  ],
+  "app/(auth)/auth/forgot/page.tsx": [],
+  "app/(auth)/auth/login/page.tsx": [],
+  "app/(auth)/auth/logout/page.tsx": [
+    "Cancel",
+    "Log out",
+    "Log out"
+  ],
+  "app/(auth)/auth/mfa/enrol/page.tsx": [],
+  "app/(auth)/auth/mfa/page.tsx": [],
+  "app/(auth)/auth/page.tsx": [],
+  "app/(auth)/auth/session-expired/page.tsx": [],
+  "app/(auth)/auth/set-password/page.tsx": [],
+  "features/admin/auth/ConfirmLanding.tsx": [
+    "Forgot password",
+    "Promise",
+    "label=Checking your link…"
+  ],
+  "features/admin/auth/ForgotPasswordForm.tsx": [
+    "Back to log in",
+    "Email",
+    "Promise",
+    "Reset your password",
+    "Send reset link"
+  ],
+  "features/admin/auth/LoginForm.tsx": [
+    "Email",
+    "Forgot password?",
+    "LIMS",
+    "Log in",
+    "Log in",
+    "Promise",
+    "label=Password",
+    "title=Too many incorrect codes. Log in again.",
+    "title=You have been logged out."
+  ],
+  "features/admin/auth/MfaChallengeForm.tsx": [
+    "Enter the 6-digit code from your authenticator app.",
+    "Promise",
+    "Promise",
+    "Two-step verification",
+    "Use a different account",
+    "Verify",
+    "label=Authentication code"
+  ],
+  "features/admin/auth/MfaEnrolment.tsx": [
+    "Confirm",
+    "Continue",
+    "Continue",
+    "Continue to LIMS",
+    "Device name",
+    "Loading…",
+    "Promise",
+    "Promise",
+    "Promise",
+    "Set up two-step verification",
+    "Two-step verification is on.",
+    "alt=QR code for your authenticator app",
+    "label=Authentication code",
+    "label=Can't scan? Enter this key",
+    "title=Your role requires two-step verification before you can continue."
+  ],
+  "features/admin/auth/PasswordField.tsx": [],
+  "features/admin/auth/SessionExpiredCard.tsx": [
+    "Log in again",
+    "Session ended"
+  ],
+  "features/admin/auth/SetPasswordForm.tsx": [
+    "Promise",
+    "Set password",
+    "label=Confirm password",
+    "label=New password"
+  ],
+  "app/(auth)/layout.tsx": [
+    "Authorised",
+    "Draft",
+    "From sample to report",
+    "In progress",
+    "Released",
+    "To authorise",
+    "To collect",
+    "To receive"
+  ]
+}

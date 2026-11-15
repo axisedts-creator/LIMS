@@ -32,7 +32,7 @@ PHI classes per column use 03-IC §1: **P0** none · **P1** pseudonymous ids · 
 
 **Mandatory columns.** Every tenant table above has `id` + `UNIQUE (tenant_id, id)` (02-CV §5.2/§5.4), including `booking_refs` and `visit_specimens`, whose natural keys stay as `UNIQUE` constraints (review m#23). `g_cs_reasons` has `id` as PK and `(set_code, code)` as `UNIQUE`. There are no mandatory-column exceptions in this schema (08 A17 P-18(b)).
 
-**Actor guard (08 A17 P-16).** `homecollection.*` is a staff module: no table is `shared_with` partner, portal or patient actors. Every `__tenant` policy carries `(SELECT app.is_staff_or_system())` in the transcribed predicate (`pred_t`, §4.1). The `__tenant_centre` policies need no extra term because `app.has_all_centres()` / `app.current_centre_ids()` are false/empty for partner, portal and patient actors (08 R3; same reasoning as C5 05-SCHEMA `pred_c`).
+**Actor guard (08 A17 P-16).** `homecollection.*` is a staff module: no table is `shared_with` partner, portal or patient actors. Every `__tenant` policy carries `(SELECT app.is_staff_or_system())` in the transcribed predicate (`pred_t`, §4.1). Every `__tenant_centre` policy carries the same guard, appended after the centre clause (`pred_c` and the literal statements (2) and (3), §4.1), as the transcribed C5 lab policies do; the schema does not rely on `app.has_all_centres()` / `app.current_centre_ids()` alone to exclude partner, portal and patient actors (lead decision LD-220).
 
 **Centre scoping decision (02-CV §5.8 "chunk decides").** Visits carry `centre_id` = the order's / booking's collection centre (normally the tenant's home-collection pseudo-centre, C0 `centre_kind = 'home_collection'`). Phlebotomists and dispatchers must hold that centre in their membership (or `all_centres`). Handovers and handover items are additionally visible through `to_centre_id`, so staff at the receiving centre can confirm them without being members of the home-collection centre. Receivers never need the centre-scoped visit tables (08 A19 D-125, data minimisation): H14 reads only `handovers` / `handover_items` (barcode and specimen type are copied onto `handover_items` when `handover.recorded` is applied), and H15 does not write `visit_flags` itself — it enqueues the worker task `homecollection.flag_handover_discrepancy`, which writes the `handover_discrepancy` flags as the module's system actor (all centres of the tenant).
 
@@ -594,7 +594,7 @@ Collection status checks: `held` ⇒ `hold_code` set and not reviewed; `discarde
 
 ### 4.1 Ownership, RLS and grants
 
-Binding rules applied here (review fix pass 2026-11-06): 08 A16.1 (centre-scope cast `::uuid[]`), A17 P-16 (staff guard in `pred_t`), A17 P-18(c) (class-E retention delete by the system actor), A19 P-41 / A10.5 / A12.2 (the one DEFINER, its owner policies and `app.maintenance` gate are specified in §4.2 — no "C0 decides").
+Binding rules applied here (review fix pass 2026-11-06): 08 A16.1 (centre-scope cast `::uuid[]`), A17 P-16 (staff guard in `pred_t` and `pred_c`, and in every literal `__tenant_centre` statement of (2) and (3)), A17 P-18(c) (class-E retention delete by the system actor), A19 P-41 / A10.5 / A12.2 (the one DEFINER, its owner policies and `app.maintenance` gate are specified in §4.2 — no "C0 decides").
 
 ```sql
 -- Owner: every table above → lims_owner (C0 migration loop). C0 may expand this block into literal statements in
@@ -602,10 +602,9 @@ Binding rules applied here (review fix pass 2026-11-06): 08 A16.1 (centre-scope 
 DO $$
 DECLARE
   t text;
-  -- PRED_C (02-CV §5.8 template with the 08 A16.1 cast). No staff term needed: has_all_centres()/current_centre_ids()
-  -- are false/empty for partner, portal and patient actors (08 R3).
+  -- PRED_C (02-CV §5.8 template with the 08 A16.1 cast) with the staff-actor guard (08 A17 P-16; LD-220), appended last.
   pred_c text := $p$tenant_id = (SELECT app.current_tenant_id())
-      AND ((SELECT app.has_all_centres()) OR centre_id = ANY ((SELECT app.current_centre_ids())::uuid[]))$p$;
+      AND ((SELECT app.has_all_centres()) OR centre_id = ANY ((SELECT app.current_centre_ids())::uuid[])) AND (SELECT app.is_staff_or_system())$p$;
   -- PRED_T with the staff-actor guard (08 A17 P-16; review #6).
   pred_t text := $p$tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system())$p$;
   -- second element: 'u' = SELECT/INSERT/UPDATE policies + grants; '-' = append-only (SELECT/INSERT)
@@ -652,30 +651,38 @@ CREATE POLICY handovers__select__tenant_centre ON homecollection.handovers FOR S
   USING (tenant_id = (SELECT app.current_tenant_id())
          AND ((SELECT app.has_all_centres())
               OR centre_id = ANY ((SELECT app.current_centre_ids())::uuid[])
-              OR to_centre_id = ANY ((SELECT app.current_centre_ids())::uuid[])));
+              OR to_centre_id = ANY ((SELECT app.current_centre_ids())::uuid[]))
+         AND (SELECT app.is_staff_or_system()));
 CREATE POLICY handovers__insert__tenant_centre ON homecollection.handovers FOR INSERT TO lims_app
   WITH CHECK (tenant_id = (SELECT app.current_tenant_id())
-         AND ((SELECT app.has_all_centres()) OR centre_id = ANY ((SELECT app.current_centre_ids())::uuid[])));
+         AND ((SELECT app.has_all_centres()) OR centre_id = ANY ((SELECT app.current_centre_ids())::uuid[]))
+         AND (SELECT app.is_staff_or_system()));
 CREATE POLICY handovers__update__tenant_centre ON homecollection.handovers FOR UPDATE TO lims_app
   USING      (tenant_id = (SELECT app.current_tenant_id())
-         AND ((SELECT app.has_all_centres()) OR to_centre_id = ANY ((SELECT app.current_centre_ids())::uuid[])))
+         AND ((SELECT app.has_all_centres()) OR to_centre_id = ANY ((SELECT app.current_centre_ids())::uuid[]))
+         AND (SELECT app.is_staff_or_system()))
   WITH CHECK (tenant_id = (SELECT app.current_tenant_id())
-         AND ((SELECT app.has_all_centres()) OR to_centre_id = ANY ((SELECT app.current_centre_ids())::uuid[])));
+         AND ((SELECT app.has_all_centres()) OR to_centre_id = ANY ((SELECT app.current_centre_ids())::uuid[]))
+         AND (SELECT app.is_staff_or_system()));
 ALTER TABLE homecollection.handover_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE homecollection.handover_items FORCE ROW LEVEL SECURITY;
 CREATE POLICY handover_items__select__tenant_centre ON homecollection.handover_items FOR SELECT TO lims_app
   USING (tenant_id = (SELECT app.current_tenant_id())
          AND ((SELECT app.has_all_centres())
               OR centre_id = ANY ((SELECT app.current_centre_ids())::uuid[])
-              OR to_centre_id = ANY ((SELECT app.current_centre_ids())::uuid[])));
+              OR to_centre_id = ANY ((SELECT app.current_centre_ids())::uuid[]))
+         AND (SELECT app.is_staff_or_system()));
 CREATE POLICY handover_items__insert__tenant_centre ON homecollection.handover_items FOR INSERT TO lims_app
   WITH CHECK (tenant_id = (SELECT app.current_tenant_id())
-         AND ((SELECT app.has_all_centres()) OR centre_id = ANY ((SELECT app.current_centre_ids())::uuid[])));
+         AND ((SELECT app.has_all_centres()) OR centre_id = ANY ((SELECT app.current_centre_ids())::uuid[]))
+         AND (SELECT app.is_staff_or_system()));
 CREATE POLICY handover_items__update__tenant_centre ON homecollection.handover_items FOR UPDATE TO lims_app
   USING      (tenant_id = (SELECT app.current_tenant_id())
-         AND ((SELECT app.has_all_centres()) OR to_centre_id = ANY ((SELECT app.current_centre_ids())::uuid[])))
+         AND ((SELECT app.has_all_centres()) OR to_centre_id = ANY ((SELECT app.current_centre_ids())::uuid[]))
+         AND (SELECT app.is_staff_or_system()))
   WITH CHECK (tenant_id = (SELECT app.current_tenant_id())
-         AND ((SELECT app.has_all_centres()) OR to_centre_id = ANY ((SELECT app.current_centre_ids())::uuid[])));
+         AND ((SELECT app.has_all_centres()) OR to_centre_id = ANY ((SELECT app.current_centre_ids())::uuid[]))
+         AND (SELECT app.is_staff_or_system()));
 GRANT SELECT, INSERT, UPDATE ON homecollection.handovers, homecollection.handover_items TO lims_app;
 
 -- (3) visit_locations (class E) retention delete — 08 A17 P-18(c), not a DEFINER (08 A19 P-41; triage C17 #5):
@@ -684,7 +691,8 @@ CREATE POLICY visit_locations__delete__tenant_centre ON homecollection.visit_loc
   USING (tenant_id = (SELECT app.current_tenant_id())
          AND ((SELECT app.has_all_centres()) OR centre_id = ANY ((SELECT app.current_centre_ids())::uuid[]))
          AND (SELECT app.current_actor_type()) = 'system'
-         AND expires_at < now());
+         AND expires_at < now()
+         AND (SELECT app.is_staff_or_system()));
 GRANT DELETE ON homecollection.visit_locations TO lims_app;      -- the only DELETE grant in this schema (E table)
 
 -- (4) global: homecollection.g_cs_reasons — no RLS, listed in db/tests/rls_exempt.txt

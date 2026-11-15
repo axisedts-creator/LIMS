@@ -28,7 +28,7 @@ const APPNAME = 't0d18-app';
 const KEY_PREFIX = 't0d18-';
 const MEMBERS = [
   'tenantId', 'actor', 'requestId', 'tx', 'now', 'ports', 'db', 'core', 'audit', 'events', 'rateLimit', 'uploads', 'files', 'storage',
-  'log', 'services', 'operationId', 'clientIp', 'download', 'commitOnError', 'noRetry',
+  'log', 'services', 'operationId', 'clientIp', 'bffKey', 'download', 'commitOnError', 'noRetry',
 ].sort();
 
 const ks = makeKeys('ES256');

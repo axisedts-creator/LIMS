@@ -1,0 +1,7 @@
+# WEB-AUTH-REDIRECT-2 dispute (writer)
+Reproduced on `next start` (before fix): html GET /dashboard → 500 text/plain; server log `TypeError: Invalid URL, input: '/auth/login'` (Next parses the relative Location). Fix in middleware.ts: `NextResponse.redirect(new URL(<literal path>, req.nextUrl.origin), 307)`. After fix, real server (curl, 127.0.0.1): /, /dashboard, /no-such-page html → 307 Location /auth/login; json → 401 problem+json (CSP, nosniff, no-store kept); /auth/login, /auth/session-expired → 200. No 500 left.
+
+Tests I cannot make pass without a hack (5 failures, all else green: 85/90):
+1. web-auth-redirect-server.test.ts lines 71-75, 92 (4 tests): require an ABSOLUTE Location on the wire. Next's server rewrites a same-origin absolute middleware redirect to a relative `Location: /auth/login` before sending (raw `curl -i` shows `location: /auth/login`). Middleware hands Next an absolute URL (unit tests prove it); the wire form is Next's and not controllable here. Browsers accept it; done_when says "Location points at /auth/login". Ask: assert `new URL(loc, base).pathname === '/auth/login'` and `u.origin === base` after resolving against base.
+2. web-auth-redirect.test.ts:122 "origin follows the request": `new NextRequest('http://127.0.0.1:4567/..')` is normalised by NextURL to `localhost` (req.url and req.nextUrl.origin both give http://localhost:4567). Test cannot see 127.0.0.1. Ask: use a non-loopback host (e.g. `http://lab.example.test:4567`) in this one test.
+Stopping per rules; no test files edited.

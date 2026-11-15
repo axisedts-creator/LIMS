@@ -29,11 +29,113 @@
 .lims-shell-nav[data-collapsed='true'] a { justify-content: center; padding: 0; }
 
 /* Auth pages (WEB-STYLE-1, LD-198, LD-140): tokens, rem and % only. */
-.lims-auth-page { display: grid; place-items: center; min-height: 100vh; padding: var(--lims-space-6) var(--lims-space-4); background: var(--lims-neutral-100); box-sizing: border-box; }
+/* WEB-STYLE-3 (LD-205): no body margin; the page fills the viewport exactly (one 100dvh, no scrollbar). */
+body { margin: 0; }
+.lims-auth-page { display: grid; place-items: center; min-height: 100vh; min-height: 100dvh; padding: var(--lims-space-6) var(--lims-space-4); background: var(--lims-neutral-100); box-sizing: border-box; }
 .lims-auth-card { display: flex; flex-direction: column; gap: var(--lims-space-4); box-sizing: border-box; width: 100%; max-width: 26rem; margin-inline: auto; padding: var(--lims-space-8) var(--lims-space-6); border: 0.0625rem solid var(--lims-neutral-200); border-radius: var(--lims-radius-lg); background: var(--lims-neutral-0); }
+/* WEB-STYLE-2 (LD-201): split layout; one centred column below 64rem, form column + brand panel from 64rem. Tokens, rem and % only (LD-140). */
+.lims-auth-main { display: grid; place-items: center; width: 100%; box-sizing: border-box; }
+.lims-auth-panel { display: none; box-sizing: border-box; flex-direction: column; justify-content: center; align-items: center; gap: var(--lims-space-6); padding: var(--lims-space-8); background: var(--lims-accent); color: var(--lims-accent-fg); }
+.lims-auth-panel-body { display: flex; flex-direction: column; gap: var(--lims-space-8); width: 100%; max-width: 26rem; }
+.lims-auth-panel-title { margin: 0; font-size: var(--lims-font-size-2xl-size); font-weight: var(--lims-font-weight-bold); }
+/* vertical stepper: a dot per step joined by a thin line that stops after the last step */
+.lims-auth-steps { display: flex; flex-direction: column; margin: 0; padding: 0; list-style: none; }
+.lims-auth-steps li { position: relative; padding-block: var(--lims-space-2); padding-inline-start: var(--lims-space-8); }
+.lims-auth-steps li::before { content: ''; position: absolute; z-index: 1; inset-inline-start: 0; top: 50%; transform: translateY(-50%); width: 0.75rem; height: 0.75rem; border-radius: var(--lims-radius-full); background: var(--lims-accent-brand); }
+.lims-auth-steps li:not(:last-child)::after { content: ''; position: absolute; inset-inline-start: 0.3125rem; top: 50%; width: 0.125rem; height: 100%; background: var(--lims-accent-brand); }
+@media (min-width: 64rem) {
+  .lims-auth-page { grid-template-columns: 1fr 1fr; place-items: stretch; padding: 0; }
+  .lims-auth-main { padding: var(--lims-space-6) var(--lims-space-4); background: var(--lims-neutral-0); }
+  .lims-auth-main .lims-auth-card { border: 0; background: transparent; }
+  .lims-auth-panel { display: flex; }
+}
 .lims-auth-card h1 { margin: 0; font-size: var(--lims-font-size-md-size); font-weight: var(--lims-font-weight-semibold); }
 .lims-auth-card form { display: flex; flex-direction: column; gap: var(--lims-space-4); }
 .lims-auth-card a { color: var(--lims-accent); }
 .lims-auth-card p { margin: 0; }
-.lims-wordmark { margin: 0; color: var(--lims-accent); font-size: var(--lims-font-size-md-size); font-weight: var(--lims-font-weight-semibold); letter-spacing: 0.08em; }
+.lims-wordmark { margin: 0; color: var(--lims-accent); font-size: var(--lims-font-size-2xl-size); font-weight: var(--lims-font-weight-bold); letter-spacing: 0.12em; }
+/* WEB-STYLE-3 (LD-205): equal-width fields, Show inside the field, Required on the label row. */
+.lims-auth-card .lims-input { width: 100%; box-sizing: border-box; }
+.lims-input-wrap { position: relative; }
+.lims-input-wrap .lims-input { padding-inline-end: var(--lims-space-12); }
+.lims-input-toggle { position: absolute; inset-inline-end: var(--lims-space-1); top: 50%; transform: translateY(-50%); }
+.lims-label-row { display: flex; align-items: baseline; gap: var(--lims-space-2); }
+.lims-label-row .lims-description { margin: 0; }
 .lims-checklist { margin: 0; padding-inline-start: var(--lims-space-4); color: var(--lims-neutral-700); font-size: var(--lims-font-size-sm-size); }
+
+/* WEB-STYLE-4 (LD-213, founder 2026-11-15): designed look for the auth screens. Presentation only. Tokens, rem and % only (LD-140).
+   Motion follows 10-DESIGN-SYSTEM: 150 ms standard, nothing over 250 ms, everything plays once, reduced motion zeroes it (one rule at the end).
+   Lime (accent-brand) is used for illustration strokes and dots only, never as text. Inline SVG art, so CSP img-src 'self' data: holds. */
+@keyframes lims-rise { from { opacity: 0; transform: translateY(0.5rem); } to { opacity: 1; transform: none; } }
+@keyframes lims-fade { from { opacity: 0; } to { opacity: 1; } }
+
+/* brand panel: forest gradient (accent to accent-hover), soft lime glow, faint dot grid, line art, refined stepper */
+.lims-auth-panel { position: relative; overflow: hidden; background: radial-gradient(ellipse 70% 50% at 85% 8%, color-mix(in srgb, var(--lims-accent-brand) 24%, transparent), transparent), radial-gradient(ellipse 60% 45% at 8% 100%, color-mix(in srgb, var(--lims-accent-brand) 12%, transparent), transparent), linear-gradient(160deg, var(--lims-accent), var(--lims-accent-hover)); }
+.lims-auth-panel::before { content: ''; position: absolute; inset: 0; background-image: radial-gradient(color-mix(in srgb, var(--lims-accent-fg) 22%, transparent) 0.0625rem, transparent 0.0625rem); background-size: 1.5rem 1.5rem; mask-image: linear-gradient(to bottom, black, transparent 75%); pointer-events: none; }
+.lims-auth-panel-body { position: relative; z-index: 1; animation: lims-rise var(--lims-motion-duration-normal) var(--lims-motion-easing) both; }
+.lims-art { display: block; width: 100%; max-width: 20rem; height: auto; fill: none; stroke: currentColor; color: var(--lims-accent-fg); }
+.lims-art-accent { stroke: var(--lims-accent-brand); stroke-width: 2.5; }
+.lims-auth-steps li { animation: lims-rise var(--lims-motion-duration-normal) var(--lims-motion-easing) both; }
+.lims-auth-steps li:nth-child(2) { animation-delay: 60ms; }
+.lims-auth-steps li:nth-child(3) { animation-delay: 120ms; }
+.lims-auth-steps li:nth-child(4) { animation-delay: 180ms; }
+.lims-auth-steps li:nth-child(5) { animation-delay: 240ms; }
+.lims-auth-steps li:nth-child(6) { animation-delay: 300ms; }
+.lims-auth-steps li:nth-child(7) { animation-delay: 360ms; }
+.lims-auth-steps li:last-child::before { box-shadow: 0 0 0 0.25rem color-mix(in srgb, var(--lims-accent-brand) 35%, transparent); }
+.lims-auth-steps li:last-child { font-weight: var(--lims-font-weight-semibold); }
+
+/* slim green band: below 64rem only (the panel is hidden there) */
+.lims-auth-band { display: flex; align-items: center; justify-content: space-between; gap: var(--lims-space-4); box-sizing: border-box; width: 100%; padding: var(--lims-space-3) var(--lims-space-4); background: linear-gradient(120deg, var(--lims-accent), var(--lims-accent-hover)); color: var(--lims-accent-fg); }
+.lims-auth-band .lims-art { width: 4.5rem; flex: none; }
+.lims-auth-band .lims-mark { color: var(--lims-accent-fg); }
+.lims-auth-band .lims-wordmark { color: var(--lims-accent-fg); }
+@media (min-width: 64rem) {
+  .lims-auth-band { display: none; }
+  .lims-auth-main .lims-auth-card { box-shadow: none; }
+}
+@media (max-width: 63.9375rem) {
+  .lims-auth-page { grid-template-rows: auto 1fr; place-items: stretch; padding: 0; }
+  .lims-auth-main { padding: var(--lims-space-6) var(--lims-space-4); }
+  .lims-auth-card .lims-lockup { position: absolute; width: 0.0625rem; height: 0.0625rem; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+}
+
+/* wordmark lockup: small abstract mark (placeholder until a real logo exists) beside the text */
+.lims-lockup { display: flex; align-items: center; gap: var(--lims-space-2); }
+.lims-mark { flex: none; width: 2rem; height: 2rem; color: var(--lims-accent); }
+
+/* form column: larger heading, muted subtitle, token rhythm, hairlines not boxes */
+.lims-auth-card { gap: var(--lims-space-5); box-shadow: var(--lims-elevation-1); animation: lims-rise var(--lims-motion-duration-normal) var(--lims-motion-easing) both; }
+.lims-auth-card h1 { font-size: var(--lims-font-size-2xl-size); line-height: var(--lims-font-size-2xl-line-height); font-weight: var(--lims-font-weight-bold); color: var(--lims-neutral-900); }
+.lims-auth-card h1 + p { color: var(--lims-neutral-500); }
+.lims-auth-card form { gap: var(--lims-space-5); }
+.lims-auth-badge { display: grid; place-items: center; width: 3rem; height: 3rem; border-radius: var(--lims-radius-full); background: var(--lims-accent-subtle); color: var(--lims-accent); }
+.lims-auth-badge svg { width: 1.5rem; height: 1.5rem; }
+
+/* controls: 44 touch height, leading icon, hover/focus feedback, pill primary button with arrow */
+.lims-auth-card .lims-input { min-height: var(--lims-touch-target-web); border-radius: var(--lims-radius-md); transition: border-color var(--lims-motion-duration-fast) var(--lims-motion-easing), box-shadow var(--lims-motion-duration-fast) var(--lims-motion-easing); }
+.lims-auth-card .lims-input:hover:not(:disabled) { border-color: var(--lims-neutral-500); }
+.lims-auth-card .lims-input:focus-visible { outline: 0.125rem solid transparent; border-color: var(--lims-accent); box-shadow: 0 0 0 0.1875rem color-mix(in srgb, var(--lims-accent) 25%, transparent); }
+.lims-input-icon { position: absolute; inset-inline-start: var(--lims-space-3); top: 50%; transform: translateY(-50%); width: 1.25rem; height: 1.25rem; color: var(--lims-neutral-500); pointer-events: none; }
+.lims-input-wrap .lims-input { padding-inline-start: var(--lims-space-10); }
+.lims-auth-card .lims-btn-primary { justify-content: center; width: 100%; min-height: var(--lims-touch-target-web); border-radius: var(--lims-radius-full); font-weight: var(--lims-font-weight-semibold); transition: background-color var(--lims-motion-duration-fast) var(--lims-motion-easing), border-color var(--lims-motion-duration-fast) var(--lims-motion-easing), transform var(--lims-motion-duration-fast) var(--lims-motion-easing); }
+.lims-auth-card .lims-btn-primary .lims-btn-label { display: inline-flex; align-items: center; gap: var(--lims-space-2); }
+.lims-auth-card .lims-btn-primary:active:not([data-disabled]) { transform: scale(0.98); }
+.lims-auth-card .lims-btn-primary[data-disabled] { opacity: 0.6; cursor: not-allowed; }
+.lims-btn-arrow { flex: none; width: 1.25rem; height: 1.25rem; transition: transform var(--lims-motion-duration-fast) var(--lims-motion-easing); }
+.lims-auth-card .lims-btn-primary:hover:not([data-disabled]) .lims-btn-arrow { transform: translateX(var(--lims-space-1)); }
+.lims-auth-card .lims-btn-primary[aria-busy='true'] .lims-btn-arrow { display: none; }
+.lims-auth-card [role='alert'] { animation: lims-fade var(--lims-motion-duration-fast) var(--lims-motion-easing); }
+
+/* 6-digit code: still the kit OtpInput (six cells); larger, centred, tabular figures */
+.lims-auth-card .lims-otp-cell { min-width: 0; min-height: var(--lims-touch-target-web); padding-inline: 0; font-size: var(--lims-font-size-2xl-size); font-variant-numeric: tabular-nums; letter-spacing: 0.1em; text-align: center; }
+
+/* MFA enrolment: QR and key in one tidy card; collapses cleanly when no QR image is sent */
+.lims-qr-card { display: flex; flex-direction: column; align-items: center; gap: var(--lims-space-4); padding: var(--lims-space-4); border: 0.0625rem solid var(--lims-neutral-200); border-radius: var(--lims-radius-lg); background: var(--lims-neutral-0); }
+.lims-qr-card img { max-width: 100%; height: auto; }
+.lims-qr-card .lims-data-image { width: 11rem; }
+
+/* reduced motion: one rule zeroes every animation and transition on the auth screens */
+@media (prefers-reduced-motion: reduce) {
+  .lims-auth-page *, .lims-auth-page *::before, .lims-auth-page *::after { animation-duration: 0s !important; animation-delay: 0s !important; transition-duration: 0s !important; transition-delay: 0s !important; }
+}

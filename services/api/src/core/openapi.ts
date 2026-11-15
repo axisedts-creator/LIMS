@@ -33,6 +33,7 @@ export const claimsOf = (req: FastifyRequest): DbClaims | undefined => requestAu
 
 const header = (v: unknown): string | undefined => (typeof v === 'string' ? v : undefined);
 const BEARER = /^Bearer ([^\s]+)$/i;
+const SID_COOKIE = /(?:^|;\s*)__Host-lims_sid=[^;\s]{1,4096}(?=;|\s*$)/; // non-empty, <= 4096 chars
 
 /** securityHandlers for fastify-openapi-glue. Schemes without a handler here fail closed (glue rejects the request). */
 function securityHandlers(auth: CoreAuth): Record<string, (req: FastifyRequest) => Promise<void>> {
@@ -50,6 +51,13 @@ function securityHandlers(auth: CoreAuth): Record<string, (req: FastifyRequest) 
       ra.claims = claims;
     };
   }
+  // LD-212 / LD-189 / LD-206: bffSession is ALWAYS registered (no verifier needed). No DB call; the identity handlers do the session lookup.
+  out.bffSession = async (req) => {
+    const ok = requestAuth.get(req)?.bffKind !== undefined // verifier result from the onRequest hook, never a header read here
+      && (req.routeOptions.url ?? '').startsWith('/v1/identity/auth/')
+      && SID_COOKIE.test(header(req.headers.cookie) ?? '');
+    if (!ok) throw new AuthError('auth.unauthenticated');
+  };
   return out;
 }
 
@@ -198,6 +206,7 @@ function wrap(op: PipelineOp, h: Handler, errorCodes: readonly string[], pipelin
     const ra = requestAuth.get(req);
     const r = await pipeline.run({
       op, claims: ra?.claims, requestId: String(req.id), clientIp: ra?.clientIp ?? req.ip,
+      bffKey: ra?.bffKind, // LD-206: only the verifier's result for X-Lims-Bff-Key; never a body/query/cookie field
       userAgent: header(req.headers['user-agent']), idempotencyKey: header(req.headers['idempotency-key']),
       req: { params: req.params, query: req.query, headers: req.headers, body: req.body }, handler: h, log: req.log,
     });

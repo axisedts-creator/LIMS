@@ -43,6 +43,8 @@ test('turbo.json defines build (deps first, outputs declared) and typecheck', ()
   assert.ok(tasks.build, 'tasks.build required');
   assert.ok(tasks.build.dependsOn?.includes('^build'), 'build dependsOn ^build');
   assert.ok(Array.isArray(tasks.build.outputs), 'build outputs declared (cache + no-stray-file check)');
+  // LD-210 TURBO-OUTPUTS-1: a turbo cache hit must restore the web build (else Vercel fails NEXT_NO_ROUTES_MANIFEST).
+  assert.deepEqual(tasks.build.outputs, ['dist/**', '.next/**', '!.next/cache/**'], 'build outputs: dist/**, .next/**, !.next/cache/**');
   assert.ok(tasks.typecheck, 'tasks.typecheck required');
 });
 

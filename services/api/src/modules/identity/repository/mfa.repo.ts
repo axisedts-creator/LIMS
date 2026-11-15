@@ -50,6 +50,9 @@ const LOAD_SQL = `SELECT s.aal, s.access_token_enc, s.refresh_token_enc, s.enc_k
 // T31 rotation (CR-C2-018, 08 A3.1): the presented token moves to previous_token_sha256 (one kept); guarded on the presented token
 const ROTATE_SQL = `UPDATE identity.sessions SET token_sha256 = $4, previous_token_sha256 = $5, updated_at = now(), updated_by = $6, version = version + 1
   WHERE tenant_id = $1 AND id = $2 AND user_id = $3 AND token_sha256 = $5 RETURNING id`;
+// LD-216 AUTH-PLATFORM-SESSION-1: platform kind reads through DEFINERs (owner-only policies); same 14 columns as LOAD_SQL minus membership_locked / tenant_status
+const PLATFORM_LOAD_DEFINER = 'SELECT * FROM app.identity_platform_auth_load_session($1::uuid, $2::uuid)';
+const PLATFORM_FACTORS_DEFINER = 'SELECT * FROM app.identity_platform_auth_read_mfa_factors($1::uuid)';
 const SESSION_UPDATE_DEFINER = 'SELECT app.identity_platform_auth_write_session_update($1::uuid, $2::uuid, $3::jsonb) AS n';
 const FACTORS_SQL = `SELECT id, gotrue_factor_id, status, verified_at, friendly_name FROM identity.mfa_factors
   WHERE tenant_id IS NOT DISTINCT FROM $1 AND user_id = $2 AND status <> 'removed'`;
@@ -94,6 +97,7 @@ export function createMfaRepo(o: { seal?: Sealer; open?: Opener } = {}) {
   const auth = createAuthRepo({ seal });
 
   const repo = {
+    sessionActor: auth.sessionActor,   // LD-208 SESSION-ACTOR-1 (resolveSession)
     loginContext: auth.loginContext, insertSession: auth.insertSession, insertPlatformSession: auth.insertPlatformSession,   // T9 confirmEmailToken
 
     /** T9 SS8: every OTHER non-terminal session of the user -> revoked (password_change). */
@@ -132,7 +136,9 @@ export function createMfaRepo(o: { seal?: Sealer; open?: Opener } = {}) {
     },
 
     async loadSession(tx: Q, ref: SessionRef) {
-      const r = (await tx.query(LOAD_SQL, [ref.sessionId, ref.userId, ref.tenantId, ref.kind])).rows[0];
+      const r = ref.kind === 'platform' && ref.tenantId === null
+        ? (await tx.query(PLATFORM_LOAD_DEFINER, [ref.userId, ref.sessionId])).rows[0]
+        : (await tx.query(LOAD_SQL, [ref.sessionId, ref.userId, ref.tenantId, ref.kind])).rows[0];
       if (!r) return undefined;
       return {
         // LD-81: kind patient has no GoTrue tokens (columns NULL by CHECK) -> '' (never sent to GoTrue: the patient path has no refresh)
@@ -198,7 +204,8 @@ export function createMfaRepo(o: { seal?: Sealer; open?: Opener } = {}) {
     },
 
     async factors(tx: Q, q: { tenantId: string | null; userId: string }) {
-      return (await tx.query(FACTORS_SQL, [q.tenantId, q.userId])).rows.map((r: any) => ({
+      const res = q.tenantId === null ? await tx.query(PLATFORM_FACTORS_DEFINER, [q.userId]) : await tx.query(FACTORS_SQL, [q.tenantId, q.userId]);
+      return res.rows.map((r: any) => ({
         id: r.id as string, gotrueFactorId: r.gotrue_factor_id as string, status: r.status as 'unverified' | 'verified',
         verifiedAt: (r.verified_at ?? null) as Date | null, friendlyName: (r.friendly_name ?? null) as string | null,
       }));

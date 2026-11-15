@@ -1047,6 +1047,7 @@ CREATE TABLE inventory.stock_movements (
 );
 -- Unlotted consumption with unknown item cost carries value 0 (value_basis 'none'); that satisfies value_paisa <= 0.
 CREATE INDEX stock_movements__tenant_id_store_item__idx ON inventory.stock_movements (tenant_id, store_id, item_id, occurred_at DESC);
+CREATE INDEX stock_movements__tenant_id_store_occurred__idx ON inventory.stock_movements (tenant_id, store_id, occurred_at DESC, id DESC);
 CREATE INDEX stock_movements__tenant_id_date_kind__idx ON inventory.stock_movements (tenant_id, business_date, movement_kind);
 CREATE INDEX stock_movements__tenant_id_doc__idx ON inventory.stock_movements (tenant_id, doc_type, doc_id);
 CREATE INDEX stock_movements__tenant_id_lot__p_idx ON inventory.stock_movements (tenant_id, lot_id, occurred_at) WHERE lot_id IS NOT NULL;
@@ -1169,6 +1170,7 @@ C12 **reads** these views (grants already exist per IC §6):
 | balances by item (item detail, avg cost) | `stock_balances__tenant_id_item_id__idx` |
 | ledger by store+item | `stock_movements__tenant_id_store_item__idx` |
 | ledger since snapshot (count) | same |
+| ledger by store, newest first, no item filter (#35 without item_id) | `stock_movements__tenant_id_store_occurred__idx` |
 | movements of a document | `stock_movements__tenant_id_doc__idx` |
 | lot history | `stock_movements__tenant_id_lot__p_idx` |
 | rule match in consumers | `consumption_rules__tenant_id_match__idx` |

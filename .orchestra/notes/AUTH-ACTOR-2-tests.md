@@ -5,3 +5,4 @@
 - WEB seam: `c2.ts` reads `session.state`; active tenant_staff/platform without a string[] -> `{ok:false,status:500|503,problem.code in errors.yaml}` (same code always); non-active -> permissions [] even if sent.
 - Run: `.orchestra\notes\AUTH-ACTOR-2-verify.cmd`. Now: 44 handler/loader + 12 contract + 18 web tests fail (no permissions; set-password/confirm bodies have no actor = live 500).
 - Not covered: pgTAP/migration (only if the writer adds one); partner/patient/mobile producers (report-only). Contract test boots pipeline under ci (staging demands every port owner); staging config only decides response validation.
+- RULING revision: session-actor.test.ts + mfa.complete.test.ts now expect exact `{...ACTOR, permissions}` on ACTIVE bodies (TENANT_PERMS / permissionsOfRoles); non-active + partner stay and assert no `permissions`. 50 pass.

@@ -1,0 +1,1 @@
+cd /d "%~dp0..\.." && pnpm --dir services/api exec vitest run src/core/db/__tests__/sqlstate.log.audit-small-1.test.ts src/core/db/__tests__/sqlstate.test.ts && node node_modules\vitest\vitest.mjs run --config apps/web/src/app/__tests__/vitest.audit-small-1.config.ts

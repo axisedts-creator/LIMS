@@ -33,6 +33,7 @@ export const claimsOf = (req: FastifyRequest): DbClaims | undefined => requestAu
 
 const header = (v: unknown): string | undefined => (typeof v === 'string' ? v : undefined);
 const BEARER = /^Bearer ([^\s]+)$/i;
+const SID_COOKIE = /(?:^|;\s*)__Host-lims_sid=[^;\s]{1,4096}(?=;|\s*$)/; // non-empty, <= 4096 chars
 
 /** securityHandlers for fastify-openapi-glue. Schemes without a handler here fail closed (glue rejects the request). */
 function securityHandlers(auth: CoreAuth): Record<string, (req: FastifyRequest) => Promise<void>> {
@@ -50,6 +51,13 @@ function securityHandlers(auth: CoreAuth): Record<string, (req: FastifyRequest) 
       ra.claims = claims;
     };
   }
+  // LD-212 / LD-189 / LD-206: bffSession is ALWAYS registered (no verifier needed). No DB call; the identity handlers do the session lookup.
+  out.bffSession = async (req) => {
+    const ok = requestAuth.get(req)?.bffKind !== undefined // verifier result from the onRequest hook, never a header read here
+      && (req.routeOptions.url ?? '').startsWith('/v1/identity/auth/')
+      && SID_COOKIE.test(header(req.headers.cookie) ?? '');
+    if (!ok) throw new AuthError('auth.unauthenticated');
+  };
   return out;
 }
 

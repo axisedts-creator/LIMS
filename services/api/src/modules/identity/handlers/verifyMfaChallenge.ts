@@ -179,7 +179,9 @@ export async function loginSucceeded(c: MfaCtx): Promise<void> {
  * loginStaff / resolveSession. Call it BEFORE the GoTrue code check: a missing actor (common.internal, rollback) must never consume a code.
  */
 export const loadActor = (c: MfaCtx): Promise<SessionActor> => loadSessionActor((k) => c.deps.repo.sessionActor(c.tx, k),
-  { userId: c.s.userId, tenantId: c.s.kind === 'platform' ? null : c.s.tenantId, membershipId: c.s.kind === 'platform' ? null : c.s.membershipId }, c.log, c.requestId);
+  { userId: c.s.userId, tenantId: c.s.kind === 'platform' ? null : c.s.tenantId, membershipId: c.s.kind === 'platform' ? null : c.s.membershipId }, c.log, c.requestId,
+  // LD-222 AUTH-ACTOR-2: both callers answer an ACTIVE session (aal2), so the permission list rides along; read in the same tx
+  { state: 'active', tenantPermissions: (membershipId) => c.deps.repo.membershipPermissions(c.tx, { tenantId: c.s.tenantId!, membershipId }) });
 
 export const sessionState = (c: MfaCtx, actor: SessionActor) => ({
   status: 200 as const,

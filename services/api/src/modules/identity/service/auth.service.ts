@@ -23,6 +23,8 @@ export interface AuthRepo {
   loginContext(tx: AuthTx, sub: string): Promise<Row | undefined>;
   /** LD-208 SESSION-ACTOR-1: app.identity_session_actor row { display_name, role_codes, tenant_code } or undefined (read only) */
   sessionActor(tx: AuthTx, a: ActorKey): Promise<Row | undefined>;
+  /** LD-222 AUTH-ACTOR-2: permission codes of the membership (read only, tenant-bound tx); only called for an active staff session */
+  membershipPermissions(tx: AuthTx, a: { tenantId: string; membershipId: string }): Promise<readonly string[]>;
   /** T31 openMobileSession (AU-T17): does the membership hold the permission through an active role? Runs after tx.bindTenant. */
   membershipHasPermission?(tx: AuthTx, a: { tenantId: string; membershipId: string; permission: string }): Promise<boolean>;
   insertSession(tx: AuthTx, s: NewSession): Promise<void>;
@@ -216,7 +218,7 @@ export function createAuthService(deps: AuthDeps) {
     if (mode === 'mobile') { abs = mobileHours(); idle = abs * 60; }   // staff_mobile: no idle timeout, idle = absolute (04 A16, 05-SCHEMA s4.1)
     if (!(idle > 0) || !(abs > 0)) throw new LimsError('common.internal', 'identity: tenant session settings missing');
     const state = row['has_verified_factor'] === true ? 'mfa_pending' : row['mfa_required'] === true ? 'mfa_enrolment_required' : 'active';
-    const actor = await actorOf(ctx, { userId: t.userId, tenantId, membershipId });
+    const actor = await actorOf(ctx, { userId: t.userId, tenantId, membershipId }, state, mode);
     const now = ctx.now();
     const kind = mode === 'partner' ? 'partner' : mode === 'mobile' ? 'staff_mobile' : 'tenant_staff';
     const { s, token } = session(ctx, t, { tenantId, kind, membershipId, platformStaffId: null, state, idle, abs, now });
@@ -249,7 +251,7 @@ export function createAuthService(deps: AuthDeps) {
       return deny(new LimsError('identity.platform_ip_denied'));
     }
     const state = row['has_verified_factor'] === true ? 'mfa_pending' : 'mfa_enrolment_required';   // MFA always required (08 A28.1)
-    const actor = await actorOf(ctx, { userId: t.userId, tenantId: null, membershipId: null });
+    const actor = await actorOf(ctx, { userId: t.userId, tenantId: null, membershipId: null }, state, 'staff');
     const now = ctx.now();
     const { s, token } = session(ctx, t, { tenantId: null, kind: 'platform', membershipId: null, platformStaffId, state, idle: pIdle, abs: pAbs, now });
     await deps.repo.insertPlatformSession(tx, s);
@@ -278,7 +280,9 @@ export function createAuthService(deps: AuthDeps) {
     body: { session_token: token, session: { session_id: s.id, kind: s.kind, state: s.state, aal: s.aal,
       idle_expires_at: s.idleExpiresAt.toISOString(), absolute_expires_at: s.absoluteExpiresAt.toISOString(), actor } },
   });
-  const actorOf = (ctx: AuthCtx, key: ActorKey) => loadSessionActor((k) => deps.repo.sessionActor(ctx.tx, k), key, ctx.log, ctx.requestId);
+  // LD-222: permissions only for the staff login (partner / mobile producers omit them) and only when the new session is active
+  const actorOf = (ctx: AuthCtx, key: ActorKey, state?: string, mode?: LoginMode) => loadSessionActor((k) => deps.repo.sessionActor(ctx.tx, k), key, ctx.log, ctx.requestId,
+    state !== undefined && mode === 'staff' ? { state, tenantPermissions: (membershipId) => deps.repo.membershipPermissions(ctx.tx, { tenantId: key.tenantId!, membershipId }) } : undefined);
 
   /** T28 lims_identity_logins_total{outcome, kind}: kind = login family [CONV]. A 400 (bad input) and an outage are not login attempts. */
   async function counted<T>(ctx: AuthCtx, mode: LoginMode, run: Promise<T>): Promise<T> {

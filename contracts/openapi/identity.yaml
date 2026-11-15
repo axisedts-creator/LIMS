@@ -5240,6 +5240,10 @@ components:
               type: array
               maxItems: 20
               items: { type: string, maxLength: 40 }
+            permissions:   # LD-222 AUTH-ACTOR-2: present ONLY when state is active (never in password_setup / mfa_pending / mfa_enrolment_required)
+              type: array
+              maxItems: 400
+              items: { type: string, maxLength: 100 }
             support_session:
               type: object
               additionalProperties: false

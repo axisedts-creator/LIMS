@@ -26,3 +26,5 @@ analytics.g_cs_families             global coded family set; no tenant data (CV 
 analytics.g_cs_report_codes         global coded report-code set; no tenant data (CV §5.8)
 reporting.g_message_templates       global catalogue; no tenant data (CV §5.8)
 reporting.g_cs_reasons              global catalogue; no tenant data (CV §5.8)
+quality.g_cs_corrective_actions   global coded set; no tenant data (CV §5.8)
+quality.g_cs_exclusion_reasons    global coded set; no tenant data (CV §5.8)

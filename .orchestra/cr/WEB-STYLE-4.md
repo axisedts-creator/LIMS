@@ -1,4 +1,4 @@
-Title: CR-C1-008: OtpInput single-input mode (one real input for the 6-digit code) for web auth MFA screens
+Title: CR-C1-010: OtpInput single-input mode (one real input for the 6-digit code) for web auth MFA screens
 From chunk: C1            To owner: C0-0B (packages/ui kit owner)
 Type: ui-kit
 Blocking? yes — WEB-STYLE-4 (LD-213 item 4) acceptance "the 6-digit code field stays ONE real input (autocomplete one-time-code, inputmode numeric, maxlength, name and id unchanged)" cannot be met in this lane.

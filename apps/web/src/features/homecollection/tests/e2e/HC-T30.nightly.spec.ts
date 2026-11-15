@@ -68,7 +68,7 @@ test('2 assign -> 3 C4 order: assigning creates exactly one order (no duplicate 
 });
 
 test('4 C5 specimens/labels: the phone snapshot (A2) lists the visit specimens with barcodes and the C4 balance', async ({ request }) => {
-  const r = await request.get(`${API}/v1/homecollection/sync/snapshot?device_id=${DEVICE_ID}`, { headers: H(DEVICE_TOKEN, { 'x-lims-device-id': DEVICE_ID }) });
+  const r = await request.get(`${API}/v1/homecollection/sync/snapshot?device_id=${DEVICE_ID}`, { headers: H(DEVICE_TOKEN, { 'x-lims-device-id': DEVICE_ID, 'x-lims-app-version': '1.0.0' }) });
   expect(r.status()).toBe(200);
   const snap = await r.json();
   const sv = snap.visits.find((x: { visit_id: string }) => x.visit_id === VISIT);

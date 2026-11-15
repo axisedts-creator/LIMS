@@ -168,5 +168,10 @@ SELECT ok(pg_temp.v('lims_api', pg_temp.sysclaims(), format($q$SELECT set_config
           'A38: lims_api setting app.pre_user_id itself still sees 0 identity.sessions rows (the owner policies are TO lims_owner)');
 SELECT is(pg_temp.st(1), (SELECT s FROM before WHERE n = 1), 'A38: session 1 still password_setup at the end');
 
+-- T0B-DBINV-1 (LD-230 item 10): both functions are inventoried with touches on these tables; the inventory rule (T0B-08.suites) wants the contract
+-- test to run with FORCE RLS on. Added assertion; none removed or changed.
+SELECT is((SELECT count(*) FROM pg_class c WHERE c.oid IN (to_regclass('identity.sessions'), to_regclass('identity.invitations')) AND c.relforcerowsecurity),
+          2::bigint, 'A38: identity.sessions and identity.invitations have relforcerowsecurity = true (the DEFINERs run under FORCE RLS)');
+
 SELECT * FROM finish();
 ROLLBACK;

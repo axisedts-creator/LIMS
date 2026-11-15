@@ -1,13 +1,15 @@
-CHANGES
+APPROVE
 
-Code review of `760316b4..HEAD` found no defects in the code. The only problem is one missing deliverable in the impl note.
+Round 2 review of `760316b4..HEAD` (HEAD a2b43d19).
 
-1. `.orchestra/notes/WEB-AUTH-REDIRECT-1-impl.md:6`: LD-200 requires the last 15 lines of the real `pnpm --filter @lims/web build` output in the impl note. The note only paraphrases the build and says "exit status not captured". Fix: replace line 6 with a fenced block holding the verbatim last 15 lines of the build output, followed by `exit 0`. The reviewer re-ran the build on 2026-11-15: it exits 0, the route table ends with `ƒ Proxy (Middleware)`, and the only warning is the old middleware-to-proxy deprecation notice, so pasting that output is enough.
-
-Verified (no action needed):
-- `apps/web/src/middleware.ts:91-99`: a non-JSON request without a session gets a 307. Location is the relative literal `/auth/session-expired` when the reason is expired and `/auth/login` otherwise. The response goes through `secure()`, so it keeps the CSP report-only header with a fresh nonce plus nosniff, referrer-policy and no-store. JSON requests still get the unchanged problem+json 401. Resolver failures that are not 401 are still relayed. SESSION_EXEMPT and the CSRF-before-session order are unchanged, so /auth/* and /queue-display are never redirected and nothing loops. LD-200 is cited.
-- The redirect target uses no request data, so there is no open redirect and no echo of the query, Host or X-Forwarded-* headers. No cookie is set and no token appears in the response (REQ-SEC-068). Nothing is logged.
-- Scope: 6 files, all in owned paths (`apps/web/src/**` and the task's own notes). `sign-in-page.ts` is untouched. Its only remaining caller is `web-style.test.ts`, and the impl note says so. No session, cookie, CSP-value, spec, db or lockfile changes.
-- Tests cover done_when and the ACs: 307 with Location for both reasons, JSON unchanged, public paths with and without a stale cookie, CSP on the redirect, hostile query and Host input, CSRF 403 before any redirect, and source guards.
-- Reviewer ran the verify.cmd config and got 78/78 passing. `t12.source.test.ts` plus `rs-c6.static.test.ts` gave 50/50 passing. `pnpm --filter @lims/web build` exited 0.
-- RLS, idempotency and rate tier do not apply here: the change is middleware only, with no DB or API surface.
+- Round-1 item 1 is fixed. `.orchestra/notes/WEB-AUTH-REDIRECT-1-impl.md` now holds the verbatim last 15 lines of `pnpm --filter @lims/web build`, ending with `ƒ Proxy (Middleware)`, followed by `exit 0`. This matches the reviewer's own build run on 2026-11-15.
+- Nothing else changed since round 1 (a2b43d19 touches only the impl note), so the round-1 code findings still hold:
+  - `apps/web/src/middleware.ts:91-99`: a document request without a session gets a 307 to the literal `/auth/session-expired` (expired) or `/auth/login` (missing or other 401).
+  - The redirect goes through `secure()`, so it keeps CSP with a fresh nonce, nosniff, referrer-policy and no-store.
+  - JSON requests still get the unchanged problem+json 401.
+  - SESSION_EXEMPT and the CSRF-before-session order are unchanged, so nothing loops.
+  - No request data reaches Location, so there is no open redirect. No token or cookie is echoed (REQ-SEC-068). LD-200 is cited.
+- Scope: 6 files, all in owned paths. `sign-in-page.ts` is untouched; its only remaining caller is a test, and the impl note says so.
+- The reviewer re-ran the verify.cmd config: 4 files, 78/78 passing.
+- RLS, idempotency and rate tier do not apply: the change is middleware only, with no DB or API surface.
+- Non-blocking: the impl note says the non-blocking CR to C0-0D (03-APP-FLOW wording, per LD-200) is not written yet. The lead should track it; it does not block this task.

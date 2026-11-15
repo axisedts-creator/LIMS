@@ -83,7 +83,9 @@ function expectSameModules(doc: string, m: Matrix) {
 }
 const bodyOf = (out: string | undefined) => { expect(out, 'a usable QR (not omitted)').toBeDefined(); return unb64(out!); };
 const expectCompactShape = (doc: string) => {
-  expect(doc.startsWith('<svg')).toBe(true); expect(doc).not.toMatch(/<\?xml|<!--|<!doctype|<script|\bon[a-z]+\s*=|javascript:|https?:|data:/i);
+  expect(doc.startsWith('<svg')).toBe(true); expect(doc).not.toMatch(/<\?xml|<!--|<!doctype|<script|\bon[a-z]+\s*=|javascript:|data:|href\s*=\s*["']?\s*(?:https?:|\/\/)|url\(\s*["']?\s*(?:https?:|\/\/)/i);
+  // ruling AUTH-MFA-QR-2: the SVG namespace is an identifier, never fetched; it is the ONLY URL allowed
+  expect(doc.replace('xmlns="http://www.w3.org/2000/svg"', '')).not.toMatch(/https?:/i);
   expect(doc.match(/<path\b/gi)).toHaveLength(1); expect(doc.match(/<rect\b/gi), 'ONE background rect only').toHaveLength(1);
   expect(doc).toMatch(/shape-rendering\s*=\s*["']crispEdges["']/); expect(Buffer.byteLength(doc, 'utf8')).toBeLessThanOrEqual(15000);
   const bg = /<rect\b[^>]*>/i.exec(doc)![0]; expect(bg).toMatch(/(?:fill\s*[=:]\s*["']?\s*(?:#fff(?:fff)?|white))|style\s*=\s*["'][^"']*fill:\s*(?:#fff(?:fff)?|white)/i);

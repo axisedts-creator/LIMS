@@ -20,11 +20,13 @@ export function PasswordField({ label, name, autoComplete, maxLength, value, onC
   const [shown, setShown] = useState(false);
   return (
     <div className="lims-field">
-      <label className="lims-label" htmlFor={id}>
-        {label}
-      </label>
-      <RequiredNote />
-      <div className="lims-input-group">
+      <div className="lims-label-row">
+        <label className="lims-label" htmlFor={id}>
+          {label}
+        </label>
+        <RequiredNote />
+      </div>
+      <div className="lims-input-wrap">
         <input
           id={id}
           className="lims-input"
@@ -39,7 +41,7 @@ export function PasswordField({ label, name, autoComplete, maxLength, value, onC
           aria-describedby={error ? `${id}-e` : undefined}
           onChange={(e) => onChange(e.target.value)}
         />
-        <button type="button" className="lims-btn lims-btn-ghost lims-btn-sm" aria-pressed={shown} onClick={() => setShown((s) => !s)}>
+        <button type="button" className="lims-btn lims-btn-ghost lims-btn-sm lims-input-toggle" aria-pressed={shown} onClick={() => setShown((s) => !s)}>
           {shown ? 'Hide' : 'Show'}
         </button>
       </div>

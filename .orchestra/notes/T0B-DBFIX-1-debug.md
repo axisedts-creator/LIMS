@@ -10,3 +10,5 @@ Round 3: unchanged. node --test fixtures test: 9 sub-tests fail (LD-230 1,2,6,8,
 Round 4: unchanged. db/tests still unpatched (platform_admin still in T0B-08_contracts_helpers.test.sql). No implementation fix exists; no test edited. Tester must git apply .orchestra/notes/T0B-DBFIX-1-dbtests.patch (LD-243 b, LD-244). No third lead reset: escalate to founder.
 
 Round 5: verify log shows same 2 of 45 failures (roles test 17; helpers test 57); db/tests still unpatched. No implementation fix exists; no test edited. Tester must git apply .orchestra/notes/T0B-DBFIX-1-dbtests.patch (LD-243 b, LD-244). Lead resets exhausted: escalate to founder.
+
+Round 6: unchanged. Same 2 of 45 failures (roles test 17; helpers test 57); db/tests still unpatched (00_bootstrap_roles.test.sql:39 lacks lims_app|lims_migrator|false|true). No implementation fix exists; no test edited. Needs founder: apply .orchestra/notes/T0B-DBFIX-1-dbtests.patch (tester role or by hand). No third lead reset.

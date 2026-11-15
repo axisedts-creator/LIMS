@@ -4,6 +4,7 @@ import { useState, type FormEvent } from 'react';
 import { Banner } from '@lims/ui/components/Banner';
 import { Button } from '@lims/ui/components/Button';
 import { OtpInput } from '@lims/ui/components/OtpInput';
+import { AuthIcon } from './AuthArt';
 import { errorCopy, type ActionResult } from './messages';
 
 export interface MfaChallengeFormProps {
@@ -34,6 +35,9 @@ export function MfaChallengeForm({ action, logoutAction }: MfaChallengeFormProps
 
   return (
     <div className="lims-auth-card">
+      <div className="lims-auth-badge">
+        <AuthIcon kind="shield" />
+      </div>
       <h1>Two-step verification</h1>
       <p>Enter the 6-digit code from your authenticator app.</p>
       {failure ? (
@@ -52,6 +56,7 @@ export function MfaChallengeForm({ action, logoutAction }: MfaChallengeFormProps
         <OtpInput label="Authentication code" length={6} value={code} onChange={setCode} onComplete={(v) => v === code && void submit(v)} isDisabled={pending} />
         <Button type="submit" variant="primary" isLoading={pending}>
           Verify
+          <AuthIcon kind="arrow" className="lims-btn-arrow" />
         </Button>
       </form>
       <Button variant="ghost" onPress={() => void logoutAction()}>

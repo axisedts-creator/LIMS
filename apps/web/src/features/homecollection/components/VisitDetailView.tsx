@@ -9,6 +9,7 @@ import { useRouter } from 'next/navigation';
 import { Banner } from '@lims/ui/components/Banner';
 import { Button } from '@lims/ui/components/Button';
 import { Card } from '@lims/ui/components/Card';
+import { CodedSelect } from '@lims/ui/components/CodedSelect';
 import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
 import { DateText, type DateTextProps } from '@lims/ui/components/DateText';
 import { DescriptionList } from '@lims/ui/components/DescriptionList';
@@ -19,7 +20,6 @@ import { Inline } from '@lims/ui/components/Inline';
 import { MoneyText } from '@lims/ui/components/MoneyText';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { RadioGroup } from '@lims/ui/components/RadioGroup';
-import { Select } from '@lims/ui/components/Select';
 import { Stack } from '@lims/ui/components/Stack';
 import { StatusChip } from '@lims/ui/components/StatusChip';
 import { Timeline } from '@lims/ui/components/Timeline';
@@ -146,7 +146,7 @@ function ReviewDialog({ collection, reasons, isOpen, onClose }: ReviewDialogProp
       footer={
         <>
           <Button variant="ghost" onPress={onClose} isDisabled={pending}>Cancel</Button>
-          <Button variant="primary" onPress={() => void submit()} isLoading={pending}>Confirm</Button>
+          <Button variant="primary" onPress={() => void submit()} isLoading={pending}>{decision === 'apply' ? 'Apply' : decision === 'discard' ? 'Discard' : 'Confirm'}</Button>
         </>
       }
     >
@@ -157,8 +157,9 @@ function ReviewDialog({ collection, reasons, isOpen, onClose }: ReviewDialogProp
         options={[{ value: 'apply', label: 'Apply', isDisabled: noApply }, { value: 'discard', label: 'Discard' }]}
         {...(errs.decision ? { error: errs.decision } : {})}
       />
-      <Select
-        label="Reason" name="reason_code" isRequired options={reasons.map((r) => ({ value: r.code, label: r.display }))}
+      <CodedSelect
+        label="Reason" name="reason_code" codedSet="homecollection.review_reasons" isRequired
+        options={reasons.map((r) => ({ code: r.code, display: r.display, isActive: r.is_active !== false }))}
         {...(code ? { value: code } : {})} {...(errs.code ? { error: errs.code } : {})} onChange={setCode}
       />
       <TextField label="Details" name="reason_text" maxLength={500} value={text} onChange={setText} {...(errs.text ? { error: errs.text } : {})} />

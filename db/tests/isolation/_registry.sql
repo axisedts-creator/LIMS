@@ -397,7 +397,21 @@ INSERT INTO registry (tbl, class, centre_scoped, audited, shared_with, rls_exemp
   ('reporting.reports', 'C', true, true, ARRAY['partner', 'patient', 'portal']::text[], false),
   ('reporting.settings', 'M', false, true, ARRAY['portal']::text[], false),
   ('reporting.staff_assignments', 'M', false, true, ARRAY[]::text[], false),
-  ('smartreport.event_inbox', 'A', false, false, ARRAY[]::text[], false);
+  ('smartreport.analyte_groups', 'M', false, true, ARRAY[]::text[], false),
+  ('smartreport.event_inbox', 'A', false, false, ARRAY[]::text[], false),
+  ('smartreport.g_cs_organ_groups', 'G', false, false, ARRAY[]::text[], true),
+  ('smartreport.g_cs_summary_reject_reasons', 'G', false, false, ARRAY[]::text[], true),
+  ('smartreport.g_cs_wording_deny_terms', 'G', false, false, ARRAY[]::text[], true),
+  ('smartreport.group_settings', 'M', false, true, ARRAY[]::text[], false),
+  ('smartreport.library_reviews', 'A', false, false, ARRAY[]::text[], false),
+  ('smartreport.library_versions', 'M', false, true, ARRAY[]::text[], false),
+  ('smartreport.llm_runs', 'A', true, false, ARRAY[]::text[], false),
+  ('smartreport.rules', 'M', false, true, ARRAY[]::text[], false),
+  ('smartreport.summaries', 'C', true, true, ARRAY[]::text[], false),
+  ('smartreport.summary_report_bindings', 'A', true, false, ARRAY[]::text[], false),
+  ('smartreport.summary_reviews', 'A', true, false, ARRAY[]::text[], false),
+  ('smartreport.template_blocks', 'M', false, true, ARRAY[]::text[], false),
+  ('smartreport.wording_deny_terms', 'M', false, true, ARRAY[]::text[], false);
 INSERT INTO definer_inventory (fn, owner, execute_roles, touches, policies) VALUES
   ('app.core_resolve_tenant_code', 'lims_owner', ARRAY['lims_api']::text[], ARRAY['core.tenants SELECT']::text[], ARRAY['tenants__select__owner_only (app.pre_tenant_code)']::text[]),
   ('app.cron_tenant_ids', 'lims_owner', ARRAY['lims_worker']::text[], ARRAY['core.tenants SELECT']::text[], ARRAY['tenants__select__owner_only (app.maintenance = ''cron_tenant_ids'')']::text[]),

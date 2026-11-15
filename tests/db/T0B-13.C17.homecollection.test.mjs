@@ -340,7 +340,7 @@ test('policy shape (§4.1, 08 A17 P-16, A16.1): every lims_app policy carries th
     for (const x of ['using', 'check']) { assert.match(get('UPDATE')[x], /to_centre_id=any/, `${b} UPDATE ${x}: confirmed by the receiving side`); assert.doesNotMatch(get('UPDATE')[x], /\bcentre_id=any/,`${b} UPDATE ${x}: not by the from side`); }
   }
   const del = ten.filter((p) => p.cmd === 'DELETE'); assert.deepEqual(del.map((p) => p.key), ['visit_locations__delete__tenant_centre@homecollection.visit_locations'], 'DELETE policy only on visit_locations (the one class E table)');
-  assert.match(del[0].using, /\(select app\.current_actor_type\(\)\)='system'/, 'system actor only'); assert.match(del[0].using, /expires_at<now\(\)/, 'only expired rows (P-18(c))');
+  assert.match(del[0].using, /\(select app\.current_actor_type\(\)\)='system'/, 'system actor only'); assert.match(del[0].using, /expires_at\s*<\s*now\(\)/, 'only expired rows (P-18(c))');
   assert.equal(own.length, 4);
   for (const p of own) {
     assert.equal(p.roles, 'lims_owner', `${p.key} TO lims_owner`); assert.match(p.name, /^(visits|handover_items)__(select|update)__owner_only$/); const t = `${p.using} ${p.check}`;
@@ -511,7 +511,7 @@ function seedSpec() {   // §2 table -> ["set|code|display|requires_text"]; disp
   }
   return out;
 }
-const lit = (v) => /^'(.*)'$/.exec(v)?.[1];
+const lit = (v) => /^'(.*)'$/.exec(v)?.[1].replace(/''/g, "'");
 test('seed rows: g_cs_reasons holds exactly the 40 §2 rows (set_code + code verbatim, display verbatim where the spec gives one, requires_text true exactly for the † codes, id / set_code / code / display / requires_text / sort_order named, sort_order distinct per set, ids distinct); NOTHING else is inserted (no settings, no tenant data: fixtures are packages/test-fixtures, §7)', () => {
   const sql = hSql(), rows = insertRows(sql, 'homecollection.g_cs_reasons'); assert.ok(rows.length > 0, 'g_cs_reasons: seeded');
   for (const k of ['id', 'set_code', 'code', 'display', 'requires_text', 'sort_order']) assert.ok(k in rows[0], `seed column list names ${k} (id has no DEFAULT)`);
@@ -594,7 +594,7 @@ test('pgTAP files db/tests/homecollection/T0B-13.C17_schema.test.sql and T0B-13.
     const s = readFileSync(TD + f, 'utf8');
     assert.doesNotMatch(s, /DISABLE\s+ROW\s+LEVEL\s+SECURITY|NO\s+FORCE\s+ROW\s+LEVEL\s+SECURITY/i, `${f}: RLS never disabled (AC-0B-2.4)`);
     assert.match(s, /^BEGIN;/m); assert.match(s, /ROLLBACK;\s*$/); assert.match(s, /finish\(\)/);
-    const rep = [...s.matchAll(/session_replication_role\s*=\s*replica/gi)].length, org = [...s.matchAll(/session_replication_role\s*=\s*origin/gi)].length;
+    const rep = [...s.matchAll(/^\s*SET\s+LOCAL\s+session_replication_role\s*=\s*replica/gim)].length, org = [...s.matchAll(/^\s*SET\s+LOCAL\s+session_replication_role\s*=\s*origin/gim)].length;
     assert.ok(rep === 0 || (org >= rep && s.lastIndexOf('= origin') > s.lastIndexOf('= replica')), `${f}: every replica fixture block is reset to origin before assertions`);
   }
   const an = readFileSync(TD + 'T0B-13.C17_anonymise.test.sql', 'utf8');

@@ -1,3 +1,4 @@
+'use client';
 import type { ReactNode } from 'react';
 import { useRestoreFocus } from '../_shared/useRestoreFocus';
 import { Dialog as RacDialog, Heading, Modal, ModalOverlay } from 'react-aria-components';

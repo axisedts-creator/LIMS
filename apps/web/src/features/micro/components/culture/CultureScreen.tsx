@@ -4,6 +4,7 @@
 // every status shows tone, icon and word. The screen never decides culture state: it opens dialogs, the dialogs post, the server moves the culture and the page refreshes.
 // Buttons that the state or the permission does not allow are not rendered (03-APP-FLOW §4.2). Page shortcuts are registered once under 'micro.culture' (04-UI-UX §3).
 // T-22: Preliminary / Final report open the report drawer (Alt+P / Alt+F), "Reopen for amendment" its dialog, and the Reports tab lists the versions (components/reports).
+// T-23: the "Instrument data" tab lists this culture's instrument records (components/instrument-records); a final_submitted culture with open records shows the AC-08.9 banner.
 // Cancel stays disabled here (its own task). T-21: the AST grid and "Choose AST panel" live in the Isolates & AST tab;
 // leaving that tab with unsaved AST values asks "Discard unsaved AST changes?" (03-APP-FLOW §6); Alt+A focuses the grid of the selected isolate.
 import { useEffect, useRef, useState, type ReactNode } from 'react';
@@ -12,7 +13,6 @@ import { shortcuts } from '@/core/shortcuts/registry';
 import { Banner } from '@lims/ui/components/Banner';
 import { Button } from '@lims/ui/components/Button';
 import { ConfirmDialog } from '@lims/ui/components/ConfirmDialog';
-import { EmptyState } from '@lims/ui/components/EmptyState';
 import { Inline } from '@lims/ui/components/Inline';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { Stack } from '@lims/ui/components/Stack';
@@ -29,6 +29,7 @@ import { AssignPanelDialog } from '../ast/AssignPanelDialog';
 import { AstPane, showsGrid } from '../ast/AstPane';
 import { focusFirstAstInput } from '../ast/AstGrid';
 import { useTenantStandard } from '../ast/useTenantStandard';
+import { InstrumentRecordsTab } from '../instrument-records/InstrumentRecordsTab';
 import { ReopenDialog } from '../reports/ReopenDialog';
 import { ReportDrawer } from '../reports/ReportDrawer';
 import { ReportsTab } from '../reports/ReportsTab';
@@ -166,6 +167,7 @@ export function CultureScreen({ culture, patient, specimen, permissions }: Cultu
         <IdentityCard culture={culture} patient={patient} specimen={specimen} />
         {culture.chain_cancelled ? <Banner tone="warning" title="This test was cancelled in the lab after a report was submitted." /> : null}
         {culture.status === 'amending' ? <Banner tone="warning" title={`Amendment in progress: ${culture.amendment_reason_text ?? ''}`.trim()} /> : null}
+        {culture.status === 'final_submitted' && culture.open_instrument_record_count > 0 ? <Banner tone="warning" title="Instrument data arrived after the final report" /> : null}
         <Tabs
           aria-label="Culture sections"
           items={[
@@ -191,7 +193,7 @@ export function CultureScreen({ culture, patient, specimen, permissions }: Cultu
             />
           ) : null}
           {tab === 'reports' ? <ReportsTab culture={culture} /> : null}
-          {tab === 'instrument' ? <EmptyState title="No instrument data to show here yet." /> : null}
+          {tab === 'instrument' ? <InstrumentRecordsTab cultureId={culture.id} canWork={permissions.includes(WORK)} /> : null}
         </Tabs>
       </Stack>
       {dlg?.k === 'setup' ? <SetupCultureDialog culture={culture} onClose={close} /> : null}

@@ -4,4 +4,5 @@
 - [CONV] `apps/phlebo_app/pubspec.yaml`: dev_dependency `integration_test: sdk: flutter` (outside task file list; needed for the binding).
 - Run: vitest hc-t30 23/23 pass; `flutter analyze integration_test` clean; Dart scenario 2/2 pass on host via temp copy under `__tests__` (deleted). Not run on an emulator (none attached).
 - Review item 7: Playwright NOT run - `@playwright/test` not installed ("Command \"playwright\" not found"), no compose API stack/seed (LIMS_E2E_* unset). Filed `.orchestra/cr/HC-T30.md` (to C0-0A: dependency, nightly job, seed env).
+- Re-review item 1 (A2 missing `x-lims-app-version`): already fixed in test file by tester (26c7ee0b6, spec.ts:71); no impl change needed. vitest re-run 23/23.
 - Open: done_when NOT met until the CR lands and the nightly run is green. Task not done.

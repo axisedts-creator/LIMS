@@ -6,3 +6,8 @@
 ## Round 2 (re-check)
 - Same single failure: 'build smoke' ERR_PNPM_IGNORED_BUILDS @scarf/scarf. Task diff (d40dc28e~1..HEAD) touches only turbo.json, the one test assertion and lane notes; pnpm-workspace.yaml untouched (placeholder from bd802fb4).
 - No fix in impl code: cause is outside task scope (rule: no other file changes). Lead must rule on `allowBuilds['@scarf/scarf']` (true/false) as a separate task, or accept as pre-existing. Not a test-vs-spec dispute.
+
+## Round 3 (re-check)
+- Verify log unchanged: 10 pass, 1 fail ('build smoke', `pnpm install --frozen-lockfile` -> ERR_PNPM_IGNORED_BUILDS @scarf/scarf@1.4.0). Target test 'turbo.json defines build ...' passes.
+- Cause unchanged: pnpm-workspace.yaml `allowBuilds['@scarf/scarf']` is still the placeholder 'set this to true or false' (bd802fb4). The file is outside the 2-file scope. No fix applied, and no dispute (not a test-vs-spec conflict).
+- Lead must rule on true/false for @scarf/scarf in a separate task, or accept as pre-existing/env. Repeating debugger rounds will not change this.

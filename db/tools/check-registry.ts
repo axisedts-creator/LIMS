@@ -9,6 +9,17 @@ import { UNCAST_CENTRE, alterTarget, balanced, createTable, finish, readSqlDir, 
 const PHI = /^P[0-3]$/;
 const ACTORS = new Set(["partner", "portal", "patient"]);
 const GUARD = /\bapp\.is_staff_or_system\s*\(\s*\)/i;
+// LD-215 (2026-11-15, founder; CR-C0-T0B-13.C16 option (b), narrowed): C16 05-SCHEMA s5.1-s5.3 defines ANY_T without the staff guard
+// on purpose (patient and device actors read settings / coded sets and write number_counters). A guard-less __tenant policy is
+// accepted ONLY for these exact (table, declared command) pairs AND only when every non-null clause equals ANY_T (whitespace/case
+// collapsed). Nothing else is exempted; do not generalise.
+const ANY_T_EXCEPTIONS = new Set([
+  "engagement.settings|select",
+  "engagement.number_counters|select", "engagement.number_counters|insert", "engagement.number_counters|update",
+  "engagement.cs_booking_cancel_reasons|select", "engagement.cs_reminder_reasons|select", "engagement.cs_enquiry_categories|select",
+]);
+const norm = (s: string) => s.replace(/\s+/g, " ").trim().toLowerCase();
+const ANY_T = norm("tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.current_actor_type()) IN ('user','system','patient','device')");
 
 const root = rootDir();
 const meta = tablesMeta(root);
@@ -33,7 +44,7 @@ for (const [t, cs] of cols) {
 }
 
 // ---- policies
-type Pol = { name: string; table: string; cmd: string; actor: string; base: string; using: string | null; check: string | null; file: string };
+type Pol = { name: string; table: string; cmd: string; declared: string; actor: string; base: string; using: string | null; check: string | null; file: string };
 const pols: Pol[] = [];
 for (const { file, stmts } of readSqlDir(root, "db/policies"))
   for (const { code } of stmts) {
@@ -41,8 +52,10 @@ for (const { file, stmts } of readSqlDir(root, "db/policies"))
     if (!m) continue;
     const n = /^(\w+?)__(select|insert|update|delete|all)__(\w+)$/.exec(m[1]);
     const u = /\bUSING\s*\(/i.exec(code), w = /\bWITH\s+CHECK\s*\(/i.exec(code);
+    const d = /\bFOR\s+(SELECT|INSERT|UPDATE|DELETE|ALL)\b/i.exec(code.slice(m[0].length));
     pols.push({
       name: m[1], table: m[2].toLowerCase(), file, base: n?.[1] ?? "", cmd: n?.[2] ?? "", actor: n?.[3] ?? "",
+      declared: d ? d[1].toLowerCase() : "all",
       using: u ? balanced(code, u.index + u[0].length - 1) : null, check: w ? balanced(code, w.index + w[0].length - 1) : null,
     });
   }
@@ -55,6 +68,8 @@ for (const p of pols) {
   if (p.actor !== "tenant" && p.actor !== "tenant_centre") continue;
   const missing = [["USING", p.using], ["WITH CHECK", p.check]].filter(([, s]) => s !== null && !GUARD.test(s as string)).map(([k]) => k);
   if (!missing.length) continue;
+  if (p.actor === "tenant" && p.cmd === p.declared && ANY_T_EXCEPTIONS.has(`${p.table}|${p.declared}`) &&
+      [p.using, p.check].every((s) => s === null || norm(s) === ANY_T)) continue; // LD-215
   const shared = meta[p.table]?.shared_with ?? [];
   if (!shared.length) {
     errs.push(`${at}: ${missing.join(" and ")} lacks the staff guard (SELECT app.is_staff_or_system()) and the table is not shared_with (08 A17 P-16)`);

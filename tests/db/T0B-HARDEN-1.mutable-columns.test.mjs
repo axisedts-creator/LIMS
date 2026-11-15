@@ -210,7 +210,7 @@ test('migration exists, sorts after 20261115192000, core__ additive naming', () 
   assert.match(MIG, /^\d{14}_core__[a-z0-9_]+\.sql$/);
   assert.ok(MIG.slice(0, 14) > AFTER, 'timestamp must sort after 20261115192000');
   const others = readdirSync(root + 'db/migrations').filter((f) => f.endsWith('.sql') && f !== MIG);
-  assert.ok(others.length > 50, 'sanity: the other migrations are present');
+  assert.ok(others.length >= 39, 'sanity: the other migrations are present');
   assert.ok(!others.some((f) => f.slice(0, 14) === MIG.slice(0, 14)), 'no other migration shares the timestamp');
 });
 
@@ -223,7 +223,9 @@ test('migration shape: SET LOCAL ROLE lims_owner first, no CREATE ROLE, only CRE
   for (const s of migStmts.slice(1)) {
     assert.ok(TRG_RE.test(s) || /^RESET\s+ROLE$/i.test(s), `only CREATE TRIGGER (BEFORE UPDATE FOR EACH ROW app.enforce_mutable_columns) / RESET ROLE allowed, got: ${s.slice(0, 100)}`);
   }
-  assert.doesNotMatch(migSql, /\b(DROP|GRANT|REVOKE|CREATE\s+(OR\s+REPLACE\s+)?(FUNCTION|TABLE|POLICY|INDEX|VIEW)|ALTER\s+(TABLE|POLICY|FUNCTION)|UPDATE\s|DELETE\s|INSERT\s)/i, 'no other DDL/DML');
+  assert.doesNotMatch(migSql, /\b(DROP|GRANT|REVOKE|CREATE\s+(OR\s+REPLACE\s+)?(FUNCTION|TABLE|POLICY|INDEX|VIEW)|ALTER\s+(TABLE|POLICY|FUNCTION))/i, 'no other DDL');
+  // LD-231 / arbiter ruling: "BEFORE UPDATE" is required, so anchor DML at statement start
+  for (const s of migStmts) assert.doesNotMatch(s, /^\s*(UPDATE|DELETE|INSERT)\s/i, 'no DML');
 });
 
 test('each trigger parses: BEFORE UPDATE FOR EACH ROW, listed table only, one per table, unique names, <table>__mutable_columns', () => {

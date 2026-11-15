@@ -1,0 +1,6 @@
+# AUTH-PLATFORM-SESSION-1 impl (writer)
+- Files: NEW db/migrations/20261115156000_identity__add_platform_mfa_read_definers.sql (2 read DEFINERs); db/meta/definer-inventory.yaml (+2 rows); db/tests/isolation/_registry.sql (regenerated, +2 lines); services/api/.../repository/mfa.repo.ts (platform branch of loadSession + factors only). CRs: AUTH-PLATFORM-SESSION-1.md, AUTH-PLATFORM-SESSION-1.platform-event.nonblocking.md.
+- [CONV] load_session = FOR UPDATE OF s, LEFT JOIN platform_staff on id AND user_id, VOLATILE, GUCs reset to ''; SET LOCAL ROLE lims_owner like 20261115155000; `SELECT *` from the function, same row mapping as tenant.
+- Run: mfa.repo.platform.test.ts all pass; identity suite 4899 pass, 2 fail: route-guard.test.ts (web nav, pre-existing, unrelated) and mfa.repo.test.ts:107 (old platform factors SQL, see -dispute.md; needs tester).
+- NOT run: the migration, the pgTAP files (new + T0B-06 count 22) and T0B-08 (no psql/docker in the lane). Nothing here proves the SQL executes.
+- Open: platform enrolment still stops at recordPlatformEvent (RLS refuses the INSERT; non-blocking CR, founder decision). The generator also touched ~37 db/tests/isolation/engagement.* files by line endings only; I could not restore them (git restore blocked), no content change.

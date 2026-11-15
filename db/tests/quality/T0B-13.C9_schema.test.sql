@@ -27,7 +27,7 @@ SELECT is((SELECT count(*)::int FROM pg_type t WHERE t.typnamespace = 'quality':
 SELECT is(pg_get_userbyid(c.relowner), 'lims_owner', 'C9 check 1: quality.' || c.relname || ' owned by lims_owner (AC-0B-1.2, AC-0B-6.3)') FROM pg_class c WHERE c.relnamespace = 'quality'::regnamespace AND c.relkind IN ('r','v');
 SELECT is(has_schema_privilege('lims_app', 'quality', 'USAGE'), true, 'lims_app has USAGE on schema quality');
 SELECT is(has_schema_privilege(r, 'quality', 'CREATE'), false, r || ' cannot CREATE in quality') FROM unnest(ARRAY['lims_app','lims_api','lims_worker','lims_analytics']) r;
-SELECT is((SELECT count(*)::int FROM rt) + (SELECT count(*)::int FROM rg), 25, 'C9 check 1: 25 tables in the inventory (= CREATE TABLE count of 05-SCHEMA §8)');
+SELECT is((SELECT count(*)::int FROM rt) + (SELECT count(*)::int FROM rg), 25, 'C9 check 1: 25 tables in the inventory (= table count of the 05-SCHEMA §8 DDL)');
 
 -- C9 check 2: RLS ENABLE + FORCE on the 23 tenant tables, none on the g_cs_* tables (AC-0B-2.1, 2.4)
 SELECT is((SELECT relrowsecurity AND relforcerowsecurity FROM pg_class WHERE oid = ('quality.' || t)::regclass), true, 'C9 check 2 / AC-0B-2.1: ENABLE + FORCE RLS on quality.' || t) FROM rt;

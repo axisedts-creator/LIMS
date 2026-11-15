@@ -237,7 +237,7 @@ test('cross-schema references (01-CM §5 R3): instruments -> instruments / core.
   const got = tgt(insSql()), exp = tgt(specDdl());
   assert.deepEqual([...got].sort(), [...exp].sort(), 'FK target tables equal the spec');
   for (const t of got) assert.ok(/^instruments\./.test(t) || /^core\.(tenants|collection_centres)$/.test(t), `instruments FK target ${t}`);
-  assert.doesNotMatch(files().filter((f) => !/_instruments__/.test(f)).map(read).join('\n'), /\bREFERENCES\s+instruments\./i, 'no FK into instruments from any other migration');
+  assert.doesNotMatch(files().filter((f) => /_(core|catalog|frontdesk|billing|lab)__/.test(f)).map(read).join('\n'), /\bREFERENCES\s+instruments\./i, 'no FK into instruments from UPSTREAM-schema migrations (core, catalog, frontdesk, billing, lab); later-DAG schemas (reporting, analytics, Wave-2/3) may reference instruments (01-CM §5 R3)');
 });
 test('indexes: every §7 CREATE INDEX present with identical definition (partial predicates, DESC incl.); no extra index; every §3 index name exists as an index or a constraint', () => {
   const have = new Map(createIndexes(insSql()).map((s) => [idxName(s), norm(s)]));

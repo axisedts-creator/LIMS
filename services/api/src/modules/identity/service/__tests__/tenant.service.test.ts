@@ -28,9 +28,23 @@ describe('provisionTenant - the bundle (AC-E1.1, 03-APP-FLOW s9.1)', () => {
     const { svc, ctx, f, tx, scopes } = setup(); const r = await svc.provisionTenant(ctx, PROVISION); const id = r.body.tenant_id;
     for (const c of f.calls) expect(c.tx).toBe(tx);
     expect(scopes).toEqual([id]); expect(f.by('insert')).toHaveLength(1); expect(f.by('insert')[0]!.scope).toBeNull();
-    for (const m of ['insertBranch', 'insertCentre', 'seedRoles', 'insertSettings', 'seedFlags', 'seedIrdAnnexes', 'insertAcceptances', 'insertAdmin', 'insertInvitation', 'accessLog'])
+    for (const m of ['insertBranch', 'insertCentre', 'seedRoles', 'insertSettings', 'seedFlags', 'insertAcceptances', 'insertAdmin', 'insertInvitation', 'accessLog'])
       { expect(f.by(m), m).toHaveLength(1); expect(f.by(m)[0]!.scope, m).toBe(id); expect(f.by(m)[0]!.args[0], m).toBe(id); }
     expect(f.order.indexOf('insert')).toBeLessThan(f.order.indexOf(`scope:${id}`));
+  });
+  // PLATFORM-DDL-1 / LD-223: C2 05-SCHEMA s5.2 gives tenants no INSERT on identity.ird_annex_records, s5.3 gives the platform one, so the provisioning
+  // insert runs under the PLATFORM claims of the request tx (outside withTenantScope), after core.tenants exists (FK) and in the same transaction.
+  it('PLATFORM-DDL-1: seedIrdAnnexes runs under platform claims (scope null, same tx, tenant id bound, after the core.tenants insert) and never inside the tenant window', async () => {
+    const { svc, ctx, f, tx, scopes } = setup(); const id = (await svc.provisionTenant(ctx, PROVISION)).body.tenant_id;
+    const c = f.by('seedIrdAnnexes'); expect(c).toHaveLength(1); expect(c[0]!.scope).toBeNull(); expect(c[0]!.tx).toBe(tx); expect(c[0]!.args[0]).toBe(id);
+    expect([...c[0]!.args[1] as string[]].sort()).toEqual(['annex_2', 'annex_3', 'annex_7']); expect(c[0]!.args[2]).toBe(STAFF_USER);
+    expect(f.order.indexOf('insert')).toBeLessThan(f.order.indexOf('seedIrdAnnexes')); expect(scopes).toEqual([id]);
+    const open = f.order.indexOf(`scope:${id}`), close = f.order.indexOf(`unscope:${id}`), at = f.order.indexOf('seedIrdAnnexes');
+    expect(at < open || at > close, 'seedIrdAnnexes is outside the scope window').toBe(true);
+  });
+  it('PLATFORM-DDL-1: a failure of the platform-claims annex insert propagates untouched and nothing after it (acceptances, admin, invitation, job) is written', async () => {
+    const { svc, ctx, f } = setup(); f.state.fail['seedIrdAnnexes'] = new Error('annex boom'); const e = await rejection(svc.provisionTenant(ctx, PROVISION));
+    expect(e.message).toBe('annex boom'); expect(f.state.scope).toBeNull(); expect(f.by('insertAdmin')).toHaveLength(0); expect(f.by('enqueue')).toHaveLength(0);
   });
   it('seeds the default roles of contracts/permissions.yaml roles: (10), settings defaults + body values, flag registry defaults, annex_2/3/7 not_started', async () => {
     const { svc, ctx, f } = setup(); const id = (await svc.provisionTenant(ctx, { ...PROVISION, pan: '123456789' })).body.tenant_id;

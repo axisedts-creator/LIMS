@@ -608,56 +608,56 @@ ALTER TABLE homecollection.handover_items FORCE ROW LEVEL SECURITY;
 
 -- ===================================================== §4.1 (1) DO-block policies expanded (pred_c / pred_t verbatim), (2) handovers / handover_items, (3) visit_locations DELETE; §4.2 owner policies
 CREATE POLICY visits__select__tenant_centre ON homecollection.visits FOR SELECT TO lims_app
-  USING (tenant_id = (SELECT app.current_tenant_id()) AND ((SELECT app.has_all_centres()) OR centre_id = ANY ((SELECT app.current_centre_ids())::uuid[])));
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND ((SELECT app.has_all_centres()) OR centre_id = ANY ((SELECT app.current_centre_ids())::uuid[])) AND (SELECT app.is_staff_or_system()));
 CREATE POLICY visits__insert__tenant_centre ON homecollection.visits FOR INSERT TO lims_app
-  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND ((SELECT app.has_all_centres()) OR centre_id = ANY ((SELECT app.current_centre_ids())::uuid[])));
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND ((SELECT app.has_all_centres()) OR centre_id = ANY ((SELECT app.current_centre_ids())::uuid[])) AND (SELECT app.is_staff_or_system()));
 CREATE POLICY visits__update__tenant_centre ON homecollection.visits FOR UPDATE TO lims_app
-  USING      (tenant_id = (SELECT app.current_tenant_id()) AND ((SELECT app.has_all_centres()) OR centre_id = ANY ((SELECT app.current_centre_ids())::uuid[])))
-  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND ((SELECT app.has_all_centres()) OR centre_id = ANY ((SELECT app.current_centre_ids())::uuid[])));
+  USING      (tenant_id = (SELECT app.current_tenant_id()) AND ((SELECT app.has_all_centres()) OR centre_id = ANY ((SELECT app.current_centre_ids())::uuid[])) AND (SELECT app.is_staff_or_system()))
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND ((SELECT app.has_all_centres()) OR centre_id = ANY ((SELECT app.current_centre_ids())::uuid[])) AND (SELECT app.is_staff_or_system()));
 CREATE POLICY routes__select__tenant_centre ON homecollection.routes FOR SELECT TO lims_app
-  USING (tenant_id = (SELECT app.current_tenant_id()) AND ((SELECT app.has_all_centres()) OR centre_id = ANY ((SELECT app.current_centre_ids())::uuid[])));
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND ((SELECT app.has_all_centres()) OR centre_id = ANY ((SELECT app.current_centre_ids())::uuid[])) AND (SELECT app.is_staff_or_system()));
 CREATE POLICY routes__insert__tenant_centre ON homecollection.routes FOR INSERT TO lims_app
-  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND ((SELECT app.has_all_centres()) OR centre_id = ANY ((SELECT app.current_centre_ids())::uuid[])));
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND ((SELECT app.has_all_centres()) OR centre_id = ANY ((SELECT app.current_centre_ids())::uuid[])) AND (SELECT app.is_staff_or_system()));
 CREATE POLICY routes__update__tenant_centre ON homecollection.routes FOR UPDATE TO lims_app
-  USING      (tenant_id = (SELECT app.current_tenant_id()) AND ((SELECT app.has_all_centres()) OR centre_id = ANY ((SELECT app.current_centre_ids())::uuid[])))
-  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND ((SELECT app.has_all_centres()) OR centre_id = ANY ((SELECT app.current_centre_ids())::uuid[])));
+  USING      (tenant_id = (SELECT app.current_tenant_id()) AND ((SELECT app.has_all_centres()) OR centre_id = ANY ((SELECT app.current_centre_ids())::uuid[])) AND (SELECT app.is_staff_or_system()))
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND ((SELECT app.has_all_centres()) OR centre_id = ANY ((SELECT app.current_centre_ids())::uuid[])) AND (SELECT app.is_staff_or_system()));
 CREATE POLICY visit_specimens__select__tenant_centre ON homecollection.visit_specimens FOR SELECT TO lims_app
-  USING (tenant_id = (SELECT app.current_tenant_id()) AND ((SELECT app.has_all_centres()) OR centre_id = ANY ((SELECT app.current_centre_ids())::uuid[])));
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND ((SELECT app.has_all_centres()) OR centre_id = ANY ((SELECT app.current_centre_ids())::uuid[])) AND (SELECT app.is_staff_or_system()));
 CREATE POLICY visit_specimens__insert__tenant_centre ON homecollection.visit_specimens FOR INSERT TO lims_app
-  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND ((SELECT app.has_all_centres()) OR centre_id = ANY ((SELECT app.current_centre_ids())::uuid[])));
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND ((SELECT app.has_all_centres()) OR centre_id = ANY ((SELECT app.current_centre_ids())::uuid[])) AND (SELECT app.is_staff_or_system()));
 CREATE POLICY visit_specimens__update__tenant_centre ON homecollection.visit_specimens FOR UPDATE TO lims_app
-  USING      (tenant_id = (SELECT app.current_tenant_id()) AND ((SELECT app.has_all_centres()) OR centre_id = ANY ((SELECT app.current_centre_ids())::uuid[])))
-  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND ((SELECT app.has_all_centres()) OR centre_id = ANY ((SELECT app.current_centre_ids())::uuid[])));
+  USING      (tenant_id = (SELECT app.current_tenant_id()) AND ((SELECT app.has_all_centres()) OR centre_id = ANY ((SELECT app.current_centre_ids())::uuid[])) AND (SELECT app.is_staff_or_system()))
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND ((SELECT app.has_all_centres()) OR centre_id = ANY ((SELECT app.current_centre_ids())::uuid[])) AND (SELECT app.is_staff_or_system()));
 CREATE POLICY collections__select__tenant_centre ON homecollection.collections FOR SELECT TO lims_app
-  USING (tenant_id = (SELECT app.current_tenant_id()) AND ((SELECT app.has_all_centres()) OR centre_id = ANY ((SELECT app.current_centre_ids())::uuid[])));
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND ((SELECT app.has_all_centres()) OR centre_id = ANY ((SELECT app.current_centre_ids())::uuid[])) AND (SELECT app.is_staff_or_system()));
 CREATE POLICY collections__insert__tenant_centre ON homecollection.collections FOR INSERT TO lims_app
-  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND ((SELECT app.has_all_centres()) OR centre_id = ANY ((SELECT app.current_centre_ids())::uuid[])));
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND ((SELECT app.has_all_centres()) OR centre_id = ANY ((SELECT app.current_centre_ids())::uuid[])) AND (SELECT app.is_staff_or_system()));
 CREATE POLICY collections__update__tenant_centre ON homecollection.collections FOR UPDATE TO lims_app
-  USING      (tenant_id = (SELECT app.current_tenant_id()) AND ((SELECT app.has_all_centres()) OR centre_id = ANY ((SELECT app.current_centre_ids())::uuid[])))
-  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND ((SELECT app.has_all_centres()) OR centre_id = ANY ((SELECT app.current_centre_ids())::uuid[])));
+  USING      (tenant_id = (SELECT app.current_tenant_id()) AND ((SELECT app.has_all_centres()) OR centre_id = ANY ((SELECT app.current_centre_ids())::uuid[])) AND (SELECT app.is_staff_or_system()))
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND ((SELECT app.has_all_centres()) OR centre_id = ANY ((SELECT app.current_centre_ids())::uuid[])) AND (SELECT app.is_staff_or_system()));
 CREATE POLICY visit_flags__select__tenant_centre ON homecollection.visit_flags FOR SELECT TO lims_app
-  USING (tenant_id = (SELECT app.current_tenant_id()) AND ((SELECT app.has_all_centres()) OR centre_id = ANY ((SELECT app.current_centre_ids())::uuid[])));
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND ((SELECT app.has_all_centres()) OR centre_id = ANY ((SELECT app.current_centre_ids())::uuid[])) AND (SELECT app.is_staff_or_system()));
 CREATE POLICY visit_flags__insert__tenant_centre ON homecollection.visit_flags FOR INSERT TO lims_app
-  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND ((SELECT app.has_all_centres()) OR centre_id = ANY ((SELECT app.current_centre_ids())::uuid[])));
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND ((SELECT app.has_all_centres()) OR centre_id = ANY ((SELECT app.current_centre_ids())::uuid[])) AND (SELECT app.is_staff_or_system()));
 CREATE POLICY visit_flags__update__tenant_centre ON homecollection.visit_flags FOR UPDATE TO lims_app
-  USING      (tenant_id = (SELECT app.current_tenant_id()) AND ((SELECT app.has_all_centres()) OR centre_id = ANY ((SELECT app.current_centre_ids())::uuid[])))
-  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND ((SELECT app.has_all_centres()) OR centre_id = ANY ((SELECT app.current_centre_ids())::uuid[])));
+  USING      (tenant_id = (SELECT app.current_tenant_id()) AND ((SELECT app.has_all_centres()) OR centre_id = ANY ((SELECT app.current_centre_ids())::uuid[])) AND (SELECT app.is_staff_or_system()))
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND ((SELECT app.has_all_centres()) OR centre_id = ANY ((SELECT app.current_centre_ids())::uuid[])) AND (SELECT app.is_staff_or_system()));
 CREATE POLICY visit_transitions__select__tenant_centre ON homecollection.visit_transitions FOR SELECT TO lims_app
-  USING (tenant_id = (SELECT app.current_tenant_id()) AND ((SELECT app.has_all_centres()) OR centre_id = ANY ((SELECT app.current_centre_ids())::uuid[])));
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND ((SELECT app.has_all_centres()) OR centre_id = ANY ((SELECT app.current_centre_ids())::uuid[])) AND (SELECT app.is_staff_or_system()));
 CREATE POLICY visit_transitions__insert__tenant_centre ON homecollection.visit_transitions FOR INSERT TO lims_app
-  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND ((SELECT app.has_all_centres()) OR centre_id = ANY ((SELECT app.current_centre_ids())::uuid[])));
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND ((SELECT app.has_all_centres()) OR centre_id = ANY ((SELECT app.current_centre_ids())::uuid[])) AND (SELECT app.is_staff_or_system()));
 CREATE POLICY visit_assignments__select__tenant_centre ON homecollection.visit_assignments FOR SELECT TO lims_app
-  USING (tenant_id = (SELECT app.current_tenant_id()) AND ((SELECT app.has_all_centres()) OR centre_id = ANY ((SELECT app.current_centre_ids())::uuid[])));
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND ((SELECT app.has_all_centres()) OR centre_id = ANY ((SELECT app.current_centre_ids())::uuid[])) AND (SELECT app.is_staff_or_system()));
 CREATE POLICY visit_assignments__insert__tenant_centre ON homecollection.visit_assignments FOR INSERT TO lims_app
-  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND ((SELECT app.has_all_centres()) OR centre_id = ANY ((SELECT app.current_centre_ids())::uuid[])));
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND ((SELECT app.has_all_centres()) OR centre_id = ANY ((SELECT app.current_centre_ids())::uuid[])) AND (SELECT app.is_staff_or_system()));
 CREATE POLICY mutations__select__tenant_centre ON homecollection.mutations FOR SELECT TO lims_app
-  USING (tenant_id = (SELECT app.current_tenant_id()) AND ((SELECT app.has_all_centres()) OR centre_id = ANY ((SELECT app.current_centre_ids())::uuid[])));
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND ((SELECT app.has_all_centres()) OR centre_id = ANY ((SELECT app.current_centre_ids())::uuid[])) AND (SELECT app.is_staff_or_system()));
 CREATE POLICY mutations__insert__tenant_centre ON homecollection.mutations FOR INSERT TO lims_app
-  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND ((SELECT app.has_all_centres()) OR centre_id = ANY ((SELECT app.current_centre_ids())::uuid[])));
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND ((SELECT app.has_all_centres()) OR centre_id = ANY ((SELECT app.current_centre_ids())::uuid[])) AND (SELECT app.is_staff_or_system()));
 CREATE POLICY visit_locations__select__tenant_centre ON homecollection.visit_locations FOR SELECT TO lims_app
-  USING (tenant_id = (SELECT app.current_tenant_id()) AND ((SELECT app.has_all_centres()) OR centre_id = ANY ((SELECT app.current_centre_ids())::uuid[])));
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND ((SELECT app.has_all_centres()) OR centre_id = ANY ((SELECT app.current_centre_ids())::uuid[])) AND (SELECT app.is_staff_or_system()));
 CREATE POLICY visit_locations__insert__tenant_centre ON homecollection.visit_locations FOR INSERT TO lims_app
-  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND ((SELECT app.has_all_centres()) OR centre_id = ANY ((SELECT app.current_centre_ids())::uuid[])));
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND ((SELECT app.has_all_centres()) OR centre_id = ANY ((SELECT app.current_centre_ids())::uuid[])) AND (SELECT app.is_staff_or_system()));
 CREATE POLICY settings__select__tenant ON homecollection.settings FOR SELECT TO lims_app
   USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
 CREATE POLICY settings__insert__tenant ON homecollection.settings FOR INSERT TO lims_app
@@ -687,33 +687,42 @@ CREATE POLICY handovers__select__tenant_centre ON homecollection.handovers FOR S
   USING (tenant_id = (SELECT app.current_tenant_id())
          AND ((SELECT app.has_all_centres())
               OR centre_id = ANY ((SELECT app.current_centre_ids())::uuid[])
-              OR to_centre_id = ANY ((SELECT app.current_centre_ids())::uuid[])));
+              OR to_centre_id = ANY ((SELECT app.current_centre_ids())::uuid[]))
+         AND (SELECT app.is_staff_or_system()));
 CREATE POLICY handovers__insert__tenant_centre ON homecollection.handovers FOR INSERT TO lims_app
   WITH CHECK (tenant_id = (SELECT app.current_tenant_id())
-         AND ((SELECT app.has_all_centres()) OR centre_id = ANY ((SELECT app.current_centre_ids())::uuid[])));
+         AND ((SELECT app.has_all_centres()) OR centre_id = ANY ((SELECT app.current_centre_ids())::uuid[]))
+         AND (SELECT app.is_staff_or_system()));
 CREATE POLICY handovers__update__tenant_centre ON homecollection.handovers FOR UPDATE TO lims_app
   USING      (tenant_id = (SELECT app.current_tenant_id())
-         AND ((SELECT app.has_all_centres()) OR to_centre_id = ANY ((SELECT app.current_centre_ids())::uuid[])))
+         AND ((SELECT app.has_all_centres()) OR to_centre_id = ANY ((SELECT app.current_centre_ids())::uuid[]))
+         AND (SELECT app.is_staff_or_system()))
   WITH CHECK (tenant_id = (SELECT app.current_tenant_id())
-         AND ((SELECT app.has_all_centres()) OR to_centre_id = ANY ((SELECT app.current_centre_ids())::uuid[])));
+         AND ((SELECT app.has_all_centres()) OR to_centre_id = ANY ((SELECT app.current_centre_ids())::uuid[]))
+         AND (SELECT app.is_staff_or_system()));
 CREATE POLICY handover_items__select__tenant_centre ON homecollection.handover_items FOR SELECT TO lims_app
   USING (tenant_id = (SELECT app.current_tenant_id())
          AND ((SELECT app.has_all_centres())
               OR centre_id = ANY ((SELECT app.current_centre_ids())::uuid[])
-              OR to_centre_id = ANY ((SELECT app.current_centre_ids())::uuid[])));
+              OR to_centre_id = ANY ((SELECT app.current_centre_ids())::uuid[]))
+         AND (SELECT app.is_staff_or_system()));
 CREATE POLICY handover_items__insert__tenant_centre ON homecollection.handover_items FOR INSERT TO lims_app
   WITH CHECK (tenant_id = (SELECT app.current_tenant_id())
-         AND ((SELECT app.has_all_centres()) OR centre_id = ANY ((SELECT app.current_centre_ids())::uuid[])));
+         AND ((SELECT app.has_all_centres()) OR centre_id = ANY ((SELECT app.current_centre_ids())::uuid[]))
+         AND (SELECT app.is_staff_or_system()));
 CREATE POLICY handover_items__update__tenant_centre ON homecollection.handover_items FOR UPDATE TO lims_app
   USING      (tenant_id = (SELECT app.current_tenant_id())
-         AND ((SELECT app.has_all_centres()) OR to_centre_id = ANY ((SELECT app.current_centre_ids())::uuid[])))
+         AND ((SELECT app.has_all_centres()) OR to_centre_id = ANY ((SELECT app.current_centre_ids())::uuid[]))
+         AND (SELECT app.is_staff_or_system()))
   WITH CHECK (tenant_id = (SELECT app.current_tenant_id())
-         AND ((SELECT app.has_all_centres()) OR to_centre_id = ANY ((SELECT app.current_centre_ids())::uuid[])));
+         AND ((SELECT app.has_all_centres()) OR to_centre_id = ANY ((SELECT app.current_centre_ids())::uuid[]))
+         AND (SELECT app.is_staff_or_system()));
 CREATE POLICY visit_locations__delete__tenant_centre ON homecollection.visit_locations FOR DELETE TO lims_app
   USING (tenant_id = (SELECT app.current_tenant_id())
          AND ((SELECT app.has_all_centres()) OR centre_id = ANY ((SELECT app.current_centre_ids())::uuid[]))
          AND (SELECT app.current_actor_type()) = 'system'
-         AND expires_at < now());
+         AND expires_at < now()
+         AND (SELECT app.is_staff_or_system()));
 CREATE POLICY visits__select__owner_only ON homecollection.visits FOR SELECT TO lims_owner
   USING (current_setting('app.maintenance', true) = 'homecollection_anonymise_retired_visits'
          AND tenant_id = (SELECT app.current_tenant_id())

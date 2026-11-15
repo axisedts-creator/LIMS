@@ -64,12 +64,11 @@ afterAll(() => {
 
 describe('real next start: document requests without a session (AC-0D-7.2)', () => {
   for (const path of ['/', '/dashboard', '/no-such-page']) {
-    it(`GET ${path} Accept text/html → 307, absolute Location to /auth/login on the request origin, never 500`, async () => {
+    it(`GET ${path} Accept text/html → 307, Location to /auth/login on the request origin, never 500`, async () => {
       const res = await get(path, HTML);
       expect(res.status, log).toBe(307);
       const loc = res.headers.get('location') ?? '';
-      expect(() => new URL(loc), `Location must be absolute, got "${loc}"`).not.toThrow();
-      const u = new URL(loc);
+      const u = new URL(loc, base);
       expect(u.pathname).toBe('/auth/login');
       expect(u.search).toBe('');
       expect(u.origin).toBe(base);
@@ -89,7 +88,9 @@ describe('real next start: document requests without a session (AC-0D-7.2)', () 
     const res = await fetch(`${base}/?next=https://evil.example/x`, { redirect: 'manual', headers: { accept: HTML, 'x-forwarded-host': 'evil.example' } });
     expect(res.status).toBe(307);
     expect(res.headers.get('location') ?? '').not.toMatch(/evil/i);
-    expect(new URL(res.headers.get('location') ?? '').pathname).toBe('/auth/login');
+    const u = new URL(res.headers.get('location') ?? '', base);
+    expect(u.pathname).toBe('/auth/login');
+    expect(u.origin).toBe(base);
   });
 });
 

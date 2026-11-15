@@ -117,9 +117,9 @@ describe('WEB-AUTH-REDIRECT-2 (LD-203): Location is an absolute URL, literal pat
   });
 
   it('origin follows the request (other host and port), not a constant', async () => {
-    const res = await middleware(new NextRequest('http://127.0.0.1:4567/no-such-page', { headers: { accept: HTML } }));
+    const res = await middleware(new NextRequest('http://lab.example.test:4567/no-such-page', { headers: { accept: HTML } }));
     expect(res.status).toBe(307);
-    expect(res.headers.get('location')).toBe('http://127.0.0.1:4567/auth/login');
+    expect(res.headers.get('location')).toBe('http://lab.example.test:4567/auth/login');
   });
 });
 

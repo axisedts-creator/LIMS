@@ -32,16 +32,6 @@ describe('provisionTenant - the bundle (AC-E1.1, 03-APP-FLOW s9.1)', () => {
       { expect(f.by(m), m).toHaveLength(1); expect(f.by(m)[0]!.scope, m).toBe(id); expect(f.by(m)[0]!.args[0], m).toBe(id); }
     expect(f.order.indexOf('insert')).toBeLessThan(f.order.indexOf(`scope:${id}`));
   });
-  // T0B-PROVFIX-1 / LD-294 (live staging 2026-11-16 22:00 NPT): the audit trigger of identity.ird_annex_records writes audit.audit_log as lims_owner; policy
-  // audit_log__insert__owner_only admits the row only for tenant_id = app.current_tenant_id(). Outside the scope that is NULL -> 42501 -> common.not_found.
-  // ird_annex_records__insert__platform (PLATFORM-DDL-1) only needs app.is_platform_actor(), which stays true inside the scope.
-  it('T0B-PROVFIX-1: seedIrdAnnexes is the FIRST statement INSIDE the withTenantScope(new tenant) window (same tx, tenant id bound, after the core.tenants insert)', async () => {
-    const { svc, ctx, f, tx, scopes } = setup(); const id = (await svc.provisionTenant(ctx, PROVISION)).body.tenant_id;
-    const c = f.by('seedIrdAnnexes'); expect(c).toHaveLength(1); expect(c[0]!.scope).toBe(id); expect(c[0]!.tx).toBe(tx); expect(c[0]!.args[0]).toBe(id);
-    expect([...c[0]!.args[1] as string[]].sort()).toEqual(['annex_2', 'annex_3', 'annex_7']); expect(c[0]!.args[2]).toBe(STAFF_USER);
-    expect(scopes).toEqual([id]); expect(f.order.indexOf('insert')).toBeLessThan(f.order.indexOf(`scope:${id}`));
-    expect(f.order[f.order.indexOf(`scope:${id}`) + 1], 'first statement of the scoped block').toBe('seedIrdAnnexes');
-  });
   // The fake repository records the scope of every call (rec). Only the core.tenants insert may run outside the scope (its audit row is covered by the 08 A12.5 clause);
   // every other call that writes an audited tenant table (annexes, branches, centres, roles, settings, flags, acceptances, memberships, invitations, access log) must run inside withTenantScope(new tenant).
   it('T0B-PROVFIX-1: for EVERY repository call of provisionTenant, the scope is recorded; only the findByCode read and the core.tenants insert may run outside withTenantScope(new tenant id)', async () => {
@@ -49,20 +39,20 @@ describe('provisionTenant - the bundle (AC-E1.1, 03-APP-FLOW s9.1)', () => {
     const OUTSIDE_OK = new Set(['findByCode', 'insert']);
     const outside = f.calls.filter((c) => c.scope !== id).map((c) => c.m);
     expect(outside.filter((m) => !OUTSIDE_OK.has(m)), 'audited-table writes outside the new tenant scope').toEqual([]);
-    for (const m of ['seedIrdAnnexes', 'insertBranch', 'insertCentre', 'seedRoles', 'insertSettings', 'seedFlags', 'insertAcceptances', 'insertAdmin', 'insertInvitation', 'accessLog'])
+    for (const m of ['insertBranch', 'insertCentre', 'seedRoles', 'insertSettings', 'seedFlags', 'insertAcceptances', 'insertAdmin', 'insertInvitation', 'accessLog'])
       expect(f.by(m).map((c) => c.scope), m).toEqual([id]);
     expect(f.by('insert').map((c) => c.scope)).toEqual([null]);
   });
-  it('T0B-PROVFIX-1: a failure of the annex insert propagates untouched, the scope window is closed and nothing after it (acceptances, admin, invitation, job) is written', async () => {
-    const { svc, ctx, f } = setup(); f.state.fail['seedIrdAnnexes'] = new Error('annex boom'); const e = await rejection(svc.provisionTenant(ctx, PROVISION));
-    expect(e.message).toBe('annex boom'); expect(f.state.scope).toBeNull(); expect(f.by('insertAdmin')).toHaveLength(0); expect(f.by('enqueue')).toHaveLength(0);
-  });
-  it('seeds the default roles of contracts/permissions.yaml roles: (10), settings defaults + body values, flag registry defaults, annex_2/3/7 not_started', async () => {
+  it('seeds the default roles of contracts/permissions.yaml roles: (10), settings defaults + body values, flag registry defaults', async () => {
     const { svc, ctx, f } = setup(); const id = (await svc.provisionTenant(ctx, { ...PROVISION, pan: '123456789' })).body.tenant_id;
     expect(ROLE_CODES).toHaveLength(10); expect([...f.by('seedRoles')[0]!.args[1] as string[]].sort()).toEqual([...ROLE_CODES].sort());
     expect(f.by('insertSettings')[0]!.args[1]).toMatchObject({ timezone: 'Asia/Kathmandu', calendarDisplay: 'AD_BS', pan: '123456789', legalName: PROVISION.legalName, displayName: 'Synthetic Gamma', trainingMode: false });
-    expect([...f.by('seedIrdAnnexes')[0]!.args[1] as string[]].sort()).toEqual(['annex_2', 'annex_3', 'annex_7']);
-    expect(f.data(id).annexes.map((a) => a.status)).toEqual(['not_started', 'not_started', 'not_started']); expect(f.data(id).flags.length).toBeGreaterThan(0);
+    expect(f.data(id).flags.length).toBeGreaterThan(0);
+  });
+  // LD-295 (T0B-PROVFIX-1): the annex seed is refused by RLS in both placements; annex rows are not seeded at provisioning until the audit policy migration (T0B-PROVFIX-3).
+  it('provisionTenant does not call seedIrdAnnexes (LD-295)', async () => {
+    const { svc, ctx, f } = setup(); const id = (await svc.provisionTenant(ctx, PROVISION)).body.tenant_id;
+    expect(f.by('seedIrdAnnexes')).toHaveLength(0); expect(f.data(id).annexes).toEqual([]);
   });
   it('first branch + first centre (centre linked to the branch) and the first admin: invited, tenant_admin, email normalised (trim+lower), HMAC, invitation + identity.send_invitation job; GoTrue user created BEFORE the tx writes', async () => {
     const { svc, ctx, f, gotrue } = setup(); const id = (await svc.provisionTenant(ctx, PROVISION)).body.tenant_id;

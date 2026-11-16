@@ -1,6 +1,6 @@
-# T0B-PROVFIX-1 tests (tester)
-- services/api/src/modules/identity/service/__tests__/tenant.helpers.ts: fake seedIrdAnnexes now requires the withTenantScope(new tenant) window (like the audit_log RLS); it threw the opposite before.
-- services/api/src/modules/identity/service/__tests__/tenant.service.test.ts: old "outside the scope" test replaced by (a) seedIrdAnnexes is the FIRST statement inside the scope, (b) every repo call's recorded scope: only findByCode + core.tenants insert outside, (c) annex failure propagates.
+# T0B-PROVFIX-1 tests (tester, revised per ruling LD-295)
+- services/api/src/modules/identity/service/__tests__/tenant.service.test.ts: removed "seedIrdAnnexes FIRST in scope" and "annex failure propagates" tests; dropped seedIrdAnnexes from the inside-scope list and the annex_2/3/7 expectations; added "provisionTenant does not call seedIrdAnnexes (LD-295)" (0 calls, annexes []).
+- Kept: scope-order test (only findByCode + core.tenants insert outside the scope); tenant.helpers.ts fake scope check (sc) unchanged.
 - Run: .orchestra/notes/T0B-PROVFIX-1-verify.cmd (tenant.service + tenant.handlers tests, via the services/api package).
-- Now: 18 fail with "fake RLS: seedIrdAnnexes ... outside withTenantScope (scope=null)" (tenant.service.ts:451); handlers test passes. All go green once the call moves into the scoped block.
-- Not covered (no database in the lane): the real RLS/trigger path; static review + CRs (items 3, 4) belong to the writer.
+- Now: 1 fails (the new LD-295 test: seedIrdAnnexes called once); 175 pass. Goes green once provisionTenant stops calling it.
+- Not covered (no database in the lane): the real RLS/trigger path; static review + CRs belong to the writer.

@@ -101,7 +101,7 @@ export function PriceSimulator({ permissions }: { permissions: readonly string[]
         {permissions.includes('identity.centre.read') ? (
           <Pick label="Centre" load={async (q) => (await searchCentresAction(q)).map((c) => ({ id: c.centre_id, label: `${c.code} — ${c.name}` }))} onChange={setCtxId('centre_id')} />
         ) : null}
-        <DateTimePicker label="At" name="at" description="Leave empty for now." {...(at ? { value: at as never } : {})} onChange={setAt as never} />
+        <DateTimePicker label="At" name="at" description="Shows the prices valid on this date and time. Leave empty for the current price." {...(at ? { value: at as never } : {})} onChange={setAt as never} />
         <Button type="submit" variant="primary" isLoading={busy} isDisabled={picked.length === 0}>Get price</Button>
       </Form>
       {fail ? <FailBanner fail={fail} /> : null}

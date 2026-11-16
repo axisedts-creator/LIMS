@@ -1,0 +1,6 @@
+# T0B-PROVPACK-1 dispute (writer): 2 pre-existing assertions pin the OLD behaviour
+File: `services/api/src/modules/identity/handlers/__tests__/tenant.realchain.test.ts` (T0B-PROVFIX-2), in the verify set.
+- L170-179 "runs exactly these statements in this order": lists provisioning without the pack. done_when (2) + tenant.provpack.test ("provisioning itself applies the default role pack", "the pack step goes through role-pack.service", "one role.change access-log row per pack role") REQUIRE extra statements: 2 role SELECTs, then per pack role `core.roles`, `core.role_permissions`, `audit.access_log` (19 roles), before the final lifecycle `audit.access_log`.
+- L208 `INSERT INTO core\.roles` toHaveLength(ROLE_CODES.length) (10) and L209 `rig.one(/^INSERT INTO audit\.access_log/)` (exactly one row): same cause; now 10 + 19 roles and 1 + 19 access-log rows.
+Both tests cannot pass together with tenant.provpack.test. Proposed fix (tester): append the pack block to the L173 expectation (after `app.enqueue_job`), use `ROLE_CODES.length + PACK.roles.length` at L208, and filter L209 to `tenant.lifecycle_change`.
+Everything else in the verify set passes (496/498), incl. the L212 rollback test (the pack step runs after the invite, so a failed invite writes no access-log row).

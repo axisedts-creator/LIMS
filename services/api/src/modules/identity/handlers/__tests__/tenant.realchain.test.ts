@@ -5,6 +5,7 @@
 import { createHmac } from 'node:crypto';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { PlatformAuthz } from '../../platform/authz.js';
+import { loadRolePacks } from '../../role-packs/loader.js';
 import { createTenantService } from '../../service/tenant.service.js';
 import { NOW, ROLE_CODES, TENANT_A, makeCtx, makeGotrue, makeRepo, nextId, rejection } from '../../service/__tests__/tenant.helpers.js';
 import { inviteTenantAdmin } from '../inviteTenantAdmin.js';
@@ -44,6 +45,9 @@ const labelled = (log: readonly Stmt[]) => log.map((s) => ({ s, l: label(s) })).
 const inviteCall = (o: Record<string, unknown> = {}) => ({ operationId: 'inviteTenantAdmin', routeTemplate: INVITE_ROUTE, params: { tenant_id: TENANT }, body: INVITE_BODY, ...o });
 const provisionCall = (o: Record<string, unknown> = {}) => ({ operationId: 'provisionTenant', routeTemplate: PROVISION_ROUTE, body: PROVISION_BODY, ...o });
 const endOf = (texts: string[]) => [...texts].reverse().find((t) => /^(COMMIT|ROLLBACK)$/i.test(t))?.toUpperCase();
+// The default pack as data (role-packs.data.yaml via the service's own loader), never a hard-coded count.
+const PACK = loadRolePacks().packs.find((p) => p.code === 'elabcorp_default')!;
+const PACK_SELECT = 'SELECT r.id, r.role_code AS code, r.is_s';   // label() of role-pack.service listRoles (first 40 chars)
 const SCOPE_ACTOR = (t: string) => ({ sub: SYS, actor_type: 'system', tenant_id: t });
 
 describe('premise: the ctx the router builds for a platform handler (core/pipeline buildCtx)', () => {
@@ -174,7 +178,10 @@ describe('provisionTenant through the real chain: every statement of the scoped 
       'SELECT core.tenants', 'core.tenants',
       'core.branches', 'core.collection_centres', ...ROLE_CODES.flatMap(() => ['core.roles', 'core.role_permissions']),
       'identity.tenant_settings', 'identity.feature_flags', 'identity.tenant_contract_acceptances', 'identity.tenant_contract_acceptances',
-      'core.users', 'core.memberships', 'core.membership_roles', 'identity.invitations', 'app.enqueue_job', 'audit.access_log',
+      'core.users', 'core.memberships', 'core.membership_roles', 'identity.invitations', 'app.enqueue_job',
+      // T0B-PROVPACK-1 (LD-301; 11-ROLE-MATRIX R6): the default pack is applied through role-pack.service, as it emits: 2 role SELECTs, then per pack role.
+      PACK_SELECT, PACK_SELECT, ...PACK.roles.flatMap(() => ['core.roles', 'core.role_permissions', 'audit.access_log']),
+      'audit.access_log',
     ]);
   });
 
@@ -205,8 +212,12 @@ describe('provisionTenant through the real chain: every statement of the scoped 
     expect(c.rig.one(/^INSERT INTO core\.users/).values.slice(0, 4)).toEqual([id, GOTRUE_USER, 'Gamma Admin', 'admin@gamma.example.test']);
     const inv = c.rig.one(/^INSERT INTO identity\.invitations/).values;
     expect(inv[5]).toBeInstanceOf(Date); expect((inv[5] as Date).toISOString()).toBe(EXPIRES);
-    expect(c.rig.find(/^INSERT INTO core\.roles/)).toHaveLength(ROLE_CODES.length);
-    expect(c.rig.one(/^INSERT INTO audit\.access_log/).values.slice(1)).toEqual([id, null, STAFF_USER, 'user', null, null, 'tenant.lifecycle_change', 'tenant', id, null, 'allowed', { to_status: 'provisioning' }, REQ_ID]);
+    expect(c.rig.find(/^INSERT INTO core\.roles/)).toHaveLength(ROLE_CODES.length + PACK.roles.length);
+    const logs = c.rig.find(/^INSERT INTO audit\.access_log/);
+    const lifecycle = logs.filter((s) => s.values[7] === 'tenant.lifecycle_change');
+    expect(lifecycle).toHaveLength(1);
+    expect(lifecycle[0]!.values.slice(1)).toEqual([id, null, STAFF_USER, 'user', null, null, 'tenant.lifecycle_change', 'tenant', id, null, 'allowed', { to_status: 'provisioning' }, REQ_ID]);
+    expect(logs.filter((s) => s.values[7] === 'role.change')).toHaveLength(PACK.roles.length);
   });
 
   it('a failure in the scoped block (pg error on the invitation insert) rolls the whole bundle back: no COMMIT, no job, no access-log row', async () => {

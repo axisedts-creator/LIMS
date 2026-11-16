@@ -264,11 +264,16 @@ export function createAuthService(deps: AuthDeps) {
   function session(ctx: AuthCtx, t: GoTrueTokens, o: { tenantId: string | null; kind: string; membershipId: string | null; platformStaffId: string | null;
     state: string; idle: number; abs: number; now: Date }) {
     const token = newToken();
-    const absolute = new Date(o.now.getTime() + o.abs * 3_600_000);
+    // LD-300 / T0B-LOGIN-1: sessions__absolute__ck (<= created_at + 12 h, kind <> patient) and sessions__idle__ck (15..30 for tenant_staff,
+    // platform, partner; staff_mobile keeps its 60..720 rule from mobileHours). Tenant settings 1..1440 / 1..168 are clamped here; the SQL also
+    // caps absolute at the database now() + 12 h so app/db clock skew cannot break the check.
+    const abs = Math.min(o.abs, 12);
+    const idle = o.kind === 'staff_mobile' ? o.idle : Math.min(Math.max(o.idle, 15), 30);
+    const absolute = new Date(o.now.getTime() + abs * 3_600_000);
     const s: NewSession = {
       id: newId(), tenantId: o.tenantId, kind: o.kind, userId: t.userId, membershipId: o.membershipId, platformStaffId: o.platformStaffId,
       gotrueSessionId: t.sessionId, tokenSha256: sha256(token), state: o.state, aal: t.aal, accessToken: t.accessToken, refreshToken: t.refreshToken,
-      accessExpiresAt: new Date(t.expiresAt * 1000), idleTimeoutMinutes: o.idle, idleExpiresAt: new Date(o.now.getTime() + o.idle * 60_000),
+      accessExpiresAt: new Date(t.expiresAt * 1000), idleTimeoutMinutes: idle, idleExpiresAt: new Date(o.now.getTime() + idle * 60_000),
       absoluteExpiresAt: absolute, expiresAt: absolute, clientIp: ctx.clientIp, userAgent: ctx.userAgent, actorId: ctx.actor.id,
     };
     return { s, token };

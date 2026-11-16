@@ -3978,7 +3978,7 @@ paths:
           description: Success.
           content:
             application/json:
-              schema: { $ref: "#/components/schemas/TenantSettingsDto" }
+              schema: { $ref: "#/components/schemas/PlatformTenantSettingsDto" }
               examples:
                 synthetic:
                   value:
@@ -4056,7 +4056,7 @@ paths:
           description: Success.
           content:
             application/json:
-              schema: { $ref: "#/components/schemas/TenantSettingsDto" }
+              schema: { $ref: "#/components/schemas/PlatformTenantSettingsDto" }
               examples:
                 synthetic:
                   value:
@@ -5796,6 +5796,74 @@ components:
           type: array
           maxItems: 2
           items: { type: string, maxLength: 12, enum: [ address_text, phone ] }
+    PlatformTenantSettingsDto:
+      # T0B-PROVFIX-4 (LD-299): platform-only response of getTenantSettingsAsPlatform / updateTenantSettingsAsPlatform = every TenantSettingsDto property + training_mode (LD-26). Tenant operations keep TenantSettingsDto; tenants never see training_mode.
+      type: object
+      additionalProperties: false
+      required: [ calendar_display, timezone, idle_timeout_minutes, absolute_session_hours, password_min_length, support_access_mode, report_link_ttl_days, release_requires_payment, partial_release_allowed, letterhead_default, numbering_prefix, display_name, legal_name_snapshot, version ]
+      properties:
+        calendar_display: { type: string, maxLength: 5, enum: [ AD, BS, AD_BS, BS_AD ] }
+        timezone: { type: string, maxLength: 64, minLength: 1 }
+        idle_timeout_minutes: { type: integer, minimum: 15, maximum: 30 }  # LD-304 (CR-C0-LOGIN-1; 04 A8): same range as sessions__idle__ck
+        absolute_session_hours: { type: integer, minimum: 1, maximum: 12 }  # LD-304: same cap as sessions__absolute__ck
+        password_min_length: { type: integer, minimum: 1, maximum: 128 }
+        support_access_mode: { type: string, maxLength: 17, enum: [ notify, approval_required ] }
+        report_link_ttl_days: { type: integer, minimum: 1, maximum: 3650 }
+        release_requires_payment: { type: boolean }
+        partial_release_allowed: { type: boolean }
+        letterhead_default: { type: string, maxLength: 7, enum: [ with, without ] }
+        numbering_prefix: { type: string, maxLength: 8, pattern: "^[A-Z0-9]{0,8}$" }
+        patient_code_pattern: { type: string, maxLength: 64, minLength: 1 }
+        registration_no_pattern: { type: string, maxLength: 64, minLength: 1 }
+        barcode_pattern: { type: string, maxLength: 64, minLength: 1 }
+        invoice_no_pattern: { type: string, maxLength: 64, minLength: 1 }
+        credit_note_no_pattern: { type: string, maxLength: 64, minLength: 1 }
+        receipt_no_pattern: { type: string, maxLength: 64, minLength: 1 }
+        barcode_prefix: { type: string, maxLength: 4, pattern: "^[A-Z0-9]{0,4}$" }
+        accession_no_pattern: { type: string, maxLength: 64, minLength: 1 }
+        accession_prefix_histology: { type: string, maxLength: 4, pattern: "^[A-Z0-9]{0,4}$" }
+        accession_prefix_cytology: { type: string, maxLength: 4, pattern: "^[A-Z0-9]{0,4}$" }
+        accession_prefix_ihc: { type: string, maxLength: 4, pattern: "^[A-Z0-9]{0,4}$" }
+        accession_prefix_molecular: { type: string, maxLength: 4, pattern: "^[A-Z0-9]{0,4}$" }
+        whatsapp_enabled: { type: boolean }
+        sms_enabled: { type: boolean }
+        email_enabled: { type: boolean }
+        sms_sender_id: { type: string, maxLength: 11, pattern: "^[A-Za-z0-9]{1,11}$" }
+        retention_clinical_years: { type: integer, minimum: 1, maximum: 100 }
+        retention_audit_years: { type: integer, minimum: 1, maximum: 100 }
+        retention_raw_instrument_years: { type: integer, minimum: 1, maximum: 100 }
+        auto_verification_enabled: { type: boolean }
+        westgard_mode: { type: string, maxLength: 7, enum: [ classic, modern ] }
+        ird_pan: { type: string, maxLength: 9, pattern: "^[0-9]{9}$" }
+        cbms_realtime_required: { type: boolean }
+        abbreviated_invoice_limit_paisa: { type: integer, format: int64, minimum: 0, maximum: 9007199254740991 }
+        ird_annex_1_record_id: { $ref: _common.yaml#/components/schemas/Uuid }
+        display_name: { type: string, maxLength: 120, minLength: 1 }
+        address_lines:
+          type: array
+          maxItems: 4
+          items: { type: string, maxLength: 120 }
+        phones:
+          type: array
+          maxItems: 3
+          items: { type: string, maxLength: 40 }
+        contact_email: { type: string, maxLength: 254, format: email, minLength: 3 }
+        website: { type: string, maxLength: 200, pattern: ^https:// }
+        logo_asset_id: { $ref: _common.yaml#/components/schemas/Uuid }
+        letterhead_header_asset_id: { $ref: _common.yaml#/components/schemas/Uuid }
+        letterhead_footer_asset_id: { $ref: _common.yaml#/components/schemas/Uuid }
+        receipt_footer_note: { type: string, maxLength: 200 }
+        accent_color: { type: string, maxLength: 7, pattern: "^#[0-9A-Fa-f]{6}$" }
+        legal_name_snapshot: { type: string, maxLength: 200, minLength: 1 }
+        pending_numbering:
+          type: object
+          additionalProperties: false
+          properties:
+            invoice_no_pattern: { type: string, maxLength: 64 }
+            credit_note_no_pattern: { type: string, maxLength: 64 }
+            effective_fy_bs: { type: string, maxLength: 7, pattern: "^[0-9]{4}/[0-9]{2}$" }
+        training_mode: { type: boolean }
+        version: { $ref: _common.yaml#/components/schemas/Version }
     TenantSettingsDto:
       type: object
       additionalProperties: false
@@ -5803,8 +5871,8 @@ components:
       properties:
         calendar_display: { type: string, maxLength: 5, enum: [ AD, BS, AD_BS, BS_AD ] }
         timezone: { type: string, maxLength: 64, minLength: 1 }
-        idle_timeout_minutes: { type: integer, minimum: 1, maximum: 1440 }
-        absolute_session_hours: { type: integer, minimum: 1, maximum: 168 }
+        idle_timeout_minutes: { type: integer, minimum: 15, maximum: 30 }  # LD-304 (CR-C0-LOGIN-1; 04 A8): same range as sessions__idle__ck
+        absolute_session_hours: { type: integer, minimum: 1, maximum: 12 }  # LD-304: same cap as sessions__absolute__ck
         password_min_length: { type: integer, minimum: 1, maximum: 128 }
         support_access_mode: { type: string, maxLength: 17, enum: [ notify, approval_required ] }
         report_link_ttl_days: { type: integer, minimum: 1, maximum: 3650 }
@@ -5868,8 +5936,8 @@ components:
       properties:
         calendar_display: { type: string, maxLength: 5, enum: [ AD, BS, AD_BS, BS_AD ] }
         timezone: { type: string, maxLength: 64, minLength: 1 }
-        idle_timeout_minutes: { type: integer, minimum: 1, maximum: 1440 }
-        absolute_session_hours: { type: integer, minimum: 1, maximum: 168 }
+        idle_timeout_minutes: { type: integer, minimum: 15, maximum: 30 }  # LD-304 (CR-C0-LOGIN-1; 04 A8): same range as sessions__idle__ck
+        absolute_session_hours: { type: integer, minimum: 1, maximum: 12 }  # LD-304: same cap as sessions__absolute__ck
         password_min_length: { type: integer, minimum: 1, maximum: 128 }
         support_access_mode: { type: string, maxLength: 17, enum: [ notify, approval_required ] }
         report_link_ttl_days: { type: integer, minimum: 1, maximum: 3650 }

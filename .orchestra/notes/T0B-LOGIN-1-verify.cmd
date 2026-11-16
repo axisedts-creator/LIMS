@@ -1,0 +1,1 @@
+pnpm --dir services/api exec vitest run src/modules/identity/service/__tests__/auth.session-clamp.test.ts src/modules/identity/service/__tests__/auth.service.test.ts src/modules/identity/handlers/__tests__/activate.chain.test.ts

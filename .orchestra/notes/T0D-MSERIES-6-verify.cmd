@@ -1,0 +1,1 @@
+pnpm --dir apps/web exec vitest run --config src/features/admin/auth/__tests__/vitest.m6.config.ts && pnpm --dir packages/ui exec vitest run src/components/__tests__/entry-hero-photo.test.tsx scripts/__tests__/no-raw-style-literals.test.ts -t "^(?!.*real tree)"

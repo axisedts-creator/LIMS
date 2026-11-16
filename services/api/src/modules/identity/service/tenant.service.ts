@@ -24,6 +24,7 @@ import { createSettingsRepo } from '../repository/settings.repo.js';
 import { ROLE_GRANTS } from '../../../../../../contracts/ports/generated/permissions.js';
 import { ASSET_COLUMNS, BOOLS, DEFERRED, EDITABLE, PATTERNS, PATTERN_MAX, PLATFORM_ONLY, UNSETTABLE, nextFiscalYear, toDto } from '../domain/settings.fields.js';
 import type { PlatformCtx } from './support.service.js';
+import { createRolePackRepo, createRolePackService, type RolePackRepo } from './role-pack.service.js';
 
 const READ = 'platform.tenant.read';
 const MANAGE = 'platform.tenant.manage';
@@ -47,9 +48,18 @@ const SIGNOUT_BATCH = 200;                                              // users
 const LIST_DEFAULT = 50, LIST_MAX = 200;
 const LIFECYCLE = 'tenant.lifecycle_change';
 // Default tenant roles = contracts/permissions.yaml `roles:` (read once, like role.service reads the permission phases).
-const DEFAULT_ROLES: ReadonlyArray<{ code: string; mfa_required: boolean; description?: string }> =
-  (parse(readFileSync(join(REPO_ROOT, 'contracts', 'permissions.yaml'), 'utf8')) as { roles: Array<{ code: string; mfa_required: boolean; description?: string }> }).roles;
+const PERMISSIONS_DOC = parse(readFileSync(join(REPO_ROOT, 'contracts', 'permissions.yaml'), 'utf8')) as {
+  roles: Array<{ code: string; mfa_required: boolean; description?: string }>; permissions: Array<{ code: string; roles: string[] }>;
+};
+const DEFAULT_ROLES = PERMISSIONS_DOC.roles;
 const ROLE_CODES = DEFAULT_ROLES.map((r) => r.code);
+// LD-301 / LD-189 (T0B-PROVPACK-1, founder 2026-11-16 "admin should get all features"): tenant_admin holds EVERY tenant scoped permission of the
+// catalogue. Never for a tenant administrator: platform.* and actor-only codes (`roles: []`, 02-TRD gen-permissions rule). mfa_required stays on.
+export const TENANT_ADMIN_GRANTS: readonly string[] = PERMISSIONS_DOC.permissions
+  .filter((p) => !p.code.startsWith('platform.') && Array.isArray(p.roles) && p.roles.length > 0).map((p) => p.code).sort();
+const grantsOf = (code: string): readonly string[] => (code === 'tenant_admin' ? TENANT_ADMIN_GRANTS : ROLE_GRANTS[code] ?? []);
+/** LD-301: the role pack every new lab gets at provisioning (and on activation, as a repair). */
+export const DEFAULT_ROLE_PACK = 'elabcorp_default';
 // LD-26 (2026-11-07): training_mode is set only by provisionTenant and immutable after; a platform settings PATCH naming it is refused.
 const PLATFORM_EDITABLE = new Set([...[...EDITABLE].filter((k) => !ASSET_COLUMNS.has(k)), ...PLATFORM_ONLY]);   // asset pointers: tenant path only (needs the asset scan check)
 const PLATFORM_UNSETTABLE = new Set([...[...UNSETTABLE].filter((k) => !ASSET_COLUMNS.has(k)), ...PLATFORM_ONLY]);
@@ -171,7 +181,7 @@ export function createTenantRepo(): TenantRepo {
         await q(tx, `INSERT INTO core.roles (id, tenant_id, role_code, display_name, description, is_system_default, mfa_required, created_by, updated_by)
           VALUES ($1, $2, $3, $3, $4, true, $5, $6, $6)`, [id, t, code, (r.description ?? '').slice(0, 300) || null, r.mfa_required, actorId]);
         await q(tx, `INSERT INTO core.role_permissions (tenant_id, role_id, permission_code, created_by)
-          SELECT $1, $2, x, $4 FROM unnest($3::text[]) AS x`, [t, id, [...(ROLE_GRANTS[code] ?? [])], actorId]);
+          SELECT $1, $2, x, $4 FROM unnest($3::text[]) AS x`, [t, id, [...grantsOf(code)], actorId]);
       }
     },
     async insertSettings(tx, t, s) {
@@ -322,7 +332,7 @@ const optText = (v: unknown, key: string) => (v === undefined ? {} : { [key]: v 
 
 export function createTenantService(deps: {
   repo?: TenantRepo; gotrue?: Pick<GoTrueGateway, 'adminCreateUser'>; emailHmac?: (emailNormalized: string) => Buffer;
-  userExists?: (tx: unknown, userId: string) => Promise<boolean>; newId?: () => string;
+  userExists?: (tx: unknown, userId: string) => Promise<boolean>; newId?: () => string; rolePackRepo?: RolePackRepo;
 } = {}) {
   const repo = deps.repo ?? createTenantRepo();
   const newId = deps.newId ?? uuidv7;
@@ -331,6 +341,27 @@ export function createTenantService(deps: {
   const meta = (ctx: Ctx): Meta => ({ actor: ctx.actor, requestId: ctx.requestId });
   const scoped = <T>(ctx: Ctx, tenantId: string, fn: () => Promise<T>) => ctx.db.withTenantScope(ctx.tx, tenantId, fn);
   const log = (ctx: Ctx, t: string, e: Omit<AccessLogEntry, 'outcome'>) => repo.accessLog(ctx.tx, t, { ...e, outcome: 'allowed' }, meta(ctx));
+  // [CONV] the role-pack SQL seam follows the tenant repo seam: the default repo (production, tenant.http.ts) brings the default role-pack repo;
+  // a caller that injects its own TenantRepo (unit fakes without SQL) must inject rolePackRepo too, or the pack step is not wired.
+  const packRepo = deps.rolePackRepo ?? (deps.repo ? undefined : createRolePackRepo());
+  const rolePacks = packRepo && createRolePackService({ repo: packRepo, newId });
+
+  /** LD-301 (T0B-PROVPACK-1, LD-189): inside the target scope. Retry safe, ADDITIVE ONLY (inserts with ON CONFLICT DO NOTHING; no UPDATE / DELETE):
+   *  tenant_admin gains any tenant scoped code it lacks, then the default pack is applied through role-pack.service (existing pack roles are left as
+   *  the lab edited them, R6). Runs at provisioning and again at activation, so a lab provisioned before this fix is repaired by activating it. */
+  async function adminGrantsAndPack(ctx: Ctx, s: S, t: string) {
+    if (!packRepo || !rolePacks) return;
+    const admin = (await packRepo.listRoles(s.tx, t)).find((r) => r.code === 'tenant_admin' && r.is_system_default);
+    const missing = admin ? TENANT_ADMIN_GRANTS.filter((c) => !admin.permission_codes.includes(c)) : [];
+    if (admin && missing.length) {
+      await packRepo.addPermissions(s.tx, t, admin.id, missing, s.actorId);
+      await log(ctx, t, { action: 'role.change', entityType: 'role', entityId: admin.id });
+    }
+    await rolePacks.applyRolePack({
+      tenantId: t, actor: ctx.actor, ...(ctx.requestId === undefined ? {} : { requestId: ctx.requestId }), tx: s.tx,
+      audit: { access: (e) => repo.accessLog(s.tx, t, e as unknown as AccessLogEntry, meta(ctx)) },
+    }, { packCode: DEFAULT_ROLE_PACK });
+  }
 
   async function load(s: S, id: unknown): Promise<TRow> {
     if (typeof id !== 'string' || !UUID.test(id)) throw notFound();
@@ -459,6 +490,7 @@ export function createTenantService(deps: {
         // LD-29: recorded_by = the platform staff user (platform staff hold no membership) [CONV].
         await repo.insertAcceptances(s.tx, id, [{ document: 'tos', ...tos, actorId: s.actorId }, { document: 'dpa', ...dpa, actorId: s.actorId }]);
         await inviteAdmin(s, id, userId, email, admin['displayName'] as string);
+        await adminGrantsAndPack(ctx, s, id);   // LD-301: default role pack (after the admin invite, so a failed invite writes no audit row)
         await log(ctx, id, { action: LIFECYCLE, entityType: 'tenant', entityId: id, detail: { to_status: 'provisioning' } });
       });
       return { status: 201, body: toTenant(row), version: row.version };
@@ -502,6 +534,7 @@ export function createTenantService(deps: {
       if (t.status !== 'provisioning') throw conflict();   // suspended -> active is reactivateTenant (T4)
       const r = await repo.readiness(s.tx, t.id);
       if (r.acceptedAdmins < 1 || r.activeBranches < 1 || r.activeCentres < 1) throw new LimsError('identity.tenant_not_ready');
+      await adminGrantsAndPack(ctx, s, t.id);   // LD-301: repair path for labs provisioned before T0B-PROVPACK-1
       return setStatus(s, t, v, 'active');
     }),
 

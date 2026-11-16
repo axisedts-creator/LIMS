@@ -9,10 +9,12 @@ import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import { REPO_ROOT } from '../../../../api/src/core/module.js';
 
-import { stubPaymentsEnv } from './async-env.js';
+import { PAYMENTS_ENV_NAMES } from './async-env.js';
 
 vi.setConfig({ testTimeout: 240_000, hookTimeout: 240_000 });   // first import of every jobs module through vite is slow
-stubPaymentsEnv();                                              // jobs/payments/index.ts validates its config at import
+// T0B-ASYNC-3 (LD-282, done_when 5): the sync reads only task identifiers, so it must run with NO module config variable set. The stub that
+// T0B-ASYNC-1 needed (jobs/payments/index.ts validates its config at import) is gone: any import-time check now fails this file.
+for (const name of PAYMENTS_ENV_NAMES) delete process.env[name];
 
 function fakeClient(existing: Array<{ identifier: string; is_active: boolean }> = []) {
   const stmts: Array<{ text: string; values: unknown[] }> = [];

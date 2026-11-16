@@ -47,11 +47,11 @@ export const SWITCHES = [
   ['show_partner_orders', 'Show partner orders'], ['auto_no_show', 'Auto no-show'], ['auto_follow_up_reminders', 'Auto follow-up reminders'],
 ] as const satisfies readonly (readonly [keyof EngagementSettingsBody, string])[];
 
-/** Integer fields with the operation's min/max, grouped by card. */
+/** Integer fields with the operation's min/max, grouped by W12 section (C16 04-UI-UX line 261). */
 export type IntKey = {
   [K in keyof EngagementSettingsBody]-?: EngagementSettingsBody[K] extends number ? K : never;
 }[keyof EngagementSettingsBody];
-export const INTS: Record<'app' | 'booking' | 'reminder', readonly { key: IntKey; label: string; min: number; max: number; note?: string }[]> = {
+export const INTS: Record<'app' | 'booking' | 'reminder' | 'queue', readonly { key: IntKey; label: string; min: number; max: number; note?: string }[]> = {
   app: [
     { key: 'otp_daily_cap', label: 'OTP daily cap', min: 100, max: 20000 },
     { key: 'max_profiles_per_account', label: 'Max profiles per account', min: 1, max: 10 },
@@ -68,10 +68,12 @@ export const INTS: Record<'app' | 'booking' | 'reminder', readonly { key: IntKey
     { key: 'max_active_bookings_per_profile', label: 'Max active bookings per profile', min: 1, max: 5 },
     { key: 'max_bookings_created_per_account_day', label: 'Max bookings created per account per day', min: 1, max: 10 },
     { key: 'max_orderables_per_booking', label: 'Max tests per booking', min: 1, max: 50 },
+    { key: 'booking_reminder_hours_before', label: 'Booking reminder (hours before)', min: 1, max: 72 },
   ],
   reminder: [
-    { key: 'booking_reminder_hours_before', label: 'Booking reminder (hours before)', min: 1, max: 72 },
     { key: 'follow_up_reminder_lead_days', label: 'Follow-up reminder lead (days)', min: 0, max: 30 },
+  ],
+  queue: [
     { key: 'queue_display_history_count', label: 'Queue display history (tokens)', min: 1, max: 10 },
   ],
 };

@@ -31,7 +31,9 @@ type Errors = Partial<Record<Name, string>>;
 type Banner_ = { kind: 'error'; title: string } | { kind: 'conflict' } | null;
 type Centre = { value: string; label: string };
 
-const ALL_INTS = [...INTS.app, ...INTS.booking, ...INTS.reminder];
+const ALL_INTS = [...INTS.app, ...INTS.booking, ...INTS.reminder, ...INTS.queue];
+// W12 sections: Features = the nine feature switches; Auto no-show sits in Bookings, Auto follow-up reminders in Reminders.
+const FEATURES = SWITCHES.filter(([k]) => k !== 'auto_no_show' && k !== 'auto_follow_up_reminders');
 const FIELD_LABEL: Partial<Record<string, string>> = {
   ...LABEL, ...Object.fromEntries(SWITCHES), ...Object.fromEntries(ALL_INTS.map((i) => [i.key, i.label])),
 };
@@ -132,6 +134,9 @@ function SettingsForm({ initial, centres }: { initial: EngagementSettings; centr
         {...(ints[i.key] !== undefined ? { value: ints[i.key] as number } : {})} onChange={edit((v: number | undefined) => setInts((s) => ({ ...s, [i.key]: v })), i.key)} {...err(i.key)}
       />
     ));
+  const toggle = (k: (typeof SWITCHES)[number][0], label: string) => (
+    <Switch key={k} label={label} name={k} isSelected={flags[k]} onChange={edit((v: boolean) => setFlags((s) => ({ ...s, [k]: v })))} />
+  );
   const centreOptions = centre && !centres.some((c) => c.value === centre) ? [...centres, { value: centre, label: centre }] : centres;
   return (
     <div ref={root}>
@@ -146,7 +151,7 @@ function SettingsForm({ initial, centres }: { initial: EngagementSettings; centr
       <div role="status">{saved ? <Banner tone="success" title="Settings saved." /> : null}</div>
       <Form onSubmit={submit}>
         <Card title="Features">
-          {SWITCHES.map(([k, label]) => <Switch key={k} label={label} name={k} isSelected={flags[k]} onChange={edit((v: boolean) => setFlags((s) => ({ ...s, [k]: v })))} />)}
+          {FEATURES.map(([k, label]) => toggle(k, label))}
         </Card>
         <Card title="Patient app">
           <TextField
@@ -173,11 +178,18 @@ function SettingsForm({ initial, centres }: { initial: EngagementSettings; centr
             label={LABEL.smart_report_disclaimer_text} name="smart_report_disclaimer_text" value={disclaimer} maxLength={1000}
             onChange={edit(setDisclaimer, 'smart_report_disclaimer_text')} {...err('smart_report_disclaimer_text')}
           />
-          {centreOptions.length ? <Select label={LABEL.home_collection_centre_id} name="home_collection_centre_id" options={centreOptions} {...(centre ? { value: centre } : {})} onChange={edit(setCentre, 'home_collection_centre_id')} /> : null}
           {numbers('app')}
         </Card>
-        <Card title="Booking limits">{numbers('booking')}</Card>
-        <Card title="Reminders and queue">{numbers('reminder')}</Card>
+        <Card title="Bookings">
+          {numbers('booking')}
+          {toggle('auto_no_show', 'Auto no-show')}
+          {centreOptions.length ? <Select label={LABEL.home_collection_centre_id} name="home_collection_centre_id" options={centreOptions} {...(centre ? { value: centre } : {})} onChange={edit(setCentre, 'home_collection_centre_id')} /> : null}
+        </Card>
+        <Card title="Reminders">
+          {toggle('auto_follow_up_reminders', 'Auto follow-up reminders')}
+          {numbers('reminder')}
+        </Card>
+        <Card title="Queue">{numbers('queue')}</Card>
         <Button variant="primary" type="submit" isDisabled={saving} shortcut="Ctrl+Enter">Save</Button>
       </Form>
     </div>

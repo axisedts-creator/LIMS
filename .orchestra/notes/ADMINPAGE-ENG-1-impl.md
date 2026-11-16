@@ -6,3 +6,4 @@ Gap: T1 needs engagement.booking.read; a manager with only settings.manage gets 
 [CONV] labels (W12 gives group names only): see LABEL/SWITCHES/INTS in model.ts; consent text change without new version label is refused client-side; 400 and 422 both map errors[].path to the field; no Idempotency-Key (Form busy guard + disabled Save).
 Tests: adminpage-eng-1 config 80/80 incl. static (after this note); nav-complete + rs-c4 runs below.
 Not verified: real browser, live API, repo-wide tsc (red before this task, LD-256).
+Review fix 1: five W12 Cards Features / Patient app / Bookings / Reminders / Queue; Auto no-show + centre Select + booking_reminder_hours_before in Bookings, Auto follow-up in Reminders, history in Queue (INTS regrouped). Runs: eng-1 81/81, nav 27/27, rs-c4 10/10. tsc: 1 TS2375 on prefixes TextField (line untouched by this fix).

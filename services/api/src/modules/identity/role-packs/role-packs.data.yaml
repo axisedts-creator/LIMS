@@ -12,13 +12,16 @@ packs:
           - analytics.collections.read
           - analytics.dashboard.read
           - analytics.data.export
+          - analytics.referral_report.read
           - analytics.schedule.manage
           - anatomic.case.read
+          - anatomic.config.manage
           - audit.log.export
           - audit.log.read
           - billing.cash_report.read
           - billing.credit_party.manage
           - billing.credit_party.read
+          - billing.data.export
           - billing.invoice.issue
           - billing.invoice.read
           - billing.invoice.reprint
@@ -71,9 +74,18 @@ packs:
           - identity.user.manage
           - identity.user.read
           - instruments.agent.manage
+          - instruments.agent.read
           - instruments.instrument.manage
           - instruments.instrument.read
           - instruments.message.read
+          - inventory.cost.read
+          - inventory.item.read
+          - inventory.master.manage
+          - inventory.po.manage
+          - inventory.report.export
+          - inventory.stock.adjust
+          - inventory.stock.manage
+          - lab.config.manage
           - lab.critical_value.log_notification
           - lab.critical_value.read
           - lab.result.enter
@@ -85,6 +97,9 @@ packs:
           - lab.specimen.reject
           - lab.status_board.read
           - lab.worklist.read
+          - micro.config.manage
+          - micro.culture.read
+          - partners.manifest.receive
           - partners.partner.manage
           - partners.partner.read
           - partners.pickup.manage
@@ -92,15 +107,23 @@ packs:
           - payments.merchant_config.manage
           - payments.merchant_config.read
           - payments.reconciliation.read
+          - quality.autoverify.read
+          - quality.config.manage
+          - quality.qc.manage
+          - quality.qc_run.read
+          - quality.tat_alert.ack
+          - quality.tat_alert.read
           - reporting.channel.manage
           - reporting.delivery.read
           - reporting.message_template.manage
           - reporting.outsourced.attach
           - reporting.report.bulk_download
+          - reporting.report.print
           - reporting.report.read
           - reporting.settings.manage
           - reporting.template.manage
           - reporting.token.revoke
+          - smartreport.summary.read
       - code: corp_accession_user
         name: "Accession User"
         mfa_required: false
@@ -752,11 +775,14 @@ packs:
           - analytics.collections.read
           - analytics.dashboard.read
           - analytics.data.export
+          - analytics.referral_report.read
           - analytics.schedule.manage
+          - anatomic.config.manage
           - audit.log.export
           - audit.log.read
           - billing.cash_report.read
           - billing.credit_party.read
+          - billing.data.export
           - billing.invoice.issue
           - billing.invoice.read
           - billing.invoice.reprint
@@ -804,10 +830,15 @@ packs:
           - identity.user.manage
           - identity.user.read
           - instruments.agent.manage
+          - instruments.agent.read
           - inventory.bench.record
+          - inventory.cost.read
           - inventory.item.read
           - inventory.master.manage
           - inventory.po.manage
+          - inventory.report.export
+          - inventory.stock.adjust
+          - inventory.stock.manage
           - lab.config.manage
           - lab.critical_value.log_notification
           - lab.critical_value.read
@@ -818,12 +849,20 @@ packs:
           - lab.status_board.read
           - lab.worklist.read
           - lab.worksheet.manage
+          - micro.config.manage
+          - micro.culture.read
+          - partners.manifest.receive
           - partners.partner.manage
           - partners.partner.read
           - partners.pickup.manage
           - partners.referrer.map
           - payments.merchant_config.manage
           - payments.merchant_config.read
+          - quality.autoverify.read
+          - quality.config.manage
+          - quality.qc.manage
+          - quality.qc_run.read
+          - quality.tat_alert.ack
           - quality.tat_alert.read
           - reporting.channel.manage
           - reporting.delivery.read
@@ -834,6 +873,7 @@ packs:
           - reporting.settings.manage
           - reporting.template.manage
           - reporting.token.revoke
+          - smartreport.summary.read
       - code: std_reception
         name: "Reception"
         mfa_required: false

@@ -47,6 +47,12 @@ const en: Record<string, string> = {
   'nav.platform.dead_letters': 'Dead letters',
   'nav.platform.staff': 'Platform staff',
   'nav.platform.auth_events': 'Sign-in events',
+  // kept from main (pre-LD-251 rail headings / collapse control); unused by the 14-group sidebar
+  'core.nav.group.people_access': 'People & access',
+  'core.nav.group.settings': 'Settings',
+  'core.nav.collapse': 'Collapse navigation',
+  'core.nav.expand': 'Expand navigation',
+  'core.nav.frontdesk_settings': 'Front desk settings', // ADMINPAGE-FD-1 (LD-255); spec label C4 04-UI-UX s3
   // Nav entry labels added by T0D-NAV-COMPLETE-1 (LD-250); names from the chunk spec nav tables.
   'frontdesk.nav.registration_new': 'New registration',
   'frontdesk.nav.worklist': 'Front-desk worklist',

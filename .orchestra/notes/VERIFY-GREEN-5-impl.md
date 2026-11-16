@@ -1,9 +1,8 @@
-# VERIFY-GREEN-5 impl (writer)
-- Changed: apps/web/tsconfig.json only: `paths "@/*": ["./src/*", "../portal/src/*"]` (portal fallback, web first). No portal file touched.
-- Cause: web tsc program pulls portal pages in; `@/` resolved to web src only. Modules EXIST in apps/portal/src: wrong alias, not a missing feature. No stub (LD-250). TS2307 x7 + TS7006 x2 gone (TS7006 was a consequence).
-- [CONV] Relative-specifier fix tried first and rejected: rs-c6.static pins page/actions.ts hashes and `@/…#sym` import keys; it failed 2 tests. Alias fix keeps them green.
-- No emitted value, rounding, status or SQL changed (tsconfig `paths` is type-resolution only; Next build also reads it, resolves web first, so no existing import changes target). No money/order code touched.
-- Counts (`tsc -p`, not full turbo): web 290 -> 285, portal 0 -> 0. Remaining 285 are test files (incl. src/features/homecollection/tests/e2e/HC-T30.nightly.spec.ts:28 TS2532 x2, an e2e spec = test file, not edited).
-- Ran green: vg5 17/17, rs-c6 3 files 60/60 (with CI=true), web-build-2 37/37.
-- Not run: full `turbo run typecheck --continue`, web build, whole web unit suite.
-- Open: confirm HC-T30 .spec.ts counts as a test file for the done_when; `next build` not run to confirm alias fallback.
+# VERIFY-GREEN-5 impl (writer, round 2)
+- Review item 1: reverted apps/web/tsconfig.json `paths` to `{"@/*": ["./src/*"]}` (C0-0D owned; the fallback hid LD-250 TS2307). No implementation file changed in this task now.
+- Wrote nonblocking CR `.orchestra/cr/VERIFY-GREEN-5.md` (to C0-0D/lead, options a/b/c) and listed the 9 errors as file:line in `notes/VERIFY-GREEN-5.md`. [CONV] relative-specifier fix stays blocked by the rs-c6 pins.
+- `turbo run typecheck --continue`: 10/11 packages 0 errors; @lims/web 294, of which 9 are non-test (the 9 portal page errors in the CR) and 285 are in test files. Before = after (the tree matches the pre-task state). No money or order code touched: no emitted value, rounding, status or SQL changed.
+- `pnpm --filter @lims/web build`: exit 0 (compiled, Next type-check passed, routes emitted).
+- Suites: rs-c6 60/60 (CI=true), web-build-2 37/37. vg5 16/17: the gate is RED on purpose, because it never tolerates TS2307 for modules that exist in portal. It turns green after the lead picks a CR option.
+- Whole web suite (bare `vitest run`, no `test` script in apps/web): 258/365 files fail. The tree equals the pre-task config, so this is baseline, not caused here; not triaged.
+- Open: lead decision on CR (a/b/c).

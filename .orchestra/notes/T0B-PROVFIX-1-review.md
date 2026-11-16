@@ -1,3 +1,11 @@
+APPROVE
+# Reviewer verdict (diff 964cf9c3..HEAD, T0B-PROVFIX-1 per LD-295)
+- tenant.service.ts:451: seedIrdAnnexes call removed, required LD-295 comment line present; repo fn + TENANT_ANNEXES untouched (TENANT_ANNEXES still used at :147). Rest of provisionTenant unchanged (tenants insert out of scope, rest in scope).
+- Tests: scope-check fake kept; ordering test asserts only findByCode + insert outside scope; new test asserts seedIrdAnnexes not called; seed-first tests removed. Ran vitest identity/service/__tests__/tenant*: 7 files, 385 passed.
+- Item (3) completed below (FKs, permission codes, flag policies); item (4) nonblocking CR .orchestra/cr/T0B-PROVFIX-1.md covers 3 annex tables + support_sessions/feature_flags/tenant_settings with operations.
+- No migration/policy/grant/contract/spec edits; no PHI/secrets; names unchanged. Only owned/brief paths touched.
+- Not verified: no real DB run (static only, as brief); founder retry still gated on T0B-PROVFIX-2.
+
 # T0B-PROVFIX-1 static review of provisionTenant (writer; no database in the lane — read only)
 Roles: request tx = lims_api (member of lims_app). Outside scope claims = platform session (scope=platform, aal2, sub=staff user, no tenant_id).
 Inside scope claims = {sub: identity system actor, actor_type 'system', tenant_id=new id} (core/db/tx.ts:186) => is_staff_or_system() TRUE, is_platform_actor() FALSE.

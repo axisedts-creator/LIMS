@@ -3,7 +3,7 @@ export const STATES = ['pending', 'sent', 'accepted', 'expired', 'revoked', 'fai
 export type InvitationStatus = (typeof STATES)[number];
 
 const EDGES: Readonly<Record<InvitationStatus, readonly InvitationStatus[]>> = {
-  pending: ['sent', 'failed', 'revoked'], // job ok, job exhausted, deactivate
+  pending: ['sent', 'failed', 'accepted', 'revoked'], // job ok, job exhausted, accept on verified token (LD-302, no worker), deactivate
   sent: ['sent', 'failed', 'accepted', 'expired', 'revoked'], // resend (attempt_no+1), exhausted, accept, cron, deactivate
   expired: ['sent'], // resend = new attempt
   failed: ['sent'], // resend = new attempt

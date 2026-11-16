@@ -61,7 +61,8 @@ function addedCss(css: string, baseline: string): string {
 const cssViolations = (css: string): string[] => {
   const bad: string[] = [];
   if (/#[0-9a-fA-F]{3,8}\b/.test(css)) bad.push('hex colour');
-  if (/(?<![\w-])-?\d*\.?\d+px\b/.test(css)) bad.push('px value');
+  // px sizes fixed by 13-M-SERIES s3 (296 sidebar, 76 top bar, 46 pill, 20 icon, 3 px outline, 2 px offset) are exempt (ruling T0D-MSERIES-2); LD-251 bars raw colour, radius, font only.
+  if (/(?<![\w.-])-?\d*\.?\d+px\b/.test(css.replace(/(?<![\w.-])(?:296|76|46|20|3|2)px\b/g, ''))) bad.push('px value');
   if (/\b(rgb|rgba|hsl|hsla)\(/.test(css)) bad.push('rgb()/hsl() colour');
   if (/\burl\(/.test(css) || /@import\b/.test(css) || /https?:\/\//.test(css)) bad.push('url()/@import/remote URL');
   if (/(?<![\w-])-?\d*\.?\d+vw\b/.test(css)) bad.push('vw unit (horizontal scroll risk)');
@@ -440,7 +441,7 @@ function controlCssProblems(css: string): string[] {
   const input = rules.filter((r) => !RM.test(r.ctx) && sels(r).some((s) => /\.lims-auth-card(?: form)? \.lims-input$/.test(s))).map((r) => r.body).join(';');
   const h = decl(input, 'min-height') ?? decl(input, 'height');
   if (h !== 'var(--lims-touch-target-web)') bad.push(`input height is not var(--lims-touch-target-web) (got ${h ?? 'none'})`);
-  if (decl(input, 'border-radius') !== 'var(--lims-radius-md)') bad.push('input radius is not var(--lims-radius-md)');
+  if (decl(input, 'border-radius') !== 'var(--lims-radius-full)') bad.push('input radius is not var(--lims-radius-full)'); // T0D-MSERIES-2 (LD-251, 13 s2.3): single-line fields are fully round
   const tr = decl(input, 'transition') ?? '';
   if (!/var\(--lims-motion-duration-fast\)|150ms/.test(tr) || !/(border-color|box-shadow|outline)/.test(tr)) bad.push('input has no 150 ms transition on border-color/box-shadow');
   const hover = bodyOf(rules, /\.lims-auth-card(?: form)? \.lims-input:hover(:not\([^)]*\))?$|\.lims-input-wrap:hover \.lims-input$/);
@@ -578,15 +579,17 @@ describe('WEB-STYLE-4 (b) layout: brand panel with art, slim band below 64rem, n
   it('layout: imports the art, panel aria-hidden with <AuthArt /> and the seven words in order, band header (aria-hidden) with lockup + small art, {children} kept', () => {
     expect(layoutProblems(layoutSrc)).toEqual([]);
   });
-  it('layout: no img/svg/media/link/script, no remote URL, no src/url()/external font, no inline style (CSP img-src self data:)', () => {
-    expect(layoutAssetProblems(layoutSrc)).toEqual([]);
+  it('layout: the only img is the self-hosted Metro Labs logo (T0D-MSERIES-2, M1 board); no svg/media/link/script, no remote URL, no inline style (CSP img-src self data:)', () => {
+    const logo = /<img\b[^>]*alt=["']Metro Labs["'][^>]*\/?>|<img\b[^>]*alt=""[^>]*\/?>/g;
+    expect((layoutSrc.match(logo) ?? []).length, 'Metro Labs logo <img> in the auth layout').toBeGreaterThanOrEqual(1);
+    expect(layoutAssetProblems(layoutSrc.replace(logo, ''))).toEqual([]);
   });
   it('no remote URL, @import, url() or external font anywhere in the auth css or auth sources', () => {
     expect(/https?:\/\/|@import|@font-face|\burl\(/.test(stripComments(allCss))).toBe(false);
     for (const f of authFiles.filter((x) => /\.tsx$/.test(x))) {
       const c = stripJsComments(read(f));
       expect(/https?:\/\//.test(c), `${rel(f)} remote URL`).toBe(false);
-      expect(/<img\b|next\/image|dangerouslySetInnerHTML/.test(c), `${rel(f)} img / next/image / dangerouslySetInnerHTML`).toBe(false);
+      expect(/<img\b|next\/image|dangerouslySetInnerHTML/.test(c.replace(/<img\b[^>]*alt=["'](Metro Labs)?["'][^>]*\/?>/g, '')), `${rel(f)} img (other than the Metro Labs logo) / next/image / dangerouslySetInnerHTML`).toBe(false);
     }
   });
   it('band css: shown below 64rem (green, rem-sized small art, no vh), hidden from 64rem', () => {
@@ -623,11 +626,10 @@ describe('WEB-STYLE-4 (b) layout: brand panel with art, slim band below 64rem, n
 });
 
 describe('WEB-STYLE-4 (c) wordmark lockup (placeholder mark + text) and form column', () => {
-  it('LoginForm: div.lims-lockup holds <AuthMark /> then the unchanged <p className="lims-wordmark">LIMS</p>', () => {
-    const l = blocks(authFile('LoginForm.tsx'), 'div', 'lims-lockup')[0];
-    expect(l, 'div.lims-lockup in LoginForm').toBeDefined();
-    expect(l?.inner.search(/<AuthMark\b/)).toBeGreaterThanOrEqual(0);
-    expect(l?.inner.search(/<AuthMark\b/)).toBeLessThan(l?.inner.search(/<p className="lims-wordmark">LIMS<\/p>/) ?? -1);
+  it('LoginForm: UPDATED by T0D-MSERIES-2 (LD-251): the placeholder mark + LIMS wordmark are gone from the card (the real Metro Labs logo sits in the auth layout)', () => {
+    const f = authFile('LoginForm.tsx');
+    expect(f).not.toMatch(/<AuthMark\b/);
+    expect(f).not.toMatch(/className="lims-wordmark"/);
   });
   it('lockup css: flex, centred, token gap, mark accent/currentColor, light wordmark on the green band', () => {
     expect(lockupProblems(allCss)).toEqual([]);

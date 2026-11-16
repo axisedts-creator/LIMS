@@ -19,11 +19,11 @@ CREATE TEMP TABLE rt(t, cls, u, d, aud) AS VALUES
   ('queue_day_counters','M',true,false,true),('queue_tokens','C',true,false,true),('queue_displays','M',true,false,true),('reminders','M',true,false,true),('membership_plans','M',true,false,true),('patient_memberships','M',true,false,true),
   ('number_counters','E',true,true,false),('enquiries','M',true,false,true),('enquiry_messages','A',false,false,false),('cs_booking_cancel_reasons','M',true,false,true),('cs_reminder_reasons','M',true,false,true),('cs_enquiry_categories','M',true,false,true);
 CREATE TEMP TABLE rg(t) AS VALUES ('g_cs_booking_cancel_reasons'),('g_cs_reminder_reasons'),('g_cs_enquiry_categories');
-CREATE TEMP TABLE rd(f, args, execs, bad) AS VALUES   -- DEFINER inventory (§6.6): function, identity arguments, the one EXECUTE role, a role that must not execute
-  ('app.engagement_account_id','','lims_app','lims_api'),('app.engagement_patient_ids','','lims_app','lims_api'),('app.engagement_patient_visible','p_patient_id uuid, p_at timestamp with time zone','lims_app','lims_api'),
-  ('app.engagement_redeem_link_code','p_code_hmac bytea','lims_app','lims_api'),('app.engagement_apply_report_link','p_patient_id uuid, p_released_at timestamp with time zone','lims_app','lims_api'),
-  ('app.engagement_code_redeemed_by_me','p_link_code_id uuid, p_patient_id uuid','lims_app','lims_api'),('app.engagement_resolve_preauth','p_code text, p_token_sha256 bytea','lims_api','lims_app'),
-  ('app.engagement_resolve_display','p_token_sha256 bytea','lims_api','lims_app'),('engagement.purge_payment_requests','','lims_worker','lims_app'),('engagement.purge_queue','','lims_worker','lims_app');
+CREATE TEMP TABLE rd(f, args, execs, bad) AS VALUES   -- DEFINER inventory (§6.6): function, argument types (LD-230 (5): ::regprocedure rejects parameter names), the one EXECUTE role, a role that must not execute
+  ('app.engagement_account_id','','lims_app','lims_api'),('app.engagement_patient_ids','','lims_app','lims_api'),('app.engagement_patient_visible','uuid, timestamp with time zone','lims_app','lims_api'),
+  ('app.engagement_redeem_link_code','bytea','lims_app','lims_api'),('app.engagement_apply_report_link','uuid, timestamp with time zone','lims_app','lims_api'),
+  ('app.engagement_code_redeemed_by_me','uuid, uuid','lims_app','lims_api'),('app.engagement_resolve_preauth','text, bytea','lims_api','lims_app'),
+  ('app.engagement_resolve_display','bytea','lims_api','lims_app'),('engagement.purge_payment_requests','','lims_worker','lims_app'),('engagement.purge_queue','','lims_worker','lims_app');
 
 -- C16 check 1: inventory, owner (AC-0B-1.2, AC-0B-6.3), schema privileges, no sequences / enums
 SELECT is((SELECT count(*)::int FROM pg_class c WHERE c.relnamespace = 'engagement'::regnamespace AND c.relkind IN ('r','p')), 36 + 3 + 1, 'C16 check 1: engagement holds 36 tenant + 3 G tables + event_inbox (39 chunk tables = 05-SCHEMA §3 count of table statements)');

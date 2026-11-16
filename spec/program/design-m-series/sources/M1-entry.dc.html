@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Metro brand sign-in</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap">
+<style>
+:root{--lime:#A0C032;--lime-soft:#ECF3D7;--green:#005A52;--forest:#014D3C;--ink:#0A1A17;--muted:#5C6A66;--bg:#F3F3F3;--line:#ECECEC}
+body{margin:0;font-family:'Poppins',system-ui,sans-serif;color:var(--ink);background:#fff}
+a{color:var(--green)}a:hover{color:var(--forest)}
+@keyframes wave{0%,100%{background:#0C5A51;box-shadow:inset 0 0 0 1px rgba(255,255,255,.14)}45%{background:var(--c,#E4F239);box-shadow:0 0 16px var(--c,#E4F239)}62%{background:#0C5A51;box-shadow:inset 0 0 0 1px rgba(255,255,255,.14)}}
+@keyframes sway{0%,100%{transform:rotateX(58deg) rotateZ(-36deg)}50%{transform:rotateX(52deg) rotateZ(-22deg)}}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+@keyframes ring{0%{transform:scale(.9);opacity:.55}100%{transform:scale(1.6);opacity:0}}
+@keyframes rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+.scene{perspective:1400px;perspective-origin:50% 38%}
+.plate{position:relative;width:520px;height:360px;transform-style:preserve-3d;animation:sway 14s ease-in-out infinite}
+.slab{position:absolute;inset:0;border-radius:26px;background:#07463F;border:1px solid rgba(255,255,255,.22)}
+.slab.under{transform:translateZ(-20px);background:#032E29;box-shadow:0 70px 90px rgba(0,30,26,.55)}
+.slab.top{padding:24px;box-sizing:border-box;display:grid;grid-template-columns:repeat(12,1fr);grid-template-rows:repeat(8,1fr);gap:6px}
+.well{border-radius:50%;background:#0C5A51;box-shadow:inset 0 0 0 1px rgba(255,255,255,.14);animation:wave 5.6s ease-in-out infinite}
+.well.w{--c:#FFFFFF}.well.l{--c:#A0C032}
+.bob{animation:bob 6s ease-in-out infinite}.bob2{animation:bob 7.5s ease-in-out -2s infinite}.bob3{animation:bob 5.4s ease-in-out -1s infinite}
+.ring{animation:ring 3s ease-out infinite}
+.rise{animation:rise .8s cubic-bezier(.2,.7,.2,1) both}
+.field{width:100%;box-sizing:border-box;height:54px;border:1.5px solid #D3D8D0;border-radius:16px;padding:0 18px;font:500 15px 'Poppins',system-ui,sans-serif;color:var(--ink);background:#fff}
+.field::placeholder{color:#6F7B77}
+.field:focus{outline:3px solid #CFE0A0;outline-offset:0;border-color:var(--green)}
+.btn{height:56px;border:0;border-radius:999px;background:var(--green);color:#fff;font:600 16px 'Poppins',system-ui,sans-serif;cursor:pointer;width:100%}
+.btn:hover{background:var(--forest)}
+.btn:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+.float{position:absolute;display:flex;align-items:center;gap:10px;background:#fff;border-radius:20px;padding:10px 16px 10px 10px;box-shadow:0 14px 34px rgba(0,50,44,.28)}
+@media (prefers-reduced-motion:reduce){.plate{animation:none;transform:rotateX(56deg) rotateZ(-30deg)}.well,.bob,.bob2,.bob3,.ring,.rise{animation:none}}
+</style>
+</helmet>
+<div style="display:flex;flex-wrap:wrap;min-height:900px">
+  <div style="flex:1 1 480px;max-width:620px;box-sizing:border-box;padding:40px 64px;background:#fff;display:flex;flex-direction:column;justify-content:space-between;gap:40px">
+    <div style="display:flex;align-items:center">
+      <img src="/_blob/2c5f4d9357fe0a0081e8f41e76b02e8f" alt="Metro Labs" style="height:36px;width:auto">
+    </div>
+
+    <form class="rise" style="display:flex;flex-direction:column;gap:20px;max-width:440px;width:100%">
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <span style="align-self:flex-start;background:var(--lime-soft);color:var(--forest);font-weight:600;font-size:13px;padding:6px 14px;border-radius:999px">Staff sign-in</span>
+        <h1 style="margin:0;font-size:40px;line-height:1.1;font-weight:700;letter-spacing:-.03em;color:var(--forest)">Welcome back</h1>
+        <p style="margin:0;font-size:16px;line-height:1.6;color:var(--muted)">Sign in with your work email. A one-time code confirms it is you.</p>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px"><label for="email" style="font-weight:500;font-size:14px">Work email</label><input class="field" id="email" type="email" placeholder="name@yourlab.com" autocomplete="username"></div>
+      <div style="display:flex;flex-direction:column;gap:8px"><div style="display:flex;justify-content:space-between;align-items:center"><label for="pw" style="font-weight:500;font-size:14px">Password</label><a href="#" style="font-size:14px;font-weight:500;text-decoration:none;min-height:44px;display:inline-flex;align-items:center">Forgot password?</a></div><input class="field" id="pw" type="password" placeholder="Enter your password" autocomplete="current-password"></div>
+      <button class="btn" type="button">Continue</button>
+      <a href="#" style="display:flex;align-items:center;justify-content:center;min-height:56px;border-radius:999px;box-shadow:inset 0 0 0 2px var(--green);color:var(--green);font-weight:600;font-size:15px;text-decoration:none">Patient or partner portal</a>
+    </form>
+
+    <div style="display:flex;gap:20px;flex-wrap:wrap;font-size:13px"><a href="#" style="color:var(--muted)">Privacy policy</a><a href="#" style="color:var(--muted)">Terms of use</a><a href="#" style="color:var(--muted)">Help and status</a></div>
+  </div>
+
+  <div style="flex:999 1 560px;min-width:0;position:relative;overflow:hidden;background-image:linear-gradient(145deg,#005A52 0%,#1F6E4B 48%,#79AD3A 100%);display:flex;align-items:center;justify-content:center;padding:32px;box-sizing:border-box">
+    <svg viewBox="0 0 800 800" aria-hidden="true" style="position:absolute;left:50%;top:50%;width:880px;max-width:none;height:880px;transform:translate(-50%,-50%)"><circle cx="400" cy="400" r="380" fill="none" stroke="#fff" stroke-opacity=".10" stroke-width="2"/><circle cx="400" cy="400" r="300" fill="none" stroke="#fff" stroke-opacity=".12" stroke-width="2"/><circle cx="400" cy="400" r="220" fill="none" stroke="#fff" stroke-opacity=".14" stroke-width="2"/></svg>
+    <div class="scene" role="img" aria-label="Illustration: a 96-well plate tilted in 3D with wells lighting up in a wave" style="position:relative;width:640px;max-width:100%;height:540px;display:flex;align-items:center;justify-content:center;margin-top:-60px">
+      <div class="plate"><div class="slab under"></div><div class="slab top"><sc-for list="{{wells}}" as="w" hint-placeholder-count="96"><span class="well {{w.k}}" style="animation-delay:{{w.d}}"></span></sc-for></div></div>
+    </div>
+
+    <div class="bob" style="position:absolute;left:8%;top:10%;width:76px;height:76px">
+      <span class="ring" style="position:absolute;inset:0;border-radius:50%;background:#A0C032"></span>
+      <img src="/_blob/fc5dceab92f2145d47d609e2807f0f99" alt="" style="position:relative;display:block;width:76px;height:76px">
+    </div>
+    <div class="float bob2" style="right:7%;top:16%"><span style="width:36px;height:36px;border-radius:12px;background:var(--lime-soft);display:grid;place-items:center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#005A52" stroke-width="2.600" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.500l4.500 4.500L19 7.500"/></svg></span><span style="font-weight:600;font-size:14px">Report released</span></div>
+    <div class="float bob3" style="right:12%;bottom:27%"><span style="width:36px;height:36px;border-radius:12px;background:var(--lime-soft);display:grid;place-items:center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#005A52" stroke-width="2.200" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3c3.500 4.500 5.500 7 5.500 9.500a5.500 5.500 0 0 1-11 0C6.500 10 8.500 7.500 12 3z"/></svg></span><span style="font-weight:600;font-size:14px">Sample received</span></div>
+    <div class="float bob" style="left:9%;bottom:29%;background:#E4F239"><span style="width:10px;height:10px;border-radius:50%;background:#005A52;margin-left:6px"></span><span style="font-weight:600;font-size:14px;color:#00362F">QC passed</span></div>
+
+    <div style="position:absolute;left:56px;bottom:48px;right:56px;display:flex;flex-direction:column;gap:8px;color:#fff">
+      <span style="font-weight:500;font-size:14px;letter-spacing:.14em;text-transform:uppercase;color:#E4F239">Tap. Test. Track.</span>
+      <h2 style="margin:0;font-weight:700;font-size:40px;line-height:1.1;letter-spacing:-.03em;max-width:560px">Every result, on time and on the record.</h2>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const wells = [];
+    for (let r = 0; r < 8; r++) {
+      for (let c = 0; c < 12; c++) {
+        const k = (r + c) % 11 === 0 ? 'w' : ((r * 3 + c) % 7 === 0 ? 'l' : '');
+        wells.push({ k, d: ((r + c) * 0.18).toFixed(2) + 's' });
+      }
+    }
+    return { wells };
+  }
+}
+</script>
+</body>
+</html>

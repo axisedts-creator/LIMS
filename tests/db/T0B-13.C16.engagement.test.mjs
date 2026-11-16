@@ -24,7 +24,9 @@ const stmts = (s) => s.split(';').map((x) => x.trim()).filter(Boolean);
 const files = () => (existsSync(migDir) ? readdirSync(migDir).filter((f) => f.endsWith('.sql')).sort() : []);
 const eFiles = () => files().filter((f) => /^\d{14}_engagement__[a-z0-9_]+\.sql$/.test(f));
 const read = (f) => strip(readFileSync(migDir + f, 'utf8'));
-const eSql = () => eFiles().map(read).join('\n;\n');
+// T0B-CNTPOL-1 (LD-257): the additive narrowing migration (3 RESTRICTIVE policies + 1 guard function + 1 trigger on number_counters) is outside the §1-§6 spec text compared here
+// (no function / trigger beyond the spec); it is checked by tests/db/T0B-CNTPOL-1.static.test.mjs.
+const eSql = () => eFiles().filter((f) => f !== '20261116030000_engagement__narrow_number_counters_access.sql').map(read).join('\n;\n');
 const polSql = () => (existsSync(polDir + 'engagement.sql') ? strip(readFileSync(polDir + 'engagement.sql', 'utf8')) : '');
 
 // ---------------------------------------------------------------- SQL scanning helpers (same technique as T0B-05 / C2..C15)
@@ -73,8 +75,9 @@ const createTriggers = (sql) => stmts(sql).filter((s) => /^CREATE\s+TRIGGER\b/i.
 const trgName = (s) => /TRIGGER\s+(\w+)/i.exec(s)[1];
 const isAudit = (s) => /app\.tg_row_audit\(/i.test(s);
 function policies(sql) {
-  return stmts(sql).filter((s) => /^CREATE\s+POLICY\s+(?!%)/i.test(ws(s))).map((s) => {
-    const m = /^CREATE\s+POLICY\s+(\w+)\s+ON\s+([\w.]+)\s+FOR\s+(SELECT|INSERT|UPDATE|DELETE|ALL)\s+TO\s+([\w, ]+?)\s+(?=USING|WITH)([\s\S]*)$/i.exec(ws(s));
+  // T0B-CNTPOL-1 (LD-257): the three AS RESTRICTIVE number_counters__<cmd>__nonstaff_keys policies are an addition to the §5.3 matrix; they are checked by tests/db/T0B-CNTPOL-1.static.test.mjs
+  return stmts(sql).filter((s) => /^CREATE\s+POLICY\s+(?!%)(?!number_counters__(select|insert|update)__nonstaff_keys\b)/i.test(ws(s))).map((s) => {
+    const m = /^CREATE\s+POLICY\s+(\w+)\s+ON\s+([\w.]+)(?:\s+AS\s+(?:PERMISSIVE|RESTRICTIVE))?\s+FOR\s+(SELECT|INSERT|UPDATE|DELETE|ALL)\s+TO\s+([\w, ]+?)\s+(?=USING|WITH)([\s\S]*)$/i.exec(ws(s));
     assert.ok(m, `parsable policy: ${ws(s).slice(0, 110)}`);
     const rest = m[5], wi = rest.search(/\bWITH\s+CHECK\b/i);
     const using = /^USING/i.test(rest) ? (wi < 0 ? rest : rest.slice(0, wi)).replace(/^\s*USING\s*/i, '').trim() : '';

@@ -20,7 +20,8 @@ export interface ConfirmDeps {
   hmac?: (normalisedEmail: string) => string; newId?: () => string; newToken?: () => string; now?: () => Date;
 }
 interface Hctx extends HandlerContext {
-  requestId: string; bffKey?: string; actor?: { type: string; id: string }; log?: { error(o: object, m?: string): void };
+  // VERIFY-GREEN-1 / LD-253 / LD-189: type-only; bffKey and log now inherit HandlerContext (no runtime change).
+  requestId: string; bffKey?: HandlerContext['bffKey']; actor?: { type: string; id: string };
   db: { identityAuthTx<T>(input: TxInput, fn: TxFn<T>): Promise<T> };
 }
 

@@ -1,5 +1,5 @@
 // contracts/ports/CatalogPort.ts
-import type { RequestContext, Uuidv7, IsoUtc, IsoDate, Money, Code, DecimalString, Priority, Sex } from './common';
+import type { RequestContext, Uuidv7, IsoUtc, IsoDate, Money, Code, DecimalString, Priority, Sex } from './common.js';
 export const CATALOG_PORT_VERSION = 1 as const;
 
 export type WorkflowType = 'standard' | 'narrative' | 'microbiology' | 'anatomic' | 'molecular' | 'attachment' | 'outsourced';

@@ -1,5 +1,5 @@
-// T0D-11 / AC-0D-9.1 + done_when "Dart tokens generated"; T0D-UI-R01 (LD-140): the generated outputs follow tokens.json
-// (Metro Green), regenerate with no diff, and carry the four new tokens.
+// T0D-11 / AC-0D-9.1 + done_when "Dart tokens generated"; T0D-MSERIES-1 (LD-251, 13-M-SERIES s2): the generated outputs follow tokens.json
+// (M series), regenerate with no diff, and carry accent.pop and the new radius / font / motion values.
 // Runs scripts/build-tokens.ts (Node >= 22.18 strips types natively; script must run via `node <file>` with no args).
 import { execFileSync } from 'node:child_process';
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -41,19 +41,28 @@ describe('build-tokens', () => {
     expect({ ts: readFileSync(ts, 'utf8'), dart: readFileSync(dart, 'utf8'), css: readFileSync(css, 'utf8') }).toEqual(first);
   });
 
-  it('dist/tokens.css: Metro default accent, new tokens, new radius/font values', () => {
+  it('dist/tokens.css: M series default accent, accent.pop, new radius / font / motion values', () => {
     run();
     const c = readFileSync(css, 'utf8');
-    expect(c).toMatch(/--lims-accent\s*:\s*#0E4B3B\s*;/i);
-    expect(c).toMatch(/--lims-accent-hover\s*:\s*#0A3328\s*;/i);
-    expect(c).toMatch(/--lims-accent-highlight\s*:\s*#D9EE8C\s*;/i);
-    expect(c).toMatch(/--lims-accent-brand\s*:\s*#9DBE2E\s*;/i);
+    expect(c).toMatch(/--lims-accent\s*:\s*#005A52\s*;/i);
+    expect(c).toMatch(/--lims-accent-hover\s*:\s*#014D3C\s*;/i);
+    expect(c).toMatch(/--lims-accent-highlight\s*:\s*#A0C032\s*;/i);
+    expect(c).toMatch(/--lims-accent-brand\s*:\s*#A0C032\s*;/i);
+    expect(c).toMatch(/--lims-accent-pop\s*:\s*#E4F239\s*;/i);
+    expect(c).toMatch(/--lims-neutral-50\s*:\s*#F3F3F3\s*;/i);
     expect(c).toMatch(/--lims-tone-critical-solid\s*:\s*#B42318\s*;/i);
-    expect(c).toMatch(/--lims-focus-ring\s*:\s*#0E4B3B\s*;/i); // alias resolved
+    expect(c).toMatch(/--lims-focus-ring\s*:\s*#005A52\s*;/i); // alias resolved
     expect(c).toMatch(/--lims-radius-lg\s*:\s*16px\s*;/);
-    expect(c).toMatch(/--lims-radius-xl\s*:\s*20px\s*;/);
-    expect(c).toMatch(/--lims-font-family-sans\s*:[^;]*Plus Jakarta Sans[^;]*Noto Sans Devanagari/);
+    expect(c).toMatch(/--lims-radius-xl\s*:\s*24px\s*;/);
+    expect(c).toMatch(/--lims-radius-full\s*:\s*9999px\s*;/);
+    expect(c).toMatch(/--lims-touch-target-web\s*:\s*48px\s*;/);
+    expect(c).toMatch(/--lims-motion-duration-fast\s*:\s*150ms\s*;/);
+    expect(c).toMatch(/--lims-motion-duration-normal\s*:\s*450ms\s*;/);
+    expect(c).toMatch(/--lims-motion-easing\s*:\s*cubic-bezier\(0\.2, 0\.7, 0\.2, 1\)\s*;/);
+    expect(c).toMatch(/--lims-font-family-sans\s*:\s*"Poppins", "Noto Sans Devanagari", system-ui, sans-serif\s*;/);
+    expect(c).not.toMatch(/Jakarta/i);
     expect(c.toUpperCase()).not.toContain('#1D4ED8');
+    expect(c.toUpperCase()).not.toContain('#0E4B3B');
     expect(c).not.toMatch(/https?:|url\(/i);
   });
 
@@ -64,29 +73,43 @@ describe('build-tokens', () => {
     expect(m, 'tokens.ts shape: export const tokens = {...} as const;').not.toBeNull();
     const parsed = JSON.parse(m![1]!);
     expect(parsed).toEqual(resolveTree(src));
-    expect(parsed.color.accent.default.toUpperCase()).toBe('#0E4B3B');
-    expect(parsed.color.focus.ring.toUpperCase()).toBe('#0E4B3B');
-    for (const k of ['hover', 'highlight', 'brand']) expect(parsed.color.accent[k]).toMatch(/^#[0-9A-F]{6}$/i);
+    expect(parsed.color.accent.default.toUpperCase()).toBe('#005A52');
+    expect(parsed.color.focus.ring.toUpperCase()).toBe('#005A52');
+    for (const k of ['hover', 'highlight', 'brand', 'pop']) expect(parsed.color.accent[k]).toMatch(/^#[0-9A-F]{6}$/i);
+    expect(parsed.color.accent.pop.toUpperCase()).toBe('#E4F239');
     expect(parsed.color.tone.critical.solid.toUpperCase()).toBe('#B42318');
-    expect(parsed.radius).toEqual({ sm: 8, md: 12, lg: 16, xl: 20, full: 9999 });
+    expect(parsed.radius).toEqual({ sm: 8, md: 12, lg: 16, xl: 24, full: 9999 });
+    expect(parsed.font.family.sans).toBe('"Poppins", "Noto Sans Devanagari", system-ui, sans-serif');
   });
 
-  it('Dart output carries the Metro accent, the new tokens, the radius ladder; no URLs, no old blue', () => {
+  it('Dart output carries the M series accent, accent.pop, the radius ladder, Poppins; no URLs, no old blue', () => {
     run();
     const d = readFileSync(dart, 'utf8');
-    expect(d).toMatch(/static const Color colorAccentDefault = Color\(0xFF0E4B3B\);/i);
-    expect(d).toMatch(/static const Color colorAccentHover = Color\(0xFF0A3328\);/i);
-    expect(d).toMatch(/static const Color colorAccentHighlight = Color\(0xFFD9EE8C\);/i);
-    expect(d).toMatch(/static const Color colorAccentBrand = Color\(0xFF9DBE2E\);/i);
+    expect(d).toMatch(/static const Color colorAccentDefault = Color\(0xFF005A52\);/i);
+    expect(d).toMatch(/static const Color colorAccentHover = Color\(0xFF014D3C\);/i);
+    expect(d).toMatch(/static const Color colorAccentHighlight = Color\(0xFFA0C032\);/i);
+    expect(d).toMatch(/static const Color colorAccentBrand = Color\(0xFFA0C032\);/i);
+    expect(d).toMatch(/static const Color colorAccentPop = Color\(0xFFE4F239\);/i);
     expect(d).toMatch(/static const Color colorToneCriticalSolid = Color\(0xFFB42318\);/i);
-    expect(d).toMatch(/static const Color colorFocusRing = Color\(0xFF0E4B3B\);/i);
+    expect(d).toMatch(/static const Color colorFocusRing = Color\(0xFF005A52\);/i);
     expect(d).toMatch(/static const double radiusSm = 8\.0;/);
     expect(d).toMatch(/static const double radiusMd = 12\.0;/);
     expect(d).toMatch(/static const double radiusLg = 16\.0;/);
-    expect(d).toMatch(/static const double radiusXl = 20\.0;/);
-    expect(d).toMatch(/static const String fontFamilySans = '[^\n]*Plus Jakarta Sans[^\n]*Noto Sans Devanagari/);
+    expect(d).toMatch(/static const double radiusXl = 24\.0;/);
+    expect(d).toMatch(/static const String fontFamilySans = '[^\n]*Poppins[^\n]*Noto Sans Devanagari/);
+    expect(d).not.toMatch(/Jakarta/i);
     expect(d.toUpperCase()).not.toMatch(/1D4ED8/);
     expect(d).not.toMatch(/https?:\/\//);
+  });
+
+  // 13 s2.3: "everything off under prefers-reduced-motion". The generated CSS zeroes every motion duration token in that media query,
+  // so any transition written with the tokens stops (kit tests check that kit.css uses only the tokens).
+  it('dist/tokens.css: under prefers-reduced-motion: reduce both motion durations (150 and 450) become 0ms', () => {
+    run();
+    const m = /@media \(prefers-reduced-motion: reduce\)\s*{\s*:root\s*{([^}]*)}/.exec(readFileSync(css, 'utf8'));
+    expect(m, 'reduced-motion block').not.toBeNull();
+    expect(m![1]).toMatch(/--lims-motion-duration-fast\s*:\s*0ms\s*;/);
+    expect(m![1]).toMatch(/--lims-motion-duration-normal\s*:\s*0ms\s*;/);
   });
 
   it('tokens.g.dart has one declaration per token leaf (nothing dropped or duplicated)', () => {

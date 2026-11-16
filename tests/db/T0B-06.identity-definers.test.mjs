@@ -43,7 +43,7 @@ function tableBody(sql, name) {
 }
 function policies(sql) {
   return stmts(sql).filter((s) => /^CREATE\s+POLICY\b/i.test(s)).map((s) => {
-    const m = /^CREATE\s+POLICY\s+(\w+)\s+ON\s+([\w.]+)\s+FOR\s+(SELECT|INSERT|UPDATE|DELETE|ALL)\s+TO\s+([\w, ]+?)\s+(?=USING|WITH)([\s\S]*)$/i.exec(ws(s));
+    const m = /^CREATE\s+POLICY\s+(\w+)\s+ON\s+([\w.]+)(?:\s+AS\s+(?:PERMISSIVE|RESTRICTIVE))?\s+FOR\s+(SELECT|INSERT|UPDATE|DELETE|ALL)\s+TO\s+([\w, ]+?)\s+(?=USING|WITH)([\s\S]*)$/i.exec(ws(s));
     assert.ok(m, `parsable policy: ${ws(s).slice(0, 100)}`);
     return { name: m[1], table: m[2], cmd: m[3].toUpperCase(), roles: m[4].split(',').map((r) => r.trim()), text: ws(s) };
   });

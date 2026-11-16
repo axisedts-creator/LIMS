@@ -59,7 +59,8 @@ function addedCss(css: string, baseline: string): string {
 const cssViolations = (css: string): string[] => {
   const bad: string[] = [];
   if (/#[0-9a-fA-F]{3,8}\b/.test(css)) bad.push('hex colour');
-  if (/(?<![\w-])-?\d*\.?\d+px\b/.test(css)) bad.push('px value');
+  // px sizes fixed by 13-M-SERIES s3 (296 sidebar, 76 top bar, 46 pill, 20 icon, 3 px outline, 2 px offset) are exempt (ruling T0D-MSERIES-2); LD-251 bars raw colour, radius, font only.
+  if (/(?<![\w.-])-?\d*\.?\d+px\b/.test(css.replace(/(?<![\w.-])(?:296|76|46|20|3|2)px\b/g, ''))) bad.push('px value');
   if (/\b(rgb|rgba|hsl|hsla)\(/.test(css)) bad.push('rgb()/hsl() colour');
   if (/\burl\(/.test(css) || /@import\b/.test(css) || /https?:\/\//.test(css)) bad.push('url()/@import/remote URL');
   // every media/container condition length must be rem (or % free): 64rem, never px/em/vw
@@ -213,7 +214,12 @@ describe('WEB-STYLE-2 (b) brand panel content', () => {
     expect(layoutProblems(layoutSrc)).toEqual([]);
   });
   it('layout: no img, remote URL, url(), src or inline style; auth components: no remote URL or inline style', () => {
-    expect(assetProblems(layoutSrc)).toEqual([]);
+    // Ruling T0D-MSERIES-2: the single self-hosted <img alt="Metro Labs"> (M1-entry, 13 s3, LD-251 supersede LD-205 for the logo) is allowed; remote URLs and url() stay barred.
+    const logo = /<img\b[^>]*\balt=["']Metro Labs["'][^>]*\/?>/g;
+    const logos = layoutSrc.match(logo) ?? [];
+    expect(logos.length).toBeLessThanOrEqual(1);
+    for (const l of logos) expect(/https?:\/\/|(?<![\w:])\/\/[a-z]|url\(|\bstyle=/i.test(l), l).toBe(false);
+    expect(assetProblems(layoutSrc.replace(logo, ''))).toEqual([]);
     // Components may keep what they have (MfaEnrolment shows the enrolment QR via DataUriImage, REQ-SEC-088): only remote URLs and inline style are barred there.
     const offenders = authFiles.filter((f) => /\.tsx$/.test(f)).map((f) => ({ f: rel(f), p: assetProblems(read(f)).filter((x) => x === 'remote URL' || x === 'inline style') })).filter((x) => x.p.length);
     expect(offenders).toEqual([]);

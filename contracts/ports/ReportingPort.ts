@@ -1,6 +1,6 @@
 // contracts/ports/ReportingPort.ts
-import type { RequestContext, Uuidv7, IsoUtc, Page } from './common';
-import type { SmartSummary } from './SmartReportPort';            // added by 08 A2.3 (snapshot type only; no SmartReportPort call)
+import type { RequestContext, Uuidv7, IsoUtc, Page } from './common.js';
+import type { SmartSummary } from './SmartReportPort.js';            // added by 08 A2.3 (snapshot type only; no SmartReportPort call)
 export const REPORTING_PORT_VERSION = 1 as const;
 
 export interface ReleasedReportSummary {

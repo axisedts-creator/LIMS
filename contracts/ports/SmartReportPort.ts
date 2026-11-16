@@ -1,5 +1,5 @@
 // contracts/ports/SmartReportPort.ts
-import type { RequestContext, Uuidv7, Code, IsoUtc, DecimalString } from './common';
+import type { RequestContext, Uuidv7, Code, IsoUtc, DecimalString } from './common.js';
 export const SMART_REPORT_PORT_VERSION = 1 as const;
 
 export type BandStatus = 'in_range' | 'borderline' | 'out_of_range' | 'critical';

@@ -1,0 +1,6 @@
+TESTS_WRONG — the test asserts something the spec does not require (say precisely what to change in the test)
+Reasons:
+1. The dispute is about the test harness, not page behaviour: `setText` (apps/web/src/features/frontdesk/__tests__/adminpage-fd-1.settings.test.tsx:82) calls `user.type(el, v)`. user-event reads `[` and `{` as key descriptors, so the values typed at :144 (`^[0-9]{10}$`), :243 (`([`) and :248 (`^[0-9]{9}$`) throw inside user-event before any page code runs.
+2. The spec requires those values to be typeable: contracts/openapi/frontdesk.yaml:5360-5363 makes buyer_pan_pattern a string, maxLength 200, default `^[0-9]{9}$`. :4290 and :4353 say buyer PAN is validated server-side against that pattern, so the field must accept regex syntax. No spec line requires the input to reject `[` or `{` keystrokes.
+3. Change: in `setText` (:82), replace `await user.type(el, v)` with `await user.click(el); await user.paste(v);` after the existing `user.clear(el)`. The other option is `user.type(el, v.replace(/[[{]/g, '$&$&'))`. Do not change any value or assertion: keep `^[0-9]{10}$`, `([`, `^[0-9]{9}$`, the alert and aria-invalid checks, no PUT on an invalid regex, and the 9-field single PUT.
+4. After the fix, all other `setText` callers must still pass. Their values contain no `[` or `{`, so their behaviour does not change.

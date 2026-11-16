@@ -74,12 +74,13 @@ INSERT INTO core.memberships (id, tenant_id, user_id, actor_type, status, partne
 INSERT INTO core.roles (id, tenant_id, role_code, display_name, mfa_required, created_by, updated_by) VALUES
   (pg_temp.id(56), pg_temp.id(1), 'admin', 'Admin', true, pg_temp.id(99), pg_temp.id(99));
 INSERT INTO core.membership_roles (tenant_id, membership_id, role_id, created_by) VALUES (pg_temp.id(1), pg_temp.id(41), pg_temp.id(56), pg_temp.id(99));
-INSERT INTO identity.tenant_settings (tenant_id, retention_audit_years, idle_timeout_minutes, absolute_session_hours) VALUES
-  (pg_temp.id(1), 5, 20, 10), (pg_temp.id(2), 7, 30, 12);
+-- LD-230 (6): legal_name_snapshot / display_name / created_by / updated_by are NOT NULL without default (identity migration tenant_settings)
+INSERT INTO identity.tenant_settings (tenant_id, legal_name_snapshot, display_name, retention_audit_years, idle_timeout_minutes, absolute_session_hours, created_by, updated_by) VALUES
+  (pg_temp.id(1), 'Synthetic Lab One', 'Synthetic Lab One', 5, 20, 10, pg_temp.id(99), pg_temp.id(99)), (pg_temp.id(2), 'Synthetic Lab Two', 'Synthetic Lab Two', 7, 30, 12, pg_temp.id(99), pg_temp.id(99));
 INSERT INTO identity.platform_staff (id, user_id, email_normalized, display_name, role_code, is_active, created_by, updated_by) VALUES
-  (pg_temp.id(61), pg_temp.id(32), 'staff32@example.test', 'Staff 32', 'platform_admin', true,  pg_temp.id(99), pg_temp.id(99)),
-  (pg_temp.id(62), pg_temp.id(39), 'staff39@example.test', 'Staff 39', 'platform_admin', true,  pg_temp.id(99), pg_temp.id(99)),
-  (pg_temp.id(63), pg_temp.id(42), 'staff42@example.test', 'Staff 42', 'platform_admin', false, pg_temp.id(99), pg_temp.id(99));
+  (pg_temp.id(61), pg_temp.id(32), 'staff32@example.test', 'Staff 32', 'platform_support', true,  pg_temp.id(99), pg_temp.id(99)),
+  (pg_temp.id(62), pg_temp.id(39), 'staff39@example.test', 'Staff 39', 'platform_support', true,  pg_temp.id(99), pg_temp.id(99)),
+  (pg_temp.id(63), pg_temp.id(42), 'staff42@example.test', 'Staff 42', 'platform_support', false, pg_temp.id(99), pg_temp.id(99));
 INSERT INTO identity.mfa_factors (id, tenant_id, user_id, status, created_by, updated_by) VALUES
   (pg_temp.id(71), pg_temp.id(1), pg_temp.id(31), 'verified', pg_temp.id(99), pg_temp.id(99)),
   (pg_temp.id(72), NULL,          pg_temp.id(32), 'verified', pg_temp.id(99), pg_temp.id(99)),
@@ -241,7 +242,7 @@ SELECT is(j -> 0 ->> 'state', 'expired', 'resolve: expired session is returned w
 SELECT is(j -> 0 ->> 'membership_locked', 'true', 'resolve: locked membership -> membership_locked = true (08 A3.4)') FROM res WHERE k = 'locked';
 SELECT is(j -> 0 ->> 'tenant_status', 'suspended', 'resolve: suspended tenant -> tenant_status suspended') FROM res WHERE k = 'suspended';
 SELECT is(j -> 0 ->> 'platform_staff_id', pg_temp.id(61)::text, 'resolve: platform session -> platform_staff_id') FROM res WHERE k = 'plat_sup';
-SELECT is(j -> 0 ->> 'platform_role', 'platform_admin', 'resolve: platform session -> platform_role') FROM res WHERE k = 'plat_sup';
+SELECT is(j -> 0 ->> 'platform_role', 'platform_support', 'resolve: platform session -> platform_role') FROM res WHERE k = 'plat_sup';
 SELECT is(j -> 0 ->> 'support_session_id', pg_temp.id(91)::text, 'resolve: active unexpired support session -> support_session_id (08 A15.1)') FROM res WHERE k = 'plat_sup';
 SELECT is(j -> 0 ->> 'support_tenant_id', pg_temp.id(3)::text, 'resolve: support_tenant_id') FROM res WHERE k = 'plat_sup';
 SELECT is(j -> 0 ->> 'support_scope', 'read_only', 'resolve: support_scope') FROM res WHERE k = 'plat_sup';
@@ -299,7 +300,7 @@ SELECT is(pg_temp.lc(37) -> 0 ->> 'tenant_id', pg_temp.id(2)::text, 'test 20: te
 SELECT is(jsonb_array_length(pg_temp.lc(36)), 1, 'login_context: exactly one row per user (no fan-out from the platform_staff left join)');
 -- platform staff with no membership (08 A15.2)
 SELECT is(pg_temp.lc(32) -> 0 ->> 'platform_staff_id', pg_temp.id(61)::text, 'login_context: platform staff user -> platform_staff_id');
-SELECT is(pg_temp.lc(32) -> 0 ->> 'platform_role', 'platform_admin', 'login_context: platform_role');
+SELECT is(pg_temp.lc(32) -> 0 ->> 'platform_role', 'platform_support', 'login_context: platform_role');
 SELECT is(pg_temp.lc(32) -> 0 ->> 'platform_active', 'true', 'login_context: platform_active');
 SELECT is(pg_temp.lc(32) -> 0 ->> 'membership_count', '0', 'login_context: platform staff, no membership -> membership_count 0');
 SELECT is(pg_temp.lc(32) -> 0 ->> 'tenant_id', NULL, 'login_context: platform staff -> tenant_id NULL');

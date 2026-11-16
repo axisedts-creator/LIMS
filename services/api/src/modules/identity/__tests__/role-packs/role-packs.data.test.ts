@@ -27,7 +27,7 @@ const DEFAULT_ROLE_CODES = [...registry.roles, ...registry.partner_roles, ...reg
 // 11-ROLE-MATRIX §3.1 / §3.2: code -> [permissions, privileged]
 const EXPECTED: Record<string, Record<string, [number, number]>> = {
   elabcorp_default: {
-    corp_admin: [92, 33], corp_accession_user: [22, 0], corp_accounts: [18, 6], corp_franchise_user: [24, 0],
+    corp_admin: [115, 39], corp_accession_user: [22, 0], corp_accounts: [18, 6], corp_franchise_user: [24, 0],
     corp_client_operator: [44, 8], corp_laboratory_admin: [11, 0], corp_laboratory_lab_user: [24, 0],
     corp_laboratory_user: [18, 0], corp_collection_center: [22, 1], corp_it_department: [5, 0],
     corp_junior_lab_user: [24, 0], corp_sr_lab_user: [51, 9], corp_sr_lab_user_t2: [51, 9], corp_pathologist: [45, 7],
@@ -35,7 +35,7 @@ const EXPECTED: Record<string, Record<string, [number, number]>> = {
     corp_senior_lab_user: [51, 9],
   },
   elabassist_standard: {
-    std_admin: [85, 30], std_reception: [18, 0], std_accession: [25, 0], std_lab_technician: [40, 0],
+    std_admin: [102, 35], std_reception: [18, 0], std_accession: [25, 0], std_lab_technician: [40, 0],
     std_consulting_pathologist: [20, 5], std_collection_center_user: [21, 0], std_collection_center_admin: [21, 0],
     std_collection_boy: [19, 0], std_affiliation_hospital_user: [17, 0], std_account: [25, 6],
   },
@@ -48,6 +48,23 @@ const ACCOUNTS = ['corp_accounts', 'std_account'];
 describe('RM-T01 role-packs.data.yaml', () => {
   it('equals spec/program/11-ROLE-MATRIX.data.yaml unchanged (LD-141; line endings ignored)', () => {
     expect(lf(readFileSync(DATA_FILE, 'utf8'))).toBe(lf(readFileSync(SPEC_FILE, 'utf8')));
+  });
+
+  it('equals the spec data role by role: same packs, same role fields, same permission lists (LD-254; names the first difference)', () => {
+    const spec = parse(readFileSync(SPEC_FILE, 'utf8')) as { packs: Pack[] };
+    const mine = data();
+    expect(mine.packs.map((p) => p.code)).toEqual(spec.packs.map((p) => p.code));
+    for (const sp of spec.packs) {
+      const mp = mine.packs.find((p) => p.code === sp.code)!;
+      expect(mp.roles.map((r) => r.code), sp.code).toEqual(sp.roles.map((r) => r.code));
+      for (const sr of sp.roles) {
+        const mr = mp.roles.find((r) => r.code === sr.code)!;
+        expect({ code: mr.code, name: mr.name, mfa: mr.mfa_required, base: mr.base_default_role }, sr.code).toEqual({ code: sr.code, name: sr.name, mfa: sr.mfa_required, base: sr.base_default_role });
+        expect(mr.permissions.filter((c) => !sr.permissions.includes(c)), `${sr.code}: in the API pack, not in the spec`).toEqual([]);
+        expect(sr.permissions.filter((c) => !mr.permissions.includes(c)), `${sr.code}: in the spec, not in the API pack`).toEqual([]);
+        expect(mr.permissions, `${sr.code} order`).toEqual(sr.permissions);
+      }
+    }
   });
 
   it('has the two packs with 19 + 10 roles and the exact template codes of §3', () => {

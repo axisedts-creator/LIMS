@@ -114,21 +114,17 @@ const kit = read(join(ROOT, 'packages', 'ui', 'src', 'components', 'kit.css'));
 const rules = parseCss([kit, ...css.map(read)].join('\n'));
 const px = (v?: string) => Number(/^(\d+(?:\.\d+)?)px$/.exec(v ?? '')?.[1] ?? NaN);
 
-describe('shell CSS (tokens only; 248 -> 72 rail, 56 top bar, accent.highlight pill)', () => {
-  it('rail expanded stays 248 and top bar 56 (R03 values kept)', () => {
-    expect(rules.filter((r) => r.sels.includes('.lims-shell-nav') && r.decls.has('width')).map((r) => px(r.decls.get('width'))).at(-1)).toBe(248);
-    expect(rules.filter((r) => r.sels.includes('.lims-shell-top') && r.decls.has('min-height')).map((r) => px(r.decls.get('min-height'))).at(-1)).toBe(56);
+describe('shell CSS (tokens only; UPDATED by T0D-MSERIES-2 / LD-251: 296 sidebar, 76 top bar, accent.highlight pill; geometry details in m2.source.test.ts)', () => {
+  it('sidebar is 296 and top bar 76 (13-M-SERIES s3 replaces the 248 / 56 of R03)', () => {
+    expect(rules.filter((r) => r.sels.includes('.lims-shell-nav') && r.decls.has('width')).map((r) => px(r.decls.get('width'))).at(-1)).toBe(296);
+    expect(rules.filter((r) => r.sels.includes('.lims-shell-top') && r.decls.has('min-height')).map((r) => px(r.decls.get('min-height'))).at(-1)).toBe(76);
   });
-  it("collapsed rail ([data-collapsed='true']) is 72px wide", () => {
-    const w = rules.filter((r) => !r.media && r.sels.some((s) => /data-collapsed='?true'?/.test(s)) && r.decls.has('width')).map((r) => px(r.decls.get('width')));
-    expect(w, 'no [data-collapsed=true] width rule').toContain(72);
-  });
-  it('active item (aria-current=page): accent.highlight background, accent.default text, token radius', () => {
+  it('active item (aria-current=page): accent.highlight background, a token text colour (contrast in m2.source.test.ts), token radius', () => {
     const r = rules.filter((x) => !x.media && x.sels.some((s) => /aria-current='?page'?/.test(s) && /shell|rail|nav/.test(s)));
     expect(r.length, 'no [aria-current=page] rule for the rail').toBeGreaterThan(0);
     const d = (p: string) => r.map((x) => x.decls.get(p)).filter(Boolean).join(' ');
     expect(d('background') + d('background-color')).toContain('var(--lims-accent-highlight)');
-    expect(d('color')).toMatch(/var\(--lims-accent\)/);
+    expect(d('color')).toMatch(/var\(--lims-/);
     expect(d('border-radius')).toMatch(/var\(--lims-radius-/);
   });
   it('rail items are keyboard-visible: a :focus-visible rule or the global kit focus ring', () => {
@@ -136,10 +132,10 @@ describe('shell CSS (tokens only; 248 -> 72 rail, 56 top bar, accent.highlight p
     const global = rules.some((x) => x.sels.some((s) => /(^|\s|,)(a|button|\*):focus-visible/.test(s)) && (x.decls.get('outline') ?? '').includes('--lims-focus-ring'));
     expect(own || global).toBe(true);
   });
-  it('motion: any transition/animation in shell CSS is ≤ 250 ms and reduced-motion is honoured', () => {
+  it('motion: any transition/animation in shell CSS is ≤ 450 ms (13-M-SERIES s2.3: content enters 450 ms, hover/press 150 ms; was 250 in R04) and reduced-motion is honoured', () => {
     const mine = css.map((f) => strip(read(f))).join('\n');
     const durations = [...mine.matchAll(/(?:transition|animation)[^;{}]*?(\d+(?:\.\d+)?)(ms|s)\b/g)].map((m) => Number(m[1]) * (m[2] === 's' ? 1000 : 1));
-    for (const d of durations) expect(d).toBeLessThanOrEqual(250);
+    for (const d of durations) expect(d).toBeLessThanOrEqual(450);
     if (durations.length > 0) expect(mine).toMatch(/prefers-reduced-motion\s*:\s*reduce/);
   });
   it('widths/spacings use tokens: no colour keyword other than inherit/transparent/currentColor in shell CSS', () => {

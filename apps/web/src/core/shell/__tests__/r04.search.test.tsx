@@ -33,7 +33,7 @@ afterEach(() => api.resetHandlers());
 
 const SEARCH_PERMS = [...ALL_PERMS, 'frontdesk.patient.read', 'lab.specimen.read', 'frontdesk.order.read'];
 const mount = (perms = SEARCH_PERMS) => render(<AppShell session={session(perms) as any} pathname="/lab/worklist"><p>page</p></AppShell>);
-const box = () => screen.getByRole('searchbox', { name: /search/i }) as HTMLInputElement;
+const box = () => screen.getByRole('searchbox', { name: /search patients/i }) as HTMLInputElement;
 async function submit(text: string) {
   const u = user();
   await u.click(box());
@@ -138,7 +138,7 @@ describe('patients: name, mobile, patient id', () => {
     mount();
     await submit('x');
     expect(await screen.findByText('सुनिता श्रेष्ठ')).toBeTruthy();
-    expect(document.querySelector('img')).toBeNull();
+    expect(document.querySelector('img[src="x"]')).toBeNull(); // the Metro Labs logo img is required (13:68)
     expect(screen.getByText('<img src=x onerror=alert(1)>', { exact: false })).toBeTruthy();
   });
 });

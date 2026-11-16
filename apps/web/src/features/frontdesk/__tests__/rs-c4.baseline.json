@@ -1,7 +1,7 @@
 {
   "logic": {
     "src/features/billing/components/useUrlFilters.ts": "88545980c9459384021d48d4ac052a93a13ca6bc528df3ced7b2f35e8e25cdf0",
-    "src/features/billing/nav.manifest.ts": "6ef3d05810679f98c7a3c6ea3d82c9ceb913fdad53c0eee960869cc1ddd24469",
+    "src/features/billing/nav.manifest.ts": "7074211f2d1a76e050618d05ce79991fd662339bb3a5b4aa0f454439a6c8558f",
     "src/features/billing/server/actions.ts": "5f7a1e6ca86d95300bbd573297c2a2d124598b7f44ca5606231f7e882fcc5b9a",
     "src/features/billing/server/read.server.ts": "ebf0743b2044b2bb89e94644fae5339d81c1b13000c4a9c21eb5a3c13ee9d5d3",
     "src/features/billing/server/types.ts": "1b0010f2f737ba30c7f882d4c4f7edf768943189512eba9a0530aaa551bfe75f",
@@ -11,7 +11,7 @@
     "src/features/frontdesk/hooks/useEnterPicksFirst.ts": "1494c785419e4ff618095d9b5a96bb6bbf6359fa90a77aa52821a7cabd9b027f",
     "src/features/frontdesk/hooks/useQuote.ts": "32e75f91b51b23e76a9621cd9b1ecbef0d6dca992b92c9587a84a5c80eb62ecf",
     "src/features/frontdesk/hooks/useShortcuts.ts": "958739733f84725f47ed792598cc4566fe10451254818c1da8729cbcf26f2fce",
-    "src/features/frontdesk/nav.manifest.ts": "a29a861b93f1d1b2407bf0aa5c57c9e22b25afab0e2fa5a6470bb3ee615e87f6",
+    "src/features/frontdesk/nav.manifest.ts": "5ed6185ae1611307aa6e2bd02a72912ba9abb448b5c061afc413381faee06010",
     "src/features/frontdesk/server/actions.ts": "67d37b752287923e62020ac0936509b2fd85db70b9929ea01308e602f8e4198c",
     "src/features/frontdesk/server/read.server.ts": "f7377ee88d8146cf1862f7e6345d5d4f55fceb03323f3805a414eb63c792fcaa",
     "src/features/frontdesk/server/types.ts": "4bad6c7cc012b65418c466f2de36cf1d7a4e04f349080dfb2682b240239f727b",
@@ -22,10 +22,15 @@
       "permissions": [
         "billing.payment.record",
         "frontdesk.discount.approve",
+        "frontdesk.nav.discount_approvals",
+        "frontdesk.nav.registration_new",
+        "frontdesk.nav.worklist",
         "frontdesk.order.cancel",
         "frontdesk.order.edit",
+        "frontdesk.order.read",
         "frontdesk.patient.anonymise",
         "frontdesk.registration.create",
+        "frontdesk.settings.manage",
         "frontdesk.trf.upload"
       ],
       "routes": [
@@ -60,6 +65,7 @@
         "/v1/frontdesk/patients/search",
         "/v1/frontdesk/registrations",
         "/v1/frontdesk/registrations/quote",
+        "/v1/frontdesk/settings",
         "/v1/frontdesk/trf-attachments",
         "/v1/identity/centres",
         "/v1/lab/orders/${uuid"
@@ -72,15 +78,21 @@
         "amount",
         "billing_mode",
         "birth_on",
+        "buyer_pan_pattern",
         "centre",
         "collection_mode",
+        "consent_text_version",
         "credit_party",
+        "discount_absolute_max_bp",
         "discount_amount",
         "discount_percent",
+        "discount_self_limit_bp",
+        "discount_self_limit_paisa",
         "downtime_ref",
         "email",
         "full_name",
         "kind",
+        "label_autoprint",
         "line",
         "method_code",
         "mobile",
@@ -88,11 +100,14 @@
         "occurred_at",
         "orderable_id",
         "patient_search",
+        "patient_search_min_chars",
         "priority",
         "reason_code",
         "reason_text",
         "reference",
         "referrer",
+        "registration_sms_enabled",
+        "require_referrer",
         "scope",
         "sex",
         "test_search",
@@ -101,6 +116,7 @@
       "server_imports": [
         "@/features/billing/server/types",
         "@/features/billing/server/write.server",
+        "server",
         "server/actions",
         "server/types"
       ],
@@ -175,6 +191,7 @@
         "searchPatients",
         "searchPatientsAction",
         "serverFetch",
+        "updateFrontdeskSettings",
         "updatePatient",
         "updatePatientAction",
         "uploadTrf",
@@ -184,8 +201,10 @@
     "billing_feature": {
       "permissions": [
         "billing.cash_report.read",
+        "billing.credit_party.read",
         "billing.data.export",
         "billing.invoice.cancel",
+        "billing.invoice.read",
         "billing.invoice.reprint",
         "billing.refund.approve",
         "billing.refund.request",
@@ -304,7 +323,8 @@
         "frontdesk.order.cancel",
         "frontdesk.order.edit",
         "frontdesk.order.read",
-        "frontdesk.registration.create"
+        "frontdesk.registration.create",
+        "frontdesk.settings.manage"
       ],
       "routes": [
         "/v1/frontdesk/trf-attachments/${attachment_id}/content"
@@ -321,6 +341,7 @@
         "OrderSummary",
         "Patient",
         "getAccessToken",
+        "getFrontdeskSettings",
         "getOrder",
         "getOrderBilling",
         "getPatient",
@@ -403,6 +424,9 @@
     "src/app/(staff)/frontdesk/registrations/new/error.tsx",
     "src/app/(staff)/frontdesk/registrations/new/loading.tsx",
     "src/app/(staff)/frontdesk/registrations/new/page.tsx",
+    "src/app/(staff)/frontdesk/settings/error.tsx",
+    "src/app/(staff)/frontdesk/settings/loading.tsx",
+    "src/app/(staff)/frontdesk/settings/page.tsx",
     "src/app/(staff)/frontdesk/trf-attachments/[attachment_id]/content/route.ts",
     "src/app/(staff)/frontdesk/worklist/error.tsx",
     "src/app/(staff)/frontdesk/worklist/loading.tsx",

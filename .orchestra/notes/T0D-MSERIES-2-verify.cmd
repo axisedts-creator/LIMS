@@ -1,0 +1,1 @@
+pnpm --dir apps/web run build:nav && pnpm --dir apps/web exec vitest run --config src/core/shell/__tests__/vitest.m2.config.ts && pnpm --dir apps/web exec vitest run --config src/core/nav/__tests__/vitest.nav-complete.config.ts && pnpm --dir apps/web exec vitest run --config src/__tests__/vitest.web-style-4.config.ts -t "layout: brand panel|wordmark lockup|controls: icons"

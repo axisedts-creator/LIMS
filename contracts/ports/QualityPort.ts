@@ -1,5 +1,5 @@
 // contracts/ports/QualityPort.ts
-import type { RequestContext, Uuidv7, IsoUtc, DecimalString, Code } from './common';
+import type { RequestContext, Uuidv7, IsoUtc, DecimalString, Code } from './common.js';
 export const QUALITY_PORT_VERSION = 1 as const;
 
 export interface ResultContext {

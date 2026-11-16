@@ -105,6 +105,37 @@ export function semverLess(a: string, b: string): boolean | undefined {
   return false;
 }
 
+// ---- HC-T19: visit detail (04-UI-UX §2.2) ----
+/** "On hold" reason text per hold code (plain words; the code itself is never shown). */
+export const HOLD_REASON: Record<string, string> = {
+  mutation_superseded: 'The visit or tube changed on the server before this was uploaded',
+  visit_not_assigned: 'Collected by someone not assigned at that time',
+  barcode_mismatch: "Scanned barcode doesn't match the tube",
+};
+export const holdReason = (code: string | undefined): string => (code ? HOLD_REASON[code] ?? humanize(code) : 'Waiting for review');
+
+/** Collection chip on a tube (§2.2 "Collection": Applied success / On hold warning / Discarded neutral). */
+export const COLLECTION_STATUS: Record<string, readonly [VisitTone, string]> = { applied: ['success', 'Applied'], held: ['warning', 'On hold'], discarded: ['neutral', 'Discarded'] };
+export const collectionStatus = (s: string | undefined): readonly [VisitTone, string] | undefined => (s ? COLLECTION_STATUS[s] ?? ['neutral', humanize(s)] : undefined);
+
+export const SCAN_METHOD: Record<string, string> = { camera: 'Camera', scanner: 'Scanner', typed: 'Typed' };
+export const PAYMENT_OUTCOME: Record<string, readonly [VisitTone, string]> = { applied: ['success', 'Recorded'], rejected: ['danger', 'Rejected'], held: ['warning', 'Waiting for review'] };
+export const paymentOutcome = (s: string | undefined): readonly [VisitTone, string] => (s ? PAYMENT_OUTCOME[s] ?? ['neutral', humanize(s)] : ['neutral', '—']);
+
+export const CLOSED_VISIT = ['completed', 'failed', 'cancelled'] as const;
+/** US-11-3: a revisit can follow a failed visit or a partial completion only. */
+export const canRevisit = (status: string, outcome: string | undefined) => status === 'failed' || (status === 'completed' && outcome === 'partial');
+
+/** Review dialog (H9) failures in plain words (US-09-2 "only Discard remains"). */
+export function reviewFailText(r: Failure): string {
+  switch (r.code) {
+    case 'homecollection.mutation_superseded': return 'The visit or tube changed on the server after this was collected, so it can no longer be applied. Only Discard remains.';
+    case 'homecollection.barcode_mismatch': return "The scanned barcode doesn't match the tube, so it cannot be applied. Only Discard remains.";
+    case 'homecollection.collection_not_held': return 'This tube was already handled or is no longer on hold. Reload the page to see the latest.';
+    default: return failText(r);
+  }
+}
+
 export function assignFailText(r: Failure): string {
   switch (r.code) {
     case 'common.validation_failed':

@@ -10,7 +10,7 @@ import { createSessionService, type SessionCall, type SessionDeps } from '../ser
 import { bodyObject, gw, invalid, sessionToken } from './verifyMfaChallenge.js';
 
 interface SessionHctx extends HandlerContext {
-  requestId: string; bffKey?: string; actor?: { type: string; id: string }; commitOnError?: () => void;
+  requestId: string; bffKey?: HandlerContext['bffKey']; actor?: { type: string; id: string }; commitOnError?: () => void;
   db: { identityAuthTx<T>(input: TxInput, fn: TxFn<T>): Promise<T> };
 }
 export const TOKEN_RE = /^[A-Za-z0-9_-]{43}$/;

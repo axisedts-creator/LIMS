@@ -6,8 +6,8 @@ import type { NavManifest } from '../../core/nav/types.ts';
 export const navManifest: NavManifest = {
   module: 'smartreport',
   entries: [
-    { id: 'smartreport.summaries', label: 'smartreport.nav.summaries', routeId: 'staff.smartreport.summaries', permission: 'smartreport.summary.read', group: 'reporting', order: 50, icon: 'table' },
-    { id: 'smartreport.library', label: 'smartreport.nav.library', routeId: 'staff.smartreport.library', permission: 'smartreport.template.manage', group: 'reporting', order: 60, icon: 'table' },
-    { id: 'smartreport.wording', label: 'smartreport.nav.wording', routeId: 'staff.smartreport.wording', permission: 'smartreport.template.manage', group: 'reporting', order: 70, icon: 'table' },
+    { id: 'smartreport.summaries', label: 'smartreport.nav.summaries', routeId: 'staff.smartreport.summaries', permission: 'smartreport.summary.read', group: 'reporting', order: 50, icon: 'table', section: 'core.nav.section.smart_summaries' },
+    { id: 'smartreport.library', label: 'smartreport.nav.library', routeId: 'staff.smartreport.library', permission: 'smartreport.template.manage', group: 'reporting', order: 60, icon: 'table', section: 'core.nav.section.smart_summaries' },
+    { id: 'smartreport.wording', label: 'smartreport.nav.wording', routeId: 'staff.smartreport.wording', permission: 'smartreport.template.manage', group: 'reporting', order: 70, icon: 'table', section: 'core.nav.section.smart_summaries' },
   ],
 };

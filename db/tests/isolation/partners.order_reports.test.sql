@@ -170,13 +170,32 @@ DO $d$ DECLARE s text; BEGIN
       USING pg_temp.id('01'), pg_temp.id('e1'), pg_temp.id('99'), pg_temp.id('02'), pg_temp.id('e5'), pg_temp.id('99');
   END LOOP;
 END $d$;
+-- module rows (LD-233, T0B-DBSEED-1): generated fixture files, schema FK order; test-only, never db/seeds
+\ir ../fixtures/probe-rows/analytics.sql
+\ir ../fixtures/probe-rows/billing.sql
+\ir ../fixtures/probe-rows/catalog.sql
+\ir ../fixtures/probe-rows/frontdesk.sql
+\ir ../fixtures/probe-rows/engagement.sql
+\ir ../fixtures/probe-rows/identity.sql
+\ir ../fixtures/probe-rows/instruments.sql
+\ir ../fixtures/probe-rows/inventory.sql
+\ir ../fixtures/probe-rows/lab.sql
+\ir ../fixtures/probe-rows/anatomic.sql
+\ir ../fixtures/probe-rows/homecollection.sql
+\ir ../fixtures/probe-rows/micro.sql
+\ir ../fixtures/probe-rows/migration_staging.sql
+\ir ../fixtures/probe-rows/partners.sql
+\ir ../fixtures/probe-rows/payments.sql
+\ir ../fixtures/probe-rows/quality.sql
+\ir ../fixtures/probe-rows/reporting.sql
+\ir ../fixtures/probe-rows/smartreport.sql
 SET LOCAL session_replication_role = origin;
 
 -- probe step 1: preconditions (as the superuser, before any SET ROLE): the rows the later steps filter really exist
 SELECT ok(pg_temp.n(pg_temp.q('SELECT 1 FROM %s WHERE %I = pg_temp.id(''01'')', 'partners.order_reports'::regclass)) > 0, 'probe step 1: tenant A rows of partners.order_reports seeded');
 SELECT ok(pg_temp.n(pg_temp.q('SELECT 1 FROM %s WHERE %I = pg_temp.id(''02'')', 'partners.order_reports'::regclass)) > 0, 'probe step 1: tenant B rows of partners.order_reports seeded');
-SELECT ok(pg_temp.n('SELECT 1 FROM partners.order_reports WHERE tenant_id = pg_temp.id(''01'') AND centre_id = pg_temp.id(''21'')') > 0, 'probe step 1: centre A1 rows of partners.order_reports seeded');
-SELECT ok(pg_temp.n('SELECT 1 FROM partners.order_reports WHERE tenant_id = pg_temp.id(''01'') AND centre_id = pg_temp.id(''22'')') > 0, 'probe step 1: centre A2 rows of partners.order_reports seeded');
+SELECT ok(pg_temp.n('SELECT 1 FROM partners.order_reports WHERE tenant_id = pg_temp.id(''01'') AND receiving_centre_id = pg_temp.id(''21'')') > 0, 'probe step 1: centre A1 rows of partners.order_reports seeded');
+SELECT ok(pg_temp.n('SELECT 1 FROM partners.order_reports WHERE tenant_id = pg_temp.id(''01'') AND receiving_centre_id = pg_temp.id(''22'')') > 0, 'probe step 1: centre A2 rows of partners.order_reports seeded');
 SELECT ok(pg_temp.n(format('SELECT 1 FROM partners.order_reports WHERE %I = pg_temp.id(''35'')', pg_temp.owncol('partners.order_reports'::regclass))) > 0, 'probe step 1: partner fixture actor rows of partners.order_reports seeded');
 SELECT ok(pg_temp.n(format('SELECT 1 FROM partners.order_reports WHERE %I = pg_temp.id(''a3'')', pg_temp.owncol('partners.order_reports'::regclass))) > 0, 'probe step 1: portal fixture actor rows of partners.order_reports seeded');
 SELECT ok(pg_temp.n(format('SELECT 1 FROM partners.order_reports WHERE %I = pg_temp.id(''34'')', pg_temp.owncol('partners.order_reports'::regclass))) > 0, 'probe step 1: patient fixture actor rows of partners.order_reports seeded');
@@ -185,8 +204,8 @@ SELECT is(pg_temp.x('lims_api', pg_temp.cl('user', '32', '42'), pg_temp.q('SELEC
 SELECT is(pg_temp.x('lims_api', pg_temp.cl('user', '32', '42'), pg_temp.q('INSERT INTO %s (%I) VALUES (pg_temp.id(''02''))', 'partners.order_reports'::regclass), 'w'), 'E42501', 'probe step 3: INSERT of a tenant B row into partners.order_reports -> 42501');
 SELECT is(pg_temp.x('lims_api', pg_temp.cl('user', '32', '42'), pg_temp.q('UPDATE %1$s SET %3$I = %3$I WHERE %2$I = pg_temp.id(''02'')', 'partners.order_reports'::regclass), 'w'), pg_temp.want('lims_api', 'partners.order_reports'::regclass, 'UPDATE', pg_temp.ucol('partners.order_reports'::regclass)), 'probe step 4: UPDATE of tenant B rows of partners.order_reports affects 0 rows');
 -- probe step 5: centre-A1 membership sees no centre A2 row and cannot insert one (42501)
-SELECT is(pg_temp.x('lims_api', pg_temp.cl('user', '31', '41'), 'SELECT 1 FROM partners.order_reports WHERE centre_id = pg_temp.id(''22'')', 'n'), 'n=0', 'probe step 5: centre A1 claims see 0 centre A2 rows of partners.order_reports');
-SELECT is(pg_temp.x('lims_api', pg_temp.cl('user', '31', '41'), pg_temp.copy('partners.order_reports'::regclass, 'tenant_id = pg_temp.id(''01'') AND centre_id = pg_temp.id(''22'')'), 'w'), 'E42501', 'probe step 5: centre A1 claims INSERT a centre A2 row into partners.order_reports -> 42501');
+SELECT is(pg_temp.x('lims_api', pg_temp.cl('user', '31', '41'), 'SELECT 1 FROM partners.order_reports WHERE receiving_centre_id = pg_temp.id(''22'')', 'n'), 'n=0', 'probe step 5: centre A1 claims see 0 centre A2 rows of partners.order_reports');
+SELECT is(pg_temp.x('lims_api', pg_temp.cl('user', '31', '41'), pg_temp.copy('partners.order_reports'::regclass, 'tenant_id = pg_temp.id(''01'') AND receiving_centre_id = pg_temp.id(''22'')'), 'w'), 'E42501', 'probe step 5: centre A1 claims INSERT a centre A2 row into partners.order_reports -> 42501');
 -- probe step 6: every composite FK carrying the tenant column (pg_constraint): tenant A row referencing a tenant B parent -> 23503 or 42501
 SELECT CASE WHEN f.stmt IS NULL THEN skip('probe step 6: ' || f.conname || ' on partners.order_reports: no tenant A row of the table or no tenant B parent row seeded', 1)
             ELSE is(CASE WHEN r.v IN ('E23503', 'E42501') THEN 'refused' ELSE r.v END, 'refused', 'probe step 6: ' || f.conname || ' on partners.order_reports refuses a tenant B parent (23503/42501)') END

@@ -137,6 +137,14 @@ export async function startMfaEnrolmentAction(
   return { ok: true, factor_id: s('factor_id'), otpauth_uri: s('otpauth_uri'), ...(qr ? { qr_svg_base64: qr } : {}), secret_base32: s('secret_base32') };
 }
 
+/** AUTH-MFA-PERSIST-1 (LD-248): after a 409 on enrolment start, re-read the session state. Returns only the state, never the token. */
+export async function refreshSessionStateAction(): Promise<{ ok: true; state: string } | Fail> {
+  const r = await sessionCall('session/resolve', { touch: false });
+  if (!r.ok) return { ok: false, code: r.code };
+  const state = (r.body as { session?: SessionStateBody } | undefined)?.session?.state;
+  return typeof state === 'string' && state ? { ok: true, state } : { ok: false, code: 'common.dependency_unavailable' };
+}
+
 export async function completeMfaEnrolmentAction(fd: FormData): Promise<ActionResult> {
   const factorId = str(fd, 'factor_id');
   const code = str(fd, 'code');

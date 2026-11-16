@@ -1,3 +1,4 @@
+/* LD-251 / 13-M-SERIES s2.3 (T0D-MSERIES-1): pill controls (radius full), cards/dialogs/drawers radius xl (24), button 48, field 46 (compact 40). */
 /* @lims/ui component styles. Requires dist/tokens.css (CSS variables) and assets/fonts/fonts.css (bundled fonts).
    Text controls use min-height, never height, so Devanagari never clips (04-UI-UX §1.4). */
 
@@ -22,10 +23,11 @@
 /* Actions */
 .lims-btn {
   display: inline-flex; align-items: center; gap: var(--lims-space-2);
-  min-height: 40px; min-width: 24px; padding: var(--lims-space-1) var(--lims-space-3);
-  border: 1px solid var(--lims-neutral-300); border-radius: var(--lims-radius-md);
+  min-height: 48px; min-width: 24px; padding: var(--lims-space-1) var(--lims-space-5);
+  border: 1px solid var(--lims-neutral-300); border-radius: var(--lims-radius-full);
   background: var(--lims-neutral-0); color: var(--lims-neutral-900);
   font: inherit; font-weight: var(--lims-font-weight-medium); cursor: pointer;
+  transition: background-color var(--lims-motion-duration-fast) var(--lims-motion-easing), border-color var(--lims-motion-duration-fast) var(--lims-motion-easing);
 }
 .lims-btn-sm { min-height: 28px; padding: 0 var(--lims-space-2); }
 .lims-btn-primary { background: var(--lims-accent); color: var(--lims-accent-fg); border-color: var(--lims-accent); }
@@ -41,7 +43,7 @@
 .lims-popover { background: var(--lims-neutral-0); border: 1px solid var(--lims-neutral-200); border-radius: var(--lims-radius-lg); box-shadow: var(--lims-elevation-2); z-index: var(--lims-z-dropdown); }
 .lims-popover-body { padding: var(--lims-space-3); outline: none; max-width: 360px; }
 .lims-popover-title { margin: 0 0 var(--lims-space-2); font-size: var(--lims-font-size-md-size); font-weight: var(--lims-font-weight-semibold); }
-.lims-tooltip { max-width: 280px; padding: var(--lims-space-1) var(--lims-space-2); border-radius: var(--lims-radius-sm); background: var(--lims-neutral-900); color: var(--lims-neutral-0); font-size: var(--lims-font-size-sm-size); z-index: var(--lims-z-dropdown); }
+.lims-tooltip { max-width: 280px; padding: var(--lims-space-1) var(--lims-space-2); border-radius: var(--lims-radius-lg); background: var(--lims-neutral-900); color: var(--lims-neutral-0); font-size: var(--lims-font-size-sm-size); z-index: var(--lims-z-dropdown); }
 .lims-spinner { display: inline-flex; align-items: center; }
 .lims-menu, .lims-listbox { padding: var(--lims-space-1); outline: none; min-width: 160px; }
 .lims-menuitem, .lims-option { display: flex; align-items: center; gap: var(--lims-space-2); min-height: 32px; padding: var(--lims-space-1) var(--lims-space-2); border-radius: var(--lims-radius-md); cursor: default; }
@@ -54,10 +56,13 @@
 .lims-label { font-weight: var(--lims-font-weight-medium); }
 .lims-input-group { display: flex; align-items: center; gap: var(--lims-space-1); }
 .lims-input {
-  flex: 1; min-height: 40px; padding: var(--lims-space-1) var(--lims-space-3);
-  border: 1px solid var(--lims-neutral-300); border-radius: var(--lims-radius-md);
+  flex: 1; min-height: 46px; padding: var(--lims-space-1) var(--lims-space-4);
+  border: 1px solid var(--lims-neutral-300); border-radius: var(--lims-radius-full);
   background: var(--lims-neutral-0); color: var(--lims-neutral-900); font: inherit;
 }
+[data-density='compact'] .lims-input { min-height: 40px; }
+/* Multi-line text and table cells are not round (13 s2.3). */
+textarea.lims-input, .lims-input.lims-rte-surface, .lims-egrid-table .lims-input { border-radius: var(--lims-radius-md); }
 .lims-field[data-invalid] .lims-input { border-color: var(--lims-tone-danger-fg); }
 .lims-input[data-disabled], .lims-input:disabled { background: var(--lims-neutral-100); }
 .lims-select-trigger { display: flex; justify-content: space-between; align-items: center; text-align: start; cursor: pointer; }
@@ -138,12 +143,12 @@
 .lims-breadcrumbs ol { display: flex; flex-wrap: wrap; gap: var(--lims-space-2); margin: 0; padding: 0; list-style: none; font-size: var(--lims-font-size-sm-size); }
 .lims-breadcrumbs li + li::before { content: '/'; margin-inline-end: var(--lims-space-2); color: var(--lims-neutral-500); }
 .lims-page-header-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--lims-space-3); }
-.lims-page-title { margin: 0; font-size: var(--lims-font-size-2xl-size); line-height: var(--lims-font-size-2xl-line-height); }
+.lims-page-title { margin: 0; font-size: var(--lims-font-size-3xl-size); line-height: var(--lims-font-size-3xl-line-height); font-weight: var(--lims-font-weight-semibold); letter-spacing: -0.02em; color: var(--lims-accent-hover); }
 .lims-page-actions { margin-inline-start: auto; display: flex; gap: var(--lims-space-2); }
-.lims-tablist { display: flex; gap: var(--lims-space-1); border-bottom: 1px solid var(--lims-neutral-200); }
-.lims-tab { display: inline-flex; align-items: center; gap: var(--lims-space-2); min-height: 40px; padding: 0 var(--lims-space-3); border-bottom: 2px solid transparent; cursor: pointer; outline: none; }
+.lims-tablist { display: flex; flex-wrap: wrap; gap: var(--lims-space-1); }
+.lims-tab { display: inline-flex; align-items: center; gap: var(--lims-space-2); min-height: 40px; padding: 0 var(--lims-space-4); border: 1px solid transparent; border-radius: var(--lims-radius-full); cursor: pointer; outline: none; }
 .lims-tab:hover, .lims-tab[data-hovered] { background: var(--lims-neutral-100); }
-.lims-tab[data-selected] { border-bottom-color: var(--lims-accent); font-weight: var(--lims-font-weight-semibold); }
+.lims-tab[data-selected] { background: var(--lims-accent-subtle); border-color: var(--lims-accent); color: var(--lims-accent-hover); font-weight: var(--lims-font-weight-semibold); }
 .lims-tab-badge { padding: 0 var(--lims-space-1); border-radius: var(--lims-radius-full); background: var(--lims-neutral-100); font-size: var(--lims-font-size-xs-size); font-variant-numeric: tabular-nums; }
 .lims-tabpanel { outline: none; padding-top: var(--lims-space-4); }
 
@@ -151,6 +156,9 @@
 .lims-chip { display: inline-flex; align-items: center; gap: var(--lims-space-1); min-height: 24px; padding: 0 var(--lims-space-2); border: 1px solid; border-radius: var(--lims-radius-full); font-size: var(--lims-font-size-sm-size); font-weight: var(--lims-font-weight-medium); white-space: nowrap; }
 .lims-chip-sm { min-height: 20px; font-size: var(--lims-font-size-xs-size); }
 .lims-result, .lims-money { font-variant-numeric: tabular-nums; }
+/* 13 s2.2: aligned digits in tables, results, money and ids. Poppins 5.3.0 digit widths differ (measured in
+   assets/fonts/__tests__/poppins.test.ts), so .num switches to the bundled Noto Sans, whose digits are tabular. */
+.num { font-family: 'Noto Sans', var(--lims-font-family-sans); font-variant-numeric: tabular-nums; }
 .lims-result-abnormal .lims-result-value { font-weight: var(--lims-font-weight-bold); }
 .lims-result-unit { color: var(--lims-neutral-600); }
 .lims-id { display: inline-flex; align-items: center; gap: var(--lims-space-1); }
@@ -170,7 +178,7 @@
 /* QueueBoard/TokenSlip radius lives here, not in their tsx (T0D-UI-R03, LD-140, 10-DESIGN-SYSTEM s2.3, s8). */
 .lims-queueboard__row, .lims-queueboard__banner, .lims-tokenslip { border-radius: var(--lims-radius-md); }
 @media print { .lims-tokenslip { border-radius: 0; } }
-.lims-card { padding: var(--lims-space-4); border: 1px solid var(--lims-neutral-200); border-radius: var(--lims-radius-lg); background: var(--lims-neutral-0); }
+.lims-card { padding: var(--lims-space-6); border: 0; border-radius: var(--lims-radius-xl); background: var(--lims-neutral-0); box-shadow: none; }
 .lims-card-title { margin: 0 0 var(--lims-space-3); font-size: var(--lims-font-size-md-size); }
 .lims-divider { border: 0; border-top: 1px solid var(--lims-neutral-200); margin: var(--lims-space-4) 0; }
 

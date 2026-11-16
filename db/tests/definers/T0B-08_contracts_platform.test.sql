@@ -46,7 +46,7 @@ INSERT INTO core.users (tenant_id, id, display_name, email_hmac, created_by, upd
   (pg_temp.id('01'), pg_temp.id('31'), 'User 31', decode(repeat('ab', 32), 'hex'), pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('02'), pg_temp.id('33'), 'User 33', decode(repeat('ab', 32), 'hex'), pg_temp.id('99'), pg_temp.id('99'));
 INSERT INTO identity.platform_staff (id, user_id, email_normalized, display_name, role_code, is_active, created_by, updated_by) VALUES
-  (pg_temp.id('61'), pg_temp.id('81'), 'a@example.test', 'Staff A', 'platform_admin', true, pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
+  (pg_temp.id('61'), pg_temp.id('81'), 'a@example.test', 'Staff A', 'platform_superadmin', true, pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
 SET LOCAL session_replication_role = origin;
 
 -- ======================================================================== app.cron_tenant_ids (schema test 22)

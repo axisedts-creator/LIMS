@@ -66,8 +66,8 @@ INSERT INTO core.tenants (id, tenant_code, legal_name, display_name, status, cre
   (pg_temp.id(1), 'lab_a', 'Lab A Pvt Ltd', 'Lab A', 'active', pg_temp.id(99), pg_temp.id(99));
 -- staff 61 = user 32 (the founder-like platform admin); staff 62 = user 33 (a second admin); user 34 has NO platform_staff row
 INSERT INTO identity.platform_staff (id, user_id, email_normalized, display_name, role_code, is_active, created_by, updated_by) VALUES
-  (pg_temp.id(61), pg_temp.id(32), 'staff32@example.test', 'Staff 32', 'platform_admin', true, pg_temp.id(99), pg_temp.id(99)),
-  (pg_temp.id(62), pg_temp.id(33), 'staff33@example.test', 'Staff 33', 'platform_admin', true, pg_temp.id(99), pg_temp.id(99));
+  (pg_temp.id(61), pg_temp.id(32), 'staff32@example.test', 'Staff 32', 'platform_superadmin', true, pg_temp.id(99), pg_temp.id(99)),
+  (pg_temp.id(62), pg_temp.id(33), 'staff33@example.test', 'Staff 33', 'platform_superadmin', true, pg_temp.id(99), pg_temp.id(99));
 -- sessions: 101 platform user 32 (aal1, the live case) · 102 platform user 33 (another user) · 103 TENANT session of user 32 (kind tenant_staff, tenant 1)
 --           104 platform user 34 (no staff row -> e-mail NULL) · 105 platform user 32, revoked (returned as stored; the service decides) · 106 untouched control (user 33)
 INSERT INTO identity.sessions (id, tenant_id, user_id, kind, state, aal, membership_id, platform_staff_id, gotrue_session_id, token_sha256,

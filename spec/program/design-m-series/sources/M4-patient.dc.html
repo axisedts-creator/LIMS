@@ -1,0 +1,2055 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Metro brand patient app</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap">
+<style>
+:root{--lime:#A0C032;--lime-soft:#ECF3D7;--green:#005A52;--forest:#014D3C;--ink:#0A1A17;--muted:#5C6A66;--bg:#F3F3F3;--line:#ECECEC;--edge:#D3D8D0;--pop:#E4F239}
+*{box-sizing:border-box}
+body{margin:0;font-family:'Poppins',system-ui,sans-serif;color:var(--ink);background:var(--bg)}
+button{font:inherit;color:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
+input,textarea{font:inherit;color:inherit}
+h1,h2,h3,p,ul{margin:0}
+a{color:var(--green)}
+.noscroll::-webkit-scrollbar{display:none}
+.noscroll{scrollbar-width:none}
+.ic{fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;flex:none}
+
+@keyframes mIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes mInR{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:none}}
+@keyframes mUp{from{opacity:0;transform:translateY(40px)}to{opacity:1;transform:none}}
+@keyframes mFade{from{opacity:0}to{opacity:1}}
+@keyframes mToast{from{opacity:0;transform:translateY(-14px)}to{opacity:1;transform:none}}
+@keyframes mPop{0%{opacity:0;transform:scale(.55)}70%{opacity:1;transform:scale(1.07)}100%{transform:scale(1)}}
+@keyframes mRing{0%{transform:scale(.9);opacity:.45}100%{transform:scale(1.38);opacity:0}}
+@keyframes mSpin{to{transform:rotate(360deg)}}
+@keyframes mScan{0%{transform:translateY(0);opacity:.1}12%{opacity:1}88%{opacity:1}100%{transform:translateY(244px);opacity:.1}}
+@keyframes mDot{0%,80%,100%{transform:scale(.55);opacity:.35}40%{transform:scale(1);opacity:1}}
+@keyframes mDrift{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+@keyframes mSplash{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:none}}
+.pgt{animation:mIn .26s cubic-bezier(.2,.7,.2,1) both}
+.pgp{animation:mInR .24s cubic-bezier(.2,.7,.2,1) both}
+.sheetin{animation:mUp .26s cubic-bezier(.2,.7,.2,1) both}
+.fadein{animation:mFade .2s ease both}
+.toastin{animation:mToast .24s cubic-bezier(.2,.7,.2,1) both}
+.pop{animation:mPop .6s cubic-bezier(.2,.9,.3,1.2) both}
+.ring{animation:mRing 2.4s ease-out infinite}
+.spin{animation:mSpin .8s linear infinite}
+.scanline{animation:mScan 2s cubic-bezier(.4,0,.4,1) infinite}
+.drift{animation:mDrift 6s ease-in-out infinite}
+.d1,.d2,.d3{animation:mDot 1.1s ease-in-out infinite;transform-origin:center}
+.d2{animation-delay:.18s}.d3{animation-delay:.36s}
+.splash{animation:mFade .3s ease both}
+.splash.out{opacity:0;transition:opacity .35s ease}
+.tap{transition:transform .12s ease}
+.tap:active{transform:scale(.96)}
+
+.app{width:390px;height:844px;position:relative;overflow:hidden;background:var(--bg);display:flex;flex-direction:column}
+.hdr{flex:none;background:#fff;min-height:64px;padding:0 6px 0 16px;display:flex;align-items:center;gap:2px}
+.hdr.stk{padding:0 8px 0 6px;min-height:60px;gap:2px}
+.hdr.dk{background:var(--ink);color:#fff}
+.hdr .ttl{flex:1;min-width:0;font-size:17px;font-weight:600;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ib{width:48px;height:48px;border:0;background:transparent;display:grid;place-items:center;border-radius:50%;color:var(--green);flex:none;position:relative}
+.hdr.dk .ib{color:#fff}
+.badge{position:absolute;top:3px;right:1px;min-width:20px;height:20px;border-radius:10px;background:var(--lime);color:#00362F;font-size:11px;font-weight:700;display:grid;place-items:center;padding:0 5px;line-height:1}
+.dotn{position:absolute;top:11px;right:12px;width:9px;height:9px;border-radius:50%;background:#B3261E;box-shadow:0 0 0 2px #fff}
+.body{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;position:relative}
+.body.dark{background:var(--ink)}
+
+.pg{padding:16px 16px 28px;display:flex;flex-direction:column;gap:16px}
+.h1{font-size:24px;font-weight:700;letter-spacing:-.025em;color:var(--forest);line-height:1.2}
+.h2{font-size:17px;font-weight:600;letter-spacing:-.01em;line-height:1.3}
+.sub{font-size:14px;color:var(--muted);line-height:1.55}
+.cap{font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.card{background:#fff;border-radius:20px}
+.card.p{padding:16px}
+.list{background:#fff;border-radius:20px;overflow:hidden}
+.sechead{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:32px}
+.lnk{border:0;background:transparent;color:var(--green);font-weight:600;font-size:14px;min-height:48px;padding:0 4px;display:inline-flex;align-items:center;gap:4px}
+
+.row{display:flex;align-items:center;gap:14px;min-height:64px;padding:10px 16px;width:100%;border:0;background:transparent;text-align:left;position:relative;color:var(--ink)}
+.row + .row::before{content:"";position:absolute;top:0;left:70px;right:0;border-top:1px solid var(--line)}
+.row.flat + .row.flat::before{left:16px}
+.tile{width:44px;height:44px;border-radius:14px;background:var(--lime-soft);display:grid;place-items:center;flex:none;color:var(--green)}
+.tile.sm{width:40px;height:40px;border-radius:13px}
+.tile.lg{width:52px;height:52px;border-radius:17px}
+.tile.dk{background:var(--green);color:var(--pop)}
+.avatar{border-radius:50%;background:var(--green);color:#fff;display:grid;place-items:center;font-weight:700;flex:none;border:0}
+.avatar.soft{background:var(--lime-soft);color:var(--forest)}
+
+.btn{min-height:52px;border:0;border-radius:999px;background:var(--lime);color:#00362F;font:600 15px 'Poppins',system-ui,sans-serif;padding:0 24px;width:100%;display:flex;align-items:center;justify-content:center;gap:8px;text-align:center;transition:transform .12s ease}
+.btn:active{transform:scale(.97)}
+.btn.g{background:var(--green);color:#fff}
+.btn.line{background:#fff;color:var(--green);box-shadow:inset 0 0 0 2px var(--green)}
+.btn.soft{background:var(--lime-soft);color:var(--forest)}
+.btn.bad{background:#fff;color:#9C1C12;box-shadow:inset 0 0 0 2px #F0C4BF}
+.btn.sm{width:auto;min-height:48px;padding:0 20px;font-size:14px}
+.btn.dis{opacity:.45}
+.pill{min-height:48px;padding:0 18px;border-radius:999px;border:0;background:#fff;color:var(--ink);font:600 14px 'Poppins',system-ui,sans-serif;box-shadow:inset 0 0 0 1.5px var(--edge);white-space:nowrap;flex:none;display:inline-flex;align-items:center;justify-content:center;transition:transform .12s ease}
+.pill.on{background:var(--green);color:#fff;box-shadow:none}
+.pill:active{transform:scale(.96)}
+.seg{min-height:48px;padding:0 16px;border-radius:999px;border:0;background:transparent;color:var(--muted);font:500 14px 'Poppins',system-ui,sans-serif;flex:1;white-space:nowrap}
+.seg.on{background:var(--green);color:#fff;font-weight:600}
+.seg.dk{color:#BFD3CE}.seg.dk.on{background:var(--lime);color:#00362F}
+.segwrap{display:flex;gap:4px;background:#fff;border-radius:999px;padding:4px}
+.segwrap.dk{background:rgba(255,255,255,.1)}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:5px 12px;border-radius:999px;white-space:nowrap;flex:none;line-height:1.3}
+.chip.ok{background:#E4F4DE;color:#14612F}.chip.trial{background:#E3EEFB;color:#1A4F8B}.chip.warn{background:#FFF1D0;color:#7A4B00}.chip.bad{background:#FDE7E4;color:#9C1C12}.chip.neutral{background:#EEF0EC;color:#46524E}.chip.lime{background:var(--lime-soft);color:var(--forest)}
+.chip.sq{border-radius:10px;padding:5px 10px}
+.hr{height:1px;background:var(--line);border:0;margin:0}
+
+.fld{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600;color:#33423E}
+.inp{height:52px;border:1.5px solid var(--edge);border-radius:16px;background:#fff;padding:0 16px;font:500 15px 'Poppins',system-ui,sans-serif;color:var(--ink);width:100%;outline:none;min-width:0}
+input[type=search]::-webkit-search-cancel-button,input[type=search]::-webkit-search-decoration{-webkit-appearance:none;appearance:none;display:none}
+.inp::placeholder{color:#6F7B77}
+.inp:focus{border-color:var(--green);box-shadow:0 0 0 3px rgba(0,90,82,.14)}
+.inp.err{border-color:#B3261E}
+textarea.inp{height:auto;padding:12px 16px;resize:none;line-height:1.5}
+.errmsg{color:#9C1C12;font-weight:600;font-size:13px;line-height:1.4}
+.alert{padding:12px 14px;border-radius:16px;background:#FDE7E4;color:#9C1C12;font-size:14px;font-weight:600;line-height:1.45}
+.note{padding:12px 14px;border-radius:16px;background:#FFF1D0;color:#5E3A00;font-size:13px;font-weight:500;line-height:1.5;display:flex;gap:10px;align-items:flex-start}
+.note.info{background:var(--lime-soft);color:var(--forest)}
+.empty{background:#fff;border-radius:20px;padding:28px 20px;display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center}
+
+.test{padding:16px;display:flex;flex-direction:column;gap:12px}
+.mchips{display:flex;flex-wrap:wrap;gap:6px}
+.faq{background:#fff;border-radius:18px;overflow:hidden;box-shadow:inset 0 0 0 1.5px transparent}
+.faq.open{box-shadow:inset 0 0 0 1.5px var(--green)}
+.dchip{flex:none;width:66px;min-height:76px;border-radius:18px;border:0;background:#fff;box-shadow:inset 0 0 0 1.5px var(--edge);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;color:var(--ink);transition:transform .12s ease}
+.dchip.on{background:var(--green);color:#fff;box-shadow:none}
+.dchip:active{transform:scale(.96)}
+.slot{min-height:60px;border-radius:16px;border:0;background:#fff;box-shadow:inset 0 0 0 1.5px var(--edge);display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:1px;padding:6px 14px;text-align:left;transition:transform .12s ease}
+.slot .t{font-size:14px;font-weight:600}
+.slot .s{font-size:11px;font-weight:500;color:#14612F}
+.slot.few .s{color:#8A5200}
+.slot.full{background:#EEF0EC;box-shadow:none;color:#7C8783}
+.slot.full .t{text-decoration:line-through}
+.slot.full .s{color:#7C8783}
+.slot.on{background:var(--green);color:#fff;box-shadow:none}
+.slot.on .s{color:var(--pop)}
+.slot:active{transform:scale(.97)}
+.mode{min-height:56px;border-radius:16px;border:0;background:#fff;box-shadow:inset 0 0 0 1.5px var(--edge);font-size:14px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:8px;transition:transform .12s ease}
+.mode.on{background:var(--green);color:#fff;box-shadow:none}
+.payrow{width:100%;min-height:64px;border:0;background:#fff;display:flex;align-items:center;gap:14px;padding:8px 16px;text-align:left;position:relative}
+.payrow + .payrow::before{content:"";position:absolute;top:0;left:70px;right:0;border-top:1px solid var(--line)}
+.payrow.on{background:var(--lime-soft)}
+.payrow.on .tile{background:#fff}
+.radio{width:24px;height:24px;border-radius:50%;border:2px solid #A9B3AE;display:grid;place-items:center;flex:none;margin-left:auto}
+.payrow.on .radio{border-color:var(--green)}
+.payrow.on .radio::after{content:"";width:12px;height:12px;border-radius:50%;background:var(--green)}
+.chk{width:28px;height:28px;border-radius:9px;border:2px solid #A9B3AE;display:grid;place-items:center;flex:none;color:#fff}
+.chk.on{background:var(--green);border-color:var(--green)}
+.bkpick{width:100%;text-align:left;border:0;background:#fff;box-shadow:inset 0 0 0 1.5px var(--edge);border-radius:16px;padding:12px 14px;display:flex;flex-direction:column;gap:2px;min-height:60px;justify-content:center}
+.bkpick.on{background:var(--lime-soft);box-shadow:inset 0 0 0 2px var(--green)}
+.cal{padding:0 14px;min-height:40px;display:inline-flex;align-items:center;border-radius:999px;font-size:13px;font-weight:600;color:var(--muted)}
+.cal.on{background:var(--green);color:#fff}
+.rnd{width:56px;height:56px;border-radius:50%;border:0;background:rgba(255,255,255,.12);color:#fff;display:grid;place-items:center}
+.rnd.on{background:var(--lime);color:#00362F}
+.prm{padding:14px 16px;display:flex;flex-direction:column;gap:10px;position:relative}
+.prm + .prm::before{content:"";position:absolute;top:0;left:16px;right:16px;border-top:1px solid var(--line)}
+.prm.out{background:#FFFBF0}
+.rbar{position:relative;height:8px;border-radius:999px;background:#E7EAE5}
+.rzone{position:absolute;top:0;bottom:0;border-radius:999px;background:#CFE6C5}
+.rmk{position:absolute;top:-4px;width:6px;height:16px;border-radius:3px;margin-left:-3px;box-shadow:0 0 0 2px #fff}
+.nav{flex:none;display:flex;background:#fff;border-radius:28px 28px 0 0;padding:10px 6px 12px;box-shadow:0 -4px 16px rgba(0,0,0,.05)}
+.tb{flex:1;min-height:64px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:4px;font-size:12px;font-weight:500;color:var(--green);border:0;background:transparent;position:relative;padding:0}
+.tb.on{color:var(--ink);font-weight:700}
+.fab{width:54px;height:54px;border-radius:50%;background-image:linear-gradient(135deg,#1F6E4B,#79AD3A);display:grid;place-items:center;transform:translateY(-14px);box-shadow:0 8px 18px rgba(0,90,82,.35);color:var(--pop)}
+.foot{flex:none;background:#fff;border-radius:24px 24px 0 0;padding:12px 16px 16px;display:flex;align-items:center;gap:14px;box-shadow:0 -4px 16px rgba(0,0,0,.05)}
+.cartbar{flex:none;padding:8px 12px 10px;background:var(--bg)}
+.sheetbg{position:absolute;inset:0;background:rgba(10,26,23,.5);display:flex;align-items:flex-end;z-index:15}
+.sheetbox{width:100%;background:#fff;border-radius:28px 28px 0 0;padding:12px 20px 24px;display:flex;flex-direction:column;gap:16px;max-height:760px;overflow-y:auto}
+.grab{width:40px;height:4px;border-radius:2px;background:var(--edge);align-self:center;flex:none}
+.legal h2{font-size:16px;font-weight:600;margin:0 0 6px;color:var(--forest)}
+.legal p{font-size:14px;line-height:1.65;color:#33423E}
+.legal section{display:flex;flex-direction:column}
+.btn:focus-visible,.pill:focus-visible,.row:focus-visible,.tb:focus-visible,.ib:focus-visible,.seg:focus-visible,.slot:focus-visible,.dchip:focus-visible,.mode:focus-visible,.payrow:focus-visible,.chk:focus-visible,.lnk:focus-visible,.rnd:focus-visible,.inp:focus-visible{outline:3px solid var(--green);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){.pgt,.pgp,.sheetin,.fadein,.toastin,.pop,.ring,.scanline,.drift,.d1,.d2,.d3,.splash{animation:none}.spin{animation-duration:2.4s}.splash.out{transition:none}}
+</style>
+</helmet>
+<div class="app">
+
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+    <sc-for list="{{iconDefs}}" as="ic" hint-placeholder-count="4"><symbol id="{{ic.id}}" viewBox="0 0 24 24"><path d="{{ic.d}}"/></symbol></sc-for>
+  </defs></svg>
+
+  <!-- ================= HEADERS ================= -->
+  <sc-if value="{{v.noStack}}" hint-placeholder-val="{{ true }}">
+    <header class="hdr">
+      <img src="/_blob/2c5f4d9357fe0a0081e8f41e76b02e8f" alt="Metro Labs" style="height:34px;width:auto;display:block;flex:none">
+      <span style="flex:1"></span>
+      <button class="tap ib" aria-label="Notifications" onClick="{{bellToast}}"><svg class="ic" viewBox="0 0 24 24" width="24" height="24"><use href="#i-bell"/></svg></button>
+      <button class="tap ib" aria-label="Cart" onClick="{{openCart}}"><svg class="ic" viewBox="0 0 24 24" width="24" height="24"><use href="#i-cart"/></svg><sc-if value="{{v.hasCart}}" hint-placeholder-val="{{ false }}"><span class="badge">{{v.cartCount}}</span></sc-if></button>
+    </header>
+  </sc-if>
+  <sc-if value="{{v.hasStack}}" hint-placeholder-val="{{ false }}">
+    <header class="{{v.hdrCls}}">
+      <button class="tap ib" aria-label="Back" onClick="{{back}}"><svg class="ic" viewBox="0 0 24 24" width="26" height="26"><use href="#i-back"/></svg></button>
+      <h1 class="ttl">{{v.title}}</h1>
+      <sc-if value="{{v.hdrCart}}" hint-placeholder-val="{{ false }}"><button class="tap ib" aria-label="Cart" onClick="{{openCart}}"><svg class="ic" viewBox="0 0 24 24" width="24" height="24"><use href="#i-cart"/></svg><sc-if value="{{v.hasCart}}" hint-placeholder-val="{{ false }}"><span class="badge">{{v.cartCount}}</span></sc-if></button></sc-if>
+    </header>
+  </sc-if>
+
+  <div class="{{v.bodyCls}}" ref="{{setScroll}}">
+
+    <!-- ================= HOME ================= -->
+    <sc-if value="{{sc.home}}" hint-placeholder-val="{{ true }}">
+      <div class="pg pgt">
+
+        <div style="display:flex;align-items:center;gap:12px">
+          <button class="tap avatar" aria-label="Open profile" onClick="{{goProfile}}" style="width:48px;height:48px;font-size:17px">{{v.initial}}</button>
+          <button class="tap" onClick="{{locToast}}" style="flex:1;min-width:0;border:0;background:transparent;padding:0;text-align:left;min-height:48px;display:flex;flex-direction:column;justify-content:center;gap:1px">
+            <span style="font-size:16px;font-weight:600;letter-spacing:-.01em">Hi, {{v.firstName}}</span>
+            <span style="font-size:13px;color:var(--muted);display:flex;align-items:center;gap:4px;min-width:0"><svg class="ic" viewBox="0 0 24 24" width="14" height="14"><use href="#i-pin"/></svg><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Baneshwor, Kathmandu</span><svg class="ic" viewBox="0 0 24 24" width="14" height="14"><use href="#i-chevd"/></svg></span>
+          </button>
+          <sc-if value="{{v.notMember}}" hint-placeholder-val="{{ true }}"><button class="tap" aria-label="Become a member" onClick="{{openMembership}}" style="width:48px;height:48px;border-radius:50%;border:0;background:var(--lime-soft);color:var(--green);display:grid;place-items:center;flex:none"><svg class="ic" viewBox="0 0 24 24" width="24" height="24"><use href="#i-crown"/></svg></button></sc-if>
+          <sc-if value="{{v.isMember}}" hint-placeholder-val="{{ false }}"><button class="tap" aria-label="Your membership" onClick="{{openMembership}}" style="width:48px;height:48px;border-radius:50%;border:0;background:var(--lime);color:#00362F;display:grid;place-items:center;flex:none"><svg class="ic" viewBox="0 0 24 24" width="24" height="24"><use href="#i-crown"/></svg></button></sc-if>
+        </div>
+
+        <div style="display:flex;gap:10px">
+          <button class="tap" onClick="{{goTests}}" style="flex:1;min-width:0;height:54px;border-radius:999px;border:0;background:#fff;display:flex;align-items:center;gap:10px;padding:0 18px;text-align:left;color:var(--muted);font-size:14px"><svg class="ic" viewBox="0 0 24 24" width="20" height="20" style="color:var(--green)"><use href="#i-search"/></svg><span style="overflow:hidden;white-space:nowrap;text-overflow:ellipsis">Search for ‘<span style="color:var(--green);font-weight:600">{{v.ph}}</span>’</span></button>
+          <button class="tap" aria-label="Scan a referral slip" onClick="{{openScanRx}}" style="width:54px;height:54px;border-radius:50%;border:0;background:var(--lime);color:#00362F;display:grid;place-items:center;flex:none"><svg class="ic" viewBox="0 0 24 24" width="24" height="24"><use href="#i-scan"/></svg></button>
+        </div>
+
+        <sc-if value="{{v.hasHomeReport}}" hint-placeholder-val="{{ true }}">
+          <button class="tap card" onClick="{{openHomeReport}}" style="padding:14px 16px;display:flex;align-items:center;gap:14px;border:0;text-align:left;width:100%">
+            <span style="position:relative;width:48px;height:48px;flex:none">
+              <span class="ring" style="position:absolute;inset:0;border-radius:50%;background:var(--lime)"></span>
+              <span class="pop" style="position:absolute;inset:0;border-radius:50%;background:var(--green);color:var(--pop);display:grid;place-items:center"><svg class="ic" viewBox="0 0 24 24" width="22" height="22" style="stroke-width:2.8"><use href="#i-check"/></svg></span>
+            </span>
+            <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px"><span style="font-weight:600;font-size:15px">Your report is ready</span><span style="font-size:13px;color:var(--muted);line-height:1.4">{{v.homeRepName}}, {{v.homeRepDate}}</span></span>
+            <svg class="ic" viewBox="0 0 24 24" width="20" height="20" style="color:var(--green)"><use href="#i-chev"/></svg>
+          </button>
+        </sc-if>
+
+        <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px">
+          <button class="tap card" onClick="{{goTests}}" style="min-height:96px;border:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:10px 4px;font-size:12px;font-weight:600;text-align:center;line-height:1.25"><span class="tile sm"><svg class="ic" viewBox="0 0 24 24" width="22" height="22"><use href="#i-flask"/></svg></span>Book a test</button>
+          <button class="tap card" onClick="{{goTests}}" style="min-height:96px;border:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:10px 4px;font-size:12px;font-weight:600;text-align:center;line-height:1.25"><span class="tile sm"><svg class="ic" viewBox="0 0 24 24" width="22" height="22"><use href="#i-truck"/></svg></span>Home collection</button>
+          <button class="tap card" onClick="{{openScanRx}}" style="min-height:96px;border:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:10px 4px;font-size:12px;font-weight:600;text-align:center;line-height:1.25"><span class="tile sm"><svg class="ic" viewBox="0 0 24 24" width="22" height="22"><use href="#i-scan"/></svg></span>Scan slip</button>
+          <button class="tap card" onClick="{{callToast}}" style="min-height:96px;border:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:10px 4px;font-size:12px;font-weight:600;text-align:center;line-height:1.25"><span class="tile sm"><svg class="ic" viewBox="0 0 24 24" width="22" height="22"><use href="#i-phone"/></svg></span>Call the lab</button>
+        </div>
+
+        <sc-if value="{{v.hasNext}}" hint-placeholder-val="{{ true }}">
+          <button class="tap card" onClick="{{openBookings}}" style="padding:16px;display:flex;flex-direction:column;gap:12px;border:0;text-align:left;width:100%">
+            <span style="display:flex;align-items:center;justify-content:space-between;gap:8px"><span class="cap">Next collection</span><span class="chip ok">Confirmed</span></span>
+            <span style="display:flex;align-items:center;gap:14px">
+              <span class="tile"><svg class="ic" viewBox="0 0 24 24" width="24" height="24"><use href="#i-truck"/></svg></span>
+              <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px"><span style="font-size:15px;font-weight:600">{{v.nextWhen}}</span><span style="font-size:13px;color:var(--muted);line-height:1.4">{{v.nextWhere}} · {{v.nextItems}}</span></span>
+              <svg class="ic" viewBox="0 0 24 24" width="20" height="20" style="color:var(--muted)"><use href="#i-chev"/></svg>
+            </span>
+          </button>
+        </sc-if>
+
+        <section style="position:relative;border-radius:24px;overflow:hidden;background-image:linear-gradient(135deg,#005A52 0%,#2F7D46 58%,#A0C032 100%);height:206px;color:#fff">
+          <div style="display:flex;width:300%;height:100%;transform:{{v.heroX}};transition:transform .45s cubic-bezier(.2,.7,.2,1)">
+            <sc-for list="{{heroSlides}}" as="h" hint-placeholder-count="3">
+              <div style="width:33.3333%;height:100%;padding:20px 20px 0;display:flex;flex-direction:column;gap:6px;position:relative">
+                <span class="cap" style="color:var(--pop)">{{h.tag}}</span>
+                <h2 style="font-size:20px;line-height:1.25;font-weight:700;letter-spacing:-.02em;max-width:215px">{{h.t}}</h2>
+                <p style="font-size:13px;color:#EAF5E6;max-width:215px;line-height:1.45">{{h.s}}</p>
+                <button class="tap btn sm" onClick="{{h.go}}" style="align-self:flex-start;margin-top:6px">{{h.cta}}</button>
+              </div>
+            </sc-for>
+          </div>
+          <svg class="drift" viewBox="0 0 80 112" width="78" height="112" aria-hidden="true" style="position:absolute;right:14px;top:22px">
+            <polyline points="{{helix.a}}" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+            <polyline points="{{helix.b}}" fill="none" stroke="#E4F239" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+            <sc-for list="{{helix.rungs}}" as="r" hint-placeholder-count="12"><line x1="{{r.x1}}" y1="{{r.y}}" x2="{{r.x2}}" y2="{{r.y}}" stroke="#fff" stroke-opacity="{{r.o}}" stroke-width="2.4" stroke-linecap="round"/></sc-for>
+          </svg>
+          <div style="position:absolute;right:4px;bottom:0;display:flex">
+            <sc-for list="{{heroDots}}" as="d" hint-placeholder-count="3">
+              <button aria-label="{{d.label}}" onClick="{{d.pick}}" style="width:48px;height:48px;border:0;background:transparent;display:grid;place-items:center;padding:0"><span style="display:block;height:6px;border-radius:3px;width:{{d.w}};background:{{d.bg}};transition:width .25s ease"></span></button>
+            </sc-for>
+          </div>
+        </section>
+
+        <section style="display:flex;flex-direction:column;gap:8px">
+          <div class="sechead"><h2 class="h2">Popular tests</h2><button class="tap lnk" onClick="{{goTests}}">See all</button></div>
+          <div class="list">
+            <sc-for list="{{popular}}" as="item" hint-placeholder-count="4">
+              <div class="row flat" style="min-height:72px">
+                <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px"><span style="font-size:14px;font-weight:600;line-height:1.35">{{item.name}}</span><span style="font-size:12px;color:var(--muted)">{{item.fasting}} · {{item.reportLabel}}</span></div>
+                <span style="font-size:14px;font-weight:700;white-space:nowrap">{{item.priceStr}}</span>
+                <sc-if value="{{item.notInCart}}" hint-placeholder-val="{{ true }}"><button class="tap" aria-label="Add {{item.name}}" onClick="{{item.toggle}}" style="width:48px;height:48px;border-radius:16px;border:0;background:#fff;box-shadow:inset 0 0 0 2px var(--green);color:var(--green);display:grid;place-items:center;flex:none"><svg class="ic" viewBox="0 0 24 24" width="20" height="20" style="stroke-width:2.4"><use href="#i-plus"/></svg></button></sc-if>
+                <sc-if value="{{item.inCart}}" hint-placeholder-val="{{ false }}"><button class="tap" aria-label="Remove {{item.name}}" onClick="{{item.toggle}}" style="width:48px;height:48px;border-radius:16px;border:0;background:var(--green);color:#fff;display:grid;place-items:center;flex:none"><svg class="ic" viewBox="0 0 24 24" width="20" height="20" style="stroke-width:2.6"><use href="#i-check"/></svg></button></sc-if>
+              </div>
+            </sc-for>
+          </div>
+        </section>
+
+        <section style="display:flex;flex-direction:column;gap:8px">
+          <h2 class="h2">Tests by category</h2>
+          <div class="noscroll" style="display:flex;gap:8px;overflow-x:auto;margin:0 -16px;padding:0 16px">
+            <sc-for list="{{catChips}}" as="c" hint-placeholder-count="8"><button class="tap pill" onClick="{{c.open}}">{{c.name}}</button></sc-for>
+          </div>
+        </section>
+
+        <section style="display:flex;flex-direction:column;gap:10px">
+          <h2 class="h2">Routine health checkup</h2>
+          <div class="segwrap" role="tablist">
+            <sc-for list="{{rtTabs}}" as="t" hint-placeholder-count="2"><button role="tab" class="tap {{t.cls}}" onClick="{{t.pick}}">{{t.label}}</button></sc-for>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px">
+            <sc-for list="{{ages}}" as="a" hint-placeholder-count="4">
+              <button class="tap card" onClick="{{a.open}}" style="border:0;min-height:84px;padding:10px 4px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px"><span style="font-size:16px;font-weight:700;letter-spacing:-.01em">{{a.band}}</span><span style="font-size:11px;color:var(--muted)">{{a.unit}}</span><span style="font-size:11px;font-weight:600;color:var(--green)">{{a.tier}}</span></button>
+            </sc-for>
+          </div>
+        </section>
+
+        <section style="display:flex;flex-direction:column;gap:8px">
+          <div class="sechead"><h2 class="h2">Health checkup packages</h2><button class="tap lnk" onClick="{{openPackages}}">View all</button></div>
+          <div class="noscroll" style="display:flex;gap:10px;overflow-x:auto;margin:0 -16px;padding:0 16px">
+            <sc-for list="{{pkgs}}" as="p" hint-placeholder-count="5">
+              <div style="flex:none;width:188px;border-radius:22px;background:{{p.color}};color:#fff;padding:16px;display:flex;flex-direction:column;gap:12px;position:relative;overflow:hidden">
+                <div aria-hidden="true" style="position:absolute;inset:0;background:repeating-linear-gradient(115deg,rgba(255,255,255,.05) 0 2px,transparent 2px 8px)"></div>
+                <div style="position:relative;display:flex;flex-direction:column;gap:2px"><span style="font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.85)">{{p.name}}</span><span style="font-size:22px;font-weight:700;letter-spacing:-.02em">{{p.priceStr}}</span><span style="font-size:13px;color:rgba(255,255,255,.9)">{{p.paramStr}}</span></div>
+                <div style="position:relative;display:flex;gap:6px">
+                  <button class="tap" onClick="{{p.viewIt}}" style="flex:1;min-height:48px;border-radius:999px;border:0;box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.6);background:transparent;color:#fff;font-size:13px;font-weight:600">Includes</button>
+                  <button class="tap" aria-label="{{p.addLabel}} {{p.name}}" onClick="{{p.toggle}}" style="width:48px;min-height:48px;border-radius:50%;border:0;background:#fff;color:{{p.color}};display:grid;place-items:center;flex:none"><svg class="ic" viewBox="0 0 24 24" width="20" height="20" style="stroke-width:2.6"><path d="{{p.addIc}}"/></svg></button>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </section>
+
+        <div style="display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:20px;background:var(--lime-soft);color:var(--forest)">
+          <svg class="ic" viewBox="0 0 24 24" width="24" height="24"><use href="#i-shield"/></svg>
+          <span style="font-size:13px;font-weight:600;line-height:1.4">Every report is reviewed by a consultant pathologist</span>
+        </div>
+
+      </div>
+    </sc-if>
+
+    <!-- ================= CONTACT ================= -->
+    <sc-if value="{{sc.contact}}" hint-placeholder-val="{{ false }}">
+      <div class="pg pgt" style="gap:24px">
+        <section style="display:flex;flex-direction:column;gap:12px">
+          <h1 class="h1">Contact us</h1>
+          <p class="sub">Talk to our team about bookings, reports or home collection. We answer every day from 6:30 AM to 7:00 PM.</p>
+          <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px">
+            <button class="tap" onClick="{{callToast}}" style="min-height:96px;border:0;background:var(--green);color:#fff;border-radius:20px;padding:12px 6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;font-size:13px;font-weight:600"><svg class="ic" viewBox="0 0 24 24" width="24" height="24"><use href="#i-phone"/></svg>Call</button>
+            <button class="tap card" onClick="{{waToast}}" style="min-height:96px;border:0;padding:12px 6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;font-size:13px;font-weight:600"><svg class="ic" viewBox="0 0 24 24" width="24" height="24" style="color:var(--green)"><use href="#i-chat"/></svg>WhatsApp</button>
+            <button class="tap card" onClick="{{mailToast}}" style="min-height:96px;border:0;padding:12px 6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;font-size:13px;font-weight:600"><svg class="ic" viewBox="0 0 24 24" width="24" height="24" style="color:var(--green)"><use href="#i-mail"/></svg>Email</button>
+          </div>
+        </section>
+
+        <section style="display:flex;flex-direction:column;gap:12px">
+          <h2 class="h2">Visit the centre</h2>
+          <div class="card" style="overflow:hidden">
+            <div aria-hidden="true" style="height:140px;background:#E7EEDD;position:relative;overflow:hidden">
+              <div style="position:absolute;left:-20px;right:-20px;top:58px;height:14px;background:#fff;transform:rotate(-8deg)"></div>
+              <div style="position:absolute;top:-20px;bottom:-20px;left:170px;width:12px;background:#fff;transform:rotate(14deg)"></div>
+              <div style="position:absolute;top:16px;left:26px;width:84px;height:30px;border-radius:8px;background:#D5E2C6"></div>
+              <div style="position:absolute;bottom:16px;right:28px;width:110px;height:38px;border-radius:8px;background:#D5E2C6"></div>
+              <div style="position:absolute;bottom:20px;left:36px;width:64px;height:28px;border-radius:8px;background:#D5E2C6"></div>
+              <div style="position:absolute;left:50%;top:46%;transform:translate(-50%,-100%)"><svg width="40" height="40" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s-7.5-5.6-7.5-12a7.5 7.5 0 1 1 15 0C19.500 16.400 12 22 12 22z" fill="#005A52" stroke="#fff" stroke-width="1.2"/><circle cx="12" cy="10" r="3" fill="#A0C032"/></svg></div>
+            </div>
+            <div style="padding:16px;display:flex;flex-direction:column;gap:12px">
+              <div style="display:flex;flex-direction:column;gap:3px">
+                <span style="font-size:16px;font-weight:600">Metro Labs, Baneshwor Branch</span>
+                <span class="sub" style="font-size:14px">Ground Floor, Shankhamul Road, New Baneshwor, Kathmandu 44600</span>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:8px">
+                <span style="display:flex;align-items:center;gap:10px;font-size:14px"><svg class="ic" viewBox="0 0 24 24" width="18" height="18" style="color:var(--green)"><use href="#i-clock"/></svg>Open daily, 6:30 AM – 7:00 PM</span>
+                <span style="display:flex;align-items:center;gap:10px;font-size:14px"><svg class="ic" viewBox="0 0 24 24" width="18" height="18" style="color:var(--green)"><use href="#i-truck"/></svg>Home collection, 6:30 AM – 4:00 PM</span>
+                <span style="display:flex;align-items:center;gap:10px;font-size:14px"><svg class="ic" viewBox="0 0 24 24" width="18" height="18" style="color:var(--green)"><use href="#i-phone"/></svg>[lab phone number]</span>
+              </div>
+              <a class="tap btn soft" href="https://www.openstreetmap.org/search?query=New%20Baneshwor%2C%20Kathmandu" target="_blank" rel="noopener" style="text-decoration:none"><svg class="ic" viewBox="0 0 24 24" width="18" height="18"><use href="#i-pin"/></svg>Open in Maps</a>
+            </div>
+          </div>
+        </section>
+
+        <section style="display:flex;flex-direction:column;gap:12px">
+          <div style="display:flex;flex-direction:column;gap:4px"><h2 class="h1" style="font-size:22px">Frequently asked questions</h2><span class="sub">{{v.faqCount}}</span></div>
+          <label style="height:54px;border-radius:999px;background:#fff;display:flex;align-items:center;gap:10px;padding:0 18px">
+            <svg class="ic" viewBox="0 0 24 24" width="20" height="20" style="color:var(--green)"><use href="#i-search"/></svg>
+            <span style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Search FAQs</span>
+            <input type="search" value="{{v.faqQ}}" onChange="{{onFaq}}" placeholder="Search questions" style="flex:1;min-width:0;border:0;outline:none;background:transparent;font-size:15px;align-self:stretch;min-height:48px">
+          </label>
+          <sc-if value="{{v.faqEmpty}}" hint-placeholder-val="{{ false }}">
+            <div class="empty" style="align-items:flex-start;text-align:left"><span style="font-size:15px;font-weight:600">No questions match “{{v.faqQ}}”</span><span class="sub">Try another word, or ask us directly.</span><button class="tap btn g sm" onClick="{{callToast}}">Call us</button></div>
+          </sc-if>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <sc-for list="{{faqs}}" as="f" hint-placeholder-count="7">
+              <div class="{{f.cls}}">
+                <button class="tap" onClick="{{f.toggle}}" aria-expanded="{{f.open}}" style="width:100%;min-height:60px;border:0;background:transparent;display:flex;align-items:center;gap:12px;padding:12px 16px;text-align:left;font-size:15px;font-weight:600;line-height:1.4"><span style="flex:1">{{f.q}}</span><svg class="ic" viewBox="0 0 24 24" width="20" height="20" style="color:var(--green);transform:{{f.rot}};transition:transform .22s ease"><use href="#i-chevd"/></svg></button>
+                <sc-if value="{{f.open}}" hint-placeholder-val="{{ false }}"><p class="pgt" style="padding:0 16px 16px;font-size:14px;line-height:1.6;color:#33423E">{{f.a}}</p></sc-if>
+              </div>
+            </sc-for>
+          </div>
+        </section>
+      </div>
+    </sc-if>
+
+    <!-- ================= ALL TESTS ================= -->
+    <sc-if value="{{sc.tests}}" hint-placeholder-val="{{ false }}">
+      <div class="pg pgt">
+        <h1 class="h1">All tests</h1>
+        <div style="display:flex;gap:10px">
+          <label style="flex:1;min-width:0;height:54px;border-radius:999px;background:#fff;display:flex;align-items:center;gap:10px;padding:0 8px 0 18px">
+            <svg class="ic" viewBox="0 0 24 24" width="20" height="20" style="color:var(--green)"><use href="#i-search"/></svg>
+            <span style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Search tests</span>
+            <input type="search" value="{{v.testQ}}" onChange="{{onTestQ}}" placeholder="Search for ‘{{v.ph}}’" style="flex:1;min-width:0;border:0;outline:none;background:transparent;font-size:15px;align-self:stretch;min-height:48px">
+            <sc-if value="{{v.hasQuery}}" hint-placeholder-val="{{ false }}"><button aria-label="Clear search" onClick="{{clearTestQ}}" style="width:40px;height:40px;border:0;border-radius:50%;background:#EEF0EC;display:grid;place-items:center;flex:none"><svg class="ic" viewBox="0 0 24 24" width="16" height="16" style="stroke-width:2.4"><use href="#i-close"/></svg></button></sc-if>
+          </label>
+          <button class="tap" aria-label="Scan a referral slip" onClick="{{openScanRx}}" style="width:54px;height:54px;border-radius:50%;border:0;background:var(--lime);color:#00362F;display:grid;place-items:center;flex:none"><svg class="ic" viewBox="0 0 24 24" width="24" height="24"><use href="#i-scan"/></svg></button>
+        </div>
+
+        <sc-if value="{{v.hasQuery}}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <div class="noscroll" style="display:flex;gap:8px;overflow-x:auto;margin:0 -16px;padding:0 16px">
+              <sc-for list="{{testFilters}}" as="f" hint-placeholder-count="3"><button class="tap {{f.cls}}" onClick="{{f.pick}}">{{f.label}}</button></sc-for>
+            </div>
+            <span style="font-size:13px;color:var(--muted);font-weight:600">{{v.resultCount}}</span>
+            <sc-if value="{{v.noResults}}" hint-placeholder-val="{{ false }}"><div class="empty"><span style="font-size:15px;font-weight:600">No tests found</span><span class="sub">Check the spelling, change the filter, or browse the categories.</span></div></sc-if>
+            <sc-for list="{{results}}" as="item" hint-placeholder-count="3">
+              <div class="card test pgt">
+                <div style="display:flex;gap:12px;align-items:flex-start">
+                  <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px"><span style="font-size:12px;font-weight:600;color:var(--green)">{{item.catName}}</span><h3 style="font-size:16px;font-weight:600;line-height:1.35">{{item.name}}</h3><p class="sub" style="font-size:13px">{{item.desc}}</p></div>
+                  <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px"><span style="font-size:16px;font-weight:700;white-space:nowrap">{{item.priceStr}}</span><sc-if value="{{v.isMember}}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;font-weight:600;color:var(--green);white-space:nowrap">Member {{item.memberStr}}</span></sc-if></div>
+                </div>
+                <div class="mchips"><span class="chip neutral">{{item.ageLabel}}</span><span class="{{item.fastCls}}"><svg class="ic" viewBox="0 0 24 24" width="13" height="13" style="stroke-width:2.4"><path d="{{item.fastIc}}"/></svg>{{item.fasting}}</span><span class="chip neutral">{{item.reportLabel}}</span></div>
+                <button class="tap {{item.btnCls}}" onClick="{{item.toggle}}">{{item.btnLabel}}</button>
+              </div>
+            </sc-for>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{v.noQuery}}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex;flex-direction:column;gap:14px">
+            <h2 class="h2">Browse by category</h2>
+            <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px">
+              <sc-for list="{{catCards}}" as="c" hint-placeholder-count="8">
+                <button class="tap card" onClick="{{c.open}}" style="border:0;min-height:128px;padding:14px;display:flex;flex-direction:column;justify-content:space-between;gap:10px;text-align:left"><span class="tile"><svg class="ic" viewBox="0 0 24 24" width="24" height="24"><path d="{{c.d}}"/></svg></span><span style="display:flex;flex-direction:column;gap:1px"><span style="font-size:14px;font-weight:600;line-height:1.3">{{c.name}}</span><span style="font-size:12px;color:var(--muted)">{{c.count}}</span></span></button>
+              </sc-for>
+            </div>
+            <button class="tap" onClick="{{openPackages}}" style="border:0;background:var(--green);color:#fff;border-radius:20px;padding:16px 18px;display:flex;align-items:center;gap:12px;text-align:left;min-height:72px"><span style="flex:1;display:flex;flex-direction:column;gap:2px"><span style="font-size:15px;font-weight:600">Health checkup packages</span><span style="font-size:13px;color:#BFE0D6">Bronze to Elite, compared side by side</span></span><svg class="ic" viewBox="0 0 24 24" width="22" height="22" style="color:var(--pop)"><use href="#i-chev"/></svg></button>
+          </div>
+        </sc-if>
+      </div>
+    </sc-if>
+
+    <!-- ================= CATEGORY ================= -->
+    <sc-if value="{{sc.category}}" hint-placeholder-val="{{ false }}">
+      <div class="pg pgp" style="gap:12px">
+        <p class="sub">{{v.catSub}}</p>
+        <sc-if value="{{v.catIsImaging}}" hint-placeholder-val="{{ false }}"><div class="note"><svg class="ic" viewBox="0 0 24 24" width="20" height="20" style="margin-top:1px"><use href="#i-info"/></svg><span>Imaging is done at the centre. Your booking switches to a centre visit.</span></div></sc-if>
+        <sc-for list="{{catTests}}" as="item" hint-placeholder-count="3">
+          <div class="card test">
+            <div style="display:flex;gap:12px;align-items:flex-start">
+              <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px"><h3 style="font-size:16px;font-weight:600;line-height:1.35">{{item.name}}</h3><p class="sub" style="font-size:13px">{{item.desc}}</p></div>
+              <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px"><span style="font-size:16px;font-weight:700;white-space:nowrap">{{item.priceStr}}</span><sc-if value="{{v.isMember}}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;font-weight:600;color:var(--green);white-space:nowrap">Member {{item.memberStr}}</span></sc-if></div>
+            </div>
+            <div class="mchips"><span class="chip neutral">{{item.ageLabel}}</span><span class="{{item.fastCls}}"><svg class="ic" viewBox="0 0 24 24" width="13" height="13" style="stroke-width:2.4"><path d="{{item.fastIc}}"/></svg>{{item.fasting}}</span><span class="chip neutral">{{item.reportLabel}}</span></div>
+            <button class="tap {{item.btnCls}}" onClick="{{item.toggle}}">{{item.btnLabel}}</button>
+          </div>
+        </sc-for>
+        <p style="font-size:12px;color:var(--muted);line-height:1.55;padding:0 4px">Age and fasting notes are general guidance. Follow your doctor’s advice if it differs.</p>
+      </div>
+    </sc-if>
+
+    <!-- ================= PACKAGES ================= -->
+    <sc-if value="{{sc.packages}}" hint-placeholder-val="{{ false }}">
+      <div class="pg pgp" style="gap:12px">
+        <p class="sub">Tap a package to see what it includes. Every package includes home sample collection.</p>
+        <sc-if value="{{v.hasPkgFor}}" hint-placeholder-val="{{ false }}"><div class="note info"><svg class="ic" viewBox="0 0 24 24" width="20" height="20" style="margin-top:1px"><use href="#i-checkc"/></svg><span>For {{v.pkgFor}}, we suggest <b>{{v.recName}}</b>. {{v.recTag}}.</span></div></sc-if>
+        <sc-for list="{{pkgs}}" as="p" hint-placeholder-count="5">
+          <div style="border-radius:24px;background:{{p.color}};color:#fff;position:relative;overflow:hidden">
+            <div aria-hidden="true" style="position:absolute;inset:0;background:repeating-linear-gradient(115deg,rgba(255,255,255,.05) 0 2px,transparent 2px 8px)"></div>
+            <button class="tap" onClick="{{p.toggleOpen}}" aria-expanded="{{p.open}}" style="position:relative;width:100%;border:0;background:transparent;color:#fff;padding:18px;display:flex;align-items:center;gap:12px;text-align:left;min-height:96px">
+              <span style="flex:1;display:flex;flex-direction:column;gap:2px">
+                <span style="display:flex;align-items:center;gap:8px"><span style="font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.85)">{{p.name}}</span><sc-if value="{{p.isRec}}" hint-placeholder-val="{{ false }}"><span class="chip" style="background:var(--lime);color:#00362F;padding:3px 10px;font-size:11px">Recommended</span></sc-if></span>
+                <span style="font-size:24px;font-weight:700;letter-spacing:-.02em">{{p.priceStr}}</span>
+                <span style="font-size:13px;color:rgba(255,255,255,.92)">{{p.paramStr}} · {{p.addStr}}</span>
+              </span>
+              <svg class="ic" viewBox="0 0 24 24" width="22" height="22" style="transform:{{p.rot}};transition:transform .22s ease"><use href="#i-chevd"/></svg>
+            </button>
+            <sc-if value="{{p.open}}" hint-placeholder-val="{{ false }}">
+              <div class="pgt" style="position:relative;padding:0 18px 18px;display:flex;flex-direction:column;gap:12px">
+                <span style="font-size:13px;color:rgba(255,255,255,.9)">{{p.tag}}</span>
+                <sc-if value="{{p.hasPrev}}" hint-placeholder-val="{{ false }}"><span style="font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px"><svg class="ic" viewBox="0 0 24 24" width="16" height="16" style="color:var(--pop);stroke-width:2.6"><use href="#i-check"/></svg>{{p.prevLine}}</span></sc-if>
+                <ul style="list-style:none;padding:0;display:flex;flex-direction:column;gap:8px">
+                  <sc-for list="{{p.feats}}" as="f" hint-placeholder-count="4"><li style="font-size:14px;line-height:1.4;display:flex;gap:8px;align-items:flex-start"><svg class="ic" viewBox="0 0 24 24" width="16" height="16" style="color:var(--pop);stroke-width:2.6;margin-top:2px"><use href="#i-plus"/></svg>{{f}}</li></sc-for>
+                </ul>
+                <div style="display:flex;gap:6px;flex-wrap:wrap"><span class="chip" style="background:rgba(255,255,255,.16);color:#fff">Fasting 10–12 h</span><span class="chip" style="background:rgba(255,255,255,.16);color:#fff">Report in 24 h</span><sc-if value="{{p.centreNote}}" hint-placeholder-val="{{ false }}"><span class="chip" style="background:rgba(255,255,255,.16);color:#fff">Centre visit</span></sc-if></div>
+                <sc-if value="{{v.isMember}}" hint-placeholder-val="{{ false }}"><span style="font-size:13px;font-weight:600;color:var(--pop)">Member price {{p.memberStr}}</span></sc-if>
+                <button class="tap btn" onClick="{{p.toggle}}" style="background:#fff;color:{{p.color}}"><svg class="ic" viewBox="0 0 24 24" width="18" height="18" style="stroke-width:2.6"><path d="{{p.addIc}}"/></svg>{{p.addLabel}}</button>
+              </div>
+            </sc-if>
+          </div>
+        </sc-for>
+        <p style="font-size:12px;color:var(--muted);line-height:1.55;padding:0 4px">Parameter counts include every individual result printed on the report.</p>
+      </div>
+    </sc-if>
+
+    <!-- ================= CART ================= -->
+    <sc-if value="{{sc.cart}}" hint-placeholder-val="{{ false }}">
+      <div class="pg pgp" style="gap:14px">
+        <sc-if value="{{v.cartEmpty}}" hint-placeholder-val="{{ false }}">
+          <div class="empty" style="padding:36px 20px">
+            <span class="tile lg" style="width:72px;height:72px;border-radius:50%"><svg class="ic" viewBox="0 0 24 24" width="34" height="34"><use href="#i-cart"/></svg></span>
+            <span style="font-size:17px;font-weight:600">Your cart is empty</span>
+            <span class="sub">Add tests or a package to book a collection.</span>
+            <button class="tap btn" onClick="{{goTests}}" style="margin-top:6px">Browse tests</button>
+            <button class="tap btn soft" onClick="{{openScanRx}}"><svg class="ic" viewBox="0 0 24 24" width="18" height="18"><use href="#i-scan"/></svg>Scan a referral slip</button>
+          </div>
+        </sc-if>
+        <sc-if value="{{v.hasCart}}" hint-placeholder-val="{{ true }}">
+          <div class="list">
+            <sc-for list="{{cartItems}}" as="item" hint-placeholder-count="2">
+              <div class="row flat" style="min-height:72px;padding-right:6px">
+                <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px"><span style="font-size:15px;font-weight:600;line-height:1.35">{{item.name}}</span><span style="font-size:12px;color:var(--muted)">{{item.meta}}</span></div>
+                <span style="font-size:15px;font-weight:700;white-space:nowrap">{{item.priceStr}}</span>
+                <button class="tap" aria-label="Remove {{item.name}}" onClick="{{item.remove}}" style="width:48px;height:48px;border:0;border-radius:50%;background:transparent;color:#9C1C12;display:grid;place-items:center;flex:none"><svg class="ic" viewBox="0 0 24 24" width="20" height="20"><use href="#i-trash"/></svg></button>
+              </div>
+            </sc-for>
+          </div>
+          <sc-if value="{{v.hasImaging}}" hint-placeholder-val="{{ false }}"><div class="note"><svg class="ic" viewBox="0 0 24 24" width="20" height="20" style="margin-top:1px"><use href="#i-info"/></svg><span>Your cart has an imaging test, so this booking is a centre visit.</span></div></sc-if>
+          <div class="card p" style="display:flex;flex-direction:column;gap:10px">
+            <div style="display:flex;justify-content:space-between;font-size:14px;color:var(--muted)"><span>Subtotal</span><span style="color:var(--ink)">{{v.subtotal}}</span></div>
+            <sc-if value="{{v.isMember}}" hint-placeholder-val="{{ false }}"><div style="display:flex;justify-content:space-between;font-size:14px;color:#14612F;font-weight:600"><span>Member saving (10%)</span><span>− {{v.memSaving}}</span></div></sc-if>
+            <sc-if value="{{v.showCollect}}" hint-placeholder-val="{{ true }}"><div style="display:flex;justify-content:space-between;font-size:14px;color:var(--muted)"><span>Home collection</span><span style="color:var(--ink)">{{v.collectionFee}}</span></div></sc-if>
+            <hr class="hr">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:18px;font-weight:700"><span>Total</span><span>{{v.total}}</span></div>
+            <sc-if value="{{v.hasNeedMore}}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;color:var(--muted);line-height:1.5">Add {{v.needMore}} more for free home collection.</span></sc-if>
+          </div>
+          <sc-if value="{{v.notMember}}" hint-placeholder-val="{{ true }}">
+            <button class="tap" onClick="{{openMembership}}" style="border:0;background:var(--lime-soft);border-radius:20px;padding:12px 16px;min-height:60px;display:flex;align-items:center;gap:12px;text-align:left;color:var(--forest)"><svg class="ic" viewBox="0 0 24 24" width="24" height="24"><use href="#i-crown"/></svg><span style="flex:1;font-size:14px;font-weight:600;line-height:1.4">Members would save {{v.wouldSave}} on this cart</span><svg class="ic" viewBox="0 0 24 24" width="20" height="20"><use href="#i-chev"/></svg></button>
+          </sc-if>
+        </sc-if>
+      </div>
+    </sc-if>
+
+    <!-- ================= BOOK ================= -->
+    <sc-if value="{{sc.book}}" hint-placeholder-val="{{ false }}">
+      <div class="pg pgp" style="gap:22px">
+        <div style="display:flex;flex-direction:column;gap:8px" aria-label="Step 1 of 2">
+          <div style="display:flex;gap:6px"><span style="flex:1;height:5px;border-radius:3px;background:var(--green)"></span><span style="flex:1;height:5px;border-radius:3px;background:var(--edge)"></span></div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;font-weight:600"><span style="color:var(--green)">1  Who &amp; when</span><span style="color:var(--muted)">2  Review &amp; pay</span></div>
+        </div>
+
+        <section style="display:flex;flex-direction:column;gap:10px">
+          <h2 class="h2">Who is this for?</h2>
+          <div style="display:flex;flex-wrap:wrap;gap:8px">
+            <sc-for list="{{whoChips}}" as="w" hint-placeholder-count="2"><button class="tap {{w.cls}}" onClick="{{w.pick}}">{{w.label}}</button></sc-for>
+            <button class="tap pill" onClick="{{openAddMember}}" style="background:transparent;box-shadow:inset 0 0 0 1.5px var(--green);color:var(--green);gap:6px"><svg class="ic" viewBox="0 0 24 24" width="16" height="16" style="stroke-width:2.4"><use href="#i-plus"/></svg>Add member</button>
+          </div>
+        </section>
+
+        <section style="display:flex;flex-direction:column;gap:10px">
+          <h2 class="h2">Where?</h2>
+          <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px">
+            <button class="tap {{v.modeHomeCls}}" onClick="{{modeHome}}" style="opacity:{{v.homeOpacity}}"><svg class="ic" viewBox="0 0 24 24" width="20" height="20"><use href="#i-truck"/></svg>Home collection</button>
+            <button class="tap {{v.modeLabCls}}" onClick="{{modeLab}}"><svg class="ic" viewBox="0 0 24 24" width="20" height="20"><use href="#i-pin"/></svg>Centre visit</button>
+          </div>
+          <sc-if value="{{v.forceLab}}" hint-placeholder-val="{{ false }}"><span class="sub" style="font-size:13px;line-height:1.45">X-ray and imaging tests are done at the centre, so home collection is not available for this cart.</span></sc-if>
+          <sc-if value="{{v.modeIsHome}}" hint-placeholder-val="{{ true }}">
+            <label class="fld">Collection address
+              <input type="text" class="{{v.addrCls}}" value="{{v.address}}" onChange="{{onAddress}}" placeholder="House, street, area, city">
+            </label>
+            <button class="tap lnk" onClick="{{useSaved}}" style="align-self:flex-start;min-height:48px"><svg class="ic" viewBox="0 0 24 24" width="16" height="16"><use href="#i-pin"/></svg>Use saved address: Home, New Baneshwor</button>
+          </sc-if>
+          <sc-if value="{{v.modeIsLab}}" hint-placeholder-val="{{ false }}">
+            <div class="card p" style="display:flex;flex-direction:column;gap:4px"><span style="font-size:15px;font-weight:600">Metro Labs, Baneshwor Branch</span><span class="sub" style="font-size:13px">Ground Floor, Shankhamul Road, New Baneshwor. Open daily, 6:30 AM – 7:00 PM. Walk-ins are welcome, a booked slot skips the queue.</span></div>
+          </sc-if>
+        </section>
+
+        <section style="display:flex;flex-direction:column;gap:10px">
+          <h2 class="h2">Date</h2>
+          <div class="noscroll" style="display:flex;gap:8px;overflow-x:auto;margin:0 -16px;padding:0 16px">
+            <sc-for list="{{dayChips}}" as="d" hint-placeholder-count="6"><button class="tap {{d.cls}}" onClick="{{d.pick}}"><span style="font-size:12px;font-weight:600">{{d.wd}}</span><span style="font-size:19px;font-weight:700">{{d.d}}</span><span style="font-size:11px">{{d.m}}</span></button></sc-for>
+          </div>
+        </section>
+
+        <section style="display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px"><h2 class="h2">Time</h2><span style="font-size:12px;color:var(--muted)">1-hour windows</span></div>
+          <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px">
+            <sc-for list="{{slotChips}}" as="sl" hint-placeholder-count="6"><button class="tap {{sl.cls}}" aria-pressed="{{sl.ariaOn}}" onClick="{{sl.pick}}"><span class="t">{{sl.label}}</span><span class="s">{{sl.sub}}</span></button></sc-for>
+          </div>
+          <div style="display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted)">
+            <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:9px;height:9px;border-radius:50%;background:#14612F"></span>Available</span>
+            <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:9px;height:9px;border-radius:50%;background:#B26A00"></span>Filling fast</span>
+            <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:9px;height:9px;border-radius:50%;background:#B7BEBA"></span>Full</span>
+          </div>
+        </section>
+
+        <sc-if value="{{v.hasFast}}" hint-placeholder-val="{{ false }}"><div class="note"><svg class="ic" viewBox="0 0 24 24" width="20" height="20" style="margin-top:1px"><use href="#i-clock"/></svg><span>Your cart has a fasting test. Do not eat for 8–12 hours before collection (water is fine). An early slot is easiest.</span></div></sc-if>
+        <sc-if value="{{v.hasBookErr}}" hint-placeholder-val="{{ false }}"><div class="alert" role="alert">{{v.bookErr}}</div></sc-if>
+
+        <section class="card p" style="display:flex;flex-direction:column;gap:10px">
+          <h2 class="h2" style="font-size:15px">Price summary</h2>
+          <div style="display:flex;justify-content:space-between;font-size:14px;color:var(--muted)"><span>Subtotal ({{v.itemsStr}})</span><span style="color:var(--ink)">{{v.subtotal}}</span></div>
+          <sc-if value="{{v.isMember}}" hint-placeholder-val="{{ false }}"><div style="display:flex;justify-content:space-between;font-size:14px;color:#14612F;font-weight:600"><span>Member saving (10%)</span><span>− {{v.memSaving}}</span></div></sc-if>
+          <sc-if value="{{v.showCollect}}" hint-placeholder-val="{{ true }}"><div style="display:flex;justify-content:space-between;font-size:14px;color:var(--muted)"><span>Home collection</span><span style="color:var(--ink)">{{v.collectionFee}}</span></div></sc-if>
+          <hr class="hr">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:17px;font-weight:700"><span>Total</span><span>{{v.total}}</span></div>
+        </section>
+      </div>
+    </sc-if>
+
+    <!-- ================= PAY ================= -->
+    <sc-if value="{{sc.pay}}" hint-placeholder-val="{{ false }}">
+      <div class="pg pgp" style="gap:18px">
+        <div style="display:flex;flex-direction:column;gap:8px" aria-label="Step 2 of 2">
+          <div style="display:flex;gap:6px"><span style="flex:1;height:5px;border-radius:3px;background:var(--green)"></span><span style="flex:1;height:5px;border-radius:3px;background:var(--green)"></span></div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;font-weight:600"><span style="color:var(--green)">1  Who &amp; when</span><span style="color:var(--green)">2  Review &amp; pay</span></div>
+        </div>
+
+        <section class="card p" style="display:flex;flex-direction:column;gap:12px">
+          <h2 class="h2" style="font-size:15px">Order summary</h2>
+          <div style="display:flex;justify-content:space-between;gap:16px;font-size:14px"><span style="color:var(--muted)">For</span><span style="font-weight:600;text-align:right">{{v.whoName}}</span></div>
+          <div style="display:flex;justify-content:space-between;gap:16px;font-size:14px"><span style="color:var(--muted)">When</span><span style="font-weight:600;text-align:right">{{v.whenStr}}</span></div>
+          <div style="display:flex;justify-content:space-between;gap:16px;font-size:14px"><span style="color:var(--muted);white-space:nowrap">{{v.whereKind}}</span><span style="font-weight:600;text-align:right;line-height:1.4">{{v.whereStr}}</span></div>
+          <hr class="hr">
+          <sc-for list="{{payLines}}" as="l" hint-placeholder-count="2"><div style="display:flex;justify-content:space-between;gap:16px;font-size:14px"><span style="line-height:1.4">{{l.name}}</span><span style="font-weight:600;white-space:nowrap">{{l.price}}</span></div></sc-for>
+          <hr class="hr">
+          <div style="display:flex;justify-content:space-between;font-size:14px;color:var(--muted)"><span>Subtotal</span><span style="color:var(--ink)">{{v.subtotal}}</span></div>
+          <sc-if value="{{v.isMember}}" hint-placeholder-val="{{ false }}"><div style="display:flex;justify-content:space-between;font-size:14px;color:#14612F;font-weight:600"><span>Member saving (10%)</span><span>− {{v.memSaving}}</span></div></sc-if>
+          <sc-if value="{{v.showCollect}}" hint-placeholder-val="{{ true }}"><div style="display:flex;justify-content:space-between;font-size:14px;color:var(--muted)"><span>Home collection</span><span style="color:var(--ink)">{{v.collectionFee}}</span></div></sc-if>
+          <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:18px;font-weight:700"><span>Total</span><span>{{v.total}}</span></div>
+        </section>
+
+        <section style="display:flex;flex-direction:column;gap:10px">
+          <h2 class="h2">Pay with</h2>
+          <div class="list">
+            <sc-for list="{{payChips}}" as="m" hint-placeholder-count="5">
+              <button class="tap {{m.cls}}" role="radio" aria-checked="{{m.ariaOn}}" onClick="{{m.pick}}"><span class="tile sm"><svg class="ic" viewBox="0 0 24 24" width="22" height="22"><path d="{{m.d}}"/></svg></span><span style="display:flex;flex-direction:column;gap:1px;min-width:0"><span style="font-size:15px;font-weight:600">{{m.label}}</span><span style="font-size:12px;color:var(--muted);line-height:1.35">{{m.sub}}</span></span><span class="radio"></span></button>
+            </sc-for>
+          </div>
+        </section>
+        <span style="font-size:12px;color:var(--muted);text-align:center;line-height:1.55;display:flex;gap:8px;align-items:center;justify-content:center"><svg class="ic" viewBox="0 0 24 24" width="16" height="16"><use href="#i-lock"/></svg>Payments are handled by your provider. Card and wallet details are never stored in the app.</span>
+      </div>
+    </sc-if>
+
+    <!-- ================= DONE ================= -->
+    <sc-if value="{{sc.done}}" hint-placeholder-val="{{ false }}">
+      <div class="pg pgt" style="gap:18px;padding-top:44px">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center">
+          <div style="position:relative;width:84px;height:84px"><span class="ring" style="position:absolute;inset:0;border-radius:50%;background:var(--lime)"></span><div class="pop" style="position:absolute;inset:0;border-radius:50%;background:var(--green);color:var(--pop);display:grid;place-items:center"><svg class="ic" viewBox="0 0 24 24" width="42" height="42" style="stroke-width:2.6"><use href="#i-check"/></svg></div></div>
+          <h2 style="font-size:24px;font-weight:700;letter-spacing:-.025em;color:var(--forest)">Booking confirmed</h2>
+          <span class="chip lime" style="font-size:13px;padding:6px 14px">{{v.lastIdLine}}</span>
+        </div>
+
+        <section class="card p" style="display:flex;flex-direction:column;gap:14px;align-items:center;text-align:center">
+          <div style="width:152px;height:152px;border-radius:16px;background:#fff;box-shadow:inset 0 0 0 1.5px var(--line);display:grid;place-items:center">
+            <svg viewBox="-2 -2 25 25" width="132" height="132" shape-rendering="crispEdges" role="img" aria-label="Booking code {{v.lastId}}"><rect x="-2" y="-2" width="25" height="25" fill="#fff"/><path d="{{v.qr}}" fill="#0A1A17" fill-rule="evenodd"/></svg>
+          </div>
+          <span class="sub" style="font-size:13px">Show this code to the phlebotomist or at reception. They scan it to match your tubes to this booking.</span>
+        </section>
+
+        <section class="card p" style="display:flex;flex-direction:column;gap:12px">
+          <h3 style="font-size:15px;font-weight:600">Order summary</h3>
+          <div style="display:flex;justify-content:space-between;gap:16px;font-size:14px"><span style="color:var(--muted)">For</span><span style="font-weight:600;text-align:right">{{lb.who}}</span></div>
+          <div style="display:flex;justify-content:space-between;gap:16px;font-size:14px"><span style="color:var(--muted)">When</span><span style="font-weight:600;text-align:right">{{lb.when}}</span></div>
+          <div style="display:flex;justify-content:space-between;gap:16px;font-size:14px"><span style="color:var(--muted);white-space:nowrap">{{lb.where}}</span><span style="font-weight:600;text-align:right;line-height:1.4">{{lb.addr}}</span></div>
+          <hr class="hr">
+          <sc-for list="{{lastLines}}" as="l" hint-placeholder-count="2"><div style="display:flex;justify-content:space-between;gap:16px;font-size:14px"><span style="line-height:1.4">{{l.name}}</span><span style="font-weight:600;white-space:nowrap">{{l.price}}</span></div></sc-for>
+          <hr class="hr">
+          <div style="display:flex;justify-content:space-between;font-size:14px;color:var(--muted)"><span>Subtotal</span><span style="color:var(--ink)">{{lb.sub}}</span></div>
+          <sc-if value="{{lb.hasSave}}" hint-placeholder-val="{{ false }}"><div style="display:flex;justify-content:space-between;font-size:14px;color:#14612F;font-weight:600"><span>Member saving (10%)</span><span>− {{lb.save}}</span></div></sc-if>
+          <sc-if value="{{lb.isHome}}" hint-placeholder-val="{{ true }}"><div style="display:flex;justify-content:space-between;font-size:14px;color:var(--muted)"><span>Home collection</span><span style="color:var(--ink)">{{lb.fee}}</span></div></sc-if>
+          <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:18px;font-weight:700"><span>Total</span><span>{{lb.total}}</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--muted)"><span>{{lb.paidLabel}}</span><span style="font-weight:600;color:var(--ink)">{{lb.method}}</span></div>
+        </section>
+
+        <section class="card p" style="display:flex;flex-direction:column;gap:14px">
+          <h3 style="font-size:15px;font-weight:600">What happens next</h3>
+          <div style="display:flex;gap:12px"><span class="tile sm" style="width:28px;height:28px;border-radius:50%;font-size:13px;font-weight:700">1</span><span style="font-size:14px;line-height:1.5">{{lb.next1}}</span></div>
+          <div style="display:flex;gap:12px"><span class="tile sm" style="width:28px;height:28px;border-radius:50%;font-size:13px;font-weight:700">2</span><span style="font-size:14px;line-height:1.5">{{lb.next2}}</span></div>
+          <div style="display:flex;gap:12px"><span class="tile sm" style="width:28px;height:28px;border-radius:50%;font-size:13px;font-weight:700">3</span><span style="font-size:14px;line-height:1.5">Your report appears under Reports and we notify you when it is ready.</span></div>
+        </section>
+
+        <button class="tap btn" onClick="{{openBookingsFromDone}}">View my bookings</button>
+        <button class="tap btn line" onClick="{{goHome}}">Back to home</button>
+      </div>
+    </sc-if>
+
+    <!-- ================= PROFILE TAB ================= -->
+    <sc-if value="{{sc.profile}}" hint-placeholder-val="{{ false }}">
+      <div class="pg pgt" style="gap:20px">
+        <div style="display:flex;align-items:center;gap:14px">
+          <div class="avatar" style="width:64px;height:64px;font-size:24px">{{v.initial}}</div>
+          <div style="display:flex;flex-direction:column;gap:2px;min-width:0">
+            <span style="font-size:20px;font-weight:700;letter-spacing:-.02em;color:var(--forest)">{{v.fullName}}</span>
+            <span class="sub" style="font-size:14px">+977 {{v.phone}}</span>
+            <sc-if value="{{v.isMember}}" hint-placeholder-val="{{ false }}"><span class="chip lime" style="align-self:flex-start;margin-top:4px"><svg class="ic" viewBox="0 0 24 24" width="14" height="14"><use href="#i-crown"/></svg>{{v.memberLabel}}</span></sc-if>
+          </div>
+        </div>
+
+        <section style="display:flex;flex-direction:column;gap:8px">
+          <h2 class="cap" style="padding-left:6px">Account</h2>
+          <div class="list">
+            <button class="tap row" onClick="{{openMyProfile}}"><span class="tile sm"><svg class="ic" viewBox="0 0 24 24" width="21" height="21"><use href="#i-person"/></svg></span><span style="flex:1;display:flex;flex-direction:column;gap:6px;min-width:0"><span style="font-size:15px;font-weight:600">My profile</span><span style="display:flex;align-items:center;gap:8px"><span style="flex:1;height:6px;border-radius:3px;background:#E7EAE5;overflow:hidden"><span style="display:block;height:6px;width:{{v.pct}}%;background:var(--lime);border-radius:3px"></span></span><span style="font-size:12px;font-weight:600;color:var(--green)">{{v.pctLabel}}</span></span></span><svg class="ic" viewBox="0 0 24 24" width="20" height="20" style="color:var(--muted)"><use href="#i-chev"/></svg></button>
+            <button class="tap row" onClick="{{openMembers}}"><span class="tile sm"><svg class="ic" viewBox="0 0 24 24" width="21" height="21"><use href="#i-users"/></svg></span><span style="flex:1;font-size:15px;font-weight:600">Other members</span><span style="font-size:13px;color:var(--muted)">{{v.memberCount}}</span><svg class="ic" viewBox="0 0 24 24" width="20" height="20" style="color:var(--muted)"><use href="#i-chev"/></svg></button>
+            <button class="tap row" onClick="{{toggleCal}}"><span class="tile sm"><svg class="ic" viewBox="0 0 24 24" width="21" height="21"><use href="#i-cal"/></svg></span><span style="flex:1;font-size:15px;font-weight:600">Calendar</span><span style="display:flex;border-radius:999px;background:#EEF0EC;padding:3px"><span class="{{v.calBsCls}}">BS</span><span class="{{v.calAdCls}}">AD</span></span></button>
+          </div>
+        </section>
+
+        <section style="display:flex;flex-direction:column;gap:8px">
+          <h2 class="cap" style="padding-left:6px">Services</h2>
+          <div class="list">
+            <button class="tap row" onClick="{{openReports}}"><span class="tile sm"><svg class="ic" viewBox="0 0 24 24" width="21" height="21"><use href="#i-doc"/></svg></span><span style="flex:1;font-size:15px;font-weight:600">Reports</span><svg class="ic" viewBox="0 0 24 24" width="20" height="20" style="color:var(--muted)"><use href="#i-chev"/></svg></button>
+            <button class="tap row" onClick="{{openBookings}}"><span class="tile sm"><svg class="ic" viewBox="0 0 24 24" width="21" height="21"><use href="#i-calcheck"/></svg></span><span style="flex:1;font-size:15px;font-weight:600">Bookings</span><span style="font-size:13px;color:var(--muted)">{{v.bookingCount}}</span><svg class="ic" viewBox="0 0 24 24" width="20" height="20" style="color:var(--muted)"><use href="#i-chev"/></svg></button>
+            <button class="tap row" onClick="{{openMembership}}"><span class="tile sm"><svg class="ic" viewBox="0 0 24 24" width="21" height="21"><use href="#i-crown"/></svg></span><span style="flex:1;font-size:15px;font-weight:600">Membership</span><span style="font-size:13px;color:var(--muted)">{{v.memberShort}}</span><svg class="ic" viewBox="0 0 24 24" width="20" height="20" style="color:var(--muted)"><use href="#i-chev"/></svg></button>
+            <button class="tap row" onClick="{{openScanVerify}}"><span class="tile sm"><svg class="ic" viewBox="0 0 24 24" width="21" height="21"><use href="#i-scan"/></svg></span><span style="flex:1;font-size:15px;font-weight:600">Verify a printed report</span><svg class="ic" viewBox="0 0 24 24" width="20" height="20" style="color:var(--muted)"><use href="#i-chev"/></svg></button>
+          </div>
+        </section>
+
+        <section style="display:flex;flex-direction:column;gap:8px">
+          <h2 class="cap" style="padding-left:6px">Information</h2>
+          <div class="list">
+            <button class="tap row" onClick="{{openAbout}}"><span class="tile sm"><svg class="ic" viewBox="0 0 24 24" width="21" height="21"><use href="#i-info"/></svg></span><span style="flex:1;font-size:15px;font-weight:600">About us</span><svg class="ic" viewBox="0 0 24 24" width="20" height="20" style="color:var(--muted)"><use href="#i-chev"/></svg></button>
+            <button class="tap row" onClick="{{openPrivacy}}"><span class="tile sm"><svg class="ic" viewBox="0 0 24 24" width="21" height="21"><use href="#i-lock"/></svg></span><span style="flex:1;font-size:15px;font-weight:600">Privacy policy</span><svg class="ic" viewBox="0 0 24 24" width="20" height="20" style="color:var(--muted)"><use href="#i-chev"/></svg></button>
+            <button class="tap row" onClick="{{openTerms}}"><span class="tile sm"><svg class="ic" viewBox="0 0 24 24" width="21" height="21"><use href="#i-doc"/></svg></span><span style="flex:1;font-size:15px;font-weight:600">Terms &amp; conditions</span><svg class="ic" viewBox="0 0 24 24" width="20" height="20" style="color:var(--muted)"><use href="#i-chev"/></svg></button>
+          </div>
+        </section>
+
+        <section style="display:flex;flex-direction:column;gap:8px">
+          <h2 class="cap" style="padding-left:6px">Feedback</h2>
+          <div class="list">
+            <button class="tap row" onClick="{{openRate}}"><span class="tile sm"><svg class="ic" viewBox="0 0 24 24" width="21" height="21"><use href="#i-star"/></svg></span><span style="flex:1;font-size:15px;font-weight:600">Rate us</span></button>
+            <button class="tap row" onClick="{{openProblem}}"><span class="tile sm"><svg class="ic" viewBox="0 0 24 24" width="21" height="21"><use href="#i-warn"/></svg></span><span style="flex:1;font-size:15px;font-weight:600">Report a problem</span><svg class="ic" viewBox="0 0 24 24" width="20" height="20" style="color:var(--muted)"><use href="#i-chev"/></svg></button>
+          </div>
+        </section>
+        <span style="text-align:center;font-size:12px;color:var(--muted)">My Health Now 3.2.0 · Metro Labs</span>
+      </div>
+    </sc-if>
+
+    <!-- ================= MY PROFILE ================= -->
+    <sc-if value="{{sc.myprofile}}" hint-placeholder-val="{{ false }}">
+      <div class="pg pgp">
+        <div style="background-image:linear-gradient(135deg,#005A52 0%,#014D3C 100%);color:#fff;border-radius:24px;padding:18px;display:flex;align-items:center;gap:16px">
+          <div style="width:68px;height:68px;border-radius:50%;flex:none;background:conic-gradient(#A0C032 {{v.pctDeg}}, rgba(255,255,255,.18) 0);display:grid;place-items:center"><span style="width:54px;height:54px;border-radius:50%;background:var(--forest);display:grid;place-items:center;font-size:15px;font-weight:700">{{v.pctLabel}}</span></div>
+          <div style="display:flex;flex-direction:column;gap:3px"><span style="font-size:17px;font-weight:700;letter-spacing:-.01em">{{v.pctTitle}}</span><span style="font-size:13px;color:#CFE3DF;line-height:1.45">{{v.pctHint}}</span></div>
+        </div>
+        <div class="list">
+          <sc-for list="{{profileRows}}" as="r" hint-placeholder-count="8">
+            <div class="row flat" style="min-height:56px;justify-content:space-between;gap:16px;font-size:14px"><span style="color:var(--muted)">{{r.k}}</span><span style="font-weight:600;text-align:right;color:{{r.color}}">{{r.v}}</span></div>
+          </sc-for>
+        </div>
+        <button class="tap btn" onClick="{{openEdit}}"><svg class="ic" viewBox="0 0 24 24" width="18" height="18"><use href="#i-edit"/></svg>Edit profile</button>
+      </div>
+    </sc-if>
+
+    <!-- ================= EDIT PROFILE ================= -->
+    <sc-if value="{{sc.editprofile}}" hint-placeholder-val="{{ false }}">
+      <div class="pg pgp" style="gap:18px">
+        <div class="fld">Phone number
+          <span style="display:flex;align-items:center;gap:8px"><span style="height:52px;display:grid;place-items:center;padding:0 14px;border-radius:16px;background:#fff;border:1.5px solid var(--edge);font-size:15px;color:var(--muted);flex:none">+977</span><input type="tel" inputmode="numeric" maxlength="10" class="{{fe.phoneCls}}" value="{{form.phone}}" onChange="{{onForm.phone}}" aria-label="Phone number"></span>
+          <sc-if value="{{fe.hasPhone}}" hint-placeholder-val="{{ false }}"><span class="errmsg">{{fe.phone}}</span></sc-if>
+        </div>
+        <label class="fld">Email
+          <input type="email" class="{{fe.emailCls}}" value="{{form.email}}" onChange="{{onForm.email}}" placeholder="name@example.com">
+          <sc-if value="{{fe.hasEmail}}" hint-placeholder-val="{{ false }}"><span class="errmsg">{{fe.email}}</span></sc-if>
+        </label>
+        <div class="fld">
+          <label class="fld">Date of birth (AD)
+            <input type="date" class="{{fe.dobCls}}" value="{{form.dob}}" max="{{v.todayIso}}" onChange="{{onForm.dob}}">
+          </label>
+          <sc-if value="{{fe.hasDobInfo}}" hint-placeholder-val="{{ false }}"><span style="font-size:13px;color:var(--green);font-weight:600">{{fe.dobInfo}}</span></sc-if>
+          <sc-if value="{{fe.hasDob}}" hint-placeholder-val="{{ false }}"><span class="errmsg">{{fe.dob}}</span></sc-if>
+        </div>
+        <div class="fld">Blood group
+          <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px">
+            <sc-for list="{{bloodChips}}" as="b" hint-placeholder-count="8"><button class="tap {{b.cls}}" onClick="{{b.pick}}" style="padding:0">{{b.label}}</button></sc-for>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px">
+          <div class="card" style="padding:14px 12px;display:flex;flex-direction:column;gap:8px;align-items:center"><span style="font-size:13px;font-weight:600;color:#33423E">Height</span><span style="font-size:26px;font-weight:700;letter-spacing:-.02em">{{form.height}}<span style="font-size:14px;font-weight:500;color:var(--muted)"> cm</span></span><div style="display:flex;gap:10px"><button class="tap" aria-label="Decrease height" onClick="{{hDown}}" style="width:48px;height:48px;border-radius:50%;border:0;background:var(--lime-soft);color:var(--forest);display:grid;place-items:center"><svg class="ic" viewBox="0 0 24 24" width="20" height="20" style="stroke-width:2.4"><use href="#i-minus"/></svg></button><button class="tap" aria-label="Increase height" onClick="{{hUp}}" style="width:48px;height:48px;border-radius:50%;border:0;background:var(--lime-soft);color:var(--forest);display:grid;place-items:center"><svg class="ic" viewBox="0 0 24 24" width="20" height="20" style="stroke-width:2.4"><use href="#i-plus"/></svg></button></div></div>
+          <div class="card" style="padding:14px 12px;display:flex;flex-direction:column;gap:8px;align-items:center"><span style="font-size:13px;font-weight:600;color:#33423E">Weight</span><span style="font-size:26px;font-weight:700;letter-spacing:-.02em">{{form.weight}}<span style="font-size:14px;font-weight:500;color:var(--muted)"> kg</span></span><div style="display:flex;gap:10px"><button class="tap" aria-label="Decrease weight" onClick="{{wDown}}" style="width:48px;height:48px;border-radius:50%;border:0;background:var(--lime-soft);color:var(--forest);display:grid;place-items:center"><svg class="ic" viewBox="0 0 24 24" width="20" height="20" style="stroke-width:2.4"><use href="#i-minus"/></svg></button><button class="tap" aria-label="Increase weight" onClick="{{wUp}}" style="width:48px;height:48px;border-radius:50%;border:0;background:var(--lime-soft);color:var(--forest);display:grid;place-items:center"><svg class="ic" viewBox="0 0 24 24" width="20" height="20" style="stroke-width:2.4"><use href="#i-plus"/></svg></button></div></div>
+        </div>
+        <sc-if value="{{v.saving}}" hint-placeholder-val="{{ false }}"><div role="status" class="btn g"><span class="spin" style="width:18px;height:18px;border-radius:50%;border:2px solid rgba(255,255,255,.35);border-top-color:#fff"></span>Saving…</div></sc-if>
+        <sc-if value="{{v.notSaving}}" hint-placeholder-val="{{ true }}"><button class="tap btn" onClick="{{saveProfile}}">Save</button></sc-if>
+      </div>
+    </sc-if>
+
+    <!-- ================= MEMBERS ================= -->
+    <sc-if value="{{sc.members}}" hint-placeholder-val="{{ false }}">
+      <div class="pg pgp">
+        <sc-if value="{{v.noMembers}}" hint-placeholder-val="{{ false }}">
+          <div class="empty" style="padding:34px 20px">
+            <div class="pop tile lg" style="width:76px;height:76px;border-radius:50%"><svg class="ic" viewBox="0 0 24 24" width="36" height="36"><use href="#i-userplus"/></svg></div>
+            <span style="font-size:17px;font-weight:600;letter-spacing:-.01em">No other member added yet</span>
+            <span class="sub">Add family members to book tests for them and keep their reports in one place.</span>
+          </div>
+        </sc-if>
+        <sc-if value="{{v.hasMembers}}" hint-placeholder-val="{{ true }}">
+          <div class="list">
+            <sc-for list="{{memberRows}}" as="m" hint-placeholder-count="1">
+              <button class="tap row" onClick="{{m.edit}}" style="min-height:72px"><span class="avatar soft" style="width:46px;height:46px;font-size:17px">{{m.initial}}</span><span style="flex:1;display:flex;flex-direction:column;gap:2px"><span style="font-size:15px;font-weight:600">{{m.name}}</span><span style="font-size:13px;color:var(--muted)">{{m.meta}}</span></span><span style="font-size:13px;font-weight:600;color:var(--green)">Edit</span></button>
+            </sc-for>
+          </div>
+        </sc-if>
+        <button class="tap btn" onClick="{{openAddMember}}"><svg class="ic" viewBox="0 0 24 24" width="18" height="18" style="stroke-width:2.4"><use href="#i-plus"/></svg>Add a member</button>
+      </div>
+    </sc-if>
+
+    <!-- ================= MEMBER FORM ================= -->
+    <sc-if value="{{sc.memberform}}" hint-placeholder-val="{{ false }}">
+      <div class="pg pgp" style="gap:18px">
+        <label class="fld">Full name
+          <input type="text" class="inp" value="{{mform.name}}" onChange="{{onM.name}}" placeholder="e.g. Sita Shrestha">
+        </label>
+        <div class="fld">Relation
+          <div style="display:flex;flex-wrap:wrap;gap:8px"><sc-for list="{{relChips}}" as="r" hint-placeholder-count="6"><button class="tap {{r.cls}}" onClick="{{r.pick}}">{{r.label}}</button></sc-for></div>
+        </div>
+        <div class="fld">Gender
+          <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px"><sc-for list="{{genChips}}" as="g" hint-placeholder-count="3"><button class="tap {{g.cls}}" onClick="{{g.pick}}">{{g.label}}</button></sc-for></div>
+        </div>
+        <label class="fld">Date of birth (AD)
+          <input type="date" class="inp" value="{{mform.dob}}" max="{{v.todayIso}}" onChange="{{onM.dob}}">
+        </label>
+        <sc-if value="{{v.hasMErr}}" hint-placeholder-val="{{ false }}"><div role="alert" class="alert">{{v.mErr}}</div></sc-if>
+        <button class="tap btn" onClick="{{saveMember}}">{{v.mSaveLabel}}</button>
+        <sc-if value="{{v.mEditing}}" hint-placeholder-val="{{ false }}"><button class="tap btn bad" onClick="{{removeMember}}">Remove member</button></sc-if>
+      </div>
+    </sc-if>
+
+    <!-- ================= REPORTS ================= -->
+    <sc-if value="{{sc.reports}}" hint-placeholder-val="{{ false }}">
+      <div class="pg pgt">
+        <sc-if value="{{v.noStack}}" hint-placeholder-val="{{ true }}"><h1 class="h1">Reports</h1></sc-if>
+        <button class="tap" onClick="{{openScanVerify}}" style="border:0;background:var(--lime-soft);border-radius:20px;padding:12px 16px;min-height:64px;display:flex;align-items:center;gap:12px;text-align:left;color:var(--forest)"><span class="tile sm" style="background:#fff"><svg class="ic" viewBox="0 0 24 24" width="22" height="22"><use href="#i-scan"/></svg></span><span style="flex:1;display:flex;flex-direction:column;gap:1px"><span style="font-size:14px;font-weight:600">Verify a printed report</span><span style="font-size:12px;color:#3F5A52">Scan the QR code on the paper copy</span></span><svg class="ic" viewBox="0 0 24 24" width="20" height="20"><use href="#i-chev"/></svg></button>
+        <sc-if value="{{v.hasMembers}}" hint-placeholder-val="{{ true }}">
+          <div class="noscroll" style="display:flex;gap:8px;overflow-x:auto;margin:0 -16px;padding:0 16px">
+            <sc-for list="{{repWho}}" as="w" hint-placeholder-count="2"><button class="tap {{w.cls}}" onClick="{{w.pick}}">{{w.label}}</button></sc-for>
+          </div>
+        </sc-if>
+        <sc-if value="{{v.repEmpty}}" hint-placeholder-val="{{ false }}">
+          <div class="empty"><span class="tile lg" style="border-radius:50%;width:64px;height:64px"><svg class="ic" viewBox="0 0 24 24" width="30" height="30"><use href="#i-doc"/></svg></span><span style="font-size:16px;font-weight:600">No reports yet for {{v.repName}}</span><span class="sub">Book a test for them and their reports will show here.</span></div>
+        </sc-if>
+        <div class="list">
+          <sc-for list="{{reportRows}}" as="r" hint-placeholder-count="3">
+            <button class="tap row" onClick="{{r.open}}" style="min-height:76px"><span class="tile"><svg class="ic" viewBox="0 0 24 24" width="22" height="22"><use href="#i-doc"/></svg></span><span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px"><span style="font-size:15px;font-weight:600;line-height:1.3">{{r.name}}</span><span style="font-size:12px;color:var(--muted)">{{r.sub}}</span></span><span class="{{r.stCls}}">{{r.status}}</span></button>
+          </sc-for>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- ================= REPORT DETAIL ================= -->
+    <sc-if value="{{sc.report}}" hint-placeholder-val="{{ false }}">
+      <div class="pg pgp" style="gap:14px">
+        <sc-if value="{{v.verified}}" hint-placeholder-val="{{ false }}">
+          <div class="pgt" style="background:#E4F4DE;color:#14612F;border-radius:20px;padding:14px 16px;display:flex;gap:12px;align-items:flex-start">
+            <svg class="ic" viewBox="0 0 24 24" width="26" height="26" style="margin-top:1px;stroke-width:2.2"><use href="#i-shield"/></svg>
+            <div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:15px;font-weight:600">Verified authentic</span><span style="font-size:13px;line-height:1.5">This printed copy matches the report issued by Metro Labs on {{v.repDate}}. Report ID {{v.repAcc}}.</span></div>
+          </div>
+        </sc-if>
+
+        <section class="card" style="overflow:hidden">
+          <div style="padding:16px 16px 14px;display:flex;align-items:center;justify-content:space-between;gap:12px;border-bottom:1px solid var(--line)">
+            <img src="/_blob/2c5f4d9357fe0a0081e8f41e76b02e8f" alt="Metro Labs" style="height:30px;width:auto;display:block">
+            <span class="chip ok"><svg class="ic" viewBox="0 0 24 24" width="13" height="13" style="stroke-width:2.6"><use href="#i-check"/></svg>Final report</span>
+          </div>
+          <div style="padding:16px;display:flex;flex-direction:column;gap:14px">
+            <h2 style="font-size:20px;font-weight:700;letter-spacing:-.02em;color:var(--forest);line-height:1.25">{{v.repTitle}}</h2>
+            <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 16px">
+              <div style="display:flex;flex-direction:column;gap:1px"><span class="cap" style="font-size:10.5px">Patient</span><span style="font-size:14px;font-weight:600">{{v.repOwner}}</span></div>
+              <div style="display:flex;flex-direction:column;gap:1px"><span class="cap" style="font-size:10.5px">Age / sex</span><span style="font-size:14px;font-weight:600;text-transform:capitalize">{{v.repAge}} / {{v.repSex}}</span></div>
+              <div style="display:flex;flex-direction:column;gap:1px"><span class="cap" style="font-size:10.5px">Report ID</span><span style="font-size:14px;font-weight:600">{{v.repAcc}}</span></div>
+              <div style="display:flex;flex-direction:column;gap:1px"><span class="cap" style="font-size:10.5px">Sample</span><span style="font-size:14px;font-weight:600;line-height:1.35">{{v.repSample}}</span></div>
+              <div style="display:flex;flex-direction:column;gap:1px"><span class="cap" style="font-size:10.5px">Collected</span><span style="font-size:14px;font-weight:600">{{v.repDate}}, 7:48 AM</span></div>
+              <div style="display:flex;flex-direction:column;gap:1px"><span class="cap" style="font-size:10.5px">Reported</span><span style="font-size:14px;font-weight:600">{{v.repDate}}, 2:15 PM</span></div>
+              <div style="display:flex;flex-direction:column;gap:1px"><span class="cap" style="font-size:10.5px">Referred by</span><span style="font-size:14px;font-weight:600">{{v.repBy}}</span></div>
+            </div>
+          </div>
+        </section>
+
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+          <sc-if value="{{v.hasFlag}}" hint-placeholder-val="{{ true }}"><span style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:#7A4B00;line-height:1.35"><svg class="ic" viewBox="0 0 24 24" width="18" height="18"><use href="#i-warn"/></svg>{{v.flagLine}}</span></sc-if>
+          <sc-if value="{{v.allOk}}" hint-placeholder-val="{{ false }}"><span style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:#14612F"><svg class="ic" viewBox="0 0 24 24" width="18" height="18"><use href="#i-checkc"/></svg>{{v.repSummary}}</span></sc-if>
+        </div>
+        <div style="display:flex;gap:8px"><sc-for list="{{repFilters}}" as="f" hint-placeholder-count="2"><button class="tap {{f.cls}}" onClick="{{f.pick}}">{{f.label}}</button></sc-for></div>
+
+        <section class="list" aria-label="Results">
+          <div style="display:flex;justify-content:space-between;padding:12px 16px;background:#F7F8F4;font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)"><span>Parameter</span><span>Result · Status</span></div>
+          <sc-for list="{{reportVals}}" as="r" hint-placeholder-count="6">
+            <div class="{{r.rowCls}}">
+              <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
+                <div style="display:flex;flex-direction:column;gap:2px;min-width:0"><span style="font-size:14px;font-weight:600;line-height:1.35">{{r.name}}</span><span style="font-size:12px;color:var(--muted)">Ref. {{r.range}}</span></div>
+                <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex:none"><span style="font-size:16px;font-weight:700;color:{{r.valColor}};white-space:nowrap">{{r.value}} <span style="font-size:11px;font-weight:500;color:var(--muted)">{{r.unit}}</span></span><span class="{{r.flagCls}} sq" style="padding:3px 9px 3px 7px"><svg class="ic" viewBox="0 0 24 24" width="13" height="13" style="stroke-width:2.8"><path d="{{r.d}}"/></svg>{{r.flag}}</span></div>
+              </div>
+              <div class="rbar" aria-hidden="true"><span class="rzone" style="left:{{r.zl}};width:{{r.zw}}"></span><span class="rmk" style="left:{{r.pos}};background:{{r.mk}}"></span></div>
+            </div>
+          </sc-for>
+        </section>
+
+        <section class="card p" style="display:flex;flex-direction:column;gap:8px">
+          <span class="cap">Pathologist’s comment</span>
+          <p style="font-size:14px;line-height:1.6;color:#33423E">{{v.repNote}}</p>
+          <hr class="hr" style="margin:6px 0">
+          <div style="display:flex;align-items:center;gap:12px"><span class="avatar soft" style="width:42px;height:42px;font-size:14px">{{v.repPathInit}}</span><div style="display:flex;flex-direction:column;gap:1px"><span style="font-size:14px;font-weight:600">{{v.repPath}}</span><span style="font-size:12px;color:var(--muted)">{{v.repPathRole}} · Metro Labs</span></div></div>
+        </section>
+        <span style="font-size:12px;color:var(--muted);line-height:1.55;padding:0 4px">Reference ranges are specific to this laboratory and method. A result outside the range is not a diagnosis. Please discuss it with your doctor.</span>
+
+        <button class="tap btn" onClick="{{pdfToast}}"><svg class="ic" viewBox="0 0 24 24" width="18" height="18"><use href="#i-download"/></svg>Download PDF</button>
+        <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px">
+          <button class="tap btn line" onClick="{{shareToast}}" style="padding:0 12px"><svg class="ic" viewBox="0 0 24 24" width="18" height="18"><use href="#i-share"/></svg>Share</button>
+          <sc-if value="{{v.notVerified}}" hint-placeholder-val="{{ true }}"><button class="tap btn soft" onClick="{{openScanVerify}}" style="padding:0 12px"><svg class="ic" viewBox="0 0 24 24" width="18" height="18"><use href="#i-scan"/></svg>Verify print</button></sc-if>
+          <sc-if value="{{v.verified}}" hint-placeholder-val="{{ false }}"><button class="tap btn soft" onClick="{{openScanVerify}}" style="padding:0 12px"><svg class="ic" viewBox="0 0 24 24" width="18" height="18"><use href="#i-scan"/></svg>Scan another</button></sc-if>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- ================= BOOKINGS ================= -->
+    <sc-if value="{{sc.bookings}}" hint-placeholder-val="{{ false }}">
+      <div class="pg pgp">
+        <div class="segwrap" role="tablist"><sc-for list="{{bkTabs}}" as="t" hint-placeholder-count="2"><button role="tab" class="tap {{t.cls}}" onClick="{{t.pick}}">{{t.label}}</button></sc-for></div>
+        <sc-if value="{{v.noBookings}}" hint-placeholder-val="{{ false }}">
+          <div class="empty"><span class="tile lg" style="border-radius:50%;width:64px;height:64px"><svg class="ic" viewBox="0 0 24 24" width="30" height="30"><use href="#i-calcheck"/></svg></span><span style="font-size:16px;font-weight:600">{{v.bkEmptyTitle}}</span><span class="sub">{{v.bkEmptySub}}</span><button class="tap btn sm" onClick="{{goTests}}" style="margin-top:4px">Book a test</button></div>
+        </sc-if>
+        <sc-for list="{{bkShown}}" as="b" hint-placeholder-count="2">
+          <div class="card p pgt" style="display:flex;flex-direction:column;gap:10px">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span style="font-size:13px;font-weight:600;color:var(--muted)">{{b.id}}</span><span class="{{b.stCls}}">{{b.status}}</span></div>
+            <span style="font-size:16px;font-weight:600;letter-spacing:-.01em">{{b.when}}</span>
+            <span style="font-size:14px;color:#33423E">{{b.who}} · {{b.where}}</span>
+            <span style="font-size:13px;color:var(--muted);line-height:1.5">{{b.items}}</span>
+            <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:16px;font-weight:700">{{b.total}}</span><span style="font-size:13px;color:var(--muted)">{{b.method}}</span></div>
+            <sc-if value="{{b.isUp}}" hint-placeholder-val="{{ true }}">
+              <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:2px"><button class="tap btn line sm" onClick="{{b.resched}}" style="width:100%;padding:0 10px">Reschedule</button><button class="tap btn bad sm" onClick="{{b.cancel}}" style="width:100%;padding:0 10px">Cancel</button></div>
+            </sc-if>
+            <sc-if value="{{b.notUp}}" hint-placeholder-val="{{ false }}"><button class="tap btn soft sm" onClick="{{b.again}}" style="width:100%"><svg class="ic" viewBox="0 0 24 24" width="17" height="17"><use href="#i-repeat"/></svg>Book again</button></sc-if>
+          </div>
+        </sc-for>
+      </div>
+    </sc-if>
+
+    <!-- ================= MEMBERSHIP ================= -->
+    <sc-if value="{{sc.membership}}" hint-placeholder-val="{{ false }}">
+      <div class="pg pgp">
+        <sc-if value="{{v.isMember}}" hint-placeholder-val="{{ false }}">
+          <div class="pop" style="background-image:linear-gradient(135deg,#005A52 0%,#2F7D46 58%,#A0C032 100%);color:#fff;border-radius:24px;padding:20px;display:flex;flex-direction:column;gap:14px;position:relative;overflow:hidden">
+            <div aria-hidden="true" style="position:absolute;right:-30px;top:-30px;width:130px;height:130px;border-radius:50%;border:22px solid rgba(255,255,255,.1)"></div>
+            <span class="cap" style="position:relative;color:var(--pop)">Active membership</span>
+            <span style="position:relative;font-size:22px;font-weight:700;letter-spacing:-.02em">{{v.memberLabel}}</span>
+            <div style="position:relative;display:flex;justify-content:space-between;font-size:13px"><span>ID {{v.memId}}</span><span>Valid until {{v.memUntil}}</span></div>
+          </div>
+        </sc-if>
+        <p class="sub">{{v.memIntro}}</p>
+        <sc-for list="{{memCards}}" as="m" hint-placeholder-count="2">
+          <button class="tap" onClick="{{m.pick}}" style="border:0;padding:0;border-radius:24px;background:transparent;text-align:left;display:block;width:100%">
+            <span style="display:flex;flex-direction:column;gap:12px;border-radius:24px;background:{{m.color}};color:#fff;padding:20px;position:relative;overflow:hidden;box-shadow:0 0 0 3px {{m.ring}}">
+              <span aria-hidden="true" style="position:absolute;right:-30px;top:-30px;width:130px;height:130px;border-radius:50%;border:20px solid rgba(255,255,255,.08)"></span>
+              <span style="position:relative;display:flex;justify-content:space-between;align-items:center"><span style="font-size:18px;font-weight:700;letter-spacing:-.01em">{{m.name}}</span><span style="width:28px;height:28px;border-radius:50%;border:2px solid rgba(255,255,255,.8);display:grid;place-items:center"><span style="width:14px;height:14px;border-radius:50%;background:{{m.dot}}"></span></span></span>
+              <span style="position:relative;display:flex;align-items:baseline;gap:6px"><span style="font-size:28px;font-weight:700;letter-spacing:-.02em">{{m.priceStr}}</span><span style="font-size:13px;color:rgba(255,255,255,.85)">/ year</span></span>
+              <span style="position:relative;font-size:14px;color:rgba(255,255,255,.92);line-height:1.5">{{m.desc}}</span>
+            </span>
+          </button>
+        </sc-for>
+        <section class="card p" style="display:flex;flex-direction:column;gap:12px">
+          <h3 style="font-size:15px;font-weight:600">Benefits</h3>
+          <span style="font-size:14px;display:flex;gap:10px;align-items:flex-start;line-height:1.45"><svg class="ic" viewBox="0 0 24 24" width="20" height="20" style="color:var(--green);stroke-width:2.6;margin-top:1px"><use href="#i-check"/></svg>10% member price on every test and package</span>
+          <span style="font-size:14px;display:flex;gap:10px;align-items:flex-start;line-height:1.45"><svg class="ic" viewBox="0 0 24 24" width="20" height="20" style="color:var(--green);stroke-width:2.6;margin-top:1px"><use href="#i-check"/></svg>Free home collection on every booking, whatever the order size</span>
+          <span style="font-size:14px;display:flex;gap:10px;align-items:flex-start;line-height:1.45"><svg class="ic" viewBox="0 0 24 24" width="20" height="20" style="color:var(--green);stroke-width:2.6;margin-top:1px"><use href="#i-check"/></svg>Priority early-morning slots, 6:30 to 8:30 AM</span>
+          <span style="font-size:14px;display:flex;gap:10px;align-items:flex-start;line-height:1.45"><svg class="ic" viewBox="0 0 24 24" width="20" height="20" style="color:var(--green);stroke-width:2.6;margin-top:1px"><use href="#i-check"/></svg>Valid for 12 months from activation</span>
+        </section>
+        <sc-if value="{{v.memBusy}}" hint-placeholder-val="{{ false }}"><div role="status" class="btn g"><span class="spin" style="width:18px;height:18px;border-radius:50%;border:2px solid rgba(255,255,255,.35);border-top-color:#fff"></span>Activating…</div></sc-if>
+        <sc-if value="{{v.memIdle}}" hint-placeholder-val="{{ true }}"><button class="tap btn" onClick="{{activateMem}}">{{v.memCta}}</button></sc-if>
+      </div>
+    </sc-if>
+
+    <!-- ================= ABOUT ================= -->
+    <sc-if value="{{sc.about}}" hint-placeholder-val="{{ false }}">
+      <div class="pg pgp">
+        <div style="background-image:linear-gradient(160deg,#014D3C 0%,#005A52 100%);border-radius:24px;padding:24px 20px;display:flex;flex-direction:column;align-items:center;gap:14px;color:#fff;text-align:center">
+          <img src="/_blob/85cade1dfb098820c95d56491befdc07" alt="Metro Labs" style="height:44px;width:auto;display:block">
+          <span style="font-size:13px;color:#BFE0D6;letter-spacing:.04em">Leading with quality</span>
+        </div>
+        <section class="card p" style="display:flex;flex-direction:column;gap:10px">
+          <h2 class="h2">Metro Labs</h2>
+          <p style="font-size:14px;line-height:1.65;color:#33423E">Metro Labs is a diagnostic laboratory in Kathmandu, built around one promise: leading with quality. Every sample is processed in our own lab, and every report is reviewed by a consultant pathologist before it reaches you.</p>
+          <p style="font-size:14px;line-height:1.65;color:#33423E">My Health Now is our app for booking tests, home sample collection and reports. Book for yourself or your family, follow your collection, and keep every report in one place.</p>
+        </section>
+        <div class="list">
+          <div class="row flat"><span class="tile sm"><svg class="ic" viewBox="0 0 24 24" width="21" height="21"><use href="#i-shield"/></svg></span><span style="font-size:15px;font-weight:600">[Accreditations and certificates: add before launch]</span></div>
+          <div class="row flat"><span class="tile sm"><svg class="ic" viewBox="0 0 24 24" width="21" height="21"><use href="#i-pin"/></svg></span><span style="display:flex;flex-direction:column;gap:1px"><span style="font-size:15px;font-weight:600">Baneshwor Branch</span><span style="font-size:12px;color:var(--muted)">Shankhamul Road, New Baneshwor · Open daily 6:30 AM – 7:00 PM</span></span></div>
+        </div>
+        <div class="list">
+          <button class="tap row" onClick="{{openPrivacy}}"><span style="flex:1;font-size:15px;font-weight:600">Privacy policy</span><svg class="ic" viewBox="0 0 24 24" width="20" height="20" style="color:var(--muted)"><use href="#i-chev"/></svg></button>
+          <button class="tap row" onClick="{{openTerms}}"><span style="flex:1;font-size:15px;font-weight:600">Terms &amp; conditions</span><svg class="ic" viewBox="0 0 24 24" width="20" height="20" style="color:var(--muted)"><use href="#i-chev"/></svg></button>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:center;gap:10px"><img src="/_blob/0babe020663924e19939fb8bdeb72484" alt="" style="height:28px;width:auto;display:block"><span style="font-size:12px;color:var(--muted)">My Health Now 3.2.0</span></div>
+      </div>
+    </sc-if>
+
+    <!-- ================= REPORT A PROBLEM ================= -->
+    <sc-if value="{{sc.problem}}" hint-placeholder-val="{{ false }}">
+      <div class="pg pgp" style="gap:18px">
+        <div class="fld">What went wrong?
+          <div style="display:flex;flex-wrap:wrap;gap:8px"><sc-for list="{{probChips}}" as="c" hint-placeholder-count="6"><button class="tap {{c.cls}}" onClick="{{c.pick}}">{{c.label}}</button></sc-for></div>
+        </div>
+        <sc-if value="{{v.hasBookings}}" hint-placeholder-val="{{ true }}">
+          <div class="fld">Related booking (optional)
+            <sc-for list="{{probBookings}}" as="b" hint-placeholder-count="3"><button class="tap {{b.cls}}" onClick="{{b.pick}}"><span style="font-size:14px;font-weight:600">{{b.id}} · {{b.when}}</span><span style="font-size:12px;color:var(--muted);font-weight:500">{{b.items}}</span></button></sc-for>
+          </div>
+        </sc-if>
+        <label class="fld">Describe it briefly
+          <textarea class="inp" value="{{v.probText}}" onChange="{{onProbText}}" rows="4" placeholder="What happened, and when?"></textarea>
+        </label>
+        <sc-if value="{{v.hasProbErr}}" hint-placeholder-val="{{ false }}"><div role="alert" class="alert">{{v.probErr}}</div></sc-if>
+        <button class="tap btn" onClick="{{sendProblem}}">Send report</button>
+      </div>
+    </sc-if>
+
+    <!-- ================= SCAN (referral slip barcode / report QR) ================= -->
+    <sc-if value="{{sc.scan}}" hint-placeholder-val="{{ false }}">
+      <div class="pg pgp" style="gap:18px;color:#fff;padding-top:8px">
+        <div class="segwrap dk" role="tablist"><sc-for list="{{scanTabs}}" as="t" hint-placeholder-count="2"><button role="tab" class="tap {{t.cls}}" onClick="{{t.pick}}">{{t.label}}</button></sc-for></div>
+
+        <div role="img" aria-label="Camera viewfinder" style="height:320px;border-radius:28px;background:{{v.vfBg}};position:relative;overflow:hidden;transition:background .25s ease">
+          <sc-if value="{{v.scanRx}}" hint-placeholder-val="{{ true }}">
+            <div aria-hidden="true" style="position:absolute;left:50%;top:50%;width:196px;height:230px;margin:-115px 0 0 -98px;border-radius:10px;background:rgba(255,255,255,.07);transform:rotate(-3deg);padding:18px 16px;display:flex;flex-direction:column;gap:9px">
+              <span style="height:7px;width:62%;border-radius:4px;background:rgba(255,255,255,.18)"></span>
+              <span style="height:5px;width:88%;border-radius:3px;background:rgba(255,255,255,.12)"></span>
+              <span style="height:5px;width:76%;border-radius:3px;background:rgba(255,255,255,.12)"></span>
+              <span style="height:5px;width:82%;border-radius:3px;background:rgba(255,255,255,.12)"></span>
+              <span style="height:5px;width:48%;border-radius:3px;background:rgba(255,255,255,.12)"></span>
+              <span style="margin-top:auto;height:44px;border-radius:4px;background:repeating-linear-gradient(90deg,rgba(255,255,255,.34) 0 2px,transparent 2px 5px,rgba(255,255,255,.34) 5px 6px,transparent 6px 10px,rgba(255,255,255,.34) 10px 13px,transparent 13px 16px)"></span>
+            </div>
+          </sc-if>
+          <sc-if value="{{v.scanVerify}}" hint-placeholder-val="{{ false }}">
+            <svg aria-hidden="true" viewBox="-2 -2 25 25" width="170" height="170" shape-rendering="crispEdges" style="position:absolute;left:50%;top:50%;margin:-85px 0 0 -85px;transform:rotate(2deg)"><path d="{{v.qrVerify}}" fill="rgba(255,255,255,.22)" fill-rule="evenodd"/></svg>
+          </sc-if>
+          <span aria-hidden="true" style="position:absolute;top:24px;left:24px;width:36px;height:36px;border-top:4px solid var(--lime);border-left:4px solid var(--lime);border-radius:12px 0 0 0"></span>
+          <span aria-hidden="true" style="position:absolute;top:24px;right:24px;width:36px;height:36px;border-top:4px solid var(--lime);border-right:4px solid var(--lime);border-radius:0 12px 0 0"></span>
+          <span aria-hidden="true" style="position:absolute;bottom:24px;left:24px;width:36px;height:36px;border-bottom:4px solid var(--lime);border-left:4px solid var(--lime);border-radius:0 0 0 12px"></span>
+          <span aria-hidden="true" style="position:absolute;bottom:24px;right:24px;width:36px;height:36px;border-bottom:4px solid var(--lime);border-right:4px solid var(--lime);border-radius:0 0 12px 0"></span>
+          <sc-if value="{{v.scanSearching}}" hint-placeholder-val="{{ true }}"><span class="scanline" aria-hidden="true" style="position:absolute;left:30px;right:30px;top:36px;height:3px;border-radius:2px;background:var(--lime);box-shadow:0 0 10px 1px rgba(160,192,50,.55)"></span></sc-if>
+          <sc-if value="{{v.scanFound}}" hint-placeholder-val="{{ false }}">
+            <div class="fadein" style="position:absolute;inset:0;background:rgba(160,192,50,.14);display:grid;place-items:center">
+              <span class="pop" style="background:var(--lime);color:#00362F;border-radius:999px;min-height:48px;padding:0 20px;display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:600"><svg class="ic" viewBox="0 0 24 24" width="20" height="20" style="stroke-width:2.8"><use href="#i-check"/></svg>{{v.scanFoundLabel}}</span>
+            </div>
+          </sc-if>
+        </div>
+
+        <span role="status" style="text-align:center;font-size:14px;line-height:1.55;color:#CFE3DF;padding:0 8px">{{v.scanHint}}</span>
+
+        <div style="display:flex;justify-content:center;gap:36px;margin-top:4px">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:8px"><button class="tap {{v.flashCls}}" aria-label="Toggle flash" aria-pressed="{{v.flashPressed}}" onClick="{{toggleFlash}}"><svg class="ic" viewBox="0 0 24 24" width="24" height="24"><use href="#i-flash"/></svg></button><span style="font-size:12px;color:#BFD3CE">Flash</span></div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:8px"><button class="tap rnd" aria-label="Choose a photo from your gallery" onClick="{{pickGallery}}"><svg class="ic" viewBox="0 0 24 24" width="24" height="24"><use href="#i-image"/></svg></button><span style="font-size:12px;color:#BFD3CE">From gallery</span></div>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- ================= SCAN RESULT (referral slip) ================= -->
+    <sc-if value="{{sc.scanresult}}" hint-placeholder-val="{{ false }}">
+      <div class="pg pgp">
+        <section class="card p" style="display:flex;flex-direction:column;gap:14px">
+          <div style="display:flex;align-items:center;gap:14px"><span class="pop tile lg dk" style="border-radius:50%"><svg class="ic" viewBox="0 0 24 24" width="26" height="26" style="stroke-width:2.6"><use href="#i-check"/></svg></span><div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:17px;font-weight:600;letter-spacing:-.01em">Referral slip read</span><span style="font-size:13px;color:var(--muted)">Slip {{v.slipCode}}</span></div></div>
+          <hr class="hr">
+          <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 16px">
+            <div style="display:flex;flex-direction:column;gap:1px"><span class="cap" style="font-size:10.5px">Referred by</span><span style="font-size:14px;font-weight:600">{{v.slipDoctor}}</span></div>
+            <div style="display:flex;flex-direction:column;gap:1px"><span class="cap" style="font-size:10.5px">Date</span><span style="font-size:14px;font-weight:600">{{v.slipDate}}</span></div>
+          </div>
+          <span style="font-size:13px;color:var(--muted)">{{v.slipRole}}</span>
+        </section>
+
+        <section style="display:flex;flex-direction:column;gap:8px">
+          <h2 class="h2">Tests on this slip</h2>
+          <div class="list">
+            <sc-for list="{{slipItems}}" as="it" hint-placeholder-count="4">
+              <button class="tap row flat" role="checkbox" aria-checked="{{it.ariaOn}}" onClick="{{it.toggle}}" style="min-height:72px"><span class="{{it.cls}}"><svg class="ic" viewBox="0 0 24 24" width="16" height="16" style="stroke-width:3.2"><use href="#i-check"/></svg></span><span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px"><span style="font-size:14px;font-weight:600;line-height:1.35">{{it.name}}</span><span style="font-size:12px;color:var(--muted)">{{it.meta}}</span></span><span style="font-size:14px;font-weight:700;white-space:nowrap">{{it.priceStr}}</span></button>
+            </sc-for>
+          </div>
+        </section>
+
+        <div class="note"><svg class="ic" viewBox="0 0 24 24" width="20" height="20" style="margin-top:1px"><use href="#i-warn"/></svg><span><b>{{v.slipUnmatched}}</b> could not be matched to a test in the app. Call us on [lab phone number] and we will add it to your booking.</span></div>
+
+        <sc-if value="{{v.slipSome}}" hint-placeholder-val="{{ true }}"><button class="tap btn" onClick="{{addSlip}}">{{v.slipCta}}</button></sc-if>
+        <sc-if value="{{v.slipNone}}" hint-placeholder-val="{{ false }}"><button class="btn dis" aria-disabled="true" onClick="{{nothing}}">Select at least one test</button></sc-if>
+        <button class="tap btn line" onClick="{{scanAgain}}"><svg class="ic" viewBox="0 0 24 24" width="18" height="18"><use href="#i-scan"/></svg>Scan again</button>
+      </div>
+    </sc-if>
+
+    <!-- ================= PRIVACY POLICY ================= -->
+    <sc-if value="{{sc.privacy}}" hint-placeholder-val="{{ false }}">
+      <div class="pg pgp legal" style="gap:20px">
+        <div style="display:flex;flex-direction:column;gap:6px"><div class="h1">Privacy policy</div><span class="sub" style="font-size:13px">Effective 1 November 2026 · Version 1.0</span></div>
+        <p class="sub" style="color:#33423E">Your health information is personal. This policy explains what My Health Now collects, why, and the choices you have.</p>
+        <section><h2>What we collect</h2><p>Your name, mobile number, date of birth, gender, blood group, height and weight; the details of family members you add; your bookings and payment method; and the test results we produce for you. We ask for your address only when you book a home collection.</p></section>
+        <section><h2>How we use it</h2><p>To book and carry out your tests, prepare and deliver your reports, send booking and report notifications, and improve our service. We do not sell your information and we do not use it for advertising.</p></section>
+        <section><h2>Who can see your reports</h2><p>You, the family members’ reports you manage under your account, and the Metro Labs staff who process your sample. A doctor sees a report only if you share it with them.</p></section>
+        <section><h2>Who we share data with</h2><p>Payment providers (eSewa, Khalti, Fonepay and card networks) to take payment. Our phlebotomists, for the address and time of a collection. Authorities, only where the law requires it.</p></section>
+        <section><h2>Storage and security</h2><p>Your data is encrypted in transit and at rest. Staff access is limited to what their job needs and is logged. Lab records that the law requires us to keep are retained for the period the law sets.</p></section>
+        <section><h2>Your choices</h2><p>You can view and correct your details in Profile, remove a family member at any time, and ask us to delete your account and data through Report a problem. We confirm deletion within 30 days.</p></section>
+        <section><h2>Contact</h2><p>Questions about this policy: [privacy email] or [lab phone number].</p></section>
+      </div>
+    </sc-if>
+
+    <!-- ================= TERMS & CONDITIONS ================= -->
+    <sc-if value="{{sc.terms}}" hint-placeholder-val="{{ false }}">
+      <div class="pg pgp legal" style="gap:20px">
+        <div style="display:flex;flex-direction:column;gap:6px"><div class="h1">Terms &amp; conditions</div><span class="sub" style="font-size:13px">Effective 1 November 2026 · Version 1.0</span></div>
+        <p class="sub" style="color:#33423E">By using My Health Now you agree to these terms. The app is operated by Metro Labs, Kathmandu.</p>
+        <section><h2>Bookings and collection</h2><p>A booking is confirmed once you receive a booking ID. Please be available at your address during the slot you chose and follow the fasting guidance shown on each test. If you are not available we call twice before marking the visit as missed.</p></section>
+        <section><h2>Prices and payment</h2><p>Prices are in Nepali rupees and include applicable taxes. Member prices apply to bookings made while your membership is active. Home collection is Rs 150 on orders below Rs 1,500 and free otherwise. You can pay by eSewa, Khalti, Fonepay, card or cash on collection.</p></section>
+        <section><h2>Cancellation and rescheduling</h2><p>You can cancel or reschedule free of charge up to 4 hours before your slot. After that, or once our phlebotomist has left for your address, a Rs 200 visit fee applies. Prepaid amounts are refunded to your wallet or card within 3 to 5 working days.</p></section>
+        <section><h2>Reports</h2><p>Reports are released after a pathologist has reviewed them. A report is not a diagnosis. Please discuss your results with your doctor before making any medical decision. Use the QR code on a printed report to confirm it is genuine.</p></section>
+        <section><h2>Memberships</h2><p>A membership lasts 12 months from activation and applies to the people named on your plan. It cannot be transferred, and it is not refundable once a booking has used a member price.</p></section>
+        <section><h2>Your account</h2><p>Keep your phone number up to date and do not share your login. You are responsible for the details you enter for family members, and you confirm you are allowed to book tests for them.</p></section>
+        <section><h2>Contact</h2><p>Questions about these terms: [care email] or [lab phone number].</p></section>
+      </div>
+    </sc-if>
+
+  </div>
+
+  <!-- ================= CART BAR ================= -->
+  <sc-if value="{{v.showCartBar}}" hint-placeholder-val="{{ false }}">
+    <div class="cartbar sheetin">
+      <button class="tap" onClick="{{openCart}}" style="width:100%;min-height:56px;border-radius:999px;border:0;background:var(--green);color:#fff;display:flex;align-items:center;gap:12px;padding:0 8px 0 20px;text-align:left">
+        <span style="flex:1;display:flex;flex-direction:column;line-height:1.25"><span style="font-size:12px;color:#BFE0D6">{{v.cartCountLabel}}</span><span style="font-size:16px;font-weight:700">{{v.total}}</span></span>
+        <span style="min-height:44px;padding:0 18px;border-radius:999px;background:var(--lime);color:#00362F;font-size:14px;font-weight:600;display:inline-flex;align-items:center;gap:4px">View cart<svg class="ic" viewBox="0 0 24 24" width="18" height="18"><use href="#i-chev"/></svg></span>
+      </button>
+    </div>
+  </sc-if>
+
+  <!-- ================= FOOTER (cart, book, pay) ================= -->
+  <sc-if value="{{v.hasFoot}}" hint-placeholder-val="{{ false }}">
+    <div class="foot">
+      <div style="display:flex;flex-direction:column;line-height:1.25;min-width:0"><span style="font-size:12px;color:var(--muted)">Total</span><span style="font-size:19px;font-weight:700;letter-spacing:-.02em">{{v.total}}</span></div>
+      <sc-if value="{{v.paying}}" hint-placeholder-val="{{ false }}">
+        <div role="status" class="btn g" style="flex:1;width:auto"><span class="spin" style="width:18px;height:18px;border-radius:50%;border:2px solid rgba(255,255,255,.35);border-top-color:#fff"></span>Processing…</div>
+      </sc-if>
+      <sc-if value="{{v.notPaying}}" hint-placeholder-val="{{ true }}">
+        <button class="tap btn" onClick="{{footGo}}" style="flex:1;width:auto">{{v.footBtn}}</button>
+      </sc-if>
+    </div>
+  </sc-if>
+
+  <!-- ================= NAV ================= -->
+  <sc-if value="{{v.showNav}}" hint-placeholder-val="{{ true }}">
+    <nav class="nav" aria-label="Main">
+      <sc-for list="{{tabs}}" as="t" hint-placeholder-count="5">
+        <button class="tap tb {{t.cls}}" onClick="{{t.go}}" aria-current="{{t.cur}}">
+          <sc-if value="{{t.active}}" hint-placeholder-val="{{ false }}"><span class="fab"><svg class="ic" viewBox="0 0 24 24" width="26" height="26"><path d="{{t.d}}"/></svg></span></sc-if>
+          <sc-if value="{{t.idle}}" hint-placeholder-val="{{ true }}"><svg class="ic" viewBox="0 0 24 24" width="26" height="26"><path d="{{t.d}}"/></svg></sc-if>
+          <span style="margin-top:{{t.gap}}">{{t.label}}</span>
+        </button>
+      </sc-for>
+    </nav>
+  </sc-if>
+
+  <!-- ================= TOAST ================= -->
+  <sc-if value="{{v.hasToast}}" hint-placeholder-val="{{ false }}">
+    <div role="status" class="toastin" style="position:absolute;left:16px;right:16px;top:14px;background:var(--ink);color:#fff;border-radius:18px;padding:14px 16px;font-size:14px;font-weight:500;line-height:1.4;display:flex;align-items:flex-start;gap:10px;z-index:20">
+      <svg class="ic" viewBox="0 0 24 24" width="20" height="20" style="color:var(--lime);stroke-width:2.6;margin-top:1px"><use href="#i-check"/></svg><span>{{v.toast}}</span>
+    </div>
+  </sc-if>
+
+  <!-- ================= BOOKING SHEET (cancel, reschedule) ================= -->
+  <sc-if value="{{v.sheetOpen}}" hint-placeholder-val="{{ false }}">
+    <div class="sheetbg fadein" onClick="{{closeSheet}}">
+      <div class="sheetbox sheetin" role="dialog" aria-label="Booking options" onClick="{{nothing}}">
+        <span class="grab"></span>
+        <sc-if value="{{v.sheetCancel}}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;gap:14px">
+            <div style="display:flex;align-items:center;gap:14px"><span class="tile lg" style="background:#FDE7E4;color:#9C1C12"><svg class="ic" viewBox="0 0 24 24" width="26" height="26"><use href="#i-warn"/></svg></span><div style="display:flex;flex-direction:column;gap:2px"><h2 class="h2">Cancel this booking?</h2><span style="font-size:13px;color:var(--muted)">{{v.sheetId}} · {{v.sheetWhen}}</span></div></div>
+            <p class="sub" style="color:#33423E">Cancelling is free up to 4 hours before your slot. After that, or once the phlebotomist has left for your address, a Rs 200 visit fee applies. Prepaid amounts are refunded within 3 to 5 working days.</p>
+            <div style="display:flex;flex-direction:column;gap:10px"><button class="tap btn bad" onClick="{{confirmCancel}}">Cancel booking</button><button class="tap btn line" onClick="{{closeSheet}}">Keep booking</button></div>
+          </div>
+        </sc-if>
+        <sc-if value="{{v.sheetResched}}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;gap:14px">
+            <div style="display:flex;flex-direction:column;gap:2px"><h2 class="h2">Reschedule collection</h2><span style="font-size:13px;color:var(--muted)">{{v.sheetId}} · currently {{v.sheetWhen}}</span></div>
+            <div class="noscroll" style="display:flex;gap:8px;overflow-x:auto;margin:0 -20px;padding:0 20px">
+              <sc-for list="{{rsDayChips}}" as="d" hint-placeholder-count="6"><button class="tap {{d.cls}}" onClick="{{d.pick}}"><span style="font-size:12px;font-weight:600">{{d.wd}}</span><span style="font-size:18px;font-weight:700">{{d.d}}</span><span style="font-size:11px">{{d.m}}</span></button></sc-for>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px">
+              <sc-for list="{{rsSlotChips}}" as="sl" hint-placeholder-count="6"><button class="tap {{sl.cls}}" aria-pressed="{{sl.ariaOn}}" onClick="{{sl.pick}}"><span class="t">{{sl.label}}</span><span class="s">{{sl.sub}}</span></button></sc-for>
+            </div>
+            <span style="font-size:12px;color:var(--muted);line-height:1.5">Free to reschedule up to 4 hours before your slot.</span>
+            <sc-if value="{{v.rsReady}}" hint-placeholder-val="{{ false }}"><button class="tap btn" onClick="{{confirmResched}}">{{v.rsCta}}</button></sc-if>
+            <sc-if value="{{v.rsNotReady}}" hint-placeholder-val="{{ true }}"><button class="btn dis" aria-disabled="true" onClick="{{nothing}}">{{v.rsCta}}</button></sc-if>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- ================= RATE MODAL ================= -->
+  <sc-if value="{{v.rateOpen}}" hint-placeholder-val="{{ false }}">
+    <div class="sheetbg fadein" onClick="{{closeRate}}">
+      <div class="sheetbox sheetin" role="dialog" aria-label="Rate My Health Now" onClick="{{nothing}}" style="align-items:center;text-align:center;padding-bottom:28px">
+        <span class="grab"></span>
+        <img src="/_blob/0babe020663924e19939fb8bdeb72484" alt="" style="height:56px;width:auto;display:block">
+        <div style="display:flex;flex-direction:column;gap:4px"><h2 style="font-size:19px;font-weight:700;letter-spacing:-.02em">Enjoying My Health Now?</h2><span class="sub">Your rating goes to the Play Store or App Store and helps other families find us.</span></div>
+        <div style="display:flex;gap:2px">
+          <sc-for list="{{stars}}" as="st" hint-placeholder-count="5">
+            <button class="tap" aria-label="{{st.label}}" onClick="{{st.pick}}" style="width:52px;height:52px;border:0;background:transparent;color:{{st.color}};display:grid;place-items:center"><svg class="ic" viewBox="0 0 24 24" width="36" height="36" style="fill:{{st.fill}};stroke-width:1.6"><use href="#i-star"/></svg></button>
+          </sc-for>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;width:100%"><button class="tap btn line" onClick="{{closeRate}}">Not now</button><button class="tap btn" onClick="{{submitRate}}">Continue</button></div>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- ================= SPLASH ================= -->
+  <sc-if value="{{v.splash}}" hint-placeholder-val="{{ false }}">
+    <div class="{{v.splashCls}}" style="position:absolute;inset:0;z-index:30;background-image:linear-gradient(160deg,#014D3C 0%,#005A52 62%,#1B6B4A 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px">
+      <div aria-hidden="true" style="position:absolute;right:-90px;top:-90px;width:300px;height:300px;border-radius:50%;border:44px solid rgba(160,192,50,.12)"></div>
+      <div aria-hidden="true" style="position:absolute;left:-110px;bottom:-110px;width:320px;height:320px;border-radius:50%;border:44px solid rgba(160,192,50,.10)"></div>
+      <img src="/_blob/85cade1dfb098820c95d56491befdc07" alt="Metro Labs" style="height:44px;width:auto;display:block;position:relative;animation:mSplash .6s cubic-bezier(.2,.9,.3,1.1) both">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:6px;position:relative"><span style="font-size:22px;font-weight:600;color:#fff;letter-spacing:-.01em">My Health Now</span><span style="font-size:13px;color:#BFE0D6;letter-spacing:.04em">Book tests. Get reports. Stay well.</span></div>
+      <div aria-hidden="true" style="display:flex;gap:8px;position:absolute;bottom:72px"><span class="d1" style="width:9px;height:9px;border-radius:50%;background:var(--lime)"></span><span class="d2" style="width:9px;height:9px;border-radius:50%;background:var(--lime)"></span><span class="d3" style="width:9px;height:9px;border-radius:50%;background:var(--lime)"></span></div>
+    </div>
+  </sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"showSplash":{"editor":"boolean","default":true,"section":"Start state"},"startAsMember":{"editor":"boolean","default":false,"section":"Start state"},"$preview":{"width":390,"height":844}}'>
+const rs = function (n) { return 'Rs ' + Math.round(n).toLocaleString('en-IN'); };
+const NUM = function (n) { return Number(n).toLocaleString('en-IN'); };
+const D = function (n) { const d = new Date(); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() + n); return d; };
+const dShort = function (d) { return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }); };
+const dLong = function (d) { return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }); };
+const dDay = function (d) { return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }); };
+
+const ICON = {
+  home: 'M3 11.5 12 4l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z',
+  phone: 'M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z',
+  flask: 'M9 3h6M10 3v6L4.5 19a1.5 1.5 0 0 0 1.3 2.2h12.4A1.5 1.5 0 0 0 19.5 19L14 9V3M7.5 15h9',
+  report: 'M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8zM14 3v5h5M9 17v-3M12 17v-5M15 17v-2',
+  person: 'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z',
+  cart: 'M3 4h2.5l2 11h10.5l2-8H7M9 20h.01M17 20h.01',
+  cal: 'M4 6h16v15H4zM4 10h16M8 3v4M16 3v4',
+  calcheck: 'M4 6h16v15H4zM4 10h16M8 3v4M16 3v4M9 16l2 2 4-4',
+  search: 'M10 10m-7 0a7 7 0 1 0 14 0 7 7 0 1 0-14 0M21 21l-6-6',
+  scan: 'M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M7 12h10',
+  chev: 'm9 6 6 6-6 6',
+  chevd: 'm6 9 6 6 6-6',
+  back: 'M15 6l-6 6 6 6',
+  plus: 'M12 5v14M5 12h14',
+  minus: 'M5 12h14',
+  check: 'M5 12l5 5L20 7',
+  close: 'M6 6l12 12M18 6 6 18',
+  trash: 'M4 7h16M10 11v6M14 11v6M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-12M9 7V4h6v3',
+  bell: 'M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0',
+  pin: 'M12 21s-7-5.2-7-11a7 7 0 1 1 14 0c0 5.8-7 11-7 11zM12 12.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z',
+  crown: 'M12 6l4 6 5-4-2 10H5L3 8l5 4z',
+  shield: 'M12 3 4 6v6c0 5 3.5 8.5 8 9 4.5-.5 8-4 8-9V6zM9 12l2 2 4-4',
+  info: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 8h.01M11 12h1v4h1',
+  lock: 'M5 13a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2zM8 11V7a4 4 0 1 1 8 0v4',
+  doc: 'M14 3v4a1 1 0 0 0 1 1h4M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2zM9 13h6M9 17h4',
+  star: 'M12 17.75l-6.17 3.24 1.18-6.87-5-4.86 6.9-1 3.09-6.25 3.09 6.25 6.9 1-5 4.86 1.18 6.87z',
+  warn: 'M12 9v4M10.36 3.6l-8.14 13.6a1.9 1.9 0 0 0 1.63 2.8h16.3a1.9 1.9 0 0 0 1.63-2.8L13.64 3.6a1.9 1.9 0 0 0-3.28 0zM12 16h.01',
+  mail: 'M3 7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM3 7l9 6 9-6',
+  chat: 'M21 11.5a8.4 8.4 0 0 1-8.4 8.4A8.6 8.6 0 0 1 8 18.8L4 20l1.3-3.8A8.4 8.4 0 1 1 21 11.5z',
+  up: 'M12 19V5M6 11l6-6 6 6',
+  down: 'M12 5v14M6 13l6 6 6-6',
+  edit: 'M4 20h4L18.5 9.5a2.83 2.83 0 1 0-4-4L4 16zM13.5 6.5l4 4',
+  upload: 'M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2M7 9l5-5 5 5M12 4v12',
+  truck: 'M7 17m-2 0a2 2 0 1 0 4 0 2 2 0 1 0-4 0M17 17m-2 0a2 2 0 1 0 4 0 2 2 0 1 0-4 0M5 17H3V6a1 1 0 0 1 1-1h9v12m-4 0h6m4 0h2v-6h-8m0-5h5l3 5',
+  users: 'M9 7m-4 0a4 4 0 1 0 8 0 4 4 0 1 0-8 0M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2M16 3.13a4 4 0 0 1 0 7.75M21 21v-2a4 4 0 0 0-3-3.85',
+  userplus: 'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM19 8v6M22 11h-6',
+  clock: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v5l3 2',
+  download: 'M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2M7 11l5 5 5-5M12 4v12',
+  share: 'M18 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM6 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM18 22a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM8.6 13.5l6.8 4M15.4 6.5l-6.8 4',
+  flash: 'M13 3 4 14h7l-1 7 9-11h-7z',
+  image: 'M4 5h16v14H4zM4 16l4.5-4.5 4 4 3-3L20 17M9 9.5h.01',
+  checkc: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM9 12l2 2 4-4',
+  organs: 'M19.5 12.57l-7.5 7.43-7.5-7.43a5 5 0 1 1 7.5-6.57 5 5 0 1 1 7.5 6.58M7 12h3l1-2 2 4 1-2h3',
+  hormones: 'M7.5 7.5 12 3l4.5 4.5a6.5 6.5 0 1 1-9 0M10 14h4M12 12v4',
+  illness: 'M10 13.5a4 4 0 1 0 4 0V5a2 2 0 0 0-4 0v8.5M10 9h4',
+  leaf: 'M5 21c.5-4.5 2.5-8 7-10M9 18c6.2 0 10.5-3.3 11-12V4h-4c-9 0-12 4-12 9 0 1 0 3 2 5z',
+  scope: 'M5 21h14M6 18h2M7 18v3M9 11l3 3 6-6-3-3zM10.5 12.5 9 14M17 3l3 3M12 21a6 6 0 0 0 3.7-10.7',
+  imaging: 'M4 7V6a2 2 0 0 1 2-2h2M4 17v1a2 2 0 0 0 2 2h2M16 4h2a2 2 0 0 1 2 2v1M16 20h2a2 2 0 0 0 2-2v-1M12 8v8M9 10h6M9 14h6',
+  pill: 'M4.5 12.5l8-8a4.94 4.94 0 0 1 7 7l-8 8a4.94 4.94 0 0 1-7-7M8.5 8.5l7 7',
+  qr: 'M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h2v2h-2zM18 14h2v2h-2zM14 18h2v2h-2zM18 18h2v2h-2z',
+  wallet: 'M4 7a2 2 0 0 1 2-2h12v4M4 7v10a2 2 0 0 0 2 2h13a1 1 0 0 0 1-1v-3M4 7a2 2 0 0 0 2 2h14v6h-4a2 2 0 0 1 0-4h4',
+  card: 'M3 6h18v12H3zM3 10h18M7 15h3',
+  cash: 'M3 7h18v10H3zM12 14.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5zM6 10v.01M18 14v.01',
+  filter: 'M4 5h16l-6 7.5V19l-4 2v-8.5z',
+  repeat: 'M17 2l4 4-4 4M3 11V9a3 3 0 0 1 3-3h15M7 22l-4-4 4-4M21 13v2a3 3 0 0 1-3 3H3',
+  gear: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z'
+};
+
+const CATS = [
+  { id: 'organs', name: 'Vital organs', sub: 'Liver, kidney, heart and thyroid tests.', ic: 'organs' },
+  { id: 'hormones', name: 'Hormones, diabetes & blood', sub: 'Blood sugar, HbA1c and blood counts.', ic: 'hormones' },
+  { id: 'illness', name: 'Illness & infection', sub: 'Fever, dengue, typhoid and urine infections.', ic: 'illness' },
+  { id: 'life', name: 'Life stage & family care', sub: 'Pregnancy, antenatal and age-related checks.', ic: 'users' },
+  { id: 'lifestyle', name: 'Lifestyle & nutrition', sub: 'Uric acid, minerals and salt balance.', ic: 'leaf' },
+  { id: 'special', name: 'Specialised screenings', sub: 'Screening and monitoring tests your doctor may order.', ic: 'scope' },
+  { id: 'imaging', name: 'X-ray & imaging', sub: 'X-ray and ultrasound, done at the centre.', ic: 'imaging' },
+  { id: 'vitamins', name: 'Vitamins & deficiencies', sub: 'Vitamin D, B12 and iron.', ic: 'pill' }
+];
+const NOFAST = 'No fasting';
+const TESTS = [
+  { id: 'lft', cat: 'organs', name: 'LFT Advanced', price: 1500, fasting: NOFAST, report: 'Same day', age: 'Adults', desc: 'Checks how well your liver is working.' },
+  { id: 'kft', cat: 'organs', name: 'Kidney Function Test', price: 900, fasting: NOFAST, report: 'Same day', age: 'Adults, yearly after 40', desc: 'Urea, creatinine and electrolytes for kidney health.' },
+  { id: 'lipid', cat: 'organs', name: 'Lipid Profile', price: 800, fasting: 'Fasting 10–12 h', report: 'Same day', age: 'Adults, every 1–2 years', desc: 'Cholesterol and triglycerides for heart risk.' },
+  { id: 'tft', cat: 'organs', name: 'Thyroid Function Test', price: 1200, fasting: NOFAST, report: 'Next day', age: 'Adults', desc: 'T3, T4 and TSH for an over- or under-active thyroid.' },
+  { id: 'fbs', cat: 'hormones', name: 'Glucose, Fasting', price: 75, fasting: 'Fasting 8–10 h', report: 'Same day', age: 'Adults', desc: 'Blood sugar after an overnight fast.' },
+  { id: 'hba1c', cat: 'hormones', name: 'HbA1c', price: 1000, fasting: NOFAST, report: 'Same day', age: 'Adults; every 3 months if diabetic', desc: 'Average blood sugar over the last 2–3 months.' },
+  { id: 'cbc', cat: 'hormones', name: 'Complete Blood Count (CBC)', price: 400, fasting: NOFAST, report: 'Same day', age: 'All ages', desc: 'Red cells, white cells and platelets.' },
+  { id: 'hb', cat: 'hormones', name: 'Hemoglobin', price: 150, fasting: NOFAST, report: 'Same day', age: 'All ages', desc: 'Screens for anaemia.' },
+  { id: 'fever', cat: 'illness', name: 'Fever Panel Essential', price: 1800, fasting: NOFAST, report: 'Same day', age: 'All ages', desc: 'Common causes of fever, including dengue and typhoid markers.' },
+  { id: 'dengue', cat: 'illness', name: 'Dengue NS1 Antigen', price: 1200, fasting: NOFAST, report: 'Same day', age: 'All ages', desc: 'Early dengue detection in the first days of fever.' },
+  { id: 'widal', cat: 'illness', name: 'Widal Test', price: 350, fasting: NOFAST, report: 'Same day', age: 'All ages', desc: 'Typhoid screening.' },
+  { id: 'ure', cat: 'illness', name: 'Urine Routine Examination', price: 200, fasting: NOFAST, report: 'Same day', age: 'All ages', desc: 'Urinary infection and kidney screening.' },
+  { id: 'bhcg', cat: 'life', name: 'Pregnancy Test (Beta hCG)', price: 900, fasting: NOFAST, report: 'Same day', age: 'Women', desc: 'Confirms pregnancy from a blood sample.' },
+  { id: 'anc', cat: 'life', name: 'Antenatal Profile', price: 2500, fasting: NOFAST, report: 'Next day', age: 'Pregnant women', desc: 'Routine tests in early pregnancy.' },
+  { id: 'psa', cat: 'life', name: 'PSA (Prostate)', price: 1500, fasting: NOFAST, report: 'Next day', age: 'Men over 50', desc: 'Prostate health screening.' },
+  { id: 'uric', cat: 'lifestyle', name: 'Uric Acid', price: 300, fasting: NOFAST, report: 'Same day', age: 'Adults', desc: 'Gout and joint pain screening.' },
+  { id: 'calcium', cat: 'lifestyle', name: 'Serum Calcium', price: 350, fasting: NOFAST, report: 'Same day', age: 'Adults', desc: 'Bone and muscle health.' },
+  { id: 'elec', cat: 'lifestyle', name: 'Electrolytes (Na, K, Cl)', price: 600, fasting: NOFAST, report: 'Same day', age: 'All ages', desc: 'Hydration and salt balance.' },
+  { id: 'pap', cat: 'special', name: 'Pap Smear', price: 1500, fasting: NOFAST, report: '3–5 days', age: 'Women 25–65', desc: 'Cervical cancer screening.' },
+  { id: 'cea', cat: 'special', name: 'CEA', price: 1800, fasting: NOFAST, report: 'Next day', age: 'As advised by a doctor', desc: 'Tumour marker used for monitoring.' },
+  { id: 'cxr', cat: 'imaging', name: 'Chest X-ray (PA view)', price: 600, fasting: NOFAST, report: 'Same day', age: 'As advised by a doctor', desc: 'Lungs and heart outline.', centre: true },
+  { id: 'usg', cat: 'imaging', name: 'USG Abdomen & Pelvis', price: 1800, fasting: 'Fasting 6 h, full bladder', report: 'Same day', age: 'As advised by a doctor', desc: 'Ultrasound of the abdominal organs.', centre: true },
+  { id: 'vitd', cat: 'vitamins', name: 'Vitamin D (25-OH)', price: 2500, fasting: NOFAST, report: 'Next day', age: 'Adults', desc: 'A common deficiency that affects bones and immunity.' },
+  { id: 'b12', cat: 'vitamins', name: 'Vitamin B12', price: 1500, fasting: NOFAST, report: 'Next day', age: 'Adults, vegetarians', desc: 'Nerve health and anaemia.' },
+  { id: 'iron', cat: 'vitamins', name: 'Iron Profile', price: 1200, fasting: NOFAST, report: 'Next day', age: 'Adults', desc: 'Iron levels and stores, for anaemia.' }
+];
+const PKGS = [
+  { id: 'bronze', name: 'Bronze', price: 2999, n: 119, add: 0, color: '#8A5A33', tag: 'A yearly baseline', feats: ['Complete blood count with ESR', 'Fasting blood glucose', 'Liver function test', 'Kidney function test', 'Urine routine and microscopy'] },
+  { id: 'silver', name: 'Silver', price: 4499, n: 142, add: 23, color: '#566A73', tag: 'Adds heart and thyroid', feats: ['Lipid profile', 'Thyroid profile (T3, T4, TSH)', 'Serum calcium'] },
+  { id: 'gold', name: 'Gold', price: 6499, n: 168, add: 26, color: '#8C6A10', tag: 'Adds diabetes and vitamins', feats: ['HbA1c', 'Vitamin D (25-OH)', 'Uric acid', 'Serum electrolytes'] },
+  { id: 'platinum', name: 'Platinum', price: 8999, n: 197, add: 29, color: '#33495A', tag: 'Adds deficiency and inflammation', feats: ['Vitamin B12', 'Iron profile', 'hs-CRP', 'Apolipoprotein A1 and B'] },
+  { id: 'elite', name: 'Elite', price: 12999, n: 224, add: 27, color: '#014D3C', tag: 'The complete checkup', feats: ['Cardiac markers (Troponin I, CK-MB)', 'Chest X-ray, PA view', 'Doctor consultation within 7 days'], centre: true }
+];
+const POLICY = 'You can cancel or reschedule free of charge up to 4 hours before your slot. After that, or once our phlebotomist has left for your address, a Rs 200 visit fee applies. Prepaid amounts are refunded to your wallet or card within 3 to 5 working days.';
+const FAQS = [
+  { q: 'Do I need to fast before my test?', a: 'Some tests, such as fasting glucose and the lipid profile, need 8–12 hours without food. Water is fine. Every test card shows whether fasting is needed, and the booking screen reminds you if your cart has one.' },
+  { q: 'How does home sample collection work?', a: 'Pick a date and time when you book. A trained phlebotomist visits your address in that slot with sealed, labelled tubes, and brings the sample to our lab the same morning. Collection is free on orders of Rs 1,500 or more, and always free for members.' },
+  { q: 'When will my report be ready?', a: 'Each test shows its report time. Most blood tests are ready the same day, some the next day. You get a notification when the report is ready, and it appears under Reports.' },
+  { q: 'Can I book for my family?', a: 'Yes. Add them in Profile › Other members, then choose them under “Who is this for?” when you book. Their reports stay in your Reports tab.' },
+  { q: 'Which payment methods can I use?', a: 'eSewa, Khalti, Fonepay, a debit or credit card, or cash on collection.' },
+  { q: 'Can I cancel or reschedule a booking?', a: POLICY },
+  { q: 'How do I check that a printed report is genuine?', a: 'Open Scan in the app, choose Report QR and point the camera at the QR code on the printed report. The app checks it against the report we issued and shows the result.' }
+];
+const HERO = [
+  { tag: 'Health packages', t: 'Planning a full body checkup?', s: 'Five packages, Bronze to Elite.', cta: 'See packages', go: 'packages' },
+  { tag: 'At your door', t: 'Free home sample collection', s: 'On orders of Rs 1,500 or more.', cta: 'Book a test', go: 'tests' },
+  { tag: 'Membership', t: 'Save 10% on every test', s: 'Individual and family plans.', cta: 'See plans', go: 'membership' }
+];
+const PH = ['Thyroid profile', 'CBC', 'HbA1c', 'Vitamin D', 'Lipid profile'];
+const SLOTS = [
+  { l: '6:30–7:30 AM', early: true }, { l: '7:30–8:30 AM', early: true }, { l: '8:30–9:30 AM', early: true },
+  { l: '9:30–10:30 AM' }, { l: '12:00–1:00 PM' }, { l: '3:00–4:00 PM' }
+];
+function slotState(di, si) {
+  const h = (di * 5 + si * 3 + 2) % 7;
+  if (h === 0 || h === 3) return 'full';
+  if (h === 1 || h === 5) return 'few';
+  return 'open';
+}
+function slotLeft(di, si) { return ((di + si) % 2) + 1; }
+const PAYS = [
+  { id: 'esewa', label: 'eSewa', sub: 'Pay with your eSewa wallet', ic: 'wallet' },
+  { id: 'khalti', label: 'Khalti', sub: 'Pay with your Khalti wallet', ic: 'wallet' },
+  { id: 'fonepay', label: 'Fonepay', sub: 'Scan to pay with any mobile banking app', ic: 'qr' },
+  { id: 'card', label: 'Debit or credit card', sub: 'Visa and Mastercard', ic: 'card' },
+  { id: 'cash', label: 'Pay on collection', sub: 'Cash or QR to the phlebotomist', ic: 'cash' }
+];
+const MEMS = [
+  { id: 'individual', name: 'Individual Membership', price: 999, color: '#005A52', desc: 'For you. Member prices and free home collection for a year.' },
+  { id: 'family', name: 'Family Membership', price: 1999, color: '#014D3C', desc: 'For you and up to 4 family members on this account.' }
+];
+const BLOOD = ['A+', 'A−', 'B+', 'B−', 'O+', 'O−', 'AB+', 'AB−'];
+const RELS = ['Spouse', 'Father', 'Mother', 'Son', 'Daughter', 'Other'];
+const GENS = ['Male', 'Female', 'Other'];
+const PROBS = ['Booking', 'Payment', 'Report', 'Home collection', 'App not working', 'Other'];
+const MEMBER_DISC = 0.1;
+const HOME_FEE = 150;
+const FREE_HOME_ABOVE = 1500;
+const SCREEN_TITLES = { category: '', packages: 'Health packages', cart: 'Your cart', book: 'Book collection', pay: 'Review & pay', done: 'Confirmation', myprofile: 'My profile', editprofile: 'Edit profile', members: 'Other members', memberform: 'Member', reports: 'Reports', report: 'Lab report', bookings: 'My bookings', membership: 'Membership', about: 'About us', problem: 'Report a problem', privacy: 'Privacy policy', terms: 'Terms & conditions', scan: 'Scan', scanresult: 'Referral slip' };
+const SCREENS = ['home', 'contact', 'tests', 'reports', 'profile', 'category', 'packages', 'cart', 'book', 'pay', 'done', 'myprofile', 'editprofile', 'members', 'memberform', 'report', 'bookings', 'membership', 'about', 'problem', 'privacy', 'terms', 'scan', 'scanresult'];
+
+/* Lab report content. Row: [parameter, value, unit, low, high] with null for an open-ended range. */
+const REPORTS = {
+  cbc: { name: 'Complete Blood Count', who: 'self', dayOff: 0, status: 'ready', sample: 'Whole blood (EDTA)', acc: 'MLB-2611-04821', by: 'Self', path: 'Dr. Sarita Joshi', pathRole: 'Consultant Pathologist',
+    note: 'Platelet count is slightly below the reference range and ESR is mildly raised. Repeat the test in two weeks, and discuss both results with your doctor.',
+    rows: [['Hemoglobin', 14.2, 'g/dL', 13.0, 17.0, 1], ['Total WBC count', 7800, '/µL', 4000, 11000, 0], ['RBC count', 5.1, 'million/µL', 4.5, 5.9, 1], ['Hematocrit (PCV)', 43.1, '%', 40, 50, 1], ['MCV', 84.5, 'fL', 80, 100, 1], ['MCH', 28.0, 'pg', 27, 33, 1], ['MCHC', 33.1, 'g/dL', 32, 36, 1], ['Platelet count', 142000, '/µL', 150000, 450000, 0], ['Neutrophils', 58, '%', 40, 70, 0], ['Lymphocytes', 34, '%', 20, 40, 0], ['ESR (1st hour)', 24, 'mm/hr', 0, 15, 0]] },
+  hba1c: { name: 'HbA1c', who: 'self', dayOff: 0, status: 'processing', eta: 'Expected by 6:00 PM today' },
+  lipid: { name: 'Lipid Profile', who: 'self', dayOff: -118, status: 'ready', sample: 'Serum (fasting)', acc: 'MLB-2507-02317', by: 'Self', path: 'Dr. Sarita Joshi', pathRole: 'Consultant Pathologist',
+    note: 'Total and LDL cholesterol are above the desirable range. Diet, exercise and a repeat test in three months are usually the first steps. Your doctor can advise further.',
+    rows: [['Total cholesterol', 212, 'mg/dL', null, 200, 0], ['HDL cholesterol', 46, 'mg/dL', 40, null, 0], ['LDL cholesterol', 138, 'mg/dL', null, 100, 0], ['Triglycerides', 148, 'mg/dL', null, 150, 0], ['VLDL cholesterol', 29.6, 'mg/dL', null, 30, 1], ['Non-HDL cholesterol', 166, 'mg/dL', null, 130, 0]] },
+  thy: { name: 'Thyroid Function Test', who: 'm1', dayOff: -24, status: 'ready', sample: 'Serum', acc: 'MLB-2610-03966', by: 'Dr. K. Basnet', path: 'Dr. Anil Maharjan', pathRole: 'Consultant Pathologist',
+    note: 'All three thyroid values are within their reference ranges.',
+    rows: [['TSH', 2.8, 'µIU/mL', 0.4, 4.0, 1], ['Total T3', 1.1, 'ng/mL', 0.8, 2.0, 1], ['Total T4', 8.2, 'µg/dL', 5.1, 14.1, 1]] }
+};
+const REPORT_ORDER = ['cbc', 'hba1c', 'lipid', 'thy'];
+const SLIP = { doctor: 'Dr. Rajendra Acharya', role: 'Consultant Physician', code: 'RX-2611-4471', dayOff: -1, tests: ['cbc', 'lipid', 'hba1c', 'tft'], unmatched: 'Serum amylase' };
+
+function itemOf(id) {
+  const t = TESTS.find(function (x) { return x.id === id; });
+  if (t) return { id: t.id, name: t.name, price: t.price, meta: t.fasting.replace(/ /g, '\u00a0').replace(/–/g, '–\u2060') + ' · Report ' + t.report.toLowerCase(), centre: !!t.centre, fast: t.fasting !== NOFAST };
+  const p = PKGS.find(function (x) { return x.id === id; });
+  return { id: p.id, name: p.name + ' package', price: p.price, meta: p.n + '\u00a0parameters · Fasting\u00a010–\u206012\u00a0h', centre: !!p.centre, fast: true };
+}
+function calc(ids, member, mode) {
+  const sub = ids.reduce(function (a, id) { return a + itemOf(id).price; }, 0);
+  const save = member ? Math.round(sub * MEMBER_DISC) : 0;
+  const fee = (mode === 'home' && !member && sub > 0 && sub < FREE_HOME_ABOVE) ? HOME_FEE : 0;
+  return { sub: sub, save: save, fee: fee, total: sub - save + fee, would: Math.round(sub * MEMBER_DISC) };
+}
+function ageFrom(iso) {
+  if (!iso) return null;
+  const d = new Date(iso + 'T00:00:00');
+  if (isNaN(d)) return null;
+  const n = new Date();
+  let a = n.getFullYear() - d.getFullYear();
+  const m = n.getMonth() - d.getMonth();
+  if (m < 0 || (m === 0 && n.getDate() < d.getDate())) a--;
+  return a;
+}
+function fmtDate(iso) {
+  if (!iso) return '';
+  const d = new Date(iso + 'T00:00:00');
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+function fmtN(n, dp) { return Number(n).toLocaleString('en-IN', { minimumFractionDigits: dp, maximumFractionDigits: dp }); }
+function rangeStr(lo, hi, dp) {
+  if (lo !== null && hi !== null) return fmtN(lo, dp) + '–' + fmtN(hi, dp);
+  if (hi !== null) return 'below ' + fmtN(hi, dp);
+  return 'above ' + fmtN(lo, dp);
+}
+function qrPath(seed) {
+  let h = 2166136261;
+  for (let i = 0; i < seed.length; i++) { h ^= seed.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
+  const rnd = function () { h = (Math.imul(h, 1664525) + 1013904223) >>> 0; return h / 4294967296; };
+  const N = 21;
+  let d = '';
+  const fin = function (x, y) { return (x < 8 && y < 8) || (x >= N - 8 && y < 8) || (x < 8 && y >= N - 8); };
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+    if (!fin(x, y) && rnd() > 0.5) d += 'M' + x + ' ' + y + 'h1v1h-1z';
+  }
+  [[0, 0], [N - 7, 0], [0, N - 7]].forEach(function (p) {
+    d += 'M' + p[0] + ' ' + p[1] + 'h7v7h-7zM' + (p[0] + 1) + ' ' + (p[1] + 1) + 'v5h5v-5zM' + (p[0] + 2) + ' ' + (p[1] + 2) + 'h3v3h-3z';
+  });
+  return d;
+}
+function helixPts() {
+  const a = [], b = [], rungs = [];
+  for (let i = 0; i < 12; i++) {
+    const y = 8 + i * 9.4, ph = i * 0.66;
+    const xa = 40 + 30 * Math.sin(ph), xb = 40 - 30 * Math.sin(ph);
+    a.push(xa.toFixed(1) + ',' + y.toFixed(1));
+    b.push(xb.toFixed(1) + ',' + y.toFixed(1));
+    rungs.push({ y: y.toFixed(1), x1: xa.toFixed(1), x2: xb.toFixed(1), o: (0.25 + 0.55 * Math.abs(Math.cos(ph))).toFixed(2) });
+  }
+  return { a: a.join(' '), b: b.join(' '), rungs: rungs };
+}
+
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    const days = [];
+    for (let i = 1; i <= 6; i++) days.push(D(i));
+    this.days = days;
+    this.helix = helixPts();
+    this.state = {
+      splash: (props && props.showSplash) !== false, splashOut: false,
+      ph: 0, hero: 0, rtSex: 'men',
+      tab: 'home', stack: [],
+      catId: 'organs', testQ: '', testFilter: 'all',
+      cart: [], pkgOpen: null, pkgRec: '', pkgFor: '',
+      who: 'self', mode: 'home', day: 0, slot: -1, address: 'House 24, Shankhamul Marg, New Baneshwor, Kathmandu', bookErr: '',
+      pay: 'esewa', paying: false, lastId: '', lastBk: null,
+      bookings: [
+        this.mkBooking({ id: 'MLB-482916', status: 'upcoming', whoId: 'self', dayOff: 1, slot: 1, mode: 'home', itemIds: ['lipid', 'vitd'], method: 'eSewa' }),
+        this.mkBooking({ id: 'MLB-471203', status: 'completed', whoId: 'self', dayOff: 0, slot: 1, mode: 'home', itemIds: ['cbc', 'hba1c'], method: 'Khalti' }),
+        this.mkBooking({ id: 'MLB-455881', status: 'completed', whoId: 'm1', dayOff: -24, slot: 0, mode: 'lab', itemIds: ['tft'], method: 'Pay at the centre' }),
+        this.mkBooking({ id: 'MLB-402377', status: 'completed', whoId: 'self', dayOff: -118, slot: 3, mode: 'home', itemIds: ['lipid'], method: 'eSewa' })
+      ],
+      bkTab: 'upcoming', sheet: null, rsDay: 0, rsSlot: -1,
+      member: (props && props.startAsMember) ? 'individual' : null, memSel: 'individual', memBusy: false, memId: '', memUntil: '',
+      profile: { name: 'Aayush Shrestha', phone: '9841234567', email: '', dob: '1999-03-21', gender: 'Male', blood: '', height: 170, weight: 65 },
+      form: null, formErr: {}, saving: false,
+      members: [{ id: 'm1', name: 'Sunita Shrestha', rel: 'Mother', gender: 'Female', dob: '1968-04-12' }],
+      mform: null, mEditIdx: -1, mErr: '',
+      faqQ: '', faqOpen: -1,
+      repWho: 'self', repId: 'cbc', repFlagOnly: false, verified: false,
+      cal: 'BS',
+      toast: '', rate: false, stars: 0,
+      prob: '', probBooking: '', probText: '', probErr: '',
+      scanMode: 'rx', scanState: 'searching', flash: false, slipSel: []
+    };
+  }
+  mkBooking(o) {
+    const c = calc(o.itemIds, false, o.mode);
+    return Object.assign({}, o, { sub: c.sub, save: c.save, fee: c.fee, total: c.total });
+  }
+  componentDidMount() {
+    this.lastKey = 'home/'; this.lastCur = 'home'; this.lastScanMode = 'rx';
+    if (this.state.splash) {
+      this.t0 = setTimeout(() => this.setState({ splashOut: true }), 1800);
+      this.t1 = setTimeout(() => this.setState({ splash: false }), 2150);
+    }
+    this.t2 = setInterval(() => this.setState((s) => ({ ph: (s.ph + 1) % PH.length })), 2600);
+    this.t3 = setInterval(() => { if (!this.heroHold) this.setState((s) => ({ hero: (s.hero + 1) % HERO.length })); }, 4800);
+  }
+  componentWillUnmount() {
+    clearTimeout(this.t0); clearTimeout(this.t1); clearInterval(this.t2); clearInterval(this.t3); clearTimeout(this.tt);
+    clearTimeout(this.tp); clearTimeout(this.ts); clearTimeout(this.tm); this.stopScan();
+  }
+  curOf(s) { return s.stack.length ? s.stack[s.stack.length - 1] : s.tab; }
+  componentDidUpdate() {
+    const s = this.state;
+    const key = s.tab + '/' + s.stack.join('/');
+    const now = this.curOf(s);
+    if (key !== this.lastKey && this.sc) this.sc.scrollTop = 0;
+    if (now === 'scan' && (this.lastCur !== 'scan' || this.lastScanMode !== s.scanMode)) this.startScan();
+    else if (now !== 'scan' && this.lastCur === 'scan') this.stopScan();
+    this.lastKey = key; this.lastCur = now; this.lastScanMode = s.scanMode;
+  }
+  startScan() {
+    this.stopScan();
+    this.tS1 = setTimeout(() => { if (this.curOf(this.state) === 'scan') this.setState({ scanState: 'found' }); }, 2600);
+    this.tS2 = setTimeout(() => this.finishScan(), 3500);
+  }
+  stopScan() { clearTimeout(this.tS1); clearTimeout(this.tS2); }
+  finishScan() {
+    const s = this.state;
+    if (this.curOf(s) !== 'scan') return;
+    const rest = s.stack.slice(0, -1);
+    if (s.scanMode === 'rx') this.setState({ stack: rest.concat(['scanresult']), slipSel: SLIP.tests.slice(), scanState: 'searching' });
+    else this.setState({ stack: rest.concat(['report']), repId: 'cbc', verified: true, repFlagOnly: false, scanState: 'searching' });
+  }
+  toast(m) {
+    clearTimeout(this.tt);
+    this.setState({ toast: m });
+    this.tt = setTimeout(() => this.setState({ toast: '' }), 2600);
+  }
+  go(tab) { this.setState({ tab: tab, stack: [], sheet: null }); }
+  push(scr, extra) { this.setState((s) => Object.assign({}, extra || {}, { stack: s.stack.concat([scr]) })); }
+  back() { this.setState((s) => ({ stack: s.stack.slice(0, -1), bookErr: '', mErr: '', probErr: '' })); }
+  toggleCart(id) {
+    this.setState((s) => {
+      const has = s.cart.indexOf(id) >= 0;
+      return { cart: has ? s.cart.filter((x) => x !== id) : s.cart.concat([id]) };
+    });
+  }
+  hasImaging() { return this.state.cart.some((id) => itemOf(id).centre); }
+  effMode() { return this.hasImaging() ? 'lab' : this.state.mode; }
+  totals() { return calc(this.state.cart, !!this.state.member, this.effMode()); }
+  whoName(id) {
+    if (id === 'self') return this.state.profile.name;
+    const m = this.state.members.find((x) => x.id === id);
+    return m ? m.name : this.state.profile.name;
+  }
+  whenOf(dayOff, slot) { return dShort(D(dayOff)) + ' · ' + SLOTS[slot].l; }
+  validateProfile(f) {
+    const e = {};
+    if (!/^9[678]\d{8}$/.test((f.phone || '').trim())) e.phone = 'Enter a 10-digit mobile number starting with 96, 97 or 98.';
+    if (f.email && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(f.email.trim())) e.email = 'Enter a valid email address.';
+    if (f.dob) {
+      const a = ageFrom(f.dob);
+      if (a === null || a < 0) e.dob = 'Date of birth cannot be in the future.';
+      else if (a > 120) e.dob = 'Please check the year.';
+    }
+    return e;
+  }
+
+  renderVals() {
+    const s = this.state;
+    const cur = this.curOf(s);
+    const sc = {};
+    SCREENS.forEach((k) => { sc[k] = cur === k; });
+    const cat = CATS.find((c) => c.id === s.catId) || CATS[0];
+    const t = this.totals();
+    const p = s.profile;
+    const isMember = !!s.member;
+    const memObj = MEMS.find((m) => m.id === s.member);
+    const forceLab = this.hasImaging();
+    const mode = forceLab ? 'lab' : s.mode;
+    const hasFast = s.cart.some((id) => itemOf(id).fast);
+    const first = p.name.split(' ')[0];
+
+    const mkTest = (x) => {
+      const inCart = s.cart.indexOf(x.id) >= 0;
+      const fast = x.fasting !== NOFAST;
+      return Object.assign({}, x, {
+        priceStr: rs(x.price), memberStr: rs(x.price * (1 - MEMBER_DISC)),
+        catName: (CATS.find((c) => c.id === x.cat) || {}).name,
+        inCart: inCart, notInCart: !inCart,
+        toggle: () => this.toggleCart(x.id),
+        fastCls: fast ? 'chip warn' : 'chip ok',
+        fastIc: fast ? ICON.clock : ICON.check,
+        btnCls: inCart ? 'btn g' : 'btn line',
+        btnLabel: inCart ? 'Added to cart · Remove' : 'Add to cart',
+        reportLabel: 'Report ' + x.report.toLowerCase(), ageLabel: 'Age: ' + x.age
+      });
+    };
+
+    const q = s.testQ.trim().toLowerCase();
+    const filtered = TESTS.filter((x) => {
+      if (s.testFilter === 'nofast' && x.fasting !== NOFAST) return false;
+      if (s.testFilter === 'same' && x.report !== 'Same day') return false;
+      return true;
+    });
+    const results = q ? filtered.filter((x) => (x.name + ' ' + x.desc + ' ' + (CATS.find((c) => c.id === x.cat) || {}).name).toLowerCase().indexOf(q) >= 0).map(mkTest) : [];
+    const testFilters = [['all', 'All'], ['nofast', 'No fasting'], ['same', 'Same-day report']].map((f) => ({ label: f[1], cls: s.testFilter === f[0] ? 'pill on' : 'pill', pick: () => this.setState({ testFilter: f[0] }) }));
+
+    const fq = s.faqQ.trim().toLowerCase();
+    const faqs = FAQS.map((f, i) => ({ f: f, i: i })).filter((o) => !fq || (o.f.q + ' ' + o.f.a).toLowerCase().indexOf(fq) >= 0).map((o) => {
+      const open = s.faqOpen === o.i;
+      return { q: o.f.q, a: o.f.a, open: open, rot: open ? 'rotate(180deg)' : 'none', cls: open ? 'faq open' : 'faq', toggle: () => this.setState({ faqOpen: open ? -1 : o.i }) };
+    });
+
+    const recIdx = PKGS.findIndex((x) => x.id === s.pkgRec);
+    const pkgs = PKGS.map((x, i) => {
+      const open = s.pkgOpen === x.id;
+      const inCart = s.cart.indexOf(x.id) >= 0;
+      const prevName = i > 0 ? PKGS[i - 1].name : '';
+      return Object.assign({}, x, {
+        priceStr: rs(x.price), memberStr: rs(x.price * (1 - MEMBER_DISC)), open: open, rot: open ? 'rotate(180deg)' : 'none',
+        paramStr: x.n + ' parameters',
+        addStr: x.add ? '+' + x.add + ' over ' + prevName : 'Starting point',
+        hasPrev: i > 0, prevName: prevName, prevLine: 'Everything in ' + prevName,
+        isRec: x.id === s.pkgRec, centreNote: !!x.centre,
+        openLabel: open ? 'Hide' : 'Includes',
+        addLabel: inCart ? 'Added' : 'Add to cart',
+        addIc: inCart ? ICON.check : ICON.plus,
+        toggleOpen: () => this.setState({ pkgOpen: open ? null : x.id }),
+        viewIt: () => this.push('packages', { pkgOpen: x.id, pkgRec: '', pkgFor: '' }),
+        toggle: () => { this.toggleCart(x.id); this.toast(inCart ? x.name + ' removed from your cart' : x.name + ' package added to your cart'); }
+      });
+    });
+
+    const cartItems = s.cart.map((id) => {
+      const it = itemOf(id);
+      return Object.assign({}, it, { priceStr: rs(it.price), remove: () => this.toggleCart(id) });
+    });
+    const needMore = (mode === 'home' && !isMember && t.sub > 0 && t.sub < FREE_HOME_ABOVE) ? FREE_HOME_ABOVE - t.sub : 0;
+
+    const whoList = [{ id: 'self', label: first + ' (you)' }].concat(s.members.map((m) => ({ id: m.id, label: m.name.split(' ')[0] + ' · ' + m.rel })));
+    const whoChips = whoList.map((w) => ({ label: w.label, cls: s.who === w.id ? 'pill on' : 'pill', pick: () => this.setState({ who: w.id }) }));
+    const dayChips = this.days.map((d, i) => ({
+      wd: i === 0 ? 'Tmrw' : d.toLocaleDateString('en-GB', { weekday: 'short' }),
+      d: d.getDate(), m: d.toLocaleDateString('en-GB', { month: 'short' }),
+      cls: s.day === i ? 'dchip on' : 'dchip',
+      pick: () => this.setState((st) => ({ day: i, bookErr: '', slot: (st.slot >= 0 && slotState(i, st.slot) === 'full') ? -1 : st.slot }))
+    }));
+    const slotChips = SLOTS.map((sl, i) => {
+      const st = slotState(s.day, i);
+      const on = s.slot === i && st !== 'full';
+      const left = slotLeft(s.day, i);
+      return {
+        label: sl.l, cls: 'slot ' + (on ? 'on' : st),
+        sub: on ? 'Selected' : (st === 'full' ? 'Full' : (st === 'few' ? left + (left === 1 ? ' slot left' : ' slots left') : (sl.early && hasFast ? 'Good for fasting' : 'Available'))),
+        isFull: st === 'full', ariaOn: on ? 'true' : 'false',
+        pick: () => { if (st === 'full') this.toast('That slot is full. Please choose another time.'); else this.setState({ slot: i, bookErr: '' }); }
+      };
+    });
+    const payChips = PAYS.map((m) => {
+      const on = s.pay === m.id;
+      const atCentre = m.id === 'cash' && this.effMode() === 'lab';
+      return { label: atCentre ? 'Pay at the centre' : m.label, sub: atCentre ? 'Cash or QR at the reception desk' : m.sub, d: ICON[m.ic], cls: on ? 'payrow on' : 'payrow', ariaOn: on ? 'true' : 'false', pick: () => this.setState({ pay: m.id }) };
+    });
+    const dayObj = this.days[s.day];
+    const whenStr = dShort(dayObj) + (s.slot >= 0 ? ' · ' + SLOTS[s.slot].l : '');
+
+    const fields = [p.phone, p.email, p.dob, p.gender, p.blood, p.height, p.weight];
+    const pct = Math.round(fields.filter((x) => x !== '' && x !== null && x !== undefined).length / fields.length * 100);
+    const age = ageFrom(p.dob);
+    const missing = [];
+    if (!p.email) missing.push('email');
+    if (!p.dob) missing.push('date of birth');
+    if (!p.blood) missing.push('blood group');
+    const profileRows = [
+      { k: 'Name', v: p.name }, { k: 'Phone', v: '+977 ' + p.phone },
+      { k: 'Email', v: p.email || 'Not added' },
+      { k: 'Date of birth', v: p.dob ? fmtDate(p.dob) + ' (' + age + ' yrs)' : 'Not added' },
+      { k: 'Gender', v: p.gender }, { k: 'Blood group', v: p.blood || 'Not added' },
+      { k: 'Height', v: p.height + ' cm' }, { k: 'Weight', v: p.weight + ' kg' }
+    ].map((r) => ({ k: r.k, v: r.v, miss: r.v === 'Not added', color: r.v === 'Not added' ? '#7A4B00' : 'var(--ink)' }));
+
+    const f = s.form || {};
+    const fe = s.formErr || {};
+    const fAge = ageFrom(f.dob);
+    const feV = {
+      phone: fe.phone || '', hasPhone: !!fe.phone, phoneCls: fe.phone ? 'inp err' : 'inp',
+      email: fe.email || '', hasEmail: !!fe.email, emailCls: fe.email ? 'inp err' : 'inp',
+      dob: fe.dob || '', hasDob: !!fe.dob, dobCls: fe.dob ? 'inp err' : 'inp',
+      hasDobInfo: !fe.dob && fAge !== null && fAge >= 0, dobInfo: (fAge !== null && fAge >= 0) ? fmtDate(f.dob) + ' · ' + fAge + ' years old' : ''
+    };
+    const onForm = {};
+    ['phone', 'email', 'dob'].forEach((k) => {
+      onForm[k] = (e) => { const val = e.target.value; this.setState((st) => ({ form: Object.assign({}, st.form, { [k]: k === 'phone' ? val.replace(/\D/g, '').slice(0, 10) : val }), formErr: Object.assign({}, st.formErr, { [k]: '' }) })); };
+    });
+    const bump = (k, d, lo, hi) => () => this.setState((st) => ({ form: Object.assign({}, st.form, { [k]: Math.max(lo, Math.min(hi, st.form[k] + d)) }) }));
+    const bloodChips = BLOOD.map((b) => ({ label: b, cls: f.blood === b ? 'pill on' : 'pill', pick: () => this.setState((st) => ({ form: Object.assign({}, st.form, { blood: st.form.blood === b ? '' : b }) })) }));
+
+    const mf = s.mform || {};
+    const onM = {};
+    ['name', 'dob'].forEach((k) => { onM[k] = (e) => { const val = e.target.value; this.setState((st) => ({ mform: Object.assign({}, st.mform, { [k]: val }), mErr: '' })); }; });
+    const relChips = RELS.map((r) => ({ label: r, cls: mf.rel === r ? 'pill on' : 'pill', pick: () => this.setState((st) => ({ mform: Object.assign({}, st.mform, { rel: r }), mErr: '' })) }));
+    const genChips = GENS.map((g) => ({ label: g, cls: mf.gender === g ? 'pill on' : 'pill', pick: () => this.setState((st) => ({ mform: Object.assign({}, st.mform, { gender: g }) })) }));
+    const memberRows = s.members.map((m, i) => ({
+      initial: m.name.charAt(0).toUpperCase(), name: m.name,
+      meta: m.rel + (m.gender ? ' · ' + m.gender : '') + (m.dob ? ' · ' + ageFrom(m.dob) + ' yrs' : ''),
+      edit: () => this.push('memberform', { mform: Object.assign({}, m), mEditIdx: i, mErr: '' })
+    }));
+
+    const repList = [{ id: 'self', label: first + ' (you)' }].concat(s.members.map((m) => ({ id: m.id, label: m.name.split(' ')[0] })));
+    const repWho = repList.map((r) => ({ label: r.label, cls: s.repWho === r.id ? 'pill on' : 'pill', pick: () => this.setState({ repWho: r.id }) }));
+    const reportRows = REPORT_ORDER.map((id) => ({ id: id, r: REPORTS[id] })).filter((o) => o.r.who === s.repWho).map((o) => {
+      const ready = o.r.status === 'ready';
+      return {
+        name: o.r.name, date: dLong(D(o.r.dayOff)), sub: ready ? dLong(D(o.r.dayOff)) + ' · ' + NUM(o.r.rows.length) + ' parameters' : dLong(D(o.r.dayOff)) + ' · ' + o.r.eta,
+        status: ready ? 'Ready' : 'Processing', stCls: ready ? 'chip ok' : 'chip warn',
+        open: () => { if (ready) this.push('report', { repId: o.id, verified: false, repFlagOnly: false }); else this.toast('This report is still being processed'); }
+      };
+    });
+
+    const rep = REPORTS[s.repId] && REPORTS[s.repId].rows ? REPORTS[s.repId] : REPORTS.cbc;
+    let nFlag = 0;
+    const allRows = rep.rows.map((r) => {
+      const v = r[1], lo = r[3], hi = r[4];
+      const st = (lo !== null && v < lo) ? 'low' : ((hi !== null && v > hi) ? 'high' : 'ok');
+      if (st !== 'ok') nFlag++;
+      let zl, zw, pos;
+      if (lo !== null && hi !== null) { zl = 28; zw = 44; pos = 28 + (v - lo) / (hi - lo) * 44; }
+      else if (hi !== null) { zl = 0; zw = 62; pos = v / hi * 62; }
+      else { zl = 38; zw = 62; pos = v / lo * 38; }
+      pos = Math.max(3, Math.min(97, pos));
+      const dv = fmtN(v, r[5] || 0);
+      return {
+        name: r[0], value: dv, unit: r[2], range: rangeStr(lo, hi, r[5] || 0) + ' ' + r[2], st: st,
+        flag: st === 'ok' ? 'Normal' : (st === 'low' ? 'Low' : 'High'),
+        d: st === 'ok' ? ICON.check : (st === 'low' ? ICON.down : ICON.up),
+        flagCls: st === 'ok' ? 'chip ok' : (st === 'low' ? 'chip warn' : 'chip bad'),
+        rowCls: st === 'ok' ? 'prm' : 'prm out',
+        valColor: st === 'ok' ? 'var(--ink)' : (st === 'low' ? '#7A4B00' : '#9C1C12'),
+        zl: zl + '%', zw: zw + '%', pos: pos + '%',
+        mk: st === 'ok' ? '#14612F' : (st === 'low' ? '#B26A00' : '#B3261E')
+      };
+    });
+    const reportVals = s.repFlagOnly ? allRows.filter((r) => r.st !== 'ok') : allRows;
+    const repDate = dLong(D(rep.dayOff));
+    const repOwner = this.whoName(rep.who);
+    const ownerObj = rep.who === 'self' ? p : (s.members.find((m) => m.id === rep.who) || p);
+    const ownerAge = ageFrom(ownerObj.dob);
+    const repFilters = [['all', 'All ' + allRows.length, false], ['flag', 'Flagged ' + nFlag, true]].map((x) => ({ label: x[1], cls: s.repFlagOnly === x[2] ? 'pill on' : 'pill', pick: () => this.setState({ repFlagOnly: x[2] }) }));
+
+    const bookingList = s.bookings.slice().sort((a, b) => b.dayOff - a.dayOff);
+    const mkBk = (b) => {
+      const up = b.status === 'upcoming', canc = b.status === 'cancelled';
+      return {
+        id: b.id, when: this.whenOf(b.dayOff, b.slot), who: this.whoName(b.whoId), where: b.mode === 'home' ? 'Home collection' : 'Centre visit',
+        items: b.itemIds.map((x) => itemOf(x).name).join(', '), total: rs(b.total), method: b.method,
+        status: up ? 'Upcoming' : (canc ? 'Cancelled' : 'Completed'), stCls: up ? 'chip ok' : (canc ? 'chip bad' : 'chip neutral'),
+        isUp: up, notUp: !up,
+        cancel: () => this.setState({ sheet: { type: 'cancel', id: b.id } }),
+        resched: () => this.setState({ sheet: { type: 'resched', id: b.id }, rsDay: Math.max(0, Math.min(5, b.dayOff - 1)), rsSlot: -1 }),
+        again: () => { this.setState((st) => ({ cart: st.cart.concat(b.itemIds.filter((x) => st.cart.indexOf(x) < 0)) })); this.push('cart'); }
+      };
+    };
+    const bkUp = bookingList.filter((b) => b.status === 'upcoming').map(mkBk);
+    const bkPast = bookingList.filter((b) => b.status !== 'upcoming').map(mkBk);
+    const bkShown = s.bkTab === 'upcoming' ? bkUp : bkPast;
+    const bkTabs = [['upcoming', 'Upcoming ' + bkUp.length], ['past', 'Past ' + bkPast.length]].map((x) => ({ label: x[1], cls: s.bkTab === x[0] ? 'seg on' : 'seg', pick: () => this.setState({ bkTab: x[0] }) }));
+    const nextBk = bkUp.length ? bkUp[bkUp.length - 1] : null;
+
+    const probChips = PROBS.map((x) => ({ label: x, cls: s.prob === x ? 'pill on' : 'pill', pick: () => this.setState({ prob: x, probErr: '' }) }));
+    const probBookings = bookingList.slice(0, 3).map((b) => {
+      const on = s.probBooking === b.id;
+      return { id: b.id, when: this.whenOf(b.dayOff, b.slot), items: b.itemIds.map((x) => itemOf(x).name).join(', '), cls: on ? 'bkpick on' : 'bkpick', pick: () => this.setState({ probBooking: on ? '' : b.id }) };
+    });
+
+    const memCards = MEMS.map((m) => {
+      const on = (s.member || s.memSel) === m.id;
+      return { name: m.name, priceStr: rs(m.price), desc: m.desc, color: m.color, ring: on ? '#A0C032' : 'transparent', dot: on ? '#A0C032' : 'transparent', pick: () => this.setState({ memSel: m.id }) };
+    });
+    const memSelObj = MEMS.find((m) => m.id === s.memSel);
+
+    const tabDef = [['home', 'Home', ICON.home], ['contact', 'Contact', ICON.phone], ['tests', 'All Tests', ICON.flask], ['reports', 'Reports', ICON.report], ['profile', 'Profile', ICON.person]];
+    const tabs = tabDef.map((x) => {
+      const on = s.tab === x[0];
+      return { label: x[1], d: x[2], cls: on ? 'on' : '', active: on, idle: !on, gap: on ? '-8px' : '0', cur: on ? 'page' : 'false', go: () => this.go(x[0]) };
+    });
+
+    const counts = {};
+    CATS.forEach((c) => { const n = TESTS.filter((x) => x.cat === c.id).length; counts[c.id] = n + (n === 1 ? ' test' : ' tests'); });
+    const catCards = CATS.map((c) => ({ name: c.name, count: counts[c.id], d: ICON[c.ic], open: () => this.push('category', { catId: c.id }) }));
+
+    const hero = HERO[s.hero];
+    const heroSlides = HERO.map((h) => ({ tag: h.tag, t: h.t, s: h.s, cta: h.cta, go: () => this.heroGo(h.go) }));
+    const heroDots = HERO.map((h, i) => ({ label: 'Show slide ' + (i + 1), w: i === s.hero ? '22px' : '6px', bg: i === s.hero ? '#E4F239' : 'rgba(255,255,255,.45)', pick: () => { this.heroHold = true; this.setState({ hero: i }); } }));
+
+    const ages = [['<30', 'bronze'], ['30–45', 'silver'], ['45–60', 'gold'], ['60+', 'platinum']].map((a) => ({
+      band: a[0], unit: 'years', tier: a[1].charAt(0).toUpperCase() + a[1].slice(1),
+      open: () => this.push('packages', { pkgRec: a[1], pkgOpen: a[1], pkgFor: (s.rtSex === 'men' ? 'men' : 'women') + ' aged ' + a[0] + ' years' })
+    }));
+    const rtTabs = [['men', 'For men'], ['women', 'For women']].map((x) => ({ label: x[1], cls: s.rtSex === x[0] ? 'seg on' : 'seg', pick: () => this.setState({ rtSex: x[0] }) }));
+    const recPkg = recIdx >= 0 ? PKGS[recIdx] : null;
+
+    const titles = Object.assign({}, SCREEN_TITLES, { category: cat.name, memberform: s.mEditIdx >= 0 ? 'Edit member' : 'Add member' });
+    const today = new Date();
+    const todayIso = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
+    const stars = [1, 2, 3, 4, 5].map((n) => ({ label: n + ' star' + (n > 1 ? 's' : ''), fill: n <= s.stars ? '#E2A100' : 'none', color: n <= s.stars ? '#E2A100' : '#9AA39E', pick: () => this.setState({ stars: n }) }));
+
+    const popular = ['cbc', 'fbs', 'hba1c', 'lft'].map((id) => mkTest(TESTS.find((x) => x.id === id)));
+
+    const homeRep = REPORT_ORDER.map((id) => ({ id: id, r: REPORTS[id] })).filter((o) => o.r.who === 'self' && o.r.status === 'ready')[0];
+
+    /* Scan and referral slip */
+    const slipItems = SLIP.tests.map((id) => {
+      const it = itemOf(id);
+      const on = s.slipSel.indexOf(id) >= 0;
+      return { name: it.name, meta: it.meta, priceStr: rs(it.price), on: on, cls: on ? 'chk on' : 'chk', ariaOn: on ? 'true' : 'false', toggle: () => this.setState((st) => ({ slipSel: on ? st.slipSel.filter((x) => x !== id) : st.slipSel.concat([id]) })) };
+    });
+    const slipTotal = s.slipSel.reduce((a, id) => a + itemOf(id).price, 0);
+    const scanTabs = [['rx', 'Referral slip'], ['verify', 'Report QR']].map((x) => ({ label: x[1], cls: s.scanMode === x[0] ? 'seg on dk' : 'seg dk', pick: () => this.setState({ scanMode: x[0], scanState: 'searching' }) }));
+
+    /* Footer bar for cart, book and pay */
+    const footKind = cur === 'cart' && s.cart.length > 0 ? 'cart' : (cur === 'book' ? 'book' : (cur === 'pay' ? 'pay' : ''));
+    const footBtn = footKind === 'cart' ? 'Choose date & time' : (footKind === 'book' ? 'Review & pay' : (s.pay === 'cash' ? 'Confirm booking' : 'Pay ' + rs(t.total)));
+
+    const sheet = s.sheet;
+    const sheetBk = sheet ? s.bookings.find((b) => b.id === sheet.id) : null;
+    const rsDayChips = this.days.map((d, i) => ({
+      wd: i === 0 ? 'Tmrw' : d.toLocaleDateString('en-GB', { weekday: 'short' }), d: d.getDate(), m: d.toLocaleDateString('en-GB', { month: 'short' }),
+      cls: s.rsDay === i ? 'dchip on' : 'dchip',
+      pick: () => this.setState((st) => ({ rsDay: i, rsSlot: (st.rsSlot >= 0 && slotState(i, st.rsSlot) === 'full') ? -1 : st.rsSlot }))
+    }));
+    const rsSlotChips = SLOTS.map((sl, i) => {
+      const st = slotState(s.rsDay, i);
+      const on = s.rsSlot === i && st !== 'full';
+      const left = slotLeft(s.rsDay, i);
+      return { label: sl.l, cls: 'slot ' + (on ? 'on' : st), sub: on ? 'Selected' : (st === 'full' ? 'Full' : (st === 'few' ? left + (left === 1 ? ' slot left' : ' slots left') : 'Available')), ariaOn: on ? 'true' : 'false', pick: () => { if (st === 'full') this.toast('That slot is full. Please choose another time.'); else this.setState({ rsSlot: i }); } };
+    });
+
+    const v = {
+      hasStack: s.stack.length > 0, noStack: s.stack.length === 0, title: titles[cur] || '',
+      hdrCls: cur === 'scan' ? 'hdr stk dk' : 'hdr stk', bodyCls: cur === 'scan' ? 'body noscroll dark' : 'body noscroll',
+      showNav: s.stack.length === 0,
+      showCartBar: s.cart.length > 0 && (cur === 'home' || cur === 'tests' || cur === 'category' || cur === 'packages' || cur === 'reports'),
+      hdrCart: cur === 'category' || cur === 'packages',
+      splash: s.splash, splashCls: s.splashOut ? 'splash out' : 'splash', ph: PH[s.ph],
+      initial: p.name.charAt(0), firstName: first, fullName: p.name, phone: p.phone,
+      isMember: isMember, notMember: !isMember,
+      memberLabel: memObj ? memObj.name : '', memberShort: memObj ? 'Active' : 'Not a member',
+      memColor: memObj ? memObj.color : '#005A52', memId: s.memId, memUntil: s.memUntil,
+      memIntro: isMember ? 'You can switch plan when your membership renews.' : 'Choose a plan. Member prices apply from your next booking.',
+      memBusy: s.memBusy, memIdle: !s.memBusy,
+      memCta: isMember ? (s.memSel !== s.member ? 'Switch at renewal' : 'Membership active') : 'Activate ' + (memSelObj ? memSelObj.name : '') + ' · ' + rs(memSelObj ? memSelObj.price : 0),
+      hasCart: s.cart.length > 0, cartEmpty: s.cart.length === 0, cartCount: s.cart.length,
+      cartCountLabel: s.cart.length + (s.cart.length === 1 ? ' item' : ' items'),
+      subtotal: rs(t.sub), memSaving: rs(t.save), total: rs(t.total), wouldSave: rs(t.would),
+      hasFee: t.fee > 0, feeStr: t.fee > 0 ? rs(t.fee) : 'Free', hasNeedMore: needMore > 0, needMore: rs(needMore),
+      showCollect: mode === 'home', collectionFee: t.fee > 0 ? rs(t.fee) : 'Free',
+      hasImaging: forceLab, hasFast: hasFast,
+      heroX: 'translateX(' + (-33.3333 * s.hero).toFixed(4) + '%)', heroTag: hero.tag,
+      testQ: s.testQ, hasQuery: !!q, noQuery: !q, noResults: !!q && results.length === 0,
+      resultCount: results.length + (results.length === 1 ? ' test found' : ' tests found'),
+      faqQ: s.faqQ, faqEmpty: faqs.length === 0, faqCount: FAQS.length + ' answers to common questions',
+      catSub: cat.sub, catIsImaging: cat.id === 'imaging',
+      modeIsHome: mode === 'home', modeIsLab: mode === 'lab',
+      modeHomeCls: mode === 'home' ? 'mode on' : 'mode', modeLabCls: mode === 'lab' ? 'mode on' : 'mode',
+      homeOpacity: forceLab ? 0.5 : 1, forceLab: forceLab,
+      address: s.address, addrCls: s.bookErr && s.bookErr.indexOf('address') >= 0 ? 'inp err' : 'inp',
+      hasBookErr: !!s.bookErr, bookErr: s.bookErr,
+      whoName: this.whoName(s.who), whenStr: whenStr, hasSlot: s.slot >= 0,
+      whereStr: mode === 'home' ? (s.address || 'Home') : 'Metro Labs, Baneshwor',
+      whereKind: mode === 'home' ? 'Home collection' : 'Centre visit',
+      itemsStr: s.cart.length + (s.cart.length === 1 ? ' item' : ' items'),
+      paying: s.paying, notPaying: !s.paying,
+      footKind: footKind, hasFoot: !!footKind, footBtn: footBtn,
+      lastId: s.lastId, lastIdLine: 'Booking ID ' + s.lastId, qr: qrPath(s.lastId || 'MLB-000000'),
+      pct: pct, pctLabel: pct + '%', pctDeg: Math.round(pct * 3.6) + 'deg',
+      pctTitle: pct === 100 ? 'Profile complete' : 'Complete your profile',
+      pctHint: missing.length ? 'Add your ' + missing.join(', ') + '.' : 'All your details are up to date.',
+      saving: s.saving, notSaving: !s.saving, todayIso: todayIso,
+      noMembers: s.members.length === 0, hasMembers: s.members.length > 0,
+      memberCount: s.members.length ? String(s.members.length) : 'None',
+      hasMErr: !!s.mErr, mErr: s.mErr, mEditing: s.mEditIdx >= 0, mSaveLabel: s.mEditIdx >= 0 ? 'Save changes' : 'Add member',
+      repEmpty: reportRows.length === 0, repName: this.whoName(s.repWho).split(' ')[0],
+      repTitle: rep.name, repDate: repDate, repOwner: repOwner, repAge: ownerAge !== null ? ownerAge + ' y' : '', repSex: (ownerObj.gender || '').toLowerCase(),
+      repSample: rep.sample, repAcc: rep.acc, repBy: rep.by, repPath: rep.path, repPathInit: rep.path.replace('Dr. ', '').split(' ').map(function (w) { return w.charAt(0); }).join(''), repPathRole: rep.pathRole, repNote: rep.note,
+      repSummary: (allRows.length - nFlag) + ' of ' + allRows.length + ' within range', nFlag: nFlag, hasFlag: nFlag > 0, allOk: nFlag === 0,
+      flagLine: nFlag + (nFlag === 1 ? ' value is' : ' values are') + ' outside the reference range',
+      verified: s.verified, notVerified: !s.verified, repFlagOnly: s.repFlagOnly,
+      noBookings: bkShown.length === 0, bkEmptyTitle: s.bkTab === 'upcoming' ? 'No upcoming bookings' : 'No past bookings',
+      bkEmptySub: s.bkTab === 'upcoming' ? 'Your upcoming collections will show here.' : 'Completed and cancelled bookings will show here.',
+      hasBookings: s.bookings.length > 0,
+      bookingCount: String(bkUp.length ? bkUp.length + ' upcoming' : s.bookings.length),
+      hasToast: !!s.toast, toast: s.toast, rateOpen: s.rate,
+      calBsCls: s.cal === 'BS' ? 'cal on' : 'cal', calAdCls: s.cal === 'AD' ? 'cal on' : 'cal',
+      probText: s.probText, hasProbErr: !!s.probErr, probErr: s.probErr,
+      hasPkgFor: !!s.pkgFor, pkgFor: s.pkgFor, recName: recPkg ? recPkg.name : '', recTag: recPkg ? recPkg.tag : '',
+      hasHomeReport: !!homeRep, homeRepName: homeRep ? homeRep.r.name : '', homeRepDate: homeRep ? dDay(D(homeRep.r.dayOff)) : '',
+      hasNext: !!nextBk, nextWhen: nextBk ? nextBk.when : '', nextWhere: nextBk ? nextBk.where : '', nextItems: nextBk ? nextBk.items : '', nextId: nextBk ? nextBk.id : '',
+      scanRx: s.scanMode === 'rx', scanVerify: s.scanMode === 'verify', scanSearching: s.scanState === 'searching', scanFound: s.scanState === 'found',
+      scanHint: s.scanMode === 'rx' ? 'Point your camera at the barcode or QR code on your doctor’s referral slip.' : 'Point your camera at the QR code printed on your Metro Labs report.',
+      scanFoundLabel: s.scanMode === 'rx' ? 'Slip detected' : 'Report code detected',
+      flashCls: s.flash ? 'rnd on' : 'rnd', flashPressed: s.flash ? 'true' : 'false', qrVerify: qrPath('MLB-2611-04821'), vfBg: s.flash ? '#14302B' : '#0A1A17',
+      slipDoctor: SLIP.doctor, slipRole: SLIP.role, slipCode: SLIP.code, slipDate: dLong(D(SLIP.dayOff)), slipUnmatched: SLIP.unmatched,
+      slipCount: s.slipSel.length, slipNone: s.slipSel.length === 0, slipSome: s.slipSel.length > 0,
+      slipCta: 'Add ' + s.slipSel.length + (s.slipSel.length === 1 ? ' test' : ' tests') + ' · ' + rs(slipTotal),
+      sheetCancel: !!sheet && sheet.type === 'cancel', sheetResched: !!sheet && sheet.type === 'resched',
+      sheetOpen: !!sheet, sheetId: sheetBk ? sheetBk.id : '', sheetWhen: sheetBk ? this.whenOf(sheetBk.dayOff, sheetBk.slot) : '',
+      rsCta: s.rsSlot >= 0 ? 'Move to ' + dDay(this.days[s.rsDay]) + ' · ' + SLOTS[s.rsSlot].l : 'Choose a new time',
+      rsReady: s.rsSlot >= 0, rsNotReady: s.rsSlot < 0
+    };
+
+    return {
+      sc: sc, v: v, tabs: tabs, counts: counts, catCards: catCards, iconDefs: Object.keys(ICON).map((k) => ({ id: 'i-' + k, d: ICON[k] })),
+      helix: this.helix,
+      form: f, fe: feV, onForm: onForm, bloodChips: bloodChips,
+      mform: mf, onM: onM, relChips: relChips, genChips: genChips, memberRows: memberRows,
+      popular: popular, catChips: CATS.map((c) => ({ name: c.name, open: () => this.push('category', { catId: c.id }) })),
+      ages: ages, rtTabs: rtTabs, testFilters: testFilters, results: results, catTests: TESTS.filter((x) => x.cat === cat.id).map(mkTest),
+      pkgs: pkgs, faqs: faqs, heroSlides: heroSlides, heroDots: heroDots, cartItems: cartItems,
+      whoChips: whoChips, dayChips: dayChips, slotChips: slotChips, payChips: payChips,
+      profileRows: profileRows, repWho: repWho, reportRows: reportRows, reportVals: reportVals, repFilters: repFilters,
+      bkShown: bkShown, bkTabs: bkTabs, memCards: memCards, stars: stars, probChips: probChips, probBookings: probBookings,
+      slipItems: slipItems, scanTabs: scanTabs, rsDayChips: rsDayChips, rsSlotChips: rsSlotChips,
+      lastLines: s.lastBk ? s.lastBk.lines : [], lb: s.lastBk ? s.lastBk.view : {},
+      payLines: s.cart.map((id) => { const it = itemOf(id); return { name: it.name, price: rs(it.price) }; }),
+      setScroll: (el) => { this.sc = el; },
+      back: () => this.back(),
+      goHome: () => this.go('home'), goContact: () => this.go('contact'), goTests: () => this.go('tests'), goProfile: () => this.go('profile'), goReports: () => this.go('reports'),
+      openCart: () => this.push('cart'), openPackages: () => this.push('packages', { pkgRec: '', pkgFor: '', pkgOpen: null }), openMembership: () => this.push('membership', { memSel: s.member || s.memSel }),
+      openMyProfile: () => this.push('myprofile'), openMembers: () => this.push('members'),
+      openReports: () => this.push('reports', { repWho: 'self' }), openBookings: () => this.push('bookings', { bkTab: 'upcoming' }), openAbout: () => this.push('about'),
+      openPrivacy: () => this.push('privacy'), openTerms: () => this.push('terms'),
+      openProblem: () => this.push('problem', { prob: '', probBooking: '', probText: '', probErr: '' }),
+      openBookingsFromDone: () => this.setState({ tab: 'profile', stack: ['bookings'], bkTab: 'upcoming' }),
+      openEdit: () => this.push('editprofile', { form: Object.assign({}, p), formErr: {} }),
+      openAddMember: () => this.push('memberform', { mform: { name: '', rel: '', gender: '', dob: '' }, mEditIdx: -1, mErr: '' }),
+      openHomeReport: () => this.push('report', { repId: homeRep ? homeRep.id : 'cbc', verified: false, repFlagOnly: false }),
+      openScanRx: () => this.push('scan', { scanMode: 'rx', scanState: 'searching', flash: false }),
+      openScanVerify: () => this.push('scan', { scanMode: 'verify', scanState: 'searching', flash: false }),
+      toggleFlash: () => this.setState({ flash: !s.flash }),
+      pickGallery: () => { this.stopScan(); this.setState({ scanState: 'found' }); this.tS2 = setTimeout(() => this.finishScan(), 900); },
+      scanAgain: () => this.setState({ stack: s.stack.slice(0, -1).concat(['scan']), scanState: 'searching', flash: false }),
+      addSlip: () => {
+        if (!s.slipSel.length) return;
+        const n = s.slipSel.filter((x) => s.cart.indexOf(x) < 0).length;
+        this.setState({ cart: s.cart.concat(s.slipSel.filter((x) => s.cart.indexOf(x) < 0)), stack: s.stack.slice(0, -1).concat(['cart']) });
+        this.toast(n + (n === 1 ? ' test' : ' tests') + ' from the slip added to your cart');
+      },
+      heroGo: (g) => this.heroGo(g),
+      onTestQ: (e) => this.setState({ testQ: e.target.value }), clearTestQ: () => this.setState({ testQ: '' }),
+      onFaq: (e) => this.setState({ faqQ: e.target.value, faqOpen: -1 }),
+      onAddress: (e) => this.setState({ address: e.target.value, bookErr: '' }),
+      useSaved: () => this.setState({ address: 'House 24, Shankhamul Marg, New Baneshwor, Kathmandu', bookErr: '' }),
+      onProbText: (e) => this.setState({ probText: e.target.value, probErr: '' }),
+      modeHome: () => { if (forceLab) this.toast('Imaging needs a centre visit'); else this.setState({ mode: 'home', bookErr: '' }); },
+      modeLab: () => this.setState({ mode: 'lab', bookErr: '' }),
+      toBook: () => this.push('book', { bookErr: '' }),
+      toPay: () => {
+        if (s.slot < 0) { this.setState({ bookErr: 'Choose a time slot.' }); return; }
+        if (mode === 'home' && s.address.trim().length < 6) { this.setState({ bookErr: 'Enter the full collection address.' }); return; }
+        this.push('pay');
+      },
+      footGo: () => {
+        if (footKind === 'cart') this.push('book', { bookErr: '' });
+        else if (footKind === 'book') {
+          if (s.slot < 0) { this.setState({ bookErr: 'Choose a time slot.' }); return; }
+          if (mode === 'home' && s.address.trim().length < 6) { this.setState({ bookErr: 'Enter the full collection address.' }); return; }
+          this.push('pay');
+        } else if (footKind === 'pay') {
+          if (s.paying) return;
+          this.setState({ paying: true });
+          this.tp = setTimeout(() => {
+            const st = this.state;
+            const m = this.effMode();
+            const tt = calc(st.cart, !!st.member, m);
+            const id = 'MLB-' + Math.floor(100000 + Math.random() * 900000);
+            const pm = st.pay === 'cash' && m === 'lab' ? 'Pay at the centre' : (PAYS.find((x) => x.id === st.pay) || {}).label;
+            const b = { id: id, status: 'upcoming', whoId: st.who, dayOff: st.day + 1, slot: st.slot, mode: m, itemIds: st.cart.slice(), method: pm, sub: tt.sub, save: tt.save, fee: tt.fee, total: tt.total };
+            const view = {
+              who: this.whoName(st.who), when: this.whenOf(st.day + 1, st.slot), where: m === 'home' ? 'Home collection' : 'Centre visit',
+              addr: m === 'home' ? st.address : 'Metro Labs, Baneshwor', sub: rs(tt.sub), save: rs(tt.save), hasSave: tt.save > 0, fee: tt.fee > 0 ? rs(tt.fee) : 'Free', total: rs(tt.total),
+              isHome: m === 'home', method: pm, paidLabel: st.pay === 'cash' ? 'Payment' : 'Paid with',
+              next1: m === 'home' ? 'We send you an SMS the day before with your collection window.' : 'We send you an SMS the day before to confirm your visit time.',
+              next2: m === 'home' ? 'Our phlebotomist arrives at your address in the slot you chose. Show your booking code when they arrive.' : 'Show your booking code at Baneshwor reception.'
+            };
+            const lines = st.cart.map((x) => { const it = itemOf(x); return { name: it.name, price: rs(it.price) }; });
+            this.setState({ paying: false, bookings: st.bookings.concat([b]), lastId: id, lastBk: { lines: lines, view: view }, stack: ['done'], tab: 'home', cart: [], slot: -1 });
+          }, 1500);
+        }
+      },
+      saveProfile: () => {
+        const e = this.validateProfile(s.form);
+        if (Object.keys(e).length) { this.setState({ formErr: e }); return; }
+        this.setState({ saving: true });
+        this.ts = setTimeout(() => {
+          this.setState((st) => ({ saving: false, profile: Object.assign({}, st.profile, st.form, { phone: st.form.phone.trim(), email: (st.form.email || '').trim() }), form: null, stack: st.stack.slice(0, -1) }));
+          this.toast('Profile saved');
+        }, 700);
+      },
+      hUp: bump('height', 1, 50, 230), hDown: bump('height', -1, 50, 230),
+      wUp: bump('weight', 1, 2, 250), wDown: bump('weight', -1, 2, 250),
+      saveMember: () => {
+        const m = s.mform;
+        if (!m.name || m.name.trim().length < 2) { this.setState({ mErr: 'Enter the member’s full name.' }); return; }
+        if (!m.rel) { this.setState({ mErr: 'Choose how they are related to you.' }); return; }
+        if (m.dob && ageFrom(m.dob) < 0) { this.setState({ mErr: 'Date of birth cannot be in the future.' }); return; }
+        const clean = Object.assign({}, m, { name: m.name.trim() });
+        if (s.mEditIdx >= 0) {
+          const list = s.members.slice(); list[s.mEditIdx] = clean;
+          this.setState({ members: list, stack: s.stack.slice(0, -1) });
+          this.toast('Changes saved for ' + clean.name.split(' ')[0]);
+        } else {
+          clean.id = 'm' + Date.now();
+          this.setState({ members: s.members.concat([clean]), stack: s.stack.slice(0, -1), who: cur === 'memberform' && s.stack.length > 1 && s.stack[s.stack.length - 2] === 'book' ? clean.id : s.who });
+          this.toast(clean.name.split(' ')[0] + ' added to your family');
+        }
+      },
+      removeMember: () => {
+        const m = s.members[s.mEditIdx];
+        this.setState({ members: s.members.filter((x, i) => i !== s.mEditIdx), stack: s.stack.slice(0, -1), who: s.who === (m && m.id) ? 'self' : s.who, repWho: 'self' });
+        this.toast((m ? m.name.split(' ')[0] : 'Member') + ' removed');
+      },
+      activateMem: () => {
+        if (s.member) { this.toast(s.memSel !== s.member ? 'You can switch plans when your membership renews' : 'Your membership is already active'); return; }
+        this.setState({ memBusy: true });
+        this.tm = setTimeout(() => {
+          const d = new Date(); d.setFullYear(d.getFullYear() + 1);
+          this.setState((st) => ({ memBusy: false, member: st.memSel, memId: 'MLB-M-' + Math.floor(1000 + Math.random() * 9000), memUntil: dLong(d) }));
+          this.toast('Membership active. Member prices now apply.');
+        }, 1100);
+      },
+      sendProblem: () => {
+        if (!s.prob) { this.setState({ probErr: 'Choose what the problem is about.' }); return; }
+        if (s.probText.trim().length < 10) { this.setState({ probErr: 'Add a short description (at least 10 characters).' }); return; }
+        this.setState({ stack: s.stack.slice(0, -1) });
+        this.toast('Thanks. Ticket MLB-T-' + Math.floor(1000 + Math.random() * 9000) + ' created. We reply within one working day.');
+      },
+      toggleCal: () => { const c = s.cal === 'BS' ? 'AD' : 'BS'; this.setState({ cal: c }); this.toast('Dates will show in ' + (c === 'BS' ? 'Bikram Sambat' : 'English (AD)')); },
+      openRate: () => this.setState({ rate: true, stars: 0 }),
+      closeRate: () => this.setState({ rate: false }),
+      submitRate: () => { this.setState({ rate: false }); this.toast(s.stars ? 'Thank you for the ' + s.stars + '-star rating' : 'Thanks for your feedback'); },
+      closeSheet: () => this.setState({ sheet: null }),
+      confirmCancel: () => {
+        const id = s.sheet && s.sheet.id;
+        this.setState({ bookings: s.bookings.map((b) => b.id === id ? Object.assign({}, b, { status: 'cancelled' }) : b), sheet: null });
+        this.toast('Booking ' + id + ' cancelled. Any prepaid amount is refunded in 3 to 5 working days.');
+      },
+      confirmResched: () => {
+        if (s.rsSlot < 0) return;
+        const id = s.sheet && s.sheet.id;
+        this.setState({ bookings: s.bookings.map((b) => b.id === id ? Object.assign({}, b, { dayOff: s.rsDay + 1, slot: s.rsSlot }) : b), sheet: null });
+        this.toast('Booking moved to ' + dShort(this.days[s.rsDay]) + ' · ' + SLOTS[s.rsSlot].l);
+      },
+      locToast: () => this.toast('Showing slots near the Baneshwor centre'),
+      callToast: () => this.toast('Calling Metro Labs on [lab phone number]'),
+      waToast: () => this.toast('Opening WhatsApp chat with +977 980 100 0600'),
+      mailToast: () => this.toast('Opening an email to [care email]'),
+      pdfToast: () => this.toast('Report PDF saved to your downloads'),
+      shareToast: () => this.toast('Share link copied. It stays valid for 7 days.'),
+      bellToast: () => this.toast('No new notifications'),
+      nothing: (e) => { if (e && e.stopPropagation) e.stopPropagation(); }
+    };
+  }
+  heroGo(g) {
+    if (g === 'tests') this.go('tests');
+    else if (g === 'packages') this.push('packages', { pkgRec: '', pkgFor: '', pkgOpen: null });
+    else this.push('membership', { memSel: this.state.member || this.state.memSel });
+  }
+}
+</script>
+</body>
+</html>

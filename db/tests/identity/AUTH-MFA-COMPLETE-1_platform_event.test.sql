@@ -64,8 +64,8 @@ INSERT INTO core.tenants (id, tenant_code, legal_name, display_name, status, cre
   (pg_temp.id(1), 'lab_a', 'Lab A Pvt Ltd', 'Lab A', 'active', pg_temp.id(99), pg_temp.id(99));
 -- staff 61 = user 32 (the founder-like platform admin enrolling); staff 62 = user 33 (a second admin); user 34 has NO platform_staff row
 INSERT INTO identity.platform_staff (id, user_id, email_normalized, display_name, role_code, is_active, created_by, updated_by) VALUES
-  (pg_temp.id(61), pg_temp.id(32), 'staff32@example.test', 'Staff 32', 'platform_admin', true, pg_temp.id(99), pg_temp.id(99)),
-  (pg_temp.id(62), pg_temp.id(33), 'staff33@example.test', 'Staff 33', 'platform_admin', true, pg_temp.id(99), pg_temp.id(99));
+  (pg_temp.id(61), pg_temp.id(32), 'staff32@example.test', 'Staff 32', 'platform_superadmin', true, pg_temp.id(99), pg_temp.id(99)),
+  (pg_temp.id(62), pg_temp.id(33), 'staff33@example.test', 'Staff 33', 'platform_superadmin', true, pg_temp.id(99), pg_temp.id(99));
 SET LOCAL session_replication_role = origin;
 CREATE TEMP TABLE before_n AS SELECT pg_temp.nev() AS n;
 
@@ -176,18 +176,19 @@ CREATE FUNCTION pg_temp.pre(u int) RETURNS text LANGUAGE sql AS $$ SELECT format
 SELECT is(pg_temp.ins(pg_temp.pre(32), 601, 'platform_mfa_enrolled', 'platform_staff', 61, 61), 'n=1', 'policy: lims_owner + app.pre_user_id = the staff user + the exact row -> 1 row');
 SELECT is(pg_temp.ins(NULL, 602, 'platform_mfa_enrolled', 'platform_staff', 61, 61), 'E42501:' || 'new row violates row-level security policy for table "platform_events"', 'policy: no GUC set -> refused');
 SELECT is(pg_temp.ins($$SELECT set_config('app.pre_user_id', '', true)$$, 603, 'platform_mfa_enrolled', 'platform_staff', 61, 61), 'E42501:' || 'new row violates row-level security policy for table "platform_events"', 'policy: GUC set to the empty string -> refused');
-SELECT like(pg_temp.ins(pg_temp.pre(33), 604, 'platform_mfa_enrolled', 'platform_staff', 61, 61), 'E42501:%', 'policy: the GUC names another user -> refused');
-SELECT like(pg_temp.ins(pg_temp.pre(32), 605, 'platform_mfa_enrolled', 'platform_staff', 62, 62), 'E42501:%', 'policy: the row targets another staff row -> refused');
-SELECT like(pg_temp.ins(pg_temp.pre(32), 606, 'platform_mfa_enrolled', 'platform_staff', 61, 62), 'E42501:%', 'policy: actor differs from target -> refused');
-SELECT like(pg_temp.ins(pg_temp.pre(32), 608, 'platform_staff_invited', 'platform_staff', 61, 61), 'E42501:%', 'policy: another event_type (platform_staff_invited) -> refused');
-SELECT like(pg_temp.ins(pg_temp.pre(32), 609, 'platform_mfa_enrolled', 'tenant', 61, 61), 'E42501:%', 'policy: another target_type -> refused');
-SELECT like(pg_temp.ins(pg_temp.pre(34), 610, 'platform_mfa_enrolled', 'platform_staff', 34, 34), 'E42501:%', 'policy: a user without a staff row -> refused');
+-- LD-230 (3): pgTAP has no like()/unlike(); matches()/doesnt_match() with the anchored regex of the same LIKE pattern (% -> .*, _ -> .)
+SELECT matches(pg_temp.ins(pg_temp.pre(33), 604, 'platform_mfa_enrolled', 'platform_staff', 61, 61), '^E42501:.*$', 'policy: the GUC names another user -> refused');
+SELECT matches(pg_temp.ins(pg_temp.pre(32), 605, 'platform_mfa_enrolled', 'platform_staff', 62, 62), '^E42501:.*$', 'policy: the row targets another staff row -> refused');
+SELECT matches(pg_temp.ins(pg_temp.pre(32), 606, 'platform_mfa_enrolled', 'platform_staff', 61, 62), '^E42501:.*$', 'policy: actor differs from target -> refused');
+SELECT matches(pg_temp.ins(pg_temp.pre(32), 608, 'platform_staff_invited', 'platform_staff', 61, 61), '^E42501:.*$', 'policy: another event_type (platform_staff_invited) -> refused');
+SELECT matches(pg_temp.ins(pg_temp.pre(32), 609, 'platform_mfa_enrolled', 'tenant', 61, 61), '^E42501:.*$', 'policy: another target_type -> refused');
+SELECT matches(pg_temp.ins(pg_temp.pre(34), 610, 'platform_mfa_enrolled', 'platform_staff', 34, 34), '^E42501:.*$', 'policy: a user without a staff row -> refused');
 SELECT is(pg_temp.nev(601), 1::bigint, 'policy: the accepted row exists'); SELECT is((SELECT count(*) FROM generate_series(602, 606) k WHERE pg_temp.nev(k) > 0) + pg_temp.nev(608) + pg_temp.nev(609) + pg_temp.nev(610), 0::bigint, 'policy: no refused row exists');
 -- other roles setting the GUC themselves gain nothing (08 A12.7: the policy is TO lims_owner only)
-SELECT like(pg_temp.x('lims_app', pg_temp.sysclaims(), pg_temp.pre(32), format($$INSERT INTO identity.platform_events (id, event_type, target_type, target_id, actor_platform_staff_id, created_by) VALUES (%L, 'platform_mfa_enrolled', 'platform_staff', %L, %L, %L)$$,
-            pg_temp.id(620), pg_temp.id(61), pg_temp.id(61), pg_temp.id(99)), 'w'), 'E42501:%', 'lims_app that sets app.pre_user_id itself cannot insert the row (42501)');
-SELECT like(pg_temp.x('lims_api', pg_temp.sysclaims(), pg_temp.pre(32), format($$INSERT INTO identity.platform_events (id, event_type, target_type, target_id, actor_platform_staff_id, created_by) VALUES (%L, 'platform_mfa_enrolled', 'platform_staff', %L, %L, %L)$$,
-            pg_temp.id(621), pg_temp.id(61), pg_temp.id(61), pg_temp.id(99)), 'w'), 'E42501:%', 'lims_api that sets app.pre_user_id itself cannot insert the row either (the plain INSERT stays refused)');
+SELECT matches(pg_temp.x('lims_app', pg_temp.sysclaims(), pg_temp.pre(32), format($$INSERT INTO identity.platform_events (id, event_type, target_type, target_id, actor_platform_staff_id, created_by) VALUES (%L, 'platform_mfa_enrolled', 'platform_staff', %L, %L, %L)$$,
+            pg_temp.id(620), pg_temp.id(61), pg_temp.id(61), pg_temp.id(99)), 'w'), '^E42501:.*$', 'lims_app that sets app.pre_user_id itself cannot insert the row (42501)');
+SELECT matches(pg_temp.x('lims_api', pg_temp.sysclaims(), pg_temp.pre(32), format($$INSERT INTO identity.platform_events (id, event_type, target_type, target_id, actor_platform_staff_id, created_by) VALUES (%L, 'platform_mfa_enrolled', 'platform_staff', %L, %L, %L)$$,
+            pg_temp.id(621), pg_temp.id(61), pg_temp.id(61), pg_temp.id(99)), 'w'), '^E42501:.*$', 'lims_api that sets app.pre_user_id itself cannot insert the row either (the plain INSERT stays refused)');
 SELECT is(pg_temp.nev(620) + pg_temp.nev(621), 0::bigint, 'no row from the non-owner attempts');
 
 -- ================================================================ no RLS or grant weakening (LD-189)

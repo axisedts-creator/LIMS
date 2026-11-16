@@ -1,8 +1,9 @@
 // (platform) route group (CR-C2-001): the LIMS provider console. Only platform sessions see the children (03-APP-FLOW §11, CR-C2-009).
+// LD-251 (13-M-SERIES s3/s5): same sidebar as the staff shell (AppShell), showing only the platform group for a platform session.
 import type { ReactNode } from 'react';
 import { notFound } from 'next/navigation';
-import { getShellSession } from '@/core/session/server';
-import { navManifest, platformLinks } from '@/features/platform/nav.manifest';
+import { getRequestPathname, getShellSession } from '@/core/session/server';
+import { AppShell } from '@/core/shell/AppShell';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,23 +20,11 @@ export default async function PlatformLayout({ children }: { children: ReactNode
       </main>
     );
   }
-  const perms = new Set(session.actor.permissions);
-  const links = navManifest.entries.filter((e) => perms.has(e.permission)).sort((a, b) => a.order - b.order);
+  const pathname = await getRequestPathname();
   return (
-    <div className="lims-platform-shell" data-theme-header="platform">
-      <header className="lims-platform-header">
-        <p className="lims-platform-label"><strong>PLATFORM CONSOLE — the LIMS provider staff only</strong></p>
-        <nav aria-label="Platform">
-          <ul className="lims-platform-nav">
-            {links.map((e) => {
-              const l = platformLinks[e.id];
-              return l ? <li key={e.id}><a href={l.path}>{l.text}</a></li> : null;
-            })}
-          </ul>
-        </nav>
-        <p className="lims-platform-user">{session.actor.displayName}</p>
-      </header>
-      <main className="lims-platform-main">{children}</main>
-    </div>
+    <AppShell session={session} pathname={pathname}>
+      <p className="lims-platform-label"><strong>PLATFORM CONSOLE — the LIMS provider staff only</strong></p>
+      {children}
+    </AppShell>
   );
 }

@@ -7,3 +7,7 @@ Verified: `pnpm --filter @lims/api sweep` -> 1018 ops, 36 defects, gate ok; vite
 - Fix: run-suites.sh stops after bootstrap/migrations/seeds/storage stub when LIMS_PG_PREPARE_ONLY=1, keeps the container, prints LIMS_PG_READY. Tests untouched.
 - Verified: pnpm --filter @lims/api sweep -> 1018 ops, 36 defects, gate ok.
 - Not fixed (out of scope): quality.v_pub_qc_summary failure in T0B-08_views suite.
+## debugger round 3
+- Cause: the LIMS_PG_PREPARE_ONLY branch was again absent from db/tests/run-suites.sh in the tree (rounds 1-2 notes claimed it, but no commit contained it), so `sweep` ran all pgTAP suites; unrelated T0B-08 failure (quality.v_pub_qc_summary) + 10 min budget failed prepare.
+- Fix: added the branch after the storage stub (drops EXIT trap, prints `LIMS_PG_READY <name> <port> <superPw> <apiPw>`, exit 0). Tests untouched.
+- Verified: `pnpm --filter @lims/api sweep` -> 1018 ops, 36 defects, gate ok.

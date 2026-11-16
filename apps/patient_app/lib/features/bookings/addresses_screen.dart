@@ -11,6 +11,7 @@ import 'package:lims_shared/lims_shared.dart';
 import 'package:lims_ui/lims_ui.dart';
 
 import '../orders/orders_format.dart';
+import '../orders/status_look.dart';
 import 'bookings_api.dart';
 import 'bookings_format.dart';
 import 'bookings_providers.dart';
@@ -91,16 +92,16 @@ class _AddressesScreenState extends ConsumerState<AddressesScreen> {
   Widget _body() {
     if (_rows.isEmpty) {
       if (_failed)
-        return Center(
-          child: LimsErrorState(
+        return StateCard(
+          LimsErrorState(
             title: 'Something went wrong',
             message: 'We could not load your addresses.',
             onRetry: _load,
           ),
         );
       if (!_loaded) return const Center(child: CircularProgressIndicator());
-      return const Center(
-        child: LimsEmptyState(
+      return const StateCard(
+        LimsEmptyState(
           title: 'No saved addresses',
           message: 'Add one to book home collection.',
         ),
@@ -108,15 +109,17 @@ class _AddressesScreenState extends ConsumerState<AddressesScreen> {
     }
     return SingleChildScrollView(
       padding: const EdgeInsets.all(LimsTokens.space4),
-      child: Column(
-        children: [
-          for (final a in _rows)
-            LimsListTile(
-              title: '${a['address_text']}',
-              subtitle: _labels[a['label']],
-              onTap: () => _open(address: a),
-            ),
-        ],
+      child: LimsCard(
+        child: Column(
+          children: [
+            for (final a in _rows)
+              LimsListTile(
+                title: '${a['address_text']}',
+                subtitle: _labels[a['label']],
+                onTap: () => _open(address: a),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -315,7 +318,8 @@ class _AddressFormScreenState extends ConsumerState<AddressFormScreen> {
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(LimsTokens.space4),
-                child: Column(
+                child: LimsCard(
+                  child: Column(
                   children: [
                     if (_notice != null) ...[
                       BookingBanner(text: _notice!),
@@ -376,6 +380,7 @@ class _AddressFormScreenState extends ConsumerState<AddressFormScreen> {
                       sensitive: true,
                     ),
                   ],
+                  ),
                 ),
               ),
             ),

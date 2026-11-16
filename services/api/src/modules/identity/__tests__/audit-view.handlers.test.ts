@@ -1,6 +1,7 @@
 // C2-T18 — the four viewer handlers (02-TRD §5.9): listAuditEntries, getAuditEntry, listAccessLogEntries, listAuthEvents.
-// Schema/auth/x-permission are enforced by the core pipeline from contracts/openapi/identity.yaml; the handlers map request -> service and fail closed
-// without an authenticated request context (same convention as reporting/handlers/settings.handlers.ts).
+// Schema/auth are enforced by the core pipeline from contracts/openapi/identity.yaml; each handler checks the operation's x-permission itself through
+// ctx.ports.IdentityPort.assertRole (the fixture allows it), maps request -> service and fails closed without an authenticated request context
+// (same convention as reporting/handlers/settings.handlers.ts).
 // ASSUMED: services/api/src/modules/identity/handlers/<operationId>.ts exports `<operationId>: Handler` (named; a default export is also accepted);
 // HandlerContext carries tenantId, requestId, actor, centreScope, tx, audit (helpers.ts). Business behaviour: audit-view.service.test.ts.
 import { describe, expect, it } from 'vitest';

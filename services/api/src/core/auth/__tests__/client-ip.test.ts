@@ -81,6 +81,70 @@ describe('malformed X-Forwarded-For never reaches app.client_ip (log forging, in
   });
 });
 
+// T0A-CLIENTIP-1 / LD-296 (founder yes 2026-11-16 22:32 NPT). A hosting proxy (Render) APPENDS its peer to X-Forwarded-For, so the header is a
+// comma list. With a VERIFIED BFF key (bffKind set) the leftmost entry was written by the web (Vercel overwrites the header it hands to the web),
+// so it is used when it is a bare IP literal. Everything else is unchanged: no key + untrusted peer -> peer; trusted-CIDR peer keeps the single literal rule.
+describe('LD-296: comma list + verified BFF key -> leftmost bare IP literal', () => {
+  const PROXY_PEER = '10.20.30.40'; // what the hosting proxy appends
+  it.each(['staff_web', 'partner', 'portal'] as const)('kind %s: "client, proxy" -> the leftmost entry', (bffKind) => {
+    expect(resolve({ peer: PEER, forwardedFor: `${VICTIM}, ${PROXY_PEER}`, bffKind })).toBe(VICTIM);
+  });
+  it.each([
+    [`${VICTIM},${PROXY_PEER}`, VICTIM],
+    [`  ${VICTIM}  ,  ${PROXY_PEER}  `, VICTIM],
+    [`${VICTIM}, 1.1.1.1, ${PROXY_PEER}`, VICTIM],
+    ['1.1.1.1, 2.2.2.2, 3.3.3.3', '1.1.1.1'], // only the leftmost, never the rightmost or a later valid one
+    [`${VICTIM}, not-an-ip`, VICTIM], // the tail is not inspected
+    [`${VICTIM}, `, VICTIM],
+  ])('XFF %j -> %s', (h, want) => {
+    expect(resolve({ peer: PEER, forwardedFor: h, bffKind: 'staff_web' })).toBe(want);
+  });
+  it('IPv6 leftmost literal', () => {
+    expect(resolve({ peer: PEER, forwardedFor: `2001:db8::1, ${PROXY_PEER}`, bffKind: 'staff_web' })).toBe('2001:db8::1');
+  });
+  it('IPv4-mapped IPv6 leftmost literal is returned as written', () => {
+    expect(resolve({ peer: PEER, forwardedFor: `::ffff:${VICTIM}, ${PROXY_PEER}`, bffKind: 'staff_web' })).toBe(`::ffff:${VICTIM}`);
+  });
+  it('IPv4-mapped IPv6 TCP peer (dual-stack socket) + key + list -> leftmost', () => {
+    expect(resolve({ peer: `::ffff:${PEER}`, forwardedFor: `${VICTIM}, ${PROXY_PEER}`, bffKind: 'staff_web' })).toBe(VICTIM);
+  });
+  it('trusted-CIDR peer AND key + list -> leftmost (the key path applies)', () => {
+    expect(resolve({ peer: NGINX, forwardedFor: `${VICTIM}, ${PROXY_PEER}`, bffKind: 'portal' })).toBe(VICTIM);
+  });
+  it('a single literal still works with the key (existing rule)', () => {
+    expect(resolve({ peer: PEER, forwardedFor: VICTIM, bffKind: 'staff_web' })).toBe(VICTIM);
+  });
+
+  const junkLeft = ['not-an-ip, 10.0.0.1', ', 10.0.0.1', ' , 10.0.0.1', '999.1.1.1, 10.0.0.1', '1.2.3.4:443, 10.0.0.1', '[2001:db8::1]:443, 10.0.0.1',
+    '1.2.3.4/24, 10.0.0.1', 'fe80::1%eth0, 10.0.0.1', "1.2.3.4'--, 10.0.0.1", '1.2.3.4; DROP TABLE x, 10.0.0.1', '<script>, 10.0.0.1', '::g, 10.0.0.1',
+    `${'a'.repeat(5000)}, 10.0.0.1`, 'a,'.repeat(2500)];
+  it.each(junkLeft)('key + junk or empty leftmost %j -> the TCP peer', (h) => {
+    expect(resolve({ peer: PEER, forwardedFor: h, bffKind: 'staff_web' })).toBe(PEER);
+  });
+
+  it('NO key, untrusted peer, list -> the TCP peer (a forged header is ignored)', () => {
+    expect(resolve({ peer: PEER, forwardedFor: `${VICTIM}, ${PROXY_PEER}` })).toBe(PEER);
+    expect(resolve({ peer: PEER, forwardedFor: `${VICTIM}, ${PEER}` })).toBe(PEER);
+  });
+  it('NO key, IPv4-mapped untrusted peer, list -> the peer, not the header', () => {
+    const out = resolve({ peer: `::ffff:${PEER}`, forwardedFor: `${VICTIM}, ${PROXY_PEER}` });
+    expect(out === `::ffff:${PEER}` || out === PEER).toBe(true);
+  });
+  it('trusted-CIDR peer without a key keeps the single-literal rule: a list falls back to the peer', () => {
+    expect(resolve({ peer: NGINX, forwardedFor: `${VICTIM}, ${PROXY_PEER}` })).toBe(NGINX);
+    expect(resolve({ peer: NGINX, forwardedFor: VICTIM })).toBe(VICTIM);
+  });
+  it('empty CIDR list + no key + list -> the peer', () => {
+    expect(createClientIpResolver([])({ peer: PEER, forwardedFor: `${VICTIM}, ${PROXY_PEER}` })).toBe(PEER);
+  });
+  it('a list without XFF key material never leaks: result is always an IP literal', () => {
+    for (const h of [`${VICTIM}, x`, `x, ${VICTIM}`, ',', ',,,']) {
+      const out = resolve({ peer: PEER, forwardedFor: h, bffKind: 'partner' });
+      expect(out === PEER || out === VICTIM).toBe(true);
+    }
+  });
+});
+
 describe('construction', () => {
   it.each(['not-a-cidr', '10.0.0.0/33', '10.0.0.0/-1', '10.0.0.0/', '::1/129', '300.0.0.0/8', '10.0.0.0/abc', ''])(
     'invalid CIDR %j throws at construction (a typo must not silently trust or distrust)', (c) => {

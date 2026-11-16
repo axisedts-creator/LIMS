@@ -6,3 +6,4 @@ Tests: packages/ui entry-hero-photo + R07 lint 52 passed, 1 skipped. apps/web m6
 tsc: no error in the changed files (pre-existing msw onUnhandledRequest errors in unrelated tests).
 Open: e2e/m6-photo.e2e.ts (1440/390 screenshots) NOT run - needs a running app (LIMS_E2E_WEB_URL). Larger photo later: replace the file, update width/height in EntryHero.tsx and the size/sha256 pin in entry-hero-photo.test.tsx.
 Lead concern (LD-287) still open for the founder: Metro Labs staff and logo on the shared sign-in page.
+Writer round after LD-306 (2026-11-17): changed nothing. Baseline last recorded at ec073f164 (tester re-record not done yet). Verify re-run: web m6 422/425, 3 reds all rs-c2.static (lines 122/125/134: data_files hashes; routes 24 vs 23 = +auth/waking; field_names 13 vs 15 = -x-forwarded-for, -x-real-ip), within LD-298/303/306 allowance; packages/ui 52 passed, 1 skipped. Needs TESTER stage RS_C2_RECORD=1 per LD-306; no code change.

@@ -5,3 +5,5 @@ Fix: none in implementation (nothing to change; brief allows these diffs). Test-
 Round 4: same log, same cause. 2 failures only, both rs-c2.baseline.json drift (actions.ts hash, messages.ts hash, new waking/page.tsx route). Baseline last committed ec073f164, not re-recorded. No implementation change. Dispute: T0D-WAKE-1-dispute-202611162147.md. Needs tester RS_C2_RECORD=1 re-record.
 
 Round 5: same 2 failures (rs-c2.static: actions.ts hash, messages.ts hash, new waking/page.tsx route). Baseline still ec073f164, not re-recorded. No implementation change possible or needed; tester must run RS_C2_RECORD=1 (see T0D-WAKE-1-ruling.md item 1). Dispute: T0D-WAKE-1-dispute-202611162147.md.
+
+Round 6: same log, same 2 failures (rs-c2.static baseline drift: actions.ts hash, messages.ts hash, new waking/page.tsx route). No implementation change. Dispute stands: T0D-WAKE-1-dispute-202611162147.md. Tester must run RS_C2_RECORD=1 (ruling item 1); debugger may not edit tests.

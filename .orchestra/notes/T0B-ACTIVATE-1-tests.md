@@ -1,0 +1,9 @@
+# T0B-ACTIVATE-1 tests (tester)
+Files (services/api/src/modules/identity): handlers/__tests__/activate.confirm.test.ts, activate.setpassword.test.ts, activate.chain.test.ts; repository/__tests__/mfa.repo.accept-invitation.test.ts.
+Run: `.orchestra/notes/T0B-ACTIVATE-1-verify.cmd` (pnpm --dir services/api exec vitest run ...). Today: 45+ tests, 7 fail, all for the right reason.
+Fail now: confirm of an invite link in a provisioning tenant (auth.invite_invalid, 3 tests + 2 chain tests); repo accept of a `pending` invitation (SQL has status = 'sent' only, 2 tests).
+Guards, pass now and must keep passing: recovery still needs active tenant; suspended/offboarded/locked/count!=1/bad status still refused, no oracle; set password unchanged (MFA states, 1 rate hit, platform path); expired/used invitation never accepted and never activates the membership; tenant/membership/user scoping; one guard chain from setup session to login.
+Answer to the brief: membership activation does NOT run when the invitation update finds no row (acceptInvitation returns false first); tests pin that, so keep it. Spec does not forbid accepting `pending` (grep of 01-PRD/05-SCHEMA found none), so fix = status IN ('pending','sent').
+Resolver finding for the CR (item 4): claims/resolver.ts:79 rejects only suspended/offboarded, but session.service.ts:173 (blocked) refuses every non-active tenant for resolveSession; setPasswordFromSetup does not call it, so the setup step works, a resolved session of a provisioning tenant does not. Not tested, not widened.
+Chain test seams: fake DB bridged by loginContextOf; the fake repo acceptInvitation mirrors the SQL rule (real SQL is in the repo test); the invite mail comes from the fake gateway sendInvite at provisioning.
+Not covered: real Postgres (RLS/DEFINER), worker send_invitation, mail template link shape (CR text only).

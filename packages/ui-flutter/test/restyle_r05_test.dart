@@ -375,6 +375,7 @@ void main() {
           const LimsCard(title: 'नमूना सङ्कलन', footer: Text('Poppins'), child: Text('Accession 000123')),
         ]),
       )));
+      await tester.pumpAndSettle(); // let the 450 ms LimsCard enter fade finish so card text is in the golden
       await expectLater(find.byType(Scaffold), matchesGoldenFile('goldens/restyle_buttons.png'));
     });
 
@@ -385,6 +386,7 @@ void main() {
         const LimsCard(title: 'Orders', child: Text('3 open')),
         LimsBottomNav(items: _navItems, index: 1, onTap: (_) {}),
       ])));
+      await tester.pumpAndSettle(); // let the 450 ms LimsCard enter fade finish so card text is in the golden
       await expectLater(find.byType(Scaffold), matchesGoldenFile('goldens/restyle_card_nav.png'));
     });
   });

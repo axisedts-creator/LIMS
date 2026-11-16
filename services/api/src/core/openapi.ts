@@ -207,6 +207,12 @@ function findOp(spec: any, operationId: string): { path: string; method: string;
   return undefined;
 }
 
+/** First security scheme name of an operation's (or the document's) `security` list; undefined when none. */
+function firstScheme(security: unknown): string | undefined {
+  const first = Array.isArray(security) ? security[0] : undefined;
+  return first && typeof first === 'object' ? Object.keys(first)[0] : undefined;
+}
+
 /** Pipeline view of one operation (x-public, x-context, x-idempotency, x-rate-limit-tier; 02-CV §4). */
 function pipelineOp(module: string, spec: any, operationId: string): PipelineOp {
   const f = findOp(spec, operationId);
@@ -216,6 +222,8 @@ function pipelineOp(module: string, spec: any, operationId: string): PipelineOp 
     module, operationId, method: (f?.method ?? '').toUpperCase(), routeTemplate: f?.path ?? '',
     public: op['x-public'] !== undefined, identityAuth: context === 'identity_auth', context,
     idempotency: op['x-idempotency'], rateLimitTier: op['x-rate-limit-tier'],
+    permission: typeof op['x-permission'] === 'string' ? op['x-permission'] : undefined, // SEC-AUTHZ-2: stage 8a
+    scheme: firstScheme(op.security ?? spec?.security),
   });
 }
 

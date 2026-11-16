@@ -1,0 +1,5 @@
+# ADMINPAGE-FD-1 dispute (writer)
+Two tests in `adminpage-fd-1.settings.test.tsx` cannot pass with any implementation: the helper `setText` (line 82) calls `user.type(el, v)`, and user-event parses `[` and `{` as key descriptors (see https://testing-library.com/docs/user-event/keyboard).
+- "edits every field, PUTs the 9 fields once ..." types `^[0-9]{10}$` -> `Error: Expected repeat modifier or release modifier or "]" but found "-" in "[0-9]{10}$"` (thrown inside user-event, before any page code runs).
+- "a buyer PAN pattern that is not a valid regular expression ..." types `([` -> `Error: Expected key descriptor but found "" in "["`.
+Fix (tester): escape in `setText`, e.g. `user.type(el, v.replace(/[[{]/g, '$&$&'))` (`[[` and `{{` type a literal), or use `user.paste(v)` after `user.clear`. The page behaviour those two tests check (PAN regex refused with alert + aria-invalid, valid PAN saved, all 9 fields converted and PUT once) is implemented; I checked it by hand with a literal-safe copy of the helper: see impl notes.

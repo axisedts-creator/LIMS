@@ -212,6 +212,8 @@ routes:
   # --- T0D-NAV-COMPLETE-1 (LD-250): additive staff_web rows for nav-table paths whose page exists but had no non-parameterised row
   - { id: staff.frontdesk.worklist, origin: staff_web, path: /frontdesk/worklist, owner: C4, permission: frontdesk.order.read }
   - { id: staff.frontdesk.discount_approvals, origin: staff_web, path: /frontdesk/discount-approvals, owner: C4, permission: frontdesk.discount.approve }
+  # --- ADMINPAGE-FD-1 (LD-255): page /frontdesk/settings built; answers CR T0D-NAV-COMPLETE-1.1
+  - { id: staff.frontdesk.settings, origin: staff_web, path: /frontdesk/settings, owner: C4, permission: frontdesk.settings.manage }
   - { id: staff.billing.invoices, origin: staff_web, path: /billing/invoices, owner: C4, permission: billing.invoice.read }
   - { id: staff.billing.dues, origin: staff_web, path: /billing/dues, owner: C4, permission: billing.invoice.read }
   - { id: staff.billing.credit_parties, origin: staff_web, path: /billing/credit-parties, owner: C4, permission: billing.credit_party.read }

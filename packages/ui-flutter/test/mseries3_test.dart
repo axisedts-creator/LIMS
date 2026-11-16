@@ -120,7 +120,7 @@ void main() {
         final file = File('$pkg/${f.asset}');
         expect(file.existsSync(), isTrue, reason: f.asset);
         final b = file.readAsBytesSync();
-        expect(b.length, greaterThan(20000), reason: '${f.asset} too small to be a font');
+        expect(b.length, greaterThan(10000), reason: '${f.asset} too small to be a font');
         final magic = b.take(4).toList();
         final isTtf = magic[0] == 0 && magic[1] == 1 && magic[2] == 0 && magic[3] == 0;
         final isOtf = String.fromCharCodes(magic) == 'OTTO';

@@ -143,12 +143,12 @@ INSERT INTO engagement.slot_blackouts (id, tenant_id, centre_id, starts_at, ends
   (pg_temp.id('f5'), pg_temp.id('01'), pg_temp.id('21'), now(), now() + interval '1 day', 'holiday', pg_temp.id('a3'), pg_temp.id('99')),
   (pg_temp.id('f6'), pg_temp.id('01'), pg_temp.id('21'), now(), now() + interval '1 day', 'holiday', pg_temp.id('34'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
 INSERT INTO engagement.slot_templates (id, tenant_id, centre_id, booking_kind, weekdays, start_local, end_local, slot_minutes, capacity, effective_from, created_by, updated_by) VALUES
-  (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('21'), 'centre_visit', '{probe-1}', '08:00', '17:00', 5, 1, now()::date, pg_temp.id('99'), pg_temp.id('99')),
-  (pg_temp.id('f2'), pg_temp.id('01'), pg_temp.id('22'), 'centre_visit', '{probe-2}', '08:00', '17:00', 5, 2, now()::date, pg_temp.id('99'), pg_temp.id('99')),
-  (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('23'), 'centre_visit', '{probe-3}', '08:00', '17:00', 5, 3, now()::date, pg_temp.id('99'), pg_temp.id('99')),
-  (pg_temp.id('f4'), pg_temp.id('01'), pg_temp.id('21'), 'centre_visit', '{probe-4}', '08:00', '17:00', 5, 4, now()::date, pg_temp.id('35'), pg_temp.id('99')),
-  (pg_temp.id('f5'), pg_temp.id('01'), pg_temp.id('21'), 'centre_visit', '{probe-5}', '08:00', '17:00', 5, 5, now()::date, pg_temp.id('a3'), pg_temp.id('99')),
-  (pg_temp.id('f6'), pg_temp.id('01'), pg_temp.id('21'), 'centre_visit', '{probe-6}', '08:00', '17:00', 5, 6, now()::date, pg_temp.id('34'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
+  (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('21'), 'centre_visit', '{1}', '08:00', '17:00', 5, 1, now()::date, pg_temp.id('99'), pg_temp.id('99')),
+  (pg_temp.id('f2'), pg_temp.id('01'), pg_temp.id('22'), 'centre_visit', '{2}', '08:00', '17:00', 5, 2, now()::date, pg_temp.id('99'), pg_temp.id('99')),
+  (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('23'), 'centre_visit', '{3}', '08:00', '17:00', 5, 3, now()::date, pg_temp.id('99'), pg_temp.id('99')),
+  (pg_temp.id('f4'), pg_temp.id('01'), pg_temp.id('21'), 'centre_visit', '{4}', '08:00', '17:00', 5, 4, now()::date, pg_temp.id('35'), pg_temp.id('99')),
+  (pg_temp.id('f5'), pg_temp.id('01'), pg_temp.id('21'), 'centre_visit', '{5}', '08:00', '17:00', 5, 5, now()::date, pg_temp.id('a3'), pg_temp.id('99')),
+  (pg_temp.id('f6'), pg_temp.id('01'), pg_temp.id('21'), 'centre_visit', '{6}', '08:00', '17:00', 5, 6, now()::date, pg_temp.id('34'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
 INSERT INTO engagement.slot_occupancy (id, tenant_id, centre_id, booking_kind, slot_start, slot_end, template_id, capacity, created_by, updated_by) VALUES
   (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('21'), 'centre_visit', now(), now() + interval '1 day', pg_temp.id('f1'), 1, pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('f2'), pg_temp.id('01'), pg_temp.id('22'), 'centre_visit', now(), now() + interval '1 day', pg_temp.id('f2'), 2, pg_temp.id('99'), pg_temp.id('99')),

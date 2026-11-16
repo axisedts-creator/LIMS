@@ -70,7 +70,7 @@ export interface TenantRepo {
   setStatus(tx: unknown, id: string, expectedVersion: number, p: { status: Status; reason?: string; at: Date; actorId: string }): Promise<TRow | undefined>;
   detail(tx: unknown, id: string): Promise<{ counts: { users: number; branches: number; centres: number }; history: Array<{ from?: string; to: string; at: Date | string }>; annexReadiness: 'complete' | 'incomplete' }>;
   readiness(tx: unknown, id: string): Promise<Readiness>;
-  // PLATFORM claims, NOT scoped (PLATFORM-DDL-1, LD-223: ird_annex_records__insert__platform; s5.2 gives tenants no INSERT)
+  // PLATFORM claims, NOT scoped (PLATFORM-DDL-1, LD-223: ird_annex_records__insert__platform). Not called by provisionTenant (LD-295, T0B-PROVFIX-3).
   seedIrdAnnexes(tx: unknown, t: string, annexCodes: readonly string[], actorId: string): Promise<void>;
   // ---- SCOPED (inside ctx.db.withTenantScope(tenantId)) ----
   insertBranch(tx: unknown, t: string, b: { id: string; code: string; name: string; addressText?: string; actorId: string }): Promise<void>;
@@ -295,7 +295,8 @@ export function toTenant(r: TRow) {
 function guard(ctx: Ctx, permission: string) {
   PlatformAuthz.assertPlatform(ctx, permission);
   if (!ctx.tx || typeof ctx.db?.withTenantScope !== 'function') throw new LimsError('auth.unauthenticated');
-  return { tx: ctx.tx, actorId: ctx.actor.id, now: ctx.now ? ctx.now() : new Date() };
+  // T0B-PROVFIX-2 (LD-295): the router's ctx.now() returns an ISO string (core/pipeline/index.ts), not a Date; normalise once here.
+  return { tx: ctx.tx, actorId: ctx.actor.id, now: new Date(ctx.now ? ctx.now() : Date.now()) };
 }
 type S = ReturnType<typeof guard>;
 
@@ -446,11 +447,9 @@ export function createTenantService(deps: {
         if ((e as { code?: unknown })?.code === '23505') throw new LimsError('identity.code_duplicate');   // race on tenants__tenant_code__uq
         throw e;
       }
-      // PLATFORM-DDL-1 (LD-223): C2 05-SCHEMA s5.2 gives tenants no INSERT on identity.ird_annex_records; the s5.3 platform INSERT policy
-      // (ird_annex_records__insert__platform) admits it, so it runs here under the platform claims of the request tx, after core.tenants (FK).
-      await repo.seedIrdAnnexes(s.tx, id, TENANT_ANNEXES, s.actorId);
       const branchId = newId();
       await scoped(ctx, id, async () => {
+        // Annex rows are not seeded at provisioning until the audit policy for platform context annex writes exists (LD-295, T0B-PROVFIX-3).
         await repo.insertBranch(s.tx, id, { id: branchId, code: branch['code'] as string, name: branch['name'] as string, ...optText(branch['addressText'], 'addressText'), actorId: s.actorId });
         await repo.insertCentre(s.tx, id, { id: newId(), code: centre['code'] as string, name: centre['name'] as string, kind: centre['kind'] as string, branchId,
           ...optText(centre['addressText'], 'addressText'), actorId: s.actorId });

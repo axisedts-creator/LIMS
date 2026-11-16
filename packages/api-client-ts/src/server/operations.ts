@@ -97334,6 +97334,20 @@ export interface Operations {
         email: string;
         display_name: string;
       };
+      contract_acceptance: {
+        tos: {
+          version: string;
+          accepted_by_name: string;
+          accepted_by_title: string;
+          accepted_at: string;
+        };
+        dpa: {
+          version: string;
+          accepted_by_name: string;
+          accepted_by_title: string;
+          accepted_at: string;
+        };
+      };
     };
     responses: {
       201: ({

@@ -43,6 +43,8 @@ export interface CoreConfig {
   readonly rateLimitKeyFile?: string | undefined;
   readonly tenantRps: number;
   readonly tenantBurst: number;
+  /** LIMS_CORE_AUTHZ_MODE (SEC-AUTHZ-2, LD-261): stage 8a. Default shadow in EVERY environment until SEC-AUTHZ-9 changes it. */
+  readonly authzMode: 'shadow' | 'enforce';
 }
 
 function portKey(env: Env, key: string, fallback: number): number {
@@ -135,5 +137,6 @@ export function loadConfig(env: Env = process.env): CoreConfig {
     rateLimitKeyFile: env.LIMS_CORE_RATELIMIT_KEY_FILE || undefined,
     tenantRps: positive(env, 'LIMS_CORE_TENANT_RPS', 100),
     tenantBurst: positive(env, 'LIMS_CORE_TENANT_BURST', 200),
+    authzMode: oneOf(env, 'LIMS_CORE_AUTHZ_MODE', ['shadow', 'enforce'] as const, 'shadow'), // LD-261: shadow everywhere; unknown value throws (boot stops)
   });
 }

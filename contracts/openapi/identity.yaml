@@ -3634,6 +3634,9 @@ paths:
                   first_branch: { code: KTM-01, name: Demo main branch }
                   first_centre: { code: C000000002, name: Demo collection centre, kind: own }
                   first_admin: { email: <synthetic-email>, display_name: Demo Lab Admin }
+                  contract_acceptance:
+                    tos: { version: DEMO-TOS-1, accepted_by_name: Demo Signer, accepted_by_title: Managing Director, accepted_at: "2026-11-16T12:00:00.000Z" }
+                    dpa: { version: DEMO-DPA-1, accepted_by_name: Demo Signer, accepted_by_title: Managing Director, accepted_at: "2026-11-16T12:00:00.000Z" }
       responses:
         "201":
           description: Success.
@@ -6330,7 +6333,7 @@ components:
     TenantProvisionRequest:
       type: object
       additionalProperties: false
-      required: [ code, legal_name, display_name, first_branch, first_centre, first_admin ]
+      required: [ code, legal_name, display_name, first_branch, first_centre, first_admin, contract_acceptance ]
       properties:
         code: { type: string, maxLength: 32, pattern: "^[a-z][a-z0-9_]{2,31}$" }
         legal_name: { type: string, maxLength: 200, minLength: 1 }
@@ -6362,6 +6365,30 @@ components:
           properties:
             email: { type: string, maxLength: 254, format: email, minLength: 3 }
             display_name: { type: string, maxLength: 120, minLength: 1 }
+        # LD-29 / LD-275: ToS and DPA acceptance, as required by provisionTenant (tenant.service.ts accInput)
+        contract_acceptance:
+          type: object
+          additionalProperties: false
+          required: [ tos, dpa ]
+          properties:
+            tos:
+              type: object
+              additionalProperties: false
+              required: [ version, accepted_by_name, accepted_by_title, accepted_at ]
+              properties:
+                version: { type: string, maxLength: 32, minLength: 1 }
+                accepted_by_name: { type: string, maxLength: 120, minLength: 1 }
+                accepted_by_title: { type: string, maxLength: 80, minLength: 1 }
+                accepted_at: { $ref: _common.yaml#/components/schemas/IsoUtc }
+            dpa:
+              type: object
+              additionalProperties: false
+              required: [ version, accepted_by_name, accepted_by_title, accepted_at ]
+              properties:
+                version: { type: string, maxLength: 32, minLength: 1 }
+                accepted_by_name: { type: string, maxLength: 120, minLength: 1 }
+                accepted_by_title: { type: string, maxLength: 80, minLength: 1 }
+                accepted_at: { $ref: _common.yaml#/components/schemas/IsoUtc }
     TenantUpdateRequest:
       type: object
       additionalProperties: false

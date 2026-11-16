@@ -9,6 +9,9 @@ export const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 export const CURSOR_RE = /^[A-Za-z0-9_=-]{1,512}$/;
 export const IDEMPOTENCY_RE = /^[A-Za-z0-9_-]{16,128}$/;
+// LD-29 / LD-275: contract acceptance limits, equal to the service validator accInput (tenant.service.ts) and TenantProvisionRequest.contract_acceptance.
+export const ACCEPT_MAX = { version: 32, name: 120, title: 80 } as const;
+export const ISO_UTC_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/; // _common.yaml IsoUtc
 export const MAX_UPLOAD_BYTES = 15 * 1024 * 1024;
 export const UPLOAD_TYPES = ['application/pdf', 'image/png', 'image/jpeg'] as const;
 export const MAX_CIDRS = 20;

@@ -51,8 +51,9 @@ export function listReports(q: WorklistQuery = {}) {
   }, { centre_id: UUID_RE, family: ENUM('laboratory', 'narrative'), sort: ENUM('-updated_at', 'registered_at', '-released_at'), cursor: CURSOR_RE })}`);
 }
 export const getReport = (reportId: string) => serverFetch<ReportDetail>(`/v1/reporting/reports/${id(reportId)}`);
+// LD-301: no `limit` — the deployed handler rejects any limit (coerced to a number) with 400; the API default is 50.
 export const listCriticalAlerts = (centreId?: string, now = Date.now()) =>
-  serverFetch<Page<CriticalAlert>>(`/v1/reporting/critical-alerts${qs({ centre_id: centreId, since: new Date(now - 86_400_000).toISOString(), limit: 50 }, { centre_id: UUID_RE })}`);
+  serverFetch<Page<CriticalAlert>>(`/v1/reporting/critical-alerts${qs({ centre_id: centreId, since: new Date(now - 86_400_000).toISOString() }, { centre_id: UUID_RE })}`);
 export const listOutsourcedItems = (q: { state?: string | undefined; centreId?: string | undefined } = {}) =>
   serverFetch<Page<OutsourcedItem>>(`/v1/reporting/outsourced-items${qs({ state: q.state, centre_id: q.centreId, limit: 50 }, { state: ENUM('awaiting_file', 'awaiting_confirmation', 'confirmed'), centre_id: UUID_RE })}`);
 export const getNarrative = (narrativeId: string) => serverFetch<Narrative>(`/v1/reporting/narratives/${id(narrativeId)}`);

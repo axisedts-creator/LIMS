@@ -1,0 +1,6 @@
+# T0B-ASYNC-1 dispute (writer, 2026-11-16 18:58 NPT)
+- Test: services/worker/src/core/__tests__/async-manifests.test.ts case (3) (line ~133) still expects `unknown` == [].
+- Why wrong: LD-279 / done_when (3) require an explicit KNOWN-GAP list inside the test with exactly the seven ids (catalog.export_build, catalog.import_validate, catalog.import_commit, homecollection.flag_handover_discrepancy, homecollection.refresh_visit_specimens, identity.notify_ip_throttle, identity.rescan_upload), each with a reason and CR-C0-T0B-ASYNC-1-001, failing if an id is neither loaded nor listed AND if a listed id is loaded. Commit b17a70003 ("review fixes (tests)") only renamed the CR file; no list was added (grep KNOWN|CR-C0-T0B-ASYNC-1-001 in the test: no match).
+- Observed failure lists exactly those seven, nothing else -> implementation side is complete; only the tester-owned list is missing.
+- The writer may not edit the scan test (LD-279: tester edits it). No .orchestra/notes/T0B-ASYNC-1-review.md exists, so no implementation review items were applied.
+- Run 2026-11-16: worker 3 ASYNC files 26/27 (only case 3 fails); api unknown-task-identifier + sqlstate 82/82; tsc --noEmit worker + api clean. pgTAP not run (no docker).

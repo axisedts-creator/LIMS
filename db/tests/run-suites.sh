@@ -56,6 +56,14 @@ SU -c "CREATE SCHEMA IF NOT EXISTS storage;
   CREATE TABLE IF NOT EXISTS storage.objects (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), bucket_id text, name text);
   ALTER TABLE storage.buckets ENABLE ROW LEVEL SECURITY; ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;"
 
+# LD-272 / T0B-SWEEP-1: preparation mode. Stop after bootstrap, migrations, seeds and storage stub; keep the container (the sweep runner
+# removes it), print one machine-readable line and exit 0 before any suite runs. Without the variable nothing above or below changes.
+if [ "${LIMS_PG_PREPARE_ONLY:-}" = "1" ]; then
+  trap - EXIT
+  echo "LIMS_PG_READY $NAME $HOSTPORT $SUPER_PW $API_PW"
+  exit 0
+fi
+
 if [ "$#" -gt 0 ]; then SUITES=("$@"); else mapfile -t SUITES < <(find db/tests -name '*.test.sql' | sort); fi
 FAIL=0
 for s in "${SUITES[@]}"; do

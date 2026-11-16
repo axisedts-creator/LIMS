@@ -12,6 +12,7 @@ export interface Operation {
   security: string[];           // scheme names; [] = public
   permission?: string; context?: string; idempotency?: string;
   params: Param[]; hasBody: boolean; bodyType?: string;
+  bodySchema?: Obj;             // T0B-SWEEP-2: request-body schema of bodyType, every $ref resolved
 }
 
 const docs = new Map<string, Obj>();
@@ -20,15 +21,21 @@ function doc(dir: string, file: string): Obj {
   if (!docs.has(k)) docs.set(k, parse(readFileSync(k, 'utf8')) as Obj);
   return docs.get(k)!;
 }
-/** Resolves `#/a/b` and `_common.yaml#/a/b` refs (the only forms in contracts/openapi). */
-function deref(dir: string, file: string, v: Obj | undefined): Obj | undefined {
-  for (let i = 0; v && typeof v.$ref === 'string' && i < 8; i++) {
-    const [f, ptr = ''] = (v.$ref as string).split('#');
-    const target = f ? f : file;
-    v = ptr.split('/').filter(Boolean).reduce<any>((o, p) => o?.[p], doc(dir, target));
-    file = target;
+/** Deep copy with every `#/a/b` / `_common.yaml#/a/b` $ref inlined (T0B-SWEEP-2). A cycle is cut to `{}` (free-form) so the result is finite. */
+function resolveAll(dir: string, file: string, v: unknown, seen: string[] = []): unknown {
+  if (Array.isArray(v)) return v.map((x) => resolveAll(dir, file, x, seen));
+  if (!v || typeof v !== 'object') return v;
+  const o = v as Obj;
+  if (typeof o.$ref === 'string') {
+    const [f, ptr = ''] = (o.$ref as string).split('#');
+    const target = f || file, key = `${target}#${ptr}`;
+    if (seen.includes(key)) return {};
+    const { $ref: _r, ...rest } = o;
+    const hit = ptr.split('/').filter(Boolean).reduce<any>((x, p) => x?.[p], doc(dir, target)) ?? {};
+    const resolved = resolveAll(dir, target, hit, [...seen, key]) as Obj;
+    return Object.keys(rest).length ? { ...resolved, ...(resolveAll(dir, file, rest, seen) as Obj) } : resolved;
   }
-  return v;
+  return Object.fromEntries(Object.entries(o).map(([k, x]) => [k, resolveAll(dir, file, x, seen)]));
 }
 
 export function loadOperations(repoRoot: string): Operation[] {
@@ -42,15 +49,18 @@ export function loadOperations(repoRoot: string): Operation[] {
         const op = item?.[m];
         if (!op?.operationId) continue;
         const params = [...(item.parameters ?? []), ...(op.parameters ?? [])]
-          .map((p: Obj) => deref(dir, f, p)!)
-          .filter(Boolean)
-          .map((p: Obj) => ({ name: p.name, in: p.in, required: !!p.required || p.in === 'path', schema: deref(dir, f, p.schema) ?? {} }));
-        const body = deref(dir, f, op.requestBody);
+          .map((p: Obj) => resolveAll(dir, f, p) as Obj)
+          .filter((p: Obj) => p && p.name)
+          .map((p: Obj) => ({ name: p.name, in: p.in, required: !!p.required || p.in === 'path', schema: p.schema ?? {} }));
+        const body = resolveAll(dir, f, op.requestBody) as Obj | undefined;
+        const bodyType = body ? Object.keys(body.content ?? {})[0] : undefined;
+        const raw = bodyType ? body!.content[bodyType]?.schema : undefined;
         out.push({
           operationId: op.operationId, method: m, path, module,
           security: (op.security ?? d.security ?? []).flatMap((s: Obj) => Object.keys(s)),
           permission: op['x-permission'], context: op['x-context'], idempotency: op['x-idempotency'],
-          params, hasBody: !!body, bodyType: body ? Object.keys(body.content ?? {})[0] : undefined,
+          params, hasBody: !!body, bodyType,
+          ...(raw ? { bodySchema: raw as Obj } : {}),
         });
       }
     }

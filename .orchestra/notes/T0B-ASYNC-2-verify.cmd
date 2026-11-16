@@ -1,0 +1,1 @@
+pnpm --dir services/worker exec vitest run src/jobs/catalog/__tests__/unit/manifest.test.ts src/jobs/homecollection/__tests__/manifest.test.ts src/core/__tests__/async-manifests.test.ts src/core/__tests__/registry-sync.all.test.ts src/core/__tests__/worker-sql-functions.test.ts src/jobs/catalog/__tests__/unit/cron.test.ts src/jobs/homecollection/__tests__/cron.test.ts

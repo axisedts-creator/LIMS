@@ -1,0 +1,8 @@
+# T0B-SWEEP-2 tests (tester)
+Files (services/api/test-sweep/__tests__/): depth, pace, request, summary, partner-seed, sweep2-artifacts (.test.ts) + helper conforms.ts. Interfaces are in each file header.
+Writer must add: classify.ts (depth, NOT_EXERCISED, defectClass), pace.ts (createPacer, withRateLimitRetry; the 429s come from the hard-coded `u:` 10/s burst 20 bucket), request.ts (buildRequest moved out of run.ts, body from `bodySchema`, `ids`), ops.ts `bodySchema`, summary.ts (summarize, renderResults, SweepRow), gate.ts `notExercisedOps`, sessions.ts partner seeded active, run.ts writes T0B-SWEEP-2-results.{json,md} (+ `## Stack-level explanation`, last section `## BUG list by root-cause guess`), known-failures.json with `class`.
+Run all: `.orchestra/notes/T0B-SWEEP-2-verify.cmd` (real sweep first, needs Docker, then vitest). Unit only: `pnpm --dir services/api exec vitest run test-sweep/__tests__/{depth,pace,request,summary,partner-seed}`.
+Fail now: ../pace.js, ../request.js, ../summary.js missing; classify has no depth/defectClass; sessions seeds no partner; no SWEEP-2 artifacts. Checked: 40 tests failed + 3 files unloadable, all for those reasons.
+Thresholds I chose (not in the brief, change by CR): <=1% operations still 429; <=10% of write+platform operations SHALLOW; every DEFECT has non-empty detail.
+Conflict for the lead: SWEEP-1 gate.test.ts "first-run artifacts" block reads the frozen T0B-SWEEP-1-results.json against the live known-failures.json; once SWEEP-2 rewrites that list (partners removed) two of those tests fail. Not in verify.cmd; retarget them to SWEEP-2-results in a later tester step.
+Not covered: Docker start, real API boot, the stack-level text itself (only its shape: both operation ids plus a file.ts:line).

@@ -50,6 +50,8 @@ const OPEN_SQL = `SELECT set_config('request.jwt.claims', $1::text, true),
        now() AS tx_started_at`;
 const CLAIMS_SQL = `SELECT set_config('request.jwt.claims', $1::text, true)`;
 const RETRYABLE = new Set(['40001', '40P01']);
+const ENQUEUE = /app\.enqueue_job\s*\(/i;
+const enqueued = new WeakMap<object, string>(); // error of a failed app.enqueue_job call -> its task identifier (values[0])
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 interface TxState { readonly kind: 'request' | 'identity_auth'; readonly operation: TxOperation; readonly claimsJson: string; open: boolean; scoped: boolean }
@@ -80,7 +82,11 @@ export function createDb(o: DbOptions) {
       let bound = false;
       const query = (text: string, values: unknown[] = []) => {
         if (!state.open) return Promise.reject(internal()); // a tx kept past its request must not reach a reused connection
-        return client.query(text, values);
+        if (!ENQUEUE.test(text)) return client.query(text, values);
+        return client.query(text, values).catch((e: unknown) => {
+          if (e !== null && typeof e === 'object' && typeof values[0] === 'string') enqueued.set(e, values[0]);
+          throw e;
+        });
       };
       const tx: Tx = {
         query,
@@ -137,6 +143,12 @@ export function createDb(o: DbOptions) {
             request_id: input.requestId, sqlstate: code, schema: s('schema'), table: s('table'), column: s('column'),
             constraint: s('constraint'), routine: s('routine'), operationId: input.operation.operationId,
           }, 'db_error');
+          // T0B-ASYNC-1 (RS-10): a refused enqueue names the task and the operation, never the payload, job key or DB message
+          const id = (mapped as { code?: unknown }).code === 'common.service_unavailable' ? enqueued.get(e as object) : undefined;
+          if (id !== undefined) {
+            o.log?.error?.({ request_id: input.requestId, task_identifier: id.replace(/[\u0000-\u001f\u007f]/g, '?').slice(0, 128), operationId: input.operation.operationId },
+              'enqueue_unknown_task_identifier');
+          }
         }
         throw mapped;
       }

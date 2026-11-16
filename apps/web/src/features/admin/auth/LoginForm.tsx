@@ -49,7 +49,11 @@ export function LoginForm({ action, loggedOut, mfaFailed, next }: LoginFormProps
   return (
     <div className="lims-auth-card">
       {/* T0D-MSERIES-2 (LD-251, 13-M-SERIES s5): the Metro Labs logo sits in the auth layout; no placeholder mark in the card */}
-      <h1>Log in</h1>
+      {/* T0D-MSERIES-5 (LD-276, board M1-entry): pill, heading, text, Work email, Forgot password? on the password label row, Continue.
+          The board's Patient or partner portal button has no route in contracts/routes.yaml, so it is left out (LD-250). */}
+      <span className="lims-auth-pill">Staff sign-in</span>
+      <h1>Welcome back</h1>
+      <p>Sign in with your work email. A one-time code confirms it is you.</p>
       {loggedOut ? <Banner tone="info" title="You have been logged out." /> : null}
       {mfaFailed ? <Banner tone="warning" title="Too many incorrect codes. Log in again." /> : null}
       {failure ? (
@@ -62,7 +66,7 @@ export function LoginForm({ action, loggedOut, mfaFailed, next }: LoginFormProps
         <div className="lims-field">
           <div className="lims-label-row">
             <label className="lims-label" htmlFor={`${id}-email`}>
-              Email
+              Work email
             </label>
             <RequiredNote />
           </div>
@@ -98,13 +102,13 @@ export function LoginForm({ action, loggedOut, mfaFailed, next }: LoginFormProps
           onChange={setPassword}
           error={fieldErr.password}
           isDisabled={pending}
+          labelAction={<a href="/auth/forgot">Forgot password?</a>}
         />
         <Button type="submit" variant="primary" isLoading={pending}>
-          Log in
+          Continue
           <AuthIcon kind="arrow" className="lims-btn-arrow" />
         </Button>
       </form>
-      <a href="/auth/forgot">Forgot password?</a>
     </div>
   );
 }

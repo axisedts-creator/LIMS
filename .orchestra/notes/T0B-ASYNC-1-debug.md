@@ -1,0 +1,2 @@
+- Cause: scan test case (3) expects unknown == [] but has no KNOWN-GAP list; done_when (3)/LD-279 require the seven-id list (fail if unlisted, fail if listed id is loaded). Failure lists exactly those seven; impl side is correct.
+- Fix: none in implementation (test-owned, tester only). Dispute stands: .orchestra/notes/T0B-ASYNC-1-dispute.md. Tester must add the list; then re-run verify.

@@ -25,7 +25,7 @@ const docRows = (): { name: string; required: boolean }[] => {
   const md = readFileSync(join(ROOT, 'docs', 'runbooks', 'environment.md'), 'utf8'); // fails now: file missing
   const out: { name: string; required: boolean }[] = [];
   for (const line of md.split(/\r?\n/)) {
-    const c = line.trim().replace(/^\||\|$/g, '').split('|').map((x) => x.replace(/[`*_]/g, '').trim());
+    const c = line.trim().replace(/^\||\|$/g, '').split('|').map((x) => x.replace(/[`*]/g, '').trim());
     if (c.length >= 4 && /^LIMS_[A-Z0-9_]*[A-Z0-9]$/.test(c[0]!) && /^(required|optional)$/i.test(c[2]!)) out.push({ name: c[0]!, required: /^required$/i.test(c[2]!) });
   }
   return out;

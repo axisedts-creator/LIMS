@@ -4,4 +4,5 @@ Files: core/session/c2.ts + types.ts (`waking:true` on fetch reject only), featu
 [CONV] timeouts left at 5000 ms (<= 8000). requestRecoveryAction still returns { ok:true }.
 Round 4 (2026-11-16 21:49, after arbiter round 3): wake1 53/53 pass, ui 41 pass, rs-c2.static 12/14 (same 2 stale-baseline fails; baseline still ec073f164). Impl unchanged; needs tester stage.
 Checks (round 3, 2026-11-16 20:45): wake1 config 34 + 19 (component file alone; full run hit a vitest worker-start timeout under load) = 53/53 pass; ui no-raw-style-literals 41 pass; rs-c2.static 12/14 (2 fail: stale baseline, ruling round 2 item 1 still unapplied, no tester commit on rs-c2.baseline.json).
-Open: tester re-records rs-c2 baseline with RS_C2_RECORD=1 per ruling; then writer re-runs verify.cmd. Impl unchanged.
+Round 5 (2026-11-17 01:28, after LD-303 tester stage): wake1 53/53, ui 41 pass, rs-c2.static 11/14 (3 stale-baseline reds). Tester did NOT re-record: blocking CR .orchestra/cr/T0D-WAKE-1.md (extra drift features/platform/actions.ts + shared.ts from 9677e24a3 PLATFORM-PROVISION-1). Impl unchanged; waits on lead ruling on that CR.
+Open (old): tester re-records rs-c2 baseline with RS_C2_RECORD=1 per ruling; then writer re-runs verify.cmd. Impl unchanged.

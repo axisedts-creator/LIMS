@@ -13,6 +13,7 @@ import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { classify } from './classify.js';
 import { evaluateGate, type KnownFailure } from './gate.js';
+import { failureDetail } from './detail.js';
 import { loadOperations, type Operation, type Param } from './ops.js';
 import { assertLocalDatabase } from './safety.js';
 import { createRunKey, createSessions, permissionSets, SESSION_KINDS, TENANT_A, type SessionKind } from './sessions.js';
@@ -198,10 +199,8 @@ async function main(): Promise<number> {
         rid = String(res.headers['x-request-id'] ?? body?.request_id ?? '');
       } catch (e) { timedOut = (e as Error).message === 'timeout'; if (!timedOut) body = { code: 'inject_error', detail: String(e) }; }
       const c = classify({ status, timedOut, matched, holdsPermission: holds });
-      const lines = (logs.get(rid) ?? []).map((l) => JSON.parse(l)).filter((o) => (o.level ?? 0) >= 40);
-      const first = lines.find((o) => o.err) ?? lines[0];
-      const detail = first ? String(first.err?.stack ?? first.err?.message ?? first.msg ?? '').split('\n').slice(0, 3).join(' / ') : String(body?.detail ?? '');
       const code = String(body?.code ?? '');
+      const detail = failureDetail(logs.get(rid) ?? [], [body?.detail, body?.title, code].filter(Boolean).join(' '));
       rows.push({ module: op.module, operationId: op.operationId, method: op.method, path: op.path, sessionKind: kind, auth, holdsPermission: holds,
         status, errorCode: code, verdict: c.verdict, reason: c.reason, rootCause: c.verdict === 'DEFECT' ? rootCause(status, code, detail, c.reason) : '', detail });
     }

@@ -16,32 +16,32 @@
  },
  {
   "operation": "listPlatformAuthEvents",
-  "status": 401,
-  "ref": "T0B-SWEEP-1 (unqueued: auth: auth.unauthenticated)"
+  "status": 500,
+  "ref": "T0B-SWEEP-1 (unqueued: 500: other (common.internal))"
  },
  {
   "operation": "listPlatformIrdAnnexes",
-  "status": 401,
+  "status": 500,
   "ref": "PLATFORM-WIRE-1 (LD-267)"
  },
  {
   "operation": "listPlatformSessions",
-  "status": 401,
-  "ref": "T0B-SWEEP-1 (unqueued: auth: auth.unauthenticated)"
+  "status": 500,
+  "ref": "T0B-SWEEP-1 (unqueued: 500: other (common.internal))"
  },
  {
   "operation": "listPlatformStaff",
-  "status": 401,
-  "ref": "T0B-SWEEP-1 (unqueued: auth: auth.unauthenticated)"
+  "status": 500,
+  "ref": "T0B-SWEEP-1 (unqueued: 500: other (common.internal))"
  },
  {
   "operation": "listPlatformSupportSessions",
-  "status": 401,
+  "status": 500,
   "ref": "PLATFORM-WIRE-1 (LD-267)"
  },
  {
   "operation": "listTenants",
-  "status": 401,
+  "status": 500,
   "ref": "PLATFORM-WIRE-1 (LD-267)"
  },
  {

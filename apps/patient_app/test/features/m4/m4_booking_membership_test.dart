@@ -263,7 +263,7 @@ void main() {
       await openA18(t, rig);
       expect(find.text('Rs. 450.00'), findsWidgets);
       expect(find.textContaining('You can cancel in the app until'), findsOneWidget);
-      expect(find.widgetWithText(LimsButton, 'Cancel'), findsOneWidget);
+      expect(find.widgetWithText(LimsButton, 'Cancel booking'), findsOneWidget);
       expect(find.widgetWithText(LimsButton, 'Reschedule'), findsOneWidget);
       expect(find.ancestor(of: find.textContaining('You can cancel in the app until'), matching: find.byType(Card)), findsWidgets);
       expect(find.byType(LimsSecureScreen), findsOneWidget);
@@ -272,7 +272,7 @@ void main() {
     testWidgets('A18 of a cancelled booking hides [Cancel] and [Reschedule]', (t) async {
       await phoneP3(t);
       await openA18Cancelled(t, rig);
-      expect(find.widgetWithText(LimsButton, 'Cancel'), findsNothing);
+      expect(find.widgetWithText(LimsButton, 'Cancel booking'), findsNothing);
       expect(find.widgetWithText(LimsButton, 'Reschedule'), findsNothing);
       expect(find.textContaining('You can cancel in the app until'), findsNothing);
     });

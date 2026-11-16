@@ -65,9 +65,9 @@ INSERT INTO anatomic.gross_records (id, tenant_id, centre_id, case_id, part_id, 
   (pg_temp.id('f2'), pg_temp.id('01'), pg_temp.id('22'), pg_temp.id('f2'), pg_temp.id('f2'), pg_temp.id('42'), pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('23'), pg_temp.id('f3'), pg_temp.id('f3'), pg_temp.id('43'), pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
 INSERT INTO anatomic.images (id, tenant_id, centre_id, case_id, kind, object_path, scan_state, created_by, updated_by) VALUES
-  (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('21'), pg_temp.id('f1'), 'gross', '111111111111111111111111111111111111/8888/33/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee.jpg', 'pending', pg_temp.id('99'), pg_temp.id('99')),
-  (pg_temp.id('f2'), pg_temp.id('01'), pg_temp.id('22'), pg_temp.id('f2'), 'gross', '222222222222222222222222222222222222/9999/44/ffffffffffffffffffffffffffffffffffff.png', 'pending', pg_temp.id('99'), pg_temp.id('99')),
-  (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('23'), pg_temp.id('f3'), 'gross', '333333333333333333333333333333333333/0000/55/000000000000000000000000000000000000.jpg', 'pending', pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
+  (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('21'), pg_temp.id('f1'), 'gross', '01900000-0000-7000-8000-000000000001/8888/33/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee.jpg', 'pending', pg_temp.id('99'), pg_temp.id('99')),
+  (pg_temp.id('f2'), pg_temp.id('01'), pg_temp.id('22'), pg_temp.id('f2'), 'gross', '01900000-0000-7000-8000-000000000001/9999/44/ffffffffffffffffffffffffffffffffffff.png', 'pending', pg_temp.id('99'), pg_temp.id('99')),
+  (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('23'), pg_temp.id('f3'), 'gross', '01900000-0000-7000-8000-000000000002/0000/55/000000000000000000000000000000000000.jpg', 'pending', pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
 INSERT INTO anatomic.report_drafts (id, tenant_id, centre_id, case_id, kind, synoptic, ancillary, created_by, updated_by) VALUES
   (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('21'), pg_temp.id('f1'), 'initial', '[]', '[]', pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('f2'), pg_temp.id('01'), pg_temp.id('22'), pg_temp.id('f2'), 'initial', '[]', '[]', pg_temp.id('99'), pg_temp.id('99')),

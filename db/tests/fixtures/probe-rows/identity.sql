@@ -14,8 +14,8 @@ INSERT INTO identity.auth_events (id, tenant_id, event_type, created_by) VALUES
   (pg_temp.id('f1'), pg_temp.id('01'), 'login_failed', pg_temp.id('99')),
   (pg_temp.id('f3'), pg_temp.id('02'), 'login_failed', pg_temp.id('99')) ON CONFLICT DO NOTHING;
 INSERT INTO identity.branding_assets (id, tenant_id, kind, object_path, content_type, size_bytes, width_px, height_px, sha256, created_by, updated_by) VALUES
-  (pg_temp.id('f1'), pg_temp.id('01'), 'logo', 'probe-1', 'image/png', 1, 1, 1, decode(repeat('02', 32), 'hex'), pg_temp.id('99'), pg_temp.id('99')),
-  (pg_temp.id('f3'), pg_temp.id('02'), 'logo', 'probe-3', 'image/png', 3, 3, 3, decode(repeat('04', 32), 'hex'), pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
+  (pg_temp.id('f1'), pg_temp.id('01'), 'logo', '01900000-0000-7000-8000-000000000001/probe-1', 'image/png', 1, 1, 1, decode(repeat('02', 32), 'hex'), pg_temp.id('99'), pg_temp.id('99')),
+  (pg_temp.id('f3'), pg_temp.id('02'), 'logo', '01900000-0000-7000-8000-000000000002/probe-3', 'image/png', 3, 3, 3, decode(repeat('04', 32), 'hex'), pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
 INSERT INTO identity.feature_flags (tenant_id, flag_code, is_enabled, created_by, updated_by) VALUES
   (pg_temp.id('01'), 'probe-1', false, pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('02'), 'probe-3', false, pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
@@ -23,8 +23,8 @@ INSERT INTO identity.ird_annex_records (id, tenant_id, annex_code, created_by, u
   (pg_temp.id('f1'), pg_temp.id('01'), 'annex_2', pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('f3'), pg_temp.id('02'), 'annex_2', pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
 INSERT INTO identity.ird_annex_documents (id, tenant_id, record_id, object_path, original_filename, content_type, size_bytes, sha256, created_by) VALUES
-  (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('f1'), 'probe-1', 'probe-1', 'application/pdf', 1, decode(repeat('02', 32), 'hex'), pg_temp.id('99')),
-  (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('f3'), 'probe-3', 'probe-3', 'application/pdf', 3, decode(repeat('04', 32), 'hex'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
+  (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('f1'), '01900000-0000-7000-8000-000000000001/probe-1', 'probe-1', 'application/pdf', 1, decode(repeat('02', 32), 'hex'), pg_temp.id('99')),
+  (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('f3'), '01900000-0000-7000-8000-000000000002/probe-3', 'probe-3', 'application/pdf', 3, decode(repeat('04', 32), 'hex'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
 INSERT INTO identity.ird_annex_events (id, tenant_id, record_id, to_status, actor_id, created_by) VALUES
   (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('f1'), 'probe-1', pg_temp.id('32'), pg_temp.id('99')),
   (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('f3'), 'probe-3', pg_temp.id('33'), pg_temp.id('99')) ON CONFLICT DO NOTHING;

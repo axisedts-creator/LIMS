@@ -276,7 +276,7 @@ export function createInvoiceService(deps: { repo?: BillingRepo; counter: Counte
     });
     await balance.applyChange(ctx, { orderId: input['orderId'], cause: 'invoice_issued' });
 
-    return { invoiceId, invoiceNo, fiscalYearBs: fy.long, issuedAt: allocatedAt, totals: t };
+    return { invoiceId, invoiceNo, fiscalYearBs: fy.long, issuedAt: allocatedAt as IsoUtc, totals: t };
   }
   /**
    * Print an issued invoice (kind 'invoice') or credit note ('credit_note'). One caller transaction. Order: validate -> load (tenant from ctx; unknown and

@@ -1,0 +1,9 @@
+APPROVE
+# VERIFY-GREEN-3 review (reviewer)
+- Scope: diff 08c7f457..HEAD touches only the 5 listed files + 2 test files under frontdesk `__tests__/ci` + VERIFY-GREEN-3 notes. No spec/ edits, no SQL, no new names, no secrets, no PHI, no logging change.
+- Hiding devices: none added (no @ts-ignore/@ts-expect-error/`as any`/skipLibCheck; vg3 test 2 enforces it). Casts used: `as unknown as` on port function assignments, `as never` on one input, `as IsoUtc`, `as OrderBalance['orderId']`, return-type annotations; all compile-time only.
+- Behaviour-equivalence (independent check): transpiled base vs HEAD of each file with esbuild (loader ts, comments stripped). order.service.ts and invoice.service.ts: emitted JS IDENTICAL. BillingPort.impl.ts, BillingCommandPort.impl.ts: identical except one added comment line. registration.service.ts: only change is new identity fn `const asRc = (c) => c` wrapping the ctx arg of 6 port calls (same object passed). asRc is a module-level const used only inside functions called after module init, so no TDZ.
+- MONEY AND ORDER CODE: no emitted value, rounding, status or SQL changed (proven by the emitted-JS comparison above: same SQL strings, same parameters, same arithmetic).
+- Tests run by reviewer: `vitest run src/modules/frontdesk/__tests__/ci src/modules/billing/__tests__/contract` = 9 files, 171/171 pass (includes vg3 typecheck gate: 0 errors in the 5 files; ruling-narrowed fixture check).
+- Not run: frontdesk DB tests (need LIMS_TEST_APP_URL/docker). Covered instead by the emitted-JS equivalence, which is stronger than a before/after value test for a type-only diff.
+- Non-blocking: per-package "before" counts not in impl note (api 29 in these files; package totals in VERIFY-GREEN-1-baseline.md). Open question in notes/VERIFY-GREEN-3.md (raw ctx Date `now()` at asRc calls) is pre-existing runtime, correctly left to the lead.

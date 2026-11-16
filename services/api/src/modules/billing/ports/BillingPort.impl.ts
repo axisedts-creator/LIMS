@@ -236,10 +236,11 @@ export function createBillingPort(deps: { repo?: BillingRepo; events: BillingEve
   }
 
   return {
-    getReleaseEligibility: (async (ctx: ReleaseCtx, input: unknown) => { guard(ctx); return release.getEligibility(ctx, input); }) as BillingPortV1['getReleaseEligibility'],
-    recordGatewayPayment: recordGatewayPayment as BillingPortV1['recordGatewayPayment'],
+    // VERIFY-GREEN-3: impl ctx/ids are plain strings, port types brand them (Uuidv7/IsoUtc); `as unknown as` = same runtime value, no behaviour change.
+    getReleaseEligibility: (async (ctx: ReleaseCtx, input: unknown) => { guard(ctx); return release.getEligibility(ctx, input); }) as unknown as BillingPortV1['getReleaseEligibility'],
+    recordGatewayPayment: recordGatewayPayment as unknown as BillingPortV1['recordGatewayPayment'],
     getOrderBalance: getOrderBalance as BillingPortV1['getOrderBalance'],
-    recordGatewayRefund: recordGatewayRefund as BillingPortV1['recordGatewayRefund'],
+    recordGatewayRefund: recordGatewayRefund as unknown as BillingPortV1['recordGatewayRefund'],
   };
 }
 

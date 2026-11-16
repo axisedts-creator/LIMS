@@ -5,6 +5,7 @@
 // Centre scope = IdentityPort.getActor().centreScope (as FD-T06/T07); an order outside it is common.not_found (404, never 403: existence is not confirmed).
 // FD-T09 (below, after F10): F8b quoteOrderItemsChange, F13 changeOrderItems, F14 cancelOrder (02-TRD §5.1 F8b/F13/F14, §6.4, §8.1; 03-APP-FLOW §2.5/§2.6; 07-SECURITY §5/§6).
 import type { IssuedInvoiceRef } from '../../../../../../contracts/ports/BillingCommandPort.js';
+import type { RequestContext } from '../../../../../../contracts/ports/common.js';
 import type { LabPortV1 } from '../../../../../../contracts/ports/LabPort.js';
 import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';
 import { LimsError } from '../../../core/errors.js';
@@ -39,7 +40,7 @@ function orderCtx(c: unknown): OrderCtx {
   return x;
 }
 /** Port calls take an ISO-string clock (registration.service portCtx); Object.create keeps tenantId/actor/tx visible to the port. */
-const portCtx = <T extends { now(): Date }>(c: T): T => Object.assign(Object.create(c), { now: () => c.now().toISOString() });
+const portCtx = <T extends { now(): Date }>(c: T): RequestContext => Object.assign(Object.create(c), { now: () => c.now().toISOString() }); // VERIFY-GREEN-3 (LD-268): return type only; the object is unchanged
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const ISO_MS = /^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{3}Z$/;

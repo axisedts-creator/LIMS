@@ -17,7 +17,7 @@ export interface CentralOp {
   readonly permission?: string | undefined; readonly scheme?: string | undefined;
 }
 /** The verified claims fields stage 8a reads (never request input). */
-export interface CentralClaims { readonly actor_type?: string; readonly credential_permission?: unknown }
+export interface CentralClaims { readonly actor_type?: string }
 
 /** Documented skip reasons: the operation is not this stage's business. null = the stage checks it. */
 export function skipReason(op: CentralOp): string | null {
@@ -71,19 +71,17 @@ export function createAuthzCentral(o: {
     // LD-277: a checked operation counts as asserted for stage 9 (shadow and enforce), whatever the actor kind. Exception-listed operations keep
     // the current stage 9 behaviour. Marking goes through the guard wrapper over a no-op port, so authz-guard.ts needs no code change.
     const mark = (): void => { if (exception === undefined) void az.identity({ assertRole: () => undefined }).assertRole(); };
-    if (actorType !== 'user') mark(); // the user path marks through the wrapper when it calls assertRole
+    if (actorType !== 'user' && actorType !== 'device') mark(); // user/device paths mark through the wrapper when they call assertRole
     try {
       switch (actorType) {
-        case 'user': {
+        // device: the IdentityPort resolves the credential (device_kind) to its own fixed permission set, so it asks assertRole like a user.
+        case 'user': case 'device': {
           const port = exception === undefined ? az.identity(o.identityPort()) : o.identityPort();
           await port.assertRole(ctx, { permission }); // no centre or branch: baseline; handlers add scope
           return;
         }
         case 'system':
           if (o.systemPermissions?.[op.module]?.includes(permission)) return;
-          throw forbidden();
-        case 'device':
-          if (typeof claims?.credential_permission === 'string' && claims.credential_permission === permission) return;
           throw forbidden();
         case 'patient': case 'partner': case 'portal':
           // ponytail: bearerJwt staff operations only; their own scheme (portalSession, patientPreAuth) is authenticated by its resolver, not decided here.

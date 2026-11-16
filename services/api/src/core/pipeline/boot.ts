@@ -11,7 +11,7 @@ import { createDb, type Db, type Pool, type PoolClient } from '../db/tx.js';
 import { LimsError } from '../errors.js';
 import { createEvents } from '../events/publish.js';
 import { createIdempotency } from '../idempotency.js';
-import { PORT_OWNERS, REPO_ROOT, type LoadedModule } from '../module.js';
+import { operationIds, PORT_OWNERS, REPO_ROOT, type LoadedModule } from '../module.js';
 import type { CoreMetrics, MetricName } from '../observability/metrics.js';
 import { createAuthzGuard } from '../ports/authz-guard.js';
 import { PHASE_STUBS } from '../ports/phase-stubs.js';
@@ -174,7 +174,8 @@ export async function bootPipeline(o: {
 
   const authz = createAuthzGuard({ env: config.env, log, metrics });
   // SEC-AUTHZ-2: stage 8a inputs; a malformed authz-exceptions.json stops the boot.
-  const authzExceptions = loadAuthzExceptions();
+  // every entry must name an operationId of a loaded module contract (SEC-AUTHZ-2 done_when)
+  const authzExceptions = loadAuthzExceptions(new Set(modules.flatMap((m) => operationIds(m.spec))));
   const systemPermissions = Object.freeze(Object.fromEntries(modules.map((m) => [m.manifest.name, Object.freeze([...(m.manifest.systemPermissions ?? [])])])));
   // ponytail: core-internal 4-arg withTenantScope / systemActorOf exist in the worker only; ctx.core.deadLetters.replay answers 500 here.
   const internal = (): never => { throw new LimsError('common.internal'); };

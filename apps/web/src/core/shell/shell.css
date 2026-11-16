@@ -5,6 +5,8 @@
 .lims-topbar-end { display: flex; align-items: center; gap: var(--lims-space-3); margin-inline-start: auto; }
 .lims-topbar-actor { font-weight: var(--lims-font-weight-medium); }
 .lims-topbar-bell { display: inline-grid; place-items: center; min-width: var(--lims-touch-target-web); min-height: var(--lims-touch-target-web); padding: 0; border-radius: var(--lims-radius-full); }
+.lims-topbar-bell:disabled { grid-auto-flow: column; gap: var(--lims-space-2); padding-inline: var(--lims-space-3); }
+.lims-topbar-bell-note { font-size: var(--lims-font-size-xs-size); color: var(--lims-neutral-700); }
 .lims-breadcrumb ol { display: flex; gap: var(--lims-space-2); margin: 0; padding: 0; list-style: none; color: var(--lims-neutral-700); }
 .lims-breadcrumb li + li::before { content: '/'; margin-inline-end: var(--lims-space-2); color: var(--lims-neutral-500); }
 .lims-breadcrumb [aria-current='page'] { color: var(--lims-neutral-900); font-weight: var(--lims-font-weight-semibold); }

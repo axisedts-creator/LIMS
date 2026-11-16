@@ -16,6 +16,10 @@ import type { DashboardDto, Tile } from '../server/dashboard.server';
 import { ScopeBanner } from './ScopeBanner';
 import { AutoRefresh, RefreshButton, ShowYesterday } from './DashboardActions';
 
+// T0D-WEBFIX-2 (LD-301): the API label_bs already carries " B.S." (shared-ts formatBs 'display'); add it only when missing.
+// Lives here, not in period.ts, because rs-c8.static pins period.ts bytes. Used by ReportView, ReportRunView, ScheduleEditor.
+export const bsLabel = (s: string) => (/\bB\.S\.\s*$/.test(s) ? s.trim() : s.trim() + ' B.S.');
+
 const NUM = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 });
 const RS = new Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const WHEN = new Intl.DateTimeFormat('en-GB', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Kathmandu' });
@@ -118,7 +122,7 @@ export function DashboardView({ dto, query, readOnly = false }: { dto: Dashboard
         </>
       )}
       <p>
-        {period.label_ad} · {period.label_bs} B.S.
+        {period.label_ad} · {bsLabel(period.label_bs)}
       </p>
       <ScopeBanner scope={dto.scope} />
       {period.timezone !== 'Asia/Kathmandu' ? <Banner tone="info" title="Business days are counted in Nepal time (UTC+05:45)." /> : null}

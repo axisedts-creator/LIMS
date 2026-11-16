@@ -247,3 +247,77 @@ describe('ADMINPACK-3 founder runbook (.orchestra/notes/ADMINPACK-3-runbook.md)'
     expect(md).not.toMatch(/\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/); expect(md).not.toMatch(/-----BEGIN|AKIA[0-9A-Z]{12}|sk-[A-Za-z0-9]{16}/);
   });
 });
+
+// ---------------------------------------------------------------------------------------------------------------------------------------------
+// ADMINPACK-4 (LD-265, LD-189): every refusal carries ONE fixed reason from a closed set, so the CLI can say WHY. Refusal stays LimsError
+// 'common.validation_failed' (message = code only). ASSUMED API: the thrown error gets two own properties
+//   reason: 'args' | 'role_not_in_pack' | 'role_missing_in_lab' | 'role_is_system_default' | 'unassignable_code' | 'privileged_without_mfa'
+//   role_code?: string   (the pack role the refusal concerns; absent for 'args'; never a permission code, never data from the lab)
+// Check order per role: not in pack -> missing in lab -> system default -> unassignable code -> privileged without mfa. Nothing else about the service changes.
+// ---------------------------------------------------------------------------------------------------------------------------------------------
+describe('ADMINPACK-4 refusal reason codes', () => {
+  const REASONS = ['args', 'role_not_in_pack', 'role_missing_in_lab', 'role_is_system_default', 'unassignable_code', 'privileged_without_mfa'];
+  const why = async (seed: Record<string, Row[]>, input: any, third: any) => {
+    const w = setup(seed); const e = await rejection(w.svc.applyRolePack(w.ctx, input, third));
+    expect(e.code).toBe('common.validation_failed'); expect(e.message).toBe('common.validation_failed');
+    expect(REASONS).toContain(e.reason); expect(w.writes).toEqual([]); expect(w.access).not.toHaveBeenCalled();
+    return e as { reason: string; role_code?: string };
+  };
+
+  it('role_not_in_pack: a role of the other pack, a default role name, an unknown role -> reason + the role code', async () => {
+    for (const rc of ['std_admin', 'tenant_admin', 'nope']) {
+      const e = await why(lab(OLD_ADMIN()), { packCode: 'elabcorp_default' }, ROLES([rc], true));
+      expect(e.reason).toBe('role_not_in_pack'); expect(e.role_code).toBe(rc);
+    }
+  });
+  it('role_missing_in_lab: the pack has the role, the lab does not -> reason + role code', async () => {
+    const e = await why(lab(), { packCode: 'elabcorp_default' }, ROLES(['corp_admin'], false));
+    expect(e.reason).toBe('role_missing_in_lab'); expect(e.role_code).toBe('corp_admin');
+  });
+  it('role_is_system_default: the lab role with the pack code is a system default role -> reason + role code', async () => {
+    const e = await why(lab(row({ id: idN(0x410), code: 'corp_admin', is_system_default: true, mfa_required: true })), { packCode: 'elabcorp_default' }, ROLES(['corp_admin'], true));
+    expect(e.reason).toBe('role_is_system_default'); expect(e.role_code).toBe('corp_admin');
+  });
+  it('unassignable_code: a pack permission not in contracts/permissions.yaml -> reason + role code, the code itself is not echoed', async () => {
+    const real = structuredClone(packsFile) as any; pr(real.packs.find((p: Pack) => p.code === 'elabcorp_default'), 'corp_admin').permissions.push('zzz.not.in.registry');
+    hoisted.override = real;
+    try {
+      const e = await why(lab(OLD_ADMIN()), { packCode: 'elabcorp_default' }, ROLES(['corp_admin'], true));
+      expect(e.reason).toBe('unassignable_code'); expect(e.role_code).toBe('corp_admin');
+      expect(JSON.stringify(e)).not.toContain('zzz.not.in.registry');
+    } finally { hoisted.override = undefined; }
+  });
+  it('privileged_without_mfa: a privileged code to add, the lab role is not mfa_required -> reason + role code', async () => {
+    const e = await why(lab(row({ id: idN(0x411), code: 'corp_admin', mfa_required: false, permission_codes: [] })), { packCode: 'elabcorp_default' }, ROLES(['corp_admin'], true));
+    expect(e.reason).toBe('privileged_without_mfa'); expect(e.role_code).toBe('corp_admin');
+  });
+  it('args: empty / non-array / duplicate role list, yes not a boolean, non-string role code, bad pack code -> reason args, no role code', async () => {
+    const L = lab(OLD_ADMIN());
+    const cases: Array<[any, any]> = [
+      [{ packCode: 'elabcorp_default' }, ROLES([], true)], [{ packCode: 'elabcorp_default' }, { roles: 'corp_admin', yes: true }],
+      [{ packCode: 'elabcorp_default' }, ROLES(['corp_admin', 'corp_admin'], true)], [{ packCode: 'elabcorp_default' }, { roles: ['corp_admin'], yes: 'true' }],
+      [{ packCode: 'elabcorp_default' }, ROLES([42 as any], true)], [{ packCode: 'nope' }, ROLES(['corp_admin'], true)], [{ packCode: 7 }, ROLES(['corp_admin'], true)],
+    ];
+    for (const [input, third] of cases) { const e = await why(L, input, third); expect(e.reason).toBe('args'); expect(e.role_code).toBeUndefined(); }
+  });
+  it('plain apply (no add-missing) with a bad pack code is also reason args', async () => {
+    const w = setup(lab(OLD_ADMIN())); const e = await rejection(w.svc.applyRolePack(w.ctx, { packCode: 'nope' }));
+    expect(e.code).toBe('common.validation_failed'); expect(e.reason).toBe('args'); expect(w.writes).toEqual([]);
+  });
+  it('a multi-role request reports the FIRST refused role in the order given, and still writes nothing', async () => {
+    const e = await why(lab(OLD_ADMIN()), { packCode: 'elabcorp_default' }, ROLES(['corp_admin', 'nope', 'corp_accounts'], true));
+    expect(e.reason).toBe('role_not_in_pack'); expect(e.role_code).toBe('nope');
+  });
+  it('fail-closed errors carry no reason (auth.unauthenticated, common.internal)', async () => {
+    const { svc } = setup(lab(OLD_ADMIN()));
+    const a = await rejection(svc.applyRolePack(ctxOf({ tx: undefined }).ctx, { packCode: 'elabcorp_default' }, ROLES(['corp_admin'], true)));
+    const b = await rejection(svc.applyRolePack(ctxOf({ audit: undefined }).ctx, { packCode: 'elabcorp_default' }, ROLES(['corp_admin'], true)));
+    expect([a.code, a.reason, b.code, b.reason]).toEqual(['auth.unauthenticated', undefined, 'common.internal', undefined]);
+  });
+  it('the plain apply body already lists role codes under created / updated / unchanged and stays unchanged', async () => {
+    const w = setup(lab(OLD_ADMIN()));
+    const r = await w.svc.applyRolePack(w.ctx, { packCode: 'elabcorp_default' });
+    expect(r.body.created).toEqual(CORP.roles.map((x) => x.code).filter((c) => c !== 'corp_admin')); expect(r.body.unchanged).toEqual(['corp_admin']); expect(r.body.updated).toEqual([]);
+  });
+  it('the service cites LD-265 in a comment', () => { expect(readFileSync(join(IDENTITY, 'service', 'role-pack.service.ts'), 'utf8')).toMatch(/LD-265/); });
+});

@@ -51,6 +51,13 @@ describe('ADMINPACK-2 founder runbook', () => {
     expect(md).toMatch(/tenant/i); expect(md).toMatch(/uuid/i);
     for (const w of ['created', 'updated', 'unchanged']) expect(md).toContain(w);
   });
+  // review item 3: core.tenants is FORCE RLS, so a plain psql lookup as lims_api returns zero rows; the runbook must name a lookup that works
+  it('names a tenant lookup that works under FORCE RLS (platform console, or psql only with BYPASSRLS)', () => {
+    expect(md).toContain('/platform/tenants');
+    if (/psql/i.test(md)) expect(md).toMatch(/BYPASSRLS/);
+  });
+  // review item 2: PGUSER must be the API login role, not "a role allowed to write"
+  it('names lims_api as the PGUSER role (role name only)', () => { expect(md).toContain('lims_api'); });
   it('says the administrator must hold the pack role and sign in again', () => {
     expect(md).toMatch(/sign in again|sign-in again|log in again/i);
     expect(md).toMatch(/administrator/i);

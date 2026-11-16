@@ -75,7 +75,3 @@ components:
           properties:
             db: { $ref: '#/components/schemas/CheckState' }
             ratelimit: { $ref: '#/components/schemas/CheckState' }
-        missing_env:
-          description: T0B-OPSDOC-1 (LD-277). Names of required LIMS_* variables that are unset; names only, never values. Present only when non-empty.
-          type: array
-          items: { type: string, pattern: '^LIMS_[A-Z0-9_]*[A-Z0-9]$' }

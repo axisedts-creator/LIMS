@@ -11,10 +11,10 @@ Backward compatible? yes. Tenant/security impact: no RLS change; invite of a pro
 Tests that will prove it: handlers/__tests__/activate.*.test.ts.
 
 ---
-Title: CR-C0-ACTIVATE-1c (BLOCKING, lead decision needed): accept an invitation in status `pending`
+Title: CR-C0-ACTIVATE-1c (RULED YES, LD-302 2026-11-17): accept an invitation in status `pending`
 From chunk: C0 (lane C0-0B)            To owner: C2 (spec text owner) / lead
 Type: bug
-Blocking? YES — lead decision needed. Code keeps `sent` only until ruled.
+Blocking? no longer — RULED by lead LD-302: pending or sent is accepted once the GoTrue invite token is verified, not expired, exactly one membership, not locked, status invited/active; revoked, failed, expired stay refused (same no-oracle 400). Implemented in T0B-ACTIVATE-2. Spec text to apply by C2 owner (not edited here): C2 03-APP-FLOW §2.6 add edge `pending → accepted`; C2 03-APP-FLOW M2 precondition becomes "invitation `pending` or `sent`, not expired".
 Problem: C2 03-APP-FLOW §2.6 (line 120) allows only `sent → accepted` (pending → sent/failed/revoked), and M2 (line 60) requires "invitation `sent`, not expired"; domain/invitation.state.ts EDGES agree. Only the worker task identity.send_invitation moves pending → sent; staging runs no worker, so set password there leaves the membership `invited` and activateTenant stays refused.
 Proposed change (if ruled): 03-APP-FLOW §2.6 add edge `pending → accepted` (verified GoTrue invite token proves the address); M2 precondition "invitation `pending` or `sent`, not expired"; invitation.state.ts EDGES `pending: ['sent','failed','revoked','accepted']`; INVITE_ACCEPT_SQL `status IN ('pending','sent')`.
 Until ruled: staging needs the worker (or the founder SQL workaround, LD-299) to mark the invitation `sent`.

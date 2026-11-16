@@ -1,10 +1,9 @@
-// T0B-ACTIVATE-1 / LD-299: repository/mfa.repo.ts acceptInvitation (tenant branch) accepts an invitation in status `sent` ONLY (expiry still checked).
-// Review ruling: 03-APP-FLOW §2.6 lists the single accept edge `sent -> accepted` and M2 requires "invitation `sent`, not expired"; domain/invitation.state.ts agrees
-// (pending -> sent|failed|revoked). A `pending` invitation is refused; accepting it is raised as a blocking CR (.orchestra/cr/T0B-ACTIVATE-1.nonblocking.md).
-// The worker task identity.send_invitation moves pending -> sent; until then staging needs the worker (or the founder SQL workaround).
+// T0B-ACTIVATE-2 / LD-302 (ruling on CR-C0-ACTIVATE-1c): repository/mfa.repo.ts acceptInvitation (tenant branch) accepts an invitation in status `pending` OR `sent`
+// (the GoTrue invite token is already verified by the caller; expiry still checked). Revoked, failed, expired, accepted stay refused. Supersedes the LD-299 `sent` only rule.
+// Only the worker task identity.send_invitation moves pending -> sent and staging runs no worker, so `pending` must be acceptable (03-APP-FLOW §2.6 edge pending -> accepted, M2).
 // The fake tx below EXECUTES the status predicate it finds in the statement text against in-memory rows, so the test fails for the right reason (the SQL), not for a string.
-// Finding for the writer (asked in the brief): today the membership activation does NOT run when the invitation update finds no row (acceptInvitation returns false first).
-// That stays: an expired or already used invitation must never activate a membership. Platform branch (tenantId null) is untouched: see mfa.repo.platform-password.test.ts.
+// The membership activation does NOT run when the invitation update finds no row (acceptInvitation returns false first): an expired or used invitation never activates a membership.
+// Platform branch (tenantId null) is untouched: see mfa.repo.platform-password.test.ts.
 import { randomBytes } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import { sealerFromEnv } from '../auth-events.repo.js';
@@ -57,12 +56,19 @@ describe('acceptInvitation (tenant): which invitations are accepted', () => {
     expect(w.invs[0]).toMatchObject({ status: 'accepted', accepted_at: AT });
     expect(w.mems[0]).toMatchObject({ status: 'active', accepted_at: AT });
   });
-  it('an unexpired PENDING invitation (worker has not sent it) -> false; invitation stays pending, membership stays invited, no membership update is issued', async () => {
+  it('an unexpired PENDING invitation (worker has not sent it) -> true; invitation accepted with accepted_at = at; membership invited -> active', async () => {
     const w = world([{ status: 'pending' }]);
-    expect(await accept(w)).toBe(false);
-    expect(w.invs[0]).toMatchObject({ status: 'pending', accepted_at: null });
-    expect(w.mems[0]).toMatchObject({ status: 'invited', accepted_at: null });
-    expect(w.calls.filter((c) => /UPDATE\s+core\.memberships/i.test(c.sql))).toHaveLength(0);
+    expect(await accept(w)).toBe(true);
+    expect(w.invs[0]).toMatchObject({ status: 'accepted', accepted_at: AT });
+    expect(w.mems[0]).toMatchObject({ status: 'active', accepted_at: AT });
+  });
+  it('an EXPIRED pending invitation (expires_at <= at) -> false; the invitation and the membership are not touched', async () => {
+    for (const expires_at of [new Date(AT.getTime() - 1000), new Date(AT.getTime())]) {
+      const w = world([{ status: 'pending', expires_at }]);
+      expect(await accept(w)).toBe(false);
+      expect(w.invs[0]).toMatchObject({ status: 'pending', accepted_at: null }); expect(w.mems[0]).toMatchObject({ status: 'invited', accepted_at: null });
+      expect(w.calls.filter((c) => /UPDATE\s+core\.memberships/i.test(c.sql))).toHaveLength(0);
+    }
   });
   it('an EXPIRED sent invitation (expires_at <= at) -> false; the invitation and the membership are not touched', async () => {
     for (const expires_at of [new Date(AT.getTime() - 1000), new Date(AT.getTime())]) {
@@ -71,7 +77,7 @@ describe('acceptInvitation (tenant): which invitations are accepted', () => {
       expect(w.invs[0]!.status).toBe('sent'); expect(w.mems[0]).toMatchObject({ status: 'invited', accepted_at: null });
     }
   });
-  it.each(['accepted', 'revoked', 'expired', 'superseded'])('an invitation already %s is never accepted again and never activates the membership', async (status) => {
+  it.each(['accepted', 'revoked', 'failed', 'expired', 'superseded'])('an invitation already %s is never accepted again and never activates the membership', async (status) => {
     const w = world([{ status }]);
     expect(await accept(w)).toBe(false);
     expect(w.invs[0]!.status).toBe(status); expect(w.mems[0]!.status).toBe('invited');
@@ -90,9 +96,9 @@ describe('acceptInvitation (tenant): which invitations are accepted', () => {
 
 describe('acceptInvitation (tenant): scoping and statement shape (security)', () => {
   it('only the invitation of THIS tenant, membership and user: another membership, another tenant or another user is not accepted', async () => {
-    const mine = { status: 'sent' }; const w = world([mine, { ...mine, membership_id: OTHER_M }, { ...mine, tenant_id: OTHER_T }, { ...mine, user_id: A }], [{}, { id: OTHER_M }]);
+    const mine = { status: 'pending' }; const w = world([mine, { ...mine, membership_id: OTHER_M }, { ...mine, tenant_id: OTHER_T }, { ...mine, user_id: A }], [{}, { id: OTHER_M }]);
     expect(await accept(w)).toBe(true);
-    expect(w.invs.map((i) => i.status)).toEqual(['accepted', 'sent', 'sent', 'sent']);
+    expect(w.invs.map((i) => i.status)).toEqual(['accepted', 'pending', 'pending', 'pending']);
     expect(w.mems.map((m) => m.status)).toEqual(['active', 'invited']);
   });
   it('a second accept of the same invitation is false (single use) and changes nothing', async () => {
@@ -106,10 +112,10 @@ describe('acceptInvitation (tenant): scoping and statement shape (security)', ()
     expect(w.calls[0]!.p).toEqual([T, M, U, AT, A]); expect(w.calls[1]!.p).toEqual([T, M, AT, A]);
     expect(w.calls.map((c) => c.sql).join('\n')).not.toMatch(/identity_platform_auth_write/);
   });
-  it('the accept statement lists ONLY sent (not a blanket UPDATE, not pending) and keeps the expiry guard', async () => {
+  it('the accept statement lists EXACTLY pending and sent (not a blanket UPDATE, not revoked/failed/expired) and keeps the expiry guard', async () => {
     const w = world([{ status: 'sent' }]); await accept(w);
     const sql = w.calls[0]!.sql;
-    expect(statuses(sql)).toEqual(['sent']);
+    expect([...statuses(sql)].sort()).toEqual(['pending', 'sent']);
     expect(sql).toMatch(/expires_at\s*>\s*\$4/);
     expect(sql).toMatch(/tenant_id\s*=\s*\$1/); expect(sql).toMatch(/membership_id\s*=\s*\$2/); expect(sql).toMatch(/user_id\s*=\s*\$3/);
   });

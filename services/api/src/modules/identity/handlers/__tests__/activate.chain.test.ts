@@ -4,9 +4,12 @@
 // into the app.identity_login_context row the way the DEFINER does. Real SQL of the invitation accept is in repository/__tests__/mfa.repo.accept-invitation.test.ts.
 // SEAM: the invitation e-mail is the worker + Supabase template job (nonblocking CR, LD-299 item 7): here provisioning asks the fake gateway for the invite mail, whose
 // link is /auth/confirm with token_hash and type=invite; the test opens it exactly like the browser page does.
-// Expected now: fails at "open invite link" (auth.invite_invalid, tenant provisioning) - the deadlock.
-import { createHash } from 'node:crypto';
+// T0B-ACTIVATE-2 / LD-302: NO worker step. The invitation stays `pending`; the accept is the real repository SQL (fake tx executes its status predicate).
+// Expected now: the pending-invitation tests fail (membership stays invited, activation refused: identity.tenant_not_ready) until INVITE_ACCEPT_SQL takes pending + sent.
+import { createHash, randomBytes } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
+import { sealerFromEnv } from '../../repository/auth-events.repo.js';
+import { createMfaRepo, openerFromEnv } from '../../repository/mfa.repo.js';
 import { createAuthService } from '../../service/auth.service.js';
 import { createTenantService } from '../../service/tenant.service.js';
 import { PROVISION, makeCtx, makeRepo, nextId, rejection as trejection, type FakeRepo } from '../../service/__tests__/tenant.helpers.js';
@@ -16,6 +19,7 @@ import { createConfirmEmailToken } from '../confirmEmailToken.js';
 import { createSetPasswordFromSetup } from '../setPasswordFromSetup.js';
 
 const EMAIL = PROVISION.firstAdmin.email.trim().toLowerCase();
+const MFA_ENV = { LIMS_IDENTITY_TOKEN_ENC_KEYS: JSON.stringify({ k1: randomBytes(32).toString('base64') }) } as NodeJS.ProcessEnv;
 
 /** the DEFINER view of the fake database for one GoTrue user */
 function loginContextOf(f: FakeRepo, sub: string) {
@@ -33,13 +37,25 @@ async function chainWorld() {
     await w.gw.sendInvite(i.email, '/auth/confirm'); return { userId: (await w.gw.adminFindUserByEmail(i.email))!.userId }; } };
   const svc = createTenantService({ repo: f.repo, gotrue, emailHmac: (e: string) => Buffer.from(e), userExists: async () => false, newId: nextId } as never) as any;
   w.store.setDefaultRow((sub) => loginContextOf(f, sub));
-  // invitation accept as the repository does it for the tenant branch: `sent` only (03-APP-FLOW §2.6 / M2), unexpired -> accepted, membership invited -> active + accepted_at
-  const repo = { ...w.store.repo, async acceptInvitation(_tx: unknown, a: { tenantId: string | null; membershipId: string | null; at: Date }) {
-    const d = f.data(a.tenantId!); const inv = d.invitations.find((i: any) => i.membershipId === a.membershipId && i.expiresAt.getTime() > a.at.getTime() && i.status === 'sent');
-    const m = d.members.find((x) => x.id === a.membershipId);
-    if (!inv || !m || m.status !== 'invited') return false;
-    (inv as any).status = 'accepted'; m.status = 'active'; m.accepted = true; return true;
+  // T0B-ACTIVATE-2 / LD-302: invitation accept is the REAL repository acceptInvitation (tenant branch) over a fake tx that executes the statement's own status predicate
+  // (`status = 'x'` / `status IN (...)`, expires_at > $4) against the fake rows; a row with no status is `pending` (the DB default). So the chain fails today for the SQL, not for a stub.
+  const statusesOf = (sql: string) => { const where = sql.slice(sql.search(/\bWHERE\b/i)); const eq = /\bstatus\s*=\s*'(\w+)'/i.exec(where); if (eq) return [eq[1]!];
+    const inn = /\bstatus\s+IN\s*\(([^)]*)\)/i.exec(where); return inn ? [...inn[1]!.matchAll(/'(\w+)'/g)].map((x) => x[1]!) : []; };
+  const tx: any = { async query(sql: string, p: any[]) {
+    const d = f.data(p[0]); const ok = statusesOf(sql);
+    if (/UPDATE\s+identity\.invitations/i.test(sql)) {
+      const hit = d.invitations.filter((i: any) => i.membershipId === p[1] && i.userId === p[2] && ok.includes(i.status ?? 'pending') && i.expiresAt.getTime() > (p[3] as Date).getTime());
+      for (const i of hit) (i as any).status = 'accepted';
+      return { rows: hit.map(() => ({ id: 'x' })) };
+    }
+    if (/UPDATE\s+core\.memberships/i.test(sql)) {
+      const hit = d.members.filter((m) => m.id === p[1] && ok.includes(m.status)); for (const m of hit) { m.status = 'active'; m.accepted = true; }
+      return { rows: hit.map(() => ({ id: 'x' })) };
+    }
+    throw new Error(`unexpected statement: ${sql.slice(0, 60)}`);
   } };
+  const mfaRepo = createMfaRepo({ seal: sealerFromEnv(MFA_ENV), open: openerFromEnv(MFA_ENV) });
+  const repo = { ...w.store.repo, acceptInvitation: (_tx: unknown, a: any) => mfaRepo.acceptInvitation(tx, a) };
   const deps = { ...(w.deps as any), repo };
   const aw = makeAuthWorld({ rows: (sub: string) => loginContextOf(f, sub) });
   const auth = createAuthService({ ...aw.deps, gotrue: { signInWithPassword: (e: string, p: string) => w.gw.signInWithPassword(e, p) } } as any) as any;
@@ -64,10 +80,9 @@ describe('provision -> open invite link -> set password -> activate -> login (th
     expect(opened.body.session).toMatchObject({ kind: 'tenant_staff', state: 'password_setup' });
     expect(c.w.store.committed('insertSession')[0]!.arg).toMatchObject({ tenantId: id, state: 'password_setup' });
 
-    // 3 WORKER SEAM: identity.send_invitation moves the invitation pending -> sent (no worker runs on staging today: blocking CR); then set the password:
+    // 3 NO WORKER STEP (LD-302): the invitation is left in `pending` (identity.send_invitation never runs on staging); the verified token is enough. Set the password:
     //   invitation accepted, membership active with accepted_at
     expect(c.f.data(id).invitations[0]!.status ?? 'pending').toBe('pending');   // the fake repo stores no status on insert = the DB default `pending`
-    c.f.data(id).invitations[0]!.status = 'sent';
     const set = await c.w.call(createSetPasswordFromSetup(c.deps) as any, { token: opened.body.session_token, body: { new_password: GOOD_PW } });
     expect(set.status).toBe(200);
     expect(c.w.store.eventsOf('invite_accepted')).toHaveLength(1);
@@ -104,12 +119,46 @@ describe('provision -> open invite link -> set password -> activate -> login (th
     expect((await c.login()).status).toBe(200);
   });
 
-  it('STAGING GAP (pins it): without the worker step the invitation is still `pending`; set password succeeds but accepts nothing, the membership stays invited and activation is refused', async () => {
+  it('STAGING (no worker): an invitation left `pending` is accepted by set password; membership becomes active and activateTenant succeeds', async () => {
     const c = await chainWorld(); const p = await c.svc.provisionTenant(c.ctx(), PROVISION); const id = p.body.tenant_id as string;
     const opened = await c.w.call(createConfirmEmailToken(c.deps) as any, { body: { token_hash: c.w.fake!.mailbox.latestTokenHash(EMAIL, 'invite'), type: 'invite' } });
     expect(opened.status).toBe(200);
     expect(c.f.data(id).invitations[0]!.status ?? 'pending').toBe('pending');
     expect((await c.w.call(createSetPasswordFromSetup(c.deps) as any, { token: opened.body.session_token, body: { new_password: GOOD_PW } })).status).toBe(200);
+    expect(c.w.store.eventsOf('invite_accepted')).toHaveLength(1);
+    expect(c.f.data(id).members[0]).toMatchObject({ status: 'active', accepted: true });
+    expect(c.f.data(id).invitations[0]!.status).toBe('accepted');
+    expect((await c.svc.activateTenant(c.ctx(), { tenantId: id, expectedVersion: p.version })).body.status).toBe('active');
+  });
+
+  it.each(['revoked', 'failed', 'expired', 'accepted'])('an invitation already %s is NOT accepted by set password: membership stays invited, activation refused (no-oracle: set password itself still 200)', async (status) => {
+    const c = await chainWorld(); const p = await c.svc.provisionTenant(c.ctx(), PROVISION); const id = p.body.tenant_id as string;
+    const opened = await c.w.call(createConfirmEmailToken(c.deps) as any, { body: { token_hash: c.w.fake!.mailbox.latestTokenHash(EMAIL, 'invite'), type: 'invite' } });
+    expect(opened.status).toBe(200);
+    c.f.data(id).invitations[0]!.status = status;
+    expect((await c.w.call(createSetPasswordFromSetup(c.deps) as any, { token: opened.body.session_token, body: { new_password: GOOD_PW } })).status).toBe(200);
+    expect(c.w.store.eventsOf('invite_accepted')).toHaveLength(0);
+    expect(c.f.data(id).members[0]).toMatchObject({ status: 'invited', accepted: false });
+    expect(c.f.data(id).invitations[0]!.status).toBe(status);
+    expect((await trejection(c.svc.activateTenant(c.ctx(), { tenantId: id, expectedVersion: p.version }))).code).toBe('identity.tenant_not_ready');
+  });
+
+  it('a pending invitation past its expiry is NOT accepted (expires_at <= now): membership stays invited, activation refused', async () => {
+    const c = await chainWorld(); const p = await c.svc.provisionTenant(c.ctx(), PROVISION); const id = p.body.tenant_id as string;
+    const opened = await c.w.call(createConfirmEmailToken(c.deps) as any, { body: { token_hash: c.w.fake!.mailbox.latestTokenHash(EMAIL, 'invite'), type: 'invite' } });
+    expect(opened.status).toBe(200);
+    c.f.data(id).invitations[0]!.expiresAt = new Date(0);
+    expect((await c.w.call(createSetPasswordFromSetup(c.deps) as any, { token: opened.body.session_token, body: { new_password: GOOD_PW } })).status).toBe(200);
+    expect(c.f.data(id).members[0]).toMatchObject({ status: 'invited', accepted: false });
+    expect(c.f.data(id).invitations[0]!.status ?? 'pending').toBe('pending');
+    expect((await trejection(c.svc.activateTenant(c.ctx(), { tenantId: id, expectedVersion: p.version }))).code).toBe('identity.tenant_not_ready');
+  });
+
+  it('a pending invitation WITHOUT a verified token accepts nothing: a wrong token_hash is refused (auth.invite_invalid), an unknown setup session token is refused, invitation stays pending', async () => {
+    const c = await chainWorld(); const p = await c.svc.provisionTenant(c.ctx(), PROVISION); const id = p.body.tenant_id as string;
+    const bad = await trejection(c.w.call(createConfirmEmailToken(c.deps) as any, { body: { token_hash: 'f'.repeat(40), type: 'invite' } }));
+    expect(bad.code).toBe('auth.invite_invalid');
+    await expect(c.w.call(createSetPasswordFromSetup(c.deps) as any, { token: 'S' + 'z'.repeat(42), body: { new_password: GOOD_PW } })).rejects.toBeTruthy();
     expect(c.w.store.eventsOf('invite_accepted')).toHaveLength(0);
     expect(c.f.data(id).members[0]).toMatchObject({ status: 'invited', accepted: false });
     expect(c.f.data(id).invitations[0]!.status ?? 'pending').toBe('pending');

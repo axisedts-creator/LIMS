@@ -5804,8 +5804,8 @@ components:
       properties:
         calendar_display: { type: string, maxLength: 5, enum: [ AD, BS, AD_BS, BS_AD ] }
         timezone: { type: string, maxLength: 64, minLength: 1 }
-        idle_timeout_minutes: { type: integer, minimum: 1, maximum: 1440 }
-        absolute_session_hours: { type: integer, minimum: 1, maximum: 168 }
+        idle_timeout_minutes: { type: integer, minimum: 15, maximum: 30 }  # LD-304 (CR-C0-LOGIN-1; 04 A8): same range as sessions__idle__ck
+        absolute_session_hours: { type: integer, minimum: 1, maximum: 12 }  # LD-304: same cap as sessions__absolute__ck
         password_min_length: { type: integer, minimum: 1, maximum: 128 }
         support_access_mode: { type: string, maxLength: 17, enum: [ notify, approval_required ] }
         report_link_ttl_days: { type: integer, minimum: 1, maximum: 3650 }
@@ -5871,8 +5871,8 @@ components:
       properties:
         calendar_display: { type: string, maxLength: 5, enum: [ AD, BS, AD_BS, BS_AD ] }
         timezone: { type: string, maxLength: 64, minLength: 1 }
-        idle_timeout_minutes: { type: integer, minimum: 1, maximum: 1440 }
-        absolute_session_hours: { type: integer, minimum: 1, maximum: 168 }
+        idle_timeout_minutes: { type: integer, minimum: 15, maximum: 30 }  # LD-304 (CR-C0-LOGIN-1; 04 A8): same range as sessions__idle__ck
+        absolute_session_hours: { type: integer, minimum: 1, maximum: 12 }  # LD-304: same cap as sessions__absolute__ck
         password_min_length: { type: integer, minimum: 1, maximum: 128 }
         support_access_mode: { type: string, maxLength: 17, enum: [ notify, approval_required ] }
         report_link_ttl_days: { type: integer, minimum: 1, maximum: 3650 }
@@ -5936,8 +5936,8 @@ components:
       properties:
         calendar_display: { type: string, maxLength: 5, enum: [ AD, BS, AD_BS, BS_AD ] }
         timezone: { type: string, maxLength: 64, minLength: 1 }
-        idle_timeout_minutes: { type: integer, minimum: 1, maximum: 1440 }
-        absolute_session_hours: { type: integer, minimum: 1, maximum: 168 }
+        idle_timeout_minutes: { type: integer, minimum: 15, maximum: 30 }  # LD-304 (CR-C0-LOGIN-1; 04 A8): same range as sessions__idle__ck
+        absolute_session_hours: { type: integer, minimum: 1, maximum: 12 }  # LD-304: same cap as sessions__absolute__ck
         password_min_length: { type: integer, minimum: 1, maximum: 128 }
         support_access_mode: { type: string, maxLength: 17, enum: [ notify, approval_required ] }
         report_link_ttl_days: { type: integer, minimum: 1, maximum: 3650 }

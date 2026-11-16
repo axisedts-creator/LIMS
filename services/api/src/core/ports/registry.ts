@@ -97,7 +97,8 @@ export function resolvePorts(opts: ResolvePortsOpts): {
         enumerable: true,
         configurable: false,
         get() {
-          if (consumers[port]?.includes(module)) return impl;
+          // LD-305 (CR-C0-0B-ADMINFIX-1): a module may read the port it owns.
+          if (consumers[port]?.includes(module) || owners[port] === module) return impl;
           log.error({ event: 'port_consumer_not_listed', module, port }, 'port read by a module not in PORT_CONSUMERS');
           if (production) {
             metrics.inc('lims_core_port_consumer_not_listed_total', { module, port });

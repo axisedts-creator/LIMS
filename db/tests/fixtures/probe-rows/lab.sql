@@ -75,9 +75,9 @@ INSERT INTO lab.module_submissions (id, tenant_id, idempotency_key, result_id, p
   (pg_temp.id('f1'), pg_temp.id('01'), 'probe-1', pg_temp.id('f1'), 'micro', pg_temp.id('f1'), 1, 1, 'pending', pg_temp.id('99')),
   (pg_temp.id('f3'), pg_temp.id('02'), 'probe-3', pg_temp.id('f3'), 'micro', pg_temp.id('f3'), 3, 3, 'pending', pg_temp.id('99')) ON CONFLICT DO NOTHING;
 INSERT INTO lab.result_attachments (id, tenant_id, centre_id, result_id, bucket, object_path, sha256, mime_type, created_by) VALUES
-  (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('21'), pg_temp.id('f1'), 'probe-1', 'probe-1', '1111111111111111111111111111111111111111111111111111111111111111', 'application/pdf', pg_temp.id('99')),
-  (pg_temp.id('f2'), pg_temp.id('01'), pg_temp.id('22'), pg_temp.id('f2'), 'probe-2', 'probe-2', '2222222222222222222222222222222222222222222222222222222222222222', 'application/pdf', pg_temp.id('99')),
-  (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('23'), pg_temp.id('f3'), 'probe-3', 'probe-3', '3333333333333333333333333333333333333333333333333333333333333333', 'application/pdf', pg_temp.id('99')) ON CONFLICT DO NOTHING;
+  (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('21'), pg_temp.id('f1'), 'probe-1', '01900000-0000-7000-8000-000000000001/probe-1', '1111111111111111111111111111111111111111111111111111111111111111', 'application/pdf', pg_temp.id('99')),
+  (pg_temp.id('f2'), pg_temp.id('01'), pg_temp.id('22'), pg_temp.id('f2'), 'probe-2', '01900000-0000-7000-8000-000000000001/probe-2', '2222222222222222222222222222222222222222222222222222222222222222', 'application/pdf', pg_temp.id('99')),
+  (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('23'), pg_temp.id('f3'), 'probe-3', '01900000-0000-7000-8000-000000000002/probe-3', '3333333333333333333333333333333333333333333333333333333333333333', 'application/pdf', pg_temp.id('99')) ON CONFLICT DO NOTHING;
 INSERT INTO lab.result_observations (id, tenant_id, centre_id, result_id, source, created_by) VALUES
   (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('21'), pg_temp.id('f1'), 'instrument', pg_temp.id('99')),
   (pg_temp.id('f2'), pg_temp.id('01'), pg_temp.id('22'), pg_temp.id('f2'), 'instrument', pg_temp.id('99')),

@@ -41,6 +41,6 @@ INSERT INTO frontdesk.settings (tenant_id, consent_text_version, created_by, upd
   (pg_temp.id('01'), 'probe-1', pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('02'), 'probe-3', pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
 INSERT INTO frontdesk.trf_attachments (id, tenant_id, centre_id, object_path, mime_type, size_bytes, sha256, created_by, updated_by) VALUES
-  (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('21'), 'probe-1', 'application/pdf', 1, '1111111111111111111111111111111111111111111111111111111111111111', pg_temp.id('99'), pg_temp.id('99')),
-  (pg_temp.id('f2'), pg_temp.id('01'), pg_temp.id('22'), 'probe-2', 'application/pdf', 2, '2222222222222222222222222222222222222222222222222222222222222222', pg_temp.id('99'), pg_temp.id('99')),
-  (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('23'), 'probe-3', 'application/pdf', 3, '3333333333333333333333333333333333333333333333333333333333333333', pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
+  (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('21'), '01900000-0000-7000-8000-000000000001/probe-1', 'application/pdf', 1, '1111111111111111111111111111111111111111111111111111111111111111', pg_temp.id('99'), pg_temp.id('99')),
+  (pg_temp.id('f2'), pg_temp.id('01'), pg_temp.id('22'), '01900000-0000-7000-8000-000000000001/probe-2', 'application/pdf', 2, '2222222222222222222222222222222222222222222222222222222222222222', pg_temp.id('99'), pg_temp.id('99')),
+  (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('23'), '01900000-0000-7000-8000-000000000002/probe-3', 'application/pdf', 3, '3333333333333333333333333333333333333333333333333333333333333333', pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;

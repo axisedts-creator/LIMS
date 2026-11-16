@@ -1,0 +1,182 @@
+[
+ {
+  "operation": "getReferralIncentiveReport",
+  "status": 403,
+  "ref": "T0B-SWEEP-1 (unqueued: auth: common.feature_disabled)"
+ },
+ {
+  "operation": "verifyPaymentIntent",
+  "status": 503,
+  "ref": "T0B-SWEEP-1 (unqueued: 500: other (common.service_unavailable))"
+ },
+ {
+  "operation": "downloadIrdAnnexDocument",
+  "status": 401,
+  "ref": "T0B-SWEEP-1 (unqueued: auth: auth.unauthenticated)"
+ },
+ {
+  "operation": "endSupportSession",
+  "status": 401,
+  "ref": "T0B-SWEEP-1 (unqueued: auth: auth.unauthenticated)"
+ },
+ {
+  "operation": "getTenant",
+  "status": 401,
+  "ref": "T0B-SWEEP-1 (unqueued: auth: auth.unauthenticated)"
+ },
+ {
+  "operation": "getTenantSettingsAsPlatform",
+  "status": 401,
+  "ref": "T0B-SWEEP-1 (unqueued: auth: auth.unauthenticated)"
+ },
+ {
+  "operation": "listDeadLetters",
+  "status": 500,
+  "ref": "PLATFORM-WIRE-1 (LD-267)"
+ },
+ {
+  "operation": "listPlatformAuthEvents",
+  "status": 401,
+  "ref": "T0B-SWEEP-1 (unqueued: auth: auth.unauthenticated)"
+ },
+ {
+  "operation": "listPlatformIrdAnnexes",
+  "status": 401,
+  "ref": "PLATFORM-WIRE-1 (LD-267)"
+ },
+ {
+  "operation": "listPlatformSessions",
+  "status": 401,
+  "ref": "T0B-SWEEP-1 (unqueued: auth: auth.unauthenticated)"
+ },
+ {
+  "operation": "listPlatformStaff",
+  "status": 401,
+  "ref": "T0B-SWEEP-1 (unqueued: auth: auth.unauthenticated)"
+ },
+ {
+  "operation": "listPlatformSupportSessions",
+  "status": 401,
+  "ref": "PLATFORM-WIRE-1 (LD-267)"
+ },
+ {
+  "operation": "listTenants",
+  "status": 401,
+  "ref": "PLATFORM-WIRE-1 (LD-267)"
+ },
+ {
+  "operation": "resetPlatformStaffMfa",
+  "status": 401,
+  "ref": "T0B-SWEEP-1 (unqueued: auth: auth.unauthenticated)"
+ },
+ {
+  "operation": "revokePlatformSession",
+  "status": 401,
+  "ref": "T0B-SWEEP-1 (unqueued: auth: auth.unauthenticated)"
+ },
+ {
+  "operation": "downloadPartnerReport",
+  "status": 403,
+  "ref": "T0B-SWEEP-1 fixture gap: seed has no partners.partners/partner_users row for the partner membership (not a code defect)"
+ },
+ {
+  "operation": "downloadPatientAccessSlip",
+  "status": 403,
+  "ref": "T0B-SWEEP-1 fixture gap: seed has no partners.partners/partner_users row for the partner membership (not a code defect)"
+ },
+ {
+  "operation": "getManifest",
+  "status": 403,
+  "ref": "T0B-SWEEP-1 fixture gap: seed has no partners.partners/partner_users row for the partner membership (not a code defect)"
+ },
+ {
+  "operation": "getManifestPrintView",
+  "status": 403,
+  "ref": "T0B-SWEEP-1 fixture gap: seed has no partners.partners/partner_users row for the partner membership (not a code defect)"
+ },
+ {
+  "operation": "getPartnerContext",
+  "status": 403,
+  "ref": "T0B-SWEEP-1 fixture gap: seed has no partners.partners/partner_users row for the partner membership (not a code defect)"
+ },
+ {
+  "operation": "getPartnerDashboard",
+  "status": 403,
+  "ref": "T0B-SWEEP-1 fixture gap: seed has no partners.partners/partner_users row for the partner membership (not a code defect)"
+ },
+ {
+  "operation": "getPartnerOrder",
+  "status": 403,
+  "ref": "T0B-SWEEP-1 fixture gap: seed has no partners.partners/partner_users row for the partner membership (not a code defect)"
+ },
+ {
+  "operation": "getPatientAccessSlip",
+  "status": 403,
+  "ref": "T0B-SWEEP-1 fixture gap: seed has no partners.partners/partner_users row for the partner membership (not a code defect)"
+ },
+ {
+  "operation": "getPickupRequest",
+  "status": 403,
+  "ref": "T0B-SWEEP-1 fixture gap: seed has no partners.partners/partner_users row for the partner membership (not a code defect)"
+ },
+ {
+  "operation": "listManifests",
+  "status": 403,
+  "ref": "T0B-SWEEP-1 fixture gap: seed has no partners.partners/partner_users row for the partner membership (not a code defect)"
+ },
+ {
+  "operation": "listPartnerOrders",
+  "status": 403,
+  "ref": "T0B-SWEEP-1 fixture gap: seed has no partners.partners/partner_users row for the partner membership (not a code defect)"
+ },
+ {
+  "operation": "listPartnerPriceList",
+  "status": 403,
+  "ref": "T0B-SWEEP-1 fixture gap: seed has no partners.partners/partner_users row for the partner membership (not a code defect)"
+ },
+ {
+  "operation": "listPartnerReferrers",
+  "status": 403,
+  "ref": "T0B-SWEEP-1 fixture gap: seed has no partners.partners/partner_users row for the partner membership (not a code defect)"
+ },
+ {
+  "operation": "listPartnerReports",
+  "status": 403,
+  "ref": "T0B-SWEEP-1 fixture gap: seed has no partners.partners/partner_users row for the partner membership (not a code defect)"
+ },
+ {
+  "operation": "listPartnerStatements",
+  "status": 403,
+  "ref": "T0B-SWEEP-1 fixture gap: seed has no partners.partners/partner_users row for the partner membership (not a code defect)"
+ },
+ {
+  "operation": "listPartnerUsers",
+  "status": 403,
+  "ref": "T0B-SWEEP-1 fixture gap: seed has no partners.partners/partner_users row for the partner membership (not a code defect)"
+ },
+ {
+  "operation": "listPickupRequests",
+  "status": 403,
+  "ref": "T0B-SWEEP-1 fixture gap: seed has no partners.partners/partner_users row for the partner membership (not a code defect)"
+ },
+ {
+  "operation": "searchPartnerOrderables",
+  "status": 403,
+  "ref": "T0B-SWEEP-1 fixture gap: seed has no partners.partners/partner_users row for the partner membership (not a code defect)"
+ },
+ {
+  "operation": "getPaymentResultPage",
+  "status": 503,
+  "ref": "T0B-SWEEP-1 (unqueued: 500: other (common.service_unavailable))"
+ },
+ {
+  "operation": "listPaymentCancelReasons",
+  "status": 503,
+  "ref": "T0B-SWEEP-1 (unqueued: 500: other (common.service_unavailable))"
+ },
+ {
+  "operation": "verifyProviderCallback",
+  "status": 500,
+  "ref": "T0B-SWEEP-1 (unqueued: 500: other (common.internal))"
+ }
+]

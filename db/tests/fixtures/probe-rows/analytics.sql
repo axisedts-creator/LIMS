@@ -61,8 +61,8 @@ INSERT INTO analytics.dirty_partitions (tenant_id, family, business_date, reason
   (pg_temp.id('01'), 'probe-1', now()::date, 'event', pg_temp.id('99')),
   (pg_temp.id('02'), 'probe-3', now()::date, 'event', pg_temp.id('99')) ON CONFLICT DO NOTHING;
 INSERT INTO analytics.exports (id, tenant_id, requested_by_membership_id, report_code, format, params, scope_all_centres, created_by, updated_by) VALUES
-  (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('41'), 'probe-1', 'xlsx', '{}', false, pg_temp.id('99'), pg_temp.id('99')),
-  (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('43'), 'probe-3', 'xlsx', '{}', false, pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
+  (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('41'), 'probe-1', 'xlsx', '{}', true, pg_temp.id('99'), pg_temp.id('99')),
+  (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('43'), 'probe-3', 'xlsx', '{}', true, pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
 INSERT INTO analytics.export_files (tenant_id, export_id, content, content_type, sha256, created_by, expires_at) VALUES
   (pg_temp.id('01'), pg_temp.id('f1'), decode(repeat('02', 20971520), 'hex'), 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', '1111111111111111111111111111111111111111111111111111111111111111', pg_temp.id('99'), now()),
   (pg_temp.id('02'), pg_temp.id('f3'), decode(repeat('04', 20971520), 'hex'), 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', '3333333333333333333333333333333333333333333333333333333333333333', pg_temp.id('99'), now()) ON CONFLICT DO NOTHING;
@@ -80,8 +80,8 @@ INSERT INTO analytics.report_backlog (tenant_id, centre_id, stage, age_bucket, r
   (pg_temp.id('01'), pg_temp.id('22'), 'awaiting_results', 'lt_4h', pg_temp.id('f2')),
   (pg_temp.id('02'), pg_temp.id('23'), 'awaiting_results', 'lt_4h', pg_temp.id('f3')) ON CONFLICT DO NOTHING;
 INSERT INTO analytics.schedules (id, tenant_id, name, report_codes, frequency, send_time_local, period_rule, scope_all_centres, owner_membership_id, created_by, updated_by) VALUES
-  (pg_temp.id('f1'), pg_temp.id('01'), 'probe-1', '{probe-1}', 'daily', '08:00', 'previous_business_day', false, pg_temp.id('41'), pg_temp.id('99'), pg_temp.id('99')),
-  (pg_temp.id('f3'), pg_temp.id('02'), 'probe-3', '{probe-3}', 'daily', '08:00', 'previous_business_day', false, pg_temp.id('43'), pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
+  (pg_temp.id('f1'), pg_temp.id('01'), 'probe-1', '{probe-1}', 'daily', '08:00', 'previous_business_day', true, pg_temp.id('41'), pg_temp.id('99'), pg_temp.id('99')),
+  (pg_temp.id('f3'), pg_temp.id('02'), 'probe-3', '{probe-3}', 'daily', '08:00', 'previous_business_day', true, pg_temp.id('43'), pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
 INSERT INTO analytics.report_runs (id, tenant_id, schedule_id, slot_start, report_codes, period_from, period_to, scope_all_centres, created_by, expires_at) VALUES
   (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('f1'), now(), '{}', now()::date, now()::date + 1, false, pg_temp.id('99'), now()),
   (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('f3'), now(), '{}', now()::date, now()::date + 1, false, pg_temp.id('99'), now()) ON CONFLICT DO NOTHING;

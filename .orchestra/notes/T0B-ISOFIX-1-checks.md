@@ -1,0 +1,820 @@
+# T0B-ISOFIX-1 CHECK audit (LD-263) - read-only listing for the lead
+
+Scope: every CHECK on a table with a generated probe row (db/tests/fixtures/probe-rows/*.sql) whose text has OR, cardinality, ANY, ARRAY or a function call.
+Method: generator rows after this fix, judged per conjunct by the generator evaluator (temporary instrumentation, removed); every UNKNOWN conjunct judged by reading the emitted value. NULL = CHECK accepts the row.
+
+## Proven failing before this fix (fixed in db/tools/gen-isolation-probes.ts)
+- analytics.exports__scope__ck, analytics.schedules__scope__ck: untyped array DEFAULT '{}' read as a string, cardinality() UNKNOWN; scope_all_centres was false. Now cast to the column array type -> scope_all_centres = true.
+- object_path `split_part(object_path, '/', 1) = tenant_id::text` (anatomic.images, frontdesk.trf_attachments, identity.branding_assets, identity.ird_annex_documents [coalesce form], instruments.attachments, lab.result_attachments): emitted 'probe-n' / '1111.../...' prefix != tenant uuid. Evaluator now knows split_part; the search derives '<tenant uuid>/<candidate>'.
+- engagement.slot_templates.weekdays (smallint[]), micro.plating_protocols.read_schedule_hours (integer[]): '{probe-n}' is not numeric array input (insert error). Numeric arrays now get '{n}' / '{1}'.
+
+## UNKNOWN to the evaluator, judged by reading (all PASS)
+- analytics.exports: params '{}': octet_length 2 <= 4096 -> PASS
+- analytics.schedules: send_time_local '08:00': minute 0, second 0 -> PASS
+- anatomic.synoptic_templates: definition '{}' (few bytes) <= 262144 -> PASS
+- engagement.settings: '{+977}': cardinality 1, '+977' matches the regex -> PASS
+- engagement.slot_templates: weekdays '{1}'..'{6}' (fixed here): cardinality 1, subset of 1..7 -> PASS
+- engagement.smart_summaries: summary '{}' small -> PASS
+- homecollection.mutations: payload '{}' object, small -> PASS
+- instruments.agent_commands: params '{"since":"probe"}' object, < 256 bytes, has 'since' -> PASS
+- instruments.agent_status: counters '{}' object, small -> PASS
+- instruments.messages: link_meta '{}' object, small; warnings default '{}' cardinality 0 -> PASS
+- inventory.alerts: details '{}' object, small; other conjuncts TRUE by evaluator -> PASS
+- migration_staging.reports: body '{}' small -> PASS
+- migration_staging.stg_masters: payload '{}' object, small -> PASS
+- partners.statement_months: period_month date_trunc('month', now())::date -> day 1 -> PASS
+- quality.autoverify_versions: definition '{}': ->>'schema_version' NULL -> CHECK NULL -> accepted (PASS; lead: row is not a valid definition, only insertable)
+- reporting.deliveries: params '{}' object, small -> PASS
+- reporting.narrative_templates: sections '["probe"]' array, length 1, small -> PASS
+- reporting.narrative_versions: sections '[]' array, length 0 <= 12, small -> PASS
+- reporting.report_template_versions: config '{}' object, small -> PASS
+- analytics.dirty_partitions (no function, listed for completeness): family probe-n, business_date now()::date: (false) = (false) -> PASS
+
+## Open for the lead (not proven, not fixed)
+- The evaluator itself is trusted for TRUE/NULL verdicts below; a wrong evaluator rule would not show here. pgTAP / founder run is the proof.
+- Type-level insert errors outside CHECKs were only checked for the array columns found above.
+
+## Full listing (table | verdict per conjunct | CHECK text, first 160 chars)
+- analytics.daily_collections | true | char_length(payment_method_code) BETWEEN 1 AND 64
+- analytics.daily_deliveries | true | char_length(recipient_kind) BETWEEN 1 AND 32
+- analytics.export_files | true | octet_length(content) <= 20971520
+- analytics.exports | UNK | octet_length(params::text) <= 4096
+- analytics.exports | true | scope_all_centres OR cardinality(scope_centre_ids) BETWEEN 1 AND 200
+- analytics.exports | true | status <> 'ready' OR (ready_at IS NOT NULL AND expires_at IS NOT NULL AND sha256 IS NOT NULL)
+- analytics.refresh_runs | true | date_from IS NULL OR date_to > date_from
+- analytics.refresh_state | true | last_error_code IS NULL OR char_length(last_error_code) <= 64
+- analytics.report_run_recipients | true | notification_status IS NULL OR notification_status IN ('queued','suppressed_no_consent','suppressed_no_contact','suppressed_channel_disabled')
+- analytics.schedules | true | (frequency = 'weekly') = (weekday IS NOT NULL) AND (weekday IS NULL OR weekday BETWEEN 1 AND 7)
+- analytics.schedules | true | cardinality(report_codes) BETWEEN 1 AND 10
+- analytics.schedules | true | char_length(name) BETWEEN 1 AND 80 AND name !~* '://' AND name !~* 'www\.' AND name !~ '@' AND name !~ '[0-9]{7,}'
+- analytics.schedules | UNK | extract(minute FROM send_time_local) IN (0,15,30,45) AND extract(second FROM send_time_local) = 0
+- analytics.schedules | true | is_active OR next_run_at IS NULL
+- analytics.schedules | true | scope_all_centres OR cardinality(scope_centre_ids) BETWEEN 1 AND 20
+- analytics.tat_facts | true | priority IS NULL OR priority IN ('routine','urgent')
+- anatomic.accession_counters | true | year_ad = 0 OR year_ad BETWEEN 2000 AND 2199
+- anatomic.addenda | true | char_length(text) BETWEEN 1 AND 8000 AND cardinality(stain_order_ids) <= 20
+- anatomic.assay_target_values | true | char_length(display) BETWEEN 1 AND 120
+- anatomic.assay_targets | true | allows_quantitative OR (unit_code IS NULL AND decimals IS NULL)
+- anatomic.assay_targets | true | char_length(display) BETWEEN 1 AND 120 AND char_length(coalesce(unit_code,'')) <= 32
+- anatomic.assay_targets | true | decimals IS NULL OR decimals BETWEEN 0 AND 6
+- anatomic.assays | true | char_length(display) BETWEEN 1 AND 120 AND char_length(coalesce(method_text_default,'')) <= 200
+- anatomic.batches | true | char_length(coalesce(kit_name,'')) <= 120 AND char_length(coalesce(kit_lot,'')) <= 64 AND char_length(coalesce(instrument_text,'')) <= 120
+- anatomic.blocks | true | char_length(coalesce(note,'')) <= 200 AND char_length(coalesce(location_text,'')) <= 200
+- anatomic.cases | true | (accession_no IS NULL) = (status = 'received') OR (status = 'cancelled')
+- anatomic.cases | true | (status = 'cancelled') = (cancelled_at IS NOT NULL) AND char_length(coalesce(cancel_reason_text,'')) <= 500
+- anatomic.cases | true | accession_no IS NULL OR accession_no ~ '^[A-Z0-9-]{1,20}$'
+- anatomic.cases | true | char_length(coalesce(clinical_history_text,'')) <= 4000
+- anatomic.cases | true | status <> 'signed_out' OR (signed_out_at IS NOT NULL AND current_version_no >= 1)
+- anatomic.cs_cancel_reasons | true | char_length(display) BETWEEN 1 AND 300 AND char_length(system) BETWEEN 1 AND 32 AND char_length(coalesce(system_version,'')) <= 32
+- anatomic.cs_cytology_adequacy | true | char_length(display) BETWEEN 1 AND 300 AND char_length(system) BETWEEN 1 AND 32 AND char_length(coalesce(system_version,'')) <= 32
+- anatomic.cs_diagnoses | true | char_length(display) BETWEEN 1 AND 300 AND char_length(system) BETWEEN 1 AND 32 AND char_length(coalesce(system_version,'')) <= 32
+- anatomic.gross_records | true | char_length(gross_text) <= 20000
+- anatomic.gross_records | true | dimensions_mm IS NULL OR (cardinality(dimensions_mm) BETWEEN 1 AND 3 AND array_to_string(dimensions_mm, ',') ~ '^[0-9]{1,4}(\.[0-9])?(,[0-9]{1,4}(\.[0-9])?){0,2
+- anatomic.gross_records | true | pieces_count IS NULL OR pieces_count BETWEEN 0 AND 999
+- anatomic.gross_records | true | weight_g IS NULL OR weight_g ~ '^[0-9]{1,5}(\.[0-9]{1,2})?$'
+- anatomic.images | true | (state = 'quarantined') = (quarantine_reason_code IS NOT NULL) AND (quarantine_reason_code IS NULL OR quarantine_reason_code ~ '^[a-z_]{1,32}$')
+- anatomic.images | true | char_length(coalesce(caption,'')) <= 200
+- anatomic.images | true | object_path ~ '^[0-9a-f-]{36}/[0-9]{4}/[0-9]{2}/[0-9a-f-]{36}\.(png/jpg)$' AND split_part(object_path, '/', 1) = tenant_id::text
+- anatomic.images | true | state <> 'ready' OR (sha256 ~ '^[0-9a-f]{64}$' AND mime_type IN ('image/png','image/jpeg') AND byte_size BETWEEN 1 AND 15728640)
+- anatomic.molecular_results | true | char_length(coalesce(unit_code,'')) <= 32 AND char_length(coalesce(method_text,'')) <= 200 AND char_length(coalesce(kit_name,'')) <= 120 AND char_length(coalesc
+- anatomic.molecular_results | true | value_decimal IS NULL OR value_decimal ~ '^-?[0-9]{1,12}(\.[0-9]{1,6})?$'
+- anatomic.object_movements | true | char_length(coalesce(location_text,'')) <= 120 AND char_length(coalesce(destination_text,'')) <= 200 AND char_length(coalesce(note,'')) <= 500
+- anatomic.object_movements | true | movement <> 'sent_out' OR destination_text IS NOT NULL
+- anatomic.object_movements | true | movement <> 'stored' OR location_text IS NOT NULL
+- anatomic.object_movements | true | movement NOT IN ('sent_out','discarded') OR reason_code IS NOT NULL
+- anatomic.object_movements | true | reason_code IS NULL OR reason_code IN ('second_opinion','external_stain','consultation','retention_expired','other')
+- anatomic.parts | true | char_length(coalesce(site_text,'')) <= 200 AND char_length(coalesce(description_text,'')) <= 1000
+- anatomic.report_drafts | true | change_reason_code IS NULL OR change_reason_code ~ '^[a-z0-9_]{1,64}$'
+- anatomic.report_drafts | true | char_length(gross_text) <= 20000 AND char_length(microscopy_text) <= 20000 AND char_length(impression_text) <= 8000 AND char_length(comment_text) <= 8000 AND ch
+- anatomic.report_drafts | true | flag IS NULL OR flag IN ('N','A')
+- anatomic.report_drafts | true | kind = 'initial' OR change_reason_code IS NOT NULL
+- anatomic.report_versions | true | (change_reason_code IS NULL OR change_reason_code ~ '^[a-z0-9_]{1,64}$') AND char_length(coalesce(change_reason_text,'')) <= 500
+- anatomic.report_versions | true | flag IS NULL OR flag IN ('N','A')
+- anatomic.report_versions | true | jsonb_typeof(synoptic) = 'array' AND jsonb_typeof(images) = 'array' AND jsonb_typeof(specimen_parts) = 'array' AND jsonb_typeof(slides) = 'array' AND jsonb_type
+- anatomic.report_versions | true | scope IN ('full','addendum_only') AND ((scope = 'addendum_only') = (addon_case_item_id IS NOT NULL)) AND (scope = 'full' OR version_kind = 'addendum')
+- anatomic.report_versions | true | version_kind IN ('original','addendum') OR change_reason_code IS NOT NULL
+- anatomic.slides | true | char_length(coalesce(finding_text,'')) <= 2000 AND char_length(coalesce(location_text,'')) <= 200 AND char_length(coalesce(adequacy_code,'')) <= 64
+- anatomic.stain_orders | true | char_length(coalesce(note,'')) <= 500 AND char_length(coalesce(reagent_lot,'')) <= 64 AND char_length(coalesce(cancel_reason_text,'')) <= 500
+- anatomic.stain_orders | true | stain_kind <> 'ihc' OR block_id IS NOT NULL
+- anatomic.stains | true | char_length(display) BETWEEN 1 AND 120
+- anatomic.synoptic_templates | true | (status = 'draft') = (published_at IS NULL) OR status = 'retired'
+- anatomic.synoptic_templates | true | cardinality(applies_to_case_kinds) BETWEEN 1 AND 4 AND applies_to_case_kinds <@ ARRAY['histology','cytology','ihc','molecular']
+- anatomic.synoptic_templates | true | char_length(title) BETWEEN 1 AND 200
+- anatomic.synoptic_templates | UNK | pg_column_size(definition) <= 262144
+- anatomic.test_profiles | true | cardinality(default_synoptic_template_keys) <= 5
+- anatomic.test_profiles | true | default_stain_code IS NULL OR default_stain_code ~ '^[A-Z0-9_]{1,32}$'
+- anatomic.text_templates | true | char_length(title) BETWEEN 1 AND 120 AND char_length(body) BETWEEN 1 AND 8000
+- billing.credit_accounts | true | credit_days IS NULL OR credit_days BETWEEN 0 AND 365
+- billing.credit_accounts | true | credit_limit_paisa IS NULL OR credit_limit_paisa >= 0
+- billing.export_jobs | true | object_path IS NULL OR split_part(object_path, '/', 1) = tenant_id::text
+- billing.finance_review_items | true | resolution_code IS NULL OR resolution_code IN ('refunded','kept_as_advance','other')
+- billing.invoice_lines | null | (other_tax_code IS NULL AND other_tax_paisa = 0 AND other_tax_rate_bp IS NULL) OR (other_tax_code IS NOT NULL AND other_tax_rate_bp BETWEEN 0 AND 10000)
+- billing.invoice_lines | null | (vat_treatment = 'exempt' AND vat_paisa = 0 AND vat_rate_bp IS NULL) OR (vat_treatment = 'taxable' AND vat_rate_bp BETWEEN 0 AND 10000)
+- billing.invoice_lines | true | hs_code IS NULL OR hs_code ~ '^[0-9]{4,10}$'
+- billing.invoice_lines | true | quantity = 1 AND unit_price_paisa >= 0 AND gross_paisa >= 0 AND discount_paisa BETWEEN 0 AND gross_paisa AND gross_paisa - discount_paisa = exempt_paisa + taxab
+- billing.invoices | true |  (purpose IN ('registration','supplementary') AND order_id IS NOT NULL AND patient_id IS NOT NULL AND NOT is_periodic_credit_bill AND centre_id IS NOT NULL) OR 
+- billing.invoices | true | (cbms_cancel_state IS NULL OR cbms_cancel_state IN ('not_required','pending','synced','failed_permanent')) AND (status = 'cancelled' OR cbms_cancel_state IS NUL
+- billing.invoices | true | buyer_pan IS NULL OR char_length(buyer_pan) <= 20
+- billing.invoices | true | series ~ '^INV(:[A-Za-z0-9_-]{1,20})?$'
+- billing.ledger_entries | true | (entry_kind = 'payment' AND amount_paisa > 0) OR (entry_kind IN ('reversal','refund') AND amount_paisa < 0)
+- billing.ledger_entries | true | (refund_request_id IS NULL OR entry_kind = 'refund') AND (entry_kind <> 'refund' OR capture_kind = 'gateway' OR refund_request_id IS NOT NULL)
+- billing.ledger_entries | true | entry_kind <> 'refund' OR approved_by_membership_id IS NOT NULL
+- billing.ledger_entries | true | entry_kind = 'payment' OR reason_code IS NOT NULL
+- billing.ledger_entries | true | gateway IS NULL OR gateway IN ('esewa','khalti','fonepay')
+- billing.ledger_entries | true | order_id IS NOT NULL OR (credit_party_id IS NOT NULL AND invoice_id IS NOT NULL)
+- billing.ledger_entries | true | reference_text IS NULL OR (char_length(reference_text) <= 100 AND reference_text !~ '[0-9]{13,19}')
+- billing.refund_requests | true | (reason_text IS NULL OR char_length(reason_text) <= 500) AND (decision_note IS NULL OR char_length(decision_note) <= 500) AND (reference_text IS NULL OR (char_l
+- billing.refund_requests | true | status <> 'approved' OR decided_by_membership_id <> requested_by_membership_id
+- catalog.analyte_versions | true | effective_to IS NULL OR effective_to >= effective_from
+- catalog.analyte_versions | true | formula_expression IS NULL OR result_type = 'numeric'
+- catalog.analyte_versions | null | length(change_reason) <= 500
+- catalog.analyte_versions | null | length(formula_expression) <= 500
+- catalog.analyte_versions | true | result_type <> 'numeric' OR decimals IS NOT NULL
+- catalog.analyte_versions | true | result_type NOT IN ('ordinal','coded') OR value_set_code IS NOT NULL
+- catalog.analyte_versions | true | status IN ('draft','discarded') OR (effective_from IS NOT NULL AND published_at IS NOT NULL AND change_reason IS NOT NULL)
+- catalog.analytes | true | length(name) BETWEEN 1 AND 120
+- catalog.analytes | null | length(print_name) <= 120
+- catalog.analytes | null | length(report_subheading) <= 80
+- catalog.comment_code_texts | true | effective_to IS NULL OR effective_to >= effective_from
+- catalog.comment_code_texts | true | length(text) BETWEEN 1 AND 2000
+- catalog.comment_codes | true | length(text) BETWEEN 1 AND 2000
+- catalog.containers | null | length(additive) <= 60
+- catalog.containers | null | length(cap_colour_display) <= 40
+- catalog.containers | true | length(name) BETWEEN 1 AND 100
+- catalog.credit_parties | null | length(billing_address) <= 500
+- catalog.credit_parties | null | length(contact_email) <= 254
+- catalog.credit_parties | true | length(name) BETWEEN 1 AND 160
+- catalog.credit_parties | null | length(pan) <= 20
+- catalog.critical_limit_sets | true | effective_to IS NULL OR effective_to >= effective_from
+- catalog.critical_limit_sets | null | length(change_reason) <= 500
+- catalog.critical_limit_sets | true | status IN ('draft','discarded') OR (effective_from IS NOT NULL AND published_at IS NOT NULL AND change_reason IS NOT NULL)
+- catalog.critical_limits | true | abnormal_codes IS NULL OR cardinality(abnormal_codes) <= 20
+- catalog.critical_limits | null | low IS NOT NULL OR high IS NOT NULL OR cardinality(abnormal_codes) >= 1
+- catalog.critical_limits | true | low IS NULL OR high IS NULL OR low <= high
+- catalog.critical_limits | true | sex IN ('any','male','female')
+- catalog.cs_tax_types | true | effective_to IS NULL OR effective_to > effective_from
+- catalog.cs_tax_types | true | length(display) BETWEEN 1 AND 60
+- catalog.cs_units | true | length(display) <= 32
+- catalog.cs_value_set_values | true | length(display) <= 40
+- catalog.cs_value_sets | true | length(display) BETWEEN 1 AND 80
+- catalog.departments | true | length(name) BETWEEN 1 AND 100
+- catalog.departments | null | length(report_heading) <= 100
+- catalog.doctors | true | length(display_name) BETWEEN 1 AND 120
+- catalog.doctors | null | length(email) <= 254
+- catalog.doctors | null | length(notes) <= 500
+- catalog.doctors | null | length(qualification) <= 120
+- catalog.doctors | null | length(registration_council) <= 20
+- catalog.doctors | null | length(registration_no) <= 30
+- catalog.doctors | true | merged_into_id IS NULL OR is_active = false
+- catalog.doctors | true | merged_into_id IS NULL OR merged_into_id <> id
+- catalog.files | true | length(file_name) BETWEEN 1 AND 200
+- catalog.import_issues | null | length(column_key) <= 40
+- catalog.import_issues | true | length(message) <= 300
+- catalog.import_issues | true | length(sheet) <= 31
+- catalog.imports | null | length(commit_change_reason) <= 500
+- catalog.imports | true | length(file_name) BETWEEN 1 AND 200
+- catalog.instrument_code_maps | true |  (unit_from_raw IS NULL AND unit_to_code IS NULL AND unit_factor IS NULL) OR (unit_from_raw IS NOT NULL AND unit_to_code IS NOT NULL AND unit_factor IS NOT NULL
+- catalog.instrument_code_maps | true | flag_map IS NULL OR jsonb_typeof(flag_map) = 'object'
+- catalog.instrument_code_maps | true | length(instrument_code) BETWEEN 1 AND 64
+- catalog.instrument_code_maps | null | length(unit_from_raw) <= 32
+- catalog.methods | true | length(name) BETWEEN 1 AND 120
+- catalog.orderables | true | kind <> 'test' OR department_id IS NOT NULL
+- catalog.orderables | true | length(name) BETWEEN 1 AND 200
+- catalog.price_list_assignments | true |  (owner_kind = 'credit_party' AND credit_party_id IS NOT NULL AND doctor_id IS NULL AND centre_id IS NULL) OR (owner_kind = 'referrer' AND doctor_id IS NOT NULL
+- catalog.price_list_versions | true | effective_to IS NULL OR effective_to >= effective_from
+- catalog.price_list_versions | null | length(change_reason) <= 500
+- catalog.price_list_versions | true | status IN ('draft','discarded') OR (effective_from IS NOT NULL AND published_at IS NOT NULL AND change_reason IS NOT NULL)
+- catalog.price_lists | true | length(name) BETWEEN 1 AND 120
+- catalog.price_lists | true | owner_kind <> 'default' OR is_active
+- catalog.reference_range_sets | true | effective_to IS NULL OR effective_to >= effective_from
+- catalog.reference_range_sets | null | length(change_reason) <= 500
+- catalog.reference_range_sets | true | status IN ('draft','discarded') OR (effective_from IS NOT NULL AND published_at IS NOT NULL AND change_reason IS NOT NULL)
+- catalog.reference_ranges | true | kind <> 'numeric' OR low IS NOT NULL OR high IS NOT NULL
+- catalog.reference_ranges | true | kind <> 'ordinal' OR cardinality(normal_codes) BETWEEN 1 AND 20
+- catalog.reference_ranges | true | kind = 'numeric' OR (low IS NULL AND high IS NULL)
+- catalog.reference_ranges | true | kind = 'numeric' OR display_text IS NOT NULL
+- catalog.reference_ranges | null | length(display_text) <= 500
+- catalog.reference_ranges | true | low IS NULL OR high IS NULL OR low <= high
+- catalog.reference_ranges | true | sex IN ('any','male','female')
+- catalog.specimen_types | true | length(name) BETWEEN 1 AND 100
+- catalog.specimen_types | true | length(report_label) BETWEEN 1 AND 100
+- catalog.surcharge_rules | true |  (amount_kind = 'flat' AND amount_paisa IS NOT NULL AND percent_bp IS NULL) OR (amount_kind = 'percent' AND percent_bp IS NOT NULL AND amount_paisa IS NULL)
+- catalog.surcharge_rules | true |  (scope = 'all' AND department_id IS NULL AND orderable_id IS NULL) OR (scope = 'department' AND department_id IS NOT NULL AND orderable_id IS NULL) OR (scope =
+- catalog.surcharge_rules | true | effective_to IS NULL OR effective_to >= effective_from
+- catalog.tat_targets | true | effective_to IS NULL OR effective_to >= effective_from
+- catalog.tax_rules | true |  (scope = 'tenant_default' AND department_id IS NULL AND orderable_id IS NULL) OR (scope = 'department' AND department_id IS NOT NULL AND orderable_id IS NULL) 
+- catalog.tax_rules | true | effective_to IS NULL OR effective_to >= effective_from
+- engagement.account_patient_links | true | char_length(display_name) BETWEEN 1 AND 200
+- engagement.account_patient_links | true | method <> 'link_code' OR link_code_id IS NOT NULL
+- engagement.account_patient_links | true | record_phone_hmac_at_link IS NULL OR octet_length(record_phone_hmac_at_link) = 32
+- engagement.account_patient_links | true | revoked_by_kind IS NULL OR revoked_by_kind IN ('account','staff','system')
+- engagement.account_patient_links | true | revoked_reason_code IS NULL OR revoked_reason_code IN ('patient_request','suspected_misuse','staff_error','account_deleted','other')
+- engagement.account_patient_links | true | sex_snapshot IS NULL OR sex_snapshot IN ('male','female','other','unknown')
+- engagement.account_patient_links | true | suspend_reason IS NULL OR suspend_reason IN ('phone_mismatch','patient_merged','patient_anonymised','dormant')
+- engagement.accounts | null | (status = 'deleted') OR (phone_e164 ~ '^\+[1-9][0-9]{7,14}$' AND octet_length(phone_hmac) = 32)
+- engagement.accounts | true | last_app_platform IS NULL OR last_app_platform IN ('android','ios')
+- engagement.accounts | true | last_app_version IS NULL OR last_app_version ~ '^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,4}$'
+- engagement.addresses | true | (latitude IS NULL) = (longitude IS NULL) AND (latitude IS NULL OR (latitude BETWEEN -90 AND 90 AND longitude BETWEEN -180 AND 180))
+- engagement.addresses | true | char_length(address_text) BETWEEN 1 AND 300 AND (landmark IS NULL OR char_length(landmark) <= 120) AND (municipality IS NULL OR char_length(municipality) <= 80)
+- engagement.addresses | true | contact_phone_e164 IS NULL OR contact_phone_e164 ~ '^\+[1-9][0-9]{7,14}$'
+- engagement.addresses | true | ward_no IS NULL OR ward_no BETWEEN 1 AND 99
+- engagement.bookable_items | true | cardinality(booking_kinds) BETWEEN 1 AND 2 AND booking_kinds <@ ARRAY['centre_visit','home_collection']::text[]
+- engagement.bookable_items | true | char_length(code) BETWEEN 1 AND 64 AND char_length(display_name) BETWEEN 1 AND 200
+- engagement.bookable_items | true | indicative_price_paisa IS NULL OR indicative_price_paisa >= 0
+- engagement.bookable_items | true | sex_restriction IS NULL OR sex_restriction IN ('male','female')
+- engagement.booking_centres | true | char_length(display_name) BETWEEN 1 AND 200 AND (address_text IS NULL OR char_length(address_text) <= 300)
+- engagement.booking_items | true | char_length(display_name_snapshot) BETWEEN 1 AND 200
+- engagement.booking_items | true | indicative_price_paisa IS NULL OR indicative_price_paisa >= 0
+- engagement.booking_transitions | true | to_status IN ('confirmed','checked_in','completed','cancelled') AND (from_status IS NULL OR from_status IN ('confirmed','checked_in','completed','cancelled'))
+- engagement.bookings | true | cancelled_by_kind IS NULL OR cancelled_by_kind IN ('patient','staff','system')
+- engagement.cs_booking_cancel_reasons | true | code ~ '^[a-z0-9_]{1,64}$' AND char_length(display) BETWEEN 1 AND 80
+- engagement.cs_enquiry_categories | true | code ~ '^[a-z0-9_]{1,64}$' AND char_length(display) BETWEEN 1 AND 80
+- engagement.cs_reminder_reasons | true | code ~ '^[a-z0-9_]{1,64}$' AND char_length(display) BETWEEN 1 AND 80
+- engagement.enquiries | true | char_length(category_code) BETWEEN 1 AND 64
+- engagement.enquiries | true | char_length(subject) BETWEEN 1 AND 120
+- engagement.enquiry_messages | true | char_length(body) BETWEEN 1 AND 2000
+- engagement.link_codes | true | char_length(display_name_snapshot) BETWEEN 1 AND 200
+- engagement.link_codes | true | octet_length(code_hmac) = 32 AND octet_length(bound_phone_hmac) = 32 AND (record_phone_hmac IS NULL OR octet_length(record_phone_hmac) = 32) AND bound_phone_las
+- engagement.link_codes | true | revoke_reason IS NULL OR revoke_reason IN ('staff','superseded')
+- engagement.link_codes | true | sex_snapshot IS NULL OR sex_snapshot IN ('male','female','other','unknown')
+- engagement.link_consents | true | (source = 'desk' AND patient_id IS NOT NULL AND identity_check_method IS NOT NULL AND recorded_by_membership_id IS NOT NULL) OR (source = 'app' AND account_id I
+- engagement.link_consents | true | char_length(consent_text_version) BETWEEN 1 AND 40
+- engagement.link_consents | true | identity_check_method IS NULL OR identity_check_method IN ('photo_id','guardian_photo_id','known_patient')
+- engagement.membership_plans | true | char_length(display_name) BETWEEN 1 AND 60 AND (description IS NULL OR char_length(description) <= 300)
+- engagement.notifications | true | entity_type IS NULL OR entity_type IN ('order','report','booking','enquiry','reminder','profile')
+- engagement.notifications | true | route_id IS NULL OR route_id IN ('patient_app.report','patient_app.order','patient_app.booking')
+- engagement.otp_challenges | true | octet_length(token_sha256) = 32 AND octet_length(code_hmac) = 32 AND octet_length(phone_hmac) = 32
+- engagement.patient_memberships | true | cancel_reason_code IS NULL OR cancel_reason_code IN ('patient_request','staff_error','other')
+- engagement.patient_orders | true | release_basis IS NULL OR release_basis IN ('paid_in_full','zero_balance','credit_party','override','policy_not_enforced','due_outstanding','no_invoice')
+- engagement.patient_reports | true | cardinality(panel_names) <= 20
+- engagement.patient_reports | true | char_length(report_kind) BETWEEN 1 AND 32
+- engagement.payment_requests | true | amount_paisa IS NULL OR amount_paisa > 0
+- engagement.payment_requests | true | failure_code IS NULL OR char_length(failure_code) <= 64
+- engagement.payment_requests | true | status <> 'ready' OR (intent_id IS NOT NULL AND amount_paisa IS NOT NULL)
+- engagement.payment_requests | true | status = 'ready' OR action_json IS NULL
+- engagement.queue_counters | true | char_length(display_name) BETWEEN 1 AND 40
+- engagement.queue_definitions | true | char_length(display_name) BETWEEN 1 AND 60
+- engagement.queue_displays | true | cardinality(queue_ids) BETWEEN 1 AND 10
+- engagement.queue_displays | true | char_length(display_name) BETWEEN 1 AND 40
+- engagement.queue_displays | true | octet_length(token_sha256) = 32
+- engagement.reminders | true | failure_code IS NULL OR char_length(failure_code) <= 64
+- engagement.reminders | true | kind = 'booking' OR reason_code IS NOT NULL
+- engagement.self_registrations | true | age_years IS NULL OR age_years BETWEEN 0 AND 150
+- engagement.self_registrations | true | full_name IS NULL OR char_length(full_name) BETWEEN 1 AND 200
+- engagement.self_registrations | true | sex IS NULL OR sex IN ('male','female','other','unknown')
+- engagement.self_registrations | true | status <> 'queued' OR (full_name IS NOT NULL AND sex IS NOT NULL AND (birth_on IS NOT NULL OR age_years IS NOT NULL))
+- engagement.settings | true | (support_phone IS NULL OR char_length(support_phone) <= 40) AND (app_consent_text IS NULL OR char_length(app_consent_text) <= 4000) AND (app_consent_text_versio
+- engagement.settings | true | NOT home_collection_enabled OR home_collection_centre_id IS NOT NULL
+- engagement.settings | true | app_gateways <@ ARRAY['esewa','khalti']::text[]
+- engagement.settings | UNK/true | cardinality(allowed_phone_prefixes) BETWEEN 1 AND 5 AND array_to_string(allowed_phone_prefixes, ',') ~ '^(\+[1-9][0-9]{0,3})(,\+[1-9][0-9]{0,3})*$'
+- engagement.slot_blackouts | true | booking_kind IS NULL OR booking_kind IN ('centre_visit','home_collection')
+- engagement.slot_blackouts | true | note IS NULL OR char_length(note) <= 200
+- engagement.slot_templates | UNK/true | cardinality(weekdays) BETWEEN 1 AND 7 AND weekdays <@ ARRAY[1,2,3,4,5,6,7]::smallint[]
+- engagement.slot_templates | true | effective_to IS NULL OR effective_to >= effective_from
+- engagement.smart_summaries | UNK | pg_column_size(summary) <= 262144
+- frontdesk.booking_links | true | idempotency_key IS NULL OR char_length(idempotency_key) <= 200
+- frontdesk.discount_approvals | true | decided_by_membership_id IS NULL OR decided_by_membership_id <> requested_by_membership_id
+- frontdesk.discounts | true | (approval_mode = 'within_limit' AND approval_id IS NULL) OR (approval_mode = 'approved' AND approval_id IS NOT NULL)
+- frontdesk.discounts | null | (kind = 'amount' AND amount_paisa > 0 AND percent_bp IS NULL) OR (kind = 'percent' AND percent_bp BETWEEN 1 AND 10000 AND amount_paisa IS NULL)
+- frontdesk.discounts | true | (scope = 'line' AND order_item_id IS NOT NULL) OR (scope = 'bill' AND order_item_id IS NULL)
+- frontdesk.discounts | true | reason_text IS NULL OR char_length(reason_text) <= 500
+- frontdesk.order_items | true | cardinality(test_ids) BETWEEN 1 AND 200
+- frontdesk.order_items | true | unit_price_paisa >= 0 AND (urgent_surcharge_paisa IS NULL OR urgent_surcharge_paisa >= 0)
+- frontdesk.orders | true | (status = 'pre_registered') OR registered_at IS NOT NULL OR status = 'cancelled'
+- frontdesk.orders | true | cancel_reason_text IS NULL OR char_length(cancel_reason_text) <= 500
+- frontdesk.patients | true | (anonymised_at IS NULL AND full_name IS NOT NULL AND char_length(full_name) BETWEEN 1 AND 200) OR anonymised_at IS NOT NULL
+- frontdesk.patients | true | address_text IS NULL OR char_length(address_text) <= 300
+- frontdesk.patients | true | email IS NULL OR char_length(email) <= 254
+- frontdesk.patients | true | phone_e164 IS NULL OR phone_e164 ~ '^\+[1-9][0-9]{7,14}$'
+- frontdesk.patients | true | source = 'self_service' OR registered_centre_id IS NOT NULL
+- frontdesk.settings | true | char_length(consent_text_version) BETWEEN 1 AND 32
+- frontdesk.trf_attachments | true | split_part(object_path, '/', 1) = tenant_id::text
+- homecollection.collections | true | (review_decision IS NULL) = (reviewed_at IS NULL) AND (review_decision IS NULL OR review_decision IN ('apply','discard')) AND (review_reason_text IS NULL OR cha
+- homecollection.collections | true | NOT barcode_verified OR scan_method IN ('camera','hid')
+- homecollection.collections | true | status <> 'applied' OR hold_code IS NULL OR review_decision = 'apply'
+- homecollection.collections | true | status <> 'discarded' OR review_decision = 'discard'
+- homecollection.collections | true | status <> 'held' OR (hold_code IS NOT NULL AND review_decision IS NULL)
+- homecollection.devices | true | char_length(os_version) <= 40 AND char_length(app_version) <= 20 AND (model IS NULL OR char_length(model) <= 80) AND (last_ack_cursor IS NULL OR char_length(las
+- homecollection.handover_items | true | char_length(specimen_type_code) BETWEEN 1 AND 64
+- homecollection.handover_items | true | outcome IS NULL OR outcome IN ('received','missing')
+- homecollection.handovers | true | note IS NULL OR char_length(note) <= 500
+- homecollection.handovers | true | status = 'pending' OR received_at IS NOT NULL
+- homecollection.mutations | UNK/true | jsonb_typeof(payload) = 'object' AND pg_column_size(payload) <= 8192
+- homecollection.settings | true | char_length(collection_consent_text) BETWEEN 1 AND 2000
+- homecollection.settings | true | char_length(collection_consent_text_version) BETWEEN 1 AND 40
+- homecollection.settings | true | jsonb_typeof(payment_methods) = 'array' AND jsonb_array_length(payment_methods) BETWEEN 1 AND 10
+- homecollection.sync_batches | true | char_length(now_boot_id) BETWEEN 1 AND 64
+- homecollection.visit_flags | true | resolution_note IS NULL OR char_length(resolution_note) <= 500
+- homecollection.visit_locations | true | accuracy_m IS NULL OR accuracy_m BETWEEN 0 AND 10000
+- homecollection.visit_transitions | true | reason_text IS NULL OR char_length(reason_text) <= 500
+- homecollection.visits | true |  (kind = 'booking' AND booking_id IS NOT NULL AND orderable_ids IS NOT NULL) OR (kind = 'front_desk' AND order_id IS NOT NULL) OR (kind = 'recollection' AND rec
+- homecollection.visits | true | (address_text IS NULL OR char_length(address_text) BETWEEN 1 AND 500) AND (landmark IS NULL OR char_length(landmark) <= 200) AND (note_for_phlebotomist IS NULL 
+- homecollection.visits | true | (latitude IS NULL) = (longitude IS NULL) AND (latitude IS NULL OR (latitude BETWEEN -90 AND 90 AND longitude BETWEEN -180 AND 180))
+- homecollection.visits | true | (window_start IS NULL) = (window_end IS NULL) AND (window_start IS NULL OR (window_end > window_start AND window_end - window_start <= interval '12 hours'))
+- homecollection.visits | true | orderable_ids IS NULL OR cardinality(orderable_ids) BETWEEN 1 AND 50
+- homecollection.visits | true | outcome IS NULL OR outcome IN ('collected','partial','none')
+- homecollection.visits | true | route_sequence IS NULL OR route_sequence BETWEEN 1 AND 60
+- homecollection.visits | true | status IN ('unassigned','cancelled') OR order_id IS NOT NULL
+- homecollection.visits | true | status NOT IN ('assigned','in_progress') OR (route_id IS NOT NULL AND route_date IS NOT NULL AND assigned_membership_id IS NOT NULL AND route_sequence IS NOT NU
+- identity.access_reviews | true | notes IS NULL OR char_length(notes) <= 2000
+- identity.admin_notices | true | subject_type IN ('support_session','audit_export','access_review','auth_event') AND (subject_id IS NOT NULL OR kind = 'login_ip_throttled')
+- identity.audit_exports | true | object_path IS NULL OR split_part(object_path,'/',1) = tenant_id::text
+- identity.audit_exports | true | row_count IS NULL OR row_count BETWEEN 0 AND 500000
+- identity.audit_exports | true | status <> 'ready' OR (object_path IS NOT NULL AND sha256 IS NOT NULL AND expires_at IS NOT NULL)
+- identity.auth_events | true | email_hmac IS NULL OR octet_length(email_hmac) = 32
+- identity.auth_events | true | user_agent IS NULL OR char_length(user_agent) <= 512
+- identity.branding_assets | true | octet_length(sha256) = 32
+- identity.branding_assets | true | size_bytes BETWEEN 1 AND 2097152 AND (kind <> 'signature' OR size_bytes <= 1048576)
+- identity.branding_assets | true | split_part(object_path, '/', 1) = tenant_id::text
+- identity.feature_flags | true | approval_ref IS NULL OR char_length(approval_ref) BETWEEN 3 AND 200
+- identity.invitations | true |  (tenant_id IS NOT NULL AND membership_id IS NOT NULL AND platform_staff_id IS NULL) OR (tenant_id IS NULL AND membership_id IS NULL AND platform_staff_id IS NO
+- identity.invitations | true | email IS NOT NULL OR status IN ('accepted','expired','revoked','failed')
+- identity.invitations | true | email IS NULL OR char_length(email) BETWEEN 3 AND 254
+- identity.ird_annex_documents | true | char_length(original_filename) BETWEEN 1 AND 200
+- identity.ird_annex_documents | true | octet_length(sha256) = 32
+- identity.ird_annex_documents | true | split_part(object_path,'/',1) = coalesce(tenant_id::text, 'platform')
+- identity.ird_annex_events | true | note IS NULL OR char_length(note) <= 1000
+- identity.ird_annex_records | true |  coalesce(char_length(reference_no),0) <= 100 AND coalesce(char_length(office_name),0) <= 200 AND coalesce(char_length(counterparty_name),0) <= 200 AND coalesce
+- identity.ird_annex_records | true | completed_on IS NULL OR submitted_on IS NULL OR completed_on >= submitted_on
+- identity.ird_annex_records | true | status <> 'completed' OR (completed_on IS NOT NULL AND reference_no IS NOT NULL)
+- identity.ird_annex_records | true | status NOT IN ('submitted','completed','rejected') OR submitted_on IS NOT NULL
+- identity.mfa_factors | true | friendly_name IS NULL OR char_length(friendly_name) <= 40
+- identity.mfa_factors | true | removal_reason IS NULL OR removal_reason IN ('self','admin_reset','re_enrol')
+- identity.platform_events | true | char_length(target_type) BETWEEN 1 AND 40
+- identity.platform_staff | true | cardinality(allowed_cidrs) <= 20
+- identity.platform_staff | true | char_length(display_name) BETWEEN 1 AND 120
+- identity.platform_staff | true | char_length(email_normalized) BETWEEN 3 AND 254
+- identity.sessions | true |  (kind <> 'patient' AND absolute_expires_at <= created_at + interval '12 hours') OR (kind = 'patient' AND absolute_expires_at <= created_at + interval '90 days'
+- identity.sessions | true |  (kind IN ('tenant_staff','partner','patient','staff_mobile') AND tenant_id IS NOT NULL AND membership_id IS NOT NULL AND platform_staff_id IS NULL AND support_
+- identity.sessions | true |  (kind IN ('tenant_staff','platform','partner') AND idle_timeout_minutes BETWEEN 15 AND 30) OR (kind = 'patient' AND idle_timeout_minutes BETWEEN 1440 AND 43200
+- identity.sessions | true | (kind IN ('patient','staff_mobile')) = (app_instance_id IS NOT NULL AND app_platform IS NOT NULL) AND (app_platform IS NULL OR app_platform IN ('android','ios')
+- identity.sessions | true | kind <> 'patient' OR aal = 'aal1'
+- identity.sessions | true | octet_length(token_sha256) = 32
+- identity.sessions | true | previous_token_sha256 IS NULL OR octet_length(previous_token_sha256) = 32
+- identity.sessions | true | revoke_reason IS NULL OR revoke_reason IN ('logout','admin_revoke','self_revoke','password_change','role_change','lock','deactivate','tenant_suspended', 'mfa_fa
+- identity.sessions | true | user_agent IS NULL OR char_length(user_agent) <= 512
+- identity.support_sessions | true | char_length(reason_text) BETWEEN 10 AND 500
+- identity.support_sessions | true | char_length(ticket_ref) BETWEEN 1 AND 60
+- identity.support_sessions | true | end_reason IS NULL OR end_reason IN ('ended_by_staff','expired','revoked_by_tenant','superseded','platform_logout','denied')
+- identity.support_sessions | true | status <> 'active' OR (started_at IS NOT NULL AND expires_at IS NOT NULL)
+- identity.tenant_contract_acceptances | true | char_length(accepted_by_name) BETWEEN 1 AND 120
+- identity.tenant_contract_acceptances | true | char_length(accepted_by_title) BETWEEN 1 AND 80
+- identity.tenant_contract_acceptances | true | char_length(version) BETWEEN 1 AND 32
+- identity.tenant_settings | true |  (barcode_prefix IS NULL OR barcode_prefix ~ '^[A-Z0-9]{0,4}$') AND accession_prefix_histology ~ '^[A-Z0-9]{0,4}$' AND accession_prefix_cytology ~ '^[A-Z0-9]{0,
+- identity.tenant_settings | true |  (pending_effective_fy_bs IS NULL) = (pending_invoice_no_pattern IS NULL AND pending_credit_note_no_pattern IS NULL) AND (pending_effective_fy_bs IS NULL OR pen
+- identity.tenant_settings | true |  cardinality(address_lines) <= 4 AND cardinality(phones) <= 3 AND coalesce(char_length(contact_email),0) <= 254 AND (website IS NULL OR (website ~ '^https://' A
+- identity.tenant_settings | true |  char_length(patient_code_pattern) <= 40 AND char_length(registration_no_pattern) <= 40 AND char_length(barcode_pattern) <= 40 AND char_length(invoice_no_patter
+- identity.tenant_settings | true |  invoice_no_pattern ~ '\{fyl?\}' AND credit_note_no_pattern ~ '\{fyl?\}' AND receipt_no_pattern ~ '\{fyl?\}' AND (pending_invoice_no_pattern IS NULL OR pending_
+- identity.tenant_settings | true | abbreviated_invoice_limit_paisa IS NULL OR abbreviated_invoice_limit_paisa >= 0
+- identity.tenant_settings | true | char_length(legal_name_snapshot) BETWEEN 1 AND 200 AND char_length(display_name) BETWEEN 1 AND 120
+- identity.tenant_settings | true | sms_sender_id IS NULL OR sms_sender_id ~ '^[A-Za-z0-9]{1,11}$'
+- instruments.agent_commands | true | coalesce(char_length(result_code),0) <= 64
+- instruments.agent_commands | UNK/true | jsonb_typeof(params) = 'object' AND octet_length(params::text) <= 256 AND (kind <> 'reupload_since' OR params ? 'since')
+- instruments.agent_config_versions | true | jsonb_typeof(document) = 'object' AND config_version >= 1 AND canonical_sha256 ~ '^[0-9a-f]{64}$' AND char_length(key_id) <= 32
+- instruments.agent_credentials | true | kind <> 'enrolment_code' OR expires_at IS NOT NULL
+- instruments.agent_credentials | true | octet_length(secret_sha256) = 32
+- instruments.agent_credentials | true | status <> 'used' OR (kind = 'enrolment_code' AND used_at IS NOT NULL)
+- instruments.agent_health_transitions | true | to_state IN ('online','offline','backlog','degraded') AND (from_state IS NULL OR from_state IN ('online','offline','backlog','degraded'))
+- instruments.agent_log_bundles | true | cardinality(lines) <= 20000 AND size_bytes BETWEEN 0 AND 4194304
+- instruments.agent_status | true | auth_state IS NULL OR auth_state IN ('ok','rejected')
+- instruments.agent_status | true | coalesce(char_length(agent_version),0) <= 32 AND coalesce(char_length(launcher_version),0) <= 32 AND coalesce(char_length(os_version),0) <= 64 AND coalesce(char
+- instruments.agent_status | true | config_state IS NULL OR config_state IN ('ok','signature_invalid','agent_mismatch','rollback_rejected','schema_invalid')
+- instruments.agent_status | UNK/true | jsonb_typeof(counters) = 'object' AND octet_length(counters::text) <= 2048
+- instruments.agent_status | true | update_state IS NULL OR update_state IN ('idle','downloading','verifying','staged','applying','rolled_back','verify_failed','failed')
+- instruments.agents | true | backlog_threshold IS NULL OR backlog_threshold BETWEEN 10 AND 100000
+- instruments.agents | true | char_length(display_name) BETWEEN 1 AND 80 AND coalesce(char_length(revoke_reason_text),0) <= 300
+- instruments.agents | true | host_fingerprint_sha256 IS NULL OR host_fingerprint_sha256 ~ '^[0-9a-f]{64}$'
+- instruments.attachments | true | char_length(object_path) <= 512 AND split_part(object_path, '/', 1) = tenant_id::text
+- instruments.attachments | true | size_bytes BETWEEN 1 AND 15728640 AND sha256 ~ '^[0-9a-f]{64}$' AND char_length(original_file_name) BETWEEN 1 AND 255
+- instruments.instrument_status | true | coalesce(char_length(last_link_error_code),0) <= 64
+- instruments.instrument_status | true | link_state IS NULL OR link_state IN ('up','down','listening','connecting','error','disabled')
+- instruments.instruments | true | (silence_window_minutes IS NULL OR silence_window_minutes BETWEEN 15 AND 1440) AND ((silence_active_from IS NULL) = (silence_active_to IS NULL))
+- instruments.instruments | true | cardinality(qc_sample_id_patterns) <= 10
+- instruments.instruments | true | char_length(display_name) BETWEEN 1 AND 80 AND char_length(vendor) BETWEEN 1 AND 60 AND char_length(model) BETWEEN 1 AND 60 AND coalesce(char_length(serial_no),
+- instruments.instruments | true | jsonb_typeof(protocol_options) = 'object' AND jsonb_typeof(parser_options) = 'object' AND (file_drop IS NULL OR (jsonb_typeof(file_drop) = 'object' AND protocol
+- instruments.instruments | null/true | jsonb_typeof(transport) = 'object' AND transport->>'kind' IN ('serial','tcp_client','tcp_server','file_drop') AND ((protocol = 'file_drop') = (transport->>'kind
+- instruments.instruments | true | state NOT IN ('live','suspended') OR (live_at IS NOT NULL AND go_live_checklist IS NOT NULL)
+- instruments.message_records | true | coalesce(char_length(sample_barcode),1) BETWEEN 1 AND 40 AND coalesce(char_length(control_id_raw),0) <= 64 AND coalesce(char_length(control_lot_raw),0) <= 64 AN
+- instruments.message_records | true | mapping_status IS NULL OR mapping_status IN ('mapped','unmapped')
+- instruments.message_records | true | port_outcome IS NULL OR port_outcome IN ('applied','duplicate','unmatched','rejected_state','held')
+- instruments.message_records | true | record_kind IS NULL OR record_kind IN ('quantitative','qualitative','ordinal','text','organism_id','ast','attachment')
+- instruments.message_records | true | result_key_sha256 IS NULL OR result_key_sha256 ~ '^[0-9a-f]{64}$'
+- instruments.message_records | true | value_numeric IS NULL OR value_numeric ~ '^-?[0-9]{1,12}(\.[0-9]{1,6})?$'
+- instruments.message_rejections | true | (raw_bytes IS NULL OR octet_length(raw_bytes) <= 1048576) AND (reason_code <> 'instruments.message_too_large' OR raw_bytes IS NULL) AND raw_sha256 ~ '^[0-9a-f]{
+- instruments.messages | true | char_length(message_key) BETWEEN 1 AND 220 AND message_key_kind IN ('msh10','msh10_reused','sha256','sha256_repeat') AND coalesce(char_length(message_control_id
+- instruments.messages | UNK/true | jsonb_typeof(link_meta) = 'object' AND octet_length(link_meta::text) <= 1024 AND cardinality(warnings) <= 20
+- instruments.messages | true | octet_length(raw_bytes) BETWEEN 1 AND 1048576 AND size_bytes = octet_length(raw_bytes) AND raw_sha256 ~ '^[0-9a-f]{64}$'
+- instruments.observed_codes | true | char_length(instrument_analyte_code) BETWEEN 1 AND 64 AND seen_count >= 1
+- instruments.processing_runs | true | coalesce(char_length(error_code),0) <= 64 AND coalesce(char_length(error_reason),0) <= 200 AND coalesce(char_length(reason_text),0) <= 300 AND char_length(drive
+- instruments.processing_runs | true | kind NOT IN ('reprocess','rematch') OR reason_code IS NOT NULL
+- inventory.alerts | UNK/true | alert_kind IN ('below_reorder','expiry_soon','expired_on_hand','open_stability_exceeded','negative_stock', 'unresolved_consumption','expired_lot_in_use','balanc
+- inventory.consumption_facts | true | fact_kind IN ('test','analyte','rerun','qc','calibration','fixed') AND source IN ('event','manual','cron') AND status IN ('posted','no_rule','unresolved','dismi
+- inventory.consumption_rules | true |  (rule_kind = 'per_test' AND test_id IS NOT NULL AND analyte_id IS NULL) OR (rule_kind = 'per_analyte' AND test_id IS NOT NULL AND analyte_id IS NOT NULL) OR (r
+- inventory.consumption_rules | true | qty_base > 0 AND entered_qty > 0 AND (effective_to IS NULL OR effective_to > effective_from) AND coalesce(char_length(notes),0) <= 500
+- inventory.cs_reasons | true | code ~ '^[a-z][a-z0-9_]{0,31}$' AND char_length(display) BETWEEN 1 AND 80 AND reason_group IN ('wastage','adjustment','supplier_return','po_cancel','po_close','
+- inventory.cs_tax_codes | true | code ~ '^[A-Z0-9_]{1,16}$' AND char_length(display) BETWEEN 1 AND 80
+- inventory.goods_receipt_lines | true | line_no BETWEEN 1 AND 500 AND qty_packs > 0 AND qty_in_base_snapshot > 0 AND qty_base = round(qty_packs * qty_in_base_snapshot, 6) AND unit_price_paisa >= 0 AND
+- inventory.goods_receipts | true | kind IN ('purchase','opening_balance') AND status IN ('draft','posted','cancelled') AND ((kind = 'purchase') = (supplier_id IS NOT NULL)) AND (kind = 'purchase'
+- inventory.item_barcodes | true | barcode_value ~ '^[\x21-\x7E]{1,64}$' AND barcode_value = upper(barcode_value)
+- inventory.item_packs | true | pack_code ~ '^[A-Z0-9_]{1,16}$' AND char_length(label) BETWEEN 1 AND 60 AND qty_in_base > 0
+- inventory.items | true | (open_stability_days IS NULL OR open_stability_days BETWEEN 1 AND 3650) AND (container_qty_base IS NULL OR container_qty_base > 0) AND (hs_code IS NULL OR hs_co
+- inventory.items | true | NOT requires_expiry OR is_lot_tracked
+- inventory.items | true | char_length(name) BETWEEN 1 AND 200 AND coalesce(char_length(manufacturer),0) <= 120 AND coalesce(char_length(catalogue_no),0) <= 64 AND coalesce(char_length(no
+- inventory.items | true | storage_condition IS NULL OR storage_condition IN ('ambient','refrigerated','frozen','other')
+- inventory.lots | true | lot_no ~ '^[\x21-\x7E]{1,64}$' AND status IN ('available','quarantined','blocked') AND (manufactured_on IS NULL OR expiry_on IS NULL OR manufactured_on <= expir
+- inventory.number_counters | true | series IN ('po','grn','transfer','count','doc') AND next_value >= 1 AND char_length(period_key) BETWEEN 1 AND 16
+- inventory.opened_containers | true | status IN ('open','finished','discarded') AND coalesce(char_length(notes),0) <= 500 AND (status = 'open' OR finished_at IS NOT NULL) AND (status <> 'discarded' 
+- inventory.purchase_order_lines | true | line_no BETWEEN 1 AND 500 AND qty_packs > 0 AND qty_in_base_snapshot > 0 AND qty_base = round(qty_packs * qty_in_base_snapshot, 6) AND unit_price_paisa >= 0 AND
+- inventory.purchase_orders | true | (status IN ('draft','cancelled') OR approved_at IS NOT NULL) AND (status <> 'sent' OR sent_at IS NOT NULL) AND (status <> 'closed' OR closed_at IS NOT NULL) AND
+- inventory.purchase_orders | true | source IN ('manual','reorder') AND subtotal_paisa >= 0 AND discount_paisa >= 0 AND net_paisa >= 0 AND vat_paisa >= 0 AND total_paisa = net_paisa + vat_paisa AND
+- inventory.settings | true | char_length(po_no_pattern) BETWEEN 1 AND 40 AND char_length(grn_no_pattern) BETWEEN 1 AND 40 AND char_length(transfer_no_pattern) BETWEEN 1 AND 40 AND char_leng
+- inventory.stock_balances | true | lot_id IS NULL OR qty_base >= 0
+- inventory.stock_count_lines | true | (counted_qty_base IS NULL OR counted_qty_base >= 0) AND ((counted_qty_base IS NULL) = (counted_at IS NULL))
+- inventory.stock_counts | true | status IN ('open','posted','cancelled') AND (scope_category IS NULL OR scope_category IN ('reagent','kit','consumable','control','calibrator','other')) AND coal
+- inventory.stock_documents | null/true | ( (doc_kind = 'issue' AND issued_to_kind IN ('department','instrument','general') AND (issued_to_kind <> 'department' OR department_id IS NOT NULL) AND (issued_
+- inventory.stock_movements | true | doc_type IN ('goods_receipt','stock_document','transfer','stock_count','consumption_fact') AND value_basis IN ('receipt','average','last_receipt','transfer','re
+- inventory.stock_movements | true | qty_base <> 0 AND ( (movement_kind IN ('receive','opening_balance','return_to_store','transfer_in','consume_reversal','adjust_in','count_adjust_in') AND qty_bas
+- inventory.store_item_settings | true | (reorder_level_base IS NULL OR reorder_level_base >= 0) AND (reorder_qty_base IS NULL OR reorder_qty_base > 0) AND (max_level_base IS NULL OR reorder_level_base
+- inventory.stores | true | store_code ~ '^[A-Z0-9][A-Z0-9_\-]{0,15}$' AND char_length(name) BETWEEN 1 AND 120 AND store_kind IN ('main','bench','other')
+- inventory.supplier_items | true | coalesce(char_length(supplier_item_code),0) <= 64 AND (last_unit_price_paisa IS NULL OR last_unit_price_paisa >= 0) AND (lead_time_days IS NULL OR lead_time_day
+- inventory.suppliers | true | supplier_code ~ '^[A-Z0-9][A-Z0-9_\-]{0,15}$' AND char_length(name) BETWEEN 1 AND 200 AND (pan_text IS NULL OR pan_text ~ '^[A-Za-z0-9]{1,20}$') AND coalesce(ch
+- inventory.transfer_lines | true | line_no BETWEEN 1 AND 500 AND qty_base > 0 AND (received_qty_base IS NULL OR (received_qty_base >= 0 AND received_qty_base <= qty_base)) AND (received_qty_base 
+- inventory.transfers | true | from_store_id <> to_store_id AND status IN ('draft','dispatched','received','cancelled') AND coalesce(char_length(notes),0) <= 1000 AND coalesce(char_length(can
+- lab.critical_notifications | true | NOT read_back_confirmed OR char_length(coalesce(read_back_text,'')) BETWEEN 1 AND 300
+- lab.critical_notifications | true | char_length(notified_party_name) BETWEEN 1 AND 120
+- lab.critical_notifications | true | comment IS NULL OR char_length(comment) <= 500
+- lab.critical_notifications | true | contact_detail IS NULL OR char_length(contact_detail) <= 60
+- lab.cs_amendment_reasons | true | char_length(display) BETWEEN 1 AND 120
+- lab.cs_exception_discard_reasons | true | char_length(display) BETWEEN 1 AND 120
+- lab.cs_rejection_reasons | true | char_length(display) BETWEEN 1 AND 120
+- lab.cs_return_reasons | true | char_length(display) BETWEEN 1 AND 120
+- lab.delta_check_rules | true | abs_threshold IS NOT NULL OR pct_threshold IS NOT NULL
+- lab.delta_check_rules | true | abs_threshold IS NULL OR abs_threshold > 0
+- lab.delta_check_rules | true | effective_to IS NULL OR effective_to > effective_from
+- lab.delta_check_rules | true | pct_threshold IS NULL OR (pct_threshold > 0 AND pct_threshold <= 1000)
+- lab.ingest_exceptions | true | char_length(sample_barcode) BETWEEN 1 AND 40
+- lab.ingest_exceptions | true | resolution IS NULL OR resolution IN ('applied','assigned','discarded')
+- lab.ingest_exceptions | true | status <> 'discarded' OR discard_reason_code IS NOT NULL
+- lab.ingest_log | true | char_length(result_key) <= 300
+- lab.order_readiness | true | last_completeness IS NULL OR last_completeness IN ('complete','partial')
+- lab.order_readiness | true | last_emitted_hash IS NULL OR last_emitted_hash ~ '^[0-9a-f]{64}$'
+- lab.order_tests | true | NOT uses_existing_material OR specimen_id IS NULL
+- lab.order_tests | true | tat_target_seconds IS NULL OR tat_target_seconds > 0
+- lab.orders | true | char_length(registration_no) BETWEEN 1 AND 40
+- lab.orders | true | collection_mode IS NULL OR collection_mode IN ('walk_in','home','centre','partner')
+- lab.orders | true | patient_age_days IS NULL OR patient_age_days BETWEEN 0 AND 60000
+- lab.qc_holds | true | cardinality(analyte_ids) BETWEEN 1 AND 100
+- lab.qc_results | true | char_length(control_id_raw) <= 64 AND char_length(coalesce(control_lot_raw,'')) <= 64 AND char_length(coalesce(control_level,'')) <= 16 AND char_length(value_ra
+- lab.qc_results | true | mapping_status IS NULL OR mapping_status IN ('mapped','unmapped')
+- lab.qc_results | true | source <> 'manual' OR (entered_by_membership_id IS NOT NULL AND analyte_id IS NOT NULL)
+- lab.report_releases | true | char_length(report_kind) BETWEEN 1 AND 32
+- lab.result_attachments | true | split_part(object_path, '/', 1) = tenant_id::text
+- lab.result_observations | true | value_raw IS NULL OR char_length(value_raw) <= 200
+- lab.result_observations | true | value_text IS NULL OR char_length(value_text) <= 2000
+- lab.result_versions | true | amendment_reason_text IS NULL OR char_length(amendment_reason_text) <= 500
+- lab.result_versions | true | flag IS NULL OR flag IN ('N','L','H','LL','HH','A')
+- lab.result_versions | true | version_no = 1 OR (amendment_reason_code IS NOT NULL AND previous_version_no = version_no - 1)
+- lab.results | true | cardinality(comment_codes) <= 10
+- lab.results | true | comment_text IS NULL OR char_length(comment_text) <= 1000
+- lab.results | true | flag IS NULL OR flag IN ('N','L','H','LL','HH','A')
+- lab.results | true | module_payload_module IS NULL OR module_payload_module IN ('micro','anatomic')
+- lab.results | true | module_report_phase IS NULL OR module_report_phase IN ('preliminary','final')
+- lab.results | true | module_summary_text IS NULL OR char_length(module_summary_text) <= 4000
+- lab.results | true | origin IS NULL OR origin IN ('instrument','manual','calculated','module')
+- lab.results | true | specimen_id IS NOT NULL OR origin IS NULL OR origin IN ('module','manual')
+- lab.results | true | status <> 'approved' OR (approved_at IS NOT NULL AND approved_by_membership_id IS NOT NULL)
+- lab.results | true | status IN ('pending','cancelled') OR origin IS NOT NULL
+- lab.results | true | value_text IS NULL OR char_length(value_text) <= 2000
+- lab.specimen_transitions | true | transition_code ~ '^S([1-9]/1[0-5])$'
+- lab.specimens | true | discard_reason IS NULL OR char_length(discard_reason) <= 200
+- lab.specimens | true | parent_specimen_id IS NULL OR parent_specimen_id <> id
+- lab.specimens | true | received_at IS NULL OR processing_centre_id IS NOT NULL
+- lab.specimens | true | rejected_at IS NULL OR rejection_reason_code IS NOT NULL
+- lab.specimens | true | rejection_comment IS NULL OR char_length(rejection_comment) <= 500
+- lab.specimens | true | storage_location IS NULL OR char_length(storage_location) <= 120
+- lab.verifications | true | acknowledged_flags <@ ARRAY['delta','critical','unit_mismatch','instrument_flag']::text[]
+- lab.verifications | true | comment IS NULL OR char_length(comment) <= 500
+- lab.verifications | true | kind <> 'returned' OR reason_code IS NOT NULL
+- lab.worksheets | true | char_length(title) BETWEEN 1 AND 80
+- micro.ast_panel_antibiotics | true | method IS NULL OR method IN ('mic','zone_diameter','other')
+- micro.ast_panels | true | char_length(display) BETWEEN 1 AND 120
+- micro.ast_results | true | (raw_value IS NULL OR char_length(raw_value) BETWEEN 1 AND 32) AND (interpretation_raw IS NULL OR char_length(interpretation_raw) <= 16) AND (standard_version I
+- micro.ast_results | true | category_code IS NULL OR (standard IS NOT NULL AND standard_version IS NOT NULL)
+- micro.ast_results | true | category_code IS NULL OR raw_value IS NOT NULL
+- micro.ast_results | true | interpretation_source IS DISTINCT FROM 'breakpoint_suggestion' OR (breakpoint_set_id IS NOT NULL AND breakpoint_band_id IS NOT NULL)
+- micro.ast_results | true | interpretation_source IS NULL OR interpretation_source IN ('manual','instrument','breakpoint_suggestion')
+- micro.ast_results | true | raw_qualifier IS NULL OR raw_qualifier IN ('=','<','<=','>','>=')
+- micro.ast_results | true | standard IS DISTINCT FROM 'unknown' OR category_code IS NULL
+- micro.ast_results | true | standard IS NULL OR standard IN ('CLSI','EUCAST','ECOFF','unknown')
+- micro.ast_results | true | standard_source IS NULL OR standard_source IN ('manual','instrument_payload','instrument_default','breakpoint_set')
+- micro.ast_results | true | unit_code IS NULL OR unit_code IN ('ug_ml','mm')
+- micro.breakpoint_bands | true | (lower_value IS NULL OR lower_value >= 0) AND (upper_value IS NULL OR upper_value >= 0)
+- micro.breakpoint_bands | true | lower_value IS NOT NULL OR upper_value IS NOT NULL
+- micro.breakpoint_bands | true | lower_value IS NULL OR upper_value IS NULL OR lower_value <= upper_value
+- micro.breakpoint_bands | true | note IS NULL OR char_length(note) <= 200
+- micro.breakpoint_import_issues | true | char_length(message) <= 200
+- micro.breakpoint_import_issues | true | field IS NULL OR char_length(field) <= 40
+- micro.breakpoint_rows | true | organism_scope IN ('organism','group','any') AND ((organism_scope = 'any') = (organism_code IS NULL))
+- micro.breakpoint_rows | true | qualifier_code IS NULL OR qualifier_code ~ '^[a-z0-9_]{1,32}$'
+- micro.breakpoint_sets | true | char_length(licence_attestation_text) BETWEEN 20 AND 500
+- micro.breakpoint_sets | true | char_length(standard_version) BETWEEN 1 AND 32
+- micro.breakpoint_sets | true | char_length(title) BETWEEN 1 AND 120
+- micro.breakpoint_sets | true | effective_to IS NULL OR effective_from IS NULL OR effective_to >= effective_from
+- micro.breakpoint_sets | true | status NOT IN ('active','retired') OR effective_from IS NOT NULL
+- micro.cs_antibiotics | true | antibiotic_class IS NULL OR char_length(antibiotic_class) <= 64
+- micro.cs_antibiotics | true | char_length(display) BETWEEN 1 AND 200
+- micro.cs_culture_cancel_reasons | true | char_length(display) BETWEEN 1 AND 200
+- micro.cs_culture_outcomes | true | char_length(display) BETWEEN 1 AND 200
+- micro.cs_growth_codes | true | char_length(display) BETWEEN 1 AND 200
+- micro.cs_isolate_withdraw_reasons | true | char_length(display) BETWEEN 1 AND 200
+- micro.cs_media | true | char_length(display) BETWEEN 1 AND 200
+- micro.cs_organism_groups | true | char_length(display) BETWEEN 1 AND 200
+- micro.cs_organisms | true | char_length(display) BETWEEN 1 AND 200
+- micro.cs_organisms | true | gram_class IS NULL OR gram_class IN ('gram_positive','gram_negative','yeast','mould','other')
+- micro.cs_organisms | true | snomed_ct_concept_id IS NULL OR snomed_ct_concept_id ~ '^[0-9]{6,18}$'
+- micro.cs_record_ignore_reasons | true | char_length(display) BETWEEN 1 AND 200
+- micro.cs_specimen_sites | true | char_length(display) BETWEEN 1 AND 200
+- micro.culture_observations | true | (finding_text IS NULL OR char_length(finding_text) BETWEEN 1 AND 2000) AND (quantity_text IS NULL OR char_length(quantity_text) <= 80)
+- micro.culture_observations | true | kind <> 'plate_read' OR (growth_code IS NOT NULL AND plate_id IS NOT NULL)
+- micro.culture_observations | true | kind = 'plate_read' OR (finding_text IS NOT NULL)
+- micro.culture_plates | true | incubation_text IS NULL OR char_length(incubation_text) <= 120
+- micro.culture_transitions | true | comment IS NULL OR char_length(comment) <= 500
+- micro.cultures | true | (cancel_comment IS NULL OR char_length(cancel_comment) <= 500) AND (amendment_reason_text IS NULL OR char_length(amendment_reason_text) <= 500)
+- micro.cultures | true | barcode_snapshot IS NULL OR barcode_snapshot ~ '^[A-Z0-9]{1,20}$'
+- micro.cultures | true | last_report_phase IS NULL OR last_report_phase IN ('preliminary','final')
+- micro.cultures | true | status <> 'amending' OR amendment_reason_code IS NOT NULL
+- micro.cultures | true | status NOT IN ('final_submitted','amending') OR outcome_code IS NOT NULL
+- micro.instrument_ast_defaults | true | char_length(standard_version) BETWEEN 1 AND 32
+- micro.instrument_records | true | (organism_code IS NULL OR organism_code ~ '^[a-z0-9_]{2,64}$') AND (antibiotic_code IS NULL OR antibiotic_code ~ '^[a-z0-9_]{2,64}$')
+- micro.instrument_records | true | (record_kind = 'organism_id' AND organism_code_raw IS NOT NULL) OR (record_kind = 'ast' AND antibiotic_code_raw IS NOT NULL AND method IS NOT NULL AND raw_value
+- micro.instrument_records | true | char_length(sample_barcode) BETWEEN 1 AND 40 AND char_length(idempotency_key) <= 200 AND char_length(instrument_analyte_code) BETWEEN 1 AND 64 AND (organism_cod
+- micro.instrument_records | true | ignore_comment IS NULL OR char_length(ignore_comment) <= 300
+- micro.instrument_records | true | method IS NULL OR method IN ('mic','zone_diameter','other')
+- micro.instrument_records | true | standard IS NULL OR standard IN ('CLSI','EUCAST','ECOFF','unknown')
+- micro.instrument_vocab_maps | true | char_length(code_raw) BETWEEN 1 AND 64
+- micro.isolates | true | (colony_description IS NULL OR char_length(colony_description) <= 500) AND (quantity_text IS NULL OR char_length(quantity_text) <= 80) AND (withdraw_comment IS 
+- micro.isolates | true | ast_method IS NULL OR ast_method IN ('mic','zone_diameter','other')
+- micro.isolates | true | organism_source IS NULL OR organism_source IN ('manual','instrument')
+- micro.isolates | true | status <> 'identified' OR (organism_code IS NOT NULL AND organism_source IS NOT NULL)
+- micro.plating_protocol_media | true | incubation_text IS NULL OR char_length(incubation_text) <= 120
+- micro.plating_protocols | true | cardinality(read_schedule_hours) BETWEEN 1 AND 10 AND 0 < ALL (read_schedule_hours) AND 720 >= ALL (read_schedule_hours)
+- micro.plating_protocols | true | char_length(display) BETWEEN 1 AND 120
+- micro.report_versions | true | char_length(culture_summary_text) BETWEEN 1 AND 4000 AND (comments_text IS NULL OR char_length(comments_text) <= 4000) AND (early_final_reason IS NULL OR char_l
+- micro.report_versions | true | jsonb_typeof(isolates) = 'array' AND jsonb_array_length(isolates) <= 20 AND jsonb_typeof(ast) = 'array' AND jsonb_array_length(ast) <= 600
+- micro.report_versions | true | report_phase <> 'final' OR outcome_code IS NOT NULL
+- micro.report_versions | true | version_kind <> 'amendment' OR amendment_reason_code IS NOT NULL
+- micro.settings | true | manual_ast_standard IS NULL OR manual_ast_standard IN ('CLSI','EUCAST')
+- migration_staging.batches | true | content_sha256 ~ '^[0-9a-f]{64}$' AND (owner_digest_sha256 IS NULL OR owner_digest_sha256 ~ '^[0-9a-f]{64}$')
+- migration_staging.batches | true | row_count BETWEEN 1 AND 200 AND (entity <> 'documents' OR row_count = 1)
+- migration_staging.batches | true | status = 'planned' OR status = 'failed' OR committed_at IS NOT NULL
+- migration_staging.crosswalk_entries | null |  (entity_kind = 'centre' AND target_id IS NOT NULL) OR (entity_kind = 'analyte' AND target_id IS NOT NULL AND target_test_id IS NOT NULL) OR (entity_kind = 'uni
+- migration_staging.crosswalk_entries | true | char_length(legacy_code) BETWEEN 1 AND 128 AND char_length(legacy_context) <= 128
+- migration_staging.crosswalk_entries | true | legacy_display IS NULL OR char_length(legacy_display) <= 200
+- migration_staging.issues | true | char_length(message) <= 300 AND coalesce(char_length(column_key),0) <= 64
+- migration_staging.match_pairs | true |  (status <> 'decided' AND decision IS NULL) OR (status = 'decided' AND decided_at IS NOT NULL AND decided_by_membership_id IS NOT NULL AND lab_form_reference IS
+- migration_staging.match_pairs | true | lab_form_reference IS NULL OR char_length(lab_form_reference) BETWEEN 1 AND 120
+- migration_staging.match_pairs | true | row_b_id IS NULL OR row_a_id < row_b_id
+- migration_staging.reports | UNK | pg_column_size(body) <= 1048576
+- migration_staging.run_events | true | cardinality(staging_row_ids) <= 500
+- migration_staging.run_files | true | rows_staged >= 0 AND (rows_expected IS NULL OR rows_staged <= rows_expected)
+- migration_staging.run_files | true | sha256 IS NULL OR sha256 ~ '^[0-9a-f]{64}$'
+- migration_staging.runs | true | NOT is_rehearsal OR status IN ('created','staging','staged','validating', 'validated','validation_failed','dry_running','dry_run_passed','dry_run_failed','aband
+- migration_staging.runs | true | char_length(run_code) BETWEEN 5 AND 80
+- migration_staging.runs | true | end_reason_code IS NULL OR end_reason_code ~ '^[a-z_]{1,64}$'
+- migration_staging.runs | true | manifest_sha256 IS NULL OR manifest_sha256 ~ '^[0-9a-f]{64}$'
+- migration_staging.runs | true | status NOT IN ('signed_off','purged') OR signed_off_at IS NOT NULL OR end_reason_code IS NOT NULL
+- migration_staging.samples | true | verdict = 'pending' OR (reviewed_at IS NOT NULL AND operator_id IS NOT NULL)
+- migration_staging.signoffs | true | coalesce(char_length(lab_signatory_display),0) <= 120 AND coalesce(char_length(reference_text),0) <= 120
+- migration_staging.signoffs | true | kind NOT IN ('lab_signoff','exclusion_acceptance') OR (lab_membership_id IS NOT NULL AND lab_signatory_display IS NOT NULL)
+- migration_staging.stg_documents | true | document_kind IS NULL OR document_kind IN ('lab_report','radiology_report','outsourced_report','other_report')
+- migration_staging.stg_documents | true | owner_state IS NULL OR owner_state IN ('pending_scan','scanning','quarantined','sanitizing','ready','rejected')
+- migration_staging.stg_documents | true | source_row_sha256 ~ '^[0-9a-f]{64}$' AND sha256 ~ '^[0-9a-f]{64}$' AND (port_row_sha256 IS NULL OR port_row_sha256 ~ '^[0-9a-f]{64}$')
+- migration_staging.stg_financial | true | fiscal_year_bs IS NULL OR fiscal_year_bs ~ '^[0-9]{4}/[0-9]{2}$'
+- migration_staging.stg_masters | UNK/true | jsonb_typeof(payload) = 'object' AND pg_column_size(payload) <= 65536
+- migration_staging.stg_patients | true | (dry_run_outcome IS NULL OR dry_run_outcome IN ('created','linked','already_imported','rejected')) AND (load_outcome IS NULL OR load_outcome IN ('created','link
+- migration_staging.stg_patients | true | char_length(legacy_patient_key) BETWEEN 1 AND 128 AND coalesce(char_length(legacy_patient_code),0) <= 40 AND coalesce(char_length(full_name),0) <= 4000 AND coal
+- migration_staging.stg_patients | true | sex IS NULL OR sex IN ('male','female','other','unknown')
+- migration_staging.stg_patients | true | source_row_sha256 ~ '^[0-9a-f]{64}$' AND (port_row_sha256 IS NULL OR port_row_sha256 ~ '^[0-9a-f]{64}$')
+- migration_staging.stg_results | true | (dry_run_outcome IS NULL OR dry_run_outcome IN ('created','superseded_previous','already_imported','rejected')) AND (load_outcome IS NULL OR load_outcome IN ('c
+- migration_staging.stg_results | true | flag IS NULL OR flag IN ('N','L','H','LL','HH','A')
+- migration_staging.stg_results | true | result_status IS NULL OR result_status IN ('final','amended_final','preliminary','cancelled','other')
+- migration_staging.stg_results | true | source_row_sha256 ~ '^[0-9a-f]{64}$' AND (port_row_sha256 IS NULL OR port_row_sha256 ~ '^[0-9a-f]{64}$')
+- partners.access_slips | true | (state = 'failed') = (failure_code IS NOT NULL) AND (failure_code IS NULL OR (char_length(failure_code) <= 64 AND failure_code ~ '^[a-z_]+\.[a-z_]+$'))
+- partners.access_slips | true | file_byte_size IS NULL OR file_byte_size BETWEEN 1 AND 10485760
+- partners.access_slips | true | file_path IS NULL OR char_length(file_path) BETWEEN 1 AND 200
+- partners.access_slips | true | file_sha256 IS NULL OR file_sha256 ~ '^[0-9a-f]{64}$'
+- partners.manifest_lines | true | (state = 'not_received' OR sample_missing) = (not_received_reason_code IS NOT NULL)
+- partners.manifest_lines | true | cardinality(orderable_ids) BETWEEN 1 AND 30
+- partners.manifest_lines | true | char_length(consent_text_version) BETWEEN 1 AND 32
+- partners.manifest_lines | true | clinical_note IS NULL OR char_length(clinical_note) <= 300
+- partners.manifest_lines | true | failure_code IS NULL OR failure_code ~ '^[a-z_]+\.[a-z_]+$'
+- partners.manifest_lines | true | is_redacted OR (patient_full_name IS NOT NULL AND patient_sex IS NOT NULL AND ((patient_birth_on IS NULL) <> (patient_age_years IS NULL)) AND consent_attested)
+- partners.manifest_lines | true | jsonb_typeof(orderables_snapshot) = 'array'
+- partners.manifest_lines | true | partner_sample_ref IS NULL OR partner_sample_ref ~ '^[A-Za-z0-9_./-]{1,40}$'
+- partners.manifest_lines | true | patient_age_years IS NULL OR patient_age_years BETWEEN 0 AND 130
+- partners.manifest_lines | true | patient_birth_on IS NULL OR patient_birth_on >= DATE '1900-01-01'
+- partners.manifest_lines | true | patient_full_name IS NULL OR char_length(patient_full_name) BETWEEN 1 AND 120
+- partners.manifest_lines | true | patient_phone_e164 IS NULL OR patient_phone_e164 ~ '^\+[1-9][0-9]{7,14}$'
+- partners.manifest_lines | true | patient_sex IS NULL OR patient_sex IN ('male','female','other','unknown')
+- partners.manifest_lines | true | registration_no IS NULL OR char_length(registration_no) <= 40
+- partners.manifest_lines | true | state NOT IN ('converted','cancelled') OR order_id IS NOT NULL
+- partners.manifests | true | notes IS NULL OR char_length(notes) <= 500
+- partners.manifests | true | withdraw_reason_text IS NULL OR char_length(withdraw_reason_text) <= 300
+- partners.order_reports | true | char_length(kind) BETWEEN 1 AND 32
+- partners.order_reports | true | is_new OR seen_at IS NOT NULL
+- partners.order_reports | true | panel_names IS NULL OR cardinality(panel_names) <= 50
+- partners.order_tracking | true | registration_no IS NULL OR char_length(registration_no) <= 40
+- partners.order_tracking | true | stored_order_status IS NULL OR stored_order_status IN ('pre_registered','registered','cancelled')
+- partners.partner_referrers | true | char_length(display_name) BETWEEN 1 AND 120 AND char_length(display_name_norm) BETWEEN 1 AND 120
+- partners.partner_referrers | true | mapping_reject_text IS NULL OR char_length(mapping_reject_text) <= 300
+- partners.partner_referrers | true | qualification IS NULL OR char_length(qualification) <= 120
+- partners.partner_referrers | true | registration_council IS NULL OR char_length(registration_council) <= 20
+- partners.partner_referrers | true | registration_no IS NULL OR char_length(registration_no) <= 30
+- partners.partner_users | true | char_length(display_name) BETWEEN 1 AND 120
+- partners.partner_users | true | char_length(email_masked) BETWEEN 3 AND 64
+- partners.partners | true | address_text IS NULL OR char_length(address_text) <= 300
+- partners.partners | true | char_length(name) BETWEEN 1 AND 160
+- partners.partners | true | contact_email IS NULL OR char_length(contact_email) <= 254
+- partners.partners | true | contact_phone_e164 IS NULL OR contact_phone_e164 ~ '^\+[1-9][0-9]{7,14}$'
+- partners.partners | true | suspend_reason_text IS NULL OR char_length(suspend_reason_text) <= 300
+- partners.pickup_requests | true | (scheduled_start IS NULL) = (scheduled_end IS NULL) AND (scheduled_start IS NULL OR scheduled_start < scheduled_end)
+- partners.pickup_requests | true | assignee_text IS NULL OR char_length(assignee_text) <= 80
+- partners.pickup_requests | true | contact_name IS NULL OR char_length(contact_name) <= 80
+- partners.pickup_requests | true | contact_phone_e164 IS NULL OR contact_phone_e164 ~ '^\+[1-9][0-9]{7,14}$'
+- partners.pickup_requests | true | notes IS NULL OR char_length(notes) <= 500
+- partners.pickup_requests | true | state <> 'scheduled' OR scheduled_start IS NOT NULL
+- partners.price_list_items | true | char_length(code) BETWEEN 1 AND 64
+- partners.price_list_items | true | char_length(name) BETWEEN 1 AND 200
+- partners.price_list_items | true | department_name IS NULL OR char_length(department_name) <= 120
+- partners.settings | true | char_length(consent_statement) BETWEEN 1 AND 2000
+- partners.settings | true | char_length(consent_text_version) BETWEEN 1 AND 32
+- partners.statement_months | UNK | extract(day FROM period_month) = 1
+- partners.tracked_specimens | true | char_length(specimen_type_code) BETWEEN 1 AND 64
+- partners.tracked_specimens | true | rejection_reason_code IS NULL OR char_length(rejection_reason_code) <= 64
+- payments.callbacks | true | query_redacted IS NULL OR NOT (query_redacted ? 'mobile')
+- payments.callbacks | true | query_redacted IS NULL OR octet_length(query_redacted::text) <= 6144
+- payments.gateway_calls | true | gateway_status_raw IS NULL OR char_length(gateway_status_raw) <= 64
+- payments.gateway_calls | true | response_redacted IS NULL OR octet_length(response_redacted::text) <= 2048
+- payments.intents | true | (gateway_txn_ref IS NULL OR char_length(gateway_txn_ref) BETWEEN 1 AND 100) AND (gateway_secondary_ref IS NULL OR char_length(gateway_secondary_ref) <= 64) AND 
+- payments.intents | true | gateway <> 'esewa' OR gateway_txn_ref IS NULL OR gateway_txn_ref = id::text
+- payments.intents | true | gateway <> 'khalti' OR amount_paisa >= 1000
+- payments.intents | true | last_gateway_status_raw IS NULL OR char_length(last_gateway_status_raw) <= 64
+- payments.intents | true | octet_length(callback_token_sha256) = 32
+- payments.intents | true | refunded_paisa >= 0 AND refunded_paisa <= amount_paisa AND (status <> 'refunded' OR refunded_paisa = amount_paisa) AND (status <> 'partially_refunded' OR (refun
+- payments.intents | true | resolution_note IS NULL OR char_length(resolution_note) <= 500
+- payments.intents | true | return_url ~ '^https://' AND cancel_url ~ '^https://' AND char_length(return_url) <= 2000 AND char_length(cancel_url) <= 2000
+- payments.intents | true | status <> 'held_for_review' OR hold_reason IS NOT NULL
+- payments.intents | true | status = 'created' OR gateway_txn_ref IS NOT NULL
+- payments.intents | true | status NOT IN ('failed','expired') OR failure_reason IS NOT NULL
+- payments.intents | true | status NOT IN ('settled','refunded','partially_refunded') OR (settled_at IS NOT NULL AND ledger_entry_id IS NOT NULL AND verified_amount_paisa = amount_paisa AN
+- payments.intents | true | verification_method IS NULL OR verification_method IN ('esewa_status_check','khalti_lookup')
+- payments.merchant_accounts | true |  (secret_ciphertext IS NULL AND secret_nonce IS NULL AND secret_auth_tag IS NULL AND secret_kek_id IS NULL AND secret_fingerprint IS NULL) OR (secret_ciphertext
+- payments.merchant_accounts | true | NOT api_refunds_enabled OR gateway = 'khalti'
+- payments.merchant_accounts | true | NOT is_enabled OR (secret_ciphertext IS NOT NULL AND ((gateway = 'esewa' AND esewa_product_code IS NOT NULL) OR (gateway = 'khalti' AND khalti_website_url IS NO
+- payments.merchant_accounts | true | esewa_product_code IS NULL OR (gateway = 'esewa' AND esewa_product_code ~ '^[A-Za-z0-9_-]{1,64}$')
+- payments.merchant_accounts | true | gateway <> 'fonepay' OR is_enabled = false
+- payments.merchant_accounts | true | khalti_website_url IS NULL OR (gateway = 'khalti' AND khalti_website_url ~ '^https://' AND char_length(khalti_website_url) <= 300)
+- payments.merchant_accounts | true | last_test_outcome IS NULL OR last_test_outcome IN ('reachable_key_valid','reachable_key_unverifiable','auth_failed','unreachable')
+- payments.reconciliation_findings | true | intent_id IS NOT NULL OR refund_id IS NOT NULL
+- payments.reconciliation_findings | true | note IS NULL OR char_length(note) <= 1000
+- payments.reconciliation_findings | true | status IN ('open','resolved') AND (status = 'open' OR (resolution_code IS NOT NULL AND resolved_by IS NOT NULL AND resolved_at IS NOT NULL))
+- payments.refunds | true | (held_reason IS NULL OR held_reason IN ('refund_not_visible','refund_kind_mismatch','api_outcome_unknown')) AND (status <> 'held_for_review' OR held_reason IS N
+- payments.refunds | true | (reason_text IS NULL OR char_length(reason_text) <= 500) AND (decision_note IS NULL OR char_length(decision_note) <= 500) AND (failure_note IS NULL OR char_leng
+- payments.refunds | true | failure_reason IS NULL OR failure_reason ~ '^[a-z0-9_]{1,64}$'
+- payments.refunds | true | gateway_refund_reference IS NULL OR gateway_refund_reference ~ '^[A-Za-z0-9_.:/-]{1,100}$'
+- payments.refunds | true | mode IN ('manual','api') AND (mode = 'manual' OR gateway = 'khalti')
+- payments.refunds | true | status <> 'completed' OR (completed_at IS NOT NULL AND ledger_entry_id IS NOT NULL)
+- payments.refunds | true | status <> 'failed' OR failure_reason IS NOT NULL
+- payments.refunds | true | status IN ('pending_approval','rejected') OR approved_by_membership_id IS NOT NULL
+- payments.static_qr_reconciliations | true | char_length(statement_reference) BETWEEN 1 AND 100
+- payments.static_qr_reconciliations | true | note IS NULL OR char_length(note) <= 1000
+- payments.static_qr_reconciliations | true | status IN ('matched','accepted_with_difference') AND ((status = 'matched') = (statement_total_paisa = system_total_paisa)) AND (status = 'matched' OR note IS NO
+- quality.autoverify_decisions | true | decision <> 'allow' OR cardinality(reasons) = 0
+- quality.autoverify_decisions | true | jsonb_typeof(inputs) = 'object'
+- quality.autoverify_decisions | true | reasons <@ ARRAY['feature_disabled','instrument_flag','outside_autoverify_limits', 'critical','delta_failure','qc_out_of_control','qc_no_data','manual_origin','
+- quality.autoverify_versions | true | char_length(coalesce(retire_reason,'')) <= 500
+- quality.autoverify_versions | UNK/null/true | jsonb_typeof(definition) = 'object' AND (definition ->> 'schema_version') = '1' AND rule_count BETWEEN 0 AND 2000 AND pg_column_size(definition) <= 1048576
+- quality.autoverify_versions | true | status NOT IN ('active','retired') OR (activated_at IS NOT NULL AND activated_by IS NOT NULL AND activated_by <> created_by)
+- quality.control_id_maps | true | char_length(control_id_raw) BETWEEN 1 AND 64 AND char_length(coalesce(control_lot_raw,'x')) BETWEEN 1 AND 64
+- quality.control_levels | true | level_code ~ '^[A-Za-z0-9]{1,16}$' AND char_length(display_name) BETWEEN 1 AND 60 AND sort_order BETWEEN 0 AND 99
+- quality.control_materials | true | code ~ '^[A-Z0-9_-]{2,32}$' AND char_length(name) BETWEEN 1 AND 120 AND char_length(coalesce(manufacturer,'')) <= 120 AND char_length(coalesce(matrix,'')) <= 60
+- quality.cs_corrective_actions | true | code ~ '^[a-z][a-z0-9_]{1,63}$' AND char_length(display) BETWEEN 1 AND 120
+- quality.cs_exclusion_reasons | true | code ~ '^[a-z][a-z0-9_]{1,63}$' AND char_length(display) BETWEEN 1 AND 120
+- quality.qc_corrective_actions | true | char_length(description) BETWEEN 1 AND 1000 AND char_length(action_code) BETWEEN 1 AND 64
+- quality.qc_observations | true | char_length(control_id_raw) <= 64 AND char_length(coalesce(control_lot_raw,'')) <= 64 AND char_length(coalesce(control_level_raw,'')) <= 16 AND char_length(coal
+- quality.qc_observations | true | status NOT IN ('assigned') OR (qc_run_id IS NOT NULL AND target_id IS NOT NULL AND mean IS NOT NULL AND sd IS NOT NULL AND value IS NOT NULL)
+- quality.qc_plan_versions | true |  (controls_per_run IN (2,4) AND mean_rule IN ('8x','10x','12x')) OR (controls_per_run = 3 AND mean_rule IN ('6x','9x'))
+- quality.qc_plan_versions | true | jsonb_typeof(composition) = 'array' AND jsonb_array_length(composition) BETWEEN 1 AND 4
+- quality.qc_plan_versions | true | run_window_minutes BETWEEN 5 AND 240 AND qc_validity_hours BETWEEN 1 AND 168 AND hold_lookback_hours BETWEEN 1 AND 168 AND char_length(coalesce(change_reason,''
+- quality.qc_run_reviews | true | char_length(coalesce(comment,'')) <= 500 AND (kind <> 'acknowledge' OR char_length(coalesce(comment,'')) >= 1)
+- quality.qc_runs | true |  (status = 'collecting' AND outcome IS NULL AND evaluated_at IS NULL) OR (status = 'evaluated' AND outcome IS NOT NULL AND evaluated_at IS NOT NULL AND closed_a
+- quality.qc_runs | true | (outcome = 'rejected') = (cardinality(rules_violated) >= 1) OR outcome IS NULL
+- quality.qc_runs | true | outcome IS DISTINCT FROM 'rejected' OR hold_since IS NOT NULL
+- quality.qc_runs | true | outcome IS NULL OR outcome IN ('accepted','accepted_warning','incomplete','rejected')
+- quality.qc_runs | true | rules_violated <@ ARRAY['1-3s','2-2s','2of3-2s','R-4s','4-1s','3-1s','6x','8x','9x','10x','12x']::text[] AND warning_rules <@ ARRAY['1-2s']::text[]
+- quality.qc_targets | true | (status IN ('draft','discarded')) OR effective_from IS NOT NULL
+- quality.qc_targets | true | basis_observation_ids_sha256 IS NULL OR basis_observation_ids_sha256 ~ '^[0-9a-f]{64}$'
+- quality.qc_targets | true | char_length(coalesce(note,'')) <= 500 AND char_length(coalesce(retire_reason,'')) <= 500
+- quality.qc_targets | true | effective_to IS NULL OR effective_to > effective_from
+- quality.qc_targets | true | source <> 'established' OR (basis_n >= 2 AND basis_from IS NOT NULL AND basis_to IS NOT NULL)
+- quality.settings | true | jsonb_typeof(default_plan_params) = 'object'
+- quality.tat_alert_acks | true | char_length(coalesce(note,'')) <= 500
+- quality.tat_items | true | (segment = 'total' AND start_basis IN ('registered_at','specimen_ordered_at')) OR (segment = 'within_lab' AND start_basis = 'specimen_received_at')
+- quality.tat_items | true | alert_level IN ('none','warning','breached','escalated') AND (acknowledged_level IS NULL OR acknowledged_level IN ('warning','breached','escalated'))
+- quality.tat_items | true | state <> 'running' OR started_at IS NOT NULL
+- quality.tat_items | true | state <> 'stopped' OR (stopped_at IS NOT NULL AND stop_source IN ('verified_event','release_event','sweep'))
+- reporting.centre_contacts | true |  (channel IN ('whatsapp','sms') AND address ~ '^\+[1-9][0-9]{7,14}$') OR (channel = 'email' AND char_length(address) <= 254 AND address ~ '^[^@\s]+@[^@\s]+\.[^@
+- reporting.centre_contacts | true | label IS NULL OR char_length(label) <= 80
+- reporting.channel_accounts | true | callback_token_sha256 IS NULL OR octet_length(callback_token_sha256) = 32
+- reporting.channel_accounts | true | sender_id IS NULL OR char_length(sender_id) <= 64
+- reporting.deliveries | true | (destination_masked IS NULL OR char_length(destination_masked) <= 40) AND (destination_sha256 IS NULL OR octet_length(destination_sha256) = 32)
+- reporting.deliveries | true | char_length(idempotency_key) BETWEEN 1 AND 200
+- reporting.deliveries | true | destination_e164 IS NULL OR (recipient_kind = 'phone_otp' AND destination_e164 ~ '^\+[1-9][0-9]{7,14}$')
+- reporting.deliveries | UNK/true | jsonb_typeof(params) = 'object' AND octet_length(params::text) <= 2048
+- reporting.deliveries | true | provider_kind IS NULL OR provider_kind IN ('recording','whatsapp_cloud_api','sms_sparrow','sms_aakash','email_smtp_relay')
+- reporting.deliveries | true | related_entity_type IS NULL OR related_entity_type IN ('order','report','specimen','booking','visit','critical_event','report_run')
+- reporting.delivery_attempts | true | (error_code IS NULL OR char_length(error_code) <= 64) AND (provider_status_raw IS NULL OR char_length(provider_status_raw) <= 64)
+- reporting.input_files | true | (kind = 'outsourced_pdf' AND order_item_id IS NOT NULL AND external_lab_name IS NOT NULL) OR (kind = 'narrative_image' AND narrative_report_id IS NOT NULL)
+- reporting.input_files | true | char_length(original_filename) <= 200 AND (external_lab_name IS NULL OR char_length(external_lab_name) <= 120) AND (caption IS NULL OR char_length(caption) <= 2
+- reporting.input_files | true | declared_mime IN ('application/pdf','image/png','image/jpeg') AND (detected_mime IS NULL OR detected_mime IN ('application/pdf','image/png','image/jpeg'))
+- reporting.input_files | true | quarantine_object_path LIKE tenant_id::text // '/quarantine/%' AND (sanitized_object_path IS NULL OR sanitized_object_path LIKE tenant_id::text // '/%')
+- reporting.input_files | true | sha256_original ~ '^[0-9a-f]{64}$' AND (sanitized_sha256 IS NULL OR sanitized_sha256 ~ '^[0-9a-f]{64}$')
+- reporting.message_template_texts | true | char_length(body_text) BETWEEN 1 AND 1000 AND (subject_text IS NULL OR char_length(subject_text) <= 150) AND (provider_template_name IS NULL OR char_length(prov
+- reporting.narrative_templates | true | char_length(name) BETWEEN 1 AND 120
+- reporting.narrative_templates | UNK/true | jsonb_typeof(sections) = 'array' AND jsonb_array_length(sections) BETWEEN 1 AND 12 AND octet_length(sections::text) <= 65536
+- reporting.narrative_versions | true | amendment_reason_text IS NULL OR char_length(amendment_reason_text) <= 500
+- reporting.narrative_versions | true | cardinality(image_file_ids) <= 12
+- reporting.narrative_versions | UNK/true | jsonb_typeof(sections) = 'array' AND jsonb_array_length(sections) <= 12 AND octet_length(sections::text) <= 262144
+- reporting.narrative_versions | true | status NOT IN ('signed','superseded') OR (signed_by_membership_id IS NOT NULL AND signed_at IS NOT NULL AND content_sha256 ~ '^[0-9a-f]{64}$')
+- reporting.otp_challenges | true | (failure_code IS NULL OR failure_code IN ('no_contact','send_rate_limited')) AND (status <> 'failed' OR failure_code IS NOT NULL)
+- reporting.otp_challenges | true | code_hmac IS NULL OR octet_length(code_hmac) = 32
+- reporting.otp_challenges | true | destination_sha256 IS NULL OR octet_length(destination_sha256) = 32
+- reporting.otp_challenges | true | status IN ('pending_send','failed','superseded','expired') OR destination_sha256 IS NOT NULL
+- reporting.portal_links | true | char_length(patient_display_snapshot) <= 60 AND (destination_masked IS NULL OR char_length(destination_masked) <= 40)
+- reporting.portal_links | true | octet_length(token_sha256) = 32 AND (destination_sha256 IS NULL OR octet_length(destination_sha256) = 32)
+- reporting.portal_links | true | otp_channel IS NULL OR otp_channel IN ('sms','email')
+- reporting.portal_links | true | purpose IN ('report','dues') AND (purpose = 'report' OR (recipient_kind = 'patient' AND channel IN ('sms','whatsapp')))
+- reporting.portal_payment_requests | true | (failure_code IS NULL OR char_length(failure_code) BETWEEN 1 AND 64) AND (status <> 'failed' OR failure_code IS NOT NULL)
+- reporting.portal_payment_requests | true | (status = 'ready' AND NOT review) OR action_json IS NULL
+- reporting.portal_payment_requests | true | action_json IS NULL OR (jsonb_typeof(action_json) = 'object' AND jsonb_typeof(action_json -> 'url') = 'string' AND octet_length(action_json::text) <= 4096)
+- reporting.portal_payment_requests | true | amount_paisa IS NULL OR amount_paisa > 0
+- reporting.portal_payment_requests | true | status <> 'completed' OR completed_at IS NOT NULL
+- reporting.portal_payment_requests | true | status NOT IN ('ready','completed') OR (intent_id IS NOT NULL AND amount_paisa IS NOT NULL)
+- reporting.portal_sessions | true | octet_length(token_sha256) = 32
+- reporting.print_jobs | true | cardinality(report_version_ids) <= 200
+- reporting.print_jobs | true | object_path IS NULL OR object_path LIKE tenant_id::text // '/prints/%'
+- reporting.provider_events | true | char_length(provider_message_id) <= 128 AND char_length(status_raw) <= 64
+- reporting.provider_events | true | ignored_reason IS NULL OR ignored_reason IN ('unknown_message','duplicate','backwards')
+- reporting.qr_tokens | true | char_length(lab_name_snapshot) <= 160 AND char_length(patient_display_snapshot) <= 60 AND cardinality(panel_names_snapshot) <= 20 AND (revoke_reason_text IS NUL
+- reporting.qr_tokens | true | octet_length(token_sha256) = 32
+- reporting.referrer_preferences | true | disabled_channels <@ ARRAY['whatsapp','sms','email']
+- reporting.report_order_items | true | cardinality(test_ids) BETWEEN 1 AND 200
+- reporting.report_order_items | true | ready_marker IS NULL OR char_length(ready_marker) <= 600
+- reporting.report_order_items | true | requires_lab OR requires_narrative OR requires_outsourced
+- reporting.report_order_items | true | specimen_hint IS NULL OR specimen_hint IN ('rejected','recollection_ordered')
+- reporting.report_template_versions | UNK/true | jsonb_typeof(config) = 'object' AND octet_length(config::text) <= 32768
+- reporting.report_templates | true | char_length(name) BETWEEN 1 AND 80
+- reporting.report_versions | true |  (smart_summary_json IS NULL AND smart_summary_id IS NULL AND smart_summary_version IS NULL) OR (smart_summary_json IS NOT NULL AND smart_summary_id IS NOT NULL
+- reporting.report_versions | true | audiences IS NULL OR (audiences <@ ARRAY['patient','referrer','centre','partner','print_only'] AND cardinality(audiences) BETWEEN 1 AND 5)
+- reporting.report_versions | true | cardinality(order_item_ids) BETWEEN 1 AND 200
+- reporting.report_versions | true | content_fingerprint ~ '^[0-9a-f]{64}$' AND content_sha256 ~ '^[0-9a-f]{64}$' AND (approved_set_hash IS NULL OR approved_set_hash ~ '^[0-9a-f]{64}$') AND (pdf_sh
+- reporting.report_versions | true | discard_reason IS NULL OR discard_reason IN ('superseded_unreleased','order_cancelled')
+- reporting.report_versions | true | held_basis IS NULL OR held_basis IN ('due_outstanding','no_invoice')
+- reporting.report_versions | true | pdf_object_path IS NULL OR pdf_object_path = tenant_id::text // '/' // to_char(created_at AT TIME ZONE 'UTC', 'YYYY/MM') // '/' // report_id::text // '-v' // ve
+- reporting.report_versions | true | regeneration_reason_text IS NULL OR char_length(regeneration_reason_text) <= 500
+- reporting.report_versions | true | release_basis IS NULL OR release_basis IN ('paid_in_full','zero_balance','credit_party','override','policy_not_enforced')
+- reporting.report_versions | true | release_mode IS NULL OR release_mode IN ('manual','bulk','auto')
+- reporting.report_versions | true | status NOT IN ('released','superseded') OR (released_at IS NOT NULL AND release_basis IS NOT NULL AND audiences IS NOT NULL AND release_mode IS NOT NULL)
+- reporting.report_versions | true | status NOT IN ('rendered','released','superseded') OR (pdf_object_path IS NOT NULL AND pdf_sha256 IS NOT NULL AND page_count > 0 AND pdf_bytes > 0)
+- reporting.reports | true | char_length(registration_no) BETWEEN 1 AND 20 AND char_length(centre_code) BETWEEN 1 AND 32 AND (patient_display_name IS NULL OR char_length(patient_display_nam
+- reporting.reports | true | lab_approved_set_hash IS NULL OR lab_approved_set_hash ~ '^[0-9a-f]{64}$'
+- reporting.reports | true | lab_completeness IS NULL OR lab_completeness IN ('complete','partial')
+- reporting.reports | true | review_flag IS NULL OR review_flag IN ('released_order_cancelled','released_item_removed')
+- reporting.settings | true | patient_mobile_channel_order <@ ARRAY['whatsapp','sms'] AND cardinality(patient_mobile_channel_order) BETWEEN 1 AND 2
+- reporting.settings | true | portal_payment_gateways <@ ARRAY['esewa','khalti']
+- reporting.settings | true | referrer_channels <@ ARRAY['whatsapp','sms','email']
+- smartreport.analyte_groups | true |  (borderline_fraction_bp IS NULL OR borderline_fraction_bp BETWEEN 0 AND 2500) AND (trend_stable_bp IS NULL OR trend_stable_bp BETWEEN 0 AND 5000) AND sort_orde
+- smartreport.group_settings | true | length(display_en) BETWEEN 1 AND 60 AND coalesce(length(display_ne), 0) <= 60
+- smartreport.library_reviews | true | coalesce(length(comment), 0) <= 1000
+- smartreport.library_versions | true |  (status = 'draft') OR (content_sha256 ~ '^[0-9a-f]{64}$')
+- smartreport.library_versions | true |  status NOT IN ('approved','retired') OR (approved_at IS NOT NULL AND approved_by_membership_id IS NOT NULL)
+- smartreport.library_versions | null | length(change_summary) <= 500 AND length(approval_note) <= 500 AND length(return_comment) <= 1000
+- smartreport.library_versions | true | status <> 'retired' OR retired_at IS NOT NULL
+- smartreport.llm_runs | true | latency_ms IS NULL OR latency_ms >= 0
+- smartreport.llm_runs | true | length(model_ref) BETWEEN 1 AND 100
+- smartreport.rules | true |  (rule_kind = 'followup' AND suggested_test_id IS NOT NULL AND interval_days BETWEEN 1 AND 730) OR (rule_kind <> 'followup' AND suggested_test_id IS NULL AND in
+- smartreport.rules | true |  (trigger_kind = 'analyte' AND analyte_id IS NOT NULL AND group_code IS NULL AND min_severity IS NOT NULL) OR (trigger_kind = 'group' AND group_code IS NOT NULL
+- smartreport.rules | true | direction IN ('low','high','abnormal','any')
+- smartreport.rules | true | min_severity IS NULL OR min_severity IN ('borderline','out_of_range','critical')
+- smartreport.rules | true | trigger_kind IN ('analyte','group','any','all_in_range')
+- smartreport.summaries | true |  (health_score_value IS NULL AND health_score_band IS NULL) OR (health_score_value BETWEEN 0 AND 100 AND health_score_band IN ('good','fair','needs_attention'))
+- smartreport.summaries | true | NOT use_llm_text OR llm_overlay IS NOT NULL
+- smartreport.summaries | true | cardinality(input_result_versions) BETWEEN 1 AND 2000
+- smartreport.summaries | true | coalesce(length(reject_comment), 0) <= 500
+- smartreport.summaries | true | status <> 'approved' OR (approved_at IS NOT NULL AND approved_by_membership_id IS NOT NULL)
+- smartreport.summaries | true | status <> 'rejected' OR (rejected_at IS NOT NULL AND rejected_by_membership_id IS NOT NULL AND reject_reason_code IS NOT NULL)
+- smartreport.summaries | true | status <> 'superseded' OR (superseded_at IS NOT NULL AND superseded_reason IN ('results_changed','library_rebuild'))
+- smartreport.summary_reviews | true | coalesce(length(comment), 0) <= 500
+- smartreport.template_blocks | true | (text_en IS NOT NULL OR text_ne IS NOT NULL) AND coalesce(length(text_en), 0) <= 600 AND coalesce(length(text_ne), 0) <= 600 AND coalesce(length(note), 0) <= 50
+- smartreport.wording_deny_terms | true | language IN ('en','ne','any')
+- smartreport.wording_deny_terms | true | length(term) BETWEEN 2 AND 60 AND length(term_folded) BETWEEN 1 AND 60 AND coalesce(length(reason), 0) <= 200

@@ -1,6 +1,7 @@
-// T0B-ACTIVATE-1 / LD-299: repository/mfa.repo.ts acceptInvitation (tenant branch) accepts an invitation in status `pending` OR `sent` (expiry still checked).
-// Live fault: INVITE_ACCEPT_SQL only matched status = 'sent'; the worker task identity.send_invitation is what moves pending -> sent and no worker runs on staging,
-// so a valid GoTrue token accepted nothing and the membership stayed invited. A valid GoTrue token proves the person holds the address (LD-299 item 3).
+// T0B-ACTIVATE-1 / LD-299: repository/mfa.repo.ts acceptInvitation (tenant branch) accepts an invitation in status `sent` ONLY (expiry still checked).
+// Review ruling: 03-APP-FLOW §2.6 lists the single accept edge `sent -> accepted` and M2 requires "invitation `sent`, not expired"; domain/invitation.state.ts agrees
+// (pending -> sent|failed|revoked). A `pending` invitation is refused; accepting it is raised as a blocking CR (.orchestra/cr/T0B-ACTIVATE-1.nonblocking.md).
+// The worker task identity.send_invitation moves pending -> sent; until then staging needs the worker (or the founder SQL workaround).
 // The fake tx below EXECUTES the status predicate it finds in the statement text against in-memory rows, so the test fails for the right reason (the SQL), not for a string.
 // Finding for the writer (asked in the brief): today the membership activation does NOT run when the invitation update finds no row (acceptInvitation returns false first).
 // That stays: an expired or already used invitation must never activate a membership. Platform branch (tenantId null) is untouched: see mfa.repo.platform-password.test.ts.
@@ -50,17 +51,24 @@ const accept = (w: ReturnType<typeof world>, o: Partial<{ tenantId: string; memb
   w.repo.acceptInvitation(w.tx, { tenantId: T, membershipId: M, userId: U, at: AT, actorId: A, ...o });
 
 describe('acceptInvitation (tenant): which invitations are accepted', () => {
-  it.each(['pending', 'sent'])('an unexpired %s invitation -> true; invitation accepted with accepted_at = at; membership invited -> active with accepted_at = at', async (status) => {
-    const w = world([{ status }]);
+  it('an unexpired sent invitation -> true; invitation accepted with accepted_at = at; membership invited -> active with accepted_at = at', async () => {
+    const w = world([{ status: 'sent' }]);
     expect(await accept(w)).toBe(true);
     expect(w.invs[0]).toMatchObject({ status: 'accepted', accepted_at: AT });
     expect(w.mems[0]).toMatchObject({ status: 'active', accepted_at: AT });
   });
-  it.each(['pending', 'sent'])('an EXPIRED %s invitation (expires_at <= at) -> false; the invitation and the membership are not touched', async (status) => {
+  it('an unexpired PENDING invitation (worker has not sent it) -> false; invitation stays pending, membership stays invited, no membership update is issued', async () => {
+    const w = world([{ status: 'pending' }]);
+    expect(await accept(w)).toBe(false);
+    expect(w.invs[0]).toMatchObject({ status: 'pending', accepted_at: null });
+    expect(w.mems[0]).toMatchObject({ status: 'invited', accepted_at: null });
+    expect(w.calls.filter((c) => /UPDATE\s+core\.memberships/i.test(c.sql))).toHaveLength(0);
+  });
+  it('an EXPIRED sent invitation (expires_at <= at) -> false; the invitation and the membership are not touched', async () => {
     for (const expires_at of [new Date(AT.getTime() - 1000), new Date(AT.getTime())]) {
-      const w = world([{ status, expires_at }]);
+      const w = world([{ status: 'sent', expires_at }]);
       expect(await accept(w)).toBe(false);
-      expect(w.invs[0]!.status).toBe(status); expect(w.mems[0]).toMatchObject({ status: 'invited', accepted_at: null });
+      expect(w.invs[0]!.status).toBe('sent'); expect(w.mems[0]).toMatchObject({ status: 'invited', accepted_at: null });
     }
   });
   it.each(['accepted', 'revoked', 'expired', 'superseded'])('an invitation already %s is never accepted again and never activates the membership', async (status) => {
@@ -74,7 +82,7 @@ describe('acceptInvitation (tenant): which invitations are accepted', () => {
     expect(w.calls.filter((c) => /UPDATE\s+core\.memberships/i.test(c.sql))).toHaveLength(0);
   });
   it('the membership update still only moves an INVITED membership (a deactivated membership is never reactivated by an invitation)', async () => {
-    const w = world([{ status: 'pending' }], [{ status: 'deactivated' }]);
+    const w = world([{ status: 'sent' }], [{ status: 'deactivated' }]);
     await accept(w);
     expect(w.mems[0]).toMatchObject({ status: 'deactivated', accepted_at: null });
   });
@@ -98,15 +106,15 @@ describe('acceptInvitation (tenant): scoping and statement shape (security)', ()
     expect(w.calls[0]!.p).toEqual([T, M, U, AT, A]); expect(w.calls[1]!.p).toEqual([T, M, AT, A]);
     expect(w.calls.map((c) => c.sql).join('\n')).not.toMatch(/identity_platform_auth_write/);
   });
-  it('the accept statement lists ONLY pending and sent (not a blanket UPDATE) and keeps the expiry guard', async () => {
-    const w = world([{ status: 'pending' }]); await accept(w);
+  it('the accept statement lists ONLY sent (not a blanket UPDATE, not pending) and keeps the expiry guard', async () => {
+    const w = world([{ status: 'sent' }]); await accept(w);
     const sql = w.calls[0]!.sql;
-    expect(statuses(sql).sort()).toEqual(['pending', 'sent']);
+    expect(statuses(sql)).toEqual(['sent']);
     expect(sql).toMatch(/expires_at\s*>\s*\$4/);
     expect(sql).toMatch(/tenant_id\s*=\s*\$1/); expect(sql).toMatch(/membership_id\s*=\s*\$2/); expect(sql).toMatch(/user_id\s*=\s*\$3/);
   });
   it('a malformed call (tenant without membership) is false with no query; a DB error propagates (fail closed)', async () => {
-    const w = world([{ status: 'pending' }]);
+    const w = world([{ status: 'sent' }]);
     expect(await w.repo.acceptInvitation(w.tx, { tenantId: T, membershipId: null, userId: U, at: AT, actorId: A })).toBe(false); expect(w.calls).toHaveLength(0);
     const bad: any = { query: async () => { throw new Error('boom'); } };
     await expect(w.repo.acceptInvitation(bad, { tenantId: T, membershipId: M, userId: U, at: AT, actorId: A })).rejects.toThrow('boom');

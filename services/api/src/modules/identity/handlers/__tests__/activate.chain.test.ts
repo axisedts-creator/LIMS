@@ -33,9 +33,9 @@ async function chainWorld() {
     await w.gw.sendInvite(i.email, '/auth/confirm'); return { userId: (await w.gw.adminFindUserByEmail(i.email))!.userId }; } };
   const svc = createTenantService({ repo: f.repo, gotrue, emailHmac: (e: string) => Buffer.from(e), userExists: async () => false, newId: nextId } as never) as any;
   w.store.setDefaultRow((sub) => loginContextOf(f, sub));
-  // invitation accept as the repository does it for the tenant branch: pending or sent, unexpired -> accepted, membership invited -> active + accepted_at
+  // invitation accept as the repository does it for the tenant branch: `sent` only (03-APP-FLOW §2.6 / M2), unexpired -> accepted, membership invited -> active + accepted_at
   const repo = { ...w.store.repo, async acceptInvitation(_tx: unknown, a: { tenantId: string | null; membershipId: string | null; at: Date }) {
-    const d = f.data(a.tenantId!); const inv = d.invitations.find((i: any) => i.membershipId === a.membershipId && i.expiresAt.getTime() > a.at.getTime() && i.status !== 'accepted');
+    const d = f.data(a.tenantId!); const inv = d.invitations.find((i: any) => i.membershipId === a.membershipId && i.expiresAt.getTime() > a.at.getTime() && i.status === 'sent');
     const m = d.members.find((x) => x.id === a.membershipId);
     if (!inv || !m || m.status !== 'invited') return false;
     (inv as any).status = 'accepted'; m.status = 'active'; m.accepted = true; return true;
@@ -64,7 +64,10 @@ describe('provision -> open invite link -> set password -> activate -> login (th
     expect(opened.body.session).toMatchObject({ kind: 'tenant_staff', state: 'password_setup' });
     expect(c.w.store.committed('insertSession')[0]!.arg).toMatchObject({ tenantId: id, state: 'password_setup' });
 
-    // 3 set the password: invitation accepted (it is still `pending`: no worker ran), membership active with accepted_at
+    // 3 WORKER SEAM: identity.send_invitation moves the invitation pending -> sent (no worker runs on staging today: blocking CR); then set the password:
+    //   invitation accepted, membership active with accepted_at
+    expect(c.f.data(id).invitations[0]!.status ?? 'pending').toBe('pending');   // the fake repo stores no status on insert = the DB default `pending`
+    c.f.data(id).invitations[0]!.status = 'sent';
     const set = await c.w.call(createSetPasswordFromSetup(c.deps) as any, { token: opened.body.session_token, body: { new_password: GOOD_PW } });
     expect(set.status).toBe(200);
     expect(c.w.store.eventsOf('invite_accepted')).toHaveLength(1);
@@ -93,11 +96,24 @@ describe('provision -> open invite link -> set password -> activate -> login (th
     // the session exactly as confirmEmailToken leaves it (password_setup, bound to the membership of the DEFINER row)
     await c.w.store.repo.insertSession({}, { id: 'a0a0a0a0-0000-7000-8000-000000000001', userId: member.user_id, tenantId: id, membershipId: member.id, kind: 'tenant_staff', platformStaffId: null,
       state: 'password_setup', aal: 'aal1', accessToken: 'x', refreshToken: 'y', tokenSha256: createHash('sha256').update(token).digest(), idleExpiresAt: at, absoluteExpiresAt: at });
+    c.f.data(id).invitations[0]!.status = 'sent';   // worker seam: identity.send_invitation
     expect((await c.w.call(createSetPasswordFromSetup(c.deps) as any, { token, body: { new_password: GOOD_PW } })).status).toBe(200);
     expect(member).toMatchObject({ status: 'active', accepted: true });
     expect((await trejection(c.login())).code).toBe('identity.tenant_suspended');
     expect((await c.svc.activateTenant(c.ctx(), { tenantId: id, expectedVersion: p.version })).body.status).toBe('active');
     expect((await c.login()).status).toBe(200);
+  });
+
+  it('STAGING GAP (pins it): without the worker step the invitation is still `pending`; set password succeeds but accepts nothing, the membership stays invited and activation is refused', async () => {
+    const c = await chainWorld(); const p = await c.svc.provisionTenant(c.ctx(), PROVISION); const id = p.body.tenant_id as string;
+    const opened = await c.w.call(createConfirmEmailToken(c.deps) as any, { body: { token_hash: c.w.fake!.mailbox.latestTokenHash(EMAIL, 'invite'), type: 'invite' } });
+    expect(opened.status).toBe(200);
+    expect(c.f.data(id).invitations[0]!.status ?? 'pending').toBe('pending');
+    expect((await c.w.call(createSetPasswordFromSetup(c.deps) as any, { token: opened.body.session_token, body: { new_password: GOOD_PW } })).status).toBe(200);
+    expect(c.w.store.eventsOf('invite_accepted')).toHaveLength(0);
+    expect(c.f.data(id).members[0]).toMatchObject({ status: 'invited', accepted: false });
+    expect(c.f.data(id).invitations[0]!.status ?? 'pending').toBe('pending');
+    expect((await trejection(c.svc.activateTenant(c.ctx(), { tenantId: id, expectedVersion: p.version }))).code).toBe('identity.tenant_not_ready');
   });
 
   it('activation stays refused while the admin has NOT accepted (opening the link alone is not enough)', async () => {

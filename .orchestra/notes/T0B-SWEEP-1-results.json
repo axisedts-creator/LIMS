@@ -1,6 +1,6 @@
 {
  "meta": {
-  "at": "2026-11-16T08:23:59.386Z",
+  "at": "2026-11-16T08:28:07.635Z",
   "operations": 1018,
   "sessionKinds": [
    "platform_superadmin_aal2",
@@ -381,12 +381,12 @@
    "sessionKind": "tenant_corp_admin",
    "auth": "bearer",
    "holdsPermission": true,
-   "status": 200,
-   "errorCode": "",
+   "status": 429,
+   "errorCode": "common.rate_limited",
    "verdict": "WIRED",
-   "reason": "success",
+   "reason": "other client answer 429",
    "rootCause": "",
-   "detail": ""
+   "detail": "Too many requests common.rate_limited"
   },
   {
    "module": "analytics",

@@ -122,15 +122,47 @@ describe('(3) every enqueued identifier is declared by a loaded manifest', () =>
     expect(found.size).toBeGreaterThanOrEqual(30);
   });
 
-  it('every identifier is a task (or cron) of a loaded manifest, or a core task', async () => {
+  // LD-279 (2026-11-16): done_when (3) allows exactly these seven known gaps, CR-C0-T0B-ASYNC-1-001. The list can only shrink.
+  const CR = 'CR-C0-T0B-ASYNC-1-001';
+  const KNOWN_GAP: Record<string, string> = {
+    'catalog.export_build': `task file exists, no jobs/catalog/index.ts manifest: written by T0B-ASYNC-2 (${CR})`,
+    'catalog.import_validate': `task file exists, no jobs/catalog/index.ts manifest: written by T0B-ASYNC-2 (${CR})`,
+    'catalog.import_commit': `task file exists, no jobs/catalog/index.ts manifest: written by T0B-ASYNC-2 (${CR})`,
+    'homecollection.flag_handover_discrepancy': `task file exists, no jobs/homecollection/index.ts manifest: written by T0B-ASYNC-2 (${CR})`,
+    'homecollection.refresh_visit_specimens': `task file exists, no jobs/homecollection/index.ts manifest: written by T0B-ASYNC-2 (${CR})`,
+    'identity.notify_ip_throttle': `no worker task; founder decision under LD-189 (implement or remove the enqueue) (${CR})`,
+    'identity.rescan_upload': `no worker task; founder decision under LD-189 (implement or remove the enqueue) (${CR})`,
+  };
+
+  const loadedIds = async () => {
     const declared = new Set<string>(['core.event_fanout', 'core.retention_purge', 'core.queue_depth_probe']);
     for (const m of await loadManifests()) {
       for (const id of Object.keys(m.tasks ?? {})) declared.add(id);
     }
+    return declared;
+  };
+
+  it('the known-gap list is exactly the seven identifiers of LD-279, each with a reason and the CR id', () => {
+    expect(Object.keys(KNOWN_GAP).sort()).toEqual([
+      'catalog.export_build', 'catalog.import_commit', 'catalog.import_validate',
+      'homecollection.flag_handover_discrepancy', 'homecollection.refresh_visit_specimens',
+      'identity.notify_ip_throttle', 'identity.rescan_upload',
+    ]);
+    for (const [id, reason] of Object.entries(KNOWN_GAP)) expect(reason, id).toContain(CR);
+  });
+
+  it('every identifier is a task (or cron) of a loaded manifest, a core task, or on the KNOWN_GAP list', async () => {
+    const declared = await loadedIds();
     // an identifier that is only a string constant in a file that also enqueues (e.g. a log event name) is not a task: it must still be
     // a task identifier shape '<module>.<snake>' and is then required to be declared. Keep the false positives out of the source, not out of this test.
-    const unknown = [...found].filter(([id]) => !declared.has(id)).map(([id, files]) => `${id}  (${[...new Set(files)].slice(0, 2).join(', ')})`);
-    expect(unknown, `enqueued but not declared by any loaded manifest: app.enqueue_job raises unknown_task_identifier\n${unknown.join('\n')}`).toEqual([]);
+    const unknown = [...found].filter(([id]) => !declared.has(id) && !(id in KNOWN_GAP)).map(([id, files]) => `${id}  (${[...new Set(files)].slice(0, 2).join(', ')})`);
+    expect(unknown, `enqueued but not declared by any loaded manifest and not a KNOWN_GAP: app.enqueue_job raises unknown_task_identifier\n${unknown.join('\n')}`).toEqual([]);
+  });
+
+  it('the list can only shrink: no KNOWN_GAP identifier is loaded now (remove it from KNOWN_GAP)', async () => {
+    const declared = await loadedIds();
+    const nowLoaded = Object.keys(KNOWN_GAP).filter((id) => declared.has(id));
+    expect(nowLoaded, `listed as a known gap but a loaded manifest declares it: ${nowLoaded.join(', ')}`).toEqual([]);
   });
 });
 

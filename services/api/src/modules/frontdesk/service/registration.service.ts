@@ -3,6 +3,7 @@
 // Ctx shape is ASSUMED as in patient.service (+ ports.CatalogPort/BillingCommandPort/NotificationPort, ctx.events, ctx.core.centre). Layout: shared parsing + pricing, then `create` (F9), then `quote` (F8, read-only, last).
 // F9 is ONE request tx (ctx.tx) and opens no transaction statement of its own: the core pipeline commits, or undoes everything (rows, counters, billing events, events) when anything throws.
 import type { BillingCommandPortV1, ComputedLine, DiscountInput, IssuedInvoiceRef, PricedLineInput, QuoteResult } from '../../../../../../contracts/ports/BillingCommandPort.js';
+import type { RequestContext } from '../../../../../../contracts/ports/common.js';
 import type { CatalogPortV1, ResolvedOrderables } from '../../../../../../contracts/ports/CatalogPort.js';
 import type { NotificationPortV1 } from '../../../../../../contracts/ports/NotificationPort.js';
 import { fiscalYearBs, formatBs, instantToBs, type IsoDate, type IsoUtc } from '../../../../../../packages/shared-ts/src/bsdate/index.js';
@@ -154,15 +155,15 @@ export async function priceDraft(c: QuoteCtx, d: Draft, settings: any): Promise<
   };
 
   // Catalog: expansion + revision, panel names, one price per orderable (precedence is C3's: credit_party > referrer > centre > tenant_default).
-  const resolved = await catalog.resolveOrderables(c, { orderableIds: d.items.map((i) => i.orderableId), asOf: at as never });
+  const resolved = await catalog.resolveOrderables(asRc(c), { orderableIds: d.items.map((i) => i.orderableId) as never, asOf: at as never });
   const context = { centreId: d.centreId, ...(d.referrerId ? { referrerId: d.referrerId } : {}), ...(d.billingMode === 'credit' ? { creditPartyId: d.creditPartyId } : {}) };
   const rows = await Promise.all(d.items.map(async (it) => {
     const o = resolved.orderables.find((x) => x.orderableId === it.orderableId);
     if (!o) throw new LimsError('common.not_found');
     const tests = o.testIds.map((id) => resolved.tests.find((t) => t.id === id)).filter((t) => t !== undefined);
     const [head, price] = await Promise.all([
-      o.kind === 'panel' ? catalog.getPanel(c, { panelId: it.orderableId as never, asOf: at as never }) : tests[0],
-      catalog.priceFor(c, { orderableId: it.orderableId as never, context: context as never, priority: it.priority, at: at as never }),
+      o.kind === 'panel' ? catalog.getPanel(asRc(c), { panelId: it.orderableId as never, asOf: at as never }) : tests[0],
+      catalog.priceFor(asRc(c), { orderableId: it.orderableId as never, context: context as never, priority: it.priority, at: at as never }),
     ]);
     if (!head) throw new LimsError('common.not_found');
     const depts = new Set(tests.map((t) => t.departmentId));
@@ -190,7 +191,7 @@ export async function priceDraft(c: QuoteCtx, d: Draft, settings: any): Promise<
     scope: x.scope, ...(x.orderableId ? { lineRef: byOrderable.get(x.orderableId)! } : {}), kind: x.kind,
     ...(x.kind === 'percent' ? { percentBp: x.percentBp! } : { amountPaisa: x.amountPaisa! }),
   }));
-  const q = await billing.computeQuote(c, { lines: priced, discounts });
+  const q = await billing.computeQuote(asRc(c), { lines: priced, discounts });
 
   // US-FD-06.1: the evaluation uses the TOTAL discount; over the absolute maximum nothing can be approved (422).
   const verdict = evaluateLimit({ grossPaisa: q.totals.gross.amountPaisa, discountPaisa: q.totals.discount.amountPaisa, ...limits });
@@ -260,7 +261,9 @@ function createCtx(c: unknown): CreateCtx {
 }
 
 /** Ports type `now()` as an ISO string (RequestContext); the handler ctx carries a Date. Prototype-delegating copy keeps tx/tenant/actor/ports. */
-const portCtx = (c: CreateCtx): CreateCtx => Object.assign(Object.create(c), { now: () => c.now().toISOString() });
+const portCtx = (c: CreateCtx): RequestContext => Object.assign(Object.create(c), { now: () => c.now().toISOString() }); // VERIFY-GREEN-3 (LD-268): return type only
+/** VERIFY-GREEN-3 (LD-268): type-only view of the handler ctx as RequestContext; same object, nothing copied. NB the handler ctx `now()` returns a Date (see notes/VERIFY-GREEN-3.md). */
+const asRc = (c: QuoteCtx): RequestContext => c as unknown as RequestContext;
 
 const daysInMonth = (y: number, m: number): number => new Date(Date.UTC(y, m, 0)).getUTCDate();
 /** Whole years/months/days from birth to `today` (both YYYY-MM-DD). */
@@ -369,7 +372,7 @@ async function createInTx(hctx: unknown, body: unknown, pre?: Pre): Promise<Resu
 
   // 2. referrer
   if (!d.referrerId && settings?.require_referrer === true) throw new LimsError('frontdesk.referrer_required');
-  if (d.referrerId && !(await catalog.getReferrer(c, { referrerId: d.referrerId as never, purpose: 'display' })).isActive) throw bad('/referrer_id');
+  if (d.referrerId && !(await catalog.getReferrer(asRc(c), { referrerId: d.referrerId as never, purpose: 'display' })).isActive) throw bad('/referrer_id');
 
   // 3. re-quote inside the tx: a changed price list / catalog / discount set is a stale quote (409), before any counter is touched
   const pc = portCtx(c);
@@ -570,7 +573,7 @@ export async function quote(hctx: unknown, body: unknown): Promise<Result> {
   let creditStatus: 'ok' | 'locked' | 'over_limit' | undefined;
   if (d.billingMode === 'credit') {
     try {
-      await billing.assertCreditAllowed(c, { creditPartyId: d.creditPartyId as never, additional: q.totals.net });   // J-T01: full Money incl. currency, as register() does; real billing rejects a missing currency
+      await billing.assertCreditAllowed(asRc(c), { creditPartyId: d.creditPartyId as never, additional: q.totals.net });   // J-T01: full Money incl. currency, as register() does; real billing rejects a missing currency
       creditStatus = 'ok';
     } catch (e) {
       const code = (e as { code?: unknown } | null)?.code;     // by code, not instanceof: a port may carry its own LimsError class

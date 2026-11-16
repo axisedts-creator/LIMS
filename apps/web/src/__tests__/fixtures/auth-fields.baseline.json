@@ -61,6 +61,7 @@
     "name=\"friendly_name\"",
     "maxLength={40}",
     "type=\"submit\"",
+    "href=\"/auth/login\"",
     "href=\"/\""
   ],
   "features/admin/auth/PasswordField.tsx": [

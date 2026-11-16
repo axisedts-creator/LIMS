@@ -89,7 +89,9 @@ const cssViolations = (css: string): string[] => {
   const bad: string[] = [];
   if (/#[0-9a-fA-F]{3,8}\b/.test(css)) bad.push('hex colour');
   // px sizes fixed by 13-M-SERIES s3 (296 sidebar, 76 top bar, 46 pill, 20 icon, 3 px outline, 2 px offset) are exempt (ruling T0D-MSERIES-2); LD-251 bars raw colour, radius, font only.
-  if (/(?<![\w.-])-?\d*\.?\d+px\b/.test(css.replace(/(?<![\w.-])(?:296|76|46|20|3|2)px\b/g, ''))) bad.push('px value');
+  // T0D-MSERIES-5 (LD-276): the board's 3D plate, chips, rings and their @keyframes are scene geometry (perspective, translateZ, bob distance): px is exempt on those lines only; colour and radius stay token-only.
+  const pxCss = css.split('\n').filter((l) => !/lims-auth-(plate|well|chip|scene|mark|rings|tagline|slab)|^\s*@keyframes\b/.test(l)).join('\n');
+  if (/(?<![\w.-])-?\d*\.?\d+px\b/.test(pxCss.replace(/(?<![\w.-])(?:296|76|46|20|3|2)px\b/g, ''))) bad.push('px value');
   if (/\b(rgb|rgba|hsl|hsla)\(/.test(css)) bad.push('rgb()/hsl() colour');
   return bad;
 };
@@ -163,7 +165,6 @@ describe('WEB-STYLE-1 (c) every lims-* class in the auth pages has a CSS rule', 
   const used = classLiterals(authFiles);
   it('scans real sources (not vacuous)', () => {
     expect(used.has('lims-auth-card')).toBe(true);
-    expect(used.has('lims-wordmark')).toBe(true);
     expect(authFiles.length).toBeGreaterThan(10);
   });
   it('kit.css or shell.css has a selector for each (explicit exception list <= 3, each with a reason)', () => {

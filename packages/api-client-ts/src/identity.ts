@@ -5412,6 +5412,7 @@ export interface operations {
               credit_note_no_pattern?: string;
               effective_fy_bs?: string;
             };
+            training_mode?: boolean;
             version: number;
           };
         };
@@ -17337,6 +17338,7 @@ export interface operations {
               credit_note_no_pattern?: string;
               effective_fy_bs?: string;
             };
+            training_mode?: boolean;
             version: number;
           };
         };

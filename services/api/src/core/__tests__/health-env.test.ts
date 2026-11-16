@@ -5,7 +5,7 @@
 //   - "required" = the rows marked `required` in docs/runbooks/environment.md (single source of truth).
 //   - unset = missing or empty string.
 //   - body: { status, checks:{db,ratelimit}, missing_env?: string[] }; missing_env is sorted, present only when non-empty;
-//     any unset required name makes status `degraded` (HTTP 200) unless a dependency is down (503, missing_env still sent).
+//     any unset required name makes status `degraded` (HTTP 200) unless a dependency is down (503, missing_env not sent).
 //   - contracts/openapi/core.yaml Readiness gains optional `missing_env` (array of strings); the schema is closed
 //     (additionalProperties:false), so without that change response validation (on in ci) turns the answer into a 500.
 import { readFileSync } from 'node:fs';
@@ -96,10 +96,10 @@ describe('T0B-OPSDOC-1 readiness reports unset required variables', () => {
     for (const n of r.json().missing_env as string[]) expect(n).toMatch(/^LIMS_[A-Z0-9_]*[A-Z0-9]$/);
   });
 
-  it('a down dependency still wins: 503 status down, and the unset names are still listed', async () => {
+  it('a down dependency still wins: 503 status down, and missing_env is NOT sent (names only when degraded)', async () => {
     const r = await ready({}, 'down');
     expect(r.statusCode).toBe(503);
-    expect(r.json()).toEqual({ status: 'down', checks: { db: 'down', ratelimit: 'ok' }, missing_env: requiredNames() });
+    expect(r.json()).toEqual({ status: 'down', checks: { db: 'down', ratelimit: 'ok' } });
   });
 
   it('x-public: anonymous and bogus-credential callers get the same body (no tenant data)', async () => {

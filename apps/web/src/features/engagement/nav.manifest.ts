@@ -1,5 +1,5 @@
 // Engagement nav manifest (C16 04-UI-UX s1.3; T0D-NAV-COMPLETE-1, LD-250). ids, routes, permissions, orders, phases are spec-fixed.
-// No chords: the spec chord `g m` collides with instruments.messages. /engagement/settings has no page yet -> no entry, see CR T0D-NAV-COMPLETE-1.1.
+// No chords: the spec chord `g m` collides with instruments.messages. /engagement/settings: page built by ADMINPAGE-ENG-1, answers CR T0D-NAV-COMPLETE-1.1.
 import type { NavManifest } from '../../core/nav/types.ts';
 
 export const navManifest: NavManifest = {
@@ -13,5 +13,6 @@ export const navManifest: NavManifest = {
     { id: 'engagement.slots', label: 'engagement.nav.slots', routeId: 'staff.engagement.slots', permission: 'engagement.slot.manage', group: 'engagement', order: 60, phase: '3' },
     { id: 'engagement.bookable', label: 'engagement.nav.bookable', routeId: 'staff.engagement.bookable', permission: 'engagement.bookable_item.manage', group: 'engagement', order: 70, phase: '3' },
     { id: 'engagement.queue_setup', label: 'engagement.nav.queue_setup', routeId: 'staff.engagement.queue_setup', permission: 'engagement.queue.manage', group: 'engagement', order: 80, phase: '2' },
+    { id: 'engagement.settings', label: 'engagement.nav.settings', routeId: 'staff.engagement.settings', permission: 'engagement.settings.manage', group: 'engagement', order: 90, phase: '2' }, // ADMINPAGE-ENG-1 (LD-255)
   ],
 };

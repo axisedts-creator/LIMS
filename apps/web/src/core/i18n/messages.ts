@@ -86,6 +86,7 @@ const en: Record<string, string> = {
   'engagement.nav.slots': 'Booking slots',
   'engagement.nav.bookable': 'Bookable tests',
   'engagement.nav.queue_setup': 'Queue setup',
+  'engagement.nav.settings': 'Engagement settings', // ADMINPAGE-ENG-1 (LD-255); C16 04-UI-UX s1.3
   'payments.nav.review': 'Payment review',
   'payments.nav.refunds': 'Gateway refunds',
   'payments.nav.reconciliation': 'Gateway reconciliation',

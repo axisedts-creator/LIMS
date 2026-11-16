@@ -41,13 +41,15 @@ export function createHealthHandlers(checks: HealthChecks, env?: EnvSource): { g
     getLiveness: async () => ({ status: 200, body: { status: 'ok' } }),
     // Checks run per request (no caching). [CONV] degraded -> 200 {status:'degraded'}; any down -> 503.
     // T0B-OPSDOC-1 (LD-277): an unset (missing or empty) required name degrades an ok answer; down still wins (503);
-    // missing_env lists the names only, sorted, and only when non-empty.
+    // missing_env lists the names only, sorted, only when non-empty AND status is degraded (LD-288 exposure note:
+    // unauthenticated route, so a 503 down answer never carries names).
     getReadiness: async () => {
       const [db, ratelimit] = await Promise.all([run(() => checks.db()), run(() => checks.ratelimit())]);
       const missing = env ? REQUIRED_ENV.filter((n) => !env[n]) : [];
       const all = [db, ratelimit, ...(missing.length ? ['degraded' as const] : [])];
       const status: CheckState = all.includes('down') ? 'down' : all.includes('degraded') ? 'degraded' : 'ok';
-      const body = { status, checks: { db, ratelimit }, ...(missing.length ? { missing_env: missing } : {}) };
+      const showMissing = missing.length > 0 && status === 'degraded';
+      const body = { status, checks: { db, ratelimit }, ...(showMissing ? { missing_env: missing } : {}) };
       return { status: status === 'down' ? 503 : 200, body };
     },
   };

@@ -8,7 +8,7 @@
 // Labels (case-insensitive, W12 wording; the tests are the spec of the wording, see notes): switches App, Bookings, Home collection, Queue, Reminders, Memberships, Enquiries,
 // Smart summary in app, Show partner orders, Auto no-show, Auto follow-up reminders; text/number fields as in L below. One form, one "Save" button.
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import axe from 'axe-core';
 import { http, HttpResponse } from 'msw';
@@ -189,6 +189,24 @@ describe('load (getEngagementSettings)', () => {
     api.use(http.get(S, () => problem(500, 'common.internal')));
     const { default: Page } = await pageModule();
     await expect(Page({ searchParams: Promise.resolve({}) })).rejects.toBeTruthy();
+  });
+});
+
+describe('W12 sections (C16 04-UI-UX line 261; reviewer item 2)', () => {
+  it('shows the five section headings Features, Patient app, Bookings, Reminders, Queue in that order, each field inside its W12 section', async () => {
+    await open();
+    const headings = screen.getAllByRole('heading', { level: 2 });
+    expect(headings.map((h) => h.textContent)).toEqual(['Features', 'Patient app', 'Bookings', 'Reminders', 'Queue']); // exact: no invented titles such as "Booking limits"
+    const sec = (name: string) => within(headings.find((h) => h.textContent === name)!.parentElement as HTMLElement); // Card = div > h2 + children
+    const [features, , bookings, reminders, queue] = ['Features', 'Patient app', 'Bookings', 'Reminders', 'Queue'].map(sec);
+    expect(bookings!.getByLabelText(L.autoNoShow)).toBeTruthy();
+    expect(bookings!.getByLabelText(/^home collection centre$/i)).toBeTruthy();
+    expect(reminders!.getByLabelText(L.autoFollowUp)).toBeTruthy();
+    expect(queue!.getByLabelText(L.history)).toBeTruthy();
+    // and they are NOT left in the wrong section
+    expect(features!.queryByLabelText(L.autoNoShow)).toBeNull();
+    expect(features!.queryByLabelText(L.autoFollowUp)).toBeNull();
+    expect(reminders!.queryByLabelText(L.history)).toBeNull();
   });
 });
 

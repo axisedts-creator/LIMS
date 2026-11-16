@@ -5,5 +5,5 @@
 - Ran: api provision-contract 17/17; tenant.service+handlers 176/176; web provision1 26/26; web t26 121/121; codegen.test + identity-openapi 950/953.
 - Open: 3 identity-openapi failures NOT mine (GET /v1/identity/role-packs has no example; TRD §5 inventory lists 2 fewer ops than yaml). Not touched.
 - Open: accepted_at contract requires exactly 3 ms digits (IsoUtc); service accepts 1-3. Form sends 3.
-- Review pass 2026-11-16 20:14: no PLATFORM-PROVISION-1-review.md exists; ruling has no impl items; no impl change. Re-ran verify: api 193/193, web provision1 26/26, t26 41/41, codegen 950/953 (3 = RM-T05, LD-283).
+- Review pass 2026-11-16 21:25 (after LD-291 reset): still no review.md; ruling has no impl items; no impl change. Re-ran verify steps (timeout 240000): api 193/193, web provision1 26/26, t26 41/41, codegen+identity-openapi 950/953 (3 = RM-T05 role-packs, LD-283).
 - Not verified: live API call on staging; full web typecheck/lint.

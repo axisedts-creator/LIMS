@@ -2,6 +2,7 @@
 // Pure. Role -> permission from the generated contracts/permissions.yaml registry; privileged codes need aal2 (REQ-SEC-067).
 // The platform IP allowlist is enforced by the claims resolver (T4, identity.platform_ip_denied), not here.
 import { LimsError } from '../../../core/errors.js';
+import { markAsserted } from '../../../core/ports/authz-guard.js';
 import { PRIVILEGED, ROLE_GRANTS } from '../../../../../../contracts/ports/generated/permissions.js';
 
 // [CR-C2-T21] `aal` is not yet on the core PlatformRequestContext (CR-C2-004); requested in .orchestra/cr/C2.T21.md.
@@ -25,5 +26,6 @@ export const PlatformAuthz = {
     const held = GRANTS.get(c.platformRole);
     if (!held || typeof permission !== 'string' || !held.has(permission)) throw new LimsError('auth.forbidden');
     if ((PRIVILEGED as ReadonlySet<string>).has(permission) && c.aal !== 'aal2') throw new LimsError('auth.mfa_required');
+    markAsserted(ctx); // LD-271 option A: only after every check above passed; a throw marks nothing
   },
 };

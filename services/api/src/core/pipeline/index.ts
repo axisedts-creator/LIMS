@@ -174,6 +174,7 @@ export function createPipeline(d: PipelineDeps) {
       commitOnError: () => { onCommitOnError(); },
       noRetry: () => { ctl?.noRetry(); },
     } as unknown as HandlerContext);
+    if (platform) az.bind(ctx); // LD-271 option A: platform session only; PlatformAuthz.assertPlatform marks stage 9 after it passed
     return ctx;
   }
 

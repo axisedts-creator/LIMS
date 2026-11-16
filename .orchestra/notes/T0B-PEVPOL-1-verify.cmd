@@ -1,0 +1,1 @@
+node --test tests/db/T0B-PEVPOL-1.static.test.mjs && node --test --test-name-pattern="spec parsers sanity|policies: db/policies|policy shape|policies written literally" tests/db/T0B-10.C6.reporting.test.mjs

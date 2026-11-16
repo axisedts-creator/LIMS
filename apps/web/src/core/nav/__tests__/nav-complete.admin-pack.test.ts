@@ -6,8 +6,9 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { parse } from 'yaml';
+import { t } from '../../i18n/messages.ts';
 import { buildNav } from '../build-nav.ts';
-import { FEATURES, ROOT, ROUTES_YAML, nonBlockingCrText, pageExists } from './nav-complete.helpers.ts';
+import { FEATURES, ROOT, ROUTES_YAML, pageExists } from './nav-complete.helpers.ts';
 
 // ADMINPACK-1 (LD-254, 11-ROLE-MATRIX R5a and section 3.3): the pack a tenant really receives is the API copy of the data file
 // (services/api/.../role-packs.data.yaml; a test in the identity suite proves it equals the spec file role by role), so the
@@ -53,16 +54,14 @@ describe('administrator pack corp_admin: tenant navigation', () => {
     }
   });
 
-  it('Front desk settings (frontdesk.settings.manage) is in the navigation when its page exists; otherwise it is absent and a non-blocking CR lists /frontdesk/settings', async () => {
-    const { entries, visible } = await nav();
-    if (pageExists('/frontdesk/settings')) {
-      const e = visible.find((x) => x.path === '/frontdesk/settings');
-      expect(e, 'Front desk settings visible to corp_admin').toBeTruthy();
-      expect(e!.permission).toBe('frontdesk.settings.manage');
-    } else {
-      expect(entries.some((x) => x.path === '/frontdesk/settings'), 'no entry for a page that does not exist').toBe(false);
-      expect(nonBlockingCrText()).toContain('/frontdesk/settings');
-    }
+  it("ADMINPAGE-FD-1 (LD-255): 'Front desk settings' (frontdesk.settings.manage) is in the front_desk group of the administrator navigation, built from a page that exists", async () => {
+    const { visible } = await nav();
+    expect(pageExists('/frontdesk/settings'), 'page /frontdesk/settings exists').toBe(true);
+    const e = visible.find((x) => x.path === '/frontdesk/settings');
+    expect(e, 'Front desk settings visible to corp_admin').toBeTruthy();
+    expect(e!.permission).toBe('frontdesk.settings.manage');
+    expect(e!.group).toBe('front_desk');
+    expect(t(e!.label)).toBe('Front desk settings');
   });
 
   it('the Approve entry (lab.result.approve) is not visible: no clinical sign-off for the administrator', async () => {

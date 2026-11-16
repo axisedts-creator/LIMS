@@ -59,8 +59,8 @@ INSERT INTO micro.plating_protocol_keys (id, tenant_id, protocol_code, created_b
   (pg_temp.id('f1'), pg_temp.id('01'), 'probe-1', pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('f3'), pg_temp.id('02'), 'probe-3', pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
 INSERT INTO micro.plating_protocols (id, tenant_id, code, version_no, display, read_schedule_hours, final_no_growth_hours, created_by, updated_by) VALUES
-  (pg_temp.id('f1'), pg_temp.id('01'), 'bb', 1, 'probe-1', '{probe-1}', 1, pg_temp.id('99'), pg_temp.id('99')),
-  (pg_temp.id('f3'), pg_temp.id('02'), 'dd', 3, 'probe-3', '{probe-3}', 3, pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
+  (pg_temp.id('f1'), pg_temp.id('01'), 'bb', 1, 'probe-1', '{1}', 1, pg_temp.id('99'), pg_temp.id('99')),
+  (pg_temp.id('f3'), pg_temp.id('02'), 'dd', 3, 'probe-3', '{3}', 3, pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
 INSERT INTO micro.cultures (id, tenant_id, centre_id, order_id, order_item_id, specimen_id, patient_id, test_id, specimen_type_code, status, received_at, last_specimen_seq, created_by, updated_by) VALUES
   (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('21'), pg_temp.id('f1'), pg_temp.id('f1'), pg_temp.id('f1'), pg_temp.id('f1'), pg_temp.id('f1'), 'probe-1', 'awaiting_setup', now(), 1, pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('f2'), pg_temp.id('01'), pg_temp.id('22'), pg_temp.id('f2'), pg_temp.id('f2'), pg_temp.id('f2'), pg_temp.id('f1'), pg_temp.id('c1'), 'probe-2', 'awaiting_setup', now(), 2, pg_temp.id('99'), pg_temp.id('99')),

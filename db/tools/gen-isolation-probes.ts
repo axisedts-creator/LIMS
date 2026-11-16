@@ -604,6 +604,7 @@ function evalAst(e: Ast, row: Record<string, any>): any {
         case "greatest": { const v = xs.filter((x: any) => x !== null); return v.length ? v.reduce((m: any, x: any) => (cmpv(x, m) > 0 ? x : m)) : null; }
         case "least": { const v = xs.filter((x: any) => x !== null); return v.length ? v.reduce((m: any, x: any) => (cmpv(x, m) < 0 ? x : m)) : null; }
         case "cardinality": return Array.isArray(a) ? a.length : UNK;
+        case "split_part": return typeof a === "string" && typeof xs[1] === "string" && xs[1] !== "" && typeof xs[2] === "number" && xs[2] >= 1 ? (a.split(xs[1])[xs[2] - 1] ?? "") : UNK;
         case "array_length": return Array.isArray(a) ? (a.length ? a.length : null) : UNK;
         case "jsonb_typeof": case "json_typeof": return a === null ? null : Array.isArray(a) ? "array" : typeof a === "object" ? "object" : typeof a === "string" ? "string" : typeof a === "number" ? "number" : typeof a === "boolean" ? "boolean" : UNK;
         case "jsonb_array_length": return Array.isArray(a) ? a.length : UNK;
@@ -741,6 +742,8 @@ function typeVals(ty: string, s: number, a: number, h: Harvest | undefined, colN
     for (const l of h?.lits ?? []) if (Array.isArray(l)) xs.push({ sql: lit(`{${l.join(",")}}`), v: l });
     for (const l of (h?.lits ?? []).filter((x) => typeof x === "string").slice(0, 3)) xs.push({ sql: lit(`{${l}}`), v: [l] });
     if (t.startsWith("uuid")) xs.push({ sql: `ARRAY[pg_temp.id('${slotKey(s)}')]::uuid[]`, v: [`uuid:${slotKey(s)}`] });
+    // LD-263 (T0B-ISOFIX-1): a numeric array gets numbers ('{probe-1}' is not valid smallint[]/integer[] input)
+    else if (/^(smallint|integer|int|int2|int4|int8|bigint|numeric|decimal|real|double precision|float8|float4)$/.test(t.slice(0, -2))) xs.push({ sql: lit(`{${n}}`), v: [n] }, { sql: "'{1}'", v: [1] });
     else xs.push({ sql: lit(`{probe-${n}}`), v: [`probe-${n}`] });
     return xs;
   }
@@ -1059,7 +1062,9 @@ function buildRow(t: string, T: Tbl, slot: Slot, a: number, x: Ctx): Row | null 
   }
   for (const fk of T.fks) if (fk.parent === t) fk.cols.forEach((c, i) => { const k = T.cols.get(c); if (k?.notNull && !k.hasDefault && row[fk.pcols[i]] && !(c in row)) set(c, row[fk.pcols[i]], true); });
   // CHECK search: for the first false conjunct, try values of its columns (NULL / default included) and other parent rows of its FKs
-  const implicit = (c: string) => { const k = T.cols.get(c)!; return k.generated ? UNK : k.hasDefault ? valueOf(k.def) : null; };
+  // LD-263 (T0B-ISOFIX-1): an untyped array default ('{}') is read as the column's array type, so cardinality() is known (0), not UNKNOWN
+  // (analytics.exports__scope__ck / schedules__scope__ck then force scope_all_centres = true)
+  const implicit = (c: string) => { const k = T.cols.get(c)!; if (k.generated) return UNK; if (!k.hasDefault) return null; const v = valueOf(k.def); return k.type.endsWith("[]") ? cast(v, k.type) : v; };
   const env = () => { const o: Record<string, any> = {}; for (const [c] of T.cols) o[c] = c in row ? row[c].v : implicit(c); return o; };
   const bad = () => { const e = env(); return x.checks.filter((c) => evalAst(c.ast, e) === false); };
   const dynamic = (c: string): Val[] => { // `c = <expr>` / `c LIKE <expr>` conjuncts: the value the expression has for this row
@@ -1069,6 +1074,12 @@ function buildRow(t: string, T: Tbl, slot: Slot, a: number, x: Ctx): Row | null 
       if (ast.op === "cmp" && ast.cmp === "=" && colOfAst(ast.a) === c && !colsIn(ast.b).has(c)) v = evalAst(ast.b, e);
       else if (ast.op === "cmp" && ast.cmp === "=" && colOfAst(ast.b) === c && !colsIn(ast.a).has(c)) v = evalAst(ast.a, e);
       else if (ast.op === "like" && !ast.neg && colOfAst(ast.a) === c) { const p = evalAst(ast.b, e); if (typeof p === "string") v = p.replace(/%/g, "probe").replace(/_/g, "x"); }
+      // LD-263 (T0B-ISOFIX-1): `split_part(c, sep, 1) = <expr>` (object_path tenant prefix): each candidate with its first segment replaced
+      else if (ast.op === "cmp" && ast.cmp === "=" && ast.a.op === "fn" && ast.a.name === "split_part" && colOfAst(ast.a.xs[0]) === c && !colsIn(ast.b).has(c)) {
+        const p = evalAst(ast.b, e), sep = evalAst(ast.a.xs[1], e), k = evalAst(ast.a.xs[2], e);
+        if (typeof p === "string" && typeof sep === "string" && sep !== "" && k === 1)
+          for (const o of choice.get(c) ?? []) if (typeof o.v === "string") { const s = o.v.split(sep); out.push(sqlStr(s.length > 1 ? [p, ...s.slice(1)].join(sep) : `${p}${sep}${o.v}`)); }
+      }
       const tv = v === UNK || v === null ? null : toVal(v);
       if (tv) out.push(tv);
     }

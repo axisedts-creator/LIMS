@@ -26,7 +26,7 @@ export function createFetchSmartSummary(): TaskHandler {
     const ctx = jobCtx as any; const tenantId = ctx.tenantId; const tx = ctx.tx;
     const reportId = payload?.['report_id']; const versionNo = payload?.['version_no'];
     if (typeof tenantId !== 'string' || (payload?.['tenant_id'] !== undefined && payload['tenant_id'] !== tenantId) || typeof reportId !== 'string' || !UUID.test(reportId)
-      || !Number.isInteger(versionNo) || versionNo < 1 || versionNo > 9999) { ctx.log?.warn?.({ event: 'fetch_smart_summary_skipped', reason: 'bad_payload' }); return; }
+      || typeof versionNo !== 'number' || !Number.isInteger(versionNo) || versionNo < 1 || versionNo > 9999) { ctx.log?.warn?.({ event: 'fetch_smart_summary_skipped', reason: 'bad_payload' }); return; }
 
     const { rows: [settings] } = await tx.query('SELECT smart_report_in_app, auto_follow_up_reminders, follow_up_reminder_lead_days FROM engagement.settings WHERE tenant_id = $1', [tenantId]) as { rows: Row[] };
     if (settings?.['smart_report_in_app'] !== true) { ctx.log?.info?.({ event: 'fetch_smart_summary_noop', reason: 'feature_off' }); return; }

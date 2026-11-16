@@ -656,3 +656,103 @@ describe("notes: the lane states it could not run SQL (done_when)", () => {
     assert.match(t, /run-suites\.sh/, "notes must name the founder rerun (LIMS_SKIP_GEN=1 bash db/tests/run-suites.sh <probes>)");
   });
 });
+
+// ================================================================== T0B-ISOFIX-1 (LD-263)
+// FACT (founder run 2026-11-16 08:50 NPT): every isolation suite aborted on `analytics.exports` violating exports__scope__ck
+// (`scope_all_centres OR cardinality(scope_centre_ids) BETWEEN 1 AND 200`): the generated rows had scope_all_centres = false and no
+// scope_centre_ids (default '{}'). The generator's CHECK evaluator judged the unparsed array default UNKNOWN and let the row through.
+// These tests read the CHECKs from db/migrations (not from the generator) and judge the fixture rows themselves.
+describe("T0B-ISOFIX-1 / LD-263: fixture rows satisfy `bool OR cardinality(arr) BETWEEN lo AND hi` and `cardinality(arr) BETWEEN lo AND hi` CHECKs", () => {
+  const unparen = (s) => { let e = s.trim(); while (e.startsWith("(") && balanced(e, 0)[1] === e.length) e = e.slice(1, -1).trim(); return e; };
+  /** element count of a literal array expression; null when the expression is not a plain literal (not judged) */
+  const arrLen = (expr, defaultExpr) => {
+    const v = norm(expr === undefined ? (defaultExpr ?? "null") : expr);
+    let m;
+    if ((m = /^array\[(.*)\](?:::[a-z0-9_ ]+\[\])?$/s.exec(v))) return m[1] === "" ? 0 : splitTop(m[1]).length;
+    if ((m = /^'\{(.*)\}'(?:::[a-z0-9_ ]+\[\])?$/s.exec(v))) return m[1].trim() === "" ? 0 : m[1].split(",").length;
+    return null;
+  };
+  const defaultOf = (t, col) => { // the DEFAULT text of an array column, from its CREATE TABLE statement
+    for (const f of MIG_FILES) for (const st of splitStatements(read(`db/migrations/${f}`))) {
+      if (!new RegExp(`^CREATE\\s+TABLE\\s+${t.replace(".", "\\.")}\\s*\\(`, "i").test(st)) continue;
+      const d = new RegExp(`\\b${col}\\s+[a-z0-9_]+\\[\\][^,]*?\\bDEFAULT\\s+('(?:[^']|'')*'(?:::[a-z0-9_]+\\[\\])?|ARRAY\\[[^\\]]*\\](?:::[a-z0-9_]+\\[\\])?)`, "i").exec(st);
+      if (d) return d[1];
+    }
+    return undefined;
+  };
+  // every table's CHECKs of these two shapes, read from the migrations
+  const SHAPES = [];
+  for (const t of Object.keys(TABLES)) for (const ck of TABLES[t].checks) {
+    const e = unparen(ck);
+    let m;
+    if ((m = /^"?([a-z_][a-z0-9_]*)"?\s+OR\s+cardinality\(\s*"?([a-z_][a-z0-9_]*)"?\s*\)\s+BETWEEN\s+(\d+)\s+AND\s+(\d+)$/i.exec(e)))
+      SHAPES.push({ t, flag: m[1], arr: m[2], lo: Number(m[3]), hi: Number(m[4]) });
+    else if ((m = /^cardinality\(\s*"?([a-z_][a-z0-9_]*)"?\s*\)\s+BETWEEN\s+(\d+)\s+AND\s+(\d+)$/i.exec(e)))
+      SHAPES.push({ t, flag: null, arr: m[1], lo: Number(m[2]), hi: Number(m[3]) });
+  }
+
+  it("sanity: the migrations hold the exports and schedules scope CHECKs this test reads", () => {
+    const got = SHAPES.filter((s) => s.flag === "scope_all_centres").map((s) => s.t).sort();
+    assert.ok(got.includes("analytics.exports") && got.includes("analytics.schedules"), `scope CHECKs found on: ${got.join(", ") || "(none)"}`);
+  });
+
+  it("every generated row of a table with such a CHECK satisfies it (an unsatisfied row aborts every isolation probe in step 1)", () => {
+    needFixtures();
+    const bad = [];
+    for (const s of SHAPES) {
+      const def = defaultOf(s.t, s.arr);
+      for (const ins of byTable.get(s.t) ?? []) {
+        if (ins.file.startsWith("probe-preamble")) continue;
+        ins.rows.forEach((r, i) => {
+          const row = Object.fromEntries(ins.cols.map((c, k) => [c, r[k]]));
+          if (s.flag && row[s.flag] !== undefined && norm(row[s.flag]) === "true") return;
+          if (s.flag && row[s.flag] !== undefined && !["true", "false"].includes(norm(row[s.flag]))) return; // not a literal: not judged
+          const n = arrLen(row[s.arr], def);
+          if (n === null) return; // not a plain literal: not judged
+          if (n < s.lo || n > s.hi) bad.push(`${s.t} row ${i + 1} (${ins.file}): ${s.flag ? `${s.flag}=${row[s.flag] ?? "default"} and ` : ""}cardinality(${s.arr}) = ${n}, CHECK needs ${s.flag ? `${s.flag} true or ` : ""}${s.lo}..${s.hi}`);
+        });
+      }
+    }
+    none(bad, "fixture rows violating a cardinality CHECK");
+  });
+
+  it("analytics.exports probe rows: scope_all_centres = true, and nothing else in the row changed (same columns, same other values)", () => {
+    needFixtures();
+    const ins = (byTable.get("analytics.exports") ?? []).filter((i) => !i.file.startsWith("probe-preamble"));
+    assert.ok(ins.length > 0, "no analytics.exports fixture rows");
+    const bad = [];
+    for (const i of ins) {
+      assert.deepEqual(i.cols, ["id", "tenant_id", "requested_by_membership_id", "report_code", "format", "params", "scope_all_centres", "created_by", "updated_by"], "column list of the exports probe rows changed");
+      for (const r of i.rows) {
+        const row = Object.fromEntries(i.cols.map((c, k) => [c, r[k]]));
+        if (norm(row.scope_all_centres) !== "true") bad.push(`exports ${row.id}: scope_all_centres = ${row.scope_all_centres}`);
+        if (row.format.trim() !== "'xlsx'" || row.params.trim() !== "'{}'" || !/^'probe-\d+'$/.test(row.report_code.trim())) bad.push(`exports ${row.id}: format/params/report_code changed (${row.format} ${row.params} ${row.report_code})`);
+      }
+    }
+    none(bad);
+  });
+
+  it("analytics.schedules probe rows (schedules__scope__ck has the same shape): scope_all_centres = true", () => {
+    needFixtures();
+    const bad = [];
+    for (const i of (byTable.get("analytics.schedules") ?? []).filter((x) => !x.file.startsWith("probe-preamble")))
+      for (const r of i.rows) {
+        const row = Object.fromEntries(i.cols.map((c, k) => [c, r[k]]));
+        if (norm(row.scope_all_centres) !== "true") bad.push(`schedules ${row.id}: scope_all_centres = ${row.scope_all_centres}`);
+      }
+    none(bad);
+  });
+
+  it("generator output (fresh dir) has no scope_all_centres = false for exports (the evaluator must treat an array default as an array, not UNKNOWN)", () => {
+    const d = mkdtempSync(join(tmpdir(), "isofix-"));
+    try {
+      mkdirSync(join(d, "isolation"), { recursive: true });
+      const r = spawnSync(process.execPath, ["db/tools/gen-isolation-probes.ts", "--out", join(d, "isolation")], { cwd: REPO, encoding: "utf8" });
+      assert.equal(r.status, 0, `${r.stdout}\n${r.stderr}`);
+      const f = readFileSync(join(d, "fixtures/probe-rows/analytics.sql"), "utf8");
+      const exp = /INSERT INTO analytics\.exports[\s\S]*?(?=\nINSERT INTO|$)/.exec(f)?.[0] ?? "";
+      assert.ok(exp, "generator output has no analytics.exports rows");
+      assert.ok(!/,\s*false\s*,/.test(exp.replace(/'[^']*'/g, "''")), `generated exports rows still set scope_all_centres = false:\n${exp.slice(0, 600)}`);
+    } finally { rmSync(d, { recursive: true, force: true }); }
+  });
+});

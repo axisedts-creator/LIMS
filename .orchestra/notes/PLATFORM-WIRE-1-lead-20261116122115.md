@@ -1,0 +1,7 @@
+ESCALATE — needs the human lead
+Reasons:
+- Authz change: the CR makes IdentityPort.assertRole accept `platform.*` and delegate to PlatformAuthz, and re-routes every platform service guard. That changes the authorization decision path, which this session may not approve (rule: no auth/permission change). LD-267 also limits PLATFORM-WIRE-1 to "no policy, grant, migration or contract change".
+- The spec already decides otherwise: spec/chunks/C0-foundation-contracts/02-TRD.md:1112 (CR-C0-004 ACCEPTED-MODIFIED) says the platform check is C2 `PlatformAuthz`, "not `IdentityPort.assertRole` (which refuses `platform.*`, C2 TRD §7.2)".
+- Outside C1's paths: the change belongs to C0-0D (core/ports/authz-guard.ts, core/pipeline) and C2 (identity platform services). C1 does not own those paths.
+- The stage 9 guard is spec behaviour: spec/chunks/C0-foundation-contracts/02-TRD.md:468 and AC-0D-2.4 (spec/chunks/C0-foundation-contracts/01-PRD.md:197). Its only listed exemption is `x-context: identity_auth`, so no exemption covers platform operations. A human must choose: let PlatformAuthz.assertPlatform mark `asserted` (my suggestion, because it keeps assertRole unchanged and adds no authority), use the CR's assertRole delegation, or use the rejected Option B.
+- The 8 red "end to end status" cases in platform-wire.operations.test.ts stay red, as they should. Fixing the field wiring alone does not clear PLATFORM-WIRE-1 on staging.

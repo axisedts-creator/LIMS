@@ -175,7 +175,7 @@ export function createBillingCommandPort(deps: { repo?: BillingRepo; counter: Co
     const totals = await repo.readOrderTotals(tx, { tenantId, orderId });
     const bal = await repo.getOrderBalance(tx, { tenantId, orderId });
     const invoiced = totals ? toPaisa(totals.invoiced_paisa) : 0, paid = totals ? toPaisa(totals.paid_paisa) : 0, credited = totals ? toPaisa(totals.credited_paisa) : 0;
-    const balance: OrderBalance = { orderId, invoiced: npr(invoiced), paid: npr(paid), credited: npr(credited), balanceDue: npr(invoiced - credited - paid),
+    const balance: OrderBalance = { orderId: orderId as OrderBalance['orderId'], invoiced: npr(invoiced), paid: npr(paid), credited: npr(credited), balanceDue: npr(invoiced - credited - paid),
       balanceVersion: bal ? Number(bal['balance_version']) : 0, asOf: (bal?.['updated_at'] ? iso(bal['updated_at']) : ctx.now()) as OrderBalance['asOf'] };
     return {
       invoiceIds: invs.map((i) => String(i['id'])), hasIssuedInvoice: invs.some((i) => i['status'] === 'issued'),
@@ -191,15 +191,15 @@ export function createBillingCommandPort(deps: { repo?: BillingRepo; counter: Co
       return invoices.issue(ctx as never, input);
     },
     recordCreditCharges: recordCreditCharges as BillingCommandPortV1['recordCreditCharges'],
-    voidCreditCharges: voidCreditCharges as BillingCommandPortV1['voidCreditCharges'],
+    voidCreditCharges: voidCreditCharges as unknown as BillingCommandPortV1['voidCreditCharges'],   // VERIFY-GREEN-3: ids are plain strings in the impl, Uuidv7 in the port type; same runtime value
     async recordPayment(ctx, input) {
       await assertOrder(ctx as Ctx, (input as any)?.orderId);
       const { entry: _entry, ...result } = await ledger.recordPayment(ctx as never, input);   // `entry` is B8's DTO, not part of the port result
       void _entry;
       return result as Awaited<ReturnType<BillingCommandPortV1['recordPayment']>>;
     },
-    raiseCreditNoteRequirement: raiseCreditNoteRequirement as BillingCommandPortV1['raiseCreditNoteRequirement'],
-    getOrderBillingSummary: getOrderBillingSummary as BillingCommandPortV1['getOrderBillingSummary'],
+    raiseCreditNoteRequirement: raiseCreditNoteRequirement as unknown as BillingCommandPortV1['raiseCreditNoteRequirement'],
+    getOrderBillingSummary: getOrderBillingSummary as unknown as BillingCommandPortV1['getOrderBillingSummary'],
   };
 }
 

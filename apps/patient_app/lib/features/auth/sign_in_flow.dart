@@ -275,7 +275,8 @@ class _SignInFlowState extends ConsumerState<SignInFlow> {
   Widget _phoneStep() {
     final lab = _flavour.displayName;
     final t = Theme.of(context).textTheme;
-    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+    return LimsCard(
+        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       Text(lab, style: t.titleLarge),
       Align(alignment: AlignmentDirectional.centerStart, child: _link('Privacy policy', _flavour.tenantPrivacyUrl)),
       const SizedBox(height: LimsTokens.space4),
@@ -295,10 +296,11 @@ class _SignInFlowState extends ConsumerState<SignInFlow> {
         _link('Privacy policy', _flavour.privacyUrl),
         _link('Terms of use', _flavour.termsUrl),
       ]),
-    ]);
+    ]));
   }
 
-  Widget _codeStep() => Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+  Widget _codeStep() => LimsCard(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         Text('Enter the 6-digit code sent to ${_masked()}.', style: Theme.of(context).textTheme.bodyLarge),
         const SizedBox(height: LimsTokens.space4),
         LimsOtpField(key: ValueKey(_otpKey), autofocus: true, errorText: _codeError, onCompleted: _verify),
@@ -312,8 +314,10 @@ class _SignInFlowState extends ConsumerState<SignInFlow> {
         ),
         const SizedBox(height: LimsTokens.space2),
         LimsButton(label: 'Change number', secondary: true, onPressed: _busy ? null : _backToPhone),
-      ]);
+      ]));
 
+  // LD-258 (M4): A0 error, A2 and A3 sit on a white LimsCard (450 ms enter fade, none under reduced motion) on the
+  // neutral.50 page; the A0 splash stays page-level. Layout only: steps, requests and texts are unchanged.
   @override
   Widget build(BuildContext context) {
     final body = switch (_step) {
@@ -321,10 +325,12 @@ class _SignInFlowState extends ConsumerState<SignInFlow> {
           const LimsLoading(label: 'Loading'),
           Text(_flavour.displayName, style: Theme.of(context).textTheme.titleMedium),
         ]),
-      _Step.loadFailed => LimsErrorState(
-          title: "We can't reach ${_flavour.displayName} right now.",
-          retryLabel: 'Try again',
-          onRetry: _loadConfig,
+      _Step.loadFailed => LimsCard(
+          child: LimsErrorState(
+            title: "We can't reach ${_flavour.displayName} right now.",
+            retryLabel: 'Try again',
+            onRetry: _loadConfig,
+          ),
         ),
       _Step.phone => _phoneStep(),
       _Step.code => _codeStep(),

@@ -1,8 +1,11 @@
-// T0D-UI-R05 (LD-140, spec/program/10-DESIGN-SYSTEM.md section 5): lims_ui theme and widgets follow the tokens.
-// Contract tested: page #F3F7F4 (tokens neutral.50), white cards radius 16-18, primary pill buttons, lime highlight
-// (LimsTokens.colorAccentHighlight) on the current bottom-nav tab, >= 44 targets, tap scale .96, nav text labels,
-// Plus Jakarta Sans first with Devanagari fallback, no hand-copied hex / pixel radii in lib/src.
+// T0D-UI-R05 (LD-140, spec/program/10-DESIGN-SYSTEM.md section 5), amended by T0D-MSERIES-3 (LD-251, LD-246,
+// spec/program/13-M-SERIES.md s2, s5): lims_ui theme and widgets follow the tokens.
+// Contract tested: page #F3F3F3 (tokens neutral.50), white cards radius 24 (radius.xl), primary pill buttons 48 dp high,
+// lime highlight (LimsTokens.colorAccentHighlight) on the current bottom-nav tab, 48 dp targets, tap scale .96, nav text
+// labels, Poppins first with Devanagari fallback, no hand-copied hex / pixel radii in lib/src.
 // Expected values come from tokens.json / LimsTokens (independent parse), never from the code under test.
+// MSERIES-3 edits of this file (old Metro Green values replaced by the 13-M-SERIES values, not weakened): page #F3F7F4 ->
+// #F3F3F3, accent #0E4B3B -> #005A52, card radius 16-18 -> 24, targets >= 44 -> >= 48, Plus Jakarta Sans -> Poppins.
 import 'dart:io';
 
 import 'package:flutter/gestures.dart';
@@ -115,22 +118,22 @@ void main() {
       final src = files.map((f) => f.readAsStringSync()).join('\n');
       expect(src, contains('LimsTokens.colorAccentHighlight'));
       expect(src, contains('LimsTokens.colorNeutral50'));
-      expect(src, contains('LimsTokens.radiusLg'));
+      expect(src, contains('LimsTokens.radiusXl'));
     });
   });
 
-  group('tokens.json values the design system names (guard for section 5)', () {
-    test('page #F3F7F4, primary #0E4B3B, lime highlight present, radius.lg inside 16-18', () {
-      expect(neutral['50'], '#F3F7F4');
-      expect(accent['default'], '#0E4B3B');
-      expect(accent['highlight'], isNotNull);
+  group('tokens.json values the M series names (13-M-SERIES s2.1, s2.3)', () {
+    test('page #F3F3F3, primary #005A52, lime highlight #A0C032, radius.xl 24 (cards)', () {
+      expect(neutral['50'], '#F3F3F3');
+      expect(accent['default'], '#005A52');
+      expect(accent['highlight'], '#A0C032');
       expect(LimsTokens.colorAccentHighlight.toARGB32(), hex(accent['highlight'] as String).toARGB32());
-      expect(LimsTokens.radiusLg, inInclusiveRange(16, 18));
+      expect(LimsTokens.radiusXl, 24);
     });
   });
 
   group('theme', () {
-    test('page background is neutral.50 (#F3F7F4) and cards sit on it as white', () {
+    test('page background is neutral.50 (#F3F3F3) and cards sit on it as white', () {
       final t = LimsTheme.light();
       expect(t.scaffoldBackgroundColor.toARGB32(), hex(neutral['50'] as String).toARGB32());
       expect(t.scaffoldBackgroundColor, LimsTokens.colorNeutral50);
@@ -138,20 +141,20 @@ void main() {
       expect(t.colorScheme.surface.toARGB32(), hex(neutral['0'] as String).toARGB32());
     });
 
-    test('Plus Jakarta Sans first (family named by LimsTokens.fontFamilySans), Devanagari fallback, both spellings', () {
+    test('Poppins first (family named by LimsTokens.fontFamilySans), Devanagari fallback, both spellings', () {
       final first = RegExp(r'"([^"]+)"').firstMatch(LimsTokens.fontFamilySans)!.group(1)!;
-      expect(first, 'Plus Jakarta Sans');
+      expect(first, 'Poppins');
       final t = LimsTheme.light();
       for (final s in [t.textTheme.bodyMedium!, t.textTheme.titleMedium!, t.textTheme.labelLarge!, t.textTheme.headlineSmall!]) {
         expect(s.fontFamily, first);
-        expect(s.fontFamilyFallback, containsAll(['Noto Sans Devanagari', 'packages/lims_ui/Plus Jakarta Sans', 'packages/lims_ui/Noto Sans Devanagari']));
+        expect(s.fontFamilyFallback, containsAll(['Noto Sans Devanagari', 'packages/lims_ui/Poppins', 'packages/lims_ui/Noto Sans Devanagari']));
       }
       expect(LimsTheme.fontFamily, first);
     });
 
-    test('pubspec declares Plus Jakarta Sans, Noto Sans Devanagari and Mono; every asset exists', () {
+    test('pubspec declares Poppins, Noto Sans Devanagari and Mono; every asset exists', () {
       final pub = File('${pkgDir().path}/pubspec.yaml').readAsStringSync();
-      for (final f in ['Plus Jakarta Sans', 'Noto Sans Devanagari', 'Noto Sans Mono']) {
+      for (final f in ['Poppins', 'Noto Sans Devanagari', 'Noto Sans Mono']) {
         expect(pub, contains('family: $f'));
       }
       for (final m in RegExp(r'asset:\s*(\S+)').allMatches(pub)) {
@@ -165,7 +168,7 @@ void main() {
   });
 
   group('stock widgets under LimsTheme.light()', () {
-    testWidgets('Scaffold page colour is #F3F7F4', (tester) async {
+    testWidgets('Scaffold page colour is #F3F3F3', (tester) async {
       await tester.pumpWidget(host(const Text('x')));
       final ctx = tester.element(find.byType(Scaffold));
       expect(Theme.of(ctx).scaffoldBackgroundColor.toARGB32(), hex(neutral['50'] as String).toARGB32());
@@ -189,11 +192,12 @@ void main() {
       expect(_isPill(_buttonMaterial(tester, f).shape, h), isTrue);
     });
 
-    testWidgets('Card: white fill, radius 16-18, flat (elevation <= 1)', (tester) async {
+    testWidgets('Card: white fill, radius 24 (radius.xl), flat (elevation <= 1)', (tester) async {
       await tester.pumpWidget(host(const Card(child: SizedBox(width: 200, height: 80))));
       final m = _buttonMaterial(tester, find.byType(Card));
       expect(m.color, LimsTokens.colorNeutral0);
-      expect(_radiusOf(m.shape), inInclusiveRange(16, 18), reason: 'shape was ${m.shape}');
+      expect(_radiusOf(m.shape), 24, reason: 'shape was ${m.shape}');
+      expect(_radiusOf(m.shape), LimsTokens.radiusXl);
       expect(m.elevation, lessThanOrEqualTo(1));
     });
   });
@@ -215,11 +219,11 @@ void main() {
       expect(_buttonMaterial(tester, primary).color, LimsTokens.colorAccentDefault);
     });
 
-    testWidgets('LimsCard: white card, radius 16-18, page colour behind it differs', (tester) async {
+    testWidgets('LimsCard: white card, radius 24, page colour behind it differs', (tester) async {
       await tester.pumpWidget(host(const LimsCard(title: 'Health score', child: Text('82/100'))));
       final m = _buttonMaterial(tester, find.byType(Card));
       expect(m.color, LimsTokens.colorNeutral0);
-      expect(_radiusOf(m.shape), inInclusiveRange(16, 18), reason: 'shape was ${m.shape}');
+      expect(_radiusOf(m.shape), 24, reason: 'shape was ${m.shape}');
       expect(Theme.of(tester.element(find.byType(Card))).scaffoldBackgroundColor, isNot(m.color));
     });
 
@@ -346,6 +350,15 @@ void main() {
       });
     }
 
+    // T0D-MSERIES-3: every golden was re-recorded by this change (bytes differ from those committed before it).
+    for (final e in _preMSeries3Hashes.entries) {
+      test('${e.key} was re-recorded by T0D-MSERIES-3 (differs from the Metro Green baseline)', () {
+        final f = File('${pkgDir().path}/test/goldens/${e.key}');
+        expect(f.existsSync(), isTrue);
+        expect(h(f.readAsBytesSync()), isNot(e.value), reason: 'run: flutter test --update-goldens (inside packages/ui-flutter)');
+      });
+    }
+
     testWidgets('golden: buttons (primary / secondary / disabled), card on the page, text field', (tester) async {
       await tester.binding.setSurfaceSize(const Size(360, 520));
       addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -359,9 +372,10 @@ void main() {
           const LimsButton(label: 'Locked', onPressed: null),
           const SizedBox(height: 12),
           const LimsTextField(label: 'Patient code', maxLength: 12),
-          const LimsCard(title: 'नमूना सङ्कलन', footer: Text('Plus Jakarta Sans'), child: Text('Accession 000123')),
+          const LimsCard(title: 'नमूना सङ्कलन', footer: Text('Poppins'), child: Text('Accession 000123')),
         ]),
       )));
+      await tester.pumpAndSettle(); // let the 450 ms LimsCard enter fade finish so card text is in the golden
       await expectLater(find.byType(Scaffold), matchesGoldenFile('goldens/restyle_buttons.png'));
     });
 
@@ -372,12 +386,21 @@ void main() {
         const LimsCard(title: 'Orders', child: Text('3 open')),
         LimsBottomNav(items: _navItems, index: 1, onTap: (_) {}),
       ])));
+      await tester.pumpAndSettle(); // let the 450 ms LimsCard enter fade finish so card text is in the golden
       await expectLater(find.byType(Scaffold), matchesGoldenFile('goldens/restyle_card_nav.png'));
     });
   });
 }
 
 // Hashes (h() above) of the baselines committed before this task; a re-record under the new theme must change them.
+// Same hash of the four baselines committed before T0D-MSERIES-3 (Metro Green look, taken at test-writing time).
+const _preMSeries3Hashes = <String, int>{
+  'status_chips.png': 3652146056648981758,
+  'cr16_widgets.png': 1273363468543190539,
+  'restyle_buttons.png': 8475314103812708341,
+  'restyle_card_nav.png': 5889508457191634608,
+};
+
 const _staleHashes = <String, int>{
   'status_chips.png': 7004372987761365903,
   'cr16_widgets.png': 5759708319527510114,

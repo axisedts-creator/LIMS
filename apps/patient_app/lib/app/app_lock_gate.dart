@@ -156,7 +156,7 @@ class _AppLockGateState extends State<AppLockGate> with WidgetsBindingObserver {
             if (noButton)
               Positioned.fill(
                 child: ColoredBox(
-                  color: Theme.of(context).colorScheme.surface,
+                  color: Theme.of(context).scaffoldBackgroundColor, // LD-258: M4 page colour, as the kit lock surface
                   child: lockedOut ? const LimsEmptyState(icon: Icons.lock, title: 'Locked. Open the app again later.') : null,
                 ),
               ),

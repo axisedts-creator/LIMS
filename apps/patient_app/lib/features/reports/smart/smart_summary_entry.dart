@@ -14,13 +14,17 @@ class SmartSummaryEntry extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (!smartSummaryAvailable) return const SizedBox.shrink();
-    return ListTile(
-      leading: const Icon(Icons.insights_outlined),
-      title: const Text('Smart summary'),
-      trailing: const Icon(Icons.chevron_right),
-      onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
-        builder: (_) => SmartSummaryScreen(reportId: reportId, versionNo: versionNo, superseded: superseded),
-      )),
+    return Card(
+      // M4 (LD-258): the row sits on a white card (theme radius.xl); the ink is clipped to it.
+      clipBehavior: Clip.antiAlias,
+      child: ListTile(
+        leading: const Icon(Icons.insights_outlined),
+        title: const Text('Smart summary'),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
+          builder: (_) => SmartSummaryScreen(reportId: reportId, versionNo: versionNo, superseded: superseded),
+        )),
+      ),
     );
   }
 }

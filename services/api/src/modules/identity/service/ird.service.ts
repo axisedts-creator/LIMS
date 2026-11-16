@@ -72,7 +72,8 @@ const docBody = (d: IrdDocument) => ({
 function guard(ctx: IrdCtx, permission: string) {
   PlatformAuthz.assertPlatform(ctx, permission);
   if (typeof ctx.platformStaffId !== 'string' || !ctx.tx) throw new LimsError('auth.unauthenticated');
-  const now = ctx.now ? ctx.now() : new Date();
+  // PLATFORM-WIRE-1: the real pipeline's ctx.now() is an ISO string (IC §4.1), unit-test contexts hand a Date: accept both.
+  const now = new Date(ctx.now ? (ctx.now() as Date | string) : Date.now());
   return { tx: ctx.tx, actorId: ctx.actor.id, now, today: new Date(now.getTime() + NPT_OFFSET_MS).toISOString().slice(0, 10) };
 }
 

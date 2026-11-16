@@ -84,21 +84,23 @@ class _IdentityScreenState extends State<IdentityScreen> with SaveOnce<IdentityS
       child: LimsScaffold(
         title: 'Identity check',
         body: ListView(padding: const EdgeInsets.all(LimsTokens.space4), children: [
-          Text("Ask the patient to tell you their full name and $what. Don't read them out."),
+          // T0A-M5-PHLEBO-1 (LD-258, 13-M-SERIES s5): the instruction on one white LimsCard, the record and its four choices on another.
+          LimsCard(child: Text("Ask the patient to tell you their full name and $what. Don't read them out.")),
           const SizedBox(height: LimsTokens.space3),
           LimsCard(
             title: 'Recorded for this visit',
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text('Name: ${v.patientName}'),
               Text(_isDob ? 'Date of birth: ${v.birthDate}' : 'Phone: ${v.phone}'),
+              // the four checks sit on the record they are checked against
+              const SizedBox(height: LimsTokens.space3),
+              ChoiceTile(title: 'Name matches', selected: _nameMatches == true, onTap: _lock(() => _nameMatches = true)),
+              ChoiceTile(title: "Name doesn't match", selected: _nameMatches == false, onTap: _lock(() => _nameMatches = false)),
+              const SizedBox(height: LimsTokens.space2),
+              ChoiceTile(title: '$short matches', selected: _secondMatches == true, onTap: _lock(() => _secondMatches = true)),
+              ChoiceTile(title: "$short doesn't match", selected: _secondMatches == false, onTap: _lock(() => _secondMatches = false)),
             ]),
           ),
-          const SizedBox(height: LimsTokens.space3),
-          ChoiceTile(title: 'Name matches', selected: _nameMatches == true, onTap: _lock(() => _nameMatches = true)),
-          ChoiceTile(title: "Name doesn't match", selected: _nameMatches == false, onTap: _lock(() => _nameMatches = false)),
-          const SizedBox(height: LimsTokens.space2),
-          ChoiceTile(title: '$short matches', selected: _secondMatches == true, onTap: _lock(() => _secondMatches = true)),
-          ChoiceTile(title: "$short doesn't match", selected: _secondMatches == false, onTap: _lock(() => _secondMatches = false)),
           const SizedBox(height: LimsTokens.space4),
           saveErrorNotice(),
           const SizedBox(height: LimsTokens.space3),

@@ -78,6 +78,17 @@ describe('administrator pack corp_admin: tenant navigation', () => {
     expect(t(e!.label)).toBe(label);
   });
 
+  it("ADMINPAGE-ENG-1 (LD-255): 'Engagement settings' (engagement.settings.manage) is in the engagement group of the administrator navigation, built from a page that exists", async () => {
+    const { visible } = await nav();
+    expect(pageExists('/engagement/settings'), 'page /engagement/settings exists').toBe(true);
+    const e = visible.find((x) => x.path === '/engagement/settings');
+    expect(e, 'Engagement settings visible to corp_admin').toBeTruthy();
+    expect(e!.id).toBe('engagement.settings');
+    expect(e!.permission).toBe('engagement.settings.manage');
+    expect(e!.group).toBe('engagement');
+    expect(t(e!.label)).toBe('Engagement settings');
+  });
+
   it('the Approve entry (lab.result.approve) is not visible: no clinical sign-off for the administrator', async () => {
     const { visible } = await nav();
     expect(visible.filter((e) => e.permission === 'lab.result.approve' || e.path === '/lab/approval')).toEqual([]);

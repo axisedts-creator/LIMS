@@ -1,0 +1,7 @@
+# T0C-M4-PATIENT-1 tests (tester)
+Files (apps/patient_app/test): `features/m4/m4_entry_shell_test.dart` (A0 A1 A2 A3 A4 A5 A20 A23 at text scale 1.0 and 1.3, 360 dp), `features/m4/m4_source_rules_test.dart`, `support/m4_harness.dart` (mounts each screen; no existing file edited).
+Run: `.orchestra\notes\T0C-M4-PATIENT-1-verify.cmd` from the repo root (= `flutter test test\features\m4` in apps/patient_app). Existing a0..a4, a20, a23, cold_start tests are the security/behaviour guard and must stay green unchanged.
+Fail now (30 of 135): no white 24 card on A0 error/A1/A2/A3/A20/A23 (A23 App lock row loose); A1/A2 no 450 ms fade; A4 lock surface white not #F3F3F3; A5 is still `phi('Home')` (no LimsBottomNav, bell, profile switcher, LimsSecureScreen); router placeholder; impl note with "gap" missing. Layout, 48 dp, round buttons/fields, Poppins, scale 1.3 pass already (guards).
+ASSUMED (spec names none): A5 shell is built at kHomePath by buildPatientRouter; card enter fade = LimsCard (450 ms, none under MediaQuery.disableAnimations); Bookings tab optional (3 to 4 tabs, Orders first, More last), the E1 `features.bookings` flag has no provider yet.
+Widget tests, not goldens (no PNG to re-record). Impl must write `.orchestra/notes/T0C-M4-PATIENT-1-impl.md` with the board elements not built, as "gap" (A0 tenant logo has no Flavour asset: gap too).
+Not testable here: eye check against M4-patient.png (13-M-SERIES 6.5, founder); `flutter analyze` of touched lib files (impl step).

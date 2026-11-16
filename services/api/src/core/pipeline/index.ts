@@ -73,6 +73,7 @@ class RollbackResult {
   constructor(result: HandlerResult) { this.result = result; }
 }
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const unavailable = (): LimsError => new LimsError('common.dependency_unavailable');
 
 export function createPipeline(d: PipelineDeps) {
@@ -120,18 +121,28 @@ export function createPipeline(d: PipelineDeps) {
     const platform = claims?.scope === 'platform' && claims.actor_type === 'user' && claims.tenant_id === undefined
       && typeof claims.platform_role === 'string' && claims.platform_role.startsWith('platform_')
       ? { platformRole: claims.platform_role, ...(typeof claims.aal === 'string' ? { aal: claims.aal } : {}) }
-      : {};
+      : undefined;
+    // PLATFORM-WIRE-1 (LD-267, CR-C2-T21): the platform services also read platformStaffId / platformSessionId; same gate, verified claims only,
+    // a missing or non-UUID claim leaves the key absent (the service then fails closed as before). Never from the request.
+    const uuidClaim = (v: unknown): string | undefined => (typeof v === 'string' && UUID.test(v) ? v : undefined);
+    const staffId = platform && uuidClaim((claims as Record<string, unknown>)['platform_staff_id']);
+    const sessionId = platform && uuidClaim((claims as Record<string, unknown>)['lims_session_id']);
     const ctx: HandlerContext = Object.freeze({
       // RequestContext (IC §4.1)
       tenantId: claims?.tenant_id,
       actor,
       ...platform,
+      ...(staffId ? { platformStaffId: staffId } : {}),
+      ...(sessionId ? { platformSessionId: sessionId } : {}),
       requestId: c.requestId,
       tx,
       now: () => (tx ? tx.startedAt.toISOString() : new Date().toISOString()),
       ports: portsView(c.op.module, az),
       // §6.3
       db: Object.freeze({
+        // PLATFORM-WIRE-1 (LD-267): platform session only; the repository's createDb().withTenantScope on this request's own tx
+        // (module identity + x-context platform + allowlisted operationId, tx of this request, no nesting; claims restored afterwards).
+        ...(platform && d.db ? { withTenantScope: <T>(t: unknown, tenantId: string, fn: () => Promise<T>): Promise<T> => d.db!.withTenantScope(t as Tx, tenantId, fn) } : {}),
         tx: <T>(fn: (rc: HandlerContext) => Promise<T>): Promise<T> => (tx ? tx.savepoint(() => fn(ctx)) : noTx()),
         // D-212: db.identityAuthTx refuses anything but identity + identity_auth + allowlisted op. The caller's input is ignored
         // (accepts (fn) per 02-TRD §6.3 and (input, fn) as module identity calls it): request id, ip and operation are the core's.
@@ -163,6 +174,7 @@ export function createPipeline(d: PipelineDeps) {
       commitOnError: () => { onCommitOnError(); },
       noRetry: () => { ctl?.noRetry(); },
     } as unknown as HandlerContext);
+    if (platform) az.bind(ctx); // LD-271 option A: platform session only; PlatformAuthz.assertPlatform marks stage 9 after it passed
     return ctx;
   }
 

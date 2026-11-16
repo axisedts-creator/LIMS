@@ -54,22 +54,24 @@ class _LinkCodeScreenState extends ConsumerState<LinkCodeScreen> {
           title: 'Lab code',
           body: SingleChildScrollView(
             padding: const EdgeInsets.all(LimsTokens.space4),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-              Text('Ask the front desk for an app code. It works once, on this phone number only.', style: Theme.of(context).textTheme.bodyLarge),
-              const SizedBox(height: LimsTokens.space4),
-              LimsCodeField(
-                label: 'Code',
-                alphabet: _crockford,
-                onChanged: (v) => setState(() {
-                  _code = v;
-                  _error = null;
-                }),
-              ),
-              if (_error != null) ProfileNotice(_error!),
-              const SizedBox(height: LimsTokens.space4),
-              if (_busy) const LimsLoading(label: 'Checking code'),
-              LimsButton(label: 'Add profile', onPressed: _busy || _code.length != _symbols ? null : _submit),
-            ]),
+            child: LimsCard(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                Text('Ask the front desk for an app code. It works once, on this phone number only.', style: Theme.of(context).textTheme.bodyLarge),
+                const SizedBox(height: LimsTokens.space4),
+                LimsCodeField(
+                  label: 'Code',
+                  alphabet: _crockford,
+                  onChanged: (v) => setState(() {
+                    _code = v;
+                    _error = null;
+                  }),
+                ),
+                if (_error != null) ProfileNotice(_error!),
+                const SizedBox(height: LimsTokens.space4),
+                if (_busy) const LimsLoading(label: 'Checking code'),
+                LimsButton(label: 'Add profile', onPressed: _busy || _code.length != _symbols ? null : _submit),
+              ]),
+            ),
           ),
         ),
       );

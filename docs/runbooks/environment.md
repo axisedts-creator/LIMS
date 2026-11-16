@@ -73,6 +73,8 @@ Without it the worker or `registry-sync` stops with `ERR_MODULE_NOT_FOUND` (for 
 | `LIMS_CORE_SCANNER_URL` | core | optional | The built-in default address of the clamd virus scanner on the internal network is used. If no scanner answers there, every scanned upload is treated as scan unavailable and refused. |
 | `LIMS_CORE_SCANNER_TIMEOUT_MS` | core | optional | Default 30000 ms per scan; a scan that takes longer is treated as unavailable. |
 
+Client address (LD-296): the web sends the browser's address (first `x-forwarded-for` entry, else `x-real-ip`, bare IP only) and user agent on every API call. The hosting proxy in front of the API appends its own peer, so with a verified BFF key the API uses the LEFTMOST `X-Forwarded-For` entry; without the key it uses the TCP peer, and a trusted proxy peer (the CIDR list above) still needs a single IP. If sign-in events show 127.0.0.1 or user agent `node`, the web has no BFF key file or is out of date.
+
 ## Worker and web processes
 
 | Name | Module | Required | When unset |

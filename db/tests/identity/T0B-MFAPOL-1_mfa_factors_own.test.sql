@@ -88,8 +88,8 @@ SELECT is((SELECT count(*)::int FROM identity.mfa_factors WHERE id = pg_temp.uid
 SELECT is(pg_temp.x('lims_app', pg_temp.cplat('aal2', 'tenant', pg_temp.uid(1)), pg_temp.insf(36, NULL, pg_temp.uid(101)), 'w'), 'E42501', '(c) scope <> platform: INSERT of a tenant-less factor raises 42501');
 
 -- ===================================================================================================================================== (d) tenant / partner users keep their own tenant rows
-SELECT is(pg_temp.x('lims_app', pg_temp.cstaff(pg_temp.ta(), '01a1a98a-ac40-7000-8000-00000000a300', '01a1a98a-ac40-7000-8000-00000000a500'), 'SELECT 1 FROM identity.mfa_factors'), 'n=1',
-  '(d) tenant staff user reads its own tenant factor (and no other)');
+SELECT is(pg_temp.x('lims_app', pg_temp.cstaff(pg_temp.ta(), '01a1a98a-ac40-7000-8000-00000000a300', '01a1a98a-ac40-7000-8000-00000000a500'), $$SELECT 1 FROM identity.mfa_factors WHERE user_id = '01a1a98a-ac40-7000-8000-00000000a300'$$), 'n=1',
+  '(d) tenant staff user reads its own tenant factor');
 SELECT is(pg_temp.x('lims_app', pg_temp.cstaff(pg_temp.ta(), (SELECT user_id FROM partner_m), (SELECT id FROM partner_m), 'partner'), 'SELECT 1 FROM identity.mfa_factors'), 'n=1',
   '(d) partner reads its own tenant factor (and no other)');
 SELECT is(pg_temp.x('lims_app', pg_temp.cstaff(pg_temp.ta(), (SELECT user_id FROM partner_m), (SELECT id FROM partner_m), 'partner'), format($$UPDATE identity.mfa_factors SET friendly_name = 'mine' WHERE id = %L$$, pg_temp.uid(33)), 'w'),

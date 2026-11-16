@@ -1,0 +1,2 @@
+- Cause: 3 identity-openapi failures are pre-existing from RM-T05 (9fd800f65): role-packs ops lack examples and are missing from TRD §5. Not from PLATFORM-PROVISION-1.
+- Fix: none in impl code; any fix would break brief (1) or edit read-only spec. Wrote PLATFORM-PROVISION-1-dispute.md. Provision tests all green.

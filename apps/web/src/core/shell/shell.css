@@ -25,7 +25,8 @@
 .lims-rail-logo { display: block; width: 9rem; height: auto; }
 .lims-rail-tenant { overflow: hidden; color: var(--lims-accent-fg); font-size: var(--lims-font-size-sm-size); text-overflow: ellipsis; white-space: nowrap; }
 .lims-rail-close { margin-inline-start: auto; color: inherit; background: transparent; border-color: transparent; }
-.lims-rail-search { box-sizing: border-box; width: 100%; min-height: 46px; padding-inline: var(--lims-space-4); border: 0.0625rem solid color-mix(in srgb, var(--lims-accent-fg) 60%, var(--lims-accent)); border-radius: var(--lims-radius-full); background: color-mix(in srgb, var(--lims-accent-fg) 10%, var(--lims-accent)); color: var(--lims-accent-fg); }
+/* LD-266 (T0D-MSERIES-4): flex: none so kit .lims-input { flex: 1 } does not grow the field in the column-flex rail (oval bug) */
+.lims-rail-search { flex: none; box-sizing: border-box; width: 100%; min-height: 46px; padding-inline: var(--lims-space-4); border: 0.0625rem solid color-mix(in srgb, var(--lims-accent-fg) 60%, var(--lims-accent)); border-radius: var(--lims-radius-full); background: color-mix(in srgb, var(--lims-accent-fg) 10%, var(--lims-accent)); color: var(--lims-accent-fg); }
 .lims-rail-search::placeholder { color: color-mix(in srgb, var(--lims-accent-fg) 90%, var(--lims-accent)); }
 .lims-rail-scroll { flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--lims-accent-fg) 40%, var(--lims-accent)) transparent; }
 .lims-rail-empty { margin: 0; padding: 0 var(--lims-space-2); }

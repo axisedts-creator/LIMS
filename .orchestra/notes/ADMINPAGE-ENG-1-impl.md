@@ -1,0 +1,8 @@
+# ADMINPAGE-ENG-1 impl (writer)
+Files: app/(staff)/engagement/settings/{page,loading,error}.tsx; features/engagement/settings/{model,server,actions}.ts + SettingsView.tsx; engagement/nav.manifest.ts (+1 entry, order 90, phase 2, no chord); core/i18n/messages.ts (+`engagement.nav.settings`). routes.yaml, permissions.yaml, openapi, rs-c4.baseline.json untouched (rs-c4 signs frontdesk+billing only).
+CR T0D-NAV-COMPLETE-1.1 for /engagement/settings: answered. Page built on T1/T2 only (+ C2 listCentres for the centre Select); nav entry `Engagement settings` (engagement.settings.manage) added, per-feature nav tests flipped to "entry present".
+Gap (spec vs API): none for fields, all 36 T2 fields + version shown. Spec W12 says prefixes = tag input, gateways = multi-select, per-section Save: built as one comma-separated text field, two checkboxes, one full-body Save (T2 is one PUT).
+Gap: T1 needs engagement.booking.read; a manager with only settings.manage gets 403 -> permission-denied page. Home-collection centre Select lists /v1/identity/centres (identity.centre.read); without it the Select shows the current centre id only, and the centre cannot be cleared (optional field is omitted only if never set).
+[CONV] labels (W12 gives group names only): see LABEL/SWITCHES/INTS in model.ts; consent text change without new version label is refused client-side; 400 and 422 both map errors[].path to the field; no Idempotency-Key (Form busy guard + disabled Save).
+Tests: adminpage-eng-1 config 80/80 incl. static (after this note); nav-complete + rs-c4 runs below.
+Not verified: real browser, live API, repo-wide tsc (red before this task, LD-256).

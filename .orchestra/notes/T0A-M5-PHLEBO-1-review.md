@@ -1,8 +1,8 @@
-CHANGES
-# T0A-M5-PHLEBO-1 review (reviewer)
-Ran: `flutter test __tests__/m5` 129/129 pass; `flutter test __tests__` 619 pass, 1 fail (db_ci_guards_test REQ-SEC-102, reads core/db which this diff does not touch: pre-existing, not this task). `flutter analyze` on touched files: 3 issues (see 2).
-OK: owned paths only (lib/features/route, identity, consent + __tests__/m5, support + own notes); no ui-flutter edit; no hex/radius/font literal; mutation types, payload keys, SaveOnce/_lock, LimsSecureScreen untouched; no PHI in logs, no secrets, no board sample content; gaps listed in impl note.
-
-1. apps/phlebo_app/lib/features/route/ui/route_screen.dart:94-96 — C17 04-UI-UX line 107 says "Cancelled stub tile is greyed and not tappable except to show ..."; the diff removed the only grey treatment, so a cancelled visit now looks like every other card except its chip (spec behaviour change, no CR). Fix: keep the LimsCard but grey the cancelled tile's content with a token colour that still passes 4.5:1 on white, LimsListTile is a plain ListTile (base_widgets.dart:199-207), so ListTileTheme colours reach it: inside the LimsCard use `cancelled ? ListTileTheme.merge(textColor: LimsTokens.colorNeutral600, iconColor: LimsTokens.colorNeutral600, child: DefaultTextStyle.merge(style: const TextStyle(color: LimsTokens.colorNeutral600), child: tile)) : tile` (the DefaultTextStyle covers the leading sequence number and the "n/m tubes" text; neutral.600 on white stays above 4.5:1), and update the comment to say "greyed with neutral.600 instead of opacity 0.6". No ui-flutter edit.
-2. apps/phlebo_app/__tests__/m5/m5_look_test.dart:105,106,119 — `flutter analyze` reports 3 `deprecated_member_use` infos (`Finder.description`); done_when requires analyze clean for touched files. Fix (tester): replace `${w.description}` with `${w.describeMatch(Plurality.one)}` (or a plain type name string) at all three lines.
-3. apps/phlebo_app/__tests__/m5/m5_look_test.dart:221-225 — the test "a cancelled visit stays greyed but readable, and still does not open" asserts neither grey nor not-opening. Fix (tester): tap the cancelled tile and assert `onOpenVisit` was not called and the text "This visit was cancelled by the centre." is shown; assert the cancelled tile's title Text resolves to a colour different from the active tiles' title colour (greyed) while the existing 4.5:1 sunlight test stays green.
+APPROVE
+# T0A-M5-PHLEBO-1 review round 2 (reviewer)
+Ran: `flutter test __tests__/m5` 129/129 pass; `flutter analyze` on lib/features/route, identity, consent, __tests__/m5, __tests__/support/m5_harness.dart: No issues found.
+Round 1 fixes verified:
+1. route_screen.dart: cancelled tile greyed with LimsTokens.colorNeutral600 (ListTileTheme.merge + sequence/tubes Texts), no opacity, no hex; tap still only shows the cancelled note (04-UI-UX:107). Comment cites LD-258.
+2. m5_look_test.dart: `Finder.description` replaced by `describeMatch(Plurality.one)`; analyze clean.
+3. m5_look_test.dart:221-247: test now taps the cancelled tile (onOpenVisit not called), asserts the centre note text, asserts the title colour differs from an active tile, and checks the spy fires on a normal tile.
+Still OK: owned paths only, no ui-flutter edit, no behaviour/API/route/storage change, no PHI/secrets, no board sample content; gaps listed in impl note.

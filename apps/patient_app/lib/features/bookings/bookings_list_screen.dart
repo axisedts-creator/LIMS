@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lims_ui/lims_ui.dart';
 
 import '../orders/orders_format.dart';
+import '../orders/status_look.dart';
 import 'booking_detail_screen.dart';
 import 'booking_wizard_screen.dart';
 import 'bookings_api.dart';
@@ -91,16 +92,16 @@ class _BookingsListScreenState extends ConsumerState<BookingsListScreen> {
   Widget _body() {
     if (_rows.isEmpty) {
       if (_failed)
-        return Center(
-          child: LimsErrorState(
+        return StateCard(
+          LimsErrorState(
             title: 'Something went wrong',
             message: 'We could not load your bookings.',
             onRetry: _reload,
           ),
         );
       if (!_loaded) return const Center(child: CircularProgressIndicator());
-      return const Center(
-        child: LimsEmptyState(
+      return const StateCard(
+        LimsEmptyState(
           title: 'No bookings',
           message: 'Book a test to see it here.',
         ),
@@ -131,11 +132,13 @@ class _BookingsListScreenState extends ConsumerState<BookingsListScreen> {
                         Text('Booking ${b['booking_no']}'),
                         Text(dateTimeText(b['slot_start'])),
                         const SizedBox(height: LimsTokens.space2),
-                        LimsStatusChip(
-                          kind: 'generic',
-                          status: '${b['status']}',
-                          tone: bookingLook(b['status']).$1,
-                          label: bookingLook(b['status']).$2,
+                        ToneChip(
+                          LimsStatusChip(
+                            kind: 'generic',
+                            status: '${b['status']}',
+                            tone: bookingLook(b['status']).$1,
+                            label: bookingLook(b['status']).$2,
+                          ),
                         ),
                       ],
                     ),

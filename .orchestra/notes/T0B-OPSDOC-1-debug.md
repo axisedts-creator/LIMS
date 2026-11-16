@@ -6,3 +6,7 @@
 ## Round 2
 - Verify log (20:14) still shows the same 7 health-env failures; cause unchanged: `Readiness` in contracts/openapi/core.yaml is closed and has no `missing_env`, so response validation rejects the health body.
 - Fix: none in this lane (contracts/ is C0-0C ONLY, 01-CHUNK-MAP.md:108). Blocked on CR-C0-T0B-OPSDOC-1-001 (.orchestra/cr/T0B-OPSDOC-1.md). No code changed; no test touched.
+
+## Round 3
+- Verify log still shows the same 7 health-env failures. `Readiness` in contracts/openapi/core.yaml has no `missing_env` (grep: 0 hits), so response validation turns the degraded body into 500.
+- Fix: none in this lane. contracts/ is C0-0C ONLY (01-CHUNK-MAP.md:108). Blocked on CR-C0-T0B-OPSDOC-1-001 (.orchestra/cr/T0B-OPSDOC-1.md). No code or test changed.

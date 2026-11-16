@@ -188,8 +188,9 @@ export function createObservationService(deps: {
         await repo.lockPair(ctx.tx, t, instrument!, analyte!);   // serialise with the run assembler before reading
       }
       const cutoff = new Date(ms(ctx.now()) - (await rr.getReprocessWindowDays(ctx.tx, t)) * DAY_MS).toISOString();
-      const inWindow = await rr.listPendingObservations(ctx.tx, t, { instrumentId: instrument!, analyteId: analyte, statuses: PENDING, observedFrom: cutoff });
-      const history = planId ? await rr.listPendingObservations(ctx.tx, t, { instrumentId: instrument!, analyteId: analyte, statuses: ['no_plan'], observedBefore: cutoff }) : [];
+      const an = analyte === undefined ? {} : { analyteId: analyte };   // VERIFY-GREEN-4: exactOptionalPropertyTypes, no key when absent
+      const inWindow = await rr.listPendingObservations(ctx.tx, t, { instrumentId: instrument!, ...an, statuses: PENDING, observedFrom: cutoff });
+      const history = planId ? await rr.listPendingObservations(ctx.tx, t, { instrumentId: instrument!, ...an, statuses: ['no_plan'], observedBefore: cutoff }) : [];
       if (!planId) for (const a of [...new Set(inWindow.map((r) => r['analyte_id'] as string))].sort()) await repo.lockPair(ctx.tx, t, instrument!, a);   // deterministic order; stale reads are caught by the status guard
 
       const tz = inWindow.length + history.length ? await tenantZone(ctx) : '';

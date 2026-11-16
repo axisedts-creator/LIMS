@@ -36,7 +36,7 @@ const fill = (t: string, p: Record<string, string>, esc = false) => t.replace(/\
 export function createSendDelivery(deps: SendDeps = {}): TaskHandler {
   const breaker = new Map<string, { fails: number; openUntil: number }>();
   return async (payload, jobCtx) => {
-    const ctx = jobCtx as unknown as FlowCtx & { now(): string; log?: any };
+    const ctx = jobCtx as unknown as FlowCtx & { now(): string; log?: any; attempt: number; maxAttempts: number };   // VERIFY-GREEN-4: JobContext supplies both (core/manifest.ts:31)
     const env = deps.env ?? process.env;
     const tenantId = ctx.tenantId; const id = payload?.['delivery_id']; const actor = ctx.actor.id;
     if (typeof tenantId !== 'string' || typeof id !== 'string' || !UUID.test(id)) return;

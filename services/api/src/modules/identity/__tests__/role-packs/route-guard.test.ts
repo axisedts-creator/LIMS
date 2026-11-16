@@ -59,7 +59,11 @@ describe('RM-T03 per-route guard: inputs', () => {
   });
   it('the shell filters nav by the actor permissions (AppShell.tsx) so the hint matches this test', () => {
     const src = readFileSync(join(ROOT, 'apps/web/src/core/shell/AppShell.tsx'), 'utf8');
-    expect(src).toMatch(/navEntries\.filter\(\(e\) => hasPermission\(session\.actor\.permissions, e\.permission\)\)/);
+    // TESTFIX-1 (LD-268): stale expectation. T0D-MSERIES-2 (9f4e6a46a, LD-251) generates the nav from build-nav.ts and
+    // filters it per rail group with `perms = session.actor.permissions`; the permission filter itself is unchanged.
+    expect(src).toMatch(/import \{ navEntries \} from '\.\.\/nav\/generated'/);
+    expect(src).toMatch(/navEntries\s*\.filter\(\(e\) => e\.group === g\.id && hasPermission\(perms, e\.permission\)\)/);
+    expect(src).toMatch(/const perms = session\.actor\.permissions/);
   });
 });
 

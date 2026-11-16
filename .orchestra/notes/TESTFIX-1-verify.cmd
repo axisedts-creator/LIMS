@@ -1,0 +1,1 @@
+pnpm --dir services/api exec vitest run src/modules/identity/__tests__/role-packs/route-guard.test.ts src/modules/identity/__tests__/security/static.security.test.ts src/modules/identity/__tests__/platform-ddl-1.static.test.ts && pnpm --dir apps/web exec vitest run src/features/admin/__tests__/rs-c2.static.test.ts

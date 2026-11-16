@@ -6,6 +6,8 @@ import type { PortLog, PortMetrics } from './registry.js';
 export interface RequestAuthz {
   readonly asserted: boolean;
   identity<T extends { assertRole(...a: any[]): any }>(port: T): T;
+  /** LD-271 option A: lets markAsserted(ctx) set this request's mark (the pipeline binds platform-session contexts only). */
+  bind(ctx: object): void;
 }
 export interface AuthzCheckOp {
   readonly operationId: string;
@@ -13,6 +15,14 @@ export interface AuthzCheckOp {
   readonly public: boolean;
   readonly identityAuth?: boolean;
   readonly status: number;
+}
+
+// LD-271 option A (FOUNDER 2026-11-16): PlatformAuthz.assertPlatform counts as the stage 9 assertion for platform.* operations.
+// Keyed by the handler context the pipeline bound; an unbound context (fake ctx, any other session kind) marks nothing.
+const ctxMarks = new WeakMap<object, () => void>();
+/** Call ONLY after a platform check has passed (PlatformAuthz.assertPlatform). */
+export function markAsserted(ctx: unknown): void {
+  if (typeof ctx === 'object' && ctx !== null) ctxMarks.get(ctx)?.();
 }
 
 export function createAuthzGuard({ env, log, metrics }: { env: string; log: PortLog; metrics: PortMetrics }) {
@@ -34,6 +44,7 @@ export function createAuthzGuard({ env, log, metrics }: { env: string; log: Port
           },
         });
       },
+      bind(ctx: object) { ctxMarks.set(ctx, () => { s.asserted = true; }); },
     };
     state.set(req, s);
     return Object.freeze(req);

@@ -5,3 +5,6 @@
 ## debugger T0B-ISOFIX-1 round 2
 - Cause: still no code defect. `gen-isolation-probes.ts --check` reports all 8 committed probe-rows fixtures stale; the 3 failing tests read those committed files. Working tree is clean (round-1 regeneration is gone), so fixtures are unchanged.
 - Fix: none in implementation code. Tester must run `node db/tools/gen-isolation-probes.ts` and commit the 8 files; debugger may not touch fixtures.
+## debugger T0B-ISOFIX-1 round 3
+- Cause: unchanged, no code defect. Generator --check still reports the committed probe-rows fixtures stale (analytics.sql still has scope_all_centres = false); the 3 failing tests read those files. Working tree clean.
+- Fix: none in implementation code. Tester must run `node db/tools/gen-isolation-probes.ts` and commit the regenerated fixtures; debugger may not touch them. Re-running the debugger will not change this.

@@ -84,18 +84,26 @@ class _HandoverScreenState extends State<HandoverScreen> with SaveOnce<HandoverS
         body: empty
             ? const LimsEmptyState(title: 'No tubes to hand over', message: 'Tubes you have collected will appear here.')
             : ListView(padding: const EdgeInsets.all(LimsTokens.space4), children: [
-                Text('Give the tubes to the centre staff. They will scan them to confirm.', style: t.bodyLarge),
-                const SizedBox(height: LimsTokens.space4),
-                Text('Hand over to', style: t.titleMedium),
-                for (final c in widget.centres)
-                  ChoiceTile(
-                    title: c.name,
-                    selected: _centreId == c.centreId,
-                    onTap: saving ? null : () => setState(() => _centreId = c.centreId),
-                  ),
+                LimsCard(child: Text('Give the tubes to the centre staff. They will scan them to confirm.', style: t.bodyLarge)),
+                const SizedBox(height: LimsTokens.space3),
+                LimsCard(
+                  title: 'Hand over to',
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                    for (final c in widget.centres)
+                      ChoiceTile(
+                        title: c.name,
+                        selected: _centreId == c.centreId,
+                        onTap: saving ? null : () => setState(() => _centreId = c.centreId),
+                      ),
+                  ]),
+                ),
                 const SizedBox(height: LimsTokens.space4),
                 Text('Tubes', style: t.titleMedium),
-                for (final tube in widget.tubes) _tubeRow(tube, t),
+                const SizedBox(height: LimsTokens.space2),
+                for (final tube in widget.tubes) ...[
+                  LimsCard(child: _tubeRow(tube, t)),
+                  const SizedBox(height: LimsTokens.space2),
+                ],
                 if (tooMany) ...[
                   const SizedBox(height: LimsTokens.space3),
                   const InlineNotice(tone: 'warning', text: 'You can hand over up to $_maxTubes tubes at a time. Untick some tubes.'),

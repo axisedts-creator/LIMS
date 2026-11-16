@@ -66,19 +66,19 @@ class _OutboxScreenState extends State<OutboxScreen> {
     final t = Theme.of(context).textTheme;
     final review = r.state == 'held' || r.state == 'rejected';
     final when = formatHm(r.capturedAt);
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      LimsListTile(
-        title: _typeLabels[r.type] ?? r.type,
-        subtitle: r.visitLabel == null ? when : '${r.visitLabel} · $when',
-      ),
-      Padding(
-        padding: const EdgeInsets.fromLTRB(LimsTokens.space4, 0, LimsTokens.space4, LimsTokens.space2),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: LimsTokens.space3),
+      child: LimsCard(
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          LimsListTile(
+            title: _typeLabels[r.type] ?? r.type,
+            subtitle: r.visitLabel == null ? when : '${r.visitLabel} · $when',
+          ),
           StatusPill(tone: tone, icon: icon, label: word),
           if (review) Text(_reviewNote, style: t.bodySmall),
         ]),
       ),
-    ]);
+    );
   }
 
   @override
@@ -92,7 +92,7 @@ class _OutboxScreenState extends State<OutboxScreen> {
               child: LimsButton(label: 'Upload now', onPressed: _uploading ? null : _upload),
             ),
           ),
-          body: ListView(children: [
+          body: ListView(padding: const EdgeInsets.all(LimsTokens.space4), children: [
             if (_error != null) InlineNotice(tone: 'danger', text: _error!),
             if (widget.rows.isEmpty)
               const LimsEmptyState(title: 'Everything is uploaded.')

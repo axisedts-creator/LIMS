@@ -17,8 +17,8 @@ import 'hc27_fixture.dart';
 typedef Open = Future<void> Function(WidgetTester t, {double scale, bool reduceMotion});
 
 /// 360 dp wide phone. Text scale and reduced motion are app-level MediaQuery values (what the OS setting sets).
-Future<void> mount(WidgetTester t, Widget screen, {double scale = 1.0, bool reduceMotion = false, bool settle = true}) async {
-  t.view.physicalSize = const Size(360, 780);
+Future<void> mount(WidgetTester t, Widget screen, {double scale = 1.0, bool reduceMotion = false, bool settle = true, double height = 780}) async {
+  t.view.physicalSize = Size(360, height);
   t.view.devicePixelRatio = 1.0;
   addTearDown(() {
     t.view.resetPhysicalSize();

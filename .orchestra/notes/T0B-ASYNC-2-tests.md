@@ -1,0 +1,8 @@
+# T0B-ASYNC-2 tests (tester)
+- New: `jobs/catalog/__tests__/unit/manifest.test.ts`, `jobs/homecollection/__tests__/manifest.test.ts` (index.ts exports `manifest`; module name; validateManifests; the 3 + 2 identifiers with the SAME handler objects the task files export; task files exist; cron/consumers match ./cron.ts and ./consumers; buildTaskList; index.ts has no SQL).
+- Edited: `core/__tests__/async-manifests.test.ts` (KNOWN_GAP now only identity.notify_ip_throttle + identity.rescan_upload; new cases: the five are declared, catalog + homecollection in MANIFESTS), `core/__tests__/registry-sync.all.test.ts` (five ids written, the two identity ids not).
+- Unchanged and still green: `worker-sql-functions.test.ts` (no new app.* call, LD-189), `catalog/.../unit/cron.test.ts`, `homecollection/.../cron.test.ts`.
+- Run: `.orchestra\notes\T0B-ASYNC-2-verify.cmd` (~25 s). Now: 4 files fail (index.ts missing; the five ids undeclared), 40 tests pass.
+- Writer: add `jobs/catalog/index.ts`, `jobs/homecollection/index.ts` (export `manifest`), two lines in `manifests.ts`. If you add `crontab`, it must equal `./cron.ts` `crontab` (test checks), and each cron task must then be declared.
+- AMBIGUITY: brief says "exactly the tasks the API enqueues" (5). Tests require those 5 and forbid nothing else that has a task file; cron tasks (catalog expire_imports/purge_files/global_release_fanout, homecollection sweeps/purges) are optional. Declaring them adds registry rows and starts cron on a staging worker: lead/writer decide; I did not assert either way.
+- Not verified: live (`*.live.test.ts`) and integration tests need a database; not run.

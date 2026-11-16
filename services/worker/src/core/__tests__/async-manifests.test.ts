@@ -122,14 +122,10 @@ describe('(3) every enqueued identifier is declared by a loaded manifest', () =>
     expect(found.size).toBeGreaterThanOrEqual(30);
   });
 
-  // LD-279 (2026-11-16): done_when (3) allows exactly these seven known gaps, CR-C0-T0B-ASYNC-1-001. The list can only shrink.
+  // LD-279 (2026-11-16): done_when (3) allowed seven known gaps, CR-C0-T0B-ASYNC-1-001. The list can only shrink.
+  // T0B-ASYNC-2 (done_when (3)) removed the five catalog and homecollection identifiers (manifests written); two identity identifiers stay (LD-189, founder).
   const CR = 'CR-C0-T0B-ASYNC-1-001';
   const KNOWN_GAP: Record<string, string> = {
-    'catalog.export_build': `task file exists, no jobs/catalog/index.ts manifest: written by T0B-ASYNC-2 (${CR})`,
-    'catalog.import_validate': `task file exists, no jobs/catalog/index.ts manifest: written by T0B-ASYNC-2 (${CR})`,
-    'catalog.import_commit': `task file exists, no jobs/catalog/index.ts manifest: written by T0B-ASYNC-2 (${CR})`,
-    'homecollection.flag_handover_discrepancy': `task file exists, no jobs/homecollection/index.ts manifest: written by T0B-ASYNC-2 (${CR})`,
-    'homecollection.refresh_visit_specimens': `task file exists, no jobs/homecollection/index.ts manifest: written by T0B-ASYNC-2 (${CR})`,
     'identity.notify_ip_throttle': `no worker task; founder decision under LD-189 (implement or remove the enqueue) (${CR})`,
     'identity.rescan_upload': `no worker task; founder decision under LD-189 (implement or remove the enqueue) (${CR})`,
   };
@@ -142,13 +138,25 @@ describe('(3) every enqueued identifier is declared by a loaded manifest', () =>
     return declared;
   };
 
-  it('the known-gap list is exactly the seven identifiers of LD-279, each with a reason and the CR id', () => {
-    expect(Object.keys(KNOWN_GAP).sort()).toEqual([
-      'catalog.export_build', 'catalog.import_commit', 'catalog.import_validate',
-      'homecollection.flag_handover_discrepancy', 'homecollection.refresh_visit_specimens',
-      'identity.notify_ip_throttle', 'identity.rescan_upload',
-    ]);
+  it('the known-gap list is exactly the two identity identifiers still open under LD-189 (the five catalog/homecollection ones are gone), each with a reason and the CR id', () => {
+    expect(Object.keys(KNOWN_GAP).sort()).toEqual(['identity.notify_ip_throttle', 'identity.rescan_upload']);
     for (const [id, reason] of Object.entries(KNOWN_GAP)) expect(reason, id).toContain(CR);
+  });
+
+  it('the five LD-279 catalog and homecollection identifiers are enqueued by the API and declared by a loaded manifest (T0B-ASYNC-2)', async () => {
+    const declared = await loadedIds();
+    for (const id of ['catalog.export_build', 'catalog.import_validate', 'catalog.import_commit', 'homecollection.flag_handover_discrepancy', 'homecollection.refresh_visit_specimens']) {
+      expect([...found.keys()], `${id} is no longer enqueued: the scan control is stale`).toContain(id);
+      expect(declared.has(id), `${id} is enqueued but no loaded manifest declares it`).toBe(true);
+    }
+  });
+
+  it('catalog and homecollection are in MANIFESTS, each is the object its jobs/<m>/index.ts exports', async () => {
+    const loaded = await loadManifests();
+    for (const m of ['catalog', 'homecollection']) {
+      expect(jobsWithIndex, `services/worker/src/jobs/${m}/index.ts`).toContain(m);
+      expect(loaded.map((x) => x.module), m).toContain(m);
+    }
   });
 
   it('every identifier is a task (or cron) of a loaded manifest, a core task, or on the KNOWN_GAP list', async () => {

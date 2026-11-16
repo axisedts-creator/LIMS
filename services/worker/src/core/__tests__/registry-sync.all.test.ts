@@ -41,6 +41,16 @@ describe('syncAllManifests', () => {
     expect(r.deactivated).toBe(0);
   });
 
+  it('T0B-ASYNC-2: writes the five catalog and homecollection identifiers the API enqueues (CR-C0-T0B-ASYNC-1-001), so the enqueue is no longer refused', async () => {
+    const { syncAllManifests } = await import('../registry-sync.js');
+    const c = fakeClient();
+    await syncAllManifests(c);
+    const ids = written(c);
+    for (const id of ['catalog.export_build', 'catalog.import_validate', 'catalog.import_commit', 'homecollection.flag_handover_discrepancy', 'homecollection.refresh_visit_specimens']) expect(ids, id).toContain(id);
+    // the two identity identifiers stay open (LD-189, founder decision): still not registered
+    for (const id of ['identity.notify_ip_throttle', 'identity.rescan_upload']) expect(ids, id).not.toContain(id);
+  });
+
   it('is idempotent: a second run over the rows the first one wrote upserts the same set and deactivates nothing', async () => {
     const { syncAllManifests } = await import('../registry-sync.js');
     const first = fakeClient();

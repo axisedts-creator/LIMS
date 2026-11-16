@@ -14,15 +14,17 @@ class UpdateRequiredScreen extends StatelessWidget {
         child: Scaffold(
           body: SafeArea(
             child: Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(mainAxisSize: MainAxisSize.min, children: [
-                  Text('Update required', style: Theme.of(context).textTheme.headlineSmall),
-                  const SizedBox(height: 12),
-                  const Text('This version of the app is no longer supported. Please update to continue.', textAlign: TextAlign.center),
-                  const SizedBox(height: 24),
-                  LimsButton(label: 'Open store', onPressed: () => openUrl(storeUrl)),
-                ]),
+              // LD-258 (M4): the content sits on a white LimsCard (450 ms enter fade) on the neutral.50 page.
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(LimsTokens.space4),
+                child: LimsCard(
+                  title: 'Update required',
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                    const Text('This version of the app is no longer supported. Please update to continue.'),
+                    const SizedBox(height: LimsTokens.space6),
+                    LimsButton(label: 'Open store', onPressed: () => openUrl(storeUrl)),
+                  ]),
+                ),
               ),
             ),
           ),

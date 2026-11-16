@@ -9,7 +9,7 @@ export const PURGE_EPHEMERAL = 'engagement.purge_ephemeral';
 export const PURGE_QUEUE = 'engagement.purge_queue';
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-const ownTenant = (payload: Record<string, unknown> | undefined, ctx: { tenantId?: string }): string | undefined => {
+const ownTenant = (payload: Record<string, unknown> | undefined, ctx: { tenantId?: string | undefined }): string | undefined => {
   const t = payload?.tenant_id;
   return typeof t === 'string' && UUID.test(t) && ctx.tenantId === t ? t : undefined;
 };

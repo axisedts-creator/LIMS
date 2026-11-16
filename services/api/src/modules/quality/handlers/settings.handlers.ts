@@ -9,7 +9,7 @@ const p = (req: { params?: unknown }, k: string) => obj(req.params)[k];
 
 export const settingsHandlers = Object.freeze({
   getQualitySettings: staff((c) => settings.getQualitySettings(c as any, {}) as any, { etag: true }),
-  updateQualitySettings: staff((c, req) => settings.updateQualitySettings(c as any, { expectedVersion: ifMatch(req), body: req.body }) as any, { etag: true }),
+  updateQualitySettings: staff((c, req) => { const v = ifMatch(req); return settings.updateQualitySettings(c as any, { ...(v === undefined ? {} : { expectedVersion: v }), body: req.body }) as any; }, { etag: true }),   // VERIFY-GREEN-4: exactOptionalPropertyTypes, no key when absent
   listQualityCodedSet: staff((c, req) => settings.listQualityCodedSet(c as any, { setName: p(req, 'set_name') }) as any),
   upsertQualityCode: staff((c, req) => settings.upsertQualityCode(c as any, { setName: p(req, 'set_name'), code: p(req, 'code'), body: req.body }) as any),
 } satisfies Record<string, Handler>);

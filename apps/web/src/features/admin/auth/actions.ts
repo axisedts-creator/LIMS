@@ -16,7 +16,7 @@ const CODE_RE = /^[0-9]{6}$/;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+$/;
 
-type Fail = { ok: false; code: string; retryAfterSeconds?: number };
+type Fail = { ok: false; code: string; retryAfterSeconds?: number; waking?: true };
 type ApiReply = { ok: true; body: any } | Fail;
 interface SessionStateBody { state?: string; absolute_expires_at?: string }
 
@@ -56,7 +56,8 @@ async function call(path: string, body: unknown, sid?: string): Promise<ApiReply
       method: 'POST', headers: h, body: JSON.stringify(body ?? {}), cache: 'no-store', redirect: 'error', signal: AbortSignal.timeout(TIMEOUT_MS),
     });
   } catch {
-    return { ok: false, code: 'common.dependency_unavailable' };
+    // T0D-WAKE-1 (LD-277, RS-07): no answer (timeout / connection failure) = the API is likely waking up; HTTP answers never carry it.
+    return { ok: false, code: 'common.dependency_unavailable', waking: true };
   }
   const json = (await res.json().catch(() => undefined)) as any;
   if (res.ok) return { ok: true, body: json };

@@ -12,3 +12,4 @@ Backward compatible? no for the API (narrower input): a settings update outside 
 Tenant/security impact: no RLS change, no PHI; tightens REQ-SEC-073.
 Alternatives considered: widen sessions checks (rejected: contradicts 04 A8); keep clamp-only (works, but the UI shows values that are not applied).
 Tests that will prove it: contract test on the two ranges; settings update 14 / 31 / 13 -> 400; migration test of the new CHECK; auth.session-clamp.test.ts stays green.
+Status: RULED (LD-304, 2026-11-17): narrow the settings ranges, never widen the session checks. Amended by LD-306: no new migration (tenant_settings__idle__ck 15..30 and tenant_settings__absolute__ck 1..12 exist since 20261105001300 lines 475-476); OpenAPI and service narrowed in T0B-SESSRANGE-1; one static test pins the OpenAPI bounds to those CHECKs. No push-cloud.ps1 step.

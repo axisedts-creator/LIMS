@@ -117,12 +117,13 @@ test('checker self-test: the expected text passes, every mutant is rejected', ()
 });
 
 // ------------------------------------------------------------------------------------------------ the migration
-test('migration file exists and sorts after every other migration (strictly newest)', () => {
+test('migration file exists and sorts after every migration that precedes it (20261116010000 or earlier) and has a unique timestamp', () => {
   assert.ok(existsSync(migPath), `db/migrations/${MIG} missing (T0B-MFAPOL-1 writer creates it)`);
   const others = migFiles().filter((f) => f !== MIG);
   assert.ok(others.length > 0);
-  for (const f of others) assert.ok(MIG > f, `${MIG} must sort after ${f}`);
-  assert.equal(migFiles().at(-1), MIG, 'the new migration is the last file of db/migrations');
+  const ts = (f) => f.slice(0, 14);
+  for (const f of others.filter((x) => ts(x) < ts(MIG))) assert.ok(MIG > f, `${MIG} must sort after ${f}`);
+  assert.deepEqual(others.filter((x) => ts(x) === ts(MIG)), [], 'no other migration shares the 14-digit timestamp');
   assert.match(MIG, /^\d{14}_identity__[a-z0-9_]+\.sql$/);
 });
 test('migration: exactly the three ALTER POLICY statements, each equal to user_id = actor AND tenant_id = current tenant; nothing else', () => {

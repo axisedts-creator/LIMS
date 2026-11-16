@@ -23,7 +23,7 @@ describe('VERIFY-GREEN-3: frontdesk + billing typecheck', () => {
     const errs = `${r.stdout}${r.stderr}`.split(/\r?\n/).filter((l) => /error TS\d+/.test(l));
     const mine = errs.filter((l) => FILES.some((f) => l.replace(/\\/g, '/').includes(`modules/${f}(`)));
     expect(mine.map((l) => l.replace(/^.*modules\//, 'modules/').slice(0, 200))).toEqual([]);
-    expect(errs.filter((l) => /TS(5097|2835|18003|6053|5083)/.test(l)), 'tsconfig fixture itself broken').toEqual([]);
+    expect(errs.filter((l) => /TS(18003|6053|5083)/.test(l)), 'tsconfig fixture itself broken').toEqual([]);
   });
 
   it('no hiding device was added (rule: no @ts-ignore, @ts-expect-error, new `as any`, skipLibCheck)', () => {

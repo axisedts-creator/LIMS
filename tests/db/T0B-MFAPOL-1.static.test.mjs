@@ -52,6 +52,8 @@ const wantClauses = (name) => ({ using: name === 'mfa_factors__insert__own' ? ''
 function migrationDefects(text) {
   const bad = [];
   const sts = splitStatements(strip(text)).map(ws);
+  // 02-CONVENTIONS.md:717 + db/tools/check-migrations.ts:35-36: first statement is exactly one `SET LOCAL ROLE lims_owner`; a second SET/RESET ROLE falls through to the ALTER POLICY check below and is a defect.
+  if (sts.length && /^SET LOCAL ROLE lims_owner$/i.test(sts[0])) sts.shift(); else bad.push('first statement must be SET LOCAL ROLE lims_owner');
   if (sts.length !== 3) bad.push(`expected exactly 3 statements, found ${sts.length}`);
   const seen = new Set();
   for (const s of sts) {
@@ -83,6 +85,7 @@ function ownPolicies(sql) {
 
 // ------------------------------------------------------------------------------------------------ the checker itself rejects wrong migrations (mutants of the expected text)
 const GOOD = `-- LD-252
+SET LOCAL ROLE lims_owner;
 ALTER POLICY mfa_factors__select__own ON identity.mfa_factors
   USING (${PRED});
 ALTER POLICY mfa_factors__insert__own ON identity.mfa_factors
@@ -106,6 +109,9 @@ test('checker self-test: the expected text passes, every mutant is rejected', ()
     'missing update policy': GOOD.slice(0, GOOD.indexOf('ALTER POLICY mfa_factors__update__own')),
     'CREATE POLICY instead of ALTER': GOOD.replace('ALTER POLICY mfa_factors__select__own ON identity.mfa_factors\n  USING', 'CREATE POLICY mfa_factors__select__own ON identity.mfa_factors FOR SELECT TO lims_app USING'),
     'OR true': GOOD.replace(`USING (${PRED});`, `USING (${PRED} OR true);`),
+    'missing SET LOCAL ROLE': GOOD.replace('SET LOCAL ROLE lims_owner;\n', ''),
+    'role switch not first': GOOD.replace('SET LOCAL ROLE lims_owner;\n', '').replace(/(ALTER POLICY mfa_factors__select__own ON identity\.mfa_factors\n {2}USING \([^\n]*\);\n)/, '$1SET LOCAL ROLE lims_owner;\n'),
+    'second role switch': GOOD + 'RESET ROLE;\n',
   };
   for (const [what, text] of Object.entries(mutants)) assert.notDeepEqual(migrationDefects(text), [], `mutant not rejected: ${what}`);
 });
@@ -125,7 +131,7 @@ test('migration: exactly the three ALTER POLICY statements, each equal to user_i
 });
 test('migration: select USING only, insert WITH CHECK only, update USING and WITH CHECK (explicit per statement)', () => {
   assert.ok(existsSync(migPath), `db/migrations/${MIG} missing`);
-  const sts = splitStatements(strip(readFileSync(migPath, 'utf8'))).map(ws);
+  const sts = splitStatements(strip(readFileSync(migPath, 'utf8'))).map(ws).filter((s) => !/^SET LOCAL ROLE lims_owner$/i.test(s));
   const by = Object.fromEntries(sts.map((s) => [/^ALTER POLICY (\w+)/i.exec(s)?.[1], s]));
   assert.match(by.mfa_factors__select__own ?? '', /^ALTER POLICY mfa_factors__select__own ON identity\.mfa_factors USING \(/i);
   assert.doesNotMatch(by.mfa_factors__select__own ?? '', /WITH CHECK/i);
@@ -164,7 +170,7 @@ test('db/policies/identity.sql: the other identity.mfa_factors policies are unto
 });
 test('migration text and db/policies/identity.sql agree: same three predicates', () => {
   assert.ok(existsSync(migPath), `db/migrations/${MIG} missing`);
-  const mig = Object.fromEntries(splitStatements(strip(readFileSync(migPath, 'utf8'))).map(ws).map((s) => {
+  const mig = Object.fromEntries(splitStatements(strip(readFileSync(migPath, 'utf8'))).map(ws).filter((s) => !/^SET LOCAL ROLE lims_owner$/i.test(s)).map((s) => {
     const m = /^ALTER POLICY (\w+) ON identity\.mfa_factors ([\s\S]*)$/i.exec(s);
     return [m?.[1], m ? clauses(m[2]) : null];
   }));

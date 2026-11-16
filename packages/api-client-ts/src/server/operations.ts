@@ -3175,6 +3175,122 @@ export interface Operations {
       };
     };
   };
+  applyRolePack: {
+    params: Record<string, never>;
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+    };
+    body: {
+      pack_code: string;
+    };
+    responses: {
+      200: {
+        pack_code: string;
+        created: string[];
+        updated: string[];
+        unchanged: string[];
+      };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   approveDiscount: {
     params: {
       approval_id: string;
@@ -12178,7 +12294,7 @@ export interface Operations {
           received_at: string;
           observed_at_basis: "instrument" | "server";
           source: "instrument" | "manual";
-          status: "assigned" | "unmapped_analyte" | "non_numeric" | "no_plan" | "unmapped_control" | "level_not_in_plan" | "lot_expired" | "no_target" | "unit_mismatch" | "late_unassigned";
+          status: "assigned" | "unmapped_analyte" | "non_numeric" | "no_plan" | "unmapped_control" | "level_not_in_plan" | "lot_expired" | "no_target" | "unit_mismatch" | "late_unassigned" | "excluded";
           qc_run_id?: string;
           z?: string;
           target_id?: string;
@@ -40862,7 +40978,7 @@ export interface Operations {
           received_at: string;
           observed_at_basis: "instrument" | "server";
           source: "instrument" | "manual";
-          status: "assigned" | "unmapped_analyte" | "non_numeric" | "no_plan" | "unmapped_control" | "level_not_in_plan" | "lot_expired" | "no_target" | "unit_mismatch" | "late_unassigned";
+          status: "assigned" | "unmapped_analyte" | "non_numeric" | "no_plan" | "unmapped_control" | "level_not_in_plan" | "lot_expired" | "no_target" | "unit_mismatch" | "late_unassigned" | "excluded";
           qc_run_id?: string;
           z?: string;
           target_id?: string;
@@ -41076,7 +41192,7 @@ export interface Operations {
         received_at: string;
         observed_at_basis: "instrument" | "server";
         source: "instrument" | "manual";
-        status: "assigned" | "unmapped_analyte" | "non_numeric" | "no_plan" | "unmapped_control" | "level_not_in_plan" | "lot_expired" | "no_target" | "unit_mismatch" | "late_unassigned";
+        status: "assigned" | "unmapped_analyte" | "non_numeric" | "no_plan" | "unmapped_control" | "level_not_in_plan" | "lot_expired" | "no_target" | "unit_mismatch" | "late_unassigned" | "excluded";
         qc_run_id?: string;
         z?: string;
         target_id?: string;
@@ -57873,7 +57989,7 @@ export interface Operations {
           received_at: string;
           observed_at_basis: "instrument" | "server";
           source: "instrument" | "manual";
-          status: "assigned" | "unmapped_analyte" | "non_numeric" | "no_plan" | "unmapped_control" | "level_not_in_plan" | "lot_expired" | "no_target" | "unit_mismatch" | "late_unassigned";
+          status: "assigned" | "unmapped_analyte" | "non_numeric" | "no_plan" | "unmapped_control" | "level_not_in_plan" | "lot_expired" | "no_target" | "unit_mismatch" | "late_unassigned" | "excluded";
           qc_run_id?: string;
           z?: string;
           target_id?: string;
@@ -58562,6 +58678,7 @@ export interface Operations {
           db: "ok" | "degraded" | "down";
           ratelimit: "ok" | "degraded" | "down";
         };
+        missing_env?: string[];
       });
       503: ({
         status: "ok" | "degraded" | "down";
@@ -58569,6 +58686,7 @@ export interface Operations {
           db: "ok" | "degraded" | "down";
           ratelimit: "ok" | "degraded" | "down";
         };
+        missing_env?: string[];
       });
     };
   };
@@ -80036,6 +80154,7 @@ export interface Operations {
           relationship: "self" | "child" | "parent" | "spouse" | "sibling" | "other";
           method: "link_code" | "report_link" | "self_registered";
           status: "active" | "pending";
+          version: number;
           history_from?: string;
           patient_code?: string;
         })[];
@@ -85396,7 +85515,7 @@ export interface Operations {
           received_at: string;
           observed_at_basis: "instrument" | "server";
           source: "instrument" | "manual";
-          status: "assigned" | "unmapped_analyte" | "non_numeric" | "no_plan" | "unmapped_control" | "level_not_in_plan" | "lot_expired" | "no_target" | "unit_mismatch" | "late_unassigned";
+          status: "assigned" | "unmapped_analyte" | "non_numeric" | "no_plan" | "unmapped_control" | "level_not_in_plan" | "lot_expired" | "no_target" | "unit_mismatch" | "late_unassigned" | "excluded";
           qc_run_id?: string;
           z?: string;
           target_id?: string;
@@ -87862,6 +87981,82 @@ export interface Operations {
         }[];
       };
       404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  listRolePacks: {
+    params: Record<string, never>;
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: {
+        data: {
+          pack_code: string;
+          name: string;
+          roles: {
+            code: string;
+            name: string;
+            mfa_required: boolean;
+            permission_codes: string[];
+          }[];
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
         type: string;
         title: string;
         status: number;
@@ -97139,6 +97334,20 @@ export interface Operations {
         email: string;
         display_name: string;
       };
+      contract_acceptance: {
+        tos: {
+          version: string;
+          accepted_by_name: string;
+          accepted_by_title: string;
+          accepted_at: string;
+        };
+        dpa: {
+          version: string;
+          accepted_by_name: string;
+          accepted_by_title: string;
+          accepted_at: string;
+        };
+      };
     };
     responses: {
       201: ({
@@ -104182,6 +104391,7 @@ export interface Operations {
         relationship: "self" | "child" | "parent" | "spouse" | "sibling" | "other";
         method: "link_code" | "report_link" | "self_registered";
         status: "active" | "pending";
+        version: number;
         history_from?: string;
         patient_code?: string;
       });
@@ -104191,6 +104401,7 @@ export interface Operations {
         relationship: "self" | "child" | "parent" | "spouse" | "sibling" | "other";
         method: "link_code" | "report_link" | "self_registered";
         status: "active" | "pending";
+        version: number;
         history_from?: string;
         patient_code?: string;
       });
@@ -104326,6 +104537,7 @@ export interface Operations {
         relationship: "self" | "child" | "parent" | "spouse" | "sibling" | "other";
         method: "link_code" | "report_link" | "self_registered";
         status: "active" | "pending";
+        version: number;
         history_from?: string;
         patient_code?: string;
       });
@@ -104335,6 +104547,7 @@ export interface Operations {
         relationship: "self" | "child" | "parent" | "spouse" | "sibling" | "other";
         method: "link_code" | "report_link" | "self_registered";
         status: "active" | "pending";
+        version: number;
         history_from?: string;
         patient_code?: string;
       });
@@ -135992,6 +136205,7 @@ export interface Operations {
         relationship: "self" | "child" | "parent" | "spouse" | "sibling" | "other";
         method: "link_code" | "report_link" | "self_registered";
         status: "active" | "pending";
+        version: number;
         history_from?: string;
         patient_code?: string;
       });

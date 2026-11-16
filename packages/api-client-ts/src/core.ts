@@ -66,6 +66,7 @@ export interface operations {
               db: "ok" | "degraded" | "down";
               ratelimit: "ok" | "degraded" | "down";
             };
+            missing_env?: string[];
           };
         };
       };
@@ -78,6 +79,7 @@ export interface operations {
               db: "ok" | "degraded" | "down";
               ratelimit: "ok" | "degraded" | "down";
             };
+            missing_env?: string[];
           };
         };
       };

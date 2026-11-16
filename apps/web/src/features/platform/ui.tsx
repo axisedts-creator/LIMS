@@ -55,7 +55,7 @@ export function Alert({ children }: { children: ReactNode }) {
 interface Base { label: string; error?: string | undefined; hint?: string; disabled?: boolean; required?: boolean }
 
 export function TextInput({ label, value, onChange, maxLength, error, hint, disabled, required, type = 'text', readOnly, onKeyDown, min, max }: Base & {
-  value: string; onChange: (v: string) => void; maxLength?: number; type?: 'text' | 'email' | 'date' | 'number'; readOnly?: boolean;
+  value: string; onChange: (v: string) => void; maxLength?: number; type?: 'text' | 'email' | 'date' | 'number' | 'datetime-local'; readOnly?: boolean;
   onKeyDown?: (e: KeyboardEvent<HTMLInputElement>) => void; min?: number; max?: number;
 }) {
   const id = useId();
@@ -65,7 +65,7 @@ export function TextInput({ label, value, onChange, maxLength, error, hint, disa
       <label className="lims-label" htmlFor={id}>{label}{required ? <span aria-hidden="true"> *</span> : null}</label>
       <input id={id} className="lims-input" type={type} value={value} onChange={(e) => onChange(e.target.value)}
         {...(maxLength !== undefined ? { maxLength } : {})} {...(min !== undefined ? { min } : {})} {...(max !== undefined ? { max } : {})}
-        {...(readOnly ? { readOnly: true } : {})} {...(disabled ? { disabled: true } : {})} {...(onKeyDown ? { onKeyDown } : {})}
+        {...(readOnly ? { readOnly: true } : {})} {...(disabled ? { disabled: true } : {})} {...(onKeyDown ? { onKeyDown } : {})} {...(required ? { required: true } : {})}
         aria-invalid={error ? true : undefined} aria-describedby={describedBy} />
       {hint ? <p id={`${id}-h`} className="lims-description">{hint}</p> : null}
       {error ? <p id={`${id}-e`} role="alert" className="lims-error">{error}</p> : null}

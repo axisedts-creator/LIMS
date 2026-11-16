@@ -21,6 +21,7 @@ import { createPgBackend } from '../ratelimit/pg.js';
 import type { HealthChecks } from '../health.js';
 import { createFiles } from '../uploads/index.js';
 import { createHealthChecks } from './healthChecks.js';
+import { loadAuthzExceptions } from './authz-central.js';
 import { createPipeline, type Pipeline } from './index.js';
 
 const FAKES_DIR = join(REPO_ROOT, 'packages', 'fakes', 'src');
@@ -172,6 +173,9 @@ export async function bootPipeline(o: {
   const idempotency = db && createIdempotency({ db, log });
 
   const authz = createAuthzGuard({ env: config.env, log, metrics });
+  // SEC-AUTHZ-2: stage 8a inputs; a malformed authz-exceptions.json stops the boot.
+  const authzExceptions = loadAuthzExceptions();
+  const systemPermissions = Object.freeze(Object.fromEntries(modules.map((m) => [m.manifest.name, Object.freeze([...(m.manifest.systemPermissions ?? [])])])));
   // ponytail: core-internal 4-arg withTenantScope / systemActorOf exist in the worker only; ctx.core.deadLetters.replay answers 500 here.
   const internal = (): never => { throw new LimsError('common.internal'); };
   const core = createCoreRepo({ withTenantScope: internal, systemActorOf: internal, log });
@@ -194,6 +198,8 @@ export async function bootPipeline(o: {
       if (!p) {
         p = createPipeline({
           env: config.env, db, identityActor, identityAuthDb, idempotency, rateLimiter, authz, ports, services, log, metrics, coreMetrics: o.metrics,
+          authzMode: config.authzMode, systemPermissions, authzExceptions, // SEC-AUTHZ-2: stage 8a
+
           shared: { ...shared, events: createEvents({ producer: module, log, metrics }) },
         });
         cache.set(module, p);

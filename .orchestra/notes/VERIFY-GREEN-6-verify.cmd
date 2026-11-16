@@ -1,0 +1,1 @@
+@cd /d "%~dp0..\.." && pnpm --dir apps/web exec vitest run --config src/__tests__/vitest.vg6.config.ts && set CI=true&& pnpm --dir apps/web exec vitest run --config src/features/catalog/__tests__/vitest.web-t32.config.ts && pnpm --dir apps/web exec vitest run --config src/features/catalog/__tests__/vitest.web-t35.config.ts

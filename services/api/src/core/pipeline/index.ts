@@ -13,6 +13,7 @@ import type { createAuthzGuard, RequestAuthz } from '../ports/authz-guard.js';
 import type { PortLog, PortMetrics, PortRegistry } from '../ports/registry.js';
 import type { CoreMetrics } from '../observability/metrics.js';
 import type { RateLimiter, RateLimitTier } from '../ratelimit/index.js';
+import { createAuthzCentral, type AuthzException, type AuthzMode } from './authz-central.js';
 
 export interface PipelineOp extends IdemOperation {
   readonly method: string;
@@ -22,6 +23,10 @@ export interface PipelineOp extends IdemOperation {
   readonly public: boolean;
   readonly identityAuth?: boolean;
   readonly rateLimitTier?: RateLimitTier | undefined;
+  /** SEC-AUTHZ-2: the contract x-permission (stage 8a); absent = nothing to assert centrally. */
+  readonly permission?: string | undefined;
+  /** SEC-AUTHZ-2: the operation's first security scheme (bearerJwt, bffSession, deviceToken, ...). */
+  readonly scheme?: string | undefined;
 }
 
 export interface SharedCore {
@@ -48,6 +53,12 @@ export interface PipelineDeps {
   readonly metrics: PortMetrics;
   /** LD-190 / CR-C9-T26-002: the CoreMetrics { inc, set, observe } boot.ts passes; exposed as ctx.metrics. Optional so existing callers/tests keep working. */
   readonly coreMetrics?: Pick<CoreMetrics, 'inc' | 'set' | 'observe'> | undefined;
+  /** SEC-AUTHZ-2 (LD-261): stage 8a mode; absent = shadow (the default in every environment until SEC-AUTHZ-9). */
+  readonly authzMode?: AuthzMode | undefined;
+  /** SEC-AUTHZ-2: module name -> manifest systemPermissions (system actors). */
+  readonly systemPermissions?: Readonly<Record<string, readonly string[]>> | undefined;
+  /** SEC-AUTHZ-2: reviewed entries of authz-exceptions.json. */
+  readonly authzExceptions?: readonly AuthzException[] | undefined;
 }
 
 export interface PipelineCall {
@@ -178,6 +189,13 @@ export function createPipeline(d: PipelineDeps) {
     return ctx;
   }
 
+  // Stage 8a. [CONV] the core reads IdentityPort through the view of a module that PORT_CONSUMERS lists (the owner `identity` is not a consumer
+  // of its own port, so its view would refuse); the wrapper (RequestAuthz.identity) still makes stage 9 see the call.
+  const central = createAuthzCentral({
+    mode: d.authzMode ?? 'shadow', log: d.log, metrics: d.metrics, systemPermissions: d.systemPermissions, exceptions: d.authzExceptions,
+    identityPort: () => d.ports.portsFor('frontdesk')['IdentityPort'] as { assertRole(...a: any[]): any },
+  });
+
   const authzCheck = (az: RequestAuthz, op: PipelineOp, status: number) =>
     d.authz.check(az, { operationId: op.operationId, public: op.public, ...(op.identityAuth ? { identityAuth: true } : {}), status });
 
@@ -230,6 +248,7 @@ export function createPipeline(d: PipelineDeps) {
         const ctx = buildCtx(c, az, tx, ctl, () => { commitOnError = true; });
         let r: HandlerResult;
         try {
+          await central.check(op, claims, ctx, az); // stage 8a: a deny throws (enforce) before any handler read or write; shadow logs and goes on
           r = await c.handler(c.req, ctx); // stage 8
         } catch (e) {
           // [CONV] commitOnError also commits a thrown LimsError (denied access-log rows); a DB error still rolls back (08 A19 P-42).

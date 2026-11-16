@@ -3,14 +3,17 @@
 import { useRef, useState, type FormEvent } from 'react';
 import { Button } from '@lims/ui/components/Button';
 import { provisionTenantAction } from './actions';
-import { EMAIL_RE, PAN_RE, TENANT_CODE_RE, UNIT_CODE_RE, errorText } from './shared';
+import { ACCEPT_MAX, EMAIL_RE, PAN_RE, TENANT_CODE_RE, UNIT_CODE_RE, errorText } from './shared';
 import { Alert, SelectInput, TextInput, newKey, useSingleFlight } from './ui';
 
 const EMPTY = {
   code: '', legal_name: '', display_name: '', pan: '', calendar_display: 'AD_BS',
   branch_code: '', branch_name: '', branch_address: '', centre_code: '', centre_name: '', centre_kind: 'own', centre_address: '',
   admin_email: '', admin_name: '',
+  tos_version: '', dpa_version: '', accepted_by_name: '', accepted_by_title: '', accepted_at: '',
 };
+// datetime-local wants local wall time without zone: YYYY-MM-DDTHH:mm
+const localNow = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 16); };
 type Values = typeof EMPTY;
 type Errors = Partial<Record<keyof Values | 'form', string>>;
 
@@ -26,13 +29,19 @@ function validate(v: Values): Errors {
   if (!v.centre_name.trim()) e.centre_name = 'Enter the centre name.';
   if (!EMAIL_RE.test(v.admin_email)) e.admin_email = 'Enter a valid email address.';
   if (!v.admin_name.trim()) e.admin_name = 'Enter the administrator name.';
+  // LD-29 / LD-275: limits equal the service validator accInput (maxLength on the inputs)
+  if (!v.tos_version.trim()) e.tos_version = 'Enter the ToS version.';
+  if (!v.dpa_version.trim()) e.dpa_version = 'Enter the DPA version.';
+  if (!v.accepted_by_name.trim()) e.accepted_by_name = 'Enter the name of the person who accepted.';
+  if (!v.accepted_by_title.trim()) e.accepted_by_title = 'Enter the title of the person who accepted.';
+  if (Number.isNaN(new Date(v.accepted_at).getTime())) e.accepted_at = 'Enter the date and time of acceptance.';
   return e;
 }
 
 const CHECKLIST = ['Tenant', 'First branch', 'First centre', 'Roles', 'Settings', 'Feature flags', 'IRD annex records', 'First administrator'];
 
 export function ProvisionForm() {
-  const [v, setV] = useState(EMPTY);
+  const [v, setV] = useState(() => ({ ...EMPTY, accepted_at: localNow() }));
   const [errors, setErrors] = useState<Errors>({});
   const [done, setDone] = useState<{ tenantId: string; code: string }>();
   const key = useRef(newKey());
@@ -45,12 +54,15 @@ export function ProvisionForm() {
       const e = validate(v);
       setErrors(e);
       if (Object.keys(e).length) return;
+      // one acceptor and one instant (UTC) for both documents; the operator types the versions
+      const acceptor = { accepted_by_name: v.accepted_by_name.trim(), accepted_by_title: v.accepted_by_title.trim(), accepted_at: new Date(v.accepted_at).toISOString() };
       const r = await provisionTenantAction({
         code: v.code, legal_name: v.legal_name.trim(), display_name: v.display_name.trim(),
         ...(v.pan ? { pan: v.pan } : {}), calendar_display: v.calendar_display,
         first_branch: { code: v.branch_code, name: v.branch_name.trim(), ...(v.branch_address.trim() ? { address_text: v.branch_address.trim() } : {}) },
         first_centre: { code: v.centre_code, name: v.centre_name.trim(), kind: v.centre_kind, ...(v.centre_address.trim() ? { address_text: v.centre_address.trim() } : {}) },
         first_admin: { email: v.admin_email.trim(), display_name: v.admin_name.trim() },
+        contract_acceptance: { tos: { ...acceptor, version: v.tos_version.trim() }, dpa: { ...acceptor, version: v.dpa_version.trim() } },
       }, key.current);
       if (r.ok) { setDone({ tenantId: r.data.tenant_id, code: r.data.code }); return; }
       if (r.code === 'identity.code_duplicate') setErrors({ code: errorText(r) });
@@ -103,6 +115,14 @@ export function ProvisionForm() {
         <legend><h2>First administrator</h2></legend>
         <TextInput label="Administrator email" type="email" value={v.admin_email} onChange={set('admin_email')} maxLength={254} error={errors.admin_email} required />
         <TextInput label="Administrator full name" value={v.admin_name} onChange={set('admin_name')} maxLength={120} error={errors.admin_name} required />
+      </fieldset>
+      <fieldset>
+        <legend><h2>Contract acceptance</h2></legend>
+        <TextInput label="ToS version" value={v.tos_version} onChange={set('tos_version')} maxLength={ACCEPT_MAX.version} error={errors.tos_version} required />
+        <TextInput label="DPA version" value={v.dpa_version} onChange={set('dpa_version')} maxLength={ACCEPT_MAX.version} error={errors.dpa_version} required />
+        <TextInput label="Accepted by (name)" value={v.accepted_by_name} onChange={set('accepted_by_name')} maxLength={ACCEPT_MAX.name} error={errors.accepted_by_name} required />
+        <TextInput label="Accepted by (title)" value={v.accepted_by_title} onChange={set('accepted_by_title')} maxLength={ACCEPT_MAX.title} error={errors.accepted_by_title} required />
+        <TextInput label="Accepted at" type="datetime-local" value={v.accepted_at} onChange={set('accepted_at')} error={errors.accepted_at} required hint="Your local time; sent as UTC. One acceptor and time for both documents." />
       </fieldset>
       <Alert>{errors.form}</Alert>
       <Button type="submit" variant="primary" isLoading={pending}>Provision tenant</Button>

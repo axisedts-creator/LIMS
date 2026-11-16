@@ -2,5 +2,6 @@
 import { bootstrap } from './core/bootstrap.js';
 import { loadConfig } from './core/config.js';
 
-const app = await bootstrap({ config: loadConfig(process.env) });
+// T0B-OPSDOC-1 (LD-277): readiness lists unset required LIMS_* names (names only).
+const app = await bootstrap({ config: loadConfig(process.env), env: process.env });
 await app.listen({ host: '0.0.0.0', port: 8080 });

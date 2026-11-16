@@ -1,0 +1,6 @@
+# T0B-SWEEP-2 dispute (debugger)
+Failing test: `test-sweep/__tests__/sweep2-artifacts.test.ts:47` "write and platform operations go past input validation: at most 10% stay SHALLOW" — 508 SHALLOW vs limit 61.
+Cause is NOT in sweep code: `services/api/src/core/openapi.ts:99-107` (`schemaController.compilersFactory.buildValidator`) makes Fastify treat the validator as custom, so `lowerCaseHeadersSchema` is skipped (fastify validation.js:290). Header schemas keep `required: ['If-Match']` while Node delivers `if-match`; every op requiring If-Match (324), Idempotency-Key (270) or X-Lims-* answers 400 `common.field_required` even when the header is sent.
+Spec: T0B-SWEEP-2 done_when (2) ("request passes input validation and reaches the service") + brief SAFETY ("no ... contract edit"; core is owned by C0-0D, not C0-0B per 01-CHUNK-MAP §3).
+Harness cannot send upper-case header keys (HTTP/inject lowercase them); a harness-side schema patch would hide a real BUG, which is what the sweep exists to find.
+Resolution: CR `.orchestra/cr/T0B-SWEEP-2.md` (to C0-0D, nonblocking) holds the exact fix. After it lands the test passes unchanged. Lead: accept CR, or relax the 10% threshold for this task and keep the SHALLOW rows listed.

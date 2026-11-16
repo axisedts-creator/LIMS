@@ -121,6 +121,8 @@ export async function bootPipeline(o: {
   const db = pool && createDb({
     pool, log, metrics, retryMax: config.txRetryMax, statementTimeoutMs: config.statementTimeoutMs, lockTimeoutMs: config.lockTimeoutMs,
     identityAuthOps: config.identityAuthOps, withTenantScopeOps: config.withTenantScopeOps,
+    // PLATFORM-WIRE-1 (LD-267): ctx.db.withTenantScope of a platform request uses the lazily read identity system actor (declared below).
+    scopeActorId: () => identityActor!(),
   });
 
   let rateLimiter: RateLimiter | undefined;

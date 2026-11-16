@@ -455,6 +455,32 @@ CREATE POLICY number_counters__update__tenant ON engagement.number_counters FOR 
 CREATE POLICY number_counters__delete__tenant ON engagement.number_counters FOR DELETE TO lims_app
   USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system())
          AND (SELECT app.current_actor_type()) = 'system' AND expires_at IS NOT NULL AND expires_at < now());
+-- T0B-CNTPOL-1 (migration 20261116030000), LD-232 item 3 (CR-C0-T0B-REVIEW-1-002): non-staff actors only on their own rate / booking keys; no device access
+CREATE POLICY number_counters__select__nonstaff_keys ON engagement.number_counters AS RESTRICTIVE FOR SELECT TO lims_app
+  USING ((SELECT app.current_actor_type()) IN ('user','system')
+         OR ((SELECT app.current_actor_type()) = 'patient' AND counter_key ~ '^(booking_no:[0-9]{2}|otp_day:[0-9]{8}|linkfail:[0-9a-f-]{36}:[0-9]{10})$'));
+CREATE POLICY number_counters__insert__nonstaff_keys ON engagement.number_counters AS RESTRICTIVE FOR INSERT TO lims_app
+  WITH CHECK ((SELECT app.current_actor_type()) IN ('user','system')
+         OR ((SELECT app.current_actor_type()) = 'patient' AND counter_key ~ '^(booking_no:[0-9]{2}|otp_day:[0-9]{8}|linkfail:[0-9a-f-]{36}:[0-9]{10})$'));
+CREATE POLICY number_counters__update__nonstaff_keys ON engagement.number_counters AS RESTRICTIVE FOR UPDATE TO lims_app
+  USING ((SELECT app.current_actor_type()) IN ('user','system')
+         OR ((SELECT app.current_actor_type()) = 'patient' AND counter_key ~ '^(booking_no:[0-9]{2}|otp_day:[0-9]{8}|linkfail:[0-9a-f-]{36}:[0-9]{10})$'))
+  WITH CHECK ((SELECT app.current_actor_type()) IN ('user','system')
+         OR ((SELECT app.current_actor_type()) = 'patient' AND counter_key ~ '^(booking_no:[0-9]{2}|otp_day:[0-9]{8}|linkfail:[0-9a-f-]{36}:[0-9]{10})$'));
+
+-- LD-257: a patient actor can never lower a counter (OTP cap, link failure limit); equal or higher is fine.
+CREATE FUNCTION engagement.guard_counter_decrease() RETURNS trigger
+LANGUAGE plpgsql SET search_path = '' AS $$
+DECLARE
+  v_actor text := app.current_actor_type();
+BEGIN
+  IF v_actor = 'patient' AND NEW.last_value < OLD.last_value THEN
+    RAISE EXCEPTION USING ERRCODE = 'P0001', MESSAGE = 'immutable_row', DETAIL = TG_TABLE_SCHEMA || '.' || TG_TABLE_NAME;
+  END IF;
+  RETURN NEW;
+END $$;
+CREATE TRIGGER number_counters__patient_no_decrease BEFORE UPDATE ON engagement.number_counters
+  FOR EACH ROW EXECUTE FUNCTION engagement.guard_counter_decrease();
 CREATE POLICY enquiries__select__tenant ON engagement.enquiries FOR SELECT TO lims_app
   USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()) AND (SELECT app.current_actor_type()) IN ('user','system'));
 CREATE POLICY enquiries__select__patient_account ON engagement.enquiries FOR SELECT TO lims_app

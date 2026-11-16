@@ -1,0 +1,6 @@
+# T0B-CNTPOL-1 dispute 2 (writer) - same parser defect, third suite the ruling missed
+- After the tester fix of T0B-05/T0B-06, tests/db/*.test.mjs = 1510/1548. Against a baseline with the migration removed and db/policies/engagement.sql at 424287871, exactly ONE failure is new: tests/db/T0B-10.C2.identity.test.mjs "core.tenants __platform policies (C2 §10.2) exist as DDL and in db/policies".
+- Cause: its parser at tests/db/T0B-10.C2.identity.test.mjs:75 scans every migration and needs `FOR <cmd>` right after `ON <table>`. It fails with `parsable policy: CREATE POLICY number_counters__select__nonstaff_keys ON engagement.number_counters AS RESTRICTIVE FOR SELECT T...`. This is the same defect as T0B-CNTPOL-1-ruling.md. The `AS RESTRICTIVE` text is required (CR Proposal :27/:30/:33, LD-257 (2)).
+- Fix (tester, tests/ only, same as the ruling): insert `(?:\s+AS\s+(?:PERMISSIVE|RESTRICTIVE))?` after `ON\s+([\w.]+)` in that regex. Other T0B-10/T0B-13 parsers have the same regex but do not fail now, because they parse only their own schema.
+- The other 37 failures are pre-existing (they are in the baseline too): stage order, gate 9, partners GRANT DELETE, role attributes, and so on.
+- Implementation unchanged. T0B-CNTPOL-1.static passes 17/17, and T0B-05/T0B-06 now fail only on their pre-existing identity checks.

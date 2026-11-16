@@ -4,6 +4,8 @@
 // 3. boots the REAL API (core/bootstrap + core/config, exactly what src/main.ts runs; app.inject instead of listen [CONV]),
 // 4. calls every operation of contracts/openapi once with a session of a kind allowed to call it, classifies, writes the notes,
 // 5. gate: exit 1 on a new defect or a known failure that now works. `--write-known` rewrites known-failures.json instead.
+// T0B-SWEEP-2 (LD-270): paced under the per-user bucket + 429 retry (pace.ts), schema-built bodies (request.ts), DEPTH + defect class
+// (classify.ts), handler stacks for the 500s, writes .orchestra/notes/T0B-SWEEP-2-results.{json,md} (summary.ts).
 // SAFETY: assertLocalDatabase() before any connection; only env set here is read; no cloud URL, no secret folder, no key in the repo.
 import { execFileSync, spawn } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
@@ -11,12 +13,17 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { classify } from './classify.js';
-import { evaluateGate, type KnownFailure } from './gate.js';
+import diagnostics from 'node:diagnostics_channel';
+import { setTimeout as sleep } from 'node:timers/promises';
+import { classify, defectClass } from './classify.js';
+import { evaluateGate, notExercisedOps, type KnownFailure } from './gate.js';
 import { failureDetail } from './detail.js';
-import { loadOperations, type Operation, type Param } from './ops.js';
+import { loadOperations, type Operation } from './ops.js';
+import { createPacer, withRateLimitRetry } from './pace.js';
+import { buildRequest } from './request.js';
 import { assertLocalDatabase } from './safety.js';
-import { createRunKey, createSessions, permissionSets, SESSION_KINDS, TENANT_A, type SessionKind } from './sessions.js';
+import { createRunKey, createSessions, permissionSets, SESSION_KINDS, SWEEP_PARTNER_ID, TENANT_A, type SessionKind } from './sessions.js';
+import { renderResults, type SweepRow } from './summary.js';
 
 const ROOT = resolve(import.meta.dirname, '..', '..', '..');
 const API = join(ROOT, 'services', 'api');
@@ -24,17 +31,12 @@ const KNOWN = join(API, 'test-sweep', 'known-failures.json');
 const NOTES = join(ROOT, '.orchestra', 'notes');
 const ISSUER = 'https://gotrue.lims.test/auth/v1', AUDIENCE = 'authenticated';
 const TIMEOUT_MS = 20_000;
-const SAMPLE_UUID = '0193a5c0-0000-7000-8000-0000000000ff';
 const FOUR: Record<string, string> = {
   listTenants: 'PLATFORM-WIRE-1 (LD-267)', listPlatformIrdAnnexes: 'PLATFORM-WIRE-1 (LD-267)',
   listPlatformSupportSessions: 'PLATFORM-WIRE-1 (LD-267)', listDeadLetters: 'PLATFORM-WIRE-1 (LD-267)',
 };
 const log = (s: string) => process.stderr.write(`[sweep] ${s}\n`);
 
-export interface Row {
-  module: string; operationId: string; method: string; path: string; sessionKind: SessionKind; auth: string; holdsPermission: boolean;
-  status: number; errorCode: string; verdict: 'WIRED' | 'DEFECT'; reason: string; rootCause: string; detail: string;
-}
 
 // ---------- 1. database ----------
 function startDb(): Promise<{ name: string; port: string; superPw: string; apiPw: string }> {
@@ -52,18 +54,6 @@ function startDb(): Promise<{ name: string; port: string; superPw: string; apiPw
   });
 }
 
-// ---------- 3. request building ----------
-function sample(schema: any, name: string): string {
-  if (schema?.example !== undefined) return String(schema.example);
-  if (Array.isArray(schema?.enum) && schema.enum.length) return String(schema.enum[0]);
-  if (schema?.format === 'uuid' || /(_id|Id)$/.test(name)) return SAMPLE_UUID;
-  if (schema?.type === 'integer' || schema?.type === 'number') return String(schema.minimum ?? 1);
-  if (schema?.type === 'boolean') return 'true';
-  if (schema?.format === 'date') return '2026-11-16';
-  if (schema?.format === 'date-time') return '2026-11-16T00:00:00.000Z';
-  return 'sweep';
-}
-
 /** The kind the sweep calls with, and whether that kind holds x-permission (classifier input). */
 function pickKind(op: Operation, perms: Record<SessionKind, Set<string>>): { kind: SessionKind; holds: boolean } {
   const has = (k: SessionKind) => !op.permission || perms[k].has(op.permission);
@@ -77,34 +67,15 @@ function pickKind(op: Operation, perms: Record<SessionKind, Set<string>>): { kin
   return { kind: 'tenant_corp_admin', holds: false };
 }
 
-function buildRequest(op: Operation, token: string | undefined) {
-  let url = op.path.replace(/\{([^}]+)\}/g, (_, n: string) => {
-    const p = op.params.find((x: Param) => x.in === 'path' && x.name === n);
-    return encodeURIComponent(sample(p?.schema, n));
-  });
-  const qs = op.params.filter((p) => p.in === 'query' && p.required).map((p) => `${encodeURIComponent(p.name)}=${encodeURIComponent(sample(p.schema, p.name))}`);
-  if (qs.length) url += `?${qs.join('&')}`;
-  const headers: Record<string, string> = { 'user-agent': 'lims-sweep/1' };
-  for (const p of op.params.filter((x) => x.in === 'header' && x.required)) headers[p.name.toLowerCase()] = sample(p.schema, p.name);
-  if (op.idempotency && op.idempotency !== 'none') headers['idempotency-key'] = `sweep-${Math.random().toString(36).slice(2, 14)}`;
-  if (headers['if-match'] !== undefined) headers['if-match'] = '"1"';
-  if (token) headers.authorization = `Bearer ${token}`;
-  let payload: string | undefined;
-  if (op.hasBody) {
-    const t = op.bodyType ?? 'application/json';
-    if (t.includes('json')) { headers['content-type'] = 'application/json'; payload = '{}'; }
-    else if (t.startsWith('multipart/')) { headers['content-type'] = 'multipart/form-data; boundary=sweep'; payload = '--sweep--\r\n'; }
-    else { headers['content-type'] = t; payload = ''; }
-  }
-  return { method: op.method.toUpperCase(), url, headers, payload };
-}
-
 // ---------- root-cause guess (for the lead's fix queue) ----------
 function rootCause(status: number, code: string, detail: string, reason: string): string {
   if (reason === 'unmatched route') return 'route not mounted';
   if (reason === 'timeout') return 'timeout / hang';
   if (code === 'partners.partner_inactive') return 'harness fixture gap: no partners.partners/partner_users row for the seeded partner membership';
   if (status === 401 || status === 403) return `auth: ${code || status}`;
+  // T0B-SWEEP-2: a captured stack names the throw site; group by it (first frame under src/)
+  const site = /\(file:\/\/\/(services\/api\/src\/[^):]+\.ts):(\d+)/.exec(detail);
+  if (site) return `${status} thrown at ${site[1]}:${site[2]}${site[1].endsWith('authz-guard.ts') ? ' (2xx without assertRole)' : ''}`;
   const d = detail.toLowerCase();
   if (/not wired|unwired|no .*port/.test(d)) return '500: port or service not wired';
   if (/permission denied|42501|row-level security/.test(d)) return '500: DB grant / RLS (42501)';
@@ -115,26 +86,30 @@ function rootCause(status: number, code: string, detail: string, reason: string)
   return `500: other (${code || 'no code'})`;
 }
 
-const cell = (s: string) => s.replace(/\|/g, '\\|').replace(/\s+/g, ' ').slice(0, 220);
+/** Message + the first frames under the repo, paths repo-relative (synthetic DB only; in-memory until written to the notes). */
+function trimStack(e: unknown): string {
+  const s = String((e as Error)?.stack ?? e).replace(/\\/g, '/').split(ROOT.replace(/\\/g, '/') + '/').join('');
+  const [head, ...frames] = s.split('\n');
+  return [head!.slice(0, 300), ...frames.filter((f) => /services\/|packages\//.test(f) && !/node_modules/.test(f)).slice(0, 6).map((f) => f.trim())].join(' / ');
+}
 
-function writeNotes(rows: Row[], meta: Record<string, unknown>): void {
-  writeFileSync(join(NOTES, 'T0B-SWEEP-1-results.json'), JSON.stringify({ meta, rows }, null, 1) + '\n');
-  const out: string[] = ['# T0B-SWEEP-1 results (generated by `pnpm --filter @lims/api sweep`; do not edit)', '',
-    `Run: ${meta.at}. Operations: ${rows.length}. WIRED: ${rows.filter((r) => r.verdict === 'WIRED').length}. DEFECT: ${rows.filter((r) => r.verdict === 'DEFECT').length}.`,
-    'Classification (LD-269): 2xx/400/404/409/422 WIRED; 401/403 with a session holding the permission, any 5xx, timeout, unmatched = DEFECT.',
-    'auth `none:<scheme>` = no credential of that scheme is minted by the harness (only bearerJwt is), so 401 there is an expected denial.', ''];
-  for (const m of [...new Set(rows.map((r) => r.module))]) {
-    const rs = rows.filter((r) => r.module === m);
-    out.push(`## ${m} (${rs.filter((r) => r.verdict === 'DEFECT').length} defects / ${rs.length})`, '',
-      '| operation | session kind | status | error_code | verdict | detail |', '|---|---|---|---|---|---|');
-    for (const r of rs) out.push(`| ${r.operationId} | ${r.sessionKind}${r.auth === 'bearer' ? '' : ` (${r.auth})`} | ${r.status} | ${r.errorCode || '-'} | ${r.verdict} | ${cell(r.verdict === 'DEFECT' ? r.detail || r.reason : r.reason)} |`);
-    out.push('');
+// LD-270 done_when 4: stack-level explanation of the two SWEEP-1 500s (the stack comes from fastify's handler error channel).
+// The "why" is the writer's reading of the throw site in this run's stack (T0B-SWEEP-2 impl note); the stack itself is live.
+const WHY: Record<string, string> = {
+  verifyProviderCallback: 'callbacks.service.ts:37 fails closed on `!ctx.tx`: the public callback operation reaches the service with no transaction on its ctx (the handler expects an anonymous ctx.tx, callbacks.handlers.ts:1), so the pipeline/handler wiring of public operations does not supply one. BUG.',
+  listDeadLetters: 'authz-guard.ts:48 throws common.internal (non-production) because the operation returned 2xx without calling assertRole: the dead-letter path (dead-letter.http.ts / dead-letter.service.ts) never asserts the platform role, so the guard rejects the response. BUG (same family as PLATFORM-WIRE-1).',
+};
+const EXPLAIN = Object.keys(WHY);
+function stackSection(rows: SweepRow[], stacks: Map<string, string>): string {
+  const out = ['## Stack-level explanation', '',
+    'Captured from `tracing:fastify.request.handler:error` (node:diagnostics_channel) for this run; sendProblem logs name + code only (errors.ts:129).', ''];
+  for (const op of EXPLAIN) {
+    const r = rows.find((x) => x.operationId === op);
+    const st = r ? stacks.get(r.operationId) : undefined;
+    out.push(`- **${op}** (${r ? `${r.status} ${r.errorCode || '-'}` : 'not in this run'}): ${WHY[op]}`,
+      `  stack: ${st ? `\`${st.replace(/`/g, "'")}\`` : `no handler-stage error published; detail: ${r?.detail || '-'}`}`);
   }
-  const by = new Map<string, number>();
-  for (const r of rows.filter((x) => x.verdict === 'DEFECT')) by.set(r.rootCause, (by.get(r.rootCause) ?? 0) + 1);
-  out.push('## Defect count by root-cause guess', '', '| root cause (guess) | defects |', '|---|---|',
-    ...[...by.entries()].sort((a, b) => b[1] - a[1]).map(([k, v]) => `| ${cell(k)} | ${v} |`), '');
-  writeFileSync(join(NOTES, 'T0B-SWEEP-1-results.md'), out.join('\n'));
+  return out.join('\n');
 }
 
 // ---------- main ----------
@@ -179,39 +154,66 @@ async function main(): Promise<number> {
     const logStream = { write(line: string) {
       try { const o = JSON.parse(line); const id = o.request_id; if (id) { const a = logs.get(id) ?? []; a.push(line); logs.set(id, a); } } catch { /* not JSON */ }
     } };
+    // handler-stage throws (with stack) by request id; the shared error handler logs no stack (errors.ts:129)
+    const stacksByRid = new Map<string, string>();
+    const onHandlerError = (m: any) => { const id = m?.request?.id; if (id && m.error) stacksByRid.set(String(id), trimStack(m.error)); };
+    diagnostics.subscribe('tracing:fastify.request.handler:error', onHandlerError);
     log('booting the real API (all modules)...');
     app = await bootstrap({ config: loadConfig(process.env), logStream });
 
-    const rows: Row[] = [];
+    // LD-270 done_when 1: `u:` is 10/s burst 20 per subject, hard-coded (ratelimit/index.ts:41), so pace each session under it.
+    const pacer = createPacer({ ratePerSecond: 9, burst: 18, now: Date.now, sleep });
+    // seeded row ids (seed 010 + sessions.ts) by parameter / property name; anything else gets a placeholder (a 404 is DEEP)
+    const ids: Record<string, string> = { tenant_id: TENANT_A, partner_id: SWEEP_PARTNER_ID };
+    const rows: SweepRow[] = [];
+    const stacks = new Map<string, string>();
     for (const op of ops) {
       if (rows.length % 100 === 0) log(`${rows.length}/${ops.length}...`);
       const { kind, holds: holdsPerm } = pickKind(op, perms);
       const bearer = op.security.includes('bearerJwt');
       const auth = bearer ? 'bearer' : op.security.length ? `none:${op.security.join('+')}` : 'public';
       const holds = bearer && holdsPerm;
-      const req = buildRequest(op, bearer ? tokens[kind] : undefined);
-      const matched = app.hasRoute({ method: req.method, url: op.path.replace(/\{([^}]+)\}/g, ':$1') });
-      let status = 0, body: any = {}, timedOut = false, rid = '';
+      const matched = app.hasRoute({ method: op.method.toUpperCase(), url: op.path.replace(/\{([^}]+)\}/g, ':$1') });
+      let status = 0, body: any = {}, timedOut = false, harnessError = false, rid = '';
       try {
-        const res: any = await Promise.race([app.inject(req), new Promise((_, no) => setTimeout(() => no(new Error('timeout')), TIMEOUT_MS))]);
+        const send = async () => {
+          await pacer.acquire(bearer ? kind : 'anonymous');
+          const req = buildRequest(op, bearer ? tokens[kind] : undefined, ids);
+          return await Promise.race([app.inject(req), new Promise<never>((_, no) => setTimeout(() => no(new Error('timeout')), TIMEOUT_MS))]) as any;
+        };
+        // an hour-window tier (login, OTP) would need > 15 s: left 429, reported NOT EXERCISED
+        const { res } = await withRateLimitRetry(send, { sleep, maxWaitMs: 15_000 });
         status = res.statusCode;
         try { body = res.json(); } catch { body = {}; }
         rid = String(res.headers['x-request-id'] ?? body?.request_id ?? '');
-      } catch (e) { timedOut = (e as Error).message === 'timeout'; if (!timedOut) body = { code: 'inject_error', detail: String(e) }; }
-      const c = classify({ status, timedOut, matched, holdsPermission: holds });
+      } catch (e) {
+        timedOut = (e as Error).message === 'timeout';
+        if (!timedOut) { harnessError = true; body = { code: 'inject_error', detail: String(e) }; }
+      }
       const code = String(body?.code ?? '');
-      const detail = failureDetail(logs.get(rid) ?? [], [body?.detail, body?.title, code].filter(Boolean).join(' '));
+      const c = classify({ status, timedOut, matched, holdsPermission: holds, errorCode: code, harnessError });
+      const stack = stacksByRid.get(rid);
+      if (stack) stacks.set(op.operationId, stack);
+      const fields = Array.isArray(body?.errors) ? body.errors.slice(0, 4).map((f: any) => `${f.path ?? '?'} ${f.code ?? ''}`.trim()).join('; ') : '';
+      const fallback = [body?.detail, body?.title, code, fields].filter(Boolean).join(' ');
+      const detail = c.depth === 'SHALLOW' ? (fields || fallback || 'common.validation_failed (no errors[])') : stack ?? failureDetail(logs.get(rid) ?? [], fallback);
+      const defect = c.verdict === 'DEFECT';
       rows.push({ module: op.module, operationId: op.operationId, method: op.method, path: op.path, sessionKind: kind, auth, holdsPermission: holds,
-        status, errorCode: code, verdict: c.verdict, reason: c.reason, rootCause: c.verdict === 'DEFECT' ? rootCause(status, code, detail, c.reason) : '', detail });
+        status, errorCode: code, verdict: c.verdict, depth: c.depth, reason: c.reason,
+        rootCause: defect ? rootCause(status, code, detail, c.reason) : '',
+        defectClass: defect ? defectClass({ status, errorCode: code, detail, reason: c.reason }) : '', detail: defect || c.depth === 'SHALLOW' ? detail || c.reason : detail });
     }
-    writeNotes(rows, { at: new Date().toISOString(), operations: ops.length, sessionKinds: SESSION_KINDS });
+    diagnostics.unsubscribe('tracing:fastify.request.handler:error', onHandlerError);
+    const meta = { at: new Date().toISOString(), operations: ops.length, sessionKinds: SESSION_KINDS };
+    writeFileSync(join(NOTES, 'T0B-SWEEP-2-results.json'), JSON.stringify({ meta, rows }, null, 1) + '\n');
+    writeFileSync(join(NOTES, 'T0B-SWEEP-2-results.md'), renderResults(rows, { at: meta.at, sections: [stackSection(rows, stacks)] }));
 
     const defects = rows.filter((r) => r.verdict === 'DEFECT');
-    log(`done: ${rows.length} operations, ${defects.length} defects`);
+    const ne = notExercisedOps(rows);
+    log(`done: ${rows.length} operations, ${defects.length} defects, ${ne.length} NOT EXERCISED${ne.length ? `: ${ne.slice(0, 20).join(', ')}` : ''}`);
     if (writeKnown) {
-      const known: KnownFailure[] = defects.map((r) => ({ operation: r.operationId, status: r.status, ref: FOUR[r.operationId] ?? (r.rootCause.startsWith('harness fixture gap')
-        ? 'T0B-SWEEP-1 fixture gap: seed has no partners.partners/partner_users row for the partner membership (not a code defect)'
-        : `T0B-SWEEP-1 (unqueued: ${r.rootCause})`) }));
+      const known: KnownFailure[] = defects.map((r) => ({ operation: r.operationId, status: r.status, class: r.defectClass as KnownFailure['class'],
+        ref: FOUR[r.operationId] ?? `T0B-SWEEP-2 ${r.defectClass} (unqueued: ${r.rootCause})` }));
       writeFileSync(KNOWN, JSON.stringify(known, null, 1) + '\n');
       log(`wrote ${known.length} known failures`);
       return 0;

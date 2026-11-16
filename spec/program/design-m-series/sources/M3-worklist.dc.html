@@ -1,0 +1,431 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Metro brand lab worklist</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap">
+<style>
+:root{--lime:#A0C032;--lime-soft:#ECF3D7;--green:#005A52;--forest:#014D3C;--ink:#0A1A17;--muted:#5C6A66;--bg:#F3F3F3;--line:#ECECEC}
+body{margin:0;font-family:'Poppins',system-ui,sans-serif;color:var(--ink);background:var(--bg)}
+a{color:var(--green)}a:hover{color:var(--forest)}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes slide{from{opacity:0;transform:translateX(24px)}to{opacity:1;transform:none}}
+@keyframes bar{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(217,138,0,.55)}50%{box-shadow:0 0 0 8px rgba(217,138,0,0)}}
+.rise{animation:rise .45s cubic-bezier(.2,.7,.2,1) both}
+.slide{animation:slide .5s cubic-bezier(.2,.7,.2,1) both}
+.fill{display:block;height:100%;border-radius:999px;transform-origin:left;animation:bar 1s cubic-bezier(.2,.7,.2,1) .2s both}
+.pulse{animation:pulse 2s ease-out infinite}
+.nav{display:flex;align-items:center;gap:12px;min-height:46px;padding:0 16px;border-radius:999px;color:#fff;text-decoration:none;font-size:14px;font-weight:500}
+.nav:hover{background:rgba(255,255,255,.10);color:#fff}
+.nav.on:hover{color:#00362F}
+.nav.on{background:#A0C032;color:#00362F;font-weight:600}
+.nav:focus-visible,.ibtn:focus-visible,.btn:focus-visible,.link:focus-visible,.stage:focus-visible,.ghd:focus-visible,.seg:focus-visible{outline:3px solid #E4F239;outline-offset:2px}
+.badge{margin-left:auto;background:rgba(255,255,255,.18);color:#fff;border-radius:999px;font-size:12px;font-weight:600;padding:2px 9px}
+.nav.on .badge{background:#005A52}
+.nav.grp{color:#CFE3DF;padding-right:10px}
+.nav.grp:hover{color:#fff}
+.subhead{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#A9C9C2;padding:14px 16px 4px}
+.nav .lbl{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tagv{margin-left:auto;font-size:11px;font-weight:600;color:#CFE3DF;border:1px solid #8FB8B0;border-radius:999px;padding:1px 8px;white-space:nowrap}
+.plus{margin-left:auto;width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.16);display:grid;place-items:center;flex:none}
+.nav.on .plus{background:#005A52;color:#fff}
+.sfield{width:100%;box-sizing:border-box;height:46px;border:1.5px solid #8FB8B0;border-radius:999px;background:rgba(255,255,255,.08);color:#fff;font:500 14px 'Poppins',system-ui,sans-serif;padding:0 16px 0 42px}
+.sfield::placeholder{color:#CFE3DF}
+.sfield:focus-visible{outline:3px solid #E4F239;outline-offset:2px}
+.navscroll{scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.3) transparent}
+.navscroll::-webkit-scrollbar{width:8px}.navscroll::-webkit-scrollbar-thumb{background:rgba(255,255,255,.28);border-radius:8px}
+.grpmeta{margin-left:auto;display:flex;align-items:center;gap:6px;flex:none}
+.grpcount{background:rgba(255,255,255,.14);color:#CFE3DF;border-radius:999px;font-size:11px;font-weight:600;padding:2px 8px;line-height:1.6;min-width:24px;box-sizing:border-box;text-align:center}
+.chev{opacity:.55;flex:none}
+.card{background:#fff;border-radius:24px}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:5px 12px;border-radius:999px;white-space:nowrap}
+.chip.ok{background:#E4F4DE;color:#14612F}.chip.trial{background:#E3EEFB;color:#1A4F8B}.chip.warn{background:#FFF1D0;color:#7A4B00}.chip.bad{background:#FDE7E4;color:#9C1C12}.chip.neutral{background:#EEF0EC;color:#46524E}.chip.cnt{background:#EEF0EC;color:var(--ink)}
+.stat{background:#B3261E;color:#fff}
+.ibtn{width:44px;height:44px;border:0;border-radius:50%;background:transparent;display:grid;place-items:center;color:var(--ink);cursor:pointer}
+.ibtn:hover{background:#EEF1E6}
+.btn{min-height:46px;padding:0 22px;border:0;border-radius:999px;background:var(--green);color:#fff;font:600 14px 'Poppins',system-ui,sans-serif;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
+.btn:hover{background:var(--forest)}
+.btn.lime{background:#A0C032;color:#00362F}
+.btn.ghost{background:transparent;color:var(--green);box-shadow:inset 0 0 0 2px var(--green)}.btn.ghost:hover{background:var(--lime-soft)}
+.stage{text-align:left;font:inherit;color:inherit;cursor:pointer;border:0;background:#fff;border-radius:24px;padding:18px 22px;display:flex;flex-direction:column;gap:8px;box-shadow:inset 0 0 0 2px transparent}
+.stage:hover{box-shadow:inset 0 0 0 2px #CFE0A0}
+.stage.on{box-shadow:inset 0 0 0 2px var(--green)}
+.ghd{display:flex;align-items:center;gap:12px;min-height:58px;padding:0 20px;border:0;border-top:1px solid var(--line);background:#FAFBF7;width:100%;font:inherit;color:inherit;cursor:pointer;text-align:left}
+.ghd:hover{background:#F3F6EA}
+.row{display:grid;grid-template-columns:36px 1fr 1.4fr 1.6fr .9fr 1.3fr;align-items:center;gap:12px;padding:0 20px;min-height:68px;border-top:1px solid var(--line);border-left:4px solid transparent}
+.row:hover{background:#FAFBF7}
+.row.sel{background:var(--lime-soft);border-left-color:var(--green)}
+.seg{display:inline-flex;align-items:center;min-height:40px;padding:0 16px;border-radius:999px;border:0;background:transparent;color:var(--muted);font:500 14px 'Poppins',system-ui,sans-serif;cursor:pointer}
+.seg.on{background:var(--green);color:#fff;font-weight:600}
+.res{display:grid;grid-template-columns:1.5fr .9fr .8fr 1fr 48px;align-items:center;gap:10px;min-height:54px;border-top:1px solid var(--line)}
+.val{display:inline-flex;align-items:center;height:36px;padding:0 12px;border-radius:12px;background:#F3F3F3;font:600 15px 'Poppins',sans-serif}
+.field{height:46px;box-sizing:border-box;border:1.5px solid #D3D8D0;border-radius:999px;padding:0 18px;font:500 14px 'Poppins',system-ui,sans-serif;background:#fff;color:var(--ink);min-width:0}
+.field::placeholder{color:#6F7B77}
+@media (prefers-reduced-motion:reduce){.rise,.slide,.fill,.pulse{animation:none}}
+</style>
+</helmet>
+<div style="display:flex;flex-wrap:wrap;min-height:1060px;background:var(--bg)">
+
+  <aside class="side" style="flex:0 0 296px;box-sizing:border-box;background:var(--green);color:#fff;padding:24px 16px 16px;display:flex;flex-direction:column;gap:16px;height:100vh;position:sticky;top:0;align-self:flex-start">
+    <div style="display:flex;align-items:center;gap:12px;padding:0 8px;flex:none">
+      <img src="/_blob/fc5dceab92f2145d47d609e2807f0f99" alt="Metro Labs" style="height:40px;width:auto">
+      <div style="display:flex;flex-direction:column"><span style="font-weight:700;font-size:18px;letter-spacing:-.02em">Metro LIMS</span><span style="font-size:12px;color:#CFE3DF">Kathmandu Central Lab</span></div>
+    </div>
+    <label class="sfield-wrap" style="flex:none;position:relative;display:block">
+      <svg style="position:absolute;left:14px;top:13px;color:#CFE3DF" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM21 21l-4.300-4.300"/></svg>
+      <input class="sfield" type="text" autocomplete="off" value="{{q}}" onInput="{{onSearch}}" placeholder="Find a screen" aria-label="Find a screen">
+    </label>
+    <nav class="navscroll" aria-label="Lab" style="flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;display:flex;flex-direction:column;gap:2px;margin:0 -8px;padding:0 8px">
+      <sc-if value="{{noMatch}}" hint-placeholder-val="{{ false }}"><div style="padding:16px;font-size:14px;color:#CFE3DF">No screen matches this search.</div></sc-if>
+      <sc-for list="{{groups}}" as="g" hint-placeholder-count="13">
+        <div data-grp="{{g.label}}" style="display:flex;flex-direction:column;gap:2px;scroll-margin-top:4px">
+          <sc-if value="{{g.expanded}}" hint-placeholder-val="{{ true }}">
+            <div style="font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:#CFE3DF;padding:10px 16px 8px;display:flex;justify-content:space-between"><span>{{g.label}}</span><span style="opacity:.7">{{g.total}}</span></div>
+            <sc-for list="{{g.items}}" as="n" hint-placeholder-count="4">
+              <sc-if value="{{n.isHead}}" hint-placeholder-val="{{ false }}"><div class="subhead">{{n.label}}</div></sc-if>
+              <sc-if value="{{n.isItem}}" hint-placeholder-val="{{ true }}">
+                <a href="#" class="nav {{n.cls}}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{n.d}}"/></svg><span class="lbl">{{n.label}}</span><sc-if value="{{n.badge}}" hint-placeholder-val="{{ false }}"><span class="badge">{{n.badge}}</span></sc-if><sc-if value="{{n.tag}}" hint-placeholder-val="{{ false }}"><span class="tagv">{{n.tag}}</span></sc-if><sc-if value="{{n.add}}" hint-placeholder-val="{{ false }}"><span class="plus" title="{{n.add}}" aria-label="{{n.add}}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></span></sc-if></a>
+              </sc-if>
+            </sc-for>
+          </sc-if>
+          <sc-if value="{{g.collapsed}}" hint-placeholder-val="{{ false }}">
+            <a href="#" class="nav grp" onClick="{{g.toggle}}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{g.icon}}"/></svg><span>{{g.label}}</span><span class="grpmeta"><span class="grpcount">{{g.total}}</span><svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></span></a>
+          </sc-if>
+        </div>
+      </sc-for>
+    </nav>
+    <div style="flex:none;display:flex;align-items:center;gap:12px;padding:12px;border-radius:20px;background:rgba(255,255,255,.10)">
+      <span style="width:40px;height:40px;border-radius:50%;background:#A0C032;color:#00362F;display:grid;place-items:center;font-weight:700;font-size:14px">AD</span>
+      <div style="display:flex;flex-direction:column;min-width:0"><span style="font-weight:600;font-size:14px">Lab administrator</span><span style="font-size:12px;color:#CFE3DF">Every screen, all branches</span></div>
+    </div>
+  </aside>
+
+  <main style="flex:999 1 560px;min-width:0;display:flex;flex-direction:column">
+    <header style="display:flex;flex-wrap:wrap;align-items:center;gap:16px;min-height:76px;padding:0 32px;background:#fff">
+      <div style="display:flex;align-items:center;gap:8px;font-size:14px;color:var(--muted)"><span>Lab</span><span aria-hidden="true">/</span><span style="color:var(--ink);font-weight:600">Worklist</span></div>
+      <button class="btn ghost" style="margin-left:auto">Kathmandu Central, Main branch<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.400" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
+      <button class="ibtn" aria-label="Notifications"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.700 21a2 2 0 0 1-3.400 0"/></svg></button>
+    </header>
+
+    <div style="padding:28px 32px 40px;display:flex;flex-direction:column;gap:20px">
+      <div style="display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px">
+        <div style="display:flex;flex-direction:column;gap:6px"><h1 style="margin:0;font-weight:700;font-size:32px;line-height:1.15;letter-spacing:-.03em;color:var(--forest)">Worklist</h1><p style="margin:0;font-size:15px;color:var(--muted)">What each sample needs next, grouped so the bottleneck is obvious.</p></div>
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap"><span class="chip trial">Sample data</span><button class="btn ghost">Print labels</button><button class="btn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M7 12h10"/></svg>Scan accession</button></div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px">
+        <sc-for list="{{stages}}" as="s" hint-placeholder-count="4">
+          <button class="stage rise {{s.cls}}" style="animation-delay:{{s.delay}}">
+            <span style="display:flex;align-items:center;gap:10px;font-size:14px;font-weight:500;color:var(--muted)"><span style="width:12px;height:12px;border-radius:50%;background:{{s.c}}"></span>{{s.label}}</span>
+            <span style="font-size:36px;line-height:1;font-weight:700;letter-spacing:-.03em">{{s.n}}</span>
+            <span style="display:block;height:6px;border-radius:999px;background:#EEF0EC;overflow:hidden"><span class="fill" style="width:{{s.pct}};background:{{s.c}}"></span></span>
+          </button>
+        </sc-for>
+      </div>
+
+      <div style="display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start">
+        <section class="card" style="flex:1 1 600px;min-width:0;overflow:hidden">
+          <div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:18px 20px">
+            <input class="field" aria-label="Filter" placeholder="Filter by accession, patient or test" style="flex:1 1 240px;max-width:340px">
+            <button class="btn ghost">Department: all</button><button class="btn ghost">Priority: all</button>
+          </div>
+          <div style="overflow-x:auto"><div role="table" aria-label="Worklist" style="min-width:660px">
+            <sc-for list="{{groups2}}" as="g" hint-placeholder-count="3">
+              <div role="rowgroup">
+                <button class="ghd" aria-expanded="{{g.expanded}}">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.400" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="transform:{{g.rot}};flex:none"><path d="m9 6 6 6-6 6"/></svg>
+                  <span style="width:12px;height:12px;border-radius:50%;background:{{g.c}};flex:none"></span>
+                  <span style="font-weight:600;font-size:16px">{{g.title}}</span><span class="chip cnt">{{g.n}}</span>
+                  <span style="flex:1"></span>
+                  <sc-if value="{{g.action}}" hint-placeholder-val="{{ false }}"><span class="btn lime" style="min-height:38px;padding:0 16px;font-size:13px">{{g.action}}</span></sc-if>
+                </button>
+                <sc-if value="{{g.open}}" hint-placeholder-val="{{ true }}">
+                  <div>
+                    <sc-for list="{{g.rows}}" as="r" hint-placeholder-count="3">
+                      <div role="row" class="row {{r.sel}}">
+                        <span role="cell"><input type="checkbox" aria-label="Select sample" style="width:20px;height:20px;accent-color:#005A52"></span>
+                        <span role="cell" style="font-weight:600;font-size:13px">{{r.acc}}</span>
+                        <span role="cell" style="display:flex;flex-direction:column"><span style="font-weight:600;font-size:14px">{{r.name}}</span><span style="font-size:12px;color:var(--muted)">{{r.meta}}</span></span>
+                        <span role="cell" style="font-size:13px;color:#33423E">{{r.tests}}</span>
+                        <span role="cell"><span class="chip {{r.pcls}}">{{r.priority}}</span></span>
+                        <span role="cell" style="display:flex;flex-direction:column;gap:6px"><span style="display:block;height:5px;border-radius:999px;background:#EEF0EC;overflow:hidden"><span class="fill" style="width:{{r.pct}};background:{{r.bar}}"></span></span><span style="font-size:12px;font-weight:600;white-space:nowrap;color:{{r.dcolor}}">{{r.due}}</span></span>
+                      </div>
+                    </sc-for>
+                  </div>
+                </sc-if>
+              </div>
+            </sc-for>
+          </div></div>
+        </section>
+
+        <aside class="card slide" style="flex:0 0 400px;max-width:100%;box-sizing:border-box;padding:24px;display:flex;flex-direction:column;gap:16px" aria-label="Selected sample">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
+            <div style="display:flex;flex-direction:column;gap:4px"><span style="font-size:22px;font-weight:700;letter-spacing:-.02em;color:var(--forest)">LAB-001843</span><span style="font-size:15px;color:var(--muted)">Ram Thapa, 52 y, male</span></div>
+            <button class="ibtn" aria-label="Close panel"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap"><span class="chip warn">Needs verification</span><span class="chip neutral">Routine</span><span class="chip trial">Biochemistry 1</span></div>
+          <div style="font-size:13px;color:var(--muted);line-height:1.7">Collected 08:12, received 08:40<br>Entered by Sunita K. at 10:05</div>
+          <div role="tablist" style="display:flex;gap:4px;background:#F3F3F3;border-radius:999px;padding:4px;align-self:flex-start"><button role="tab" class="seg on">Results</button><button role="tab" class="seg">History</button><button role="tab" class="seg">Audit</button></div>
+          <div>
+            <div class="res" style="min-height:34px;border-top:0;font-size:11px;font-weight:600;letter-spacing:.06em;color:var(--muted);text-transform:uppercase"><span>Test</span><span>Result</span><span>Unit</span><span>Reference</span><span>Flag</span></div>
+            <sc-for list="{{results}}" as="x" hint-placeholder-count="5">
+              <div class="res"><span style="font-size:14px;font-weight:500">{{x.test}}</span><span class="val">{{x.v}}</span><span style="font-size:12px;color:var(--muted)">{{x.u}}</span><span style="font-size:12px;color:#33423E">{{x.ref}}</span><span class="chip {{x.cls}}" style="justify-content:center;padding:5px 0">{{x.f}}</span></div>
+            </sc-for>
+          </div>
+          <div class="pulse" style="background:#FFF1D0;border-radius:18px;padding:14px 16px;display:flex;gap:12px;align-items:flex-start"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#7A4B00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none;margin-top:1px"><path d="M12 3 2 21h20zM12 10v5M12 18h.01"/></svg><span style="font-size:13px;line-height:1.55;color:#5E3A00">Delta check: HbA1c is higher than the previous result on file. Review before verifying.</span></div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn ghost" style="flex:1;justify-content:center">Save draft</button><button class="btn" style="flex:2;justify-content:center">Verify results</button></div>
+        </aside>
+      </div>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1060}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { open: 'Laboratory', q: '' };
+  }
+  renderVals() {
+    const CLIP = 'M9 4h6v3H9zM7 5H5a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1h-2M8 12h8M8 16h5';
+    const FLASK = 'M9 3h6M10 3v6L4.500 19a1.500 1.500 0 0 0 1.300 2.200h12.400A1.500 1.500 0 0 0 19.500 19L14 9V3M7.500 15h9';
+    const EDIT = 'M4 20h4L19 9a2.800 2.800 0 0 0-4-4L4 16zM13.500 6.500l4 4';
+    const CHECK = 'M22 11.100V12a10 10 0 1 1-5.900-9.100M22 4 12 14l-3-3';
+    const FILE = 'M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8zM14 3v5h5M9 13h6M9 17h6';
+    const ACT = 'M22 12h-4l-3 9L9 3l-3 9H2';
+    const CPU = 'M7 7h10v10H7zM9 3v4M15 3v4M9 17v4M15 17v4M3 9h4M3 15h4M17 9h4M17 15h4';
+    const BOOK = 'M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2zM4 21V5M9 7h6';
+    const SLID = 'M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0M14 4v4M8 10v4M16 16v4';
+    const USERP = 'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 1 0 8zM19 8v6M22 11h-6';
+    const UGROUP = 'M17 21v-2a4 4 0 0 0-3-3.870M13 7.130a4 4 0 0 1 0 7.750M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z';
+    const BAR = 'M4 20V10M12 20V4M20 20v-7M3 20h18';
+    const COIN = 'M12 8c-3 0-5 1-5 2.500S9 13 12 13s5-1 5-2.500S15 8 12 8zM7 10.500V15c0 1.500 2 2.500 5 2.500s5-1 5-2.500v-4.500';
+    const BOXI = 'M21 8 12 3 3 8v8l9 5 9-5zM3 8l9 5 9-5M12 13v8';
+    const SHLD = 'M12 3 4 6v6c0 5 3.500 8.500 8 9 4.500-.500 8-4 8-9V6zM9 12l2 2 4-4';
+    const CHAT = 'M21 11.500a8.380 8.380 0 0 1-.900 3.800 8.500 8.500 0 0 1-7.600 4.700 8.380 8.380 0 0 1-3.800-.900L3 21l1.900-5.700a8.380 8.380 0 0 1-.900-3.800 8.500 8.500 0 0 1 4.700-7.600 8.380 8.380 0 0 1 3.800-.900h.500a8.480 8.480 0 0 1 8 8v.500z';
+    const HOME = 'M3 10.500 12 3l9 7.500V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z';
+    const WARN = 'M12 9v4M12 17h.010M10.300 3.900 1.800 18a2 2 0 0 0 1.700 3h17a2 2 0 0 0 1.700-3L13.700 3.900a2 2 0 0 0-3.400 0z';
+    const TRUCK = 'M1 6h13v11H1zM14 10h4l3 3v4h-7zM6 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM17 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4z';
+    const PLUS = 'M12 5v14M5 12h14';
+    const GROUPS = [
+      { label: "Front desk", icon: USERP, items: [
+        { isItem: true, label: "New registration", d: USERP },
+        { isItem: true, label: "Patients", d: UGROUP },
+        { isItem: true, label: "Front desk worklist", d: CLIP },
+        { isItem: true, label: "Discount approvals", d: CHECK, badge: "4" },
+        { isItem: true, label: "Discount limits & settings", d: SLID }
+      ]},
+      { label: "Laboratory", icon: FLASK, items: [
+        { isHead: true, label: "Daily work" },
+        { isItem: true, label: "Status board", d: ACT },
+        { isItem: true, label: "Collect & dispatch", d: TRUCK },
+        { isItem: true, label: "Receive", d: FLASK },
+        { isItem: true, label: "Worklists", d: CLIP, cls: "on", badge: "128" },
+        { isItem: true, label: "Pending", d: EDIT },
+        { isItem: true, label: "Verify", d: CHECK, badge: "31" },
+        { isItem: true, label: "Approve", d: SHLD, tag: "view only" },
+        { isItem: true, label: "Critical values", d: WARN },
+        { isItem: true, label: "Instrument exceptions", d: CPU },
+        { isItem: true, label: "Worksheets", d: FILE },
+        { isItem: true, label: "QC results", d: BAR },
+        { isItem: true, label: "Lab settings", d: SLID },
+        { isHead: true, label: "Microbiology" },
+        { isItem: true, label: "Culture worklist", d: FLASK },
+        { isItem: true, label: "Instrument records", d: CPU },
+        { isItem: true, label: "Breakpoint sets", d: SLID },
+        { isItem: true, label: "Microbiology settings", d: SLID },
+        { isHead: true, label: "Anatomic pathology" },
+        { isItem: true, label: "Case worklist", d: BOOK },
+        { isItem: true, label: "Specimen tracking", d: TRUCK },
+        { isItem: true, label: "Batches", d: BOXI },
+        { isItem: true, label: "Anatomic setup", d: SLID }
+      ]},
+      { label: "Reporting", icon: FILE, items: [
+        { isItem: true, label: "Report worklist", d: FILE },
+        { isItem: true, label: "Outsourced reports", d: BOXI },
+        { isItem: true, label: "Message templates", d: CHAT },
+        { isItem: true, label: "Reporting settings", d: SLID },
+        { isHead: true, label: "Smart summaries" },
+        { isItem: true, label: "Summaries", d: SLID },
+        { isItem: true, label: "Template library", d: BOOK },
+        { isItem: true, label: "Wording rules", d: EDIT }
+      ]},
+      { label: "Billing", icon: COIN, items: [
+        { isItem: true, label: "Invoices", d: FILE },
+        { isItem: true, label: "Dues", d: COIN },
+        { isItem: true, label: "Daily cash", d: COIN },
+        { isItem: true, label: "Credit parties", d: UGROUP },
+        { isItem: true, label: "Registers", d: BOOK },
+        { isItem: true, label: "Audit trail", d: ACT },
+        { isItem: true, label: "CBMS", d: SHLD },
+        { isItem: true, label: "Finance worklist", d: CLIP },
+        { isItem: true, label: "Billing settings", d: SLID },
+        { isHead: true, label: "Payments" },
+        { isItem: true, label: "Payment review", d: CHECK },
+        { isItem: true, label: "Gateway refunds", d: COIN },
+        { isItem: true, label: "Gateway reconciliation", d: BAR },
+        { isItem: true, label: "Fonepay QR worksheet", d: FILE },
+        { isItem: true, label: "Payment gateways", d: SLID }
+      ]},
+      { label: "Catalog", icon: BOOK, items: [
+        { isItem: true, label: "Catalog home", d: BOOK },
+        { isItem: true, label: "Tests", d: FLASK, add: "New test" },
+        { isItem: true, label: "Panels & packages", d: SLID, add: "New panel" },
+        { isItem: true, label: "Departments", d: BOOK },
+        { isItem: true, label: "Specimens & containers", d: FLASK },
+        { isItem: true, label: "Methods", d: CPU },
+        { isItem: true, label: "Units & value sets", d: EDIT },
+        { isItem: true, label: "Comment codes", d: CHAT },
+        { isItem: true, label: "Doctors", d: USERP },
+        { isItem: true, label: "Excel import / export", d: BOXI },
+        { isHead: true, label: "Pricing" },
+        { isItem: true, label: "Price lists", d: COIN, add: "New price list" },
+        { isItem: true, label: "Price simulator", d: BAR },
+        { isItem: true, label: "Urgent surcharges", d: WARN },
+        { isItem: true, label: "Tax rules", d: FILE },
+        { isItem: true, label: "Credit parties & affiliations", d: UGROUP }
+      ]},
+      { label: "Instruments", icon: CPU, items: [
+        { isItem: true, label: "Instruments", d: CPU },
+        { isItem: true, label: "Agents", d: ACT },
+        { isItem: true, label: "Messages", d: CHAT },
+        { isItem: true, label: "Instrument settings", d: SLID }
+      ]},
+      { label: "Analytics", icon: BAR, items: [
+        { isItem: true, label: "Dashboard", d: BAR },
+        { isItem: true, label: "Reports", d: FILE },
+        { isItem: true, label: "Collections", d: COIN },
+        { isItem: true, label: "Referral incentives", d: UGROUP },
+        { isItem: true, label: "Exports", d: BOXI },
+        { isItem: true, label: "Schedules", d: EDIT }
+      ]},
+      { label: "Quality", icon: ACT, items: [
+        { isItem: true, label: "QC status", d: ACT },
+        { isItem: true, label: "QC runs", d: BAR },
+        { isItem: true, label: "Levey-Jennings", d: ACT },
+        { isItem: true, label: "Observations", d: EDIT },
+        { isItem: true, label: "QC setup", d: SLID },
+        { isItem: true, label: "Auto-verify rules", d: CHECK },
+        { isItem: true, label: "TAT alerts", d: WARN },
+        { isItem: true, label: "Quality settings", d: SLID }
+      ]},
+      { label: "Inventory", icon: BOXI, items: [
+        { isItem: true, label: "Overview", d: BOXI },
+        { isItem: true, label: "Stock", d: BOXI },
+        { isItem: true, label: "Purchase orders", d: FILE },
+        { isItem: true, label: "Receipts", d: CHECK },
+        { isItem: true, label: "Transfers", d: TRUCK },
+        { isItem: true, label: "Counts", d: EDIT },
+        { isItem: true, label: "Bench use", d: FLASK },
+        { isItem: true, label: "Items", d: BOOK },
+        { isItem: true, label: "Reorder rules", d: SLID },
+        { isItem: true, label: "Unresolved", d: WARN },
+        { isItem: true, label: "Alerts", d: WARN },
+        { isItem: true, label: "Reports", d: FILE },
+        { isItem: true, label: "Suppliers", d: UGROUP },
+        { isItem: true, label: "Stores", d: HOME },
+        { isItem: true, label: "Inventory settings", d: SLID }
+      ]},
+      { label: "Partners", icon: UGROUP, items: [
+        { isItem: true, label: "Inbox", d: BOXI },
+        { isItem: true, label: "Pickups", d: TRUCK },
+        { isItem: true, label: "Partner labs", d: UGROUP },
+        { isItem: true, label: "Referrers", d: USERP },
+        { isItem: true, label: "Partner settings", d: SLID }
+      ]},
+      { label: "Engagement", icon: CHAT, items: [
+        { isItem: true, label: "Queue", d: UGROUP },
+        { isItem: true, label: "Bookings", d: EDIT },
+        { isItem: true, label: "Reminders", d: CHAT },
+        { isItem: true, label: "Enquiries", d: CHAT },
+        { isItem: true, label: "Memberships", d: SHLD },
+        { isItem: true, label: "Booking slots", d: EDIT },
+        { isItem: true, label: "Bookable tests", d: FLASK },
+        { isItem: true, label: "Queue setup", d: SLID },
+        { isItem: true, label: "Engagement settings", d: SLID }
+      ]},
+      { label: "Home collection", icon: HOME, items: [
+        { isItem: true, label: "Dispatch", d: TRUCK },
+        { isItem: true, label: "Handovers", d: CHECK },
+        { isItem: true, label: "Devices", d: CPU },
+        { isItem: true, label: "Home collection settings", d: SLID }
+      ]},
+      { label: "Admin", icon: SHLD, items: [
+        { isItem: true, label: "My profile", d: USERP },
+        { isItem: true, label: "Users", d: UGROUP, add: "Invite user" },
+        { isItem: true, label: "Roles & permissions", d: SHLD },
+        { isItem: true, label: "Branches", d: CPU },
+        { isItem: true, label: "Centres", d: HOME },
+        { isItem: true, label: "Tenant settings", d: SLID },
+        { isItem: true, label: "Active sessions", d: ACT },
+        { isItem: true, label: "Audit log", d: FILE },
+        { isItem: true, label: "Access log", d: BOOK },
+        { isItem: true, label: "Audit exports", d: BOXI },
+        { isItem: true, label: "Support access", d: CHECK },
+        { isItem: true, label: "Access review", d: CHECK }
+      ]}
+    ];
+    const stages = [
+      { label: 'Received', n: '24', c: '#9AA39E', pct: '24%', cls: '' },
+      { label: 'In analysis', n: '61', c: '#2F7D46', pct: '62%', cls: '' },
+      { label: 'Needs verification', n: '31', c: '#D98A00', pct: '78%', cls: 'on' },
+      { label: 'Released today', n: '12', c: '#A0C032', pct: '30%', cls: '' }
+    ];
+    stages.forEach((s, i) => { s.delay = (i * 0.06) + 's'; });
+    return {
+      stages,
+      groups: (() => {
+        const q = (this.state.q || '').trim().toLowerCase();
+        const out = [];
+        GROUPS.forEach((g) => {
+          let items = g.items;
+          if (q) {
+            const all = g.label.toLowerCase().includes(q);
+            items = g.items.filter((n) => n.isItem && (all || n.label.toLowerCase().includes(q)));
+            if (!items.length) return;
+          }
+          const open = q ? true : this.state.open === g.label;
+          out.push({
+            label: g.label, icon: g.icon, total: String(g.items.filter((n) => n.isItem).length),
+            expanded: open, collapsed: !open, items,
+            toggle: (e) => { if (e && e.preventDefault) e.preventDefault(); this.setState({ open: g.label }); setTimeout(() => { try { const el = document.querySelector('[data-grp="' + g.label + '"]'); const nv = el && el.closest('.navscroll'); if (nv) nv.scrollTop = el.offsetTop - nv.offsetTop - 4; } catch (x) {} }, 60); }
+          });
+        });
+        return out;
+      })(),
+      q: this.state.q || '',
+      noMatch: !!(this.state.q || '').trim() && !GROUPS.some((g) => g.items.some((n) => n.isItem && (g.label.toLowerCase().includes((this.state.q || '').trim().toLowerCase()) || n.label.toLowerCase().includes((this.state.q || '').trim().toLowerCase())))),
+      onSearch: (e) => { this.setState({ q: e && e.target ? e.target.value : '' }); },
+      groups2: [
+        { title: 'Needs verification', n: '31', c: '#D98A00', open: true, expanded: 'true', rot: 'rotate(90deg)', action: 'Verify selected', rows: [
+          { acc: 'LAB-001847', name: 'Dipak Lama', meta: '45 y, male', tests: 'Dengue NS1, CBC', priority: 'STAT', pcls: 'stat', due: 'Overdue by 14 min', dcolor: '#B3261E', pct: '100%', bar: '#B3261E', sel: '' },
+          { acc: 'LAB-001843', name: 'Ram Thapa', meta: '52 y, male', tests: 'HbA1c, lipid profile', priority: 'Routine', pcls: 'neutral', due: '48 min left', dcolor: '#33423E', pct: '92%', bar: '#D98A00', sel: 'sel' },
+          { acc: 'LAB-001850', name: 'Kamala Poudel', meta: '48 y, female', tests: 'Liver function tests', priority: 'Routine', pcls: 'neutral', due: '1 h 05 min left', dcolor: '#33423E', pct: '70%', bar: '#2F7D46', sel: '' }
+        ]},
+        { title: 'In analysis', n: '61', c: '#2F7D46', open: true, expanded: 'true', rot: 'rotate(90deg)', rows: [
+          { acc: 'LAB-001842', name: 'Sita Karki', meta: '34 y, female', tests: 'CBC, ESR', priority: 'STAT', pcls: 'stat', due: '1 h 12 min left', dcolor: '#33423E', pct: '68%', bar: '#2F7D46', sel: '' },
+          { acc: 'LAB-001845', name: 'Bikash Rai', meta: '61 y, male', tests: 'Creatinine, urea, electrolytes', priority: 'Urgent', pcls: 'warn', due: '22 min left', dcolor: '#7A4B00', pct: '84%', bar: '#D98A00', sel: '' },
+          { acc: 'LAB-001846', name: 'Maya Shrestha', meta: '8 y, female', tests: 'Urine routine, culture', priority: 'Routine', pcls: 'neutral', due: '3 h 05 min left', dcolor: '#33423E', pct: '40%', bar: '#2F7D46', sel: '' }
+        ]},
+        { title: 'Received', n: '24', c: '#9AA39E', open: false, expanded: 'false', rot: 'rotate(0deg)', rows: [] }
+      ],
+      results: [
+        { test: 'HbA1c', v: '7.9', u: '%', ref: '4.0 to 5.6', f: 'H', cls: 'warn' },
+        { test: 'Total cholesterol', v: '212', u: 'mg/dL', ref: 'below 200', f: 'H', cls: 'warn' },
+        { test: 'HDL cholesterol', v: '46', u: 'mg/dL', ref: 'above 40', f: 'N', cls: 'ok' },
+        { test: 'LDL cholesterol', v: '138', u: 'mg/dL', ref: 'below 100', f: 'H', cls: 'warn' },
+        { test: 'Triglycerides', v: '148', u: 'mg/dL', ref: 'below 150', f: 'N', cls: 'ok' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

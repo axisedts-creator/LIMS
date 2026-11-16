@@ -82,9 +82,11 @@ export function ShellFrame({ groups, crumb, tenant, user, logoSrc, search, centr
           <GlobalSearch canPatients={search.canPatients} canSpecimens={search.canSpecimens} />
           <div className="lims-topbar-end">
             {centres ? <CentreSwitcher centres={centres.options} activeId={centres.activeId} /> : null}
-            {/* no notifications contract yet: the control is shown but inert (see .orchestra/notes/T0D-MSERIES-2-impl.md) */}
-            <button type="button" className="lims-btn lims-topbar-bell" aria-label={t('core.shell.notifications')} disabled>
+            {/* no notifications contract yet: the control is shown but inert (see .orchestra/notes/T0D-MSERIES-2-impl.md).
+                T0D-WEBFIX-2 (LD-301): the reason is its name, tooltip and a visible note; `disabled` keeps it out of the tab order. */}
+            <button type="button" className="lims-btn lims-topbar-bell" aria-label={t('core.shell.notifications_unavailable')} title={t('core.shell.notifications_unavailable')} disabled>
               <NavIcon name="bell" />
+              <span className="lims-topbar-bell-note" aria-hidden="true">{t('core.shell.notifications_unavailable')}</span>
             </button>
             <span className="lims-topbar-actor">{user.name}</span>
           </div>

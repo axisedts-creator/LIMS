@@ -31,6 +31,7 @@ import { shortcuts, type Shortcut } from '@/core/shortcuts/registry';
 import { searchReferrersAction } from '../server/actions';
 import { RefreshButton } from './DashboardActions';
 import { ExportDialog } from './ExportDialog';
+import { bsLabel } from './DashboardView';
 import { PRESETS, addDays, nepalToday, presetOf, presetRange } from './period';
 import type { Cell, Control, PageVM, Section, TableVM } from './report-types';
 import { ScopeBanner } from './ScopeBanner';
@@ -291,7 +292,7 @@ export function ReportView({ vm }: { vm: PageVM }) {
           ) : null
         }
       />
-      {vm.period ? <p>{vm.period.labelAd} · {vm.period.labelBs} B.S.</p> : null}
+      {vm.period ? <p>{vm.period.labelAd} · {bsLabel(vm.period.labelBs)}</p> : null}
       {vm.tabs.length > 1 ? (
         <Tabs items={vm.tabs} selectedId={vm.tab} onChange={openTab} aria-label="Reports">
           {body}

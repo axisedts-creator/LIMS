@@ -17,6 +17,7 @@ import { TextField } from '@lims/ui/components/TextField';
 import { createScheduleAction, updateScheduleAction } from '../server/actions';
 import type { ScheduleInput } from '../server/schedules.server';
 import { FREQUENCIES, NAME_INVALID, PERIODS, TIMES, WEEKDAYS, nameIsValid } from '../schedule-labels';
+import { bsLabel } from './DashboardView';
 
 export interface EditorInit {
   name: string; reportCodes: string[]; frequency: string; weekday: number; time: string; period: string; allCentres: boolean; centreIds: string[]; recipientIds: string[];
@@ -81,7 +82,7 @@ export function ScheduleEditor({ init, reports, recipients, centres, id, version
 
   const runCols: ColumnDef<RunVM>[] = [
     { id: 'slot', header: 'Slot time', isRowHeader: true, cell: (r) => <DateText value={r.createdAt as DateTextProps['value']} withTime /> },
-    { id: 'period', header: 'Period', cell: (r) => `${r.periodAd}${r.periodBs ? ` · ${r.periodBs} B.S.` : ''}` },
+    { id: 'period', header: 'Period', cell: (r) => `${r.periodAd}${r.periodBs ? ` · ${bsLabel(r.periodBs)}` : ''}` },
     { id: 'open', header: 'Report', cell: (r) => <a href={`/analytics/report-runs/${r.id}`}>Open</a> },
   ];
   const left = recipients.filter((r) => !people.includes(r.id));

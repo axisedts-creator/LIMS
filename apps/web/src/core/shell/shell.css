@@ -38,6 +38,8 @@
 .lims-rail-header[aria-expanded='true'] .lims-rail-chevron { transform: rotate(90deg); }
 .lims-rail-header[aria-expanded='true'] { font-size: var(--lims-font-size-xs-size); font-variant: small-caps; letter-spacing: 0.04em; }
 .lims-rail .lims-sidenav { display: flex; flex-direction: column; gap: var(--lims-space-0-5); margin: 0; padding: 0; list-style: none; }
+/* a closed group's list carries [hidden]; the author display above would beat the UA [hidden] rule */
+.lims-rail .lims-sidenav[hidden] { display: none; }
 .lims-rail-subheading { padding: var(--lims-space-2) var(--lims-space-4) var(--lims-space-1); font-size: var(--lims-font-size-xs-size); font-weight: var(--lims-font-weight-semibold); }
 .lims-rail-item { position: relative; display: flex; align-items: center; }
 .lims-rail-link { display: flex; flex: 1; align-items: center; gap: var(--lims-space-3); min-width: 0; min-height: 46px; padding: 0 var(--lims-space-4); border-radius: var(--lims-radius-full); color: inherit; font-weight: var(--lims-font-weight-medium); text-decoration: none; }
@@ -65,6 +67,8 @@
 }
 /* below 1024: the sidebar is a drawer opened by the menu button (the kit hides it there) */
 @media (max-width: 63.9375rem) {
+  /* the base display: flex above beats the kit hide rule, so hide here; [data-drawer-open] re-shows it */
+  .lims-shell-nav { display: none; }
   .lims-shell-menu { display: inline-grid; place-items: center; min-width: var(--lims-touch-target-web); min-height: var(--lims-touch-target-web); padding: 0; border-radius: var(--lims-radius-full); }
   .lims-shell-nav[data-drawer-open='true'] { display: flex; position: fixed; inset-block: 0; inset-inline-start: 0; z-index: var(--lims-z-drawer); max-width: 100%; box-shadow: var(--lims-elevation-3); }
   .lims-breadcrumb { display: none; }

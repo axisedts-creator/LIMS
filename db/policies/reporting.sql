@@ -207,9 +207,10 @@ CREATE POLICY provider_events__select__tenant ON reporting.provider_events FOR S
   USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
 CREATE POLICY provider_events__insert__tenant ON reporting.provider_events FOR INSERT TO lims_app
   WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+-- T0B-PEVPOL-1 (LD-257, CR-C0-T0B-REVIEW-1-001): system actor only, once per row (migration 20261116020000).
 CREATE POLICY provider_events__update__tenant ON reporting.provider_events FOR UPDATE TO lims_app
-  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()))
-  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()) AND (SELECT app.current_actor_type()) = 'system' AND applied_at IS NULL)
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()) AND (SELECT app.current_actor_type()) = 'system' AND applied_at IS NOT NULL);
 CREATE POLICY narrative_reports__select__tenant_centre ON reporting.narrative_reports FOR SELECT TO lims_app
   USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()) AND ((SELECT app.has_all_centres()) OR centre_id = ANY ((SELECT app.current_centre_ids())::uuid[])));
 CREATE POLICY narrative_reports__insert__tenant_centre ON reporting.narrative_reports FOR INSERT TO lims_app

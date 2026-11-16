@@ -1,0 +1,8 @@
+# T0B-SWEEP-2 impl (writer)
+Files: test-sweep/run.ts (pacer 9/s burst 18 per session + 429 retry <=15 s, schema bodies via request.ts with seeded tenant_id/partner_id, DEPTH + defectClass, stacks from `tracing:fastify.request.handler:error`, writes T0B-SWEEP-2-results.{json,md}), known-failures.json (151, with `class`); classify/pace/request/summary/gate/ops/sessions from the earlier writer commit.
+Run (twice, gate ok): 1018 ops, 0 x 429, 0 NOT EXERCISED, DEEP 481 / SHALLOW 537; WIRED 867, DEFECT 151 = BUG 108, CONFIG 43 (24 feature_disabled, 19 service_unavailable), HARNESS 0 (partner seeded active: partner_inactive gone).
+[CONV] 500 root cause grouped by first src/ frame of the captured stack; the two "why" lines in the stack section are my reading of the throw sites.
+FAIL 1 (not a test bug): "<=10% SHALLOW" — 537 SHALLOW are /If-Match (324), /Idempotency-Key (270), X-Lims-* field_required although sent: core openapi.ts:99 custom buildValidator makes fastify skip header lowercasing (repro 200 vs 400). CR .orchestra/cr/T0B-SWEEP-2.md (to C0-0D, nonblocking).
+FAIL 2 (tester-flagged conflict): gate.test.ts "first-run artifacts" (2 tests) read frozen SWEEP-1 results vs the new known-failures.json; needs tester retarget to SWEEP-2.
+BUG list top: 77 authz-guard.ts:48 (2xx without assertRole, incl. listDeadLetters), 7 platform 401, 6 identity/handlers/index.ts:144, 4 db/sqlstate.ts:27, rest 1-2 each (full list ends T0B-SWEEP-2-results.md); verifyProviderCallback = callbacks.service.ts:37 no ctx.tx on public op.
+Not run: eslint (no config covers test-sweep); tsc strict on run.ts clean.

@@ -18,19 +18,25 @@ const kf = (): { operation: string; status: number | string; ref: string }[] =>
   JSON.parse(readFileSync(join(ROOT, 'services/api/test-sweep/known-failures.json'), 'utf8'));
 
 describe('evaluateGate', () => {
+  // rows now carry `status` (review item 2: the gate keys on operation AND status, `${operation}:${status}` for a new defect)
   const known = [{ operation: 'a', status: 500, ref: 'LD-267' }];
   it('passes when defects equal the known list', () => {
-    expect(evaluateGate([{ operationId: 'a', verdict: 'DEFECT' }, { operationId: 'b', verdict: 'WIRED' }], known)).toEqual({ ok: true, newDefects: [], nowWorking: [] });
+    expect(evaluateGate([{ operationId: 'a', verdict: 'DEFECT', status: 500 }, { operationId: 'b', verdict: 'WIRED', status: 200 }], known)).toEqual({ ok: true, newDefects: [], nowWorking: [] });
   });
   it('fails on a NEW defect', () => {
-    const r = evaluateGate([{ operationId: 'a', verdict: 'DEFECT' }, { operationId: 'c', verdict: 'DEFECT' }], known);
+    const r = evaluateGate([{ operationId: 'a', verdict: 'DEFECT', status: 500 }, { operationId: 'c', verdict: 'DEFECT', status: 500 }], known);
     expect(r.ok).toBe(false);
-    expect(r.newDefects).toEqual(['c']);
+    expect(r.newDefects).toEqual(['c:500']);
   });
   it('fails when a listed defect starts working', () => {
-    const r = evaluateGate([{ operationId: 'a', verdict: 'WIRED' }], known);
+    const r = evaluateGate([{ operationId: 'a', verdict: 'WIRED', status: 200 }], known);
     expect(r.ok).toBe(false);
     expect(r.nowWorking).toEqual(['a']);
+  });
+  it('fails when a listed defect changes class (listed 401, now 500)', () => {
+    const r = evaluateGate([{ operationId: 'a', verdict: 'DEFECT', status: 500 }], [{ operation: 'a', status: 401, ref: 'LD-267' }]);
+    expect(r.ok).toBe(false);
+    expect(r.newDefects).toEqual(['a:500']);
   });
 });
 
@@ -67,6 +73,16 @@ describe('first-run artifacts (written by `pnpm --filter @lims/api sweep`, which
     for (const id of FOUR) expect(rows.find((r) => r.operationId === id)?.verdict, id).toBe('DEFECT');
     const known = new Set(kf().map((k) => k.operation));
     expect(rows.filter((r) => r.verdict === 'DEFECT').filter((r) => !known.has(r.operationId))).toEqual([]);
+  });
+  it('known-failures.json status equals the status of the committed run for every DEFECT (review item 2: stale 401 vs 500)', () => {
+    const { rows } = JSON.parse(readFileSync(p, 'utf8')) as { rows: { operationId: string; status: number; verdict: string }[] };
+    const listed = new Map(kf().map((k) => [k.operation, Number(k.status)]));
+    const stale = rows.filter((r) => r.verdict === 'DEFECT' && listed.get(r.operationId) !== r.status).map((r) => `${r.operationId}: listed ${listed.get(r.operationId)} run ${r.status}`);
+    expect(stale).toEqual([]);
+  });
+  it('every DEFECT row carries a non-empty detail (review item 1: was "" on all 1018 rows)', () => {
+    const { rows } = JSON.parse(readFileSync(p, 'utf8')) as { rows: { operationId: string; verdict: string; detail: string }[] };
+    expect(rows.filter((r) => r.verdict === 'DEFECT' && !String(r.detail ?? '').trim()).map((r) => r.operationId)).toEqual([]);
   });
   it('results.md has a table per module and ends with a defect count by root-cause guess', () => {
     const md = readFileSync(join(ROOT, '.orchestra/notes/T0B-SWEEP-1-results.md'), 'utf8');

@@ -1,0 +1,9 @@
+CR_NEEDED — the test is right (done_when 2 demands write/platform requests pass input validation), but the only fix is in `services/api/src/core/openapi.ts`, owned by C0-0D and outside this task's files; the task is unmeetable inside its own scope until that CR lands. Keep `sweep2-artifacts.test.ts:47` unchanged; CR in `.orchestra/cr/T0B-SWEEP-2.md`.
+
+Reasons:
+- Task done_when (2) (.orchestra/inbox/T0B-SWEEP-2-arbiter.md:20): bodies built "so the request passes input validation and reaches the service". The 10% SHALLOW ceiling (sweep2-artifacts.test.ts:47-55) is a fair proxy for that; relaxing it would hide the defect the sweep exists to find (tests "no operation counted WIRED" spirit, :20 "tests").
+- Root cause confirmed in code, not in the harness: openapi.ts:99-107 supplies `compilersFactory.buildValidator`, so fastify treats it as custom and skips `lowerCaseHeadersSchema` (node_modules/fastify/lib/validation.js:290-293). Header schemas keep `required: ['If-Match']` / `Idempotency-Key` / `X-Lims-*`; Node delivers lower-case keys, so these always 400 even when sent.
+- Ownership: spec/program/01-CHUNK-MAP.md:123 — `services/api/src/core/` is C0-0D. Task files (inbox :14-19) cover only `services/api/test-sweep/**`; SAFETY (:20) forbids contract edits. CLAUDE.md: edit only owned paths; missing/out-of-scope fix => CR.
+- A harness-side schema patch is not allowed: it would mask a real BUG and touch core behaviour.
+- Writer: until the CR lands, list the SHALLOW rows with the failing header field as evidence (already done) and classify the header-validation 400s as BUG with root cause "core header schema not lower-cased (CR T0B-SWEEP-2)". Do not change the threshold.
+- Lead: accept the CR (C0-0D) as BLOCKING for T0B-SWEEP-2 test :47; after it merges, rerun the sweep; the test passes unchanged. Supersedes the nonblocking flag in `.orchestra/cr/T0B-SWEEP-2.nonblocking.md`.

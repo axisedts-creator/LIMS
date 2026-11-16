@@ -76,9 +76,9 @@ const PLATFORM_MFA_ENROLLED_DEFINER = 'SELECT app.identity_platform_auth_write_m
 const REVOKE_OTHERS_SQL = `UPDATE identity.sessions SET state = 'revoked', revoked_at = now(), revoked_by = $5, revoke_reason = $4,
     updated_at = now(), updated_by = $5, version = version + 1
   WHERE tenant_id = $1 AND user_id = $2 AND id <> $3 AND state NOT IN ('revoked', 'expired') RETURNING id, kind`;
-// LD-299 T0B-ACTIVATE-1: pending OR sent (the worker marks sent; a verified GoTrue token already proves the address). Expiry still checked.
+// LD-299 T0B-ACTIVATE-1: sent only (03-APP-FLOW §2.6 / M2); pending acceptance raised as CR .orchestra/cr/T0B-ACTIVATE-1.nonblocking.md (ACTIVATE-1c)
 const INVITE_ACCEPT_SQL = `UPDATE identity.invitations SET status = 'accepted', accepted_at = $4, updated_at = now(), updated_by = $5, version = version + 1
-  WHERE tenant_id = $1 AND membership_id = $2 AND user_id = $3 AND status IN ('pending', 'sent') AND expires_at > $4 RETURNING id`;
+  WHERE tenant_id = $1 AND membership_id = $2 AND user_id = $3 AND status = 'sent' AND expires_at > $4 RETURNING id`;
 // LD-99 / 08 A38-1: platform kind (identityAuthTx, no tenant)
 const REVOKE_OTHERS_DEFINER = 'SELECT app.identity_platform_auth_write_revoke_other_sessions($1::uuid, $2::uuid, $3::text) AS ids';
 const INVITE_ACCEPT_BY_USER_DEFINER = 'SELECT app.identity_platform_auth_write_invitation_accept_by_user($1::uuid) AS n';

@@ -1,0 +1,1 @@
+pnpm --dir services/api exec vitest run src/core/pipeline/__tests__/authz-central.test.ts src/core/pipeline/__tests__/authz-central-matrix.test.ts src/core/pipeline/__tests__/stage09-authz-guard.test.ts src/core/ports/__tests__/authz-guard.test.ts src/core/__tests__/config.test.ts

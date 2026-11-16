@@ -1,0 +1,7 @@
+# SEC-AUTHZ-2 tests (tester)
+- Files: services/api/src/core/pipeline/__tests__/authz-central.test.ts (stage 8a modes, actors, exceptions, stage 9 interaction), authz-central-matrix.test.ts (per-module matrix from contracts/openapi + 4 named gaps, LIMS_CORE_AUTHZ_MODE config, exception file + validator), authz-central-rig.ts (shared rig).
+- Run: `.orchestra/notes/SEC-AUTHZ-2-verify.cmd` (vitest through the package; also re-runs stage09, authz-guard and config suites unchanged).
+- Now: ~366 fail (no stage 8a, no authzMode config, no authz-exceptions.json, no validateAuthzExceptions), 10 regression guards pass. Writer may dispute a pinned name in `.orchestra/notes/SEC-AUTHZ-2-dispute-*.md`.
+- Pinned names (spec has none): PipelineOp.permission and .scheme; PipelineDeps.authzMode, .systemPermissions (module -> list), .authzExceptions; CoreConfig.authzMode; claim `credential_permission` for device actors; authz-exceptions.json = JSON array of {operationId, handlerPermission, reason}; validateAuthzExceptions(entries, ids) exported by authz-central.ts. openapi.ts must fill permission/scheme from the contract.
+- Not covered here: snapshot tests/security/authz-classification.json is NOT regenerated yet (needs the code); tester regenerates it with `node tests/security/classify-authz.mjs > tests/security/authz-classification.json` after the writer's commit, then lane commits it.
+- Not covered: wrong contract x-permission CRs (none known yet), real-DB RLS/idempotency (unchanged, existing suites), platform.* (SEC-AUTHZ-3, only "skipped" proven).

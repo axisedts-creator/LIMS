@@ -1,0 +1,5 @@
+# VERIFY-GREEN-1 debug (debugger)
+- Cause: verify.log tail shows `@lims/api#typecheck` exit 1 (api 64, worker 25, web 290 TS errors). The named classes (TS2835, TS2883, TS2430) are already fixed. What is left is not a specifier or type annotation problem.
+- Left, needs runtime or shape changes (forbidden by task rules, LD-253/LD-189): quality `exactOptionalPropertyTypes` (settings.handlers.ts:12, observation.service.ts:191,192; needs conditional spreads) and `level_code`/`lot_no` TS2339 (chart.service.ts:122; shape mismatch). Billing, catalog, frontdesk and partners ctx/IsoDate/Uuidv7 mismatches (58 errors, 6 files, over the 20-file cap, needs casts or shape changes). Worker purge.ts:36,43 and send_delivery.ts:148. Web 290 (missing portal modules + test files). shared-ts TS5097 `.ts` specifiers (node --test needs `.ts`; allowing them would loosen tsconfig).
+- Fix applied: none. Any further change breaks the "types and specifiers only" rule. No test edited, no dispute (tests do not contradict spec).
+- Needs a lead decision: a follow-up task covering the quality, billing/catalog/frontdesk/partners, worker and web errors with runtime edits allowed.

@@ -33,10 +33,11 @@ const noAxeViolations = async (el: HTMLElement) => {
 };
 
 describe('AU-1 LoginForm', () => {
-  it('has Email (autocomplete=username) + Password (autocomplete=current-password) + "Log in"; submits both; Enter submits; links to /auth/forgot', async () => {
+  // T0D-MSERIES-5 (LD-276): sign-in copy follows the M1 board: label "Work email", primary button "Continue" (behaviour unchanged).
+  it('has Work email (autocomplete=username) + Password (autocomplete=current-password) + "Continue"; submits both; Enter submits; links to /auth/forgot', async () => {
     const action = okAction();
     const { container } = render(<LoginForm action={action} />);
-    const email = screen.getByLabelText(/^email/i) as HTMLInputElement;
+    const email = screen.getByLabelText(/^work email/i) as HTMLInputElement;
     const pw = screen.getByLabelText('Password') as HTMLInputElement;
     expect(email.getAttribute('autocomplete')).toBe('username');
     expect(pw.getAttribute('autocomplete')).toBe('current-password');
@@ -54,16 +55,16 @@ describe('AU-1 LoginForm', () => {
     const action = okAction();
     render(<LoginForm action={action} />);
     const u = userEvent.setup();
-    await u.click(screen.getByRole('button', { name: 'Log in' }));
-    await u.type(screen.getByLabelText(/^email/i), 'not-an-email');
+    await u.click(screen.getByRole('button', { name: 'Continue' }));
+    await u.type(screen.getByLabelText(/^work email/i), 'not-an-email');
     await u.type(screen.getByLabelText('Password'), 'x');
-    await u.click(screen.getByRole('button', { name: 'Log in' }));
+    await u.click(screen.getByRole('button', { name: 'Continue' }));
     expect(action).not.toHaveBeenCalled();
   });
 
   it('enforces max lengths: email 254, password 128', () => {
     render(<LoginForm action={okAction()} />);
-    expect((screen.getByLabelText(/^email/i) as HTMLInputElement).maxLength).toBe(254);
+    expect((screen.getByLabelText(/^work email/i) as HTMLInputElement).maxLength).toBe(254);
     expect((screen.getByLabelText('Password') as HTMLInputElement).maxLength).toBe(128);
   });
 
@@ -90,7 +91,7 @@ describe('AU-1 LoginForm', () => {
   ])('renders the exact copy for %s', async (code, copy) => {
     render(<LoginForm action={fail(code)} />);
     const u = userEvent.setup();
-    await u.type(screen.getByLabelText(/^email/i), 'user@example.test');
+    await u.type(screen.getByLabelText(/^work email/i), 'user@example.test');
     await u.type(screen.getByLabelText('Password'), 'pw{Enter}');
     await waitFor(() => expect(text()).toContain(copy));
   });
@@ -98,7 +99,7 @@ describe('AU-1 LoginForm', () => {
   it('common.rate_limited shows "Too many attempts. Try again in …" with a human duration from retryAfterSeconds', async () => {
     render(<LoginForm action={fail('common.rate_limited', { retryAfterSeconds: 120 })} />);
     const u = userEvent.setup();
-    await u.type(screen.getByLabelText(/^email/i), 'user@example.test');
+    await u.type(screen.getByLabelText(/^work email/i), 'user@example.test');
     await u.type(screen.getByLabelText('Password'), 'pw{Enter}');
     await waitFor(() => expect(text()).toMatch(/Too many attempts\. Try again in 2 minutes\./));
   });
@@ -108,7 +109,7 @@ describe('AU-1 LoginForm', () => {
     const action = vi.fn(() => new Promise<{ ok: true }>((r) => { release = () => r({ ok: true }); }));
     render(<LoginForm action={action} />);
     const u = userEvent.setup();
-    await u.type(screen.getByLabelText(/^email/i), 'user@example.test');
+    await u.type(screen.getByLabelText(/^work email/i), 'user@example.test');
     await u.type(screen.getByLabelText('Password'), 'pw{Enter}');
     await waitFor(() => expect((screen.getByLabelText('Password') as HTMLInputElement).disabled).toBe(true));
     release();

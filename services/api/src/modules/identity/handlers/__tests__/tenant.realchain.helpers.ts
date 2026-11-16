@@ -26,7 +26,9 @@ export const PLATFORM_CLAIMS: any = {
 export interface Stmt { readonly text: string; readonly values: readonly unknown[]; readonly claims: Record<string, any> | undefined; readonly n: number }
 
 /** Recording pg-shaped pool: every statement answered like node-postgres ({ rows, rowCount, command }); tx-local claims tracked like set_config(..., true). */
-export function makePool(o: { tenantStatus?: string; tenantExists?: boolean } = {}) {
+/** T0B-PROVPACK-1: optional stateful handler, called for EVERY statement before the stock answers; return a pg shaped result to answer it, undefined to fall through. */
+export type PoolHandle = (text: string, values: unknown[], res: (rows: any[], command: string, rowCount?: number | null) => unknown) => unknown;
+export function makePool(o: { tenantStatus?: string; tenantExists?: boolean; handle?: PoolHandle } = {}) {
   const log: Stmt[] = [];
   const injections: Array<{ match: RegExp; make: () => Error }> = [];
   let claims: Record<string, any> | undefined;
@@ -40,6 +42,8 @@ export function makePool(o: { tenantStatus?: string; tenantExists?: boolean } = 
     log.push({ text: t, values, claims: claims && { ...claims }, n: log.length });
     const inj = injections.find((i) => i.match.test(t));
     if (inj) { injections.splice(injections.indexOf(inj), 1); throw inj.make(); }
+    const handled = o.handle?.(t, values, res);
+    if (handled !== undefined) return handled as ReturnType<typeof res>;
     if (/^BEGIN\b/i.test(t)) return res([], 'BEGIN', null);
     if (/^(COMMIT|ROLLBACK)\b/i.test(t) && !/^ROLLBACK\s+TO\b/i.test(t)) { claims = undefined; return res([], t.split(/\s/)[0]!.toUpperCase(), null); }
     if (/^(SAVEPOINT|RELEASE|ROLLBACK\s+TO)\b/i.test(t)) return res([], 'SAVEPOINT', null);
@@ -75,7 +79,7 @@ export function makePool(o: { tenantStatus?: string; tenantExists?: boolean } = 
 }
 export type PoolRig = ReturnType<typeof makePool>;
 
-export interface ChainOpts { tenantStatus?: string; tenantExists?: boolean; idempotency?: boolean }
+export interface ChainOpts { tenantStatus?: string; tenantExists?: boolean; idempotency?: boolean; handle?: PoolHandle }
 /** One request through createPipeline: stages 5-11 with the real db + ctx builder. Returns the pipeline result or throws what the pipeline throws. */
 export function makeChain(o: ChainOpts = {}) {
   const rig = makePool(o);
@@ -95,10 +99,10 @@ export function makeChain(o: ChainOpts = {}) {
   const pipeline = createPipeline({
     env: 'ci', db, idempotency, rateLimiter: { async consume() { /* allowed */ } }, authz, ports, shared, log: rec.log, metrics,
   } as any);
-  const run = (handler: any, call: { operationId: string; routeTemplate: string; params?: Record<string, string>; body?: unknown; claims?: unknown }) => pipeline.run({
+  const run = (handler: any, call: { operationId: string; routeTemplate: string; params?: Record<string, string>; body?: unknown; claims?: unknown; headers?: Record<string, string> }) => pipeline.run({
     op: { module: 'identity', operationId: call.operationId, method: 'POST', routeTemplate: call.routeTemplate, public: false, context: 'platform', idempotency: 'required', rateLimitTier: 'general' },
     claims: (call.claims ?? PLATFORM_CLAIMS) as any, requestId: REQ_ID, clientIp: '203.0.113.9', userAgent: 'vitest', idempotencyKey: 'synthetic-key-1',
-    req: { params: call.params ?? {}, query: {}, headers: { 'idempotency-key': 'synthetic-key-1' }, body: call.body },
+    req: { params: call.params ?? {}, query: {}, headers: { 'idempotency-key': 'synthetic-key-1', ...(call.headers ?? {}) }, body: call.body },
     handler, log: rec.log,
   } as any);
   return { rig, rec, finished, run };

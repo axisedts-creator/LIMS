@@ -1,0 +1,22 @@
+diff --git a/apps/web/src/features/admin/__tests__/rs-c2.baseline.json b/apps/web/src/features/admin/__tests__/rs-c2.baseline.json
+index 928be5a13..1d5d2ee28 100644
+--- a/apps/web/src/features/admin/__tests__/rs-c2.baseline.json
++++ b/apps/web/src/features/admin/__tests__/rs-c2.baseline.json
+@@ -6,2 +6,2 @@
+-    "features/admin/auth/actions.ts": "a606acd1c03fc20d19a3426794d77282031be4c70afb296cbb62eae62bc4e7ef",
+-    "features/admin/auth/messages.ts": "cd5221d70d8d996ab524e025b065ca69dc82245ebc18494a180dcdf9e6955c5b",
++    "features/admin/auth/actions.ts": "f0dc75ddde9089c84965ee65796f784910896d8cb4d9b72eec10082defd8393e",
++    "features/admin/auth/messages.ts": "c05d966283da3df00e38118dabdc51494f05b7e7fd60972e5020c6b5011062a9",
+@@ -10 +10 @@
+-    "features/platform/actions.ts": "7f6c66d96e6e65755454acf9ef343c57f863a35452f0f307e28333b9af664b5e",
++    "features/platform/actions.ts": "6a19465c3102a9047e5602933c2ff9445d772ee0c1a052918f5cb513cdf60b9d",
+@@ -12 +12 @@
+-    "features/platform/shared.ts": "7ecda1dfa890bdabce81340398a8cf7a4d2d5f069500133bf135a1cf1d530fe5",
++    "features/platform/shared.ts": "6a2d3c5d1e17e55e2284b4beaaf36c62b58004c9b800e15303e64c3f9c52fb91",
+@@ -24,0 +25 @@
++    "app/(auth)/auth/waking/page.tsx",
+@@ -171,3 +172 @@
+-    "source",
+-    "x-forwarded-for",
+-    "x-real-ip"
++    "source"

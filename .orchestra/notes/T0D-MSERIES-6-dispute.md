@@ -1,7 +1,10 @@
-# T0D-MSERIES-6 dispute (writer, round 5, 2026-11-16 23:41 NPT, after LD-298)
-Tester stage did not run: `git log --full-history -- apps/web/src/features/admin/__tests__/rs-c2.baseline.json` still ends at ec073f164; no diff ec073f164..HEAD.
-Verify re-run on HEAD 4cc0e1923: packages/ui 52 passed / 1 skipped; apps/web m6 422/425, 3 reds all in rs-c2.static.test.ts.
-Reds 1-2 (data_files, routes): the 3 LD-298 entries (actions.ts, messages.ts hashes; route app/(auth)/auth/waking/page.tsx).
-NEW red 3 "same form field names" (line 134): base has `x-forwarded-for`, `x-real-ip`; now lacks them. Cause: c069f7ecd "[writer] T0A-CLIENTIP-1 impl" (merged from main in 2d6aeb827) moved the `h.get('x-forwarded-for'|'x-real-ip')` reads out of features/admin/auth/actions.ts into core/api/client-context.ts (outside the scanned tree). Not an MSERIES-6 change.
-So the LD-298 guard ("diff holds only those 3 entries, field_names unchanged") now fails: tester must stop and raise a blocking CR, or the lead must accept the field_names diff (from T0A-CLIENTIP-1) before re-record.
-Writer changes nothing (may not edit tests or baseline). ESCALATE TO LEAD.
+# T0D-MSERIES-6 dispute (writer, round 6, 2026-11-17 01:25 NPT, after LD-303)
+Tester stage did not run again: rs-c2.baseline.json last commit is still ec073f164. Writer changed nothing (may not edit tests/baseline).
+Verify re-run on HEAD 610882569: apps/web m6 422/425; 3 reds, all rs-c2.static.test.ts (lines 122, 125, 134). packages/ui step not reached (verify uses &&).
+Allowed per LD-298/LD-303 and present: actions.ts hash, messages.ts hash, route app/(auth)/auth/waking/page.tsx, field_names minus x-forwarded-for, x-real-ip.
+NEW, NOT ALLOWED by LD-303 ("if any other entry differs, stop and write a blocking CR"): data_files hashes of
+  features/platform/actions.ts  7f6c66d9...b5e -> 6a19465c...b9d
+  features/platform/shared.ts   7ecda1df...fe5 -> 6a2d3c5d...fb91
+Cause: 9677e24a3 "[writer] PLATFORM-PROVISION-1 impl" (merged on main, LD-293), not MSERIES-6.
+So a tester re-record under the LD-303 rule must stop again. LEAD must also allow these two platform hashes (PROVISION-1 drift) and route the re-record to the TESTER stage, not the writer.
+ESCALATE TO LEAD. No code change needed for MSERIES-6.

@@ -44,7 +44,9 @@ export function rig(o: { env?: string; mode?: 'shadow' | 'enforce' | 'unset'; pr
   const authz = createAuthzGuard({ env, log: rec.log as any, metrics: metrics as any });
   const idempotency = { async begin() { return { action: 'skip' as const }; }, async finish() {}, async release() {} };
   const rateLimiter = { async consume() {} };
-  const services = { frontdesk: { repo: { read: () => { repoCalls.push('read'); return 1; } } } };
+  // the real pipeline passes d.services?.[op.module] (pipeline/index.ts:180): every module gets the same spying repo
+  const spyServices = { repo: { read: () => { repoCalls.push('read'); return 1; } } };
+  const services = new Proxy({}, { get: () => spyServices });
   const deps: Record<string, unknown> = {
     env, db, idempotency, rateLimiter, authz, services, log: rec.log, metrics,
     ports: { portsFor: () => ({ IdentityPort: identityPort }) },

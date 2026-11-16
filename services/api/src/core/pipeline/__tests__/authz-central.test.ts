@@ -133,7 +133,8 @@ describe('stage 8a: operations that are skipped', () => {
 
   it('bffSession operation (identity session flow): no central check', async () => {
     const r = rig({ mode: 'enforce', profile: { permissions: [] }, handler: undefined });
-    const res = await r.run({ op: staffOp({ module: 'identity', operationId: 'resolveSession', scheme: 'bffSession', permission: undefined }), claims: user, handler: async () => ({ status: 200, body: {} }) });
+    // public: real identity session ops carry x-public (authz-guard.ts:14); stage 9 exempts only public (authz-guard.ts:54)
+    const res = await r.run({ op: staffOp({ module: 'identity', operationId: 'resolveSession', scheme: 'bffSession', permission: undefined, public: true }), claims: user, handler: async () => ({ status: 200, body: {} }) });
     expect(res.status).toBe(200);
     expect(r.asserted).toEqual([]);
     expect(denies(r)).toEqual([]);
@@ -235,7 +236,8 @@ describe('stage 8a: exception file entries (handler deliberately checks another 
 
   it('a listed operation is asserted with handlerPermission, not x-permission', async () => {
     const r = rig({ mode: 'enforce', profile: { permissions: ['frontdesk.order.manage'] }, exceptions });
-    const res = await r.run();
+    // stage 9 keeps its behaviour for exception-listed ops (inbox:22): on staging the handler must assert itself
+    const res = await r.run({ handler: r.asserting('frontdesk.order.manage') });
     expect(res.status).toBe(200);
     expect(r.asserted[0]).toEqual({ permission: 'frontdesk.order.manage' });
   });

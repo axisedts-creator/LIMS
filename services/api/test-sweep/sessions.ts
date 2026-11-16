@@ -69,6 +69,24 @@ export function permissionSets(repoRoot: string): Record<SessionKind, Set<string
 
 type Query = (sql: string, params?: unknown[]) => Promise<{ rows: any[] }>;
 
+// T0B-SWEEP-2 (LD-270 done_when 3, HARNESS): SWEEP-1's 18 partners operations answered 403 partners.partner_inactive because no
+// partners.partners / partner_users row backs the partner membership (seed 010 has the membership only). Plain SQL on the throwaway DB, no seed edit.
+const PARTNER = { creditParty: '01a1a98a-ac40-7000-8000-00000000f0c1', partner: '01a1a98a-ac40-7000-8000-00000000f0a1', partnerUser: '01a1a98a-ac40-7000-8000-00000000f0b1' };
+const BRANCH_A = '01a1a98a-ac40-7000-8000-00000000a101', CENTRE_A = '01a1a98a-ac40-7000-8000-00000000a201';
+export const SWEEP_PARTNER_ID = PARTNER.partner;
+
+async function seedActivePartner(q: Query): Promise<void> {
+  await q(`INSERT INTO catalog.credit_parties (id, tenant_id, party_code, name, kind, created_by, updated_by)
+           VALUES ($1, $2, 'SWEEP-P1', 'Sweep Partner Lab (SYNTHETIC)', 'partner_lab', $3, $3) ON CONFLICT DO NOTHING`, [PARTNER.creditParty, TENANT_A, SYSTEM_ACTOR]);
+  await q(`INSERT INTO partners.partners (id, tenant_id, partner_code, name, status, credit_party_id, receiving_branch_id, receiving_centre_id, conversion_mode, created_by, updated_by)
+           VALUES ($1, $2, 'SWEEP-P1', 'Sweep Partner (SYNTHETIC)', 'active', $3, $4, $5, 'on_receipt', $6, $6) ON CONFLICT DO NOTHING`,
+  [PARTNER.partner, TENANT_A, PARTNER.creditParty, BRANCH_A, CENTRE_A, SYSTEM_ACTOR]);
+  await q(`INSERT INTO partners.partner_users (id, tenant_id, partner_id, membership_id, partner_role, status, display_name, email_masked, activated_at,
+             invited_by_actor_type, created_by, updated_by)
+           VALUES ($1, $2, $3, $4, 'partner_admin', 'active', 'Sweep Partner Admin (SYNTHETIC)', 's***@sweep.invalid', now(), 'user', $5, $5) ON CONFLICT DO NOTHING`,
+  [PARTNER.partnerUser, TENANT_A, PARTNER.partner, SPECS.partner.membership, SYSTEM_ACTOR]);
+}
+
 /** Inserts platform_staff + session rows (superuser, throwaway DB) and gives tenant_a's corp_admin role to the corp_admin membership. */
 export async function createSessions(q: Query, key: ReturnType<typeof createRunKey>, issuer: string, audience: string): Promise<Record<SessionKind, string>> {
   const tokens = {} as Record<SessionKind, string>;
@@ -79,6 +97,7 @@ export async function createSessions(q: Query, key: ReturnType<typeof createRunK
     if (!role.rows[0]) throw new Error('sweep: role pack elabcorp_default did not create corp_admin in tenant_a');
     await q(`INSERT INTO core.membership_roles (tenant_id, membership_id, role_id, created_by) VALUES ($1, $2, $3, $4) ON CONFLICT DO NOTHING`,
       [TENANT_A, SPECS.tenant_corp_admin.membership, role.rows[0].id, SYSTEM_ACTOR]);
+    await seedActivePartner(q);
     for (const kind of SESSION_KINDS) {
       const sp = SPECS[kind];
       const gotrue = randomUUID();

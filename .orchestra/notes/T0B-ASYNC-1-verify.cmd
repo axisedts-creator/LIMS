@@ -1,0 +1,1 @@
+pnpm --dir services/worker exec vitest run src/core/__tests__/async-manifests.test.ts src/core/__tests__/registry-sync.all.test.ts src/core/__tests__/worker-sql-functions.test.ts && pnpm --dir services/api exec vitest run src/core/db/__tests__/unknown-task-identifier.test.ts src/core/db/__tests__/sqlstate.test.ts src/core/db/__tests__/sqlstate.log.audit-small-1.test.ts

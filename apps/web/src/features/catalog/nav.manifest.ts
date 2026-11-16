@@ -20,9 +20,10 @@ export const navManifest: NavManifest = {
     // SCR-18 (T-35): path spec-fixed; permission = the API floor of every import/export operation (kind-dependent ones are checked in the page/BFF).
     { id: 'catalog.imports', label: 'catalog.nav.imports', routeId: 'staff.catalog.imports', permission: 'catalog.test.read', group: 'catalog', order: 140 },
     // SCR-13/15/16/17 (T-34): paths + permissions are spec-fixed (04-UI-UX §1); ids/labels/orders are [CONV]. SCR-13 detail reuses staff.catalog.price_list.
-    { id: 'catalog.price_lists', label: 'catalog.nav.price_lists', routeId: 'staff.catalog.price_lists', permission: 'catalog.price_list.read', group: 'catalog', order: 100 },
-    { id: 'catalog.price_simulator', label: 'catalog.nav.price_simulator', routeId: 'staff.catalog.price_simulator', permission: 'catalog.price_list.read', group: 'catalog', order: 110 },
-    { id: 'catalog.surcharges', label: 'catalog.nav.surcharges', routeId: 'staff.catalog.surcharges', permission: 'catalog.price_list.read', group: 'catalog', order: 120 },
-    { id: 'catalog.tax', label: 'catalog.nav.tax', routeId: 'staff.catalog.tax', permission: 'catalog.price_list.read', group: 'catalog', order: 130 },
+    // LD-251 (13-M-SERIES s3): sidebar sub-heading "Pricing". No "+": routes.yaml has no /catalog/tests/new, /catalog/panels/new or /catalog/price-lists/new.
+    { id: 'catalog.price_lists', label: 'catalog.nav.price_lists', routeId: 'staff.catalog.price_lists', permission: 'catalog.price_list.read', group: 'catalog', order: 100, section: 'core.nav.section.pricing' },
+    { id: 'catalog.price_simulator', label: 'catalog.nav.price_simulator', routeId: 'staff.catalog.price_simulator', permission: 'catalog.price_list.read', group: 'catalog', order: 110, section: 'core.nav.section.pricing' },
+    { id: 'catalog.surcharges', label: 'catalog.nav.surcharges', routeId: 'staff.catalog.surcharges', permission: 'catalog.price_list.read', group: 'catalog', order: 120, section: 'core.nav.section.pricing' },
+    { id: 'catalog.tax', label: 'catalog.nav.tax', routeId: 'staff.catalog.tax', permission: 'catalog.price_list.read', group: 'catalog', order: 130, section: 'core.nav.section.pricing' },
   ],
 };

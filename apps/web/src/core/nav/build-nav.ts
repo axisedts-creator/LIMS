@@ -47,7 +47,18 @@ export async function buildNav(featuresDir: string, routesYaml: string) {
       if (r.path.includes('{')) errors.push(`${where}: route "${r.id}" has path parameters; detail pages are not nav entries`);
       if (r.permission !== e.permission)
         errors.push(`${where}: permission "${e.permission}" differs from route "${r.id}" permission "${r.permission}"`);
-      entries.push({ ...e, module: d, path: r.path });
+      let create: { createPath: string; createPermission: string } | undefined;
+      if (e.createRouteId !== undefined) {
+        // LD-251 (13-M-SERIES s3): the round "+" goes straight to a create screen
+        const c = byId.get(e.createRouteId);
+        if (!c) errors.push(`${where}: createRouteId "${e.createRouteId}" not found in contracts/routes.yaml`);
+        else if (c.origin !== 'staff_web') errors.push(`${where}: create route "${c.id}" is not a staff_web route`);
+        else if (c.path.includes('{')) errors.push(`${where}: create route "${c.id}" has path parameters`);
+        else if (!c.permission) errors.push(`${where}: create route "${c.id}" has no permission`);
+        else create = { createPath: c.path, createPermission: c.permission };
+        if (!e.createLabel) errors.push(`${where}: createRouteId needs a createLabel (the "+" needs a name)`);
+      }
+      entries.push({ ...e, module: d, path: r.path, ...create });
     }
   }
   const groupIdx = (g: string) => (NAV_GROUPS as readonly string[]).indexOf(g);

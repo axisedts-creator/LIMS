@@ -4,7 +4,7 @@ import { useId, useState, type FormEvent } from 'react';
 import { Banner } from '@lims/ui/components/Banner';
 import { Button } from '@lims/ui/components/Button';
 import { RequiredNote } from '../ui';
-import { AuthIcon, AuthMark } from './AuthArt';
+import { AuthIcon } from './AuthArt';
 import { PasswordField } from './PasswordField';
 import { EMAIL_RE, errorCopy, type ActionResult } from './messages';
 
@@ -48,10 +48,7 @@ export function LoginForm({ action, loggedOut, mfaFailed, next }: LoginFormProps
 
   return (
     <div className="lims-auth-card">
-      <div className="lims-lockup">
-        <AuthMark />
-        <p className="lims-wordmark">LIMS</p>
-      </div>
+      {/* T0D-MSERIES-2 (LD-251, 13-M-SERIES s5): the Metro Labs logo sits in the auth layout; no placeholder mark in the card */}
       <h1>Log in</h1>
       {loggedOut ? <Banner tone="info" title="You have been logged out." /> : null}
       {mfaFailed ? <Banner tone="warning" title="Too many incorrect codes. Log in again." /> : null}

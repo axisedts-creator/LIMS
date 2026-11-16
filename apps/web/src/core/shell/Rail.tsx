@@ -1,68 +1,122 @@
 'use client';
-// Staff rail (10-DESIGN-SYSTEM §3, T0D-UI-R04, LD-140): rendered inside the kit PageShell <nav aria-label="Main">.
-// 248 px, collapsing to 72 px (CSS on [data-collapsed='true']). Collapsed links keep their text as the accessible name
-// (visually hidden) and show a role="tooltip" on focus/hover. Entries arrive already permission-filtered by AppShell.
+// Staff sidebar (LD-251, spec/program/13-M-SERIES.md s3; replaces the 248/72 rail of T0D-UI-R04 / LD-140). Rendered inside the kit
+// PageShell <nav aria-label="Main">: logo + tenant, "Find a screen", the scrolling group list, the user card. Groups are an accordion
+// (one open at a time); the filter opens every group with a match. Entries arrive already permission-filtered by AppShell.
 import Link from 'next/link';
 import { useId, useLayoutEffect, useRef, useState } from 'react';
-import { flushSync } from 'react-dom';
 import { t } from '../i18n/messages';
+import { GROUP_ICON, NavIcon } from './NavIcon';
 
-export type RailItem = { id: string; label: string; path: string; current: boolean; chord?: string };
+export type RailItem = {
+  id: string; label: string; path: string; current: boolean; icon?: string; chord?: string; section?: string;
+  createPath?: string; createLabel?: string; badge?: number; viewOnly?: boolean;
+};
 export type RailGroup = { id: string; label: string; items: RailItem[] };
 
-export function Rail({ groups }: { groups: RailGroup[] }) {
-  const [collapsed, setCollapsed] = useState(false);
-  const [tip, setTip] = useState<string | null>(null);
+type Props = {
+  groups: RailGroup[];
+  tenant: string;
+  user: { name: string; role: string };
+  logoSrc: string;
+  navId: string;
+  drawerOpen: boolean;
+  onClose: () => void;
+};
+
+export function Rail({ groups, tenant, user, logoSrc, navId, drawerOpen, onClose }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const uid = useId();
-  // PageShell (packages/ui) owns the <nav>; the collapsed state is reflected on it so the kit-level CSS can size it.
-  useLayoutEffect(() => {
-    ref.current?.closest('nav')?.setAttribute('data-collapsed', String(collapsed));
-  }, [collapsed]);
+  const [open, setOpen] = useState<string | null>(() => (groups.find((g) => g.items.some((e) => e.current)) ?? groups[0])?.id ?? null);
+  const [query, setQuery] = useState('');
+  const scrollTo = useRef<string | null>(null);
 
-  const tipId = (id: string) => `${uid}-tip-${id}`;
-  const show = (id: string) => { if (collapsed) setTip(id); };
-  // hide synchronously: a tooltip must never outlive its trigger's focus/hover
-  const hide = () => flushSync(() => setTip(null));
+  // PageShell (packages/ui) owns the <nav>; id + drawer state are reflected on it (menu button aria-controls, CSS drawer).
+  useLayoutEffect(() => {
+    const nav = ref.current?.closest('nav');
+    nav?.setAttribute('id', navId);
+    nav?.setAttribute('data-drawer-open', String(drawerOpen));
+  }, [navId, drawerOpen]);
+  // opening a group scrolls it to the top of the list (13 s3), after the previous one has collapsed
+  useLayoutEffect(() => {
+    if (!scrollTo.current) return;
+    ref.current?.querySelector(`[data-group="${scrollTo.current}"]`)?.scrollIntoView({ block: 'start' });
+    scrollTo.current = null;
+  });
+
+  const q = query.trim().toLowerCase();
+  const filtering = q.length > 0;
+  const shown = filtering
+    ? groups.map((g) => ({ ...g, items: g.items.filter((e) => e.label.toLowerCase().includes(q)) })).filter((g) => g.items.length > 0)
+    : groups;
+
+  const toggle = (id: string) => {
+    if (open !== id) scrollTo.current = id;
+    setOpen(open === id ? null : id);
+  };
 
   return (
     <div ref={ref} className="lims-rail">
-      <button
-        type="button"
-        className="lims-btn lims-rail-toggle"
-        aria-expanded={!collapsed}
-        aria-label={t(collapsed ? 'core.nav.expand' : 'core.nav.collapse')}
-        onClick={() => { setCollapsed((c) => !c); hide(); }}
-      >
-        <svg aria-hidden="true" focusable="false" viewBox="0 0 16 16" width="16" height="16"><path d={collapsed ? 'M6 3l5 5-5 5' : 'M10 3L5 8l5 5'} fill="none" stroke="currentColor" strokeWidth="2" /></svg>
-      </button>
-      {groups.map((g) => (
-        <div key={g.id} role="group" aria-label={g.label} className="lims-rail-group">
-          <span className="lims-rail-heading" aria-hidden="true">{g.label}</span>
-          <ul className="lims-sidenav">
-            {g.items.map((e) => (
-              <li key={e.id} className="lims-rail-item">
-                <Link
-                  href={e.path}
-                  aria-current={e.current ? 'page' : undefined}
-                  aria-describedby={tip === e.id ? tipId(e.id) : undefined}
-                  data-chord={e.chord}
-                  onFocus={() => show(e.id)}
-                  onBlur={hide}
-                  onMouseEnter={() => show(e.id)}
-                  onMouseLeave={hide}
-                  onKeyDown={(ev) => { if (ev.key === 'Escape') hide(); }}
-                >
-                  {/* initial drawn by CSS (attr) so the link text stays exactly the label */}
-                  <span className="lims-rail-badge" aria-hidden="true" data-initial={e.label.slice(0, 1)} />
-                  <span className="lims-rail-label">{e.label}</span>
-                </Link>
-                {collapsed && tip === e.id ? <span role="tooltip" id={tipId(e.id)} className="lims-tooltip lims-rail-tip">{e.label}</span> : null}
-              </li>
-            ))}
-          </ul>
-        </div>
-      ))}
+      <div className="lims-rail-brand">
+        <img className="lims-rail-logo" src={logoSrc} alt={t('core.shell.logo_alt')} />
+        <span className="lims-rail-tenant">{tenant}</span>
+        <button type="button" className="lims-btn lims-shell-menu lims-rail-close" aria-label={t('core.nav.close_menu')} onClick={onClose}>
+          <NavIcon name="close" />
+        </button>
+      </div>
+      <input
+        type="search"
+        className="lims-input lims-rail-search"
+        aria-label={t('core.nav.find')}
+        placeholder={t('core.nav.find')}
+        maxLength={60}
+        autoComplete="off"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+      />
+      <div className="lims-rail-scroll">
+        {filtering && shown.length === 0 ? <p role="status" className="lims-rail-empty">{t('core.nav.find_none')}</p> : null}
+        {shown.map((g) => {
+          const expanded = filtering || open === g.id;
+          const listId = `${uid}-${g.id}`;
+          let lastSection: string | undefined;
+          return (
+            <div key={g.id} role="group" aria-label={g.label} data-group={g.id} className="lims-rail-group">
+              <button type="button" className="lims-rail-header" aria-expanded={expanded} aria-controls={listId} onClick={() => toggle(g.id)}>
+                <NavIcon name={GROUP_ICON[g.id]} />
+                <span className="lims-rail-group-label">{g.label}</span>
+                <span className="lims-rail-count">{g.items.length}</span>
+                <NavIcon name="chevron" className="lims-rail-chevron" />
+              </button>
+              <ul id={listId} className="lims-sidenav" hidden={!expanded}>
+                {g.items.map((e) => {
+                  const sub = !filtering && e.section && e.section !== lastSection ? e.section : null;
+                  lastSection = e.section;
+                  return [
+                    sub ? <li key={`${e.id}#s`} className="lims-rail-subheading" data-subheading="">{sub}</li> : null,
+                    <li key={e.id} className="lims-rail-item" data-entry-id={e.id}>
+                      <Link href={e.path} className="lims-rail-link" aria-current={e.current ? 'page' : undefined} data-chord={e.chord} onClick={onClose}>
+                        <NavIcon name={e.icon} />
+                        <span className="lims-rail-label">{e.label}</span>
+                      </Link>
+                      {e.badge !== undefined ? <span className="lims-rail-badge" data-badge="">{e.badge}</span> : null}
+                      {e.viewOnly ? <span className="lims-rail-viewonly" data-view-only="">{t('core.nav.view_only')}</span> : null}
+                      {expanded && e.createPath && e.createLabel ? (
+                        <Link href={e.createPath} className="lims-rail-create" data-create="" aria-label={e.createLabel} onClick={onClose}>
+                          <NavIcon name="plus" />
+                        </Link>
+                      ) : null}
+                    </li>,
+                  ];
+                })}
+              </ul>
+            </div>
+          );
+        })}
+      </div>
+      <div className="lims-rail-user" data-testid="user-card">
+        <span className="lims-rail-user-name">{user.name}</span>
+        <span className="lims-rail-user-role">{user.role}</span>
+      </div>
     </div>
   );
 }

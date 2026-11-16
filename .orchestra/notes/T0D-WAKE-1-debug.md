@@ -10,3 +10,5 @@ Round 6: same log, same 2 failures (rs-c2.static baseline drift: actions.ts hash
 
 Round 7: verify log now 3 reds in rs-c2.static, not 2. New one: `same form field names` (baseline has x-forwarded-for, x-real-ip). Cause: T0A-CLIENTIP-1 (c069f7ecd) moved those header reads to core/api/client-context.ts, outside rs-c2 ROOTS; actions.ts has 0 matches. Not a WAKE-1 change. Baseline last commit still ec073f164.
 Fix: none in implementation (re-adding the reads would undo CLIENTIP-1). Tester must re-record once with RS_C2_RECORD=1; LD-298 allowed diff needs the field_names entry added by lead. Dispute: T0D-WAKE-1-dispute.md (writer, 23:45) stands.
+
+Round 8: verify log (01:29) same 3 reds in rs-c2.static (actions.ts hash, messages.ts hash, new waking route; field_names x-forwarded-for/x-real-ip). Baseline last commit still ec073f164: tester re-record per LD-298/LD-303 has not happened. No implementation change; debugger may not edit tests/baseline. Tester stage must run RS_C2_RECORD=1 once (diff limited to those entries), then re-verify. Dispute: T0D-WAKE-1-dispute-202611170126.md.

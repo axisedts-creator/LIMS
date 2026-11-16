@@ -77,8 +77,9 @@ const REVOKE_OTHERS_SQL = `UPDATE identity.sessions SET state = 'revoked', revok
     updated_at = now(), updated_by = $5, version = version + 1
   WHERE tenant_id = $1 AND user_id = $2 AND id <> $3 AND state NOT IN ('revoked', 'expired') RETURNING id, kind`;
 // LD-299 T0B-ACTIVATE-1: sent only (03-APP-FLOW §2.6 / M2); pending acceptance raised as CR .orchestra/cr/T0B-ACTIVATE-1.nonblocking.md (ACTIVATE-1c)
+// LD-302 (CR-C0-ACTIVATE-1c): pending or sent; the verified GoTrue invite token proves the address, staging has no worker to move pending->sent
 const INVITE_ACCEPT_SQL = `UPDATE identity.invitations SET status = 'accepted', accepted_at = $4, updated_at = now(), updated_by = $5, version = version + 1
-  WHERE tenant_id = $1 AND membership_id = $2 AND user_id = $3 AND status = 'sent' AND expires_at > $4 RETURNING id`;
+  WHERE tenant_id = $1 AND membership_id = $2 AND user_id = $3 AND status IN ('pending', 'sent') AND expires_at > $4 RETURNING id`;
 // LD-99 / 08 A38-1: platform kind (identityAuthTx, no tenant)
 const REVOKE_OTHERS_DEFINER = 'SELECT app.identity_platform_auth_write_revoke_other_sessions($1::uuid, $2::uuid, $3::text) AS ids';
 const INVITE_ACCEPT_BY_USER_DEFINER = 'SELECT app.identity_platform_auth_write_invitation_accept_by_user($1::uuid) AS n';

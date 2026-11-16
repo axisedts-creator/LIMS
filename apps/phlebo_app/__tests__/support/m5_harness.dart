@@ -53,7 +53,7 @@ List<RouteVisit> allStatuses() => [
       routeVisit(5, status: 'cancelled'),
     ];
 
-RouteScreen routeScreen({List<RouteVisit>? visits, bool offline = false, bool purged = false}) => RouteScreen(
+RouteScreen routeScreen({List<RouteVisit>? visits, bool offline = false, bool purged = false, void Function(String)? onOpenVisit}) => RouteScreen(
       routeDate: DateTime(2026, 11, 14),
       visits: visits ?? allStatuses(),
       purged: purged,
@@ -61,15 +61,15 @@ RouteScreen routeScreen({List<RouteVisit>? visits, bool offline = false, bool pu
       dataAsOf: offline ? DateTime(2026, 11, 14, 7, 5) : null,
       sync: SyncSummary(waiting: 3, lastUpload: DateTime(2026, 11, 14, 9, 15)),
       onRefresh: () async {},
-      onOpenVisit: (_) {},
+      onOpenVisit: onOpenVisit ?? (_) {},
       onOpenHandover: () {},
       onOpenOutbox: () {},
       onOpenSettings: () {},
       onHelp: () {},
     );
 
-Future<void> openRoute(WidgetTester t, {double scale = 1.0, bool reduceMotion = false, bool settle = true}) =>
-    mount(t, routeScreen(), scale: scale, reduceMotion: reduceMotion, settle: settle);
+Future<void> openRoute(WidgetTester t, {double scale = 1.0, bool reduceMotion = false, bool settle = true, void Function(String)? onOpenVisit}) =>
+    mount(t, routeScreen(onOpenVisit: onOpenVisit), scale: scale, reduceMotion: reduceMotion, settle: settle);
 
 Future<void> openRouteOffline(WidgetTester t, {double scale = 1.0, bool reduceMotion = false, bool settle = true}) =>
     mount(t, routeScreen(offline: true), scale: scale, reduceMotion: reduceMotion, settle: settle);

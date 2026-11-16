@@ -102,8 +102,8 @@ void main() {
           for (final w in [find.byType(IconButton), find.byType(PopupMenuButton), find.byType(ListTile), find.byType(LimsListTile), find.byType(ChoiceTile)]) {
             for (var i = 0; i < w.evaluate().length; i++) {
               final size = t.getSize(w.at(i));
-              expect(size.height, greaterThanOrEqualTo(48), reason: '${w.description} #$i is ${size.height} dp high');
-              expect(size.width, greaterThanOrEqualTo(48), reason: '${w.description} #$i is ${size.width} dp wide');
+              expect(size.height, greaterThanOrEqualTo(48), reason: '${w.describeMatch(Plurality.one)} #$i is ${size.height} dp high');
+              expect(size.width, greaterThanOrEqualTo(48), reason: '${w.describeMatch(Plurality.one)} #$i is ${size.width} dp wide');
             }
           }
         });
@@ -116,7 +116,7 @@ void main() {
           }
           for (final w in [find.byType(LimsListTile), find.byType(ChoiceTile), find.byType(PopupMenuButton)]) {
             for (var i = 0; i < w.evaluate().length; i++) {
-              expect(t.getSemantics(w.at(i)).label.trim(), isNotEmpty, reason: '${w.description} #$i has no semantic label');
+              expect(t.getSemantics(w.at(i)).label.trim(), isNotEmpty, reason: '${w.describeMatch(Plurality.one)} #$i has no semantic label');
             }
           }
           handle.dispose();
@@ -219,9 +219,31 @@ void main() {
     });
 
     testWidgets('a cancelled visit stays greyed but readable, and still does not open', (t) async {
-      await openRoute(t);
-      expect(find.textContaining('Cancelled'), findsOneWidget);
-      expect(find.byType(LimsListTile), findsNWidgets(5));
+      final opened = <String>[];
+      await openRoute(t, onOpenVisit: opened.add);
+      final tiles = find.byType(LimsListTile);
+      expect(tiles, findsNWidgets(5));
+      // the cancelled visit is the fifth (allStatuses): tap it, it must not open and the centre's note shows
+      await t.ensureVisible(tiles.at(4));
+      await t.pumpAndSettle();
+      await t.tap(tiles.at(4));
+      await t.pumpAndSettle();
+      expect(opened, isEmpty, reason: 'a cancelled visit opened');
+      await t.drag(find.byType(Scrollable).first, const Offset(0, 2000)); // the note sits at the top of the list
+      await t.pumpAndSettle();
+      expect(find.text('This visit was cancelled by the centre.'), findsOneWidget);
+      // greyed: its title resolves to another colour than the active tiles' title (the 4.5:1 sunlight test above keeps it readable)
+      Color? titleColor(int i) {
+        final e = find.descendant(of: tiles.at(i), matching: find.byType(Text)).evaluate().first;
+        return DefaultTextStyle.of(e).style.merge((e.widget as Text).style).color;
+      }
+
+      expect(titleColor(4), isNotNull);
+      expect(titleColor(4), isNot(titleColor(0)), reason: 'the cancelled tile is not greyed');
+      // a normal tile still opens (the spy works)
+      await t.tap(tiles.at(0));
+      await t.pumpAndSettle();
+      expect(opened, hasLength(1));
     });
 
     testWidgets('if the route has a bottom navigation it is LimsBottomNav with text labels and one lime pill, and invents no History or Profile tab', (t) async {

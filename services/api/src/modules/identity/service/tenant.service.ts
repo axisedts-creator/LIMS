@@ -295,7 +295,8 @@ export function toTenant(r: TRow) {
 function guard(ctx: Ctx, permission: string) {
   PlatformAuthz.assertPlatform(ctx, permission);
   if (!ctx.tx || typeof ctx.db?.withTenantScope !== 'function') throw new LimsError('auth.unauthenticated');
-  return { tx: ctx.tx, actorId: ctx.actor.id, now: ctx.now ? ctx.now() : new Date() };
+  // T0B-PROVFIX-2 (LD-295): the router's ctx.now() returns an ISO string (core/pipeline/index.ts), not a Date; normalise once here.
+  return { tx: ctx.tx, actorId: ctx.actor.id, now: new Date(ctx.now ? ctx.now() : Date.now()) };
 }
 type S = ReturnType<typeof guard>;
 

@@ -95,13 +95,32 @@ const RESPONSE_AJV_OPTIONS = { ...BODY_AJV_OPTIONS, useDefaults: false } as cons
 type ValidatorFactory = (ext: object, o: { customOptions: object }) => (c: { schema: object; httpPart?: string }) => any;
 const ajvPool = AjvCompiler() as unknown as ValidatorFactory;
 
+/**
+ * T0A-HEADERS-1 (LD-277, LD-278): a custom buildValidator makes Fastify skip its own header-schema lower-casing,
+ * so `required: [Idempotency-Key]` never matched Node's `idempotency-key`. Copy with top-level `properties` keys
+ * and `required` entries lower-cased (same as Fastify lowerCaseHeadersSchema); the input schema is not mutated.
+ */
+function lowerCaseHeaders(schema: any): object {
+  if (!schema || typeof schema !== 'object') return schema;
+  const out = { ...schema };
+  if (schema.properties && typeof schema.properties === 'object') {
+    out.properties = Object.fromEntries(Object.entries(schema.properties).map(([k, v]) => [k.toLowerCase(), v]));
+  }
+  if (Array.isArray(schema.required)) out.required = schema.required.map((n: unknown) => (typeof n === 'string' ? n.toLowerCase() : n));
+  return out;
+}
+
 /** Fastify `schemaController`: Fastify's own ajv compiler (formats included), body without coercion. */
 export const schemaController: NonNullable<FastifyServerOptions['schemaController']> = {
   compilersFactory: {
     buildValidator: ((ext: object) => {
       const coercing = ajvPool(ext, { customOptions: AJV_OPTIONS });
       const strict = ajvPool(ext, { customOptions: BODY_AJV_OPTIONS });
-      return (c: { schema: object; httpPart?: string }) => (c.httpPart === 'body' ? strict(c) : coercing(c));
+      return (c: { schema: object; httpPart?: string }) => {
+        if (c.httpPart === 'body') return strict(c);
+        if (c.httpPart === 'headers') return coercing({ ...c, schema: lowerCaseHeaders(c.schema) });
+        return coercing(c);
+      };
     }) as any,
   },
 };

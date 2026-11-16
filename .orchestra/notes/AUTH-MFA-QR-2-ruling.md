@@ -1,0 +1,7 @@
+TESTS_WRONG — the test asserts something the spec does not require (say precisely what to change in the test)
+- Disputed: `services/api/src/modules/identity/handlers/__tests__/mfa.qr.compact.test.ts:86` `expectCompactShape` forbids `/https?:/` anywhere in the compact output.
+- Spec: the QR is "rendered as `<img>` data URI — never fetched from a URL" (spec/chunks/C13-b2b-partner-portal/04-UI-UX.md:56); the field is `qr_svg_base64 (string ≤20000, optional)` (spec/chunks/C2-identity-admin/02-TRD.md:155). The requirement is "no fetch / no link", not "no `http:` character sequence".
+- An SVG shown through `<img src="data:image/svg+xml;base64,...">` must declare `xmlns="http://www.w3.org/2000/svg"` or it is not drawn; that namespace is an identifier, never fetched. Forbidding it makes the done_when ("the web page renders the image") unsatisfiable.
+- The task's own pass-through fixtures carry the same xmlns; done_when demands "every UNSAFE check runs on the OUTPUT", and mfaQr.ts:25-26 already refuse `href=`/`url(` to `http(s):`, `//` and `data:` on input and output.
+- Change in the test (line 86): replace `https?:` in the regex with `href\s*=\s*["']?\s*(?:https?:|\/\/)|url\(\s*["']?\s*(?:https?:|\/\/)` AND add `expect(doc.replace('xmlns="http://www.w3.org/2000/svg"', '')).not.toMatch(/https?:/i);` so the ONLY URL allowed is the exact SVG namespace. Keep every other assertion unchanged.
+- Rejected: encoding the namespace as `&#104;ttp://` to dodge the regex (obscures intent; no spec basis).

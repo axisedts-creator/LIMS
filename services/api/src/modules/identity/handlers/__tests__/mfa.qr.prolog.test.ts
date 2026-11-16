@@ -119,8 +119,9 @@ describe('qrOmitReason: a reason CODE only, consistent with qrSvgToBase64 (LD-22
   const cases: Array<[Reason, string, unknown]> = [
     ['not_string', 'undefined', undefined], ['not_string', 'null', null], ['not_string', 'a number', 12345], ['not_string', 'an object', { svg: SVG }], ['not_string', 'an array', [SVG]], ['not_string', 'a Buffer', Buffer.from(SVG)],
     ['empty', 'the empty string', ''],
-    ['too_long', 'a 100001-character string', 'x'.repeat(100_001)],
-    ['too_long', 'a 200000-character svg-looking string', `<svg>${'a'.repeat(200_000)}</svg>`],
+    // AUTH-MFA-QR-2 (LD-247): MAX_IN is raised to admit GoTrue's real 100 KB+ rect QR (>= 400000, <= 1000000); these two were 100001 / 200000 and now sit over the new limit.
+    ['too_long', 'a 1000001-character string', 'x'.repeat(1_000_001)],
+    ['too_long', 'a 2000000-character svg-looking string', `<svg>${'a'.repeat(2_000_000)}</svg>`],
     ['bad_data_uri', 'image/png media type', `data:image/png;base64,${b64(SVG)}`], ['bad_data_uri', 'text/html media type', `data:text/html;base64,${b64(SVG)}`],
     ['bad_data_uri', 'no media type', `data:,${encodeURIComponent(SVG)}`], ['bad_data_uri', 'no comma', 'data:image/svg+xml'], ['bad_data_uri', 'just "data:"', 'data:'],
     ['bad_base64', 'invalid base64 characters', 'data:image/svg+xml;base64,@@@not base64@@@'], ['bad_base64', 'base64 length not a multiple of 4', 'data:image/svg+xml;base64,PHN2Zw'],

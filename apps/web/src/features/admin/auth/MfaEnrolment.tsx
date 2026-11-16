@@ -94,7 +94,9 @@ export function MfaEnrolment({ startAction, completeAction, forced }: MfaEnrolme
             <div className="lims-qr-card">
               {enrol.qr_svg_base64 ? (
                 <DataUriImage src={`data:image/svg+xml;base64,${enrol.qr_svg_base64}`} alt="QR code for your authenticator app" />
-              ) : null}
+              ) : (
+                <p className="lims-description">We could not draw the QR code. In your authenticator app choose enter a setup key and type the key below.</p>
+              )}
               <SecretRevealOnce label="Can't scan? Enter this key" secret={enrol.secret_base32} onAcknowledged={() => {}} />
             </div>
           ) : pending ? (

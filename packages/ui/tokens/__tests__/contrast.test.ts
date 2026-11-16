@@ -70,8 +70,15 @@ describe('contrast-pairs.json (AC-0D-8.1, 10-DESIGN-SYSTEM s2.6)', () => {
       ['neutral.300 vs neutral.0 (non-text 3:1)', /neutral\.300$/, /neutral\.0$/, U],
       ['neutral.300 vs neutral.50 (non-text 3:1)', /neutral\.300$/, /neutral\.50$/, U],
       ['accent.default <-> accent.fg', /accent\.default$/, /accent\.fg$/, T],
-      ['accent.default on accent.highlight', /accent\.default$/, /accent\.highlight$/, T],
       ['neutral.900 on accent.highlight', /neutral\.900$/, /accent\.highlight$/, T],
+      // T0D-MSERIES-1 (13 s2.1): every pair of the M series table
+      ['accent.hover <-> accent.fg (white text on forest)', /accent\.hover$/, /accent\.fg$/, T],
+      ['accent.hover on accent.subtle', /accent\.hover$/, /accent\.subtle$/, T],
+      ['accent.hover on neutral.0 (page titles)', /accent\.hover$/, /neutral\.0$/, T],
+      ['accent.hover on neutral.50 (page titles on the page)', /accent\.hover$/, /neutral\.50$/, T],
+      ['accent.default on neutral.50 (links on the page)', /accent\.default$/, /neutral\.50$/, T],
+      ['neutral.900 on accent.pop', /neutral\.900$/, /accent\.pop$/, T],
+      ['accent.pop vs accent.default (focus outline on green)', /accent\.pop$/, /accent\.default$/, U],
       ['neutral.900 on accent.brand', /neutral\.900$/, /accent\.brand$/, T],
       ['accent.default on neutral.0 (links)', /accent\.default$/, /neutral\.0$/, T],
       ['accent.default on accent.subtle', /accent\.default$/, /accent\.subtle$/, T],
@@ -106,32 +113,58 @@ describe('contrast-pairs.json (AC-0D-8.1, 10-DESIGN-SYSTEM s2.6)', () => {
     expect(failures).toEqual([]);
   });
 
-  it('accent.brand is never declared as text/icon colour on a light surface (2.13:1 on white, s2.1)', () => {
-    const bad = pairs.filter((p) => /accent\.brand$/.test(p.fg) && /neutral\.(0|50|100)$/.test(p.bg));
+  it('accent.brand, accent.highlight and accent.pop are never declared as text/icon colour on a light surface (2.08:1 and 1.23:1 on white, 13 s2.1)', () => {
+    const bad = pairs.filter((p) => /accent\.(brand|highlight|pop)$/.test(p.fg) && /neutral\.(0|50|100)$/.test(p.bg));
     expect(bad).toEqual([]);
     expect(ratio(val('color.accent.brand'), val('color.neutral.0'))).toBeLessThan(3); // guards the rule's premise
+    expect(ratio(val('color.accent.highlight'), val('color.neutral.0'))).toBeCloseTo(2.08, 1);
+    expect(ratio(val('color.accent.pop'), val('color.neutral.0'))).toBeLessThan(3);
   });
 
-  it('ratios quoted in 10-DESIGN-SYSTEM s2.1 hold (catches a mistyped hex that still passes AA)', () => {
+  it('accent.default is NOT declared as text on accent.highlight any more: on #A0C032 it is 3.90:1 and fails AA (13 s2.1 puts #00362F there)', () => {
+    expect(ratio(val('color.accent.default'), val('color.accent.highlight'))).toBeLessThan(4.5); // guards the premise
+    const bad = pairs.filter((p) => p.kind === 'text' && /accent\.default$/.test(p.fg) && /accent\.highlight$/.test(p.bg));
+    expect(bad).toEqual([]);
+  });
+
+  it('control border stays neutral.300 (#7A9185): every form control border passes 3:1 on white and on the page, the board border #D3D8D0 does not', () => {
+    expect(val('color.neutral.300')).toBe('#7A9185');
+    expect(ratio('#7A9185', val('color.neutral.0'))).toBeCloseTo(3.38, 1);
+    expect(ratio('#7A9185', val('color.neutral.50'))).toBeGreaterThanOrEqual(3);
+    expect(ratio('#D3D8D0', '#FFFFFF')).toBeCloseTo(1.45, 1);
+    const kit = readFileSync(join(dir, '..', 'src', 'components', 'kit.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+    const input = /(?:^|})\s*\.lims-input\s*{([^}]*)}/.exec(kit)?.[1] ?? '';
+    expect(input, '.lims-input rule').toMatch(/border(?:-color)?\s*:[^;]*var\(--lims-neutral-300\)/);
+  });
+
+  it('ratios quoted in 13-M-SERIES s2.1 hold (catches a mistyped hex that still passes AA)', () => {
     const spec: [string, string, number][] = [
-      ['color.neutral.500', 'color.neutral.0', 5.23],
+      ['color.accent.default', 'color.neutral.0', 8.13],
+      ['color.accent.hover', 'color.accent.fg', 9.87],
+      ['color.accent.hover', 'color.accent.subtle', 8.63],
+      ['color.neutral.500', 'color.neutral.0', 5.66],
+      ['color.neutral.500', 'color.neutral.50', 5.1],
+      ['color.neutral.900', 'color.neutral.50', 16.13],
       ['color.neutral.300', 'color.neutral.0', 3.38],
-      ['color.neutral.300', 'color.neutral.50', 3.12],
-      ['color.neutral.600', 'color.neutral.0', 6.47],
-      ['color.neutral.900', 'color.neutral.0', 16.18],
-      ['color.accent.default', 'color.neutral.0', 10.06],
-      ['color.accent.default', 'color.accent.highlight', 7.93],
-      ['color.neutral.900', 'color.accent.highlight', 12.76],
-      ['color.neutral.900', 'color.accent.brand', 7.58],
-      ['color.accent.brand', 'color.neutral.0', 2.13],
-      ['color.tone.neutral.fg', 'color.tone.neutral.bg', 7.84],
-      ['color.tone.info.fg', 'color.tone.info.bg', 7.0],
-      ['color.tone.success.fg', 'color.tone.success.bg', 6.32],
-      ['color.tone.warning.fg', 'color.tone.warning.bg', 7.35],
-      ['color.tone.danger.fg', 'color.tone.danger.bg', 7.19],
-      ['color.tone.critical.fg', 'color.tone.critical.bg', 5.92],
+      ['color.tone.success.fg', 'color.tone.success.bg', 6.58],
+      ['color.tone.info.fg', 'color.tone.info.bg', 7.06],
+      ['color.tone.warning.fg', 'color.tone.warning.bg', 6.61],
+      ['color.tone.danger.fg', 'color.tone.danger.bg', 6.85],
+      ['color.tone.neutral.fg', 'color.tone.neutral.bg', 7.1],
       ['color.tone.critical.solid', 'color.neutral.0', 6.57],
     ];
     for (const [a, b, want] of spec) expect(ratio(val(a), val(b)), `${a} on ${b}`).toBeCloseTo(want, 1);
+  });
+
+  it('the spec text colour #00362F (not a token) holds its quoted ratios: 6.43 on accent.highlight, 10.87 on accent.pop', () => {
+    // 13 s2.1 names #00362F as the text on the lime pill and on the pop yellow. It has no token and no new token is allowed, so the kit
+    // uses neutral.900 there (pairs above, 8.59 and 14.54). This guards the spec numbers themselves.
+    expect(ratio('#00362F', val('color.accent.highlight'))).toBeCloseTo(6.43, 1);
+    expect(ratio('#00362F', val('color.accent.pop'))).toBeCloseTo(10.87, 1);
+  });
+
+  it('every declared pair is unique (no duplicate rows that could hide a missing one)', () => {
+    const keys = pairs.map((p) => `${p.fg}|${p.bg}|${p.kind}`);
+    expect(new Set(keys).size).toBe(keys.length);
   });
 });

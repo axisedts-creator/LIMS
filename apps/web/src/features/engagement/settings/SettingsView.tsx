@@ -155,7 +155,8 @@ function SettingsForm({ initial, centres }: { initial: EngagementSettings; centr
         </Card>
         <Card title="Patient app">
           <TextField
-            label={LABEL.allowed_phone_prefixes} name="allowed_phone_prefixes" value={prefixes} description="Up to 5 prefixes separated by commas, for example +977, +91."
+            // maxItems 5 x "+NNNN" (5 chars) joined by ", " = 33; 34 allows one trailing space
+            label={LABEL.allowed_phone_prefixes} name="allowed_phone_prefixes" value={prefixes} maxLength={34} description="Up to 5 prefixes separated by commas, for example +977, +91."
             onChange={edit(setPrefixes, 'allowed_phone_prefixes')} {...err('allowed_phone_prefixes')}
           />
           <TextField label={LABEL.min_app_version_android} name="min_app_version_android" value={android} maxLength={14} onChange={edit(setAndroid, 'min_app_version_android')} {...err('min_app_version_android')} />

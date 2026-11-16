@@ -62712,6 +62712,7 @@ export interface Operations {
           credit_note_no_pattern?: string;
           effective_fy_bs?: string;
         };
+        training_mode?: boolean;
         version: number;
       });
       400: {
@@ -139855,6 +139856,7 @@ export interface Operations {
           credit_note_no_pattern?: string;
           effective_fy_bs?: string;
         };
+        training_mode?: boolean;
         version: number;
       });
       400: {

@@ -69,6 +69,8 @@ const en: Record<string, string> = {
   'lab.nav.status_board': 'Status board',
   'lab.nav.collect': 'Collect & dispatch',
   'lab.nav.receive': 'Receive',
+  'lab.nav.worklists': 'Worklists',
+  'lab.nav.critical_values': 'Critical values',
   'lab.nav.pending': 'Pending',
   'lab.nav.verification': 'Verify',
   'lab.nav.approval': 'Approve',

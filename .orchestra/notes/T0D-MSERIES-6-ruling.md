@@ -6,3 +6,5 @@ TESTS_WRONG — the test asserts something the spec does not require (say precis
 5. If the recorded diff shows anything beyond those three entries, stop and escalate. Do not record it.
 6. Implementation stands. After the baseline commit, re-run .orchestra/notes/T0D-MSERIES-6-verify.cmd.
 Spec: the ruling rests on the binding task brief (done_when 6 and 7, files list) and LD-287/LD-290. spec/ has no rs-c2 baseline rule that MSERIES-6 contradicts.
+7. Round 2 (dispute 21:40 NPT): items 1-6 stand unchanged. `git log -- apps/web/src/features/admin/__tests__/rs-c2.baseline.json` still ends at ec073f164; no tester commit since re-recorded it (4a319018f only renamed the CR file).
+8. Tester must now apply item 4 exactly. Writer has nothing to change.

@@ -72,7 +72,7 @@ async function open(sp: Record<string, string> = {}, perms: string[] = [READ]) {
 const listCalls = () => calls.filter((c) => c.url.pathname === '/v1/lab/critical-values');
 const dataRows = () => screen.getAllByRole('row').filter((r) => within(r).queryAllByRole('columnheader').length === 0);
 const rowOf = (analyte: string) => dataRows().find((r) => (r.textContent ?? '').includes(analyte))!;
-const links = () => screen.getAllByRole('link').filter((a) => (a.getAttribute('href') ?? '').startsWith('/lab/critical-values/'));
+const links = () => screen.queryAllByRole('link').filter((a) => (a.getAttribute('href') ?? '').startsWith('/lab/critical-values/'));
 
 describe('permission gate (lab.critical_value.read)', () => {
   it.each([[[]], [['lab.worklist.read', 'lab.result.read', 'lab.critical_value.log_notification']]])('perms %j: the API is never called and no critical value is shown (notFound or the permission-denied page)', async (perms) => {

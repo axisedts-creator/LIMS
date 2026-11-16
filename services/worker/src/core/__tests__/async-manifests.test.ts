@@ -123,9 +123,12 @@ describe('(3) every enqueued identifier is declared by a loaded manifest', () =>
   });
 
   // LD-279 (2026-11-16): done_when (3) allowed seven known gaps, CR-C0-T0B-ASYNC-1-001. The list can only shrink.
-  // T0B-ASYNC-2 (done_when (3)) removed the five catalog and homecollection identifiers (manifests written); two identity identifiers stay (LD-189, founder).
+  // T0B-ASYNC-2 (done_when (3)) removed four catalog and homecollection identifiers (manifests written); two identity identifiers stay (LD-189, founder).
+  // homecollection.refresh_visit_specimens is back on the list (review item 1): its task needs ctx.ports.LabPort, which JobContext/bootstrap do not provide.
   const CR = 'CR-C0-T0B-ASYNC-1-001';
+  const CR2 = 'CR-C0-T0B-ASYNC-2-001';
   const KNOWN_GAP: Record<string, string> = {
+    'homecollection.refresh_visit_specimens': `task needs ctx.ports.LabPort, absent from JobContext (${CR2}; ${CR})`,
     'identity.notify_ip_throttle': `no worker task; founder decision under LD-189 (implement or remove the enqueue) (${CR})`,
     'identity.rescan_upload': `no worker task; founder decision under LD-189 (implement or remove the enqueue) (${CR})`,
   };
@@ -138,14 +141,14 @@ describe('(3) every enqueued identifier is declared by a loaded manifest', () =>
     return declared;
   };
 
-  it('the known-gap list is exactly the two identity identifiers still open under LD-189 (the five catalog/homecollection ones are gone), each with a reason and the CR id', () => {
-    expect(Object.keys(KNOWN_GAP).sort()).toEqual(['identity.notify_ip_throttle', 'identity.rescan_upload']);
+  it('the known-gap list is exactly the two identity identifiers (LD-189) plus homecollection.refresh_visit_specimens (no LabPort in JobContext), each with a reason and a CR id', () => {
+    expect(Object.keys(KNOWN_GAP).sort()).toEqual(['homecollection.refresh_visit_specimens', 'identity.notify_ip_throttle', 'identity.rescan_upload']);
     for (const [id, reason] of Object.entries(KNOWN_GAP)) expect(reason, id).toContain(CR);
   });
 
-  it('the five LD-279 catalog and homecollection identifiers are enqueued by the API and declared by a loaded manifest (T0B-ASYNC-2)', async () => {
+  it('the four runnable LD-279 catalog and homecollection identifiers are enqueued by the API and declared by a loaded manifest (T0B-ASYNC-2)', async () => {
     const declared = await loadedIds();
-    for (const id of ['catalog.export_build', 'catalog.import_validate', 'catalog.import_commit', 'homecollection.flag_handover_discrepancy', 'homecollection.refresh_visit_specimens']) {
+    for (const id of ['catalog.export_build', 'catalog.import_validate', 'catalog.import_commit', 'homecollection.flag_handover_discrepancy']) {
       expect([...found.keys()], `${id} is no longer enqueued: the scan control is stale`).toContain(id);
       expect(declared.has(id), `${id} is enqueued but no loaded manifest declares it`).toBe(true);
     }

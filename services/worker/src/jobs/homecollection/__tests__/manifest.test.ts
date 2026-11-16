@@ -7,9 +7,9 @@ import { validateManifests } from '../../../core/manifest.js';
 import { setup } from '../../../core/__tests__/helpers.js';
 import { manifest } from '../index.js';
 import { flagHandoverDiscrepancy } from '../tasks/flag_handover_discrepancy.js';
-import { refreshVisitSpecimens } from '../tasks/refresh_visit_specimens.js';
 
-const ENQUEUED = ['homecollection.flag_handover_discrepancy', 'homecollection.refresh_visit_specimens'] as const;
+// homecollection.refresh_visit_specimens is NOT declared: its task needs ctx.ports.LabPort, absent from JobContext (CR-C0-T0B-ASYNC-2-001).
+const ENQUEUED = ['homecollection.flag_handover_discrepancy'] as const;
 const JOBS = join(import.meta.dirname, '..');
 
 describe('homecollection worker manifest', () => {
@@ -18,11 +18,11 @@ describe('homecollection worker manifest', () => {
     expect(() => validateManifests([manifest])).not.toThrow();
   });
 
-  it('declares flag_handover_discrepancy and refresh_visit_specimens with the handlers their existing task files export', () => {
+  it('declares flag_handover_discrepancy with the handler its existing task file exports, and not refresh_visit_specimens (no LabPort in JobContext)', () => {
     const tasks = manifest.tasks ?? {};
     for (const id of ENQUEUED) expect(Object.keys(tasks), id).toContain(id);
     expect(tasks['homecollection.flag_handover_discrepancy']).toBe(flagHandoverDiscrepancy);
-    expect(tasks['homecollection.refresh_visit_specimens']).toBe(refreshVisitSpecimens);
+    expect(Object.keys(tasks)).not.toContain('homecollection.refresh_visit_specimens');
   });
 
   it('declares only tasks that have a task file in this folder, all inside the homecollection.* namespace', () => {
@@ -43,7 +43,7 @@ describe('homecollection worker manifest', () => {
     for (const type of Object.keys(manifest.subscriptions ?? {})) expect(existsSync(join(JOBS, 'consumers', `${type}.ts`)), type).toBe(true);
   });
 
-  it('buildTaskList registers the two identifiers as homecollection tasks (what registry-sync writes)', async () => {
+  it('buildTaskList registers the identifier as a homecollection task (what registry-sync writes)', async () => {
     const s = await setup([manifest]);
     for (const id of ENQUEUED) expect(s.entry(id), id).toMatchObject({ module: 'homecollection' });
   });

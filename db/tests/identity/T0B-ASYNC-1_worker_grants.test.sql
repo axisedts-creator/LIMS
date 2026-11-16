@@ -60,7 +60,7 @@ SELECT ok(NOT EXISTS (SELECT 1 FROM pg_policies WHERE (qual ~ 'app\.(pre_|mainte
 
 -- ================================================================ catalog: every app.* function the worker SQL calls may be executed by lims_worker
 CREATE TEMP TABLE worker_app_fns(fn) AS VALUES
-  ('cron_tenant_ids'), ('dl_insert_platform'), ('enqueue_job'), ('homecollection_anonymise_retired_visits'),
+  ('cron_tenant_ids'), ('current_actor_id'), ('dl_insert_platform'), ('enqueue_job'), ('homecollection_anonymise_retired_visits'),
   ('identity_expire_audit_exports'), ('identity_expire_invitations'), ('identity_expire_support_sessions'),
   ('identity_finish_breached_import'), ('identity_load_breached_batch'), ('identity_login_context'),
   ('identity_purge_auth_events'), ('identity_purge_sessions'), ('instruments_agent_state_snapshot'),

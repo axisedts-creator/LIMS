@@ -24,7 +24,13 @@ const stripComments = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(
 // definerTask(<task>, '<fn>') whose SQL is `SELECT app.${fn}()` (identity tasks/shared.ts).
 // api files that hold SQL a worker task runs (a worker task imports the repository). Explicit, not "everything the worker imports": that would
 // pull in api-only definers (mfa.repo, link.service) the worker never executes. Add a file here when a new worker task imports an api repository.
-const API_FILES_RUN_BY_WORKER = ['services/api/src/modules/homecollection/repository/housekeeping.repo.ts'];
+// T0B-ASYNC-2: the homecollection tasks run api repositories whose SQL calls app.current_actor_id() through shared.repo.ts (lims_worker inherits lims_app's EXECUTE).
+const HC = 'services/api/src/modules/homecollection/';
+const API_FILES_RUN_BY_WORKER = [
+  `${HC}repository/housekeeping.repo.ts`, `${HC}repository/shared.repo.ts`, `${HC}repository/visits.repo.ts`, `${HC}repository/handovers.repo.ts`,
+  `${HC}repository/visitFlags.repo.ts`, `${HC}repository/visitSpecimens.repo.ts`, `${HC}repository/routes.repo.ts`,
+  `${HC}route.service.ts`, `${HC}specimen.service.ts`,
+];
 function scanned(): string[] {
   return [...walk(WORKER_SRC), ...API_FILES_RUN_BY_WORKER.map((f) => join(ROOT, f))];
 }

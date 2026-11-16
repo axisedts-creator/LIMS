@@ -1,2 +1,3 @@
 - Cause: 3 identity-openapi failures are pre-existing from RM-T05 (9fd800f65): role-packs ops lack examples and are missing from TRD §5. Not from PLATFORM-PROVISION-1.
 - Fix: none in impl code; any fix would break brief (1) or edit read-only spec. Wrote PLATFORM-PROVISION-1-dispute.md. Provision tests all green.
+- Re-check after LD-283: verify.log shows 950 of 953 pass, same 3 red cases (listRolePacks/applyRolePack, CR-C1-PROV-001). Ruling says not this task; no impl change, no new dispute.

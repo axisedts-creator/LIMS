@@ -1,7 +1,7 @@
 'use client';
 // ponytail: local PasswordField (show/hide toggle, 04-UI-UX §2.1) — the kit has no PasswordField yet; swap for
 // @lims/ui/components/PasswordField once C0-0D ships it.
-import { useId, useState } from 'react';
+import { useId, useState, type ReactNode } from 'react';
 import { RequiredNote } from '../ui';
 import { AuthIcon } from './AuthArt';
 
@@ -14,9 +14,11 @@ export interface PasswordFieldProps {
   onChange: (v: string) => void;
   error?: string | undefined;
   isDisabled?: boolean;
+  /** T0D-MSERIES-5 (board M1-entry): an element on the label row, e.g. the sign-in screen's Forgot password? link. */
+  labelAction?: ReactNode;
 }
 
-export function PasswordField({ label, name, autoComplete, maxLength, value, onChange, error, isDisabled }: PasswordFieldProps) {
+export function PasswordField({ label, name, autoComplete, maxLength, value, onChange, error, isDisabled, labelAction }: PasswordFieldProps) {
   const id = useId();
   const [shown, setShown] = useState(false);
   return (
@@ -26,6 +28,7 @@ export function PasswordField({ label, name, autoComplete, maxLength, value, onC
           {label}
         </label>
         <RequiredNote />
+        {labelAction}
       </div>
       <div className="lims-input-wrap">
         <AuthIcon kind="lock" className="lims-input-icon" />

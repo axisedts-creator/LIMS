@@ -3,5 +3,5 @@
 - [CONV] registry-sync reads LIMS_MIGRATOR_DATABASE_URL (no migrator URL key in 02-TRD §11; prefix of existing LIMS_MIGRATOR_PASSWORD); unset -> graphile-worker DATABASE_URL/PG* fallback (devstack up.ts passes PG*). Lead: confirm the name or CR it into 02-TRD §11.
 - [CONV] syncAllManifests imports ../manifests.js through a non-literal import(): a literal one made Vite pre-load every jobs module and timed out the existing registry-sync.test.ts.
 - push-cloud.ps1 line (lead): `pnpm --filter @lims/worker registry-sync; if ($LASTEXITCODE -ne 0) { throw "registry-sync failed" }` with LIMS_MIGRATOR_DATABASE_URL set.
-- Ran: worker 4 ASYNC files 31/32 pass; api src/core/db 222/222; tsc worker + api clean; full worker suite: only the ASYNC (3) case + live-DB suites (no docker) fail; consumer/export.render flaked under load, pass alone.
-- OPEN: (3) fails on 7 ids with no manifest task -> .orchestra/cr/T0B-ASYNC-1.md (catalog, homecollection, identity owners). pgTAP grant test not run (no docker). Payments tasks still "runtime not bound" in the worker (out of scope).
+- Ran (after tester KNOWN-GAP revision f70e1e32b, no impl change needed): verify.cmd worker 3 files 29/29, api 3 files 82/82; tsc worker + api clean.
+- OPEN: 7 KNOWN-GAP ids (CR-C0-T0B-ASYNC-1-001, LD-279) -> T0B-ASYNC-2 + founder (LD-189). pgTAP grant test not run (no docker). Payments tasks still "runtime not bound" in the worker (out of scope).

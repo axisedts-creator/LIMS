@@ -8,7 +8,7 @@
 //                                               systemPermissions?: Readonly<Record<module, readonly string[]>>   (manifest systemPermissions)
 //                                               authzExceptions?: readonly { operationId; handlerPermission; reason }[]
 //   core/pipeline/authz-central.ts  export validateAuthzExceptions(entries: unknown, operationIds: ReadonlySet<string>): void  (throws on a bad entry)
-//   device actors: the verified claim `credential_permission` is the credential's own permission.
+//   device actors: like user actors, assertRole(ctx, {permission}) via the guard wrapper; the real IdentityPort resolves the credential (device_kind) to its own permissions. Rig option `devices`: actor id -> permissions.
 //   log: { event: 'authz_central_deny', operation_id, actor_type, permission, mode }; metric lims_core_authz_central_deny_total{operation_id}.
 // The central stage calls assertRole through the request guard wrapper (RequestAuthz.identity(port)), so stage 9 records it.
 import { describe, expect, it } from 'vitest';
@@ -202,31 +202,40 @@ describe('stage 8a: other actor kinds', () => {
     expect((await rejects(r.run({ claims: { sub: SUB, tenant_id: TENANT_A, actor_type: 'system' } }))).code).toBe('auth.forbidden');
   });
 
-  it('device actor: the credential\'s own permission equal to the x-permission reaches the handler', async () => {
-    const r = rig({ mode: 'enforce' });
+  it('device actor: assertRole through the wrapper; a credential holding the x-permission reaches the handler', async () => {
+    const r = rig({ mode: 'enforce', devices: { [DEVICE]: ['instruments.result.ingest'] } });
     const res = await r.run({
       op: staffOp({ module: 'instruments', operationId: 'ingestResult', scheme: 'deviceToken', permission: 'instruments.result.ingest' }),
-      claims: { sub: DEVICE, tenant_id: TENANT_A, actor_type: 'device', credential_permission: 'instruments.result.ingest' },
+      claims: { sub: DEVICE, tenant_id: TENANT_A, actor_type: 'device', device_kind: 'bridge_agent' },
     });
     expect(res.status).toBe(200);
     expect(r.handlerCalls).toEqual(['handler']);
+    expect(r.asserted).toEqual([{ permission: 'instruments.result.ingest' }]);
   });
 
-  it('device actor: a credential with another permission, or none, is denied before the handler', async () => {
-    for (const extra of [{ credential_permission: 'instruments.result.read' }, {}]) {
-      const r = rig({ mode: 'enforce' });
-      const e = await rejects(r.run({
-        op: staffOp({ module: 'instruments', operationId: 'ingestResult', scheme: 'deviceToken', permission: 'instruments.result.ingest' }),
-        claims: { sub: DEVICE, tenant_id: TENANT_A, actor_type: 'device', ...extra },
-      }));
+  it('device actor: a credential with another permission, or none, is denied before the handler (enforce) and only logged (shadow)', async () => {
+    const op = staffOp({ module: 'instruments', operationId: 'ingestResult', scheme: 'deviceToken', permission: 'instruments.result.ingest' });
+    const claims = { sub: DEVICE, tenant_id: TENANT_A, actor_type: 'device', device_kind: 'bridge_agent' };
+    for (const devices of [{ [DEVICE]: ['instruments.result.read'] }, {}]) {
+      const r = rig({ mode: 'enforce', devices });
+      const e = await rejects(r.run({ op, claims }));
       expect(e.code).toBe('auth.forbidden');
       expect(r.handlerCalls).toEqual([]);
+      expect(denies(r)[0]!.obj).toMatchObject({ actor_type: 'device', permission: 'instruments.result.ingest', mode: 'enforce' });
     }
+    const s = rig({ mode: 'shadow', devices: {} });
+    expect((await s.run({ op, claims })).status).toBe(200);
+    expect(denies(s)).toHaveLength(1);
   });
 
-  it('a stray credential_permission claim on a USER actor never grants anything', async () => {
+  it('a stray credential_permission claim never grants anything (user or device)', async () => {
     const r = rig({ mode: 'enforce', profile: { permissions: [] } });
-    const e = await rejects(r.run({ claims: { ...user, credential_permission: PERM } }));
+    expect((await rejects(r.run({ claims: { ...user, credential_permission: PERM } }))).code).toBe('auth.forbidden');
+    const d = rig({ mode: 'enforce', devices: {} });
+    const e = await rejects(d.run({
+      op: staffOp({ module: 'instruments', operationId: 'ingestResult', scheme: 'deviceToken', permission: 'instruments.result.ingest' }),
+      claims: { sub: DEVICE, tenant_id: TENANT_A, actor_type: 'device', credential_permission: 'instruments.result.ingest' },
+    }));
     expect(e.code).toBe('auth.forbidden');
   });
 });

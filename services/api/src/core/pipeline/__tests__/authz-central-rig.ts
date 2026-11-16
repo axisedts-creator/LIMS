@@ -19,7 +19,7 @@ export const staffOp = (over: Record<string, unknown> = {}) => ({
 export const user = { sub: SUB, tenant_id: TENANT_A, actor_type: 'user', aal: 'aal1' } as any;
 
 export interface Profile { permissions: string[]; state?: 'mfa_pending' | 'password_setup' | 'support_missing' }
-export function rig(o: { env?: string; mode?: 'shadow' | 'enforce' | 'unset'; profile?: Profile; system?: Record<string, string[]>; exceptions?: any[]; handler?: any } = {}) {
+export function rig(o: { env?: string; mode?: 'shadow' | 'enforce' | 'unset'; profile?: Profile; system?: Record<string, string[]>; exceptions?: any[]; handler?: any; devices?: Record<string, string[]> } = {}) {
   const fake = createFakePgBouncer(2);
   const rec = recorder();
   const incs: Array<[string, Record<string, string> | undefined]> = [];
@@ -32,6 +32,8 @@ export function rig(o: { env?: string; mode?: 'shadow' | 'enforce' | 'unset'; pr
   const identityPort = {
     async assertRole(_ctx: any, req: { permission: string }) {
       asserted.push({ permission: req.permission });
+      // device actors: the real IdentityPort resolves the credential (device_kind) to its fixed permission set (IdentityPort.impl.ts resolve 'device'); here keyed by actor id
+      if (_ctx.actor?.type === 'device') { if (!(o.devices?.[_ctx.actor.id] ?? []).includes(req.permission)) throw forbidden(); return; }
       const p = state.profile;
       if (p.state === 'mfa_pending') throw mfa();
       if (p.state === 'password_setup') throw forbidden();

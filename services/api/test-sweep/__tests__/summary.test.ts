@@ -28,7 +28,7 @@ describe('summarize', () => {
   it('counts per depth and per module', () => {
     const s = summarize(rows);
     expect(s.total).toBe(6);
-    expect(s.byDepth).toEqual({ DEEP: 3, SHALLOW: 1, 'NOT EXERCISED': 1 });
+    expect(s.byDepth).toEqual({ DEEP: 4, SHALLOW: 1, 'NOT EXERCISED': 1 });
     expect(s.byModule.lab).toEqual({ DEEP: 2, SHALLOW: 1, 'NOT EXERCISED': 0 });
     expect(s.byModule.billing).toEqual({ DEEP: 1, SHALLOW: 0, 'NOT EXERCISED': 1 });
     expect(s.byModule.identity).toEqual({ DEEP: 1, SHALLOW: 0, 'NOT EXERCISED': 0 });
@@ -47,7 +47,7 @@ describe('renderResults', () => {
     expect(md).toMatch(/\| d \|[^\n]*\| NOT EXERCISED \|/);
   });
   it('states the depth counts and the per-module counts', () => {
-    expect(md).toMatch(/DEEP\D{0,12}3\b/);
+    expect(md).toMatch(/DEEP\D{0,12}4\b/);
     expect(md).toMatch(/SHALLOW\D{0,12}1\b/);
     expect(md).toMatch(/NOT EXERCISED\D{0,12}1\b/);
     for (const m of ['lab', 'billing', 'identity']) expect(md).toContain(`## ${m}`);

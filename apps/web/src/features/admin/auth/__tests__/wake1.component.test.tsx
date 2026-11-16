@@ -34,6 +34,7 @@ beforeEach(() => refresh.mockReset());
 afterEach(() => {
   cleanup();
   vi.useRealTimers();
+  delete (globalThis as { jest?: unknown }).jest;
 });
 
 describe('WakingState (presentation)', () => {
@@ -155,6 +156,8 @@ describe.each(CASES)('$name on no answer from the API', ({ draw, submit, values 
     draw(action);
     const u = userEvent.setup({ delay: null });
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    // RTL's asyncWrapper only advances faked timers when a global `jest` exists (ruling T0D-WAKE-1)
+    (globalThis as { jest?: unknown }).jest = { advanceTimersByTime: (ms: number) => vi.advanceTimersByTime(ms) };
     await act(async () => { await submit(u); });
   };
   const settle = (ms: number) => act(() => vi.advanceTimersByTimeAsync(ms));

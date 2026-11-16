@@ -100,13 +100,15 @@ CREATE POLICY sessions__select__own_user ON identity.sessions FOR SELECT TO lims
 CREATE POLICY sessions__update__own_user ON identity.sessions FOR UPDATE TO lims_app
   USING (user_id = (SELECT app.current_actor_id()) AND tenant_id = (SELECT app.current_tenant_id()))
   WITH CHECK (user_id = (SELECT app.current_actor_id()) AND tenant_id = (SELECT app.current_tenant_id()));
+-- T0B-MFAPOL-1 (LD-252, CR-C0-T0B-REVIEW-1-003): __own covers tenant rows only (tenant-less IS NOT DISTINCT FROM branch removed;
+-- migration 20261116010000). Tenant-less rows: owner DEFINERs before aal2, mfa_factors__*__platform after.
 CREATE POLICY mfa_factors__select__own ON identity.mfa_factors FOR SELECT TO lims_app
-  USING (user_id = (SELECT app.current_actor_id()) AND tenant_id IS NOT DISTINCT FROM (SELECT app.current_tenant_id()));
+  USING (user_id = (SELECT app.current_actor_id()) AND tenant_id = (SELECT app.current_tenant_id()));
 CREATE POLICY mfa_factors__insert__own ON identity.mfa_factors FOR INSERT TO lims_app
-  WITH CHECK (user_id = (SELECT app.current_actor_id()) AND tenant_id IS NOT DISTINCT FROM (SELECT app.current_tenant_id()));
+  WITH CHECK (user_id = (SELECT app.current_actor_id()) AND tenant_id = (SELECT app.current_tenant_id()));
 CREATE POLICY mfa_factors__update__own ON identity.mfa_factors FOR UPDATE TO lims_app
-  USING (user_id = (SELECT app.current_actor_id()) AND tenant_id IS NOT DISTINCT FROM (SELECT app.current_tenant_id()))
-  WITH CHECK (user_id = (SELECT app.current_actor_id()) AND tenant_id IS NOT DISTINCT FROM (SELECT app.current_tenant_id()));
+  USING (user_id = (SELECT app.current_actor_id()) AND tenant_id = (SELECT app.current_tenant_id()))
+  WITH CHECK (user_id = (SELECT app.current_actor_id()) AND tenant_id = (SELECT app.current_tenant_id()));
 CREATE POLICY sessions__select__platform ON identity.sessions FOR SELECT TO lims_app
   USING (kind = 'platform' AND tenant_id IS NULL AND (SELECT app.is_platform_actor()));
 CREATE POLICY sessions__update__platform ON identity.sessions FOR UPDATE TO lims_app

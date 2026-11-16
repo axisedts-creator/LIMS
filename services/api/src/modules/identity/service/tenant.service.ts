@@ -70,7 +70,7 @@ export interface TenantRepo {
   setStatus(tx: unknown, id: string, expectedVersion: number, p: { status: Status; reason?: string; at: Date; actorId: string }): Promise<TRow | undefined>;
   detail(tx: unknown, id: string): Promise<{ counts: { users: number; branches: number; centres: number }; history: Array<{ from?: string; to: string; at: Date | string }>; annexReadiness: 'complete' | 'incomplete' }>;
   readiness(tx: unknown, id: string): Promise<Readiness>;
-  // PLATFORM claims, NOT scoped (PLATFORM-DDL-1, LD-223: ird_annex_records__insert__platform; s5.2 gives tenants no INSERT)
+  // PLATFORM claims INSIDE the new tenant's scope (PLATFORM-DDL-1, LD-223: ird_annex_records__insert__platform; LD-294: audit row needs the scope)
   seedIrdAnnexes(tx: unknown, t: string, annexCodes: readonly string[], actorId: string): Promise<void>;
   // ---- SCOPED (inside ctx.db.withTenantScope(tenantId)) ----
   insertBranch(tx: unknown, t: string, b: { id: string; code: string; name: string; addressText?: string; actorId: string }): Promise<void>;
@@ -446,11 +446,12 @@ export function createTenantService(deps: {
         if ((e as { code?: unknown })?.code === '23505') throw new LimsError('identity.code_duplicate');   // race on tenants__tenant_code__uq
         throw e;
       }
-      // PLATFORM-DDL-1 (LD-223): C2 05-SCHEMA s5.2 gives tenants no INSERT on identity.ird_annex_records; the s5.3 platform INSERT policy
-      // (ird_annex_records__insert__platform) admits it, so it runs here under the platform claims of the request tx, after core.tenants (FK).
-      await repo.seedIrdAnnexes(s.tx, id, TENANT_ANNEXES, s.actorId);
       const branchId = newId();
       await scoped(ctx, id, async () => {
+        // PLATFORM-DDL-1 (LD-223): ird_annex_records__insert__platform admits the row (app.is_platform_actor() stays true in the scope).
+        // LD-294 (T0B-PROVFIX-1): FIRST statement INSIDE the scope - its audit trigger row needs app.current_tenant_id() = id
+        // (audit_log__insert__owner_only); outside the scope Postgres refused it (42501 -> common.not_found, staging 2026-11-16).
+        await repo.seedIrdAnnexes(s.tx, id, TENANT_ANNEXES, s.actorId);
         await repo.insertBranch(s.tx, id, { id: branchId, code: branch['code'] as string, name: branch['name'] as string, ...optText(branch['addressText'], 'addressText'), actorId: s.actorId });
         await repo.insertCentre(s.tx, id, { id: newId(), code: centre['code'] as string, name: centre['name'] as string, kind: centre['kind'] as string, branchId,
           ...optText(centre['addressText'], 'addressText'), actorId: s.actorId });

@@ -145,8 +145,8 @@ class LimsBottomNav extends StatelessWidget {
                       constraints: const BoxConstraints(minHeight: 56),
                       child: Padding(
                         padding: const EdgeInsets.all(LimsTokens.space1),
-                        // LD-140 / 10-DESIGN-SYSTEM s5: tap scale .96; current tab = accent.highlight (lime) pill with
-                        // accent.default text (7.93:1).
+                        // LD-251 / 13-M-SERIES s2.1, s2.3: tap scale .96; current tab = accent.highlight (lime) pill with
+                        // neutral.900 label and icon (accent.default on lime is only 3.90:1; same choice as the web kit).
                         child: LimsPressScale(
                           child: Center(
                             heightFactor: 1,
@@ -161,7 +161,7 @@ class LimsBottomNav extends StatelessWidget {
                                   Badge(
                                     isLabelVisible: items[i].badge != null,
                                     label: items[i].badge == null ? null : Text(items[i].badge!),
-                                    child: Icon(items[i].icon, color: i == index ? LimsTokens.colorAccentDefault : LimsTokens.colorNeutral600),
+                                    child: Icon(items[i].icon, color: i == index ? LimsTokens.colorNeutral900 : LimsTokens.colorNeutral600),
                                   ),
                                   Text(
                                     items[i].label,
@@ -171,7 +171,7 @@ class LimsBottomNav extends StatelessWidget {
                                     style: TextStyle(
                                       fontSize: LimsTokens.fontSizeXsSize,
                                       fontWeight: i == index ? FontWeight.w600 : FontWeight.w400,
-                                      color: i == index ? LimsTokens.colorAccentDefault : LimsTokens.colorNeutral700,
+                                      color: i == index ? LimsTokens.colorNeutral900 : LimsTokens.colorNeutral700,
                                     ),
                                   ),
                                 ]),
@@ -189,7 +189,9 @@ class LimsBottomNav extends StatelessWidget {
       );
 }
 
-class LimsCard extends StatelessWidget {
+/// White card (theme radius.xl). LD-251 / 13-M-SERIES s2.3: fades in over motion.duration.normal on first build;
+/// shown at once when reduced motion is on (MediaQuery.disableAnimations). Semantics and hit testing stay on while fading.
+class LimsCard extends StatefulWidget {
   const LimsCard({super.key, required this.title, required this.child, this.footer});
 
   final String title;
@@ -197,17 +199,52 @@ class LimsCard extends StatelessWidget {
   final Widget? footer;
 
   @override
-  Widget build(BuildContext context) => Card(
+  State<LimsCard> createState() => _LimsCardState();
+}
+
+class _LimsCardState extends State<LimsCard> with SingleTickerProviderStateMixin {
+  late final _enter = AnimationController(vsync: this, duration: Duration(milliseconds: LimsTokens.motionDurationNormal.round()));
+  late final _fade = CurvedAnimation(parent: _enter, curve: const Cubic(0.2, 0.7, 0.2, 1)); // tokens motion.easing
+  var _started = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_started) return;
+    _started = true;
+    if (MediaQuery.maybeDisableAnimationsOf(context) ?? false) {
+      _enter.value = 1;
+    } else {
+      _enter.forward();
+    }
+  }
+
+  @override
+  void dispose() {
+    _fade.dispose();
+    _enter.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final w = widget;
+    return Card(
+      child: FadeTransition(
+        opacity: _fade,
+        alwaysIncludeSemantics: true,
         child: Padding(
           padding: const EdgeInsets.all(LimsTokens.space4),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-            Text(title, style: Theme.of(context).textTheme.titleMedium),
+            Text(w.title, style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: LimsTokens.space2),
-            child,
-            if (footer != null) ...[const Divider(height: LimsTokens.space6), footer!],
+            w.child,
+            if (w.footer != null) ...[const Divider(height: LimsTokens.space6), w.footer!],
           ]),
         ),
-      );
+      ),
+    );
+  }
 }
 
 typedef LimsProfile = ({String id, String label, String sublabel});

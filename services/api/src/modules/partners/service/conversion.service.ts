@@ -3,6 +3,7 @@
 // One delivery = one transaction (ctx.tx). The FrontdeskPort call runs inside ctx.db.tx (a savepoint): when C4 throws, whatever it wrote is rolled back
 // before the line is marked conversion_failed (08 A19 P-44, 07-SECURITY ST18). Business failure (by error CODE) -> conversion_failed, resolve (no retry);
 // anything else -> rethrow the original error (the queue retries; nothing is committed, the line stays converting). No patient data is logged.
+import type { IsoDate, Uuidv7 } from '../../../../../../contracts/ports/common.js';
 import type { BookingOrderInput } from '../../../../../../contracts/ports/FrontdeskPort.js';
 import { lineConversion, M, observe } from './observability.js';
 
@@ -37,14 +38,14 @@ export function buildBookingOrderInput(line: Row, partner: Row, manifest: Row, r
     ? { patientId: line['resolved_patient_id'] }
     : { newPatient: {
       fullName: line['patient_full_name'], sex: line['patient_sex'],
-      ...(has(line['patient_birth_on']) ? { birthOn: day(line['patient_birth_on']) } : { ageYears: Number(line['patient_age_years']) }),
+      ...(has(line['patient_birth_on']) ? { birthOn: day(line['patient_birth_on']) as IsoDate } : { ageYears: Number(line['patient_age_years']) }),
       ...(has(line['patient_phone_e164']) ? { phoneE164: line['patient_phone_e164'] } : {}),
       consents: { sms: line['consent_sms'] === true, whatsapp: line['consent_whatsapp'] === true, email: line['consent_email'] === true, shareWithReferrer: line['consent_share_with_referrer'] === true, consentTextVersion: line['consent_text_version'] },
     } };
   return {
     source: 'partner_manifest', sourceRefId: line['id'], patient,
     branchId: manifest['receiving_branch_id'], centreId: manifest['receiving_centre_id'],
-    ...(referrerDoctorId ? { referrerId: referrerDoctorId } : {}),
+    ...(referrerDoctorId ? { referrerId: referrerDoctorId as Uuidv7 } : {}),
     creditPartyId: partner['credit_party_id'], partnerId: partner['id'],
     orderableIds: [...line['orderable_ids']], priority: line['priority'], confirmImmediately: true,
     idempotencyKey: `partners:${line['id']}:v${Number(line['conversion_attempt'])}`, // per conversion attempt, not per queue attempt (US-06.6)

@@ -1,0 +1,5 @@
+APPROVE
+Scope: 9 lib files (bookings/membership/enquiries) + 3 test files = 12 app files (<= 24), all owned paths. Restyle only: LimsCard/StateCard wrappers and ToneChip around existing LimsStatusChip; no API, route, provider, storage, permission, validation or idempotency line changed; every string is the same pre-existing literal ("Cancel booking" kept per ruling). No hex, radius or font literals; tokens only. No PHI logging, no secrets. RLS/rate tier/error codes: N/A (client restyle, no server or contract change).
+Tests: M4 tests cover A16, A17 steps + confirmation (model prices/centre, no board sample values, one E33 call with Idempotency-Key), A18, A19, A21, A22 at text scale 1.0 and 1.3 on 360 dp; existing a16..a22 tests unchanged and green.
+Ran: `flutter analyze` on touched lib + test dirs: No issues found. `flutter test` (apps/patient_app): 1589 passed, 0 failed.
+Note (not a defect of this task): the range also renames .orchestra/cr/PLATFORM-WIRE-1.md to .resolved-202611161320.md, which looks like orchestrator housekeeping rather than writer output.

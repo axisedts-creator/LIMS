@@ -402,10 +402,14 @@ class _BookingWizardScreenState extends ConsumerState<BookingWizardScreen> {
                       BookingBanner(text: _notice!),
                       const SizedBox(height: LimsTokens.space3),
                     ],
-                    if (done != null)
-                      ..._confirmation(done)
-                    else
-                      ..._stepBody(context),
+                    LimsCard(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: done != null
+                            ? _confirmation(done)
+                            : _stepBody(context),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -698,7 +702,7 @@ class _BookingWizardScreenState extends ConsumerState<BookingWizardScreen> {
         children: [
           Icon(Icons.check_circle, color: tone.fg),
           const SizedBox(width: LimsTokens.space2),
-          Text('Booking confirmed', style: t.titleMedium),
+          Expanded(child: Text('Booking confirmed', style: t.titleMedium)),
         ],
       ),
       const SizedBox(height: LimsTokens.space3),

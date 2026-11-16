@@ -170,6 +170,25 @@ DO $d$ DECLARE s text; BEGIN
       USING pg_temp.id('01'), pg_temp.id('e1'), pg_temp.id('99'), pg_temp.id('02'), pg_temp.id('e5'), pg_temp.id('99');
   END LOOP;
 END $d$;
+-- module rows (LD-233, T0B-DBSEED-1): generated fixture files, schema FK order; test-only, never db/seeds
+\ir ../fixtures/probe-rows/analytics.sql
+\ir ../fixtures/probe-rows/billing.sql
+\ir ../fixtures/probe-rows/catalog.sql
+\ir ../fixtures/probe-rows/frontdesk.sql
+\ir ../fixtures/probe-rows/engagement.sql
+\ir ../fixtures/probe-rows/identity.sql
+\ir ../fixtures/probe-rows/instruments.sql
+\ir ../fixtures/probe-rows/inventory.sql
+\ir ../fixtures/probe-rows/lab.sql
+\ir ../fixtures/probe-rows/anatomic.sql
+\ir ../fixtures/probe-rows/homecollection.sql
+\ir ../fixtures/probe-rows/micro.sql
+\ir ../fixtures/probe-rows/migration_staging.sql
+\ir ../fixtures/probe-rows/partners.sql
+\ir ../fixtures/probe-rows/payments.sql
+\ir ../fixtures/probe-rows/quality.sql
+\ir ../fixtures/probe-rows/reporting.sql
+\ir ../fixtures/probe-rows/smartreport.sql
 SET LOCAL session_replication_role = origin;
 
 -- probe step 1: preconditions (as the superuser, before any SET ROLE): the rows the later steps filter really exist

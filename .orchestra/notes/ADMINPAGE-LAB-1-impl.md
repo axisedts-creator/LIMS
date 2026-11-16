@@ -4,4 +4,5 @@ CR T0D-NAV-COMPLETE-1.1 ANSWERED: /lab/worklists and /lab/critical-values are bo
 GAPS (spec field the operation does not carry, not invented): /lab/worklists: no operation for the departments the user may work in, none for counts (open, urgent) -> every active department of listDepartments is shown, no counts.
 GAPS /lab/critical-values: CriticalValueDto has no reg no, patient or notifications count -> those 3 columns are not built; the spec names no filters -> status and cursor are passed through from the URL only.
 BRIEF FACT WRONG: the detail page /lab/critical-values/{critical_event_id} does not exist (only its routes.yaml row); row links 404 until a C5 detail task.
+RULING applied (tester fixed links() to queryAllByRole, 115dfeb); impl unchanged; verify.cmd green: lab 50/50, nav 28/28, rs-c4 10/10.
 [CONV] closed event age stops at closed_at; departments empty text "No active departments." (spec has no wording); rs-c4 baseline not in scope of these files (tester pins it unchanged).

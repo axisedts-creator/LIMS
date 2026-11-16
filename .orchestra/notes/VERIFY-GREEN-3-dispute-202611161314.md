@@ -1,0 +1,5 @@
+# VERIFY-GREEN-3 dispute (writer)
+Test: `services/api/src/modules/frontdesk/__tests__/ci/vg3.typecheck.test.ts`, test 1, line 26 (`tsconfig fixture itself broken`).
+Result now: tsc reports 0 errors in the 5 files (line 25 assertion passes), but line 26 fails on 1 error outside them: `packages/shared-ts/src/bsdate/index.ts(2,48) TS5097` (`import ... from './impl.ts'`, needs allowImportingTsExtensions).
+Why wrong: that error is pre-existing, not in the fixture or the 5 files, and not in VERIFY-GREEN-3's file list (header of the test says "Errors elsewhere do not fail this task"). Many earlier notes (AN-T02, API-T01, API-T02, API-T07) record it as pre-existing and not owned by C1 chunk paths I may edit. It can only go away by editing shared-ts (not owned/not in scope) or by the test dropping TS5097 from the regex (or filtering it to errors located in the 5 files).
+Ask: tester narrows line 26 to the fixture's own errors (TS6053/TS18003/TS5083 or TS5097/TS2835 located under the 5 files), or lead assigns the shared-ts TS5097 fix to a task that owns packages/shared-ts.

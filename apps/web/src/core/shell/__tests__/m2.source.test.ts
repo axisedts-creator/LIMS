@@ -175,6 +175,17 @@ describe('below 1024 px: drawer (CSS)', () => {
     expect(d('display')).toBe('flex');
     expect(d('position')).toBe('fixed');
   });
+  it('shell.css itself hides the sidebar below 1024 px (its base `display: flex` beats the kit hide rule at equal specificity)', () => {
+    const own = parseCss(read(SHELL_CSS));
+    const hide = own.filter((r) => small.test(r.media) && r.sels.some((s) => /(^|\s)\.lims-shell-nav$/.test(s)) && r.decls.has('display'));
+    expect(hide.length, 'plain .lims-shell-nav rule with display inside the max-width query of shell.css').toBeGreaterThan(0);
+    expect(hide.at(-1)!.decls.get('display')).toBe('none');
+  });
+  it('a closed group stays hidden: the `[hidden]` list is display: none (an author display:flex beats the UA [hidden] rule)', () => {
+    const h = rules.filter((r) => !r.media && r.sels.some((s) => /\.lims-sidenav\[hidden\]$/.test(s)) && r.decls.has('display'));
+    expect(h.length, '.lims-sidenav[hidden] rule').toBeGreaterThan(0);
+    expect(h.at(-1)!.decls.get('display')).toBe('none');
+  });
   it('drawer motion, if any, is CSS only, <= 250 ms, and switched off by prefers-reduced-motion', () => {
     const css = strip(read(SHELL_CSS));
     for (const m of css.matchAll(/(?:transition|animation)[^;{}]*?(\d+(?:\.\d+)?)(ms|s)\b/g)) expect(Number(m[1]) * (m[2] === 's' ? 1000 : 1)).toBeLessThanOrEqual(450);

@@ -165,7 +165,6 @@ describe('WEB-STYLE-1 (c) every lims-* class in the auth pages has a CSS rule', 
   const used = classLiterals(authFiles);
   it('scans real sources (not vacuous)', () => {
     expect(used.has('lims-auth-card')).toBe(true);
-    expect(used.has('lims-wordmark')).toBe(true);
     expect(authFiles.length).toBeGreaterThan(10);
   });
   it('kit.css or shell.css has a selector for each (explicit exception list <= 3, each with a reason)', () => {

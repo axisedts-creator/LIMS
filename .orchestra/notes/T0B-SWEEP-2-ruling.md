@@ -1,9 +1,9 @@
-TESTS_WRONG — `summary.test.ts` miscounts its own fixture: DEEP is 4, not 3. Change line 31 to `{ DEEP: 4, SHALLOW: 1, 'NOT EXERCISED': 1 }` and line 50 to `/DEEP\D{0,12}4\b/`.
+CR_NEEDED — the test is right (done_when 2 demands write/platform requests pass input validation), but the only fix is in `services/api/src/core/openapi.ts`, owned by C0-0D and outside this task's files; the task is unmeetable inside its own scope until that CR lands. Keep `sweep2-artifacts.test.ts:47` unchanged; CR in `.orchestra/cr/T0B-SWEEP-2.md`.
 
 Reasons:
-- Task done_when (2) (.orchestra/inbox/T0B-SWEEP-2-arbiter.md:20, LD-270 at :31) defines DEEP = reached the service (2xx or a domain answer), SHALLOW = stopped at input validation, NOT EXERCISED = 429/timeout/harness error, and requires counts "per depth and per module". It sets no fixture numbers; the test's numbers must just be correct for its fixture.
-- Fixture (summary.test.ts:14-25): `row()` defaults `depth: 'DEEP'` (:16). Rows a, b, e, listWidgets keep that default, so 4 are DEEP; c is SHALLOW (:21); d is NOT EXERCISED (:22).
-- The test contradicts itself: :30 expects total 6, :38 requires DEEP+SHALLOW+NOT EXERCISED = total (3+1+1 = 5 ≠ 6), and :32-34 per-module expectations give DEEP lab 2 + billing 1 + identity 1 = 4. No implementation can pass all of them.
-- :50 regex `/DEEP\D{0,12}3\b/` carries the same miscount; with the fix it asserts the correct rendered total.
-- No other assertion in the file changes. This weakens nothing: the fixed test is stricter (consistent with :32-38) and still covers done_when (2).
-- Searched spec/chunks/C0-foundation-contracts/06-IMPLEMENTATION-PLAN.md and spec/program/08-CR-REGISTER.md for T0B-SWEEP-2 / LD-270: no matches. Nothing in the spec conflicts, so no CR is needed.
+- Task done_when (2) (.orchestra/inbox/T0B-SWEEP-2-arbiter.md:20): bodies built "so the request passes input validation and reaches the service". The 10% SHALLOW ceiling (sweep2-artifacts.test.ts:47-55) is a fair proxy for that; relaxing it would hide the defect the sweep exists to find (tests "no operation counted WIRED" spirit, :20 "tests").
+- Root cause confirmed in code, not in the harness: openapi.ts:99-107 supplies `compilersFactory.buildValidator`, so fastify treats it as custom and skips `lowerCaseHeadersSchema` (node_modules/fastify/lib/validation.js:290-293). Header schemas keep `required: ['If-Match']` / `Idempotency-Key` / `X-Lims-*`; Node delivers lower-case keys, so these always 400 even when sent.
+- Ownership: spec/program/01-CHUNK-MAP.md:123 — `services/api/src/core/` is C0-0D. Task files (inbox :14-19) cover only `services/api/test-sweep/**`; SAFETY (:20) forbids contract edits. CLAUDE.md: edit only owned paths; missing/out-of-scope fix => CR.
+- A harness-side schema patch is not allowed: it would mask a real BUG and touch core behaviour.
+- Writer: until the CR lands, list the SHALLOW rows with the failing header field as evidence (already done) and classify the header-validation 400s as BUG with root cause "core header schema not lower-cased (CR T0B-SWEEP-2)". Do not change the threshold.
+- Lead: accept the CR (C0-0D) as BLOCKING for T0B-SWEEP-2 test :47; after it merges, rerun the sweep; the test passes unchanged. Supersedes the nonblocking flag in `.orchestra/cr/T0B-SWEEP-2.nonblocking.md`.

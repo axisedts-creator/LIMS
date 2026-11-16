@@ -5,8 +5,10 @@ import type { WorkerManifest } from './core/manifest.js';
 import { manifest as analytics } from './jobs/analytics/index.js';
 import { manifest as anatomic } from './jobs/anatomic/index.js';
 import { manifest as billing } from './jobs/billing/index.js';
+import { manifest as catalog } from './jobs/catalog/index.js';
 import { manifest as engagement } from './jobs/engagement/index.js';
 import { manifest as frontdesk } from './jobs/frontdesk/index.js';
+import { manifest as homecollection } from './jobs/homecollection/index.js';
 import { manifest as identity } from './jobs/identity/index.js';
 import { manifest as instruments } from './jobs/instruments/index.js';
 import { manifest as inventory } from './jobs/inventory/index.js';
@@ -19,5 +21,5 @@ import { manifest as reporting } from './jobs/reporting/index.js';
 import { manifest as smartreport } from './jobs/smartreport/index.js';
 
 export const MANIFESTS: readonly WorkerManifest[] = Object.freeze([
-  analytics, anatomic, billing, engagement, frontdesk, identity, instruments, inventory, lab, micro, partners, payments, quality, reporting, smartreport,
+  analytics, anatomic, billing, catalog, engagement, frontdesk, homecollection, identity, instruments, inventory, lab, micro, partners, payments, quality, reporting, smartreport,
 ]);

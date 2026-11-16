@@ -140,7 +140,9 @@ describe('stage 8a: operations that are skipped', () => {
     expect(denies(r)).toEqual([]);
   });
 
-  it('platform.* operation is skipped with a documented reason (SEC-AUTHZ-3): no assertRole, no deny, even in enforce', async () => {
+  // SEC-AUTHZ-3 revision: platform.* is no longer skipped (PlatformAuthz runs centrally, see authz-central.platform.test.ts); this case now only
+  // pins that a platform actor who PASSES never reaches IdentityPort.assertRole (it rejects platform.*) and is not denied.
+  it('platform.* operation by an allowed platform actor: IdentityPort.assertRole is not asked, no deny, even in enforce', async () => {
     const r = rig({ mode: 'enforce', profile: { permissions: [] } });
     const platformClaims = { sub: SUB, actor_type: 'user', scope: 'platform', platform_role: 'platform_superadmin', aal: 'aal2' } as any;
     const res = await r.run({
@@ -295,10 +297,11 @@ describe('stage 9 interaction (LD-277): the central stage asserts through the re
     expect(notAsserted(r)).toEqual([]);
   });
 
-  it('a SKIPPED operation (platform.*) still gets the stage 9 500 on staging when the handler asserts nothing', async () => {
+  // SEC-AUTHZ-3 revision: the sample SKIPPED operation was a platform.* one; platform.* is now checked (and marked) centrally, so the
+  // skipped sample is an operation with no x-permission (skipReason 'no x-permission (stage 9 still applies)').
+  it('a SKIPPED operation (no x-permission) still gets the stage 9 500 on staging when the handler asserts nothing', async () => {
     const r = rig({ env: 'staging', mode: 'enforce' });
-    const platformClaims = { sub: SUB, actor_type: 'user', scope: 'platform', platform_role: 'platform_superadmin', aal: 'aal2' } as any;
-    const e = await rejects(r.run({ op: staffOp({ module: 'identity', operationId: 'listTenants', permission: 'platform.tenant.read', context: 'platform' }), claims: platformClaims, handler: async () => ({ status: 200, body: {} }) }));
+    const e = await rejects(r.run({ op: staffOp({ permission: undefined }), handler: async () => ({ status: 200, body: {} }) }));
     expect(e.code).toBe('common.internal');
     expect(notAsserted(r)).toHaveLength(1);
   });

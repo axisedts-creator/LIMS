@@ -7,6 +7,7 @@ import { LimsError } from '../errors.js';
 import type { HandlerContext } from '../module.js';
 import type { RequestAuthz } from '../ports/authz-guard.js';
 import type { PortLog, PortMetrics } from '../ports/registry.js';
+import { PlatformAuthz, type PlatformAuthzCtx } from '../../modules/identity/platform/authz.js'; // read use only (SEC-AUTHZ-3)
 
 export type AuthzMode = 'shadow' | 'enforce';
 export interface AuthzException { readonly operationId: string; readonly handlerPermission: string; readonly reason: string }
@@ -17,15 +18,14 @@ export interface CentralOp {
   readonly permission?: string | undefined; readonly scheme?: string | undefined;
 }
 /** The verified claims fields stage 8a reads (never request input). */
-export interface CentralClaims { readonly actor_type?: string; readonly credential_permission?: unknown }
+export interface CentralClaims { readonly actor_type?: string }
 
 /** Documented skip reasons: the operation is not this stage's business. null = the stage checks it. */
 export function skipReason(op: CentralOp): string | null {
   if (op.public) return 'x-public';
   if (op.scheme === 'bffSession') return 'bffSession (identity session flow)';
   if (op.permission === undefined || op.permission === '') return 'no x-permission (stage 9 still applies)';
-  if (op.permission.startsWith('platform.')) return 'platform.* (PlatformAuthz, task SEC-AUTHZ-3)';
-  return null;
+  return null; // platform.* is checked here too (SEC-AUTHZ-3, PlatformAuthz)
 }
 
 /** Loader check for authz-exceptions.json: a list of { operationId, handlerPermission, reason }, no duplicates, existing operationId when `ids` is given. */
@@ -71,19 +71,22 @@ export function createAuthzCentral(o: {
     // LD-277: a checked operation counts as asserted for stage 9 (shadow and enforce), whatever the actor kind. Exception-listed operations keep
     // the current stage 9 behaviour. Marking goes through the guard wrapper over a no-op port, so authz-guard.ts needs no code change.
     const mark = (): void => { if (exception === undefined) void az.identity({ assertRole: () => undefined }).assertRole(); };
-    if (actorType !== 'user') mark(); // the user path marks through the wrapper when it calls assertRole
+    const platformOp = permission.startsWith('platform.');
+    if (platformOp || (actorType !== 'user' && actorType !== 'device')) mark(); // user/device paths mark through the wrapper when they call assertRole
     try {
+      // SEC-AUTHZ-3 (CR SEC-AUTHZ-1.1 item 7, C2 02-TRD 7.2 step 3): platform.* is decided by PlatformAuthz only; IdentityPort.assertRole rejects it.
+      // ctx carries platformRole/aal only for a verified platform session (pipeline buildCtx); any other actor or session fails inside assertPlatform
+      // with auth.forbidden (no role, not a user actor) or auth.mfa_required (privileged code below aal2), before the handler.
+      if (platformOp) { PlatformAuthz.assertPlatform(ctx as unknown as PlatformAuthzCtx, permission); return; }
       switch (actorType) {
-        case 'user': {
+        // device: the IdentityPort resolves the credential (device_kind) to its own fixed permission set, so it asks assertRole like a user.
+        case 'user': case 'device': {
           const port = exception === undefined ? az.identity(o.identityPort()) : o.identityPort();
           await port.assertRole(ctx, { permission }); // no centre or branch: baseline; handlers add scope
           return;
         }
         case 'system':
           if (o.systemPermissions?.[op.module]?.includes(permission)) return;
-          throw forbidden();
-        case 'device':
-          if (typeof claims?.credential_permission === 'string' && claims.credential_permission === permission) return;
           throw forbidden();
         case 'patient': case 'partner': case 'portal':
           // ponytail: bearerJwt staff operations only; their own scheme (portalSession, patientPreAuth) is authenticated by its resolver, not decided here.

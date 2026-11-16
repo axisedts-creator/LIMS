@@ -8,3 +8,5 @@ TESTS_WRONG — the test asserts something the spec does not require (say precis
 Spec: the ruling rests on the binding task brief (done_when 6 and 7, files list) and LD-287/LD-290. spec/ has no rs-c2 baseline rule that MSERIES-6 contradicts.
 7. Round 2 (dispute 21:40 NPT): items 1-6 stand unchanged. `git log -- apps/web/src/features/admin/__tests__/rs-c2.baseline.json` still ends at ec073f164; no tester commit since re-recorded it (4a319018f only renamed the CR file).
 8. Tester must now apply item 4 exactly. Writer has nothing to change.
+9. Round 3 (dispute on afe5172e3): items 1-8 stand unchanged. Writer commits 7003d8ca2 and 3ef116cbd touch only .orchestra/notes/T0D-MSERIES-6-dispute.md (git show --stat). The baseline log still ends at ec073f164.
+10. ROUTING: this change belongs to the TESTER stage (item 4: re-record rs-c2.baseline.json with RS_C2_RECORD=1, then check the item 5 guard). Do not send it to the writer again, because the writer may not edit test artifacts and the loop will repeat. If the orchestrator cannot route a TESTS_WRONG ruling to the tester, escalate to the lead.

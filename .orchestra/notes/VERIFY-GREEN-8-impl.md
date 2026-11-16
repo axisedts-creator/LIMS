@@ -1,0 +1,8 @@
+# VERIFY-GREEN-8 impl (writer)
+- Files: ~190 test files/helpers under apps/web/src (`__tests__`, `tests/e2e`); no product file touched (git status: only test paths).
+- [CONV] LD-268 msw v3: `onUnhandledRequest:` -> `onUnhandledFrame:` in `server.listen()` (176 files, TS2353). Lab JSX (TS2604/2786 x7): `(await load(..)).Page!` (indexed access is possibly undefined; runtime same).
+- [CONV] Types only: spread-of-never `as never` -> `as unknown as ComponentProps<..>` (rs-c7, web-t03), json() casts (web-t04/t06), `HttpResponse.json(x as never)`, `| undefined` on optional props (exactOptionalPropertyTypes: flow.ts, web-t35 x3), `!` on indexed reads (web-t32.server, web-t03, HC-T30), `as unknown as` (t20.static), `as never` (rs-c2, web-t04 props), readonly cast (micro t22), `(skip, _label)` (provision1), conditional `{cookie}` spread (web-auth-redirect), page called with 0 args (t23.counts) / narrow fn cast (t24).
+- No @ts-ignore/expect-error/`as any`/skipLibCheck added. No assertion changed. No money/order emitted value, rounding, status or SQL changed.
+- `tsc -p apps/web`: 287 errors under apps/web/src -> 0. Package total 296 -> 9 (all apps/portal TS2307 x7 + TS7006 x2 = VERIFY-GREEN-5). `turbo run typecheck --continue` not run.
+- Gate `VERIFY-GREEN-8-verify.cmd`: 8/8 green. Feature suites green (own configs): lab-t25/t26/t29, web-t32, web-t35, rs-c7, web-t04, quality-t22, inventory t23/t24, micro t22, partners t16, anatomic t21.
+- Open: `rs-c2.static` "data files untouched" fails on hashes of platform/actions.ts + shared.ts (changed by PLATFORM-PROVISION-1 commit 9677e24a3, not by this task; needs a tester/lead baseline refresh). Many other suites not re-run. Note: VG-6/7 notes claim fixes that were NOT in this tree; redone here.

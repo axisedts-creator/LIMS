@@ -1,8 +1,13 @@
-CHANGES
+APPROVE
 
-Reviewed `git diff f202f401d..HEAD` (plus the earlier health.ts/bootstrap/main/test hunks via `main...HEAD`). Ran: `pnpm --dir services/api exec vitest run src/__tests__/env-doc.test.ts src/core/__tests__/health-env.test.ts src/core/__tests__/health.test.ts` -> 3 files, 34/34 pass; `pnpm --dir tools/codegen run codegen:check` -> passes. core.yaml hunk matches LD-288 exactly (one optional property, array of strings, pattern `^LIMS_[A-Z0-9_]*[A-Z0-9]$`, not required, names-only description); nothing else in contracts/. Clean checkout section matches LD-284 (names/commands only). No values/secrets; render.yaml untouched. Regenerated packages/* drift (identity role-packs, quality, operations, msw, routes) is pure codegen output of already-merged contracts, allowed by the LD-288 regenerate sentence and noted in impl notes — OK.
+Re-review of `git diff f202f401d..HEAD` after writer/tester fixes (527bd0b94, 3532c4df1).
 
-1. services/api/src/core/health.ts:50 — `missing_env` is sent whenever names are unset, including when the status is `down` (503). Brief EXPOSURE NOTE and LD-288 mitigation: "list names only, only when the status is degraded". Fix: `...(missing.length && status === 'degraded' ? { missing_env: missing } : {})`.
-2. services/api/src/core/__tests__/health-env.test.ts:99-102 (and header comment line 8 "missing_env still sent") — the test pins the wrong behaviour. Fix: expect `{ status: 'down', checks: { db: 'down', ratelimit: 'ok' } }` with no `missing_env` key on the 503, and change line 8 to "(503, missing_env not sent)".
+Prior findings resolved:
+1. services/api/src/core/health.ts:51-52 — `missing_env` now sent only when non-empty AND status is `degraded`; a 503 `down` answer carries no names (LD-288 exposure note). Comment cites LD-288.
+2. services/api/src/core/__tests__/health-env.test.ts:8,99-102 — test now pins 503 body without `missing_env`; header comment updated.
+
+Rechecked: core.yaml hunk is exactly the one optional `missing_env` property per LD-288 (array of strings, pattern `^LIMS_[A-Z0-9_]*[A-Z0-9]$`, not required, names-only description); nothing else in contracts/. Clean checkout section matches LD-284 (names/commands only). render.yaml untouched. No values or secrets. packages/* drift is codegen output, allowed by LD-288 regenerate sentence.
+
+Ran: `pnpm --dir services/api exec vitest run src/__tests__/env-doc.test.ts src/core/__tests__/health-env.test.ts src/core/__tests__/health.test.ts` -> 3 files, 34/34 pass. `pnpm --dir tools/codegen run codegen:check` -> no drift reported.
 
 Not verified: full api suite, lint, typecheck; live readiness on a real deployment.

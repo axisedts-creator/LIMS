@@ -10,6 +10,7 @@ import 'package:lims_shared/lims_shared.dart';
 import 'package:lims_ui/lims_ui.dart';
 
 import '../orders/orders_format.dart';
+import '../orders/status_look.dart';
 import 'payments_api.dart';
 import 'payments_providers.dart';
 
@@ -105,14 +106,14 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen> {
   Widget build(BuildContext context) => LimsSecureScreen(
         child: Scaffold(
           appBar: AppBar(title: const Text('Payment')),
-          body: Padding(padding: const EdgeInsets.all(LimsTokens.space4), child: _body(context)),
+          body: _body(context),
         ),
       );
 
   Widget _body(BuildContext context) {
     switch (_view) {
       case _View.gone:
-        return const LimsEmptyState(title: 'This payment is no longer available');
+        return const StateCard(LimsEmptyState(title: 'This payment is no longer available'));
       case _View.paid:
         return _panel(context, tone: 'success', chip: 'Paid', text: 'Paid — thank you');
       case _View.notCompleted:
@@ -125,11 +126,11 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen> {
   }
 
   Widget _panel(BuildContext context, {required String tone, required String chip, required String text, Widget? action, bool busy = false}) =>
-      Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        LimsStatusChip(kind: 'generic', status: chip, tone: tone, label: chip),
+      StateCard(Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        ToneChip(LimsStatusChip(kind: 'generic', status: chip, tone: tone, label: chip)),
         const SizedBox(height: LimsTokens.space3),
         Text(text, style: Theme.of(context).textTheme.titleLarge),
         if (busy) ...[const SizedBox(height: LimsTokens.space3), const LinearProgressIndicator()],
         if (action != null) ...[const SizedBox(height: LimsTokens.space4), action],
-      ]);
+      ]));
 }

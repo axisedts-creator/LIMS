@@ -10,6 +10,7 @@ import 'package:lims_ui/lims_ui.dart';
 
 import '../bookings/bookings_api.dart' show newIdempotencyKey;
 import '../orders/orders_format.dart';
+import '../orders/status_look.dart';
 import 'payments_api.dart';
 import 'payments_providers.dart';
 
@@ -139,10 +140,14 @@ class _PayDueScreenState extends ConsumerState<PayDueScreen> {
         child: Scaffold(
           appBar: AppBar(title: const Text('Pay due')),
           body: ListView(padding: const EdgeInsets.all(LimsTokens.space4), children: [
-            Text(rupees(widget.amountPaisa), style: Theme.of(context).textTheme.headlineMedium),
-            const SizedBox(height: LimsTokens.space4),
-            ..._choice(),
-            if (_inFlight) ..._progress(),
+            LimsCard(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                Text(rupees(widget.amountPaisa), style: Theme.of(context).textTheme.headlineMedium),
+                const SizedBox(height: LimsTokens.space4),
+                ..._choice(),
+                if (_inFlight) ..._progress(),
+              ]),
+            ),
           ]),
         ),
       );
@@ -158,7 +163,7 @@ class _PayDueScreenState extends ConsumerState<PayDueScreen> {
 
   List<Widget> _choice() => [
         if (_message != null) ...[
-          Align(alignment: Alignment.centerLeft, child: LimsStatusChip(kind: 'generic', status: 'failed', tone: 'danger', label: 'Not started')),
+          const Align(alignment: Alignment.centerLeft, child: ToneChip(LimsStatusChip(kind: 'generic', status: 'failed', tone: 'danger', label: 'Not started'))),
           const SizedBox(height: LimsTokens.space2),
           Text(_message!),
           const SizedBox(height: LimsTokens.space4),

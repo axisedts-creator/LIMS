@@ -11,7 +11,7 @@ import { createAuthService, type AuthCtx, type AuthDeps, type AuthLimits } from 
 import { idMetrics } from '../metrics.js';
 
 export interface LoginHctx extends HandlerContext {
-  requestId: string; bffKey?: string; actor?: { type: string; id: string }; commitOnError?: () => void;
+  requestId: string; bffKey?: HandlerContext['bffKey']; actor?: { type: string; id: string }; commitOnError?: () => void;
   rateLimit?: { consume(tier: 'login', key: string): Promise<void> };
   db: { identityAuthTx<T>(input: TxInput, fn: TxFn<T>): Promise<T> };
 }

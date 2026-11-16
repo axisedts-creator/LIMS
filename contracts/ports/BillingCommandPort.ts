@@ -1,6 +1,6 @@
 // contracts/ports/BillingCommandPort.ts  (owner C4/billing; consumer allowlist: frontdesk only — CI manifest consumer check)
-import type { RequestContext, Uuidv7, IsoUtc, Money, Code, Priority } from './common';
-import type { OrderBalance } from './BillingPort';
+import type { RequestContext, Uuidv7, IsoUtc, Money, Code, Priority } from './common.js';
+import type { OrderBalance } from './BillingPort.js';
 export const BILLING_COMMAND_PORT_VERSION = 1 as const;
 
 export interface PricedLineInput {

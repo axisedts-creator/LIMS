@@ -1,0 +1,6 @@
+# VERIFY-GREEN-1 baseline (writer, lane C1 at 28adc3c1b)
+`pnpm -s verify` exit 1 (turbo stops at the first failed package). `turbo run build typecheck --continue`: 12/15 tasks ok; FAILED @lims/api, @lims/worker, @lims/web typecheck. build ok.
+Errors (`error TS` lines per package): api 38, worker 42, web 290.
+- api 38: TS2835 x24 (contracts/ports/*.ts extensionless: common.ts 14, Billing/BillingCommand/Catalog/Frontdesk/Identity/Lab/Notification); TS5097 x2 (shared-ts bsdate/index.ts:2, formula/index.ts:3 `.ts` specifiers); TS2430 x5 (identity handlers confirmEmailToken, loginStaff, resolveSession, setPasswordFromSetup, verifyMfaChallenge); TS2379 x5 (quality settings.handlers.ts:12, observation.service.ts:191,192, + chart.service.ts TS2339 x4 level_code/lot_no).
+- worker 42: same TS5097 x2; TS2883 x12 (analytics mappers/schedules.dto.ts x5, service/schedule.service.ts x6 + 1); TS2379 (api quality observation.service x2, worker engagement/tasks/purge.ts:36,43); TS2339 reporting/tasks/send_delivery.ts:148 (attempt, maxAttempts); plus TS2835 via contracts.
+- web 290: TS2307 portal pages (missing @/features/portal/*, @/server/*), TS2379/TS2339/TS2345 in `__tests__` files (catalog web-t32..t35, instruments, inventory, partners). Not touched: test files + missing modules, not types/specifiers of the named files.

@@ -27,7 +27,7 @@ export interface SetPasswordDeps {
   hmac?: (normalisedEmail: string) => string; newId?: () => string; now?: () => Date;
 }
 interface Hctx extends HandlerContext {
-  requestId: string; bffKey?: string; actor?: { type: string; id: string }; log?: { error(o: object, m?: string): void };
+  requestId: string; bffKey?: HandlerContext['bffKey']; actor?: { type: string; id: string };   // VERIFY-GREEN-1 / LD-253: type-only, log inherited
   db: { identityAuthTx<T>(input: TxInput, fn: TxFn<T>): Promise<T> };
 }
 

@@ -1,5 +1,5 @@
 // contracts/ports/BillingPort.ts
-import type { RequestContext, Uuidv7, IsoUtc, Money, Code } from './common';
+import type { RequestContext, Uuidv7, IsoUtc, Money, Code } from './common.js';
 export const BILLING_PORT_VERSION = 1 as const;
 
 export type ReleaseBasis = 'paid_in_full' | 'zero_balance' | 'credit_party' | 'override' | 'policy_not_enforced'

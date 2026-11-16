@@ -1,5 +1,5 @@
 // contracts/ports/RenderPort.ts
-import type { RequestContext } from './common';
+import type { RequestContext } from './common.js';
 export const RENDER_PORT_VERSION = 1 as const;
 export type RenderTemplateKey = 'billing.invoice' | 'billing.credit_note' | 'billing.register' | 'analytics.report'
   | 'partners.access_slip';                                   // added by 08 Addendum A5.1 (CR-C13-014, additive)

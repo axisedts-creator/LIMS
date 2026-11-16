@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lims_ui/lims_ui.dart';
 
+import '../orders/status_look.dart';
 import 'membership_providers.dart';
 
 const _qrSize = 240.0; // >= 200 logical px so a front-desk scanner reads it
@@ -60,13 +61,13 @@ class _MembershipScreenState extends ConsumerState<MembershipScreen> {
         title: 'Membership',
         body: cards.when(
           loading: () => const LimsLoading(),
-          error: (_, __) => LimsErrorState(
+          error: (_, __) => StateCard(LimsErrorState(
             title: 'Could not load your membership',
             message: 'Check your connection and try again.',
             onRetry: () => ref.invalidate(myMembershipsProvider),
-          ),
+          )),
           data: (list) => list.isEmpty
-              ? const LimsEmptyState(title: 'No membership', message: 'Ask the front desk about membership plans.')
+              ? const StateCard(LimsEmptyState(title: 'No membership', message: 'Ask the front desk about membership plans.'))
               : SingleChildScrollView(
                   padding: const EdgeInsets.all(LimsTokens.space4),
                   child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
@@ -93,7 +94,7 @@ class _CardView extends StatelessWidget {
           const SizedBox(height: LimsTokens.space1),
           Text('Valid ${_dmy(c.validFrom)} – ${_dmy(c.validTo)}'),
           const SizedBox(height: LimsTokens.space2),
-          LimsStatusChip(kind: 'generic', status: c.status, label: _statusWord[c.status] ?? c.status, tone: _statusTone[c.status] ?? 'neutral'),
+          ToneChip(LimsStatusChip(kind: 'generic', status: c.status, label: _statusWord[c.status] ?? c.status, tone: _statusTone[c.status] ?? 'neutral')),
           const SizedBox(height: LimsTokens.space4),
           Center(child: LimsQrCode(data: c.token, size: _qrSize, semanticLabel: 'Membership QR code')),
         ]),

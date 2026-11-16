@@ -1,6 +1,6 @@
 {
  "meta": {
-  "at": "2026-11-16T08:00:44.970Z",
+  "at": "2026-11-16T08:06:36.458Z",
   "operations": 1018,
   "sessionKinds": [
    "platform_superadmin_aal2",
@@ -366,10 +366,10 @@
    "sessionKind": "tenant_corp_admin",
    "auth": "bearer",
    "holdsPermission": true,
-   "status": 429,
-   "errorCode": "common.rate_limited",
+   "status": 200,
+   "errorCode": "",
    "verdict": "WIRED",
-   "reason": "other client answer 429",
+   "reason": "success",
    "rootCause": "",
    "detail": ""
   },
@@ -381,10 +381,10 @@
    "sessionKind": "tenant_corp_admin",
    "auth": "bearer",
    "holdsPermission": true,
-   "status": 429,
-   "errorCode": "common.rate_limited",
+   "status": 200,
+   "errorCode": "",
    "verdict": "WIRED",
-   "reason": "other client answer 429",
+   "reason": "success",
    "rootCause": "",
    "detail": ""
   },
@@ -396,10 +396,10 @@
    "sessionKind": "tenant_corp_admin",
    "auth": "bearer",
    "holdsPermission": true,
-   "status": 429,
-   "errorCode": "common.rate_limited",
+   "status": 200,
+   "errorCode": "",
    "verdict": "WIRED",
-   "reason": "other client answer 429",
+   "reason": "success",
    "rootCause": "",
    "detail": ""
   },

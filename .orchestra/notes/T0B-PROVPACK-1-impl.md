@@ -3,5 +3,5 @@
 - `TENANT_ADMIN_GRANTS` (catalogue minus platform.* and `roles: []`) used by seedRoles for tenant_admin; other roles keep ROLE_GRANTS.
 - `DEFAULT_ROLE_PACK = 'elabcorp_default'`; `adminGrantsAndPack` (additive, ON CONFLICT DO NOTHING, role-pack.service reused) runs at provisioning (after the admin invite) and at activation (repair of pre-fix labs).
 - [CONV] role-pack repo seam follows the tenant repo seam: injected TenantRepo without `rolePackRepo` = pack step not wired (unit fakes have no SQL).
-- Tests: verify set 496/498 pass + platform-settings.contract; tsc 0 errors. 2 fail = disputed obsolete assertions in tenant.realchain.test.ts L173/L208-209.
+- Tests (after ruling, tests revised da40f0ba2): verify set 14 files 477/477 pass; tsc 0 errors. No code change needed after the ruling.
 - Open: CR flags R2/R5a conflict (tenant_admin now holds sign-off/refund authorities per LD-301); metrolabs still needs a re-activation path (it is `provisioning`, so activateTenant repairs it).

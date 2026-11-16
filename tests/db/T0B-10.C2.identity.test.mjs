@@ -165,6 +165,7 @@ const FUNCS = ['identity_resolve_session', 'identity_session_by_token', 'identit
 const specTablesDdl = () => spec101();
 const specMatrix = () => [...spec101().matchAll(/\('(\w+)',\s*ARRAY\[([^\]]*)\]\)/g)].map((m) => [m[1], [...m[2].matchAll(/'(\w+)'/g)].map((x) => x[1])]);
 const PRED_T = 'tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system())';
+const NARROWED_OWN = ['mfa_factors__select__own', 'mfa_factors__insert__own', 'mfa_factors__update__own'];   // LD-252, T0B-MFAPOL-1
 function expectedPolicies() {        // explicit CREATE POLICYs of §10.1 on identity.* + the generated __tenant set
   const explicit = policies(spec101()).filter((p) => p.table.startsWith('identity.'));
   const gen = [];
@@ -177,6 +178,11 @@ function expectedPolicies() {        // explicit CREATE POLICYs of §10.1 on ide
   for (const t of ['mfa_factors', 'invitations']) for (const c of ['select', 'insert', 'update']) {
     gen.push({ name: `${t}__${c}__platform`, table: `identity.${t}`, key: `${t}__${c}__platform@identity.${t}`, cmd: c.toUpperCase(), roles: 'lims_app',
       using: c === 'insert' ? '' : PRED_P, check: c === 'select' ? '' : PRED_P });
+  }
+  // LD-252 / T0B-MFAPOL-1 (CR-C0-T0B-REVIEW-1-003): the three mfa_factors __own policies are narrowed to tenant rows (tenant_id = current tenant; the tenant-less
+  // IS NOT DISTINCT FROM branch is gone) by migration 20261116010000; db/policies/identity.sql carries the narrowed text, the spec text above is the pre-LD-252 original.
+  for (const p of explicit) if (NARROWED_OWN.includes(p.name)) {
+    for (const k of ['using', 'check']) p[k] = p[k].replace('tenant_id is not distinct from(select app.current_tenant_id())', 'tenant_id=(select app.current_tenant_id())');
   }
   return { explicit, gen, all: [...explicit, ...gen] };
 }
@@ -301,7 +307,10 @@ test('core.tenants __platform policies (C2 §10.2) exist as DDL and in db/polici
 });
 test('policies in migrations (literal CREATE POLICY) are a subset of db/policies/identity.sql (AC-0B-2.3 copy)', () => {
   const inFile = new Map(policies(polSql()).map((p) => [p.key, p.text]));
-  for (const p of policies(idSql()).filter((x) => x.table.startsWith('identity.'))) assert.equal(norm(inFile.get(p.key) ?? ''), norm(p.text), p.key);
+  // LD-252 (T0B-MFAPOL-1): the original CREATE POLICY of the three mfa_factors __own policies stays in its migration (history); the file holds the narrowed text
+  // (ALTER POLICY in 20261116010000, checked by tests/db/T0B-MFAPOL-1.static.test.mjs and by the "EXACTLY the §10.1 policy set" test above).
+  for (const p of policies(idSql()).filter((x) => x.table.startsWith('identity.') && !NARROWED_OWN.includes(x.name))) assert.equal(norm(inFile.get(p.key) ?? ''), norm(p.text), p.key);
+  for (const n of NARROWED_OWN) assert.ok(inFile.has(`${n}@identity.mfa_factors`), `${n} stays in db/policies/identity.sql`);
 });
 
 // ================================================================ grants (AC-0B-4.2 / 4.3, §11 tests 5, 6, 29)

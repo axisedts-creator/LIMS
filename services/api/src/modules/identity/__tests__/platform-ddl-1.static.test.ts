@@ -49,7 +49,7 @@ describe('A: migration add_platform_policies (C2 05-SCHEMA s5.3)', () => {
       'mfa_factors__select__platform', 'invitations__select__platform']) expect(names).not.toContain(n);
     expect(names.filter((n) => /__delete__/.test(n))).toEqual([]); expect(new Set(names).size).toBe(19);
   });
-  it('additive only: no DROP / ALTER POLICY / ALTER TABLE / GRANT / REVOKE / CREATE ROLE / DEFINER / DISABLE ROW LEVEL SECURITY, only CREATE POLICY statements', () => {
+  it('additive only: no DROP / ALTER POLICY / ALTER TABLE / GRANT / REVOKE / CREATE ROLE / DEFINER / turning row level security off, only CREATE POLICY statements', () => {
     const sql = strip(read(`db/migrations/${F1}`));
     for (const re of [/\bdrop\b/i, /alter\s+policy/i, /alter\s+table/i, /\bgrant\b/i, /\brevoke\b/i, /create\s+role/i, /security\s+definer/i, /disable\s+row/i, /bypassrls/i, /create\s+function/i, /create\s+table/i])
       expect(sql, String(re)).not.toMatch(re);

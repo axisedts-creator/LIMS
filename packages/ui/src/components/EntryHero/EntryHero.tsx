@@ -2,6 +2,9 @@
 // Decoration only: every piece is aria-hidden except the plate, which keeps the source's one role="img" label.
 // No inline style: the well wave is staggered by nth-child rules in apps/web shell.css; colours and radii are tokens there.
 // markSrc: a same-origin URL of the round brand mark (apps/web passes MARK from core/shell/brand.ts).
+// T0D-MSERIES-6 (LD-287, LD-290): optional photoSrc, a same-origin URL of the lab photo (apps/web passes HERO_PHOTO). When set, a decorative
+// photo and its token gradient overlay are the first two children (behind everything else); omitted or empty, the output is the M5 hero.
+// width/height are the pixel size of packages/ui/assets/brand/lab-hero.webp: update them when a larger file of the same name replaces it.
 
 // the source's well pattern: (r + c) % 11 === 0 lights white, (3r + c) % 7 === 0 lights lime, the rest the pop lime
 const WELLS = Array.from({ length: 96 }, (_, i) => {
@@ -10,9 +13,15 @@ const WELLS = Array.from({ length: 96 }, (_, i) => {
   return (r + c) % 11 === 0 ? 'lims-auth-well lims-auth-well-w' : (r * 3 + c) % 7 === 0 ? 'lims-auth-well lims-auth-well-l' : 'lims-auth-well';
 });
 
-export function EntryHero({ markSrc }: { markSrc: string }) {
+export function EntryHero({ markSrc, photoSrc }: { markSrc: string; photoSrc?: string }) {
   return (
     <>
+      {photoSrc ? (
+        <>
+          <img className="lims-auth-photo" src={photoSrc} alt="" aria-hidden="true" loading="lazy" decoding="async" width={768} height={512} />
+          <div className="lims-auth-photo-overlay" aria-hidden="true" />
+        </>
+      ) : null}
       <svg className="lims-auth-rings" viewBox="0 0 800 800" aria-hidden="true" focusable="false">
         <circle cx="400" cy="400" r="380" />
         <circle cx="400" cy="400" r="300" />

@@ -1,5 +1,6 @@
 // AU-1..AU-7 copy by error code (C2 04-UI-UX §4). Shared by the client forms; no secrets here.
-export type ActionResult = { ok: true } | { ok: false; code: string; retryAfterSeconds?: number };
+// T0D-WAKE-1 (LD-277): `waking` = the API gave no answer (timeout / connection failure); never set for an HTTP answer.
+export type ActionResult = { ok: true } | { ok: false; code: string; retryAfterSeconds?: number; waking?: true };
 
 export function humanDuration(seconds: number | undefined): string {
   if (!seconds || !Number.isFinite(seconds) || seconds <= 0) return 'a few minutes';

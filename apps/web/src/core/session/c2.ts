@@ -47,7 +47,8 @@ export const c2Resolver: SessionResolver = {
         signal: AbortSignal.timeout(TIMEOUT_MS),
       });
     } catch {
-      return unavailable();
+      // T0D-WAKE-1 (LD-277, RS-07): no answer (timeout / connection failure) = the API is likely waking up; HTTP answers never carry it.
+      return { ...unavailable(), waking: true };
     }
     const body = (await res.json().catch(() => undefined)) as unknown;
     if (res.status === 401) {

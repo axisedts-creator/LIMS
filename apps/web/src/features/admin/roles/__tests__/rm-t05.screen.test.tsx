@@ -7,11 +7,14 @@
 // (new = will be created; existing = permissions to add, or unchanged); NO removal is ever shown (R6: tenant edits win); the diff roles use the kit PermissionMatrix
 // (read-only checkboxes named by permission code); button "Apply" POSTs { pack_code } only, with an Idempotency-Key when the operation declares x-idempotency.
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, screen, waitFor, within } from '@testing-library/react';
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { HttpResponse } from 'msw';
+import { ToastProvider } from '@lims/ui/components/Toast';
+import { RolePackApply } from '../RolePackApply';
 import {
-  ID, api, calls, callsTo, bodyOf, resetApi, routes, json, problem, role, show, showOrThrown, norm, pageText, axeClean, ROLE_FD, ROLE_LAB, PERMISSIONS,
+  ID, api, calls, callsTo, bodyOf, resetApi, routes, json, problem, role, showOrThrown, norm, pageText, axeClean, ROLE_FD, ROLE_LAB, PERMISSIONS,
+  show as showPage,
 } from '../../__tests__/t20.harness';
 import { listPacksOp, operation, packRoute } from './rm-t05.contract';
 
@@ -46,13 +49,19 @@ const TENANT_ROLES = [
 const APPLIED = { pack_code: 'elabcorp_default', created: ['corp_new'], updated: ['corp_edit'], unchanged: ['corp_same'] };
 const applyKey = () => `${APPLY?.method ?? 'POST'} ${APPLY_PATH.replace('{pack_code}', PACK.pack_code)}`;
 
+let cur: { roles?: unknown[]; packs?: unknown[] } = {};
 function wire(opts: { roles?: unknown[]; packs?: unknown[]; apply?: () => Response } = {}) {
+  cur = opts;
   resetApi(['identity.user.read', 'identity.role.manage']);
   routes[`GET ${READ}`] = json({ data: opts.packs ?? [PACK, PACK_B] });
   routes[`GET ${ID}/roles`] = json({ data: opts.roles ?? TENANT_ROLES });
   routes[`GET ${ID}/permissions`] = json({ data: PERMISSIONS });
   routes[applyKey()] = opts.apply ?? json(APPLIED);
 }
+// LD-301: the page no longer calls the API (listRolePacks/applyRolePack are notImplemented stubs). The diff/apply/a11y tests below keep their
+// coverage by mounting RolePackApply with the data the page will pass once the API exists.
+const mount = async () => render(<ToastProvider><RolePackApply packs={(cur.packs ?? [PACK, PACK_B]) as never} roles={(cur.roles ?? TENANT_ROLES) as never} catalog={PERMISSIONS as never} /></ToastProvider>);
+const show = (_rel: string) => mount(); // diff/apply/a11y tests: the component, not the page
 const posts = () => calls.filter((c) => c.method !== 'GET');
 const diffOf = () => screen.getByRole(screen.queryAllByRole('region', { name: /diff/i }).length ? 'region' : 'group', { name: /diff/i });
 async function pick(name: RegExp) {
@@ -80,12 +89,14 @@ describe('access (07-SECURITY: gate before any API call)', () => {
     expect(calls).toEqual([]);
     expect(screen.queryByRole('button', { name: /^apply/i })).toBeNull();
   });
-  it('a holder of identity.role.manage can open it: heading + the packs offered by the API', async () => {
-    await show(REL);
+  it('LD-301: a holder of identity.role.manage sees a plain "not available yet" message, no Apply, and the page makes NO API call', async () => {
+    await showPage(REL);
     expect(screen.getByRole('heading', { level: 1, name: /role pack/i })).toBeTruthy();
-    expect(pageText()).toContain('ELabCorp default');
-    expect(pageText()).toContain('ELabAssist standard');
-    expect(callsTo('GET', READ).length).toBeGreaterThan(0);
+    expect(pageText()).toMatch(/not available yet/i);
+    expect(pageText()).not.toMatch(/reference|something went wrong|could not load/i);
+    expect(screen.queryByRole('button', { name: /^apply/i })).toBeNull();
+    expect(callsTo('GET', READ)).toEqual([]);
+    expect(calls).toEqual([]);
   });
 });
 
@@ -202,18 +213,12 @@ describe('apply (save)', () => {
     expect(pageText()).not.toMatch(/applied successfully|1 created/i);
     expect(posts().length).toBe(1);
   });
-  it('pack-list read failing (503) shows an error state, no picker, no Apply', async () => {
-    wire();
-    routes[`GET ${READ}`] = () => problem('common.dependency_unavailable', 503);
-    await show(REL);
-    expect(screen.queryByRole('button', { name: /^apply/i })).toBeNull();
-    expect(screen.queryAllByRole('radio').length).toBe(0);
-    expect(screen.queryAllByRole('alert').length + (/unavailable|try again|error/i.test(pageText()) ? 1 : 0)).toBeGreaterThan(0);
-  });
+  // LD-301: "pack-list read failing (503)" is retired — the page no longer reads the pack list (covered by the no-API-call test above).
 });
 
 describe('a11y', () => {
-  it('axe: picker state', async () => { await show(REL); await axeClean(); });
+  it('axe: page (LD-301 not available yet)', async () => { await showPage(REL); await axeClean(); });
+  it('axe: picker state', async () => { await mount(); await axeClean(); });
   it('axe: diff state (matrix open)', async () => {
     await show(REL);
     await pick(/elabcorp/i);

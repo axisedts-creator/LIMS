@@ -1,0 +1,5 @@
+# ADMINPACK-4 tests (tester)
+- EXTENDED (all under `services/api/src/modules/identity/__tests__/role-packs/`): `role-pack.add-missing.test.ts` (service: each of the 6 reason codes, `e.reason` + `e.role_code`), `apply-role-pack.cli.test.ts` (`refused: <reason> <role>` line, plain-apply code lists, `--list`, `describePackRoles`, `captureDbErrors` + `db:` line incl. row-value leak test), `apply-role-pack.script.test.ts` (static checks of `.orchestra/notes/ADMINPACK-4-runbook.md`, the writer creates it).
+- ASSUMED API is in the header comments of the new describes (CLI exports `describePackRoles`, `captureDbErrors`; deps `list`, `dbDiag`; error props `reason`, `role_code`). Raise a dispute if the writer needs another shape.
+- Run: `.orchestra\notes\ADMINPACK-4-verify.cmd` (4 files, through the package). `route-guard.test.ts` is left out: it fails on HEAD, unrelated.
+- Now: 51 new tests fail (no reason on the refusal, no `--list`, no `captureDbErrors`, no runbook); the other 146 in those files pass.

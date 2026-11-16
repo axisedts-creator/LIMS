@@ -12,6 +12,7 @@ import 'package:lims_ui/lims_ui.dart';
 
 import '../../app/providers.dart';
 import '../auth/auth_providers.dart';
+import '../orders/status_look.dart';
 import 'name_text.dart';
 import 'profile_copy.dart';
 import 'profiles_providers.dart';
@@ -278,7 +279,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     final c = limsTone('info');
     return Container(
       padding: const EdgeInsets.all(LimsTokens.space3),
-      color: c.bg,
+      decoration: BoxDecoration(color: c.bg, borderRadius: BorderRadius.circular(LimsTokens.radiusMd)),
       child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Icon(Icons.info_outline, color: c.fg),
         const SizedBox(width: LimsTokens.space2),
@@ -298,7 +299,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     const gap = SizedBox(height: LimsTokens.space4);
     return SingleChildScrollView(
       padding: const EdgeInsets.all(LimsTokens.space4),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      child: LimsCard(
+        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         Text('Who is this for?', style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: LimsTokens.space2),
         LimsSegmentedControl<String>(
@@ -372,7 +374,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         gap,
         if (_busy) const LimsLoading(label: 'Creating record'),
         LimsButton(label: 'Create record', onPressed: _busy ? null : _submit),
-      ]),
+        ]),
+      ),
     );
   }
 
@@ -394,18 +397,18 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
   Widget _body() => switch (_phase) {
         _Phase.loading => const LimsLoading(),
-        _Phase.loadFailed => LimsErrorState(title: 'Could not load the registration form', message: 'Check your connection and try again.', onRetry: _load),
-        _Phase.noConsent => const LimsEmptyState(title: _atTheLabTitle, message: _atTheLabMessage),
-        _Phase.disabled => const LimsErrorState(title: _atTheLabTitle, message: _atTheLabMessage),
+        _Phase.loadFailed => StateCard(LimsErrorState(title: 'Could not load the registration form', message: 'Check your connection and try again.', onRetry: _load)),
+        _Phase.noConsent => const StateCard(LimsEmptyState(title: _atTheLabTitle, message: _atTheLabMessage)),
+        _Phase.disabled => const StateCard(LimsErrorState(title: _atTheLabTitle, message: _atTheLabMessage)),
         _Phase.form => _form(),
         _Phase.creating => _creating(),
-        _Phase.created => const LimsEmptyState(title: 'Your record is ready.', icon: Icons.check_circle_outline),
-        _Phase.failed => LimsErrorState(
+        _Phase.created => const StateCard(LimsEmptyState(title: 'Your record is ready.', icon: Icons.check_circle_outline)),
+        _Phase.failed => StateCard(LimsErrorState(
             title: "We couldn't create your record.",
             message: 'Your details are kept. Try again to send them once more.',
             retryLabel: 'Try again',
             onRetry: _retry,
-          ),
+          )),
       };
 
   @override

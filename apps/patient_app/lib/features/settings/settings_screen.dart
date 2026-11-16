@@ -121,7 +121,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       onChanged: _busy ? null : _toggle,
                     ),
                   ),
-                  const LimsListTile(title: 'App lock', subtitle: 'Your device screen lock is required to open this app.', leading: Icon(Icons.lock_outline)),
+                  const SizedBox(height: LimsTokens.space3),
+                  // LD-258 (M4): every row on a white card, none loose on the page.
+                  const LimsCard(
+                    child: LimsListTile(title: 'App lock', subtitle: 'Your device screen lock is required to open this app.', leading: Icon(Icons.lock_outline)),
+                  ),
+                  const SizedBox(height: LimsTokens.space3),
                   if (flavour.tenantPrivacyUrl != null && flavour.tenantPrivacyUrl!.isNotEmpty)
                     LimsCard(title: flavour.displayName, child: Align(alignment: AlignmentDirectional.centerStart, child: _link('Privacy policy', flavour.tenantPrivacyUrl))),
                   Wrap(alignment: WrapAlignment.center, children: [

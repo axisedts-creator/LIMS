@@ -41,6 +41,10 @@ export interface HandlerContext {
   readonly platformRole?: string;
   /** LD-241: the claims' aal, platform session only (PlatformAuthz privileged codes need aal2). */
   readonly aal?: 'aal1' | 'aal2';
+  /** LD-267 PLATFORM-WIRE-1: claims.platform_staff_id, platform session only (key absent when missing / not a UUID). */
+  readonly platformStaffId?: string;
+  /** LD-267 / CR-C2-T21: claims.lims_session_id, platform session only (key absent when missing / not a UUID). */
+  readonly platformSessionId?: string;
   /** LD-133: `| object` in the TYPE only (lab/smartreport type tx as object); the pipeline always hands the Tx of requestTx. */
   readonly tx?: Tx | object | undefined;
   /**
@@ -55,6 +59,8 @@ export interface HandlerContext {
     tx?<T>(fn: (ctx: HandlerContext) => Promise<T>): Promise<T>;
     /** 08 A25 D-212 (§6.2 stage 7): identity + x-context identity_auth + LIMS_CORE_IDENTITY_AUTH_OPS only; the core's own operation is used. */
     identityAuthTx?<T>(input: TxInput, fn: TxFn<T>): Promise<T>;
+    /** LD-267 PLATFORM-WIRE-1 (02-TRD §6.3, D-214): platform session only; identity + x-context platform + allowlisted operationId, on this request's tx. */
+    withTenantScope?<T>(tx: unknown, tenantId: string, fn: () => Promise<T>): Promise<T>;
   };
   readonly core: unknown;
   /** LD-133: optional / entry widened in the TYPE only (lab declares access(e: Record<string, unknown>)). */

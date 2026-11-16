@@ -70,9 +70,11 @@ class _RouteScreenState extends State<RouteScreen> {
     final (tone, word, icon) = _status(v.status);
     final cancelled = v.status == 'cancelled';
     final t = Theme.of(context).textTheme;
+    // Explicit theme styles carry their own colour, so the cancelled grey is applied to them directly.
+    TextStyle? grey(TextStyle? s) => cancelled ? s?.copyWith(color: LimsTokens.colorNeutral600) : s;
     final tile = Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       LimsListTile(
-        leading: SizedBox(width: LimsTokens.space10, child: Text('${v.sequence}', style: t.titleMedium, textAlign: TextAlign.center)),
+        leading: SizedBox(width: LimsTokens.space10, child: Text('${v.sequence}', style: grey(t.titleMedium), textAlign: TextAlign.center)),
         title: v.patientName,
         subtitle: '${v.windowStart}–${v.windowEnd} · ${_landmark(v.landmark)}',
         onTap: () {
@@ -87,11 +89,16 @@ class _RouteScreenState extends State<RouteScreen> {
         padding: const EdgeInsets.fromLTRB(LimsTokens.space16, 0, LimsTokens.space4, LimsTokens.space2),
         child: Wrap(spacing: LimsTokens.space3, runSpacing: LimsTokens.space1, crossAxisAlignment: WrapCrossAlignment.center, children: [
           StatusPill(tone: tone, icon: icon, label: word),
-          Text('${v.collectedTubes}/${v.expectedTubes} tubes', style: t.bodySmall),
+          Text('${v.collectedTubes}/${v.expectedTubes} tubes', style: grey(t.bodySmall)),
         ]),
       ),
     ]);
-    return cancelled ? Opacity(opacity: 0.6, child: tile) : tile;
+    // T0A-M5-PHLEBO-1 (LD-258, 13-M-SERIES s5): one white LimsCard per visit. The cancelled visit (04-UI-UX:107 "greyed") is
+    // greyed with neutral.600 instead of opacity 0.6 (opacity dropped text to 3.2:1; neutral.600 on white stays above 4.5:1).
+    final body = !cancelled
+        ? tile
+        : ListTileTheme.merge(textColor: LimsTokens.colorNeutral600, iconColor: LimsTokens.colorNeutral600, child: tile);
+    return Padding(padding: const EdgeInsets.only(bottom: LimsTokens.space3), child: LimsCard(child: body));
   }
 
   @override
@@ -130,6 +137,7 @@ class _RouteScreenState extends State<RouteScreen> {
           onRefresh: widget.onRefresh,
           child: ListView(
             physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.all(LimsTokens.space4),
             children: [
               if (_showCancelled && !widget.purged) const InlineNotice(tone: 'info', text: _cancelledNote),
               if (widget.purged)
@@ -139,7 +147,8 @@ class _RouteScreenState extends State<RouteScreen> {
               else if (visits.isEmpty)
                 const LimsEmptyState(title: _emptyText)
               else
-                for (final v in visits) _tile(context, v),
+                // ponytail: one eager Column so every visit card is built (a day's route is short); lazy builder if routes grow large
+                Column(children: [for (final v in visits) _tile(context, v)]),
             ],
           ),
         ),

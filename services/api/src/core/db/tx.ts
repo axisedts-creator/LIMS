@@ -35,6 +35,8 @@ export interface DbOptions extends DbErrorDeps {
   readonly statementTimeoutMs?: number;
   readonly lockTimeoutMs?: number;
   readonly identitySystemActorId?: string;
+  /** PLATFORM-WIRE-1 (LD-267): lazy identity system actor for withTenantScope ONLY (read after every other check passed); never used by identityAuthTx. */
+  readonly scopeActorId?: () => Promise<string>;
   readonly identityAuthOps?: Iterable<string>;
   readonly withTenantScopeOps?: Iterable<string>;
 }
@@ -162,8 +164,14 @@ export function createDb(o: DbOptions) {
       const op = s?.operation;
       if (!s || !s.open || s.scoped || s.kind !== 'request' || !op || op.module !== 'identity' || op.context !== 'platform'
         || typeof op.operationId !== 'string' || !scopeOps.has(op.operationId)
-        || typeof tenantId !== 'string' || !UUID.test(tenantId) || !o.identitySystemActorId) throw internal();
-      await tx.query(CLAIMS_SQL, [JSON.stringify({ sub: o.identitySystemActorId, actor_type: 'system', tenant_id: tenantId })]);
+        || typeof tenantId !== 'string' || !UUID.test(tenantId) || !(o.identitySystemActorId || o.scopeActorId)) throw internal();
+      let actorId = o.identitySystemActorId;
+      if (!actorId) {
+        try { actorId = await o.scopeActorId!(); } catch { throw internal(); } // any lookup failure = common.internal, no driver text
+        if (typeof actorId !== 'string' || !UUID.test(actorId)) throw internal();
+        if (s.scoped || !s.open) throw internal(); // the lookup awaited: re-check (concurrent call on this tx, or the request ended)
+      }
+      await tx.query(CLAIMS_SQL, [JSON.stringify({ sub: actorId, actor_type: 'system', tenant_id: tenantId })]);
       s.scoped = true;
       let out: T;
       try {

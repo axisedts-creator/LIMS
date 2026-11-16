@@ -67,16 +67,25 @@ class _FailVisitScreenState extends State<FailVisitScreen> with SaveOnce<FailVis
       child: LimsScaffold(
         title: 'Why can the visit not be done?',
         body: ListView(padding: const EdgeInsets.all(LimsTokens.space4), children: [
-          for (final r in widget.config.visitFailReasons)
-            ChoiceTile(title: r.display, selected: _picked == r, onTap: saving ? null : () => setState(() => _picked = r)),
+          LimsCard(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              // MergeSemantics: each reason stays one labelled node now that the reasons share a card with no heading text
+              for (final r in widget.config.visitFailReasons)
+                MergeSemantics(
+                  child: ChoiceTile(title: r.display, selected: _picked == r, onTap: saving ? null : () => setState(() => _picked = r)),
+                ),
+            ]),
+          ),
           const SizedBox(height: LimsTokens.space3),
-          LimsTextField(
-            key: const ValueKey('fail.reason_text'),
-            label: _picked?.requiresText == true ? 'Details (required)' : 'Details (optional)',
-            maxLength: 200,
-            sensitive: true,
-            controller: _text,
-            onChanged: (_) => setState(() {}),
+          LimsCard(
+            child: LimsTextField(
+              key: const ValueKey('fail.reason_text'),
+              label: _picked?.requiresText == true ? 'Details (required)' : 'Details (optional)',
+              maxLength: 200,
+              sensitive: true,
+              controller: _text,
+              onChanged: (_) => setState(() {}),
+            ),
           ),
           const SizedBox(height: LimsTokens.space4),
           saveErrorNotice(),

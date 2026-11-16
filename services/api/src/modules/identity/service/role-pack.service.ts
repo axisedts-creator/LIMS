@@ -16,6 +16,10 @@ export interface RolePackRepo {
   addPermissions(tx: unknown, tenantId: string, roleId: string, codes: string[], actorId: string): Promise<void>;
 }
 
+/** LD-265 (ADMINPACK-4, LD-189): a refusal carries ONE reason from this closed set (+ the pack role it concerns), so the CLI can say why. Never data from the lab. */
+export type RefusalReason = 'args' | 'role_not_in_pack' | 'role_missing_in_lab' | 'role_is_system_default' | 'unassignable_code' | 'privileged_without_mfa';
+const refuse = (reason: RefusalReason, roleCode?: string) => Object.assign(new LimsError('common.validation_failed'), roleCode === undefined ? { reason } : { reason, role_code: roleCode });
+
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 type Tx = { query(sql: string, params?: unknown[]): Promise<{ rows: any[] }> };
 
@@ -49,26 +53,28 @@ export function createRolePackService(deps: { repo?: RolePackRepo; newId?: () =>
       if (typeof ctx.audit?.access !== 'function') throw new LimsError('common.internal');   // fail closed: no access log, no write
       const code = input?.packCode;
       const pack = typeof code === 'string' ? packs.packs.find((p) => p.code === code) : undefined;
-      if (!pack) throw new LimsError('common.validation_failed');
+      if (!pack) throw refuse('args');
       const t = ctx.tenantId, actorId = ctx.actor.id;
       if (addMissing !== undefined) {
         // LD-262 (ADMINPACK-3, LD-254, LD-189): explicit, per named role, ADDITIVE ONLY. Names a role the lab already has and gives it the
         // permissions the pack gained. Never creates a role, never removes a permission, never changes mfa_required or any other column.
         const { roles, yes } = addMissing ?? {};
-        if (!Array.isArray(roles) || roles.length === 0 || new Set(roles).size !== roles.length || typeof yes !== 'boolean') throw new LimsError('common.validation_failed');
+        if (!Array.isArray(roles) || roles.length === 0 || new Set(roles).size !== roles.length || typeof yes !== 'boolean') throw refuse('args');
         const labRoles = await repo.listRoles(ctx.tx, t);
         // Plan everything first: any refusal happens before the first write, so a multi-role request is all-or-nothing.
         const plan = (roles as unknown[]).map((rc) => {
           const pr = typeof rc === 'string' ? pack.roles.find((r) => r.code === rc) : undefined;
-          const lr = pr && labRoles.find((r) => r.code === pr.code);
-          if (!pr || !lr || lr.is_system_default) throw new LimsError('common.validation_failed');   // not in the pack, lab lacks it, or a default role
+          if (!pr) { if (typeof rc !== 'string') throw refuse('args'); throw refuse('role_not_in_pack', rc); }
+          const lr = labRoles.find((r) => r.code === pr.code);
+          if (!lr) throw refuse('role_missing_in_lab', pr.code);
+          if (lr.is_system_default) throw refuse('role_is_system_default', pr.code);
           const want = [...new Set(pr.permissions)].sort();
-          if (!want.every((c) => isAssignable(c))) throw new LimsError('common.validation_failed');   // not in contracts/permissions.yaml
+          if (!want.every((c) => isAssignable(c))) throw refuse('unassignable_code', pr.code);   // not in contracts/permissions.yaml; the code is not echoed
           const has = new Set(lr.permission_codes);
           const missing = want.filter((c) => !has.has(c));
           const extra = [...has].filter((c) => !want.includes(c)).sort();
           // A privileged code needs mfa_required (AC-B2.1); this flag never flips mfa_required, so refuse instead.
-          if (missing.some((c) => DEFAULT_REGISTRY.find((e) => e.code === c)?.privileged) && !lr.mfa_required) throw new LimsError('common.validation_failed');
+          if (missing.some((c) => DEFAULT_REGISTRY.find((e) => e.code === c)?.privileged) && !lr.mfa_required) throw refuse('privileged_without_mfa', pr.code);
           return { role_code: pr.code, id: lr.id, missing, extra, added: yes ? missing : [] as string[] };
         });
         const updated: string[] = [];

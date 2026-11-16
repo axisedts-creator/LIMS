@@ -90,11 +90,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
       child: LimsScaffold(
         title: 'Settings',
         body: ListView(padding: const EdgeInsets.all(LimsTokens.space4), children: [
-          FactRow(label: 'Device ID (last 8)', value: _deviceTail),
-          FactRow(label: 'App version', value: widget.appVersion),
-          FactRow(label: 'Signed in as', value: widget.userDisplayName),
-          FactRow(label: 'Last download', value: _stamp(widget.lastDownload)),
-          FactRow(label: 'Last upload', value: _stamp(widget.lastUpload)),
+          LimsCard(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              FactRow(label: 'Device ID (last 8)', value: _deviceTail),
+              FactRow(label: 'App version', value: widget.appVersion),
+              FactRow(label: 'Signed in as', value: widget.userDisplayName),
+              FactRow(label: 'Last download', value: _stamp(widget.lastDownload)),
+              FactRow(label: 'Last upload', value: _stamp(widget.lastUpload)),
+            ]),
+          ),
           const SizedBox(height: LimsTokens.space6),
           if (n > 0) InlineNotice(tone: 'warning', text: 'Sync first — $n ${n == 1 ? 'change is' : 'changes are'} not uploaded yet'),
           if (_refused != null) InlineNotice(tone: 'danger', text: _refused!),

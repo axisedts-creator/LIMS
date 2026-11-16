@@ -83,11 +83,11 @@ describe('10-DESIGN-SYSTEM s5 portal rules in portal.css', () => {
   it('mobile first: no max-width media query (base rules are the phone layout)', () => {
     expect(css).not.toMatch(/@media[^{]*max-width/);
   });
-  it('one font stack: the kit token (Plus Jakarta Sans with the Noto Sans Devanagari fallback); no hand-written font-family', () => {
+  it('one font stack: the kit token (Poppins with the Noto Sans Devanagari fallback, T0D-MSERIES-1); no hand-written font-family', () => {
     const fams = [...css.matchAll(/font-family\s*:\s*([^;}]+)/g)].map((m) => m[1]!.trim());
     expect(fams.length).toBeGreaterThan(0);
     for (const f of fams) expect(f).toMatch(/^var\(--lims-font-family-(?:sans|mono)\)$/);
-    expect(readFileSync(join(portalRoot, '..', '..', 'packages', 'ui', 'tokens', 'tokens.json'), 'utf8')).toMatch(/Plus Jakarta Sans[\\", ]*Noto Sans Devanagari/);
+    expect(readFileSync(join(portalRoot, '..', '..', 'packages', 'ui', 'tokens', 'tokens.json'), 'utf8')).toMatch(/Poppins[\\", ]*Noto Sans Devanagari/);
   });
   it('layout loads the kit tokens, fonts and kit.css, then portal.css (no second token source)', () => {
     const l = read('portal/src/app/layout.tsx');

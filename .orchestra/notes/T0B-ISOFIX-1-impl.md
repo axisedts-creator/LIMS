@@ -1,0 +1,8 @@
+- Changed: db/tools/gen-isolation-probes.ts only (static row derivation, LD-263 comments). Notes: T0B-ISOFIX-1-checks.md (CHECK audit), this file.
+- Fix 1: untyped array DEFAULT ('{}') is cast to the column array type in the CHECK env, so cardinality() = 0 -> analytics.exports and analytics.schedules rows get scope_all_centres = true (nothing else in those rows changes).
+- Fix 2 (proven by reading, would abort the next fixture file): evaluator knows split_part; `split_part(object_path,'/',1) = tenant_id::text` rows now get '<tenant uuid>/<candidate>' (anatomic.images, frontdesk.trf_attachments, identity.branding_assets, identity.ird_annex_documents, instruments.attachments, lab.result_attachments).
+- Fix 3: numeric array columns get '{n}'/'{1}' instead of '{probe-n}' (invalid input for engagement.slot_templates.weekdays smallint[], micro.plating_protocols.read_schedule_hours integer[]).
+- [CONV] array-default cast only for `[]` types (other defaults unchanged, so no other row moves). Isolation probe files byte-identical; fixture diff = exactly the 9 tables above.
+- Tests: real repo DBSEED-1 file 30/35, the 5 failures are all "fixtures not regenerated" (--check, determinism, 3 ISOFIX). Scratch copy with regenerated fixtures: those 5 pass.
+- Full tests/db/*.test.mjs: 1489/1553 pass; --check/gate-10 failures name only the 8 stale fixture files; other failures (roles, policy inventory, gate 9, migration order) do not touch the generator; no HEAD baseline run (worktree not permitted).
+- TESTER: run node db/tools/gen-isolation-probes.ts to regenerate fixtures (anatomic, analytics, engagement, frontdesk, identity, instruments, lab, micro .sql). Open: evaluator TRUE/NULL verdicts are trusted, not proven; pgTAP founder run is the proof (see checks note).

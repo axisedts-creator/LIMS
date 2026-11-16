@@ -10,6 +10,8 @@ export const navManifest: NavManifest = {
     { id: 'catalog.specimens', label: 'catalog.nav.specimens', routeId: 'staff.catalog.specimens', permission: 'catalog.test.read', group: 'catalog', order: 30 },
     { id: 'catalog.methods', label: 'catalog.nav.methods', routeId: 'staff.catalog.methods', permission: 'catalog.test.read', group: 'catalog', order: 40 },
     { id: 'catalog.units', label: 'catalog.nav.units', routeId: 'staff.catalog.units', permission: 'catalog.test.read', group: 'catalog', order: 50 },
+    // SCR-06 Tests (T0D-NAV-COMPLETE-1, LD-250): the create-test action stays on this page; order between Units and Panels [CONV].
+    { id: 'catalog.tests', label: 'catalog.nav.tests', routeId: 'staff.catalog.tests', permission: 'catalog.test.read', group: 'catalog', order: 55 },
     // SCR-09…12 (T-33): paths + permissions are spec-fixed (04-UI-UX §1, CR-C3-003); ids/labels/orders are [CONV].
     { id: 'catalog.panels', label: 'catalog.nav.panels', routeId: 'staff.catalog.panels', permission: 'catalog.test.read', group: 'catalog', order: 60 },
     { id: 'catalog.comment_codes', label: 'catalog.nav.comment_codes', routeId: 'staff.catalog.comment_codes', permission: 'catalog.test.read', group: 'catalog', order: 70 },

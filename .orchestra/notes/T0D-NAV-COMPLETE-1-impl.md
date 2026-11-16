@@ -1,0 +1,7 @@
+Files: features/{frontdesk,billing,catalog}/nav.manifest.ts (edited), features/{lab,engagement,payments}/nav.manifest.ts (new), contracts/routes.yaml (+19 additive staff_web rows), .orchestra/cr/T0D-NAV-COMPLETE-1.1.nonblocking.md (4 missing pages: /frontdesk/settings, /lab/worklists, /lab/critical-values, /engagement/settings).
+[CONV] new route ids staff.<module>.<snake of path>; plural ids where a detail row holds the singular (staff.billing.invoices, staff.billing.credit_parties, staff.catalog.tests). catalog.tests order 55. billing.daily_cash order 10 -> 20. No chords (spec g y / g m collide).
+[CONV] labels: no message catalogue holds *.nav.* keys today (core/i18n/messages.ts has none), so no catalogue file was edited; keys follow each module's existing pattern (billing keeps nav.billing.*).
+Tests: nav-complete config 76/76 pass. build-nav CLI: 127 entries, 0 errors.
+OPEN (lead): features/frontdesk/__tests__/rs-c4.static.test.ts now fails 3 tests: its baseline pins byte hashes of frontdesk + billing nav.manifest.ts (RS-C4 "behaviour unchanged"). LD-250 requires changing them; the tester/lead must refresh those two baseline entries (I may not edit tests).
+OPEN: pnpm -s verify red BEFORE this task: @lims/api typecheck (contracts/ports .js extensions, identity Hctx, quality) and @lims/web typecheck (portal, msw onUnhandledRequest); none in files touched here.
+OPEN (founder): Front desk settings page does not exist, so the admin cannot reach discount limits yet; needs a C4 page task (see CR).

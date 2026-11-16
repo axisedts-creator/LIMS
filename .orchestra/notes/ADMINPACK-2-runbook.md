@@ -6,14 +6,14 @@ Safe to re-run. Roles the lab already has are never rewritten (tenant edits win)
 The CLI reads the standard libpq environment of your shell and nothing else. Set these five in the same terminal before step 3:
 - `PGHOST` (staging database server)
 - `PGPORT`
-- `PGUSER` (a role allowed to write the identity tables)
+- `PGUSER` = `lims_api` (the API's login role; role name only, its password goes in `PGPASSWORD` in your shell)
 - `PGPASSWORD`
 - `PGDATABASE`
 
 ## 2. Find the tenant uuid of the staging lab
-Connect to the staging database with `psql` (same PG* variables) and run:
-`SELECT id, tenant_code, display_name, status FROM core.tenants ORDER BY created_at;`
-Copy the `id` (a uuid) of the staging lab row. That value is the `<tenant uuid>` below.
+Sign in to the staging platform console as the platform administrator and open Tenants (`/platform/tenants`).
+Click the staging lab's code. The address becomes `/platform/tenants/<tenant uuid>`; copy that last part (a uuid). That value is the `<tenant uuid>` below.
+Do not look it up with `psql` as `lims_api`: `core.tenants` has FORCE row-level security, so that session returns no rows. A `psql` lookup (read-only `SELECT id, tenant_code, display_name FROM core.tenants;`) only works for a role with BYPASSRLS (database owner/superuser).
 
 ## 3. Run, from the repository root
 Corporate pack:

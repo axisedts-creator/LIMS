@@ -91,7 +91,9 @@ class _RouteScreenState extends State<RouteScreen> {
         ]),
       ),
     ]);
-    return cancelled ? Opacity(opacity: 0.6, child: tile) : tile;
+    // T0A-M5-PHLEBO-1 (LD-258, 13-M-SERIES s5): one white LimsCard per visit. The cancelled visit is marked by its status chip
+    // and block icon, not by fading the row (opacity 0.6 dropped text to 3.2:1, under the 4.5:1 sunlight gate).
+    return Padding(padding: const EdgeInsets.only(bottom: LimsTokens.space3), child: LimsCard(child: tile));
   }
 
   @override
@@ -130,6 +132,7 @@ class _RouteScreenState extends State<RouteScreen> {
           onRefresh: widget.onRefresh,
           child: ListView(
             physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.all(LimsTokens.space4),
             children: [
               if (_showCancelled && !widget.purged) const InlineNotice(tone: 'info', text: _cancelledNote),
               if (widget.purged)
@@ -139,7 +142,8 @@ class _RouteScreenState extends State<RouteScreen> {
               else if (visits.isEmpty)
                 const LimsEmptyState(title: _emptyText)
               else
-                for (final v in visits) _tile(context, v),
+                // ponytail: one eager Column so every visit card is built (a day's route is short); lazy builder if routes grow large
+                Column(children: [for (final v in visits) _tile(context, v)]),
             ],
           ),
         ),

@@ -1,6 +1,6 @@
 {
   "counts": {
-    "guarded-exact": 604,
+    "guarded-exact": 608,
     "guarded-other": 55,
     "identity-session-flow": 6,
     "inconclusive": 30,
@@ -11,7 +11,7 @@
     "scheme-patient-pre-auth": 3,
     "scheme-portal": 9,
     "stub": 38,
-    "unguarded": 211
+    "unguarded": 207
   },
   "operations": {
     "accessionAnatomicCase": {
@@ -1450,8 +1450,8 @@
       "x_permission": "anatomic.case.read"
     },
     "getAuditEntry": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "audit.log.read",
       "x_permission": "audit.log.read"
     },
     "getAuditExport": {
@@ -2302,8 +2302,8 @@
       "x_permission": "anatomic.case.work"
     },
     "listAccessLogEntries": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "audit.log.read",
       "x_permission": "audit.log.read"
     },
     "listAccessReviews": {
@@ -2417,8 +2417,8 @@
       "x_permission": "micro.culture.read"
     },
     "listAuditEntries": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "audit.log.read",
       "x_permission": "audit.log.read"
     },
     "listAuditExports": {
@@ -2428,8 +2428,8 @@
       "x_permission": "audit.log.export"
     },
     "listAuthEvents": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "audit.log.read",
       "x_permission": "audit.log.read"
     },
     "listAutoverifyDecisions": {

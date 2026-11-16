@@ -1,0 +1,14 @@
+{
+  "code": "synthetic_gamma",
+  "legal_name": "Synthetic Gamma Pvt. Ltd.",
+  "display_name": "Synthetic Gamma Lab",
+  "timezone": "Asia/Kathmandu",
+  "calendar_display": "AD_BS",
+  "first_branch": { "code": "MAIN", "name": "Main Branch" },
+  "first_centre": { "code": "C01", "name": "Main Centre", "kind": "own" },
+  "first_admin": { "email": "admin@synthetic-gamma.example.test", "display_name": "Synthetic Admin" },
+  "contract_acceptance": {
+    "tos": { "version": "SYNTH-TOS-A", "accepted_by_name": "Synthetic Signer", "accepted_by_title": "Managing Director", "accepted_at": "2026-11-16T12:00:00.000Z" },
+    "dpa": { "version": "SYNTH-DPA-B", "accepted_by_name": "Synthetic Signer", "accepted_by_title": "Managing Director", "accepted_at": "2026-11-16T12:00:00.000Z" }
+  }
+}

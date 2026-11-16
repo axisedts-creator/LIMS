@@ -26,6 +26,7 @@ const DEFS = {
   lims_core_fake_ports_active: ['gauge', [], 'Ports resolved to fakes'],
   lims_core_phase_stub_ports_active: ['gauge', [], 'Ports resolved to phase stubs (08 R9)'],
   lims_core_authz_not_asserted_total: ['counter', ['operation_id'], 'Operations that returned without assertRole'],
+  lims_core_authz_central_deny_total: ['counter', ['operation_id'], 'Stage 8a central authorization denies (shadow and enforce)'],
   lims_core_retention_purged_total: ['counter', ['table'], 'Rows purged by retention, by table'],
   lims_core_retention_purge_capped_total: ['counter', ['table'], 'Retention purges stopped at the cap, by table'],
   lims_core_storage_deletes_total: ['counter', ['bucket', 'reason'], 'Storage objects deleted by bucket and reason'],

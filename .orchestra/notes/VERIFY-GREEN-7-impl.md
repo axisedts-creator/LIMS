@@ -1,0 +1,8 @@
+# VERIFY-GREEN-7 impl (writer)
+- Files: 42 test files under features/{instruments,inventory,partners,quality}/**/__tests__ (incl. quality-t22.harness.tsx helper); no product file.
+- [CONV] LD-268 msw v3: `onUnhandledRequest` -> `onUnhandledFrame` in `server.listen()` (TS2353 x42, same as VERIFY-GREEN-6).
+- [CONV] TS2698 x28: `props()`/`listProps()` `as never` -> `as unknown as ComponentProps<Awaited<ReturnType<typeof load>>>` (rs-c7, web-t03); `request.clone().json()` cast `as Record<string, unknown>` (web-t06); harness `lots: [] as Record<string, unknown>[]` (quality-t22). Runtime values unchanged.
+- [CONV] Others: `HttpResponse.json(x as never)` (t23.transfers, t16.receive); web-t04 `json()` cast + `{...} as object` spread; web-t03:194 `find(...)!.action`; t23.counts: page takes 0 args so call is `mod.default()`; t24.unresolved: narrow cast keeps the arg.
+- No @ts-ignore/expect-error/`as any`/skipLibCheck added (one `(m: any)` removed). No assertion changed. No money/order emitted value, rounding, status or SQL changed (types and mock-server option name only).
+- tsc -p apps/web: in-scope errors 78 -> 0 (`.orchestra/notes/VERIFY-GREEN-7-verify.cmd`: only the product-file pin needs a clean tree). Feature suites (18 vitest configs, CI=true): green incl. web-t02..t06, h80-t06, met-t05, rs-c7, t20-t25, t16, quality-t21/t22/t24.
+- Open: `turbo run typecheck --continue` per-package counts not run (apps/web only measured); other dirs (lab, admin, payments, anatomic...) still carry the same TS2353 = other tasks. No CR needed (no runtime/shape question).

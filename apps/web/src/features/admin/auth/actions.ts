@@ -4,7 +4,8 @@
 // CSRF (Origin / Sec-Fetch-Site) is enforced by core middleware on the server-action POST itself.
 import 'server-only';
 import { readBffKey } from '@/core/session/bff-key';
-import { cookies, headers } from 'next/headers';
+import { cookies } from 'next/headers';
+import { clientContextHeaders } from '@/core/api/client-context';
 import { redirect } from 'next/navigation';
 import { SESSION_COOKIE, sessionCookieOptions } from '@/core/session/cookie';
 import { matchStaffRoute } from '@/core/permissions/routes';
@@ -32,11 +33,6 @@ function bffKey(): string {
   return (cachedKey = readBffKey()); // LD-174
 }
 
-async function clientIp(): Promise<string | undefined> {
-  const h = await headers();
-  return h.get('x-forwarded-for')?.split(',')[0]?.trim() || h.get('x-real-ip')?.trim() || undefined;
-}
-
 async function readSid(): Promise<string | undefined> {
   const v = (await cookies()).get(SESSION_COOKIE)?.value;
   return v ? v : undefined;
@@ -46,9 +42,8 @@ async function readSid(): Promise<string | undefined> {
 async function call(path: string, body: unknown, sid?: string): Promise<ApiReply> {
   const origin = process.env.LIMS_ORIGIN_API;
   if (!origin) throw new Error('LIMS_ORIGIN_API is not set');
-  const h: Record<string, string> = { 'content-type': 'application/json', accept: 'application/json', 'X-Lims-Bff-Key': bffKey() };
-  const ip = await clientIp();
-  if (ip) h['x-forwarded-for'] = ip;
+  // LD-296: real client address (bare literal only) + browser user agent (replaces node's); missing values are not sent.
+  const h: Record<string, string> = { ...(await clientContextHeaders()), 'content-type': 'application/json', accept: 'application/json', 'X-Lims-Bff-Key': bffKey() };
   if (sid) h.cookie = `${SESSION_COOKIE}=${encodeURIComponent(sid)}`;
   let res: Response;
   try {

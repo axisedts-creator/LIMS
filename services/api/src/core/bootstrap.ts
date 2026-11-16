@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import Fastify, { type FastifyInstance } from 'fastify';
 import type { CoreConfig } from './config.js';
 import { genReqId, installErrorHandlers, sendProblem } from './errors.js';
-import { createHealthHandlers, UNWIRED_CHECKS, type HealthChecks } from './health.js';
+import { createHealthHandlers, UNWIRED_CHECKS, type EnvSource, type HealthChecks } from './health.js';
 import { autoload, checkHandlers, DEFAULT_MODULES_DIR, loadSpec, REPO_ROOT } from './module.js';
 import { createBffKeyVerifier } from './auth/bff-key.js';
 import type { ClaimsResolver } from './auth/claims-resolver.js';
@@ -22,6 +22,8 @@ export interface BootstrapOptions {
   readonly modulesDir?: string;
   /** Readiness dependency checks (02-TRD §8). Default: not wired yet, so readiness reports down. */
   readonly healthChecks?: HealthChecks;
+  /** T0B-OPSDOC-1 (LD-277): env whose required LIMS_* names readiness checks (names only). Default: no env check. */
+  readonly env?: EnvSource;
   /** Log sink (one JSON line per write). Default: stdout. */
   readonly logStream?: { write(line: string): void };
 }
@@ -63,7 +65,7 @@ export async function bootstrap(opts: BootstrapOptions): Promise<FastifyInstance
     if (repoRoot === REPO_ROOT) {
       // 02-TRD §8: the core's own spec; custom repoRoots (test fixtures) carry module specs only.
       const spec = loadSpec(join(REPO_ROOT, 'contracts', 'openapi', 'core.yaml'));
-      const handlers = createHealthHandlers(opts.healthChecks ?? pipes.healthChecks ?? UNWIRED_CHECKS) // LD-193: injected, else real, else fail closed;
+      const handlers = createHealthHandlers(opts.healthChecks ?? pipes.healthChecks ?? UNWIRED_CHECKS, opts.env) // LD-193: injected, else real, else fail closed;
       checkHandlers('core', spec, handlers);
       await mountSpec(app, 'core', spec, handlers, auth, pipes.pipelineFor('core'));
     }

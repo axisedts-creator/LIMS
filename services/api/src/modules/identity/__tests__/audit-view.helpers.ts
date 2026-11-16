@@ -172,6 +172,7 @@ export function makeEnv(seed: Seed = {}, opts: { scope?: Scope; failAccess?: boo
     tenantId: o.tenantId ?? TENANT_A, requestId: idN(0xf1),
     actor: o.actor ?? { type: 'user', id: USER_A, membershipId: MEM_A },
     centreScope: o.scope ?? scope, tx, audit,
+    ports: { IdentityPort: { assertRole: async () => undefined } },
   });
   return {
     tx, audit, ctx, stmts, accessWrites, store,

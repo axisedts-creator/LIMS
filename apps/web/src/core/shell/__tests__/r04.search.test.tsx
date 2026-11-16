@@ -138,7 +138,7 @@ describe('patients: name, mobile, patient id', () => {
     mount();
     await submit('x');
     expect(await screen.findByText('सुनिता श्रेष्ठ')).toBeTruthy();
-    expect(document.querySelector('img')).toBeNull();
+    expect(document.querySelector('img[src="x"]')).toBeNull(); // the Metro Labs logo img is required (13:68)
     expect(screen.getByText('<img src=x onerror=alert(1)>', { exact: false })).toBeTruthy();
   });
 });

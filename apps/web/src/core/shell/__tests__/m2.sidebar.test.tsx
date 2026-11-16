@@ -174,6 +174,22 @@ describe('accordion: one group open at a time', () => {
     await user().click(header('Front desk'));
     expect(groupEl('Front desk').querySelectorAll('li[data-subheading]')).toHaveLength(0);
   });
+
+  it('in the open Laboratory group each sub-heading appears exactly once and every entry sits under its own section heading (13:69; manifest order values are spec-fixed)', () => {
+    mount({ pathname: '/lab/worklist' });
+    const lab = TENANT_ENTRIES.filter((x) => x.group === 'laboratory');
+    const wanted = ['Daily work', 'Microbiology', 'Anatomic pathology'];
+    const lis = Array.from(groupEl('Laboratory').querySelectorAll('li'));
+    for (const s of wanted) expect(lis.filter((li) => li.hasAttribute('data-subheading') && li.textContent!.trim() === s), s).toHaveLength(1);
+    let current: string | undefined;
+    for (const li of lis) {
+      if (li.hasAttribute('data-subheading')) { current = li.textContent!.trim(); continue; }
+      const a = li.querySelector('a:not([data-create])');
+      const entry = lab.find((x) => x.label === a?.textContent?.trim());
+      expect(entry, a?.textContent ?? '').toBeTruthy();
+      expect(current, entry!.label).toBe((entry as any).section);
+    }
+  });
 });
 
 describe('entries: pill, icon, badge, view-only tag, create "+"', () => {
@@ -298,7 +314,7 @@ describe('Find a screen', () => {
     await u.type(field(), '  WORKLIST ');
     expect(entryLinks().filter((a) => !a.closest('[hidden]')).map((a) => a.textContent!.trim())).toEqual(['Worklist', 'Culture worklist']);
     await u.clear(field());
-    await u.type(field(), '([*+?^$');
+    await u.type(field(), '([[*+?^$'); // user-event: `[[` is a literal `[`
     expect(screen.getByText('No screen matches this search.')).toBeTruthy();
     expect(entryLinks().filter((a) => !a.closest('[hidden]'))).toHaveLength(0);
     await u.clear(field());

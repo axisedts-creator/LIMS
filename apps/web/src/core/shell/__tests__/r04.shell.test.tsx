@@ -60,7 +60,9 @@ describe('sidebar: generated, grouped, permission-filtered (AC 10-DESIGN-SYSTEM 
   it('every link points at the manifest path (nothing hard-coded in the shell)', async () => {
     mount();
     await openAll();
-    for (const x of ENTRIES.filter((y) => y.group !== 'platform')) expect(within(rail()).getByRole('link', { name: x.label }).getAttribute('href')).toBe(x.path);
+    // 13-M-SERIES s3: one group open at a time, so closed groups are hidden; read hrefs from the DOM, not the a11y tree.
+    const hrefs = new Map([...rail().querySelectorAll('li[data-entry-id] > a')].map((a) => [a.textContent?.trim(), a.getAttribute('href')]));
+    for (const x of ENTRIES.filter((y) => y.group !== 'platform')) expect(hrefs.get(x.label), x.label).toBe(x.path);
   });
 
   it('a role without a permission sees no entry and no empty group heading', () => {
@@ -140,7 +142,7 @@ describe('top bar', () => {
   it('search affordance advertises Ctrl+K and the searchable fields', () => {
     mount();
     expect(within(screen.getByRole('banner')).getByText('Ctrl+K')).toBeTruthy();
-    const box = screen.getByRole('searchbox');
+    const box = screen.getByRole('searchbox', { name: /search patients/i }); // Find a screen is a second searchbox (13:68, 13:72)
     const hint = `${box.getAttribute('placeholder') ?? ''} ${box.getAttribute('aria-label') ?? ''} ${box.getAttribute('aria-description') ?? ''}`;
     for (const f of [/name/i, /lab code|registration/i, /mobile/i, /patient id|patient code/i, /barcode/i]) expect(hint).toMatch(f);
   });

@@ -29,7 +29,6 @@
   "features/admin/auth/LoginForm.tsx": [
     "Email",
     "Forgot password?",
-    "LIMS",
     "Log in",
     "Log in",
     "Promise",

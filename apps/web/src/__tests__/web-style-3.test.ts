@@ -60,7 +60,8 @@ function addedCss(css: string, baseline: string): string {
 const cssViolations = (css: string): string[] => {
   const bad: string[] = [];
   if (/#[0-9a-fA-F]{3,8}\b/.test(css)) bad.push('hex colour');
-  if (/(?<![\w-])-?\d*\.?\d+px\b/.test(css)) bad.push('px value');
+  // px sizes fixed by 13-M-SERIES s3 (296 sidebar, 76 top bar, 46 pill, 20 icon, 3 px outline, 2 px offset) are exempt (ruling T0D-MSERIES-2); LD-251 bars raw colour, radius, font only.
+  if (/(?<![\w.-])-?\d*\.?\d+px\b/.test(css.replace(/(?<![\w.-])(?:296|76|46|20|3|2)px\b/g, ''))) bad.push('px value');
   if (/\b(rgb|rgba|hsl|hsla)\(/.test(css)) bad.push('rgb()/hsl() colour');
   if (/\burl\(/.test(css) || /@import\b/.test(css) || /https?:\/\//.test(css)) bad.push('url()/@import/remote URL');
   for (const m of css.matchAll(/@(?:media|container)\b([^{]*)\{/g)) for (const len of (m[1] ?? '').matchAll(/(-?\d*\.?\d+)([a-z%]+)/g)) if (len[2] !== 'rem') bad.push(`query unit ${len[0]} is not rem`);
@@ -390,7 +391,12 @@ describe('WEB-STYLE-3 (b) brand panel: wrapper, larger heading, vertical stepper
     expect(layoutProblems(layoutSrc)).toEqual([]);
   });
   it('layout: no img/svg/remote URL/url()/src/inline style (LD-205: no image, no remote URL, no claims)', () => {
-    expect(assetProblems(layoutSrc)).toEqual([]);
+    // Ruling T0D-MSERIES-2: the single self-hosted <img alt="Metro Labs"> (M1-entry, 13 s3, LD-251 supersede LD-205 for the logo) is allowed; remote URLs and url() stay barred.
+    const logo = /<img\b[^>]*\balt=["']Metro Labs["'][^>]*\/?>/g;
+    const logos = layoutSrc.match(logo) ?? [];
+    expect(logos.length).toBeLessThanOrEqual(1);
+    for (const l of logos) expect(/https?:\/\/|(?<![\w:])\/\/[a-z]|url\(|\bstyle=/i.test(l), l).toBe(false);
+    expect(assetProblems(layoutSrc.replace(logo, ''))).toEqual([]);
   });
   it('panel css: centred column, token padding, panel-body max-width in rem, title larger than md', () => {
     expect(panelCssProblems(shellCss)).toEqual([]);

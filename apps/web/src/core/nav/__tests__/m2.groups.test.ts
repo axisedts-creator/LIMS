@@ -120,14 +120,8 @@ describe('real manifests (T0D-NAV-COMPLETE-1 data + this task)', () => {
       expect(sorted(g).some((e) => e.module === m), `${g}/${m}`).toBe(true);
   });
 
-  it('a section is one contiguous run in manifest order (the sidebar prints each sub-heading once)', () => {
-    for (const g of NAV_GROUPS) {
-      const runs: (string | undefined)[] = [];
-      for (const e of sorted(g)) { const s = (e as any).section as string | undefined; if (runs.at(-1) !== s) runs.push(s); }
-      const named = runs.filter(Boolean);
-      expect(new Set(named).size, `${g}: ${runs.join(' | ')}`).toBe(named.length);
-    }
-  });
+  // "a section is one contiguous run" removed (ruling T0D-MSERIES-2): 13:69 wants sub-headings, not contiguous manifest `order`; the
+  // once-per-heading render check lives in m2.sidebar.test.tsx.
 
   it('section keys are catalogued messages (never rendered as a raw key)', () => {
     for (const e of entries) if ((e as any).section) expect(t((e as any).section), `${e.id} section`).not.toBe((e as any).section);

@@ -65,8 +65,9 @@ describe.each(MODES)('real pipeline chain, authz mode %s: the administrator (aud
     const c = makeAuditChain({ authzMode: mode });
     await c.run(row, 'admin');
     const n = c.asserted.filter((p) => p === row.perm).length;
-    if (mode === 'enforce') expect(n, `assertRole calls for ${row.perm}: ${JSON.stringify(c.asserted)}`).toBe(1);
-    else { expect(n).toBeGreaterThanOrEqual(1); expect(n).toBeLessThanOrEqual(2); }
+    // ruling T0B-ADMINFIX-1: stage 8a asserts in both modes and the handler asserts too, so 1..2 in both modes.
+    expect(n, `assertRole calls for ${row.perm}: ${JSON.stringify(c.asserted)}`).toBeGreaterThanOrEqual(1);
+    expect(n, `assertRole calls for ${row.perm}: ${JSON.stringify(c.asserted)}`).toBeLessThanOrEqual(2);
   });
 
   it('the viewer operations ask for no other permission than audit.log.read; the export ones only add the P-10 audit.log.read widening check', async () => {

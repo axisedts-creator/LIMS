@@ -1,6 +1,6 @@
 // T0B-OPSDOC-1 (RS-16, LD-277): the committed scan that lists every LIMS_* name the API, the worker and the web read.
 // Names only. Comments are stripped first so a name that is only mentioned in prose is not counted as read.
-// Limit: a name built at run time (`LIMS_${x}`) is invisible to a static scan; no such use exists today.
+// Limit: a name built at run time (`LIMS_${x}`) is invisible to a static scan; payments/config.ts and engagement/config.ts build names from a prefix; those rows are hand-maintained in docs/runbooks/environment.md (done_when (2) does not cover them).
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';

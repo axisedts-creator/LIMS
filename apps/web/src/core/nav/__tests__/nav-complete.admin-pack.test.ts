@@ -64,6 +64,20 @@ describe('administrator pack corp_admin: tenant navigation', () => {
     expect(t(e!.label)).toBe('Front desk settings');
   });
 
+  it.each([
+    ['Worklists', '/lab/worklists', 'lab.worklist.read', 'lab.worklists'],
+    ['Critical values', '/lab/critical-values', 'lab.critical_value.read', 'lab.critical_values'],
+  ])("ADMINPAGE-LAB-1 (LD-255): '%s' (%s, %s) is in the laboratory group of the administrator navigation, built from a page that exists", async (label, path, permission, id) => {
+    const { visible } = await nav();
+    expect(pageExists(path), `page ${path} exists`).toBe(true);
+    const e = visible.find((x) => x.path === path);
+    expect(e, `${label} visible to corp_admin`).toBeTruthy();
+    expect(e!.id).toBe(id);
+    expect(e!.permission).toBe(permission);
+    expect(e!.group).toBe('laboratory');
+    expect(t(e!.label)).toBe(label);
+  });
+
   it('the Approve entry (lab.result.approve) is not visible: no clinical sign-off for the administrator', async () => {
     const { visible } = await nav();
     expect(visible.filter((e) => e.permission === 'lab.result.approve' || e.path === '/lab/approval')).toEqual([]);

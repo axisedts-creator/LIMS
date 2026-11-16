@@ -158,6 +158,9 @@ function expectedPolicies() {
     add(tbl, `${tbl}__select__${scope}`, 'SELECT', 'lims_app', pred); add(tbl, `${tbl}__insert__${scope}`, 'INSERT', 'lims_app', null, pred);
     if (!noUpdate) add(tbl, `${tbl}__update__${scope}`, 'UPDATE', 'lims_app', pred, pred);
   };
+  // T0B-PEVPOL-1 (LD-257, CR-C0-T0B-REVIEW-1-001): provider_events UPDATE = system actor only, one NULL -> value stamp of applied_at (narrowed by migration 20261116020000; db/policies/reporting.sql carries the same text)
+  const PE = `${T} AND ${STAFF} AND ${SYS}`;
+  add('provider_events', 'provider_events__update__tenant', 'UPDATE', 'lims_app', `${PE} AND applied_at IS NULL`, `${PE} AND applied_at IS NOT NULL`);
   for (const q of TENANT_ONLY) trio(q.split('.')[1], 'tenant', `${T} AND ${STAFF}`, q.endsWith('delivery_attempts'));
   for (const q of CENTRE_T) trio(q.split('.')[1], 'tenant_centre', `${T} AND ${STAFF} AND ${CSP}`, false);
   const lk = `${T} AND ${PORTAL} AND link_id = (SELECT app.current_actor_id())`, sy = `${T} AND ${SYS}`;     // portal_sessions: "identical pattern" to otp_challenges
@@ -345,7 +348,8 @@ test('policies written literally in migrations are identical to db/policies/repo
   const inFile = new Map(policies(polSql()).map((p) => [p.key, p.text]));
   const inMig = policies(repSql()).filter((x) => x.table.startsWith('reporting.') && !/\.event_inbox$/.test(x.table));
   assert.ok(inMig.length > 0, 'policies must be created in the migrations (the policy file is a copy)');
-  for (const p of inMig) assert.equal(norm(inFile.get(p.key) ?? ''), norm(p.text), p.key);
+  // T0B-PEVPOL-1: provider_events__update__tenant is CREATEd in the schema migration with the wide text and narrowed by an additive ALTER POLICY; the file carries the narrowed text (checked in the 'EXACTLY' test above and in tests/db/T0B-PEVPOL-1.static.test.mjs)
+  for (const p of inMig) { if (p.key === 'provider_events__update__tenant@reporting.provider_events') continue; assert.equal(norm(inFile.get(p.key) ?? ''), norm(p.text), p.key); }
   assert.deepEqual(inMig.map((p) => p.key).sort(), gotPolicies().map((p) => p.key).sort(), 'every policy of the file is created by a migration and vice versa');
 });
 

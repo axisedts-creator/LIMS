@@ -10,26 +10,6 @@
   "ref": "T0B-SWEEP-1 (unqueued: 500: other (common.service_unavailable))"
  },
  {
-  "operation": "downloadIrdAnnexDocument",
-  "status": 401,
-  "ref": "T0B-SWEEP-1 (unqueued: auth: auth.unauthenticated)"
- },
- {
-  "operation": "endSupportSession",
-  "status": 401,
-  "ref": "T0B-SWEEP-1 (unqueued: auth: auth.unauthenticated)"
- },
- {
-  "operation": "getTenant",
-  "status": 401,
-  "ref": "T0B-SWEEP-1 (unqueued: auth: auth.unauthenticated)"
- },
- {
-  "operation": "getTenantSettingsAsPlatform",
-  "status": 401,
-  "ref": "T0B-SWEEP-1 (unqueued: auth: auth.unauthenticated)"
- },
- {
   "operation": "listDeadLetters",
   "status": 500,
   "ref": "PLATFORM-WIRE-1 (LD-267)"
@@ -63,16 +43,6 @@
   "operation": "listTenants",
   "status": 401,
   "ref": "PLATFORM-WIRE-1 (LD-267)"
- },
- {
-  "operation": "resetPlatformStaffMfa",
-  "status": 401,
-  "ref": "T0B-SWEEP-1 (unqueued: auth: auth.unauthenticated)"
- },
- {
-  "operation": "revokePlatformSession",
-  "status": 401,
-  "ref": "T0B-SWEEP-1 (unqueued: auth: auth.unauthenticated)"
  },
  {
   "operation": "downloadPartnerReport",

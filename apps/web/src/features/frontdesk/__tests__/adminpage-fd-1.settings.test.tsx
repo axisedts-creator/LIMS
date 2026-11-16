@@ -79,7 +79,7 @@ const L = {
 const field = (re: RegExp) => screen.getByLabelText(re) as HTMLInputElement;
 const isOn = (el: HTMLElement) => ((el as HTMLInputElement).checked ?? el.getAttribute('aria-checked') === 'true') === true;
 const saveBtn = () => screen.getByRole('button', { name: /^save/i });
-const setText = async (user: ReturnType<typeof userEvent.setup>, re: RegExp, v: string) => { const el = field(re); await user.clear(el); if (v) await user.type(el, v); };
+const setText = async (user: ReturnType<typeof userEvent.setup>, re: RegExp, v: string) => { const el = field(re); await user.clear(el); if (v) { await user.click(el); await user.paste(v); } };
 const alertText = () => [...document.querySelectorAll('[role="alert"],[role="alertdialog"]')].map((e) => e.textContent ?? '').join(' | ');
 const statusText = () => [...document.querySelectorAll('[role="status"]')].map((e) => e.textContent ?? '').join(' | ');
 const describedText = (el: HTMLElement) => (el.getAttribute('aria-describedby') ?? '').split(/\s+/).filter(Boolean).map((id) => document.getElementById(id)?.textContent ?? '').join(' ');

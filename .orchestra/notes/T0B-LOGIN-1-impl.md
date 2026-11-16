@@ -1,0 +1,7 @@
+# T0B-LOGIN-1 impl (writer)
+Files: services/api/src/modules/identity/service/auth.service.ts (session(): absolute = min(setting, 12 h); idle clamped 15..30 except staff_mobile, which keeps mobileHours 1..12 / idle 60..720); services/api/src/modules/identity/repository/auth-events.repo.ts (SESSION_SQL + APP_SESSION_SQL: $16 and $19 -> least($n::timestamptz, now() + interval '12 hours'), so the database clock decides; expires_at = absolute_expires_at from the same now()).
+[CONV] One clamp in session(): it builds every tenant_staff / partner / staff_mobile / platform row (loginStaff, loginPartner, openMobileSession, platformLogin). Platform INSERT via DEFINER passes created_at = app clock, so no skew; service clamp applied too.
+Paths checked: confirmEmailToken (password_setup, fixed 15 min, no tenant setting), verifyMfaChallenge, setPasswordFromSetup, session refresh/rotate (touch idle_expires_at of an existing row only). No other builder from tenant settings.
+[CONV] SQL text inlined (no ${} in SQL template: static guard in auth.handlers.test.ts).
+Checks: verify.cmd set 109/109 pass; identity module 6046 pass, 10 fail pre-existing and unrelated (core/health.ts service-key grep, ADMINPACK runbook/package.json); tsc --noEmit clean. No rate limit / MFA / password change.
+Open: CR .orchestra/cr/T0B-LOGIN-1.md (narrow settings ranges to 15..30 / 1..12 per 04 A8; do not widen the check). No real Postgres run; live sweep is the DB proof.

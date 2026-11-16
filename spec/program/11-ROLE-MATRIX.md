@@ -15,7 +15,8 @@ The ElabAssist capture of Metro's current software (`corpmain.elabassist.com`) l
 | R2 | **Decision authorities are never inferred from a menu tick**: result verify/approve/amend, narrative sign, histopathology sign-out, refund, payment reverse, invoice cancel, discount approve. They come only from the explicit overlay in §3, chosen by role name. | The sheet ticks screens, not who may sign a report; Pathologist and Sr. Lab User do not even have the Pathology Result screen ticked, so the sheet alone cannot say who authorises results. |
 | R3 | Any privileged permission in a template forces MFA for that role (existing C2 rule). Counts are shown in §3. | `permissions.yaml` semantics. |
 | R4 | Safety caps: `identity.role.manage` and `identity.user.manage` only on the pack's Admin role (C1; a user manager can create an Admin user, so it is an escalation path unless C2 limits assignable roles); `instruments.instrument.manage` and `catalog.instrument_code_map.manage` only on Admin, the three Sr. Lab User roles and (ELabAssist) Lab technician (C2). A tick elsewhere is dropped and listed in the role's appendix entry. | A role editor can grant itself anything; a wrong instrument code map changes patient results (C7 D-18). The sheet ticks both for centre and sales roles, which looks like template copying. |
-| R5 | Admin (`corp_admin` / `std_admin`) = default role `tenant_admin` ∪ all ticked screens. It holds no clinical sign-off. | Separation of duties: the lab owner/IT admin is not a signing pathologist. |
+| R5 | Admin (`corp_admin` / `std_admin`) = default role `tenant_admin` ∪ all ticked screens ∪ the R5a additions. It holds no clinical sign-off. | Separation of duties: the lab owner/IT admin is not a signing pathologist. |
+| R5a | Founder decision 2026-11-16 (LD-254, 'admin should get all the features so they can control it'): Admin (`corp_admin` / `std_admin`) also holds every read, oversight and configuration permission of the tenant screens the sheet leaves unticked (quality, inventory, microbiology and anatomic settings, instruments agents, referral report, billing audit export, partner manifests, smart-summary read, report print). It still holds NO decision authority (result verify, approve, amend, narrative or histopathology sign-out, report release or regenerate, breakpoints, auto-verification rules, QC review or hold release, reference-range publish, smart-report approvals and templates), NO bench or field work (QC capture, bench record, culture and case work, worksheets, queue operate, message rematch, device sync), NO money authority beyond the pack (refund, reverse, cancel, PO approve, payment intents) and NO platform, portal or ingest permission. The exact additions are listed in section 3.3 and pinned by tests. | The owner must be able to control and audit every configurable area; sign-off and money authorities stay separate (R2, R5). |
 | R6 | Templates are **custom roles** (S9) seeded at tenant provisioning (S14) and editable afterwards by `identity.role.manage` holders. Template codes carry a pack prefix (`corp_`, `std_`) so they never collide with the ten default role codes (`pathologist` and `finance` are default codes; a plain `pathologist` template would have collided). | No registry change needed; tenant can adjust. |
 | R7 | Screens with no spec home (§6) grant nothing and are listed as gaps, never silently dropped. | No false claim of coverage. |
 | R8 | Row-level scope (centre, franchise, client, outsource lab) is enforced by RLS on the user's assigned entities, not by the role. | Reference product asks for Franchise/Client/Collection Center per user; same idea. |
@@ -26,7 +27,7 @@ The ElabAssist capture of Metro's current software (`corpmain.elabassist.com`) l
 
 | Role (as in sheet) | Template code | Screens ticked | Permissions | Privileged (forces MFA) | Notes |
 |---|---|---:|---:|---:|---|
-| Admin | `corp_admin` | 68 | 92 | 33 | Default role `tenant_admin` plus every screen the sheet ticks. Holds NO clinical sign-off (result approve/amend, narrative sign): those stay with a pathologist identity. |
+| Admin | `corp_admin` | 68 | 115 | 39 | Default role `tenant_admin` plus every screen the sheet ticks. Holds NO clinical sign-off (result approve/amend, narrative sign): those stay with a pathologist identity. |
 | Accession User | `corp_accession_user` | 7 | 22 | 0 | Ticks: Dashboard, Search, Accession, Manual OutSource, Patient Registration, User Management, Change Password. |
 | Accounts | `corp_accounts` | 3 | 18 | 6 | Sheet ticks only Search, Manual OutSource, Change Password. Accounting authority below is added from the role name (see D3). Needs the client to confirm. |
 | Franchise User | `corp_franchise_user` | 10 | 24 | 0 | Entity-scoped in the reference system (User Management asks for a Franchise). Template is a centre-scoped tenant role; see D4. |
@@ -52,7 +53,7 @@ Authority overlay (R2), all marked assumptions until D2/D3 are answered: **Patho
 
 | Role (as in sheet) | Template code | Screens ticked | Permissions | Privileged (forces MFA) | Notes |
 |---|---|---:|---:|---:|---|
-| Admin | `std_admin` | 41 | 85 | 30 | Default role `tenant_admin` plus every screen the sheet ticks. |
+| Admin | `std_admin` | 41 | 102 | 35 | Default role `tenant_admin` plus every screen the sheet ticks. |
 | Reception | `std_reception` | 8 | 18 | 0 | Ticks: Search, Test Registration, Print Report, Barcode Printing, Turn Around Time (TAT), Summary Sheet, Transfer Reg and 1 more. |
 | Accession | `std_accession` | 14 | 25 | 0 | Ticks: Search, Test Registration, Print Report, Worksheet, Pending test, Collection Sheet, Dispatch Sheet and 7 more. |
 | Lab technician | `std_lab_technician` | 29 | 40 | 0 | Entry and first verification (D2). |
@@ -64,6 +65,20 @@ Authority overlay (R2), all marked assumptions until D2/D3 are answered: **Patho
 | Account | `std_account` | 12 | 25 | 6 | Accounting authority added from the role name (D3). |
 
 The last four rows of the ELabAssist sheet ("Discount Reason", "Discount Authorithy", "Change Password", "Collection Center Boy" under the heading MIS reports) carry values for only the first three roles and are mis-grouped. Only "Change Password" is honoured; the rest are ignored (R1) and listed as D8.
+
+### 3.3 Admin additions beyond the sheet (R5a, LD-254)
+
+Added to `corp_admin` (23) and `std_admin` (17, the others it already held). Every code is read, oversight or configuration; the list is the whole authority and is pinned by `role-packs.data.test.ts` and `matrix-replay.test.ts` (any other difference fails).
+
+| Area | Codes added | Screens the admin gains |
+|---|---|---|
+| Quality | `quality.qc_run.read`, `quality.autoverify.read`, `quality.tat_alert.read`, `quality.tat_alert.ack`, `quality.config.manage`, `quality.qc.manage` | status, runs, Levey-Jennings, observations, setup, auto-verification (read), TAT alerts, settings |
+| Inventory | `inventory.item.read`, `inventory.cost.read`, `inventory.master.manage`, `inventory.po.manage`, `inventory.report.export`, `inventory.stock.manage`, `inventory.stock.adjust` | every inventory screen except Bench (bench work) |
+| Microbiology and anatomic | `micro.culture.read`, `micro.config.manage`, `anatomic.config.manage` | culture worklist and instrument records (read), micro and anatomic settings |
+| Laboratory | `lab.config.manage` | laboratory settings |
+| Other | `instruments.agent.read`, `analytics.referral_report.read`, `billing.data.export`, `partners.manifest.receive`, `smartreport.summary.read`, `reporting.report.print` | instrument agents, referral incentive report, billing audit trail, partner manifest inbox, smart summaries (read), report print |
+
+Left out on purpose (decision, bench or money authority, R2 and R5): `lab.result.verify`, `lab.result.approve`, `lab.result.amend`, `lab.qc.capture`, `lab.qc_hold.release`, `micro.breakpoint.manage`, `micro.culture.work`, `anatomic.case.signout`, `anatomic.case.work`, `quality.autoverify.manage`, `quality.qc_run.review`, `smartreport.template.manage`, `smartreport.*.approve`, `reporting.narrative.*`, `reporting.report.release`, `reporting.report.regenerate`, `inventory.bench.record`, `inventory.po.approve`, `engagement.queue.operate`, all `platform.*`. The administrator therefore does not see Verification, Approval, QC capture, Breakpoint sets, Report library and wording, Inventory bench, Engagement queue and the platform group. Owner decision to widen any of these is a one-line change here plus the same line in the pack data.
 
 ## 4. Tests that prove it (C2 and each UI chunk)
 
@@ -238,21 +253,25 @@ Raised as C2 tasks `RM-T01 … RM-T05` in `C2-identity-admin.json` (lane C2b; bi
 
 ### 9.1 ELabCorp
 
-#### Admin  (`corp_admin`) — 92 permissions, 33 privileged
-- **analytics**: `analytics.collections.read`, `analytics.dashboard.read`, `analytics.data.export`*, `analytics.schedule.manage`
-- **anatomic**: `anatomic.case.read`
+#### Admin  (`corp_admin`) — 115 permissions, 39 privileged
+- **analytics**: `analytics.collections.read`, `analytics.dashboard.read`, `analytics.data.export`*, `analytics.referral_report.read`*, `analytics.schedule.manage`
+- **anatomic**: `anatomic.case.read`, `anatomic.config.manage`*
 - **audit**: `audit.log.export`*, `audit.log.read`*
-- **billing**: `billing.cash_report.read`, `billing.credit_party.manage`*, `billing.credit_party.read`, `billing.invoice.issue`, `billing.invoice.read`, `billing.invoice.reprint`, `billing.payment.record`, `billing.release.override`*, `billing.settings.manage`*
+- **billing**: `billing.cash_report.read`, `billing.credit_party.manage`*, `billing.credit_party.read`, `billing.data.export`*, `billing.invoice.issue`, `billing.invoice.read`, `billing.invoice.reprint`, `billing.payment.record`, `billing.release.override`*, `billing.settings.manage`*
 - **catalog**: `catalog.instrument_code_map.manage`*, `catalog.price_list.manage`*, `catalog.price_list.read`, `catalog.referrer.export`*, `catalog.referrer.manage`, `catalog.referrer.read`, `catalog.test.manage`, `catalog.test.read`
 - **engagement**: `engagement.bookable_item.manage`, `engagement.booking.manage`, `engagement.booking.read`, `engagement.enquiry.read`, `engagement.enquiry.respond`, `engagement.link.read`, `engagement.link.revoke`, `engagement.membership.enrol`, `engagement.membership.read`, `engagement.membership_plan.manage`*, `engagement.queue.manage`, `engagement.reminder.read`, `engagement.settings.manage`*, `engagement.slot.manage`
 - **frontdesk**: `frontdesk.discount.approve`*, `frontdesk.order.cancel`, `frontdesk.order.edit`, `frontdesk.order.read`, `frontdesk.patient.anonymise`*, `frontdesk.patient.merge`*, `frontdesk.patient.read`, `frontdesk.registration.create`, `frontdesk.settings.manage`*, `frontdesk.trf.upload`
 - **homecollection**: `homecollection.device.manage`*, `homecollection.handover.receive`, `homecollection.settings.manage`*, `homecollection.visit.assign`, `homecollection.visit.read`
 - **identity**: `identity.centre.manage`*, `identity.centre.read`, `identity.role.manage`*, `identity.self.manage`, `identity.session.revoke`*, `identity.settings.manage`*, `identity.user.manage`*, `identity.user.read`
-- **instruments**: `instruments.agent.manage`*, `instruments.instrument.manage`*, `instruments.instrument.read`, `instruments.message.read`
-- **lab**: `lab.critical_value.log_notification`, `lab.critical_value.read`, `lab.result.enter`, `lab.result.read`, `lab.specimen.collect`, `lab.specimen.label_print`, `lab.specimen.read`, `lab.specimen.receive`, `lab.specimen.reject`, `lab.status_board.read`, `lab.worklist.read`
-- **partners**: `partners.partner.manage`*, `partners.partner.read`, `partners.pickup.manage`, `partners.referrer.map`
+- **instruments**: `instruments.agent.manage`*, `instruments.agent.read`, `instruments.instrument.manage`*, `instruments.instrument.read`, `instruments.message.read`
+- **inventory**: `inventory.cost.read`, `inventory.item.read`, `inventory.master.manage`, `inventory.po.manage`, `inventory.report.export`*, `inventory.stock.adjust`*, `inventory.stock.manage`
+- **lab**: `lab.config.manage`*, `lab.critical_value.log_notification`, `lab.critical_value.read`, `lab.result.enter`, `lab.result.read`, `lab.specimen.collect`, `lab.specimen.label_print`, `lab.specimen.read`, `lab.specimen.receive`, `lab.specimen.reject`, `lab.status_board.read`, `lab.worklist.read`
+- **micro**: `micro.config.manage`, `micro.culture.read`
+- **partners**: `partners.manifest.receive`, `partners.partner.manage`*, `partners.partner.read`, `partners.pickup.manage`, `partners.referrer.map`
 - **payments**: `payments.merchant_config.manage`*, `payments.merchant_config.read`, `payments.reconciliation.read`*
-- **reporting**: `reporting.channel.manage`*, `reporting.delivery.read`, `reporting.message_template.manage`*, `reporting.outsourced.attach`, `reporting.report.bulk_download`*, `reporting.report.read`, `reporting.settings.manage`*, `reporting.template.manage`*, `reporting.token.revoke`*
+- **quality**: `quality.autoverify.read`, `quality.config.manage`, `quality.qc.manage`, `quality.qc_run.read`, `quality.tat_alert.ack`, `quality.tat_alert.read`
+- **reporting**: `reporting.channel.manage`*, `reporting.delivery.read`, `reporting.message_template.manage`*, `reporting.outsourced.attach`, `reporting.report.bulk_download`*, `reporting.report.print`, `reporting.report.read`, `reporting.settings.manage`*, `reporting.template.manage`*, `reporting.token.revoke`*
+- **smartreport**: `smartreport.summary.read`
 
 #### Accession User  (`corp_accession_user`) — 22 permissions, 0 privileged
 - **billing**: `billing.invoice.issue`, `billing.invoice.read`, `billing.invoice.reprint`, `billing.payment.record`
@@ -449,22 +468,25 @@ Raised as C2 tasks `RM-T01 … RM-T05` in `C2-identity-admin.json` (lane C2b; bi
 
 ### 9.2 ELabAssist
 
-#### Admin  (`std_admin`) — 85 permissions, 30 privileged
-- **analytics**: `analytics.collections.read`, `analytics.dashboard.read`, `analytics.data.export`*, `analytics.schedule.manage`
+#### Admin  (`std_admin`) — 102 permissions, 35 privileged
+- **analytics**: `analytics.collections.read`, `analytics.dashboard.read`, `analytics.data.export`*, `analytics.referral_report.read`*, `analytics.schedule.manage`
+- **anatomic**: `anatomic.config.manage`*
 - **audit**: `audit.log.export`*, `audit.log.read`*
-- **billing**: `billing.cash_report.read`, `billing.credit_party.read`, `billing.invoice.issue`, `billing.invoice.read`, `billing.invoice.reprint`, `billing.payment.record`, `billing.release.override`*, `billing.settings.manage`*
+- **billing**: `billing.cash_report.read`, `billing.credit_party.read`, `billing.data.export`*, `billing.invoice.issue`, `billing.invoice.read`, `billing.invoice.reprint`, `billing.payment.record`, `billing.release.override`*, `billing.settings.manage`*
 - **catalog**: `catalog.price_list.manage`*, `catalog.price_list.read`, `catalog.referrer.export`*, `catalog.referrer.manage`, `catalog.referrer.read`, `catalog.test.manage`, `catalog.test.read`
 - **engagement**: `engagement.bookable_item.manage`, `engagement.booking.manage`, `engagement.booking.read`, `engagement.link.read`, `engagement.link.revoke`, `engagement.membership.read`, `engagement.membership_plan.manage`*, `engagement.queue.manage`, `engagement.reminder.read`, `engagement.settings.manage`*, `engagement.slot.manage`
 - **frontdesk**: `frontdesk.discount.apply`, `frontdesk.discount.approve`*, `frontdesk.order.cancel`, `frontdesk.order.edit`, `frontdesk.order.read`, `frontdesk.patient.anonymise`*, `frontdesk.patient.merge`*, `frontdesk.patient.read`, `frontdesk.registration.create`, `frontdesk.settings.manage`*, `frontdesk.trf.upload`
 - **homecollection**: `homecollection.device.manage`*, `homecollection.settings.manage`*, `homecollection.visit.read`
 - **identity**: `identity.centre.manage`*, `identity.centre.read`, `identity.role.manage`*, `identity.self.manage`, `identity.session.revoke`*, `identity.settings.manage`*, `identity.user.manage`*, `identity.user.read`
-- **instruments**: `instruments.agent.manage`*
-- **inventory**: `inventory.bench.record`, `inventory.item.read`, `inventory.master.manage`, `inventory.po.manage`
+- **instruments**: `instruments.agent.manage`*, `instruments.agent.read`
+- **inventory**: `inventory.bench.record`, `inventory.cost.read`, `inventory.item.read`, `inventory.master.manage`, `inventory.po.manage`, `inventory.report.export`*, `inventory.stock.adjust`*, `inventory.stock.manage`
 - **lab**: `lab.config.manage`*, `lab.critical_value.log_notification`, `lab.critical_value.read`, `lab.result.enter`, `lab.result.read`, `lab.specimen.label_print`, `lab.specimen.read`, `lab.status_board.read`, `lab.worklist.read`, `lab.worksheet.manage`
-- **partners**: `partners.partner.manage`*, `partners.partner.read`, `partners.pickup.manage`, `partners.referrer.map`
+- **micro**: `micro.config.manage`, `micro.culture.read`
+- **partners**: `partners.manifest.receive`, `partners.partner.manage`*, `partners.partner.read`, `partners.pickup.manage`, `partners.referrer.map`
 - **payments**: `payments.merchant_config.manage`*, `payments.merchant_config.read`
-- **quality**: `quality.tat_alert.read`
+- **quality**: `quality.autoverify.read`, `quality.config.manage`, `quality.qc.manage`, `quality.qc_run.read`, `quality.tat_alert.ack`, `quality.tat_alert.read`
 - **reporting**: `reporting.channel.manage`*, `reporting.delivery.read`, `reporting.message_template.manage`*, `reporting.report.bulk_download`*, `reporting.report.print`, `reporting.report.read`, `reporting.settings.manage`*, `reporting.template.manage`*, `reporting.token.revoke`*
+- **smartreport**: `smartreport.summary.read`
 
 #### Reception  (`std_reception`) — 18 permissions, 0 privileged
 - **billing**: `billing.cash_report.read`, `billing.invoice.issue`, `billing.invoice.read`, `billing.invoice.reprint`, `billing.payment.record`

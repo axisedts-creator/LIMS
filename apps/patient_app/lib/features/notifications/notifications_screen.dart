@@ -90,11 +90,20 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
               ? const LimsEmptyState(title: "You're all caught up", message: 'New updates will show here.')
               : RefreshIndicator(
                   onRefresh: _pull,
-                  child: ListView.separated(
+                  // LD-258 (M4): the rows sit on one white LimsCard on the neutral.50 page; order and texts unchanged.
+                  child: ListView(
                     physics: const AlwaysScrollableScrollPhysics(),
-                    itemCount: list.length,
-                    separatorBuilder: (_, __) => const Divider(height: LimsTokens.space0),
-                    itemBuilder: (_, i) => _Row(list[i], _text(list[i], names), widget.onOpen),
+                    padding: const EdgeInsets.all(LimsTokens.space4),
+                    children: [
+                      LimsCard(
+                        child: Column(mainAxisSize: MainAxisSize.min, children: [
+                          for (var i = 0; i < list.length; i++) ...[
+                            if (i > 0) const Divider(height: LimsTokens.space0),
+                            _Row(list[i], _text(list[i], names), widget.onOpen),
+                          ],
+                        ]),
+                      ),
+                    ],
                   ),
                 ),
         ),

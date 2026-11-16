@@ -191,10 +191,11 @@ class LimsBottomNav extends StatelessWidget {
 
 /// White card (theme radius.xl). LD-251 / 13-M-SERIES s2.3: fades in over motion.duration.normal on first build;
 /// shown at once when reduced motion is on (MediaQuery.disableAnimations). Semantics and hit testing stay on while fading.
+/// [title] is optional (T0C-M4-PATIENT-1, LD-258: M4 screens put a list or a form on a card with no heading of its own).
 class LimsCard extends StatefulWidget {
-  const LimsCard({super.key, required this.title, required this.child, this.footer});
+  const LimsCard({super.key, this.title, required this.child, this.footer});
 
-  final String title;
+  final String? title;
   final Widget child;
   final Widget? footer;
 
@@ -236,8 +237,10 @@ class _LimsCardState extends State<LimsCard> with SingleTickerProviderStateMixin
         child: Padding(
           padding: const EdgeInsets.all(LimsTokens.space4),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-            Text(w.title, style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: LimsTokens.space2),
+            if (w.title != null) ...[
+              Text(w.title!, style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height: LimsTokens.space2),
+            ],
             w.child,
             if (w.footer != null) ...[const Divider(height: LimsTokens.space6), w.footer!],
           ]),
@@ -341,8 +344,9 @@ class _LimsAppLockGateState extends State<LimsAppLockGate> {
         ),
         if (widget.isLocked)
           Positioned.fill(
+            // T0C-M4-PATIENT-1 (LD-258, 13-M-SERIES s2.3): the lock surface is a page (neutral.50), not a white card.
             child: ColoredBox(
-              color: Theme.of(context).colorScheme.surface,
+              color: Theme.of(context).scaffoldBackgroundColor,
               child: Center(
                 child: SingleChildScrollView(
                   child: Column(mainAxisSize: MainAxisSize.min, children: [

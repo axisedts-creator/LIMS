@@ -9,10 +9,19 @@ import { parse } from 'yaml';
 import { buildNav } from '../build-nav.ts';
 import { FEATURES, ROOT, ROUTES_YAML, nonBlockingCrText, pageExists } from './nav-complete.helpers.ts';
 
-const matrix = parse(readFileSync(join(ROOT, 'spec', 'program', '11-ROLE-MATRIX.data.yaml'), 'utf8')) as { packs: { roles: { code: string; permissions: string[] }[] }[] };
+// ADMINPACK-1 (LD-254, 11-ROLE-MATRIX R5a and section 3.3): the pack a tenant really receives is the API copy of the data file
+// (services/api/.../role-packs.data.yaml; a test in the identity suite proves it equals the spec file role by role), so the
+// navigation is computed from THAT file against the real manifests and routes.
+const matrix = parse(readFileSync(join(ROOT, 'services', 'api', 'src', 'modules', 'identity', 'role-packs', 'role-packs.data.yaml'), 'utf8')) as { packs: { roles: { code: string; permissions: string[] }[] }[] };
 const corpAdmin = matrix.packs.flatMap((p) => p.roles).find((r) => r.code === 'corp_admin')!;
 const held = new Set(corpAdmin?.permissions ?? []);
 const TENANT_GROUPS = ['front_desk', 'laboratory', 'reporting', 'billing', 'catalog', 'instruments', 'analytics', 'quality', 'inventory', 'partners', 'engagement', 'home_collection', 'admin'];
+
+// Entries 11-ROLE-MATRIX section 3.3 leaves hidden on purpose (the platform group is computed from the manifest, never visible).
+const HIDDEN_NON_PLATFORM = [
+  'lab.verification', 'lab.approval', 'lab.qc', 'micro.breakpoint_sets', 'smartreport.library', 'smartreport.wording', 'inventory.bench', 'engagement.queue',
+];
+const LEFT_OUT = /^(lab\.result\.(verify|approve|amend)|lab\.qc(_hold)?\.|micro\.(breakpoint|culture)\.(manage|work)|anatomic\.case\.(signout|work)|quality\.(autoverify\.manage|qc_run\.review)|smartreport\.|reporting\.(narrative|report\.(release|regenerate|bulk_release))|inventory\.(bench\.record|po\.approve)|engagement\.queue\.operate|billing\..*(refund|reverse|cancel)|payments\.|platform\.)/;
 
 const nav = async () => {
   const { errors, entries } = await buildNav(FEATURES, ROUTES_YAML);
@@ -61,11 +70,29 @@ describe('administrator pack corp_admin: tenant navigation', () => {
     expect(visible.filter((e) => e.permission === 'lab.result.approve' || e.path === '/lab/approval')).toEqual([]);
   });
 
-  it('shows the groups this task completes (front_desk, billing, catalog, admin) with entries, and never `platform` (other groups depend on the matrix: see the report)', async () => {
+  it('corp_admin sees at least one entry in every one of the 13 tenant groups (quality and inventory included) and never `platform` (R5a)', async () => {
     const { visible } = await nav();
-    const groups = new Set(visible.map((e) => e.group));
-    for (const g of ['front_desk', 'billing', 'catalog', 'admin']) expect(groups.has(g as never), `group ${g}`).toBe(true);
-    expect(groups.has('platform' as never)).toBe(false);
+    const groups = new Set(visible.map((e) => e.group as string));
+    const without = TENANT_GROUPS.filter((g) => !groups.has(g));
+    expect(without, 'tenant groups with no visible entry for corp_admin').toEqual([]);
+    expect(visible.filter((e) => (e.group as string) === 'platform')).toEqual([]);
+  });
+
+  it('pins the exact list of entries still hidden from corp_admin (R5a left-out authority: decision, bench, money and platform entries)', async () => {
+    const { entries, visible } = await nav();
+    const seen = new Set(visible.map((e) => e.id));
+    const hidden = entries.filter((e) => !seen.has(e.id)).map((e) => e.id).sort();
+    expect(hidden).toEqual([...HIDDEN_NON_PLATFORM, ...entries.filter((e) => (e.group as string) === 'platform').map((e) => e.id)].sort());
+    for (const id of HIDDEN_NON_PLATFORM) expect(entries.some((e) => e.id === id), `${id} is a real manifest entry`).toBe(true);
+  });
+
+  it('each hidden entry is hidden only for the reason that corp_admin lacks its permission, and that permission is a left-out code (section 3.3)', async () => {
+    const { entries, visible } = await nav();
+    const seen = new Set(visible.map((e) => e.id));
+    for (const e of entries.filter((x) => !seen.has(x.id))) {
+      expect(held.has(e.permission), `${e.id} hidden although corp_admin holds ${e.permission}`).toBe(false);
+      expect(LEFT_OUT.test(e.permission), `${e.id} hidden for ${e.permission}, which section 3.3 does not leave out: record the reason`).toBe(true);
+    }
   });
 
   it('front_desk shows registration, worklist and discount approvals for the administrator', async () => {
@@ -82,12 +109,12 @@ describe('administrator pack corp_admin: tenant navigation', () => {
     const hidden = entries.filter((e) => !seen.has(e.id));
     const rows = hidden.map((e) => `| ${e.group} | ${e.id} | ${e.path} | ${e.permission} |`);
     const out = [
-      '# T0D-NAV-COMPLETE-1: entries the administrator pack corp_admin does NOT see',
+      '# T0D-NAV-COMPLETE-1 / ADMINPACK-1: entries the administrator pack corp_admin does NOT see',
       '',
-      `Generated by nav-complete.admin-pack.test.ts. corp_admin holds ${held.size} permissions; ${visible.length} of ${entries.length} entries are visible, ${hidden.length} are not.`,
-      'An entry is hidden when corp_admin lacks its permission in spec/program/11-ROLE-MATRIX.data.yaml. Founder: decide per row whether the matrix or the entry changes.',
+      `Generated by nav-complete.admin-pack.test.ts from the API pack data (role-packs.data.yaml) and the real manifests. corp_admin holds ${held.size} permissions; ${visible.length} of ${entries.length} entries are visible, ${hidden.length} are not.`,
+      'An entry is hidden when corp_admin lacks its permission (11-ROLE-MATRIX R5a and section 3.3 leave decision, bench, money and platform authority out on purpose). The owner can widen with one line in the matrix and the pack data.',
       '',
-      `Tenant groups with NO visible entry for corp_admin (matrix gap, not fixable by this task): ${TENANT_GROUPS.filter((g) => !visible.some((e) => e.group === g)).join(', ') || 'none'}.`,
+      `Tenant groups with NO visible entry for corp_admin: ${TENANT_GROUPS.filter((g) => !visible.some((e) => e.group === g)).join(', ') || 'none'}.`,
       '',
       '| group | entry id | path | permission the pack lacks |',
       '|---|---|---|---|',

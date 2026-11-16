@@ -25,7 +25,7 @@ describe('RM-T01 loader accepts the real data', () => {
     expect(f.packs.map((p) => [p.code, p.roles.length])).toEqual([['elabcorp_default', 19], ['elabassist_standard', 10]]);
     const admin = f.packs[0]!.roles[0]!;
     expect(admin).toMatchObject({ code: 'corp_admin', name: 'Admin', mfa_required: true, base_default_role: 'tenant_admin' });
-    expect(admin.permissions).toHaveLength(92);
+    expect(admin.permissions).toHaveLength(115); // LD-254 (R5a, 11-ROLE-MATRIX section 3.3): 92 + 23 admin additions
   });
 
   it('loadRolePacks() reads the module data file with the default registry', () => {

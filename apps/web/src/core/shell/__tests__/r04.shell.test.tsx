@@ -1,5 +1,7 @@
 // @vitest-environment jsdom
 // T0D-UI-R04 (LD-140, spec/program/10-DESIGN-SYSTEM.md §3): staff shell = rail + top bar. Tests drive the real <AppShell> in jsdom.
+// UPDATED by T0D-MSERIES-2 (LD-251, 13-M-SERIES s3): the 8-heading rail with a 248/72 collapse is now the 14-group accordion sidebar (296 px, drawer below 1024 px);
+// the collapse/tooltip tests are superseded by m2.sidebar.test.tsx (drawer, Find a screen, accordion). Permission filtering, hrefs, active item, top bar, centre switcher and axe stay.
 //
 // CONTRACT chosen by the tester where the spec gives no API (writer: follow it, or dispute via .orchestra/notes):
 //   <AppShell session pathname centres?>  centres = { options: {id,name}[]; activeId: string | null } (optional; omitted -> no switcher).
@@ -34,27 +36,38 @@ const mount = (perms: string[] = ALL_PERMS, pathname = '/lab/worklist', centres?
 const rail = () => screen.getByRole('navigation', { name: 'Main' });
 const names = (el: HTMLElement) => within(el).queryAllByRole('link').map((a) => a.textContent?.trim() ?? '');
 
-describe('rail: generated, grouped, permission-filtered (AC 10-DESIGN-SYSTEM §3)', () => {
-  it('shows the eight groups in spec order, each with its entries in manifest order', () => {
+const openAll = async () => {
+  const u = user();
+  const out: Record<string, string[]> = {};
+  for (const g of within(rail()).getAllByRole('group')) {
+    const label = g.getAttribute('aria-label')!;
+    const h = within(g).getByRole('button', { name: new RegExp(`^${label}`) });
+    if (h.getAttribute('aria-expanded') !== 'true') await u.click(h);
+    out[label] = within(g).getAllByRole('link').map((a) => a.textContent?.trim() ?? '');
+  }
+  return out;
+};
+
+describe('sidebar: generated, grouped, permission-filtered (AC 10-DESIGN-SYSTEM §3, 13-M-SERIES s3)', () => {
+  it('shows the groups of the staff shell in spec order (no platform group), each with its entries in manifest order', async () => {
     mount();
     const groups = within(rail()).getAllByRole('group');
-    expect(groups.map((g) => g.getAttribute('aria-label') ?? within(g).queryByRole('heading')?.textContent)).toEqual(EXPECTED_RAIL.map(([l]) => l));
-    EXPECTED_RAIL.forEach(([label, items]) => {
-      const group = within(rail()).getByRole('group', { name: label });
-      expect(names(group)).toEqual(items);
-    });
+    expect(groups.map((g) => g.getAttribute('aria-label'))).toEqual(EXPECTED_RAIL.map(([l]) => l));
+    expect(await openAll()).toEqual(Object.fromEntries(EXPECTED_RAIL));
+    expect(screen.queryByText('Tenants')).toBeNull();
   });
 
-  it('every link points at the manifest path (nothing hard-coded in the shell)', () => {
+  it('every link points at the manifest path (nothing hard-coded in the shell)', async () => {
     mount();
-    for (const x of ENTRIES) expect(within(rail()).getByRole('link', { name: x.label }).getAttribute('href')).toBe(x.path);
+    await openAll();
+    for (const x of ENTRIES.filter((y) => y.group !== 'platform')) expect(within(rail()).getByRole('link', { name: x.label }).getAttribute('href')).toBe(x.path);
   });
 
   it('a role without a permission sees no entry and no empty group heading', () => {
     mount(['p.lab.worklist']);
     expect(names(rail())).toEqual(['Worklist']);
     expect(within(rail()).getAllByRole('group')).toHaveLength(1);
-    for (const hidden of ['Results', 'Register', 'Users', 'Tenants', 'Daily cash', 'Front desk', 'Settings', 'People & access'])
+    for (const hidden of ['Results', 'Register', 'Users', 'Tenants', 'Daily cash', 'Front desk', 'Billing', 'Admin'])
       expect(screen.queryByText(hidden), hidden).toBeNull();
   });
 
@@ -87,79 +100,8 @@ describe('rail: generated, grouped, permission-filtered (AC 10-DESIGN-SYSTEM §3
   });
 });
 
-describe('rail collapse 248 -> 72: accessible names + tooltips', () => {
-  const toggle = () => within(rail()).getByRole('button', { name: /collapse|expand/i });
-
-  it('starts expanded; the toggle says Collapse and reports aria-expanded', () => {
-    mount();
-    expect(rail().getAttribute('data-collapsed')).toBe('false');
-    expect(toggle().getAttribute('aria-expanded')).toBe('true');
-    expect(toggle().getAttribute('aria-label') ?? toggle().textContent).toMatch(/collapse/i);
-  });
-
-  it('collapsing keeps focus on the toggle, flips its name, and keeps every link name + group name', async () => {
-    mount();
-    const u = user();
-    await u.click(toggle());
-    expect(rail().getAttribute('data-collapsed')).toBe('true');
-    expect(toggle().getAttribute('aria-expanded')).toBe('false');
-    expect(toggle().getAttribute('aria-label') ?? toggle().textContent).toMatch(/expand/i);
-    expect(document.activeElement).toBe(toggle());
-    for (const x of ENTRIES) expect(within(rail()).getByRole('link', { name: x.label })).toBeTruthy();
-    for (const [label] of EXPECTED_RAIL) expect(within(rail()).getByRole('group', { name: label })).toBeTruthy();
-  });
-
-  it('keyboard: Enter on the toggle collapses and Space expands again', async () => {
-    mount();
-    const u = user();
-    toggle().focus();
-    await u.keyboard('{Enter}');
-    expect(rail().getAttribute('data-collapsed')).toBe('true');
-    await u.keyboard(' ');
-    expect(rail().getAttribute('data-collapsed')).toBe('false');
-  });
-
-  it('collapsed: focusing a link shows a tooltip with its label, wired by aria-describedby; Esc hides it; blur hides it', async () => {
-    mount();
-    const u = user();
-    await u.click(toggle());
-    const link = within(rail()).getByRole('link', { name: 'Worklist' });
-    expect(screen.queryByRole('tooltip')).toBeNull();
-    link.focus();
-    const tip = await screen.findByRole('tooltip');
-    expect(tip.textContent?.trim()).toBe('Worklist');
-    expect(link.getAttribute('aria-describedby')?.split(' ')).toContain(tip.id);
-    await u.keyboard('{Escape}');
-    expect(screen.queryByRole('tooltip')).toBeNull();
-    link.blur();
-    link.focus();
-    await screen.findByRole('tooltip');
-    link.blur();
-    expect(screen.queryByRole('tooltip')).toBeNull();
-  });
-
-  it('collapsed: hovering a link shows the tooltip too (pointer users)', async () => {
-    mount();
-    const u = user();
-    await u.click(toggle());
-    await u.hover(within(rail()).getByRole('link', { name: 'Agents' }));
-    expect((await screen.findByRole('tooltip')).textContent?.trim()).toBe('Agents');
-    await u.unhover(within(rail()).getByRole('link', { name: 'Agents' }));
-    expect(screen.queryByRole('tooltip')).toBeNull();
-  });
-
-  it('collapsed icons are decorative: no icon-only link without a text name', async () => {
-    mount();
-    await user().click(toggle());
-    for (const a of within(rail()).getAllByRole('link')) {
-      expect((a.textContent ?? '').trim().length, a.outerHTML).toBeGreaterThan(0);
-      a.querySelectorAll('svg').forEach((s) => expect(s.getAttribute('aria-hidden')).toBe('true'));
-    }
-  });
-});
-
 describe('keyboard-only navigation', () => {
-  it('Tab reaches skip link, search, rail toggle and every permitted link, in DOM order, with no positive tabindex', async () => {
+  it('Tab reaches the skip link, the search and the Find a screen field, with no positive tabindex (entry order: m2.sidebar.test.tsx)', async () => {
     mount(ALL_PERMS, '/lab/worklist', CENTRES);
     expect(document.querySelectorAll('[tabindex]:not([tabindex="0"]):not([tabindex="-1"])')).toHaveLength(0);
     const u = user();
@@ -168,20 +110,12 @@ describe('keyboard-only navigation', () => {
       await u.tab();
       const el = document.activeElement as HTMLElement;
       if (!el || el === document.body) break;
-      const label = el.getAttribute('aria-label') ?? el.textContent?.trim() ?? el.tagName;
-      if (seen.includes(label) && seen[0] === label) break; // wrapped around
-      seen.push(label);
-    }
-    const links = ENTRIES.slice().sort((a, b) => EXPECTED_RAIL.findIndex(([, l]) => l.includes(a.label)) - EXPECTED_RAIL.findIndex(([, l]) => l.includes(b.label)) || a.order - b.order).map((x) => x.label);
-    let at = -1;
-    for (const l of links) {
-      const i = seen.indexOf(l);
-      expect(i, `${l} not reachable by Tab (saw: ${seen.join(' | ')})`).toBeGreaterThan(at);
-      at = i;
+      seen.push(el.getAttribute('aria-label') ?? el.textContent?.trim() ?? el.tagName);
     }
     expect(seen.some((s) => /skip to main/i.test(s))).toBe(true);
-    expect(seen.some((s) => /search/i.test(s))).toBe(true);
-    expect(seen.some((s) => /collapse|expand/i.test(s))).toBe(true);
+    expect(seen.some((s) => /search patients/i.test(s))).toBe(true);
+    expect(seen).toContain('Find a screen');
+    expect(seen).toContain('Worklist'); // the open group (active entry)
   });
 
   it('a link outside the permission set is not in the Tab sequence', async () => {
@@ -260,11 +194,6 @@ describe('CentreSwitcher', () => {
 describe('axe (critical + serious) on the real shell', () => {
   it('expanded', async () => {
     mount(ALL_PERMS, '/lab/worklist', CENTRES);
-    expect(await seriousViolations()).toEqual([]);
-  });
-  it('collapsed (icon-only items keep names)', async () => {
-    mount(ALL_PERMS, '/lab/worklist', CENTRES);
-    await user().click(within(rail()).getByRole('button', { name: /collapse/i }));
     expect(await seriousViolations()).toEqual([]);
   });
   it('empty rail (no permissions)', async () => {

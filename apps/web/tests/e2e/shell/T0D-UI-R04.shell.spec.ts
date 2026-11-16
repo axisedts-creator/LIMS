@@ -1,7 +1,8 @@
-// T0D-UI-R04 — nightly Playwright E2E for the staff shell (10-DESIGN-SYSTEM §3). Not part of the per-task verify (needs a running stack).
+// T0D-UI-R04 — nightly Playwright E2E for the staff shell (10-DESIGN-SYSTEM §3).
+// UPDATED by T0D-MSERIES-2 (LD-251): the 8-heading rail + 248/72 collapse became the 14-group accordion sidebar; keyboard, geometry, permission and drawer E2E moved to T0D-MSERIES-2.shell.spec.ts. Not part of the per-task verify (needs a running stack).
 // Stack contract: staff web at LIMS_E2E_WEB_URL, identity + frontdesk + lab API stub behind LIMS_ORIGIN_API, synthetic accounts:
-//   lead@lab.test    / E2E-passphrase-101  (sees every group: Front desk, Lab, Reports, Accounts, Catalog, Instruments, People & access, Settings)
-//   limited@lab.test / E2E-passphrase-102  (only lab.result.read -> a single "Lab" group; no Accounts, no People & access)
+//   lead@lab.test    / E2E-passphrase-101  (sees many of the 13 tenant groups: Front desk, Laboratory, Reporting, Billing, Catalog, ...)
+//   limited@lab.test / E2E-passphrase-102  (only lab.result.read -> a single "Laboratory" group; no Billing, no Admin)
 // The stub knows barcode E2600000101 (order ORDER_ID below) and patients named "Demo Patient A/B".
 import { expect, test, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
@@ -26,50 +27,9 @@ async function axeViolations(page: Page) {
   });
 }
 
-test('keyboard only: Tab reaches the rail links in order and Enter opens a page', async ({ page }) => {
-  await login(page, 'lead@lab.test', 'E2E-passphrase-101');
-  const links = await rail(page).getByRole('link').allInnerTexts();
-  expect(links.length).toBeGreaterThan(3);
-  await page.locator('body').click({ position: { x: 1, y: 1 } });
-  const seen: string[] = [];
-  for (let i = 0; i < 60 && seen.filter((s) => links.includes(s)).length < links.length; i++) {
-    await page.keyboard.press('Tab');
-    seen.push((await page.evaluate(() => (document.activeElement as HTMLElement | null)?.innerText?.trim() ?? '')) as string);
-  }
-  expect(seen.filter((s) => links.includes(s))).toEqual(links);
-  const target = rail(page).getByRole('link').nth(1);
-  await target.focus();
-  const href = await target.getAttribute('href');
-  await page.keyboard.press('Enter');
-  await expect(page).toHaveURL(new RegExp(`${href}/?$`));
-  await expect(rail(page).locator('a[aria-current="page"]')).toHaveCount(1);
-});
-
-test('rail collapses 248 -> 72 px; every icon keeps its name and a tooltip', async ({ page }) => {
-  await login(page, 'lead@lab.test', 'E2E-passphrase-101');
-  const nav = rail(page);
-  expect((await nav.boundingBox())!.width).toBeCloseTo(248, 0);
-  await nav.getByRole('button', { name: /collapse/i }).click();
-  await expect(nav).toHaveAttribute('data-collapsed', 'true');
-  expect((await nav.boundingBox())!.width).toBeCloseTo(72, 0);
-  for (const a of await nav.getByRole('link').all()) {
-    const name = await a.evaluate((el) => (el as HTMLElement).innerText || el.getAttribute('aria-label') || '');
-    expect(name.trim().length).toBeGreaterThan(0);
-  }
-  const first = nav.getByRole('link').first();
-  await first.focus();
-  await expect(page.getByRole('tooltip')).toHaveText((await first.textContent())!.trim());
-  await first.hover();
-  await expect(page.getByRole('tooltip')).toBeVisible();
-  expect(await axeViolations(page)).toEqual([]);
-});
-
-test('a role without a permission sees no entry for it, and a direct visit shows the permission-denied page', async ({ page }) => {
+test('a direct visit to a page without the permission shows the permission-denied page', async ({ page }) => {
   await login(page, 'limited@lab.test', 'E2E-passphrase-102');
-  const nav = rail(page);
-  await expect(nav.getByRole('group')).toHaveCount(1);
-  await expect(nav.getByRole('group', { name: 'Lab' })).toBeVisible();
-  for (const g of ['Accounts', 'People & access', 'Settings', 'Front desk']) await expect(nav.getByRole('group', { name: g })).toHaveCount(0);
+  await expect(rail(page).getByRole('group')).toHaveCount(1);
   await page.goto('/admin/users');
   await expect(page.getByText("You don't have access to this page")).toBeVisible();
 });

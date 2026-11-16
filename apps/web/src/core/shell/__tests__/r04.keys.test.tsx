@@ -32,7 +32,7 @@ const mount = () => render(
     <button>Some button</button>
   </AppShell>,
 );
-const box = () => screen.getByRole('searchbox', { name: /search/i }) as HTMLInputElement;
+const box = () => screen.getByRole('searchbox', { name: /search patients/i }) as HTMLInputElement;
 
 describe('Ctrl+K', () => {
   it('focuses the search from the page body and prevents the browser default', () => {

@@ -33,7 +33,7 @@ afterEach(() => api.resetHandlers());
 
 const SEARCH_PERMS = [...ALL_PERMS, 'frontdesk.patient.read', 'lab.specimen.read', 'frontdesk.order.read'];
 const mount = (perms = SEARCH_PERMS) => render(<AppShell session={session(perms) as any} pathname="/lab/worklist"><p>page</p></AppShell>);
-const box = () => screen.getByRole('searchbox', { name: /search/i }) as HTMLInputElement;
+const box = () => screen.getByRole('searchbox', { name: /search patients/i }) as HTMLInputElement;
 async function submit(text: string) {
   const u = user();
   await u.click(box());

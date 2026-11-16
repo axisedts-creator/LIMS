@@ -1,0 +1,9 @@
+CHANGES
+
+Reviewed `git diff 0a54fee0f..HEAD` (25 files). Ran: lab vitest config 50/50, nav-complete lab + admin-pack 28/28, rs-c4 static 10/10, all green.
+Names (route ids, paths, permissions, i18n keys, manifest order 4/8, group laboratory) match C5 04-UI-UX §1 and routes.yaml; no permissions.yaml or openapi change; kit components only; cursor/status validated against _common Cursor pattern and the enum; no PHI in URL or logs; no secrets; paths owned per brief.
+
+1. apps/web/src/features/lab/server/adminpages.server.ts:23 (and .orchestra/notes/ADMINPAGE-LAB-1-impl.md:4, -tests.md "held by every lab role"): the page is gated on `lab.worklist.read`, but its only data source `listDepartments` requires `catalog.test.read` (contracts/openapi/catalog.yaml:316). In services/api/src/modules/identity/role-packs/role-packs.data.yaml the roles `corp_laboratory_user`, `std_consulting_pathologist` and `std_account` hold `lab.worklist.read` but NOT `catalog.test.read`, so these users see the "Worklists" nav entry and get the permission-denied page (API 403). This breaks done_when "lab staff reach them from the menu" for the corporate pack's main lab role, and the notes state a false fact. lab.yaml has no department-list operation, and the brief forbids a permission change, so the fix is:
+   (a) write `.orchestra/cr/ADMINPAGE-LAB-1.md` (CR template, spec/program/04-CHANGE-REQUESTS.md): gap = no department-list operation readable with `lab.worklist.read`; affected roles the three above; options = add `catalog.test.read` to those roles in 11-ROLE-MATRIX/pack data, or a lab-side department list operation;
+   (b) correct the impl note GAPS line and the tests note claim to name the three roles and the CR;
+   (c) keep the page (the administrator and the other lab roles hold both permissions); no code change required beyond what the CR decides.

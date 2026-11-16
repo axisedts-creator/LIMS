@@ -8,6 +8,7 @@ import 'package:lims_shared/lims_shared.dart';
 import 'package:lims_ui/lims_ui.dart';
 
 import '../auth/auth_providers.dart';
+import '../orders/status_look.dart';
 import 'link_code_screen.dart';
 import 'profile_copy.dart';
 import 'profiles_providers.dart';
@@ -157,9 +158,7 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
 
   Widget _pausedBanner(int n) {
     final c = limsTone('warning');
-    return Container(
-      padding: const EdgeInsets.all(LimsTokens.space3),
-      color: c.bg,
+    return LimsCard(
       child: Row(children: [
         Icon(Icons.pause_circle_outline, color: c.fg),
         const SizedBox(width: LimsTokens.space2),
@@ -178,10 +177,15 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
         padding: const EdgeInsets.all(LimsTokens.space4),
         child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           if (list.paused > 0) ...[_pausedBanner(list.paused), gap],
-          if (_notice != null) ProfileNotice(_notice!),
-          if (nothing) const LimsEmptyState(title: 'No profiles yet', message: 'Add a profile to see its orders and reports here.'),
-          for (final p in list.profiles) _tile(p),
-          for (final _ in list.pendingRelationships) _pending(),
+          if (_notice != null || nothing || list.profiles.isNotEmpty || list.pendingRelationships.isNotEmpty)
+            LimsCard(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                if (_notice != null) ProfileNotice(_notice!),
+                if (nothing) const LimsEmptyState(title: 'No profiles yet', message: 'Add a profile to see its orders and reports here.'),
+                for (final p in list.profiles) _tile(p),
+                for (final _ in list.pendingRelationships) _pending(),
+              ]),
+            ),
           const SizedBox(height: LimsTokens.space4),
           LimsButton(label: _addCode, onPressed: () => _open(LinkCodeScreen(onAdded: _added))),
           gap,
@@ -202,7 +206,7 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
     if (_loading) {
       body = const LimsLoading();
     } else if (_failed && list == null) {
-      body = LimsErrorState(title: 'Could not load your profiles', message: 'Check your connection and try again.', onRetry: _load);
+      body = StateCard(LimsErrorState(title: 'Could not load your profiles', message: 'Check your connection and try again.', onRetry: _load));
     } else if (list == null) {
       body = const LimsLoading();
     } else {

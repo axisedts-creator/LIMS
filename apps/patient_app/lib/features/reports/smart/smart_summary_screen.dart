@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lims_shared/lims_shared.dart';
 import 'package:lims_ui/lims_ui.dart';
 
+import '../../orders/status_look.dart';
 import 'smart_summary_api.dart';
 import 'smart_summary_providers.dart';
 
@@ -121,8 +122,8 @@ class _SmartSummaryScreenState extends ConsumerState<SmartSummaryScreen> {
     if (s != null) return _content(s);
     return switch (_error) {
       null => const Center(child: CircularProgressIndicator()),
-      LimsErrorCodes.commonNotFound => const LimsEmptyState(title: 'No smart summary', message: 'There is no smart summary for this report.'),
-      _ => LimsErrorState(title: "The summary can't be loaded right now", message: 'Please check your connection.', onRetry: _load),
+      LimsErrorCodes.commonNotFound => const StateCard(LimsEmptyState(title: 'No smart summary', message: 'There is no smart summary for this report.')),
+      _ => StateCard(LimsErrorState(title: "The summary can't be loaded right now", message: 'Please check your connection.', onRetry: _load)),
     };
   }
 
@@ -136,9 +137,8 @@ class _SmartSummaryScreenState extends ConsumerState<SmartSummaryScreen> {
       if (s.score case final sc?)
         LimsCard(
           title: 'Health score',
-          child: Row(children: [
+          child: Wrap(spacing: LimsTokens.space3, runSpacing: LimsTokens.space2, crossAxisAlignment: WrapCrossAlignment.center, children: [
             Text('${sc.value}/100', style: Theme.of(context).textTheme.headlineSmall),
-            const SizedBox(width: LimsTokens.space3),
             if (band != null) _status(band),
           ]),
         ),

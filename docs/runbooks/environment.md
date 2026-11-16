@@ -24,6 +24,18 @@ Columns:
   says what their own process does.
 - **When unset**: what the code does when the name is missing or empty.
 
+## Clean checkout
+
+`dist` folders are not committed (LD-284). From a clean checkout, build the worker's dependencies before starting the
+worker or running the registry sync:
+
+```
+pnpm install
+pnpm --filter "@lims/worker^..." run build --if-present
+```
+
+Without it the worker or `registry-sync` stops with `ERR_MODULE_NOT_FOUND` (for example `@lims/shared-ts` `dist/`).
+
 ## Core (API platform)
 
 | Name | Module | Required | When unset |

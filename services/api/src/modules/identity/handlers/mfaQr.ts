@@ -49,7 +49,19 @@ function attrsOf(tag: string): Map<string, string> | undefined {
 }
 const UINT = /^\d{1,9}$/;
 const BLACK = /^(?:black|#000|#000000)$/i, WHITE = /^(?:white|#fff|#ffffff)$/i;
-const FILL_STYLE = /^\s*fill\s*:\s*([^;]*?)\s*;?\s*$/i;
+/** the fill of a rect style: exactly one `fill:` plus an optional `stroke:none` (goqrsvg writes "fill:black;stroke:none"); anything else -> undefined */
+function styleFill(st: string): string | undefined {
+  let fill: string | undefined, stroke = false;
+  for (const part of st.split(';').map((p) => p.trim()).filter(Boolean)) {
+    const m = /^([\w-]+)\s*:\s*(.*)$/.exec(part);
+    if (!m) return undefined;
+    const k = m[1]!.toLowerCase(), v = m[2]!.trim();
+    if (k === 'fill' && fill === undefined && v !== '') fill = v;
+    else if (k === 'stroke' && !stroke && v.toLowerCase() === 'none') stroke = true;
+    else return undefined;
+  }
+  return fill;
+}
 const RECT_KEYS = ['x', 'y', 'width', 'height', 'fill', 'style'];
 /** null = no dark rect (nothing to compact: pass through as today); string = the compact svg; 'unsupported_qr' = refused */
 function compact(svg: string): string | null | 'unsupported_qr' {
@@ -62,7 +74,7 @@ function compact(svg: string): string | null | 'unsupported_qr' {
   for (const t of tags) {
     const a = attrsOf(t);
     if (!a) return 'unsupported_qr';
-    const st = a.get('style'), sf = st === undefined ? undefined : FILL_STYLE.exec(st)?.[1];
+    const st = a.get('style'), sf = st === undefined ? undefined : styleFill(st);
     if (st !== undefined && sf === undefined) return 'unsupported_qr';
     const fa = a.get('fill');
     if (fa !== undefined && sf !== undefined && fa.trim().toLowerCase() !== sf.toLowerCase()) return 'unsupported_qr';

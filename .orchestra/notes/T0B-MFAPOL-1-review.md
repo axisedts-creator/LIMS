@@ -1,5 +1,12 @@
-CHANGES
-1. db/tests/identity/T0B-MFAPOL-1_mfa_factors_own.test.sql:91-92 — assertion (d) "tenant staff user reads its own tenant factor (and no other)" expects `n=1`, but the staff claims (actor_type `user`, tenant A) also match `mfa_factors__select__tenant` (db/policies/identity.sql:11-12, `tenant_id = current tenant AND is_staff_or_system()`), so they see fixture rows 32 (own) and 33 (the partner's) = `n=2`. The test fails on a correct DB. Fix: make it check what __own guarantees, e.g. query `SELECT 1 FROM identity.mfa_factors WHERE user_id = '01a1a98a-ac40-7000-8000-00000000a300'` with expected `n=1`, and change the label to drop "(and no other)". Or keep the unfiltered query, expect `n=2` and label it "via __tenant + __own". Do not weaken the partner assertion at line 93-94. A partner is not staff, so only __own applies there and `n=1` is correct.
-
-Checked and OK: the migration has `SET LOCAL ROLE lims_owner;` (arbiter ruling) and then exactly the three ALTER POLICY statements with the LD-252 text verbatim. There is no DROP, REVOKE or GRANT and no other policy change. db/policies/identity.sql matches the migration. The file name sorts last in db/migrations. The change to tests/db/T0B-10.C2.identity.test.mjs is exactly the narrowing and weakens nothing. The notes say the pgTAP file and the migration were NOT run and give the founder run-suites.sh step. Synthetic data only, no secrets, no PHI. The files are within the owned paths and number 8 or fewer, not counting notes. `node --test tests/db/T0B-MFAPOL-1.static.test.mjs`: 10/10 pass.
-Not re-checked by me: pnpm -s verify. The impl note reports it is not green because of pre-existing @lims/api and @lims/worker typecheck errors that this task did not touch.
+APPROVE
+Round 2. The round-1 finding is fixed: db/tests/identity/T0B-MFAPOL-1_mfa_factors_own.test.sql:91-92 (d) now filters `WHERE user_id = '…a300'` and expects n=1. The partner assertion at 93-94 is unchanged and still expects n=1.
+Checked and OK:
+- The migration 20261116010000 holds `SET LOCAL ROLE lims_owner;` (per the ruling) and then exactly three ALTER POLICY statements with the LD-252 predicate verbatim: select USING, insert WITH CHECK, update both.
+- No DROP, REVOKE or GRANT, and no other policy change. db/policies/identity.sql:105-111 matches the migration. The file name sorts last.
+- The edit to tests/db/T0B-10.C2.identity.test.mjs only accounts for the narrowing and weakens nothing.
+- The pgTAP (a)-(e) assertions are consistent with the policy set and app.is_platform_actor(), which needs aal2 and scope platform. The fixtures follow the T0B-10.C2_policies shapes and satisfy the CHECK constraints.
+- Notes say NOT RUN in the lane and name the founder's run-suites.sh step before push-cloud.ps1. Synthetic data only, no secrets or PHI, owned paths only.
+Commands run:
+- `node --test tests/db/T0B-MFAPOL-1.static.test.mjs`: 10/10 pass.
+- `tests/db/T0B-10.C2.identity.test.mjs`: 45 pass, 4 fail. All 4 failures were already there before this task. The "EXACTLY §10.1" diff lists only extra __platform/owner policies and no __own entry.
+Not checked: pnpm -s verify. The impl note says it fails on @lims/api and @lims/worker typecheck errors, which come from code this task did not touch. The pgTAP file and the migration were not run.

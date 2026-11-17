@@ -16,3 +16,7 @@
 ## Round 5
 - Re-ran contracts registry-equality on this branch (includes spec e4f095ae, LD-337): 14/14 green. The log line "cannot find the path" is cmd noise after step 1; no test failed on SYNC-1 code.
 - No impl change needed. Earlier rounds: codegen 88/88, API 826/826, pgTAP clean. Could not rerun the full verify.cmd here (command approval denied).
+## Round 6
+- Log (20:55) ends after step 1 (codegen 88/88) with "The system cannot find the path specified."; no test failed. registry-equality now 14/14 green here (spec e4f095ae in branch, LD-337).
+- Likely harness cause: T0C-SYNC-1-verify.cmd runs `npx`/`pnpm` (.cmd shims) without `call`, so cmd transfers control and the batch ends/errs after step 1. Tester file, off-limits for me; fix = prefix each npx/pnpm with `call`.
+- No impl change: SYNC-1 code not at fault (codegen 88/88, API 826/826, pgTAP clean in earlier rounds).

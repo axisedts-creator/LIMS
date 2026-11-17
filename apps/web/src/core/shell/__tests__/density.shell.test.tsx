@@ -110,6 +110,31 @@ describe('the user menu switch', () => {
   });
 });
 
+// Review T0D-DENSITY-1 item 1: react-aria Modal/Popover portal to document.body, outside the shell wrapper, so dialogs and
+// dropdown lists stayed regular. The density must reach portaled content (e.g. on <html>) and be removed when the shell unmounts.
+describe('portaled content follows the density (done_when 1 and 2)', () => {
+  it('<html> carries data-density="compact" while the shell is mounted, so a node portaled to body inherits it', () => {
+    render(shellOf());
+    expect(document.documentElement.getAttribute('data-density')).toBe('compact');
+    const portaled = document.body.appendChild(document.createElement('div')); // stands in for a Modal/Popover portal
+    expect(portaled.closest('[data-density]')?.getAttribute('data-density')).toBe('compact');
+  });
+  it('after switching to Regular, <html> and a portaled node follow it', async () => {
+    render(shellOf());
+    const { u, menu } = await openMenu();
+    await u.click(within(menu).getByRole('menuitemradio', { name: /regular/i }));
+    expect(document.documentElement.getAttribute('data-density')).toBe('regular');
+    const portaled = document.body.appendChild(document.createElement('div'));
+    expect(portaled.closest('[data-density]')?.getAttribute('data-density')).toBe('regular');
+  });
+  it('leaving the shell removes the density from <html>, so auth screens stay regular', () => {
+    const { unmount } = render(shellOf());
+    unmount();
+    expect(document.documentElement.hasAttribute('data-density')).toBe(false);
+    expect(document.body.closest('[data-density]')).toBeNull();
+  });
+});
+
 describe('stored choice (per user, local storage, try/catch)', () => {
   it('a stored "regular" is applied after mount', async () => {
     render(shellOf());

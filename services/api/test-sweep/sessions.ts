@@ -72,7 +72,7 @@ type Query = (sql: string, params?: unknown[]) => Promise<{ rows: any[] }>;
 // T0B-SWEEP-2 (LD-270 done_when 3, HARNESS): SWEEP-1's 18 partners operations answered 403 partners.partner_inactive because no
 // partners.partners / partner_users row backs the partner membership (seed 010 has the membership only). Plain SQL on the throwaway DB, no seed edit.
 const PARTNER = { creditParty: '01a1a98a-ac40-7000-8000-00000000f0c1', partner: '01a1a98a-ac40-7000-8000-00000000f0a1', partnerUser: '01a1a98a-ac40-7000-8000-00000000f0b1' };
-const BRANCH_A = '01a1a98a-ac40-7000-8000-00000000a101', CENTRE_A = '01a1a98a-ac40-7000-8000-00000000a201';
+export const BRANCH_A = '01a1a98a-ac40-7000-8000-00000000a101', CENTRE_A = '01a1a98a-ac40-7000-8000-00000000a201';
 export const SWEEP_PARTNER_ID = PARTNER.partner;
 
 async function seedActivePartner(q: Query): Promise<void> {

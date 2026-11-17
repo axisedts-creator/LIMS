@@ -28,7 +28,8 @@ function fromRegex(src: string, rep: (min: number, max: number) => number): stri
         if (a === '\\') { const e = src[i++]!; a = e === 'x' ? String.fromCharCode(parseInt(src.slice(i, (i += 2)), 16)) : e === 'd' ? '1' : e; }
         if (src[i] === '-' && src[i + 1] !== ']' && src[i + 1] !== undefined) {   // range a-b: `a` is a member; skip the end
           i++;
-          if (src[i++] === '\\') i += src[i] === 'x' ? 3 : 1;
+          const end = src[i++] === '\\' ? (i += src[i] === 'x' ? 3 : 1, '') : src[i - 1]!;
+          if (a === '0' && end >= '1') a = '1';     // digits: '1' not '0' (decimal strings the service checks > 0)
         }
         members.push(a);
       }
@@ -112,9 +113,16 @@ export function sampleValue(schema: S | undefined, name = '', ids: Record<string
   if (t === 'object') {
     const o: Record<string, unknown> = {};
     for (const k of s.required ?? []) o[k] = sampleValue(s.properties?.[k] ?? {}, k, ids);
+    // nested minProperties: add optional properties in declaration order (top-level body stays required-only: request.test.ts)
+    for (const k of name ? Object.keys(s.properties ?? {}) : []) {
+      if (Object.keys(o).length >= (s.minProperties ?? 0)) break;
+      if (!(k in o)) o[k] = sampleValue(s.properties[k], k, ids);
+    }
     return o;
   }
   if (t === 'array') {
+    const one = ids[name.replace(/_ids$/, '_id')];
+    if (name.endsWith('_ids') && one !== undefined) return [one];   // centre_ids: the seeded centre
     const n = Math.max(s.minItems ?? 0, 0);
     return Array.from({ length: n }, (_, j) => sampleValue(s.items ?? {}, name, {}, j));
   }
@@ -127,8 +135,12 @@ export function sampleValue(schema: S | undefined, name = '', ids: Record<string
   }
   // string
   if (s.format === 'uuid') return salt ? SAMPLE_UUID.slice(0, -4) + String(salt).padStart(4, '0') : SAMPLE_UUID;
-  if (s.format === 'date-time') return '2026-11-16T00:00:00.000Z';
-  if (s.format === 'date') return '2026-11-16';
+  // future dates (due_at, valid_from); an end/to bound one day after its start so ranges are ordered
+  const isEnd = /(^|_)(to|end|ends|until)(_|$)/.test(name);
+  const day = new Date(Date.now() + (isEnd ? 2 : 1) * 86_400_000).toISOString().slice(0, 10);
+  if (s.format === 'date-time') return `${day}T00:00:00.000Z`;
+  if (s.format === 'date') return day;
+  if (isEnd && typeof s.pattern === 'string' && new RegExp(s.pattern).test('23:59')) return '23:59';
   if (s.format === 'email') return 'sweep@example.test';
   if (typeof s.pattern === 'string') {
     const v = patterned(s);

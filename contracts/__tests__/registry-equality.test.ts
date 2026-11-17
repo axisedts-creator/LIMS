@@ -21,6 +21,10 @@ const LD321_SALES_CODES = ["partners.sales.manage", "partners.sales.read"];
 const LD322_SYNC_CODES = ["sync.conflict.resolve", "sync.device.manage", "sync.use"];
 // T0C-SYNC-1 (LD-322): the closed sync error list, the only error codes allowed beyond IC section 8 (owner C0).
 const LD322_SYNC_ERRORS = ["sync.block_size_too_large", "sync.device_revoked", "sync.device_unknown", "sync.series_unknown", "sync.wipe_required"];
+// T0C-MSGDESK-1 (LD-330: the lane that merges second keeps BOTH sides): codes from the other contract lane, not in IC yet.
+const MSGDESK_ERRORS = ["engagement.broadcast_invalid_transition", "engagement.broadcast_placeholder_unknown", "engagement.broadcast_provider_not_configured", "engagement.broadcast_recipient_limit",
+  "engagement.broadcast_self_approval", "engagement.broadcast_template_inactive", "partners.ticket_invalid_transition"];
+const MSGDESK_CODES = ["engagement.broadcast.approve", "engagement.broadcast.manage", "engagement.broadcast.read", "partners.ticket.manage", "partners.ticket.read"];
 
 /** Strict parse: duplicate map keys are errors (IC §7 says "CI parses the file with a YAML parser"). */
 const strictParse = (src: string, what: string): any => {
@@ -97,7 +101,7 @@ describe("AC-0C-1.3 errors.yaml == IC §8", () => {
     // T0C-SYNC-1 (LD-322): exactly the five sync.* codes may follow the IC codes; every IC entry stays unchanged and in order.
     const icCodes = ic.map((e) => String(e.code));
     const extra = file.filter((e) => !icCodes.includes(String(e.code)));
-    expect(extra.map((e) => String(e.code)).sort()).toEqual(LD322_SYNC_ERRORS);
+    expect(extra.map((e) => String(e.code)).sort()).toEqual([...LD322_SYNC_ERRORS, ...MSGDESK_ERRORS].sort());
     const core = file.filter((e) => icCodes.includes(String(e.code)));
     expect(diffByKey(ic, core, "code")).toEqual([]);
     expect(core.map((e) => e.code)).toEqual(ic.map((e) => e.code)); // order preserved
@@ -184,15 +188,18 @@ describe("AC-0C-1.3 permissions.yaml == IC §11", () => {
     for (const k of ["roles", "partner_roles", "platform_roles"]) {
       expect(diffByKey(ic[k], file[k], "code"), k).toEqual([]);
     }
-    expect(sortKeys(file.fixed_actor_permissions)).toEqual(sortKeys(ic.fixed_actor_permissions));
+    // LD-330: drop the two MSGDESK codes from the fixed actor grants before comparing (same filtering as the extra permissions).
+    const noMsgdesk = (v: unknown): unknown => Array.isArray(v) ? v.filter((c) => !MSGDESK_CODES.includes(String(c))) : v && typeof v === "object" ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, noMsgdesk(x)])) : v;
+    const fileFixed = noMsgdesk(file.fixed_actor_permissions) as Record<string, unknown>;
+    expect(sortKeys(fileFixed)).toEqual(sortKeys(ic.fixed_actor_permissions));
     // T0C-ACCT-1 (LD-313 c, founder blanket authority LD-310): the registry may hold EXACTLY the 7 billing accounting codes on top of IC §11 (spec/ is read-only, the lead records
     // the widening in the CR register). Every IC code stays, unchanged and in order (never renamed or removed); the new codes come after the IC codes of the billing block or at the end.
     const icCodes = ic.permissions.map((p: Entry) => p.code);
     const extra = file.permissions.filter((p: Entry) => !icCodes.includes(p.code));
     expect(diffByKey(ic.permissions, file.permissions, "code").filter((d) => !d.startsWith("extra "))).toEqual([]);
-    expect(extra.map((p: Entry) => p.code).sort()).toEqual([...LD313_ACCOUNTING_CODES, ...LD321_SALES_CODES, ...LD322_SYNC_CODES].sort());
+    expect(extra.map((p: Entry) => p.code).sort()).toEqual([...LD313_ACCOUNTING_CODES, ...LD321_SALES_CODES, ...LD322_SYNC_CODES, ...MSGDESK_CODES].sort());
     expect(file.permissions.filter((p: Entry) => icCodes.includes(p.code)).map((p: Entry) => p.code)).toEqual(icCodes);
-    expect({ ...file, permissions: file.permissions.filter((p: Entry) => icCodes.includes(p.code)) }).toEqual(ic);
+    expect({ ...file, fixed_actor_permissions: fileFixed, permissions: file.permissions.filter((p: Entry) => icCodes.includes(p.code)) }).toEqual(ic);
   });
 
   it("permission codes unique and match ^[a-z_]+\\.[a-z_]+\\.[a-z_]+$ (IC §11 CI rule)", () => {

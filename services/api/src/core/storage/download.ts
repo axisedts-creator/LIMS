@@ -15,7 +15,7 @@ export interface DownloadInput {
 }
 export interface DownloadResponse { readonly status: 200; readonly headers: Readonly<Record<string, string>>; readonly body: Uint8Array }
 
-const MIME = /^[a-z0-9][a-z0-9!#$&^_.+-]{0,126}\/[a-z0-9][a-z0-9!#$&^_.+-]{0,126}$/;
+export const MIME = /^[a-z0-9][a-z0-9!#$&^_.+-]{0,126}\/[a-z0-9][a-z0-9!#$&^_.+-]{0,126}$/;
 const INLINE_MIME = new Set(['image/png', 'image/jpeg']);
 
 /** RFC 6266 / 8187: ASCII fallback (quote, backslash, controls and non-ASCII replaced) + UTF-8 filename*. */

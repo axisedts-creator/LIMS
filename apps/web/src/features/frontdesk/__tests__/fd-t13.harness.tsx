@@ -112,7 +112,37 @@ export const api = setupServer(
   http.post(`${ORIGIN}/v1/billing/invoices/:id/print`, async ({ request }) => { const c = await rec(request); return handlers.print(c.body); }),
   http.post(`${ORIGIN}/v1/lab/orders/:id/label-prints`, async ({ request }) => { const c = await rec(request); return handlers.labels(c.body); }),
   http.post(`${ORIGIN}/v1/frontdesk/discount-approvals`, async ({ request }) => { await rec(request); return HttpResponse.json({ id: U(50), state: 'pending' }, { status: 201 }); }),
+  // T0D-REGSCREEN-2 (LD-310, T0B-REGAPI-1/2 contracts): the backend backed registration reads. Defaults are quiet and valid so the older suites
+  // (fd-t13, rs-c4, regscreen1) keep working once the form calls them; regscreen2.* tests override state through `reg2` or api.use().
+  http.get(`${ORIGIN}/v1/frontdesk/registrations/number-preview`, async ({ request }) => { await rec(request); return HttpResponse.json({ centre_id: new URL(request.url).searchParams.get('centre_id'), ...reg2.preview, is_preview: true }); }),
+  http.get(`${ORIGIN}/v1/frontdesk/favourite-tests`, async ({ request }) => { await rec(request); return HttpResponse.json({ data: reg2.favourites.map((orderable_id) => ({ orderable_id, created_at: '2026-11-17T04:15:00.000Z' })), page: { next_cursor: null } }); }),
+  http.post(`${ORIGIN}/v1/frontdesk/favourite-tests`, async ({ request }) => { const c = await rec(request); if (!reg2.favourites.includes(c.body?.orderable_id)) reg2.favourites.push(c.body?.orderable_id); return HttpResponse.json({ orderable_id: c.body?.orderable_id, created_at: '2026-11-17T04:15:00.000Z' }, { status: 201 }); }),
+  http.delete(`${ORIGIN}/v1/frontdesk/favourite-tests/:id`, async ({ request, params }) => { await rec(request); reg2.favourites = reg2.favourites.filter((x) => x !== params['id']); return new HttpResponse(null, { status: 204 }); }),
+  http.get(`${ORIGIN}/v1/frontdesk/icd-codes`, async ({ request }) => { await rec(request); return HttpResponse.json({ data: reg2.icd, page: { next_cursor: null } }); }),
+  http.get(`${ORIGIN}/v1/frontdesk/custom-field-definitions`, async ({ request }) => { await rec(request); return HttpResponse.json({ data: reg2.customFields, page: { next_cursor: null } }); }),
+  http.get(`${ORIGIN}/v1/frontdesk/registration-drafts`, async ({ request }) => { await rec(request); return HttpResponse.json({ data: reg2.drafts.map(({ payload: _p, ...row }) => row), page: { next_cursor: null } }); }),
+  http.post(`${ORIGIN}/v1/frontdesk/registration-drafts`, async ({ request }) => {
+    const c = await rec(request);
+    const row = { id: U(900 + reg2.drafts.length), centre_id: c.body?.centre_id, payload: c.body?.payload, created_at: '2026-11-17T04:15:00.000Z', updated_at: '2026-11-17T04:15:00.000Z', expires_at: '2026-12-01T04:15:00.000Z' };
+    reg2.drafts.push(row);
+    return HttpResponse.json(row, { status: 201 });
+  }),
+  http.get(`${ORIGIN}/v1/frontdesk/registration-drafts/:id`, async ({ request, params }) => { await rec(request); const d = reg2.drafts.find((x) => x.id === params['id']); return d ? HttpResponse.json(d) : problem('common.not_found', 404); }),
+  http.delete(`${ORIGIN}/v1/frontdesk/registration-drafts/:id`, async ({ request, params }) => { await rec(request); reg2.drafts = reg2.drafts.filter((x) => x.id !== params['id']); return new HttpResponse(null, { status: 204 }); }),
+  http.get(`${ORIGIN}/v1/frontdesk/patients/:id/rewards`, async ({ request, params }) => { await rec(request); return HttpResponse.json({ patient_id: params['id'], balance_points: reg2.rewards, earned_points: reg2.rewards, redeemed_points: 0, data: [], page: { next_cursor: null } }); }),
+  http.get(`${ORIGIN}/v1/frontdesk/patients/:id`, async ({ request, params }) => { await rec(request); return HttpResponse.json({ ...patient, id: params['id'], phone_masked: '98xxxxxx42', is_anonymised: false, consents: { processing: true, sms: true, whatsapp: false, email: false, share_with_referrer: false, consent_text_version: 'v1' }, version: 1 }); }),
 );
+
+/** T0D-REGSCREEN-2 fixture state behind the default handlers above; reset after every test by setup(). */
+export const ICD = [{ id: U(70), code: 'A09', description: 'Gastroenteritis', is_active: true, version: 1 }, { id: U(71), code: 'E11.9', description: 'Type 2 diabetes mellitus', is_active: true, version: 1 }];
+export const CUSTOM = [
+  { id: U(72), field_key: 'employee_no', label: 'Employee number', field_type: 'text', required: false, is_active: true, sort_order: 1, version: 1 },
+  { id: U(73), field_key: 'shift', label: 'Shift', field_type: 'choice', required: false, is_active: true, choices: ['Day', 'Night'], sort_order: 2, version: 1 },
+];
+export const PREVIEW = { next_registration_no: 'R-2083-000124', next_receipt_no: '2083/84-000077', next_receipt_no_label: 'Assigned when saved' };
+type DraftRow = { id: string; centre_id: string; payload: string; created_at: string; updated_at: string; expires_at: string };
+const fresh = () => ({ preview: { ...PREVIEW } as Record<string, string>, favourites: [] as string[], icd: [...ICD] as unknown[], customFields: [...CUSTOM] as unknown[], drafts: [] as DraftRow[], rewards: 120 });
+export const reg2 = fresh();
 
 export const push = vi.fn();
 vi.mock('next/navigation', () => ({
@@ -134,6 +164,7 @@ export function setup() {
   afterEach(() => {
     cleanup(); api.resetHandlers(); calls.length = 0; push.mockReset();
     Object.assign(handlers, defaults);
+    Object.assign(reg2, fresh());
   });
   afterAll(() => api.close());
 }

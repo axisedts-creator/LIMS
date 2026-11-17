@@ -20,10 +20,17 @@ packs:
           - anatomic.config.manage
           - audit.log.export
           - audit.log.read
+          - billing.account.manage
+          - billing.account.read
+          - billing.account_entry.create
+          - billing.account_entry.reverse
           - billing.cash_report.read
+          - billing.cash_transfer.decide
+          - billing.cash_transfer.manage
           - billing.credit_party.manage
           - billing.credit_party.read
           - billing.data.export
+          - billing.expense.manage
           - billing.invoice.cancel
           - billing.invoice.issue
           - billing.invoice.read

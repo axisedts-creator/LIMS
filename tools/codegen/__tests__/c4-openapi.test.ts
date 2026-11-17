@@ -149,6 +149,32 @@ const BILLING: Spec[] = [
   S("listCreditNoteTasks", "GET", "/credit-note-tasks", INV_R, "none", 200),
   S("listFinanceReviewItems", "GET", "/finance-review-items", INV_R, "none", 200),
   S("resolveFinanceReviewItem", "POST", "/finance-review-items/{item_id}/resolve", REF_OK, "required", 200, { im: true, err: [IMM] }),
+  // T0C-ACCT-1 (LD-313): 24 additive lab accounting operations (account groups, particulars, expense types, accounting ledger, statement, summary, expenses, cash transfers, daily collection).
+  // Not in the C4 TRD table; the shape tests are in acct1-openapi.test.ts. Added here so the inventory test ("no missing, no extra operations") stays true.
+  S("listAccountGroups", "GET", "/account-groups", BL("account.read"), "none", 200, { err: INVALID_CURSOR }),
+  S("createAccountGroup", "POST", "/account-groups", BL("account.manage"), "required", 201),
+  S("updateAccountGroup", "PATCH", "/account-groups/{account_group_id}", BL("account.manage"), "optional", 200, { im: true, err: [VC, "common.precondition_required"] }),
+  S("listAccountParticulars", "GET", "/account-particulars", BL("account.read"), "none", 200, { err: INVALID_CURSOR }),
+  S("createAccountParticular", "POST", "/account-particulars", BL("account.manage"), "required", 201),
+  S("updateAccountParticular", "PATCH", "/account-particulars/{account_particular_id}", BL("account.manage"), "optional", 200, { im: true, err: [VC, "common.precondition_required"] }),
+  S("listExpenseTypes", "GET", "/expense-types", BL("account.read"), "none", 200, { err: INVALID_CURSOR }),
+  S("createExpenseType", "POST", "/expense-types", BL("account.manage"), "required", 201),
+  S("updateExpenseType", "PATCH", "/expense-types/{expense_type_id}", BL("account.manage"), "optional", 200, { im: true, err: [VC, "common.precondition_required"] }),
+  S("createAccountLedgerEntry", "POST", "/account-ledger-entries", BL("account_entry.create"), "required", 201),
+  S("listAccountLedgerEntries", "GET", "/account-ledger-entries", BL("account.read"), "none", 200, { err: INVALID_CURSOR }),
+  S("getAccountLedgerEntry", "GET", "/account-ledger-entries/{account_ledger_entry_id}", BL("account.read"), "none", 200),
+  S("reverseAccountLedgerEntry", "POST", "/account-ledger-entries/{account_ledger_entry_id}/reverse", BL("account_entry.reverse"), "required", 201, { err: ["billing.ledger_reversal_invalid"] }),
+  S("getAccountStatement", "GET", "/account-statement", BL("account.read"), "none", 200),
+  S("getAccountSummary", "GET", "/account-summary", BL("account.read"), "none", 200),
+  S("createExpense", "POST", "/expenses", BL("expense.manage"), "required", 201),
+  S("listExpenses", "GET", "/expenses", BL("account.read"), "none", 200, { err: INVALID_CURSOR }),
+  S("cancelExpense", "POST", "/expenses/{expense_id}/cancel", BL("expense.manage"), "required", 200, { err: [IMM] }),
+  S("createCashTransfer", "POST", "/cash-transfers", BL("cash_transfer.manage"), "required", 201),
+  S("listCashTransfers", "GET", "/cash-transfers", BL("account.read"), "none", 200, { err: INVALID_CURSOR }),
+  S("acceptCashTransfer", "POST", "/cash-transfers/{cash_transfer_id}/accept", BL("cash_transfer.decide"), "required", 200, { err: [IMM] }),
+  S("rejectCashTransfer", "POST", "/cash-transfers/{cash_transfer_id}/reject", BL("cash_transfer.decide"), "required", 200, { err: [IMM] }),
+  S("cancelCashTransfer", "POST", "/cash-transfers/{cash_transfer_id}/cancel", BL("cash_transfer.manage"), "required", 200, { err: [IMM] }),
+  S("getDailyCollectionSummary", "GET", "/daily-collection-summary", BL("account.read"), "none", 200),
 ];
 
 // Which list operations take cursor + limit (TRD: "page of …" / `cursor&limit` in the path column)
@@ -156,7 +182,7 @@ const PAGED: Record<string, string[]> = {
   frontdesk: ["listPatientOrders", "listOrders", "listDiscountApprovals", "listOrderFlags", "listPossibleDuplicatePatients"],
   billing: ["listInvoices", "listInvoicePrints", "listCreditNotes", "listRefundRequests", "listLedgerEntries", "listCreditAccounts", "listCreditCharges",
     "getSalesRegister", "getCancelledInvoiceRegister", "getCreditNoteRegister", "getAuditTrail", "listCbmsDocuments", "listDues",
-    "listCreditNoteTasks", "listFinanceReviewItems"],
+    "listCreditNoteTasks", "listFinanceReviewItems", "listAccountGroups", "listAccountParticulars", "listExpenseTypes", "listAccountLedgerEntries", "listExpenses", "listCashTransfers"],
 };
 // §5.1 / §5.2 named schemas that must exist as components
 const DTOS: Record<string, string[]> = {
@@ -172,7 +198,7 @@ afterAll(() => tmps.forEach((d) => rmSync(d, { recursive: true, force: true })))
 
 describe.each([
   { name: "frontdesk", specs: FRONTDESK, total: 29 + 18 }, // 29 C4 operations + 18 T0C-REGPARITY-2 operations (LD-310)
-  { name: "billing", specs: BILLING, total: 47 },
+  { name: "billing", specs: BILLING, total: 47 + 24 }, // 47 C4 operations + 24 T0C-ACCT-1 operations (LD-313)
 ])("$name.yaml (T0C-10.C4)", ({ name, specs, total }) => {
   const FILE = join(ROOT, `contracts/openapi/${name}.yaml`);
   const PFX = `/v1/${name}`;

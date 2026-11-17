@@ -92,6 +92,14 @@ permissions:
   - { code: billing.release.override,   privileged: true,  roles: [finance, tenant_admin] }  # hold-till-paid override (01 §1.4)
   # added by 08 §4.1
   - { code: billing.settings.manage, privileged: true, roles: [tenant_admin, finance] }   # "Billing settings: invoice series scope, CBMS retry, payment methods (tax rules live in C3)" (R18)   # CR-C4-008
+  # T0C-ACCT-1 (LD-313 c): lab accounting in the billing module (account groups / particulars / expense types, account ledger, expenses, cash transfers)
+  - { code: billing.account.read,          privileged: false, roles: [finance, tenant_admin] }
+  - { code: billing.account.manage,        privileged: true,  roles: [finance, tenant_admin] }   # account group / particular / expense type masters
+  - { code: billing.account_entry.create,  privileged: false, roles: [finance] }
+  - { code: billing.account_entry.reverse, privileged: true,  roles: [finance] }                 # a correction is a reversal entry, never an edit (LD-313 b)
+  - { code: billing.expense.manage,        privileged: false, roles: [finance] }
+  - { code: billing.cash_transfer.manage,  privileged: false, roles: [finance] }
+  - { code: billing.cash_transfer.decide,  privileged: true,  roles: [finance] }                 # accept / reject; decider <> creator
   # lab (C5)
   - { code: lab.status_board.read,       privileged: false, roles: [front_desk, centre_staff, lab_technologist, pathologist, lab_manager] }
   - { code: lab.specimen.read,           privileged: false, roles: [centre_staff, lab_technologist, pathologist, lab_manager, front_desk, phlebotomist] }   # front_desk, phlebotomist: 08 A13 D-4 (RLS keeps centre scope)

@@ -1,0 +1,1 @@
+cd /d "%~dp0..\..\tools\codegen" && npx vitest run __tests__/regparity2-openapi.test.ts __tests__/regparity1-openapi.test.ts __tests__/c4-openapi.test.ts && "C:\Program Files\Git\bin\bash.exe" -c "cd /c/LIMS-lanes/C0-0C && bash db/tests/run-suites.sh db/tests/frontdesk_billing/T0C-REGPARITY-2_registration_parity.test.sql"

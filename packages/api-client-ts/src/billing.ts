@@ -209,6 +209,8 @@ export interface operations {
               cash_session_id?: string;
               created_at: string;
               business_date_bs: string;
+              card_holder_name?: string;
+              payment_remark?: string;
             };
             version: number;
           };
@@ -3743,6 +3745,8 @@ export interface operations {
               cash_session_id?: string;
               created_at: string;
               business_date_bs: string;
+              card_holder_name?: string;
+              payment_remark?: string;
             })[];
             credit_charges: {
               id: string;
@@ -3832,6 +3836,8 @@ export interface operations {
                 cash_session_id?: string;
                 created_at: string;
                 business_date_bs: string;
+                card_holder_name?: string;
+                payment_remark?: string;
               };
               version: number;
             })[];
@@ -6477,6 +6483,8 @@ export interface operations {
               cash_session_id?: string;
               created_at: string;
               business_date_bs: string;
+              card_holder_name?: string;
+              payment_remark?: string;
             })[];
             page: {
               next_cursor?: string;
@@ -6664,6 +6672,8 @@ export interface operations {
                 cash_session_id?: string;
                 created_at: string;
                 business_date_bs: string;
+                card_holder_name?: string;
+                payment_remark?: string;
               };
               version: number;
             })[];
@@ -7382,6 +7392,8 @@ export interface operations {
             cash_session_id?: string;
             created_at: string;
             business_date_bs: string;
+            card_holder_name?: string;
+            payment_remark?: string;
           };
         };
       };
@@ -7538,6 +7550,8 @@ export interface operations {
           amount_received_paisa: number;
           reference?: string;
           invoice_id?: string;
+          card_holder_name?: string;
+          payment_remark?: string;
         };
       };
     };
@@ -7568,6 +7582,8 @@ export interface operations {
               cash_session_id?: string;
               created_at: string;
               business_date_bs: string;
+              card_holder_name?: string;
+              payment_remark?: string;
             };
             balance: {
               order_id: string;
@@ -7835,6 +7851,8 @@ export interface operations {
               cash_session_id?: string;
               created_at: string;
               business_date_bs: string;
+              card_holder_name?: string;
+              payment_remark?: string;
             };
             version: number;
           };
@@ -8084,6 +8102,8 @@ export interface operations {
               cash_session_id?: string;
               created_at: string;
               business_date_bs: string;
+              card_holder_name?: string;
+              payment_remark?: string;
             };
             version: number;
           };
@@ -8666,6 +8686,8 @@ export interface operations {
             cash_session_id?: string;
             created_at: string;
             business_date_bs: string;
+            card_holder_name?: string;
+            payment_remark?: string;
           };
         };
       };

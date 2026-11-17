@@ -11,6 +11,10 @@ class FrontdeskApi {
 
   final LimsTransport _send;
 
+  /// POST /v1/frontdesk/favourite-tests
+  Future<Object?> addFavouriteTest({Map<String, String>? headers, Object? body}) =>
+      _send('POST', '/v1/frontdesk/favourite-tests', headers: headers, body: body);
+
   /// POST /v1/frontdesk/patients/{patient_id}/anonymise
   Future<Object?> anonymisePatient({required String patientId, Map<String, String>? headers, Object? body}) =>
       _send('POST', '/v1/frontdesk/patients/${Uri.encodeComponent(patientId)}/anonymise', headers: headers, body: body);
@@ -31,6 +35,18 @@ class FrontdeskApi {
   Future<Object?> confirmPreRegisteredOrder({required String orderId, Map<String, String>? headers, Object? body}) =>
       _send('POST', '/v1/frontdesk/orders/${Uri.encodeComponent(orderId)}/confirm', headers: headers, body: body);
 
+  /// POST /v1/frontdesk/coupons
+  Future<Object?> createCoupon({Map<String, String>? headers, Object? body}) =>
+      _send('POST', '/v1/frontdesk/coupons', headers: headers, body: body);
+
+  /// POST /v1/frontdesk/custom-field-definitions
+  Future<Object?> createCustomFieldDefinition({Map<String, String>? headers, Object? body}) =>
+      _send('POST', '/v1/frontdesk/custom-field-definitions', headers: headers, body: body);
+
+  /// POST /v1/frontdesk/icd-codes
+  Future<Object?> createIcdCode({Map<String, String>? headers, Object? body}) =>
+      _send('POST', '/v1/frontdesk/icd-codes', headers: headers, body: body);
+
   /// POST /v1/frontdesk/patients
   Future<Object?> createPatient({Map<String, String>? headers, Object? body}) =>
       _send('POST', '/v1/frontdesk/patients', headers: headers, body: body);
@@ -38,6 +54,14 @@ class FrontdeskApi {
   /// POST /v1/frontdesk/registrations
   Future<Object?> createRegistration({Map<String, String>? headers, Object? body}) =>
       _send('POST', '/v1/frontdesk/registrations', headers: headers, body: body);
+
+  /// POST /v1/frontdesk/registration-drafts
+  Future<Object?> createRegistrationDraft({Map<String, String>? headers, Object? body}) =>
+      _send('POST', '/v1/frontdesk/registration-drafts', headers: headers, body: body);
+
+  /// DELETE /v1/frontdesk/registration-drafts/{draft_id}
+  Future<Object?> deleteRegistrationDraft({required String draftId}) =>
+      _send('DELETE', '/v1/frontdesk/registration-drafts/${Uri.encodeComponent(draftId)}');
 
   /// GET /v1/frontdesk/discount-approvals/{approval_id}
   Future<Object?> getDiscountApproval({required String approvalId}) =>
@@ -55,6 +79,14 @@ class FrontdeskApi {
   Future<Object?> getPatient({required String patientId}) =>
       _send('GET', '/v1/frontdesk/patients/${Uri.encodeComponent(patientId)}');
 
+  /// GET /v1/frontdesk/patients/{patient_id}/rewards
+  Future<Object?> getPatientRewards({required String patientId, Map<String, Object?>? query}) =>
+      _send('GET', '/v1/frontdesk/patients/${Uri.encodeComponent(patientId)}/rewards', query: query);
+
+  /// GET /v1/frontdesk/registration-drafts/{draft_id}
+  Future<Object?> getRegistrationDraft({required String draftId}) =>
+      _send('GET', '/v1/frontdesk/registration-drafts/${Uri.encodeComponent(draftId)}');
+
   /// GET /v1/frontdesk/trf-attachments/{attachment_id}
   Future<Object?> getTrfAttachment({required String attachmentId}) =>
       _send('GET', '/v1/frontdesk/trf-attachments/${Uri.encodeComponent(attachmentId)}');
@@ -63,13 +95,29 @@ class FrontdeskApi {
   Future<Object?> getTrfAttachmentContent({required String attachmentId}) =>
       _send('GET', '/v1/frontdesk/trf-attachments/${Uri.encodeComponent(attachmentId)}/content');
 
+  /// GET /v1/frontdesk/coupons
+  Future<Object?> listCoupons({Map<String, Object?>? query}) =>
+      _send('GET', '/v1/frontdesk/coupons', query: query);
+
+  /// GET /v1/frontdesk/custom-field-definitions
+  Future<Object?> listCustomFieldDefinitions({Map<String, Object?>? query}) =>
+      _send('GET', '/v1/frontdesk/custom-field-definitions', query: query);
+
   /// GET /v1/frontdesk/discount-approvals
   Future<Object?> listDiscountApprovals({Map<String, Object?>? query}) =>
       _send('GET', '/v1/frontdesk/discount-approvals', query: query);
 
+  /// GET /v1/frontdesk/favourite-tests
+  Future<Object?> listFavouriteTests({Map<String, Object?>? query}) =>
+      _send('GET', '/v1/frontdesk/favourite-tests', query: query);
+
   /// GET /v1/frontdesk/coded-sets/{set_name}
   Future<Object?> listFrontdeskCodes({required String setName}) =>
       _send('GET', '/v1/frontdesk/coded-sets/${Uri.encodeComponent(setName)}');
+
+  /// GET /v1/frontdesk/icd-codes
+  Future<Object?> listIcdCodes({Map<String, Object?>? query}) =>
+      _send('GET', '/v1/frontdesk/icd-codes', query: query);
 
   /// GET /v1/frontdesk/order-flags
   Future<Object?> listOrderFlags({Map<String, Object?>? query}) =>
@@ -87,6 +135,14 @@ class FrontdeskApi {
   Future<Object?> listPossibleDuplicatePatients({Map<String, Object?>? query}) =>
       _send('GET', '/v1/frontdesk/patients/possible-duplicates', query: query);
 
+  /// GET /v1/frontdesk/registration-drafts
+  Future<Object?> listRegistrationDrafts({Map<String, Object?>? query}) =>
+      _send('GET', '/v1/frontdesk/registration-drafts', query: query);
+
+  /// GET /v1/frontdesk/registrations/number-preview
+  Future<Object?> previewRegistrationNumbers({Map<String, Object?>? query}) =>
+      _send('GET', '/v1/frontdesk/registrations/number-preview', query: query);
+
   /// POST /v1/frontdesk/orders/{order_id}/items-changes/quote
   Future<Object?> quoteOrderItemsChange({required String orderId, Object? body}) =>
       _send('POST', '/v1/frontdesk/orders/${Uri.encodeComponent(orderId)}/items-changes/quote', body: body);
@@ -103,6 +159,10 @@ class FrontdeskApi {
   Future<Object?> rejectDiscount({required String approvalId, Map<String, String>? headers, Object? body}) =>
       _send('POST', '/v1/frontdesk/discount-approvals/${Uri.encodeComponent(approvalId)}/reject', headers: headers, body: body);
 
+  /// DELETE /v1/frontdesk/favourite-tests/{orderable_id}
+  Future<Object?> removeFavouriteTest({required String orderableId}) =>
+      _send('DELETE', '/v1/frontdesk/favourite-tests/${Uri.encodeComponent(orderableId)}');
+
   /// POST /v1/frontdesk/discount-approvals
   Future<Object?> requestDiscountApproval({Map<String, String>? headers, Object? body}) =>
       _send('POST', '/v1/frontdesk/discount-approvals', headers: headers, body: body);
@@ -115,9 +175,21 @@ class FrontdeskApi {
   Future<Object?> searchPatients({Object? body}) =>
       _send('POST', '/v1/frontdesk/patients/search', body: body);
 
+  /// PATCH /v1/frontdesk/coupons/{coupon_id}
+  Future<Object?> updateCoupon({required String couponId, Map<String, String>? headers, Object? body}) =>
+      _send('PATCH', '/v1/frontdesk/coupons/${Uri.encodeComponent(couponId)}', headers: headers, body: body);
+
+  /// PATCH /v1/frontdesk/custom-field-definitions/{definition_id}
+  Future<Object?> updateCustomFieldDefinition({required String definitionId, Map<String, String>? headers, Object? body}) =>
+      _send('PATCH', '/v1/frontdesk/custom-field-definitions/${Uri.encodeComponent(definitionId)}', headers: headers, body: body);
+
   /// PUT /v1/frontdesk/settings
   Future<Object?> updateFrontdeskSettings({Map<String, String>? headers, Object? body}) =>
       _send('PUT', '/v1/frontdesk/settings', headers: headers, body: body);
+
+  /// PATCH /v1/frontdesk/icd-codes/{icd_code_id}
+  Future<Object?> updateIcdCode({required String icdCodeId, Map<String, String>? headers, Object? body}) =>
+      _send('PATCH', '/v1/frontdesk/icd-codes/${Uri.encodeComponent(icdCodeId)}', headers: headers, body: body);
 
   /// PATCH /v1/frontdesk/patients/{patient_id}
   Future<Object?> updatePatient({required String patientId, Map<String, String>? headers, Object? body}) =>

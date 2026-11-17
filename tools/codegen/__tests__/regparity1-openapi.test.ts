@@ -59,10 +59,14 @@ describe("T0C-REGPARITY-1 contract: frontdesk.yaml patient parity fields", () =>
   });
 
   it("is additive: same 26 paths and 29 operations, same required lists, old properties kept", () => {
-    expect(Object.keys(doc.paths).length).toBe(26);
+    // T0C-REGPARITY-2 (LD-310) adds 18 operations (17 paths) to this file, so the exact 26 / 29 became a floor: the 26 original paths and 29 original operations must all still exist.
+    // The exact total is pinned in c4-openapi.test.ts (29 + 18) and regparity2-openapi.test.ts.
+    expect(Object.keys(doc.paths).length).toBeGreaterThanOrEqual(26);
     let ops = 0;
     for (const item of Object.values<any>(doc.paths)) for (const m of ["get", "put", "post", "delete", "patch"]) if (item[m]) ops++;
-    expect(ops).toBe(29);
+    expect(ops).toBeGreaterThanOrEqual(29);
+    for (const p of ["/v1/frontdesk/patients/search", "/v1/frontdesk/patients", "/v1/frontdesk/patients/{patient_id}", "/v1/frontdesk/registrations", "/v1/frontdesk/registrations/quote", "/v1/frontdesk/orders",
+      "/v1/frontdesk/orders/{order_id}", "/v1/frontdesk/settings", "/v1/frontdesk/coded-sets/{set_name}", "/v1/frontdesk/patients/possible-duplicates"]) expect(doc.paths[p], p).toBeDefined();
     expect(S.NewPatient.required).toEqual(["full_name", "sex", "consents"]);
     expect(S.PatientUpdate.required ?? []).toEqual([]);
     expect(S.Patient.required).toEqual(["id", "patient_code", "full_name", "sex", "age_display", "phone_masked", "is_anonymised", "is_birth_on_estimated", "consents", "version"]);

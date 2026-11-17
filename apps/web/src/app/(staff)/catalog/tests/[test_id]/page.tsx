@@ -5,7 +5,7 @@ import { ApiError } from '@/core/api/server-fetch';
 import { getShellSession } from '@/core/session/server';
 import { AnalyteEditor } from '@/features/catalog/components/AnalyteEditor';
 import { AnalytesTab } from '@/features/catalog/components/AnalytesTab';
-import { RangePreview } from '@/features/catalog/components/RangePreview';
+import { RangeManager } from '@/features/catalog/components/RangeManager';
 import { RangesTab } from '@/features/catalog/components/RangesTab';
 import { TestGeneralForm } from '@/features/catalog/components/TestGeneralForm';
 import { TestHeader } from '@/features/catalog/components/TestHeader';
@@ -83,12 +83,11 @@ export default async function TestPage({ params, searchParams }: { params: Promi
       const published = analyte.versions.find((v) => v.status === 'published') ?? analyte.versions[0];
       const a = { id: analyte.id, code: analyte.code, ...(published?.unit_code ? { unit_code: published.unit_code } : {}) };
       const vs = valueSets.find((s) => s.code === published?.value_set_code);
-      body = (
-        <>
-          <RangesTab key={tab} analyte={a} kind={tab} sets={tab === 'ranges' ? rangeSets : criticalSets} valueSet={vs} specimenTypes={specimenTypes} permissions={permissions} />
-          {tab === 'ranges' ? <RangePreview analyteId={analyte.id} specimenTypes={specimenTypes} /> : null}
-        </>
-      );
+      // T0D-TESTMGMT-1 (LD-318): the reference range tab is the 16-column range manager (critical low / high go to the critical set);
+      // the critical limits tab keeps its band grid. The range preview moved off this tab (its Sex / Unit fields duplicated the editor's).
+      body = tab === 'ranges'
+        ? <RangeManager key={tab} analyte={{ id: analyte.id, code: analyte.code, name: analyte.name }} sets={rangeSets} criticalSets={criticalSets} methods={methods.filter((m) => m.is_active !== false).map((m) => ({ value: m.id, label: m.name }))} permissions={permissions} />
+        : <RangesTab key={tab} analyte={a} kind={tab} sets={criticalSets} valueSet={vs} specimenTypes={specimenTypes} permissions={permissions} />;
     }
   } else {
     // Analytes list. The per-analyte range-set version needs one list call each; only the first 50 are resolved. [CONV] open point: add it to the Analyte DTO.

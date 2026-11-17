@@ -1,7 +1,7 @@
 'use client';
 // SCR-09 panel detail: General (code and kind are create-only), Members grid (own Save members → PUT, If-Match) and the live
 // "Expanded tests" preview. Without catalog.test.manage everything is read-only text. Failures stay inline (cycle, inactive, stale).
-import { useRef, useState } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { Banner } from '@lims/ui/components/Banner';
 import { Button } from '@lims/ui/components/Button';
@@ -25,7 +25,8 @@ const MEMBER_ERRORS: Record<string, string> = {
   'auth.mfa_required': MFA,
 };
 
-export function PanelDetail({ panel, departments, orderables, permissions }: { panel: Panel; departments: readonly Department[]; orderables: readonly OrderableSummary[]; permissions: readonly string[] }) {
+/** `picker` (T0D-TESTMGMT-1, LD-318): the two-list member picker replaces the members grid; the general form's button is then "Update details". */
+export function PanelDetail({ panel, departments, orderables, permissions, picker }: { panel: Panel; departments: readonly Department[]; orderables: readonly OrderableSummary[]; permissions: readonly string[]; picker?: ReactNode }) {
   const manage = canManage(permissions);
   const router = useRouter();
   const toast = useToast();
@@ -78,7 +79,7 @@ export function PanelDetail({ panel, departments, orderables, permissions }: { p
       />
       {panel.panel_kind === 'package' ? <p role="note">{PACKAGE_COPY}</p> : null}
       {manage ? (
-        <SaveForm savedText="Panel saved." keepOpen reloadLabel="Refresh" onDuplicate={() => undefined} save={() => saveGeneral()}>
+        <SaveForm savedText="Panel saved." keepOpen reloadLabel="Refresh" onDuplicate={() => undefined} save={() => saveGeneral()} {...(picker ? { submitLabel: 'Update details' } : {})}>
           <CodeField label="Code" name="code" maxLength={32} pattern={PANEL_CODE_RE.source} patternHint="Set when the panel was created." isReadOnly value={panel.code} />
           <TextField label="Name" name="name" maxLength={200} isRequired value={name} onChange={setName} />
           <RadioGroup<Panel['panel_kind']> label="Panel kind" name="panel_kind" isDisabled value={panel.panel_kind} options={[{ value: 'clinical', label: 'Clinical panel' }, { value: 'package', label: 'Package' }]} />
@@ -95,6 +96,7 @@ export function PanelDetail({ panel, departments, orderables, permissions }: { p
           <dt>Department</dt><dd>{deptName ?? '—'}</dd>
         </dl>
       )}
+      {picker ?? <>
       <h2 className="lims-section-title">Members</h2>
       {error ? <div role="alert"><Banner tone="danger" title={error} /></div> : null}
       <MembersEditor
@@ -111,6 +113,7 @@ export function PanelDetail({ panel, departments, orderables, permissions }: { p
       />
       {manage ? <Button variant="primary" isDisabled={!dirty || busy} onPress={() => void saveMembers()}>Save members</Button> : null}
       <ExpandedTests ids={members.map((m) => m.orderable_id)} />
+      </>}
     </section>
   );
 }

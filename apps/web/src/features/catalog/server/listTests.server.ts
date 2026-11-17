@@ -6,7 +6,19 @@ import { serverFetch } from '@/core/api/server-fetch';
 import { getTest } from './getTest.server';
 import { UUID_RE } from './types';
 
-export interface TestSummary { id: string; code: string; name: string; department_id?: string; department_code?: string; workflow_type?: string; is_orderable?: boolean; is_active: boolean }
+export interface TestSummary {
+  id: string; code: string; name: string; department_id?: string; department_code?: string; workflow_type?: string; is_orderable?: boolean; is_active: boolean;
+  // T0D-TESTMGMT-1 (LD-318) parity fields when the API sends them (OrderableSummary); is_popular is an API GAP (see notes).
+  short_name?: string; display_name?: string; category_id?: string; category_name?: string; is_popular?: boolean; default_price_paisa?: number;
+}
+
+/** One API page (Test Details left pane, Complete test list): limit ≤ 50, optional category filter. */
+export async function listTestsPage(q: { cursor?: string | undefined; categoryId?: string | undefined; limit?: number } = {}): Promise<{ data: TestSummary[]; page: { next_cursor?: string } }> {
+  const p = new URLSearchParams({ limit: String(Math.min(Math.max(Math.trunc(q.limit ?? 50), 1), 50)), sort: 'code', is_active: 'all' });
+  if (q.categoryId && UUID_RE.test(q.categoryId)) p.set('category_id', q.categoryId.toLowerCase());
+  if (q.cursor && CURSOR_RE.test(q.cursor)) p.set('cursor', q.cursor);
+  return serverFetch(`/v1/catalog/tests?${p}`);
+}
 export interface TestsQuery { departmentId?: string | undefined; isActive?: 'true' | 'false' | 'all'; cursor?: string | undefined }
 const CURSOR_RE = /^[A-Za-z0-9_\-=.]{1,512}$/;
 const MAX_PAGES = 10; // ponytail: 2000 tests max on the list page; server-side q/specimen paging (CR) when a catalog outgrows it

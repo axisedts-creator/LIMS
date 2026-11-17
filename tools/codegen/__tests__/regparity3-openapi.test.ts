@@ -1,10 +1,9 @@
-// T0C-REGPARITY-3 (CR-C0-REGAPI-2 part B, LD-323, LD-326): contracts/openapi/frontdesk.yaml schema RegistrationNumberPreview.
-//  - next_receipt_no becomes type [string, null], maxLength 64: it previews the next INVOICE number (issueReceiptNo is false, the invoice is the receipt); null when the preview is unavailable.
+// T0C-REGPARITY-3 (CR-C0-REGAPI-2 part B, LD-323, LD-326 as corrected by LD-331 option B): contracts/openapi/frontdesk.yaml schema RegistrationNumberPreview.
+//  - next_receipt_no stays type string (X10: no nullable, no type arrays), minLength 0, maxLength 64, required. It previews the next INVOICE number (issueReceiptNo is false, the invoice is the receipt);
+//    it is the EMPTY STRING when the preview is unavailable (port failure). Never null, never an RC number.
 //  - next_receipt_no_label (string, minLength 1, maxLength 64) is new, required, always present: the text assigned when saved.
 //  - the example of previewRegistrationNumbers is an invoice number in the tenant invoiceNoPattern shape (2083/84-000077), no RC- receipt number.
-//  - The one allowed breaking change (the only consumer, T0D-REGSCREEN-2, is not merged). Nothing else changes: no other schema, no operation, no permission.
-// KNOWN CONFLICT (see .orchestra/notes/T0C-REGPARITY-3-tests.md): tools/codegen/lint-openapi.ts rule 2 forbids `type` arrays (and OAS 3.0.3 has no `type: [..., null]`).
-//  The brief wants type [string, null] AND a clean lint, so the lint needs one narrow exemption (this field only), as LD-119 did for rule 3. The "exactly one type array" test below pins that narrowness.
+//  - The one allowed breaking change (the only consumer, T0D-REGSCREEN-2, is not merged). Nothing else changes: no other schema, no operation, no permission, no lint change.
 import { readFileSync, readdirSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -33,8 +32,8 @@ const validate = ajv.getSchema("frontdesk.yaml#/components/schemas/RegistrationN
 
 const CENTRE = "0193c4a0-0000-7000-8000-000000000901";
 const ok = { centre_id: CENTRE, next_registration_no: "R-2083-000124", next_receipt_no: "2083/84-000077", next_receipt_no_label: "2083/84-000077", is_preview: true };
-// port failure body (LD-323): the number is null, the label says what will be assigned
-const portFailure = { centre_id: CENTRE, next_registration_no: "R-2083-000124", next_receipt_no: null, next_receipt_no_label: "Assigned when saved", is_preview: true };
+// port failure body (LD-323, LD-331): the number is the empty string, the label says what will be assigned
+const portFailure = { centre_id: CENTRE, next_registration_no: "R-2083-000124", next_receipt_no: "", next_receipt_no_label: "Assigned when saved", is_preview: true };
 const INVOICE_SHAPE = /^\d{4}\/\d{2}-\d{6}$/; // tenant invoiceNoPattern '{fy}-{seq:6}' with fy 2083/84
 const types = (p: any): string[] => (Array.isArray(p?.type) ? p.type : p?.type ? [p.type] : []);
 const exampleBodies = (): any[] => {
@@ -50,14 +49,16 @@ describe("T0C-REGPARITY-3 schema RegistrationNumberPreview: shape", () => {
     expect([...P.required].sort()).toEqual(["centre_id", "is_preview", "next_receipt_no", "next_receipt_no_label", "next_registration_no"]);
     expect(Object.keys(P.properties).sort()).toEqual(["centre_id", "is_preview", "next_receipt_no", "next_receipt_no_label", "next_registration_no"]);
   });
-  it("next_receipt_no: type [string, null], maxLength 64, still required", () => {
+  it("next_receipt_no: type string (no type array, no nullable), minLength 0, maxLength 64, still required", () => {
     expect(NO, "next_receipt_no").toBeDefined();
-    expect([...types(NO)].sort(), "type is string or null").toEqual(["null", "string"]);
-    expect(NO.nullable, "null is expressed by the type list, not by nullable").toBeUndefined();
+    expect(NO.type, "plain string (LD-331, X10)").toBe("string");
+    expect(types(NO)).toEqual(["string"]);
+    expect(NO.nullable, "no nullable (X10)").toBeUndefined();
+    expect(NO.minLength, "empty string allowed when the preview is unavailable").toBe(0);
     expect(NO.maxLength).toBe(64);
     expect(P.required).toContain("next_receipt_no");
   });
-  it("next_receipt_no description: previews the next invoice number, issueReceiptNo false, assigned when saved, two users may see the same, null when unavailable", () => {
+  it("next_receipt_no description: previews the next invoice number, issueReceiptNo false, assigned when saved, two users may see the same, empty string when unavailable", () => {
     const d = String(NO?.description ?? "");
     expect(d).toMatch(/invoice number/i);
     expect(d).toMatch(/issueReceiptNo is false/);
@@ -65,8 +66,9 @@ describe("T0C-REGPARITY-3 schema RegistrationNumberPreview: shape", () => {
     expect(d).toMatch(/assigned (when|on) (it is )?saved?/i);
     expect(d).toMatch(/two users/i);
     expect(d).toMatch(/same (preview|number)/i);
-    expect(d).toMatch(/null/);
+    expect(d).toMatch(/empty string/i);
     expect(d).toMatch(/unavailable/i);
+    expect(d, "null wording replaced by the empty string (LD-331)").not.toMatch(/\bnull\b/i);
     expect(d, "the old receipt wording is gone").not.toMatch(/bill receipt number/i);
   });
   it("next_receipt_no_label: required string, minLength 1, maxLength 64, described as always the text assigned when saved", () => {
@@ -90,7 +92,7 @@ describe("T0C-REGPARITY-3 schema RegistrationNumberPreview: validation of real b
   it("a success body (invoice number plus label) is valid", () => {
     expect(validate(ok), JSON.stringify(validate.errors)).toBe(true);
   });
-  it("a port failure body (null number plus label) is valid", () => {
+  it("a port failure body (empty string number plus label) is valid", () => {
     expect(validate(portFailure), JSON.stringify(validate.errors)).toBe(true);
   });
   it("the label is mandatory, non-empty, at most 64 chars, and never null", () => {
@@ -100,11 +102,13 @@ describe("T0C-REGPARITY-3 schema RegistrationNumberPreview: validation of real b
     expect(validate({ ...ok, next_receipt_no_label: "x".repeat(65) }), "65 char label").toBe(false);
     expect(validate({ ...ok, next_receipt_no_label: "x".repeat(64) }), "64 char label").toBe(true);
     expect(validate({ ...ok, next_receipt_no_label: null }), "null label").toBe(false);
-    expect(validate({ ...portFailure, next_receipt_no_label: null }), "null label on a failure body").toBe(false);
+    expect(validate({ ...portFailure, next_receipt_no_label: "" }), "empty label on a failure body").toBe(false);
   });
-  it("the number is mandatory (null allowed, absent not), a string of at most 64 chars, nothing else", () => {
+  it("the number is mandatory (empty string allowed, null and absent not), a string of at most 64 chars, nothing else", () => {
     const { next_receipt_no: _n, ...noNumber } = ok;
     expect(validate(noNumber), "number key absent").toBe(false);
+    expect(validate({ ...ok, next_receipt_no: "" }), "empty string").toBe(true);
+    expect(validate({ ...ok, next_receipt_no: null }), "null is not allowed (X10 option B)").toBe(false);
     expect(validate({ ...ok, next_receipt_no: "9".repeat(64) }), "64 chars").toBe(true);
     expect(validate({ ...ok, next_receipt_no: "9".repeat(65) }), "65 chars").toBe(false);
     for (const bad of [123, true, {}, []]) expect(validate({ ...ok, next_receipt_no: bad }), `number ${JSON.stringify(bad)}`).toBe(false);
@@ -134,7 +138,7 @@ describe("T0C-REGPARITY-3 the previewRegistrationNumbers example", () => {
   });
   it("the success example is an invoice number in the tenant invoiceNoPattern shape (2083/84-000077), not an RC receipt number", () => {
     const ex = exampleBodies();
-    const withNumber = ex.filter((e) => e.next_receipt_no !== null);
+    const withNumber = ex.filter((e) => e.next_receipt_no !== "");
     expect(withNumber.length, "an example with a number").toBeGreaterThan(0);
     for (const e of withNumber) {
       expect(e.next_receipt_no).toMatch(INVOICE_SHAPE);
@@ -146,11 +150,11 @@ describe("T0C-REGPARITY-3 the previewRegistrationNumbers example", () => {
 });
 
 describe("T0C-REGPARITY-3 lint, scope, generated artifacts", () => {
-  it("lintRepo reports no violation for frontdesk.yaml (needs the narrow type array exemption, see header)", async () => {
+  it("lintRepo reports no violation for frontdesk.yaml (no lint exemption is needed or allowed: X10 option B)", async () => {
     const v = (await lintRepo(ROOT)).filter((x) => x.file === "frontdesk.yaml");
     expect(v, JSON.stringify(v.slice(0, 3))).toEqual([]);
   });
-  it("the exemption is narrow: exactly ONE schema in all contracts/openapi/*.yaml has a type array, and it is RegistrationNumberPreview.next_receipt_no", () => {
+  it("X10: no schema in any contracts/openapi/*.yaml has a type array, and none says nullable: true", () => {
     const found: string[] = [];
     const walk = (o: any, where: string) => {
       if (Array.isArray(o)) return o.forEach((x, i) => walk(x, `${where}/${i}`));
@@ -158,10 +162,16 @@ describe("T0C-REGPARITY-3 lint, scope, generated artifacts", () => {
       if (Array.isArray(o.type)) found.push(where);
       for (const [k, v] of Object.entries(o)) if (k !== "examples" && k !== "example" && k !== "enum") walk(v, `${where}/${k}`);
     };
-    for (const f of readdirSync(join(ROOT, "contracts/openapi")).filter((x) => x.endsWith(".yaml"))) walk(parse(read(`contracts/openapi/${f}`)), f);
-    expect(found).toEqual(["frontdesk.yaml/components/schemas/RegistrationNumberPreview/properties/next_receipt_no"]);
-    for (const f of readdirSync(join(ROOT, "contracts/openapi")).filter((x) => x.endsWith(".yaml")))
+    for (const f of readdirSync(join(ROOT, "contracts/openapi")).filter((x) => x.endsWith(".yaml"))) {
+      walk(parse(read(`contracts/openapi/${f}`)), f);
       expect(read(`contracts/openapi/${f}`), `${f}: no nullable: true`).not.toMatch(/nullable:\s*true/);
+    }
+    expect(found).toEqual([]);
+  });
+  it("lint-openapi.ts keeps rule 2 (type arrays forbidden) and has no RegistrationNumberPreview exemption", () => {
+    const t = read("tools/codegen/lint-openapi.ts");
+    expect(t).toMatch(/type arrays are forbidden/);
+    expect(t).not.toMatch(/RegistrationNumberPreview|next_receipt_no/);
   });
   it("scope: no other schema mentions the receipt preview fields, and the operation is unchanged (GET, same permission)", () => {
     for (const [n, s] of Object.entries<any>(S)) if (n !== "RegistrationNumberPreview") expect(JSON.stringify(s), n).not.toMatch(/next_receipt_no/);
@@ -173,12 +183,12 @@ describe("T0C-REGPARITY-3 lint, scope, generated artifacts", () => {
   it("generated contract types are fresh (codegen output equals the files on disk)", () => {
     expect(staleFiles(ROOT)).toEqual([]);
   });
-  it("generated client types: next_receipt_no is (string | null), next_receipt_no_label is a required string, in both client files", () => {
+  it("generated client types: next_receipt_no is string, next_receipt_no_label is a required string, in both client files", () => {
     for (const f of ["packages/api-client-ts/src/frontdesk.ts", "packages/api-client-ts/src/server/operations.ts"]) {
       const t = read(f);
-      expect(t, `${f} nullable number`).toMatch(/next_receipt_no: \(string \| null\);/);
+      expect(t, `${f} number`).toMatch(/next_receipt_no: string;/);
       expect(t, `${f} label`).toMatch(/next_receipt_no_label: string;/);
-      expect(t, `${f} old type gone`).not.toMatch(/next_receipt_no: string;/);
+      expect(t, `${f} no null`).not.toMatch(/next_receipt_no: \(string \| null\)/);
     }
   });
   it("generated MSW handler for number-preview returns the invoice number example plus the label", () => {

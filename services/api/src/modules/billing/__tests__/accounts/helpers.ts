@@ -26,8 +26,19 @@ const WRITE = /^\s*(insert|update|delete|truncate)\b/i;
 export const tag = () => Array.from({ length: 10 }, () => 'BCDFGHJKLMNPQRSTVWXZ'[Math.floor(Math.random() * 20)]).join('');
 
 /** One request as tenant `tenant`. Never throws: a handler error comes back in .error. */
-export async function fire(operationId: string, r: ReturnType<typeof req>, o: { tenant?: string; now?: Date; requestId?: string } = {}): Promise<Outcome> {
+export interface Who {
+  /** ctx.actor.id (a membership id). Default SYS_ACTOR (T0B-ACCT-1 behaviour). */
+  actor?: string;
+  /** centre scope of the actor (IdentityPort.getActor().centreScope). Default: all centres (T0B-ACCT-1 behaviour). */
+  centreIds?: string[];
+  /** roles of the actor ('tenant_admin' = administrator, T0B-ACCT-2 cancel rule). Default ['finance']. */
+  roles?: string[];
+  /** IdentityPort.getTenantSettings featureFlags (T0B-ACCT-2: allow_negative_pockets). */
+  flags?: Record<string, boolean>;
+}
+export async function fire(operationId: string, r: ReturnType<typeof req>, o: { tenant?: string; now?: Date; requestId?: string } & Who = {}): Promise<Outcome> {
   const tenant = o.tenant ?? TENANT_A;
+  const actorId = o.actor ?? SYS_ACTOR;
   const side = tenant === TENANT_B ? 'b' : 'a';
   const now = o.now ?? NOW;
   const out: Outcome = { stmts: [], writes: [], logs: [], accessCalls: [], requestId: o.requestId ?? uid() };
@@ -39,12 +50,12 @@ export async function fire(operationId: string, r: ReturnType<typeof req>, o: { 
       const tx = { startedAt: now, query: async (text: string, values?: unknown[]) => { out.stmts.push(text); if (WRITE.test(text)) out.writes.push(text); return rawTx.query(text, values); } };
       const log = (lvl: string) => (obj: unknown, msg?: string) => { out.logs.push(`${lvl} ${typeof obj === 'string' ? obj : JSON.stringify(obj)} ${msg ?? ''}`); };
       const identity = {
-        assertRole: async () => undefined, getActor: async () => ({ actor: { type: 'system', id: SYS_ACTOR }, displayName: 'Synthetic Accountant', roles: ['finance'], permissions: [], centreScope: { all: true, centreIds: [CENTRE[side]] }, branchIds: [], mfa: { enrolled: true, level: 'aal2' }, isLocked: false }),
-        getTenantSettings: async () => ({ timezone: 'Asia/Kathmandu', numbering: {}, channels: {} }),
+        assertRole: async () => undefined, getActor: async () => ({ actor: { type: 'system', id: actorId }, displayName: 'Synthetic Accountant', roles: o.roles ?? ['finance'], permissions: [], centreScope: { all: o.centreIds === undefined, centreIds: o.centreIds ?? [CENTRE[side]] }, branchIds: [], mfa: { enrolled: true, level: 'aal2' }, isLocked: false }),
+        getTenantSettings: async () => ({ timezone: 'Asia/Kathmandu', numbering: {}, channels: {}, featureFlags: o.flags ?? {} }),
       };
       const ctx: any = {
         operationId, clientIp: '203.0.113.9', log: { info: log('info'), warn: log('warn'), error: log('error'), debug: log('debug') }, metrics: { inc: () => undefined },
-        tenantId: tenant, tx, requestId: out.requestId, now: () => now, centreId: CENTRE[side], actor: { type: 'system', id: SYS_ACTOR },
+        tenantId: tenant, tx, requestId: out.requestId, now: () => now, centreId: CENTRE[side], actor: { type: 'system', id: actorId },
         ports: { IdentityPort: identity }, events: createEvents({ producer: 'billing' }),
       };
       ctx.audit = { access: async (e: any) => { out.accessCalls.push(e); await access(ctx, e); } };

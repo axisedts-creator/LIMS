@@ -12,9 +12,10 @@ const STUBS = new Set(UNOWNED_STUBS);
 
 describe('ST4 classification (generator guard)', () => {
   it('every operationId is either partner-facing or staff (/admin), exactly once, and the 78 ops are all covered', () => {
-    expect(OPS.length).toBe(78);
+    // T0C-SALES-1 (LD-321): the 15 sales operations join OPS once T0B-SALES-1 gives them handlers (kit.ts leaves pending ones out), so 78 (68 + 10 MSGDESK ticket ops) is a floor, not an exact count
+    expect(OPS.length).toBeGreaterThanOrEqual(78);
     expect(new Set([...PARTNER_OPS, ...STAFF_OPS].map((o) => o.operationId))).toEqual(new Set(OPS));
-    expect(PARTNER_OPS.length + STAFF_OPS.length).toBe(78);
+    expect(PARTNER_OPS.length + STAFF_OPS.length).toBe(OPS.length);
   });
 
   it('AB5/AB6 contract: partner-facing paths carry partner-actor permissions only, /admin paths staff permissions only (no code shared across the two sides except partners.ticket.read / .manage, T0C-MSGDESK-1 ruling)', () => {
@@ -22,7 +23,8 @@ describe('ST4 classification (generator guard)', () => {
     const staffSide = new Set(STAFF_OPS.map((o) => o.permission));
     // Ruling: spec AB5/AB6 + ST4 need an actor-type gate only; LD-321 gives the 5 codes to /admin and /me, so only these two may be shared. The /admin user-only and /me partner-only gate is T0B-MSGDESK-1 work.
     expect([...partnerSide].filter((p) => staffSide.has(p)).sort()).toEqual(['partners.ticket.manage', 'partners.ticket.read']);
-    expect([...staffSide].sort()).toEqual(['partners.manifest.receive', 'partners.partner.manage', 'partners.partner.read', 'partners.pickup.manage', 'partners.referrer.map', 'partners.ticket.manage', 'partners.ticket.read']);
+    // + partners.sales.read / partners.sales.manage on the sales operations once they are implemented (T0C-SALES-1)
+    expect([...staffSide].filter((p) => !p.startsWith('partners.sales.')).sort()).toEqual(['partners.manifest.receive', 'partners.partner.manage', 'partners.partner.read', 'partners.pickup.manage', 'partners.referrer.map', 'partners.ticket.manage', 'partners.ticket.read']);
     expect(ALL.every((o) => o.permission?.startsWith('partners.'))).toBe(true); // no platform.* / frontdesk.* / catalog.* code on a partners route
   });
 });

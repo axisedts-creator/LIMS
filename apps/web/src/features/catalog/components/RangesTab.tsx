@@ -234,8 +234,8 @@ export function RangesTab({ analyte, kind, sets, valueSet, specimenTypes, permis
   );
 }
 
-/** Publish… / Retire… (AC-05.9): change reason 1–500 + typed analyte code; Idempotency-Key kept across the step-up retry. */
-function SetActionDialog({ mode, kind, set, analyteCode, onClose, onDone, onFail }: {
+/** Publish… / Retire… (AC-05.9): change reason 1–500 + typed analyte code; Idempotency-Key kept across the step-up retry. Also used by RangeManager (T0D-TESTMGMT-1). */
+export function SetActionDialog({ mode, kind, set, analyteCode, onClose, onDone, onFail }: {
   mode: 'publish' | 'retire';
   kind: RangeKind;
   set: RangeSet;

@@ -7,7 +7,20 @@ export type RangeBandTable = 'reference_ranges' | 'critical_limits';
 export type Table = 'orderables' | 'tests' | 'panels' | 'panel_members' | 'test_specimen_types' | 'analytes' | 'analyte_versions' | 'departments' | 'specimen_types' | 'containers'
   | RangeSetTable | RangeBandTable   // T-08
   | 'formula_dependencies'           // T-09 (insert only)
-  | 'tat_targets';                   // T-14 (insert; rows are only ended, never deleted)
+  | 'tat_targets'                    // T-14 (insert; rows are only ended, never deleted)
+  | 'test_categories' | 'test_stage_tat_targets';   // T0B-TESTMGMT-1 (read here; stage targets written by upsertStageTargets only)
+
+/** Stage TAT targets (T0B-TESTMGMT-1): one row per (tenant, test, stage), updated in place (id kept, version +1, no DELETE); an unchanged value is not rewritten. */
+export async function upsertStageTargets(tx: Tx, rows: ReadonlyArray<{ id: string; tenant_id: string; test_id: string; stage: string; target_minutes: number; created_by: string; updated_by: string }>): Promise<void> {
+  const values: unknown[] = [];
+  const groups = rows.map((r) => `(${[r.id, r.tenant_id, r.test_id, r.stage, r.target_minutes, r.created_by, r.updated_by].map((v) => { values.push(v); return `$${values.length}`; }).join(', ')})`);
+  await tx.query(
+    `INSERT INTO catalog.test_stage_tat_targets AS s (id, tenant_id, test_id, stage, target_minutes, created_by, updated_by) VALUES ${groups.join(', ')}
+     ON CONFLICT (tenant_id, test_id, stage) DO UPDATE SET target_minutes = EXCLUDED.target_minutes, version = s.version + 1, updated_at = now(), updated_by = EXCLUDED.updated_by,
+     is_active = true WHERE s.target_minutes IS DISTINCT FROM EXCLUDED.target_minutes OR s.is_active IS DISTINCT FROM true`,
+    values,
+  );
+}
 
 export interface FindOpts {
   ids?: readonly string[];                          // id = ANY(...)

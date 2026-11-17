@@ -219,6 +219,13 @@ permissions:
   # T0C-MSGDESK-1 (LD-321): partner message to lab tickets; staff on /admin/tickets, partner actors (fixed set) on /me/tickets, own tickets only (RLS)
   - { code: partners.ticket.read,   privileged: false, roles: [tenant_admin, front_desk, lab_manager] }
   - { code: partners.ticket.manage, privileged: false, roles: [tenant_admin, front_desk, lab_manager] }
+  # T0C-SALES-1 (LD-321): sales hierarchy (designations, representatives, manager tree, party assignment, service areas); staff only
+  - { code: partners.sales.read,   privileged: false, roles: [tenant_admin, finance, lab_manager] }
+  - { code: partners.sales.manage, privileged: true,  roles: [tenant_admin, finance, lab_manager] }
+  # T0C-SYNC-1 (LD-322): offline sync (device registry, number blocks; conflict inbox in part 2); staff only. sync.use has two segments (named verbatim by LD-322)
+  - { code: sync.use,              privileged: false, roles: [tenant_admin, front_desk, finance, lab_technologist, pathologist, lab_manager, centre_staff, phlebotomist, owner_viewer, radiologist] }
+  - { code: sync.device.manage,    privileged: true,  roles: [tenant_admin] }
+  - { code: sync.conflict.resolve, privileged: true,  roles: [tenant_admin, lab_manager, finance] }
   - { code: smartreport.template.manage, privileged: false, roles: [pathologist, lab_manager], phase: 2 }   # CR-C14-003
   - { code: smartreport.summary.approve, privileged: true, roles: [pathologist], phase: 2 }   # per-summary approval (03-IC §4.10 invariant)   # CR-C14-003
   - { code: payments.intent.resolve, privileged: true, roles: [finance], phase: 1.5 }   # CR-C15-005

@@ -6372,6 +6372,15 @@ paths:
                         entry_count: 1
                         total_paisa: 150000
                     total_paisa: 450000
+                refund_only_day:
+                  value:
+                    centre_id: 0193c4a0-0000-7000-8000-00000acc005a
+                    day: 2026-11-18
+                    rows:
+                      - payment_mode: cash
+                        entry_count: -1
+                        total_paisa: -50000
+                    total_paisa: -50000
         "400":
           $ref: _common.yaml#/components/responses/BadRequest
         "401":
@@ -9574,6 +9583,7 @@ components:
     DailyCollectionRow:
       type: object
       additionalProperties: false
+      description: "One payment mode of the day: net of refunds and reversals booked on that day, negative when refunds exceed collections (LD-334)."
       required:
         - payment_mode
         - entry_count
@@ -9586,12 +9596,14 @@ components:
           pattern: ^[a-z][a-z0-9_]{0,49}$
         entry_count:
           type: integer
-          minimum: 0
+          description: "Entry count net of refunds and reversals booked on that day, negative when refunds exceed collections (LD-334)."
+          minimum: -2147483648
           maximum: 2147483647
         total_paisa:
           type: integer
           format: int64
-          minimum: 0
+          description: "Amount in paisa net of refunds and reversals booked on that day, negative when refunds exceed collections (LD-334)."
+          minimum: -9007199254740991
           maximum: 9007199254740991
     DailyCollectionSummary:
       type: object
@@ -9615,7 +9627,8 @@ components:
         total_paisa:
           type: integer
           format: int64
-          minimum: 0
+          description: "Sum of the rows in paisa, net of refunds and reversals booked on that day, negative when refunds exceed collections (LD-334)."
+          minimum: -9007199254740991
           maximum: 9007199254740991
     Expense:
       type: object

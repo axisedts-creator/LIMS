@@ -70,11 +70,22 @@ const implemented: Readonly<Record<string, Handler>> = {
   listInboundManifests, getInboundManifest, receiveManifest, retryManifestLineConversion, markManifestLineNotReceived, // T10 SI1-SI5
 };
 
+/** T0C-SALES-1 (LD-321, LD-325 b): sales hierarchy operations of partners.yaml without a handler yet (answer 501 operation_pending); T0B-SALES-1 removes them. */
+const PENDING_OPERATIONS: readonly string[] = Object.freeze([
+  'listSalesDesignations', 'createSalesDesignation', 'updateSalesDesignation',
+  'listSalesRepresentatives', 'createSalesRepresentative', 'updateSalesRepresentative', 'deactivateSalesRepresentative', 'getSalesTree',
+  'assignPartyToRepresentative', 'unassignPartyFromRepresentative', 'listRepresentativeClients',
+  'listServiceAreas', 'createServiceArea', 'updateServiceArea', 'deactivateServiceArea',
+]);
+
 export const manifest: ModuleManifest = Object.freeze({
   name: 'partners',
   openapi: OPENAPI,
+  // pending ids get no stub: core/openapi.ts mounts its 501 operation_pending handler for them (a stub here would win over it)
   handlers: Object.freeze(Object.fromEntries(operationIds(loadSpec(join(REPO_ROOT, OPENAPI)))
+    .filter((op) => Object.hasOwn(implemented, op) || !PENDING_OPERATIONS.includes(op))
     .map((op) => [op, Object.hasOwn(implemented, op) ? implemented[op]! : stub(op)]))),
+  pendingOperations: PENDING_OPERATIONS,
   produces: [],
   systemPermissions: PARTNERS_SYSTEM_PERMISSIONS,
 });

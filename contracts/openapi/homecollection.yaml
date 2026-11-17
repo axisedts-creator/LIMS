@@ -1402,6 +1402,12 @@ paths:
                           maximum: 60
                         route_full:
                           type: boolean
+                        allow_collection:
+                          type: boolean
+                          description: Collector may collect samples (ElabAssist Allow Collection). Default true; no homecollection.collector_flags row means true (T0C-SALES-1, LD-321).
+                        allow_pickup:
+                          type: boolean
+                          description: Collector may pick up from partners and centres (ElabAssist Allow Pickup). Default true; no homecollection.collector_flags row means true (T0C-SALES-1, LD-321).
               examples:
                 synthetic:
                   value:
@@ -1411,12 +1417,101 @@ paths:
                         route_id: 01950c17-0000-7000-8000-000000170001
                         active_visits: 1
                         route_full: false
+                        allow_collection: true
+                        allow_pickup: true
         "400":
           $ref: _common.yaml#/components/responses/BadRequest
         "401":
           $ref: _common.yaml#/components/responses/Unauthorized
         "403":
           $ref: _common.yaml#/components/responses/Forbidden
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/homecollection/phlebotomists/{membership_id}:
+    patch:
+      operationId: updateCollectorFlags
+      tags:
+        - homecollection
+      summary: Set a collector's Allow Collection / Allow Pickup flags (T0C-SALES-1, LD-321)
+      description: >-
+        Upserts homecollection.collector_flags for a staff membership of the tenant (no row = both flags true, so nothing existing changes).
+        Only the flags sent are changed. allow_collection false removes the collector from new visit assignment; allow_pickup false from pickup scheduling
+        (service rules, T0B-SALES-1). Online only; last write wins on these two booleans.
+      security:
+        - bearerJwt: []
+      x-permission: homecollection.settings.manage
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.not_found
+        - auth.mfa_required
+      parameters:
+        - name: membership_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              minProperties: 1
+              properties:
+                allow_collection:
+                  type: boolean
+                allow_pickup:
+                  type: boolean
+            examples:
+              synthetic:
+                value:
+                  allow_collection: true
+                  allow_pickup: false
+      responses:
+        "200":
+          description: The collector's flags after the change.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                  - membership_id
+                  - allow_collection
+                  - allow_pickup
+                properties:
+                  membership_id:
+                    $ref: _common.yaml#/components/schemas/Uuid
+                  allow_collection:
+                    type: boolean
+                  allow_pickup:
+                    type: boolean
+              examples:
+                synthetic:
+                  value:
+                    membership_id: 01950c17-0000-7000-8000-000000160001
+                    allow_collection: true
+                    allow_pickup: false
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
         "429":
           $ref: _common.yaml#/components/responses/TooManyRequests
         "500":

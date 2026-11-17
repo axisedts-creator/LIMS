@@ -316,6 +316,30 @@ export const ROUTES = {
     "path": "/anatomic",
     "permission": "anatomic.case.read"
   },
+  "staff.billing.account_entries": {
+    "origin": "staff_web",
+    "owner": "C4",
+    "path": "/billing/accounts/entries",
+    "permission": "billing.account.read"
+  },
+  "staff.billing.account_ledger": {
+    "origin": "staff_web",
+    "owner": "C4",
+    "path": "/billing/accounts/ledger",
+    "permission": "billing.account.read"
+  },
+  "staff.billing.account_masters": {
+    "origin": "staff_web",
+    "owner": "C4",
+    "path": "/billing/accounts/masters",
+    "permission": "billing.account.read"
+  },
+  "staff.billing.account_summary": {
+    "origin": "staff_web",
+    "owner": "C4",
+    "path": "/billing/accounts/summary",
+    "permission": "billing.account.read"
+  },
   "staff.billing.audit_trail": {
     "origin": "staff_web",
     "owner": "C4",
@@ -363,6 +387,12 @@ export const ROUTES = {
     "owner": "C4",
     "path": "/billing/invoices",
     "permission": "billing.invoice.read"
+  },
+  "staff.billing.pocket_ledger": {
+    "origin": "staff_web",
+    "owner": "C4",
+    "path": "/billing/accounts/pocket",
+    "permission": "billing.account.read"
   },
   "staff.billing.registers": {
     "origin": "staff_web",

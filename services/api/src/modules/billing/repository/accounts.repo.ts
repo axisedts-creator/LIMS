@@ -64,11 +64,13 @@ const PARTY_SQL: Readonly<Record<string, string>> = {
   credit_party: 'SELECT credit_limit_paisa::text AS credit_limit_paisa, is_locked FROM billing.credit_accounts WHERE tenant_id = $1 AND credit_party_id = $2',
   franchise: "SELECT NULL::text AS credit_limit_paisa, false AS is_locked FROM core.collection_centres WHERE tenant_id = $1 AND id = $2 AND centre_kind = 'franchise'",
   laboratory: 'SELECT NULL::text AS credit_limit_paisa, false AS is_locked FROM core.branches WHERE tenant_id = $1 AND id = $2',
+  user_pocket: `SELECT NULL::text AS credit_limit_paisa, false AS is_locked WHERE EXISTS (SELECT 1 FROM core.memberships WHERE tenant_id = $1 AND id = $2 AND status = 'active')
+    OR EXISTS (SELECT 1 FROM core.collection_centres WHERE tenant_id = $1 AND id = $2)`,
 };
 /**
  * Party of a ledger entry (party_id is polymorphic, no FK: the service checks it). [CONV] credit_party = billing.credit_accounts (limit, is_locked);
- * franchise = a core.collection_centres row of centre_kind 'franchise'; laboratory = a core.branches row. user_pocket has no owner table billing may read
- * (Pocket Ledger could not be read, LD-313 e): undefined (404) until T0B-ACCT-2 defines it.
+ * franchise = a core.collection_centres row of centre_kind 'franchise'; laboratory = a core.branches row.
+ * [CONV] T0B-ACCT-2 (LD-313 e, Pocket Ledger unreadable): user_pocket = an active core.memberships row (a user's cash pocket) or a core.collection_centres row (a centre's pocket).
  */
 export async function findParty(tx: Tx, tenantId: string, kind: string, partyId: string): Promise<{ creditLimitPaisa: string | null; isLocked: boolean } | undefined> {
   const sql = Object.hasOwn(PARTY_SQL, kind) ? PARTY_SQL[kind] : undefined;

@@ -48,14 +48,14 @@ describe('T0B-ADMINPERM-1 corp_admin holds every tenant staff permission (LD-310
     expect(new Set(admin.permissions).size).toBe(admin.permissions.length);
     expect(admin.permissions).toEqual([...admin.permissions].sort());
     expect([...admin.permissions].sort()).toEqual([...STAFF].sort());
-    expect(admin.permissions.length).toBe(167); // registry codes minus the 31 excluded; 155 + the 7 billing accounting codes of T0C-ACCT-1 (LD-313 c) + the 5 MSGDESK codes of T0C-MSGDESK-1 (LD-321)
+    expect(admin.permissions.length).toBe(172); // registry codes minus the 31 excluded; 155 + the 7 billing accounting codes of T0C-ACCT-1 (LD-313 c) + the 5 MSGDESK codes of T0C-MSGDESK-1 (LD-321) + the 2 sales codes of T0C-SALES-1 (LD-321) + the 3 sync codes of T0C-SYNC-1 (LD-322)
     expect(admin.mfa_required).toBe(true);
     expect(admin.base_default_role).toBe('tenant_admin');
   });
 
-  it('done_when (3): no code is renamed or removed; the only registry growth is the 7 billing accounting codes of T0C-ACCT-1 (LD-313 c) and the 5 MSGDESK codes of T0C-MSGDESK-1 (LD-321), all held by corp_admin', () => {
+  it('done_when (3): no code is renamed or removed; the only registry growth is the 7 billing accounting codes of T0C-ACCT-1 (LD-313 c) , the 5 MSGDESK codes of T0C-MSGDESK-1 (LD-321), the 2 sales codes of T0C-SALES-1 (LD-321) and the 3 sync codes of T0C-SYNC-1 (LD-322), all held by corp_admin', () => {
     expect(ALL.length).toBe(new Set(ALL).size);
-    expect(ALL.length - Object.keys(EXCLUDED).length).toBe(167); // T0C-ACCT-1 (LD-313 c) added 7 and T0C-MSGDESK-1 (LD-321) added 5 codes to the registry; none renamed or removed (contracts/__tests__/registry-equality.test.ts)
+    expect(ALL.length - Object.keys(EXCLUDED).length).toBe(172); // T0C-ACCT-1 (LD-313 c) added 7, T0C-MSGDESK-1 (LD-321) 5, T0C-SALES-1 (LD-321) 2 and T0C-SYNC-1 (LD-322) 3 codes to the registry; none renamed or removed (contracts/__tests__/registry-equality.test.ts)
   });
 
   it('privileged codes are held only because mfa_required is yes (R3)', () => {

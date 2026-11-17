@@ -13,6 +13,8 @@ export const PARTNERS_PERMISSIONS: readonly string[] = Object.freeze([
   'partners.referrer.map',
   'partners.referrer.read',
   'partners.report.read',
+  'partners.sales.manage', // T0C-SALES-1 (LD-321)
+  'partners.sales.read', // T0C-SALES-1 (LD-321)
   'partners.statement.read',
   'partners.ticket.manage', // T0C-MSGDESK-1 (LD-321)
   'partners.ticket.read',

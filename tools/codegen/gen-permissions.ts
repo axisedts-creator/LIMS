@@ -88,7 +88,7 @@ export function genPermissions(doc: Doc, header: string, sqlHeader: string): { t
   for (const p of perms) {
     if (seen.has(p.code)) throw new Error(`duplicate permission ${p.code}`);
     seen.add(p.code);
-    if (!/^[a-z_]+\.[a-z_]+\.[a-z_]+$/.test(p.code)) throw new Error(`bad permission code ${p.code}`); // 05-SCHEMA g_permissions__code__ck
+    if (!/^[a-z_]+\.[a-z_]+(\.[a-z_]+)?$/.test(p.code)) throw new Error(`bad permission code ${p.code}`); // g_permissions__code__ck, widened to 2 or 3 segments for sync.use (T0C-SYNC-1, LD-322)
     if (!PHASES.includes(String(p.phase ?? "1"))) throw new Error(`bad phase for ${p.code}`);
   }
   const roleCodes = [...doc.roles ?? [], ...doc.partner_roles ?? [], ...doc.platform_roles ?? []].map((r) => r.code);

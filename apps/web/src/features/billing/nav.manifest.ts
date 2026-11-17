@@ -14,5 +14,11 @@ export const navManifest: NavManifest = {
     { id: 'billing.cbms', label: 'nav.billing.cbms', routeId: 'staff.billing.cbms', permission: 'billing.invoice.read', group: 'billing', order: 40 },
     { id: 'billing.worklist', label: 'nav.billing.worklist', routeId: 'staff.billing.worklist', permission: 'billing.invoice.read', group: 'billing', order: 45 },
     { id: 'billing.settings', label: 'nav.billing.settings', routeId: 'staff.billing.settings', permission: 'billing.settings.manage', group: 'billing', order: 50 },
+    // T0D-ACCT-1 (LD-313): lab accounting, orders 51-59 (billing 60-64 stay with C15 payments).
+    { id: 'billing.account_entries', label: 'nav.billing.account_entries', routeId: 'staff.billing.account_entries', permission: 'billing.account.read', group: 'billing', order: 51 },
+    { id: 'billing.account_ledger', label: 'nav.billing.account_ledger', routeId: 'staff.billing.account_ledger', permission: 'billing.account.read', group: 'billing', order: 53 },
+    { id: 'billing.pocket_ledger', label: 'nav.billing.pocket_ledger', routeId: 'staff.billing.pocket_ledger', permission: 'billing.account.read', group: 'billing', order: 55 },
+    { id: 'billing.account_summary', label: 'nav.billing.account_summary', routeId: 'staff.billing.account_summary', permission: 'billing.account.read', group: 'billing', order: 57 },
+    { id: 'billing.account_masters', label: 'nav.billing.account_masters', routeId: 'staff.billing.account_masters', permission: 'billing.account.read', group: 'billing', order: 59 },
   ],
 };

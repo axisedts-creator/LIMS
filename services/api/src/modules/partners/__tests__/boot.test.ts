@@ -23,11 +23,16 @@ import { manifest } from '../index.js';
 import { PARTNERS_PERMISSIONS } from '../permissions.js';
 
 const SPEC = loadSpec(join(REPO_ROOT, 'contracts', 'openapi', 'partners.yaml'));
-const OPS = operationIds(SPEC);
+// T0C-SALES-1 (LD-321, LD-325(b)): 15 sales hierarchy operations are added after the 68 TRD operations; they are pending until T0B-SALES-1 and are pinned by
+// contract/sales1.pending.test.ts. This file keeps testing exactly the 68 original operations.
+const SALES1 = ['listSalesDesignations', 'createSalesDesignation', 'updateSalesDesignation', 'listSalesRepresentatives', 'createSalesRepresentative', 'updateSalesRepresentative',
+  'deactivateSalesRepresentative', 'getSalesTree', 'assignPartyToRepresentative', 'unassignPartyFromRepresentative', 'listRepresentativeClients', 'listServiceAreas', 'createServiceArea',
+  'updateServiceArea', 'deactivateServiceArea'];
+const OPS = operationIds(SPEC).filter((id) => !SALES1.includes(id));
 const PERMS = ['partners.manifest.receive', 'partners.manifest.submit', 'partners.order.read', 'partners.partner.manage',
   'partners.partner.read', 'partners.partner_user.manage', 'partners.pickup.manage', 'partners.pickup.request',
   'partners.price_list.read', 'partners.referrer.manage', 'partners.referrer.map', 'partners.referrer.read',
-  'partners.report.read', 'partners.statement.read', 'partners.ticket.manage', 'partners.ticket.read'];
+  'partners.report.read', 'partners.sales.manage', 'partners.sales.read', 'partners.statement.read', 'partners.ticket.manage', 'partners.ticket.read']; // + the 2 sales codes of T0C-SALES-1 (LD-321) + the 2 ticket codes of T0C-MSGDESK-1 (LD-321)
 /** Codes held only by partner actors (02-TRD §9.2): never valid on a staff `/v1/partners/admin/...` operation. */
 const PARTNER_ONLY = ['partners.order.read', 'partners.manifest.submit', 'partners.report.read', 'partners.statement.read',
   'partners.price_list.read', 'partners.pickup.request', 'partners.referrer.read', 'partners.referrer.manage'];
@@ -54,7 +59,7 @@ const FAKE_REQ = { params: {}, query: {}, headers: {}, body: {} };
 const noop = () => undefined;
 const fakeCtx = (operationId: string) => ({ operationId, clientIp: '127.0.0.1', log: { info: noop, warn: noop, error: noop } }) as any;
 const allOps = () => Object.entries<any>(SPEC.paths).flatMap(([path, item]) =>
-  Object.entries<any>(item).filter(([, op]) => op?.operationId).map(([method, op]) => ({ path, method, op })));
+  Object.entries<any>(item).filter(([, op]) => op?.operationId && !SALES1.includes(op.operationId)).map(([method, op]) => ({ path, method, op })));
 
 describe('T01 manifest', () => {
   it('is module partners bound to contracts/openapi/partners.yaml and passes the core manifest validation', () => {
@@ -93,7 +98,7 @@ describe('T01 handler map (68 operationIds of partners.yaml)', () => {
   });
 
   it('binds every operationId of partners.yaml to a function, and nothing else (AC-0D-1.2)', () => {
-    expect(Object.keys(manifest.handlers).sort()).toEqual([...OPS].sort());
+    expect(Object.keys(manifest.handlers).filter((id) => !SALES1.includes(id)).sort()).toEqual([...OPS].sort());
     for (const op of OPS) expect(typeof manifest.handlers[op], op).toBe('function');
   });
 
@@ -132,7 +137,7 @@ describe('T01 handler map (68 operationIds of partners.yaml)', () => {
 describe('T01 permissions', () => {
   const codes = PERMISSION_CODES.filter((c) => c.startsWith('partners.'));
 
-  it('PARTNERS_PERMISSIONS = the 16 partners.* codes of contracts/permissions.yaml (no invented code, none missing), frozen', () => {
+  it('PARTNERS_PERMISSIONS = the 18 partners.* codes (14 + partners.sales.read / partners.sales.manage of T0C-SALES-1 + partners.ticket.read / partners.ticket.manage of T0C-MSGDESK-1) of contracts/permissions.yaml (no invented code, none missing), frozen', () => {
     expect([...codes].sort()).toEqual(PERMS);
     expect([...PARTNERS_PERMISSIONS].sort()).toEqual(PERMS);
     expect(new Set(PARTNERS_PERMISSIONS).size).toBe(PARTNERS_PERMISSIONS.length);

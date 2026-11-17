@@ -153,6 +153,8 @@ INSERT INTO core.g_permissions (code, module, privileged, phase) VALUES
   ('partners.referrer.map', 'partners', false, '2'),
   ('partners.referrer.read', 'partners', false, '2'),
   ('partners.report.read', 'partners', false, '2'),
+  ('partners.sales.manage', 'partners', true, '1'),
+  ('partners.sales.read', 'partners', false, '1'),
   ('partners.statement.read', 'partners', false, '2'),
   ('partners.ticket.manage', 'partners', false, '1'),
   ('partners.ticket.read', 'partners', false, '1'),
@@ -199,5 +201,8 @@ INSERT INTO core.g_permissions (code, module, privileged, phase) VALUES
   ('smartreport.summary.approve', 'smartreport', true, '2'),
   ('smartreport.summary.read', 'smartreport', false, '2'),
   ('smartreport.template.approve', 'smartreport', true, '2'),
-  ('smartreport.template.manage', 'smartreport', false, '2')
+  ('smartreport.template.manage', 'smartreport', false, '2'),
+  ('sync.conflict.resolve', 'sync', true, '1'),
+  ('sync.device.manage', 'sync', true, '1'),
+  ('sync.use', 'sync', false, '1')
 ON CONFLICT (code) DO NOTHING;

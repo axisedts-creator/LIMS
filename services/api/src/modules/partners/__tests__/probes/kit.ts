@@ -4,14 +4,18 @@
 import { join } from 'node:path';
 import { LimsError } from '../../../../core/errors.js';
 import { loadSpec, operationIds, REPO_ROOT } from '../../../../core/module.js';
+import { manifest } from '../../index.js';
 
 export const SPEC: any = loadSpec(join(REPO_ROOT, 'contracts', 'openapi', 'partners.yaml'));
-export const OPS: string[] = operationIds(SPEC);
+// T0C-SALES-1 (LD-321, LD-325(b)): operations listed in manifest.pendingOperations have no handler yet (they answer 501 operation_pending after auth); the probes below call handlers,
+// so pending operations are left out here and join the probes automatically when T0B-SALES-1 moves them from pending to handlers.
+const PENDING = new Set<string>(((manifest as { pendingOperations?: readonly string[] }).pendingOperations) ?? []);
+export const OPS: string[] = operationIds(SPEC).filter((id) => !PENDING.has(id));
 
 export interface Op { operationId: string; method: string; path: string; permission: string; op: any; staff: boolean }
 /** every operation of partners.yaml; `staff` = under /v1/partners/admin/ (staff BFF), else partner-facing. */
 export const ALL: Op[] = Object.entries<any>(SPEC.paths).flatMap(([path, item]) =>
-  Object.entries<any>(item).filter(([, op]) => op?.operationId).map(([method, op]) => ({
+  Object.entries<any>(item).filter(([, op]) => op?.operationId && !PENDING.has(op.operationId)).map(([method, op]) => ({
     operationId: op.operationId as string, method: method.toUpperCase(), path, permission: op['x-permission'] as string, op, staff: path.startsWith('/v1/partners/admin/'),
   })));
 export const PARTNER_OPS = ALL.filter((o) => !o.staff);

@@ -73,6 +73,9 @@ async function seedUsers(): Promise<void> {
 /** Start every counter-dependent test from a known place: set both per tenant counters (superuser). */
 export async function setCounters(tenant: string, o: { lab?: number; patient?: number }): Promise<void> {
   await superTx(async (tx) => {
+    // ruling T0B-SYNC-1: a rewind must never point the counter into an already issued range (trigger number_block_overlap stays on): drop fixture blocks above the new value.
+    if (o.lab !== undefined) await tx.query(`DELETE FROM core.number_block WHERE tenant_id = $1 AND series = 'lab_code' AND to_value > $2`, [tenant, o.lab]);
+    if (o.patient !== undefined) await tx.query(`DELETE FROM core.number_block WHERE tenant_id = $1 AND series = 'patient_id' AND to_value > $2`, [tenant, o.patient]);
     if (o.lab !== undefined) await tx.query(`INSERT INTO lab.barcode_counters (tenant_id, last_value, created_by, updated_by) VALUES ($1, $2, $3, $3)
       ON CONFLICT (tenant_id) DO UPDATE SET last_value = $2`, [tenant, o.lab, SEED_ACTOR]);
     if (o.patient !== undefined) await tx.query(`INSERT INTO frontdesk.number_counters (tenant_id, counter_kind, scope_key, last_value, created_by, updated_by) VALUES ($1, 'patient_code', '', $2, $3, $3)

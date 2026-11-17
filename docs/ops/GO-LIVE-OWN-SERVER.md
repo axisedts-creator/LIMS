@@ -101,7 +101,7 @@ go to the on call person first, then to the backup person after 15 minutes witho
 | disk use (database, object store, backup volume) | above 75 % | above 90 % or any failed RAID member |
 | memory | above 85 % for 10 minutes | swap in use or out of memory kill |
 | database health | replication or WAL archive lag above 5 minutes | database not accepting connections |
-| API health (`/internal/health` from outside) | slow above 2 seconds | 2 failed checks in a row |
+| API health (`/v1/core/health/ready` from outside) | slow above 2 seconds | 2 failed checks in a row |
 | certificate expiry | under 21 days | under 7 days |
 | backup age | last good nightly backup older than 26 hours | older than 50 hours, or WAL archive older than 15 minutes |
 | sync backlog age (oldest unapplied operation) | above 1 hour | above 6 hours |

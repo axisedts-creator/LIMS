@@ -5,3 +5,4 @@
 - Decision: cloud copy kept read only as fallback for 14 days after cutover; retiring it is a founder decision (data deletion).
 - Tests: T0B-GOLIVE-1 84/84 pass. tests/lint + tests/docs 263/264: one failure in C2-T30 (admin page.tsx screen table), checks apps/ page.tsx vs docs/manual, files this task never touches; not fixed here.
 - Open: every founder decision in GO-LIVE section 7 (hardware, ISP, providers, backup location, credentials, Nepal legal review, offline devices, accountant on provisional numbers); SYNC tasks not yet on main.
+- Review fix: GO-LIVE monitoring row now probes `/v1/core/health/ready` (contracts/openapi/core.yaml), not the renderer-internal `/internal/health`.

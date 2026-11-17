@@ -1,10 +1,8 @@
-CHANGES
-Checked: names in testMgmt.server.ts (report_type, processing_type, result_type, result_display_type, stage enums, every unset[] list, /v1/catalog/test-categories, CommentCodeCreate fields, OrderableSummary short_name / display_name / category_name / default_price_paisa) match contracts/openapi/catalog.yaml verbatim. No PHI, no secrets, no DB / RLS in this diff (web only), forbidden paths (admin, platform, (auth), (platform)) untouched, no route added. Publish button gating (catalog.reference_range.publish + manage) is tested. Defects:
-
-1. apps/web/src/features/catalog/components/TestDetailsView.tsx:66-77 — Move up / Move down / Alt+Arrow swap `sort_order` values; analytes created without sort_order all get the API default 100 (services/api/src/modules/catalog/__tests__/integration/analyteVersions.service.test.ts:45; ParameterForm create sends none unless typed), so the swap PATCHes 100->100, nothing moves, and the toast says "Order saved." Fix: build the new order (params with i and i+dir swapped), then PATCH each parameter whose sort_order differs from (index+1)*10 with sort_order=(index+1)*10 (If-Match its version); add a test with two parameters both at sort_order 100 asserting they end in distinct, swapped values.
-
-2. apps/web/src/features/catalog/components/PanelDetail.tsx:105-112 — the TwoListPicker `selected` list includes nested panel members, but `available` holds only tests; Remove / Remove all drops a nested panel and it can never be re-added, so Save members silently removes panels from a package (the code comment claims they "keep their place"). Fix: pass only `members.filter((m) => m.kind === 'test')` as `selected`, and in onChange keep the others: `setMembers([...members.filter((m) => m.kind !== 'test'), ...ids.map((id) => ({ kind: 'test', orderable_id: id }))].map((m, i) => ({ ...m, sort_order: i })))`; add a test that Remove all on a package with a nested panel keeps the panel in the PUT body.
-
-3. apps/web/src/features/catalog/components/RangeManager.tsx:168-181 — after "Remove last band" down to zero rows, Save sends no request (bands.length is 0) yet shows "Reference ranges saved."; the user believes the bands were removed. Fix: if `rows.length === 0 && set`, set an inline error "A range set needs at least one band; retire the set instead." and return before any toast; also skip the success toast when no request was sent. Add a test.
-
-4. Task brief "at most 24 files in all": the diff touches 25 code files (32 minus 7 .orchestra notes). Fix: move TwoListPicker (and PickItem) from components/TwoListPicker.tsx into components/compact-ui.tsx, update the import in PanelDetail.tsx, delete TwoListPicker.tsx.
+APPROVE
+Round 2. All four round-1 defects are fixed, and tests now cover each one:
+1. TestDetailsView.tsx:70-79: the reorder renumbers to (index+1)*10 and PATCHes only the changed rows, each with If-Match. A new test covers two parameters that both start at sort_order 100.
+2. PanelDetail.tsx:110-111: the picker now shows and edits test members only. Nested panels are kept in the PUT body, and a new test covers Remove all.
+3. RangeManager.tsx:168,188: an existing set cannot be emptied. The user sees an inline alert, no request is sent and no false toast appears. A new test covers this.
+4. TwoListPicker was merged into compact-ui.tsx and its file deleted. The diff now touches 24 code files, within the limit of 24.
+Rerun by reviewer: testmgmt1 141/141, cattests1 40/40, catunits1 20/20, rs-c2 74/74. Working tree clean afterwards.
+Unchanged from round 1: the names match catalog.yaml verbatim. The diff is web only, so it has no RLS/DB, PHI or secrets. No forbidden paths were touched and no route was added. The publish button is gated on catalog.reference_range.publish.

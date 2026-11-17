@@ -55,9 +55,15 @@ export type ErrorCode =
   | "billing.refund_self_approval_forbidden"
   | "catalog.code_duplicate"
   | "catalog.formula_invalid"
+  | "catalog.import_already_committed"
+  | "catalog.import_batch_expired"
+  | "catalog.import_has_errors"
   | "catalog.import_invalid"
+  | "catalog.import_invalid_file"
   | "catalog.import_not_committable"
   | "catalog.import_stale_base"
+  | "catalog.import_template_outdated"
+  | "catalog.import_too_large"
   | "catalog.instrument_code_unmapped"
   | "catalog.no_price"
   | "catalog.no_reference_range"
@@ -356,9 +362,15 @@ export const ERROR_META: Readonly<Record<ErrorCode, { readonly http: number; rea
   "billing.refund_self_approval_forbidden": { http: 403, owner: "C4", title: "Refund approver must differ from requester" },
   "catalog.code_duplicate": { http: 409, owner: "C3", title: "Code already used" },
   "catalog.formula_invalid": { http: 422, owner: "C3", title: "Formula invalid" },
+  "catalog.import_already_committed": { http: 409, owner: "C3", title: "Import batch already committed" },
+  "catalog.import_batch_expired": { http: 409, owner: "C3", title: "Import batch expired" },
+  "catalog.import_has_errors": { http: 409, owner: "C3", title: "Import batch has errors" },
   "catalog.import_invalid": { http: 422, owner: "C3", title: "Import file invalid" },
+  "catalog.import_invalid_file": { http: 422, owner: "C3", title: "Import file is not a valid workbook" },
   "catalog.import_not_committable": { http: 409, owner: "C3", title: "Import cannot be committed" },
   "catalog.import_stale_base": { http: 409, owner: "C3", title: "Price list changed since export" },
+  "catalog.import_template_outdated": { http: 422, owner: "C3", title: "Import template is outdated" },
+  "catalog.import_too_large": { http: 413, owner: "C3", title: "Import file too large" },
   "catalog.instrument_code_unmapped": { http: 422, owner: "C3", title: "Instrument code not mapped" },
   "catalog.no_price": { http: 422, owner: "C3", title: "No price configured" },
   "catalog.no_reference_range": { http: 422, owner: "C3", title: "No reference range" },

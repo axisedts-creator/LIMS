@@ -123,6 +123,7 @@ INSERT INTO registry (tbl, class, centre_scoped, audited, shared_with, rls_exemp
   ('catalog.g_units', 'G', false, false, ARRAY[]::text[], true),
   ('catalog.g_value_set_values', 'G', false, false, ARRAY[]::text[], true),
   ('catalog.g_value_sets', 'G', false, false, ARRAY[]::text[], true),
+  ('catalog.import_batch', 'M', false, true, ARRAY[]::text[], false),
   ('catalog.import_issues', 'E', false, false, ARRAY[]::text[], false),
   ('catalog.imports', 'M', false, true, ARRAY[]::text[], false),
   ('catalog.instrument_code_maps', 'M', false, true, ARRAY[]::text[], false),

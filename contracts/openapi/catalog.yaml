@@ -4583,6 +4583,18 @@ paths:
           schema:
             type: string
             maxLength: 16
+        - name: is_active
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 5
+            enum:
+              - "true"
+              - "false"
+              - all
+            default: "true"
+          description: Default true; `all` includes inactive rows (LD-333, a copy of listTestCategories).
         - $ref: _common.yaml#/components/parameters/Cursor
         - $ref: _common.yaml#/components/parameters/Limit
       responses:
@@ -6859,6 +6871,544 @@ paths:
           $ref: _common.yaml#/components/responses/Conflict
         "422":
           $ref: _common.yaml#/components/responses/Unprocessable
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/catalog/test-import-template:
+    get:
+      operationId: downloadCatalogImportTemplate
+      tags:
+        - catalog
+      summary: Download the Excel test import template (tests, parameters and reference ranges in one xlsx)
+      description: >-
+        Returns an xlsx workbook generated from the same field definitions as the Add Test, Add Test Parameter and Reference Range forms, so the header lists
+        cannot drift: one sheet "Tests", one sheet "Parameters", one sheet "Reference Ranges", one sheet "Panels" and an "Instructions" sheet (instruction text of every
+        column and the import rules of validateCatalogImport). The template version is written in the workbook; a file with another template version is rejected
+        (catalog.import_template_outdated). Download convention of the reporting module (Content-Disposition attachment). T0C-TESTIMPORT-1, LD-318.
+      security:
+        - bearerJwt: []
+      x-permission: catalog.test.manage
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes: []
+      responses:
+        "200":
+          description: xlsx attachment.
+          headers:
+            Content-Disposition:
+              description: attachment; filename=test-import-template.xlsx
+              schema:
+                type: string
+                maxLength: 255
+          content:
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema:
+                type: string
+                format: binary
+                maxLength: 5242880
+              examples:
+                synthetic:
+                  summary: Binary xlsx body
+                  value: <binary xlsx>
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/catalog/test-import-batches:
+    post:
+      operationId: validateCatalogImport
+      tags:
+        - catalog
+      summary: Upload and validate an Excel test import (dry run; writes no catalog row)
+      description: >-
+        The server parses and validates the workbook, never the browser, converts it to normalized JSON and records a batch: status validated when there is no error,
+        rejected otherwise. The dry run writes no catalog row (commitCatalogImport does, as DRAFTS only; the import never publishes). Upload convention of reporting uploadOutsourcedReport.
+        IMPORT RULES: xlsx only, checked by magic bytes (a ZIP container with an OOXML workbook part); never xlsm, never xls, no macros (a vbaProject part is rejected);
+        external links are rejected; a zip bomb is rejected (the uncompressed size is capped before parsing); at most 5 MB and at most 5000 rows per sheet
+        (catalog.import_too_large); a file that is not a readable workbook is catalog.import_invalid_file; a wrong template version is catalog.import_template_outdated.
+        Text cells starting with = + - or @ are rejected (formula injection). Test codes are unique per tenant and in the file; mode create_only refuses an existing code.
+        Parameter equations are written over the short names of other parameters of the same test and are mapped to formula_expression over analyte codes; unknown names,
+        self reference, cycles and division by a constant zero are rejected. Reference ranges: From >= To, overlapping bands for the same gender and laboratory,
+        Normal Low > Normal High and critical limits inside the normal range are rejected; gender Any is expanded; critical limits 0 and 0 mean none (LD-318 follow-up).
+        All errors are listed together, not only the first, each with its sheet, row and column; at most 1000 errors are kept. A batch can be committed within 24 hours.
+        T0C-TESTIMPORT-1, LD-318.
+      security:
+        - bearerJwt: []
+      x-permission: catalog.test.manage
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.payload_too_large
+        - common.unsupported_media_type
+        - common.rate_limited
+        - common.idempotency_key_reused
+        - catalog.import_invalid_file
+        - catalog.import_template_outdated
+        - catalog.import_too_large
+      x-upload:
+        - application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+      parameters:
+        - $ref: _common.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/CatalogImportForm"
+            encoding:
+              file:
+                contentType: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+            examples:
+              synthetic:
+                value:
+                  file: <binary xlsx>
+                  mode: create_only
+      responses:
+        "201":
+          description: Created (batch validated or rejected, with all errors and a preview; no catalog row written).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CatalogImportValidation"
+              examples:
+                clean:
+                  summary: Every row is valid; the batch can be committed within 24 hours
+                  value:
+                    batch:
+                      id: 0193c4a0-0000-7000-8000-000000000601
+                      file_name: tests-synthetic.xlsx
+                      file_sha256: abababababababababababababababababababababababababababababababab
+                      template_version: "1"
+                      mode: create_only
+                      status: validated
+                      counts:
+                        tests: 2
+                        analytes: 5
+                        ranges: 12
+                        panels: 1
+                        errors: 0
+                      created_by: 0193c4a0-0000-7000-8000-000000000603
+                      created_at: 2026-11-17T10:00:00.000Z
+                      validated_at: 2026-11-17T10:00:02.000Z
+                      version: 1
+                    errors: []
+                    preview:
+                      tests:
+                        - code: SYN01
+                          name: Synthetic Lipid Profile
+                          action: create
+                          analytes: 5
+                          ranges: 10
+                        - code: SYN02
+                          name: Synthetic Glucose
+                          action: create
+                          analytes: 0
+                          ranges: 2
+                rejected:
+                  summary: Two errors in two sheets, all listed together; the batch is rejected and cannot be committed
+                  value:
+                    batch:
+                      id: 0193c4a0-0000-7000-8000-000000000602
+                      file_name: tests-synthetic.xlsx
+                      file_sha256: cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd
+                      template_version: "1"
+                      mode: create_only
+                      status: rejected
+                      counts:
+                        tests: 2
+                        analytes: 5
+                        ranges: 12
+                        panels: 0
+                        errors: 2
+                      created_by: 0193c4a0-0000-7000-8000-000000000603
+                      created_at: 2026-11-17T10:05:00.000Z
+                      validated_at: 2026-11-17T10:05:02.000Z
+                      version: 1
+                    errors:
+                      - sheet: Tests
+                        row: 3
+                        column: Test Code
+                        code: code_duplicate
+                        message: Synthetic test code SYN01 appears twice in the file
+                      - sheet: Parameters
+                        row: 7
+                        column: Equation
+                        code: formula_cycle
+                        message: "Synthetic: VLDL uses TG, TG uses VLDL"
+                    preview:
+                      tests: []
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "413":
+          description: The file is larger than 5 MB or has more than 5000 rows per sheet.
+          content:
+            application/problem+json:
+              schema:
+                $ref: _common.yaml#/components/schemas/Problem
+              examples:
+                import_too_large:
+                  value:
+                    type: urn:lims:error:catalog.import_too_large
+                    title: Import file too large
+                    status: 413
+                    code: catalog.import_too_large
+                    request_id: 01933b6f-0a11-7e2b-8c55-1d2e3f405162
+        "415":
+          $ref: _common.yaml#/components/responses/UnsupportedMediaType
+        "422":
+          description: The file is not a valid xlsx workbook, or its template version is outdated.
+          content:
+            application/problem+json:
+              schema:
+                $ref: _common.yaml#/components/schemas/Problem
+              examples:
+                import_invalid_file:
+                  value:
+                    type: urn:lims:error:catalog.import_invalid_file
+                    title: Import file is not a valid workbook
+                    status: 422
+                    code: catalog.import_invalid_file
+                    request_id: 01933b6f-0a11-7e2b-8c55-1d2e3f405162
+                import_template_outdated:
+                  value:
+                    type: urn:lims:error:catalog.import_template_outdated
+                    title: Import template is outdated
+                    status: 422
+                    code: catalog.import_template_outdated
+                    request_id: 01933b6f-0a11-7e2b-8c55-1d2e3f405162
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+    get:
+      operationId: listCatalogImports
+      tags:
+        - catalog
+      summary: List Excel test import batches (history, newest first)
+      security:
+        - bearerJwt: []
+      x-permission: catalog.test.manage
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes: []
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 9
+            enum:
+              - validated
+              - rejected
+              - committed
+              - expired
+        - name: mode
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 11
+            enum:
+              - create_only
+              - update
+        - $ref: _common.yaml#/components/parameters/Cursor
+        - $ref: _common.yaml#/components/parameters/Limit
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CatalogImportBatchPage"
+              examples:
+                synthetic:
+                  value:
+                    data:
+                      - id: 0193c4a0-0000-7000-8000-000000000611
+                        file_name: tests-synthetic.xlsx
+                        file_sha256: abababababababababababababababababababababababababababababababab
+                        template_version: "1"
+                        mode: create_only
+                        status: committed
+                        counts:
+                          tests: 2
+                          analytes: 5
+                          ranges: 12
+                          panels: 1
+                          errors: 0
+                        created_by: 0193c4a0-0000-7000-8000-000000000603
+                        created_at: 2026-11-17T10:00:00.000Z
+                        validated_at: 2026-11-17T10:00:02.000Z
+                        committed_at: 2026-11-17T10:10:00.000Z
+                        committed_by: 0193c4a0-0000-7000-8000-000000000603
+                        version: 2
+                    page:
+                      limit: 50
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/catalog/test-import-batches/{batch_id}:
+    get:
+      operationId: getCatalogImport
+      tags:
+        - catalog
+      summary: Get one Excel test import batch (ETag = version, for If-Match on commit)
+      security:
+        - bearerJwt: []
+      x-permission: catalog.test.manage
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes: []
+      parameters:
+        - name: batch_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+      responses:
+        "200":
+          description: Success.
+          headers:
+            ETag:
+              description: '"<version>" of the batch (02-CV §4.2), sent back as If-Match on commitCatalogImport.'
+              schema:
+                type: string
+                maxLength: 12
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CatalogImportBatch"
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-000000000621
+                    file_name: tests-synthetic.xlsx
+                    file_sha256: abababababababababababababababababababababababababababababababab
+                    template_version: "1"
+                    mode: create_only
+                    status: validated
+                    counts:
+                      tests: 2
+                      analytes: 5
+                      ranges: 12
+                      panels: 1
+                      errors: 0
+                    created_by: 0193c4a0-0000-7000-8000-000000000603
+                    created_at: 2026-11-17T10:00:00.000Z
+                    validated_at: 2026-11-17T10:00:02.000Z
+                    version: 1
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/catalog/test-import-batches/{batch_id}/commit:
+    post:
+      operationId: commitCatalogImport
+      tags:
+        - catalog
+      summary: Commit a validated Excel test import atomically (all rows or none) as DRAFTS; never publishes
+      description: >-
+        Requires If-Match (the batch version) and the explicit confirm flag. Writes every row of the normalized workbook of a validated batch in one transaction:
+        all rows or none. Imported tests, analyte versions and reference range sets are created as DRAFTS only; the import never publishes, so the pathologist
+        sign-off (publish permission, publishAnalyteVersion and publishReferenceRangeSet) still decides what goes live (LD-318). A rejected batch (it has errors)
+        cannot be committed (catalog.import_has_errors); a batch older than 24 hours cannot be committed (catalog.import_batch_expired); a batch that is already committed
+        returns catalog.import_already_committed. T0C-TESTIMPORT-1.
+      security:
+        - bearerJwt: []
+      x-permission: catalog.test.manage
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.precondition_required
+        - common.version_conflict
+        - common.idempotency_key_reused
+        - catalog.import_has_errors
+        - catalog.import_batch_expired
+        - catalog.import_already_committed
+      parameters:
+        - name: batch_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - $ref: _common.yaml#/components/parameters/IfMatch
+        - $ref: _common.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CatalogImportCommit"
+            examples:
+              synthetic:
+                value:
+                  confirm: true
+      responses:
+        "201":
+          description: Created (DRAFTS only; nothing published).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CatalogImportCommitResult"
+              examples:
+                synthetic:
+                  value:
+                    batch:
+                      id: 0193c4a0-0000-7000-8000-000000000631
+                      file_name: tests-synthetic.xlsx
+                      file_sha256: abababababababababababababababababababababababababababababababab
+                      template_version: "1"
+                      mode: create_only
+                      status: committed
+                      counts:
+                        tests: 2
+                        analytes: 5
+                        ranges: 12
+                        panels: 1
+                        errors: 0
+                      created_by: 0193c4a0-0000-7000-8000-000000000603
+                      created_at: 2026-11-17T10:00:00.000Z
+                      validated_at: 2026-11-17T10:00:02.000Z
+                      committed_at: 2026-11-17T10:10:00.000Z
+                      committed_by: 0193c4a0-0000-7000-8000-000000000603
+                      version: 2
+                    created:
+                      tests: 2
+                      analytes: 5
+                      ranges: 12
+                      panels: 1
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          description: Version conflict, the batch has errors, is expired or is already committed.
+          content:
+            application/problem+json:
+              schema:
+                $ref: _common.yaml#/components/schemas/Problem
+              examples:
+                version_conflict:
+                  value:
+                    type: urn:lims:error:common.version_conflict
+                    title: Version conflict
+                    status: 409
+                    code: common.version_conflict
+                    request_id: 01933b6f-0a11-7e2b-8c55-1d2e3f405162
+                import_has_errors:
+                  value:
+                    type: urn:lims:error:catalog.import_has_errors
+                    title: Import batch has errors
+                    status: 409
+                    code: catalog.import_has_errors
+                    request_id: 01933b6f-0a11-7e2b-8c55-1d2e3f405162
+                import_batch_expired:
+                  value:
+                    type: urn:lims:error:catalog.import_batch_expired
+                    title: Import batch expired
+                    status: 409
+                    code: catalog.import_batch_expired
+                    request_id: 01933b6f-0a11-7e2b-8c55-1d2e3f405162
+                import_already_committed:
+                  value:
+                    type: urn:lims:error:catalog.import_already_committed
+                    title: Import batch already committed
+                    status: 409
+                    code: catalog.import_already_committed
+                    request_id: 01933b6f-0a11-7e2b-8c55-1d2e3f405162
+        "428":
+          $ref: _common.yaml#/components/responses/PreconditionRequired
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/catalog/test-import-batches/{batch_id}/errors-file:
+    get:
+      operationId: downloadCatalogImportErrors
+      tags:
+        - catalog
+      summary: Download the uploaded rows with an Errors column (xlsx)
+      description: >-
+        Returns the uploaded rows of the batch as an xlsx, each sheet with an extra Errors column holding the errors of that row, so the file can be fixed and
+        validated again. Download convention of the reporting module (Content-Disposition attachment). T0C-TESTIMPORT-1, LD-318.
+      security:
+        - bearerJwt: []
+      x-permission: catalog.test.manage
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes: []
+      parameters:
+        - name: batch_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+      responses:
+        "200":
+          description: xlsx attachment.
+          headers:
+            Content-Disposition:
+              description: attachment; filename=test-import-errors.xlsx
+              schema:
+                type: string
+                maxLength: 255
+          content:
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema:
+                type: string
+                format: binary
+                maxLength: 5242880
+              examples:
+                synthetic:
+                  summary: Binary xlsx body
+                  value: <binary xlsx>
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
         "429":
           $ref: _common.yaml#/components/responses/TooManyRequests
         "500":
@@ -12394,6 +12944,279 @@ components:
           maxItems: 50000
           items:
             $ref: "#/components/schemas/PriceListImportError"
+    CatalogImportForm:
+      type: object
+      additionalProperties: false
+      description: >-
+        Multipart body of validateCatalogImport (T0C-TESTIMPORT-1, LD-318): one xlsx only file (checked by magic bytes; never xlsm, never xls, no macros,
+        no external links), at most 5 MB and 5000 rows per sheet; the server parses and validates it, never the browser. mode create_only (default) refuses a test code
+        that already exists; update adds new DRAFT versions to existing tests.
+      required:
+        - file
+      properties:
+        file:
+          type: string
+          format: binary
+          minLength: 1
+          maxLength: 5242880
+          description: xlsx only, at most 5 MB (5242880 bytes), 5000 rows per sheet
+        mode:
+          type: string
+          maxLength: 11
+          enum:
+            - create_only
+            - update
+          default: create_only
+    CatalogImportCounts:
+      type: object
+      additionalProperties: false
+      description: Counts of an Excel test import batch (rows found per kind and the number of errors).
+      required:
+        - tests
+        - analytes
+        - ranges
+        - panels
+        - errors
+      properties:
+        tests:
+          type: integer
+          minimum: 0
+          maximum: 5000
+        analytes:
+          type: integer
+          minimum: 0
+          maximum: 5000
+        ranges:
+          type: integer
+          minimum: 0
+          maximum: 5000
+        panels:
+          type: integer
+          minimum: 0
+          maximum: 5000
+        errors:
+          type: integer
+          minimum: 0
+          maximum: 1000
+    CatalogImportBatch:
+      type: object
+      additionalProperties: false
+      description: >-
+        One upload of the Excel test import workbook (xlsx); history, never deleted. status validated (no error, committable within 24 hours), rejected (it has errors),
+        committed or expired (older than 24 hours, never committed). The normalized JSON of the workbook is kept by the server and not returned. version is the ETag for If-Match.
+      required:
+        - id
+        - file_name
+        - file_sha256
+        - template_version
+        - mode
+        - status
+        - counts
+        - created_by
+        - created_at
+        - version
+      properties:
+        id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        file_name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        file_sha256:
+          type: string
+          minLength: 64
+          maxLength: 64
+          pattern: ^[0-9a-f]{64}$
+        template_version:
+          type: string
+          minLength: 1
+          maxLength: 20
+        mode:
+          type: string
+          maxLength: 11
+          enum:
+            - create_only
+            - update
+        status:
+          type: string
+          maxLength: 9
+          enum:
+            - validated
+            - rejected
+            - committed
+            - expired
+        counts:
+          $ref: "#/components/schemas/CatalogImportCounts"
+        created_by:
+          $ref: _common.yaml#/components/schemas/Uuid
+        created_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        validated_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        committed_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        committed_by:
+          $ref: _common.yaml#/components/schemas/Uuid
+        version:
+          type: integer
+          minimum: 1
+          maximum: 2147483647
+    CatalogImportError:
+      type: object
+      additionalProperties: false
+      description: >-
+        One error of an xlsx test import with its sheet, row and column; all errors are listed together, not only the first, at most 1000 errors per batch.
+      required:
+        - sheet
+        - row
+        - column
+        - code
+        - message
+      properties:
+        sheet:
+          type: string
+          minLength: 1
+          maxLength: 40
+        row:
+          type: integer
+          minimum: 1
+          maximum: 1048576
+        column:
+          type: string
+          minLength: 1
+          maxLength: 60
+        code:
+          type: string
+          minLength: 1
+          maxLength: 64
+        message:
+          type: string
+          minLength: 1
+          maxLength: 300
+    CatalogImportPreviewTest:
+      type: object
+      additionalProperties: false
+      description: One test of the workbook as it would be imported (as DRAFTS).
+      required:
+        - code
+        - name
+        - action
+        - analytes
+        - ranges
+      properties:
+        code:
+          type: string
+          minLength: 1
+          maxLength: 32
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        action:
+          type: string
+          maxLength: 6
+          enum:
+            - create
+            - update
+        analytes:
+          type: integer
+          minimum: 0
+          maximum: 5000
+        ranges:
+          type: integer
+          minimum: 0
+          maximum: 5000
+    CatalogImportPreview:
+      type: object
+      additionalProperties: false
+      description: The first tests of the workbook as they would be imported; nothing is written by the dry run.
+      required:
+        - tests
+      properties:
+        tests:
+          type: array
+          maxItems: 100
+          items:
+            $ref: "#/components/schemas/CatalogImportPreviewTest"
+    CatalogImportValidation:
+      type: object
+      additionalProperties: false
+      description: >-
+        Result of the dry run of an xlsx test import: the batch, all errors (sheet, row and column each, at most 1000 errors) and a preview. The dry run writes no catalog row.
+      required:
+        - batch
+        - errors
+        - preview
+      properties:
+        batch:
+          $ref: "#/components/schemas/CatalogImportBatch"
+        errors:
+          type: array
+          maxItems: 1000
+          items:
+            $ref: "#/components/schemas/CatalogImportError"
+        preview:
+          $ref: "#/components/schemas/CatalogImportPreview"
+    CatalogImportCommit:
+      type: object
+      additionalProperties: false
+      description: Explicit confirmation of the commit; must be exactly true.
+      required:
+        - confirm
+      properties:
+        confirm:
+          type: boolean
+          enum:
+            - true
+    CatalogImportCommitResult:
+      type: object
+      additionalProperties: false
+      description: The committed batch and what was created (all as DRAFTS; nothing is published).
+      required:
+        - batch
+        - created
+      properties:
+        batch:
+          $ref: "#/components/schemas/CatalogImportBatch"
+        created:
+          type: object
+          additionalProperties: false
+          required:
+            - tests
+            - analytes
+            - ranges
+            - panels
+          properties:
+            tests:
+              type: integer
+              minimum: 0
+              maximum: 5000
+            analytes:
+              type: integer
+              minimum: 0
+              maximum: 5000
+            ranges:
+              type: integer
+              minimum: 0
+              maximum: 5000
+            panels:
+              type: integer
+              minimum: 0
+              maximum: 5000
+    CatalogImportBatchPage:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - page
+      properties:
+        data:
+          type: array
+          maxItems: 200
+          items:
+            $ref: "#/components/schemas/CatalogImportBatch"
+        page:
+          $ref: _common.yaml#/components/schemas/PageInfo
     PriceListImportBatchPage:
       type: object
       additionalProperties: false

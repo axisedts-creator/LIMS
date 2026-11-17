@@ -14041,6 +14041,162 @@ export interface Operations {
       };
     };
   };
+  commitCatalogImport: {
+    params: {
+      batch_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "If-Match": string;
+      "Idempotency-Key": string;
+    };
+    body: {
+      confirm: true;
+    };
+    responses: {
+      201: ({
+        batch: {
+          id: string;
+          file_name: string;
+          file_sha256: string;
+          template_version: string;
+          mode: "create_only" | "update";
+          status: "validated" | "rejected" | "committed" | "expired";
+          counts: {
+            tests: number;
+            analytes: number;
+            ranges: number;
+            panels: number;
+            errors: number;
+          };
+          created_by: string;
+          created_at: string;
+          validated_at?: string;
+          committed_at?: string;
+          committed_by?: string;
+          version: number;
+        };
+        created: {
+          tests: number;
+          analytes: number;
+          ranges: number;
+          panels: number;
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   commitImport: {
     params: {
       import_id: string;
@@ -43708,6 +43864,180 @@ export interface Operations {
       };
     };
   };
+  downloadCatalogImportErrors: {
+    params: {
+      batch_id: string;
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: string;
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  downloadCatalogImportTemplate: {
+    params: Record<string, never>;
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: string;
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   downloadExportFile: {
     params: {
       export_id: string;
@@ -51523,6 +51853,121 @@ export interface Operations {
         unmapped_formula_inputs: string[];
         truncated: boolean;
       };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  getCatalogImport: {
+    params: {
+      batch_id: string;
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        id: string;
+        file_name: string;
+        file_sha256: string;
+        template_version: string;
+        mode: "create_only" | "update";
+        status: "validated" | "rejected" | "committed" | "expired";
+        counts: {
+          tests: number;
+          analytes: number;
+          ranges: number;
+          panels: number;
+          errors: number;
+        };
+        created_by: string;
+        created_at: string;
+        validated_at?: string;
+        committed_at?: string;
+        committed_by?: string;
+        version: number;
+      });
       400: {
         type: string;
         title: string;
@@ -77823,6 +78268,116 @@ export interface Operations {
       };
     };
   };
+  listCatalogImports: {
+    params: Record<string, never>;
+    query: {
+      status?: "validated" | "rejected" | "committed" | "expired";
+      mode?: "create_only" | "update";
+      cursor?: string;
+      limit?: number;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        data: ({
+          id: string;
+          file_name: string;
+          file_sha256: string;
+          template_version: string;
+          mode: "create_only" | "update";
+          status: "validated" | "rejected" | "committed" | "expired";
+          counts: {
+            tests: number;
+            analytes: number;
+            ranges: number;
+            panels: number;
+            errors: number;
+          };
+          created_by: string;
+          created_at: string;
+          validated_at?: string;
+          committed_at?: string;
+          committed_by?: string;
+          version: number;
+        })[];
+        page: {
+          next_cursor?: string;
+          limit: number;
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   listCbmsDocuments: {
     params: Record<string, never>;
     query: {
@@ -78244,6 +78799,7 @@ export interface Operations {
     query: {
       department_id?: string;
       code_prefix?: string;
+      is_active?: "true" | "false" | "all";
       cursor?: string;
       limit?: number;
     };
@@ -156056,6 +156612,184 @@ export interface Operations {
         }[];
       };
       404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  validateCatalogImport: {
+    params: Record<string, never>;
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+    };
+    body: {
+      file: string;
+      mode?: "create_only" | "update";
+    };
+    responses: {
+      201: ({
+        batch: {
+          id: string;
+          file_name: string;
+          file_sha256: string;
+          template_version: string;
+          mode: "create_only" | "update";
+          status: "validated" | "rejected" | "committed" | "expired";
+          counts: {
+            tests: number;
+            analytes: number;
+            ranges: number;
+            panels: number;
+            errors: number;
+          };
+          created_by: string;
+          created_at: string;
+          validated_at?: string;
+          committed_at?: string;
+          committed_by?: string;
+          version: number;
+        };
+        errors: {
+          sheet: string;
+          row: number;
+          column: string;
+          code: string;
+          message: string;
+        }[];
+        preview: {
+          tests: ({
+            code: string;
+            name: string;
+            action: "create" | "update";
+            analytes: number;
+            ranges: number;
+          })[];
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      413: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      415: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
         type: string;
         title: string;
         status: number;

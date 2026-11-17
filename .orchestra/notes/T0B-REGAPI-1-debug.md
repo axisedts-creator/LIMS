@@ -10,3 +10,6 @@
 - Same causes. Diff (patient.ts, patient.dto.ts, patients.repo.ts, patient.service.ts, regapi tests) touches no failing code; no regapi/patient test fails.
 - quote.test.ts:302 stale (quote service sends currency NPR); boot.test.ts:256/263 stale vs ADMINPAGE-FD-1 nav entries; downtime/registration failures = referrer_required from shared tenant-settings bleed between parallel files (count fell 33 -> 30 -> 19 with no code change).
 - No code fix; tests may not be edited. Lead: triage quote + boot tests; run frontdesk suite with --no-file-parallelism.
+## round 4 (verify log 20:38: 4 failed / 1672 passed, only boot.test.ts)
+- Cause: host load, not code. Whole-suite run spawns 65 workers (781s); boot.test.ts autoload() of all modules hit the 60000ms timeout (line 86); the 3 "module engagement/homecollection: index.ts exports no manifest" errors are fallout of the same aborted import under load.
+- Alone, boot.test.ts passes 30/30 (165s, 20:53). No regapi/patient failure; diff touches no boot code. No code fix, tests not edited. Lead: rerun verify on an idle host (or cap workers; do not weaken the check).

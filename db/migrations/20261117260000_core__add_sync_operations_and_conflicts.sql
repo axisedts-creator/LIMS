@@ -96,6 +96,7 @@ CREATE TABLE IF NOT EXISTS core.sync_conflict (
   CONSTRAINT sync_conflict__operation__fk FOREIGN KEY (tenant_id, op_id) REFERENCES core.sync_operation (tenant_id, op_id),
   CONSTRAINT sync_conflict__resolved_by__fk FOREIGN KEY (tenant_id, resolved_by) REFERENCES core.users (tenant_id, id),
   CONSTRAINT sync_conflict__entity_type__ck CHECK (entity_type ~ '^[a-z][a-z_]*$' AND char_length(entity_type) <= 60),
+  CONSTRAINT sync_conflict__payloads__ck CHECK (jsonb_typeof(local_payload) = 'object' AND jsonb_typeof(server_payload) = 'object'),
   CONSTRAINT sync_conflict__status__ck CHECK (status IN ('open','resolved')),
   CONSTRAINT sync_conflict__resolution__ck CHECK (resolution IN ('keep_server','apply_local','merge')),
   CONSTRAINT sync_conflict__reason__ck CHECK (char_length(reason) <= 1000),

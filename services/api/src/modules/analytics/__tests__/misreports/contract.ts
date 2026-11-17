@@ -12,6 +12,10 @@ export const NEW_CODES: readonly string[] = DEFS.map((d) => d.code);
 /** LD-342 / A39: the only two codes that may carry the word and money about a party's rate (gate: flag + analytics.referral_report.read + aal2). */
 export const MONEY_CODES = ['two_level_commission', 'tds'] as const;
 export const PLAIN_CODES: readonly string[] = NEW_CODES.filter((c) => !(MONEY_CODES as readonly string[]).includes(c));
+/** LD-346 (2): these two stay in the contract but are PENDING in T0B-MISREPORTS-1 (delivered by T0B-MISREPORTS-2): no handler, no rates, endpoint answers 501. */
+export const PENDING_CODES = MONEY_CODES;
+/** The 9 codes this task delivers (= PLAIN_CODES). Registry equality: REPORT_CODES ∪ PENDING_REPORT_CODES = OLD_CODES + NEW_CODES, disjoint. */
+export const DELIVERED_CODES: readonly string[] = PLAIN_CODES;
 export const def = (code: string): ReportDefinition => DEFS.find((d) => d.code === code) ?? (() => { throw new Error(`no definition ${code}`); })();
 
 /** The 14 codes of the g_cs_report_codes seed that exist before this task, in table order (domain/reportRegistry.ts). */

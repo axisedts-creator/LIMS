@@ -41,9 +41,10 @@ describe('one month of 20000 bills', () => {
     expect(sum(r.rows.map((x: any) => x.orders_registered))).toBe(20_000);
   }, T);
 
-  it('consultant over the month: Σ net billed = Σ net of the referred bills', async () => {
+  it('consultant over the month (LD-346, volume only): Σ tests = tests of the referred bills, no money key', async () => {
     const r = (await timed('consultant', {})).r;
-    expect(sum(r.rows.map((x: any) => x.net_billed_paisa))).toBe(sum(W.bills.filter((b) => b.referrerId).map((b) => b.net)));
+    expect(sum(r.rows.map((x: any) => x.tests_count))).toBe(sum(W.bills.filter((b) => b.referrerId).map((b) => b.lines.length)));
+    for (const x of r.rows) expect(Object.keys(x).filter((k) => /paisa|net_billed/i.test(k))).toEqual([]);
   }, T);
 
   it('bill_of_the_day: one day paged by 100 within the bound, every bill of the day once', async () => {

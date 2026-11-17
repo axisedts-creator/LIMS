@@ -191,22 +191,25 @@ describe('sales representative, consultant and collection boy: rows and totals r
     expect(await rowsOf('sales_representative', { filters: { representative_id: [B.spec.parties[0]!] } }, A)).toEqual([]);
   }, T);
 
-  it('consultant: per (referrer, department) orders, tests and net billed from the invoice lines; Σ rows = register of the referred invoices', async () => {
+  // LD-346 (1): the consultant report is VOLUME ONLY (no per-referrer money outside the gate, A39-3): no net_billed_paisa column, sorted by tests_count descending.
+  it('consultant (LD-346): per (referrer, department) orders and tests only, no money column, sorted by tests_count desc; Σ tests = tests of the referred bills', async () => {
+    expect(def('consultant').columns.map((c) => c.name)).not.toContain('net_billed_paisa');
+    expect(def('consultant').default_sort).toEqual({ column: 'tests_count', direction: 'desc' });
     const rows = await rowsOf('consultant');
-    const want = new Map<string, { orders: Set<string>; tests: number; net: number }>();
+    const want = new Map<string, { orders: Set<string>; tests: number }>();
     for (const b of A.bills.filter((x) => x.referrerId)) for (const l of b.lines) {
-      const k = `${b.referrerId}|${l.deptId}`; const e = want.get(k) ?? { orders: new Set<string>(), tests: 0, net: 0 };
-      e.orders.add(b.orderId); e.tests++; e.net += l.net; want.set(k, e);
+      const k = `${b.referrerId}|${l.deptId}`; const e = want.get(k) ?? { orders: new Set<string>(), tests: 0 };
+      e.orders.add(b.orderId); e.tests++; want.set(k, e);
     }
     expect(rows).toHaveLength(want.size);
     for (const r of rows) {
       const e = want.get(`${r.referrer_id}|${r.department_id}`)!;
       expect(e, `${r.referrer_id}|${r.department_id}`).toBeDefined();
-      expect(r).toMatchObject({ orders_registered: e.orders.size, tests_count: e.tests, net_billed_paisa: e.net });
+      expect(r).toMatchObject({ orders_registered: e.orders.size, tests_count: e.tests });
+      expect(Object.keys(r).filter((k) => /paisa|net_billed|amount/i.test(k)), 'no money key in a consultant row').toEqual([]);
       expect(typeof r.referrer_name).toBe('string');
     }
-    const register = Number((await ownerSql(`SELECT coalesce(sum(net_paisa),0)::bigint AS n FROM billing.invoices WHERE tenant_id = $1 AND status = 'issued' AND referrer_id IS NOT NULL`, [TENANT_A]))[0].n);
-    expect(sum(rows.map((r) => r.net_billed_paisa))).toBe(register);
+    for (let i = 1; i < rows.length; i++) expect(rows[i - 1].tests_count).toBeGreaterThanOrEqual(rows[i].tests_count);
     expect(sum(rows.map((r) => r.tests_count))).toBe(sum(A.bills.filter((b) => b.referrerId).map((b) => b.lines.length)));
   }, T);
 

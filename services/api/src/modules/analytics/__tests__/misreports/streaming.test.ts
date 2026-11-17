@@ -7,7 +7,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { REPO_ROOT } from '../../../../core/module.js';
 import { readXlsx } from '../../export/__tests__/xlsxRead.js';
-import { NEW_CODES } from './contract.js';
+import { DELIVERED_CODES } from './contract.js';
 
 const META = {
   tenantDisplayName: 'Test Lab Pvt Ltd', reportTitle: 'Bill of the Day', periodLabelAd: '2020-06-01 to 2020-06-30', periodLabelBs: '2077-02-19 to 2077-03-17 B.S.',
@@ -82,6 +82,6 @@ describe('wiring of the export path', () => {
   });
   it('every new report is exportable and schedulable in the registry the worker reads', async () => {
     const { getReport } = await import('../../domain/reportRegistry.js');
-    for (const c of NEW_CODES) { expect(getReport(c).exportable).toBe(true); expect(getReport(c).schedulable).toBe(true); }
+    for (const c of DELIVERED_CODES) { expect(getReport(c).exportable).toBe(true); expect(getReport(c).schedulable).toBe(true); }
   });
 });

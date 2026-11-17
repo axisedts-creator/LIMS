@@ -7,3 +7,9 @@
 - OPEN 3: contract examples use business_date_to INCLUSIVE (from == to = one day) but resolvePeriod is exclusive; tests pin inclusive for the 11 codes (handler + service).
 - Pinned picks (header of each file, lead may overrule): sales rep = assigned parties in window, no roll up; consultant per (referrer, dept) from invoice_lines; commission base = issued invoices gross - discount - credited, half up per row; row exists iff settings row and posted bill; row cap 400 common.validation_failed.
 - NOT tested: outsource rows (no outsourced fixture), worker omission of a flag-off money report at schedule run, worker build of files end to end, cloud apply (migration 230000 is a founder step). Not run: 3 consecutive green runs (needs the implementation).
+
+## LD-346 round (tester, tests only; contract/impl untouched)
+- consultant volume only: reports.live + perf.live + registry.static assert no money key, default_sort tests_count desc (contract edit is T0C's; tests read the contract).
+- PENDING: pinned `PENDING_REPORT_CODES` (readonly ['two_level_commission','tds']) exported by domain/reportRegistry.ts; no registry row for them; REPORT_CODES = 14 old + 9 delivered; REPORT_CODES + PENDING = every contract code. Export or schedule of a pending code by an authorised caller -> rejection statusCode 501 code 'operation_pending', nothing written (gates.test); 403 first without analytics.data.export.
+- Moved to T0B-MISREPORTS-2 (.orchestra/notes/T0B-MISREPORTS-2-commission.live.test.ts.txt, T0B-MISREPORTS-2-moved-tests.md): commission.live, the flag/aal1/access-log/admin-schedule gate cases. reportRegistry.test.ts: 14+9, flag/permission lists = referral_incentive only. Nothing loosened; probe and CI gate unchanged.
+- Not tested: runMisReport on a pending code (service level) and the HTTP 501 body shape (implementer free; handler-level pin above). Fails now: report_unknown, PENDING_REPORT_CODES missing.

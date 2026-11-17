@@ -1,0 +1,16 @@
+CHANGES
+
+Scope note: the briefed range cf16e8211..HEAD is empty (HEAD = cf16e8211, the T0C-SYNC-1 tip). Reviewed the T0C-SALES-1 commits instead (f54514fa9, 7c4c3a99d, f8aad0800, eca308026, e9a2c35c8, 72a81ce34, 0c7add8c7, e72570591, 36866b145, de2ac486d), all ancestors of HEAD.
+
+1. db/tests/fixtures/probe-rows/partners.sql:90 and db/tests/fixtures/probe-rows/homecollection.sql:3 — the generated probe fixture rows for the 5 new tables (partners.sales_designation, sales_representative, party_sales_assignment, service_area, homecollection.collector_flags) were never committed. The impl notes list "probe-rows" as generated, but no SALES-1 commit touches these files; the correct regenerated content sits only as uncommitted changes in the lane worktree. `node db/tools/gen-isolation-probes.ts --check` reports "ok (455 probe files, 19 fixture files current)" ONLY with those uncommitted edits; on the committed tree the two fixtures are stale, so the check fails on main and the 5 new isolation probes (db/tests/isolation/partners.*.test.sql, homecollection.collector_flags.test.sql) run with no fixture rows for their table. Fix: run `node db/tools/gen-isolation-probes.ts` and commit db/tests/fixtures/probe-rows/partners.sql (+12 lines: sales_designation, sales_representative, party_sales_assignment, service_area rows) and db/tests/fixtures/probe-rows/homecollection.sql (+3 lines: collector_flags rows) under T0C-SALES-1; then re-run `--check` and the 5 isolation probes.
+
+Checked and fine (no change needed):
+- Names: 15 partners operationIds + updateCollectorFlags, partners.sales.read / partners.sales.manage verbatim from LD-321; migration name 20261117210000_partners__add_sales_hierarchy.sql matches LD-321; never renamed or removed a code.
+- Tenant isolation: all 5 tables ENABLE + FORCE RLS, SELECT/INSERT/UPDATE policies TO lims_app on tenant_id = app.current_tenant_id(), no DELETE grant or policy, composite (tenant_id, id) FKs so cross-tenant manager/designation/representative/centre/membership refs fail (tested). No centre-array policy here, so no ::uuid[] cast applies.
+- DB rules: own-manager CHECK + recursive loop trigger under per-tenant advisory lock; overlap trigger (inclusive end, open end) with UPDATE coverage; flags NOT NULL DEFAULT true; re-apply idempotency tested in pgTAP.
+- Permissions: manage privileged (auth.mfa_required on writes), roles tenant_admin/finance/lab_manager, corp_admin pack updated; updateCollectorFlags reuses existing privileged homecollection.settings.manage.
+- Idempotency/rate tier/error codes follow existing partners.yaml conventions (create required, PATCH none, deactivate/unassign optional; tier general; _common responses); closed schemas, examples, outstanding_paisa integer.
+- pendingOperations set in partners and homecollection index.ts per LD-325(b).
+- No PHI/secrets: rep phone/email excluded from audit values; synthetic examples only.
+- Field map, offline classification (writes online only, client list readable offline) and founder steps (push-cloud, re-apply role pack) present in notes.
+- Over the 12 file cap only by generated/registry files; flagged by the writer for the lead, same precedent as T0C-ACCT-1 / TESTMGMT-1 — not counted as a defect here.

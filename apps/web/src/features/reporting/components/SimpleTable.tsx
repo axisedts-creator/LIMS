@@ -3,6 +3,7 @@
 // [CONV] The kit DataTable renders an ARIA grid without a <caption>; the reporting screens are read-mostly lists that need role=table + caption,
 // so they use native table semantics with the kit's lims-table classes. Selection = native checkboxes with a per-row accessible name.
 import type { ReactNode } from 'react';
+import { EmptyRow, PlaceholderRows } from '@lims/ui/components/DataTable';
 import { EmptyState } from '@lims/ui/components/EmptyState';
 
 export interface Col<R> { id: string; header: string; cell: (r: R) => ReactNode; rowHeader?: boolean }
@@ -11,9 +12,10 @@ export interface Selection { selectedIds: ReadonlySet<string>; onChange: (ids: R
 export function SimpleTable<R>({ columns, rows, getRowId, caption, empty, selection }: {
   columns: readonly Col<R>[]; rows: readonly R[]; getRowId: (r: R) => string; caption: string; empty: { title: string; body?: string }; selection?: Selection;
 }) {
-  if (rows.length === 0) return <EmptyState {...empty} />;
+  // T0D-EMPTYTBL-1 (LD-310): no early return; an empty list keeps its header row, the message sits in the body.
   const ids = rows.map(getRowId);
-  const all = selection ? ids.every((i) => selection.selectedIds.has(i)) : false;
+  const span = columns.length + (selection ? 1 : 0);
+  const all = selection && ids.length > 0 ? ids.every((i) => selection.selectedIds.has(i)) : false;
   const toggle = (id: string, on: boolean) => {
     if (!selection) return;
     const next = new Set(selection.selectedIds);
@@ -28,13 +30,14 @@ export function SimpleTable<R>({ columns, rows, getRowId, caption, empty, select
           <tr>
             {selection ? (
               <th scope="col" className="lims-col-select">
-                <input type="checkbox" aria-label="Select all rows" checked={all} onChange={(e) => selection.onChange(e.currentTarget.checked ? new Set(ids.slice(0, selection.max ?? 200)) : new Set())} />
+                <input type="checkbox" aria-label="Select all rows" checked={all} disabled={ids.length === 0}onChange={(e) => selection.onChange(e.currentTarget.checked ? new Set(ids.slice(0, selection.max ?? 200)) : new Set())} />
               </th>
             ) : null}
             {columns.map((c) => <th key={c.id} scope="col" className="lims-col">{c.header}</th>)}
           </tr>
         </thead>
         <tbody>
+          {rows.length === 0 ? <EmptyRow colSpan={span}><EmptyState {...empty} /></EmptyRow> : null}
           {rows.map((r) => {
             const id = getRowId(r);
             return (
@@ -49,6 +52,7 @@ export function SimpleTable<R>({ columns, rows, getRowId, caption, empty, select
             );
           })}
         </tbody>
+        {rows.length === 0 ? <PlaceholderRows colSpan={span} /> : null}
       </table>
     </div>
   );

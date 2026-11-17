@@ -150,7 +150,8 @@ describe('SCR-13 PriceListsList (AC-13.6 default list; 03-APP-FLOW §5)', () => 
 
   it('New price list: "Applies to" is create-only choice; POST carries Idempotency-Key and code is sent as typed-upper', async () => {
     await show([]);
-    await press(/new price list/i);
+    // T0D-EMPTYTBL-1 / LD-310: empty list shows the create action in the header AND in the message row; click the header one.
+    await userEvent.click(screen.getAllByRole('button', { name: /new price list/i })[0]!);
     const d = dialog();
     await userEvent.type(within(d).getByLabelText(/^code/i), 'dr_y');
     await userEvent.type(within(d).getByLabelText(/^name/i), 'Dr Y list');

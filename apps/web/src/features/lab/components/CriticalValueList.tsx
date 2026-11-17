@@ -5,6 +5,7 @@
 // [CONV] a closed event's age stops at closed_at instead of running on.
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { EmptyRow, PlaceholderRows } from '@lims/ui/components/DataTable';
 import { EmptyState } from '@lims/ui/components/EmptyState';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import type { CriticalValueRow } from '../server/adminpages.server';
@@ -30,10 +31,8 @@ export function CriticalValueList({ items, status, nextCursor }: { items: readon
   return (
     <section aria-label="Critical values">
       <PageHeader title="Critical values" helpKey="lab.critical_values" />
-      {rows.length === 0 ? (
-        <EmptyState title="No critical values." />
-      ) : (
-        <table className="lims-table" aria-label="Critical values">
+      {/* T0D-EMPTYTBL-1 (LD-310): headers always drawn; the empty message is a body row. */}
+      <table className="lims-table" aria-label="Critical values">
           <thead>
             <tr>
               <th scope="col">Detected at</th>
@@ -44,6 +43,7 @@ export function CriticalValueList({ items, status, nextCursor }: { items: readon
             </tr>
           </thead>
           <tbody>
+            {rows.length === 0 ? <EmptyRow colSpan={5}><EmptyState title="No critical values." /></EmptyRow> : null}
             {rows.map((r) => (
               <tr key={r.id}>
                 <td>{when(r.detected_at)}</td>
@@ -54,8 +54,8 @@ export function CriticalValueList({ items, status, nextCursor }: { items: readon
               </tr>
             ))}
           </tbody>
+          {rows.length === 0 ? <PlaceholderRows colSpan={5} /> : null}
         </table>
-      )}
       {nextCursor ? <p><Link href={more}>Next page</Link></p> : null}
     </section>
   );

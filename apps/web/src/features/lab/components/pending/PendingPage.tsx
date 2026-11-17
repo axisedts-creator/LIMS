@@ -2,6 +2,8 @@
 // SCR pending list (PRD AC-07.3; 03-APP-FLOW §3.5; 04-UI-UX §3.5): awaiting rows included; an age is never shown without its start point
 // ("Age since registered" for awaiting rows, "Age since received" otherwise); "Over target" is a text badge. Read only: needs lab.worklist.read (API enforced).
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { EmptyRow, PlaceholderRows } from '@lims/ui/components/DataTable';
+import { EmptyState } from '@lims/ui/components/EmptyState';
 import { listPendingAction } from '../../server/worklist.actions';
 import type { ActionResult, PendingItem } from '../../server/types';
 import { Failure, hhmm, statusLabel } from '../shared';
@@ -29,8 +31,8 @@ export function PendingPage({ permissions: _permissions }: { permissions?: reado
       <h1>Pending tests</h1>
       <label><input type="checkbox" checked={overOnly} onChange={(e) => setOverOnly(e.target.checked)} /> Over target only</label>
       {load.s === 'fail' ? <Failure r={load.r} onRetry={retry} /> : null}
-      {load.s === 'ok' && rows.length === 0 ? <div className="lims-state"><p className="lims-state-title">Nothing pending.</p></div> : null}
-      {load.s === 'ok' && rows.length > 0 ? (
+      {/* T0D-EMPTYTBL-1 (LD-310): once loaded the table is always drawn; an empty list shows its message as a body row. Loading / failure unchanged. */}
+      {load.s === 'ok' ? (
         <table className="lims-table" aria-label="Pending tests">
           <thead><tr>
             <th scope="col">Reg no</th><th scope="col">Patient</th><th scope="col">Test</th><th scope="col">Status</th><th scope="col">Priority</th>
@@ -39,6 +41,7 @@ export function PendingPage({ permissions: _permissions }: { permissions?: reado
             <th scope="col">TAT target</th>
           </tr></thead>
           <tbody>
+            {rows.length === 0 ? <EmptyRow colSpan={6}><EmptyState title="Nothing pending." /></EmptyRow> : null}
             {rows.map((r) => (
               <tr key={r.order_test_id}>
                 <td>{r.registration_no}</td>
@@ -52,6 +55,7 @@ export function PendingPage({ permissions: _permissions }: { permissions?: reado
               </tr>
             ))}
           </tbody>
+          {rows.length === 0 ? <PlaceholderRows colSpan={6} /> : null}
         </table>
       ) : null}
     </section>

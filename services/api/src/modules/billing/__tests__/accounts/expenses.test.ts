@@ -18,9 +18,9 @@ describe('createExpense', () => {
     expect(e.cancelled_at).toBeUndefined();
     expect(typeof e.ledger_entry_id).toBe('string');
     expect(await ledgerCount(w.tenant)).toBe(before + 1);
-    const [le] = await dbRows(w.tenant, 'SELECT * FROM billing.account_ledger_entries WHERE tenant_id = $1 AND id = $2', [e.ledger_entry_id]);
+    const [le] = await dbRows(w.tenant, 'SELECT *, entry_date::text AS entry_date_text FROM billing.account_ledger_entries WHERE tenant_id = $1 AND id = $2', [e.ledger_entry_id]);
     expect(le).toMatchObject({ entry_type: 'debit', amount_paisa: '25000', account_particular_id: w.expenseParticularId, centre_id: w.centre, party_kind: 'user_pocket', party_id: SYS_ACTOR, payment_mode: 'cash', reverses_entry_id: null });
-    expect(le.entry_date.toISOString?.().slice(0, 10) ?? String(le.entry_date).slice(0, 10)).toBe('2026-11-17');
+    expect(le.entry_date_text).toBe('2026-11-17');
     expect(o.writes.filter((s) => /update|delete/i.test(s) && /account_ledger_entries/i.test(s))).toEqual([]);
     expect(await auditActions(w.tenant, 'expenses', e.id)).toEqual(['INSERT']);
   }, T);

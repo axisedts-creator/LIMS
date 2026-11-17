@@ -57,13 +57,13 @@ describe('getDailyCollectionSummary: account ledger entries', () => {
 });
 
 describe('getDailyCollectionSummary reconciles with billing getDailyCash (done_when 4)', () => {
-  async function payment(w: { tenant: string; centre: string }, by: string, o: { method: string; paisa: number; day: string; kind?: 'payment' | 'reversal'; reverses?: string; id?: string }) {
+  async function payment(w: { tenant: string; centre: string }, by: string, o: { method: string; paisa: number; day: string; kind?: 'payment' | 'reversal'; reverses?: string; id?: string; orderId?: string }) {
     const id = o.id ?? uid();
     await superTx(async (tx) => {
       const [b] = (await tx.query(`SELECT id FROM core.branches WHERE tenant_id = $1 LIMIT 1`, [w.tenant])).rows;
       await tx.query(`INSERT INTO billing.ledger_entries (id, tenant_id, branch_id, centre_id, order_id, entry_kind, capture_kind, method_code, amount_paisa, reverses_entry_id, reason_code, fiscal_year_bs,
           collected_by_membership_id, business_date, created_by) VALUES ($1,$2,$3,$4,$5,$6,'manual',$7,$8,$9,$10,'2083/84',$11,$12::date,$11)`,
-      [id, w.tenant, b.id, w.centre, uid(), o.kind ?? 'payment', o.method, o.kind === 'reversal' ? -o.paisa : o.paisa, o.reverses ?? null, o.kind === 'reversal' ? 'synthetic_error' : null, by, o.day]);
+      [id, w.tenant, b.id, w.centre, o.orderId ?? uid(), o.kind ?? 'payment', o.method, o.kind === 'reversal' ? -o.paisa : o.paisa, o.reverses ?? null, o.kind === 'reversal' ? 'synthetic_error' : null, by, o.day]);
     }, w.tenant);
     return id;
   }
@@ -73,8 +73,9 @@ describe('getDailyCollectionSummary reconciles with billing getDailyCash (done_w
     const day = '2026-05-' + String(10 + Math.floor(Math.random() * 15));
     const cashier = await staff(w.tenant);
     await payment(w, cashier.id, { method: 'cash', paisa: 120_000, day });
-    const gone = await payment(w, cashier.id, { method: 'cash', paisa: 30_000, day });
-    await payment(w, cashier.id, { method: 'cash', paisa: 30_000, day, kind: 'reversal', reverses: gone });
+    const goneOrder = uid();
+    const gone = await payment(w, cashier.id, { method: 'cash', paisa: 30_000, day, orderId: goneOrder });
+    await payment(w, cashier.id, { method: 'cash', paisa: 30_000, day, kind: 'reversal', reverses: gone, orderId: goneOrder });
     await payment(w, cashier.id, { method: 'esewa_qr', paisa: 80_000, day });
     await fundCredit(w, { entry_date: day, payment_mode: 'cash', amount_paisa: 20_000 });
     await fundCredit(w, { entry_date: day, payment_mode: 'bank_transfer', amount_paisa: 10_000, bank_name: 'Synthetic Bank' });

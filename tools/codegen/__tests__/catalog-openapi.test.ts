@@ -242,7 +242,8 @@ describe("inventory equals 02-TRD §5.2 (no missing, no extra operations)", () =
     expect(fromTrd.size).toBeGreaterThan(60);
     const mine = new Set(ROWS.map((r) => r.id));
     for (const id of fromTrd) expect(mine.has(id), `TRD operationId ${id} not in test table`).toBe(true);
-    expect(Object.keys(ops).sort()).toEqual([...mine].sort());
+    // T0C-TESTMGMT-1 (LD-318) adds exactly these three test category operations (pinned in testmgmt1-openapi.test.ts); the 107 above must all still exist and nothing else may appear.
+    expect(Object.keys(ops).sort()).toEqual([...mine, "listTestCategories", "createTestCategory", "updateTestCategory"].sort());
   });
   it("every path is /v1/catalog/… with tags [catalog]", () => {
     expect(Object.keys(doc.paths ?? {}).length, "no paths").toBeGreaterThan(0);
@@ -359,7 +360,8 @@ describe("shape pins from TRD §5", () => {
     const e = (n: string, f: string) => deref(props(doc.components.schemas[n])[f]).enum;
     expect(e("Test", "workflow_type")).toEqual(["standard", "narrative", "microbiology", "anatomic", "molecular", "attachment", "outsourced"]);
     expect(e("AnalyteVersion", "status")).toEqual(["draft", "published", "superseded", "retired", "discarded"]);
-    expect(e("AnalyteVersion", "result_type")).toEqual(["numeric", "text", "ordinal", "coded", "attachment", "narrative"]);
+    // T0C-TESTMGMT-1 (LD-318): additive result_type values; the six TRD values must remain
+    expect(e("AnalyteVersion", "result_type")).toEqual(expect.arrayContaining(["numeric", "text", "ordinal", "coded", "attachment", "narrative"]));
     expect(e("PriceList", "owner_kind")).toEqual(["default", "credit_party", "referrer", "centre"]);
     expect(e("CreditParty", "kind")).toEqual(["hospital", "company", "clinic", "partner_lab", "insurer", "other"]);
     expect(e("Export", "status")).toEqual(["queued", "building", "ready", "failed", "expired"]);
@@ -414,7 +416,8 @@ describe("examples validate against their schemas; each operation has a servable
     expect(n).toBeGreaterThan(100);
   });
   it("every operation has a 2xx response; JSON ones carry an example Prism can serve", () => {
-    expect(Object.keys(ops).length).toBe(107);
+    // T0C-TESTMGMT-1 (LD-318): 107 + listTestCategories, createTestCategory, updateTestCategory
+    expect(Object.keys(ops).length).toBe(110);
     for (const { op, path, method } of Object.values(ops)) {
       const two = Object.entries<any>(op.responses ?? {}).filter(([c]) => /^2/.test(c));
       expect(two.length, `${method} ${path}: no 2xx`).toBeGreaterThan(0);

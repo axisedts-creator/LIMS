@@ -1606,6 +1606,12 @@ paths:
               - all
             default: "true"
           description: Default true; `all` includes inactive rows [CONV].
+        - name: category_id
+          in: query
+          required: false
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+          description: Test category filter (T0C-TESTMGMT-1, LD-318; ElabAssist Complete Test List).
         - name: sort
           in: query
           required: false
@@ -1645,6 +1651,11 @@ paths:
                         is_orderable: true
                         is_active: true
                         revision: 1
+                        category_id: 0193c3a0-0000-7000-8000-0000000003a1
+                        category_name: Hematology
+                        short_name: CBC
+                        display_name: COMPLETE BLOOD COUNT, EDTA WB(CBC)
+                        default_price_paisa: 50000
                     page:
                       limit: 50
         "400":
@@ -1696,6 +1707,13 @@ paths:
                       container_id: 0193c3a0-0000-7000-8000-000000000051
                       is_preferred: true
                       min_volume_ul: 2000
+                  short_name: CBC
+                  display_name: COMPLETE BLOOD COUNT, EDTA WB(CBC)
+                  tags:
+                    - cbc
+                  category_id: 0193c3a0-0000-7000-8000-0000000003a1
+                  report_type: cbc_four_column
+                  processing_type: local
       responses:
         "201":
           description: Created.
@@ -1865,6 +1883,25 @@ paths:
                         target_seconds: 3600
                         effective_from: 2026-11-05T04:15:00.000Z
                         effective_to: 2026-11-05T04:15:00.000Z
+                    stage_targets:
+                      - stage: result
+                        target_minutes: 120
+                      - stage: release
+                        target_minutes: 240
+                    short_name: CBC
+                    display_name: COMPLETE BLOOD COUNT, EDTA WB(CBC)
+                    tags:
+                      - cbc
+                      - haematology
+                    barcode_text: CBC
+                    loyalty_points: 0
+                    display_order: 1
+                    report_type: cbc_four_column
+                    processing_type: local
+                    is_outsourced: false
+                    is_popular: true
+                    nabl: false
+                    category_id: 0193c3a0-0000-7000-8000-0000000003a1
                     version: 3
         "400":
           $ref: _common.yaml#/components/responses/BadRequest
@@ -2150,6 +2187,21 @@ paths:
                       segment: within_lab
                       target_seconds: 3600
                   effective_from: 2026-11-05T04:15:00.000Z
+                  stage_targets:
+                    - stage: registration
+                      target_minutes: 10
+                    - stage: sample_collection
+                      target_minutes: 30
+                    - stage: accession
+                      target_minutes: 45
+                    - stage: result
+                      target_minutes: 120
+                    - stage: approval_1
+                      target_minutes: 150
+                    - stage: approval_2
+                      target_minutes: 180
+                    - stage: release
+                      target_minutes: 240
       responses:
         "200":
           description: Success.
@@ -4673,6 +4725,216 @@ paths:
                     text: Synthetic comment text
                     is_active: true
                     version: 3
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "428":
+          $ref: _common.yaml#/components/responses/PreconditionRequired
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/catalog/test-categories:
+    get:
+      operationId: listTestCategories
+      tags:
+        - catalog
+      summary: List test categories (T0C-TESTMGMT-1, LD-318)
+      security:
+        - bearerJwt: []
+      x-permission: catalog.test.read
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes: []
+      parameters:
+        - name: department_id
+          in: query
+          required: false
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - name: is_active
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 5
+            enum:
+              - "true"
+              - "false"
+              - all
+            default: "true"
+          description: Default true; `all` includes inactive rows [CONV].
+        - name: sort
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 40
+            enum:
+              - name
+              - -name
+              - display_order
+              - -display_order
+          description: Leading `-` = descending; `id` is always appended (02-CV §4.4).
+        - $ref: _common.yaml#/components/parameters/Cursor
+        - $ref: _common.yaml#/components/parameters/Limit
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TestCategoryPage"
+              examples:
+                synthetic:
+                  value:
+                    data:
+                      - id: 0193c3a0-0000-7000-8000-0000000003a1
+                        department_id: 0193c3a0-0000-7000-8000-0000000003a2
+                        name: Hematology
+                        display_order: 1
+                        print_footer: true
+                        footer_text: Synthetic category footer
+                        is_active: true
+                        version: 1
+                    page:
+                      limit: 50
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+    post:
+      operationId: createTestCategory
+      tags:
+        - catalog
+      summary: Create a test category under a department (T0C-TESTMGMT-1, LD-318)
+      security:
+        - bearerJwt: []
+      x-permission: catalog.test.manage
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - catalog.code_duplicate
+        - common.idempotency_key_reused
+      parameters:
+        - $ref: _common.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TestCategoryCreate"
+            examples:
+              synthetic:
+                value:
+                  department_id: 0193c3a0-0000-7000-8000-0000000003a2
+                  name: Hematology
+                  display_order: 1
+                  print_footer: true
+                  footer_text: Synthetic category footer
+      responses:
+        "201":
+          description: Created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TestCategory"
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c3a0-0000-7000-8000-0000000003a3
+                    department_id: 0193c3a0-0000-7000-8000-0000000003a2
+                    name: Hematology
+                    display_order: 1
+                    print_footer: true
+                    footer_text: Synthetic category footer
+                    is_active: true
+                    version: 1
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/catalog/test-categories/{category_id}:
+    patch:
+      operationId: updateTestCategory
+      tags:
+        - catalog
+      summary: Update or deactivate a test category (never deleted; T0C-TESTMGMT-1, LD-318)
+      security:
+        - bearerJwt: []
+      x-permission: catalog.test.manage
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - catalog.code_duplicate
+        - common.version_conflict
+        - common.precondition_required
+      parameters:
+        - name: category_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - $ref: _common.yaml#/components/parameters/IfMatch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TestCategoryUpdate"
+            examples:
+              synthetic:
+                value:
+                  name: Haematology
+                  is_active: false
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TestCategory"
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c3a0-0000-7000-8000-0000000003a4
+                    department_id: 0193c3a0-0000-7000-8000-0000000003a2
+                    name: Haematology
+                    display_order: 1
+                    print_footer: true
+                    footer_text: Synthetic category footer
+                    is_active: false
+                    version: 2
         "400":
           $ref: _common.yaml#/components/responses/BadRequest
         "401":
@@ -8684,6 +8946,25 @@ components:
           type: integer
           minimum: 0
           maximum: 2147483647
+        category_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        category_name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        short_name:
+          type: string
+          minLength: 1
+          maxLength: 60
+        display_name:
+          type: string
+          minLength: 3
+          maxLength: 300
+        default_price_paisa:
+          type: integer
+          minimum: 0
+          maximum: 999999999
+          description: Unit price in paisa on the tenant default price list (published version in effect now); absent when the default price list has no price for this orderable (T0C-TESTMGMT-1, LD-318).
     SpecimenRequirement:
       type: object
       additionalProperties: false
@@ -8753,6 +9034,28 @@ components:
           type: integer
           minimum: 60
           maximum: 2592000
+    StageTatTarget:
+      type: object
+      additionalProperties: false
+      required:
+        - stage
+        - target_minutes
+      properties:
+        stage:
+          type: string
+          maxLength: 17
+          enum:
+            - registration
+            - sample_collection
+            - accession
+            - result
+            - approval_1
+            - approval_2
+            - release
+        target_minutes:
+          type: integer
+          minimum: 0
+          maximum: 43200
     AnalyteVersion:
       type: object
       additionalProperties: false
@@ -8783,7 +9086,7 @@ components:
             - discarded
         result_type:
           type: string
-          maxLength: 10
+          maxLength: 16
           enum:
             - numeric
             - text
@@ -8791,6 +9094,12 @@ components:
             - coded
             - attachment
             - narrative
+            - boolean
+            - test_footer
+            - space
+            - graph
+            - html_descriptive
+          description: "ElabAssist mapping (T0C-TESTMGMT-1, LD-318): Integer, Float, Equation = numeric (Equation sets formula_expression); List = coded; Long Text, Single Line Text = text; Descriptive = narrative; Image = attachment; Boolean, Test_Footer, Space, Graph, Html Descriptive = the values of the same name."
         unit_code:
           type: string
           minLength: 1
@@ -8826,6 +9135,18 @@ components:
         change_reason:
           type: string
           maxLength: 500
+        default_value:
+          type: string
+          minLength: 1
+          maxLength: 500
+        long_text_value:
+          type: string
+          minLength: 1
+          maxLength: 20000
+        high_low:
+          $ref: _common.yaml#/components/schemas/DecimalString
+        require_verification:
+          type: boolean
         version:
           $ref: _common.yaml#/components/schemas/Version
     AnalyteVersionDraftInput:
@@ -8836,7 +9157,7 @@ components:
       properties:
         result_type:
           type: string
-          maxLength: 10
+          maxLength: 16
           enum:
             - numeric
             - text
@@ -8844,6 +9165,12 @@ components:
             - coded
             - attachment
             - narrative
+            - boolean
+            - test_footer
+            - space
+            - graph
+            - html_descriptive
+          description: "ElabAssist mapping (T0C-TESTMGMT-1, LD-318): Integer, Float, Equation = numeric (Equation sets formula_expression); List = coded; Long Text, Single Line Text = text; Descriptive = narrative; Image = attachment; Boolean, Test_Footer, Space, Graph, Html Descriptive = the values of the same name."
         unit_code:
           type: string
           minLength: 1
@@ -8862,13 +9189,25 @@ components:
           type: string
           minLength: 1
           maxLength: 500
+        default_value:
+          type: string
+          minLength: 1
+          maxLength: 500
+        long_text_value:
+          type: string
+          minLength: 1
+          maxLength: 20000
+        high_low:
+          $ref: _common.yaml#/components/schemas/DecimalString
+        require_verification:
+          type: boolean
     AnalyteVersionDraftUpdate:
       type: object
       additionalProperties: false
       properties:
         result_type:
           type: string
-          maxLength: 10
+          maxLength: 16
           enum:
             - numeric
             - text
@@ -8876,6 +9215,12 @@ components:
             - coded
             - attachment
             - narrative
+            - boolean
+            - test_footer
+            - space
+            - graph
+            - html_descriptive
+          description: "ElabAssist mapping (T0C-TESTMGMT-1, LD-318): Integer, Float, Equation = numeric (Equation sets formula_expression); List = coded; Long Text, Single Line Text = text; Descriptive = narrative; Image = attachment; Boolean, Test_Footer, Space, Graph, Html Descriptive = the values of the same name."
         unit_code:
           type: string
           minLength: 1
@@ -8894,9 +9239,21 @@ components:
           type: string
           minLength: 1
           maxLength: 500
+        default_value:
+          type: string
+          minLength: 1
+          maxLength: 500
+        long_text_value:
+          type: string
+          minLength: 1
+          maxLength: 20000
+        high_low:
+          $ref: _common.yaml#/components/schemas/DecimalString
+        require_verification:
+          type: boolean
         unset:
           type: array
-          maxItems: 5
+          maxItems: 8
           items:
             type: string
             maxLength: 18
@@ -8906,6 +9263,9 @@ components:
               - method_id
               - value_set_code
               - formula_expression
+              - default_value
+              - long_text_value
+              - high_low
     AnalyteVersionDraftCreate:
       type: object
       additionalProperties: false
@@ -8978,6 +9338,44 @@ components:
           $ref: "#/components/schemas/AnalyteVersion"
         draft_version_id:
           $ref: _common.yaml#/components/schemas/Uuid
+        trend_name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        specimen_type_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        font:
+          type: string
+          minLength: 1
+          maxLength: 60
+        result_display_type:
+          type: string
+          maxLength: 20
+          enum:
+            - table
+            - note_value_only
+            - list_note
+            - one_column
+            - two_column
+            - three_column
+            - four_column
+            - comment
+            - hidden
+            - table_with_subheader
+            - merge_two_column
+        print_on_negative:
+          type: boolean
+          description: Default true (every existing analyte keeps printing negative values).
+        print_on_worksheet:
+          type: boolean
+        send_in_sms:
+          type: boolean
+        nabl:
+          type: boolean
+        accab_logo:
+          type: boolean
+        is_trend:
+          type: boolean
     AnalyteDetail:
       type: object
       additionalProperties: false
@@ -9025,6 +9423,44 @@ components:
           $ref: "#/components/schemas/AnalyteVersion"
         draft_version_id:
           $ref: _common.yaml#/components/schemas/Uuid
+        trend_name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        specimen_type_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        font:
+          type: string
+          minLength: 1
+          maxLength: 60
+        result_display_type:
+          type: string
+          maxLength: 20
+          enum:
+            - table
+            - note_value_only
+            - list_note
+            - one_column
+            - two_column
+            - three_column
+            - four_column
+            - comment
+            - hidden
+            - table_with_subheader
+            - merge_two_column
+        print_on_negative:
+          type: boolean
+          description: Default true (every existing analyte keeps printing negative values).
+        print_on_worksheet:
+          type: boolean
+        send_in_sms:
+          type: boolean
+        nabl:
+          type: boolean
+        accab_logo:
+          type: boolean
+        is_trend:
+          type: boolean
         versions:
           type: array
           maxItems: 50
@@ -9059,6 +9495,44 @@ components:
           maximum: 9999
         is_reportable:
           type: boolean
+        trend_name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        specimen_type_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        font:
+          type: string
+          minLength: 1
+          maxLength: 60
+        result_display_type:
+          type: string
+          maxLength: 20
+          enum:
+            - table
+            - note_value_only
+            - list_note
+            - one_column
+            - two_column
+            - three_column
+            - four_column
+            - comment
+            - hidden
+            - table_with_subheader
+            - merge_two_column
+        print_on_negative:
+          type: boolean
+          description: Default true (every existing analyte keeps printing negative values).
+        print_on_worksheet:
+          type: boolean
+        send_in_sms:
+          type: boolean
+        nabl:
+          type: boolean
+        accab_logo:
+          type: boolean
+        is_trend:
+          type: boolean
         initial_version:
           $ref: "#/components/schemas/AnalyteVersionDraftInput"
     AnalyteUpdate:
@@ -9083,6 +9557,55 @@ components:
           type: boolean
         is_active:
           type: boolean
+        trend_name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        specimen_type_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        font:
+          type: string
+          minLength: 1
+          maxLength: 60
+        result_display_type:
+          type: string
+          maxLength: 20
+          enum:
+            - table
+            - note_value_only
+            - list_note
+            - one_column
+            - two_column
+            - three_column
+            - four_column
+            - comment
+            - hidden
+            - table_with_subheader
+            - merge_two_column
+        print_on_negative:
+          type: boolean
+          description: Default true (every existing analyte keeps printing negative values).
+        print_on_worksheet:
+          type: boolean
+        send_in_sms:
+          type: boolean
+        nabl:
+          type: boolean
+        accab_logo:
+          type: boolean
+        is_trend:
+          type: boolean
+        unset:
+          type: array
+          maxItems: 4
+          items:
+            type: string
+            maxLength: 19
+            enum:
+              - trend_name
+              - specimen_type_id
+              - font
+              - result_display_type
     Test:
       type: object
       additionalProperties: false
@@ -9179,6 +9702,112 @@ components:
           maxItems: 2
           items:
             $ref: "#/components/schemas/TatTarget"
+        stage_targets:
+          type: array
+          maxItems: 7
+          items:
+            $ref: "#/components/schemas/StageTatTarget"
+          description: Seven stage TAT targets in minutes (registration to release; T0C-TESTMGMT-1, LD-318). Separate from tat_targets (routine / urgent, seconds).
+        short_name:
+          type: string
+          minLength: 1
+          maxLength: 60
+        display_name:
+          type: string
+          minLength: 3
+          maxLength: 300
+        tags:
+          type: array
+          maxItems: 20
+          uniqueItems: true
+          items:
+            type: string
+            minLength: 1
+            maxLength: 60
+          description: Search tags. At least one tag is required when the test is orderable (service rule, T0B-TESTMGMT-1; LD-318).
+        barcode_text:
+          type: string
+          minLength: 1
+          maxLength: 64
+        loyalty_points:
+          type: integer
+          minimum: 0
+          maximum: 1000000
+        display_order:
+          type: integer
+          minimum: 0
+          maximum: 9999
+        description:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        report_type:
+          type: string
+          maxLength: 19
+          enum:
+            - four_column
+            - three_column
+            - two_column
+            - graph
+            - template_based_html
+            - micro_automated
+            - cbc_four_column
+            - micro_manual
+            - histo
+            - four_column_10_font
+          description: "ElabAssist report types (LD-318); more values may be added later."
+        processing_type:
+          type: string
+          maxLength: 16
+          enum:
+            - local
+            - branch_transfer
+            - outsource_branch
+          description: "LD-318 follow-up (3): Local, Branch Transfer, Outsource To Other Branch."
+        template_ref:
+          type: string
+          minLength: 1
+          maxLength: 120
+        outsource_name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        is_outsourced:
+          type: boolean
+        is_popular:
+          type: boolean
+        smart_report:
+          type: boolean
+        print_category_wise:
+          type: boolean
+        nabl:
+          type: boolean
+        accab_logo:
+          type: boolean
+        auto_approval_enabled:
+          type: boolean
+        use_normal_range_for_auto_approval:
+          type: boolean
+        template_test:
+          type: boolean
+        nabl_processing_centres:
+          type: array
+          maxItems: 20
+          uniqueItems: true
+          items:
+            type: string
+            minLength: 1
+            maxLength: 200
+        font:
+          type: string
+          minLength: 1
+          maxLength: 60
+        alert_before_expiry_minutes:
+          type: integer
+          minimum: 0
+          maximum: 525600
+        category_id:
+          $ref: _common.yaml#/components/schemas/Uuid
         version:
           $ref: _common.yaml#/components/schemas/Version
     TestCreate:
@@ -9226,6 +9855,106 @@ components:
           maxItems: 10
           items:
             $ref: "#/components/schemas/SpecimenRequirement"
+        short_name:
+          type: string
+          minLength: 1
+          maxLength: 60
+        display_name:
+          type: string
+          minLength: 3
+          maxLength: 300
+        tags:
+          type: array
+          maxItems: 20
+          uniqueItems: true
+          items:
+            type: string
+            minLength: 1
+            maxLength: 60
+          description: Search tags. At least one tag is required when the test is orderable (service rule, T0B-TESTMGMT-1; LD-318).
+        barcode_text:
+          type: string
+          minLength: 1
+          maxLength: 64
+        loyalty_points:
+          type: integer
+          minimum: 0
+          maximum: 1000000
+        display_order:
+          type: integer
+          minimum: 0
+          maximum: 9999
+        description:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        report_type:
+          type: string
+          maxLength: 19
+          enum:
+            - four_column
+            - three_column
+            - two_column
+            - graph
+            - template_based_html
+            - micro_automated
+            - cbc_four_column
+            - micro_manual
+            - histo
+            - four_column_10_font
+          description: "ElabAssist report types (LD-318); more values may be added later."
+        processing_type:
+          type: string
+          maxLength: 16
+          enum:
+            - local
+            - branch_transfer
+            - outsource_branch
+          description: "LD-318 follow-up (3): Local, Branch Transfer, Outsource To Other Branch."
+        template_ref:
+          type: string
+          minLength: 1
+          maxLength: 120
+        outsource_name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        is_outsourced:
+          type: boolean
+        is_popular:
+          type: boolean
+        smart_report:
+          type: boolean
+        print_category_wise:
+          type: boolean
+        nabl:
+          type: boolean
+        accab_logo:
+          type: boolean
+        auto_approval_enabled:
+          type: boolean
+        use_normal_range_for_auto_approval:
+          type: boolean
+        template_test:
+          type: boolean
+        nabl_processing_centres:
+          type: array
+          maxItems: 20
+          uniqueItems: true
+          items:
+            type: string
+            minLength: 1
+            maxLength: 200
+        font:
+          type: string
+          minLength: 1
+          maxLength: 60
+        alert_before_expiry_minutes:
+          type: integer
+          minimum: 0
+          maximum: 525600
+        category_id:
+          $ref: _common.yaml#/components/schemas/Uuid
     TestUpdate:
       type: object
       additionalProperties: false
@@ -9257,6 +9986,125 @@ components:
           type: boolean
         is_active:
           type: boolean
+        short_name:
+          type: string
+          minLength: 1
+          maxLength: 60
+        display_name:
+          type: string
+          minLength: 3
+          maxLength: 300
+        tags:
+          type: array
+          maxItems: 20
+          uniqueItems: true
+          items:
+            type: string
+            minLength: 1
+            maxLength: 60
+          description: Search tags. At least one tag is required when the test is orderable (service rule, T0B-TESTMGMT-1; LD-318).
+        barcode_text:
+          type: string
+          minLength: 1
+          maxLength: 64
+        loyalty_points:
+          type: integer
+          minimum: 0
+          maximum: 1000000
+        display_order:
+          type: integer
+          minimum: 0
+          maximum: 9999
+        description:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        report_type:
+          type: string
+          maxLength: 19
+          enum:
+            - four_column
+            - three_column
+            - two_column
+            - graph
+            - template_based_html
+            - micro_automated
+            - cbc_four_column
+            - micro_manual
+            - histo
+            - four_column_10_font
+          description: "ElabAssist report types (LD-318); more values may be added later."
+        processing_type:
+          type: string
+          maxLength: 16
+          enum:
+            - local
+            - branch_transfer
+            - outsource_branch
+          description: "LD-318 follow-up (3): Local, Branch Transfer, Outsource To Other Branch."
+        template_ref:
+          type: string
+          minLength: 1
+          maxLength: 120
+        outsource_name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        is_outsourced:
+          type: boolean
+        is_popular:
+          type: boolean
+        smart_report:
+          type: boolean
+        print_category_wise:
+          type: boolean
+        nabl:
+          type: boolean
+        accab_logo:
+          type: boolean
+        auto_approval_enabled:
+          type: boolean
+        use_normal_range_for_auto_approval:
+          type: boolean
+        template_test:
+          type: boolean
+        nabl_processing_centres:
+          type: array
+          maxItems: 20
+          uniqueItems: true
+          items:
+            type: string
+            minLength: 1
+            maxLength: 200
+        font:
+          type: string
+          minLength: 1
+          maxLength: 60
+        alert_before_expiry_minutes:
+          type: integer
+          minimum: 0
+          maximum: 525600
+        category_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        unset:
+          type: array
+          maxItems: 12
+          items:
+            type: string
+            maxLength: 32
+            enum:
+              - short_name
+              - display_name
+              - barcode_text
+              - description
+              - template_ref
+              - outsource_name
+              - nabl_processing_centres
+              - font
+              - alert_before_expiry_minutes
+              - category_id
+              - report_type
+              - processing_type
     SpecimenRequirementsReplace:
       type: object
       additionalProperties: false
@@ -9282,6 +10130,12 @@ components:
             $ref: "#/components/schemas/TatTargetInput"
         effective_from:
           $ref: _common.yaml#/components/schemas/IsoUtc
+        stage_targets:
+          type: array
+          maxItems: 7
+          items:
+            $ref: "#/components/schemas/StageTatTarget"
+          description: Seven stage TAT targets in minutes, one per stage (T0C-TESTMGMT-1, LD-318). Absent = stage targets unchanged; the routine / urgent targets (seconds) stay in targets.
     FormulaValidateRequest:
       type: object
       additionalProperties: false
@@ -9371,6 +10225,7 @@ components:
           type: string
           maxLength: 5
           enum:
+            - hour
             - day
             - week
             - month
@@ -9385,11 +10240,12 @@ components:
       properties:
         sex:
           type: string
-          maxLength: 6
+          maxLength: 12
           enum:
             - any
             - male
             - female
+            - third_gender
         age_low:
           $ref: "#/components/schemas/AgeBound"
         age_high:
@@ -9418,6 +10274,18 @@ components:
         display_text:
           type: string
           maxLength: 500
+        instrument_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        laboratory_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        default_range:
+          type: boolean
+        method_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        auto_approved_low:
+          $ref: _common.yaml#/components/schemas/DecimalString
+        auto_approved_high:
+          $ref: _common.yaml#/components/schemas/DecimalString
         sort_order:
           type: integer
           minimum: 0
@@ -9430,11 +10298,12 @@ components:
       properties:
         sex:
           type: string
-          maxLength: 6
+          maxLength: 12
           enum:
             - any
             - male
             - female
+            - third_gender
         age_low:
           $ref: "#/components/schemas/AgeBound"
         age_high:
@@ -9837,6 +10706,20 @@ components:
           type: integer
           minimum: 0
           maximum: 2147483647
+        barcode_text:
+          type: string
+          minLength: 1
+          maxLength: 64
+        loyalty_points:
+          type: integer
+          minimum: 0
+          maximum: 1000000
+        display_order:
+          type: integer
+          minimum: 0
+          maximum: 9999
+        is_popular:
+          type: boolean
         members:
           type: array
           maxItems: 100
@@ -9882,6 +10765,20 @@ components:
           maxItems: 100
           items:
             $ref: "#/components/schemas/PanelMember"
+        barcode_text:
+          type: string
+          minLength: 1
+          maxLength: 64
+        loyalty_points:
+          type: integer
+          minimum: 0
+          maximum: 1000000
+        display_order:
+          type: integer
+          minimum: 0
+          maximum: 9999
+        is_popular:
+          type: boolean
     PanelUpdate:
       type: object
       additionalProperties: false
@@ -9896,15 +10793,30 @@ components:
           enum:
             - male
             - female
+        barcode_text:
+          type: string
+          minLength: 1
+          maxLength: 64
+        loyalty_points:
+          type: integer
+          minimum: 0
+          maximum: 1000000
+        display_order:
+          type: integer
+          minimum: 0
+          maximum: 9999
+        is_popular:
+          type: boolean
         unset:
           type: array
-          maxItems: 2
+          maxItems: 3
           items:
             type: string
             maxLength: 15
             enum:
               - sex_restriction
               - department_id
+              - barcode_text
         department_id:
           $ref: _common.yaml#/components/schemas/Uuid
         is_active:
@@ -9944,10 +10856,38 @@ components:
           type: string
           minLength: 1
           maxLength: 2000
+          description: Plain text or the safe Markdown subset (text_format). Never raw HTML; a < followed by a letter, / or ! is rejected (T0C-TESTMGMT-1, LD-318), so <5 mg/dL stays legal.
         is_active:
           type: boolean
         version:
           $ref: _common.yaml#/components/schemas/Version
+        category_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        result_type:
+          type: string
+          maxLength: 16
+          enum:
+            - numeric
+            - text
+            - ordinal
+            - coded
+            - attachment
+            - narrative
+            - boolean
+            - test_footer
+            - space
+            - graph
+            - html_descriptive
+          description: "Result type the note is offered for (ElabAssist Notes, Select Type)."
+        is_default_template:
+          type: boolean
+        text_format:
+          type: string
+          maxLength: 8
+          enum:
+            - plain
+            - markdown
+          description: Default plain.
     CommentCodeCreate:
       type: object
       additionalProperties: false
@@ -9966,6 +10906,34 @@ components:
           type: string
           minLength: 1
           maxLength: 2000
+          description: Plain text or the safe Markdown subset (text_format). Never raw HTML; a < followed by a letter, / or ! is rejected (T0C-TESTMGMT-1, LD-318), so <5 mg/dL stays legal.
+        category_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        result_type:
+          type: string
+          maxLength: 16
+          enum:
+            - numeric
+            - text
+            - ordinal
+            - coded
+            - attachment
+            - narrative
+            - boolean
+            - test_footer
+            - space
+            - graph
+            - html_descriptive
+          description: "Result type the note is offered for (ElabAssist Notes, Select Type)."
+        is_default_template:
+          type: boolean
+        text_format:
+          type: string
+          maxLength: 8
+          enum:
+            - plain
+            - markdown
+          description: Default plain.
     CommentCodeUpdate:
       type: object
       additionalProperties: false
@@ -9974,8 +10942,133 @@ components:
           type: string
           minLength: 1
           maxLength: 2000
+          description: Plain text or the safe Markdown subset (text_format). Never raw HTML; a < followed by a letter, / or ! is rejected (T0C-TESTMGMT-1, LD-318), so <5 mg/dL stays legal.
         is_active:
           type: boolean
+        category_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        result_type:
+          type: string
+          maxLength: 16
+          enum:
+            - numeric
+            - text
+            - ordinal
+            - coded
+            - attachment
+            - narrative
+            - boolean
+            - test_footer
+            - space
+            - graph
+            - html_descriptive
+          description: "Result type the note is offered for (ElabAssist Notes, Select Type)."
+        is_default_template:
+          type: boolean
+        text_format:
+          type: string
+          maxLength: 8
+          enum:
+            - plain
+            - markdown
+          description: Default plain.
+        unset:
+          type: array
+          maxItems: 2
+          items:
+            type: string
+            maxLength: 11
+            enum:
+              - category_id
+              - result_type
+    TestCategory:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - department_id
+        - name
+        - display_order
+        - print_footer
+        - is_active
+        - version
+      properties:
+        id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        department_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        display_order:
+          type: integer
+          minimum: 0
+          maximum: 9999
+        print_footer:
+          type: boolean
+        footer_text:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        is_active:
+          type: boolean
+        version:
+          $ref: _common.yaml#/components/schemas/Version
+    TestCategoryCreate:
+      type: object
+      additionalProperties: false
+      required:
+        - department_id
+        - name
+      properties:
+        department_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        display_order:
+          type: integer
+          minimum: 0
+          maximum: 9999
+        print_footer:
+          type: boolean
+        footer_text:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        is_active:
+          type: boolean
+    TestCategoryUpdate:
+      type: object
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        display_order:
+          type: integer
+          minimum: 0
+          maximum: 9999
+        print_footer:
+          type: boolean
+        footer_text:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        is_active:
+          type: boolean
+          description: false deactivates the category (never deleted); its tests stay linked.
+        unset:
+          type: array
+          maxItems: 1
+          items:
+            type: string
+            maxLength: 11
+            enum:
+              - footer_text
     Doctor:
       type: object
       additionalProperties: false
@@ -11680,7 +12773,7 @@ components:
           maxLength: 120
         result_type:
           type: string
-          maxLength: 10
+          maxLength: 16
           enum:
             - numeric
             - text
@@ -11688,6 +12781,12 @@ components:
             - coded
             - attachment
             - narrative
+            - boolean
+            - test_footer
+            - space
+            - graph
+            - html_descriptive
+          description: "ElabAssist mapping (T0C-TESTMGMT-1, LD-318): Integer, Float, Equation = numeric (Equation sets formula_expression); List = coded; Long Text, Single Line Text = text; Descriptive = narrative; Image = attachment; Boolean, Test_Footer, Space, Graph, Html Descriptive = the values of the same name."
         unit_code:
           type: string
           minLength: 1
@@ -12057,6 +13156,20 @@ components:
           maxItems: 200
           items:
             $ref: "#/components/schemas/CommentCode"
+        page:
+          $ref: _common.yaml#/components/schemas/PageInfo
+    TestCategoryPage:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - page
+      properties:
+        data:
+          type: array
+          maxItems: 200
+          items:
+            $ref: "#/components/schemas/TestCategory"
         page:
           $ref: _common.yaml#/components/schemas/PageInfo
     DoctorSummaryPage:

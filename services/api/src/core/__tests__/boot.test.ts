@@ -69,6 +69,19 @@ describe('AC-0D-1.2 manifest handler set must equal the spec operationId set; bo
     expect(msg).toContain('ghostOp');
     expect(msg).toContain('catalog');
   });
+
+  // T0B-BOOTGATE-1 (LD-325): handlers plus pendingOperations must cover the spec set; details in pending-operations.test.ts.
+  it('operation without handler but listed in pendingOperations: boots, and answers 501 instead of failing boot', async () => {
+    const app = await boot('pending/ok-pending');
+    expect((await app.inject({ method: 'DELETE', url: '/v1/catalog/things/t2' })).statusCode).toBe(501);
+    expect((await app.inject({ method: 'GET', url: '/v1/catalog/things' })).statusCode).toBe(200);
+  });
+
+  it('pendingOperations naming an id that is not in the spec: boot rejects and names it', async () => {
+    const msg = await bootError('pending/unknown-pending');
+    expect(msg).toContain('ghostOp');
+    expect(msg).toContain('catalog');
+  });
 });
 
 describe('AC-0D-1.3 produces must equal EVENT_PRODUCERS[name] (IC §3.25)', () => {

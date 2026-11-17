@@ -9,7 +9,7 @@ import { authenticateBearer, endpointFamilyOf, type ClaimsResolver } from './aut
 import type { DbClaims } from './auth/claims.js';
 import type { ClientIpResolver } from './auth/client-ip.js';
 import { AuthError } from './auth/errors.js';
-import { isRenderedProblem, LimsError } from './errors.js';
+import { isRenderedProblem, LimsError, pendingProblem } from './errors.js';
 import type { JwtVerifier } from './auth/jwt.js';
 import type { Handler } from './module.js';
 import { setErrorCode } from './observability/logging.js';
@@ -262,6 +262,7 @@ export async function mountSpec(
   handlers: Readonly<Record<string, Handler>>,
   auth: CoreAuth,
   pipeline: Pipeline,
+  pending: readonly string[] = [],
 ): Promise<void> {
   if (!auth.verifier && usesScheme(spec, 'bearerJwt')) throw new Error(`module ${name}: bearerJwt operations need LIMS_CORE_JWT_* config`);
   await app.register(async (scope) => {
@@ -271,9 +272,18 @@ export async function mountSpec(
       specification: spec,
       securityHandlers: securityHandlers(auth),
       operationResolver: (operationId: string) => {
-        const h = Object.hasOwn(handlers, operationId) ? handlers[operationId] : undefined;
+        const op = pipelineOp(name, spec, operationId);
+        let h = Object.hasOwn(handlers, operationId) ? handlers[operationId] : undefined;
+        // LD-325 (T0B-BOOTGATE-1): a pending id without a handler gets a 501 stub run inside the normal pipeline (auth,
+        // validation, permission, tenant unchanged). A real handler always wins over a stale entry.
+        if (typeof h !== 'function' && pending.includes(operationId)) {
+          h = async (_req, ctx) => ({
+            status: 501, headers: { 'content-type': 'application/problem+json' },
+            body: pendingProblem(operationId, op.routeTemplate, ctx.requestId),
+          });
+        }
         if (typeof h !== 'function') throw new Error(`module ${name}: missing handler for operationId ${operationId}`);
-        return wrap(pipelineOp(name, spec, operationId), h, findOp(spec, operationId)?.op?.['x-error-codes'] ?? [], pipeline);
+        return wrap(op, h, findOp(spec, operationId)?.op?.['x-error-codes'] ?? [], pipeline);
       },
     });
   });

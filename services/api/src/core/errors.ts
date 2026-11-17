@@ -119,6 +119,20 @@ function normalise(err: unknown): unknown {
 const rendered = new WeakSet<object>();
 export const isRenderedProblem = (payload: unknown): boolean => typeof payload === 'object' && payload !== null && rendered.has(payload);
 
+/**
+ * LD-325 (T0B-BOOTGATE-1): 501 body of a pendingOperations stub. operation_pending is not a registry code (contracts/errors.yaml),
+ * so it is built here, not by toProblem; marked rendered so the stage-12 response check lets it through.
+ */
+export function pendingProblem(operationId: string, instance: string, requestId: string): object {
+  const p = {
+    type: 'urn:lims:error:operation_pending', title: 'Operation pending', status: 501, code: 'operation_pending',
+    detail: clamp(`operation ${operationId} is not implemented yet`, 2000), instance: clamp(instance, 2048),
+    request_id: isUuidv7(requestId) ? requestId : uuidv7(),
+  };
+  rendered.add(p);
+  return p;
+}
+
 const pathOf = (url: string): string => url.split('?', 1)[0]!; // REQ-SEC-098: never the query string
 
 export function sendProblem(err: unknown, req: FastifyRequest, reply: FastifyReply): FastifyReply {

@@ -119,10 +119,24 @@ export async function listAccountParties(members: readonly Named[] = []): Promis
   return { parties, centres: centres.filter((c) => kindOf(c) !== 'franchise').map((c) => ({ id: centreId(c), name: c.name })) };
 }
 
-/** One summary per client and franchise (getAccountSummary is per party); a party the API refuses is left out. */
-export async function listAccountSummaries(parties: readonly AccountParty[]): Promise<AccountSummary[]> {
-  const rows = await Promise.all(parties.filter((p) => p.kind === 'credit_party' || p.kind === 'franchise').slice(0, 200).map((p) => getAccountSummary({ party_kind: p.kind, party_id: p.id }).catch(() => null)));
-  return rows.filter((r): r is AccountSummary => r !== null);
+/** One summary per client and franchise (getAccountSummary is per party, rate tier `general`: 10 req/s, burst 20, 02-CONVENTIONS §10.3).
+ *  At most 5 requests in flight; refused parties are counted in `failed`, a list cut at 200 sets `truncated` (T0D-ACCT-1 review item 1).
+ *  ponytail: N calls per page view; a list endpoint for summaries is the real fix (CR for T0C/T0B). */
+export async function listAccountSummaries(parties: readonly AccountParty[]): Promise<{ summaries: AccountSummary[]; failed: number; truncated: boolean }> {
+  const eligible = parties.filter((p) => p.kind === 'credit_party' || p.kind === 'franchise');
+  const todo = eligible.slice(0, 200);
+  const rows: (AccountSummary | null)[] = new Array(todo.length).fill(null);
+  let next = 0;
+  const worker = async () => {
+    while (next < todo.length) {
+      const i = next++;
+      const p = todo[i]!;
+      rows[i] = await getAccountSummary({ party_kind: p.kind, party_id: p.id }).catch(() => null);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(5, todo.length) }, worker));
+  const summaries = rows.filter((r): r is AccountSummary => r !== null);
+  return { summaries, failed: todo.length - summaries.length, truncated: eligible.length > todo.length };
 }
 
 function send<T>(method: 'POST' | 'PATCH', path: string, body: unknown, key: string, version?: number): Promise<T> {

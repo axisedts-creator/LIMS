@@ -1,5 +1,6 @@
 'use client';
 // T0D-ACCT-1 (LD-313): billing/accounts/summary = ElabAssist Account Summary columns; each party links to its ledger.
+import { Banner } from '@lims/ui/components/Banner';
 import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
 import { DateText } from '@lims/ui/components/DateText';
 import { PageHeader } from '@lims/ui/components/PageHeader';
@@ -8,9 +9,9 @@ import type { AccountParty, AccountSummary } from '../../server/accounts.server'
 import { formatNpr } from '../format';
 import { typeText } from './accountsShared';
 
-export interface AccountSummaryScreenProps { summaries: readonly AccountSummary[]; parties: readonly AccountParty[]; permissions: readonly string[] }
+export interface AccountSummaryScreenProps { summaries: readonly AccountSummary[]; parties: readonly AccountParty[]; permissions: readonly string[]; failed?: number; truncated?: boolean }
 
-export function AccountSummaryScreen({ summaries, parties }: AccountSummaryScreenProps) {
+export function AccountSummaryScreen({ summaries, parties, failed = 0, truncated = false }: AccountSummaryScreenProps) {
   const party = (s: AccountSummary) => parties.find((p) => p.id === s.party_id && p.kind === s.party_kind);
   const text = (v: string | undefined) => v ?? '—';
   const columns: ColumnDef<AccountSummary>[] = [
@@ -35,6 +36,7 @@ export function AccountSummaryScreen({ summaries, parties }: AccountSummaryScree
   return (
     <section aria-label={t('billing.accounts.summary.title')}>
       <PageHeader title={t('billing.accounts.summary.title')} helpKey="billing.accounts" />
+      {failed > 0 || truncated ? <Banner tone="warning" title={t('billing.accounts.summary.partial').replace('{n}', String(failed))} /> : null}
       <DataTable caption={t('billing.accounts.summary.title')} density="compact" columns={columns} rows={summaries} getRowId={(s) => `${s.party_kind}:${s.party_id}`} emptyState={{ title: t('billing.accounts.summary.empty') }} />
     </section>
   );

@@ -5,6 +5,6 @@ import { listAccountParties, listAccountSummaries } from '@/features/billing/ser
 
 export default async function AccountSummaryPage() {
   const [session, { parties }] = await Promise.all([getShellSession(), listAccountParties()]);
-  const summaries = await listAccountSummaries(parties);
-  return <AccountSummaryScreen summaries={summaries} parties={parties} permissions={session?.actor.permissions ?? []} />;
+  const { summaries, failed, truncated } = await listAccountSummaries(parties);
+  return <AccountSummaryScreen summaries={summaries} failed={failed} truncated={truncated} parties={parties} permissions={session?.actor.permissions ?? []} />;
 }

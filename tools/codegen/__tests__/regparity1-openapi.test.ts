@@ -4,7 +4,7 @@
 // ASSUMPTIONS (brief silent; a different choice needs a ruling, not a silent test edit):
 //  - Field names are exactly the brief's: title, external_patient_id, nationality, government_id_type, government_id_number, address_province, address_district, address_municipality,
 //    address_ward, address_tole, address_postal_code, profile_photo_attachment_id, custom_fields. They are added to Patient, NewPatient and PatientUpdate (no new path, no new operation).
-//  - "additive and nullable only": no field is required anywhere, existing required lists/properties are unchanged, Patient and PatientUpdate fields are `nullable: true`.
+//  - "additive and nullable only": no field is required anywhere, existing required lists/properties are unchanged, new fields are optional (not required) and clearable via PatientUpdate.unset[] (no `nullable`/null on the wire, 02-CONVENTIONS.md:348; ruling T0C-REGPARITY-1-ruling.md).
 //  - title enum values may be the ElabAssist label or its lower snake_case code ("Baby of" / baby_of); the SET of 19 must match after that normalisation.
 //  - government_id_number is full only on Patient (single read); PatientSummary (list / search / duplicates) has no government_id_number (a *_masked property is allowed).
 //  - the implementer's notes are .orchestra/notes/T0C-REGPARITY-1-impl.md (convention of every earlier T0C task).
@@ -81,8 +81,8 @@ describe("T0C-REGPARITY-1 contract: frontdesk.yaml patient parity fields", () =>
     });
   }
 
-  it("Patient and PatientUpdate new fields are nullable; address parts and external id are bounded strings", () => {
-    for (const name of ["Patient", "PatientUpdate"]) for (const f of NEW) expect(isNullable(S[name].properties[f]), `${name}.${f} nullable`).toBe(true);
+  it("no new field is `nullable`; address parts and external id are bounded strings", () => {
+    for (const name of ["Patient", "NewPatient", "PatientUpdate"]) for (const f of NEW) expect(isNullable(S[name].properties[f]), `${name}.${f} must not be nullable`).toBe(false);
     for (const name of ["Patient", "NewPatient", "PatientUpdate"]) {
       for (const f of ["external_patient_id", "address_province", "address_district", "address_municipality", "address_ward", "address_tole", "address_postal_code", "government_id_number"]) {
         const p = S[name].properties[f];
@@ -94,7 +94,7 @@ describe("T0C-REGPARITY-1 contract: frontdesk.yaml patient parity fields", () =>
 
   it("title is an enum of exactly the 19 ElabAssist titles", () => {
     for (const name of ["Patient", "NewPatient", "PatientUpdate"]) {
-      const e = (P(name, "title").enum as (string | null)[])?.filter((x): x is string => x !== null); // OAS 3.0.3: a nullable enum lists null
+      const e = (P(name, "title").enum as (string | null)[])?.filter((x): x is string => x !== null);
       expect(e, `${name}.title enum`).toBeDefined();
       expect(e.length).toBe(19);
       expect([...e.map(norm)].sort()).toEqual([...TITLES].sort());
@@ -123,14 +123,10 @@ describe("T0C-REGPARITY-1 contract: frontdesk.yaml patient parity fields", () =>
     }
   });
 
-  it("PatientUpdate can clear every new optional field: nullable or listed in unset[]", () => {
+  it("PatientUpdate can clear every new optional field: each is listed in unset[]", () => {
     const unset = S.PatientUpdate.properties.unset;
-    for (const f of NEW) {
-      const clearable = isNullable(S.PatientUpdate.properties[f]) || (unset.items.enum as string[]).includes(f);
-      expect(clearable, `${f} clearable`).toBe(true);
-    }
+    for (const f of NEW) expect(unset.items.enum as string[], `${f} clearable via unset[]`).toContain(f);
     expect(unset.maxItems, "unset maxItems covers its enum").toBeGreaterThanOrEqual(unset.items.enum.length);
-    expect(NEW.filter((f) => !isNullable(S.PatientUpdate.properties[f]) && !unset.items.enum.includes(f)), "fields that cannot be cleared").toEqual([]);
   });
 
   it("government_id_number is sensitive: documented, full only on Patient, never on PatientSummary", () => {
@@ -162,19 +158,19 @@ describe("T0C-REGPARITY-1 contract: payloads (ajv)", () => {
       expect(v(newPatient(bad)), `accepted ${JSON.stringify(bad)}`).toBe(false);
     }
   });
-  it("PatientUpdate takes the new fields, null clears, bad values rejected", () => {
+  it("PatientUpdate takes the new fields, unset[] clears, null and bad values rejected", () => {
     const v = validator("PatientUpdate");
     expect(v({ ...PARITY, title: titleOf("Mrs") }), JSON.stringify(v.errors?.[0])).toBe(true);
-    expect(v({ address_tole: null, government_id_number: null, custom_fields: null, title: null }), JSON.stringify(v.errors?.[0])).toBe(true);
-    for (const bad of [{ title: "Emperor" }, { nationality: "NPL" }, { government_id_type: "abha" }, { custom_fields: [1] }]) expect(v(bad), `accepted ${JSON.stringify(bad)}`).toBe(false);
+    expect(v({ unset: ["address_tole", "government_id_number", "custom_fields", "title"] }), JSON.stringify(v.errors?.[0])).toBe(true);
+    for (const bad of [{ title: null }, { title: "Emperor" }, { nationality: "NPL" }, { government_id_type: "abha" }, { custom_fields: [1] }]) expect(v(bad), `accepted ${JSON.stringify(bad)}`).toBe(false);
   });
-  it("Patient (single read) carries the new fields, all nullable", () => {
+  it("Patient (single read) carries the new fields, all optional", () => {
     const v = validator("Patient");
     const base = { id: "0193c4a0-0000-7000-8000-000000000005", patient_code: "P-000001", full_name: "Demo Patient A", sex: "female", age_display: "43 Years", phone_masked: "15xxxxxx00",
       is_anonymised: false, is_birth_on_estimated: false, consents: CONSENTS, version: 1 };
     expect(v({ ...base, ...PARITY, title: titleOf("Mrs") }), JSON.stringify(v.errors?.[0])).toBe(true);
-    expect(v({ ...base, ...Object.fromEntries(NEW.map((f) => [f, null])) }), JSON.stringify(v.errors?.[0])).toBe(true);
-    expect(v(base), "old payload still valid").toBe(true);
+    expect(v(base), "new fields absent is valid").toBe(true);
+    expect(v({ ...base, ...Object.fromEntries(NEW.map((f) => [f, null])) }), "all-null payload must be rejected").toBe(false);
   });
   it("PatientSummary rejects government_id_number (additionalProperties false)", () => {
     const v = validator("PatientSummary");

@@ -112,7 +112,9 @@ export async function bootPipeline(o: {
   if (config.databaseUrl) {
     // [CONV] pg is a devDependency of services/api until C0-0A moves it (LD-05); loaded only when a database is configured.
     const { default: Pg } = await import('pg');
-    pg = new Pg.Pool({ connectionString: config.databaseUrl, max: config.dbPoolMax, connectionTimeoutMillis: 10_000 }) as any;
+    pg = new Pg.Pool({ connectionString: config.databaseUrl, max: config.dbPoolMax, connectionTimeoutMillis: 10_000,
+      // T0B-PERF-1 (LD-310): idle clients go back to the Supabase pooler after 30 s
+      idleTimeoutMillis: 30_000 }) as any;
     pg!.on('error', (e) => log.warn({ event: 'db_pool_error', code: e?.code }, 'db_pool_error')); // idle client lost: never crash
   }
   const pool: Pool | undefined = pg && {
@@ -120,7 +122,7 @@ export async function bootPipeline(o: {
     connect: () => pg!.connect().catch((e: any) => { throw Object.assign(new Error('db_connect_failed'), { code: typeof e?.code === 'string' ? e.code : '08006' }); }),
   };
   const db = pool && createDb({
-    pool, log, metrics, retryMax: config.txRetryMax, statementTimeoutMs: config.statementTimeoutMs, lockTimeoutMs: config.lockTimeoutMs,
+    pool, log, metrics, retryMax: config.txRetryMax, statementTimeoutMs: config.statementTimeoutMs, writeStatementTimeoutMs: config.writeStatementTimeoutMs, lockTimeoutMs: config.lockTimeoutMs,
     identityAuthOps: config.identityAuthOps, withTenantScopeOps: config.withTenantScopeOps,
     // PLATFORM-WIRE-1 (LD-267): ctx.db.withTenantScope of a platform request uses the lazily read identity system actor (declared below).
     scopeActorId: () => identityActor!(),
@@ -161,7 +163,7 @@ export async function bootPipeline(o: {
       return pendingActor;
     };
     const openDb = (identitySystemActorId: string): Db => createDb({
-      pool, log, metrics, retryMax: config.txRetryMax, statementTimeoutMs: config.statementTimeoutMs, lockTimeoutMs: config.lockTimeoutMs,
+      pool, log, metrics, retryMax: config.txRetryMax, statementTimeoutMs: config.statementTimeoutMs, writeStatementTimeoutMs: config.writeStatementTimeoutMs, lockTimeoutMs: config.lockTimeoutMs,
       identityAuthOps: config.identityAuthOps, withTenantScopeOps: config.withTenantScopeOps, identitySystemActorId,
     });
     identityAuthDb = async () => (actorDb ??= openDb(await identityActor!()));

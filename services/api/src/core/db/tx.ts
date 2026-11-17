@@ -5,6 +5,7 @@ import { AuthError } from '../auth/errors.js';
 import type { DbClaims } from '../auth/claims.js';
 import { IDENTITY_AUTH_OPS, WITH_TENANT_SCOPE_OPS } from './allowlists.js';
 import { mapDbError, type DbErrorDeps } from './sqlstate.js';
+import { currentRequestStats } from '../observability/request-stats.js';
 
 export interface PoolClient { query(text: string, values?: unknown[]): Promise<{ rows: any[] }>; release(err?: unknown): void }
 export interface Pool { connect(): Promise<PoolClient> }
@@ -13,6 +14,8 @@ export interface TxOperation { readonly module: string; readonly operationId: st
 export interface TxInput {
   readonly requestId: string; readonly clientIp: string; readonly userAgent?: string | undefined;
   readonly operation: TxOperation; readonly statementTimeoutMs?: number; readonly lockTimeoutMs?: number;
+  /** T0B-PERF-1 (LD-310): GET/HEAD = true (read statement timeout), other methods false (write timeout). Unset = legacy (write if configured, else read). */
+  readonly readOnly?: boolean;
 }
 export interface RequestTxInput extends TxInput { readonly claims: DbClaims }
 
@@ -33,6 +36,8 @@ export interface DbOptions extends DbErrorDeps {
   readonly sleep?: (ms: number) => Promise<void>;
   readonly random?: () => number;
   readonly statementTimeoutMs?: number;
+  /** T0B-PERF-1 (LD-310): statement timeout of write transactions (config 15000). */
+  readonly writeStatementTimeoutMs?: number;
   readonly lockTimeoutMs?: number;
   readonly identitySystemActorId?: string;
   /** PLATFORM-WIRE-1 (LD-267): lazy identity system actor for withTenantScope ONLY (read after every other check passed); never used by identityAuthTx. */
@@ -66,6 +71,9 @@ export function createDb(o: DbOptions) {
   const authOps: ReadonlySet<string> = new Set(o.identityAuthOps ?? IDENTITY_AUTH_OPS);
   const scopeOps: ReadonlySet<string> = new Set(o.withTenantScopeOps ?? WITH_TENANT_SCOPE_OPS);
   const deps: DbErrorDeps = { log: o.log, metrics: o.metrics };
+  const timeoutFor = (readOnly?: boolean): number => (readOnly === true
+    ? o.statementTimeoutMs ?? 5000
+    : readOnly === false ? o.writeStatementTimeoutMs ?? 15000 : o.writeStatementTimeoutMs ?? o.statementTimeoutMs ?? 5000);
   const states = new WeakMap<object, TxState>(); // only tx objects made here are accepted by withTenantScope
 
   async function attempt<T>(kind: TxState['kind'], input: TxInput, claimsJson: string, fn: TxFn<T>, ctl: TxControl): Promise<T> {
@@ -76,7 +84,7 @@ export function createDb(o: DbOptions) {
       await client.query('BEGIN');
       const { rows } = await client.query(OPEN_SQL, [
         claimsJson, String(input.requestId), String(input.clientIp ?? ''), String(input.userAgent ?? '').slice(0, 512),
-        String(input.statementTimeoutMs ?? o.statementTimeoutMs ?? 5000), String(input.lockTimeoutMs ?? o.lockTimeoutMs ?? 3000),
+        String(input.statementTimeoutMs ?? timeoutFor(input.readOnly)), String(input.lockTimeoutMs ?? o.lockTimeoutMs ?? 3000),
       ]);
       let n = 0;
       let bound = false;
@@ -88,8 +96,17 @@ export function createDb(o: DbOptions) {
           throw e;
         });
       };
+      // T0B-PERF-1 (LD-310): every statement the caller issues counts once (ok or failed) in the request's stats; plumbing
+      // (BEGIN/COMMIT, savepoints, the claims set_config) goes through `query` directly and is not counted.
+      const counted = (text: string, values?: unknown[]) => {
+        const stats = currentRequestStats();
+        if (!stats || text === CLAIMS_SQL) return query(text, values);
+        const t0 = performance.now();
+        const done = () => { stats.recordQuery(performance.now() - t0); };
+        return query(text, values).then((r) => { done(); return r; }, (e: unknown) => { done(); throw e; });
+      };
       const tx: Tx = {
-        query,
+        query: counted,
         startedAt: new Date(rows[0].tx_started_at),
         operation: state.operation,
         async savepoint<R>(inner: (t: Tx) => Promise<R>): Promise<R> {

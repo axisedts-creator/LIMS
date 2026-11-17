@@ -8,14 +8,21 @@ export interface HealthChecks {
 }
 
 const STATES: readonly unknown[] = ['ok', 'degraded', 'down'];
-/** A throw or an out-of-enum value is `down`; the error itself never reaches the response.
- *  ponytail: no per-check timeout; the real checks (later tasks) bound their own I/O via statement/connect timeouts. */
+/** T0B-PERF-1 (LD-310): a check that hangs is `down` after this bound, so the web's wake poll always gets an answer.
+ *  [CONV] 3000 ms: above the 2000 ms probe bound of the real checks (LD-193), which therefore answer first. */
+const CHECK_BOUND_MS = 3000;
+
+/** A throw, an out-of-enum value or a hang past CHECK_BOUND_MS is `down`; the error itself never reaches the response. */
 const run = async (c: () => Promise<CheckState>): Promise<CheckState> => {
+  let timer: ReturnType<typeof setTimeout> | undefined;
   try {
-    const s = await c();
+    const bound = new Promise<CheckState>((r) => { timer = setTimeout(() => r('down'), CHECK_BOUND_MS); timer.unref?.(); });
+    const s = await Promise.race([Promise.resolve().then(c), bound]);
     return STATES.includes(s) ? s : 'down';
   } catch {
     return 'down';
+  } finally {
+    clearTimeout(timer);
   }
 };
 

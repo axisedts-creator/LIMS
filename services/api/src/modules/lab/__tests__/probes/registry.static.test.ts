@@ -7,7 +7,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { REPO_ROOT } from '../../../../core/module.js';
 import { handlers } from '../../handlers/index.js';
-import { ALL_LAB_PERMS, LAB_PERMS, OPS, PRIVILEGED, LAB_TENANT_TABLES, fileText } from './kit.js';
+import { ALL_LAB_PERMS, LAB_PERMS, OPS, PRIVILEGED, LAB_TENANT_TABLES, VERLEVEL1_OPS, fileText } from './kit.js';
 
 const MOD = 'services/api/src/modules/lab';
 const walk = (dir: string): string[] => readdirSync(join(REPO_ROOT, dir)).flatMap((f) => {
@@ -33,7 +33,7 @@ describe('contract <-> probes', () => {
   it('the contract has exactly the 55 lab operations and the handler map has exactly those keys', () => {
     expect(OPS).toHaveLength(55);
     expect(OPS.map((o) => o.id).sort()).toEqual(Object.keys(EXPECT).sort());
-    expect(Object.keys(handlers).sort()).toEqual(OPS.map((o) => o.id).sort());
+    expect(Object.keys(handlers).filter((id) => !VERLEVEL1_OPS.includes(id)).sort()).toEqual(OPS.map((o) => o.id).sort());   // + 3 verification level ids: handler or pending (T0C-VERLEVEL-1)
   });
   it('every operation has a probe request in kit.ts (requestFor)', () => {
     const kit = fileText(`${MOD}/__tests__/probes/kit.ts`);

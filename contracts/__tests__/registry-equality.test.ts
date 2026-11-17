@@ -17,6 +17,9 @@ const LD313_ACCOUNTING_CODES = ["billing.account.manage", "billing.account.read"
   "billing.cash_transfer.manage", "billing.expense.manage"].sort();
 // T0C-SALES-1 (LD-321): the two sales hierarchy codes (the other LD-321 codes arrive with their own contract tasks and extend this list then).
 const LD321_SALES_CODES = ["partners.sales.manage", "partners.sales.read"];
+// T0C-VERLEVEL-1 (LD-316): the two verification policy codes (permissions) and the three verification level error codes (errors.yaml) beyond IC §11 / IC §8.
+const LD316_VERLEVEL_CODES = ["lab.verification_policy.manage", "lab.verification_policy.read"];
+const LD316_VERLEVEL_ERRORS = ["lab.enterer_cannot_verify", "lab.pathologist_required", "lab.verifier_not_distinct"];
 
 /** Strict parse: duplicate map keys are errors (IC §7 says "CI parses the file with a YAML parser"). */
 const strictParse = (src: string, what: string): any => {
@@ -88,10 +91,15 @@ describe("IC source blocks are parseable (guards the test itself)", () => {
 describe("AC-0C-1.3 errors.yaml == IC §8", () => {
   it("equals IC §8 entry for entry (same codes, order, fields)", () => {
     const ic: Entry[] = icDoc(8);
-    const file: Entry[] = contractDoc("errors.yaml");
-    expect(Array.isArray(file), "errors.yaml root must be a list").toBe(true);
+    const all: Entry[] = contractDoc("errors.yaml");
+    expect(Array.isArray(all), "errors.yaml root must be a list").toBe(true);
+    // T0C-VERLEVEL-1 (LD-316): EXACTLY the 3 verification level error codes may follow IC §8 (spec/ is read-only, the lead records the widening in the CR register);
+    // every IC code stays unchanged and in order. A further code needs a new lead decision and an edit of this list.
+    const icCodes = ic.map((e) => e.code);
+    expect(all.filter((e) => !icCodes.includes(e.code)).map((e) => e.code).sort()).toEqual([...LD316_VERLEVEL_ERRORS].sort());
+    const file = all.filter((e) => icCodes.includes(e.code));
     expect(diffByKey(ic, file, "code")).toEqual([]);
-    expect(file.map((e) => e.code)).toEqual(ic.map((e) => e.code)); // order preserved
+    expect(file.map((e) => e.code)).toEqual(icCodes); // order preserved
     expect(file).toEqual(ic);
   });
 
@@ -181,7 +189,7 @@ describe("AC-0C-1.3 permissions.yaml == IC §11", () => {
     const icCodes = ic.permissions.map((p: Entry) => p.code);
     const extra = file.permissions.filter((p: Entry) => !icCodes.includes(p.code));
     expect(diffByKey(ic.permissions, file.permissions, "code").filter((d) => !d.startsWith("extra "))).toEqual([]);
-    expect(extra.map((p: Entry) => p.code).sort()).toEqual([...LD313_ACCOUNTING_CODES, ...LD321_SALES_CODES].sort());
+    expect(extra.map((p: Entry) => p.code).sort()).toEqual([...LD313_ACCOUNTING_CODES, ...LD321_SALES_CODES, ...LD316_VERLEVEL_CODES].sort());
     expect(file.permissions.filter((p: Entry) => icCodes.includes(p.code)).map((p: Entry) => p.code)).toEqual(icCodes);
     expect({ ...file, permissions: file.permissions.filter((p: Entry) => icCodes.includes(p.code)) }).toEqual(ic);
   });

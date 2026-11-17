@@ -1,8 +1,8 @@
-TESTS_WRONG — homecollection repositories.test.ts leaves non-spec ACTIVE global reason rows behind; add cleanup there. reasons.test.ts assertions stay unchanged.
-1. Spec: g_cs_reasons is global, the only reason source, seed-migration rows only (spec/chunks/C17-home-collection/05-SCHEMA.md:16, :45, :119; 02-TRD.md:196 H20 "global seeds only"). So reasons.test.ts:14 asserting exactly the 05-SCHEMA §2 codes per set is correct.
-2. repositories.test.ts:231-233 seeds active visit_cancel_reasons rows hct03_*_a/_b (sort_order 9001/9002) into that global table and never removes them; while it runs (or after it) H20 returns codes the spec says cannot exist. That is fixture pollution, not an implementation defect.
-3. Nothing in the T0B-SALES-1 brief or T0C-SALES-1 touches reason codes; the implementation must not filter test rows.
-CHANGE (test file services/api/src/modules/homecollection/repository/__tests__/repositories.test.ts only):
-- In the 'reasons.repo' describe add afterAll: superuser DELETE FROM homecollection.g_cs_reasons WHERE id = ANY($1) with [A.id, B.id].
-- Because files run in parallel on one DB, cleanup alone leaves a window: also run the homecollection test files serially (vitest fileParallelism:false or a sequential project for src/modules/homecollection), or seed these two rows inside a transaction that rolls back. Same isolation fixes the schedule/handovers/guards shared-tenant collisions named in the dispute.
-- No assertion deleted, skipped or loosened. Then rerun verify three times on an idle host.
+TESTS_WRONG — the failing homecollection files assert against shared-DB state left by other files; no spec rule requires that coupling. Tester fixes ISOLATION ONLY (LD-347), no assertion changed:
+1. dispatch/assign.test.ts:10 BASE '2027-04-01' collides with snapshot/helpers.ts:154 BASE_DAY 2027-04-01: move assign to its own unused date block (e.g. a 2028-09 block not used by route 2028-01, schedule, revisit 2028-05, sync 2028-02..+120d/file).
+2. dispatch/schedule.test.ts:8 BASE '2028-03-01' lies inside sync/helpers.ts:96 range (2028-02-01 + 120 days per file): move schedule (or shift sync's base) so the ranges are disjoint.
+3. settings/helpers.ts:121 DELETEs homecollection.settings per tenant: snapshot the rows before and restore them in afterAll (or give settings tests their own tenants) so repositories.test.ts:201/207, sync/guards.test.ts and observability/logscan.live.test.ts see their own seed.
+4. handovers/read.test.ts empty-page case: use a per-file tenant or delete the handovers other files created before asserting; repositories.test.ts also cleans its g_cs_reasons rows (earlier ruling 97542d826).
+5. Set fileParallelism false for src/modules/homecollection in services/api/vitest.config.ts (LD-347).
+6. repository/static.test.ts on handovers.repo.ts: run on clean main; if red there too, record in notes/T0B-SALES-1-debt.md and drop that file from the verify line; do not edit handovers.repo.ts (LD-347).
+Reasons: task brief done_when (inbox T0B-SALES-1-arbiter.md:22) and LD-347 (:36) bind this exact fix; dispute.md:2-8 shows all new sales/collector files and the boot test green and the failing paths read no collector flag row (additive per done_when item 4); spec/program/00-README.md:54 fixtures stay synthetic.

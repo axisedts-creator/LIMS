@@ -101,7 +101,8 @@ export async function wipe(...tenants: string[]): Promise<void> {
     }, c(t));
   }
 }
-const ins = async (tenant: string, table: string, row: Record<string, unknown>): Promise<any> => superTx(async (tx) => {
+const ins = async (tenant: string, table: string, row: Record<string, unknown>, replica = false): Promise<any> => superTx(async (tx) => {
+  if (replica) await tx.query("SET LOCAL session_replication_role = 'replica'", []);
   const r = { created_by: SYS_ACTOR, updated_by: SYS_ACTOR, tenant_id: tenant, ...row };
   const cols = Object.keys(r);
   const out = await tx.query(`INSERT INTO ${table} (${cols.map((k) => `"${k}"`).join(',')}) VALUES (${cols.map((_, i) => `$${i + 1}`).join(',')}) RETURNING *`, cols.map((k) => r[k]));
@@ -126,7 +127,7 @@ export const mkInvoice = (tenant: string, creditPartyId: string, net: number, is
   return ins(tenant, 'billing.invoices', { id: uid(), branch_id: BRANCH[side], series: 'INV', fiscal_year_bs: '2083/84', invoice_seq: Math.floor(Math.random() * 2e9), invoice_no: `SYN-${n}`, invoice_kind: 'tax_invoice',
     purpose: 'periodic_credit', credit_party_id: creditPartyId, is_periodic_credit_bill: true, period_month: '2026-11-01', buyer_name: 'Synthetic buyer', seller_name: 'Synthetic seller', issued_at: issuedAt,
     invoice_date_bs: '2083-08-01', gross_paisa: net, discount_paisa: 0, exempt_paisa: net, taxable_paisa: 0, vat_paisa: 0, other_tax_paisa: 0, net_paisa: net, prices_include_tax: false,
-    quote_fingerprint: 'synthetic', status: 'issued', cbms_state: 'not_required' });
+    quote_fingerprint: 'synthetic', status: 'issued', cbms_state: 'not_required' }, true); // replica: the fiscal chronology guard (billing.fiscal_counters) is a billing invariant, not under test here
 };
 export const dbRow = async (table: string, id: string): Promise<any | undefined> => (await superTx(async (tx) => (await tx.query(`SELECT * FROM ${table} WHERE id = $1`, [id])).rows))[0];
 export const dbRows = async (table: string, where: string, values: unknown[] = []): Promise<any[]> => superTx(async (tx) => (await tx.query(`SELECT * FROM ${table} WHERE ${where}`, values)).rows);

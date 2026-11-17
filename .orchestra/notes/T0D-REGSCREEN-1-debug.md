@@ -2,3 +2,4 @@ Verify log: 65/66 pass; only regscreen1.quickadd.test.tsx:158 red (body lacks `q
 Cause: QuickAdd.tsx:72 DOES send `quick_add: true`; createDoctorAction -> createOf(DOCTOR.create) drops it because apps/web/src/features/catalog/server/specs.ts:36 (DOCTOR.create) has no `quick_add` key. File is C3-owned (01-CHUNK-MAP.md:161), outside this task's files.
 Fix: none in C0-0D implementation. Needs `quick_add: bool` added to DOCTOR.create by C3 (03-APP-FLOW.md:137, 02-TRD.md:281). Test is correct per spec (ruling dispute 2); stays red by arbiter ruling. No test edited, no dispute (test matches spec).
 Impl change made: none (would be wrong place / ownership breach).
+Round 2 (verify 13:00): same single red test (quickadd.test.tsx:158), 65/66. Re-checked specs.ts:36: DOCTOR.create still lacks `quick_add`; QuickAdd.tsx sends it. No impl fix in C0-0D (C3-owned file; arbiter ruling dispute 2 keeps test red). Needs C3 to add `quick_add: bool`.

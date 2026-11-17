@@ -202,6 +202,20 @@ describe('server validation messages land on the right row and cell (item 5)', (
   });
 });
 
+describe('removing every band (review item 3)', () => {
+  it('Remove last band down to zero rows, then Save: inline error, no request, no success toast', async () => {
+    await open();
+    const remove = screen.getByRole('button', { name: /^remove last band$/i });
+    await userEvent.click(remove);
+    await userEvent.click(remove);
+    await save();
+    expect(await screen.findByText(/at least one band/i)).toBeTruthy();
+    expect(puts()).toHaveLength(0);
+    expect(callsTo('PUT', /critical-limit-sets/)).toHaveLength(0);
+    expect(screen.queryByText(/ranges saved/i)).toBeNull();
+  });
+});
+
 describe('live report preview (item 5)', () => {
   it('shows Test Name, Value, Unit, Reference Range and follows the edited Normal High', async () => {
     const g = await open();

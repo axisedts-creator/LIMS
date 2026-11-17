@@ -238,6 +238,18 @@ describe('Profile and package: two list picker (item 6)', () => {
     expect(c.headers.get('if-match')).toMatch(/6/);
     expect(c.body.members).toEqual([{ kind: 'test', orderable_id: HB['id'], sort_order: 0 }, { kind: 'test', orderable_id: GLU['id'], sort_order: 1 }]);
   });
+  it('Remove all keeps a nested panel member: it is not listed as a test and stays in the PUT body (review item 2)', async () => {
+    const NESTED = ID(401);
+    S.panelDetail[PANEL] = { id: PANEL, code: 'ANAEMIA', name: 'Anaemia profile', panel_kind: 'clinical', is_orderable: true, is_active: true, version: 6, members: [{ kind: 'test', orderable_id: String(HB['id']), sort_order: 0 }, { kind: 'panel', orderable_id: NESTED, sort_order: 1 }] };
+    S.panels = [];
+    await open();
+    expect(chosen().join('|')).not.toMatch(new RegExp(NESTED));
+    await userEvent.click(btn(/^remove all$/i));
+    expect(chosen()).toEqual([]);
+    await userEvent.click(btn(/^save members$/i));
+    await waitFor(() => expect(callsTo('PUT', /panels\/[^/]+\/members$/)).toHaveLength(1));
+    expect(callsTo('PUT', /panels\/[^/]+\/members$/)[0]!.body.members).toEqual([{ kind: 'panel', orderable_id: NESTED, sort_order: 0 }]);
+  });
   it('a reader cannot move anything', async () => {
     TM.session.permissions = READ;
     setup([]);

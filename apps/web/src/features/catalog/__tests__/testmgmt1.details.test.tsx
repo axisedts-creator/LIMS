@@ -136,15 +136,29 @@ describe('Test Details: right pane (item 2)', () => {
 });
 
 describe('Test Details: reorder, space, remove, add existing (item 2)', () => {
-  it('Move down swaps sort_order with the next parameter (PATCH both, If-Match, nothing else sent)', async () => {
+  // Review item 1: the new order is renumbered to (index+1)*10; only parameters whose sort_order differs are PATCHed (If-Match each).
+  it('Move down renumbers to (index+1)*10: new order RBC, HB, MCV -> 10, 20, 30 (PATCH each changed one, If-Match, nothing else sent)', async () => {
+    await open();
+    await userEvent.click(within(right()).getByRole('row', { name: /Haemoglobin/ }));
+    await userEvent.click(screen.getByRole('button', { name: /^move down$/i }));
+    await waitFor(() => expect(callsTo('PATCH', /\/v1\/catalog\/analytes\//)).toHaveLength(3));
+    const byId = Object.fromEntries(callsTo('PATCH', /\/v1\/catalog\/analytes\//).map((c) => [c.path.split('/').pop(), c]));
+    expect(byId[A_RBC.id]!.body).toEqual({ sort_order: 10 });
+    expect(byId[A_HB.id]!.body).toEqual({ sort_order: 20 });
+    expect(byId[A_MCV.id]!.body).toEqual({ sort_order: 30 });
+    expect(byId[A_HB.id]!.headers.get('if-match')).toMatch(/2/);
+  });
+  it('parameters that all sit at the API default sort_order 100 still swap: PATCH distinct (index+1)*10 values (review item 1)', async () => {
+    const P = { ...A_HB, sort_order: 100 };
+    const Q = { ...A_RBC, sort_order: 100 };
+    loadTests(testDetail(1, 'HB', 'Hemoglobin', { analytes: [P, Q] }), CBC, GLU);
     await open();
     await userEvent.click(within(right()).getByRole('row', { name: /Haemoglobin/ }));
     await userEvent.click(screen.getByRole('button', { name: /^move down$/i }));
     await waitFor(() => expect(callsTo('PATCH', /\/v1\/catalog\/analytes\//)).toHaveLength(2));
-    const byId = Object.fromEntries(callsTo('PATCH', /\/v1\/catalog\/analytes\//).map((c) => [c.path.split('/').pop(), c]));
-    expect(byId[A_HB.id]!.body).toEqual({ sort_order: A_RBC.sort_order });
-    expect(byId[A_RBC.id]!.body).toEqual({ sort_order: A_HB.sort_order });
-    expect(byId[A_HB.id]!.headers.get('if-match')).toMatch(/2/);
+    const byId = Object.fromEntries(callsTo('PATCH', /\/v1\/catalog\/analytes\//).map((c) => [c.path.split('/').pop(), c.body]));
+    expect(byId[Q.id]).toEqual({ sort_order: 10 }); // now first
+    expect(byId[P.id]).toEqual({ sort_order: 20 }); // now second
   });
   it('keyboard: Alt+ArrowUp on a focused row moves it up', async () => {
     await open();
@@ -152,9 +166,10 @@ describe('Test Details: reorder, space, remove, add existing (item 2)', () => {
     await userEvent.click(row);
     row.focus();
     await userEvent.keyboard('{Alt>}{ArrowUp}{/Alt}');
-    await waitFor(() => expect(callsTo('PATCH', /\/v1\/catalog\/analytes\//)).toHaveLength(2));
+    await waitFor(() => expect(callsTo('PATCH', /\/v1\/catalog\/analytes\//)).toHaveLength(3));
     const body = Object.fromEntries(callsTo('PATCH', /\/v1\/catalog\/analytes\//).map((c) => [c.path.split('/').pop(), c.body]));
-    expect(body[A_RBC.id]).toEqual({ sort_order: A_HB.sort_order });
+    expect(body[A_RBC.id]).toEqual({ sort_order: 10 }); // RBC is now first
+    expect(body[A_HB.id]).toEqual({ sort_order: 20 });
   });
   it('the first parameter cannot move up and the last cannot move down', async () => {
     await open();

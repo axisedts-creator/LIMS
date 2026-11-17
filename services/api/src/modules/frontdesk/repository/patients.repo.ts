@@ -1,10 +1,16 @@
 // frontdesk.patients (05-SCHEMA §3). Explicit tenant_id filter on every statement; RLS is the backstop.
 import { getRow, insertRow, type Tx } from './shared.repo.js';
 
+// T0B-REGAPI-1 (LD-310): the 13 T0C-REGPARITY-1 columns. government_id_number is sensitive: stored as typed (column CHECK 1..64), kept out of
+// audit.audit_log by the patients__audit trigger exclusion list, never logged; masking is the mapper's job.
+const PARITY = ['title', 'external_patient_id', 'nationality', 'government_id_type', 'government_id_number', 'address_province', 'address_district',
+  'address_municipality', 'address_ward', 'address_tole', 'address_postal_code', 'profile_photo_attachment_id', 'custom_fields'] as const;
 const COLS = ['id', 'patient_code', 'full_name', 'name_search', 'sex', 'birth_on', 'is_birth_on_estimated', 'phone_e164', 'email', 'address_text',
-  'source', 'registered_centre_id', 'last_visit_at', 'duplicate_override_reason_code'] as const;
+  'source', 'registered_centre_id', 'last_visit_at', 'duplicate_override_reason_code', ...PARITY] as const;
+/** the unique index behind "external_patient_id unique per tenant" (20261117100000). */
+export const EXTERNAL_ID_UQ = 'patients__tenant_id_external_patient_id__p_uq';
 
-export const insertPatient = (tx: Tx, tenantId: string, row: Record<string, unknown>) => insertRow(tx, 'frontdesk.patients', COLS, tenantId, row);
+export const insertPatient = (tx: Tx, tenantId: string, row: Record<string, unknown>) => insertRow(tx, 'frontdesk.patients', COLS, tenantId, row, { jsonCols: ['custom_fields'] });
 export const getPatientById = (tx: Tx, tenantId: string, id: string) => getRow(tx, 'frontdesk.patients', tenantId, id);
 
 /** FD-T11 batch read: rows visible to the tenant for these ids (missing / other-tenant ids simply do not come back). */
@@ -39,7 +45,9 @@ export async function findDedupePool(tx: Tx, tenantId: string, nameSearch: strin
   return (await tx.query(`SELECT * FROM frontdesk.patients WHERE tenant_id = $1 AND anonymised_at IS NULL AND birth_on IS NOT NULL AND name_search = $2
     ORDER BY id LIMIT 50`, [tenantId, nameSearch])).rows;
 }
-const UPDATABLE = ['full_name', 'name_search', 'sex', 'birth_on', 'is_birth_on_estimated', 'phone_e164', 'email', 'address_text'] as const;
+const UPDATABLE = ['full_name', 'name_search', 'sex', 'birth_on', 'is_birth_on_estimated', 'phone_e164', 'email', 'address_text',
+  'title', 'external_patient_id', 'nationality', 'government_id_type', 'government_id_number', 'address_province', 'address_district', 'address_municipality',
+  'address_ward', 'address_tole', 'address_postal_code', 'profile_photo_attachment_id', 'custom_fields'] as const;
 /** Optimistic update: null when the row is missing, anonymised or its version != expectedVersion. Column names come from UPDATABLE only. */
 export async function updatePatientRow(tx: Tx, tenantId: string, id: string, expectedVersion: number, set: Record<string, unknown>): Promise<any | null> {
   const cols = UPDATABLE.filter((c) => c in set);

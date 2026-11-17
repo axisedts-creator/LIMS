@@ -7,6 +7,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Badge } from '@lims/ui/components/Badge';
 import { Button } from '@lims/ui/components/Button';
+import { EmptyRow, PlaceholderRows } from '@lims/ui/components/DataTable';
 import { EmptyState } from '@lims/ui/components/EmptyState';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { StatusChip } from '@lims/ui/components/StatusChip';
@@ -120,14 +121,15 @@ function Board({ centres, initialRows, initialNextCursor, initialRange }: Status
       </div>
       {rangeErr ? <p id="board-range-err" role="alert" className="lims-error">{rangeErr}</p> : null}
       {error ? <p role="alert" className="lims-error">{error}</p> : null}
-      {rows.length === 0 ? <EmptyState title="No registrations in this period." /> : (
-        <table className="lims-table" aria-label="Order status board">
+      {/* T0D-EMPTYTBL-1 (LD-310): headers always drawn; the empty message is a body row. */}
+      <table className="lims-table" aria-label="Order status board">
           <thead>
             <tr>
               <th scope="col">Reg no</th><th scope="col">Patient</th><th scope="col">Centre</th><th scope="col">Status</th><th scope="col">Released at</th>
             </tr>
           </thead>
           <tbody>
+            {rows.length === 0 ? <EmptyRow colSpan={5}><EmptyState title="No registrations in this period." /></EmptyRow> : null}
             {rows.map((r) => (
               <tr key={r.order_id}>
                 <th scope="row">{r.registration_no}</th>
@@ -142,8 +144,8 @@ function Board({ centres, initialRows, initialNextCursor, initialRange }: Status
               </tr>
             ))}
           </tbody>
+          {rows.length === 0 ? <PlaceholderRows colSpan={5} /> : null}
         </table>
-      )}
       {next ? <Button size="sm" onPress={() => { void refresh({}, next); }}>Load more</Button> : null}
     </div>
   );

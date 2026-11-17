@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { Badge } from '@lims/ui/components/Badge';
 import { Button } from '@lims/ui/components/Button';
 import { CodeField } from '@lims/ui/components/CodeField';
+import { EmptyRow, PlaceholderRows } from '@lims/ui/components/DataTable';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { RadioGroup } from '@lims/ui/components/RadioGroup';
 import { Select } from '@lims/ui/components/Select';
@@ -94,11 +95,10 @@ export function TestsList({ rows, filters, page, pages, filtered, departments, s
         </thead>
         <tbody>
           {rows.length === 0 ? (
-            <tr className="lims-row">
-              <td className="lims-cell" colSpan={heads.length}>
-                {filtered ? t('catalog.tests.no_match') : <>{t('catalog.tests.empty')} {newButton}</>}
-              </td>
-            </tr>
+            // T0D-EMPTYTBL-1 (LD-310): message row + four placeholder rows.
+            <EmptyRow colSpan={heads.length}>
+              {filtered ? t('catalog.tests.no_match') : <>{t('catalog.tests.empty')} {newButton}</>}
+            </EmptyRow>
           ) : (
             rows.map((r) => (
               <tr key={r.id} className="lims-row">
@@ -111,6 +111,7 @@ export function TestsList({ rows, filters, page, pages, filtered, departments, s
             ))
           )}
         </tbody>
+        {rows.length === 0 ? <PlaceholderRows colSpan={heads.length} /> : null}
       </table>
       {pages > 1 ? (
         <nav aria-label={t('catalog.tests.pages')} className="lims-filter-bar">

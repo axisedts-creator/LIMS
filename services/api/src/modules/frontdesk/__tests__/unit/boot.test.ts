@@ -248,18 +248,30 @@ describe('worker manifest (02-TRD §3.3, §7.2 build-time checks)', () => {
   });
 });
 
-describe('done_when: nav entry hidden (apps/web nav.manifest.ts, 04-UI-UX §3)', () => {
-  it('exports navManifest for module frontdesk with no visible entry yet', async () => {
+// T0B-TESTFIX-2 (LD-314): these two expectations said "no frontdesk nav entry yet". The hidden-nav state ended when
+// T0D-NAV-COMPLETE-1 (001c20819, LD-250) added the 3 front-desk entries and ADMINPAGE-FD-1 (de9bf9dd8, LD-255; review-fix tests
+// 5f0db6c99) added `frontdesk.settings`: 4 entries on main. They now prove the merged nav: exactly those 4 entries, each with its
+// route id, permission and group, and build-nav resolves exactly those 4 for module frontdesk with no error.
+const FRONTDESK_NAV = [
+  { id: 'frontdesk.registration_new', routeId: 'staff.frontdesk.registration_new', permission: 'frontdesk.registration.create' },
+  { id: 'frontdesk.worklist', routeId: 'staff.frontdesk.worklist', permission: 'frontdesk.order.read' },
+  { id: 'frontdesk.discount_approvals', routeId: 'staff.frontdesk.discount_approvals', permission: 'frontdesk.discount.approve' },
+  { id: 'frontdesk.settings', routeId: 'staff.frontdesk.settings', permission: 'frontdesk.settings.manage' },
+];
+describe('done_when: nav entries (apps/web nav.manifest.ts, 04-UI-UX §3; T0D-NAV-COMPLETE-1, ADMINPAGE-FD-1)', () => {
+  it('exports navManifest for module frontdesk with exactly the 4 front-desk entries (registration, worklist, discount approvals, settings)', async () => {
     const { navManifest } = await load(FILES.nav);
     expect(navManifest.module).toBe('frontdesk');
     expect(Array.isArray(navManifest.entries)).toBe(true);
-    expect(navManifest.entries).toEqual([]);
+    expect(navManifest.entries.map((e: any) => ({ id: e.id, routeId: e.routeId, permission: e.permission }))).toEqual(FRONTDESK_NAV);
+    expect(navManifest.entries.every((e: any) => e.group === 'front_desk')).toBe(true);
   });
 
-  it('build-nav accepts the real features dir: no errors and no frontdesk entry in the resolved nav', async () => {
+  it('build-nav accepts the real features dir: no errors and exactly the 4 frontdesk entries in the resolved nav', async () => {
     const { buildNav } = await load('apps/web/src/core/nav/build-nav.ts');
     const r = await buildNav(join(REPO_ROOT, 'apps/web/src/features'), read('contracts/routes.yaml'));
     expect(r.errors).toEqual([]);
-    expect(r.entries.filter((e: any) => e.module === 'frontdesk')).toEqual([]);
+    const fd = r.entries.filter((e: any) => e.module === 'frontdesk');
+    expect(fd.map((e: any) => ({ id: e.id, routeId: e.routeId, permission: e.permission }))).toEqual(FRONTDESK_NAV);
   });
 });

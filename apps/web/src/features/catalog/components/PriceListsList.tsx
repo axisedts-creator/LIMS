@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Badge } from '@lims/ui/components/Badge';
 import { Button } from '@lims/ui/components/Button';
 import { CodeField } from '@lims/ui/components/CodeField';
+import { EmptyRow, PlaceholderRows } from '@lims/ui/components/DataTable';
 import { EmptyState } from '@lims/ui/components/EmptyState';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { RadioGroup } from '@lims/ui/components/RadioGroup';
@@ -26,10 +27,8 @@ export function PriceListsList({ priceLists, permissions }: { priceLists: readon
   return (
     <section aria-label="Price lists">
       <PageHeader title="Price lists" helpKey="catalog.price_lists" breadcrumbs={[{ label: 'Pricing' }, { label: 'Price lists' }]} actions={open ? <Button variant="primary" onPress={open}>New price list</Button> : null} />
-      {priceLists.length === 0 ? (
-        <EmptyState title="No price list yet — create the default list first." />
-      ) : (
-        <>
+      {/* T0D-EMPTYTBL-1 (LD-310): headers always drawn; the empty message (with New price list repeated) is a body row. */}
+      <>
           {priceLists.length === 1 && priceLists[0]!.owner_kind === 'default' ? <p>Only the default price list exists.</p> : null}
           <table className="lims-table lims-table-regular">
             <caption className="lims-visually-hidden">Price lists</caption>
@@ -39,6 +38,9 @@ export function PriceListsList({ priceLists, permissions }: { priceLists: readon
               </tr>
             </thead>
             <tbody>
+              {priceLists.length === 0 ? (
+                <EmptyRow colSpan={8}><EmptyState title="No price list yet — create the default list first." {...(open ? { action: { label: 'New price list', onPress: open } } : {})} /></EmptyRow>
+              ) : null}
               {priceLists.map((p) => (
                 <tr key={p.id} className="lims-row">
                   <td className="lims-cell"><a className="lims-link" href={`/catalog/price-lists/${p.id}`}>{p.code}</a></td>
@@ -52,9 +54,9 @@ export function PriceListsList({ priceLists, permissions }: { priceLists: readon
                 </tr>
               ))}
             </tbody>
+            {priceLists.length === 0 ? <PlaceholderRows colSpan={8} /> : null}
           </table>
-        </>
-      )}
+      </>
       {creating ? <NewPriceListDialog onClose={() => setCreating(false)} /> : null}
     </section>
   );

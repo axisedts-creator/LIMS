@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest';
 import { createMetrics } from '../../observability/metrics.js';
 import { TENANT_A, fakeRaw, recorders, storageOpts } from './helpers.js';
 import { storageSuite } from './suite.js';
+import { findCredentialMaterial } from './credential-scan.js';
 
 storageSuite('api storage', () => import('../index.js') as any);
 
@@ -21,11 +22,12 @@ function sources(dir: string, out: string[] = []): string[] {
 }
 
 describe('Storage credential is read only by core/storage/**', () => {
-  it('no other core source (api or worker) mentions LIMS_CORE_STORAGE_KEY_FILE or a service-role key', () => {
+  // T0B-DEPFIX-1 (LD-312): scan for key MATERIAL (PEM, long hex/base64, JWT, service-role assignment), not for the variable NAME
+  // (core/health.ts lists LIMS_CORE_STORAGE_KEY_FILE in REQUIRED_ENV; a name is not a secret). Both directions: credential-scan.test.ts.
+  it('no other core source (api or worker) holds key material', () => {
     for (const root of [CORE, WORKER_CORE]) {
       for (const f of sources(root).filter((p) => !p.includes(`${sep}storage${sep}`))) {
-        const t = readFileSync(f, 'utf8');
-        expect(t, f).not.toMatch(/STORAGE_KEY_FILE|SERVICE_ROLE|STORAGE_SERVICE_KEY/);
+        expect(findCredentialMaterial(readFileSync(f, 'utf8')), f).toEqual([]);
       }
     }
   });

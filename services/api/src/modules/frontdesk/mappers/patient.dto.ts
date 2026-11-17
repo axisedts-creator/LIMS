@@ -37,13 +37,32 @@ export function patientSummaryDto(r: Row, today: string) {
   });
 }
 
-/** `pii` = caller holds frontdesk.registration.create: only then phone_e164 / email / address_text leave the server. */
-export function patientDto(r: Row, consent: Row | undefined, today: string, pii: boolean) {
+/** LD-310 pick: '*' x (length - 4) + last 4 characters; 4 characters or fewer are fully masked. Code points, so a surrogate pair is never split. */
+export function maskTail4(v: string): string {
+  const c = [...v];
+  return c.length > 4 ? '*'.repeat(c.length - 4) + c.slice(-4).join('') : '*'.repeat(c.length);
+}
+const PARITY_TEXT = ['title', 'external_patient_id', 'nationality', 'government_id_type', 'address_province', 'address_district', 'address_municipality',
+  'address_ward', 'address_tole', 'address_postal_code', 'profile_photo_attachment_id'] as const;
+
+/** T0B-REGAPI-1 (LD-310): the 13 T0C-REGPARITY-1 fields; a null column is an absent key, so a patient without them reads exactly as before. */
+function parityFields(r: Row, fullGovId: boolean): Record<string, unknown> {
+  const o: Record<string, unknown> = {};
+  for (const k of PARITY_TEXT) if (r[k] != null) o[k] = String(r[k]);
+  if (r['government_id_number'] != null) o['government_id_number'] = fullGovId ? String(r['government_id_number']) : maskTail4(String(r['government_id_number']));
+  if (r['custom_fields'] != null && typeof r['custom_fields'] === 'object') o['custom_fields'] = Object.entries(r['custom_fields']).map(([code, value]) => ({ code, value: String(value) }));
+  return o;
+}
+
+/** `pii` = caller holds frontdesk.registration.create: only then phone_e164 / email / address_text leave the server.
+ *  `fullGovId` = the single patient read (getPatient, frontdesk.patient.read): the only reply with the unmasked government_id_number (LD-310). */
+export function patientDto(r: Row, consent: Row | undefined, today: string, pii: boolean, fullGovId = false) {
   const anon = r['anonymised_at'] != null;
   return strip({
     ...patientSummaryDto(r, today),
     birth_on: anon ? undefined : dateOnly(r['birth_on']), is_birth_on_estimated: r['is_birth_on_estimated'] === true,
     ...(pii && !anon ? { phone_e164: r['phone_e164'] ?? undefined, email: r['email'] ?? undefined, address_text: r['address_text'] ?? undefined } : {}),
+    ...(anon ? {} : parityFields(r, fullGovId)),
     consents: consentsDto(consent), version: Number(r['version']),
   });
 }

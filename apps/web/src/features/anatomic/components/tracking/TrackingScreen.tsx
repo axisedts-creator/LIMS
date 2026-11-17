@@ -10,7 +10,6 @@ import { Button } from '@lims/ui/components/Button';
 import { DataTable } from '@lims/ui/components/DataTable';
 import { DescriptionList } from '@lims/ui/components/DescriptionList';
 import { Dialog } from '@lims/ui/components/Dialog';
-import { EmptyState } from '@lims/ui/components/EmptyState';
 import { IconButton } from '@lims/ui/components/IconButton';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { Switch } from '@lims/ui/components/Switch';
@@ -84,7 +83,7 @@ function Result({ f, movements }: { f: Found; movements: readonly Movement[] }) 
 }
 
 function SentOut({ rows }: { rows: readonly SentOutRow[] }) {
-  if (rows.length === 0) return <EmptyState title="Nothing is sent out" body="Blocks you send out appear here until they are returned." />;
+  // T0D-EMPTYTBL-1 (LD-310): the kit DataTable draws the headers and puts the empty message + placeholder rows in the body.
   const oldestFirst = [...rows].sort((a, b) => (a.block.last_movement_at ?? '').localeCompare(b.block.last_movement_at ?? ''));
   return (
     <DataTable
@@ -92,7 +91,7 @@ function SentOut({ rows }: { rows: readonly SentOutRow[] }) {
       density="compact"
       rows={oldestFirst}
       getRowId={(r) => r.block.id}
-      emptyState={{ title: 'Nothing is sent out' }}
+      emptyState={{ title: 'Nothing is sent out', body: 'Blocks you send out appear here until they are returned.' }}
       columns={[
         { id: 'label', header: 'Label', isRowHeader: true, cell: (r) => <span className="lims-mono">{r.block.label}</span> },
         { id: 'case', header: 'Case', cell: (r) => <a className="lims-link" href={`/anatomic/cases/${r.block.case_id}`}>{r.block.accession_no}</a> },

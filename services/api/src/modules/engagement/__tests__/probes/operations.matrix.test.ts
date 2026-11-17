@@ -62,7 +62,7 @@ describe('inventory (07-SECURITY §6.1: every operationId in TRD §5)', () => {
   it('actor classes: 3 pre-auth, 1 display, the rest split by the /me prefix (patient) vs staff', () => {
     expect(by('preauth').map((o) => o.id).sort()).toEqual(['getPatientAppConfig', 'requestPatientOtp', 'verifyPatientOtp']);
     expect(by('display').map((o) => o.id)).toEqual(['getQueueBoard']);
-    expect(by('patient').length + by('staff').length).toBe(105);
+    expect(by('patient').length + by('staff').length).toBe(114);
     expect(by('patient').length).toBeGreaterThanOrEqual(35);
     expect(by('staff').length).toBeGreaterThanOrEqual(45);
   });

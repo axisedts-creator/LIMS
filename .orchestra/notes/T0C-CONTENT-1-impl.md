@@ -6,7 +6,7 @@
 - OPEN (lead): no patient route reads an image today; the patient app fetch of the image bytes (image_attachment_id of PortalContentPublic) needs a route in T0B-CONTENT-1 (an engagement.self.read download limited to images referenced by visible content) or a CR; getBrandingAssetContent is staff only.
 - No service, handler or web change. Public read: RLS patient policy = active and inside starts_on / ends_on (current_date); profile_image staff only; no DELETE grant (deactivate / clear = is_active false).
 - FOUNDER STEPS: push-cloud for 20261117130000_engagement__add_portal_content.sql (not done here); re-apply the role pack so corp_admin gets the 2 codes.
-- Checks (2026-11-18 03:30, after ruling TESTS_WRONG, no impl change): content1 + msgdesk1 + c16 808/808; api engagement contract/boot/matrix + role packs 266/267; pgTAP T0C-CONTENT-1 suite green (no not ok). Still RED, pre-existing and out of scope per ruling: boot PHASE_STUBS QualityPort, registry-equality catalog.import_* (6). Probe steps 9 (portal_content) and 6 (branding_assets) routed to the T0B-08 generator owner per ruling 3-4. api tsc not run.
+- Checks (2026-11-18 03:35, after second ruling TESTS_WRONG, no impl change): content1 + msgdesk1 + c16 808/808; registry-equality 14/14; api engagement contract/boot/matrix + role packs 266/267; pgTAP T0C-CONTENT-1 suite pass (exit 0). Still RED, pre-existing and out of scope per ruling: boot PHASE_STUBS QualityPort. Probe steps 9 (portal_content) and 6 (branding_assets) routed to the T0B-08 generator owner per ruling 3-4. api tsc not run.
 
 ## FIELD MAP (ElabAssist portal content; LD-313)
 - News and Updates — added (portal_content kind news; createPortalContent, listPortalContent, listMyPortalContent)

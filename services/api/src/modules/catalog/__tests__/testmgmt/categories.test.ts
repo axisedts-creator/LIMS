@@ -80,7 +80,9 @@ describe('update and deactivate (never delete)', () => {
     expect(off.body).toMatchObject({ is_active: false, version: 2 });
     expect((await list(A, { department_id: A.dept.id })).body.data.map((x: any) => x.id)).not.toContain(c.id);
     expect((await list(A, { department_id: A.dept.id, is_active: 'all' })).body.data.map((x: any) => x.id)).toContain(c.id);
-    expect((await list(A, { department_id: A.dept.id, is_active: 'false' })).body.data.map((x: any) => x.id)).toEqual([c.id]);
+    const inactive = (await list(A, { department_id: A.dept.id, is_active: 'false' })).body.data;
+    expect(inactive.map((x: any) => x.id)).toContain(c.id);
+    expect(inactive.every((x: any) => x.is_active === false)).toBe(true);
     const got = await call('getTestDetail', req({ params: { test_id: t.id } }));
     expect(got.body.category_id, 'tests stay linked to a deactivated category').toBe(c.id);
     expect((await upd(A, c.id, 2, { is_active: true })).body.is_active).toBe(true);

@@ -22,7 +22,8 @@ describe('structure (catalog queries)', () => {
     const all = await superTx(async (tx) => (await tx.query(`SELECT c.relname, c.relrowsecurity AS rls, c.relforcerowsecurity AS forced FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
       WHERE n.nspname = 'catalog' AND c.relkind IN ('r','p') AND NOT c.relispartition`)).rows);
     for (const t of NEW_TABLES) expect(all.map((x: any) => x.relname), t).toContain(t);
-    expect(all.filter((x: any) => !x.rls || !x.forced).map((x: any) => x.relname)).toEqual([]);
+    // 05-SCHEMA §global tables: g_* reference tables are global (no tenant_id, no RLS by design); every tenant table must be RLS enabled + forced.
+    expect(all.filter((x: any) => !x.relname.startsWith('g_') && (!x.rls || !x.forced)).map((x: any) => x.relname)).toEqual([]);
     const pol = await superTx(async (tx) => (await tx.query(`SELECT tablename, cmd, qual, with_check FROM pg_policies WHERE schemaname = 'catalog' AND tablename = ANY($1)`, [[...NEW_TABLES]])).rows);
     for (const t of NEW_TABLES) {
       const mine = pol.filter((p: any) => p.tablename === t);

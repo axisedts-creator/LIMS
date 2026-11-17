@@ -62,9 +62,11 @@ Without it the worker or `registry-sync` stops with `ERR_MODULE_NOT_FOUND` (for 
 | `LIMS_CORE_IDENTITY_AUTH_OPS` | core | optional | The built-in list of identity authentication operations is used. |
 | `LIMS_CORE_WITH_TENANT_SCOPE_OPS` | core | optional | The built-in list of tenant-scope operations is used. |
 | `LIMS_CORE_METRICS_PORT` | core | optional | Default 9464 for the internal metrics listener (API and worker). |
-| `LIMS_CORE_DB_POOL_MAX` | core | optional | Default pool size 20. |
-| `LIMS_CORE_STATEMENT_TIMEOUT_MS` | core | optional | Default 5000 ms statement timeout. |
+| `LIMS_CORE_DB_POOL_MAX` | core | optional | Default pool size 10 per process (fits the Supabase pooler; 1..60 accepted, T0B-PERF-1). |
+| `LIMS_CORE_STATEMENT_TIMEOUT_MS` | core | optional | Default 5000 ms statement timeout for read requests (GET, HEAD). |
+| `LIMS_CORE_STATEMENT_TIMEOUT_WRITE_MS` | core | optional | Default 15000 ms statement timeout for write requests (T0B-PERF-1). |
 | `LIMS_CORE_LOCK_TIMEOUT_MS` | core | optional | Default 3000 ms lock timeout. |
+| `LIMS_CORE_AUTHZ_MODE` | core | optional | Default shadow in every environment (LD-261): the central permission check logs denials and does not block; an unknown value stops boot. |
 | `LIMS_CORE_FAKE_PORTS` | core | optional | No port is replaced by a fake (fakes are allowed in dev and ci only). |
 | `LIMS_CORE_RATELIMIT_BACKEND` | core | optional | Default postgres. The redis choice is refused at boot (not wired yet). |
 | `LIMS_CORE_REDIS_URL` | core | optional | Not used while the rate-limit backend is postgres. |

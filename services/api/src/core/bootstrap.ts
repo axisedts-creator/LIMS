@@ -9,6 +9,7 @@ import { createBffKeyVerifier } from './auth/bff-key.js';
 import type { ClaimsResolver } from './auth/claims-resolver.js';
 import { createClientIpResolver } from './auth/client-ip.js';
 import { createJwtVerifier } from './auth/jwt.js';
+import { installHttpPerf } from './observability/http-perf.js';
 import { childLoggerFactory, createCoreLogger, installRequestLog } from './observability/logging.js';
 import { createMetrics, type CoreMetrics } from './observability/metrics.js';
 import { claimsOf, installRouteHooks, mountSpec, schemaController, type CoreAuth } from './openapi.js';
@@ -50,6 +51,7 @@ export async function bootstrap(opts: BootstrapOptions): Promise<FastifyInstance
     app.decorate('metrics', metrics);
     installErrorHandlers(app);
     installRequestLog(app, metrics, claimsOf);
+    installHttpPerf(app); // T0B-PERF-1 (LD-310): stats scope, Server-Timing, compression, keep-alive
     const modules = await autoload(modulesDir, repoRoot);
     // 02-TRD §6.5: key files are read now, so a missing/garbage key or CIDR fails boot (no lazy / network fallback).
     const auth: CoreAuth = {

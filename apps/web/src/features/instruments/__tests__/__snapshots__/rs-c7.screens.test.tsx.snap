@@ -3,16 +3,6 @@
 exports[`RS-C7 key screens (DOM snapshots) > instrument overview: commissioning checklist stepper (two of four done) 1`] = `
 "<section aria-label="Instrument SIM-CHEM-1">
 <div class="lims-page-header">
-<nav aria-label="Breadcrumb" class="lims-breadcrumbs">
-<ol>
-<li>
-<a href="/instruments/instruments">Instruments</a>
-</li>
-<li>
-<span aria-current="page">SIM-CHEM-1</span>
-</li>
-</ol>
-</nav>
 <div class="lims-page-header-row">
 <h1 class="lims-page-title">SIM-CHEM-1 — Sim chem</h1>
 <div class="lims-page-status">
@@ -455,16 +445,6 @@ exports[`RS-C7 key screens (DOM snapshots) > instruments: link cards (state dot 
 exports[`RS-C7 key screens (DOM snapshots) > messages: log table with the existing columns 1`] = `
 "<section aria-label="Messages">
 <div class="lims-page-header">
-<nav aria-label="Breadcrumb" class="lims-breadcrumbs">
-<ol>
-<li>
-<a href="/instruments/instruments">Instruments</a>
-</li>
-<li>
-<span aria-current="page">Messages</span>
-</li>
-</ol>
-</nav>
 <div class="lims-page-header-row">
 <h1 class="lims-page-title">Messages</h1>
 <div class="lims-page-actions">
@@ -716,16 +696,6 @@ exports[`RS-C7 key screens (DOM snapshots) > messages: log table with the existi
 exports[`RS-C7 key screens (DOM snapshots) > messages: rejected uploads table 1`] = `
 "<section aria-label="Messages">
 <div class="lims-page-header">
-<nav aria-label="Breadcrumb" class="lims-breadcrumbs">
-<ol>
-<li>
-<a href="/instruments/instruments">Instruments</a>
-</li>
-<li>
-<span aria-current="page">Messages</span>
-</li>
-</ol>
-</nav>
 <div class="lims-page-header-row">
 <h1 class="lims-page-title">Messages</h1>
 <div class="lims-page-actions">

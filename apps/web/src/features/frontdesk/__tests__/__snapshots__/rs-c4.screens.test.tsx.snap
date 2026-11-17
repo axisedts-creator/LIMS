@@ -3,16 +3,6 @@
 exports[`RS-C4 key-screen snapshots > Credit party: statement tab 1`] = `
 "<section aria-label="Credit party Synthetic Corp">
 <div class="lims-page-header">
-<nav aria-label="Breadcrumb" class="lims-breadcrumbs">
-<ol>
-<li>
-<a href="/billing/credit-parties">Credit parties</a>
-</li>
-<li>
-<span aria-current="page">SYNCORP</span>
-</li>
-</ol>
-</nav>
 <div class="lims-page-header-row">
 <h1 class="lims-page-title">Synthetic Corp</h1>
 <div class="lims-page-actions">

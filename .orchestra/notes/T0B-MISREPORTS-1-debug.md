@@ -1,0 +1,3 @@
+# T0B-MISREPORTS-1 debugger (2026-11-18). No implementation change.
+- Verify log: 11 failures, 5 files. Cause is not the implementation: (a) consultant contract still has net_billed_paisa (analytics.yaml:3996-3997), LD-346(1) edit is T0C-owned, not on this branch; impl is already volume only. (b) CSV BOM count, P13 x2 probe exceptions = test defects (dispute items 1-2). (c) party_billing paging needs >7 rows, fixture has 4 parties, contract is one row per party (dispute item 4).
+- Dispute written/extended: .orchestra/notes/T0B-MISREPORTS-1-dispute.md. Stop: tester fix + T0C consultant edit needed. Live PG17 perf run still unexecuted.

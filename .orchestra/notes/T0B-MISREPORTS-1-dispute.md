@@ -12,3 +12,4 @@
 3. NOT a test defect, a dependency: registry.static "consultant is volume only" + "consultant: ... columns come from the contract" and reports.live consultant
    read contracts/openapi/analytics.yaml, which in this tree still has consultant.net_billed_paisa and default_sort net_billed_paisa. LD-346 (1) gives that edit to
    T0C-MISREPORTS-1 (reset to changes); it is not on this branch. The implementation already follows LD-346 (volume only), so these pass once that edit merges.
+4. (debugger, 2026-11-18) reports.live.test.ts:77-83 paging case: `expect(whole.length).toBeGreaterThan(7)` for party_billing, but kit.ts:55 fixture has 4 parties and contracts/openapi/analytics.yaml:4115-4117 (party_billing, columns 4121-4129, no period column) defines one row per party. Max 4 rows; 7 is unreachable by any correct implementation. Fix (tester): more parties in the fixture or a smaller page size / lower bound for party_billing.

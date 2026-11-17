@@ -5,7 +5,7 @@
 // and its comments carry reason_text (contract example); a second reversal, a reversal of a reversal -> 409 billing.ledger_reversal_invalid; a concurrent double reverse is
 // one 201 and the rest 409 (never a 500 from the unique constraint).
 import { describe, expect, it } from 'vitest';
-import { T, TENANT_A, allSeqs, appTx, dbCount, dbEntries, entry, fire, notFound, ok, rejected, req, reverse, statement, summary, uid, world } from './helpers.js';
+import { T, TENANT_A, allSeqs, appTx, dbCount, dbEntries, entry, fire, notFound, ok, rejected, req, reverse, statement, summary, superTx, uid, world } from './helpers.js';
 
 const get = (id: string) => fire('getAccountLedgerEntry', req({ params: { account_ledger_entry_id: id } }));
 
@@ -26,6 +26,24 @@ describe('reverseAccountLedgerEntry', () => {
     expect(o.writes.filter((s) => /update|delete/i.test(s) && /account_ledger_entries/i.test(s))).toEqual([]);
     const seqs = await allSeqs(TENANT_A);
     expect(seqs).toEqual(seqs.map((_, i) => i + 1));
+  }, T);
+
+  // LD-324 (c) / LD-326: ctx.audit.access with action account_entry.reverse, entityType account_ledger_entry, entityId = the NEW reversal id, original id in detail.reverses_entry_id, ids only, outcome allowed.
+  it('a reverse writes ONE audit.access_log row account_entry.reverse on the reversal id, original id in detail, no free text', async () => {
+    const w = await world('a');
+    const secrets = { comments: `Synthetic note ${uid()}`, bank_name: `Synthetic Bank ${uid()}`, reference_no: `REF-${uid()}`, payment_details: `Synthetic detail ${uid()}` };
+    const orig = await entry(w, { payment_mode: 'bank_transfer', ...secrets });
+    const reason = `Synthetic reason ${uid()}`;
+    const o = await reverse(w, orig.id, reason);
+    const rev = ok(o, 201);
+    const rows = await superTx(async (tx) => (await tx.query(`SELECT to_jsonb(a) AS j FROM audit.access_log a WHERE tenant_id = $1 AND action IN ('account_entry.create','account_entry.reverse') AND entity_id = ANY($2::uuid[])`, [TENANT_A, [orig.id, rev.id]])).rows.map((r: { j: Record<string, any> }) => r.j), TENANT_A);
+    const forRev = rows.filter((r) => r.entity_id === rev.id);
+    expect(forRev, 'exactly one access_log row for the reversal id').toHaveLength(1);
+    expect(forRev[0]).toMatchObject({ action: 'account_entry.reverse', entity_type: 'account_ledger_entry', outcome: 'allowed' });
+    expect(forRev[0].detail.reverses_entry_id).toBe(orig.id);
+    expect(rows.filter((r) => r.entity_id === orig.id).map((r) => r.action)).toEqual(['account_entry.create']);   // the create row of the original, entity_id = the original id
+    const text = JSON.stringify(rows) + o.logs.join('\n');
+    for (const v of [...Object.values(secrets), reason]) expect(text).not.toContain(v);
   }, T);
 
   it('the original now reads as reversed (derived), the reversal reads as submitted, and both are listed', async () => {

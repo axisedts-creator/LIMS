@@ -6,15 +6,34 @@
 // NOT covered (needs a live pg with seeded tenants/centres; no generic seed exists): "DB check as owner shows zero b changes", §6.2 cross-centre probes, consumer probes (b envelopes -> only b rows) — see notes.
 import { describe, expect, it } from 'vitest';
 import { LimsError } from '../../../../core/errors.js';
-import { ALL_OPS, B_ID, ctxFor, isDeferred, run, requestFor, spyTx, TENANT_A, TENANT_B, safeJson } from './probe.kit.js';
+import { ALL_OPS, B_ID, ctxFor, handlerMap, isDeferred, isPending, pendingIds, run, specOpCount, requestFor, spyTx, TENANT_A, TENANT_B, safeJson } from './probe.kit.js';
 
 const CATALOG_ID_OPS = new Set(['createRegistration', 'quoteRegistration', 'quoteOrderItemsChange', 'changeOrderItems']);
 const tableStmt = (text: string) => /\b(billing|frontdesk)\.[a-z_]+/i.test(text);
 
+// LD-328: the counts come from the loaded contract specs (no hardcoded 29 / 47) and every contract operation must still appear in ALL_OPS.
+const ACCT2_OPS = ['acceptCashTransfer', 'cancelCashTransfer', 'cancelExpense', 'createCashTransfer', 'createExpense', 'createExpenseType', 'getDailyCollectionSummary', 'listCashTransfers', 'listExpenseTypes', 'listExpenses', 'rejectCashTransfer', 'updateExpenseType'];
+const ACCT1_OPS = ['createAccountGroup', 'createAccountLedgerEntry', 'createAccountParticular', 'getAccountLedgerEntry', 'getAccountStatement', 'getAccountSummary', 'listAccountGroups', 'listAccountLedgerEntries', 'listAccountParticulars', 'reverseAccountLedgerEntry', 'updateAccountGroup', 'updateAccountParticular'];
+
 describe('registry', () => {
-  it('covers all 29 frontdesk and 47 billing operations', () => {
-    expect(ALL_OPS.filter((o) => o.mod === 'frontdesk')).toHaveLength(29);
-    expect(ALL_OPS.filter((o) => o.mod === 'billing')).toHaveLength(47);
+  it('covers every frontdesk and billing contract operation (counts derived from the specs)', () => {
+    for (const mod of ['frontdesk', 'billing'] as const) {
+      const fromSpec = specOpCount(mod);
+      expect(fromSpec, mod).toBeGreaterThan(0);
+      expect(ALL_OPS.filter((o) => o.mod === mod), mod).toHaveLength(fromSpec);
+    }
+  });
+});
+
+// LD-328 (3): a pending operation has NO handler key (core answers 501 operation_pending); T0B-ACCT-1 owns its 12 ops (handlers, not pending), the 12 T0B-ACCT-2 ops stay pending without the 503 stubs.
+describe('pendingOperations', () => {
+  it.each(['billing', 'frontdesk'] as const)('%s: every pending id has no handler key', (mod) => {
+    for (const id of pendingIds(mod)) expect(Object.keys(handlerMap[mod]), `${mod}:${id}`).not.toContain(id);
+  });
+  it('billing: the 12 T0B-ACCT-2 operations are pending and have no 503 stub; the 12 T0B-ACCT-1 operations are implemented, not pending', () => {
+    const pending = pendingIds('billing');
+    for (const id of ACCT2_OPS) { expect(pending, id).toContain(id); expect(Object.keys(handlerMap.billing), id).not.toContain(id); }
+    for (const id of ACCT1_OPS) { expect(pending, id).not.toContain(id); expect(Object.keys(handlerMap.billing), id).toContain(id); }
   });
 });
 
@@ -41,7 +60,7 @@ describe.each([['frontdesk', 'searchPatients'], ['billing', 'listInvoices']] as 
   });
 });
 
-describe.each(ALL_OPS.filter((o) => !isDeferred(o.id)).map((o) => [`${o.mod}:${o.id}`, o] as const))('%s', (_n, o) => {
+describe.each(ALL_OPS.filter((o) => !isDeferred(o.id) && !isPending(o)).map((o) => [`${o.mod}:${o.id}`, o] as const))('%s', (_n, o) => {
   const byId = o.pathParams.some((p) => p.endsWith('_id'));
   const sent = requestFor(o);
   const bodyNamesB = safeJson(sent.body ?? null).includes(B_ID);

@@ -9,3 +9,7 @@
 ## round 3
 - Log (08:37) shows codegen vitest 1063/1063 green, then only `The system cannot find the path specified.` Every path in verify.cmd exists (contracts, registry-equality test, services/api, run-suites.sh, ACCT-1 pgTAP file, Git bash).
 - Cause: harness/cmd error after step 1 (`%~dp0`-relative `cd /d` or runner shell), not an implementation defect. Fix: none in code (tests untouched). Lead: run steps 2-4 of verify.cmd directly or fix the runner; see LD-311.
+## round 4
+- New log (09:00): path error is gone (LD-317 worked). Now 4 `lintRepo` tests time out at 120000ms (acct1, c4, regparity1, regparity2); 1059/1063 pass, run took 433s.
+- Cause: load, not code. Run alone, acct1-openapi.test.ts passes 143/143 in 39s (lintRepo 13s). The 4 files run in parallel on a busy machine, so each whole-repo lintRepo starves past the 120s testTimeout; vitest also logged `Timeout calling "onTaskUpdate"`.
+- Fix: none in implementation code, tests untouched. Lead: rerun verify on an idle machine, or add `--no-file-parallelism` to step 1 of verify.cmd.

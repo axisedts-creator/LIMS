@@ -3393,6 +3393,1109 @@ paths:
           $ref: _common.yaml#/components/responses/TooManyRequests
         "500":
           $ref: _common.yaml#/components/responses/Internal
+  /v1/frontdesk/registration-drafts:
+    post:
+      operationId: createRegistrationDraft
+      tags:
+      - frontdesk
+      summary: Save a registration draft
+      description: 'LD-310: persists an in-progress registration for the calling user (tenant and user come from the token). The draft expires 14 days after its last update.'
+      security:
+      - bearerJwt: []
+      x-permission: frontdesk.registration.create
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+      - common.validation_failed
+      - common.not_found
+      - auth.forbidden
+      - auth.unauthenticated
+      - common.rate_limited
+      - common.internal
+      - common.idempotency_key_reused
+      parameters:
+      - $ref: _common.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateRegistrationDraftRecordRequest'
+            examples:
+              synthetic:
+                value:
+                  centre_id: 0193c4a0-0000-7000-8000-000000000901
+                  payload: '{"centre_id":"0193c4a0-0000-7000-8000-000000000901","visit_type":"opd","items":[]}'
+      responses:
+        '201':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegistrationDraftRecord'
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-000000001001
+                    centre_id: 0193c4a0-0000-7000-8000-000000000901
+                    payload: '{"centre_id":"0193c4a0-0000-7000-8000-000000000901","visit_type":"opd","items":[]}'
+                    created_at: '2026-11-17T04:15:00.000Z'
+                    updated_at: '2026-11-17T04:15:00.000Z'
+                    expires_at: '2026-12-01T04:15:00.000Z'
+        '400':
+          $ref: _common.yaml#/components/responses/BadRequest
+        '401':
+          $ref: _common.yaml#/components/responses/Unauthorized
+        '403':
+          $ref: _common.yaml#/components/responses/Forbidden
+        '404':
+          $ref: _common.yaml#/components/responses/NotFound
+        '409':
+          $ref: _common.yaml#/components/responses/Conflict
+        '422':
+          $ref: _common.yaml#/components/responses/Unprocessable
+        '429':
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        '500':
+          $ref: _common.yaml#/components/responses/Internal
+    get:
+      operationId: listRegistrationDrafts
+      tags:
+      - frontdesk
+      summary: List my saved registration drafts
+      description: Returns only the caller's own (current user) unexpired drafts, newest first; drafts expire 14 days after their last update. Never returns another user's draft.
+      security:
+      - bearerJwt: []
+      x-permission: frontdesk.registration.create
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+      - common.validation_failed
+      - common.not_found
+      - auth.forbidden
+      - auth.unauthenticated
+      - common.rate_limited
+      - common.internal
+      - common.invalid_cursor
+      parameters:
+      - name: centre_id
+        in: query
+        required: false
+        schema:
+          $ref: _common.yaml#/components/schemas/Uuid
+      - $ref: _common.yaml#/components/parameters/Cursor
+      - $ref: _common.yaml#/components/parameters/Limit
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegistrationDraftRecordPage'
+              examples:
+                synthetic:
+                  value:
+                    data:
+                    - id: 0193c4a0-0000-7000-8000-000000001002
+                      centre_id: 0193c4a0-0000-7000-8000-000000000901
+                      created_at: '2026-11-17T04:15:00.000Z'
+                      updated_at: '2026-11-17T04:15:00.000Z'
+                      expires_at: '2026-12-01T04:15:00.000Z'
+                    page:
+                      limit: 50
+        '400':
+          $ref: _common.yaml#/components/responses/BadRequest
+        '401':
+          $ref: _common.yaml#/components/responses/Unauthorized
+        '403':
+          $ref: _common.yaml#/components/responses/Forbidden
+        '404':
+          $ref: _common.yaml#/components/responses/NotFound
+        '429':
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        '500':
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/frontdesk/registration-drafts/{draft_id}:
+    get:
+      operationId: getRegistrationDraft
+      tags:
+      - frontdesk
+      summary: Get one of my saved registration drafts
+      description: 'Own drafts only: another user''s or an expired draft is common.not_found.'
+      security:
+      - bearerJwt: []
+      x-permission: frontdesk.registration.create
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+      - common.validation_failed
+      - common.not_found
+      - auth.forbidden
+      - auth.unauthenticated
+      - common.rate_limited
+      - common.internal
+      parameters:
+      - name: draft_id
+        in: path
+        required: true
+        schema:
+          $ref: _common.yaml#/components/schemas/Uuid
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegistrationDraftRecord'
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-000000001003
+                    centre_id: 0193c4a0-0000-7000-8000-000000000901
+                    payload: '{"centre_id":"0193c4a0-0000-7000-8000-000000000901","visit_type":"opd","items":[]}'
+                    created_at: '2026-11-17T04:15:00.000Z'
+                    updated_at: '2026-11-17T04:15:00.000Z'
+                    expires_at: '2026-12-01T04:15:00.000Z'
+        '400':
+          $ref: _common.yaml#/components/responses/BadRequest
+        '401':
+          $ref: _common.yaml#/components/responses/Unauthorized
+        '403':
+          $ref: _common.yaml#/components/responses/Forbidden
+        '404':
+          $ref: _common.yaml#/components/responses/NotFound
+        '429':
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        '500':
+          $ref: _common.yaml#/components/responses/Internal
+    delete:
+      operationId: deleteRegistrationDraft
+      tags:
+      - frontdesk
+      summary: Delete one of my saved registration drafts
+      description: Own drafts only (another user's draft is common.not_found). Also called after the registration is saved.
+      security:
+      - bearerJwt: []
+      x-permission: frontdesk.registration.create
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+      - common.validation_failed
+      - common.not_found
+      - auth.forbidden
+      - auth.unauthenticated
+      - common.rate_limited
+      - common.internal
+      parameters:
+      - name: draft_id
+        in: path
+        required: true
+        schema:
+          $ref: _common.yaml#/components/schemas/Uuid
+      responses:
+        '204':
+          description: Deleted.
+        '400':
+          $ref: _common.yaml#/components/responses/BadRequest
+        '401':
+          $ref: _common.yaml#/components/responses/Unauthorized
+        '403':
+          $ref: _common.yaml#/components/responses/Forbidden
+        '404':
+          $ref: _common.yaml#/components/responses/NotFound
+        '429':
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        '500':
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/frontdesk/favourite-tests:
+    post:
+      operationId: addFavouriteTest
+      tags:
+      - frontdesk
+      summary: Add a favourite test
+      description: Adds a test or panel to the calling user's favourites; adding one that is already a favourite returns it unchanged.
+      security:
+      - bearerJwt: []
+      x-permission: frontdesk.registration.create
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+      - common.validation_failed
+      - common.not_found
+      - auth.forbidden
+      - auth.unauthenticated
+      - common.rate_limited
+      - common.internal
+      - common.idempotency_key_reused
+      parameters:
+      - $ref: _common.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddFavouriteTestRequest'
+            examples:
+              synthetic:
+                value:
+                  orderable_id: 0193c4a0-0000-7000-8000-000000000902
+      responses:
+        '201':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FavouriteTest'
+              examples:
+                synthetic:
+                  value:
+                    orderable_id: 0193c4a0-0000-7000-8000-000000000902
+                    created_at: '2026-11-17T04:15:00.000Z'
+        '400':
+          $ref: _common.yaml#/components/responses/BadRequest
+        '401':
+          $ref: _common.yaml#/components/responses/Unauthorized
+        '403':
+          $ref: _common.yaml#/components/responses/Forbidden
+        '404':
+          $ref: _common.yaml#/components/responses/NotFound
+        '409':
+          $ref: _common.yaml#/components/responses/Conflict
+        '422':
+          $ref: _common.yaml#/components/responses/Unprocessable
+        '429':
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        '500':
+          $ref: _common.yaml#/components/responses/Internal
+    get:
+      operationId: listFavouriteTests
+      tags:
+      - frontdesk
+      summary: List my favourite tests
+      description: The calling user's own favourites only.
+      security:
+      - bearerJwt: []
+      x-permission: frontdesk.registration.create
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+      - common.validation_failed
+      - common.not_found
+      - auth.forbidden
+      - auth.unauthenticated
+      - common.rate_limited
+      - common.internal
+      - common.invalid_cursor
+      parameters:
+      - $ref: _common.yaml#/components/parameters/Cursor
+      - $ref: _common.yaml#/components/parameters/Limit
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FavouriteTestPage'
+              examples:
+                synthetic:
+                  value:
+                    data:
+                    - orderable_id: 0193c4a0-0000-7000-8000-000000000902
+                      created_at: '2026-11-17T04:15:00.000Z'
+                    page:
+                      limit: 50
+        '400':
+          $ref: _common.yaml#/components/responses/BadRequest
+        '401':
+          $ref: _common.yaml#/components/responses/Unauthorized
+        '403':
+          $ref: _common.yaml#/components/responses/Forbidden
+        '404':
+          $ref: _common.yaml#/components/responses/NotFound
+        '429':
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        '500':
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/frontdesk/favourite-tests/{orderable_id}:
+    delete:
+      operationId: removeFavouriteTest
+      tags:
+      - frontdesk
+      summary: Remove a favourite test
+      description: Removes the test or panel from the calling user's favourites; not a favourite is common.not_found.
+      security:
+      - bearerJwt: []
+      x-permission: frontdesk.registration.create
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+      - common.validation_failed
+      - common.not_found
+      - auth.forbidden
+      - auth.unauthenticated
+      - common.rate_limited
+      - common.internal
+      parameters:
+      - name: orderable_id
+        in: path
+        required: true
+        schema:
+          $ref: _common.yaml#/components/schemas/Uuid
+      responses:
+        '204':
+          description: Deleted.
+        '400':
+          $ref: _common.yaml#/components/responses/BadRequest
+        '401':
+          $ref: _common.yaml#/components/responses/Unauthorized
+        '403':
+          $ref: _common.yaml#/components/responses/Forbidden
+        '404':
+          $ref: _common.yaml#/components/responses/NotFound
+        '429':
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        '500':
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/frontdesk/registrations/number-preview:
+    get:
+      operationId: previewRegistrationNumbers
+      tags:
+      - frontdesk
+      summary: Preview the next lab and receipt numbers
+      description: 'LD-310: a preview of the next lab (registration) number and the next bill receipt number for the centre. It does not consume any counter. The numbers are assigned on save and may differ if another user saves first.'
+      security:
+      - bearerJwt: []
+      x-permission: frontdesk.registration.create
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+      - common.validation_failed
+      - common.not_found
+      - auth.forbidden
+      - auth.unauthenticated
+      - common.rate_limited
+      - common.internal
+      parameters:
+      - name: centre_id
+        in: query
+        required: true
+        schema:
+          $ref: _common.yaml#/components/schemas/Uuid
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegistrationNumberPreview'
+              examples:
+                synthetic:
+                  value:
+                    centre_id: 0193c4a0-0000-7000-8000-000000000901
+                    next_registration_no: R-2083-000124
+                    next_receipt_no: RC-2083/84-000077
+                    is_preview: true
+        '400':
+          $ref: _common.yaml#/components/responses/BadRequest
+        '401':
+          $ref: _common.yaml#/components/responses/Unauthorized
+        '403':
+          $ref: _common.yaml#/components/responses/Forbidden
+        '404':
+          $ref: _common.yaml#/components/responses/NotFound
+        '429':
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        '500':
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/frontdesk/custom-field-definitions:
+    get:
+      operationId: listCustomFieldDefinitions
+      tags:
+      - frontdesk
+      summary: List custom registration field definitions
+      security:
+      - bearerJwt: []
+      x-permission: frontdesk.registration.create
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+      - common.validation_failed
+      - common.not_found
+      - auth.forbidden
+      - auth.unauthenticated
+      - common.rate_limited
+      - common.internal
+      - common.invalid_cursor
+      parameters:
+      - name: is_active
+        in: query
+        required: false
+        schema:
+          type: boolean
+      - $ref: _common.yaml#/components/parameters/Cursor
+      - $ref: _common.yaml#/components/parameters/Limit
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomFieldDefinitionPage'
+              examples:
+                synthetic:
+                  value:
+                    data:
+                    - id: 0193c4a0-0000-7000-8000-000000001004
+                      field_key: blood_group
+                      label: Blood group
+                      field_type: choice
+                      required: false
+                      is_active: true
+                      choices:
+                      - A+
+                      - O+
+                      version: 1
+                    page:
+                      limit: 50
+        '400':
+          $ref: _common.yaml#/components/responses/BadRequest
+        '401':
+          $ref: _common.yaml#/components/responses/Unauthorized
+        '403':
+          $ref: _common.yaml#/components/responses/Forbidden
+        '404':
+          $ref: _common.yaml#/components/responses/NotFound
+        '429':
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        '500':
+          $ref: _common.yaml#/components/responses/Internal
+    post:
+      operationId: createCustomFieldDefinition
+      tags:
+      - frontdesk
+      summary: Create a custom registration field definition
+      security:
+      - bearerJwt: []
+      x-permission: frontdesk.settings.manage
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+      - common.validation_failed
+      - common.not_found
+      - auth.forbidden
+      - auth.unauthenticated
+      - common.rate_limited
+      - common.internal
+      - common.idempotency_key_reused
+      parameters:
+      - $ref: _common.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCustomFieldDefinitionRequest'
+            examples:
+              synthetic:
+                value:
+                  field_key: blood_group
+                  label: Blood group
+                  field_type: choice
+                  required: false
+                  choices:
+                  - A+
+                  - O+
+      responses:
+        '201':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomFieldDefinition'
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-000000001005
+                    field_key: blood_group
+                    label: Blood group
+                    field_type: choice
+                    required: false
+                    is_active: true
+                    choices:
+                    - A+
+                    - O+
+                    version: 1
+        '400':
+          $ref: _common.yaml#/components/responses/BadRequest
+        '401':
+          $ref: _common.yaml#/components/responses/Unauthorized
+        '403':
+          $ref: _common.yaml#/components/responses/Forbidden
+        '404':
+          $ref: _common.yaml#/components/responses/NotFound
+        '409':
+          $ref: _common.yaml#/components/responses/Conflict
+        '422':
+          $ref: _common.yaml#/components/responses/Unprocessable
+        '429':
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        '500':
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/frontdesk/custom-field-definitions/{definition_id}:
+    patch:
+      operationId: updateCustomFieldDefinition
+      tags:
+      - frontdesk
+      summary: Update a custom registration field definition
+      security:
+      - bearerJwt: []
+      x-permission: frontdesk.settings.manage
+      x-context: tenant
+      x-idempotency: optional
+      x-rate-limit-tier: general
+      x-error-codes:
+      - common.validation_failed
+      - common.not_found
+      - auth.forbidden
+      - auth.unauthenticated
+      - common.rate_limited
+      - common.internal
+      - common.version_conflict
+      - common.precondition_required
+      parameters:
+      - name: definition_id
+        in: path
+        required: true
+        schema:
+          $ref: _common.yaml#/components/schemas/Uuid
+      - $ref: _common.yaml#/components/parameters/IfMatch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCustomFieldDefinitionRequest'
+            examples:
+              synthetic:
+                value:
+                  label: Blood group
+                  is_active: true
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomFieldDefinition'
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-000000001006
+                    field_key: blood_group
+                    label: Blood group
+                    field_type: choice
+                    required: false
+                    is_active: true
+                    choices:
+                    - A+
+                    - O+
+                    version: 1
+        '400':
+          $ref: _common.yaml#/components/responses/BadRequest
+        '401':
+          $ref: _common.yaml#/components/responses/Unauthorized
+        '403':
+          $ref: _common.yaml#/components/responses/Forbidden
+        '404':
+          $ref: _common.yaml#/components/responses/NotFound
+        '409':
+          $ref: _common.yaml#/components/responses/Conflict
+        '428':
+          $ref: _common.yaml#/components/responses/PreconditionRequired
+        '429':
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        '500':
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/frontdesk/coupons:
+    get:
+      operationId: listCoupons
+      tags:
+      - frontdesk
+      summary: List coupons
+      security:
+      - bearerJwt: []
+      x-permission: frontdesk.settings.manage
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+      - common.validation_failed
+      - common.not_found
+      - auth.forbidden
+      - auth.unauthenticated
+      - common.rate_limited
+      - common.internal
+      - common.invalid_cursor
+      parameters:
+      - name: is_active
+        in: query
+        required: false
+        schema:
+          type: boolean
+      - $ref: _common.yaml#/components/parameters/Cursor
+      - $ref: _common.yaml#/components/parameters/Limit
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CouponPage'
+              examples:
+                synthetic:
+                  value:
+                    data:
+                    - id: 0193c4a0-0000-7000-8000-000000001007
+                      code: SAVE10
+                      percent: 10
+                      valid_from: '2026-11-17'
+                      valid_to: '2026-12-31'
+                      usage_limit: 100
+                      used_count: 0
+                      is_active: true
+                      version: 1
+                    page:
+                      limit: 50
+        '400':
+          $ref: _common.yaml#/components/responses/BadRequest
+        '401':
+          $ref: _common.yaml#/components/responses/Unauthorized
+        '403':
+          $ref: _common.yaml#/components/responses/Forbidden
+        '404':
+          $ref: _common.yaml#/components/responses/NotFound
+        '429':
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        '500':
+          $ref: _common.yaml#/components/responses/Internal
+    post:
+      operationId: createCoupon
+      tags:
+      - frontdesk
+      summary: Create a coupon
+      security:
+      - bearerJwt: []
+      x-permission: frontdesk.settings.manage
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+      - common.validation_failed
+      - common.not_found
+      - auth.forbidden
+      - auth.unauthenticated
+      - common.rate_limited
+      - common.internal
+      - common.idempotency_key_reused
+      parameters:
+      - $ref: _common.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCouponRequest'
+            examples:
+              synthetic:
+                value:
+                  code: SAVE10
+                  percent: 10
+                  valid_from: '2026-11-17'
+                  valid_to: '2026-12-31'
+                  usage_limit: 100
+      responses:
+        '201':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Coupon'
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-000000001008
+                    code: SAVE10
+                    percent: 10
+                    valid_from: '2026-11-17'
+                    valid_to: '2026-12-31'
+                    usage_limit: 100
+                    used_count: 0
+                    is_active: true
+                    version: 1
+        '400':
+          $ref: _common.yaml#/components/responses/BadRequest
+        '401':
+          $ref: _common.yaml#/components/responses/Unauthorized
+        '403':
+          $ref: _common.yaml#/components/responses/Forbidden
+        '404':
+          $ref: _common.yaml#/components/responses/NotFound
+        '409':
+          $ref: _common.yaml#/components/responses/Conflict
+        '422':
+          $ref: _common.yaml#/components/responses/Unprocessable
+        '429':
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        '500':
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/frontdesk/coupons/{coupon_id}:
+    patch:
+      operationId: updateCoupon
+      tags:
+      - frontdesk
+      summary: Update or deactivate a coupon
+      security:
+      - bearerJwt: []
+      x-permission: frontdesk.settings.manage
+      x-context: tenant
+      x-idempotency: optional
+      x-rate-limit-tier: general
+      x-error-codes:
+      - common.validation_failed
+      - common.not_found
+      - auth.forbidden
+      - auth.unauthenticated
+      - common.rate_limited
+      - common.internal
+      - common.version_conflict
+      - common.precondition_required
+      parameters:
+      - name: coupon_id
+        in: path
+        required: true
+        schema:
+          $ref: _common.yaml#/components/schemas/Uuid
+      - $ref: _common.yaml#/components/parameters/IfMatch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCouponRequest'
+            examples:
+              synthetic:
+                value:
+                  is_active: false
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Coupon'
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-000000001009
+                    code: SAVE10
+                    percent: 10
+                    valid_from: '2026-11-17'
+                    valid_to: '2026-12-31'
+                    usage_limit: 100
+                    used_count: 0
+                    is_active: false
+                    version: 2
+        '400':
+          $ref: _common.yaml#/components/responses/BadRequest
+        '401':
+          $ref: _common.yaml#/components/responses/Unauthorized
+        '403':
+          $ref: _common.yaml#/components/responses/Forbidden
+        '404':
+          $ref: _common.yaml#/components/responses/NotFound
+        '409':
+          $ref: _common.yaml#/components/responses/Conflict
+        '428':
+          $ref: _common.yaml#/components/responses/PreconditionRequired
+        '429':
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        '500':
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/frontdesk/icd-codes:
+    get:
+      operationId: listIcdCodes
+      tags:
+      - frontdesk
+      summary: List ICD codes
+      security:
+      - bearerJwt: []
+      x-permission: frontdesk.registration.create
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+      - common.validation_failed
+      - common.not_found
+      - auth.forbidden
+      - auth.unauthenticated
+      - common.rate_limited
+      - common.internal
+      - common.invalid_cursor
+      parameters:
+      - name: q
+        in: query
+        required: false
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 64
+        description: Prefix of the code or words of the description.
+      - name: is_active
+        in: query
+        required: false
+        schema:
+          type: boolean
+      - $ref: _common.yaml#/components/parameters/Cursor
+      - $ref: _common.yaml#/components/parameters/Limit
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IcdCodePage'
+              examples:
+                synthetic:
+                  value:
+                    data:
+                    - id: 0193c4a0-0000-7000-8000-000000001010
+                      code: A09
+                      description: 'Synthetic: infectious gastroenteritis and colitis'
+                      is_active: true
+                      version: 1
+                    page:
+                      limit: 50
+        '400':
+          $ref: _common.yaml#/components/responses/BadRequest
+        '401':
+          $ref: _common.yaml#/components/responses/Unauthorized
+        '403':
+          $ref: _common.yaml#/components/responses/Forbidden
+        '404':
+          $ref: _common.yaml#/components/responses/NotFound
+        '429':
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        '500':
+          $ref: _common.yaml#/components/responses/Internal
+    post:
+      operationId: createIcdCode
+      tags:
+      - frontdesk
+      summary: Create an ICD code
+      security:
+      - bearerJwt: []
+      x-permission: frontdesk.settings.manage
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+      - common.validation_failed
+      - common.not_found
+      - auth.forbidden
+      - auth.unauthenticated
+      - common.rate_limited
+      - common.internal
+      - common.idempotency_key_reused
+      parameters:
+      - $ref: _common.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateIcdCodeRequest'
+            examples:
+              synthetic:
+                value:
+                  code: A09
+                  description: 'Synthetic: infectious gastroenteritis and colitis'
+      responses:
+        '201':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IcdCode'
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-000000001011
+                    code: A09
+                    description: 'Synthetic: infectious gastroenteritis and colitis'
+                    is_active: true
+                    version: 1
+        '400':
+          $ref: _common.yaml#/components/responses/BadRequest
+        '401':
+          $ref: _common.yaml#/components/responses/Unauthorized
+        '403':
+          $ref: _common.yaml#/components/responses/Forbidden
+        '404':
+          $ref: _common.yaml#/components/responses/NotFound
+        '409':
+          $ref: _common.yaml#/components/responses/Conflict
+        '422':
+          $ref: _common.yaml#/components/responses/Unprocessable
+        '429':
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        '500':
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/frontdesk/icd-codes/{icd_code_id}:
+    patch:
+      operationId: updateIcdCode
+      tags:
+      - frontdesk
+      summary: Update an ICD code
+      security:
+      - bearerJwt: []
+      x-permission: frontdesk.settings.manage
+      x-context: tenant
+      x-idempotency: optional
+      x-rate-limit-tier: general
+      x-error-codes:
+      - common.validation_failed
+      - common.not_found
+      - auth.forbidden
+      - auth.unauthenticated
+      - common.rate_limited
+      - common.internal
+      - common.version_conflict
+      - common.precondition_required
+      parameters:
+      - name: icd_code_id
+        in: path
+        required: true
+        schema:
+          $ref: _common.yaml#/components/schemas/Uuid
+      - $ref: _common.yaml#/components/parameters/IfMatch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateIcdCodeRequest'
+            examples:
+              synthetic:
+                value:
+                  description: 'Synthetic: infectious gastroenteritis and colitis'
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IcdCode'
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-000000001012
+                    code: A09
+                    description: 'Synthetic: infectious gastroenteritis and colitis'
+                    is_active: true
+                    version: 1
+        '400':
+          $ref: _common.yaml#/components/responses/BadRequest
+        '401':
+          $ref: _common.yaml#/components/responses/Unauthorized
+        '403':
+          $ref: _common.yaml#/components/responses/Forbidden
+        '404':
+          $ref: _common.yaml#/components/responses/NotFound
+        '409':
+          $ref: _common.yaml#/components/responses/Conflict
+        '428':
+          $ref: _common.yaml#/components/responses/PreconditionRequired
+        '429':
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        '500':
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/frontdesk/patients/{patient_id}/rewards:
+    get:
+      operationId: getPatientRewards
+      tags:
+      - frontdesk
+      summary: Get the reward points of a patient
+      security:
+      - bearerJwt: []
+      x-permission: frontdesk.patient.read
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+      - common.validation_failed
+      - common.not_found
+      - auth.forbidden
+      - auth.unauthenticated
+      - common.rate_limited
+      - common.internal
+      - common.invalid_cursor
+      parameters:
+      - name: patient_id
+        in: path
+        required: true
+        schema:
+          $ref: _common.yaml#/components/schemas/Uuid
+      - $ref: _common.yaml#/components/parameters/Cursor
+      - $ref: _common.yaml#/components/parameters/Limit
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PatientRewards'
+              examples:
+                synthetic:
+                  value:
+                    patient_id: 0193c4a0-0000-7000-8000-000000000906
+                    balance_points: 15
+                    earned_points: 25
+                    redeemed_points: 10
+                    data:
+                    - id: 0193c4a0-0000-7000-8000-000000001013
+                      entry_kind: redeemed
+                      points: 10
+                      order_id: 0193c4a0-0000-7000-8000-000000000908
+                      created_at: '2026-11-17T04:15:00.000Z'
+                    - id: 0193c4a0-0000-7000-8000-000000001014
+                      entry_kind: earned
+                      points: 25
+                      order_id: 0193c4a0-0000-7000-8000-000000000910
+                      created_at: '2026-11-17T04:15:00.000Z'
+                    page:
+                      limit: 50
+        '400':
+          $ref: _common.yaml#/components/responses/BadRequest
+        '401':
+          $ref: _common.yaml#/components/responses/Unauthorized
+        '403':
+          $ref: _common.yaml#/components/responses/Forbidden
+        '404':
+          $ref: _common.yaml#/components/responses/NotFound
+        '429':
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        '500':
+          $ref: _common.yaml#/components/responses/Internal
 components:
   schemas:
     Actor:
@@ -3751,6 +4854,16 @@ components:
           type: string
           maxLength: 10
           pattern: ^[0-9]{4}-[0-9]{2}-[0-9]{2}$
+        card_holder_name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: 'LD-310: name on the card. Personal data: never in logs or audit diffs.'
+        payment_remark:
+          type: string
+          minLength: 1
+          maxLength: 300
+          description: 'LD-310: free-text remark on the payment.'
     CreditChargeDto:
       type: object
       additionalProperties: false
@@ -3807,6 +4920,16 @@ components:
           minimum: 1
           maximum: 9007199254740991
           format: int64
+        card_holder_name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: 'LD-310: name on the card. Personal data: never in logs or audit diffs.'
+        payment_remark:
+          type: string
+          minLength: 1
+          maxLength: 300
+          description: 'LD-310: free-text remark on the payment.'
       description: "02-CV §4.7 interpretation: CR-C4-012. tendered_paisa: cash only, UI change display."
     Fingerprint:
       type: string
@@ -4479,6 +5602,11 @@ components:
           enum:
             - routine
             - urgent
+        icd_code:
+          type: string
+          minLength: 1
+          maxLength: 16
+          pattern: ^[0-9A-Z][0-9A-Z.]{0,15}$
     Discount:
       type: object
       additionalProperties: false
@@ -4595,6 +5723,21 @@ components:
           type: string
           maxLength: 32
           description: Validated server-side against setting buyer_pan_pattern (default ^[0-9]{9}$; PAN format UNVERIFIED).
+        coupon_code:
+          type: string
+          minLength: 1
+          maxLength: 32
+          pattern: ^[A-Z0-9][A-Z0-9_-]{0,31}$
+        visiting_charge_paisa:
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 9007199254740991
+        redeem_reward_points:
+          type: integer
+          minimum: 0
+          maximum: 1000000000
+          description: Points to redeem; the server checks the balance.
     CreateRegistrationRequest:
       type: object
       additionalProperties: false
@@ -4672,6 +5815,67 @@ components:
             $ref: _common.yaml#/components/schemas/Uuid
         discount_approval_id:
           $ref: _common.yaml#/components/schemas/Uuid
+        collection_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        collected_by_membership_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        collected_by_name:
+          type: string
+          minLength: 1
+          maxLength: 200
+          description: Outside collector (free text) when the collector is not staff.
+        sample_not_collected:
+          type: boolean
+        sample_remark:
+          type: string
+          minLength: 1
+          maxLength: 500
+        remark_description:
+          type: string
+          minLength: 1
+          maxLength: 1000
+        clinical_history:
+          type: string
+          minLength: 1
+          maxLength: 4000
+          description: 'Health text (D-27a): never in logs or audit diffs.'
+        patient_history:
+          type: string
+          minLength: 1
+          maxLength: 4000
+          description: 'Health text (D-27a): never in logs or audit diffs.'
+        mr_number:
+          type: string
+          minLength: 1
+          maxLength: 64
+        external_reference:
+          type: string
+          minLength: 1
+          maxLength: 64
+        insurance_code:
+          type: string
+          minLength: 1
+          maxLength: 64
+        insurance_claim_amount_paisa:
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 9007199254740991
+        visiting_charge_paisa:
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 9007199254740991
+        coupon_code:
+          type: string
+          minLength: 1
+          maxLength: 32
+          pattern: ^[A-Z0-9][A-Z0-9_-]{0,31}$
+        redeem_reward_points:
+          type: integer
+          minimum: 0
+          maximum: 1000000000
+          description: Points to redeem; the server checks the balance.
     QuoteLine:
       type: object
       additionalProperties: false
@@ -5080,6 +6284,11 @@ components:
               outsourced:
                 type: boolean
                 default: false
+              icd_code:
+                type: string
+                minLength: 1
+                maxLength: 16
+                pattern: ^[0-9A-Z][0-9A-Z.]{0,15}$
         discounts:
           type: array
           maxItems: 20
@@ -5107,6 +6316,76 @@ components:
           maxLength: 64
         billing:
           $ref: "#/components/schemas/OrderBalanceDto"
+        collection_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        collected_by_membership_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        collected_by_name:
+          type: string
+          minLength: 1
+          maxLength: 200
+          description: Outside collector (free text) when the collector is not staff.
+        sample_not_collected:
+          type: boolean
+        sample_remark:
+          type: string
+          minLength: 1
+          maxLength: 500
+        remark_description:
+          type: string
+          minLength: 1
+          maxLength: 1000
+        clinical_history:
+          type: string
+          minLength: 1
+          maxLength: 4000
+          description: 'Health text (D-27a): never in logs or audit diffs.'
+        patient_history:
+          type: string
+          minLength: 1
+          maxLength: 4000
+          description: 'Health text (D-27a): never in logs or audit diffs.'
+        mr_number:
+          type: string
+          minLength: 1
+          maxLength: 64
+        external_reference:
+          type: string
+          minLength: 1
+          maxLength: 64
+        insurance_code:
+          type: string
+          minLength: 1
+          maxLength: 64
+        insurance_claim_amount_paisa:
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 9007199254740991
+        visiting_charge_paisa:
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 9007199254740991
+        coupon_code:
+          type: string
+          minLength: 1
+          maxLength: 32
+          pattern: ^[A-Z0-9][A-Z0-9_-]{0,31}$
+        coupon_amount_paisa:
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 9007199254740991
+          description: Server-derived from coupon_code (never client-set).
+        reward_points_earned:
+          type: integer
+          minimum: 0
+          maximum: 2147483647
+        reward_points_redeemed:
+          type: integer
+          minimum: 0
+          maximum: 2147483647
         version:
           $ref: _common.yaml#/components/schemas/Version
     ChangeOrderItemsResult:
@@ -5704,3 +6983,503 @@ components:
             $ref: "#/components/schemas/PossibleDuplicate"
         page:
           $ref: _common.yaml#/components/schemas/PageInfo
+    RegistrationDraftRecord:
+      type: object
+      additionalProperties: false
+      required:
+      - id
+      - centre_id
+      - payload
+      - created_at
+      - updated_at
+      - expires_at
+      properties:
+        id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        centre_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        payload:
+          type: string
+          minLength: 2
+          maxLength: 1000000
+          description: 'JSON text of one JSON object: the in-progress registration form (any subset of RegistrationDraft / CreateRegistrationRequest fields). At most 1 MiB; the server rejects anything that is not a JSON object. Holds patient data: never logged, never in audit diffs.'
+        created_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        updated_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        expires_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+      description: 'LD-310: a saved (persisted) registration draft of the calling user. expires_at = updated_at + 14 days; expired drafts are purged and no longer returned. Distinct from RegistrationDraft, which is only the quote input.'
+    RegistrationDraftRecordSummary:
+      type: object
+      additionalProperties: false
+      required:
+      - id
+      - centre_id
+      - created_at
+      - updated_at
+      - expires_at
+      properties:
+        id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        centre_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        created_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        updated_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        expires_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+      description: List row of a saved registration draft (no payload).
+    RegistrationDraftRecordPage:
+      type: object
+      additionalProperties: false
+      required:
+      - data
+      - page
+      properties:
+        data:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/RegistrationDraftRecordSummary'
+        page:
+          $ref: _common.yaml#/components/schemas/PageInfo
+    CreateRegistrationDraftRecordRequest:
+      type: object
+      additionalProperties: false
+      required:
+      - centre_id
+      - payload
+      properties:
+        centre_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        payload:
+          type: string
+          minLength: 2
+          maxLength: 1000000
+          description: 'JSON text of one JSON object: the in-progress registration form (any subset of RegistrationDraft / CreateRegistrationRequest fields). At most 1 MiB; the server rejects anything that is not a JSON object. Holds patient data: never logged, never in audit diffs.'
+    FavouriteTest:
+      type: object
+      additionalProperties: false
+      required:
+      - orderable_id
+      - created_at
+      properties:
+        orderable_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        created_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+      description: One of the calling user's favourite tests or panels (LD-310).
+    FavouriteTestPage:
+      type: object
+      additionalProperties: false
+      required:
+      - data
+      - page
+      properties:
+        data:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/FavouriteTest'
+        page:
+          $ref: _common.yaml#/components/schemas/PageInfo
+    AddFavouriteTestRequest:
+      type: object
+      additionalProperties: false
+      required:
+      - orderable_id
+      properties:
+        orderable_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+    RegistrationNumberPreview:
+      type: object
+      additionalProperties: false
+      required:
+      - centre_id
+      - next_registration_no
+      - next_receipt_no
+      - is_preview
+      properties:
+        centre_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        next_registration_no:
+          type: string
+          minLength: 1
+          maxLength: 32
+          description: Preview of the next lab (registration) number; not consumed.
+        next_receipt_no:
+          type: string
+          minLength: 1
+          maxLength: 64
+          description: Preview of the next bill receipt number; not consumed.
+        is_preview:
+          type: boolean
+          description: Always true.
+      description: 'LD-310: a preview only. Reading it does not consume any counter; the real numbers are assigned on save and may differ if another user saves first.'
+    CustomFieldDefinition:
+      type: object
+      additionalProperties: false
+      required:
+      - id
+      - field_key
+      - label
+      - field_type
+      - required
+      - is_active
+      - version
+      properties:
+        id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        field_key:
+          type: string
+          minLength: 1
+          maxLength: 64
+          pattern: ^[a-z][a-z0-9_]{0,63}$
+        label:
+          type: string
+          minLength: 1
+          maxLength: 100
+        field_type:
+          type: string
+          maxLength: 6
+          enum:
+          - text
+          - number
+          - date
+          - choice
+        required:
+          type: boolean
+        is_active:
+          type: boolean
+        choices:
+          type: array
+          maxItems: 50
+          items:
+            type: string
+            minLength: 1
+            maxLength: 100
+        sort_order:
+          type: integer
+          minimum: 0
+          maximum: 1000
+        version:
+          $ref: _common.yaml#/components/schemas/Version
+      description: 'LD-310: per-lab custom registration field. Patient.custom_fields [{code, value}] is validated against the active definitions (code = field_key). field_key and field_type never change.'
+    CustomFieldDefinitionPage:
+      type: object
+      additionalProperties: false
+      required:
+      - data
+      - page
+      properties:
+        data:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/CustomFieldDefinition'
+        page:
+          $ref: _common.yaml#/components/schemas/PageInfo
+    CreateCustomFieldDefinitionRequest:
+      type: object
+      additionalProperties: false
+      required:
+      - field_key
+      - label
+      - field_type
+      properties:
+        field_key:
+          type: string
+          minLength: 1
+          maxLength: 64
+          pattern: ^[a-z][a-z0-9_]{0,63}$
+        label:
+          type: string
+          minLength: 1
+          maxLength: 100
+        field_type:
+          type: string
+          maxLength: 6
+          enum:
+          - text
+          - number
+          - date
+          - choice
+        required:
+          type: boolean
+          default: false
+        is_active:
+          type: boolean
+          default: true
+        choices:
+          type: array
+          maxItems: 50
+          items:
+            type: string
+            minLength: 1
+            maxLength: 100
+        sort_order:
+          type: integer
+          minimum: 0
+          maximum: 1000
+      description: 'choices: required (1..50) when field_type = choice, rejected otherwise (service rule, common.validation_failed).'
+    UpdateCustomFieldDefinitionRequest:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        label:
+          type: string
+          minLength: 1
+          maxLength: 100
+        required:
+          type: boolean
+        is_active:
+          type: boolean
+        choices:
+          type: array
+          maxItems: 50
+          items:
+            type: string
+            minLength: 1
+            maxLength: 100
+        sort_order:
+          type: integer
+          minimum: 0
+          maximum: 1000
+    Coupon:
+      type: object
+      additionalProperties: false
+      required:
+      - id
+      - code
+      - used_count
+      - is_active
+      - version
+      properties:
+        id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        code:
+          type: string
+          minLength: 1
+          maxLength: 32
+          pattern: ^[A-Z0-9][A-Z0-9_-]{0,31}$
+        amount_paisa:
+          type: integer
+          format: int64
+          minimum: 1
+          maximum: 9007199254740991
+        percent:
+          type: integer
+          minimum: 1
+          maximum: 100
+        valid_from:
+          $ref: _common.yaml#/components/schemas/IsoDate
+        valid_to:
+          $ref: _common.yaml#/components/schemas/IsoDate
+        usage_limit:
+          type: integer
+          minimum: 1
+          maximum: 2147483647
+        used_count:
+          type: integer
+          minimum: 0
+          maximum: 2147483647
+        is_active:
+          type: boolean
+        version:
+          $ref: _common.yaml#/components/schemas/Version
+      description: 'LD-310: per-tenant coupon. Exactly one of amount_paisa or percent. No dates = always valid; no usage_limit = unlimited. used_count is server-maintained.'
+    CouponPage:
+      type: object
+      additionalProperties: false
+      required:
+      - data
+      - page
+      properties:
+        data:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/Coupon'
+        page:
+          $ref: _common.yaml#/components/schemas/PageInfo
+    CreateCouponRequest:
+      type: object
+      additionalProperties: false
+      required:
+      - code
+      properties:
+        code:
+          type: string
+          minLength: 1
+          maxLength: 32
+          pattern: ^[A-Z0-9][A-Z0-9_-]{0,31}$
+        amount_paisa:
+          type: integer
+          format: int64
+          minimum: 1
+          maximum: 9007199254740991
+        percent:
+          type: integer
+          minimum: 1
+          maximum: 100
+        valid_from:
+          $ref: _common.yaml#/components/schemas/IsoDate
+        valid_to:
+          $ref: _common.yaml#/components/schemas/IsoDate
+        usage_limit:
+          type: integer
+          minimum: 1
+          maximum: 2147483647
+        is_active:
+          type: boolean
+          default: true
+      description: Exactly one of amount_paisa or percent; valid_to >= valid_from (service rule + database CHECK, common.validation_failed). A duplicate code (case-insensitive, codes are upper case) is common.validation_failed.
+    UpdateCouponRequest:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        valid_from:
+          $ref: _common.yaml#/components/schemas/IsoDate
+        valid_to:
+          $ref: _common.yaml#/components/schemas/IsoDate
+        usage_limit:
+          type: integer
+          minimum: 1
+          maximum: 2147483647
+        is_active:
+          type: boolean
+      description: code, amount and percent never change; deactivate and create a new coupon instead.
+    IcdCode:
+      type: object
+      additionalProperties: false
+      required:
+      - id
+      - code
+      - description
+      - is_active
+      - version
+      properties:
+        id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        code:
+          type: string
+          minLength: 1
+          maxLength: 16
+          pattern: ^[0-9A-Z][0-9A-Z.]{0,15}$
+        description:
+          type: string
+          minLength: 1
+          maxLength: 500
+        is_active:
+          type: boolean
+        version:
+          $ref: _common.yaml#/components/schemas/Version
+      description: 'LD-310: per-tenant ICD master entry (code upper case, e.g. A09, E11.9).'
+    IcdCodePage:
+      type: object
+      additionalProperties: false
+      required:
+      - data
+      - page
+      properties:
+        data:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/IcdCode'
+        page:
+          $ref: _common.yaml#/components/schemas/PageInfo
+    CreateIcdCodeRequest:
+      type: object
+      additionalProperties: false
+      required:
+      - code
+      - description
+      properties:
+        code:
+          type: string
+          minLength: 1
+          maxLength: 16
+          pattern: ^[0-9A-Z][0-9A-Z.]{0,15}$
+        description:
+          type: string
+          minLength: 1
+          maxLength: 500
+        is_active:
+          type: boolean
+          default: true
+    UpdateIcdCodeRequest:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        description:
+          type: string
+          minLength: 1
+          maxLength: 500
+        is_active:
+          type: boolean
+      description: The code never changes.
+    RewardPointsEntry:
+      type: object
+      additionalProperties: false
+      required:
+      - id
+      - entry_kind
+      - points
+      - order_id
+      - created_at
+      properties:
+        id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        entry_kind:
+          type: string
+          maxLength: 8
+          enum:
+          - earned
+          - redeemed
+        points:
+          type: integer
+          minimum: 1
+          maximum: 2147483647
+        order_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        created_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+    PatientRewards:
+      type: object
+      additionalProperties: false
+      required:
+      - patient_id
+      - balance_points
+      - earned_points
+      - redeemed_points
+      - data
+      - page
+      properties:
+        patient_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        balance_points:
+          type: integer
+          minimum: 0
+          maximum: 2147483647
+        earned_points:
+          type: integer
+          minimum: 0
+          maximum: 2147483647
+        redeemed_points:
+          type: integer
+          minimum: 0
+          maximum: 2147483647
+        data:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/RewardPointsEntry'
+        page:
+          $ref: _common.yaml#/components/schemas/PageInfo
+      description: 'LD-310: reward points of one patient. balance = earned - redeemed over the append-only ledger; data = ledger rows, newest first.'

@@ -17,6 +17,7 @@ import { PANEL_CODE_RE, type Department, type OrderableSummary, type Panel, type
 import { CONFLICT, MFA, SaveForm, StatusBadge, canManage } from './master-ui';
 import { ExpandedTests, MembersEditor, infoOf, toPayload, type Info } from './PanelMembers';
 import { PACKAGE_COPY, SEX_OPTIONS, kindLabel, sexLabel } from './PanelsList';
+import { TwoListPicker } from './TwoListPicker';
 
 const MEMBER_ERRORS: Record<string, string> = {
   'catalog.panel_cycle': 'This would make the panel contain itself (P1 → P2 → P1).',
@@ -25,7 +26,11 @@ const MEMBER_ERRORS: Record<string, string> = {
   'auth.mfa_required': MFA,
 };
 
-export function PanelDetail({ panel, departments, orderables, permissions }: { panel: Panel; departments: readonly Department[]; orderables: readonly OrderableSummary[]; permissions: readonly string[] }) {
+export function PanelDetail({ panel, departments, orderables, permissions, tests }: {
+  panel: Panel; departments: readonly Department[]; orderables: readonly OrderableSummary[]; permissions: readonly string[];
+  /** T0D-TESTMGMT-1: every test of the tenant; given = two list member picker instead of the search combobox. */
+  tests?: readonly { id: string; code: string; name: string; is_active: boolean }[] | undefined;
+}) {
   const manage = canManage(permissions);
   const router = useRouter();
   const toast = useToast();
@@ -97,19 +102,29 @@ export function PanelDetail({ panel, departments, orderables, permissions }: { p
       )}
       <h2 className="lims-section-title">Members</h2>
       {error ? <div role="alert"><Banner tone="danger" title={error} /></div> : null}
-      <MembersEditor
-        members={members}
-        info={info.current}
-        canEdit={manage}
-        keepOne
-        excludeId={panel.id}
-        onAdd={(o) => {
-          info.current.set(o.id, infoOf(o));
-          setMembers((m) => [...m, { kind: o.kind, orderable_id: o.id, sort_order: m.length }]);
-        }}
-        onRemove={(i) => setMembers((m) => m.filter((_, j) => j !== i))}
-      />
-      {manage ? <Button variant="primary" isDisabled={!dirty || busy} onPress={() => void saveMembers()}>Save members</Button> : null}
+      {tests ? (
+        // T0D-TESTMGMT-1 (LD-318): two list picker when the page passes the test list; other members (nested panels) keep their place.
+        <TwoListPicker
+          isDisabled={!manage}
+          available={tests.filter((x) => x.is_active && x.id !== panel.id && !members.some((m) => m.orderable_id === x.id)).map((x) => ({ id: x.id, label: `${x.code} — ${x.name}` }))}
+          selected={members.map((m) => { const x = info.current.get(m.orderable_id) ?? tests.find((t) => t.id === m.orderable_id); return { id: m.orderable_id, label: x ? `${x.code} — ${x.name}` : m.orderable_id }; })}
+          onChange={(ids) => setMembers(ids.map((id, i) => ({ kind: members.find((m) => m.orderable_id === id)?.kind ?? 'test', orderable_id: id, sort_order: i })))}
+        />
+      ) : (
+        <MembersEditor
+          members={members}
+          info={info.current}
+          canEdit={manage}
+          keepOne
+          excludeId={panel.id}
+          onAdd={(o) => {
+            info.current.set(o.id, infoOf(o));
+            setMembers((m) => [...m, { kind: o.kind, orderable_id: o.id, sort_order: m.length }]);
+          }}
+          onRemove={(i) => setMembers((m) => m.filter((_, j) => j !== i))}
+        />
+      )}
+      {manage ? <Button variant="primary" isDisabled={!dirty || busy || members.length === 0} onPress={() => void saveMembers()}>Save members</Button> : null}
       <ExpandedTests ids={members.map((m) => m.orderable_id)} />
     </section>
   );

@@ -2,27 +2,27 @@
 // SCR-06 Tests list (T0D-CATTESTS-1, LD-310): Departments / Doctors page pattern — header with New test, search, department /
 // specimen / status filters kept in the address bar, a table whose headers are always drawn, 25 rows per page, and one New test
 // form for the header button, the empty-row button and /catalog/tests?new=1. Manage affordances are a UI hint; the API enforces.
+// T0D-TESTMGMT-1 (LD-318): the form is the full Add Test form (TestForm, ?new=1&copy=<id> prefills from a test).
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Badge } from '@lims/ui/components/Badge';
 import { Button } from '@lims/ui/components/Button';
-import { CodeField } from '@lims/ui/components/CodeField';
 import { EmptyRow, PlaceholderRows } from '@lims/ui/components/DataTable';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { RadioGroup } from '@lims/ui/components/RadioGroup';
 import { Select } from '@lims/ui/components/Select';
 import { TextField } from '@lims/ui/components/TextField';
 import { t } from '@/core/i18n/messages';
-import { createTestAction } from '../server/actions';
-import { CODE_RE } from '../server/types';
-import { CODE_HINT, DUPLICATE, EditorDialog } from './master-ui';
+import { formatNpr } from '../server/types';
+import { PERM } from './shared';
+import { TestForm, type CategoryRef } from './TestForm';
 import './catalog.css';
 
 export interface TestsFilters { q: string; department_id: string; specimen_type_id: string; is_active: '' | 'true' | 'false' }
-export interface TestRow { id: string; code: string; name: string; department: string; workflow_type: string; is_active: boolean }
+/** T0D-TESTMGMT-1 (LD-318, Complete Test List): short name, category and default price (paisa) added after the five pinned columns. */
+export interface TestRow { id: string; code: string; name: string; department: string; workflow_type: string; is_active: boolean; short_name?: string | undefined; category?: string | undefined; price_paisa?: number | undefined }
 type Ref = { id: string; name: string; is_active: boolean };
 
-const WORKFLOWS = ['standard', 'narrative', 'microbiology', 'anatomic', 'molecular', 'attachment', 'outsourced'] as const; // TestCreate enum
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 const ALL = 'all'; // Select / RadioGroup need a non-empty key for "no filter"
 
@@ -38,7 +38,7 @@ export function testsHref(f: TestsFilters, page = 1): string {
   return s ? `/catalog/tests?${s}` : '/catalog/tests';
 }
 
-export function TestsList({ rows, filters, page, pages, filtered, departments, specimenTypes, manage, openNew }: {
+export function TestsList({ rows, filters, page, pages, filtered, departments, specimenTypes, categories = [], copyFrom, permissions = [], manage, openNew }: {
   rows: readonly TestRow[];
   filters: TestsFilters;
   page: number;
@@ -46,6 +46,10 @@ export function TestsList({ rows, filters, page, pages, filtered, departments, s
   filtered: boolean;
   departments: readonly Ref[];
   specimenTypes: readonly Ref[];
+  categories?: readonly CategoryRef[];
+  /** ?new=1&copy=<id>: the test whose values prefill the form (every field but Code). */
+  copyFrom?: Record<string, unknown> | undefined;
+  permissions?: readonly string[];
   manage: boolean;
   openNew: boolean;
 }) {
@@ -55,7 +59,7 @@ export function TestsList({ rows, filters, page, pages, filtered, departments, s
   const go = (patch: Partial<TestsFilters>) => router.push(testsHref({ ...filters, ...patch }));
   const open = () => setCreating(true);
   const newButton = <Button variant="primary" isDisabled={!manage} onPress={open}>{t('catalog.tests.new')}</Button>;
-  const heads = [t('catalog.tests.col_code'), t('catalog.tests.col_name'), t('catalog.tests.col_department'), t('catalog.tests.col_workflow'), t('catalog.tests.col_status')];
+  const heads = [t('catalog.tests.col_code'), t('catalog.tests.col_name'), t('catalog.tests.col_department'), t('catalog.tests.col_workflow'), t('catalog.tests.col_status'), 'Short name', 'Category', 'Price'];
 
   return (
     <section aria-label={t('catalog.tests.list_label')}>
@@ -107,6 +111,9 @@ export function TestsList({ rows, filters, page, pages, filtered, departments, s
                 <td className="lims-cell">{r.department}</td>
                 <td className="lims-cell">{r.workflow_type ? cap(r.workflow_type) : ''}</td>
                 <td className="lims-cell"><Badge tone={r.is_active ? 'success' : 'neutral'}>{r.is_active ? t('catalog.tests.active') : t('catalog.tests.inactive')}</Badge></td>
+                <td className="lims-cell">{r.short_name ?? ''}</td>
+                <td className="lims-cell">{r.category ?? ''}</td>
+                <td className="lims-cell">{r.price_paisa !== undefined ? `NPR ${formatNpr(r.price_paisa)}` : ''}</td>
               </tr>
             ))
           )}
@@ -120,38 +127,9 @@ export function TestsList({ rows, filters, page, pages, filtered, departments, s
           {page < pages ? <a href={testsHref(filters, page + 1)}>{t('catalog.tests.next')}</a> : null}
         </nav>
       ) : null}
-      {creating ? <NewTestDialog departments={departments} specimenTypes={specimenTypes} onClose={() => setCreating(false)} /> : null}
+      {creating ? (
+        <TestForm mode="create" test={copyFrom} departments={departments} categories={categories} specimenTypes={specimenTypes} permissions={permissions.length ? permissions : manage ? [PERM.manage] : []} onClose={() => setCreating(false)} />
+      ) : null}
     </section>
-  );
-}
-
-function NewTestDialog({ departments, specimenTypes, onClose }: { departments: readonly Ref[]; specimenTypes: readonly Ref[]; onClose: () => void }) {
-  const router = useRouter();
-  const [code, setCode] = useState('');
-  const [name, setName] = useState('');
-  const [department, setDepartment] = useState<string>();
-  const [workflow, setWorkflow] = useState<string>();
-  const [specimen, setSpecimen] = useState<string>(ALL);
-  const [codeError, setCodeError] = useState<string>();
-  const body = () => ({
-    code, name, department_id: department, workflow_type: workflow,
-    specimen_requirements: specimen === ALL ? [] : [{ specimen_type_id: specimen, is_preferred: true }],
-  });
-
-  return (
-    <EditorDialog
-      title={t('catalog.tests.new')}
-      savedText={t('catalog.tests.saved')}
-      onClose={onClose}
-      onDuplicate={() => setCodeError(DUPLICATE)}
-      onSaved={(d) => router.push(`/catalog/tests/${(d as { id: string }).id}`)}
-      save={(key) => createTestAction(body(), key)}
-    >
-      <CodeField label={t('catalog.tests.field_code')} name="code" maxLength={32} pattern={CODE_RE.source} patternHint={CODE_HINT} isRequired value={code} onChange={(v) => { setCode(v); setCodeError(undefined); }} {...(codeError ? { error: codeError } : {})} />
-      <TextField label={t('catalog.tests.field_name')} name="name" maxLength={200} isRequired value={name} onChange={setName} />
-      <Select label={t('catalog.tests.department')} name="department_id" isRequired {...(department ? { value: department } : {})} onChange={setDepartment} options={departments.filter((d) => d.is_active).map((d) => ({ value: d.id, label: d.name }))} />
-      <Select label={t('catalog.tests.field_workflow')} name="workflow_type" isRequired {...(workflow ? { value: workflow } : {})} onChange={setWorkflow} options={WORKFLOWS.map((w) => ({ value: w, label: cap(w) }))} />
-      <Select label={t('catalog.tests.field_specimen')} name="specimen_type_id" value={specimen} onChange={setSpecimen} options={[{ value: ALL, label: t('catalog.tests.no_specimen') }, ...specimenTypes.filter((s) => s.is_active).map((s) => ({ value: s.id, label: s.name }))]} />
-    </EditorDialog>
   );
 }

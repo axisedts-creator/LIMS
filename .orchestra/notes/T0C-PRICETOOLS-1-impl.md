@@ -1,0 +1,45 @@
+# T0C-PRICETOOLS-1 impl (LD-321, LD-325)
+- Files: contracts/openapi/catalog.yaml (additive: 7 ops downloadPriceListTemplate, dryRunPriceListImport, commitPriceListImport, bulkUpdatePriceListDraft, copyPriceList, comparePriceLists, listPriceListImportBatches; 12 schemas; PriceListAssignment / PriceListAssignmentsReplace + optional effective_from / effective_to; replacePriceListAssignments states the overlap rule); db/migrations/20261117200000_catalog__add_price_list_tools.sql; db/meta/tables.yaml + db/policies/catalog.sql; services/api/src/modules/catalog/index.ts (pendingOperations += the 7 ids, LD-325(b); T0B-PRICETOOLS-1 removes them with the handlers); generated: 4 client / MSW files, 2 isolation probes + _registry.sql + probe-rows/catalog.sql. Over the 10 file cap only by generated / gate files (lead to rule, as T0C-TESTMGMT-1).
+- [CONV] No overlap per party = BEFORE INSERT OR UPDATE trigger with a per-party advisory xact lock, SQLSTATE 23505 like the old unique index, so T0B-10.C3 "one assignment per centre" and the 409 catalog.code_duplicate mapping hold (btree_gist not assumed in the pinned image); the three old one-row-per-party unique indexes are dropped and replaced by plain lookup indexes. effective_from NOT NULL DEFAULT now(): an existing row is valid from the apply time (metadata only, no rewrite); T0B must treat it as valid before that if billing re-prices old orders.
+- [CONV] Money is integer paisa (percent_bp basis points, amount_paisa signed); no `type: number`. Batch file_ref is a storage key, not on the wire; result_price_list_version_id and version added to the batch. Overlap reuses 409 catalog.code_duplicate (no new error code); commit uses catalog.import_not_committable.
+- Not done here (no service or handler change, no web change; apps/web/src/features/admin and rs-c2 untouched): xlsx parsing and every import rule (T0B-PRICETOOLS-1), rounding maths, compare query. No price was changed; every tool writes a DRAFT only.
+- OPEN for the lead: (1) the migration carries the cr-approved-breaking label for the three DROP INDEX (check-migrations gate) on LD-321 authority, no separate CR file: please confirm. (2) db/tests/catalog/T0B-10.C3_schema.test.sql pinned counts fail: 3 already fail on base (tables 43, policies 123, audit 34 after T0C-TESTMGMT-1), this task adds 2 (tg_* functions 4 -> 5, lifecycle triggers 18 -> 19); isolation probe catalog.price_list_assignments steps 6 fail identically on base (3, 23514 from one_owner__ck), not changed here.
+- FOUNDER STEP: cloud migration via push-cloud for 20261117200000_catalog__add_price_list_tools.sql (after 20261117170000); not done here.
+- OFFLINE (founder 09:19): import, bulk update, copy and compare are online only (large writes / whole-list reads); price reads for billing stay cached for offline use (published versions, unchanged); assignment dates travel with the cached list.
+
+## FIELD MAP (ElabAssist Price Allocation, Rate Master, Test Rate Card, Rate Change Log; LD-321)
+- Select Type — already present (price_lists.owner_kind / price_list_assignments.owner_kind)
+- Franchise — already present: maps onto the credit party assignment (credit_parties kind partner_lab; partner)
+- Laboratory — already present: maps onto the credit party assignment (credit_parties kind partner_lab / hospital; partner)
+- Doctor — already present: maps onto the referrer assignment (owner_kind referrer, doctor_id)
+- Rate Master — already present: the default list (owner_kind default, a named default price list; not an equation engine, lead decision LD-321)
+- Client — already present: maps onto the credit party assignment (credit_parties kind company)
+- Collection Center — already present: maps onto the centre assignment (owner_kind centre, centre_id)
+- Effective From Date — added (price_list_assignments.effective_from; versions keep effective_from)
+- Effective To Date — added (price_list_assignments.effective_to, open ended when absent)
+- Recalculate Prices — added (bulkUpdatePriceListDraft, percent or fixed amount with rounding, on a draft)
+- Test or Profile — already present (price_list_items orderable_kind test / panel)
+- Display Name or Short Name — already present (orderables.name, tests.display_name / short_name from T0C-TESTMGMT-1)
+- Test Category — already present (tests.category_id); bulk update scope uses department or listed tests, a category scope is not added because listed_tests covers it
+- Choose File — added (PriceListImportForm.file, xlsx only, 5 MB)
+- Upload Test Price — added (dryRunPriceListImport then commitPriceListImport into a DRAFT)
+- Bulk Update — added (bulkUpdatePriceListDraft)
+- Search — already present (listPriceListItems filters, listTests / searchOrderables)
+- Export to Excel — already present (downloadPriceListTemplate with price_list_id is prefilled with the list's prices; catalog exports)
+- Export to PDF — not added — a printable rate list is a reporting concern; the data is already in listPriceListItems / comparePriceLists
+- Compare Rate List — added (comparePriceLists)
+- Copy To — added (copyPriceList, replace or merge, optional percent, DRAFT on the target)
+- Rate Type Name — already present (price_lists.name / code)
+- Lab Name — already present (tenant_id: the lab is the tenant)
+- Equation — not added — Rate Master is a named default price list, not an equation engine (LD-321)
+- Operator — not added — same reason: no equation engine (LD-321)
+- Parent Rate Card — not added — falls_through to the default list is the only inheritance; a parent chain would make a price depend on two lists
+- Is Default — already present (owner_kind default, one per tenant)
+- Entity Name — already present (the assigned party: credit_parties.name, doctors.display_name, collection centre name)
+- Entity Type — already present (price_list_assignments.owner_kind)
+- Test Name — already present (orderables.name; read only column of the template)
+- Test Type — already present (orderables.kind test / panel)
+- Test MRP — already present (price_list_items.unit_price_paisa of the default list)
+- Rate Change Log — added (catalog.price_list_import_batch + price_list_import_error history; price_list_versions history and row audit already present)
+- Actual Price — added (PriceListComparisonRow.price_a_paisa)
+- Changed Price — added (PriceListComparisonRow.price_b_paisa and difference_paisa)

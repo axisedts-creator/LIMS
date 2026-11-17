@@ -250,7 +250,7 @@ describe('coupons at save: applied once per order, usage limit, tenant, rollback
   });
   it('a failing save (event publish refuses) rolls the coupon use back with everything else', { timeout: T }, async () => {
     const c = await mkCoupon({ usage_limit: 5 });
-    const p = await prepare({ d: { coupon_code: c } });
+    const p = await prepare({ d: { coupon_code: c }, payments: [pay(1000)] });
     await expect(register(p.body, { w: p.w, failEvent: 'frontdesk.order.created.v1' })).rejects.toBeTruthy();
     expect((await couponRow(c)).used_count).toBe(0);
     expect(await ordersOf(p.patient.id)).toHaveLength(0);
@@ -258,7 +258,7 @@ describe('coupons at save: applied once per order, usage limit, tenant, rollback
   it('CONCURRENCY: usage_limit 2, six simultaneous saves => exactly 2 succeed, 4 are refused at /coupon_code, used_count = 2, never above the limit', { timeout: T * 2 }, async () => {
     const c = await mkCoupon({ usage_limit: 2 });
     const preps: Prepared[] = [];
-    for (let i = 0; i < 6; i++) preps.push(await prepare({ d: { coupon_code: c } }));
+    for (let i = 0; i < 6; i++) preps.push(await prepare({ d: { coupon_code: c }, payments: [pay(1000)] }));
     const outs = await Promise.allSettled(preps.map((p) => register(p.body, { w: p.w })));
     const won = outs.filter((o) => o.status === 'fulfilled' && (o.value as any).status === 201);
     const lost = outs.filter((o) => o.status === 'rejected') as PromiseRejectedResult[];

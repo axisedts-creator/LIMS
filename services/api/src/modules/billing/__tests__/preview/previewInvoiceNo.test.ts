@@ -2,7 +2,7 @@
 // Binding facts: it reads last_no + 1 of the INV series of the current BS fiscal year from billing.fiscal_counters and formats it with the tenant invoiceNoPattern;
 // NO write, NO nextval, no row lock (a plain SELECT); no counter row yet = the first number of the year; a closed year is refused (billing.fiscal_year_closed);
 // it never reserves anything: the real number is still allocated by the counter service inside issueOrderInvoice.
-// The fake (packages/fakes/src/BillingCommandPort.fake.ts) must give the same shape: '{fy}-{seq:6}' for the test tenant pattern.
+// The fake (packages/fakes/src/BillingCommandPort.fake.ts) must give the same shape: '{fyl}-{seq:6}' (long B.S. year, 03-IC:2884) for the test tenant pattern.
 // Needs LIMS_TEST_APP_URL + LIMS_TEST_SUPER_URL (tests/billing/T0B-REGAPI-2.pg.sh).
 import { describe, expect, it } from 'vitest';
 import { createFakeBillingCommandPort } from '../../../../../../../packages/fakes/src/BillingCommandPort.fake';
@@ -13,17 +13,17 @@ import { fiscalYearOf } from '../../domain/fiscalYear.js';
 import { SYS_ACTOR, T, TENANT_A, TENANT_B, appTx, superTx } from '../accounts/helpers.js';
 
 const NOW = new Date('2026-11-17T06:00:00.000Z');
-const PATTERN = '{fy}-{seq:6}';
+const PATTERN = '{fyl}-{seq:6}';
 const SHAPE = /^\d{4}\/\d{2}-\d{6}$/;
 const FY = fiscalYearOf(NOW.toISOString() as never).long;
 const pad = (n: number) => String(n).padStart(6, '0');
 
-async function preview(tenant = TENANT_A, now = NOW, pattern: string | undefined = PATTERN): Promise<{ invoiceNo?: string; error?: unknown; stmts: string[] }> {
+async function preview(tenant = TENANT_A, now = NOW, pattern: string | null = PATTERN): Promise<{ invoiceNo?: string; error?: unknown; stmts: string[] }> {
   const stmts: string[] = [];
   try {
     const invoiceNo = await appTx(tenant, async (raw: any) => {
       const tx = { startedAt: now, query: async (text: string, values?: unknown[]) => { stmts.push(text); return raw.query(text, values); } };
-      const identity = { getTenantSettings: async () => ({ timezone: 'Asia/Kathmandu', numbering: pattern === undefined ? {} : { invoiceNoPattern: pattern }, channels: {}, featureFlags: {} }) };
+      const identity = { getTenantSettings: async () => ({ timezone: 'Asia/Kathmandu', numbering: pattern === null ? {} : { invoiceNoPattern: pattern }, channels: {}, featureFlags: {} }) };
       const ctx: any = { tenantId: tenant, tx, actor: { type: 'system', id: SYS_ACTOR }, now: () => now, ports: { IdentityPort: identity } };
       return (await billingCommandPort.previewInvoiceNo(ctx, {})).invoiceNo;
     });
@@ -99,8 +99,8 @@ describe('previewInvoiceNo (real implementation, LD-323)', () => {
   });
 
   it('a missing or malformed tenant pattern is refused with billing.numbering_pattern_invalid (never a guessed number)', { timeout: T }, async () => {
-    for (const bad of [undefined, 'no-seq-token', '{seq:6']) {
-      const p = await preview(TENANT_A, NOW, bad as string | undefined);
+    for (const bad of [null, 'no-seq-token', '{seq:6']) {
+      const p = await preview(TENANT_A, NOW, bad);
       expect(p.error, `pattern ${String(bad)}`).toBeInstanceOf(LimsError);
       expect((p.error as LimsError).code).toBe('billing.numbering_pattern_invalid');
     }

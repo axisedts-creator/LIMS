@@ -74,6 +74,26 @@ const FRONTDESK: Spec[] = [
   S("updateFrontdeskSettings", "PUT", "/settings", FD("settings.manage"), "optional", 200, { im: true, err: [VC] }),
   S("listFrontdeskCodes", "GET", "/coded-sets/{set_name}", ORD_R, "none", 200),
   S("listPossibleDuplicatePatients", "GET", "/patients/possible-duplicates", REG, "none", 200, { err: INVALID_CURSOR }),
+  // T0C-REGPARITY-2 (LD-310): 18 additive operations (drafts, favourites, number preview, custom fields, coupons, ICD master, rewards). Not in the C4 TRD table (the drift guard only checks TRD -> test);
+  // the shape tests are in regparity2-openapi.test.ts. Added here so the inventory test ("no missing, no extra operations") stays true.
+  S("createRegistrationDraft", "POST", "/registration-drafts", REG, "required", 201),
+  S("listRegistrationDrafts", "GET", "/registration-drafts", REG, "none", 200, { err: INVALID_CURSOR }),
+  S("getRegistrationDraft", "GET", "/registration-drafts/{draft_id}", REG, "none", 200),
+  S("deleteRegistrationDraft", "DELETE", "/registration-drafts/{draft_id}", REG, "none", 204),
+  S("addFavouriteTest", "POST", "/favourite-tests", REG, "required", 201),
+  S("removeFavouriteTest", "DELETE", "/favourite-tests/{orderable_id}", REG, "none", 204),
+  S("listFavouriteTests", "GET", "/favourite-tests", REG, "none", 200, { err: INVALID_CURSOR }),
+  S("previewRegistrationNumbers", "GET", "/registrations/number-preview", REG, "none", 200),
+  S("listCustomFieldDefinitions", "GET", "/custom-field-definitions", REG, "none", 200, { err: INVALID_CURSOR }),
+  S("createCustomFieldDefinition", "POST", "/custom-field-definitions", FD("settings.manage"), "required", 201),
+  S("updateCustomFieldDefinition", "PATCH", "/custom-field-definitions/{definition_id}", FD("settings.manage"), "optional", 200, { im: true, err: [VC, "common.precondition_required"] }),
+  S("listCoupons", "GET", "/coupons", FD("settings.manage"), "none", 200, { err: INVALID_CURSOR }),
+  S("createCoupon", "POST", "/coupons", FD("settings.manage"), "required", 201),
+  S("updateCoupon", "PATCH", "/coupons/{coupon_id}", FD("settings.manage"), "optional", 200, { im: true, err: [VC, "common.precondition_required"] }),
+  S("listIcdCodes", "GET", "/icd-codes", REG, "none", 200, { err: INVALID_CURSOR }),
+  S("createIcdCode", "POST", "/icd-codes", FD("settings.manage"), "required", 201),
+  S("updateIcdCode", "PATCH", "/icd-codes/{icd_code_id}", FD("settings.manage"), "optional", 200, { im: true, err: [VC, "common.precondition_required"] }),
+  S("getPatientRewards", "GET", "/patients/{patient_id}/rewards", PAT_R, "none", 200, { err: INVALID_CURSOR }),
 ];
 
 const BILLING: Spec[] = [
@@ -151,7 +171,7 @@ const tmps: string[] = [];
 afterAll(() => tmps.forEach((d) => rmSync(d, { recursive: true, force: true })));
 
 describe.each([
-  { name: "frontdesk", specs: FRONTDESK, total: 29 },
+  { name: "frontdesk", specs: FRONTDESK, total: 29 + 18 }, // 29 C4 operations + 18 T0C-REGPARITY-2 operations (LD-310)
   { name: "billing", specs: BILLING, total: 47 },
 ])("$name.yaml (T0C-10.C4)", ({ name, specs, total }) => {
   const FILE = join(ROOT, `contracts/openapi/${name}.yaml`);

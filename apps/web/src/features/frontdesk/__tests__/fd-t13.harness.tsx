@@ -102,6 +102,9 @@ export const api = setupServer(
     const q = (new URL(request.url).searchParams.get('q') ?? '').toLowerCase();
     return HttpResponse.json({ data: ORDERABLES.filter((o) => o.code.toLowerCase().includes(q) || o.name.toLowerCase().includes(q)) });
   }),
+  // T0D-REGSCREEN-2 ruling: id -> name for favourites (catalog.yaml listTests :1564, listPanels :4188; tests and panels share one orderable id space)
+  http.get(`${ORIGIN}/v1/catalog/tests`, async ({ request }) => { await rec(request); return HttpResponse.json({ data: ORDERABLES.filter((o) => o.kind === 'test'), page: { next_cursor: null } }); }),
+  http.get(`${ORIGIN}/v1/catalog/panels`, async ({ request }) => { await rec(request); return HttpResponse.json({ data: ORDERABLES.filter((o) => o.kind === 'panel'), page: { next_cursor: null } }); }),
   http.post(`${ORIGIN}/v1/catalog/doctors/search`, async ({ request }) => { await rec(request); return HttpResponse.json({ data: [{ id: U(40), doctor_code: 'CP00001', display_name: 'Dr Synthetic Referrer', is_verified: true, is_active: true }] }); }),
   http.get(`${ORIGIN}/v1/catalog/credit-parties`, async ({ request }) => { await rec(request); return HttpResponse.json({ data: [party], page: { next_cursor: null } }); }),
   http.get(`${ORIGIN}/v1/billing/coded-sets/payment_methods`, async ({ request }) => { await rec(request); return HttpResponse.json({ data: [{ code: 'cash', display: 'Cash', sort_order: 1 }, { code: 'card', display: 'Card', sort_order: 2 }, { code: 'esewa', display: 'eSewa', sort_order: 3 }] }); }),

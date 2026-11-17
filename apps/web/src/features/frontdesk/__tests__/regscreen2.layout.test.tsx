@@ -119,7 +119,7 @@ describe('DOM control budget (blank form, fold closed, no dialog)', () => {
     for (const l of [/clinical history/i, /patient history/i, /mr number/i, /buyer pan/i, /external reference/i, /insurance code/i, /insurance claim amount/i]) {
       expect(fold.querySelector('*') && [...fold.querySelectorAll('label, [aria-label]')].some((e) => l.test(e.textContent ?? '') || l.test(e.getAttribute('aria-label') ?? '')), String(l)).toBe(true);
     }
-    expect(fold.contains(screen.getByRole('switch', { name: /downtime back-entry/i }))).toBe(true);
+    expect(fold.contains(screen.getByRole('switch', { name: /downtime back-entry/i, hidden: true }))).toBe(true);
   });
 
   it('what must stay in view: patient search, tests search, cart box, payment rows, Save as draft, Drafts, number preview and Redeem/coupon/visiting inputs are NOT inside the fold', async () => {

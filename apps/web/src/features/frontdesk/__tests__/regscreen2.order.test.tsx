@@ -67,10 +67,11 @@ describe('collection details', () => {
     const t = screen.getByRole('textbox', { name: /collection date and time/i });
     await u.clear(t); await u.type(t, kathmandu(when)); fireEvent.blur(t);
     await u.type(screen.getByRole('textbox', { name: /collected by/i }), 'Synthetic Runner');
+    // ruling 1: after a successful F9 the SuccessPanel replaces the form, so check maxlength before submit
+    expect(Number((screen.getByRole('textbox', { name: /collected by/i }) as HTMLInputElement).getAttribute('maxlength'))).toBe(200);
     const b = await submit(u);
     expect(b.collection_at.slice(0, 16)).toBe(when.toISOString().slice(0, 16));
     expect(b.collected_by_name).toBe('Synthetic Runner');
-    expect(Number((screen.getByRole('textbox', { name: /collected by/i }) as HTMLInputElement).getAttribute('maxlength'))).toBe(200);
   });
 
   it('untouched: none of collection_at, collected_by_name, sample_not_collected, sample_remark is sent', async () => {
@@ -331,11 +332,12 @@ describe('payment: card holder name and payment remark', () => {
     await u.type(await screen.findByRole('textbox', { name: /card holder name/i }), 'Synthetic Holder');
     await u.type(screen.getByRole('textbox', { name: /payment remark/i }), 'POS slip 118');
     await u.type(screen.getByRole('textbox', { name: /^reference/i }), 'AUTH-1');
+    // ruling 1: maxlength checked before submit (the form is replaced by the SuccessPanel after F9)
+    expect(Number(screen.getByRole('textbox', { name: /card holder name/i }).getAttribute('maxlength'))).toBe(100);
+    expect(Number(screen.getByRole('textbox', { name: /payment remark/i }).getAttribute('maxlength'))).toBe(300);
     const b = await submit(u);
     expect(b.payments[0]).toMatchObject({ method_code: 'card', card_holder_name: 'Synthetic Holder', payment_remark: 'POS slip 118', reference: 'AUTH-1' });
     expect(Object.keys(b.payments[0]).filter((k) => !PAY_KEYS.includes(k))).toEqual([]);
-    expect(Number(screen.getByRole('textbox', { name: /card holder name/i }).getAttribute('maxlength'))).toBe(100);
-    expect(Number(screen.getByRole('textbox', { name: /payment remark/i }).getAttribute('maxlength'))).toBe(300);
   });
 
   it('a card holder name typed under Card is NOT sent after the method is changed back to Cash', async () => {

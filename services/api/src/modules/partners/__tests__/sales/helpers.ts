@@ -3,6 +3,7 @@
 // Importing the frontdesk integration helper also takes its per-file advisory lock, so files that use this kit never run in parallel on the shared tenants.
 // PINS (see .orchestra/notes/T0B-SALES-1-tests.md): the caller's own representative = sales_representative.user_id = ctx.actor.id; "today" = ctx.now() in Asia/Kathmandu;
 // a rule failure = LimsError common.validation_failed with errors[].path as JSON pointer of the request field ('/level', '/manager_id' ...).
+import { randomBytes } from 'node:crypto';
 import { expect } from 'vitest';
 import { LimsError } from '../../../../core/errors.js';
 import { manifest } from '../../index.js';
@@ -124,10 +125,10 @@ export async function mkPartner(tenant: string, o: Record<string, unknown> = {})
 /** a periodic credit invoice (net_paisa) of a credit party, issued at `issuedAt` */
 export const mkInvoice = (tenant: string, creditPartyId: string, net: number, issuedAt: string) => {
   const side = tenant === TENANT_B ? 'b' : 'a'; const n = uid().slice(-9);
-  return ins(tenant, 'billing.invoices', { id: uid(), branch_id: BRANCH[side], series: 'INV', fiscal_year_bs: '2083/84', invoice_seq: Math.floor(Math.random() * 2e9), invoice_no: `SYN-${n}`, invoice_kind: 'tax_invoice',
+  return ins(tenant, 'billing.invoices', { id: uid(), branch_id: BRANCH[side], series: 'INV', fiscal_year_bs: '2083/84', invoice_seq: 1 + Math.floor(Math.random() * 2e9), invoice_no: `SYN-${n}`, invoice_kind: 'tax_invoice',
     purpose: 'periodic_credit', credit_party_id: creditPartyId, is_periodic_credit_bill: true, period_month: '2026-11-01', buyer_name: 'Synthetic buyer', seller_name: 'Synthetic seller', issued_at: issuedAt,
     invoice_date_bs: '2083-08-01', gross_paisa: net, discount_paisa: 0, exempt_paisa: net, taxable_paisa: 0, vat_paisa: 0, other_tax_paisa: 0, net_paisa: net, prices_include_tax: false,
-    quote_fingerprint: 'synthetic', status: 'issued', cbms_state: 'not_required' }, true); // replica: the fiscal chronology guard (billing.fiscal_counters) is a billing invariant, not under test here
+    quote_fingerprint: randomBytes(32).toString('hex'), status: 'issued', cbms_state: 'not_required' }, true); // replica: the fiscal chronology guard (billing.fiscal_counters) is a billing invariant, not under test here
 };
 export const dbRow = async (table: string, id: string): Promise<any | undefined> => (await superTx(async (tx) => (await tx.query(`SELECT * FROM ${table} WHERE id = $1`, [id])).rows))[0];
 export const dbRows = async (table: string, where: string, values: unknown[] = []): Promise<any[]> => superTx(async (tx) => (await tx.query(`SELECT * FROM ${table} WHERE ${where}`, values)).rows);

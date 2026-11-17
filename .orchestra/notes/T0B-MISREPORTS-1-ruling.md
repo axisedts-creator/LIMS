@@ -1,0 +1,10 @@
+CR_NEEDED — the spec itself is contradictory/missing; neither the tests nor the (unwritten) implementation can be fixed inside T0B. CR text: `.orchestra/cr/T0B-MISREPORTS-1.md`.
+
+1. consultant: contracts/openapi/analytics.yaml:3985-3999 publishes `consultant` (one row per referrer_id, column `net_billed_paisa`, permission analytics.dashboard.read, no flag) = per-referrer money outside the gate.
+2. spec/program/08-CR-REGISTER.md:3147 (A39-3) bans "per-referrer money outside the gate" in every other report/export; A39 (newest addendum) outranks 03-IC/contracts per CLAUDE.md precedence, so the contract row is wrong, not the test.
+3. reportRegistry.test.ts:90-99 correctly enforces A39-3 (A39-6(c), 08-CR:3149, allows exceptions for exactly two_level_commission and tds only, so excepting consultant would loosen it beyond A39). registry.static.test.ts:25-31 correctly pins registry == contract. Both are right against their sources; the sources disagree. T0B cannot edit analytics.yaml (A39-7, 08-CR:3151: contract is T0C-owned).
+4. Rates: A39-3(iii) and A39-4 (08-CR:3147-3148) say rates come from "the partners party settings that already carry commission_bp and tds_bp", and C8 stores none. In this tree no migration or contract defines them (grep db/ contracts/: only analytics.yaml descriptions 3940/4093); migration 20261117220000 (PARTYSET, LD-321) is absent. The spec asserts an existing source that does not exist, so commission.live.test.ts cannot pass and T0B may not invent the table.
+5. Held-ledger exclusion (A39-4, done_when 2) also depends on the FINCTRL Hold status (LD-321), not merged here.
+6. Not TESTS_WRONG: no test asserts something the spec does not require. Not IMPLEMENTATION_WRONG: no implementation can satisfy both consultant tests or read a non-existent table.
+7. Unblocked meanwhile: every other MIS report code (all except consultant, two_level_commission, tds) can proceed now.
+8. Decision class is per-referrer money / regulatory (04 L19, D-44, A39): outside LD-310, needs founder/lead.

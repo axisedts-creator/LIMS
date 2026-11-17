@@ -2830,7 +2830,7 @@ paths:
       tags:
         - lab
       summary: Verify a result
-      description: "Verification levels (LD-316): the active verification policy (most specific of test, department, lab; default level 2 with a pathologist) says how many DIFFERENT people (level 1, 2 or 3) must sign off this result version before it is final. Each sign-off appends one row to the sign-off chain (getResultSignoffs). The same person never signs one version twice (lab.verifier_not_distinct); the enterer of the result may not sign it unless the policy allows it (lab.enterer_cannot_verify); when the policy requires a pathologist the final sign-off needs lab.result.approve (lab.pathologist_required). verifyResult records a sign-off that is not the final one; the response carries signoff_count, signoff_required and next_step."
+      description: "Verification levels (LD-316): the active verification policy (most specific of test, department, lab; default level 2 with a pathologist) says how many DIFFERENT people (level 1, 2 or 3) must sign off this result version before it is final. Each sign-off appends one row to the sign-off chain (getResultSignoffs). The same person never signs one version twice (lab.verifier_not_distinct); the enterer of the result may not sign it unless the policy allows it (lab.enterer_cannot_verify); when the policy requires a pathologist the final sign-off needs lab.result.approve (lab.pathologist_required). verifyResult records a non-final sign-off; when the policy has require_pathologist false and this sign-off reaches signoff_required, it is the final one (status approved, next_step none); when require_pathologist is true and this sign-off would be the final one, it is refused with lab.pathologist_required (the final sign-off is approveResult); the response carries signoff_count, signoff_required and next_step."
       security:
         - bearerJwt: []
       x-permission: lab.result.verify
@@ -2851,6 +2851,7 @@ paths:
         - lab.flag_ack_required
         - lab.verifier_not_distinct
         - lab.enterer_cannot_verify
+        - lab.pathologist_required
       parameters:
         - name: result_id
           in: path
@@ -2991,6 +2992,7 @@ paths:
         - lab.flag_ack_required
         - lab.verifier_not_distinct
         - lab.enterer_cannot_verify
+        - lab.pathologist_required
       parameters:
         - $ref: _common.yaml#/components/parameters/IdempotencyKey
       requestBody:
@@ -5752,7 +5754,7 @@ paths:
       tags:
         - lab
       summary: Sign-off chain of a result (every version)
-      description: "T0C-VERLEVEL-1 (LD-316): the append only chain of sign-offs, ordered by result_version then seq. Each row is a snapshot of the signer taken at signing time (name, title, role, registration number, whether the signer held lab.result.approve); it never changes afterwards. Only sign-offs with signer_is_pathologist true print as signatures on the report (PRINTCFG); technologist sign-offs never do. Results approved before LD-316 have no chain rows (their counters were backfilled)."
+      description: "T0C-VERLEVEL-1 (LD-316): the append only chain of sign-offs, ordered by result_version then seq. Each row is a snapshot of the signer taken at signing time (name, role, registration number, whether the signer held lab.result.approve); it never changes afterwards. signer_title is read from the signer's current signatory profile and is not part of the snapshot. Only sign-offs with signer_is_pathologist true print as signatures on the report (PRINTCFG); technologist sign-offs never do. Results approved before LD-316 have no chain rows (their counters were backfilled)."
       security:
         - bearerJwt: []
       x-permission: lab.result.read
@@ -5936,7 +5938,7 @@ components:
         signer_title:
           type: string
           maxLength: 120
-          description: Professional title shown under the name (for example Consultant Pathologist).
+          description: Professional title from the signer's current signatory profile (not snapshotted; for example Consultant Pathologist).
         signer_role_code:
           $ref: _common.yaml#/components/schemas/Code
         signer_is_pathologist:

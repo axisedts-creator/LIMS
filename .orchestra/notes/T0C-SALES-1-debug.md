@@ -1,0 +1,2 @@
+- Debugger 2026-11-17: verify fails only on homecollection/__tests__/boot.test.ts (3 tests). Cause: stale test (IMPLEMENTED list misses real listHomeVisits; 30 s timeout vs 56 s boot). Reproduced running that file alone; unrelated to SALES-1 (it only adds pendingOperations).
+- No implementation change made (none can fix it without editing tests). Dispute written: .orchestra/notes/T0C-SALES-1-dispute.md. All else green in verify (codegen 856/856, registry 5/5, api 570 pass, pgTAP 0 not ok).

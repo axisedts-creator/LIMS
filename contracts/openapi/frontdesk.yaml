@@ -3801,7 +3801,8 @@ paths:
                   value:
                     centre_id: 0193c4a0-0000-7000-8000-000000000901
                     next_registration_no: R-2083-000124
-                    next_receipt_no: RC-2083/84-000077
+                    next_receipt_no: 2083/84-000077
+                    next_receipt_no_label: Assigned when saved
                     is_preview: true
         '400':
           $ref: _common.yaml#/components/responses/BadRequest
@@ -7100,6 +7101,7 @@ components:
       - centre_id
       - next_registration_no
       - next_receipt_no
+      - next_receipt_no_label
       - is_preview
       properties:
         centre_id:
@@ -7111,9 +7113,14 @@ components:
           description: Preview of the next lab (registration) number; not consumed.
         next_receipt_no:
           type: string
+          minLength: 0
+          maxLength: 64
+          description: 'LD-323, LD-331: preview of the next invoice number (issueReceiptNo is false, so the invoice is the receipt); not consumed. The real number is assigned when saved, and two users may see the same preview. It is the empty string when the preview is unavailable.'
+        next_receipt_no_label:
+          type: string
           minLength: 1
           maxLength: 64
-          description: Preview of the next bill receipt number; not consumed.
+          description: 'LD-323, LD-331: always present; the text assigned when saved, shown next to the previewed number.'
         is_preview:
           type: boolean
           description: Always true.

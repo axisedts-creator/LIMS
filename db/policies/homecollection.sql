@@ -138,3 +138,11 @@ CREATE POLICY handover_items__update__owner_only ON homecollection.handover_item
   WITH CHECK (current_setting('app.maintenance', true) = 'homecollection_anonymise_retired_visits'
          AND tenant_id = (SELECT app.current_tenant_id())
          AND barcode = 'ANONYMISED');
+-- T0C-SALES-1 (LD-321): db/migrations/20261117210000_partners__add_sales_hierarchy.sql; no DELETE policy (deactivate / close, never delete)
+CREATE POLICY collector_flags__select__tenant ON homecollection.collector_flags FOR SELECT TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+CREATE POLICY collector_flags__insert__tenant ON homecollection.collector_flags FOR INSERT TO lims_app
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+CREATE POLICY collector_flags__update__tenant ON homecollection.collector_flags FOR UPDATE TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()))
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));

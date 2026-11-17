@@ -150,6 +150,8 @@ INSERT INTO core.g_permissions (code, module, privileged, phase) VALUES
   ('partners.referrer.map', 'partners', false, '2'),
   ('partners.referrer.read', 'partners', false, '2'),
   ('partners.report.read', 'partners', false, '2'),
+  ('partners.sales.manage', 'partners', true, '1'),
+  ('partners.sales.read', 'partners', false, '1'),
   ('partners.statement.read', 'partners', false, '2'),
   ('payments.intent.create', 'payments', false, '1.5'),
   ('payments.intent.resolve', 'payments', true, '1.5'),

@@ -1,8 +1,7 @@
-# T0C-REGPARITY-3 tests
-- New: tools/codegen/__tests__/regparity3-openapi.test.ts (shape, Ajv success + port-failure bodies, example, lint, generated types/MSW, staleness). Edited: regparity2-openapi.test.ts:406 (type "string" pin -> list contains "string"; LD-326 break).
+# T0C-REGPARITY-3 tests (re-pinned per LD-331 option B: string, minLength 0, empty string when unavailable; no type arrays, no lint change)
+- New: tools/codegen/__tests__/regparity3-openapi.test.ts (shape, Ajv success body + port-failure body [empty string + label], null rejected, example 2083/84-000077, lint clean, no type array/nullable anywhere, lint-openapi.ts untouched, generated client types `next_receipt_no: string;` + label, MSW handler, staleFiles).
+- regparity2-openapi.test.ts:406 keeps `type` "string" (unchanged on this branch; nothing to edit).
 - Run: `.orchestra\notes\T0C-REGPARITY-3-verify.cmd` (= `cd tools/codegen && npx vitest run __tests__/regparity3-openapi.test.ts __tests__/regparity2-openapi.test.ts __tests__/lint-openapi.test.ts`).
-- Implementer: edit frontdesk.yaml (schema + example ~3804), then run codegen to refresh packages/api-client-ts/src/{frontdesk.ts,server/operations.ts} and packages/fakes/src/msw/handlers.generated.ts.
-- CONFLICT for the lead: tools/codegen/lint-openapi.ts rule 2 forbids type arrays (line 194) and `nullable`, and OAS 3.0.3 has no `type: [string, null]`; the brief demands it AND a clean lint. Tests pin the brief form and require a clean lint, so the implementer needs ONE narrow lint exemption (this field only, like LD-119 for rule 3); lint-openapi.ts is outside the brief's file list, so a ruling is needed.
-- Test "exactly one type array" fails if the exemption is wider than RegistrationNumberPreview.next_receipt_no.
-- Pre-existing before this task: staleFiles() already reports contracts/ports/generated/access-actions.ts and db/seeds/003_audit__g_cs_access_actions.sql stale (LD-326 spec merge), so regparity2 "codegen --check" fails now too. Running codegen refreshes both: 2 files beyond the 6-file cap, lead to rule.
-- Label wording is not pinned (only non-empty, <=64); the description text regexes are in the schema-shape test.
+- Implementer: edit frontdesk.yaml (schema + example ~3804), run codegen (refreshes packages/api-client-ts/src/{frontdesk.ts,server/operations.ts}, packages/fakes/src/msw/handlers.generated.ts, plus the 2 LD-331 files contracts/ports/generated/access-actions.ts and db/seeds/003_audit__g_cs_access_actions.sql).
+- Label wording not pinned (non-empty, <=64); description regexes are in the shape test.
+- Pre-existing: staleFiles() may already flag the two access-actions outputs (spec commit 71d1ccdd3), so the freshness test fails until codegen runs.

@@ -772,3 +772,46 @@ describe("T0C-SYNC-2 implementation notes (done_when 7): classification table, v
     expect(t).toMatch(/no copied|\$ref|identity|hoist/i);
   });
 });
+
+// Review T0C-SYNC-2 items 1 and 2 (LD-322): open JSON documents are objects, and SyncErrorCode covers the wrapped operations.
+describe("T0C-SYNC-2 review: JSON document fields are objects (item 1)", () => {
+  const schemas = (): Record<string, any> => C_DOC.components.schemas;
+  const FIELDS: [string, string][] = [["SyncUpsert", "document"], ["SyncConflict", "local_payload"], ["SyncConflict", "server_payload"], ["ResolveSyncConflictRequest", "merged_payload"]];
+  for (const [sch, f] of FIELDS) {
+    it(`${sch}.${f} is type: object (not any JSON value)`, () => {
+      expect(deref(props(schemas()[sch])[f])?.type, `${sch}.${f}`).toBe("object");
+    });
+  }
+  it("migration: core.sync_conflict has CONSTRAINT sync_conflict__payloads__ck CHECK jsonb_typeof(local_payload) and (server_payload) = 'object'", () => {
+    const m = readFileSync(join(ROOT, "db/migrations", MIG), "utf8");
+    expect(m).toMatch(/CONSTRAINT\s+sync_conflict__payloads__ck\s+CHECK\s*\(\s*jsonb_typeof\(\s*local_payload\s*\)\s*=\s*'object'\s+AND\s+jsonb_typeof\(\s*server_payload\s*\)\s*=\s*'object'\s*\)/i);
+  });
+  it("a non-object merged_payload, local_payload or server_payload fails ajv", () => {
+    const r = validatorFor("resolveSyncConflict", "req");
+    for (const bad of ["x", 5, [1], null, true])
+      expect(r({ resolution: "merge", reason: "ok", merged_payload: bad }), `merged_payload ${JSON.stringify(bad)}`).toBe(false);
+    const g = validatorFor("getSyncConflict", "200");
+    const open = { id: U(9), op_id: U(1), entity_type: "patient", entity_id: U(5), local_payload: { a: 1 }, server_payload: { a: 2 }, status: "open", created_at: NOW };
+    expect(g(open), JSON.stringify(g.errors?.[0])).toBe(true);
+    for (const f of ["local_payload", "server_payload"])
+      for (const bad of ["x", 5, [1], null]) expect(g({ ...open, [f]: bad }), `${f} ${JSON.stringify(bad)}`).toBe(false);
+  });
+});
+
+describe("T0C-SYNC-2 review: SyncErrorCode covers the wrapped operations (item 2)", () => {
+  const codes = (): string[] => deref(C_DOC.components.schemas.SyncErrorCode).enum;
+  for (const t of OP_TYPES) {
+    it(`${t}: every domain code of ${WRAPS[t].op} is in SyncErrorCode`, () => {
+      const wrapped: string[] = wrappedBody(t).op["x-error-codes"] ?? [];
+      expect(wrapped.length, "wrapped op lists error codes").toBeGreaterThan(0);
+      // request-level codes (auth, rate limit, idempotency key) are answered per request, not per op_id
+      for (const c of wrapped.filter((x) => x !== "auth.unauthenticated" && x !== "common.rate_limited" && !x.startsWith("common.idempotency_key_") && x !== MFA))
+        expect(codes(), `${c} missing from SyncErrorCode`).toContain(c);
+    });
+  }
+  it("every SyncErrorCode value exists in contracts/errors.yaml and the list has no duplicates", () => {
+    const reg = new Set<string>(errorsYaml.map((x: any) => x.code));
+    for (const c of codes()) expect(reg.has(c), `${c} not in errors.yaml`).toBe(true);
+    expect(new Set(codes()).size).toBe(codes().length);
+  });
+});

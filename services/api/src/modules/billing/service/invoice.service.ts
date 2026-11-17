@@ -556,7 +556,7 @@ export function createInvoiceService(deps: { repo?: BillingRepo; counter: Counte
     return writeNote(ctx, { kind: 'partial', inv, picks, reasonCode, reasonText, taskIds });
   }
   /** LD-323 (a): the invoice number issue() would assign next, rendered the same way (series scope, fiscal year, pattern, training prefix).
-   *  A plain read of billing.fiscal_counters through counter.peek: nothing written, nothing reserved; two callers may see the same number. */
+   *  A plain read of the INV series counter row through counter.peek: nothing written, nothing reserved; two callers may see the same number. */
   async function previewNo(ctx: InvoiceCtx): Promise<{ invoiceNo: string }> {
     const tx = ctx.tx as never;
     const idp = ctx.ports?.IdentityPort;

@@ -53,9 +53,11 @@ describe('the 3 operations exist in the contract with the TRD permissions/idempo
   it('contract facts the service relies on: update has only text/is_active (no code, no department_id), create has only code/department_id/text, all additionalProperties:false', () => {
     const u = spec.components.schemas['CommentCodeUpdate']; const c = spec.components.schemas['CommentCodeCreate'];
     expect(u.additionalProperties).toBe(false); expect(c.additionalProperties).toBe(false);
-    expect(Object.keys(u.properties).sort()).toEqual(['is_active', 'text']);
-    expect(Object.keys(c.properties).sort()).toEqual(['code', 'department_id', 'text']);
-    expect(Object.keys(spec.components.schemas['CommentCode'].properties).sort()).toEqual(['code', 'department_id', 'id', 'is_active', 'text', 'version']);
+    // T0B-TESTMGMT-1 (LD-318): the four ElabAssist note fields (category_id, result_type, is_default_template, text_format) are additive; the original keys must remain, code / department_id stay create only
+    const NEW = ['category_id', 'is_default_template', 'result_type', 'text_format'];
+    expect(Object.keys(u.properties).sort()).toEqual(['is_active', ...NEW, 'text', 'unset'].sort());
+    expect(Object.keys(c.properties).sort()).toEqual(['code', 'department_id', ...NEW, 'text'].sort());
+    expect(Object.keys(spec.components.schemas['CommentCode'].properties).sort()).toEqual(['code', 'department_id', 'id', 'is_active', ...NEW, 'text', 'version'].sort());
   });
 });
 

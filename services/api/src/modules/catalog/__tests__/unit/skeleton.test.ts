@@ -40,8 +40,8 @@ const isStub = async (h: Handler): Promise<boolean> => {
 };
 
 describe('manifest + autoload (02-TRD §3, §6.3 of core)', () => {
-  it('catalog.yaml declares the 107 operations of 02-TRD §5', () => {
-    expect(OPS).toHaveLength(107);
+  it('catalog.yaml declares the 107 operations of 02-TRD §5 plus the 3 category operations of T0C-TESTMGMT-1 (LD-318)', () => {
+    expect(OPS).toHaveLength(110);
   });
 
   it('manifest has name, openapi path and produces exactly catalog.changed.v1', () => {

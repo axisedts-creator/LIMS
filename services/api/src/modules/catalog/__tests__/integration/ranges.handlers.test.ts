@@ -79,7 +79,8 @@ describe('contract: the fourteen operations exist with the TRD permissions / ide
       const s = spec.components.schemas[n];
       expect(s.additionalProperties, n).toBe(false);
       if (n === 'AgeBound') continue;
-      for (const k of SERVER) expect(Object.keys(s.properties), `${n}.${k}`).not.toContain(k);
+      // T0B-TESTMGMT-1 (LD-318): RangeBand.method_id is a band field since T0C-TESTMGMT-1 (ElabAssist range Method); every other schema still forbids it
+      for (const k of SERVER.filter((x) => !(n === 'RangeBand' && x === 'method_id'))) expect(Object.keys(s.properties), `${n}.${k}`).not.toContain(k);
     }
     expect(Object.keys(spec.components.schemas['PublishRequest'].properties)).not.toContain('effective_to');
     expect(Object.keys(spec.components.schemas['RetireRequest'].properties)).toEqual(expect.arrayContaining(['change_reason', 'effective_at']));

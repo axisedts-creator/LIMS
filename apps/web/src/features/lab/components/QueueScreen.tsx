@@ -9,6 +9,7 @@ import { Banner } from '@lims/ui/components/Banner';
 import { Button } from '@lims/ui/components/Button';
 import { Checkbox } from '@lims/ui/components/Checkbox';
 import { Dialog } from '@lims/ui/components/Dialog';
+import { EmptyRow, PlaceholderRows } from '@lims/ui/components/DataTable';
 import { EmptyState } from '@lims/ui/components/EmptyState';
 import { FlagBadge, type ResultFlag } from '@lims/ui/components/FlagBadge';
 import { PageHeader } from '@lims/ui/components/PageHeader';
@@ -150,11 +151,9 @@ export function QueueScreen({ mode, items, permissions, onStepUp }: QueueProps &
       ) : banner === 'error' ? (
         <div role="alert"><Banner tone="danger" title={FAILED} /></div>
       ) : null}
-      {items.length === 0 ? (
-        <EmptyState title={c.empty} />
-      ) : (
-        <>
-          {canAct ? (
+      {/* T0D-EMPTYTBL-1 (LD-310): headers always drawn; the empty message is a body row. */}
+      <>
+          {canAct && items.length > 0 ? (
             <Button variant="primary" isLoading={busy} isDisabled={picked.length === 0 || blocked} onPress={() => void send()}>
               {`${c.verb} ${picked.length}`}
             </Button>
@@ -163,7 +162,7 @@ export function QueueScreen({ mode, items, permissions, onStepUp }: QueueProps &
             <caption className="lims-visually-hidden">{c.title} queue</caption>
             <thead>
               <tr>
-                <th scope="col">{canAct ? <Checkbox label="Select all" isSelected={picked.length === items.length} onChange={(on) => setSel(on ? new Set(items.map((i) => i.result.id)) : new Set())} /> : <span className="lims-visually-hidden">Select</span>}</th>
+                <th scope="col">{canAct && items.length > 0 ? <Checkbox label="Select all" isSelected={picked.length === items.length} onChange={(on) => setSel(on ? new Set(items.map((i) => i.result.id)) : new Set())} /> : <span className="lims-visually-hidden">Select</span>}</th>
                 <th scope="col">Priority</th>
                 <th scope="col">Reg no</th>
                 <th scope="col">Patient</th>
@@ -172,6 +171,7 @@ export function QueueScreen({ mode, items, permissions, onStepUp }: QueueProps &
               </tr>
             </thead>
             <tbody>
+              {items.length === 0 ? <EmptyRow colSpan={6}><EmptyState title={c.empty} /></EmptyRow> : null}
               {items.map((i) => {
                 const r = i.result;
                 const need = mode === 'verify' ? neededFlags(r) : [];
@@ -193,9 +193,9 @@ export function QueueScreen({ mode, items, permissions, onStepUp }: QueueProps &
                 );
               })}
             </tbody>
+            {items.length === 0 ? <PlaceholderRows colSpan={6} /> : null}
           </table>
-        </>
-      )}
+      </>
       <Dialog title={c.done} isOpen={outcome !== null} onClose={close}>
         <p>{`${(outcome?.length ?? 0) - failed.length} done, ${failed.length} not done`}</p>
         {failed.length ? (

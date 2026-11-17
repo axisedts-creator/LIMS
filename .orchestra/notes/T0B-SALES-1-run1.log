@@ -1,0 +1,1201 @@
+[core] WARNING: Executable file detection not yet supported on 'win32'.
+Schema updated
+psql:/repo/db/migrations/20261105001300_identity__create_identity_schema.sql:7: NOTICE:  schema "identity" already exists, skipping
+psql:/repo/db/migrations/20261105001500_catalog__create_catalog_schema.sql:10: NOTICE:  schema "catalog" already exists, skipping
+psql:/repo/db/migrations/20261105001600_frontdesk__create_frontdesk_schema.sql:7: NOTICE:  schema "frontdesk" already exists, skipping
+psql:/repo/db/migrations/20261105001700_billing__create_billing_schema.sql:7: NOTICE:  schema "billing" already exists, skipping
+psql:/repo/db/migrations/20261105001800_lab__create_lab_schema.sql:10: NOTICE:  schema "lab" already exists, skipping
+psql:/repo/db/migrations/20261105001900_reporting__create_reporting_schema.sql:145: NOTICE:  identifier "message_template_texts__tenant_id_template_code_channel_language__uq" will be truncated to "message_template_texts__tenant_id_template_code_channel_languag"
+psql:/repo/db/migrations/20261105001900_reporting__create_reporting_schema.sql:177: NOTICE:  identifier "report_template_versions__tenant_id_template_id__published__p_uq" will be truncated to "report_template_versions__tenant_id_template_id__published__p_u"
+psql:/repo/db/migrations/20261105001900_reporting__create_reporting_schema.sql:443: NOTICE:  identifier "deliveries__tenant_id_channel_account_id_provider_message_id__p_uq" will be truncated to "deliveries__tenant_id_channel_account_id_provider_message_id__p"
+psql:/repo/db/migrations/20261105001900_reporting__create_reporting_schema.sql:682: NOTICE:  identifier "narrative_versions__tenant_id_narrative_report_id_version_no__uq" will be truncated to "narrative_versions__tenant_id_narrative_report_id_version_no__u"
+psql:/repo/db/migrations/20261115192000_identity__add_provisioning_schema.sql:47: NOTICE:  identifier "tenant_contract_acceptances__tenant_id_document_accepted_at__idx" will be truncated to "tenant_contract_acceptances__tenant_id_document_accepted_at__id"
+                                                       set_config                                                        
+-------------------------------------------------------------------------------------------------------------------------
+ {"tenant_id":"01a1a98a-ac40-7000-8000-00000000a001","sub":"01a1b34e-1000-7eee-9d29-d7ca59a102b5","actor_type":"system"}
+(1 row)
+
+                                                       set_config                                                        
+-------------------------------------------------------------------------------------------------------------------------
+ {"tenant_id":"01a1a98a-ac40-7000-8000-00000000b001","sub":"01a1b34e-1000-7eee-9d29-d7ca59a102b5","actor_type":"system"}
+(1 row)
+
+ set_config 
+------------
+ 
+(1 row)
+
+
+ RUN  v5.1.0 C:/LIMS-lanes/C0-0I/services/api
+
+{"level":"warn","ts":"2026-11-17T16:34:39.577Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T16:34:39.843Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T16:34:39.843Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' not found"}
+{"level":"warn","ts":"2026-11-17T16:34:39.843Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/csv' not found"}
+{"level":"warn","ts":"2026-11-17T16:34:39.843Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-17T16:34:40.862Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T16:34:40.862Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-17T16:34:40.862Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-17T16:34:40.862Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-17T16:34:42.656Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T16:34:42.657Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' not found"}
+{"level":"warn","ts":"2026-11-17T16:34:42.657Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/xml' not found"}
+{"level":"warn","ts":"2026-11-17T16:34:42.657Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-17T16:34:44.891Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T16:34:44.892Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' not found"}
+{"level":"warn","ts":"2026-11-17T16:34:44.892Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-17T16:34:46.404Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T16:34:46.404Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-17T16:34:46.404Z","service":"api","env":"ci","version":"0.0.0","msg":"Handlers for some security requirements were missing: patientPreAuth, queueDisplayToken"}
+{"level":"warn","ts":"2026-11-17T16:34:47.540Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T16:34:47.540Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-17T16:34:47.540Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-17T16:34:47.540Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-17T16:34:47.540Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-17T16:34:48.489Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T16:34:49.435Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T16:34:49.435Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-17T16:34:49.435Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-17T16:34:49.435Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-17T16:34:49.436Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/csv' not found"}
+{"level":"warn","ts":"2026-11-17T16:34:49.436Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-17T16:34:51.163Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T16:34:51.163Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-17T16:34:51.163Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/octet-stream' not found"}
+{"level":"warn","ts":"2026-11-17T16:34:51.163Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-17T16:34:51.163Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-17T16:34:51.164Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-17T16:34:51.164Z","service":"api","env":"ci","version":"0.0.0","msg":"Handlers for some security requirements were missing: deviceToken"}
+{"level":"warn","ts":"2026-11-17T16:34:52.914Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T16:34:52.914Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/csv' not found"}
+{"level":"warn","ts":"2026-11-17T16:34:54.730Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T16:34:56.117Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T16:34:56.117Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-17T16:34:56.117Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/csv' not found"}
+{"level":"warn","ts":"2026-11-17T16:34:57.071Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T16:34:57.071Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-17T16:34:58.219Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T16:34:58.219Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/html' not found"}
+{"level":"warn","ts":"2026-11-17T16:34:58.219Z","service":"api","env":"ci","version":"0.0.0","msg":"Handlers for some security requirements were missing: paymentCallbackToken"}
+{"level":"warn","ts":"2026-11-17T16:34:58.837Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T16:34:59.826Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T16:34:59.826Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-17T16:34:59.826Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-17T16:34:59.826Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-17T16:34:59.826Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-17T16:34:59.826Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for '*/*' not found"}
+{"level":"warn","ts":"2026-11-17T16:34:59.826Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/plain' not found"}
+{"level":"warn","ts":"2026-11-17T16:34:59.826Z","service":"api","env":"ci","version":"0.0.0","msg":"Handlers for some security requirements were missing: portalSession"}
+{"level":"warn","ts":"2026-11-17T16:35:00.740Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"info","ts":"2026-11-17T16:35:09.551Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ea5c-c05e-7c68-ada6-2e420adc26e6","module":"core","operation_id":"getLiveness","route":"/v1/core/health/live","status":200,"duration_ms":15,"db_count":0,"db_ms":0,"msg":"request"}
+ ❯ src/modules/homecollection/__tests__/sync/guards.test.ts (41 tests | 1 failed) 29972ms
+   ❯ payment.captured (US-07-7, AB5, D-PAY) (7)
+     × requires_reference method: missing reference -> rejected validation_failed; with reference -> applied (tenant B settings) 735ms
+ ❯ src/modules/homecollection/repository/__tests__/repositories.test.ts (182 tests | 1 failed) 14999ms
+   ❯ settings.repo — lazy create (HC-T04 relies on it) + tenant filter (4)
+     × getSettings: in-tenant row; other tenant null with RLS bypassed; tenantId=B under A claims null 113ms
+stderr | src/modules/homecollection/__tests__/handovers/read.test.ts > H13 listHandovers: filters, paging, DTO, permission > every row is a valid HandoverSummaryDto (id, version, status, from{membership_id, display_name}, to_centre_id, handed_over_at, item_count[, received_count]); the page object carries the limit; no null
+unknown format "uuid" ignored in schema at path "#/components/schemas/Uuid"
+unknown format "uuid" ignored in schema at path "#/components/schemas/Uuid"
+unknown format "uuid" ignored in schema at path "#/components/schemas/Uuid"
+unknown format "uuid" ignored in schema at path "#/components/schemas/Uuid"
+unknown format "uuid" ignored in schema at path "#/components/schemas/Uuid"
+unknown format "uuid" ignored in schema at path "#/components/schemas/Uuid"
+unknown format "date-time" ignored in schema at path "#/components/schemas/IsoUtc"
+unknown format "date-time" ignored in schema at path "#/components/schemas/IsoUtc"
+
+ ❯ src/modules/homecollection/__tests__/handovers/read.test.ts (22 tests | 1 failed) 16949ms
+   ❯ H13 listHandovers: filters, paging, DTO, permission (9)
+     × every row is a valid HandoverSummaryDto (id, version, status, from{membership_id, display_name}, to_centre_id, handed_over_at, item_count[, received_count]); the page object carries the limit; no null 194ms
+ ❯ src/modules/homecollection/repository/__tests__/static.test.ts (4 tests | 1 failed) 34ms
+   ❯ homecollection/repository/*.repo.ts (static) (4)
+     × a value is never interpolated into SQL text: template literals handed to query() may interpolate only identifiers/lists, never request-looking names 10ms
+{"level":"warn","ts":"2026-11-17T16:36:33.139Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T16:36:33.766Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T16:36:33.767Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' not found"}
+{"level":"warn","ts":"2026-11-17T16:36:33.767Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/csv' not found"}
+{"level":"warn","ts":"2026-11-17T16:36:33.767Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-17T16:36:35.335Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T16:36:35.335Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-17T16:36:35.335Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-17T16:36:35.335Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-17T16:36:37.351Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T16:36:37.351Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' not found"}
+{"level":"warn","ts":"2026-11-17T16:36:37.351Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/xml' not found"}
+{"level":"warn","ts":"2026-11-17T16:36:37.352Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-17T16:36:39.194Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T16:36:39.194Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' not found"}
+{"level":"warn","ts":"2026-11-17T16:36:39.195Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-17T16:36:41.161Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T16:36:41.162Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-17T16:36:41.162Z","service":"api","env":"ci","version":"0.0.0","msg":"Handlers for some security requirements were missing: patientPreAuth, queueDisplayToken"}
+{"level":"warn","ts":"2026-11-17T16:36:42.535Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T16:36:42.535Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-17T16:36:42.535Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-17T16:36:42.535Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-17T16:36:42.535Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-17T16:36:43.634Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T16:36:44.748Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T16:36:44.748Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-17T16:36:44.748Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-17T16:36:44.748Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-17T16:36:44.748Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/csv' not found"}
+{"level":"warn","ts":"2026-11-17T16:36:44.748Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-17T16:36:45.906Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T16:36:45.906Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-17T16:36:45.906Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/octet-stream' not found"}
+{"level":"warn","ts":"2026-11-17T16:36:45.906Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-17T16:36:45.906Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-17T16:36:45.906Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-17T16:36:45.906Z","service":"api","env":"ci","version":"0.0.0","msg":"Handlers for some security requirements were missing: deviceToken"}
+{"level":"warn","ts":"2026-11-17T16:36:47.075Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T16:36:47.075Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/csv' not found"}
+{"level":"warn","ts":"2026-11-17T16:36:48.669Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T16:36:49.512Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T16:36:49.512Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-17T16:36:49.512Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/csv' not found"}
+{"level":"warn","ts":"2026-11-17T16:36:50.435Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T16:36:50.435Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-17T16:36:51.797Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T16:36:51.797Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/html' not found"}
+{"level":"warn","ts":"2026-11-17T16:36:51.797Z","service":"api","env":"ci","version":"0.0.0","msg":"Handlers for some security requirements were missing: paymentCallbackToken"}
+{"level":"warn","ts":"2026-11-17T16:36:52.524Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T16:36:53.625Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T16:36:53.625Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-17T16:36:53.625Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-17T16:36:53.625Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-17T16:36:53.625Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-17T16:36:53.625Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for '*/*' not found"}
+{"level":"warn","ts":"2026-11-17T16:36:53.625Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/plain' not found"}
+{"level":"warn","ts":"2026-11-17T16:36:53.626Z","service":"api","env":"ci","version":"0.0.0","msg":"Handlers for some security requirements were missing: portalSession"}
+{"level":"warn","ts":"2026-11-17T16:36:54.641Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T16:37:09.301Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T16:37:09.589Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T16:37:09.590Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' not found"}
+{"level":"warn","ts":"2026-11-17T16:37:09.590Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/csv' not found"}
+{"level":"warn","ts":"2026-11-17T16:37:09.590Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-17T16:37:10.802Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T16:37:10.803Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-17T16:37:10.803Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-17T16:37:10.803Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-17T16:37:12.329Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T16:37:12.329Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' not found"}
+{"level":"warn","ts":"2026-11-17T16:37:12.329Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/xml' not found"}
+{"level":"warn","ts":"2026-11-17T16:37:12.329Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-17T16:37:13.774Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T16:37:13.774Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' not found"}
+{"level":"warn","ts":"2026-11-17T16:37:13.774Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-17T16:37:15.419Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T16:37:15.419Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-17T16:37:15.419Z","service":"api","env":"ci","version":"0.0.0","msg":"Handlers for some security requirements were missing: patientPreAuth, queueDisplayToken"}
+{"level":"warn","ts":"2026-11-17T16:37:16.575Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T16:37:16.575Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-17T16:37:16.575Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-17T16:37:16.575Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-17T16:37:16.575Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-17T16:37:17.682Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T16:37:18.929Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T16:37:18.930Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-17T16:37:18.930Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-17T16:37:18.930Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-17T16:37:18.930Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/csv' not found"}
+{"level":"warn","ts":"2026-11-17T16:37:18.930Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-17T16:37:20.354Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T16:37:20.354Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-17T16:37:20.354Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/octet-stream' not found"}
+{"level":"warn","ts":"2026-11-17T16:37:20.354Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-17T16:37:20.354Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-17T16:37:20.354Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-17T16:37:20.354Z","service":"api","env":"ci","version":"0.0.0","msg":"Handlers for some security requirements were missing: deviceToken"}
+{"level":"warn","ts":"2026-11-17T16:37:22.242Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T16:37:22.242Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/csv' not found"}
+{"level":"warn","ts":"2026-11-17T16:37:25.615Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T16:37:27.829Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T16:37:27.829Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-17T16:37:27.829Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/csv' not found"}
+{"level":"warn","ts":"2026-11-17T16:37:29.097Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T16:37:29.097Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-17T16:37:30.257Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T16:37:30.257Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/html' not found"}
+{"level":"warn","ts":"2026-11-17T16:37:30.257Z","service":"api","env":"ci","version":"0.0.0","msg":"Handlers for some security requirements were missing: paymentCallbackToken"}
+{"level":"warn","ts":"2026-11-17T16:37:31.124Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T16:37:32.722Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T16:37:32.722Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-17T16:37:32.723Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-17T16:37:32.723Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-17T16:37:32.723Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-17T16:37:32.723Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for '*/*' not found"}
+{"level":"warn","ts":"2026-11-17T16:37:32.723Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/plain' not found"}
+{"level":"warn","ts":"2026-11-17T16:37:32.723Z","service":"api","env":"ci","version":"0.0.0","msg":"Handlers for some security requirements were missing: portalSession"}
+{"level":"warn","ts":"2026-11-17T16:37:33.596Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"info","ts":"2026-11-17T16:37:44.095Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ea5f-1b2d-7ab6-9c99-386c353b33cf","module":"homecollection","operation_id":"listHomeVisits","route":"/v1/homecollection/visits","status":401,"duration_ms":239,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-17T16:37:44.100Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ea5f-1c22-7402-a960-bf3ee4338ed8","module":"homecollection","operation_id":"getHomeVisit","route":"/v1/homecollection/visits/{visit_id}","status":401,"duration_ms":2,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-17T16:37:44.105Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ea5f-1c26-7072-a8d2-9710170296e9","module":"homecollection","operation_id":"listHandovers","route":"/v1/homecollection/handovers","status":401,"duration_ms":3,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-17T16:37:44.109Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ea5f-1c2a-71fc-865d-6e095aff4787","module":"homecollection","operation_id":"getHandover","route":"/v1/homecollection/handovers/{handover_id}","status":401,"duration_ms":3,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-17T16:37:44.113Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ea5f-1c2f-7016-b1f2-1a7971392ea1","module":"homecollection","operation_id":"listPhleboDevices","route":"/v1/homecollection/devices","status":401,"duration_ms":2,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-17T16:37:44.115Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ea5f-1c32-7def-bbef-4af1f4254e4e","module":"homecollection","operation_id":"getHomecollectionSettings","route":"/v1/homecollection/settings","status":401,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-17T16:37:44.118Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ea5f-1c34-7ed0-8c0d-1da592c9eeba","module":"core","operation_id":"unmatched","status":404,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"common.not_found","msg":"request"}
+{"level":"warn","ts":"2026-11-17T16:38:07.197Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:07.828Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:07.828Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:07.828Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/csv' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:07.828Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:09.527Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:09.528Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:09.528Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:09.528Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:12.045Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:12.045Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:12.045Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/xml' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:12.045Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:14.836Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:14.836Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:14.836Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:16.650Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:16.650Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:16.651Z","service":"api","env":"ci","version":"0.0.0","msg":"Handlers for some security requirements were missing: patientPreAuth, queueDisplayToken"}
+{"level":"warn","ts":"2026-11-17T16:38:18.452Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:18.453Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:18.453Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:18.453Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:18.453Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:20.045Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:21.339Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:21.339Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:21.339Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:21.339Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:21.339Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/csv' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:21.339Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:22.553Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:22.553Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:22.553Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/octet-stream' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:22.553Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:22.553Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:22.553Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:22.553Z","service":"api","env":"ci","version":"0.0.0","msg":"Handlers for some security requirements were missing: deviceToken"}
+{"level":"warn","ts":"2026-11-17T16:38:23.544Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:23.544Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/csv' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:25.312Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:26.318Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:26.318Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:26.318Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/csv' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:27.222Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:27.222Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:28.082Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:28.082Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/html' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:28.082Z","service":"api","env":"ci","version":"0.0.0","msg":"Handlers for some security requirements were missing: paymentCallbackToken"}
+{"level":"warn","ts":"2026-11-17T16:38:28.507Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:29.450Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:29.450Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:29.450Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:29.450Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:29.451Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:29.451Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for '*/*' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:29.451Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/plain' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:29.451Z","service":"api","env":"ci","version":"0.0.0","msg":"Handlers for some security requirements were missing: portalSession"}
+{"level":"warn","ts":"2026-11-17T16:38:30.247Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:39.772Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:40.054Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:40.054Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:40.054Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/csv' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:40.054Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:41.164Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:41.165Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:41.165Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:41.165Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:42.493Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:42.493Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:42.493Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/xml' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:42.493Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:43.596Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:43.596Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:43.596Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:44.618Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:44.618Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:44.618Z","service":"api","env":"ci","version":"0.0.0","msg":"Handlers for some security requirements were missing: patientPreAuth, queueDisplayToken"}
+{"level":"warn","ts":"2026-11-17T16:38:45.386Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:45.386Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:45.386Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:45.386Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:45.386Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:46.187Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:47.234Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:47.234Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:47.234Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:47.234Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:47.234Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/csv' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:47.234Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:49.418Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:49.418Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:49.418Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/octet-stream' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:49.418Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:49.418Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:49.418Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:49.418Z","service":"api","env":"ci","version":"0.0.0","msg":"Handlers for some security requirements were missing: deviceToken"}
+{"level":"warn","ts":"2026-11-17T16:38:51.737Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:51.737Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/csv' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:54.730Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:56.266Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:56.266Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:56.266Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/csv' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:57.408Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:57.409Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:58.689Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:58.690Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/html' not found"}
+{"level":"warn","ts":"2026-11-17T16:38:58.690Z","service":"api","env":"ci","version":"0.0.0","msg":"Handlers for some security requirements were missing: paymentCallbackToken"}
+{"level":"warn","ts":"2026-11-17T16:38:59.910Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T16:39:02.414Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T16:39:02.414Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-17T16:39:02.415Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-17T16:39:02.415Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-17T16:39:02.415Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-17T16:39:02.415Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for '*/*' not found"}
+{"level":"warn","ts":"2026-11-17T16:39:02.415Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/plain' not found"}
+{"level":"warn","ts":"2026-11-17T16:39:02.415Z","service":"api","env":"ci","version":"0.0.0","msg":"Handlers for some security requirements were missing: portalSession"}
+{"level":"warn","ts":"2026-11-17T16:39:03.644Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"info","ts":"2026-11-17T16:39:13.541Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ea60-7928-786b-a635-bd901e6b3b56","module":"partners","operation_id":"getPartnerContext","route":"/v1/partners/me","status":401,"duration_ms":90,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-17T16:39:13.547Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ea60-7988-7ccb-b89a-1d65859fdc31","module":"partners","operation_id":"getPartnerDashboard","route":"/v1/partners/dashboard","status":401,"duration_ms":2,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-17T16:39:13.551Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ea60-798c-707c-8934-1cc3e73ea80c","module":"partners","operation_id":"listManifests","route":"/v1/partners/manifests","status":401,"duration_ms":2,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-17T16:39:13.557Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ea60-7991-7511-a8ec-f52e8535e0c3","module":"partners","operation_id":"getManifest","route":"/v1/partners/manifests/{manifest_id}","status":401,"duration_ms":3,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-17T16:39:13.560Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ea60-7996-7343-af7e-898af1976476","module":"partners","operation_id":"getManifestPrintView","route":"/v1/partners/manifests/{manifest_id}/print-view","status":401,"duration_ms":2,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-17T16:39:13.564Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ea60-7999-71b6-8685-f27dd1453083","module":"partners","operation_id":"listPartnerOrders","route":"/v1/partners/orders","status":401,"duration_ms":2,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-17T16:39:13.569Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ea60-799f-7731-b2c4-cc3fb88a0ecd","module":"partners","operation_id":"getPartnerOrder","route":"/v1/partners/orders/{order_id}","status":401,"duration_ms":2,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-17T16:39:13.579Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ea60-79a2-7fb2-be95-d337523be70b","module":"partners","operation_id":"listPartnerReports","route":"/v1/partners/reports","status":401,"duration_ms":9,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-17T16:39:13.583Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ea60-79ac-70c2-9312-a745faa7adcb","module":"partners","operation_id":"downloadPartnerReport","route":"/v1/partners/reports/{report_id}/versions/{version_no}/file","status":401,"duration_ms":3,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-17T16:39:13.588Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ea60-79b0-738d-9635-1d282797b984","module":"partners","operation_id":"getPatientAccessSlip","route":"/v1/partners/reports/{report_id}/access-slips/{access_slip_id}","status":401,"duration_ms":3,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-17T16:39:13.592Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ea60-79b5-79b0-8312-392a5db39847","module":"partners","operation_id":"downloadPatientAccessSlip","route":"/v1/partners/reports/{report_id}/access-slips/{access_slip_id}/file","status":401,"duration_ms":2,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-17T16:39:13.596Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ea60-79b9-764e-8b3d-73fc11b76f94","module":"partners","operation_id":"listPickupRequests","route":"/v1/partners/pickup-requests","status":401,"duration_ms":2,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-17T16:39:13.602Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ea60-79be-74e0-8851-8a377d2cfa7f","module":"partners","operation_id":"getPickupRequest","route":"/v1/partners/pickup-requests/{pickup_request_id}","status":401,"duration_ms":3,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-17T16:39:13.606Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ea60-79c3-783e-bd32-f55446f5273f","module":"partners","operation_id":"listPartnerPriceList","route":"/v1/partners/price-list","status":401,"duration_ms":2,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-17T16:39:13.610Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ea60-79c7-759d-8397-6400f50752b7","module":"partners","operation_id":"searchPartnerOrderables","route":"/v1/partners/orderables","status":401,"duration_ms":2,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-17T16:39:13.613Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ea60-79ca-706f-8b86-172c953d5b9e","module":"partners","operation_id":"listPartnerStatements","route":"/v1/partners/statements","status":401,"duration_ms":2,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-17T16:39:13.619Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ea60-79cf-7c17-8b18-0e985f251cc6","module":"partners","operation_id":"getPartnerStatement","route":"/v1/partners/statements/{period_month}","status":401,"duration_ms":2,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-17T16:39:13.622Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ea60-79d4-74ef-a7e0-f7afadf30efa","module":"partners","operation_id":"listPartnerReferrers","route":"/v1/partners/referrers","status":401,"duration_ms":2,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-17T16:39:13.624Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ea60-79d6-7403-99bf-2cdc394b23b0","module":"partners","operation_id":"listPartnerUsers","route":"/v1/partners/users","status":401,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-17T16:39:13.627Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ea60-79d9-70d9-8a8d-b165bd082538","module":"partners","operation_id":"listPartners","route":"/v1/partners/admin/partners","status":401,"duration_ms":2,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-17T16:39:13.629Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ea60-79dc-7e60-9701-53c90e289f1e","module":"partners","operation_id":"getPartner","route":"/v1/partners/admin/partners/{partner_id}","status":401,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-17T16:39:13.633Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ea60-79df-7659-aef3-7c9cacdf04b2","module":"partners","operation_id":"listPartnerUsersForPartner","route":"/v1/partners/admin/partners/{partner_id}/users","status":401,"duration_ms":2,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-17T16:39:13.638Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ea60-79e1-7d2a-8a18-6c684b814430","module":"partners","operation_id":"listInboundManifests","route":"/v1/partners/admin/manifests","status":401,"duration_ms":4,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-17T16:39:13.640Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ea60-79e6-7a54-b8aa-3cf25f74a96f","module":"partners","operation_id":"getInboundManifest","route":"/v1/partners/admin/manifests/{manifest_id}","status":401,"duration_ms":2,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-17T16:39:13.647Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ea60-79e9-798f-8198-f05fb4dec444","module":"partners","operation_id":"listInboundPickups","route":"/v1/partners/admin/pickup-requests","status":401,"duration_ms":5,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-17T16:39:13.650Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ea60-79f0-7da8-8f5e-924f32cc7f0e","module":"partners","operation_id":"listReferrerMappings","route":"/v1/partners/admin/referrers","status":401,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-17T16:39:13.652Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ea60-79f2-7b0a-9f1c-3070d74f2122","module":"partners","operation_id":"getPartnerSettings","route":"/v1/partners/admin/settings","status":401,"duration_ms":2,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-17T16:39:13.656Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ea60-79f5-758b-8b56-1603ba07650a","module":"partners","operation_id":"listPartnerTickets","route":"/v1/partners/admin/tickets","status":401,"duration_ms":2,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-17T16:39:13.659Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ea60-79f9-7529-b43d-7eed921dbba6","module":"partners","operation_id":"getPartnerTicket","route":"/v1/partners/admin/tickets/{ticket_id}","status":401,"duration_ms":2,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-17T16:39:13.661Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ea60-79fc-75cf-b46e-5558157902c5","module":"partners","operation_id":"listMyPartnerTickets","route":"/v1/partners/me/tickets","status":401,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-17T16:39:13.664Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ea60-79fe-75e6-9771-375b004c41e5","module":"partners","operation_id":"getMyPartnerTicket","route":"/v1/partners/me/tickets/{ticket_id}","status":401,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-17T16:39:13.666Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ea60-7a01-735c-adfe-7149f27bbad2","module":"core","operation_id":"unmatched","status":404,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"common.not_found","msg":"request"}
+(node:39360) DeprecationWarning: Calling client.query() when the client is already executing a query is deprecated and will be removed in pg@9.0. Use async/await or an external async flow control mechanism instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+(node:9608) DeprecationWarning: Calling client.query() when the client is already executing a query is deprecated and will be removed in pg@9.0. Use async/await or an external async flow control mechanism instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+(node:52424) DeprecationWarning: Calling client.query() when the client is already executing a query is deprecated and will be removed in pg@9.0. Use async/await or an external async flow control mechanism instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ ❯ src/modules/homecollection/__tests__/dispatch/assign.test.ts (69 tests | 10 failed) 30188ms
+   ❯ US-03-3 assign a scheduled booking visit: ONE transaction = order via FrontdeskPort + order_id + status + assignment row + route + version bump (4)
+     × calls createOrderFromBooking once with the exact BookingOrderInput and stores what C4 returned 119ms
+     × creates the route (centre, phlebotomist, date) when it does not exist yet 90ms
+     × a front-desk visit already has its order: the port is NOT called, order_id stays, the rest is identical 151ms
+   ❯ US-03-1 incomplete visit: no address or no window -> 422 homecollection.visit_incomplete, nothing written, no order created (4)
+     × no window 172ms
+     × neither 211ms
+   ❯ US-03-4 a port error fails the assign with that error and NOTHING is written (6)
+     × catalog.no_price 120ms
+     × frontdesk.consent_required 133ms
+     × frontdesk.booking_already_converted 162ms
+     × frontdesk.patient_duplicate_suspected 196ms
+   ❯ US-03-7 reassign: new assignment row, BOTH routes bump, order unchanged, no second port call (3)
+     × another phlebotomist, same date 3959ms
+(node:51800) DeprecationWarning: Calling client.query() when the client is already executing a query is deprecated and will be removed in pg@9.0. Use async/await or an external async flow control mechanism instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ ❯ src/modules/homecollection/__tests__/dispatch/schedule.test.ts (76 tests | 24 failed) 4651ms
+   ❯ US-03-2 schedule (H5): window + address stored, version +1, open address_missing flag resolves by itself (4)
+     × an assigned visit can be rescheduled; its order and assignment are untouched 56ms
+   ❯ route version rule (TRD §4.1, review #10): every committed change to a visit on a route bumps that route version once, in the same transaction (11)
+     × H5 on an ASSIGNED visit: window only -> route version +1 (exactly one bump per call), visit version +1 28ms
+     × H5 on an ASSIGNED visit: address text -> route version +1 (exactly one bump per call), visit version +1 37ms
+     × H5 on an ASSIGNED visit: landmark -> route version +1 (exactly one bump per call), visit version +1 37ms
+     × H5 on an ASSIGNED visit: coordinates -> route version +1 (exactly one bump per call), visit version +1 34ms
+     × H5 on an ASSIGNED visit: unset note -> route version +1 (exactly one bump per call), visit version +1 37ms
+     × H5 on an ASSIGNED visit: unset coordinates -> route version +1 (exactly one bump per call), visit version +1 32ms
+     × H4 unassign bumps the route the visit leaves (+1) 38ms
+     × H6 cancel of an assigned visit bumps its route (+1): the phone must see the cancelled stub 55ms
+     × a refused write bumps nothing (closed visit, stale version, validation) 47ms
+   ❯ H4 unassignHomeVisit (9)
+     × assigned -> unassigned: order_id kept, status_reason_code stored, assignment row action unassign with the reason, transition row, DTO valid 33ms
+     × in_progress -> 409 homecollection.mutation_superseded (the phone is at the door) 45ms
+     × ASSUMED: an assigned visit with an APPLIED mutation cannot be unassigned either (TRD sweep_missed_visits: "H4 unassign is still blocked once an applied mutation exists") 48ms
+     × 400 common.validation_failed: reason_code missing 63ms
+     × 400 common.validation_failed: reason_code from another coded set (visit_cancel_reasons) 52ms
+     × 400 common.validation_failed: 'other' without reason_text (requires_text) 72ms
+     × 400 common.validation_failed: reason_text 501 chars 45ms
+     × 400 common.validation_failed: unknown field 43ms
+   ❯ H6 cancelHomeVisit (9)
+     × assigned visit -> cancelled, keeps route_id / route_date / route_sequence (the phone gets a stub, TRD §6.2 step 5) and its order (C17 cannot cancel C4 orders) 49ms
+     × in_progress -> 409 homecollection.mutation_superseded (cancel -> flag instead) 43ms
+   ❯ US-15 (manual trigger): a `missed` visit that stays assigned is resolved by the dispatcher (2)
+     × missed flag open on an assigned visit: H4 unassign returns it to unassigned (order kept), H8 resolves the flag 37ms
+     × missed flag open, the phone holds the visit: the dispatcher can still reassign it to a new date (stays assigned, order unchanged) 34ms
+   ❯ security (07-SECURITY §4/§5): permission homecollection.visit.assign, tenant from claims, If-Match, no writes on refusal (9)
+     × H4 unassign: 403 auth.forbidden for a phlebotomist / no grants; 404 common.not_found across tenants (RLS on and off); version unchanged 56ms
+     × H4 unassign: If-Match missing -> 428 common.precondition_required; stale -> 409 common.version_conflict 49ms
+(node:19772) DeprecationWarning: Calling client.query() when the client is already executing a query is deprecated and will be removed in pg@9.0. Use async/await or an external async flow control mechanism instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+(node:39492) DeprecationWarning: Calling client.query() when the client is already executing a query is deprecated and will be removed in pg@9.0. Use async/await or an external async flow control mechanism instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ ❯ src/modules/homecollection/__tests__/observability/logscan.live.test.ts (10 tests | 9 failed) 1648ms
+   ❯ HC-T17 live: metrics emitted by the push pipeline (TRD §14) (6)
+     × a full visit flow counts every mutation once in lims_homecollection_mutations_total{type,outcome} with exactly those two labels 269ms
+     × the same mutations in a NEW batch are counted with outcome "duplicate", one per mutation 138ms
+     × one push observes lims_homecollection_push_duration_seconds exactly once, with no labels and a non-negative finite value 145ms
+     × clock skew is observed per mutation under {clock_source} ∈ anchor|offset|device (anchor path here: the world sends its anchor) 382ms
+     × published events are counted in lims_homecollection_events_published_total (no labels): one inc per event the push published 122ms
+   ❯ HC-T17 live: PHI log scan - planted name, phone, address, barcode, GPS, payment reference (TRD §14 "Never", 07-SECURITY §5.10) (4)
+     × full flow with planted GPS on arrived/collected and a planted payment reference leaves none of them in raw log calls or /metrics 114ms
+     × scanning a planted foreign barcode (barcode_mismatch / held path) does not put that barcode, nor the visit specimens' barcodes, in logs or metrics 131ms
+     × a lab outage whose error text carries a planted name, phone and address is logged by code only (the message is never logged), and still surfaces as common.dependency_unavailable 131ms
+     × every raw log call of the journeys carries only id/code/count-like fields: no name, phone, address, landmark, note, barcode, GPS, payment reference, consent text, token or message key 155ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 47 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/modules/homecollection/repository/__tests__/repositories.test.ts > settings.repo — lazy create (HC-T04 relies on it) + tenant filter > getSettings: in-tenant row; other tenant null with RLS bypassed; tenantId=B under A claims null
+AssertionError: expected '01a1ea5d-132d-77cc-a55b-cb7b8d77601e' to be '01a1ea5d-43aa-7f4c-93ea-f1e45c1ab27d' // Object.is equality
+
+Expected: "01a1ea5d-43aa-7f4c-93ea-f1e45c1ab27d"
+Received: "01a1ea5d-132d-77cc-a55b-cb7b8d77601e"
+
+ ❯ src/modules/homecollection/repository/__tests__/repositories.test.ts:201:70
+    199|     const m = await load('settings');
+    200|     expect((await appTx(TENANT_A, (tx) => m.getSettings(tx, TENANT_A))…
+    201|     expect((await superTx((tx) => m.getSettings(tx, TENANT_B)))?.id).t…
+       |                                                                      ^
+    202|     expect(await appTx(TENANT_A, (tx) => m.getSettings(tx, TENANT_B)))…
+    203|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/47]⎯
+
+ FAIL  src/modules/homecollection/repository/__tests__/static.test.ts > homecollection/repository/*.repo.ts (static) > a value is never interpolated into SQL text: template literals handed to query() may interpolate only identifiers/lists, never request-looking names
+AssertionError: handovers.repo.ts: ${values.length} in SQL text: expected 'values.length' not to match /\b(tenantId|tenant_id|id|row|body|inp…/
+
+- Expected:
+/\b(tenantId|tenant_id|id|row|body|input|req|query|value|values|status|code|patch\[)\b(?!\s*\.\s*join)/
+
++ Received:
+"values.length"
+
+ ❯ src/modules/homecollection/repository/__tests__/static.test.ts:41:61
+     39|       for (const m of src.matchAll(/`[^`]*\b(SELECT|INSERT|UPDATE|DELE…
+     40|         for (const x of m[0].matchAll(/\$\{([^}]*)\}/g))
+     41|           expect(x[1], `${f}: \${${x[1]}} in SQL text`).not.toMatch(/\…
+       |                                                             ^
+     42|     }
+     43|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/47]⎯
+
+ FAIL  src/modules/homecollection/__tests__/dispatch/assign.test.ts > US-03-3 assign a scheduled booking visit: ONE transaction = order via FrontdeskPort + order_id + status + assignment row + route + version bump > calls createOrderFromBooking once with the exact BookingOrderInput and stores what C4 returned
+TypeError: Cannot read properties of undefined (reading 'version')
+ ❯ src/modules/homecollection/__tests__/dispatch/assign.test.ts:29:47
+     27|   it('calls createOrderFromBooking once with the exact BookingOrderInp…
+     28|     const date = D(); const route = await routeFor(MEMBER.a, date); co…
+     29|     const before = (await routeRow(route.id)).version;
+       |                                               ^
+     30|     const r = await assign({ visitId: v.id, version: v.version, body: …
+     31|     expect(r.status).toBe(200);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/47]⎯
+
+ FAIL  src/modules/homecollection/__tests__/dispatch/assign.test.ts > US-03-3 assign a scheduled booking visit: ONE transaction = order via FrontdeskPort + order_id + status + assignment row + route + version bump > creates the route (centre, phlebotomist, date) when it does not exist yet
+AssertionError: expected [ { …(4) } ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   {
++     "centre_id": "01a1a98a-ac40-7000-8000-00000000a203",
++     "id": "01a1ea60-fbf3-7cc6-9c43-1096b19c54a3",
++     "route_date": "2027-04-02",
++     "version": 1,
++   },
++ ]
+
+ ❯ src/modules/homecollection/__tests__/dispatch/assign.test.ts:53:44
+     51|   it('creates the route (centre, phlebotomist, date) when it does not …
+     52|     const date = D(); const { v, fx } = await ready(date);
+     53|     expect(await routesOf(MEMBER.a, date)).toEqual([]);
+       |                                            ^
+     54|     const r = await assign({ visitId: v.id, version: v.version, body: …
+     55|     expect(r.status).toBe(200);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/47]⎯
+
+ FAIL  src/modules/homecollection/__tests__/dispatch/assign.test.ts > US-03-3 assign a scheduled booking visit: ONE transaction = order via FrontdeskPort + order_id + status + assignment row + route + version bump > a front-desk visit already has its order: the port is NOT called, order_id stays, the rest is identical
+AssertionError: expected { …(26) } to match object { status: 'assigned', …(2) }
+(32 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+    "order_id": "01a1ea62-2ec3-77eb-a27c-2044fe3810c1",
+-   "route_id": "01a1ea62-2eae-7bee-b68f-e5eccdd31ce2",
++   "route_id": "01a1ea61-0112-7db5-8a7d-3234c03fc104",
+    "status": "assigned",
+  }
+
+ ❯ src/modules/homecollection/__tests__/dispatch/assign.test.ts:78:20
+     76|     expect(r.status).toBe(200);
+     77|     expect(r.probe.createOrder).toHaveLength(0);
+     78|     expect(r.body).toMatchObject({ status: 'assigned', order_id: v.ord…
+       |                    ^
+     79|     expect((await visitRow(v.id)).order_id).toBe(v.order_id);
+     80|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/47]⎯
+
+ FAIL  src/modules/homecollection/__tests__/dispatch/assign.test.ts > US-03-1 incomplete visit: no address or no window -> 422 homecollection.visit_incomplete, nothing written, no order created > no window
+AssertionError: expected [ { …(4) } ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   {
++     "centre_id": "01a1a98a-ac40-7000-8000-00000000a203",
++     "id": "01a1ea61-0122-7e4c-9d42-eab04aa90a09",
++     "route_date": "2027-04-05",
++     "version": 1,
++   },
++ ]
+
+ ❯ src/modules/homecollection/__tests__/dispatch/assign.test.ts:95:44
+     93|     expect(e.probe.createOrder).toHaveLength(0);
+     94|     await unchanged(v);
+     95|     expect(await routesOf(MEMBER.a, date)).toEqual([]);
+       |                                            ^
+     96|   });
+     97|   it('a front-desk visit without a window is incomplete too (the board…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/47]⎯
+
+ FAIL  src/modules/homecollection/__tests__/dispatch/assign.test.ts > US-03-1 incomplete visit: no address or no window -> 422 homecollection.visit_incomplete, nothing written, no order created > neither
+AssertionError: expected [ { …(4) } ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   {
++     "centre_id": "01a1a98a-ac40-7000-8000-00000000a203",
++     "id": "01a1ea61-0477-7d2a-b055-978d5342cad5",
++     "route_date": "2027-04-07",
++     "version": 2,
++   },
++ ]
+
+ ❯ src/modules/homecollection/__tests__/dispatch/assign.test.ts:95:44
+     93|     expect(e.probe.createOrder).toHaveLength(0);
+     94|     await unchanged(v);
+     95|     expect(await routesOf(MEMBER.a, date)).toEqual([]);
+       |                                            ^
+     96|   });
+     97|   it('a front-desk visit without a window is incomplete too (the board…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/47]⎯
+
+ FAIL  src/modules/homecollection/__tests__/dispatch/assign.test.ts > US-03-4 a port error fails the assign with that error and NOTHING is written > catalog.no_price
+AssertionError: a route created for a failed assign must roll back too: expected [ { …(4) } ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   {
++     "centre_id": "01a1a98a-ac40-7000-8000-00000000a203",
++     "id": "01a1ea61-07f9-7a21-9b7d-f145fd3349d6",
++     "route_date": "2027-04-10",
++     "version": 1,
++   },
++ ]
+
+ ❯ src/modules/homecollection/__tests__/dispatch/assign.test.ts:111:102
+    109|     expect(e.probe.createOrder).toHaveLength(1);
+    110|     await unchanged(v);
+    111|     expect(await routesOf(MEMBER.a, date), 'a route created for a fail…
+       |                                                                                                      ^
+    112|     expect((await transitionsOf(v.id)).some((t) => t.to_status === 'as…
+    113|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/47]⎯
+
+ FAIL  src/modules/homecollection/__tests__/dispatch/assign.test.ts > US-03-4 a port error fails the assign with that error and NOTHING is written > frontdesk.consent_required
+AssertionError: a route created for a failed assign must roll back too: expected [ { …(4) } ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   {
++     "centre_id": "01a1a98a-ac40-7000-8000-00000000a203",
++     "id": "01a1ea61-080e-7c50-8eaf-7833bd06c0ea",
++     "route_date": "2027-04-11",
++     "version": 1,
++   },
++ ]
+
+ ❯ src/modules/homecollection/__tests__/dispatch/assign.test.ts:111:102
+    109|     expect(e.probe.createOrder).toHaveLength(1);
+    110|     await unchanged(v);
+    111|     expect(await routesOf(MEMBER.a, date), 'a route created for a fail…
+       |                                                                                                      ^
+    112|     expect((await transitionsOf(v.id)).some((t) => t.to_status === 'as…
+    113|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/47]⎯
+
+ FAIL  src/modules/homecollection/__tests__/dispatch/assign.test.ts > US-03-4 a port error fails the assign with that error and NOTHING is written > frontdesk.booking_already_converted
+AssertionError: a route created for a failed assign must roll back too: expected [ { …(4) } ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   {
++     "centre_id": "01a1a98a-ac40-7000-8000-00000000a203",
++     "id": "01a1ea61-0d22-7acd-9c8e-eb88f8daf1db",
++     "route_date": "2027-04-13",
++     "version": 1,
++   },
++ ]
+
+ ❯ src/modules/homecollection/__tests__/dispatch/assign.test.ts:111:102
+    109|     expect(e.probe.createOrder).toHaveLength(1);
+    110|     await unchanged(v);
+    111|     expect(await routesOf(MEMBER.a, date), 'a route created for a fail…
+       |                                                                                                      ^
+    112|     expect((await transitionsOf(v.id)).some((t) => t.to_status === 'as…
+    113|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/47]⎯
+
+ FAIL  src/modules/homecollection/__tests__/dispatch/assign.test.ts > US-03-4 a port error fails the assign with that error and NOTHING is written > frontdesk.patient_duplicate_suspected
+AssertionError: a route created for a failed assign must roll back too: expected [ { …(4) } ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   {
++     "centre_id": "01a1a98a-ac40-7000-8000-00000000a203",
++     "id": "01a1ea61-0d47-727f-804e-0032d4d4dfea",
++     "route_date": "2027-04-14",
++     "version": 1,
++   },
++ ]
+
+ ❯ src/modules/homecollection/__tests__/dispatch/assign.test.ts:111:102
+    109|     expect(e.probe.createOrder).toHaveLength(1);
+    110|     await unchanged(v);
+    111|     expect(await routesOf(MEMBER.a, date), 'a route created for a fail…
+       |                                                                                                      ^
+    112|     expect((await transitionsOf(v.id)).some((t) => t.to_status === 'as…
+    113|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/47]⎯
+
+ FAIL  src/modules/homecollection/__tests__/dispatch/assign.test.ts > US-03-7 reassign: new assignment row, BOTH routes bump, order unchanged, no second port call > another phlebotomist, same date
+error: insert or update on table "visits" violates foreign key constraint "visits__route__fk"
+ ❯ ../../node_modules/.pnpm/pg@8.23.1/node_modules/pg/lib/client.js:694:17
+ ❯ src/modules/frontdesk/__tests__/integration/helpers.ts:89:5
+     87|     const use = cols.filter((c) => has.includes(c));
+     88|     const list = use.map((c) => `"${c}"`).join(',');
+     89|     await tx.query(`INSERT INTO ${table} (${list}) SELECT ${list} FROM…
+       |     ^
+     90|       [JSON.stringify(Object.fromEntries(use.map((c) => [c, r[c]])))]);
+     91|   }, String(r.tenant_id ?? TENANT_A));
+ ❯ superTx src/modules/frontdesk/__tests__/integration/helpers.ts:74:17
+ ❯ seed src/modules/frontdesk/__tests__/integration/helpers.ts:83:3
+ ❯ assignedVisit src/modules/homecollection/__tests__/dispatch/helpers.ts:256:3
+ ❯ src/modules/homecollection/__tests__/dispatch/assign.test.ts:194:48
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/47]⎯
+
+ FAIL  src/modules/homecollection/__tests__/dispatch/schedule.test.ts > US-03-2 schedule (H5): window + address stored, version +1, open address_missing flag resolves by itself > an assigned visit can be rescheduled; its order and assignment are untouched
+error: insert or update on table "visits" violates foreign key constraint "visits__route__fk"
+ ❯ ../../node_modules/.pnpm/pg@8.23.1/node_modules/pg/lib/client.js:694:17
+ ❯ src/modules/frontdesk/__tests__/integration/helpers.ts:89:5
+     87|     const use = cols.filter((c) => has.includes(c));
+     88|     const list = use.map((c) => `"${c}"`).join(',');
+     89|     await tx.query(`INSERT INTO ${table} (${list}) SELECT ${list} FROM…
+       |     ^
+     90|       [JSON.stringify(Object.fromEntries(use.map((c) => [c, r[c]])))]);
+     91|   }, String(r.tenant_id ?? TENANT_A));
+ ❯ superTx src/modules/frontdesk/__tests__/integration/helpers.ts:74:17
+ ❯ seed src/modules/frontdesk/__tests__/integration/helpers.ts:83:3
+ ❯ assignedVisit src/modules/homecollection/__tests__/dispatch/helpers.ts:256:3
+ ❯ src/modules/homecollection/__tests__/dispatch/schedule.test.ts:51:41
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/47]⎯
+
+ FAIL  src/modules/homecollection/__tests__/dispatch/schedule.test.ts > route version rule (TRD §4.1, review #10): every committed change to a visit on a route bumps that route version once, in the same transaction > H5 on an ASSIGNED visit: window only -> route version +1 (exactly one bump per call), visit version +1
+ FAIL  src/modules/homecollection/__tests__/dispatch/schedule.test.ts > route version rule (TRD §4.1, review #10): every committed change to a visit on a route bumps that route version once, in the same transaction > H5 on an ASSIGNED visit: address text -> route version +1 (exactly one bump per call), visit version +1
+ FAIL  src/modules/homecollection/__tests__/dispatch/schedule.test.ts > route version rule (TRD §4.1, review #10): every committed change to a visit on a route bumps that route version once, in the same transaction > H5 on an ASSIGNED visit: landmark -> route version +1 (exactly one bump per call), visit version +1
+ FAIL  src/modules/homecollection/__tests__/dispatch/schedule.test.ts > route version rule (TRD §4.1, review #10): every committed change to a visit on a route bumps that route version once, in the same transaction > H5 on an ASSIGNED visit: coordinates -> route version +1 (exactly one bump per call), visit version +1
+ FAIL  src/modules/homecollection/__tests__/dispatch/schedule.test.ts > route version rule (TRD §4.1, review #10): every committed change to a visit on a route bumps that route version once, in the same transaction > H5 on an ASSIGNED visit: unset note -> route version +1 (exactly one bump per call), visit version +1
+ FAIL  src/modules/homecollection/__tests__/dispatch/schedule.test.ts > route version rule (TRD §4.1, review #10): every committed change to a visit on a route bumps that route version once, in the same transaction > H5 on an ASSIGNED visit: unset coordinates -> route version +1 (exactly one bump per call), visit version +1
+error: insert or update on table "visits" violates foreign key constraint "visits__route__fk"
+ ❯ ../../node_modules/.pnpm/pg@8.23.1/node_modules/pg/lib/client.js:694:17
+ ❯ src/modules/frontdesk/__tests__/integration/helpers.ts:89:5
+     87|     const use = cols.filter((c) => has.includes(c));
+     88|     const list = use.map((c) => `"${c}"`).join(',');
+     89|     await tx.query(`INSERT INTO ${table} (${list}) SELECT ${list} FROM…
+       |     ^
+     90|       [JSON.stringify(Object.fromEntries(use.map((c) => [c, r[c]])))]);
+     91|   }, String(r.tenant_id ?? TENANT_A));
+ ❯ superTx src/modules/frontdesk/__tests__/integration/helpers.ts:74:17
+ ❯ seed src/modules/frontdesk/__tests__/integration/helpers.ts:83:3
+ ❯ assignedVisit src/modules/homecollection/__tests__/dispatch/helpers.ts:256:3
+ ❯ src/modules/homecollection/__tests__/dispatch/schedule.test.ts:116:48
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/47]⎯
+
+ FAIL  src/modules/homecollection/__tests__/dispatch/schedule.test.ts > route version rule (TRD §4.1, review #10): every committed change to a visit on a route bumps that route version once, in the same transaction > H4 unassign bumps the route the visit leaves (+1)
+error: insert or update on table "visits" violates foreign key constraint "visits__route__fk"
+ ❯ ../../node_modules/.pnpm/pg@8.23.1/node_modules/pg/lib/client.js:694:17
+ ❯ src/modules/frontdesk/__tests__/integration/helpers.ts:89:5
+     87|     const use = cols.filter((c) => has.includes(c));
+     88|     const list = use.map((c) => `"${c}"`).join(',');
+     89|     await tx.query(`INSERT INTO ${table} (${list}) SELECT ${list} FROM…
+       |     ^
+     90|       [JSON.stringify(Object.fromEntries(use.map((c) => [c, r[c]])))]);
+     91|   }, String(r.tenant_id ?? TENANT_A));
+ ❯ superTx src/modules/frontdesk/__tests__/integration/helpers.ts:74:17
+ ❯ seed src/modules/frontdesk/__tests__/integration/helpers.ts:83:3
+ ❯ assignedVisit src/modules/homecollection/__tests__/dispatch/helpers.ts:256:3
+ ❯ src/modules/homecollection/__tests__/dispatch/schedule.test.ts:130:48
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/47]⎯
+
+ FAIL  src/modules/homecollection/__tests__/dispatch/schedule.test.ts > route version rule (TRD §4.1, review #10): every committed change to a visit on a route bumps that route version once, in the same transaction > H6 cancel of an assigned visit bumps its route (+1): the phone must see the cancelled stub
+error: insert or update on table "visits" violates foreign key constraint "visits__route__fk"
+ ❯ ../../node_modules/.pnpm/pg@8.23.1/node_modules/pg/lib/client.js:694:17
+ ❯ src/modules/frontdesk/__tests__/integration/helpers.ts:89:5
+     87|     const use = cols.filter((c) => has.includes(c));
+     88|     const list = use.map((c) => `"${c}"`).join(',');
+     89|     await tx.query(`INSERT INTO ${table} (${list}) SELECT ${list} FROM…
+       |     ^
+     90|       [JSON.stringify(Object.fromEntries(use.map((c) => [c, r[c]])))]);
+     91|   }, String(r.tenant_id ?? TENANT_A));
+ ❯ superTx src/modules/frontdesk/__tests__/integration/helpers.ts:74:17
+ ❯ seed src/modules/frontdesk/__tests__/integration/helpers.ts:83:3
+ ❯ assignedVisit src/modules/homecollection/__tests__/dispatch/helpers.ts:256:3
+ ❯ src/modules/homecollection/__tests__/dispatch/schedule.test.ts:135:48
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[16/47]⎯
+
+ FAIL  src/modules/homecollection/__tests__/dispatch/schedule.test.ts > route version rule (TRD §4.1, review #10): every committed change to a visit on a route bumps that route version once, in the same transaction > a refused write bumps nothing (closed visit, stale version, validation)
+error: insert or update on table "visits" violates foreign key constraint "visits__route__fk"
+ ❯ ../../node_modules/.pnpm/pg@8.23.1/node_modules/pg/lib/client.js:694:17
+ ❯ src/modules/frontdesk/__tests__/integration/helpers.ts:89:5
+     87|     const use = cols.filter((c) => has.includes(c));
+     88|     const list = use.map((c) => `"${c}"`).join(',');
+     89|     await tx.query(`INSERT INTO ${table} (${list}) SELECT ${list} FROM…
+       |     ^
+     90|       [JSON.stringify(Object.fromEntries(use.map((c) => [c, r[c]])))]);
+     91|   }, String(r.tenant_id ?? TENANT_A));
+ ❯ superTx src/modules/frontdesk/__tests__/integration/helpers.ts:74:17
+ ❯ seed src/modules/frontdesk/__tests__/integration/helpers.ts:83:3
+ ❯ assignedVisit src/modules/homecollection/__tests__/dispatch/helpers.ts:256:3
+ ❯ src/modules/homecollection/__tests__/dispatch/schedule.test.ts:140:48
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[17/47]⎯
+
+ FAIL  src/modules/homecollection/__tests__/dispatch/schedule.test.ts > H4 unassignHomeVisit > assigned -> unassigned: order_id kept, status_reason_code stored, assignment row action unassign with the reason, transition row, DTO valid
+error: insert or update on table "visits" violates foreign key constraint "visits__route__fk"
+ ❯ ../../node_modules/.pnpm/pg@8.23.1/node_modules/pg/lib/client.js:694:17
+ ❯ src/modules/frontdesk/__tests__/integration/helpers.ts:89:5
+     87|     const use = cols.filter((c) => has.includes(c));
+     88|     const list = use.map((c) => `"${c}"`).join(',');
+     89|     await tx.query(`INSERT INTO ${table} (${list}) SELECT ${list} FROM…
+       |     ^
+     90|       [JSON.stringify(Object.fromEntries(use.map((c) => [c, r[c]])))]);
+     91|   }, String(r.tenant_id ?? TENANT_A));
+ ❯ superTx src/modules/frontdesk/__tests__/integration/helpers.ts:74:17
+ ❯ seed src/modules/frontdesk/__tests__/integration/helpers.ts:83:3
+ ❯ assignedVisit src/modules/homecollection/__tests__/dispatch/helpers.ts:256:3
+ ❯ src/modules/homecollection/__tests__/dispatch/schedule.test.ts:152:41
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[18/47]⎯
+
+ FAIL  src/modules/homecollection/__tests__/dispatch/schedule.test.ts > H4 unassignHomeVisit > in_progress -> 409 homecollection.mutation_superseded (the phone is at the door)
+error: insert or update on table "visits" violates foreign key constraint "visits__route__fk"
+ ❯ ../../node_modules/.pnpm/pg@8.23.1/node_modules/pg/lib/client.js:694:17
+ ❯ src/modules/frontdesk/__tests__/integration/helpers.ts:89:5
+     87|     const use = cols.filter((c) => has.includes(c));
+     88|     const list = use.map((c) => `"${c}"`).join(',');
+     89|     await tx.query(`INSERT INTO ${table} (${list}) SELECT ${list} FROM…
+       |     ^
+     90|       [JSON.stringify(Object.fromEntries(use.map((c) => [c, r[c]])))]);
+     91|   }, String(r.tenant_id ?? TENANT_A));
+ ❯ superTx src/modules/frontdesk/__tests__/integration/helpers.ts:74:17
+ ❯ seed src/modules/frontdesk/__tests__/integration/helpers.ts:83:3
+ ❯ assignedVisit src/modules/homecollection/__tests__/dispatch/helpers.ts:256:3
+ ❯ src/modules/homecollection/__tests__/dispatch/schedule.test.ts:164:23
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[19/47]⎯
+
+ FAIL  src/modules/homecollection/__tests__/dispatch/schedule.test.ts > H4 unassignHomeVisit > ASSUMED: an assigned visit with an APPLIED mutation cannot be unassigned either (TRD sweep_missed_visits: "H4 unassign is still blocked once an applied mutation exists")
+error: insert or update on table "visits" violates foreign key constraint "visits__route__fk"
+ ❯ ../../node_modules/.pnpm/pg@8.23.1/node_modules/pg/lib/client.js:694:17
+ ❯ src/modules/frontdesk/__tests__/integration/helpers.ts:89:5
+     87|     const use = cols.filter((c) => has.includes(c));
+     88|     const list = use.map((c) => `"${c}"`).join(',');
+     89|     await tx.query(`INSERT INTO ${table} (${list}) SELECT ${list} FROM…
+       |     ^
+     90|       [JSON.stringify(Object.fromEntries(use.map((c) => [c, r[c]])))]);
+     91|   }, String(r.tenant_id ?? TENANT_A));
+ ❯ superTx src/modules/frontdesk/__tests__/integration/helpers.ts:74:17
+ ❯ seed src/modules/frontdesk/__tests__/integration/helpers.ts:83:3
+ ❯ assignedVisit src/modules/homecollection/__tests__/dispatch/helpers.ts:256:3
+ ❯ src/modules/homecollection/__tests__/dispatch/schedule.test.ts:171:23
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[20/47]⎯
+
+ FAIL  src/modules/homecollection/__tests__/dispatch/schedule.test.ts > H4 unassignHomeVisit > 400 common.validation_failed: reason_code missing
+ FAIL  src/modules/homecollection/__tests__/dispatch/schedule.test.ts > H4 unassignHomeVisit > 400 common.validation_failed: reason_code from another coded set (visit_cancel_reasons)
+ FAIL  src/modules/homecollection/__tests__/dispatch/schedule.test.ts > H4 unassignHomeVisit > 400 common.validation_failed: 'other' without reason_text (requires_text)
+ FAIL  src/modules/homecollection/__tests__/dispatch/schedule.test.ts > H4 unassignHomeVisit > 400 common.validation_failed: reason_text 501 chars
+ FAIL  src/modules/homecollection/__tests__/dispatch/schedule.test.ts > H4 unassignHomeVisit > 400 common.validation_failed: unknown field
+error: insert or update on table "visits" violates foreign key constraint "visits__route__fk"
+ ❯ ../../node_modules/.pnpm/pg@8.23.1/node_modules/pg/lib/client.js:694:17
+ ❯ src/modules/frontdesk/__tests__/integration/helpers.ts:89:5
+     87|     const use = cols.filter((c) => has.includes(c));
+     88|     const list = use.map((c) => `"${c}"`).join(',');
+     89|     await tx.query(`INSERT INTO ${table} (${list}) SELECT ${list} FROM…
+       |     ^
+     90|       [JSON.stringify(Object.fromEntries(use.map((c) => [c, r[c]])))]);
+     91|   }, String(r.tenant_id ?? TENANT_A));
+ ❯ superTx src/modules/frontdesk/__tests__/integration/helpers.ts:74:17
+ ❯ seed src/modules/frontdesk/__tests__/integration/helpers.ts:83:3
+ ❯ assignedVisit src/modules/homecollection/__tests__/dispatch/helpers.ts:256:3
+ ❯ src/modules/homecollection/__tests__/dispatch/schedule.test.ts:185:23
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[21/47]⎯
+
+ FAIL  src/modules/homecollection/__tests__/dispatch/schedule.test.ts > H6 cancelHomeVisit > assigned visit -> cancelled, keeps route_id / route_date / route_sequence (the phone gets a stub, TRD §6.2 step 5) and its order (C17 cannot cancel C4 orders)
+error: insert or update on table "visits" violates foreign key constraint "visits__route__fk"
+ ❯ ../../node_modules/.pnpm/pg@8.23.1/node_modules/pg/lib/client.js:694:17
+ ❯ src/modules/frontdesk/__tests__/integration/helpers.ts:89:5
+     87|     const use = cols.filter((c) => has.includes(c));
+     88|     const list = use.map((c) => `"${c}"`).join(',');
+     89|     await tx.query(`INSERT INTO ${table} (${list}) SELECT ${list} FROM…
+       |     ^
+     90|       [JSON.stringify(Object.fromEntries(use.map((c) => [c, r[c]])))]);
+     91|   }, String(r.tenant_id ?? TENANT_A));
+ ❯ superTx src/modules/frontdesk/__tests__/integration/helpers.ts:74:17
+ ❯ seed src/modules/frontdesk/__tests__/integration/helpers.ts:83:3
+ ❯ assignedVisit src/modules/homecollection/__tests__/dispatch/helpers.ts:256:3
+ ❯ src/modules/homecollection/__tests__/dispatch/schedule.test.ts:204:48
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[22/47]⎯
+
+ FAIL  src/modules/homecollection/__tests__/dispatch/schedule.test.ts > H6 cancelHomeVisit > in_progress -> 409 homecollection.mutation_superseded (cancel -> flag instead)
+error: insert or update on table "visits" violates foreign key constraint "visits__route__fk"
+ ❯ ../../node_modules/.pnpm/pg@8.23.1/node_modules/pg/lib/client.js:694:17
+ ❯ src/modules/frontdesk/__tests__/integration/helpers.ts:89:5
+     87|     const use = cols.filter((c) => has.includes(c));
+     88|     const list = use.map((c) => `"${c}"`).join(',');
+     89|     await tx.query(`INSERT INTO ${table} (${list}) SELECT ${list} FROM…
+       |     ^
+     90|       [JSON.stringify(Object.fromEntries(use.map((c) => [c, r[c]])))]);
+     91|   }, String(r.tenant_id ?? TENANT_A));
+ ❯ superTx src/modules/frontdesk/__tests__/integration/helpers.ts:74:17
+ ❯ seed src/modules/frontdesk/__tests__/integration/helpers.ts:83:3
+ ❯ assignedVisit src/modules/homecollection/__tests__/dispatch/helpers.ts:256:3
+ ❯ src/modules/homecollection/__tests__/dispatch/schedule.test.ts:211:23
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[23/47]⎯
+
+ FAIL  src/modules/homecollection/__tests__/dispatch/schedule.test.ts > US-15 (manual trigger): a `missed` visit that stays assigned is resolved by the dispatcher > missed flag open on an assigned visit: H4 unassign returns it to unassigned (order kept), H8 resolves the flag
+error: insert or update on table "visits" violates foreign key constraint "visits__route__fk"
+ ❯ ../../node_modules/.pnpm/pg@8.23.1/node_modules/pg/lib/client.js:694:17
+ ❯ src/modules/frontdesk/__tests__/integration/helpers.ts:89:5
+     87|     const use = cols.filter((c) => has.includes(c));
+     88|     const list = use.map((c) => `"${c}"`).join(',');
+     89|     await tx.query(`INSERT INTO ${table} (${list}) SELECT ${list} FROM…
+       |     ^
+     90|       [JSON.stringify(Object.fromEntries(use.map((c) => [c, r[c]])))]);
+     91|   }, String(r.tenant_id ?? TENANT_A));
+ ❯ superTx src/modules/frontdesk/__tests__/integration/helpers.ts:74:17
+ ❯ seed src/modules/frontdesk/__tests__/integration/helpers.ts:83:3
+ ❯ assignedVisit src/modules/homecollection/__tests__/dispatch/helpers.ts:256:3
+ ❯ src/modules/homecollection/__tests__/dispatch/schedule.test.ts:233:41
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[24/47]⎯
+
+ FAIL  src/modules/homecollection/__tests__/dispatch/schedule.test.ts > US-15 (manual trigger): a `missed` visit that stays assigned is resolved by the dispatcher > missed flag open, the phone holds the visit: the dispatcher can still reassign it to a new date (stays assigned, order unchanged)
+error: insert or update on table "visits" violates foreign key constraint "visits__route__fk"
+ ❯ ../../node_modules/.pnpm/pg@8.23.1/node_modules/pg/lib/client.js:694:17
+ ❯ src/modules/frontdesk/__tests__/integration/helpers.ts:89:5
+     87|     const use = cols.filter((c) => has.includes(c));
+     88|     const list = use.map((c) => `"${c}"`).join(',');
+     89|     await tx.query(`INSERT INTO ${table} (${list}) SELECT ${list} FROM…
+       |     ^
+     90|       [JSON.stringify(Object.fromEntries(use.map((c) => [c, r[c]])))]);
+     91|   }, String(r.tenant_id ?? TENANT_A));
+ ❯ superTx src/modules/frontdesk/__tests__/integration/helpers.ts:74:17
+ ❯ seed src/modules/frontdesk/__tests__/integration/helpers.ts:83:3
+ ❯ assignedVisit src/modules/homecollection/__tests__/dispatch/helpers.ts:256:3
+ ❯ src/modules/homecollection/__tests__/dispatch/schedule.test.ts:242:49
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[25/47]⎯
+
+ FAIL  src/modules/homecollection/__tests__/dispatch/schedule.test.ts > security (07-SECURITY §4/§5): permission homecollection.visit.assign, tenant from claims, If-Match, no writes on refusal > H4 unassign: 403 auth.forbidden for a phlebotomist / no grants; 404 common.not_found across tenants (RLS on and off); version unchanged
+error: insert or update on table "visits" violates foreign key constraint "visits__route__fk"
+ ❯ ../../node_modules/.pnpm/pg@8.23.1/node_modules/pg/lib/client.js:694:17
+ ❯ src/modules/frontdesk/__tests__/integration/helpers.ts:89:5
+     87|     const use = cols.filter((c) => has.includes(c));
+     88|     const list = use.map((c) => `"${c}"`).join(',');
+     89|     await tx.query(`INSERT INTO ${table} (${list}) SELECT ${list} FROM…
+       |     ^
+     90|       [JSON.stringify(Object.fromEntries(use.map((c) => [c, r[c]])))]);
+     91|   }, String(r.tenant_id ?? TENANT_A));
+ ❯ superTx src/modules/frontdesk/__tests__/integration/helpers.ts:74:17
+ ❯ seed src/modules/frontdesk/__tests__/integration/helpers.ts:83:3
+ ❯ assignedVisit src/modules/homecollection/__tests__/dispatch/helpers.ts:256:3
+ ❯ src/modules/homecollection/__tests__/dispatch/schedule.test.ts:304:25
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[26/47]⎯
+
+ FAIL  src/modules/homecollection/__tests__/dispatch/schedule.test.ts > security (07-SECURITY §4/§5): permission homecollection.visit.assign, tenant from claims, If-Match, no writes on refusal > H4 unassign: If-Match missing -> 428 common.precondition_required; stale -> 409 common.version_conflict
+error: insert or update on table "visits" violates foreign key constraint "visits__route__fk"
+ ❯ ../../node_modules/.pnpm/pg@8.23.1/node_modules/pg/lib/client.js:694:17
+ ❯ src/modules/frontdesk/__tests__/integration/helpers.ts:89:5
+     87|     const use = cols.filter((c) => has.includes(c));
+     88|     const list = use.map((c) => `"${c}"`).join(',');
+     89|     await tx.query(`INSERT INTO ${table} (${list}) SELECT ${list} FROM…
+       |     ^
+     90|       [JSON.stringify(Object.fromEntries(use.map((c) => [c, r[c]])))]);
+     91|   }, String(r.tenant_id ?? TENANT_A));
+ ❯ superTx src/modules/frontdesk/__tests__/integration/helpers.ts:74:17
+ ❯ seed src/modules/frontdesk/__tests__/integration/helpers.ts:83:3
+ ❯ assignedVisit src/modules/homecollection/__tests__/dispatch/helpers.ts:256:3
+ ❯ src/modules/homecollection/__tests__/dispatch/schedule.test.ts:310:25
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[27/47]⎯
+
+ FAIL  src/modules/homecollection/__tests__/handovers/read.test.ts > H13 listHandovers: filters, paging, DTO, permission > every row is a valid HandoverSummaryDto (id, version, status, from{membership_id, display_name}, to_centre_id, handed_over_at, item_count[, received_count]); the page object carries the limit; no null
+AssertionError: expected [ …(5) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "/data/4/item_count must be >= 1",
++   "/data/5/item_count must be >= 1",
++   "/data/6/item_count must be >= 1",
++   "/data/7/item_count must be >= 1",
++   "/data/8/item_count must be >= 1",
++ ]
+
+ ❯ src/modules/homecollection/__tests__/handovers/read.test.ts:132:53
+    130|     const r = await list({ limit: 200 });
+    131|     expect(r.status).toBe(200);
+    132|     expect(responseErrors('listHandovers', r.body)).toEqual([]);
+       |                                                     ^
+    133|     const row = r.body.data.find((x: any) => x.id === p1.handover.id);
+    134|     expect(row).toMatchObject({ status: 'pending', item_count: 2, to_c…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[28/47]⎯
+
+ FAIL  src/modules/homecollection/__tests__/observability/logscan.live.test.ts > HC-T17 live: metrics emitted by the push pipeline (TRD §14) > a full visit flow counts every mutation once in lims_homecollection_mutations_total{type,outcome} with exactly those two labels
+AssertionError: expected LimsError: homecollection.app_version_uns… { …(5) } to be undefined
+
+- Expected:
+undefined
+
++ Received:
+LimsError {
+  "message": "homecollection.app_version_unsupported",
+  "statusCode": 426,
+  "retryAfterSeconds": undefined,
+  "code": "homecollection.app_version_unsupported",
+  "detail": undefined,
+  "errors": undefined,
+  "name": "LimsError",
+}
+
+ ❯ src/modules/homecollection/__tests__/observability/logscan.live.test.ts:43:19
+     41|     const flow = fullFlow(w);
+     42|     const { reply, error, rec } = await pushObserved(w, flow);
+     43|     expect(error).toBeUndefined();
+       |                   ^
+     44|     expect(reply!.status).toBe(200);
+     45|     const hits = hcIncs(rec, 'lims_homecollection_mutations_total');
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[29/47]⎯
+
+ FAIL  src/modules/homecollection/__tests__/observability/logscan.live.test.ts > HC-T17 live: metrics emitted by the push pipeline (TRD §14) > the same mutations in a NEW batch are counted with outcome "duplicate", one per mutation
+TypeError: Cannot read properties of undefined (reading 'status')
+ ❯ src/modules/homecollection/__tests__/observability/logscan.live.test.ts:59:25
+     57|     const flow = fullFlow(w);
+     58|     const first = await pushObserved(w, flow);
+     59|     expect(first.reply!.status).toBe(200);
+       |                         ^
+     60|     const second = await pushObserved(w, flow);   // batchOf keeps dev…
+     61|     expect(second.reply!.status).toBe(200);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[30/47]⎯
+
+ FAIL  src/modules/homecollection/__tests__/observability/logscan.live.test.ts > HC-T17 live: metrics emitted by the push pipeline (TRD §14) > one push observes lims_homecollection_push_duration_seconds exactly once, with no labels and a non-negative finite value
+TypeError: Cannot read properties of undefined (reading 'status')
+ ❯ src/modules/homecollection/__tests__/observability/logscan.live.test.ts:70:19
+     68|     const w = await pushWorld({ file: 17 });
+     69|     const { reply, rec } = await pushObserved(w, fullFlow(w));
+     70|     expect(reply!.status).toBe(200);
+       |                   ^
+     71|     const obs = rec.observes.filter((o) => o.name === 'lims_homecollec…
+     72|     expect(obs).toHaveLength(1);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[31/47]⎯
+
+ FAIL  src/modules/homecollection/__tests__/observability/logscan.live.test.ts > HC-T17 live: metrics emitted by the push pipeline (TRD §14) > clock skew is observed per mutation under {clock_source} ∈ anchor|offset|device (anchor path here: the world sends its anchor)
+TypeError: Cannot read properties of undefined (reading 'status')
+ ❯ src/modules/homecollection/__tests__/observability/logscan.live.test.ts:82:19
+     80|     const flow = fullFlow(w);
+     81|     const { reply, rec } = await pushObserved(w, flow);
+     82|     expect(reply!.status).toBe(200);
+       |                   ^
+     83|     const obs = rec.observes.filter((o) => o.name === 'lims_homecollec…
+     84|     expect(obs).toHaveLength(flow.length);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[32/47]⎯
+
+ FAIL  src/modules/homecollection/__tests__/observability/logscan.live.test.ts > HC-T17 live: metrics emitted by the push pipeline (TRD §14) > published events are counted in lims_homecollection_events_published_total (no labels): one inc per event the push published
+TypeError: Cannot read properties of undefined (reading 'status')
+ ❯ src/modules/homecollection/__tests__/observability/logscan.live.test.ts:91:19
+     89|     const w = await pushWorld({ file: 17 });
+     90|     const { reply, rec } = await pushObserved(w, fullFlow(w));
+     91|     expect(reply!.status).toBe(200);
+       |                   ^
+     92|     const hits = hcIncs(rec, 'lims_homecollection_events_published_tot…
+     93|     expect(hits.length).toBeGreaterThanOrEqual(1);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[33/47]⎯
+
+ FAIL  src/modules/homecollection/__tests__/observability/logscan.live.test.ts > HC-T17 live: PHI log scan - planted name, phone, address, barcode, GPS, payment reference (TRD §14 "Never", 07-SECURITY §5.10) > full flow with planted GPS on arrived/collected and a planted payment reference leaves none of them in raw log calls or /metrics
+AssertionError: expected LimsError: homecollection.app_version_uns… { …(5) } to be undefined
+
+- Expected:
+undefined
+
++ Received:
+LimsError {
+  "message": "homecollection.app_version_unsupported",
+  "statusCode": 426,
+  "retryAfterSeconds": undefined,
+  "code": "homecollection.app_version_unsupported",
+  "detail": undefined,
+  "errors": undefined,
+  "name": "LimsError",
+}
+
+ ❯ src/modules/homecollection/__tests__/observability/logscan.live.test.ts:109:19
+    107|       M.collected(w, w.specimens[1]!, { gps, typeCode: w.specimens[1]!…
+    108|     const { reply, error, rec } = await pushObserved(w, flow);
+    109|     expect(error).toBeUndefined();
+       |                   ^
+    110|     expect(reply!.status).toBe(200);
+    111|     expect(rec.incs.length, 'the journey must emit metrics, or the sca…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[34/47]⎯
+
+ FAIL  src/modules/homecollection/__tests__/observability/logscan.live.test.ts > HC-T17 live: PHI log scan - planted name, phone, address, barcode, GPS, payment reference (TRD §14 "Never", 07-SECURITY §5.10) > scanning a planted foreign barcode (barcode_mismatch / held path) does not put that barcode, nor the visit specimens' barcodes, in logs or metrics
+AssertionError: expected LimsError: homecollection.app_version_uns… { …(5) } to be undefined
+
+- Expected:
+undefined
+
++ Received:
+LimsError {
+  "message": "homecollection.app_version_unsupported",
+  "statusCode": 426,
+  "retryAfterSeconds": undefined,
+  "code": "homecollection.app_version_unsupported",
+  "detail": undefined,
+  "errors": undefined,
+  "name": "LimsError",
+}
+
+ ❯ src/modules/homecollection/__tests__/observability/logscan.live.test.ts:119:19
+    117|     const flow = [M.identity(w), M.consent(w), M.collected(w, w.specim…
+    118|     const { reply, error, rec } = await pushObserved(w, flow);
+    119|     expect(error).toBeUndefined();
+       |                   ^
+    120|     expect(reply!.status).toBe(200);
+    121|     expect(rec.incs.some((i) => i.name === 'lims_homecollection_mutati…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[35/47]⎯
+
+ FAIL  src/modules/homecollection/__tests__/observability/logscan.live.test.ts > HC-T17 live: PHI log scan - planted name, phone, address, barcode, GPS, payment reference (TRD §14 "Never", 07-SECURITY §5.10) > a lab outage whose error text carries a planted name, phone and address is logged by code only (the message is never logged), and still surfaces as common.dependency_unavailable
+AssertionError: expected 'homecollection.app_version_unsupported' to be 'common.dependency_unavailable' // Object.is equality
+
+Expected: "common.dependency_unavailable"
+Received: "homecollection.app_version_unsupported"
+
+ ❯ src/modules/homecollection/__tests__/observability/logscan.live.test.ts:133:18
+    131|     const { reply, error, rec } = await pushObserved(w, flow, { labFai…
+    132|     const code = (error as any)?.code ?? reply?.body?.code;
+    133|     expect(code).toBe('common.dependency_unavailable');
+       |                  ^
+    134|     expect(rec.logs.some((l) => l.msg === 'homecollection.lab_unavaila…
+    135|     await expectClean(rec, 'lab outage');
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[36/47]⎯
+
+ FAIL  src/modules/homecollection/__tests__/observability/logscan.live.test.ts > HC-T17 live: PHI log scan - planted name, phone, address, barcode, GPS, payment reference (TRD §14 "Never", 07-SECURITY §5.10) > every raw log call of the journeys carries only id/code/count-like fields: no name, phone, address, landmark, note, barcode, GPS, payment reference, consent text, token or message key
+AssertionError: expected 0 to be greater than 0
+ ❯ src/modules/homecollection/__tests__/observability/logscan.live.test.ts:145:29
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[37/47]⎯
+
+ FAIL  src/modules/homecollection/__tests__/sync/guards.test.ts > payment.captured (US-07-7, AB5, D-PAY) > requires_reference method: missing reference -> rejected validation_failed; with reference -> applied (tenant B settings)
+AssertionError: expected [ 'rejected' ] to deeply equal [ 'applied' ]
+
+- Expected
++ Received
+
+  [
+-   "applied",
++   "rejected",
+  ]
+
+ ❯ src/modules/homecollection/__tests__/sync/guards.test.ts:255:106
+    253|     const w = await pushWorld({ file: FILE, s: 'b' });
+    254|     expect(codes(await pushM(w, [M.payment(w, { method: 'fonepay_qr' }…
+    255|     expect(outcomes(await pushM(w, [M.payment(w, { method: 'fonepay_qr…
+       |                                                                                                          ^
+    256|   });
+    257|   it('D-PAY: applied EVEN when the visit is cancelled / completed / fa…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[38/47]⎯
+
+
+ Test Files  7 failed | 81 passed (88)
+      Tests  47 failed | 3475 passed | 1 skipped (3523)
+   Start at  22:19:19
+   Duration  583.28s (tests 88%, import 10%, transform 1%, setup 1%)
+
+    Isolate  88 workers spawned · ~269ms startup each (spawn + environment, per file)
+             at least ~23.38s faster with isolate: false — reuses workers across files instead of one per file
+

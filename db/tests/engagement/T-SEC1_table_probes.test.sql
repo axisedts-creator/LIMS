@@ -51,9 +51,11 @@ SELECT is((SELECT array_agg(p.tablename || '.' || p.policyname ORDER BY 1) FROM 
 SELECT is((SELECT array_agg(p.tablename || '.' || p.policyname ORDER BY 1) FROM pg_policies p WHERE p.schemaname = 'engagement' AND 'public' = ANY (p.roles)), NULL::text[], 'no policy TO PUBLIC');
 
 -- tenant binding: SELECT/UPDATE/DELETE qual and INSERT/UPDATE check of every lims_app policy on a tenant table mention the tenant predicate (directly or through the tenant-bound helper)
+-- LD-257 / migration 20261116030000: the 3 RESTRICTIVE number_counters policies are allowed here, tenant isolation stays with the existing PERMISSIVE tenant policy (a RESTRICTIVE policy can only narrow it)
 SELECT is((SELECT array_agg(p.tablename || '.' || p.policyname ORDER BY 1)
            FROM pg_policies p JOIN expected e ON e.tbl = p.tablename
            WHERE p.schemaname = 'engagement' AND NOT e.is_global AND 'lims_app' = ANY (p.roles)
+             AND p.policyname NOT IN ('number_counters__select__nonstaff_keys','number_counters__insert__nonstaff_keys','number_counters__update__nonstaff_keys')
              AND coalesce(p.qual, '') || ' ' || coalesce(p.with_check, '') !~ 'current_tenant_id|engagement_account_id|engagement_patient_ids|engagement_patient_visible|current_actor_id'),
           NULL::text[], 'every lims_app policy on a tenant table is tenant-bound (app.current_tenant_id() or a tenant-resolving DEFINER helper)');
 SELECT is((SELECT array_agg(p.tablename || '.' || p.policyname ORDER BY 1)

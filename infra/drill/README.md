@@ -20,6 +20,8 @@ the 2.60.0 binary of the derived image** in this repository (no host here). The 
 
 - Confirmed on staging: _pending (first staging drill)_
 
+`restore.sh` reads `DRILL_REPO` (1 or 2, default 2; any other value exits 2). Lean / single host (no `dr`, repo1 only) = `DRILL_REPO=1`.
+
 ## amcheck
 
 Availability in the derived image is probed at run time by `verify.sql` (`pg_available_extensions()`):

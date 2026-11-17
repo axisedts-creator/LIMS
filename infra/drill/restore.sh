@@ -3,12 +3,14 @@
 # Runs inside the scratch container `drill-pg` (pgbackrest, pg_ctl, pg_isready on PATH), as postgres.
 # PITR of repo2 to now - DRILL_TARGET_OFFSET_MIN, start Postgres bound to 127.0.0.1 with archiving and
 # replication off (03-APP-FLOW s4.3), poll pg_isready. Measured RTO = restore start -> accepting connections.
-# Env: PGDATA (required), DRILL_TARGET_OFFSET_MIN (default 30), DRILL_ACCEPT_TIMEOUT_S (default 7200 = 2 h
+# Env: PGDATA (required), DRILL_REPO (1|2, default 2; lean single host = 1, CR NEPAL-single-host), DRILL_TARGET_OFFSET_MIN (default 30), DRILL_ACCEPT_TIMEOUT_S (default 7200 = 2 h
 # [CONV] 03-APP-FLOW s4.1), DRILL_PG_CONFIG_FILE (optional config_file= of the image).
-# The repo2 cipher pass reaches pgbackrest only via its config include on tmpfs - never argv (AC-12.3).
+# The repo cipher pass (repo1 or repo2) reaches pgbackrest only via its config include on tmpfs - never argv (AC-12.3).
 # stdout: target_time=<YYYY-MM-DD HH:MM:SS+00>, rto_seconds=<int> (only when it accepted connections).
 set -euo pipefail
 
+repo=${DRILL_REPO:-2}
+[[ $repo =~ ^[12]$ ]] || { echo "restore.sh: DRILL_REPO must be 1 or 2" >&2; exit 2; }
 offset=${DRILL_TARGET_OFFSET_MIN:-30}
 timeout_s=${DRILL_ACCEPT_TIMEOUT_S:-7200}
 [[ $offset =~ ^[0-9]{1,5}$ ]] || { echo "restore.sh: DRILL_TARGET_OFFSET_MIN not an integer" >&2; exit 2; }
@@ -20,7 +22,7 @@ t0=$(date -u +%s)
 target=$(date -u -d "@$((t0 - offset * 60))" '+%Y-%m-%d %H:%M:%S')+00
 echo "target_time=$target"
 
-pgbackrest --stanza=lims --repo=2 --pg1-path="$PGDATA" --type=time --target="$target" \
+pgbackrest --stanza=lims --repo="$repo" --pg1-path="$PGDATA" --type=time --target="$target" \
   --target-action=promote restore || { echo "restore.sh: pgbackrest restore failed (WAL gap?)" >&2; exit 3; }
 
 opts="-c listen_addresses=127.0.0.1 -c archive_mode=off -c max_wal_senders=0"

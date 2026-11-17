@@ -16,3 +16,7 @@
 ## round 5
 - Log (09:07): 1063/1063 pass but vitest exits non-zero: `Unhandled Error: Timeout calling "onTaskUpdate"` (4 files each run whole-repo lintRepo in parallel; worker RPC starves). `&&` chain stops, steps 2-4 never run.
 - Cause: parallel load, not a code defect. Fix: `fileParallelism: false` in tools/codegen/vitest.config.ts (config only; no test touched, nothing narrowed). Not re-run: full serial run is ~4+ min, left to verify.
+## round 6
+- Log (09:37, serial config active): 1061/1063 pass; 2 `lintRepo` tests (acct1, c4) hit the 120 s timeout + 4 `onTaskUpdate` RPC errors. Same run: regparity2 lintRepo 68 s, codegen --check 111 s, total 1418 s; alone lintRepo is ~13 s.
+- Cause: machine load (slow whole-repo lint/codegen), not a code defect; serial files were not enough.
+- Fix: tools/codegen/vitest.config.ts testTimeout 120_000 -> 300_000 (config only, no test or assertion touched). Not re-run (full run ~24 min under load); lead: rerun verify, ideally on an idle machine.

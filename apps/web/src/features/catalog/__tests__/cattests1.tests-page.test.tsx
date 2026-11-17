@@ -17,6 +17,7 @@ import axe from 'axe-core';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 import { ToastProvider } from '@lims/ui/components/Toast';
+import { t } from '@/core/i18n/messages';
 
 const navLog: string[] = [];
 const push = vi.fn((u: string) => { navLog.push(String(u)); });
@@ -179,7 +180,7 @@ const choose = async (scope: HTMLElement | null, label: RegExp, option: RegExp) 
 describe('page header, table headers, empty state', () => {
   it('has the Departments/Doctors page pattern: title Tests, breadcrumb to Catalog, New test button, search, department / specimen / status filters', async () => {
     await show();
-    expect(screen.getByRole('heading', { level: 1, name: 'Tests' })).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 1, name: t('catalog.nav.tests') })).toBeTruthy(); // LD-340: heading = ElabAssist menu label
     expect(document.querySelector('a[href="/catalog"]')).toBeTruthy(); // breadcrumb Catalog > Tests (PageHeader)
     expect(newButtons().some(enabled)).toBe(true);
     expect(screen.getByLabelText(/search/i)).toBeTruthy();
@@ -194,7 +195,7 @@ describe('page header, table headers, empty state', () => {
     expect(headers().slice(0, 5)).toEqual(['Code', 'Name', 'Department', 'Workflow type', 'Status']);
     const rows = bodyRows();
     expect(rows).toHaveLength(1);
-    expect(rows[0]!.textContent).toMatch(/No tests yet\.?\s*Add a test/);
+    expect(rows[0]!.textContent).toContain(t('catalog.tests.empty')); // LD-340: menu label wording ("No test details yet. Add a test.")
     expect(within(rows[0]!).getAllByRole('button', { name: /new test/i }).length).toBeGreaterThan(0);
     expect(newButtons().length).toBeGreaterThanOrEqual(2); // header + the row
     expect(screen.queryByText(/^No tests yet\.$/)).toBeNull(); // the old bare paragraph is gone
@@ -243,7 +244,7 @@ describe('New test button by permission', () => {
     session.permissions = READ;
     TESTS = [];
     await show();
-    expect(bodyRows()[0]!.textContent).toMatch(/No tests yet/);
+    expect(bodyRows()[0]!.textContent).toContain(t('catalog.tests.empty').split('.')[0]!); // LD-340: "No test details yet"
     expect(within(bodyRows()[0]!).queryAllByRole('button', { name: /new test/i }).filter(enabled)).toEqual([]);
   });
 

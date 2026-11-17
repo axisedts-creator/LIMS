@@ -26,7 +26,7 @@ const NOT_STATIC = new Set(['lab.verification', 'lab.approval', 'quality.setup',
 const label = (r: Row) => `${r.id}: menu "${r.label}" (${r.labelKey}) -> ${r.path}; found ${JSON.stringify(r.headings.map((h) => h.text || `<${h.raw}>`))} in ${r.headings.map((h) => h.file.replace(WEB, '')).join(', ')}`;
 
 describe('the manifest is walked', () => {
-  it('136 sidebar entries, every one with a translated label and an existing page file', () => {
+  it('139 sidebar entries, every one with a translated label and an existing page file', () => {
     expect(rows.length).toBe(navEntries.length);
     expect(rows.length).toBeGreaterThanOrEqual(130);
     for (const r of rows) {

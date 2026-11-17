@@ -369,10 +369,13 @@
   "nav.billing.account_masters",
   "nav.billing.account_summary",
   "nav.billing.audit_trail",
+  "nav.billing.cash_transfers",
   "nav.billing.cbms",
   "nav.billing.credit_parties",
   "nav.billing.daily_cash",
   "nav.billing.dues",
+  "nav.billing.expense_types",
+  "nav.billing.expenses",
   "nav.billing.invoices",
   "nav.billing.pocket_ledger",
   "nav.billing.registers",
@@ -955,6 +958,18 @@
   "platform.auth_events": {
    "key": "nav.platform.auth_events",
    "text": "Sign-in events"
+  },
+  "billing.expenses": {
+   "key": "nav.billing.expenses",
+   "text": "Expense"
+  },
+  "billing.expense_types": {
+   "key": "nav.billing.expense_types",
+   "text": "Expense Type"
+  },
+  "billing.cash_transfers": {
+   "key": "nav.billing.cash_transfers",
+   "text": "Cash Transfer"
   }
  },
  "routes": {
@@ -1637,6 +1652,21 @@
    "routeId": "staff.platform.auth_events",
    "path": "/platform/auth-events",
    "permission": "platform.tenant.read"
+  },
+  "billing.expenses": {
+   "routeId": "staff.billing.expenses",
+   "path": "/billing/expenses",
+   "permission": "billing.account.read"
+  },
+  "billing.expense_types": {
+   "routeId": "staff.billing.expense_types",
+   "path": "/billing/expenses/types",
+   "permission": "billing.account.read"
+  },
+  "billing.cash_transfers": {
+   "routeId": "staff.billing.cash_transfers",
+   "path": "/billing/cash-transfers",
+   "permission": "billing.account.read"
   }
  },
  "mismatched": [

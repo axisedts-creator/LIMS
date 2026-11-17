@@ -200,11 +200,11 @@ describe('SCR-02 DepartmentsList (AC-01.1, AC-01.2, AC-01.4, AC-01.6)', () => {
 
   it('empty: exact copy "No departments yet." + "New department" (manage only)', async () => {
     const a = await show([], MANAGE);
-    expect(screen.getByText('No departments yet.')).toBeTruthy();
+    expect(screen.getByText('No test categories yet.')).toBeTruthy();
     expect(screen.getAllByRole('button', { name: /new department/i }).length).toBeGreaterThan(0);
     a.unmount();
     await show([], READ);
-    expect(screen.getByText('No departments yet.')).toBeTruthy();
+    expect(screen.getByText('No test categories yet.')).toBeTruthy();
     expect(screen.queryByRole('button', { name: /new department/i })).toBeNull();
   });
 
@@ -459,7 +459,7 @@ describe('SCR-03 SpecimensScreen (AC-01.5: report label shown)', () => {
 
   it('empty states: "No specimen types yet." and (assumed same pattern) "No containers yet."', async () => {
     await show({ specimenTypes: [], containers: [] });
-    expect(screen.getByText('No specimen types yet.')).toBeTruthy();
+    expect(screen.getByText('No test groups (specimen types) yet.')).toBeTruthy();
     await userEvent.click(screen.getByRole('tab', { name: 'Containers' }));
     expect(screen.getByText('No containers yet.')).toBeTruthy();
   });

@@ -126,11 +126,11 @@ describe('SCR-09 PanelsList (AC-07.1, 07.2, 07.6)', () => {
 
   it('empty: exact copy "No panels yet." + "New panel" for managers only', async () => {
     const a = await show([], TEST_MANAGE);
-    expect(screen.getByText('No panels yet.')).toBeTruthy();
+    expect(screen.getByText('No test profiles yet.')).toBeTruthy();
     expect(screen.getAllByRole('button', { name: /new panel/i }).length).toBeGreaterThan(0);
     a.unmount();
     await show([], TEST_READ);
-    expect(screen.getByText('No panels yet.')).toBeTruthy();
+    expect(screen.getByText('No test profiles yet.')).toBeTruthy();
     expect(screen.queryByRole('button', { name: /new panel/i })).toBeNull();
   });
 
@@ -443,7 +443,7 @@ describe('SCR-11 DoctorsList (AC-11.1, 11.2, 11.4)', () => {
 
   it('empty: exact copy "No doctors yet."', async () => {
     await show([]);
-    expect(screen.getByText('No doctors yet.')).toBeTruthy();
+    expect(screen.getByText('No doctors in Doctor Management yet.')).toBeTruthy();
   });
 
   it('list never shows phone/email (summaries carry none; even if a row object has them they are not rendered — AC-11.4)', async () => {
@@ -791,7 +791,7 @@ describe('SCR-12 CreditPartiesScreen (AC-12.1…12.4)', () => {
 
   it('empty copy "No credit parties or affiliations yet."; the Billing note is always present', async () => {
     await show([]);
-    expect(screen.getByText('No credit parties or affiliations yet.')).toBeTruthy();
+    expect(screen.getByText('No clients or affiliations yet.')).toBeTruthy();
     expect(text()).toContain('Credit limits, credit days and monthly statements are managed in Billing.');
   });
 

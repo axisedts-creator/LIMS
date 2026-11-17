@@ -2,3 +2,6 @@ Round 2: verify rerun. codegen + contracts registry tests green. API run: 1 fail
 Cause: stale test pin, not implementation; arbiter ruling TESTS_WRONG edits not yet applied by tester (incl. SQL line 195).
 No implementation change (debugger may not edit tests). Dispute written: T0C-VERLEVEL-1-dispute.md.
 Note: old verify.log ended at "The system cannot find the path specified." after codegen; the contracts/API/db steps were not run then.
+Round 3 (23:25): no implementation defect. Cause of verify FAIL: verify.log stops at 'The system cannot find the path specified.' after codegen, so later steps never ran (harness path issue: pnpm --dir / cd, not code); registry.static pin already fixed by tester.
+Re-ran every verify step by hand from repo root, all green: codegen 577/577, contracts registry (errors|permissions == IC) 7 passed, API 6 files 299/299, boot T-01 3 passed, db T0C-VERLEVEL-1 pgTAP suite PASS.
+No code change. Writer must not commit db/tests/fixtures/probe-rows/*.sql (LD-348).

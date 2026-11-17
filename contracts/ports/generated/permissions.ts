@@ -47,6 +47,9 @@ export type PermissionCode =
   | "engagement.booking.create"
   | "engagement.booking.manage"
   | "engagement.booking.read"
+  | "engagement.broadcast.approve"
+  | "engagement.broadcast.manage"
+  | "engagement.broadcast.read"
   | "engagement.enquiry.create"
   | "engagement.enquiry.read"
   | "engagement.enquiry.respond"
@@ -149,6 +152,8 @@ export type PermissionCode =
   | "partners.referrer.read"
   | "partners.report.read"
   | "partners.statement.read"
+  | "partners.ticket.manage"
+  | "partners.ticket.read"
   | "payments.intent.create"
   | "payments.intent.resolve"
   | "payments.merchant_config.manage"
@@ -242,6 +247,9 @@ export const PERMISSION_CODES: readonly PermissionCode[] = [
   "engagement.booking.create",
   "engagement.booking.manage",
   "engagement.booking.read",
+  "engagement.broadcast.approve",
+  "engagement.broadcast.manage",
+  "engagement.broadcast.read",
   "engagement.enquiry.create",
   "engagement.enquiry.read",
   "engagement.enquiry.respond",
@@ -344,6 +352,8 @@ export const PERMISSION_CODES: readonly PermissionCode[] = [
   "partners.referrer.read",
   "partners.report.read",
   "partners.statement.read",
+  "partners.ticket.manage",
+  "partners.ticket.read",
   "payments.intent.create",
   "payments.intent.resolve",
   "payments.merchant_config.manage",
@@ -412,6 +422,7 @@ export const PRIVILEGED: ReadonlySet<PermissionCode> = new Set([
   "catalog.price_list.manage",
   "catalog.reference_range.publish",
   "catalog.referrer.export",
+  "engagement.broadcast.approve",
   "engagement.membership_plan.manage",
   "engagement.settings.manage",
   "frontdesk.discount.approve",
@@ -545,6 +556,8 @@ export const ROLE_GRANTS: Readonly<Record<string, readonly PermissionCode[]>> = 
     "engagement.booking.cancel",
     "engagement.booking.manage",
     "engagement.booking.read",
+    "engagement.broadcast.manage",
+    "engagement.broadcast.read",
     "engagement.enquiry.read",
     "engagement.enquiry.respond",
     "engagement.link.issue",
@@ -574,6 +587,8 @@ export const ROLE_GRANTS: Readonly<Record<string, readonly PermissionCode[]>> = 
     "partners.manifest.receive",
     "partners.partner.read",
     "partners.pickup.manage",
+    "partners.ticket.manage",
+    "partners.ticket.read",
     "payments.intent.create",
     "reporting.delivery.read",
     "reporting.delivery.resend",
@@ -597,6 +612,9 @@ export const ROLE_GRANTS: Readonly<Record<string, readonly PermissionCode[]>> = 
     "catalog.test.read",
     "engagement.bookable_item.manage",
     "engagement.booking.read",
+    "engagement.broadcast.approve",
+    "engagement.broadcast.manage",
+    "engagement.broadcast.read",
     "engagement.queue.manage",
     "engagement.slot.manage",
     "homecollection.device.manage",
@@ -631,6 +649,8 @@ export const ROLE_GRANTS: Readonly<Record<string, readonly PermissionCode[]>> = 
     "micro.culture.read",
     "partners.partner.read",
     "partners.referrer.map",
+    "partners.ticket.manage",
+    "partners.ticket.read",
     "quality.autoverify.manage",
     "quality.autoverify.read",
     "quality.config.manage",
@@ -794,6 +814,9 @@ export const ROLE_GRANTS: Readonly<Record<string, readonly PermissionCode[]>> = 
     "catalog.test.read",
     "engagement.bookable_item.manage",
     "engagement.booking.read",
+    "engagement.broadcast.approve",
+    "engagement.broadcast.manage",
+    "engagement.broadcast.read",
     "engagement.link.read",
     "engagement.link.revoke",
     "engagement.membership.read",
@@ -823,6 +846,8 @@ export const ROLE_GRANTS: Readonly<Record<string, readonly PermissionCode[]>> = 
     "partners.partner.manage",
     "partners.partner.read",
     "partners.referrer.map",
+    "partners.ticket.manage",
+    "partners.ticket.read",
     "payments.merchant_config.manage",
     "payments.merchant_config.read",
     "reporting.channel.manage",
@@ -862,6 +887,8 @@ export const FIXED_ACTOR_PERMISSIONS = {
       "partners.referrer.read",
       "partners.report.read",
       "partners.statement.read",
+      "partners.ticket.manage",
+      "partners.ticket.read",
     ],
     partner_member: [
       "identity.self.manage",
@@ -872,6 +899,8 @@ export const FIXED_ACTOR_PERMISSIONS = {
       "partners.referrer.read",
       "partners.report.read",
       "partners.statement.read",
+      "partners.ticket.manage",
+      "partners.ticket.read",
     ],
   },
   patient: [

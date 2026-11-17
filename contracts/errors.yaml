@@ -260,6 +260,7 @@
 - { code: partners.referrer_doctor_inactive, http: 422, owner: C13, title: "Doctor record inactive", meaning: "" }   # CR-C13-009
 - { code: partners.referrer_invalid_transition, http: 409, owner: C13, title: "Referrer mapping cannot change", meaning: "" }   # CR-C13-009
 - { code: partners.setting_out_of_range, http: 422, owner: C13, title: "Setting out of allowed range", meaning: "02-TRD §10.2" }   # CR-C13-009
+- { code: partners.ticket_invalid_transition, http: 409, owner: C13, title: "Ticket cannot change", meaning: "Closed ticket takes no reply and cannot be closed again; only a closed ticket reopens" }   # T0C-MSGDESK-1 (LD-321)
 # smartreport (C14)
 - { code: smartreport.no_eligible_results, http: 422, owner: C14, title: "No approved results for summary", meaning: "" }
 - { code: smartreport.template_not_approved, http: 409, owner: C14, title: "Template library not approved", meaning: "Pathologist approval pending (B14)" }
@@ -309,6 +310,13 @@
 - { code: engagement.reminder_invalid_transition, http: 409, owner: C16, title: "Reminder cannot change", meaning: "Already sent/cancelled" }   # CR-C16-003
 - { code: engagement.enquiry_invalid_transition, http: 409, owner: C16, title: "Enquiry cannot change", meaning: "Closed, or open-enquiry limit" }   # CR-C16-003
 - { code: engagement.setting_out_of_range, http: 422, owner: C16, title: "Setting out of allowed range", meaning: "05-SCHEMA §2.1" }   # CR-C16-003
+# T0C-MSGDESK-1 (LD-321): broadcast messages to an audience
+- { code: engagement.broadcast_invalid_transition, http: 409, owner: C16, title: "Broadcast cannot change", meaning: "Status does not allow this step (draft -> pending_approval -> approved -> sending -> sent; cancel before sending)" }
+- { code: engagement.broadcast_recipient_limit, http: 422, owner: C16, title: "Too many recipients", meaning: "The audience matches more than 5000 recipients per broadcast" }
+- { code: engagement.broadcast_self_approval, http: 403, owner: C16, title: "Second person must approve", meaning: "The approver is the requester of the broadcast" }
+- { code: engagement.broadcast_provider_not_configured, http: 422, owner: C16, title: "No message provider configured", meaning: "No provider configured and approved for the template channel; nothing is queued" }
+- { code: engagement.broadcast_placeholder_unknown, http: 422, owner: C16, title: "Unknown placeholder", meaning: "Template body uses a placeholder outside the closed list" }
+- { code: engagement.broadcast_template_inactive, http: 422, owner: C16, title: "Template inactive", meaning: "A deactivated template cannot start or approve a broadcast" }
 # homecollection (C17)
 - { code: homecollection.visit_not_assigned, http: 403, owner: C17, title: "Visit not assigned to you", meaning: "" }
 - { code: homecollection.barcode_mismatch, http: 422, owner: C17, title: "Scanned barcode does not match", meaning: "Patient/specimen ID check" }

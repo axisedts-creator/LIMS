@@ -1,0 +1,34 @@
+# T0C-MSGDESK-1 impl (LD-321, LD-325)
+- Files: contracts/openapi/engagement.yaml (11 ops: listBroadcastTemplates, createBroadcastTemplate, updateBroadcastTemplate, deactivateBroadcastTemplate, createBroadcast, previewBroadcastAudience, requestBroadcastApproval, approveBroadcast, cancelBroadcast, listBroadcasts, listBroadcastRecipients; 14 schemas); contracts/openapi/partners.yaml (10 ops: createPartnerTicket, listPartnerTickets, getPartnerTicket, replyPartnerTicket, closePartnerTicket, reopenPartnerTicket, listMyPartnerTickets, createMyPartnerTicket, getMyPartnerTicket, replyMyPartnerTicket; 7 schemas); contracts/errors.yaml (+6 engagement.broadcast_* , +partners.ticket_invalid_transition); contracts/permissions.yaml + corp_admin pack; db/migrations/20261117240000_engagement__add_broadcast_and_tickets.sql; db/meta/tables.yaml; db/policies/engagement.sql + partners.sql; engagement index.ts pendingOperations = the 11 broadcast ids (LD-325(b); T0B-MSGDESK-1 removes them with the handlers); partners keeps no pending list because its T01 stub covers the 10 ticket ids (core pending-operations test: pending = ops without a handler); ENGAGEMENT_PERMISSIONS / PARTNERS_PERMISSIONS mirror the new codes; generated: clients, MSW, error codes, permission types + seed, 5 isolation probes + _registry + probe rows. Over the 12 file cap only by generated / gate files (lead to rule, as T0C-PRICETOOLS-1).
+- Permission codes (5): engagement.broadcast.read, engagement.broadcast.manage, engagement.broadcast.approve (privileged, MFA; tenant_admin, lab_manager, never front_desk), partners.ticket.read, partners.ticket.manage (staff tenant_admin, front_desk, lab_manager + fixed set partner_member, inherited by partner_admin). All five added to the corp_admin pack.
+- [CONV] tools/codegen/gen-permissions.ts: the R3 partner exception is now a set (identity.self.manage + partners.ticket.read / .manage), because the brief gives one code pair to both staff (/admin/tickets) and partner actors (/me/tickets); own tickets only is enforced by RLS (partner_ticket__*__partner on app.current_partner_id()).
+- [CONV] outbox_id has no FK (the outbox is reporting's, written through NotificationPort). Ticket party_kind is the closed list ['partner'] (partners.partners; composite FK). Audience priority is high | normal | low: OPEN for T0B to map onto the party model.
+- [CONV] Second person rule is in the table too (approved_by <> requested_by; approved, sending, sent need an approver); recipient (broadcast, party) unique; outbox_id unique when set; messages append only (no UPDATE grant).
+- FOUNDER STEPS: push-cloud for 20261117240000_engagement__add_broadcast_and_tickets.sql (not done here); re-apply the role pack so corp_admin gets the 5 codes; a provider must be configured and approved by the founder before any broadcast is sent (approve refuses with engagement.broadcast_provider_not_configured).
+- No real sending in this task: the contract only queues one outbox row per recipient (idempotency key) through the existing outbox. No service or handler change, no web change; apps/web/src/features/admin and rs-c2 untouched.
+- OFFLINE (founder 09:19): a ticket reply may be queued offline on the partner device and replayed with its Idempotency-Key (stored once); creating a ticket, every broadcast step and approval are online only.
+- Checks: msgdesk1 + c13 + codegen.test 591/591, msgdesk1.pending x2, pgTAP suite + 5 isolation probes green, api tsc clean. 64 older api tests fail (count pins + AB5/AB6 shared-code conflict): see T0C-MSGDESK-1-dispute.md.
+
+## FIELD MAP (ElabAssist Messages and Message To Laboratory; LD-321)
+- Template Name — added (engagement.broadcast_template.name)
+- Message Title — not added — the template name is the title shown in lists; a second title field would duplicate it
+- Message Subject — added (broadcast_template.subject, email channel only)
+- rich text body — not added — SMS and WhatsApp carry plain text; body is plain text with placeholders from a closed list, so no HTML or script reaches a provider
+- file attachment — not added — NotificationPort sends text and links only (no attachments, no PHI files)
+- Create New Template — added (createBroadcastTemplate)
+- Laboratory — added (audience party_kinds laboratory = partner labs)
+- Franchise — added (audience party_kinds franchise)
+- Client — added (audience party_kinds client = credit party clients)
+- Lab User — added (audience party_kinds lab_user = staff users)
+- check all — added (party_kinds takes all four kinds at once)
+- Send — added (requestBroadcastApproval then approveBroadcast by a second person queues through the outbox)
+- Cancel — added (cancelBroadcast, before sending)
+- Log page — added (listBroadcasts and listBroadcastRecipients with per recipient status, masked address)
+- Message To Laboratory — added (partners.partner_ticket + partner_ticket_message; createMyPartnerTicket / replyMyPartnerTicket)
+- Status New — added (partner_ticket.status new)
+- Status Replied — added (partner_ticket.status replied)
+- Status Close — added (partner_ticket.status closed; closePartnerTicket / reopenPartnerTicket)
+- Collection Center — not added — collection centres are tenant centres whose staff are lab users, not partner portal users; only partners raise tickets
+- Affiliation — added (listPartnerTickets party_id filter = the partner)
+- Dates — added (listPartnerTickets created_from / created_to)
+- Create Message — added (createMyPartnerTicket partner side, createPartnerTicket lab side)

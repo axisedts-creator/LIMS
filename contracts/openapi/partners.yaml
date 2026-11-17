@@ -6133,6 +6133,732 @@ paths:
           $ref: _common.yaml#/components/responses/TooManyRequests
         "500":
           $ref: _common.yaml#/components/responses/Internal
+  # T0C-MSGDESK-1 (LD-321, LD-325): partner message to lab tickets (ElabAssist "Message To Laboratory"). Lab side under /admin/tickets (staff only),
+  # partner side under /me/tickets (own tickets only; the partner session decides the party, the database policy binds it to app.current_partner_id()).
+  /v1/partners/admin/tickets:
+    get:
+      operationId: listPartnerTickets
+      tags:
+        - partners
+      summary: List partner tickets, lab side (T0C-MSGDESK-1, staff only)
+      description: Staff only (lab side); a partner actor uses listMyPartnerTickets. Newest message first.
+      security:
+        - bearerJwt: []
+      x-permission: partners.ticket.read
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.invalid_cursor
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 7
+            enum:
+              - new
+              - replied
+              - closed
+        - name: party_kind
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 7
+            enum:
+              - partner
+        - name: party_id
+          in: query
+          required: false
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - name: created_from
+          in: query
+          required: false
+          schema:
+            $ref: _common.yaml#/components/schemas/IsoDate
+        - name: created_to
+          in: query
+          required: false
+          schema:
+            $ref: _common.yaml#/components/schemas/IsoDate
+        - $ref: _common.yaml#/components/parameters/Cursor
+        - $ref: _common.yaml#/components/parameters/Limit
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PartnerTicketPage"
+              examples:
+                synthetic:
+                  value:
+                    data:
+                      - id: 0193c4a0-0000-7000-8000-000000000512
+                        party_kind: partner
+                        party_id: 0193c4a0-0000-7000-8000-000000000402
+                        subject: Report delay (SYNTHETIC)
+                        status: new
+                        created_by: 0193c4a0-0000-7000-8000-000000000403
+                        created_at: 2026-11-17T04:15:00.000Z
+                        updated_at: 2026-11-17T04:15:00.000Z
+                        last_message_at: 2026-11-17T04:15:00.000Z
+                        version: 1
+                    page:
+                      limit: 50
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+    post:
+      operationId: createPartnerTicket
+      tags:
+        - partners
+      summary: Open a ticket to a partner, lab side (T0C-MSGDESK-1, staff only)
+      description: Staff only (lab side). Opens a ticket for the named partner with a first message from the lab (sender_kind lab); status new.
+      security:
+        - bearerJwt: []
+      x-permission: partners.ticket.manage
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.not_found
+        - common.idempotency_key_required
+        - common.idempotency_key_reused
+        - common.idempotency_in_progress
+      parameters:
+        - $ref: _common.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PartnerTicketAdminCreate"
+            examples:
+              synthetic:
+                value:
+                  party_kind: partner
+                  party_id: 0193c4a0-0000-7000-8000-000000000402
+                  subject: Sample pickup time changed (SYNTHETIC)
+                  body: Pickup moves to 10:00 from Sunday.
+      responses:
+        "201":
+          description: Created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PartnerTicket"
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-000000000513
+                    party_kind: partner
+                    party_id: 0193c4a0-0000-7000-8000-000000000402
+                    subject: Sample pickup time changed (SYNTHETIC)
+                    status: new
+                    created_by: 0193c4a0-0000-7000-8000-000000000405
+                    created_at: 2026-11-17T04:15:00.000Z
+                    updated_at: 2026-11-17T04:15:00.000Z
+                    last_message_at: 2026-11-17T04:15:00.000Z
+                    version: 1
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/partners/admin/tickets/{ticket_id}:
+    get:
+      operationId: getPartnerTicket
+      tags:
+        - partners
+      summary: Get a partner ticket with its messages, lab side (T0C-MSGDESK-1, staff only)
+      description: Staff only (lab side).
+      security:
+        - bearerJwt: []
+      x-permission: partners.ticket.read
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.not_found
+      parameters:
+        - name: ticket_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PartnerTicketDetail"
+              examples:
+                synthetic:
+                  value:
+                    ticket:
+                      id: 0193c4a0-0000-7000-8000-000000000514
+                      party_kind: partner
+                      party_id: 0193c4a0-0000-7000-8000-000000000402
+                      subject: Report delay (SYNTHETIC)
+                      status: replied
+                      created_by: 0193c4a0-0000-7000-8000-000000000403
+                      created_at: 2026-11-17T04:15:00.000Z
+                      updated_at: 2026-11-17T04:45:00.000Z
+                      last_message_at: 2026-11-17T04:45:00.000Z
+                      version: 2
+                    messages:
+                      - id: 0193c4a0-0000-7000-8000-000000000515
+                        ticket_id: 0193c4a0-0000-7000-8000-000000000401
+                        sender_kind: partner
+                        body: Where is the report? (SYNTHETIC)
+                        created_by: 0193c4a0-0000-7000-8000-000000000403
+                        created_at: 2026-11-17T04:15:00.000Z
+                      - id: 0193c4a0-0000-7000-8000-000000000516
+                        ticket_id: 0193c4a0-0000-7000-8000-000000000401
+                        sender_kind: lab
+                        body: It is ready this evening. (SYNTHETIC)
+                        created_by: 0193c4a0-0000-7000-8000-000000000406
+                        created_at: 2026-11-17T04:45:00.000Z
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/partners/admin/tickets/{ticket_id}/messages:
+    post:
+      operationId: replyPartnerTicket
+      tags:
+        - partners
+      summary: Reply to a partner ticket as the lab (T0C-MSGDESK-1, staff only)
+      description: >-
+        Staff only (lab side). Appends a message with sender_kind lab and moves a new ticket to replied. A closed ticket takes no reply
+        (partners.ticket_invalid_transition); reopen it first. Messages are append only.
+      security:
+        - bearerJwt: []
+      x-permission: partners.ticket.manage
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.not_found
+        - partners.ticket_invalid_transition
+        - common.idempotency_key_required
+        - common.idempotency_key_reused
+        - common.idempotency_in_progress
+      parameters:
+        - name: ticket_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - $ref: _common.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PartnerTicketReply"
+            examples:
+              synthetic:
+                value:
+                  body: It is ready this evening. (SYNTHETIC)
+      responses:
+        "201":
+          description: Created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PartnerTicketMessage"
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-000000000517
+                    ticket_id: 0193c4a0-0000-7000-8000-000000000401
+                    sender_kind: lab
+                    body: It is ready this evening. (SYNTHETIC)
+                    created_by: 0193c4a0-0000-7000-8000-000000000406
+                    created_at: 2026-11-17T04:45:00.000Z
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/partners/admin/tickets/{ticket_id}/close:
+    post:
+      operationId: closePartnerTicket
+      tags:
+        - partners
+      summary: Close a partner ticket (T0C-MSGDESK-1, staff only)
+      description: Staff only (lab side). Moves a new or replied ticket to closed; closing a closed ticket is refused (partners.ticket_invalid_transition).
+      security:
+        - bearerJwt: []
+      x-permission: partners.ticket.manage
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.not_found
+        - partners.ticket_invalid_transition
+        - common.version_conflict
+        - common.precondition_required
+        - common.idempotency_key_required
+        - common.idempotency_key_reused
+        - common.idempotency_in_progress
+      parameters:
+        - name: ticket_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - $ref: _common.yaml#/components/parameters/IdempotencyKey
+        - $ref: _common.yaml#/components/parameters/IfMatch
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PartnerTicket"
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-000000000518
+                    party_kind: partner
+                    party_id: 0193c4a0-0000-7000-8000-000000000402
+                    subject: Report delay (SYNTHETIC)
+                    status: closed
+                    created_by: 0193c4a0-0000-7000-8000-000000000403
+                    created_at: 2026-11-17T04:15:00.000Z
+                    updated_at: 2026-11-17T05:15:00.000Z
+                    last_message_at: 2026-11-17T04:45:00.000Z
+                    version: 3
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "428":
+          $ref: _common.yaml#/components/responses/PreconditionRequired
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/partners/admin/tickets/{ticket_id}/reopen:
+    post:
+      operationId: reopenPartnerTicket
+      tags:
+        - partners
+      summary: Reopen a closed partner ticket (T0C-MSGDESK-1, staff only)
+      description: Staff only (lab side). Moves a closed ticket back to new; any other status is refused (partners.ticket_invalid_transition).
+      security:
+        - bearerJwt: []
+      x-permission: partners.ticket.manage
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.not_found
+        - partners.ticket_invalid_transition
+        - common.version_conflict
+        - common.precondition_required
+        - common.idempotency_key_required
+        - common.idempotency_key_reused
+        - common.idempotency_in_progress
+      parameters:
+        - name: ticket_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - $ref: _common.yaml#/components/parameters/IdempotencyKey
+        - $ref: _common.yaml#/components/parameters/IfMatch
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PartnerTicket"
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-000000000519
+                    party_kind: partner
+                    party_id: 0193c4a0-0000-7000-8000-000000000402
+                    subject: Report delay (SYNTHETIC)
+                    status: new
+                    created_by: 0193c4a0-0000-7000-8000-000000000403
+                    created_at: 2026-11-17T04:15:00.000Z
+                    updated_at: 2026-11-17T05:30:00.000Z
+                    last_message_at: 2026-11-17T04:45:00.000Z
+                    version: 4
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "428":
+          $ref: _common.yaml#/components/responses/PreconditionRequired
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/partners/me/tickets:
+    get:
+      operationId: listMyPartnerTickets
+      tags:
+        - partners
+      summary: List own tickets, partner side (T0C-MSGDESK-1)
+      description: Own tickets only; the partner session decides the party (no party filter).
+      security:
+        - bearerJwt: []
+      x-permission: partners.ticket.read
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.invalid_cursor
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 7
+            enum:
+              - new
+              - replied
+              - closed
+        - $ref: _common.yaml#/components/parameters/Cursor
+        - $ref: _common.yaml#/components/parameters/Limit
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PartnerTicketPage"
+              examples:
+                synthetic:
+                  value:
+                    data:
+                      - id: 0193c4a0-0000-7000-8000-000000000520
+                        party_kind: partner
+                        party_id: 0193c4a0-0000-7000-8000-000000000402
+                        subject: Report delay (SYNTHETIC)
+                        status: replied
+                        created_by: 0193c4a0-0000-7000-8000-000000000403
+                        created_at: 2026-11-17T04:15:00.000Z
+                        updated_at: 2026-11-17T04:45:00.000Z
+                        version: 2
+                    page:
+                      limit: 50
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+    post:
+      operationId: createMyPartnerTicket
+      tags:
+        - partners
+      summary: Create a message to the lab, partner side (T0C-MSGDESK-1)
+      description: >-
+        Own tickets only: the party is the partner of the session (party_kind partner, party_id from the session), never client input.
+        Opens a ticket with status new and the first message (sender_kind partner). Online only.
+      security:
+        - bearerJwt: []
+      x-permission: partners.ticket.manage
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.idempotency_key_required
+        - common.idempotency_key_reused
+        - common.idempotency_in_progress
+      parameters:
+        - $ref: _common.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PartnerTicketCreate"
+            examples:
+              synthetic:
+                value:
+                  subject: Report delay (SYNTHETIC)
+                  body: Where is the report? (SYNTHETIC)
+      responses:
+        "201":
+          description: Created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PartnerTicket"
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-000000000521
+                    party_kind: partner
+                    party_id: 0193c4a0-0000-7000-8000-000000000402
+                    subject: Report delay (SYNTHETIC)
+                    status: new
+                    created_by: 0193c4a0-0000-7000-8000-000000000403
+                    created_at: 2026-11-17T04:15:00.000Z
+                    updated_at: 2026-11-17T04:15:00.000Z
+                    last_message_at: 2026-11-17T04:15:00.000Z
+                    version: 1
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/partners/me/tickets/{ticket_id}:
+    get:
+      operationId: getMyPartnerTicket
+      tags:
+        - partners
+      summary: Get an own ticket with its messages, partner side (T0C-MSGDESK-1)
+      description: Own tickets only; another partner's ticket answers 404 (common.not_found), never 403.
+      security:
+        - bearerJwt: []
+      x-permission: partners.ticket.read
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.not_found
+      parameters:
+        - name: ticket_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PartnerTicketDetail"
+              examples:
+                synthetic:
+                  value:
+                    ticket:
+                      id: 0193c4a0-0000-7000-8000-000000000522
+                      party_kind: partner
+                      party_id: 0193c4a0-0000-7000-8000-000000000402
+                      subject: Report delay (SYNTHETIC)
+                      status: new
+                      created_by: 0193c4a0-0000-7000-8000-000000000403
+                      created_at: 2026-11-17T04:15:00.000Z
+                      updated_at: 2026-11-17T04:15:00.000Z
+                      version: 1
+                    messages:
+                      - id: 0193c4a0-0000-7000-8000-000000000523
+                        ticket_id: 0193c4a0-0000-7000-8000-000000000401
+                        sender_kind: partner
+                        body: Where is the report? (SYNTHETIC)
+                        created_by: 0193c4a0-0000-7000-8000-000000000403
+                        created_at: 2026-11-17T04:15:00.000Z
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/partners/me/tickets/{ticket_id}/messages:
+    post:
+      operationId: replyMyPartnerTicket
+      tags:
+        - partners
+      summary: Reply on an own ticket, partner side (T0C-MSGDESK-1)
+      description: >-
+        Own tickets only; another partner's ticket answers 404. Appends a message with sender_kind partner (from the session, never client input)
+        and moves a replied ticket back to new. A closed ticket takes no reply (partners.ticket_invalid_transition). Offline (founder 09:19): the
+        reply may be queued on the device while offline and sent when the connection returns; the Idempotency-Key the device chose at queue time
+        makes the replay safe (a replayed reply is stored once).
+      security:
+        - bearerJwt: []
+      x-permission: partners.ticket.manage
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.not_found
+        - partners.ticket_invalid_transition
+        - common.idempotency_key_required
+        - common.idempotency_key_reused
+        - common.idempotency_in_progress
+      parameters:
+        - name: ticket_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - $ref: _common.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PartnerTicketReply"
+            examples:
+              synthetic:
+                value:
+                  body: Any news? (SYNTHETIC)
+      responses:
+        "201":
+          description: Created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PartnerTicketMessage"
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-000000000524
+                    ticket_id: 0193c4a0-0000-7000-8000-000000000401
+                    sender_kind: partner
+                    body: Any news? (SYNTHETIC)
+                    created_by: 0193c4a0-0000-7000-8000-000000000403
+                    created_at: 2026-11-17T05:00:00.000Z
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
 components:
   schemas:
     PartnerContext:
@@ -7831,6 +8557,165 @@ components:
               type: string
               minLength: 1
               maxLength: 160
+    # ---- T0C-MSGDESK-1 (LD-321): partner message to lab tickets ----
+    PartnerTicket:
+      description: Status new (waiting for the lab), replied (the lab answered) or closed. party_kind is a closed list; partner = partners.partners.
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - party_kind
+        - party_id
+        - subject
+        - status
+        - created_by
+        - created_at
+        - updated_at
+        - version
+      properties:
+        id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        party_kind:
+          type: string
+          maxLength: 7
+          enum:
+            - partner
+        party_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        subject:
+          type: string
+          minLength: 1
+          maxLength: 150
+        status:
+          type: string
+          maxLength: 7
+          enum:
+            - new
+            - replied
+            - closed
+        created_by:
+          $ref: _common.yaml#/components/schemas/Uuid
+        created_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        updated_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        last_message_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        version:
+          $ref: _common.yaml#/components/schemas/Version
+    PartnerTicketMessage:
+      description: Append only; sender_kind is derived from the actor (partner actor = partner, staff = lab).
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - ticket_id
+        - sender_kind
+        - body
+        - created_by
+        - created_at
+      properties:
+        id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        ticket_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        sender_kind:
+          type: string
+          maxLength: 7
+          enum:
+            - partner
+            - lab
+        body:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        created_by:
+          $ref: _common.yaml#/components/schemas/Uuid
+        created_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+    PartnerTicketDetail:
+      type: object
+      additionalProperties: false
+      required:
+        - ticket
+        - messages
+      properties:
+        ticket:
+          $ref: "#/components/schemas/PartnerTicket"
+        messages:
+          description: Oldest first; the newest 200.
+          type: array
+          maxItems: 200
+          items:
+            $ref: "#/components/schemas/PartnerTicketMessage"
+    PartnerTicketPage:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - page
+      properties:
+        data:
+          type: array
+          maxItems: 200
+          items:
+            $ref: "#/components/schemas/PartnerTicket"
+        page:
+          $ref: _common.yaml#/components/schemas/PageInfo
+    PartnerTicketCreate:
+      description: Partner side; the party comes from the partner session, never from the body.
+      type: object
+      additionalProperties: false
+      required:
+        - subject
+        - body
+      properties:
+        subject:
+          type: string
+          minLength: 1
+          maxLength: 150
+        body:
+          type: string
+          minLength: 1
+          maxLength: 2000
+    PartnerTicketAdminCreate:
+      description: Lab side; staff name the partner.
+      type: object
+      additionalProperties: false
+      required:
+        - party_kind
+        - party_id
+        - subject
+        - body
+      properties:
+        party_kind:
+          type: string
+          maxLength: 7
+          enum:
+            - partner
+        party_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        subject:
+          type: string
+          minLength: 1
+          maxLength: 150
+        body:
+          type: string
+          minLength: 1
+          maxLength: 2000
+    PartnerTicketReply:
+      description: >-
+        sender_kind is derived from the actor, never client input. A partner reply may be queued offline on the device and replayed later with the
+        same Idempotency-Key (stored once).
+      type: object
+      additionalProperties: false
+      required:
+        - body
+      properties:
+        body:
+          type: string
+          minLength: 1
+          maxLength: 2000
   parameters:
     ManifestId:
       name: manifest_id

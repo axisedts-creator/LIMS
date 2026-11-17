@@ -14,6 +14,8 @@ export const PARTNERS_PERMISSIONS: readonly string[] = Object.freeze([
   'partners.referrer.read',
   'partners.report.read',
   'partners.statement.read',
+  'partners.ticket.manage', // T0C-MSGDESK-1 (LD-321)
+  'partners.ticket.read',
 ]);
 
 /** System actor permissions (02-TRD §9.3); never `platform.*` (03 §11). Extended by CR only. */

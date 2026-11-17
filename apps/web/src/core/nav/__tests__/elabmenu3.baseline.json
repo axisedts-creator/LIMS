@@ -1,0 +1,1693 @@
+{
+ "note": "T0D-ELABMENU-3 baseline taken BEFORE the writer: sidebar labels (id -> message key, text), nav routes/permissions, the message keys of core/i18n/messages.ts, and the unpinned entries whose heading differed from the label (mismatched).",
+ "keys": [
+  "admin.nav.access_log",
+  "admin.nav.access_review",
+  "admin.nav.audit",
+  "admin.nav.branches",
+  "admin.nav.centres",
+  "admin.nav.exports",
+  "admin.nav.me",
+  "admin.nav.roles",
+  "admin.nav.sessions",
+  "admin.nav.settings",
+  "admin.nav.support_access",
+  "admin.nav.user_invite",
+  "admin.nav.user_new",
+  "admin.nav.users",
+  "analytics.nav.collections",
+  "analytics.nav.dashboard",
+  "analytics.nav.exports",
+  "analytics.nav.referral",
+  "analytics.nav.reports",
+  "analytics.nav.schedules",
+  "anatomic.nav.batches",
+  "anatomic.nav.config",
+  "anatomic.nav.tracking",
+  "anatomic.nav.worklist",
+  "billing.accounts.col.actions",
+  "billing.accounts.col.address",
+  "billing.accounts.col.amount",
+  "billing.accounts.col.balance",
+  "billing.accounts.col.bank",
+  "billing.accounts.col.blocked",
+  "billing.accounts.col.center",
+  "billing.accounts.col.client",
+  "billing.accounts.col.client_name",
+  "billing.accounts.col.code",
+  "billing.accounts.col.comments",
+  "billing.accounts.col.contact_no",
+  "billing.accounts.col.contact_person",
+  "billing.accounts.col.credit",
+  "billing.accounts.col.credit_limit",
+  "billing.accounts.col.credited",
+  "billing.accounts.col.date",
+  "billing.accounts.col.debit",
+  "billing.accounts.col.debited",
+  "billing.accounts.col.dr_cr",
+  "billing.accounts.col.email",
+  "billing.accounts.col.entry_date",
+  "billing.accounts.col.entry_status",
+  "billing.accounts.col.franchise",
+  "billing.accounts.col.group",
+  "billing.accounts.col.joined",
+  "billing.accounts.col.laboratory",
+  "billing.accounts.col.last_modified_by",
+  "billing.accounts.col.line",
+  "billing.accounts.col.name",
+  "billing.accounts.col.nature",
+  "billing.accounts.col.outstanding",
+  "billing.accounts.col.pan",
+  "billing.accounts.col.particulars",
+  "billing.accounts.col.payment_details",
+  "billing.accounts.col.payment_mode",
+  "billing.accounts.col.receipt",
+  "billing.accounts.col.receipt_no",
+  "billing.accounts.col.reference_no",
+  "billing.accounts.col.side",
+  "billing.accounts.col.state",
+  "billing.accounts.col.status",
+  "billing.accounts.entries.empty",
+  "billing.accounts.entries.failed",
+  "billing.accounts.entries.filters",
+  "billing.accounts.entries.form_title",
+  "billing.accounts.entries.list",
+  "billing.accounts.entries.new",
+  "billing.accounts.entries.reversal",
+  "billing.accounts.entries.reverse",
+  "billing.accounts.entries.reverse_confirm",
+  "billing.accounts.entries.reverse_failed",
+  "billing.accounts.entries.reverse_help",
+  "billing.accounts.entries.reverse_reason",
+  "billing.accounts.entries.reverse_title",
+  "billing.accounts.entries.reversed_ok",
+  "billing.accounts.entries.reverses",
+  "billing.accounts.entries.saved",
+  "billing.accounts.entries.server_fields",
+  "billing.accounts.entries.submit",
+  "billing.accounts.entries.title",
+  "billing.accounts.error.amount",
+  "billing.accounts.error.bank",
+  "billing.accounts.error.code",
+  "billing.accounts.error.date",
+  "billing.accounts.error.no_long_digits",
+  "billing.accounts.error.party",
+  "billing.accounts.error.reason",
+  "billing.accounts.error.required",
+  "billing.accounts.field.amount",
+  "billing.accounts.field.bank",
+  "billing.accounts.field.client",
+  "billing.accounts.field.code",
+  "billing.accounts.field.comments",
+  "billing.accounts.field.date_hint",
+  "billing.accounts.field.entry_date",
+  "billing.accounts.field.franchise",
+  "billing.accounts.field.group",
+  "billing.accounts.field.laboratory",
+  "billing.accounts.field.name",
+  "billing.accounts.field.nature",
+  "billing.accounts.field.particulars",
+  "billing.accounts.field.payment_details",
+  "billing.accounts.field.payment_mode",
+  "billing.accounts.field.reference",
+  "billing.accounts.field.type",
+  "billing.accounts.filter.centre",
+  "billing.accounts.filter.from",
+  "billing.accounts.filter.particular",
+  "billing.accounts.filter.party",
+  "billing.accounts.filter.reset",
+  "billing.accounts.filter.search",
+  "billing.accounts.filter.status",
+  "billing.accounts.filter.to",
+  "billing.accounts.filter.type",
+  "billing.accounts.ledger.balances",
+  "billing.accounts.ledger.closing",
+  "billing.accounts.ledger.csv",
+  "billing.accounts.ledger.empty",
+  "billing.accounts.ledger.filters",
+  "billing.accounts.ledger.opening",
+  "billing.accounts.ledger.party",
+  "billing.accounts.ledger.pick_party",
+  "billing.accounts.ledger.print",
+  "billing.accounts.ledger.print_title",
+  "billing.accounts.ledger.rows",
+  "billing.accounts.ledger.show",
+  "billing.accounts.ledger.title",
+  "billing.accounts.ledger.total_credit",
+  "billing.accounts.ledger.total_debit",
+  "billing.accounts.masters.activate",
+  "billing.accounts.masters.active",
+  "billing.accounts.masters.deactivate",
+  "billing.accounts.masters.edit",
+  "billing.accounts.masters.edit_group",
+  "billing.accounts.masters.edit_particular",
+  "billing.accounts.masters.empty_groups",
+  "billing.accounts.masters.empty_particulars",
+  "billing.accounts.masters.failed",
+  "billing.accounts.masters.groups",
+  "billing.accounts.masters.inactive",
+  "billing.accounts.masters.new_group",
+  "billing.accounts.masters.new_particular",
+  "billing.accounts.masters.particulars",
+  "billing.accounts.masters.save",
+  "billing.accounts.masters.saved",
+  "billing.accounts.masters.title",
+  "billing.accounts.mode.bank_transfer",
+  "billing.accounts.mode.card",
+  "billing.accounts.mode.cash",
+  "billing.accounts.mode.cheque",
+  "billing.accounts.mode.wallet",
+  "billing.accounts.nature.asset",
+  "billing.accounts.nature.expense",
+  "billing.accounts.nature.income",
+  "billing.accounts.nature.liability",
+  "billing.accounts.pocket.mine",
+  "billing.accounts.pocket.not_allowed",
+  "billing.accounts.pocket.of",
+  "billing.accounts.pocket.owner",
+  "billing.accounts.pocket.title",
+  "billing.accounts.pocket.unavailable",
+  "billing.accounts.reason.already_reversed",
+  "billing.accounts.reason.is_reversal",
+  "billing.accounts.reason.no_create",
+  "billing.accounts.reason.no_manage",
+  "billing.accounts.reason.no_reverse",
+  "billing.accounts.reason.pick_party_first",
+  "billing.accounts.receipt.amount",
+  "billing.accounts.receipt.date",
+  "billing.accounts.receipt.download",
+  "billing.accounts.receipt.heading",
+  "billing.accounts.receipt.in_words",
+  "billing.accounts.receipt.label",
+  "billing.accounts.receipt.no",
+  "billing.accounts.receipt.party",
+  "billing.accounts.receipt.reversed_note",
+  "billing.accounts.side.credit",
+  "billing.accounts.side.debit",
+  "billing.accounts.status.approved",
+  "billing.accounts.status.rejected",
+  "billing.accounts.status.reversed",
+  "billing.accounts.status.submitted",
+  "billing.accounts.summary.empty",
+  "billing.accounts.summary.no",
+  "billing.accounts.summary.partial",
+  "billing.accounts.summary.title",
+  "billing.accounts.summary.truncated",
+  "billing.accounts.summary.yes",
+  "billing.accounts.type.credit",
+  "billing.accounts.type.debit",
+  "catalog.nav.comment_codes",
+  "catalog.nav.credit_parties",
+  "catalog.nav.departments",
+  "catalog.nav.doctors",
+  "catalog.nav.home",
+  "catalog.nav.imports",
+  "catalog.nav.methods",
+  "catalog.nav.panels",
+  "catalog.nav.price_lists",
+  "catalog.nav.price_simulator",
+  "catalog.nav.specimens",
+  "catalog.nav.surcharges",
+  "catalog.nav.tax",
+  "catalog.nav.tests",
+  "catalog.nav.units",
+  "catalog.tests.active",
+  "catalog.tests.all_departments",
+  "catalog.tests.all_specimens",
+  "catalog.tests.col_code",
+  "catalog.tests.col_department",
+  "catalog.tests.col_name",
+  "catalog.tests.col_status",
+  "catalog.tests.col_workflow",
+  "catalog.tests.department",
+  "catalog.tests.empty",
+  "catalog.tests.field_code",
+  "catalog.tests.field_name",
+  "catalog.tests.field_specimen",
+  "catalog.tests.field_workflow",
+  "catalog.tests.inactive",
+  "catalog.tests.list_label",
+  "catalog.tests.need_manage",
+  "catalog.tests.new",
+  "catalog.tests.next",
+  "catalog.tests.no_access",
+  "catalog.tests.no_match",
+  "catalog.tests.no_specimen",
+  "catalog.tests.page_of",
+  "catalog.tests.pages",
+  "catalog.tests.previous",
+  "catalog.tests.saved",
+  "catalog.tests.search",
+  "catalog.tests.specimen",
+  "catalog.tests.status",
+  "catalog.tests.status_all",
+  "catalog.tests.title",
+  "core.elab.group.accounts",
+  "core.elab.group.administration",
+  "core.elab.group.daily_work",
+  "core.elab.group.dashboard",
+  "core.elab.group.machine",
+  "core.elab.group.other",
+  "core.elab.group.reports",
+  "core.elab.section.accounting",
+  "core.elab.section.audit",
+  "core.elab.section.billing",
+  "core.elab.section.mis",
+  "core.elab.section.ops_masters",
+  "core.elab.section.settings",
+  "core.elab.section.test_mgmt",
+  "core.elab.section.user_mgmt",
+  "core.nav.breadcrumb",
+  "core.nav.close_menu",
+  "core.nav.collapse",
+  "core.nav.expand",
+  "core.nav.find",
+  "core.nav.find_none",
+  "core.nav.frontdesk_settings",
+  "core.nav.group.admin",
+  "core.nav.group.analytics",
+  "core.nav.group.billing",
+  "core.nav.group.catalog",
+  "core.nav.group.engagement",
+  "core.nav.group.front_desk",
+  "core.nav.group.home_collection",
+  "core.nav.group.instruments",
+  "core.nav.group.inventory",
+  "core.nav.group.laboratory",
+  "core.nav.group.partners",
+  "core.nav.group.people_access",
+  "core.nav.group.platform",
+  "core.nav.group.quality",
+  "core.nav.group.reporting",
+  "core.nav.group.settings",
+  "core.nav.open_menu",
+  "core.nav.section.anatomic",
+  "core.nav.section.daily_work",
+  "core.nav.section.microbiology",
+  "core.nav.section.payments",
+  "core.nav.section.pricing",
+  "core.nav.section.smart_summaries",
+  "core.nav.view_only",
+  "core.not_found.title",
+  "core.permission_denied.body",
+  "core.permission_denied.title",
+  "core.session.expiring",
+  "core.session.expiring_title",
+  "core.session.sign_out",
+  "core.session.stay",
+  "core.shell.app_name",
+  "core.shell.centre",
+  "core.shell.centre_none",
+  "core.shell.density",
+  "core.shell.density_compact",
+  "core.shell.density_regular",
+  "core.shell.logo_alt",
+  "core.shell.my_account",
+  "core.shell.notifications",
+  "core.shell.notifications_unavailable",
+  "core.shell.search_failed",
+  "core.shell.search_hint",
+  "core.shell.search_label",
+  "core.shell.search_none",
+  "core.shell.search_placeholder",
+  "core.shell.search_results",
+  "core.shell.sign_out",
+  "core.shell.user_menu",
+  "engagement.nav.bookable",
+  "engagement.nav.bookings",
+  "engagement.nav.enquiries",
+  "engagement.nav.memberships",
+  "engagement.nav.queue",
+  "engagement.nav.queue_setup",
+  "engagement.nav.reminders",
+  "engagement.nav.settings",
+  "engagement.nav.slots",
+  "frontdesk.nav.discount_approvals",
+  "frontdesk.nav.registration_new",
+  "frontdesk.nav.worklist",
+  "homecollection.nav.devices",
+  "homecollection.nav.dispatch",
+  "homecollection.nav.handovers",
+  "homecollection.nav.settings",
+  "instruments.nav.agents",
+  "instruments.nav.instruments",
+  "instruments.nav.messages",
+  "instruments.nav.settings",
+  "inventory.nav.alerts",
+  "inventory.nav.bench",
+  "inventory.nav.counts",
+  "inventory.nav.home",
+  "inventory.nav.items",
+  "inventory.nav.purchase_orders",
+  "inventory.nav.receipts",
+  "inventory.nav.reports",
+  "inventory.nav.rules",
+  "inventory.nav.settings",
+  "inventory.nav.stock",
+  "inventory.nav.stores",
+  "inventory.nav.suppliers",
+  "inventory.nav.transfers",
+  "inventory.nav.unresolved",
+  "lab.nav.approval",
+  "lab.nav.collect",
+  "lab.nav.critical_values",
+  "lab.nav.ingest_exceptions",
+  "lab.nav.pending",
+  "lab.nav.qc",
+  "lab.nav.receive",
+  "lab.nav.settings",
+  "lab.nav.status_board",
+  "lab.nav.verification",
+  "lab.nav.worklists",
+  "lab.nav.worksheets",
+  "micro.nav.breakpoint_sets",
+  "micro.nav.instrument_records",
+  "micro.nav.settings",
+  "micro.nav.worklist",
+  "nav.billing.account_entries",
+  "nav.billing.account_ledger",
+  "nav.billing.account_masters",
+  "nav.billing.account_summary",
+  "nav.billing.audit_trail",
+  "nav.billing.cbms",
+  "nav.billing.credit_parties",
+  "nav.billing.daily_cash",
+  "nav.billing.dues",
+  "nav.billing.invoices",
+  "nav.billing.pocket_ledger",
+  "nav.billing.registers",
+  "nav.billing.settings",
+  "nav.billing.worklist",
+  "nav.platform.auth_events",
+  "nav.platform.dead_letters",
+  "nav.platform.home",
+  "nav.platform.ird",
+  "nav.platform.staff",
+  "nav.platform.support_sessions",
+  "nav.platform.tenants",
+  "nav.reporting.messages",
+  "nav.reporting.outsourced",
+  "nav.reporting.settings",
+  "nav.reporting.worklist",
+  "partners.nav.inbox",
+  "partners.nav.list",
+  "partners.nav.pickups",
+  "partners.nav.referrers",
+  "partners.nav.settings",
+  "payments.nav.reconciliation",
+  "payments.nav.refunds",
+  "payments.nav.review",
+  "payments.nav.settings",
+  "payments.nav.static_qr",
+  "quality.nav.autoverify",
+  "quality.nav.lj_chart",
+  "quality.nav.observations",
+  "quality.nav.runs",
+  "quality.nav.settings",
+  "quality.nav.setup",
+  "quality.nav.status",
+  "quality.nav.tat_alerts",
+  "smartreport.nav.library",
+  "smartreport.nav.summaries",
+  "smartreport.nav.wording"
+ ],
+ "labels": {
+  "frontdesk.registration_new": {
+   "key": "frontdesk.nav.registration_new",
+   "text": "Patient Registration"
+  },
+  "frontdesk.worklist": {
+   "key": "frontdesk.nav.worklist",
+   "text": "Front-desk worklist"
+  },
+  "frontdesk.discount_approvals": {
+   "key": "frontdesk.nav.discount_approvals",
+   "text": "Discount approvals"
+  },
+  "frontdesk.settings": {
+   "key": "core.nav.frontdesk_settings",
+   "text": "Front desk settings"
+  },
+  "lab.status_board": {
+   "key": "lab.nav.status_board",
+   "text": "Status board"
+  },
+  "lab.collect": {
+   "key": "lab.nav.collect",
+   "text": "Accession / Dispatch"
+  },
+  "lab.receive": {
+   "key": "lab.nav.receive",
+   "text": "Receive"
+  },
+  "lab.worklists": {
+   "key": "lab.nav.worklists",
+   "text": "Pathology Result"
+  },
+  "lab.pending": {
+   "key": "lab.nav.pending",
+   "text": "Pending"
+  },
+  "lab.verification": {
+   "key": "lab.nav.verification",
+   "text": "Verify"
+  },
+  "lab.approval": {
+   "key": "lab.nav.approval",
+   "text": "Approve"
+  },
+  "lab.critical_values": {
+   "key": "lab.nav.critical_values",
+   "text": "Critical values"
+  },
+  "lab.ingest_exceptions": {
+   "key": "lab.nav.ingest_exceptions",
+   "text": "Instrument exceptions"
+  },
+  "lab.worksheets": {
+   "key": "lab.nav.worksheets",
+   "text": "Worksheets"
+  },
+  "lab.qc": {
+   "key": "lab.nav.qc",
+   "text": "QC results"
+  },
+  "lab.settings": {
+   "key": "lab.nav.settings",
+   "text": "Lab settings"
+  },
+  "anatomic.worklist": {
+   "key": "anatomic.nav.worklist",
+   "text": "Pathology cases"
+  },
+  "micro.worklist": {
+   "key": "micro.nav.worklist",
+   "text": "Microbiology"
+  },
+  "anatomic.tracking": {
+   "key": "anatomic.nav.tracking",
+   "text": "Block & slide tracking"
+  },
+  "micro.instrument_records": {
+   "key": "micro.nav.instrument_records",
+   "text": "Instrument records"
+  },
+  "anatomic.batches": {
+   "key": "anatomic.nav.batches",
+   "text": "Molecular batches"
+  },
+  "micro.settings": {
+   "key": "micro.nav.settings",
+   "text": "Microbiology settings"
+  },
+  "anatomic.config": {
+   "key": "anatomic.nav.config",
+   "text": "Pathology setup"
+  },
+  "micro.breakpoint_sets": {
+   "key": "micro.nav.breakpoint_sets",
+   "text": "Breakpoint sets"
+  },
+  "reporting.worklist": {
+   "key": "nav.reporting.worklist",
+   "text": "Reports"
+  },
+  "reporting.outsourced": {
+   "key": "nav.reporting.outsourced",
+   "text": "Manual Outsource"
+  },
+  "reporting.messages": {
+   "key": "nav.reporting.messages",
+   "text": "Messages"
+  },
+  "reporting.settings": {
+   "key": "nav.reporting.settings",
+   "text": "Report Setup"
+  },
+  "smartreport.summaries": {
+   "key": "smartreport.nav.summaries",
+   "text": "Smart summaries"
+  },
+  "smartreport.library": {
+   "key": "smartreport.nav.library",
+   "text": "Summary library"
+  },
+  "smartreport.wording": {
+   "key": "smartreport.nav.wording",
+   "text": "Wording"
+  },
+  "billing.invoices": {
+   "key": "nav.billing.invoices",
+   "text": "Invoices"
+  },
+  "billing.dues": {
+   "key": "nav.billing.dues",
+   "text": "Dues"
+  },
+  "billing.daily_cash": {
+   "key": "nav.billing.daily_cash",
+   "text": "Daily Payment Collection"
+  },
+  "billing.credit_parties": {
+   "key": "nav.billing.credit_parties",
+   "text": "Credit parties"
+  },
+  "billing.registers": {
+   "key": "nav.billing.registers",
+   "text": "Registers"
+  },
+  "billing.audit_trail": {
+   "key": "nav.billing.audit_trail",
+   "text": "Audit trail"
+  },
+  "billing.cbms": {
+   "key": "nav.billing.cbms",
+   "text": "CBMS"
+  },
+  "billing.worklist": {
+   "key": "nav.billing.worklist",
+   "text": "Finance worklist"
+  },
+  "billing.settings": {
+   "key": "nav.billing.settings",
+   "text": "Billing settings"
+  },
+  "billing.account_entries": {
+   "key": "nav.billing.account_entries",
+   "text": "Account Entry"
+  },
+  "billing.account_ledger": {
+   "key": "nav.billing.account_ledger",
+   "text": "Account Ledger"
+  },
+  "billing.pocket_ledger": {
+   "key": "nav.billing.pocket_ledger",
+   "text": "Pocket Ledger"
+  },
+  "billing.account_summary": {
+   "key": "nav.billing.account_summary",
+   "text": "Account Summary"
+  },
+  "billing.account_masters": {
+   "key": "nav.billing.account_masters",
+   "text": "Account masters"
+  },
+  "payments.review": {
+   "key": "payments.nav.review",
+   "text": "Payment review"
+  },
+  "payments.refunds": {
+   "key": "payments.nav.refunds",
+   "text": "Gateway refunds"
+  },
+  "payments.reconciliation": {
+   "key": "payments.nav.reconciliation",
+   "text": "Gateway reconciliation"
+  },
+  "payments.static_qr": {
+   "key": "payments.nav.static_qr",
+   "text": "Fonepay QR worksheet"
+  },
+  "payments.settings": {
+   "key": "payments.nav.settings",
+   "text": "Payment gateways"
+  },
+  "catalog.home": {
+   "key": "catalog.nav.home",
+   "text": "Overview"
+  },
+  "catalog.departments": {
+   "key": "catalog.nav.departments",
+   "text": "Test Category"
+  },
+  "catalog.specimens": {
+   "key": "catalog.nav.specimens",
+   "text": "Test Group"
+  },
+  "catalog.methods": {
+   "key": "catalog.nav.methods",
+   "text": "Method Master"
+  },
+  "catalog.units": {
+   "key": "catalog.nav.units",
+   "text": "Test Unit"
+  },
+  "catalog.tests": {
+   "key": "catalog.nav.tests",
+   "text": "Test Details"
+  },
+  "catalog.panels": {
+   "key": "catalog.nav.panels",
+   "text": "Test Profile"
+  },
+  "catalog.comment_codes": {
+   "key": "catalog.nav.comment_codes",
+   "text": "Notes"
+  },
+  "catalog.doctors": {
+   "key": "catalog.nav.doctors",
+   "text": "Doctor Management"
+  },
+  "catalog.credit_parties": {
+   "key": "catalog.nav.credit_parties",
+   "text": "Client"
+  },
+  "catalog.price_lists": {
+   "key": "catalog.nav.price_lists",
+   "text": "Rate Master"
+  },
+  "catalog.price_simulator": {
+   "key": "catalog.nav.price_simulator",
+   "text": "Price simulator"
+  },
+  "catalog.surcharges": {
+   "key": "catalog.nav.surcharges",
+   "text": "Surcharges"
+  },
+  "catalog.tax": {
+   "key": "catalog.nav.tax",
+   "text": "Tax"
+  },
+  "catalog.imports": {
+   "key": "catalog.nav.imports",
+   "text": "Batch Upload"
+  },
+  "instruments.agents": {
+   "key": "instruments.nav.agents",
+   "text": "Agents"
+  },
+  "instruments.instruments": {
+   "key": "instruments.nav.instruments",
+   "text": "Instruments"
+  },
+  "instruments.messages": {
+   "key": "instruments.nav.messages",
+   "text": "Messages"
+  },
+  "instruments.settings": {
+   "key": "instruments.nav.settings",
+   "text": "Settings"
+  },
+  "analytics.dashboard": {
+   "key": "analytics.nav.dashboard",
+   "text": "Dashboard"
+  },
+  "analytics.reports": {
+   "key": "analytics.nav.reports",
+   "text": "MIS Report"
+  },
+  "analytics.collections": {
+   "key": "analytics.nav.collections",
+   "text": "Collections history"
+  },
+  "analytics.referral": {
+   "key": "analytics.nav.referral",
+   "text": "Referral business report"
+  },
+  "analytics.exports": {
+   "key": "analytics.nav.exports",
+   "text": "My exports"
+  },
+  "analytics.schedules": {
+   "key": "analytics.nav.schedules",
+   "text": "Scheduled reports"
+  },
+  "quality.status": {
+   "key": "quality.nav.status",
+   "text": "QC status"
+  },
+  "quality.runs": {
+   "key": "quality.nav.runs",
+   "text": "QC runs"
+  },
+  "quality.lj_chart": {
+   "key": "quality.nav.lj_chart",
+   "text": "Levey-Jennings chart"
+  },
+  "quality.observations": {
+   "key": "quality.nav.observations",
+   "text": "Observations"
+  },
+  "quality.setup": {
+   "key": "quality.nav.setup",
+   "text": "QC setup"
+  },
+  "quality.autoverify": {
+   "key": "quality.nav.autoverify",
+   "text": "Autoverification"
+  },
+  "quality.tat_alerts": {
+   "key": "quality.nav.tat_alerts",
+   "text": "TAT alerts"
+  },
+  "quality.settings": {
+   "key": "quality.nav.settings",
+   "text": "Quality settings"
+  },
+  "inventory.home": {
+   "key": "inventory.nav.home",
+   "text": "Inventory"
+  },
+  "inventory.stock": {
+   "key": "inventory.nav.stock",
+   "text": "Stock"
+  },
+  "inventory.purchase_orders": {
+   "key": "inventory.nav.purchase_orders",
+   "text": "Purchase orders"
+  },
+  "inventory.receipts": {
+   "key": "inventory.nav.receipts",
+   "text": "Goods receipts"
+  },
+  "inventory.transfers": {
+   "key": "inventory.nav.transfers",
+   "text": "Transfers"
+  },
+  "inventory.counts": {
+   "key": "inventory.nav.counts",
+   "text": "Stock counts"
+  },
+  "inventory.bench": {
+   "key": "inventory.nav.bench",
+   "text": "Bench"
+  },
+  "inventory.items": {
+   "key": "inventory.nav.items",
+   "text": "Items"
+  },
+  "inventory.rules": {
+   "key": "inventory.nav.rules",
+   "text": "Consumption rules"
+  },
+  "inventory.unresolved": {
+   "key": "inventory.nav.unresolved",
+   "text": "Waiting consumption"
+  },
+  "inventory.alerts": {
+   "key": "inventory.nav.alerts",
+   "text": "Alerts"
+  },
+  "inventory.reports": {
+   "key": "inventory.nav.reports",
+   "text": "Reports"
+  },
+  "inventory.suppliers": {
+   "key": "inventory.nav.suppliers",
+   "text": "Suppliers"
+  },
+  "inventory.stores": {
+   "key": "inventory.nav.stores",
+   "text": "Stores"
+  },
+  "inventory.settings": {
+   "key": "inventory.nav.settings",
+   "text": "Settings"
+  },
+  "partners.inbox": {
+   "key": "partners.nav.inbox",
+   "text": "Partner manifests"
+  },
+  "partners.pickups": {
+   "key": "partners.nav.pickups",
+   "text": "Partner pickups"
+  },
+  "partners.list": {
+   "key": "partners.nav.list",
+   "text": "Partners"
+  },
+  "partners.referrers": {
+   "key": "partners.nav.referrers",
+   "text": "Partner doctors"
+  },
+  "partners.settings": {
+   "key": "partners.nav.settings",
+   "text": "Partner portal settings"
+  },
+  "engagement.queue": {
+   "key": "engagement.nav.queue",
+   "text": "Queue"
+  },
+  "engagement.bookings": {
+   "key": "engagement.nav.bookings",
+   "text": "Bookings"
+  },
+  "engagement.reminders": {
+   "key": "engagement.nav.reminders",
+   "text": "Reminders"
+  },
+  "engagement.enquiries": {
+   "key": "engagement.nav.enquiries",
+   "text": "Enquiries"
+  },
+  "engagement.memberships": {
+   "key": "engagement.nav.memberships",
+   "text": "Memberships"
+  },
+  "engagement.slots": {
+   "key": "engagement.nav.slots",
+   "text": "Booking slots"
+  },
+  "engagement.bookable": {
+   "key": "engagement.nav.bookable",
+   "text": "Bookable tests"
+  },
+  "engagement.queue_setup": {
+   "key": "engagement.nav.queue_setup",
+   "text": "Queue setup"
+  },
+  "engagement.settings": {
+   "key": "engagement.nav.settings",
+   "text": "Engagement settings"
+  },
+  "homecollection.dispatch": {
+   "key": "homecollection.nav.dispatch",
+   "text": "Home visits"
+  },
+  "homecollection.handovers": {
+   "key": "homecollection.nav.handovers",
+   "text": "Tube handovers"
+  },
+  "homecollection.devices": {
+   "key": "homecollection.nav.devices",
+   "text": "Phlebotomy phones"
+  },
+  "homecollection.settings": {
+   "key": "homecollection.nav.settings",
+   "text": "Home collection settings"
+  },
+  "admin.me": {
+   "key": "admin.nav.me",
+   "text": "My account"
+  },
+  "admin.users": {
+   "key": "admin.nav.users",
+   "text": "User Management"
+  },
+  "admin.user_new": {
+   "key": "admin.nav.user_new",
+   "text": "New user"
+  },
+  "admin.roles": {
+   "key": "admin.nav.roles",
+   "text": "Role Management"
+  },
+  "admin.branches": {
+   "key": "admin.nav.branches",
+   "text": "Laboratory Management"
+  },
+  "admin.centres": {
+   "key": "admin.nav.centres",
+   "text": "Collection Center"
+  },
+  "admin.settings": {
+   "key": "admin.nav.settings",
+   "text": "Laboratory Configuration"
+  },
+  "admin.sessions": {
+   "key": "admin.nav.sessions",
+   "text": "Sessions"
+  },
+  "admin.audit": {
+   "key": "admin.nav.audit",
+   "text": "Activity Log History"
+  },
+  "admin.access_log": {
+   "key": "admin.nav.access_log",
+   "text": "Access log"
+  },
+  "admin.exports": {
+   "key": "admin.nav.exports",
+   "text": "Audit exports"
+  },
+  "admin.support_access": {
+   "key": "admin.nav.support_access",
+   "text": "Support access"
+  },
+  "admin.access_review": {
+   "key": "admin.nav.access_review",
+   "text": "Access review"
+  },
+  "platform.home": {
+   "key": "nav.platform.home",
+   "text": "Home"
+  },
+  "platform.tenants": {
+   "key": "nav.platform.tenants",
+   "text": "Tenants"
+  },
+  "platform.ird": {
+   "key": "nav.platform.ird",
+   "text": "IRD annexes"
+  },
+  "platform.support_sessions": {
+   "key": "nav.platform.support_sessions",
+   "text": "Support sessions"
+  },
+  "platform.dead_letters": {
+   "key": "nav.platform.dead_letters",
+   "text": "Dead letters"
+  },
+  "platform.staff": {
+   "key": "nav.platform.staff",
+   "text": "Platform staff"
+  },
+  "platform.auth_events": {
+   "key": "nav.platform.auth_events",
+   "text": "Sign-in events"
+  }
+ },
+ "routes": {
+  "frontdesk.registration_new": {
+   "routeId": "staff.frontdesk.registration_new",
+   "path": "/frontdesk/registrations/new",
+   "permission": "frontdesk.registration.create"
+  },
+  "frontdesk.worklist": {
+   "routeId": "staff.frontdesk.worklist",
+   "path": "/frontdesk/worklist",
+   "permission": "frontdesk.order.read"
+  },
+  "frontdesk.discount_approvals": {
+   "routeId": "staff.frontdesk.discount_approvals",
+   "path": "/frontdesk/discount-approvals",
+   "permission": "frontdesk.discount.approve"
+  },
+  "frontdesk.settings": {
+   "routeId": "staff.frontdesk.settings",
+   "path": "/frontdesk/settings",
+   "permission": "frontdesk.settings.manage"
+  },
+  "lab.status_board": {
+   "routeId": "staff.lab.status_board",
+   "path": "/lab/status-board",
+   "permission": "lab.status_board.read"
+  },
+  "lab.collect": {
+   "routeId": "staff.lab.collect",
+   "path": "/lab/collect",
+   "permission": "lab.specimen.collect"
+  },
+  "lab.receive": {
+   "routeId": "staff.lab.receive",
+   "path": "/lab/receive",
+   "permission": "lab.specimen.receive"
+  },
+  "lab.worklists": {
+   "routeId": "staff.lab.worklists",
+   "path": "/lab/worklists",
+   "permission": "lab.worklist.read"
+  },
+  "lab.pending": {
+   "routeId": "staff.lab.pending",
+   "path": "/lab/pending",
+   "permission": "lab.worklist.read"
+  },
+  "lab.verification": {
+   "routeId": "staff.lab.verification",
+   "path": "/lab/verification",
+   "permission": "lab.result.verify"
+  },
+  "lab.approval": {
+   "routeId": "staff.lab.approval",
+   "path": "/lab/approval",
+   "permission": "lab.result.approve"
+  },
+  "lab.critical_values": {
+   "routeId": "staff.lab.critical_values",
+   "path": "/lab/critical-values",
+   "permission": "lab.critical_value.read"
+  },
+  "lab.ingest_exceptions": {
+   "routeId": "staff.lab.ingest_exceptions",
+   "path": "/lab/ingest-exceptions",
+   "permission": "lab.result.read"
+  },
+  "lab.worksheets": {
+   "routeId": "staff.lab.worksheets",
+   "path": "/lab/worksheets",
+   "permission": "lab.worklist.read"
+  },
+  "lab.qc": {
+   "routeId": "staff.lab.qc",
+   "path": "/lab/qc",
+   "permission": "lab.qc.capture"
+  },
+  "lab.settings": {
+   "routeId": "staff.lab.settings",
+   "path": "/lab/settings",
+   "permission": "lab.config.manage"
+  },
+  "anatomic.worklist": {
+   "routeId": "staff.anatomic.worklist",
+   "path": "/anatomic",
+   "permission": "anatomic.case.read"
+  },
+  "micro.worklist": {
+   "routeId": "staff.micro.worklist",
+   "path": "/micro/worklist",
+   "permission": "micro.culture.read"
+  },
+  "anatomic.tracking": {
+   "routeId": "staff.anatomic.tracking",
+   "path": "/anatomic/tracking",
+   "permission": "anatomic.case.read"
+  },
+  "micro.instrument_records": {
+   "routeId": "staff.micro.instrument_records",
+   "path": "/micro/instrument-records",
+   "permission": "micro.culture.read"
+  },
+  "anatomic.batches": {
+   "routeId": "staff.anatomic.batches",
+   "path": "/anatomic/batches",
+   "permission": "anatomic.case.read"
+  },
+  "micro.settings": {
+   "routeId": "staff.micro.settings",
+   "path": "/micro/settings",
+   "permission": "micro.config.manage"
+  },
+  "anatomic.config": {
+   "routeId": "staff.anatomic.config",
+   "path": "/anatomic/config",
+   "permission": "anatomic.config.manage"
+  },
+  "micro.breakpoint_sets": {
+   "routeId": "staff.micro.breakpoint_sets",
+   "path": "/micro/breakpoint-sets",
+   "permission": "micro.breakpoint.manage"
+  },
+  "reporting.worklist": {
+   "routeId": "staff.reporting.worklist",
+   "path": "/reporting",
+   "permission": "reporting.report.read"
+  },
+  "reporting.outsourced": {
+   "routeId": "staff.reporting.outsourced",
+   "path": "/reporting/outsourced",
+   "permission": "reporting.outsourced.attach"
+  },
+  "reporting.messages": {
+   "routeId": "staff.reporting.messages",
+   "path": "/reporting/messages",
+   "permission": "reporting.message_template.manage"
+  },
+  "reporting.settings": {
+   "routeId": "staff.reporting.settings",
+   "path": "/reporting/settings",
+   "permission": "reporting.settings.manage"
+  },
+  "smartreport.summaries": {
+   "routeId": "staff.smartreport.summaries",
+   "path": "/smartreport/summaries",
+   "permission": "smartreport.summary.read"
+  },
+  "smartreport.library": {
+   "routeId": "staff.smartreport.library",
+   "path": "/smartreport/library",
+   "permission": "smartreport.template.manage"
+  },
+  "smartreport.wording": {
+   "routeId": "staff.smartreport.wording",
+   "path": "/smartreport/wording",
+   "permission": "smartreport.template.manage"
+  },
+  "billing.invoices": {
+   "routeId": "staff.billing.invoices",
+   "path": "/billing/invoices",
+   "permission": "billing.invoice.read"
+  },
+  "billing.dues": {
+   "routeId": "staff.billing.dues",
+   "path": "/billing/dues",
+   "permission": "billing.invoice.read"
+  },
+  "billing.daily_cash": {
+   "routeId": "staff.billing.daily_cash",
+   "path": "/billing/daily-cash",
+   "permission": "billing.cash_report.read"
+  },
+  "billing.credit_parties": {
+   "routeId": "staff.billing.credit_parties",
+   "path": "/billing/credit-parties",
+   "permission": "billing.credit_party.read"
+  },
+  "billing.registers": {
+   "routeId": "staff.billing.registers",
+   "path": "/billing/registers",
+   "permission": "billing.invoice.read"
+  },
+  "billing.audit_trail": {
+   "routeId": "staff.billing.audit_trail",
+   "path": "/billing/audit-trail",
+   "permission": "billing.data.export"
+  },
+  "billing.cbms": {
+   "routeId": "staff.billing.cbms",
+   "path": "/billing/cbms",
+   "permission": "billing.invoice.read"
+  },
+  "billing.worklist": {
+   "routeId": "staff.billing.worklist",
+   "path": "/billing/worklist",
+   "permission": "billing.invoice.read"
+  },
+  "billing.settings": {
+   "routeId": "staff.billing.settings",
+   "path": "/billing/settings",
+   "permission": "billing.settings.manage"
+  },
+  "billing.account_entries": {
+   "routeId": "staff.billing.account_entries",
+   "path": "/billing/accounts/entries",
+   "permission": "billing.account.read"
+  },
+  "billing.account_ledger": {
+   "routeId": "staff.billing.account_ledger",
+   "path": "/billing/accounts/ledger",
+   "permission": "billing.account.read"
+  },
+  "billing.pocket_ledger": {
+   "routeId": "staff.billing.pocket_ledger",
+   "path": "/billing/accounts/pocket",
+   "permission": "billing.account.read"
+  },
+  "billing.account_summary": {
+   "routeId": "staff.billing.account_summary",
+   "path": "/billing/accounts/summary",
+   "permission": "billing.account.read"
+  },
+  "billing.account_masters": {
+   "routeId": "staff.billing.account_masters",
+   "path": "/billing/accounts/masters",
+   "permission": "billing.account.read"
+  },
+  "payments.review": {
+   "routeId": "staff.payments.review",
+   "path": "/payments/review",
+   "permission": "payments.reconciliation.read"
+  },
+  "payments.refunds": {
+   "routeId": "staff.payments.refunds",
+   "path": "/payments/refunds",
+   "permission": "payments.reconciliation.read"
+  },
+  "payments.reconciliation": {
+   "routeId": "staff.payments.reconciliation",
+   "path": "/payments/reconciliation",
+   "permission": "payments.reconciliation.read"
+  },
+  "payments.static_qr": {
+   "routeId": "staff.payments.static_qr",
+   "path": "/payments/static-qr",
+   "permission": "payments.reconciliation.read"
+  },
+  "payments.settings": {
+   "routeId": "staff.payments.settings",
+   "path": "/payments/settings",
+   "permission": "payments.merchant_config.read"
+  },
+  "catalog.home": {
+   "routeId": "staff.catalog.home",
+   "path": "/catalog",
+   "permission": "catalog.test.read"
+  },
+  "catalog.departments": {
+   "routeId": "staff.catalog.departments",
+   "path": "/catalog/departments",
+   "permission": "catalog.test.read"
+  },
+  "catalog.specimens": {
+   "routeId": "staff.catalog.specimens",
+   "path": "/catalog/specimens",
+   "permission": "catalog.test.read"
+  },
+  "catalog.methods": {
+   "routeId": "staff.catalog.methods",
+   "path": "/catalog/methods",
+   "permission": "catalog.test.read"
+  },
+  "catalog.units": {
+   "routeId": "staff.catalog.units",
+   "path": "/catalog/units",
+   "permission": "catalog.test.read"
+  },
+  "catalog.tests": {
+   "routeId": "staff.catalog.tests",
+   "path": "/catalog/tests",
+   "permission": "catalog.test.read"
+  },
+  "catalog.panels": {
+   "routeId": "staff.catalog.panels",
+   "path": "/catalog/panels",
+   "permission": "catalog.test.read"
+  },
+  "catalog.comment_codes": {
+   "routeId": "staff.catalog.comment_codes",
+   "path": "/catalog/comment-codes",
+   "permission": "catalog.test.read"
+  },
+  "catalog.doctors": {
+   "routeId": "staff.catalog.doctors",
+   "path": "/catalog/doctors",
+   "permission": "catalog.referrer.read"
+  },
+  "catalog.credit_parties": {
+   "routeId": "staff.catalog.credit_parties",
+   "path": "/catalog/credit-parties",
+   "permission": "catalog.price_list.read"
+  },
+  "catalog.price_lists": {
+   "routeId": "staff.catalog.price_lists",
+   "path": "/catalog/price-lists",
+   "permission": "catalog.price_list.read"
+  },
+  "catalog.price_simulator": {
+   "routeId": "staff.catalog.price_simulator",
+   "path": "/catalog/price-simulator",
+   "permission": "catalog.price_list.read"
+  },
+  "catalog.surcharges": {
+   "routeId": "staff.catalog.surcharges",
+   "path": "/catalog/surcharges",
+   "permission": "catalog.price_list.read"
+  },
+  "catalog.tax": {
+   "routeId": "staff.catalog.tax",
+   "path": "/catalog/tax",
+   "permission": "catalog.price_list.read"
+  },
+  "catalog.imports": {
+   "routeId": "staff.catalog.imports",
+   "path": "/catalog/imports",
+   "permission": "catalog.test.read"
+  },
+  "instruments.agents": {
+   "routeId": "staff.instruments.agents",
+   "path": "/instruments/agents",
+   "permission": "instruments.agent.read"
+  },
+  "instruments.instruments": {
+   "routeId": "staff.instruments.instruments",
+   "path": "/instruments/instruments",
+   "permission": "instruments.instrument.read"
+  },
+  "instruments.messages": {
+   "routeId": "staff.instruments.messages",
+   "path": "/instruments/messages",
+   "permission": "instruments.message.read"
+  },
+  "instruments.settings": {
+   "routeId": "staff.instruments.settings",
+   "path": "/instruments/settings",
+   "permission": "instruments.instrument.read"
+  },
+  "analytics.dashboard": {
+   "routeId": "staff.analytics.dashboard",
+   "path": "/analytics",
+   "permission": "analytics.dashboard.read"
+  },
+  "analytics.reports": {
+   "routeId": "staff.analytics.reports",
+   "path": "/analytics/reports",
+   "permission": "analytics.dashboard.read"
+  },
+  "analytics.collections": {
+   "routeId": "staff.analytics.collections",
+   "path": "/analytics/collections",
+   "permission": "analytics.collections.read"
+  },
+  "analytics.referral": {
+   "routeId": "staff.analytics.referral_incentive",
+   "path": "/analytics/referral-incentive",
+   "permission": "analytics.referral_report.read"
+  },
+  "analytics.exports": {
+   "routeId": "staff.analytics.exports",
+   "path": "/analytics/exports",
+   "permission": "analytics.data.export"
+  },
+  "analytics.schedules": {
+   "routeId": "staff.analytics.schedules",
+   "path": "/analytics/schedules",
+   "permission": "analytics.schedule.manage"
+  },
+  "quality.status": {
+   "routeId": "staff.quality.status",
+   "path": "/quality",
+   "permission": "quality.qc_run.read"
+  },
+  "quality.runs": {
+   "routeId": "staff.quality.runs",
+   "path": "/quality/runs",
+   "permission": "quality.qc_run.read"
+  },
+  "quality.lj_chart": {
+   "routeId": "staff.quality.lj_chart",
+   "path": "/quality/lj",
+   "permission": "quality.qc_run.read"
+  },
+  "quality.observations": {
+   "routeId": "staff.quality.observations",
+   "path": "/quality/observations",
+   "permission": "quality.qc_run.read"
+  },
+  "quality.setup": {
+   "routeId": "staff.quality.setup",
+   "path": "/quality/setup/materials",
+   "permission": "quality.qc_run.read"
+  },
+  "quality.autoverify": {
+   "routeId": "staff.quality.autoverify",
+   "path": "/quality/autoverify",
+   "permission": "quality.autoverify.read"
+  },
+  "quality.tat_alerts": {
+   "routeId": "staff.quality.tat_alerts",
+   "path": "/quality/tat-alerts",
+   "permission": "quality.tat_alert.read"
+  },
+  "quality.settings": {
+   "routeId": "staff.quality.settings",
+   "path": "/quality/settings",
+   "permission": "quality.qc_run.read"
+  },
+  "inventory.home": {
+   "routeId": "staff.inventory.home",
+   "path": "/inventory",
+   "permission": "inventory.item.read"
+  },
+  "inventory.stock": {
+   "routeId": "staff.inventory.stock",
+   "path": "/inventory/stock",
+   "permission": "inventory.item.read"
+  },
+  "inventory.purchase_orders": {
+   "routeId": "staff.inventory.purchase_orders",
+   "path": "/inventory/purchase-orders",
+   "permission": "inventory.item.read"
+  },
+  "inventory.receipts": {
+   "routeId": "staff.inventory.receipts",
+   "path": "/inventory/receipts",
+   "permission": "inventory.item.read"
+  },
+  "inventory.transfers": {
+   "routeId": "staff.inventory.transfers",
+   "path": "/inventory/transfers",
+   "permission": "inventory.item.read"
+  },
+  "inventory.counts": {
+   "routeId": "staff.inventory.counts",
+   "path": "/inventory/counts",
+   "permission": "inventory.item.read"
+  },
+  "inventory.bench": {
+   "routeId": "staff.inventory.bench",
+   "path": "/inventory/bench",
+   "permission": "inventory.bench.record"
+  },
+  "inventory.items": {
+   "routeId": "staff.inventory.items",
+   "path": "/inventory/items",
+   "permission": "inventory.item.read"
+  },
+  "inventory.rules": {
+   "routeId": "staff.inventory.rules",
+   "path": "/inventory/rules",
+   "permission": "inventory.item.read"
+  },
+  "inventory.unresolved": {
+   "routeId": "staff.inventory.unresolved",
+   "path": "/inventory/unresolved",
+   "permission": "inventory.item.read"
+  },
+  "inventory.alerts": {
+   "routeId": "staff.inventory.alerts",
+   "path": "/inventory/alerts",
+   "permission": "inventory.item.read"
+  },
+  "inventory.reports": {
+   "routeId": "staff.inventory.reports",
+   "path": "/inventory/reports",
+   "permission": "inventory.item.read"
+  },
+  "inventory.suppliers": {
+   "routeId": "staff.inventory.suppliers",
+   "path": "/inventory/suppliers",
+   "permission": "inventory.item.read"
+  },
+  "inventory.stores": {
+   "routeId": "staff.inventory.stores",
+   "path": "/inventory/stores",
+   "permission": "inventory.item.read"
+  },
+  "inventory.settings": {
+   "routeId": "staff.inventory.settings",
+   "path": "/inventory/settings",
+   "permission": "inventory.master.manage"
+  },
+  "partners.inbox": {
+   "routeId": "staff.partners.inbox",
+   "path": "/partners/manifests",
+   "permission": "partners.manifest.receive"
+  },
+  "partners.pickups": {
+   "routeId": "staff.partners.pickups",
+   "path": "/partners/pickups",
+   "permission": "partners.pickup.manage"
+  },
+  "partners.list": {
+   "routeId": "staff.partners.list",
+   "path": "/partners",
+   "permission": "partners.partner.read"
+  },
+  "partners.referrers": {
+   "routeId": "staff.partners.referrers",
+   "path": "/partners/referrers",
+   "permission": "partners.referrer.map"
+  },
+  "partners.settings": {
+   "routeId": "staff.partners.settings",
+   "path": "/partners/settings",
+   "permission": "partners.partner.manage"
+  },
+  "engagement.queue": {
+   "routeId": "staff.engagement.queue",
+   "path": "/engagement/queue",
+   "permission": "engagement.queue.operate"
+  },
+  "engagement.bookings": {
+   "routeId": "staff.engagement.bookings",
+   "path": "/engagement/bookings",
+   "permission": "engagement.booking.read"
+  },
+  "engagement.reminders": {
+   "routeId": "staff.engagement.reminders",
+   "path": "/engagement/reminders",
+   "permission": "engagement.reminder.read"
+  },
+  "engagement.enquiries": {
+   "routeId": "staff.engagement.enquiries",
+   "path": "/engagement/enquiries",
+   "permission": "engagement.enquiry.read"
+  },
+  "engagement.memberships": {
+   "routeId": "staff.engagement.memberships",
+   "path": "/engagement/memberships",
+   "permission": "engagement.membership.read"
+  },
+  "engagement.slots": {
+   "routeId": "staff.engagement.slots",
+   "path": "/engagement/slots",
+   "permission": "engagement.slot.manage"
+  },
+  "engagement.bookable": {
+   "routeId": "staff.engagement.bookable",
+   "path": "/engagement/bookable-items",
+   "permission": "engagement.bookable_item.manage"
+  },
+  "engagement.queue_setup": {
+   "routeId": "staff.engagement.queue_setup",
+   "path": "/engagement/queue/setup",
+   "permission": "engagement.queue.manage"
+  },
+  "engagement.settings": {
+   "routeId": "staff.engagement.settings",
+   "path": "/engagement/settings",
+   "permission": "engagement.settings.manage"
+  },
+  "homecollection.dispatch": {
+   "routeId": "staff.homecollection.dispatch",
+   "path": "/homecollection/dispatch",
+   "permission": "homecollection.visit.read"
+  },
+  "homecollection.handovers": {
+   "routeId": "staff.homecollection.handovers",
+   "path": "/homecollection/handovers",
+   "permission": "homecollection.handover.receive"
+  },
+  "homecollection.devices": {
+   "routeId": "staff.homecollection.devices",
+   "path": "/homecollection/devices",
+   "permission": "homecollection.device.manage"
+  },
+  "homecollection.settings": {
+   "routeId": "staff.homecollection.settings",
+   "path": "/homecollection/settings",
+   "permission": "homecollection.settings.manage"
+  },
+  "admin.me": {
+   "routeId": "staff.admin.me",
+   "path": "/admin/me",
+   "permission": "identity.self.manage"
+  },
+  "admin.users": {
+   "routeId": "staff.admin.users",
+   "path": "/admin/users",
+   "permission": "identity.user.read"
+  },
+  "admin.user_new": {
+   "routeId": "staff.admin.user_new",
+   "path": "/admin/users/new",
+   "permission": "identity.user.manage"
+  },
+  "admin.roles": {
+   "routeId": "staff.admin.roles",
+   "path": "/admin/roles",
+   "permission": "identity.user.read"
+  },
+  "admin.branches": {
+   "routeId": "staff.admin.branches",
+   "path": "/admin/branches",
+   "permission": "identity.user.read"
+  },
+  "admin.centres": {
+   "routeId": "staff.admin.centres",
+   "path": "/admin/centres",
+   "permission": "identity.centre.read"
+  },
+  "admin.settings": {
+   "routeId": "staff.admin.settings",
+   "path": "/admin/settings",
+   "permission": "identity.settings.manage"
+  },
+  "admin.sessions": {
+   "routeId": "staff.admin.sessions",
+   "path": "/admin/sessions",
+   "permission": "identity.session.revoke"
+  },
+  "admin.audit": {
+   "routeId": "staff.admin.audit",
+   "path": "/admin/audit",
+   "permission": "audit.log.read"
+  },
+  "admin.access_log": {
+   "routeId": "staff.admin.access_log",
+   "path": "/admin/access-log",
+   "permission": "audit.log.read"
+  },
+  "admin.exports": {
+   "routeId": "staff.admin.exports",
+   "path": "/admin/exports",
+   "permission": "audit.log.export"
+  },
+  "admin.support_access": {
+   "routeId": "staff.admin.support_access",
+   "path": "/admin/support-access",
+   "permission": "audit.log.read"
+  },
+  "admin.access_review": {
+   "routeId": "staff.admin.access_review",
+   "path": "/admin/access-review",
+   "permission": "identity.user.read"
+  },
+  "platform.home": {
+   "routeId": "staff.platform.home",
+   "path": "/platform",
+   "permission": "platform.tenant.read"
+  },
+  "platform.tenants": {
+   "routeId": "staff.platform.tenants",
+   "path": "/platform/tenants",
+   "permission": "platform.tenant.read"
+  },
+  "platform.ird": {
+   "routeId": "staff.platform.ird",
+   "path": "/platform/ird",
+   "permission": "platform.tenant.read"
+  },
+  "platform.support_sessions": {
+   "routeId": "staff.platform.support_sessions",
+   "path": "/platform/support-sessions",
+   "permission": "platform.tenant.read"
+  },
+  "platform.dead_letters": {
+   "routeId": "staff.platform.dead_letters",
+   "path": "/platform/dead-letters",
+   "permission": "platform.dead_letter.manage"
+  },
+  "platform.staff": {
+   "routeId": "staff.platform.staff",
+   "path": "/platform/staff",
+   "permission": "platform.staff.manage"
+  },
+  "platform.auth_events": {
+   "routeId": "staff.platform.auth_events",
+   "path": "/platform/auth-events",
+   "permission": "platform.tenant.read"
+  }
+ },
+ "mismatched": [
+  "frontdesk.registration_new",
+  "lab.collect",
+  "lab.receive",
+  "lab.worklists",
+  "lab.pending",
+  "lab.qc",
+  "micro.instrument_records",
+  "micro.settings",
+  "micro.breakpoint_sets",
+  "reporting.outsourced",
+  "reporting.messages",
+  "reporting.settings",
+  "smartreport.library",
+  "smartreport.wording",
+  "billing.daily_cash",
+  "billing.account_entries",
+  "billing.account_ledger",
+  "billing.pocket_ledger",
+  "billing.account_summary",
+  "catalog.home",
+  "catalog.departments",
+  "catalog.specimens",
+  "catalog.methods",
+  "catalog.units",
+  "catalog.tests",
+  "catalog.panels",
+  "catalog.comment_codes",
+  "catalog.doctors",
+  "catalog.credit_parties",
+  "catalog.price_lists",
+  "catalog.surcharges",
+  "catalog.tax",
+  "catalog.imports",
+  "analytics.reports",
+  "analytics.collections",
+  "quality.lj_chart",
+  "quality.observations",
+  "quality.autoverify",
+  "inventory.receipts",
+  "partners.settings",
+  "engagement.queue",
+  "engagement.slots",
+  "engagement.bookable",
+  "homecollection.settings",
+  "admin.users",
+  "admin.user_new",
+  "admin.roles",
+  "admin.sessions",
+  "admin.audit"
+ ]
+}

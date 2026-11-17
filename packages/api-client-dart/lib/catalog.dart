@@ -11,9 +11,25 @@ class CatalogApi {
 
   final LimsTransport _send;
 
+  /// POST /v1/catalog/price-list-versions/{price_list_version_id}/bulk-update
+  Future<Object?> bulkUpdatePriceListDraft({required String priceListVersionId, Map<String, String>? headers, Object? body}) =>
+      _send('POST', '/v1/catalog/price-list-versions/${Uri.encodeComponent(priceListVersionId)}/bulk-update', headers: headers, body: body);
+
   /// POST /v1/catalog/imports/{import_id}/commit
   Future<Object?> commitImport({required String importId, Map<String, String>? headers, Object? body}) =>
       _send('POST', '/v1/catalog/imports/${Uri.encodeComponent(importId)}/commit', headers: headers, body: body);
+
+  /// POST /v1/catalog/price-list-import-batches/{batch_id}/commit
+  Future<Object?> commitPriceListImport({required String batchId, Map<String, String>? headers, Object? body}) =>
+      _send('POST', '/v1/catalog/price-list-import-batches/${Uri.encodeComponent(batchId)}/commit', headers: headers, body: body);
+
+  /// GET /v1/catalog/price-list-comparisons
+  Future<Object?> comparePriceLists({Map<String, Object?>? query}) =>
+      _send('GET', '/v1/catalog/price-list-comparisons', query: query);
+
+  /// POST /v1/catalog/price-lists/{price_list_id}/copy
+  Future<Object?> copyPriceList({required String priceListId, Map<String, String>? headers, Object? body}) =>
+      _send('POST', '/v1/catalog/price-lists/${Uri.encodeComponent(priceListId)}/copy', headers: headers, body: body);
 
   /// POST /v1/catalog/tests/{test_id}/analytes
   Future<Object?> createAnalyte({required String testId, Map<String, String>? headers, Object? body}) =>
@@ -143,6 +159,14 @@ class CatalogApi {
   Future<Object?> downloadImportTemplate({required String kind}) =>
       _send('GET', '/v1/catalog/import-templates/${Uri.encodeComponent(kind)}');
 
+  /// GET /v1/catalog/price-list-import-template
+  Future<Object?> downloadPriceListTemplate({Map<String, Object?>? query}) =>
+      _send('GET', '/v1/catalog/price-list-import-template', query: query);
+
+  /// POST /v1/catalog/price-lists/{price_list_id}/import-dry-run
+  Future<Object?> dryRunPriceListImport({required String priceListId, Map<String, String>? headers, Object? body}) =>
+      _send('POST', '/v1/catalog/price-lists/${Uri.encodeComponent(priceListId)}/import-dry-run', headers: headers, body: body);
+
   /// POST /v1/catalog/surcharge-rules/{surcharge_rule_id}/end
   Future<Object?> endSurchargeRule({required String surchargeRuleId, Map<String, String>? headers, Object? body}) =>
       _send('POST', '/v1/catalog/surcharge-rules/${Uri.encodeComponent(surchargeRuleId)}/end', headers: headers, body: body);
@@ -246,6 +270,10 @@ class CatalogApi {
   /// GET /v1/catalog/panels
   Future<Object?> listPanels({Map<String, Object?>? query}) =>
       _send('GET', '/v1/catalog/panels', query: query);
+
+  /// GET /v1/catalog/price-list-import-batches
+  Future<Object?> listPriceListImportBatches({Map<String, Object?>? query}) =>
+      _send('GET', '/v1/catalog/price-list-import-batches', query: query);
 
   /// GET /v1/catalog/price-list-versions/{price_list_version_id}/items
   Future<Object?> listPriceListItems({required String priceListVersionId, Map<String, Object?>? query}) =>

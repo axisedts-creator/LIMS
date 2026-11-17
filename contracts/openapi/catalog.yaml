@@ -6066,6 +6066,10 @@ paths:
       tags:
         - catalog
       summary: Replace the owners assigned to a price list
+      description: >-
+        Sets the owners of the list for one period: effective_from (default now) and effective_to (absent = open ended) apply to every owner_id in the call.
+        T0C-PRICETOOLS-1 (LD-321): one party (credit party, referrer or centre) may hold several lists over time, but two assignments of one party never overlap
+        in time, whatever the list; an overlap is refused with 409 (catalog.code_duplicate) and nothing is changed. Periods with a gap between them are allowed.
       security:
         - bearerJwt: []
       x-permission: catalog.price_list.manage
@@ -6541,6 +6545,532 @@ paths:
           $ref: _common.yaml#/components/responses/Conflict
         "428":
           $ref: _common.yaml#/components/responses/PreconditionRequired
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  # ---------- T0C-PRICETOOLS-1 (LD-321; ElabAssist Price Allocation): price list tools. Every write lands in a DRAFT version only; publishing stays publishPriceListVersion. ----------
+  /v1/catalog/price-list-import-template:
+    get:
+      operationId: downloadPriceListTemplate
+      tags:
+        - catalog
+      summary: Download the price list Excel template (xlsx with an instruction sheet)
+      description: >-
+        Returns an xlsx workbook with one sheet "Prices" holding every column of the price form: test code, test name (read only, filled from the catalogue),
+        price in rupees (at most 2 decimals) and effective from (YYYY-MM-DD); and a second sheet "Instructions" that states the import rules of dryRunPriceListImport.
+        With price_list_id the rows are prefilled with the active tests and the prices of that list's draft or current version. LD-321.
+      security:
+        - bearerJwt: []
+      x-permission: catalog.price_list.manage
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes: []
+      parameters:
+        - name: price_list_id
+          in: query
+          required: false
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+      responses:
+        "200":
+          description: xlsx attachment.
+          headers:
+            Content-Disposition:
+              description: attachment; filename=price-list-template.xlsx
+              schema:
+                type: string
+                maxLength: 255
+          content:
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema:
+                type: string
+                format: binary
+                maxLength: 5242880
+              examples:
+                synthetic:
+                  summary: Binary xlsx body
+                  value: <binary xlsx>
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/catalog/price-lists/{price_list_id}/import-dry-run:
+    post:
+      operationId: dryRunPriceListImport
+      tags:
+        - catalog
+      summary: Dry run a price list Excel upload (validates every row, writes no price)
+      description: >-
+        Validates the uploaded workbook and records a batch with status dry_run and every error; it writes no price (commitPriceListImport does, into a DRAFT).
+        IMPORT RULES: xlsx only, checked by magic bytes (a ZIP container with an OOXML workbook part); never xlsm, never xls, no macros (a vbaProject part is rejected);
+        external links are rejected; at most 5000 rows and 5 MB.
+        Every price is given in rupees with at most 2 decimals and is converted exactly to integer paisa (decimal string arithmetic, never floats); a price below 0 is rejected.
+        The test code exists and is active in this tenant; a duplicate test code in the file is rejected (every occurrence is reported).
+        Text cells starting with = + - or @ are rejected (formula injection). The test name column is read only and ignored.
+        All errors are returned together, each with its row and column; nothing is stopped at the first error. LD-321.
+      security:
+        - bearerJwt: []
+      x-permission: catalog.price_list.manage
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.payload_too_large
+        - common.unsupported_media_type
+        - common.rate_limited
+        - common.idempotency_key_reused
+      x-upload:
+        - application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+      parameters:
+        - name: price_list_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - $ref: _common.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/PriceListImportForm"
+            encoding:
+              file:
+                contentType: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+            examples:
+              synthetic:
+                value:
+                  file: <binary xlsx>
+      responses:
+        "201":
+          description: Created (batch in status dry_run, with every error).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PriceListImportDryRun"
+              examples:
+                clean:
+                  summary: Every row is valid; the batch can be committed
+                  value:
+                    batch:
+                      id: 0193c4a0-0000-7000-8000-000000000501
+                      price_list_id: 0193c4a0-0000-7000-8000-000000000502
+                      status: dry_run
+                      row_count: 120
+                      error_count: 0
+                      file_sha256: abababababababababababababababababababababababababababababababab
+                      summary:
+                        rows: 120
+                        added: 4
+                        changed: 10
+                        unchanged: 106
+                        errors: 0
+                      created_at: 2026-11-17T04:15:00.000Z
+                      created_by: 0193c4a0-0000-7000-8000-000000000503
+                    errors: []
+                with_errors:
+                  summary: Three errors in two rows, all returned together; the batch is not committable
+                  value:
+                    batch:
+                      id: 0193c4a0-0000-7000-8000-000000000504
+                      price_list_id: 0193c4a0-0000-7000-8000-000000000502
+                      status: dry_run
+                      row_count: 120
+                      error_count: 3
+                      file_sha256: cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd
+                      summary:
+                        rows: 120
+                        errors: 3
+                      created_at: 2026-11-17T04:20:00.000Z
+                      created_by: 0193c4a0-0000-7000-8000-000000000503
+                    errors:
+                      - row_no: 7
+                        column: test_code
+                        code: code_not_found
+                        message: Synthetic test code XX999 does not exist or is not active
+                      - row_no: 7
+                        column: price_rupees
+                        code: price_invalid
+                        message: More than 2 decimals
+                      - row_no: 12
+                        column: price_rupees
+                        code: formula_rejected
+                        message: Text cells starting with = + - or @ are rejected
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "413":
+          $ref: _common.yaml#/components/responses/PayloadTooLarge
+        "415":
+          $ref: _common.yaml#/components/responses/UnsupportedMediaType
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/catalog/price-list-import-batches:
+    get:
+      operationId: listPriceListImportBatches
+      tags:
+        - catalog
+      summary: List price list import batches (history, newest first)
+      security:
+        - bearerJwt: []
+      x-permission: catalog.price_list.read
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes: []
+      parameters:
+        - name: price_list_id
+          in: query
+          required: false
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 9
+            enum:
+              - dry_run
+              - committed
+              - failed
+              - cancelled
+        - $ref: _common.yaml#/components/parameters/Cursor
+        - $ref: _common.yaml#/components/parameters/Limit
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PriceListImportBatchPage"
+              examples:
+                synthetic:
+                  value:
+                    data:
+                      - id: 0193c4a0-0000-7000-8000-000000000501
+                        price_list_id: 0193c4a0-0000-7000-8000-000000000502
+                        status: committed
+                        row_count: 120
+                        error_count: 0
+                        file_sha256: abababababababababababababababababababababababababababababababab
+                        summary:
+                          rows: 120
+                          errors: 0
+                        result_price_list_version_id: 0193c4a0-0000-7000-8000-000000000505
+                        created_at: 2026-11-17T04:15:00.000Z
+                        created_by: 0193c4a0-0000-7000-8000-000000000503
+                    page:
+                      limit: 50
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/catalog/price-list-import-batches/{batch_id}/commit:
+    post:
+      operationId: commitPriceListImport
+      tags:
+        - catalog
+      summary: Commit a dry run batch into a new DRAFT version (never publishes)
+      description: >-
+        Writes the validated prices of a dry_run batch atomically into a new DRAFT version of the batch's price list and marks the batch committed.
+        It never publishes; publishing goes through publishPriceListVersion. A batch with errors is not committable (catalog.import_not_committable),
+        nor is a batch that is already committed, cancelled or failed. 409 when the list already has a draft version. The file is re-hashed and must match file_sha256. LD-321.
+      security:
+        - bearerJwt: []
+      x-permission: catalog.price_list.manage
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - catalog.import_not_committable
+        - common.version_conflict
+        - common.idempotency_key_reused
+      parameters:
+        - name: batch_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - $ref: _common.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PriceListImportCommit"
+            examples:
+              synthetic:
+                value:
+                  change_reason: Synthetic yearly rate revision
+      responses:
+        "201":
+          description: Created (a DRAFT version).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PriceListVersion"
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-000000000505
+                    price_list_id: 0193c4a0-0000-7000-8000-000000000502
+                    version_no: 4
+                    status: draft
+                    item_count: 120
+                    change_reason: Synthetic yearly rate revision
+                    version: 1
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/catalog/price-list-versions/{price_list_version_id}/bulk-update:
+    post:
+      operationId: bulkUpdatePriceListDraft
+      tags:
+        - catalog
+      summary: Bulk update the prices of a DRAFT version by percent or fixed amount
+      description: >-
+        Changes the items of a draft version only (409 catalog.version_in_use when the version is not a draft). change_kind percent uses percent_bp (basis points,
+        negative = decrease); fixed_amount uses amount_paisa (signed integer paisa). Integer arithmetic only, never floats; rounding none, nearest_rupee, nearest_5
+        or nearest_10 (rupees, half up). Scope all, department (department_id) or listed_tests (orderable_ids). A result below 0 refuses the whole request
+        with 422 and changes nothing (no negative price). LD-321.
+      security:
+        - bearerJwt: []
+      x-permission: catalog.price_list.manage
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - catalog.version_in_use
+        - common.idempotency_key_reused
+      parameters:
+        - name: price_list_version_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - $ref: _common.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PriceListBulkUpdate"
+            examples:
+              percent_all:
+                value:
+                  change_kind: percent
+                  percent_bp: 1000
+                  rounding: nearest_10
+                  scope: all
+              fixed_department:
+                value:
+                  change_kind: fixed_amount
+                  amount_paisa: -5000
+                  rounding: none
+                  scope: department
+                  department_id: 0193c4a0-0000-7000-8000-000000000510
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PriceListBulkUpdateResult"
+              examples:
+                synthetic:
+                  value:
+                    price_list_version_id: 0193c4a0-0000-7000-8000-000000000505
+                    changed_count: 98
+                    unchanged_count: 22
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/catalog/price-lists/{price_list_id}/copy:
+    post:
+      operationId: copyPriceList
+      tags:
+        - catalog
+      summary: Copy a source version into a new DRAFT of the target list in the path
+      description: >-
+        Copies the items of source_price_list_version_id (any list of this tenant) into a new DRAFT version of the price list in the path. mode replace starts
+        the draft from the source items only; mode merge starts from the target's current version and overwrites or adds the source items. Optional percent_bp
+        and rounding adjust the copied prices (integer paisa, a result below 0 is refused with 422). 409 when the target already has a draft. Never publishes. LD-321.
+      security:
+        - bearerJwt: []
+      x-permission: catalog.price_list.manage
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.version_conflict
+        - common.idempotency_key_reused
+      parameters:
+        - name: price_list_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - $ref: _common.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PriceListCopy"
+            examples:
+              merge_plus_ten:
+                value:
+                  source_price_list_version_id: 0193c4a0-0000-7000-8000-000000000520
+                  mode: merge
+                  percent_bp: 1000
+                  rounding: nearest_rupee
+      responses:
+        "201":
+          description: Created (a DRAFT version on the target list).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PriceListVersion"
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-000000000521
+                    price_list_id: 0193c4a0-0000-7000-8000-000000000522
+                    version_no: 2
+                    status: draft
+                    item_count: 340
+                    version: 1
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/catalog/price-list-comparisons:
+    get:
+      operationId: comparePriceLists
+      tags:
+        - catalog
+      summary: Compare two price list versions (test, price A, price B, difference, percent)
+      description: >-
+        One row per orderable on either version, ordered by test code. difference_paisa = B - A; percent_bp = difference as basis points of A (absent when A is 0).
+        A price missing from one version is absent from the row, never zero. Read only. LD-321.
+      security:
+        - bearerJwt: []
+      x-permission: catalog.price_list.read
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes: []
+      parameters:
+        - name: version_a_id
+          in: query
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - name: version_b_id
+          in: query
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - $ref: _common.yaml#/components/parameters/Cursor
+        - $ref: _common.yaml#/components/parameters/Limit
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PriceListComparisonPage"
+              examples:
+                synthetic:
+                  value:
+                    data:
+                      - orderable_id: 0193c4a0-0000-7000-8000-000000000530
+                        test_code: CBC
+                        test_name: Synthetic Complete Blood Count
+                        price_a_paisa: 50000
+                        price_b_paisa: 55000
+                        difference_paisa: 5000
+                        percent_bp: 1000
+                      - orderable_id: 0193c4a0-0000-7000-8000-000000000531
+                        test_code: TSH
+                        test_name: Synthetic Thyroid Stimulating Hormone
+                        price_a_paisa: 80000
+                    page:
+                      limit: 50
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
         "429":
           $ref: _common.yaml#/components/responses/TooManyRequests
         "500":
@@ -11517,6 +12047,10 @@ components:
       properties:
         owner_id:
           $ref: _common.yaml#/components/schemas/Uuid
+        effective_from:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        effective_to:
+          $ref: _common.yaml#/components/schemas/IsoUtc
     PriceList:
       type: object
       additionalProperties: false
@@ -11720,6 +12254,10 @@ components:
           maxItems: 500
           items:
             $ref: _common.yaml#/components/schemas/Uuid
+        effective_from:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        effective_to:
+          $ref: _common.yaml#/components/schemas/IsoUtc
     PriceListVersionDraftCreate:
       type: object
       additionalProperties: false
@@ -11728,6 +12266,308 @@ components:
           type: integer
           minimum: 1
           maximum: 2147483647
+    # ---------- T0C-PRICETOOLS-1 (LD-321) price list tools ----------
+    PriceListImportForm:
+      type: object
+      additionalProperties: false
+      description: "Multipart body of dryRunPriceListImport: one xlsx only file (magic bytes checked; never xlsm, xls or macros), at most 5 MB and 5000 rows."
+      required:
+        - file
+      properties:
+        file:
+          type: string
+          format: binary
+          minLength: 1
+          maxLength: 5242880
+          description: xlsx only, at most 5 MB (5242880 bytes)
+    PriceListImportSummary:
+      type: object
+      additionalProperties: false
+      description: Counts of a batch compared with the list's current version.
+      properties:
+        rows:
+          type: integer
+          minimum: 0
+          maximum: 5000
+        added:
+          type: integer
+          minimum: 0
+          maximum: 5000
+        changed:
+          type: integer
+          minimum: 0
+          maximum: 5000
+        unchanged:
+          type: integer
+          minimum: 0
+          maximum: 5000
+        errors:
+          type: integer
+          minimum: 0
+          maximum: 50000
+    PriceListImportBatch:
+      type: object
+      additionalProperties: false
+      description: One upload of a price list workbook (xlsx); history, never deleted. Prices are integer paisa, never floats.
+      required:
+        - id
+        - price_list_id
+        - status
+        - row_count
+        - error_count
+        - file_sha256
+        - summary
+        - created_at
+        - created_by
+      properties:
+        id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        price_list_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        status:
+          type: string
+          maxLength: 9
+          enum:
+            - dry_run
+            - committed
+            - failed
+            - cancelled
+        row_count:
+          type: integer
+          minimum: 0
+          maximum: 5000
+        error_count:
+          type: integer
+          minimum: 0
+          maximum: 50000
+        file_sha256:
+          type: string
+          minLength: 64
+          maxLength: 64
+          pattern: ^[0-9a-f]{64}$
+        summary:
+          $ref: "#/components/schemas/PriceListImportSummary"
+        result_price_list_version_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        created_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        created_by:
+          $ref: _common.yaml#/components/schemas/Uuid
+    PriceListImportError:
+      type: object
+      additionalProperties: false
+      description: One error of an xlsx price list upload, with its row and column; all errors are returned together.
+      required:
+        - row_no
+        - column
+        - code
+        - message
+      properties:
+        row_no:
+          type: integer
+          minimum: 1
+          maximum: 1048576
+        column:
+          type: string
+          minLength: 1
+          maxLength: 40
+        code:
+          type: string
+          minLength: 1
+          maxLength: 64
+        message:
+          type: string
+          minLength: 1
+          maxLength: 300
+    PriceListImportDryRun:
+      type: object
+      additionalProperties: false
+      description: The dry run batch of an xlsx upload and all errors together (row and column each); the dry run writes no price.
+      required:
+        - batch
+        - errors
+      properties:
+        batch:
+          $ref: "#/components/schemas/PriceListImportBatch"
+        errors:
+          type: array
+          maxItems: 50000
+          items:
+            $ref: "#/components/schemas/PriceListImportError"
+    PriceListImportBatchPage:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - page
+      properties:
+        data:
+          type: array
+          maxItems: 200
+          items:
+            $ref: "#/components/schemas/PriceListImportBatch"
+        page:
+          $ref: _common.yaml#/components/schemas/PageInfo
+    PriceListImportCommit:
+      type: object
+      additionalProperties: false
+      required:
+        - change_reason
+      properties:
+        change_reason:
+          type: string
+          minLength: 1
+          maxLength: 500
+    PriceListBulkUpdate:
+      type: object
+      additionalProperties: false
+      description: "percent needs percent_bp, fixed_amount needs amount_paisa; department needs department_id, listed_tests needs orderable_ids (checked by the service, 422)."
+      required:
+        - change_kind
+        - rounding
+        - scope
+      properties:
+        change_kind:
+          type: string
+          maxLength: 12
+          enum:
+            - percent
+            - fixed_amount
+        percent_bp:
+          type: integer
+          minimum: -10000
+          maximum: 100000
+          description: Basis points (1000 = 10 %); negative = decrease.
+        amount_paisa:
+          type: integer
+          format: int64
+          minimum: -9007199254740991
+          maximum: 9007199254740991
+          description: Signed integer paisa added to every price in scope.
+        rounding:
+          type: string
+          maxLength: 13
+          enum:
+            - none
+            - nearest_rupee
+            - nearest_5
+            - nearest_10
+        scope:
+          type: string
+          maxLength: 12
+          enum:
+            - all
+            - department
+            - listed_tests
+        department_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        orderable_ids:
+          type: array
+          minItems: 1
+          maxItems: 5000
+          uniqueItems: true
+          items:
+            $ref: _common.yaml#/components/schemas/Uuid
+    PriceListBulkUpdateResult:
+      type: object
+      additionalProperties: false
+      required:
+        - price_list_version_id
+        - changed_count
+        - unchanged_count
+      properties:
+        price_list_version_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        changed_count:
+          type: integer
+          minimum: 0
+          maximum: 100000
+        unchanged_count:
+          type: integer
+          minimum: 0
+          maximum: 100000
+    PriceListCopy:
+      type: object
+      additionalProperties: false
+      required:
+        - source_price_list_version_id
+        - mode
+      properties:
+        source_price_list_version_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        mode:
+          type: string
+          maxLength: 7
+          enum:
+            - replace
+            - merge
+        percent_bp:
+          type: integer
+          minimum: -10000
+          maximum: 100000
+          description: Optional adjustment in basis points (1000 = 10 %); negative = decrease.
+        rounding:
+          type: string
+          maxLength: 13
+          enum:
+            - none
+            - nearest_rupee
+            - nearest_5
+            - nearest_10
+    PriceListComparisonRow:
+      type: object
+      additionalProperties: false
+      required:
+        - orderable_id
+        - test_code
+        - test_name
+      properties:
+        orderable_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        test_code:
+          type: string
+          minLength: 1
+          maxLength: 32
+        test_name:
+          type: string
+          minLength: 1
+          maxLength: 300
+        price_a_paisa:
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 9007199254740991
+        price_b_paisa:
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 9007199254740991
+        difference_paisa:
+          type: integer
+          format: int64
+          minimum: -9007199254740991
+          maximum: 9007199254740991
+          description: price_b_paisa - price_a_paisa; absent when either price is absent.
+        percent_bp:
+          type: integer
+          format: int64
+          minimum: -9007199254740991
+          maximum: 9007199254740991
+          description: difference as basis points of price A; absent when A is absent or 0.
+    PriceListComparisonPage:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - page
+      properties:
+        data:
+          type: array
+          maxItems: 200
+          items:
+            $ref: "#/components/schemas/PriceListComparisonRow"
+        page:
+          $ref: _common.yaml#/components/schemas/PageInfo
     PriceMoney:
       type: object
       additionalProperties: false

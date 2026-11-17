@@ -148,6 +148,18 @@ CREATE POLICY test_stage_tat_targets__insert__tenant ON catalog.test_stage_tat_t
 CREATE POLICY test_stage_tat_targets__update__tenant ON catalog.test_stage_tat_targets FOR UPDATE TO lims_app
   USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()))
   WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+-- T0C-PRICETOOLS-1 (LD-321): db/migrations/20261117200000_catalog__add_price_list_tools.sql; no DELETE policy (history kept), the error table has no UPDATE policy (append only)
+CREATE POLICY price_list_import_batch__select__tenant ON catalog.price_list_import_batch FOR SELECT TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+CREATE POLICY price_list_import_batch__insert__tenant ON catalog.price_list_import_batch FOR INSERT TO lims_app
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+CREATE POLICY price_list_import_batch__update__tenant ON catalog.price_list_import_batch FOR UPDATE TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()))
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+CREATE POLICY price_list_import_error__select__tenant ON catalog.price_list_import_error FOR SELECT TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+CREATE POLICY price_list_import_error__insert__tenant ON catalog.price_list_import_error FOR INSERT TO lims_app
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
 CREATE POLICY doctors__select__tenant ON catalog.doctors FOR SELECT TO lims_app
   USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
 CREATE POLICY doctors__insert__tenant ON catalog.doctors FOR INSERT TO lims_app

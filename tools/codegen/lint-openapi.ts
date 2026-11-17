@@ -336,7 +336,12 @@ export async function lintRepo(rootDir: string): Promise<Violation[]> {
   const dir = join(rootDir, "contracts/openapi");
   const files = readdirSync(dir).filter((f) => f.endsWith(".yaml")).sort()
     .map((f) => ({ name: f.replace(/\.yaml$/, ""), text: readFileSync(join(dir, f), "utf8") }));
-  return lintOpenapi(files, ctx);
+  // Debugger T0C-PRICETOOLS-1: lintOpenapi is ~13-40 s of sync work. Yield a macrotask turn on both sides so a
+  // vitest worker can read its RPC replies ("Timeout calling onTaskUpdate" after 60 s, with every test green).
+  await new Promise<void>((r) => setImmediate(r));
+  const out = lintOpenapi(files, ctx);
+  await new Promise<void>((r) => setImmediate(r));
+  return out;
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

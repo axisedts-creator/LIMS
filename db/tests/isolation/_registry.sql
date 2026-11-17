@@ -131,6 +131,8 @@ INSERT INTO registry (tbl, class, centre_scoped, audited, shared_with, rls_exemp
   ('catalog.panel_members', 'M', false, true, ARRAY[]::text[], false),
   ('catalog.panels', 'M', false, true, ARRAY[]::text[], false),
   ('catalog.price_list_assignments', 'M', false, true, ARRAY[]::text[], false),
+  ('catalog.price_list_import_batch', 'M', false, true, ARRAY[]::text[], false),
+  ('catalog.price_list_import_error', 'M', false, false, ARRAY[]::text[], false),
   ('catalog.price_list_items', 'M', false, true, ARRAY[]::text[], false),
   ('catalog.price_list_versions', 'M', false, true, ARRAY[]::text[], false),
   ('catalog.price_lists', 'M', false, true, ARRAY[]::text[], false),

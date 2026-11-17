@@ -178,10 +178,11 @@ const choose = async (scope: HTMLElement | null, label: RegExp, option: RegExp) 
 
 // ----------------------------------------------------------------------------------------------------------------------------- (1)(3) header, headers, empty
 describe('page header, table headers, empty state', () => {
-  it('has the Departments/Doctors page pattern: title Tests, breadcrumb to Catalog, New test button, search, department / specimen / status filters', async () => {
+  it('has the Departments/Doctors page pattern: title Tests, no in-page Catalog breadcrumb (one trail, T0D-UNSLOP-1 D), New test button, search, department / specimen / status filters', async () => {
     await show();
     expect(screen.getByRole('heading', { level: 1, name: t('catalog.nav.tests') })).toBeTruthy(); // LD-340: heading = ElabAssist menu label
-    expect(document.querySelector('a[href="/catalog"]')).toBeTruthy(); // breadcrumb Catalog > Tests (PageHeader)
+    expect(screen.queryByRole('navigation', { name: /breadcrumb/i })).toBeNull(); // the trail lives in the top bar only (T0D-UNSLOP-1 D)
+    expect(document.querySelector('a[href="/catalog"]')).toBeNull();
     expect(newButtons().some(enabled)).toBe(true);
     expect(screen.getByLabelText(/search/i)).toBeTruthy();
     expect(screen.getByLabelText(/^department/i)).toBeTruthy();

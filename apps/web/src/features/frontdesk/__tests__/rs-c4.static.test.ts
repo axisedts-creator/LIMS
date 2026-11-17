@@ -59,7 +59,10 @@ describe('RS-C4 behaviour unchanged (LD-140: no change to API calls, fields, val
     expect(removed(was.permissions, now.permissions)).toEqual([]);
     expect(removed(was.server_imports, now.server_imports)).toEqual([]);
     expect(removed(was.server_symbols, now.server_symbols)).toEqual([]);
-    expect(removed(was.routes, now.routes)).toEqual([]);
+    // T0D-UNSLOP-1 (D), ruling T0D-UNSLOP-1-ruling.md: "/billing/credit-parties" in billing_feature was only the href of the removed in-page CreditPartyDetail crumb (one trail, in the top bar);
+    // the page route itself is still pinned by the "existing pages still exist" test below. Nothing else may be removed.
+    const CRUMB_ONLY: Partial<Record<Area, string[]>> = { billing_feature: ['/billing/credit-parties'] };
+    expect(removed(was.routes, now.routes).filter((r) => !(CRUMB_ONLY[area] ?? []).includes(r))).toEqual([]);
     expect(removed(was.field_names, now.field_names)).toEqual([]);
     expect(added(was.permissions, now.permissions).filter((p) => !(LD310_ALLOW.permissions as readonly string[]).includes(p))).toEqual([]);
     expect(added(was.server_imports, now.server_imports).filter((s) => !(LD310_ALLOW.server_imports as readonly string[]).includes(s))).toEqual([]);

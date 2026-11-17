@@ -123,6 +123,22 @@ export interface operations {
             phone_e164?: string;
             email?: string;
             address_text?: string;
+            title?: "mr" | "mrs" | "miss" | "ms" | "master" | "baby" | "baby_of" | "dr" | "prof" | "capt" | "col" | "major" | "sri" | "smt" | "kumari" | "late" | "sister" | "reverend" | "other";
+            external_patient_id?: string;
+            nationality?: string;
+            government_id_type?: "citizenship" | "national_id" | "passport" | "driving_licence" | "voter_id" | "other";
+            government_id_number?: string;
+            address_province?: string;
+            address_district?: string;
+            address_municipality?: string;
+            address_ward?: string;
+            address_tole?: string;
+            address_postal_code?: string;
+            profile_photo_attachment_id?: string;
+            custom_fields?: {
+              code: string;
+              value: string;
+            }[];
             consents: {
               processing: boolean;
               sms: boolean;
@@ -1861,6 +1877,22 @@ export interface operations {
           phone_e164?: string;
           email?: string;
           address_text?: string;
+          title?: "mr" | "mrs" | "miss" | "ms" | "master" | "baby" | "baby_of" | "dr" | "prof" | "capt" | "col" | "major" | "sri" | "smt" | "kumari" | "late" | "sister" | "reverend" | "other";
+          external_patient_id?: string;
+          nationality?: string;
+          government_id_type?: "citizenship" | "national_id" | "passport" | "driving_licence" | "voter_id" | "other";
+          government_id_number?: string;
+          address_province?: string;
+          address_district?: string;
+          address_municipality?: string;
+          address_ward?: string;
+          address_tole?: string;
+          address_postal_code?: string;
+          profile_photo_attachment_id?: string;
+          custom_fields?: {
+            code: string;
+            value: string;
+          }[];
           consents: {
             processing: boolean;
             sms: boolean;
@@ -1893,6 +1925,22 @@ export interface operations {
             phone_e164?: string;
             email?: string;
             address_text?: string;
+            title?: "mr" | "mrs" | "miss" | "ms" | "master" | "baby" | "baby_of" | "dr" | "prof" | "capt" | "col" | "major" | "sri" | "smt" | "kumari" | "late" | "sister" | "reverend" | "other";
+            external_patient_id?: string;
+            nationality?: string;
+            government_id_type?: "citizenship" | "national_id" | "passport" | "driving_licence" | "voter_id" | "other";
+            government_id_number?: string;
+            address_province?: string;
+            address_district?: string;
+            address_municipality?: string;
+            address_ward?: string;
+            address_tole?: string;
+            address_postal_code?: string;
+            profile_photo_attachment_id?: string;
+            custom_fields?: {
+              code: string;
+              value: string;
+            }[];
             consents: {
               processing: boolean;
               sms: boolean;
@@ -2086,6 +2134,22 @@ export interface operations {
               phone_e164?: string;
               email?: string;
               address_text?: string;
+              title?: "mr" | "mrs" | "miss" | "ms" | "master" | "baby" | "baby_of" | "dr" | "prof" | "capt" | "col" | "major" | "sri" | "smt" | "kumari" | "late" | "sister" | "reverend" | "other";
+              external_patient_id?: string;
+              nationality?: string;
+              government_id_type?: "citizenship" | "national_id" | "passport" | "driving_licence" | "voter_id" | "other";
+              government_id_number?: string;
+              address_province?: string;
+              address_district?: string;
+              address_municipality?: string;
+              address_ward?: string;
+              address_tole?: string;
+              address_postal_code?: string;
+              profile_photo_attachment_id?: string;
+              custom_fields?: {
+                code: string;
+                value: string;
+              }[];
               consents: {
                 processing: boolean;
                 sms: boolean;
@@ -3181,6 +3245,22 @@ export interface operations {
             phone_e164?: string;
             email?: string;
             address_text?: string;
+            title?: "mr" | "mrs" | "miss" | "ms" | "master" | "baby" | "baby_of" | "dr" | "prof" | "capt" | "col" | "major" | "sri" | "smt" | "kumari" | "late" | "sister" | "reverend" | "other";
+            external_patient_id?: string;
+            nationality?: string;
+            government_id_type?: "citizenship" | "national_id" | "passport" | "driving_licence" | "voter_id" | "other";
+            government_id_number?: string;
+            address_province?: string;
+            address_district?: string;
+            address_municipality?: string;
+            address_ward?: string;
+            address_tole?: string;
+            address_postal_code?: string;
+            profile_photo_attachment_id?: string;
+            custom_fields?: {
+              code: string;
+              value: string;
+            }[];
             consents: {
               processing: boolean;
               sms: boolean;
@@ -4851,6 +4931,22 @@ export interface operations {
               phone_e164?: string;
               email?: string;
               address_text?: string;
+              title?: "mr" | "mrs" | "miss" | "ms" | "master" | "baby" | "baby_of" | "dr" | "prof" | "capt" | "col" | "major" | "sri" | "smt" | "kumari" | "late" | "sister" | "reverend" | "other";
+              external_patient_id?: string;
+              nationality?: string;
+              government_id_type?: "citizenship" | "national_id" | "passport" | "driving_licence" | "voter_id" | "other";
+              government_id_number?: string;
+              address_province?: string;
+              address_district?: string;
+              address_municipality?: string;
+              address_ward?: string;
+              address_tole?: string;
+              address_postal_code?: string;
+              profile_photo_attachment_id?: string;
+              custom_fields?: {
+                code: string;
+                value: string;
+              }[];
               consents: {
                 processing: boolean;
                 sms: boolean;
@@ -6349,7 +6445,23 @@ export interface operations {
           phone_e164?: string;
           email?: string;
           address_text?: string;
-          unset?: ("birth_on" | "phone_e164" | "email" | "address_text")[];
+          title?: "mr" | "mrs" | "miss" | "ms" | "master" | "baby" | "baby_of" | "dr" | "prof" | "capt" | "col" | "major" | "sri" | "smt" | "kumari" | "late" | "sister" | "reverend" | "other";
+          external_patient_id?: string;
+          nationality?: string;
+          government_id_type?: "citizenship" | "national_id" | "passport" | "driving_licence" | "voter_id" | "other";
+          government_id_number?: string;
+          address_province?: string;
+          address_district?: string;
+          address_municipality?: string;
+          address_ward?: string;
+          address_tole?: string;
+          address_postal_code?: string;
+          profile_photo_attachment_id?: string;
+          custom_fields?: {
+            code: string;
+            value: string;
+          }[];
+          unset?: ("birth_on" | "phone_e164" | "email" | "address_text" | "title" | "external_patient_id" | "nationality" | "government_id_type" | "government_id_number" | "address_province" | "address_district" | "address_municipality" | "address_ward" | "address_tole" | "address_postal_code" | "profile_photo_attachment_id" | "custom_fields")[];
         };
       };
     };
@@ -6371,6 +6483,22 @@ export interface operations {
             phone_e164?: string;
             email?: string;
             address_text?: string;
+            title?: "mr" | "mrs" | "miss" | "ms" | "master" | "baby" | "baby_of" | "dr" | "prof" | "capt" | "col" | "major" | "sri" | "smt" | "kumari" | "late" | "sister" | "reverend" | "other";
+            external_patient_id?: string;
+            nationality?: string;
+            government_id_type?: "citizenship" | "national_id" | "passport" | "driving_licence" | "voter_id" | "other";
+            government_id_number?: string;
+            address_province?: string;
+            address_district?: string;
+            address_municipality?: string;
+            address_ward?: string;
+            address_tole?: string;
+            address_postal_code?: string;
+            profile_photo_attachment_id?: string;
+            custom_fields?: {
+              code: string;
+              value: string;
+            }[];
             consents: {
               processing: boolean;
               sms: boolean;

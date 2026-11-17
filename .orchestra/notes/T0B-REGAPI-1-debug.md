@@ -13,3 +13,6 @@
 ## round 4 (verify log 20:38: 4 failed / 1672 passed, only boot.test.ts)
 - Cause: host load, not code. Whole-suite run spawns 65 workers (781s); boot.test.ts autoload() of all modules hit the 60000ms timeout (line 86); the 3 "module engagement/homecollection: index.ts exports no manifest" errors are fallout of the same aborted import under load.
 - Alone, boot.test.ts passes 30/30 (165s, 20:53). No regapi/patient failure; diff touches no boot code. No code fix, tests not edited. Lead: rerun verify on an idle host (or cap workers; do not weaken the check).
+## round 5 (verify log 21:33: 6 failed / 1671 passed)
+- 1 failure in this diff's test: regapi.test.ts:351 expects external_patient_id absent from audit rows; spec/D-27a only excludes government id + address columns, trigger audits external_patient_id by design. Test over-reach: dispute written (T0B-REGAPI-1-dispute.md, round 5). No code change.
+- rollback.test.ts:150/180 (no sendSms call) and boot.test.ts (60s timeout, "smartreport exports no manifest" = aborted import under 65-worker load, passes alone 30/30): outside the diff, same load / shared-settings causes as rounds 1-4. Not reproduced this round, not verified.

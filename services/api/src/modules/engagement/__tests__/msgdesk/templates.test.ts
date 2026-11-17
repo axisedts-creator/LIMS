@@ -131,10 +131,10 @@ describe('(6) permission denied, wrong actor type, tenant isolation', () => {
   it.each(OPS)('%s without %s: 403 auth.forbidden and nothing written', { timeout: T }, async (op, perm, build) => {
     const t = (await create(mk())).body;
     const others = ALL_B.filter((p) => p !== perm);
-    const before = (await ownerRows('engagement.broadcast_template', 'tenant_id = $1', [TENANT_A])).length;
-    expect(errCode(await rejection(callWith(H, op, build(t.id), { grants: others })))).toBe('auth.forbidden');
-    expect((await ownerRows('engagement.broadcast_template', 'tenant_id = $1', [TENANT_A])).length).toBe(before);
-    expect((await ownerRows('engagement.broadcast_template', 'id = $1', [t.id]))[0].version).toBe(1);
+    const r = build(t.id);
+    expect(errCode(await rejection(callWith(H, op, r, { grants: others })))).toBe('auth.forbidden');
+    if (r.body?.name) expect((await ownerRows('engagement.broadcast_template', 'tenant_id = $1 AND name = $2', [TENANT_A, r.body.name])).length).toBe(0);
+    expect((await ownerRows('engagement.broadcast_template', 'id = $1', [t.id]))[0]).toMatchObject({ version: 1, name: t.name, is_active: true });
   });
   it.each(['partner', 'patient', 'portal', 'device'] as const)('%s actor is refused on every template operation (403)', { timeout: T }, async (type) => {
     const t = (await create(mk())).body;

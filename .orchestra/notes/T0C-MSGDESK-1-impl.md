@@ -7,7 +7,7 @@
 - FOUNDER STEPS: push-cloud for 20261117240000_engagement__add_broadcast_and_tickets.sql (not done here); re-apply the role pack so corp_admin gets the 5 codes; a provider must be configured and approved by the founder before any broadcast is sent (approve refuses with engagement.broadcast_provider_not_configured).
 - No real sending in this task: the contract only queues one outbox row per recipient (idempotency key) through the existing outbox. No service or handler change, no web change; apps/web/src/features/admin and rs-c2 untouched.
 - OFFLINE (founder 09:19): a ticket reply may be queued offline on the partner device and replayed with its Idempotency-Key (stored once); creating a ticket, every broadcast step and approval are online only.
-- Checks: msgdesk1 + c13 + codegen.test 591/591, msgdesk1.pending x2, pgTAP suite + 5 isolation probes green, api tsc clean. 64 older api tests fail (count pins + AB5/AB6 shared-code conflict): see T0C-MSGDESK-1-dispute.md.
+- Checks: msgdesk1 + c13 + codegen.test 591/591, msgdesk1.pending x2, pgTAP suite + 5 isolation probes green, api tsc clean. 64 older api tests fail (count pins + AB5/AB6 shared-code conflict): see T0C-MSGDESK-1-dispute.md. AFTER RULING (19:30 NPT): codegen msgdesk1+c13+c16 1247/1248, api engagement+partners+identity role-packs 4680/4681 (+1 skip), pgTAP suite exit 0. The 2 red are ruling item 6, not this task: c16 Profile fields 8 vs 7, engagement boot PHASE_STUBS QualityPort.
 
 ## FIELD MAP (ElabAssist Messages and Message To Laboratory; LD-321)
 - Template Name — added (engagement.broadcast_template.name)

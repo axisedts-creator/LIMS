@@ -39,7 +39,7 @@ export function PanelsList({ panels, departments, permissions }: { panels: reado
   ];
   return (
     <section aria-label="Panels & packages">
-      <PageHeader title={t('catalog.nav.panels')} helpKey="catalog.panels" breadcrumbs={[{ label: 'Catalog', href: '/catalog' }, { label: 'Panels & packages' }]} actions={openNew ? <Button variant="primary" onPress={openNew}>New panel</Button> : null} />
+      <PageHeader title={t('catalog.nav.panels')} helpKey="catalog.panels" actions={openNew ? <Button variant="primary" onPress={openNew}>New panel</Button> : null} />
       <div className="lims-filter-bar">
         <RadioGroup<KindFilter>
           label="Kind"

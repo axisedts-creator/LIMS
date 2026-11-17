@@ -115,8 +115,7 @@ export function SummaryReview({ vm }: { vm: SummaryVM }) {
   return (
     <div>
       <PageHeader
-        title="Smart summary" helpKey="smartreport.summary"
-        breadcrumbs={[{ label: 'Smart summaries', href: QUEUE }, { label: 'Smart summary' }]}
+        title="Smart summary" helpKey="smartreport.summary"
         status={<StatusChip kind="generic" status={status} label={statusLabel} tone={statusTone} />}
         actions={canAct ? (
           <>

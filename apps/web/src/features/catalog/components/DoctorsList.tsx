@@ -67,7 +67,6 @@ export function DoctorsList({ doctors, permissions }: { doctors: readonly Doctor
       <PageHeader
         title={t('catalog.nav.doctors')}
         helpKey="catalog.doctors"
-        breadcrumbs={[{ label: 'Catalog', href: '/catalog' }, { label: 'Doctors' }]}
         actions={
           <>
             <a className="lims-link" href="/catalog/doctors/verify">Verify queue</a>
@@ -88,14 +87,15 @@ export function DoctorsList({ doctors, permissions }: { doctors: readonly Doctor
           </Banner>
         </div>
       ) : null}
-      <form role="search" className="lims-filter-bar" onSubmit={(e) => void search(e)}>
-        <label className="lims-label" htmlFor="doctor-search">Search doctors</label>
-        <input id="doctor-search" className="lims-input" type="search" maxLength={64} autoComplete="off" value={q} onChange={(e) => setQ(e.target.value)} />
-        <Button type="submit">Search</Button>
-        {results ? <Button variant="ghost" onPress={() => { setResults(null); setQ(''); }}>Clear search</Button> : null}
-      </form>
       {searchError ? <div role="alert"><Banner tone="danger" title="The search could not be run. Try again." /></div> : null}
+      {/* T0D-UNSLOP-1 (LD-344, LD-353 rule 2): search and the radio groups in ONE filter row; the Search button sits next to its input. */}
       <div className="lims-filter-bar">
+        <form role="search" onSubmit={(e) => void search(e)}>
+          <label className="lims-label" htmlFor="doctor-search">Search doctors</label>
+          <input id="doctor-search" className="lims-input" type="search" maxLength={64} autoComplete="off" value={q} onChange={(e) => setQ(e.target.value)} />
+          <Button type="submit">Search</Button>
+          {results ? <Button variant="ghost" onPress={() => { setResults(null); setQ(''); }}>Clear search</Button> : null}
+        </form>
         <RadioGroup label="Verified" name="is_verified" orientation="horizontal" value={verified} onChange={(v) => setParam('is_verified', v)} options={[{ value: 'all', label: 'All' }, { value: 'true', label: 'Verified' }, { value: 'false', label: 'Unverified' }]} />
         <RadioGroup label="Status" name="is_active" orientation="horizontal" value={active} onChange={(v) => setParam('is_active', v)} options={[{ value: 'all', label: 'All' }, { value: 'true', label: 'Active' }, { value: 'false', label: 'Inactive' }]} />
         <RadioGroup label="Source" name="source" orientation="horizontal" value={source} onChange={(v) => setParam('source', v)} options={[{ value: 'all', label: 'All' }, { value: 'back_office', label: 'Back office' }, { value: 'quick_add', label: 'Quick add' }, { value: 'import', label: 'Import' }]} />

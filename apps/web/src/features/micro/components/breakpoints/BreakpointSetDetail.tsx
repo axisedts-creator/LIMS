@@ -136,8 +136,7 @@ export function BreakpointSetDetail({ set, issues: initialIssues, rows: initialR
     <section aria-label="Breakpoint table">
       <PageHeader
         title={row.title}
-        helpKey="micro.breakpoint_sets"
-        breadcrumbs={[{ label: 'Breakpoint tables', href: '/micro/breakpoint-sets' }, { label: row.title }]}
+        helpKey="micro.breakpoint_sets"
         status={<BreakpointStatusChip status={s} />}
         actions={canManage ? (
           <>

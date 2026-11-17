@@ -38,7 +38,7 @@ export function SpecimensScreen({ specimenTypes, containers, permissions }: { sp
   const action = canManage(permissions) ? <Button variant="primary" onPress={() => setAdding(true)}>{types ? 'New specimen type' : 'New container'}</Button> : null;
   return (
     <section aria-label="Specimens & containers">
-      <PageHeader title={t('catalog.nav.specimens')} helpKey="catalog.specimens" breadcrumbs={[{ label: 'Catalog', href: '/catalog' }, { label: 'Specimens & containers' }]} actions={action} />
+      <PageHeader title={t('catalog.nav.specimens')} helpKey="catalog.specimens" actions={action} />
       {adding ? (types ? <SpecimenTypeDialog item={undefined} onClose={() => setAdding(false)} /> : <ContainerDialog item={undefined} specimenTypes={specimenTypes} onClose={() => setAdding(false)} />) : null}
       <Tabs aria-label="Specimens & containers" items={[{ id: 'specimen_types', label: 'Specimen types' }, { id: 'containers', label: 'Containers' }]} selectedId={tab} onChange={setTab}>
         {tab === 'specimen_types' ? <SpecimenTypesTab rows={specimenTypes} permissions={permissions} /> : <ContainersTab rows={containers} specimenTypes={specimenTypes} permissions={permissions} />}

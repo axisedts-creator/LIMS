@@ -34,8 +34,7 @@ export function BreakpointSetsScreen({ sets, permissions }: { sets: readonly Bre
     <section aria-label="Breakpoint tables">
       <PageHeader
         title={t('micro.nav.breakpoint_sets')}
-        helpKey="micro.breakpoint_sets"
-        breadcrumbs={[{ label: 'Microbiology' }, { label: 'Breakpoint tables' }]}
+        helpKey="micro.breakpoint_sets"
         actions={canImport ? <Button variant="primary" onPress={() => setOpen(true)}>Import table</Button> : null}
       />
       <Banner tone="info" title={LICENCE} />

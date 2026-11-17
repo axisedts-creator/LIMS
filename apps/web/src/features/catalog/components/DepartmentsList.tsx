@@ -33,7 +33,7 @@ export function DepartmentsList({ departments, permissions }: { departments: rea
 
   return (
     <section aria-label="Departments">
-      <PageHeader title={t('catalog.nav.departments')} helpKey="catalog.departments" breadcrumbs={[{ label: 'Catalog', href: '/catalog' }, { label: 'Departments' }]} actions={openNew ? <Button variant="primary" onPress={openNew}>New department</Button> : null} />
+      <PageHeader title={t('catalog.nav.departments')} helpKey="catalog.departments" actions={openNew ? <Button variant="primary" onPress={openNew}>New department</Button> : null} />
       {toolbar}
       <MasterTable caption="Departments" cols={cols} rows={shown} empty="No test categories yet." emptyAction={openNew ? { label: 'New department', onPress: openNew } : undefined} onEdit={manage ? setEditing : undefined} />
       {editing ? <DepartmentDialog item={editing === 'new' ? undefined : editing} onClose={() => setEditing(null)} /> : null}

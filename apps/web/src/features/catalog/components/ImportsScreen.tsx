@@ -169,7 +169,7 @@ export function ImportsScreen({ imports, exports: initialExports, priceLists, pe
 
   return (
     <section aria-label="Imports and exports">
-      <PageHeader title={t('catalog.nav.imports')} helpKey="catalog.imports" breadcrumbs={[{ label: 'Pricing' }, { label: 'Imports & exports' }]} />
+      <PageHeader title={t('catalog.nav.imports')} helpKey="catalog.imports" />
       {fail ? <ImportNotice tone={fail.code === 'auth.mfa_required' ? 'warning' : 'danger'} text={failText(fail)} /> : null}
       {notReady ? <Banner tone="info" title="Still preparing — try again shortly" /> : null}
 

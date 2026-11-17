@@ -99,8 +99,7 @@ export function AgentDetail({ agent, transitions, instruments, permissions, cloc
     <section aria-label={`Agent ${agent.agent_code}`}>
       <PageHeader
         title={`${agent.agent_code} — ${agent.display_name}`}
-        helpKey="instruments.agents"
-        breadcrumbs={[{ label: 'Agents', href: '/instruments/agents' }, { label: agent.agent_code }]}
+        helpKey="instruments.agents"
         status={
           <>
             <HealthChip state={h.state} /> <AgentStatusChip status={agent.status} />

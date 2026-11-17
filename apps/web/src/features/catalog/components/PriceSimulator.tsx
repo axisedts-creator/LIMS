@@ -66,7 +66,7 @@ export function PriceSimulator({ permissions }: { permissions: readonly string[]
   const nameOf = (id: string) => { const o = picked.find((x) => x.id === id); return o ? `${o.code} — ${o.name}` : id; };
   return (
     <section aria-label="Price simulator">
-      <PageHeader title="Price simulator" helpKey="catalog.price_simulator" breadcrumbs={[{ label: 'Pricing' }, { label: 'Price simulator' }]} />
+      <PageHeader title="Price simulator" helpKey="catalog.price_simulator" />
       <Form onSubmit={run} errorSummary={false}>
         <Combobox<OrderableSummary>
           key={n}

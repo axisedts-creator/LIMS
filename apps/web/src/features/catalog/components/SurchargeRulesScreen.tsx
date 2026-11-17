@@ -46,7 +46,7 @@ export function SurchargeRulesScreen({ rules, departments, orderables, priceList
   const now = Date.now();
   return (
     <section aria-label="Urgent surcharge rules">
-      <PageHeader title={t('catalog.nav.surcharges')} helpKey="catalog.surcharges" breadcrumbs={[{ label: 'Pricing' }, { label: 'Urgent surcharge' }]} actions={open ? <Button variant="primary" onPress={open}>New rule</Button> : null} />
+      <PageHeader title={t('catalog.nav.surcharges')} helpKey="catalog.surcharges" actions={open ? <Button variant="primary" onPress={open}>New rule</Button> : null} />
       <p>{HELP}</p>
       {/* T0D-EMPTYTBL-2 (LD-310, LD-336): the table is always drawn; the empty message (and New rule for a manager) is its one body row. */}
       <table className="lims-table lims-table-regular">

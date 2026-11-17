@@ -158,8 +158,7 @@ export function CultureScreen({ culture, patient, specimen, permissions }: Cultu
     <section aria-label="Culture" ref={root}>
       <Stack gap={3}>
         <PageHeader
-          title={culture.test_name}
-          breadcrumbs={[{ label: 'Microbiology', href: '/micro/worklist' }, { label: 'Culture' }]}
+          title={culture.test_name}
           status={<CultureStatusChip status={culture.status} />}
           actions={actions}
           helpKey="micro.culture"

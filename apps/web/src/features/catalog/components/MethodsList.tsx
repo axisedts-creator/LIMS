@@ -29,7 +29,7 @@ export function MethodsList({ methods, permissions }: { methods: readonly Method
 
   return (
     <section aria-label="Methods">
-      <PageHeader title={t('catalog.nav.methods')} helpKey="catalog.methods" breadcrumbs={[{ label: 'Catalog', href: '/catalog' }, { label: 'Methods' }]} actions={openNew ? <Button variant="primary" onPress={openNew}>New method</Button> : null} />
+      <PageHeader title={t('catalog.nav.methods')} helpKey="catalog.methods" actions={openNew ? <Button variant="primary" onPress={openNew}>New method</Button> : null} />
       {toolbar}
       <MasterTable caption="Methods" cols={cols} rows={shown} empty="No methods yet." emptyAction={openNew ? { label: 'New method', onPress: openNew } : undefined} onEdit={manage ? setEditing : undefined} />
       {editing ? <MethodDialog item={editing === 'new' ? undefined : editing} onClose={() => setEditing(null)} /> : null}

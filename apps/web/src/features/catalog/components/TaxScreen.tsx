@@ -50,7 +50,7 @@ export function TaxScreen({ rules, taxTypes, departments, orderables, permission
 
   return (
     <section aria-label="Tax rules and tax types">
-      <PageHeader title={t('catalog.nav.tax')} helpKey="catalog.tax" breadcrumbs={[{ label: 'Pricing' }, { label: 'Tax' }]} />
+      <PageHeader title={t('catalog.nav.tax')} helpKey="catalog.tax" />
       <Banner tone="info" title={`${TAX_DISCLAIMER} Configure what your auditor confirms.`} />
       <Tabs aria-label="Tax" items={[{ id: 'rules', label: 'Rules' }, { id: 'types', label: 'Tax types' }]} selectedId={tab} onChange={setTab}>
         {tab === 'rules' ? (

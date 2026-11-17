@@ -41,7 +41,7 @@ export function CommentCodesScreen({ commentCodes, departments, permissions }: {
   ];
   return (
     <section aria-label="Comment codes">
-      <PageHeader title={t('catalog.nav.comment_codes')} helpKey="catalog.comment_codes" breadcrumbs={[{ label: 'Catalog', href: '/catalog' }, { label: 'Comment codes' }]} actions={openNew ? <Button variant="primary" onPress={openNew}>New comment code</Button> : null} />
+      <PageHeader title={t('catalog.nav.comment_codes')} helpKey="catalog.comment_codes" actions={openNew ? <Button variant="primary" onPress={openNew}>New comment code</Button> : null} />
       <div className="lims-filter-bar">
         <div ref={search}>
           <TextField label="Search" name="q" maxLength={16} description="Code prefix" value={q} onChange={setQ} />

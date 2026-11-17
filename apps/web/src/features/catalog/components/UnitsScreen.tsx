@@ -35,7 +35,7 @@ export function UnitsScreen({ units, valueSets, permissions }: { units: readonly
     : <Button variant="primary" onPress={() => setSetEditing('new')}>New value set</Button>;
   return (
     <section aria-label="Units & value sets">
-      <PageHeader title={t('catalog.nav.units')} helpKey="catalog.units" breadcrumbs={[{ label: 'Catalog', href: '/catalog' }, { label: 'Units & value sets' }]} {...(action ? { actions: action } : {})} />
+      <PageHeader title={t('catalog.nav.units')} helpKey="catalog.units" {...(action ? { actions: action } : {})} />
       {manage ? null : <p className="lims-state-body">{READ_ONLY}</p>}
       <Tabs aria-label="Units & value sets" items={[{ id: 'units', label: 'Units' }, { id: 'value_sets', label: 'Value sets' }]} selectedId={tab} onChange={setTab}>
         {tab === 'units'

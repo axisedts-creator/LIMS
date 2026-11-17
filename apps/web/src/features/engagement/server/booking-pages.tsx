@@ -10,6 +10,7 @@ import { PERM } from './booking.server';
 import { ApiError } from '@/core/api/server-fetch';
 import { dayStartUtc, addDays } from '../components/booking-model';
 import { t } from '@/core/i18n/messages';
+import { pendingOr } from '@/core/shell/NotAvailable';
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
@@ -34,7 +35,11 @@ async function switchedOff(title: string, what: string, helpKey: string) {
 /** Queues for the check-in dialog; staff without engagement.queue.operate get none and can still check in without a token. */
 const queuesFor = (centreId: string) => (has('engagement.queue.operate').then((ok) => (ok ? listQueues(centreId) : [])).catch(() => []));
 
-export async function bookingsPage(searchParams: SearchParams) {
+// T0D-UNSLOP-1 / LD-353 rule 6: a read that answers 501 operation_pending shows NotAvailable (title + header row), never error.tsx.
+export const bookingsPage = (searchParams: SearchParams) =>
+  pendingOr('Bookings', ['Time', 'Booking no.', 'Patient', 'Type', 'Tests', 'Source', 'Status', 'Order'], () => bookingsBody(searchParams));
+
+async function bookingsBody(searchParams: SearchParams) {
   const centreId = await resolveCentre(first((await searchParams)['centre_id']));
   if (!centreId) return noCentre;
   const today = api.todayKathmandu();
@@ -67,7 +72,9 @@ export async function bookingDetailPage(bookingId: string) {
   );
 }
 
-export async function bookingNewPage(searchParams: SearchParams) {
+export const bookingNewPage = (searchParams: SearchParams) => pendingOr('New booking', undefined, () => bookingNewBody(searchParams));
+
+async function bookingNewBody(searchParams: SearchParams) {
   const centreId = await resolveCentre(first((await searchParams)['centre_id']));
   if (!centreId) return noCentre;
   // S12 needs engagement.bookable_item.manage; without it the Tests list is empty (open point in T-B6-impl.md).
@@ -80,7 +87,9 @@ export async function bookingNewPage(searchParams: SearchParams) {
   );
 }
 
-export async function slotsPage(searchParams: SearchParams) {
+export const slotsPage = (searchParams: SearchParams) => pendingOr(t('engagement.nav.slots'), undefined, () => slotsBody(searchParams));
+
+async function slotsBody(searchParams: SearchParams) {
   const centreId = await resolveCentre(first((await searchParams)['centre_id']));
   if (!centreId) return noCentre;
   const [centres, templates, blackouts] = await Promise.all([api.listCentres(), orOff(api.listTemplates()), orOff(api.listBlackouts())]);

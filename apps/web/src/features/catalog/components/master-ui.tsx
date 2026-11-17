@@ -85,6 +85,11 @@ export function useListFilter<R extends { code: string; is_active: boolean }>(ro
 
 export interface Col<R> { header: string; cell: (r: R) => ReactNode }
 
+// ponytail: plain-text heuristics (a digits-only code column also aligns right); a per-column `align` prop if that ever reads wrong.
+const NUMBER = /^-?[\d,]+(\.\d+)?$/;
+const isNumberColumn = (vs: readonly ReactNode[]) => vs.length > 0 && vs.every((v) => (typeof v === 'string' || typeof v === 'number') && NUMBER.test(String(v).trim()));
+const cutOff = (v: ReactNode) => typeof v === 'string' && v.length > 32;
+
 /** Plain table (role=table; rows named by their content). `onEdit` undefined or `canEdit` false = no Edit button for the row. */
 export function MasterTable<R extends { id: string }>({ caption, cols, rows, empty, emptyAction, onEdit, canEdit = () => true, rowExtra, codeOf = (r) => (r as { code?: string }).code ?? '' }: {
   caption: string;
@@ -100,13 +105,16 @@ export function MasterTable<R extends { id: string }>({ caption, cols, rows, emp
 }) {
   // LD-310 (T0D-CATUNITS-1): headers are drawn even with no rows; the empty state sits in the single body row.
   const actions = rows.length > 0 && (!!onEdit || !!rowExtra);
+  // T0D-UNSLOP-1 (LD-353 rules 3 and 5): an all-number column is right aligned (header too); a long text cell carries its full value as title.
+  const vals = rows.map((r) => cols.map((c) => c.cell(r)));
+  const end = cols.map((_, i) => (isNumberColumn(vals.map((v) => v[i])) ? ' lims-align-end' : ''));
   return (
     <table className="lims-table lims-table-regular">
       <caption className="lims-visually-hidden">{caption}</caption>
       <thead>
         <tr>
-          {cols.map((c) => (
-            <th key={c.header} scope="col" className="lims-col">{c.header}</th>
+          {cols.map((c, i) => (
+            <th key={c.header} scope="col" className={`lims-col${end[i]}`}>{c.header}</th>
           ))}
           {actions ? <th scope="col" className="lims-col-actions"><VisuallyHidden>Actions</VisuallyHidden></th> : null}
         </tr>
@@ -116,11 +124,12 @@ export function MasterTable<R extends { id: string }>({ caption, cols, rows, emp
           // T0D-EMPTYTBL-1 (LD-310): message row (create action repeated) + four placeholder rows.
           <EmptyRow colSpan={cols.length}><EmptyState title={empty} {...(emptyAction ? { action: emptyAction } : {})} /></EmptyRow>
         ) : null}
-        {rows.map((r) => (
+        {rows.map((r, ri) => (
           <tr key={(r.id as string | undefined) ?? `global:${codeOf(r)}`/* global units/value sets carry no id (catalog.yaml) */} className="lims-row">
-            {cols.map((c) => (
-              <td key={c.header} className="lims-cell">{c.cell(r)}</td>
-            ))}
+            {cols.map((c, i) => {
+              const v = vals[ri]![i];
+              return <td key={c.header} className={`lims-cell${end[i]}`} {...(cutOff(v) ? { title: v as string } : {})}>{v}</td>;
+            })}
             {actions ? (
               <td className="lims-cell-actions">
                 {rowExtra?.(r)}

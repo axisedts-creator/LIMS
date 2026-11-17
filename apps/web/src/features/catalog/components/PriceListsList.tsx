@@ -27,7 +27,7 @@ export function PriceListsList({ priceLists, permissions }: { priceLists: readon
   const open = manage ? () => setCreating(true) : undefined;
   return (
     <section aria-label="Price lists">
-      <PageHeader title={t('catalog.nav.price_lists')} helpKey="catalog.price_lists" breadcrumbs={[{ label: 'Pricing' }, { label: 'Price lists' }]} actions={open ? <Button variant="primary" onPress={open}>New price list</Button> : null} />
+      <PageHeader title={t('catalog.nav.price_lists')} helpKey="catalog.price_lists" actions={open ? <Button variant="primary" onPress={open}>New price list</Button> : null} />
       {/* T0D-EMPTYTBL-1 (LD-310): headers always drawn; the empty message (with New price list repeated) is a body row. */}
       <>
           {priceLists.length === 1 && priceLists[0]!.owner_kind === 'default' ? <p>Only the default price list exists.</p> : null}

@@ -20,7 +20,7 @@ export function MicroSettingsScreen({ settings, permissions }: { settings: Micro
   const canManage = permissions.includes(PERM.config);
   return (
     <section aria-label="Micro settings">
-      <PageHeader title={t('micro.nav.settings')} helpKey="micro.settings" breadcrumbs={[{ label: 'Microbiology' }, { label: 'Settings' }]} />
+      <PageHeader title={t('micro.nav.settings')} helpKey="micro.settings" />
       <Tabs items={TABS} selectedId={tab} onChange={setTab} aria-label="Settings sections">
         {tab === 'dictionaries' ? <DictionariesTab canManage={canManage} /> : null}
         {tab === 'protocols' ? <ProtocolsTab canManage={canManage} /> : null}

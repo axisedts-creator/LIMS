@@ -1,0 +1,32 @@
+# 02-TRD s6.8 [CONV thresholds]; rendered by roles/fail2ban (only wg_subnet is used).
+# LD-45: no host names here - the same file serves the lean and full profiles.
+# wg0 and loopback are never banned. Bans are nftables set entries. Fixed ban times (no increment).
+# No jail counts failed-auth or not-found responses, nor app-generated rate answers (08 Addendum A3.2, A25 D-211).
+[DEFAULT]
+ignoreip = 127.0.0.0/8 ::1 {{ wg_subnet }}
+banaction = nftables-multiport
+
+[sshd]
+enabled = true
+backend = systemd
+maxretry = 5
+findtime = 10m
+bantime = 1h
+
+[lims-ratelimit]
+enabled = true
+filter = lims-ratelimit
+backend = auto
+logpath = /var/log/nginx/access.json
+maxretry = 20
+findtime = 10m
+bantime = 1h
+
+[lims-auth]
+enabled = true
+filter = lims-auth
+backend = auto
+logpath = /var/log/nginx/access.json
+maxretry = 300
+findtime = 10m
+bantime = 15m

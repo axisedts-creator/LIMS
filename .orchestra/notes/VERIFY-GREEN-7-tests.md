@@ -1,0 +1,6 @@
+# VERIFY-GREEN-7 tests (tester)
+- RED gate: `apps/web/src/__tests__/vg7.typecheck.test.ts` (config `vitest.vg7.config.ts`): `tsc -p apps/web` must have 0 errors under features/{instruments,inventory,partners,quality}. Now 78 (TS2353 x42, TS2698 x28, TS2345 x2, TS2554 x2, TS18049/TS2339/TS2375/TS2532 x1).
+- Tolerated only if listed `repo/path:line` in notes/VERIFY-GREEN-7.md AND `.orchestra/cr/VERIFY-GREEN-7*.md` exists (real runtime/shape question). The 28 TS2698 (rs-c7.behaviour x13, web-t03.components x12, web-t06.components x2, quality-t22.materials x1) are never tolerable (typing fix).
+- Pins green now, must stay: no @ts-ignore/expect-error/nocheck, skipLibCheck, skip/todo; `as any` <= 11 existing; it()/test() lines >= 534/528/104/344 and expect( >= 1464/1321/315/862 (instruments/inventory/partners/quality); writer/debugger commits touch only test files/helpers (no product file).
+- Run: `.orchestra\notes\VERIFY-GREEN-7-verify.cmd` (RED until fixed; the other pins are green now).
+- Not covered: money/order emitted values (writer states "none changed" in review note; error counts before/after via `turbo run typecheck --continue`); other dirs (lab, admin) are other tasks; existing suites for these dirs are not rerun here.

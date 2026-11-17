@@ -1,0 +1,650 @@
+[
+ {
+  "id": "T-01",
+  "title": "Module skeleton boots",
+  "depends": [],
+  "files": [
+   "services/api/src/modules/micro/index.ts",
+   "services/api/src/modules/micro/permissions.ts",
+   "services/api/src/modules/micro/config.ts",
+   "services/api/src/modules/micro/handlers/index.ts",
+   "services/worker/src/jobs/micro/index.ts",
+   "services/worker/src/jobs/micro/cron.ts",
+   "apps/web/src/features/micro/nav.manifest.ts"
+  ],
+  "done_when": "Prereq: C0 contracts. API and worker boot with fakes; each operation throws common.internal until its task (none returns 501); nav build passes; manifest produces: [] CI check green",
+  "tests": "boot test; nav build",
+  "acs": [],
+  "verify": "pnpm -s verify"
+ },
+ {
+  "id": "T-02",
+  "title": "Pure domain: state tables",
+  "depends": [
+   "T-01"
+  ],
+  "files": [
+   "services/api/src/modules/micro/domain/culture.state.ts",
+   "services/api/src/modules/micro/domain/isolate.state.ts",
+   "services/api/src/modules/micro/domain/breakpoint-set.state.ts"
+  ],
+  "done_when": "every transition C1–C10, I1–I4, IR1–IR6, B1–B6 + one forbidden each has a unit test",
+  "tests": "unit",
+  "acs": [
+   "AC-03.3",
+   "AC-11.4",
+   "AC-13.5"
+  ],
+  "verify": "pnpm -s verify"
+ },
+ {
+  "id": "T-03",
+  "title": "Pure domain: AST value + interpretation",
+  "depends": [
+   "T-01"
+  ],
+  "files": [
+   "services/api/src/modules/micro/domain/ast-value.ts",
+   "services/api/src/modules/micro/domain/interpretation.ts",
+   "services/api/src/modules/micro/domain/decimal.ts"
+  ],
+  "done_when": "grammar table of 02-TRD §4.3 incl. ≤, 8/4, limits; all seeded codes accepted; cross-standard and restricted rejected; new synthetic code accepted without code change",
+  "tests": "unit (table-driven)",
+  "acs": [
+   "AC-06.2",
+   "AC-06.3",
+   "AC-06.4",
+   "AC-06.5",
+   "AC-06.7"
+  ],
+  "verify": "pnpm -s verify"
+ },
+ {
+  "id": "T-04",
+  "title": "Pure domain: breakpoint evaluation + selection + schedule",
+  "depends": [
+   "T-03"
+  ],
+  "files": [
+   "services/api/src/modules/micro/domain/breakpoint-eval.ts",
+   "services/api/src/modules/micro/domain/selection.ts",
+   "services/api/src/modules/micro/domain/schedule.ts"
+  ],
+  "done_when": "golden table (synthetic bands only) covers inclusive/exclusive, open bands, gaps, qualifier spanning, precedence levels; protocol/panel precedence; schedule maths",
+  "tests": "unit",
+  "acs": [
+   "AC-07.2",
+   "AC-07.3",
+   "AC-03.2",
+   "AC-04.2"
+  ],
+  "verify": "pnpm -s verify"
+ },
+ {
+  "id": "T-05",
+  "title": "Coded sets + settings + plating-protocol config repositories and endpoints",
+  "depends": [
+   "T-01"
+  ],
+  "files": [
+   "services/api/src/modules/micro/repository/codedsets.repo.ts",
+   "services/api/src/modules/micro/repository/config.repo.ts",
+   "services/api/src/modules/micro/service/config.service.ts",
+   "services/api/src/modules/micro/handlers (M23–M28, M39, M40)",
+   "services/api/src/modules/micro/mappers"
+  ],
+  "done_when": "M23–M28, M39, M40 pass HTTP contract tests; single x-permission micro.culture.read on the GETs (D-64); applies_to key clash → micro.code_duplicate; settings row created lazily (INSERT … ON CONFLICT (tenant_id) DO NOTHING, 08 A17 P-22); tenant shadowing works; SNOMED field optional",
+  "tests": "integration, contract, probes",
+  "acs": [
+   "AC-14.1",
+   "AC-14.2",
+   "AC-14.3",
+   "AC-14.4",
+   "AC-14.5"
+  ],
+  "verify": "pnpm -s verify"
+ },
+ {
+  "id": "T-06",
+  "title": "Consumer lab.specimen.status_changed.v1",
+  "depends": [
+   "T-02",
+   "T-05"
+  ],
+  "files": [
+   "services/worker/src/jobs/micro/consumers/lab.specimen.status_changed.v1.ts",
+   "services/api/src/modules/micro/service/culture.service.ts",
+   "services/api/src/modules/micro/repository/cultures.repo.ts"
+  ],
+  "done_when": "received → culture; duplicate/stale/no-micro/aliquot (re-point sets last_specimen_seq; aliquot after setup creates nothing)/recollection/rejection paths; order_item_ids absent → specimen-type filter, ambiguity → no culture + metric; centre_id copied to children",
+  "tests": "integration with LabPort/CatalogPort fakes; event contract (examples + extra fields + duplicate + stale seq)",
+  "acs": [
+   "AC-01.1",
+   "AC-01.2",
+   "AC-01.3",
+   "AC-01.4",
+   "AC-01.4a",
+   "AC-01.5",
+   "AC-01.6",
+   "AC-01.7",
+   "AC-01.8",
+   "AC-01.9"
+  ],
+  "verify": "pnpm -s verify"
+ },
+ {
+  "id": "T-07",
+  "title": "Culture read endpoints",
+  "depends": [
+   "T-06"
+  ],
+  "files": [
+   "services/api/src/modules/micro/handlers (M1, M2, M15, M16)",
+   "services/api/src/modules/micro/mappers/culture.dto.ts",
+   "services/api/src/modules/micro/service/chain.service.ts"
+  ],
+  "done_when": "list filters/sorts/include_total; detail with lab_result only for lab.result.read; access-log action culture.view; *_display via ctx.core.memberships.list / ctx.core.user (D-47)",
+  "tests": "integration, contract, probes (cross-tenant, cross-centre)",
+  "acs": [
+   "AC-02.1",
+   "AC-02.3",
+   "AC-02.4",
+   "AC-17.2"
+  ],
+  "verify": "pnpm -s verify"
+ },
+ {
+  "id": "T-08",
+  "title": "Setup, plates, observations",
+  "depends": [
+   "T-07",
+   "T-04"
+  ],
+  "files": [
+   "services/api/src/modules/micro/handlers (M3–M6)",
+   "services/api/src/modules/micro/service/culture.service.ts",
+   "services/api/src/modules/micro/repository/plates.repo.ts",
+   "services/api/src/modules/micro/repository/observations.repo.ts"
+  ],
+  "done_when": "C2/C3 transitions; schedule fields; corrections; locks",
+  "tests": "integration, contract, probes",
+  "acs": [
+   "AC-03.1",
+   "AC-03.2",
+   "AC-03.3",
+   "AC-03.4",
+   "AC-04.1",
+   "AC-04.2",
+   "AC-04.3",
+   "AC-04.4",
+   "AC-04.5"
+  ],
+  "verify": "pnpm -s verify"
+ },
+ {
+  "id": "T-09",
+  "title": "Isolates",
+  "depends": [
+   "T-08"
+  ],
+  "files": [
+   "services/api/src/modules/micro/handlers (M7–M10)",
+   "services/api/src/modules/micro/service/isolate.service.ts",
+   "services/api/src/modules/micro/repository/isolates.repo.ts"
+  ],
+  "done_when": "per-specimen numbering under concurrency (20 parallel creates → 1..20 unique; counter row lazy: INSERT … ON CONFLICT (tenant_id, specimen_id) DO UPDATE SET last_seq = last_seq + 1 RETURNING last_seq, 08 A17 P-22); identify/withdraw",
+  "tests": "integration (concurrency), contract, probes",
+  "acs": [
+   "AC-05.1",
+   "AC-05.2",
+   "AC-05.3",
+   "AC-05.4",
+   "AC-05.5"
+  ],
+  "verify": "pnpm -s verify"
+ },
+ {
+  "id": "T-10",
+  "title": "AST panels + AST entry",
+  "depends": [
+   "T-09",
+   "T-03"
+  ],
+  "files": [
+   "services/api/src/modules/micro/handlers (M11, M12, M29–M32)",
+   "services/api/src/modules/micro/service/ast.service.ts",
+   "services/api/src/modules/micro/repository/ast.repo.ts"
+  ],
+  "done_when": "panel precedence with tie-break (lowest code, then id); per-entry outcomes with SAVEPOINTs and path; category without raw value refused; off_panel; no operation sets report_visibility (AC-16.1, contract test over micro.yaml); p95 ≤ 300 ms for 60 entries on 10× seed",
+  "tests": "integration, contract, perf",
+  "acs": [
+   "AC-06.1",
+   "AC-06.2",
+   "AC-06.3",
+   "AC-06.4",
+   "AC-06.5",
+   "AC-06.6",
+   "AC-06.3a",
+   "AC-16.1"
+  ],
+  "verify": "pnpm -s verify"
+ },
+ {
+  "id": "T-11",
+  "title": "Breakpoint import endpoint + storage",
+  "depends": [
+   "T-05"
+  ],
+  "files": [
+   "services/api/src/modules/micro/handlers (M41–M45, M49)",
+   "services/api/src/modules/micro/service/breakpoint.service.ts",
+   "services/api/src/modules/micro/repository/breakpoints.repo.ts"
+  ],
+  "done_when": "Prereq: core ctx.uploads/ctx.storage (08 §4.13; fake storage until C0-0D ships). ctx.uploads.accept with bucket/objectPath (no separate put); upload checks (5 MiB = 5,242,880 bytes, UTF-8, NUL, sha256 dedupe → 422 micro.breakpoint_import_invalid); intended_effective_from stored; job enqueued; aal2 enforced",
+  "tests": "integration, contract, probes, MFA test",
+  "acs": [
+   "AC-12.1",
+   "AC-12.3",
+   "AC-12.5"
+  ],
+  "verify": "pnpm -s verify"
+ },
+ {
+  "id": "T-12",
+  "title": "Breakpoint validation job + CSV parser",
+  "depends": [
+   "T-11"
+  ],
+  "files": [
+   "services/worker/src/jobs/micro/csv/parser.ts",
+   "services/worker/src/jobs/micro/csv/breakpoint-file.ts",
+   "services/worker/src/jobs/micro/tasks/micro.breakpoint_import_validate.ts"
+  ],
+  "done_when": "every issue code of 02-TRD §9.1 has a fixture; 20,000-line file ≤ 30 s; timeout path; a retried job leaves validating unchanged and succeeds",
+  "tests": "unit (parser), integration (job)",
+  "acs": [
+   "AC-12.2",
+   "AC-12.4"
+  ],
+  "verify": "pnpm -s verify"
+ },
+ {
+  "id": "T-13",
+  "title": "Breakpoint lifecycle + suggestions",
+  "depends": [
+   "T-12",
+   "T-04"
+  ],
+  "files": [
+   "services/api/src/modules/micro/handlers (M13, M46–M48)",
+   "services/api/src/modules/micro/service/breakpoint.service.ts (lookup)"
+  ],
+  "done_when": "four-eyes; overlap closing under concurrent activation (two parallel tx); preview never writes; accept_suggestion re-evaluation",
+  "tests": "integration (concurrency), contract",
+  "acs": [
+   "AC-07.1",
+   "AC-07.4",
+   "AC-07.5",
+   "AC-07.6",
+   "AC-13.1",
+   "AC-13.2",
+   "AC-13.3",
+   "AC-13.4"
+  ],
+  "verify": "pnpm -s verify"
+ },
+ {
+  "id": "T-14",
+  "title": "Instrument record consumer + resolution",
+  "depends": [
+   "T-10"
+  ],
+  "files": [
+   "services/worker/src/jobs/micro/consumers/instruments.result.received.v1.ts",
+   "services/api/src/modules/micro/service/instrument-record.service.ts",
+   "services/api/src/modules/micro/repository/instrument-records.repo.ts",
+   "services/api/src/modules/micro/handlers (M19–M22, M33–M38)"
+  ],
+  "done_when": "all match_status paths incl. ignored at IR1 and isolate_seq_out_of_range; mapped codes stored and reused on deferred apply; expires_at set on applied/ignored (D-65); ignore_comment stored; dedupe on key; conflict resolution; late after final; behind LIMS_MICRO_SPECIMEN_LOOKUP_PORT default false",
+  "tests": "integration with synthetic events, contract, probes",
+  "acs": [
+   "AC-08.1",
+   "AC-08.2",
+   "AC-08.3",
+   "AC-08.4",
+   "AC-08.5",
+   "AC-08.6",
+   "AC-08.7",
+   "AC-08.8",
+   "AC-08.9",
+   "AC-08.10",
+   "AC-08.11",
+   "AC-08.12"
+  ],
+  "verify": "pnpm -s verify"
+ },
+ {
+  "id": "T-15",
+  "title": "Snapshot + submission",
+  "depends": [
+   "T-10",
+   "T-07"
+  ],
+  "files": [
+   "services/api/src/modules/micro/domain/snapshot.ts",
+   "services/api/src/modules/micro/service/report.service.ts",
+   "services/api/src/modules/micro/repository/reports.repo.ts",
+   "services/api/src/modules/micro/handlers (M14)"
+  ],
+  "done_when": "ajv-validated snapshot; size guard (20 isolates / 600 AST rows); snapshots exclude suppressed_by_rule rows (AC-16.1); single-tx with port; rollback on failNext; idempotent replay; guards; second preliminary over an approved preliminary sends module_preliminary_update (D-61); amendment_reason_* written to report_versions",
+  "tests": "unit (snapshot), integration with LabPort fake (failNext for each passed-through code), contract",
+  "acs": [
+   "AC-09.1",
+   "AC-09.2",
+   "AC-09.3",
+   "AC-09.4",
+   "AC-09.5",
+   "AC-09.6",
+   "AC-09.7",
+   "AC-10.1",
+   "AC-10.2",
+   "AC-10.3",
+   "AC-10.4",
+   "AC-10.5",
+   "AC-10.6",
+   "AC-10.7",
+   "AC-15.2",
+   "AC-16.1"
+  ],
+  "verify": "pnpm -s verify"
+ },
+ {
+  "id": "T-16",
+  "title": "Reopen / amend / cancel",
+  "depends": [
+   "T-15"
+  ],
+  "files": [
+   "services/api/src/modules/micro/handlers (M17, M18)",
+   "services/api/src/modules/micro/service/report.service.ts (amendment logic)"
+  ],
+  "done_when": "C8/C6/C9 transitions; amendment { reasonCode, reasonText? } per CR-C10-001 (module_phase_progression / module_preliminary_update auto-reasons); M17 checks reason format only, invalid reason surfaces as lab.module_result_invalid (D-62)",
+  "tests": "integration, contract",
+  "acs": [
+   "AC-11.1",
+   "AC-11.2",
+   "AC-11.3",
+   "AC-11.4",
+   "AC-11.5",
+   "AC-11.6",
+   "AC-01.6"
+  ],
+  "verify": "pnpm -s verify"
+ },
+ {
+  "id": "T-17",
+  "title": "Published view contract",
+  "depends": [
+   "T-15"
+  ],
+  "files": [
+   "services/api/src/modules/micro/__tests__/contract/v_pub_report_content.test.ts"
+  ],
+  "done_when": "Prereq: C0 view. columns/order/JSON schemas; immutability; cross-tenant and centre probes",
+  "tests": "contract, probes",
+  "acs": [
+   "AC-15.1",
+   "AC-15.2",
+   "AC-15.3",
+   "AC-15.4"
+  ],
+  "verify": "pnpm -s verify"
+ },
+ {
+  "id": "T-18",
+  "title": "Reconciliation, metrics and purge jobs",
+  "depends": [
+   "T-16",
+   "T-14"
+  ],
+  "files": [
+   "services/worker/src/jobs/micro/tasks/micro.reconcile_chain_status.ts",
+   "services/worker/src/jobs/micro/tasks/micro.refresh_metrics.ts",
+   "services/worker/src/jobs/micro/tasks/micro.purge_instrument_records.ts",
+   "services/worker/src/jobs/micro/cron.ts"
+  ],
+  "done_when": "all three tenantScope: per_tenant (P-6); cancelled line closes culture; flags when versions exist; batch bound; purge deletes only expired records not referenced by AST rows (D-65)",
+  "tests": "integration with LabPort fake; purge integration",
+  "acs": [
+   "AC-17.1",
+   "AC-08.12"
+  ],
+  "verify": "pnpm -s verify"
+ },
+ {
+  "id": "T-19",
+  "title": "Web: worklist + scan",
+  "depends": [
+   "T-07"
+  ],
+  "files": [
+   "apps/web/src/app/(staff)/micro/worklist/page.tsx",
+   "apps/web/src/app/(staff)/micro/worklist/loading.tsx",
+   "apps/web/src/app/(staff)/micro/worklist/error.tsx",
+   "apps/web/src/features/micro/components/worklist/*",
+   "apps/web/src/features/micro/server/listCultures.server.ts",
+   "apps/web/src/features/micro/server/lookupSpecimenByBarcode.server.ts",
+   "apps/web/src/features/micro/server/getSpecimen.server.ts",
+   "apps/web/src/features/micro/server/listCentres.server.ts"
+  ],
+  "done_when": "tabs, filters, scan flow, empty/error/loading/permission states; axe clean",
+  "tests": "component (MSW), e2e smoke",
+  "acs": [
+   "AC-02.1",
+   "AC-02.2"
+  ],
+  "verify": "pnpm -s verify"
+ },
+ {
+  "id": "T-20",
+  "title": "Web: culture page (setup, reads, isolates)",
+  "depends": [
+   "T-08",
+   "T-09",
+   "T-19"
+  ],
+  "files": [
+   "apps/web/src/app/(staff)/micro/cultures/[culture_id]/…",
+   "apps/web/src/features/micro/components/culture/*",
+   "apps/web/src/features/micro/forms/*",
+   "apps/web/src/features/micro/server/* (incl. getPatient.server.ts)"
+  ],
+  "done_when": "dialogs per 04-UI-UX §3.1–3.3; shortcuts registered; patient display fallback",
+  "tests": "component, keyboard tests",
+  "acs": [
+   "AC-03.1",
+   "AC-03.2",
+   "AC-03.3",
+   "AC-03.4",
+   "AC-04.1",
+   "AC-04.2",
+   "AC-04.3",
+   "AC-04.4",
+   "AC-04.5",
+   "AC-05.1",
+   "AC-05.2",
+   "AC-05.3",
+   "AC-05.4",
+   "AC-05.5"
+  ],
+  "verify": "pnpm -s verify"
+ },
+ {
+  "id": "T-21",
+  "title": "Web: AST grid + suggestions",
+  "depends": [
+   "T-10",
+   "T-13",
+   "T-20"
+  ],
+  "files": [
+   "apps/web/src/features/micro/components/ast/*"
+  ],
+  "done_when": "debounce preview, \"Use\" sets fields, per-row errors, unsaved-changes guard",
+  "tests": "component, keyboard",
+  "acs": [
+   "AC-06.1",
+   "AC-06.2",
+   "AC-06.3",
+   "AC-06.3a",
+   "AC-06.4",
+   "AC-06.5",
+   "AC-06.6",
+   "AC-06.7",
+   "AC-07.5"
+  ],
+  "verify": "pnpm -s verify"
+ },
+ {
+  "id": "T-22",
+  "title": "Web: reports, reopen",
+  "depends": [
+   "T-15",
+   "T-16",
+   "T-20"
+  ],
+  "files": [
+   "apps/web/src/features/micro/components/reports/*",
+   "apps/web/src/features/micro/server/listLabCodedSet.server.ts"
+  ],
+  "done_when": "drawer, disabled-state explanation (final and updated preliminary), error copy; reopen reasons exclude the three system codes (D-62)",
+  "tests": "component",
+  "acs": [
+   "AC-09.1",
+   "AC-09.2",
+   "AC-09.3",
+   "AC-09.4",
+   "AC-09.5",
+   "AC-09.6",
+   "AC-09.7",
+   "AC-10.1",
+   "AC-10.2",
+   "AC-10.3",
+   "AC-10.4",
+   "AC-10.5",
+   "AC-10.6",
+   "AC-10.7",
+   "AC-11.1",
+   "AC-11.2",
+   "AC-11.3",
+   "AC-11.4",
+   "AC-11.5",
+   "AC-11.6"
+  ],
+  "verify": "pnpm -s verify"
+ },
+ {
+  "id": "T-23",
+  "title": "Web: instrument data inbox",
+  "depends": [
+   "T-14"
+  ],
+  "files": [
+   "apps/web/src/app/(staff)/micro/instrument-records/…",
+   "apps/web/src/features/micro/components/instrument-records/*"
+  ],
+  "done_when": "assign/apply/resolve/ignore dialogs; banner when port flag off",
+  "tests": "component",
+  "acs": [
+   "AC-08.4",
+   "AC-08.5",
+   "AC-08.6"
+  ],
+  "verify": "pnpm -s verify"
+ },
+ {
+  "id": "T-24",
+  "title": "Web: settings + breakpoint tables",
+  "depends": [
+   "T-05",
+   "T-11",
+   "T-12",
+   "T-13"
+  ],
+  "files": [
+   "apps/web/src/app/(staff)/micro/settings/…",
+   "apps/web/src/app/(staff)/micro/breakpoint-sets/…",
+   "apps/web/src/features/micro/components/settings/*",
+   "apps/web/src/features/micro/components/breakpoints/*"
+  ],
+  "done_when": "all tabs; import dialog (CSV accept: FileUpload accept += text/csv, 08 §4.6); detail polling; four-eyes copy",
+  "tests": "component",
+  "acs": [
+   "AC-12.1",
+   "AC-12.2",
+   "AC-12.3",
+   "AC-12.4",
+   "AC-12.5",
+   "AC-13.1",
+   "AC-13.2",
+   "AC-13.3",
+   "AC-13.4",
+   "AC-13.5",
+   "AC-14.1",
+   "AC-14.2",
+   "AC-14.3",
+   "AC-14.4",
+   "AC-14.5"
+  ],
+  "verify": "pnpm -s verify"
+ },
+ {
+  "id": "T-25",
+  "title": "Security suite",
+  "depends": [
+   "T-05",
+   "T-06",
+   "T-07",
+   "T-08",
+   "T-09",
+   "T-10",
+   "T-11",
+   "T-12",
+   "T-13",
+   "T-14",
+   "T-15",
+   "T-16",
+   "T-17",
+   "T-18"
+  ],
+  "files": [
+   "services/api/src/modules/micro/__tests__/probes/*",
+   "log-scan test",
+   "CI grep for breakpoint values"
+  ],
+  "done_when": "every 07-SECURITY §5 test present and green",
+  "tests": "probes, security",
+  "acs": [],
+  "verify": "pnpm -s verify"
+ },
+ {
+  "id": "T-26",
+  "title": "Help + manual",
+  "depends": [
+   "T-19",
+   "T-20",
+   "T-21",
+   "T-22",
+   "T-23",
+   "T-24"
+  ],
+  "files": [
+   "apps/web/src/features/micro/help/*",
+   "docs/manual/micro/ (pages per 04-UI-UX §11)"
+  ],
+  "done_when": "one help page per screen key; manual reviewed",
+  "tests": "doc check",
+  "acs": [],
+  "verify": ""
+ }
+]

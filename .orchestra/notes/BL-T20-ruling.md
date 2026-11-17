@@ -1,0 +1,6 @@
+TESTS_WRONG — the test asserts something the spec does not require
+1. `bl-t20.screens.test.tsx:166,190` query `getByRole('combobox',{name:/reason/i})`. Spec mandates kit `Select`/`ConfirmDialog` with "no local look-alikes" (spec/chunks/C4-frontdesk-billing/04-UI-UX.md:17-18); no spec line requires ARIA role `combobox`. Kit Select trigger is role `button` (haspopup=listbox), as kit's own test does (packages/ui/src/components/__tests__/overlays.test.tsx:113).
+   Change: query `getByRole('button',{name:/reason/i})`, click it, then click `getByRole('option',{name:…})`. Drop the `selectOptions(...).catch` fallback at :168.
+2. Test uses reason `entered_in_error` (:51, :168, :172, :307, :308). Spec coded set `invoice_cancel_reasons` = order_cancelled, billing_error, duplicate_invoice, patient_request, other (05-SCHEMA.md:1849); B4 body is `reason_code (x-coded-set billing.invoice_cancel_reasons)` (02-TRD.md:261); PRD AC uses `billing_error` (01-PRD.md:249).
+   Change: replace `entered_in_error` with `billing_error` everywhere (option name /billing error/i; assertion at :172 expects 'billing_error').
+3. Print (B3) reason options stay reprint/printer_fault/customer_copy (02-TRD.md:260, 05-SCHEMA.md:1856); only the role query changes.

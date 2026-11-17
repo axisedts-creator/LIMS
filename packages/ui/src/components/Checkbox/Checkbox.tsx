@@ -1,3 +1,4 @@
+'use client';
 import { useId } from 'react';
 import { Checkbox as RacCheckbox } from 'react-aria-components';
 import { Icon } from '../Icon/Icon';

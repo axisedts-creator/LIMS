@@ -1,0 +1,1 @@
+pnpm --dir services/api exec vitest run src/modules/engagement/__tests__ src/core/ports/__tests__/phase-stubs.test.ts src/core/__tests__/openapi.test.ts src/__tests__/real-modules-boot.test.ts && pnpm --dir services/worker exec vitest run src/jobs/engagement/__tests__

@@ -1,0 +1,7 @@
+# AN-T04 impl (writer)
+- New: api `repository/refresh.repo.ts` (replacePartition x16 families, markDirty, loadFamilyStates + validators), `repository/orderIndex.repo.ts`, `service/refresh.service.ts` (refreshTenant); worker `jobs/analytics/tasks/refresh_tenant.ts`; edited `jobs/analytics/index.ts` (real task replaces the stub).
+- [CONV] `sourceViews.repo.ts` NOT created: brief lists it but tests give no contract and live pending/agents belong to AN-T13.
+- [CONV] chunk 7 d / lookback 30 d are code defaults (inputs `chunkDays`, `backlogLookbackDays`); env wiring left to callers (AN-T05/sweeps). Run row (`succeeded`) written in the data tx after the replace; `expires_at = started_at + 90 d`.
+- [CONV] one failing range does not stop other ranges; first error rethrown after all ranges tried. Failure tx stores error CODE only (`refresh_error` if none).
+- RUN (after tester applied ruling at :66, no impl change): api vitest 166 passed / 5 skipped (refresh.live.test.ts skipped: no DB); worker refresh_tenant 7/7 passed; tsc api+worker: 0 analytics errors.
+- Open: live DB test never executed; `$n::uuid` casts on bound run id/tenant in SELECT lists (pg cannot infer them there). Review fixes: #3 run_started_at = DB `SELECT now()::text` in the marks-read tx (was ctx.now()); guard bound as `$n::timestamptz`. #1 each range already its own ctx.db.tx, failure recorded after it rolls back; independent commit needs C0 -> `.orchestra/cr/AN-T04.md`. Worker test :66 conflicts with #3 -> `AN-T04-dispute.md` (stopped).

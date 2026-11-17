@@ -1,0 +1,22 @@
+{
+  "_note": "Synthetic golden cases for drivers/micro-code.ts (02-TRD 6.1 driver rule, CR-C10-007 / 08 R13). code = expected instrument_analyte_code; tooLong = rejected (never truncated).",
+  "org": [
+    { "name": "no isolate seq defaults to 1", "isolateSeq": null, "code": "ORG:1" },
+    { "name": "isolate 1", "isolateSeq": 1, "code": "ORG:1" },
+    { "name": "isolate 2", "isolateSeq": 2, "code": "ORG:2" },
+    { "name": "two-digit isolate", "isolateSeq": 12, "code": "ORG:12" }
+  ],
+  "ast": [
+    { "name": "default isolate, mic", "isolateSeq": null, "ab": "AMP", "method": "mic", "code": "AST:1:AMP:mic" },
+    { "name": "isolate 1, mic", "isolateSeq": 1, "ab": "AMP", "method": "mic", "code": "AST:1:AMP:mic" },
+    { "name": "isolate 2, same antibiotic, mic", "isolateSeq": 2, "ab": "AMP", "method": "mic", "code": "AST:2:AMP:mic" },
+    { "name": "zone diameter", "isolateSeq": 1, "ab": "CIP", "method": "zone_diameter", "code": "AST:1:CIP:zone_diameter" },
+    { "name": "other method", "isolateSeq": 3, "ab": "GEN", "method": "other", "code": "AST:3:GEN:other" },
+    { "name": "antibiotic code kept verbatim (case, digits, dash)", "isolateSeq": 1, "ab": "Amx-Clv2", "method": "mic", "code": "AST:1:Amx-Clv2:mic" },
+    { "name": "exactly 64 chars (mic, 54-char antibiotic) is accepted", "isolateSeq": 1, "ab": "A{54}", "method": "mic", "code": "AST:1:A{54}:mic" },
+    { "name": "exactly 64 chars (zone_diameter, 44-char antibiotic) is accepted", "isolateSeq": 1, "ab": "B{44}", "method": "zone_diameter", "code": "AST:1:B{44}:zone_diameter" },
+    { "name": "65 chars (mic, 55-char antibiotic) is rejected", "isolateSeq": 1, "ab": "A{55}", "method": "mic", "tooLong": true },
+    { "name": "65 chars (zone_diameter, 45-char antibiotic) is rejected", "isolateSeq": 1, "ab": "B{45}", "method": "zone_diameter", "tooLong": true },
+    { "name": "a wide isolate number pushes a 64-char code over the limit", "isolateSeq": 10, "ab": "A{54}", "method": "mic", "tooLong": true }
+  ]
+}

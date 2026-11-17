@@ -1,0 +1,6 @@
+# PG-T07 tests (tester)
+- `__tests__/unit/gateways/khalti.adapter.test.ts` — vs PG-T05 Khalti sim: initiate (Key header, 5-field body, no PII, <1000 paisa, failures -> gateway_not_available, expiresAt, sink/log redaction) and check (body status is signal, HTTP code ignored, stored pidx only, safe-integer amount, auth_error/not_found/transient, timeout classes); decisions composed with `mapKhaltiStatus`.
+- `__tests__/unit/gateways/fonepay.adapter.test.ts` — every method -> `payments.gateway_not_available` (503), no network, no invented callback/refund API.
+- Run: `.orchestra/notes/PG-T07-verify.cmd`. Fails now: `gateways/khalti.adapter.ts` and `fonepay.adapter.ts` do not exist.
+- Assumed seams (writer may dispute; full list in each file header): `createKhaltiAdapter({baseUrl, publicBaseUrl, timeouts})`, `createFonepayAdapter()`; `initiate(i,secret,c?)`, `buildAction(i,secret)`, `check(i,secret,c?)` per TRD §7.1; `i = {intentId, amountPaisa, callbackToken, websiteUrl, purchaseOrderName}` (initiate) / `{intentId, gatewayTxnRef, amountPaisa, paymentUrl}` (stored); `c = {timeoutClass?, sink?, log?}`.
+- Assumed: adapter itself rejects amount < 1000 with `payments.amount_not_supported`; 5xx/no-status 200 -> `transient`; initiate `error_key` or non-https `payment_url` -> `gateway_not_available`; check default timeout class when `c` omitted is writer's choice.

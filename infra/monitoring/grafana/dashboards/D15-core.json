@@ -1,0 +1,191 @@
+{
+  "uid": "lims-d15-core",
+  "title": "D15 Modules / Core platform",
+  "description": "04-UI-UX s3 D15 for C0; panels from the chunk TRD observability section (T-21).",
+  "tags": [
+    "modules",
+    "c0"
+  ],
+  "editable": false,
+  "schemaVersion": 39,
+  "version": 1,
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "refresh": "1m",
+  "templating": {
+    "list": []
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "text",
+      "title": "About this dashboard",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 2
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "Owner C0. Alert rules: `rules/core.rules.yml`. Runbook: `infra/runbooks/core.md`."
+      }
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "lims_core_auth_failures_total",
+      "description": "Owner C0 (Core platform). Metric lims_core_auth_failures_total from worker-a/b /metrics (02-TRD s11.2). Alerts: CoreAuthAlgFailure.",
+      "gridPos": {
+        "x": 0,
+        "y": 2,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(lims_core_auth_failures_total{reason=\"alg\"}[5m]))"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "lims_core_authz_not_asserted_total",
+      "description": "Owner C0 (Core platform). Metric lims_core_authz_not_asserted_total from worker-a/b /metrics (02-TRD s11.2). Alerts: CoreAuthzNotAsserted.",
+      "gridPos": {
+        "x": 12,
+        "y": 2,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(lims_core_authz_not_asserted_total[5m]))"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "lims_core_dead_letters_total",
+      "description": "Owner C0 (Core platform). Metric lims_core_dead_letters_total from worker-a/b /metrics (02-TRD s11.2). Alerts: CoreDeadLetter.",
+      "gridPos": {
+        "x": 0,
+        "y": 10,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(lims_core_dead_letters_total[5m]))"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "lims_core_event_fanout_lag_seconds_bucket",
+      "description": "Owner C0 (Core platform). Metric lims_core_event_fanout_lag_seconds_bucket from worker-a/b /metrics (02-TRD s11.2). Alerts: CoreFanoutLagHigh.",
+      "gridPos": {
+        "x": 12,
+        "y": 10,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(lims_core_event_fanout_lag_seconds_bucket[5m])))"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "lims_core_fake_ports_active",
+      "description": "Owner C0 (Core platform). Metric lims_core_fake_ports_active from worker-a/b /metrics (02-TRD s11.2). Alerts: CoreFakePortsActive.",
+      "gridPos": {
+        "x": 0,
+        "y": 18,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max(lims_core_fake_ports_active{env=~\"staging|prod\"})"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "lims_core_retention_purge_capped_total",
+      "description": "Owner C0 (Core platform). Metric lims_core_retention_purge_capped_total from worker-a/b /metrics (02-TRD s11.2). Alerts: CoreRetentionPurgeCapped.",
+      "gridPos": {
+        "x": 12,
+        "y": 18,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(lims_core_retention_purge_capped_total[5m]))"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "lims_rls_denied_total",
+      "description": "Owner C0 (Core platform). Metric lims_rls_denied_total from worker-a/b /metrics (02-TRD s11.2). Alerts: CoreRlsDeniedSpike.",
+      "gridPos": {
+        "x": 0,
+        "y": 26,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(lims_rls_denied_total[5m]))"
+        }
+      ]
+    }
+  ]
+}

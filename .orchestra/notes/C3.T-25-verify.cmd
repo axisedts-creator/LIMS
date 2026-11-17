@@ -1,0 +1,1 @@
+pnpm --dir services/api exec vitest run src/modules/catalog/__tests__/integration/imports.commit.kinds && pnpm --dir services/worker exec vitest run src/jobs/catalog/__tests__/helpers/kindsDb src/jobs/catalog/__tests__/helpers/kindWorkbooks src/jobs/catalog/__tests__/integration/importKinds

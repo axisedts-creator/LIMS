@@ -1,0 +1,5 @@
+APPROVE
+Review round 3 of 33c550c8..HEAD (T-A1). All round-2 items fixed: (1) pubspec.lock identical to 6b2618ee, `flutter pub get --enforce-lockfile` resolves; (2) unused imports removed, `flutter analyze` = No issues; (3) AndroidManifest.xml:6-7 allowBackup="false" + fullBackupContent="false" (07-SECURITY "token in logs/backups"); (4) android/.gitignore has `.kotlin/`, worktree clean after build.
+Reviewer re-ran on this host: `flutter test test` = 69/69 pass; `flutter build apk --release --obfuscate --split-debug-info=build/symbols --flavor prod -t lib/main_prod.dart` OK (app-prod-release.apk, 79.1MB). Names verbatim, LD-24 cited, only owned paths, no secrets/PHI. No DB/RLS in scope.
+Note (not blocking): on targetSdk 31+ allowBackup=false does not stop device-to-device transfer; the token blob is Keystore-encrypted and the key does not transfer, so no token exposure. Add dataExtractionRules later if T-REL1 wants it.
+Accepted as open (CR-tracked): generated lims_api_client (CR-C16-016/017), resolve `session_token` (CR-C16-004), `.invalid` placeholders/app id, release debug signing until T-REL1.

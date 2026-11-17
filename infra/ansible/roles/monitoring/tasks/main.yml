@@ -1,0 +1,282 @@
+---
+# 02-TRD s11 (AC-17.1, AC-17.3). ops-1 only. Config is code; contacts,
+# SMTP password, htpasswd and Grafana admin only on tmpfs (s8.3, s11.4).
+- name: Preconditions (ops host, secrets present)
+  ansible.builtin.assert:
+    that:
+      - "'ops' in group_names"
+      - smtp_relay_fqdn | default('') | length > 0
+      - alert_contacts.oncall | default('') | length > 0
+      - alert_contacts.escalation | default('') | length > 0
+      - alert_contacts.finance_oncall | default('') | length > 0
+      - alert_contacts.watchdog | default('') | length > 0
+      - alert_contacts.watchdog != alert_contacts.oncall
+      - tenant_ops_contacts is mapping
+      # keys go into matchers/receiver names: UUIDs only (no quote injection)
+      - >-
+        tenant_ops_contacts.keys() | reject('match', uuid_re) | list
+        | length == 0
+      - >-
+        (tenant_ops_contacts.values() | list + alert_contacts.values() | list)
+        | reject('match', '^[^" ,]+$') | list | length == 0
+      - alertmanager_smtp_relay.password | default('') | length > 0
+      - grafana_admin_password | default('') | length >= 16
+      - ops_nginx_basic_auth | default('') | length > 0
+    fail_msg: "monitoring: not the ops host or a secret is missing (s8.2)"
+  vars:
+    uuid_re: '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+  no_log: true
+
+- name: /run/lims is tmpfs (never a disk path)
+  ansible.builtin.command: findmnt -n -o FSTYPE --target /run/lims
+  register: monitoring_fstype
+  changed_when: false
+  failed_when: monitoring_fstype.stdout | trim != 'tmpfs'
+
+- name: Directories
+  ansible.builtin.file:
+    path: "{{ item.0 }}"
+    state: directory
+    owner: "{{ item.1 }}"
+    group: "{{ item.1 }}"
+    mode: "{{ item.2 }}"
+  vars:
+    am_uid: "{{ monitoring_uids.alertmanager }}"
+  loop:
+    - [/etc/lims/monitoring, root, "0755"]
+    - [/etc/lims/monitoring/prometheus, root, "0755"]
+    - [/etc/lims/monitoring/prometheus/rules, root, "0755"]
+    - [/etc/lims/monitoring/prometheus/rules/imported, root, "0755"]
+    - [/etc/lims/monitoring/blackbox, root, "0755"]
+    - [/etc/lims/monitoring/grafana/provisioning/datasources, root, "0755"]
+    - [/etc/lims/monitoring/grafana/provisioning/dashboards, root, "0755"]
+    - [/etc/lims/monitoring/grafana/dashboards, root, "0755"]
+    - [/etc/lims/monitoring/nginx, root, "0755"]
+    - [/srv/lims/monitoring, root, "0755"]
+    - [/srv/lims/monitoring/prometheus, "{{ monitoring_uids.prometheus }}",
+       "0750"]
+    - [/srv/lims/monitoring/alertmanager, "{{ am_uid }}", "0750"]
+    - [/srv/lims/monitoring/grafana, "{{ monitoring_uids.grafana }}", "0750"]
+    - [/run/lims/alertmanager, "{{ am_uid }}", "0750"]
+    - [/run/lims/alertmanager/templates, "{{ am_uid }}", "0750"]
+    - [/run/lims/alertmanager/secrets, "{{ am_uid }}", "0700"]
+    - [/run/lims/secrets/monitoring, root, "0755"]
+  loop_control:
+    label: "{{ item.0 }}"
+
+- name: Prometheus config
+  ansible.builtin.template:
+    src: "{{ monitoring_src }}/prometheus/prometheus.yml.j2"
+    dest: /etc/lims/monitoring/prometheus/prometheus.yml
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload prometheus
+
+# instruments.rules.yml (rules/ and rules/imported/, T-20) ship only while
+# c7_metrics_live=true (02-TRD s12); removed again when the flag is off.
+- name: Prometheus rule files (rules/, rules/imported/; instruments gated)
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: "/etc/lims/monitoring/prometheus/rules/{{ sub }}"
+    owner: root
+    group: root
+    mode: "0644"
+  vars:
+    sub: "{{ 'imported/' if '/imported/' in item else '' }}"
+  loop: >-
+    {{ query('ansible.builtin.fileglob', monitoring_src ~ '/rules/*.rules.yml')
+    + query('ansible.builtin.fileglob',
+    monitoring_src ~ '/rules/imported/*.rules.yml') }}
+  when: >-
+    c7_metrics_live | default(false) | bool
+    or item | basename != 'instruments.rules.yml'
+  notify: Reload prometheus
+
+- name: Instruments rules absent while c7_metrics_live=false
+  ansible.builtin.file:
+    path: "/etc/lims/monitoring/prometheus/rules/{{ item }}"
+    state: absent
+  loop: [instruments.rules.yml, imported/instruments.rules.yml]
+  when: not (c7_metrics_live | default(false) | bool)
+  notify: Reload prometheus
+
+- name: Blackbox modules
+  ansible.builtin.copy:
+    src: "{{ monitoring_src }}/blackbox/blackbox.yml"
+    dest: /etc/lims/monitoring/blackbox/blackbox.yml
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart ops stack
+
+- name: Grafana provisioning
+  ansible.builtin.copy:
+    src: "{{ monitoring_src }}/grafana/provisioning/{{ item }}/"
+    dest: "/etc/lims/monitoring/grafana/provisioning/{{ item }}/"
+    owner: root
+    group: root
+    mode: "0644"
+  loop: [datasources, dashboards]
+  notify: Restart ops stack
+
+- name: Grafana dashboards (JSON, T-19)
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: /etc/lims/monitoring/grafana/dashboards/
+    owner: root
+    group: root
+    mode: "0644"
+  with_fileglob: "{{ monitoring_src }}/grafana/dashboards/*.json"
+
+- name: Alertmanager config (alertmanager.yml, contacts) on tmpfs
+  ansible.builtin.template:
+    src: "{{ monitoring_src }}/alertmanager/alertmanager.yml.j2"
+    dest: /run/lims/alertmanager/alertmanager.yml
+    owner: root
+    group: "{{ monitoring_uids.alertmanager }}"
+    mode: "0640"
+  no_log: true
+  notify: Reload alertmanager
+
+- name: Alertmanager templates
+  ansible.builtin.copy:
+    src: "{{ monitoring_src }}/alertmanager/templates/lims.tmpl"
+    dest: /run/lims/alertmanager/templates/lims.tmpl
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload alertmanager
+
+- name: SMTP relay password file on tmpfs
+  ansible.builtin.copy:
+    content: "{{ alertmanager_smtp_relay.password }}"
+    dest: /run/lims/alertmanager/secrets/smtp_password
+    owner: "{{ monitoring_uids.alertmanager }}"
+    group: root
+    mode: "0400"
+  no_log: true
+  notify: Reload alertmanager
+
+- name: Grafana admin password and ops nginx htpasswd on tmpfs
+  ansible.builtin.copy:
+    content: "{{ item.content }}\n"
+    dest: "/run/lims/secrets/monitoring/{{ item.name }}"
+    owner: "{{ item.owner }}"
+    group: "{{ item.group }}"
+    mode: "{{ item.mode }}"
+  loop:
+    - name: grafana_admin_password
+      content: "{{ grafana_admin_password }}"
+      owner: "{{ monitoring_uids.grafana }}"
+      group: root
+      mode: "0400"
+    # nginx worker (uid/gid 101) reads auth_basic_user_file per request
+    - name: ops_nginx_htpasswd
+      content: "{{ ops_nginx_basic_auth }}"
+      owner: root
+      group: "{{ monitoring_uids.ops_nginx }}"
+      mode: "0440"
+  no_log: true
+  notify: Restart ops stack
+
+- name: Ops nginx server (wg IP :443, internal CA TLS)
+  ansible.builtin.template:
+    src: ops-nginx.conf.j2
+    dest: /etc/lims/monitoring/nginx/ops.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart ops stack
+
+- name: Compose file
+  ansible.builtin.template:
+    src: compose.ops.yml.j2
+    dest: /srv/lims/monitoring/compose.yml
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Stack up
+  ansible.builtin.command: >-
+    docker compose -f /srv/lims/monitoring/compose.yml
+    up -d --remove-orphans
+  register: monitoring_up
+  changed_when: monitoring_up.stderr is search('Creat|Start')
+
+- name: Restart ops nginx after a leaf re-issue (loads the new cert)
+  ansible.builtin.command: >-
+    docker compose -f /srv/lims/monitoring/compose.yml restart ops-nginx
+  when: "'ops-nginx' in internal_ca_reissued | default([])"
+  changed_when: true
+
+- name: Flush handlers before the Grafana API calls
+  ansible.builtin.meta: flush_handlers
+
+- name: Wait for Grafana
+  ansible.builtin.uri:
+    url: http://127.0.0.1:3000/grafana/api/health
+  register: monitoring_grafana_health
+  retries: 30
+  delay: 2
+  until: monitoring_grafana_health.status == 200
+
+# Grafana local users mapped to ops_admin|ops_oncall|ops_readonly (s11.5).
+# Grafana HTTP API status codes UNVERIFIED against the 13.3 docs; proven by
+# the dev run (T-18 live test).
+- name: Grafana users exist
+  ansible.builtin.uri:
+    url: http://127.0.0.1:3000/grafana/api/admin/users
+    method: POST
+    url_username: admin
+    url_password: "{{ grafana_admin_password }}"
+    force_basic_auth: true
+    body_format: json
+    body:
+      login: "{{ item.login }}"
+      name: "{{ item.login }}"
+      password: "{{ item.password }}"
+      OrgId: 1
+    status_code: [200, 400, 409, 412]
+  loop: "{{ grafana_users | default([]) }}"
+  loop_control:
+    label: "{{ item.login }}"
+  register: monitoring_grafana_created
+  changed_when: monitoring_grafana_created.status == 200
+  no_log: true
+
+- name: Grafana user ids
+  ansible.builtin.uri:
+    url: >-
+      http://127.0.0.1:3000/grafana/api/org/users/lookup?query={{
+      item.login | urlencode }}
+    url_username: admin
+    url_password: "{{ grafana_admin_password }}"
+    force_basic_auth: true
+  loop: "{{ grafana_users | default([]) }}"
+  loop_control:
+    label: "{{ item.login }}"
+  register: monitoring_grafana_ids
+  no_log: true
+
+- name: Grafana org role from grafana_role_map
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:3000/grafana/api/org/users/{{ uid }}"
+    method: PATCH
+    url_username: admin
+    url_password: "{{ grafana_admin_password }}"
+    force_basic_auth: true
+    body_format: json
+    body:
+      role: "{{ grafana_role_map[item.item.role] }}"
+  vars:
+    uid: >-
+      {{ (item.json | selectattr('login', 'equalto', item.item.login)
+      | first).userId }}
+  loop: "{{ monitoring_grafana_ids.results }}"
+  loop_control:
+    label: "{{ item.item.login }}"
+  register: monitoring_grafana_role
+  changed_when: false  # PATCH to the same role is a no-op
+  failed_when: monitoring_grafana_role.status not in [200, 400]
+  no_log: true

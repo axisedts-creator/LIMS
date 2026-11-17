@@ -1,0 +1,143 @@
+---
+# 02-TRD s12.2, 07-SEC A9, CR-C1-001 (T-24): self-hosted runner on group `ops`, after `registry`
+# (the runner pushes to and the hosts pull from registry.lims.internal:5000). LD-45: in `lean` the ops group
+# is the one prod host; nothing here names a host.
+# Prod key: no key file belongs to the runner. The unit family lims-prod-decrypt.service (instance
+# lims-prod-decrypt@<release>.service, root) releases the prod key for one approved release id.
+- name: Preconditions (unprivileged user, label, runner archive)
+  ansible.builtin.assert:
+    that:
+      - ci_runner_user not in ['root', '0']
+      - "'nepal-ops' in ci_runner_labels.split(',')"
+      - ci_runner_archive_url | length > 0
+      - ci_runner_archive_sha256 is match('^[0-9a-f]{64}$')
+      - ci_runner_repo_url | length > 0
+    fail_msg: >-
+      ci_runner: user must not be root, labels must include nepal-ops, and
+      ci_runner_archive_url / ci_runner_archive_sha256 / ci_runner_repo_url must be set
+
+- name: Packages (ACL for become_user, polkit for the decrypt rule)
+  ansible.builtin.apt:
+    name: [acl, polkitd]
+    state: present
+
+- name: Runner group
+  ansible.builtin.group:
+    name: "{{ ci_runner_group }}"
+    system: true
+
+- name: Runner user (no login; docker group because it builds images)
+  ansible.builtin.user:
+    name: "{{ ci_runner_user }}"
+    group: "{{ ci_runner_group }}"
+    groups: docker
+    append: true
+    system: true
+    shell: /usr/sbin/nologin
+    home: "{{ ci_runner_home }}"
+    create_home: false
+
+- name: Runner directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ ci_runner_user }}"
+    group: "{{ ci_runner_group }}"
+    mode: "0750"
+  loop:
+    - "{{ ci_runner_home }}"
+    - "{{ ci_runner_dir }}"
+
+- name: Runner archive (checksum pinned)
+  ansible.builtin.get_url:
+    url: "{{ ci_runner_archive_url }}"
+    dest: "{{ ci_runner_home }}/runner.tar.gz"
+    checksum: "sha256:{{ ci_runner_archive_sha256 }}"
+    owner: "{{ ci_runner_user }}"
+    group: "{{ ci_runner_group }}"
+    mode: "0640"
+
+- name: Unpack the runner
+  ansible.builtin.unarchive:
+    src: "{{ ci_runner_home }}/runner.tar.gz"
+    dest: "{{ ci_runner_dir }}"
+    remote_src: true
+    owner: "{{ ci_runner_user }}"
+    group: "{{ ci_runner_group }}"
+    creates: "{{ ci_runner_dir }}/run.sh"
+
+# The registration secret reaches config.sh through the environment only: never argv, never the log.
+- name: Register the runner (label nepal-ops, no default labels)
+  ansible.builtin.command:
+    cmd: >-
+      ./config.sh --unattended --url {{ ci_runner_repo_url | quote }}
+      --name {{ ci_runner_name | quote }} --labels {{ ci_runner_labels | quote }}
+      --no-default-labels
+    chdir: "{{ ci_runner_dir }}"
+    creates: "{{ ci_runner_dir }}/.runner"
+  become_user: "{{ ci_runner_user }}"
+  environment:
+    ACTIONS_RUNNER_INPUT_TOKEN: "{{ ci_runner_registration_token }}"
+  no_log: true
+  when: ci_runner_registration_token | length > 0
+  notify: Restart ci runner
+
+- name: LIMS helper directory
+  ansible.builtin.file:
+    path: /usr/local/lib/lims
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: ops_audit writer for the decrypt service
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../../ci/ops-note.sh"
+    dest: /usr/local/lib/lims/ops-note.sh
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Prod decrypt script (root, validates the release id)
+  ansible.builtin.template:
+    src: lims-prod-decrypt.sh.j2
+    dest: /usr/local/sbin/lims-prod-decrypt
+    owner: root
+    group: root
+    mode: "0750"
+
+- name: Prod decrypt unit (instance = approved release id)
+  ansible.builtin.template:
+    src: lims-prod-decrypt@.service.j2
+    dest: /etc/systemd/system/lims-prod-decrypt@.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload systemd
+
+- name: polkit rule - the runner may start only lims-prod-decrypt@vX.Y.Z
+  ansible.builtin.template:
+    src: 50-lims-ci-decrypt.rules.j2
+    dest: /etc/polkit-1/rules.d/50-lims-ci-decrypt.rules
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart polkit
+
+- name: Runner unit (unprivileged)
+  ansible.builtin.template:
+    src: lims-ci-runner.service.j2
+    dest: /etc/systemd/system/lims-ci-runner.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload systemd
+
+- name: Flush handlers (unit files before enable)
+  ansible.builtin.meta: flush_handlers
+
+- name: Runner service enabled
+  ansible.builtin.systemd_service:
+    name: lims-ci-runner
+    enabled: true
+    state: started  # unit has ConditionPathExists=.runner: a no-op until registered

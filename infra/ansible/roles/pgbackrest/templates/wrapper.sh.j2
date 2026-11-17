@@ -1,0 +1,3 @@
+#!/bin/sh
+# Managed by Ansible (role pgbackrest): run {{ item }} inside the db container as postgres.
+exec docker exec -i -u postgres {{ pgbackrest_container }} {{ item }} "$@"

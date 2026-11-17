@@ -1,0 +1,63 @@
+{
+  "reportKind": "final",
+  "statusLabel": "Final",
+  "amendmentNotes": [],
+  "sections": [
+    {
+      "kind": "department",
+      "departmentId": "01900000-0000-7000-8000-000000000010",
+      "departmentName": "Biochemistry",
+      "approvedBy": [
+        "Dr. Synthetic Signatory A"
+      ],
+      "blocks": [
+        {
+          "comments": [],
+          "panelName": "LIPID PROFILE",
+          "specimenLine": "SERUM",
+          "subgroups": [
+            {
+              "lines": [
+                {
+                  "analyteId": "01900000-0000-7000-8000-000000000045",
+                  "resultId": "01900000-0000-7000-8000-000000001006",
+                  "versionNo": 1,
+                  "valueBold": false,
+                  "images": [],
+                  "name": "Total Cholesterol",
+                  "valueText": "182",
+                  "refRangeText": "< 200",
+                  "unitText": "mg/dL"
+                },
+                {
+                  "analyteId": "01900000-0000-7000-8000-000000000046",
+                  "resultId": "01900000-0000-7000-8000-000000001007",
+                  "versionNo": 1,
+                  "valueBold": true,
+                  "images": [],
+                  "name": "HDL Cholesterol",
+                  "valueText": "38",
+                  "flagLabel": "Low",
+                  "refRangeText": "> 40",
+                  "unitText": "mg/dL"
+                },
+                {
+                  "analyteId": "01900000-0000-7000-8000-000000000047",
+                  "resultId": "01900000-0000-7000-8000-000000001008",
+                  "versionNo": 1,
+                  "valueBold": true,
+                  "images": [],
+                  "name": "Triglycerides",
+                  "valueText": "310",
+                  "flagLabel": "High",
+                  "refRangeText": "< 150",
+                  "unitText": "mg/dL"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

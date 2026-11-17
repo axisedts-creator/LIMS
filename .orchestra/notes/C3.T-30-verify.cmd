@@ -1,0 +1,1 @@
+pnpm --dir services/api exec vitest run src/modules/catalog/__tests__/integration/health.handlers.test.ts src/modules/catalog/__tests__/helpers/healthDb.test.ts src/modules/catalog/__tests__/unit/skeleton.test.ts

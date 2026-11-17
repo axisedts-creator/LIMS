@@ -1,0 +1,1 @@
+cd /d "%~dp0..\.." && set "LIMS_T03_CMD=pnpm --dir services/api exec vitest run src/modules/lab/domain/__tests__/barcode.test.ts src/modules/lab/service/__tests__" && "C:\Program Files\Git\bin\bash.exe" tests/db/c5-t03/run.sh

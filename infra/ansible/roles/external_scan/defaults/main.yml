@@ -1,0 +1,9 @@
+---
+# 02-TRD s18 / T-30 (AC-01.1, AC-01.2): monthly external port scan of every public IP of the active inventory,
+# run from the ops host (lean: the one prod host; LD-45). Targets are read from the copied hosts.yml, never typed.
+# The three directories are also written literally in files/lims-external-scan.service: change both together.
+external_scan_tests_dir: /usr/local/lib/lims/tests
+external_scan_ci_dir: /usr/local/lib/lims/ci
+external_scan_inventory_dir: /etc/lims/scan-inventory
+external_scan_tests_src: "{{ playbook_dir }}/../../tests"
+external_scan_ops_note_src: "{{ playbook_dir }}/../../ci/ops-note.sh"

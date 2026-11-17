@@ -1,8 +1,6 @@
-# T0B-08 impl (writer)
-- Files: new `db/tools/gen-isolation-probes.ts` (CLI per test header; reuses `sql-lib.ts` rootDir/readYaml); generated + committed `db/tests/isolation/_registry.sql` and 12 `<schema>.<table>.test.sql` probes (real registry). No test file edited.
-- [CONV] Probes are catalog-driven at run time (tenant column `tenant_id`/`id`, UPDATE column `updated_at`/tenant col, owner column `actor_id`/`created_by`, grants via has_*_privilege, composite FKs via pg_constraint) so the generator needs no column knowledge beyond tables.yaml.
-- [CONV] Step 4 expects `n=0` where the role holds the privilege, else `E42501`; DELETE probe emitted only for class M. Step 6 copies a tenant-A row and repoints FK cols at a tenant-B parent; explicit `skip()` when no such rows are seeded.
-- [CONV] Step 1 seeds core fixtures (tenants A/B, centres A1/A2, staff/partner/patient memberships) inline, same ids as T0B-03 tests; module rows rely on db/seeds. `probe_fixture:` (02-TRD §4.5 step 1) not yet supported.
-- `--check` also flags orphan generated files and a stale `_registry.sql`; write mode deletes orphans. Hand-written `T0B-08_*.test.sql` in the dir are ignored.
-- Ran: `node --test tests/db/T0B-08.suites.test.mjs` 41/41 pass; all `tests/db/*.test.mjs` 170/170 pass.
-- Open: live pgTAP (`bash db/tests/run-suites.sh`, image present locally) NOT run — command needed approval. Expect first-run shakeout of the generated probes and tester pgTAP suites.
+# T0B-08 impl (writer, review round 3 + LD-21)
+- Files: `db/tools/gen-isolation-probes.ts` (+ regenerated `db/tests/isolation/core.membership_{centres,branches}.test.sql`), `db/migrations/20261105000600_audit__create_audit_tables.sql` + mirror `db/policies/audit.sql` (access_log__insert__tenant centre clause). No hand-written test file edited.
+- [CONV] LD-21 (1a): probe steps 3/6/8 accept E42501 or E23514 only on `core.membership_centres`/`core.membership_branches` (SCOPE_USER_ONLY set); all other tables still require 42501. LD-21 (2): WITH CHECK clause copied verbatim from the ruling (08 A16.1 cast).
+- Review r3 items 1-3 were test files (tester commit 625a6b3). Item 4: `.orchestra/cr/T0B-08-T0B-02.md` (#56, no-op REVOKE stores no pg_default_acl row) and new `.orchestra/cr/T0B-08.md` (#39 T0B-03_isolation vs LD-21; #50 `identity.platform_staff` missing -> 42P01; T0B-05_queue -> CR T0B-05).
+- Live run `.orchestra/notes/T0B-08-run-r5.log` (pinned 17.6.1.136): elapsed 91 s, all 31 probe files green; remaining 3 `not ok` + 1 abort each map to a CR item above.
+- Ran: `node --test tests/db/*.test.mjs` 209/209; `gen-isolation-probes.ts --check` ok. Not run: tsc on the generator (no @types/node in lane).

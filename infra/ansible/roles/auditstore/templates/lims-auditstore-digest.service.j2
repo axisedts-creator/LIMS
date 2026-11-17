@@ -1,0 +1,17 @@
+[Unit]
+Description=Audit store nightly digest chain (REQ-SEC-097, 05-SCHEMA s3.4 digest.sql)
+After=docker.service
+
+[Service]
+Type=oneshot
+# Runs as audit_digest (SELECT + INSERT only), never the instance superuser.
+Environment=PATH={{ auditstore_lib_dir }}/bin:/usr/bin:/bin
+Environment=PGUSER=audit_digest
+Environment=PGDATABASE={{ auditstore_db_name }}
+Environment=LIMS_ENV={{ env }}
+Environment=DIGEST_SQL={{ auditstore_lib_dir }}/digest.sql
+Environment=TEXTFILE_DIR=/var/lib/node_exporter/textfile
+EnvironmentFile={{ auditstore_secret_dir }}/audit_digest.env
+ExecStart=/bin/bash {{ auditstore_lib_dir }}/lims-auditstore-digest.sh
+PrivateTmp=true
+NoNewPrivileges=true

@@ -412,7 +412,7 @@ Every non-2xx response body:
 ```
 
 - `code` MUST exist in `contracts/errors.yaml` (03-IC §8). `type` = `urn:lims:error:` + code [CONV] (a URN, so no domain name is invented). `title` is the registry title; `detail` is human text with **no PHI, no SQL, no stack, no file paths** (REQ-SEC-095).
-- `errors[]` only for validation (`common.validation_failed`), JSON-Pointer paths.
+- `errors[]` for validation (`common.validation_failed`) and for registry codes whose meaning says the details are in `errors[]` (`quality.rule_set_invalid`, `smartreport.library_invalid`), JSON-Pointer paths.
 - Unknown internal failures → `500 common.internal` with `request_id` only.
 - Existence hiding: an object in another tenant (or outside the caller's centre scope) returns `404 common.not_found`, identical to a truly missing id (REQ-SEC-044, REQ-SEC-093 pattern).
 - Rate limits → `429 common.rate_limited` + `Retry-After` seconds.

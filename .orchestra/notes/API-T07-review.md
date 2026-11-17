@@ -1,0 +1,8 @@
+APPROVE
+
+Scope: `git diff ab233c4..HEAD`. The tester added the 3 CI scripts in `__tests__/ci/` under LD-56, and the writer changed only `.orchestra/notes/API-T07-impl.md`. The drivers and testdata came in 6c9476f, which is already an ancestor of ab233c4.
+- Verified: vitest on drivers-registry, drivers-generic, drivers-golden and ci-scripts gives 126/126 pass (2026-11-07 22:12). That covers the REAL-repo checks: registry matches the `instruments.g_drivers` seed in db/migrations (AC-21.3), and the synthetic scan of the 3 testdata roots passes (AC-21.4). The golden runner covers AC-21.2.
+- Exported API matches the ci-scripts.test.ts headers (checkDriverRegistry, scanSyntheticData, checkFixtureCopies). main() runs only when the file is the entry script. The default migrationsDir (7 levels up, then /db/migrations) and the `../../drivers/registry.js` import resolve correctly.
+- Fail-closed behaviour: empty registry rows, missing or empty fixture directories, and missing scan roots all count as problems. No check is a stub that always passes.
+- No PHI: scan violations never echo the matched value. No secrets. Paths are all owned or authorised by LD-56. No DB objects, RLS, routes, permissions or error codes were added in this diff, so those checks do not apply.
+- Non-blocking note: synthetic-scan detects record starts only after line breaks, mnemonics (`<STX>n`, `<CR>`, ...) and escaped `\r`/`\n`. A raw STX byte (0x02), or a non-`|` field delimiter declared in the ASTM H record, would not be caught. That is acceptable for now, because the TRD §15.2 raw format is assembled frame text using `|`.

@@ -1,0 +1,8 @@
+APPROVE
+# WEB-STYLE-2 review (reviewer), diff 023278e7..HEAD
+- Scope: 2 source files (apps/web/src/app/(auth)/layout.tsx, core/shell/shell.css) plus tests, fixtures and notes, within the LD-201 limit of 10 files. No auth logic, middleware, CSP, packages/ui, package.json or spec change. No form field or behaviour change (the fields baseline test passes).
+- LD-201: the panel is an `aside` with aria-hidden="true". It has no img, src or url(), and makes no claims. The seven step words match spec/program/10-DESIGN-SYSTEM.md:101 exactly, in order. No social login, remember-me (REQ-SEC-073) or sign-up link. Nothing was copied from Watermelon and no dependency was added.
+- LD-140: the new CSS uses only tokens, rem and %. Every token it uses (accent, accent-fg, accent-brand, radius-full, space-3/6/8, neutral-0) exists in packages/ui. Lime (accent-brand) is used only as the background of the decorative dot, never as a text colour. The panel is display:none by default and is shown only at `@media (min-width: 64rem)`, where the page becomes 1fr 1fr. Below that the layout stays one centred column. Inside the form column the card loses its border and background, so there is one container level.
+- Not applicable to this task (presentation only): RLS, permissions, idempotency, error codes. No logs, PHI or secrets.
+- Ran: vitest.web-style-2.config.ts (web-style-2, web-style, build-config, build-boundaries): 4 files, 82/82 pass.
+- Not re-run by reviewer: `pnpm --filter @lims/web build` and the built-CSS grep (the impl note reports exit 0 and that 029uropm6onma.css contains the classes). Rendering was not viewed in a browser.

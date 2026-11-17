@@ -1,0 +1,2 @@
+- Cause: search.test.ts:171 compares tenant-wide countPatients(TENANT_A) across a search; parallel test files insert patients (112 vs 111). searchPatients is read-only.
+- Fix: none in impl. Test defect, same class as ruling item 2; wrote FD-T04-dispute.md and stopped.

@@ -1,0 +1,4 @@
+# API-T13 debug (debugger)
+Cause: verify failures are only in boot.test.ts (API-T01), not T13 code. Cold whole-API bootstrap (OpenAPI load of all modules, ~30-37 s) races the test's hardcoded 30 s timeout; when the first boot times out, its still-running import of modules/reporting overlaps the second test's boot -> spurious "module reporting: index.ts exports no manifest" (reporting/index.ts does export `manifest`).
+Evidence: boot.test.ts alone re-run -> 42/42 pass (50 s); reprocess.service + handlers 62/62 pass; no schema compile/boot-time work added by T13 files. Pre-existing since API-T11.
+Fix: none in owned impl (reprocess.service.ts) - nothing to change; the 30_000 literal at boot.test.ts:220 is a test/env timing issue, not editable by me. Suggest verify.cmd run boot.test with --testTimeout=180000 and the test's 30_000 raised by the tester/arbiter.

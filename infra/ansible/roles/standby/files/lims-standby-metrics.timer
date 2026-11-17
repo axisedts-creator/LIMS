@@ -1,0 +1,9 @@
+[Unit]
+Description=Standby lag metric every minute (02-TRD s11)
+
+[Timer]
+OnCalendar=minutely
+AccuracySec=1s
+
+[Install]
+WantedBy=timers.target

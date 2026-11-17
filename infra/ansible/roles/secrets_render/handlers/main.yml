@@ -1,0 +1,13 @@
+---
+# LD-67: POSTGRES_PASSWORD rotation re-renders pgbouncer/userlist.txt and PgBouncer must pick it up.
+# Restart, not HUP: single-file bind mount + atomic rename (template writes a new inode; a HUP would
+# re-read the old one). No secret value is passed or logged here.
+- name: Reload pgbouncer
+  ansible.builtin.command: docker restart supabase-pgbouncer
+  register: secrets_render_pgb_reload
+  changed_when: secrets_render_pgb_reload.rc == 0
+  # first deploy: container not up yet, it reads the file at start
+  failed_when: >-
+    secrets_render_pgb_reload.rc != 0 and
+    ('No such container' not in secrets_render_pgb_reload.stderr and
+    'is not running' not in secrets_render_pgb_reload.stderr)

@@ -1,0 +1,75 @@
+---
+# yamllint disable rule:line-length
+# Transcribed by C1 (02-TRD s11.3 intake row) from:
+#   C10 02-TRD observability list
+# Thresholds verbatim from the owner's list;
+# alert names and unstated `for` are [CONV].
+groups:
+  - name: micro
+    rules:
+      - alert: MicroInstrumentRecordsBacklog
+        expr: >-
+          sum by (tenant_id) (lims_micro_instrument_records_open{match_status=~"pending_match|needs_mapping|conflict"})
+          > 50
+        for: 24h
+        labels:
+          severity: warn
+          team: ops
+        annotations:
+          summary: >-
+            More than 50 open micro instrument records awaiting match for
+            24 h.
+          runbook_url: >-
+            infra/runbooks/micro.md#microinstrumentrecordsbacklog
+      - alert: MicroConsumerDeadLetter
+        expr: >-
+          increase(lims_core_dead_letters_total{task=~"evt.micro.*"}[5m])
+          > 0
+        for: 0m
+        labels:
+          severity: warn
+          team: ops
+        annotations:
+          summary: >-
+            A microbiology event consumer dead-lettered.
+          runbook_url: >-
+            infra/runbooks/micro.md#microconsumerdeadletter
+      - alert: MicroBreakpointImportDeadLetter
+        expr: >-
+          increase(lims_core_dead_letters_total{task="micro.breakpoint_import_validate"}[5m])
+          > 0
+        for: 0m
+        labels:
+          severity: warn
+          team: ops
+        annotations:
+          summary: >-
+            The breakpoint import validation job dead-lettered.
+          runbook_url: >-
+            infra/runbooks/micro.md#microbreakpointimportdeadletter
+      - alert: MicroSubmitInternalErrors
+        expr: >-
+          sum(rate(lims_micro_submit_failures_total{error_code="common.internal"}[5m]))
+          > 0
+        for: 15m
+        labels:
+          severity: warn
+          team: ops
+        annotations:
+          summary: >-
+            Microbiology submits failing with common.internal for 15 min.
+          runbook_url: >-
+            infra/runbooks/micro.md#microsubmitinternalerrors
+      - alert: MicroUnmappedReceived
+        expr: >-
+          sum by (tenant_id) (increase(lims_micro_unmapped_received_total[1h]))
+          > 0
+        for: 0m
+        labels:
+          severity: warn
+          team: ops
+        annotations:
+          summary: >-
+            A micro specimen was received without a culture in the last hour.
+          runbook_url: >-
+            infra/runbooks/micro.md#microunmappedreceived

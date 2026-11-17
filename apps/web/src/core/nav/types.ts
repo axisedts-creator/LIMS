@@ -21,10 +21,19 @@ export interface NavEntry {
   readonly icon?: IconName;
   readonly chord?: `g ${string}`;   // two-key navigation chord, unique across all manifests
   readonly phase?: '1' | '1.5' | '2' | '3';
+  // LD-251 (13-M-SERIES s3): optional sidebar sub-heading (message key) and the round "+" to the entry's create screen.
+  readonly section?: string;
+  readonly createRouteId?: RouteId; // staff_web, no path parameters; requires createLabel
+  readonly createLabel?: string;    // message key naming the "+"
 }
 export interface NavManifest { readonly module: ModuleName; readonly entries: readonly NavEntry[] }
 
 /** Emitted by build-nav.ts into generated.ts. */
-export interface ResolvedNavEntry extends NavEntry { readonly module: ModuleName; readonly path: string }
+export interface ResolvedNavEntry extends NavEntry {
+  readonly module: ModuleName;
+  readonly path: string;
+  readonly createPath?: string;       // path of createRouteId
+  readonly createPermission?: string; // permission of createRouteId
+}
 /** Every staff_web route from routes.yaml — the shell gates direct visits on `permission` (AC-0D-7.1). */
 export interface StaffRoute { readonly id: RouteId; readonly path: string; readonly permission: PermissionCode }

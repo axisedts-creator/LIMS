@@ -1,0 +1,9 @@
+TESTS_WRONG — audit-view.handlers.test.ts (C2-T18) builds its handler context without `ctx.ports`, so it cannot pass once the handler calls the guard that the task requires.
+Change: in `services/api/src/modules/identity/__tests__/audit-view.helpers.ts`, make `ctx()` (line ~170) also return `ports: { IdentityPort: { assertRole: async () => undefined } }`, which allows the call, the same way audit-wire.handlers.test.ts does. Also correct the header comment of audit-view.handlers.test.ts (line 2), which says the core enforces x-permission. Leave every assertion as it is. The `bare` fail-closed case must still get `auth.unauthenticated`, so the missing-context check stays ahead of the port check.
+Reasons:
+- Task brief done_when (2) (.orchestra/inbox/T0C-AUDIT-WIRE-1-arbiter.md:19): each handler "calls the existing guard with exactly the operation x-permission". The new tests check exactly this.
+- spec/program/02-CONVENTIONS.md:486-487: `x-permission` is the floor every caller must hold, and handlers check permissions through `IdentityPort.assertRole`. Nothing in the spec requires a handler to succeed when it has no IdentityPort.
+- spec/program/03-INTERFACE-CATALOG.md:3009: every `IdentityPort.assertRole` call names a permission code, which is the guard path the implementation uses (`audit.log.read`).
+- The old test does not claim that the guard must be skipped. It is missing a fixture field because it was written on an assumption that turned out wrong. Changing the fixture weakens no assertion.
+- The writer's fail-closed behaviour (`common.internal` when the port is missing) stays. Treating a missing port as "allowed" would let the guard be skipped through the empty default registry (core/pipeline/boot.ts:88). That would open a permission gap the spec does not allow.
+- No contract, SQL, grant, permission or error-code change is needed (done_when (5)).

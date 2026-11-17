@@ -1,0 +1,131 @@
+# T-21 (tester, LD-39): promtool tests for ../micro.rules.yml. Synthetic series only (no real tenant or patient data).
+# Per alert one firing case (labels carry the rule's severity and team), one not-firing case, and for rules with a
+# `for` clause a pending-before-`for` + firing-after-`for` check. Thresholds are the owner's (02-TRD s11.3).
+rule_files:
+  - ../micro.rules.yml
+evaluation_interval: 1m
+tests:
+
+  - interval: 1m
+    name: "MicroInstrumentRecordsBacklog fires"
+    input_series:
+      - series: 'lims_micro_instrument_records_open{tenant_id="t1",match_status="pending_match"}'
+        values: "30x1455"
+      - series: 'lims_micro_instrument_records_open{tenant_id="t1",match_status="conflict"}'
+        values: "25x1455"
+    alert_rule_test:
+      - alertname: MicroInstrumentRecordsBacklog
+        eval_time: 1439m
+        exp_alerts: []
+      - alertname: MicroInstrumentRecordsBacklog
+        eval_time: 1452m
+        exp_alerts:
+          - exp_labels: {severity: "warn", team: "ops", tenant_id: "t1"}
+            exp_annotations: {summary: "More than 50 open micro instrument records awaiting match for 24 h.", runbook_url: "infra/runbooks/micro.md#microinstrumentrecordsbacklog"}
+
+  - interval: 1m
+    name: "MicroInstrumentRecordsBacklog quiet"
+    input_series:
+      - series: 'lims_micro_instrument_records_open{tenant_id="t1",match_status="pending_match"}'
+        values: "30x1455"
+      - series: 'lims_micro_instrument_records_open{tenant_id="t1",match_status="matched"}'
+        values: "100x1455"
+    alert_rule_test:
+      - alertname: MicroInstrumentRecordsBacklog
+        eval_time: 1452m
+        exp_alerts: []
+
+  - interval: 1m
+    name: "MicroConsumerDeadLetter fires"
+    input_series:
+      - series: 'lims_core_dead_letters_total{task="evt.micro.result"}'
+        values: "0+1x15"
+    alert_rule_test:
+      - alertname: MicroConsumerDeadLetter
+        eval_time: 12m
+        exp_alerts:
+          - exp_labels: {severity: "warn", team: "ops", task: "evt.micro.result"}
+            exp_annotations: {summary: "A microbiology event consumer dead-lettered.", runbook_url: "infra/runbooks/micro.md#microconsumerdeadletter"}
+
+  - interval: 1m
+    name: "MicroConsumerDeadLetter quiet"
+    input_series:
+      - series: 'lims_core_dead_letters_total{task="evt.micro.result"}'
+        values: "0+0x15"
+      - series: 'lims_core_dead_letters_total{task="evt.lab.result"}'
+        values: "0+1x15"
+    alert_rule_test:
+      - alertname: MicroConsumerDeadLetter
+        eval_time: 12m
+        exp_alerts: []
+
+  - interval: 1m
+    name: "MicroBreakpointImportDeadLetter fires"
+    input_series:
+      - series: 'lims_core_dead_letters_total{task="micro.breakpoint_import_validate"}'
+        values: "0+1x15"
+    alert_rule_test:
+      - alertname: MicroBreakpointImportDeadLetter
+        eval_time: 12m
+        exp_alerts:
+          - exp_labels: {severity: "warn", team: "ops", task: "micro.breakpoint_import_validate"}
+            exp_annotations: {summary: "The breakpoint import validation job dead-lettered.", runbook_url: "infra/runbooks/micro.md#microbreakpointimportdeadletter"}
+
+  - interval: 1m
+    name: "MicroBreakpointImportDeadLetter quiet"
+    input_series:
+      - series: 'lims_core_dead_letters_total{task="micro.breakpoint_import_validate"}'
+        values: "0+0x15"
+    alert_rule_test:
+      - alertname: MicroBreakpointImportDeadLetter
+        eval_time: 12m
+        exp_alerts: []
+
+  - interval: 1m
+    name: "MicroSubmitInternalErrors fires"
+    input_series:
+      - series: 'lims_micro_submit_failures_total{error_code="common.internal"}'
+        values: "0+1x30"
+    alert_rule_test:
+      - alertname: MicroSubmitInternalErrors
+        eval_time: 14m
+        exp_alerts: []
+      - alertname: MicroSubmitInternalErrors
+        eval_time: 27m
+        exp_alerts:
+          - exp_labels: {severity: "warn", team: "ops"}
+            exp_annotations: {summary: "Microbiology submits failing with common.internal for 15 min.", runbook_url: "infra/runbooks/micro.md#microsubmitinternalerrors"}
+
+  - interval: 1m
+    name: "MicroSubmitInternalErrors quiet"
+    input_series:
+      - series: 'lims_micro_submit_failures_total{error_code="common.internal"}'
+        values: "0+0x30"
+      - series: 'lims_micro_submit_failures_total{error_code="common.validation"}'
+        values: "0+1x30"
+    alert_rule_test:
+      - alertname: MicroSubmitInternalErrors
+        eval_time: 27m
+        exp_alerts: []
+
+  - interval: 1m
+    name: "MicroUnmappedReceived fires"
+    input_series:
+      - series: 'lims_micro_unmapped_received_total{tenant_id="t1"}'
+        values: "0+1x75"
+    alert_rule_test:
+      - alertname: MicroUnmappedReceived
+        eval_time: 72m
+        exp_alerts:
+          - exp_labels: {severity: "warn", team: "ops", tenant_id: "t1"}
+            exp_annotations: {summary: "A micro specimen was received without a culture in the last hour.", runbook_url: "infra/runbooks/micro.md#microunmappedreceived"}
+
+  - interval: 1m
+    name: "MicroUnmappedReceived quiet"
+    input_series:
+      - series: 'lims_micro_unmapped_received_total{tenant_id="t1"}'
+        values: "0+0x75"
+    alert_rule_test:
+      - alertname: MicroUnmappedReceived
+        eval_time: 72m
+        exp_alerts: []

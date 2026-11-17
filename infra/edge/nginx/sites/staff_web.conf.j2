@@ -1,0 +1,24 @@
+# staff_web origin (02-TRD s6.1): staff Next.js BFF. Host name = inventory
+# value origins.staff_web (LD-45: nothing host-specific in this file).
+server {
+    server_name {{ origins.staff_web }};
+    ssl_certificate     /etc/nginx/certs/{{ origins.staff_web }}/fullchain.pem;
+    ssl_certificate_key /etc/nginx/certs/{{ origins.staff_web }}/privkey.pem;
+    include /etc/nginx/snippets/server.conf;
+    client_max_body_size 16m;                # uploads 15 MB (CV s10.2)
+    proxy_read_timeout 300s;                 # SSE; the BFF sends X-Accel-Buffering: no
+
+    include /etc/nginx/snippets/reserved-deny.conf;
+
+    # Public login/recovery routes (08 R6 / Addendum A1): POSTs + GET /auth/confirm count ($login_key).
+    location ~ ^/auth/(login|mfa|mfa/enrol|forgot|confirm|set-password)$ {
+        limit_req zone=login burst=20 nodelay;
+        limit_req zone=perip burst=200 nodelay;  # TRD s6.5 "every server": location limit_req replaces the server one
+        set $retry_after 60;
+        proxy_pass http://web:3000;
+    }
+
+    location / {
+        proxy_pass http://web:3000;
+    }
+}

@@ -1,0 +1,10 @@
+# T-05: vendored Supabase snapshot must stay byte-for-byte (sha256 in UPSTREAM.lock); no EOL conversion.
+infra/compose/supabase/upstream/** -text
+
+# LD-249 (2026-11-16): generated probe fixtures, test SQL, seeds and migrations are byte-compared by tests and by `gen-isolation-probes.ts --check`;
+# a Windows checkout with core.autocrlf turned them into CRLF and the stale-file checks failed (T0B-DBSEED-1 rounds 1 and 2). LF everywhere for these paths.
+db/tests/** text eol=lf
+db/seeds/** text eol=lf
+db/migrations/** text eol=lf
+db/tools/** text eol=lf
+db/meta/** text eol=lf

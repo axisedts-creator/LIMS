@@ -1,0 +1,4 @@
+# C6-T18 dispute (debugger)
+Failing: `manifest.test.ts > 501 stubs in dev` (7 tests: downloadPortalReportPdf, requestPortalLinkReissue, endPortalSession, createPortalOtpChallenge, + 501-no-echo loop; log 02:43). Error: `LimsError auth.unauthenticated` from `handlers/portal.handlers.ts:13`.
+Cause: C6-T20 (merged, e9cd88e) implemented P1-P6 (02-TRD §6.6) and wired `portalHandlers` in `index.ts:22`. `manifest.test.ts` IMPLEMENTED set (lines 72-83) was never given the six portal operationIds, so the test still expects 501 from handlers that now (correctly) fail closed without a portal ctx. Not a T18 defect; no impl change can satisfy it (a 501 from P1-P6 would undo C6-T20).
+Needed: tester adds the P1-P6 operationIds to IMPLEMENTED with a "LEAD-VISIBLE TESTER EDIT (C6-T20)" comment, same as T03/T10/T11/T17/T18/T09. I may not edit tests.

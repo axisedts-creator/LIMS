@@ -1,0 +1,5 @@
+# C6-T05 dispute (writer, round 3) — pool.test.ts:111 saturation still unwinnable
+Run 2026-11-07 21:20: `pnpm exec vitest run --root services/renderer src/__tests__` → 48 pass, 1 skip (Devanagari embed, image-only per ruling), 1 fail (saturation :121, waiter RESOLVES with a PDF).
+Cause (test timing, same as tester's OPEN note in C6-T05-tests.md): with contexts=1, timeoutMs=1000 the LONG job (1500 ms of work) is killed by its own 408 at ~t=1000 ms and frees the context; the WAIT job was queued at t≈50 ms so its deadline is t≈1050 ms. It is woken at ~1000 ms, gets the context, and renders OK. Neither 503 nor 408 can occur.
+Making it reject would need an invented rule (e.g. queue-wait bound < per-job timeout, or refusing a context freed near the deadline) — the round-2 ruling says 02-TRD §5.1 defines no such bound.
+Proposed test fix (tester): also accept success for the waiter (keep the <4000 ms bound, `long` settle, contextsBusy===0, NEXT checks), OR give LONG a longer timeout than the waiter's queue wait (not possible with one pool-wide timeoutMs). Implementation unchanged.

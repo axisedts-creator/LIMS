@@ -1,0 +1,7 @@
+# AUTH-ACTOR-1 impl (writer)
+- Files: `services/api/src/core/pipeline/boot.ts` (one shared lazy `identityActor` reader + `identityAuthDb`; the LD-189 binding now reuses it), `services/api/src/core/pipeline/index.ts` (stage 5b read; buildCtx actor; identityAuthTx of module identity via identityAuthDb). dbBinding.ts untouched.
+- [CONV] actor only when `!claims && op.identityAuth === true && op.module === 'identity'`; read before stage 6 (no idempotency state on failure); frozen `{type:'system', id}`; any failure = common.internal, not cached.
+- [CONV] no actor source wired (no DB) = unchanged (ctx.actor undefined); stage09 existing test needs that. Boot wires it whenever a pool exists.
+- Tests: `vitest run src/core src/modules/identity src/manifest` = 6181 pass, 1 fail: `identity/__tests__/role-packs/route-guard.test.ts` (greps apps/web AppShell.tsx; not touched by this change, not verified on a clean HEAD). identity-actor.test.ts 22/22 pass.
+- Typecheck `pnpm --filter @lims/api typecheck` does NOT exit 0: errors only in `src/modules/quality/service/{chart,observation}.service.ts` (pre-existing, outside scope); 0 errors in core/pipeline or identity. Last lines: TS2339 'lot_no' (chart.service.ts 122), TS2379 analyteId exactOptionalPropertyTypes (observation.service.ts 191-192), ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL.
+- Open: ctx.bffKey still unset by the pipeline (tester note) so login still refuses wrong_bff on the real server; separate follow-up.

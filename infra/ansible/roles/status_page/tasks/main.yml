@@ -1,0 +1,32 @@
+---
+# Static public status page. Input is data only: values are escaped in the template, never evaluated.
+- name: Load the status source
+  ansible.builtin.set_fact:
+    status: "{{ lookup('ansible.builtin.file', status_page_source) | from_yaml }}"
+
+- name: Status source has the expected shape and only known states
+  ansible.builtin.assert:
+    that:
+      - status.updated is string
+      - status.components is sequence
+      - status.components | length > 0
+      - status.notices is sequence
+      - (status.components | map(attribute='state') | list) is subset(['operational', 'degraded', 'partial_outage', 'major_outage', 'maintenance'])
+    fail_msg: "status.yaml: components[].state must be operational, degraded, partial_outage, major_outage or maintenance"
+    quiet: true
+
+- name: Status page directory
+  ansible.builtin.file:
+    path: "{{ status_page_root }}"
+    state: directory
+    owner: "{{ status_page_owner }}"
+    group: "{{ status_page_group }}"
+    mode: "0755"
+
+- name: Status page (static HTML)
+  ansible.builtin.template:
+    src: index.html.j2
+    dest: "{{ status_page_root }}/index.html"
+    owner: "{{ status_page_owner }}"
+    group: "{{ status_page_group }}"
+    mode: "0644"

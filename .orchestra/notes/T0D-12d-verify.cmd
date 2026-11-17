@@ -1,0 +1,1 @@
+cd /d "%~dp0..\.." && pnpm --dir contracts exec vitest run __tests__/t0d-12d.test.ts __tests__/registry-equality.test.ts && pnpm --dir tools/codegen exec vitest run __tests__/t0d-12d-generated.test.ts __tests__/codegen.test.ts __tests__/c12-openapi.test.ts && pnpm --dir services/api exec vitest run src/core/__tests__/inventory-spec-load.test.ts

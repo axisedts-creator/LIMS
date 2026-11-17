@@ -1,0 +1,42 @@
+---
+# 02-TRD s10.3, 05-SCHEMA s3 (T-15; AC-18.2, AC-18.3; CR-C1-002 publication
+# lims_audit_ship + role lims_audit_ship on the primary).
+# LD-45 profiles (inventory topology_profile):
+#   full     : own PostgreSQL 17 instance (official image by digest) on the
+#              first `dr` host, port 5433, database `auditstore`.
+#   lean/dev : database `lims_audit` in the SAME cluster as the app database
+#              on the first `data` host (db container supabase-db), port 5432,
+#              owned by roles the app cannot use (schema.sql revokes CONNECT
+#              from PUBLIC).
+# Fails closed: no topology_profile => not enabled, and tasks assert it.
+# Secrets (secrets_render, s8; never git/inventory): audit_writer_password,
+# audit_digest_password, audit_reader_password, lims_monitor_password,
+# lims_audit_ship_password; full only: auditstore_superuser_password.
+# Inventory, full only: auditstore_image_digest (postgres:17 by digest).
+auditstore_enabled: >-
+  {{ topology_profile is defined
+  and topology_profile in ['full', 'lean', 'dev'] }}
+auditstore_db_name: >-
+  {{ 'auditstore' if (topology_profile | default('')) == 'full'
+  else 'lims_audit' }}
+auditstore_port: >-
+  {{ 5433 if (topology_profile | default('')) == 'full' else 5432 }}
+auditstore_host_group: >-
+  {{ 'dr' if (topology_profile | default('')) == 'full' else 'data' }}
+# Container that runs the store database (lean: the app db container).
+auditstore_container: >-
+  {{ 'auditstore-db' if (topology_profile | default('')) == 'full'
+  else 'supabase-db' }}
+auditstore_image: >-
+  docker.io/library/postgres@{{ auditstore_image_digest | default('') }}
+# On the dr host the store gets its own LUKS volume (luks_volumes) [CONV].
+auditstore_root: /srv/lims/auditstore
+auditstore_secret_dir: /run/lims/secrets/auditstore
+auditstore_lib_dir: /usr/local/lib/lims/auditstore
+# uid/gid of `postgres` in the official image (Debian variant).
+auditstore_pg_uid: 999
+auditstore_pg_gid: 999
+# Publisher (app db, CR-C1-002) as seen from the store's database server.
+# lean: same container, so the loopback name; full: the data host over wg0.
+auditstore_publisher_container: supabase-db
+auditstore_publisher_port: 5432

@@ -1,0 +1,78 @@
+---
+# yamllint disable rule:line-length
+# Imported from C8
+#   services/worker/src/jobs/analytics/ops/analytics.rules.yml
+# (C8 02-TRD "Alert rules for C1").
+# expr/for verbatim; C1 adds only severity, team, runbook_url (s11.3).
+# The source file is not in this lane yet: transcribed from the TRD
+# table; ci/import-rules.sh overwrites it, alert-import-drift checks.
+groups:
+  - name: analytics
+    rules:
+      - alert: AnalyticsFamilyStale
+        expr: >-
+          max by (tenant_id, family) (lims_analytics_family_stale) == 1
+        for: 60m
+        labels:
+          severity: warn
+          team: ops
+        annotations:
+          summary: >-
+            An analytics family has been stale for 60 min.
+          runbook_url: >-
+            infra/runbooks/analytics.md#analyticsfamilystale
+      - alert: AnalyticsRefreshFailing
+        expr: >-
+          sum by (family) (increase(lims_analytics_refresh_failures_total[30m]))
+          >= 3
+        for: 0m
+        labels:
+          severity: page
+          team: ops
+        annotations:
+          summary: >-
+            An analytics family refresh failed 3 or more times in 30 min.
+          runbook_url: >-
+            infra/runbooks/analytics.md#analyticsrefreshfailing
+      - alert: AnalyticsReconciliationMismatch
+        expr: >-
+          sum by (rule, family) (increase(lims_analytics_reconciliation_mismatch_total[15m]))
+          > 0
+        for: 0m
+        labels:
+          severity: page
+          team: ops
+        annotations:
+          summary: >-
+            Analytics reconciliation found a mismatch against the source module.
+          runbook_url: >-
+            infra/runbooks/analytics.md#analyticsreconciliationmismatch
+      - alert: AnalyticsExportSpike
+        expr: >-
+          sum by (tenant_id) (increase(lims_analytics_exports_total[24h]))
+          > 3 * (sum by (tenant_id) (increase(lims_analytics_exports_total[14d]))
+          / 14) and sum by (tenant_id) (increase(lims_analytics_exports_total[24h]))
+          >= 10
+        for: 0m
+        labels:
+          severity: page
+          team: ops
+        annotations:
+          summary: >-
+            A tenant's analytics exports in 24 h exceed 3x the 14-day daily
+            mean.
+          runbook_url: >-
+            infra/runbooks/analytics.md#analyticsexportspike
+      - alert: AnalyticsConsumerDeadLetter
+        expr: >-
+          increase(lims_core_dead_letters_total{task=~"(evt\\.)?analytics\\..*"}[5m])
+          > 0
+        for: 0m
+        labels:
+          severity: warn
+          team: ops
+        annotations:
+          summary: >-
+            An analytics event consumer dead-lettered.
+          runbook_url: >-
+            infra/runbooks/analytics.md#analyticsconsumerdeadletter

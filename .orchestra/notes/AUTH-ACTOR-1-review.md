@@ -1,0 +1,8 @@
+APPROVE
+# AUTH-ACTOR-1 review (reviewer)
+- Scope: 6 files (<= 8), only core/pipeline + notes; dbBinding.ts untouched. No spec/db/OpenAPI/contract/handler change. Matches LD-204.
+- Actor rule: `needsIdentityActor` = `!claims && op.identityAuth === true && op.module === 'identity'` (index.ts). Frozen `{type:'system', id}` only. Authenticated path unchanged (claims win).
+- Reader: one lazy reader in boot.ts shared by the LD-189 identity binding and the pipeline; exactly one active row, UUID regex, memoised on success only, concurrent first calls share one promise, failures throw bare `common.internal` (no id, no driver text) and are not cached. Never from env/request/JWT (tested). Read before stage 6, so no idempotency state on failure.
+- Tests (ran): `vitest run src/core src/modules/identity src/manifest` = 6181 pass, 1 fail (`identity/__tests__/role-packs/route-guard.test.ts`, greps apps/web; not touched by this diff). identity-actor.test.ts 22/22, covers every done_when/test item incl. the through-pipeline login reaching fake signInWithPassword with no injected actor.
+- Typecheck (ran): `tsc --noEmit` fails ONLY in `src/modules/quality/{handlers/settings.handlers.ts, service/chart.service.ts, service/observation.service.ts}` (7 errors); last touched in f04559eb/636d96a7, before the base 77d848a8; 0 errors in core or identity. done_when "typecheck exits 0" is therefore blocked by pre-existing errors outside this task's scope; lead to route to the quality owner.
+- Non-blocking: `actorDb ??= openDb(await ...)` can build a second Db facade on concurrent first calls (same pool, harmless). Open (out of scope, already noted): pipeline never sets ctx.bffKey, so real login still refuses wrong_bff.

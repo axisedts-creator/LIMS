@@ -1,0 +1,140 @@
+---
+# 02-TRD s8.2: generate all secrets of ONE env, once, on ops-1 (controller).
+# Entry: include_role name=secrets_render tasks_from=generate (vars: env,
+# secrets_render_enc_file). Plaintext only in pipes/memory: key scripts ->
+# secrets_generate.py -> sops --encrypt. Never overwrites an existing file;
+# rotation follows s8.5. wireguard_private_keys stays on its host.
+# No block/rescue: each sops task stays self-contained (no_log, localhost).
+- name: Generate preconditions (enc file <env>.enc.yaml, not yet present)
+  ansible.builtin.assert:
+    that:
+      - env is defined and env is match('^[a-z]+$')
+      - secrets_render_enc_file | length > 0
+      - (secrets_render_enc_file | basename) == (env ~ '.enc.yaml')
+      - env not in secrets_render_other_envs
+    fail_msg: "secrets_render generate: bad env or enc file"
+  delegate_to: localhost
+  run_once: true
+
+- name: Existing encrypted file of this env
+  ansible.builtin.stat:
+    path: "{{ secrets_render_enc_file }}"
+  register: secrets_render_gen_stat
+  delegate_to: localhost
+  run_once: true
+
+- name: Refuse to overwrite (rotation is s8.5, not a regeneration)
+  ansible.builtin.assert:
+    that: not secrets_render_gen_stat.stat.exists
+    fail_msg: "secrets_render generate: {{ env }}.enc.yaml already exists"
+  delegate_to: localhost
+  run_once: true
+
+- name: Decrypt operator-supplied ids on the controller (stdout only)
+  ansible.builtin.command:
+    argv: [sops, -d, "{{ secrets_render_extra_enc_file }}"]
+  register: secrets_render_gen_extra
+  changed_when: false
+  when: secrets_render_extra_enc_file != ''
+  delegate_to: localhost
+  run_once: true
+  no_log: true
+
+- name: Empty work dir for the upstream key scripts
+  ansible.builtin.tempfile:
+    state: directory
+    suffix: .lims-keygen
+  register: secrets_render_gen_dir
+  delegate_to: localhost
+  run_once: true
+
+- name: Generate the env set, pipe into sops encrypt (plaintext never on disk)
+  ansible.builtin.shell:
+    cmd: >-
+      set -euo pipefail;
+      python3 -I {{ role_path | quote }}/files/secrets_generate.py
+      --schema {{ (secrets_render_schema_dir ~ '/' ~ env
+      ~ '.secrets.schema.yaml') | quote }}
+      --workdir {{ secrets_render_gen_dir.path | quote }}
+      {% for s in secrets_render_keys_scripts %}--keys-script {{ s | quote }}
+      {% endfor %}
+      | sops --encrypt --input-type yaml --output-type yaml
+      --filename-override {{ secrets_render_enc_file | quote }}
+      --output {{ secrets_render_gen_new | quote }} /dev/stdin
+    executable: /bin/bash
+    chdir: "{{ secrets_render_enc_file | dirname }}"
+    stdin: "{{ secrets_render_gen_extra.stdout | default('') }}"
+  register: secrets_render_gen
+  changed_when: true
+  failed_when: false
+  delegate_to: localhost
+  run_once: true
+  no_log: true
+
+- name: Check generated set (AC-05.1, AC-21.1; prints ids only)
+  ansible.builtin.shell:
+    cmd: >-
+      set -euo pipefail;
+      sops -d {{ secrets_render_gen_new | quote }}
+      | python3 -I {{ secrets_render_tests_dir | quote }}/secrets_not_default.py
+      --env {{ env | quote }} --values -
+      {% for e, f in secrets_render_other_envs.items() %}--other
+      {{ e | quote }}=<(sops -d {{ f | quote }}) {% endfor %}
+    executable: /bin/bash
+    chdir: "{{ secrets_render_enc_file | dirname }}"
+  register: secrets_render_gen_check
+  when: secrets_render_gen.rc == 0
+  changed_when: false
+  failed_when: false
+  delegate_to: localhost
+  run_once: true
+  no_log: true
+
+- name: Remove the work dir
+  ansible.builtin.command:
+    argv: [rm, -rf, "{{ secrets_render_gen_dir.path }}"]
+  changed_when: true
+  delegate_to: localhost
+  run_once: true
+
+- name: Drop the unchecked file on failure
+  ansible.builtin.command:
+    argv: [rm, -f, "{{ secrets_render_gen_new }}"]
+  when: >-
+    secrets_render_gen.rc != 0 or
+    (secrets_render_gen_check.rc | default(1)) != 0
+  changed_when: true
+  delegate_to: localhost
+  run_once: true
+
+- name: Generation and check passed (stderr / VIOLATION lines = ids only)
+  ansible.builtin.assert:
+    that:
+      - secrets_render_gen.rc == 0
+      - (secrets_render_gen_check.rc | default(1)) == 0
+    fail_msg: >-
+      secrets_render generate failed for {{ env }}:
+      {{ secrets_render_gen.stderr_lines | default([]) | last | default('') }}
+      {{ secrets_render_gen_check.stdout_lines | default([]) | join('; ') }}
+  delegate_to: localhost
+  run_once: true
+
+- name: Move the checked file into place
+  ansible.builtin.command:
+    argv:
+      - mv
+      - -n
+      - "{{ secrets_render_gen_new }}"
+      - "{{ secrets_render_enc_file }}"
+  changed_when: true
+  delegate_to: localhost
+  run_once: true
+
+- name: ops_audit line for the generation (who/what/when only, s8.4)
+  ansible.builtin.command:
+    argv:
+      - "{{ secrets_render_ops_note }}"
+      - "secrets_render generated {{ env }}.enc.yaml"
+  changed_when: false
+  delegate_to: localhost
+  run_once: true

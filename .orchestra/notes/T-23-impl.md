@@ -1,0 +1,8 @@
+# T-23 impl (writer)
+- Files: roles/registry/{defaults,handlers,tasks/{main,server,client}.yml,templates/{compose.registry.yml.j2,registry-gc.sh.j2}}, ci/push.sh, ci/release-lock.sh, playbooks/site.yml (play Registry, hosts ops:data:app:dr after Monitoring core), roles/internal_ca defaults (registry SAN +DNS:registry.lims.internal, owner) + tasks (leaf key owner = item.owner).
+- [CONV] registry image `registry:3.1.2` (tag UNVERIFIED offline, digest via lock later); registry_uid 10500 (non-root; owns leaf key.pem); host network, REGISTRY_HTTP_ADDR=<ops wg IP>:5000; htpasswd on tmpfs /run/lims/registry 0400.
+- [CONV] retention: weekly systemd timer `lims-registry-gc` stops registry, keeps newest 20 unpinned tags/repo (dir mtime) plus every tag whose digest is in `infra/releases/*.lock.yaml` (review #1; task var `registry_pinned_digests`, re-run play after lock change), `garbage-collect --delete-untagged /etc/distribution/config.yml` (config path UNVERIFIED).
+- [CONV] ops-1 docker daemon pulls upstream via drop-in HTTPS_PROXY=http://<ops wg IP>:3128 (needs the ops Squid role, not yet built). Mirror target `<path>:sha256-<hex12>`; use platform manifest digest.
+- [CONV] push.sh rejects host-prefixed local names; lock = mkdir lock dir (60 s timeout) + atomic rename; output sorted, quoted keys/values.
+- Tests: test_t23 43/43 OK (after review fix); test_t01+t18+t23 117 OK; yamllint clean. Full static suite: 36F/2E all pre-existing (t02 egress_probe.sh, t05, t09, t20, t21 missing fixtures).
+- Open: CR `.orchestra/cr/T-23.md` (registry name :5000 vs none; no pull credential secret, so no docker login on clients). Live pull/TLS/egress probe not run; ansible-lint CI-only.

@@ -1,0 +1,1 @@
+cd /d "%~dp0..\.." && pnpm --dir services/api exec vitest run src/modules/identity/claims/__tests__/resolver.test.ts src/modules/identity/repository/__tests__/sessions.repo.test.ts src/modules/identity/repository/__tests__/sessions.repo.live.test.ts

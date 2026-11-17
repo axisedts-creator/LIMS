@@ -1,0 +1,1 @@
+pnpm --dir services/api exec vitest run src/modules/identity/__tests__/platform-settings.contract.test.ts src/modules/identity/service/__tests__/tenant.service.test.ts src/modules/identity/service/__tests__/tenant.handlers.test.ts src/modules/identity/service/__tests__/settings.service.test.ts

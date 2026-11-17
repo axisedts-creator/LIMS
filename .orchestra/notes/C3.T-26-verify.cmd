@@ -1,0 +1,1 @@
+pnpm --dir services/worker exec vitest run src/jobs/catalog/__tests__/unit/cron.test.ts src/jobs/catalog/__tests__/helpers/cronDb.test.ts src/jobs/catalog/__tests__/integration/expireImports.test.ts src/jobs/catalog/__tests__/integration/purgeFiles.test.ts src/jobs/catalog/__tests__/integration/globalReleaseFanout.test.ts

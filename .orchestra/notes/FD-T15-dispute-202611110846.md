@@ -1,0 +1,5 @@
+# FD-T15 dispute (test not owned by FD-T15, stale after the last stubs are gone)
+`services/api/src/modules/frontdesk/__tests__/unit/boot.test.ts` lines 148-178 assert `stubOps().length > 0` and pick `stubOps()[0]` / 'anonymisePatient' as a stub. FD-T15 turns the last 5 stubs (F7, F24, F25, F26) into real handlers, so probes/pending.json is `[]` (LD-70, writer-owned) and the stub tests cannot hold: an empty inventory is the correct end state, deleting the file would fall back to "all ops minus FD-T04", also wrong.
+Request: tester changes those stub tests to pass when the inventory is empty (skip the loop, no stub to echo-test). The "no handler resolves for an empty request" test must be checked separately: real handlers given `params: {}` must still all reject.
+Only these two tests are in dispute (lines 148-171). Three other boot.test.ts tests (real bootstrap, mounted ops, nothing outside spec) timed out at 60s in my run; that is not a stub issue and is unresolved.
+I did not edit the test.

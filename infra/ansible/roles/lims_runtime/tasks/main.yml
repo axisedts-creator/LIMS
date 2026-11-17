@@ -1,0 +1,185 @@
+---
+# 02-TRD s7.4 (T-14): start the LIMS runtime (compose.app.yml) after
+# secrets_render, valkey, egress_proxy and renderer_runtime ran in this
+# play, then prove the envelopes (AC-08..11, AC-30.1). LD-45: profile and
+# memory budget come from the active inventory, never from host names.
+- name: Preconditions (profile, addresses, image digests)
+  ansible.builtin.assert:
+    that:
+      - topology_profile | default('') in ['lean', 'full']
+      - wg_ip | default('') | length > 0
+      - db_primary_wg_ip | default('') | length > 0
+      - >-
+        lims_runtime_images[item] | default('')
+        is search('@sha256:[0-9a-f]{64}$')
+    fail_msg: "lims_runtime: profile/wg_ip/db_primary_wg_ip or image {{ item }}"
+  loop: >-
+    {{ ['api', 'worker', 'web', 'portal', 'renderer', 'pdf_sandbox', 'valkey', 'squid']
+    + (['partner'] if partner_enabled | default(false) | bool else []) }}
+
+- name: Inventory budget fits (LD-45 Sum replicas x gib <= 85 % host RAM)
+  ansible.builtin.assert:
+    that: >-
+      (budget | float) * 100
+      <= (lims_runtime_max_pct | float) * (host_ram_gib | float)
+    fail_msg: "lims_runtime: mem_limit_gib sums to {{ budget }} GiB"
+  vars:
+    budget: >-
+      {% set t = namespace(s=0) %}{% for v in mem_limit_gib.values()
+      %}{% set t.s = t.s + v.replicas * v.gib %}{% endfor %}{{ t.s }}
+  when: mem_limit_gib is defined
+
+- name: Compose environment (profiles, images, wg IP, memory limits)
+  ansible.builtin.set_fact:
+    lims_runtime_env: >-
+      {% set e = {
+        'COMPOSE_PROFILES': ((['full'] if topology_profile == 'full' else [])
+          + (['partner'] if partner_enabled | default(false) | bool else []))
+          | join(','),
+        'APP_WG_IP': wg_ip,
+        'LIMS_API_IMAGE': lims_runtime_images.api,
+        'LIMS_WORKER_IMAGE': lims_runtime_images.worker,
+        'LIMS_WEB_IMAGE': lims_runtime_images.web,
+        'LIMS_PORTAL_IMAGE': lims_runtime_images.portal,
+        'LIMS_PARTNER_IMAGE': lims_runtime_images.partner
+          | default('partner-disabled.invalid'),
+        'LIMS_RENDERER_IMAGE': lims_runtime_images.renderer,
+        'LIMS_PDF_SANDBOX_IMAGE': lims_runtime_images.pdf_sandbox,
+        'LIMS_VALKEY_IMAGE': lims_runtime_images.valkey,
+        'LIMS_SQUID_IMAGE': lims_runtime_images.squid,
+      } %}{% for k, v in lims_runtime_mem_keys.items()
+      if mem_limit_gib is defined and k in mem_limit_gib
+      and mem_limit_gib[k].gib > 0 %}{% set _ = e.update({v:
+      ((mem_limit_gib[k].gib * 1024) | int) ~ 'm'}) %}{% endfor %}{{ e }}
+
+- name: Directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - "{{ lims_runtime_dir }}"
+    - "{{ lims_runtime_tests_dir }}"
+    - /var/lib/node_exporter/textfile
+
+- name: Install compose.app.yml
+  ansible.builtin.copy:
+    src: "{{ lims_runtime_compose_src }}"
+    dest: "{{ lims_runtime_dir }}/compose.app.yml"
+    owner: root
+    group: root
+    mode: "0640"
+
+- name: Deploy-time checks
+  ansible.builtin.copy:
+    src: "{{ lims_runtime_tests_src }}/{{ item }}"
+    dest: "{{ lims_runtime_tests_dir }}/{{ item }}"
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - container_hardening.py
+    - probe_lib.sh
+    - valkey_ephemeral.sh
+    - egress_probe.sh
+
+# AC-30.1 on the rendered model (all services of the active profiles).
+# Piped, never written: `config` expands env_file values (secrets).
+- name: Memory budget of the rendered compose config
+  ansible.builtin.shell:
+    cmd: >-
+      set -o pipefail;
+      docker compose -p {{ lims_runtime_project }} -f compose.app.yml
+      config --format json
+      | python3 {{ lims_runtime_tests_dir }}/container_hardening.py
+      --memory-budget --max-pct {{ lims_runtime_max_pct }}
+      --ram-gib {{ host_ram_gib | default(ansible_memtotal_mb / 1024) }}
+      /dev/stdin
+    chdir: "{{ lims_runtime_dir }}"
+    executable: /bin/bash
+  environment: "{{ lims_runtime_env }}"
+  changed_when: false
+
+- name: Start / update the stack and wait for healthy
+  ansible.builtin.command:
+    cmd: >-
+      docker compose -p {{ lims_runtime_project }} -f compose.app.yml
+      up -d --wait --wait-timeout 300 --remove-orphans
+    chdir: "{{ lims_runtime_dir }}"
+  environment: "{{ lims_runtime_env }}"
+  register: lims_runtime_up
+  changed_when: lims_runtime_up.stderr is search('Creat|Recreat|Start')
+
+# 02-TRD s11.1 lims_ops_container_health{service}, every 30 s by root (T-16, AC-10.1)
+- name: container_health.sh + textfile dir
+  ansible.builtin.copy:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    owner: root
+    group: root
+    mode: "{{ item.mode }}"
+  loop:
+    - src: "{{ playbook_dir }}/../../monitoring/textfile/container_health.sh"
+      dest: /usr/local/lib/lims/container_health.sh
+      mode: "0755"
+    - src: lims-container-health.service
+      dest: /etc/systemd/system/lims-container-health.service
+      mode: "0644"
+    - src: lims-container-health.timer
+      dest: /etc/systemd/system/lims-container-health.timer
+      mode: "0644"
+  loop_control:
+    label: "{{ item.dest }}"
+
+- name: Container health timer enabled (30 s)
+  ansible.builtin.systemd_service:
+    name: lims-container-health.timer
+    enabled: true
+    state: started
+    daemon_reload: true
+
+- name: Renderer + sandbox envelope probes
+  ansible.builtin.include_role:
+    name: renderer_runtime
+    tasks_from: verify
+
+- name: valkey_ephemeral.sh (AC-11.1)
+  ansible.builtin.command:
+    argv: ["{{ lims_runtime_tests_dir }}/valkey_ephemeral.sh"]
+  environment:
+    VALKEY_CONTAINER: "{{ lims_runtime_project }}-valkey-1"
+  changed_when: false
+
+# AC-09.3: api/worker reach only the DB (+ Squid); BFFs reach nothing.
+- name: egress_probe.sh db / edge
+  ansible.builtin.command:
+    argv:
+      - "{{ lims_runtime_tests_dir }}/egress_probe.sh"
+      - "{{ item.0 }}"
+      - "{{ lims_runtime_project }}-{{ item.1 }}-1"
+  environment:
+    DATA_WG_IP: "{{ db_primary_wg_ip }}"
+    WG_PEER_IPS: "{{ lims_runtime_wg_peers }}"
+  loop:
+    - [db, api-a]
+    - [db, worker-a]
+    - [edge, web-a]
+    - [edge, portal]
+  changed_when: false
+
+- name: egress_probe.sh proxy (only once Squid has an approved name)
+  ansible.builtin.command:
+    argv:
+      - "{{ lims_runtime_tests_dir }}/egress_probe.sh"
+      - proxy
+      - "{{ lims_runtime_project }}-{{ item }}-1"
+  environment:
+    DATA_WG_IP: "{{ db_primary_wg_ip }}"
+    WG_PEER_IPS: "{{ lims_runtime_wg_peers }}"
+    PROXY_ALLOWED_FQDN: "{{ egress_proxy_fqdns | first }}"
+    PROXY_DENIED_FQDN: "{{ lims_runtime_denied_fqdn }}"
+  loop: [api-a, worker-a]
+  when: egress_proxy_fqdns | default([]) | length > 0
+  changed_when: false

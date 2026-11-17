@@ -1,0 +1,7 @@
+# H80-T04 impl (writer) — CR-C7-015, LD-139
+- Files: `drivers/types.ts` (+`ParsedRecord.inlineAttachment`), `service/ingest.service.ts` (accept() call, attachment in the existing result event, rejection mapping, `uploads`/`storage` on IngestCtx).
+- Tests: attachments.inline.test.ts 25/25 pass. Full `src/modules/instruments`: 1850 pass, 5 fail, none touch ingest/types (boot: identity `listRolePacks` handler; ci-scripts registry + synthetic-scan; signing Go copy) — not run on a clean HEAD to confirm pre-existing.
+- [CONV] object path `<tenant>/<yyyy>/<mm>/<uuid>.<ext>` (not `q/`: already scanned clean by accept). Not uploaded for shadow instruments. Rejected -> skipped_invalid / quarantined_attachment, core code in row.warnings, message stays accepted. Scanner unavailable or no ctx.uploads -> throw common.internal (retry, object deleted best-effort).
+- Open 1 (S7): core accept() cannot re-encode JPEG -> real chromatogram is rejected until C0-0C fixes it. Filed `.orchestra/cr/H80-T04.md` (CR-C7-018).
+- Open 2 (S6): driver `truth_h80e` does not yet fill `inlineAttachment` from OBX-5 (outside T04 file list); needs an owner/follow-up task.
+- Review fix #1 (Open 3 closed): per-message `stored[]` on Batch; every accept() object is pushed, and the savepoint catch deletes them all (best effort) before `retry`. After the fix: inline tests 26/26 pass; instruments 2061 pass / 1 fail (signing Go copy, not T04); tsc reports no errors in T04 files. Still not covered: objects left if the OUTER batch tx fails after the savepoints commit.

@@ -1,0 +1,1 @@
+cd /d C:\LIMS-lanes\C0-0C\tools\codegen && npx vitest run __tests__/lintfix1-openapi.test.ts __tests__/lint-openapi.test.ts && cd /d C:\LIMS-lanes\C0-0C && pnpm --dir services/api exec vitest run src/core/__tests__/health-env.test.ts src/modules/identity/__tests__/role-packs src/modules/identity/__tests__/handlers-cover-contract.test.ts

@@ -1,0 +1,154 @@
+# T-21 (tester, LD-39): promtool tests for ../imported/smartreport.rules.yml. Synthetic series only (no real tenant or patient data).
+# Per alert one firing case (labels carry the rule's severity and team), one not-firing case, and for rules with a
+# `for` clause a pending-before-`for` + firing-after-`for` check. Thresholds are the owner's (02-TRD s11.3).
+rule_files:
+  - ../imported/smartreport.rules.yml
+evaluation_interval: 1m
+tests:
+
+  - interval: 1m
+    name: "SmartBuildErrors fires"
+    input_series:
+      - series: 'lims_smartreport_builds_total{outcome="error"}'
+        values: "0+10x40"
+      - series: 'lims_smartreport_builds_total{outcome="ok"}'
+        values: "0+90x40"
+    alert_rule_test:
+      - alertname: SmartBuildErrors
+        eval_time: 14m
+        exp_alerts: []
+      - alertname: SmartBuildErrors
+        eval_time: 37m
+        exp_alerts:
+          - exp_labels: {severity: "warn", team: "ops"}
+            exp_annotations: {summary: "More than 5 % of smart report builds errored over 15 min.", runbook_url: "infra/runbooks/smartreport.md#smartbuilderrors"}
+
+  - interval: 1m
+    name: "SmartBuildErrors quiet"
+    input_series:
+      - series: 'lims_smartreport_builds_total{outcome="error"}'
+        values: "0+0x40"
+      - series: 'lims_smartreport_builds_total{outcome="ok"}'
+        values: "0+100x40"
+    alert_rule_test:
+      - alertname: SmartBuildErrors
+        eval_time: 37m
+        exp_alerts: []
+
+  - interval: 1m
+    name: "SmartDraftsStale fires"
+    input_series:
+      - series: 'lims_smartreport_drafts_oldest_age_seconds{tenant_id="t1"}'
+        values: "86401x25"
+    alert_rule_test:
+      - alertname: SmartDraftsStale
+        eval_time: 9m
+        exp_alerts: []
+      - alertname: SmartDraftsStale
+        eval_time: 22m
+        exp_alerts:
+          - exp_labels: {severity: "warn", team: "ops", tenant_id: "t1"}
+            exp_annotations: {summary: "A smart report draft is older than 24 h.", runbook_url: "infra/runbooks/smartreport.md#smartdraftsstale"}
+
+  - interval: 1m
+    name: "SmartDraftsStale quiet"
+    input_series:
+      - series: 'lims_smartreport_drafts_oldest_age_seconds{tenant_id="t1"}'
+        values: "86400x25"
+    alert_rule_test:
+      - alertname: SmartDraftsStale
+        eval_time: 22m
+        exp_alerts: []
+
+  - interval: 1m
+    name: "SmartLlmCallWhileDisabled fires"
+    input_series:
+      - series: 'lims_smartreport_llm_calls_while_disabled_total'
+        values: "0+1x15"
+    alert_rule_test:
+      - alertname: SmartLlmCallWhileDisabled
+        eval_time: 12m
+        exp_alerts:
+          - exp_labels: {severity: "page", team: "ops"}
+            exp_annotations: {summary: "An LLM call was made while the LLM feature is disabled.", runbook_url: "infra/runbooks/smartreport.md#smartllmcallwhiledisabled"}
+
+  - interval: 1m
+    name: "SmartLlmCallWhileDisabled quiet"
+    input_series:
+      - series: 'lims_smartreport_llm_calls_while_disabled_total'
+        values: "0+0x15"
+    alert_rule_test:
+      - alertname: SmartLlmCallWhileDisabled
+        eval_time: 12m
+        exp_alerts: []
+
+  - interval: 1m
+    name: "SmartLlmEndpointNotAllowed fires"
+    input_series:
+      - series: 'lims_smartreport_llm_endpoint_refused_total'
+        values: "0+1x15"
+    alert_rule_test:
+      - alertname: SmartLlmEndpointNotAllowed
+        eval_time: 12m
+        exp_alerts:
+          - exp_labels: {severity: "page", team: "ops"}
+            exp_annotations: {summary: "An LLM call to a non-allowlisted endpoint was refused.", runbook_url: "infra/runbooks/smartreport.md#smartllmendpointnotallowed"}
+
+  - interval: 1m
+    name: "SmartLlmEndpointNotAllowed quiet"
+    input_series:
+      - series: 'lims_smartreport_llm_endpoint_refused_total'
+        values: "0+0x15"
+    alert_rule_test:
+      - alertname: SmartLlmEndpointNotAllowed
+        eval_time: 12m
+        exp_alerts: []
+
+  - interval: 1m
+    name: "SmartLlmFailing fires"
+    input_series:
+      - series: 'lims_smartreport_llm_circuit_open'
+        values: "1x15"
+    alert_rule_test:
+      - alertname: SmartLlmFailing
+        eval_time: 12m
+        exp_alerts:
+          - exp_labels: {severity: "warn", team: "ops"}
+            exp_annotations: {summary: "The smart report LLM circuit breaker is open.", runbook_url: "infra/runbooks/smartreport.md#smartllmfailing"}
+
+  - interval: 1m
+    name: "SmartLlmFailing quiet"
+    input_series:
+      - series: 'lims_smartreport_llm_circuit_open'
+        values: "0x15"
+    alert_rule_test:
+      - alertname: SmartLlmFailing
+        eval_time: 12m
+        exp_alerts: []
+
+  - interval: 1m
+    name: "SmartConsumerLag fires"
+    input_series:
+      - series: 'lims_queue_depth{task="evt.smartreport.build"}'
+        values: "1001x25"
+    alert_rule_test:
+      - alertname: SmartConsumerLag
+        eval_time: 9m
+        exp_alerts: []
+      - alertname: SmartConsumerLag
+        eval_time: 22m
+        exp_alerts:
+          - exp_labels: {severity: "warn", team: "ops"}
+            exp_annotations: {summary: "More than 1000 smart report events queued for 10 min.", runbook_url: "infra/runbooks/smartreport.md#smartconsumerlag"}
+
+  - interval: 1m
+    name: "SmartConsumerLag quiet"
+    input_series:
+      - series: 'lims_queue_depth{task="evt.smartreport.build"}'
+        values: "1000x25"
+      - series: 'lims_queue_depth{task="evt.lab.result"}'
+        values: "99999x25"
+    alert_rule_test:
+      - alertname: SmartConsumerLag
+        eval_time: 22m
+        exp_alerts: []

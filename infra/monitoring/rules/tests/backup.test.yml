@@ -1,0 +1,217 @@
+# T-19 (tester, LD-39): promtool tests for rules/backup.rules.yml (1 m series). Synthetic series only.
+# AC-12.2 (08 A25 D-205): WalArchiveLagging > 600 s warn; RpoAtRisk > 840 s page; both only while
+# lims_ops_wal_unarchived_bytes > 0 (idle database => neither); WalArchiveFailing = 2 failed checks in a row.
+# AC-22.3: NoOffsiteArchive (page) for 5m while lims_ops_offsite_archive_configured == 0.
+# AC-13.2 RestoreDrillOverdue stays in restore_drill_overdue.test.yml (T-10). RestoreDrillFailed (page) =
+# lims_ops_restore_drill_checks_failed > 0 (report.sh sets >= 1 for failed/aborted drills).
+# LD-45: StandbyLagHigh only exists where a standby does (full profile); the lean profile has none.
+# All age/unarchived series are label-free (the rules use `and on()`); `for` of the age alerts is <= 5 m.
+rule_files:
+  - ../backup.rules.yml
+evaluation_interval: 1m
+tests:
+  - interval: 1m
+    name: age 601 s with unarchived WAL -> WalArchiveLagging warn only
+    input_series:
+      - series: 'lims_ops_wal_repo2_newest_age_seconds'
+        values: "601x30"
+      - series: 'lims_ops_wal_unarchived_bytes'
+        values: "4096x30"
+    alert_rule_test:
+      - alertname: WalArchiveLagging
+        eval_time: 15m
+        exp_alerts:
+          - exp_labels: {severity: warn, team: ops}
+      - alertname: RpoAtRisk
+        eval_time: 15m
+        exp_alerts: []
+
+  - interval: 1m
+    name: age exactly 600 s -> WalArchiveLagging quiet (strict >)
+    input_series:
+      - series: 'lims_ops_wal_repo2_newest_age_seconds'
+        values: "600x30"
+      - series: 'lims_ops_wal_unarchived_bytes'
+        values: "4096x30"
+    alert_rule_test:
+      - alertname: WalArchiveLagging
+        eval_time: 15m
+        exp_alerts: []
+
+  - interval: 1m
+    name: age 841 s with unarchived WAL -> RpoAtRisk page (and lagging warn)
+    input_series:
+      - series: 'lims_ops_wal_repo2_newest_age_seconds'
+        values: "841x30"
+      - series: 'lims_ops_wal_unarchived_bytes'
+        values: "4096x30"
+    alert_rule_test:
+      - alertname: RpoAtRisk
+        eval_time: 15m
+        exp_alerts:
+          - exp_labels: {severity: page, team: ops}
+      - alertname: WalArchiveLagging
+        eval_time: 15m
+        exp_alerts:
+          - exp_labels: {severity: warn, team: ops}
+
+  - interval: 1m
+    name: age exactly 840 s -> RpoAtRisk quiet (strict >, one minute before the 15 min RPO)
+    input_series:
+      - series: 'lims_ops_wal_repo2_newest_age_seconds'
+        values: "840x30"
+      - series: 'lims_ops_wal_unarchived_bytes'
+        values: "4096x30"
+    alert_rule_test:
+      - alertname: RpoAtRisk
+        eval_time: 15m
+        exp_alerts: []
+
+  - interval: 1m
+    name: AC-12.2 idle database - age 900 s but nothing unarchived -> neither age alert
+    input_series:
+      - series: 'lims_ops_wal_repo2_newest_age_seconds'
+        values: "900x30"
+      - series: 'lims_ops_wal_unarchived_bytes'
+        values: "0x30"
+    alert_rule_test:
+      - alertname: RpoAtRisk
+        eval_time: 15m
+        exp_alerts: []
+      - alertname: WalArchiveLagging
+        eval_time: 15m
+        exp_alerts: []
+
+  - interval: 1m
+    name: AC-12.2 idle database becomes busy -> RpoAtRisk only once WAL is unarchived
+    input_series:
+      - series: 'lims_ops_wal_repo2_newest_age_seconds'
+        values: "900x40"
+      - series: 'lims_ops_wal_unarchived_bytes'
+        values: "0x10 5000x30"
+    alert_rule_test:
+      - alertname: RpoAtRisk
+        eval_time: 9m
+        exp_alerts: []
+      - alertname: RpoAtRisk
+        eval_time: 15m
+        exp_alerts:
+          - exp_labels: {severity: page, team: ops}
+
+  - interval: 1m
+    name: fresh archive (age 120 s) with unarchived WAL -> quiet
+    input_series:
+      - series: 'lims_ops_wal_repo2_newest_age_seconds'
+        values: "120x30"
+      - series: 'lims_ops_wal_unarchived_bytes'
+        values: "16777216x30"
+    alert_rule_test:
+      - alertname: RpoAtRisk
+        eval_time: 15m
+        exp_alerts: []
+      - alertname: WalArchiveLagging
+        eval_time: 15m
+        exp_alerts: []
+
+  - interval: 1m
+    name: age unknown (metric absent because the source failed) -> no false alarm and no false all-clear rule
+    input_series:
+      - series: 'lims_ops_wal_unarchived_bytes'
+        values: "4096x30"
+    alert_rule_test:
+      - alertname: RpoAtRisk
+        eval_time: 15m
+        exp_alerts: []
+
+  - interval: 1m
+    name: WalArchiveFailing page at 2 consecutive failed checks, not at 1
+    input_series:
+      - series: 'lims_ops_wal_check_consecutive_failures'
+        values: "2x20"
+    alert_rule_test:
+      - alertname: WalArchiveFailing
+        eval_time: 10m
+        exp_alerts:
+          - exp_labels: {severity: page, team: ops}
+
+  - interval: 1m
+    name: WalArchiveFailing quiet at 1 failed check
+    input_series:
+      - series: 'lims_ops_wal_check_consecutive_failures'
+        values: "1x20"
+    alert_rule_test:
+      - alertname: WalArchiveFailing
+        eval_time: 10m
+        exp_alerts: []
+
+  - interval: 1m
+    name: AC-22.3 NoOffsiteArchive page after 5m at 0, not at 4m
+    input_series:
+      - series: 'lims_ops_offsite_archive_configured'
+        values: "0x20"
+    alert_rule_test:
+      - alertname: NoOffsiteArchive
+        eval_time: 4m
+        exp_alerts: []
+      - alertname: NoOffsiteArchive
+        eval_time: 5m
+        exp_alerts:
+          - exp_labels: {severity: page, team: ops}
+
+  - interval: 1m
+    name: NoOffsiteArchive quiet while an off-site repo is configured, and clears when it is restored
+    input_series:
+      - series: 'lims_ops_offsite_archive_configured'
+        values: "0x3 1x20"
+    alert_rule_test:
+      - alertname: NoOffsiteArchive
+        eval_time: 3m
+        exp_alerts: []
+      - alertname: NoOffsiteArchive
+        eval_time: 20m
+        exp_alerts: []
+
+  - interval: 1m
+    name: RestoreDrillFailed page on any failed check (succeeded_with_failures, failed, aborted)
+    input_series:
+      - series: 'lims_ops_restore_drill_checks_failed'
+        values: "1x20"
+    alert_rule_test:
+      - alertname: RestoreDrillFailed
+        eval_time: 10m
+        exp_alerts:
+          - exp_labels: {severity: page, team: ops}
+
+  - interval: 1m
+    name: RestoreDrillFailed quiet when 0 checks failed
+    input_series:
+      - series: 'lims_ops_restore_drill_checks_failed'
+        values: "0x20"
+    alert_rule_test:
+      - alertname: RestoreDrillFailed
+        eval_time: 10m
+        exp_alerts: []
+
+  - interval: 1m
+    name: StandbyLagHigh warn at replay lag > 60 s for 10m, not at 9m
+    input_series:
+      - series: 'pg_replication_lag_seconds{job="postgres_exporter", host="dr-1"}'
+        values: "61x30"
+    alert_rule_test:
+      - alertname: StandbyLagHigh
+        eval_time: 9m
+        exp_alerts: []
+      - alertname: StandbyLagHigh
+        eval_time: 10m
+        exp_alerts:
+          - exp_labels: {severity: warn, team: ops, job: postgres_exporter, host: dr-1}
+
+  - interval: 1m
+    name: StandbyLagHigh quiet at 60 s
+    input_series:
+      - series: 'pg_replication_lag_seconds{job="postgres_exporter", host="dr-1"}'
+        values: "60x30"
+    alert_rule_test:
+      - alertname: StandbyLagHigh
+        eval_time: 20m
+        exp_alerts: []

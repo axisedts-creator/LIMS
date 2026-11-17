@@ -1,0 +1,2 @@
+APPROVE
+Round 3. Prior item 1 verified fixed: an-t19.harness.tsx:316 now uses conditional spread `...(request.method === 'POST' ? { body: ... } : {})`; TS2379 gone from `tsc --noEmit`. Only remaining tsc output in task files is TS2353 `onUnhandledRequest` in an-t19.{hub,reports,specifics}.test.tsx setupServer.listen — same pre-existing pattern as an-t17/an-t18, not a task defect (noted round 2). Rounds 1-2 items remain fixed (no source changes since 6b418bdc besides the harness line). AN-T19 suite (vitest.an-t19.config.ts): 4 files, 357 passed, 1 conditional skip.

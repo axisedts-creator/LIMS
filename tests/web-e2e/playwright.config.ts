@@ -1,8 +1,7 @@
 import { defineConfig } from '@playwright/test';
-import { fileURLToPath } from 'node:url';
-import { dirname, join } from 'node:path';
+import { join } from 'node:path';
 
-const here = dirname(fileURLToPath(import.meta.url));
+const here = __dirname; // root package.json has no "type":"module" -> Playwright loads this config as CJS
 const WEB = 'http://localhost:3100';
 const C2 = 'http://127.0.0.1:4100';
 

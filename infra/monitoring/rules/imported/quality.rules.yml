@@ -1,0 +1,102 @@
+---
+# yamllint disable rule:line-length
+# Imported from C9
+#   services/worker/src/jobs/quality/ops/quality.rules.yml
+# (C9 02-TRD "Alert rules for C1").
+# expr/for verbatim; C1 adds only severity, team, runbook_url (s11.3).
+# The source file is not in this lane yet: transcribed from the TRD
+# table; ci/import-rules.sh overwrites it, alert-import-drift checks.
+groups:
+  - name: quality
+    rules:
+      - alert: QualityRejectedRunWithoutAction
+        expr: >-
+          max by (tenant_id) (lims_quality_qc_rejected_without_action_oldest_age_seconds)
+          > 14400
+        for: 5m
+        labels:
+          severity: warn
+          team: ops
+        annotations:
+          summary: >-
+            A rejected QC run has had no corrective action for over 4 h.
+          runbook_url: >-
+            infra/runbooks/quality.md#qualityrejectedrunwithoutaction
+      - alert: QualityConsumerDeadLetter
+        expr: >-
+          increase(lims_core_dead_letters_total{task=~"(evt\\.)?quality\\..*"}[5m])
+          > 0
+        for: 0m
+        labels:
+          severity: page
+          team: ops
+        annotations:
+          summary: >-
+            A quality job or event consumer dead-lettered.
+          runbook_url: >-
+            infra/runbooks/quality.md#qualityconsumerdeadletter
+      - alert: QualityQcSyncStalled
+        expr: >-
+          time() - max by (tenant_id) (lims_quality_qc_sync_last_success_timestamp_seconds)
+          > 300
+        for: 5m
+        labels:
+          severity: page
+          team: ops
+        annotations:
+          summary: >-
+            QC sync has not succeeded for a tenant for over 5 min.
+          runbook_url: >-
+            infra/runbooks/quality.md#qualityqcsyncstalled
+      - alert: QualityQcImportError
+        expr: >-
+          increase(lims_quality_qc_observations_total{status="import_error"}[15m])
+          > 0
+        for: 0m
+        labels:
+          severity: warn
+          team: ops
+        annotations:
+          summary: >-
+            A QC observation failed to import in the last 15 min.
+          runbook_url: >-
+            infra/runbooks/quality.md#qualityqcimporterror
+      - alert: QualityPortSlow
+        expr: >-
+          histogram_quantile(0.95, sum by (le, method) (rate(lims_quality_port_duration_seconds_bucket[5m])))
+          > 0.01
+        for: 15m
+        labels:
+          severity: warn
+          team: ops
+        annotations:
+          summary: >-
+            Quality port p95 latency above 10 ms for 15 min.
+          runbook_url: >-
+            infra/runbooks/quality.md#qualityportslow
+      - alert: QualityTatSweepSlow
+        expr: >-
+          histogram_quantile(0.95, sum by (le) (rate(lims_quality_tat_sweep_duration_seconds_bucket[5m])))
+          > 10
+        for: 15m
+        labels:
+          severity: warn
+          team: ops
+        annotations:
+          summary: TAT sweep p95 above 10 s for 15 min.
+          runbook_url: >-
+            infra/runbooks/quality.md#qualitytatsweepslow
+      - alert: QualityAutoverifyAllowWithReasons
+        expr: >-
+          increase(lims_quality_autoverify_decisions_total{decision="allow",
+          reason!="none"}[5m]) > 0
+        for: 0m
+        labels:
+          severity: page
+          team: ops
+        annotations:
+          summary: >-
+            Autoverification allowed a result while a blocking reason was
+            present.
+          runbook_url: >-
+            infra/runbooks/quality.md#qualityautoverifyallowwithreasons

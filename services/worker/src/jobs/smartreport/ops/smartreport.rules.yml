@@ -1,0 +1,28 @@
+# C14 smart-report alert rules (02-TRD §12 "Alert rules for C1", CR-C14-010). C1 adds team + runbook_url on import.
+groups:
+  - name: smartreport
+    rules:
+      - alert: SmartBuildErrors
+        expr: sum(rate(lims_smartreport_builds_total{outcome="error"}[15m])) / sum(rate(lims_smartreport_builds_total[15m])) > 0.05
+        for: 15m
+        labels: { severity: warn, route: ops-digest-email }
+      - alert: SmartDraftsStale
+        expr: max by (tenant_id) (lims_smartreport_drafts_oldest_age_seconds) > 86400
+        for: 10m
+        labels: { severity: warn, route: ops-digest-email }
+      - alert: SmartLlmCallWhileDisabled
+        expr: increase(lims_smartreport_llm_calls_while_disabled_total[5m]) > 0
+        for: 0m
+        labels: { severity: page, route: oncall-email }
+      - alert: SmartLlmEndpointNotAllowed
+        expr: increase(lims_smartreport_llm_endpoint_refused_total[5m]) > 0
+        for: 0m
+        labels: { severity: page, route: oncall-email }
+      - alert: SmartLlmFailing
+        expr: max(lims_smartreport_llm_circuit_open) == 1
+        for: 0m
+        labels: { severity: warn, route: ops-digest-email }
+      - alert: SmartConsumerLag
+        expr: sum(lims_queue_depth{task=~"evt\\.smartreport\\..*"}) > 1000
+        for: 10m
+        labels: { severity: warn, route: ops-digest-email }

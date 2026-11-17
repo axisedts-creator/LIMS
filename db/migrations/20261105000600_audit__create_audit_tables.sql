@@ -79,7 +79,9 @@ CREATE POLICY access_log__select__tenant ON audit.access_log FOR SELECT TO lims_
          AND (centre_id IS NULL OR (SELECT app.has_all_centres())                                     -- CR-C2-010 centre clause
               OR centre_id = ANY ((SELECT app.current_centre_ids())::uuid[])));                        -- (08 A28.6, A16.1)
 CREATE POLICY access_log__insert__tenant ON audit.access_log FOR INSERT TO lims_app
-  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system())
+              AND (centre_id IS NULL OR (SELECT app.has_all_centres())                                -- LD-21 (CR-C0-T0B-08 item 2)
+                   OR centre_id = ANY ((SELECT app.current_centre_ids())::uuid[])));                   -- centre clause on INSERT (08 A16.1)
 CREATE POLICY access_log__insert__partner ON audit.access_log FOR INSERT TO lims_app
   WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND actor_id = (SELECT app.current_actor_id())
               AND (SELECT app.current_actor_type()) = 'partner');

@@ -1,3 +1,7 @@
+'use client';
+// T0D-WEBFIX-1 (LD-301): the help control passes an inline onPress to the client Button; server components (engagement
+// booking/queue/link page loaders) render PageHeader, and RSC refuses function props across the client boundary
+// ("Event handlers cannot be passed to Client Component props"), which was the engagement error page on staging.
 import type { ReactNode } from 'react';
 import { Button } from '../Button/Button';
 import { msg } from '../_shared/messages';

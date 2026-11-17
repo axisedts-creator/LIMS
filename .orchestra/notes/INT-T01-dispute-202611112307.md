@@ -1,0 +1,6 @@
+# INT-T01 dispute (writer) — test cannot pass as written
+File: `services/api/src/modules/instruments/__tests__/e2e/simulator-agent-api-c5.e2e.test.ts`
+1. Lines 202, 241, 257: `createNet().connect(port, '127.0.0.1', cb)`. `createNet` is imported as `createServer` from `node:net` (line 21), so this calls `.connect` on a `net.Server` -> `TypeError: createServer(...).connect is not a function`. Tests 1 (ASTM+HL7 p95), 3 (HL7 retransmit) and 4 (SEC TLS) all die here, before any byte reaches the agent; test 2 then sees 0 archived messages. Fix: import `connect as netConnect` (or `createConnection`) from `node:net` and call `netConnect(port, '127.0.0.1', cb)` at those three lines.
+2. (Likely test-side, Windows) `afterAll`/test 4 `finally`: `rmSync(work, {recursive:true,force:true})` -> `EPERM` because the killed agent (`proc.kill()` + 200 ms sleep) still holds `state/queue.db` (SQLite WAL) open. Suggest awaiting the child `exit` event in `Agent.stop()` and `rmSync(..., { maxRetries: 5, retryDelay: 200 })`.
+Evidence: run `.orchestra\notes\INT-T01-verify.cmd` — `beforeAll` passes (the agent builds with `-tags e2e`, connects the pipe, prints READY), then the 4 tests fail as above.
+Writer side is otherwise ready (see INT-T01-impl.md); I did not edit or copy the test.

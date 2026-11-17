@@ -12,6 +12,16 @@ const IC_PATH = resolve(here, "../../spec/program/03-INTERFACE-CATALOG.md");
 
 type Entry = Record<string, unknown>;
 
+// T0C-ACCT-1 (LD-313 c): the only permission codes allowed beyond IC §11. A further code needs a new lead decision and an edit of this list.
+const LD313_ACCOUNTING_CODES = ["billing.account.manage", "billing.account.read", "billing.account_entry.create", "billing.account_entry.reverse", "billing.cash_transfer.decide",
+  "billing.cash_transfer.manage", "billing.expense.manage"].sort();
+// T0C-SALES-1 (LD-321): the two sales hierarchy codes (the other LD-321 codes arrive with their own contract tasks and extend this list then).
+const LD321_SALES_CODES = ["partners.sales.manage", "partners.sales.read"];
+// T0C-SYNC-1 (LD-322): offline sync part 1. sync.use has TWO segments (named verbatim by the brief); g_permissions__code__ck and gen-permissions accept 2 or 3 segments for it.
+const LD322_SYNC_CODES = ["sync.conflict.resolve", "sync.device.manage", "sync.use"];
+// T0C-SYNC-1 (LD-322): the closed sync error list, the only error codes allowed beyond IC section 8 (owner C0).
+const LD322_SYNC_ERRORS = ["sync.block_size_too_large", "sync.device_revoked", "sync.device_unknown", "sync.series_unknown", "sync.wipe_required"];
+
 /** Strict parse: duplicate map keys are errors (IC §7 says "CI parses the file with a YAML parser"). */
 const strictParse = (src: string, what: string): any => {
   try {
@@ -84,9 +94,14 @@ describe("AC-0C-1.3 errors.yaml == IC §8", () => {
     const ic: Entry[] = icDoc(8);
     const file: Entry[] = contractDoc("errors.yaml");
     expect(Array.isArray(file), "errors.yaml root must be a list").toBe(true);
-    expect(diffByKey(ic, file, "code")).toEqual([]);
-    expect(file.map((e) => e.code)).toEqual(ic.map((e) => e.code)); // order preserved
-    expect(file).toEqual(ic);
+    // T0C-SYNC-1 (LD-322): exactly the five sync.* codes may follow the IC codes; every IC entry stays unchanged and in order.
+    const icCodes = ic.map((e) => String(e.code));
+    const extra = file.filter((e) => !icCodes.includes(String(e.code)));
+    expect(extra.map((e) => String(e.code)).sort()).toEqual(LD322_SYNC_ERRORS);
+    const core = file.filter((e) => icCodes.includes(String(e.code)));
+    expect(diffByKey(ic, core, "code")).toEqual([]);
+    expect(core.map((e) => e.code)).toEqual(ic.map((e) => e.code)); // order preserved
+    expect(core).toEqual(ic);
   });
 
   it("codes are unique; http in 400..599; owner is a chunk id; title non-empty", () => {
@@ -170,15 +185,21 @@ describe("AC-0C-1.3 permissions.yaml == IC §11", () => {
       expect(diffByKey(ic[k], file[k], "code"), k).toEqual([]);
     }
     expect(sortKeys(file.fixed_actor_permissions)).toEqual(sortKeys(ic.fixed_actor_permissions));
-    expect(diffByKey(ic.permissions, file.permissions, "code")).toEqual([]);
-    expect(file.permissions.map((p: Entry) => p.code)).toEqual(ic.permissions.map((p: Entry) => p.code));
-    expect(file).toEqual(ic);
+    // T0C-ACCT-1 (LD-313 c, founder blanket authority LD-310): the registry may hold EXACTLY the 7 billing accounting codes on top of IC §11 (spec/ is read-only, the lead records
+    // the widening in the CR register). Every IC code stays, unchanged and in order (never renamed or removed); the new codes come after the IC codes of the billing block or at the end.
+    const icCodes = ic.permissions.map((p: Entry) => p.code);
+    const extra = file.permissions.filter((p: Entry) => !icCodes.includes(p.code));
+    expect(diffByKey(ic.permissions, file.permissions, "code").filter((d) => !d.startsWith("extra "))).toEqual([]);
+    expect(extra.map((p: Entry) => p.code).sort()).toEqual([...LD313_ACCOUNTING_CODES, ...LD321_SALES_CODES, ...LD322_SYNC_CODES].sort());
+    expect(file.permissions.filter((p: Entry) => icCodes.includes(p.code)).map((p: Entry) => p.code)).toEqual(icCodes);
+    expect({ ...file, permissions: file.permissions.filter((p: Entry) => icCodes.includes(p.code)) }).toEqual(ic);
   });
 
   it("permission codes unique and match ^[a-z_]+\\.[a-z_]+\\.[a-z_]+$ (IC §11 CI rule)", () => {
     const codes: string[] = contractDoc("permissions.yaml").permissions.map((p: Entry) => p.code);
     expect(dupes(codes)).toEqual([]);
-    expect(codes.filter((c) => !/^[a-z_]+\.[a-z_]+\.[a-z_]+$/.test(c))).toEqual([]);
+    // T0C-SYNC-1 (LD-322): the only two segment code is sync.use.
+    expect(codes.filter((c) => !/^[a-z_]+\.[a-z_]+\.[a-z_]+$/.test(c))).toEqual(["sync.use"]);
   });
 
   // 07-SECURITY: platform.* never grantable to tenant/partner roles.

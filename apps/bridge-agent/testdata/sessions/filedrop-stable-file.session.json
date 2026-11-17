@@ -1,0 +1,7 @@
+{"name": "filedrop-stable-file", "protocol": "file_drop", "transport": "folder", "instrument_profile": "file_drop_generic", "options": {"stable_seconds": 5},
+ "steps": [
+  {"file": {"write": "report-E2600000042.pdf", "text": "%PDF-1.4 synthetic report E2600000042"}},
+  {"wait_ms": 0, "note": "first look"},
+  {"wait_ms": 5000, "note": "stable_seconds reached"},
+  {"expect_queue": {"items": 1, "kind": "attachment", "raw_sha256": "39640f32095557a064194f81be8c304710e24a37474ac37d73898a0e9d5ce5b9"}}
+ ]}

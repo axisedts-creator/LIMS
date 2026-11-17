@@ -1,0 +1,8 @@
+{"name": "h80e-qry-not-found", "protocol": "hl7v2", "transport": "tcp_server", "instrument_profile": "truth_h80e", "options": {},
+ "steps": [
+  {"note": "server stub answers: barcode unknown -> QCK NF only", "host_query": {"reply": [
+   "MSH|^~\\&|Truth|Truth-H80E|||20261105||QCK^Q02|12601|P|2.3|||||UTF-8||||<CR>MSA|AA|126|Message accepted|||0<CR>ERR|0<CR>QAK|SR|NF|||||<CR>"]}},
+  {"from": "instrument", "bytes": "<VT>MSH|^~\\&|Truth|Truth-H80E|||20261105||QRY^Q02|126|P|2.3||||||UTF-8||||<CR>QRD|20261105|R|D|65|||RD|E2600000099||||<CR>QRF|||||RCT|COR|ALL|||<CR><FS><CR>"},
+  {"expect": "agent", "bytes": "<VT>MSH|^~\\&|Truth|Truth-H80E|||20261105||QCK^Q02|12601|P|2.3|||||UTF-8||||<CR>MSA|AA|126|Message accepted|||0<CR>ERR|0<CR>QAK|SR|NF|||||<CR><FS><CR>", "within_ms": 200},
+  {"expect_queue": {"items": 1, "kind": "data", "raw_sha256": "8c481b28be84c8d84b2be6d762fb6ae1ba0350019ae7c599891a96cbdc81595c"}}
+ ]}

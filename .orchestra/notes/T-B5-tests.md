@@ -1,0 +1,7 @@
+# T-B5 tests (tester)
+- API `service/__tests__/reminder.booking.test.ts` (20): seam `createReminderService().scheduleBookingReminder(ctx,{bookingId,patientId,slotStart})` (only if slot−now > booking_reminder_hours_before, due = slot−H) and `.cancelBookingReminders(ctx,{bookingId})`.
+- API `service/__tests__/booking.messages.test.ts` (11): createBookingForPatient enqueues `engagement.send_booking_message` (job_key `bmsg:<id>:confirmation`, payload {tenant_id,booking_id,kind}) + reminder row; cancelBooking enqueues `...:cancelled` + cancels reminders. Enqueue SQL = `app.enqueue_job($1 'engagement.…', $2::jsonb, $3 …)`; keep other SQL inside fakeSql subset.
+- Worker `jobs/engagement/__tests__/send_booking_message.test.ts` (23): `tasks/send_booking_message.ts` exports `createSendBookingMessage()`; params exactly {lab_name,datetime,booking_no}; templates/purposes per CR-C16-009 + 08 R13; in-app notifications; replay/hostile payloads; e2e reminder window with dispatcher.
+- Shared world `api/.../__tests__/reminders.world.ts` extended: reminders UPDATE by `source_ref_id` (+ kind). T-R1 suites re-run green (15 + 29).
+- ASSUMED (spec silent): cancel kind value `'cancelled'`; messages not gated by reminders_enabled/opt-out; stale confirmation/cancel job = silent no-op.
+- Run: `.orchestra\notes\T-B5-verify.cmd`. Now: 54 tests, 52 fail for missing seams (not-a-function / missing module / no job enqueued); 2 negative-path booking.messages tests pass already (no job on failed create/cancel).

@@ -1,0 +1,1 @@
+"pgbouncer" "{{ secrets_render_values.POSTGRES_PASSWORD | string | replace('"', '""') }}"

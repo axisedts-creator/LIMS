@@ -1,0 +1,11 @@
+---
+# 02-TRD s7.4 / s7.5: envelope of C6's renderer + pdf-sandbox (compose
+# services in compose/lims/compose.app.yml); this role installs and runs
+# the deploy-time envelope probes (AC-09.1, AC-10.1).
+renderer_runtime_tests_src: "{{ playbook_dir }}/../../tests/internal"
+renderer_runtime_tests_dir: /usr/local/lib/lims/tests
+renderer_runtime_project: lims
+renderer_runtime_sandbox_port: 8080  # C6 port [CONV]
+# digest-pinned image with `nc`, run in the probed container's netns when
+# the C6 images ship none; "" = docker exec nc inside the container.
+renderer_runtime_probe_image: ""

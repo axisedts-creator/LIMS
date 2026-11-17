@@ -1,0 +1,6 @@
+T0B-ADMINPERM-1 tests (tester, revised per ruling TESTS_WRONG; LD-310 overrides the pre-LD-310 corp_admin pins).
+- New: __tests__/role-packs/admin-all-permissions.test.ts + shared helper admin-staff-codes.ts (EXCLUDED 31 codes with a reason each, STAFF = registry minus EXCLUDED). Pins corp_admin = 155 permissions, 59 privileged (recomputed from the registry; spec was 115/39).
+- Revised (corp_admin only; std_admin and every other role pins kept): role-packs.data (spec-equal except corp_admin; corp_admin = spec set UNION STAFF; counts [155,59]; R2/R5 exempt corp_admin), admin-authority, matrix-replay (R5a explained set + STAFF), escalation (overlay + R5; R4 role.manage escalation kept), role-packs.loader (module file 155; spec copy still 115), role-pack.service (reads module data file), role-pack.add-missing (EXTRA = registry code outside the pack).
+- Run: .orchestra\notes\T0B-ADMINPERM-1-verify.cmd -> role-packs dir minus apply-role-pack.script.test.ts: 10 files, 758/758 pass.
+- Out of scope, fails on HEAD: apply-role-pack.script.test.ts (9 failures: missing docs/runbooks/apply-role-pack.md, script count). Lead should queue it.
+- Spec drift: spec/ is read-only; lead records LD-310 widening in the CR register.

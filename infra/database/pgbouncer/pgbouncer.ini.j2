@@ -1,0 +1,39 @@
+; 02-TRD s7.6 [CONV values, 04 S8 mode]. Rendered by Ansible to pgbouncer.ini and mounted ro by
+; infra/compose/supabase/override.data.yml (T-07 decision: ini wins over the image's env generation).
+; PgBouncer reads everything after '=' as the value, so comments stay on their own lines.
+; LD-45 (2026-11-07): no host names here; lean (prod-1) and full (data-1) render identical bytes.
+; No secrets here: auth_file is mounted from /run/lims/secrets/pgbouncer/ and holds only the
+; `pgbouncer` role's own credential; every other role (lims_api) is resolved via auth_query.
+
+[databases]
+; config key app_db_name (default postgres, s15); same value as pg_hba, audit subscription, db-bootstrap.yml.
+; No `*` fallback: clients can only reach this one database through the pooler.
+{{ app_db_name }} = host=db port=5432 dbname={{ app_db_name }}
+
+[pgbouncer]
+; container-internal; the host binding restricts it to the wg IP (s3.3)
+listen_addr = 0.0.0.0
+listen_port = 6432
+; 04 S8
+pool_mode = transaction
+max_client_conn = 500
+; >= 2 API replicas x LIMS_CORE_DB_POOL_MAX 20 (C0)
+default_pool_size = 40
+reserve_pool_size = 10
+reserve_pool_timeout = 3
+; protocol-level prepared statements in transaction mode need PgBouncer >= 1.21 and > 0 (research 03 s2.4)
+max_prepared_statements = 200
+auth_type = scram-sha-256
+auth_file = /etc/pgbouncer/userlist.txt
+; as upstream override; auth_user is required or the query never runs
+auth_user = pgbouncer
+auth_query = SELECT * FROM pgbouncer.get_auth($1)
+query_wait_timeout = 30
+server_idle_timeout = 600
+server_lifetime = 3600
+idle_transaction_timeout = 60
+ignore_startup_parameters = extra_float_digits
+admin_users = pgbouncer
+stats_users = pgbouncer
+log_connections = 0
+log_disconnections = 0

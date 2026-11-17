@@ -12,7 +12,8 @@ beforeEach(() => {
 afterEach(closeAll);
 
 describe('AC-0D-1.1 autoload mounts operations of <m>/index.ts manifests', () => {
-  it('mounts every operation of every module found, with no central list', async () => {
+  // T-01 ruling: first boot gets 30000 ms headroom (default 5000 ms is a harness assumption under parallel load).
+  it('mounts every operation of every module found, with no central list', { timeout: 30000 }, async () => {
     const app = await boot('ok'); // ok/ holds catalog + identity (+ a dir without index.ts that is ignored)
     const list = await app.inject({ method: 'GET', url: '/v1/catalog/things' });
     expect(list.statusCode).toBe(200);
@@ -65,6 +66,19 @@ describe('AC-0D-1.2 manifest handler set must equal the spec operationId set; bo
 
   it('extra handler with no operation in the spec: boot rejects and names it', async () => {
     const msg = await bootError('extra-handler');
+    expect(msg).toContain('ghostOp');
+    expect(msg).toContain('catalog');
+  });
+
+  // T0B-BOOTGATE-1 (LD-325): handlers plus pendingOperations must cover the spec set; details in pending-operations.test.ts.
+  it('operation without handler but listed in pendingOperations: boots, and answers 501 instead of failing boot', async () => {
+    const app = await boot('pending/ok-pending');
+    expect((await app.inject({ method: 'DELETE', url: '/v1/catalog/things/t2' })).statusCode).toBe(501);
+    expect((await app.inject({ method: 'GET', url: '/v1/catalog/things' })).statusCode).toBe(200);
+  });
+
+  it('pendingOperations naming an id that is not in the spec: boot rejects and names it', async () => {
+    const msg = await bootError('pending/unknown-pending');
     expect(msg).toContain('ghostOp');
     expect(msg).toContain('catalog');
   });
@@ -143,7 +157,8 @@ describe('core sample module (02-TRD §14): mounted only for LIMS_CORE_ENV=ci + 
   });
 
   it('ci + flag: sample module mounts (done_when: sample module mounts)', async () => {
-    const app = await bootstrap({ config: cfg({ LIMS_CORE_LOAD_SAMPLE_MODULE: '1' }) });
+    // AUTO 2026-11-07 T-01: isolate from real modules (catalog needs JWT config); same as line 53.
+    const app = await bootstrap({ config: cfg({ LIMS_CORE_LOAD_SAMPLE_MODULE: '1' }), modulesDir: fixturesShared() + '/does-not-exist' });
     try {
       const r = await app.inject(firstRoute());
       expect(r.statusCode).not.toBe(404);
@@ -158,7 +173,7 @@ describe('core sample module (02-TRD §14): mounted only for LIMS_CORE_ENV=ci + 
     ['staging with flag=1', 'staging', { LIMS_CORE_LOAD_SAMPLE_MODULE: '1' }],
     ['production with flag=1', 'production', { LIMS_CORE_LOAD_SAMPLE_MODULE: '1' }],
   ])('%s: sample module is NOT mounted', async (_n, env, extra) => {
-    const app = await bootstrap({ config: cfg({ LIMS_CORE_ENV: env, ...extra }) });
+    const app = await bootstrap({ config: cfg({ LIMS_CORE_ENV: env, ...extra }), modulesDir: fixturesShared() + '/does-not-exist' });
     try {
       const r = await app.inject(firstRoute());
       expect(r.statusCode).toBe(404);

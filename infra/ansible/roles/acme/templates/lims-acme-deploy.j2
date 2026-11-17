@@ -1,0 +1,10 @@
+#!/bin/sh
+# certbot --deploy-hook (02-TRD s6.2): install the renewed lineage for the edge
+# (key mode 0600, never copied off this host), then `nginx -t && nginx -s reload`.
+set -eu
+name="$(basename "$RENEWED_LINEAGE")"
+dest="{{ acme_certs }}/$name"
+install -d -m 0700 "$dest"
+install -m 0644 "$RENEWED_LINEAGE/fullchain.pem" "$dest/fullchain.pem"
+install -m 0600 "$RENEWED_LINEAGE/privkey.pem" "$dest/privkey.pem"
+docker exec {{ acme_nginx_container }} sh -c 'nginx -t && nginx -s reload'

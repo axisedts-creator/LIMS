@@ -1,0 +1,17 @@
+{"name": "astm-micro-composite-code-over-64", "protocol": "astm", "transport": "pipe", "instrument_profile": "astm_generic_e1394", "options": {},
+ "steps": [
+  {"from": "instrument", "bytes": "<ENQ>"},
+  {"expect": "agent", "bytes": "<ACK>", "within_ms": 200},
+  {"from": "instrument", "bytes": "<STX>1H|\\^&|||SIM-MICRO^0.1|||||||P|1<CR><ETX>37<CR><LF>"},
+  {"expect": "agent", "bytes": "<ACK>", "within_ms": 200},
+  {"from": "instrument", "bytes": "<STX>2P|1<CR><ETX>3F<CR><LF>"},
+  {"expect": "agent", "bytes": "<ACK>", "within_ms": 200},
+  {"from": "instrument", "bytes": "<STX>3O|1|E2600000045||^^^MIC<CR><ETX>DC<CR><LF>"},
+  {"expect": "agent", "bytes": "<ACK>", "within_ms": 200},
+  {"from": "instrument", "bytes": "<STX>4R|1|^^^AST:1:SYNTHETIC-ANTIBIOTIC-NAME-SYNTHETIC-ANTIBIOTIC-NAME-SYNTHETIC-ANTIBIOTIC-NAME-:MIC|4|ug/mL||S||F<CR><ETX>CD<CR><LF>"},
+  {"expect": "agent", "bytes": "<ACK>", "within_ms": 200},
+  {"from": "instrument", "bytes": "<STX>5L|1|N<CR><ETX>08<CR><LF>"},
+  {"expect": "agent", "bytes": "<ACK>", "within_ms": 200},
+  {"from": "instrument", "bytes": "<EOT>"},
+  {"expect_queue": {"items": 1, "kind": "data", "raw_sha256": "75a4bb7e07003bd291b0528183b60a9381fdd09236ab1efbc630b3c150523f8a"}}
+ ]}

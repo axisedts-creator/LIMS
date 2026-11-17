@@ -1,0 +1,1 @@
+pnpm --dir services/api exec vitest run src/modules/instruments/__tests__/messages.service.test.ts src/modules/instruments/__tests__/messages.handlers.test.ts src/modules/instruments/__tests__/unit/messages.contract.test.ts src/modules/instruments/__tests__/boot.test.ts

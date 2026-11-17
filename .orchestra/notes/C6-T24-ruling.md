@@ -1,0 +1,7 @@
+TESTS_WRONG — the asserted params (`lab_name`, `lab_phone`, `ref`) are right, but the fixture has no spec'd source for `lab_phone`. Fix the fixture as follows, not the assertions.
+1. Source = `IdentityPort.getTenantSettings(ctx, { keys: ['branding'] })`: spec/chunks/C6-reporting-delivery/02-TRD.md:342 (lab name/contact strip from `branding`, CR-C2-008) and spec/program/03-INTERFACE-CATALOG.md:1646.
+2. The IC shape takes precedence over the C2 TRD (CLAUDE.md order). IC 03-INTERFACE-CATALOG.md:1619-1622 gives `branding { legalName, displayName, addressLines[], phones: string[] (≤3, each ≤40) }`. There is NO `contactPhone` (that field is only in C2 02-TRD.md:762 / _cr-extract, and the IC overrides it).
+3. Change `delivery.helpers.ts` `makePorts().IdentityPort.getTenantSettings` so it also returns `branding: { legalName, displayName: LAB_NAME, addressLines: [], phones: ['<synthetic e.g. +97714000000>'] }`. Tests then expect `lab_name` = `branding.displayName` and `lab_phone` = `branding.phones[0]`. The `phone` kind ≤40 matches C6 05-SCHEMA.md:1457.
+4. The exact SMS text stays as 04-UI-UX.md:348 / 01-PRD.md:240 (AC-14.1). Params stay as 02-TRD.md:794.
+5. The proposed "no lab phone → `suppressed_no_contact`" test is NOT required. 02-TRD.md:729 ties `no_contact` to the recipient's contact, not to the lab's phone. Do not add it. If the writer wants that behaviour, it needs a CR.
+6. The R18 part is not disputed. Proceed per the brief.

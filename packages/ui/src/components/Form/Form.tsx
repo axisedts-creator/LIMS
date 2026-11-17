@@ -16,13 +16,15 @@ export interface FormProps {
   errorSummary?: boolean;
   /** Server problem+json: maps errors[].path (JSON Pointer) to fields. */
   problem?: ProblemLike;
+  /** T0D-DENSITY-1 (LD-310): "start" puts each label at the start side of its field (dense forms). Default "above". */
+  labelPlacement?: 'above' | 'start';
   'data-testid'?: string;
 }
 
 /** "/family_name" -> "family_name"; nested pointers keep their slashes ("/a/0" -> "a/0"). */
 const pointerToName = (p = '') => p.replace(/^\//, '').replace(/~1/g, '/').replace(/~0/g, '~');
 
-export function Form({ onSubmit, children, submitShortcut = true, errorSummary = true, problem, ...rest }: FormProps) {
+export function Form({ onSubmit, children, submitShortcut = true, errorSummary = true, problem, labelPlacement = 'above', ...rest }: FormProps) {
   const fields = useRef(new Map<string, FieldRegistration>());
   const [names, setNames] = useState<readonly string[]>([]);
   const [clientErrors, setClientErrors] = useState<Readonly<Record<string, string>>>({});
@@ -94,7 +96,7 @@ export function Form({ onSubmit, children, submitShortcut = true, errorSummary =
 
   return (
     <FormContext.Provider value={ctx}>
-      <form noValidate className="lims-form" onSubmit={handleSubmit} onKeyDown={onKeyDown} {...rest}>
+      <form noValidate className="lims-form" data-label-placement={labelPlacement} onSubmit={handleSubmit} onKeyDown={onKeyDown} {...rest}>
         {errorSummary && items.length > 0 ? <ErrorSummary ref={summaryRef} items={items} /> : null}
         {children}
       </form>

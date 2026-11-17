@@ -1,0 +1,113 @@
+---
+# 02-TRD s3.2, s3.3, s5.7 (REQ-SEC-130). The API stays on the local unix
+# socket only; daemon.json never sets "hosts".
+- name: Install Docker Engine and Compose v2
+  ansible.builtin.apt:
+    name: "{{ docker_engine_packages }}"
+    state: present
+
+- name: Load br_netfilter at boot (bridged packets reach nftables, s3.2)
+  ansible.builtin.copy:
+    dest: /etc/modules-load.d/lims-br_netfilter.conf
+    owner: root
+    group: root
+    mode: "0644"
+    content: "br_netfilter\n"
+
+- name: Load br_netfilter now
+  ansible.builtin.command: modprobe br_netfilter
+  changed_when: false
+
+- name: Bridged traffic goes through the netfilter forward hook
+  ansible.builtin.copy:
+    dest: /etc/sysctl.d/91-lims-bridge.conf
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      # Managed by Ansible (02-TRD s3.2)
+      net.bridge.bridge-nf-call-iptables = 1
+      net.bridge.bridge-nf-call-ip6tables = 1
+  notify: Apply bridge sysctl
+
+- name: Daemon configuration /etc/docker/daemon.json (s5.7)
+  ansible.builtin.copy:
+    src: daemon.json
+    dest: /etc/docker/daemon.json
+    owner: root
+    group: root
+    mode: "0644"
+    validate: dockerd --validate --config-file=%s
+  notify: Restart docker
+
+- name: Drop-in directory of docker.service
+  ansible.builtin.file:
+    path: /etc/systemd/system/docker.service.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Order docker after wg0 (ports are published on the wg IP, s3.3)
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/docker.service.d/10-lims-wg.conf
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      [Unit]
+      Wants=wg-quick@wg0.service
+      After=wg-quick@wg0.service
+  notify: Restart docker
+
+- name: Docker enabled and running
+  ansible.builtin.systemd_service:
+    name: docker
+    state: started
+    enabled: true
+    daemon_reload: true
+
+- name: Apply daemon configuration before the checks
+  ansible.builtin.meta: flush_handlers
+
+- name: Daemon config passes container_hardening.py (s5.7)
+  ansible.builtin.script:
+    cmd: >-
+      {{ role_path }}/../../../tests/internal/container_hardening.py
+      --daemon-json /etc/docker/daemon.json
+    executable: python3
+  changed_when: false
+
+- name: Inspect the shared networks
+  ansible.builtin.command: docker network inspect {{ item.name }}
+  register: docker_engine_net
+  loop: "{{ docker_engine_networks }}"
+  loop_control:
+    label: "{{ item.name }}"
+  changed_when: false
+  failed_when: false
+  when: "'app' in group_names"
+
+- name: Create missing shared networks
+  ansible.builtin.command: >-
+    docker network create --driver bridge
+    --subnet {{ item.item.subnet }}
+    {{ '--internal' if item.item.internal else '' }} {{ item.item.name }}
+  loop: "{{ docker_engine_net.results | default([]) }}"
+  loop_control:
+    label: "{{ item.item.name }}"
+  when: item.rc is defined and item.rc != 0
+  changed_when: true
+
+- name: Existing networks match 02-TRD s3.2 (never silently re-created)
+  ansible.builtin.assert:
+    that:
+      - (item.stdout | from_json)[0].IPAM.Config[0].Subnet == item.item.subnet
+      - (item.stdout | from_json)[0].Internal == item.item.internal
+    fail_msg: >-
+      {{ item.item.name }} differs from s3.2; fix by hand (containers
+      may be attached to it)
+  loop: "{{ docker_engine_net.results | default([]) }}"
+  loop_control:
+    label: "{{ item.item.name }}"
+  when: item.rc is defined and item.rc == 0

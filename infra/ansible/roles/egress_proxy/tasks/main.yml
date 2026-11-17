@@ -1,0 +1,141 @@
+---
+# 02-TRD s5.5 / s7.4 (AC-09.3). Squid gets the approved `via: squid` names
+# of egress-allowlist.yaml only; the GoTrue relay IPs go to nftables set
+# @smtp_relay_ips, refreshed hourly (s5.5 rule 5 [CONV]).
+- name: Preconditions
+  ansible.builtin.assert:
+    that:
+      - >-
+        smtp_relay_fqdn | default('')
+        is match('^([a-z0-9]([a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}$')
+      - egress_proxy_image is search('@sha256:[0-9a-f]{64}$')
+    fail_msg: "egress_proxy: smtp_relay_fqdn or squid image digest unset"
+
+- name: Load egress-allowlist.yaml
+  ansible.builtin.set_fact:
+    egress_proxy_list: >-
+      {{ (lookup('ansible.builtin.file', egress_proxy_allowlist)
+      | from_yaml).destinations }}
+    egress_proxy_scope: >-
+      {{ ((lookup('ansible.builtin.file', egress_proxy_allowlist)
+      | from_yaml).env_scope | default({})).get(env, []) }}
+
+# T-35 (CR-C15-008 item 4): an owner-C15 gateway also needs its fqdn in
+# env_scope[env]; unlisted = never loaded (fail closed). Other owners: unscoped.
+- name: Approved Squid names only (pending/refused stay 403, B11)
+  ansible.builtin.set_fact:
+    egress_proxy_fqdns: >-
+      {{ (egress_proxy_list | selectattr('via', 'eq', 'squid')
+      | selectattr('f01_status', 'eq', 'approved')
+      | selectattr('port', 'eq', 443)
+      | rejectattr('owner', 'eq', 'C15')
+      | map(attribute='fqdn') | list
+      + egress_proxy_list | selectattr('via', 'eq', 'squid')
+      | selectattr('f01_status', 'eq', 'approved')
+      | selectattr('port', 'eq', 443)
+      | selectattr('owner', 'eq', 'C15')
+      | selectattr('fqdn', 'in', egress_proxy_scope)
+      | map(attribute='fqdn') | list) | unique | list }}
+
+# Names land in squid.conf: plain DNS names only
+- name: Approved names are DNS names
+  ansible.builtin.assert:
+    that: item is match('^([a-z0-9]([a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}$')
+    fail_msg: "egress_proxy: {{ item }} is not a plain DNS name"
+  loop: "{{ egress_proxy_fqdns }}"
+
+- name: Squid directory
+  ansible.builtin.file:
+    path: "{{ egress_proxy_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: squid.conf (staged)
+  ansible.builtin.template:
+    src: squid.conf.j2
+    dest: "{{ egress_proxy_dir }}/squid.conf.new"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: squid -k parse on the staged file (pinned image)
+  ansible.builtin.command:
+    argv:
+      - docker
+      - run
+      - --rm
+      - --network
+      - none
+      - -v
+      - "{{ egress_proxy_dir }}/squid.conf.new:/etc/squid/squid.conf:ro"
+      - --entrypoint
+      - squid
+      - "{{ egress_proxy_image }}"
+      - -k
+      - parse
+      - -f
+      - /etc/squid/squid.conf
+  changed_when: false
+
+- name: Install squid.conf
+  ansible.builtin.copy:
+    src: "{{ egress_proxy_dir }}/squid.conf.new"
+    dest: "{{ egress_proxy_dir }}/squid.conf"
+    remote_src: true
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart squid
+
+- name: SMTP relay resolver script
+  ansible.builtin.template:
+    src: lims-smtp-relay-ips.j2
+    dest: "{{ egress_proxy_refresh }}"
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: SMTP relay refresh unit and hourly timer
+  ansible.builtin.copy:
+    dest: "/etc/systemd/system/{{ item.name }}"
+    content: "{{ item.content }}"
+    owner: root
+    group: root
+    mode: "0644"
+  loop:
+    - name: lims-smtp-relay-ips.service
+      content: |
+        [Unit]
+        Description=Refresh nftables set smtp_relay_ips (egress_proxy)
+        After=nftables.service network-online.target
+        Wants=network-online.target
+        [Service]
+        Type=oneshot
+        ExecStart={{ egress_proxy_refresh }}
+    - name: lims-smtp-relay-ips.timer
+      content: |
+        [Unit]
+        Description=Hourly refresh of smtp_relay_ips
+        [Timer]
+        OnCalendar=hourly
+        Persistent=true
+        [Install]
+        WantedBy=timers.target
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: Enable the timer
+  ansible.builtin.systemd:
+    name: lims-smtp-relay-ips.timer
+    enabled: true
+    state: started
+    daemon_reload: true
+
+# Fill the set now: an nftables reload empties it until the next run.
+- name: Resolve the relay now
+  ansible.builtin.systemd:
+    name: lims-smtp-relay-ips.service
+    state: started
+  changed_when: false

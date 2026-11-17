@@ -1,0 +1,3 @@
+---
+# Non-secret vars for group `ops`, env prod (lean profile, LD-45/LD-48;
+# 02-TRD s15). Filled by the role tasks that need them (T-03 onward).

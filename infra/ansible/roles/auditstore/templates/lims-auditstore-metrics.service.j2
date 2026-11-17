@@ -1,0 +1,14 @@
+[Unit]
+Description=Audit store shipping textfile metrics (02-TRD s10.3, s11 AuditShippingLagging/Down; AC-18.2)
+After=docker.service
+
+[Service]
+Type=oneshot
+Environment=PATH={{ auditstore_lib_dir }}/bin:/usr/bin:/bin
+Environment=PGUSER=lims_monitor
+Environment=PGDATABASE={{ auditstore_db_name }}
+Environment=TEXTFILE_DIR=/var/lib/node_exporter/textfile
+EnvironmentFile={{ auditstore_secret_dir }}/lims_monitor.env
+ExecStart=/bin/bash {{ auditstore_lib_dir }}/lims-auditstore-metrics.sh
+PrivateTmp=true
+NoNewPrivileges=true

@@ -1,0 +1,1 @@
+cd /d C:\LIMS-lanes\C0-0B && "C:\Program Files\Git\bin\bash.exe" tests/billing/T0B-ACCT-1.pg.sh && pnpm --dir services/api exec vitest run src/modules/billing/__tests__/probes/crossTenant.handlers.test.ts src/modules/billing/__tests__/unit/boot.test.ts

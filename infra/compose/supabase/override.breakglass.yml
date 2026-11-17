@@ -1,0 +1,100 @@
+# app-1 Studio / pg-meta break-glass (02-TRD s7.10; AC-06.3; T-26). Layered LAST over
+#   -f upstream/docker-compose.yml -f override.app.yml -f override.breakglass.yml
+# and only while playbooks/studio-breakglass.yml has break-glass enabled. Disable recreates api-gw
+# WITHOUT this file, which drops the loopback port, breakglass_net and (with studio/meta removed)
+# returns to the override.app.yml baseline (AC-06.2).
+# override.app.yml `!reset`s studio+meta, so they are re-declared in full here (upstream definition
+# at the pinned snapshot, UPSTREAM.lock). Studio connects as `postgres` (BYPASSRLS, 04 D5): founder
+# approval is a playbook input, recorded in ops_audit.
+# UNVERIFIED (02-TRD s7.10): whether Docker publishes a port of a container attached only to
+# `internal` networks -> the gateway also joins the non-internal `breakglass_net`; verify on dev VM.
+# Digests: studio/meta are not in UPSTREAM.lock `images` yet; until CI sets STUDIO_IMAGE_DIGEST /
+# META_IMAGE_DIGEST the all-zero placeholder (same pattern as override.data.yml DB_IMAGE_DIGEST)
+# makes the pull fail, so break-glass fails closed (the playbook rescue then tears down).
+# Snapshot tags: supabase/studio:2026.11.02-sha-a05e7ec, supabase/postgres-meta:v0.100.0. LD-45: no host names.
+services:
+  api-gw:
+    ports: !override
+      - "127.0.0.1:8000:8000/tcp"     # loopback only; reached by ssh -L 8000:127.0.0.1:8000 over wg0
+    networks:
+      - breakglass_net
+    volumes:                          # the FULL upstream Envoy config (studio + meta routes, basic auth);
+      - ./upstream/volumes/api/envoy/lds.template.yaml:/etc/envoy/lds.template.yaml:ro
+      - ./upstream/volumes/api/envoy/cds.yaml:/etc/envoy/cds.yaml:ro
+    # DASHBOARD_USERNAME/DASHBOARD_PASSWORD reach the gateway from the rendered env file (unchanged
+    # upstream environment); the playbook rotates the password before the gateway is recreated.
+
+  studio:
+    container_name: supabase-studio
+    image: supabase/studio@${STUDIO_IMAGE_DIGEST:-sha256:0000000000000000000000000000000000000000000000000000000000000000}
+    restart: "no"                     # a reboot must not resurrect Studio past the timer
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "node -e \"fetch('http://localhost:3000/api/platform/profile').then((r) => {if (r.status !== 200) throw new Error(r.status)})\""
+        ]
+      timeout: 10s
+      interval: 5s
+      retries: 3
+      start_period: 20s
+    depends_on:
+      meta: { condition: service_started }
+    networks:                         # app_net: gateway <-> studio; db_net: Postgres at POSTGRES_HOST
+      - app_net
+      - db_net
+    environment:
+      HOSTNAME: "0.0.0.0"
+      STUDIO_PG_META_URL: http://meta:8080
+      POSTGRES_PORT: ${POSTGRES_PORT}
+      POSTGRES_HOST: ${POSTGRES_HOST}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_USER_READ_WRITE: postgres
+      PG_META_CRYPTO_KEY: ${PG_META_CRYPTO_KEY}
+      PGRST_DB_SCHEMAS: ${PGRST_DB_SCHEMAS}
+      PGRST_DB_MAX_ROWS: ${PGRST_DB_MAX_ROWS:-1000}
+      PGRST_DB_EXTRA_SEARCH_PATH: ${PGRST_DB_EXTRA_SEARCH_PATH:-public}
+      DEFAULT_ORGANIZATION_NAME: ${STUDIO_DEFAULT_ORGANIZATION}
+      DEFAULT_PROJECT_NAME: ${STUDIO_DEFAULT_PROJECT}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      SUPABASE_URL: http://api-gw:8000
+      SUPABASE_PUBLIC_URL: ${SUPABASE_PUBLIC_URL}
+      SUPABASE_ANON_KEY: ${ANON_KEY}
+      SUPABASE_SERVICE_KEY: ${SERVICE_ROLE_KEY}
+      AUTH_JWT_SECRET: ${JWT_SECRET}
+      SUPABASE_PUBLISHABLE_KEY: ${SUPABASE_PUBLISHABLE_KEY}
+      SUPABASE_SECRET_KEY: ${SUPABASE_SECRET_KEY}
+      ENABLED_FEATURES_LOGS_ALL: "false"
+      SNIPPETS_MANAGEMENT_FOLDER: /app/snippets
+      EDGE_FUNCTIONS_MANAGEMENT_FOLDER: /app/edge-functions
+    volumes:
+      - ./upstream/volumes/snippets:/app/snippets:z
+      - ./upstream/volumes/functions:/app/edge-functions:ro,z
+    mem_limit: 1g
+    pids_limit: 512
+
+  meta:
+    container_name: supabase-meta
+    image: supabase/postgres-meta@${META_IMAGE_DIGEST:-sha256:0000000000000000000000000000000000000000000000000000000000000000}
+    restart: "no"
+    networks:                         # app_net: studio -> meta; db_net: meta -> Postgres
+      - app_net
+      - db_net
+    environment:
+      PG_META_PORT: 8080
+      PG_META_DB_HOST: ${POSTGRES_HOST}
+      PG_META_DB_PORT: ${POSTGRES_PORT}
+      PG_META_DB_NAME: ${POSTGRES_DB}
+      PG_META_DB_USER: postgres
+      PG_META_DB_PASSWORD: ${POSTGRES_PASSWORD}
+      CRYPTO_KEY: ${PG_META_CRYPTO_KEY}
+    mem_limit: 512m
+    pids_limit: 256
+
+# Temporary, non-internal: Docker publishes a container port only for a non-internal network.
+# Created by `up` with this file, removed by the playbook on disable. Only api-gw joins it.
+networks:
+  breakglass_net:
+    name: breakglass_net
+    ipam: { config: [{ subnet: 172.30.60.0/24 }] }

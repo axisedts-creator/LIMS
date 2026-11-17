@@ -1,0 +1,18 @@
+# Managed by Ansible (02-TRD s5.2). sshd listens on the wg IP only.
+ListenAddress {{ wg_ip }}
+PasswordAuthentication no
+KbdInteractiveAuthentication no
+PermitRootLogin no
+# lims-interim-repo: SFTP-only, chrooted DR interim pgBackRest repo (T-29, AC-22.3); humans stay in ops.
+AllowGroups ops lims-interim-repo
+MaxAuthTries 3
+LoginGraceTime 20
+X11Forwarding no
+AllowTcpForwarding local
+ClientAliveInterval 300
+# Keep this Match block LAST: every line after it would apply to this user only.
+Match User lims-interim-repo
+    ChrootDirectory /srv/lims/interim-repo
+    ForceCommand internal-sftp
+    AllowTcpForwarding no
+    PermitTTY no

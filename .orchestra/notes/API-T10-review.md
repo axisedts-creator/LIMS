@@ -1,0 +1,9 @@
+APPROVE
+# API-T10 review (E05 submitHostQuery), diff 45cd1038..c1b27e84
+- Ran `vitest run src/modules/instruments/__tests__/hostQuery`: 41/41 pass (service + perf). `tsc --noEmit`: no errors in the touched files. eslint is not installed in services/api, so lint was not run.
+- Names match the spec: `instruments.capability_not_supported`, `instrument_unknown`, `device_mismatch`, `message_malformed`, `driver_not_available` and `message_too_large` are in 03-IC; run outcome `rejected_capability`/`quarantined` and key kinds `sha256`/`sha256_repeat`/`msh10`/`msh10_reused` are in the 05-SCHEMA CHECKs; the `message_records.detail` jsonb column already exists in the migration.
+- §6.6 steps: steps 1–3 follow §6.4. Agent-key duplicate: a `message_duplicates` row, no new messages row or run, and the reply is rebuilt from the stored bytes. The `sha256_repeat` and D-12 keys work. The capability gate checks live + verified + `capabilities.hostQuery` + `cap_host_query`, archives the bytes without parsing them, and calls `commitOnError`. The ≤ 50 barcode limit and the status mapping are correct. Catalog lookups are OUTBOUND only. The answer_summary has no barcode, and the service logs nothing.
+- Tenant: every repo call passes an explicit tenantId (tested). This task adds no new tables or policies. `findMessageRaw` filters on tenant_id.
+- Permission (`instruments.ingest.host_query`), the Idempotency-Key requirement and the 64 KiB `raw_base64` maxLength (87384) are enforced by the core and contract. The test checks the contract.
+- Risk (not blocking): two byte-identical queries under different agent_message_ids running at the same time could both choose key `sha256` and hit the unique index (500). E04 has the same pattern. The load run in API-T15 should cover this.
+- Not tested (noted by the writer): handler wiring of `submitHostQuery`.

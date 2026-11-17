@@ -1,0 +1,26 @@
+---
+# 02-TRD s12.2, s3.3: Nepal image registry on ops-1 (wg IP :5000, TLS from
+# the internal CA + htpasswd). Server part on `ops`; client part (CA trust +
+# name) on every host that pulls. Secret: registry_htpasswd (s8.2).
+registry_name: registry.lims.internal
+registry_port: 5000
+# ops-1 wg IP from the inventory (never a literal).
+registry_wg_ip: "{{ hostvars[groups['ops'][0]].wg_ip }}"
+
+# CNCF Distribution v3.1.2 (02-TRD s2). Digest added by the release lock.
+registry_image: registry:3.1.2
+registry_uid: 10500  # [CONV]; internal_ca gives it the registry leaf key
+
+registry_etc: /etc/lims/registry
+registry_storage: /srv/lims/registry   # ops-1 LUKS volume (vg_ops)
+registry_pki: /srv/lims/pki/registry   # internal_ca leaf key.pem/cert.pem
+registry_auth_dir: /run/lims/registry  # tmpfs: htpasswd only (s8.3)
+
+# 05-SCHEMA retention: last 20 releases (tags) per image [CONV]; weekly GC.
+registry_keep_releases: 20
+registry_gc_on_calendar: "Sun *-*-* 03:30:00"  # [CONV]
+# Lock files (infra/ci/release-lock.sh); their digests are never pruned.
+registry_releases_dir: "{{ playbook_dir }}/../../releases"
+
+# Third-party pulls on ops-1 go through the ops Squid proxy (s3.3 :3128).
+registry_upstream_proxy: "http://{{ registry_wg_ip }}:3128"

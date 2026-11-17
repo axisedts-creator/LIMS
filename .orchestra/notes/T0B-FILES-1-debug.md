@@ -1,0 +1,3 @@
+- Cause: core/health.ts (REQUIRED_ENV, T0B-OPSDOC-1/PERF-1) held the literal LIMS_CORE_STORAGE_KEY_FILE; adapter.test credential scan allows it only under core/storage/**.
+- Fix: new core/storage/env.ts exports STORAGE_KEY_ENV; health.ts imports it. Same value, no behaviour change.
+- Verified: vitest core/storage, core/uploads, core/__tests__ = 22 files pass, 484 tests pass, 2 skipped (live).

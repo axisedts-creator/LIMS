@@ -1,0 +1,184 @@
+---
+# 02-TRD s8.3/s8.4 (AC-19.1, AC-19.3, AC-05.3). Decrypt on the controller
+# (ops-1, stdout only), copy to tmpfs on the target; never persistent disk.
+# A reboot empties tmpfs: the deploy playbook re-runs this role.
+- name: Preconditions (encrypted file of this env set)
+  ansible.builtin.assert:
+    that:
+      - secrets_render_enc_file | length > 0
+      - (secrets_render_enc_file | basename) == (env ~ '.enc.yaml')
+    fail_msg: "secrets_render: enc file unset or not <env>.enc.yaml"
+
+- name: Secrets directory (root only)
+  ansible.builtin.file:
+    path: "{{ secrets_render_secrets_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0711"
+
+- name: Env directory (root only)
+  ansible.builtin.file:
+    path: "{{ secrets_render_env_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+
+- name: /run/lims secrets and env directories are tmpfs (never a disk path)
+  ansible.builtin.command: findmnt -n -o FSTYPE --target {{ item }}
+  loop:
+    - "{{ secrets_render_secrets_dir }}"
+    - "{{ secrets_render_env_dir }}"
+  register: secrets_render_fstype
+  changed_when: false
+  failed_when: secrets_render_fstype.stdout | trim != 'tmpfs'
+
+- name: Decrypt with sops on the controller (stdout only, never a file)
+  ansible.builtin.command:
+    argv: [sops, -d, "{{ secrets_render_enc_file }}"]
+  delegate_to: localhost
+  run_once: true
+  changed_when: false
+  register: secrets_render_sops
+  no_log: true
+
+- name: ops_audit line for the decrypt (who/what/when only, s8.4)
+  ansible.builtin.command:
+    argv:
+      - "{{ secrets_render_ops_note }}"
+      - >-
+        secrets_render decrypted {{ secrets_render_enc_file | basename }}
+        for {{ ansible_play_hosts | join(',') }}
+  delegate_to: localhost
+  run_once: true
+  changed_when: false
+
+- name: Parse decrypted secrets
+  ansible.builtin.set_fact:
+    secrets_render_values: "{{ secrets_render_sops.stdout | from_yaml }}"
+  no_log: true
+
+- name: Placements on this host (by inventory group)
+  ansible.builtin.set_fact:
+    secrets_render_here: >-
+      {% set h = {} %}{% for k, e in secrets_render_placement.items()
+      if e.hosts | intersect(group_names) %}{% set _ = h.update({k: e})
+      %}{% endfor %}{% for p, e in secrets_render_prefix_placement.items()
+      if e.hosts | intersect(group_names) %}{% for k in secrets_render_values
+      if k is string and k.startswith(p) and k | length > p | length
+      %}{% set _ = h.update({k: e}) %}{% endfor %}{% endfor %}{{ h }}
+
+- name: File and env targets on this host
+  ansible.builtin.set_fact:
+    secrets_render_files: >-
+      {% set l = [] %}{% for k, e in secrets_render_here.items()
+      if e.exposure | default('file') == 'file' %}{% for s in e.services
+      %}{% set _ = l.append({'id': k, 'service': s}) %}{% endfor
+      %}{% endfor %}{{ l }}
+    secrets_render_env_services: >-
+      {{ secrets_render_here.values() | selectattr('exposure', 'defined')
+      | selectattr('exposure', 'eq', 'env') | map(attribute='services')
+      | flatten | unique }}
+
+- name: Every placed id has a non-empty decrypted entry
+  ansible.builtin.assert:
+    that:
+      - item is match('^[A-Za-z0-9_]+$')
+      - item in secrets_render_values
+      - secrets_render_values[item] is not none
+      - (secrets_render_values[item] | string | trim) | length > 0
+    fail_msg: "secrets_render: secret {{ item }} missing or empty"
+  loop: "{{ secrets_render_here.keys() | list }}"
+  no_log: true
+
+- name: Env-file ids are single-line and unquoted-safe (no ' or newline)
+  ansible.builtin.assert:
+    that:
+      - secrets_render_values[item.key] is not iterable or
+        secrets_render_values[item.key] is string
+      - (secrets_render_values[item.key] | string) is not search("['\r\n]")
+      - >-
+        item.value.env_format is not defined or
+        (secrets_render_values[item.key] | string)
+        is match('^[A-Za-z0-9._~-]+$')
+    fail_msg: "secrets_render: {{ item.key }} not usable in an env file"
+  loop: >-
+    {{ secrets_render_here | dict2items
+    | selectattr('value.exposure', 'defined')
+    | selectattr('value.exposure', 'eq', 'env') }}
+  loop_control:
+    label: "{{ item.key }}"
+  no_log: true
+
+- name: Container UID known for every file-exposure service
+  ansible.builtin.assert:
+    that: item in secrets_render_uids
+    fail_msg: "secrets_render: secrets_render_uids lacks service {{ item }}"
+  loop: "{{ secrets_render_files | map(attribute='service') | unique }}"
+
+- name: Per-service secret directories
+  ansible.builtin.file:
+    path: "{{ secrets_render_secrets_dir }}/{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0711"
+  loop: "{{ secrets_render_files | map(attribute='service') | unique }}"
+
+- name: Secret files <service>/<id> (0400, owner = container UID)
+  ansible.builtin.copy:
+    content: "{{ v if v is string else v | to_json }}"
+    dest: "{{ secrets_render_secrets_dir }}/{{ item.service }}/{{ item.id }}"
+    owner: "{{ secrets_render_uids[item.service] }}"
+    group: "{{ secrets_render_uids[item.service] }}"
+    mode: "{{ secrets_render_mode }}"
+  vars:
+    v: "{{ secrets_render_values[item.id] }}"
+  loop: "{{ secrets_render_files }}"
+  loop_control:
+    label: "{{ item.service }}/{{ item.id }}"
+  no_log: true
+
+- name: Env files <service>.env (exposure env only, root 0400)
+  ansible.builtin.template:
+    src: service.env.j2
+    dest: "{{ secrets_render_env_dir }}/{{ item }}.env"
+    owner: root
+    group: root
+    mode: "{{ secrets_render_mode }}"
+  loop: "{{ secrets_render_env_services }}"
+  no_log: true
+
+# LD-67 (2026-11-08, CR-C1-T07): PgBouncer auth_file for auth_user `pgbouncer`,
+# derived from POSTGRES_PASSWORD (no new id). Plaintext: auth_user logs in to
+# the server itself. tmpfs only, 0400, container UID; '"' is doubled in the template.
+- name: PgBouncer password is usable in userlist.txt (set, single line)
+  ansible.builtin.assert:
+    that:
+      - secrets_render_values.POSTGRES_PASSWORD is defined
+      - (secrets_render_values.POSTGRES_PASSWORD | string | trim) | length > 0
+      - (secrets_render_values.POSTGRES_PASSWORD | string) is not search("[\r\n]")
+    fail_msg: "secrets_render: POSTGRES_PASSWORD missing, empty or multi-line"
+  when: "'data' in group_names"
+  no_log: true
+
+- name: PgBouncer secret directory (data hosts)
+  ansible.builtin.file:
+    path: "{{ secrets_render_secrets_dir }}/pgbouncer"
+    state: directory
+    owner: root
+    group: root
+    mode: "0711"
+  when: "'data' in group_names"
+
+- name: PgBouncer auth_file pgbouncer/userlist.txt (0400, owner = pgbouncer UID)
+  ansible.builtin.template:
+    src: userlist.txt.j2
+    dest: "{{ secrets_render_secrets_dir }}/pgbouncer/userlist.txt"
+    owner: "{{ secrets_render_uids['pgbouncer'] }}"
+    group: "{{ secrets_render_uids['pgbouncer'] }}"
+    mode: "{{ secrets_render_mode }}"
+  when: "'data' in group_names"
+  notify: Reload pgbouncer
+  no_log: true

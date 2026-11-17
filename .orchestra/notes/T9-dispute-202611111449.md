@@ -1,0 +1,4 @@
+# T9 dispute (writer)
+1. recovery.setpassword.test.ts:50 "the new password never reaches ... errors": expects `'short-PW-sentinel'` to be rejected. It is 17 code points / 17 bytes, not breached -> policy-VALID (12-char floor, domain/password-policy.ts, 03-APP-FLOW §3.7), so set-password succeeds. Fix: use a sentinel < 12 chars (e.g. `'shortPW-sen'`, 11) or make it breached via `makeWorld({ breached })`.
+2. recovery.wiring.test.ts:39 "requestPasswordRecovery through the REAL wiring": the real wiring needs `LIMS_IDENTITY_EMAIL_HMAC_KEY` (account limiter key + event HMAC; same envHmac as T6/T7) and fails closed (`common.internal`) when unset; the test env (src/__tests__/setup-env.ts) does not set it. Fix: set `process.env.LIMS_IDENTITY_EMAIL_HMAC_KEY` in the test (or setup-env). A built-in default key would be a security defect.
+Everything else: 99/101 API tests + 19/19 worker tests pass; live leg skipped (no env).

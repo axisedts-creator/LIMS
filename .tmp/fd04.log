@@ -1,0 +1,440 @@
+[core] WARNING: Executable file detection not yet supported on 'win32'.
+Schema updated
+psql:/repo/db/migrations/20261105001300_identity__create_identity_schema.sql:7: NOTICE:  schema "identity" already exists, skipping
+psql:/repo/db/migrations/20261105001500_catalog__create_catalog_schema.sql:10: NOTICE:  schema "catalog" already exists, skipping
+psql:/repo/db/migrations/20261105001600_frontdesk__create_frontdesk_schema.sql:7: NOTICE:  schema "frontdesk" already exists, skipping
+psql:/repo/db/migrations/20261105001700_billing__create_billing_schema.sql:7: NOTICE:  schema "billing" already exists, skipping
+psql:/repo/db/migrations/20261105001800_lab__create_lab_schema.sql:10: NOTICE:  schema "lab" already exists, skipping
+psql:/repo/db/migrations/20261105001900_reporting__create_reporting_schema.sql:145: NOTICE:  identifier "message_template_texts__tenant_id_template_code_channel_language__uq" will be truncated to "message_template_texts__tenant_id_template_code_channel_languag"
+psql:/repo/db/migrations/20261105001900_reporting__create_reporting_schema.sql:177: NOTICE:  identifier "report_template_versions__tenant_id_template_id__published__p_uq" will be truncated to "report_template_versions__tenant_id_template_id__published__p_u"
+psql:/repo/db/migrations/20261105001900_reporting__create_reporting_schema.sql:443: NOTICE:  identifier "deliveries__tenant_id_channel_account_id_provider_message_id__p_uq" will be truncated to "deliveries__tenant_id_channel_account_id_provider_message_id__p"
+psql:/repo/db/migrations/20261105001900_reporting__create_reporting_schema.sql:682: NOTICE:  identifier "narrative_versions__tenant_id_narrative_report_id_version_no__uq" will be truncated to "narrative_versions__tenant_id_narrative_report_id_version_no__u"
+                                                       set_config                                                        
+-------------------------------------------------------------------------------------------------------------------------
+ {"tenant_id":"01a1a98a-ac40-7000-8000-00000000a001","sub":"01a1b34e-1000-7eee-9d29-d7ca59a102b5","actor_type":"system"}
+(1 row)
+
+                                                       set_config                                                        
+-------------------------------------------------------------------------------------------------------------------------
+ {"tenant_id":"01a1a98a-ac40-7000-8000-00000000b001","sub":"01a1b34e-1000-7eee-9d29-d7ca59a102b5","actor_type":"system"}
+(1 row)
+
+ set_config 
+------------
+ 
+(1 row)
+
+
+ RUN  v5.1.0 C:/LIMS-lanes/C4/services/api
+
+stderr | src/modules/frontdesk/__tests__/patients/create.test.ts > US-FD-02.1 create from age only > 201 Patient: birth_on estimated from the age at ctx.now(), is_birth_on_estimated=true, new patient_code from the tenant pattern, version 1
+unknown format "uuid" ignored in schema at path "#/components/schemas/Uuid"
+unknown format "uuid" ignored in schema at path "#/components/schemas/Uuid"
+unknown format "date-time" ignored in schema at path "#/components/schemas/IsoUtc"
+unknown format "date-time" ignored in schema at path "#/components/schemas/IsoUtc"
+unknown format "date" ignored in schema at path "#/components/schemas/IsoDate"
+unknown format "date" ignored in schema at path "#/components/schemas/IsoDate"
+
+stderr | src/modules/frontdesk/__tests__/patients/create.test.ts > US-FD-02.2 duplicate suspicion + audited override > same normalised name + birth year ±1 + same phone -> 409 frontdesk.patient_duplicate_suspected listing the candidate; nothing stored
+unknown format "uuid" ignored in schema at path "#/components/schemas/Uuid"
+unknown format "uuid" ignored in schema at path "#/components/schemas/Uuid"
+unknown format "date-time" ignored in schema at path "#/components/schemas/IsoUtc"
+unknown format "date-time" ignored in schema at path "#/components/schemas/IsoUtc"
+
+ ❯ src/modules/frontdesk/__tests__/patients/create.test.ts (31 tests | 11 failed) 5238ms
+   ❯ US-FD-02.1 create from age only (13)
+     × 201 Patient: birth_on estimated from the age at ctx.now(), is_birth_on_estimated=true, new patient_code from the tenant pattern, version 1 410ms
+     × both birth_on and age -> 400 common.validation_failed and nothing is stored 185ms
+     × absurd age -> 400 common.validation_failed and nothing is stored 137ms
+     × blank name -> 400 common.validation_failed and nothing is stored 76ms
+     × consent_text_version different from the tenant setting -> 400 common.validation_failed, nothing stored 119ms
+     × permission: patient.read alone cannot create (auth.forbidden), nothing stored 101ms
+   ❯ US-FD-02.2 duplicate suspicion + audited override (9)
+     × same normalised name + birth year ±1 + same phone -> 409 frontdesk.patient_duplicate_suspected listing the candidate; nothing stored 217ms
+   ❯ US-FD-02.3 processing consent required (2)
+     × processing=false -> 422 frontdesk.consent_required and NOTHING is stored (no patient, no consent, no counter use visible as a patient) 33ms
+     × no consent + a matching duplicate: either error is acceptable (spec silent on order), but nothing is stored and no patient is created 58ms
+   ❯ US-FD-02.5 consent change is append-only (F5 recordPatientConsent) (6)
+     × 201 ConsentRecord; a NEW row with the consent text version is appended, the old row is byte-identical, history keeps both 96ms
+     × every change appends (3 changes -> 4 rows), never updates in place; access_log consent.change names the patient 47ms
+ ❯ src/modules/frontdesk/__tests__/patients/read-update.test.ts (31 tests | 8 failed) 5480ms
+   ❯ F3 getPatient (5)
+     × 200 Patient with the CURRENT consents, version, estimated flag; access_log patient.view for this patient 448ms
+     × phone_e164 / email / address are returned only to roles holding frontdesk.registration.create; a read-only role gets the masked phone 65ms
+     × an anonymised patient reads as is_anonymised=true and exposes no phone/email/address 134ms
+   ❯ F4 updatePatient (If-Match, access_log patient.update) (15)
+     × 200: changes only the sent fields, bumps version to 2, recomputes name_search; access_log patient.update lists column names only 403ms
+     × age replaces birth_on as an estimate; birth_on sets an exact date and clears the estimate flag 211ms
+     × unset[] clears optional fields to NULL and nothing else 249ms
+     × race: two PATCHes with the same If-Match -> exactly one wins (200), the other is 409 common.version_conflict; final version 2 143ms
+     × consents are not touched by a demographics update 98ms
+ ❯ src/modules/frontdesk/__tests__/patients/search.test.ts (36 tests | 1 failed) 5758ms
+   ❯ US-FD-01.4 tenant isolation (2)
+     × RLS backstop: if the handler were handed the wrong ctx.tenantId it still sees nothing of the other tenant 51ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 20 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/modules/frontdesk/__tests__/patients/create.test.ts > US-FD-02.1 create from age only > 201 Patient: birth_on estimated from the age at ctx.now(), is_birth_on_estimated=true, new patient_code from the tenant pattern, version 1
+AssertionError: expected 'Thu Nov 10' to be '1983-11-10' // Object.is equality
+
+Expected: "1983-11-10"
+Received: "Thu Nov 10"
+
+ ❯ src/modules/frontdesk/__tests__/patients/create.test.ts:27:47
+     25|     expect(row.registered_centre_id).not.toBeNull();
+     26|     expect(row.name_search).toBe(norm(body.full_name));            // …
+     27|     expect(String(row.birth_on).slice(0, 10)).toBe('1983-11-10');
+       |                                               ^
+     28|     expect(r.probe.identity.calls[0]).toMatchObject({ permission: PERM…
+     29|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/20]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/patients/create.test.ts > US-FD-02.1 create from age only > both birth_on and age -> 400 common.validation_failed and nothing is stored
+AssertionError: expected 31 to be 29 // Object.is equality
+
+- Expected
++ Received
+
+- 29
++ 31
+
+ ❯ src/modules/frontdesk/__tests__/patients/create.test.ts:61:43
+     59|     const e = await createFails(newPatient(patch as any));
+     60|     expect(e.code).toBe('common.validation_failed');
+     61|     expect(await countPatients(TENANT_A)).toBe(before);
+       |                                           ^
+     62|   });
+     63|   it('consent_text_version different from the tenant setting -> 400 co…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/20]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/patients/create.test.ts > US-FD-02.1 create from age only > absurd age -> 400 common.validation_failed and nothing is stored
+AssertionError: expected 34 to be 33 // Object.is equality
+
+- Expected
++ Received
+
+- 33
++ 34
+
+ ❯ src/modules/frontdesk/__tests__/patients/create.test.ts:61:43
+     59|     const e = await createFails(newPatient(patch as any));
+     60|     expect(e.code).toBe('common.validation_failed');
+     61|     expect(await countPatients(TENANT_A)).toBe(before);
+       |                                           ^
+     62|   });
+     63|   it('consent_text_version different from the tenant setting -> 400 co…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/20]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/patients/create.test.ts > US-FD-02.1 create from age only > blank name -> 400 common.validation_failed and nothing is stored
+AssertionError: expected 35 to be 34 // Object.is equality
+
+- Expected
++ Received
+
+- 34
++ 35
+
+ ❯ src/modules/frontdesk/__tests__/patients/create.test.ts:61:43
+     59|     const e = await createFails(newPatient(patch as any));
+     60|     expect(e.code).toBe('common.validation_failed');
+     61|     expect(await countPatients(TENANT_A)).toBe(before);
+       |                                           ^
+     62|   });
+     63|   it('consent_text_version different from the tenant setting -> 400 co…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/20]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/patients/create.test.ts > US-FD-02.1 create from age only > consent_text_version different from the tenant setting -> 400 common.validation_failed, nothing stored
+AssertionError: expected 36 to be 35 // Object.is equality
+
+- Expected
++ Received
+
+- 35
++ 36
+
+ ❯ src/modules/frontdesk/__tests__/patients/create.test.ts:66:43
+     64|     const before = await countPatients(TENANT_A);
+     65|     expect((await createFails(newPatient({ consents: consents({ consen…
+     66|     expect(await countPatients(TENANT_A)).toBe(before);
+       |                                           ^
+     67|   });
+     68|   it('permission: patient.read alone cannot create (auth.forbidden), n…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/20]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/patients/create.test.ts > US-FD-02.1 create from age only > permission: patient.read alone cannot create (auth.forbidden), nothing stored
+AssertionError: expected 37 to be 36 // Object.is equality
+
+- Expected
++ Received
+
+- 36
++ 37
+
+ ❯ src/modules/frontdesk/__tests__/patients/create.test.ts:71:43
+     69|     const before = await countPatients(TENANT_A);
+     70|     expect((await createFails(newPatient(), { grants: [PERM.read] })).…
+     71|     expect(await countPatients(TENANT_A)).toBe(before);
+       |                                           ^
+     72|   });
+     73| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/20]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/patients/create.test.ts > US-FD-02.2 duplicate suspicion + audited override > same normalised name + birth year ±1 + same phone -> 409 frontdesk.patient_duplicate_suspected listing the candidate; nothing stored
+AssertionError: expected 39 to be 38 // Object.is equality
+
+- Expected
++ Received
+
+- 38
++ 39
+
+ ❯ src/modules/frontdesk/__tests__/patients/create.test.ts:88:43
+     86|       expect(JSON.stringify(cands)).not.toContain(ph);          // sum…
+     87|     }
+     88|     expect(await countPatients(TENANT_A)).toBe(before);
+       |                                           ^
+     89|   });
+     90|   it('resubmitting with duplicate_override.reason_code creates the pat…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/20]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/patients/create.test.ts > US-FD-02.3 processing consent required > processing=false -> 422 frontdesk.consent_required and NOTHING is stored (no patient, no consent, no counter use visible as a patient)
+AssertionError: expected 80 to be 79 // Object.is equality
+
+- Expected
++ Received
+
+- 79
++ 80
+
+ ❯ src/modules/frontdesk/__tests__/patients/create.test.ts:149:43
+    147|     const e = await createFails(body);
+    148|     expect(e.code).toBe('frontdesk.consent_required'); expect(e.status…
+    149|     expect(await countPatients(TENANT_A)).toBe(before);
+       |                                           ^
+    150|     expect(await byName(body.full_name)).toHaveLength(0);
+    151|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/20]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/patients/create.test.ts > US-FD-02.3 processing consent required > no consent + a matching duplicate: either error is acceptable (spec silent on order), but nothing is stored and no patient is created
+AssertionError: expected 83 to be 82 // Object.is equality
+
+- Expected
++ Received
+
+- 82
++ 83
+
+ ❯ src/modules/frontdesk/__tests__/patients/create.test.ts:158:43
+    156|     const e = await createFails(newPatient({ full_name: `Order ${t}`, …
+    157|     expect(['frontdesk.consent_required', 'frontdesk.patient_duplicate…
+    158|     expect(await countPatients(TENANT_A)).toBe(before);
+       |                                           ^
+    159|   });
+    160| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/20]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/patients/create.test.ts > US-FD-02.5 consent change is append-only (F5 recordPatientConsent) > 201 ConsentRecord; a NEW row with the consent text version is appended, the old row is byte-identical, history keeps both
+LimsError: common.internal
+ ❯ access src/core/audit/access.ts:45:24
+     43| export async function access(ctx: Ctx, entry: AccessLogEntry): Promise…
+     44|   const e = (entry ?? {}) as Partial<AccessLogEntry>;
+     45|   if (!valid(e)) throw new LimsError('common.internal');   // programm…
+       |                        ^
+     46|   const a = ctx.actor;
+     47|   await (ctx.tx as { query(t: string, v: unknown[]): Promise<unknown> …
+ ❯ Object.access src/modules/frontdesk/__tests__/patients/helpers.ts:80:80
+ ❯ recordPatientConsent src/modules/frontdesk/service/patient.service.ts:285:17
+ ❯ appTx src/modules/frontdesk/__tests__/integration/helpers.ts:40:17
+ ❯ call src/modules/frontdesk/__tests__/patients/helpers.ts:72:15
+ ❯ src/modules/frontdesk/__tests__/patients/create.test.ts:179:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/20]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/patients/create.test.ts > US-FD-02.5 consent change is append-only (F5 recordPatientConsent) > every change appends (3 changes -> 4 rows), never updates in place; access_log consent.change names the patient
+LimsError: common.internal
+ ❯ access src/core/audit/access.ts:45:24
+     43| export async function access(ctx: Ctx, entry: AccessLogEntry): Promise…
+     44|   const e = (entry ?? {}) as Partial<AccessLogEntry>;
+     45|   if (!valid(e)) throw new LimsError('common.internal');   // programm…
+       |                        ^
+     46|   const a = ctx.actor;
+     47|   await (ctx.tx as { query(t: string, v: unknown[]): Promise<unknown> …
+ ❯ Object.access src/modules/frontdesk/__tests__/patients/helpers.ts:80:80
+ ❯ recordPatientConsent src/modules/frontdesk/service/patient.service.ts:285:17
+ ❯ appTx src/modules/frontdesk/__tests__/integration/helpers.ts:40:17
+ ❯ call src/modules/frontdesk/__tests__/patients/helpers.ts:72:15
+ ❯ src/modules/frontdesk/__tests__/patients/create.test.ts:192:17
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/20]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/patients/read-update.test.ts > F3 getPatient > 200 Patient with the CURRENT consents, version, estimated flag; access_log patient.view for this patient
+LimsError: common.internal
+ ❯ access src/core/audit/access.ts:45:24
+     43| export async function access(ctx: Ctx, entry: AccessLogEntry): Promise…
+     44|   const e = (entry ?? {}) as Partial<AccessLogEntry>;
+     45|   if (!valid(e)) throw new LimsError('common.internal');   // programm…
+       |                        ^
+     46|   const a = ctx.actor;
+     47|   await (ctx.tx as { query(t: string, v: unknown[]): Promise<unknown> …
+ ❯ Object.access src/modules/frontdesk/__tests__/patients/helpers.ts:80:80
+ ❯ getPatient src/modules/frontdesk/service/patient.service.ts:228:17
+ ❯ appTx src/modules/frontdesk/__tests__/integration/helpers.ts:40:17
+ ❯ call src/modules/frontdesk/__tests__/patients/helpers.ts:72:15
+ ❯ src/modules/frontdesk/__tests__/patients/read-update.test.ts:18:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/20]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/patients/read-update.test.ts > F3 getPatient > phone_e164 / email / address are returned only to roles holding frontdesk.registration.create; a read-only role gets the masked phone
+LimsError: common.internal
+ ❯ access src/core/audit/access.ts:45:24
+     43| export async function access(ctx: Ctx, entry: AccessLogEntry): Promise…
+     44|   const e = (entry ?? {}) as Partial<AccessLogEntry>;
+     45|   if (!valid(e)) throw new LimsError('common.internal');   // programm…
+       |                        ^
+     46|   const a = ctx.actor;
+     47|   await (ctx.tx as { query(t: string, v: unknown[]): Promise<unknown> …
+ ❯ Object.access src/modules/frontdesk/__tests__/patients/helpers.ts:80:80
+ ❯ getPatient src/modules/frontdesk/service/patient.service.ts:228:17
+ ❯ appTx src/modules/frontdesk/__tests__/integration/helpers.ts:40:17
+ ❯ call src/modules/frontdesk/__tests__/patients/helpers.ts:72:15
+ ❯ src/modules/frontdesk/__tests__/patients/read-update.test.ts:28:16
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/20]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/patients/read-update.test.ts > F3 getPatient > an anonymised patient reads as is_anonymised=true and exposes no phone/email/address
+LimsError: common.internal
+ ❯ access src/core/audit/access.ts:45:24
+     43| export async function access(ctx: Ctx, entry: AccessLogEntry): Promise…
+     44|   const e = (entry ?? {}) as Partial<AccessLogEntry>;
+     45|   if (!valid(e)) throw new LimsError('common.internal');   // programm…
+       |                        ^
+     46|   const a = ctx.actor;
+     47|   await (ctx.tx as { query(t: string, v: unknown[]): Promise<unknown> …
+ ❯ Object.access src/modules/frontdesk/__tests__/patients/helpers.ts:80:80
+ ❯ getPatient src/modules/frontdesk/service/patient.service.ts:228:17
+ ❯ appTx src/modules/frontdesk/__tests__/integration/helpers.ts:40:17
+ ❯ call src/modules/frontdesk/__tests__/patients/helpers.ts:72:15
+ ❯ src/modules/frontdesk/__tests__/patients/read-update.test.ts:45:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/20]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/patients/read-update.test.ts > F4 updatePatient (If-Match, access_log patient.update) > 200: changes only the sent fields, bumps version to 2, recomputes name_search; access_log patient.update lists column names only
+LimsError: common.internal
+ ❯ access src/core/audit/access.ts:45:24
+     43| export async function access(ctx: Ctx, entry: AccessLogEntry): Promise…
+     44|   const e = (entry ?? {}) as Partial<AccessLogEntry>;
+     45|   if (!valid(e)) throw new LimsError('common.internal');   // programm…
+       |                        ^
+     46|   const a = ctx.actor;
+     47|   await (ctx.tx as { query(t: string, v: unknown[]): Promise<unknown> …
+ ❯ Object.access src/modules/frontdesk/__tests__/patients/helpers.ts:80:80
+ ❯ updatePatient src/modules/frontdesk/service/patient.service.ts:272:17
+ ❯ appTx src/modules/frontdesk/__tests__/integration/helpers.ts:40:17
+ ❯ call src/modules/frontdesk/__tests__/patients/helpers.ts:72:15
+ ❯ src/modules/frontdesk/__tests__/patients/read-update.test.ts:55:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/20]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/patients/read-update.test.ts > F4 updatePatient (If-Match, access_log patient.update) > age replaces birth_on as an estimate; birth_on sets an exact date and clears the estimate flag
+LimsError: common.internal
+ ❯ access src/core/audit/access.ts:45:24
+     43| export async function access(ctx: Ctx, entry: AccessLogEntry): Promise…
+     44|   const e = (entry ?? {}) as Partial<AccessLogEntry>;
+     45|   if (!valid(e)) throw new LimsError('common.internal');   // programm…
+       |                        ^
+     46|   const a = ctx.actor;
+     47|   await (ctx.tx as { query(t: string, v: unknown[]): Promise<unknown> …
+ ❯ Object.access src/modules/frontdesk/__tests__/patients/helpers.ts:80:80
+ ❯ updatePatient src/modules/frontdesk/service/patient.service.ts:272:17
+ ❯ appTx src/modules/frontdesk/__tests__/integration/helpers.ts:40:17
+ ❯ call src/modules/frontdesk/__tests__/patients/helpers.ts:72:15
+ ❯ src/modules/frontdesk/__tests__/patients/read-update.test.ts:72:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[16/20]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/patients/read-update.test.ts > F4 updatePatient (If-Match, access_log patient.update) > unset[] clears optional fields to NULL and nothing else
+LimsError: common.internal
+ ❯ access src/core/audit/access.ts:45:24
+     43| export async function access(ctx: Ctx, entry: AccessLogEntry): Promise…
+     44|   const e = (entry ?? {}) as Partial<AccessLogEntry>;
+     45|   if (!valid(e)) throw new LimsError('common.internal');   // programm…
+       |                        ^
+     46|   const a = ctx.actor;
+     47|   await (ctx.tx as { query(t: string, v: unknown[]): Promise<unknown> …
+ ❯ Object.access src/modules/frontdesk/__tests__/patients/helpers.ts:80:80
+ ❯ updatePatient src/modules/frontdesk/service/patient.service.ts:272:17
+ ❯ appTx src/modules/frontdesk/__tests__/integration/helpers.ts:40:17
+ ❯ call src/modules/frontdesk/__tests__/patients/helpers.ts:72:15
+ ❯ src/modules/frontdesk/__tests__/patients/read-update.test.ts:79:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[17/20]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/patients/read-update.test.ts > F4 updatePatient (If-Match, access_log patient.update) > race: two PATCHes with the same If-Match -> exactly one wins (200), the other is 409 common.version_conflict; final version 2
+AssertionError: expected [] to have a length of 1 but got +0
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ src/modules/frontdesk/__tests__/patients/read-update.test.ts:130:48
+    128|     const p = await seedPatient('a');
+    129|     const rs = await Promise.all([patch(p.id, { full_name: `Racer A ${…
+    130|     expect(rs.filter((r) => r.status === 200)).toHaveLength(1);
+       |                                                ^
+    131|     expect(rs.filter((r) => r.code === 'common.version_conflict')).toH…
+    132|     expect((await patientRow(p.id)).version).toBe(2);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[18/20]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/patients/read-update.test.ts > F4 updatePatient (If-Match, access_log patient.update) > consents are not touched by a demographics update
+LimsError: common.internal
+ ❯ access src/core/audit/access.ts:45:24
+     43| export async function access(ctx: Ctx, entry: AccessLogEntry): Promise…
+     44|   const e = (entry ?? {}) as Partial<AccessLogEntry>;
+     45|   if (!valid(e)) throw new LimsError('common.internal');   // programm…
+       |                        ^
+     46|   const a = ctx.actor;
+     47|   await (ctx.tx as { query(t: string, v: unknown[]): Promise<unknown> …
+ ❯ Object.access src/modules/frontdesk/__tests__/patients/helpers.ts:80:80
+ ❯ updatePatient src/modules/frontdesk/service/patient.service.ts:272:17
+ ❯ appTx src/modules/frontdesk/__tests__/integration/helpers.ts:40:17
+ ❯ call src/modules/frontdesk/__tests__/patients/helpers.ts:72:15
+ ❯ src/modules/frontdesk/__tests__/patients/read-update.test.ts:142:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[19/20]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/patients/search.test.ts > US-FD-01.4 tenant isolation > RLS backstop: if the handler were handed the wrong ctx.tenantId it still sees nothing of the other tenant
+error: new row violates row-level security policy for table "access_log"
+ ❯ ../../node_modules/.pnpm/pg@8.23.1/node_modules/pg/lib/client.js:694:17
+ ❯ access src/core/audit/access.ts:47:3
+     45|   if (!valid(e)) throw new LimsError('common.internal');   // programm…
+     46|   const a = ctx.actor;
+     47|   await (ctx.tx as { query(t: string, v: unknown[]): Promise<unknown> …
+       |   ^
+     48|     uuidv7(), ctx.tenantId, e.centreId ?? null, a.id, a.type, a.member…
+     49|     e.action, e.entityType, e.entityId ?? null, e.purpose ?? null, e.o…
+ ❯ Object.access src/modules/frontdesk/__tests__/patients/helpers.ts:80:74
+ ❯ searchPatients src/modules/frontdesk/service/patient.service.ts:148:3
+ ❯ appTx src/modules/frontdesk/__tests__/integration/helpers.ts:40:17
+ ❯ call src/modules/frontdesk/__tests__/patients/helpers.ts:72:15
+ ❯ src/modules/frontdesk/__tests__/patients/search.test.ts:88:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[20/20]⎯
+
+
+ Test Files  3 failed | 1 passed (4)
+      Tests  20 failed | 115 passed (135)
+   Start at  10:24:09
+   Duration  10.04s (tests 68%, import 24%, transform 7%)
+

@@ -1,0 +1,919 @@
+# Generated layout; edit by hand. 02-TRD §15.1 gates 1-15 + DoD jobs, and P-14 chunk-supplied jobs (08 A13 P-14, A16.2).
+# Conditional jobs carry TRIGGER_PATHS; tools/lint/ci-plan.ts reads them (dry-run: --files <changed.txt>).
+# A conditional job always reports (required check, §15.3); its steps are skipped when no trigger path changed.
+# Never add a privileged PR trigger, repository secrets or write permissions here (REQ-SEC-128/129).
+name: pr
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  paths:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: package.json
+      - name: changed files
+        run: git diff --name-only origin/main...HEAD > "$RUNNER_TEMP/changed.txt"
+      - name: path ownership + CR reference (gate 1)
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          printf '%s' "$PR_BODY" > "$RUNNER_TEMP/body.txt"
+          node tools/lint/check-paths.ts --branch "$HEAD_REF" --files "$RUNNER_TEMP/changed.txt" --body "$RUNNER_TEMP/body.txt"
+
+  typecheck:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: package.json
+      - name: changed files
+        run: git diff --name-only origin/main...HEAD > "$RUNNER_TEMP/changed.txt"
+      - name: pnpm install
+        run: corepack enable && pnpm install --frozen-lockfile
+      - name: tsc --noEmit (gate 2)
+        run: pnpm -w turbo run typecheck
+      - name: dart analyze on changed Dart packages
+        run: |
+          for d in packages/shared-dart apps/phlebo_app; do
+            if [ -f "$d/pubspec.yaml" ] && grep -q "^$d/" "$RUNNER_TEMP/changed.txt"; then (cd "$d" && dart analyze); fi
+          done
+      - name: go vet when apps/bridge-agent/** changed
+        run: if grep -q "^apps/bridge-agent/" "$RUNNER_TEMP/changed.txt"; then (cd apps/bridge-agent && go vet ./...); fi
+
+  lint:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: package.json
+      - name: pnpm install
+        run: corepack enable && pnpm install --frozen-lockfile
+      - name: ESLint incl. tools/lint custom rules (gate 3)
+        run: pnpm exec eslint .
+      - name: Prettier check
+        run: pnpm exec prettier --check .
+      - name: flutter analyze
+        run: if [ -f apps/phlebo_app/pubspec.yaml ]; then (cd apps/phlebo_app && flutter analyze); fi
+      - name: gofmt -l + staticcheck
+        run: |
+          if [ -f apps/bridge-agent/go.mod ]; then
+            cd apps/bridge-agent
+            test -z "$(gofmt -l .)"
+            staticcheck ./...
+          fi
+
+  unit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: package.json
+      - name: pnpm install
+        run: corepack enable && pnpm install --frozen-lockfile
+      - name: unit tests of changed packages + dependants (gate 4)
+        run: pnpm turbo run test:unit --filter="...[origin/main]"
+
+  integration:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    env:
+      TRIGGER_PATHS: "services/** db/** packages/**"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: package.json
+      - name: changed files
+        run: git diff --name-only origin/main...HEAD > "$RUNNER_TEMP/changed.txt"
+      - name: plan
+        id: plan
+        run: node tools/lint/ci-plan.ts --files "$RUNNER_TEMP/changed.txt" --job "$GITHUB_JOB" >> "$GITHUB_OUTPUT"
+      - if: steps.plan.outputs.run == 'true'
+        name: pnpm install
+        run: corepack enable && pnpm install --frozen-lockfile
+      - if: steps.plan.outputs.run == 'true'
+        name: dev stack
+        run: pnpm dev:up --ci
+      - if: steps.plan.outputs.run == 'true'
+        name: integration tests (gate 4)
+        run: |
+          mkdir -p "$RUNNER_TEMP/logs"
+          pnpm turbo run test:integration 2>&1 | tee "$RUNNER_TEMP/logs/integration.log"
+      - if: steps.plan.outputs.run == 'true'
+        name: keep logs for phi-log-scan
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-logs
+          path: ${{ runner.temp }}/logs
+
+  contracts:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: package.json
+      - name: pnpm install
+        run: corepack enable && pnpm install --frozen-lockfile
+      - name: contract package tests (gate 5)
+        run: pnpm --filter @lims/contracts test
+      - name: OpenAPI lint
+        run: node tools/codegen/lint-openapi.ts
+      - name: access actions in audit.g_cs_access_actions (08 A13 P-3)
+        run: node tools/codegen/check-access-actions.ts
+      - name: port consumers in PORT_CONSUMERS (08 A19 P-46)
+        run: node tools/codegen/check-port-consumers.ts
+      - name: permission rules (gate 7, 08 §4.1)
+        run: pnpm codegen gen-permissions --check
+
+  oasdiff:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    env:
+      TRIGGER_PATHS: "contracts/openapi/**"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: package.json
+      - name: changed files
+        run: git diff --name-only origin/main...HEAD > "$RUNNER_TEMP/changed.txt"
+      - name: plan
+        id: plan
+        run: node tools/lint/ci-plan.ts --files "$RUNNER_TEMP/changed.txt" --job "$GITHUB_JOB" >> "$GITHUB_OUTPUT"
+      - if: steps.plan.outputs.run == 'true'
+        name: install oasdiff 1.35.x
+        run: go install github.com/oasdiff/oasdiff@v1.35
+      - if: steps.plan.outputs.run == 'true' && !contains(github.event.pull_request.labels.*.name, 'cr-approved-breaking')
+        name: breaking changes per spec (gate 6; bypass label cr-approved-breaking)
+        run: |
+          # M = modified, D = deleted (every endpoint removed: breaking), R = renamed (base old path vs new path)
+          git diff --name-status --diff-filter=MDR origin/main...HEAD -- 'contracts/openapi/**' > "$RUNNER_TEMP/specs.txt"
+          rc=0
+          while IFS=$'\t' read -r st old new; do
+            case "$st" in
+              D) echo "::error file=$old::spec file deleted (breaking; needs cr-approved-breaking)"; rc=1; continue ;;
+              M) new="$old" ;;
+            esac
+            git show "origin/main:$old" > "$RUNNER_TEMP/base.yaml"
+            PATH="$(go env GOPATH)/bin:$PATH" oasdiff breaking "$RUNNER_TEMP/base.yaml" "$new" --fail-on ERR || rc=1
+          done < "$RUNNER_TEMP/specs.txt"
+          exit "$rc"
+
+  codegen-fresh:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: package.json
+      - name: pnpm install
+        run: corepack enable && pnpm install --frozen-lockfile
+      - name: generated files are fresh (gate 8)
+        run: pnpm codegen && git diff --exit-code
+
+  migrations:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    env:
+      TRIGGER_PATHS: "db/**"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: package.json
+      - name: changed files
+        run: git diff --name-only origin/main...HEAD > "$RUNNER_TEMP/changed.txt"
+      - name: plan
+        id: plan
+        run: node tools/lint/ci-plan.ts --files "$RUNNER_TEMP/changed.txt" --job "$GITHUB_JOB" >> "$GITHUB_OUTPUT"
+      - if: steps.plan.outputs.run == 'true'
+        name: pnpm install
+        run: corepack enable && pnpm install --frozen-lockfile
+      - if: steps.plan.outputs.run == 'true'
+        name: migration rules (gate 9)
+        run: node db/tools/check-migrations.ts
+      - if: steps.plan.outputs.run == 'true'
+        name: dev stack, fresh apply
+        run: pnpm dev:up --ci
+      - if: steps.plan.outputs.run == 'true'
+        name: check-registry (tables.yaml = catalog)
+        run: node db/tools/check-registry.ts
+      - if: steps.plan.outputs.run == 'true'
+        name: check-fk-dag
+        run: node db/tools/check-fk-dag.ts
+      - if: steps.plan.outputs.run == 'true'
+        name: policy diff vs db/policies (checklist item 9)
+        run: |
+          node db/tools/policy-dump.ts
+          git diff --exit-code -- db/policies
+      - if: steps.plan.outputs.run == 'true'
+        name: upgrade apply on previous release (02-TRD §4.2, DoD §1.7)
+        run: |
+          # [CONV] previous release = newest tag reachable from origin/main; none yet = nothing to upgrade from.
+          prev="$(git describe --tags --abbrev=0 origin/main 2>/dev/null)" || prev=""
+          if [ -z "$prev" ]; then echo "::notice::no release tag yet; upgrade apply skipped"; exit 0; fi
+          git worktree add "$RUNNER_TEMP/prev" "$prev"
+          pnpm dev:down
+          # dev:up applies the previous release's migrations + seeds (02-TRD §3 up.ts); then this PR's migrations on top
+          (cd "$RUNNER_TEMP/prev" && pnpm install --frozen-lockfile && pnpm dev:up --ci)
+          pnpm db:migrate
+      - if: steps.plan.outputs.run == 'true'
+        name: gate-9 manual checklist present in PR body (B10)
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          printf '%s' "$PR_BODY" > "$RUNNER_TEMP/body.txt"
+          grep -qiF 'Gate-9 migration checklist' "$RUNNER_TEMP/body.txt" || { echo "::error::PR body lacks the Gate-9 migration checklist (02-TRD §4.3)"; exit 1; }
+
+  isolation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    env:
+      TRIGGER_PATHS: "db/** services/** contracts/**"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: package.json
+      - name: changed files
+        run: git diff --name-only origin/main...HEAD > "$RUNNER_TEMP/changed.txt"
+      - name: plan
+        id: plan
+        run: node tools/lint/ci-plan.ts --files "$RUNNER_TEMP/changed.txt" --job "$GITHUB_JOB" >> "$GITHUB_OUTPUT"
+      - if: steps.plan.outputs.run == 'true'
+        name: pnpm install
+        run: corepack enable && pnpm install --frozen-lockfile
+      - if: steps.plan.outputs.run == 'true'
+        name: dev stack
+        run: pnpm dev:up --ci
+      - if: steps.plan.outputs.run == 'true'
+        name: db/tests suites + API probes (gate 10)
+        run: pnpm turbo run test:isolation
+      - if: steps.plan.outputs.run == 'true'
+        name: probe coverage vs probe-manifest.json
+        run: |
+          pnpm codegen gen-probe-manifest
+          node db/tests/check-probe-coverage.ts tools/codegen/out/probe-manifest.json
+
+  secrets:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: package.json
+      - name: gitleaks (gate 11)
+        run: gitleaks detect --redact --source .
+
+  deps:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    env:
+      TRIGGER_PATHS: "pnpm-lock.yaml **/package.json pnpm-workspace.yaml"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: package.json
+      - name: changed files
+        run: git diff --name-only origin/main...HEAD > "$RUNNER_TEMP/changed.txt"
+      - name: plan
+        id: plan
+        run: node tools/lint/ci-plan.ts --files "$RUNNER_TEMP/changed.txt" --job "$GITHUB_JOB" >> "$GITHUB_OUTPUT"
+      - if: steps.plan.outputs.run == 'true'
+        name: osv-scanner (gate 12)
+        run: osv-scanner --lockfile=pnpm-lock.yaml
+      - if: steps.plan.outputs.run == 'true'
+        name: pnpm install
+        run: corepack enable && pnpm install --frozen-lockfile
+      - if: steps.plan.outputs.run == 'true'
+        name: licence allowlist, banned list, pnpm audit triage file (gates 12/13)
+        run: |
+          # pnpm audit exits non-zero on findings; check-deps.ts judges them against the triage file and
+          # fails closed when the JSON has no advisories (audit itself failed).
+          rc=0
+          pnpm audit --audit-level critical --json > "$RUNNER_TEMP/audit.json" || rc=$?
+          echo "pnpm audit exit $rc"
+          node tools/lint/check-deps.ts --triage tools/lint/deps-triage.json --audit "$RUNNER_TEMP/audit.json"
+
+  images:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    env:
+      TRIGGER_PATHS: "**/Dockerfile **/Dockerfile.*"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: package.json
+      - name: changed files
+        run: git diff --name-only origin/main...HEAD > "$RUNNER_TEMP/changed.txt"
+      - name: plan
+        id: plan
+        run: node tools/lint/ci-plan.ts --files "$RUNNER_TEMP/changed.txt" --job "$GITHUB_JOB" >> "$GITHUB_OUTPUT"
+      - if: steps.plan.outputs.run == 'true'
+        name: changed Dockerfiles
+        run: git diff --name-only --diff-filter=d origin/main...HEAD | grep -E '(^|/)Dockerfile(\.[^/]*)?$' > "$RUNNER_TEMP/dockerfiles.txt"
+      - if: steps.plan.outputs.run == 'true'
+        name: build + trivy image (gate 14)
+        run: |
+          while read -r f; do
+            tag="ci-scan:$(echo "$f" | tr '/.' '--' | tr '[:upper:]' '[:lower:]')"
+            docker build -f "$f" -t "$tag" "$(dirname "$f")"
+            trivy image --exit-code 1 --severity CRITICAL "$tag"
+          done < "$RUNNER_TEMP/dockerfiles.txt"
+
+  bsdate-golden:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    env:
+      TRIGGER_PATHS: "packages/shared-ts/** packages/shared-dart/** packages/test-fixtures/bsdate/**"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: package.json
+      - name: changed files
+        run: git diff --name-only origin/main...HEAD > "$RUNNER_TEMP/changed.txt"
+      - name: plan
+        id: plan
+        run: node tools/lint/ci-plan.ts --files "$RUNNER_TEMP/changed.txt" --job "$GITHUB_JOB" >> "$GITHUB_OUTPUT"
+      - if: steps.plan.outputs.run == 'true'
+        name: TS golden tests (gate 15)
+        run: node --test "packages/shared-ts/test/*.test.mjs"
+      - if: steps.plan.outputs.run == 'true'
+        name: Dart golden tests
+        run: cd packages/shared-dart && dart test
+
+  phi-log-scan:
+    runs-on: ubuntu-24.04
+    needs: integration
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    env:
+      TRIGGER_PATHS: "services/** db/** packages/**"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: package.json
+      - name: changed files
+        run: git diff --name-only origin/main...HEAD > "$RUNNER_TEMP/changed.txt"
+      - name: plan
+        id: plan
+        run: node tools/lint/ci-plan.ts --files "$RUNNER_TEMP/changed.txt" --job "$GITHUB_JOB" >> "$GITHUB_OUTPUT"
+      - if: steps.plan.outputs.run == 'true'
+        name: integration logs
+        uses: actions/download-artifact@v4
+        with:
+          name: integration-logs
+          path: ${{ runner.temp }}/logs
+      - if: steps.plan.outputs.run == 'true'
+        name: denylisted keys/patterns in integration test logs (DoD §1.8)
+        run: node tools/lint/phi-log-scan.ts "$RUNNER_TEMP/logs"
+
+  ui:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    env:
+      TRIGGER_PATHS: "packages/ui/** apps/web/**"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: package.json
+      - name: changed files
+        run: git diff --name-only origin/main...HEAD > "$RUNNER_TEMP/changed.txt"
+      - name: plan
+        id: plan
+        run: node tools/lint/ci-plan.ts --files "$RUNNER_TEMP/changed.txt" --job "$GITHUB_JOB" >> "$GITHUB_OUTPUT"
+      - if: steps.plan.outputs.run == 'true'
+        name: pnpm install
+        run: corepack enable && pnpm install --frozen-lockfile
+      - if: steps.plan.outputs.run == 'true'
+        name: component tests
+        run: pnpm turbo run test:ui
+      - if: steps.plan.outputs.run == 'true'
+        name: axe scan, token contrast, bundle scan
+        run: pnpm turbo run test:axe
+
+  supabase-pin:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    env:
+      TRIGGER_PATHS: "tools/devstack/** infra/compose/supabase/upstream/UPSTREAM.lock"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: package.json
+      - name: changed files
+        run: git diff --name-only origin/main...HEAD > "$RUNNER_TEMP/changed.txt"
+      - name: plan
+        id: plan
+        run: node tools/lint/ci-plan.ts --files "$RUNNER_TEMP/changed.txt" --job "$GITHUB_JOB" >> "$GITHUB_OUTPUT"
+      - if: steps.plan.outputs.run == 'true'
+        name: compose digests = UPSTREAM.lock (08 A25 D-208)
+        run: node tools/lint/check-supabase-pin.ts --compose tools/devstack/compose.yaml --lock infra/compose/supabase/upstream/UPSTREAM.lock
+
+  identity-service-key-grep:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    env:
+      TRIGGER_PATHS: "services/** apps/** packages/**"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: package.json
+      - name: changed files
+        run: git diff --name-only origin/main...HEAD > "$RUNNER_TEMP/changed.txt"
+      - name: plan
+        id: plan
+        run: node tools/lint/ci-plan.ts --files "$RUNNER_TEMP/changed.txt" --job "$GITHUB_JOB" >> "$GITHUB_OUTPUT"
+      - if: steps.plan.outputs.run == 'true'
+        name: C2 service-key grep (CR-C2-014)
+        run: node services/api/src/modules/identity/__tests__/ci/service-key-grep.mjs
+
+  identity-no-dead-letter-sql:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    env:
+      TRIGGER_PATHS: "services/api/src/modules/identity/**"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: package.json
+      - name: changed files
+        run: git diff --name-only origin/main...HEAD > "$RUNNER_TEMP/changed.txt"
+      - name: plan
+        id: plan
+        run: node tools/lint/ci-plan.ts --files "$RUNNER_TEMP/changed.txt" --job "$GITHUB_JOB" >> "$GITHUB_OUTPUT"
+      - if: steps.plan.outputs.run == 'true'
+        name: C2 no core.dead_letters SQL (D-T12)
+        run: node tools/lint/no-foreign-schema-sql.ts --fixture services/api/src/modules/identity/__tests__/ci/no-dead-letter-sql.fixture.json
+
+  c3-wording-commission:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    env:
+      TRIGGER_PATHS: "services/api/src/modules/catalog/** services/worker/src/jobs/catalog/** apps/web/src/features/catalog/** apps/web/src/app/(staff)/catalog/** docs/manual/catalog/**"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: package.json
+      - name: changed files
+        run: git diff --name-only origin/main...HEAD > "$RUNNER_TEMP/changed.txt"
+      - name: plan
+        id: plan
+        run: node tools/lint/ci-plan.ts --files "$RUNNER_TEMP/changed.txt" --job "$GITHUB_JOB" >> "$GITHUB_OUTPUT"
+      - if: steps.plan.outputs.run == 'true'
+        name: C3 wording (CR-C3-009)
+        run: bash services/api/src/modules/catalog/__tests__/ci/wording-grep.sh
+
+  c04-copy-scan:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    env:
+      TRIGGER_PATHS: "apps/web/src/features/{frontdesk,billing}/** services/renderer/templates/billing/** docs/manual/{frontdesk,billing}/**"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: package.json
+      - name: changed files
+        run: git diff --name-only origin/main...HEAD > "$RUNNER_TEMP/changed.txt"
+      - name: plan
+        id: plan
+        run: node tools/lint/ci-plan.ts --files "$RUNNER_TEMP/changed.txt" --job "$GITHUB_JOB" >> "$GITHUB_OUTPUT"
+      - if: steps.plan.outputs.run == 'true'
+        name: C4 copy scan
+        run: node apps/web/src/features/billing/__tests__/copy-scan.mjs
+
+  c8-no-commission:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    env:
+      TRIGGER_PATHS: "services/api/src/modules/analytics/** services/worker/src/jobs/analytics/** apps/web/src/features/analytics/** apps/web/src/app/(staff)/analytics/** docs/manual/analytics/** services/renderer/templates/analytics/**"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: package.json
+      - name: changed files
+        run: git diff --name-only origin/main...HEAD > "$RUNNER_TEMP/changed.txt"
+      - name: plan
+        id: plan
+        run: node tools/lint/ci-plan.ts --files "$RUNNER_TEMP/changed.txt" --job "$GITHUB_JOB" >> "$GITHUB_OUTPUT"
+      - if: steps.plan.outputs.run == 'true'
+        name: C8 no commission
+        run: bash services/api/src/modules/analytics/__tests__/ci/no-commission.sh
+
+  c7-go-build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    env:
+      TRIGGER_PATHS: "apps/bridge-agent/**"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: package.json
+      - name: changed files
+        run: git diff --name-only origin/main...HEAD > "$RUNNER_TEMP/changed.txt"
+      - name: plan
+        id: plan
+        run: node tools/lint/ci-plan.ts --files "$RUNNER_TEMP/changed.txt" --job "$GITHUB_JOB" >> "$GITHUB_OUTPUT"
+      - if: steps.plan.outputs.run == 'true'
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: apps/bridge-agent/go.mod
+      - if: steps.plan.outputs.run == 'true'
+        name: C7 build (CR-C7-013)
+        run: bash apps/bridge-agent/build/ci.sh build
+
+  c7-go-windows:
+    runs-on: windows-2022
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    env:
+      TRIGGER_PATHS: "apps/bridge-agent/**"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: package.json
+      - name: changed files
+        run: git diff --name-only origin/main...HEAD > "$RUNNER_TEMP/changed.txt"
+      - name: plan
+        id: plan
+        run: node tools/lint/ci-plan.ts --files "$RUNNER_TEMP/changed.txt" --job "$GITHUB_JOB" >> "$GITHUB_OUTPUT"
+      - if: steps.plan.outputs.run == 'true'
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: apps/bridge-agent/go.mod
+      - if: steps.plan.outputs.run == 'true'
+        name: C7 Windows tests (CR-C7-013)
+        shell: pwsh
+        run: ./apps/bridge-agent/build/ci-windows.ps1
+
+  c7-go-sessions:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    env:
+      TRIGGER_PATHS: "apps/bridge-agent/**"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: package.json
+      - name: changed files
+        run: git diff --name-only origin/main...HEAD > "$RUNNER_TEMP/changed.txt"
+      - name: plan
+        id: plan
+        run: node tools/lint/ci-plan.ts --files "$RUNNER_TEMP/changed.txt" --job "$GITHUB_JOB" >> "$GITHUB_OUTPUT"
+      - if: steps.plan.outputs.run == 'true'
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: apps/bridge-agent/go.mod
+      - if: steps.plan.outputs.run == 'true'
+        name: C7 simulator sessions
+        run: bash apps/bridge-agent/build/ci.sh sessions
+
+  c7-go-insecure-tls-gate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    env:
+      TRIGGER_PATHS: "apps/bridge-agent/**"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: package.json
+      - name: changed files
+        run: git diff --name-only origin/main...HEAD > "$RUNNER_TEMP/changed.txt"
+      - name: plan
+        id: plan
+        run: node tools/lint/ci-plan.ts --files "$RUNNER_TEMP/changed.txt" --job "$GITHUB_JOB" >> "$GITHUB_OUTPUT"
+      - if: steps.plan.outputs.run == 'true'
+        name: C7 InsecureSkipVerify gate
+        run: bash apps/bridge-agent/build/ci.sh tls-gate
+
+  c7-fixture-copy-check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    env:
+      TRIGGER_PATHS: "apps/bridge-agent/testdata/config/** services/api/src/modules/instruments/__tests__/fixtures/config/**"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: package.json
+      - name: changed files
+        run: git diff --name-only origin/main...HEAD > "$RUNNER_TEMP/changed.txt"
+      - name: plan
+        id: plan
+        run: node tools/lint/ci-plan.ts --files "$RUNNER_TEMP/changed.txt" --job "$GITHUB_JOB" >> "$GITHUB_OUTPUT"
+      - if: steps.plan.outputs.run == 'true'
+        name: C7 fixture copies
+        run: bash services/api/src/modules/instruments/__tests__/ci/fixture-copy-check.sh
+
+  c7-driver-registry-check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    env:
+      TRIGGER_PATHS: "services/api/src/modules/instruments/drivers/** db/migrations/**"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: package.json
+      - name: changed files
+        run: git diff --name-only origin/main...HEAD > "$RUNNER_TEMP/changed.txt"
+      - name: plan
+        id: plan
+        run: node tools/lint/ci-plan.ts --files "$RUNNER_TEMP/changed.txt" --job "$GITHUB_JOB" >> "$GITHUB_OUTPUT"
+      - if: steps.plan.outputs.run == 'true'
+        name: C7 drivers = instruments.g_drivers
+        run: node services/api/src/modules/instruments/__tests__/ci/driver-registry-check.ts
+
+  c7-synthetic-data-scan:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    env:
+      TRIGGER_PATHS: "apps/bridge-agent/testdata/** services/api/src/modules/instruments/drivers/**/testdata/**"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: package.json
+      - name: changed files
+        run: git diff --name-only origin/main...HEAD > "$RUNNER_TEMP/changed.txt"
+      - name: plan
+        id: plan
+        run: node tools/lint/ci-plan.ts --files "$RUNNER_TEMP/changed.txt" --job "$GITHUB_JOB" >> "$GITHUB_OUTPUT"
+      - if: steps.plan.outputs.run == 'true'
+        name: C7 synthetic data (AC-21.4)
+        run: node services/api/src/modules/instruments/__tests__/ci/synthetic-scan.ts
+
+  c17-no-bad-cert-callback:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    env:
+      TRIGGER_PATHS: "apps/phlebo_app/**"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: package.json
+      - name: changed files
+        run: git diff --name-only origin/main...HEAD > "$RUNNER_TEMP/changed.txt"
+      - name: plan
+        id: plan
+        run: node tools/lint/ci-plan.ts --files "$RUNNER_TEMP/changed.txt" --job "$GITHUB_JOB" >> "$GITHUB_OUTPUT"
+      - if: steps.plan.outputs.run == 'true'
+        name: C17 forbidden APIs
+        run: bash apps/phlebo_app/tool/ci/grep_forbidden.sh
+
+  c17-db-forensics:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    env:
+      TRIGGER_PATHS: "apps/phlebo_app/lib/core/db/**"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: package.json
+      - name: changed files
+        run: git diff --name-only origin/main...HEAD > "$RUNNER_TEMP/changed.txt"
+      - name: plan
+        id: plan
+        run: node tools/lint/ci-plan.ts --files "$RUNNER_TEMP/changed.txt" --job "$GITHUB_JOB" >> "$GITHUB_OUTPUT"
+      - if: steps.plan.outputs.run == 'true'
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: packages/ui-flutter/pubspec.yaml # C0 02-TRD §2.2 Flutter pin
+      - if: steps.plan.outputs.run == 'true'
+        name: enable KVM for the emulator
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - if: steps.plan.outputs.run == 'true'
+        name: C17 DB forensics (Android emulator)
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34 # [CONV] C17 02-TRD row names no API level
+          arch: x86_64
+          script: cd apps/phlebo_app && flutter test integration_test/db_forensics_test.dart

@@ -1,0 +1,11 @@
+[Unit]
+Description=Standby textfile metrics (02-TRD s9.5, s11 StandbyLagHigh)
+After=docker.service
+
+[Service]
+Type=oneshot
+Environment=PATH=/usr/local/lib/lims/standby/bin:/usr/bin:/bin
+Environment=TEXTFILE_DIR=/var/lib/node_exporter/textfile
+ExecStart=/bin/bash /usr/local/lib/lims/standby/lims-standby-metrics.sh
+PrivateTmp=true
+NoNewPrivileges=true

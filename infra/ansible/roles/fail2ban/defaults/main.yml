@@ -1,0 +1,5 @@
+---
+# Single source of the jail/filter/metrics files: infra/edge/fail2ban (02-TRD s6.8).
+fail2ban_src: "{{ playbook_dir }}/../../edge/fail2ban"
+fail2ban_filters: [lims-ratelimit, lims-auth]
+fail2ban_textfile_dir: /var/lib/node_exporter/textfile

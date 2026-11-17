@@ -1,0 +1,3 @@
+- Cause: not an instruments bug. `modules/reporting/index.ts:9` (C6) calls `loadReportingConfig(process.env)` at import; core autoload imports it, so real-repo `bootstrap` throws (no LIMS_CORE_ENV / OTP key file in process.env). Same 2 failures in lab boot test. 67/69 instruments tests pass.
+- Fix: none possible in C7-owned code; test not editable. Filed `.orchestra/cr/API-T01.md` (CR-C7-001 to C6). Unblock: C6 lazy-load config, or verify env sets LIMS_CORE_ENV=ci + LIMS_REPORTING_OTP_HMAC_KEY_FILE.
+- Round 2: re-confirmed. No C7 code fix possible; wrote API-T01-dispute.md (test must supply reporting env / isolated modulesDir). 67/69 pass.

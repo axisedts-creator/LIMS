@@ -1,0 +1,14 @@
+{
+  "ok": true,
+  "messageKind": "results",
+  "messageControlId": "MSG00002",
+  "messageTimeLocal": "2026-11-07T10:15:00",
+  "records": [
+    {
+      "recordSeq": 1, "recordClass": "qc", "controlIdRaw": "QC-L2-0001", "recordKind": "quantitative",
+      "instrumentAnalyteCode": "GLU", "valueRaw": "5.0", "unitRaw": "mmol/L", "instrumentFlags": [],
+      "instrumentResultTimeLocal": "2026-11-07T10:12:00", "isRerun": false, "warnings": []
+    }
+  ],
+  "warnings": []
+}

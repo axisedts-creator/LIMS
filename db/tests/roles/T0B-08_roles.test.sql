@@ -57,9 +57,10 @@ SELECT is(has_schema_privilege(r, s, 'USAGE'), false, r || ' has no USAGE on ' |
 -- executing as lims_api / lims_worker: cannot become the owner (privilege escalation probes)
 CREATE FUNCTION pg_temp.set_role_fails(p_from text, p_to text) RETURNS boolean LANGUAGE plpgsql AS $f$
 BEGIN
-  EXECUTE format('SET LOCAL ROLE %I', p_from);
-  BEGIN EXECUTE format('SET LOCAL ROLE %I', p_to); RESET ROLE; RETURN false;
-  EXCEPTION WHEN insufficient_privilege THEN RESET ROLE; RETURN true; END;
+  -- SET ROLE is checked against the SESSION user, so SET ROLE alone would test as the superuser; switch the session user first
+  EXECUTE format('SET LOCAL SESSION AUTHORIZATION %I', p_from);
+  BEGIN EXECUTE format('SET LOCAL ROLE %I', p_to); RESET SESSION AUTHORIZATION; RETURN false;
+  EXCEPTION WHEN insufficient_privilege THEN RESET SESSION AUTHORIZATION; RETURN true; END;
 END $f$;
 SELECT is(pg_temp.set_role_fails('lims_api', r), true, 'lims_api cannot SET ROLE ' || r)
   FROM unnest(ARRAY['lims_owner','lims_queue','lims_reporting_lookup','lims_migrator']) r;

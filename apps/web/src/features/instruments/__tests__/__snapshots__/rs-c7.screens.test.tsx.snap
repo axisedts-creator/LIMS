@@ -1,0 +1,793 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`RS-C7 key screens (DOM snapshots) > instrument overview: commissioning checklist stepper (two of four done) 1`] = `
+"<section aria-label="Instrument SIM-CHEM-1">
+<div class="lims-page-header">
+<nav aria-label="Breadcrumb" class="lims-breadcrumbs">
+<ol>
+<li>
+<a href="/instruments/instruments">Instruments</a>
+</li>
+<li>
+<span aria-current="page">SIM-CHEM-1</span>
+</li>
+</ol>
+</nav>
+<div class="lims-page-header-row">
+<h1 class="lims-page-title">SIM-CHEM-1 — Sim chem</h1>
+<div class="lims-page-status">
+<span class="lims-chip lims-chip-md lims-tone-info" data-tone="info">
+<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 8h.01M11 12h1v5h1M12 3a9 9 0 100 18 9 9 0 000-18z">
+</path>
+</svg>Commissioning</span>
+<span class="lims-description"> (no results sent)</span>
+</div>
+<div class="lims-page-actions">
+<button class="lims-btn lims-btn-primary lims-btn-md" data-rac="" type="button" tabindex="0" data-ID="true" id="ID">
+<span class="lims-btn-label">Go live</span>
+</button>
+<button class="lims-btn lims-btn-danger lims-btn-md" data-rac="" type="button" tabindex="0" data-ID="true" id="ID">
+<span class="lims-btn-label">Retire</span>
+</button>
+<a class="lims-link" href="/instruments/instruments/01a1a98a-ac40-7000-8000-000000003585/mappings">Mappings</a>
+<a class="lims-link" href="/instruments/messages?instrument_id=01a1a98a-ac40-7000-8000-000000003585">Messages</a>
+<span data-help-key="instruments.instruments">
+<button class="lims-btn lims-btn-ghost lims-btn-md" data-rac="" type="button" tabindex="0" data-ID="true" id="ID">
+<svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 3a9 9 0 100 18 9 9 0 000-18zM9.5 9.5a2.5 2.5 0 115 0c0 2-2.5 2-2.5 4M12 17h.01">
+</path>
+</svg>
+<span class="lims-btn-label">Help</span>
+</button>
+</span>
+</div>
+</div>
+</div>
+<template>
+</template>
+<div class="lims-tabs" data-rac="" data-orientation="horizontal">
+<div class="lims-tablist" data-rac="" data-collection="ID" id="ID" aria-label="Instrument sections" role="tablist" aria-orientation="horizontal" data-orientation="horizontal">
+<div class="lims-tab" data-rac="" tabindex="0" data-collection="ID" data-key="overview" data-ID="true" id="ID" aria-selected="true" aria-controls="ID" role="tab" data-selected="true">Overview</div>
+<div class="lims-tab" data-rac="" tabindex="-1" data-collection="ID" data-key="configuration" data-ID="true" id="ID" aria-selected="false" role="tab">Configuration</div>
+<div class="lims-tab" data-rac="" tabindex="-1" data-collection="ID" data-key="history" data-ID="true" id="ID" aria-selected="false" role="tab">History</div>
+</div>
+<div id="ID" aria-labelledby="ID" tabindex="0" role="tabpanel" class="lims-tabpanel" data-rac="">
+<div class="lims-stack" style="gap: var(--lims-space-4);">
+<section aria-label="Commissioning checklist">
+<div class="lims-stepper">
+<ol class="lims-stepper-list">
+<li class="lims-step lims-step-done" data-tone="success">
+<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 3a9 9 0 100 18 9 9 0 000-18zM8 12l3 3 5-6">
+</path>
+</svg>
+<span class="lims-step-label">The official interface manual for this model and software version is on file</span> <span class="lims-step-state">(Complete)</span>
+</li>
+<li class="lims-step lims-step-done" data-tone="success">
+<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 3a9 9 0 100 18 9 9 0 000-18zM8 12l3 3 5-6">
+</path>
+</svg>
+<span class="lims-step-label">Patient-sample comparison with the instrument printout is done</span> <span class="lims-step-state">(Complete)</span>
+</li>
+<li class="lims-step lims-step-current" data-tone="info" aria-current="step">
+<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 3a9 9 0 100 18 9 9 0 000-18zM12 9a3 3 0 100 6 3 3 0 000-6z">
+</path>
+</svg>
+<span class="lims-step-label">QC values compared</span> <span class="lims-step-state">(Current)</span>
+</li>
+<li class="lims-step lims-step-upcoming" data-tone="neutral">
+<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 3a9 9 0 100 18 9 9 0 000-18z">
+</path>
+</svg>
+<span class="lims-step-label">Code mappings reviewed</span> <span class="lims-step-state">(Upcoming)</span>
+</li>
+<li class="lims-step lims-step-upcoming" data-tone="neutral">
+<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 3a9 9 0 100 18 9 9 0 000-18z">
+</path>
+</svg>
+<span class="lims-step-label">All checks done</span> <span class="lims-step-state">(Upcoming)</span>
+</li>
+</ol>
+</div>
+</section>
+<dl class="lims-dl lims-cols-3">
+<div class="lims-dl-item">
+<dt>Link state</dt>
+<dd>up</dd>
+</div>
+<div class="lims-dl-item">
+<dt>Last message (server)</dt>
+<dd>
+<time class="lims-date-text" datetime="2026-11-07T03:58:00.000Z">07/11/2026 09:43 AM</time>
+</dd>
+</div>
+<div class="lims-dl-item">
+<dt>Last message (agent)</dt>
+<dd>—</dd>
+</div>
+<div class="lims-dl-item">
+<dt>Last link error</dt>
+<dd>—</dd>
+</div>
+<div class="lims-dl-item">
+<dt>Instrument clock offset</dt>
+<dd>—</dd>
+</div>
+<div class="lims-dl-item">
+<dt>Silent since</dt>
+<dd>—</dd>
+</div>
+<div class="lims-dl-item">
+<dt>Protocol</dt>
+<dd>ASTM</dd>
+</div>
+<div class="lims-dl-item">
+<dt>Driver</dt>
+<dd>Generic ASTM E1394 <span class="lims-chip lims-chip-md lims-tone-warning" data-tone="warning">
+<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 4l9 16H3L12 4zM12 10v4M12 17h.01">
+</path>
+</svg>Generic</span>
+</dd>
+</div>
+<div class="lims-dl-item">
+<dt>Driver version</dt>
+<dd>1.0.0</dd>
+</div>
+<div class="lims-dl-item">
+<dt>Manual reference</dt>
+<dd>—</dd>
+</div>
+<div class="lims-dl-item">
+<dt>Went live</dt>
+<dd>—</dd>
+</div>
+</dl>
+</div>
+</div>
+</div>
+</section>
+<div class="lims-toast-region">
+</div>"
+`;
+
+exports[`RS-C7 key screens (DOM snapshots) > instruments: link cards (state dot + word, last message, unmapped) 1`] = `
+"<section aria-label="Instruments">
+<div class="lims-page-header">
+<div class="lims-page-header-row">
+<h1 class="lims-page-title">Instruments</h1>
+<div class="lims-page-actions">
+<button class="lims-btn lims-btn-primary lims-btn-md" data-rac="" type="button" tabindex="0" data-ID="true" id="ID">
+<span class="lims-btn-label">New instrument</span>
+</button>
+<span data-help-key="instruments.instruments">
+<button class="lims-btn lims-btn-ghost lims-btn-md" data-rac="" type="button" tabindex="0" data-ID="true" id="ID">
+<svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 3a9 9 0 100 18 9 9 0 000-18zM9.5 9.5a2.5 2.5 0 115 0c0 2-2.5 2-2.5 4M12 17h.01">
+</path>
+</svg>
+<span class="lims-btn-label">Help</span>
+</button>
+</span>
+</div>
+</div>
+</div>
+<div role="search" class="lims-filter-bar">
+<template>
+</template>
+<div class="lims-field" data-rac="">
+<span class="lims-label" id="ID">Centre</span>
+<button id="ID" class="lims-input lims-select-trigger" data-rac="" type="button" tabindex="0" data-ID="true" aria-labelledby="ID ID" aria-haspopup="listbox" aria-expanded="false">
+<span id="ID" class="ID" data-rac="" data-placeholder="true">Select an item</span>
+<svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M6 9l6 6 6-6">
+</path>
+</svg>
+</button>
+<div style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: fixed; width: 1px; white-space: nowrap; top: 0px; left: 0px;" aria-hidden="true" data-ID="true" data-a11y-ignore="aria-hidden-focus" data-testid="hidden-select-container">
+<label>
+<select tabindex="-1" name="centre_id">
+<option value="" label="&nbsp;">&nbsp;</option>
+<option value="01a1a98a-ac40-7000-8000-000000003073">Synthetic Centre A1</option>
+</select>
+</label>
+</div>
+</div>
+<template>
+</template>
+<div class="lims-field" data-rac="">
+<span class="lims-label" id="ID">Agent</span>
+<button id="ID" class="lims-input lims-select-trigger" data-rac="" type="button" tabindex="0" data-ID="true" aria-labelledby="ID ID" aria-haspopup="listbox" aria-expanded="false">
+<span id="ID" class="ID" data-rac="" data-placeholder="true">Select an item</span>
+<svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M6 9l6 6 6-6">
+</path>
+</svg>
+</button>
+<div style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: fixed; width: 1px; white-space: nowrap; top: 0px; left: 0px;" aria-hidden="true" data-ID="true" data-a11y-ignore="aria-hidden-focus" data-testid="hidden-select-container">
+<label>
+<select tabindex="-1" name="agent_id">
+<option value="" label="&nbsp;">&nbsp;</option>
+<option value="01a1a98a-ac40-7000-8000-000000003329">SYN-AGENT-1</option>
+</select>
+</label>
+</div>
+</div>
+<div class="lims-field">
+<label class="lims-label" id="_r_o_">State</label>
+<template>
+</template>
+<span data-focus-scope-start="true" hidden="">
+</span>
+<div class="lims-listbox lims-chip-list" data-rac="" aria-labelledby="_r_o_" aria-multiselectable="true" role="listbox" aria-orientation="horizontal" id="ID" tabindex="0" data-collection="ID" data-layout="stack" data-orientation="horizontal">
+<div class="lims-option lims-chip" data-rac="" role="option" aria-selected="true" tabindex="-1" data-collection="ID" data-key="draft" data-ID="true" id="ID" data-selected="true" data-selection-mode="multiple">Draft</div>
+<div class="lims-option lims-chip" data-rac="" role="option" aria-selected="true" tabindex="-1" data-collection="ID" data-key="commissioning" data-ID="true" id="ID" data-selected="true" data-selection-mode="multiple">Commissioning</div>
+<div class="lims-option lims-chip" data-rac="" role="option" aria-selected="true" tabindex="-1" data-collection="ID" data-key="live" data-ID="true" id="ID" data-selected="true" data-selection-mode="multiple">Live</div>
+<div class="lims-option lims-chip" data-rac="" role="option" aria-selected="true" tabindex="-1" data-collection="ID" data-key="suspended" data-ID="true" id="ID" data-selected="true" data-selection-mode="multiple">Suspended</div>
+<div class="lims-option lims-chip" data-rac="" role="option" aria-selected="false" tabindex="-1" data-collection="ID" data-key="retired" data-ID="true" id="ID" data-selection-mode="multiple">Retired</div>
+</div>
+<span data-focus-scope-end="true" hidden="">
+</span>
+</div>
+<template>
+</template>
+<div class="lims-field" data-rac="">
+<span class="lims-label" id="ID">Protocol</span>
+<button id="ID" class="lims-input lims-select-trigger" data-rac="" type="button" tabindex="0" data-ID="true" aria-labelledby="ID ID" aria-haspopup="listbox" aria-expanded="false">
+<span id="ID" class="ID" data-rac="" data-placeholder="true">Select an item</span>
+<svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M6 9l6 6 6-6">
+</path>
+</svg>
+</button>
+<div style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: fixed; width: 1px; white-space: nowrap; top: 0px; left: 0px;" aria-hidden="true" data-ID="true" data-a11y-ignore="aria-hidden-focus" data-testid="hidden-select-container">
+<label>
+<select tabindex="-1" name="protocol">
+<option value="" label="&nbsp;">&nbsp;</option>
+<option value="astm">ASTM</option>
+<option value="hl7v2">HL7 v2</option>
+<option value="file_drop">Folder only</option>
+</select>
+</label>
+</div>
+</div>
+<button class="lims-btn lims-btn-ghost lims-btn-md" data-rac="" type="button" tabindex="0" data-ID="true" id="ID">
+<span class="lims-btn-label">Reset filters</span>
+</button>
+</div>
+<div class="lims-field lims-radio-group" data-rac="" role="radiogroup" aria-orientation="horizontal" id="ID" aria-labelledby="ID" data-orientation="horizontal">
+<span class="lims-label" id="ID">Sort by</span>
+<div class="lims-radio-options lims-horizontal">
+<label data-ID="true" class="lims-radio" data-rac="" data-selected="true">
+<span style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: absolute; width: 1px; white-space: nowrap;">
+<input data-ID="true" tabindex="0" type="radio" value="instrument_code" checked="" name="sort">
+</span>
+<span class="lims-radio-dot" aria-hidden="true">
+</span>Code</label>
+<label data-ID="true" class="lims-radio" data-rac="">
+<span style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: absolute; width: 1px; white-space: nowrap;">
+<input data-ID="true" tabindex="-1" type="radio" value="-last_message_at" name="sort">
+</span>
+<span class="lims-radio-dot" aria-hidden="true">
+</span>Last message (newest first)</label>
+</div>
+</div>
+<div class="lims-grid lims-cols-2" style="gap: var(--lims-space-4);">
+<article aria-label="SIM-CHEM-1">
+<div class="lims-card">
+<div class="lims-stack" style="gap: var(--lims-space-3);">
+<div class="lims-inline" style="gap: var(--lims-space-2); align-items: flex-start; justify-content: space-between; flex-wrap: wrap;">
+<div class="lims-stack" style="gap: var(--lims-space-1);">
+<a class="lims-link" href="/instruments/instruments/01a1a98a-ac40-7000-8000-000000003585">SIM-CHEM-1</a>
+<span>Sim chem</span>
+</div>
+<span class="lims-chip lims-chip-md lims-tone-neutral" data-tone="neutral">
+<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 3a9 9 0 100 18 9 9 0 000-18z">
+</path>
+</svg>Draft</span>
+</div>
+<dl class="lims-dl lims-cols-2">
+<div class="lims-dl-item">
+<dt>Vendor / Model</dt> <dd>Synthetic Vendor SV-100</dd> </div>
+<div class="lims-dl-item">
+<dt>Protocol</dt> <dd>ASTM</dd> </div>
+<div class="lims-dl-item">
+<dt>Agent</dt> <dd>SYN-AGENT-1</dd> </div>
+<div class="lims-dl-item">
+<dt>Driver</dt> <dd>Generic ASTM E1394 <span class="lims-chip lims-chip-md lims-tone-warning" data-tone="warning">
+<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 4l9 16H3L12 4zM12 10v4M12 17h.01">
+</path>
+</svg>Generic</span>
+</dd> </div>
+<div class="lims-dl-item">
+<dt>Link state</dt> <dd>up</dd> </div>
+<div class="lims-dl-item">
+<dt>Last message</dt> <dd>
+<time class="lims-date-text" datetime="2026-11-07T03:58:00.000Z">07/11/2026 09:43 AM</time>
+</dd> </div>
+<div class="lims-dl-item">
+<dt>Unmapped</dt> <dd>
+<a class="lims-link" href="/instruments/instruments/01a1a98a-ac40-7000-8000-000000003585/mappings">3 unmapped</a>
+</dd> </div>
+</dl>
+</div>
+</div>
+</article>
+<article aria-label="SIM-CHEM-2">
+<div class="lims-card">
+<div class="lims-stack" style="gap: var(--lims-space-3);">
+<div class="lims-inline" style="gap: var(--lims-space-2); align-items: flex-start; justify-content: space-between; flex-wrap: wrap;">
+<div class="lims-stack" style="gap: var(--lims-space-1);">
+<a class="lims-link" href="/instruments/instruments/01a1a98a-ac40-7000-8000-000000003586">SIM-CHEM-2</a>
+<span>Verified chem</span>
+</div>
+<span class="lims-chip lims-chip-md lims-tone-success" data-tone="success">
+<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 3a9 9 0 100 18 9 9 0 000-18zM8 12l3 3 5-6">
+</path>
+</svg>Live</span>
+</div>
+<dl class="lims-dl lims-cols-2">
+<div class="lims-dl-item">
+<dt>Vendor / Model</dt> <dd>Synthetic Vendor SV-100</dd> </div>
+<div class="lims-dl-item">
+<dt>Protocol</dt> <dd>ASTM</dd> </div>
+<div class="lims-dl-item">
+<dt>Agent</dt> <dd>SYN-AGENT-1</dd> </div>
+<div class="lims-dl-item">
+<dt>Driver</dt> <dd>Generic ASTM E1394 <span class="lims-chip lims-chip-md lims-tone-success" data-tone="success">
+<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 3a9 9 0 100 18 9 9 0 000-18zM8 12l3 3 5-6">
+</path>
+</svg>Verified</span>
+</dd> </div>
+<div class="lims-dl-item">
+<dt>Link state</dt> <dd>up</dd> </div>
+<div class="lims-dl-item">
+<dt>Last message</dt> <dd>
+<time class="lims-date-text" datetime="2026-11-07T03:58:00.000Z">07/11/2026 09:43 AM</time>
+</dd> </div>
+<div class="lims-dl-item">
+<dt>Unmapped</dt> <dd>
+<a class="lims-link" href="/instruments/instruments/01a1a98a-ac40-7000-8000-000000003586/mappings">0 unmapped</a>
+</dd> </div>
+</dl>
+</div>
+</div>
+</article>
+<article aria-label="SIM-HEM-1">
+<div class="lims-card">
+<div class="lims-stack" style="gap: var(--lims-space-3);">
+<div class="lims-inline" style="gap: var(--lims-space-2); align-items: flex-start; justify-content: space-between; flex-wrap: wrap;">
+<div class="lims-stack" style="gap: var(--lims-space-1);">
+<a class="lims-link" href="/instruments/instruments/01a1a98a-ac40-7000-8000-000000003587">SIM-HEM-1</a>
+<span>Sketchy</span>
+</div>
+<span class="lims-chip lims-chip-md lims-tone-info" data-tone="info">
+<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 8h.01M11 12h1v5h1M12 3a9 9 0 100 18 9 9 0 000-18z">
+</path>
+</svg>Commissioning</span>
+<span class="lims-description"> (no results sent)</span>
+</div>
+<dl class="lims-dl lims-cols-2">
+<div class="lims-dl-item">
+<dt>Vendor / Model</dt> <dd>Synthetic Vendor SV-100</dd> </div>
+<div class="lims-dl-item">
+<dt>Protocol</dt> <dd>ASTM</dd> </div>
+<div class="lims-dl-item">
+<dt>Agent</dt> <dd>SYN-AGENT-1</dd> </div>
+<div class="lims-dl-item">
+<dt>Driver</dt> <dd>Generic ASTM E1394 <span class="lims-chip lims-chip-md lims-tone-danger" data-tone="danger">
+<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 3a9 9 0 100 18 9 9 0 000-18zM9 9l6 6M15 9l-6 6">
+</path>
+</svg>Sketch — not for live use</span>
+</dd> </div>
+<div class="lims-dl-item">
+<dt>Link state</dt> <dd>up</dd> </div>
+<div class="lims-dl-item">
+<dt>Last message</dt> <dd>
+<time class="lims-date-text" datetime="2026-11-07T03:58:00.000Z">07/11/2026 09:43 AM</time>
+</dd> </div>
+<div class="lims-dl-item">
+<dt>Unmapped</dt> <dd>
+<a class="lims-link" href="/instruments/instruments/01a1a98a-ac40-7000-8000-000000003587/mappings">12 unmapped</a>
+</dd> </div>
+</dl>
+</div>
+</div>
+</article>
+<article aria-label="SIM-SUS-1">
+<div class="lims-card">
+<div class="lims-stack" style="gap: var(--lims-space-3);">
+<div class="lims-inline" style="gap: var(--lims-space-2); align-items: flex-start; justify-content: space-between; flex-wrap: wrap;">
+<div class="lims-stack" style="gap: var(--lims-space-1);">
+<a class="lims-link" href="/instruments/instruments/01a1a98a-ac40-7000-8000-000000003589">SIM-SUS-1</a>
+<span>Paused</span>
+</div>
+<span class="lims-chip lims-chip-md lims-tone-warning" data-tone="warning">
+<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 4l9 16H3L12 4zM12 10v4M12 17h.01">
+</path>
+</svg>Suspended</span>
+<span class="lims-description"> (no results sent)</span>
+</div>
+<dl class="lims-dl lims-cols-2">
+<div class="lims-dl-item">
+<dt>Vendor / Model</dt> <dd>Synthetic Vendor SV-100</dd> </div>
+<div class="lims-dl-item">
+<dt>Protocol</dt> <dd>ASTM</dd> </div>
+<div class="lims-dl-item">
+<dt>Agent</dt> <dd>SYN-AGENT-1</dd> </div>
+<div class="lims-dl-item">
+<dt>Driver</dt> <dd>Generic ASTM E1394 <span class="lims-chip lims-chip-md lims-tone-warning" data-tone="warning">
+<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 4l9 16H3L12 4zM12 10v4M12 17h.01">
+</path>
+</svg>Generic</span>
+</dd> </div>
+<div class="lims-dl-item">
+<dt>Link state</dt> <dd>up</dd> </div>
+<div class="lims-dl-item">
+<dt>Last message</dt> <dd>—</dd> </div>
+<div class="lims-dl-item">
+<dt>Unmapped</dt> <dd>
+<a class="lims-link" href="/instruments/instruments/01a1a98a-ac40-7000-8000-000000003589/mappings">0 unmapped</a>
+</dd> </div>
+</dl>
+</div>
+</div>
+</article>
+</div>
+</section>
+<div class="lims-toast-region">
+</div>"
+`;
+
+exports[`RS-C7 key screens (DOM snapshots) > messages: log table with the existing columns 1`] = `
+"<section aria-label="Messages">
+<div class="lims-page-header">
+<nav aria-label="Breadcrumb" class="lims-breadcrumbs">
+<ol>
+<li>
+<a href="/instruments/instruments">Instruments</a>
+</li>
+<li>
+<span aria-current="page">Messages</span>
+</li>
+</ol>
+</nav>
+<div class="lims-page-header-row">
+<h1 class="lims-page-title">Messages</h1>
+<div class="lims-page-actions">
+<span data-help-key="instruments.messages">
+<button class="lims-btn lims-btn-ghost lims-btn-md" data-rac="" type="button" tabindex="0" data-ID="true" id="ID">
+<svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 3a9 9 0 100 18 9 9 0 000-18zM9.5 9.5a2.5 2.5 0 115 0c0 2-2.5 2-2.5 4M12 17h.01">
+</path>
+</svg>
+<span class="lims-btn-label">Help</span>
+</button>
+</span>
+</div>
+</div>
+</div>
+<template>
+</template>
+<div class="lims-tabs" data-rac="" data-orientation="horizontal">
+<div class="lims-tablist" data-rac="" data-collection="ID" id="ID" aria-label="Message sections" role="tablist" aria-orientation="horizontal" data-orientation="horizontal">
+<div class="lims-tab" data-rac="" tabindex="0" data-collection="ID" data-key="messages" data-ID="true" id="ID" aria-selected="true" aria-controls="ID" role="tab" data-selected="true">Messages</div>
+<div class="lims-tab" data-rac="" tabindex="-1" data-collection="ID" data-key="rejections" data-ID="true" id="ID" aria-selected="false" role="tab">Rejected uploads</div>
+</div>
+<div id="ID" aria-labelledby="ID" role="tabpanel" class="lims-tabpanel" data-rac="">
+<div role="search" class="lims-filter-bar">
+<div role="group" aria-labelledby="_r_27_-l" class="lims-field lims-date-range">
+<span id="_r_27_-l" class="lims-label">Received</span>
+<div class="lims-inline">
+<div class="lims-field lims-date-field">
+<label class="lims-label" for="_r_28_">From</label>
+<div class="lims-input-group">
+<input id="_r_28_" class="lims-input" placeholder="DD/MM/YYYY" autocomplete="off" type="text" value="" name="received_from">
+<button type="button" class="lims-btn lims-btn-ghost lims-icon-btn" aria-label="Open calendar for From" aria-expanded="false">
+<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+<rect x="4" y="5" width="16" height="15">
+</rect>
+<line x1="4" y1="10" x2="20" y2="10">
+</line>
+</svg>
+</button>
+</div>
+</div>
+<div class="lims-field lims-date-field">
+<label class="lims-label" for="_r_29_">To</label>
+<div class="lims-input-group">
+<input id="_r_29_" class="lims-input" placeholder="DD/MM/YYYY" autocomplete="off" type="text" value="" name="received_to">
+<button type="button" class="lims-btn lims-btn-ghost lims-icon-btn" aria-label="Open calendar for To" aria-expanded="false">
+<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+<rect x="4" y="5" width="16" height="15">
+</rect>
+<line x1="4" y1="10" x2="20" y2="10">
+</line>
+</svg>
+</button>
+</div>
+</div>
+</div>
+</div>
+<template>
+</template>
+<div class="lims-field" data-rac="">
+<span class="lims-label" id="ID">Instrument</span>
+<button id="ID" class="lims-input lims-select-trigger" data-rac="" type="button" tabindex="0" data-ID="true" aria-labelledby="ID ID" aria-haspopup="listbox" aria-expanded="false">
+<span id="ID" class="ID" data-rac="" data-placeholder="true">Select an item</span>
+<svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M6 9l6 6 6-6">
+</path>
+</svg>
+</button>
+<div style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: fixed; width: 1px; white-space: nowrap; top: 0px; left: 0px;" aria-hidden="true" data-ID="true" data-a11y-ignore="aria-hidden-focus" data-testid="hidden-select-container">
+<label>
+<select tabindex="-1" name="instrument_id">
+<option value="" label="&nbsp;">&nbsp;</option>
+<option value="01a1a98a-ac40-7000-8000-000000003585">SIM-CHEM-1</option>
+</select>
+</label>
+</div>
+</div>
+<template>
+</template>
+<div class="lims-field" data-rac="">
+<span class="lims-label" id="ID">Agent</span>
+<button id="ID" class="lims-input lims-select-trigger" data-rac="" type="button" tabindex="0" data-ID="true" aria-labelledby="ID ID" aria-haspopup="listbox" aria-expanded="false">
+<span id="ID" class="ID" data-rac="" data-placeholder="true">Select an item</span>
+<svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M6 9l6 6 6-6">
+</path>
+</svg>
+</button>
+<div style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: fixed; width: 1px; white-space: nowrap; top: 0px; left: 0px;" aria-hidden="true" data-ID="true" data-a11y-ignore="aria-hidden-focus" data-testid="hidden-select-container">
+<label>
+<select tabindex="-1" name="agent_id">
+<option value="" label="&nbsp;">&nbsp;</option>
+<option value="01a1a98a-ac40-7000-8000-000000003329">SYN-AGENT-1</option>
+</select>
+</label>
+</div>
+</div>
+<div class="lims-field">
+<label class="lims-label" id="_r_2u_">Kind</label>
+<template>
+</template>
+<span data-focus-scope-start="true" hidden="">
+</span>
+<div class="lims-listbox lims-chip-list" data-rac="" aria-labelledby="_r_2u_" aria-multiselectable="true" role="listbox" aria-orientation="horizontal" id="ID" tabindex="0" data-collection="ID" data-layout="stack" data-orientation="horizontal">
+<div class="lims-option lims-chip" data-rac="" role="option" aria-selected="false" tabindex="-1" data-collection="ID" data-key="data" data-ID="true" id="ID" data-selection-mode="multiple">Data</div>
+<div class="lims-option lims-chip" data-rac="" role="option" aria-selected="false" tabindex="-1" data-collection="ID" data-key="host_query" data-ID="true" id="ID" data-selection-mode="multiple">Host query</div>
+<div class="lims-option lims-chip" data-rac="" role="option" aria-selected="false" tabindex="-1" data-collection="ID" data-key="attachment" data-ID="true" id="ID" data-selection-mode="multiple">Attachment</div>
+<div class="lims-option lims-chip" data-rac="" role="option" aria-selected="false" tabindex="-1" data-collection="ID" data-key="incomplete" data-ID="true" id="ID" data-selection-mode="multiple">Incomplete</div>
+</div>
+<span data-focus-scope-end="true" hidden="">
+</span>
+</div>
+<div class="lims-field">
+<label class="lims-label" id="_r_34_">Latest outcome</label>
+<template>
+</template>
+<span data-focus-scope-start="true" hidden="">
+</span>
+<div class="lims-listbox lims-chip-list" data-rac="" aria-labelledby="_r_34_" aria-multiselectable="true" role="listbox" aria-orientation="horizontal" id="ID" tabindex="0" data-collection="ID" data-layout="stack" data-orientation="horizontal">
+<div class="lims-option lims-chip" data-rac="" role="option" aria-selected="false" tabindex="-1" data-collection="ID" data-key="parsed" data-ID="true" id="ID" data-selection-mode="multiple">Parsed</div>
+<div class="lims-option lims-chip" data-rac="" role="option" aria-selected="false" tabindex="-1" data-collection="ID" data-key="shadow" data-ID="true" id="ID" data-selection-mode="multiple">Shadow</div>
+<div class="lims-option lims-chip" data-rac="" role="option" aria-selected="false" tabindex="-1" data-collection="ID" data-key="quarantined" data-ID="true" id="ID" data-selection-mode="multiple">Quarantined</div>
+<div class="lims-option lims-chip" data-rac="" role="option" aria-selected="false" tabindex="-1" data-collection="ID" data-key="rejected_capability" data-ID="true" id="ID" data-selection-mode="multiple">Rejected</div>
+</div>
+<span data-focus-scope-end="true" hidden="">
+</span>
+</div>
+<button class="lims-btn lims-btn-ghost lims-btn-md" data-rac="" type="button" tabindex="0" data-ID="true" id="ID">
+<span class="lims-btn-label">Reset filters</span>
+</button>
+</div>
+<label data-ID="true" class="lims-switch" data-rac="">
+<span style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: absolute; width: 1px; white-space: nowrap;">
+<input data-ID="true" tabindex="0" role="switch" type="checkbox">
+</span>
+<span class="lims-switch-track" aria-hidden="true">
+<span class="lims-switch-thumb">
+</span>
+</span>Has QC records</label>
+<label data-ID="true" class="lims-switch" data-rac="">
+<span style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: absolute; width: 1px; white-space: nowrap;">
+<input data-ID="true" tabindex="0" role="switch" type="checkbox">
+</span>
+<span class="lims-switch-track" aria-hidden="true">
+<span class="lims-switch-thumb">
+</span>
+</span>Has unmapped codes</label>
+<div>
+<div class="lims-field lims-barcode">
+<label class="lims-label" for="_r_3g_">Barcode</label>
+<input id="_r_3g_" class="lims-input lims-mono" autocomplete="off" autocapitalize="characters" spellcheck="false" type="text" name="search">
+<span role="status" class="lims-visually-hidden">
+</span>
+</div>
+</div>
+<div class="lims-data-table">
+<template>
+</template>
+<span data-focus-scope-start="true" hidden="">
+</span>
+<table class="lims-table lims-table-regular lims-table-sticky" data-rac="" aria-label="Messages" id="ID" role="grid" tabindex="0" aria-describedby="" data-collection="ID">
+<thead role="rowgroup" class="ID" data-rac="">
+<tr role="row">
+<th tabindex="-1" data-collection="ID" data-key="received" id="ID" role="columnheader" aria-colindex="1" data-ID="true" class="lims-col lims-align-start" data-rac="">Received</th>
+<th tabindex="-1" data-collection="ID" data-key="instrument" id="ID" role="columnheader" aria-colindex="2" data-ID="true" class="lims-col lims-align-start" data-rac="">Instrument</th>
+<th tabindex="-1" data-collection="ID" data-key="kind" id="ID" role="columnheader" aria-colindex="3" data-ID="true" class="lims-col lims-align-start" data-rac="">Kind</th>
+<th tabindex="-1" data-collection="ID" data-key="records" id="ID" role="columnheader" aria-colindex="4" data-ID="true" class="lims-col lims-align-end" data-rac="">Records (patient / QC)</th>
+<th tabindex="-1" data-collection="ID" data-key="unmapped" id="ID" role="columnheader" aria-colindex="5" data-ID="true" class="lims-col lims-align-end" data-rac="">Unmapped</th>
+<th tabindex="-1" data-collection="ID" data-key="events" id="ID" role="columnheader" aria-colindex="6" data-ID="true" class="lims-col lims-align-end" data-rac="">Events</th>
+<th tabindex="-1" data-collection="ID" data-key="outcome" id="ID" role="columnheader" aria-colindex="7" data-ID="true" class="lims-col lims-align-start" data-rac="">Outcome</th>
+<th tabindex="-1" data-collection="ID" data-key="size" id="ID" role="columnheader" aria-colindex="8" data-ID="true" class="lims-col lims-align-end" data-rac="">Size</th>
+</tr>
+</thead>
+<tbody class="ID" data-rac="" role="rowgroup">
+<tr data-row-id="01a1a98a-ac40-7000-8000-000000002561" data-row-index="0" class="lims-row" style="--table-row-level: 1;" data-rac="" role="row" tabindex="-1" data-collection="ID" data-key="01a1a98a-ac40-7000-8000-000000002561" id="ID" aria-labelledby="ID ID" data-level="1">
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="gridcell" data-column-index="0" data-level="1">
+<a class="lims-link" href="/instruments/messages/01a1a98a-ac40-7000-8000-000000002561">
+<time class="lims-date-text" datetime="2026-11-06T04:01:00.000Z">06/11/2026 09:46 AM</time>
+</a>
+</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="rowheader" data-column-index="1" data-level="1">SIM-CHEM-1</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="rowheader" data-column-index="2" data-level="1">Data</td>
+<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="gridcell" data-column-index="3" data-level="1">4 / 2</td>
+<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="gridcell" data-column-index="4" data-level="1">1</td>
+<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="gridcell" data-column-index="5" data-level="1">5</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="gridcell" data-column-index="6" data-level="1">
+<span class="lims-chip lims-chip-md lims-tone-success" data-tone="success">
+<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 3a9 9 0 100 18 9 9 0 000-18zM8 12l3 3 5-6">
+</path>
+</svg>Parsed</span>
+</td>
+<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="gridcell" data-column-index="7" data-level="1">412 B</td>
+</tr>
+<tr data-row-id="01a1a98a-ac40-7000-8000-000000002562" data-row-index="1" class="lims-row" style="--table-row-level: 1;" data-rac="" role="row" tabindex="-1" data-collection="ID" data-key="01a1a98a-ac40-7000-8000-000000002562" id="ID" aria-labelledby="ID ID" data-level="1">
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="gridcell" data-column-index="0" data-level="1">
+<a class="lims-link" href="/instruments/messages/01a1a98a-ac40-7000-8000-000000002562">
+<time class="lims-date-text" datetime="2026-11-06T04:02:00.000Z">06/11/2026 09:47 AM</time>
+</a>
+</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="rowheader" data-column-index="1" data-level="1">SIM-CHEM-1</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="rowheader" data-column-index="2" data-level="1">Host query</td>
+<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="gridcell" data-column-index="3" data-level="1">0 / 0</td>
+<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="gridcell" data-column-index="4" data-level="1">0</td>
+<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="gridcell" data-column-index="5" data-level="1">0</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="gridcell" data-column-index="6" data-level="1">
+<span class="lims-chip lims-chip-md lims-tone-info" data-tone="info">
+<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 8h.01M11 12h1v5h1M12 3a9 9 0 100 18 9 9 0 000-18z">
+</path>
+</svg>Shadow</span>
+</td>
+<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="gridcell" data-column-index="7" data-level="1">412 B</td>
+</tr>
+<tr data-row-id="01a1a98a-ac40-7000-8000-000000002563" data-row-index="2" class="lims-row" style="--table-row-level: 1;" data-rac="" role="row" tabindex="-1" data-collection="ID" data-key="01a1a98a-ac40-7000-8000-000000002563" id="ID" aria-labelledby="ID ID" data-level="1">
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="gridcell" data-column-index="0" data-level="1">
+<a class="lims-link" href="/instruments/messages/01a1a98a-ac40-7000-8000-000000002563">
+<time class="lims-date-text" datetime="2026-11-06T04:03:00.000Z">06/11/2026 09:48 AM</time>
+</a>
+</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="rowheader" data-column-index="1" data-level="1">SIM-CHEM-1</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="rowheader" data-column-index="2" data-level="1">Data</td>
+<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="gridcell" data-column-index="3" data-level="1">4 / 2</td>
+<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="gridcell" data-column-index="4" data-level="1">3</td>
+<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="gridcell" data-column-index="5" data-level="1">0</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="gridcell" data-column-index="6" data-level="1">
+<span class="lims-chip lims-chip-md lims-tone-danger" data-tone="danger">
+<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 3a9 9 0 100 18 9 9 0 000-18zM9 9l6 6M15 9l-6 6">
+</path>
+</svg>Quarantined</span>
+</td>
+<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="gridcell" data-column-index="7" data-level="1">412 B</td>
+</tr>
+</tbody>
+</table>
+<span data-focus-scope-end="true" hidden="">
+</span>
+<div role="status" class="lims-visually-hidden">
+</div>
+</div>
+</div>
+</div>
+</section>
+<div class="lims-toast-region">
+</div>"
+`;
+
+exports[`RS-C7 key screens (DOM snapshots) > messages: rejected uploads table 1`] = `
+"<section aria-label="Messages">
+<div class="lims-page-header">
+<nav aria-label="Breadcrumb" class="lims-breadcrumbs">
+<ol>
+<li>
+<a href="/instruments/instruments">Instruments</a>
+</li>
+<li>
+<span aria-current="page">Messages</span>
+</li>
+</ol>
+</nav>
+<div class="lims-page-header-row">
+<h1 class="lims-page-title">Messages</h1>
+<div class="lims-page-actions">
+<span data-help-key="instruments.messages">
+<button class="lims-btn lims-btn-ghost lims-btn-md" data-rac="" type="button" tabindex="0" data-ID="true" id="ID">
+<svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 3a9 9 0 100 18 9 9 0 000-18zM9.5 9.5a2.5 2.5 0 115 0c0 2-2.5 2-2.5 4M12 17h.01">
+</path>
+</svg>
+<span class="lims-btn-label">Help</span>
+</button>
+</span>
+</div>
+</div>
+</div>
+<template>
+</template>
+<div class="lims-tabs" data-rac="" data-orientation="horizontal" data-focused="true">
+<div class="lims-tablist" data-rac="" data-collection="ID" id="ID" aria-label="Message sections" role="tablist" aria-orientation="horizontal" data-orientation="horizontal">
+<div class="lims-tab" data-rac="" tabindex="-1" data-collection="ID" data-key="messages" data-ID="true" id="ID" aria-selected="false" role="tab">Messages</div>
+<div class="lims-tab" data-rac="" tabindex="0" data-collection="ID" data-key="rejections" data-ID="true" id="ID" aria-selected="true" role="tab" data-hovered="true" aria-controls="ID" data-selected="true" data-focused="true">Rejected uploads</div>
+</div>
+<div id="ID" aria-labelledby="ID" role="tabpanel" class="lims-tabpanel" data-rac="">
+<div class="lims-data-table">
+<template>
+</template>
+<span data-focus-scope-start="true" hidden="">
+</span>
+<table class="lims-table lims-table-regular lims-table-sticky" data-rac="" aria-label="Rejected uploads" id="ID" role="grid" tabindex="0" aria-describedby="" data-collection="ID">
+<thead role="rowgroup" class="ID" data-rac="">
+<tr role="row">
+<th tabindex="-1" data-collection="ID" data-key="received" id="ID" role="columnheader" aria-colindex="1" data-ID="true" class="lims-col lims-align-start" data-rac="">Received</th>
+<th tabindex="-1" data-collection="ID" data-key="agent" id="ID" role="columnheader" aria-colindex="2" data-ID="true" class="lims-col lims-align-start" data-rac="">Agent</th>
+<th tabindex="-1" data-collection="ID" data-key="instrument" id="ID" role="columnheader" aria-colindex="3" data-ID="true" class="lims-col lims-align-start" data-rac="">Claimed instrument</th>
+<th tabindex="-1" data-collection="ID" data-key="reason" id="ID" role="columnheader" aria-colindex="4" data-ID="true" class="lims-col lims-align-start" data-rac="">Reason</th>
+<th tabindex="-1" data-collection="ID" data-key="size" id="ID" role="columnheader" aria-colindex="5" data-ID="true" class="lims-col lims-align-end" data-rac="">Size</th>
+</tr>
+</thead>
+<tbody class="ID" data-rac="" role="rowgroup">
+<tr data-row-id="01a1a98a-ac40-7000-8000-000000002817" data-row-index="0" class="lims-row" style="--table-row-level: 1;" data-rac="" role="row" tabindex="-1" data-collection="ID" data-key="01a1a98a-ac40-7000-8000-000000002817" id="ID" aria-labelledby="ID" data-level="1">
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="gridcell" data-column-index="0" data-level="1">
+<time class="lims-date-text" datetime="2026-11-06T05:00:00.000Z">06/11/2026 10:45 AM</time>
+</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="gridcell" data-column-index="1" data-level="1">SYN-AGENT-1</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="gridcell" data-column-index="2" data-level="1">
+<span class="lims-id">
+<span class="lims-mono" title="01a1a98a-ac40-7000-8000-000000003737">01a1a98a…</span>
+</span>
+</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="rowheader" data-column-index="3" data-level="1">instruments.device_mismatch</td>
+<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="gridcell" data-column-index="4" data-level="1">2048 B</td>
+</tr>
+</tbody>
+</table>
+<span data-focus-scope-end="true" hidden="">
+</span>
+<div role="status" class="lims-visually-hidden">
+</div>
+</div>
+</div>
+</div>
+</section>
+<div class="lims-toast-region">
+</div>"
+`;

@@ -1,0 +1,213 @@
+{
+  "uid": "lims-d15-payments",
+  "title": "D15 Modules / Payment gateways",
+  "description": "04-UI-UX s3 D15 for C15; panels from the chunk TRD observability section (T-21).",
+  "tags": [
+    "modules",
+    "c15"
+  ],
+  "editable": false,
+  "schemaVersion": 39,
+  "version": 1,
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "refresh": "1m",
+  "templating": {
+    "list": []
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "text",
+      "title": "About this dashboard",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 2
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "Owner C15. Alert rules: `rules/payments.rules.yml`. Runbook: `infra/runbooks/payments.md`."
+      }
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "lims_payments_callbacks_total",
+      "description": "Owner C15 (Payment gateways). Metric lims_payments_callbacks_total from worker-a/b /metrics (02-TRD s11.2). Alerts: PaymentsCallbackSignatureInvalid.",
+      "gridPos": {
+        "x": 0,
+        "y": 2,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(lims_payments_callbacks_total{outcome=\"payments.signature_invalid\"}[5m]))"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "lims_payments_gateway_requests_total",
+      "description": "Owner C15 (Payment gateways). Metric lims_payments_gateway_requests_total from worker-a/b /metrics (02-TRD s11.2). Alerts: PaymentsCredentialRejected, PaymentsGatewayErrorRatio.",
+      "gridPos": {
+        "x": 12,
+        "y": 2,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(lims_payments_gateway_requests_total{outcome=~\"service_unavailable|timeout|network_error|http_error|invalid_response|auth_error\"}[5m]))"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "lims_payments_held_for_review_oldest_age_seconds",
+      "description": "Owner C15 (Payment gateways). Metric lims_payments_held_for_review_oldest_age_seconds from worker-a/b /metrics (02-TRD s11.2). Alerts: PaymentsHeldForReviewStale.",
+      "gridPos": {
+        "x": 0,
+        "y": 10,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max(lims_payments_held_for_review_oldest_age_seconds)"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "lims_payments_intents_held_total",
+      "description": "Owner C15 (Payment gateways). Metric lims_payments_intents_held_total from worker-a/b /metrics (02-TRD s11.2). Alerts: PaymentsAmountMismatch, PaymentsCriticalFinding.",
+      "gridPos": {
+        "x": 12,
+        "y": 10,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(lims_payments_intents_held_total{reason=\"amount_mismatch\"}[5m]))"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "lims_payments_open_intents_past_deadline",
+      "description": "Owner C15 (Payment gateways). Metric lims_payments_open_intents_past_deadline from worker-a/b /metrics (02-TRD s11.2). Alerts: PaymentsOpenIntentsPastDeadline.",
+      "gridPos": {
+        "x": 0,
+        "y": 18,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max(lims_payments_open_intents_past_deadline)"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "lims_payments_reconciliation_findings_total",
+      "description": "Owner C15 (Payment gateways). Metric lims_payments_reconciliation_findings_total from worker-a/b /metrics (02-TRD s11.2). Alerts: PaymentsAmountMismatch, PaymentsCriticalFinding.",
+      "gridPos": {
+        "x": 12,
+        "y": 18,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(lims_payments_reconciliation_findings_total{kind=\"amount_mismatch\"}[5m]))"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "lims_payments_reconciliation_last_success_timestamp_seconds",
+      "description": "Owner C15 (Payment gateways). Metric lims_payments_reconciliation_last_success_timestamp_seconds from worker-a/b /metrics (02-TRD s11.2). Alerts: PaymentsReconciliationMissing.",
+      "gridPos": {
+        "x": 0,
+        "y": 26,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max(lims_payments_reconciliation_last_success_timestamp_seconds)"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "lims_payments_reconciliation_stalled_runs",
+      "description": "Owner C15 (Payment gateways). Metric lims_payments_reconciliation_stalled_runs from worker-a/b /metrics (02-TRD s11.2). Alerts: PaymentsReconciliationStalled.",
+      "gridPos": {
+        "x": 12,
+        "y": 26,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max(lims_payments_reconciliation_stalled_runs)"
+        }
+      ]
+    }
+  ]
+}

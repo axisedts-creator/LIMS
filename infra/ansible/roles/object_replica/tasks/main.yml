@@ -1,0 +1,113 @@
+---
+# 02-TRD s9.5. Sync on `app`, target directory on `dr`. An empty `dr`
+# group (dev inventory) installs nothing and starts no timer.
+- name: Replica target present in this inventory
+  ansible.builtin.set_fact:
+    object_replica_on: "{{ groups['dr'] | default([]) | length > 0 }}"
+
+- name: Preconditions (interval, pinned host key, ssh key)
+  ansible.builtin.assert:
+    that:
+      - object_replica_interval_min | int > 0
+      - >-
+        not object_replica_on or 'app' not in group_names or
+        (object_replica_host_key | default('') | length > 0
+        and object_replica_ssh_key | default('') | length > 0
+        and hostvars[groups['dr'][0]].wg_ip | default('') | length > 0)
+    fail_msg: >-
+      object_replica: interval must be a positive int; app hosts need
+      object_replica_host_key, object_replica_ssh_key and the dr wg_ip
+  no_log: true
+
+# ---- dr side: replica directory on the LUKS replica volume
+- name: Replica directory on the dr host
+  ansible.builtin.file:
+    path: "{{ object_replica_dr_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0750"
+  when: "'dr' in group_names"
+
+# ---- app side: key, pinned host key, script, timers
+- name: App-side replica job
+  when:
+    - object_replica_on | bool
+    - "'app' in group_names"
+  vars:
+    object_replica_dest: >-
+      replica@{{ hostvars[groups['dr'][0]].wg_ip }}:{{
+      object_replica_dest_dir }}
+  block:
+    - name: Install rsync
+      ansible.builtin.apt:
+        name: rsync
+        state: present
+
+    - name: Directories
+      ansible.builtin.file:
+        path: "{{ item.0 }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "{{ item.1 }}"
+      loop:
+        - [/run/lims/secrets/object_replica, "0700"]
+        - [/etc/lims, "0755"]
+        - [/usr/local/lib/lims/bin, "0755"]
+        - [/var/lib/node_exporter/textfile, "0755"]
+      loop_control:
+        label: "{{ item.0 }}"
+
+    - name: SSH private key on tmpfs (object_replica_ssh_key)
+      ansible.builtin.copy:
+        content: "{{ object_replica_ssh_key }}\n"
+        dest: /run/lims/secrets/object_replica/ssh_key
+        owner: root
+        group: root
+        mode: "0600"
+      no_log: true
+
+    - name: Pinned host key of the replica sshd (port 2222)
+      ansible.builtin.copy:
+        content: >-
+          [{{ hostvars[groups['dr'][0]].wg_ip }}]:2222
+          {{ object_replica_host_key }}
+        dest: /etc/lims/object_replica_known_hosts
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Replica script
+      ansible.builtin.copy:
+        src: lims-object-replica.sh
+        dest: /usr/local/lib/lims/bin/lims-object-replica.sh
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Units
+      ansible.builtin.template:
+        src: "{{ item }}.j2"
+        dest: "/etc/systemd/system/{{ item }}"
+        owner: root
+        group: root
+        mode: "0644"
+      loop:
+        - lims-object-replica.service
+        - lims-object-replica.timer
+        - lims-object-replica-verify.service
+        - lims-object-replica-verify.timer
+      notify: Reload systemd
+
+    - name: Load new units before enabling timers
+      ansible.builtin.meta: flush_handlers
+
+    - name: Timers enabled
+      ansible.builtin.systemd_service:
+        name: "{{ item }}"
+        state: started
+        enabled: true
+      loop:
+        - lims-object-replica.timer
+        - lims-object-replica-verify.timer

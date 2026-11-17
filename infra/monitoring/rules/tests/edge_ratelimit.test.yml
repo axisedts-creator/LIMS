@@ -1,0 +1,39 @@
+# T-19 (tester, LD-39): RateLimitSpike needs a 7-day baseline. Series are sampled every 1 m for 7 d (10,081
+# samples), rules evaluated every 5 m; eval_time sits on a 5 m multiple. Synthetic series only.
+# CONTRACT: counter lims_ops_edge_rate_limited_total{zone} = nginx limit_req 429s (log-derived); the rule
+# compares the current rate to 10x its 7-day average, warn, for 10m (02-TRD s11.3; REQ-SEC-133).
+# Baseline 12/min (0.2/s); spike 240/min (4/s = 20x) starts at minute 10081 and lasts 80 min.
+rule_files:
+  - ../edge.rules.yml
+evaluation_interval: 5m
+tests:
+  - interval: 1m
+    name: 20x spike over a quiet 7 d baseline for 59 min -> RateLimitSpike warn
+    input_series:
+      - series: 'lims_ops_edge_rate_limited_total'
+        values: "0+12x10080 121200+240x80"
+    alert_rule_test:
+      - alertname: RateLimitSpike
+        eval_time: 10140m
+        exp_alerts:
+          - exp_labels: {severity: warn, team: ops}
+
+  - interval: 1m
+    name: steady 429 traffic equal to its baseline -> quiet
+    input_series:
+      - series: 'lims_ops_edge_rate_limited_total'
+        values: "0+12x10200"
+    alert_rule_test:
+      - alertname: RateLimitSpike
+        eval_time: 10140m
+        exp_alerts: []
+
+  - interval: 1m
+    name: no 429 at all (new install, zero baseline) -> quiet
+    input_series:
+      - series: 'lims_ops_edge_rate_limited_total'
+        values: "0x10200"
+    alert_rule_test:
+      - alertname: RateLimitSpike
+        eval_time: 10140m
+        exp_alerts: []

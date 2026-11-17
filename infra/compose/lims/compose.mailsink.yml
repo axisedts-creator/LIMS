@@ -1,0 +1,28 @@
+---
+# Staging-only local mail sink for GoTrue (LD-90 a/b, AC-21.2, REQ-SEC-136): no real SMTP relay outside prod.
+# Product/image = the C0 dev-stack Mailpit (C0 02-TRD line 87; tools/devstack/compose.yaml), SMTP on 1025.
+# Started by deploy.yml (env == staging): docker compose -p lims-mailsink -f compose.mailsink.yml up -d --wait
+# On auth_net (internal, created by docker_engine) only: GoTrue reaches `mailpit:1025`; no egress, nothing
+# published, no nftables SMTP exception (LD-90 c). Mail is kept in memory only (synthetic data, lost on restart).
+services:
+  mailpit:
+    image: axllent/mailpit:v1.33.0@sha256:9b3a463be15354c0f0eba91697d80e3e0d8a5623ef0e627cacc836bc17fd5231
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    tmpfs: ["/tmp"]
+    environment:                      # as the C0 dev stack: GoTrue's SMTP user/pass accepted, no TLS
+      MP_SMTP_AUTH_ACCEPT_ANY: "1"
+      MP_SMTP_AUTH_ALLOW_INSECURE: "1"
+    networks: [auth_net]
+    mem_limit: 128m
+    pids_limit: 64
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+networks:
+  auth_net: {name: auth_net, external: true}

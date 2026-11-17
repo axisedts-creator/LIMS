@@ -1,0 +1,93 @@
+---
+# 02-TRD s6.8 (T-25): lims-ratelimit + lims-auth jails, filters, ban-count metrics on the app host.
+# The sshd jail comes from the hardening role's package; jail.d/lims.local configures it too.
+# LD-45: no host names; wg_subnet comes from the active inventory.
+- name: Install fail2ban
+  ansible.builtin.apt:
+    name: fail2ban
+    state: present
+
+- name: Filters (written by C1, not stock names)
+  ansible.builtin.copy:
+    src: "{{ fail2ban_src }}/filter.d/{{ item }}.conf"
+    dest: "/etc/fail2ban/filter.d/{{ item }}.conf"
+    owner: root
+    group: root
+    mode: "0644"
+  loop: "{{ fail2ban_filters }}"
+  notify: Restart fail2ban
+
+- name: Jail file (templated, wg0 and loopback ignored)
+  ansible.builtin.template:
+    src: "{{ fail2ban_src }}/jail.d/lims.local"
+    dest: /etc/fail2ban/jail.d/lims.local
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart fail2ban
+
+# Config is checked before the handler restarts the daemon, so a bad file fails the play.
+- name: Validate fail2ban configuration
+  ansible.builtin.command: fail2ban-client -t
+  changed_when: false
+
+- name: Script directory
+  ansible.builtin.file:
+    path: /usr/local/lib/lims
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Metrics script
+  ansible.builtin.copy:
+    src: "{{ fail2ban_src }}/fail2ban_metrics.sh"
+    dest: /usr/local/lib/lims/fail2ban_metrics.sh
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Metrics units (every minute, node_exporter textfile)
+  ansible.builtin.copy:
+    dest: "/etc/systemd/system/{{ item.name }}"
+    owner: root
+    group: root
+    mode: "0644"
+    content: "{{ item.content }}"
+  loop:
+    - name: lims-fail2ban-metrics.service
+      content: |
+        [Unit]
+        Description=Export fail2ban ban counters (02-TRD s6.8)
+        After=fail2ban.service
+        [Service]
+        Type=oneshot
+        Environment=TEXTFILE_DIR={{ fail2ban_textfile_dir }}
+        ExecStart=/usr/local/lib/lims/fail2ban_metrics.sh
+    - name: lims-fail2ban-metrics.timer
+      content: |
+        [Unit]
+        Description=fail2ban ban counters every minute
+        [Timer]
+        OnCalendar=minutely
+        AccuracySec=5s
+        [Install]
+        WantedBy=timers.target
+  loop_control:
+    label: "{{ item.name }}"
+  notify: Reload systemd (fail2ban metrics units)
+
+- name: Flush handlers (daemon-reload before enabling the timer)
+  ansible.builtin.meta: flush_handlers
+
+- name: Metrics timer enabled
+  ansible.builtin.systemd_service:
+    name: lims-fail2ban-metrics.timer
+    enabled: true
+    state: started
+
+- name: Fail2ban running
+  ansible.builtin.service:
+    name: fail2ban
+    state: started
+    enabled: true

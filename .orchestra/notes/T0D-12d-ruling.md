@@ -1,0 +1,9 @@
+CR_NEEDED — IC §7 lacks 7 C3 rows that routes.yaml carries under LD-82/LD-84, so AC-0C-1.3 equality cannot be green without a spec change; CR text in .orchestra/cr/T0D-12d.md.
+1. registry-equality (contracts/__tests__/registry-equality.test.ts) is right: spec/chunks/C0-foundation-contracts/01-PRD.md:167 (AC-0C-1.3) requires routes.yaml == IC §7 entry for entry.
+2. contracts/routes.yaml:44-48 and :196-197 hold staff.catalog.{price_lists,price_list_version,price_simulator,surcharges,tax,imports,import}; none appear in spec/program/03-INTERFACE-CATALOG.md §7 (§7 starts :2261; C3 rows :2291-2294 have only test, price_list, home...).
+3. Those rows predate T0D-12d (commit fe39924d [writer] T-34, LD-82 T-35); the resolved CRs .orchestra/cr/C3.T-34.resolved-202611091641.md:9 and C3.T-35.resolved-202611100333.md:9 both said "add the ids to 03-INTERFACE-CATALOG §7", which was never done.
+4. LD-112 forbids changing other rows and says fix routes.yaml, never the catalog; deleting live C3 rows would break apps/web catalog nav (nav.manifest.ts:19,21). Only the lead can add them to IC §7 → CR.
+5. The 20 LD-112 rows themselves match IC §7 (03-INTERFACE-CATALOG.md:2315 onward); no T0D-12d implementation defect there.
+6. Separate item, TESTS_WRONG: tools/codegen/__tests__/c12-openapi.test.ts hard-codes schema name "Code" at line 159 (DTOS list), line 172 (putInventoryTenantCode: "Code") and line 411 (schema("Code")). LD-115 (binding, overrides spec text for this task) renames it to InventoryCodedSetEntry with unchanged wire JSON.
+7. Tester: replace "Code" with "InventoryCodedSetEntry" at exactly those 3 sites; change nothing else. Writer edits no test.
+8. After lead resolves the CR (adds 7 rows to IC §7) and tester fixes item 6, rerun the T0D-12d verify command with no implementation change.

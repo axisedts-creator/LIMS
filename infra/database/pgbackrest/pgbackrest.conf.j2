@@ -1,0 +1,43 @@
+# Managed by Ansible (role pgbackrest) - 02-TRD s9.2. Mounted at /etc/pgbackrest/pgbackrest.conf.
+# Cipher passes are NOT here: the role renders them into an include file on tmpfs
+# (/run/lims/secrets/pgbackrest/cipher.conf on the host, /run/secrets/pgbackrest in the container,
+# read via PGBACKREST_CONFIG_INCLUDE_PATH=/run/secrets/pgbackrest). AC-12.3.
+[global]
+# repo1: data-1 vg_repo volume
+repo1-type=posix
+repo1-path=/var/lib/pgbackrest
+repo1-cipher-type=aes-256-cbc
+repo1-retention-full-type=count
+# [CONV] about 14 days of PITR locally with weekly fulls
+repo1-retention-full=2
+{% if groups['dr'] | default([]) | length > 0 %}
+# repo2: SFTP on dr-1 (site B) over wg0; host key pinned (07-SEC A2)
+repo2-type=sftp
+repo2-sftp-host={{ hostvars[groups['dr'][0]].wg_ip }}
+repo2-sftp-host-port=2222
+repo2-sftp-host-user=pgbackrest
+repo2-sftp-private-key-file=/run/secrets/pgbackrest/sftp_key
+repo2-sftp-host-key-check-type=fingerprint
+repo2-sftp-host-fingerprint={{ pgbackrest_repo2_sftp_host_fingerprint }}
+repo2-path=/repo
+repo2-cipher-type=aes-256-cbc
+repo2-retention-full-type=time
+# [CONV] days - spans a monthly drill window (04 I3)
+repo2-retention-full=35
+{% endif %}
+archive-async=y
+spool-path=/var/spool/pgbackrest
+# [CONV] above this queued WAL is dropped (documented behaviour); alerts fire well before (s11)
+archive-push-queue-max=20GiB
+# zst "may not be available on all platforms" -> fallback lz4/gz (T-09 spike)
+compress-type={{ pgbackrest_compress_type | default('zst') }}
+process-max=4
+start-fast=y
+repo-bundle=y
+log-level-console=warn
+log-level-file=info
+
+[lims]
+pg1-path=/var/lib/postgresql/data
+pg1-socket-path=/var/run/postgresql
+pg1-user=supabase_admin

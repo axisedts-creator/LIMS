@@ -1,0 +1,251 @@
+# T-21 (tester, LD-39): promtool tests for ../payments.rules.yml. Synthetic series only (no real tenant or patient data).
+# Per alert one firing case (labels carry the rule's severity and team), one not-firing case, and for rules with a
+# `for` clause a pending-before-`for` + firing-after-`for` check. Thresholds are the owner's (02-TRD s11.3).
+rule_files:
+  - ../payments.rules.yml
+evaluation_interval: 1m
+tests:
+
+  - interval: 1m
+    name: "PaymentsAmountMismatch fires (variant 1)"
+    input_series:
+      - series: 'lims_payments_intents_held_total{reason="amount_mismatch"}'
+        values: "0+1x30"
+    alert_rule_test:
+      - alertname: PaymentsAmountMismatch
+        eval_time: 27m
+        exp_alerts:
+          - exp_labels: {severity: "page", team: "ops"}
+            exp_annotations: {summary: "A payment was held or reconciled with an amount mismatch.", runbook_url: "infra/runbooks/payments.md#paymentsamountmismatch"}
+
+  - interval: 1m
+    name: "PaymentsAmountMismatch fires (variant 2)"
+    input_series:
+      - series: 'lims_payments_reconciliation_findings_total{kind="amount_mismatch"}'
+        values: "0+1x30"
+    alert_rule_test:
+      - alertname: PaymentsAmountMismatch
+        eval_time: 27m
+        exp_alerts:
+          - exp_labels: {severity: "page", team: "ops"}
+            exp_annotations: {summary: "A payment was held or reconciled with an amount mismatch.", runbook_url: "infra/runbooks/payments.md#paymentsamountmismatch"}
+
+  - interval: 1m
+    name: "PaymentsAmountMismatch quiet"
+    input_series:
+      - series: 'lims_payments_intents_held_total{reason="amount_mismatch"}'
+        values: "0+0x30"
+      - series: 'lims_payments_reconciliation_findings_total{kind="amount_mismatch"}'
+        values: "0+0x30"
+      - series: 'lims_payments_intents_held_total{reason="other"}'
+        values: "0+1x30"
+    alert_rule_test:
+      - alertname: PaymentsAmountMismatch
+        eval_time: 27m
+        exp_alerts: []
+
+  - interval: 1m
+    name: "PaymentsCriticalFinding fires (variant 1)"
+    input_series:
+      - series: 'lims_payments_reconciliation_findings_total{kind="ledger_entry_missing"}'
+        values: "0+1x30"
+    alert_rule_test:
+      - alertname: PaymentsCriticalFinding
+        eval_time: 27m
+        exp_alerts:
+          - exp_labels: {severity: "page", team: "ops", kind: "ledger_entry_missing"}
+            exp_annotations: {summary: "Reconciliation found a critical payments finding.", runbook_url: "infra/runbooks/payments.md#paymentscriticalfinding"}
+
+  - interval: 1m
+    name: "PaymentsCriticalFinding fires (variant 2)"
+    input_series:
+      - series: 'lims_payments_intents_held_total{reason="late_payment_found"}'
+        values: "0+1x30"
+    alert_rule_test:
+      - alertname: PaymentsCriticalFinding
+        eval_time: 27m
+        exp_alerts:
+          - exp_labels: {severity: "page", team: "ops"}
+            exp_annotations: {summary: "Reconciliation found a critical payments finding.", runbook_url: "infra/runbooks/payments.md#paymentscriticalfinding"}
+
+  - interval: 1m
+    name: "PaymentsCriticalFinding quiet"
+    input_series:
+      - series: 'lims_payments_reconciliation_findings_total{kind="amount_mismatch"}'
+        values: "0+1x30"
+      - series: 'lims_payments_intents_held_total{reason="amount_mismatch"}'
+        values: "0+1x30"
+      - series: 'lims_payments_reconciliation_findings_total{kind="ledger_entry_missing"}'
+        values: "0+0x30"
+    alert_rule_test:
+      - alertname: PaymentsCriticalFinding
+        eval_time: 27m
+        exp_alerts: []
+
+  - interval: 1m
+    name: "PaymentsReconciliationMissing fires"
+    input_series:
+      - series: 'lims_payments_reconciliation_last_success_timestamp_seconds{tenant_id="t1"}'
+        values: "0x1623"
+    alert_rule_test:
+      - alertname: PaymentsReconciliationMissing
+        eval_time: 27h
+        exp_alerts:
+          - exp_labels: {severity: "page", team: "ops", tenant_id: "t1"}
+            exp_annotations: {summary: "Payments reconciliation has not succeeded for a tenant in 26 h.", runbook_url: "infra/runbooks/payments.md#paymentsreconciliationmissing"}
+
+  - interval: 1m
+    name: "PaymentsReconciliationMissing quiet"
+    input_series:
+      - series: 'lims_payments_reconciliation_last_success_timestamp_seconds{tenant_id="t1"}'
+        values: "0+60x1623"
+    alert_rule_test:
+      - alertname: PaymentsReconciliationMissing
+        eval_time: 27h
+        exp_alerts: []
+
+  - interval: 1m
+    name: "PaymentsReconciliationStalled fires"
+    input_series:
+      - series: 'lims_payments_reconciliation_stalled_runs{tenant_id="t1"}'
+        values: "1x15"
+    alert_rule_test:
+      - alertname: PaymentsReconciliationStalled
+        eval_time: 12m
+        exp_alerts:
+          - exp_labels: {severity: "warn", team: "ops", tenant_id: "t1"}
+            exp_annotations: {summary: "A payments reconciliation run is stalled.", runbook_url: "infra/runbooks/payments.md#paymentsreconciliationstalled"}
+
+  - interval: 1m
+    name: "PaymentsReconciliationStalled quiet"
+    input_series:
+      - series: 'lims_payments_reconciliation_stalled_runs{tenant_id="t1"}'
+        values: "0x15"
+    alert_rule_test:
+      - alertname: PaymentsReconciliationStalled
+        eval_time: 12m
+        exp_alerts: []
+
+  - interval: 1m
+    name: "PaymentsHeldForReviewStale fires"
+    input_series:
+      - series: 'lims_payments_held_for_review_oldest_age_seconds{tenant_id="t1",kind="late_payment"}'
+        values: "86401x15"
+    alert_rule_test:
+      - alertname: PaymentsHeldForReviewStale
+        eval_time: 12m
+        exp_alerts:
+          - exp_labels: {severity: "warn", team: "finance", tenant_id: "t1", kind: "late_payment"}
+            exp_annotations: {summary: "A payment held for review is older than 24 h.", runbook_url: "infra/runbooks/payments.md#paymentsheldforreviewstale"}
+
+  - interval: 1m
+    name: "PaymentsHeldForReviewStale quiet"
+    input_series:
+      - series: 'lims_payments_held_for_review_oldest_age_seconds{tenant_id="t1",kind="late_payment"}'
+        values: "86400x15"
+    alert_rule_test:
+      - alertname: PaymentsHeldForReviewStale
+        eval_time: 12m
+        exp_alerts: []
+
+  - interval: 1m
+    name: "PaymentsCallbackSignatureInvalid fires"
+    input_series:
+      - series: 'lims_payments_callbacks_total{gateway="gw1",outcome="payments.signature_invalid"}'
+        values: "0+1x30"
+    alert_rule_test:
+      - alertname: PaymentsCallbackSignatureInvalid
+        eval_time: 27m
+        exp_alerts:
+          - exp_labels: {severity: "warn", team: "ops", gateway: "gw1"}
+            exp_annotations: {summary: "A gateway callback failed signature verification.", runbook_url: "infra/runbooks/payments.md#paymentscallbacksignatureinvalid"}
+
+  - interval: 1m
+    name: "PaymentsCallbackSignatureInvalid quiet"
+    input_series:
+      - series: 'lims_payments_callbacks_total{gateway="gw1",outcome="payments.signature_invalid"}'
+        values: "0+0x30"
+      - series: 'lims_payments_callbacks_total{gateway="gw1",outcome="ok"}'
+        values: "0+5x30"
+    alert_rule_test:
+      - alertname: PaymentsCallbackSignatureInvalid
+        eval_time: 27m
+        exp_alerts: []
+
+  - interval: 1m
+    name: "PaymentsGatewayErrorRatio fires"
+    input_series:
+      - series: 'lims_payments_gateway_requests_total{gateway="gw1",outcome="timeout"}'
+        values: "0+30x30"
+      - series: 'lims_payments_gateway_requests_total{gateway="gw1",outcome="ok"}'
+        values: "0+70x30"
+    alert_rule_test:
+      - alertname: PaymentsGatewayErrorRatio
+        eval_time: 9m
+        exp_alerts: []
+      - alertname: PaymentsGatewayErrorRatio
+        eval_time: 27m
+        exp_alerts:
+          - exp_labels: {severity: "warn", team: "ops", gateway: "gw1"}
+            exp_annotations: {summary: "More than 20 % of calls to one gateway failing for 10 min.", runbook_url: "infra/runbooks/payments.md#paymentsgatewayerrorratio"}
+
+  - interval: 1m
+    name: "PaymentsGatewayErrorRatio quiet"
+    input_series:
+      - series: 'lims_payments_gateway_requests_total{gateway="gw1",outcome="timeout"}'
+        values: "0+10x30"
+      - series: 'lims_payments_gateway_requests_total{gateway="gw1",outcome="ok"}'
+        values: "0+90x30"
+    alert_rule_test:
+      - alertname: PaymentsGatewayErrorRatio
+        eval_time: 27m
+        exp_alerts: []
+
+  - interval: 1m
+    name: "PaymentsCredentialRejected fires"
+    input_series:
+      - series: 'lims_payments_gateway_requests_total{gateway="gw1",outcome="auth_error"}'
+        values: "0+1x30"
+    alert_rule_test:
+      - alertname: PaymentsCredentialRejected
+        eval_time: 27m
+        exp_alerts:
+          - exp_labels: {severity: "warn", team: "ops", gateway: "gw1"}
+            exp_annotations: {summary: "A gateway rejected the tenant's credentials (auth_error).", runbook_url: "infra/runbooks/payments.md#paymentscredentialrejected"}
+
+  - interval: 1m
+    name: "PaymentsCredentialRejected quiet"
+    input_series:
+      - series: 'lims_payments_gateway_requests_total{gateway="gw1",outcome="auth_error"}'
+        values: "0+0x30"
+      - series: 'lims_payments_gateway_requests_total{gateway="gw1",outcome="ok"}'
+        values: "0+5x30"
+    alert_rule_test:
+      - alertname: PaymentsCredentialRejected
+        eval_time: 27m
+        exp_alerts: []
+
+  - interval: 1m
+    name: "PaymentsOpenIntentsPastDeadline fires"
+    input_series:
+      - series: 'lims_payments_open_intents_past_deadline{gateway="gw1"}'
+        values: "1x45"
+    alert_rule_test:
+      - alertname: PaymentsOpenIntentsPastDeadline
+        eval_time: 29m
+        exp_alerts: []
+      - alertname: PaymentsOpenIntentsPastDeadline
+        eval_time: 42m
+        exp_alerts:
+          - exp_labels: {severity: "warn", team: "ops", gateway: "gw1"}
+            exp_annotations: {summary: "Open payment intents past deadline + 30 min.", runbook_url: "infra/runbooks/payments.md#paymentsopenintentspastdeadline"}
+
+  - interval: 1m
+    name: "PaymentsOpenIntentsPastDeadline quiet"
+    input_series:
+      - series: 'lims_payments_open_intents_past_deadline{gateway="gw1"}'
+        values: "0x45"
+    alert_rule_test:
+      - alertname: PaymentsOpenIntentsPastDeadline
+        eval_time: 42m
+        exp_alerts: []

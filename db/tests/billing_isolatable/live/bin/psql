@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# LD-51 (2026-11-07) T0B-11: live-run helper (test file). Host `psql` forwarded into the test container; `-f file` becomes stdin.
+name="$(docker ps -q --filter name=lims_t0b11_ | head -n1)"
+args=(); file=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    -f) file="$2"; shift 2;;
+    *) args+=("$(printf '%s' "$1" | sed -E 's#@127\.0\.0\.1:[0-9]+/#@localhost:5432/#')"); shift;;
+  esac
+done
+if [ -n "$file" ]; then exec docker exec -i "$name" psql "${args[@]}" < "$file"; fi
+exec docker exec -i "$name" psql "${args[@]}"

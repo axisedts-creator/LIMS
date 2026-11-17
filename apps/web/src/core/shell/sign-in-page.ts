@@ -8,5 +8,5 @@ export function signInPageHtml(reason: 'expired' | 'missing'): string {
     ? 'Your session expired because of inactivity. Please sign in again.'
     : 'Please sign in to continue.';
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${esc(title)}</title></head>`
-    + `<body><main data-testid="sign-in-prompt"><h1>${esc(title)}</h1><p>${esc(text)}</p><p><a href="/auth/">Sign in</a></p></main></body></html>`;
+    + `<body><main data-testid="sign-in-prompt"><h1>${esc(title)}</h1><p>${esc(text)}</p><p><a href="/auth/login">Sign in</a></p></main></body></html>`;
 }

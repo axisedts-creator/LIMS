@@ -1,0 +1,72 @@
+# T0D-18 test fixture (not a real contract): operations that exercise every pipeline stage against the dev database.
+openapi: 3.0.3
+info: { title: fixture frontdesk (T0D-18 pipeline tests), version: 1.0.0 }
+components:
+  securitySchemes:
+    bearerJwt: { type: http, scheme: bearer, bearerFormat: JWT }
+  schemas:
+    Obj: { type: object, additionalProperties: true }
+    MarkInput:
+      type: object
+      additionalProperties: false
+      required: [note]
+      properties:
+        note: { type: string, maxLength: 100 }
+        mode: { type: string, enum: [ok, bad_request, denied_commit, boom, no_assert, slow] }
+paths:
+  /v1/frontdesk/probe:
+    get:
+      operationId: probeContext
+      security: [{ bearerJwt: [] }]
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      responses:
+        '200': { description: ok, content: { application/json: { schema: { $ref: '#/components/schemas/Obj' } } } }
+  /v1/frontdesk/public-probe:
+    get:
+      operationId: publicProbe
+      security: []
+      x-public: "fixture"
+      x-idempotency: none
+      x-rate-limit-tier: general
+      responses:
+        '200': { description: ok, content: { application/json: { schema: { $ref: '#/components/schemas/Obj' } } } }
+  /v1/frontdesk/bad-shape:
+    get:
+      operationId: badShape
+      security: [{ bearerJwt: [] }]
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: false, required: [id], properties: { id: { type: string } } }
+  /v1/frontdesk/marks:
+    get:
+      operationId: listMarks
+      security: [{ bearerJwt: [] }]
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      responses:
+        '200': { description: ok, content: { application/json: { schema: { $ref: '#/components/schemas/Obj' } } } }
+    post:
+      operationId: createMark
+      security: [{ bearerJwt: [] }]
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      parameters:
+        # required:false on purpose: the PIPELINE (stage 6) must answer common.idempotency_key_required, not ajv.
+        - { name: Idempotency-Key, in: header, required: false, schema: { type: string, maxLength: 64 } }
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/MarkInput' } } }
+      responses:
+        '201': { description: created, content: { application/json: { schema: { $ref: '#/components/schemas/Obj' } } } }
+        '400': { description: bad, content: { application/json: { schema: { $ref: '#/components/schemas/Obj' } } } }
+        '403': { description: denied, content: { application/json: { schema: { $ref: '#/components/schemas/Obj' } } } }

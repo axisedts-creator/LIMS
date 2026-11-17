@@ -1,0 +1,71 @@
+---
+# 02-TRD s11.3 db family (postgres_exporter / pgbouncer_exporter metrics).
+# LD-45: nothing here names a host; prod-1 (lean) and data-1 (full) both match.
+groups:
+  - name: db
+    rules:
+      - alert: PostgresDown
+        expr: pg_up == 0
+        for: 1m
+        labels:
+          severity: page
+          team: ops
+        annotations:
+          summary: "PostgreSQL on {{ $labels.host }} is not answering."
+          runbook_url: "infra/runbooks/db.md#postgresdown"
+      - alert: PostgresConnectionsHigh
+        expr: >-
+          sum by (host) (pg_stat_activity_count)
+          / max by (host) (pg_settings_max_connections) > 0.8
+        for: 5m
+        labels:
+          severity: warn
+          team: ops
+        annotations:
+          summary: "PostgreSQL connections above 80 % of max_connections."
+          runbook_url: "infra/runbooks/db.md#postgresconnectionshigh"
+      - alert: PostgresDeadlocks
+        expr: increase(pg_stat_database_deadlocks[5m]) > 0
+        labels:
+          severity: warn
+          team: ops
+        annotations:
+          summary: "PostgreSQL reported deadlocks in the last 5 min."
+          runbook_url: "infra/runbooks/db.md#postgresdeadlocks"
+      - alert: LongRunningTx
+        expr: pg_stat_activity_max_tx_duration > 300
+        for: 5m
+        labels:
+          severity: warn
+          team: ops
+        annotations:
+          summary: "A transaction has been open for more than 5 min."
+          runbook_url: "infra/runbooks/db.md#longrunningtx"
+      - alert: PgBouncerWaiting
+        expr: pgbouncer_pools_client_waiting_connections > 0
+        for: 2m
+        labels:
+          severity: warn
+          team: ops
+        annotations:
+          summary: "Clients are waiting for a PgBouncer server connection."
+          runbook_url: "infra/runbooks/db.md#pgbouncerwaiting"
+      # 20 GiB retained by a replication slot.
+      - alert: ReplicationSlotWalRetained
+        expr: pg_replication_slots_pg_wal_lsn_diff > 20 * 1024 * 1024 * 1024
+        for: 5m
+        labels:
+          severity: page
+          team: ops
+        annotations:
+          summary: "A replication slot retains more than 20 GB of WAL."
+          runbook_url: "infra/runbooks/db.md#replicationslotwalretained"
+      - alert: PostgresInvalidIndex
+        expr: pg_invalid_indexes_count > 0
+        for: 5m
+        labels:
+          severity: page
+          team: ops
+        annotations:
+          summary: "PostgreSQL has an invalid index (pg_index.indisvalid = false)."
+          runbook_url: "infra/runbooks/db.md#postgresinvalidindex"

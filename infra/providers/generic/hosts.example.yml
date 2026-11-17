@@ -1,0 +1,46 @@
+---
+# Template for infra/ansible/inventories/<env>/hosts.yml (02-TRD s3.4).
+# Shown: prod layout (s3.1). Staging = 2 VMs, dev = 1 VM; see those files.
+# Per host:
+#   ansible_host - wg IP; Ansible connects over WireGuard only (s4)
+#   public_ip    - the VM's static public IPv4 (checklist step 3)
+#   wg_ip        - WireGuard address in the env subnet (s3.2, s12.1)
+#   disks        - private block devices by /dev/disk/by-id name (step 4)
+# Addresses below are documentation ranges (RFC 5737); replace them.
+# No secrets here: roles read them via secrets_render (s8).
+all:
+  children:
+    data:
+      hosts:
+        data-1:
+          ansible_host: 10.77.0.11
+          public_ip: 192.0.2.11
+          wg_ip: 10.77.0.11
+          disks:
+            db: /dev/disk/by-id/REPLACE-data-1-db
+            repo1: /dev/disk/by-id/REPLACE-data-1-repo1
+    app:
+      hosts:
+        app-1:
+          ansible_host: 10.77.0.21
+          public_ip: 192.0.2.21
+          wg_ip: 10.77.0.21
+          disks:
+            storage: /dev/disk/by-id/REPLACE-app-1-storage
+    dr:
+      hosts:
+        dr-1:
+          ansible_host: 10.77.0.31
+          public_ip: 198.51.100.31
+          wg_ip: 10.77.0.31
+          disks:
+            db: /dev/disk/by-id/REPLACE-dr-1-db
+            replica: /dev/disk/by-id/REPLACE-dr-1-replica
+    ops:
+      hosts:
+        ops-1:
+          ansible_host: 10.77.0.41
+          public_ip: 198.51.100.41
+          wg_ip: 10.77.0.41
+          disks:
+            data: /dev/disk/by-id/REPLACE-ops-1-data

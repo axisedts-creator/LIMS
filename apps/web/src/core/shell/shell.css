@@ -1,0 +1,231 @@
+/* Staff shell (LD-251, spec/program/13-M-SERIES.md s3; was T0D-UI-R04 / LD-140): tokens only.
+   Sidebar 296 on accent.default, fixed at the viewport height, the group list scrolls inside it; top bar 76, white. */
+.lims-shell-top { min-height: 76px; padding: 0 var(--lims-space-6); background: var(--lims-neutral-0); }
+.lims-topbar { display: flex; align-items: center; gap: var(--lims-space-4); width: 100%; }
+.lims-topbar-end { display: flex; align-items: center; gap: var(--lims-space-3); margin-inline-start: auto; }
+.lims-topbar-actor { font-weight: var(--lims-font-weight-medium); }
+/* T0D-DENSITY-1: the actor name opens the user menu (screen density) */
+.lims-user-menu { position: relative; }
+.lims-user-menu-list { position: absolute; inset-inline-end: 0; top: calc(100% + var(--lims-space-1)); }
+.lims-user-menu-heading { padding: var(--lims-space-1) var(--lims-space-2); color: var(--lims-neutral-700); font-size: var(--lims-font-size-xs-size); font-weight: var(--lims-font-weight-semibold); }
+.lims-menuitem[role='menuitemradio'] { cursor: pointer; }
+.lims-menuitem[role='menuitemradio']:focus { outline: 0.125rem solid var(--lims-focus-ring); outline-offset: -0.125rem; }
+.lims-menuitem[aria-checked='true'] { background: var(--lims-accent-subtle); font-weight: var(--lims-font-weight-semibold); }
+.lims-topbar-bell { display: inline-grid; place-items: center; min-width: var(--lims-touch-target-web); min-height: var(--lims-touch-target-web); padding: 0; border-radius: var(--lims-radius-full); }
+.lims-topbar-bell:disabled { grid-auto-flow: column; gap: var(--lims-space-2); padding-inline: var(--lims-space-3); }
+.lims-topbar-bell-note { font-size: var(--lims-font-size-xs-size); color: var(--lims-neutral-700); }
+.lims-breadcrumb ol { display: flex; gap: var(--lims-space-2); margin: 0; padding: 0; list-style: none; color: var(--lims-neutral-700); }
+.lims-breadcrumb li + li::before { content: '/'; margin-inline-end: var(--lims-space-2); color: var(--lims-neutral-500); }
+.lims-breadcrumb [aria-current='page'] { color: var(--lims-neutral-900); font-weight: var(--lims-font-weight-semibold); }
+.lims-centre-switcher { width: auto; border: 0.0625rem solid var(--lims-accent); border-radius: var(--lims-radius-full); }
+.lims-shell-menu { display: none; }
+.lims-search { position: relative; flex: 1; max-width: 560px; }
+.lims-search-input { width: 100%; padding-inline-end: var(--lims-space-8); }
+.lims-search-hint { position: absolute; inset-inline-end: var(--lims-space-2); top: 50%; transform: translateY(-50%); padding: 0 var(--lims-space-1); border-radius: var(--lims-radius-sm); background: var(--lims-neutral-100); color: var(--lims-neutral-700); font-size: var(--lims-font-size-xs-size); }
+.lims-search-results { position: absolute; inset-inline: 0; top: calc(100% + var(--lims-space-1)); margin: 0; padding: var(--lims-space-2); }
+.lims-search-results ul { list-style: none; margin: 0; padding: 0; }
+.lims-search-results a { display: flex; justify-content: space-between; gap: var(--lims-space-2); padding: var(--lims-space-1) var(--lims-space-2); border-radius: var(--lims-radius-md); color: inherit; text-decoration: none; }
+.lims-search-code { color: var(--lims-neutral-700); font-variant-numeric: tabular-nums; }
+
+/* sidebar: brand, Find a screen, scrolling groups, user card pinned at the bottom */
+.lims-shell-nav { display: flex; flex-direction: column; box-sizing: border-box; width: 296px; height: 100vh; height: 100dvh; overflow: hidden; padding: var(--lims-space-5) var(--lims-space-4); border: 0; background: var(--lims-accent); color: var(--lims-accent-fg); }
+.lims-rail { display: flex; flex: 1; flex-direction: column; gap: var(--lims-space-4); min-height: 0; }
+.lims-rail-brand { display: flex; align-items: center; gap: var(--lims-space-3); }
+.lims-rail-logo { display: block; width: 9rem; height: auto; }
+.lims-rail-tenant { overflow: hidden; color: var(--lims-accent-fg); font-size: var(--lims-font-size-sm-size); text-overflow: ellipsis; white-space: nowrap; }
+.lims-rail-close { margin-inline-start: auto; color: inherit; background: transparent; border-color: transparent; }
+/* LD-266 (T0D-MSERIES-4): flex: none so kit .lims-input { flex: 1 } does not grow the field in the column-flex rail (oval bug) */
+.lims-rail-search { flex: none; box-sizing: border-box; width: 100%; min-height: 46px; padding-inline: var(--lims-space-4); border: 0.0625rem solid color-mix(in srgb, var(--lims-accent-fg) 60%, var(--lims-accent)); border-radius: var(--lims-radius-full); background: color-mix(in srgb, var(--lims-accent-fg) 10%, var(--lims-accent)); color: var(--lims-accent-fg); }
+.lims-rail-search::placeholder { color: color-mix(in srgb, var(--lims-accent-fg) 90%, var(--lims-accent)); }
+.lims-rail-scroll { flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--lims-accent-fg) 40%, var(--lims-accent)) transparent; }
+.lims-rail-empty { margin: 0; padding: 0 var(--lims-space-2); }
+.lims-rail-group { padding-block-end: var(--lims-space-1); }
+.lims-rail-header { display: flex; align-items: center; gap: var(--lims-space-3); width: 100%; min-height: 2.875rem; padding: 0 var(--lims-space-4); border: 0; border-radius: var(--lims-radius-full); background: transparent; color: inherit; font: inherit; font-weight: var(--lims-font-weight-medium); text-align: start; cursor: pointer; }
+.lims-rail-header:hover { background: color-mix(in srgb, var(--lims-accent-fg) 12%, transparent); }
+.lims-rail-group-label { flex: 1; }
+.lims-rail-count { font-size: var(--lims-font-size-xs-size); font-variant-numeric: tabular-nums; }
+.lims-rail-chevron { flex: none; }
+.lims-rail-header[aria-expanded='true'] .lims-rail-chevron { transform: rotate(90deg); }
+.lims-rail-header[aria-expanded='true'] { font-size: var(--lims-font-size-xs-size); font-variant: small-caps; letter-spacing: 0.04em; }
+.lims-rail .lims-sidenav { display: flex; flex-direction: column; gap: var(--lims-space-0-5); margin: 0; padding: 0; list-style: none; }
+/* a closed group's list carries [hidden]; the author display above would beat the UA [hidden] rule */
+.lims-rail .lims-sidenav[hidden] { display: none; }
+.lims-rail-subheading { padding: var(--lims-space-2) var(--lims-space-4) var(--lims-space-1); font-size: var(--lims-font-size-xs-size); font-weight: var(--lims-font-weight-semibold); }
+.lims-rail-item { position: relative; display: flex; align-items: center; }
+.lims-rail-link { display: flex; flex: 1; align-items: center; gap: var(--lims-space-3); min-width: 0; min-height: 46px; padding: 0 var(--lims-space-4); border-radius: var(--lims-radius-full); color: inherit; font-weight: var(--lims-font-weight-medium); text-decoration: none; }
+.lims-rail-link:hover { background: color-mix(in srgb, var(--lims-accent-fg) 12%, transparent); }
+.lims-rail-link[aria-current='page'] { background: var(--lims-accent-highlight); color: var(--lims-neutral-900); border-radius: var(--lims-radius-full); }
+.lims-rail-icon { flex: none; }
+.lims-rail-badge, .lims-rail-viewonly, .lims-rail-create { position: absolute; inset-inline-end: var(--lims-space-2); top: 50%; transform: translateY(-50%); }
+.lims-rail-badge { min-width: var(--lims-space-6); padding: 0 var(--lims-space-2); border-radius: var(--lims-radius-full); background: var(--lims-accent-pop); color: var(--lims-neutral-900); font-size: var(--lims-font-size-xs-size); font-weight: var(--lims-font-weight-semibold); font-variant-numeric: tabular-nums; text-align: center; pointer-events: none; }
+.lims-rail-viewonly { padding: 0 var(--lims-space-2); border: 0.0625rem solid color-mix(in srgb, var(--lims-accent-fg) 60%, var(--lims-accent)); border-radius: var(--lims-radius-full); font-size: var(--lims-font-size-xs-size); pointer-events: none; }
+.lims-rail-item:has(.lims-rail-badge) .lims-rail-viewonly { inset-inline-end: var(--lims-space-12); }
+.lims-rail-create { display: inline-grid; place-items: center; width: var(--lims-space-8); height: var(--lims-space-8); border: 0.0625rem solid color-mix(in srgb, var(--lims-accent-fg) 60%, var(--lims-accent)); border-radius: var(--lims-radius-full); color: inherit; }
+.lims-rail-link[aria-current='page'] ~ .lims-rail-create { border-color: var(--lims-neutral-900); color: var(--lims-neutral-900); }
+.lims-rail-user { display: flex; flex-direction: column; padding: var(--lims-space-3) var(--lims-space-4); border-radius: var(--lims-radius-xl); background: color-mix(in srgb, var(--lims-accent-fg) 10%, var(--lims-accent)); }
+.lims-rail-user-name { font-weight: var(--lims-font-weight-semibold); }
+.lims-rail-user-role { font-size: var(--lims-font-size-sm-size); }
+/* focus in the sidebar: accent.pop (an accent.default ring would vanish on the fill) */
+.lims-shell-nav a:focus-visible, .lims-shell-nav button:focus-visible, .lims-shell-nav input:focus-visible { outline: 3px solid var(--lims-accent-pop); outline-offset: 2px; }
+/* from 1024: sidebar spans the full height on the left, top bar and page on the right (PageShell markup unchanged) */
+@media (min-width: 64rem) {
+  .lims-shell { display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-rows: auto 1fr; min-height: 100dvh; }
+  .lims-shell > .lims-shell-body { display: contents; }
+  .lims-shell > .lims-shell-top { grid-column: 2; grid-row: 1; }
+  .lims-shell-body > .lims-shell-nav { position: sticky; top: 0; grid-column: 1; grid-row: 1 / span 2; }
+  .lims-shell-body > .lims-shell-main { grid-column: 2; grid-row: 2; }
+}
+/* below 1024: the sidebar is a drawer opened by the menu button (the kit hides it there) */
+@media (max-width: 63.9375rem) {
+  /* the base display: flex above beats the kit hide rule, so hide here; [data-drawer-open] re-shows it */
+  .lims-shell-nav { display: none; }
+  .lims-shell-menu { display: inline-grid; place-items: center; min-width: var(--lims-touch-target-web); min-height: var(--lims-touch-target-web); padding: 0; border-radius: var(--lims-radius-full); }
+  .lims-shell-nav[data-drawer-open='true'] { display: flex; position: fixed; inset-block: 0; inset-inline-start: 0; z-index: var(--lims-z-drawer); max-width: 100%; box-shadow: var(--lims-elevation-3); }
+  .lims-breadcrumb { display: none; }
+}
+
+/* T0D-DENSITY-1 (LD-310, founder 2026-11-17): compact staff shell, spacing only. The 76 top bar and 46 rail pills of 13-M-SERIES s3 stay
+   (kit compact rules make the top bar controls and Find a screen 30). The bell and menu button stay square at the compact 30. */
+[data-density='compact'] .lims-shell-top { padding-inline: var(--lims-space-4); }
+[data-density='compact'] .lims-topbar { gap: var(--lims-space-3); }
+[data-density='compact'] .lims-topbar-bell, [data-density='compact'] .lims-shell-menu { min-width: 1.875rem; }
+[data-density='compact'] .lims-rail { gap: var(--lims-space-2); }
+
+/* Auth pages (WEB-STYLE-1, LD-198, LD-140): tokens, rem and % only. */
+/* WEB-STYLE-3 (LD-205): no body margin; the page fills the viewport exactly (one 100dvh, no scrollbar). */
+body { margin: 0; }
+/* T0D-MSERIES-5 (LD-276, board M1-entry): a wrapping flex like the source (form column flex 1 1 30rem up to 38.75rem, hero flex 999 1 35rem),
+   so below about 1024 px the hero drops under the form. No white card: the form sits on the white column. */
+.lims-auth-page { display: flex; flex-wrap: wrap; min-height: 100vh; min-height: 100dvh; padding: 0; background: var(--lims-neutral-0); box-sizing: border-box; }
+.lims-auth-card { display: flex; flex-direction: column; gap: var(--lims-space-5); box-sizing: border-box; width: 100%; max-width: 27.5rem; padding: 0; border: 0; background: transparent; }
+.lims-auth-logo { display: block; width: auto; height: 2.25rem; align-self: flex-start; }
+.lims-auth-main { display: flex; flex-direction: column; justify-content: space-between; gap: var(--lims-space-10); flex: 1 1 30rem; max-width: 38.75rem; min-width: 0; padding: var(--lims-space-10) var(--lims-space-16); background: var(--lims-neutral-0); box-sizing: border-box; }
+.lims-auth-pill { align-self: flex-start; padding: var(--lims-space-1) var(--lims-space-3); border-radius: var(--lims-radius-full); background: var(--lims-accent-subtle); color: var(--lims-accent-hover); font-size: var(--lims-font-size-sm-size); font-weight: var(--lims-font-weight-semibold); }
+@media (max-width: 40rem) {
+  .lims-auth-main { padding: var(--lims-space-8) var(--lims-space-6); }
+}
+.lims-auth-card h1 { margin: 0; font-size: var(--lims-font-size-md-size); font-weight: var(--lims-font-weight-semibold); }
+.lims-auth-card form { display: flex; flex-direction: column; gap: var(--lims-space-4); }
+.lims-auth-card a { color: var(--lims-accent); }
+.lims-auth-card p { margin: 0; }
+.lims-wordmark { margin: 0; color: var(--lims-accent); font-size: var(--lims-font-size-2xl-size); font-weight: var(--lims-font-weight-bold); letter-spacing: 0.12em; }
+/* WEB-STYLE-3 (LD-205): equal-width fields, Show inside the field, Required on the label row. */
+.lims-auth-card .lims-input { width: 100%; box-sizing: border-box; }
+.lims-input-wrap { position: relative; }
+.lims-input-wrap .lims-input { padding-inline-end: var(--lims-space-12); }
+.lims-input-toggle { position: absolute; inset-inline-end: var(--lims-space-1); top: 50%; transform: translateY(-50%); }
+.lims-label-row { display: flex; align-items: baseline; gap: var(--lims-space-2); }
+.lims-label-row .lims-description { margin: 0; }
+/* T0D-MSERIES-5 (board M1-entry): Forgot password? at the end of the Password label row, touch-target tall */
+.lims-label-row a { display: inline-flex; align-items: center; min-height: var(--lims-touch-target-web); margin-inline-start: auto; font-weight: var(--lims-font-weight-medium); text-decoration: none; }
+.lims-checklist { margin: 0; padding-inline-start: var(--lims-space-4); color: var(--lims-neutral-700); font-size: var(--lims-font-size-sm-size); }
+
+/* WEB-STYLE-4 (LD-213, founder 2026-11-15): designed look for the auth screens. Presentation only. Tokens, rem and % only (LD-140).
+   Motion follows 10-DESIGN-SYSTEM: 150 ms standard, nothing over 250 ms, everything plays once, reduced motion zeroes it (one rule at the end).
+   Lime (accent-brand) is used for illustration strokes and dots only, never as text. Inline SVG art, so CSP img-src 'self' data: holds. */
+@keyframes lims-rise { from { opacity: 0; transform: translateY(0.5rem); } to { opacity: 1; transform: none; } }
+@keyframes lims-fade { from { opacity: 0; } to { opacity: 1; } }
+
+/* brand panel: forest gradient (accent to accent-hover), soft lime glow, faint dot grid, line art, refined stepper */
+/* T0D-MSERIES-5 (LD-276, board M1-entry): the hero. Source hex values map to tokens: #005A52 accent, #79AD3A/#A0C032 accent-brand,
+   #E4F239 accent-pop, #ECF3D7 accent-subtle, #014D3C/#00362F accent-hover, white neutral-0, dark slabs = accent mixed with neutral-900.
+   px stays only on scene geometry (perspective, plate size, translateZ, shadows), as the source. */
+.lims-auth-panel { position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; flex: 999 1 35rem; min-width: 0; min-height: 36rem; padding: var(--lims-space-8); box-sizing: border-box; color: var(--lims-neutral-0); background: linear-gradient(145deg, var(--lims-accent) 0%, var(--lims-accent-brand) 130%); }
+/* T0D-MSERIES-6 (LD-287, LD-290): the lab photo fills the panel behind the hero (DOM order, no z-index), cover-scaled and centred so the
+   technicians stay visible; no fixed size, so a larger lab-hero.webp needs no css change. The overlay is a dark green token gradient:
+   over a pure white photo pixel accent-hover 82% gives white 5.2:1 / lime 4.9:1 and neutral-900 72% gives white 7.2:1 / lime 5.8:1.
+   On small screens the panel stays stacked under the form (M5 behaviour) and the lazy photo loads only when scrolled near. */
+.lims-auth-photo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 45%; pointer-events: none; user-select: none; }
+.lims-auth-photo-overlay { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(160deg, color-mix(in srgb, var(--lims-accent-hover) 82%, transparent) 0%, color-mix(in srgb, var(--lims-neutral-900) 72%, transparent) 100%); }
+.lims-auth-rings { position: absolute; left: 50%; top: 50%; width: 55rem; height: 55rem; max-width: none; transform: translate(-50%, -50%); fill: none; stroke: var(--lims-neutral-0); stroke-opacity: 0.12; stroke-width: 2; pointer-events: none; }
+.lims-auth-scene { position: relative; display: flex; align-items: center; justify-content: center; width: 40rem; max-width: 100%; height: 33.75rem; margin-top: -3.75rem; perspective: 1400px; perspective-origin: 50% 38%; }
+.lims-auth-plate { position: relative; flex: none; width: 520px; height: 360px; transform-style: preserve-3d; transform: rotateX(56deg) rotateZ(-30deg); animation: lims-sway 14s ease-in-out infinite; }
+.lims-auth-slab { position: absolute; inset: 0; border-radius: var(--lims-radius-xl); background: color-mix(in srgb, var(--lims-accent) 70%, var(--lims-neutral-900)); border: 1px solid color-mix(in srgb, var(--lims-neutral-0) 22%, transparent); }
+.lims-auth-slab-under { transform: translateZ(-20px); background: color-mix(in srgb, var(--lims-accent) 45%, var(--lims-neutral-900)); box-shadow: 0 70px 90px color-mix(in srgb, var(--lims-neutral-900) 55%, transparent); }
+.lims-auth-slab-top { display: grid; grid-template-columns: repeat(12, 1fr); grid-template-rows: repeat(8, 1fr); gap: 6px; padding: 24px; box-sizing: border-box; }
+.lims-auth-well { --lit: var(--lims-accent-pop); --c: 0; --r: 0; border-radius: 50%; background: var(--lims-accent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--lims-neutral-0) 14%, transparent); animation: lims-wave 5.6s ease-in-out infinite; animation-delay: calc((var(--r) + var(--c)) * 0.18s); }
+.lims-auth-well-w { --lit: var(--lims-neutral-0); }
+.lims-auth-well-l { --lit: var(--lims-accent-brand); }
+/* the wave: delay = (row + column) x 0.18 s, as the source; column from 12n+k, row from n+12r+1 (later rules win) */
+.lims-auth-well:nth-child(12n+2) { --c: 1; }
+.lims-auth-well:nth-child(12n+3) { --c: 2; }
+.lims-auth-well:nth-child(12n+4) { --c: 3; }
+.lims-auth-well:nth-child(12n+5) { --c: 4; }
+.lims-auth-well:nth-child(12n+6) { --c: 5; }
+.lims-auth-well:nth-child(12n+7) { --c: 6; }
+.lims-auth-well:nth-child(12n+8) { --c: 7; }
+.lims-auth-well:nth-child(12n+9) { --c: 8; }
+.lims-auth-well:nth-child(12n+10) { --c: 9; }
+.lims-auth-well:nth-child(12n+11) { --c: 10; }
+.lims-auth-well:nth-child(12n+12) { --c: 11; }
+.lims-auth-well:nth-child(n+13) { --r: 1; }
+.lims-auth-well:nth-child(n+25) { --r: 2; }
+.lims-auth-well:nth-child(n+37) { --r: 3; }
+.lims-auth-well:nth-child(n+49) { --r: 4; }
+.lims-auth-well:nth-child(n+61) { --r: 5; }
+.lims-auth-well:nth-child(n+73) { --r: 6; }
+.lims-auth-well:nth-child(n+85) { --r: 7; }
+.lims-auth-mark { position: absolute; left: 8%; top: 10%; width: 4.75rem; height: 4.75rem; animation: lims-bob 6s ease-in-out infinite; }
+.lims-auth-mark-ring { position: absolute; inset: 0; border-radius: var(--lims-radius-full); background: var(--lims-accent-brand); animation: lims-ring 3s ease-out infinite; }
+.lims-auth-mark img { position: relative; display: block; width: 100%; height: 100%; }
+.lims-auth-chip { position: absolute; display: flex; align-items: center; gap: var(--lims-space-3); padding: var(--lims-space-2) var(--lims-space-4) var(--lims-space-2) var(--lims-space-2); border-radius: var(--lims-radius-xl); background: var(--lims-neutral-0); color: var(--lims-neutral-900); font-size: var(--lims-font-size-base-size); font-weight: var(--lims-font-weight-semibold); white-space: nowrap; box-shadow: 0 14px 34px color-mix(in srgb, var(--lims-accent) 28%, transparent); animation: lims-bob 6s ease-in-out infinite; }
+.lims-auth-chip-report { right: 7%; top: 16%; animation-duration: 7.5s; animation-delay: -2s; }
+.lims-auth-chip-sample { right: 12%; bottom: 27%; animation-duration: 5.4s; animation-delay: -1s; }
+.lims-auth-chip-qc { left: 9%; bottom: 29%; background: var(--lims-accent-pop); color: var(--lims-accent-hover); }
+.lims-auth-chip-icon { display: grid; place-items: center; width: 2.25rem; height: 2.25rem; border-radius: var(--lims-radius-md); background: var(--lims-accent-subtle); color: var(--lims-accent); }
+.lims-auth-chip-icon svg { width: 1.125rem; height: 1.125rem; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.lims-auth-chip-dot { width: 0.625rem; height: 0.625rem; margin-inline-start: var(--lims-space-1); border-radius: var(--lims-radius-full); background: var(--lims-accent); }
+.lims-auth-tagline { position: absolute; left: 3.5rem; right: 3.5rem; bottom: 3rem; display: flex; flex-direction: column; gap: var(--lims-space-2); color: var(--lims-neutral-0); }
+.lims-auth-tagline-kicker { color: var(--lims-accent-pop); font-size: var(--lims-font-size-base-size); font-weight: var(--lims-font-weight-medium); letter-spacing: 0.14em; text-transform: uppercase; }
+.lims-auth-tagline p { max-width: 35rem; margin: 0; font-size: 2.5rem; line-height: 1.1; font-weight: var(--lims-font-weight-bold); letter-spacing: -0.03em; }
+@keyframes lims-sway { 0%, 100% { transform: rotateX(58deg) rotateZ(-36deg); } 50% { transform: rotateX(52deg) rotateZ(-22deg); } }
+@keyframes lims-wave { 0%, 100% { background: var(--lims-accent); } 45% { background: var(--lit); box-shadow: 0 0 16px var(--lit); } 62% { background: var(--lims-accent); } }
+@keyframes lims-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
+@keyframes lims-ring { 0% { transform: scale(0.9); opacity: 0.55; } 100% { transform: scale(1.6); opacity: 0; } }
+/* small screens: the plate scales down and the tagline shrinks so nothing forces a horizontal scroll */
+@media (max-width: 40rem) {
+  .lims-auth-scene { height: 22rem; margin-top: -2rem; }
+  .lims-auth-plate { scale: 0.55; }
+  .lims-auth-tagline { left: var(--lims-space-6); right: var(--lims-space-6); bottom: var(--lims-space-6); }
+  .lims-auth-tagline p { font-size: var(--lims-font-size-2xl-size); }
+}
+
+/* form column: board M1-entry heading (40 px bold forest, tight), muted text */
+.lims-auth-card { animation: lims-rise var(--lims-motion-duration-normal) var(--lims-motion-easing) both; box-shadow: none; }
+.lims-auth-card h1 { font-size: 2.5rem; line-height: 1.1; letter-spacing: -0.03em; font-weight: var(--lims-font-weight-bold); color: var(--lims-accent-hover); }
+.lims-auth-card h1 + p { color: var(--lims-neutral-500); font-size: var(--lims-font-size-md-size); }
+.lims-auth-card form { gap: var(--lims-space-5); }
+.lims-auth-badge { display: grid; place-items: center; width: 3rem; height: 3rem; border-radius: var(--lims-radius-full); background: var(--lims-accent-subtle); color: var(--lims-accent); }
+.lims-auth-badge svg { width: 1.5rem; height: 1.5rem; }
+
+/* controls: 44 touch height, leading icon, hover/focus feedback, pill primary button with arrow */
+/* T0D-MSERIES-5 (board M1-entry): 16 px rounded fields (radius-lg), neutral border (neutral-300: the source's lighter grey fails the 3:1 non-text contrast gate), 54 px tall */
+.lims-auth-card .lims-input { min-height: 3.375rem; border-color: var(--lims-neutral-300); border-radius: var(--lims-radius-lg); transition: border-color var(--lims-motion-duration-fast) var(--lims-motion-easing), box-shadow var(--lims-motion-duration-fast) var(--lims-motion-easing); }
+.lims-auth-card .lims-input:hover:not(:disabled) { border-color: var(--lims-neutral-500); }
+.lims-auth-card .lims-input:focus-visible { outline: 0.125rem solid transparent; border-color: var(--lims-accent); box-shadow: 0 0 0 0.1875rem color-mix(in srgb, var(--lims-accent) 25%, transparent); }
+.lims-input-icon { position: absolute; inset-inline-start: var(--lims-space-3); top: 50%; transform: translateY(-50%); width: 1.25rem; height: 1.25rem; color: var(--lims-neutral-500); pointer-events: none; }
+.lims-input-wrap .lims-input { padding-inline-start: var(--lims-space-10); }
+.lims-auth-card .lims-btn-primary { justify-content: center; width: 100%; min-height: 3.5rem; border-radius: var(--lims-radius-full); font-weight: var(--lims-font-weight-semibold); transition: background-color var(--lims-motion-duration-fast) var(--lims-motion-easing), border-color var(--lims-motion-duration-fast) var(--lims-motion-easing), transform var(--lims-motion-duration-fast) var(--lims-motion-easing); }
+.lims-auth-card .lims-btn-primary .lims-btn-label { display: inline-flex; align-items: center; gap: var(--lims-space-2); }
+.lims-auth-card .lims-btn-primary:active:not([data-disabled]) { transform: scale(0.98); }
+.lims-auth-card .lims-btn-primary[data-disabled] { opacity: 0.6; cursor: not-allowed; }
+.lims-btn-arrow { flex: none; width: 1.25rem; height: 1.25rem; transition: transform var(--lims-motion-duration-fast) var(--lims-motion-easing); }
+.lims-auth-card .lims-btn-primary:hover:not([data-disabled]) .lims-btn-arrow { transform: translateX(var(--lims-space-1)); }
+.lims-auth-card .lims-btn-primary[aria-busy='true'] .lims-btn-arrow { display: none; }
+.lims-auth-card [role='alert'] { animation: lims-fade var(--lims-motion-duration-fast) var(--lims-motion-easing); }
+
+/* 6-digit code: still the kit OtpInput (six cells); larger, centred, tabular figures */
+.lims-auth-card .lims-otp-cell { min-width: 0; min-height: var(--lims-touch-target-web); padding-inline: 0; font-size: var(--lims-font-size-2xl-size); font-variant-numeric: tabular-nums; letter-spacing: 0.1em; text-align: center; }
+
+/* MFA enrolment: QR and key in one tidy card; collapses cleanly when no QR image is sent */
+.lims-qr-card { display: flex; flex-direction: column; align-items: center; gap: var(--lims-space-4); padding: var(--lims-space-4); border: 0.0625rem solid var(--lims-neutral-200); border-radius: var(--lims-radius-lg); background: var(--lims-neutral-0); }
+.lims-qr-card img { max-width: 100%; height: auto; }
+.lims-qr-card .lims-data-image { width: 11rem; }
+
+/* reduced motion: one rule zeroes every animation and transition on the auth screens */
+@media (prefers-reduced-motion: reduce) {
+  .lims-auth-page *, .lims-auth-page *::before, .lims-auth-page *::after { animation-duration: 0s !important; animation-delay: 0s !important; transition-duration: 0s !important; transition-delay: 0s !important; }
+  /* T0D-MSERIES-5 (board M1-entry): the hero stops; the plate stays tilted, the wells static */
+  .lims-auth-plate { animation: none; transform: rotateX(56deg) rotateZ(-30deg); }
+  .lims-auth-well, .lims-auth-chip, .lims-auth-mark, .lims-auth-mark-ring { animation: none; }
+}

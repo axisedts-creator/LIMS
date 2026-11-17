@@ -1,0 +1,142 @@
+{# 02-TRD s11.4. Rendered by roles/monitoring onto ops-1 tmpfs
+   (/run/lims/alertmanager, no_log): every address comes from the secrets
+   alert_contacts / tenant_ops_contacts (s8.2); none is kept in git.
+   Block tags at column 0 -> valid YAML with or without trim_blocks. #}
+{% set lab = (lab_hours | default('06:00-20:00')).split('-') %}
+{% set site_a = (groups['data'] | default([])) + (groups['app'] | default([])) %}
+global:
+  smtp_smarthost: "{{ smtp_relay_fqdn }}:587"
+  smtp_from: "{{ smtp_from }}"
+  smtp_auth_username: "{{ alertmanager_smtp_relay.user }}"
+  smtp_auth_password_file: /etc/alertmanager/secrets/smtp_password
+  smtp_require_tls: true
+
+templates:
+  - templates/*.tmpl
+
+time_intervals:
+  - name: lab_hours
+    time_intervals:
+      - times:
+          - start_time: "{{ lab[0] }}"
+            end_time: "{{ lab[1] }}"
+        location: Asia/Kathmandu
+
+route:
+  receiver: ops-digest-email
+  group_by: [alertname, host, tenant_id]
+  group_wait: 30s
+  group_interval: 30m
+  repeat_interval: 12h
+  routes:
+    # Dead man's switch: only the second mailbox, every 6 h.
+    - matchers: ['alertname="Watchdog"']
+      receiver: watchdog-email
+      group_interval: 5m
+      repeat_interval: 6h
+    # Copy to the tenant's lab-ops contact (no PHI in the template), then
+    # continue to the normal ops routing.
+{% for tid, _addr in tenant_ops_contacts | dictsort %}
+    - matchers: ['notify_tenant="true"', 'tenant_id="{{ tid }}"']
+      receiver: tenant-admin-email-{{ tid }}
+      continue: true
+{% endfor %}
+    - matchers: ['team="finance"']
+      receiver: finance-oncall-email
+      group_wait: 10s
+      group_interval: 5m
+      repeat_interval: 4h
+    # AC-06.3 (T-26): Studio break-glass is on -> reminder every hour (before the generic info route).
+    - matchers: ['alertname="StudioEnabled"']
+      receiver: ops-digest-email
+      group_interval: 5m
+      repeat_interval: 1h
+    - matchers: ['severity="info"']
+      receiver: dashboard-only
+    - matchers: ['alertname="BridgeAgentOfflineLong"']
+      receiver: oncall-email
+      active_time_intervals: [lab_hours]
+      group_wait: 10s
+      group_interval: 5m
+      repeat_interval: 4h
+    - matchers: ['severity="page"']
+      receiver: oncall-email
+      group_wait: 10s
+      group_interval: 5m
+      repeat_interval: 4h
+    - matchers: ['severity="warn"']
+      receiver: ops-digest-email
+      group_interval: 30m
+
+inhibit_rules:
+  # TargetDown{host="data-1"} silences the DB-family alerts (s11.3 db row)
+  # from that host only; backup/WAL alerts stay live.
+{% set db_family = ['PostgresDown', 'PostgresConnectionsHigh',
+   'PostgresDeadlocks', 'LongRunningTx', 'PgBouncerWaiting',
+   'ReplicationSlotWalRetained', 'PostgresInvalidIndex'] %}
+{% for h in groups['data'] | default([]) %}
+  - source_matchers: ['alertname="TargetDown"', 'host="{{ h }}"']
+    target_matchers: ['host="{{ h }}"', 'alertname=~"{{ db_family | join('|') }}"']
+{% endfor %}
+  # SiteADown silences per-service alerts on every site A host.
+  - source_matchers: ['alertname="SiteADown"']
+    target_matchers: ['host=~"{{ site_a | join('|') }}"', 'alertname!="SiteADown"']
+
+receivers:
+  - name: dashboard-only
+  - name: oncall-email
+    email_configs:
+      - to: "{{ alert_contacts.oncall }}"
+        send_resolved: true
+{% raw %}
+        headers: {Subject: '{{ template "lims.mail.subject" . }}'}
+        html: '{{ template "lims.mail.html" . }}'
+        text: '{{ template "lims.mail.text" . }}'
+{% endraw %}
+      # [CONV] escalation gets a copy of every page (Alertmanager has no ack-based escalation).
+      - to: "{{ alert_contacts.escalation }}"
+        send_resolved: true
+{% raw %}
+        headers: {Subject: '[escalation] {{ template "lims.mail.subject" . }}'}
+        html: '{{ template "lims.mail.html" . }}'
+        text: '{{ template "lims.mail.text" . }}'
+{% endraw %}
+  - name: ops-digest-email
+    email_configs:
+      - to: "{{ alert_contacts.oncall }}"
+        send_resolved: false
+{% raw %}
+        headers: {Subject: '[digest] {{ template "lims.mail.subject" . }}'}
+        html: '{{ template "lims.mail.html" . }}'
+        text: '{{ template "lims.mail.text" . }}'
+{% endraw %}
+  - name: finance-oncall-email
+    email_configs:
+      - to: "{{ alert_contacts.finance_oncall }}"
+        send_resolved: true
+{% raw %}
+        headers: {Subject: '{{ template "lims.mail.subject" . }}'}
+        html: '{{ template "lims.mail.html" . }}'
+        text: '{{ template "lims.mail.text" . }}'
+{% endraw %}
+  - name: watchdog-email
+    email_configs:
+      - to: "{{ alert_contacts.watchdog }}"
+        send_resolved: false
+{% raw %}
+        headers: {Subject: '{{ template "lims.mail.subject" . }}'}
+        text: '{{ template "lims.mail.text" . }}'
+{% endraw %}
+  # Disabled until founder approval (CR-C1-006; B11): no config, never routed.
+  - name: oncall-sms
+{% for tid, addr in tenant_ops_contacts | dictsort %}
+  - name: tenant-admin-email-{{ tid }}
+    email_configs:
+      - to: "{{ addr }}"
+        send_resolved: true
+{% raw %}
+        headers: {Subject: '{{ template "lims.mail.subject" . }}'}
+        html: '{{ template "lims.mail.html" . }}'
+        text: '{{ template "lims.mail.text" . }}'
+{% endraw %}
+{% endfor %}

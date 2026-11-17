@@ -1,0 +1,10 @@
+[Unit]
+Description=Container health metric every 30 s (02-TRD s11.1)
+
+[Timer]
+OnBootSec=30s
+OnUnitActiveSec=30s
+AccuracySec=1s
+
+[Install]
+WantedBy=timers.target

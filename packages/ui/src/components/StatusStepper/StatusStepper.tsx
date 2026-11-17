@@ -1,3 +1,5 @@
+import { Icon } from '../Icon/Icon';
+
 export interface StatusStep {
   id: string;
   label: string;
@@ -11,6 +13,8 @@ export interface StatusStepperProps {
   'data-testid'?: string;
 }
 
+// Tone + icon + word per step, a distinct icon per state (LD-140, 10-DESIGN-SYSTEM §6).
+const ICON = { done: 'success', current: 'current', upcoming: 'neutral', failed: 'danger', cancelled: 'close' } as const;
 const STATE = { done: 'Complete', current: 'Current', upcoming: 'Upcoming', failed: 'Failed', cancelled: 'Cancelled' } as const;
 
 /** Linear progress (C3 import batches). Each step's state is text (04 §5.4). Unknown currentId -> all upcoming. */
@@ -24,6 +28,7 @@ export function StatusStepper({ steps, currentId, outcome, ...rest }: StatusStep
           const tone = state === 'done' ? 'success' : state === 'current' ? 'info' : state === 'failed' ? 'danger' : 'neutral';
           return (
             <li key={s.id} className={`lims-step lims-step-${state}`} data-tone={tone} {...(i === cur ? { 'aria-current': 'step' as const } : {})}>
+              <Icon name={ICON[state]} size={14} />
               <span className="lims-step-label">{s.label}</span> <span className="lims-step-state">({STATE[state]})</span>
             </li>
           );

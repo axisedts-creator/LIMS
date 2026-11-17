@@ -1,4 +1,5 @@
 import { useId, useRef, useState, type KeyboardEvent } from 'react';
+import { StatusChip } from '../StatusChip/StatusChip';
 
 export interface PermissionModule {
   id: string;
@@ -109,11 +110,8 @@ export function PermissionMatrix({ label, modules, permissions, value, onChange,
                         />
                         <span className="lims-mono">{p.code}</span>
                       </label>
-                      {p.isPrivileged ? (
-                        <span className="lims-chip lims-chip-sm lims-tone-warning" data-tone="warning">
-                          Privileged
-                        </span>
-                      ) : null}
+                      {/* tone + icon + word (LD-140) */}
+                      {p.isPrivileged ? <StatusChip kind="generic" status="privileged" tone="warning" label="Privileged" size="sm" /> : null}
                       {!enabled && p.unassignableReason ? (
                         <span id={hintId} className="lims-description">
                           {p.unassignableReason}

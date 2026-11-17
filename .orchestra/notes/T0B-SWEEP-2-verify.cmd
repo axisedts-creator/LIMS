@@ -1,0 +1,1 @@
+pnpm --filter @lims/api sweep && pnpm --dir services/api exec vitest run test-sweep/__tests__/depth test-sweep/__tests__/pace test-sweep/__tests__/request test-sweep/__tests__/summary test-sweep/__tests__/partner-seed test-sweep/__tests__/sweep2-artifacts test-sweep/__tests__/classifier

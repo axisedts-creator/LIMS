@@ -1,0 +1,32 @@
+---
+# C8 alert rules (02-TRD §13 "Alert rules for C1", CR-C8-015). expr/for verbatim from the TRD table;
+# C1 adds severity, team and runbook_url when it imports this file (infra/monitoring/rules/imported/analytics.rules.yml).
+groups:
+  - name: analytics
+    rules:
+      - alert: AnalyticsFamilyStale
+        expr: >-
+          max by (tenant_id, family) (lims_analytics_family_stale) == 1
+        for: 60m
+      - alert: AnalyticsRefreshFailing
+        expr: >-
+          sum by (family) (increase(lims_analytics_refresh_failures_total[30m]))
+          >= 3
+        for: 0m
+      - alert: AnalyticsReconciliationMismatch
+        expr: >-
+          sum by (rule, family) (increase(lims_analytics_reconciliation_mismatch_total[15m]))
+          > 0
+        for: 0m
+      - alert: AnalyticsExportSpike
+        expr: >-
+          sum by (tenant_id) (increase(lims_analytics_exports_total[24h]))
+          > 3 * (sum by (tenant_id) (increase(lims_analytics_exports_total[14d]))
+          / 14) and sum by (tenant_id) (increase(lims_analytics_exports_total[24h]))
+          >= 10
+        for: 0m
+      - alert: AnalyticsConsumerDeadLetter
+        expr: >-
+          increase(lims_core_dead_letters_total{task=~"(evt\\.)?analytics\\..*"}[5m])
+          > 0
+        for: 0m

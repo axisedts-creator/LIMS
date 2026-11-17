@@ -1,0 +1,19 @@
+{
+  "ok": true,
+  "messageKind": "results",
+  "messageControlId": "60",
+  "messageTimeLocal": "2026-11-14T09:45:00",
+  "records": [
+    {
+      "recordSeq": 1, "recordClass": "patient", "sampleBarcode": "MT2600000043", "recordKind": "qualitative",
+      "instrumentAnalyteCode": "1112", "valueRaw": "+",
+      "instrumentFlags": [], "instrumentResultTimeLocal": "2026-11-14T09:44:30", "warnings": []
+    },
+    {
+      "recordSeq": 2, "recordClass": "patient", "sampleBarcode": "MT2600000043", "recordKind": "qualitative",
+      "instrumentAnalyteCode": "1113", "valueRaw": "-",
+      "instrumentFlags": [], "instrumentResultTimeLocal": "2026-11-14T09:44:31", "warnings": []
+    }
+  ],
+  "warnings": []
+}

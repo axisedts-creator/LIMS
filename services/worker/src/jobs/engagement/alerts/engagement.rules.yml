@@ -1,0 +1,74 @@
+# C16 patient-engagement alert rules (02-TRD §13 "Alerts (rules shipped to C1, REQ-SEC-133)"; 08 A13 P-14: C1 wires this file through one CR).
+# [CONV] `for` is 15m unless the condition states a window (EngagementDisplayStale: 10m). Every rule routes to the C1 tenant-ops channel.
+# severity: high -> page, medium -> warn, low -> info (C1 receivers). C1 adds team + runbook_url on import.
+# Times: NPT = UTC+05:45, so 07:00-19:00 NPT = 01:15-13:15 UTC (75..795 minutes of the UTC day).
+groups:
+  - name: engagement
+    rules:
+      - alert: EngagementOtpVerifyFailureSpike
+        expr: >-
+          (sum by (tenant_id) (increase(lims_engagement_otp_verifications_total{outcome=~"invalid|exhausted"}[15m]))
+          / sum by (tenant_id) (increase(lims_engagement_otp_verifications_total[15m])) > 0.5)
+          and (sum by (tenant_id) (increase(lims_engagement_otp_verifications_total[15m])) >= 50)
+        for: 15m
+        labels:
+          severity: page
+        annotations:
+          summary: More than 50% of OTP verifications failed (invalid or exhausted) over 15 min with at least 50 attempts
+      - alert: EngagementOtpDailyCapReached
+        expr: sum by (tenant_id) (increase(lims_engagement_otp_requests_total{outcome="cap_reached"}[15m])) > 0
+        for: 15m
+        labels:
+          severity: page
+        annotations:
+          summary: Daily OTP cap reached for a tenant (possible SMS pumping)
+      - alert: EngagementLinkRedeemFailures
+        expr: sum by (tenant_id) (increase(lims_engagement_link_events_total{outcome="invalid"}[1h])) > 20
+        for: 15m
+        labels:
+          severity: page
+        annotations:
+          summary: More than 20 invalid link-code redemptions in one hour for a tenant
+      # TRD condition is per membership (> 50 codes per business day) and comes from an access-log query job, which PromQL cannot express with the §13 labels.
+      # [CONV] tenant-level proxy over the §13 link-event counter; the per-membership check stays in the access-log job (open point in the impl note).
+      - alert: EngagementLinkIssueVolume
+        expr: sum by (tenant_id) (increase(lims_engagement_link_events_total{outcome="issued"}[1d])) > 50
+        for: 15m
+        labels:
+          severity: warn
+        annotations:
+          summary: Link codes issued above 50 per business day (insider-abuse check)
+      - alert: EngagementProjectionLag
+        expr: histogram_quantile(0.95, sum by (tenant_id, le) (rate(lims_engagement_projection_lag_seconds_bucket[5m]))) > 300
+        for: 15m
+        labels:
+          severity: warn
+        annotations:
+          summary: Projection lag p95 above 5 min for 15 min
+      - alert: EngagementDisplayStale
+        expr: >-
+          max by (tenant_id) (lims_engagement_displays_stale) > 0
+          and on() ((hour() * 60 + minute()) >= 75)
+          and on() ((hour() * 60 + minute()) < 795)
+        for: 10m
+        labels:
+          severity: info
+        annotations:
+          summary: Queue display not refreshed for 10 min during opening hours (07:00-19:00 NPT)
+      - alert: EngagementPaymentFailures
+        expr: >-
+          (sum by (tenant_id) (increase(lims_engagement_payment_requests_total{outcome="failed"}[1h]))
+          / sum by (tenant_id) (increase(lims_engagement_payment_requests_total[1h])) > 0.2)
+          and (sum by (tenant_id) (increase(lims_engagement_payment_requests_total[1h])) >= 10)
+        for: 15m
+        labels:
+          severity: warn
+        annotations:
+          summary: More than 20% of payment requests failed over 1 h with at least 10 requests
+      - alert: EngagementDeadLetters
+        expr: 'sum by (task) (increase(lims_core_dead_letters_total{task=~"engagement\\..*"}[15m])) > 0'
+        for: 15m
+        labels:
+          severity: warn
+        annotations:
+          summary: Dead-lettered engagement.* task (02-CV §7.5)

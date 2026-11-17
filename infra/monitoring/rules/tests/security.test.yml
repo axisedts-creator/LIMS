@@ -1,0 +1,111 @@
+# T-19 (tester, LD-39): promtool tests for rules/security.rules.yml (1 m series). Synthetic series only.
+# CONTRACT (02-TRD s11.3: "log-derived counters produced by Fluent Bit's log-to-metrics filter"; names pinned here):
+#   lims_ops_ssh_login_outside_ops_total{host}      -> SshLoginOutsideOps     page (increase > 0, keeps host)
+#   lims_ops_sudo_by_unknown_total{host}            -> SudoByUnknown          page
+#   lims_ops_secret_decrypt_unexpected_total{host}  -> SecretDecryptUnexpected page
+#   lims_ops_fail2ban_bans_total{jail="lims-auth"}  -> LimsAuthJailBan        page, notify_tenant="false" (08 A3.2; AC-04.5)
+# Counters: the first sample of a series is a baseline, only an increase fires. `for` <= 2 m.
+rule_files:
+  - ../security.rules.yml
+evaluation_interval: 1m
+tests:
+  - interval: 1m
+    name: SshLoginOutsideOps page when the counter increases
+    input_series:
+      - series: 'lims_ops_ssh_login_outside_ops_total{host="app-1"}'
+        values: "0x30 1x30"
+    alert_rule_test:
+      - alertname: SshLoginOutsideOps
+        eval_time: 33m
+        exp_alerts:
+          - exp_labels: {severity: page, team: ops, host: app-1}
+
+  - interval: 1m
+    name: SshLoginOutsideOps quiet on a flat counter
+    input_series:
+      - series: 'lims_ops_ssh_login_outside_ops_total{host="app-1"}'
+        values: "4x60"
+    alert_rule_test:
+      - alertname: SshLoginOutsideOps
+        eval_time: 33m
+        exp_alerts: []
+
+  - interval: 1m
+    name: SudoByUnknown page when the counter increases
+    input_series:
+      - series: 'lims_ops_sudo_by_unknown_total{host="prod-1"}'
+        values: "0x30 2x30"
+    alert_rule_test:
+      - alertname: SudoByUnknown
+        eval_time: 33m
+        exp_alerts:
+          - exp_labels: {severity: page, team: ops, host: prod-1}
+
+  - interval: 1m
+    name: SudoByUnknown quiet on a flat counter
+    input_series:
+      - series: 'lims_ops_sudo_by_unknown_total{host="prod-1"}'
+        values: "0x60"
+    alert_rule_test:
+      - alertname: SudoByUnknown
+        eval_time: 33m
+        exp_alerts: []
+
+  - interval: 1m
+    name: SecretDecryptUnexpected page when the counter increases
+    input_series:
+      - series: 'lims_ops_secret_decrypt_unexpected_total{host="ops-1"}'
+        values: "0x30 1x30"
+    alert_rule_test:
+      - alertname: SecretDecryptUnexpected
+        eval_time: 33m
+        exp_alerts:
+          - exp_labels: {severity: page, team: ops, host: ops-1}
+
+  - interval: 1m
+    name: SecretDecryptUnexpected quiet on a flat counter
+    input_series:
+      - series: 'lims_ops_secret_decrypt_unexpected_total{host="ops-1"}'
+        values: "9x60"
+    alert_rule_test:
+      - alertname: SecretDecryptUnexpected
+        eval_time: 33m
+        exp_alerts: []
+
+  - interval: 1m
+    name: AC-04.5 LimsAuthJailBan page on a lims-auth ban, never attributable to a tenant
+    input_series:
+      - series: 'lims_ops_fail2ban_bans_total{jail="lims-auth", host="app-1"}'
+        values: "0x30 1x30"
+    alert_rule_test:
+      - alertname: LimsAuthJailBan
+        eval_time: 33m
+        exp_alerts:
+          - exp_labels:
+              severity: page
+              team: ops
+              notify_tenant: "false"
+              jail: lims-auth
+              host: app-1
+
+  - interval: 1m
+    name: LimsAuthJailBan ignores bans of other jails
+    input_series:
+      - series: 'lims_ops_fail2ban_bans_total{jail="lims-ratelimit", host="app-1"}'
+        values: "0x30 5x30"
+      - series: 'lims_ops_fail2ban_bans_total{jail="sshd", host="app-1"}'
+        values: "0x30 5x30"
+    alert_rule_test:
+      - alertname: LimsAuthJailBan
+        eval_time: 33m
+        exp_alerts: []
+
+  - interval: 1m
+    name: LimsAuthJailBan quiet when the lims-auth counter is flat
+    input_series:
+      - series: 'lims_ops_fail2ban_bans_total{jail="lims-auth", host="app-1"}'
+        values: "7x60"
+    alert_rule_test:
+      - alertname: LimsAuthJailBan
+        eval_time: 33m
+        exp_alerts: []

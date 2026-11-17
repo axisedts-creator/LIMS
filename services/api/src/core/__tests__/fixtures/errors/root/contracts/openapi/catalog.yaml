@@ -1,0 +1,142 @@
+# Test-only spec for T0D-04 error-contract tests (not a real contract). All operations public so no security handlers are needed.
+# Most operations declare NO error responses on purpose: the core must still answer problem+json (also with response validation on).
+openapi: 3.0.3
+info: { title: fixture catalog (errors), version: 1.0.0 }
+paths:
+  /v1/catalog/boom:
+    get:
+      operationId: boom
+      security: []
+      x-public: "fixture"
+      x-idempotency: none
+      x-rate-limit-tier: general
+      responses:
+        '200': { description: ok, content: { application/json: { schema: { type: object } } } }
+  /v1/catalog/lims/{code}:
+    get:
+      operationId: limsError
+      security: []
+      x-public: "fixture"
+      x-idempotency: none
+      x-rate-limit-tier: general
+      parameters:
+        - { name: code, in: path, required: true, schema: { type: string, maxLength: 100 } }
+      responses:
+        '200': { description: ok, content: { application/json: { schema: { type: object } } } }
+  /v1/catalog/detail:
+    get:
+      operationId: withDetail
+      security: []
+      x-public: "fixture"
+      x-idempotency: none
+      x-rate-limit-tier: general
+      responses:
+        '200': { description: ok, content: { application/json: { schema: { type: object } } } }
+  /v1/catalog/retry:
+    get:
+      operationId: rateLimited
+      security: []
+      x-public: "fixture"
+      x-idempotency: none
+      x-rate-limit-tier: general
+      responses:
+        '200': { description: ok, content: { application/json: { schema: { type: object } } } }
+  /v1/catalog/validate:
+    post:
+      operationId: validateBody
+      security: []
+      x-public: "fixture"
+      x-idempotency: none
+      x-rate-limit-tier: general
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [name]
+              properties:
+                name: { type: string, maxLength: 20 }
+                qty: { type: integer, minimum: 1, maximum: 9 }
+      responses:
+        '200': { description: ok, content: { application/json: { schema: { type: object } } } }
+  /v1/catalog/query:
+    get:
+      operationId: queryParam
+      security: []
+      x-public: "fixture"
+      x-idempotency: none
+      x-rate-limit-tier: general
+      parameters:
+        - { name: limit, in: query, required: false, schema: { type: integer, minimum: 1, maximum: 200 } }
+      responses:
+        '200': { description: ok, content: { application/json: { schema: { type: object } } } }
+  /v1/catalog/fielderrors:
+    get:
+      operationId: fieldErrors
+      security: []
+      x-public: "fixture"
+      x-idempotency: none
+      x-rate-limit-tier: general
+      responses:
+        '200': { description: ok, content: { application/json: { schema: { type: object } } } }
+  /v1/catalog/rawdb:
+    get:
+      operationId: rawDb
+      security: []
+      x-public: "fixture"
+      x-idempotency: none
+      x-rate-limit-tier: general
+      responses:
+        '200': { description: ok, content: { application/json: { schema: { type: object } } } }
+  /v1/catalog/mapped/{sqlstate}:
+    get:
+      operationId: mappedDb
+      security: []
+      x-public: "fixture"
+      x-idempotency: none
+      x-rate-limit-tier: general
+      parameters:
+        - { name: sqlstate, in: path, required: true, schema: { type: string, maxLength: 5 } }
+      responses:
+        '200': { description: ok, content: { application/json: { schema: { type: object } } } }
+  /v1/catalog/weird/{kind}:
+    get:
+      operationId: weird
+      security: []
+      x-public: "fixture"
+      x-idempotency: none
+      x-rate-limit-tier: general
+      parameters:
+        - { name: kind, in: path, required: true, schema: { type: string, maxLength: 40 } }
+      responses:
+        '200': { description: ok, content: { application/json: { schema: { type: object } } } }
+  /v1/catalog/echo:
+    post:
+      operationId: echo
+      security: []
+      x-public: "fixture"
+      x-idempotency: none
+      x-rate-limit-tier: general
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                name: { type: string }
+      responses:
+        '200': { description: ok, content: { application/json: { schema: { type: object } } } }
+  /v1/catalog/declared:
+    get:
+      operationId: declared
+      security: []
+      x-public: "fixture"
+      x-idempotency: none
+      x-rate-limit-tier: general
+      responses:
+        '200': { description: ok, content: { application/json: { schema: { type: object } } } }
+        '404': { description: not found, content: { application/problem+json: { schema: { type: object } } } }

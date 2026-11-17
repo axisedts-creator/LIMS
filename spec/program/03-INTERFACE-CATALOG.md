@@ -2026,6 +2026,9 @@ export interface BillingCommandPortV1 {
     cause: 'order_cancelled' | 'item_removed'; reasonCode: Code }): Promise<{ required: boolean; taskIds: readonly Uuidv7[] }>;
   getOrderBillingSummary(ctx: RequestContext, input: { orderId: Uuidv7 }): Promise<{
     invoiceIds: readonly Uuidv7[]; hasIssuedInvoice: boolean; creditChargeIds: readonly Uuidv7[]; balance: OrderBalance }>;
+  /** Read only preview of the next invoice number (INV series, current BS fiscal year): last_no + 1, or the first number of the year when no counter row exists.
+   *  No write, no nextval, no lock, no counter consumed; two callers may see the same value; the real number is assigned when saved (LD-323). */
+  previewInvoiceNo(ctx: RequestContext, input: Record<string, never>): Promise<{ invoiceNo: string }>;
 }
 export type BillingCommandPort = BillingCommandPortV1;
 ```
@@ -2290,6 +2293,27 @@ routes:
   - { id: staff.reporting.delivery,         origin: staff_web, path: "/reporting/deliveries/{delivery_id}",       owner: C6,  permission: reporting.delivery.read }
   - { id: staff.catalog.test,               origin: staff_web, path: "/catalog/tests/{test_id}",                  owner: C3,  permission: catalog.test.read }
   - { id: staff.catalog.price_list,         origin: staff_web, path: "/catalog/price-lists/{price_list_id}",      owner: C3,  permission: catalog.price_list.read }
+  # LD-71 / CR-C3-031-a: SCR-01..05 (C3 04-UI-UX section 1)
+  - { id: staff.catalog.home,               origin: staff_web, path: /catalog,                                  owner: C3,  permission: catalog.test.read }
+  - { id: staff.catalog.departments,        origin: staff_web, path: /catalog/departments,                      owner: C3,  permission: catalog.test.read }
+  - { id: staff.catalog.specimens,          origin: staff_web, path: /catalog/specimens,                        owner: C3,  permission: catalog.test.read }
+  - { id: staff.catalog.methods,            origin: staff_web, path: /catalog/methods,                          owner: C3,  permission: catalog.test.read }
+  - { id: staff.catalog.units,              origin: staff_web, path: /catalog/units,                            owner: C3,  permission: catalog.test.read }
+  # LD-76 / CR-C3-033-a: SCR-09..12 (C3 04-UI-UX section 1)
+  - { id: staff.catalog.panels,             origin: staff_web, path: /catalog/panels,                           owner: C3,  permission: catalog.test.read }
+  - { id: staff.catalog.panel,              origin: staff_web, path: "/catalog/panels/{panel_id}",                owner: C3,  permission: catalog.test.read }
+  - { id: staff.catalog.comment_codes,      origin: staff_web, path: /catalog/comment-codes,                    owner: C3,  permission: catalog.test.read }
+  - { id: staff.catalog.doctors,            origin: staff_web, path: /catalog/doctors,                          owner: C3,  permission: catalog.referrer.read }
+  - { id: staff.catalog.doctor_verify,      origin: staff_web, path: /catalog/doctors/verify,                   owner: C3,  permission: catalog.referrer.read }
+  - { id: staff.catalog.doctor,             origin: staff_web, path: "/catalog/doctors/{doctor_id}",              owner: C3,  permission: catalog.referrer.read }
+  - { id: staff.catalog.credit_parties,     origin: staff_web, path: /catalog/credit-parties,                   owner: C3,  permission: catalog.price_list.read }
+  - { id: staff.catalog.credit_party,       origin: staff_web, path: "/catalog/credit-parties/{credit_party_id}", owner: C3,  permission: catalog.price_list.read }
+  # LD-84 / CR-C3-034-a: SCR-13…17 (04-UI-UX §1)
+  - { id: staff.catalog.price_lists,         origin: staff_web, path: /catalog/price-lists,                       owner: C3,  permission: catalog.price_list.read }
+  - { id: staff.catalog.price_list_version,  origin: staff_web, path: "/catalog/price-lists/{price_list_id}/versions/{version_id}", owner: C3, permission: catalog.price_list.read }
+  - { id: staff.catalog.price_simulator,     origin: staff_web, path: /catalog/price-simulator,                   owner: C3,  permission: catalog.price_list.read }
+  - { id: staff.catalog.surcharges,          origin: staff_web, path: /catalog/surcharges,                        owner: C3,  permission: catalog.price_list.read }
+  - { id: staff.catalog.tax,                 origin: staff_web, path: /catalog/tax,                               owner: C3,  permission: catalog.price_list.read }
   - { id: staff.instruments.agent,          origin: staff_web, path: "/instruments/agents/{agent_id}",            owner: C7,  permission: instruments.agent.read }
   - { id: staff.instruments.message,        origin: staff_web, path: "/instruments/messages/{instrument_message_id}", owner: C7, permission: instruments.message.read }
   - { id: staff.analytics.dashboard,        origin: staff_web, path: /analytics,                                owner: C8,  permission: analytics.dashboard.read }
@@ -2297,11 +2321,46 @@ routes:
   - { id: staff.admin.audit_entry,          origin: staff_web, path: "/admin/audit/{audit_id}",                   owner: C2,  permission: audit.log.read }
   - { id: staff.platform.tenant,            origin: staff_web, path: "/platform/tenants/{tenant_id}",             owner: C2,  permission: platform.tenant.read }
   - { id: staff.platform.dead_letter,       origin: staff_web, path: "/platform/dead-letters/{dead_letter_id}",   owner: C2,  permission: platform.dead_letter.manage }
+  # LD-112 / CR-C2-T20, CR-C2-T26: nav routes for AD-1..AD-15 and ME-1, PL-1..PL-8 (C2 04-UI-UX section 1); no parameterised row, no role editor row
+  - { id: staff.admin.me,                origin: staff_web, path: /admin/me,                     owner: C2,  permission: identity.self.manage }
+  - { id: staff.admin.users,             origin: staff_web, path: /admin/users,                  owner: C2,  permission: identity.user.read }
+  - { id: staff.admin.user_new,          origin: staff_web, path: /admin/users/new,              owner: C2,  permission: identity.user.manage }
+  - { id: staff.admin.roles,             origin: staff_web, path: /admin/roles,                  owner: C2,  permission: identity.user.read }
+  - { id: staff.admin.role_packs,        origin: staff_web, path: /admin/roles/packs,            owner: C2,  permission: identity.role.manage }
+  - { id: staff.admin.branches,          origin: staff_web, path: /admin/branches,               owner: C2,  permission: identity.user.read }
+  - { id: staff.admin.centres,           origin: staff_web, path: /admin/centres,                owner: C2,  permission: identity.centre.read }
+  - { id: staff.admin.settings,          origin: staff_web, path: /admin/settings,               owner: C2,  permission: identity.settings.manage }
+  - { id: staff.admin.sessions,          origin: staff_web, path: /admin/sessions,               owner: C2,  permission: identity.session.revoke }
+  - { id: staff.admin.audit,             origin: staff_web, path: /admin/audit,                  owner: C2,  permission: audit.log.read }
+  - { id: staff.admin.access_log,        origin: staff_web, path: /admin/access-log,             owner: C2,  permission: audit.log.read }
+  - { id: staff.admin.exports,           origin: staff_web, path: /admin/exports,                owner: C2,  permission: audit.log.export }
+  - { id: staff.admin.support_access,    origin: staff_web, path: /admin/support-access,         owner: C2,  permission: audit.log.read }
+  - { id: staff.admin.access_review,     origin: staff_web, path: /admin/access-review,          owner: C2,  permission: identity.user.read }
+  - { id: staff.platform.home,           origin: staff_web, path: /platform,                     owner: C2,  permission: platform.tenant.read }
+  - { id: staff.platform.tenants,        origin: staff_web, path: /platform/tenants,             owner: C2,  permission: platform.tenant.read }
+  - { id: staff.platform.ird,            origin: staff_web, path: /platform/ird,                 owner: C2,  permission: platform.tenant.read }
+  - { id: staff.platform.support_sessions, origin: staff_web, path: /platform/support-sessions,    owner: C2,  permission: platform.tenant.read }
+  - { id: staff.platform.dead_letters,   origin: staff_web, path: /platform/dead-letters,        owner: C2,  permission: platform.dead_letter.manage }
+  - { id: staff.platform.staff,          origin: staff_web, path: /platform/staff,               owner: C2,  permission: platform.staff.manage }
+  - { id: staff.platform.auth_events,    origin: staff_web, path: /platform/auth-events,         owner: C2,  permission: platform.tenant.read }
   - { id: staff.quality.qc_run,             origin: staff_web, path: "/quality/qc-runs/{qc_run_id}",              owner: C9,  permission: quality.qc_run.read }
+  # LD-130 / CR-C9-T01: nav routes for the quality nav manifest (C9 04-UI-UX section 1.1); qc_run stays the only parameterised row
+  - { id: staff.quality.status,               origin: staff_web, path: "/quality",                        owner: C9, permission: quality.qc_run.read }
+  - { id: staff.quality.runs,                 origin: staff_web, path: "/quality/runs",                   owner: C9, permission: quality.qc_run.read }
+  - { id: staff.quality.lj_chart,             origin: staff_web, path: "/quality/lj",                     owner: C9, permission: quality.qc_run.read }
+  - { id: staff.quality.observations,         origin: staff_web, path: "/quality/observations",           owner: C9, permission: quality.qc_run.read }
+  - { id: staff.quality.setup,                origin: staff_web, path: "/quality/setup/materials",        owner: C9, permission: quality.qc_run.read }
+  - { id: staff.quality.autoverify,           origin: staff_web, path: "/quality/autoverify",             owner: C9, permission: quality.autoverify.read }
+  - { id: staff.quality.tat_alerts,           origin: staff_web, path: "/quality/tat-alerts",             owner: C9, permission: quality.tat_alert.read }
+  - { id: staff.quality.settings,             origin: staff_web, path: "/quality/settings",               owner: C9, permission: quality.qc_run.read }
   - { id: staff.micro.culture,              origin: staff_web, path: "/micro/cultures/{culture_id}",              owner: C10, permission: micro.culture.read }
   - { id: staff.anatomic.case,              origin: staff_web, path: "/anatomic/cases/{case_id}",                 owner: C11, permission: anatomic.case.read }
   - { id: staff.inventory.item,             origin: staff_web, path: "/inventory/items/{item_id}",                owner: C12, permission: inventory.item.read }
   - { id: staff.smartreport.summary,        origin: staff_web, path: "/smartreport/summaries/{summary_id}",       owner: C14, permission: smartreport.summary.read }
+  # LD-130 / CR-C14-T18a: nav routes for the smartreport nav manifest (C14 04-UI-UX section 1); summary stays the only parameterised row
+  - { id: staff.smartreport.summaries,        origin: staff_web, path: "/smartreport/summaries",          owner: C14, permission: smartreport.summary.read }
+  - { id: staff.smartreport.library,          origin: staff_web, path: "/smartreport/library",            owner: C14, permission: smartreport.template.manage }
+  - { id: staff.smartreport.wording,          origin: staff_web, path: "/smartreport/wording",            owner: C14, permission: smartreport.template.manage }
   - { id: staff.engagement.booking,         origin: staff_web, path: "/engagement/bookings/{booking_id}",         owner: C16, permission: engagement.booking.read }
   - { id: staff.homecollection.visit,       origin: staff_web, path: "/homecollection/visits/{visit_id}",         owner: C17, permission: homecollection.visit.read }
   # ---- portal (public + OTP-gated) ----
@@ -2416,6 +2475,35 @@ routes:
   - { id: staff.homecollection.handovers, origin: staff_web, path: /homecollection/handovers, owner: C17, permission: homecollection.handover.receive }
   - { id: staff.homecollection.devices, origin: staff_web, path: /homecollection/devices, owner: C17, permission: homecollection.device.manage }
   - { id: staff.homecollection.settings, origin: staff_web, path: /homecollection/settings, owner: C17, permission: homecollection.settings.manage }
+  - { id: staff.catalog.imports, origin: staff_web, path: /catalog/imports, owner: C3, permission: catalog.test.read }
+  - { id: staff.catalog.import, origin: staff_web, path: "/catalog/imports/{import_id}", owner: C3, permission: catalog.test.read }
+  - { id: staff.frontdesk.worklist, origin: staff_web, path: /frontdesk/worklist, owner: C4, permission: frontdesk.order.read }
+  - { id: staff.frontdesk.discount_approvals, origin: staff_web, path: /frontdesk/discount-approvals, owner: C4, permission: frontdesk.discount.approve }
+  - { id: staff.frontdesk.settings, origin: staff_web, path: /frontdesk/settings, owner: C4, permission: frontdesk.settings.manage }
+  - { id: staff.billing.invoices, origin: staff_web, path: /billing/invoices, owner: C4, permission: billing.invoice.read }
+  - { id: staff.billing.dues, origin: staff_web, path: /billing/dues, owner: C4, permission: billing.invoice.read }
+  - { id: staff.billing.credit_parties, origin: staff_web, path: /billing/credit-parties, owner: C4, permission: billing.credit_party.read }
+  - { id: staff.billing.registers, origin: staff_web, path: /billing/registers, owner: C4, permission: billing.invoice.read }
+  - { id: staff.billing.audit_trail, origin: staff_web, path: /billing/audit-trail, owner: C4, permission: billing.data.export }
+  - { id: staff.billing.cbms, origin: staff_web, path: /billing/cbms, owner: C4, permission: billing.invoice.read }
+  - { id: staff.billing.worklist, origin: staff_web, path: /billing/worklist, owner: C4, permission: billing.invoice.read }
+  - { id: staff.billing.settings, origin: staff_web, path: /billing/settings, owner: C4, permission: billing.settings.manage }
+  - { id: staff.billing.account_entries, origin: staff_web, path: /billing/accounts/entries, owner: C4, permission: billing.account.read }   # T0D-ACCT-1 (LD-313)
+  - { id: staff.billing.account_ledger, origin: staff_web, path: /billing/accounts/ledger, owner: C4, permission: billing.account.read }
+  - { id: staff.billing.pocket_ledger, origin: staff_web, path: /billing/accounts/pocket, owner: C4, permission: billing.account.read }
+  - { id: staff.billing.account_summary, origin: staff_web, path: /billing/accounts/summary, owner: C4, permission: billing.account.read }
+  - { id: staff.billing.account_masters, origin: staff_web, path: /billing/accounts/masters, owner: C4, permission: billing.account.read }
+  - { id: staff.lab.collect, origin: staff_web, path: /lab/collect, owner: C5, permission: lab.specimen.collect }
+  - { id: staff.lab.receive, origin: staff_web, path: /lab/receive, owner: C5, permission: lab.specimen.receive }
+  - { id: staff.lab.worklists, origin: staff_web, path: /lab/worklists, owner: C5, permission: lab.worklist.read }
+  - { id: staff.lab.critical_values, origin: staff_web, path: /lab/critical-values, owner: C5, permission: lab.critical_value.read }
+  - { id: staff.lab.pending, origin: staff_web, path: /lab/pending, owner: C5, permission: lab.worklist.read }
+  - { id: staff.lab.verification, origin: staff_web, path: /lab/verification, owner: C5, permission: lab.result.verify }
+  - { id: staff.lab.approval, origin: staff_web, path: /lab/approval, owner: C5, permission: lab.result.approve }
+  - { id: staff.lab.worksheets, origin: staff_web, path: /lab/worksheets, owner: C5, permission: lab.worklist.read }
+  - { id: staff.lab.qc, origin: staff_web, path: /lab/qc, owner: C5, permission: lab.qc.capture }
+  - { id: staff.lab.settings, origin: staff_web, path: /lab/settings, owner: C5, permission: lab.config.manage }
+  - { id: staff.catalog.tests, origin: staff_web, path: /catalog/tests, owner: C3, permission: catalog.test.read }
 ```
 
 API operations recorded in the final sweep (2026-11-06). They are HTTP operations, not app routes, so they have no entry above; C0-0C transcribes them into `contracts/openapi/<domain>.yaml` from the owner TRD:
@@ -3249,6 +3337,9 @@ Existing C0 seed kept. Additions (code — display — requested by). Strict YAM
 - patient.anonymise                 # 08 Addendum A2.9
 - credit_note.print                 # 08 Addendum A2.9
 - receipt.print                     # 08 Addendum A2.9
+# C0 / LD-313 lab accounting (CR-C0-ACCT-1, LD-324)
+- account_entry.create              # "Account ledger entry posted"
+- account_entry.reverse             # "Account ledger entry reversed"
 # C5 (triage batch 1) — 08 A13 D-11
 - specimen_label.print              # per specimen, #14
 - lab_result.view                   # order results grid

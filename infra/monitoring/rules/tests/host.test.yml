@@ -1,0 +1,170 @@
+# T-19 (tester, LD-39): promtool tests for rules/host.rules.yml (1 m series). Synthetic series only.
+# Slow series (PatchOverdue 35 d, StorageVolumeForecastFull 30 d) are in host_slow.test.yml.
+# AC-16.1 (PatchOverdue) lives in the slow file. LD-45: SiteADown covers both profiles: full = app-1 + data-1,
+# lean = prod-1 (site A); site-B hosts (dr-1/ops-1/backup-1) being up must not suppress it.
+# CONTRACT: SiteADown, DiskFillForecast labels = those of the series (host, mountpoint); SiteADown carries no
+# extra label beyond severity/team (it aggregates over hosts).
+rule_files:
+  - ../host.rules.yml
+evaluation_interval: 1m
+tests:
+  - interval: 1m
+    name: SiteADown full profile - app-1 and data-1 down, site B up -> page at 5m
+    input_series:
+      - series: 'up{job="node", host="app-1"}'
+        values: "0x20"
+      - series: 'up{job="node", host="data-1"}'
+        values: "0x20"
+      - series: 'up{job="node", host="dr-1"}'
+        values: "1x20"
+      - series: 'up{job="node", host="ops-1"}'
+        values: "1x20"
+    alert_rule_test:
+      - alertname: SiteADown
+        eval_time: 4m
+        exp_alerts: []
+      - alertname: SiteADown
+        eval_time: 5m
+        exp_alerts:
+          - exp_labels: {severity: page, team: ops}
+
+  - interval: 1m
+    name: SiteADown full profile - only app-1 down -> not firing (needs every site-A target)
+    input_series:
+      - series: 'up{job="node", host="app-1"}'
+        values: "0x20"
+      - series: 'up{job="node", host="data-1"}'
+        values: "1x20"
+    alert_rule_test:
+      - alertname: SiteADown
+        eval_time: 10m
+        exp_alerts: []
+
+  - interval: 1m
+    name: SiteADown lean profile - prod-1 down, backup-1 up -> page
+    input_series:
+      - series: 'up{job="node", host="prod-1"}'
+        values: "0x20"
+      - series: 'up{job="postgres_exporter", host="prod-1"}'
+        values: "0x20"
+      - series: 'up{job="node", host="backup-1"}'
+        values: "1x20"
+    alert_rule_test:
+      - alertname: SiteADown
+        eval_time: 4m
+        exp_alerts: []
+      - alertname: SiteADown
+        eval_time: 5m
+        exp_alerts:
+          - exp_labels: {severity: page, team: ops}
+
+  - interval: 1m
+    name: SiteADown lean profile - prod-1 up -> not firing
+    input_series:
+      - series: 'up{job="node", host="prod-1"}'
+        values: "1x20"
+      - series: 'up{job="node", host="backup-1"}'
+        values: "0x20"
+    alert_rule_test:
+      - alertname: SiteADown
+        eval_time: 10m
+        exp_alerts: []
+
+  - interval: 1m
+    name: ClockSkew warn at 5m for |offset| > 0.5 s, either sign
+    input_series:
+      - series: 'node_timex_offset_seconds{host="app-1"}'
+        values: "0.6x20"
+      - series: 'node_timex_offset_seconds{host="dr-1"}'
+        values: "-0.6x20"
+      - series: 'node_timex_offset_seconds{host="ops-1"}'
+        values: "0.5x20"
+      - series: 'node_timex_offset_seconds{host="data-1"}'
+        values: "0.01x20"
+    alert_rule_test:
+      - alertname: ClockSkew
+        eval_time: 4m
+        exp_alerts: []
+      - alertname: ClockSkew
+        eval_time: 5m
+        exp_alerts:
+          - exp_labels: {severity: warn, team: ops, host: app-1}
+          - exp_labels: {severity: warn, team: ops, host: dr-1}
+
+  - interval: 1m
+    name: HostMemoryPressure warn when available < 10 % for 10m
+    input_series:
+      - series: 'node_memory_MemTotal_bytes{host="prod-1"}'
+        values: "32000000000x30"
+      - series: 'node_memory_MemAvailable_bytes{host="prod-1"}'
+        values: "2000000000x30"
+      - series: 'node_memory_MemTotal_bytes{host="ops-1"}'
+        values: "16000000000x30"
+      - series: 'node_memory_MemAvailable_bytes{host="ops-1"}'
+        values: "4000000000x30"
+    alert_rule_test:
+      - alertname: HostMemoryPressure
+        eval_time: 9m
+        exp_alerts: []
+      - alertname: HostMemoryPressure
+        eval_time: 10m
+        exp_alerts:
+          - exp_labels: {severity: warn, team: ops, host: prod-1}
+
+  - interval: 1m
+    name: HostMemoryPressure quiet at 12 % available
+    input_series:
+      - series: 'node_memory_MemTotal_bytes{host="prod-1"}'
+        values: "32000000000x30"
+      - series: 'node_memory_MemAvailable_bytes{host="prod-1"}'
+        values: "4000000000x30"
+    alert_rule_test:
+      - alertname: HostMemoryPressure
+        eval_time: 20m
+        exp_alerts: []
+
+  - interval: 1m
+    name: ConfigDrift warn while changes > 0
+    input_series:
+      - series: 'lims_ops_config_drift_changes{host="data-1"}'
+        values: "3x120"
+      - series: 'lims_ops_config_drift_changes{host="app-1"}'
+        values: "0x120"
+    alert_rule_test:
+      - alertname: ConfigDrift
+        eval_time: 2h
+        exp_alerts:
+          - exp_labels: {severity: warn, team: ops, host: data-1}
+
+  - interval: 1m
+    name: ConfigDrift quiet while no drift is reported
+    input_series:
+      - series: 'lims_ops_config_drift_changes{host="data-1"}'
+        values: "0x120"
+    alert_rule_test:
+      - alertname: ConfigDrift
+        eval_time: 2h
+        exp_alerts: []
+
+  - interval: 1m
+    name: DiskFillForecast page when the 6 h trend reaches 0 within 24 h
+    input_series:
+      - series: 'node_filesystem_avail_bytes{host="data-1", mountpoint="/var/lib/lims-db"}'
+        values: "400000000000-300000000x600"
+      - series: 'node_filesystem_avail_bytes{host="app-1", mountpoint="/var/lib/lims-db"}'
+        values: "400000000000x600"
+    alert_rule_test:
+      - alertname: DiskFillForecast
+        eval_time: 600m
+        exp_alerts:
+          - exp_labels: {severity: page, team: ops, host: data-1, mountpoint: /var/lib/lims-db}
+
+  - interval: 1m
+    name: DiskFillForecast quiet on a flat filesystem
+    input_series:
+      - series: 'node_filesystem_avail_bytes{host="data-1", mountpoint="/"}'
+        values: "400000000000x600"
+    alert_rule_test:
+      - alertname: DiskFillForecast
+        eval_time: 600m
+        exp_alerts: []

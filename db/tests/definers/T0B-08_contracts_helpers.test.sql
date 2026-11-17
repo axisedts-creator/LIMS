@@ -47,8 +47,8 @@ INSERT INTO core.memberships (id, tenant_id, user_id, actor_type, all_centres, c
   (pg_temp.id('42'), pg_temp.id('01'), pg_temp.id('32'), 'user', true,  pg_temp.id('99'), pg_temp.id('99'));
 INSERT INTO core.membership_centres (tenant_id, membership_id, centre_id, created_by) VALUES (pg_temp.id('01'), pg_temp.id('41'), pg_temp.id('21'), pg_temp.id('99'));
 INSERT INTO identity.platform_staff (id, user_id, email_normalized, display_name, role_code, is_active, created_by, updated_by) VALUES
-  (pg_temp.id('61'), pg_temp.id('81'), 'a@example.test', 'Staff A', 'platform_admin', true,  pg_temp.id('99'), pg_temp.id('99')),
-  (pg_temp.id('62'), pg_temp.id('82'), 'b@example.test', 'Staff B', 'platform_admin', false, pg_temp.id('99'), pg_temp.id('99'))
+  (pg_temp.id('61'), pg_temp.id('81'), 'a@example.test', 'Staff A', 'platform_superadmin', true,  pg_temp.id('99'), pg_temp.id('99')),
+  (pg_temp.id('62'), pg_temp.id('82'), 'b@example.test', 'Staff B', 'platform_superadmin', false, pg_temp.id('99'), pg_temp.id('99'))
   ON CONFLICT DO NOTHING;
 SET LOCAL session_replication_role = origin;
 

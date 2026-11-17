@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Service status</title>
+<style>
+body{font-family:system-ui,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;color:#1b1b1b;background:#fff}
+h1{font-size:1.5rem}
+.banner{padding:.75rem 1rem;border:2px solid #1b1b1b;margin:1rem 0}
+.ok{background:#e6f4ea}
+.unknown{background:#fff4ce}
+ul{list-style:none;padding:0}
+li{display:flex;justify-content:space-between;padding:.5rem 0;border-bottom:1px solid #ccc}
+.state{font-weight:700}
+.operational{color:#0b6b2b}.degraded,.maintenance{color:#7a5200}.partial_outage,.major_outage{color:#a40000}
+</style>
+</head>
+<body>
+<h1>Service status</h1>
+{# Staleness (03-APP-FLOW s15): the page carries its own timestamp; a script shows the banner when it is over 900 s old. #}
+<div id="stale" class="banner unknown" role="status" hidden>Status unknown: this page has not been updated for over 15 minutes.</div>
+<noscript><p class="banner unknown">Status unknown if the time below is more than 15 minutes ago (this browser has scripting turned off).</p></noscript>
+{% if (status.components | rejectattr('state', 'equalto', 'operational') | list | length == 0) and (status.notices | length == 0) %}
+<p class="banner ok" role="status">All systems operational</p>
+{% endif %}
+<ul>
+{% for c in status.components %}
+<li><span>{{ c.name | e }}</span><span class="state {{ c.state | e }}">{{ c.state | replace('_', ' ') | e }}</span></li>
+{% endfor %}
+</ul>
+{% for n in status.notices %}
+<section class="banner">
+<h2>{{ n.title | e }}</h2>
+<p>From {{ n.starts | e }}{% if n.ends is defined %} to {{ n.ends | e }}{% endif %}</p>
+<p>{{ n.text | e }}</p>
+</section>
+{% endfor %}
+<p>Last updated: <time id="updated" datetime="{{ status.updated | e }}">{{ status.updated | e }}</time></p>
+<script>
+(function () {
+  var MAX_AGE_S = 900;
+  var t = Date.parse(document.getElementById('updated').getAttribute('datetime'));
+  if (isNaN(t) || (Date.now() - t) / 1000 > MAX_AGE_S) {
+    document.getElementById('stale').hidden = false;
+  }
+})();
+</script>
+</body>
+</html>

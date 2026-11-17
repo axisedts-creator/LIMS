@@ -1,0 +1,2 @@
+- T0D-18 debugger: only red test = stage 5 recovery (pipeline.integration.test.ts:272, 429 after 2.5 s sleep). Cause: PG backend app.ratelimit_hit is a weighted fixed-window approximation (05-SCHEMA:1115) and denied hits count, so recovery can need up to 2 windows; test assumes exactly 1. Pipeline code correct, no impl change made.
+- Wrote .orchestra/notes/T0D-18-dispute.md (test must wait >= 2 windows).

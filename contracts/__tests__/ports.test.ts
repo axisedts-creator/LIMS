@@ -106,12 +106,31 @@ describe("AC-0C-1.2 file set", () => {
   });
 });
 
+// LD-03: exact LimsError class now in contracts/ports/common.ts (comments stripped).
+const LD03_LIMSERROR = `export class LimsError extends Error {
+  readonly code: ErrorCode;
+  readonly safeDetail?: string;
+  readonly fieldErrors?: readonly FieldError[];
+  constructor(code: ErrorCode, safeDetail?: string, fieldErrors?: readonly FieldError[]) {
+    super(code);
+    this.code = code;
+    if (safeDetail !== undefined) this.safeDetail = safeDetail;
+    if (fieldErrors !== undefined) this.fieldErrors = fieldErrors;
+  }
+}`;
+
 describe.each(FILES)("%s.ts equals IC §4 block", (name) => {
   const icRaw = blocks.get(name)!;
   it("exists", () => expect(existsSync(join(portsDir, `${name}.ts`)), `contracts/ports/${name}.ts missing`).toBe(true));
   it("code (comments ignored, whitespace-insensitive) is verbatim the IC block", () => {
     const got = split(read(name)).code;
-    const want = split(icRaw).code;
+    let want = split(icRaw).code;
+    if (name === "common") {
+      // LD-03 (2026-11-07) overrides IC §4: LimsError uses explicit fields, no TS parameter properties.
+      const before = want;
+      want = want.replace(/export class LimsError extends Error \{[\s\S]*?\n\}/, LD03_LIMSERROR);
+      expect(want, "LD-03 LimsError replacement did not match the IC block").not.toBe(before);
+    }
     expect(norm(got)).toBe(norm(want));
   });
   it("declares every IC method name (clear failure message)", () => {
@@ -123,10 +142,13 @@ describe.each(FILES)("%s.ts equals IC §4 block", (name) => {
 });
 
 describe("spot checks on the load-bearing signatures", () => {
-  it("common.ts: PortRegistry has all 13 ports, LimsError has the 3-arg constructor", () => {
+  it("common.ts: PortRegistry has all 13 ports, LimsError has the 3-arg constructor (LD-03 explicit fields)", () => {
     const c = norm(split(read("common")).code);
     for (const p of PORTS) expect(c).toContain(norm(`readonly ${p}: import('./${p}').${p};`));
-    expect(c).toContain(norm("constructor(readonly code: ErrorCode, readonly safeDetail?: string, readonly fieldErrors?: readonly FieldError[])"));
+    // LD-03 overrides IC §4: explicit fields, no parameter properties.
+    expect(c).toContain(norm("readonly code: ErrorCode; readonly safeDetail?: string; readonly fieldErrors?: readonly FieldError[];"));
+    expect(c).toContain(norm("constructor(code: ErrorCode, safeDetail?: string, fieldErrors?: readonly FieldError[])"));
+    expect(c).not.toMatch(/constructor\(readonly/);
   });
   it("CatalogPort carries the 08 additions getTaxRate and getPriceListStatus", () => {
     const c = split(read("CatalogPort")).code;

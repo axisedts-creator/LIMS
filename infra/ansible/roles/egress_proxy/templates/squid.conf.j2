@@ -1,0 +1,25 @@
+# Managed by Ansible, role egress_proxy (02-TRD s3.2, s5.5 rule 8, AC-09.3).
+# Deny by default: HTTPS CONNECT :443 from app_net to the approved
+# `via: squid` names of infra/edge/egress-allowlist.yaml only; empty list
+# (all pending, B11) = every request 403. No cache, no manager access.
+http_port 3128
+acl lims_src src {{ egress_proxy_src_cidr | default('172.30.20.0/24') }}
+acl SSL_ports port 443
+acl CONNECT method CONNECT
+{% if egress_proxy_fqdns %}
+acl lims_allowed_dst dstdomain {{ egress_proxy_fqdns | join(' ') }}
+{% endif %}
+http_access deny !CONNECT
+http_access deny CONNECT !SSL_ports
+{% if egress_proxy_fqdns %}
+http_access allow CONNECT lims_src lims_allowed_dst
+{% endif %}
+http_access deny all
+
+cache deny all
+via off
+forwarded_for delete
+pid_filename /run/squid/squid.pid
+coredump_dir /tmp
+access_log stdio:/dev/stdout
+cache_log stdio:/dev/stderr

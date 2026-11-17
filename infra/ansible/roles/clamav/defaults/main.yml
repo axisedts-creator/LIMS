@@ -1,0 +1,25 @@
+---
+# 02-TRD s7.4 clamd paragraph (08 A25 D-209), T-22. LD-45: no host names here;
+# the ops host is groups['ops'][0] and the app host groups['app'][0] of the
+# active profile (lean: both are prod-1).
+
+# clamd.conf (every key is set exactly once)
+clamav_stream_max_length: 20M  # = MaxFileSize, above the 16 MB attachment route and the 15 MB upload cap
+clamav_max_file_size: 20M
+clamav_max_scan_size: 80M  # [CONV]
+
+# freshclam on the ops host, only through the ops Squid (F-01 default, B11).
+# DatabaseMirror hosts must be clamav.net entries of infra/edge/egress-allowlist.yaml
+# (asserted in tasks); Squid answers 403 for anything else.
+clamav_allowlist: "{{ playbook_dir }}/../../edge/egress-allowlist.yaml"
+clamav_mirrors: [database.clamav.net]
+clamav_proxy_server: "{{ hostvars[groups['ops'][0]].wg_ip }}"  # 02-TRD s3.3: ops wg IP:3128
+clamav_proxy_port: 3128
+
+# copy ops -> app over wg0 (rsync over ssh, pinned host key, forced command)
+clamav_sync_user: lims-clamav
+clamav_sync_port: 22
+clamav_container: "{{ lims_runtime_project | default('lims') }}-clamd-1"
+# secrets, no default (fail closed): clamav_sync_ssh_key (private, ops),
+# clamav_sync_ssh_pubkey (authorized on app), clamav_sync_host_key (app sshd
+# host key, `ssh-ed25519 AAAA...`, pinned on ops)

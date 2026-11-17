@@ -1,0 +1,106 @@
+{# 02-TRD s11.1 / s11.2 / s3.3. Rendered by roles/monitoring on ops-1.
+   Block tags sit at column 0 so the output is valid YAML with or without
+   trim_blocks (blank lines are harmless). Targets: wg IPs only (s11.1);
+   blackbox probes go over the public path (s11.1 last bullet). #}
+{% set drop_labels = 'patient_id|order_id|specimen_id|barcode|user_id|membership_id|email|phone' %}
+{% set all_hosts = groups['all'] | default([]) %}
+{% set jobs = [
+  ('node', 9100, '/metrics', all_hosts),
+  ('fluent-bit', 2020, '/api/v2/metrics/prometheus', all_hosts),
+  ('cadvisor', 8081, '/metrics', (groups['app'] | default([])) + (groups['data'] | default([]))),
+  ('postgres_exporter', 9187, '/metrics', (groups['data'] | default([])) + (groups['dr'] | default([]))),
+  ('pgbouncer_exporter', 9127, '/metrics', groups['data'] | default([])),
+  ('postgres_exporter_audit', 9188, '/metrics', groups['dr'] | default([])),
+  ('nginx_exporter', 9113, '/metrics', groups['app'] | default([])),
+  ('api-a', 9464, '/metrics', groups['app'] | default([])),
+  ('api-b', 9465, '/metrics', groups['app'] | default([])),
+  ('worker-a', 9466, '/metrics', groups['app'] | default([])),
+  ('worker-b', 9467, '/metrics', groups['app'] | default([])),
+] %}
+global:
+  scrape_interval: 30s
+  scrape_timeout: 10s
+  evaluation_interval: 30s
+  external_labels:
+    env: "{{ env }}"
+
+rule_files:
+  - /etc/prometheus/rules/*.rules.yml
+  - /etc/prometheus/rules/imported/*.rules.yml
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ["127.0.0.1:9093"]
+
+scrape_configs:
+{% for job, port, path, hosts in jobs %}
+  - job_name: "{{ job }}"
+    metrics_path: "{{ path }}"
+    static_configs:
+{% for h in hosts %}
+      - targets: ["{{ hostvars[h].wg_ip }}:{{ port }}"]
+        labels: {host: "{{ h }}", service: "{{ job }}", env: "{{ env }}"}
+{% endfor %}
+    metric_relabel_configs:
+      - action: labeldrop
+        regex: "{{ drop_labels }}"
+{% endfor %}
+
+  # ops-1 stack itself (all bound to 127.0.0.1, host network)
+  - job_name: "ops_stack"
+    static_configs:
+      - targets: ["127.0.0.1:9090"]
+        labels: {host: "{{ inventory_hostname }}", service: "prometheus", env: "{{ env }}"}
+      - targets: ["127.0.0.1:9093"]
+        labels: {host: "{{ inventory_hostname }}", service: "alertmanager", env: "{{ env }}"}
+      - targets: ["127.0.0.1:9115"]
+        labels: {host: "{{ inventory_hostname }}", service: "blackbox", env: "{{ env }}"}
+    metric_relabel_configs:
+      - action: labeldrop
+        regex: "{{ drop_labels }}"
+
+  # Public-path HTTPS probes of every origin + /v/<invalid-token> (R3 uniform response).
+  - job_name: "blackbox_http"
+    metrics_path: /probe
+    params:
+      module: [http_origin]
+    static_configs:
+      - targets:
+          - "https://{{ origins.staff_web }}/"
+          - "https://{{ origins.portal }}/"
+          - "https://{{ origins.portal }}/v/invalid-probe-token"
+          - "https://{{ origins.api }}/"
+{% if partner_enabled | default(false) %}
+          - "https://{{ origins.partner }}/"
+{% endif %}
+        labels: {service: "edge", env: "{{ env }}"}
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: 127.0.0.1:9115
+
+  # Continuous AC-01: TCP connect to closed ports on public IPs must fail
+  # (probe_success == 0; ForbiddenPortOpen fires on 1, T-19).
+  - job_name: "blackbox_tcp_forbidden"
+    metrics_path: /probe
+    params:
+      module: [tcp_connect]
+    static_configs:
+{% for h in all_hosts %}
+      - targets:
+{% for p in blackbox_forbidden_ports | default([22, 2020, 2222, 3128, 5000, 5432, 5433, 6432, 8081, 8090, 9100, 9187, 9188]) %}
+          - "{{ hostvars[h].public_ip }}:{{ p }}"
+{% endfor %}
+        labels: {host: "{{ h }}", service: "forbidden_port", env: "{{ env }}"}
+{% endfor %}
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: 127.0.0.1:9115

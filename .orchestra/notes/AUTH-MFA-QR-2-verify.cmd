@@ -1,0 +1,1 @@
+cd /d "%~dp0..\.." && pnpm --dir services/api exec vitest run src/modules/identity/handlers/__tests__/mfa.qr src/modules/identity/handlers/__tests__/mfa.enrol.test.ts src/modules/identity/handlers/__tests__/mfa.integration.test.ts && node node_modules\vitest\vitest.mjs run --config apps/web/src/features/admin/auth/__tests__/vitest.t12.config.ts t12.mfa-qr t12.forms

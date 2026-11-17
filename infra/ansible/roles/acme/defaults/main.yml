@@ -1,0 +1,14 @@
+---
+# 02-TRD s6.2: ECDSA P-256 edge certificates, 90-day ACME, HTTP-01 webroot.
+# acme_mode: letsencrypt (prod) | staging (ACME staging directory, dev and
+# staging runs) | internal_ca (dev without a reachable public ACME: leaves
+# signed by roles/internal_ca; only where the edge host is the ops host).
+acme_mode: letsencrypt
+acme_email: ""          # inventory value; required for letsencrypt/staging
+acme_webroot: /var/www/acme
+acme_certs: /srv/lims/edge/certs         # = edge_nginx_certs
+acme_nginx_container: lims-edge          # = edge_nginx_container
+acme_hook: /usr/local/sbin/lims-acme-deploy
+acme_origins: >-
+  {{ ['staff_web', 'portal', 'api']
+  + (['partner'] if partner_enabled | bool else []) }}

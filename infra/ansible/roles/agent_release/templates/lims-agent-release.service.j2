@@ -1,0 +1,17 @@
+# {{ ansible_managed }}
+# 02-TRD s7.11: one release run (version in LIMS_AGENT_RELEASE_VERSION, set by deploy.yml / the operator). Not a daemon.
+[Unit]
+Description=LIMS C7 bridge-agent release (sign and stage)
+
+[Service]
+Type=oneshot
+Environment=LIMS_AGENT_RELEASE_OUT={{ agent_release_out_dir }}
+Environment=LIMS_AGENT_RELEASE_SECRETS_DIR={{ agent_release_secrets_dir }}
+Environment=LIMS_AGENT_RELEASE_KEY_ID={{ agent_release_key_id }}
+Environment=LIMS_AGENT_RELEASE_AUTHENTICODE_BIN={{ agent_release_authenticode_dir }}/{{ agent_release_authenticode_bin_relpath }}
+EnvironmentFile=-/etc/lims/agent-release.env
+ExecStart={{ agent_release_bin_dir }}/agent-release.sh $LIMS_AGENT_RELEASE_VERSION
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ReadWritePaths={{ agent_release_out_dir }}

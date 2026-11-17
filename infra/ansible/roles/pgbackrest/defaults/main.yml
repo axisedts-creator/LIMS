@@ -1,0 +1,22 @@
+---
+# 02-TRD s9 (AC-12.1..12.4). Applied to the `data` group only: dr-1 never
+# holds a cipher pass (AC-12.3). Paths are fixed in the unit files/scripts
+# (02-TRD s7.2 mounts): /srv/lims/pgbackrest (conf, spool),
+# /run/lims/secrets/pgbackrest (tmpfs), /var/lib/lims/pgbackrest (state).
+# Secrets come from secrets_render (s8), never from git or inventories:
+#   pgbackrest_repo1_cipher_pass, pgbackrest_repo2_cipher_pass,
+#   repo2_sftp_private_key
+# Inventory value (not a secret), required when groups['dr'] is not empty:
+#   pgbackrest_repo2_sftp_host_fingerprint
+# compose project `supabase`, service `db` (s7.2)
+pgbackrest_container: supabase-db
+# uid/gid of `postgres` inside the derived image: UNVERIFIED, read it in the
+# T-09 spike with `docker run --rm <image> id postgres`.
+pgbackrest_pg_uid: 101
+pgbackrest_pg_gid: 102
+pgbackrest_units:
+  - lims-pgbackrest-full
+  - lims-pgbackrest-incr
+  - lims-pgbackrest-check
+  - lims-pgbackrest-verify
+  - lims-pgbackrest-metrics

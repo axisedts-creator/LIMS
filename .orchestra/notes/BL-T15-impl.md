@@ -1,0 +1,6 @@
+# BL-T15 impl (writer, LD-97 redo per LD-100; the earlier note is void)
+New: billing/handlers/register.handlers.ts (B24-B27), handlers/export.handlers.ts (B28 202, B29, B29a via ctx.download.stream; fails closed without it). handlers/index.ts: exactly the nine ops un-stubbed; createPaymentIntent/verifyPaymentIntent stay notYet.
+Changed: invoice.handlers.ts (listCreditNotes, getCreditNote), service/invoiceRead.service.ts (listCreditNotes, shared creditNoteDto, uuid check in getCreditNote, cursor kind 'int-or-key'), repository/creditNotes.repo.ts (listCreditNotes, listCreditNoteLinesByNotes), service/export.service.ts (locate() + prepareDownload(); content() unchanged in behaviour).
+[CONV] B6 list keyset = (fiscal_year_bs, credit_note_seq, id) like B26; cursor ['credit_notes', "<fy>|<seq>", id]. B29a: access_log row comes from the core download helper (stage download), activity row export_downloaded from the service.
+Tests: api billing repository+handlers+service 988 pass; worker jobs/billing 182 pass; tsc clean for billing sources. probes/pending.json does not exist in this tree, nothing to remove.
+Open: crossTenant probe billing:getBillingExportContent and 19 others fail on the probe kit's ctx stubs (LD-98 test change, BL-T22); alerts.rules needs .orchestra/cr/BL-T22.md; uploads probes = FD-T10/RG-5.

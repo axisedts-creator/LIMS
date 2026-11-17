@@ -1,0 +1,6 @@
+APPROVE
+Reviewed c79a762..HEAD (16 repo files + 3 tests). Verified against db/migrations/20261105001700_billing__create_billing_schema.sql and 05-SCHEMA §3/§5/§9:
+- Names verbatim: all tables/columns exist (fiscal_counters.closed_at/is_active, invoices.print_count/last_printed_at/updated_by, ledger_entries column list incl. no updated_by, print_log/cbms_submissions document_kind enums match CHECKs). Error code `billing.invoice_immutable` 409 + title match 03-INTERFACE-CATALOG:2522; mapping per 05-SCHEMA:1702.
+- Writes: counters `last_no = last_no + 1` only (guard L49); invoices UPDATE touches only invoices__mutable_columns; ledger INSERT/SELECT only; no DELETE/UPDATE on append-only tables. All SQL bound `$n`, every query tenant-scoped, no role/GUC/driver use. No PHI in logs, no secrets. Only owned paths.
+- Ran: `vitest run src/modules/billing/repository/__tests__` -> 42 passed, 20 skipped (live suite, no DB env).
+Non-blocking: done_when ("direct UPDATE/DELETE as lims_app fail") is proven here only by the gated live suite, which was not run; DB-side behaviour is already covered by db/tests/frontdesk_billing/T0B-10.C4_behaviour.test.sql. Run immutability.live.test.ts once LIMS_TEST_DATABASE_URL/LIMS_TEST_APP_DATABASE_URL exist. P0001 remap for credit_notes/ledger_entries is due when their write functions land (BL-T06+).

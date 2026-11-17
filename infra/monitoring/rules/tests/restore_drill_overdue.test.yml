@@ -1,0 +1,40 @@
+# T-10 / AC-13.2: RestoreDrillOverdue (02-TRD s11.3: warn > 35 d, page at 40 d).
+# Synthetic series: the sample VALUE is the last-success epoch; time() = eval_time, so
+# age = eval_time - value. Samples are 1 d apart and every eval_time sits on a sample.
+# The 40 d page rule is asserted statically in infra/tests/static/test_t10_restore_drill.py.
+rule_files:
+  - ../backup.rules.yml
+evaluation_interval: 1d
+tests:
+  - interval: 1d
+    name: last success at epoch 0, 34 days later -> not overdue
+    input_series:
+      - series: lims_ops_restore_drill_last_success_timestamp_seconds
+        values: "0x40"
+    alert_rule_test:
+      - alertname: RestoreDrillOverdue
+        eval_time: 34d
+        exp_alerts: []
+
+  - interval: 1d
+    name: last success at epoch 0, 36 days later -> warn
+    input_series:
+      - series: lims_ops_restore_drill_last_success_timestamp_seconds
+        values: "0x40"
+    alert_rule_test:
+      - alertname: RestoreDrillOverdue
+        eval_time: 36d
+        exp_alerts:
+          - exp_labels:
+              severity: warn
+              team: ops
+
+  - interval: 1d
+    name: a drill on day 30 resets the clock (age 30 d at day 60) -> not overdue
+    input_series:
+      - series: lims_ops_restore_drill_last_success_timestamp_seconds
+        values: "2592000x62"
+    alert_rule_test:
+      - alertname: RestoreDrillOverdue
+        eval_time: 60d
+        exp_alerts: []

@@ -1,0 +1,7 @@
+# C3 T-29a tests (tester) — getTaxRate, contract cases 27–30 (02-TRD §7.6a, 08 A2.2/A4.1)
+- File: `services/api/src/modules/catalog/__tests__/contract/CatalogPort.taxRate.test.ts` (29 cases, real port over `helpers/t28b.ts` world: cs_tax_types + g_tax_types). Fake side = existing shared contract via `packages/fakes/__tests__/run-contracts.test.ts` (32 CatalogPort cases pass).
+- Run: `.orchestra\notes\T-29a-verify.cmd`. Now: real 29/29 fail (`p.getTaxRate is not a function`); fake 32/32 pass. Never run against an implementation — satisfiability NOT proven.
+- SEAM: `createCatalogPort({cache})` gains `getTaxRate(ctx, {taxCode, on})`; reads on `ctx.tx` only (`catalog.g_tax_types` for VAT, `catalog.cs_tax_types WHERE tenant_id = $1 AND code = $2` otherwise, binds only); `domain/tax.ts` may host the picker.
+- Real answer: `effectiveFrom` = ISO-8601 UTC with ms (§7.6a step 4 [CONV]); day = Asia/Kathmandu local midnight (2026-07-16 = 2026-07-15T18:15Z); windows `[from, to)`; errors LimsError `catalog.tax_config_missing` (422) incl. malformed input.
+- Assumptions beyond spec: `on` like `2026-02-30` is malformed (-> tax_config_missing); `rate_bp` 0 is a valid rate; inactive VAT row / NULL rate -> missing; non-object input -> missing; extra input keys (`tenantId`) ignored.
+- NOT covered: `IdentityPort.getTenantSettings` timezone (factory has no identity dep; default only), cache-revision invalidation (§6.3), HTTP/OpenAPI (none), real-Postgres, wiring of the shared contract to the real port (T-29).

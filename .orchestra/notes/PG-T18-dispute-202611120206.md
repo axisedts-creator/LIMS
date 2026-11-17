@@ -1,0 +1,7 @@
+# PG-T18 dispute — 11 tests cannot pass against the C0 kit (implementation otherwise complete)
+Evidence: copies of the two files with ONLY these queries relaxed pass 68/68 (scratch copies deleted). Real run: 77 pass, 11 fail.
+
+1. **Confirm-button regex collides with the reason select** (detail test, 8 tests: AC-PG-07.1 ×2 + double-click, 07.2 danger, 07.3, 07.4, 07.5 ×2, 07.6): `within(dlg).getByRole('button', {name:/mark as paid|confirm/i})` (also `/mark as failed|confirm/i`, `/record|confirm/i`) runs AFTER `pick()`. The kit `Select` trigger is `aria-labelledby="<value> <label>"`, so its name becomes "Provider confirmed paid Reason" — `/confirm/` matches it ⇒ "Found multiple elements". Fix: drop `|confirm` from the three regexes (confirm labels are "Mark as paid" / "Mark as failed" / "Record payment").
+2. **`getByRole('table', …)`** (review test line 81): kit `DataTable` is react-aria `Table` ⇒ `role="grid"` (DataTable.tsx header comment). Fix: `getByRole('grid', {name:/Payments needing review/})`.
+3. **`getByRole('button', {name:/^status/i})`** (review test line 149): same aria-labelledby order ⇒ name is "Under review Status". Fix: `/status/i` (unique button).
+4. **`screen.findByText('Amount does not match')`** (review page "defaults" test line 207): the P24 hold-reason filter (spec §2.1) renders a hidden native `<option>Amount does not match</option>` plus the grid cell ⇒ two matches. Fix: `findAllByText(...)` or scope to `within(screen.getByRole('grid'))`.

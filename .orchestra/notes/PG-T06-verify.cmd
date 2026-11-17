@@ -1,0 +1,1 @@
+pnpm --dir services/api exec vitest run src/modules/payments/__tests__/unit/gateways/esewa.adapter.test.ts src/modules/payments/__tests__/unit/gateways/esewa.adapter.ct.test.ts src/modules/payments/__tests__/sim/esewa.adapter.sim.test.ts

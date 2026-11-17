@@ -1,0 +1,12 @@
+[Unit]
+Description=LIMS external port scan, once a month (02-TRD s18)
+
+[Timer]
+Unit=lims-external-scan.service
+# Once a month, off-peak. Persistent=true catches a missed run after downtime.
+OnCalendar=*-*-03 03:30:00
+RandomizedDelaySec=30min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

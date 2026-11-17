@@ -1,0 +1,8 @@
+# WEB-T06 tests (SCR-11 settings, AC-15.5 window part)
+- Files (apps/web/src/features/instruments/__tests__/): `web-t06.server.test.ts` (node: E40/E41 BFF fns + action + static guards), `web-t06.components.test.tsx` (jsdom: InstrumentSettingsForm, settings page, axe), `vitest.web-t06.config.ts`.
+- Run: `.orchestra\notes\WEB-T06-verify.cmd` (root vitest, config above; same deps as WEB-T03).
+- Covers: fields/ranges/prefill, no raw-retention field + verbatim help text, read-only without manage, PUT + If-Match "<version>" + exact body, version reuse on 2nd save, double-submit, window toast only on window change, both-or-neither HH:MM, 409 banner "Someone else changed these settings. Reload to see them." (edits kept), 400 pointer mapping, 403/500/428, XSS-as-text, axe, page→E40, server-only/no-JWT guards.
+- ASSUMED names (spec gives only folders/operationIds): components/InstrumentSettingsForm.tsx `({settings, permissions})`, server/{getInstrumentSettings,updateInstrumentSettings}.server.ts, `updateInstrumentSettingsAction(version, body)` in server/actions.ts, page `(staff)/instruments/settings/page.tsx`; save button "Save".
+- Verified now: 38/38 fail for the right reason (missing modules `InstrumentSettingsForm`, `*.server`, action, page). No impl exists.
+- NOT tested (spec silent): toast text for a save without window change; Reload button on banner; sub-minute "changes reach agents" claim (server-side, API-T05).
+- NOT verified: Banner/aria-live role (test accepts alert/status/aria-live); IntegerField interactions assume the kit's spinbutton + digits-only typing; time fields assumed to be labelled text inputs.

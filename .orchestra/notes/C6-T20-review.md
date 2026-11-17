@@ -1,0 +1,5 @@
+APPROVE
+Scope: 02e7b5fa..HEAD (LD-66 round). core/auth/resolvers.ts:38-40 adds opt-in `invalidError` for pre-resolver rejections (empty / non-string / >4096); the 4096 cap is kept; keys without it still get auth.unauthenticated. It uses the same `new AuthError(code)` path as the resolver-returned error (line 45), so the 404 body matches. portal.resolver.ts:18 sets 'reporting.link_invalid'. The LD-66 cross-lane exception covers the C0 edit.
+Tests: portal.service.test.ts:297 only changes 1->3 (identity asserts kept). resolvers.test.ts covers empty / 4097 / 5000 / non-string -> link_invalid with the resolver not called, 4096 reaching the resolver, the other 4 keys staying 401, and opt-in only. The too-long case is not shortened.
+Ran: api 6 files 144/144 pass; worker send_portal_otp 13/13 pass. No PHI/secrets, no new names beyond LD-66 field.
+Non-blocking: follow-up spec CR (03-INTERFACE-CATALOG + C0 TRD §6 authResolvers) still pending per LD-66; `invalidError` not type-checked at registration (string assumed).

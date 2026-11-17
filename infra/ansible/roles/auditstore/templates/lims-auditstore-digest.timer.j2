@@ -1,0 +1,9 @@
+[Unit]
+Description=Audit store digest nightly 02:30 NPT (05-SCHEMA s3.4 [CONV])
+
+[Timer]
+OnCalendar=*-*-* 02:30:00 Asia/Kathmandu
+Persistent=true
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,11 @@
+---
+- name: Reload edge nginx after certificate change
+  ansible.builtin.command:
+    argv:
+      - docker
+      - exec
+      - "{{ acme_nginx_container }}"
+      - sh
+      - -c
+      - nginx -t && nginx -s reload
+  changed_when: true

@@ -1,5 +1,5 @@
 // contracts/ports/EngagementPort.ts
-import type { RequestContext, Uuidv7, IsoUtc, Code, DecimalString } from './common';
+import type { RequestContext, Uuidv7, IsoUtc, Code, DecimalString } from './common.js';
 export const ENGAGEMENT_PORT_VERSION = 1 as const;
 export interface EngagementPortV1 {
   /** System actors, or staff holding homecollection.visit.assign / homecollection.visit.read (C17 checks the assignment). P2.

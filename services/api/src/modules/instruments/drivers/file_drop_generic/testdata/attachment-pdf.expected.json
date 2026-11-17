@@ -1,0 +1,11 @@
+{
+  "ok": true,
+  "messageKind": "results",
+  "records": [
+    {
+      "recordSeq": 1, "recordClass": "patient", "sampleBarcode": "E2600000042", "recordKind": "attachment",
+      "instrumentAnalyteCode": "HISTO-IMG", "instrumentFlags": [], "warnings": []
+    }
+  ],
+  "warnings": []
+}

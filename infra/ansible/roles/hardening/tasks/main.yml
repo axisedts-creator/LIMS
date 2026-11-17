@@ -1,0 +1,58 @@
+---
+# 02-TRD s5.2 (AC-29.3, REQ-SEC-132). Lockout guards: every file is
+# validated with `sshd -t` before it is installed, and sshd is restarted
+# only in a handler (end of play, after wireguard has brought up wg0).
+- name: Install openssh-server and fail2ban (sshd jail on by default)
+  ansible.builtin.apt:
+    name: [openssh-server, fail2ban]
+    state: present
+
+- name: Privilege separation directory needed by sshd -t
+  ansible.builtin.file:
+    path: /run/sshd
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Drop cloud-init drop-in that may re-enable password login
+  ansible.builtin.file:
+    path: /etc/ssh/sshd_config.d/50-cloud-init.conf
+    state: absent
+  notify: Restart sshd
+
+- name: SSH policy /etc/ssh/sshd_config.d/lims.conf
+  ansible.builtin.template:
+    src: lims.conf.j2
+    dest: /etc/ssh/sshd_config.d/lims.conf
+    owner: root
+    group: root
+    mode: "0644"
+    validate: /usr/sbin/sshd -t -f %s
+  notify: Restart sshd
+
+- name: Drop-in directory of ssh.service
+  ansible.builtin.file:
+    path: /etc/systemd/system/ssh.service.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Order sshd after wg0 (its ListenAddress lives there)
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/ssh.service.d/10-lims-wg.conf
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      [Unit]
+      Wants=wg-quick@wg0.service
+      After=wg-quick@wg0.service
+  notify: Restart sshd
+
+- name: Fail2ban running
+  ansible.builtin.service:
+    name: fail2ban
+    state: started
+    enabled: true

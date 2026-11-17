@@ -1,0 +1,6 @@
+# BL-T19 tests (tester)
+Files: NEW worker `jobs/billing/__tests__/export.xlsx.test.ts` (xlsx render: stored/ready, columns, number cells, formula injection on every text cell incl. golden.json, XML-hostile bytes, caps, retry, static checks); EDITED api `billing/service/__tests__/export.service.test.ts` (xlsx accepted, privileged, general cap, content type) and worker `export.render.test.ts`.
+Edited on purpose: removed the two pre-BL-T19 "xlsx -> common.feature_disabled" tests (api export.service, worker export.render); both said BL-T19 must change them. B28 x-error-codes still lists feature_disabled (invoice_documents) - untouched.
+Run: `.orchestra\notes\BL-T19-verify.cmd`. Now: 53 of 55 export.xlsx tests FAIL because export_render fails every xlsx job with common.feature_disabled; api xlsx cases fail on the service branch.
+Assumed (writer: dispute if wrong): xlsx rendered in worker export_render with write-excel-file 4.1.1; one sheet, row 1 header (labels unpinned), sales columns in PRD order (12), SN/money = number cells (integer paisa or rupees), absent = empty cell, neutralised text = "'" + value; a retry after the object was stored must still reach ready.
+Not testable here: opening in Excel/LibreOffice; B29a/handler streaming; live SQL. Cancelled-invoice "cancelled by" column (US-BL-12.2) still absent (CR-C4-BL15).

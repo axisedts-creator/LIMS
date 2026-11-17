@@ -1,0 +1,1 @@
+pnpm --dir services/api exec vitest run src/modules/smartreport/__tests__/observability.test.ts && pnpm --dir services/worker exec vitest run src/jobs/smartreport/__tests__/observability.rules.test.ts

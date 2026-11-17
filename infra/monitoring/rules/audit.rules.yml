@@ -1,0 +1,42 @@
+---
+# 02-TRD s11.3 audit family; metrics exported by T-15 (lims-auditstore-*.sh).
+# Down = the shipping subscription is disabled; Disabled (warn) = the audit
+# store reports up == 0, i.e. shipping is not configured at all.
+groups:
+  - name: audit
+    rules:
+      - alert: AuditShippingLagging
+        expr: lims_ops_auditstore_lag_seconds > 300
+        for: 2m
+        labels:
+          severity: page
+          team: ops
+        annotations:
+          summary: "Audit shipping lags more than 5 min."
+          runbook_url: "infra/runbooks/audit.md#auditshippinglagging"
+      - alert: AuditShippingDown
+        expr: lims_ops_auditstore_subscription_enabled == 0
+        for: 2m
+        labels:
+          severity: page
+          team: ops
+        annotations:
+          summary: "The audit shipping subscription is disabled."
+          runbook_url: "infra/runbooks/audit.md#auditshippingdown"
+      - alert: AuditShippingDisabled
+        expr: lims_ops_auditstore_up == 0
+        for: 15m
+        labels:
+          severity: warn
+          team: ops
+        annotations:
+          summary: "Audit shipping is not configured (audit store reports down)."
+          runbook_url: "infra/runbooks/audit.md#auditshippingdisabled"
+      - alert: AuditDigestMismatch
+        expr: increase(lims_ops_audit_digest_mismatch_total[1h]) > 0
+        labels:
+          severity: page
+          team: ops
+        annotations:
+          summary: "A nightly audit digest re-verification found a mismatch."
+          runbook_url: "infra/runbooks/audit.md#auditdigestmismatch"

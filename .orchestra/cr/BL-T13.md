@@ -1,0 +1,15 @@
+Title: CR-C4-BL13: tax-rate lookup and active-branch check for the credit-party monthly bill (B21)
+From chunk: C4            To owner: C0-0C (port / schema ruling); C3 for item A if priceFor is the answer
+Type: port | schema
+Blocking? no for exempt-only tenants (BL-T13 ships fail-closed: taxable/other-tax charge -> `catalog.tax_config_missing`; branch checked by FK only). Yes for any tenant with taxable credit charges (US-BL-10.1).
+Problem (what you cannot do today, with the user story / acceptance criterion it serves):
+A. US-BL-10.1 / 03-APP-FLOW §2.14 step 3: taxes on B21 lines are "computed by computeQuote ... with the rates C3 returns for that orderable at issue time (CatalogPort.priceFor(...).tax)". 03-IC §4.2 `PriceQuery.priority: Priority` is required, but `billing.credit_charges` (05-SCHEMA) has no `priority` column; it has only `line_kind IN ('orderable','urgent_surcharge')`. Deriving priority from `orders.priority` via `order_id`, or from line_kind, would be an invented rule; `computeQuote` would also add its own urgent_surcharge line on top of a charge that already is one.
+B. 03-APP-FLOW §2.14 step 1 / 02-TRD B21: request `branch_id` "must be an active branch of the tenant (else 400 common.validation_failed /branch_id)". No 03-IC port exposes branch active-ness; `core.branches` is C0-owned, so C4 may not read it directly. Today an inactive branch of the tenant can be billed.
+Proposed change (exact):
+A. Either (a1) add `CatalogPort.taxFor(ctx, { orderableId: Uuidv7; at: IsoUtc }): Promise<PriceQuote['tax']>` (no priority, rates only), or (a2) rule that B21 calls `priceFor` with `priority: 'routine'` for every credit_charges row and uses only `.tax` (rates do not depend on priority), building lines via computeQuote with no surcharge expansion (the charge keeps its own price and line_kind). Or (a3) add `vat_rate_bp int` + `other_tax_rate_bp int` to `billing.credit_charges`, frozen by `recordCreditCharges` at charge time.
+B. Add to IdentityPort (or a C0 port): `getBranch(ctx, { branchId: Uuidv7 }): Promise<{ id: Uuidv7; code: string; isActive: boolean }>` @throws common.not_found. This also answers the open `{branch}` code source for branch-scope INV series (BL-T13 interim `branchCode` input).
+Backward compatible? yes — additive port method / nullable columns.
+Tenant/security impact: no RLS change, no PHI, no new public surface; tenant scope from RequestContext.
+IRD/regulatory impact (billing changes only): A decides the VAT on monthly tax invoices (vat_rate_bp / vat_paisa / taxable_paisa on invoice_lines and the issued event totals); until ruled C4 refuses to issue rather than guess a rate (08 R18).
+Alternatives considered: join orders.priority (invented, cross-row read at issue time); read core.branches directly (ownership violation).
+Tests that will prove it: credit.periodic.test.ts — one taxable charge billed with C3's rate (vat_rate_bp, vat_paisa, totals, event totals), replacing the interim fail-closed case; inactive branch -> 400 common.validation_failed /branch_id, nothing stored.

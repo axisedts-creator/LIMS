@@ -1,0 +1,4 @@
+- Cause 1 (impl): `registration.service.ts` threw `common.service_unavailable` for any `trf_attachment_ids` (F9 TRF linking never built); 03-APP-FLOW §3 step 5 requires linking.
+- Fix 1: `repository/trf.repo.ts` +`lockLinkableTrfDrafts`/`linkTrfToOrder`; `createInTx` validates (tenant, centre, order_id IS NULL, active, same uploader, TTL) before counters, 404 `common.not_found` for any miss, links after the order exists, same tx.
+- NOT re-run: Docker verify needs approval, denied in this session. Log top (failures 1-7) is truncated. Only typecheck of edited files done (clean).
+- Remaining failures are test-side, see FD-T16-dispute.md. Unexplained: F10 listOrders `auth.forbidden`, quoteOrderItemsChange `validation_failed`; needs a re-run with the full log.

@@ -1,0 +1,7 @@
+# Settings
+
+Lab-wide inventory switches. Managers edit; other users see a read-only list.
+
+- Automatic consumption: switch on and set "Start from". The start cannot be earlier than one hour ago, so nothing is deducted for the past. While it is off, stock is not deducted for tests, QC or reruns.
+- VAT included in cost: Turn off if your lab can claim purchase VAT back (ask your auditor). It changes future receipts only. See vat-in-cost.md.
+- Review PO approval, receipt without PO, over-receipt tolerance, expiry alert days, default consumption store, lock store during count, analyser-day rule activity, reconciliation alert percentage, back-dating limit and number patterns.

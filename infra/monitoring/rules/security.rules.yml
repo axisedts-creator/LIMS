@@ -1,0 +1,40 @@
+---
+# 02-TRD s11.3 security family. Counters are log-derived (Fluent Bit
+# log-to-metrics, T-17) or textfile (fail2ban, s6.8); only an increase fires.
+groups:
+  - name: security
+    rules:
+      - alert: SshLoginOutsideOps
+        expr: increase(lims_ops_ssh_login_outside_ops_total[10m]) > 0
+        labels:
+          severity: page
+          team: ops
+        annotations:
+          summary: "SSH login by a non-ops account on {{ $labels.host }}."
+          runbook_url: "infra/runbooks/security.md#sshloginoutsideops"
+      - alert: SudoByUnknown
+        expr: increase(lims_ops_sudo_by_unknown_total[10m]) > 0
+        labels:
+          severity: page
+          team: ops
+        annotations:
+          summary: "sudo by an unknown account on {{ $labels.host }}."
+          runbook_url: "infra/runbooks/security.md#sudobyunknown"
+      - alert: SecretDecryptUnexpected
+        expr: increase(lims_ops_secret_decrypt_unexpected_total[10m]) > 0
+        labels:
+          severity: page
+          team: ops
+        annotations:
+          summary: "Secret decrypted outside a deploy window on {{ $labels.host }}."
+          runbook_url: "infra/runbooks/security.md#secretdecryptunexpected"
+      # 08 Addendum A3.2: an edge ban is not attributable to a tenant.
+      - alert: LimsAuthJailBan
+        expr: increase(lims_ops_fail2ban_bans_total{jail="lims-auth"}[10m]) > 0
+        labels:
+          severity: page
+          team: ops
+          notify_tenant: "false"
+        annotations:
+          summary: "fail2ban jail lims-auth banned a client on {{ $labels.host }}."
+          runbook_url: "infra/runbooks/edge.md#limsauthjailban"

@@ -1,0 +1,6 @@
+TESTS_WRONG — the assertion is right, but the test's own validator config makes it impossible to pass; fix the harness, not the implementation.
+- The spec requires unknown keys to be rejected: spec/program/02-CONVENTIONS.md:423 ("additionalProperties: false (unknown fields rejected — REQ-SEC-080)"). Keep `expect(valid({ bogus: 1 })).toBe(false)` at drivers-truth-h80e.test.ts:106 unchanged.
+- The schema already meets that rule: `additionalProperties: false` is asserted at test line 88, and that check passes. The option set matches spec/chunks/C7-instrument-integration/08-ADDENDUM-TRUTH-H80E.md:205.
+- The defect is test line 84. Its `customOptions` leave out `removeAdditional: false`, so the `AjvCompiler()` default (`removeAdditional: true`) strips `bogus` before validation and returns true. The spec does not ask for a stripping validator. The project's validator is `AJV_OPTIONS` (services/api/src/core/openapi.ts:70-71, removeAdditional:false, "mandatory (REQ-SEC-080)").
+- Required change (line 84 only): `customOptions: { ...AJV_OPTIONS, coerceTypes: false, strict: false }`, importing `AJV_OPTIONS` from core/openapi. Adding just `removeAdditional: false` to the existing object is also acceptable. Leave every assertion in lines 102-111 as it is.
+- No implementation change. Writer re-runs the suite after the tester's fix.

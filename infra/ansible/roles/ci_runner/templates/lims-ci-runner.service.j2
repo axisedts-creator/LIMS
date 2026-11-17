@@ -1,0 +1,22 @@
+# Managed by Ansible (role ci_runner) - 02-TRD s12.2, 07-SEC A9.
+# Unprivileged. Docker access is needed to build; it is why only protected-branch/tag jobs may target this runner.
+[Unit]
+Description=LIMS CI runner ({{ ci_runner_labels }})
+After=network-online.target docker.service
+Wants=network-online.target
+ConditionPathExists={{ ci_runner_dir }}/.runner
+
+[Service]
+User={{ ci_runner_user }}
+Group={{ ci_runner_group }}
+WorkingDirectory={{ ci_runner_dir }}
+ExecStart={{ ci_runner_dir }}/run.sh
+Restart=on-failure
+RestartSec=10
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=full
+
+[Install]
+WantedBy=multi-user.target

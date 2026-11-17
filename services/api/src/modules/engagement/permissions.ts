@@ -1,0 +1,31 @@
+// Permission codes checked by module engagement (02-TRD §9.2). Copied verbatim from contracts/permissions.yaml (engagement.* codes, CR-C16-002).
+export const ENGAGEMENT_PERMISSIONS = Object.freeze([
+  'engagement.auth.challenge',
+  'engagement.bookable_item.manage',
+  'engagement.booking.cancel',
+  'engagement.booking.create',
+  'engagement.booking.manage',
+  'engagement.booking.read',
+  'engagement.enquiry.create',
+  'engagement.enquiry.read',
+  'engagement.enquiry.respond',
+  'engagement.link.issue',
+  'engagement.link.read',
+  'engagement.link.redeem',
+  'engagement.link.revoke',
+  'engagement.membership.enrol',
+  'engagement.membership.read',
+  'engagement.membership_plan.manage',
+  'engagement.payment.create',
+  'engagement.queue.board_read',
+  'engagement.queue.manage',
+  'engagement.queue.operate',
+  'engagement.reminder.manage',
+  'engagement.reminder.read',
+  'engagement.self.manage',
+  'engagement.self.read',
+  'engagement.settings.manage',
+  'engagement.slot.manage',
+] as const);
+
+export type EngagementPermission = (typeof ENGAGEMENT_PERMISSIONS)[number];

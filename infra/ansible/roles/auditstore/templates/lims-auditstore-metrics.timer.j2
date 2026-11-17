@@ -1,0 +1,9 @@
+[Unit]
+Description=Audit store shipping metrics every minute (02-TRD s10.3)
+
+[Timer]
+OnCalendar=minutely
+AccuracySec=1s
+
+[Install]
+WantedBy=timers.target

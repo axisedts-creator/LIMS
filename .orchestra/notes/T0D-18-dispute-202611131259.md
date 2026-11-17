@@ -1,0 +1,5 @@
+# T0D-18 dispute — test `attack: 20 parallel creates with the SAME key` (pipeline.integration.test.ts:334-341)
+Failure: line 339 `[201, 409].includes(status)` false for >=1 of 20 responses. Rest of suite: 121/122 green.
+Likely cause (from code, NOT reproduced: I could not run the DB harness, approval denied): all 20 requests use SUB_A, and stage 5 charges `general` `u:<sub>` = 10 req/s, burst 20 (02-TRD 6.7 line 650; ratelimit/index.ts:41, pg backend = 20 hits per 2 s window, pg.ts:16). Earlier tests in the same file already spent SUB_A hits inside that 2 s window, so some of the 20 get 429 common.rate_limited before idempotency. Implementation follows 6.7; no impl change is justified.
+Test contradicts spec: 20 same-actor requests at exactly the user burst cannot all pass after prior traffic. Fix is in the test: use a fresh sub for this case, or clear `core.rate_limit_counters` first (as the stage-5 test does), or accept 429.
+To confirm: print `rs.map(r => [r.statusCode, codeOf(r)])` before line 338; expect `common.rate_limited`.

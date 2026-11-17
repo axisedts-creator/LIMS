@@ -1,0 +1,106 @@
+# T-19 (tester, LD-39): promtool tests for rules/audit.rules.yml (1 m series). Synthetic series only.
+# Metrics are the ones T-15 already exports (lims-auditstore-metrics.sh / lims-auditstore-digest.sh):
+#   lims_ops_auditstore_lag_seconds           > 300            -> AuditShippingLagging page
+#   lims_ops_auditstore_subscription_enabled  == 0             -> AuditShippingDown    page (subscription disabled/stopped)
+#   lims_ops_auditstore_up                    == 0 for 15m max -> AuditShippingDisabled warn (no subscription: shipping
+#                                                                 not configured, e.g. CR-C1-002 unmerged; 01-PRD s294)
+#   increase(lims_ops_audit_digest_mismatch_total[..]) > 0     -> AuditDigestMismatch  page (monotonic counter)
+# Disabled never pages and Down never fires from `up == 0` alone (no enabled sample).
+rule_files:
+  - ../audit.rules.yml
+evaluation_interval: 1m
+tests:
+  - interval: 1m
+    name: AuditShippingLagging page above 300 s
+    input_series:
+      - series: 'lims_ops_auditstore_lag_seconds'
+        values: "301x30"
+    alert_rule_test:
+      - alertname: AuditShippingLagging
+        eval_time: 10m
+        exp_alerts:
+          - exp_labels: {severity: page, team: ops}
+
+  - interval: 1m
+    name: AuditShippingLagging quiet at 300 s
+    input_series:
+      - series: 'lims_ops_auditstore_lag_seconds'
+        values: "300x30"
+    alert_rule_test:
+      - alertname: AuditShippingLagging
+        eval_time: 10m
+        exp_alerts: []
+
+  - interval: 1m
+    name: AuditShippingDown page when the subscription is disabled
+    input_series:
+      - series: 'lims_ops_auditstore_up'
+        values: "1x30"
+      - series: 'lims_ops_auditstore_subscription_enabled'
+        values: "0x30"
+    alert_rule_test:
+      - alertname: AuditShippingDown
+        eval_time: 10m
+        exp_alerts:
+          - exp_labels: {severity: page, team: ops}
+      - alertname: AuditShippingDisabled
+        eval_time: 30m
+        exp_alerts: []
+
+  - interval: 1m
+    name: healthy shipping -> Down, Disabled, Lagging quiet
+    input_series:
+      - series: 'lims_ops_auditstore_up'
+        values: "1x30"
+      - series: 'lims_ops_auditstore_subscription_enabled'
+        values: "1x30"
+      - series: 'lims_ops_auditstore_lag_seconds'
+        values: "12x30"
+    alert_rule_test:
+      - alertname: AuditShippingDown
+        eval_time: 20m
+        exp_alerts: []
+      - alertname: AuditShippingDisabled
+        eval_time: 30m
+        exp_alerts: []
+      - alertname: AuditShippingLagging
+        eval_time: 20m
+        exp_alerts: []
+
+  - interval: 1m
+    name: shipping not configured (up 0, no subscription sample) -> AuditShippingDisabled warn, not Down
+    input_series:
+      - series: 'lims_ops_auditstore_up'
+        values: "0x60"
+    alert_rule_test:
+      - alertname: AuditShippingDisabled
+        eval_time: 30m
+        exp_alerts:
+          - exp_labels: {severity: warn, team: ops}
+      - alertname: AuditShippingDown
+        eval_time: 30m
+        exp_alerts: []
+
+  - interval: 1m
+    name: AuditDigestMismatch page when the nightly re-verification records a mismatch
+    input_series:
+      - series: 'lims_ops_audit_digest_mismatch_total'
+        values: "0x30 1x30"
+    alert_rule_test:
+      - alertname: AuditDigestMismatch
+        eval_time: 25m
+        exp_alerts: []
+      - alertname: AuditDigestMismatch
+        eval_time: 33m
+        exp_alerts:
+          - exp_labels: {severity: page, team: ops}
+
+  - interval: 1m
+    name: AuditDigestMismatch quiet on a flat historic counter
+    input_series:
+      - series: 'lims_ops_audit_digest_mismatch_total'
+        values: "3x60"
+    alert_rule_test:
+      - alertname: AuditDigestMismatch
+        eval_time: 35m
+        exp_alerts: []

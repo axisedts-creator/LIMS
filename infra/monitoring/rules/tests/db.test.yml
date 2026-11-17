@@ -1,0 +1,183 @@
+# T-19 (tester, LD-39): promtool tests for rules/db.rules.yml (1 m series). Synthetic series only.
+# CONTRACT (02-TRD s11.3 says "standard exporter metrics"; names pinned here, writer must use them):
+#   pg_up{job="postgres_exporter",host}                       -> PostgresDown            page, keeps series labels
+#   pg_stat_activity_count / pg_settings_max_connections > 0.8 -> PostgresConnectionsHigh warn
+#   increase(pg_stat_database_deadlocks[..]) > 0               -> PostgresDeadlocks       warn
+#   pg_stat_activity_max_tx_duration > 300                     -> LongRunningTx           warn
+#   pgbouncer_pools_client_waiting_connections > 0 for 2m      -> PgBouncerWaiting        warn
+#   pg_replication_slots_pg_wal_lsn_diff > 20 GB               -> ReplicationSlotWalRetained page
+#   pg_invalid_indexes_count > 0 for 5m                        -> PostgresInvalidIndex    page
+# Severities for the family ("page / warn" in the spec) are the choice above; dispute if the lead rules otherwise.
+# Aggregated metrics are fed label-free so any sum()/max() by (...) the writer chooses still matches.
+# LD-45: PostgresDown is exercised for both data-1 (full) and prod-1 (lean).
+rule_files:
+  - ../db.rules.yml
+evaluation_interval: 1m
+tests:
+  - interval: 1m
+    name: PostgresDown page on data-1
+    input_series:
+      - series: 'pg_up{job="postgres_exporter", host="data-1"}'
+        values: "0x20"
+    alert_rule_test:
+      - alertname: PostgresDown
+        eval_time: 10m
+        exp_alerts:
+          - exp_labels: {severity: page, team: ops, job: postgres_exporter, host: data-1}
+
+  - interval: 1m
+    name: PostgresDown page on lean prod-1
+    input_series:
+      - series: 'pg_up{job="postgres_exporter", host="prod-1"}'
+        values: "0x20"
+    alert_rule_test:
+      - alertname: PostgresDown
+        eval_time: 10m
+        exp_alerts:
+          - exp_labels: {severity: page, team: ops, job: postgres_exporter, host: prod-1}
+
+  - interval: 1m
+    name: PostgresDown quiet while pg_up is 1
+    input_series:
+      - series: 'pg_up{job="postgres_exporter", host="data-1"}'
+        values: "1x20"
+    alert_rule_test:
+      - alertname: PostgresDown
+        eval_time: 10m
+        exp_alerts: []
+
+  - interval: 1m
+    name: PostgresConnectionsHigh warn above 80 % of max_connections
+    input_series:
+      - series: 'pg_stat_activity_count'
+        values: "81x60"
+      - series: 'pg_settings_max_connections'
+        values: "100x60"
+    alert_rule_test:
+      - alertname: PostgresConnectionsHigh
+        eval_time: 30m
+        exp_alerts:
+          - exp_labels: {severity: warn, team: ops}
+
+  - interval: 1m
+    name: PostgresConnectionsHigh quiet at exactly 80 %
+    input_series:
+      - series: 'pg_stat_activity_count'
+        values: "80x60"
+      - series: 'pg_settings_max_connections'
+        values: "100x60"
+    alert_rule_test:
+      - alertname: PostgresConnectionsHigh
+        eval_time: 30m
+        exp_alerts: []
+
+  - interval: 1m
+    name: PostgresDeadlocks warn when the counter increases
+    input_series:
+      - series: 'pg_stat_database_deadlocks'
+        values: "0x4 2x15"
+    alert_rule_test:
+      - alertname: PostgresDeadlocks
+        eval_time: 7m
+        exp_alerts:
+          - exp_labels: {severity: warn, team: ops}
+
+  - interval: 1m
+    name: PostgresDeadlocks quiet when the counter is flat
+    input_series:
+      - series: 'pg_stat_database_deadlocks'
+        values: "5x20"
+    alert_rule_test:
+      - alertname: PostgresDeadlocks
+        eval_time: 15m
+        exp_alerts: []
+
+  - interval: 1m
+    name: LongRunningTx warn above 5 min
+    input_series:
+      - series: 'pg_stat_activity_max_tx_duration'
+        values: "301x60"
+    alert_rule_test:
+      - alertname: LongRunningTx
+        eval_time: 30m
+        exp_alerts:
+          - exp_labels: {severity: warn, team: ops}
+
+  - interval: 1m
+    name: LongRunningTx quiet at exactly 300 s
+    input_series:
+      - series: 'pg_stat_activity_max_tx_duration'
+        values: "300x60"
+    alert_rule_test:
+      - alertname: LongRunningTx
+        eval_time: 30m
+        exp_alerts: []
+
+  - interval: 1m
+    name: PgBouncerWaiting - waiting clients for 2m -> warn at 2m, not at 1m
+    input_series:
+      - series: 'pgbouncer_pools_client_waiting_connections'
+        values: "3x10"
+    alert_rule_test:
+      - alertname: PgBouncerWaiting
+        eval_time: 1m
+        exp_alerts: []
+      - alertname: PgBouncerWaiting
+        eval_time: 2m
+        exp_alerts:
+          - exp_labels: {severity: warn, team: ops}
+
+  - interval: 1m
+    name: PgBouncerWaiting quiet at zero waiting
+    input_series:
+      - series: 'pgbouncer_pools_client_waiting_connections'
+        values: "0x10"
+    alert_rule_test:
+      - alertname: PgBouncerWaiting
+        eval_time: 5m
+        exp_alerts: []
+
+  - interval: 1m
+    name: ReplicationSlotWalRetained page above 20 GB
+    input_series:
+      - series: 'pg_replication_slots_pg_wal_lsn_diff'
+        values: "25000000000x20"
+    alert_rule_test:
+      - alertname: ReplicationSlotWalRetained
+        eval_time: 10m
+        exp_alerts:
+          - exp_labels: {severity: page, team: ops}
+
+  - interval: 1m
+    name: ReplicationSlotWalRetained quiet at 15 GB
+    input_series:
+      - series: 'pg_replication_slots_pg_wal_lsn_diff'
+        values: "15000000000x20"
+    alert_rule_test:
+      - alertname: ReplicationSlotWalRetained
+        eval_time: 10m
+        exp_alerts: []
+
+  - interval: 1m
+    name: PostgresInvalidIndex page after 5m of an invalid index, not at 4m
+    input_series:
+      - series: 'pg_invalid_indexes_count'
+        values: "1x20"
+    alert_rule_test:
+      - alertname: PostgresInvalidIndex
+        eval_time: 4m
+        exp_alerts: []
+      - alertname: PostgresInvalidIndex
+        eval_time: 5m
+        exp_alerts:
+          - exp_labels: {severity: page, team: ops}
+
+  - interval: 1m
+    name: PostgresInvalidIndex quiet with no invalid index
+    input_series:
+      - series: 'pg_invalid_indexes_count'
+        values: "0x20"
+    alert_rule_test:
+      - alertname: PostgresInvalidIndex
+        eval_time: 10m
+        exp_alerts: []

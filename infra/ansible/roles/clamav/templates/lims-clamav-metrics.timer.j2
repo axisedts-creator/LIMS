@@ -1,0 +1,10 @@
+[Unit]
+Description=LIMS ClamAV signature age metric, every 5 minutes
+
+[Timer]
+Unit=lims-clamav-metrics.service
+OnBootSec=1min
+OnUnitActiveSec=5min
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,104 @@
+# T-21 (tester, LD-39): promtool tests for ../anatomic.rules.yml. Synthetic series only (no real tenant or patient data).
+# Per alert one firing case (labels carry the rule's severity and team), one not-firing case, and for rules with a
+# `for` clause a pending-before-`for` + firing-after-`for` check. Thresholds are the owner's (02-TRD s11.3).
+rule_files:
+  - ../anatomic.rules.yml
+evaluation_interval: 1m
+tests:
+
+  - interval: 1m
+    name: "AnatomicConsumerDeadLetter fires"
+    input_series:
+      - series: 'lims_core_dead_letters_total{task="evt.anatomic.case"}'
+        values: "0+1x15"
+    alert_rule_test:
+      - alertname: AnatomicConsumerDeadLetter
+        eval_time: 12m
+        exp_alerts:
+          - exp_labels: {severity: "warn", team: "ops", task: "evt.anatomic.case"}
+            exp_annotations: {summary: "An anatomic pathology event consumer dead-lettered.", runbook_url: "infra/runbooks/anatomic.md#anatomicconsumerdeadletter"}
+
+  - interval: 1m
+    name: "AnatomicConsumerDeadLetter quiet"
+    input_series:
+      - series: 'lims_core_dead_letters_total{task="evt.anatomic.case"}'
+        values: "0+0x15"
+      - series: 'lims_core_dead_letters_total{task="evt.micro.result"}'
+        values: "0+1x15"
+    alert_rule_test:
+      - alertname: AnatomicConsumerDeadLetter
+        eval_time: 12m
+        exp_alerts: []
+
+  - interval: 1m
+    name: "AnatomicImageQuarantined fires"
+    input_series:
+      - series: 'lims_anatomic_image_processing_total{tenant_id="t1",outcome="quarantined"}'
+        values: "0+1x75"
+    alert_rule_test:
+      - alertname: AnatomicImageQuarantined
+        eval_time: 72m
+        exp_alerts:
+          - exp_labels: {severity: "warn", team: "ops", tenant_id: "t1"}
+            exp_annotations: {summary: "More than 5 images quarantined for one tenant in 1 h (security).", runbook_url: "infra/runbooks/anatomic.md#anatomicimagequarantined"}
+
+  - interval: 1m
+    name: "AnatomicImageQuarantined quiet"
+    input_series:
+      - series: 'lims_anatomic_image_processing_total{tenant_id="t1",outcome="quarantined"}'
+        values: "0+0x75"
+      - series: 'lims_anatomic_image_processing_total{tenant_id="t1",outcome="ok"}'
+        values: "0+5x75"
+    alert_rule_test:
+      - alertname: AnatomicImageQuarantined
+        eval_time: 72m
+        exp_alerts: []
+
+  - interval: 1m
+    name: "AnatomicSubmitFailures fires"
+    input_series:
+      - series: 'lims_anatomic_submit_failures_total'
+        values: "0+1x25"
+    alert_rule_test:
+      - alertname: AnatomicSubmitFailures
+        eval_time: 9m
+        exp_alerts: []
+      - alertname: AnatomicSubmitFailures
+        eval_time: 22m
+        exp_alerts:
+          - exp_labels: {severity: "warn", team: "ops"}
+            exp_annotations: {summary: "Anatomic pathology submit failures above 0.1/min for 10 min.", runbook_url: "infra/runbooks/anatomic.md#anatomicsubmitfailures"}
+
+  - interval: 1m
+    name: "AnatomicSubmitFailures quiet"
+    input_series:
+      - series: 'lims_anatomic_submit_failures_total'
+        values: "0+0x25"
+    alert_rule_test:
+      - alertname: AnatomicSubmitFailures
+        eval_time: 22m
+        exp_alerts: []
+
+  - interval: 1m
+    name: "AnatomicLookupNotFoundSpike fires"
+    input_series:
+      - series: 'lims_anatomic_lookup_total{result="not_found"}'
+        values: "0+100x15"
+    alert_rule_test:
+      - alertname: AnatomicLookupNotFoundSpike
+        eval_time: 12m
+        exp_alerts:
+          - exp_labels: {severity: "warn", team: "ops"}
+            exp_annotations: {summary: "Case/block/slide lookups not found above 50/min (possible enumeration).", runbook_url: "infra/runbooks/anatomic.md#anatomiclookupnotfoundspike"}
+
+  - interval: 1m
+    name: "AnatomicLookupNotFoundSpike quiet"
+    input_series:
+      - series: 'lims_anatomic_lookup_total{result="not_found"}'
+        values: "0+10x15"
+      - series: 'lims_anatomic_lookup_total{result="found"}'
+        values: "0+500x15"
+    alert_rule_test:
+      - alertname: AnatomicLookupNotFoundSpike
+        eval_time: 12m
+        exp_alerts: []

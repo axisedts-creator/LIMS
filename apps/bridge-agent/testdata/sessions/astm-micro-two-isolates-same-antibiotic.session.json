@@ -1,0 +1,23 @@
+{"name": "astm-micro-two-isolates-same-antibiotic", "protocol": "astm", "transport": "pipe", "instrument_profile": "astm_generic_e1394", "options": {},
+ "steps": [
+  {"from": "instrument", "bytes": "<ENQ>"},
+  {"expect": "agent", "bytes": "<ACK>", "within_ms": 200},
+  {"from": "instrument", "bytes": "<STX>1H|\\^&|||SIM-MICRO^0.1|||||||P|1<CR><ETX>37<CR><LF>"},
+  {"expect": "agent", "bytes": "<ACK>", "within_ms": 200},
+  {"from": "instrument", "bytes": "<STX>2P|1<CR><ETX>3F<CR><LF>"},
+  {"expect": "agent", "bytes": "<ACK>", "within_ms": 200},
+  {"from": "instrument", "bytes": "<STX>3O|1|E2600000044||^^^MIC<CR><ETX>DB<CR><LF>"},
+  {"expect": "agent", "bytes": "<ACK>", "within_ms": 200},
+  {"from": "instrument", "bytes": "<STX>4R|1|^^^ORG:1|ESCCOL||||||F<CR><ETX>8F<CR><LF>"},
+  {"expect": "agent", "bytes": "<ACK>", "within_ms": 200},
+  {"from": "instrument", "bytes": "<STX>5R|2|^^^ORG:2|KLEPNE||||||F<CR><ETX>98<CR><LF>"},
+  {"expect": "agent", "bytes": "<ACK>", "within_ms": 200},
+  {"from": "instrument", "bytes": "<STX>6R|3|^^^AST:1:AMP:MIC|8|ug/mL||R||F<CR><ETX>D7<CR><LF>"},
+  {"expect": "agent", "bytes": "<ACK>", "within_ms": 200},
+  {"from": "instrument", "bytes": "<STX>7R|4|^^^AST:2:AMP:MIC|2|ug/mL||S||F<CR><ETX>D5<CR><LF>"},
+  {"expect": "agent", "bytes": "<ACK>", "within_ms": 200},
+  {"from": "instrument", "bytes": "<STX>0L|1|N<CR><ETX>03<CR><LF>"},
+  {"expect": "agent", "bytes": "<ACK>", "within_ms": 200},
+  {"from": "instrument", "bytes": "<EOT>"},
+  {"expect_queue": {"items": 1, "kind": "data", "raw_sha256": "af35ebc850a33c34a5f2ae3b784968512cbd363204c0b3209b3365262b6c85e1"}}
+ ]}

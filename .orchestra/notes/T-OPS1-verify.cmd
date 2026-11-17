@@ -1,0 +1,1 @@
+cd /d "%~dp0..\.." && pnpm --dir services/api exec vitest run src/modules/engagement/__tests__/ops.metrics.test.ts && pnpm --dir services/worker exec vitest run src/jobs/engagement/__tests__/ops.alerts.test.ts src/jobs/engagement/__tests__/ops.purge.test.ts

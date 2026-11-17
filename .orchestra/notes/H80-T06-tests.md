@@ -1,0 +1,7 @@
+# H80-T06 tests (tester)
+- Vitest (component + MSW + axe): `apps/web/src/features/instruments/__tests__/h80-t06.components.test.tsx`, config `vitest.h80-t06.config.ts`. Run: `.orchestra\notes\H80-T06-verify.cmd`.
+- Playwright (nightly, needs stack, NOT in verify): `apps/web/tests/e2e/instruments/H80-T06.preset.spec.ts` (+ playwright.config.ts); env LIMS_E2E_WEB_URL, LIMS_E2E_STAFF_SID. Covers toggle disabled while generic, lab-PC wording, 0.0.0.0 refused, axe.
+- ASSUMED contract (dispute to rename): InstrumentForm create mode gets Select "Preset" (Custom / Truth H80E); preset sets hl7v2 + tcp_server + driver truth_h80e + vendor/model; regions "Suggested analyte codes" (10 codes, §3) and "Commissioning checklist" (`<ol>`, 9 items, §9, runbook path); bind label has "lab PC"+"static"; peers label has "analyser"; text "typed into the analyser" / "not the cloud server".
+- SPEC GAP (CR needed): contract `Driver` (E22) has no options schema, but 04-UI-UX §3 renders parser options from `optionsSchema`; tests assume optional `options_schema` (JSON Schema) on the Driver row/`server/types.ts`, sent back as `parser_options` (changed keys only, schema keys only).
+- Host-query switch: disabled with reason (mentions "generic" + "commissioning/verified") whenever driver status ≠ verified even if capabilities.host_query = true (02-TRD §6.6 step 2); enabled again for a verified driver.
+- Expected now: preset tests fail (no "Preset" control); regressions (edit-mode no preset, verified driver toggle, worklist toggle) may pass.

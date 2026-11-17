@@ -1,0 +1,374 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`visual snapshots of the key screens are recorded > snapshot: centres drawer 1`] = `
+"<div aria-hidden="true">
+<main class="lims-page">
+<header class="lims-page-header">
+<h1>Collection centres</h1>
+<button class="lims-btn lims-btn-primary lims-btn-md" data-rac="" type="button" tabindex="0" data-#id="true" id="#id">
+<span class="lims-btn-label">New centre</span>
+</button>
+</header>
+<table role="grid" aria-label="Collection centres" class="lims-table">
+<thead>
+<tr role="row">
+<th role="columnheader" scope="col">Code</th>
+<th role="columnheader" scope="col">Name</th>
+<th role="columnheader" scope="col">Branch</th>
+<th role="columnheader" scope="col">Type</th>
+<th role="columnheader" scope="col">Phone</th>
+<th role="columnheader" scope="col">Status</th>
+</tr>
+</thead>
+<tbody>
+<tr role="row" class="lims-row-click">
+<td role="gridcell">C01</td>
+<td role="gridcell">
+<button type="button" class="lims-link">Central Collection</button>
+</td>
+<td role="gridcell">Kathmandu lab</td>
+<td role="gridcell">Own</td>
+<td role="gridcell">+97711111111</td>
+<td role="gridcell">Active</td>
+</tr>
+</tbody>
+</table>
+</main>
+<div class="lims-toast-region">
+</div>
+</div>
+<span data-focus-scope-start="true" hidden="" aria-hidden="true">
+</span>
+<div class="lims-overlay lims-overlay-drawer" style="--visual-viewport-width: 0px; --visual-viewport-height: 768px; --page-width: 0px; --page-height: 0px;" data-rac="">
+<div class="lims-drawer lims-drawer-end lims-drawer-md" data-rac="" style="">
+<div style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: absolute; width: 1px; white-space: nowrap;">
+<button id="#id" aria-label="Dismiss" tabindex="-1" style="width: 1px; height: 1px;">
+</button>
+</div>
+<section class="lims-dialog-body" data-rac="" aria-labelledby="#id" role="dialog" tabindex="-1">
+<div class="lims-dialog-header">
+<h2 id="#id" slot="title" class="lims-dialog-title">Edit centre</h2>
+<button class="lims-btn lims-btn-ghost lims-icon-btn" data-rac="" type="button" tabindex="0" data-#id="true" aria-label="Close" id="#id">
+<svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M6 6l12 12M18 6L6 18">
+</path>
+</svg>
+</button>
+</div>
+<div class="lims-dialog-content">
+<section class="lims-drawer-section" aria-labelledby="#id">
+<div class="lims-drawer-section-header">
+<h3 id="#id" class="lims-drawer-section-title">Details</h3>
+<button class="lims-btn lims-btn-secondary lims-btn-sm" data-rac="" type="button" tabindex="0" data-#id="true" id="#id">
+<span class="lims-btn-label">Save<span style="position: absolute; width: 1px; height: 1px; padding: 0px; margin: -1px; overflow: hidden; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); white-space: nowrap; border: 0px;"> Details</span>
+</span>
+</button>
+</div>
+<div class="lims-field">
+<label for="#id" class="lims-label">Code</label>
+<input id="#id" readonly="" class="lims-input" aria-describedby="#id-hint" type="text" value="C01">
+<p id="#id-hint" class="lims-description">Printed on reports, e.g. C000000002</p>
+</div>
+<div class="lims-field">
+<label for="#id" class="lims-label">Name</label> <p class="lims-description">Required</p> <input id="#id" class="lims-input" aria-required="true" type="text" value="Central Collection">
+</div>
+<div class="lims-field">
+<label id="#id-lbl" for="#id-btn" class="lims-label">Branch</label>
+<button id="#id-btn" type="button" class="lims-input lims-picker" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="#id-lbl #id-btn">Kathmandu lab</button>
+</div>
+<div role="radiogroup" aria-labelledby="#id-lg" class="lims-field">
+<p id="#id-lg" class="lims-label">Type</p>
+<span class="lims-check">
+<input aria-labelledby="#id-o0" type="radio" checked="" name="kind-#id"> <data id="#id-o0" value="own">Own</data>
+</span>
+<span class="lims-check">
+<input aria-labelledby="#id-o1" type="radio" name="kind-#id"> <data id="#id-o1" value="franchise">Franchise</data>
+</span>
+<span class="lims-check">
+<input aria-labelledby="#id-o2" type="radio" name="kind-#id"> <data id="#id-o2" value="home_collection">Home collection</data>
+</span>
+</div>
+</section>
+<section class="lims-drawer-section" aria-labelledby="#id">
+<div class="lims-drawer-section-header">
+<h3 id="#id" class="lims-drawer-section-title">Contact</h3>
+<button class="lims-btn lims-btn-secondary lims-btn-sm" data-rac="" type="button" tabindex="0" data-#id="true" id="#id">
+<span class="lims-btn-label">Save<span style="position: absolute; width: 1px; height: 1px; padding: 0px; margin: -1px; overflow: hidden; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); white-space: nowrap; border: 0px;"> Contact</span>
+</span>
+</button>
+</div>
+<div class="lims-field">
+<label for="#id" class="lims-label">Address</label>
+<textarea rows="3" id="#id" class="lims-input">Synthetic Road 1</textarea>
+</div>
+<div class="lims-field">
+<label for="#id" class="lims-label">Phone</label>
+<input id="#id" class="lims-input" type="tel" value="+97711111111">
+</div>
+</section>
+<div class="lims-dialog-footer">
+<button class="lims-btn lims-btn-ghost lims-btn-md" data-rac="" type="button" tabindex="0" data-#id="true" id="#id">
+<span class="lims-btn-label">Deactivate</span>
+</button>
+</div>
+</div>
+</section>
+</div>
+</div>
+<span data-focus-scope-end="true" hidden="" aria-hidden="true">
+</span>"
+`;
+
+exports[`visual snapshots of the key screens are recorded > snapshot: roles-edit-privileged 1`] = `
+"<div>
+<main class="lims-page">
+<header class="lims-page-header">
+<h1>Lab admin</h1>
+<span class="lims-chip lims-chip-sm lims-tone-warning" data-tone="warning">MFA required</span>
+</header>
+<p>Changing a role logs out everyone who has it.</p>
+<div class="lims-field">
+<label for="#id" class="lims-label">Name</label> <p class="lims-description">Required</p> <input id="#id" class="lims-input" maxlength="80" aria-required="true" type="text" value="Lab admin">
+</div>
+<div class="lims-field">
+<label for="#id" class="lims-label">Code</label>
+<input id="#id" readonly="" class="lims-input" aria-describedby="#id-hint" type="text" value="lab_admin">
+<p id="#id-hint" class="lims-description">The code cannot change after the role is created.</p>
+</div>
+<div class="lims-field">
+<label for="#id" class="lims-label">Description</label>
+<textarea rows="3" id="#id" class="lims-input">
+</textarea>
+</div>
+<label data-#id="true" class="lims-switch" data-rac="" data-selected="true" data-disabled="true">
+<span style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: absolute; width: 1px; white-space: nowrap;">
+<input disabled="" data-#id="true" role="switch" type="checkbox" checked="">
+</span>
+<span class="lims-switch-track" aria-hidden="true">
+<span class="lims-switch-thumb">
+</span>
+</span>MFA required</label>
+<p class="lims-description">Includes privileged permissions</p>
+<div class="lims-banner lims-tone-warning" data-tone="warning">
+<svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 4l9 16H3L12 4zM12 10v4M12 17h.01">
+</path>
+</svg>
+<div class="lims-banner-text">
+<p class="lims-banner-title">
+<span style="position: absolute; width: 1px; height: 1px; padding: 0px; margin: -1px; overflow: hidden; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); white-space: nowrap; border: 0px;">Warning: </span>Members with these permissions who process samples from other collection centres need All centres or every collection centre whose samples they process.</p>
+</div>
+</div>
+<table role="grid" aria-label="Permissions" class="lims-table lims-permmatrix">
+<thead>
+<tr role="row">
+<th role="columnheader" scope="col">Module</th>
+<th role="columnheader" scope="col">user</th>
+<th role="columnheader" scope="col">order</th>
+<th role="columnheader" scope="col">result</th>
+<th role="columnheader" scope="col">tenant</th>
+</tr>
+</thead>
+<tbody>
+<tr role="row">
+<th role="rowheader" scope="row">identity</th>
+<td role="gridcell">
+<div class="lims-perm">
+<label class="lims-check">
+<input tabindex="0" type="checkbox">
+<span class="lims-mono">identity.user.read</span>
+</label>
+</div>
+</td>
+<td role="gridcell">
+</td>
+<td role="gridcell">
+</td>
+<td role="gridcell">
+</td>
+</tr>
+<tr role="row">
+<th role="rowheader" scope="row">frontdesk</th>
+<td role="gridcell">
+</td>
+<td role="gridcell">
+<div class="lims-perm">
+<label class="lims-check">
+<input tabindex="-1" type="checkbox">
+<span class="lims-mono">frontdesk.order.read</span>
+</label>
+</div>
+</td>
+<td role="gridcell">
+</td>
+<td role="gridcell">
+</td>
+</tr>
+<tr role="row">
+<th role="rowheader" scope="row">lab</th>
+<td role="gridcell">
+</td>
+<td role="gridcell">
+</td>
+<td role="gridcell">
+<div class="lims-perm">
+<label class="lims-check">
+<input tabindex="-1" type="checkbox" checked="">
+<span class="lims-mono">lab.result.approve</span>
+</label>
+<span class="lims-chip lims-chip-sm lims-tone-warning" data-tone="warning">
+<svg aria-hidden="true" focusable="false" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 4l9 16H3L12 4zM12 10v4M12 17h.01">
+</path>
+</svg>Privileged</span>
+</div>
+</td>
+<td role="gridcell">
+</td>
+</tr>
+<tr role="row">
+<th role="rowheader" scope="row">platform</th>
+<td role="gridcell">
+</td>
+<td role="gridcell">
+</td>
+<td role="gridcell">
+</td>
+<td role="gridcell">
+<div class="lims-perm">
+<label class="lims-check">
+<input disabled="" tabindex="-1" aria-describedby="#id-platform.tenant.manage-why" type="checkbox">
+<span class="lims-mono">platform.tenant.manage</span>
+</label>
+<span class="lims-chip lims-chip-sm lims-tone-warning" data-tone="warning">
+<svg aria-hidden="true" focusable="false" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 4l9 16H3L12 4zM12 10v4M12 17h.01">
+</path>
+</svg>Privileged</span>
+<span id="#id-platform.tenant.manage-why" class="lims-description">Managed by the LIMS provider</span>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+<footer class="lims-form-footer">
+<button class="lims-btn lims-btn-primary lims-btn-md" data-rac="" type="button" tabindex="0" data-#id="true" id="#id">
+<span class="lims-btn-label">Save</span>
+</button>
+<span>
+<button class="lims-btn lims-btn-danger lims-btn-md" data-rac="" type="button" tabindex="0" data-#id="true" id="#id">
+<span class="lims-btn-label">Deactivate role</span>
+</button>
+</span>
+</footer>
+</main>
+<div class="lims-toast-region">
+</div>
+</div>"
+`;
+
+exports[`visual snapshots of the key screens are recorded > snapshot: settings 1`] = `
+"<div>
+<main class="lims-page">
+<header class="lims-page-header">
+<h1>Lab settings</h1>
+</header>
+<div class="lims-tabs">
+<div role="tablist" aria-label="Settings sections" class="lims-tablist">
+<button id="#id-General-tab" type="button" role="tab" class="lims-tab" aria-selected="true" tabindex="0" aria-controls="#id-General-panel">General</button>
+<button id="#id-Datetime-tab" type="button" role="tab" class="lims-tab" aria-selected="false" tabindex="-1">Date &amp; time</button>
+<button id="#id-Signinsessions-tab" type="button" role="tab" class="lims-tab" aria-selected="false" tabindex="-1">Sign-in &amp; sessions</button>
+<button id="#id-Numbering-tab" type="button" role="tab" class="lims-tab" aria-selected="false" tabindex="-1">Numbering</button>
+<button id="#id-Letterheadbranding-tab" type="button" role="tab" class="lims-tab" aria-selected="false" tabindex="-1">Letterhead &amp; branding</button>
+<button id="#id-Reportsdelivery-tab" type="button" role="tab" class="lims-tab" aria-selected="false" tabindex="-1">Reports &amp; delivery</button>
+<button id="#id-Dataretention-tab" type="button" role="tab" class="lims-tab" aria-selected="false" tabindex="-1">Data retention</button>
+<button id="#id-Features-tab" type="button" role="tab" class="lims-tab" aria-selected="false" tabindex="-1">Features</button>
+<button id="#id-BillingIRD-tab" type="button" role="tab" class="lims-tab" aria-selected="false" tabindex="-1">Billing &amp; IRD</button>
+<button id="#id-Laboperations-tab" type="button" role="tab" class="lims-tab" aria-selected="false" tabindex="-1">Lab operations</button>
+</div>
+<div role="tabpanel" id="#id-General-panel" class="lims-tabpanel" tabindex="0">
+<div>
+<div class="lims-field">
+<label for="#id" class="lims-label">Legal name</label>
+<input id="#id" readonly="" class="lims-input" aria-describedby="#id-hint" type="text" value="">
+<p id="#id-hint" class="lims-description">Changed by the LIMS provider.</p>
+</div>
+<div class="lims-field">
+<label for="set-display_name" class="lims-label">Display name</label> <p class="lims-description">Required</p> <input id="set-display_name" class="lims-input" maxlength="120" aria-required="true" type="text" value="Synthetic Lab">
+</div>
+<div class="lims-field">
+<label for="set-address_lines" class="lims-label">Address (one line each, up to 4)</label>
+<textarea rows="3" id="set-address_lines" class="lims-input">
+</textarea>
+</div>
+<div class="lims-field">
+<label for="set-phones" class="lims-label">Phones (one per line, up to 3)</label>
+<textarea rows="3" id="set-phones" class="lims-input">
+</textarea>
+</div>
+<div class="lims-field">
+<label for="set-contact_email" class="lims-label">Contact email</label>
+<input id="set-contact_email" class="lims-input" maxlength="254" type="text" value="lab@example.test">
+</div>
+<div class="lims-field">
+<label for="set-website" class="lims-label">Website</label>
+<input id="set-website" class="lims-input" aria-describedby="set-website-hint" maxlength="200" type="text" value="">
+<p id="set-website-hint" class="lims-description">https://…</p>
+</div>
+<div class="lims-field">
+<label for="set-receipt_footer_note" class="lims-label">Receipt footer note</label>
+<input id="set-receipt_footer_note" class="lims-input" maxlength="200" type="text" value="">
+</div>
+<div class="lims-field">
+<label for="set-accent_color" class="lims-label">Accent colour</label>
+<input id="set-accent_color" class="lims-input" aria-describedby="set-accent_color-hint" maxlength="7" type="text" value="">
+<p id="set-accent_color-hint" class="lims-description">#RRGGBB</p>
+</div>
+<button class="lims-btn lims-btn-primary lims-btn-md" data-rac="" type="button" tabindex="0" data-#id="true" id="#id">
+<span class="lims-btn-label">Save</span>
+</button>
+</div>
+</div>
+</div>
+</main>
+<div class="lims-toast-region">
+</div>
+</div>"
+`;
+
+exports[`visual snapshots of the key screens are recorded > snapshot: users 1`] = `
+"<div>
+<div class="lims-field">
+<label for="user-search" class="lims-label">Search users</label>
+<input id="user-search" class="lims-input" maxlength="100" type="search" value="">
+</div>
+<table role="grid" aria-label="Users" class="lims-table">
+<thead>
+<tr role="row">
+<th role="columnheader" scope="col">Name</th>
+<th role="columnheader" scope="col">Email</th>
+<th role="columnheader" scope="col">Status</th>
+<th role="columnheader" scope="col">Roles</th>
+<th role="columnheader" scope="col">Centres</th>
+<th role="columnheader" scope="col">MFA</th>
+<th role="columnheader" scope="col">Last login</th>
+</tr>
+</thead>
+<tbody>
+<tr role="row">
+<td role="gridcell">
+<a href="/admin/users/01a1a98a-ac40-7000-8000-000000000002">Synthetic Sita Rai</a>
+</td>
+<td role="gridcell">te***@example.test</td>
+<td role="gridcell">Active</td>
+<td role="gridcell">Front desk</td>
+<td role="gridcell">2</td>
+<td role="gridcell">On</td>
+<td role="gridcell">
+<time datetime="2026-11-10T09:00:00.000Z" title="2026-11-10T09:00:00.000Z (UTC)">10/11/2026 02:45 PM</time>
+</td>
+</tr>
+</tbody>
+</table>
+</div>"
+`;

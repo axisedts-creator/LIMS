@@ -1,0 +1,176 @@
+---
+# 02-TRD s9.5 (T-12). See defaults/main.yml for LD-45 gating and the
+# CR-C1-T09 (a) seeding decision. No host names or addresses here: the
+# primary is groups['data'][0] of the active profile.
+# standby_promoted (inventory, set by the DR promotion, T-29): the host is
+# now the primary; never touch it as a standby again.
+- name: topology_profile set when a dr host exists (LD-45 fail closed)
+  ansible.builtin.assert:
+    that:
+      - topology_profile is defined
+      - topology_profile in ['full', 'lean']
+    fail_msg: >-
+      standby: set topology_profile ('full' | 'lean') in the inventory;
+      LD-45 forbids guessing a profile
+  when: groups['dr'] | default([]) | length > 0
+
+- name: Nothing to do without a standby (LD-45 lean, empty dr, promoted)
+  ansible.builtin.meta: end_host
+  when: >-
+    not (standby_enabled | bool)
+    or (standby_promoted | default(false) | bool)
+
+- name: Preconditions (dr host only, secret, image digest)
+  ansible.builtin.assert:
+    that:
+      - "'dr' in group_names"
+      - "'data' not in group_names"
+      - lims_replicator_password | default('') | length >= 16
+      - standby_image_digest | default('') is match('^sha256:[0-9a-f]{64}$')
+      - hostvars[groups['data'][0]].wg_ip | default('') | length > 0
+    fail_msg: >-
+      standby: dr host only; needs lims_replicator_password,
+      standby_image_digest and the data host wg_ip
+  no_log: true
+
+- name: Secrets parent directory is tmpfs (never a disk path)
+  ansible.builtin.command: findmnt -n -o FSTYPE --target /run/lims/secrets
+  register: standby_fstype
+  changed_when: false
+  failed_when: standby_fstype.stdout | trim != 'tmpfs'
+
+- name: Directories
+  ansible.builtin.file:
+    path: "{{ item.0 }}"
+    state: directory
+    owner: "{{ item.1 }}"
+    group: "{{ item.2 }}"
+    mode: "{{ item.3 }}"
+  loop:
+    - [/run/lims/secrets/standby, "{{ standby_pg_uid }}",
+       "{{ standby_pg_gid }}", "0700"]
+    - ["{{ standby_root }}", root, root, "0755"]
+    - ["{{ standby_pgdata }}", "{{ standby_pg_uid }}",
+       "{{ standby_pg_gid }}", "0700"]
+    - ["{{ standby_conf_dir }}", root, root, "0755"]
+    - [/usr/local/lib/lims/standby/bin, root, root, "0755"]
+    - [/var/lib/node_exporter/textfile, root, root, "0755"]
+  loop_control:
+    label: "{{ item.0 }}"
+
+# libpq passfile: replication connections match database `replication`;
+# ':' and '\' in the secret are escaped. libpq refuses a group-readable file.
+- name: Passfile on tmpfs (lims_replicator_password)
+  ansible.builtin.copy:
+    content: >-
+      *:*:replication:lims_replicator:{{ lims_replicator_password
+      | replace('\\', '\\\\') | replace(':', '\\:') }}
+    dest: /run/lims/secrets/standby/pgpass
+    owner: "{{ standby_pg_uid }}"
+    group: "{{ standby_pg_gid }}"
+    mode: "0600"
+  no_log: true
+
+- name: Standby settings (infra/database/standby/standby.conf.j2)
+  ansible.builtin.template:
+    src: ../../../../database/standby/standby.conf.j2
+    dest: "{{ standby_conf_dir }}/zz-standby.conf"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Already seeded?
+  ansible.builtin.stat:
+    path: "{{ standby_pgdata }}/PG_VERSION"
+  register: standby_seeded
+
+# Physical slot dr1 on the primary over the replication protocol (the
+# role cannot run SQL there). --if-not-exists makes a rerun a no-op.
+# The slot is bounded on the primary by max_slot_wal_keep_size.
+- name: Seed once (slot dr1, pg_basebackup -X stream, standby.signal)
+  when: not standby_seeded.stat.exists
+  vars:
+    standby_docker_run:
+      - docker
+      - run
+      - --rm
+      - --network=host
+      - --user={{ standby_pg_uid }}:{{ standby_pg_gid }}
+      - --volume={{ standby_pgdata }}:/var/lib/postgresql/data
+      - --volume=/run/lims/secrets/standby:/run/lims/secrets/standby:ro
+      - --env=PGPASSFILE=/run/lims/secrets/standby/pgpass
+      - --entrypoint=
+      - "{{ standby_image }}"
+    standby_conn:
+      - --host={{ hostvars[groups['data'][0]].wg_ip }}
+      - --port={{ standby_primary_port | default(5432) }}
+      - --username=lims_replicator
+      - --no-password
+  block:
+    - name: Create slot dr1 if missing
+      ansible.builtin.command:
+        argv: "{{ standby_docker_run + ['pg_receivewal'] + standby_conn
+          + ['--slot=dr1', '--create-slot', '--if-not-exists'] }}"
+      changed_when: true
+
+    - name: Base backup into the empty data directory
+      ansible.builtin.command:
+        argv: "{{ standby_docker_run + ['pg_basebackup'] + standby_conn
+          + ['--pgdata=/var/lib/postgresql/data', '--slot=dr1',
+             '--wal-method=stream', '--checkpoint=fast'] }}"
+        creates: "{{ standby_pgdata }}/PG_VERSION"
+
+# Not -R: the conninfo lives in zz-standby.conf, never in PGDATA. Outside
+# the once-only block: a seeded PGDATA without the signal would start as a
+# writable primary.
+- name: standby.signal (recovery mode)
+  ansible.builtin.copy:
+    content: ""
+    dest: "{{ standby_pgdata }}/standby.signal"
+    owner: "{{ standby_pg_uid }}"
+    group: "{{ standby_pg_gid }}"
+    mode: "0600"
+    force: false
+
+# ---- lag metric (02-TRD s11 StandbyLagHigh), every minute
+- name: Host psql wrapper (exec into the standby container)
+  ansible.builtin.copy:
+    content: |
+      #!/bin/sh
+      # Managed by Ansible (role standby): psql inside the standby container.
+      exec docker exec -i -u postgres \
+        -e PGUSER={{ standby_metrics_pguser }} \
+        {{ standby_container }} psql "$@"
+    dest: /usr/local/lib/lims/standby/bin/psql
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Lag metric script
+  ansible.builtin.copy:
+    src: lims-standby-metrics.sh
+    dest: /usr/local/lib/lims/standby/lims-standby-metrics.sh
+    owner: root
+    group: root
+    mode: "0750"
+
+- name: Lag metric units
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: "/etc/systemd/system/{{ item }}"
+    owner: root
+    group: root
+    mode: "0644"
+  loop:
+    - lims-standby-metrics.service
+    - lims-standby-metrics.timer
+  notify: Reload systemd
+
+- name: Load new units before enabling the timer
+  ansible.builtin.meta: flush_handlers
+
+- name: Lag metric timer enabled
+  ansible.builtin.systemd_service:
+    name: lims-standby-metrics.timer
+    state: started
+    enabled: true

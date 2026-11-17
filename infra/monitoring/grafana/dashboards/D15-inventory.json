@@ -1,0 +1,125 @@
+{
+  "uid": "lims-d15-inventory",
+  "title": "D15 Modules / Inventory",
+  "description": "04-UI-UX s3 D15 for C12; panels from the chunk TRD observability section (T-21).",
+  "tags": [
+    "modules",
+    "c12"
+  ],
+  "editable": false,
+  "schemaVersion": 39,
+  "version": 1,
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "refresh": "1m",
+  "templating": {
+    "list": []
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "text",
+      "title": "About this dashboard",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 2
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "Owner C12. Alert rules: `rules/imported/inventory.rules.yml`. Runbook: `infra/runbooks/inventory.md`."
+      }
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "lims_inventory_balance_drift_rows",
+      "description": "Owner C12 (Inventory). Metric lims_inventory_balance_drift_rows from worker-a/b /metrics (02-TRD s11.2). Alerts: InventoryBalanceDrift.",
+      "gridPos": {
+        "x": 0,
+        "y": 2,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max(lims_inventory_balance_drift_rows)"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "lims_inventory_consumer_failures_total",
+      "description": "Owner C12 (Inventory). Metric lims_inventory_consumer_failures_total from worker-a/b /metrics (02-TRD s11.2). Alerts: InventoryConsumerFailing.",
+      "gridPos": {
+        "x": 12,
+        "y": 2,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(lims_inventory_consumer_failures_total[5m]))"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "lims_inventory_consumption_lag_seconds_bucket",
+      "description": "Owner C12 (Inventory). Metric lims_inventory_consumption_lag_seconds_bucket from worker-a/b /metrics (02-TRD s11.2). Alerts: InventoryConsumptionLagHigh.",
+      "gridPos": {
+        "x": 0,
+        "y": 10,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(lims_inventory_consumption_lag_seconds_bucket[5m])))"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "lims_inventory_unresolved_oldest_age_seconds",
+      "description": "Owner C12 (Inventory). Metric lims_inventory_unresolved_oldest_age_seconds from worker-a/b /metrics (02-TRD s11.2). Alerts: InventoryUnresolvedBacklog.",
+      "gridPos": {
+        "x": 12,
+        "y": 10,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max(lims_inventory_unresolved_oldest_age_seconds)"
+        }
+      ]
+    }
+  ]
+}

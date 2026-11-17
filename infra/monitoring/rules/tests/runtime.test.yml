@@ -1,0 +1,207 @@
+# T-19 (tester, LD-39): promtool tests for rules/runtime.rules.yml (1 m series). Synthetic series only.
+# AC-11.3 (ValkeyDown page within 2 min), AC-28.2 (ScannerSignaturesStale > 3 days), 02-TRD s11.3.
+# CONTRACT (spec sketch only):
+#   up{service="valkey"} == 0 for 1m        -> ValkeyDown page      (02-TRD row)
+#   up{service=~"worker.*"} == 0 for 2m     -> WorkerDown page      (02-TRD row)
+#   up{service="clamd"} == 0                -> ScannerDown page
+#   lims_queue_depth > 500 for 10m          -> QueueBacklog warn    (labels: task)
+#   changes(container_start_time_seconds{name=~".*renderer.*"}[1h]) > 3 -> RendererRestarting warn (cAdvisor)
+#   lims_ops_scanner_signature_age_seconds > 3 d -> ScannerSignaturesStale warn
+#   lims_ops_studio_enabled == 1            -> StudioEnabled info
+#   increase(lims_ops_deploy_rolled_back_total[..]) > 0 -> DeployRolledBack page
+rule_files:
+  - ../runtime.rules.yml
+evaluation_interval: 1m
+tests:
+  - interval: 1m
+    name: AC-11.3 ValkeyDown page within 2 min of the backend going down
+    input_series:
+      - series: 'up{job="valkey", service="valkey", host="app-1", instance="10.79.0.12:9121"}'
+        values: "0x10"
+    alert_rule_test:
+      - alertname: ValkeyDown
+        eval_time: 0m
+        exp_alerts: []
+      - alertname: ValkeyDown
+        eval_time: 2m
+        exp_alerts:
+          - exp_labels:
+              severity: page
+              team: ops
+              job: valkey
+              service: valkey
+              host: app-1
+              instance: "10.79.0.12:9121"
+
+  - interval: 1m
+    name: ValkeyDown quiet while Valkey is up
+    input_series:
+      - series: 'up{job="valkey", service="valkey", host="app-1", instance="10.79.0.12:9121"}'
+        values: "1x10"
+    alert_rule_test:
+      - alertname: ValkeyDown
+        eval_time: 5m
+        exp_alerts: []
+
+  - interval: 1m
+    name: WorkerDown page at 2m for worker-a, not for an api target
+    input_series:
+      - series: 'up{job="worker-a", service="worker-a", host="app-1", instance="10.79.0.12:9466"}'
+        values: "0x10"
+      - series: 'up{job="api-a", service="api-a", host="app-1", instance="10.79.0.12:9464"}'
+        values: "0x10"
+    alert_rule_test:
+      - alertname: WorkerDown
+        eval_time: 1m
+        exp_alerts: []
+      - alertname: WorkerDown
+        eval_time: 2m
+        exp_alerts:
+          - exp_labels:
+              severity: page
+              team: ops
+              job: worker-a
+              service: worker-a
+              host: app-1
+              instance: "10.79.0.12:9466"
+
+  - interval: 1m
+    name: WorkerDown quiet while both workers are up
+    input_series:
+      - series: 'up{job="worker-a", service="worker-a", host="app-1", instance="10.79.0.12:9466"}'
+        values: "1x10"
+      - series: 'up{job="worker-b", service="worker-b", host="app-1", instance="10.79.0.12:9467"}'
+        values: "1x10"
+    alert_rule_test:
+      - alertname: WorkerDown
+        eval_time: 5m
+        exp_alerts: []
+
+  - interval: 1m
+    name: QueueBacklog warn above 500 for 10m, not at 9m
+    input_series:
+      - series: 'lims_queue_depth{task="reports.render"}'
+        values: "501x30"
+    alert_rule_test:
+      - alertname: QueueBacklog
+        eval_time: 9m
+        exp_alerts: []
+      - alertname: QueueBacklog
+        eval_time: 10m
+        exp_alerts:
+          - exp_labels: {severity: warn, team: ops, task: reports.render}
+
+  - interval: 1m
+    name: QueueBacklog quiet at exactly 500
+    input_series:
+      - series: 'lims_queue_depth{task="reports.render"}'
+        values: "500x30"
+    alert_rule_test:
+      - alertname: QueueBacklog
+        eval_time: 30m
+        exp_alerts: []
+
+  - interval: 1m
+    name: RendererRestarting warn on 5 restarts in an hour
+    input_series:
+      - series: 'container_start_time_seconds{name="renderer"}'
+        values: "1x9 2x10 3x10 4x10 5x10 6x11"
+    alert_rule_test:
+      - alertname: RendererRestarting
+        eval_time: 60m
+        exp_alerts:
+          - exp_labels: {severity: warn, team: ops, name: renderer}
+
+  - interval: 1m
+    name: RendererRestarting quiet at 3 restarts in an hour (> 3 required)
+    input_series:
+      - series: 'container_start_time_seconds{name="renderer"}'
+        values: "1x14 2x15 3x15 4x16"
+    alert_rule_test:
+      - alertname: RendererRestarting
+        eval_time: 60m
+        exp_alerts: []
+
+  - interval: 1m
+    name: ScannerDown page when the clamd target is down
+    input_series:
+      - series: 'up{job="clamd", service="clamd", host="app-1"}'
+        values: "0x20"
+    alert_rule_test:
+      - alertname: ScannerDown
+        eval_time: 10m
+        exp_alerts:
+          - exp_labels: {severity: page, team: ops, job: clamd, service: clamd, host: app-1}
+
+  - interval: 1m
+    name: ScannerDown quiet while clamd is up
+    input_series:
+      - series: 'up{job="clamd", service="clamd", host="app-1"}'
+        values: "1x20"
+    alert_rule_test:
+      - alertname: ScannerDown
+        eval_time: 10m
+        exp_alerts: []
+
+  - interval: 1m
+    name: AC-28.2 signatures older than 3 days -> ScannerSignaturesStale warn
+    input_series:
+      - series: 'lims_ops_scanner_signature_age_seconds{host="app-1"}'
+        values: "259201x60"
+    alert_rule_test:
+      - alertname: ScannerSignaturesStale
+        eval_time: 30m
+        exp_alerts:
+          - exp_labels: {severity: warn, team: ops, host: app-1}
+
+  - interval: 1m
+    name: AC-28.2 signatures exactly 3 days old -> quiet
+    input_series:
+      - series: 'lims_ops_scanner_signature_age_seconds{host="app-1"}'
+        values: "259200x60"
+    alert_rule_test:
+      - alertname: ScannerSignaturesStale
+        eval_time: 30m
+        exp_alerts: []
+
+  - interval: 1m
+    name: StudioEnabled info while studio is on
+    input_series:
+      - series: 'lims_ops_studio_enabled'
+        values: "1x60"
+    alert_rule_test:
+      - alertname: StudioEnabled
+        eval_time: 30m
+        exp_alerts:
+          - exp_labels: {severity: info, team: ops}
+
+  - interval: 1m
+    name: StudioEnabled quiet while studio is off
+    input_series:
+      - series: 'lims_ops_studio_enabled'
+        values: "0x60"
+    alert_rule_test:
+      - alertname: StudioEnabled
+        eval_time: 30m
+        exp_alerts: []
+
+  - interval: 1m
+    name: DeployRolledBack page when ci/rollback.sh increments the counter
+    input_series:
+      - series: 'lims_ops_deploy_rolled_back_total'
+        values: "0x30 1x30"
+    alert_rule_test:
+      - alertname: DeployRolledBack
+        eval_time: 33m
+        exp_alerts:
+          - exp_labels: {severity: page, team: ops}
+
+  - interval: 1m
+    name: DeployRolledBack quiet on a flat counter
+    input_series:
+      - series: 'lims_ops_deploy_rolled_back_total'
+        values: "2x60"
+    alert_rule_test:
+      - alertname: DeployRolledBack
+        eval_time: 35m
+        exp_alerts: []

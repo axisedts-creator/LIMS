@@ -1,0 +1,108 @@
+---
+# 02-TRD s9.2-s9.4. Config is code; cipher passes only on tmpfs (AC-12.3).
+- name: Preconditions (data host, two different passes, pinned host key)
+  ansible.builtin.assert:
+    that:
+      - "'data' in group_names"
+      - "'dr' not in group_names"
+      - pgbackrest_repo1_cipher_pass | default('') | length >= 32
+      - pgbackrest_repo2_cipher_pass | default('') | length >= 32
+      - pgbackrest_repo1_cipher_pass != pgbackrest_repo2_cipher_pass
+      - >-
+        groups['dr'] | default([]) | length == 0 or
+        (pgbackrest_repo2_sftp_host_fingerprint | default('') | length > 0
+        and repo2_sftp_private_key | default('') | length > 0)
+    fail_msg: "pgbackrest: secrets missing/equal or not a data host (s9.2)"
+  no_log: true
+
+- name: Secrets parent directory is tmpfs (never a disk path)
+  ansible.builtin.command: findmnt -n -o FSTYPE --target /run/lims/secrets
+  register: pgbackrest_fstype
+  changed_when: false
+  failed_when: pgbackrest_fstype.stdout | trim != 'tmpfs'
+
+- name: Directories
+  ansible.builtin.file:
+    path: "{{ item.0 }}"
+    state: directory
+    owner: "{{ item.1 }}"
+    group: "{{ item.2 }}"
+    mode: "{{ item.3 }}"
+  loop:
+    - [/srv/lims/pgbackrest, root, root, "0755"]
+    - [/srv/lims/pgbackrest/spool, "{{ pgbackrest_pg_uid }}",
+       "{{ pgbackrest_pg_gid }}", "0750"]
+    - [/run/lims/secrets/pgbackrest, root, "{{ pgbackrest_pg_gid }}", "0750"]
+    - [/var/lib/lims/pgbackrest, root, root, "0750"]
+    - [/usr/local/lib/lims/bin, root, root, "0755"]
+    - [/var/lib/node_exporter/textfile, root, root, "0755"]
+  loop_control:
+    label: "{{ item.0 }}"
+
+- name: Render pgbackrest.conf (no secrets in it)
+  ansible.builtin.template:
+    src: ../../../../database/pgbackrest/pgbackrest.conf.j2
+    dest: /srv/lims/pgbackrest/pgbackrest.conf
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Cipher pass include on tmpfs (/run/lims/secrets/pgbackrest)
+  ansible.builtin.template:
+    src: cipher.conf.j2
+    dest: /run/lims/secrets/pgbackrest/cipher.conf
+    owner: root
+    group: "{{ pgbackrest_pg_gid }}"
+    mode: "0640"
+  no_log: true
+
+- name: Repo2 SFTP private key on tmpfs
+  ansible.builtin.copy:
+    content: "{{ repo2_sftp_private_key }}\n"
+    dest: /run/lims/secrets/pgbackrest/sftp_key
+    owner: "{{ pgbackrest_pg_uid }}"
+    group: "{{ pgbackrest_pg_gid }}"
+    mode: "0600"
+  no_log: true
+  when: groups['dr'] | default([]) | length > 0
+
+- name: Host wrappers for pgbackrest/psql (exec into the db container)
+  ansible.builtin.template:
+    src: wrapper.sh.j2
+    dest: "/usr/local/lib/lims/bin/{{ item }}"
+    owner: root
+    group: root
+    mode: "0755"
+  loop: [pgbackrest, psql]
+
+- name: Job scripts
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: "/usr/local/lib/lims/{{ item | basename }}"
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - lims-pgbackrest-backup.sh
+    - lims-pgbackrest-check.sh
+    - ../../../../monitoring/textfile/pgbackrest_metrics.sh
+
+- name: Systemd units (timers in UTC, 02-TRD s9.3)
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: "/etc/systemd/system/{{ item }}"
+    owner: root
+    group: root
+    mode: "0644"
+  loop: "{{ pgbackrest_units | product(['.service', '.timer']) | map('join') }}"
+  notify: Reload systemd
+
+- name: Flush handlers (daemon-reload before enabling timers)
+  ansible.builtin.meta: flush_handlers
+
+- name: Timers enabled
+  ansible.builtin.systemd_service:
+    name: "{{ item }}.timer"
+    enabled: true
+    state: started
+  loop: "{{ pgbackrest_units }}"

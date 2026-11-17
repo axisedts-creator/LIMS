@@ -1,0 +1,12 @@
+---
+- name: Restart fluent-bit
+  ansible.builtin.command: >-
+    docker compose -f {{ logging_dir }}/compose.fluent-bit.yml
+    restart fluent-bit
+  changed_when: true
+
+- name: Restart victoria-logs
+  ansible.builtin.command: >-
+    docker compose -f {{ logging_dir }}/compose.victoria-logs.yml
+    restart victoria-logs
+  changed_when: true

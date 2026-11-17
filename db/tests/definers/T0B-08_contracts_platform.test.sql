@@ -46,7 +46,7 @@ INSERT INTO core.users (tenant_id, id, display_name, email_hmac, created_by, upd
   (pg_temp.id('01'), pg_temp.id('31'), 'User 31', decode(repeat('ab', 32), 'hex'), pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('02'), pg_temp.id('33'), 'User 33', decode(repeat('ab', 32), 'hex'), pg_temp.id('99'), pg_temp.id('99'));
 INSERT INTO identity.platform_staff (id, user_id, email_normalized, display_name, role_code, is_active, created_by, updated_by) VALUES
-  (pg_temp.id('61'), pg_temp.id('81'), 'a@example.test', 'Staff A', 'platform_admin', true, pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
+  (pg_temp.id('61'), pg_temp.id('81'), 'a@example.test', 'Staff A', 'platform_superadmin', true, pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
 SET LOCAL session_replication_role = origin;
 
 -- ======================================================================== app.cron_tenant_ids (schema test 22)
@@ -160,21 +160,21 @@ SELECT pg_temp.chk(to_regprocedure('app.purge_event_log()') IS NOT NULL,
 SELECT pg_temp.chk(to_regprocedure('app.purge_event_log()') IS NOT NULL,
   pg_temp.x('lims_worker', pg_temp.sys(), $$SELECT deleted || ',' || capped || ',' || coalesce(current_setting('app.maintenance', true), '<null>') FROM app.purge_event_log()$$),
   '10050,false,', 'schema tests 13/31: purge_event_log deletes its 10,050 seeded expired rows, capped = false, app.maintenance is empty afterwards');
-SELECT pg_temp.chk(to_regclass('core.event_log') IS NOT NULL, (SELECT count(*)::text FROM core.event_log), '5', 'schema test 31: the 5 unexpired event_log rows remain');
+SELECT pg_temp.chk(to_regclass('core.event_log') IS NOT NULL, (SELECT CASE WHEN to_regclass('core.event_log') IS NULL THEN NULL ELSE (xpath('/row/c/text()', query_to_xml('SELECT count(*) AS c FROM core.event_log', false, true, '')))[1]::text END), '5', 'schema test 31: the 5 unexpired event_log rows remain');
 
 SELECT pg_temp.chk(to_regprocedure('app.purge_idempotency_keys()') IS NOT NULL,
   (SELECT relforcerowsecurity::text FROM pg_class WHERE oid = to_regclass('core.idempotency_keys')), 'true', 'schema test 13: core.idempotency_keys has relforcerowsecurity = true before purge_idempotency_keys runs');
 SELECT pg_temp.chk(to_regprocedure('app.purge_idempotency_keys()') IS NOT NULL,
   pg_temp.x('lims_worker', pg_temp.sys(), $$SELECT deleted || ',' || capped || ',' || coalesce(current_setting('app.maintenance', true), '<null>') FROM app.purge_idempotency_keys()$$),
   '10051,false,', 'schema tests 13/27/31: purge_idempotency_keys deletes 10,050 tenant rows and the expired NULL-tenant row, capped = false, GUC reset');
-SELECT pg_temp.chk(to_regclass('core.idempotency_keys') IS NOT NULL, (SELECT count(*)::text FROM core.idempotency_keys), '6', 'schema test 31: 5 unexpired tenant keys and the platform key remain');
+SELECT pg_temp.chk(to_regclass('core.idempotency_keys') IS NOT NULL, (SELECT CASE WHEN to_regclass('core.idempotency_keys') IS NULL THEN NULL ELSE (xpath('/row/c/text()', query_to_xml('SELECT count(*) AS c FROM core.idempotency_keys', false, true, '')))[1]::text END), '6', 'schema test 31: 5 unexpired tenant keys and the platform key remain');
 
 SELECT pg_temp.chk(to_regprocedure('app.purge_dead_letters()') IS NOT NULL,
   (SELECT relforcerowsecurity::text FROM pg_class WHERE oid = to_regclass('core.dead_letters')), 'true', 'schema test 13: core.dead_letters has relforcerowsecurity = true before purge_dead_letters runs');
 SELECT pg_temp.chk(to_regprocedure('app.purge_dead_letters()') IS NOT NULL,
   pg_temp.x('lims_worker', pg_temp.sys(), $$SELECT deleted || ',' || capped || ',' || coalesce(current_setting('app.maintenance', true), '<null>') FROM app.purge_dead_letters()$$),
   '10051,false,', 'schema tests 13/31: purge_dead_letters deletes 10,050 tenant rows and the old NULL-tenant row, capped = false, GUC reset');
-SELECT pg_temp.chk(to_regclass('core.dead_letters') IS NOT NULL, (SELECT count(*)::text FROM core.dead_letters), '7', 'schema test 31: open rows and the recently resolved row remain (5 + 1 + 1)');
+SELECT pg_temp.chk(to_regclass('core.dead_letters') IS NOT NULL, (SELECT CASE WHEN to_regclass('core.dead_letters') IS NULL THEN NULL ELSE (xpath('/row/c/text()', query_to_xml('SELECT count(*) AS c FROM core.dead_letters', false, true, '')))[1]::text END), '7', 'schema test 31: open rows and the recently resolved row remain (5 + 1 + 1)');
 
 -- purge_event_inboxes needs all 16 <m>.event_inbox tables (05-SCHEMA §3.9); explicit skip until they exist
 SELECT pg_temp.chk((SELECT count(*) = 16 FROM pg_class c WHERE c.relname = 'event_inbox' AND c.relkind = 'r') AND to_regprocedure('app.purge_event_inboxes()') IS NOT NULL,

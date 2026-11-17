@@ -1,0 +1,5 @@
+APPROVE
+Range 5b8a7bf..HEAD (re-review after 9a0b0fe, 602d219). Round-1 findings resolved:
+1. CR-C4-BL06-002 appended to .orchestra/cr/BL-T06.nonblocking.md (To C0, BillingCommandPort.issueOrderInvoice += LD-25 `entry`, `branchCode` or branch-code source; cites LD-25 / 08 A33-2); code comment above `checkInput` in invoice.service.ts cites LD-25 + CR. Non-blocking for BL-T06; blocking for BL-T07 as stated.
+2. service/__tests__/invoice.issue.live.test.ts added, gated like counter.live: covers insertInvoice/lines/activity/enqueue_job column lists, balance_version 1 -> 2 -> 3 with one event each, unchanged recompute = no write, gated two-way race -> one wins + common.version_conflict, stale/behind/skip writes refused, order_balances__guard P0001 cases, RLS cross-tenant (incl. wrong tenantId argument), rollback leaves no row. Synthetic data only.
+Ran `vitest run src/modules/billing`: 24 files / 550 pass, 3 live files skipped (no DB here). Live file NOT executed against a real DB — must run in CI with LIMS_TEST_DATABASE_URL + LIMS_TEST_APP_DATABASE_URL before merge to prove the SQL.

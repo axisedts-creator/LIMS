@@ -1,0 +1,7 @@
+TESTS_WRONG — the test wires the ingest service to the real SQL repo while faking the DB with the in-memory world, so every instrument lookup misses and every message is rejected `instruments.instrument_unknown`.
+1. Spec E2E row only requires simulator → agent → API → C5 consumer → result `resulted` (spec/chunks/C7-instrument-integration/02-TRD.md:939; 06-IMPLEMENTATION-PLAN.md:81, 5 s p95). It does not require a SQL repo over a fake tx.
+2. The test's own header (simulator-agent-api-c5.e2e.test.ts:6) says the DB is FAKED by the API-T09 in-memory world, but line 81 calls `createIngestService()` with no deps, so ingest.service.ts:60 falls back to `createIngestRepo()` (real SQL, ingest.helpers.ts:6) against `world.tx`, which has no instrument rows. No conforming implementation can pass this.
+3. Every sibling test on this world injects `{ repo: w.repo }` (ingest.service.test.ts:15, ingest.logscan.test.ts:20, calibration.service.test.ts:14, perf/ingest.perf.test.ts:10), as the seam at ingest.helpers.ts:7 documents.
+   Change (test line 81): `const service = createIngestService({ repo: world.repo } as any);`. Keep every assertion unchanged: p95 ≤ budget, archive count and exact raw bytes, retransmit dedupe, TLS refusal, and the MSA ACK read from the earlier ruling.
+4. The nightly compose run (TRD:939) replaces the fakes with the real stack, where the default SQL repo applies. This fix only affects the self-contained run.
+5. The tester owns the fix. The writer must not edit the test. Then re-run .orchestra/notes/INT-T01-verify.cmd.

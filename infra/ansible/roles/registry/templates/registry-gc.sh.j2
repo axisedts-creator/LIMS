@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+# lims-registry-gc (role registry, 05-SCHEMA retention): keep the newest
+# {{ registry_keep_releases }} unpinned tags (registry_keep_releases) per
+# repository and every tag whose digest is pinned in a releases/*.lock.yaml
+# (02-TRD s12.3, AC-20.3), then `registry garbage-collect --delete-untagged`.
+# Registry is stopped meanwhile (GC needs exclusive storage).
+# ponytail: tag age = tag dir mtime on disk; fine while tags are not re-pushed.
+set -euo pipefail
+keep={{ registry_keep_releases }}
+repos={{ registry_storage }}/docker/registry/v2/repositories
+compose=(docker compose -f {{ registry_etc }}/compose.yml)
+pinned=" {{ registry_pinned_digests | join(' ') }} "
+
+"${compose[@]}" stop registry
+trap '"${compose[@]}" start registry' EXIT
+
+if [ -d "$repos" ]; then
+  find "$repos" -type d -name tags -path '*/_manifests/tags' -print0 |
+    while IFS= read -r -d '' d; do
+      n=0
+      ls -1t -- "$d" | while IFS= read -r t; do
+        link=$(cat -- "$d/$t/current/link" 2>/dev/null || true)
+        if [ -n "$link" ] && [[ $pinned == *" $link "* ]]; then continue; fi
+        n=$((n + 1))
+        if [ "$n" -gt "$keep" ]; then rm -rf -- "${d:?}/$t"; fi
+      done
+    done
+fi
+
+# config path of the Distribution 3 image (UNVERIFIED until the dev run)
+"${compose[@]}" run --rm --no-deps registry \
+  garbage-collect --delete-untagged /etc/distribution/config.yml

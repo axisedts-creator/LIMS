@@ -1,0 +1,7 @@
+# AN-T03 tests (tester)
+- File: `services/api/src/modules/analytics/service/__tests__/context.service.test.ts` (imports `../context.service.js`: `resolvePeriod(q,today,maxDays)`, `resolveScope(ctx,{centreIds?,branchIds?})`).
+- Run: `.orchestra\notes\AN-T03-verify.cmd` (= `pnpm --dir services/api exec vitest run src/modules/analytics/service/__tests__`). Fakes: `packages/fakes` IdentityPort personas admin / aal1 / centre (A1) / locked / partner + seeded `multi` {A1,A2}; in-test `ctx.core` stand-in (CoreRepo row shapes, tenant-filtered).
+- Covers US-15.2 (404, no oracle, id not echoed), US-02.3/.4/.5 (+ error mapping: no raw BsDateError/TypeError), branch→centres ∩ scope (07 P5), tenant ids untrusted (07 P1), per-request getActor memo, no scope widening (matrix of 5 actors × 7 centre × 6 branch filters).
+- SEAMS the spec leaves open (writer may dispute via the reviewer): (1) an all-centre actor asking for another tenant's / non-existent centre → 404 (07 P1; needs a ctx.core check); (2) >20 centre/branch ids → 400 before any lookup; (3) existing branch with none of the caller's centres → `{all:false,centreIds:[]}`, not 404; (4) `ctx.core` is `{branches(ctx), centres(ctx,{branchId}), branch, centre}`; `ctx.ports.IdentityPort`.
+- Not covered: `loadFlags()` (named in TRD file tree, no contract); aal gating itself (assertRole, C2) — aal1 only proves the scope service neither widens nor narrows.
+- Expected now: suite fails to load — `../context.service.js` does not exist.

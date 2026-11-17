@@ -1,0 +1,1 @@
+cd /d "%~dp0..\.." && python -B -m unittest discover -s infra/tests/static -p "test_t0d_dep01_images.py" -v && pnpm --dir services/api exec vitest run src/__tests__/boot-smoke.test.ts src/__tests__/node-ts-hook.test.ts && pnpm --dir services/worker exec vitest run src/core/__tests__/boot-smoke.test.ts

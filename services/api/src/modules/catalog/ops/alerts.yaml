@@ -1,0 +1,35 @@
+# CR-C3-009: catalog alert rules imported by C1 (Prometheus rule format; C1 adds team / runbook_url / receiver).
+# Values verbatim from C3 02-TRD §13 "Alert rules for C1". Summaries carry no label values (no personal data).
+groups:
+  - name: catalog
+    rules:
+      - alert: CatalogImportQuarantined
+        expr: increase(lims_catalog_imports_total{outcome="quarantined"}[5m]) > 0
+        for: 0m
+        labels: { severity: page, route: security }
+        annotations: { summary: "A catalog import file was quarantined by the scanner" }
+      - alert: CatalogNoPriceSpike
+        expr: sum(rate(lims_catalog_port_calls_total{method="priceFor",outcome="no_price"}[15m])) / sum(rate(lims_catalog_port_calls_total{method="priceFor"}[15m])) > 0.05
+        for: 15m
+        labels: { severity: ticket, route: ops }
+        annotations: { summary: "More than 5% of price lookups return no price" }
+      - alert: CatalogNoRangeSpike
+        expr: sum(rate(lims_catalog_port_calls_total{method="referenceRangeFor",outcome="no_reference_range"}[15m])) / sum(rate(lims_catalog_port_calls_total{method="referenceRangeFor"}[15m])) > 0.05
+        for: 15m
+        labels: { severity: ticket, route: ops }
+        annotations: { summary: "More than 5% of reference-range lookups find no range" }
+      - alert: CatalogPortLatency
+        expr: histogram_quantile(0.95, sum by (le) (rate(lims_catalog_port_duration_seconds_bucket[5m]))) > 0.05
+        for: 10m
+        labels: { severity: ticket, route: ops }
+        annotations: { summary: "Catalog port p95 latency is above 50 ms" }
+      - alert: CatalogImportStuck
+        expr: sum(lims_catalog_import_tasks_inflight) > 0
+        for: 15m
+        labels: { severity: ticket, route: ops }
+        annotations: { summary: "Catalog import tasks have been in flight for over 15 minutes" }
+      - alert: CatalogContactReadsSpike
+        expr: sum(increase(lims_catalog_contact_reads_total{purpose="notification"}[1h])) > 10 * quantile_over_time(0.5, sum(increase(lims_catalog_contact_reads_total{purpose="notification"}[1h]))[7d:1h])
+        for: 0m
+        labels: { severity: ticket, route: security }
+        annotations: { summary: "Notification contact reads are over 10 times the weekly median" }

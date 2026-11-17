@@ -1,0 +1,6 @@
+# T-17 dispute — 2 tests cannot pass against any correct implementation
+
+1. `integration/pricing.service.test.ts:864-866` ("only a DRAFT can be published"): `W({ price_list_versions: [discarded v7] })` spreads `...extra` AFTER the default `price_list_versions`, so it REPLACES [v1 superseded, V2 published, V3 draft] — the DB only holds v7. The loop then publishes `V2.id` and `ID(0xb01)`, which do not exist, and expects 409 `catalog.version_in_use`. The same service must answer 404 for an unknown id (S-1 case at :902). Only the v7 (discarded) iteration is satisfiable. Fix: merge the extra version into the defaults (e.g. `W({ price_list_versions: [...defaults, v7] })`).
+2. `integration/referrers.service.test.ts:928` (T-15, "price-list reassignment is T-17's: merge works with no price-list tables involved"): asserts `mergeDoctor` issues NO `price_list*` statement. T-17's done_when (merge moves/drops the merged doctor's assignment) and `referrers.merge.pricing.test.ts` ("a failing assignment statement rolls the merge back") require the merge to query `catalog.price_list_assignments` every time. The two tests contradict; the T-15 one is stale. Fix: delete or invert that assertion.
+
+Everything else: 2730 catalog tests pass (all other 181/183 T-17 cases pass).

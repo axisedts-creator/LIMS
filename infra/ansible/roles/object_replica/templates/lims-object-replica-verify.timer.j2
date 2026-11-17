@@ -1,0 +1,9 @@
+[Unit]
+Description=LIMS object replica nightly checksum pass
+
+[Timer]
+OnCalendar=*-*-* {{ object_replica_verify_time | default('03:30') }}:00 UTC
+Persistent=true
+
+[Install]
+WantedBy=timers.target

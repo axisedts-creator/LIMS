@@ -1,0 +1,2 @@
+# HC-T05 dispute (test defect, no spec line involved)
+US-10-2 assertion at booking.consumers.live.test.ts:367 compares a pg Date (v.route_date, via ownerRows) with a seeded string (visit.route_date): String(Date).slice(0,10) = "Sat Jan 02". Not a spec contradiction; the test mis-normalises dates. The consumer leaves route_date untouched, so no impl change can fix it. Writer must normalise both sides (toISOString().slice(0,10)).

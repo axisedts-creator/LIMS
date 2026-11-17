@@ -1,0 +1,19 @@
+{
+  "update": { "window": null, "target": null, "channel": "stable", "allow_downgrade": false },
+  "schema": "lims.bridge.config.v1",
+  "config_version": 7,
+  "agent_id": "01a1a98a-ac40-7000-8000-0000000d0101",
+  "issued_at": "2026-11-06T04:00:00.000Z",
+  "tls": { "spki_pins_sha256": [] },
+  "instruments": [
+    { "transport": { "stop_bits": "1", "parity": "none", "port_name": "COM3", "kind": "serial", "data_bits": 8, "baud_rate": 9600 },
+      "instrument_code": "SIM-CHEM-1", "capabilities": { "worklist_download": false, "host_query": false }, "file_drop": null }
+  ],
+  "tricky": {
+    "ｚ": 4, "😀": 5, "z": 3, "é": 2, "a": 1, "": 0, "B": 9, "10": 8, "2": 7,
+    "text": "q\" b\\ nl\n tab\t ctl\u0001 del\u007f <>& / µmol→ 😀",
+    "ints": [0, -5, 9007199254740991, -0],
+    "flags": [true, false, null],
+    "empty_obj": {}, "empty_arr": []
+  }
+}

@@ -1,0 +1,1146 @@
+[core] WARNING: Executable file detection not yet supported on 'win32'.
+Schema updated
+psql:/repo/db/migrations/20261105001300_identity__create_identity_schema.sql:7: NOTICE:  schema "identity" already exists, skipping
+psql:/repo/db/migrations/20261105001500_catalog__create_catalog_schema.sql:10: NOTICE:  schema "catalog" already exists, skipping
+psql:/repo/db/migrations/20261105001600_frontdesk__create_frontdesk_schema.sql:7: NOTICE:  schema "frontdesk" already exists, skipping
+psql:/repo/db/migrations/20261105001700_billing__create_billing_schema.sql:7: NOTICE:  schema "billing" already exists, skipping
+psql:/repo/db/migrations/20261105001800_lab__create_lab_schema.sql:10: NOTICE:  schema "lab" already exists, skipping
+psql:/repo/db/migrations/20261105001900_reporting__create_reporting_schema.sql:145: NOTICE:  identifier "message_template_texts__tenant_id_template_code_channel_language__uq" will be truncated to "message_template_texts__tenant_id_template_code_channel_languag"
+psql:/repo/db/migrations/20261105001900_reporting__create_reporting_schema.sql:177: NOTICE:  identifier "report_template_versions__tenant_id_template_id__published__p_uq" will be truncated to "report_template_versions__tenant_id_template_id__published__p_u"
+psql:/repo/db/migrations/20261105001900_reporting__create_reporting_schema.sql:443: NOTICE:  identifier "deliveries__tenant_id_channel_account_id_provider_message_id__p_uq" will be truncated to "deliveries__tenant_id_channel_account_id_provider_message_id__p"
+psql:/repo/db/migrations/20261105001900_reporting__create_reporting_schema.sql:682: NOTICE:  identifier "narrative_versions__tenant_id_narrative_report_id_version_no__uq" will be truncated to "narrative_versions__tenant_id_narrative_report_id_version_no__u"
+HC-T03: homecollection.* missing after migrations (P-1 not landed): applying 05-SCHEMA §4/§4.1 DDL + policies
+                                                       set_config                                                        
+-------------------------------------------------------------------------------------------------------------------------
+ {"tenant_id":"01a1a98a-ac40-7000-8000-00000000a001","sub":"01a1b34e-1000-7eee-9d29-d7ca59a102b5","actor_type":"system"}
+(1 row)
+
+                                                       set_config                                                        
+-------------------------------------------------------------------------------------------------------------------------
+ {"tenant_id":"01a1a98a-ac40-7000-8000-00000000b001","sub":"01a1b34e-1000-7eee-9d29-d7ca59a102b5","actor_type":"system"}
+(1 row)
+
+ set_config 
+------------
+ 
+(1 row)
+
+
+ RUN  v5.1.0 C:/LIMS-lanes/C17/services/api
+
+ ❯ src/modules/homecollection/__tests__/snapshot/snapshot.test.ts (45 tests | 20 failed | 24 skipped) 1363ms
+   ❯ US-06-1 / REQ-ARCH: lookupSpecimens on EVERY changed snapshot; barcodes only from that call, never persisted (review #2) (3)
+     × two changed pulls (no cursor, then a stale cursor) -> 2 x (1 demographics batch + 1 lookupSpecimens per visit); nothing cached between them 5ms
+     × the barcodes returned by the port are in no homecollection table (visit_specimens has no barcode column) and not in the logs 3ms
+     × no fallback to the visit_specimens read model: a visit whose lookupSpecimens fails shows specimens [] + specimens_stale even though the read model holds a row (and its barcode is never shown) 16ms
+   ❯ US-06-4 access log: one home_visit.view / home_visit_snapshot row per visit with patient fields (4)
+     × 2 visits -> 2 rows {tenant, action home_visit.view, entity_type home_visit, entity_id, purpose_code home_visit_snapshot, outcome allowed, membership = caller, request_id}; nothing else is logged for the request 3ms
+     × every changed pull writes its rows again (no dedupe, review #18): 3 pulls -> 6 rows for this device's visits in total (>= 6 incl. earlier tests of this describe) 6ms
+     × patient fields not returned -> no row for that visit: demographics batch down -> 0 rows; one patient missing from the result -> a row only for the other visit 2ms
+   ❯ US-06-8 / review #2: a port failure marks only that visit; the pull still succeeds (6)
+     × lookupSpecimens fails for v1 -> v1 `specimens: []` + `specimens_stale: true` (patient, address, balance intact); v2 unaffected and has no specimens_stale key; schema valid 3ms
+     × an unexpected (non-LimsError) failure of the port is handled the same way 3ms
+     × the failure does not poison the request: access rows and last_snapshot_at are still written for the stale visits 9ms
+     × an order with no expected specimens is NOT stale: `specimens: []` without the specimens_stale key 2ms
+     × balance read fails -> `balance_unavailable: true`, no `balance` key; demographics batch fails -> `patient_unavailable: true` for both visits, no `patient` key, address and specimens still present 3ms
+     × a patient missing from the batch result -> only that visit is patient_unavailable (review m#34) 2ms
+   ❯ US-06-5 own visits only; US-06-7 device binding (07-SECURITY AB1, probes 2-3) (6)
+     × PHLEBO2 pulls only her own visit; PHLEBO's patients never reach the demographics call of PHLEBO2 and vice versa 7ms
+     × AB1: PHLEBO2 presenting PHLEBO's device_id -> 409 homecollection.device_not_registered; no port call, no access row, last_snapshot_at untouched 9ms
+     × unknown device_id, a tenant B device and terminal devices (signed_off, wiped) -> 409 homecollection.device_not_registered 20ms
+     × device-id header vs query mismatch -> 400 common.id_mismatch (TRD §5 preamble) [ASSUMED enforced in the handler, as HC-T10] 3ms
+     × probe 2: a phlebotomist whose membership lacks the visit centre never gets that visit (dropped, or refused auth.forbidden) and its patient is never requested 8ms
+     × NOBODY (no grants) -> auth.forbidden 3ms
+   ❯ S-1 "today" is the local date in the tenant timezone (Asia/Kathmandu, UTC+05:45) (1)
+     × 19:00Z the day before = 00:45 local: today's route is served although the UTC date is yesterday; 19:00Z of the route day = tomorrow local: no visits 117ms
+   ❯ many users at once: concurrent pulls (1)
+     × 5 devices of 2 phlebotomists pull in parallel: all 200, each sees only its own visits, every pull logs its own rows 141ms
+ ❯ src/modules/homecollection/__tests__/snapshot/ack.test.ts (16 tests | 16 failed) 2126ms
+   ❯ A4 ack: the device durably replaced its cache with snapshot `cursor` (02-TRD §6.4) (6)
+     × pull -> ack with the cursor it got: 204 no body; devices.last_ack_at = server time, last_ack_cursor = the cursor, routes.last_ack_at set for the route in the cursor; nothing else on the device changes 202ms
+     × an ack makes no port call and writes no access-log row (no patient data is touched) 118ms
+     × replay of the same ack -> 204 again (idempotent) and the stored cursor is unchanged 115ms
+     × the cursor is client data: route ids in it that are not the actor's (PHLEBO2's route, a tenant B route) are never touched; an unparseable cursor is stored but touches no route [ASSUMED: 204, opaque] 123ms
+     × a cursor naming a route id that does not exist is ignored (no 500, no phantom row) 117ms
+     × concurrent acks of one device: no 5xx; the stored cursor is one of the posted ones 128ms
+   ❯ US-13-5 wipe: pull says wipe -> device uploads, destroys, acks with wipe_completed:true -> wiped (4)
+     × requested wipe: the pull carries device_command wipe; ack {wipe_completed:true} -> 204, status wiped, wiped_at = server time, version + 1; wipe_requested_* kept 115ms
+     × wiped is terminal: the next pull, ack and (any) re-ack -> 409 homecollection.device_not_registered 140ms
+     × an ordinary ack (no wipe_completed / false) of a wipe_requested device keeps it wipe_requested: the wipe is not undone and wiped_at stays empty 124ms
+     × a wiped device is not revived by a later pull or ack: status stays wiped 122ms
+   ❯ A4 device binding, versions, validation (US-06-6/7, 07-SECURITY AB1) (6)
+     × AB1: PHLEBO2 acking PHLEBO's device -> 409 homecollection.device_not_registered; the device and the routes are unchanged 159ms
+     × unknown device, a tenant B device, signed_off device -> 409 homecollection.device_not_registered 157ms
+     × device-id header vs body mismatch -> 400 common.id_mismatch [ASSUMED enforced in the handler, as HC-T10] 124ms
+     × permissions: sync.upload is required (NOBODY -> auth.forbidden); nothing changes 129ms
+     × invalid bodies -> 400 common.validation_failed and no state change: empty / > 512 / non-base64url cursor, negative or fractional seq, bad applied_at_device, non-boolean wipe_completed, unknown field, missing field, tenant_id smuggled in 132ms
+     × a 512-char cursor is accepted (boundary) and stored verbatim 120ms
+ ❯ src/modules/homecollection/__tests__/snapshot/static.test.ts (12 tests | 12 failed) 15ms
+   ❯ HC-T11 files (2)
+     × snapshot.service.ts exists and one handler file per operation (named by operationId) 6ms
+     × the module manifest wires both real handlers (no 501 stub left for A2 / A4) 1ms
+   ❯ HC-T11 source rules (10)
+     × SQL stays in the repositories: no .query(, no RLS bypass, no pg import, no console 1ms
+     × uses the HC-T03 repositories: devices (binding, last_snapshot_at / last_ack_*), routes by membership+date and route update, visits, settings 1ms
+     × TRD §6.2 ports by their catalog names: getPatientDemographicsBatch (purpose home_visit), lookupSpecimens, getOrderBalance, IdentityPort.getTenantSettings for the timezone, assertRole for visit.read 1ms
+     × port calls that may fail run inside ctx.db.tx (savepoint, 08 A19 P-44) so one failure cannot abort the read transaction 1ms
+     × review #2: no fallback to the visit_specimens read model in the snapshot, barcode never persisted or logged 1ms
+     × REQ-SEC-096: access log written with the verbatim codes home_visit.view / home_visit / home_visit_snapshot 0ms
+     × errors / headers by their spec names: device_not_registered, app_version_unsupported, id_mismatch, x-lims-device-id, x-lims-app-version; cursor is base64url 1ms
+     × identity comes from the claims (ctx.actor.membershipId, ctx.tenantId), never from query / body 1ms
+     × REQ-SEC-081: no patient / address / note / staff fields passed to ctx.log 1ms
+     × the snapshot response never names registration number or test names (field allowlist, REQ-SEC-081) 0ms
+ ❯ src/modules/homecollection/__tests__/snapshot/settings.test.ts (7 tests | 4 failed | 3 skipped) 341ms
+   ❯ D-IDENT / CR-C17-003: birth_on only when second_identifier = birth_date (1)
+     × phone (default): the port returns birthOn but the snapshot has no birth_on; birth_date: patient.birth_on = the port's birthOn (IsoDate), phone still present 51ms
+   ❯ US-06-6 app version below min_app_version -> 426 homecollection.app_version_unsupported on every app endpoint (CR-C17-007) (2)
+     × A2 and A4: 1.4.9 < 1.5.0 -> 426 (checked numerically: 1.10.0 >= 1.9.0 passes); nothing is read, written or logged; exactly min_app_version passes 65ms
+     × a missing or malformed x-lims-app-version header is never accepted as "new enough" on an app endpoint (426 or 400, no snapshot) 55ms
+   ❯ tenant isolation of the snapshot (RLS + explicit tenant filter) (1)
+     × tenant B's phlebotomist sees only tenant B visits and settings; tenant A's rows are never read even though the membership ids differ only by tenant 42ms
+ ❯ src/modules/homecollection/__tests__/snapshot/perf.test.ts (4 tests | 4 failed) 2546ms
+   ❯ A2 p95 with 40 visits (4)
+     × changed pull of 40 visits: p95 of 8 runs <= 2 s; one demographics batch, 40 lookupSpecimens, 40 balances; every visit complete; 40 access rows 40ms
+     × unchanged pull of 40 visits: p95 of 8 runs <= 500 ms; 40 balance reads and nothing else 5ms
+     × a slow or failing port on one visit does not multiply the cost: 40 visits with every lookupSpecimens failing still answers 200 within the changed budget, all visits stale 4ms
+     × snapshot never truncates: 60 active visits (the D-131 daily cap) are all returned (<= 60 by the contract) 1532ms
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/modules/homecollection/__tests__/snapshot/settings.test.ts > SnapshotConfig mirrors the tenant settings (TRD §6.2 example keys, all required inside config)
+LimsError: common.internal
+ ❯ Object.getSyncSnapshot src/modules/homecollection/index.ts:37:9
+     35| const stub = (operationId: string): Handler => async () => {
+     36|   if (process.env.LIMS_CORE_ENV === 'dev' && process.env.NODE_ENV !== …
+     37|   throw new LimsError('common.internal', `homecollection ${operationId…
+       |         ^
+     38| };
+     39|
+ ❯ run src/modules/homecollection/__tests__/snapshot/helpers.ts:125:25
+ ❯ appTx src/modules/frontdesk/__tests__/integration/helpers.ts:41:23
+ ❯ op src/modules/homecollection/__tests__/snapshot/helpers.ts:128:17
+ ❯ src/modules/homecollection/__tests__/snapshot/settings.test.ts:30:9
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/60]⎯
+
+ FAIL  src/modules/homecollection/__tests__/snapshot/snapshot.test.ts > US-06-1 pull with no cursor: today's route, exactly the actor's visits
+LimsError: common.internal
+ ❯ Object.getSyncSnapshot src/modules/homecollection/index.ts:37:9
+     35| const stub = (operationId: string): Handler => async () => {
+     36|   if (process.env.LIMS_CORE_ENV === 'dev' && process.env.NODE_ENV !== …
+     37|   throw new LimsError('common.internal', `homecollection ${operationId…
+       |         ^
+     38| };
+     39|
+ ❯ run src/modules/homecollection/__tests__/snapshot/helpers.ts:125:25
+ ❯ appTx src/modules/frontdesk/__tests__/integration/helpers.ts:41:23
+ ❯ op src/modules/homecollection/__tests__/snapshot/helpers.ts:128:17
+ ❯ src/modules/homecollection/__tests__/snapshot/snapshot.test.ts:15:57
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/60]⎯
+
+ FAIL  src/modules/homecollection/__tests__/snapshot/snapshot.test.ts > US-06-2 unchanged path: same cursor, no server change -> unchanged:true with fresh balances only
+LimsError: common.internal
+ ❯ Object.getSyncSnapshot src/modules/homecollection/index.ts:37:9
+     35| const stub = (operationId: string): Handler => async () => {
+     36|   if (process.env.LIMS_CORE_ENV === 'dev' && process.env.NODE_ENV !== …
+     37|   throw new LimsError('common.internal', `homecollection ${operationId…
+       |         ^
+     38| };
+     39|
+ ❯ run src/modules/homecollection/__tests__/snapshot/helpers.ts:125:25
+ ❯ appTx src/modules/frontdesk/__tests__/integration/helpers.ts:41:23
+ ❯ op src/modules/homecollection/__tests__/snapshot/helpers.ts:128:17
+ ❯ src/modules/homecollection/__tests__/snapshot/snapshot.test.ts:151:61
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/60]⎯
+
+ FAIL  src/modules/homecollection/__tests__/snapshot/snapshot.test.ts > US-06-3 cancelled after assignment -> stub; closed visits carry no patient fields
+LimsError: common.internal
+ ❯ Object.getSyncSnapshot src/modules/homecollection/index.ts:37:9
+     35| const stub = (operationId: string): Handler => async () => {
+     36|   if (process.env.LIMS_CORE_ENV === 'dev' && process.env.NODE_ENV !== …
+     37|   throw new LimsError('common.internal', `homecollection ${operationId…
+       |         ^
+     38| };
+     39|
+ ❯ run src/modules/homecollection/__tests__/snapshot/helpers.ts:125:25
+ ❯ appTx src/modules/frontdesk/__tests__/integration/helpers.ts:41:23
+ ❯ op src/modules/homecollection/__tests__/snapshot/helpers.ts:128:17
+ ❯ src/modules/homecollection/__tests__/snapshot/snapshot.test.ts:227:9
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/60]⎯
+
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 56 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/modules/homecollection/__tests__/snapshot/ack.test.ts > A4 ack: the device durably replaced its cache with snapshot `cursor` (02-TRD §6.4) > pull -> ack with the cursor it got: 204 no body; devices.last_ack_at = server time, last_ack_cursor = the cursor, routes.last_ack_at set for the route in the cursor; nothing else on the device changes
+LimsError: common.internal
+ ❯ Object.getSyncSnapshot src/modules/homecollection/index.ts:37:9
+     35| const stub = (operationId: string): Handler => async () => {
+     36|   if (process.env.LIMS_CORE_ENV === 'dev' && process.env.NODE_ENV !== …
+     37|   throw new LimsError('common.internal', `homecollection ${operationId…
+       |         ^
+     38| };
+     39|
+ ❯ run src/modules/homecollection/__tests__/snapshot/helpers.ts:125:25
+ ❯ appTx src/modules/frontdesk/__tests__/integration/helpers.ts:41:23
+ ❯ op src/modules/homecollection/__tests__/snapshot/helpers.ts:128:17
+ ❯ src/modules/homecollection/__tests__/snapshot/ack.test.ts:18:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/60]⎯
+
+ FAIL  src/modules/homecollection/__tests__/snapshot/ack.test.ts > A4 ack: the device durably replaced its cache with snapshot `cursor` (02-TRD §6.4) > an ack makes no port call and writes no access-log row (no patient data is touched)
+LimsError: common.internal
+ ❯ Object.getSyncSnapshot src/modules/homecollection/index.ts:37:9
+     35| const stub = (operationId: string): Handler => async () => {
+     36|   if (process.env.LIMS_CORE_ENV === 'dev' && process.env.NODE_ENV !== …
+     37|   throw new LimsError('common.internal', `homecollection ${operationId…
+       |         ^
+     38| };
+     39|
+ ❯ run src/modules/homecollection/__tests__/snapshot/helpers.ts:125:25
+ ❯ appTx src/modules/frontdesk/__tests__/integration/helpers.ts:41:23
+ ❯ op src/modules/homecollection/__tests__/snapshot/helpers.ts:128:17
+ ❯ src/modules/homecollection/__tests__/snapshot/ack.test.ts:35:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/60]⎯
+
+ FAIL  src/modules/homecollection/__tests__/snapshot/ack.test.ts > A4 ack: the device durably replaced its cache with snapshot `cursor` (02-TRD §6.4) > replay of the same ack -> 204 again (idempotent) and the stored cursor is unchanged
+LimsError: common.internal
+ ❯ Object.getSyncSnapshot src/modules/homecollection/index.ts:37:9
+     35| const stub = (operationId: string): Handler => async () => {
+     36|   if (process.env.LIMS_CORE_ENV === 'dev' && process.env.NODE_ENV !== …
+     37|   throw new LimsError('common.internal', `homecollection ${operationId…
+       |         ^
+     38| };
+     39|
+ ❯ run src/modules/homecollection/__tests__/snapshot/helpers.ts:125:25
+ ❯ appTx src/modules/frontdesk/__tests__/integration/helpers.ts:41:23
+ ❯ op src/modules/homecollection/__tests__/snapshot/helpers.ts:128:17
+ ❯ src/modules/homecollection/__tests__/snapshot/ack.test.ts:42:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/60]⎯
+
+ FAIL  src/modules/homecollection/__tests__/snapshot/ack.test.ts > A4 ack: the device durably replaced its cache with snapshot `cursor` (02-TRD §6.4) > the cursor is client data: route ids in it that are not the actor's (PHLEBO2's route, a tenant B route) are never touched; an unparseable cursor is stored but touches no route [ASSUMED: 204, opaque]
+LimsError: common.internal
+ ❯ Object.ackSync src/modules/homecollection/index.ts:37:9
+     35| const stub = (operationId: string): Handler => async () => {
+     36|   if (process.env.LIMS_CORE_ENV === 'dev' && process.env.NODE_ENV !== …
+     37|   throw new LimsError('common.internal', `homecollection ${operationId…
+       |         ^
+     38| };
+     39|
+ ❯ run src/modules/homecollection/__tests__/snapshot/helpers.ts:125:25
+ ❯ appTx src/modules/frontdesk/__tests__/integration/helpers.ts:41:23
+ ❯ op src/modules/homecollection/__tests__/snapshot/helpers.ts:128:17
+ ❯ src/modules/homecollection/__tests__/snapshot/ack.test.ts:52:13
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/60]⎯
+
+ FAIL  src/modules/homecollection/__tests__/snapshot/ack.test.ts > A4 ack: the device durably replaced its cache with snapshot `cursor` (02-TRD §6.4) > a cursor naming a route id that does not exist is ignored (no 500, no phantom row)
+LimsError: common.internal
+ ❯ Object.ackSync src/modules/homecollection/index.ts:37:9
+     35| const stub = (operationId: string): Handler => async () => {
+     36|   if (process.env.LIMS_CORE_ENV === 'dev' && process.env.NODE_ENV !== …
+     37|   throw new LimsError('common.internal', `homecollection ${operationId…
+       |         ^
+     38| };
+     39|
+ ❯ run src/modules/homecollection/__tests__/snapshot/helpers.ts:125:25
+ ❯ appTx src/modules/frontdesk/__tests__/integration/helpers.ts:41:23
+ ❯ op src/modules/homecollection/__tests__/snapshot/helpers.ts:128:17
+ ❯ src/modules/homecollection/__tests__/snapshot/ack.test.ts:62:13
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/60]⎯
+
+ FAIL  src/modules/homecollection/__tests__/snapshot/ack.test.ts > A4 ack: the device durably replaced its cache with snapshot `cursor` (02-TRD §6.4) > concurrent acks of one device: no 5xx; the stored cursor is one of the posted ones
+AssertionError: expected [ 'common.version_conflict' ] to include 'common.internal'
+ ❯ src/modules/homecollection/__tests__/snapshot/ack.test.ts:70:48
+     68|     for (const r of rs) {
+     69|       if (r.status === 'fulfilled') expect(r.value.status).toBe(204);
+     70|       else expect(['common.version_conflict']).toContain((r.reason as …
+       |                                                ^
+     71|     }
+     72|     expect(rs.some((r) => r.status === 'fulfilled')).toBe(true);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/60]⎯
+
+ FAIL  src/modules/homecollection/__tests__/snapshot/ack.test.ts > US-13-5 wipe: pull says wipe -> device uploads, destroys, acks with wipe_completed:true -> wiped > requested wipe: the pull carries device_command wipe; ack {wipe_completed:true} -> 204, status wiped, wiped_at = server time, version + 1; wipe_requested_* kept
+LimsError: common.internal
+ ❯ Object.getSyncSnapshot src/modules/homecollection/index.ts:37:9
+     35| const stub = (operationId: string): Handler => async () => {
+     36|   if (process.env.LIMS_CORE_ENV === 'dev' && process.env.NODE_ENV !== …
+     37|   throw new LimsError('common.internal', `homecollection ${operationId…
+       |         ^
+     38| };
+     39|
+ ❯ run src/modules/homecollection/__tests__/snapshot/helpers.ts:125:25
+ ❯ appTx src/modules/frontdesk/__tests__/integration/helpers.ts:41:23
+ ❯ op src/modules/homecollection/__tests__/snapshot/helpers.ts:128:17
+ ❯ src/modules/homecollection/__tests__/snapshot/ack.test.ts:81:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/60]⎯
+
+ FAIL  src/modules/homecollection/__tests__/snapshot/ack.test.ts > US-13-5 wipe: pull says wipe -> device uploads, destroys, acks with wipe_completed:true -> wiped > wiped is terminal: the next pull, ack and (any) re-ack -> 409 homecollection.device_not_registered
+LimsError: common.internal
+ ❯ Object.getSyncSnapshot src/modules/homecollection/index.ts:37:9
+     35| const stub = (operationId: string): Handler => async () => {
+     36|   if (process.env.LIMS_CORE_ENV === 'dev' && process.env.NODE_ENV !== …
+     37|   throw new LimsError('common.internal', `homecollection ${operationId…
+       |         ^
+     38| };
+     39|
+ ❯ run src/modules/homecollection/__tests__/snapshot/helpers.ts:125:25
+ ❯ appTx src/modules/frontdesk/__tests__/integration/helpers.ts:41:23
+ ❯ op src/modules/homecollection/__tests__/snapshot/helpers.ts:128:17
+ ❯ src/modules/homecollection/__tests__/snapshot/ack.test.ts:97:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/60]⎯
+
+ FAIL  src/modules/homecollection/__tests__/snapshot/ack.test.ts > US-13-5 wipe: pull says wipe -> device uploads, destroys, acks with wipe_completed:true -> wiped > an ordinary ack (no wipe_completed / false) of a wipe_requested device keeps it wipe_requested: the wipe is not undone and wiped_at stays empty
+LimsError: common.internal
+ ❯ Object.getSyncSnapshot src/modules/homecollection/index.ts:37:9
+     35| const stub = (operationId: string): Handler => async () => {
+     36|   if (process.env.LIMS_CORE_ENV === 'dev' && process.env.NODE_ENV !== …
+     37|   throw new LimsError('common.internal', `homecollection ${operationId…
+       |         ^
+     38| };
+     39|
+ ❯ run src/modules/homecollection/__tests__/snapshot/helpers.ts:125:25
+ ❯ appTx src/modules/frontdesk/__tests__/integration/helpers.ts:41:23
+ ❯ op src/modules/homecollection/__tests__/snapshot/helpers.ts:128:17
+ ❯ src/modules/homecollection/__tests__/snapshot/ack.test.ts:109:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/60]⎯
+
+ FAIL  src/modules/homecollection/__tests__/snapshot/ack.test.ts > US-13-5 wipe: pull says wipe -> device uploads, destroys, acks with wipe_completed:true -> wiped > a wiped device is not revived by a later pull or ack: status stays wiped
+LimsError: common.internal
+ ❯ Object.getSyncSnapshot src/modules/homecollection/index.ts:37:9
+     35| const stub = (operationId: string): Handler => async () => {
+     36|   if (process.env.LIMS_CORE_ENV === 'dev' && process.env.NODE_ENV !== …
+     37|   throw new LimsError('common.internal', `homecollection ${operationId…
+       |         ^
+     38| };
+     39|
+ ❯ run src/modules/homecollection/__tests__/snapshot/helpers.ts:125:25
+ ❯ appTx src/modules/frontdesk/__tests__/integration/helpers.ts:41:23
+ ❯ op src/modules/homecollection/__tests__/snapshot/helpers.ts:128:17
+ ❯ src/modules/homecollection/__tests__/snapshot/ack.test.ts:121:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/60]⎯
+
+ FAIL  src/modules/homecollection/__tests__/snapshot/ack.test.ts > A4 device binding, versions, validation (US-06-6/7, 07-SECURITY AB1) > AB1: PHLEBO2 acking PHLEBO's device -> 409 homecollection.device_not_registered; the device and the routes are unchanged
+LimsError: common.internal
+ ❯ Object.getSyncSnapshot src/modules/homecollection/index.ts:37:9
+     35| const stub = (operationId: string): Handler => async () => {
+     36|   if (process.env.LIMS_CORE_ENV === 'dev' && process.env.NODE_ENV !== …
+     37|   throw new LimsError('common.internal', `homecollection ${operationId…
+       |         ^
+     38| };
+     39|
+ ❯ run src/modules/homecollection/__tests__/snapshot/helpers.ts:125:25
+ ❯ appTx src/modules/frontdesk/__tests__/integration/helpers.ts:41:23
+ ❯ op src/modules/homecollection/__tests__/snapshot/helpers.ts:128:17
+ ❯ src/modules/homecollection/__tests__/snapshot/ack.test.ts:140:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/60]⎯
+
+ FAIL  src/modules/homecollection/__tests__/snapshot/ack.test.ts > A4 device binding, versions, validation (US-06-6/7, 07-SECURITY AB1) > unknown device, a tenant B device, signed_off device -> 409 homecollection.device_not_registered
+LimsError: common.internal
+ ❯ Object.getSyncSnapshot src/modules/homecollection/index.ts:37:9
+     35| const stub = (operationId: string): Handler => async () => {
+     36|   if (process.env.LIMS_CORE_ENV === 'dev' && process.env.NODE_ENV !== …
+     37|   throw new LimsError('common.internal', `homecollection ${operationId…
+       |         ^
+     38| };
+     39|
+ ❯ run src/modules/homecollection/__tests__/snapshot/helpers.ts:125:25
+ ❯ appTx src/modules/frontdesk/__tests__/integration/helpers.ts:41:23
+ ❯ op src/modules/homecollection/__tests__/snapshot/helpers.ts:128:17
+ ❯ src/modules/homecollection/__tests__/snapshot/ack.test.ts:147:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[16/60]⎯
+
+ FAIL  src/modules/homecollection/__tests__/snapshot/ack.test.ts > A4 device binding, versions, validation (US-06-6/7, 07-SECURITY AB1) > device-id header vs body mismatch -> 400 common.id_mismatch [ASSUMED enforced in the handler, as HC-T10]
+LimsError: common.internal
+ ❯ Object.getSyncSnapshot src/modules/homecollection/index.ts:37:9
+     35| const stub = (operationId: string): Handler => async () => {
+     36|   if (process.env.LIMS_CORE_ENV === 'dev' && process.env.NODE_ENV !== …
+     37|   throw new LimsError('common.internal', `homecollection ${operationId…
+       |         ^
+     38| };
+     39|
+ ❯ run src/modules/homecollection/__tests__/snapshot/helpers.ts:125:25
+ ❯ appTx src/modules/frontdesk/__tests__/integration/helpers.ts:41:23
+ ❯ op src/modules/homecollection/__tests__/snapshot/helpers.ts:128:17
+ ❯ src/modules/homecollection/__tests__/snapshot/ack.test.ts:156:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[17/60]⎯
+
+ FAIL  src/modules/homecollection/__tests__/snapshot/ack.test.ts > A4 device binding, versions, validation (US-06-6/7, 07-SECURITY AB1) > permissions: sync.upload is required (NOBODY -> auth.forbidden); nothing changes
+LimsError: common.internal
+ ❯ Object.getSyncSnapshot src/modules/homecollection/index.ts:37:9
+     35| const stub = (operationId: string): Handler => async () => {
+     36|   if (process.env.LIMS_CORE_ENV === 'dev' && process.env.NODE_ENV !== …
+     37|   throw new LimsError('common.internal', `homecollection ${operationId…
+       |         ^
+     38| };
+     39|
+ ❯ run src/modules/homecollection/__tests__/snapshot/helpers.ts:125:25
+ ❯ appTx src/modules/frontdesk/__tests__/integration/helpers.ts:41:23
+ ❯ op src/modules/homecollection/__tests__/snapshot/helpers.ts:128:17
+ ❯ src/modules/homecollection/__tests__/snapshot/ack.test.ts:161:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[18/60]⎯
+
+ FAIL  src/modules/homecollection/__tests__/snapshot/ack.test.ts > A4 device binding, versions, validation (US-06-6/7, 07-SECURITY AB1) > invalid bodies -> 400 common.validation_failed and no state change: empty / > 512 / non-base64url cursor, negative or fractional seq, bad applied_at_device, non-boolean wipe_completed, unknown field, missing field, tenant_id smuggled in
+LimsError: common.internal
+ ❯ Object.getSyncSnapshot src/modules/homecollection/index.ts:37:9
+     35| const stub = (operationId: string): Handler => async () => {
+     36|   if (process.env.LIMS_CORE_ENV === 'dev' && process.env.NODE_ENV !== …
+     37|   throw new LimsError('common.internal', `homecollection ${operationId…
+       |         ^
+     38| };
+     39|
+ ❯ run src/modules/homecollection/__tests__/snapshot/helpers.ts:125:25
+ ❯ appTx src/modules/frontdesk/__tests__/integration/helpers.ts:41:23
+ ❯ op src/modules/homecollection/__tests__/snapshot/helpers.ts:128:17
+ ❯ src/modules/homecollection/__tests__/snapshot/ack.test.ts:167:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[19/60]⎯
+
+ FAIL  src/modules/homecollection/__tests__/snapshot/ack.test.ts > A4 device binding, versions, validation (US-06-6/7, 07-SECURITY AB1) > a 512-char cursor is accepted (boundary) and stored verbatim
+LimsError: common.internal
+ ❯ Object.ackSync src/modules/homecollection/index.ts:37:9
+     35| const stub = (operationId: string): Handler => async () => {
+     36|   if (process.env.LIMS_CORE_ENV === 'dev' && process.env.NODE_ENV !== …
+     37|   throw new LimsError('common.internal', `homecollection ${operationId…
+       |         ^
+     38| };
+     39|
+ ❯ run src/modules/homecollection/__tests__/snapshot/helpers.ts:125:25
+ ❯ appTx src/modules/frontdesk/__tests__/integration/helpers.ts:41:23
+ ❯ op src/modules/homecollection/__tests__/snapshot/helpers.ts:128:17
+ ❯ src/modules/homecollection/__tests__/snapshot/ack.test.ts:188:13
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[20/60]⎯
+
+ FAIL  src/modules/homecollection/__tests__/snapshot/perf.test.ts > A2 p95 with 40 visits > changed pull of 40 visits: p95 of 8 runs <= 2 s; one demographics batch, 40 lookupSpecimens, 40 balances; every visit complete; 40 access rows
+LimsError: common.internal
+ ❯ Object.getSyncSnapshot src/modules/homecollection/index.ts:37:9
+     35| const stub = (operationId: string): Handler => async () => {
+     36|   if (process.env.LIMS_CORE_ENV === 'dev' && process.env.NODE_ENV !== …
+     37|   throw new LimsError('common.internal', `homecollection ${operationId…
+       |         ^
+     38| };
+     39|
+ ❯ run src/modules/homecollection/__tests__/snapshot/helpers.ts:125:25
+ ❯ appTx src/modules/frontdesk/__tests__/integration/helpers.ts:41:23
+ ❯ op src/modules/homecollection/__tests__/snapshot/helpers.ts:128:17
+ ❯ src/modules/homecollection/__tests__/snapshot/perf.test.ts:28:75
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[21/60]⎯
+
+ FAIL  src/modules/homecollection/__tests__/snapshot/perf.test.ts > A2 p95 with 40 visits > unchanged pull of 40 visits: p95 of 8 runs <= 500 ms; 40 balance reads and nothing else
+LimsError: common.internal
+ ❯ Object.getSyncSnapshot src/modules/homecollection/index.ts:37:9
+     35| const stub = (operationId: string): Handler => async () => {
+     36|   if (process.env.LIMS_CORE_ENV === 'dev' && process.env.NODE_ENV !== …
+     37|   throw new LimsError('common.internal', `homecollection ${operationId…
+       |         ^
+     38| };
+     39|
+ ❯ run src/modules/homecollection/__tests__/snapshot/helpers.ts:125:25
+ ❯ appTx src/modules/frontdesk/__tests__/integration/helpers.ts:41:23
+ ❯ op src/modules/homecollection/__tests__/snapshot/helpers.ts:128:17
+ ❯ src/modules/homecollection/__tests__/snapshot/perf.test.ts:41:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[22/60]⎯
+
+ FAIL  src/modules/homecollection/__tests__/snapshot/perf.test.ts > A2 p95 with 40 visits > a slow or failing port on one visit does not multiply the cost: 40 visits with every lookupSpecimens failing still answers 200 within the changed budget, all visits stale
+LimsError: common.internal
+ ❯ Object.getSyncSnapshot src/modules/homecollection/index.ts:37:9
+     35| const stub = (operationId: string): Handler => async () => {
+     36|   if (process.env.LIMS_CORE_ENV === 'dev' && process.env.NODE_ENV !== …
+     37|   throw new LimsError('common.internal', `homecollection ${operationId…
+       |         ^
+     38| };
+     39|
+ ❯ run src/modules/homecollection/__tests__/snapshot/helpers.ts:125:25
+ ❯ appTx src/modules/frontdesk/__tests__/integration/helpers.ts:41:23
+ ❯ op src/modules/homecollection/__tests__/snapshot/helpers.ts:128:17
+ ❯ src/modules/homecollection/__tests__/snapshot/perf.test.ts:54:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[23/60]⎯
+
+ FAIL  src/modules/homecollection/__tests__/snapshot/perf.test.ts > A2 p95 with 40 visits > snapshot never truncates: 60 active visits (the D-131 daily cap) are all returned (<= 60 by the contract)
+LimsError: common.internal
+ ❯ Object.getSyncSnapshot src/modules/homecollection/index.ts:37:9
+     35| const stub = (operationId: string): Handler => async () => {
+     36|   if (process.env.LIMS_CORE_ENV === 'dev' && process.env.NODE_ENV !== …
+     37|   throw new LimsError('common.internal', `homecollection ${operationId…
+       |         ^
+     38| };
+     39|
+ ❯ run src/modules/homecollection/__tests__/snapshot/helpers.ts:125:25
+ ❯ appTx src/modules/frontdesk/__tests__/integration/helpers.ts:41:23
+ ❯ op src/modules/homecollection/__tests__/snapshot/helpers.ts:128:17
+ ❯ src/modules/homecollection/__tests__/snapshot/perf.test.ts:64:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[24/60]⎯
+
+ FAIL  src/modules/homecollection/__tests__/snapshot/settings.test.ts > D-IDENT / CR-C17-003: birth_on only when second_identifier = birth_date > phone (default): the port returns birthOn but the snapshot has no birth_on; birth_date: patient.birth_on = the port's birthOn (IsoDate), phone still present
+LimsError: common.internal
+ ❯ Object.getSyncSnapshot src/modules/homecollection/index.ts:37:9
+     35| const stub = (operationId: string): Handler => async () => {
+     36|   if (process.env.LIMS_CORE_ENV === 'dev' && process.env.NODE_ENV !== …
+     37|   throw new LimsError('common.internal', `homecollection ${operationId…
+       |         ^
+     38| };
+     39|
+ ❯ run src/modules/homecollection/__tests__/snapshot/helpers.ts:125:25
+ ❯ appTx src/modules/frontdesk/__tests__/integration/helpers.ts:41:23
+ ❯ op src/modules/homecollection/__tests__/snapshot/helpers.ts:128:17
+ ❯ src/modules/homecollection/__tests__/snapshot/settings.test.ts:63:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[25/60]⎯
+
+ FAIL  src/modules/homecollection/__tests__/snapshot/settings.test.ts > US-06-6 app version below min_app_version -> 426 homecollection.app_version_unsupported on every app endpoint (CR-C17-007) > A2 and A4: 1.4.9 < 1.5.0 -> 426 (checked numerically: 1.10.0 >= 1.9.0 passes); nothing is read, written or logged; exactly min_app_version passes
+AssertionError: expected [ 'common.internal', 500 ] to deeply equal [ …(2) ]
+
+- Expected
++ Received
+
+  [
+-   "homecollection.app_version_unsupported",
+-   426,
++   "common.internal",
++   500,
+  ]
+
+ ❯ src/modules/homecollection/__tests__/snapshot/settings.test.ts:84:38
+     82|       const before = await deviceRow(X.device.id);
+     83|       const e = await pullFails(X.device.id, { who: PHLEBO_B, now: X.n…
+     84|       expect([e.code, e.statusCode]).toEqual(['homecollection.app_vers…
+       |                                      ^
+     85|       expect([e.probe.batch.length, e.probe.lab.length, e.probe.balanc…
+     86|       expect(await allAccessRows(e.probe.requestId)).toHaveLength(0);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[26/60]⎯
+
+ FAIL  src/modules/homecollection/__tests__/snapshot/settings.test.ts > US-06-6 app version below min_app_version -> 426 homecollection.app_version_unsupported on every app endpoint (CR-C17-007) > a missing or malformed x-lims-app-version header is never accepted as "new enough" on an app endpoint (426 or 400, no snapshot)
+AssertionError: expected [ …(2) ] to include 'common.internal'
+ ❯ src/modules/homecollection/__tests__/snapshot/settings.test.ts:104:88
+    102|       for (const h of [{ 'x-lims-device-id': X.device.id }, { 'x-lims-…
+    103|         const e = await pullFails(X.device.id, { who: PHLEBO_B, now: X…
+    104|         expect(['homecollection.app_version_unsupported', 'common.vali…
+       |                                                                                        ^
+    105|         expect(e.probe.batch).toHaveLength(0);
+    106|       }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[27/60]⎯
+
+ FAIL  src/modules/homecollection/__tests__/snapshot/settings.test.ts > tenant isolation of the snapshot (RLS + explicit tenant filter) > tenant B's phlebotomist sees only tenant B visits and settings; tenant A's rows are never read even though the membership ids differ only by tenant
+LimsError: common.internal
+ ❯ Object.getSyncSnapshot src/modules/homecollection/index.ts:37:9
+     35| const stub = (operationId: string): Handler => async () => {
+     36|   if (process.env.LIMS_CORE_ENV === 'dev' && process.env.NODE_ENV !== …
+     37|   throw new LimsError('common.internal', `homecollection ${operationId…
+       |         ^
+     38| };
+     39|
+ ❯ run src/modules/homecollection/__tests__/snapshot/helpers.ts:125:25
+ ❯ appTx src/modules/frontdesk/__tests__/integration/helpers.ts:41:23
+ ❯ op src/modules/homecollection/__tests__/snapshot/helpers.ts:128:17
+ ❯ src/modules/homecollection/__tests__/snapshot/settings.test.ts:114:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[28/60]⎯
+
+ FAIL  src/modules/homecollection/__tests__/snapshot/snapshot.test.ts > US-06-1 / REQ-ARCH: lookupSpecimens on EVERY changed snapshot; barcodes only from that call, never persisted (review #2) > two changed pulls (no cursor, then a stale cursor) -> 2 x (1 demographics batch + 1 lookupSpecimens per visit); nothing cached between them
+LimsError: common.internal
+ ❯ Object.getSyncSnapshot src/modules/homecollection/index.ts:37:9
+     35| const stub = (operationId: string): Handler => async () => {
+     36|   if (process.env.LIMS_CORE_ENV === 'dev' && process.env.NODE_ENV !== …
+     37|   throw new LimsError('common.internal', `homecollection ${operationId…
+       |         ^
+     38| };
+     39|
+ ❯ run src/modules/homecollection/__tests__/snapshot/helpers.ts:125:25
+ ❯ appTx src/modules/frontdesk/__tests__/integration/helpers.ts:41:23
+ ❯ op src/modules/homecollection/__tests__/snapshot/helpers.ts:128:17
+ ❯ src/modules/homecollection/__tests__/snapshot/snapshot.test.ts:120:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[29/60]⎯
+
+ FAIL  src/modules/homecollection/__tests__/snapshot/snapshot.test.ts > US-06-1 / REQ-ARCH: lookupSpecimens on EVERY changed snapshot; barcodes only from that call, never persisted (review #2) > the barcodes returned by the port are in no homecollection table (visit_specimens has no barcode column) and not in the logs
+LimsError: common.internal
+ ❯ Object.getSyncSnapshot src/modules/homecollection/index.ts:37:9
+     35| const stub = (operationId: string): Handler => async () => {
+     36|   if (process.env.LIMS_CORE_ENV === 'dev' && process.env.NODE_ENV !== …
+     37|   throw new LimsError('common.internal', `homecollection ${operationId…
+       |         ^
+     38| };
+     39|
+ ❯ run src/modules/homecollection/__tests__/snapshot/helpers.ts:125:25
+ ❯ appTx src/modules/frontdesk/__tests__/integration/helpers.ts:41:23
+ ❯ op src/modules/homecollection/__tests__/snapshot/helpers.ts:128:17
+ ❯ src/modules/homecollection/__tests__/snapshot/snapshot.test.ts:126:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[30/60]⎯
+
+ FAIL  src/modules/homecollection/__tests__/snapshot/snapshot.test.ts > US-06-1 / REQ-ARCH: lookupSpecimens on EVERY changed snapshot; barcodes only from that call, never persisted (review #2) > no fallback to the visit_specimens read model: a visit whose lookupSpecimens fails shows specimens [] + specimens_stale even though the read model holds a row (and its barcode is never shown)
+LimsError: common.internal
+ ❯ Object.getSyncSnapshot src/modules/homecollection/index.ts:37:9
+     35| const stub = (operationId: string): Handler => async () => {
+     36|   if (process.env.LIMS_CORE_ENV === 'dev' && process.env.NODE_ENV !== …
+     37|   throw new LimsError('common.internal', `homecollection ${operationId…
+       |         ^
+     38| };
+     39|
+ ❯ run src/modules/homecollection/__tests__/snapshot/helpers.ts:125:25
+ ❯ appTx src/modules/frontdesk/__tests__/integration/helpers.ts:41:23
+ ❯ op src/modules/homecollection/__tests__/snapshot/helpers.ts:128:17
+ ❯ src/modules/homecollection/__tests__/snapshot/snapshot.test.ts:141:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[31/60]⎯
+
+ FAIL  src/modules/homecollection/__tests__/snapshot/snapshot.test.ts > US-06-4 access log: one home_visit.view / home_visit_snapshot row per visit with patient fields > 2 visits -> 2 rows {tenant, action home_visit.view, entity_type home_visit, entity_id, purpose_code home_visit_snapshot, outcome allowed, membership = caller, request_id}; nothing else is logged for the request
+LimsError: common.internal
+ ❯ Object.getSyncSnapshot src/modules/homecollection/index.ts:37:9
+     35| const stub = (operationId: string): Handler => async () => {
+     36|   if (process.env.LIMS_CORE_ENV === 'dev' && process.env.NODE_ENV !== …
+     37|   throw new LimsError('common.internal', `homecollection ${operationId…
+       |         ^
+     38| };
+     39|
+ ❯ run src/modules/homecollection/__tests__/snapshot/helpers.ts:125:25
+ ❯ appTx src/modules/frontdesk/__tests__/integration/helpers.ts:41:23
+ ❯ op src/modules/homecollection/__tests__/snapshot/helpers.ts:128:17
+ ❯ src/modules/homecollection/__tests__/snapshot/snapshot.test.ts:268:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[32/60]⎯
+
+ FAIL  src/modules/homecollection/__tests__/snapshot/snapshot.test.ts > US-06-4 access log: one home_visit.view / home_visit_snapshot row per visit with patient fields > every changed pull writes its rows again (no dedupe, review #18): 3 pulls -> 6 rows for this device's visits in total (>= 6 incl. earlier tests of this describe)
+LimsError: common.internal
+ ❯ Object.getSyncSnapshot src/modules/homecollection/index.ts:37:9
+     35| const stub = (operationId: string): Handler => async () => {
+     36|   if (process.env.LIMS_CORE_ENV === 'dev' && process.env.NODE_ENV !== …
+     37|   throw new LimsError('common.internal', `homecollection ${operationId…
+       |         ^
+     38| };
+     39|
+ ❯ run src/modules/homecollection/__tests__/snapshot/helpers.ts:125:25
+ ❯ appTx src/modules/frontdesk/__tests__/integration/helpers.ts:41:23
+ ❯ op src/modules/homecollection/__tests__/snapshot/helpers.ts:128:17
+ ❯ src/modules/homecollection/__tests__/snapshot/snapshot.test.ts:277:33
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[33/60]⎯
+
+ FAIL  src/modules/homecollection/__tests__/snapshot/snapshot.test.ts > US-06-4 access log: one home_visit.view / home_visit_snapshot row per visit with patient fields > patient fields not returned -> no row for that visit: demographics batch down -> 0 rows; one patient missing from the result -> a row only for the other visit
+LimsError: common.internal
+ ❯ Object.getSyncSnapshot src/modules/homecollection/index.ts:37:9
+     35| const stub = (operationId: string): Handler => async () => {
+     36|   if (process.env.LIMS_CORE_ENV === 'dev' && process.env.NODE_ENV !== …
+     37|   throw new LimsError('common.internal', `homecollection ${operationId…
+       |         ^
+     38| };
+     39|
+ ❯ run src/modules/homecollection/__tests__/snapshot/helpers.ts:125:25
+ ❯ appTx src/modules/frontdesk/__tests__/integration/helpers.ts:41:23
+ ❯ op src/modules/homecollection/__tests__/snapshot/helpers.ts:128:17
+ ❯ src/modules/homecollection/__tests__/snapshot/snapshot.test.ts:281:18
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[34/60]⎯
+
+ FAIL  src/modules/homecollection/__tests__/snapshot/snapshot.test.ts > US-06-8 / review #2: a port failure marks only that visit; the pull still succeeds > lookupSpecimens fails for v1 -> v1 `specimens: []` + `specimens_stale: true` (patient, address, balance intact); v2 unaffected and has no specimens_stale key; schema valid
+LimsError: common.internal
+ ❯ Object.getSyncSnapshot src/modules/homecollection/index.ts:37:9
+     35| const stub = (operationId: string): Handler => async () => {
+     36|   if (process.env.LIMS_CORE_ENV === 'dev' && process.env.NODE_ENV !== …
+     37|   throw new LimsError('common.internal', `homecollection ${operationId…
+       |         ^
+     38| };
+     39|
+ ❯ run src/modules/homecollection/__tests__/snapshot/helpers.ts:125:25
+ ❯ appTx src/modules/frontdesk/__tests__/integration/helpers.ts:41:23
+ ❯ op src/modules/homecollection/__tests__/snapshot/helpers.ts:128:17
+ ❯ src/modules/homecollection/__tests__/snapshot/snapshot.test.ts:298:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[35/60]⎯
+
+ FAIL  src/modules/homecollection/__tests__/snapshot/snapshot.test.ts > US-06-8 / review #2: a port failure marks only that visit; the pull still succeeds > an unexpected (non-LimsError) failure of the port is handled the same way
+LimsError: common.internal
+ ❯ Object.getSyncSnapshot src/modules/homecollection/index.ts:37:9
+     35| const stub = (operationId: string): Handler => async () => {
+     36|   if (process.env.LIMS_CORE_ENV === 'dev' && process.env.NODE_ENV !== …
+     37|   throw new LimsError('common.internal', `homecollection ${operationId…
+       |         ^
+     38| };
+     39|
+ ❯ run src/modules/homecollection/__tests__/snapshot/helpers.ts:125:25
+ ❯ appTx src/modules/frontdesk/__tests__/integration/helpers.ts:41:23
+ ❯ op src/modules/homecollection/__tests__/snapshot/helpers.ts:128:17
+ ❯ src/modules/homecollection/__tests__/snapshot/snapshot.test.ts:310:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[36/60]⎯
+
+ FAIL  src/modules/homecollection/__tests__/snapshot/snapshot.test.ts > US-06-8 / review #2: a port failure marks only that visit; the pull still succeeds > the failure does not poison the request: access rows and last_snapshot_at are still written for the stale visits
+LimsError: common.internal
+ ❯ Object.getSyncSnapshot src/modules/homecollection/index.ts:37:9
+     35| const stub = (operationId: string): Handler => async () => {
+     36|   if (process.env.LIMS_CORE_ENV === 'dev' && process.env.NODE_ENV !== …
+     37|   throw new LimsError('common.internal', `homecollection ${operationId…
+       |         ^
+     38| };
+     39|
+ ❯ run src/modules/homecollection/__tests__/snapshot/helpers.ts:125:25
+ ❯ appTx src/modules/frontdesk/__tests__/integration/helpers.ts:41:23
+ ❯ op src/modules/homecollection/__tests__/snapshot/helpers.ts:128:17
+ ❯ src/modules/homecollection/__tests__/snapshot/snapshot.test.ts:316:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[37/60]⎯
+
+ FAIL  src/modules/homecollection/__tests__/snapshot/snapshot.test.ts > US-06-8 / review #2: a port failure marks only that visit; the pull still succeeds > an order with no expected specimens is NOT stale: `specimens: []` without the specimens_stale key
+LimsError: common.internal
+ ❯ Object.getSyncSnapshot src/modules/homecollection/index.ts:37:9
+     35| const stub = (operationId: string): Handler => async () => {
+     36|   if (process.env.LIMS_CORE_ENV === 'dev' && process.env.NODE_ENV !== …
+     37|   throw new LimsError('common.internal', `homecollection ${operationId…
+       |         ^
+     38| };
+     39|
+ ❯ run src/modules/homecollection/__tests__/snapshot/helpers.ts:125:25
+ ❯ appTx src/modules/frontdesk/__tests__/integration/helpers.ts:41:23
+ ❯ op src/modules/homecollection/__tests__/snapshot/helpers.ts:128:17
+ ❯ src/modules/homecollection/__tests__/snapshot/snapshot.test.ts:321:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[38/60]⎯
+
+ FAIL  src/modules/homecollection/__tests__/snapshot/snapshot.test.ts > US-06-8 / review #2: a port failure marks only that visit; the pull still succeeds > balance read fails -> `balance_unavailable: true`, no `balance` key; demographics batch fails -> `patient_unavailable: true` for both visits, no `patient` key, address and specimens still present
+LimsError: common.internal
+ ❯ Object.getSyncSnapshot src/modules/homecollection/index.ts:37:9
+     35| const stub = (operationId: string): Handler => async () => {
+     36|   if (process.env.LIMS_CORE_ENV === 'dev' && process.env.NODE_ENV !== …
+     37|   throw new LimsError('common.internal', `homecollection ${operationId…
+       |         ^
+     38| };
+     39|
+ ❯ run src/modules/homecollection/__tests__/snapshot/helpers.ts:125:25
+ ❯ appTx src/modules/frontdesk/__tests__/integration/helpers.ts:41:23
+ ❯ op src/modules/homecollection/__tests__/snapshot/helpers.ts:128:17
+ ❯ src/modules/homecollection/__tests__/snapshot/snapshot.test.ts:325:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[39/60]⎯
+
+ FAIL  src/modules/homecollection/__tests__/snapshot/snapshot.test.ts > US-06-8 / review #2: a port failure marks only that visit; the pull still succeeds > a patient missing from the batch result -> only that visit is patient_unavailable (review m#34)
+LimsError: common.internal
+ ❯ Object.getSyncSnapshot src/modules/homecollection/index.ts:37:9
+     35| const stub = (operationId: string): Handler => async () => {
+     36|   if (process.env.LIMS_CORE_ENV === 'dev' && process.env.NODE_ENV !== …
+     37|   throw new LimsError('common.internal', `homecollection ${operationId…
+       |         ^
+     38| };
+     39|
+ ❯ run src/modules/homecollection/__tests__/snapshot/helpers.ts:125:25
+ ❯ appTx src/modules/frontdesk/__tests__/integration/helpers.ts:41:23
+ ❯ op src/modules/homecollection/__tests__/snapshot/helpers.ts:128:17
+ ❯ src/modules/homecollection/__tests__/snapshot/snapshot.test.ts:335:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[40/60]⎯
+
+ FAIL  src/modules/homecollection/__tests__/snapshot/snapshot.test.ts > US-06-5 own visits only; US-06-7 device binding (07-SECURITY AB1, probes 2-3) > PHLEBO2 pulls only her own visit; PHLEBO's patients never reach the demographics call of PHLEBO2 and vice versa
+LimsError: common.internal
+ ❯ Object.getSyncSnapshot src/modules/homecollection/index.ts:37:9
+     35| const stub = (operationId: string): Handler => async () => {
+     36|   if (process.env.LIMS_CORE_ENV === 'dev' && process.env.NODE_ENV !== …
+     37|   throw new LimsError('common.internal', `homecollection ${operationId…
+       |         ^
+     38| };
+     39|
+ ❯ run src/modules/homecollection/__tests__/snapshot/helpers.ts:125:25
+ ❯ appTx src/modules/frontdesk/__tests__/integration/helpers.ts:41:23
+ ❯ op src/modules/homecollection/__tests__/snapshot/helpers.ts:128:17
+ ❯ src/modules/homecollection/__tests__/snapshot/snapshot.test.ts:349:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[41/60]⎯
+
+ FAIL  src/modules/homecollection/__tests__/snapshot/snapshot.test.ts > US-06-5 own visits only; US-06-7 device binding (07-SECURITY AB1, probes 2-3) > AB1: PHLEBO2 presenting PHLEBO's device_id -> 409 homecollection.device_not_registered; no port call, no access row, last_snapshot_at untouched
+AssertionError: expected 'common.internal' to be 'homecollection.device_not_registered' // Object.is equality
+
+Expected: "homecollection.device_not_registered"
+Received: "common.internal"
+
+ ❯ src/modules/homecollection/__tests__/snapshot/snapshot.test.ts:359:20
+    357|     const before = (await deviceRow(S.device.id)).last_snapshot_at;
+    358|     const e = await pullFails(S.device.id, { who: PHLEBO2, now: S.now …
+    359|     expect(e.code).toBe('homecollection.device_not_registered');
+       |                    ^
+    360|     expect(e.statusCode).toBe(409);
+    361|     expect(e.probe.batch).toHaveLength(0); expect(e.probe.lab).toHaveL…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[42/60]⎯
+
+ FAIL  src/modules/homecollection/__tests__/snapshot/snapshot.test.ts > US-06-5 own visits only; US-06-7 device binding (07-SECURITY AB1, probes 2-3) > unknown device_id, a tenant B device and terminal devices (signed_off, wiped) -> 409 homecollection.device_not_registered
+AssertionError: 01a1d45b-6e1d-70ed-8c85-d3296afb9375: expected [ 'common.internal', 500 ] to deeply equal [ …(2) ]
+
+- Expected
++ Received
+
+  [
+-   "homecollection.device_not_registered",
+-   409,
++   "common.internal",
++   500,
+  ]
+
+ ❯ src/modules/homecollection/__tests__/snapshot/snapshot.test.ts:371:42
+    369|     for (const id of [v7(), b.id, so.id, wi.id]) {
+    370|       const e = await pullFails(id, { now: S.now });
+    371|       expect([e.code, e.statusCode], id).toEqual(['homecollection.devi…
+       |                                          ^
+    372|     }
+    373|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[43/60]⎯
+
+ FAIL  src/modules/homecollection/__tests__/snapshot/snapshot.test.ts > US-06-5 own visits only; US-06-7 device binding (07-SECURITY AB1, probes 2-3) > device-id header vs query mismatch -> 400 common.id_mismatch (TRD §5 preamble) [ASSUMED enforced in the handler, as HC-T10]
+AssertionError: expected [ 'common.internal', 500 ] to deeply equal [ 'common.id_mismatch', 400 ]
+
+- Expected
++ Received
+
+  [
+-   "common.id_mismatch",
+-   400,
++   "common.internal",
++   500,
+  ]
+
+ ❯ src/modules/homecollection/__tests__/snapshot/snapshot.test.ts:376:36
+    374|   it('device-id header vs query mismatch -> 400 common.id_mismatch (TR…
+    375|     const e = await pullFails(S.device.id, { now: S.now, headers: { 'x…
+    376|     expect([e.code, e.statusCode]).toEqual(['common.id_mismatch', 400]…
+       |                                    ^
+    377|     expect(e.probe.batch).toHaveLength(0);
+    378|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[44/60]⎯
+
+ FAIL  src/modules/homecollection/__tests__/snapshot/snapshot.test.ts > US-06-5 own visits only; US-06-7 device binding (07-SECURITY AB1, probes 2-3) > probe 2: a phlebotomist whose membership lacks the visit centre never gets that visit (dropped, or refused auth.forbidden) and its patient is never requested
+AssertionError: expected 'common.internal' to be 'auth.forbidden' // Object.is equality
+
+Expected: "auth.forbidden"
+Received: "common.internal"
+
+ ❯ src/modules/homecollection/__tests__/snapshot/snapshot.test.ts:385:39
+    383|       expect(ids(r.body)).toEqual([]);
+    384|       expect(r.probe.batch.flatMap((c) => c.patientIds)).toEqual([]);
+    385|     } catch (e: any) { expect(e.code).toBe('auth.forbidden'); }
+       |                                       ^
+    386|   });
+    387|   it('NOBODY (no grants) -> auth.forbidden', { timeout: T }, async () …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[45/60]⎯
+
+ FAIL  src/modules/homecollection/__tests__/snapshot/snapshot.test.ts > US-06-5 own visits only; US-06-7 device binding (07-SECURITY AB1, probes 2-3) > NOBODY (no grants) -> auth.forbidden
+AssertionError: expected 'common.internal' to be 'auth.forbidden' // Object.is equality
+
+Expected: "auth.forbidden"
+Received: "common.internal"
+
+ ❯ src/modules/homecollection/__tests__/snapshot/snapshot.test.ts:388:78
+    386|   });
+    387|   it('NOBODY (no grants) -> auth.forbidden', { timeout: T }, async () …
+    388|     expect((await pullFails(S.device.id, { who: NOBODY, now: S.now }))…
+       |                                                                              ^
+    389|   });
+    390| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[46/60]⎯
+
+ FAIL  src/modules/homecollection/__tests__/snapshot/snapshot.test.ts > S-1 "today" is the local date in the tenant timezone (Asia/Kathmandu, UTC+05:45) > 19:00Z the day before = 00:45 local: today's route is served although the UTC date is yesterday; 19:00Z of the route day = tomorrow local: no visits
+LimsError: common.internal
+ ❯ Object.getSyncSnapshot src/modules/homecollection/index.ts:37:9
+     35| const stub = (operationId: string): Handler => async () => {
+     36|   if (process.env.LIMS_CORE_ENV === 'dev' && process.env.NODE_ENV !== …
+     37|   throw new LimsError('common.internal', `homecollection ${operationId…
+       |         ^
+     38| };
+     39|
+ ❯ run src/modules/homecollection/__tests__/snapshot/helpers.ts:125:25
+ ❯ appTx src/modules/frontdesk/__tests__/integration/helpers.ts:41:23
+ ❯ op src/modules/homecollection/__tests__/snapshot/helpers.ts:128:17
+ ❯ src/modules/homecollection/__tests__/snapshot/snapshot.test.ts:397:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[47/60]⎯
+
+ FAIL  src/modules/homecollection/__tests__/snapshot/snapshot.test.ts > many users at once: concurrent pulls > 5 devices of 2 phlebotomists pull in parallel: all 200, each sees only its own visits, every pull logs its own rows
+LimsError: common.internal
+ ❯ Object.getSyncSnapshot src/modules/homecollection/index.ts:37:9
+     35| const stub = (operationId: string): Handler => async () => {
+     36|   if (process.env.LIMS_CORE_ENV === 'dev' && process.env.NODE_ENV !== …
+     37|   throw new LimsError('common.internal', `homecollection ${operationId…
+       |         ^
+     38| };
+     39|
+ ❯ run src/modules/homecollection/__tests__/snapshot/helpers.ts:125:25
+ ❯ appTx src/modules/frontdesk/__tests__/integration/helpers.ts:41:23
+ ❯ op src/modules/homecollection/__tests__/snapshot/helpers.ts:128:17
+ ❯ src/modules/homecollection/__tests__/snapshot/snapshot.test.ts:415:16
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[48/60]⎯
+
+ FAIL  src/modules/homecollection/__tests__/snapshot/static.test.ts > HC-T11 files > snapshot.service.ts exists and one handler file per operation (named by operationId)
+AssertionError: snapshot.service.ts missing (HC-T11 not implemented yet): expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/modules/homecollection/__tests__/snapshot/static.test.ts:18:93
+     16| describe('HC-T11 files', () => {
+     17|   it('snapshot.service.ts exists and one handler file per operation (n…
+     18|     expect(existsSync(service), 'snapshot.service.ts missing (HC-T11 n…
+       |                                                                                             ^
+     19|     for (const op of OPS) expect(existsSync(handlerFile(op)), `handler…
+     20|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[49/60]⎯
+
+ FAIL  src/modules/homecollection/__tests__/snapshot/static.test.ts > HC-T11 files > the module manifest wires both real handlers (no 501 stub left for A2 / A4)
+AssertionError: index.ts does not import handlers/getSyncSnapshot.js: expected '\n\n\n\nimport type { Handler, Module…' to match /handlers\/getSyncS…/getSyncSnapshot\.js
+
+- Expected:
+/handlers\/getSyncSnapshot\.js/
+
++ Received:
+"
+
+
+
+import type { Handler, ModuleManifest } from '../../core/module.js';
+import { LimsError } from '../../core/errors.js';
+import { handler as assignHomeVisit } from './handlers/assignHomeVisit.js';
+import { handler as cancelHomeVisit } from './handlers/cancelHomeVisit.js';
+import { handler as createHomeRevisit } from './handlers/createHomeRevisit.js';
+import { handler as resequenceHomeRoute } from './handlers/resequenceHomeRoute.js';
+import { handler as resolveHomeVisitFlag } from './handlers/resolveHomeVisitFlag.js';
+import { handler as scheduleHomeVisit } from './handlers/scheduleHomeVisit.js';
+import { handler as unassignHomeVisit } from './handlers/unassignHomeVisit.js';
+import { handler as getHomecollectionSettings } from './handlers/getHomecollectionSettings.js';
+import { handler as getHomeVisit } from './handlers/getHomeVisit.js';
+import { handler as listEligiblePhlebotomists } from './handlers/listEligiblePhlebotomists.js';
+import { handler as listHomeRoutes } from './handlers/listHomeRoutes.js';
+import { handler as listHomeVisits } from './handlers/listHomeVisits.js';
+import { handler as listHomecollectionReasons } from './handlers/listHomecollectionReasons.js';
+import { handler as registerPhleboDevice } from './handlers/registerPhleboDevice.js';
+import { handler as revealHomeVisitPhone } from './handlers/revealHomeVisitPhone.js';
+import { handler as signOffPhleboDevice } from './handlers/signOffPhleboDevice.js';
+import { handler as updateHomecollectionSettings } from './handlers/updateHomecollectionSettings.js';
+
+const OPERATION_IDS = [
+  'listHomeVisits', 'getHomeVisit', 'assignHomeVisit', 'unassignHomeVisit', 'scheduleHomeVisit', 'cancelHomeVisit', 'createHomeRevisit',
+  'resolveHomeVisitFlag', 'reviewHeldCollection', 'listHomeRoutes', 'resequenceHomeRoute', 'listEligiblePhlebotomists', 'listHandovers',
+  'getHandover', 'confirmHandover', 'listPhleboDevices', 'requestDeviceWipe', 'getHomecollectionSettings', 'updateHomecollectionSettings',
+  'listHomecollectionReasons', 'revealHomeVisitPhone',
+  'registerPhleboDevice', 'getSyncSnapshot', 'pushSyncMutations', 'ackSync', 'signOffPhleboDevice',
+] as const;
+
+type HomecollectionOperationId = (typeof OPERATION_IDS)[number];
+
+const stub = (operationId: string): Handler => async () => {
+  if (process.env.LIMS_CORE_ENV === 'dev' && process.env.NODE_ENV !== 'production') return { status: 501 };
+  throw new LimsError('common.internal', `homecollection ${operationId} not implemented`);
+};
+
+
+const implemented: Partial<Record<HomecollectionOperationId, Handler>> = {
+  getHomecollectionSettings, updateHomecollectionSettings, listHomecollectionReasons,
+  listHomeVisits, getHomeVisit, listHomeRoutes, listEligiblePhlebotomists, revealHomeVisitPhone,
+  registerPhleboDevice, signOffPhleboDevice,   
+  assignHomeVisit, unassignHomeVisit, scheduleHomeVisit, cancelHomeVisit, createHomeRevisit, resolveHomeVisitFlag, resequenceHomeRoute,   
+};
+
+const handlers = Object.freeze(
+  Object.fromEntries(OPERATION_IDS.map((op) => [op, implemented[op] ?? stub(op)])) as Record<HomecollectionOperationId, Handler>,
+);
+
+export const manifest: ModuleManifest = {
+  name: 'homecollection',
+  openapi: 'contracts/openapi/homecollection.yaml',
+  handlers,
+  produces: ['homecollection.collection.synced.v1'],
+};
+"
+
+ ❯ src/modules/homecollection/__tests__/snapshot/static.test.ts:23:85
+     21|   it('the module manifest wires both real handlers (no 501 stub left f…
+     22|     const idx = code(join(ROOT, 'index.ts'));
+     23|     for (const op of OPS) expect(idx, `index.ts does not import handle…
+       |                                                                                     ^
+     24|   });
+     25| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[50/60]⎯
+
+ FAIL  src/modules/homecollection/__tests__/snapshot/static.test.ts > HC-T11 source rules > SQL stays in the repositories: no .query(, no RLS bypass, no pg import, no console
+AssertionError: expected 0 to be greater than 0
+ ❯ src/modules/homecollection/__tests__/snapshot/static.test.ts:29:26
+     27| describe('HC-T11 source rules', () => {
+     28|   it('SQL stays in the repositories: no .query(, no RLS bypass, no pg …
+     29|     expect(own().length).toBeGreaterThan(0);
+       |                          ^
+     30|     for (const f of own()) {
+     31|       const t = code(f);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[51/60]⎯
+
+ FAIL  src/modules/homecollection/__tests__/snapshot/static.test.ts > HC-T11 source rules > uses the HC-T03 repositories: devices (binding, last_snapshot_at / last_ack_*), routes by membership+date and route update, visits, settings
+AssertionError: expected '' to match /devices\.repo/
+
+- Expected:
+/devices\.repo/
+
++ Received:
+""
+
+ ❯ src/modules/homecollection/__tests__/snapshot/static.test.ts:40:15
+     38|   it('uses the HC-T03 repositories: devices (binding, last_snapshot_at…
+     39|     const t = all();
+     40|     expect(t).toMatch(/devices\.repo/);
+       |               ^
+     41|     expect(t).toMatch(/getDeviceById/);
+     42|     expect(t).toMatch(/updateDevice/);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[52/60]⎯
+
+ FAIL  src/modules/homecollection/__tests__/snapshot/static.test.ts > HC-T11 source rules > TRD §6.2 ports by their catalog names: getPatientDemographicsBatch (purpose home_visit), lookupSpecimens, getOrderBalance, IdentityPort.getTenantSettings for the timezone, assertRole for visit.read
+AssertionError: expected '' to match /getPatientDemographicsBatch/
+
+- Expected:
+/getPatientDemographicsBatch/
+
++ Received:
+""
+
+ ❯ src/modules/homecollection/__tests__/snapshot/static.test.ts:51:15
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[53/60]⎯
+
+ FAIL  src/modules/homecollection/__tests__/snapshot/static.test.ts > HC-T11 source rules > port calls that may fail run inside ctx.db.tx (savepoint, 08 A19 P-44) so one failure cannot abort the read transaction
+Error: ENOENT: no such file or directory, open 'C:\LIMS-lanes\C17\services\api\src\modules\homecollection\snapshot.service.ts'
+ ❯ code src/modules/homecollection/__tests__/snapshot/static.test.ts:9:29
+      7|
+      8| const ROOT = join(import.meta.dirname, '..', '..');
+      9| const code = (f: string) => readFileSync(f, 'utf8').replace(/\/\*[\s\S…
+       |                             ^
+     10| const OPS = ['getSyncSnapshot', 'ackSync'] as const;
+     11| const handlerFile = (op: string) => join(ROOT, 'handlers', `${op}.ts`);
+ ❯ src/modules/homecollection/__tests__/snapshot/static.test.ts:62:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[54/60]⎯
+
+ FAIL  src/modules/homecollection/__tests__/snapshot/static.test.ts > HC-T11 source rules > review #2: no fallback to the visit_specimens read model in the snapshot, barcode never persisted or logged
+AssertionError: snapshot.service.ts missing: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/modules/homecollection/__tests__/snapshot/static.test.ts:66:64
+     64|   });
+     65|   it('review #2: no fallback to the visit_specimens read model in the …
+     66|     expect(existsSync(service), 'snapshot.service.ts missing').toBe(tr…
+       |                                                                ^
+     67|     const t = code(service);
+     68|     expect(/visitSpecimens\.repo|visit_specimens|listVisitSpecimens/i.…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[55/60]⎯
+
+ FAIL  src/modules/homecollection/__tests__/snapshot/static.test.ts > HC-T11 source rules > REQ-SEC-096: access log written with the verbatim codes home_visit.view / home_visit / home_visit_snapshot
+Error: ENOENT: no such file or directory, open 'C:\LIMS-lanes\C17\services\api\src\modules\homecollection\snapshot.service.ts'
+ ❯ code src/modules/homecollection/__tests__/snapshot/static.test.ts:9:29
+      7|
+      8| const ROOT = join(import.meta.dirname, '..', '..');
+      9| const code = (f: string) => readFileSync(f, 'utf8').replace(/\/\*[\s\S…
+       |                             ^
+     10| const OPS = ['getSyncSnapshot', 'ackSync'] as const;
+     11| const handlerFile = (op: string) => join(ROOT, 'handlers', `${op}.ts`);
+ ❯ src/modules/homecollection/__tests__/snapshot/static.test.ts:72:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[56/60]⎯
+
+ FAIL  src/modules/homecollection/__tests__/snapshot/static.test.ts > HC-T11 source rules > errors / headers by their spec names: device_not_registered, app_version_unsupported, id_mismatch, x-lims-device-id, x-lims-app-version; cursor is base64url
+AssertionError: expected '' to match /homecollection\.device_not_registered/
+
+- Expected:
+/homecollection\.device_not_registered/
+
++ Received:
+""
+
+ ❯ src/modules/homecollection/__tests__/snapshot/static.test.ts:80:15
+     78|   it('errors / headers by their spec names: device_not_registered, app…
+     79|     const t = all();
+     80|     expect(t).toMatch(/homecollection\.device_not_registered/);
+       |               ^
+     81|     expect(t).toMatch(/homecollection\.app_version_unsupported/);
+     82|     expect(t).toMatch(/common\.id_mismatch/);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[57/60]⎯
+
+ FAIL  src/modules/homecollection/__tests__/snapshot/static.test.ts > HC-T11 source rules > identity comes from the claims (ctx.actor.membershipId, ctx.tenantId), never from query / body
+AssertionError: expected '' to match /membershipId/
+
+- Expected:
+/membershipId/
+
++ Received:
+""
+
+ ❯ src/modules/homecollection/__tests__/snapshot/static.test.ts:89:15
+     87|   it('identity comes from the claims (ctx.actor.membershipId, ctx.tena…
+     88|     const t = all();
+     89|     expect(t).toMatch(/membershipId/);
+       |               ^
+     90|     expect(/(query|body)\W*(\?\.)?\W*(tenant_?id|membership_?id)/i.tes…
+     91|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[58/60]⎯
+
+ FAIL  src/modules/homecollection/__tests__/snapshot/static.test.ts > HC-T11 source rules > REQ-SEC-081: no patient / address / note / staff fields passed to ctx.log
+AssertionError: expected 0 to be greater than 0
+ ❯ src/modules/homecollection/__tests__/snapshot/static.test.ts:93:26
+     91|   });
+     92|   it('REQ-SEC-081: no patient / address / note / staff fields passed t…
+     93|     expect(own().length).toBeGreaterThan(0);
+       |                          ^
+     94|     for (const f of own()) expect(/ctx\.log\.\w+\([^)]*(full_?name|ful…
+     95|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[59/60]⎯
+
+ FAIL  src/modules/homecollection/__tests__/snapshot/static.test.ts > HC-T11 source rules > the snapshot response never names registration number or test names (field allowlist, REQ-SEC-081)
+AssertionError: expected 0 to be greater than 0
+ ❯ src/modules/homecollection/__tests__/snapshot/static.test.ts:97:26
+     95|   });
+     96|   it('the snapshot response never names registration number or test na…
+     97|     expect(own().length).toBeGreaterThan(0);
+       |                          ^
+     98|     for (const f of own()) expect(/registration_?no|registrationNo|ord…
+     99|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[60/60]⎯
+
+
+ Test Files  5 failed (5)
+      Tests  56 failed | 1 passed | 27 skipped (84)
+   Start at  15:47:02
+   Duration  3.22s (tests 75%, import 19%, transform 5%, setup 1%)
+

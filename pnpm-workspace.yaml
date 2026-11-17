@@ -1,2 +1,16 @@
 packages:
   - packages/*
+  # T0-03: contracts/ and tools/codegen declare npm deps; as workspace members their exact pins land in pnpm-lock.yaml (CV §15.1, REQ-SEC-129).
+  - contracts
+  - tools/codegen
+  # LD-13 (2026-11-07): services/api (CR-C0-0D-002) and apps/web (CR-C0-0D-003) join the workspace.
+  - services/*
+  - apps/*
+# T0-03 [CONV]: no dependency install scripts run; esbuild ships its binary via optional platform packages.
+allowBuilds:
+  '@scarf/scarf': set this to true or false
+  esbuild: false
+# T0B-DEPFIX-1 (LD-312): lodash GHSA-r5fr-rjxr-66jc fixed in 4.18.1 (minor inside 4.x); only reached via @stoplight/prism-cli > postman-collection.
+# pnpm 12 ignores the package.json "pnpm" field, so the override lives here.
+overrides:
+  'lodash@<4.18.1': 4.18.1

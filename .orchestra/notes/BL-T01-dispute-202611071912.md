@@ -1,0 +1,5 @@
+# BL-T01 dispute — boot.test.ts "bootstrap resolves and every billing operation is mounted…"
+- Test calls `bootstrap({ config: loadConfig({ LIMS_CORE_ENV: 'ci' }) })` with no `LIMS_CORE_JWT_*`. billing.yaml ops use `bearerJwt` (e.g. line 19), and core `mountSpec` (services/api/src/core/openapi.ts:202) throws `module billing: bearerJwt operations need LIMS_CORE_JWT_* config` by design (02-TRD §6.5). No billing-owned code can change that; it would fail for any module with bearer ops.
+- Actual run: 15/16 pass; this one fails with exactly that error.
+- Fix in test: pass the four `LIMS_CORE_JWT_*` keys to `loadConfig` (ALG/ISSUER/AUDIENCE/KEY_FILE), e.g. HS256 with a key file from `tmpFile()` + `ISS`/`AUD` in services/api/src/core/auth/__tests__/helpers.ts. Unauthenticated injects then get 401, which the assertion already accepts.
+- Impl done (uncommitted): billing/{index,permissions,config}.ts, billing/handlers/index.ts (47 stubs, throw common.service_unavailable), worker jobs/billing/index.ts, web features/billing/nav.manifest.ts (one entry: staff.billing.daily_cash).

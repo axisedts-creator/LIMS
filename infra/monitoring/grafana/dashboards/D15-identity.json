@@ -1,0 +1,279 @@
+{
+  "uid": "lims-d15-identity",
+  "title": "D15 Modules / Identity & admin",
+  "description": "04-UI-UX s3 D15 for C2; panels from the chunk TRD observability section (T-21).",
+  "tags": [
+    "modules",
+    "c2"
+  ],
+  "editable": false,
+  "schemaVersion": 39,
+  "version": 1,
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "refresh": "1m",
+  "templating": {
+    "list": []
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "text",
+      "title": "About this dashboard",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 2
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "Owner C2. Alert rules: `rules/identity.rules.yml`. Runbook: `infra/runbooks/identity.md`."
+      }
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "lims_core_dead_letters_total",
+      "description": "Owner C2 (Identity & admin). Metric lims_core_dead_letters_total from worker-a/b /metrics (02-TRD s11.2). Alerts: IdentityDeadLetter.",
+      "gridPos": {
+        "x": 0,
+        "y": 2,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(lims_core_dead_letters_total{task=~\"identity\\\\..*\"}[5m]))"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "lims_identity_audit_exports_tenant_day",
+      "description": "Owner C2 (Identity & admin). Metric lims_identity_audit_exports_tenant_day from worker-a/b /metrics (02-TRD s11.2). Alerts: IdentityAuditExportsHigh.",
+      "gridPos": {
+        "x": 12,
+        "y": 2,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max(lims_identity_audit_exports_tenant_day)"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "lims_identity_breached_list_loaded",
+      "description": "Owner C2 (Identity & admin). Metric lims_identity_breached_list_loaded from worker-a/b /metrics (02-TRD s11.2). Alerts: IdentityBreachedListMissing.",
+      "gridPos": {
+        "x": 0,
+        "y": 10,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max(lims_identity_breached_list_loaded{env=\"production\"})"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "lims_identity_gotrue_requests_total",
+      "description": "Owner C2 (Identity & admin). Metric lims_identity_gotrue_requests_total from worker-a/b /metrics (02-TRD s11.2). Alerts: IdentityGoTrueUnavailable.",
+      "gridPos": {
+        "x": 12,
+        "y": 10,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(lims_identity_gotrue_requests_total{outcome=\"error\"}[5m]))"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "lims_identity_login_failures_by_tenant_5m",
+      "description": "Owner C2 (Identity & admin). Metric lims_identity_login_failures_by_tenant_5m from worker-a/b /metrics (02-TRD s11.2). Alerts: IdentityLoginFailureSpike.",
+      "gridPos": {
+        "x": 0,
+        "y": 18,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max(lims_identity_login_failures_by_tenant_5m)"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "lims_identity_login_ip_throttles_active",
+      "description": "Owner C2 (Identity & admin). Metric lims_identity_login_ip_throttles_active from worker-a/b /metrics (02-TRD s11.2). Alerts: IdentityLoginIpThrottleEngaged.",
+      "gridPos": {
+        "x": 12,
+        "y": 18,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max(lims_identity_login_ip_throttles_active)"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "lims_identity_logins_total",
+      "description": "Owner C2 (Identity & admin). Metric lims_identity_logins_total from worker-a/b /metrics (02-TRD s11.2). Alerts: IdentityLoginFailureSpike, IdentityLoginIpThrottleEngaged, IdentityPlatformIpDenied.",
+      "gridPos": {
+        "x": 0,
+        "y": 26,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(lims_identity_logins_total{outcome=\"failed\"}[5m]))"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "lims_identity_session_resolves_total",
+      "description": "Owner C2 (Identity & admin). Metric lims_identity_session_resolves_total from worker-a/b /metrics (02-TRD s11.2). Alerts: IdentityRefreshFailures.",
+      "gridPos": {
+        "x": 12,
+        "y": 26,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(lims_identity_session_resolves_total{outcome=\"refresh_failed\"}[5m]))"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "type": "timeseries",
+      "title": "lims_identity_stuffing_distinct_accounts_15m",
+      "description": "Owner C2 (Identity & admin). Metric lims_identity_stuffing_distinct_accounts_15m from worker-a/b /metrics (02-TRD s11.2). Alerts: IdentityCredentialStuffing.",
+      "gridPos": {
+        "x": 0,
+        "y": 34,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max(lims_identity_stuffing_distinct_accounts_15m)"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "type": "timeseries",
+      "title": "lims_identity_stuffing_distinct_ips_15m",
+      "description": "Owner C2 (Identity & admin). Metric lims_identity_stuffing_distinct_ips_15m from worker-a/b /metrics (02-TRD s11.2). Alerts: IdentityCredentialStuffing.",
+      "gridPos": {
+        "x": 12,
+        "y": 34,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max(lims_identity_stuffing_distinct_ips_15m)"
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "type": "timeseries",
+      "title": "lims_identity_support_sessions_opened_total",
+      "description": "Owner C2 (Identity & admin). Metric lims_identity_support_sessions_opened_total from worker-a/b /metrics (02-TRD s11.2). Alerts: IdentitySupportSessionOpened.",
+      "gridPos": {
+        "x": 0,
+        "y": 42,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(lims_identity_support_sessions_opened_total[5m]))"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+// SS-1 Partner settings (02-TRD §10.2). Reading needs partners.partner.read; saving needs partners.partner.manage (the form shows no Save without it).
+import { ApiError } from '@/core/api/server-fetch';
+import { getShellSession } from '@/core/session/server';
+import { getSettings } from '@/features/partners/server/read.server';
+import { PartnerSettings } from '@/features/partners/components/PartnerSettings';
+import { PermissionNotice } from '@/features/partners/components/common';
+
+export const metadata = { title: 'Partner settings' };
+
+export default async function SettingsPage() {
+  const session = await getShellSession();
+  const perms = session?.actor.permissions ?? [];
+  if (!perms.includes('partners.partner.read')) return <PermissionNotice />;
+  // LD-301: getPartnerSettings is still an API stub (500 common.internal); say so plainly instead of the error page. Other failures still throw (error page + retry).
+  const r = await getSettings().catch((e: unknown) => {
+    if (e instanceof ApiError && e.status === 500 && e.problem.code === 'common.internal') return null;
+    throw e;
+  });
+  if (!r) return <main className="lims-page"><h1>Partner settings</h1><p>Partner settings are not available yet.</p></main>;
+  const { settings, etag } = r;
+  return <PartnerSettings initial={settings} etag={etag} canManage={perms.includes('partners.partner.manage')} />;
+}

@@ -1,0 +1,908 @@
+[
+ {
+  "operation": "getReferralIncentiveReport",
+  "status": 403,
+  "class": "CONFIG",
+  "ref": "T0B-SWEEP-2 CONFIG (unqueued: auth: common.feature_disabled)"
+ },
+ {
+  "operation": "requestAnalyticsRefresh",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/core/db/sqlstate.ts:27)"
+ },
+ {
+  "operation": "listAnatomicAssignees",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/core/ports/authz-guard.ts:48 (2xx without assertRole))"
+ },
+ {
+  "operation": "listAnatomicBlocks",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/core/ports/authz-guard.ts:48 (2xx without assertRole))"
+ },
+ {
+  "operation": "listAnatomicCases",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/core/ports/authz-guard.ts:48 (2xx without assertRole))"
+ },
+ {
+  "operation": "listAnatomicStainOrders",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/core/ports/authz-guard.ts:48 (2xx without assertRole))"
+ },
+ {
+  "operation": "getAuditTrail",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/core/ports/authz-guard.ts:48 (2xx without assertRole))"
+ },
+ {
+  "operation": "getBillingSettings",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/core/ports/authz-guard.ts:48 (2xx without assertRole))"
+ },
+ {
+  "operation": "getCancelledInvoiceRegister",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/core/ports/authz-guard.ts:48 (2xx without assertRole))"
+ },
+ {
+  "operation": "getCreditNoteRegister",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/core/ports/authz-guard.ts:48 (2xx without assertRole))"
+ },
+ {
+  "operation": "getDailyCash",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/core/ports/authz-guard.ts:48 (2xx without assertRole))"
+ },
+ {
+  "operation": "getReleaseEligibility",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/core/ports/registry.ts:106)"
+ },
+ {
+  "operation": "getSalesRegister",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/core/ports/authz-guard.ts:48 (2xx without assertRole))"
+ },
+ {
+  "operation": "listBillingCodes",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/core/ports/authz-guard.ts:48 (2xx without assertRole))"
+ },
+ {
+  "operation": "listCbmsDocuments",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/core/ports/authz-guard.ts:48 (2xx without assertRole))"
+ },
+ {
+  "operation": "listCreditAccounts",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/core/ports/authz-guard.ts:48 (2xx without assertRole))"
+ },
+ {
+  "operation": "listCreditNotes",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/core/ports/authz-guard.ts:48 (2xx without assertRole))"
+ },
+ {
+  "operation": "listCreditNoteTasks",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/core/ports/authz-guard.ts:48 (2xx without assertRole))"
+ },
+ {
+  "operation": "listDues",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/core/ports/authz-guard.ts:48 (2xx without assertRole))"
+ },
+ {
+  "operation": "listFinanceReviewItems",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/core/ports/authz-guard.ts:48 (2xx without assertRole))"
+ },
+ {
+  "operation": "listInvoices",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/core/ports/authz-guard.ts:48 (2xx without assertRole))"
+ },
+ {
+  "operation": "listLedgerEntries",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/core/ports/authz-guard.ts:48 (2xx without assertRole))"
+ },
+ {
+  "operation": "listRefundRequests",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/core/ports/authz-guard.ts:48 (2xx without assertRole))"
+ },
+ {
+  "operation": "verifyPaymentIntent",
+  "status": 503,
+  "class": "CONFIG",
+  "ref": "T0B-SWEEP-2 CONFIG (unqueued: 503 thrown at services/api/src/modules/billing/handlers/index.ts:14)"
+ },
+ {
+  "operation": "getCatalogHealthReport",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/core/ports/authz-guard.ts:48 (2xx without assertRole))"
+ },
+ {
+  "operation": "getCatalogRevision",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/core/ports/authz-guard.ts:48 (2xx without assertRole))"
+ },
+ {
+  "operation": "listCommentCodes",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/core/ports/authz-guard.ts:48 (2xx without assertRole))"
+ },
+ {
+  "operation": "listContainers",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/core/ports/authz-guard.ts:48 (2xx without assertRole))"
+ },
+ {
+  "operation": "listCreditParties",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/core/ports/authz-guard.ts:48 (2xx without assertRole))"
+ },
+ {
+  "operation": "listDepartments",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/core/ports/authz-guard.ts:48 (2xx without assertRole))"
+ },
+ {
+  "operation": "listDoctors",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/core/ports/authz-guard.ts:48 (2xx without assertRole))"
+ },
+ {
+  "operation": "listMethods",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/core/ports/authz-guard.ts:48 (2xx without assertRole))"
+ },
+ {
+  "operation": "listPanels",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/core/ports/authz-guard.ts:48 (2xx without assertRole))"
+ },
+ {
+  "operation": "listPriceLists",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/core/ports/authz-guard.ts:48 (2xx without assertRole))"
+ },
+ {
+  "operation": "listSpecimenTypes",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/core/ports/authz-guard.ts:48 (2xx without assertRole))"
+ },
+ {
+  "operation": "listSurchargeRules",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/core/ports/authz-guard.ts:48 (2xx without assertRole))"
+ },
+ {
+  "operation": "listTaxRules",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/core/ports/authz-guard.ts:48 (2xx without assertRole))"
+ },
+ {
+  "operation": "listTaxTypes",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/core/ports/authz-guard.ts:48 (2xx without assertRole))"
+ },
+ {
+  "operation": "listTests",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/core/ports/authz-guard.ts:48 (2xx without assertRole))"
+ },
+ {
+  "operation": "listUnits",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/core/ports/authz-guard.ts:48 (2xx without assertRole))"
+ },
+ {
+  "operation": "listValueSets",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/core/ports/authz-guard.ts:48 (2xx without assertRole))"
+ },
+ {
+  "operation": "quotePrices",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/core/ports/authz-guard.ts:48 (2xx without assertRole))"
+ },
+ {
+  "operation": "searchDoctors",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/core/ports/authz-guard.ts:48 (2xx without assertRole))"
+ },
+ {
+  "operation": "searchOrderables",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/core/ports/authz-guard.ts:48 (2xx without assertRole))"
+ },
+ {
+  "operation": "validateFormula",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/core/ports/authz-guard.ts:48 (2xx without assertRole))"
+ },
+ {
+  "operation": "issueLinkCode",
+  "status": 403,
+  "class": "CONFIG",
+  "ref": "T0B-SWEEP-2 CONFIG (unqueued: auth: common.feature_disabled)"
+ },
+ {
+  "operation": "listPatientAppLinks",
+  "status": 403,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: auth: auth.forbidden)"
+ },
+ {
+  "operation": "syncBookableItems",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/core/db/sqlstate.ts:27)"
+ },
+ {
+  "operation": "getFrontdeskSettings",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/modules/frontdesk/service/settings.service.ts:21)"
+ },
+ {
+  "operation": "listPossibleDuplicatePatients",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/modules/frontdesk/service/patient.service.ts:73)"
+ },
+ {
+  "operation": "searchPatients",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/modules/frontdesk/service/patient.service.ts:73)"
+ },
+ {
+  "operation": "changeOwnPassword",
+  "status": 401,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: auth: auth.unauthenticated)"
+ },
+ {
+  "operation": "getAuditEntry",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/modules/identity/handlers/index.ts:144)"
+ },
+ {
+  "operation": "getMe",
+  "status": 401,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: auth: auth.unauthenticated)"
+ },
+ {
+  "operation": "getTenant",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/core/ports/authz-guard.ts:48 (2xx without assertRole))"
+ },
+ {
+  "operation": "listAccessLogEntries",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/modules/identity/handlers/index.ts:144)"
+ },
+ {
+  "operation": "listAccessReviews",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/modules/identity/handlers/index.ts:144)"
+ },
+ {
+  "operation": "listAdminNotices",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/core/ports/authz-guard.ts:48 (2xx without assertRole))"
+ },
+ {
+  "operation": "listAuditEntries",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/modules/identity/handlers/index.ts:144)"
+ },
+ {
+  "operation": "listAuditExports",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/core/ports/registry.ts:106)"
+ },
+ {
+  "operation": "listAuthEvents",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/modules/identity/handlers/index.ts:144)"
+ },
+ {
+  "operation": "listBranches",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/core/ports/authz-guard.ts:48 (2xx without assertRole))"
+ },
+ {
+  "operation": "listCentres",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/core/ports/authz-guard.ts:48 (2xx without assertRole))"
+ },
+ {
+  "operation": "listDeadLetters",
+  "status": 500,
+  "class": "BUG",
+  "ref": "PLATFORM-WIRE-1 (LD-267)"
+ },
+ {
+  "operation": "listFeatureFlags",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/core/ports/authz-guard.ts:48 (2xx without assertRole))"
+ },
+ {
+  "operation": "listOwnIrdAnnexes",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/core/ports/authz-guard.ts:48 (2xx without assertRole))"
+ },
+ {
+  "operation": "listOwnMfaFactors",
+  "status": 401,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: auth: auth.unauthenticated)"
+ },
+ {
+  "operation": "listOwnSessions",
+  "status": 401,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: auth: auth.unauthenticated)"
+ },
+ {
+  "operation": "listPermissions",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/core/ports/authz-guard.ts:48 (2xx without assertRole))"
+ },
+ {
+  "operation": "listPlatformAuthEvents",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/core/ports/authz-guard.ts:48 (2xx without assertRole))"
+ },
+ {
+  "operation": "listPlatformIrdAnnexes",
+  "status": 500,
+  "class": "BUG",
+  "ref": "PLATFORM-WIRE-1 (LD-267)"
+ },
+ {
+  "operation": "listPlatformSessions",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/core/ports/authz-guard.ts:48 (2xx without assertRole))"
+ },
+ {
+  "operation": "listPlatformStaff",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/core/ports/authz-guard.ts:48 (2xx without assertRole))"
+ },
+ {
+  "operation": "listPlatformSupportSessions",
+  "status": 500,
+  "class": "BUG",
+  "ref": "PLATFORM-WIRE-1 (LD-267)"
+ },
+ {
+  "operation": "listRolePacks",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/modules/identity/handlers/index.ts:144)"
+ },
+ {
+  "operation": "listRoles",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/core/ports/authz-guard.ts:48 (2xx without assertRole))"
+ },
+ {
+  "operation": "listSessions",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/core/ports/authz-guard.ts:48 (2xx without assertRole))"
+ },
+ {
+  "operation": "listTenants",
+  "status": 500,
+  "class": "BUG",
+  "ref": "PLATFORM-WIRE-1 (LD-267)"
+ },
+ {
+  "operation": "listTenantSupportSessions",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/core/ports/authz-guard.ts:48 (2xx without assertRole))"
+ },
+ {
+  "operation": "listUsers",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/core/ports/authz-guard.ts:48 (2xx without assertRole))"
+ },
+ {
+  "operation": "openMobileSession",
+  "status": 503,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 503 thrown at services/api/src/modules/identity/gotrue/gateway.http.ts:23)"
+ },
+ {
+  "operation": "removeOwnMfaFactor",
+  "status": 401,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: auth: auth.unauthenticated)"
+ },
+ {
+  "operation": "requestPasswordRecovery",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/core/db/sqlstate.ts:27)"
+ },
+ {
+  "operation": "revokeOwnSession",
+  "status": 401,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: auth: auth.unauthenticated)"
+ },
+ {
+  "operation": "revokeSession",
+  "status": 401,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: auth: auth.unauthenticated)"
+ },
+ {
+  "operation": "searchUsers",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/core/ports/authz-guard.ts:48 (2xx without assertRole))"
+ },
+ {
+  "operation": "getInventorySettings",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/core/ports/authz-guard.ts:48 (2xx without assertRole))"
+ },
+ {
+  "operation": "listInventoryAlerts",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/modules/inventory/handlers/index.ts:29)"
+ },
+ {
+  "operation": "listInventoryCodedSet",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/core/ports/authz-guard.ts:48 (2xx without assertRole))"
+ },
+ {
+  "operation": "listCultures",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/modules/micro/service/chain.service.ts:151)"
+ },
+ {
+  "operation": "getPartnerSettings",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/modules/partners/index.ts:53)"
+ },
+ {
+  "operation": "getPartnerStatement",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/core/db/sqlstate.ts:39)"
+ },
+ {
+  "operation": "resyncPartnerProjections",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/core/db/sqlstate.ts:27)"
+ },
+ {
+  "operation": "getPaymentIntent",
+  "status": 503,
+  "class": "CONFIG",
+  "ref": "T0B-SWEEP-2 CONFIG (unqueued: 503 thrown at services/api/src/modules/payments/handlers/index.ts:6)"
+ },
+ {
+  "operation": "getPaymentRefund",
+  "status": 503,
+  "class": "CONFIG",
+  "ref": "T0B-SWEEP-2 CONFIG (unqueued: 503 thrown at services/api/src/modules/payments/handlers/index.ts:6)"
+ },
+ {
+  "operation": "getPaymentResultPage",
+  "status": 503,
+  "class": "CONFIG",
+  "ref": "T0B-SWEEP-2 CONFIG (unqueued: 503 thrown at services/api/src/modules/payments/handlers/index.ts:6)"
+ },
+ {
+  "operation": "getPaymentSettings",
+  "status": 503,
+  "class": "CONFIG",
+  "ref": "T0B-SWEEP-2 CONFIG (unqueued: 503 thrown at services/api/src/modules/payments/handlers/index.ts:6)"
+ },
+ {
+  "operation": "getReconciliationRun",
+  "status": 503,
+  "class": "CONFIG",
+  "ref": "T0B-SWEEP-2 CONFIG (unqueued: 503 thrown at services/api/src/modules/payments/handlers/index.ts:6)"
+ },
+ {
+  "operation": "listMerchantAccounts",
+  "status": 503,
+  "class": "CONFIG",
+  "ref": "T0B-SWEEP-2 CONFIG (unqueued: 503 thrown at services/api/src/modules/payments/handlers/index.ts:6)"
+ },
+ {
+  "operation": "listPaymentCancelReasons",
+  "status": 503,
+  "class": "CONFIG",
+  "ref": "T0B-SWEEP-2 CONFIG (unqueued: 503 thrown at services/api/src/modules/payments/handlers/index.ts:6)"
+ },
+ {
+  "operation": "listPaymentCodes",
+  "status": 503,
+  "class": "CONFIG",
+  "ref": "T0B-SWEEP-2 CONFIG (unqueued: 503 thrown at services/api/src/modules/payments/handlers/index.ts:6)"
+ },
+ {
+  "operation": "listPaymentIntents",
+  "status": 503,
+  "class": "CONFIG",
+  "ref": "T0B-SWEEP-2 CONFIG (unqueued: 503 thrown at services/api/src/modules/payments/handlers/index.ts:6)"
+ },
+ {
+  "operation": "listPaymentRefunds",
+  "status": 503,
+  "class": "CONFIG",
+  "ref": "T0B-SWEEP-2 CONFIG (unqueued: 503 thrown at services/api/src/modules/payments/handlers/index.ts:6)"
+ },
+ {
+  "operation": "listReconciliationFindings",
+  "status": 503,
+  "class": "CONFIG",
+  "ref": "T0B-SWEEP-2 CONFIG (unqueued: 503 thrown at services/api/src/modules/payments/handlers/index.ts:6)"
+ },
+ {
+  "operation": "listReconciliationRuns",
+  "status": 503,
+  "class": "CONFIG",
+  "ref": "T0B-SWEEP-2 CONFIG (unqueued: 503 thrown at services/api/src/modules/payments/handlers/index.ts:6)"
+ },
+ {
+  "operation": "listStaticQrReconciliations",
+  "status": 503,
+  "class": "CONFIG",
+  "ref": "T0B-SWEEP-2 CONFIG (unqueued: 503 thrown at services/api/src/modules/payments/handlers/index.ts:6)"
+ },
+ {
+  "operation": "previewStaticQrReconciliation",
+  "status": 503,
+  "class": "CONFIG",
+  "ref": "T0B-SWEEP-2 CONFIG (unqueued: 503 thrown at services/api/src/modules/payments/handlers/index.ts:6)"
+ },
+ {
+  "operation": "putMerchantAccount",
+  "status": 503,
+  "class": "CONFIG",
+  "ref": "T0B-SWEEP-2 CONFIG (unqueued: 503 thrown at services/api/src/modules/payments/handlers/index.ts:6)"
+ },
+ {
+  "operation": "recheckPaymentIntent",
+  "status": 503,
+  "class": "CONFIG",
+  "ref": "T0B-SWEEP-2 CONFIG (unqueued: 503 thrown at services/api/src/modules/payments/handlers/index.ts:6)"
+ },
+ {
+  "operation": "recheckPaymentRefund",
+  "status": 503,
+  "class": "CONFIG",
+  "ref": "T0B-SWEEP-2 CONFIG (unqueued: 503 thrown at services/api/src/modules/payments/handlers/index.ts:6)"
+ },
+ {
+  "operation": "testMerchantAccount",
+  "status": 503,
+  "class": "CONFIG",
+  "ref": "T0B-SWEEP-2 CONFIG (unqueued: 503 thrown at services/api/src/modules/payments/handlers/index.ts:6)"
+ },
+ {
+  "operation": "getAutoverifyDecision",
+  "status": 403,
+  "class": "CONFIG",
+  "ref": "T0B-SWEEP-2 CONFIG (unqueued: auth: common.feature_disabled)"
+ },
+ {
+  "operation": "getAutoverifyRuleSet",
+  "status": 403,
+  "class": "CONFIG",
+  "ref": "T0B-SWEEP-2 CONFIG (unqueued: auth: common.feature_disabled)"
+ },
+ {
+  "operation": "getAutoverifySimulationReport",
+  "status": 403,
+  "class": "CONFIG",
+  "ref": "T0B-SWEEP-2 CONFIG (unqueued: auth: common.feature_disabled)"
+ },
+ {
+  "operation": "getAutoverifyVersion",
+  "status": 403,
+  "class": "CONFIG",
+  "ref": "T0B-SWEEP-2 CONFIG (unqueued: auth: common.feature_disabled)"
+ },
+ {
+  "operation": "getControlMaterial",
+  "status": 403,
+  "class": "CONFIG",
+  "ref": "T0B-SWEEP-2 CONFIG (unqueued: auth: common.feature_disabled)"
+ },
+ {
+  "operation": "getLeveyJenningsChart",
+  "status": 403,
+  "class": "CONFIG",
+  "ref": "T0B-SWEEP-2 CONFIG (unqueued: auth: common.feature_disabled)"
+ },
+ {
+  "operation": "getQcPlan",
+  "status": 403,
+  "class": "CONFIG",
+  "ref": "T0B-SWEEP-2 CONFIG (unqueued: auth: common.feature_disabled)"
+ },
+ {
+  "operation": "getQcRun",
+  "status": 403,
+  "class": "CONFIG",
+  "ref": "T0B-SWEEP-2 CONFIG (unqueued: auth: common.feature_disabled)"
+ },
+ {
+  "operation": "getQcStatusBoard",
+  "status": 403,
+  "class": "CONFIG",
+  "ref": "T0B-SWEEP-2 CONFIG (unqueued: auth: common.feature_disabled)"
+ },
+ {
+  "operation": "getQualitySettings",
+  "status": 403,
+  "class": "CONFIG",
+  "ref": "T0B-SWEEP-2 CONFIG (unqueued: auth: common.feature_disabled)"
+ },
+ {
+  "operation": "getTatAlert",
+  "status": 403,
+  "class": "CONFIG",
+  "ref": "T0B-SWEEP-2 CONFIG (unqueued: auth: common.feature_disabled)"
+ },
+ {
+  "operation": "listAutoverifyDecisions",
+  "status": 403,
+  "class": "CONFIG",
+  "ref": "T0B-SWEEP-2 CONFIG (unqueued: auth: common.feature_disabled)"
+ },
+ {
+  "operation": "listControlIdMaps",
+  "status": 403,
+  "class": "CONFIG",
+  "ref": "T0B-SWEEP-2 CONFIG (unqueued: auth: common.feature_disabled)"
+ },
+ {
+  "operation": "listControlLots",
+  "status": 403,
+  "class": "CONFIG",
+  "ref": "T0B-SWEEP-2 CONFIG (unqueued: auth: common.feature_disabled)"
+ },
+ {
+  "operation": "listControlMaterials",
+  "status": 403,
+  "class": "CONFIG",
+  "ref": "T0B-SWEEP-2 CONFIG (unqueued: auth: common.feature_disabled)"
+ },
+ {
+  "operation": "listQcObservations",
+  "status": 403,
+  "class": "CONFIG",
+  "ref": "T0B-SWEEP-2 CONFIG (unqueued: auth: common.feature_disabled)"
+ },
+ {
+  "operation": "listQcPlans",
+  "status": 403,
+  "class": "CONFIG",
+  "ref": "T0B-SWEEP-2 CONFIG (unqueued: auth: common.feature_disabled)"
+ },
+ {
+  "operation": "listQcRuns",
+  "status": 403,
+  "class": "CONFIG",
+  "ref": "T0B-SWEEP-2 CONFIG (unqueued: auth: common.feature_disabled)"
+ },
+ {
+  "operation": "listQcTargets",
+  "status": 403,
+  "class": "CONFIG",
+  "ref": "T0B-SWEEP-2 CONFIG (unqueued: auth: common.feature_disabled)"
+ },
+ {
+  "operation": "listQualityCodedSet",
+  "status": 403,
+  "class": "CONFIG",
+  "ref": "T0B-SWEEP-2 CONFIG (unqueued: auth: common.feature_disabled)"
+ },
+ {
+  "operation": "listTatAlerts",
+  "status": 403,
+  "class": "CONFIG",
+  "ref": "T0B-SWEEP-2 CONFIG (unqueued: auth: common.feature_disabled)"
+ },
+ {
+  "operation": "upsertQualityCode",
+  "status": 403,
+  "class": "CONFIG",
+  "ref": "T0B-SWEEP-2 CONFIG (unqueued: auth: common.feature_disabled)"
+ },
+ {
+  "operation": "getReportingSettings",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/core/ports/authz-guard.ts:48 (2xx without assertRole))"
+ },
+ {
+  "operation": "listCentreContacts",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/core/ports/authz-guard.ts:48 (2xx without assertRole))"
+ },
+ {
+  "operation": "listChannelAccounts",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/core/ports/authz-guard.ts:48 (2xx without assertRole))"
+ },
+ {
+  "operation": "listDeliveries",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/core/ports/authz-guard.ts:48 (2xx without assertRole))"
+ },
+ {
+  "operation": "listMessageTemplates",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/core/ports/authz-guard.ts:48 (2xx without assertRole))"
+ },
+ {
+  "operation": "listNarrativeReports",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/core/ports/authz-guard.ts:48 (2xx without assertRole))"
+ },
+ {
+  "operation": "listNarrativeTemplates",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/core/ports/authz-guard.ts:48 (2xx without assertRole))"
+ },
+ {
+  "operation": "listOutsourcedItems",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/core/ports/authz-guard.ts:48 (2xx without assertRole))"
+ },
+ {
+  "operation": "listOutsourcedReports",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/core/ports/authz-guard.ts:48 (2xx without assertRole))"
+ },
+ {
+  "operation": "listReportingCodes",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/core/ports/authz-guard.ts:48 (2xx without assertRole))"
+ },
+ {
+  "operation": "listReports",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/core/ports/authz-guard.ts:48 (2xx without assertRole))"
+ },
+ {
+  "operation": "listReportTemplates",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/core/ports/authz-guard.ts:48 (2xx without assertRole))"
+ },
+ {
+  "operation": "replaceStaffAssignments",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/core/ports/authz-guard.ts:48 (2xx without assertRole))"
+ },
+ {
+  "operation": "searchReports",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/core/ports/authz-guard.ts:48 (2xx without assertRole))"
+ },
+ {
+  "operation": "upsertChannelAccount",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/core/ports/authz-guard.ts:48 (2xx without assertRole))"
+ },
+ {
+  "operation": "verifyProviderCallback",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/modules/reporting/service/callbacks.service.ts:37)"
+ },
+ {
+  "operation": "verifyReportQr",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/modules/reporting/service/verify.service.ts:29)"
+ },
+ {
+  "operation": "previewSmartLibraryVersion",
+  "status": 500,
+  "class": "BUG",
+  "ref": "T0B-SWEEP-2 BUG (unqueued: 500 thrown at services/api/src/modules/smartreport/handlers/index.ts:34)"
+ }
+]

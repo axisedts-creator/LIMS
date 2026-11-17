@@ -70,9 +70,9 @@ describe('AC-0D-8.7: bundled fonts (04-UI-UX §1.4: packages/ui/assets/fonts/, w
   it('a licence file (OFL-1.1) ships with the fonts', () => {
     expect(fonts.some((n) => /OFL|LICENSE/i.test(n))).toBe(true);
   });
-  it('font.family.sans token lists Noto Sans then Noto Sans Devanagari', () => {
+  it('font.family.sans token lists Poppins then Noto Sans Devanagari (T0D-MSERIES-1, 13 s2.2)', () => {
     const t = readFileSync(join(UI, 'tokens', 'tokens.json'), 'utf8');
-    expect(t).toMatch(/Noto Sans["\\]*,\s*["\\]*Noto Sans Devanagari/);
+    expect(t).toMatch(/Poppins["\\]*,\s*["\\]*Noto Sans Devanagari/);
   });
 });
 

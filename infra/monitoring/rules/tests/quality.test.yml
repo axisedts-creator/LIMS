@@ -1,0 +1,198 @@
+# T-21 (tester, LD-39): promtool tests for ../imported/quality.rules.yml. Synthetic series only (no real tenant or patient data).
+# Per alert one firing case (labels carry the rule's severity and team), one not-firing case, and for rules with a
+# `for` clause a pending-before-`for` + firing-after-`for` check. Thresholds are the owner's (02-TRD s11.3).
+rule_files:
+  - ../imported/quality.rules.yml
+evaluation_interval: 1m
+tests:
+
+  - interval: 1m
+    name: "QualityRejectedRunWithoutAction fires"
+    input_series:
+      - series: 'lims_quality_qc_rejected_without_action_oldest_age_seconds{tenant_id="t1"}'
+        values: "14401x20"
+    alert_rule_test:
+      - alertname: QualityRejectedRunWithoutAction
+        eval_time: 4m
+        exp_alerts: []
+      - alertname: QualityRejectedRunWithoutAction
+        eval_time: 17m
+        exp_alerts:
+          - exp_labels: {severity: "warn", team: "ops", tenant_id: "t1"}
+            exp_annotations: {summary: "A rejected QC run has had no corrective action for over 4 h.", runbook_url: "infra/runbooks/quality.md#qualityrejectedrunwithoutaction"}
+
+  - interval: 1m
+    name: "QualityRejectedRunWithoutAction quiet"
+    input_series:
+      - series: 'lims_quality_qc_rejected_without_action_oldest_age_seconds{tenant_id="t1"}'
+        values: "14400x20"
+    alert_rule_test:
+      - alertname: QualityRejectedRunWithoutAction
+        eval_time: 17m
+        exp_alerts: []
+
+  - interval: 1m
+    name: "QualityConsumerDeadLetter fires"
+    input_series:
+      - series: 'lims_core_dead_letters_total{task="evt.quality.qc"}'
+        values: "0+1x15"
+    alert_rule_test:
+      - alertname: QualityConsumerDeadLetter
+        eval_time: 12m
+        exp_alerts:
+          - exp_labels: {severity: "page", team: "ops", task: "evt.quality.qc"}
+            exp_annotations: {summary: "A quality job or event consumer dead-lettered.", runbook_url: "infra/runbooks/quality.md#qualityconsumerdeadletter"}
+
+  - interval: 1m
+    name: "QualityConsumerDeadLetter quiet"
+    input_series:
+      - series: 'lims_core_dead_letters_total{task="evt.quality.qc"}'
+        values: "0+0x15"
+      - series: 'lims_core_dead_letters_total{task="evt.lab.result"}'
+        values: "0+1x15"
+    alert_rule_test:
+      - alertname: QualityConsumerDeadLetter
+        eval_time: 12m
+        exp_alerts: []
+
+  - interval: 1m
+    name: "QualityQcSyncStalled fires"
+    input_series:
+      - series: 'lims_quality_qc_sync_last_success_timestamp_seconds{tenant_id="t1"}'
+        values: "0x18"
+    alert_rule_test:
+      - alertname: QualityQcSyncStalled
+        eval_time: 3m
+        exp_alerts: []
+      - alertname: QualityQcSyncStalled
+        eval_time: 8m
+        exp_alerts: []
+      - alertname: QualityQcSyncStalled
+        eval_time: 15m
+        exp_alerts:
+          - exp_labels: {severity: "page", team: "ops", tenant_id: "t1"}
+            exp_annotations: {summary: "QC sync has not succeeded for a tenant for over 5 min.", runbook_url: "infra/runbooks/quality.md#qualityqcsyncstalled"}
+
+  - interval: 1m
+    name: "QualityQcSyncStalled quiet"
+    input_series:
+      - series: 'lims_quality_qc_sync_last_success_timestamp_seconds{tenant_id="t1"}'
+        values: "0+60x18"
+    alert_rule_test:
+      - alertname: QualityQcSyncStalled
+        eval_time: 15m
+        exp_alerts: []
+
+  - interval: 1m
+    name: "QualityQcImportError fires"
+    input_series:
+      - series: 'lims_quality_qc_observations_total{status="import_error"}'
+        values: "0+1x30"
+    alert_rule_test:
+      - alertname: QualityQcImportError
+        eval_time: 27m
+        exp_alerts:
+          - exp_labels: {severity: "warn", team: "ops", status: "import_error"}
+            exp_annotations: {summary: "A QC observation failed to import in the last 15 min.", runbook_url: "infra/runbooks/quality.md#qualityqcimporterror"}
+
+  - interval: 1m
+    name: "QualityQcImportError quiet"
+    input_series:
+      - series: 'lims_quality_qc_observations_total{status="import_error"}'
+        values: "0+0x30"
+      - series: 'lims_quality_qc_observations_total{status="ok"}'
+        values: "0+5x30"
+    alert_rule_test:
+      - alertname: QualityQcImportError
+        eval_time: 27m
+        exp_alerts: []
+
+  - interval: 1m
+    name: "QualityPortSlow fires"
+    input_series:
+      - series: 'lims_quality_port_duration_seconds_bucket{method="get",le="0.005"}'
+        values: "0+0x30"
+      - series: 'lims_quality_port_duration_seconds_bucket{method="get",le="0.1"}'
+        values: "0+1x30"
+      - series: 'lims_quality_port_duration_seconds_bucket{method="get",le="+Inf"}'
+        values: "0+1x30"
+    alert_rule_test:
+      - alertname: QualityPortSlow
+        eval_time: 14m
+        exp_alerts: []
+      - alertname: QualityPortSlow
+        eval_time: 27m
+        exp_alerts:
+          - exp_labels: {severity: "warn", team: "ops", method: "get"}
+            exp_annotations: {summary: "Quality port p95 latency above 10 ms for 15 min.", runbook_url: "infra/runbooks/quality.md#qualityportslow"}
+
+  - interval: 1m
+    name: "QualityPortSlow quiet"
+    input_series:
+      - series: 'lims_quality_port_duration_seconds_bucket{method="get",le="0.005"}'
+        values: "0+1x30"
+      - series: 'lims_quality_port_duration_seconds_bucket{method="get",le="0.1"}'
+        values: "0+1x30"
+      - series: 'lims_quality_port_duration_seconds_bucket{method="get",le="+Inf"}'
+        values: "0+1x30"
+    alert_rule_test:
+      - alertname: QualityPortSlow
+        eval_time: 27m
+        exp_alerts: []
+
+  - interval: 1m
+    name: "QualityTatSweepSlow fires"
+    input_series:
+      - series: 'lims_quality_tat_sweep_duration_seconds_bucket{le="5"}'
+        values: "0+0x30"
+      - series: 'lims_quality_tat_sweep_duration_seconds_bucket{le="100"}'
+        values: "0+1x30"
+      - series: 'lims_quality_tat_sweep_duration_seconds_bucket{le="+Inf"}'
+        values: "0+1x30"
+    alert_rule_test:
+      - alertname: QualityTatSweepSlow
+        eval_time: 14m
+        exp_alerts: []
+      - alertname: QualityTatSweepSlow
+        eval_time: 27m
+        exp_alerts:
+          - exp_labels: {severity: "warn", team: "ops"}
+            exp_annotations: {summary: "TAT sweep p95 above 10 s for 15 min.", runbook_url: "infra/runbooks/quality.md#qualitytatsweepslow"}
+
+  - interval: 1m
+    name: "QualityTatSweepSlow quiet"
+    input_series:
+      - series: 'lims_quality_tat_sweep_duration_seconds_bucket{le="5"}'
+        values: "0+1x30"
+      - series: 'lims_quality_tat_sweep_duration_seconds_bucket{le="100"}'
+        values: "0+1x30"
+      - series: 'lims_quality_tat_sweep_duration_seconds_bucket{le="+Inf"}'
+        values: "0+1x30"
+    alert_rule_test:
+      - alertname: QualityTatSweepSlow
+        eval_time: 27m
+        exp_alerts: []
+
+  - interval: 1m
+    name: "QualityAutoverifyAllowWithReasons fires"
+    input_series:
+      - series: 'lims_quality_autoverify_decisions_total{decision="allow",reason="low_confidence"}'
+        values: "0+1x15"
+    alert_rule_test:
+      - alertname: QualityAutoverifyAllowWithReasons
+        eval_time: 12m
+        exp_alerts:
+          - exp_labels: {severity: "page", team: "ops", decision: "allow", reason: "low_confidence"}
+            exp_annotations: {summary: "Autoverification allowed a result while a blocking reason was present.", runbook_url: "infra/runbooks/quality.md#qualityautoverifyallowwithreasons"}
+
+  - interval: 1m
+    name: "QualityAutoverifyAllowWithReasons quiet"
+    input_series:
+      - series: 'lims_quality_autoverify_decisions_total{decision="allow",reason="none"}'
+        values: "0+1x15"
+      - series: 'lims_quality_autoverify_decisions_total{decision="block",reason="low_confidence"}'
+        values: "0+1x15"
+    alert_rule_test:
+      - alertname: QualityAutoverifyAllowWithReasons
+        eval_time: 12m
+        exp_alerts: []

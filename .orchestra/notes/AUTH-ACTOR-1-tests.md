@@ -1,0 +1,8 @@
+# AUTH-ACTOR-1 tests (tester)
+- New: `services/api/src/core/pipeline/__tests__/identity-actor.test.ts` (22 tests; bootPipeline over fake `pg` + real identity manifest, fake GoTrue via vi.mock of gateway.http.js; no ctx.actor injected anywhere).
+- Covers: actor only for identityAuth+module identity; other public op / other module / authenticated op unchanged; id never from env/request; lazy, read once; fail closed (error, 0 or 2 rows, NULL, non-UUID) = common.internal, no leak, handler not run, not cached; real loginStaff reaches signInWithPassword; resolveSession reaches the session lookup; tx opens with claims { sub: actor, actor_type: system }.
+- Run: `.orchestra/notes/AUTH-ACTOR-1-verify.cmd` (or `pnpm --dir services/api exec vitest run src/core/pipeline/__tests__/identity-actor.test.ts`).
+- Now: 17 of 22 fail for the right reason (ctx.actor undefined; ctx.db.identityAuthTx refuses because the pipeline's createDb has no identitySystemActorId). 5 pass today (the "unchanged" guards). identity-db-handoff (20) passes.
+- FOUND, outside this task: the pipeline never sets ctx.bffKey, so loginStaff/verifyMfaChallenge/setPasswordFromSetup still refuse (login_failed wrong_bff, session_expired) on the real server after this fix. The through-pipeline login test wraps ctx with bffKey 'staff_web' only; ctx.actor stays the pipeline's. Lead decides a follow-up task.
+- Also needed by the writer: the pipeline's ctx.db.identityAuthTx must work for the same request (boot.ts db has no identitySystemActorId) - tests require it.
+- Existing identity-db-handoff.test.ts must stay green (resolver path untouched).

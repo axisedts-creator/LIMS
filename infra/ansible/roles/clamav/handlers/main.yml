@@ -1,0 +1,11 @@
+---
+- name: Reload systemd
+  ansible.builtin.systemd_service:
+    daemon_reload: true
+
+# clamd reads clamd.conf at start only; absent container = first deploy, compose starts it later
+- name: Restart clamd
+  ansible.builtin.command: "docker restart {{ clamav_container }}"
+  register: clamav_restart
+  failed_when: clamav_restart.rc != 0 and 'No such container' not in clamav_restart.stderr
+  changed_when: clamav_restart.rc == 0

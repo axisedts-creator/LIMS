@@ -1,0 +1,19 @@
+[Unit]
+Description=LIMS monthly external port scan of every public IP (AC-01.1, AC-01.2; 02-TRD s18)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+# A hung scan must not sit forever: a full 1-65535 sweep of a filtered host is ~10 min at 400 parallel connects.
+TimeoutStartSec=6h
+DynamicUser=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+NoNewPrivileges=yes
+# Paths = defaults/main.yml (external_scan_tests_dir, _ci_dir, _inventory_dir). Targets = the active inventory profile
+# (LD-45), no host name here. Exit 1 = violation, 2 = unusable input: both fail the unit.
+ExecStart=/usr/bin/python3 -I /usr/local/lib/lims/tests/external/ports.py --inventory /etc/lims/scan-inventory
+# Record the outcome (pass or fail) in ops_audit; the result words come from systemd ($$ = a literal $ for bash).
+ExecStopPost=/bin/bash -c '/usr/local/lib/lims/ci/ops-note.sh "monthly external port scan: $${SERVICE_RESULT} (exit status $${EXIT_STATUS})"'

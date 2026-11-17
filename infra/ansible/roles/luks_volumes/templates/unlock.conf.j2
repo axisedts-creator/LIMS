@@ -1,0 +1,11 @@
+# Managed by Ansible (02-TRD s5.3). Sourced by lims-luks-unlock.sh.
+# Empty KEY_URL = passphrase only (ops-1 volumes).
+KEY_URL="{{ '' if luks_volumes_passphrase_only | bool else luks_volumes_key_url }}"
+CA_CERT="{{ luks_volumes_ca_cert }}"
+AGE_IDENTITY="/etc/lims/luks/host-age.txt"
+# name device vg lv mountpoint
+VOLUMES=(
+{% for v in luks_volumes_list %}
+  "{{ v.name }} {{ v.dev }} {{ v.vg }} {{ v.lv }} {{ v.mount }}"
+{% endfor %}
+)

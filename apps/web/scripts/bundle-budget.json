@@ -1,0 +1,130 @@
+{
+  "first_load_js_kb": 170,
+  "route_extra_js_kb": 60,
+  "css_kb": 40,
+  "requests": 25,
+  "entry_routes": [
+    "/(auth)/auth/login/page",
+    "/(staff)/[...slug]/page"
+  ],
+  "overrides": {
+    "/(auth)/auth/login/page": {
+      "first_load_js_kb": 237,
+      "todo": "TODO 2026-11-17 T0D-BUNDLE-1: framework floor is ~168 KB (React + Next runtime + 38.5 KB nomodule polyfill); rest is the kit a11y layer. Lower when packages/ui splits it."
+    },
+    "/(staff)/[...slug]/page": {
+      "first_load_js_kb": 242,
+      "todo": "TODO 2026-11-17 T0D-BUNDLE-1: framework floor is ~168 KB (React + Next runtime + 38.5 KB nomodule polyfill); rest is the kit a11y layer. Lower when packages/ui splits it."
+    },
+    "/(staff)/analytics/collections/page": {
+      "route_extra_js_kb": 69,
+      "todo": "TODO 2026-11-17 T0D-BUNDLE-1: honest current value; the extra is the kit a11y layer (react-aria table/combobox/date fields). Lower when packages/ui or the page splits it."
+    },
+    "/(staff)/analytics/referral-incentive/page": {
+      "route_extra_js_kb": 69,
+      "todo": "TODO 2026-11-17 T0D-BUNDLE-1: honest current value; the extra is the kit a11y layer (react-aria table/combobox/date fields). Lower when packages/ui or the page splits it."
+    },
+    "/(staff)/analytics/report-runs/[report_run_id]/page": {
+      "route_extra_js_kb": 70,
+      "requests": 26,
+      "todo": "TODO 2026-11-17 T0D-BUNDLE-1: honest current value; the extra is the kit a11y layer (react-aria table/combobox/date fields). Lower when packages/ui or the page splits it."
+    },
+    "/(staff)/analytics/reports/[reportCode]/page": {
+      "route_extra_js_kb": 69,
+      "todo": "TODO 2026-11-17 T0D-BUNDLE-1: honest current value; the extra is the kit a11y layer (react-aria table/combobox/date fields). Lower when packages/ui or the page splits it."
+    },
+    "/(staff)/analytics/reports/page": {
+      "route_extra_js_kb": 69,
+      "todo": "TODO 2026-11-17 T0D-BUNDLE-1: honest current value; the extra is the kit a11y layer (react-aria table/combobox/date fields). Lower when packages/ui or the page splits it."
+    },
+    "/(staff)/analytics/schedules/[schedule_id]/page": {
+      "route_extra_js_kb": 61,
+      "todo": "TODO 2026-11-17 T0D-BUNDLE-1: honest current value; the extra is the kit a11y layer (react-aria table/combobox/date fields). Lower when packages/ui or the page splits it."
+    },
+    "/(staff)/analytics/schedules/new/page": {
+      "route_extra_js_kb": 61,
+      "todo": "TODO 2026-11-17 T0D-BUNDLE-1: honest current value; the extra is the kit a11y layer (react-aria table/combobox/date fields). Lower when packages/ui or the page splits it."
+    },
+    "/(staff)/analytics/schedules/page": {
+      "route_extra_js_kb": 61,
+      "todo": "TODO 2026-11-17 T0D-BUNDLE-1: honest current value; the extra is the kit a11y layer (react-aria table/combobox/date fields). Lower when packages/ui or the page splits it."
+    },
+    "/(staff)/anatomic/cases/[case_id]/page": {
+      "route_extra_js_kb": 87,
+      "requests": 26,
+      "todo": "TODO 2026-11-17 T0D-BUNDLE-1: honest current value; the extra is the kit a11y layer (react-aria table/combobox/date fields). Lower when packages/ui or the page splits it."
+    },
+    "/(staff)/catalog/tax/page": {
+      "route_extra_js_kb": 62,
+      "todo": "TODO 2026-11-17 T0D-BUNDLE-1: honest current value; the extra is the kit a11y layer (react-aria table/combobox/date fields). Lower when packages/ui or the page splits it."
+    },
+    "/(staff)/engagement/bookable-items/page": {
+      "route_extra_js_kb": 65,
+      "todo": "TODO 2026-11-17 T0D-BUNDLE-1: honest current value; the extra is the kit a11y layer (react-aria table/combobox/date fields). Lower when packages/ui or the page splits it."
+    },
+    "/(staff)/engagement/bookings/[booking_id]/page": {
+      "route_extra_js_kb": 65,
+      "todo": "TODO 2026-11-17 T0D-BUNDLE-1: honest current value; the extra is the kit a11y layer (react-aria table/combobox/date fields). Lower when packages/ui or the page splits it."
+    },
+    "/(staff)/engagement/bookings/new/page": {
+      "route_extra_js_kb": 65,
+      "todo": "TODO 2026-11-17 T0D-BUNDLE-1: honest current value; the extra is the kit a11y layer (react-aria table/combobox/date fields). Lower when packages/ui or the page splits it."
+    },
+    "/(staff)/engagement/bookings/page": {
+      "route_extra_js_kb": 65,
+      "todo": "TODO 2026-11-17 T0D-BUNDLE-1: honest current value; the extra is the kit a11y layer (react-aria table/combobox/date fields). Lower when packages/ui or the page splits it."
+    },
+    "/(staff)/engagement/slots/page": {
+      "route_extra_js_kb": 65,
+      "todo": "TODO 2026-11-17 T0D-BUNDLE-1: honest current value; the extra is the kit a11y layer (react-aria table/combobox/date fields). Lower when packages/ui or the page splits it."
+    },
+    "/(staff)/inventory/purchase-orders/page": {
+      "route_extra_js_kb": 64,
+      "todo": "TODO 2026-11-17 T0D-BUNDLE-1: honest current value; the extra is the kit a11y layer (react-aria table/combobox/date fields). Lower when packages/ui or the page splits it."
+    },
+    "/(staff)/inventory/receipts/page": {
+      "route_extra_js_kb": 64,
+      "todo": "TODO 2026-11-17 T0D-BUNDLE-1: honest current value; the extra is the kit a11y layer (react-aria table/combobox/date fields). Lower when packages/ui or the page splits it."
+    },
+    "/(staff)/inventory/reports/page": {
+      "route_extra_js_kb": 65,
+      "todo": "TODO 2026-11-17 T0D-BUNDLE-1: honest current value; the extra is the kit a11y layer (react-aria table/combobox/date fields). Lower when packages/ui or the page splits it."
+    },
+    "/(staff)/lab/orders/[order_id]/labels/page": {
+      "route_extra_js_kb": 66,
+      "todo": "TODO 2026-11-17 T0D-BUNDLE-1: honest current value; the extra is the kit a11y layer (react-aria table/combobox/date fields). Lower when packages/ui or the page splits it."
+    },
+    "/(staff)/micro/cultures/[culture_id]/page": {
+      "route_extra_js_kb": 80,
+      "todo": "TODO 2026-11-17 T0D-BUNDLE-1: honest current value; the extra is the kit a11y layer (react-aria table/combobox/date fields). Lower when packages/ui or the page splits it."
+    },
+    "/(staff)/partners/manifests/[manifest_id]/page": {
+      "route_extra_js_kb": 64,
+      "todo": "TODO 2026-11-17 T0D-BUNDLE-1: honest current value; the extra is the kit a11y layer (react-aria table/combobox/date fields). Lower when packages/ui or the page splits it."
+    },
+    "/(staff)/partners/page": {
+      "route_extra_js_kb": 62,
+      "todo": "TODO 2026-11-17 T0D-BUNDLE-1: honest current value; the extra is the kit a11y layer (react-aria table/combobox/date fields). Lower when packages/ui or the page splits it."
+    },
+    "/(staff)/quality/setup/maps/page": {
+      "route_extra_js_kb": 71,
+      "todo": "TODO 2026-11-17 T0D-BUNDLE-1: honest current value; the extra is the kit a11y layer (react-aria table/combobox/date fields). Lower when packages/ui or the page splits it."
+    },
+    "/(staff)/quality/setup/materials/page": {
+      "route_extra_js_kb": 71,
+      "todo": "TODO 2026-11-17 T0D-BUNDLE-1: honest current value; the extra is the kit a11y layer (react-aria table/combobox/date fields). Lower when packages/ui or the page splits it."
+    },
+    "/(staff)/quality/setup/plans/page": {
+      "route_extra_js_kb": 71,
+      "todo": "TODO 2026-11-17 T0D-BUNDLE-1: honest current value; the extra is the kit a11y layer (react-aria table/combobox/date fields). Lower when packages/ui or the page splits it."
+    },
+    "/(staff)/quality/setup/targets/page": {
+      "route_extra_js_kb": 71,
+      "todo": "TODO 2026-11-17 T0D-BUNDLE-1: honest current value; the extra is the kit a11y layer (react-aria table/combobox/date fields). Lower when packages/ui or the page splits it."
+    },
+    "/(staff)/quality/tat-alerts/page": {
+      "route_extra_js_kb": 63,
+      "todo": "TODO 2026-11-17 T0D-BUNDLE-1: honest current value; the extra is the kit a11y layer (react-aria table/combobox/date fields). Lower when packages/ui or the page splits it."
+    }
+  }
+}

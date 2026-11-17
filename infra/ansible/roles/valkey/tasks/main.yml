@@ -1,0 +1,36 @@
+---
+# 02-TRD s7.4 (AC-11.1): users.acl on tmpfs, 0440 owner = container UID.
+# Users [CONV]: `default` off (no unauthenticated access; also keeps
+# protected-mode from refusing remote clients); `lims_api` (the core's
+# rate-limit backend, -@dangerous: no CONFIG/FLUSHALL/DEBUG...), stored as
+# a sha256 hash only; `probe` (no keys, PING + CONFIG GET only) for the
+# compose healthcheck and tests/internal/valkey_ephemeral.sh.
+- name: Preconditions (password decrypted by secrets_render)
+  ansible.builtin.assert:
+    that: valkey_lims_api_password | length >= 16
+    fail_msg: "valkey: valkey_lims_api_password missing (run secrets_render)"
+  no_log: true
+
+- name: /run/lims/secrets is tmpfs (never a disk path)
+  ansible.builtin.command: findmnt -n -o FSTYPE --target /run/lims/secrets
+  register: valkey_fstype
+  changed_when: false
+  failed_when: valkey_fstype.stdout | trim != 'tmpfs'
+
+- name: ACL directory
+  ansible.builtin.file:
+    path: "{{ valkey_acl_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0711"
+
+- name: users.acl (hash only)
+  ansible.builtin.template:
+    src: users.acl.j2
+    dest: /run/lims/secrets/valkey/users.acl
+    owner: "{{ valkey_uid }}"
+    group: "{{ valkey_uid }}"
+    mode: "0440"
+  no_log: true
+  notify: Restart valkey

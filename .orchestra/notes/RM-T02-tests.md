@@ -1,0 +1,6 @@
+# RM-T02 tests (tester)
+Files (services/api/src/modules/identity/__tests__/role-packs/): role-pack.service.test.ts (seed 19/10 roles == spec data file sorted, custom roles, idempotent re-apply, tenant edits kept, default roles + tenant B untouched, audit role.change, input/ctx fail-closed, default repo SQL insert-only with tenant_id, no HTTP op), apply-role-pack.cli.test.ts (args, exit 0/1/2, one-line errors, guarded entry point).
+Run: `.orchestra\notes\RM-T02-verify.cmd` (= pnpm --dir services/api exec vitest run on those two files). Existing RM-T01 tests in the same dir are not part of it.
+Seams (assumed, commented at top of each test): service exports createRolePackService / createRolePackRepo (listRoles, insertRole, addPermissions only); cli exports main(argv, {apply, stdout, stderr}).
+Expected red now: ../../service/role-pack.service.js and ../../cli/apply-role-pack.js do not exist (cannot resolve module).
+Not tested: hooking the seed into provisionTenant (tenant.service.ts not in the task files; run the CLI/service after provisioning), restoring a pack permission a tenant removed (left open; test accepts either), concurrent applies on one tenant (needs real PG advisory lock/unique), package.json script `identity:apply-role-pack` (not in task files), real-DB seed (db/tests).

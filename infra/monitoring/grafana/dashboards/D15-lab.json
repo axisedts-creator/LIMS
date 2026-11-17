@@ -1,0 +1,147 @@
+{
+  "uid": "lims-d15-lab",
+  "title": "D15 Modules / Lab workflow",
+  "description": "04-UI-UX s3 D15 for C5; panels from the chunk TRD observability section (T-21).",
+  "tags": [
+    "modules",
+    "c5"
+  ],
+  "editable": false,
+  "schemaVersion": 39,
+  "version": 1,
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "refresh": "1m",
+  "templating": {
+    "list": []
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "text",
+      "title": "About this dashboard",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 2
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "Owner C5. Alert rules: `rules/imported/lab.rules.yml`. Runbook: `infra/runbooks/lab.md`."
+      }
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "lims_core_dead_letters_total",
+      "description": "Owner C5 (Lab workflow). Metric lims_core_dead_letters_total from worker-a/b /metrics (02-TRD s11.2). Alerts: LabConsumerDeadLetter.",
+      "gridPos": {
+        "x": 0,
+        "y": 2,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(lims_core_dead_letters_total{task=~\"(evt\\\\.)?lab\\\\..*\"}[5m]))"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "lims_lab_barcode_alloc_failures_total",
+      "description": "Owner C5 (Lab workflow). Metric lims_lab_barcode_alloc_failures_total from worker-a/b /metrics (02-TRD s11.2). Alerts: LabBarcodeAllocationFailure.",
+      "gridPos": {
+        "x": 12,
+        "y": 2,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(lims_lab_barcode_alloc_failures_total[5m]))"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "lims_lab_critical_unnotified_oldest_age_seconds",
+      "description": "Owner C5 (Lab workflow). Metric lims_lab_critical_unnotified_oldest_age_seconds from worker-a/b /metrics (02-TRD s11.2). Alerts: LabCriticalValueUnnotified.",
+      "gridPos": {
+        "x": 0,
+        "y": 10,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max(lims_lab_critical_unnotified_oldest_age_seconds)"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "lims_lab_host_query_duration_seconds_bucket",
+      "description": "Owner C5 (Lab workflow). Metric lims_lab_host_query_duration_seconds_bucket from worker-a/b /metrics (02-TRD s11.2). Alerts: LabHostQuerySlow.",
+      "gridPos": {
+        "x": 12,
+        "y": 10,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(lims_lab_host_query_duration_seconds_bucket[5m])))"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "lims_lab_ingest_exception_oldest_open_age_seconds",
+      "description": "Owner C5 (Lab workflow). Metric lims_lab_ingest_exception_oldest_open_age_seconds from worker-a/b /metrics (02-TRD s11.2). Alerts: LabIngestExceptionStale.",
+      "gridPos": {
+        "x": 0,
+        "y": 18,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max(lims_lab_ingest_exception_oldest_open_age_seconds)"
+        }
+      ]
+    }
+  ]
+}

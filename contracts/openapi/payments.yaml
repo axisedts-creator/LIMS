@@ -1,0 +1,3705 @@
+# contracts/openapi/payments.yaml (C15) — transcription of spec/chunks/C15-payment-gateways/02-TRD.md §5.1 (P1–P24b) and §5.2 (P30–P34), 33 ops (T0C-10.C15; AC-0C-1.4/1.5).
+# LD-103 (2026-11-11): wave-2 transcription scheduled by the human lead; owner approval given by that decision. Generated once from the TRD tables, then owned by C15.
+# Notes:
+# - Examples are synthetic (uuids 01940f00-0000-7000-8000-…, "Synthetic …" labels, codes SYN-…); no secret, token or callback URL appears anywhere.
+# - [CONV] every staff operation lists the six common codes (validation_failed, not_found, forbidden, unauthenticated, rate_limited, internal); privileged
+#   permissions add auth.mfa_required (02-CV §10.1); required-idempotency ops add the three idempotency codes; error responses derive from errors.yaml http.
+# - [CONV] If-Match: required _common IfMatch on IM rows P4 P9 P10 P11 P11b P16 and PUT /settings (P23); P21 upsert takes an optional If-Match (absent row) and
+#   lists only common.version_conflict. Optional-idempotency ops (P3 P7b P21 P22 P23) declare no Idempotency-Key header (wave-1 convention).
+# - [CONV] public ops P30–P34 carry x-public + x-error-codes [validation_failed, rate_limited, internal] (strict query 400, per-IP/per-intent throttle);
+#   token routes use security paymentCallbackToken (path parameter callback_token), P34 security [].
+# - [CONV] TRD-open shapes: MemberRef {membership_id, display_name} also for FindingDto.resolved_by / StaticQrReconDto.reconciled_by; csv filters: enum lists as
+#   form/explode=false arrays, coded-set lists (hold_reason, kind) as patterned csv strings with x-coded-set; callback_token 16–128 base64url chars;
+#   transitions ≤ 200; refunds ≤ 200; html bodies ≤ 64 KiB; enum values copied from 05-SCHEMA CHECK constraints.
+openapi: 3.0.3
+info:
+  title: LIMS payments (C15)
+  version: 1.0.0
+  description: Transcribed from spec/chunks/C15-payment-gateways/02-TRD.md §5.1, §5.2 (T0C-10.C15, LD-103).
+paths:
+  /v1/payments/intents:
+    get:
+      operationId: listPaymentIntents
+      tags:
+        - payments
+      summary: List payment intents (TRD §5.1 P1)
+      security:
+        - bearerJwt: []
+      x-permission: payments.reconciliation.read
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - auth.mfa_required
+      parameters:
+        - name: status
+          in: query
+          required: false
+          style: form
+          explode: false
+          schema:
+            type: array
+            maxItems: 9
+            items:
+              type: string
+              maxLength: 18
+              enum:
+                - created
+                - initiated
+                - pending
+                - settled
+                - failed
+                - expired
+                - held_for_review
+                - refunded
+                - partially_refunded
+        - name: gateway
+          in: query
+          required: false
+          style: form
+          explode: false
+          schema:
+            type: array
+            maxItems: 3
+            items:
+              type: string
+              maxLength: 7
+              enum:
+                - esewa
+                - khalti
+                - fonepay
+        - name: hold_reason
+          in: query
+          required: false
+          description: Comma-separated codes.
+          schema:
+            type: string
+            maxLength: 1300
+            pattern: ^[a-z0-9_]{1,64}(,[a-z0-9_]{1,64}){0,19}$
+            x-coded-set: payments.hold_reasons
+        - name: order_id
+          in: query
+          required: false
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - name: centre_id
+          in: query
+          required: false
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - name: created_at_from
+          in: query
+          required: false
+          schema:
+            $ref: _common.yaml#/components/schemas/IsoUtc
+        - name: created_at_to
+          in: query
+          required: false
+          schema:
+            $ref: _common.yaml#/components/schemas/IsoUtc
+        - name: sort
+          in: query
+          required: false
+          description: "-updated_at dropped: no index serves it (review m#21)."
+          schema:
+            type: string
+            maxLength: 11
+            enum:
+              - -created_at
+              - created_at
+        - $ref: _common.yaml#/components/parameters/Cursor
+        - $ref: _common.yaml#/components/parameters/Limit
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                  - data
+                  - page
+                properties:
+                  data:
+                    type: array
+                    maxItems: 200
+                    items:
+                      $ref: "#/components/schemas/PaymentIntentSummary"
+                  page:
+                    $ref: _common.yaml#/components/schemas/PageInfo
+              examples:
+                synthetic:
+                  value:
+                    data:
+                      - id: 01940f00-0000-7000-8000-000000000001
+                        order_id: 01940f00-0000-7000-8000-000000000101
+                        centre_id: 01940f00-0000-7000-8000-000000000201
+                        gateway: esewa
+                        environment: uat
+                        status: held_for_review
+                        amount:
+                          amount_paisa: 150000
+                          currency: NPR
+                        hold_reason: amount_mismatch
+                        created_at: 2026-01-15T04:30:00.000Z
+                        expires_at: 2026-01-15T05:00:00.000Z
+                        last_checked_at: 2026-01-15T04:31:10.000Z
+                        version: 3
+                    page:
+                      limit: 50
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/payments/intents/{intent_id}:
+    get:
+      operationId: getPaymentIntent
+      tags:
+        - payments
+      summary: Get payment intent (TRD §5.1 P2)
+      security:
+        - bearerJwt: []
+      x-permission: payments.reconciliation.read
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - auth.mfa_required
+      parameters:
+        - $ref: "#/components/parameters/IntentId"
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentIntentDetail"
+              examples:
+                synthetic:
+                  value:
+                    id: 01940f00-0000-7000-8000-000000000801
+                    order_id: 01940f00-0000-7000-8000-000000000101
+                    centre_id: 01940f00-0000-7000-8000-000000000201
+                    gateway: esewa
+                    environment: uat
+                    status: held_for_review
+                    amount:
+                      amount_paisa: 150000
+                      currency: NPR
+                    hold_reason: amount_mismatch
+                    created_at: 2026-01-15T04:30:00.000Z
+                    expires_at: 2026-01-15T05:00:00.000Z
+                    last_checked_at: 2026-01-15T04:31:10.000Z
+                    version: 3
+                    gateway_txn_ref: 01940f00-0000-7000-8000-000000000001
+                    last_gateway_status_raw: COMPLETE
+                    verified_amount:
+                      amount_paisa: 140000
+                      currency: NPR
+                    verification_method: esewa_status_check
+                    refunded_amount:
+                      amount_paisa: 0
+                      currency: NPR
+                    created_by_actor_type: user
+                    transitions:
+                      - to_status: created
+                        cause: create
+                        actor_type: user
+                        at: 2026-01-15T04:30:00.000Z
+                      - from_status: created
+                        to_status: initiated
+                        cause: create
+                        actor_type: user
+                        at: 2026-01-15T04:30:00.000Z
+                      - from_status: initiated
+                        to_status: held_for_review
+                        cause: poll
+                        reason_code: amount_mismatch
+                        actor_type: system
+                        at: 2026-01-15T04:31:10.000Z
+                    gateway_checks:
+                      - operation: esewa_status
+                        outcome: answer
+                        gateway_status_raw: COMPLETE
+                        http_status: 200
+                        at: 2026-01-15T04:31:10.000Z
+                    callbacks:
+                      - kind: launch
+                        outcome_code: ok
+                        at: 2026-01-15T04:30:00.000Z
+                      - kind: esewa_success
+                        outcome_code: ok
+                        signature_valid: true
+                        at: 2026-01-15T04:31:10.000Z
+                    refunds: []
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/payments/intents/{intent_id}/recheck:
+    post:
+      operationId: recheckPaymentIntent
+      tags:
+        - payments
+      summary: Re-check payment intent with the gateway (TRD §5.1 P3)
+      description: Allowed while initiated, pending or held_for_review. Within VERIFY_MIN_INTERVAL_SECONDS of the last check → 429 common.rate_limited + Retry-After.
+      security:
+        - bearerJwt: []
+      x-permission: payments.intent.resolve
+      x-context: tenant
+      x-idempotency: optional
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - payments.gateway_not_available
+        - payments.intent_invalid_transition
+        - auth.mfa_required
+      parameters:
+        - $ref: "#/components/parameters/IntentId"
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentIntentDetail"
+              examples:
+                synthetic:
+                  value:
+                    id: 01940f00-0000-7000-8000-000000000802
+                    order_id: 01940f00-0000-7000-8000-000000000101
+                    centre_id: 01940f00-0000-7000-8000-000000000201
+                    gateway: esewa
+                    environment: uat
+                    status: held_for_review
+                    amount:
+                      amount_paisa: 150000
+                      currency: NPR
+                    hold_reason: amount_mismatch
+                    created_at: 2026-01-15T04:30:00.000Z
+                    expires_at: 2026-01-15T05:00:00.000Z
+                    last_checked_at: 2026-01-15T04:31:10.000Z
+                    version: 3
+                    gateway_txn_ref: 01940f00-0000-7000-8000-000000000001
+                    last_gateway_status_raw: COMPLETE
+                    verified_amount:
+                      amount_paisa: 140000
+                      currency: NPR
+                    verification_method: esewa_status_check
+                    refunded_amount:
+                      amount_paisa: 0
+                      currency: NPR
+                    created_by_actor_type: user
+                    transitions:
+                      - to_status: created
+                        cause: create
+                        actor_type: user
+                        at: 2026-01-15T04:30:00.000Z
+                      - from_status: created
+                        to_status: initiated
+                        cause: create
+                        actor_type: user
+                        at: 2026-01-15T04:30:00.000Z
+                      - from_status: initiated
+                        to_status: held_for_review
+                        cause: poll
+                        reason_code: amount_mismatch
+                        actor_type: system
+                        at: 2026-01-15T04:31:10.000Z
+                    gateway_checks:
+                      - operation: esewa_status
+                        outcome: answer
+                        gateway_status_raw: COMPLETE
+                        http_status: 200
+                        at: 2026-01-15T04:31:10.000Z
+                    callbacks:
+                      - kind: launch
+                        outcome_code: ok
+                        at: 2026-01-15T04:30:00.000Z
+                      - kind: esewa_success
+                        outcome_code: ok
+                        signature_valid: true
+                        at: 2026-01-15T04:31:10.000Z
+                    refunds: []
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+        "503":
+          $ref: _common.yaml#/components/responses/ServiceUnavailable
+  /v1/payments/intents/{intent_id}/resolve:
+    post:
+      operationId: resolvePaymentIntent
+      tags:
+        - payments
+      summary: Resolve held payment intent (TRD §5.1 P4)
+      security:
+        - bearerJwt: []
+      x-permission: payments.intent.resolve
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - payments.intent_not_verifiable
+        - payments.intent_invalid_transition
+        - auth.mfa_required
+        - common.idempotency_key_required
+        - common.idempotency_key_reused
+        - common.idempotency_in_progress
+        - common.version_conflict
+        - common.precondition_required
+      parameters:
+        - $ref: "#/components/parameters/IntentId"
+        - $ref: _common.yaml#/components/parameters/IdempotencyKey
+        - $ref: _common.yaml#/components/parameters/IfMatch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - resolution
+                - reason_code
+              properties:
+                resolution:
+                  type: string
+                  maxLength: 20
+                  enum:
+                    - settle
+                    - fail
+                    - record_exceeding_due
+                reason_code:
+                  type: string
+                  maxLength: 64
+                  pattern: ^[a-z0-9_]{1,64}$
+                  x-coded-set: payments.resolution_reasons
+                note:
+                  type: string
+                  maxLength: 500
+            examples:
+              synthetic:
+                value:
+                  resolution: settle
+                  reason_code: gateway_confirmed_paid
+                  note: Synthetic resolution note
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentIntentDetail"
+              examples:
+                synthetic:
+                  value:
+                    id: 01940f00-0000-7000-8000-000000000803
+                    order_id: 01940f00-0000-7000-8000-000000000101
+                    centre_id: 01940f00-0000-7000-8000-000000000201
+                    gateway: esewa
+                    environment: uat
+                    status: settled
+                    amount:
+                      amount_paisa: 150000
+                      currency: NPR
+                    created_at: 2026-01-15T04:30:00.000Z
+                    expires_at: 2026-01-15T05:00:00.000Z
+                    last_checked_at: 2026-01-15T04:31:10.000Z
+                    version: 4
+                    gateway_txn_ref: 01940f00-0000-7000-8000-000000000001
+                    last_gateway_status_raw: COMPLETE
+                    verified_amount:
+                      amount_paisa: 140000
+                      currency: NPR
+                    verification_method: esewa_status_check
+                    refunded_amount:
+                      amount_paisa: 0
+                      currency: NPR
+                    created_by_actor_type: user
+                    transitions:
+                      - to_status: created
+                        cause: create
+                        actor_type: user
+                        at: 2026-01-15T04:30:00.000Z
+                      - from_status: created
+                        to_status: initiated
+                        cause: create
+                        actor_type: user
+                        at: 2026-01-15T04:30:00.000Z
+                      - from_status: initiated
+                        to_status: held_for_review
+                        cause: poll
+                        reason_code: amount_mismatch
+                        actor_type: system
+                        at: 2026-01-15T04:31:10.000Z
+                    gateway_checks:
+                      - operation: esewa_status
+                        outcome: answer
+                        gateway_status_raw: COMPLETE
+                        http_status: 200
+                        at: 2026-01-15T04:31:10.000Z
+                    callbacks:
+                      - kind: launch
+                        outcome_code: ok
+                        at: 2026-01-15T04:30:00.000Z
+                      - kind: esewa_success
+                        outcome_code: ok
+                        signature_valid: true
+                        at: 2026-01-15T04:31:10.000Z
+                    refunds: []
+                    settled_at: 2026-01-15T05:00:00.000Z
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "428":
+          $ref: _common.yaml#/components/responses/PreconditionRequired
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/payments/intents/{intent_id}/cancel:
+    post:
+      operationId: cancelPaymentIntent
+      tags:
+        - payments
+      summary: Cancel payment intent (TRD §5.1 P5)
+      security:
+        - bearerJwt: []
+      x-permission: payments.intent.create
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - payments.intent_invalid_transition
+        - common.idempotency_key_required
+        - common.idempotency_key_reused
+        - common.idempotency_in_progress
+      parameters:
+        - $ref: "#/components/parameters/IntentId"
+        - $ref: _common.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - reason_code
+              properties:
+                reason_code:
+                  type: string
+                  maxLength: 64
+                  pattern: ^[a-z0-9_]{1,64}$
+                  x-coded-set: payments.cancel_reasons
+            examples:
+              synthetic:
+                value:
+                  reason_code: patient_changed_method
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                  - intent_id
+                  - status
+                properties:
+                  intent_id:
+                    $ref: _common.yaml#/components/schemas/Uuidv7
+                  status:
+                    type: string
+                    maxLength: 18
+                    enum:
+                      - created
+                      - initiated
+                      - pending
+                      - settled
+                      - failed
+                      - expired
+                      - held_for_review
+                      - refunded
+                      - partially_refunded
+              examples:
+                synthetic:
+                  value:
+                    intent_id: 01940f00-0000-7000-8000-000000000001
+                    status: failed
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/payments/refunds:
+    get:
+      operationId: listPaymentRefunds
+      tags:
+        - payments
+      summary: List refunds (TRD §5.1 P6)
+      security:
+        - bearerJwt: []
+      x-permission: payments.reconciliation.read
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - auth.mfa_required
+      parameters:
+        - name: status
+          in: query
+          required: false
+          style: form
+          explode: false
+          schema:
+            type: array
+            maxItems: 7
+            items:
+              type: string
+              maxLength: 16
+              enum:
+                - pending_approval
+                - approved
+                - rejected
+                - requested
+                - held_for_review
+                - completed
+                - failed
+        - name: gateway
+          in: query
+          required: false
+          style: form
+          explode: false
+          schema:
+            type: array
+            maxItems: 3
+            items:
+              type: string
+              maxLength: 7
+              enum:
+                - esewa
+                - khalti
+                - fonepay
+        - name: intent_id
+          in: query
+          required: false
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - name: created_at_from
+          in: query
+          required: false
+          schema:
+            $ref: _common.yaml#/components/schemas/IsoUtc
+        - name: created_at_to
+          in: query
+          required: false
+          schema:
+            $ref: _common.yaml#/components/schemas/IsoUtc
+        - name: sort
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 11
+            enum:
+              - -created_at
+              - created_at
+        - $ref: _common.yaml#/components/parameters/Cursor
+        - $ref: _common.yaml#/components/parameters/Limit
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                  - data
+                  - page
+                properties:
+                  data:
+                    type: array
+                    maxItems: 200
+                    items:
+                      $ref: "#/components/schemas/RefundDto"
+                  page:
+                    $ref: _common.yaml#/components/schemas/PageInfo
+              examples:
+                synthetic:
+                  value:
+                    data:
+                      - id: 01940f00-0000-7000-8000-000000000301
+                        intent_id: 01940f00-0000-7000-8000-000000000001
+                        order_id: 01940f00-0000-7000-8000-000000000101
+                        gateway: khalti
+                        mode: manual
+                        status: pending_approval
+                        amount:
+                          amount_paisa: 50000
+                          currency: NPR
+                        reason_code: test_cancelled
+                        reason_text: Synthetic refund note
+                        requested_by:
+                          membership_id: 01940f00-0000-7000-8000-000000000901
+                          display_name: Synthetic Finance User 1
+                        requested_at: 2026-01-15T04:31:10.000Z
+                        version: 1
+                    page:
+                      limit: 50
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/payments/refunds/{refund_id}:
+    get:
+      operationId: getPaymentRefund
+      tags:
+        - payments
+      summary: Get refund (TRD §5.1 P7)
+      security:
+        - bearerJwt: []
+      x-permission: payments.reconciliation.read
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - auth.mfa_required
+      parameters:
+        - $ref: "#/components/parameters/RefundId"
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RefundDto"
+              examples:
+                synthetic:
+                  value:
+                    id: 01940f00-0000-7000-8000-000000000804
+                    intent_id: 01940f00-0000-7000-8000-000000000001
+                    order_id: 01940f00-0000-7000-8000-000000000101
+                    gateway: khalti
+                    mode: manual
+                    status: pending_approval
+                    amount:
+                      amount_paisa: 50000
+                      currency: NPR
+                    reason_code: test_cancelled
+                    reason_text: Synthetic refund note
+                    requested_by:
+                      membership_id: 01940f00-0000-7000-8000-000000000901
+                      display_name: Synthetic Finance User 1
+                    requested_at: 2026-01-15T04:31:10.000Z
+                    version: 1
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/payments/refunds/{refund_id}/recheck:
+    post:
+      operationId: recheckPaymentRefund
+      tags:
+        - payments
+      summary: Re-check refund with the gateway (TRD §5.1 P7b)
+      description: "Allowed while requested or held_for_review; runs §6.6 step 6 in-request. Within VERIFY_MIN_INTERVAL_SECONDS of last_checked_at → 429 common.rate_limited + Retry-After (review #7)."
+      security:
+        - bearerJwt: []
+      x-permission: payments.intent.resolve
+      x-context: tenant
+      x-idempotency: optional
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - payments.refund_not_allowed
+        - payments.gateway_not_available
+        - auth.mfa_required
+      parameters:
+        - $ref: "#/components/parameters/RefundId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties: {}
+            examples:
+              synthetic:
+                value: {}
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RefundDto"
+              examples:
+                synthetic:
+                  value:
+                    id: 01940f00-0000-7000-8000-000000000805
+                    intent_id: 01940f00-0000-7000-8000-000000000001
+                    order_id: 01940f00-0000-7000-8000-000000000101
+                    gateway: khalti
+                    mode: manual
+                    status: held_for_review
+                    amount:
+                      amount_paisa: 50000
+                      currency: NPR
+                    reason_code: test_cancelled
+                    reason_text: Synthetic refund note
+                    requested_by:
+                      membership_id: 01940f00-0000-7000-8000-000000000901
+                      display_name: Synthetic Finance User 1
+                    requested_at: 2026-01-15T04:31:10.000Z
+                    version: 4
+                    held_reason: refund_not_visible
+                    approved_by:
+                      membership_id: 01940f00-0000-7000-8000-000000000902
+                      display_name: Synthetic Finance User 2
+                    approved_at: 2026-01-15T04:31:10.000Z
+                    last_checked_at: 2026-01-15T05:00:00.000Z
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+        "503":
+          $ref: _common.yaml#/components/responses/ServiceUnavailable
+  /v1/payments/intents/{intent_id}/refunds:
+    post:
+      operationId: createPaymentRefundRequest
+      tags:
+        - payments
+      summary: Request a refund (TRD §5.1 P8)
+      security:
+        - bearerJwt: []
+      x-permission: payments.refund.request
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - payments.refund_not_allowed
+        - payments.refund_exceeds_captured
+        - auth.mfa_required
+        - common.idempotency_key_required
+        - common.idempotency_key_reused
+        - common.idempotency_in_progress
+      parameters:
+        - $ref: "#/components/parameters/IntentId"
+        - $ref: _common.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - refund_amount_paisa
+                - reason_code
+              properties:
+                refund_amount_paisa:
+                  type: integer
+                  format: int64
+                  minimum: 1
+                  maximum: 9007199254740991
+                reason_code:
+                  type: string
+                  maxLength: 64
+                  pattern: ^[a-z0-9_]{1,64}$
+                  x-coded-set: payments.refund_reasons
+                reason_text:
+                  type: string
+                  maxLength: 500
+            examples:
+              synthetic:
+                value:
+                  refund_amount_paisa: 50000
+                  reason_code: test_cancelled
+                  reason_text: Synthetic refund note
+      responses:
+        "201":
+          description: Created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RefundDto"
+              examples:
+                synthetic:
+                  value:
+                    id: 01940f00-0000-7000-8000-000000000806
+                    intent_id: 01940f00-0000-7000-8000-000000000001
+                    order_id: 01940f00-0000-7000-8000-000000000101
+                    gateway: khalti
+                    mode: manual
+                    status: pending_approval
+                    amount:
+                      amount_paisa: 50000
+                      currency: NPR
+                    reason_code: test_cancelled
+                    reason_text: Synthetic refund note
+                    requested_by:
+                      membership_id: 01940f00-0000-7000-8000-000000000901
+                      display_name: Synthetic Finance User 1
+                    requested_at: 2026-01-15T04:31:10.000Z
+                    version: 1
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/payments/refunds/{refund_id}/approve:
+    post:
+      operationId: approvePaymentRefund
+      tags:
+        - payments
+      summary: Approve refund (TRD §5.1 P9)
+      security:
+        - bearerJwt: []
+      x-permission: payments.refund.approve
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - payments.refund_self_approval_forbidden
+        - payments.refund_not_allowed
+        - payments.refund_exceeds_captured
+        - auth.mfa_required
+        - common.idempotency_key_required
+        - common.idempotency_key_reused
+        - common.idempotency_in_progress
+        - common.version_conflict
+        - common.precondition_required
+      parameters:
+        - $ref: "#/components/parameters/RefundId"
+        - $ref: _common.yaml#/components/parameters/IdempotencyKey
+        - $ref: _common.yaml#/components/parameters/IfMatch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                note:
+                  type: string
+                  maxLength: 500
+            examples:
+              synthetic:
+                value:
+                  note: Synthetic approval note
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RefundDto"
+              examples:
+                synthetic:
+                  value:
+                    id: 01940f00-0000-7000-8000-000000000807
+                    intent_id: 01940f00-0000-7000-8000-000000000001
+                    order_id: 01940f00-0000-7000-8000-000000000101
+                    gateway: khalti
+                    mode: manual
+                    status: approved
+                    amount:
+                      amount_paisa: 50000
+                      currency: NPR
+                    reason_code: test_cancelled
+                    reason_text: Synthetic refund note
+                    requested_by:
+                      membership_id: 01940f00-0000-7000-8000-000000000901
+                      display_name: Synthetic Finance User 1
+                    requested_at: 2026-01-15T04:31:10.000Z
+                    version: 2
+                    approved_by:
+                      membership_id: 01940f00-0000-7000-8000-000000000902
+                      display_name: Synthetic Finance User 2
+                    approved_at: 2026-01-15T05:00:00.000Z
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "428":
+          $ref: _common.yaml#/components/responses/PreconditionRequired
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/payments/refunds/{refund_id}/reject:
+    post:
+      operationId: rejectPaymentRefund
+      tags:
+        - payments
+      summary: Reject refund (TRD §5.1 P10)
+      security:
+        - bearerJwt: []
+      x-permission: payments.refund.approve
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - payments.refund_not_allowed
+        - auth.mfa_required
+        - common.idempotency_key_required
+        - common.idempotency_key_reused
+        - common.idempotency_in_progress
+        - common.version_conflict
+        - common.precondition_required
+      parameters:
+        - $ref: "#/components/parameters/RefundId"
+        - $ref: _common.yaml#/components/parameters/IdempotencyKey
+        - $ref: _common.yaml#/components/parameters/IfMatch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - reason_code
+              properties:
+                reason_code:
+                  type: string
+                  maxLength: 64
+                  pattern: ^[a-z0-9_]{1,64}$
+                  x-coded-set: payments.refund_reject_reasons
+                note:
+                  type: string
+                  maxLength: 500
+            examples:
+              synthetic:
+                value:
+                  reason_code: not_eligible
+                  note: Synthetic rejection note
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RefundDto"
+              examples:
+                synthetic:
+                  value:
+                    id: 01940f00-0000-7000-8000-000000000808
+                    intent_id: 01940f00-0000-7000-8000-000000000001
+                    order_id: 01940f00-0000-7000-8000-000000000101
+                    gateway: khalti
+                    mode: manual
+                    status: rejected
+                    amount:
+                      amount_paisa: 50000
+                      currency: NPR
+                    reason_code: test_cancelled
+                    reason_text: Synthetic refund note
+                    requested_by:
+                      membership_id: 01940f00-0000-7000-8000-000000000901
+                      display_name: Synthetic Finance User 1
+                    requested_at: 2026-01-15T04:31:10.000Z
+                    version: 2
+                    rejected_by:
+                      membership_id: 01940f00-0000-7000-8000-000000000902
+                      display_name: Synthetic Finance User 2
+                    rejected_at: 2026-01-15T05:00:00.000Z
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "428":
+          $ref: _common.yaml#/components/responses/PreconditionRequired
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/payments/refunds/{refund_id}/confirm-manual:
+    post:
+      operationId: confirmManualPaymentRefund
+      tags:
+        - payments
+      summary: Confirm manual refund (TRD §5.1 P11)
+      description: Response status is completed or held_for_review.
+      security:
+        - bearerJwt: []
+      x-permission: payments.refund.approve
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - payments.refund_not_allowed
+        - auth.mfa_required
+        - common.idempotency_key_required
+        - common.idempotency_key_reused
+        - common.idempotency_in_progress
+        - common.version_conflict
+        - common.precondition_required
+      parameters:
+        - $ref: "#/components/parameters/RefundId"
+        - $ref: _common.yaml#/components/parameters/IdempotencyKey
+        - $ref: _common.yaml#/components/parameters/IfMatch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - gateway_refund_reference
+                - refunded_on
+              properties:
+                gateway_refund_reference:
+                  type: string
+                  maxLength: 100
+                  pattern: ^[A-Za-z0-9_.:/-]{1,100}$
+                refunded_on:
+                  $ref: _common.yaml#/components/schemas/IsoDate
+            examples:
+              synthetic:
+                value:
+                  gateway_refund_reference: SYN-RF-0001
+                  refunded_on: 2026-01-15
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RefundDto"
+              examples:
+                synthetic:
+                  value:
+                    id: 01940f00-0000-7000-8000-000000000809
+                    intent_id: 01940f00-0000-7000-8000-000000000001
+                    order_id: 01940f00-0000-7000-8000-000000000101
+                    gateway: khalti
+                    mode: manual
+                    status: completed
+                    amount:
+                      amount_paisa: 50000
+                      currency: NPR
+                    reason_code: test_cancelled
+                    reason_text: Synthetic refund note
+                    requested_by:
+                      membership_id: 01940f00-0000-7000-8000-000000000901
+                      display_name: Synthetic Finance User 1
+                    requested_at: 2026-01-15T04:31:10.000Z
+                    version: 4
+                    approved_by:
+                      membership_id: 01940f00-0000-7000-8000-000000000902
+                      display_name: Synthetic Finance User 2
+                    approved_at: 2026-01-15T05:00:00.000Z
+                    gateway_refund_reference: SYN-RF-0001
+                    completed_at: 2026-01-15T05:00:00.000Z
+                    ledger_entry_id: 01940f00-0000-7000-8000-000000000701
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "428":
+          $ref: _common.yaml#/components/responses/PreconditionRequired
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/payments/refunds/{refund_id}/fail:
+    post:
+      operationId: failManualPaymentRefund
+      tags:
+        - payments
+      summary: Mark refund failed (TRD §5.1 P11b)
+      description: "Allowed only from requested / held_for_review and only after the in-request gateway check (§6.6 step 8) shows no refund (review #6). note is required when the code has requires_text."
+      security:
+        - bearerJwt: []
+      x-permission: payments.refund.approve
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - payments.refund_not_allowed
+        - payments.gateway_not_available
+        - auth.mfa_required
+        - common.idempotency_key_required
+        - common.idempotency_key_reused
+        - common.idempotency_in_progress
+        - common.version_conflict
+        - common.precondition_required
+      parameters:
+        - $ref: "#/components/parameters/RefundId"
+        - $ref: _common.yaml#/components/parameters/IdempotencyKey
+        - $ref: _common.yaml#/components/parameters/IfMatch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - reason_code
+              properties:
+                reason_code:
+                  type: string
+                  maxLength: 64
+                  pattern: ^[a-z0-9_]{1,64}$
+                  x-coded-set: payments.refund_fail_reasons
+                note:
+                  type: string
+                  maxLength: 500
+            examples:
+              synthetic:
+                value:
+                  reason_code: gateway_confirmed_not_refunded
+                  note: Synthetic failure note
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RefundDto"
+              examples:
+                synthetic:
+                  value:
+                    id: 01940f00-0000-7000-8000-000000000810
+                    intent_id: 01940f00-0000-7000-8000-000000000001
+                    order_id: 01940f00-0000-7000-8000-000000000101
+                    gateway: khalti
+                    mode: manual
+                    status: failed
+                    amount:
+                      amount_paisa: 50000
+                      currency: NPR
+                    reason_code: test_cancelled
+                    reason_text: Synthetic refund note
+                    requested_by:
+                      membership_id: 01940f00-0000-7000-8000-000000000901
+                      display_name: Synthetic Finance User 1
+                    requested_at: 2026-01-15T04:31:10.000Z
+                    version: 4
+                    approved_by:
+                      membership_id: 01940f00-0000-7000-8000-000000000902
+                      display_name: Synthetic Finance User 2
+                    approved_at: 2026-01-15T05:00:00.000Z
+                    failure_reason: gateway_confirmed_not_refunded
+                    failure_note: Synthetic failure note
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "428":
+          $ref: _common.yaml#/components/responses/PreconditionRequired
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+        "503":
+          $ref: _common.yaml#/components/responses/ServiceUnavailable
+  /v1/payments/reconciliation-runs:
+    get:
+      operationId: listReconciliationRuns
+      tags:
+        - payments
+      summary: List reconciliation runs (TRD §5.1 P12)
+      security:
+        - bearerJwt: []
+      x-permission: payments.reconciliation.read
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - auth.mfa_required
+      parameters:
+        - name: business_date_from
+          in: query
+          required: false
+          schema:
+            $ref: _common.yaml#/components/schemas/IsoDate
+        - name: business_date_to
+          in: query
+          required: false
+          schema:
+            $ref: _common.yaml#/components/schemas/IsoDate
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 9
+            enum:
+              - running
+              - completed
+              - failed
+        - name: sort
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 14
+            enum:
+              - -business_date
+        - $ref: _common.yaml#/components/parameters/Cursor
+        - $ref: _common.yaml#/components/parameters/Limit
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                  - data
+                  - page
+                properties:
+                  data:
+                    type: array
+                    maxItems: 200
+                    items:
+                      $ref: "#/components/schemas/ReconciliationRunDto"
+                  page:
+                    $ref: _common.yaml#/components/schemas/PageInfo
+              examples:
+                synthetic:
+                  value:
+                    data:
+                      - id: 01940f00-0000-7000-8000-000000000401
+                        business_date: 2026-01-14
+                        trigger: cron
+                        status: completed
+                        started_at: 2026-01-15T04:30:00.000Z
+                        finished_at: 2026-01-15T04:31:10.000Z
+                        counts:
+                          checked: 42
+                          ok: 41
+                          findings: 1
+                          critical: 0
+                        version: 2
+                    page:
+                      limit: 50
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+    post:
+      operationId: startReconciliationRun
+      tags:
+        - payments
+      summary: Start manual reconciliation run (TRD §5.1 P14)
+      description: Always "now", trigger manual.
+      security:
+        - bearerJwt: []
+      x-permission: payments.intent.resolve
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - payments.reconciliation_in_progress
+        - auth.mfa_required
+        - common.idempotency_key_required
+        - common.idempotency_key_reused
+        - common.idempotency_in_progress
+      parameters:
+        - $ref: _common.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties: {}
+            examples:
+              synthetic:
+                value: {}
+      responses:
+        "202":
+          description: Accepted.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReconciliationRunDto"
+              examples:
+                synthetic:
+                  value:
+                    id: 01940f00-0000-7000-8000-000000000402
+                    business_date: 2026-01-15
+                    trigger: manual
+                    status: running
+                    started_at: 2026-01-15T05:00:00.000Z
+                    counts:
+                      checked: 0
+                      ok: 0
+                      findings: 0
+                      critical: 0
+                    version: 1
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/payments/reconciliation-runs/{run_id}:
+    get:
+      operationId: getReconciliationRun
+      tags:
+        - payments
+      summary: Get reconciliation run (TRD §5.1 P13)
+      security:
+        - bearerJwt: []
+      x-permission: payments.reconciliation.read
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - auth.mfa_required
+      parameters:
+        - $ref: "#/components/parameters/RunId"
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReconciliationRunDto"
+              examples:
+                synthetic:
+                  value:
+                    id: 01940f00-0000-7000-8000-000000000811
+                    business_date: 2026-01-14
+                    trigger: cron
+                    status: completed
+                    started_at: 2026-01-15T04:30:00.000Z
+                    finished_at: 2026-01-15T04:31:10.000Z
+                    counts:
+                      checked: 42
+                      ok: 41
+                      findings: 1
+                      critical: 0
+                    version: 2
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/payments/reconciliation-findings:
+    get:
+      operationId: listReconciliationFindings
+      tags:
+        - payments
+      summary: List reconciliation findings (TRD §5.1 P15)
+      security:
+        - bearerJwt: []
+      x-permission: payments.reconciliation.read
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - auth.mfa_required
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 8
+            enum:
+              - open
+              - resolved
+        - name: kind
+          in: query
+          required: false
+          description: Comma-separated codes.
+          schema:
+            type: string
+            maxLength: 1300
+            pattern: ^[a-z0-9_]{1,64}(,[a-z0-9_]{1,64}){0,19}$
+            x-coded-set: payments.finding_kinds
+        - name: severity
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 8
+            enum:
+              - info
+              - warning
+              - critical
+        - name: run_id
+          in: query
+          required: false
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - name: sort
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 11
+            enum:
+              - -created_at
+              - severity
+        - $ref: _common.yaml#/components/parameters/Cursor
+        - $ref: _common.yaml#/components/parameters/Limit
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                  - data
+                  - page
+                properties:
+                  data:
+                    type: array
+                    maxItems: 200
+                    items:
+                      $ref: "#/components/schemas/FindingDto"
+                  page:
+                    $ref: _common.yaml#/components/schemas/PageInfo
+              examples:
+                synthetic:
+                  value:
+                    data:
+                      - id: 01940f00-0000-7000-8000-000000000501
+                        run_id: 01940f00-0000-7000-8000-000000000401
+                        kind: still_held
+                        severity: warning
+                        intent_id: 01940f00-0000-7000-8000-000000000001
+                        our_status: held_for_review
+                        gateway_status_raw: COMPLETE
+                        our_amount:
+                          amount_paisa: 150000
+                          currency: NPR
+                        gateway_amount:
+                          amount_paisa: 140000
+                          currency: NPR
+                        auto_action: none
+                        status: open
+                        created_at: 2026-01-15T04:31:10.000Z
+                        version: 1
+                    page:
+                      limit: 50
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/payments/reconciliation-findings/{finding_id}/resolve:
+    post:
+      operationId: resolveReconciliationFinding
+      tags:
+        - payments
+      summary: Resolve reconciliation finding (TRD §5.1 P16)
+      description: note is required when resolution_code = other.
+      security:
+        - bearerJwt: []
+      x-permission: payments.intent.resolve
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.immutable_record
+        - auth.mfa_required
+        - common.idempotency_key_required
+        - common.idempotency_key_reused
+        - common.idempotency_in_progress
+        - common.version_conflict
+        - common.precondition_required
+      parameters:
+        - $ref: "#/components/parameters/FindingId"
+        - $ref: _common.yaml#/components/parameters/IdempotencyKey
+        - $ref: _common.yaml#/components/parameters/IfMatch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - resolution_code
+              properties:
+                resolution_code:
+                  type: string
+                  maxLength: 64
+                  pattern: ^[a-z0-9_]{1,64}$
+                  x-coded-set: payments.finding_resolutions
+                note:
+                  type: string
+                  maxLength: 1000
+            examples:
+              synthetic:
+                value:
+                  resolution_code: confirmed_ok
+                  note: Synthetic finding note
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FindingDto"
+              examples:
+                synthetic:
+                  value:
+                    id: 01940f00-0000-7000-8000-000000000812
+                    run_id: 01940f00-0000-7000-8000-000000000401
+                    kind: still_held
+                    severity: warning
+                    intent_id: 01940f00-0000-7000-8000-000000000001
+                    our_status: held_for_review
+                    gateway_status_raw: COMPLETE
+                    our_amount:
+                      amount_paisa: 150000
+                      currency: NPR
+                    gateway_amount:
+                      amount_paisa: 140000
+                      currency: NPR
+                    auto_action: none
+                    status: resolved
+                    created_at: 2026-01-15T04:31:10.000Z
+                    version: 2
+                    resolution_code: confirmed_ok
+                    note: Synthetic finding note
+                    resolved_by:
+                      membership_id: 01940f00-0000-7000-8000-000000000901
+                      display_name: Synthetic Finance User 1
+                    resolved_at: 2026-01-15T05:00:00.000Z
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "428":
+          $ref: _common.yaml#/components/responses/PreconditionRequired
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/payments/static-qr-reconciliations:
+    get:
+      operationId: listStaticQrReconciliations
+      tags:
+        - payments
+      summary: List static-QR reconciliations (TRD §5.1 P17)
+      security:
+        - bearerJwt: []
+      x-permission: payments.reconciliation.read
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - auth.mfa_required
+      parameters:
+        - name: business_date_from
+          in: query
+          required: false
+          schema:
+            $ref: _common.yaml#/components/schemas/IsoDate
+        - name: business_date_to
+          in: query
+          required: false
+          schema:
+            $ref: _common.yaml#/components/schemas/IsoDate
+        - name: centre_id
+          in: query
+          required: false
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - $ref: _common.yaml#/components/parameters/Cursor
+        - $ref: _common.yaml#/components/parameters/Limit
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                  - data
+                  - page
+                properties:
+                  data:
+                    type: array
+                    maxItems: 200
+                    items:
+                      $ref: "#/components/schemas/StaticQrReconDto"
+                  page:
+                    $ref: _common.yaml#/components/schemas/PageInfo
+              examples:
+                synthetic:
+                  value:
+                    data:
+                      - id: 01940f00-0000-7000-8000-000000000601
+                        business_date: 2026-01-14
+                        centre_id: 01940f00-0000-7000-8000-000000000201
+                        system_entries: 7
+                        system_total:
+                          amount_paisa: 840000
+                          currency: NPR
+                        statement_total:
+                          amount_paisa: 840000
+                          currency: NPR
+                        difference:
+                          amount_paisa: 0
+                          currency: NPR
+                        statement_reference: SYN-STMT-0001
+                        status: matched
+                        reconciled_by:
+                          membership_id: 01940f00-0000-7000-8000-000000000901
+                          display_name: Synthetic Finance User 1
+                        created_at: 2026-01-15T04:31:10.000Z
+                    page:
+                      limit: 50
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+    post:
+      operationId: createStaticQrReconciliation
+      tags:
+        - payments
+      summary: Record static-QR reconciliation (TRD §5.1 P19)
+      description: note is required when the difference is not zero (common.validation_failed).
+      security:
+        - bearerJwt: []
+      x-permission: payments.intent.resolve
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - payments.static_qr_already_reconciled
+        - auth.mfa_required
+        - common.idempotency_key_required
+        - common.idempotency_key_reused
+        - common.idempotency_in_progress
+      parameters:
+        - $ref: _common.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - business_date
+                - statement_total_paisa
+                - statement_reference
+              properties:
+                business_date:
+                  $ref: _common.yaml#/components/schemas/IsoDate
+                centre_id:
+                  $ref: _common.yaml#/components/schemas/Uuidv7
+                statement_total_paisa:
+                  type: integer
+                  format: int64
+                  minimum: 0
+                  maximum: 9007199254740991
+                statement_reference:
+                  type: string
+                  maxLength: 100
+                  minLength: 1
+                note:
+                  type: string
+                  maxLength: 1000
+            examples:
+              synthetic:
+                value:
+                  business_date: 2026-01-14
+                  centre_id: 01940f00-0000-7000-8000-000000000201
+                  statement_total_paisa: 840000
+                  statement_reference: SYN-STMT-0001
+      responses:
+        "201":
+          description: Created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StaticQrReconDto"
+              examples:
+                synthetic:
+                  value:
+                    id: 01940f00-0000-7000-8000-000000000813
+                    business_date: 2026-01-14
+                    centre_id: 01940f00-0000-7000-8000-000000000201
+                    system_entries: 7
+                    system_total:
+                      amount_paisa: 840000
+                      currency: NPR
+                    statement_total:
+                      amount_paisa: 840000
+                      currency: NPR
+                    difference:
+                      amount_paisa: 0
+                      currency: NPR
+                    statement_reference: SYN-STMT-0001
+                    status: matched
+                    reconciled_by:
+                      membership_id: 01940f00-0000-7000-8000-000000000901
+                      display_name: Synthetic Finance User 1
+                    created_at: 2026-01-15T04:31:10.000Z
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/payments/static-qr-reconciliations/preview:
+    get:
+      operationId: previewStaticQrReconciliation
+      tags:
+        - payments
+      summary: Preview static-QR reconciliation (TRD §5.1 P18)
+      security:
+        - bearerJwt: []
+      x-permission: payments.reconciliation.read
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - auth.mfa_required
+      parameters:
+        - name: business_date
+          in: query
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/IsoDate
+        - name: centre_id
+          in: query
+          required: false
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                  - business_date
+                  - system_entries
+                  - system_total
+                properties:
+                  business_date:
+                    $ref: _common.yaml#/components/schemas/IsoDate
+                  centre_id:
+                    $ref: _common.yaml#/components/schemas/Uuidv7
+                  system_entries:
+                    type: integer
+                    minimum: 0
+                    maximum: 2147483647
+                  system_total:
+                    $ref: _common.yaml#/components/schemas/Money
+              examples:
+                synthetic:
+                  value:
+                    business_date: 2026-01-14
+                    centre_id: 01940f00-0000-7000-8000-000000000201
+                    system_entries: 7
+                    system_total:
+                      amount_paisa: 840000
+                      currency: NPR
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/payments/merchant-accounts:
+    get:
+      operationId: listMerchantAccounts
+      tags:
+        - payments
+      summary: List merchant accounts (TRD §5.1 P20)
+      description: At most 6 rows; no pagination.
+      security:
+        - bearerJwt: []
+      x-permission: payments.merchant_config.read
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                  - data
+                properties:
+                  data:
+                    type: array
+                    maxItems: 6
+                    items:
+                      $ref: "#/components/schemas/MerchantAccountDto"
+              examples:
+                synthetic:
+                  value:
+                    data:
+                      - gateway: esewa
+                        environment: uat
+                        is_enabled: true
+                        esewa_product_code: SYNTHETIC_CODE
+                        secret:
+                          is_set: true
+                          set_at: 2026-01-15T04:30:00.000Z
+                          fingerprint: 0a1b2c3d
+                        api_refunds_enabled: false
+                        last_test:
+                          outcome: reachable_key_valid
+                          at: 2026-01-15T04:31:10.000Z
+                        version: 2
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/payments/merchant-accounts/{gateway}/{environment}:
+    put:
+      operationId: putMerchantAccount
+      tags:
+        - payments
+      summary: Create or update merchant account (TRD §5.1 P21)
+      description: If-Match required when the row exists, omitted for an absent row. secret is write-only; responses only say whether it is set. Enabling fonepay → payments.gateway_not_available.
+      security:
+        - bearerJwt: []
+      x-permission: payments.merchant_config.manage
+      x-context: tenant
+      x-idempotency: optional
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - payments.gateway_not_available
+        - common.version_conflict
+        - auth.mfa_required
+      parameters:
+        - $ref: "#/components/parameters/GatewayPath"
+        - $ref: "#/components/parameters/EnvironmentPath"
+        - $ref: "#/components/parameters/IfMatchOptional"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - is_enabled
+              properties:
+                is_enabled:
+                  type: boolean
+                esewa_product_code:
+                  type: string
+                  maxLength: 64
+                  pattern: ^[A-Za-z0-9_-]+$
+                khalti_website_url:
+                  type: string
+                  maxLength: 300
+                  pattern: ^https://
+                secret:
+                  type: string
+                  maxLength: 256
+                  minLength: 1
+                  writeOnly: true
+                api_refunds_enabled:
+                  type: boolean
+                  description: khalti only
+            examples:
+              synthetic:
+                value:
+                  is_enabled: true
+                  esewa_product_code: SYNTHETIC_CODE
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MerchantAccountDto"
+              examples:
+                synthetic:
+                  value:
+                    gateway: esewa
+                    environment: uat
+                    is_enabled: true
+                    esewa_product_code: SYNTHETIC_CODE
+                    secret:
+                      is_set: true
+                      set_at: 2026-01-15T04:30:00.000Z
+                      fingerprint: 0a1b2c3d
+                    api_refunds_enabled: false
+                    last_test:
+                      outcome: reachable_key_valid
+                      at: 2026-01-15T04:31:10.000Z
+                    version: 2
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+        "503":
+          $ref: _common.yaml#/components/responses/ServiceUnavailable
+  /v1/payments/merchant-accounts/{gateway}/{environment}/test:
+    post:
+      operationId: testMerchantAccount
+      tags:
+        - payments
+      summary: Test merchant account credentials (TRD §5.1 P22)
+      description: Every outcome, including a rejected key (auth_failed), is a 200 and is stored as last_test (review m#18). payments.credential_invalid is never emitted.
+      security:
+        - bearerJwt: []
+      x-permission: payments.merchant_config.manage
+      x-context: tenant
+      x-idempotency: optional
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - auth.mfa_required
+      parameters:
+        - $ref: "#/components/parameters/GatewayPath"
+        - $ref: "#/components/parameters/EnvironmentPath"
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                  - outcome
+                  - checked_at
+                properties:
+                  outcome:
+                    type: string
+                    maxLength: 26
+                    enum:
+                      - reachable_key_valid
+                      - reachable_key_unverifiable
+                      - auth_failed
+                      - unreachable
+                  checked_at:
+                    $ref: _common.yaml#/components/schemas/IsoUtc
+              examples:
+                synthetic:
+                  value:
+                    outcome: reachable_key_valid
+                    checked_at: 2026-01-15T04:31:10.000Z
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/payments/settings:
+    get:
+      operationId: getPaymentSettings
+      tags:
+        - payments
+      summary: Get payment settings (TRD §5.1 P23)
+      security:
+        - bearerJwt: []
+      x-permission: payments.merchant_config.read
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentSettingsDto"
+              examples:
+                synthetic:
+                  value:
+                    refund_two_person_threshold:
+                      amount_paisa: 500000
+                      currency: NPR
+                    purchase_order_label: Synthetic Lab Payment
+                    reconciliation_enabled: true
+                    version: 4
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+    put:
+      operationId: updatePaymentSettings
+      tags:
+        - payments
+      summary: Update payment settings (TRD §5.1 P23)
+      security:
+        - bearerJwt: []
+      x-permission: payments.merchant_config.manage
+      x-context: tenant
+      x-idempotency: optional
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - auth.mfa_required
+        - common.version_conflict
+        - common.precondition_required
+      parameters:
+        - $ref: _common.yaml#/components/parameters/IfMatch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - refund_two_person_threshold_paisa
+                - purchase_order_label
+                - reconciliation_enabled
+              properties:
+                refund_two_person_threshold_paisa:
+                  type: integer
+                  format: int64
+                  minimum: 0
+                  maximum: 9007199254740991
+                purchase_order_label:
+                  type: string
+                  maxLength: 50
+                  minLength: 1
+                  pattern: ^[A-Za-z0-9 .,&()-]+$
+                reconciliation_enabled:
+                  type: boolean
+            examples:
+              synthetic:
+                value:
+                  refund_two_person_threshold_paisa: 500000
+                  purchase_order_label: Synthetic Lab Payment
+                  reconciliation_enabled: true
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentSettingsDto"
+              examples:
+                synthetic:
+                  value:
+                    refund_two_person_threshold:
+                      amount_paisa: 500000
+                      currency: NPR
+                    purchase_order_label: Synthetic Lab Payment
+                    reconciliation_enabled: true
+                    version: 5
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "428":
+          $ref: _common.yaml#/components/responses/PreconditionRequired
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/payments/coded-sets/{set_name}:
+    get:
+      operationId: listPaymentCodes
+      tags:
+        - payments
+      summary: List payment coded set (TRD §5.1 P24)
+      security:
+        - bearerJwt: []
+      x-permission: payments.reconciliation.read
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - auth.mfa_required
+      parameters:
+        - name: set_name
+          in: path
+          required: true
+          schema:
+            type: string
+            maxLength: 21
+            enum:
+              - hold_reasons
+              - failure_reasons
+              - cancel_reasons
+              - resolution_reasons
+              - refund_reasons
+              - refund_reject_reasons
+              - refund_fail_reasons
+              - refund_hold_reasons
+              - finding_kinds
+              - finding_resolutions
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                  - data
+                properties:
+                  data:
+                    type: array
+                    maxItems: 200
+                    items:
+                      $ref: "#/components/schemas/CodeEntry"
+              examples:
+                synthetic:
+                  value:
+                    data:
+                      - code: duplicate_payment
+                        display: Duplicate payment
+                        requires_text: false
+                        is_active: true
+                      - code: other
+                        display: Other
+                        requires_text: true
+                        is_active: true
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/payments/cancel-reasons:
+    get:
+      operationId: listPaymentCancelReasons
+      tags:
+        - payments
+      summary: List payment cancel reasons (TRD §5.1 P24b)
+      description: Set cancel_reasons only; separate floor for the C4 front-desk cancel dialog (08 A19 D-113, P-43).
+      security:
+        - bearerJwt: []
+      x-permission: payments.intent.create
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                  - data
+                properties:
+                  data:
+                    type: array
+                    maxItems: 200
+                    items:
+                      $ref: "#/components/schemas/CodeEntry"
+              examples:
+                synthetic:
+                  value:
+                    data:
+                      - code: patient_changed_method
+                        display: Patient changed payment method
+                        requires_text: false
+                        is_active: true
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/payments/launch/{callback_token}:
+    get:
+      operationId: launchEsewaPayment
+      tags:
+        - payments
+      summary: eSewa launch page (TRD §5.2 P30)
+      description: "200 launch page while the intent is initiated/pending and gateway esewa; otherwise 303 to the result page. Tier general per 08 A19 D-116 (02-CV §10.3 callback/launch variant: nginx per-IP 10 r/s burst 20 + app key payments:cb:<intent_id>)."
+      security:
+        - paymentCallbackToken: []
+      x-public: Browser launch page reached without a staff session; authorised only by the per-intent callback token (CR-C15-004).
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.rate_limited
+        - common.internal
+      parameters:
+        - $ref: "#/components/parameters/CallbackToken"
+      responses:
+        "200":
+          description: Launch page (§7.2.3).
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlNoStore"
+            Referrer-Policy:
+              $ref: "#/components/headers/ReferrerPolicyNoReferrer"
+            X-Content-Type-Options:
+              $ref: "#/components/headers/ContentTypeOptionsNoSniff"
+          content:
+            text/html:
+              schema:
+                type: string
+                maxLength: 65536
+              examples:
+                synthetic:
+                  value: <!doctype html><html><body><p>Synthetic launch page</p></body></html>
+        "303":
+          description: See Other → result page (TRD §6.3). Same response for every unknown/expired/forged token.
+          headers:
+            Location:
+              $ref: "#/components/headers/ResultLocation"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlNoStore"
+            Referrer-Policy:
+              $ref: "#/components/headers/ReferrerPolicyNoReferrer"
+            X-Content-Type-Options:
+              $ref: "#/components/headers/ContentTypeOptionsNoSniff"
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/payments/callbacks/esewa/{callback_token}/success:
+    get:
+      operationId: esewaSuccessCallback
+      tags:
+        - payments
+      summary: eSewa success callback (TRD §5.2 P31)
+      description: "Parameter name data is UNVERIFIED (V3); strict query validation may reject extra eSewa parameters with 400 (PG-T21). Tier general per 08 A19 D-116 (02-CV §10.3 callback/launch variant: nginx per-IP 10 r/s burst 20 + app key payments:cb:<intent_id>)."
+      security:
+        - paymentCallbackToken: []
+      x-public: Gateway browser redirect back from eSewa; no staff session exists; authorised only by the per-intent callback token (CR-C15-004).
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.rate_limited
+        - common.internal
+      parameters:
+        - $ref: "#/components/parameters/CallbackToken"
+        - name: data
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 4096
+            pattern: ^[A-Za-z0-9+/=_-]+$
+      responses:
+        "303":
+          description: See Other → result page (TRD §6.3). Same response for every unknown/expired/forged token.
+          headers:
+            Location:
+              $ref: "#/components/headers/ResultLocation"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlNoStore"
+            Referrer-Policy:
+              $ref: "#/components/headers/ReferrerPolicyNoReferrer"
+            X-Content-Type-Options:
+              $ref: "#/components/headers/ContentTypeOptionsNoSniff"
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/payments/callbacks/esewa/{callback_token}/failure:
+    get:
+      operationId: esewaFailureCallback
+      tags:
+        - payments
+      summary: eSewa failure callback (TRD §5.2 P32)
+      description: "No query parameters documented (V4). Tier general per 08 A19 D-116 (02-CV §10.3 callback/launch variant: nginx per-IP 10 r/s burst 20 + app key payments:cb:<intent_id>)."
+      security:
+        - paymentCallbackToken: []
+      x-public: Gateway browser redirect back from eSewa; no staff session exists; authorised only by the per-intent callback token (CR-C15-004).
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.rate_limited
+        - common.internal
+      parameters:
+        - $ref: "#/components/parameters/CallbackToken"
+      responses:
+        "303":
+          description: See Other → result page (TRD §6.3). Same response for every unknown/expired/forged token.
+          headers:
+            Location:
+              $ref: "#/components/headers/ResultLocation"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlNoStore"
+            Referrer-Policy:
+              $ref: "#/components/headers/ReferrerPolicyNoReferrer"
+            X-Content-Type-Options:
+              $ref: "#/components/headers/ContentTypeOptionsNoSniff"
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/payments/callbacks/khalti/{callback_token}:
+    get:
+      operationId: khaltiReturnCallback
+      tags:
+        - payments
+      summary: Khalti return callback (TRD §5.2 P33)
+      description: "Query names per V9. Tier general per 08 A19 D-116 (02-CV §10.3 callback/launch variant: nginx per-IP 10 r/s burst 20 + app key payments:cb:<intent_id>)."
+      security:
+        - paymentCallbackToken: []
+      x-public: Gateway browser redirect back from Khalti; no staff session exists; authorised only by the per-intent callback token (CR-C15-004).
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.rate_limited
+        - common.internal
+      parameters:
+        - $ref: "#/components/parameters/CallbackToken"
+        - name: pidx
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 64
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 32
+        - name: transaction_id
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 64
+        - name: tidx
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 64
+        - name: txnId
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 64
+        - name: amount
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 20
+            pattern: ^[0-9]{1,20}$
+        - name: total_amount
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 20
+            pattern: ^[0-9]{1,20}$
+        - name: mobile
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 20
+        - name: purchase_order_id
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 64
+        - name: purchase_order_name
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 100
+      responses:
+        "303":
+          description: See Other → result page (TRD §6.3). Same response for every unknown/expired/forged token.
+          headers:
+            Location:
+              $ref: "#/components/headers/ResultLocation"
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlNoStore"
+            Referrer-Policy:
+              $ref: "#/components/headers/ReferrerPolicyNoReferrer"
+            X-Content-Type-Options:
+              $ref: "#/components/headers/ContentTypeOptionsNoSniff"
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/payments/result:
+    get:
+      operationId: getPaymentResultPage
+      tags:
+        - payments
+      summary: Payment result page (TRD §5.2 P34)
+      description: "intent_id is accepted so that the §6.3 step 6 redirect validates; it is ignored and never echoed (review #2). Tier general per 08 A19 D-116 (02-CV §10.3 callback/launch variant: nginx per-IP 10 r/s burst 20 + app key payments:cb:<intent_id>)."
+      security: []
+      x-public: static payment outcome page; no data, no DB
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.rate_limited
+        - common.internal
+      parameters:
+        - name: outcome
+          in: query
+          required: true
+          schema:
+            type: string
+            maxLength: 7
+            enum:
+              - settled
+              - pending
+              - failed
+              - unknown
+        - name: intent_id
+          in: query
+          required: false
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+      responses:
+        "200":
+          description: Result page (§7.5).
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlNoStore"
+            Referrer-Policy:
+              $ref: "#/components/headers/ReferrerPolicyNoReferrer"
+            X-Content-Type-Options:
+              $ref: "#/components/headers/ContentTypeOptionsNoSniff"
+          content:
+            text/html:
+              schema:
+                type: string
+                maxLength: 65536
+              examples:
+                synthetic:
+                  value: <!doctype html><html><body><p>Synthetic payment result</p></body></html>
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+components:
+  schemas:
+    MemberRef:
+      type: object
+      additionalProperties: false
+      required:
+        - membership_id
+        - display_name
+      properties:
+        membership_id:
+          $ref: _common.yaml#/components/schemas/Uuidv7
+        display_name:
+          type: string
+          maxLength: 200
+    CodeEntry:
+      type: object
+      additionalProperties: false
+      required:
+        - code
+        - display
+        - requires_text
+        - is_active
+      properties:
+        code:
+          type: string
+          maxLength: 64
+          pattern: ^[a-z0-9_]{1,64}$
+        display:
+          type: string
+          maxLength: 120
+          minLength: 1
+        requires_text:
+          type: boolean
+        is_active:
+          type: boolean
+    PaymentIntentSummary:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - order_id
+        - centre_id
+        - gateway
+        - environment
+        - status
+        - amount
+        - created_at
+        - version
+      properties:
+        id:
+          $ref: _common.yaml#/components/schemas/Uuidv7
+        order_id:
+          $ref: _common.yaml#/components/schemas/Uuidv7
+        centre_id:
+          $ref: _common.yaml#/components/schemas/Uuidv7
+        gateway:
+          type: string
+          maxLength: 7
+          enum:
+            - esewa
+            - khalti
+            - fonepay
+        environment:
+          type: string
+          maxLength: 10
+          enum:
+            - uat
+            - production
+        status:
+          type: string
+          maxLength: 18
+          enum:
+            - created
+            - initiated
+            - pending
+            - settled
+            - failed
+            - expired
+            - held_for_review
+            - refunded
+            - partially_refunded
+        amount:
+          $ref: _common.yaml#/components/schemas/Money
+        hold_reason:
+          type: string
+          maxLength: 64
+          pattern: ^[a-z0-9_]{1,64}$
+          x-coded-set: payments.hold_reasons
+        failure_reason:
+          type: string
+          maxLength: 64
+          pattern: ^[a-z0-9_]{1,64}$
+          x-coded-set: payments.failure_reasons
+        created_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        expires_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        settled_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        last_checked_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        version:
+          $ref: _common.yaml#/components/schemas/Version
+    RefundDto:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - intent_id
+        - order_id
+        - gateway
+        - mode
+        - status
+        - amount
+        - reason_code
+        - requested_by
+        - requested_at
+        - version
+      properties:
+        id:
+          $ref: _common.yaml#/components/schemas/Uuidv7
+        intent_id:
+          $ref: _common.yaml#/components/schemas/Uuidv7
+        order_id:
+          $ref: _common.yaml#/components/schemas/Uuidv7
+        gateway:
+          type: string
+          maxLength: 7
+          enum:
+            - esewa
+            - khalti
+            - fonepay
+        mode:
+          type: string
+          maxLength: 6
+          enum:
+            - manual
+            - api
+        status:
+          type: string
+          maxLength: 16
+          enum:
+            - pending_approval
+            - approved
+            - rejected
+            - requested
+            - held_for_review
+            - completed
+            - failed
+        amount:
+          $ref: _common.yaml#/components/schemas/Money
+        reason_code:
+          type: string
+          maxLength: 64
+          pattern: ^[a-z0-9_]{1,64}$
+          x-coded-set: payments.refund_reasons
+        reason_text:
+          type: string
+          maxLength: 500
+        requested_by:
+          $ref: "#/components/schemas/MemberRef"
+        requested_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        approved_by:
+          $ref: "#/components/schemas/MemberRef"
+        approved_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        rejected_by:
+          $ref: "#/components/schemas/MemberRef"
+        rejected_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        gateway_refund_reference:
+          type: string
+          maxLength: 100
+          pattern: ^[A-Za-z0-9_.:/-]{1,100}$
+        completed_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        ledger_entry_id:
+          $ref: _common.yaml#/components/schemas/Uuidv7
+        failure_reason:
+          type: string
+          maxLength: 64
+          pattern: ^[a-z0-9_]{1,64}$
+          x-coded-set: payments.refund_fail_reasons
+        failure_note:
+          type: string
+          maxLength: 500
+        held_reason:
+          type: string
+          maxLength: 64
+          pattern: ^[a-z0-9_]{1,64}$
+          x-coded-set: payments.refund_hold_reasons
+        last_checked_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        version:
+          $ref: _common.yaml#/components/schemas/Version
+    PaymentIntentDetail:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - order_id
+        - centre_id
+        - gateway
+        - environment
+        - status
+        - amount
+        - created_at
+        - version
+        - gateway_txn_ref
+        - refunded_amount
+        - created_by_actor_type
+        - transitions
+        - gateway_checks
+        - callbacks
+        - refunds
+      properties:
+        id:
+          $ref: _common.yaml#/components/schemas/Uuidv7
+        order_id:
+          $ref: _common.yaml#/components/schemas/Uuidv7
+        centre_id:
+          $ref: _common.yaml#/components/schemas/Uuidv7
+        gateway:
+          type: string
+          maxLength: 7
+          enum:
+            - esewa
+            - khalti
+            - fonepay
+        environment:
+          type: string
+          maxLength: 10
+          enum:
+            - uat
+            - production
+        status:
+          type: string
+          maxLength: 18
+          enum:
+            - created
+            - initiated
+            - pending
+            - settled
+            - failed
+            - expired
+            - held_for_review
+            - refunded
+            - partially_refunded
+        amount:
+          $ref: _common.yaml#/components/schemas/Money
+        hold_reason:
+          type: string
+          maxLength: 64
+          pattern: ^[a-z0-9_]{1,64}$
+          x-coded-set: payments.hold_reasons
+        failure_reason:
+          type: string
+          maxLength: 64
+          pattern: ^[a-z0-9_]{1,64}$
+          x-coded-set: payments.failure_reasons
+        created_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        expires_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        settled_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        last_checked_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        version:
+          $ref: _common.yaml#/components/schemas/Version
+        gateway_txn_ref:
+          type: string
+          maxLength: 100
+        gateway_secondary_ref:
+          type: string
+          maxLength: 100
+        last_gateway_status_raw:
+          type: string
+          maxLength: 64
+        verified_amount:
+          $ref: _common.yaml#/components/schemas/Money
+        verification_method:
+          type: string
+          maxLength: 18
+          enum:
+            - esewa_status_check
+            - khalti_lookup
+        refunded_amount:
+          $ref: _common.yaml#/components/schemas/Money
+        ledger_entry_id:
+          $ref: _common.yaml#/components/schemas/Uuidv7
+        created_by_actor_type:
+          type: string
+          maxLength: 6
+          enum:
+            - user
+            - system
+        transitions:
+          type: array
+          maxItems: 200
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - to_status
+              - cause
+              - actor_type
+              - at
+            properties:
+              from_status:
+                type: string
+                maxLength: 18
+                enum:
+                  - created
+                  - initiated
+                  - pending
+                  - settled
+                  - failed
+                  - expired
+                  - held_for_review
+                  - refunded
+                  - partially_refunded
+              to_status:
+                type: string
+                maxLength: 18
+                enum:
+                  - created
+                  - initiated
+                  - pending
+                  - settled
+                  - failed
+                  - expired
+                  - held_for_review
+                  - refunded
+                  - partially_refunded
+              cause:
+                type: string
+                maxLength: 14
+                enum:
+                  - create
+                  - callback
+                  - poll
+                  - verify_call
+                  - recheck
+                  - resolve
+                  - cancel
+                  - reconciliation
+                  - refund
+                  - sweep
+              reason_code:
+                $ref: _common.yaml#/components/schemas/Code
+              actor_type:
+                type: string
+                maxLength: 6
+                enum:
+                  - user
+                  - system
+              at:
+                $ref: _common.yaml#/components/schemas/IsoUtc
+        gateway_checks:
+          type: array
+          maxItems: 20
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - operation
+              - outcome
+              - at
+            properties:
+              operation:
+                type: string
+                maxLength: 15
+                enum:
+                  - khalti_initiate
+                  - khalti_lookup
+                  - esewa_status
+                  - khalti_refund
+                  - credential_test
+              outcome:
+                type: string
+                maxLength: 19
+                enum:
+                  - answer
+                  - service_unavailable
+                  - timeout
+                  - network_error
+                  - http_error
+                  - auth_error
+                  - not_found
+                  - invalid_response
+              gateway_status_raw:
+                type: string
+                maxLength: 64
+              http_status:
+                type: integer
+                minimum: 100
+                maximum: 599
+              at:
+                $ref: _common.yaml#/components/schemas/IsoUtc
+        callbacks:
+          type: array
+          maxItems: 20
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - kind
+              - outcome_code
+              - at
+            properties:
+              kind:
+                type: string
+                maxLength: 13
+                enum:
+                  - esewa_success
+                  - esewa_failure
+                  - khalti_return
+                  - launch
+              outcome_code:
+                type: string
+                maxLength: 26
+                enum:
+                  - ok
+                  - payments.signature_invalid
+                  - payments.callback_mismatch
+                  - payments.callback_stale
+                  - rate_limited
+              signature_valid:
+                type: boolean
+              at:
+                $ref: _common.yaml#/components/schemas/IsoUtc
+        refunds:
+          type: array
+          maxItems: 200
+          items:
+            $ref: "#/components/schemas/RefundDto"
+    ReconciliationRunDto:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - business_date
+        - trigger
+        - status
+        - started_at
+        - counts
+        - version
+      properties:
+        id:
+          $ref: _common.yaml#/components/schemas/Uuidv7
+        business_date:
+          $ref: _common.yaml#/components/schemas/IsoDate
+        trigger:
+          type: string
+          maxLength: 6
+          enum:
+            - cron
+            - manual
+        status:
+          type: string
+          maxLength: 9
+          enum:
+            - running
+            - completed
+            - failed
+        started_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        finished_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        counts:
+          type: object
+          additionalProperties: false
+          required:
+            - checked
+            - ok
+            - findings
+            - critical
+          properties:
+            checked:
+              type: integer
+              minimum: 0
+              maximum: 2147483647
+            ok:
+              type: integer
+              minimum: 0
+              maximum: 2147483647
+            findings:
+              type: integer
+              minimum: 0
+              maximum: 2147483647
+            critical:
+              type: integer
+              minimum: 0
+              maximum: 2147483647
+        version:
+          $ref: _common.yaml#/components/schemas/Version
+    FindingDto:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - run_id
+        - kind
+        - severity
+        - auto_action
+        - status
+        - created_at
+        - version
+      properties:
+        id:
+          $ref: _common.yaml#/components/schemas/Uuidv7
+        run_id:
+          $ref: _common.yaml#/components/schemas/Uuidv7
+        kind:
+          type: string
+          maxLength: 64
+          pattern: ^[a-z0-9_]{1,64}$
+          x-coded-set: payments.finding_kinds
+        severity:
+          type: string
+          maxLength: 8
+          enum:
+            - info
+            - warning
+            - critical
+        intent_id:
+          $ref: _common.yaml#/components/schemas/Uuidv7
+        refund_id:
+          $ref: _common.yaml#/components/schemas/Uuidv7
+        our_status:
+          type: string
+          maxLength: 32
+        gateway_status_raw:
+          type: string
+          maxLength: 64
+        our_amount:
+          $ref: _common.yaml#/components/schemas/Money
+        gateway_amount:
+          $ref: _common.yaml#/components/schemas/Money
+        auto_action:
+          type: string
+          maxLength: 15
+          enum:
+            - none
+            - settled
+            - held
+            - ledger_repaired
+        status:
+          type: string
+          maxLength: 8
+          enum:
+            - open
+            - resolved
+        resolution_code:
+          type: string
+          maxLength: 64
+          pattern: ^[a-z0-9_]{1,64}$
+          x-coded-set: payments.finding_resolutions
+        note:
+          type: string
+          maxLength: 1000
+        resolved_by:
+          $ref: "#/components/schemas/MemberRef"
+        resolved_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        created_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        version:
+          $ref: _common.yaml#/components/schemas/Version
+    StaticQrReconDto:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - business_date
+        - system_entries
+        - system_total
+        - statement_total
+        - difference
+        - statement_reference
+        - status
+        - reconciled_by
+        - created_at
+      properties:
+        id:
+          $ref: _common.yaml#/components/schemas/Uuidv7
+        business_date:
+          $ref: _common.yaml#/components/schemas/IsoDate
+        centre_id:
+          $ref: _common.yaml#/components/schemas/Uuidv7
+        system_entries:
+          type: integer
+          minimum: 0
+          maximum: 2147483647
+        system_total:
+          $ref: _common.yaml#/components/schemas/Money
+        statement_total:
+          $ref: _common.yaml#/components/schemas/Money
+        difference:
+          $ref: _common.yaml#/components/schemas/Money
+        statement_reference:
+          type: string
+          maxLength: 100
+          minLength: 1
+        status:
+          type: string
+          maxLength: 24
+          enum:
+            - matched
+            - accepted_with_difference
+        note:
+          type: string
+          maxLength: 1000
+        reconciled_by:
+          $ref: "#/components/schemas/MemberRef"
+        created_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+    MerchantAccountDto:
+      type: object
+      additionalProperties: false
+      required:
+        - gateway
+        - environment
+        - is_enabled
+        - secret
+        - api_refunds_enabled
+        - version
+      properties:
+        gateway:
+          type: string
+          maxLength: 7
+          enum:
+            - esewa
+            - khalti
+            - fonepay
+        environment:
+          type: string
+          maxLength: 10
+          enum:
+            - uat
+            - production
+        is_enabled:
+          type: boolean
+        esewa_product_code:
+          type: string
+          maxLength: 64
+          pattern: ^[A-Za-z0-9_-]+$
+        khalti_website_url:
+          type: string
+          maxLength: 300
+          pattern: ^https://
+        secret:
+          type: object
+          additionalProperties: false
+          required:
+            - is_set
+          properties:
+            is_set:
+              type: boolean
+            set_at:
+              $ref: _common.yaml#/components/schemas/IsoUtc
+            fingerprint:
+              type: string
+              maxLength: 64
+              pattern: ^[0-9a-f]{1,64}$
+        api_refunds_enabled:
+          type: boolean
+        last_test:
+          type: object
+          additionalProperties: false
+          required:
+            - outcome
+            - at
+          properties:
+            outcome:
+              type: string
+              maxLength: 26
+              enum:
+                - reachable_key_valid
+                - reachable_key_unverifiable
+                - auth_failed
+                - unreachable
+            at:
+              $ref: _common.yaml#/components/schemas/IsoUtc
+        version:
+          $ref: _common.yaml#/components/schemas/Version
+    PaymentSettingsDto:
+      type: object
+      additionalProperties: false
+      required:
+        - refund_two_person_threshold
+        - purchase_order_label
+        - reconciliation_enabled
+        - version
+      properties:
+        refund_two_person_threshold:
+          $ref: _common.yaml#/components/schemas/Money
+        purchase_order_label:
+          type: string
+          maxLength: 50
+          minLength: 1
+          pattern: ^[A-Za-z0-9 .,&()-]+$
+        reconciliation_enabled:
+          type: boolean
+        version:
+          $ref: _common.yaml#/components/schemas/Version
+  parameters:
+    IntentId:
+      name: intent_id
+      in: path
+      required: true
+      schema:
+        $ref: _common.yaml#/components/schemas/Uuidv7
+    RefundId:
+      name: refund_id
+      in: path
+      required: true
+      schema:
+        $ref: _common.yaml#/components/schemas/Uuidv7
+    RunId:
+      name: run_id
+      in: path
+      required: true
+      schema:
+        $ref: _common.yaml#/components/schemas/Uuidv7
+    FindingId:
+      name: finding_id
+      in: path
+      required: true
+      schema:
+        $ref: _common.yaml#/components/schemas/Uuidv7
+    GatewayPath:
+      name: gateway
+      in: path
+      required: true
+      schema:
+        type: string
+        maxLength: 7
+        enum:
+          - esewa
+          - khalti
+          - fonepay
+    EnvironmentPath:
+      name: environment
+      in: path
+      required: true
+      schema:
+        type: string
+        maxLength: 10
+        enum:
+          - uat
+          - production
+    CallbackToken:
+      name: callback_token
+      in: path
+      required: true
+      description: Opaque per-intent callback token (a secret; excluded from access logs, CR-C15-008). Unknown, expired or forged tokens get 303 to the result page with outcome=unknown.
+      schema:
+        type: string
+        maxLength: 128
+        minLength: 16
+        pattern: ^[A-Za-z0-9_-]{16,128}$
+    IfMatchOptional:
+      name: If-Match
+      in: header
+      required: false
+      description: Required when the row exists; omitted when creating an absent row (TRD §5.1 P21).
+      schema:
+        type: string
+        maxLength: 12
+        pattern: ^"[1-9][0-9]*"$
+  headers:
+    CacheControlNoStore:
+      description: Always no-store (TRD §5.2).
+      schema:
+        type: string
+        maxLength: 8
+        enum:
+          - no-store
+    ReferrerPolicyNoReferrer:
+      description: Always no-referrer (TRD §5.2).
+      schema:
+        type: string
+        maxLength: 11
+        enum:
+          - no-referrer
+    ContentTypeOptionsNoSniff:
+      description: Always nosniff (TRD §5.2).
+      schema:
+        type: string
+        maxLength: 7
+        enum:
+          - nosniff
+    ResultLocation:
+      description: Result page /v1/payments/result?outcome=<settled|pending|failed|unknown>[&intent_id=<uuid>] (TRD §6.3).
+      schema:
+        type: string
+        maxLength: 2048

@@ -1,0 +1,7 @@
+# T-N1 impl (writer) — Enquiries N1-N4, E48-E51 + W11 + A22 (2nd pass, LD-180)
+Files this pass: API `engagement/service/enquiry.service.ts`, `engagement/repository/enquiry.repo.ts` (insertReplyNotification -> enqueueReplyNotification); worker NEW `jobs/engagement/tasks/create_notification.ts` + registered in `jobs/engagement/index.ts`. Earlier files (handlers, web, Flutter) unchanged.
+Task name: `engagement.create_notification` (generic; allowlist {enquiry_reply -> entity_type enquiry}). Enqueue `SELECT app.enqueue_job($1, $2::jsonb, $3)` in the reply tx, key `notif:enquiry_reply:<enquiry_id>:<new version>`, payload ids/kind only.
+Results: API enquiries world + handlers 82/82; worker engagement suite 18 files 442 pass / 1 skipped (incl. enquiry_notification 9/9, manifest); tsc: no errors in changed files. Web/Flutter not re-run (untouched).
+[CONV] interim INSERT refusal mapping removed with the INSERT; a failing ENQUEUE is mapped to 500 common.internal on purpose (the tx layer would turn a raw 42501 into 404; test requires not-404). Bad worker payload = silent no-op + reason-only warn (like send_booking_message). Row expires +180d, route_id NULL, created_at = DB default.
+[CONV] task not in TASKS/maxAttempts (no §8.1 row): queue default attempts. Non-blocking CR: `.orchestra/cr/T-N1-trd-8.1.md`.
+Open: as before (category_code pattern-only, 200-message thread cap, staff DTOs no profile_id, Flutter closed thread hides reply box).

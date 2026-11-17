@@ -1,0 +1,4 @@
+APPROVE
+Round 2. Prior item 1 fixed: order.service.ts:44-51 derives over ACTIVE C4 items, lab-missing item = `not_started` (03-IC §10.4 / 08 A13 D-5 "every active item"); covered by derived.test.ts:51-62 (labOmit cases incl. both-absent -> registered). Run log: 3 files / 71 tests pass.
+Re-checked with no defect found: names verbatim (listOrders/getOrder, frontdesk.order.read, F10 params/sort, common.invalid_cursor/common.not_found), tenant filter + `::uuid[]` casts in pageOrders/activeItemIdsByOrders, centre scope fails closed -> 404, read-only (no write/event), lab input `{orderId}` only (no PHI), TRF metadata only, no secrets, only C4-owned paths, pending.json per LD-70, D-5 matrix incl. rejected-without-recollection -> cancelled.
+Non-blocking (test harness, not impl): orders/helpers.ts:46 registration_no `Date.now()%1e6`+per-file seq can collide across parallel workers (see FD-T08-debug.md); tester may switch to a uid() tail.

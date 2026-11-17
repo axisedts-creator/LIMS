@@ -1,0 +1,29 @@
+---
+# Non-secret vars for env staging (lean profile, LD-45/LD-48), all hosts
+# (02-TRD s15). No secrets here: roles read them via secrets_render (s8).
+# Addresses/disks: hosts.yml only.
+env: staging
+# LD-90 b: GoTrue SMTP = deploy.yml Mailpit :1025; no relay
+mail_sink_fqdn: mailpit
+topology_profile: lean  # LD-45: one optional VM; no hot standby
+wg_subnet: 10.78.0.0/24  # s12.1 [CONV]
+db_primary_wg_ip: 10.78.0.11  # host in group data (lean: staging-1)
+app_db_name: postgres
+audit_db_name: lims_audit  # LD-45: audit store = separate DB, same cluster
+docker_subnets:  # s3.2 [CONV]
+  edge: 172.30.10.0/24
+  app: 172.30.20.0/24
+  auth: 172.30.30.0/24
+  render: 172.30.40.0/24
+  db: 172.30.50.0/24
+  egress: 172.30.60.0/24
+partner_enabled: false
+realtime_enabled: false
+realtime_public: false
+studio_enabled: false
+c7_metrics_live: false
+archive_timeout_s: 60
+object_replica_interval_min: 15
+drill_target_offset_min: 30
+lab_hours: "06:00-20:00"  # Asia/Kathmandu
+isp_mitigation_contact: ""

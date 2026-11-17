@@ -1,0 +1,101 @@
+---
+# 02-TRD s6.2: certbot --key-type ecdsa --elliptic-curve secp256r1, HTTP-01
+# via the webroot served by sites/acme.conf, renewal timer twice daily,
+# deploy hook `nginx -t && nginx -s reload`. Runs after edge_nginx (nginx
+# must answer :80 first).
+- name: Preconditions
+  ansible.builtin.assert:
+    that:
+      - acme_mode in ['letsencrypt', 'staging', 'internal_ca']
+      - acme_mode == 'internal_ca' or acme_email | length > 0
+      - acme_mode != 'internal_ca' or 'ops' in group_names
+    fail_msg: >-
+      acme: acme_mode letsencrypt|staging needs acme_email; internal_ca
+      only where the edge host is the ops host (dev, lean)
+
+- name: ACME issuance (letsencrypt | staging)
+  when: acme_mode != 'internal_ca'
+  block:
+    - name: Certbot package
+      ansible.builtin.apt:
+        name: certbot
+        state: present
+
+    - name: Deploy hook
+      ansible.builtin.template:
+        src: lims-acme-deploy.j2
+        dest: "{{ acme_hook }}"
+        owner: root
+        group: root
+        mode: "0700"
+
+    - name: Issue ECDSA P-256 certificate per origin (HTTP-01, webroot)
+      ansible.builtin.command:
+        argv: >-
+          {{ ['certbot', 'certonly', '--non-interactive', '--agree-tos',
+          '-m', acme_email, '--webroot', '-w', acme_webroot,
+          '--preferred-challenges', 'http-01',
+          '--key-type', 'ecdsa', '--elliptic-curve', 'secp256r1',
+          '--cert-name', origins[item], '-d', origins[item],
+          '--deploy-hook', acme_hook]
+          + (['--staging'] if acme_mode == 'staging' else []) }}
+        creates: "/etc/letsencrypt/live/{{ origins[item] }}/fullchain.pem"
+      loop: "{{ acme_origins }}"
+
+    - name: Renewal service and twice-daily timer
+      ansible.builtin.template:
+        src: "{{ item }}.j2"
+        dest: "/etc/systemd/system/{{ item }}"
+        owner: root
+        group: root
+        mode: "0644"
+      loop: [lims-certbot.service, lims-certbot.timer]
+
+    - name: Packaged certbot.timer off (ours carries the deploy hook)
+      ansible.builtin.systemd_service:
+        name: certbot.timer
+        state: stopped
+        enabled: false
+      failed_when: false
+
+    - name: Renewal timer enabled
+      ansible.builtin.systemd_service:
+        name: lims-certbot.timer
+        state: started
+        enabled: true
+        daemon_reload: true
+
+# dev without a reachable public ACME: internal CA leaves (roles/internal_ca);
+# keys are generated on this host and copied locally only.
+- name: Internal CA leaves (internal_ca)
+  when: acme_mode == 'internal_ca'
+  block:
+    - name: Edge leaf list (SAN = origin host name)
+      ansible.builtin.set_fact:
+        acme_leaves: >-
+          {{ acme_leaves | default([]) + [{'name': 'edge-' ~ origins[item],
+          'san': 'DNS:' ~ origins[item]}] }}
+      loop: "{{ acme_origins }}"
+
+    - name: Issue edge leaves with the internal CA
+      ansible.builtin.include_role:
+        name: internal_ca
+        public: true
+      vars:
+        internal_ca_leaves: "{{ acme_leaves }}"
+
+    - name: Install internal CA leaf for nginx
+      ansible.builtin.copy:
+        src: "{{ internal_ca_dir }}/edge-{{ host }}/{{ item.1.src }}"
+        dest: "{{ acme_certs }}/{{ host }}/{{ item.1.dest }}"
+        remote_src: true
+        owner: root
+        group: root
+        mode: "{{ item.1.mode }}"
+      vars:
+        host: "{{ origins[item.0] }}"
+      loop: >-
+        {{ acme_origins | product([
+        {'src': 'cert.pem', 'dest': 'fullchain.pem', 'mode': '0644'},
+        {'src': 'key.pem', 'dest': 'privkey.pem', 'mode': '0600'}]) | list }}
+      notify: Reload edge nginx after certificate change

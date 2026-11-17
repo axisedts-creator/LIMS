@@ -1,0 +1,7 @@
+# RS-C8 impl (LD-140, LD-170, RS-C8-ruling.md)
+Files: features/analytics/components/DashboardView.tsx (3-col tile grid replaced by `<ol aria-label="Sample pipeline">` 7 stages, "Needs you" region, "Money, <period>" region, 2 tiles outside), ExportDialog.tsx (inline style -> kit `Inline`), ReportView.tsx (DurationText `style` prop spread from a const so the raw-style scan is clean), __tests__/__snapshots__/rs-c8.*.snap (8 recorded, LD-170).
+[CONV] Pipeline: In progress = Pending tests tile, Authorised = Results approved tile, each wrapped in a stage `<a>` (StatTile without href); other stages label only. Needs-you: Overdue, Ready not released, Reports pending, only when value > 0.
+[CONV] Tile sub-values render as `<p>` (a nested `<ul>` read as extra pipeline stages). Pending tests / Reports pending no longer carry "Overdue"/"Ready, not released" sub-lines; those are the needs-you items.
+[CONV] Net-sales charts are hidden when the API sent no money tile (same rule as the money strip; rs-c8 "no Rs. figure" test).
+Runs: rs-c8 CI=true 36/36; an-t19 357/358 (1 skipped), an-t20 137/137, an-t24 84/84; an-t17 28/30, an-t18 57/58: failures are 15-50 s first-test timeouts in untouched files (ScopeBanner, error.tsx) under host load, not re-checked against a clean baseline (stash not allowed). tsc: no errors in changed files; no eslint binary in apps/web.
+Open: CR `.orchestra/cr/RS-C8.md` (no API counts for Draft, To collect, To receive, To authorise, Released; no per-role action feed).

@@ -1,0 +1,1 @@
+pnpm --dir services/api exec vitest run src/core/ratelimit/__tests__/limiter.test.ts src/modules/payments/__tests__/contract/callbacks.http.test.ts src/modules/payments/__tests__/integration/callback.resolver.test.ts src/modules/payments/__tests__/helpers

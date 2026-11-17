@@ -1,0 +1,23 @@
+---
+# All three run, in this order, on `notify: Restart sshd`.
+# Ubuntu 24.04 starts sshd via ssh.socket; ssh.service owns the port
+# instead so that ListenAddress <wg_ip> and After=wg-quick@wg0 apply.
+- name: Validate full sshd configuration
+  ansible.builtin.command: /usr/sbin/sshd -t
+  changed_when: false
+  listen: Restart sshd
+
+- name: Disable ssh.socket activation
+  ansible.builtin.systemd_service:
+    name: ssh.socket
+    state: stopped
+    enabled: false
+    daemon_reload: true
+  listen: Restart sshd
+
+- name: Restart ssh.service
+  ansible.builtin.systemd_service:
+    name: ssh.service
+    state: restarted
+    enabled: true
+  listen: Restart sshd

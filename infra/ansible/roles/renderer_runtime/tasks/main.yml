@@ -1,0 +1,44 @@
+---
+# 02-TRD s7.4 / s7.5. C1 owns only the envelope of C6's images; the
+# containers are started by lims_runtime, which then includes
+# tasks_from: verify (renderer_egress.sh, sandbox_envelope.sh).
+- name: Preconditions (C6 image digests, inbound token files rendered)
+  ansible.builtin.assert:
+    that:
+      - lims_runtime_images.renderer | default('')
+        is search('@sha256:[0-9a-f]{64}$')
+      - lims_runtime_images.pdf_sandbox | default('')
+        is search('@sha256:[0-9a-f]{64}$')
+      - >-
+        renderer_runtime_probe_image == '' or
+        renderer_runtime_probe_image is search('@sha256:[0-9a-f]{64}$')
+    fail_msg: "renderer_runtime: renderer/pdf-sandbox/probe image not by digest"
+
+- name: Inbound token files exist (secrets_render, one per service)
+  ansible.builtin.stat:
+    path: "/run/lims/secrets/{{ item }}"
+  loop:
+    - renderer/renderer_inbound_token
+    - pdf-sandbox/pdf_sandbox_inbound_token
+  register: renderer_runtime_tokens
+  failed_when: not renderer_runtime_tokens.stat.exists
+
+- name: Probe directory
+  ansible.builtin.file:
+    path: "{{ renderer_runtime_tests_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Envelope probes
+  ansible.builtin.copy:
+    src: "{{ renderer_runtime_tests_src }}/{{ item }}"
+    dest: "{{ renderer_runtime_tests_dir }}/{{ item }}"
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - probe_lib.sh
+    - renderer_egress.sh
+    - sandbox_envelope.sh

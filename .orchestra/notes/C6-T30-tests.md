@@ -1,0 +1,6 @@
+C6-T30 tests. Red now: apps/portal does not exist (static fails on missing package; E2E needs `next dev` of @lims/portal).
+- tests/portal-e2e/C6-T30.static.test.mjs (node:test): package pins, route skeleton, middleware headers, server-only api.ts (X-Lims-Portal-Credential/X-Lims-Bff-Key/XFF), `__Host-lims_portal` flags, no client token exposure, no Smart/Billing/Payment port, no 3rd-party assets, POST-only+Origin, OtpInput from @lims/ui, .well-known.
+- tests/portal-e2e/C6-T30.portal.spec.ts (Playwright, 48 tests): AC-11.1–11.9, 11.11, 11.12, AC-10.1–10.3, D-32 XFF, axe WCAG 2.2 AA + 320 px + 44 px targets on 13 page states. Stub API stub-reporting.mjs (:4126); config playwright.config.ts (portal :3200; env LIMS_ORIGIN_API, LIMS_ORIGIN_PORTAL, LIMS_PORTAL_BFF_KEY_FILE=fixtures/bff-key.txt). apps/portal needs @playwright/test devDep (as apps/web).
+- Run: .orchestra\notes\C6-T30-verify.cmd
+- Not covered (API/worker side): AC-11.10 access_log row, OTP SMS content, nginx limit_req (AC-10.4), dues/payment pages (ship with C15).
+- Writer assumptions: "Send me a code"/"Request a new link" are buttons; invalid-link page shows after P1 404; wrong-code copy asserted only as "That code is not right."; OtpInput cells "Digit n of 6"; Download PDF/Sign out may be link or button; AC-10.2 accepts PRD or UI-UX superseded wording (they differ).

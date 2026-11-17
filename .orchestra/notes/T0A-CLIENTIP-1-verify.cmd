@@ -1,0 +1,1 @@
+cd /d "%~dp0..\.." && pnpm --dir services/api exec vitest run src/core/auth/__tests__/client-ip.test.ts && pnpm --dir apps/web run build:nav && node node_modules\vitest\vitest.mjs run --config apps/web/src/core/api/__tests__/vitest.clientip1.config.ts

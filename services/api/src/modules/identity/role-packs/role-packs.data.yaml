@@ -173,6 +173,9 @@ packs:
           - smartreport.summary.read
           - smartreport.template.approve
           - smartreport.template.manage
+          - sync.conflict.resolve
+          - sync.device.manage
+          - sync.use
       - code: corp_accession_user
         name: "Accession User"
         mfa_required: false

@@ -5,6 +5,7 @@ import type { CoreConfig } from './config.js';
 import { genReqId, installErrorHandlers, sendProblem } from './errors.js';
 import { createHealthHandlers, UNWIRED_CHECKS, type EnvSource, type HealthChecks } from './health.js';
 import { autoload, checkHandlers, DEFAULT_MODULES_DIR, loadSpec, REPO_ROOT } from './module.js';
+import { CORE_PENDING_OPERATIONS } from './core-pending.js';
 import { createBffKeyVerifier } from './auth/bff-key.js';
 import type { ClaimsResolver } from './auth/claims-resolver.js';
 import { createClientIpResolver } from './auth/client-ip.js';
@@ -55,7 +56,9 @@ export async function bootstrap(opts: BootstrapOptions): Promise<FastifyInstance
     const modules = await autoload(modulesDir, repoRoot);
     // LD-325 (T0B-BOOTGATE-1): stale pending entries warn (handler wins); production refuses any pending entry (stale included)
     // unless LIMS_ALLOW_PENDING_OPS is exactly 1.
-    const pendingIds = modules.flatMap((m) => (m.manifest.pendingOperations ?? []).map((id) => `${m.manifest.name}.${id}`));
+    // T0C-SYNC-1 (LD-322): the core's own pending sync operations count too (only when the core spec is mounted, see below).
+    const pendingIds = [...(repoRoot === REPO_ROOT ? CORE_PENDING_OPERATIONS.map((id) => `core.${id}`) : []),
+      ...modules.flatMap((m) => (m.manifest.pendingOperations ?? []).map((id) => `${m.manifest.name}.${id}`))];
     if (pendingIds.length && process.env.NODE_ENV === 'production' && process.env.LIMS_ALLOW_PENDING_OPS !== '1') {
       throw new Error(`production boot refuses pending operations (set LIMS_ALLOW_PENDING_OPS=1 to override): ${pendingIds.join(', ')}`);
     }
@@ -80,8 +83,8 @@ export async function bootstrap(opts: BootstrapOptions): Promise<FastifyInstance
       // 02-TRD §8: the core's own spec; custom repoRoots (test fixtures) carry module specs only.
       const spec = loadSpec(join(REPO_ROOT, 'contracts', 'openapi', 'core.yaml'));
       const handlers = createHealthHandlers(opts.healthChecks ?? pipes.healthChecks ?? UNWIRED_CHECKS, opts.env) // LD-193: injected, else real, else fail closed;
-      checkHandlers('core', spec, handlers);
-      await mountSpec(app, 'core', spec, handlers, auth, pipes.pipelineFor('core'));
+      checkHandlers('core', spec, handlers, CORE_PENDING_OPERATIONS);
+      await mountSpec(app, 'core', spec, handlers, auth, pipes.pipelineFor('core'), CORE_PENDING_OPERATIONS);
     }
     for (const m of modules) await mountSpec(app, m.manifest.name, m.spec, m.manifest.handlers, auth, pipes.pipelineFor(m.manifest.name), m.manifest.pendingOperations);
     if (config.loadSampleModule) {

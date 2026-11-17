@@ -98,6 +98,12 @@ function scope(ctx: BalanceCtx): { tx: Tx; tenantId: string; actorId: string } {
   return { tx: ctx.tx as Tx, tenantId: ctx.tenantId, actorId: ctx.actor.id };
 }
 const notFound = (): LimsError => new LimsError('common.not_found');
+/** LD-324 (c): the access_log row is mandatory (as export.service); no ctx.audit.access -> common.internal, a failing write rolls the tx back. */
+const auditOf = (ctx: BalanceCtx) => {
+  const audit = (ctx as { audit?: { access?: unknown } }).audit;
+  if (typeof audit?.access !== 'function') throw new LimsError('common.internal');
+  return (e: Record<string, unknown>) => (audit.access as (e: Record<string, unknown>) => Promise<unknown>).call(audit, e);
+};
 const pathId = (v: unknown, k: string): string => { if (typeof v !== 'string' || !UUID.test(v)) throw fail([`/${k}`]); return v.toLowerCase(); };
 const isUniqueViolation = (e: unknown, constraint?: string): boolean =>
   isRec(e) && e['code'] === '23505' && (constraint === undefined || e['constraint'] === constraint);
@@ -274,6 +280,8 @@ export function createAccountsService(deps: AccountsDeps = {}) {
         amountPaisa: amount!, paymentMode: mode!, bankName: bankName ?? null, referenceNo: referenceNo ?? null, paymentDetails: details ?? null, comments: comments ?? null,
         reversesEntryId: null, receiptNo: receiptNoOf(seq), receiptSeq: seq, actorId,
       });
+      // LD-324 (c), CR-C0-ACCT-1: access_log row in the same tx; detail ids only (no comments / bank / reference / payment free text).
+      await auditOf(ctx)({ action: 'account_entry.create', entityType: 'account_ledger_entry', entityId: row['id'], centreId: centreId!, outcome: 'allowed' });
       return entryDto(row);
     },
 
@@ -328,6 +336,8 @@ export function createAccountsService(deps: AccountsDeps = {}) {
           comments: reason!,                                                                            // contract example: the reversal's comments carry reason_text
           reversesEntryId: id, receiptNo: receiptNoOf(seq), receiptSeq: seq, actorId,
         });
+        // LD-324 (c): entity = the NEW reversal entry; the original id only in detail.reverses_entry_id.
+        await auditOf(ctx)({ action: 'account_entry.reverse', entityType: 'account_ledger_entry', entityId: row['id'], centreId: orig['centre_id'], outcome: 'allowed', detail: { reverses_entry_id: id } });
         return entryDto(row);
       } catch (e) {
         if (isUniqueViolation(e, 'account_ledger_entries__tenant_id_reverses__uq')) throw new LimsError('billing.ledger_reversal_invalid');

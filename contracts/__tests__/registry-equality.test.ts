@@ -24,6 +24,9 @@ const LD322_SYNC_ERRORS = ["sync.block_size_too_large", "sync.device_revoked", "
 // T0C-MSGDESK-1 (LD-330: the lane that merges second keeps BOTH sides): codes from the other contract lane, not in IC yet.
 const MSGDESK_ERRORS = ["engagement.broadcast_invalid_transition", "engagement.broadcast_placeholder_unknown", "engagement.broadcast_provider_not_configured", "engagement.broadcast_recipient_limit",
   "engagement.broadcast_self_approval", "engagement.broadcast_template_inactive", "partners.ticket_invalid_transition"];
+// T0C-TESTIMPORT-1 (LD-318, LD-335): the six catalog.import_* codes, owner C3, pinned in tools/codegen/__tests__/testimport1-openapi.test.ts.
+const TESTIMPORT_ERRORS = ["catalog.import_already_committed", "catalog.import_batch_expired", "catalog.import_has_errors", "catalog.import_invalid_file", "catalog.import_template_outdated",
+  "catalog.import_too_large"];
 const MSGDESK_CODES = ["engagement.broadcast.approve", "engagement.broadcast.manage", "engagement.broadcast.read", "partners.ticket.manage", "partners.ticket.read"];
 // T0C-CONTENT-1 (LD-313 c): the two portal content codes, staff only, not privileged (the patient read reuses engagement.self.read).
 const CONTENT_CODES = ["engagement.content.manage", "engagement.content.read"];
@@ -103,7 +106,7 @@ describe("AC-0C-1.3 errors.yaml == IC §8", () => {
     // T0C-SYNC-1 (LD-322): exactly the five sync.* codes may follow the IC codes; every IC entry stays unchanged and in order.
     const icCodes = ic.map((e) => String(e.code));
     const extra = file.filter((e) => !icCodes.includes(String(e.code)));
-    expect(extra.map((e) => String(e.code)).sort()).toEqual([...LD322_SYNC_ERRORS, ...MSGDESK_ERRORS].sort());
+    expect(extra.map((e) => String(e.code)).sort()).toEqual([...LD322_SYNC_ERRORS, ...MSGDESK_ERRORS, ...TESTIMPORT_ERRORS].sort());
     const core = file.filter((e) => icCodes.includes(String(e.code)));
     expect(diffByKey(ic, core, "code")).toEqual([]);
     expect(core.map((e) => e.code)).toEqual(ic.map((e) => e.code)); // order preserved

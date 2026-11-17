@@ -8,7 +8,7 @@ import { checkHandlers, loadSpec, REPO_ROOT } from '../../module.js';
 import { CORE_PENDING_OPERATIONS } from '../../core-pending.js';
 import { createHealthHandlers } from '../../health.js';
 import { okChecks } from '../../observability/__tests__/helpers.js';
-import { createSyncHandlers, syncHandlers } from '../index.js';
+import { createSyncHandlers, syncHandlers, syncPart2Handlers } from '../index.js';
 
 const text = (rel: string) => readFileSync(join(REPO_ROOT, rel), 'utf8');
 const spec: any = loadSpec(join(REPO_ROOT, 'contracts/openapi/core.yaml'));
@@ -34,7 +34,9 @@ describe('T0B-SYNC-1 done_when (1): every sync operation has a registered handle
     expect([...CORE_PENDING_OPERATIONS]).toEqual([]);
   });
   it('checkHandlers(core) passes with health + sync handlers and an EMPTY pending list (what bootstrap does), and also without any pending list', () => {
-    const handlers = { ...createHealthHandlers(okChecks()), ...syncHandlers };
+    // T0B-SYNC-2: the spec now also holds the 5 part 2 operations (T0C-SYNC-2), so "every spec operation has a handler" needs the part 2 handlers next to part 1
+    // (the 7 part 1 handlers themselves are unchanged and still asserted above); no assertion was loosened.
+    const handlers = { ...createHealthHandlers(okChecks()), ...syncHandlers, ...syncPart2Handlers };
     expect(() => checkHandlers('core', spec, handlers, [])).not.toThrow();
     expect(() => checkHandlers('core', spec, handlers)).not.toThrow();
     expect(Object.keys(handlers).sort()).toEqual(OPS.map((o) => o.id).sort());

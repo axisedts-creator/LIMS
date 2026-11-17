@@ -52,7 +52,8 @@ function tracks(v = ''): number {
   return parts.reduce((n, p) => { const m = /^repeat\(\s*(\d+)\s*,/.exec(p); return n + (m ? Number(m[1]) : 1); }, 0);
 }
 
-const VIEWPORTS = [{ w: 1366, h: 768 }, { w: 1920, h: 1080 }] as const;
+// T0D-ELABMENU-1 (LD-340): the breakpoint is 1000, so the boundary itself (1000) and a laptop width just above it (1024) must hold the one-screen layout too.
+const VIEWPORTS = [{ w: 1000, h: 700 }, { w: 1024, h: 768 }, { w: 1366, h: 768 }, { w: 1920, h: 1080 }] as const;
 
 describe('T0D-REGSCREEN-1 layout from the CSS values', () => {
   it('the feature css exists and declares the layout classes', () => {
@@ -96,6 +97,13 @@ describe('T0D-REGSCREEN-1 layout from the CSS values', () => {
     expect(bounded, 'the cart box needs a bounded height (max-height, height or flex with min-height 0)').toBe(true);
     const mh = /^(\d+(?:\.\d+)?)px$/.exec(s['min-height'] ?? '');
     if (mh) expect(Number(mh[1]), '8 rows at 28 px + header').toBeGreaterThanOrEqual(8 * 28 + 28);
+  });
+
+  it('the one-screen layout turns on at exactly 1000 px, not at the old 1280 (LD-340): a rule below 1280 still gives three tracks', () => {
+    expect(tracks(styleOf('.lims-reg-layout', 1000)['grid-template-columns'])).toBe(3);
+    expect(tracks(styleOf('.lims-reg-layout', 999)['grid-template-columns'])).toBeLessThan(3);
+    const css = files.map((f) => readFileSync(f, 'utf8')).join('\n');
+    expect(css, 'a leftover 1280 breakpoint would stack the form on a laptop').not.toMatch(/min-width\s*:\s*1280px/);
   });
 
   it('tokens only: no hex colour in the feature css (10-DESIGN-SYSTEM s6)', () => {

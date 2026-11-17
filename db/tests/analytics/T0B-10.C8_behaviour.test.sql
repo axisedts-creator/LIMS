@@ -97,7 +97,9 @@ SELECT pg_temp.ins('analytics.report_run_recipients', jsonb_build_object('id', p
 SELECT is((SELECT count(*)::int FROM analytics.g_cs_families), 17, 'C8 check 8: 16 families + _manual seeded (§4)');
 SELECT is((SELECT is_active FROM analytics.g_cs_families WHERE code = '_manual'), false, 'C8 check 8: _manual family is inactive (never in UI lists)');
 SELECT is((SELECT count(*)::int FROM analytics.g_cs_families WHERE is_active), 16, 'C8 check 8: 16 active families');
-SELECT is((SELECT count(*)::int FROM analytics.g_cs_report_codes), 14, 'C8 check 8: 14 report codes seeded (§4)');
+-- T0C-MISREPORTS-1 (LD-321): the MIS report codes are added by migration 20261117230000, so the set is the 14 of §4 plus the new ones (pinned in T0C-MISREPORTS-1_report_codes.test.sql)
+SELECT is((SELECT count(*)::int FROM analytics.g_cs_report_codes WHERE code IN ('dashboard','income','department_income','collections','volume','top_referrers','top_centres','referral_incentive',
+  'tests_done','tat','pending_tests','quality_indicators','delivery','interfaces')), 14, 'C8 check 8: the 14 report codes of §4 are seeded (T0C-MISREPORTS-1 adds more)');
 SELECT is((SELECT array_agg(code ORDER BY code) FROM analytics.g_cs_report_codes WHERE NOT is_schedulable), ARRAY['interfaces'], 'C8 check 8: only interfaces is not schedulable');
 SELECT is((SELECT count(*)::int FROM analytics.daily_orders), 3, 'C8 check 8: fixtures present (superuser sees all)');
 

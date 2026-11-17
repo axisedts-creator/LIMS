@@ -1,4 +1,4 @@
-# T0B-ACCT-2 impl (writer). Status: BLOCKED on 2 test defects (T0B-ACCT-2-dispute.md); 2150/2154 billing tests pass on PG17, static + crossTenant + boot (alone) 301/301.
+# T0B-ACCT-2 impl (writer). Status: DONE after ruling (tests fixed, no product change). PG17 billing suite 2130 pass, 1 fail = boot.test 60 s timeout under host load; boot alone 9/9 (36.8 s), crossTenant 227/227, credit.account (worker never started in full run) 23/23.
 - New: repository/expenses.repo.ts, service/expenses.service.ts, handlers/expenses.handlers.ts. Edited: handlers/index.ts (12 handlers), billing/index.ts (pendingOperations now []), service/accounts.service.ts (shared helpers exported), repository/accounts.repo.ts (findParty user_pocket).
 - [CONV] user_pocket party = active core.memberships row or core.collection_centres row; expense debit = actor pocket, cash, local date of expense_at, comments null.
 - [CONV] accept: transfer row FOR UPDATE -> 403 (receiver, never creator) -> 409 (not pending) -> tenant ledger lock -> balance re-check -> pair on particular CASH_TRANSFER (missing -> 400) -> UPDATE ... WHERE status = 'pending'.

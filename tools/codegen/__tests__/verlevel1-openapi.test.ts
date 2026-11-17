@@ -242,10 +242,10 @@ describe("T0C-VERLEVEL-1 contract: error codes (done_when 5)", () => {
     }
     for (const c of OLD_ERRORS) expect(errs.find((x) => x.code === c), `${c} stays`).toBeDefined();
   });
-  it("verifyResult and bulkVerifyResults list verifier_not_distinct and enterer_cannot_verify; approveResult and bulkApproveResults list all three; old codes stay", () => {
+  it("verifyResult and bulkVerifyResults list all three new codes (review: lab.pathologist_required when require_pathologist is true and the sign-off would be final); approveResult and bulkApproveResults list all three; old codes stay", () => {
     for (const id of ["verifyResult", "bulkVerifyResults"]) {
       const c: string[] = needOp(id).op["x-error-codes"];
-      for (const e of NEW_ERRORS.slice(0, 2)) expect(c, `${id} ${e}`).toContain(e);
+      for (const e of NEW_ERRORS) expect(c, `${id} ${e}`).toContain(e);
       expect(c, `${id} old code`).toContain("lab.result_invalid_transition");
     }
     for (const id of ["approveResult", "bulkApproveResults"]) {

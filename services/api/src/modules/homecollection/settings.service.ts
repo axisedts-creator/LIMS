@@ -5,6 +5,7 @@ import { LimsError, type FieldError } from '../../core/errors.js';
 import { uuidv7 } from '../../../../../packages/shared-ts/src/uuidv7/index.js';
 import { toReasonDto, toSettingsDto } from './mappers/settings.mapper.js';
 import { HOMECOLLECTION_PERMISSIONS } from './permissions.js';
+import { upsertCollectorFlags } from './repository/collectorFlags.repo.js';
 import { listReasonsBySet } from './repository/reasons.repo.js';
 import { getSettings, insertSettingsIfAbsent, updateSettings } from './repository/settings.repo.js';
 
@@ -118,6 +119,24 @@ export async function updateHomecollectionSettings(hctx: unknown, headers: unkno
   const row = await updateSettings(c.tx, c.tenantId, String(cur['id']), version, patch);
   if (!row) throw new LimsError('common.version_conflict');   // another writer moved the version under us
   return { status: 200, body: toSettingsDto(row) };
+}
+
+// ---- T0B-SALES-1 (LD-321): updateCollectorFlags, ElabAssist Allow Collection / Allow Pickup of one collector (a core.memberships row of the tenant) ----
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+export async function updateCollectorFlags(hctx: unknown, params: unknown, body: unknown): Promise<Result> {
+  const c = ctxOf(hctx);
+  await c.ports.IdentityPort.assertRole(c, { permission: PERM_SETTINGS_MANAGE });
+  const membershipId = isObj(params) ? params['membership_id'] : undefined;
+  if (typeof membershipId !== 'string' || !UUID.test(membershipId)) throw new LimsError('common.not_found');
+  if (!isObj(body)) throw bad('');
+  noExtra(body, ['allow_collection', 'allow_pickup'], '');
+  const flag = (k: string): boolean | null => { const v = body[k]; if (v === undefined) return null; if (typeof v !== 'boolean') throw bad(`/${k}`); return v; };
+  const allowCollection = flag('allow_collection'); const allowPickup = flag('allow_pickup');
+  if (allowCollection === null && allowPickup === null) throw bad('');   // minProperties 1
+  // no If-Match (two booleans, last write wins; T0C-SALES-1 [CONV]); an unknown or other-tenant membership fails the tenant-bound FK -> the same not_found
+  const row = await upsertCollectorFlags(c.tx, c.tenantId, { id: uuidv7(), membershipId, allowCollection, allowPickup, actorId: c.actor.id })
+    .catch((e: { code?: string }) => { throw e?.code === '23503' ? new LimsError('common.not_found') : e; });
+  return { status: 200, body: { membership_id: String(row.membership_id), allow_collection: row.allow_collection === true, allow_pickup: row.allow_pickup === true } };
 }
 
 export async function listHomecollectionReasons(hctx: unknown, query: unknown): Promise<Result> {

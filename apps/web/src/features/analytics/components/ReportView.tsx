@@ -27,6 +27,7 @@ import { Select } from '@lims/ui/components/Select';
 import { StatTile } from '@lims/ui/components/StatTile';
 import { Switch } from '@lims/ui/components/Switch';
 import { Tabs } from '@lims/ui/components/Tabs';
+import { t } from '@/core/i18n/messages';
 import { shortcuts, type Shortcut } from '@/core/shortcuts/registry';
 import { searchReferrersAction } from '../server/actions';
 import { RefreshButton } from './DashboardActions';
@@ -263,21 +264,17 @@ export function ReportView({ vm }: { vm: PageVM }) {
     </>
   );
 
-  return (
-    <>
-      <PageHeader
-        title={vm.title}
-        helpKey={vm.helpKey}
-        status={
+  const head = {
+    helpKey: vm.helpKey,
+    status:
           oldest || stale.length > 0 ? (
             <>
               <FreshnessBadge isStale={stale.length > 0} {...(oldest ? { refreshedAt: oldest } : {})} {...(reason ? { reason } : {})} />
               {stale.length > 0 && oldest ? <span> Updated {WHEN.format(Date.parse(oldest))}</span> : null}
               {stale.length > 0 && reason ? <span> {REASON[reason]}</span> : null}
             </>
-          ) : null
-        }
-        actions={
+          ) : null,
+    actions:
           vm.canRefresh || vm.export ? (
             <>
               {vm.canRefresh ? <RefreshButton pageId={vm.pageId} /> : null}
@@ -289,10 +286,16 @@ export function ReportView({ vm }: { vm: PageVM }) {
                 />
               ) : null}
             </>
-          ) : null
-        }
-      />
-      {vm.period ? <p>{vm.period.labelAd} · {bsLabel(vm.period.labelBs)}</p> : null}
+          ) : null,
+  };
+
+  return (
+    <>
+      {/* T0D-ELABMENU-3 (LD-340): a sidebar page shows its ElabAssist menu label; a report opened on its own path keeps its report name */}
+      {vm.basePath === '/analytics/reports' ? <PageHeader title={t('analytics.nav.reports')} {...head} />
+        : vm.basePath === '/analytics/collections' ? <PageHeader title={t('analytics.nav.collections')} {...head} />
+        : <PageHeader title={vm.title} {...head} />}
+      {vm.period ?<p>{vm.period.labelAd} · {bsLabel(vm.period.labelBs)}</p> : null}
       {vm.tabs.length > 1 ? (
         <Tabs items={vm.tabs} selectedId={vm.tab} onChange={openTab} aria-label="Reports">
           {body}

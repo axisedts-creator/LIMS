@@ -23,6 +23,7 @@ import { useToast } from '@lims/ui/components/Toast';
 import { SETTINGS_CHANGED, failText, isSemver } from '../labels';
 import { saveSettingsAction } from '../server/actions';
 import type { PaymentMethod, SettingsBody, SettingsDto } from '../types';
+import { t } from '@/core/i18n/messages';
 
 const PAYMENT_CODES = [
   { value: 'cash', label: 'Cash' }, { value: 'card', label: 'Card' }, { value: 'esewa', label: 'eSewa' },
@@ -120,7 +121,7 @@ export function SettingsForm({ settings }: { settings: SettingsDto }) {
 
   return (
     <Form onSubmit={submit}>
-      <PageHeader title="Home Collection settings" helpKey="homecollection.settings" actions={<Button type="submit" variant="primary" shortcut="Ctrl+Enter" isLoading={saving}>Save settings</Button>} />
+      <PageHeader title={t('homecollection.nav.settings')} helpKey="homecollection.settings" actions={<Button type="submit" variant="primary" shortcut="Ctrl+Enter" isLoading={saving}>Save settings</Button>} />
       {banner ? (
         <div role="alert">
           <Banner tone="danger" title={banner.title} {...(banner.reload ? { action: { label: 'Reload', onPress: () => router.refresh() } } : {})} />

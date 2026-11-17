@@ -13,6 +13,7 @@ import { TextField } from '@lims/ui/components/TextField';
 import { createMasterAction, updateMasterAction } from '../server/actions';
 import { CODE_RE, type Department } from '../server/types';
 import { CODE_HINT, DUPLICATE, EditorDialog, MasterTable, canManage, changed, statusText, useListFilter, useListShortcuts, type Col } from './master-ui';
+import { t } from '@/core/i18n/messages';
 
 export function DepartmentsList({ departments, permissions }: { departments: readonly Department[]; permissions: readonly string[] }) {
   const manage = canManage(permissions);
@@ -32,9 +33,9 @@ export function DepartmentsList({ departments, permissions }: { departments: rea
 
   return (
     <section aria-label="Departments">
-      <PageHeader title="Departments" helpKey="catalog.departments" breadcrumbs={[{ label: 'Catalog', href: '/catalog' }, { label: 'Departments' }]} actions={openNew ? <Button variant="primary" onPress={openNew}>New department</Button> : null} />
+      <PageHeader title={t('catalog.nav.departments')} helpKey="catalog.departments" breadcrumbs={[{ label: 'Catalog', href: '/catalog' }, { label: 'Departments' }]} actions={openNew ? <Button variant="primary" onPress={openNew}>New department</Button> : null} />
       {toolbar}
-      <MasterTable caption="Departments" cols={cols} rows={shown} empty="No departments yet." emptyAction={openNew ? { label: 'New department', onPress: openNew } : undefined} onEdit={manage ? setEditing : undefined} />
+      <MasterTable caption="Departments" cols={cols} rows={shown} empty="No test categories yet." emptyAction={openNew ? { label: 'New department', onPress: openNew } : undefined} onEdit={manage ? setEditing : undefined} />
       {editing ? <DepartmentDialog item={editing === 'new' ? undefined : editing} onClose={() => setEditing(null)} /> : null}
     </section>
   );

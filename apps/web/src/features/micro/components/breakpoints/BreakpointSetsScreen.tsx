@@ -10,6 +10,7 @@ import type { BreakpointSetDto } from '../../server/types';
 import { PERM, When } from '../common';
 import { ImportDialog } from './ImportDialog';
 import { BreakpointStatusChip } from './status';
+import { t } from '@/core/i18n/messages';
 
 const LICENCE = 'LIMS does not include CLSI or EUCAST breakpoints. Import only tables your laboratory is licensed to use.';
 
@@ -32,7 +33,7 @@ export function BreakpointSetsScreen({ sets, permissions }: { sets: readonly Bre
   return (
     <section aria-label="Breakpoint tables">
       <PageHeader
-        title="Breakpoint tables"
+        title={t('micro.nav.breakpoint_sets')}
         helpKey="micro.breakpoint_sets"
         breadcrumbs={[{ label: 'Microbiology' }, { label: 'Breakpoint tables' }]}
         actions={canImport ? <Button variant="primary" onPress={() => setOpen(true)}>Import table</Button> : null}

@@ -21,6 +21,7 @@ import { createTaxRuleAction, createTaxTypeAction, endTaxRuleAction, updateTaxTy
 import { HS_CODE_RE, parsePercentBp, TAX_CODE_RE, TAX_DISCLAIMER, type Department, type OrderableSummary, type TaxRule, type TaxType } from '../server/types';
 import { errAt, fmtDateTime } from './shared';
 import { ActionDialog, canManagePrices, TaxDisclaimer, useWhen } from './pricing-ui';
+import { t } from '@/core/i18n/messages';
 
 type Scope = TaxRule['scope'];
 type Vat = TaxRule['vat_treatment'];
@@ -49,7 +50,7 @@ export function TaxScreen({ rules, taxTypes, departments, orderables, permission
 
   return (
     <section aria-label="Tax rules and tax types">
-      <PageHeader title="Tax rules & tax types" helpKey="catalog.tax" breadcrumbs={[{ label: 'Pricing' }, { label: 'Tax' }]} />
+      <PageHeader title={t('catalog.nav.tax')} helpKey="catalog.tax" breadcrumbs={[{ label: 'Pricing' }, { label: 'Tax' }]} />
       <Banner tone="info" title={`${TAX_DISCLAIMER} Configure what your auditor confirms.`} />
       <Tabs aria-label="Tax" items={[{ id: 'rules', label: 'Rules' }, { id: 'types', label: 'Tax types' }]} selectedId={tab} onChange={setTab}>
         {tab === 'rules' ? (

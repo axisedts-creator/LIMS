@@ -5,13 +5,14 @@ import { call } from '@/features/admin/server/api';
 import { Denied, Frame, LoadError, gate } from '@/features/admin/server/page-kit';
 import { Badge, Grid } from '@/features/admin/Grid';
 import type { Role } from '@/features/admin/lib';
+import { t } from '@/core/i18n/messages';
 
 export default async function RolesPage() {
   const perms = await gate('identity.user.read');
   if (!perms) return <Denied />;
   const r = await call<{ data: Role[] }>('GET', '/v1/identity/roles');
   return (
-    <Frame title="Roles" actions={perms.has('identity.role.manage') ? <Link href="/admin/roles/new" className="lims-btn lims-btn-primary">New role</Link> : null}>
+    <Frame title={t('admin.nav.roles')} actions={perms.has('identity.role.manage') ? <Link href="/admin/roles/new" className="lims-btn lims-btn-primary">New role</Link> : null}>
       {r.ok ? (
         <Grid
           label="Roles"

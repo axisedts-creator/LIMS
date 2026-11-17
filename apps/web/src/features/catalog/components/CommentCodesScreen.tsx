@@ -15,6 +15,7 @@ import { createCommentCodeFullAction } from '../server/testMgmtActions';
 import { errAt, type Fail } from './shared';
 import { COMMENT_CODE_RE, type CommentCode, type Department } from '../server/types';
 import { DUPLICATE, EditorDialog, MasterTable, StatusBadge, canManage, changed, useListShortcuts, type Col } from './master-ui';
+import { t } from '@/core/i18n/messages';
 
 const ALL = 'all';
 const HELP = 'Technologists type :CODE followed by a space in the result comment to insert this text. Changing the text later does not change results already saved.';
@@ -40,7 +41,7 @@ export function CommentCodesScreen({ commentCodes, departments, permissions }: {
   ];
   return (
     <section aria-label="Comment codes">
-      <PageHeader title="Comment codes" helpKey="catalog.comment_codes" breadcrumbs={[{ label: 'Catalog', href: '/catalog' }, { label: 'Comment codes' }]} actions={openNew ? <Button variant="primary" onPress={openNew}>New comment code</Button> : null} />
+      <PageHeader title={t('catalog.nav.comment_codes')} helpKey="catalog.comment_codes" breadcrumbs={[{ label: 'Catalog', href: '/catalog' }, { label: 'Comment codes' }]} actions={openNew ? <Button variant="primary" onPress={openNew}>New comment code</Button> : null} />
       <div className="lims-filter-bar">
         <div ref={search}>
           <TextField label="Search" name="q" maxLength={16} description="Code prefix" value={q} onChange={setQ} />

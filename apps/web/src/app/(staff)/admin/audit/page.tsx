@@ -7,6 +7,7 @@ import { Badge, Grid, Time } from '@/features/admin/Grid';
 import { CopyButton } from '@/features/admin/components/CopyButton';
 import { NavButton } from '@/features/admin/ui';
 import { fmt, idParam, one, pick, qs, rangeFrom, shortId, type Page, type SP } from '@/features/admin/lib';
+import { t } from '@/core/i18n/messages';
 
 interface Entry { audit_id: string; occurred_at: string; table: string; action: string; row_id?: string; actor?: { type?: string; display_name?: string; membership_id?: string }; centre_id?: string; changed_columns: string[]; support_session_id?: string }
 const ACTION_LABEL: Record<string, string> = { insert: 'Insert', update: 'Update', delete: 'Delete' };
@@ -34,7 +35,7 @@ export default async function AuditPage({ searchParams }: { searchParams: Promis
     </div>
   );
   return (
-    <Frame title="Audit log" actions={perms.has('audit.log.export') ? <Link href="/admin/exports" className="lims-btn">Export…</Link> : null}>
+    <Frame title={t('admin.nav.audit')} actions={perms.has('audit.log.export') ? <Link href="/admin/exports" className="lims-btn">Export…</Link> : null}>
       <form method="get" action="/admin/audit" className="lims-filterbar" aria-label="Filters">
         {text('occurred_at_from', 'From (UTC)', range.from)}
         {text('occurred_at_to', 'To (UTC)', range.to)}

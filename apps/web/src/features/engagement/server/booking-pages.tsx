@@ -9,6 +9,7 @@ import * as api from './booking.server';
 import { PERM } from './booking.server';
 import { ApiError } from '@/core/api/server-fetch';
 import { dayStartUtc, addDays } from '../components/booking-model';
+import { t } from '@/core/i18n/messages';
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
@@ -86,7 +87,7 @@ export async function slotsPage(searchParams: SearchParams) {
   if (templates === OFF || blackouts === OFF) return switchedOff('Slot templates and blackouts', 'Bookings', 'engagement.slots');
   return (
     <>
-      <PageHeader title="Slot templates and blackouts" helpKey="engagement.slots" />
+      <PageHeader title={t('engagement.nav.slots')} helpKey="engagement.slots" />
       <SlotsHost centres={centres} workingCentreId={centreId} today={api.todayKathmandu()} templates={templates} blackouts={blackouts} />
     </>
   );
@@ -97,7 +98,7 @@ export async function bookablePage() {
   if (items === OFF) return switchedOff('Bookable catalogue', 'Bookings', 'engagement.bookable');
   return (
     <>
-      <PageHeader title="Bookable catalogue" helpKey="engagement.bookable" />
+      <PageHeader title={t('engagement.nav.bookable')} helpKey="engagement.bookable" />
       <BookableCatalogueHost items={items} />
     </>
   );

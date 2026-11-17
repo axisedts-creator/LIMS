@@ -16,6 +16,7 @@ import { IMPORT_STATUSES, EXPORT_STATUSES, IMPORT_KINDS, type ExportRow, type Im
 import { EXPORT_STATUS_LABEL, IMPORT_PERM, IMPORT_STATUS_LABEL, ImportNotice, KIND_LABEL, KIND_PERMS, failText } from './import-shared';
 import { MasterTable, type Col } from './master-ui';
 import { GatedButton, fmtDateTime, type Fail } from './shared';
+import { t } from '@/core/i18n/messages';
 
 const XLSX = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 const HINT = 'Excel .xlsx only, up to 15 MB. Macro files (.xlsm) are not accepted.';
@@ -168,7 +169,7 @@ export function ImportsScreen({ imports, exports: initialExports, priceLists, pe
 
   return (
     <section aria-label="Imports and exports">
-      <PageHeader title="Imports & exports" helpKey="catalog.imports" breadcrumbs={[{ label: 'Pricing' }, { label: 'Imports & exports' }]} />
+      <PageHeader title={t('catalog.nav.imports')} helpKey="catalog.imports" breadcrumbs={[{ label: 'Pricing' }, { label: 'Imports & exports' }]} />
       {fail ? <ImportNotice tone={fail.code === 'auth.mfa_required' ? 'warning' : 'danger'} text={failText(fail)} /> : null}
       {notReady ? <Banner tone="info" title="Still preparing — try again shortly" /> : null}
 

@@ -45,6 +45,7 @@ import { NewPatientForm } from './NewPatientForm';
 import { AddClientDialog, AddDoctorDialog, KIND_LABEL } from './QuickAdd';
 import { SuccessPanel } from './SuccessPanel';
 import './frontdesk.css';
+import { t } from '@/core/i18n/messages';
 
 export interface RegistrationFormProps {
   centres: readonly Centre[];
@@ -373,7 +374,7 @@ function Registration({ centres, permissions, defaultCentreId, consentTextVersio
   return (
     <section ref={root} aria-label="New registration" className="lims-reg">
       <PageHeader
-        title="New registration"
+        title={t('frontdesk.nav.registration_new')}
         helpKey="frontdesk.registration"
         actions={<Button variant="ghost" shortcut="?" onPress={() => setDialog('shortcuts')}>Shortcuts</Button>}
       />

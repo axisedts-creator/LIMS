@@ -5,11 +5,12 @@ import Link from 'next/link';
 import { EmptyState } from '@lims/ui/components/EmptyState';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import type { DepartmentRow } from '../../server/adminpages.server';
+import { t } from '@/core/i18n/messages';
 
 export function DepartmentIndex({ departments }: { departments: readonly DepartmentRow[] }) {
   return (
     <section aria-label="Worklists">
-      <PageHeader title="Worklists" helpKey="lab.worklists" />
+      <PageHeader title={t('lab.nav.worklists')} helpKey="lab.worklists" />
       {departments.length === 0 ? (
         <EmptyState title="No active departments." />
       ) : (

@@ -11,6 +11,7 @@ import { TextField } from '@lims/ui/components/TextField';
 import { createMasterAction, updateMasterAction } from '../server/actions';
 import { CODE_RE, type Method } from '../server/types';
 import { CODE_HINT, DUPLICATE, EditorDialog, MasterTable, canManage, changed, statusText, useListFilter, useListShortcuts, type Col } from './master-ui';
+import { t } from '@/core/i18n/messages';
 
 export function MethodsList({ methods, permissions }: { methods: readonly Method[]; permissions: readonly string[] }) {
   const manage = canManage(permissions);
@@ -28,7 +29,7 @@ export function MethodsList({ methods, permissions }: { methods: readonly Method
 
   return (
     <section aria-label="Methods">
-      <PageHeader title="Methods" helpKey="catalog.methods" breadcrumbs={[{ label: 'Catalog', href: '/catalog' }, { label: 'Methods' }]} actions={openNew ? <Button variant="primary" onPress={openNew}>New method</Button> : null} />
+      <PageHeader title={t('catalog.nav.methods')} helpKey="catalog.methods" breadcrumbs={[{ label: 'Catalog', href: '/catalog' }, { label: 'Methods' }]} actions={openNew ? <Button variant="primary" onPress={openNew}>New method</Button> : null} />
       {toolbar}
       <MasterTable caption="Methods" cols={cols} rows={shown} empty="No methods yet." emptyAction={openNew ? { label: 'New method', onPress: openNew } : undefined} onEdit={manage ? setEditing : undefined} />
       {editing ? <MethodDialog item={editing === 'new' ? undefined : editing} onClose={() => setEditing(null)} /> : null}

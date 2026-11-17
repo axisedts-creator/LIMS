@@ -4,6 +4,7 @@ import { PageHeader } from '@lims/ui/components/PageHeader';
 import { EmptyState } from '@lims/ui/components/EmptyState';
 import { QueueConsoleHost, QueueSetupHost } from '../components/QueueHosts';
 import * as api from './queue.server';
+import { t } from '@/core/i18n/messages';
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
@@ -21,7 +22,7 @@ export async function consolePage(searchParams: SearchParams) {
   const [queues, counters, tokens, lab] = await Promise.all([api.listQueues(centreId), api.listCounters(centreId), api.listTokens(centreId), labName()]);
   return (
     <>
-      <PageHeader title="Queue console" helpKey="engagement.queue" />
+      <PageHeader title={t('engagement.nav.queue')} helpKey="engagement.queue" />
       <QueueConsoleHost labName={lab} centreId={centreId} queues={queues} counters={counters} tokens={tokens} />
     </>
   );

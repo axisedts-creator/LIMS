@@ -14,6 +14,7 @@ import { TextField } from '@lims/ui/components/TextField';
 import { createCreditPartyAction, updateCreditPartyAction } from '../server/catalogActions';
 import { PARTY_CODE_RE, emailError, phoneError, type CreditParty, type PartyKind } from '../server/types';
 import { DUPLICATE, EditorDialog, MasterTable, StatusBadge, useListShortcuts, type Col } from './master-ui';
+import { t } from '@/core/i18n/messages';
 
 const KINDS: readonly { value: PartyKind; label: string }[] = [
   { value: 'hospital', label: 'Hospital' }, { value: 'company', label: 'Company' }, { value: 'clinic', label: 'Clinic' },
@@ -38,9 +39,9 @@ export function CreditPartiesScreen({ creditParties, permissions }: { creditPart
   ];
   return (
     <section aria-label="Credit parties">
-      <PageHeader title="Credit parties & affiliations" helpKey="catalog.credit_parties" breadcrumbs={[{ label: 'Pricing' }, { label: 'Credit parties' }]} actions={openNew ? <Button variant="primary" onPress={openNew}>New credit party</Button> : null} />
+      <PageHeader title={t('catalog.nav.credit_parties')} helpKey="catalog.credit_parties" breadcrumbs={[{ label: 'Pricing' }, { label: 'Credit parties' }]} actions={openNew ? <Button variant="primary" onPress={openNew}>New credit party</Button> : null} />
       <p>Credit limits, credit days and monthly statements are managed in Billing.</p>
-      <MasterTable caption="Credit parties" cols={cols} rows={creditParties} empty="No credit parties or affiliations yet." emptyAction={openNew ? { label: 'New credit party', onPress: openNew } : undefined} codeOf={(r) => r.party_code} onEdit={manage ? setEditing : undefined} />
+      <MasterTable caption="Credit parties" cols={cols} rows={creditParties} empty="No clients or affiliations yet." emptyAction={openNew ? { label: 'New credit party', onPress: openNew } : undefined} codeOf={(r) => r.party_code} onEdit={manage ? setEditing : undefined} />
       {editing ? <PartyDialog item={editing === 'new' ? undefined : editing} onClose={() => setEditing(null)} /> : null}
     </section>
   );

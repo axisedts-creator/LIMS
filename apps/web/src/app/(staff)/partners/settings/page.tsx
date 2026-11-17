@@ -4,6 +4,8 @@ import { getShellSession } from '@/core/session/server';
 import { getSettings } from '@/features/partners/server/read.server';
 import { PartnerSettings } from '@/features/partners/components/PartnerSettings';
 import { PermissionNotice } from '@/features/partners/components/common';
+import { PageHeader } from '@lims/ui/components/PageHeader';
+import { t } from '@/core/i18n/messages';
 
 export const metadata = { title: 'Partner settings' };
 
@@ -16,7 +18,8 @@ export default async function SettingsPage() {
     if (e instanceof ApiError && e.status === 500 && e.problem.code === 'common.internal') return null;
     throw e;
   });
-  if (!r) return <main className="lims-page"><h1>Partner settings</h1><p>Partner settings are not available yet.</p></main>;
+  // T0D-ELABMENU-3 (LD-340): heading = ElabAssist menu label, drawn by the shared PageHeader
+  if (!r) return <main className="lims-page"><PageHeader title={t('partners.nav.settings')} helpKey="partners.settings" /><p>Partner settings are not available yet.</p></main>;
   const { settings, etag } = r;
   return <PartnerSettings initial={settings} etag={etag} canManage={perms.includes('partners.partner.manage')} />;
 }

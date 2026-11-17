@@ -17,6 +17,7 @@ import { createDoctorAction, searchDoctorsAction } from '../server/catalogAction
 import { PARTY_CODE_RE, emailError, phoneError, type DoctorSummary } from '../server/types';
 import { DUPLICATE, EditorDialog, MasterTable, StatusBadge, useListShortcuts, type Col } from './master-ui';
 import { canManageDoctors } from './DoctorDetail';
+import { t } from '@/core/i18n/messages';
 
 const COUNCILS = [{ value: 'none', label: 'None' }, { value: 'NMC', label: 'NMC' }, { value: 'Other', label: 'Other' }] as const;
 
@@ -64,7 +65,7 @@ export function DoctorsList({ doctors, permissions }: { doctors: readonly Doctor
   return (
     <section aria-label="Doctors">
       <PageHeader
-        title="Doctors"
+        title={t('catalog.nav.doctors')}
         helpKey="catalog.doctors"
         breadcrumbs={[{ label: 'Catalog', href: '/catalog' }, { label: 'Doctors' }]}
         actions={
@@ -99,7 +100,7 @@ export function DoctorsList({ doctors, permissions }: { doctors: readonly Doctor
         <RadioGroup label="Status" name="is_active" orientation="horizontal" value={active} onChange={(v) => setParam('is_active', v)} options={[{ value: 'all', label: 'All' }, { value: 'true', label: 'Active' }, { value: 'false', label: 'Inactive' }]} />
         <RadioGroup label="Source" name="source" orientation="horizontal" value={source} onChange={(v) => setParam('source', v)} options={[{ value: 'all', label: 'All' }, { value: 'back_office', label: 'Back office' }, { value: 'quick_add', label: 'Quick add' }, { value: 'import', label: 'Import' }]} />
       </div>
-      <MasterTable caption="Doctors" cols={cols} rows={rows} empty="No doctors yet." emptyAction={openNew ? { label: 'New doctor', onPress: openNew } : undefined} codeOf={(r) => r.doctor_code} />
+      <MasterTable caption="Doctors" cols={cols} rows={rows} empty="No doctors in Doctor Management yet." emptyAction={openNew ? { label: 'New doctor', onPress: openNew } : undefined} codeOf={(r) => r.doctor_code} />
       {creating ? <DoctorDialog onClose={() => setCreating(false)} onDuplicates={setDupes} /> : null}
     </section>
   );

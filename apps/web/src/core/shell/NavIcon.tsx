@@ -36,6 +36,8 @@ const PATHS: Record<string, string> = {
 export const GROUP_ICON: Record<string, string> = {
   front_desk: 'desk', laboratory: 'flask', reporting: 'report', billing: 'cash', catalog: 'book', instruments: 'inbox', analytics: 'chart',
   quality: 'check', inventory: 'box', partners: 'building', engagement: 'chat', home_collection: 'home', admin: 'shield', platform: 'globe',
+  // LD-340 (ElabAssist menu groups, core/nav/elab-menu.ts)
+  dashboard: 'chart', daily_work: 'desk', accounts: 'cash', reports: 'report', administration: 'shield', machine: 'inbox', other: 'dot',
 };
 
 export function NavIcon({ name, className }: { name?: string | undefined; className?: string }) {

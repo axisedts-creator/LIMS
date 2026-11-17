@@ -55,11 +55,14 @@ const BASELINE_ROUTE_COUNT = 143; // contracts/routes.yaml before T0D-12d
 const BASELINE_INVENTORY_SCHEMA_COUNT = 47; // components.schemas in inventory.yaml before T0D-12d (Code swapped for InventoryCodedSetEntry)
 
 describe("LD-112: 20 staff_web rows in contracts/routes.yaml", () => {
-  it("has exactly 20 LD-112 rows; 174 routes in total (143 + 20 + 11 LD-130, no other route added)", () => {
+  // T0C-PINFIX-1 / LD-339 / LD-337: the exact total (174) went stale when later tasks added routes (202 on main); it is a floor now.
+  it("has exactly 20 LD-112 rows; at least 174 routes in total (143 + 20 + 11 LD-130, later tasks may add more); route ids unique", () => {
     expect(LD112).toHaveLength(20);
     expect(LD130_SMARTREPORT).toHaveLength(3);
     expect(LD130_QUALITY).toHaveLength(8);
-    expect(routes).toHaveLength(BASELINE_ROUTE_COUNT + 20 + 11);
+    expect(routes.length).toBeGreaterThanOrEqual(BASELINE_ROUTE_COUNT + 20 + 11);
+    const ids = routes.map((r) => r.id);
+    expect(ids.filter((id, i) => ids.indexOf(id) !== i)).toEqual([]);
   });
 
   it("each row has the LD-112 id, path, permission, origin staff_web, owner C2", () => {
@@ -69,16 +72,20 @@ describe("LD-112: 20 staff_web rows in contracts/routes.yaml", () => {
     }
   });
 
-  it("the rows follow staff.platform.dead_letter directly, contiguous, in LD-112 order", () => {
+  // T0C-PINFIX-1 / LD-339: relative order; rows of later tasks (e.g. staff.admin.role_packs) may sit between them.
+  it("each of the 20 LD-112 ids exists exactly once, in LD-112 order, after staff.platform.dead_letter and before staff.quality.qc_run", () => {
     const ids = routes.map((r) => r.id);
     const at = ids.indexOf("staff.platform.dead_letter");
+    const end = ids.indexOf("staff.quality.qc_run");
     expect(at).toBeGreaterThanOrEqual(0);
-    expect(ids.slice(at + 1, at + 21)).toEqual(LD112.map(([id]) => id));
-  });
-
-  it("the row after the 20 is staff.quality.qc_run (nothing wedged in, nothing reordered)", () => {
-    const ids = routes.map((r) => r.id);
-    expect(ids[ids.indexOf("staff.platform.dead_letter") + 21]).toBe("staff.quality.qc_run");
+    expect(end).toBeGreaterThan(at);
+    const pos = LD112.map(([id]) => {
+      expect(ids.filter((x) => x === id), id).toHaveLength(1);
+      return ids.indexOf(id);
+    });
+    expect([...pos].sort((x, y) => x - y)).toEqual(pos);
+    expect(pos[0]).toBeGreaterThan(at);
+    expect(pos[pos.length - 1]).toBeLessThan(end);
   });
 
   it("the raw file carries the LD-112 comment line right before staff.admin.me, after the dead_letter row", () => {

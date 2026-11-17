@@ -11,7 +11,7 @@ export type RailItem = {
   id: string; label: string; path: string; current: boolean; icon?: string; chord?: string; section?: string;
   createPath?: string; createLabel?: string; badge?: number; viewOnly?: boolean;
 };
-export type RailGroup = { id: string; label: string; items: RailItem[] };
+export type RailGroup = { id: string; label: string; items: RailItem[]; /** LD-340: a single entry shown as a plain link (the Dashboard), no accordion */ direct?: boolean };
 
 type Props = {
   groups: RailGroup[];
@@ -76,6 +76,17 @@ export function Rail({ groups, tenant, user, logoSrc, navId, drawerOpen, onClose
       <div className="lims-rail-scroll">
         {filtering && shown.length === 0 ? <p role="status" className="lims-rail-empty">{t('core.nav.find_none')}</p> : null}
         {shown.map((g) => {
+          if (g.direct && g.items[0]) {
+            const only = g.items[0];
+            return (
+              <div key={g.id} role="group" aria-label={g.label} data-group={g.id} className="lims-rail-group lims-rail-direct">
+                <Link href={only.path} className="lims-rail-header lims-rail-direct-link" aria-current={only.current ? 'page' : undefined} data-chord={only.chord} data-entry-id={only.id} onClick={onClose}>
+                  <NavIcon name={GROUP_ICON[g.id]} />
+                  <span className="lims-rail-group-label">{only.label}</span>
+                </Link>
+              </div>
+            );
+          }
           const expanded = filtering || open === g.id;
           const listId = `${uid}-${g.id}`;
           let lastSection: string | undefined;

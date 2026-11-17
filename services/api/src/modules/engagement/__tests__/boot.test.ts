@@ -65,13 +65,16 @@ describe('C16-T01 manifest', () => {
 });
 
 describe('C16-T01 handler map', () => {
-  it('the spec has the 98 unique operationIds of the TRD §5 table', () => {
-    expect(OPS.length).toBe(98);
-    expect(new Set(OPS).size).toBe(98);
+  it('the spec has the 109 unique operationIds (98 of the TRD §5 table + 11 broadcast, T0C-MSGDESK-1)', () => {
+    expect(OPS.length).toBe(109);
+    expect(new Set(OPS).size).toBe(109);
   });
-  it('binds every operationId of engagement.yaml to a function, and nothing else', () => {
-    expect(Object.keys(manifest.handlers).sort()).toEqual([...OPS].sort());
-    for (const op of OPS) expect(typeof manifest.handlers[op], op).toBe('function');
+  it('binds every operationId of engagement.yaml to a function, except the LD-325 pending ones, and nothing else', () => {
+    // T0C-MSGDESK-1 ruling: the 11 broadcast ids are pending until T0B-MSGDESK-1 merges the handlers and empties the list.
+    const pending = new Set<string>((manifest as { pendingOperations?: readonly string[] }).pendingOperations ?? []);
+    const handled = OPS.filter((op) => !pending.has(op));
+    expect(Object.keys(manifest.handlers).sort()).toEqual([...handled].sort());
+    for (const op of handled) expect(typeof manifest.handlers[op], op).toBe('function');
   });
 });
 

@@ -236,6 +236,38 @@ CREATE POLICY access_slips__insert__partner ON partners.access_slips FOR INSERT 
 CREATE POLICY access_slips__update__system ON partners.access_slips FOR UPDATE TO lims_app
   USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.current_actor_type()) = 'system')
   WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.current_actor_type()) = 'system');
+-- T0C-MSGDESK-1 (LD-321): partner tickets; staff see the tenant, a partner actor only its own partner (migration 20261117240000).
+CREATE POLICY partner_ticket__select__tenant ON partners.partner_ticket FOR SELECT TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()) AND (SELECT app.current_actor_type()) IN ('user','system'));
+CREATE POLICY partner_ticket__insert__tenant ON partners.partner_ticket FOR INSERT TO lims_app
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()) AND (SELECT app.current_actor_type()) IN ('user','system'));
+CREATE POLICY partner_ticket__update__tenant ON partners.partner_ticket FOR UPDATE TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()) AND (SELECT app.current_actor_type()) IN ('user','system'))
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()) AND (SELECT app.current_actor_type()) IN ('user','system'));
+CREATE POLICY partner_ticket__select__partner ON partners.partner_ticket FOR SELECT TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.current_actor_type()) = 'partner'
+         AND party_kind = 'partner' AND party_id = (SELECT app.current_partner_id()));
+CREATE POLICY partner_ticket__insert__partner ON partners.partner_ticket FOR INSERT TO lims_app
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.current_actor_type()) = 'partner'
+              AND party_kind = 'partner' AND party_id = (SELECT app.current_partner_id()) AND status = 'new');
+CREATE POLICY partner_ticket__update__partner ON partners.partner_ticket FOR UPDATE TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.current_actor_type()) = 'partner'
+         AND party_kind = 'partner' AND party_id = (SELECT app.current_partner_id()) AND status <> 'closed')
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.current_actor_type()) = 'partner'
+              AND party_kind = 'partner' AND party_id = (SELECT app.current_partner_id()) AND status = 'new');
+CREATE POLICY partner_ticket_message__select__tenant ON partners.partner_ticket_message FOR SELECT TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()) AND (SELECT app.current_actor_type()) IN ('user','system'));
+CREATE POLICY partner_ticket_message__insert__tenant ON partners.partner_ticket_message FOR INSERT TO lims_app
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system())
+              AND ((SELECT app.current_actor_type()) = 'system' OR ((SELECT app.current_actor_type()) = 'user' AND sender_kind = 'lab')));
+CREATE POLICY partner_ticket_message__select__partner ON partners.partner_ticket_message FOR SELECT TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.current_actor_type()) = 'partner'
+         AND EXISTS (SELECT 1 FROM partners.partner_ticket t WHERE t.tenant_id = partner_ticket_message.tenant_id AND t.id = partner_ticket_message.ticket_id
+                       AND t.party_kind = 'partner' AND t.party_id = (SELECT app.current_partner_id())));
+CREATE POLICY partner_ticket_message__insert__partner ON partners.partner_ticket_message FOR INSERT TO lims_app
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.current_actor_type()) = 'partner' AND sender_kind = 'partner'
+              AND EXISTS (SELECT 1 FROM partners.partner_ticket t WHERE t.tenant_id = partner_ticket_message.tenant_id AND t.id = partner_ticket_message.ticket_id
+                            AND t.party_kind = 'partner' AND t.party_id = (SELECT app.current_partner_id())));
 -- T0C-SALES-1 (LD-321): db/migrations/20261117210000_partners__add_sales_hierarchy.sql; no DELETE policy (deactivate / close, never delete)
 CREATE POLICY sales_designation__select__tenant ON partners.sales_designation FOR SELECT TO lims_app
   USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));

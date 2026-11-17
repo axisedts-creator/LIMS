@@ -353,7 +353,9 @@ describe('display token on every other operation -> 403 auth.forbidden (US-EN-22
 
   it('the operation set is the whole engagement contract (every operationId except getQueueBoard)', () => {
     const ids = Object.values<any>(spec.paths).flatMap((p) => Object.values<any>(p)).map((m: any) => m?.operationId).filter(Boolean).sort();
-    expect([...OTHERS, 'getQueueBoard'].sort()).toEqual(ids);
+    // T0C-MSGDESK-1 ruling: LD-325 pending ids have no handler until T0B-MSGDESK-1.
+    const pending: string[] = [...(((manifest as { pendingOperations?: readonly string[] }).pendingOperations) ?? [])];
+    expect([...OTHERS, 'getQueueBoard', ...pending].sort()).toEqual(ids);
     for (const op of IMPLEMENTED) expect(OTHERS, op).toContain(op);
   });
   it.each(IMPLEMENTED)('%s with a display device -> auth.forbidden and zero queries', async (op) => {

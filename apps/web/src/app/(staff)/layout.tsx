@@ -16,7 +16,7 @@ export default async function StaffLayout({ children }: { children: ReactNode })
   const route = matchStaffRoute(pathname);
   const allowed = !route || hasPermission(session.actor.permissions, route.permission);
   return (
-    <AppShell session={session} pathname={pathname}>
+    <AppShell session={session} pathname={pathname} menu="elab">
       {allowed ? children : <PermissionDenied />}
     </AppShell>
   );

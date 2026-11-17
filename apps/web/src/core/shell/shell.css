@@ -229,3 +229,37 @@ body { margin: 0; }
   .lims-auth-plate { animation: none; transform: rotateX(56deg) rotateZ(-30deg); }
   .lims-auth-well, .lims-auth-chip, .lims-auth-mark, .lims-auth-mark-ring { animation: none; }
 }
+
+/* LD-340 (founder 2026-11-17 20:27 NPT, review of the live site): one narrow sidebar the width of the logo, one logo (the tenant label under it is
+   hidden), short rows, a slim top bar, the bell as an icon only. Sizes only, no colour. Tested live at 1272 x 668 before it was written here. */
+.lims-shell-nav { width: 11rem !important; padding: var(--lims-space-2) !important; }
+.lims-rail { gap: var(--lims-space-2) !important; }
+.lims-rail-logo { width: 100% !important; max-width: 9rem; }
+.lims-rail-tenant { display: none !important; }
+.lims-rail-search { min-height: 1.75rem !important; padding-inline: var(--lims-space-3) !important; font-size: 0.78125rem !important; }
+.lims-rail-scroll { overflow-x: hidden; }
+.lims-rail-header { min-width: 0; min-height: 1.875rem !important; padding: 0 var(--lims-space-2) !important; gap: var(--lims-space-2) !important; font-size: 0.78125rem !important; }
+.lims-rail-group-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lims-rail-link { min-height: 1.75rem !important; padding: 0 var(--lims-space-2) !important; gap: var(--lims-space-2) !important; font-size: 0.78125rem !important; line-height: 1.15 !important; }
+.lims-rail-label { min-width: 0; overflow-wrap: anywhere; }
+.lims-rail-user { padding: var(--lims-space-2) var(--lims-space-3) !important; font-size: 0.75rem !important; }
+.lims-rail-user-role { font-size: 0.6875rem !important; }
+.lims-shell-top { min-height: 2.75rem !important; padding-inline: var(--lims-space-3) !important; }
+.lims-topbar-bell, .lims-topbar-bell:disabled { display: inline-grid !important; grid-auto-flow: row !important; place-items: center !important; min-width: 1.875rem !important; min-height: 1.875rem !important; padding: 0 !important; }
+.lims-topbar-bell:disabled { opacity: 0.55; }
+.lims-topbar-bell-note { display: none !important; }
+.lims-shell-main { padding: var(--lims-space-2) var(--lims-space-4) !important; }
+.lims-page-title { font-size: 1.25rem !important; line-height: 1.2 !important; }
+.lims-card { padding: var(--lims-space-2) var(--lims-space-3) !important; }
+.lims-card-title { margin: 0 0 var(--lims-space-1-5, 0.375rem) !important; font-size: 0.875rem !important; }
+
+/* LD-340 (cont.): ElabAssist-style menu pieces, profile menu with Sign out */
+.lims-rail-direct { margin: 0; }
+.lims-rail-direct-link { color: inherit; text-decoration: none; }
+.lims-rail-direct-link[aria-current='page'] { background: var(--lims-accent-highlight); color: var(--lims-neutral-900); }
+.lims-rail-subheading { padding: var(--lims-space-1) var(--lims-space-2) 0 !important; font-size: 0.6875rem !important; letter-spacing: 0.04em; text-transform: uppercase; opacity: 0.75; }
+.lims-topbar-actor { display: inline-flex !important; align-items: center; gap: var(--lims-space-2); min-height: 1.875rem !important; padding-inline: var(--lims-space-2) !important; }
+.lims-topbar-avatar { display: inline-grid; place-items: center; flex: none; inline-size: 1.5rem; block-size: 1.5rem; border-radius: var(--lims-radius-full); background: var(--lims-accent); color: var(--lims-accent-fg); font-size: 0.6875rem; font-weight: var(--lims-font-weight-semibold); }
+.lims-topbar-actor-chevron { flex: none; inline-size: 1rem; block-size: 1rem; transform: rotate(90deg); }
+.lims-user-menu-sep { block-size: 0.0625rem; margin: var(--lims-space-1) 0; background: color-mix(in srgb, currentColor 18%, transparent); }
+a.lims-menuitem { display: block; color: inherit; text-decoration: none; }

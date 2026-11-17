@@ -216,7 +216,8 @@ describe("engagement.yaml (T0C-10.C16)", () => {
   const doc: any = text ? parse(text) : { paths: {}, components: {} };
   const ops: Record<string, { method: string; path: string; op: any }> = {};
   for (const [path, item] of Object.entries<any>(doc.paths ?? {}))
-    for (const m of METHODS) if (item?.[m]) ops[item[m].operationId] = { method: m.toUpperCase(), path, op: item[m] };
+    // T0C-MSGDESK-1 (LD-321) adds 11 additive operations pinned in msgdesk1-openapi.test.ts; this file keeps pinning the original TRD table only
+    for (const m of METHODS) if (item?.[m] && !["listBroadcastTemplates", "createBroadcastTemplate", "updateBroadcastTemplate", "deactivateBroadcastTemplate", "createBroadcast", "previewBroadcastAudience", "requestBroadcastApproval", "approveBroadcast", "cancelBroadcast", "listBroadcasts", "listBroadcastRecipients"].includes(item[m].operationId)) ops[item[m].operationId] = { method: m.toUpperCase(), path, op: item[m] };
 
   const deref = (n: any): any => {
     if (!n?.$ref) return n;

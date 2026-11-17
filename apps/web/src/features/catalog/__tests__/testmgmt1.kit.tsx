@@ -19,7 +19,7 @@ process.env.LIMS_ORIGIN_API = ORIGIN;
 export const ID = (n: number) => `01a1a98a-ac40-7000-8000-0000000f${String(n).padStart(4, '0')}`;
 
 export const tm = (): { search: string; pathname: string; permissions: string[]; navLog: string[] } =>
-  ((globalThis as any).__TM ??= { search: '', pathname: '/catalog/tests', permissions: [], navLog: [] });
+  ((globalThis as any).__TM ??= { search: '', pathname: '/catalog/tests', permissions: ['catalog.test.read', 'catalog.test.manage'], navLog: [] });
 export const READ = ['catalog.test.read'];
 export const MANAGE = ['catalog.test.read', 'catalog.test.manage'];
 export const PUBLISH = [...MANAGE, 'catalog.reference_range.publish'];

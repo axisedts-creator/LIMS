@@ -99,7 +99,9 @@ describe('Test form: live report preview', () => {
 });
 
 describe('Test form: save, edit, copy', () => {
-  const fill = async (f: HTMLElement) => {
+  // Contract: an orderable test needs at least one tag (TestCreate.tags, T0B-TESTMGMT-1, LD-318), so the default fill supplies one.
+  const fill = async (f: HTMLElement, withTag = true) => {
+    if (withTag) await userEvent.type(within(f).getByLabelText(/^tags/i), 'synthetic');
     await userEvent.type(within(f).getByLabelText(/^code/i), 'hgb2');
     await userEvent.type(within(f).getByLabelText(/^name/i), 'Hemoglobin A2');
     await userEvent.selectOptions(within(f).getByLabelText(/^department/i), HAEM.id);
@@ -137,7 +139,7 @@ describe('Test form: save, edit, copy', () => {
 
   it('refuses a tagless orderable test before calling the API (T0B rule: at least one tag when orderable)', async () => {
     const f = await form(NEW);
-    await fill(f);
+    await fill(f, false);
     await userEvent.click(within(f).getByRole('button', { name: /^save/i }));
     expect(await within(f).findByText(/tag/i)).toBeTruthy();
     expect(to('POST', /\/v1\/catalog\/tests$/)).toHaveLength(0);

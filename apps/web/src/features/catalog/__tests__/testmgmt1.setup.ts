@@ -2,7 +2,7 @@
 import { vi } from 'vitest';
 
 type TM = { search: string; pathname: string; permissions: string[]; navLog: string[] };
-const tm = (): TM => ((globalThis as any).__TM ??= { search: '', pathname: '/catalog/tests', permissions: [], navLog: [] });
+const tm = (): TM => ((globalThis as any).__TM ??= { search: '', pathname: '/catalog/tests', permissions: ['catalog.test.read', 'catalog.test.manage'], navLog: [] });
 
 vi.mock('server-only', () => ({}));
 vi.mock('next/navigation', () => ({

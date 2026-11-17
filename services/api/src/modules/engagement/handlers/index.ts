@@ -6,6 +6,7 @@ import { accountHandlers } from './account.handlers.js';
 import { authHandlers } from './auth.handlers.js';
 import { bookableHandlers } from './bookable.handlers.js';
 import { bookingHandlers } from './booking.handlers.js';
+import { broadcastHandlers } from './broadcast.handlers.js';
 import { displayHandlers } from './display.handlers.js';
 import { enquiryHandlers } from './enquiry.handlers.js';
 import { linkHandlers } from './link.handlers.js';
@@ -67,4 +68,5 @@ export const handlers: Readonly<Record<(typeof OPERATION_IDS)[number], Handler>>
   ...myBookingHandlers, // T-BK1: E30-E40
   ...paymentHandlers, // T-PAY1: E41, E42
   ...profileHandlers, // T-SEC1 ruling: E13, E18, E19 (R4 is in reminderHandlers)
+  ...broadcastHandlers, // T0B-MSGDESK-1 (LD-321): the 11 broadcast operations of T0C-MSGDESK-1
 });

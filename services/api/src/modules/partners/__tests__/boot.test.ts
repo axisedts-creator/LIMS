@@ -53,6 +53,9 @@ const IMPLEMENTED: readonly string[] = [
   'listInboundManifests', 'getInboundManifest', 'receiveManifest', 'retryManifestLineConversion', 'markManifestLineNotReceived', // T10 (SI1-SI5)
   'listPartnerOrders', 'searchPartnerOrders', 'getPartnerOrder', 'listPartnerReports', 'markPartnerReportsSeen', 'downloadPartnerReport', // T13 (O1-O3, R1-R3)
   'issuePatientAccessSlip', 'getPatientAccessSlip', 'downloadPatientAccessSlip', // T14 (R4-R6)
+  // T0B-MSGDESK-1 (LD-321)
+  'listPartnerTickets', 'createPartnerTicket', 'getPartnerTicket', 'replyPartnerTicket', 'closePartnerTicket', 'reopenPartnerTicket',
+  'listMyPartnerTickets', 'createMyPartnerTicket', 'getMyPartnerTicket', 'replyMyPartnerTicket',
 ];
 
 const FAKE_REQ = { params: {}, query: {}, headers: {}, body: {} };

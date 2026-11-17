@@ -41,7 +41,7 @@ describe('(4) create: closed placeholder list, derived placeholders, row stored 
     expect(['engagement.broadcast_placeholder_unknown', 'common.validation_failed']).toContain(errCode(e));
     if (ph.startsWith('{{') && ph.endsWith('}}') && ph !== '{{}}') expect(errCode(e)).toBe('engagement.broadcast_placeholder_unknown');
     expect(e.statusCode).toBe(errCode(e) === 'engagement.broadcast_placeholder_unknown' ? 422 : 400);
-    expect((await ownerRows('engagement.broadcast_template', "tenant_id = $1 AND body LIKE '%' || $2 || '%'", [TENANT_A, ph])).length).toBe(0);
+    expect((await ownerRows('engagement.broadcast_template', "tenant_id = $1 AND body = $2", [TENANT_A, mk({ body: `Hello ${ph} today` }).body])).length).toBe(0);
   });
   it.each(['<script>alert(1)</script>', '<img src=x onerror=alert(1)>', '<iframe src="https://evil.example"></iframe>', '<a href="https://evil.example">x</a>'])('markup %s in a body is refused: 400', { timeout: T }, async (html) => {
     for (const channel of ['email', 'sms']) {

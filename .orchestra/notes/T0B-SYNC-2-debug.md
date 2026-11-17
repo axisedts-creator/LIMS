@@ -7,3 +7,8 @@
 - CAUSE unchanged: no migration 20261117260000 on lane/C0-0H and handlers `createSyncPart2Handlers`/`syncPart2Handlers` exist only inside tests. Contract T0C-SYNC-2 (a16b1980d, lane/C0-0M) still not merged here.
 - NO FIX APPLIED: writing impl without contract = inventing table/column/error names (forbidden). Tests not disputed.
 - NEXT: lead merges lane/C0-0M into lane/C0-0H, re-queue writer for T0B-SYNC-2 impl.
+
+## round 3
+- CAUSE unchanged: T0C-SYNC-2 (a16b1980d) contained only in lane/C0-0M; no migration 20261117260000 and no SyncEntityType in spec on lane/C0-0H. Handlers exist only in tests.
+- NO FIX APPLIED: impl without the contract would invent names (forbidden). Tests not disputed.
+- NEXT: lead merges lane/C0-0M into lane/C0-0H, then re-queue writer for impl.

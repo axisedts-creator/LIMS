@@ -1,11 +1,11 @@
 // HC-T09 / H5 scheduleHomeVisit, H4 unassignHomeVisit, H6 cancelHomeVisit, H8 resolveHomeVisitFlag + the route version rule (02-TRD §4.1, review #10) + US-15 (manual trigger: the dispatcher acts on a `missed` visit).
 // PRD US-03-2, US-03-9, US-15-1/-2 (dispatcher side); 07-SECURITY §4/§5. Runs handlers over a real PG17 tx (helpers.ts). Fails now: H4/H5/H6/H8 are HC-T01 stubs.
-// Dates: this file owns routes from 2028-03-01 (see route.test.ts for the split). H5 windows stay near ctx.now() (2026-11-10): the spec refuses a window more than 30 days ahead [CONV].
+// Dates: this file owns routes from 2034-07-01 (LD-347) (see route.test.ts for the split). H5 windows stay near ctx.now() (2026-11-10): the spec refuses a window more than 30 days ahead [CONV].
 import { beforeAll, describe, expect, it } from 'vitest';
 import { DISPATCHER, DISPATCHER_B, MEMBER, NOBODY, PHLEBO, T, assignmentsOf, assignedVisit, bookingVisit, cancel, day, failure, flagsOf, frontDeskVisit, hc, openFlag, req, resolveFlag,
   responseErrors, routeRow, schedule, schemaErrors, seed, transitionsOf, uid, unassign, visitRow, dop, hdr, worldOf, type DFx } from './helpers.js';
 
-const BASE = '2028-03-01';
+const BASE = '2034-07-01';   // LD-347 isolation only: was 2028-03-01, inside sync/helpers.ts nextDay range (2028-02-01 + 120 days per file)
 let n = 0;
 const D = (): string => day(BASE, n++);
 const NEAR = '2026-11-12';

@@ -239,6 +239,10 @@ textarea.lims-input, .lims-input.lims-rte-surface, .lims-egrid-table .lims-input
 .lims-table-comfortable tr { height: 48px; min-height: 48px; }
 .lims-row:hover, .lims-row[data-hovered] { background: var(--lims-neutral-50); }
 .lims-row[data-selected] { background: var(--lims-accent-subtle); }
+/* T0D-EMPTYTBL-1 (LD-310): an empty table keeps its height with four faint, inert rows under the message row. */
+.lims-row-placeholder { pointer-events: none; user-select: none; }
+.lims-row-placeholder > td { border-bottom: 1px solid var(--lims-neutral-100); }
+div.lims-row-placeholder { min-height: 32px; border-bottom: 1px solid var(--lims-neutral-100); }
 .lims-bulk-bar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--lims-space-2); padding: var(--lims-space-2) var(--lims-space-3); margin-bottom: var(--lims-space-2); border-radius: var(--lims-radius-md); background: var(--lims-accent-subtle); }
 .lims-bulk-count { font-weight: var(--lims-font-weight-semibold); font-variant-numeric: tabular-nums; margin-inline-end: auto; }
 .lims-align-end { text-align: end; }

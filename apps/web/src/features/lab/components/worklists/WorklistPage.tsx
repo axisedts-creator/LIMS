@@ -6,7 +6,9 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@lims/ui/components/Button';
 import { Card } from '@lims/ui/components/Card';
+import { EmptyRow, PlaceholderRows } from '@lims/ui/components/DataTable';
 import { Dialog } from '@lims/ui/components/Dialog';
+import { EmptyState } from '@lims/ui/components/EmptyState';
 import { Grid } from '@lims/ui/components/Grid';
 import { TextField } from '@lims/ui/components/TextField';
 import { createWorksheetAction, listInstrumentsAction, listWorklistAction } from '../../server/worklist.actions';
@@ -68,8 +70,8 @@ export function WorklistPage({ departmentId, permissions }: { departmentId: stri
         {canManage ? <Button variant="primary" isDisabled={selected.size === 0} onPress={() => setCreating(true)}>Create worksheet</Button> : null}
       </div>
       {load.s === 'fail' ? <Failure r={load.r} onRetry={retry} /> : null}
-      {load.s === 'ok' && rows.length === 0 ? <div className="lims-state"><p className="lims-state-title">No pending tests for this department.</p></div> : null}
-      {load.s === 'ok' && rows.length > 0 ? (
+      {/* T0D-EMPTYTBL-1 (LD-310): once loaded the table is always drawn; an empty list shows its message as a body row. Loading / failure unchanged. */}
+      {load.s === 'ok' ? (
         <Grid columns={2}>
         <div>
         <table className="lims-table" aria-label="Worklist">
@@ -79,6 +81,7 @@ export function WorklistPage({ departmentId, permissions }: { departmentId: stri
             <th scope="col">Status</th><th scope="col">Received</th><th scope="col">Age since received</th><th scope="col">TAT target</th><th scope="col">Result entry</th>
           </tr></thead>
           <tbody>
+            {rows.length === 0 ? <EmptyRow colSpan={canManage ? 11 : 10}><EmptyState title="No pending tests for this department." /></EmptyRow> : null}
             {rows.map((r) => (
               <tr key={r.order_test_id}>
                 {canManage ? <td><input type="checkbox" aria-label={`Select ${r.barcode ?? r.registration_no} ${r.test_code}`} checked={selected.has(r.order_test_id)} onChange={() => toggle(r.order_test_id)} /></td> : null}
@@ -99,6 +102,7 @@ export function WorklistPage({ departmentId, permissions }: { departmentId: stri
               </tr>
             ))}
           </tbody>
+          {rows.length === 0 ? <PlaceholderRows colSpan={canManage ? 11 : 10} /> : null}
         </table>
         </div>
         <aside aria-label="Result entry" ref={panel} onKeyDown={(e) => { if (e.key === 'Escape') { e.stopPropagation(); closePanel(); } }}>

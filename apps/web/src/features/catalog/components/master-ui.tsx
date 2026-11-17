@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Badge } from '@lims/ui/components/Badge';
 import { Banner } from '@lims/ui/components/Banner';
 import { Button } from '@lims/ui/components/Button';
+import { EmptyRow, PlaceholderRows } from '@lims/ui/components/DataTable';
 import { Drawer } from '@lims/ui/components/Drawer';
 import { EmptyState } from '@lims/ui/components/EmptyState';
 import { Form } from '@lims/ui/components/Form';
@@ -112,9 +113,8 @@ export function MasterTable<R extends { id: string }>({ caption, cols, rows, emp
       </thead>
       <tbody>
         {rows.length === 0 ? (
-          <tr className="lims-row">
-            <td className="lims-cell" colSpan={cols.length}><EmptyState title={empty} {...(emptyAction ? { action: emptyAction } : {})} /></td>
-          </tr>
+          // T0D-EMPTYTBL-1 (LD-310): message row (create action repeated) + four placeholder rows.
+          <EmptyRow colSpan={cols.length}><EmptyState title={empty} {...(emptyAction ? { action: emptyAction } : {})} /></EmptyRow>
         ) : null}
         {rows.map((r) => (
           <tr key={(r.id as string | undefined) ?? `global:${codeOf(r)}`/* global units/value sets carry no id (catalog.yaml) */} className="lims-row">
@@ -134,6 +134,7 @@ export function MasterTable<R extends { id: string }>({ caption, cols, rows, emp
           </tr>
         ))}
       </tbody>
+      {rows.length === 0 ? <PlaceholderRows colSpan={cols.length} /> : null}
     </table>
   );
 }

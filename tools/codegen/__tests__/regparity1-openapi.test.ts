@@ -46,7 +46,7 @@ const CONSENTS = { processing: true, sms: true, whatsapp: false, email: false, s
 const PARITY = {
   title: "Mrs", external_patient_id: "MR-SYN-0001", nationality: "NP", government_id_type: "citizenship", government_id_number: "SYN-CIT-0000-4321",
   address_province: "Bagmati", address_district: "Kathmandu", address_municipality: "Synthetic Municipality", address_ward: "7", address_tole: "Synthetic Tole", address_postal_code: "44600",
-  profile_photo_attachment_id: "0193c4a0-0000-7000-8000-0000000000aa", custom_fields: { blood_group: "O+", referral_note: "synthetic" },
+  profile_photo_attachment_id: "0193c4a0-0000-7000-8000-0000000000aa", custom_fields: [{ code: "blood_group", value: "O+" }, { code: "referral_note", value: "synthetic" }],
 };
 const P = (name: string, f: string): any => S[name].properties[f] ?? {}; // a missing field fails its assertion, not with a TypeError
 const titleOf = (v: string) => (P("NewPatient", "title").enum as (string | null)[])?.find((e) => e !== null && norm(e) === norm(v)) ?? v;
@@ -114,12 +114,16 @@ describe("T0C-REGPARITY-1 contract: frontdesk.yaml patient parity fields", () =>
     expect(JSON.stringify(S).toLowerCase()).not.toMatch(/aadhaar|aadhar|abha|health_id|srf/);
   });
 
-  it("profile_photo_attachment_id is a Uuid and custom_fields a free JSON object", () => {
+  it("profile_photo_attachment_id is a Uuid and custom_fields a closed, bounded code/value list", () => {
     for (const name of ["Patient", "NewPatient", "PatientUpdate"]) {
       expect(JSON.stringify(P(name, "profile_photo_attachment_id"))).toContain("Uuid");
       const c = P(name, "custom_fields");
-      expect(c.type).toBe("object");
-      expect(c.additionalProperties === undefined || c.additionalProperties === true || typeof c.additionalProperties === "object").toBe(true);
+      expect(c.type, `${name}.custom_fields type`).toBe("array");
+      expect(typeof c.maxItems, `${name}.custom_fields maxItems`).toBe("number");
+      const item = resolveRef(c.items);
+      expect(item?.additionalProperties, `${name}.custom_fields item closed`).toBe(false);
+      expect(item?.required ?? []).toEqual(expect.arrayContaining(["code", "value"]));
+      expect(typeof resolveRef(item?.properties?.value)?.maxLength, `${name}.custom_fields value maxLength`).toBe("number");
     }
   });
 
@@ -153,7 +157,7 @@ describe("T0C-REGPARITY-1 contract: payloads (ajv)", () => {
   });
   it("NewPatient rejects bad values", () => {
     const v = validator("NewPatient");
-    for (const bad of [{ title: "Emperor" }, { nationality: "npl" }, { nationality: "np" }, { government_id_type: "aadhaar" }, { custom_fields: [] }, { custom_fields: "x" },
+    for (const bad of [{ title: "Emperor" }, { nationality: "npl" }, { nationality: "np" }, { government_id_type: "aadhaar" }, { custom_fields: { blood_group: "O+" } }, { custom_fields: [{ code: "x", value: "y", extra: 1 }] }, { custom_fields: "x" },
       { address_ward: "x".repeat(400) }, { profile_photo_attachment_id: "not-a-uuid" }, { unknown_field: 1 }]) {
       expect(v(newPatient(bad)), `accepted ${JSON.stringify(bad)}`).toBe(false);
     }

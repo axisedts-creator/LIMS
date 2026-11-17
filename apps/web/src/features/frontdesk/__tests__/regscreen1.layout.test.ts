@@ -1,8 +1,8 @@
 // T0D-REGSCREEN-1 — one-screen registration layout, proven from the CSS VALUES (jsdom has no layout engine; real pixels need a browser).
-// Source: LD-310 + founder request 2026-11-17 04:49 NPT. done_when (1) and (5): three columns at >= 1280 px, totals bar fixed at the bottom,
+// Source: LD-310 + founder request 2026-11-17 04:49 NPT. done_when (1) and (5): three columns at >= 1000 px (LD-340, founder 2026-11-17 20:27 NPT: was 1280, the laptop viewport fell below it and the form stacked), totals bar fixed at the bottom,
 // no page level scroll at 1366x768 and 1920x1080, the test list scrolls inside its own box. CONTRACT for the writer (frontdesk .css under features/frontdesk):
-//   .lims-reg-layout           grid; 3 tracks in grid-template-columns at >= 1280 px; fewer below; height bound to the viewport (dvh/vh) so the PAGE never scrolls
-//   .lims-reg-summary          the totals bar: position fixed|sticky + bottom 0 (or var()) at >= 1280 px
+//   .lims-reg-layout           grid; 3 tracks in grid-template-columns at >= 1000 px; fewer below; height bound to the viewport (dvh/vh) so the PAGE never scrolls
+//   .lims-reg-summary          the totals bar: position fixed|sticky + bottom 0 (or var()) at >= 1000 px
 //   .lims-reg-tests-list       the cart box: overflow-y auto|scroll + a bounded height (max-height / flex with min-height 0)
 //   tokens only: no hex colours in the feature css.
 import { describe, expect, it } from 'vitest';
@@ -66,7 +66,7 @@ describe('T0D-REGSCREEN-1 layout from the CSS values', () => {
     expect(tracks(s['grid-template-columns'])).toBe(3);
   });
 
-  it.each([1279, 1024, 800])('%i px (below 1280): not three columns; no horizontal scroll rule', (w) => {
+  it.each([999, 800, 600])('%i px (below 1000, LD-340): not three columns; no horizontal scroll rule', (w) => {
     const s = styleOf('.lims-reg-layout', w);
     expect(tracks(s['grid-template-columns']) < 3 || !/grid/.test(s['display'] ?? 'grid')).toBe(true);
     expect(`${s['overflow-x'] ?? ''}${s['overflow'] ?? ''}`).not.toMatch(/scroll/);

@@ -123,7 +123,8 @@ function ChartView({ chart, generatedAt, sp, plans, canManage, exclusionOptions 
       <section aria-label="Legend">
         <ul>{(Object.keys(POINT) as (keyof typeof POINT)[]).map((s) => <li key={s}>{`${POINT[s].marker} ${POINT[s].label}`}</li>)}</ul>
       </section>
-      {data.series.length === 0 ? <EmptyState title="No QC values in this period." /> : null}
+      {/* T0D-EMPTYTBL-2 (LD-310, LD-336): no series = the points table with its headers and the message in its body. */}
+      {data.series.length === 0 ? <DataTable<LjPoint> columns={columns} rows={[]} getRowId={(r) => r.observation_id} density="compact" caption="QC points" emptyState={{ title: 'No QC values in this period.' }} /> : null}
       {data.series.map((s) => {
         const t = current(s);
         const rejected = s.points.filter((x) => x.status === 'rejected').length;

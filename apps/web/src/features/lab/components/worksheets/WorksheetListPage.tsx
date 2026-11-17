@@ -3,6 +3,7 @@
 // Ids are never shown raw (D-14); each title links to the print view (#22).
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '@lims/ui/components/Button';
+import { EmptyRow, PlaceholderRows } from '@lims/ui/components/DataTable';
 import { listWorksheetsAction } from '../../server/worklist.actions';
 import type { ActionResult, WorksheetSummary } from '../../server/types';
 import { Failure, utc } from '../shared';
@@ -33,11 +34,12 @@ export function WorksheetListPage({ permissions: _permissions }: { permissions?:
       <h1>Worksheets</h1>
       {load.s === 'loading' ? <p role="status">Loading…</p> : null}
       {load.s === 'fail' ? <Failure r={load.r} onRetry={retry} /> : null}
-      {load.s === 'ok' && load.rows.length === 0 ? <div className="lims-state"><p className="lims-state-title">No worksheets.</p></div> : null}
-      {load.s === 'ok' && load.rows.length > 0 ? (
+      {/* T0D-EMPTYTBL-2 (LD-310, LD-336): once loaded the table is always drawn; an empty list is one message row plus four placeholder rows. Loading and error unchanged. */}
+      {load.s === 'ok' ? (
         <table className="lims-table" aria-label="Worksheets">
           <thead><tr><th scope="col">Title</th><th scope="col">Created</th><th scope="col">Rows</th></tr></thead>
           <tbody>
+            {load.rows.length === 0 ? <EmptyRow colSpan={3}>No worksheets.</EmptyRow> : null}
             {load.rows.map((w) => (
               <tr key={w.id}>
                 <td><a href={`/lab/worksheets/${encodeURIComponent(w.id)}`}>{w.title}</a></td>
@@ -46,6 +48,7 @@ export function WorksheetListPage({ permissions: _permissions }: { permissions?:
               </tr>
             ))}
           </tbody>
+          {load.rows.length === 0 ? <PlaceholderRows colSpan={3} /> : null}
         </table>
       ) : null}
       {load.s === 'ok' && load.next ? <Button variant="secondary" onPress={more}>Load more</Button> : null}

@@ -4,6 +4,20 @@ export interface paths {
   "/v1/frontdesk/coded-sets/{set_name}": {
     get: operations["listFrontdeskCodes"];
   };
+  "/v1/frontdesk/coupons": {
+    get: operations["listCoupons"];
+    post: operations["createCoupon"];
+  };
+  "/v1/frontdesk/coupons/{coupon_id}": {
+    patch: operations["updateCoupon"];
+  };
+  "/v1/frontdesk/custom-field-definitions": {
+    get: operations["listCustomFieldDefinitions"];
+    post: operations["createCustomFieldDefinition"];
+  };
+  "/v1/frontdesk/custom-field-definitions/{definition_id}": {
+    patch: operations["updateCustomFieldDefinition"];
+  };
   "/v1/frontdesk/discount-approvals": {
     get: operations["listDiscountApprovals"];
     post: operations["requestDiscountApproval"];
@@ -16,6 +30,20 @@ export interface paths {
   };
   "/v1/frontdesk/discount-approvals/{approval_id}/reject": {
     post: operations["rejectDiscount"];
+  };
+  "/v1/frontdesk/favourite-tests": {
+    get: operations["listFavouriteTests"];
+    post: operations["addFavouriteTest"];
+  };
+  "/v1/frontdesk/favourite-tests/{orderable_id}": {
+    delete: operations["removeFavouriteTest"];
+  };
+  "/v1/frontdesk/icd-codes": {
+    get: operations["listIcdCodes"];
+    post: operations["createIcdCode"];
+  };
+  "/v1/frontdesk/icd-codes/{icd_code_id}": {
+    patch: operations["updateIcdCode"];
   };
   "/v1/frontdesk/order-flags": {
     get: operations["listOrderFlags"];
@@ -63,8 +91,22 @@ export interface paths {
   "/v1/frontdesk/patients/{patient_id}/orders": {
     get: operations["listPatientOrders"];
   };
+  "/v1/frontdesk/patients/{patient_id}/rewards": {
+    get: operations["getPatientRewards"];
+  };
+  "/v1/frontdesk/registration-drafts": {
+    get: operations["listRegistrationDrafts"];
+    post: operations["createRegistrationDraft"];
+  };
+  "/v1/frontdesk/registration-drafts/{draft_id}": {
+    get: operations["getRegistrationDraft"];
+    delete: operations["deleteRegistrationDraft"];
+  };
   "/v1/frontdesk/registrations": {
     post: operations["createRegistration"];
+  };
+  "/v1/frontdesk/registrations/number-preview": {
+    get: operations["previewRegistrationNumbers"];
   };
   "/v1/frontdesk/registrations/quote": {
     post: operations["quoteRegistration"];
@@ -85,6 +127,186 @@ export interface paths {
 }
 
 export interface operations {
+  addFavouriteTest: {
+    parameters: {
+      query?: never;
+      header: {
+        "Idempotency-Key": string;
+      };
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": {
+          orderable_id: string;
+        };
+      };
+    };
+    responses: {
+      201: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/json": {
+            orderable_id: string;
+            created_at: string;
+          };
+        };
+      };
+      400: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      401: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      403: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      404: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      409: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      422: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      429: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      500: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+    };
+  };
   anonymisePatient: {
     parameters: {
       query?: never;
@@ -622,6 +844,7 @@ export interface operations {
                 currency: "NPR";
               };
               outsourced: boolean;
+              icd_code?: string;
             })[];
             discounts: ({
               scope: "line" | "bill";
@@ -685,6 +908,23 @@ export interface operations {
               balance_version: number;
               as_of: string;
             };
+            collection_at?: string;
+            collected_by_membership_id?: string;
+            collected_by_name?: string;
+            sample_not_collected?: boolean;
+            sample_remark?: string;
+            remark_description?: string;
+            clinical_history?: string;
+            patient_history?: string;
+            mr_number?: string;
+            external_reference?: string;
+            insurance_code?: string;
+            insurance_claim_amount_paisa?: number;
+            visiting_charge_paisa?: number;
+            coupon_code?: string;
+            coupon_amount_paisa?: number;
+            reward_points_earned?: number;
+            reward_points_redeemed?: number;
             version: number;
           };
         };
@@ -891,6 +1131,8 @@ export interface operations {
             amount_received_paisa: number;
             reference?: string;
             tendered_paisa?: number;
+            card_holder_name?: string;
+            payment_remark?: string;
           }[];
         };
       };
@@ -1341,6 +1583,8 @@ export interface operations {
             amount_received_paisa: number;
             reference?: string;
             tendered_paisa?: number;
+            card_holder_name?: string;
+            payment_remark?: string;
           }[];
           discounts?: ({
             scope: "line" | "bill";
@@ -1356,6 +1600,7 @@ export interface operations {
             items: ({
               orderable_id: string;
               priority?: "routine" | "urgent";
+              icd_code?: string;
             })[];
           };
         };
@@ -1404,6 +1649,7 @@ export interface operations {
                   currency: "NPR";
                 };
                 outsourced: boolean;
+                icd_code?: string;
               })[];
               discounts: ({
                 scope: "line" | "bill";
@@ -1467,6 +1713,23 @@ export interface operations {
                 balance_version: number;
                 as_of: string;
               };
+              collection_at?: string;
+              collected_by_membership_id?: string;
+              collected_by_name?: string;
+              sample_not_collected?: boolean;
+              sample_remark?: string;
+              remark_description?: string;
+              clinical_history?: string;
+              patient_history?: string;
+              mr_number?: string;
+              external_reference?: string;
+              insurance_code?: string;
+              insurance_claim_amount_paisa?: number;
+              visiting_charge_paisa?: number;
+              coupon_code?: string;
+              coupon_amount_paisa?: number;
+              reward_points_earned?: number;
+              reward_points_redeemed?: number;
               version: number;
             };
             invoice?: {
@@ -1627,6 +1890,8 @@ export interface operations {
               cash_session_id?: string;
               created_at: string;
               business_date_bs: string;
+              card_holder_name?: string;
+              payment_remark?: string;
             })[];
             balance: {
               order_id: string;
@@ -1834,6 +2099,578 @@ export interface operations {
         };
       };
       503: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+    };
+  };
+  createCoupon: {
+    parameters: {
+      query?: never;
+      header: {
+        "Idempotency-Key": string;
+      };
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": {
+          code: string;
+          amount_paisa?: number;
+          percent?: number;
+          valid_from?: string;
+          valid_to?: string;
+          usage_limit?: number;
+          is_active?: boolean;
+        };
+      };
+    };
+    responses: {
+      201: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/json": {
+            id: string;
+            code: string;
+            amount_paisa?: number;
+            percent?: number;
+            valid_from?: string;
+            valid_to?: string;
+            usage_limit?: number;
+            used_count: number;
+            is_active: boolean;
+            version: number;
+          };
+        };
+      };
+      400: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      401: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      403: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      404: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      409: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      422: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      429: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      500: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+    };
+  };
+  createCustomFieldDefinition: {
+    parameters: {
+      query?: never;
+      header: {
+        "Idempotency-Key": string;
+      };
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": {
+          field_key: string;
+          label: string;
+          field_type: "text" | "number" | "date" | "choice";
+          required?: boolean;
+          is_active?: boolean;
+          choices?: string[];
+          sort_order?: number;
+        };
+      };
+    };
+    responses: {
+      201: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/json": {
+            id: string;
+            field_key: string;
+            label: string;
+            field_type: "text" | "number" | "date" | "choice";
+            required: boolean;
+            is_active: boolean;
+            choices?: string[];
+            sort_order?: number;
+            version: number;
+          };
+        };
+      };
+      400: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      401: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      403: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      404: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      409: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      422: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      429: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      500: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+    };
+  };
+  createIcdCode: {
+    parameters: {
+      query?: never;
+      header: {
+        "Idempotency-Key": string;
+      };
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": {
+          code: string;
+          description: string;
+          is_active?: boolean;
+        };
+      };
+    };
+    responses: {
+      201: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/json": {
+            id: string;
+            code: string;
+            description: string;
+            is_active: boolean;
+            version: number;
+          };
+        };
+      };
+      400: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      401: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      403: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      404: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      409: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      422: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      429: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      500: {
         headers: { [name: string]: unknown };
         content: {
           "application/problem+json": {
@@ -2173,6 +3010,7 @@ export interface operations {
           items: ({
             orderable_id: string;
             priority?: "routine" | "urgent";
+            icd_code?: string;
           })[];
           discounts?: ({
             scope: "line" | "bill";
@@ -2190,9 +3028,26 @@ export interface operations {
             amount_received_paisa: number;
             reference?: string;
             tendered_paisa?: number;
+            card_holder_name?: string;
+            payment_remark?: string;
           }[];
           trf_attachment_ids?: string[];
           discount_approval_id?: string;
+          collection_at?: string;
+          collected_by_membership_id?: string;
+          collected_by_name?: string;
+          sample_not_collected?: boolean;
+          sample_remark?: string;
+          remark_description?: string;
+          clinical_history?: string;
+          patient_history?: string;
+          mr_number?: string;
+          external_reference?: string;
+          insurance_code?: string;
+          insurance_claim_amount_paisa?: number;
+          visiting_charge_paisa?: number;
+          coupon_code?: string;
+          redeem_reward_points?: number;
         };
       };
     };
@@ -2239,6 +3094,7 @@ export interface operations {
                   currency: "NPR";
                 };
                 outsourced: boolean;
+                icd_code?: string;
               })[];
               discounts: ({
                 scope: "line" | "bill";
@@ -2302,6 +3158,23 @@ export interface operations {
                 balance_version: number;
                 as_of: string;
               };
+              collection_at?: string;
+              collected_by_membership_id?: string;
+              collected_by_name?: string;
+              sample_not_collected?: boolean;
+              sample_remark?: string;
+              remark_description?: string;
+              clinical_history?: string;
+              patient_history?: string;
+              mr_number?: string;
+              external_reference?: string;
+              insurance_code?: string;
+              insurance_claim_amount_paisa?: number;
+              visiting_charge_paisa?: number;
+              coupon_code?: string;
+              coupon_amount_paisa?: number;
+              reward_points_earned?: number;
+              reward_points_redeemed?: number;
               version: number;
             };
             invoice?: {
@@ -2462,6 +3335,8 @@ export interface operations {
               cash_session_id?: string;
               created_at: string;
               business_date_bs: string;
+              card_holder_name?: string;
+              payment_remark?: string;
             })[];
             balance: {
               order_id: string;
@@ -2650,6 +3525,322 @@ export interface operations {
         };
       };
       503: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+    };
+  };
+  createRegistrationDraft: {
+    parameters: {
+      query?: never;
+      header: {
+        "Idempotency-Key": string;
+      };
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": {
+          centre_id: string;
+          payload: string;
+        };
+      };
+    };
+    responses: {
+      201: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/json": {
+            id: string;
+            centre_id: string;
+            payload: string;
+            created_at: string;
+            updated_at: string;
+            expires_at: string;
+          };
+        };
+      };
+      400: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      401: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      403: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      404: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      409: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      422: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      429: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      500: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+    };
+  };
+  deleteRegistrationDraft: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        draft_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      204: {
+        headers: { [name: string]: unknown };
+        content?: never;
+      };
+      400: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      401: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      403: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      404: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      429: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      500: {
         headers: { [name: string]: unknown };
         content: {
           "application/problem+json": {
@@ -3034,6 +4225,7 @@ export interface operations {
                 currency: "NPR";
               };
               outsourced: boolean;
+              icd_code?: string;
             })[];
             discounts: ({
               scope: "line" | "bill";
@@ -3097,6 +4289,23 @@ export interface operations {
               balance_version: number;
               as_of: string;
             };
+            collection_at?: string;
+            collected_by_membership_id?: string;
+            collected_by_name?: string;
+            sample_not_collected?: boolean;
+            sample_remark?: string;
+            remark_description?: string;
+            clinical_history?: string;
+            patient_history?: string;
+            mr_number?: string;
+            external_reference?: string;
+            insurance_code?: string;
+            insurance_claim_amount_paisa?: number;
+            visiting_charge_paisa?: number;
+            coupon_code?: string;
+            coupon_amount_paisa?: number;
+            reward_points_earned?: number;
+            reward_points_redeemed?: number;
             version: number;
           };
         };
@@ -3270,6 +4479,298 @@ export interface operations {
               consent_text_version: string;
             };
             version: number;
+          };
+        };
+      };
+      400: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      401: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      403: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      404: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      429: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      500: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+    };
+  };
+  getPatientRewards: {
+    parameters: {
+      query?: {
+        cursor?: string;
+        limit?: number;
+      };
+      header?: never;
+      path: {
+        patient_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/json": {
+            patient_id: string;
+            balance_points: number;
+            earned_points: number;
+            redeemed_points: number;
+            data: ({
+              id: string;
+              entry_kind: "earned" | "redeemed";
+              points: number;
+              order_id: string;
+              created_at: string;
+            })[];
+            page: {
+              next_cursor?: string;
+              limit: number;
+            };
+          };
+        };
+      };
+      400: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      401: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      403: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      404: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      429: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      500: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+    };
+  };
+  getRegistrationDraft: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        draft_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/json": {
+            id: string;
+            centre_id: string;
+            payload: string;
+            created_at: string;
+            updated_at: string;
+            expires_at: string;
           };
         };
       };
@@ -3688,6 +5189,309 @@ export interface operations {
       };
     };
   };
+  listCoupons: {
+    parameters: {
+      query?: {
+        is_active?: boolean;
+        cursor?: string;
+        limit?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/json": {
+            data: {
+              id: string;
+              code: string;
+              amount_paisa?: number;
+              percent?: number;
+              valid_from?: string;
+              valid_to?: string;
+              usage_limit?: number;
+              used_count: number;
+              is_active: boolean;
+              version: number;
+            }[];
+            page: {
+              next_cursor?: string;
+              limit: number;
+            };
+          };
+        };
+      };
+      400: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      401: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      403: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      404: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      429: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      500: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+    };
+  };
+  listCustomFieldDefinitions: {
+    parameters: {
+      query?: {
+        is_active?: boolean;
+        cursor?: string;
+        limit?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/json": {
+            data: ({
+              id: string;
+              field_key: string;
+              label: string;
+              field_type: "text" | "number" | "date" | "choice";
+              required: boolean;
+              is_active: boolean;
+              choices?: string[];
+              sort_order?: number;
+              version: number;
+            })[];
+            page: {
+              next_cursor?: string;
+              limit: number;
+            };
+          };
+        };
+      };
+      400: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      401: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      403: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      404: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      429: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      500: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+    };
+  };
   listDiscountApprovals: {
     parameters: {
       query?: {
@@ -3867,6 +5671,149 @@ export interface operations {
       };
     };
   };
+  listFavouriteTests: {
+    parameters: {
+      query?: {
+        cursor?: string;
+        limit?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/json": {
+            data: {
+              orderable_id: string;
+              created_at: string;
+            }[];
+            page: {
+              next_cursor?: string;
+              limit: number;
+            };
+          };
+        };
+      };
+      400: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      401: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      403: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      404: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      429: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      500: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+    };
+  };
   listFrontdeskCodes: {
     parameters: {
       query?: never;
@@ -3887,6 +5834,154 @@ export interface operations {
               display: string;
               sort_order: number;
             }[];
+          };
+        };
+      };
+      400: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      401: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      403: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      404: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      429: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      500: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+    };
+  };
+  listIcdCodes: {
+    parameters: {
+      query?: {
+        q?: string;
+        is_active?: boolean;
+        cursor?: string;
+        limit?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/json": {
+            data: {
+              id: string;
+              code: string;
+              description: string;
+              is_active: boolean;
+              version: number;
+            }[];
+            page: {
+              next_cursor?: string;
+              limit: number;
+            };
           };
         };
       };
@@ -4641,6 +6736,291 @@ export interface operations {
       };
     };
   };
+  listRegistrationDrafts: {
+    parameters: {
+      query?: {
+        centre_id?: string;
+        cursor?: string;
+        limit?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/json": {
+            data: {
+              id: string;
+              centre_id: string;
+              created_at: string;
+              updated_at: string;
+              expires_at: string;
+            }[];
+            page: {
+              next_cursor?: string;
+              limit: number;
+            };
+          };
+        };
+      };
+      400: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      401: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      403: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      404: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      429: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      500: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+    };
+  };
+  previewRegistrationNumbers: {
+    parameters: {
+      query: {
+        centre_id: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/json": {
+            centre_id: string;
+            next_registration_no: string;
+            next_receipt_no: string;
+            is_preview: boolean;
+          };
+        };
+      };
+      400: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      401: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      403: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      404: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      429: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      500: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+    };
+  };
   quoteOrderItemsChange: {
     parameters: {
       query?: never;
@@ -4656,6 +7036,7 @@ export interface operations {
           add: ({
             orderable_id: string;
             priority?: "routine" | "urgent";
+            icd_code?: string;
           })[];
         };
       };
@@ -4970,6 +7351,7 @@ export interface operations {
           items: ({
             orderable_id: string;
             priority?: "routine" | "urgent";
+            icd_code?: string;
           })[];
           discounts?: ({
             scope: "line" | "bill";
@@ -4981,6 +7363,9 @@ export interface operations {
             reason_text?: string;
           })[];
           buyer_pan?: string;
+          coupon_code?: string;
+          visiting_charge_paisa?: number;
+          redeem_reward_points?: number;
         };
       };
     };
@@ -5647,6 +8032,137 @@ export interface operations {
       };
     };
   };
+  removeFavouriteTest: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        orderable_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      204: {
+        headers: { [name: string]: unknown };
+        content?: never;
+      };
+      400: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      401: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      403: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      404: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      429: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      500: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+    };
+  };
   requestDiscountApproval: {
     parameters: {
       query?: never;
@@ -6223,6 +8739,392 @@ export interface operations {
       };
     };
   };
+  updateCoupon: {
+    parameters: {
+      query?: never;
+      header: {
+        "If-Match": string;
+      };
+      path: {
+        coupon_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": {
+          valid_from?: string;
+          valid_to?: string;
+          usage_limit?: number;
+          is_active?: boolean;
+        };
+      };
+    };
+    responses: {
+      200: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/json": {
+            id: string;
+            code: string;
+            amount_paisa?: number;
+            percent?: number;
+            valid_from?: string;
+            valid_to?: string;
+            usage_limit?: number;
+            used_count: number;
+            is_active: boolean;
+            version: number;
+          };
+        };
+      };
+      400: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      401: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      403: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      404: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      409: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      428: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      429: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      500: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+    };
+  };
+  updateCustomFieldDefinition: {
+    parameters: {
+      query?: never;
+      header: {
+        "If-Match": string;
+      };
+      path: {
+        definition_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": {
+          label?: string;
+          required?: boolean;
+          is_active?: boolean;
+          choices?: string[];
+          sort_order?: number;
+        };
+      };
+    };
+    responses: {
+      200: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/json": {
+            id: string;
+            field_key: string;
+            label: string;
+            field_type: "text" | "number" | "date" | "choice";
+            required: boolean;
+            is_active: boolean;
+            choices?: string[];
+            sort_order?: number;
+            version: number;
+          };
+        };
+      };
+      400: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      401: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      403: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      404: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      409: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      428: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      429: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      500: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+    };
+  };
   updateFrontdeskSettings: {
     parameters: {
       query?: never;
@@ -6263,6 +9165,192 @@ export interface operations {
             buyer_pan_pattern: string;
             patient_search_min_chars: number;
             version?: number;
+          };
+        };
+      };
+      400: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      401: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      403: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      404: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      409: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      428: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      429: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      500: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+    };
+  };
+  updateIcdCode: {
+    parameters: {
+      query?: never;
+      header: {
+        "If-Match": string;
+      };
+      path: {
+        icd_code_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": {
+          description?: string;
+          is_active?: boolean;
+        };
+      };
+    };
+    responses: {
+      200: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/json": {
+            id: string;
+            code: string;
+            description: string;
+            is_active: boolean;
+            version: number;
           };
         };
       };

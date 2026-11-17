@@ -94,7 +94,7 @@ export function ShellFrame({ groups, crumb, tenant, user, memberId, logoSrc, sea
               <NavIcon name="bell" />
               <span className="lims-topbar-bell-note" aria-hidden="true">{t('core.shell.notifications_unavailable')}</span>
             </button>
-            <UserMenu name={user.name} density={density} onChange={setDensity} />
+            <UserMenu name={user.name} density={density} onChange={setDensity} accountPath={groups.flatMap((g) => g.items).find((e) => e.id === 'admin.me')?.path} />
           </div>
         </div>
       }

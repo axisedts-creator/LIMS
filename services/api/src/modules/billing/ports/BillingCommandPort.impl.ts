@@ -202,7 +202,10 @@ export function createBillingCommandPort(deps: { repo?: BillingRepo; counter: Co
     getOrderBillingSummary: getOrderBillingSummary as unknown as BillingCommandPortV1['getOrderBillingSummary'],
     async previewInvoiceNo(ctx) {                                                         // LD-323 (a): plain read, nothing reserved
       session(ctx as Ctx);
-      return invoices.previewNo(ctx as never);
+      // read only call reachable from app ctx whose now() returns a Date (frontdesk preview): accept both, hand the service an ISO instant
+      const at = (ctx.now as () => unknown)();
+      const c = at instanceof Date ? Object.assign(Object.create(ctx as object), { now: () => at.toISOString() }) : ctx;
+      return invoices.previewNo(c as never);
     },
   };
 }

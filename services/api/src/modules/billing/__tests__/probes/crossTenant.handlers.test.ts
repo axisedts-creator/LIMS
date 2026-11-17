@@ -30,10 +30,10 @@ describe('pendingOperations', () => {
   it.each(['billing', 'frontdesk'] as const)('%s: every pending id has no handler key', (mod) => {
     for (const id of pendingIds(mod)) expect(Object.keys(handlerMap[mod]), `${mod}:${id}`).not.toContain(id);
   });
-  it('billing: the 12 T0B-ACCT-2 operations are pending and have no 503 stub; the 12 T0B-ACCT-1 operations are implemented, not pending', () => {
+  // T0B-ACCT-2 (LD-328 3, LD-325 b): the task removes its own 12 ids from billing pendingOperations by implementing them; they now join the per-operation cross-tenant block below.
+  it('billing: the 12 T0B-ACCT-2 and the 12 T0B-ACCT-1 operations are implemented (a handler, a real one, not the 503 stub) and not pending', () => {
     const pending = pendingIds('billing');
-    for (const id of ACCT2_OPS) { expect(pending, id).toContain(id); expect(Object.keys(handlerMap.billing), id).not.toContain(id); }
-    for (const id of ACCT1_OPS) { expect(pending, id).not.toContain(id); expect(Object.keys(handlerMap.billing), id).toContain(id); }
+    for (const id of [...ACCT1_OPS, ...ACCT2_OPS]) { expect(pending, id).not.toContain(id); expect(Object.keys(handlerMap.billing), id).toContain(id); }
   });
 });
 

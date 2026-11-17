@@ -254,6 +254,25 @@ function usesScheme(spec: any, scheme: string): boolean {
   return has(spec?.security) || Object.values<any>(spec?.paths ?? {}).some((item) => Object.values<any>(item ?? {}).some((op) => has(op?.security)));
 }
 
+const HTTP_METHODS = new Set(['get', 'put', 'post', 'delete', 'options', 'head', 'patch', 'trace']);
+
+/**
+ * T0C-SYNC-1 (LD-322, LD-325): copy of `spec` without the pending operations that require bearerJwt. Used only when no JWT
+ * verifier is configured: such an operation could never pass auth, so it gets no route at all (fail closed, 404) instead of
+ * blocking a boot that mounts the core health operations. A bearerJwt operation with a real handler still needs JWT config.
+ */
+function withoutPendingBearer(spec: any, pending: readonly string[]): any {
+  if (!pending.length) return spec;
+  const needsBearer = (op: any) => (op?.security ?? spec?.security ?? []).some((r: any) => r && Object.hasOwn(r, 'bearerJwt'));
+  const paths: Record<string, any> = {};
+  for (const [p, item] of Object.entries<any>(spec?.paths ?? {})) {
+    const kept = Object.fromEntries(Object.entries<any>(item ?? {}).filter(([k, op]) =>
+      !(HTTP_METHODS.has(k) && pending.includes(op?.operationId) && needsBearer(op))));
+    if (Object.keys(kept).some((k) => HTTP_METHODS.has(k))) paths[p] = kept;
+  }
+  return { ...spec, paths };
+}
+
 /** Mount one spec. A missing handler throws in operationResolver, so register (and boot) fails (SP-8 O3). */
 export async function mountSpec(
   app: FastifyInstance,
@@ -264,6 +283,7 @@ export async function mountSpec(
   pipeline: Pipeline,
   pending: readonly string[] = [],
 ): Promise<void> {
+  if (!auth.verifier) spec = withoutPendingBearer(spec, pending);
   if (!auth.verifier && usesScheme(spec, 'bearerJwt')) throw new Error(`module ${name}: bearerJwt operations need LIMS_CORE_JWT_* config`);
   await app.register(async (scope) => {
     // route config.module labels the stage-13 log line and metrics (observability/logging.ts).

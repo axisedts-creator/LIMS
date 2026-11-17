@@ -20,6 +20,10 @@ const LD321_SALES_CODES = ["partners.sales.manage", "partners.sales.read"];
 // T0C-VERLEVEL-1 (LD-316): the two verification policy codes (permissions) and the three verification level error codes (errors.yaml) beyond IC §11 / IC §8.
 const LD316_VERLEVEL_CODES = ["lab.verification_policy.manage", "lab.verification_policy.read"];
 const LD316_VERLEVEL_ERRORS = ["lab.enterer_cannot_verify", "lab.pathologist_required", "lab.verifier_not_distinct"];
+// T0C-SYNC-1 (LD-322): offline sync part 1. sync.use has TWO segments (named verbatim by the brief); g_permissions__code__ck and gen-permissions accept 2 or 3 segments for it.
+const LD322_SYNC_CODES = ["sync.conflict.resolve", "sync.device.manage", "sync.use"];
+// T0C-SYNC-1 (LD-322): the closed sync error list, the only error codes allowed beyond IC section 8 (owner C0).
+const LD322_SYNC_ERRORS = ["sync.block_size_too_large", "sync.device_revoked", "sync.device_unknown", "sync.series_unknown", "sync.wipe_required"];
 
 /** Strict parse: duplicate map keys are errors (IC §7 says "CI parses the file with a YAML parser"). */
 const strictParse = (src: string, what: string): any => {
@@ -91,16 +95,17 @@ describe("IC source blocks are parseable (guards the test itself)", () => {
 describe("AC-0C-1.3 errors.yaml == IC §8", () => {
   it("equals IC §8 entry for entry (same codes, order, fields)", () => {
     const ic: Entry[] = icDoc(8);
-    const all: Entry[] = contractDoc("errors.yaml");
-    expect(Array.isArray(all), "errors.yaml root must be a list").toBe(true);
-    // T0C-VERLEVEL-1 (LD-316): EXACTLY the 3 verification level error codes may follow IC §8 (spec/ is read-only, the lead records the widening in the CR register);
-    // every IC code stays unchanged and in order. A further code needs a new lead decision and an edit of this list.
-    const icCodes = ic.map((e) => e.code);
-    expect(all.filter((e) => !icCodes.includes(e.code)).map((e) => e.code).sort()).toEqual([...LD316_VERLEVEL_ERRORS].sort());
-    const file = all.filter((e) => icCodes.includes(e.code));
-    expect(diffByKey(ic, file, "code")).toEqual([]);
-    expect(file.map((e) => e.code)).toEqual(icCodes); // order preserved
-    expect(file).toEqual(ic);
+    const file: Entry[] = contractDoc("errors.yaml");
+    expect(Array.isArray(file), "errors.yaml root must be a list").toBe(true);
+    // T0C-SYNC-1 (LD-322) + T0C-VERLEVEL-1 (LD-316): EXACTLY the five sync.* codes and the 3 verification level error codes may follow the IC codes
+    // (spec/ is read-only, the lead records the widening in the CR register); every IC entry stays unchanged and in order. A further code needs a new lead decision and an edit of this list.
+    const icCodes = ic.map((e) => String(e.code));
+    const extra = file.filter((e) => !icCodes.includes(String(e.code)));
+    expect(extra.map((e) => String(e.code)).sort()).toEqual([...LD322_SYNC_ERRORS, ...LD316_VERLEVEL_ERRORS].sort());
+    const core = file.filter((e) => icCodes.includes(String(e.code)));
+    expect(diffByKey(ic, core, "code")).toEqual([]);
+    expect(core.map((e) => e.code)).toEqual(ic.map((e) => e.code)); // order preserved
+    expect(core).toEqual(ic);
   });
 
   it("codes are unique; http in 400..599; owner is a chunk id; title non-empty", () => {
@@ -189,7 +194,7 @@ describe("AC-0C-1.3 permissions.yaml == IC §11", () => {
     const icCodes = ic.permissions.map((p: Entry) => p.code);
     const extra = file.permissions.filter((p: Entry) => !icCodes.includes(p.code));
     expect(diffByKey(ic.permissions, file.permissions, "code").filter((d) => !d.startsWith("extra "))).toEqual([]);
-    expect(extra.map((p: Entry) => p.code).sort()).toEqual([...LD313_ACCOUNTING_CODES, ...LD321_SALES_CODES, ...LD316_VERLEVEL_CODES].sort());
+    expect(extra.map((p: Entry) => p.code).sort()).toEqual([...LD313_ACCOUNTING_CODES, ...LD321_SALES_CODES, ...LD322_SYNC_CODES, ...LD316_VERLEVEL_CODES].sort());
     expect(file.permissions.filter((p: Entry) => icCodes.includes(p.code)).map((p: Entry) => p.code)).toEqual(icCodes);
     expect({ ...file, permissions: file.permissions.filter((p: Entry) => icCodes.includes(p.code)) }).toEqual(ic);
   });
@@ -197,7 +202,8 @@ describe("AC-0C-1.3 permissions.yaml == IC §11", () => {
   it("permission codes unique and match ^[a-z_]+\\.[a-z_]+\\.[a-z_]+$ (IC §11 CI rule)", () => {
     const codes: string[] = contractDoc("permissions.yaml").permissions.map((p: Entry) => p.code);
     expect(dupes(codes)).toEqual([]);
-    expect(codes.filter((c) => !/^[a-z_]+\.[a-z_]+\.[a-z_]+$/.test(c))).toEqual([]);
+    // T0C-SYNC-1 (LD-322): the only two segment code is sync.use.
+    expect(codes.filter((c) => !/^[a-z_]+\.[a-z_]+\.[a-z_]+$/.test(c))).toEqual(["sync.use"]);
   });
 
   // 07-SECURITY: platform.* never grantable to tenant/partner roles.

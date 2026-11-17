@@ -33,12 +33,12 @@ const STATEMENT_MAX_ROWS = 1000;                                // contract: mor
 const RECEIPT_PREFIX = 'ACC-';                                  // contract example ACC-000001
 
 // ---------------------------------------------------------------- validation helpers (400 with a JSON pointer, no value echoed)
-const fail = (paths: string[]): LimsError =>
+export const fail = (paths: string[]): LimsError =>
   new LimsError('common.validation_failed', undefined, paths.map((path): FieldError => ({ path, code: 'common.field_invalid', message: 'Field invalid' })));
 const unknownField = (k: string): FieldError => ({ path: `/${k}`, code: 'common.unknown_field', message: 'Unknown field' });
 const requiredField = (k: string): FieldError => ({ path: `/${k}`, code: 'common.field_required', message: 'Field required' });
 
-class Checker {
+export class Checker {
   readonly errors: FieldError[] = [];
   readonly src: Row;
   constructor(src: Row) { this.src = src; }
@@ -93,24 +93,24 @@ function isCalendarDate(v: unknown): v is string {
 }
 const addDays = (date: string, n: number): string => new Date(Date.parse(`${date}T00:00:00.000Z`) + n * 86_400_000).toISOString().slice(0, 10);
 
-function scope(ctx: BalanceCtx): { tx: Tx; tenantId: string; actorId: string } {
+export function scope(ctx: BalanceCtx): { tx: Tx; tenantId: string; actorId: string } {
   if (typeof ctx?.tenantId !== 'string' || typeof ctx.actor?.id !== 'string' || !ctx.tx) throw new LimsError('auth.unauthenticated');
   return { tx: ctx.tx as Tx, tenantId: ctx.tenantId, actorId: ctx.actor.id };
 }
-const notFound = (): LimsError => new LimsError('common.not_found');
+export const notFound = (): LimsError => new LimsError('common.not_found');
 /** LD-324 (c): the access_log row is mandatory (as export.service); no ctx.audit.access -> common.internal, a failing write rolls the tx back. */
-const auditOf = (ctx: BalanceCtx) => {
+export const auditOf = (ctx: BalanceCtx) => {
   const audit = (ctx as { audit?: { access?: unknown } }).audit;
   if (typeof audit?.access !== 'function') throw new LimsError('common.internal');
   return (e: Record<string, unknown>) => (audit.access as (e: Record<string, unknown>) => Promise<unknown>).call(audit, e);
 };
-const pathId = (v: unknown, k: string): string => { if (typeof v !== 'string' || !UUID.test(v)) throw fail([`/${k}`]); return v.toLowerCase(); };
-const isUniqueViolation = (e: unknown, constraint?: string): boolean =>
+export const pathId = (v: unknown, k: string): string => { if (typeof v !== 'string' || !UUID.test(v)) throw fail([`/${k}`]); return v.toLowerCase(); };
+export const isUniqueViolation =(e: unknown, constraint?: string): boolean =>
   isRec(e) && e['code'] === '23505' && (constraint === undefined || e['constraint'] === constraint);
 
 // ---------------------------------------------------------------- cursors: base64url(JSON [sort, key])
-const encode = (sort: string, key: string | number): string => Buffer.from(JSON.stringify([sort, key]), 'utf8').toString('base64url');
-function decode<T extends string | number>(raw: unknown, sort: string, ok: (k: unknown) => boolean): T {
+export const encode = (sort: string, key: string | number): string => Buffer.from(JSON.stringify([sort, key]), 'utf8').toString('base64url');
+export function decode<T extends string | number>(raw: unknown, sort: string, ok: (k: unknown) => boolean): T {
   const invalid = () => new LimsError('common.invalid_cursor');
   if (typeof raw !== 'string' || !CURSOR.test(raw)) throw invalid();
   let v: unknown;
@@ -402,4 +402,4 @@ export function createAccountsService(deps: AccountsDeps = {}) {
 export type AccountsService = ReturnType<typeof createAccountsService>;
 
 /** done_when 4: 'ACC-' + receipt_seq padded to 6 digits (more digits once the tenant passes 999999). */
-const receiptNoOf = (seq: number): string => `${RECEIPT_PREFIX}${String(seq).padStart(6, '0')}`;
+export const receiptNoOf = (seq: number): string => `${RECEIPT_PREFIX}${String(seq).padStart(6, '0')}`;

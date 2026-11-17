@@ -93,6 +93,12 @@ export type ErrorCode =
   | "engagement.booking_invalid_transition"
   | "engagement.booking_limit_reached"
   | "engagement.booking_not_cancellable"
+  | "engagement.broadcast_invalid_transition"
+  | "engagement.broadcast_placeholder_unknown"
+  | "engagement.broadcast_provider_not_configured"
+  | "engagement.broadcast_recipient_limit"
+  | "engagement.broadcast_self_approval"
+  | "engagement.broadcast_template_inactive"
   | "engagement.enquiry_invalid_transition"
   | "engagement.link_code_invalid"
   | "engagement.link_limit_reached"
@@ -231,6 +237,7 @@ export type ErrorCode =
   | "partners.referrer_not_mapped"
   | "partners.self_action_forbidden"
   | "partners.setting_out_of_range"
+  | "partners.ticket_invalid_transition"
   | "payments.amount_not_supported"
   | "payments.callback_mismatch"
   | "payments.callback_stale"
@@ -289,7 +296,12 @@ export type ErrorCode =
   | "smartreport.summary_not_ready"
   | "smartreport.summary_superseded"
   | "smartreport.template_not_approved"
-  | "smartreport.validator_failed";
+  | "smartreport.validator_failed"
+  | "sync.block_size_too_large"
+  | "sync.device_revoked"
+  | "sync.device_unknown"
+  | "sync.series_unknown"
+  | "sync.wipe_required";
 
 export const ERROR_META: Readonly<Record<ErrorCode, { readonly http: number; readonly owner: string; readonly title: string }>> = {
   "analytics.export_not_ready": { http: 409, owner: "C8", title: "Export not ready" },
@@ -385,6 +397,12 @@ export const ERROR_META: Readonly<Record<ErrorCode, { readonly http: number; rea
   "engagement.booking_invalid_transition": { http: 409, owner: "C16", title: "Booking cannot move to the requested state" },
   "engagement.booking_limit_reached": { http: 429, owner: "C16", title: "Booking limit reached" },
   "engagement.booking_not_cancellable": { http: 409, owner: "C16", title: "Booking cannot be cancelled" },
+  "engagement.broadcast_invalid_transition": { http: 409, owner: "C16", title: "Broadcast cannot change" },
+  "engagement.broadcast_placeholder_unknown": { http: 422, owner: "C16", title: "Unknown placeholder" },
+  "engagement.broadcast_provider_not_configured": { http: 422, owner: "C16", title: "No message provider configured" },
+  "engagement.broadcast_recipient_limit": { http: 422, owner: "C16", title: "Too many recipients" },
+  "engagement.broadcast_self_approval": { http: 403, owner: "C16", title: "Second person must approve" },
+  "engagement.broadcast_template_inactive": { http: 422, owner: "C16", title: "Template inactive" },
   "engagement.enquiry_invalid_transition": { http: 409, owner: "C16", title: "Enquiry cannot change" },
   "engagement.link_code_invalid": { http: 422, owner: "C16", title: "Code not valid" },
   "engagement.link_limit_reached": { http: 409, owner: "C16", title: "Profile limit reached" },
@@ -523,6 +541,7 @@ export const ERROR_META: Readonly<Record<ErrorCode, { readonly http: number; rea
   "partners.referrer_not_mapped": { http: 422, owner: "C13", title: "Referrer not yet linked by the lab" },
   "partners.self_action_forbidden": { http: 409, owner: "C13", title: "You cannot change your own access" },
   "partners.setting_out_of_range": { http: 422, owner: "C13", title: "Setting out of allowed range" },
+  "partners.ticket_invalid_transition": { http: 409, owner: "C13", title: "Ticket cannot change" },
   "payments.amount_not_supported": { http: 422, owner: "C15", title: "Amount not supported by this payment method" },
   "payments.callback_mismatch": { http: 400, owner: "C15", title: "Callback does not match payment" },
   "payments.callback_stale": { http: 400, owner: "C15", title: "Callback too old" },
@@ -582,4 +601,9 @@ export const ERROR_META: Readonly<Record<ErrorCode, { readonly http: number; rea
   "smartreport.summary_superseded": { http: 409, owner: "C14", title: "Summary built on superseded results" },
   "smartreport.template_not_approved": { http: 409, owner: "C14", title: "Template library not approved" },
   "smartreport.validator_failed": { http: 422, owner: "C14", title: "Generated text failed validation" },
+  "sync.block_size_too_large": { http: 422, owner: "C0", title: "Block size too large" },
+  "sync.device_revoked": { http: 403, owner: "C0", title: "Device revoked" },
+  "sync.device_unknown": { http: 409, owner: "C0", title: "Device not registered" },
+  "sync.series_unknown": { http: 422, owner: "C0", title: "Number series not available" },
+  "sync.wipe_required": { http: 409, owner: "C0", title: "Device wipe required" },
 };

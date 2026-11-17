@@ -47,6 +47,9 @@ export type PermissionCode =
   | "engagement.booking.create"
   | "engagement.booking.manage"
   | "engagement.booking.read"
+  | "engagement.broadcast.approve"
+  | "engagement.broadcast.manage"
+  | "engagement.broadcast.read"
   | "engagement.enquiry.create"
   | "engagement.enquiry.read"
   | "engagement.enquiry.respond"
@@ -153,6 +156,8 @@ export type PermissionCode =
   | "partners.sales.manage"
   | "partners.sales.read"
   | "partners.statement.read"
+  | "partners.ticket.manage"
+  | "partners.ticket.read"
   | "payments.intent.create"
   | "payments.intent.resolve"
   | "payments.merchant_config.manage"
@@ -196,7 +201,10 @@ export type PermissionCode =
   | "smartreport.summary.approve"
   | "smartreport.summary.read"
   | "smartreport.template.approve"
-  | "smartreport.template.manage";
+  | "smartreport.template.manage"
+  | "sync.conflict.resolve"
+  | "sync.device.manage"
+  | "sync.use";
 
 export const PERMISSION_CODES: readonly PermissionCode[] = [
   "analytics.collections.read",
@@ -246,6 +254,9 @@ export const PERMISSION_CODES: readonly PermissionCode[] = [
   "engagement.booking.create",
   "engagement.booking.manage",
   "engagement.booking.read",
+  "engagement.broadcast.approve",
+  "engagement.broadcast.manage",
+  "engagement.broadcast.read",
   "engagement.enquiry.create",
   "engagement.enquiry.read",
   "engagement.enquiry.respond",
@@ -352,6 +363,8 @@ export const PERMISSION_CODES: readonly PermissionCode[] = [
   "partners.sales.manage",
   "partners.sales.read",
   "partners.statement.read",
+  "partners.ticket.manage",
+  "partners.ticket.read",
   "payments.intent.create",
   "payments.intent.resolve",
   "payments.merchant_config.manage",
@@ -396,6 +409,9 @@ export const PERMISSION_CODES: readonly PermissionCode[] = [
   "smartreport.summary.read",
   "smartreport.template.approve",
   "smartreport.template.manage",
+  "sync.conflict.resolve",
+  "sync.device.manage",
+  "sync.use",
 ];
 
 export const PRIVILEGED: ReadonlySet<PermissionCode> = new Set([
@@ -420,6 +436,7 @@ export const PRIVILEGED: ReadonlySet<PermissionCode> = new Set([
   "catalog.price_list.manage",
   "catalog.reference_range.publish",
   "catalog.referrer.export",
+  "engagement.broadcast.approve",
   "engagement.membership_plan.manage",
   "engagement.settings.manage",
   "frontdesk.discount.approve",
@@ -469,6 +486,8 @@ export const PRIVILEGED: ReadonlySet<PermissionCode> = new Set([
   "reporting.token.revoke",
   "smartreport.summary.approve",
   "smartreport.template.approve",
+  "sync.conflict.resolve",
+  "sync.device.manage",
 ]);
 
 // Default role grants (tenant, partner and platform roles) from permissions[].roles.
@@ -496,6 +515,7 @@ export const ROLE_GRANTS: Readonly<Record<string, readonly PermissionCode[]>> = 
     "partners.pickup.manage",
     "reporting.report.print",
     "reporting.report.read",
+    "sync.use",
   ],
   finance: [
     "analytics.collections.read",
@@ -544,6 +564,8 @@ export const ROLE_GRANTS: Readonly<Record<string, readonly PermissionCode[]>> = 
     "payments.reconciliation.read",
     "payments.refund.approve",
     "payments.refund.request",
+    "sync.conflict.resolve",
+    "sync.use",
   ],
   front_desk: [
     "billing.invoice.issue",
@@ -557,6 +579,8 @@ export const ROLE_GRANTS: Readonly<Record<string, readonly PermissionCode[]>> = 
     "engagement.booking.cancel",
     "engagement.booking.manage",
     "engagement.booking.read",
+    "engagement.broadcast.manage",
+    "engagement.broadcast.read",
     "engagement.enquiry.read",
     "engagement.enquiry.respond",
     "engagement.link.issue",
@@ -586,6 +610,8 @@ export const ROLE_GRANTS: Readonly<Record<string, readonly PermissionCode[]>> = 
     "partners.manifest.receive",
     "partners.partner.read",
     "partners.pickup.manage",
+    "partners.ticket.manage",
+    "partners.ticket.read",
     "payments.intent.create",
     "reporting.delivery.read",
     "reporting.delivery.resend",
@@ -594,6 +620,7 @@ export const ROLE_GRANTS: Readonly<Record<string, readonly PermissionCode[]>> = 
     "reporting.report.read",
     "reporting.report.release",
     "smartreport.summary.read",
+    "sync.use",
   ],
   lab_manager: [
     "analytics.dashboard.read",
@@ -609,6 +636,9 @@ export const ROLE_GRANTS: Readonly<Record<string, readonly PermissionCode[]>> = 
     "catalog.test.read",
     "engagement.bookable_item.manage",
     "engagement.booking.read",
+    "engagement.broadcast.approve",
+    "engagement.broadcast.manage",
+    "engagement.broadcast.read",
     "engagement.queue.manage",
     "engagement.slot.manage",
     "homecollection.device.manage",
@@ -647,6 +677,8 @@ export const ROLE_GRANTS: Readonly<Record<string, readonly PermissionCode[]>> = 
     "partners.referrer.map",
     "partners.sales.manage",
     "partners.sales.read",
+    "partners.ticket.manage",
+    "partners.ticket.read",
     "quality.autoverify.manage",
     "quality.autoverify.read",
     "quality.config.manage",
@@ -663,6 +695,8 @@ export const ROLE_GRANTS: Readonly<Record<string, readonly PermissionCode[]>> = 
     "reporting.settings.manage",
     "reporting.template.manage",
     "smartreport.template.manage",
+    "sync.conflict.resolve",
+    "sync.use",
   ],
   lab_technologist: [
     "anatomic.case.read",
@@ -704,6 +738,7 @@ export const ROLE_GRANTS: Readonly<Record<string, readonly PermissionCode[]>> = 
     "reporting.narrative.write",
     "reporting.outsourced.attach",
     "reporting.report.read",
+    "sync.use",
   ],
   owner_viewer: [
     "analytics.collections.read",
@@ -717,6 +752,7 @@ export const ROLE_GRANTS: Readonly<Record<string, readonly PermissionCode[]>> = 
     "inventory.cost.read",
     "inventory.item.read",
     "inventory.report.export",
+    "sync.use",
   ],
   partner_admin: [],
   partner_member: [],
@@ -764,6 +800,7 @@ export const ROLE_GRANTS: Readonly<Record<string, readonly PermissionCode[]>> = 
     "smartreport.summary.read",
     "smartreport.template.approve",
     "smartreport.template.manage",
+    "sync.use",
   ],
   phlebotomist: [
     "billing.payment.record",
@@ -772,6 +809,7 @@ export const ROLE_GRANTS: Readonly<Record<string, readonly PermissionCode[]>> = 
     "identity.self.manage",
     "lab.specimen.collect",
     "lab.specimen.read",
+    "sync.use",
   ],
   platform_superadmin: [
     "platform.dead_letter.manage",
@@ -789,6 +827,7 @@ export const ROLE_GRANTS: Readonly<Record<string, readonly PermissionCode[]>> = 
     "reporting.narrative.sign",
     "reporting.narrative.write",
     "reporting.report.read",
+    "sync.use",
   ],
   tenant_admin: [
     "analytics.collections.read",
@@ -812,6 +851,9 @@ export const ROLE_GRANTS: Readonly<Record<string, readonly PermissionCode[]>> = 
     "catalog.test.read",
     "engagement.bookable_item.manage",
     "engagement.booking.read",
+    "engagement.broadcast.approve",
+    "engagement.broadcast.manage",
+    "engagement.broadcast.read",
     "engagement.link.read",
     "engagement.link.revoke",
     "engagement.membership.read",
@@ -843,6 +885,8 @@ export const ROLE_GRANTS: Readonly<Record<string, readonly PermissionCode[]>> = 
     "partners.referrer.map",
     "partners.sales.manage",
     "partners.sales.read",
+    "partners.ticket.manage",
+    "partners.ticket.read",
     "payments.merchant_config.manage",
     "payments.merchant_config.read",
     "reporting.channel.manage",
@@ -853,6 +897,9 @@ export const ROLE_GRANTS: Readonly<Record<string, readonly PermissionCode[]>> = 
     "reporting.settings.manage",
     "reporting.template.manage",
     "reporting.token.revoke",
+    "sync.conflict.resolve",
+    "sync.device.manage",
+    "sync.use",
   ],
 };
 
@@ -882,6 +929,8 @@ export const FIXED_ACTOR_PERMISSIONS = {
       "partners.referrer.read",
       "partners.report.read",
       "partners.statement.read",
+      "partners.ticket.manage",
+      "partners.ticket.read",
     ],
     partner_member: [
       "identity.self.manage",
@@ -892,6 +941,8 @@ export const FIXED_ACTOR_PERMISSIONS = {
       "partners.referrer.read",
       "partners.report.read",
       "partners.statement.read",
+      "partners.ticket.manage",
+      "partners.ticket.read",
     ],
   },
   patient: [

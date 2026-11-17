@@ -13,7 +13,8 @@ type Doc = {
 
 const PLACEHOLDER = /^<(\w+) set>$/;
 // 08 A19 D-101: partner self-service; the only staff code allowed in a partner fixed set (partner_admin inherits).
-const PARTNER_EXCEPTION = "identity.self.manage";
+// T0C-MSGDESK-1 (LD-321): partner tickets share partners.ticket.read / .manage between staff (/admin/tickets) and partner actors (/me/tickets, own tickets only by RLS).
+const PARTNER_EXCEPTIONS = new Set(["identity.self.manage", "partners.ticket.read", "partners.ticket.manage"]);
 // LD-01 (2026-11-07): patient self-cancel shares the code with staff; centre scope applies to staff only.
 const PATIENT_EXCEPTION = "engagement.booking.cancel";
 
@@ -53,7 +54,7 @@ export function checkPermissionRules(doc: object, extraGrants: { role: string; c
       if (!p) { out.push({ rule: "UNKNOWN", code, message: `${where}: code not in permissions` }); continue; }
       const isStaff = (p.roles ?? []).length > 0;
       // LD-01 / CR-C0-0C-001: patient self-cancel (E36) shares engagement.booking.cancel with staff S4.
-      const exempt = (s.actor === "partner" && code === PARTNER_EXCEPTION) || (s.actor === "patient" && code === PATIENT_EXCEPTION);
+      const exempt = (s.actor === "partner" && PARTNER_EXCEPTIONS.has(code)) || (s.actor === "patient" && code === PATIENT_EXCEPTION);
       if ((s.actor === "partner" || s.actor === "patient") && isStaff && !exempt)
         out.push({ rule: "R3", code, message: `${where}: staff code in a ${s.actor} fixed set` });
     }
@@ -87,7 +88,7 @@ export function genPermissions(doc: Doc, header: string, sqlHeader: string): { t
   for (const p of perms) {
     if (seen.has(p.code)) throw new Error(`duplicate permission ${p.code}`);
     seen.add(p.code);
-    if (!/^[a-z_]+\.[a-z_]+\.[a-z_]+$/.test(p.code)) throw new Error(`bad permission code ${p.code}`); // 05-SCHEMA g_permissions__code__ck
+    if (!/^[a-z_]+\.[a-z_]+(\.[a-z_]+)?$/.test(p.code)) throw new Error(`bad permission code ${p.code}`); // g_permissions__code__ck, widened to 2 or 3 segments for sync.use (T0C-SYNC-1, LD-322)
     if (!PHASES.includes(String(p.phase ?? "1"))) throw new Error(`bad phase for ${p.code}`);
   }
   const roleCodes = [...doc.roles ?? [], ...doc.partner_roles ?? [], ...doc.platform_roles ?? []].map((r) => r.code);

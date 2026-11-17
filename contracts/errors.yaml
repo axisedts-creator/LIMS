@@ -264,6 +264,7 @@
 - { code: partners.referrer_doctor_inactive, http: 422, owner: C13, title: "Doctor record inactive", meaning: "" }   # CR-C13-009
 - { code: partners.referrer_invalid_transition, http: 409, owner: C13, title: "Referrer mapping cannot change", meaning: "" }   # CR-C13-009
 - { code: partners.setting_out_of_range, http: 422, owner: C13, title: "Setting out of allowed range", meaning: "02-TRD §10.2" }   # CR-C13-009
+- { code: partners.ticket_invalid_transition, http: 409, owner: C13, title: "Ticket cannot change", meaning: "Closed ticket takes no reply and cannot be closed again; only a closed ticket reopens" }   # T0C-MSGDESK-1 (LD-321)
 # smartreport (C14)
 - { code: smartreport.no_eligible_results, http: 422, owner: C14, title: "No approved results for summary", meaning: "" }
 - { code: smartreport.template_not_approved, http: 409, owner: C14, title: "Template library not approved", meaning: "Pathologist approval pending (B14)" }
@@ -313,6 +314,13 @@
 - { code: engagement.reminder_invalid_transition, http: 409, owner: C16, title: "Reminder cannot change", meaning: "Already sent/cancelled" }   # CR-C16-003
 - { code: engagement.enquiry_invalid_transition, http: 409, owner: C16, title: "Enquiry cannot change", meaning: "Closed, or open-enquiry limit" }   # CR-C16-003
 - { code: engagement.setting_out_of_range, http: 422, owner: C16, title: "Setting out of allowed range", meaning: "05-SCHEMA §2.1" }   # CR-C16-003
+# T0C-MSGDESK-1 (LD-321): broadcast messages to an audience
+- { code: engagement.broadcast_invalid_transition, http: 409, owner: C16, title: "Broadcast cannot change", meaning: "Status does not allow this step (draft -> pending_approval -> approved -> sending -> sent; cancel before sending)" }
+- { code: engagement.broadcast_recipient_limit, http: 422, owner: C16, title: "Too many recipients", meaning: "The audience matches more than 5000 recipients per broadcast" }
+- { code: engagement.broadcast_self_approval, http: 403, owner: C16, title: "Second person must approve", meaning: "The approver is the requester of the broadcast" }
+- { code: engagement.broadcast_provider_not_configured, http: 422, owner: C16, title: "No message provider configured", meaning: "No provider configured and approved for the template channel; nothing is queued" }
+- { code: engagement.broadcast_placeholder_unknown, http: 422, owner: C16, title: "Unknown placeholder", meaning: "Template body uses a placeholder outside the closed list" }
+- { code: engagement.broadcast_template_inactive, http: 422, owner: C16, title: "Template inactive", meaning: "A deactivated template cannot start or approve a broadcast" }
 # homecollection (C17)
 - { code: homecollection.visit_not_assigned, http: 403, owner: C17, title: "Visit not assigned to you", meaning: "" }
 - { code: homecollection.barcode_mismatch, http: 422, owner: C17, title: "Scanned barcode does not match", meaning: "Patient/specimen ID check" }
@@ -325,3 +333,9 @@
 - { code: homecollection.visit_incomplete, http: 422, owner: C17, title: "Visit is not ready to assign", meaning: "Address and time window required" }   # CR-C17-007
 - { code: homecollection.phlebotomist_not_eligible, http: 422, owner: C17, title: "Phlebotomist cannot take this visit", meaning: "Inactive, other centre, or no phlebotomist role" }   # CR-C17-007
 - { code: homecollection.collection_not_held, http: 409, owner: C17, title: "Collection is not awaiting review", meaning: "" }   # CR-C17-007
+# T0C-SYNC-1 (LD-322): offline sync, closed list owned by C0; titles and meanings never carry personal data
+- { code: sync.device_revoked, http: 403, owner: C0, title: "Device revoked", meaning: "The device was revoked by an administrator; it must not sync or unlock" }
+- { code: sync.device_unknown, http: 409, owner: C0, title: "Device not registered", meaning: "Unknown device id for this tenant and user; register the device while online" }
+- { code: sync.block_size_too_large, http: 422, owner: C0, title: "Block size too large", meaning: "Requested number block size is above the configured maximum" }
+- { code: sync.series_unknown, http: 422, owner: C0, title: "Number series not available", meaning: "The series is not issued in blocks for this tenant" }
+- { code: sync.wipe_required, http: 409, owner: C0, title: "Device wipe required", meaning: "A remote wipe was requested; wipe local data and acknowledge before any other sync" }

@@ -30,7 +30,8 @@ fixed_actor_permissions:        # replaced by 08 §4.1
   partner:                      # by partner role (CR-C13-002)
     partner_member: [partners.order.read, partners.manifest.submit, partners.report.read, partners.statement.read,
                      partners.price_list.read, partners.pickup.request, partners.referrer.read,
-                     identity.self.manage]   # 08 A19 D-101 (partner self-service; partner_admin inherits)
+                     identity.self.manage,   # 08 A19 D-101 (partner self-service; partner_admin inherits)
+                     partners.ticket.read, partners.ticket.manage]   # T0C-MSGDESK-1 (LD-321): own tickets only (RLS)
     partner_admin:  [<partner_member set>, partners.referrer.manage, partners.partner_user.manage]
   system:  declared per worker manifest (02-CV §2.3), subset of tenant permissions, never platform.*
 permissions:
@@ -218,9 +219,16 @@ permissions:
   - { code: partners.referrer.read, privileged: false, roles: [], phase: 2 }   # partner actors   # CR-C13-002
   - { code: partners.referrer.manage, privileged: false, roles: [], phase: 2 }   # partner_admin only   # CR-C13-002
   - { code: partners.partner_user.manage, privileged: true, roles: [], phase: 2 }   # partner_admin only   # CR-C13-002
+  # T0C-MSGDESK-1 (LD-321): partner message to lab tickets; staff on /admin/tickets, partner actors (fixed set) on /me/tickets, own tickets only (RLS)
+  - { code: partners.ticket.read,   privileged: false, roles: [tenant_admin, front_desk, lab_manager] }
+  - { code: partners.ticket.manage, privileged: false, roles: [tenant_admin, front_desk, lab_manager] }
   # T0C-SALES-1 (LD-321): sales hierarchy (designations, representatives, manager tree, party assignment, service areas); staff only
   - { code: partners.sales.read,   privileged: false, roles: [tenant_admin, finance, lab_manager] }
   - { code: partners.sales.manage, privileged: true,  roles: [tenant_admin, finance, lab_manager] }
+  # T0C-SYNC-1 (LD-322): offline sync (device registry, number blocks; conflict inbox in part 2); staff only. sync.use has two segments (named verbatim by LD-322)
+  - { code: sync.use,              privileged: false, roles: [tenant_admin, front_desk, finance, lab_technologist, pathologist, lab_manager, centre_staff, phlebotomist, owner_viewer, radiologist] }
+  - { code: sync.device.manage,    privileged: true,  roles: [tenant_admin] }
+  - { code: sync.conflict.resolve, privileged: true,  roles: [tenant_admin, lab_manager, finance] }
   - { code: smartreport.template.manage, privileged: false, roles: [pathologist, lab_manager], phase: 2 }   # CR-C14-003
   - { code: smartreport.summary.approve, privileged: true, roles: [pathologist], phase: 2 }   # per-summary approval (03-IC §4.10 invariant)   # CR-C14-003
   - { code: payments.intent.resolve, privileged: true, roles: [finance], phase: 1.5 }   # CR-C15-005
@@ -249,6 +257,10 @@ permissions:
   - { code: engagement.enquiry.read, privileged: false, roles: [front_desk], phase: 3 }   # CR-C16-002
   - { code: engagement.enquiry.respond, privileged: false, roles: [front_desk], phase: 3 }   # CR-C16-002
   - { code: engagement.settings.manage, privileged: true, roles: [tenant_admin], phase: 2 }   # CR-C16-002
+  # T0C-MSGDESK-1 (LD-321): broadcast messages to an audience; approve = the second person (approver <> requester), privileged (MFA)
+  - { code: engagement.broadcast.read,    privileged: false, roles: [tenant_admin, front_desk, lab_manager] }
+  - { code: engagement.broadcast.manage,  privileged: false, roles: [tenant_admin, front_desk, lab_manager] }
+  - { code: engagement.broadcast.approve, privileged: true,  roles: [tenant_admin, lab_manager] }
   - { code: homecollection.handover.receive, privileged: false, roles: [centre_staff, front_desk, lab_technologist], phase: 3 }   # CR-C17-008
   - { code: homecollection.device.manage, privileged: true, roles: [tenant_admin, lab_manager], phase: 3 }   # CR-C17-008
   - { code: homecollection.settings.manage, privileged: true, roles: [tenant_admin, lab_manager], phase: 3 }   # CR-C17-008

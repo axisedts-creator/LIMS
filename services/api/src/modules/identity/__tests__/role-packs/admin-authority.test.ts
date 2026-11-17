@@ -89,11 +89,11 @@ describe('ADMINPACK-1 administrator packs: authority left out on purpose (sectio
     const r = byCode(admin);
     const privileged = r.permissions.filter((c) => PERM.get(c) === true);
     // corp_admin: LD-310 (T0B-ADMINPERM-1) 155 permissions, 59 privileged (every staff code of the registry); std_admin unchanged.
-    // T0C-ACCT-1 (LD-313 c): +7 accounting codes, 3 of them privileged (account.manage, account_entry.reverse, cash_transfer.decide) -> 162 / 62.
-    // T0C-SALES-1 (LD-321): +2 sales codes, 1 privileged (partners.sales.manage) -> 164 / 63; std_admin unchanged.
-    // T0C-VERLEVEL-1 (LD-316): +2 verification policy codes, 1 privileged (lab.verification_policy.manage) -> 166 / 64; std_admin unchanged.
-    expect(privileged.length, `${admin} privileged`).toBe(admin === 'corp_admin' ? 64 : 35);
-    expect(r.permissions.length, `${admin} permissions`).toBe(admin === 'corp_admin' ? 166 : 102);
+    // T0C-ACCT-1 (LD-313 c): +7 accounting codes, 3 of them privileged (account.manage, account_entry.reverse, cash_transfer.decide) -> 162 / 62; T0C-MSGDESK-1 (LD-321): +5 codes (engagement.broadcast.approve privileged) -> 167 / 63.
+    // T0C-SALES-1 (LD-321): +2 sales codes, 1 privileged (partners.sales.manage) -> 169 / 64; std_admin unchanged. T0C-SYNC-1 (LD-322): +3 sync codes, 2 privileged (sync.device.manage, sync.conflict.resolve) -> 172 / 66.
+    // T0C-VERLEVEL-1 (LD-316): +2 verification policy codes, 1 privileged (lab.verification_policy.manage) -> 174 / 67; std_admin unchanged.
+    expect(privileged.length, `${admin} privileged`).toBe(admin === 'corp_admin' ? 67 : 35);
+    expect(r.permissions.length, `${admin} permissions`).toBe(admin === 'corp_admin' ? 174 : 102);
     expect(r.mfa_required, admin).toBe(true);
     expect(r.base_default_role, admin).toBe('tenant_admin');
   });

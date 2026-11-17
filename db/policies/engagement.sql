@@ -573,3 +573,25 @@ CREATE POLICY queue_day_counters__delete__owner_only ON engagement.queue_day_cou
   USING (current_setting('app.maintenance', true) = 'engagement_purge_queue'
          AND tenant_id = (SELECT app.current_tenant_id())
          AND business_date < (now() AT TIME ZONE 'Asia/Kathmandu')::date - 365);
+-- T0C-MSGDESK-1 (LD-321): broadcast tables, staff only (migration 20261117240000_engagement__add_broadcast_and_tickets.sql).
+CREATE POLICY broadcast_template__select__tenant ON engagement.broadcast_template FOR SELECT TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()) AND (SELECT app.current_actor_type()) IN ('user','system'));
+CREATE POLICY broadcast_template__insert__tenant ON engagement.broadcast_template FOR INSERT TO lims_app
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()) AND (SELECT app.current_actor_type()) IN ('user','system'));
+CREATE POLICY broadcast_template__update__tenant ON engagement.broadcast_template FOR UPDATE TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()) AND (SELECT app.current_actor_type()) IN ('user','system'))
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()) AND (SELECT app.current_actor_type()) IN ('user','system'));
+CREATE POLICY broadcast__select__tenant ON engagement.broadcast FOR SELECT TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()) AND (SELECT app.current_actor_type()) IN ('user','system'));
+CREATE POLICY broadcast__insert__tenant ON engagement.broadcast FOR INSERT TO lims_app
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()) AND (SELECT app.current_actor_type()) IN ('user','system'));
+CREATE POLICY broadcast__update__tenant ON engagement.broadcast FOR UPDATE TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()) AND (SELECT app.current_actor_type()) IN ('user','system'))
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()) AND (SELECT app.current_actor_type()) IN ('user','system'));
+CREATE POLICY broadcast_recipient__select__tenant ON engagement.broadcast_recipient FOR SELECT TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()) AND (SELECT app.current_actor_type()) IN ('user','system'));
+CREATE POLICY broadcast_recipient__insert__tenant ON engagement.broadcast_recipient FOR INSERT TO lims_app
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()) AND (SELECT app.current_actor_type()) IN ('user','system'));
+CREATE POLICY broadcast_recipient__update__tenant ON engagement.broadcast_recipient FOR UPDATE TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()) AND (SELECT app.current_actor_type()) IN ('user','system'))
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()) AND (SELECT app.current_actor_type()) IN ('user','system'));

@@ -7,6 +7,7 @@ import { Banner } from '@lims/ui/components/Banner';
 import { Button } from '@lims/ui/components/Button';
 import { CodeField } from '@lims/ui/components/CodeField';
 import { Combobox } from '@lims/ui/components/Combobox';
+import { EmptyRow, PlaceholderRows } from '@lims/ui/components/DataTable';
 import { DateTimePicker } from '@lims/ui/components/DateTimePicker';
 import { EmptyState } from '@lims/ui/components/EmptyState';
 import { PageHeader } from '@lims/ui/components/PageHeader';
@@ -55,10 +56,8 @@ export function TaxScreen({ rules, taxTypes, departments, orderables, permission
           <>
             {!hasDefault ? <div role="alert"><Banner tone="danger" title="Prices cannot be quoted until a lab default tax rule exists." /></div> : null}
             {manage ? <Button variant="primary" onPress={() => setDialog('rule')}>New rule</Button> : null}
-            {rules.length === 0 ? (
-              <EmptyState title="No tax rules. Prices cannot be quoted until a tenant default rule exists." />
-            ) : (
-              <table className="lims-table lims-table-regular">
+            {/* T0D-EMPTYTBL-2 (LD-310, LD-336): both tabs always draw their table; the empty message (and the create action for a manager) is the one body row. */}
+            <table className="lims-table lims-table-regular">
                 <caption className="lims-visually-hidden">Tax rules</caption>
                 <thead>
                   <tr>
@@ -67,6 +66,9 @@ export function TaxScreen({ rules, taxTypes, departments, orderables, permission
                   </tr>
                 </thead>
                 <tbody>
+                  {rules.length === 0 ? (
+                    <EmptyRow colSpan={manage ? 7 : 6}><EmptyState title="No tax rules. Prices cannot be quoted until a tenant default rule exists." {...(manage ? { action: { label: 'New rule', onPress: () => setDialog('rule') } } : {})} /></EmptyRow>
+                  ) : null}
                   {rules.map((r) => (
                     <tr key={r.id} className="lims-row">
                       <td className="lims-cell">{appliesTo(r)}</td>
@@ -79,8 +81,8 @@ export function TaxScreen({ rules, taxTypes, departments, orderables, permission
                     </tr>
                   ))}
                 </tbody>
+                {rules.length === 0 ? <PlaceholderRows colSpan={manage ? 7 : 6} /> : null}
               </table>
-            )}
           </>
         ) : (
           <>
@@ -94,6 +96,9 @@ export function TaxScreen({ rules, taxTypes, departments, orderables, permission
                 </tr>
               </thead>
               <tbody>
+                {taxTypes.length === 0 ? (
+                  <EmptyRow colSpan={manage ? 7 : 6}><EmptyState title="No tax types." {...(manage ? { action: { label: 'New tax type', onPress: () => setDialog('type') } } : {})} /></EmptyRow>
+                ) : null}
                 {taxTypes.map((t) => (
                   <tr key={t.id} className="lims-row">
                     <td className="lims-cell">{t.code}</td>
@@ -106,6 +111,7 @@ export function TaxScreen({ rules, taxTypes, departments, orderables, permission
                   </tr>
                 ))}
               </tbody>
+              {taxTypes.length === 0 ? <PlaceholderRows colSpan={manage ? 7 : 6} /> : null}
             </table>
           </>
         )}

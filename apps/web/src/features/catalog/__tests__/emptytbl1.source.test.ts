@@ -28,21 +28,10 @@ const EARLY = [
 const HAS_TABLE = /<table|<DataTable|<SimpleTable|<MasterTable/;
 
 /** file (relative to features/) -> why it may keep an empty state instead of a table. Keep it SHORT; a list screen never belongs here. */
-const DEFERRED = 'NOT named in the T0D-EMPTYTBL-1 brief (16 file cap); a list screen, so the lead should schedule a follow-up and delete this entry';
+// T0D-EMPTYTBL-2 (LD-336): the 11 DEFERRED list screens are fixed and removed from the list; only screens that are not tables stay.
 const ALLOW: Record<string, string> = {
   'lab/components/CollectDispatch.tsx': 'scan screens: "Scan a label to start" / "Scan collected specimens…" (no columns before a scan)',
   // (DepartmentIndex is a link picker and does not match the pattern, so it needs no entry)
-  'anatomic/components/config/TemplatesTab.tsx': DEFERRED,
-  'anatomic/components/config/TestProfilesTab.tsx': DEFERRED,
-  'anatomic/components/molecular/BatchesScreen.tsx': DEFERRED,
-  'anatomic/components/molecular/MolecularTab.tsx': DEFERRED,
-  'catalog/components/SurchargeRulesScreen.tsx': DEFERRED,
-  'catalog/components/TaxScreen.tsx': DEFERRED,
-  'engagement/components/AppAccess.tsx': DEFERRED,
-  'instruments/components/InstrumentMappings.tsx': DEFERRED,
-  'lab/components/worksheets/WorksheetListPage.tsx': DEFERRED,
-  'quality/components/LjView.tsx': DEFERRED,
-  'smartreport/components/LibraryList.tsx': DEFERRED,
 };
 /** rs-c2.static pins these trees; this task may not touch them. */
 const OFF_LIMITS = /^(admin|platform)\//;
@@ -82,6 +71,18 @@ describe('T0D-EMPTYTBL-1 no list screen swaps its table for an empty-state card'
       'anatomic/components/tracking/TrackingScreen.tsx', 'catalog/components/PriceListsList.tsx', 'catalog/components/master-ui.tsx',
     ];
     expect(named.filter((n) => n in ALLOW)).toEqual([]);
+  });
+
+  it('T0D-EMPTYTBL-2: the 11 follow-up list screens are NOT on the allow list (the scan must fail if one returns an EmptyState before its table)', () => {
+    const eleven = [
+      'anatomic/components/config/TemplatesTab.tsx', 'anatomic/components/config/TestProfilesTab.tsx', 'anatomic/components/molecular/BatchesScreen.tsx',
+      'anatomic/components/molecular/MolecularTab.tsx', 'catalog/components/SurchargeRulesScreen.tsx', 'catalog/components/TaxScreen.tsx',
+      'engagement/components/AppAccess.tsx', 'instruments/components/InstrumentMappings.tsx', 'lab/components/worksheets/WorksheetListPage.tsx',
+      'quality/components/LjView.tsx', 'smartreport/components/LibraryList.tsx',
+    ];
+    expect(eleven.filter((n) => n in ALLOW)).toEqual([]);
+    for (const n of eleven) expect(() => statSync(join(FEATURES, n)), `${n} must still exist`).not.toThrow();
+    expect(Object.keys(ALLOW)).toEqual(['lab/components/CollectDispatch.tsx']); // only the scan screen is left
   });
 
   it('does not scan or require anything under admin / platform (off limits, rs-c2.static)', () => {

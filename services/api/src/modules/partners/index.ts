@@ -54,6 +54,8 @@ const stub = (operationId: string): Handler => async () => {
   throw new LimsError('common.internal', `partners ${operationId} not implemented`);
 };
 
+// LD-325(b), T0C-MSGDESK-1 (LD-321): the 10 ticket operations are covered by the T01 stub below, so the pending list stays empty
+// (core/__tests__/pending-operations.test.ts: pending = spec operations without a handler); T0B-MSGDESK-1 replaces the stubs with handlers.
 const implemented: Readonly<Record<string, Handler>> = {
   getPartnerContext, // T03
   getPartnerDashboard, // T18 A2

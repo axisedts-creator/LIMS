@@ -52,8 +52,9 @@ async function listView(sp: Sp, permissions: readonly string[]) {
   const r = await orForbidden(() =>
     Promise.all([
       listAllTests({ departmentId: filters.department_id || undefined, isActive: filters.is_active || 'all' }) as Promise<Summary[]>,
-      listDepartments({ isActive: 'all', limit: 200 }),
-      listSpecimenTypes({ isActive: 'all', limit: 200 }),
+      // LD-340: the filter lists are optional, a failing one must not take the whole Test Details page down (T0D-TESTMGMT-FIX-1 finds the root cause)
+      listDepartments({ isActive: 'all', limit: 200 }).catch(() => ({ data: [] as Awaited<ReturnType<typeof listDepartments>>['data'] })),
+      listSpecimenTypes({ isActive: 'all', limit: 200 }).catch(() => ({ data: [] as Awaited<ReturnType<typeof listSpecimenTypes>>['data'] })),
       listTestCategories().catch(() => []),
       copyId ? orMissing(() => getTest(copyId)) : Promise.resolve(undefined),
     ]),

@@ -16,7 +16,8 @@ const git = (...args: string[]) => execFileSync('git', args, { cwd: ROOT, encodi
 const walk = (d: string): string[] => (existsSync(d) ? readdirSync(d).flatMap((n) => (n === '__tests__' ? [] : statSync(join(d, n)).isDirectory() ? walk(join(d, n)) : [join(d, n)])) : []);
 
 const PAGES = [
-  { name: 'Worklists', seg: 'worklists', path: '/lab/worklists', routeId: 'staff.lab.worklists', permission: 'lab.worklist.read', navId: 'lab.worklists', label: 'lab.nav.worklists', order: 4, helpKey: 'lab.worklists', op: '/v1/catalog/departments' },
+  // T0D-ELABMENU-1 (LD-340): lab.nav.worklists now reads with the ElabAssist name "Pathology Result" (was "Worklists")
+  { name: 'Pathology Result', seg: 'worklists', path: '/lab/worklists', routeId: 'staff.lab.worklists', permission: 'lab.worklist.read', navId: 'lab.worklists', label: 'lab.nav.worklists', order: 4, helpKey: 'lab.worklists', op: '/v1/catalog/departments' },
   { name: 'Critical values', seg: 'critical-values', path: '/lab/critical-values', routeId: 'staff.lab.critical_values', permission: 'lab.critical_value.read', navId: 'lab.critical_values', label: 'lab.nav.critical_values', order: 8, helpKey: 'lab.critical_values', op: '/v1/lab/critical-values' },
 ] as const;
 const ALLOWED_OPS = ['/v1/catalog/departments', '/v1/lab/worklist-items', '/v1/lab/critical-values'];

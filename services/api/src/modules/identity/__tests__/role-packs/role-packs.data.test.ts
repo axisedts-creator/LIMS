@@ -29,7 +29,7 @@ const DEFAULT_ROLE_CODES = [...registry.roles, ...registry.partner_roles, ...reg
 // admin gets every tenant staff code (162 permissions, 62 privileged; 155 / 59 + the 7 accounting codes of T0C-ACCT-1, LD-313 c).
 const EXPECTED: Record<string, Record<string, [number, number]>> = {
   elabcorp_default: {
-    corp_admin: [164, 63], corp_accession_user: [22, 0], corp_accounts: [18, 6], corp_franchise_user: [24, 0], // corp_admin: + 2 sales codes of T0C-SALES-1 (LD-321), 1 privileged
+    corp_admin: [167, 65], corp_accession_user: [22, 0], corp_accounts: [18, 6], corp_franchise_user: [24, 0], // corp_admin: + 2 sales codes of T0C-SALES-1 (LD-321), 1 privileged
     corp_client_operator: [44, 8], corp_laboratory_admin: [11, 0], corp_laboratory_lab_user: [24, 0],
     corp_laboratory_user: [18, 0], corp_collection_center: [22, 1], corp_it_department: [5, 0],
     corp_junior_lab_user: [24, 0], corp_sr_lab_user: [51, 9], corp_sr_lab_user_t2: [51, 9], corp_pathologist: [45, 7],

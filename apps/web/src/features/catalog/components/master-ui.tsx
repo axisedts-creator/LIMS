@@ -146,10 +146,8 @@ export function MasterTable<R extends { id: string }>({ caption, cols, rows, emp
  * message. Failures stay inline: a toast behind a modal is aria-hidden. Raw problem detail is never shown.
  * `keepOpen` = an in-page form (detail screens): it can be saved again after a success.
  */
-export function SaveForm({ savedText, onDone, check, save, onSaved, onDuplicate, onInUse, inUseText, keepOpen, reloadLabel = 'Reload', submitLabel = 'Save', children }: {
+export function SaveForm({ savedText, onDone, check, save, onSaved, onDuplicate, onInUse, inUseText, keepOpen, reloadLabel = 'Reload', children }: {
   savedText: string;
-  /** In-page (keepOpen) submit label when the screen has a second Save (T0D-TESTMGMT-1 panel picker). */
-  submitLabel?: string;
   /** Label of the conflict banner's refresh button. */
   reloadLabel?: string;
   onDone?: () => void;
@@ -227,7 +225,7 @@ export function SaveForm({ savedText, onDone, check, save, onSaved, onDuplicate,
         {keepOpen ? (
           <>
             {children}
-            <Button type="submit" variant="primary" shortcut="Ctrl+S">{submitLabel}</Button>
+            <Button type="submit" variant="primary" shortcut="Ctrl+S">Save</Button>
           </>
         ) : (
           <FormSection title="Details" action={<Button type="submit" size="sm" variant="primary" shortcut="Ctrl+S">Save</Button>}>

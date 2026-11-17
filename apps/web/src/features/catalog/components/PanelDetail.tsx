@@ -1,7 +1,7 @@
 'use client';
 // SCR-09 panel detail: General (code and kind are create-only), Members grid (own Save members → PUT, If-Match) and the live
 // "Expanded tests" preview. Without catalog.test.manage everything is read-only text. Failures stay inline (cycle, inactive, stale).
-import { useRef, useState, type ReactNode } from 'react';
+import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Banner } from '@lims/ui/components/Banner';
 import { Button } from '@lims/ui/components/Button';
@@ -17,6 +17,7 @@ import { PANEL_CODE_RE, type Department, type OrderableSummary, type Panel, type
 import { CONFLICT, MFA, SaveForm, StatusBadge, canManage } from './master-ui';
 import { ExpandedTests, MembersEditor, infoOf, toPayload, type Info } from './PanelMembers';
 import { PACKAGE_COPY, SEX_OPTIONS, kindLabel, sexLabel } from './PanelsList';
+import { TwoListPicker } from './compact-ui';
 
 const MEMBER_ERRORS: Record<string, string> = {
   'catalog.panel_cycle': 'This would make the panel contain itself (P1 → P2 → P1).',
@@ -25,8 +26,11 @@ const MEMBER_ERRORS: Record<string, string> = {
   'auth.mfa_required': MFA,
 };
 
-/** `picker` (T0D-TESTMGMT-1, LD-318): the two-list member picker replaces the members grid; the general form's button is then "Update details". */
-export function PanelDetail({ panel, departments, orderables, permissions, picker }: { panel: Panel; departments: readonly Department[]; orderables: readonly OrderableSummary[]; permissions: readonly string[]; picker?: ReactNode }) {
+export function PanelDetail({ panel, departments, orderables, permissions, tests }: {
+  panel: Panel; departments: readonly Department[]; orderables: readonly OrderableSummary[]; permissions: readonly string[];
+  /** T0D-TESTMGMT-1: every test of the tenant; given = two list member picker instead of the search combobox. */
+  tests?: readonly { id: string; code: string; name: string; is_active: boolean }[] | undefined;
+}) {
   const manage = canManage(permissions);
   const router = useRouter();
   const toast = useToast();
@@ -79,7 +83,7 @@ export function PanelDetail({ panel, departments, orderables, permissions, picke
       />
       {panel.panel_kind === 'package' ? <p role="note">{PACKAGE_COPY}</p> : null}
       {manage ? (
-        <SaveForm savedText="Panel saved." keepOpen reloadLabel="Refresh" onDuplicate={() => undefined} save={() => saveGeneral()} {...(picker ? { submitLabel: 'Update details' } : {})}>
+        <SaveForm savedText="Panel saved." keepOpen reloadLabel="Refresh" onDuplicate={() => undefined} save={() => saveGeneral()}>
           <CodeField label="Code" name="code" maxLength={32} pattern={PANEL_CODE_RE.source} patternHint="Set when the panel was created." isReadOnly value={panel.code} />
           <TextField label="Name" name="name" maxLength={200} isRequired value={name} onChange={setName} />
           <RadioGroup<Panel['panel_kind']> label="Panel kind" name="panel_kind" isDisabled value={panel.panel_kind} options={[{ value: 'clinical', label: 'Clinical panel' }, { value: 'package', label: 'Package' }]} />
@@ -96,24 +100,32 @@ export function PanelDetail({ panel, departments, orderables, permissions, picke
           <dt>Department</dt><dd>{deptName ?? '—'}</dd>
         </dl>
       )}
-      {picker ?? <>
       <h2 className="lims-section-title">Members</h2>
       {error ? <div role="alert"><Banner tone="danger" title={error} /></div> : null}
-      <MembersEditor
-        members={members}
-        info={info.current}
-        canEdit={manage}
-        keepOne
-        excludeId={panel.id}
-        onAdd={(o) => {
-          info.current.set(o.id, infoOf(o));
-          setMembers((m) => [...m, { kind: o.kind, orderable_id: o.id, sort_order: m.length }]);
-        }}
-        onRemove={(i) => setMembers((m) => m.filter((_, j) => j !== i))}
-      />
-      {manage ? <Button variant="primary" isDisabled={!dirty || busy} onPress={() => void saveMembers()}>Save members</Button> : null}
+      {tests ? (
+        // T0D-TESTMGMT-1 (LD-318): two list picker when the page passes the test list; other members (nested panels) keep their place.
+        <TwoListPicker
+          isDisabled={!manage}
+          available={tests.filter((x) => x.is_active && x.id !== panel.id && !members.some((m) => m.orderable_id === x.id)).map((x) => ({ id: x.id, label: `${x.code} — ${x.name}` }))}
+          selected={members.filter((m) => m.kind === 'test').map((m) => { const x = info.current.get(m.orderable_id) ?? tests.find((t) => t.id === m.orderable_id); return { id: m.orderable_id, label: x ? `${x.code} — ${x.name}` : m.orderable_id }; })}
+          onChange={(ids) => setMembers([...members.filter((m) => m.kind !== 'test'), ...ids.map((id) => ({ kind: 'test' as const, orderable_id: id, sort_order: 0 }))].map((m, i) => ({ ...m, sort_order: i })))}
+        />
+      ) : (
+        <MembersEditor
+          members={members}
+          info={info.current}
+          canEdit={manage}
+          keepOne
+          excludeId={panel.id}
+          onAdd={(o) => {
+            info.current.set(o.id, infoOf(o));
+            setMembers((m) => [...m, { kind: o.kind, orderable_id: o.id, sort_order: m.length }]);
+          }}
+          onRemove={(i) => setMembers((m) => m.filter((_, j) => j !== i))}
+        />
+      )}
+      {manage ? <Button variant="primary" isDisabled={!dirty || busy || members.length === 0} onPress={() => void saveMembers()}>Save members</Button> : null}
       <ExpandedTests ids={members.map((m) => m.orderable_id)} />
-      </>}
     </section>
   );
 }

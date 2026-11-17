@@ -1,11 +1,11 @@
 {
   "_note": "RS-C3 baseline captured before the restyle (HEAD of lane/C3r). Restyle must not change any of it.",
   "serverHashes": {
-    "server/actions.ts": "96822eaa98106a4385f93cd0dca586bba4a2795ab9205af20445a4d5adde1ea7",
+    "server/actions.ts": "c6d3be5daa9b16dd562ab6db1e8af4815c7d10ad2902e668bd6f385afdf2e6cf",
     "server/catalogActions.ts": "5de66aa57edb9d123f7c2ba912957975f970f018c274b9d0dfc74bd03da0032f",
     "server/catalogCounts.ts": "046a9fd6f98c0072fc23247aa4cfdc3509b4c972f60b9630764315fa10bf0d79",
     "server/commitImport.server.ts": "8b83aae4ca69000845b7b128f09405da56292e1e888b498985861d6173694cc0",
-    "server/createAnalyte.server.ts": "cf3d2b4dd74cdab6657e01ecef4bdafca567f44d12a70b00a2d869bb429cea02",
+    "server/createAnalyte.server.ts": "8406535968e51841979d16cade7cb10db4aa5e47f19c12ab9d21930c5b9d0669",
     "server/createAnalyteVersionDraft.server.ts": "f2d60bea5f52327125261ce5bb34536960a8fad644f1526e0c450c14f1b6fde7",
     "server/createCommentCode.server.ts": "1f39c8c89f0fbfd7922a42983c321ef3d09327498e24a01b400fc7a0a42aa05c",
     "server/createContainer.server.ts": "7951756757ebc4000f1f9e6753027296f2415aeeafd6f21a85ebc096137160fb",
@@ -23,8 +23,6 @@
     "server/createSurchargeRule.server.ts": "2bffbac6c80768dc9be92ebb0e27d12ed6e7c6e4cfa37451eba3f39f085b92b8",
     "server/createTaxRule.server.ts": "7f3634b91553563f15dbe7dca391626546b9916dcd6cfa83db62c221b3c0e83d",
     "server/createTaxType.server.ts": "4a1994977aa123b34135759ef22f59561dd3d9349f6593e2a05dd306c8aa75b8",
-    "server/createTest.server.ts": "0a8f16bfc9ffc0f85291bb1cf4eba595d9af41b1948d93996d69387849f6dfc0",
-    "server/createTestCategory.server.ts": "501c3b8d1fbded852ecf463bb675683faedf0b1753db25c5f14d30f4da40b98b",
     "server/createUnit.server.ts": "cb2588e02e6f50c0ad10bd7d4e2083412979c38b9b40e4dbfa0d9ff8e96a4bfc",
     "server/createValueSet.server.ts": "d74177935d18442f761e88675972a0f1eba08efbadf75f295ffdca59f73e0961",
     "server/discardImport.server.ts": "c51496e3eafd606fdbaee7c5cf8298157dda5cf984e508c169bc179e569cde9e",
@@ -62,10 +60,9 @@
     "server/listSurchargeRules.server.ts": "9c2275ebd8844a52f5605ef48066eb34a8cef2640c1082f31827d2d0ea23012a",
     "server/listTaxRules.server.ts": "e945764e0499f402cdc8edbff8a5d1fedb1e10896c6ce28daf518f7f5e7bb5d1",
     "server/listTaxTypes.server.ts": "47c330c866e3b7908487995c3607b83cb8ed64244ecf8210b0a26ca88baf3bff",
-    "server/listTestCategories.server.ts": "66214317d03cd25906b44b46efbe4d1a1a91adef90ed0646aa494cb1d714b453",
-    "server/listTests.server.ts": "fe4333c3320402aca1ceb01d2baa410727d107dee411290a7013d7cdb3e062d0",
+    "server/listTests.server.ts": "b327b28e0c1ab7a32e899c46c6fa27f383e37e37781717d7fab1dca4cdaa1519",
     "server/listUnits.server.ts": "42a032ec84ccea590a6d4361adddca73d66468f93f20515fecfb04fcb1ab75d8",
-    "server/listValueSets.server.ts": "d916b38dcf2230b848d5bb704b15919f992615a2c10f807427c868a49c5ea101",
+    "server/listValueSets.server.ts": "1f58d630e2331d649bcce8dd7c577c9f7913810fa5dd611c66cded1564efee96",
     "server/lists.server.ts": "d7c025aa77c38bd517310dd02674db38d216543bdb482804397f6a12d4543079",
     "server/masters.ts": "04d510e32a8918d13d2b9d5825192132531bb802815575aa0a8affeb864a8020",
     "server/mergeDoctor.server.ts": "cac0c5f7e446925bcdaffe8830ac77fb0f155d509e7f94f6227ffda7b7540218",
@@ -86,12 +83,10 @@
     "server/retireRangeSet.server.ts": "d9db0519aae57220c1b3205406b1475428617c53e8612a9ebf1d73fb63aa95b4",
     "server/searchDoctors.server.ts": "7044ef12e4b38004ee623b00f49a22a0dd0cd51e778524cd3850a1a03a5bef60",
     "server/searchOrderables.server.ts": "994f33eb05be4ca1c6bdfaf7732cca2bca6e942b31f4a97c42ede3daedfde263",
-    "server/setTestTatTargets.server.ts": "ba319575872ca15d1b788ece4f94e695609528e1cd98c00f023e3a3e30d84ebc",
     "server/shared.ts": "cea2d2e56a35c7893a69d68e08173dcfbd3e1ed529e3df51a6826d2700aaec7e",
-    "server/specs.ts": "f282f764fcffd3f713ba1aba1cf8adad9b6f35dcffbfb0ae5e191d9069d42f87",
-    "server/testmgmtActions.ts": "dca10b1d5834a6ff4a4fd79226eca5a699f11e206e92fe07ed6bf29d3a2c1641",
+    "server/specs.ts": "985b117e0ba3622108572267cfec5666507bb3e523881b7ebc2f099f42be6794",
     "server/types.ts": "3b51c54dec7a6f01d101e026ea7d6c1e4af98f9f31eb69fbbd6dc52e8683b983",
-    "server/updateAnalyte.server.ts": "9c1cb3d72efc681312dc56e98467e01ec0cfda320c214c2a9734d4bf491e4e96",
+    "server/updateAnalyte.server.ts": "1631d1447413418c61c29f1252168902869cdbbe2a60cc4146dca315874b96bb",
     "server/updateAnalyteVersionDraft.server.ts": "bbaa7db9f34cc70aa35717ab5eeb78acd1a5fa02c6468a612cde8dbed73a3ba8",
     "server/updateCommentCode.server.ts": "4a2e66a1f484fd7840bf392b58380ad6e64289e44f0b130725a956e5edc63439",
     "server/updateContainer.server.ts": "8e23256231f2b6f1a1a65d3816bec0c2ed21942d9c82495c70dce0da459c9372",
@@ -103,8 +98,7 @@
     "server/updatePriceList.server.ts": "b1e419f04ec3e9402feddd4a1ab01a26fa0ca05d6f1a06bf762e9127b69d08da",
     "server/updateSpecimenType.server.ts": "451b761f5c14f68c0b261eb79299e78645e6177bb0ce0bfc06c17e0c34b16019",
     "server/updateTaxType.server.ts": "d1a70ae492264dbf94837d27f7cb905ccf8699178a51e07b6759e0b26eb7f2fb",
-    "server/updateTest.server.ts": "68e64acf3ee4652192c240593410790df3a378d9e9d0c13d884fd0057c84abdb",
-    "server/updateTestCategory.server.ts": "b85e4e31a3c7ec1cc523f4fa1060ca6844a79d90b7d64ff045afebe9588d119c",
+    "server/updateTest.server.ts": "8e15420229bc55dad3e21a0ddbc5b6f4ac1a151908b0857d8fb3d863ee04c303",
     "server/updateUnit.server.ts": "8ae34602b5c55266de1a370aa9cbeee28687c6700adbe297a9ba5c166fad1329",
     "server/updateValueSet.server.ts": "55c2148b42139cdb32b034c3402ce4c88b2db304522e24bf7dc306e45edaa79f",
     "server/upsertPriceListItems.server.ts": "5efd627d5927c784269382076758f1a9d44643057bf9e20e07e4aab3cbd44b6f",
@@ -219,19 +213,9 @@
       "catalogActions:resolvePreviewAction",
       "catalogActions:searchOrderablesAction"
     ],
-    "components/PanelPicker.tsx": [
-      "catalogActions:replacePanelMembersAction"
-    ],
     "components/PanelsList.tsx": [
       "catalogActions:createPanelAction",
       "types:PANEL_CODE_RE"
-    ],
-    "components/ParameterForm.tsx": [
-      "actions:createAnalyteAction",
-      "actions:createAnalyteVersionDraftAction",
-      "actions:updateAnalyteAction",
-      "actions:updateAnalyteVersionDraftAction",
-      "actions:validateFormulaAction"
     ],
     "components/PriceListDetail.tsx": [
       "catalogActions:searchDoctorsAction",
@@ -265,11 +249,6 @@
     ],
     "components/PublishDialog.tsx": [
       "actions:publishAnalyteVersionAction"
-    ],
-    "components/RangeManager.tsx": [
-      "actions:createRangeSetDraftAction",
-      "actions:publishRangeSetAction",
-      "actions:replaceBandsAction"
     ],
     "components/RangePreview.tsx": [
       "actions:previewReferenceRangeAction",
@@ -307,30 +286,8 @@
       "types:TAX_DISCLAIMER",
       "types:parsePercentBp"
     ],
-    "components/TestDetails.tsx": [
-      "actions:createAnalyteAction",
-      "actions:updateAnalyteAction",
-      "testmgmtActions:getTestParametersAction",
-      "testmgmtActions:listTestsPageAction"
-    ],
-    "components/TestForm.tsx": [
-      "actions:createTestAction",
-      "actions:updateTestAction",
-      "testmgmtActions:setTestTatTargetsAction"
-    ],
     "components/TestGeneralForm.tsx": [
       "actions:updateTestAction"
-    ],
-    "components/TestLists.tsx": [
-      "testmgmtActions:createTestCategoryAction",
-      "testmgmtActions:listTestsPageAction",
-      "testmgmtActions:setPopularAction",
-      "testmgmtActions:updateTestCategoryAction",
-      "types:formatNpr"
-    ],
-    "components/TestsList.tsx": [
-      "actions:createTestAction",
-      "types:CODE_RE"
     ],
     "components/UnitsScreen.tsx": [
       "actions:createMasterAction",
@@ -411,7 +368,6 @@
       "getPanelDetail.server:getPanelDetail",
       "listDepartments.server:listDepartments",
       "listPanels.server:listPanels",
-      "listTests.server:listAllTests",
       "resolveOrderablesPreview.server:resolveOrderablesPreview",
       "shared:orForbidden",
       "shared:orMissing"
@@ -470,20 +426,7 @@
       "types:UUID_RE"
     ],
     "app/tests/page.tsx": [
-      "getAnalyte.server:getAnalyte",
-      "getTest.server:getTest",
-      "listDepartments.server:listDepartments",
-      "listSpecimenTypes.server:listSpecimenTypes",
-      "listTestCategories.server:listTestCategories",
-      "listTests.server:listAllTests",
-      "listTests.server:testsWithSpecimen",
-      "lists.server:listMethods",
-      "lists.server:listSpecimenTypes",
-      "lists.server:listUnits",
-      "lists.server:listValueSets",
-      "shared:orForbidden",
-      "shared:orMissing",
-      "testmgmtActions:listTestsPageAction"
+      "listTests.server:listTests"
     ],
     "app/units/page.tsx": [
       "listUnits.server:listUnits",

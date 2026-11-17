@@ -51,8 +51,9 @@ describe('structure (catalog queries)', () => {
     expect(r.filter((x: any) => GLOBAL.has(x.relname) && x.ins).map((x: any) => x.relname), 'INSERT on global').toEqual([]);
     expect(r.filter((x: any) => !x.sel).map((x: any) => x.relname), 'SELECT').toEqual([]);
   });
-  it('the two user deletable tables have exactly one DELETE policy each, bound to the tenant AND the owning membership (LD-315 b); no other table has a DELETE policy', async () => {
-    const r = await superTx(async (tx) => (await tx.query(`SELECT tablename, qual FROM pg_policies WHERE schemaname = 'frontdesk' AND cmd = 'DELETE'`)).rows);
+  it('the two user deletable tables have exactly one DELETE policy each, bound to the tenant AND the owning membership (LD-315 b); no other table has a DELETE policy for lims_app', async () => {
+    // LD-326 (TESTS_WRONG 4): LD-315 (b) governs lims_app. The pre LD-315 owner / purge policies (e.g. trf_attachments__delete__owner_only, TO lims_owner) are not lims_app policies.
+    const r = await superTx(async (tx) => (await tx.query(`SELECT tablename, qual FROM pg_policies WHERE schemaname = 'frontdesk' AND cmd = 'DELETE' AND ('lims_app' = ANY(roles) OR 'public' = ANY(roles))`)).rows);
     expect(r.map((x: any) => x.tablename).sort()).toEqual(USER_DELETABLE);
     for (const x of r) { expect(x.qual, x.tablename).toMatch(/current_tenant_id/); expect(x.qual, `${x.tablename}: owner bound`).toMatch(/user_id/); expect(x.qual, x.tablename).toMatch(/current_membership_id/); }
   });

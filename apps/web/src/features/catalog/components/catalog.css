@@ -16,27 +16,26 @@
 .catalog-swatch-green { background: var(--lims-tone-success-fg); border-color: var(--lims-tone-success-fg); }
 .catalog-swatch-blue { background: var(--lims-tone-info-fg); border-color: var(--lims-tone-info-fg); }
 .catalog-swatch-grey { background: var(--lims-neutral-300); }
+/* T0D-TESTMGMT-1 (LD-318, T0D-DENSITY-1): dense test management forms, two panes, two list picker, report preview. */
+.catalog-dense-form { display: flex; flex-direction: column; gap: var(--lims-space-2); }
+.catalog-grid-section { display: flex; flex-direction: column; gap: var(--lims-space-1); }
+.catalog-grid-title { font-size: var(--lims-font-size-sm, inherit); font-weight: 600; margin: 0; }
+.catalog-grid { display: grid; gap: var(--lims-space-2); align-items: end; }
+.catalog-grid[data-columns="3"] { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.catalog-grid[data-columns="4"] { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.catalog-grid[data-columns="5"] { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.catalog-grid[data-columns="6"] { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+.catalog-check { display: inline-flex; align-items: center; gap: var(--lims-space-1); }
+.catalog-form-with-preview { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 1fr); gap: var(--lims-space-3); align-items: start; }
+.catalog-preview-header { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--lims-space-1); margin: 0; }
+.catalog-preview-header dd { margin: 0; }
+.catalog-mini-select { position: relative; }
+.catalog-mini-listbox { position: absolute; z-index: 10; inset-inline: 0; margin: 0; padding: 0; list-style: none; background: var(--lims-neutral-0); border: 1px solid var(--lims-neutral-300); }
+.catalog-option-active, .catalog-row-chosen { background: var(--lims-neutral-100, var(--lims-neutral-0)); outline: 1px solid var(--lims-neutral-300); }
+.catalog-two-pane { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: var(--lims-space-3); align-items: start; }
+.catalog-pane { display: flex; flex-direction: column; gap: var(--lims-space-2); }
+.catalog-pane-item { width: 100%; text-align: start; background: none; border: 0; padding: var(--lims-space-1); cursor: pointer; }
+.catalog-pane-item[aria-current="true"] { font-weight: 600; outline: 1px solid var(--lims-neutral-300); }
+.catalog-two-list { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: var(--lims-space-2); align-items: start; }
+.catalog-pick-list { max-block-size: 24rem; overflow-y: auto; margin: 0; border: 1px solid var(--lims-neutral-300); }
 .catalog-swatch-black { background: var(--lims-neutral-900); border-color: var(--lims-neutral-900); }
-
-/* T0D-TESTMGMT-1 (LD-318, LD-310 compact density): test management screens. Tokens only; no scroll containers in the forms so the
-   Add / Edit Test form fits one 1366 x 768 screen (four sections side by side, side labels from labelPlacement="start"). */
-.tm-panes { display: grid; grid-template-columns: minmax(14rem, 22rem) 1fr; gap: var(--lims-space-3); align-items: start; }
-.tm-pane { display: flex; flex-direction: column; gap: var(--lims-space-2); min-width: 0; }
-.tm-list { display: flex; flex-direction: column; gap: 0; margin: 0; }
-.tm-option { padding: var(--lims-space-1) var(--lims-space-2); cursor: pointer; border-block-end: 1px solid var(--lims-neutral-100); }
-.tm-option[aria-selected='true'], .tm-row[aria-selected='true'] { background: var(--lims-tone-info-bg); }
-.tm-option:focus-visible, .tm-row:focus-visible { outline: 2px solid var(--lims-tone-info-fg); outline-offset: -2px; }
-.tm-row { cursor: pointer; }
-.tm-check { display: inline-flex; align-items: center; gap: var(--lims-space-1); margin-inline-end: var(--lims-space-3); }
-.tm-css-label::before { content: attr(data-text); }
-.tm-form-row { display: grid; grid-template-columns: 1fr minmax(16rem, 22rem); gap: var(--lims-space-3); align-items: start; }
-.tm-sections { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--lims-space-3); align-items: start; }
-.tm-section { border: 1px solid var(--lims-neutral-200); padding: var(--lims-space-2); margin: 0; min-width: 0; display: flex; flex-direction: column; gap: var(--lims-space-1); }
-.tm-form .lims-form[data-label-placement='start'] .lims-field > .lims-label, .tm-form[data-label-placement='start'] .lims-field > .lims-label { flex-basis: 7rem; }
-.tm-preview { min-width: 0; }
-.tm-chips { display: flex; flex-wrap: wrap; gap: var(--lims-space-2); margin: 0; }
-.tm-editor-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--lims-space-1) var(--lims-space-3); }
-.tm-picker { display: grid; grid-template-columns: 1fr auto 1fr; gap: var(--lims-space-3); align-items: start; }
-.tm-pick-list { border: 1px solid var(--lims-neutral-200); min-height: 12rem; }
-.tm-scroll-x { overflow-x: auto; }
-@media (max-width: 64rem) { .tm-panes, .tm-form-row, .tm-picker { grid-template-columns: 1fr; } .tm-sections, .tm-editor-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

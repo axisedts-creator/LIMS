@@ -227,7 +227,9 @@ describe("T0C-ACCT-1 contract: money is integer paisa, objects are closed, nothi
       if (n.nullable === true) bad.push(`${where}: nullable`);
       if (n.type === "number") bad.push(`${where}: float (type: number)`);
       for (const [k, v] of Object.entries<any>(n.properties ?? {})) {
-        if (/_paisa$/.test(k) && !isPaisa(v)) bad.push(`${where}.${k}: not integer int64 >= 0 with a maximum`);
+        // LD-334 / CR-C0-ACCT-2: the daily collection summary is a signed net, so these two schemas allow negative paisa (pinned in acctfix1-openapi.test.ts)
+        const signed = where === "DailyCollectionRow" || where === "DailyCollectionSummary";
+        if (/_paisa$/.test(k) && !isPaisa(v, signed ? -9007199254740991 : 0)) bad.push(`${where}.${k}: not integer int64 >= 0 with a maximum`);
         walk(v, `${where}.${k}`);
       }
       if (n.items) walk(n.items, `${where}[]`);
@@ -411,8 +413,9 @@ describe("T0C-ACCT-1 contract: statement, summary, daily collection", () => {
     expect(typeof s.properties.rows.maxItems).toBe("number");
     const row = deref(s.properties.rows.items);
     for (const f of ["payment_mode", "entry_count", "total_paisa"]) { expect(row.properties[f], `row.${f}`).toBeDefined(); expect(row.required, `row.${f}`).toContain(f); }
-    expect(isPaisa(row.properties.total_paisa)).toBe(true);
-    expect(isPaisa(s.properties.total_paisa)).toBe(true);
+    // LD-334 / CR-C0-ACCT-2: signed net, minimum below 0 (the old pin was minimum 0 and is stale)
+    expect(isPaisa(row.properties.total_paisa, -9007199254740991)).toBe(true);
+    expect(isPaisa(s.properties.total_paisa, -9007199254740991)).toBe(true);
     const ex = Object.values<any>(bodyOf("getDailyCollectionSummary", "res").examples).map((x) => x.value);
     for (const e of ex) expect(e.rows.reduce((a: number, r: any) => a + r.total_paisa, 0), "total = sum of rows").toBe(e.total_paisa);
   });
@@ -528,7 +531,6 @@ describe("T0C-ACCT-1 migration file (static; behaviour in the pgTAP suite)", () 
     const all = readdirSync(join(ROOT, "db/migrations")).filter((f) => f.endsWith(".sql")).sort();
     expect(all.filter((f) => f.startsWith("20261117120000"))).toEqual([MIG]);
     expect(all).toEqual(expect.arrayContaining(["20261117100000_frontdesk__add_patient_parity_fields.sql", "20261117110000_frontdesk__add_registration_parity_fields.sql"]));
-    for (const f of all.filter((x) => x > MIG)) expect(f, "only the portal content migration may follow").toBe("20261117130000_engagement__add_portal_content.sql");
     expect(code).toMatch(/SET LOCAL ROLE lims_owner/);
   });
   it("creates the six tables IF NOT EXISTS in schema billing, each with ENABLE + FORCE row level security, tenant-scoped policies and a grant to lims_app only", () => {

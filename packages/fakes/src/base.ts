@@ -142,7 +142,10 @@ export const tenantOf = (ctx: any): string => {
   return t;
 };
 export const actorType = (ctx: any): string => ctx?.actor?.type ?? "user";
-export const nowOf = (ctx: any): string => (typeof ctx?.now === "function" ? ctx.now() : FIXED_NOW);
+export const nowOf = (ctx: any): string => {
+  const v = typeof ctx?.now === "function" ? ctx.now() : FIXED_NOW;
+  return v instanceof Date ? v.toISOString() : v;   // app ctx.now() returns a Date; port ctx an ISO string
+};
 export const isStaffOrSystem = (ctx: any): boolean => ["user", "system"].includes(actorType(ctx));
 export function requireStr(v: unknown, detail = "field_required"): string {
   if (typeof v !== "string" || v.length === 0) throw invalid(detail);

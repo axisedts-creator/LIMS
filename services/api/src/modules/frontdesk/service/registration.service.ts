@@ -233,6 +233,7 @@ const lineRefOf = (orderableId: string, priority: Priority): string => `${ordera
 
 export interface Priced {
   resolved: ResolvedOrderables; priced: PricedLineInput[]; meta: Array<{ testIds: readonly string[]; departmentId?: string }>;
+  billLines: PricedLineInput[]; couponPaisa: number;   // LD-327: the lines billed (tests + visiting charge) and the coupon value inside `discounts`
   discounts: DiscountInput[]; computed: number[]; byOrderable: Map<string, string>; q: QuoteResult;
   limits: { selfLimitBp: number; selfLimitPaisa: number; absoluteMaxBp: number }; verdict: LimitResult;
 }
@@ -279,16 +280,35 @@ export async function priceDraft(c: QuoteCtx, d: Draft, settings: any): Promise<
   }));
   const { computed } = resolveDiscounts(grossRows, domainDiscounts);
 
-  const discounts: DiscountInput[] = d.discounts.map((x) => ({
+  const staffDiscounts: DiscountInput[] = d.discounts.map((x) => ({
     scope: x.scope, ...(x.orderableId ? { lineRef: byOrderable.get(x.orderableId)! } : {}), kind: x.kind,
     ...(x.kind === 'percent' ? { percentBp: x.percentBp! } : { amountPaisa: x.amountPaisa! }),
   }));
-  const q = await billing.computeQuote(asRc(c), { lines: priced, discounts });
+  // Test lines + staff discounts only: the discount authority (US-FD-06.1/07) and the approval base fingerprint stay exactly as before the coupon existed.
+  const staff = await billing.computeQuote(asRc(c), { lines: priced, discounts: staffDiscounts });
 
-  // US-FD-06.1: the evaluation uses the TOTAL discount; over the absolute maximum nothing can be approved (422).
-  const verdict = evaluateLimit({ grossPaisa: q.totals.gross.amountPaisa, discountPaisa: q.totals.discount.amountPaisa, ...limits });
+  // US-FD-06.1: the evaluation uses the TOTAL staff discount; over the absolute maximum nothing can be approved (422). A coupon is not a staff discount.
+  const verdict = evaluateLimit({ grossPaisa: staff.totals.gross.amountPaisa, discountPaisa: staff.totals.discount.amountPaisa, ...limits });
   if (verdict === 'exceeds_limit') throw new LimsError('frontdesk.discount_exceeds_limit');
-  return { resolved, priced, meta: rows.map((r) => r.meta), discounts, computed, byOrderable, q, limits, verdict };
+
+  // T0B-REGAPI-2, LD-327 (founder 2026-11-17 12:59 NPT, option A1, VAT exempt): the coupon is a bill level AMOUNT discount applied BEFORE tax (existing discount path, after the
+  // staff discounts), valued on what the test lines leave (never the visiting charge), capped there; billing recomputes VAT from the lines after it. The visiting charge is a
+  // separate VAT exempt invoice line inside totals.net. ponytail: billing spreads a bill discount over ALL lines, so part of the coupon lands on the visiting line; totals are exact
+  // and harmless while every line is exempt (the lab tenant, LD-327); a taxable test + visiting charge would need a port flag to keep the line out of the spread (port CR).
+  let couponPaisa = 0;
+  if (d.couponCode) couponPaisa = couponValue(await readCoupon(c, d.couponCode, await tenantToday(c)), staff.totals.gross.amountPaisa - staff.totals.discount.amountPaisa);
+  const billLines = d.visitingChargePaisa ? [...priced, visitingLine(d.visitingChargePaisa)] : priced;
+  const discounts: DiscountInput[] = couponPaisa > 0 ? [...staffDiscounts, { scope: 'bill', kind: 'amount', amountPaisa: couponPaisa }] : staffDiscounts;
+  const q = billLines === priced && discounts === staffDiscounts ? staff
+    : { ...(await billing.computeQuote(asRc(c), { lines: billLines, discounts })), baseFingerprint: staff.baseFingerprint };
+  return { resolved, priced, billLines, meta: rows.map((r) => r.meta), discounts, couponPaisa, computed, byOrderable, q, limits, verdict };
+}
+
+/** LD-327 (b): the visiting charge invoice line, VAT exempt, no orderable / price list ([CONV] code VISIT, name "Visiting charge": the spec names no line code). */
+const VISITING_REF = 'visiting_charge';
+function visitingLine(paisa: number): PricedLineInput {
+  return { lineRef: VISITING_REF, orderableKind: undefined, orderableId: undefined, code: 'VISIT', name: 'Visiting charge', priority: 'routine',
+    unitPrice: { amountPaisa: paisa, currency: 'NPR' }, tax: { vat: 'exempt' }, priceListId: undefined, priceListVersion: undefined, priceSource: 'explicit' } as unknown as PricedLineInput;
 }
 
 // ======================= F9 createRegistration =======================
@@ -497,11 +517,11 @@ async function createInTx(hctx: unknown, body: unknown, pre?: Pre): Promise<Resu
   const netPaisa = p.q.totals.net.amountPaisa;
   const claim = r.orderFields['insurance_claim_amount_paisa'] as number | undefined;
   if (claim !== undefined && claim > netPaisa) throw bad('/insurance_claim_amount_paisa');
+  // LD-327: the coupon value is the one priced (and fingerprinted) by priceDraft; the row-locked conditional UPDATE consumes one use or refuses (exhausted meanwhile).
   let couponAmount: number | undefined;
   if (d.couponCode) {
-    const used = await useCoupon(c.tx, c.tenantId, d.couponCode, await tenantToday(c));
-    if (!used) throw bad('/coupon_code');
-    couponAmount = couponValue(used, netPaisa);
+    if (!(await useCoupon(c.tx, c.tenantId, d.couponCode, await tenantToday(c)))) throw bad('/coupon_code');
+    couponAmount = p.couponPaisa;
   }
   if (d.redeemPoints) {
     await lockPatientPoints(c.tx, c.tenantId, patient['id']);
@@ -592,7 +612,7 @@ async function createInTx(hctx: unknown, body: unknown, pre?: Pre): Promise<Resu
   if (d.billingMode === 'cash') {
     const inv = await billing.issueOrderInvoice(pc, {
       orderId: orderId as never, patientId: patient['id'], branchId: branchId as never, centreId: d.centreId as never, ...refPart, buyer,
-      lines: p.priced, discounts: p.discounts, expectedFingerprint: r.fingerprint, purpose: 'registration',
+      lines: p.billLines, discounts: p.discounts, expectedFingerprint: r.fingerprint, purpose: 'registration',
     });
     invoice = await invoiceDto(c, inv, p, { id: orderId, branch_id: branchId, centre_id: d.centreId, referrer_id: d.referrerId }, buyer);
     for (const [i, pay] of r.payments.entries()) {
@@ -609,7 +629,7 @@ async function createInTx(hctx: unknown, body: unknown, pre?: Pre): Promise<Resu
   } else {
     const out = await billing.recordCreditCharges(pc, {
       orderId: orderId as never, creditPartyId: d.creditPartyId as never, branchId: branchId as never, centreId: d.centreId as never, ...refPart,
-      patientDisplayName: String(patient['full_name']), lines: p.priced, discounts: p.discounts, expectedFingerprint: r.fingerprint,
+      patientDisplayName: String(patient['full_name']), lines: p.billLines, discounts: p.discounts, expectedFingerprint: r.fingerprint,
     });
     // [CONV] the port returns ids only: amount = the computed line net at the same index (no fallback: a count mismatch is an internal error),
     // period_month = A.D. month in tenant tz (05-SCHEMA.md:1049, 03-IC:2192), status = column default 'uninvoiced' (05-SCHEMA.md:1050).
@@ -693,10 +713,8 @@ export async function quote(hctx: unknown, body: unknown): Promise<Result> {
 
   const settings = await getSettings(c.tx, c.tenantId);      // missing row = schema defaults: every discount needs approval (05-SCHEMA §3)
   const { resolved, q, limits, verdict } = await priceDraft(c, d, settings);
-  // T0B-REGAPI-2: the same rules the save applies, READ only (no coupon use, no points written). Coupon value and visiting charge do NOT change the billing totals:
-  // how they are taxed / invoiced is a money decision (dispute .orchestra/notes/T0B-REGAPI-2-dispute.md); the save stores them on the order.
+  // T0B-REGAPI-2: the same rules the save applies, READ only (no coupon use, no points written). Coupon and visiting charge are inside the totals (priceDraft, LD-327).
   await checkIcd(c, d);
-  if (d.couponCode) await readCoupon(c, d.couponCode, await tenantToday(c));
   const pref = (body as Record<string, any>)['patient'];
   await checkPoints(c, typeof pref?.patient_id === 'string' ? pref.patient_id : undefined, d.redeemPoints);
 
@@ -716,7 +734,7 @@ export async function quote(hctx: unknown, body: unknown): Promise<Result> {
 
   const tz = ((await identity.getTenantSettings(c, { keys: ['timezone'] })) ?? {}).timezone;
   return { status: 200, body: {
-    lines: q.lines.map(lineDto),
+    lines: q.lines.filter((l) => l.lineRef !== VISITING_REF).map(lineDto),   // QuoteLine is an orderable line; the visiting charge shows in totals (LD-327 b)
     totals: totalsDto(q.totals),
     discount_evaluation: { within_limit: verdict === 'within_limit', approval_required: verdict === 'approval_required', limit_percent_bp: limits.selfLimitBp, limit_paisa: limits.selfLimitPaisa },
     catalog_revision: resolved.catalogRevision, quote_fingerprint: q.fingerprint, base_fingerprint: q.baseFingerprint,

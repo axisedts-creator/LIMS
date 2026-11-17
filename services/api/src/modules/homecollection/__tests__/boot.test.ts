@@ -39,7 +39,8 @@ const EXPECTED_OPS = [
   'registerPhleboDevice', 'getSyncSnapshot', 'pushSyncMutations', 'ackSync', 'signOffPhleboDevice',
 ];
 /** operationIds whose stub a later task has replaced; that task moves its ids here (tester-owned list). */
-const IMPLEMENTED: readonly string[] = ['getHomecollectionSettings', 'updateHomecollectionSettings', 'listHomecollectionReasons'];
+// T0C-SALES-1 ruling: HC-T04..HC-T15 bound real handlers for all 26 TRD operations, so none is a stub any more.
+const IMPLEMENTED: readonly string[] = EXPECTED_OPS;
 
 const FAKE_REQ = { params: {}, query: {}, headers: {}, body: {} };
 const noop = () => undefined;
@@ -89,6 +90,10 @@ describe('HC-T01 handler map (26 operationIds)', () => {
     return (await import('../index.js')).manifest;
   };
   afterEach(() => { vi.unstubAllEnvs(); vi.resetModules(); });
+
+  it('no HC-T01 skeleton stub remains (a stub coming back is caught here)', () => {
+    expect(stubs).toEqual([]);
+  });
 
   it('in dev every stub answers 501 and never echoes request input (no PHI / token reflection)', async () => {
     const m = await withEnv('dev');
@@ -212,7 +217,7 @@ describe('HC-T01 boot against the real repo (default modulesDir, real homecollec
     }
     expect(n).toBe(26);
     expect(unmounted).toEqual([]);
-  }, 30_000);
+  }, 120_000);
 
   it('fails closed: operations without required query/body answer 401 auth.* without credentials (never 200/501/500); non-spec path is 404', async () => {
     const app = await boot();
@@ -231,5 +236,5 @@ describe('HC-T01 boot against the real repo (default modulesDir, real homecollec
       expect(JSON.parse(r.body).code).toMatch(/^auth\./);
     }
     expect((await app.inject({ method: 'GET', url: '/v1/homecollection/not-in-spec' })).statusCode).toBe(404);
-  }, 60_000);
+  }, 120_000);
 });

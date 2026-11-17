@@ -570,7 +570,10 @@ export function createInvoiceService(deps: { repo?: BillingRepo; counter: Counte
     if (typeof pattern !== 'string') throw new LimsError('billing.numbering_pattern_invalid');
     const fy = fiscalYearOf(ctx.now() as IsoUtc, typeof tenant?.timezone === 'string' ? tenant.timezone : 'Asia/Kathmandu');
     const seq = await deps.counter.peek(tx, { tenantId: ctx.tenantId, series: seriesKey('INV', 'tenant'), fiscalYearBs: fy.long });
-    return { invoiceNo: (tenant?.[TRAINING_KEY] === true ? TRAINING_PREFIX : '') + formatDocumentNumber(pattern, { fy, seq, scope: 'tenant' }) };
+    let no: string;
+    try { no = formatDocumentNumber(pattern, { fy, seq, scope: 'tenant' }); }
+    catch (e) { throw isLimsError(e, 'common.validation_failed') ? new LimsError('billing.numbering_pattern_invalid') : e; } // same mapping as issue()
+    return { invoiceNo: (tenant?.[TRAINING_KEY] === true ? TRAINING_PREFIX : '') + no };
   }
 
   return { issue, print, printCreditNote, cancel, credit, previewNo };

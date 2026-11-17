@@ -457,6 +457,131 @@ export interface Operations {
       };
     };
   };
+  ackDeviceWipe: {
+    params: {
+      device_id: string;
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        id: string;
+        user_id: string;
+        device_label: string;
+        platform: "web" | "android" | "ios";
+        app_version: string;
+        status: "active" | "revoked" | "wipe_requested";
+        first_seen_at: string;
+        last_seen_at: string;
+        last_sync_at?: string;
+        wipe_requested_at?: string;
+        wipe_acked_at?: string;
+        last_clock_skew_ms?: number;
+        offline_retention_days: number;
+        created_at: string;
+        updated_at: string;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   ackSync: {
     params: Record<string, never>;
     query: Record<string, never>;
@@ -67096,6 +67221,115 @@ export interface Operations {
       };
     };
   };
+  getSyncStatus: {
+    params: Record<string, never>;
+    query: {
+      device_id: string;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        server_time: string;
+        device_status: "active" | "revoked" | "wipe_requested";
+        min_app_version?: string;
+        limits: {
+          max_batch_operations: number;
+          max_batch_bytes: number;
+        };
+        retry: {
+          base_delay_ms: number;
+          max_delay_ms: number;
+          jitter: "full";
+        };
+        offline_approval_allowed: boolean;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   getTatAlert: {
     params: {
       tat_item_id: string;
@@ -97314,6 +97548,113 @@ export interface Operations {
       };
     };
   };
+  listSyncDevices: {
+    params: Record<string, never>;
+    query: {
+      status?: "active" | "revoked" | "wipe_requested";
+      user_id?: string;
+      platform?: "web" | "android" | "ios";
+      cursor?: string;
+      limit?: number;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        data: ({
+          id: string;
+          user_id: string;
+          device_label: string;
+          platform: "web" | "android" | "ios";
+          app_version: string;
+          status: "active" | "revoked" | "wipe_requested";
+          first_seen_at: string;
+          last_seen_at: string;
+          last_sync_at?: string;
+          wipe_requested_at?: string;
+          wipe_acked_at?: string;
+          last_clock_skew_ms?: number;
+          offline_retention_days: number;
+          created_at: string;
+          updated_at: string;
+        })[];
+        page: {
+          next_cursor?: string;
+          limit: number;
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   listTatAlerts: {
     params: Record<string, never>;
     query: {
@@ -112035,6 +112376,136 @@ export interface Operations {
       };
     };
   };
+  registerSyncDevice: {
+    params: Record<string, never>;
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+    };
+    body: {
+      id: string;
+      device_label: string;
+      platform: "web" | "android" | "ios";
+      app_version: string;
+    };
+    responses: {
+      200: ({
+        id: string;
+        user_id: string;
+        device_label: string;
+        platform: "web" | "android" | "ios";
+        app_version: string;
+        status: "active" | "revoked" | "wipe_requested";
+        first_seen_at: string;
+        last_seen_at: string;
+        last_sync_at?: string;
+        wipe_requested_at?: string;
+        wipe_acked_at?: string;
+        last_clock_skew_ms?: number;
+        offline_retention_days: number;
+        created_at: string;
+        updated_at: string;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   rejectCashTransfer: {
     params: {
       cash_transfer_id: string;
@@ -119231,6 +119702,131 @@ export interface Operations {
       };
     };
   };
+  requestSyncDeviceWipe: {
+    params: {
+      device_id: string;
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        id: string;
+        user_id: string;
+        device_label: string;
+        platform: "web" | "android" | "ios";
+        app_version: string;
+        status: "active" | "revoked" | "wipe_requested";
+        first_seen_at: string;
+        last_seen_at: string;
+        last_sync_at?: string;
+        wipe_requested_at?: string;
+        wipe_acked_at?: string;
+        last_clock_skew_ms?: number;
+        offline_retention_days: number;
+        created_at: string;
+        updated_at: string;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   resendInvitation: {
     params: {
       membership_id: string;
@@ -119563,6 +120159,133 @@ export interface Operations {
         }[];
       };
       428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  reserveNumberBlock: {
+    params: Record<string, never>;
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+    };
+    body: {
+      device_id: string;
+      series: "lab_code" | "patient_id";
+      centre_id?: string;
+      size: number;
+    };
+    responses: {
+      201: ({
+        block: {
+          id: string;
+          device_id: string;
+          series: "lab_code" | "patient_id";
+          centre_id?: string;
+          from_value: number;
+          to_value: number;
+          issued_at: string;
+          exhausted_at?: string;
+          skipped_count: number;
+        };
+        remaining_size: number;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
         type: string;
         title: string;
         status: number;
@@ -126040,6 +126763,131 @@ export interface Operations {
         }[];
       };
       404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  revokeSyncDevice: {
+    params: {
+      device_id: string;
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        id: string;
+        user_id: string;
+        device_label: string;
+        platform: "web" | "android" | "ios";
+        app_version: string;
+        status: "active" | "revoked" | "wipe_requested";
+        first_seen_at: string;
+        last_seen_at: string;
+        last_sync_at?: string;
+        wipe_requested_at?: string;
+        wipe_acked_at?: string;
+        last_clock_skew_ms?: number;
+        offline_retention_days: number;
+        created_at: string;
+        updated_at: string;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
         type: string;
         title: string;
         status: number;

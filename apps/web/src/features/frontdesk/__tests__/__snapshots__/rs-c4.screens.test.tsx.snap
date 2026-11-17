@@ -380,7 +380,7 @@ exports[`RS-C4 key-screen snapshots > Register: blank 1`] = `
 <div class="lims-field" data-rac="" data-readonly="true">
 <label class="lims-label" id="ID" for="ID">Registration date and time</label>
 <div class="lims-input-group">
-<input readonly="" maxlength="40" tabindex="0" id="ID" aria-labelledby="ID" class="lims-input" data-rac="" type="text" value="17/11/2026, 11:58" name="registration_at">
+<input readonly="" maxlength="40" tabindex="0" id="ID" aria-labelledby="ID" class="lims-input" data-rac="" type="text" value="17/11/2026, 11:45" name="registration_at">
 </div>
 </div>
 <button type="button" class="lims-reg-more" aria-expanded="false" aria-controls="_r_0_">More ▾</button>
@@ -932,7 +932,7 @@ exports[`RS-C4 key-screen snapshots > Register: new-patient form open 1`] = `
 <div class="lims-field" data-rac="" data-readonly="true">
 <label class="lims-label" id="ID" for="ID">Registration date and time</label>
 <div class="lims-input-group">
-<input readonly="" maxlength="40" tabindex="0" id="ID" aria-labelledby="ID" class="lims-input" data-rac="" type="text" value="17/11/2026, 11:58" name="registration_at">
+<input readonly="" maxlength="40" tabindex="0" id="ID" aria-labelledby="ID" class="lims-input" data-rac="" type="text" value="17/11/2026, 11:45" name="registration_at">
 </div>
 </div>
 <button type="button" class="lims-reg-more" aria-expanded="false" aria-controls="_r_ba_">More ▾</button>
@@ -1349,7 +1349,7 @@ exports[`RS-C4 key-screen snapshots > Register: returning patient, one test, quo
 <div class="lims-field" data-rac="" data-readonly="true">
 <label class="lims-label" id="ID" for="ID">Registration date and time</label>
 <div class="lims-input-group">
-<input readonly="" maxlength="40" tabindex="0" id="ID" aria-labelledby="ID" class="lims-input" data-rac="" type="text" value="17/11/2026, 11:58" name="registration_at">
+<input readonly="" maxlength="40" tabindex="0" id="ID" aria-labelledby="ID" class="lims-input" data-rac="" type="text" value="17/11/2026, 11:45" name="registration_at">
 </div>
 </div>
 <button type="button" class="lims-reg-more" aria-expanded="false" aria-controls="_r_53_">More ▾</button>

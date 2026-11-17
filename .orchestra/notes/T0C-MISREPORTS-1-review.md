@@ -1,5 +1,5 @@
 APPROVE
-Scope: diff 06307a80..HEAD (03e14605b) = tester revision per ruling only: notes rename/ruling + db/tests/analytics/T0C-MISREPORTS-1_report_codes.test.sql:41-42.
-- Change 8 -> 9 columns verified: db/migrations/20261105002100_analytics__create_analytics_schema.sql:16-20 defines 9 columns (code, display, system, system_version, sort_order, is_active, is_exportable, is_schedulable, created_at); 20261117230000 only drops g_cs_report_codes__no_c_word__ck (LD-342), adds no column. Case kept, not weakened, matches ruling exactly.
-- No names invented, no PHI, no secrets, no RLS/permission/route surface touched, only owned test/notes paths.
-- Not re-run here: pgTAP suite (reviewer read-only). Uncommitted probe-row fixture edits (engagement.sql, partners.sql) are outside this diff and not reviewed.
+Scope 1be9718aa..HEAD: only notes and tools/codegen/__tests__/misreports1-openapi.test.ts changed (tester, per arbiter TESTS_WRONG ruling).
+- LD-346 / A39-3: contracts/openapi/analytics.yaml:3985-4005 consultant has no net_billed_paisa, default_sort tests_count desc, example params present; PINS line 62 now matches; new negative case at :257 pins both. No case deleted or skipped.
+- No yaml, migration, permission, route or pendingOperations change in range; owned paths only; no PHI, no secrets, no new names.
+- Ran: vitest misreports1-openapi + c8-openapi = 294/294 green (with --testTimeout=60000 --no-file-parallelism; at default 5 s the 6 lintRepo cases time out under machine load, not a defect of this diff).

@@ -85,10 +85,11 @@ export async function deleteDraftAction(draftId: string): Promise<ActionResult<t
 export async function listFavouritesAction(): Promise<ActionResult<string[]>> { return run(() => listFavouriteTests()); }
 export async function addFavouriteAction(orderableId: string, key: string): Promise<ActionResult<true>> { return run(async () => (await addFavouriteTest(orderableId, key), true as const)); }
 export async function removeFavouriteAction(orderableId: string): Promise<ActionResult<true>> { return run(async () => (await removeFavouriteTest(orderableId), true as const)); }
-/** Names for favourites: FavouriteTest carries only the id and searchOrderables needs `q`, so the C3 tests list is the only id -> name source
- * (panels are not in it). Best effort: any failure is "no names" (dispute T0D-REGSCREEN-2). */
+/** Names for favourites: FavouriteTest carries only the id and searchOrderables needs `q`, so the C3 tests and panels lists are the id -> name
+ * source (ruling T0D-REGSCREEN-2 point 4). Best effort: a failed list is "no names" for that kind. */
 export async function listTestNamesAction(): Promise<OrderableSummary[]> {
-  try { return (await listCatalogOptions()).map((o) => ({ ...o, kind: 'test' as const })); } catch { return []; }
+  const get = (k: 'tests' | 'panels', kind: 'test' | 'panel') => listCatalogOptions(k).then((l) => l.map((o) => ({ ...o, kind })), () => []);
+  return (await Promise.all([get('tests', 'test'), get('panels', 'panel')])).flat();
 }
 
 export async function updatePatientAction(patientId: string, version: number, changes: Record<string, string>): Promise<ActionResult<true>> {

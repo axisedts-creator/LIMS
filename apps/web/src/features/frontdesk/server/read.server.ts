@@ -72,9 +72,9 @@ export const listPossibleDuplicates = () => serverFetch<Page<PossibleDuplicate>>
 export const listDiscountApprovals = () => serverFetch<Page<DiscountApproval>>('/v1/frontdesk/discount-approvals');
 
 /** Orderables the "Add tests" dialog offers. ponytail: first 200 active tests, no server-side search; add a Combobox over searchOrderables when the catalogue outgrows that. */
-export async function listCatalogOptions(): Promise<CatalogOption[]> {
-  try {
-    const r = await serverFetch<Page<{ id: string; code: string; name: string; is_active?: boolean; is_orderable?: boolean }>>('/v1/catalog/tests?limit=200');
+export async function listCatalogOptions(kind: 'tests' | 'panels' = 'tests'): Promise<CatalogOption[]> {
+  try { // T0D-REGSCREEN-2 ruling 4: panels (listPanels, catalog.yaml :4188) share the orderable id space, so favourites resolve both
+    const r = await serverFetch<Page<{ id: string; code: string; name: string; is_active?: boolean; is_orderable?: boolean }>>(`/v1/catalog/${kind}?limit=200`);
     return r.data.filter((t) => t.is_active !== false && t.is_orderable !== false).map(({ id: i, code, name }) => ({ id: i, code, name }));
   } catch (e) {
     if (e instanceof ApiError && (e.status === 403 || e.status === 404)) return []; // no catalog.test.read: the dialog simply offers nothing

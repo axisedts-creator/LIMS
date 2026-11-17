@@ -1087,9 +1087,9 @@ export const handlers = [
   // terminateTenant
   http.post("*/v1/identity/platform/tenants/:tenant_id/terminate", () => HttpResponse.json({"tenant_id":"0193a5c0-0000-7000-8000-000000000090","code":"demo_lab","legal_name":"Demo Lab Pvt. Ltd.","display_name":"Demo Lab","status":"offboarded","timezone":"Asia/Kathmandu","activated_at":"2026-11-05T04:15:00.000Z","created_at":"2026-11-05T04:15:00.000Z","version":6,"status_reason":"Synthetic termination reason","offboarded_at":"2026-11-05T04:45:00.000Z"}, { status: 200 })),
   // listRolePacks
-  http.get("*/v1/identity/role-packs", () => new HttpResponse(null, { status: 200 })),
+  http.get("*/v1/identity/role-packs", () => HttpResponse.json({"data":[{"pack_code":"elabcorp_default","name":"Synthetic Default Pack","roles":[{"code":"corp_admin","name":"Synthetic Admin Role","mfa_required":true,"permission_codes":["identity.role.manage"]}]}]}, { status: 200 })),
   // applyRolePack
-  http.post("*/v1/identity/role-packs/apply", () => new HttpResponse(null, { status: 200 })),
+  http.post("*/v1/identity/role-packs/apply", () => HttpResponse.json({"pack_code":"elabcorp_default","created":["corp_admin"],"updated":[],"unchanged":[]}, { status: 200 })),
   // createRole
   http.post("*/v1/identity/roles", () => HttpResponse.json({"role_id":"0193a5c0-0000-7000-8000-000000000020","code":"front_desk","name":"Front desk","description":"Full tenant administration","is_default":false,"mfa_required":false,"permission_codes":["identity.user.manage","identity.role.manage"],"member_count":0,"is_active":true,"version":1}, { status: 201 })),
   // listRoles

@@ -1899,6 +1899,15 @@ paths:
                               name: { type: string, maxLength: 80 }
                               mfa_required: { type: boolean }
                               permission_codes: { type: array, maxItems: 200, items: { type: string, maxLength: 100 } }
+              examples:
+                synthetic:
+                  # T0C-LINTFIX-1 (LD-332): lint rule 4 example, synthetic data only.
+                  value:
+                    data:
+                      - pack_code: elabcorp_default
+                        name: Synthetic Default Pack
+                        roles:
+                          - { code: corp_admin, name: Synthetic Admin Role, mfa_required: true, permission_codes: [ identity.role.manage ] }
         "401": { $ref: _common.yaml#/components/responses/Unauthorized }
         "403": { $ref: _common.yaml#/components/responses/Forbidden }
         "429": { $ref: _common.yaml#/components/responses/TooManyRequests }
@@ -1928,6 +1937,10 @@ paths:
               required: [ pack_code ]
               properties:
                 pack_code: { type: string, maxLength: 40 }
+            examples:
+              synthetic:
+                # T0C-LINTFIX-1 (LD-332): lint rule 4 example, synthetic data only.
+                value: { pack_code: elabcorp_default }
       responses:
         "200":
           description: Success.
@@ -1942,6 +1955,10 @@ paths:
                   created: { type: array, maxItems: 200, items: { type: string, maxLength: 40 } }
                   updated: { type: array, maxItems: 200, items: { type: string, maxLength: 40 } }
                   unchanged: { type: array, maxItems: 200, items: { type: string, maxLength: 40 } }
+              examples:
+                synthetic:
+                  # T0C-LINTFIX-1 (LD-332): lint rule 4 example, synthetic data only.
+                  value: { pack_code: elabcorp_default, created: [ corp_admin ], updated: [], unchanged: [] }
         "400": { $ref: _common.yaml#/components/responses/BadRequest }
         "401": { $ref: _common.yaml#/components/responses/Unauthorized }
         "403": { $ref: _common.yaml#/components/responses/Forbidden }

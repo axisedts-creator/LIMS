@@ -59,7 +59,7 @@ const PINS: Record<string, Pin> = {
   bill_of_the_day: { perm: COLL, params: ["centre_id", "party_id"], cols: { gross_paisa: "integer_paisa", discount_paisa: "integer_paisa", net_paisa: "integer_paisa" } },
   two_level_commission: { perm: REF, flag: FLAG, params: ["party_id"], cols: { parent_party_id: "string", party_id: "string", commission_bp: "basis_points", commission_paisa: "integer_paisa" }, text: /parent.*sub|two level|level/is },
   sales_representative: { perm: DASH, params: ["representative_id"], cols: { representative_id: "string", orders_registered: "integer", net_billed_paisa: "integer_paisa" } },
-  consultant: { perm: DASH, params: ["referrer_id", "department_id"], cols: { orders_registered: "integer", net_billed_paisa: "integer_paisa" } },
+  consultant: { perm: DASH, params: ["referrer_id", "department_id"], cols: { orders_registered: "integer", tests_count: "integer" } }, // LD-346: volume only, no money column
   collection_boy: { perm: COLL, params: ["collector_id", "centre_id"], cols: { collections_count: "integer", pickups_count: "integer", collected_paisa: "integer_paisa" } },
   repeated_patient: { perm: DASH, params: ["min_repeat_count", "centre_id"], cols: { visit_count: "integer" } },
   repeated_test: { perm: DASH, params: ["min_repeat_count", "department_id"], cols: { test_count: "integer" } },
@@ -253,6 +253,11 @@ describe("T0C-MISREPORTS-1 one definition per brief report (done_when 2)", () =>
     const d = byCode("bill_of_the_day");
     expect(d?.example_params?.business_date_from).toBe(d?.example_params?.business_date_to);
     expect(d?.default_sort?.direction).toBe("desc");
+  });
+  it("consultant is volume only (LD-346, A39-3): no net_billed_paisa column, sorted by tests_count descending", () => {
+    const d = byCode("consultant");
+    expect(d.columns.map((c: any) => c.name)).not.toContain("net_billed_paisa");
+    expect(d.default_sort).toEqual({ column: "tests_count", direction: "desc" });
   });
   it("repeated patient / repeated test offer min_repeat_count and sort by the repeat count, highest first", () => {
     expect(byCode("repeated_patient")?.default_sort).toEqual({ column: "visit_count", direction: "desc" });

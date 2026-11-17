@@ -57,6 +57,8 @@ packs:
           - engagement.broadcast.approve
           - engagement.broadcast.manage
           - engagement.broadcast.read
+          - engagement.content.manage
+          - engagement.content.read
           - engagement.enquiry.read
           - engagement.enquiry.respond
           - engagement.link.issue

@@ -197,6 +197,8 @@ INSERT INTO registry (tbl, class, centre_scoped, audited, shared_with, rls_exemp
   ('engagement.patient_orders', 'E', false, false, ARRAY['patient']::text[], false),
   ('engagement.patient_reports', 'E', false, false, ARRAY['patient']::text[], false),
   ('engagement.payment_requests', 'M', false, true, ARRAY['patient']::text[], false),
+  ('engagement.portal_content', 'M', false, true, ARRAY[]::text[], false),
+  ('engagement.profile_image', 'M', false, true, ARRAY[]::text[], false),
   ('engagement.queue_counters', 'M', true, true, ARRAY[]::text[], false),
   ('engagement.queue_day_counters', 'M', true, true, ARRAY[]::text[], false),
   ('engagement.queue_definitions', 'M', true, true, ARRAY[]::text[], false),

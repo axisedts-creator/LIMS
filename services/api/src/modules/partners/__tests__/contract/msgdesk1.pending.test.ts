@@ -1,7 +1,7 @@
 // T0C-MSGDESK-1 (LD-321, LD-325(b)) — the 10 partner ticket operations must not break module boot:
 // every operationId of partners.yaml has a handler OR is listed in the manifest's pendingOperations (core/module.ts checkHandlers, AC-0D-1.2 with BOOTGATE-1);
 // every pending id is a real operationId. The T0B-MSGDESK-1 handler task moves the ids from pending to handlers; this test stays green on both sides of that move.
-// (partners/index.ts builds a 'not implemented' stub for every spec operation without a handler; the list of pending ids is still required by LD-325(b) and checked in the impl notes test of msgdesk1-openapi.test.ts.)
+// (LD-325(b): every new operationId is listed in the partners pendingOperations until T0B-MSGDESK-1 implements it, so it answers 501 operation_pending and is visible to the production boot gate; a T01 stub is not enough.)
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { loadSpec, REPO_ROOT } from '../../../../core/module.js';
@@ -25,8 +25,8 @@ describe('T0C-MSGDESK-1: partners manifest covers the new operations (handler or
   it('every pending id is a spec operationId and appears once; only the new operations may be pending', () => {
     expect(pending.filter((id) => !specIds.includes(id))).toEqual([]);
     expect(new Set(pending).size).toBe(pending.length);
-    // LD-349: every MSGDESK id is covered (stub handler per index.ts, or pending); any other pending id must be a partners.sales operation of the contract (T0C-SALES-1, until T0B-SALES-1).
-    for (const id of NEW_OPS) expect(handlerIds.includes(id) || pending.includes(id), `${id} neither handled nor pending`).toBe(true);
+    // LD-349: every MSGDESK id is in pending (review item 2); any other pending id must be a partners.sales operation of the contract (T0C-SALES-1, until T0B-SALES-1).
+    for (const id of NEW_OPS) expect(pending, `${id} must be in pendingOperations (LD-325(b))`).toContain(id);
     const salesIds = Object.values<any>(spec.paths).flatMap((p) => Object.values<any>(p))
       .filter((m) => m?.operationId && ['partners.sales.read', 'partners.sales.manage'].includes(m['x-permission'])).map((m) => m.operationId as string);
     expect(pending.filter((id) => !NEW_OPS.includes(id) && !salesIds.includes(id)), 'other pending ids must be partners.sales operations').toEqual([]);

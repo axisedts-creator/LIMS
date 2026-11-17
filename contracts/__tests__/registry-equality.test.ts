@@ -12,6 +12,10 @@ const IC_PATH = resolve(here, "../../spec/program/03-INTERFACE-CATALOG.md");
 
 type Entry = Record<string, unknown>;
 
+// T0C-ACCT-1 (LD-313 c): the only permission codes allowed beyond IC §11. A further code needs a new lead decision and an edit of this list.
+const LD313_ACCOUNTING_CODES = ["billing.account.manage", "billing.account.read", "billing.account_entry.create", "billing.account_entry.reverse", "billing.cash_transfer.decide",
+  "billing.cash_transfer.manage", "billing.expense.manage"].sort();
+
 /** Strict parse: duplicate map keys are errors (IC §7 says "CI parses the file with a YAML parser"). */
 const strictParse = (src: string, what: string): any => {
   try {
@@ -170,9 +174,14 @@ describe("AC-0C-1.3 permissions.yaml == IC §11", () => {
       expect(diffByKey(ic[k], file[k], "code"), k).toEqual([]);
     }
     expect(sortKeys(file.fixed_actor_permissions)).toEqual(sortKeys(ic.fixed_actor_permissions));
-    expect(diffByKey(ic.permissions, file.permissions, "code")).toEqual([]);
-    expect(file.permissions.map((p: Entry) => p.code)).toEqual(ic.permissions.map((p: Entry) => p.code));
-    expect(file).toEqual(ic);
+    // T0C-ACCT-1 (LD-313 c, founder blanket authority LD-310): the registry may hold EXACTLY the 7 billing accounting codes on top of IC §11 (spec/ is read-only, the lead records
+    // the widening in the CR register). Every IC code stays, unchanged and in order (never renamed or removed); the new codes come after the IC codes of the billing block or at the end.
+    const icCodes = ic.permissions.map((p: Entry) => p.code);
+    const extra = file.permissions.filter((p: Entry) => !icCodes.includes(p.code));
+    expect(diffByKey(ic.permissions, file.permissions, "code").filter((d) => !d.startsWith("extra "))).toEqual([]);
+    expect(extra.map((p: Entry) => p.code).sort()).toEqual(LD313_ACCOUNTING_CODES);
+    expect(file.permissions.filter((p: Entry) => icCodes.includes(p.code)).map((p: Entry) => p.code)).toEqual(icCodes);
+    expect({ ...file, permissions: file.permissions.filter((p: Entry) => icCodes.includes(p.code)) }).toEqual(ic);
   });
 
   it("permission codes unique and match ^[a-z_]+\\.[a-z_]+\\.[a-z_]+$ (IC §11 CI rule)", () => {

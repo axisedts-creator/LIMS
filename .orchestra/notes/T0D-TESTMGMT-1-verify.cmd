@@ -1,0 +1,1 @@
+pnpm --dir apps/web exec vitest run -c src/features/catalog/__tests__/vitest.testmgmt1.config.ts && pnpm --dir apps/web exec vitest run -c src/features/catalog/__tests__/vitest.cattests1.config.ts && pnpm --dir apps/web exec vitest run -c src/features/catalog/__tests__/vitest.rs-c3.config.ts

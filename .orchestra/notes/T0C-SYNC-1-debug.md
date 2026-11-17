@@ -10,3 +10,6 @@
 - Re-ran verify steps by hand: codegen 88/88, contracts registry-equality 13/14. Only red: "routes.yaml == IC §7", 28 extra staff.* routes; contracts/routes.yaml last touched by T0D-ACCT-1/ADMINPAGE commits, never by SYNC-1.
 - Round 2 diagnosis of the .cmd path was wrong: %~dp0 is absolute, so the cd works; the chain stops at step 2 because that test fails (the "path" line is cmd noise).
 - No impl change: not SYNC-1's cause. Lead must drop registry-equality from verify.cmd or add the staff.* routes to spec IC §7 (read-only here).
+## Round 4
+- Cause: registry-equality "routes.yaml == IC §7" was red only for 28 staff.* routes missing from IC §7 (LD-337). Spec commit e4f095ae (in this branch) adds them; re-ran registry-equality now: 14/14 green. Codegen 88/88 green; API 826/826 and DB suite clean in rounds 1-3.
+- No impl change needed; SYNC-1 code was never at fault. Verify should now pass end to end.

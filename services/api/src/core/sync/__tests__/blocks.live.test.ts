@@ -5,7 +5,7 @@
 //    block size, block = [last_value + 1 .. last_value + size], so an online allocation after the block can never repeat a number of the block.
 //  - maximum block size: default 1000 for both series, setting `maxBlockSize` (createSyncHandlers({ settings })); above it: sync.block_size_too_large (422), nothing moves.
 //  - a series other than lab_code / patient_id (bill, invoice, receipt, anything) -> sync.series_unknown (422), nothing moves.
-//  - a centre_id that is not a centre of the tenant -> common.not_found.
+//  - a centre_id that is not a centre of the tenant -> common.validation_failed (reserveNumberBlock declares no common.not_found / 404).
 //  - skipped numbers: services/api/src/core/sync/blocks.service.ts exports reportBlockSkipped(ctx, { blockId, skippedCount }) (no contract operation exists for it in part 1):
 //    only the owner of the block's device; 0 <= skippedCount <= size else common.validation_failed; sets skipped_count and closes the block (exhausted_at = now);
 //    a closed block no longer counts in remaining_size; repeating the same report is a no-op; unknown / other tenant block -> common.not_found.
@@ -72,13 +72,13 @@ describe('reserveNumberBlock: the range comes from the per tenant counter', () =
     expect((await blocksOf(TENANT_B, 'lab_code')).map((b) => Number(b.to_value)).pop()).toBe(50);
   }, T);
 
-  it('a centre of the tenant may be named and is stored; a centre of another tenant is common.not_found and moves nothing', async () => {
+  it('a centre of the tenant may be named and is stored; a centre of another tenant is common.validation_failed and moves nothing', async () => {
     await setCounters(TENANT_A, { patient: 10 });
     const dev = await newDevice(A1);
     const b = ok(await reserve(A1, dev, 'patient_id', 5, { centre_id: CENTRE.a1 })).block;
     expect(b.centre_id).toBe(CENTRE.a1);
     const before = await counter(TENANT_A, 'patient_id');
-    expect(codeOf(await reserve(A1, dev, 'patient_id', 5, { centre_id: CENTRE.b1 }))).toBe('common.not_found');
+    expect(codeOf(await reserve(A1, dev, 'patient_id', 5, { centre_id: CENTRE.b1 }))).toBe('common.validation_failed');
     expect(await counter(TENANT_A, 'patient_id')).toBe(before);
   }, T);
 });

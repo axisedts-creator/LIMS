@@ -171,7 +171,7 @@ const ROWS = [...new Set(SPECS.map((s) => s.row))];
 // ---- §5.1 DTOs: "?" marks optional (TRD "field?")
 const DTO: Record<string, string[]> = {
   Account: ["id", "phone_masked", "status", "reminders_opt_out", "last_login_at?", "created_at", "version"],
-  Profile: ["profile_id", "display_name", "relationship", "method", "status", "history_from?", "patient_code?"],
+  Profile: ["profile_id", "display_name", "relationship", "method", "status", "history_from?", "patient_code?", "version"],
   SelfRegistration: ["id", "relationship", "status", "failure_code?", "profile_id?"],
   PatientOrder: ["order_id", "profile_id", "registered_at", "stage", "payment_due", "balance_due?", "specimen_count", "report_count", "centre_display_name?", "booking_id?"],
   PatientReport: ["report_id", "version_no", "order_id", "profile_id", "kind", "status", "released_at", "panel_names", "smart_summary_available", "supersedes_version_no?"],

@@ -19,6 +19,15 @@ INSERT INTO engagement.bookable_items (id, tenant_id, orderable_id, orderable_ki
   (pg_temp.id('f4'), pg_temp.id('01'), pg_temp.id('f4'), 'test', 'probe-4', 'probe-4', '{centre_visit}', pg_temp.id('35'), pg_temp.id('99')),
   (pg_temp.id('f5'), pg_temp.id('01'), pg_temp.id('f5'), 'test', 'probe-5', 'probe-5', '{centre_visit}', pg_temp.id('a3'), pg_temp.id('99')),
   (pg_temp.id('f6'), pg_temp.id('01'), pg_temp.id('f6'), 'test', 'probe-6', 'probe-6', '{centre_visit}', pg_temp.id('34'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
+INSERT INTO engagement.broadcast_template (id, tenant_id, name, channel, body, created_by, updated_by) VALUES
+  (pg_temp.id('f1'), pg_temp.id('01'), 'probe-1', 'sms', 'probe-1', pg_temp.id('99'), pg_temp.id('99')),
+  (pg_temp.id('f3'), pg_temp.id('02'), 'probe-3', 'sms', 'probe-3', pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
+INSERT INTO engagement.broadcast (id, tenant_id, template_id, audience_filter, requested_by, created_by, updated_by) VALUES
+  (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('f1'), '{}', pg_temp.id('f1'), pg_temp.id('99'), pg_temp.id('99')),
+  (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('f3'), '{}', pg_temp.id('f3'), pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
+INSERT INTO engagement.broadcast_recipient (id, tenant_id, broadcast_id, party_kind, party_id, channel_address, created_by) VALUES
+  (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('f1'), 'laboratory', pg_temp.id('f1'), 'probe-1', pg_temp.id('99')),
+  (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('f3'), 'laboratory', pg_temp.id('f3'), 'probe-3', pg_temp.id('99')) ON CONFLICT DO NOTHING;
 INSERT INTO engagement.cs_booking_cancel_reasons (id, tenant_id, code, display, sort_order, created_by, updated_by) VALUES
   (pg_temp.id('f1'), pg_temp.id('01'), 'b', 'probe-1', 1, pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('f3'), pg_temp.id('02'), 'd', 'probe-3', 3, pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;

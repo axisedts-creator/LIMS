@@ -5,4 +5,5 @@ Files: core/observability/{request-stats.ts (new), http-perf.ts (new), logging.t
 Counter skips BEGIN/COMMIT/savepoint/claims set_config; idempotency + central-authz queries on the request tx are counted (they are request cost).
 Also added the missing LIMS_CORE_AUTHZ_MODE row to environment.md (env-doc test was red at HEAD).
 Checks: verify set + env-doc + health-env 1442 pass; tsc clean. bff-key "refusal body" test failed once under the full parallel run, passed alone x2 (15 s timeout flake). src/core: 1 pre-existing red (storage adapter.test: health.ts REQUIRED_ENV names LIMS_CORE_STORAGE_KEY_FILE since T0B-OPSDOC-1).
+Review fixes: CR filed `.orchestra/cr/T0B-PERF-1.md` (new LIMS_CORE_STATEMENT_TIMEOUT_WRITE_MS, pool default 20->10; code kept per LD-310); PRODUCTION-BAR N+1 row split, "≤4 queries on real empty list" marked not met. Verify set 1426 pass.
 Open: PRODUCTION-BAR marks dependency audit "not met" (pnpm audit 2026-11-17: 2 high, 3 critical); p95, cold start, backups, TLS switch are founder/hosting steps. Real DB query counts and staging p95 not measured here.

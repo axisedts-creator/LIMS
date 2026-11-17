@@ -242,7 +242,8 @@ describe("inventory equals 02-TRD §5.2 (no missing, no extra operations)", () =
     expect(fromTrd.size).toBeGreaterThan(60);
     const mine = new Set(ROWS.map((r) => r.id));
     for (const id of fromTrd) expect(mine.has(id), `TRD operationId ${id} not in test table`).toBe(true);
-    expect(Object.keys(ops).sort()).toEqual([...mine].sort());
+    // T0C-TESTMGMT-1 (LD-318) adds exactly these three test category operations (pinned in testmgmt1-openapi.test.ts); the 107 above must all still exist and nothing else may appear.
+    expect(Object.keys(ops).sort()).toEqual([...mine, "listTestCategories", "createTestCategory", "updateTestCategory"].sort());
   });
   it("every path is /v1/catalog/… with tags [catalog]", () => {
     expect(Object.keys(doc.paths ?? {}).length, "no paths").toBeGreaterThan(0);

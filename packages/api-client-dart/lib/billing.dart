@@ -228,8 +228,8 @@ class BillingApi {
       _send('GET', '/v1/billing/refund-requests', query: query);
 
   /// POST /v1/billing/credit-notes/{credit_note_id}/print
-  Future<Object?> printCreditNote({required String creditNoteId, Map<String, String>? headers}) =>
-      _send('POST', '/v1/billing/credit-notes/${Uri.encodeComponent(creditNoteId)}/print', headers: headers);
+  Future<Object?> printCreditNote({required String creditNoteId, Map<String, String>? headers, Object? body}) =>
+      _send('POST', '/v1/billing/credit-notes/${Uri.encodeComponent(creditNoteId)}/print', headers: headers, body: body);
 
   /// POST /v1/billing/invoices/{invoice_id}/print
   Future<Object?> printInvoice({required String invoiceId, Map<String, String>? headers, Object? body}) =>

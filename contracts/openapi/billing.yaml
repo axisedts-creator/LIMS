@@ -325,6 +325,7 @@ paths:
                         reason_code: first_print
                         printed_by_display: Synthetic printed_by_display
                         printed_at: 2026-11-05T04:15:00.000Z
+                        style: full
                     page:
                       limit: 50
         "400":
@@ -345,7 +346,7 @@ paths:
       tags:
         - billing
       summary: Print an invoice
-      description: Access log invoice.print.
+      description: "Access log invoice.print. Optional style (T0C-PRINTCFG-1, LD-316): full (default) prints with the invoice print profile; plain_bw prints the plain black and white tax bill (PAN bill): black on white only, no logo, no colour, no shading, no header and no footer text; the body keeps the lines a tax bill needs (lab name, address, seller PAN, bill number and date). The print record stores the style used."
       security:
         - bearerJwt: []
       x-permission: billing.invoice.reprint
@@ -377,6 +378,10 @@ paths:
               synthetic:
                 value:
                   reason_code: first_print
+              plain_bw:
+                value:
+                  reason_code: reprint
+                  style: plain_bw
       responses:
         "200":
           description: Success.
@@ -388,6 +393,7 @@ paths:
                 synthetic:
                   value:
                     print_no: 1
+                    style: full
                     copy_mark: Copy of Original
                     document:
                       id: 0193c4a0-0000-7000-8000-000000000515
@@ -1037,7 +1043,7 @@ paths:
       tags:
         - billing
       summary: Print a credit note
-      description: Access log credit_note.print.
+      description: "Access log credit_note.print. Optional body with style (T0C-PRINTCFG-1, LD-316): full (default) or plain_bw, the plain black and white bill (no logo, no colour, no shading, no header and no footer text; lab name, address, seller PAN, bill number and date stay). The print record stores the style used."
       security:
         - bearerJwt: []
       x-permission: billing.invoice.reprint
@@ -1059,6 +1065,26 @@ paths:
           schema:
             $ref: _common.yaml#/components/schemas/Uuid
         - $ref: _common.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                style:
+                  type: string
+                  maxLength: 8
+                  enum:
+                    - full
+                    - plain_bw
+                  default: full
+                  description: "Print style (LD-316). full: as the credit note print profile says. plain_bw: black and white only, no logo, no colour, no shading, no header and no footer text; lab name, address, seller PAN, bill number and date stay."
+            examples:
+              plain_bw:
+                value:
+                  style: plain_bw
       responses:
         "200":
           description: Success.
@@ -1070,6 +1096,7 @@ paths:
                 synthetic:
                   value:
                     print_no: 1
+                    style: full
                     copy_mark: Copy of Original
                     document:
                       id: 0193c4a0-0000-7000-8000-000000000553
@@ -7153,6 +7180,13 @@ components:
           maxLength: 200
         printed_at:
           $ref: _common.yaml#/components/schemas/IsoUtc
+        style:
+          type: string
+          maxLength: 8
+          enum:
+            - full
+            - plain_bw
+          description: The print style used (T0C-PRINTCFG-1, LD-316); rows printed before it read full.
     InvoicePrintPage:
       type: object
       additionalProperties: false
@@ -7179,17 +7213,33 @@ components:
             - reprint
             - printer_fault
             - customer_copy
+        style:
+          type: string
+          maxLength: 8
+          enum:
+            - full
+            - plain_bw
+          default: full
+          description: "Print style (T0C-PRINTCFG-1, LD-316). full (default): as the invoice print profile says. plain_bw: the plain black and white tax bill (PAN bill), black on white only, no logo, no colour, no shading, no header and no footer text; the body keeps the lines a tax bill needs (lab name, address, seller PAN, bill number and date)."
     InvoicePrint:
       type: object
       additionalProperties: false
       required:
         - print_no
+        - style
         - document
       properties:
         print_no:
           type: integer
           minimum: 1
           maximum: 2147483647
+        style:
+          type: string
+          maxLength: 8
+          enum:
+            - full
+            - plain_bw
+          description: The print style used (stored on the print record).
         copy_mark:
           type: string
           maxLength: 64
@@ -7518,12 +7568,20 @@ components:
       additionalProperties: false
       required:
         - print_no
+        - style
         - document
       properties:
         print_no:
           type: integer
           minimum: 1
           maximum: 2147483647
+        style:
+          type: string
+          maxLength: 8
+          enum:
+            - full
+            - plain_bw
+          description: The print style used (stored on the print record).
         copy_mark:
           type: string
           maxLength: 64

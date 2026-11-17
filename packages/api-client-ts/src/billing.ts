@@ -9468,6 +9468,7 @@ export interface operations {
               reason_code?: "first_print" | "reprint" | "printer_fault" | "customer_copy";
               printed_by_display: string;
               printed_at: string;
+              style?: "full" | "plain_bw";
             })[];
             page: {
               next_cursor?: string;
@@ -10131,13 +10132,20 @@ export interface operations {
       };
       cookie?: never;
     };
-    requestBody?: never;
+    requestBody?: {
+      content: {
+        "application/json": {
+          style?: "full" | "plain_bw";
+        };
+      };
+    };
     responses: {
       200: {
         headers: { [name: string]: unknown };
         content: {
           "application/json": {
             print_no: number;
+            style: "full" | "plain_bw";
             copy_mark?: string;
             document: {
               id: string;
@@ -10366,6 +10374,7 @@ export interface operations {
       content: {
         "application/json": {
           reason_code?: "first_print" | "reprint" | "printer_fault" | "customer_copy";
+          style?: "full" | "plain_bw";
         };
       };
     };
@@ -10375,6 +10384,7 @@ export interface operations {
         content: {
           "application/json": {
             print_no: number;
+            style: "full" | "plain_bw";
             copy_mark?: string;
             document: {
               id: string;

@@ -85,6 +85,8 @@ export async function seedWorld(s: Side): Promise<World> {
   const transition = hc.transition(s, visit.id); await seed('homecollection.visit_transitions', transition);
   const assignment = hc.assignment(s, visit.id, route.id); await seed('homecollection.visit_assignments', assignment);
   const visitSpecimen = hc.visitSpecimen(s, { specimen, order }, visit.id); await seed('homecollection.visit_specimens', visitSpecimen);
+  // LD-355 isolation: a settings row left by an earlier file would win ON CONFLICT DO NOTHING and give W.<side>.settings a foreign id.
+  await superTx((tx) => tx.query('DELETE FROM homecollection.settings WHERE tenant_id = $1', [TENANT[s]]));
   const settings = hc.settings(s); await seed('homecollection.settings', settings);
   return { patient, order, specimen, visit, bookingVisit, route, bookingRef, device, batch, mutation, collection, handover, handoverItem, flag, location, transition, assignment, visitSpecimen, settings };
 }

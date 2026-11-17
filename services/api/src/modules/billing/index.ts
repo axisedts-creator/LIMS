@@ -11,7 +11,10 @@ export const manifest: ModuleManifest = {
   handlers,
   ports: { BillingPort: billingPort, BillingCommandPort: billingCommandPort },
   produces: ['billing.invoice.issued.v1', 'billing.invoice.cancelled.v1', 'billing.balance.changed.v1'],
-  // LD-325 (T0B-BOOTGATE-1): empty because every contract operation now has a handler function
-  // (ACCT-1 real, ACCT-2 ones are 503 stubs in handlers/index.ts); add ids here only for operations with NO handler.
-  pendingOperations: [],
+  // LD-325 (T0B-BOOTGATE-1) + LD-328 (2): the 12 T0B-ACCT-2 operations have no handler yet (core answers 501
+  // operation_pending); T0B-ACCT-2 removes each id here when it implements it.
+  pendingOperations: [
+    'acceptCashTransfer', 'cancelCashTransfer', 'cancelExpense', 'createCashTransfer', 'createExpense', 'createExpenseType',
+    'getDailyCollectionSummary', 'listCashTransfers', 'listExpenseTypes', 'listExpenses', 'rejectCashTransfer', 'updateExpenseType',
+  ],
 };

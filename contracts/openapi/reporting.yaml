@@ -4759,7 +4759,7 @@ paths:
       tags:
         - reporting
       summary: List print profiles (own header and footer, paper mode) per branch, document kind and recipient type
-      description: "T0C-PRINTCFG-1 (LD-316, LD-319(1)). Report profiles need reporting.settings.manage; invoice and credit_note profiles also need billing.settings.manage (the billing settings permission), checked by the handler. A profile without branch_id is the lab default; without recipient_type it applies to every recipient."
+      description: "T0C-PRINTCFG-1 (LD-316, LD-319(1)). Report profiles need reporting.settings.manage; invoice and credit_note profiles also need billing.settings.manage (the billing settings permission), checked by the handler. Until CR T0C-PRINTCFG-1 is ruled, a finance-only user (billing.settings.manage without reporting.settings.manage) cannot manage invoice or credit_note profiles. A profile without branch_id is the lab default; without recipient_type it applies to every recipient."
       security:
         - bearerJwt: []
       x-permission: reporting.settings.manage
@@ -4844,7 +4844,7 @@ paths:
       tags:
         - reporting
       summary: Create or replace the print profile of one key (branch, document kind, recipient type)
-      description: "T0C-PRINTCFG-1 (LD-316, LD-319(1)). Upsert by key: branch_id (omitted = the lab default), document_kind and recipient_type (omitted = every recipient); one active row per key. Report profiles need reporting.settings.manage; invoice and credit_note profiles also need billing.settings.manage (the billing settings permission), checked by the handler. Audited."
+      description: "T0C-PRINTCFG-1 (LD-316, LD-319(1)). Upsert by key: branch_id (omitted = the lab default), document_kind and recipient_type (omitted = every recipient); one active row per key. Report profiles need reporting.settings.manage; invoice and credit_note profiles also need billing.settings.manage (the billing settings permission), checked by the handler. Until CR T0C-PRINTCFG-1 is ruled, a finance-only user (billing.settings.manage without reporting.settings.manage) cannot manage invoice or credit_note profiles. Audited."
       security:
         - bearerJwt: []
       x-permission: reporting.settings.manage
@@ -4928,7 +4928,7 @@ paths:
       tags:
         - reporting
       summary: Render a preview of a draft print profile with synthetic sample data
-      description: "T0C-PRINTCFG-1 (LD-316). Synthetic sample data only: the preview never uses real patient data and accepts no patient, report, invoice or order id. Same render job as previewReportTemplate. Report previews need reporting.settings.manage; invoice and credit_note previews also need billing.settings.manage (the billing settings permission), checked by the handler. Nothing is stored."
+      description: "T0C-PRINTCFG-1 (LD-316). Synthetic sample data only: the preview never uses real patient data and accepts no patient, report, invoice or order id. Same render job as previewReportTemplate. Report previews need reporting.settings.manage; invoice and credit_note previews also need billing.settings.manage (the billing settings permission), checked by the handler. Until CR T0C-PRINTCFG-1 is ruled, a finance-only user (billing.settings.manage without reporting.settings.manage) cannot manage invoice or credit_note profiles. Nothing is stored."
       security:
         - bearerJwt: []
       x-permission: reporting.settings.manage

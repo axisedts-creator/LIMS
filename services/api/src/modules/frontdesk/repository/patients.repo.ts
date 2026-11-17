@@ -60,7 +60,10 @@ export async function updatePatientRow(tx: Tx, tenantId: string, id: string, exp
 /** FD-T15 F7: erase the demographics. null when the row is missing, already anonymised or its version != expectedVersion (a race loser). */
 export async function anonymisePatientRow(tx: Tx, tenantId: string, id: string, expectedVersion: number, a: { at: Date; by: string; reasonCode: string }): Promise<any | null> {
   const { rows } = await tx.query(`UPDATE frontdesk.patients SET full_name = NULL, name_search = NULL, birth_on = NULL, is_birth_on_estimated = false,
-      phone_e164 = NULL, email = NULL, address_text = NULL, anonymised_at = $4, anonymised_by = $5, anonymise_reason_code = $6,
+      phone_e164 = NULL, email = NULL, address_text = NULL,
+      title = NULL, external_patient_id = NULL, nationality = NULL, government_id_type = NULL, government_id_number = NULL,
+      address_province = NULL, address_district = NULL, address_municipality = NULL, address_ward = NULL, address_tole = NULL,
+      address_postal_code = NULL, profile_photo_attachment_id = NULL, custom_fields = NULL, anonymised_at = $4, anonymised_by = $5, anonymise_reason_code = $6,
       version = version + 1, updated_at = now(), updated_by = (SELECT app.current_actor_id())
     WHERE tenant_id = $1 AND id = $2 AND version = $3 AND anonymised_at IS NULL RETURNING *`, [tenantId, id, expectedVersion, a.at, a.by, a.reasonCode]);
   return rows[0] ?? null;

@@ -52,7 +52,7 @@ const OPS: Record<string, OpSpec> = {
   registerSyncDevice: { method: "post", path: `${PFX}/devices`, perm: USE, idem: "required", ok: "200" },
   listSyncDevices: { method: "get", path: `${PFX}/devices`, perm: DEV, idem: "none", ok: "200", paged: true },
   revokeSyncDevice: { method: "post", path: `${PFX}/devices/{device_id}/revoke`, perm: DEV, idem: "any", ok: "200", pathId: true },
-  requestDeviceWipe: { method: "post", path: `${PFX}/devices/{device_id}/wipe`, perm: DEV, idem: "any", ok: "200", pathId: true },
+  requestSyncDeviceWipe: { method: "post", path: `${PFX}/devices/{device_id}/wipe`, perm: DEV, idem: "any", ok: "200", pathId: true },
   ackDeviceWipe: { method: "post", path: `${PFX}/devices/{device_id}/wipe-ack`, perm: USE, idem: "any", ok: "200", pathId: true },
   getSyncStatus: { method: "get", path: `${PFX}/status`, perm: USE, idem: "none", ok: "200" },
   reserveNumberBlock: { method: "post", path: `${PFX}/number-blocks`, perm: USE, idem: "required", ok: "201" },
@@ -61,7 +61,7 @@ const NEW_ERRORS: Record<string, number> = { "sync.device_revoked": 403, "sync.d
 const OP_ERRORS: Record<string, string[]> = {
   registerSyncDevice: ["sync.device_revoked", "sync.wipe_required"],
   revokeSyncDevice: ["sync.device_unknown"],
-  requestDeviceWipe: ["sync.device_unknown"],
+  requestSyncDeviceWipe: ["sync.device_unknown"],
   ackDeviceWipe: ["sync.device_unknown", "sync.device_revoked"],
   getSyncStatus: ["sync.device_unknown", "sync.device_revoked", "sync.wipe_required"],
   reserveNumberBlock: ["sync.device_unknown", "sync.device_revoked", "sync.wipe_required", "sync.block_size_too_large", "sync.series_unknown"],
@@ -246,14 +246,14 @@ describe("T0C-SYNC-1 shapes: device registry (design section 6)", () => {
     sortedEq(enumOf(paramOf(opIn(C_DOC, "listSyncDevices")!.op, "platform")?.schema), PLATFORMS);
   });
   it("revoke, wipe request and wipe ack take the device id in the path, no body needed (a reason is optional and closed), and answer the SyncDevice", () => {
-    for (const id of ["revokeSyncDevice", "requestDeviceWipe", "ackDeviceWipe"]) {
+    for (const id of ["revokeSyncDevice", "requestSyncDeviceWipe", "ackDeviceWipe"]) {
       const o = opIn(C_DOC, id)!;
       expect(paramNames(o.op), id).toContain("device_id");
       if (o.op.requestBody) { expect(o.op.requestBody.required, `${id} body optional`).not.toBe(true); expect(reqSchema(id).additionalProperties).toBe(false); }
       for (const f of ["id", "status", "wipe_requested_at", "wipe_acked_at"]) expect(props(okSchema(id))[f], `${id} response ${f}`).toBeDefined();
     }
     expect(String(opIn(C_DOC, "ackDeviceWipe")!.op.description ?? ""), "ack: only the device itself (the signed in owner of that device) may acknowledge").toMatch(/own|itself|that device|owner/i);
-    expect(String(opIn(C_DOC, "requestDeviceWipe")!.op.description ?? ""), "wipe: runs on the device's next contact").toMatch(/next|contact|sync/i);
+    expect(String(opIn(C_DOC, "requestSyncDeviceWipe")!.op.description ?? ""), "wipe: runs on the device's next contact").toMatch(/next|contact|sync/i);
     expect(String(opIn(C_DOC, "revokeSyncDevice")!.op.description ?? ""), "revoke: the device refuses to unlock").toMatch(/revok|refus|unlock|rejected/i);
   });
 });
@@ -410,7 +410,7 @@ describe("T0C-SYNC-1 permissions (done_when 5)", () => {
   it("every x-permission of the 7 operations is one of the three codes; sync.conflict.resolve is reserved for part 2 (used by no operation here); the privileged device code only on admin operations", () => {
     const used = new Set(Object.keys(OPS).map((id) => opIn(C_DOC, id)!.op["x-permission"]));
     sortedEq([...used] as string[], [USE, DEV]);
-    for (const id of ["listSyncDevices", "revokeSyncDevice", "requestDeviceWipe"]) expect(opIn(C_DOC, id)!.op["x-permission"], id).toBe(DEV);
+    for (const id of ["listSyncDevices", "revokeSyncDevice", "requestSyncDeviceWipe"]) expect(opIn(C_DOC, id)!.op["x-permission"], id).toBe(DEV);
     for (const id of ["registerSyncDevice", "ackDeviceWipe", "getSyncStatus", "reserveNumberBlock"]) expect(opIn(C_DOC, id)!.op["x-permission"], id).toBe(USE);
   });
   it("corp_admin pack holds all three codes, sorted and without duplicates", () => {

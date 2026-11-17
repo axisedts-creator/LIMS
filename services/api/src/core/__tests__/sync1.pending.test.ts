@@ -10,7 +10,7 @@ import { CORE_PENDING_OPERATIONS } from '../core-pending.js';
 import { createHealthHandlers } from '../health.js';
 import { okChecks } from '../observability/__tests__/helpers.js';
 
-const NEW_OPS = ['registerSyncDevice', 'listSyncDevices', 'revokeSyncDevice', 'requestDeviceWipe', 'ackDeviceWipe', 'getSyncStatus', 'reserveNumberBlock'];
+const NEW_OPS = ['registerSyncDevice', 'listSyncDevices', 'revokeSyncDevice', 'requestSyncDeviceWipe', 'ackDeviceWipe', 'getSyncStatus', 'reserveNumberBlock'];
 const spec: any = loadSpec(join(REPO_ROOT, 'contracts/openapi/core.yaml'));
 const specIds: string[] = Object.values<any>(spec.paths).flatMap((p) => Object.values<any>(p).map((m) => m?.operationId).filter(Boolean));
 const healthHandlers = createHealthHandlers(okChecks());

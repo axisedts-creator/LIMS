@@ -49,23 +49,38 @@ const NEW_ORDER_KEYS = ['collection_at', 'collected_by_membership_id', 'collecte
   'mr_number', 'external_reference', 'insurance_code', 'insurance_claim_amount_paisa', 'visiting_charge_paisa', 'coupon_code', 'coupon_amount_paisa', 'reward_points_earned', 'reward_points_redeemed'];
 
 describe('quoteRegistration: coupon, visiting charge, redeem points, ICD (read only, totals computed on the server)', () => {
-  it('visiting charge adds exactly its paisa to totals.net; coupon (amount, percent) subtracts exactly its value; nothing is written or consumed', { timeout: T }, async () => {
-    const base = await quoteOf({});
-    expect(base.body.totals.net).toEqual(money(NET));
-    const v = await quoteOf({ visiting_charge_paisa: 1500 });
-    expect(v.body.totals.net).toEqual(money(NET + 1500));
+  // LD-327 (founder, 2026-11-17 12:59 NPT: "in this field there is no vat", "no vat in this medical field"), option A1 VAT EXEMPT, replaces the earlier pin NET - 7260 (it took 10 percent
+  // of a net that included 13 percent VAT of the taxable GLU line): a coupon is a bill level discount applied BEFORE tax (passed to billing as a discount, VAT recomputed from the lines after it);
+  // the visiting charge is a separate invoice line, VAT exempt, included in totals.net. The exempt-only CBC order (50000, VAT 0) is the lab tenant case: the numbers carry NO VAT.
+  const CBC_ONLY = [{ orderable_id: O.cbc }];
+  const CBC = 50000;
+  it('LD-327: visiting charge (exempt line) adds exactly its paisa to totals.net; coupon (amount, percent) is a pre tax discount that subtracts exactly its value; nothing is written or consumed', { timeout: T }, async () => {
+    const base = await quoteOf({ items: CBC_ONLY });
+    expect(base.body.totals.net).toEqual(money(CBC));
+    const v = await quoteOf({ items: CBC_ONLY, visiting_charge_paisa: 1500 });
+    expect(v.body.totals.net).toEqual(money(CBC + 1500));
     const amt = await mkCoupon({ percent: null, amount_paisa: 5000 }); const pct = await mkCoupon({ percent: 10 });
-    const a = await quoteOf({ coupon_code: amt }); const p = await quoteOf({ coupon_code: pct });
-    expect(a.body.totals.net).toEqual(money(NET - 5000));
-    expect(p.body.totals.net).toEqual(money(NET - 7260));
-    const both = await quoteOf({ coupon_code: pct, visiting_charge_paisa: 1500 });
-    expect(both.body.totals.net).toEqual(money(NET - 7260 + 1500));
+    const a = await quoteOf({ items: CBC_ONLY, coupon_code: amt }); const p = await quoteOf({ items: CBC_ONLY, coupon_code: pct });
+    expect(a.body.totals.net).toEqual(money(CBC - 5000));
+    expect(p.body.totals.net).toEqual(money(CBC - 5000));                                   // 10 percent of the 50000 bill, no VAT in the base
+    const both = await quoteOf({ items: CBC_ONLY, coupon_code: pct, visiting_charge_paisa: 1500 });
+    expect(both.body.totals.net).toEqual(money(CBC - 5000 + 1500));                         // the percent is taken on the bill WITHOUT the visiting charge
     for (const r of [a, p, both, v]) { expect(r.wrote, 'a quote writes nothing').toBe(false); expect(schemaErrors('Quote', r.body)).toEqual([]); }
     expect((await couponRow(pct)).used_count).toBe(0);
     expect((await couponRow(amt)).used_count).toBe(0);
   });
-  it('a coupon larger than the net is capped: the net is 0, never negative', { timeout: T }, async () => {
+  it('LD-327 (a): the coupon is a discount BEFORE tax: on a taxable line VAT is recomputed from the line after the discount (GLU 20000 at 13 percent: 22600 -> coupon 5000 -> 15000 + 1950)', { timeout: T }, async () => {
+    const GLU = [{ orderable_id: O.glu }];
+    expect((await quoteOf({ items: GLU })).body.totals.net).toEqual(money(22600));
+    const amt = await mkCoupon({ percent: null, amount_paisa: 5000 });
+    const q = await quoteOf({ items: GLU, coupon_code: amt });
+    expect(q.body.totals.net).toEqual(money(16950));
+    expect(q.body.totals.vat).toEqual(money(1950));
+  });
+  it('a coupon larger than the bill is capped at the bill (the cap rule): the net is 0, never negative; the visiting charge is not discounted by it', { timeout: T }, async () => {
     const big = await mkCoupon({ percent: null, amount_paisa: 9_000_000 });
+    expect((await quoteOf({ items: CBC_ONLY, coupon_code: big })).body.totals.net).toEqual(money(0));
+    expect((await quoteOf({ items: CBC_ONLY, coupon_code: big, visiting_charge_paisa: 1500 })).body.totals.net).toEqual(money(1500));
     expect((await quoteOf({ coupon_code: big })).body.totals.net).toEqual(money(0));
   });
   it('every invalid coupon is the SAME 400 at /coupon_code: unknown, other tenant, inactive, expired, not yet valid, exhausted, lower case', { timeout: T }, async () => {
@@ -199,16 +214,22 @@ describe('createRegistration: validation (400 common.validation_failed, field pa
 describe('coupons at save: applied once per order, usage limit, tenant, rollback', () => {
   it('apply: order carries coupon_code and the server derived coupon_amount_paisa, the invoice is for the reduced total, used_count + 1 exactly once (3 quotes before it changed nothing)', { timeout: T }, async () => {
     const c = await mkCoupon({ percent: 10 });
-    const p = await prepare({ d: { coupon_code: c, visiting_charge_paisa: 1500 }, payments: [pay(10000)] });
-    await quoteOf({ coupon_code: c }, p.w); await quoteOf({ coupon_code: c }, p.w);
+    // LD-327: CBC only (50000, VAT exempt): 10 percent coupon = 5000 before tax, visiting charge 1500 an exempt line: invoice = 50000 - 5000 + 1500, no VAT anywhere.
+    const items = [{ orderable_id: O.cbc }];
+    const p = await prepare({ d: { items, coupon_code: c, visiting_charge_paisa: 1500 }, payments: [pay(10000)] });
+    await quoteOf({ items, coupon_code: c }, p.w); await quoteOf({ items, coupon_code: c }, p.w);
     expect((await couponRow(c)).used_count).toBe(0);
     const r = await register(p.body, { w: p.w });
     expect(r.status, JSON.stringify(r.body)).toBe(201);
-    expect(r.body.order).toMatchObject({ coupon_code: c, coupon_amount_paisa: 7260, visiting_charge_paisa: 1500 });
-    const total = NET - 7260 + 1500;
+    expect(r.body.order).toMatchObject({ coupon_code: c, coupon_amount_paisa: 5000, visiting_charge_paisa: 1500 });
+    const total = 50000 - 5000 + 1500;
     expect(r.body.balance).toMatchObject({ invoiced: money(total), paid: money(10000), balance_due: money(total - 10000) });
     expect((await couponRow(c)).used_count).toBe(1);
-    expect(Number((await orderRow(r.body.order.id)).coupon_amount_paisa)).toBe(7260);
+    expect(Number((await orderRow(r.body.order.id)).coupon_amount_paisa)).toBe(5000);
+    const inv = p.w.billingFake.calls('issueOrderInvoice')[0]?.input as any;
+    expect(JSON.stringify(inv?.discounts ?? []), 'the coupon reaches billing as a discount (existing discount path, LD-327 a)').toContain('5000');
+    expect(JSON.stringify(inv?.lines ?? [])).toContain('1500');                                     // the visiting charge is a separate invoice line
+    for (const l of inv?.lines ?? []) if (JSON.stringify(l).includes('1500')) expect(l.tax?.vat ?? 'exempt', 'visiting charge line is VAT exempt (LD-327 b)').not.toBe('taxable');
   });
   it('a client cannot set coupon_amount_paisa (unknown key => 400); a coupon_code naming nothing stores nothing', { timeout: T }, async () => {
     const p = await prepare({ extra: { coupon_amount_paisa: 99999 } });
@@ -277,7 +298,7 @@ describe('reward points: redeem, ledger entry per change, never below zero', () 
     const e = await registerFails(x.body, { w: x.w });
     expect(e.code).toBe('common.validation_failed'); expect(JSON.stringify(e.errors ?? [])).toContain('/redeem_reward_points');
     expect((await ledger(p.patient.id)).length).toBe(before);
-    expect(await ordersOf(p.patient.id)).toHaveLength(1);                                             // only the seeded prior order
+    expect(await ordersOf(p.patient.id)).toHaveLength(2);                                             // only the two seeded prior orders (givePoints + the one above), no new order (LD-326 item 5)
     expect(x.w.billingFake.calls('issueOrderInvoice')).toHaveLength(0);
     expect(await balanceOf(p.patient.id)).toBe(50);
   });

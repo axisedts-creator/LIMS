@@ -12,7 +12,8 @@ import { problem, type Problem } from './core/session/types';
 
 export const config = {
   runtime: 'nodejs',
-  matcher: ['/((?!_next/|__nextjs|favicon.ico).*)'],
+  // T0D-FAVICON-1 (LD-310): icon + manifest files are public static assets; without this the login tab gets a 307 instead of the icon.
+  matcher: ['/((?!_next/|__nextjs|favicon.ico|icon\\.png|apple-icon\\.png|icon-512\\.png|manifest\\.webmanifest).*)'],
 };
 
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);

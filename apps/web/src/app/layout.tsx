@@ -5,7 +5,11 @@ import '@lims/ui/kit.css';
 import '@/core/shell/shell.css';
 import { Providers } from '@/core/shell/Providers';
 
-export const metadata = { title: 'LIMS' };
+// T0D-FAVICON-1 (LD-310): tabs read "Page - Metro Labs"; icons + manifest come from the app/ file conventions.
+export const metadata = {
+  title: { default: 'Metro Labs', template: '%s - Metro Labs' },
+  description: 'Metro Labs laboratory information management system',
+};
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (

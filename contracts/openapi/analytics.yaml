@@ -3016,6 +3016,16 @@ paths:
                     business_date_from: 2026-01-01
                     business_date_to: 2026-01-31
                     group_by: day
+              bill_of_the_day:
+                summary: T0C-MISREPORTS-1 Bill of the Day for one business day and one centre (synthetic)
+                value:
+                  report_code: bill_of_the_day
+                  format: csv
+                  params:
+                    business_date_from: "2026-11-17"
+                    business_date_to: "2026-11-17"
+                    centre_id:
+                      - 0193c4a0-0000-7000-8000-000000000101
       responses:
         "202":
           description: Accepted.
@@ -3895,6 +3905,257 @@ paths:
           $ref: _common.yaml#/components/responses/TooManyRequests
         "500":
           $ref: _common.yaml#/components/responses/Internal
+# T0C-MISREPORTS-1 (LD-321): the missing ElabAssist MIS reports as ROWS of the existing report catalogue (no 31 fixed screens,
+# no new route). Each entry is a components.schemas.ReportDefinition; the code is a row of analytics.g_cs_report_codes
+# (migration 20261117230000_analytics__add_mis_report_support.sql), so createAnalyticsExport and createReportSchedule accept it.
+# Permissions reuse the five analytics codes (no new permission). Money is integer paisa, ratios basis points. Synthetic examples.
+x-report-definitions:
+  - code: bill_of_the_day
+    title: Bill of the Day
+    description: Every invoice of one business day (or a short range) with gross, discount, net, paid and due amounts per bill, newest first; filter by centre and party. From the ElabAssist accounting walk (Bill Of The Day).
+    permission: analytics.collections.read
+    params: [business_date_from, business_date_to, centre_id, party_id]
+    columns:
+      - { name: invoice_id, type: string, title: Invoice id }
+      - { name: invoice_number, type: string, title: Invoice number }
+      - { name: billed_at, type: datetime, title: Billed at }
+      - { name: business_date, type: date, title: Business date }
+      - { name: centre_id, type: string, title: Centre }
+      - { name: party_id, type: string, title: Party }
+      - { name: gross_paisa, type: integer_paisa, title: Gross }
+      - { name: discount_paisa, type: integer_paisa, title: Discount }
+      - { name: net_paisa, type: integer_paisa, title: Net }
+      - { name: paid_paisa, type: integer_paisa, title: Paid }
+      - { name: due_paisa, type: integer_paisa, title: Due }
+    default_sort: { column: billed_at, direction: desc }
+    row_cap: 5000
+    exportable: true
+    schedulable: true
+    example_params:
+      business_date_from: "2026-11-17"
+      business_date_to: "2026-11-17"
+      centre_id: [0193c4a0-0000-7000-8000-000000000101]
+  - code: two_level_commission
+    title: Two level commission
+    description: Commission per parent party and each of its sub parties (two level), from net billed amounts and the commission_bp of the party settings. A report only, no money moves; it never posts to the ledger. Behind the referral report flag.
+    permission: analytics.referral_report.read
+    flag: referralIncentiveReportEnabled
+    params: [business_date_from, business_date_to, centre_id, party_id]
+    columns:
+      - { name: parent_party_id, type: string, title: Parent party }
+      - { name: parent_party_name, type: string, title: Parent party name }
+      - { name: party_id, type: string, title: Sub party }
+      - { name: party_name, type: string, title: Sub party name }
+      - { name: level, type: integer, title: Level }
+      - { name: orders_registered, type: integer, title: Orders }
+      - { name: net_billed_paisa, type: integer_paisa, title: Net billed }
+      - { name: commission_bp, type: basis_points, title: Commission rate }
+      - { name: commission_paisa, type: integer_paisa, title: Commission }
+    default_sort: { column: commission_paisa, direction: desc }
+    row_cap: 5000
+    exportable: true
+    schedulable: true
+    example_params:
+      business_date_from: "2026-11-01"
+      business_date_to: "2026-11-30"
+      filters:
+        party_id: [0193c4a0-0000-7000-8000-000000000201]
+  - code: sales_representative
+    title: Sales representative
+    description: Orders registered, net billed and collected amounts per sales representative and period, over the parties assigned to that representative.
+    permission: analytics.dashboard.read
+    params: [business_date_from, business_date_to, centre_id, representative_id, party_id]
+    columns:
+      - { name: representative_id, type: string, title: Representative }
+      - { name: representative_name, type: string, title: Representative name }
+      - { name: designation_level, type: integer, title: Designation level }
+      - { name: parties_count, type: integer, title: Parties }
+      - { name: orders_registered, type: integer, title: Orders }
+      - { name: net_billed_paisa, type: integer_paisa, title: Net billed }
+      - { name: collected_paisa, type: integer_paisa, title: Collected }
+    default_sort: { column: net_billed_paisa, direction: desc }
+    row_cap: 2000
+    exportable: true
+    schedulable: true
+    example_params:
+      business_date_from: "2026-11-01"
+      business_date_to: "2026-11-30"
+      filters:
+        representative_id: [0193c4a0-0000-7000-8000-000000000301]
+  - code: consultant
+    title: Consultant
+    description: Orders, tests and net billed amount per consultant (the referring doctor of the order, referrer_id) and department over the period.
+    permission: analytics.dashboard.read
+    params: [business_date_from, business_date_to, centre_id, referrer_id, department_id]
+    columns:
+      - { name: referrer_id, type: string, title: Consultant }
+      - { name: referrer_name, type: string, title: Consultant name }
+      - { name: department_id, type: string, title: Department }
+      - { name: orders_registered, type: integer, title: Orders }
+      - { name: tests_count, type: integer, title: Tests }
+      - { name: net_billed_paisa, type: integer_paisa, title: Net billed }
+    default_sort: { column: net_billed_paisa, direction: desc }
+    row_cap: 5000
+    exportable: true
+    schedulable: true
+    example_params:
+      business_date_from: "2026-11-01"
+      business_date_to: "2026-11-30"
+      filters:
+        referrer_id: [0193c4a0-0000-7000-8000-000000000401]
+  - code: collection_boy
+    title: Collection boy
+    description: Sample collections, pickups and cash collected per collector (collection boy) and period; collectors are the sales staff with Allow Collection or Allow Pickup.
+    permission: analytics.collections.read
+    params: [business_date_from, business_date_to, centre_id, collector_id]
+    columns:
+      - { name: collector_id, type: string, title: Collector }
+      - { name: collector_name, type: string, title: Collector name }
+      - { name: collections_count, type: integer, title: Collections }
+      - { name: pickups_count, type: integer, title: Pickups }
+      - { name: collected_paisa, type: integer_paisa, title: Collected }
+      - { name: last_activity_at, type: datetime, title: Last activity }
+    default_sort: { column: collected_paisa, direction: desc }
+    row_cap: 2000
+    exportable: true
+    schedulable: true
+    example_params:
+      business_date_from: "2026-11-17"
+      business_date_to: "2026-11-17"
+      filters:
+        collector_id: [0193c4a0-0000-7000-8000-000000000501]
+  - code: repeated_patient
+    title: Repeated patient
+    description: Patients with at least min_repeat_count visits in the period (repeated and non repeated MIS), highest visit count first; patient number only, no name or phone.
+    permission: analytics.dashboard.read
+    params: [business_date_from, business_date_to, centre_id, min_repeat_count]
+    columns:
+      - { name: patient_id, type: string, title: Patient id }
+      - { name: patient_number, type: string, title: Patient number }
+      - { name: visit_count, type: integer, title: Visits }
+      - { name: first_visit_date, type: date, title: First visit }
+      - { name: last_visit_date, type: date, title: Last visit }
+      - { name: net_billed_paisa, type: integer_paisa, title: Net billed }
+    default_sort: { column: visit_count, direction: desc }
+    row_cap: 5000
+    exportable: true
+    schedulable: true
+    example_params:
+      business_date_from: "2026-10-01"
+      business_date_to: "2026-11-30"
+      filters:
+        min_repeat_count: 2
+  - code: repeated_test
+    title: Repeated test
+    description: Tests ordered at least min_repeat_count times for the same patient in the period, with repeat and non repeat patient counts per test, highest count first.
+    permission: analytics.dashboard.read
+    params: [business_date_from, business_date_to, centre_id, department_id, min_repeat_count]
+    columns:
+      - { name: test_code, type: string, title: Test code }
+      - { name: test_name, type: string, title: Test }
+      - { name: department_id, type: string, title: Department }
+      - { name: test_count, type: integer, title: Tests }
+      - { name: patients_count, type: integer, title: Patients }
+      - { name: repeat_patients_count, type: integer, title: Repeat patients }
+    default_sort: { column: test_count, direction: desc }
+    row_cap: 5000
+    exportable: true
+    schedulable: true
+    example_params:
+      business_date_from: "2026-10-01"
+      business_date_to: "2026-11-30"
+      filters:
+        min_repeat_count: 3
+  - code: ipd_opd
+    title: IPD and OPD
+    description: Orders, tests and amounts per business day, centre and patient type (orders.visit_type opd or ipd); covers the doctor, laboratory and franchise IPD/OPD views via the referrer and party filters.
+    permission: analytics.dashboard.read
+    params: [business_date_from, business_date_to, centre_id, visit_type, referrer_id, party_id]
+    columns:
+      - { name: business_date, type: date, title: Business date }
+      - { name: centre_id, type: string, title: Centre }
+      - { name: visit_type, type: string, title: Patient type }
+      - { name: orders_registered, type: integer, title: Orders }
+      - { name: tests_count, type: integer, title: Tests }
+      - { name: gross_paisa, type: integer_paisa, title: Gross }
+      - { name: net_paisa, type: integer_paisa, title: Net }
+    default_sort: { column: business_date, direction: desc }
+    row_cap: 5000
+    exportable: true
+    schedulable: true
+    example_params:
+      business_date_from: "2026-11-01"
+      business_date_to: "2026-11-30"
+      filters:
+        visit_type: ipd
+  - code: tds
+    title: TDS
+    description: Commission payable (commission_bp of the party settings) and TDS withheld at tds_bp per party and period, with the net payable. A report only, no money moves; it never posts to the ledger. Behind the referral report flag.
+    permission: analytics.referral_report.read
+    flag: referralIncentiveReportEnabled
+    params: [business_date_from, business_date_to, centre_id, party_id]
+    columns:
+      - { name: party_id, type: string, title: Party }
+      - { name: party_name, type: string, title: Party name }
+      - { name: period_from, type: date, title: Period from }
+      - { name: period_to, type: date, title: Period to }
+      - { name: commission_payable_paisa, type: integer_paisa, title: Commission payable }
+      - { name: tds_bp, type: basis_points, title: TDS rate }
+      - { name: tds_withheld_paisa, type: integer_paisa, title: TDS withheld }
+      - { name: net_payable_paisa, type: integer_paisa, title: Net payable }
+    default_sort: { column: tds_withheld_paisa, direction: desc }
+    row_cap: 5000
+    exportable: true
+    schedulable: true
+    example_params:
+      business_date_from: "2026-11-01"
+      business_date_to: "2026-11-30"
+      filters:
+        party_id: [0193c4a0-0000-7000-8000-000000000201]
+  - code: party_billing
+    title: Party billing
+    description: Orders, gross, discount, net, paid and outstanding amounts per party (company, cash party, credit party, postpaid client) and period.
+    permission: analytics.collections.read
+    params: [business_date_from, business_date_to, centre_id, party_id]
+    columns:
+      - { name: party_id, type: string, title: Party }
+      - { name: party_name, type: string, title: Party name }
+      - { name: billing_mode, type: string, title: Billing mode }
+      - { name: orders_registered, type: integer, title: Orders }
+      - { name: gross_paisa, type: integer_paisa, title: Gross }
+      - { name: discount_paisa, type: integer_paisa, title: Discount }
+      - { name: net_billed_paisa, type: integer_paisa, title: Net billed }
+      - { name: paid_paisa, type: integer_paisa, title: Paid }
+      - { name: outstanding_paisa, type: integer_paisa, title: Outstanding }
+    default_sort: { column: outstanding_paisa, direction: desc }
+    row_cap: 5000
+    exportable: true
+    schedulable: true
+    example_params:
+      business_date_from: "2026-11-01"
+      business_date_to: "2026-11-30"
+      filters:
+        party_id: [0193c4a0-0000-7000-8000-000000000201]
+  - code: outsource
+    title: Outsource and inter lab transfer
+    description: Tests sent to another processing branch or an outside lab per processing lab and department, with resulted counts, over the period.
+    permission: analytics.dashboard.read
+    params: [business_date_from, business_date_to, centre_id, department_id]
+    columns:
+      - { name: processing_branch_id, type: string, title: Processing lab }
+      - { name: processing_lab_name, type: string, title: Processing lab name }
+      - { name: department_id, type: string, title: Department }
+      - { name: tests_sent, type: integer, title: Tests sent }
+      - { name: tests_resulted, type: integer, title: Tests resulted }
+    default_sort: { column: tests_sent, direction: desc }
+    row_cap: 5000
+    exportable: true
+    schedulable: true
+    example_params:
+      business_date_from: "2026-11-01"
+      business_date_to: "2026-11-30"
+      filters:
+        department_id: [0193c4a0-0000-7000-8000-000000000601]
 components:
   schemas:
     Count:
@@ -5953,6 +6214,144 @@ components:
                   - verified
             overdue_only:
               type: boolean
+            # T0C-MISREPORTS-1 (LD-321): additive filters of the MIS report definitions (x-report-definitions).
+            party_id:
+              type: array
+              maxItems: 20
+              items:
+                $ref: _common.yaml#/components/schemas/Uuid
+            representative_id:
+              type: array
+              maxItems: 20
+              items:
+                $ref: _common.yaml#/components/schemas/Uuid
+            collector_id:
+              type: array
+              maxItems: 20
+              items:
+                $ref: _common.yaml#/components/schemas/Uuid
+            visit_type:
+              type: string
+              maxLength: 3
+              enum:
+                - opd
+                - ipd
+            min_repeat_count:
+              type: integer
+              minimum: 2
+              maximum: 100
+    # T0C-MISREPORTS-1 (LD-321): one entry of the root list x-report-definitions. No route returns it; the T0B-MISREPORTS-1
+    # report registry is built from the same data. The reports run through createAnalyticsExport / createReportSchedule (no new route).
+    ReportDefinition:
+      type: object
+      additionalProperties: false
+      required:
+        - code
+        - title
+        - description
+        - permission
+        - params
+        - columns
+        - default_sort
+        - row_cap
+        - exportable
+        - schedulable
+        - example_params
+      properties:
+        code:
+          type: string
+          minLength: 2
+          maxLength: 32
+          pattern: ^[a-z][a-z_]*$
+        title:
+          type: string
+          minLength: 3
+          maxLength: 120
+        description:
+          type: string
+          minLength: 21
+          maxLength: 1000
+        permission:
+          type: string
+          maxLength: 100
+          pattern: ^analytics\.[a-z_]+\.[a-z_]+$
+        flag:
+          type: string
+          maxLength: 64
+          pattern: ^[a-zA-Z]+$
+        params:
+          type: array
+          minItems: 1
+          maxItems: 10
+          items:
+            type: string
+            maxLength: 32
+            enum:
+              - business_date_from
+              - business_date_to
+              - centre_id
+              - department_id
+              - referrer_id
+              - party_id
+              - representative_id
+              - collector_id
+              - visit_type
+              - min_repeat_count
+        columns:
+          type: array
+          minItems: 3
+          maxItems: 30
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - name
+              - type
+              - title
+            properties:
+              name:
+                type: string
+                maxLength: 63
+                pattern: ^[a-z][a-z0-9_]*$
+              type:
+                type: string
+                maxLength: 13
+                enum:
+                  - string
+                  - integer
+                  - integer_paisa
+                  - basis_points
+                  - date
+                  - datetime
+              title:
+                type: string
+                maxLength: 120
+        default_sort:
+          type: object
+          additionalProperties: false
+          required:
+            - column
+            - direction
+          properties:
+            column:
+              type: string
+              maxLength: 63
+            direction:
+              type: string
+              maxLength: 4
+              enum:
+                - asc
+                - desc
+        row_cap:
+          type: integer
+          minimum: 1
+          maximum: 100000
+        exportable:
+          type: boolean
+        schedulable:
+          type: boolean
+        example_params:
+          $ref: "#/components/schemas/ExportParams"
     ExportDto:
       type: object
       additionalProperties: false

@@ -105,6 +105,7 @@ export function RangeManager({ analyte, sets, criticalSets, methods, permissions
   const [fail, setFail] = useState<Fail>();
   const [publishing, setPublishing] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [emptyError, setEmptyError] = useState<string>();
   const [key] = useState(newKey);
   const clientErrors = useMemo(() => validate(rows), [rows]);
 
@@ -163,21 +164,28 @@ export function RangeManager({ analyte, sets, criticalSets, methods, permissions
 
   const save = async () => {
     if (busy || Object.keys(clientErrors).length) return;
+    // Review fix: an existing set cannot be emptied (PUT needs >= 1 band); say so instead of a false "saved".
+    if (rows.length === 0 && set) { setEmptyError('A range set needs at least one band; retire the set instead.'); return; }
+    setEmptyError(undefined);
     setBusy(true);
     try {
       const bands = rows.map(toBand);
+      let sent = false;
       if (bands.length) {
+        sent = true;
         const r = set ? await replaceBandsAction('ranges', set.id, set.version, bands) : await createRangeSetDraftAction('ranges', analyte.id, { bands }, key);
         if (!r.ok) { if (!placeServer(r.errors)) setFail(r); else setFail(undefined); return; }
       }
       if (critChanged) {
         const cb = critBands();
         if (cb.length) {
+          sent = true;
           const r = crit?.status === 'draft' ? await replaceBandsAction('critical', crit.id, crit.version, cb) : await createRangeSetDraftAction('critical', analyte.id, { bands: cb }, newKey());
           if (!r.ok) { setFail(r); return; }
         }
       }
       setFail(undefined);
+      if (!sent) return;
       toast.show({ tone: 'success', title: 'Reference ranges saved.' });
       router.refresh();
     } finally {
@@ -203,6 +211,7 @@ export function RangeManager({ analyte, sets, criticalSets, methods, permissions
         {manage && set && set.status !== 'draft' && !sets.some((s) => s.status === 'draft') ? <Button onPress={() => void newVersion()}>New version</Button> : null}
       </div>
       {fail ? <FailBanner fail={fail} /> : null}
+      {emptyError ? <p role="alert" className="lims-error">{emptyError}</p> : null}
       {!set ? <p>No reference ranges yet. Results for this parameter show no range until a band is added and published.</p> : null}
       <div className="catalog-form-with-preview">
         <div className="lims-stack catalog-gap-2">

@@ -67,10 +67,16 @@ export function TestDetailsView({ tests, selected, permissions }: { tests: reado
     const a = params[i];
     const b = params[i + dir];
     if (!manage || !a || !b) return false;
-    const r1 = await updateAnalyteFullAction(a.id, a.version, { sort_order: b.sort_order });
-    if (!r1.ok) return failed(r1);
-    const r2 = await updateAnalyteFullAction(b.id, b.version, { sort_order: a.sort_order });
-    if (!r2.ok) return failed(r2);
+    // Review fix: analytes may share sort_order (API default 100), so a swap can be a no-op. Renumber to (index+1)*10 instead.
+    const order = [...params];
+    order[i] = b;
+    order[i + dir] = a;
+    for (const [k, p] of order.entries()) {
+      const want = (k + 1) * 10;
+      if (p.sort_order === want) continue;
+      const r = await updateAnalyteFullAction(p.id, p.version, { sort_order: want });
+      if (!r.ok) return failed(r);
+    }
     setFail(undefined);
     toast.show({ tone: 'success', title: 'Order saved.' });
     return true;

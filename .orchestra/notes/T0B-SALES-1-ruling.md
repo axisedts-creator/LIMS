@@ -1,9 +1,8 @@
-TESTS_WRONG — the mkInvoice fixture inserts values the billing schema forbids; fix the fixture only, assertions unchanged.
-1. Fingerprint shape is sha256 hex: spec/chunks/C4-frontdesk-billing/02-TRD.md:245 ("fingerprint (64 hex ...)") and :417 ("sha256 hex"); enforced by db/migrations/20261105001700_billing__create_billing_schema.sql:115 invoices__fp__ck '^[0-9a-f]{64}$'. Fixture value 'synthetic' (services/api/src/modules/partners/__tests__/sales/helpers.ts:130) can never insert.
-2. invoice_seq must be >= 1 (same migration :94 invoices__seq__ck); helpers.ts:127 Math.floor(Math.random()*2e9) can yield 0.
-3. session_replication_role='replica' disables triggers only, not CHECK constraints, so the earlier replica fix (ruling 55c3ab50a) does not cover these.
-4. Nothing in T0C-SALES-1 / T0B-SALES-1 brief requires the implementation to accept invalid invoices; the outstanding/last-bill-date assertions in assignments.test.ts stay as written.
-CHANGE (test fixture helpers.ts mkInvoice only):
-- quote_fingerprint: crypto.randomBytes(32).toString('hex') (or '0'.repeat(64)).
-- invoice_seq: 1 + Math.floor(Math.random() * 2e9).
-No assertion deleted, skipped or loosened. Implementation stays as is.
+TESTS_WRONG — homecollection repositories.test.ts leaves non-spec ACTIVE global reason rows behind; add cleanup there. reasons.test.ts assertions stay unchanged.
+1. Spec: g_cs_reasons is global, the only reason source, seed-migration rows only (spec/chunks/C17-home-collection/05-SCHEMA.md:16, :45, :119; 02-TRD.md:196 H20 "global seeds only"). So reasons.test.ts:14 asserting exactly the 05-SCHEMA §2 codes per set is correct.
+2. repositories.test.ts:231-233 seeds active visit_cancel_reasons rows hct03_*_a/_b (sort_order 9001/9002) into that global table and never removes them; while it runs (or after it) H20 returns codes the spec says cannot exist. That is fixture pollution, not an implementation defect.
+3. Nothing in the T0B-SALES-1 brief or T0C-SALES-1 touches reason codes; the implementation must not filter test rows.
+CHANGE (test file services/api/src/modules/homecollection/repository/__tests__/repositories.test.ts only):
+- In the 'reasons.repo' describe add afterAll: superuser DELETE FROM homecollection.g_cs_reasons WHERE id = ANY($1) with [A.id, B.id].
+- Because files run in parallel on one DB, cleanup alone leaves a window: also run the homecollection test files serially (vitest fileParallelism:false or a sequential project for src/modules/homecollection), or seed these two rows inside a transaction that rolls back. Same isolation fixes the schedule/handovers/guards shared-tenant collisions named in the dispute.
+- No assertion deleted, skipped or loosened. Then rerun verify three times on an idle host.

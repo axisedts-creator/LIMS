@@ -38,8 +38,8 @@ SELECT throws_ok($$INSERT INTO analytics.g_cs_report_codes (code, display) VALUE
 SELECT is((SELECT count(*)::int FROM pg_constraint WHERE conname = 'exports__report__fk' AND confrelid = 'analytics.g_cs_report_codes'::regclass), 1, 'exports.report_code still references the coded set (new codes become exportable with no new table)');
 SELECT is((SELECT count(*)::int FROM pg_proc WHERE proname = 'schedules_codes_guard' AND pronamespace = 'analytics'::regnamespace), 1, 'schedules_codes_guard still reads the coded set (new codes become schedulable)');
 
--- no structural change: the coded set keeps its 8 columns, the analytics schema keeps its 26 tenant + 2 global tables, grants stay SELECT only
-SELECT is((SELECT count(*)::int FROM pg_attribute WHERE attrelid = 'analytics.g_cs_report_codes'::regclass AND attnum > 0 AND NOT attisdropped), 8, 'g_cs_report_codes keeps its 8 columns (no supporting column was needed)');
+-- no structural change: the coded set keeps its 9 columns, the analytics schema keeps its 26 tenant + 2 global tables, grants stay SELECT only
+SELECT is((SELECT count(*)::int FROM pg_attribute WHERE attrelid = 'analytics.g_cs_report_codes'::regclass AND attnum > 0 AND NOT attisdropped), 9, 'g_cs_report_codes keeps its 9 columns (no supporting column was needed)');
 SELECT is((SELECT count(*)::int FROM pg_class c WHERE c.relnamespace = 'analytics'::regnamespace AND c.relkind IN ('r','p')), 26 + 2 + 1, 'analytics holds the same 26 tenant + 2 global tables + event_inbox');
 SELECT is(has_table_privilege('lims_app', 'analytics.g_cs_report_codes', 'SELECT'), true, 'lims_app can read the coded set');
 SELECT is(has_table_privilege('lims_app', 'analytics.g_cs_report_codes', 'INSERT') OR has_table_privilege('lims_app', 'analytics.g_cs_report_codes', 'UPDATE') OR has_table_privilege('lims_app', 'analytics.g_cs_report_codes', 'DELETE'), false,

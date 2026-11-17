@@ -1,7 +1,6 @@
-CR_NEEDED — the brief (LD-321) and the spec's B13 / 04 L19 position cannot both hold; the B13 decision itself must be re-confirmed or changed. CR text: .orchestra/cr/T0C-MISREPORTS-1.md
-- spec/research/04-consolidated-decisions.md:174 (L19, highest spec precedence below 00-README): "referral-incentive reporting only, never labelled \"commission\", payouts outside the system". :237 (B13) "Reporting only, no \"commission\" label".
-- spec/program/06-GLOSSARY.md:50: the word "commission" "must never appear on any system document or UI label (04 L19)".
-- spec/chunks/C8-analytics-mis/01-PRD.md:60 (IS-07): referral report has "no rate, no amount payable, no payout"; :143 no API field contains "commission"; 02-TRD.md:875,903 CI grep. So c8-openapi.test.ts:147-149 faithfully encodes the spec.
-- The brief (LD-321) requires a "two level commission" report, commission_bp columns and a TDS report of "commission payable" per party. Renaming alone (incentive_bp) would still violate IS-07 "no rate, no amount payable", so this is not a test or implementation fix.
-- spec/program/12-REFERENCE-SOFTWARE-GAP.md:94 and :127 already flag this exact conflict as open: "Confirm that B13 still holds". B13 is a client-management / compliance (money) decision (07-BLOCKERS.md:21); LD-310 blanket authority excludes money decisions, so the lead cannot settle it alone.
-- Until ruled: neither test may be edited or weakened; the task stays blocked on the CR.
+TESTS_WRONG — db/tests/analytics/T0C-MISREPORTS-1_report_codes.test.sql:42 pins 8 columns; the table has always had 9. Change the expected value 8 to 9 and the description/comment (line 41-42) to "keeps its 9 columns"; keep the case.
+Reasons:
+- db/migrations/20261105002100_analytics__create_analytics_schema.sql:16-20 creates analytics.g_cs_report_codes with 9 columns: code, display, system, system_version, sort_order, is_active, is_exportable, is_schedulable, created_at.
+- No migration alters its columns: the only ALTER TABLE on it is db/migrations/20261117230000_analytics__add_mis_report_support.sql:15 (DROP CONSTRAINT IF EXISTS g_cs_report_codes__no_c_word__ck), which LD-342 explicitly allows ("the migration drops only the check g_cs_report_codes__no_c_word__ck").
+- Task brief done_when (2)/(6) and LD-321 MIGRATIONS: 230000 adds a column/index only if needed; none was added, so the case's intent ("no supporting column was needed") is unchanged count = 9.
+- No spec line requires 8 columns; the 8 is a tester miscount, not a requirement.

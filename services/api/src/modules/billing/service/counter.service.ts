@@ -33,6 +33,9 @@ const BUMP = `UPDATE billing.fiscal_counters SET last_no = last_no + 1
 const OPEN = `INSERT INTO billing.fiscal_counters (tenant_id, series, fiscal_year_bs, last_no, created_by, updated_by)
   VALUES ($1, $2, $3, 0, $4, $4) ON CONFLICT DO NOTHING`;
 
+const PEEK = `SELECT last_no, (closed_at IS NULL AND is_active) AS open FROM billing.fiscal_counters
+  WHERE tenant_id = $1 AND series = $2 AND fiscal_year_bs = $3`;
+
 const invalid = () => new LimsError('common.validation_failed');
 const busy = (detail?: string) => Object.assign(new LimsError('billing.counter_busy', detail), { retryAfterSeconds: 1 });
 const isLockTimeout = (e: unknown) => (e as { code?: unknown } | null)?.code === '55P03';
@@ -69,6 +72,14 @@ export function createCounterService(deps: CounterServiceDeps = {}) {
     if (!checkFiscalYear(allocatedAt as IsoUtc, input.timezone ?? 'Asia/Kathmandu', fiscalYearBs).ok) throw busy('fiscal_year_rollover');
     return { lastNo: row.last_no, allocatedAt };
   }
-  return { allocate };
+  /** LD-323 (a): read-only preview, last_no + 1 of the open counter row; no write, no nextval, no row lock (plain SELECT). No row yet = first number. */
+  async function peek(tx: Tx, input: { tenantId: string; series: string; fiscalYearBs: string }): Promise<number> {
+    const { tenantId, series, fiscalYearBs } = input;
+    if (!UUID.test(String(tenantId)) || !SERIES.test(String(series)) || !FY.test(String(fiscalYearBs))) throw invalid();
+    const row = (await tx.query(PEEK, [tenantId, series, fiscalYearBs])).rows[0] as { last_no: number | string; open: boolean } | undefined;
+    if (row && !row.open) throw new LimsError('billing.fiscal_year_closed');
+    return Number(row?.last_no ?? 0) + 1;
+  }
+  return { allocate, peek };
 }
 export type CounterService = ReturnType<typeof createCounterService>;

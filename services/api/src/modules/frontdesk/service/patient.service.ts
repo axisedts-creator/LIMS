@@ -16,6 +16,8 @@ import { EXTERNAL_ID_UQ, anonymisePatientRow, duplicateCandidates, findDedupePoo
 import { getSettings } from '../repository/settings.repo.js';
 import { deactivateTrfByPatient, getTrfAttachmentById } from '../repository/trf.repo.js';
 import type { Tx } from '../repository/shared.repo.js';
+import { activeFieldDefinitions } from '../repository/parity.repo.js';
+import { checkCustomFields } from './parity.service.js';
 import { FRONTDESK_PERMISSIONS as P } from '../permissions.js';
 
 export interface PatientCtx {
@@ -216,7 +218,10 @@ function parityFields(b: Obj): Obj {
   return o;
 }
 /** `s` = the row as it will be stored (current row merged with the change). `photoChanged` = check the attachment only when it is (re)set. */
-async function checkParity(c: PatientCtx, s: Obj, photoChanged: boolean): Promise<void> {
+async function checkParity(c: PatientCtx, s: Obj, photoChanged: boolean, fieldsChanged = false): Promise<void> {
+  // T0B-REGAPI-2 (LD-310): custom_fields against the ACTIVE definitions of the tenant, checked when the request sets them [CONV: a required field is enforced
+  // on the request that carries custom_fields, so patients saved before a definition existed stay editable]
+  if (fieldsChanged && isObj(s['custom_fields'])) checkCustomFields(s['custom_fields'], await activeFieldDefinitions(c.tx, c.tenantId));
   const hasType = s['government_id_type'] != null; const hasNo = s['government_id_number'] != null;
   if (hasType && !hasNo) throw bad('/government_id_number');   // type and number together or neither
   if (hasNo && !hasType) throw bad('/government_id_type');
@@ -265,7 +270,7 @@ export async function createPatient(hctx: unknown, body: unknown): Promise<Resul
     overrideCode = o['reason_code'];   // ponytail: format only; membership of frontdesk.duplicate_override_reasons is not checked (no coded-set reader in C4 yet)
   }
   await checkConsents(c, consents);
-  await checkParity(c, parity, true);
+  await checkParity(c, parity, true, parity['custom_fields'] !== undefined);
 
   // US-FD-02.2: same normalised name + birth year +-1 + same phone (when both present). Candidates come back masked.
   const nameSearch = normaliseName(fullName);
@@ -339,7 +344,7 @@ export async function updatePatient(hctx: unknown, params: unknown, headers: unk
   const cur = await loadPatient(c, isObj(params) ? params['patient_id'] : undefined);
   if (cur['anonymised_at'] != null) throw new LimsError('common.not_found');
   if (Number(cur['version']) !== version) throw new LimsError('common.version_conflict');
-  await checkParity(c, { ...cur, ...set }, changed.has('profile_photo_attachment_id'));
+  await checkParity(c, { ...cur, ...set }, changed.has('profile_photo_attachment_id'), set['custom_fields'] != null);
   const row = await uniqueExternalId(updatePatientRow(c.tx, c.tenantId, cur['id'], version, set));
   if (!row) throw new LimsError('common.version_conflict');   // lost a race on the row lock: the version moved under us
   // A13 D-27a compensating control: column names only, never values.

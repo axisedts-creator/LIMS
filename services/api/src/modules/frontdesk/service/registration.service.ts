@@ -23,6 +23,7 @@ import { confirmOrderRow, insertOrder, lockOrderById, patientHasOrder } from '..
 import { getPatientById } from '../repository/patients.repo.js';
 import { getSettings } from '../repository/settings.repo.js';
 import { linkTrfToOrder, lockLinkableTrfDrafts } from '../repository/trf.repo.js';
+import { activeIcdCodes, getCouponByCode, insertPoints, lockPatientPoints, pointTotals, useCoupon } from '../repository/parity.repo.js';
 import { loadFrontdeskConfig } from '../config.js';
 import { FRONTDESK_PERMISSIONS as P } from '../permissions.js';
 import { lockApprovalForRegistration, markConsumed, toApiDiscount } from './discount.service.js';
@@ -40,8 +41,10 @@ type CollectionMode = 'walk_in' | 'home' | 'centre' | 'partner';
 interface DraftDiscount { scope: 'bill' | 'line'; orderableId?: string; kind: 'amount' | 'percent'; amountPaisa?: number; percentBp?: number; reasonCode: string; reasonText?: string }
 export interface Draft {
   centreId: string; billingMode: 'cash' | 'credit'; visitType: 'opd' | 'ipd'; priority: Priority; collectionMode: CollectionMode; creditPartyId?: string; referrerId?: string;
-  items: Array<{ orderableId: string; priority: Priority }>;
+  items: Array<{ orderableId: string; priority: Priority; icdCode?: string }>;
   discounts: DraftDiscount[];
+  // T0B-REGAPI-2 (LD-310): RegistrationDraft parity fields
+  couponCode?: string; visitingChargePaisa?: number; redeemPoints?: number;
 }
 
 const UUID = /^[0-9a-f-]{36}$/;
@@ -77,7 +80,9 @@ function parseDraft(b: unknown): Draft {
     const orderableId = uuid(it.orderable_id, `/items/${i}/orderable_id`);
     if (seen.has(orderableId)) throw bad(`/items/${i}/orderable_id`);                     // one line per orderable: a line discount must name exactly one line
     seen.add(orderableId);
-    return { orderableId, priority: it.priority === undefined ? dflt : oneOf(it.priority, ['routine', 'urgent'], `/items/${i}/priority`) };
+    if (it.icd_code !== undefined && (typeof it.icd_code !== 'string' || !ICD_CODE.test(it.icd_code))) throw bad(`/items/${i}/icd_code`);
+    return { orderableId, priority: it.priority === undefined ? dflt : oneOf(it.priority, ['routine', 'urgent'], `/items/${i}/priority`),
+      ...(typeof it.icd_code === 'string' ? { icdCode: it.icd_code } : {}) };
   });
   const raw = b.discounts === undefined ? [] : b.discounts;
   if (!Array.isArray(raw) || raw.length > 20) throw bad('/discounts');
@@ -98,7 +103,94 @@ function parseDraft(b: unknown): Draft {
     if (!int(d.amount_paisa) || d.amount_paisa < 1) throw bad(`${at}/amount_paisa`);
     return { ...common, kind, amountPaisa: d.amount_paisa };
   });
-  return { centreId, billingMode, visitType, priority: dflt, collectionMode, ...(creditPartyId ? { creditPartyId } : {}), ...(referrerId ? { referrerId } : {}), items, discounts };
+  // T0B-REGAPI-2: one fixed 400 per field; a coupon that fails any rule gets the SAME answer at /coupon_code (no probing of codes)
+  if (b.coupon_code !== undefined && (typeof b.coupon_code !== 'string' || !COUPON_CODE.test(b.coupon_code))) throw bad('/coupon_code');
+  if (b.visiting_charge_paisa !== undefined && (!int(b.visiting_charge_paisa) || b.visiting_charge_paisa < 0)) throw bad('/visiting_charge_paisa');
+  if (b.redeem_reward_points !== undefined && (!int(b.redeem_reward_points) || b.redeem_reward_points < 0 || b.redeem_reward_points > 1_000_000_000)) throw bad('/redeem_reward_points');
+  return { centreId, billingMode, visitType, priority: dflt, collectionMode, ...(creditPartyId ? { creditPartyId } : {}), ...(referrerId ? { referrerId } : {}), items, discounts,
+    ...(typeof b.coupon_code === 'string' ? { couponCode: b.coupon_code } : {}), ...(b.visiting_charge_paisa !== undefined ? { visitingChargePaisa: b.visiting_charge_paisa as number } : {}),
+    ...(b.redeem_reward_points !== undefined ? { redeemPoints: b.redeem_reward_points as number } : {}) };
+}
+
+// ======================= T0B-REGAPI-2 (LD-310): ICD master, coupon, reward points (shared by F8 and F9) =======================
+const ICD_CODE = /^[0-9A-Z][0-9A-Z.]{0,15}$/;
+const COUPON_CODE = /^[A-Z0-9][A-Z0-9_-]{0,31}$/;
+
+/** Every line's icd_code must be an ACTIVE code of the tenant's ICD master (done_when 1). */
+async function checkIcd(c: QuoteCtx, d: Draft): Promise<void> {
+  const codes = [...new Set(d.items.flatMap((i) => (i.icdCode ? [i.icdCode] : [])))];
+  const ok = await activeIcdCodes(c.tx, c.tenantId, codes);
+  const badLines = d.items.flatMap((i, n) => (i.icdCode && !ok.has(i.icdCode) ? [`/items/${n}/icd_code`] : []));
+  if (badLines.length) throw bad(...badLines);
+}
+/** Coupon value in paisa (pinned by the T0B-REGAPI-2 tests): percent = floor(percent x net), amount = amount; capped at the net (never below zero). */
+export function couponValue(coupon: Record<string, any>, netPaisa: number): number {
+  const v = coupon['percent'] != null ? Math.floor((Number(coupon['percent']) * netPaisa) / 100) : Number(coupon['amount_paisa']);
+  return Math.max(0, Math.min(v, netPaisa));
+}
+/** Read-only validity (F8): tenant row, active, valid_from <= today <= valid_to, used_count < usage_limit. */
+async function readCoupon(c: QuoteCtx, code: string, today: string): Promise<Record<string, any>> {
+  const r = await getCouponByCode(c.tx, c.tenantId, code);
+  const day = (v: unknown) => dateOnly(v);
+  if (!r || r['is_active'] !== true || (r['valid_from'] != null && day(r['valid_from'])! > today) || (r['valid_to'] != null && day(r['valid_to'])! < today)
+    || (r['usage_limit'] != null && Number(r['used_count']) >= Number(r['usage_limit']))) throw bad('/coupon_code');
+  return r;
+}
+async function checkPoints(c: QuoteCtx, patientId: string | undefined, points: number | undefined): Promise<void> {
+  if (!points) return;
+  const t = patientId ? await pointTotals(c.tx, c.tenantId, patientId) : { earned: 0, redeemed: 0 };
+  if (points > t.earned - t.redeemed) throw bad('/redeem_reward_points');   // never below zero
+}
+async function tenantToday(c: QuoteCtx): Promise<string> {
+  const tz = ((await c.ports.IdentityPort.getTenantSettings(c, { keys: ['timezone'] })) ?? {}).timezone;
+  return todayIn(typeof tz === 'string' ? tz : TZ, c.now());
+}
+
+// T0B-REGAPI-2: CreateRegistrationRequest properties (contract) + the LD-25 back-entry keys; anything else is 400 (a client never sets coupon_amount_paisa).
+const CREATE_KEYS = ['patient', 'centre_id', 'visit_type', 'billing_mode', 'credit_party_id', 'referrer_id', 'priority', 'collection_mode', 'items', 'discounts', 'buyer_pan',
+  'quote_fingerprint', 'payments', 'trf_attachment_ids', 'discount_approval_id', 'collection_at', 'collected_by_membership_id', 'collected_by_name', 'sample_not_collected',
+  'sample_remark', 'remark_description', 'clinical_history', 'patient_history', 'mr_number', 'external_reference', 'insurance_code', 'insurance_claim_amount_paisa',
+  'visiting_charge_paisa', 'coupon_code', 'redeem_reward_points', 'entry_mode', 'occurred_at', 'downtime_ref'];
+const ORDER_TEXT: ReadonlyArray<readonly [string, number]> = [['collected_by_name', 200], ['sample_remark', 500], ['remark_description', 1000], ['clinical_history', 4000],
+  ['patient_history', 4000], ['mr_number', 64], ['external_reference', 64], ['insurance_code', 64]];
+const COLLECTION_AHEAD_MS = 5 * 60_000;   // done_when 1: collection_at not more than 5 minutes in the future
+/** Order-level parity fields (values never echoed: fixed messages). Health text (clinical/patient history) is never logged (D-27a). */
+function parseOrderFields(o: Record<string, unknown>, now: Date): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [k, max] of ORDER_TEXT) {
+    const v = o[k];
+    if (v === undefined) continue;
+    if (typeof v !== 'string' || v.length === 0 || v.includes('\u0000') || [...v].length > max) throw bad(`/${k}`);
+    out[k] = v;
+  }
+  if (o['collection_at'] !== undefined) {
+    const at = o['collection_at'];
+    const ms = typeof at === 'string' && ISO_INSTANT.test(at) ? Date.parse(at) : NaN;
+    if (!Number.isFinite(ms) || ms > now.getTime() + COLLECTION_AHEAD_MS) throw bad('/collection_at');
+    out['collection_at'] = new Date(ms);
+  }
+  if (o['collected_by_membership_id'] !== undefined) {
+    if (out['collected_by_name'] !== undefined) throw bad('/collected_by_membership_id', '/collected_by_name');   // staff OR outside collector
+    out['collected_by_membership_id'] = uuid(o['collected_by_membership_id'], '/collected_by_membership_id');
+  }
+  if (o['sample_not_collected'] !== undefined) { if (typeof o['sample_not_collected'] !== 'boolean') throw bad('/sample_not_collected'); out['sample_not_collected'] = o['sample_not_collected']; }
+  if (o['insurance_claim_amount_paisa'] !== undefined) {
+    if (!int(o['insurance_claim_amount_paisa']) || o['insurance_claim_amount_paisa'] < 0) throw bad('/insurance_claim_amount_paisa');
+    out['insurance_claim_amount_paisa'] = o['insurance_claim_amount_paisa'];
+  }
+  return out;
+}
+/** OrderDto parity fields from a stored order row (+ the points the order redeemed / earned); a null column is an absent key. */
+export function orderParityDto(o: Record<string, any>, points: { earned: number; redeemed: number } = { earned: 0, redeemed: 0 }): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const k of ['collected_by_membership_id', 'collected_by_name', 'sample_remark', 'remark_description', 'clinical_history', 'patient_history', 'mr_number', 'external_reference',
+    'insurance_code', 'coupon_code']) if (o[k] != null) out[k] = String(o[k]);
+  if (o['collection_at'] != null) out['collection_at'] = new Date(o['collection_at']).toISOString();
+  if (o['sample_not_collected'] != null) out['sample_not_collected'] = o['sample_not_collected'] === true;
+  for (const k of ['insurance_claim_amount_paisa', 'visiting_charge_paisa', 'coupon_amount_paisa']) if (o[k] != null) out[k] = Number(o[k]);
+  if (points.earned > 0) out['reward_points_earned'] = points.earned;
+  if (points.redeemed > 0) out['reward_points_redeemed'] = points.redeemed;
+  return out;
 }
 
 const money = (m: { amountPaisa: number; currency: string }) => ({ amount_paisa: m.amountPaisa, currency: m.currency });
@@ -201,9 +293,9 @@ export async function priceDraft(c: QuoteCtx, d: Draft, settings: any): Promise<
 
 // ======================= F9 createRegistration =======================
 
-interface PaymentIn { methodCode: string; amountPaisa: number; reference?: string }
+interface PaymentIn { methodCode: string; amountPaisa: number; reference?: string; cardHolderName?: string; paymentRemark?: string }
 interface Downtime { occurredAt: string; downtimeRef: string }
-interface CreateIn { draft: Draft; fingerprint: string; payments: PaymentIn[]; trfIds: string[]; approvalId?: string; buyerPan?: string; downtime?: Downtime }
+interface CreateIn { draft: Draft; fingerprint: string; payments: PaymentIn[]; trfIds: string[]; approvalId?: string; buyerPan?: string; downtime?: Downtime; orderFields: Record<string, unknown> }
 
 // LD-25 (2026-11-07, A33-2 downtime mode): back-entry window default. ponytail: constant, not the tenant setting `downtime_backentry_max_hours`
 // (TenantSettings has no such key yet, see .orchestra/cr/FD-T06-ld25-gaps.md); switch to the setting when C2 adds it.
@@ -229,6 +321,7 @@ function parseDowntime(b: Record<string, unknown>, now: Date): Downtime | undefi
 }
 
 function parseCreate(b: unknown, now: Date): CreateIn {
+  strict(b, CREATE_KEYS);
   const draft = parseDraft(b);
   const o = b as Record<string, unknown>;
   const fp = o['quote_fingerprint'];
@@ -242,7 +335,11 @@ function parseCreate(b: unknown, now: Date): CreateIn {
     if (!int(p.amount_received_paisa) || p.amount_received_paisa < 1) throw bad(`${at}/amount_received_paisa`);
     if (p.reference !== undefined && (typeof p.reference !== 'string' || p.reference.length > 100)) throw bad(`${at}/reference`);
     if (p.tendered_paisa !== undefined && (!int(p.tendered_paisa) || p.tendered_paisa < 1)) throw bad(`${at}/tendered_paisa`);
-    return { methodCode: p.method_code, amountPaisa: p.amount_received_paisa, ...(typeof p.reference === 'string' ? { reference: p.reference } : {}) };
+    // T0B-REGAPI-2 (LD-310): personal data (card holder) is never logged; both reach the billing port
+    const opt = (k: string, max: number) => { const v = p[k]; if (v !== undefined && (typeof v !== 'string' || v.length === 0 || v.includes('\u0000') || [...v].length > max)) throw bad(`${at}/${k}`); return v as string | undefined; };
+    const cardHolderName = opt('card_holder_name', 100); const paymentRemark = opt('payment_remark', 300);
+    return { methodCode: p.method_code, amountPaisa: p.amount_received_paisa, ...(typeof p.reference === 'string' ? { reference: p.reference } : {}),
+      ...(cardHolderName ? { cardHolderName } : {}), ...(paymentRemark ? { paymentRemark } : {}) };
   });
   if (draft.billingMode === 'credit' && payments.length > 0) throw bad('/payments');        // 03-APP-FLOW §2.3 step 6 credit
   const trf = o['trf_attachment_ids'];
@@ -251,7 +348,8 @@ function parseCreate(b: unknown, now: Date): CreateIn {
   const approvalId = o['discount_approval_id'] === undefined ? undefined : uuid(o['discount_approval_id'], '/discount_approval_id');
   if (o['buyer_pan'] !== undefined && (typeof o['buyer_pan'] !== 'string' || o['buyer_pan'].length > 32)) throw bad('/buyer_pan');
   const downtime = parseDowntime(o, now);
-  return { draft, fingerprint: fp, payments, trfIds: [...new Set((trf as string[] | undefined) ?? [])], ...(approvalId ? { approvalId } : {}), ...(typeof o['buyer_pan'] === 'string' ? { buyerPan: o['buyer_pan'] } : {}), ...(downtime ? { downtime } : {}) };
+  const orderFields = parseOrderFields(o, now);
+  return { draft, fingerprint: fp, payments, trfIds: [...new Set((trf as string[] | undefined) ?? [])], ...(approvalId ? { approvalId } : {}), ...(typeof o['buyer_pan'] === 'string' ? { buyerPan: o['buyer_pan'] } : {}), ...(downtime ? { downtime } : {}), orderFields };
 }
 
 function createCtx(c: unknown): CreateCtx {
@@ -297,7 +395,7 @@ export async function create(hctx: unknown, body: unknown): Promise<Result> {
   return portErrors(() => createInTx(hctx, body));
 }
 
-async function portErrors(fn: () => Promise<Result>): Promise<Result> {
+export async function portErrors(fn: () => Promise<Result>): Promise<Result> {
   try { return await fn(); } catch (e) {
     const x = e as { code?: unknown; detail?: unknown } | null;
     if (e instanceof LimsError || typeof x?.code !== 'string' || !/^[a-z_]+\.[a-z_]+$/.test(x.code)) throw e;     // app codes only: a pg SQLSTATE ('23505') is not one
@@ -393,6 +491,23 @@ async function createInTx(hctx: unknown, body: unknown, pre?: Pre): Promise<Resu
     throw new LimsError('common.not_found');      // 07-SECURITY §6.1: a named approval that is not this tenant's is 404 even when none is needed (not silently ignored); not consumed
   }
 
+  // 4a. T0B-REGAPI-2 (LD-310 done_when 1/2/7): ICD master, claim <= net, coupon use (once per order, row-locked UPDATE), points <= balance (per-patient lock).
+  //     All inside this tx: a failing save gives the coupon use back with everything else.
+  await checkIcd(c, d);
+  const netPaisa = p.q.totals.net.amountPaisa;
+  const claim = r.orderFields['insurance_claim_amount_paisa'] as number | undefined;
+  if (claim !== undefined && claim > netPaisa) throw bad('/insurance_claim_amount_paisa');
+  let couponAmount: number | undefined;
+  if (d.couponCode) {
+    const used = await useCoupon(c.tx, c.tenantId, d.couponCode, await tenantToday(c));
+    if (!used) throw bad('/coupon_code');
+    couponAmount = couponValue(used, netPaisa);
+  }
+  if (d.redeemPoints) {
+    await lockPatientPoints(c.tx, c.tenantId, patient['id']);
+    await checkPoints(c, patient['id'], d.redeemPoints);
+  }
+
   // 5. order: registration_no counter (per branch) first, invoice counter (inside billing) last: short lock window
   const tenant = (await identity.getTenantSettings(c, { keys: ['numbering', 'timezone', 'branding', 'channels'] })) ?? {};
   const tz = typeof tenant.timezone === 'string' ? tenant.timezone : TZ;
@@ -417,13 +532,21 @@ async function createInTx(hctx: unknown, body: unknown, pre?: Pre): Promise<Resu
     const seq = await nextCounterValue(c.tx, c.tenantId, 'registration_no', branchId, c.actor.id);
     const age = birth ? ageParts(birth, today) : undefined;
     orderId = uuidv7();
-    order = await insertOrder(c.tx, c.tenantId, {
-      id: orderId, branch_id: branchId, centre_id: d.centreId, patient_id: patient['id'], registration_no: formatNumber(pattern, { seq, year: Number(today.slice(0, 4)), ...(branchCode === undefined ? {} : { branch: branchCode }) }),
-      status: 'registered', visit_type: d.visitType, billing_mode: d.billingMode, credit_party_id: d.creditPartyId, referrer_id: d.referrerId, priority: d.priority,
-      collection_mode: d.collectionMode, source: 'front_desk', age_years: age?.years, age_months: age?.months, age_days: age?.days,
-      is_first_order_of_patient: isFirst, catalog_revision: p.resolved.catalogRevision, registered_at: registeredAt,
-    });
+    try {
+      order = await insertOrder(c.tx, c.tenantId, {
+        id: orderId, branch_id: branchId, centre_id: d.centreId, patient_id: patient['id'], registration_no: formatNumber(pattern, { seq, year: Number(today.slice(0, 4)), ...(branchCode === undefined ? {} : { branch: branchCode }) }),
+        status: 'registered', visit_type: d.visitType, billing_mode: d.billingMode, credit_party_id: d.creditPartyId, referrer_id: d.referrerId, priority: d.priority,
+        collection_mode: d.collectionMode, source: 'front_desk', age_years: age?.years, age_months: age?.months, age_days: age?.days,
+        is_first_order_of_patient: isFirst, catalog_revision: p.resolved.catalogRevision, registered_at: registeredAt,
+        ...r.orderFields, visiting_charge_paisa: d.visitingChargePaisa, coupon_code: d.couponCode, coupon_amount_paisa: couponAmount,
+      });
+    } catch (e) {
+      // collected_by_membership_id must be a membership of THIS tenant: the composite FK decides (unknown or another tenant's id -> 400, the pg text is dropped)
+      if ((e as Record<string, unknown>)?.['constraint'] === 'orders__collected_by__fk') throw bad('/collected_by_membership_id');
+      throw e;
+    }
   }
+  if (d.redeemPoints) await insertPoints(c.tx, c.tenantId, { id: uuidv7(), patient_id: patient['id'], order_id: orderId, entry_kind: 'redeemed', points: d.redeemPoints });
   // F12: a stored item equal to the live line (orderable, priority, price snapshot) is kept; every other stored active item is cancelled. Unmatched lines are inserted.
   const same = (s: Record<string, any>, l: PricedLineInput) => s['orderable_id'] === l.orderableId && s['priority'] === l.priority && Number(s['unit_price_paisa']) === l.unitPrice.amountPaisa
     && (s['urgent_surcharge_paisa'] == null ? undefined : Number(s['urgent_surcharge_paisa'])) === l.urgentSurcharge?.amountPaisa
@@ -439,7 +562,7 @@ async function createInTx(hctx: unknown, body: unknown, pre?: Pre): Promise<Resu
       id: uuidv7(), order_id: orderId, centre_id: d.centreId, orderable_id: l.orderableId, orderable_kind: l.orderableKind, code: l.code, name: l.name,
       test_ids: p.meta[i]!.testIds, department_id: p.meta[i]!.departmentId, priority: l.priority, unit_price_paisa: l.unitPrice.amountPaisa,
       urgent_surcharge_paisa: l.urgentSurcharge?.amountPaisa, price_list_id: l.priceListId, price_list_version: l.priceListVersion, price_source: l.priceSource,
-      vat_treatment: l.tax.vat, other_tax_code: l.tax.otherTaxCode, added_in_items_version: Number(order['items_version'] ?? 1),
+      vat_treatment: l.tax.vat, other_tax_code: l.tax.otherTaxCode, added_in_items_version: Number(order['items_version'] ?? 1), icd_code: d.items[i]?.icdCode,
     }));
   }
   const itemOf = new Map(itemRows.map((it) => [it['orderable_id'] as string, it['id'] as string]));
@@ -475,7 +598,8 @@ async function createInTx(hctx: unknown, body: unknown, pre?: Pre): Promise<Resu
     for (const [i, pay] of r.payments.entries()) {
       const out = await billing.recordPayment(pc, {
         orderId: orderId as never, invoiceId: inv.invoiceId, methodCode: pay.methodCode, amount: { amountPaisa: pay.amountPaisa, currency: 'NPR' } as never,
-        ...(pay.reference ? { reference: pay.reference } : {}), captureKind: 'manual', idempotencyKey: `${orderId}:reg:${i}`, collectedByMembershipId: membership as never,
+        ...(pay.reference ? { reference: pay.reference } : {}), ...(pay.cardHolderName ? { cardHolderName: pay.cardHolderName } : {}),
+        ...(pay.paymentRemark ? { paymentRemark: pay.paymentRemark } : {}), captureKind: 'manual', idempotencyKey: `${orderId}:reg:${i}`, collectedByMembershipId: membership as never,
         issueReceiptNo: false,       // the invoice is the receipt (PRD D-RECEIPT)
       });
       balance = out.balance;
@@ -539,11 +663,12 @@ async function createInTx(hctx: unknown, body: unknown, pre?: Pre): Promise<Resu
       ...(d.referrerId ? { referrer_id: d.referrerId } : {}), priority: d.priority, collection_mode: d.collectionMode, ...source, status: 'registered',
       items: itemRows.map((it) => ({ id: it['id'], orderable_id: it['orderable_id'], orderable_kind: it['orderable_kind'], code: it['code'], name: it['name'], priority: it['priority'],
         status: it['status'], unit_price: { amount_paisa: Number(it['unit_price_paisa']), currency: 'NPR' },
-        ...(it['urgent_surcharge_paisa'] != null ? { urgent_surcharge: { amount_paisa: Number(it['urgent_surcharge_paisa']), currency: 'NPR' } } : {}), outsourced: it['outsourced'] === true })),
+        ...(it['urgent_surcharge_paisa'] != null ? { urgent_surcharge: { amount_paisa: Number(it['urgent_surcharge_paisa']), currency: 'NPR' } } : {}), outsourced: it['outsourced'] === true,
+        ...(it['icd_code'] != null ? { icd_code: String(it['icd_code']) } : {}) })),
       discounts: d.discounts.map((x) => ({ scope: x.scope, ...(x.orderableId ? { orderable_id: x.orderableId } : {}), kind: x.kind,
         ...(x.amountPaisa !== undefined ? { amount_paisa: x.amountPaisa } : {}), ...(x.percentBp !== undefined ? { percent_bp: x.percentBp } : {}),
         reason_code: x.reasonCode, ...(x.reasonText ? { reason_text: x.reasonText } : {}) })),
-      trf_attachments: [], flags: [], requires_credit_note: false, version: Number(order['version']),
+      trf_attachments: [], flags: [], requires_credit_note: false, ...orderParityDto(order, { earned: 0, redeemed: d.redeemPoints ?? 0 }), version: Number(order['version']),
     },
     ...(invoice ? { invoice } : {}), ...(creditCharges ? { credit_charges: creditCharges } : {}), ledger_entries: ledger,
     balance: { order_id: bal.orderId, invoiced: money(bal.invoiced), paid: money(bal.paid), credited: money(bal.credited), balance_due: money(bal.balanceDue), balance_version: bal.balanceVersion, as_of: bal.asOf },
@@ -568,6 +693,12 @@ export async function quote(hctx: unknown, body: unknown): Promise<Result> {
 
   const settings = await getSettings(c.tx, c.tenantId);      // missing row = schema defaults: every discount needs approval (05-SCHEMA §3)
   const { resolved, q, limits, verdict } = await priceDraft(c, d, settings);
+  // T0B-REGAPI-2: the same rules the save applies, READ only (no coupon use, no points written). Coupon value and visiting charge do NOT change the billing totals:
+  // how they are taxed / invoiced is a money decision (dispute .orchestra/notes/T0B-REGAPI-2-dispute.md); the save stores them on the order.
+  await checkIcd(c, d);
+  if (d.couponCode) await readCoupon(c, d.couponCode, await tenantToday(c));
+  const pref = (body as Record<string, any>)['patient'];
+  await checkPoints(c, typeof pref?.patient_id === 'string' ? pref.patient_id : undefined, d.redeemPoints);
 
   // The quote reports the credit state instead of failing (US-FD-04.2); any other port error (e.g. another tenant's party -> not_found) propagates.
   let creditStatus: 'ok' | 'locked' | 'over_limit' | undefined;

@@ -11,12 +11,7 @@ export const manifest: ModuleManifest = {
   handlers,
   ports: { BillingPort: billingPort, BillingCommandPort: billingCommandPort },
   produces: ['billing.invoice.issued.v1', 'billing.invoice.cancelled.v1', 'billing.balance.changed.v1'],
-  // LD-325 (T0B-BOOTGATE-1): contract operations whose handlers land with T0B-ACCT-1 / T0B-ACCT-2; those tasks remove their ids.
-  pendingOperations: [
-    'acceptCashTransfer', 'cancelCashTransfer', 'cancelExpense', 'createAccountGroup', 'createAccountLedgerEntry',
-    'createAccountParticular', 'createCashTransfer', 'createExpense', 'createExpenseType', 'getAccountLedgerEntry',
-    'getAccountStatement', 'getAccountSummary', 'getDailyCollectionSummary', 'listAccountGroups', 'listAccountLedgerEntries',
-    'listAccountParticulars', 'listCashTransfers', 'listExpenseTypes', 'listExpenses', 'rejectCashTransfer',
-    'reverseAccountLedgerEntry', 'updateAccountGroup', 'updateAccountParticular', 'updateExpenseType',
-  ],
+  // LD-325 (T0B-BOOTGATE-1): empty because every contract operation now has a handler function
+  // (ACCT-1 real, ACCT-2 ones are 503 stubs in handlers/index.ts); add ids here only for operations with NO handler.
+  pendingOperations: [],
 };

@@ -21,7 +21,8 @@ import { getSettings } from '../repository/settings.repo.js';
 import { listTrfByOrder } from '../repository/trf.repo.js';
 import { FRONTDESK_PERMISSIONS as P } from '../permissions.js';
 import { bad, expectedVersion, isObj, patientCtx, strict, type PatientCtx, type Result } from './patient.service.js';
-import { fiscalYearOf, invoiceDto, lineDto, priceDraft, quoteCtx, totalsDto, type Draft, type Priced, type QuoteCtx } from './registration.service.js';
+import { fiscalYearOf, invoiceDto, lineDto, orderParityDto, priceDraft, quoteCtx, totalsDto, type Draft, type Priced, type QuoteCtx } from './registration.service.js';
+import { insertPoints, orderPoints, releaseCoupon } from '../repository/parity.repo.js';
 
 type Obj = Record<string, any>;
 type Money = { amountPaisa: number; currency: string };
@@ -122,7 +123,7 @@ async function orderDto(c: OrderCtx, o: Obj, withBilling: boolean): Promise<Obj>
     referrer_id: o['referrer_id'], priority: o['priority'], collection_mode: o['collection_mode'], source: o['source'], source_ref_id: o['source_ref_id'], status,
     items: items.map((i) => omitNull({ id: i['id'], orderable_id: i['orderable_id'], orderable_kind: i['orderable_kind'], code: i['code'], name: i['name'], priority: i['priority'],
       status: i['status'], unit_price: money(i['unit_price_paisa']), urgent_surcharge: i['urgent_surcharge_paisa'] != null ? money(i['urgent_surcharge_paisa']) : undefined,
-      outsourced: i['outsourced'] === true })),
+      outsourced: i['outsourced'] === true, icd_code: i['icd_code'] ?? undefined })),
     discounts: discounts.map((d) => omitNull({ scope: d['scope'], orderable_id: d['order_item_id'] ? orderableOf.get(d['order_item_id']) : undefined, kind: d['kind'],
       amount_paisa: d['amount_paisa'] != null ? Number(d['amount_paisa']) : undefined, percent_bp: d['percent_bp'] ?? undefined, reason_code: d['reason_code'], reason_text: d['reason_text'] })),
     // TRF: metadata only (07-SECURITY P2): never object_path / sha256 / URL; content is F21a's job.
@@ -132,7 +133,7 @@ async function orderDto(c: OrderCtx, o: Obj, withBilling: boolean): Promise<Obj>
       created_at: isoUtc(f['created_at']), resolved_at: isoUtc(f['resolved_at']), resolved_by: f['resolved_by'] ? await actor(f['resolved_by']) : undefined,
       resolution_code: f['resolution_code'], version: Number(f['version']) }))),
     requires_credit_note: o['requires_credit_note'] === true, registered_at: isoUtc(o['registered_at']), cancelled_at: isoUtc(o['cancelled_at']),
-    cancel_reason_code: o['cancel_reason_code'], billing, version: Number(o['version']),
+    cancel_reason_code: o['cancel_reason_code'], billing, ...orderParityDto(o, await orderPoints(c.tx, c.tenantId, o['id'])), version: Number(o['version']),
   });
 }
 
@@ -434,6 +435,12 @@ export function cancelOrder(hctx: unknown, params: unknown, headers: unknown, bo
     const at = c.now();
     const updated = await cancelOrderRow(c.tx, c.tenantId, orderId, version, { at, by: c.actor.membershipId ?? c.actor.id, reasonCode, ...(typeof text === 'string' ? { reasonText: text } : {}), requiresCreditNote: required });
     if (!updated) throw new LimsError('common.version_conflict');
+    // T0B-REGAPI-2 (LD-310 (7)): reverse once (a second cancel is refused above): the coupon use comes back, the redeemed points come back as ONE 'earned' row
+    // on this order (the ledger is append only), the claim reads 0 (cancelOrderRow). Same tx as the cancel.
+    if (o['coupon_code'] != null) await releaseCoupon(c.tx, c.tenantId, String(o['coupon_code']));
+    const pts = await orderPoints(c.tx, c.tenantId, orderId);
+    const back = pts.redeemed - pts.earned;
+    if (back > 0) await insertPoints(c.tx, c.tenantId, { id: uuidv7(), patient_id: o['patient_id'], order_id: orderId, entry_kind: 'earned', points: back });
     // the event never carries reason_text (P3)
     await createFrontdeskEvents(c.events as never).cancelled(c as never, { order_id: orderId, reason_code: reasonCode, cancelled_at: at.toISOString(), requires_credit_note: required }, Number(updated['version']));
     return { status: 200, body: await orderDto(asOrderCtx(c), updated, status !== 'pre_registered') };

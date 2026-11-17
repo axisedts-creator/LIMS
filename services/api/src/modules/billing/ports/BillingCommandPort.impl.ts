@@ -19,7 +19,7 @@ import { DEFAULT_TZ, localDate } from '../service/ledgerDto.js';
 import { computeQuote } from '../service/quote.service.js';
 
 type Ctx = BalanceCtx & { readonly ports?: Record<string, any> };
-interface Counter { allocate(tx: never, input: any): Promise<{ lastNo: number; allocatedAt: string }> }
+interface Counter { allocate(tx: never, input: any): Promise<{ lastNo: number; allocatedAt: string }>; peek?(tx: never, input: any): Promise<number> }
 
 const CONTROL = /[\u0000-\u001f\u007f]/;
 const CAUSES = ['order_cancelled', 'item_removed'] as const;
@@ -200,6 +200,10 @@ export function createBillingCommandPort(deps: { repo?: BillingRepo; counter: Co
     },
     raiseCreditNoteRequirement: raiseCreditNoteRequirement as unknown as BillingCommandPortV1['raiseCreditNoteRequirement'],
     getOrderBillingSummary: getOrderBillingSummary as unknown as BillingCommandPortV1['getOrderBillingSummary'],
+    async previewInvoiceNo(ctx) {                                                         // LD-323 (a): plain read, nothing reserved
+      session(ctx as Ctx);
+      return invoices.previewNo(ctx as never);
+    },
   };
 }
 
@@ -215,4 +219,5 @@ export const billingCommandPort: BillingCommandPortV1 = {
   recordPayment: (c, i) => real().recordPayment(c, i),
   raiseCreditNoteRequirement: (c, i) => real().raiseCreditNoteRequirement(c, i),
   getOrderBillingSummary: (c, i) => real().getOrderBillingSummary(c, i),
+  previewInvoiceNo: (c, i) => real().previewInvoiceNo(c, i),
 };

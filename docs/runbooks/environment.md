@@ -165,6 +165,7 @@ Client address (LD-296): the web sends the browser's address (first `x-forwarded
 
 | Name | Module | Required | When unset |
 |---|---|---|---|
+| `LIMS_BILLING_ACCOUNT_ENTRY_MAX_PAISA` | billing | optional | Default 500000000 paisa (NPR 5,000,000.00): the largest single accounting ledger entry the API accepts. |
 | `LIMS_BILLING_CBMS_MODE` | billing | optional | Default stub: invoices are not sent to the tax authority; the live mode is refused until a live client exists. |
 | `LIMS_BILLING_COUNTER_LOCK_TIMEOUT_MS` | billing | optional | Default 3000 ms lock timeout on invoice counters. |
 | `LIMS_BILLING_EXPORT_KEY` | billing | optional | Worker: the tenant billing export job fails (it needs a 32-byte key to encrypt the export). |

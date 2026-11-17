@@ -364,6 +364,6 @@ export function previewNumbers(hctx: unknown, query: unknown): Promise<Result> {
     const portCtx = Object.assign(Object.create(c as object), { now: () => c.now().toISOString() });
     let receiptNo = '';
     try { receiptNo = String((await (c.ports as Obj)['BillingCommandPort'].previewInvoiceNo(portCtx, {})).invoiceNo); } catch { /* LD-323 (c): empty, never a guessed number */ }
-    return { status: 200, body: { centre_id: centreId, next_registration_no: regNo, next_receipt_no: receiptNo, is_preview: true } };
+    return { status: 200, body: { centre_id: centreId, next_registration_no: regNo, next_receipt_no: receiptNo, next_receipt_no_label: 'assigned when saved', is_preview: true } };   // LD-331 label, always present
   });
 }

@@ -37,9 +37,18 @@ const EXPECT: Record<string, [string, boolean]> = {   // operationId -> [x-permi
 };
 
 describe('contract <-> probes', () => {
-  it('the contract has exactly the 47 operations: the 29 of 02-TRD §7.1 (F1-F26 incl. F8b, F21a, F24 get+put) + the 18 of T0C-REGPARITY-2', () => {
+  // LD-328 (3) style: the count is derived from the loaded contract spec, never hardcoded (later T0C tasks add operations; each must then be added to EXPECT with its permission).
+  it('every contract operation (the 29 of 02-TRD §7.1 + the 18 of T0C-REGPARITY-2 and any later one) has an EXPECT row, and EXPECT names no operation the contract lacks', () => {
     expect(OPS.map((o) => o.id).sort()).toEqual(Object.keys(EXPECT).sort());
-    expect(OPS).toHaveLength(47);
+    expect(OPS).toHaveLength(Object.keys(EXPECT).length);
+    expect(OPS.length).toBeGreaterThanOrEqual(47);
+  });
+  it('LD-325 (b): the frontdesk module manifest lists none of the 18 REGAPI-2 operations as pending (they have real handlers)', () => {
+    const idx = text(`${MOD}/index.ts`);
+    const pending = /pendingOperations:\s*\[([^\]]*)\]/.exec(idx)?.[1] ?? '';
+    for (const op of ['listRegistrationDrafts', 'createRegistrationDraft', 'getRegistrationDraft', 'deleteRegistrationDraft', 'listFavouriteTests', 'addFavouriteTest', 'removeFavouriteTest',
+      'previewRegistrationNumbers', 'listCustomFieldDefinitions', 'createCustomFieldDefinition', 'updateCustomFieldDefinition', 'listCoupons', 'createCoupon', 'updateCoupon', 'listIcdCodes',
+      'createIcdCode', 'updateIcdCode', 'getPatientRewards']) expect(pending, op).not.toContain(op);
   });
   it('every operation has a probe request in kit.ts (requestFor) and is exercised by the cross-tenant suite', () => {
     const kit = text(`${MOD}/__tests__/probes/kit.ts`);

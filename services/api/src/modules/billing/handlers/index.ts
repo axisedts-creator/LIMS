@@ -5,6 +5,7 @@ import type { Handler } from '../../../core/module.js';
 import { accountsHandlers } from './accounts.handlers.js';
 import { cbmsHandlers } from './cbms.handlers.js';
 import { creditHandlers } from './credit.handlers.js';
+import { expensesHandlers } from './expenses.handlers.js';
 import { exportHandlers } from './export.handlers.js';
 import { invoiceHandlers } from './invoice.handlers.js';
 import { ledgerHandlers } from './ledger.handlers.js';
@@ -24,10 +25,11 @@ const OPERATION_IDS = [
   'getCancelledInvoiceRegister', 'getCreditNoteRegister', 'getAuditTrail', 'createBillingExport', 'getBillingExport',
   'getBillingExportContent', 'listCbmsDocuments', 'retryCbmsDocument', 'getBillingSettings', 'updateBillingSettings',
   'listBillingCodes', 'listCreditNoteTasks', 'listFinanceReviewItems', 'resolveFinanceReviewItem',
-  // T0C-ACCT-1 lab accounting (LD-313), T0B-ACCT-1. The 12 T0B-ACCT-2 operations have NO handler: they are listed in
-  // manifest.pendingOperations (billing/index.ts) and core answers 501 operation_pending (LD-328 (2), LD-325).
+  // T0C-ACCT-1 lab accounting (LD-313): T0B-ACCT-1, then T0B-ACCT-2 (removed from manifest.pendingOperations, LD-325 b).
   'listAccountGroups', 'createAccountGroup', 'updateAccountGroup', 'listAccountParticulars', 'createAccountParticular', 'updateAccountParticular',
   'createAccountLedgerEntry', 'listAccountLedgerEntries', 'getAccountLedgerEntry', 'reverseAccountLedgerEntry', 'getAccountStatement', 'getAccountSummary',
+  'listExpenseTypes', 'createExpenseType', 'updateExpenseType', 'createExpense', 'listExpenses', 'cancelExpense',
+  'createCashTransfer', 'listCashTransfers', 'acceptCashTransfer', 'rejectCashTransfer', 'cancelCashTransfer', 'getDailyCollectionSummary',
 ] as const;
 
 export const handlers: Readonly<Record<(typeof OPERATION_IDS)[number], Handler>> = Object.freeze({
@@ -89,4 +91,16 @@ export const handlers: Readonly<Record<(typeof OPERATION_IDS)[number], Handler>>
   reverseAccountLedgerEntry: accountsHandlers['reverseAccountLedgerEntry']!,
   getAccountStatement: accountsHandlers['getAccountStatement']!,
   getAccountSummary: accountsHandlers['getAccountSummary']!,
+  listExpenseTypes: expensesHandlers['listExpenseTypes']!,
+  createExpenseType: expensesHandlers['createExpenseType']!,
+  updateExpenseType: expensesHandlers['updateExpenseType']!,
+  createExpense: expensesHandlers['createExpense']!,
+  listExpenses: expensesHandlers['listExpenses']!,
+  cancelExpense: expensesHandlers['cancelExpense']!,
+  createCashTransfer: expensesHandlers['createCashTransfer']!,
+  listCashTransfers: expensesHandlers['listCashTransfers']!,
+  acceptCashTransfer: expensesHandlers['acceptCashTransfer']!,
+  rejectCashTransfer: expensesHandlers['rejectCashTransfer']!,
+  cancelCashTransfer: expensesHandlers['cancelCashTransfer']!,
+  getDailyCollectionSummary: expensesHandlers['getDailyCollectionSummary']!,
 });

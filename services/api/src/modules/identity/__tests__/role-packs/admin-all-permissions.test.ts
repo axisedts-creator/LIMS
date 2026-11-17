@@ -48,14 +48,14 @@ describe('T0B-ADMINPERM-1 corp_admin holds every tenant staff permission (LD-310
     expect(new Set(admin.permissions).size).toBe(admin.permissions.length);
     expect(admin.permissions).toEqual([...admin.permissions].sort());
     expect([...admin.permissions].sort()).toEqual([...STAFF].sort());
-    expect(admin.permissions.length).toBe(155); // registry codes minus the 31 excluded; recomputed by the tester (LD-310)
+    expect(admin.permissions.length).toBe(162); // registry codes minus the 31 excluded; 155 + the 7 billing accounting codes of T0C-ACCT-1 (LD-313 c)
     expect(admin.mfa_required).toBe(true);
     expect(admin.base_default_role).toBe('tenant_admin');
   });
 
-  it('done_when (3): the registry is untouched, so the pack is the only thing that grew (no code added, renamed or removed)', () => {
+  it('done_when (3): no code is renamed or removed; the only registry growth is the 7 billing accounting codes of T0C-ACCT-1 (LD-313 c), all held by corp_admin', () => {
     expect(ALL.length).toBe(new Set(ALL).size);
-    expect(ALL.length - Object.keys(EXCLUDED).length).toBe(155);
+    expect(ALL.length - Object.keys(EXCLUDED).length).toBe(162); // T0C-ACCT-1 (LD-313 c) added 7 codes to the registry; none renamed or removed (contracts/__tests__/registry-equality.test.ts)
   });
 
   it('privileged codes are held only because mfa_required is yes (R3)', () => {

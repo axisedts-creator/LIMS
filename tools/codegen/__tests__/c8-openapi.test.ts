@@ -554,8 +554,9 @@ describe("analytics.yaml (T0C-10.C8)", () => {
       expect([prop("ExportParams", "centre_id").maxItems, prop("ExportParams", "branch_id").maxItems, prop("ExportParams", "group_by").maxLength]).toEqual([20, 20, 32]);
       const f = prop("ExportParams", "filters");
       expect(f.additionalProperties).toBe(false);
-      expect(Object.keys(props(f)).sort()).toEqual(["department_id", "item_status", "overdue_only", "payment_method_code", "priority", "processing_branch_id", "referrer_id", "rollup",
-        "segment"]);
+      // T0C-MISREPORTS-1 (LD-321) adds party_id, representative_id, collector_id, visit_type, min_repeat_count (pinned in misreports1-openapi.test.ts); the 9 TRD keys stay
+      expect(Object.keys(props(f)).sort()).toEqual(["collector_id", "department_id", "item_status", "min_repeat_count", "overdue_only", "party_id", "payment_method_code", "priority", "processing_branch_id",
+        "referrer_id", "representative_id", "rollup", "segment", "visit_type"]);
       expect([deref(props(f).department_id).maxItems, deref(props(f).processing_branch_id).maxItems, deref(props(f).payment_method_code).maxItems, deref(props(f).referrer_id).maxItems])
         .toEqual([50, 20, 20, 20]);
       expect(deref(props(f).priority).enum).toEqual(["routine", "urgent"]);

@@ -22,6 +22,16 @@ describe('classify: depth (done_when 2)', () => {
   it('400 with a service code is DEEP (the service answered)', () => {
     expect(classify({ status: 400, errorCode: 'lab.invalid_state' })).toMatchObject({ verdict: 'WIRED', depth: 'DEEP' });
   });
+  it('400 common.validation_failed with reachedHandler (fastify handler:start fired) is a service answer: WIRED, DEEP', () => {
+    expect(classify({ status: 400, errorCode: 'common.validation_failed', reachedHandler: true })).toMatchObject({ verdict: 'WIRED', depth: 'DEEP' });
+  });
+  it.each([false, undefined])('400 common.validation_failed with reachedHandler=%s stays SHALLOW', (reachedHandler) => {
+    expect(classify({ status: 400, errorCode: 'common.validation_failed', reachedHandler })).toMatchObject({ verdict: 'WIRED', depth: 'SHALLOW' });
+  });
+  it('reachedHandler does not change a 429 or a 5xx', () => {
+    expect(classify({ status: 429, reachedHandler: true })).toMatchObject({ verdict: 'NOT_EXERCISED', depth: 'NOT EXERCISED' });
+    expect(classify({ status: 500, reachedHandler: true })).toMatchObject({ verdict: 'DEFECT', depth: 'DEEP' });
+  });
   it.each([500, 502, 503])('%i is a DEFECT that reached the service: DEEP', (status) => {
     expect(classify({ status, errorCode: 'common.internal' })).toMatchObject({ verdict: 'DEFECT', depth: 'DEEP' });
   });

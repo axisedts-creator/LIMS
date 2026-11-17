@@ -160,7 +160,8 @@ describe("partners.yaml (T0C-10.C13)", () => {
     "deactivateSalesRepresentative", "getSalesTree", "assignPartyToRepresentative", "unassignPartyFromRepresentative", "listRepresentativeClients", "listServiceAreas", "createServiceArea",
     "updateServiceArea", "deactivateServiceArea"];
   for (const [path, item] of Object.entries<any>(doc.paths ?? {}))
-    for (const m of METHODS) if (item?.[m] && !SALES1_IDS.includes(item[m].operationId)) ops[item[m].operationId] = { method: m.toUpperCase(), path, op: item[m] };
+    // T0C-MSGDESK-1 (LD-321) adds 10 additive operations pinned in msgdesk1-openapi.test.ts; this file keeps pinning the original TRD table only
+    for (const m of METHODS) if (item?.[m] && !SALES1_IDS.includes(item[m].operationId) && !["createPartnerTicket", "listPartnerTickets", "getPartnerTicket", "replyPartnerTicket", "closePartnerTicket", "reopenPartnerTicket", "listMyPartnerTickets", "createMyPartnerTicket", "getMyPartnerTicket", "replyMyPartnerTicket"].includes(item[m].operationId)) ops[item[m].operationId] = { method: m.toUpperCase(), path, op: item[m] };
 
   const deref = (n: any): any => {
     if (!n?.$ref) return n;

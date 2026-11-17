@@ -4,6 +4,7 @@
 import { useState } from 'react';
 import { Button } from '@lims/ui/components/Button';
 import { Combobox } from '@lims/ui/components/Combobox';
+import { EmptyRow, PlaceholderRows } from '@lims/ui/components/DataTable';
 import { DateTimePicker } from '@lims/ui/components/DateTimePicker';
 import { EmptyState } from '@lims/ui/components/EmptyState';
 import { PageHeader } from '@lims/ui/components/PageHeader';
@@ -46,10 +47,8 @@ export function SurchargeRulesScreen({ rules, departments, orderables, priceList
     <section aria-label="Urgent surcharge rules">
       <PageHeader title="Urgent surcharge rules" helpKey="catalog.surcharges" breadcrumbs={[{ label: 'Pricing' }, { label: 'Urgent surcharge' }]} actions={open ? <Button variant="primary" onPress={open}>New rule</Button> : null} />
       <p>{HELP}</p>
-      {rules.length === 0 ? (
-        <EmptyState title="No urgent surcharge rules. Urgent tests are charged at the normal price." />
-      ) : (
-        <table className="lims-table lims-table-regular">
+      {/* T0D-EMPTYTBL-2 (LD-310, LD-336): the table is always drawn; the empty message (and New rule for a manager) is its one body row. */}
+      <table className="lims-table lims-table-regular">
           <caption className="lims-visually-hidden">Urgent surcharge rules</caption>
           <thead>
             <tr>
@@ -58,6 +57,9 @@ export function SurchargeRulesScreen({ rules, departments, orderables, priceList
             </tr>
           </thead>
           <tbody>
+            {rules.length === 0 ? (
+              <EmptyRow colSpan={manage ? 7 : 6}><EmptyState title="No urgent surcharge rules. Urgent tests are charged at the normal price." {...(open ? { action: { label: 'New rule', onPress: open } } : {})} /></EmptyRow>
+            ) : null}
             {rules.map((r) => (
               <tr key={r.id} className="lims-row">
                 <td className="lims-cell">{appliesTo(r)}</td>
@@ -74,8 +76,8 @@ export function SurchargeRulesScreen({ rules, departments, orderables, priceList
               </tr>
             ))}
           </tbody>
+          {rules.length === 0 ? <PlaceholderRows colSpan={manage ? 7 : 6} /> : null}
         </table>
-      )}
       {creating ? <NewRuleDialog departments={departments} priceLists={priceLists} onClose={() => setCreating(false)} /> : null}
       {ending ? <EndRuleDialog rule={ending} onClose={() => setEnding(undefined)} /> : null}
     </section>

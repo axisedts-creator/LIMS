@@ -105,7 +105,7 @@ const noAxeViolations = async () => {
 };
 const rowOf = (text: string | RegExp) => screen.getByRole('row', { name: typeof text === 'string' ? new RegExp(`\\b${text}\\b`) : text });
 const dialog = () => screen.getByRole('dialog');
-const press = async (name: RegExp, root: HTMLElement = document.body) => userEvent.click(within(root).getByRole('button', { name }));
+const press = async (name: RegExp, root: HTMLElement = document.body) => userEvent.click(within(root).getAllByRole('button', { name })[0]!);
 const choose = async (root: HTMLElement, label: RegExp, option: string | RegExp) => { await userEvent.click(within(root).getByLabelText(label)); await userEvent.click(await screen.findByRole('option', { name: option })); };
 const pick = async (root: HTMLElement, label: RegExp, query: string, option: string | RegExp) => { await userEvent.type(within(root).getByLabelText(label), query); await userEvent.click(await screen.findByRole('option', { name: option })); };
 // ruling C3.T-34 D2: pick fields by role, not label (a label starting with "Department"/"Percent" also matches the radio of the same name; kit DateTimePicker adds "Open calendar for Effective from").

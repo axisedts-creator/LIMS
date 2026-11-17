@@ -24,7 +24,12 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 type Sp = Readonly<Record<string, string | string[] | undefined>>;
 const one = (sp: Sp, k: string) => (typeof sp[k] === 'string' ? (sp[k] as string) : '');
 const idOf = (v: string) => (UUID.test(v) ? v.toLowerCase() : '');
-type Summary = Awaited<ReturnType<typeof listAllTests>>[number] & { short_name?: string; display_name?: string; category_name?: string; default_price_paisa?: number };
+/** T0D-TESTMGMT-FIX-1 (LD-340): a secondary list (filters, dropdowns, names) never decides the page; a failure gives `empty` + one note. */
+const soft = <T, E>(p: Promise<T>, empty: E, name: string, missing: string[]): Promise<T | E> => p.catch(() => { missing.push(name); return empty; });
+const Notes = ({ missing }: { missing: readonly string[] }) => (
+  <>{missing.map((n) => <p key={n} role="note" className="lims-description">{n} could not be loaded; the page is shown without them. Reload to try again.</p>)}</>
+);
+type Summary =Awaited<ReturnType<typeof listAllTests>>[number] & { short_name?: string; display_name?: string; category_name?: string; default_price_paisa?: number };
 
 export default async function TestsPage({ searchParams }: { searchParams: Promise<Sp> }) {
   const [sp, session] = await Promise.all([searchParams, getShellSession()]);
@@ -49,12 +54,13 @@ async function listView(sp: Sp, permissions: readonly string[]) {
   const manage = permissions.includes(MANAGE);
   const openNew = manage && one(sp, 'new') === '1';
   const copyId = openNew ? idOf(one(sp, 'copy')) : '';
+  const missing: string[] = [];
   const r = await orForbidden(() =>
     Promise.all([
       listAllTests({ departmentId: filters.department_id || undefined, isActive: filters.is_active || 'all' }) as Promise<Summary[]>,
-      listDepartments({ isActive: 'all', limit: 200 }),
-      listSpecimenTypes({ isActive: 'all', limit: 200 }),
-      listTestCategories().catch(() => []),
+      soft(listDepartments({ isActive: 'all', limit: 200 }), { data: [] as Awaited<ReturnType<typeof listDepartments>>['data'] }, 'Departments', missing),
+      soft(listSpecimenTypes({ isActive: 'all', limit: 200 }), { data: [] as Awaited<ReturnType<typeof listSpecimenTypes>>['data'] }, 'Specimen types', missing),
+      soft(listTestCategories(), [], 'Test categories', missing),
       copyId ? orMissing(() => getTest(copyId)) : Promise.resolve(undefined),
     ]),
   );
@@ -76,6 +82,8 @@ async function listView(sp: Sp, permissions: readonly string[]) {
   }));
 
   return (
+    <>
+    <Notes missing={missing} />
     <TestsList
       rows={shown}
       filters={filters}
@@ -90,6 +98,7 @@ async function listView(sp: Sp, permissions: readonly string[]) {
       manage={manage}
       openNew={openNew}
     />
+    </>
   );
 }
 
@@ -111,10 +120,13 @@ async function detailsView(sp: Sp, permissions: readonly string[]) {
 }
 
 async function categoriesView(permissions: readonly string[]) {
-  const r = await orForbidden(() => Promise.all([listTestCategories(), listDepartments({ isActive: 'all', limit: 200 })]));
+  const missing: string[] = [];
+  const r = await orForbidden(() =>
+    Promise.all([listTestCategories(), soft(listDepartments({ isActive: 'all', limit: 200 }), { data: [] as Awaited<ReturnType<typeof listDepartments>>['data'] }, 'Departments', missing)]),
+  );
   if (!r) return null;
   const [categories, departments] = r;
-  return <CategoriesView categories={categories} departments={departments.data.map((d) => ({ id: d.id, name: d.name, is_active: d.is_active }))} permissions={permissions} />;
+  return <><Notes missing={missing} /><CategoriesView categories={categories} departments={departments.data.map((d) => ({ id: d.id, name: d.name, is_active: d.is_active }))} permissions={permissions} /></>;
 }
 
 async function popularView(permissions: readonly string[]) {

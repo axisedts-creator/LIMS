@@ -5,6 +5,7 @@
 import { makeWorkerUtils, parseCronItems, run, type CronItem, type Runner, type TaskList, type WithPgClient } from 'graphile-worker';
 import { createLogger } from '../../../../packages/shared-ts/src/logger/index.js';
 import { createMetrics, startMetricsServer, type CoreMetrics } from '../../../api/src/core/observability/metrics.js';
+import { loadPaymentsConfig } from '../../../api/src/modules/payments/config.js';
 import { buildTaskList, type Claims, type WorkerDeps, type WorkerTx } from './tasklist.js';
 import type { WorkerManifest } from './manifest.js';
 import { withTenantScope } from './tenant-scope.js';
@@ -19,6 +20,8 @@ export interface StartWorkerOptions {
 }
 
 export async function startWorker(o: StartWorkerOptions): Promise<{ runner: Runner; stop(): Promise<void> }> {
+  // TRD §9.3 boot check, LD-341 (T0B-ASYNC-3): was at import of jobs/payments/index.ts; here registry-sync never reaches it.
+  if (o.manifests.some((m) => m.module === 'payments')) loadPaymentsConfig();
   const built = buildTaskList(o.deps, o.manifests);                       // throws on an invalid manifest, before run()
   const parsedCronItems = parseCronItems(built.cronItems as unknown as CronItem[]);
   const runner = await run({

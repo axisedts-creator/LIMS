@@ -70,14 +70,11 @@ export function LibraryList({ rows }: { rows: Summary[] }) {
     <>
       <PageHeader title="Smart report library" helpKey="smartreport.library" actions={newDraft} />
       {error ? <div role="alert"><Banner tone="danger" title={error} /></div> : null}
-      {rows.length === 0 ? (
-        <div className="lims-state">
-          <p className="lims-state-title">No library yet. Start from the starter draft.</p>
-          <Button variant="primary" isLoading={busy} onPress={() => void create({ source: 'starter' })}>Start from the starter draft</Button>
-        </div>
-      ) : (
-        <DataTable<Summary> columns={columns} rows={rows} getRowId={(r) => r.id} caption="Library versions" density="compact" emptyState={{ title: 'No library yet. Start from the starter draft.' }} />
-      )}
+      {/* T0D-EMPTYTBL-2 (LD-310, LD-336): the table is always drawn; the starter-draft button sits in the empty message row (the inFlight guard keeps it to one request). */}
+      <DataTable<Summary>
+        columns={columns} rows={rows} getRowId={(r) => r.id} caption="Library versions" density="compact"
+        emptyState={{ title: 'No library yet. Start from the starter draft.', action: { label: 'Start from the starter draft', onPress: () => void create({ source: 'starter' }) } }}
+      />
       <Dialog
         title="New draft from a version" isOpen={pickOpen} onClose={() => setPickOpen(false)}
         footer={<Button variant="primary" isDisabled={!source} isLoading={busy} onPress={() => source && void create({ source: 'clone_version', source_version_id: source })}>Create draft</Button>}

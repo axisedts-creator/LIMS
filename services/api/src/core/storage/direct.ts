@@ -20,7 +20,12 @@ const MIMES = new Set<string>(Object.values(BY_EXT));
 
 export interface UploadPolicy { readonly allow: readonly UploadMime[]; readonly maxBytes: number }
 export interface InitUploadInput { readonly bucket: BucketName; readonly objectPath: string; readonly filename: string; readonly contentType: string; readonly byteSize: number; readonly sha256: string }
-export interface ConfirmUploadInput { readonly bucket: BucketName; readonly objectPath: string; readonly contentType: string; readonly byteSize: number; readonly sha256: string }
+export interface ConfirmUploadInput {
+  readonly bucket: BucketName; readonly objectPath: string; readonly contentType: string; readonly byteSize: number; readonly sha256: string;
+  /** Set to true ONLY after the caller checked that no row references `objectPath` (it was issued at init and not yet recorded).
+   *  Without it a mismatch never deletes: a wrong sha256 must not remove a recorded attachment or report (LD-310: data deletion stays with the founder). */
+  readonly unrecorded?: true;
+}
 export interface InitDownloadInput {
   readonly bucket: BucketName; readonly objectPath: string; readonly filename: string; readonly contentType: string; readonly byteSize: number;
   readonly kind: 'patient-report' | 'versioned-static';
@@ -70,7 +75,7 @@ export function createDirectTransfer(o: {
       const got = await o.storage.head(i.bucket, i.objectPath);
       if (!got) throw err('common.not_found');
       if (got.byteSize !== i.byteSize || got.contentType !== i.contentType || (got.sha256 !== undefined && got.sha256 !== i.sha256)) {
-        await o.storage.delete(i.bucket, i.objectPath);
+        if (i.unrecorded === true) await o.storage.delete(i.bucket, i.objectPath);
         throw err('common.validation_failed');
       }
       return { objectPath: i.objectPath, byteSize: i.byteSize, sha256: i.sha256, contentType: i.contentType, scanState: 'pending' };

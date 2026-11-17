@@ -286,7 +286,12 @@ export type ErrorCode =
   | "smartreport.summary_not_ready"
   | "smartreport.summary_superseded"
   | "smartreport.template_not_approved"
-  | "smartreport.validator_failed";
+  | "smartreport.validator_failed"
+  | "sync.block_size_too_large"
+  | "sync.device_revoked"
+  | "sync.device_unknown"
+  | "sync.series_unknown"
+  | "sync.wipe_required";
 
 export const ERROR_META: Readonly<Record<ErrorCode, { readonly http: number; readonly owner: string; readonly title: string }>> = {
   "analytics.export_not_ready": { http: 409, owner: "C8", title: "Export not ready" },
@@ -576,4 +581,9 @@ export const ERROR_META: Readonly<Record<ErrorCode, { readonly http: number; rea
   "smartreport.summary_superseded": { http: 409, owner: "C14", title: "Summary built on superseded results" },
   "smartreport.template_not_approved": { http: 409, owner: "C14", title: "Template library not approved" },
   "smartreport.validator_failed": { http: 422, owner: "C14", title: "Generated text failed validation" },
+  "sync.block_size_too_large": { http: 422, owner: "C0", title: "Block size too large" },
+  "sync.device_revoked": { http: 403, owner: "C0", title: "Device revoked" },
+  "sync.device_unknown": { http: 409, owner: "C0", title: "Device not registered" },
+  "sync.series_unknown": { http: 422, owner: "C0", title: "Number series not available" },
+  "sync.wipe_required": { http: 409, owner: "C0", title: "Device wipe required" },
 };

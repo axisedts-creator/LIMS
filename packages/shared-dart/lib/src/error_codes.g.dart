@@ -290,6 +290,11 @@ abstract final class LimsErrorCodes {
   static const String smartreportSummarySuperseded = 'smartreport.summary_superseded';
   static const String smartreportTemplateNotApproved = 'smartreport.template_not_approved';
   static const String smartreportValidatorFailed = 'smartreport.validator_failed';
+  static const String syncBlockSizeTooLarge = 'sync.block_size_too_large';
+  static const String syncDeviceRevoked = 'sync.device_revoked';
+  static const String syncDeviceUnknown = 'sync.device_unknown';
+  static const String syncSeriesUnknown = 'sync.series_unknown';
+  static const String syncWipeRequired = 'sync.wipe_required';
 }
 
 /// HTTP status per error code.
@@ -581,4 +586,9 @@ const Map<String, int> limsErrorHttpStatus = <String, int>{
   'smartreport.summary_superseded': 409,
   'smartreport.template_not_approved': 409,
   'smartreport.validator_failed': 422,
+  'sync.block_size_too_large': 422,
+  'sync.device_revoked': 403,
+  'sync.device_unknown': 409,
+  'sync.series_unknown': 422,
+  'sync.wipe_required': 409,
 };

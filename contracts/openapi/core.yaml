@@ -97,7 +97,7 @@ paths:
               examples:
                 registered:
                   value:
-                    id: 0193c4a0-0000-7000-8000-0000005c0001
+                    id: 0193c4a0-0000-7000-8000-0000005c0011
                     user_id: 0193c4a0-0000-7000-8000-0000005c0101
                     device_label: Front desk PC 1
                     platform: web
@@ -168,7 +168,7 @@ paths:
                 two_devices:
                   value:
                     data:
-                      - id: 0193c4a0-0000-7000-8000-0000005c0001
+                      - id: 0193c4a0-0000-7000-8000-0000005c0021
                         user_id: 0193c4a0-0000-7000-8000-0000005c0101
                         device_label: Front desk PC 1
                         platform: web
@@ -181,7 +181,7 @@ paths:
                         offline_retention_days: 14
                         created_at: '2026-11-17T04:15:00.000Z'
                         updated_at: '2026-11-17T09:40:00.000Z'
-                      - id: 0193c4a0-0000-7000-8000-0000005c0002
+                      - id: 0193c4a0-0000-7000-8000-0000005c0022
                         user_id: 0193c4a0-0000-7000-8000-0000005c0102
                         device_label: Collection tablet 3
                         platform: android
@@ -234,7 +234,7 @@ paths:
               examples:
                 revoked:
                   value:
-                    id: 0193c4a0-0000-7000-8000-0000005c0001
+                    id: 0193c4a0-0000-7000-8000-0000005c0031
                     user_id: 0193c4a0-0000-7000-8000-0000005c0101
                     device_label: Front desk PC 1
                     platform: web
@@ -254,7 +254,7 @@ paths:
         '500': { $ref: '_common.yaml#/components/responses/Internal' }
   /v1/core/sync/devices/{device_id}/wipe:
     post:
-      operationId: requestDeviceWipe
+      operationId: requestSyncDeviceWipe
       tags: [core]
       summary: Request a remote wipe of a sync device (T0C-SYNC-1)
       description: >-
@@ -287,7 +287,7 @@ paths:
               examples:
                 wipe_requested:
                   value:
-                    id: 0193c4a0-0000-7000-8000-0000005c0002
+                    id: 0193c4a0-0000-7000-8000-0000005c0032
                     user_id: 0193c4a0-0000-7000-8000-0000005c0102
                     device_label: Collection tablet 3
                     platform: android
@@ -341,7 +341,7 @@ paths:
               examples:
                 acked:
                   value:
-                    id: 0193c4a0-0000-7000-8000-0000005c0002
+                    id: 0193c4a0-0000-7000-8000-0000005c0042
                     user_id: 0193c4a0-0000-7000-8000-0000005c0102
                     device_label: Collection tablet 3
                     platform: android
@@ -576,9 +576,9 @@ components:
       properties:
         id: { $ref: '_common.yaml#/components/schemas/Uuid' }
         user_id: { $ref: '_common.yaml#/components/schemas/Uuid' }
-        device_label: { $ref: '#/components/schemas/DeviceLabel' }
+        device_label: { type: string, minLength: 1, maxLength: 120 }
         platform: { $ref: '#/components/schemas/SyncPlatform' }
-        app_version: { $ref: '#/components/schemas/AppVersion' }
+        app_version: { type: string, minLength: 1, maxLength: 40, pattern: '^[0-9A-Za-z][0-9A-Za-z.+-]*$' }
         status: { $ref: '#/components/schemas/SyncDeviceStatus' }
         first_seen_at: { $ref: '#/components/schemas/IsoDateTime' }
         last_seen_at: { $ref: '#/components/schemas/IsoDateTime' }
@@ -642,7 +642,7 @@ components:
         to_value: { type: integer, format: int64, minimum: 1, maximum: 9007199254740991 }
         issued_at: { $ref: '#/components/schemas/IsoDateTime' }
         exhausted_at: { $ref: '#/components/schemas/IsoDateTime' }
-        skipped_count: { type: integer, format: int64, minimum: 0, maximum: 9007199254740991 }
+        skipped_count: { type: integer, format: int32, minimum: 0, maximum: 2147483647 }
   parameters:
     DeviceId:
       name: device_id

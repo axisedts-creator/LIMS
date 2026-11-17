@@ -65,7 +65,7 @@ CREATE TABLE IF NOT EXISTS core.number_block (
   to_value      bigint      NOT NULL,
   issued_at     timestamptz NOT NULL DEFAULT now(),
   exhausted_at  timestamptz,
-  skipped_count bigint      NOT NULL DEFAULT 0,
+  skipped_count integer     NOT NULL DEFAULT 0,
   version       integer     NOT NULL DEFAULT 1,
   created_at    timestamptz NOT NULL DEFAULT now(),
   created_by    uuid        NOT NULL,

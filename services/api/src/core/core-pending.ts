@@ -4,7 +4,7 @@ export const CORE_PENDING_OPERATIONS: readonly string[] = Object.freeze([
   'registerSyncDevice',
   'listSyncDevices',
   'revokeSyncDevice',
-  'requestDeviceWipe',
+  'requestSyncDeviceWipe',
   'ackDeviceWipe',
   'getSyncStatus',
   'reserveNumberBlock',

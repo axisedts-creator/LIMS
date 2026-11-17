@@ -196,5 +196,8 @@ INSERT INTO core.g_permissions (code, module, privileged, phase) VALUES
   ('smartreport.summary.approve', 'smartreport', true, '2'),
   ('smartreport.summary.read', 'smartreport', false, '2'),
   ('smartreport.template.approve', 'smartreport', true, '2'),
-  ('smartreport.template.manage', 'smartreport', false, '2')
+  ('smartreport.template.manage', 'smartreport', false, '2'),
+  ('sync.conflict.resolve', 'sync', true, '1'),
+  ('sync.device.manage', 'sync', true, '1'),
+  ('sync.use', 'sync', false, '1')
 ON CONFLICT (code) DO NOTHING;

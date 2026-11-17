@@ -611,6 +611,40 @@ describe('billing/accounts/summary — Account Summary', () => {
     expect(placeholders()).toBe(4);
   });
 
+  // Reviewer item 1: props `failed?: number`, `truncated?: boolean`; kit Banner (data-tone=warning) with catalogue key billing.accounts.summary.partial ("{n} parties could not be loaded; reload to try again").
+  it('partial state: failed > 0 shows a warning banner with the count, rows still render', async () => {
+    const S = await load();
+    wrap(<S {...props({ failed: 3, truncated: false })} />);
+    expect(t('billing.accounts.summary.partial'), 'catalogue key must exist').not.toBe('billing.accounts.summary.partial');
+    expect(t('billing.accounts.summary.partial')).toContain('{n}');
+    const banner = document.querySelector('.lims-banner[data-tone="warning"]') as HTMLElement;
+    expect(banner, 'warning Banner').toBeTruthy();
+    expect(banner.textContent).toContain(t('billing.accounts.summary.partial').replace('{n}', '3'));
+    expect(headers()).toEqual(SUMMARY_COLUMNS);
+    expect(screen.getAllByRole('row').some((r) => r.textContent!.includes('Synthetic Client Alpha'))).toBe(true);
+  });
+
+  it('partial state: truncated alone also shows the warning banner', async () => {
+    const S = await load();
+    wrap(<S {...props({ failed: 0, truncated: true })} />);
+    expect(document.querySelector('.lims-banner[data-tone="warning"]')).toBeTruthy();
+  });
+
+  it('no banner when nothing failed and nothing was cut (props omitted or zero)', async () => {
+    const S = await load();
+    const a = wrap(<S {...props()} />);
+    expect(document.querySelector('.lims-banner')).toBeNull();
+    a.unmount();
+    wrap(<S {...props({ failed: 0, truncated: false })} />);
+    expect(document.querySelector('.lims-banner')).toBeNull();
+  });
+
+  it('axe: partial banner state', async () => {
+    const S = await load();
+    wrap(<S {...props({ failed: 2, truncated: true })} />);
+    await noAxeViolations();
+  });
+
   it('a summary whose party is unknown still renders (name falls back to a dash), never throws', async () => {
     const S = await load();
     wrap(<S {...props({ summaries: [{ ...summaries[0], party_id: U(777) }] })} />);

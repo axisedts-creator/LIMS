@@ -273,6 +273,7 @@ const en: Record<string, string> = {
   'billing.accounts.summary.yes': 'Yes',
   'billing.accounts.summary.no': 'No',
   'billing.accounts.summary.partial': '{n} parties could not be loaded; reload to try again',
+  'billing.accounts.summary.truncated': 'Only the first 200 clients and franchises are shown.',
   'billing.accounts.masters.title': 'Account masters',
   'billing.accounts.masters.groups': 'Account groups',
   'billing.accounts.masters.particulars': 'Account particulars',

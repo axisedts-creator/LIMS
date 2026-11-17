@@ -131,7 +131,13 @@ export async function listAccountSummaries(parties: readonly AccountParty[]): Pr
     while (next < todo.length) {
       const i = next++;
       const p = todo[i]!;
-      rows[i] = await getAccountSummary({ party_kind: p.kind, party_id: p.id }).catch(() => null);
+      // Review round 2 item 2: 429 common.rate_limited waits 1000 ms (ApiError has no Retry-After) and retries, max 3 attempts.
+      for (let attempt = 1; ; attempt++) {
+        try { rows[i] = await getAccountSummary({ party_kind: p.kind, party_id: p.id }); break; } catch (e) {
+          if (!(e instanceof ApiError && e.status === 429) || attempt >= 3) break;
+          await new Promise((r) => setTimeout(r, 1000));
+        }
+      }
     }
   };
   await Promise.all(Array.from({ length: Math.min(5, todo.length) }, worker));

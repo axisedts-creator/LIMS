@@ -36,7 +36,8 @@ export function AccountSummaryScreen({ summaries, parties, failed = 0, truncated
   return (
     <section aria-label={t('billing.accounts.summary.title')}>
       <PageHeader title={t('billing.accounts.summary.title')} helpKey="billing.accounts" />
-      {failed > 0 || truncated ? <Banner tone="warning" title={t('billing.accounts.summary.partial').replace('{n}', String(failed))} /> : null}
+      {failed > 0 ? <Banner tone="warning" title={t('billing.accounts.summary.partial').replace('{n}', String(failed))} /> : null}
+      {truncated ? <Banner tone="warning" title={t('billing.accounts.summary.truncated')} /> : null}
       <DataTable caption={t('billing.accounts.summary.title')} density="compact" columns={columns} rows={summaries} getRowId={(s) => `${s.party_kind}:${s.party_id}`} emptyState={{ title: t('billing.accounts.summary.empty') }} />
     </section>
   );

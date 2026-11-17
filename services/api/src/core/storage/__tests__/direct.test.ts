@@ -168,8 +168,17 @@ describe('provider refuses expired and tampered URLs; confirm refuses wrong obje
     for (const mutate of ['size', 'sha', 'type'] as const) {
       const s = await setup(); const b = pdfOf(300 * KB);
       s.prov.objects.set(`instruments-attachments|${path()}`, { bytes: Buffer.from(mutate === 'size' ? pdfOf(300 * KB + 5) : mutate === 'sha' ? bytesOf(300 * KB, 0x62) : b), contentType: mutate === 'type' ? 'text/html' : 'application/pdf' });
-      expect(await code(s.direct.confirmUpload({ bucket: 'instruments-attachments', objectPath: path(), contentType: 'application/pdf', byteSize: b.length, sha256: digest(b) })), mutate).toBe('common.validation_failed');
+      expect(await code(s.direct.confirmUpload({ bucket: 'instruments-attachments', objectPath: path(), contentType: 'application/pdf', byteSize: b.length, sha256: digest(b), unrecorded: true })), mutate).toBe('common.validation_failed');
       expect(s.prov.objects.has(`instruments-attachments|${path()}`), `${mutate}: wrong object removed`).toBe(false);
+    }
+  });
+  // review item 1: without `unrecorded: true` the helper must never delete (a recorded attachment or report could be hit by a wrong sha256). LD-310 keeps data deletion with the founder.
+  it('confirmUpload mismatch WITHOUT unrecorded:true -> common.validation_failed and the object is left in storage', async () => {
+    for (const mutate of ['size', 'sha', 'type'] as const) {
+      const s = await setup(); const b = pdfOf(300 * KB);
+      s.prov.objects.set(`instruments-attachments|${path()}`, { bytes: Buffer.from(mutate === 'size' ? pdfOf(300 * KB + 5) : mutate === 'sha' ? bytesOf(300 * KB, 0x62) : b), contentType: mutate === 'type' ? 'text/html' : 'application/pdf' });
+      expect(await code(s.direct.confirmUpload({ bucket: 'instruments-attachments', objectPath: path(), contentType: 'application/pdf', byteSize: b.length, sha256: digest(b) })), mutate).toBe('common.validation_failed');
+      expect(s.prov.objects.has(`instruments-attachments|${path()}`), `${mutate}: object deleted without unrecorded`).toBe(true);
     }
   });
   it('confirmUpload for a path of another tenant or a bucket the module does not own -> common.internal, storage untouched', async () => {

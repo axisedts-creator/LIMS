@@ -85,3 +85,5 @@ not ok 59 - summary: no app.* function called by worker SQL is closed to lims_wo
 #         want: 
 # Looks like you failed 2 tests of 59
 # --- db/tests/identity/T0B-MFAPOL-1_mfa_factors_own.test.sql
+# --- db/tests/identity/T9-A38_platform_set_password.test.sql
+# elapsed 94s

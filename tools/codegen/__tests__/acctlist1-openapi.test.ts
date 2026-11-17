@@ -237,7 +237,8 @@ describe("T0C-ACCTLIST-1 generated clients (done_when 5)", () => {
     const ts = read("packages/api-client-ts/src/billing.ts");
     expect(ts).toContain(`"${PATH}"`);
     expect(ts).toContain(`${ID}:`);
-    expect(ts).toContain("AccountSummaryRow");
+    // codegen inlines schemas into operations[...] and emits no component names (ruling)
+    expect(ts.slice(ts.indexOf(`${ID}:`))).toContain("party_name: string");
     expect(read("packages/api-client-ts/src/server/operations.ts")).toContain(`${ID}:`);
     expect(read("packages/api-client-dart/lib/billing.dart")).toContain(`Future<Object?> ${ID}(`);
     expect(read("packages/fakes/src/msw/handlers.generated.ts")).toContain(`// ${ID}`);
@@ -256,7 +257,7 @@ describe("T0C-ACCTLIST-1 billing manifest, notes (done_when 4, 6)", () => {
     const mig = join(ROOT, "db/migrations");
     const names = existsSync(mig) ? readdirSync(mig) : [];
     expect(names.filter((n) => /account_summar/i.test(n))).toEqual([]);
-    expect(read("apps/web/src/app/(staff)/billing/accounts/summary/page.tsx")).not.toContain(ID);
+    expect(read("apps/web/src/app/(staff)/billing/accounts/summary/page.tsx")).not.toContain(PATH); // the pre-existing web fallback helper named listAccountSummaries is allowed (ruling)
   });
   it("implementation notes list the two follow-ups (T0B-ACCTLIST-1 handler, T0D-UILIST-2 web list) and the centre_id choice", () => {
     expect(existsSync(NOTES), "notes .orchestra/notes/T0C-ACCTLIST-1-impl.md missing").toBe(true);

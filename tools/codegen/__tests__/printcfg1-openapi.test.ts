@@ -391,7 +391,8 @@ describe("T0C-PRINTCFG-1 contract: billing print style, plain black and white bi
       expect(styleOf(s), `${n}.style`).toBeDefined();
       sortedEq(enumOf(styleOf(s)), STYLES);
     }
-    for (const n of ["InvoicePrint", "CreditNotePrint"]) expect(B.comp(n).required ?? [], `${n}: style is always returned`).toContain("style");
+    // review 2026-11-18: the live printInvoice/printCreditNote handlers do not return style yet; a required style would make response validation 500 until T0B-PRINTCFG-1 merges. T0B makes it required with its handler.
+    for (const n of ["InvoicePrint", "CreditNotePrint"]) expect(B.comp(n).required ?? [], `${n}: style stays optional until T0B-PRINTCFG-1 returns it`).not.toContain("style");
   });
   it("plain_bw is described in the contract: black on white only, no logo, no colour, no shading, no header and no footer text; the body keeps lab name, address, seller PAN, bill number and date", () => {
     const t = textOf(styleOf(B.comp("PrintInvoiceRequest")), B.opOf("printInvoice")!.op.description, B.opOf("printInvoice")!.op.summary, styleOf(B.body("printCreditNote")));

@@ -277,7 +277,7 @@ describe("T0C-REGPARITY-2 contract: order payloads (ajv)", () => {
     }
   });
   it("OrderDto read payload with every new field validates and all of them are optional", () => {
-    const base: any = { id: ID, registration_no: "R-1", patient: { id: ID, patient_code: "P-000001", full_name: "Demo Patient A", sex: "female", age_display: "43 Years", phone_masked: "15xxxxxx00", is_anonymised: false },
+    const base: any = { id: ID, registration_no: "R-1", patient: { id: ID, patient_code: "P-000001", full_name: "Demo Patient A", sex: "female", age_at_order: "43 Years" },
       branch_id: ID, centre_id: ID, visit_type: "opd", billing_mode: "cash", priority: "routine", collection_mode: "walk_in", source: "front_desk", status: "registered", items: [], discounts: [], trf_attachments: [], flags: [],
       requires_credit_note: false, version: 1 };
     const v = validator("frontdesk", "OrderDto");

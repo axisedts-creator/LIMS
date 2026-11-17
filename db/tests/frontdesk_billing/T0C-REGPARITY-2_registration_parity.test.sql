@@ -253,7 +253,7 @@ SELECT is(pg_temp.try('frontdesk.favourite_tests', jsonb_build_object('id', pg_t
 CREATE TEMP TABLE probe(t, own_a) AS VALUES ('coupons', pg_temp.uid(100)), ('icd_codes', pg_temp.uid(150)), ('custom_field_definitions', pg_temp.uid(171)), ('reward_points_ledger', pg_temp.uid(200)),
   ('registration_drafts', pg_temp.uid(300)), ('favourite_tests', pg_temp.uid(400));
 SELECT is(pg_temp.a('SELECT 1 FROM frontdesk.' || p.t || ' WHERE id = ' || quote_literal(p.own_a), 'n'), 'n=1', 'control: tenant A staff reads its own ' || p.t || ' row') FROM probe p;
-SELECT cmp_ok((SELECT count(*) FROM frontdesk.coupons WHERE tenant_id = pg_temp.tb()), '>=', 1, 'fixture: tenant B has coupons');
+SELECT cmp_ok((SELECT count(*)::int FROM frontdesk.coupons WHERE tenant_id = pg_temp.tb()), '>=', 1, 'fixture: tenant B has coupons');
 SELECT is(pg_temp.a('SELECT 1 FROM frontdesk.' || p.t || ' WHERE tenant_id = ' || quote_literal(pg_temp.tb()), 'n'), 'n=0', 'tenant A sees 0 tenant B rows in ' || p.t) FROM probe p;
 SELECT is(pg_temp.b('SELECT 1 FROM frontdesk.' || p.t || ' WHERE tenant_id = ' || quote_literal(pg_temp.ta()), 'n'), 'n=0', 'tenant B sees 0 tenant A rows in ' || p.t) FROM probe p;
 SELECT is(pg_temp.a('UPDATE frontdesk.' || t || ' SET version = version + 1 WHERE tenant_id = ' || quote_literal(pg_temp.tb())), 'n=0', 'tenant A updates 0 tenant B rows in ' || t)
@@ -275,15 +275,15 @@ SELECT alike(pg_temp.x('lims_app', pg_temp.cl(pg_temp.ta(), r.k), format($$ INSE
   pg_temp.uid(510), pg_temp.ta(), pg_temp.sys(), pg_temp.sys()), 'w'), 'E42501|%', 'a ' || r.k || '-actor cannot insert a coupon') FROM (VALUES ('patient'),('partner'),('portal')) r(k);
 
 -- ===================================================================================================================================== (c) audit (D-27a): health text and draft payload never in audit diffs
-SELECT is(pg_temp.a('UPDATE frontdesk.orders SET priority = ''urgent'' WHERE id = ' || quote_literal(pg_temp.uid(12))), 'n=1', 'update a mutable column of the fully populated order');
+SELECT is(pg_temp.a('UPDATE frontdesk.orders SET requires_credit_note = true WHERE id = ' || quote_literal(pg_temp.uid(12))), 'n=1', 'update a mutable column of the fully populated order');
 SELECT is((SELECT count(*)::int FROM audit.audit_log a WHERE a.schema_name = 'frontdesk' AND a.table_name = 'orders'
             AND (a.changed_columns && ARRAY['clinical_history','patient_history'] OR a.old_values ?| ARRAY['clinical_history','patient_history'] OR a.new_values ?| ARRAY['clinical_history','patient_history'])), 0,
   'D-27a / LD-310: clinical_history and patient_history never in changed_columns / old_values / new_values of an orders audit row');
 SELECT is((SELECT count(*)::int FROM audit.audit_log a WHERE (coalesce(a.old_values::text, '') || coalesce(a.new_values::text, '') || coalesce(a.changed_columns::text, '')) ~ 'SYN-CLIN-0001|SYN-PHIS-0001|SYN-HOLDER-0001|SYN-DRAFT-MARKER'), 0,
   'no clinical text, card holder name or draft payload value anywhere in audit.audit_log');
 SELECT is((SELECT count(*)::int FROM audit.audit_log WHERE schema_name = 'frontdesk' AND table_name = 'orders' AND row_id = pg_temp.uid(12) AND action = 'INSERT'), 1, 'control: the INSERT of the order was audited (trigger still fires)');
-SELECT ok((SELECT 'priority' = ANY (changed_columns) FROM audit.audit_log WHERE schema_name = 'frontdesk' AND table_name = 'orders' AND row_id = pg_temp.uid(12) AND action = 'UPDATE'),
-  'control: priority still recorded as changed (exclusion list extended, not an all-columns filter)');
+SELECT ok((SELECT 'requires_credit_note' = ANY (changed_columns) FROM audit.audit_log WHERE schema_name = 'frontdesk' AND table_name = 'orders' AND row_id = pg_temp.uid(12) AND action = 'UPDATE'),
+  'control: requires_credit_note still recorded as changed (exclusion list extended, not an all-columns filter)');
 SELECT is((SELECT count(*)::int FROM pg_trigger WHERE tgrelid = 'frontdesk.orders'::regclass AND tgname = 'orders__audit' AND NOT tgisinternal), 1, 'exactly one orders__audit trigger');
 SELECT is((SELECT count(*)::int FROM audit.audit_log WHERE schema_name = 'frontdesk' AND table_name = 'coupons' AND row_id = pg_temp.uid(100) AND action = 'INSERT'), 1, 'control: coupon INSERT is audited (admin master data)');
 SELECT is((SELECT count(*)::int FROM pg_trigger WHERE tgrelid = to_regclass('frontdesk.registration_drafts') AND NOT tgisinternal AND pg_get_triggerdef(oid) ~ 'tg_row_audit' AND pg_get_triggerdef(oid) !~ '''payload'''), 0,

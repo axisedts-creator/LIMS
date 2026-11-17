@@ -26,10 +26,10 @@ const PERM = new Map(registry.permissions.map((p) => [p.code, p.privileged]));
 const DEFAULT_ROLE_CODES = [...registry.roles, ...registry.partner_roles, ...registry.platform_roles].map((r) => r.code);
 
 // 11-ROLE-MATRIX §3.1 / §3.2: code -> [permissions, privileged]. corp_admin: LD-310 (T0B-ADMINPERM-1) overrides the spec's [115, 39]:
-// admin gets every tenant staff code (162 permissions, 62 privileged; 155 / 59 + the 7 accounting codes of T0C-ACCT-1, LD-313 c).
+// admin gets every tenant staff code (167 permissions, 63 privileged; 155 / 59 + the 7 accounting codes of T0C-ACCT-1, LD-313 c, + the 5 MSGDESK codes of T0C-MSGDESK-1, LD-321).
 const EXPECTED: Record<string, Record<string, [number, number]>> = {
   elabcorp_default: {
-    corp_admin: [162, 62], corp_accession_user: [22, 0], corp_accounts: [18, 6], corp_franchise_user: [24, 0],
+    corp_admin: [167, 63], corp_accession_user: [22, 0], corp_accounts: [18, 6], corp_franchise_user: [24, 0],
     corp_client_operator: [44, 8], corp_laboratory_admin: [11, 0], corp_laboratory_lab_user: [24, 0],
     corp_laboratory_user: [18, 0], corp_collection_center: [22, 1], corp_it_department: [5, 0],
     corp_junior_lab_user: [24, 0], corp_sr_lab_user: [51, 9], corp_sr_lab_user_t2: [51, 9], corp_pathologist: [45, 7],

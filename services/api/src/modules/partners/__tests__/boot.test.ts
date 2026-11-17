@@ -27,7 +27,7 @@ const OPS = operationIds(SPEC);
 const PERMS = ['partners.manifest.receive', 'partners.manifest.submit', 'partners.order.read', 'partners.partner.manage',
   'partners.partner.read', 'partners.partner_user.manage', 'partners.pickup.manage', 'partners.pickup.request',
   'partners.price_list.read', 'partners.referrer.manage', 'partners.referrer.map', 'partners.referrer.read',
-  'partners.report.read', 'partners.statement.read'];
+  'partners.report.read', 'partners.statement.read', 'partners.ticket.manage', 'partners.ticket.read'];
 /** Codes held only by partner actors (02-TRD §9.2): never valid on a staff `/v1/partners/admin/...` operation. */
 const PARTNER_ONLY = ['partners.order.read', 'partners.manifest.submit', 'partners.report.read', 'partners.statement.read',
   'partners.price_list.read', 'partners.pickup.request', 'partners.referrer.read', 'partners.referrer.manage'];
@@ -87,9 +87,9 @@ describe('T01 manifest', () => {
 });
 
 describe('T01 handler map (68 operationIds of partners.yaml)', () => {
-  it('the spec has 68 unique operationIds', () => {
-    expect(OPS.length).toBe(68);
-    expect(new Set(OPS).size).toBe(68);
+  it('the spec has 78 unique operationIds', () => {
+    expect(OPS.length).toBe(78);
+    expect(new Set(OPS).size).toBe(78);
   });
 
   it('binds every operationId of partners.yaml to a function, and nothing else (AC-0D-1.2)', () => {
@@ -132,7 +132,7 @@ describe('T01 handler map (68 operationIds of partners.yaml)', () => {
 describe('T01 permissions', () => {
   const codes = PERMISSION_CODES.filter((c) => c.startsWith('partners.'));
 
-  it('PARTNERS_PERMISSIONS = the 14 partners.* codes of contracts/permissions.yaml (no invented code, none missing), frozen', () => {
+  it('PARTNERS_PERMISSIONS = the 16 partners.* codes of contracts/permissions.yaml (no invented code, none missing), frozen', () => {
     expect([...codes].sort()).toEqual(PERMS);
     expect([...PARTNERS_PERMISSIONS].sort()).toEqual(PERMS);
     expect(new Set(PARTNERS_PERMISSIONS).size).toBe(PARTNERS_PERMISSIONS.length);
@@ -218,13 +218,13 @@ describe('T01 boot against the real repo (default modulesDir, real partners.yaml
   // version_no is an integer path param (partners.yaml:1800), period_month is YYYY-MM (partners.yaml:7879); a UUID there would 400 before auth.
   const toUrl = (path: string) => path.replace(/\{version_no\}/g, '1').replace(/\{period_month\}/g, '2026-01').replace(/\{[^}]+\}/g, '01940e00-0000-7000-8000-c13000000001');
 
-  it('boots and mounts every partners operation at its spec path and method (68 of 68)', async () => {
+  it('boots and mounts every partners operation at its spec path and method (78 of 78)', async () => {
     const app = await boot();
     const unmounted: string[] = [];
     for (const { path, method } of allOps()) {
       if (!app.hasRoute({ method: method.toUpperCase() as any, url: path.replace(/\{([^}]+)\}/g, ':$1') })) unmounted.push(`${method.toUpperCase()} ${path}`);
     }
-    expect(allOps().length).toBe(68);
+    expect(allOps().length).toBe(78);
     expect(unmounted).toEqual([]);
   }, 600_000); // LD-152: 12 lanes share one machine; boot of all 15 modules exceeded 300 s
 

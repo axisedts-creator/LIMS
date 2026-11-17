@@ -6,3 +6,8 @@
 - Pinned names (brief gave operation names in words, not wire names): see header of each test file; change needs a ruling. Notes `T0C-MSGDESK-1-impl.md`: each of the 22 labels starts a line with the label then `—`/`:`/`|` and says already present / added / not added (reason); also lists the 5 codes, the 21 ids, pendingOperations, push-cloud, offline rule (09:19).
 - Implementer must also touch (outside test paths): db/meta/tables.yaml, db/policies/engagement.sql + partners.sql, db/seeds/001_core__g_permissions.sql, generated clients and permission types, errors.yaml (new codes), engagement and partners `pendingOperations` (21 ids), isolation probes (regenerate db/tests/isolation); the brief's 12 file cap needs a lead ruling.
 - NOT tested: sending, opt out evaluation, audience query, approval flow (service, T0B-MSGDESK-1), cloud apply (founder, push-cloud), web, offline sync, a provider (founder).
+
+## Revised per ruling (TESTS_WRONG)
+- partners st4-actor-type (only partners.ticket.read/.manage shared), kit UNOWNED_STUBS (+10 ticket ids), not-found.probes, boot.test (78 ops, +2 codes); engagement boot, display.board, operations.matrix (109 ops, handled = spec minus pendingOperations); identity admin-all-permissions, admin-authority, role-packs.data, role-packs.loader (corp_admin 167/63).
+- T0B-MSGDESK-1 must remove the 10 ids from kit UNOWNED_STUBS and add the /admin user-only, /me partner-only gate.
+- Still red, not this task (ruling item 6): ci-scripts service key grep, engagement PHASE_STUBS QualityPort.

@@ -8,6 +8,10 @@ import { autoload, checkHandlers, DEFAULT_MODULES_DIR, loadSpec, REPO_ROOT } fro
 import { createBffKeyVerifier } from './auth/bff-key.js';
 import type { ClaimsResolver } from './auth/claims-resolver.js';
 import { createClientIpResolver } from './auth/client-ip.js';
+import { createAuthResolverRegistry } from './auth/resolvers.js';
+import { AuthError } from './auth/errors.js';
+import { PRE_AUTH_SCHEMES } from './db/allowlists.js';
+import type { Db } from './db/tx.js';
 import { createJwtVerifier } from './auth/jwt.js';
 import { childLoggerFactory, createCoreLogger, installRequestLog } from './observability/logging.js';
 import { createMetrics, type CoreMetrics } from './observability/metrics.js';
@@ -52,7 +56,18 @@ export async function bootstrap(opts: BootstrapOptions): Promise<FastifyInstance
     installRequestLog(app, metrics, claimsOf);
     const modules = await autoload(modulesDir, repoRoot);
     // 02-TRD §6.5: key files are read now, so a missing/garbage key or CIDR fails boot (no lazy / network fallback).
+    // Resolver schemes (patientPreAuth ...): the registry is built from the modules' authResolvers; the Db only exists after
+    // bootPipeline (below), so it is bound late. Without a database the handler fails closed (401), like every other path.
+    const resolvers = createAuthResolverRegistry(modules.map((m) => m.manifest));
+    let preAuthDb: Db | undefined;
     const auth: CoreAuth = {
+      preAuth: {
+        schemes: new Set(PRE_AUTH_SCHEMES.filter((k) => resolvers.has(k))),
+        authenticate: async ({ scheme, credential, ...input }) => {
+          if (!preAuthDb) throw new AuthError('auth.unauthenticated');
+          return preAuthDb.preAuthTx({ ...input, scheme }, (tx) => resolvers.authenticate(scheme, credential, tx));
+        },
+      },
       ...(config.jwt ? { verifier: createJwtVerifier(config.jwt) } : {}),
       claimsResolver: modules.find((m) => m.manifest.name === 'identity')?.manifest.claimsResolver as ClaimsResolver | undefined,
       bff: createBffKeyVerifier(config.bffKeyFiles),
@@ -61,6 +76,7 @@ export async function bootstrap(opts: BootstrapOptions): Promise<FastifyInstance
     installRouteHooks(app, { responseValidation: config.responseValidation, auth });
     // 02-TRD §6.2 stages 5-11 per request (LD-133, T0D-18): pool, limiter, idempotency, ports, authz guard.
     const pipes = await bootPipeline({ config, modules, log: app.log as any, metrics });
+    preAuthDb = pipes.db;
     app.addHook('onClose', async () => { await pipes.close(); });
     if (repoRoot === REPO_ROOT) {
       // 02-TRD §8: the core's own spec; custom repoRoots (test fixtures) carry module specs only.

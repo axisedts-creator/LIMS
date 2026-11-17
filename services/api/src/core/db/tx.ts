@@ -3,7 +3,7 @@
 // The pool is module-private (CV §5.10): modules only ever see the `tx` facade below.
 import { AuthError } from '../auth/errors.js';
 import type { DbClaims } from '../auth/claims.js';
-import { IDENTITY_AUTH_OPS, WITH_TENANT_SCOPE_OPS } from './allowlists.js';
+import { IDENTITY_AUTH_OPS, PRE_AUTH_SCHEMES, WITH_TENANT_SCOPE_OPS } from './allowlists.js';
 import { mapDbError, type DbErrorDeps } from './sqlstate.js';
 
 export interface PoolClient { query(text: string, values?: unknown[]): Promise<{ rows: any[] }>; release(err?: unknown): void }
@@ -38,6 +38,8 @@ export interface DbOptions extends DbErrorDeps {
   /** PLATFORM-WIRE-1 (LD-267): lazy identity system actor for withTenantScope ONLY (read after every other check passed); never used by identityAuthTx. */
   readonly scopeActorId?: () => Promise<string>;
   readonly identityAuthOps?: Iterable<string>;
+  /** Schemes allowed to open preAuthTx (default PRE_AUTH_SCHEMES). */
+  readonly preAuthSchemes?: Iterable<string>;
   readonly withTenantScopeOps?: Iterable<string>;
 }
 
@@ -54,7 +56,7 @@ const ENQUEUE = /app\.enqueue_job\s*\(/i;
 const enqueued = new WeakMap<object, string>(); // error of a failed app.enqueue_job call -> its task identifier (values[0])
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-interface TxState { readonly kind: 'request' | 'identity_auth'; readonly operation: TxOperation; readonly claimsJson: string; open: boolean; scoped: boolean }
+interface TxState { readonly kind: 'request' | 'identity_auth' | 'pre_auth'; readonly operation: TxOperation; readonly claimsJson: string; open: boolean; scoped: boolean }
 
 const internal = (): Error => new AuthError('common.internal');
 const realSleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
@@ -64,6 +66,7 @@ export function createDb(o: DbOptions) {
   const sleep = o.sleep ?? realSleep;
   const random = o.random ?? Math.random;
   const authOps: ReadonlySet<string> = new Set(o.identityAuthOps ?? IDENTITY_AUTH_OPS);
+  const preAuthSchemes: ReadonlySet<string> = new Set(o.preAuthSchemes ?? PRE_AUTH_SCHEMES);
   const scopeOps: ReadonlySet<string> = new Set(o.withTenantScopeOps ?? WITH_TENANT_SCOPE_OPS);
   const deps: DbErrorDeps = { log: o.log, metrics: o.metrics };
   const states = new WeakMap<object, TxState>(); // only tx objects made here are accepted by withTenantScope
@@ -159,6 +162,16 @@ export function createDb(o: DbOptions) {
     requestTx<T>(input: RequestTxInput, fn: TxFn<T>): Promise<T> {
       if (!input?.claims || !input.operation) return Promise.reject(internal());
       return run('request', input, JSON.stringify(input.claims), fn);
+    },
+
+    /**
+     * Pre-claims transaction for an AuthResolver (02-TRD §6.3): claims are fixed to `{}` (no actor, no tenant), so only
+     * SECURITY DEFINER lookups can succeed. Refused before any SQL unless `scheme` is in PRE_AUTH_SCHEMES; the caller
+     * (core/openapi.ts) additionally checks that the operation's module owns the scheme.
+     */
+    preAuthTx<T>(input: TxInput & { readonly scheme: string }, fn: TxFn<T>): Promise<T> {
+      if (!input?.operation || typeof input.scheme !== 'string' || !preAuthSchemes.has(input.scheme)) return Promise.reject(internal());
+      return run('pre_auth', input, '{}', fn);
     },
 
     /** 08 A25 D-212: refused before any SQL unless identity + x-context identity_auth + allowlisted operationId. */

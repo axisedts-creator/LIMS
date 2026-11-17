@@ -133,7 +133,7 @@ export function createAuthService() {
         throw Object.assign(new LimsError('common.rate_limited'), { retryAfterSeconds: day.secondsLeft });
       }
 
-      const id = uuidv7(); const token = randomToken(32); const code = generateOtp();
+      const id = uuidv7(); const token = randomToken(32); const code = config().otpTestCode ?? generateOtp(); // otpTestCode: test-only fixed code, never set in production (config.ts)
       const { ciphertext, keyId } = encryptOtpCode(id, code);
       const expiresAt = new Date(nowMs + config().otpTtlSeconds * 1000).toISOString();
       await otpRepo.insertChallenge(s.tx, {

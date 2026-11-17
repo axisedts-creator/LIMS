@@ -11,7 +11,7 @@ import type { ClientIpResolver } from './auth/client-ip.js';
 import { AuthError } from './auth/errors.js';
 import { isRenderedProblem, LimsError } from './errors.js';
 import type { JwtVerifier } from './auth/jwt.js';
-import type { Handler } from './module.js';
+import { AUTH_RESOLVER_OWNERS, type Handler } from './module.js';
 import { setErrorCode } from './observability/logging.js';
 import type { Pipeline, PipelineOp } from './pipeline/index.js';
 
@@ -21,6 +21,17 @@ export interface CoreAuth {
   readonly claimsResolver?: ClaimsResolver | undefined;
   readonly bff: BffKeyVerifier;
   readonly clientIp: ClientIpResolver;
+  /**
+   * Pre-claims resolver schemes (patientPreAuth ...). Absent = those schemes keep failing closed. `authenticate` opens the
+   * restricted db.preAuthTx, runs the module's AuthResolver and returns the DbClaims for the request transaction.
+   */
+  readonly preAuth?: {
+    readonly schemes: ReadonlySet<string>;
+    authenticate(input: {
+      scheme: string; credential: string; requestId: string; clientIp: string; userAgent?: string | undefined;
+      operation: { module: string; operationId: string; context?: string | undefined };
+    }): Promise<DbClaims>;
+  };
 }
 interface RequestAuth {
   readonly clientIp: string;
@@ -36,7 +47,7 @@ const BEARER = /^Bearer ([^\s]+)$/i;
 const SID_COOKIE = /(?:^|;\s*)__Host-lims_sid=[^;\s]{1,4096}(?=;|\s*$)/; // non-empty, <= 4096 chars
 
 /** securityHandlers for fastify-openapi-glue. Schemes without a handler here fail closed (glue rejects the request). */
-function securityHandlers(auth: CoreAuth): Record<string, (req: FastifyRequest) => Promise<void>> {
+function securityHandlers(auth: CoreAuth, spec: any): Record<string, (req: FastifyRequest) => Promise<void>> {
   const out: Record<string, (req: FastifyRequest) => Promise<void>> = {};
   const { verifier, claimsResolver } = auth;
   if (verifier) {
@@ -49,6 +60,27 @@ function securityHandlers(auth: CoreAuth): Record<string, (req: FastifyRequest) 
         ...(ra.bffKind ? { bffKey: ra.bffKind } : {}),
       });
       ra.claims = claims;
+    };
+  }
+  // Resolver schemes that run before any claims exist (core/db/allowlists.ts PRE_AUTH_SCHEMES): the credential is read from the
+  // scheme's own header (spec securitySchemes.<name>, apiKey in header), never from a body/query/cookie. Fails closed: missing
+  // header, a scheme the module does not own, no operation context, an unknown credential or any resolver failure -> 401.
+  const pre = auth.preAuth;
+  for (const scheme of pre?.schemes ?? []) {
+    const def = spec?.components?.securitySchemes?.[scheme];
+    if (!pre || def?.type !== 'apiKey' || def?.in !== 'header' || typeof def?.name !== 'string') continue; // not declared as a header scheme in this spec
+    const headerName = def.name.toLowerCase();
+    out[scheme] = async (req) => {
+      const cfg = (req.routeOptions.config ?? {}) as { module?: unknown };
+      const operationId = (req.routeOptions.schema as { operationId?: unknown } | undefined)?.operationId;
+      const module = typeof cfg.module === 'string' ? cfg.module : undefined;
+      const credential = header(req.headers[headerName]);
+      if (!credential || !module || typeof operationId !== 'string' || AUTH_RESOLVER_OWNERS[scheme] !== module) throw new AuthError('auth.unauthenticated');
+      const ra = requestAuth.get(req)!;
+      ra.claims = await pre.authenticate({
+        scheme, credential, requestId: String(req.id), clientIp: ra.clientIp, userAgent: header(req.headers['user-agent']),
+        operation: { module, operationId },
+      });
     };
   }
   // LD-212 / LD-189 / LD-206: bffSession is ALWAYS registered (no verifier needed). No DB call; the identity handlers do the session lookup.
@@ -269,7 +301,7 @@ export async function mountSpec(
     scope.addHook('onRoute', (route) => { route.config = { ...(route.config as object), module: name }; });
     await scope.register(openapiGlue, {
       specification: spec,
-      securityHandlers: securityHandlers(auth),
+      securityHandlers: securityHandlers(auth, spec),
       operationResolver: (operationId: string) => {
         const h = Object.hasOwn(handlers, operationId) ? handlers[operationId] : undefined;
         if (typeof h !== 'function') throw new Error(`module ${name}: missing handler for operationId ${operationId}`);

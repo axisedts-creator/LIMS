@@ -15,6 +15,8 @@ export interface EngagementConfig {
   readonly linkHmacKeyFile: string;
   readonly phoneHmacKeyFile: string;
   readonly otpEncKeysFile: string;
+  /** Test-only fixed login OTP (LIMS_ENGAGEMENT_OTP_TEST_CODE, 6 digits). Undefined = normal CSPRNG codes. Refused when LIMS_CORE_ENV=production. */
+  readonly otpTestCode: string | undefined;
 }
 
 type Env = Readonly<Record<string, string | undefined>>;
@@ -60,8 +62,19 @@ function encKeys(env: Env, key: string): string {
   return path;
 }
 
+// Test-only opt-in: a fixed OTP so a tester can sign in without an SMS provider. Off unless set; never allowed in production.
+// The code is still stored, hashed and verified like any OTP (attempt limits, expiry and rate limits all apply).
+function otpTestCode(env: Env): string | undefined {
+  const v = env[P + 'OTP_TEST_CODE'];
+  if (v === undefined || v === '') return undefined;
+  if (env['LIMS_CORE_ENV'] === 'production') return fail('OTP_TEST_CODE', 'must not be set when LIMS_CORE_ENV=production');
+  if (!/^[0-9]{6}$/.test(v)) return fail('OTP_TEST_CODE', 'must be exactly 6 digits');
+  return v;
+}
+
 export function loadEngagementConfig(env: Env = process.env): EngagementConfig {
   return Object.freeze({
+    otpTestCode: otpTestCode(env),
     otpTtlSeconds: int(env, 'OTP_TTL_SECONDS', 300, 120, 600, 'an integer 120..600 (04 A9)'),
     otpMaxAttempts: int(env, 'OTP_MAX_ATTEMPTS', 5, 5, 5, 'exactly 5 (04 A9)'),
     otpLength: int(env, 'OTP_LENGTH', 6, 6, 1_000_000, 'an integer >= 6 (04 A9)'),

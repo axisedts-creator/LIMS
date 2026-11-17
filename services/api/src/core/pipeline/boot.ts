@@ -61,6 +61,8 @@ async function loadPortImpls(env: string, needed: ReadonlySet<string>): Promise<
 export interface PipelineBoot {
   /** LD-193 (WIRE-HEALTH): real readiness checks; absent without a database (bootstrap then keeps UNWIRED_CHECKS, fail closed). */
   healthChecks?: HealthChecks;
+  /** Core database (request/identity/pre-auth transactions); absent without LIMS_CORE_DATABASE_URL. Used by core/bootstrap for preAuthTx. */
+  db?: Db;
   pipelineFor(module: string): Pipeline;
   close(): Promise<void>;
 }
@@ -194,6 +196,7 @@ export async function bootPipeline(o: {
   const cache = new Map<string, Pipeline>();
   return {
     ...(healthChecks ? { healthChecks } : {}),
+    ...(db ? { db } : {}),
     pipelineFor(module) {
       let p = cache.get(module);
       if (!p) {

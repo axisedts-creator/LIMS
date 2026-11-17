@@ -6,3 +6,7 @@ Action for tester/lead: change verify.cmd to run the TRF dir through tests/front
 ## Round 2
 Cause: same as round 1. verify.log (21:50): 917 pass, 2 skipped; only trf/content.test.ts and trf/upload.test.ts fail to load (`LIMS_TEST_APP_URL is not set`). verify.cmd is unchanged (plain vitest on the DB-backed trf dir, no PG17 boot).
 Fix: none in implementation code; no code bug, tests untouched. verify.cmd must run the trf dir through `bash tests/frontdesk/FD-T10.pg.sh` (tester/lead file, not edited).
+
+## Round 3
+Cause: same as rounds 1-2. verify.log (21:52): 917 pass, 2 skipped; only trf/content.test.ts and trf/upload.test.ts fail to load (`LIMS_TEST_APP_URL is not set`). verify.cmd unchanged (plain vitest on DB-backed trf dir).
+Fix: none in implementation code; no code bug, tests untouched. verify.cmd must run the trf dir via `bash tests/frontdesk/FD-T10.pg.sh` (boots PG17) or export LIMS_TEST_APP_URL + LIMS_TEST_SUPER_URL. Lead/tester must change it; repeating the debugger round will not help.

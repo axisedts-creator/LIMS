@@ -53,6 +53,18 @@ export async function bootstrap(opts: BootstrapOptions): Promise<FastifyInstance
     installRequestLog(app, metrics, claimsOf);
     installHttpPerf(app); // T0B-PERF-1 (LD-310): stats scope, Server-Timing, compression, keep-alive
     const modules = await autoload(modulesDir, repoRoot);
+    // LD-325 (T0B-BOOTGATE-1): stale pending entries warn (handler wins); production refuses any pending entry (stale included)
+    // unless LIMS_ALLOW_PENDING_OPS is exactly 1.
+    const pendingIds = modules.flatMap((m) => (m.manifest.pendingOperations ?? []).map((id) => `${m.manifest.name}.${id}`));
+    if (pendingIds.length && process.env.NODE_ENV === 'production' && process.env.LIMS_ALLOW_PENDING_OPS !== '1') {
+      throw new Error(`production boot refuses pending operations (set LIMS_ALLOW_PENDING_OPS=1 to override): ${pendingIds.join(', ')}`);
+    }
+    for (const m of modules) {
+      for (const id of m.stalePending) {
+        app.log.warn({ event: 'pending_operation_stale', module: m.manifest.name, operationId: id },
+          `module ${m.manifest.name}: pending operation ${id} has a handler; remove it from pendingOperations`);
+      }
+    }
     // 02-TRD §6.5: key files are read now, so a missing/garbage key or CIDR fails boot (no lazy / network fallback).
     const auth: CoreAuth = {
       ...(config.jwt ? { verifier: createJwtVerifier(config.jwt) } : {}),
@@ -71,7 +83,7 @@ export async function bootstrap(opts: BootstrapOptions): Promise<FastifyInstance
       checkHandlers('core', spec, handlers);
       await mountSpec(app, 'core', spec, handlers, auth, pipes.pipelineFor('core'));
     }
-    for (const m of modules) await mountSpec(app, m.manifest.name, m.spec, m.manifest.handlers, auth, pipes.pipelineFor(m.manifest.name));
+    for (const m of modules) await mountSpec(app, m.manifest.name, m.spec, m.manifest.handlers, auth, pipes.pipelineFor(m.manifest.name), m.manifest.pendingOperations);
     if (config.loadSampleModule) {
       // 02-TRD §14: core-owned, ci only, never deployed; its spec lives next to it, not in contracts/openapi.
       const { manifest } = await import('./__fixtures__/module-sample/index.js');

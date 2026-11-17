@@ -9,4 +9,11 @@ export const manifest: ModuleManifest = {
   produces: ['frontdesk.order.created.v1', 'frontdesk.order.items_changed.v1', 'frontdesk.order.cancelled.v1'],
   handlers,
   ports: { FrontdeskPort: frontdeskPort },
+  // LD-325 (T0B-BOOTGATE-1): registration contract operations whose handlers land with T0B-REGAPI-2; it removes its ids.
+  pendingOperations: [
+    'addFavouriteTest', 'createCoupon', 'createCustomFieldDefinition', 'createIcdCode', 'createRegistrationDraft',
+    'deleteRegistrationDraft', 'getPatientRewards', 'getRegistrationDraft', 'listCoupons', 'listCustomFieldDefinitions',
+    'listFavouriteTests', 'listIcdCodes', 'listRegistrationDrafts', 'previewRegistrationNumbers', 'removeFavouriteTest',
+    'updateCoupon', 'updateCustomFieldDefinition', 'updateIcdCode',
+  ],
 };

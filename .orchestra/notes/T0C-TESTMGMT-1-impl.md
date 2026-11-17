@@ -6,7 +6,7 @@
 - pendingOperations (LD-325 b): listTestCategories, createTestCategory, updateTestCategory; T0B-TESTMGMT-1 removes them with the handlers. T0B-TESTMGMT-1 also owns: tags >= 1 when orderable, code / display name suggestion (prefix + serial, NAME, SPECIMEN(CODE)), default price join, Markdown sanitising, stage_targets read / write, instrument / laboratory id checks, catalog.code_duplicate on category name.
 - Not built (LD-318 follow-up 2): rate card equations, operators, parent rate cards: deferred until the founder answers. No test was created in ElabAssist or LIMS.
 - FOUNDER STEP: cloud migration via push-cloud.ps1 for 20261117170000_catalog__test_management_parity.sql (after 20261117120000); not done here.
-- Open: check-registry still reports pre-existing frontdesk / billing gaps from T0C-REGPARITY-1/2 (not this task; catalog is clean).
+- Re-run after ruling (13:2x NPT): codegen 729/729, api pending+probes 21/21, pgTAP suite exit 0; no impl change needed. Open: check-registry still reports pre-existing frontdesk / billing gaps from T0C-REGPARITY-1/2 (not this task; catalog is clean).
 
 ## FIELD MAP (every ElabAssist label of elabassist-testmgmt-20261117.md; LD-318)
 ### Add Test

@@ -99,6 +99,10 @@ class CatalogApi {
   Future<Object?> createTest({Map<String, String>? headers, Object? body}) =>
       _send('POST', '/v1/catalog/tests', headers: headers, body: body);
 
+  /// POST /v1/catalog/test-categories
+  Future<Object?> createTestCategory({Map<String, String>? headers, Object? body}) =>
+      _send('POST', '/v1/catalog/test-categories', headers: headers, body: body);
+
   /// POST /v1/catalog/units
   Future<Object?> createUnit({Map<String, String>? headers, Object? body}) =>
       _send('POST', '/v1/catalog/units', headers: headers, body: body);
@@ -271,6 +275,10 @@ class CatalogApi {
   Future<Object?> listTaxTypes({Map<String, Object?>? query}) =>
       _send('GET', '/v1/catalog/tax-types', query: query);
 
+  /// GET /v1/catalog/test-categories
+  Future<Object?> listTestCategories({Map<String, Object?>? query}) =>
+      _send('GET', '/v1/catalog/test-categories', query: query);
+
   /// GET /v1/catalog/tests
   Future<Object?> listTests({Map<String, Object?>? query}) =>
       _send('GET', '/v1/catalog/tests', query: query);
@@ -414,6 +422,10 @@ class CatalogApi {
   /// PATCH /v1/catalog/tests/{test_id}
   Future<Object?> updateTest({required String testId, Map<String, String>? headers, Object? body}) =>
       _send('PATCH', '/v1/catalog/tests/${Uri.encodeComponent(testId)}', headers: headers, body: body);
+
+  /// PATCH /v1/catalog/test-categories/{category_id}
+  Future<Object?> updateTestCategory({required String categoryId, Map<String, String>? headers, Object? body}) =>
+      _send('PATCH', '/v1/catalog/test-categories/${Uri.encodeComponent(categoryId)}', headers: headers, body: body);
 
   /// PATCH /v1/catalog/units/{unit_id}
   Future<Object?> updateUnit({required String unitId, Map<String, String>? headers, Object? body}) =>

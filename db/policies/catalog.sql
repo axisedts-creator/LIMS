@@ -133,6 +133,21 @@ CREATE POLICY comment_code_texts__insert__tenant ON catalog.comment_code_texts F
 CREATE POLICY comment_code_texts__update__tenant ON catalog.comment_code_texts FOR UPDATE TO lims_app
   USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()))
   WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+-- T0C-TESTMGMT-1 (LD-318): db/migrations/20261117170000_catalog__test_management_parity.sql; no DELETE policy (deactivate, never delete)
+CREATE POLICY test_categories__select__tenant ON catalog.test_categories FOR SELECT TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+CREATE POLICY test_categories__insert__tenant ON catalog.test_categories FOR INSERT TO lims_app
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+CREATE POLICY test_categories__update__tenant ON catalog.test_categories FOR UPDATE TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()))
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+CREATE POLICY test_stage_tat_targets__select__tenant ON catalog.test_stage_tat_targets FOR SELECT TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+CREATE POLICY test_stage_tat_targets__insert__tenant ON catalog.test_stage_tat_targets FOR INSERT TO lims_app
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+CREATE POLICY test_stage_tat_targets__update__tenant ON catalog.test_stage_tat_targets FOR UPDATE TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()))
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
 CREATE POLICY doctors__select__tenant ON catalog.doctors FOR SELECT TO lims_app
   USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
 CREATE POLICY doctors__insert__tenant ON catalog.doctors FOR INSERT TO lims_app

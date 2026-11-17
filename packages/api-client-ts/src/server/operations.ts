@@ -15879,13 +15879,27 @@ export interface Operations {
       report_subheading?: string;
       sort_order?: number;
       is_reportable?: boolean;
+      trend_name?: string;
+      specimen_type_id?: string;
+      font?: string;
+      result_display_type?: "table" | "note_value_only" | "list_note" | "one_column" | "two_column" | "three_column" | "four_column" | "comment" | "hidden" | "table_with_subheader" | "merge_two_column";
+      print_on_negative?: boolean;
+      print_on_worksheet?: boolean;
+      send_in_sms?: boolean;
+      nabl?: boolean;
+      accab_logo?: boolean;
+      is_trend?: boolean;
       initial_version: {
-        result_type: "numeric" | "text" | "ordinal" | "coded" | "attachment" | "narrative";
+        result_type: "numeric" | "text" | "ordinal" | "coded" | "attachment" | "narrative" | "boolean" | "test_footer" | "space" | "graph" | "html_descriptive";
         unit_code?: string;
         decimals?: number;
         method_id?: string;
         value_set_code?: string;
         formula_expression?: string;
+        default_value?: string;
+        long_text_value?: string;
+        high_low?: string;
+        require_verification?: boolean;
       };
     };
     responses: {
@@ -15905,7 +15919,7 @@ export interface Operations {
           analyte_id: string;
           version_no: number;
           status: "draft" | "published" | "superseded" | "retired" | "discarded";
-          result_type: "numeric" | "text" | "ordinal" | "coded" | "attachment" | "narrative";
+          result_type: "numeric" | "text" | "ordinal" | "coded" | "attachment" | "narrative" | "boolean" | "test_footer" | "space" | "graph" | "html_descriptive";
           unit_code?: string;
           decimals?: number;
           method_id?: string;
@@ -15915,9 +15929,23 @@ export interface Operations {
           effective_from?: string;
           effective_to?: string;
           change_reason?: string;
+          default_value?: string;
+          long_text_value?: string;
+          high_low?: string;
+          require_verification?: boolean;
           version: number;
         };
         draft_version_id?: string;
+        trend_name?: string;
+        specimen_type_id?: string;
+        font?: string;
+        result_display_type?: "table" | "note_value_only" | "list_note" | "one_column" | "two_column" | "three_column" | "four_column" | "comment" | "hidden" | "table_with_subheader" | "merge_two_column";
+        print_on_negative?: boolean;
+        print_on_worksheet?: boolean;
+        send_in_sms?: boolean;
+        nabl?: boolean;
+        accab_logo?: boolean;
+        is_trend?: boolean;
       });
       400: {
         type: string;
@@ -16050,7 +16078,7 @@ export interface Operations {
         analyte_id: string;
         version_no: number;
         status: "draft" | "published" | "superseded" | "retired" | "discarded";
-        result_type: "numeric" | "text" | "ordinal" | "coded" | "attachment" | "narrative";
+        result_type: "numeric" | "text" | "ordinal" | "coded" | "attachment" | "narrative" | "boolean" | "test_footer" | "space" | "graph" | "html_descriptive";
         unit_code?: string;
         decimals?: number;
         method_id?: string;
@@ -16060,6 +16088,10 @@ export interface Operations {
         effective_from?: string;
         effective_to?: string;
         change_reason?: string;
+        default_value?: string;
+        long_text_value?: string;
+        high_low?: string;
+        require_verification?: boolean;
         version: number;
       });
       400: {
@@ -19469,16 +19501,24 @@ export interface Operations {
       code: string;
       department_id?: string;
       text: string;
+      category_id?: string;
+      result_type?: "numeric" | "text" | "ordinal" | "coded" | "attachment" | "narrative" | "boolean" | "test_footer" | "space" | "graph" | "html_descriptive";
+      is_default_template?: boolean;
+      text_format?: "plain" | "markdown";
     };
     responses: {
-      201: {
+      201: ({
         id: string;
         code: string;
         department_id?: string;
         text: string;
         is_active: boolean;
         version: number;
-      };
+        category_id?: string;
+        result_type?: "numeric" | "text" | "ordinal" | "coded" | "attachment" | "narrative" | "boolean" | "test_footer" | "space" | "graph" | "html_descriptive";
+        is_default_template?: boolean;
+        text_format?: "plain" | "markdown";
+      });
       400: {
         type: string;
         title: string;
@@ -20946,14 +20986,14 @@ export interface Operations {
     body: {
       copy_from_set_id?: string;
       bands?: ({
-        sex: "any" | "male" | "female";
+        sex: "any" | "male" | "female" | "third_gender";
         age_low?: {
           value: number;
-          unit: "day" | "week" | "month" | "year";
+          unit: "hour" | "day" | "week" | "month" | "year";
         };
         age_high?: {
           value: number;
-          unit: "day" | "week" | "month" | "year";
+          unit: "hour" | "day" | "week" | "month" | "year";
         };
         specimen_type_id?: string;
         low?: string;
@@ -20973,14 +21013,14 @@ export interface Operations {
         effective_to?: string;
         change_reason?: string;
         bands: ({
-          sex: "any" | "male" | "female";
+          sex: "any" | "male" | "female" | "third_gender";
           age_low?: {
             value: number;
-            unit: "day" | "week" | "month" | "year";
+            unit: "hour" | "day" | "week" | "month" | "year";
           };
           age_high?: {
             value: number;
-            unit: "day" | "week" | "month" | "year";
+            unit: "hour" | "day" | "week" | "month" | "year";
           };
           specimen_type_id?: string;
           low?: string;
@@ -25307,6 +25347,10 @@ export interface Operations {
         orderable_id: string;
         sort_order: number;
       })[];
+      barcode_text?: string;
+      loyalty_points?: number;
+      display_order?: number;
+      is_popular?: boolean;
     };
     responses: {
       201: ({
@@ -25322,6 +25366,10 @@ export interface Operations {
         is_orderable: boolean;
         is_active: boolean;
         revision: number;
+        barcode_text?: string;
+        loyalty_points?: number;
+        display_order?: number;
+        is_popular?: boolean;
         members: ({
           kind: "test" | "panel";
           orderable_id: string;
@@ -28355,14 +28403,14 @@ export interface Operations {
     body: {
       copy_from_set_id?: string;
       bands?: ({
-        sex: "any" | "male" | "female";
+        sex: "any" | "male" | "female" | "third_gender";
         age_low?: {
           value: number;
-          unit: "day" | "week" | "month" | "year";
+          unit: "hour" | "day" | "week" | "month" | "year";
         };
         age_high?: {
           value: number;
-          unit: "day" | "week" | "month" | "year";
+          unit: "hour" | "day" | "week" | "month" | "year";
         };
         specimen_type_id?: string;
         kind: "numeric" | "text" | "ordinal";
@@ -28370,6 +28418,12 @@ export interface Operations {
         high?: string;
         normal_codes?: string[];
         display_text?: string;
+        instrument_id?: string;
+        laboratory_id?: string;
+        default_range?: boolean;
+        method_id?: string;
+        auto_approved_low?: string;
+        auto_approved_high?: string;
         sort_order: number;
       })[];
     };
@@ -28385,14 +28439,14 @@ export interface Operations {
         effective_to?: string;
         change_reason?: string;
         bands: ({
-          sex: "any" | "male" | "female";
+          sex: "any" | "male" | "female" | "third_gender";
           age_low?: {
             value: number;
-            unit: "day" | "week" | "month" | "year";
+            unit: "hour" | "day" | "week" | "month" | "year";
           };
           age_high?: {
             value: number;
-            unit: "day" | "week" | "month" | "year";
+            unit: "hour" | "day" | "week" | "month" | "year";
           };
           specimen_type_id?: string;
           kind: "numeric" | "text" | "ordinal";
@@ -28400,6 +28454,12 @@ export interface Operations {
           high?: string;
           normal_codes?: string[];
           display_text?: string;
+          instrument_id?: string;
+          laboratory_id?: string;
+          default_range?: boolean;
+          method_id?: string;
+          auto_approved_low?: string;
+          auto_approved_high?: string;
           sort_order: number;
         })[];
         version: number;
@@ -32561,6 +32621,30 @@ export interface Operations {
         is_preferred: boolean;
         min_volume_ul?: number;
       }[];
+      short_name?: string;
+      display_name?: string;
+      tags?: string[];
+      barcode_text?: string;
+      loyalty_points?: number;
+      display_order?: number;
+      description?: string;
+      report_type?: "four_column" | "three_column" | "two_column" | "graph" | "template_based_html" | "micro_automated" | "cbc_four_column" | "micro_manual" | "histo" | "four_column_10_font";
+      processing_type?: "local" | "branch_transfer" | "outsource_branch";
+      template_ref?: string;
+      outsource_name?: string;
+      is_outsourced?: boolean;
+      is_popular?: boolean;
+      smart_report?: boolean;
+      print_category_wise?: boolean;
+      nabl?: boolean;
+      accab_logo?: boolean;
+      auto_approval_enabled?: boolean;
+      use_normal_range_for_auto_approval?: boolean;
+      template_test?: boolean;
+      nabl_processing_centres?: string[];
+      font?: string;
+      alert_before_expiry_minutes?: number;
+      category_id?: string;
     };
     responses: {
       201: ({
@@ -32600,7 +32684,7 @@ export interface Operations {
             analyte_id: string;
             version_no: number;
             status: "draft" | "published" | "superseded" | "retired" | "discarded";
-            result_type: "numeric" | "text" | "ordinal" | "coded" | "attachment" | "narrative";
+            result_type: "numeric" | "text" | "ordinal" | "coded" | "attachment" | "narrative" | "boolean" | "test_footer" | "space" | "graph" | "html_descriptive";
             unit_code?: string;
             decimals?: number;
             method_id?: string;
@@ -32610,9 +32694,23 @@ export interface Operations {
             effective_from?: string;
             effective_to?: string;
             change_reason?: string;
+            default_value?: string;
+            long_text_value?: string;
+            high_low?: string;
+            require_verification?: boolean;
             version: number;
           };
           draft_version_id?: string;
+          trend_name?: string;
+          specimen_type_id?: string;
+          font?: string;
+          result_display_type?: "table" | "note_value_only" | "list_note" | "one_column" | "two_column" | "three_column" | "four_column" | "comment" | "hidden" | "table_with_subheader" | "merge_two_column";
+          print_on_negative?: boolean;
+          print_on_worksheet?: boolean;
+          send_in_sms?: boolean;
+          nabl?: boolean;
+          accab_logo?: boolean;
+          is_trend?: boolean;
         })[];
         tat_targets: ({
           priority: "routine" | "urgent";
@@ -32621,8 +32719,175 @@ export interface Operations {
           effective_from?: string;
           effective_to?: string;
         })[];
+        stage_targets?: ({
+          stage: "registration" | "sample_collection" | "accession" | "result" | "approval_1" | "approval_2" | "release";
+          target_minutes: number;
+        })[];
+        short_name?: string;
+        display_name?: string;
+        tags?: string[];
+        barcode_text?: string;
+        loyalty_points?: number;
+        display_order?: number;
+        description?: string;
+        report_type?: "four_column" | "three_column" | "two_column" | "graph" | "template_based_html" | "micro_automated" | "cbc_four_column" | "micro_manual" | "histo" | "four_column_10_font";
+        processing_type?: "local" | "branch_transfer" | "outsource_branch";
+        template_ref?: string;
+        outsource_name?: string;
+        is_outsourced?: boolean;
+        is_popular?: boolean;
+        smart_report?: boolean;
+        print_category_wise?: boolean;
+        nabl?: boolean;
+        accab_logo?: boolean;
+        auto_approval_enabled?: boolean;
+        use_normal_range_for_auto_approval?: boolean;
+        template_test?: boolean;
+        nabl_processing_centres?: string[];
+        font?: string;
+        alert_before_expiry_minutes?: number;
+        category_id?: string;
         version: number;
       });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  createTestCategory: {
+    params: Record<string, never>;
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+    };
+    body: {
+      department_id: string;
+      name: string;
+      display_order?: number;
+      print_footer?: boolean;
+      footer_text?: string;
+      is_active?: boolean;
+    };
+    responses: {
+      201: {
+        id: string;
+        department_id: string;
+        name: string;
+        display_order: number;
+        print_footer: boolean;
+        footer_text?: string;
+        is_active: boolean;
+        version: number;
+      };
       400: {
         type: string;
         title: string;
@@ -37810,7 +38075,7 @@ export interface Operations {
         analyte_id: string;
         version_no: number;
         status: "draft" | "published" | "superseded" | "retired" | "discarded";
-        result_type: "numeric" | "text" | "ordinal" | "coded" | "attachment" | "narrative";
+        result_type: "numeric" | "text" | "ordinal" | "coded" | "attachment" | "narrative" | "boolean" | "test_footer" | "space" | "graph" | "html_descriptive";
         unit_code?: string;
         decimals?: number;
         method_id?: string;
@@ -37820,6 +38085,10 @@ export interface Operations {
         effective_from?: string;
         effective_to?: string;
         change_reason?: string;
+        default_value?: string;
+        long_text_value?: string;
+        high_low?: string;
+        require_verification?: boolean;
         version: number;
       });
       400: {
@@ -38623,14 +38892,14 @@ export interface Operations {
         effective_to?: string;
         change_reason?: string;
         bands: ({
-          sex: "any" | "male" | "female";
+          sex: "any" | "male" | "female" | "third_gender";
           age_low?: {
             value: number;
-            unit: "day" | "week" | "month" | "year";
+            unit: "hour" | "day" | "week" | "month" | "year";
           };
           age_high?: {
             value: number;
-            unit: "day" | "week" | "month" | "year";
+            unit: "hour" | "day" | "week" | "month" | "year";
           };
           specimen_type_id?: string;
           low?: string;
@@ -39794,14 +40063,14 @@ export interface Operations {
         effective_to?: string;
         change_reason?: string;
         bands: ({
-          sex: "any" | "male" | "female";
+          sex: "any" | "male" | "female" | "third_gender";
           age_low?: {
             value: number;
-            unit: "day" | "week" | "month" | "year";
+            unit: "hour" | "day" | "week" | "month" | "year";
           };
           age_high?: {
             value: number;
-            unit: "day" | "week" | "month" | "year";
+            unit: "hour" | "day" | "week" | "month" | "year";
           };
           specimen_type_id?: string;
           kind: "numeric" | "text" | "ordinal";
@@ -39809,6 +40078,12 @@ export interface Operations {
           high?: string;
           normal_codes?: string[];
           display_text?: string;
+          instrument_id?: string;
+          laboratory_id?: string;
+          default_range?: boolean;
+          method_id?: string;
+          auto_approved_low?: string;
+          auto_approved_high?: string;
           sort_order: number;
         })[];
         version: number;
@@ -44766,7 +45041,7 @@ export interface Operations {
           analyte_id: string;
           version_no: number;
           status: "draft" | "published" | "superseded" | "retired" | "discarded";
-          result_type: "numeric" | "text" | "ordinal" | "coded" | "attachment" | "narrative";
+          result_type: "numeric" | "text" | "ordinal" | "coded" | "attachment" | "narrative" | "boolean" | "test_footer" | "space" | "graph" | "html_descriptive";
           unit_code?: string;
           decimals?: number;
           method_id?: string;
@@ -44776,15 +45051,29 @@ export interface Operations {
           effective_from?: string;
           effective_to?: string;
           change_reason?: string;
+          default_value?: string;
+          long_text_value?: string;
+          high_low?: string;
+          require_verification?: boolean;
           version: number;
         };
         draft_version_id?: string;
+        trend_name?: string;
+        specimen_type_id?: string;
+        font?: string;
+        result_display_type?: "table" | "note_value_only" | "list_note" | "one_column" | "two_column" | "three_column" | "four_column" | "comment" | "hidden" | "table_with_subheader" | "merge_two_column";
+        print_on_negative?: boolean;
+        print_on_worksheet?: boolean;
+        send_in_sms?: boolean;
+        nabl?: boolean;
+        accab_logo?: boolean;
+        is_trend?: boolean;
         versions: ({
           id: string;
           analyte_id: string;
           version_no: number;
           status: "draft" | "published" | "superseded" | "retired" | "discarded";
-          result_type: "numeric" | "text" | "ordinal" | "coded" | "attachment" | "narrative";
+          result_type: "numeric" | "text" | "ordinal" | "coded" | "attachment" | "narrative" | "boolean" | "test_footer" | "space" | "graph" | "html_descriptive";
           unit_code?: string;
           decimals?: number;
           method_id?: string;
@@ -44794,6 +45083,10 @@ export interface Operations {
           effective_from?: string;
           effective_to?: string;
           change_reason?: string;
+          default_value?: string;
+          long_text_value?: string;
+          high_low?: string;
+          require_verification?: boolean;
           version: number;
         })[];
       });
@@ -49775,14 +50068,14 @@ export interface Operations {
         effective_to?: string;
         change_reason?: string;
         bands: ({
-          sex: "any" | "male" | "female";
+          sex: "any" | "male" | "female" | "third_gender";
           age_low?: {
             value: number;
-            unit: "day" | "week" | "month" | "year";
+            unit: "hour" | "day" | "week" | "month" | "year";
           };
           age_high?: {
             value: number;
-            unit: "day" | "week" | "month" | "year";
+            unit: "hour" | "day" | "week" | "month" | "year";
           };
           specimen_type_id?: string;
           low?: string;
@@ -57691,6 +57984,10 @@ export interface Operations {
         is_orderable: boolean;
         is_active: boolean;
         revision: number;
+        barcode_text?: string;
+        loyalty_points?: number;
+        display_order?: number;
+        is_popular?: boolean;
         members: ({
           kind: "test" | "panel";
           orderable_id: string;
@@ -61603,14 +61900,14 @@ export interface Operations {
         effective_to?: string;
         change_reason?: string;
         bands: ({
-          sex: "any" | "male" | "female";
+          sex: "any" | "male" | "female" | "third_gender";
           age_low?: {
             value: number;
-            unit: "day" | "week" | "month" | "year";
+            unit: "hour" | "day" | "week" | "month" | "year";
           };
           age_high?: {
             value: number;
-            unit: "day" | "week" | "month" | "year";
+            unit: "hour" | "day" | "week" | "month" | "year";
           };
           specimen_type_id?: string;
           kind: "numeric" | "text" | "ordinal";
@@ -61618,6 +61915,12 @@ export interface Operations {
           high?: string;
           normal_codes?: string[];
           display_text?: string;
+          instrument_id?: string;
+          laboratory_id?: string;
+          default_range?: boolean;
+          method_id?: string;
+          auto_approved_low?: string;
+          auto_approved_high?: string;
           sort_order: number;
         })[];
         version: number;
@@ -65735,7 +66038,7 @@ export interface Operations {
             analyte_id: string;
             version_no: number;
             status: "draft" | "published" | "superseded" | "retired" | "discarded";
-            result_type: "numeric" | "text" | "ordinal" | "coded" | "attachment" | "narrative";
+            result_type: "numeric" | "text" | "ordinal" | "coded" | "attachment" | "narrative" | "boolean" | "test_footer" | "space" | "graph" | "html_descriptive";
             unit_code?: string;
             decimals?: number;
             method_id?: string;
@@ -65745,9 +66048,23 @@ export interface Operations {
             effective_from?: string;
             effective_to?: string;
             change_reason?: string;
+            default_value?: string;
+            long_text_value?: string;
+            high_low?: string;
+            require_verification?: boolean;
             version: number;
           };
           draft_version_id?: string;
+          trend_name?: string;
+          specimen_type_id?: string;
+          font?: string;
+          result_display_type?: "table" | "note_value_only" | "list_note" | "one_column" | "two_column" | "three_column" | "four_column" | "comment" | "hidden" | "table_with_subheader" | "merge_two_column";
+          print_on_negative?: boolean;
+          print_on_worksheet?: boolean;
+          send_in_sms?: boolean;
+          nabl?: boolean;
+          accab_logo?: boolean;
+          is_trend?: boolean;
         })[];
         tat_targets: ({
           priority: "routine" | "urgent";
@@ -65756,6 +66073,34 @@ export interface Operations {
           effective_from?: string;
           effective_to?: string;
         })[];
+        stage_targets?: ({
+          stage: "registration" | "sample_collection" | "accession" | "result" | "approval_1" | "approval_2" | "release";
+          target_minutes: number;
+        })[];
+        short_name?: string;
+        display_name?: string;
+        tags?: string[];
+        barcode_text?: string;
+        loyalty_points?: number;
+        display_order?: number;
+        description?: string;
+        report_type?: "four_column" | "three_column" | "two_column" | "graph" | "template_based_html" | "micro_automated" | "cbc_four_column" | "micro_manual" | "histo" | "four_column_10_font";
+        processing_type?: "local" | "branch_transfer" | "outsource_branch";
+        template_ref?: string;
+        outsource_name?: string;
+        is_outsourced?: boolean;
+        is_popular?: boolean;
+        smart_report?: boolean;
+        print_category_wise?: boolean;
+        nabl?: boolean;
+        accab_logo?: boolean;
+        auto_approval_enabled?: boolean;
+        use_normal_range_for_auto_approval?: boolean;
+        template_test?: boolean;
+        nabl_processing_centres?: string[];
+        font?: string;
+        alert_before_expiry_minutes?: number;
+        category_id?: string;
         version: number;
       });
       400: {
@@ -74332,20 +74677,24 @@ export interface Operations {
     headers: Record<string, never>;
     body: never;
     responses: {
-      200: {
-        data: {
+      200: ({
+        data: ({
           id: string;
           code: string;
           department_id?: string;
           text: string;
           is_active: boolean;
           version: number;
-        }[];
+          category_id?: string;
+          result_type?: "numeric" | "text" | "ordinal" | "coded" | "attachment" | "narrative" | "boolean" | "test_footer" | "space" | "graph" | "html_descriptive";
+          is_default_template?: boolean;
+          text_format?: "plain" | "markdown";
+        })[];
         page: {
           next_cursor?: string;
           limit: number;
         };
-      };
+      });
       400: {
         type: string;
         title: string;
@@ -76275,14 +76624,14 @@ export interface Operations {
           effective_to?: string;
           change_reason?: string;
           bands: ({
-            sex: "any" | "male" | "female";
+            sex: "any" | "male" | "female" | "third_gender";
             age_low?: {
               value: number;
-              unit: "day" | "week" | "month" | "year";
+              unit: "hour" | "day" | "week" | "month" | "year";
             };
             age_high?: {
               value: number;
-              unit: "day" | "week" | "month" | "year";
+              unit: "hour" | "day" | "week" | "month" | "year";
             };
             specimen_type_id?: string;
             low?: string;
@@ -85850,6 +86199,10 @@ export interface Operations {
           is_orderable: boolean;
           is_active: boolean;
           revision: number;
+          barcode_text?: string;
+          loyalty_points?: number;
+          display_order?: number;
+          is_popular?: boolean;
           members: ({
             kind: "test" | "panel";
             orderable_id: string;
@@ -91002,14 +91355,14 @@ export interface Operations {
           effective_to?: string;
           change_reason?: string;
           bands: ({
-            sex: "any" | "male" | "female";
+            sex: "any" | "male" | "female" | "third_gender";
             age_low?: {
               value: number;
-              unit: "day" | "week" | "month" | "year";
+              unit: "hour" | "day" | "week" | "month" | "year";
             };
             age_high?: {
               value: number;
-              unit: "day" | "week" | "month" | "year";
+              unit: "hour" | "day" | "week" | "month" | "year";
             };
             specimen_type_id?: string;
             kind: "numeric" | "text" | "ordinal";
@@ -91017,6 +91370,12 @@ export interface Operations {
             high?: string;
             normal_codes?: string[];
             display_text?: string;
+            instrument_id?: string;
+            laboratory_id?: string;
+            default_range?: boolean;
+            method_id?: string;
+            auto_approved_low?: string;
+            auto_approved_high?: string;
             sort_order: number;
           })[];
           version: number;
@@ -95309,12 +95668,127 @@ export interface Operations {
       };
     };
   };
+  listTestCategories: {
+    params: Record<string, never>;
+    query: {
+      department_id?: string;
+      is_active?: "true" | "false" | "all";
+      sort?: "name" | "-name" | "display_order" | "-display_order";
+      cursor?: string;
+      limit?: number;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: {
+        data: {
+          id: string;
+          department_id: string;
+          name: string;
+          display_order: number;
+          print_footer: boolean;
+          footer_text?: string;
+          is_active: boolean;
+          version: number;
+        }[];
+        page: {
+          next_cursor?: string;
+          limit: number;
+        };
+      };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   listTests: {
     params: Record<string, never>;
     query: {
       department_id?: string;
       workflow_type?: "standard" | "narrative" | "microbiology" | "anatomic" | "molecular" | "attachment" | "outsourced";
       is_active?: "true" | "false" | "all";
+      category_id?: string;
       sort?: "code" | "-code" | "name" | "-name" | "report_order" | "-report_order";
       cursor?: string;
       limit?: number;
@@ -95336,6 +95810,11 @@ export interface Operations {
           is_orderable: boolean;
           is_active: boolean;
           revision: number;
+          category_id?: string;
+          category_name?: string;
+          short_name?: string;
+          display_name?: string;
+          default_price_paisa?: number;
         })[];
         page: {
           next_cursor?: string;
@@ -101736,7 +102215,7 @@ export interface Operations {
         analyte_id: string;
         version_no: number;
         status: "draft" | "published" | "superseded" | "retired" | "discarded";
-        result_type: "numeric" | "text" | "ordinal" | "coded" | "attachment" | "narrative";
+        result_type: "numeric" | "text" | "ordinal" | "coded" | "attachment" | "narrative" | "boolean" | "test_footer" | "space" | "graph" | "html_descriptive";
         unit_code?: string;
         decimals?: number;
         method_id?: string;
@@ -101746,6 +102225,10 @@ export interface Operations {
         effective_from?: string;
         effective_to?: string;
         change_reason?: string;
+        default_value?: string;
+        long_text_value?: string;
+        high_low?: string;
+        require_verification?: boolean;
         version: number;
       });
       400: {
@@ -102079,14 +102562,14 @@ export interface Operations {
         effective_to?: string;
         change_reason?: string;
         bands: ({
-          sex: "any" | "male" | "female";
+          sex: "any" | "male" | "female" | "third_gender";
           age_low?: {
             value: number;
-            unit: "day" | "week" | "month" | "year";
+            unit: "hour" | "day" | "week" | "month" | "year";
           };
           age_high?: {
             value: number;
-            unit: "day" | "week" | "month" | "year";
+            unit: "hour" | "day" | "week" | "month" | "year";
           };
           specimen_type_id?: string;
           low?: string;
@@ -102402,14 +102885,14 @@ export interface Operations {
         effective_to?: string;
         change_reason?: string;
         bands: ({
-          sex: "any" | "male" | "female";
+          sex: "any" | "male" | "female" | "third_gender";
           age_low?: {
             value: number;
-            unit: "day" | "week" | "month" | "year";
+            unit: "hour" | "day" | "week" | "month" | "year";
           };
           age_high?: {
             value: number;
-            unit: "day" | "week" | "month" | "year";
+            unit: "hour" | "day" | "week" | "month" | "year";
           };
           specimen_type_id?: string;
           kind: "numeric" | "text" | "ordinal";
@@ -102417,6 +102900,12 @@ export interface Operations {
           high?: string;
           normal_codes?: string[];
           display_text?: string;
+          instrument_id?: string;
+          laboratory_id?: string;
+          default_range?: boolean;
+          method_id?: string;
+          auto_approved_low?: string;
+          auto_approved_high?: string;
           sort_order: number;
         })[];
         version: number;
@@ -112329,14 +112818,14 @@ export interface Operations {
     };
     body: {
       bands: ({
-        sex: "any" | "male" | "female";
+        sex: "any" | "male" | "female" | "third_gender";
         age_low?: {
           value: number;
-          unit: "day" | "week" | "month" | "year";
+          unit: "hour" | "day" | "week" | "month" | "year";
         };
         age_high?: {
           value: number;
-          unit: "day" | "week" | "month" | "year";
+          unit: "hour" | "day" | "week" | "month" | "year";
         };
         specimen_type_id?: string;
         low?: string;
@@ -112356,14 +112845,14 @@ export interface Operations {
         effective_to?: string;
         change_reason?: string;
         bands: ({
-          sex: "any" | "male" | "female";
+          sex: "any" | "male" | "female" | "third_gender";
           age_low?: {
             value: number;
-            unit: "day" | "week" | "month" | "year";
+            unit: "hour" | "day" | "week" | "month" | "year";
           };
           age_high?: {
             value: number;
-            unit: "day" | "week" | "month" | "year";
+            unit: "hour" | "day" | "week" | "month" | "year";
           };
           specimen_type_id?: string;
           low?: string;
@@ -112944,6 +113433,10 @@ export interface Operations {
         is_orderable: boolean;
         is_active: boolean;
         revision: number;
+        barcode_text?: string;
+        loyalty_points?: number;
+        display_order?: number;
+        is_popular?: boolean;
         members: ({
           kind: "test" | "panel";
           orderable_id: string;
@@ -113450,14 +113943,14 @@ export interface Operations {
     };
     body: {
       bands: ({
-        sex: "any" | "male" | "female";
+        sex: "any" | "male" | "female" | "third_gender";
         age_low?: {
           value: number;
-          unit: "day" | "week" | "month" | "year";
+          unit: "hour" | "day" | "week" | "month" | "year";
         };
         age_high?: {
           value: number;
-          unit: "day" | "week" | "month" | "year";
+          unit: "hour" | "day" | "week" | "month" | "year";
         };
         specimen_type_id?: string;
         kind: "numeric" | "text" | "ordinal";
@@ -113465,6 +113958,12 @@ export interface Operations {
         high?: string;
         normal_codes?: string[];
         display_text?: string;
+        instrument_id?: string;
+        laboratory_id?: string;
+        default_range?: boolean;
+        method_id?: string;
+        auto_approved_low?: string;
+        auto_approved_high?: string;
         sort_order: number;
       })[];
     };
@@ -113480,14 +113979,14 @@ export interface Operations {
         effective_to?: string;
         change_reason?: string;
         bands: ({
-          sex: "any" | "male" | "female";
+          sex: "any" | "male" | "female" | "third_gender";
           age_low?: {
             value: number;
-            unit: "day" | "week" | "month" | "year";
+            unit: "hour" | "day" | "week" | "month" | "year";
           };
           age_high?: {
             value: number;
-            unit: "day" | "week" | "month" | "year";
+            unit: "hour" | "day" | "week" | "month" | "year";
           };
           specimen_type_id?: string;
           kind: "numeric" | "text" | "ordinal";
@@ -113495,6 +113994,12 @@ export interface Operations {
           high?: string;
           normal_codes?: string[];
           display_text?: string;
+          instrument_id?: string;
+          laboratory_id?: string;
+          default_range?: boolean;
+          method_id?: string;
+          auto_approved_low?: string;
+          auto_approved_high?: string;
           sort_order: number;
         })[];
         version: number;
@@ -114086,7 +114591,7 @@ export interface Operations {
             analyte_id: string;
             version_no: number;
             status: "draft" | "published" | "superseded" | "retired" | "discarded";
-            result_type: "numeric" | "text" | "ordinal" | "coded" | "attachment" | "narrative";
+            result_type: "numeric" | "text" | "ordinal" | "coded" | "attachment" | "narrative" | "boolean" | "test_footer" | "space" | "graph" | "html_descriptive";
             unit_code?: string;
             decimals?: number;
             method_id?: string;
@@ -114096,9 +114601,23 @@ export interface Operations {
             effective_from?: string;
             effective_to?: string;
             change_reason?: string;
+            default_value?: string;
+            long_text_value?: string;
+            high_low?: string;
+            require_verification?: boolean;
             version: number;
           };
           draft_version_id?: string;
+          trend_name?: string;
+          specimen_type_id?: string;
+          font?: string;
+          result_display_type?: "table" | "note_value_only" | "list_note" | "one_column" | "two_column" | "three_column" | "four_column" | "comment" | "hidden" | "table_with_subheader" | "merge_two_column";
+          print_on_negative?: boolean;
+          print_on_worksheet?: boolean;
+          send_in_sms?: boolean;
+          nabl?: boolean;
+          accab_logo?: boolean;
+          is_trend?: boolean;
         })[];
         tat_targets: ({
           priority: "routine" | "urgent";
@@ -114107,6 +114626,34 @@ export interface Operations {
           effective_from?: string;
           effective_to?: string;
         })[];
+        stage_targets?: ({
+          stage: "registration" | "sample_collection" | "accession" | "result" | "approval_1" | "approval_2" | "release";
+          target_minutes: number;
+        })[];
+        short_name?: string;
+        display_name?: string;
+        tags?: string[];
+        barcode_text?: string;
+        loyalty_points?: number;
+        display_order?: number;
+        description?: string;
+        report_type?: "four_column" | "three_column" | "two_column" | "graph" | "template_based_html" | "micro_automated" | "cbc_four_column" | "micro_manual" | "histo" | "four_column_10_font";
+        processing_type?: "local" | "branch_transfer" | "outsource_branch";
+        template_ref?: string;
+        outsource_name?: string;
+        is_outsourced?: boolean;
+        is_popular?: boolean;
+        smart_report?: boolean;
+        print_category_wise?: boolean;
+        nabl?: boolean;
+        accab_logo?: boolean;
+        auto_approval_enabled?: boolean;
+        use_normal_range_for_auto_approval?: boolean;
+        template_test?: boolean;
+        nabl_processing_centres?: string[];
+        font?: string;
+        alert_before_expiry_minutes?: number;
+        category_id?: string;
         version: number;
       });
       400: {
@@ -117785,7 +118332,7 @@ export interface Operations {
             id: string;
             code: string;
             name: string;
-            result_type: "numeric" | "text" | "ordinal" | "coded" | "attachment" | "narrative";
+            result_type: "numeric" | "text" | "ordinal" | "coded" | "attachment" | "narrative" | "boolean" | "test_footer" | "space" | "graph" | "html_descriptive";
             unit_code?: string;
             decimals?: number;
             method_name?: string;
@@ -119601,14 +120148,14 @@ export interface Operations {
         effective_to?: string;
         change_reason?: string;
         bands: ({
-          sex: "any" | "male" | "female";
+          sex: "any" | "male" | "female" | "third_gender";
           age_low?: {
             value: number;
-            unit: "day" | "week" | "month" | "year";
+            unit: "hour" | "day" | "week" | "month" | "year";
           };
           age_high?: {
             value: number;
-            unit: "day" | "week" | "month" | "year";
+            unit: "hour" | "day" | "week" | "month" | "year";
           };
           specimen_type_id?: string;
           low?: string;
@@ -120187,14 +120734,14 @@ export interface Operations {
         effective_to?: string;
         change_reason?: string;
         bands: ({
-          sex: "any" | "male" | "female";
+          sex: "any" | "male" | "female" | "third_gender";
           age_low?: {
             value: number;
-            unit: "day" | "week" | "month" | "year";
+            unit: "hour" | "day" | "week" | "month" | "year";
           };
           age_high?: {
             value: number;
-            unit: "day" | "week" | "month" | "year";
+            unit: "hour" | "day" | "week" | "month" | "year";
           };
           specimen_type_id?: string;
           kind: "numeric" | "text" | "ordinal";
@@ -120202,6 +120749,12 @@ export interface Operations {
           high?: string;
           normal_codes?: string[];
           display_text?: string;
+          instrument_id?: string;
+          laboratory_id?: string;
+          default_range?: boolean;
+          method_id?: string;
+          auto_approved_low?: string;
+          auto_approved_high?: string;
           sort_order: number;
         })[];
         version: number;
@@ -125137,6 +125690,11 @@ export interface Operations {
           is_orderable: boolean;
           is_active: boolean;
           revision: number;
+          category_id?: string;
+          category_name?: string;
+          short_name?: string;
+          display_name?: string;
+          default_price_paisa?: number;
         })[];
       });
       400: {
@@ -126612,6 +127170,10 @@ export interface Operations {
         target_seconds: number;
       })[];
       effective_from?: string;
+      stage_targets?: ({
+        stage: "registration" | "sample_collection" | "accession" | "result" | "approval_1" | "approval_2" | "release";
+        target_minutes: number;
+      })[];
     };
     responses: {
       200: ({
@@ -126651,7 +127213,7 @@ export interface Operations {
             analyte_id: string;
             version_no: number;
             status: "draft" | "published" | "superseded" | "retired" | "discarded";
-            result_type: "numeric" | "text" | "ordinal" | "coded" | "attachment" | "narrative";
+            result_type: "numeric" | "text" | "ordinal" | "coded" | "attachment" | "narrative" | "boolean" | "test_footer" | "space" | "graph" | "html_descriptive";
             unit_code?: string;
             decimals?: number;
             method_id?: string;
@@ -126661,9 +127223,23 @@ export interface Operations {
             effective_from?: string;
             effective_to?: string;
             change_reason?: string;
+            default_value?: string;
+            long_text_value?: string;
+            high_low?: string;
+            require_verification?: boolean;
             version: number;
           };
           draft_version_id?: string;
+          trend_name?: string;
+          specimen_type_id?: string;
+          font?: string;
+          result_display_type?: "table" | "note_value_only" | "list_note" | "one_column" | "two_column" | "three_column" | "four_column" | "comment" | "hidden" | "table_with_subheader" | "merge_two_column";
+          print_on_negative?: boolean;
+          print_on_worksheet?: boolean;
+          send_in_sms?: boolean;
+          nabl?: boolean;
+          accab_logo?: boolean;
+          is_trend?: boolean;
         })[];
         tat_targets: ({
           priority: "routine" | "urgent";
@@ -126672,6 +127248,34 @@ export interface Operations {
           effective_from?: string;
           effective_to?: string;
         })[];
+        stage_targets?: ({
+          stage: "registration" | "sample_collection" | "accession" | "result" | "approval_1" | "approval_2" | "release";
+          target_minutes: number;
+        })[];
+        short_name?: string;
+        display_name?: string;
+        tags?: string[];
+        barcode_text?: string;
+        loyalty_points?: number;
+        display_order?: number;
+        description?: string;
+        report_type?: "four_column" | "three_column" | "two_column" | "graph" | "template_based_html" | "micro_automated" | "cbc_four_column" | "micro_manual" | "histo" | "four_column_10_font";
+        processing_type?: "local" | "branch_transfer" | "outsource_branch";
+        template_ref?: string;
+        outsource_name?: string;
+        is_outsourced?: boolean;
+        is_popular?: boolean;
+        smart_report?: boolean;
+        print_category_wise?: boolean;
+        nabl?: boolean;
+        accab_logo?: boolean;
+        auto_approval_enabled?: boolean;
+        use_normal_range_for_auto_approval?: boolean;
+        template_test?: boolean;
+        nabl_processing_centres?: string[];
+        font?: string;
+        alert_before_expiry_minutes?: number;
+        category_id?: string;
         version: number;
       });
       400: {
@@ -134036,6 +134640,17 @@ export interface Operations {
       sort_order?: number;
       is_reportable?: boolean;
       is_active?: boolean;
+      trend_name?: string;
+      specimen_type_id?: string;
+      font?: string;
+      result_display_type?: "table" | "note_value_only" | "list_note" | "one_column" | "two_column" | "three_column" | "four_column" | "comment" | "hidden" | "table_with_subheader" | "merge_two_column";
+      print_on_negative?: boolean;
+      print_on_worksheet?: boolean;
+      send_in_sms?: boolean;
+      nabl?: boolean;
+      accab_logo?: boolean;
+      is_trend?: boolean;
+      unset?: ("trend_name" | "specimen_type_id" | "font" | "result_display_type")[];
     };
     responses: {
       200: ({
@@ -134054,7 +134669,7 @@ export interface Operations {
           analyte_id: string;
           version_no: number;
           status: "draft" | "published" | "superseded" | "retired" | "discarded";
-          result_type: "numeric" | "text" | "ordinal" | "coded" | "attachment" | "narrative";
+          result_type: "numeric" | "text" | "ordinal" | "coded" | "attachment" | "narrative" | "boolean" | "test_footer" | "space" | "graph" | "html_descriptive";
           unit_code?: string;
           decimals?: number;
           method_id?: string;
@@ -134064,9 +134679,23 @@ export interface Operations {
           effective_from?: string;
           effective_to?: string;
           change_reason?: string;
+          default_value?: string;
+          long_text_value?: string;
+          high_low?: string;
+          require_verification?: boolean;
           version: number;
         };
         draft_version_id?: string;
+        trend_name?: string;
+        specimen_type_id?: string;
+        font?: string;
+        result_display_type?: "table" | "note_value_only" | "list_note" | "one_column" | "two_column" | "three_column" | "four_column" | "comment" | "hidden" | "table_with_subheader" | "merge_two_column";
+        print_on_negative?: boolean;
+        print_on_worksheet?: boolean;
+        send_in_sms?: boolean;
+        nabl?: boolean;
+        accab_logo?: boolean;
+        is_trend?: boolean;
       });
       400: {
         type: string;
@@ -134191,13 +134820,17 @@ export interface Operations {
       "If-Match": string;
     };
     body: {
-      result_type?: "numeric" | "text" | "ordinal" | "coded" | "attachment" | "narrative";
+      result_type?: "numeric" | "text" | "ordinal" | "coded" | "attachment" | "narrative" | "boolean" | "test_footer" | "space" | "graph" | "html_descriptive";
       unit_code?: string;
       decimals?: number;
       method_id?: string;
       value_set_code?: string;
       formula_expression?: string;
-      unset?: ("unit_code" | "decimals" | "method_id" | "value_set_code" | "formula_expression")[];
+      default_value?: string;
+      long_text_value?: string;
+      high_low?: string;
+      require_verification?: boolean;
+      unset?: ("unit_code" | "decimals" | "method_id" | "value_set_code" | "formula_expression" | "default_value" | "long_text_value" | "high_low")[];
     };
     responses: {
       200: ({
@@ -134205,7 +134838,7 @@ export interface Operations {
         analyte_id: string;
         version_no: number;
         status: "draft" | "published" | "superseded" | "retired" | "discarded";
-        result_type: "numeric" | "text" | "ordinal" | "coded" | "attachment" | "narrative";
+        result_type: "numeric" | "text" | "ordinal" | "coded" | "attachment" | "narrative" | "boolean" | "test_footer" | "space" | "graph" | "html_descriptive";
         unit_code?: string;
         decimals?: number;
         method_id?: string;
@@ -134215,6 +134848,10 @@ export interface Operations {
         effective_from?: string;
         effective_to?: string;
         change_reason?: string;
+        default_value?: string;
+        long_text_value?: string;
+        high_low?: string;
+        require_verification?: boolean;
         version: number;
       });
       400: {
@@ -136420,16 +137057,25 @@ export interface Operations {
     body: {
       text?: string;
       is_active?: boolean;
+      category_id?: string;
+      result_type?: "numeric" | "text" | "ordinal" | "coded" | "attachment" | "narrative" | "boolean" | "test_footer" | "space" | "graph" | "html_descriptive";
+      is_default_template?: boolean;
+      text_format?: "plain" | "markdown";
+      unset?: ("category_id" | "result_type")[];
     };
     responses: {
-      200: {
+      200: ({
         id: string;
         code: string;
         department_id?: string;
         text: string;
         is_active: boolean;
         version: number;
-      };
+        category_id?: string;
+        result_type?: "numeric" | "text" | "ordinal" | "coded" | "attachment" | "narrative" | "boolean" | "test_footer" | "space" | "graph" | "html_descriptive";
+        is_default_template?: boolean;
+        text_format?: "plain" | "markdown";
+      });
       400: {
         type: string;
         title: string;
@@ -142042,7 +142688,11 @@ export interface Operations {
     body: {
       name?: string;
       sex_restriction?: "male" | "female";
-      unset?: ("sex_restriction" | "department_id")[];
+      barcode_text?: string;
+      loyalty_points?: number;
+      display_order?: number;
+      is_popular?: boolean;
+      unset?: ("sex_restriction" | "department_id" | "barcode_text")[];
       department_id?: string;
       is_active?: boolean;
     };
@@ -142060,6 +142710,10 @@ export interface Operations {
         is_orderable: boolean;
         is_active: boolean;
         revision: number;
+        barcode_text?: string;
+        loyalty_points?: number;
+        display_order?: number;
+        is_popular?: boolean;
         members: ({
           kind: "test" | "panel";
           orderable_id: string;
@@ -145566,6 +146220,31 @@ export interface Operations {
       is_orderable?: boolean;
       uses_existing_material?: boolean;
       is_active?: boolean;
+      short_name?: string;
+      display_name?: string;
+      tags?: string[];
+      barcode_text?: string;
+      loyalty_points?: number;
+      display_order?: number;
+      description?: string;
+      report_type?: "four_column" | "three_column" | "two_column" | "graph" | "template_based_html" | "micro_automated" | "cbc_four_column" | "micro_manual" | "histo" | "four_column_10_font";
+      processing_type?: "local" | "branch_transfer" | "outsource_branch";
+      template_ref?: string;
+      outsource_name?: string;
+      is_outsourced?: boolean;
+      is_popular?: boolean;
+      smart_report?: boolean;
+      print_category_wise?: boolean;
+      nabl?: boolean;
+      accab_logo?: boolean;
+      auto_approval_enabled?: boolean;
+      use_normal_range_for_auto_approval?: boolean;
+      template_test?: boolean;
+      nabl_processing_centres?: string[];
+      font?: string;
+      alert_before_expiry_minutes?: number;
+      category_id?: string;
+      unset?: ("short_name" | "display_name" | "barcode_text" | "description" | "template_ref" | "outsource_name" | "nabl_processing_centres" | "font" | "alert_before_expiry_minutes" | "category_id" | "report_type" | "processing_type")[];
     };
     responses: {
       200: ({
@@ -145605,7 +146284,7 @@ export interface Operations {
             analyte_id: string;
             version_no: number;
             status: "draft" | "published" | "superseded" | "retired" | "discarded";
-            result_type: "numeric" | "text" | "ordinal" | "coded" | "attachment" | "narrative";
+            result_type: "numeric" | "text" | "ordinal" | "coded" | "attachment" | "narrative" | "boolean" | "test_footer" | "space" | "graph" | "html_descriptive";
             unit_code?: string;
             decimals?: number;
             method_id?: string;
@@ -145615,9 +146294,23 @@ export interface Operations {
             effective_from?: string;
             effective_to?: string;
             change_reason?: string;
+            default_value?: string;
+            long_text_value?: string;
+            high_low?: string;
+            require_verification?: boolean;
             version: number;
           };
           draft_version_id?: string;
+          trend_name?: string;
+          specimen_type_id?: string;
+          font?: string;
+          result_display_type?: "table" | "note_value_only" | "list_note" | "one_column" | "two_column" | "three_column" | "four_column" | "comment" | "hidden" | "table_with_subheader" | "merge_two_column";
+          print_on_negative?: boolean;
+          print_on_worksheet?: boolean;
+          send_in_sms?: boolean;
+          nabl?: boolean;
+          accab_logo?: boolean;
+          is_trend?: boolean;
         })[];
         tat_targets: ({
           priority: "routine" | "urgent";
@@ -145626,8 +146319,177 @@ export interface Operations {
           effective_from?: string;
           effective_to?: string;
         })[];
+        stage_targets?: ({
+          stage: "registration" | "sample_collection" | "accession" | "result" | "approval_1" | "approval_2" | "release";
+          target_minutes: number;
+        })[];
+        short_name?: string;
+        display_name?: string;
+        tags?: string[];
+        barcode_text?: string;
+        loyalty_points?: number;
+        display_order?: number;
+        description?: string;
+        report_type?: "four_column" | "three_column" | "two_column" | "graph" | "template_based_html" | "micro_automated" | "cbc_four_column" | "micro_manual" | "histo" | "four_column_10_font";
+        processing_type?: "local" | "branch_transfer" | "outsource_branch";
+        template_ref?: string;
+        outsource_name?: string;
+        is_outsourced?: boolean;
+        is_popular?: boolean;
+        smart_report?: boolean;
+        print_category_wise?: boolean;
+        nabl?: boolean;
+        accab_logo?: boolean;
+        auto_approval_enabled?: boolean;
+        use_normal_range_for_auto_approval?: boolean;
+        template_test?: boolean;
+        nabl_processing_centres?: string[];
+        font?: string;
+        alert_before_expiry_minutes?: number;
+        category_id?: string;
         version: number;
       });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  updateTestCategory: {
+    params: {
+      category_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "If-Match": string;
+    };
+    body: {
+      name?: string;
+      display_order?: number;
+      print_footer?: boolean;
+      footer_text?: string;
+      is_active?: boolean;
+      unset?: "footer_text"[];
+    };
+    responses: {
+      200: {
+        id: string;
+        department_id: string;
+        name: string;
+        display_order: number;
+        print_footer: boolean;
+        footer_text?: string;
+        is_active: boolean;
+        version: number;
+      };
       400: {
         type: string;
         title: string;

@@ -167,6 +167,10 @@ class BillingApi {
   Future<Object?> listAccountParticulars({Map<String, Object?>? query}) =>
       _send('GET', '/v1/billing/account-particulars', query: query);
 
+  /// GET /v1/billing/account-summaries
+  Future<Object?> listAccountSummaries({Map<String, Object?>? query}) =>
+      _send('GET', '/v1/billing/account-summaries', query: query);
+
   /// GET /v1/billing/coded-sets/{set_name}
   Future<Object?> listBillingCodes({required String setName}) =>
       _send('GET', '/v1/billing/coded-sets/${Uri.encodeComponent(setName)}');

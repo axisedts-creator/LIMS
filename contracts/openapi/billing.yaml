@@ -5693,6 +5693,112 @@ paths:
           $ref: _common.yaml#/components/responses/TooManyRequests
         "500":
           $ref: _common.yaml#/components/responses/Internal
+  /v1/billing/account-summaries:
+    get:
+      operationId: listAccountSummaries
+      tags:
+        - billing
+      summary: List account summaries of all parties
+      description: "LD-358 (founder blanket authority LD-310; LD-325: pending until its handler exists). Account summary list of ElabAssist View Account: every party with credit limit, outstanding balance and blocked flag, searchable by party name. Read only."
+      security:
+        - bearerJwt: []
+      x-permission: billing.account.read
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.invalid_cursor
+      parameters:
+        - name: party_kind
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 12
+            enum:
+              - credit_party
+              - franchise
+              - user_pocket
+              - laboratory
+        - name: q
+          in: query
+          required: false
+          description: Search of the party name.
+          schema:
+            type: string
+            maxLength: 80
+        - name: blocked_only
+          in: query
+          required: false
+          description: When true, only blocked parties.
+          schema:
+            type: boolean
+        - name: outstanding_only
+          in: query
+          required: false
+          description: When true, only parties with outstanding_paisa above 0.
+          schema:
+            type: boolean
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 512
+            pattern: ^[A-Za-z0-9_-]+$
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 50
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountSummaryRowPage"
+              examples:
+                synthetic:
+                  value:
+                    data:
+                      - party_kind: credit_party
+                        party_id: 0193c4a0-0000-7000-8000-00000acc0101
+                        party_name: Synthetic Credit Party A
+                        credit_limit_paisa: 10000000
+                        outstanding_paisa: 50000
+                        outstanding_side: debit
+                        is_blocked: false
+                      - party_kind: franchise
+                        party_id: 0193c4a0-0000-7000-8000-00000acc0102
+                        party_name: Synthetic Franchise B
+                        credit_limit_paisa: 0
+                        outstanding_paisa: 0
+                        outstanding_side: credit
+                        is_blocked: false
+                    page:
+                      limit: 50
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
   /v1/billing/expenses:
     post:
       operationId: createExpense
@@ -9636,6 +9742,64 @@ components:
             - debit
         is_blocked:
           type: boolean
+    AccountSummaryRow:
+      type: object
+      additionalProperties: false
+      description: "LD-358. One row of the account summary list (ElabAssist View Account): every AccountSummary field plus the party name. No centre_id: AccountSummary carries no centre."
+      required:
+        - party_kind
+        - party_id
+        - party_name
+        - credit_limit_paisa
+        - outstanding_paisa
+        - outstanding_side
+        - is_blocked
+      properties:
+        party_kind:
+          type: string
+          maxLength: 12
+          enum:
+            - credit_party
+            - franchise
+            - user_pocket
+            - laboratory
+        party_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        party_name:
+          type: string
+          maxLength: 200
+        credit_limit_paisa:
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 9007199254740991
+        outstanding_paisa:
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 9007199254740991
+        outstanding_side:
+          type: string
+          maxLength: 6
+          enum:
+            - credit
+            - debit
+        is_blocked:
+          type: boolean
+    AccountSummaryRowPage:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - page
+      properties:
+        data:
+          type: array
+          maxItems: 200
+          items:
+            $ref: "#/components/schemas/AccountSummaryRow"
+        page:
+          $ref: _common.yaml#/components/schemas/PageInfo
     DailyCollectionRow:
       type: object
       additionalProperties: false

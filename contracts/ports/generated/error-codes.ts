@@ -179,10 +179,12 @@ export type ErrorCode =
   | "lab.barcode_duplicate"
   | "lab.barcode_pattern_invalid"
   | "lab.critical_ack_required"
+  | "lab.enterer_cannot_verify"
   | "lab.flag_ack_required"
   | "lab.formula_inputs_missing"
   | "lab.module_result_invalid"
   | "lab.module_result_stale"
+  | "lab.pathologist_required"
   | "lab.rejection_reason_required"
   | "lab.result_invalid_transition"
   | "lab.result_locked"
@@ -193,6 +195,7 @@ export type ErrorCode =
   | "lab.specimen_invalid_transition"
   | "lab.specimen_not_found"
   | "lab.specimen_not_receivable"
+  | "lab.verifier_not_distinct"
   | "micro.amendment_reason_required"
   | "micro.antibiotic_not_in_panel"
   | "micro.ast_category_not_allowed"
@@ -468,10 +471,12 @@ export const ERROR_META: Readonly<Record<ErrorCode, { readonly http: number; rea
   "lab.barcode_duplicate": { http: 409, owner: "C5", title: "Barcode already used" },
   "lab.barcode_pattern_invalid": { http: 500, owner: "C5", title: "Barcode numbering configuration invalid" },
   "lab.critical_ack_required": { http: 409, owner: "C5", title: "Critical notification not recorded" },
+  "lab.enterer_cannot_verify": { http: 403, owner: "C5", title: "The person who entered the result cannot sign it off" },
   "lab.flag_ack_required": { http: 409, owner: "C5", title: "Flag acknowledgement required" },
   "lab.formula_inputs_missing": { http: 422, owner: "C5", title: "Formula inputs missing" },
   "lab.module_result_invalid": { http: 422, owner: "C5", title: "Module result not accepted" },
   "lab.module_result_stale": { http: 409, owner: "C5", title: "Older module result version" },
+  "lab.pathologist_required": { http: 403, owner: "C5", title: "Final sign-off needs a pathologist" },
   "lab.rejection_reason_required": { http: 422, owner: "C5", title: "Rejection reason required" },
   "lab.result_invalid_transition": { http: 409, owner: "C5", title: "Result cannot move to the requested state" },
   "lab.result_locked": { http: 409, owner: "C5", title: "Result is approved and locked" },
@@ -482,6 +487,7 @@ export const ERROR_META: Readonly<Record<ErrorCode, { readonly http: number; rea
   "lab.specimen_invalid_transition": { http: 409, owner: "C5", title: "Specimen cannot move to the requested state" },
   "lab.specimen_not_found": { http: 404, owner: "C5", title: "Specimen not found" },
   "lab.specimen_not_receivable": { http: 409, owner: "C5", title: "Specimen not receivable" },
+  "lab.verifier_not_distinct": { http: 409, owner: "C5", title: "Already signed by this person" },
   "micro.amendment_reason_required": { http: 422, owner: "C10", title: "Amendment reason required" },
   "micro.antibiotic_not_in_panel": { http: 422, owner: "C10", title: "Antibiotic not in panel" },
   "micro.ast_category_not_allowed": { http: 422, owner: "C10", title: "Interpretive category not allowed" },

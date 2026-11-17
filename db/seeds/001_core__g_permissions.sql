@@ -131,6 +131,8 @@ INSERT INTO core.g_permissions (code, module, privileged, phase) VALUES
   ('lab.specimen.receive', 'lab', false, '1'),
   ('lab.specimen.reject', 'lab', false, '1'),
   ('lab.status_board.read', 'lab', false, '1'),
+  ('lab.verification_policy.manage', 'lab', true, '1'),
+  ('lab.verification_policy.read', 'lab', false, '1'),
   ('lab.worklist.read', 'lab', false, '1'),
   ('lab.worksheet.manage', 'lab', false, '1'),
   ('micro.breakpoint.manage', 'micro', true, '2'),

@@ -120,6 +120,9 @@ permissions:
   - { code: lab.worksheet.manage, privileged: false, roles: [lab_technologist, lab_manager] }   # CR-C5-004
   - { code: lab.config.manage, privileged: true, roles: [lab_manager, pathologist] }   # CR-C5-004
   - { code: lab.qc_hold.release, privileged: true, roles: [lab_manager, pathologist] }   # CR-C5-004
+  # T0C-VERLEVEL-1 (LD-316): verification levels 1, 2, 3 (how many different people sign off a result); policy per lab, department or test
+  - { code: lab.verification_policy.read,   privileged: false, roles: [lab_technologist, pathologist, lab_manager] }   # every lab role (LD-316)
+  - { code: lab.verification_policy.manage, privileged: true,  roles: [lab_manager] }   # changes who may sign off a result (LD-316); corp_admin through its role pack
   # reporting (C6)
   - { code: reporting.report.read,       privileged: false, roles: [front_desk, centre_staff, lab_technologist, pathologist, lab_manager, tenant_admin, radiologist] }   # roles += CR-C6-003; radiologist 08 A21.3
   - { code: reporting.report.release,    privileged: false, roles: [pathologist, front_desk] }

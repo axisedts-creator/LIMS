@@ -95,6 +95,9 @@ INSERT INTO catalog.surcharge_rules (id, tenant_id, scope, amount_kind, amount_p
 INSERT INTO catalog.tax_rules (id, tenant_id, scope, vat_treatment, effective_from, created_by, updated_by) VALUES
   (pg_temp.id('f1'), pg_temp.id('01'), 'tenant_default', 'exempt', now(), pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('f3'), pg_temp.id('02'), 'tenant_default', 'exempt', now(), pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
+INSERT INTO catalog.test_categories (id, tenant_id, department_id, name, created_by, updated_by) VALUES
+  (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('f1'), 'probe-1', pg_temp.id('99'), pg_temp.id('99')),
+  (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('f3'), 'probe-3', pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
 INSERT INTO catalog.tests (id, tenant_id, kind, workflow_type, created_by, updated_by) VALUES
   (pg_temp.id('f1'), pg_temp.id('01'), 'test', 'standard', pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('f3'), pg_temp.id('02'), 'test', 'standard', pg_temp.id('99'), pg_temp.id('99')),
@@ -132,3 +135,6 @@ INSERT INTO catalog.tat_targets (id, tenant_id, test_id, priority, target_second
 INSERT INTO catalog.test_specimen_types (tenant_id, test_id, specimen_type_id, created_by) VALUES
   (pg_temp.id('01'), pg_temp.id('f1'), pg_temp.id('f1'), pg_temp.id('99')),
   (pg_temp.id('02'), pg_temp.id('f3'), pg_temp.id('f3'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
+INSERT INTO catalog.test_stage_tat_targets (id, tenant_id, test_id, stage, target_minutes, created_by, updated_by) VALUES
+  (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('f1'), 'registration', 1, pg_temp.id('99'), pg_temp.id('99')),
+  (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('f3'), 'registration', 3, pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;

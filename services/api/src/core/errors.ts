@@ -137,6 +137,11 @@ const pathOf = (url: string): string => url.split('?', 1)[0]!; // REQ-SEC-098: n
 
 export function sendProblem(err: unknown, req: FastifyRequest, reply: FastifyReply): FastifyReply {
   const e = normalise(err);
+  if (isLimsError(e, 'operation_pending')) { // LD-346: a pending report code thrown by a handler -> the same 501 body as a pending operation
+    const pp = pendingProblem(e.detail ?? 'unknown', pathOf(req.url), String(req.id));
+    setErrorCode(req, 'operation_pending');
+    return reply.code(501).type('application/problem+json').send(pp);
+  }
   const p = toProblem(e, pathOf(req.url), String(req.id));
   setErrorCode(req, p.code);
   if (p.status >= 500) {

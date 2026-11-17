@@ -7226,7 +7226,6 @@ components:
       additionalProperties: false
       required:
         - print_no
-        - style
         - document
       properties:
         print_no:
@@ -7239,7 +7238,7 @@ components:
           enum:
             - full
             - plain_bw
-          description: The print style used (stored on the print record).
+          description: The print style used (stored on the print record); always returned once T0B-PRINTCFG-1 lands.
         copy_mark:
           type: string
           maxLength: 64
@@ -7568,7 +7567,6 @@ components:
       additionalProperties: false
       required:
         - print_no
-        - style
         - document
       properties:
         print_no:
@@ -7581,7 +7579,7 @@ components:
           enum:
             - full
             - plain_bw
-          description: The print style used (stored on the print record).
+          description: The print style used (stored on the print record); always returned once T0B-PRINTCFG-1 lands.
         copy_mark:
           type: string
           maxLength: 64

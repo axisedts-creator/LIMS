@@ -106863,7 +106863,7 @@ export interface Operations {
     responses: {
       200: ({
         print_no: number;
-        style: "full" | "plain_bw";
+        style?: "full" | "plain_bw";
         copy_mark?: string;
         document: {
           id: string;
@@ -107055,7 +107055,7 @@ export interface Operations {
     responses: {
       200: ({
         print_no: number;
-        style: "full" | "plain_bw";
+        style?: "full" | "plain_bw";
         copy_mark?: string;
         document: {
           id: string;

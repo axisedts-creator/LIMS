@@ -10145,7 +10145,7 @@ export interface operations {
         content: {
           "application/json": {
             print_no: number;
-            style: "full" | "plain_bw";
+            style?: "full" | "plain_bw";
             copy_mark?: string;
             document: {
               id: string;
@@ -10384,7 +10384,7 @@ export interface operations {
         content: {
           "application/json": {
             print_no: number;
-            style: "full" | "plain_bw";
+            style?: "full" | "plain_bw";
             copy_mark?: string;
             document: {
               id: string;

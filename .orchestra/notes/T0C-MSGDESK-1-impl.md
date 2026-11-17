@@ -9,6 +9,8 @@
 - OFFLINE (founder 09:19): a ticket reply may be queued offline on the partner device and replayed with its Idempotency-Key (stored once); creating a ticket, every broadcast step and approval are online only.
 - Checks: msgdesk1 + c13 + codegen.test 591/591, msgdesk1.pending x2, pgTAP suite + 5 isolation probes green, api tsc clean. 64 older api tests fail (count pins + AB5/AB6 shared-code conflict): see T0C-MSGDESK-1-dispute.md. AFTER RULING (19:30 NPT): codegen msgdesk1+c13+c16 1247/1248, api engagement+partners+identity role-packs 4680/4681 (+1 skip), pgTAP suite exit 0. The 2 red are ruling item 6, not this task: c16 Profile fields 8 vs 7, engagement boot PHASE_STUBS QualityPort.
 
+- AFTER RULING 21:56: engagement.yaml AppLink + optional `version` (_common Version) and example (ruling item 3); clients/MSW regenerated. codegen 1272/1272, lint clean; 1 red api partners msgdesk1.pending:28 (SALES pending ids) = dispute.
+
 ## FIELD MAP (ElabAssist Messages and Message To Laboratory; LD-321)
 - Template Name — added (engagement.broadcast_template.name)
 - Message Title — not added — the template name is the title shown in lists; a second title field would duplicate it

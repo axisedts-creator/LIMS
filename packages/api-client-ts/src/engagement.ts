@@ -12220,6 +12220,7 @@ export interface operations {
               status: "active" | "pending" | "suspended" | "revoked";
               history_from?: string;
               patient_code?: string;
+              version?: number;
               link_id: string;
               account_phone_masked: string;
               patient_id: string;
@@ -15588,6 +15589,7 @@ export interface operations {
             status: "active" | "pending" | "suspended" | "revoked";
             history_from?: string;
             patient_code?: string;
+            version?: number;
             link_id: string;
             account_phone_masked: string;
             patient_id: string;

@@ -6676,6 +6676,7 @@ paths:
                     status: active
                     history_from: 2026-03-01T04:15:00.000Z
                     patient_code: SYN-000123
+                    version: 2
                     link_id: 01950c16-0000-7000-8000-000000000239
                     account_phone_masked: +99X•••••42
                     patient_id: 01950c16-0000-7000-8000-000000000240
@@ -10609,6 +10610,10 @@ components:
         patient_code:
           type: string
           maxLength: 32
+        version:
+          # [CONV] T0C-MSGDESK-1 ruling item 3: AppLink = Profile (+version, 02-CONVENTIONS.md:348) + staff fields; L4 takes If-Match.
+          # Optional until the T0B engagement owner makes toLink return it (absent optional field is omitted, 02-CONVENTIONS.md:347).
+          $ref: _common.yaml#/components/schemas/Version
         link_id:
           $ref: _common.yaml#/components/schemas/Uuid
         account_phone_masked:

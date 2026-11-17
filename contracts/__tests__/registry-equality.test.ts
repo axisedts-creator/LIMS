@@ -25,6 +25,8 @@ const LD322_SYNC_ERRORS = ["sync.block_size_too_large", "sync.device_revoked", "
 const MSGDESK_ERRORS = ["engagement.broadcast_invalid_transition", "engagement.broadcast_placeholder_unknown", "engagement.broadcast_provider_not_configured", "engagement.broadcast_recipient_limit",
   "engagement.broadcast_self_approval", "engagement.broadcast_template_inactive", "partners.ticket_invalid_transition"];
 const MSGDESK_CODES = ["engagement.broadcast.approve", "engagement.broadcast.manage", "engagement.broadcast.read", "partners.ticket.manage", "partners.ticket.read"];
+// T0C-CONTENT-1 (LD-313 c): the two portal content codes, staff only, not privileged (the patient read reuses engagement.self.read).
+const CONTENT_CODES = ["engagement.content.manage", "engagement.content.read"];
 
 /** Strict parse: duplicate map keys are errors (IC §7 says "CI parses the file with a YAML parser"). */
 const strictParse = (src: string, what: string): any => {
@@ -197,7 +199,7 @@ describe("AC-0C-1.3 permissions.yaml == IC §11", () => {
     const icCodes = ic.permissions.map((p: Entry) => p.code);
     const extra = file.permissions.filter((p: Entry) => !icCodes.includes(p.code));
     expect(diffByKey(ic.permissions, file.permissions, "code").filter((d) => !d.startsWith("extra "))).toEqual([]);
-    expect(extra.map((p: Entry) => p.code).sort()).toEqual([...LD313_ACCOUNTING_CODES, ...LD321_SALES_CODES, ...LD322_SYNC_CODES, ...MSGDESK_CODES].sort());
+    expect(extra.map((p: Entry) => p.code).sort()).toEqual([...LD313_ACCOUNTING_CODES, ...LD321_SALES_CODES, ...LD322_SYNC_CODES, ...MSGDESK_CODES, ...CONTENT_CODES].sort());
     expect(file.permissions.filter((p: Entry) => icCodes.includes(p.code)).map((p: Entry) => p.code)).toEqual(icCodes);
     expect({ ...file, fixed_actor_permissions: fileFixed, permissions: file.permissions.filter((p: Entry) => icCodes.includes(p.code)) }).toEqual(ic);
   });

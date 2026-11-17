@@ -167,8 +167,9 @@ describe("T0C-MSGDESK-1 contract: lint and additive baseline", () => {
   });
   it("engagement.yaml is additive: 98 operations before, exactly 11 new ones now; old operations keep method, path, permission", () => {
     const ids = allOps(E);
-    expect(ids.length, "98 + 11 broadcast operations").toBe(109);
-    expect(new Set(ids).size).toBe(109);
+    // T0C-CONTENT-1 (LD-313): 9 portal content operations follow; the exact total is pinned in content1-openapi.test.ts, engagement boot.test.ts and operations.matrix.test.ts
+    expect(ids.length, "98 + 11 broadcast operations, at least").toBeGreaterThanOrEqual(109);
+    expect(new Set(ids).size).toBe(ids.length);
     for (const id of Object.keys(ENG)) expect(opOf(E, id), `${id} missing`).toBeDefined();
     for (const [id, m, p, perm] of [["listEnquiries", "get", "/v1/engagement/enquiries", "engagement.enquiry.read"], ["replyEnquiry", "post", "/v1/engagement/enquiries/{enquiry_id}/messages", "engagement.enquiry.respond"],
       ["createMyEnquiry", "post", "/v1/engagement/me/enquiries", "engagement.enquiry.create"], ["listBookings", "get", "/v1/engagement/bookings", "engagement.booking.read"]]) {
@@ -243,7 +244,8 @@ describe("T0C-MSGDESK-1 contract: permissions (done_when 5)", () => {
     // LD-321 list (ruling T0C-MSGDESK-1): other tasks may add these, nothing else
     const LD321 = ["partners.sales.read", "partners.sales.manage", "partners.party_setting.read", "partners.party_setting.manage", "partners.onboarding.decide", "partners.party_id_number.read", "partners.penalty.manage"];
     for (const c of [...OLD_ENG_PERMS, ...OLD_PARTNER_PERMS, ...MSGDESK]) expect([...eng, ...par], `${c} renamed or removed`).toContain(c);
-    const known = new Set([...OLD_ENG_PERMS, ...OLD_PARTNER_PERMS, ...MSGDESK, ...LD321, "engagement.broadcast.read"]);
+    const known = new Set([...OLD_ENG_PERMS, ...OLD_PARTNER_PERMS, ...MSGDESK, ...LD321, "engagement.broadcast.read",
+      "engagement.content.read", "engagement.content.manage"]); // T0C-CONTENT-1 (LD-313 c) portal content codes
     expect([...eng, ...par].filter((c) => !known.has(c)), "unexpected engagement or partners codes").toEqual([]);
     expect(new Set([...eng, ...par]).size, "codes unique").toBe(eng.length + par.length);
     expect(byCode.get("engagement.enquiry.respond").roles).toEqual(["front_desk"]);

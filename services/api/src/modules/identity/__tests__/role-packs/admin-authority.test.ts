@@ -92,7 +92,7 @@ describe('ADMINPACK-1 administrator packs: authority left out on purpose (sectio
     // T0C-ACCT-1 (LD-313 c): +7 accounting codes, 3 of them privileged (account.manage, account_entry.reverse, cash_transfer.decide) -> 162 / 62; T0C-MSGDESK-1 (LD-321): +5 codes (engagement.broadcast.approve privileged) -> 167 / 63.
     // T0C-SALES-1 (LD-321): +2 sales codes, 1 privileged (partners.sales.manage) -> 169 / 64; std_admin unchanged. T0C-SYNC-1 (LD-322): +3 sync codes, 2 privileged (sync.device.manage, sync.conflict.resolve) -> 172 / 66.
     expect(privileged.length, `${admin} privileged`).toBe(admin === 'corp_admin' ? 66 : 35);
-    expect(r.permissions.length, `${admin} permissions`).toBe(admin === 'corp_admin' ? 172 : 102);
+    expect(r.permissions.length, `${admin} permissions`).toBe(admin === 'corp_admin' ? 174 : 102); // T0C-CONTENT-1 (LD-313 c): +2 portal content codes, none privileged -> 174 / 66
     expect(r.mfa_required, admin).toBe(true);
     expect(r.base_default_role, admin).toBe('tenant_admin');
   });

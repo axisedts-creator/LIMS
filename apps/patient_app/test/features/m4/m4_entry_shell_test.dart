@@ -5,13 +5,12 @@
 //   no overflow | page = neutral.50 (#F3F3F3) | content on white 24 radius cards, no border, no elevation | buttons fully round and >= 48 dp |
 //   fields fully round with the neutral.300 border | Semantics label on every button | Poppins, never an underlined/unthemed Text |
 //   450 ms enter motion on the cards, none under reduced motion, no looping animation on a data screen.
-// A5 home: a shell with LimsBottomNav (text label + lime pill on the current tab), bell with unread count, profile switcher; nothing else
-// (no popular tests, categories, packages, visit-the-centre, FAQ: C16 04-UI-UX A5). Synthetic data only.
-// ASSUMED (spec names none): the A5 shell is what the router builds at kHomePath; the tests reach it only through buildPatientRouter.
+// A5 home: RETIRED here. The home shell is now the My Health Now UI (lib/features/mhn, prototype look, sample data), covered by
+// test/features/mhn/mhn_ui_test.dart. The old rule "home shows only Orders/Reports/More, no popular tests or packages" no longer applies.
+// Synthetic data only.
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lims_ui/lims_ui.dart';
-import 'package:patient_app/features/notifications/notification_bell.dart';
 
 import '../../support/m4_harness.dart';
 import '../../support/rig.dart';
@@ -186,7 +185,7 @@ void main() {
       });
     }
 
-    for (final entry in {'A1 update required': openA1, 'A2 phone entry': openA2, 'A20 notifications': openA20, 'A23 settings': openA23, 'A5 home': openA5}.entries) {
+    for (final entry in {'A1 update required': openA1, 'A2 phone entry': openA2, 'A20 notifications': openA20, 'A23 settings': openA23}.entries) {
       testWidgets('${entry.key}: a loaded data screen has no looping animation (reduced motion on)', (t) async {
         await phone(t);
         await entry.value(t, rig, reduceMotion: true);
@@ -223,89 +222,6 @@ void main() {
     }
   });
 
-  group('A5 home shell (C16 04-UI-UX 1.1 and A5)', () {
-    for (final scale in [1.0, 1.3]) {
-      testWidgets('bottom navigation with text labels, Orders current, lime pill (scale $scale)', (t) async {
-        await phone(t, scale: scale);
-        await openA5(t, rig);
-        expect(t.takeException(), isNull);
-        final nav = find.byType(LimsBottomNav);
-        expect(nav, findsOneWidget, reason: 'home has no LimsBottomNav (the router still builds the Home placeholder)');
-        final w = t.widget<LimsBottomNav>(nav);
-        final labels = [for (final i in w.items) i.label];
-        expect(labels.first, 'Orders');
-        expect(labels.last, 'More');
-        expect(labels, contains('Reports'));
-        expect(labels.length, inInclusiveRange(3, 4), reason: 'Orders, Reports, Bookings (only with features.bookings), More');
-        expect(w.index, 0, reason: 'Orders is the default tab');
-        for (final l in labels) {
-          expect(find.descendant(of: nav, matching: find.text(l)), findsOneWidget, reason: 'tab "$l" has no text label');
-        }
-        final pills = find.descendant(
-          of: nav,
-          matching: find.byWidgetPredicate((x) => x is DecoratedBox && x.decoration is BoxDecoration && (x.decoration as BoxDecoration).color == LimsTokens.colorAccentHighlight),
-        );
-        expect(pills, findsOneWidget, reason: 'exactly one lime pill: the current tab');
-        expect(find.descendant(of: pills, matching: find.text('Orders')), findsOneWidget);
-        for (final i in find.descendant(of: nav, matching: find.byType(InkResponse)).evaluate()) {
-          expect(t.getSize(find.byWidget(i.widget)).height, greaterThanOrEqualTo(48));
-        }
-      });
-    }
-
-    testWidgets('tapping a tab moves the lime pill and the Semantics selected flag', (t) async {
-      final handle = t.ensureSemantics();
-      await phone(t);
-      await openA5(t, rig);
-      await t.tap(find.descendant(of: find.byType(LimsBottomNav), matching: find.text('Reports')));
-      await pumpFor(t, const Duration(milliseconds: 600));
-      expect(t.widget<LimsBottomNav>(find.byType(LimsBottomNav)).index, 1);
-      final pill = find.descendant(
-        of: find.byType(LimsBottomNav),
-        matching: find.byWidgetPredicate((x) => x is DecoratedBox && x.decoration is BoxDecoration && (x.decoration as BoxDecoration).color == LimsTokens.colorAccentHighlight),
-      );
-      expect(find.descendant(of: pill, matching: find.text('Reports')), findsOneWidget);
-      expect(t.getSemantics(find.descendant(of: find.byType(LimsBottomNav), matching: find.text('Reports'))), isSemantics(isSelected: true, isButton: true, label: 'Reports'));
-      handle.dispose();
-    });
-
-    testWidgets('app bar: bell with the unread count capped at 9+, and the profile switcher', (t) async {
-      final handle = t.ensureSemantics();
-      await phone(t);
-      final o = await openA5(t, rig, unread: 12);
-      expect(find.byType(NotificationBell), findsOneWidget);
-      expect(find.text('9+'), findsOneWidget);
-      expect(find.bySemanticsLabel(RegExp('^Notifications, 12 unread')), findsOneWidget);
-      expect(o.notifications!.unreadOnlyArgs, contains(true), reason: 'the bell asks E45 with unread_only=true');
-      expect(find.byType(LimsProfileSwitcher), findsOneWidget);
-      handle.dispose();
-    });
-
-    testWidgets('home shows only what A5 lists: no popular tests, categories, packages, visit-the-centre, offers or FAQ', (t) async {
-      await phone(t);
-      await openA5(t, rig);
-      final banned = RegExp(r'popular|categor|package|faq|visit the|offer|discount|health check|our centre|near you|book a test', caseSensitive: false);
-      for (final e in find.byType(Text).evaluate()) {
-        final text = (e.widget as Text).data ?? '';
-        expect(banned.hasMatch(text), isFalse, reason: '"$text" is board content that A5 does not list');
-      }
-      expect(find.byType(Image), findsNothing, reason: 'no board imagery / promo banners on home');
-    });
-
-    testWidgets('home stays a PHI screen: LimsSecureScreen around the shell (REQ-SEC-109)', (t) async {
-      await phone(t);
-      await openA5(t, rig);
-      expect(find.ancestor(of: find.byType(LimsBottomNav), matching: find.byType(LimsSecureScreen)), findsOneWidget);
-    });
-
-    testWidgets('home page is neutral.50 and the nav bar is white', (t) async {
-      await phone(t);
-      await openA5(t, rig);
-      expect(Theme.of(ctxOf(t)).scaffoldBackgroundColor, LimsTokens.colorNeutral50);
-      final bar = find.descendant(of: find.byType(LimsBottomNav), matching: find.byType(Material)).first;
-      expect(t.widget<Material>(bar).color, LimsTokens.colorNeutral0);
-    });
-  });
 
   group('A20 and A23 specifics', () {
     testWidgets('A20: an unread row keeps its "New" chip with words, rows keep their order', (t) async {

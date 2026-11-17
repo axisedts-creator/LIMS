@@ -199,7 +199,7 @@ final screens = <({String id, Open open, bool cards})>[
   (id: 'A1 update required', open: openA1, cards: true),
   (id: 'A2 phone entry', open: openA2, cards: true),
   (id: 'A3 OTP entry', open: openA3, cards: true),
-  (id: 'A5 home', open: openA5, cards: false),
+  // A5 home: now the My Health Now shell (features/mhn, tested in test/features/mhn); the M4 look rules no longer apply to it.
   (id: 'A20 notifications', open: openA20, cards: true),
   (id: 'A23 settings', open: openA23, cards: true),
 ];

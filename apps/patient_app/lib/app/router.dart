@@ -7,7 +7,8 @@ import 'package:lims_ui/lims_ui.dart';
 
 import '../core/session/session_controller.dart';
 import '../features/auth/sign_in_flow.dart';
-import 'home_shell.dart';
+import '../features/mhn/mhn_preview.dart';
+import '../features/mhn/mhn_shell.dart';
 import 'update_required_screen.dart';
 
 const kSignInPath = '/sign-in'; // A0–A4 live under it (T-A4)
@@ -39,15 +40,16 @@ GoRouter buildPatientRouter({
   // Feature screens arrive with T-A4/T-P*; every PHI screen is already wrapped in LimsSecureScreen (REQ-SEC-109).
   Widget phi(String title) => LimsSecureScreen(child: Scaffold(body: Center(child: Text(title))));
   return GoRouter(
-    initialLocation: kHomePath,
+    initialLocation: kMhnPreview ? kMhnPreviewPath : kHomePath,
     refreshListenable: Listenable.merge([session.status, updateRequired]),
-    redirect: (_, state) => patientRedirect(
-      updateRequired: updateRequired.value,
-      status: session.status.value,
-      location: state.uri.path,
-    ),
+    redirect: (_, state) {
+      if (kMhnPreview && state.uri.path == kMhnPreviewPath) return null; // sample-data UI preview, never in a normal build
+      return patientRedirect(updateRequired: updateRequired.value, status: session.status.value, location: state.uri.path);
+    },
     routes: [
-      GoRoute(path: kHomePath, builder: (_, _) => const HomeShell()), // A5 shell (LD-258); same path, same redirect
+      // A5: the My Health Now shell (prototype UI, sample data until the API wiring); same path, same redirect. PHI screens: LimsSecureScreen (REQ-SEC-109).
+      GoRoute(path: kHomePath, builder: (_, _) => const LimsSecureScreen(child: MhnShell())),
+      if (kMhnPreview) GoRoute(path: kMhnPreviewPath, builder: (_, _) => const MhnShell()),
       GoRoute(path: kSignInPath, builder: (_, _) => const SignInFlow()), // A0 -> A2 -> A3 (T-A4)
       GoRoute(path: kUpdateRequiredPath, builder: (_, _) => UpdateRequiredScreen(storeUrl: storeUrl, openUrl: openUrl)),
       for (final p in patientRoutePatterns) GoRoute(path: p, builder: (_, _) => phi(p)),

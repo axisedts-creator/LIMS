@@ -1,1 +1,3 @@
 __pycache__/
+# ansible-lint / ansible-core local cache (created by infra/tests/run.sh)
+ansible/.ansible/

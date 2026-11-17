@@ -3937,7 +3937,7 @@ x-report-definitions:
       centre_id: [0193c4a0-0000-7000-8000-000000000101]
   - code: two_level_commission
     title: Two level commission
-    description: Commission per parent party and each of its sub parties (two level), from net billed amounts and the commission_bp of the party settings. A report only, no money moves; it never posts to the ledger. Behind the referral report flag.
+    description: Commission per parent party and each of its sub parties (two level), from net billed amounts and the commission_bp of the party settings. A report only, no money moves; it never posts to the ledger. Behind the referral report flag. LD-342 / A39 gate, tenant flag referral_incentive_report (referralIncentiveReportEnabled, default off), privileged aal2; each run, export and schedule writes access log action referral_report.view with the report code; base is M33 net billed from posted data, held ledger entries excluded; integer paisa, rounded half up.
     permission: analytics.referral_report.read
     flag: referralIncentiveReportEnabled
     params: [business_date_from, business_date_to, centre_id, party_id]
@@ -4090,7 +4090,7 @@ x-report-definitions:
         visit_type: ipd
   - code: tds
     title: TDS
-    description: Commission payable (commission_bp of the party settings) and TDS withheld at tds_bp per party and period, with the net payable. A report only, no money moves; it never posts to the ledger. Behind the referral report flag.
+    description: Commission payable (commission_bp of the party settings) and TDS withheld at tds_bp per party and period, with the net payable. A report only, no money moves; it never posts to the ledger. Behind the referral report flag. LD-342 / A39 gate, tenant flag referral_incentive_report (referralIncentiveReportEnabled, default off), privileged aal2; each run, export and schedule writes access log action referral_report.view with the report code; base is M33 net billed from posted data, held ledger entries excluded; integer paisa, rounded half up.
     permission: analytics.referral_report.read
     flag: referralIncentiveReportEnabled
     params: [business_date_from, business_date_to, centre_id, party_id]

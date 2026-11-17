@@ -321,3 +321,9 @@
 - { code: homecollection.visit_incomplete, http: 422, owner: C17, title: "Visit is not ready to assign", meaning: "Address and time window required" }   # CR-C17-007
 - { code: homecollection.phlebotomist_not_eligible, http: 422, owner: C17, title: "Phlebotomist cannot take this visit", meaning: "Inactive, other centre, or no phlebotomist role" }   # CR-C17-007
 - { code: homecollection.collection_not_held, http: 409, owner: C17, title: "Collection is not awaiting review", meaning: "" }   # CR-C17-007
+# T0C-SYNC-1 (LD-322): offline sync, closed list owned by C0; titles and meanings never carry personal data
+- { code: sync.device_revoked, http: 403, owner: C0, title: "Device revoked", meaning: "The device was revoked by an administrator; it must not sync or unlock" }
+- { code: sync.device_unknown, http: 409, owner: C0, title: "Device not registered", meaning: "Unknown device id for this tenant and user; register the device while online" }
+- { code: sync.block_size_too_large, http: 422, owner: C0, title: "Block size too large", meaning: "Requested number block size is above the configured maximum" }
+- { code: sync.series_unknown, http: 422, owner: C0, title: "Number series not available", meaning: "The series is not issued in blocks for this tenant" }
+- { code: sync.wipe_required, http: 409, owner: C0, title: "Device wipe required", meaning: "A remote wipe was requested; wipe local data and acknowledge before any other sync" }

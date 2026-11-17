@@ -10,3 +10,7 @@ packages:
 allowBuilds:
   '@scarf/scarf': set this to true or false
   esbuild: false
+# T0B-DEPFIX-1 (LD-312): lodash GHSA-r5fr-rjxr-66jc fixed in 4.18.1 (minor inside 4.x); only reached via @stoplight/prism-cli > postman-collection.
+# pnpm 12 ignores the package.json "pnpm" field, so the override lives here.
+overrides:
+  'lodash@<4.18.1': 4.18.1

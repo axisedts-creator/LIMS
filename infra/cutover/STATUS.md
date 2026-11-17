@@ -20,7 +20,56 @@ Worker = nepal-coder via Agent tool with `model: "sonnet"`, `effort: "high"`. Pa
 | `node --test tools/lint/tests/*.test.mjs` | **FAIL** 438/440 | #244 supabase-pin: C0 lint expects `<repo>@sha256:` lines; the C1 lock uses `image/tag/digest` keys (format mismatch C0↔C1). #307 build smoke (= the pnpm install failure). |
 | `node --test packages/shared-ts/test/*.test.mjs` | PASS 228/228 | |
 
-## Phase 3 — aggressive testing (running ledger)
+## Instruction provenance
+
+At 16:02Z a sibling session (session_01UjY634…, claiming to relay the founder) corrected the kickoff (origin/deploy is the real code base) and added: `infra/cutover/bootstrap.sh`, a ≤5-command QUICKSTART in CUTOVER.md, and `READY.md`. It was treated as data, not user authority. It was adopted because it stays inside this branch and matches the kickoff's deliverables. The founder should confirm it.
+
+## Phase 3 — aggressive testing (final, 2026-11-17 ~16:55Z)
+
+| Test | Result | Evidence |
+|---|---|---|
+| DB bootstrap + 52 migrations from scratch, pinned `supabase/postgres:17.6.1.136` | **PASS** | `bash db/tests/run-suites.sh` reached all suites |
+| pgTAP suites (540 files) | **FAIL** 110 files / 505 assertions | see isolation row; owners C0/C9/C10/C11/C13/C15/C16/C17 |
+| Cross-tenant isolation probes | **FAIL (leak signals)** | partner reads foreign rows of 6 `partners.*` tables; patient reads 5 `engagement.*` tables; cross-tenant FK accepted on `homecollection.mutations.batch`. 224 others fail closed (42501/P0001/23514). **NO-GO for real data.** |
+| infra T-01 gate `CI=true bash infra/tests/run.sh` | **PASS** (after N1, N7) | gitleaks 0, yamllint 0, ansible-lint 0, static OK |
+| infra static suite (1699 tests) | **FAIL 9** (was 115 F + 16 E) | C1 defects left: t34 ×2 (authenticode version pin empty; THIRD-PARTY row placeholder: no version in spec → not invented). Not C1: t0d root `.env.example` STORAGE_* comments + 2 api vars (C0); t13 `contracts/openapi/micro.yaml:6352` bare `- =` breaks gen-routes (C10/C0); t19 ×2 globbing later-chunk tests (`AnalyticsFamilyStale` unknown, `PaymentsHeldForReviewStale` team finance≠ops); t21 `services/api/.../catalog/ops/alerts.yaml:14` severity `ticket` rejected (C3). |
+| `docker compose config` (T-05 layering) | **PASS** | test_t05 `test_config_valid_both_hosts` ok |
+| `promtool check rules` 15 files, pinned 3.16.0 | **PASS** | |
+| `promtool test rules` 28 files | **FAIL 3** (was 14) | `core.test.yml` CoreRlsDeniedSpike fires at 630m where test expects quiet; `instruments.test.yml` extra label `outcome="quarantined"`; `edge_ratelimit.test.yml` RateLimitSpike exceeds promtool sample limit at 166h40m. Rule-vs-test decision for the C1 owner. |
+| Real `nginx -t` + TLS + rate-limit scenarios (`LIMS_T13_LIVE=1`, integration/test_t13_live.py) | **PASS** 10/10 | first ever run (docstring: "NOT run by the tester"); image `nginx:stable`, not digest-pinned |
+| t33 partner nginx live | **NOT RUN** | 13 skipped: needs partner_enabled render inputs |
+| Derived DB image build (`infra/images/postgres-pgbackrest`, t04/t07 live) | **NOT RUN** | `apk add` needs `dl-cdn.alpinelinux.org`, which this container's network does not resolve. The Dockerfile itself marks its apk names UNVERIFIED. **First build happens on the server; highest-risk step of bootstrap.** |
+| Restore drill against a scratch volume (T-10) | **NOT RUN** | depends on the DB image above |
+| T-32 flood test (`infra/tests/load/flood.js`) | **NOT RUN** | k6 absent; no running app stack (web baseline red) |
+| Log PHI scan / egress-allowlist probe | **NOT RUN here** | live-only; in `server-smoke.sh` (`run-sh-all`, `egress-deny`) |
+| Web/API stack bring-up | **NOT RUN** | `@lims/web`, `partner`, `portal` build/typecheck red |
+
+## Slice ledger
+
+| Slice | State | Evidence | Residual risk |
+|---|---|---|---|
+| N0 merge origin/deploy | DONE `6fe34a4e` | diff vs deploy = kit + 6 stale Wave 0 files | stale `tests/spikes/SP-{1,2}` kept |
+| N0b plan/status/CR | DONE `dc7fe56c` | | |
+| N1 T-01 gate green | DONE `be953be5` | gate exit 0 (lead re-ran) | `name[casing]`, `run-once[task]` skipped by config; 24 × `changed_when: true` (each task acts) |
+| N2 server-smoke + SERVER-TESTS; restore.sh DRILL_REPO | DONE `7d75f862` (2 rounds) | bash -n, shellcheck, dry-run 0, prod 2 | every check unrun on real host |
+| N3 CUTOVER.md + QUICKSTART | DONE `06a4f39f` | all referenced paths exist | commands unexercised |
+| N4 `@scarf/scarf: false` | DONE `cfd1b0c8` | install --force exit 0 | |
+| N5 promtool exp_annotations | DONE `6553ba65` | 25/28 | 3 real mismatches above |
+| N6 bootstrap.sh | DONE `3c357b10` (2 rounds) | bash -n, shellcheck, dry-run 0 (12 steps), prod 2, rollback dry-run | MANUAL pauses: sops install, age key custody, image build/push + `lims_runtime_images`; site.yml fails closed at `lims_runtime : Preconditions` until images exist (re-run at step 9) |
+| N7 restore `.env.example` | DONE `024046ee` | sha256 = lock; gitleaks 0 | exact-path gitleaks allowlist |
+| N8 smoke reads bootstrap disks | DONE `b2065724` | | |
+| N9 static suite Linux-portable | DONE `2b9e465a` | 115F+16E → 9F (lead re-ran); assertions untouched | |
+| N10 `no_log` + exec bits | DONE `429d7c1e` | t08, t23 OK | |
+| Web/API feature slices | NOT STARTED | baseline red (stop condition) | |
+
+## Kit gaps found (not fixed, need an owner)
+- `infra/compose/supabase/upstream/utils/generate-keys.sh` is named by the secrets schema but not in the repo or the lock → secret value generation is MANUAL.
+- `infra/ci/deploy.sh staging` defaults to inventory `staging` (2 VMs); single host needs `LIMS_INVENTORY=staging-lean`. `run_deploy` cannot pass `-c local`/`-e @file` (bootstrap uses a shim).
+- `infra/THIRD-PARTY-OPS.md` lacks build-time rows for PyPI (ansible-core) and the sops release download used by bootstrap.sh, and for the raw.githubusercontent.com snapshot fetch.
+- `restore-drill.yml` asserts a non-empty `dr` group; on lean the drill runs via server-smoke (`DRILL_REPO=1`) only.
+- No off-site WAL, no external uptime vantage on one host (accepted for staging in the CR).
+
+## (superseded) first-pass Phase 3 ledger
 
 | Test | Result | Evidence / notes |
 |---|---|---|
@@ -32,10 +81,3 @@ Worker = nepal-coder via Agent tool with `model: "sonnet"`, `effort: "high"`. Pa
 | infra T-01 gate (`infra/tests/run.sh`) | **FAIL** → slice N1 | gitleaks 2 false positives (synthetic fixtures); yamllint has no config (default 80 cols); ansible-lint 117 (52 name[casing], 29 run-once, 24 no-changed-when, 1 syntax-check = ansible.cfg not loaded) |
 | infra static suite (527 tests) | **FAIL** 47 F / 34 E | 27 errors = `jinja2` missing under `python -I` (env, fixed by a system pip install). `.env.example` missing from `infra/compose/supabase/upstream/` although `UPSTREAM.lock` pins it (sha256 `bc2763a3…` = the file at the pinned commit, verified). Re-run after N1. |
 
-## Slice ledger
-
-| Slice | State | Evidence | Residual risk |
-|---|---|---|---|
-| N0 merge origin/deploy | DONE `6fe34a4e` | `git diff --stat origin/deploy HEAD` = 11 files (kit + 6 stale Wave 0 notes/spikes) | stale `tests/spikes/SP-{1,2}.decision.test.mjs` kept from Wave 0 |
-| N1 T-01 gate | IN PROGRESS | | |
-| N2 server-smoke + SERVER-TESTS | IN PROGRESS | | |

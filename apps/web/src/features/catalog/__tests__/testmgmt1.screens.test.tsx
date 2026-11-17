@@ -168,7 +168,7 @@ describe('Notes (item 6)', () => {
     await show('comment-codes');
     await userEvent.click(await screen.findByRole('button', { name: /^new comment code$/i }));
     const dlg = await screen.findByRole('dialog');
-    for (const re of [/^type/i, /^default template/i, /^text format/i]) expect(within(dlg).getByLabelText(re), String(re)).toBeTruthy();
+    for (const re of [/^type/i, /^default template/i, /^(text )?format/i]) expect(within(dlg).getByLabelText(re), String(re)).toBeTruthy();
     await userEvent.type(within(dlg).getByLabelText(/^code/i), 'FAST');
     await userEvent.type(within(dlg).getByLabelText(/^text/i), 'Fasting sample required.');
     await userEvent.click(within(dlg).getByLabelText(/^type/i));

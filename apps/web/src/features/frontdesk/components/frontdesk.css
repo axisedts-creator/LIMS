@@ -1,24 +1,41 @@
 /* RS-C4 (LD-140; 10-DESIGN-SYSTEM s4 Register, s6): tokens only, no raw colour, no pixel radius.
-   Register = Patient / Tests / Billing stacked in one left column + a sticky summary on the right. */
-.lims-reg-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(16rem, 22rem); gap: var(--lims-space-4); align-items: start; }
-.lims-reg-main { display: flex; flex-direction: column; gap: var(--lims-space-4); min-width: 0; }
-/* the shell top bar is sticky and 56 px tall: stay clear of it (space-16 = 64 px) */
-.lims-reg-summary { position: sticky; top: var(--lims-space-16); display: flex; flex-direction: column; gap: var(--lims-space-3); padding: var(--lims-space-4); border: 1px solid var(--lims-neutral-200); border-radius: var(--lims-radius-lg); background: var(--lims-neutral-0); box-shadow: var(--lims-elevation-1); }
+   LD-310 / T0D-REGSCREEN-1 (founder request 2026-11-17 04:49 NPT): one screen. At >= 1280 px three columns (context | tests | payment) whose height
+   is bound to the viewport (each column scrolls inside itself if it must, the page does not); the totals bar sticks to the bottom.
+   Below 1280 px the columns stack (one track) and the page scrolls normally. */
+.lims-reg-layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--lims-space-3); align-items: stretch; }
+.lims-reg-col { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+@media (min-width: 1280px) {
+  /* 100dvh minus the shell top bar, the page header and the totals bar */
+  .lims-reg-layout { grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr) minmax(0, 1fr); height: calc(100dvh - var(--lims-space-16) * 3); }
+  .lims-reg-col { overflow-y: auto; }
+}
+.lims-reg-summary { position: sticky; bottom: 0; z-index: 1; display: flex; flex-wrap: wrap; align-items: center; gap: var(--lims-space-3); margin-top: var(--lims-space-2); padding: var(--lims-space-2) var(--lims-space-3); border: 1px solid var(--lims-neutral-200); border-radius: var(--lims-radius-lg); background: var(--lims-neutral-0); box-shadow: var(--lims-elevation-1); }
 .lims-reg-summary-title { margin: 0; font-size: var(--lims-font-size-md-size); }
-.lims-reg-summary-list { display: flex; flex-direction: column; gap: var(--lims-space-2); margin: 0; }
-.lims-reg-summary-row { display: flex; justify-content: space-between; align-items: baseline; gap: var(--lims-space-3); }
+.lims-reg-summary-list { display: flex; flex-wrap: wrap; flex: 1 1 auto; gap: var(--lims-space-2) var(--lims-space-4); margin: 0; }
+.lims-reg-summary-row { display: flex; align-items: baseline; gap: var(--lims-space-2); }
 .lims-reg-summary-row dt { color: var(--lims-neutral-600); }
 .lims-reg-summary-row dd { margin: 0; text-align: end; }
-.lims-reg-summary-tests { margin: 0; padding: 0; list-style: none; color: var(--lims-neutral-600); font-size: var(--lims-font-size-sm-size); }
-.lims-reg-summary-balance { padding-top: var(--lims-space-2); border-top: 1px solid var(--lims-neutral-200); font-size: var(--lims-font-size-lg-size); font-weight: var(--lims-font-weight-bold); }
+.lims-reg-summary-tests { display: none; }
+.lims-reg-summary-balance { font-size: var(--lims-font-size-lg-size); font-weight: var(--lims-font-weight-bold); }
 .lims-reg-summary-balance dt { color: inherit; }
-@media (max-width: 1023px) {
-  .lims-reg-layout { grid-template-columns: minmax(0, 1fr); }
-  .lims-reg-summary { position: static; }
-}
 
-.lims-reg-section { display: flex; flex-direction: column; gap: var(--lims-space-3); }
-.lims-reg-pair { display: flex; flex-wrap: wrap; gap: var(--lims-space-3); }
+.lims-reg-section { display: flex; flex-direction: column; gap: var(--lims-space-2); }
+.lims-reg-fill { min-height: 0; }
+.lims-reg-pair { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--lims-space-2); }
+.lims-reg-grow { flex: 1 1 12rem; min-width: 0; }
+/* the cart box: 8 compact rows (28 px) + header before it scrolls inside itself */
+.lims-reg-tests-list { flex: 1 1 auto; min-height: 0; max-height: 18rem; overflow-y: auto; }
+.lims-reg-cell-field .lims-field { margin: 0; }
+.lims-reg-cell-field .lims-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.lims-reg-cell-field .lims-input { width: 4rem; }
+.lims-reg-tabs { display: flex; gap: var(--lims-space-1); border-bottom: 1px solid var(--lims-neutral-200); }
+.lims-reg-tab { padding: var(--lims-space-1) var(--lims-space-3); border: 0; border-bottom: 2px solid transparent; background: none; font: inherit; color: var(--lims-neutral-600); cursor: pointer; }
+.lims-reg-tab[aria-selected='true'] { border-bottom-color: var(--lims-accent); color: inherit; font-weight: var(--lims-font-weight-semibold); }
+.lims-reg-tab[aria-disabled='true'] { cursor: not-allowed; opacity: 0.6; }
+.lims-reg-more { align-self: flex-start; padding: var(--lims-space-1) var(--lims-space-2); border: 1px solid var(--lims-neutral-200); border-radius: var(--lims-radius-md); background: var(--lims-neutral-0); font: inherit; cursor: pointer; }
+.lims-reg-more:focus-visible, .lims-reg-tab:focus-visible { outline: 2px solid var(--lims-focus-ring); outline-offset: 2px; }
+.lims-reg-notice { display: flex; flex-wrap: wrap; align-items: center; gap: var(--lims-space-2); padding: var(--lims-space-2); border: 1px solid var(--lims-tone-warning-border); border-radius: var(--lims-radius-md); }
+.lims-reg-credit { margin: 0; }
 .lims-reg-pay-row { display: flex; flex-direction: column; gap: var(--lims-space-1); margin-bottom: var(--lims-space-3); }
 .lims-reg-actions { display: flex; flex-wrap: wrap; gap: var(--lims-space-2); margin-top: var(--lims-space-4); }
 .lims-reg-fieldset { min-width: 0; margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: var(--lims-space-2); }

@@ -44,8 +44,9 @@ export async function listDiscountReasons(): Promise<CodedSetEntry[]> {
 }
 /** Centres in scope (C2 listCentres), active only. Identity may refuse the read for some roles: callers treat a failure as "none" / "—". */
 export async function listCentres(): Promise<Centre[]> {
-  const r = await serverFetch<{ data: { centre_id?: string; id?: string; name: string; is_active?: boolean }[] }>('/v1/identity/centres');
-  return r.data.filter((c) => c.is_active !== false).map((c) => ({ id: (c.centre_id ?? c.id) as string, name: c.name }));
+  const r = await serverFetch<{ data: { centre_id?: string; id?: string; name: string; is_active?: boolean; kind?: Centre['kind'] }[] }>('/v1/identity/centres');
+  // kind: LD-310 / T0D-REGSCREEN-1 (Laboratory / Franchise centre selectors)
+  return r.data.filter((c) => c.is_active !== false).map((c) => ({ id: (c.centre_id ?? c.id) as string, name: c.name, ...(c.kind ? { kind: c.kind } : {}) }));
 }
 export async function getDiscountApproval(approvalId: string): Promise<{ id: string; status?: string; state?: string }> {
   return serverFetch(`/v1/frontdesk/discount-approvals/${id(approvalId)}`);

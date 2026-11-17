@@ -1,7 +1,7 @@
 'use client';
 // 04-UI-UX §3.2 A2: inline new-patient form (Alt+N opens, Esc returns to search). It only collects and validates the demographics + consents;
 // the patient is created inside F9 (`patient.new_patient`), in the same transaction as the order (02-TRD F9).
-import { useState, type KeyboardEvent } from 'react';
+import { useEffect, useState, type KeyboardEvent } from 'react';
 import { Button } from '@lims/ui/components/Button';
 import { Checkbox } from '@lims/ui/components/Checkbox';
 import { DatePicker, type IsoDate } from '@lims/ui/components/DatePicker';
@@ -9,7 +9,8 @@ import { IntegerField } from '@lims/ui/components/IntegerField';
 import { RadioGroup } from '@lims/ui/components/RadioGroup';
 import { TextArea } from '@lims/ui/components/TextArea';
 import { TextField } from '@lims/ui/components/TextField';
-import type { NewPatientDraft } from '../server/types';
+import { VisuallyHidden } from '@lims/ui/components/VisuallyHidden';
+import type { NewPatientDraft, PatientSummary } from '../server/types';
 import './frontdesk.css';
 
 const SEXES = [{ value: 'male', label: 'Male' }, { value: 'female', label: 'Female' }, { value: 'other', label: 'Other' }, { value: 'unknown', label: 'Unknown' }] as const;
@@ -17,7 +18,18 @@ const PHONE_LOCAL = /^\d{10}$/, PHONE_E164 = /^\+[1-9][0-9]{7,14}$/, EMAIL = /^[
 /** 10-digit local number → +977…; E.164 is kept (04-UI-UX §3.2 A2). */
 const toE164 = (v: string) => (PHONE_LOCAL.test(v) ? `+977${v}` : v);
 
-export function NewPatientForm({ consentTextVersion, onUse, onCancel }: { consentTextVersion: string; onUse: (p: NewPatientDraft) => void; onCancel: () => void }) {
+/** LD-310 / T0D-REGSCREEN-1: the masked mobile (e.g. 98xxxxxx42) fits a typed number when every unmasked digit matches. */
+export const fitsMasked = (masked: string | undefined, mobile: string) => {
+  const m = (masked ?? '').replace(/[^\dx]/gi, '');
+  const d = mobile.replace(/\D/g, '').slice(-m.length);
+  return m.length > 0 && d.length === m.length && [...m].every((c, i) => c.toLowerCase() === 'x' || c === d[i]);
+};
+
+export function NewPatientForm({ consentTextVersion, onUse, onCancel, findExisting, onUseExisting }: {
+  consentTextVersion: string; onUse: (p: NewPatientDraft) => void; onCancel: () => void;
+  /** LD-310 / T0D-REGSCREEN-1 existing patient notice: called only once a name AND a full mobile are typed (no PHI sent for half a form). */
+  findExisting?: (mobile: string) => Promise<readonly PatientSummary[]>; onUseExisting?: (p: PatientSummary) => void;
+}) {
   const [name, setName] = useState('');
   const [sex, setSex] = useState<string>();
   const [dob, setDob] = useState<IsoDate>();
@@ -27,7 +39,18 @@ export function NewPatientForm({ consentTextVersion, onUse, onCancel }: { consen
   const [address, setAddress] = useState('');
   const [c, setC] = useState({ processing: false, sms: false, whatsapp: false, email: false, share_with_referrer: false });
   const [err, setErr] = useState<Record<string, string>>({});
-  const setAgePart = (k: 'years' | 'months' | 'days', v: number | undefined) => setAge((a) => { const n = { ...a }; if (v === undefined) delete n[k]; else n[k] = v; return n; });
+  const [existing, setExisting] = useState<PatientSummary>();
+  useEffect(() => {
+    const n = name.trim().toLowerCase();
+    setExisting(undefined);
+    if (!findExisting || !n || !(PHONE_LOCAL.test(mobile) || PHONE_E164.test(mobile))) return;
+    let live = true;
+    const t = setTimeout(() => {
+      void findExisting(mobile).then((hits) => { if (live) setExisting(hits.find((p) => p.full_name.trim().toLowerCase() === n && fitsMasked(p.phone_masked, mobile))); });
+    }, 300);
+    return () => { live = false; clearTimeout(t); };
+  }, [name, mobile, findExisting]);
+  const setAgePart =(k: 'years' | 'months' | 'days', v: number | undefined) => setAge((a) => { const n = { ...a }; if (v === undefined) delete n[k]; else n[k] = v; return n; });
 
   const submit = () => {
     const e: Record<string, string> = {};
@@ -66,6 +89,14 @@ export function NewPatientForm({ consentTextVersion, onUse, onCancel }: { consen
         </div>
       </fieldset>
       <TextField label="Mobile" name="mobile" maxLength={16} inputMode="tel" value={mobile} onChange={setMobile} {...(err['mobile'] ? { error: err['mobile'] } : {})} />
+      <div role="status" aria-live="polite">
+        {existing ? (
+          <div className="lims-reg-notice">
+            <p className="lims-reg-hint">Possible existing patient: <strong>{existing.patient_code}</strong> {existing.full_name} · {existing.age_display}{existing.phone_masked ? ` · ${existing.phone_masked}` : ''}</p>
+            {onUseExisting ? <Button variant="secondary" onPress={() => onUseExisting(existing)}>Use existing<VisuallyHidden> patient</VisuallyHidden></Button> : null}
+          </div>
+        ) : null}
+      </div>
       <TextField label="Email" name="email" maxLength={254} inputMode="email" value={email} onChange={setEmail} {...(err['email'] ? { error: err['email'] } : {})} />
       <TextArea label="Address" name="address" maxLength={300} rows={2} value={address} onChange={setAddress} />
       <fieldset className="lims-reg-fieldset">

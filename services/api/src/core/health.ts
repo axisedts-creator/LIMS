@@ -1,5 +1,6 @@
 // getLiveness / getReadiness (02-TRD §8, contracts/openapi/core.yaml). x-public: dependency names and states only.
 import type { Handler } from './module.js';
+import { STORAGE_KEY_ENV } from './storage/env.js';
 
 export type CheckState = 'ok' | 'degraded' | 'down';
 export interface HealthChecks {
@@ -31,7 +32,7 @@ const run = async (c: () => Promise<CheckState>): Promise<CheckState> => {
  *  LIMS_CORE_DATABASE_URL is not listed: its absence already shows as checks.db down. */
 export const REQUIRED_ENV: readonly string[] = Object.freeze([
   'LIMS_CORE_ENV', 'LIMS_CORE_JWT_ALG', 'LIMS_CORE_JWT_AUDIENCE', 'LIMS_CORE_JWT_ISSUER',
-  'LIMS_CORE_JWT_KEY_FILE', 'LIMS_CORE_RATELIMIT_KEY_FILE', 'LIMS_CORE_STORAGE_KEY_FILE',
+  'LIMS_CORE_JWT_KEY_FILE', 'LIMS_CORE_RATELIMIT_KEY_FILE', STORAGE_KEY_ENV,
   'LIMS_ENGAGEMENT_LINK_HMAC_KEY_FILE', 'LIMS_ENGAGEMENT_OTP_ENC_KEYS_FILE', 'LIMS_ENGAGEMENT_OTP_HMAC_KEY_FILE',
   'LIMS_ENGAGEMENT_PHONE_HMAC_KEY_FILE', 'LIMS_IDENTITY_EMAIL_HMAC_KEY', 'LIMS_IDENTITY_GOTRUE_SERVICE_KEY',
   'LIMS_IDENTITY_GOTRUE_URL', 'LIMS_IDENTITY_TOKEN_ENC_KEYS', 'LIMS_ORIGIN_API', 'LIMS_ORIGIN_PORTAL',

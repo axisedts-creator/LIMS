@@ -276,13 +276,13 @@ describe('TRF upload on the registration screen (trf_attachment_ids)', () => {
 
   it('Alt+U reveals the same field (no "not available" toast); a text file is refused by the kit and never uploaded', async () => {
     const seen = spy();
-    const u = user();
+    const u = userEvent.setup({ delay: null, applyAccept: false });
     await form();
     (document.activeElement as HTMLElement).blur();
     await u.keyboard('{Alt>}u{/Alt}');
     const input = await screen.findByLabelText('TRF file');
     expect(screen.queryByText(/not available on this page yet/i)).toBeNull();
-    await u.upload(input, new File(['x'], 'notes.txt', { type: 'text/plain' }), { applyAccept: false });
+    await u.upload(input, new File(['x'], 'notes.txt', { type: 'text/plain' }));
     await settle();
     expect(seen.hits).toBe(0);
     expect(screen.getByText(/not allowed/i)).toBeTruthy();

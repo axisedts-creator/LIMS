@@ -86,6 +86,8 @@ describe('web-only items are on the screen, each by label', () => {
   it('a chosen franchise centre becomes centre_id of the quote; the laboratory is the default', async () => {
     const u = user();
     await form();
+    await u.keyboard('{F2}9841000001');
+    await u.click(await screen.findByRole('option', { name: /Synthetic Patient One/ }, { timeout: T }));
     await u.keyboard('{F4}CBC');
     await u.click(await screen.findByRole('option', { name: /Complete blood count/ }, { timeout: T }));
     await waitFor(() => expect(of('POST', PATH.quote).at(-1)?.body.centre_id).toBe(CENTRE), { timeout: T });

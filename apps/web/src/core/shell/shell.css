@@ -28,6 +28,10 @@
 /* T0D-UNSLOP-1 (LD-344, LD-353 rule 2): a search inside a filter row is a short label + a box of at most 24rem + its Search button beside it. */
 .lims-filter-bar > form[role='search'] { display: flex; flex-wrap: wrap; align-items: center; gap: var(--lims-space-2); }
 .lims-filter-bar input[type='search'] { flex: 1 1 12rem; max-width: 24rem; }
+/* T0D-UNSLOP-1 (C), LD-353 rule 10 and template 5: one row of equal status tiles; hero chart two thirds, side chart one third. */
+.lims-stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: var(--lims-space-2); }
+.lims-dash-charts { display: grid; grid-template-columns: 2fr 1fr; gap: var(--lims-space-4); }
+@media (max-width: 64rem) { .lims-dash-charts { grid-template-columns: 1fr; } }
 .lims-search-code { color: var(--lims-neutral-700); font-variant-numeric: tabular-nums; }
 
 /* sidebar: brand, Find a screen, scrolling groups, user card pinned at the bottom */

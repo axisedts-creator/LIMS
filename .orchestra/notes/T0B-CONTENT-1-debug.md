@@ -5,3 +5,6 @@
 ## round 2
 - Same cause: lane/C0-0C (T0C-CONTENT-1 spec ops) not merged into lane/C0-0G; `git merge-base --is-ancestor lane/C0-0C HEAD` = notmerged. 5 distinct failures in verify.log, all spec-missing.
 - Fix needed: `git merge lane/C0-0C`, then drop the 9 content ids from pendingOperations in services/api/src/modules/engagement/index.ts. Merge denied again (needs approval); no code changed. Lead must merge, re-run verify.
+## round 3
+- Same cause: lane/C0-0C (T0C-CONTENT-1 spec ops) not merged; engagement.yaml has 0 setProfileImage. No impl defect.
+- Fix needed: `git merge lane/C0-0C`, then drop 9 content ids from pendingOperations in engagement/index.ts. Merge denied again (needs approval); no code changed. Lead must merge, re-run verify.

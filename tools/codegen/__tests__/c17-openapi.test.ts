@@ -722,7 +722,8 @@ describe("homecollection.yaml (T0C-10.C17)", () => {
       for (const id of ["listHomeRoutes", "listEligiblePhlebotomists", "listHomecollectionReasons"]) expect(sorted(okSchema(id)), id).toEqual(["data"]);
       expect(JSON.stringify(props(okSchema("listHomeRoutes")).data)).toContain("RouteDto");
       const ph = dataOf("listEligiblePhlebotomists");
-      expect(Object.keys(props(ph)).sort()).toEqual(["active_visits", "display_name", "membership_id", "route_full", "route_id"]);
+      // T0C-SALES-1, LD-321: collector Allow Collection / Allow Pickup are additive on the existing collector read.
+      expect(Object.keys(props(ph)).filter((k) => !["allow_collection", "allow_pickup"].includes(k)).sort()).toEqual(["active_visits", "display_name", "membership_id", "route_full", "route_id"]);
       expect(reqd(ph).sort()).toEqual(["active_visits", "display_name", "membership_id", "route_full"]);
       const rs = dataOf("listHomecollectionReasons");
       expect(Object.keys(props(rs)).sort()).toEqual(["code", "display", "is_active", "requires_text"]);

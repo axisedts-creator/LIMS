@@ -126,6 +126,10 @@ Client address (LD-296): the web sends the browser's address (first `x-forwarded
 | `LIMS_ENGAGEMENT_OTP_HMAC_KEY_FILE` | engagement | required | The API refuses to start (key file of at least 32 bytes is checked at load). |
 | `LIMS_ENGAGEMENT_LINK_HMAC_KEY_FILE` | engagement | required | The API refuses to start (key file of at least 32 bytes is checked at load). |
 | `LIMS_ENGAGEMENT_PHONE_HMAC_KEY_FILE` | engagement | required | The API refuses to start (key file of at least 32 bytes is checked at load). |
+| `LIMS_ENGAGEMENT_OTP_TEST_CODE` | engagement | optional | TEST ONLY (dev, ci, staging). Exactly 6 digits: every patient login OTP is this fixed code (still stored, hashed, attempt-limited and expiring). Refused at boot when `LIMS_CORE_ENV` is production. Unset in normal operation. |
+| `LIMS_IDENTITY_PATIENT_JWT_KEY_FILE` | identity | optional | Path of the Ed25519 private key (PEM, PKCS#8) that signs the patient access JWT (LD-81). Read on first use; unset or unusable = every patient sign-in answers 500 `common.internal` after the OTP check, before anything is written. |
+| `LIMS_IDENTITY_PATIENT_JWT_KID` | identity | optional | Key id written in the patient JWT header, 1-64 of `A-Za-z0-9._-` (LD-81 shape `pat-YYYY-MM`). Unset = same effect as the key file above. |
+| `LIMS_CORE_PATIENT_JWT_PUBLIC_KEY_FILE` | core | optional | Path of the matching Ed25519 public key (PEM). Unset = patient access tokens are not accepted (401). A set but missing or non-Ed25519 file stops the API at boot. |
 | `LIMS_ENGAGEMENT_OTP_ENC_KEYS_FILE` | engagement | required | The API refuses to start (a JSON key file is checked at load). |
 | `LIMS_ENGAGEMENT_OTP_TTL_SECONDS` | engagement | optional | Default 300 seconds (allowed 120 to 600). |
 | `LIMS_ENGAGEMENT_OTP_MAX_ATTEMPTS` | engagement | optional | Default 5 (the only accepted value). |

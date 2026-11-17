@@ -19,7 +19,7 @@ export interface CoreConfig {
   readonly loadSampleModule: boolean;
   readonly logLevel: LogLevel;
   /** 02-TRD §6.5. All four keys or none; with none, no bearerJwt operation can be mounted (bootstrap fails). */
-  readonly jwt?: undefined | { readonly alg: JwtAlg; readonly issuer: string; readonly audience: string; readonly keyFile: string };
+  readonly jwt?: undefined | { readonly alg: JwtAlg; readonly issuer: string; readonly audience: string; readonly keyFile: string; readonly patientKeyFile?: string };
   /** LIMS_{WEB,PARTNER,PORTAL}_BFF_KEY_FILE (02-TRD §11 LIMS_CORE_BFF_KEY_FILES, 08 A19 P-45). */
   readonly bffKeyFiles: BffKeyFiles;
   /** LIMS_CORE_TRUSTED_PROXY_CIDRS, comma list; empty = no trusted peer (08 A25 P-61). */
@@ -86,9 +86,12 @@ function jwtConfig(env: Env): CoreConfig['jwt'] {
   const set = JWT_KEYS.filter((k) => env[k] !== undefined && env[k] !== '');
   if (set.length === 0) return undefined;
   for (const k of JWT_KEYS) if (!set.includes(k)) throw new Error(`config: ${k} is required (missing)`);
+  // CR-C16 draft: optional Ed25519 PUBLIC key that verifies the patient access JWT minted by identity (LD-81); unset = patient tokens are not accepted.
+  const patientKeyFile = env.LIMS_CORE_PATIENT_JWT_PUBLIC_KEY_FILE;
   return Object.freeze({
     alg: oneOf(env, 'LIMS_CORE_JWT_ALG', JWT_ALGS),
     issuer: env.LIMS_CORE_JWT_ISSUER!, audience: env.LIMS_CORE_JWT_AUDIENCE!, keyFile: env.LIMS_CORE_JWT_KEY_FILE!,
+    ...(patientKeyFile ? { patientKeyFile } : {}),
   });
 }
 

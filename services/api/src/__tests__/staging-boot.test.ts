@@ -74,6 +74,15 @@ export function syntheticValue(name: string): string {
     case 'LIMS_ENGAGEMENT_OTP_ENC_KEYS_FILE': return tmpFile('engagement-otp-enc-keys.json', JSON.stringify({ 'k-synthetic-1': b64() }));
     case 'LIMS_PAYMENTS_KEK_FILE': return tmpFile('payments-kek.json', JSON.stringify({ keys: { 'kek-synthetic-1': b64() }, active: 'kek-synthetic-1' }));
     case 'LIMS_INSTRUMENTS_CONFIG_SIGNING_KEY_ID': return 'sig-synthetic-1';
+    case 'LIMS_IDENTITY_PATIENT_JWT_KID': return 'pat-2026-11';
+    case 'LIMS_IDENTITY_PATIENT_JWT_KEY_FILE': {
+      const { privateKey } = generateKeyPairSync('ed25519');
+      return tmpFile('patient-jwt-ed25519-priv.pem', privateKey.export({ type: 'pkcs8', format: 'pem' }));
+    }
+    case 'LIMS_CORE_PATIENT_JWT_PUBLIC_KEY_FILE': {
+      const { publicKey } = generateKeyPairSync('ed25519');
+      return tmpFile('patient-jwt-ed25519-pub.pem', publicKey.export({ type: 'spki', format: 'pem' }));
+    }
     case 'LIMS_INSTRUMENTS_RELEASES_DIR': { const d = join(scratch, 'instrument-releases'); mkdirSync(d, { recursive: true }); return d; }
     default:
   }

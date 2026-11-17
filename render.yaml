@@ -72,6 +72,13 @@ services:
         sync: false
       - key: LIMS_INSTRUMENTS_RELEASES_DIR
         sync: false
+      # CR-C16 draft (LD-81): patient access JWT keys (secret files under /etc/secrets); values live in the dashboard only.
+      - key: LIMS_IDENTITY_PATIENT_JWT_KEY_FILE
+        sync: false
+      - key: LIMS_IDENTITY_PATIENT_JWT_KID
+        sync: false
+      - key: LIMS_CORE_PATIENT_JWT_PUBLIC_KEY_FILE
+        sync: false
       - key: LIMS_ORIGIN_PORTAL
         sync: false
       - key: LIMS_ORIGIN_STAFF_WEB

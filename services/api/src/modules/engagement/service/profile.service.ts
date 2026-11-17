@@ -6,6 +6,7 @@
 import { LimsError } from '../../../core/errors.js';
 import { engagementMetrics } from '../metrics.js';
 import { invalid, isUuid, parseIfMatch, type SlotCtx } from './slot.service.js';
+import { patientMembershipId } from './patient-ctx.js';
 
 export interface ProfileCtx extends SlotCtx { readonly audit?: { access(e: Record<string, unknown>): Promise<void> } }
 type Row = Record<string, any>;
@@ -34,7 +35,7 @@ export function createProfileService() {
     if (typeof ctx?.tenantId !== 'string' || typeof ctx.actor?.id !== 'string' || !ctx.tx || typeof ctx.now !== 'function') throw new LimsError('auth.unauthenticated');
     if (ctx.actor.type !== 'patient') throw new LimsError('auth.forbidden');
     const tx = ctx.tx as { query(t: string, v?: unknown[]): Promise<{ rows: Row[] }> };
-    const { rows } = await tx.query("SELECT id FROM engagement.accounts WHERE tenant_id = $1 AND membership_id = $2 AND status = 'active'", [ctx.tenantId, ctx.actor.id]);
+    const { rows } = await tx.query("SELECT id FROM engagement.accounts WHERE tenant_id = $1 AND membership_id = $2 AND status = 'active'", [ctx.tenantId, patientMembershipId(ctx) ?? ctx.actor.id]);
     if (!rows[0]) throw new LimsError('auth.forbidden');
     return { tx, tenantId: ctx.tenantId, accountId: rows[0]['id'] as string, userId: ctx.actor.id, now: iso(ctx.now()) };
   }

@@ -101,6 +101,18 @@
    "owner": "lims_owner", "execute": ["lims_worker"], "why": "breached-password list import into class G identity.g_breached_passwords",
    "touches": [], "policies": [], "reviewer": null
   },
+  "app.identity_patient_create_membership": {
+   "owner": "lims_owner", "execute": ["lims_api"], "why": "first patient sign-in: one user + one membership row for the verified OTP challenge, pre-auth patient claims only (CR-C16, LD-81)",
+   "touches": ["core.users", "core.memberships"], "policies": ["owner INSERT policies users__insert__owner_patient / memberships__insert__owner_patient: app.maintenance = identity_patient_provision AND tenant = current tenant"], "reviewer": null
+  },
+  "app.identity_patient_open_session": {
+   "owner": "lims_owner", "execute": ["lims_api"], "why": "patient session row after a verified OTP: kind patient, active, aal1, active patient membership of the tenant, pre-auth patient claims only (CR-C16, LD-81)",
+   "touches": ["identity.sessions", "core.memberships"], "policies": ["owner INSERT policy sessions__insert__owner_patient: kind patient AND app.maintenance = identity_patient_session AND tenant = current tenant"], "reviewer": null
+  },
+  "app.identity_patient_membership": {
+   "owner": "lims_owner", "execute": ["lims_api"], "why": "read one patient membership (user id / status / locked) in the pre-auth patient context; RLS hides core.memberships from a patient actor (CR-C16, LD-81)",
+   "touches": ["core.memberships"], "policies": ["owner SELECT policy memberships__select__owner_only (tenant = current tenant)"], "reviewer": null
+  },
   "app.identity_platform_auth_write_session_insert": {
    "owner": "lims_owner", "execute": ["lims_api"], "why": "platform-staff session write before a platform session exists (08 A28.1)",
    "touches": ["identity.sessions"], "policies": ["owner policies tenant_id IS NULL AND user_id = app.pre_user_id (C2 05-SCHEMA §5.4)"], "reviewer": null

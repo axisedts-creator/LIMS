@@ -13,6 +13,7 @@ import { AuthError } from './auth/errors.js';
 import { PRE_AUTH_SCHEMES } from './db/allowlists.js';
 import type { Db } from './db/tx.js';
 import { createJwtVerifier } from './auth/jwt.js';
+import { createCompositeJwtVerifier, createPatientJwtVerifier } from './auth/patient-jwt-verifier.js';
 import { childLoggerFactory, createCoreLogger, installRequestLog } from './observability/logging.js';
 import { createMetrics, type CoreMetrics } from './observability/metrics.js';
 import { claimsOf, installRouteHooks, mountSpec, schemaController, type CoreAuth } from './openapi.js';
@@ -68,7 +69,7 @@ export async function bootstrap(opts: BootstrapOptions): Promise<FastifyInstance
           return preAuthDb.preAuthTx({ ...input, scheme }, (tx) => resolvers.authenticate(scheme, credential, tx));
         },
       },
-      ...(config.jwt ? { verifier: createJwtVerifier(config.jwt) } : {}),
+      ...(config.jwt ? { verifier: createCompositeJwtVerifier(createJwtVerifier(config.jwt), config.jwt.patientKeyFile ? createPatientJwtVerifier({ keyFile: config.jwt.patientKeyFile }) : undefined) } : {}),
       claimsResolver: modules.find((m) => m.manifest.name === 'identity')?.manifest.claimsResolver as ClaimsResolver | undefined,
       bff: createBffKeyVerifier(config.bffKeyFiles),
       clientIp: createClientIpResolver(config.trustedProxyCidrs),

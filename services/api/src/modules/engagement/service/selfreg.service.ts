@@ -3,6 +3,7 @@
 // The request writes the registration row and the consent only; C4 and the link are the task's (tasks/create_self_patient.ts). Personal data is never logged, audited, enqueued or echoed.
 import { LimsError, type FieldError } from '../../../core/errors.js';
 import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';
+import { patientMembershipId } from './patient-ctx.js';
 
 export interface SelfRegCtx {
   readonly tenantId: string;
@@ -58,7 +59,7 @@ function parse(body: unknown): Form {
 export function createSelfRegService() {
   async function accountOf(ctx: SelfRegCtx): Promise<Row> {
     if (ctx.actor.type !== 'patient') throw new LimsError('auth.forbidden');
-    const { rows } = await ctx.tx.query(`SELECT id FROM engagement.accounts WHERE tenant_id = $1 AND membership_id = $2 AND status <> 'deleted'`, [ctx.tenantId, ctx.actor.id]);
+    const { rows } = await ctx.tx.query(`SELECT id FROM engagement.accounts WHERE tenant_id = $1 AND membership_id = $2 AND status <> 'deleted'`, [ctx.tenantId, patientMembershipId(ctx) ?? ctx.actor.id]);
     if (!rows[0]) throw new LimsError('auth.forbidden');
     return rows[0];
   }

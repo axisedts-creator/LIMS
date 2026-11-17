@@ -1,0 +1,14 @@
+CHANGES
+1. db/tests/fixtures/probe-rows/catalog.sql:82-87 — the probe rows for catalog.price_list_import_batch and catalog.price_list_import_error exist only in the working tree; they are not in HEAD (db3b7080a). db/tests/isolation/_registry.sql:134-135 registers both tables, and the new probes db/tests/isolation/catalog.price_list_import_batch.test.sql and catalog.price_list_import_error.test.sql need tenant A/B rows. A clean checkout of the branch therefore has probes without fixtures. Fix: commit the current working-tree hunk exactly as it stands (the batch rows pg_temp.id('f1')/('f3') for tenants 01/02 pointing at price lists f1/f3, and the error rows pointing at batches f1/f3) in a `[writer] T0C-PRICETOOLS-1` commit, then re-run the isolation suite for both tables.
+
+Checked and OK (no change needed):
+- Names: 7 operationIds match the brief; permissions catalog.price_list.manage (writes, template) / catalog.price_list.read (compare, batch list); no new permission code; errors reuse catalog.code_duplicate and catalog.import_not_committable (03 §error codes); Idempotency-Key required on the 4 POST writes; tier general, like the neighbouring ops.
+- RLS: both new tables ENABLE + FORCE; select/insert(/update) policies by tenant_id = app.current_tenant_id() AND is_staff_or_system; no DELETE grant or policy; the error table is append only. These policies do not use array casts, so the `::uuid[]` rule does not apply. Policies are mirrored in db/policies/catalog.sql and tables.yaml.
+- Migration: additive and idempotent (IF NOT EXISTS / pg_constraint / pg_policy guards), down note present, founder push-cloud step and offline classification are in the notes, FIELD MAP is complete. The no-overlap trigger uses a per-party advisory xact lock and raises 23505.
+- No PHI, no secrets, no service logic or web change. pendingOperations += 7 (LD-325(b)).
+- Ran: tools/codegen `vitest run __tests__/pricetools1-openapi.test.ts` (62/62 passed). Not run by the reviewer: the pgTAP/docker suites.
+
+Notes for the lead (not defects of this task):
+- The 3 DROP INDEX (one row per party) carry cr-approved-breaking on LD-321 authority without a CR file; the writer flagged this, and the lead must confirm.
+- Billing reads (quote.service.ts:100, CatalogPort.impl.ts:436, pricing.service.ts:307) take the first assignment row with no date filter. This is safe today, because the current handler cannot write a second period (default now() and open ended makes it overlap). T0B-PRICETOOLS-1 must add `effective_from <= now() AND (effective_to IS NULL OR effective_to > now())` before it accepts dates.
+- db/tests/catalog/T0B-10.C3_schema.test.sql has pinned counts that were already stale on base. This task adds 2 more drifts (tg_* 4->5, lifecycle triggers 18->19). The file is owned by C3; it needs a ruling.

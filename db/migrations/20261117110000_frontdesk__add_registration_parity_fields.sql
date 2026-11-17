@@ -15,8 +15,8 @@
 --   The per-user filter of drafts and favourites is a service rule (T0B-REGAPI-*); RLS isolates tenants.
 -- (c) SENSITIVE: card_holder_name is personal data (never in logs or audit diffs; billing.ledger_entries has no row-audit trigger). clinical_history and patient_history are
 --   health text (D-27a): they join the orders__audit exclusion list. Drafts payload holds patient data: drafts and favourites get no audit trigger (ephemeral rows).
--- Idempotent: IF NOT EXISTS everywhere, column constraints inline in the guarded ADD COLUMN, composite FKs in DO blocks that check pg_constraint, DROP POLICY IF EXISTS before
---   each CREATE POLICY, triggers CREATE OR REPLACE. No sequences, no ENUM types, no default on id / tenant_id (UUIDv7 in app code).
+-- Idempotent: IF NOT EXISTS everywhere, column constraints inline in the guarded ADD COLUMN, composite FKs in DO blocks that check pg_constraint, each CREATE POLICY guarded by
+--   a pg_policy NOT EXISTS check (no DROP: gate 9), triggers CREATE OR REPLACE. No sequences, no ENUM types, no default on id / tenant_id (UUIDv7 in app code).
 -- Cloud apply is a founder step (push-cloud.ps1, LD-310 (e)), not done by this task.
 -- DOWN (manual, never automatic; DROP TABLE / DROP COLUMN destroy entered data: founder decision, export first):
 --   CREATE OR REPLACE TRIGGER orders__audit AFTER INSERT OR UPDATE OR DELETE ON frontdesk.orders FOR EACH ROW EXECUTE FUNCTION app.tg_row_audit();
@@ -182,79 +182,97 @@ CREATE TABLE IF NOT EXISTS frontdesk.favourite_tests (
 
 -- ---------- RLS (tenant, like frontdesk.patients), policies, grants ----------
 ALTER TABLE frontdesk.coupons ENABLE ROW LEVEL SECURITY;  ALTER TABLE frontdesk.coupons FORCE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS coupons__select__tenant ON frontdesk.coupons;
-CREATE POLICY coupons__select__tenant ON frontdesk.coupons FOR SELECT TO lims_app
-  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
-DROP POLICY IF EXISTS coupons__insert__tenant ON frontdesk.coupons;
-CREATE POLICY coupons__insert__tenant ON frontdesk.coupons FOR INSERT TO lims_app
-  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
-DROP POLICY IF EXISTS coupons__update__tenant ON frontdesk.coupons;
-CREATE POLICY coupons__update__tenant ON frontdesk.coupons FOR UPDATE TO lims_app
-  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()))
-  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+DO $do$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_policy WHERE polrelid = 'frontdesk.coupons'::regclass AND polname = 'coupons__select__tenant') THEN
+  CREATE POLICY coupons__select__tenant ON frontdesk.coupons FOR SELECT TO lims_app
+    USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+END IF; END $do$;
+DO $do$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_policy WHERE polrelid = 'frontdesk.coupons'::regclass AND polname = 'coupons__insert__tenant') THEN
+  CREATE POLICY coupons__insert__tenant ON frontdesk.coupons FOR INSERT TO lims_app
+    WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+END IF; END $do$;
+DO $do$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_policy WHERE polrelid = 'frontdesk.coupons'::regclass AND polname = 'coupons__update__tenant') THEN
+  CREATE POLICY coupons__update__tenant ON frontdesk.coupons FOR UPDATE TO lims_app
+    USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()))
+    WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+END IF; END $do$;
 GRANT SELECT, INSERT, UPDATE ON frontdesk.coupons TO lims_app;
 
 ALTER TABLE frontdesk.icd_codes ENABLE ROW LEVEL SECURITY;  ALTER TABLE frontdesk.icd_codes FORCE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS icd_codes__select__tenant ON frontdesk.icd_codes;
-CREATE POLICY icd_codes__select__tenant ON frontdesk.icd_codes FOR SELECT TO lims_app
-  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
-DROP POLICY IF EXISTS icd_codes__insert__tenant ON frontdesk.icd_codes;
-CREATE POLICY icd_codes__insert__tenant ON frontdesk.icd_codes FOR INSERT TO lims_app
-  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
-DROP POLICY IF EXISTS icd_codes__update__tenant ON frontdesk.icd_codes;
-CREATE POLICY icd_codes__update__tenant ON frontdesk.icd_codes FOR UPDATE TO lims_app
-  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()))
-  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+DO $do$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_policy WHERE polrelid = 'frontdesk.icd_codes'::regclass AND polname = 'icd_codes__select__tenant') THEN
+  CREATE POLICY icd_codes__select__tenant ON frontdesk.icd_codes FOR SELECT TO lims_app
+    USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+END IF; END $do$;
+DO $do$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_policy WHERE polrelid = 'frontdesk.icd_codes'::regclass AND polname = 'icd_codes__insert__tenant') THEN
+  CREATE POLICY icd_codes__insert__tenant ON frontdesk.icd_codes FOR INSERT TO lims_app
+    WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+END IF; END $do$;
+DO $do$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_policy WHERE polrelid = 'frontdesk.icd_codes'::regclass AND polname = 'icd_codes__update__tenant') THEN
+  CREATE POLICY icd_codes__update__tenant ON frontdesk.icd_codes FOR UPDATE TO lims_app
+    USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()))
+    WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+END IF; END $do$;
 GRANT SELECT, INSERT, UPDATE ON frontdesk.icd_codes TO lims_app;
 
 ALTER TABLE frontdesk.custom_field_definitions ENABLE ROW LEVEL SECURITY;  ALTER TABLE frontdesk.custom_field_definitions FORCE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS custom_field_definitions__select__tenant ON frontdesk.custom_field_definitions;
-CREATE POLICY custom_field_definitions__select__tenant ON frontdesk.custom_field_definitions FOR SELECT TO lims_app
-  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
-DROP POLICY IF EXISTS custom_field_definitions__insert__tenant ON frontdesk.custom_field_definitions;
-CREATE POLICY custom_field_definitions__insert__tenant ON frontdesk.custom_field_definitions FOR INSERT TO lims_app
-  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
-DROP POLICY IF EXISTS custom_field_definitions__update__tenant ON frontdesk.custom_field_definitions;
-CREATE POLICY custom_field_definitions__update__tenant ON frontdesk.custom_field_definitions FOR UPDATE TO lims_app
-  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()))
-  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+DO $do$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_policy WHERE polrelid = 'frontdesk.custom_field_definitions'::regclass AND polname = 'custom_field_definitions__select__tenant') THEN
+  CREATE POLICY custom_field_definitions__select__tenant ON frontdesk.custom_field_definitions FOR SELECT TO lims_app
+    USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+END IF; END $do$;
+DO $do$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_policy WHERE polrelid = 'frontdesk.custom_field_definitions'::regclass AND polname = 'custom_field_definitions__insert__tenant') THEN
+  CREATE POLICY custom_field_definitions__insert__tenant ON frontdesk.custom_field_definitions FOR INSERT TO lims_app
+    WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+END IF; END $do$;
+DO $do$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_policy WHERE polrelid = 'frontdesk.custom_field_definitions'::regclass AND polname = 'custom_field_definitions__update__tenant') THEN
+  CREATE POLICY custom_field_definitions__update__tenant ON frontdesk.custom_field_definitions FOR UPDATE TO lims_app
+    USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()))
+    WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+END IF; END $do$;
 GRANT SELECT, INSERT, UPDATE ON frontdesk.custom_field_definitions TO lims_app;
 
 ALTER TABLE frontdesk.reward_points_ledger ENABLE ROW LEVEL SECURITY;  ALTER TABLE frontdesk.reward_points_ledger FORCE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS reward_points_ledger__select__tenant ON frontdesk.reward_points_ledger;
-CREATE POLICY reward_points_ledger__select__tenant ON frontdesk.reward_points_ledger FOR SELECT TO lims_app
-  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
-DROP POLICY IF EXISTS reward_points_ledger__insert__tenant ON frontdesk.reward_points_ledger;
-CREATE POLICY reward_points_ledger__insert__tenant ON frontdesk.reward_points_ledger FOR INSERT TO lims_app
-  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+DO $do$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_policy WHERE polrelid = 'frontdesk.reward_points_ledger'::regclass AND polname = 'reward_points_ledger__select__tenant') THEN
+  CREATE POLICY reward_points_ledger__select__tenant ON frontdesk.reward_points_ledger FOR SELECT TO lims_app
+    USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+END IF; END $do$;
+DO $do$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_policy WHERE polrelid = 'frontdesk.reward_points_ledger'::regclass AND polname = 'reward_points_ledger__insert__tenant') THEN
+  CREATE POLICY reward_points_ledger__insert__tenant ON frontdesk.reward_points_ledger FOR INSERT TO lims_app
+    WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+END IF; END $do$;
 GRANT SELECT, INSERT ON frontdesk.reward_points_ledger TO lims_app;
 
 ALTER TABLE frontdesk.registration_drafts ENABLE ROW LEVEL SECURITY;  ALTER TABLE frontdesk.registration_drafts FORCE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS registration_drafts__select__tenant ON frontdesk.registration_drafts;
-CREATE POLICY registration_drafts__select__tenant ON frontdesk.registration_drafts FOR SELECT TO lims_app
-  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
-DROP POLICY IF EXISTS registration_drafts__insert__tenant ON frontdesk.registration_drafts;
-CREATE POLICY registration_drafts__insert__tenant ON frontdesk.registration_drafts FOR INSERT TO lims_app
-  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
-DROP POLICY IF EXISTS registration_drafts__update__tenant ON frontdesk.registration_drafts;
-CREATE POLICY registration_drafts__update__tenant ON frontdesk.registration_drafts FOR UPDATE TO lims_app
-  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()))
-  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
-DROP POLICY IF EXISTS registration_drafts__delete__tenant ON frontdesk.registration_drafts;
-CREATE POLICY registration_drafts__delete__tenant ON frontdesk.registration_drafts FOR DELETE TO lims_app
-  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+DO $do$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_policy WHERE polrelid = 'frontdesk.registration_drafts'::regclass AND polname = 'registration_drafts__select__tenant') THEN
+  CREATE POLICY registration_drafts__select__tenant ON frontdesk.registration_drafts FOR SELECT TO lims_app
+    USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+END IF; END $do$;
+DO $do$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_policy WHERE polrelid = 'frontdesk.registration_drafts'::regclass AND polname = 'registration_drafts__insert__tenant') THEN
+  CREATE POLICY registration_drafts__insert__tenant ON frontdesk.registration_drafts FOR INSERT TO lims_app
+    WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+END IF; END $do$;
+DO $do$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_policy WHERE polrelid = 'frontdesk.registration_drafts'::regclass AND polname = 'registration_drafts__update__tenant') THEN
+  CREATE POLICY registration_drafts__update__tenant ON frontdesk.registration_drafts FOR UPDATE TO lims_app
+    USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()))
+    WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+END IF; END $do$;
+DO $do$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_policy WHERE polrelid = 'frontdesk.registration_drafts'::regclass AND polname = 'registration_drafts__delete__tenant') THEN
+  CREATE POLICY registration_drafts__delete__tenant ON frontdesk.registration_drafts FOR DELETE TO lims_app
+    USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+END IF; END $do$;
 GRANT SELECT, INSERT, UPDATE, DELETE ON frontdesk.registration_drafts TO lims_app;
 
 ALTER TABLE frontdesk.favourite_tests ENABLE ROW LEVEL SECURITY;  ALTER TABLE frontdesk.favourite_tests FORCE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS favourite_tests__select__tenant ON frontdesk.favourite_tests;
-CREATE POLICY favourite_tests__select__tenant ON frontdesk.favourite_tests FOR SELECT TO lims_app
-  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
-DROP POLICY IF EXISTS favourite_tests__insert__tenant ON frontdesk.favourite_tests;
-CREATE POLICY favourite_tests__insert__tenant ON frontdesk.favourite_tests FOR INSERT TO lims_app
-  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
-DROP POLICY IF EXISTS favourite_tests__delete__tenant ON frontdesk.favourite_tests;
-CREATE POLICY favourite_tests__delete__tenant ON frontdesk.favourite_tests FOR DELETE TO lims_app
-  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+DO $do$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_policy WHERE polrelid = 'frontdesk.favourite_tests'::regclass AND polname = 'favourite_tests__select__tenant') THEN
+  CREATE POLICY favourite_tests__select__tenant ON frontdesk.favourite_tests FOR SELECT TO lims_app
+    USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+END IF; END $do$;
+DO $do$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_policy WHERE polrelid = 'frontdesk.favourite_tests'::regclass AND polname = 'favourite_tests__insert__tenant') THEN
+  CREATE POLICY favourite_tests__insert__tenant ON frontdesk.favourite_tests FOR INSERT TO lims_app
+    WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+END IF; END $do$;
+DO $do$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_policy WHERE polrelid = 'frontdesk.favourite_tests'::regclass AND polname = 'favourite_tests__delete__tenant') THEN
+  CREATE POLICY favourite_tests__delete__tenant ON frontdesk.favourite_tests FOR DELETE TO lims_app
+    USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+END IF; END $do$;
 GRANT SELECT, INSERT, DELETE ON frontdesk.favourite_tests TO lims_app;
 
 -- ---------- row audit: master data and the points ledger (drafts / favourites are ephemeral, no trigger) ----------

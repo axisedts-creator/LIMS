@@ -19,6 +19,7 @@
 #   LIMS_PGBOUNCER_ADMIN_URL   libpq URL of the PgBouncer admin console (user `pgbouncer`)        [CONV] new name
 #   LIMS_PGBOUNCER_INI         kit config to compare with (default infra/database/pgbouncer/pgbouncer.ini.j2)
 #   LIMS_DB_MOUNT (default /srv/lims/db)  LIMS_MIN_IOPS (default 10000, 04 I1)                      [CONV] new names
+#   LIMS_BOOTSTRAP_EXTRA       (default /etc/lims/bootstrap/extra.yml) bootstrap.sh's extra vars; its `disks` var wins over hosts.yml   [CONV]
 #   PGBACKREST (default /usr/local/lib/lims/bin/pgbackrest, as lims-pgbackrest-check.sh)
 #   LIMS_DRILL_CONTAINER (default drill-pg)  LIMS_DRILL_REPO (default 1; read by drill/restore.sh)  DRILL_TARGET_OFFSET_MIN  DRILL_ACCEPT_TIMEOUT_S  [CONV]
 #   DATA_WG_IP SMTP_RELAY_HOST PROXY_ALLOWED_FQDN PROXY_DENIED_FQDN LIMS_EGRESS_{DB,EDGE,PROXY}_CONTAINERS   (egress_probe.sh)
@@ -141,29 +142,40 @@ chk_wg_mesh_peers() {
   skip wg-mesh-peers "single host: no mesh peers (CR NEPAL-single-host)"
 }
 
-# print "<key> <dev>" for every entry under `disks:` in hosts.yml (the only data source for the disk list)
+# disks source: bootstrap.sh stores the operator's chosen disks as var `disks` in $LIMS_BOOTSTRAP_EXTRA (extra vars beat the
+# placeholders that stay in the repo hosts.yml); use it when the file exists and has `disks`, else hosts.yml.
+BOOTSTRAP_EXTRA=${LIMS_BOOTSTRAP_EXTRA:-/etc/lims/bootstrap/extra.yml}
+
+# print "<key> <dev>" for every entry under `disks:` (BOOTSTRAP_EXTRA if present with `disks`, else hosts.yml); first line is "#src <file>" (which file won)
 disk_list() {
   python3 -I -c '
-import sys, yaml
-inv = yaml.safe_load(open(sys.argv[1]))
+import sys, os, yaml
+extra, hosts = sys.argv[1], sys.argv[2]
 seen = {}
-def walk(n):
-    if isinstance(n, dict):
-        for k, v in n.items():
-            if k == "disks" and isinstance(v, dict):
-                seen.update(v)
-            else:
-                walk(v)
-walk(inv)
+src = hosts
+if os.path.isfile(extra):
+    d = yaml.safe_load(open(extra))
+    if isinstance(d, dict) and isinstance(d.get("disks"), dict) and d["disks"]:
+        seen.update(d["disks"]); src = extra
+if src == hosts:
+    def walk(n):
+        if isinstance(n, dict):
+            for k, v in n.items():
+                if k == "disks" and isinstance(v, dict):
+                    seen.update(v)
+                else:
+                    walk(v)
+    walk(yaml.safe_load(open(hosts)))
+print("#src", src)
 for k, v in seen.items():
     print(k, v)
-' "$INV_REAL/hosts.yml"
+' "$BOOTSTRAP_EXTRA" "$INV_REAL/hosts.yml"
 }
 
 chk_luks_mounts() { # 07-SEC control 2, AC-14.x: dm-crypt under every data disk, mounted at /srv/lims/<key>
   local id=luks-mounts key dev name mnt src real bad="" n=0
-  desc $id "every disk in hosts.yml 'disks:' is a LUKS mapping luks_<key> and is mounted at /srv/lims/<key>"
-  plan "python3 -I (yaml) -> list disks from $INV_REAL/hosts.yml"
+  desc $id "every disk in 'disks:' (from $BOOTSTRAP_EXTRA if it exists with 'disks', else hosts.yml) is a LUKS mapping luks_<key> mounted at /srv/lims/<key>"
+  plan "python3 -I (yaml) -> list disks from $BOOTSTRAP_EXTRA (var disks, bootstrap.sh) if present, else $INV_REAL/hosts.yml; any REPLACE placeholder = FAIL (disk not chosen)"
   plan "cryptsetup status luks_<key>   (type LUKS, device = realpath of the by-id disk)"
   plan "findmnt -n -o SOURCE /srv/lims/<key> ; lsblk -s -n -o TYPE <source>   (must include 'crypt')"
   [ "$DRY" -eq 0 ] || return 0
@@ -172,21 +184,23 @@ chk_luks_mounts() { # 07-SEC control 2, AC-14.x: dm-crypt under every data disk,
   need $id findmnt "apt-get install -y util-linux" || return 0
   need $id python3 "apt-get install -y python3 python3-yaml" || return 0
   python3 -I -c 'import yaml' 2>/dev/null || { fail $id "python3 yaml missing: apt-get install -y python3-yaml"; return 0; }
-  disk_list >"$TMP/$id-disks.txt" 2>"$TMP/$id-err.log" || { fail $id "cannot read disks from hosts.yml: $(lastline "$TMP/$id-err.log")"; return 0; }
+  disk_list >"$TMP/$id-disks.txt" 2>"$TMP/$id-err.log" || { fail $id "cannot read disks: $(lastline "$TMP/$id-err.log")"; return 0; }
   while read -r key dev; do
     [ -n "$key" ] || continue
+    if [ "$key" = "#src" ]; then echo "INFO $id disks from $dev"; continue; fi
     n=$((n + 1))
     name=luks_$key; mnt=/srv/lims/$key
+    case "$dev" in *REPLACE*) bad="$bad $key(disk not chosen (run bootstrap.sh or set LIMS_BOOTSTRAP_EXTRA))"; continue ;; esac
     if ! cryptsetup status "$name" >"$TMP/$id-st.log" 2>&1; then bad="$bad $key(no mapping $name)"; continue; fi
     grep -Eiq '^[[:space:]]*type:[[:space:]]+LUKS' "$TMP/$id-st.log" || { bad="$bad $key(mapping is not LUKS)"; continue; }
     real=$(realpath -e "$dev" 2>/dev/null || true)
-    if [ -z "$real" ]; then bad="$bad $key(disk path in hosts.yml missing: placeholder not replaced?)"; continue; fi
+    if [ -z "$real" ]; then bad="$bad $key(disk path $dev missing)"; continue; fi
     grep -Eq "^[[:space:]]*device:[[:space:]]+$real\$" "$TMP/$id-st.log" || { bad="$bad $key(mapping not on $real)"; continue; }
     src=$(findmnt -n -o SOURCE "$mnt" 2>/dev/null || true)
     [ -n "$src" ] || { bad="$bad $key(not mounted at $mnt)"; continue; }
     lsblk -s -n -o TYPE "$src" 2>/dev/null | grep -qx crypt || bad="$bad $key($mnt not on dm-crypt)"
   done <"$TMP/$id-disks.txt"
-  if [ "$n" -eq 0 ]; then fail $id "no disks: entries found in hosts.yml"; return 0; fi
+  if [ "$n" -eq 0 ]; then fail $id "no disks: entries found in $BOOTSTRAP_EXTRA or hosts.yml"; return 0; fi
   if [ -n "$bad" ]; then fail $id "$bad" ; else pass $id; fi
 }
 

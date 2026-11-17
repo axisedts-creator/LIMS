@@ -11,10 +11,17 @@ export type PermissionCode =
   | "anatomic.config.manage"
   | "audit.log.export"
   | "audit.log.read"
+  | "billing.account.manage"
+  | "billing.account.read"
+  | "billing.account_entry.create"
+  | "billing.account_entry.reverse"
   | "billing.cash_report.read"
+  | "billing.cash_transfer.decide"
+  | "billing.cash_transfer.manage"
   | "billing.credit_party.manage"
   | "billing.credit_party.read"
   | "billing.data.export"
+  | "billing.expense.manage"
   | "billing.invoice.cancel"
   | "billing.invoice.issue"
   | "billing.invoice.read"
@@ -199,10 +206,17 @@ export const PERMISSION_CODES: readonly PermissionCode[] = [
   "anatomic.config.manage",
   "audit.log.export",
   "audit.log.read",
+  "billing.account.manage",
+  "billing.account.read",
+  "billing.account_entry.create",
+  "billing.account_entry.reverse",
   "billing.cash_report.read",
+  "billing.cash_transfer.decide",
+  "billing.cash_transfer.manage",
   "billing.credit_party.manage",
   "billing.credit_party.read",
   "billing.data.export",
+  "billing.expense.manage",
   "billing.invoice.cancel",
   "billing.invoice.issue",
   "billing.invoice.read",
@@ -383,6 +397,9 @@ export const PRIVILEGED: ReadonlySet<PermissionCode> = new Set([
   "anatomic.config.manage",
   "audit.log.export",
   "audit.log.read",
+  "billing.account.manage",
+  "billing.account_entry.reverse",
+  "billing.cash_transfer.decide",
   "billing.credit_party.manage",
   "billing.data.export",
   "billing.invoice.cancel",
@@ -472,10 +489,17 @@ export const ROLE_GRANTS: Readonly<Record<string, readonly PermissionCode[]>> = 
   ],
   finance: [
     "analytics.collections.read",
+    "billing.account.manage",
+    "billing.account.read",
+    "billing.account_entry.create",
+    "billing.account_entry.reverse",
     "billing.cash_report.read",
+    "billing.cash_transfer.decide",
+    "billing.cash_transfer.manage",
     "billing.credit_party.manage",
     "billing.credit_party.read",
     "billing.data.export",
+    "billing.expense.manage",
     "billing.invoice.cancel",
     "billing.invoice.issue",
     "billing.invoice.read",
@@ -755,6 +779,8 @@ export const ROLE_GRANTS: Readonly<Record<string, readonly PermissionCode[]>> = 
     "analytics.schedule.manage",
     "audit.log.export",
     "audit.log.read",
+    "billing.account.manage",
+    "billing.account.read",
     "billing.cash_report.read",
     "billing.credit_party.read",
     "billing.invoice.read",

@@ -13,6 +13,7 @@
 //  - the government id number is stored as typed (the column is plain text with a 1..64 CHECK).
 import { beforeAll, describe, expect, it } from 'vitest';
 import { rows as fx } from '../integration/helpers.js';
+import { ADMIN, anonymisable, anonymise, yearsAgo } from '../admin/helpers.js';
 import { PERM, T, TENANT_A, TENANT_B, accessRows, call, consents, fails, newPatient, ownerRows, patientRow, phone, req, schemaErrors, seed, seedPatient,
   seedSettings, tag, uid } from './helpers.js';
 
@@ -330,6 +331,24 @@ describe('(2) government id number: masked everywhere but getPatient, never logg
     for (const row of log) for (const col of [...(row.changed_columns ?? []), ...Object.keys(row.new_values ?? {}), ...Object.keys(row.old_values ?? {})]) {
       expect(['government_id_number', 'address_province', 'address_district', 'address_municipality', 'address_ward', 'address_tole', 'address_postal_code']).not.toContain(col);
     }
+  });
+});
+
+describe('(3) anonymisePatient keeps erasing ALL identifying data, including the 13 new columns (reviewer note T0B-REGAPI-1-review.md item 1)', () => {
+  it('after anonymise every new column is NULL in frontdesk.patients and no audit row holds the government id number', { timeout: T }, async () => {
+    const no = govNo(); const ext = mr();
+    const a = await anonymisable({ orderAt: [yearsAgo(7)], row: { title: 'mr', external_patient_id: ext, nationality: 'NP', government_id_type: 'citizenship', government_id_number: no,
+      address_province: 'SynProvinceAnon', address_district: 'SynDistrictAnon', address_municipality: 'SynMunicipalityAnon', address_ward: '12', address_tole: 'SynToleAnon',
+      address_postal_code: '44600', profile_photo_attachment_id: await photo(), custom_fields: { blood_group: 'O+' } } });
+    const before = await patientRow(a.patient.id);
+    for (const k of NEW_KEYS) expect(before[k], `${k} seeded`).not.toBeNull();
+    const r = await anonymise(a.patient.id, '"1"', { reason_code: 'patient_request' }, ADMIN, { w: a.w });
+    expect(r.status).toBe(200);
+    const row = await patientRow(a.patient.id);
+    expect(row.anonymised_at).toBeInstanceOf(Date);
+    for (const k of NEW_KEYS) expect(row[k], `${k} must be NULL after anonymise`).toBeNull();
+    const text = JSON.stringify([...(await ownerRows('audit.audit_log', "tenant_id = $1 AND row_id = $2", [TENANT_A, a.patient.id])), ...(await accessRows('patient.anonymise', r.probe.requestId))]);
+    for (const v of [no, ext, 'SynProvinceAnon', 'SynDistrictAnon', 'SynMunicipalityAnon', 'SynToleAnon']) expect(text, v).not.toContain(v);
   });
 });
 

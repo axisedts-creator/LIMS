@@ -50,6 +50,9 @@ describe('SWEEP-2 run artifacts', () => {
   it('every SHALLOW row says which input field failed (evidence, not an empty body)', () => {
     expect(load().rows.filter((r) => r.depth === 'SHALLOW' && !String(r.detail ?? '').trim()).map((r) => r.operationId)).toEqual([]);
   });
+  it('every SHALLOW row is a 400 common.validation_failed (SHALLOW means stopped at input validation)', () => {
+    expect(load().rows.filter((r) => r.depth === 'SHALLOW' && !(r.status === 400 && r.errorCode === 'common.validation_failed')).map((r) => r.operationId)).toEqual([]);
+  });
   it('the partners operations no longer answer partners.partner_inactive (HARNESS: seeded partner is active)', () => {
     expect(load().rows.filter((r) => r.errorCode === 'partners.partner_inactive').map((r) => r.operationId)).toEqual([]);
   });

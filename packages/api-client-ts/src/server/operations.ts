@@ -17473,6 +17473,11 @@ export interface Operations {
           referrer_id?: string[];
           item_status?: ("awaiting_collection" | "awaiting_receipt" | "in_process" | "resulted" | "verified")[];
           overdue_only?: boolean;
+          party_id?: string[];
+          representative_id?: string[];
+          collector_id?: string[];
+          visit_type?: "opd" | "ipd";
+          min_repeat_count?: number;
         };
       };
     };
@@ -17500,6 +17505,11 @@ export interface Operations {
             referrer_id?: string[];
             item_status?: ("awaiting_collection" | "awaiting_receipt" | "in_process" | "resulted" | "verified")[];
             overdue_only?: boolean;
+            party_id?: string[];
+            representative_id?: string[];
+            collector_id?: string[];
+            visit_type?: "opd" | "ipd";
+            min_repeat_count?: number;
           };
         };
         requested_at: string;
@@ -48389,6 +48399,11 @@ export interface Operations {
             referrer_id?: string[];
             item_status?: ("awaiting_collection" | "awaiting_receipt" | "in_process" | "resulted" | "verified")[];
             overdue_only?: boolean;
+            party_id?: string[];
+            representative_id?: string[];
+            collector_id?: string[];
+            visit_type?: "opd" | "ipd";
+            min_repeat_count?: number;
           };
         };
         requested_at: string;
@@ -74423,6 +74438,11 @@ export interface Operations {
               referrer_id?: string[];
               item_status?: ("awaiting_collection" | "awaiting_receipt" | "in_process" | "resulted" | "verified")[];
               overdue_only?: boolean;
+              party_id?: string[];
+              representative_id?: string[];
+              collector_id?: string[];
+              visit_type?: "opd" | "ipd";
+              min_repeat_count?: number;
             };
           };
           requested_at: string;

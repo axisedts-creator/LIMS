@@ -13,8 +13,7 @@ import { evaluateGate } from '../gate.js';
 import { SESSION_KINDS } from '../sessions.js';
 
 const ROOT = resolve(import.meta.dirname, '..', '..', '..', '..');
-const FOUR = ['listTenants', 'listPlatformIrdAnnexes', 'listPlatformSupportSessions', 'listDeadLetters'];
-const kf = (): { operation: string; status: number | string; ref: string }[] =>
+const kf = (): { operation: string; status: number | string; ref: string; class?: string }[] =>
   JSON.parse(readFileSync(join(ROOT, 'services/api/test-sweep/known-failures.json'), 'utf8'));
 
 describe('evaluateGate', () => {
@@ -41,13 +40,14 @@ describe('evaluateGate', () => {
 });
 
 describe('known-failures.json', () => {
-  it('lists the four platform defects, each with a status and a CR/task/LD reference', () => {
+  // the four platform defects are fixed on main and no longer listed; every entry must carry a status, a class and a reference
+  it('every entry has a status, a BUG/CONFIG/HARNESS class and a CR/task/LD reference', () => {
     const list = kf();
-    for (const id of FOUR) {
-      const e = list.find((x) => x.operation === id);
-      expect(e, id).toBeDefined();
-      expect(String(e!.ref)).toMatch(/\S/);
-      expect(e!.status).toBeDefined();
+    expect(list.length).toBeGreaterThan(0);
+    for (const e of list) {
+      expect(e.status, e.operation).toBeDefined();
+      expect(['BUG', 'CONFIG', 'HARNESS'], e.operation).toContain(e.class);
+      expect(String(e.ref), e.operation).toMatch(/\S/);
     }
   });
 });
@@ -59,18 +59,17 @@ describe('package.json', () => {
   });
 });
 
-describe('first-run artifacts (written by `pnpm --filter @lims/api sweep`, which verify.cmd runs first)', () => {
-  const p = join(ROOT, '.orchestra/notes/T0B-SWEEP-1-results.json');
-  it('results.json records valid session kinds and the four known defects as DEFECT', () => {
+describe('latest-run artifacts (T0B-SWEEP-2, written by `pnpm --filter @lims/api sweep`, which verify.cmd runs first)', () => {
+  const p = join(ROOT, '.orchestra/notes/T0B-SWEEP-2-results.json');
+  it('results.json records valid session kinds and every DEFECT is in known-failures.json', () => {
     expect(existsSync(p)).toBe(true);
     const { rows } = JSON.parse(readFileSync(p, 'utf8')) as { rows: { operationId: string; sessionKind: string; status: number; verdict: string }[] };
     expect(rows.length).toBeGreaterThan(100);
     for (const r of rows) {
       expect(SESSION_KINDS).toContain(r.sessionKind);
-      expect(['WIRED', 'DEFECT']).toContain(r.verdict);
+      expect(['WIRED', 'DEFECT', 'NOT_EXERCISED']).toContain(r.verdict);
       expect(typeof r.status).toBe('number');
     }
-    for (const id of FOUR) expect(rows.find((r) => r.operationId === id)?.verdict, id).toBe('DEFECT');
     const known = new Set(kf().map((k) => k.operation));
     expect(rows.filter((r) => r.verdict === 'DEFECT').filter((r) => !known.has(r.operationId))).toEqual([]);
   });
@@ -85,8 +84,9 @@ describe('first-run artifacts (written by `pnpm --filter @lims/api sweep`, which
     expect(rows.filter((r) => r.verdict === 'DEFECT' && !String(r.detail ?? '').trim()).map((r) => r.operationId)).toEqual([]);
   });
   it('results.md has a table per module and ends with a defect count by root-cause guess', () => {
-    const md = readFileSync(join(ROOT, '.orchestra/notes/T0B-SWEEP-1-results.md'), 'utf8');
+    const md = readFileSync(join(ROOT, '.orchestra/notes/T0B-SWEEP-2-results.md'), 'utf8');
     expect(md).toMatch(/\| operation \| session kind \| status \| error_code \| verdict \|/i);
-    expect(md.slice(-1500)).toMatch(/root.cause/i);
+    // SWEEP-2 notes end with a BUG list that can run long: assert the section heading, not the last 1500 chars
+    expect(md).toMatch(/^## BUG list by root-cause guess/m);
   });
 });

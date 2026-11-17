@@ -45,8 +45,8 @@ services:
   storage:
     image: supabase/storage-api@sha256:8526956cb462e9f7d392e9848ec77133b2769982ed614e9753cc687e8e4339a6
     depends_on: !override    # NOT `!reset {..}`: reset clears the value (DECISION.md spike result)
-      rest: { condition: service_started }
-      imgproxy: { condition: service_started }
+      rest: {condition: service_started}
+      imgproxy: {condition: service_started}
     volumes: !override
       - /srv/lims/storage:/var/lib/storage:z   # vg_storage, growable (04 I1/I4)
     networks: !override
@@ -70,11 +70,11 @@ networks:
   app_net:
     name: app_net
     internal: true
-    ipam: { config: [{ subnet: 172.30.20.0/24 }] }
+    ipam: {config: [{subnet: 172.30.20.0/24}]}
   auth_net:
     name: auth_net
     internal: true
-    ipam: { config: [{ subnet: 172.30.30.0/24 }] }
+    ipam: {config: [{subnet: 172.30.30.0/24}]}
   db_net:
     name: db_net
-    ipam: { config: [{ subnet: 172.30.50.0/24 }] }
+    ipam: {config: [{subnet: 172.30.50.0/24}]}

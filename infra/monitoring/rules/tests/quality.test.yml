@@ -19,7 +19,9 @@ tests:
         eval_time: 17m
         exp_alerts:
           - exp_labels: {severity: "warn", team: "ops", tenant_id: "t1"}
-            exp_annotations: {summary: "A rejected QC run has had no corrective action for over 4 h.", runbook_url: "infra/runbooks/quality.md#qualityrejectedrunwithoutaction"}
+            exp_annotations:
+              summary: "A rejected QC run has had no corrective action for over 4 h."
+              runbook_url: "infra/runbooks/quality.md#qualityrejectedrunwithoutaction"
 
   - interval: 1m
     name: "QualityRejectedRunWithoutAction quiet"
@@ -183,7 +185,9 @@ tests:
         eval_time: 12m
         exp_alerts:
           - exp_labels: {severity: "page", team: "ops", decision: "allow", reason: "low_confidence"}
-            exp_annotations: {summary: "Autoverification allowed a result while a blocking reason was present.", runbook_url: "infra/runbooks/quality.md#qualityautoverifyallowwithreasons"}
+            exp_annotations:
+              summary: "Autoverification allowed a result while a blocking reason was present."
+              runbook_url: "infra/runbooks/quality.md#qualityautoverifyallowwithreasons"
 
   - interval: 1m
     name: "QualityAutoverifyAllowWithReasons quiet"

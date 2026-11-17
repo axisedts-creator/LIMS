@@ -19,6 +19,7 @@
     # 02-TRD s7.9 step 2: the wrapper runs pgbackrest inside the db container (role pgbackrest). A failure
     # stops the deploy on every host before any migration runs.
     - name: Backup before migrations (pgbackrest incr, repo1)
+      changed_when: true
       ansible.builtin.command:
         cmd: /usr/local/lib/lims/bin/pgbackrest --stanza=lims backup --type=incr --repo=1
       when: env == 'prod'
@@ -140,6 +141,7 @@
       environment: "{{ deploy_compose_env | combine({'PGPASSWORD': deploy_migrator_secret.stdout}) }}"
       block:
         - name: Apply migrations
+          changed_when: true
           ansible.builtin.command:
             cmd: >-
               docker compose -p lims
@@ -151,6 +153,7 @@
           run_once: true
 
         - name: Sync the task registry
+          changed_when: true
           ansible.builtin.command:
             cmd: >-
               docker compose -p lims
@@ -165,6 +168,7 @@
         # (.orchestra/cr/T-08.md; C0 names no seed command).
         # C0 02-TRD s4.6: production runs only 001-003; staging/dev all.
         - name: Apply seeds (prod 001-003, staging/dev all)
+          changed_when: true
           ansible.builtin.command:
             cmd: >-
               docker compose -p lims
@@ -183,6 +187,7 @@
     # (-e agent_release_manifest='{"version":"1.2.3"}'). The key and certificate are read by the script on the
     # ops host only (delegated; no secret value here); the app host receives the signed zip + seed SQL.
     - name: Agent release - sign and stage on the ops host (agent-release.sh)
+      changed_when: true
       ansible.builtin.command:
         argv:
           - "{{ agent_release_bin_dir | default('/usr/local/lib/lims/bin') }}/agent-release.sh"
@@ -193,6 +198,7 @@
       when: agent_release_manifest is defined and agent_release_manifest.version is defined
 
     - name: Agent release - apply the g_agent_releases seed as lims_migrator (one-shot migrate container)
+      changed_when: true
       environment: "{{ deploy_compose_env | combine({'PGPASSWORD': deploy_migrator_secret.stdout}) }}"
       ansible.builtin.shell:
         cmd: >-
@@ -219,6 +225,7 @@
     # 02-TRD s12.3 step 5: rolling update, health wait 5 min [CONV]. `up --wait` returns only when the container is healthy, so api-a is
     # ready before api-b is touched. worker-b and web-b exist only in the `full` profile (LD-45).
     - name: Roll api-a (wait healthy)
+      changed_when: true
       ansible.builtin.command:
         cmd: >-
           docker compose -p lims -f {{ deploy_compose_dir }}/compose.app.yml
@@ -226,6 +233,7 @@
       environment: "{{ deploy_compose_env }}"
 
     - name: Roll api-b (wait healthy)
+      changed_when: true
       ansible.builtin.command:
         cmd: >-
           docker compose -p lims -f {{ deploy_compose_dir }}/compose.app.yml
@@ -233,6 +241,7 @@
       environment: "{{ deploy_compose_env }}"
 
     - name: Roll worker-a (wait healthy)
+      changed_when: true
       ansible.builtin.command:
         cmd: >-
           docker compose -p lims -f {{ deploy_compose_dir }}/compose.app.yml
@@ -240,6 +249,7 @@
       environment: "{{ deploy_compose_env }}"
 
     - name: Roll worker-b (wait healthy, full profile)
+      changed_when: true
       ansible.builtin.command:
         cmd: >-
           docker compose -p lims -f {{ deploy_compose_dir }}/compose.app.yml
@@ -248,6 +258,7 @@
       when: topology_profile == 'full'
 
     - name: Roll web-a (wait healthy)
+      changed_when: true
       ansible.builtin.command:
         cmd: >-
           docker compose -p lims -f {{ deploy_compose_dir }}/compose.app.yml
@@ -255,6 +266,7 @@
       environment: "{{ deploy_compose_env }}"
 
     - name: Roll web-b (wait healthy, full profile)
+      changed_when: true
       ansible.builtin.command:
         cmd: >-
           docker compose -p lims -f {{ deploy_compose_dir }}/compose.app.yml
@@ -263,6 +275,7 @@
       when: topology_profile == 'full'
 
     - name: Roll portal (wait healthy)
+      changed_when: true
       ansible.builtin.command:
         cmd: >-
           docker compose -p lims -f {{ deploy_compose_dir }}/compose.app.yml
@@ -270,6 +283,7 @@
       environment: "{{ deploy_compose_env }}"
 
     - name: Roll renderer (wait healthy)
+      changed_when: true
       ansible.builtin.command:
         cmd: >-
           docker compose -p lims -f {{ deploy_compose_dir }}/compose.app.yml
@@ -277,6 +291,7 @@
       environment: "{{ deploy_compose_env }}"
 
     - name: Roll pdf-sandbox (wait healthy)
+      changed_when: true
       ansible.builtin.command:
         cmd: >-
           docker compose -p lims -f {{ deploy_compose_dir }}/compose.app.yml

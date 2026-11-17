@@ -7,7 +7,7 @@
 #   grafana_admin_password, grafana_users [{login, password, role}]
 #   ops_nginx_basic_auth (htpasswd, bcrypt)
 # Inventory (non-secret): smtp_relay_fqdn, origins.*, wg_ip, public_ip.
-smtp_from: "{{ alertmanager_smtp_relay.from }}"
+smtp_from: "{{ alertmanager_smtp_relay.from }}"  # noqa: var-naming[no-role-prefix] (alertmanager template var, T-18)
 
 # Pinned versions (02-TRD s2). Digests are added by the release lock (T-23).
 monitoring_images:
@@ -19,7 +19,7 @@ monitoring_images:
   ops_nginx: nginx:1.30.6
 
 # Grafana local users -> Grafana org role (02-TRD s11.5).
-grafana_role_map:
+monitoring_grafana_role_map:
   ops_admin: Admin
   ops_oncall: Editor
   ops_readonly: Viewer

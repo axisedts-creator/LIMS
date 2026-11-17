@@ -21,7 +21,9 @@ tests:
         eval_time: 37m
         exp_alerts:
           - exp_labels: {severity: "warn", team: "ops"}
-            exp_annotations: {summary: "More than 5 % of smart report builds errored over 15 min.", runbook_url: "infra/runbooks/smartreport.md#smartbuilderrors"}
+            exp_annotations:
+              summary: "More than 5 % of smart report builds errored over 15 min."
+              runbook_url: "infra/runbooks/smartreport.md#smartbuilderrors"
 
   - interval: 1m
     name: "SmartBuildErrors quiet"
@@ -70,7 +72,9 @@ tests:
         eval_time: 12m
         exp_alerts:
           - exp_labels: {severity: "page", team: "ops"}
-            exp_annotations: {summary: "An LLM call was made while the LLM feature is disabled.", runbook_url: "infra/runbooks/smartreport.md#smartllmcallwhiledisabled"}
+            exp_annotations:
+              summary: "An LLM call was made while the LLM feature is disabled."
+              runbook_url: "infra/runbooks/smartreport.md#smartllmcallwhiledisabled"
 
   - interval: 1m
     name: "SmartLlmCallWhileDisabled quiet"
@@ -92,7 +96,9 @@ tests:
         eval_time: 12m
         exp_alerts:
           - exp_labels: {severity: "page", team: "ops"}
-            exp_annotations: {summary: "An LLM call to a non-allowlisted endpoint was refused.", runbook_url: "infra/runbooks/smartreport.md#smartllmendpointnotallowed"}
+            exp_annotations:
+              summary: "An LLM call to a non-allowlisted endpoint was refused."
+              runbook_url: "infra/runbooks/smartreport.md#smartllmendpointnotallowed"
 
   - interval: 1m
     name: "SmartLlmEndpointNotAllowed quiet"

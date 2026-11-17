@@ -69,7 +69,7 @@ PARTNER = t13.ORIGINS["partner"]
 LOGIN_PATHS = ["/auth/login", "/auth/mfa", "/auth/mfa/enrol", "/auth/forgot", "/auth/confirm", "/auth/set-password"]
 APP_PATHS = ["/", "/dashboard", "/orders/123", "/auth/logout", "/auth/session-expired", "/auth/loginx", "/auth/login/x"]
 APP_SET = t05.APP_SET
-SENTINEL = {"POSTGRES_PASSWORD": "sentinel-pg-pw", "JWT_SECRET": "sentinel-jwt-secret-0123456789abcdef",
+SENTINEL = {"POSTGRES_PASSWORD": "sentinel-pg-pw", "JWT_SECRET": "sentinel-jwt-secret-0123456789abcdef",  # gitleaks:allow
             "REALTIME_DB_ENC_KEY": "SENTINELENCKEY16", "POSTGRES_PORT": "5432", "POSTGRES_HOST": t05.DATA_WG}
 ZERO = "sha256:" + "0" * 64
 HOSTNAMES = t13.HOSTNAME_RE

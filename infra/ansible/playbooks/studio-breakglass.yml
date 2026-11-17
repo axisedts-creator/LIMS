@@ -132,7 +132,8 @@
               [Service]
               Type=oneshot
               TimeoutStartSec=15min
-              ExecStart={{ bg_ansible_playbook }} -i /etc/lims/studio-breakglass.inv {{ bg_lib }}/studio-breakglass.yml -e action=disable -e bg_ci_dir={{ bg_lib }} -e bg_dir={{ bg_dir }}
+              ExecStart={{ bg_ansible_playbook }} -i /etc/lims/studio-breakglass.inv \
+                {{ bg_lib }}/studio-breakglass.yml -e action=disable -e bg_ci_dir={{ bg_lib }} -e bg_dir={{ bg_dir }}
             dest: /etc/systemd/system/lims-studio-breakglass.service
             owner: root
             group: root

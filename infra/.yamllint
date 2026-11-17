@@ -1,0 +1,13 @@
+# yamllint config for infra/ (T-01 gate). Ignore paths are relative to the repo root: run.sh cds there and passes -c infra/.yamllint.
+extends: default
+# Vendored Supabase snapshot: byte-exact against UPSTREAM.lock sha256 (02-TRD s7.1, LD-33). Never reformatted here.
+ignore: |
+  infra/compose/supabase/upstream/
+rules:
+  line-length:
+    max: 160   # matches ansible-lint's own yaml[line-length]
+    level: error
+    # trimmed copy of the upstream envoy lds template: one JSON-in-string log format and one Lua line cannot be wrapped
+    ignore: |
+      infra/compose/supabase/envoy/lds.template.yaml
+  document-start: disable

@@ -259,7 +259,7 @@
   register: monitoring_grafana_ids
   no_log: true
 
-- name: Grafana org role from grafana_role_map
+- name: Grafana org role from monitoring_grafana_role_map
   ansible.builtin.uri:
     url: "http://127.0.0.1:3000/grafana/api/org/users/{{ uid }}"
     method: PATCH
@@ -268,7 +268,7 @@
     force_basic_auth: true
     body_format: json
     body:
-      role: "{{ grafana_role_map[item.item.role] }}"
+      role: "{{ monitoring_grafana_role_map[item.item.role] }}"
   vars:
     uid: >-
       {{ (item.json | selectattr('login', 'equalto', item.item.login)

@@ -177,7 +177,7 @@
             state: directory
             mode: "0700"
 
-        - name: Mount the scratch LV
+        - name: Mount the scratch LV  # noqa: command-instead-of-module (scratch mount must not write /etc/fstab)
           ansible.builtin.command: >-
             mount -o nodev,nosuid {{ drill_lv_dev }} {{ drill_mnt }}
           changed_when: true

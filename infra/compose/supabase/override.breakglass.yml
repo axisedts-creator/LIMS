@@ -18,11 +18,11 @@ services:
       - "127.0.0.1:8000:8000/tcp"     # loopback only; reached by ssh -L 8000:127.0.0.1:8000 over wg0
     networks:
       - breakglass_net
+    # DASHBOARD_USERNAME/DASHBOARD_PASSWORD reach the gateway from the rendered env file (unchanged
+    # upstream environment); the playbook rotates the password before the gateway is recreated.
     volumes:                          # the FULL upstream Envoy config (studio + meta routes, basic auth);
       - ./upstream/volumes/api/envoy/lds.template.yaml:/etc/envoy/lds.template.yaml:ro
       - ./upstream/volumes/api/envoy/cds.yaml:/etc/envoy/cds.yaml:ro
-    # DASHBOARD_USERNAME/DASHBOARD_PASSWORD reach the gateway from the rendered env file (unchanged
-    # upstream environment); the playbook rotates the password before the gateway is recreated.
 
   studio:
     container_name: supabase-studio
@@ -39,7 +39,7 @@ services:
       retries: 3
       start_period: 20s
     depends_on:
-      meta: { condition: service_started }
+      meta: {condition: service_started}
     networks:                         # app_net: gateway <-> studio; db_net: Postgres at POSTGRES_HOST
       - app_net
       - db_net
@@ -97,4 +97,4 @@ services:
 networks:
   breakglass_net:
     name: breakglass_net
-    ipam: { config: [{ subnet: 172.30.60.0/24 }] }
+    ipam: {config: [{subnet: 172.30.60.0/24}]}

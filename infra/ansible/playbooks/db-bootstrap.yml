@@ -74,6 +74,7 @@
       no_log: true
 
     - name: Run 00_roles.sql as the provisioning superuser
+      changed_when: true
       ansible.builtin.command:
         cmd: >-
           docker exec -i supabase-db sh -c
@@ -92,6 +93,7 @@
       no_log: true
 
     - name: Run 01_database.sql connected to the application database
+      changed_when: true
       ansible.builtin.command:
         cmd: >-
           docker exec -i supabase-db sh -c

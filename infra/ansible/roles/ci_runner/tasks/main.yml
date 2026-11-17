@@ -75,6 +75,7 @@
       --no-default-labels
     chdir: "{{ ci_runner_dir }}"
     creates: "{{ ci_runner_dir }}/.runner"
+  become: true
   become_user: "{{ ci_runner_user }}"
   environment:
     ACTIONS_RUNNER_INPUT_TOKEN: "{{ ci_runner_registration_token }}"

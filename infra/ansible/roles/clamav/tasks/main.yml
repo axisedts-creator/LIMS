@@ -206,13 +206,13 @@
 
     # F-01 pending/refused: freshclam may fail here; manual import (database files in /var/lib/clamav on
     # this host) still works through the second command. No database at all fails the run (fail closed).
-    - name: First download (tolerated to fail until F-01 approves the mirror)
+    - name: First download (tolerated to fail until F-01 approves the mirror)  # noqa: command-instead-of-module (oneshot must run on every play)
       ansible.builtin.command: systemctl start lims-freshclam.service
       register: clamav_first_download
       failed_when: false
       changed_when: clamav_first_download.rc == 0
 
-    - name: Copy to the app host and reload clamd
+    - name: Copy to the app host and reload clamd  # noqa: command-instead-of-module (oneshot must run on every play)
       ansible.builtin.command: systemctl start lims-clamav-sync.service
       changed_when: true
 
@@ -247,6 +247,6 @@
         enabled: true
         daemon_reload: true
 
-    - name: First metric value
+    - name: First metric value  # noqa: command-instead-of-module (oneshot must run on every play)
       ansible.builtin.command: systemctl start lims-clamav-metrics.service
       changed_when: false

@@ -21,7 +21,9 @@ tests:
         eval_time: 1452m
         exp_alerts:
           - exp_labels: {severity: "warn", team: "ops", tenant_id: "t1"}
-            exp_annotations: {summary: "More than 50 open micro instrument records awaiting match for 24 h.", runbook_url: "infra/runbooks/micro.md#microinstrumentrecordsbacklog"}
+            exp_annotations:
+              summary: "More than 50 open micro instrument records awaiting match for 24 h."
+              runbook_url: "infra/runbooks/micro.md#microinstrumentrecordsbacklog"
 
   - interval: 1m
     name: "MicroInstrumentRecordsBacklog quiet"
@@ -69,7 +71,9 @@ tests:
         eval_time: 12m
         exp_alerts:
           - exp_labels: {severity: "warn", team: "ops", task: "micro.breakpoint_import_validate"}
-            exp_annotations: {summary: "The breakpoint import validation job dead-lettered.", runbook_url: "infra/runbooks/micro.md#microbreakpointimportdeadletter"}
+            exp_annotations:
+              summary: "The breakpoint import validation job dead-lettered."
+              runbook_url: "infra/runbooks/micro.md#microbreakpointimportdeadletter"
 
   - interval: 1m
     name: "MicroBreakpointImportDeadLetter quiet"
@@ -94,7 +98,9 @@ tests:
         eval_time: 27m
         exp_alerts:
           - exp_labels: {severity: "warn", team: "ops"}
-            exp_annotations: {summary: "Microbiology submits failing with common.internal for 15 min.", runbook_url: "infra/runbooks/micro.md#microsubmitinternalerrors"}
+            exp_annotations:
+              summary: "Microbiology submits failing with common.internal for 15 min."
+              runbook_url: "infra/runbooks/micro.md#microsubmitinternalerrors"
 
   - interval: 1m
     name: "MicroSubmitInternalErrors quiet"
@@ -118,7 +124,9 @@ tests:
         eval_time: 72m
         exp_alerts:
           - exp_labels: {severity: "warn", team: "ops", tenant_id: "t1"}
-            exp_annotations: {summary: "A micro specimen was received without a culture in the last hour.", runbook_url: "infra/runbooks/micro.md#microunmappedreceived"}
+            exp_annotations:
+              summary: "A micro specimen was received without a culture in the last hour."
+              runbook_url: "infra/runbooks/micro.md#microunmappedreceived"
 
   - interval: 1m
     name: "MicroUnmappedReceived quiet"

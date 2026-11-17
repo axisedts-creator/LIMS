@@ -19,7 +19,9 @@ tests:
         eval_time: 3m
         exp_alerts:
           - exp_labels: {severity: "page", team: "ops", tenant_id: "t1"}
-            exp_annotations: {summary: "A critical value has been unnotified for more than 30 min.", runbook_url: "infra/runbooks/lab.md#labcriticalvalueunnotified"}
+            exp_annotations:
+              summary: "A critical value has been unnotified for more than 30 min."
+              runbook_url: "infra/runbooks/lab.md#labcriticalvalueunnotified"
 
   - interval: 1m
     name: "LabCriticalValueUnnotified quiet"
@@ -44,7 +46,9 @@ tests:
         eval_time: 17m
         exp_alerts:
           - exp_labels: {severity: "warn", team: "ops", tenant_id: "t1", reason: "parse"}
-            exp_annotations: {summary: "An instrument ingest exception has been open for over 24 h.", runbook_url: "infra/runbooks/lab.md#labingestexceptionstale"}
+            exp_annotations:
+              summary: "An instrument ingest exception has been open for over 24 h."
+              runbook_url: "infra/runbooks/lab.md#labingestexceptionstale"
 
   - interval: 1m
     name: "LabIngestExceptionStale quiet"

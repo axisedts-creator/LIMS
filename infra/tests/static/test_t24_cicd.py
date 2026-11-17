@@ -1043,7 +1043,7 @@ class RunnerRoleTest(unittest.TestCase):
 
     def test_runner_owns_no_key_material(self):  # A9: runner holds no age key for prod
         for name, txt in role_files().items():
-            self.assertNotRegex(txt, r"AGE-SECRET-KEY|PRIVATE KEY-----", name)
+            self.assertNotRegex(txt, r"AGE-SECRET-KEY|PRIVATE KEY-{5}", name)
         try:
             tasks = yaml.safe_load(role_files()["tasks/main.yml"]) or []
         except yaml.YAMLError as e:  # noqa: BLE001

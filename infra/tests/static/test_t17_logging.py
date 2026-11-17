@@ -573,7 +573,7 @@ class ScrubBehaviourTest(unittest.TestCase):
         self.assertNotIn("9841234567", self.dump(f), "real phones must still be redacted")
 
     def test_bearer_and_jwt_in_values(self):
-        jwt = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJzeW50aCJ9.c2lnbmF0dXJl"
+        jwt = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJzeW50aCJ9.c2lnbmF0dXJl"  # gitleaks:allow
         code, f = run_scrub({"msg": "Authorization: Bearer abc.DEF-123_xyz== failed", "note": "tok " + jwt + " end", "level": "warn"})
         self.assertGone(f, "abc.DEF-123_xyz", jwt, "eyJzdWIi")
         self.assertEqual(f.get("level"), "warn")

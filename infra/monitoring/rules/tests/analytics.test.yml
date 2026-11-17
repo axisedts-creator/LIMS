@@ -41,7 +41,9 @@ tests:
         eval_time: 42m
         exp_alerts:
           - exp_labels: {severity: "page", team: "ops", family: "f1"}
-            exp_annotations: {summary: "An analytics family refresh failed 3 or more times in 30 min.", runbook_url: "infra/runbooks/analytics.md#analyticsrefreshfailing"}
+            exp_annotations:
+              summary: "An analytics family refresh failed 3 or more times in 30 min."
+              runbook_url: "infra/runbooks/analytics.md#analyticsrefreshfailing"
 
   - interval: 1m
     name: "AnalyticsRefreshFailing quiet"
@@ -63,7 +65,9 @@ tests:
         eval_time: 27m
         exp_alerts:
           - exp_labels: {severity: "page", team: "ops", rule: "r1", family: "f1"}
-            exp_annotations: {summary: "Analytics reconciliation found a mismatch against the source module.", runbook_url: "infra/runbooks/analytics.md#analyticsreconciliationmismatch"}
+            exp_annotations:
+              summary: "Analytics reconciliation found a mismatch against the source module."
+              runbook_url: "infra/runbooks/analytics.md#analyticsreconciliationmismatch"
 
   - interval: 1m
     name: "AnalyticsReconciliationMismatch quiet"
@@ -85,7 +89,9 @@ tests:
         eval_time: 360h
         exp_alerts:
           - exp_labels: {severity: "page", team: "ops", tenant_id: "t1"}
-            exp_annotations: {summary: "A tenant's analytics exports in 24 h exceed 3x the 14-day daily mean.", runbook_url: "infra/runbooks/analytics.md#analyticsexportspike"}
+            exp_annotations:
+              summary: "A tenant's analytics exports in 24 h exceed 3x the 14-day daily mean."
+              runbook_url: "infra/runbooks/analytics.md#analyticsexportspike"
 
   - interval: 1h
     name: "AnalyticsExportSpike quiet (variant 1)"

@@ -1,0 +1,4 @@
+# ansible-lint profile for infra/ansible (T-01 gate; run.sh passes -c and sets ANSIBLE_CONFIG).
+skip_list:
+  - name[casing]    # task names follow the spec's sentence style
+  - run-once[task]  # no playbook uses strategy: free, so run_once is deterministic

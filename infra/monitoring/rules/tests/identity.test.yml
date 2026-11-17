@@ -16,7 +16,9 @@ tests:
         eval_time: 12m
         exp_alerts:
           - exp_labels: {severity: "warn", team: "ops"}
-            exp_annotations: {summary: "Login failures above the platform or per-tenant 5-min limit.", runbook_url: "infra/runbooks/identity.md#identityloginfailurespike"}
+            exp_annotations:
+              summary: "Login failures above the platform or per-tenant 5-min limit."
+              runbook_url: "infra/runbooks/identity.md#identityloginfailurespike"
 
   - interval: 1m
     name: "IdentityLoginFailureSpike fires (variant 2)"
@@ -28,7 +30,9 @@ tests:
         eval_time: 12m
         exp_alerts:
           - exp_labels: {severity: "warn", team: "ops", tenant_id: "t1"}
-            exp_annotations: {summary: "Login failures above the platform or per-tenant 5-min limit.", runbook_url: "infra/runbooks/identity.md#identityloginfailurespike"}
+            exp_annotations:
+              summary: "Login failures above the platform or per-tenant 5-min limit."
+              runbook_url: "infra/runbooks/identity.md#identityloginfailurespike"
 
   - interval: 1m
     name: "IdentityLoginFailureSpike quiet"
@@ -54,7 +58,9 @@ tests:
         eval_time: 12m
         exp_alerts:
           - exp_labels: {severity: "page", team: "ops"}
-            exp_annotations: {summary: "Credential-stuffing pattern: 30+ accounts from 10+ IPs in 15 min.", runbook_url: "infra/runbooks/identity.md#identitycredentialstuffing"}
+            exp_annotations:
+              summary: "Credential-stuffing pattern: 30+ accounts from 10+ IPs in 15 min."
+              runbook_url: "infra/runbooks/identity.md#identitycredentialstuffing"
 
   - interval: 1m
     name: "IdentityCredentialStuffing quiet (variant 1)"
@@ -90,7 +96,9 @@ tests:
         eval_time: 12m
         exp_alerts:
           - exp_labels: {severity: "page", team: "ops", outcome: "ip_throttled"}
-            exp_annotations: {summary: "The per-IP login failure throttle is engaged.", runbook_url: "infra/runbooks/identity.md#identityloginipthrottleengaged"}
+            exp_annotations:
+              summary: "The per-IP login failure throttle is engaged."
+              runbook_url: "infra/runbooks/identity.md#identityloginipthrottleengaged"
 
   - interval: 1m
     name: "IdentityLoginIpThrottleEngaged fires (variant 2)"
@@ -102,7 +110,9 @@ tests:
         eval_time: 12m
         exp_alerts:
           - exp_labels: {severity: "page", team: "ops"}
-            exp_annotations: {summary: "The per-IP login failure throttle is engaged.", runbook_url: "infra/runbooks/identity.md#identityloginipthrottleengaged"}
+            exp_annotations:
+              summary: "The per-IP login failure throttle is engaged."
+              runbook_url: "infra/runbooks/identity.md#identityloginipthrottleengaged"
 
   - interval: 1m
     name: "IdentityLoginIpThrottleEngaged quiet"
@@ -199,7 +209,9 @@ tests:
         eval_time: 17m
         exp_alerts:
           - exp_labels: {severity: "page", team: "ops"}
-            exp_annotations: {summary: "More than 20 % of GoTrue requests failing for 5 min.", runbook_url: "infra/runbooks/identity.md#identitygotrueunavailable"}
+            exp_annotations:
+              summary: "More than 20 % of GoTrue requests failing for 5 min."
+              runbook_url: "infra/runbooks/identity.md#identitygotrueunavailable"
 
   - interval: 1m
     name: "IdentityGoTrueUnavailable quiet"
@@ -250,7 +262,9 @@ tests:
         eval_time: 22m
         exp_alerts:
           - exp_labels: {severity: "page", team: "ops", env: "production"}
-            exp_annotations: {summary: "The breached-password list is not loaded in production.", runbook_url: "infra/runbooks/identity.md#identitybreachedlistmissing"}
+            exp_annotations:
+              summary: "The breached-password list is not loaded in production."
+              runbook_url: "infra/runbooks/identity.md#identitybreachedlistmissing"
 
   - interval: 1m
     name: "IdentityBreachedListMissing quiet"

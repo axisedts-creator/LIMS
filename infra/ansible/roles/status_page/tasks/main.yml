@@ -1,6 +1,6 @@
 ---
 # Static public status page. Input is data only: values are escaped in the template, never evaluated.
-- name: Load the status source
+- name: Load the status source  # noqa: var-naming[no-role-prefix] (template var `status`, T-31)
   ansible.builtin.set_fact:
     status: "{{ lookup('ansible.builtin.file', status_page_source) | from_yaml }}"
 

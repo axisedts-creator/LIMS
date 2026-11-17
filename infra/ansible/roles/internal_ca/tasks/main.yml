@@ -156,7 +156,7 @@
           - -CAkey
           - "{{ internal_ca_tmp }}/ca.key"
           - -set_serial
-          - "{{ (2 ** 63) | random }}"
+          - "{{ (2**63) | random }}"
           - -days
           - "{{ internal_ca_leaf_days }}"
           - -copy_extensions

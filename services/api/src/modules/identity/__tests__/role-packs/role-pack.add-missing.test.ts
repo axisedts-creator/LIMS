@@ -71,7 +71,8 @@ const setup = (seed: Record<string, Row[]>) => { const w = makeRepo(seed); retur
 const ADMIN = pr(CORP, 'corp_admin');
 const MISSING = sorted(ADMIN.permissions).slice(-6);                       // what the pack "gained"
 const HAS = sorted(ADMIN.permissions).filter((c) => !MISSING.includes(c));
-const EXTRA = DEFAULT_REGISTRY.map((e) => e.code).find((c) => isAssignable(c) && !ADMIN.permissions.includes(c))!;   // a code the lab added itself
+// LD-310 (T0B-ADMINPERM-1): corp_admin now holds every assignable (staff) code, so the code "the lab added itself" is a registry code outside the pack.
+const EXTRA = DEFAULT_REGISTRY.map((e) => e.code).find((c) => !ADMIN.permissions.includes(c))!;
 const OLD_ADMIN = () => row({ id: idN(0x401), code: 'corp_admin', display_name: 'Lab owner', mfa_required: true, permission_codes: sorted([...HAS, EXTRA]) });
 const lab = (...rs: Row[]) => ({ [TENANT_A]: [...DEFAULTS(), ...rs], [TENANT_B]: DEFAULTS() });
 const ROLES = (roles: string[], yes: boolean) => ({ roles, yes });

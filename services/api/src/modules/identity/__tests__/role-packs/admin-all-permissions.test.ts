@@ -1,62 +1,18 @@
 // T0B-ADMINPERM-1 (LD-310 blanket authority; founder: "admin should get all features"; LD-189 AUTH-SENSITIVE yes given for this task).
 // The administrator pack corp_admin must hold EVERY permission code of contracts/permissions.yaml that a tenant staff actor can hold.
-// Only codes of platform staff, system, portal/patient, device and partner actors are excluded, explicitly, each with a reason.
+// Only codes of platform staff, system, portal/patient, device and partner actors are excluded, explicitly, each with a reason
+// (the exclusion list lives in ./admin-staff-codes.ts, shared with the other corp_admin pins).
 // Reads the pack data file and the registry directly with `yaml`. Fails on main for each staff code missing from corp_admin.
-// NOTE: this supersedes ADMINPACK-1 section 3.3 "left out on purpose" for corp_admin (admin-authority.test.ts) and the
-// "equals spec data" / 115-count pins in role-packs.data.test.ts; see .orchestra/notes/T0B-ADMINPERM-1-tests.md.
+// LD-310 supersedes ADMINPACK-1 section 3.3 / 11-ROLE-MATRIX (115 permissions, no decision codes) for corp_admin only.
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { parse } from 'yaml';
+import { ALL, EXCLUDED, STAFF, registry } from './admin-staff-codes';
 
-const ROOT = join(import.meta.dirname, '../../../../../../..');
 type Role = { code: string; mfa_required: boolean; base_default_role: string | null; permissions: string[] };
 const packs = (parse(readFileSync(join(import.meta.dirname, '../../role-packs/role-packs.data.yaml'), 'utf8')) as { packs: Array<{ code: string; roles: Role[] }> }).packs;
 const admin = packs.flatMap((p) => p.roles).find((r) => r.code === 'corp_admin')!;
-type Entry = { code: string; privileged: boolean; roles: string[] };
-const registry = (parse(readFileSync(join(ROOT, 'contracts/permissions.yaml'), 'utf8')) as { permissions: Entry[] }).permissions;
-const ALL = registry.map((p) => p.code);
-
-// Codes a tenant staff actor can never hold. One line reason each. Everything else in the registry is a staff code.
-const EXCLUDED: Record<string, string> = {
-  // platform staff: the provider's own identity, acts in a tenant only through a support session (REQ-SEC-063)
-  'platform.tenant.read': 'platform staff only',
-  'platform.tenant.manage': 'platform staff only',
-  'platform.support_session.open': 'platform staff only',
-  'platform.dead_letter.manage': 'platform staff only',
-  'platform.staff.manage': 'platform staff only',
-  // system actor
-  'identity.signatory.read': 'system actor of reporting only',
-  // portal and patient actors (fixed_actor_permissions.portal / patient / patient_pre_auth)
-  'reporting.portal.view': 'portal and patient actors',
-  'reporting.portal.download': 'portal and patient actors',
-  'reporting.portal.challenge': 'portal actor',
-  'engagement.self.read': 'patient actor',
-  'engagement.self.manage': 'patient actor',
-  'engagement.booking.create': 'patient actor',
-  'engagement.link.redeem': 'patient actor',
-  'engagement.payment.create': 'patient actor',
-  'engagement.enquiry.create': 'patient actor',
-  'engagement.auth.challenge': 'patient pre-auth stage only',
-  // device actors (fixed_actor_permissions.device)
-  'instruments.ingest.submit': 'device actor bridge_agent',
-  'instruments.ingest.heartbeat': 'device actor bridge_agent',
-  'instruments.ingest.host_query': 'device actor bridge_agent',
-  'instruments.ingest.config_read': 'device actor bridge_agent',
-  'instruments.ingest.enrol': 'device actor bridge_agent',
-  'engagement.queue.board_read': 'device actor queue_display',
-  // partner actors (fixed_actor_permissions.partner)
-  'partners.order.read': 'partner actor',
-  'partners.manifest.submit': 'partner actor',
-  'partners.report.read': 'partner actor',
-  'partners.statement.read': 'partner actor',
-  'partners.price_list.read': 'partner actor',
-  'partners.pickup.request': 'partner actor',
-  'partners.referrer.read': 'partner actor',
-  'partners.referrer.manage': 'partner_admin actor',
-  'partners.partner_user.manage': 'partner_admin actor',
-};
-const STAFF = ALL.filter((c) => !(c in EXCLUDED));
 
 describe('T0B-ADMINPERM-1 corp_admin holds every tenant staff permission (LD-310)', () => {
   it('the exclusion list is honest: every excluded code exists and no tenant staff role holds it in the registry', () => {
@@ -92,8 +48,14 @@ describe('T0B-ADMINPERM-1 corp_admin holds every tenant staff permission (LD-310
     expect(new Set(admin.permissions).size).toBe(admin.permissions.length);
     expect(admin.permissions).toEqual([...admin.permissions].sort());
     expect([...admin.permissions].sort()).toEqual([...STAFF].sort());
+    expect(admin.permissions.length).toBe(155); // registry codes minus the 31 excluded; recomputed by the tester (LD-310)
     expect(admin.mfa_required).toBe(true);
     expect(admin.base_default_role).toBe('tenant_admin');
+  });
+
+  it('done_when (3): the registry is untouched, so the pack is the only thing that grew (no code added, renamed or removed)', () => {
+    expect(ALL.length).toBe(new Set(ALL).size);
+    expect(ALL.length - Object.keys(EXCLUDED).length).toBe(155);
   });
 
   it('privileged codes are held only because mfa_required is yes (R3)', () => {

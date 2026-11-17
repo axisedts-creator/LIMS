@@ -273,7 +273,8 @@ div.lims-row-placeholder { min-height: 32px; border-bottom: 1px solid var(--lims
 /* T0D-DENSITY-1 (LD-310, founder 2026-11-17 04:49 / 05:03 NPT): compact density, the default of every staff screen (the shell sets
    data-density). The 35 percent applies to space and control size, not letters: controls 30, table rows 28, text 13 (captions 12).
    REPLACES the 13-M-SERIES s2.3 rule "dense fields stay at 40". 30 and the 24 px sm button meet WCAG 2.2 AA 2.5.8 (24 px). */
-[data-density='compact'], [data-density='compact'] .lims-root, [data-density='compact'] .lims-shell, [data-density='compact'] .lims-form { font-size: var(--lims-font-size-sm-size); line-height: var(--lims-font-size-base-line-height); }
+/* :not(html): the shell also sets data-density on <html> so portaled dialogs/popovers follow it (review T0D-DENSITY-1 item 1); 13 px on the root would shrink every rem, so <html> passes it on through body */
+[data-density='compact']:not(html), [data-density='compact'] body, [data-density='compact'] .lims-root, [data-density='compact'] .lims-shell, [data-density='compact'] .lims-form { font-size: var(--lims-font-size-sm-size); line-height: var(--lims-font-size-base-line-height); }
 [data-density='compact'] .lims-input { min-height: 30px; padding-inline: var(--lims-space-3); }
 [data-density='compact'] .lims-btn { min-height: 30px; padding-inline: var(--lims-space-3); }
 [data-density='compact'] .lims-btn-sm { min-height: 24px; padding-inline: var(--lims-space-2); }

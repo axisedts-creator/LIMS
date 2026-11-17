@@ -3,6 +3,6 @@
 - [CONV] storage helper lives in core/prefs, not core/shell: r04.source bans localStorage in shell client files (no tokens in the browser); density is a non-secret preference keyed by membership id only (precedent: lab ReceiveScreen). Reviewer: confirm this is acceptable.
 - [CONV] shell.css keeps the 76 px top bar and 46 px rail pills of 13 s3 (m2.source / r04.source pin them and match density-scoped selectors too; brief says shell.css "only for spacing"). Top bar controls and Find a screen still become 30 through the kit compact rules.
 - [CONV] labelPlacement="start" works in any density (explicit prop); default "above".
-- Rows at 1366x768: 20 (top bar 77, page padding 16+16, page header 48, thead 28, row 28). Would be 21 with a 48 px top bar, blocked by the pinned 76.
-- Tests: packages/ui density + m-series-kit 54/54; web density config 347 pass / 2 skipped (baseline skips) with --maxWorkers=1 (parallel runs hit worker start timeouts on this machine); web-style 1-4 pass.
-- Open: real-browser check of ring clipping and pixel heights; dialogs/popovers portaled outside the shell stay regular; webfix2 tests fail to resolve '@/' alias under the default config (pre-existing, not touched).
+- Rows at 1366x768: 20 (top bar 77, page padding 16+16, page header 48, thead 28, row 28). Would be 21 with a 48 px top bar, blocked by the pinned 76. Tests: packages/ui density + m-series-kit 54/54; web density config 350 pass (after review fix) / 2 skipped (baseline skips) with --maxWorkers=1 (parallel runs hit worker start timeouts on this machine); web-style 1-4 pass.
+- Open: real-browser check of ring clipping and pixel heights; webfix2 tests fail to resolve '@/' alias under the default config (pre-existing, not touched).
+- Review fix: useDensity mirrors data-density on <html> (portaled dialogs/popovers follow; removed on unmount). kit.css root rule now `:not(html)` + `body` so 1rem stays 16 px. Raw .ui-run logs removed.

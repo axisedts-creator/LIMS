@@ -13,6 +13,13 @@ const DENSITIES: readonly Density[] = ['compact', 'regular'];
 export function useDensity(memberId: string | undefined): [Density, (d: Density) => void] {
   const [density, setDensity] = useState<Density>('compact');
   useEffect(() => setDensity(readDensity(memberId)), [memberId]);
+  // portaled react-aria Modal/Popover render under document.body, outside the shell wrapper: mirror the density on <html>
+  // so they follow it; removed on unmount, so auth screens (no shell) stay regular (review T0D-DENSITY-1 item 1, LD-310)
+  useEffect(() => {
+    const el = document.documentElement;
+    el.dataset.density = density;
+    return () => { delete el.dataset.density; };
+  }, [density]);
   return [density, (d) => { setDensity(d); writeDensity(memberId, d); }];
 }
 

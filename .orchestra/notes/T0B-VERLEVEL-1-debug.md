@@ -1,0 +1,4 @@
+# T0B-VERLEVEL-1 debugger
+- Cause: not a small bug. Verify ran on tester commit f903f8df5 with no writer commit: no handlers/rules for verification levels exist, and the T0C migration 20261117150000 (lab.verification_policy, lab.result_signoff, signoff_required) is absent because lane/C0-0N (T0C-VERLEVEL-1, 3133e8b37) is not merged into lane/C0-0G (tester note says to merge it first).
+- Fix: none applied. Needs (1) merge lane/C0-0N into lane/C0-0G, (2) the writer implementation (policy, chain, handlers, events, contracts/events/lab.result.signed_off.v1.schema.json, perms). Too large for a minimal debugger change; tests not touched.
+- Log: 12 files failed, 184 tests failed (column "signoff_required" does not exist; relation "lab.verification_policy" does not exist; operation/handler count 58 mismatch).

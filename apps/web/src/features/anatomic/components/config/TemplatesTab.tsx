@@ -8,7 +8,6 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@lims/ui/components/Button';
 import { ConfirmDialog } from '@lims/ui/components/ConfirmDialog';
 import { DataTable } from '@lims/ui/components/DataTable';
-import { EmptyState } from '@lims/ui/components/EmptyState';
 import { useToast } from '@lims/ui/components/Toast';
 import { newSynopticVersionAction, publishSynopticAction, retireSynopticAction } from '../../server/actions.config';
 import type { TemplateSummary } from '../../server/config.types';
@@ -53,15 +52,13 @@ export function TemplatesTab({ templates }: { templates: readonly TemplateSummar
       <div className="lims-page-actions">
         <a className="lims-btn lims-btn-primary lims-btn-md" href="/anatomic/config/templates/new">New template</a>
       </div>
-      {templates.length === 0 ? (
-        <EmptyState title="No templates yet." body="Create a synoptic checklist, then publish it to use it in reports." />
-      ) : (
-        <DataTable
+      {/* T0D-EMPTYTBL-2 (LD-310, LD-336): the table is always drawn; the empty message and the create link sit in its body. */}
+      <DataTable
           caption="Synoptic templates"
           density="compact"
           rows={templates}
           getRowId={(t) => t.id}
-          emptyState={{ title: 'No templates yet.' }}
+          emptyState={{ title: 'No templates yet.', body: 'Create a synoptic checklist, then publish it to use it in reports.', action: { label: 'New template', href: '/anatomic/config/templates/new' } }}
           columns={[
             { id: 'key', header: 'Key', cell: (t) => <a className="lims-link lims-mono" href={`/anatomic/config/templates/${t.id}`}>{t.template_key}</a> },
             { id: 'version', header: 'Version', align: 'end', cell: (t) => String(t.version_no) },
@@ -81,7 +78,7 @@ export function TemplatesTab({ templates }: { templates: readonly TemplateSummar
             },
           ]}
         />
-      )}
+
       <ConfirmDialog
         title={confirm?.op === 'retire' ? 'Retire template' : 'Publish template'}
         confirmLabel={confirm?.op === 'retire' ? 'Retire' : 'Publish'}

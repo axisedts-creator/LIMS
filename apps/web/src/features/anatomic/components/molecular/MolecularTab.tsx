@@ -10,6 +10,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@lims/ui/components/Button';
+import { EmptyRow, PlaceholderRows } from '@lims/ui/components/DataTable';
 import { DatePicker, type IsoDate } from '@lims/ui/components/DatePicker';
 import { DecimalField } from '@lims/ui/components/DecimalField';
 import { EmptyState } from '@lims/ui/components/EmptyState';
@@ -100,7 +101,8 @@ const withSeen = (options: Option[], value: string | undefined, label: string | 
 
 interface Props { detail: CaseDetail; canWork: boolean; onFail: (f: Fail) => void; onMfa: () => void }
 
-function Grid({ children, readOnly }: { children: ReactNode; readOnly?: boolean }) {
+/** `empty` set = no rows: the message is the one body row and four placeholder rows follow (T0D-EMPTYTBL-2, LD-310, LD-336). */
+function Grid({ children, readOnly, empty }: { children: ReactNode; readOnly?: boolean; empty?: string | undefined }) {
   return (
     <div className="lims-molecular-scroll">
       <table role="grid" aria-label="Molecular results" {...(readOnly ? { 'aria-readonly': true } : {})} className="lims-table lims-table-compact">
@@ -110,7 +112,8 @@ function Grid({ children, readOnly }: { children: ReactNode; readOnly?: boolean 
             <th role="columnheader" scope="col"><VisuallyHidden>Actions</VisuallyHidden></th>
           </tr>
         </thead>
-        <tbody>{children}</tbody>
+        <tbody>{empty ? <EmptyRow colSpan={COLUMNS.length + 1}><EmptyState title={empty} /></EmptyRow> : children}</tbody>
+        {empty ? <PlaceholderRows colSpan={COLUMNS.length + 1} /> : null}
       </table>
     </div>
   );
@@ -119,9 +122,8 @@ const Cell = ({ children }: { children?: ReactNode }) => <td role="gridcell" cla
 const Abnormal = () => <Chip size="sm" tone="warning" label="Abnormal" />;
 
 function ReadOnly({ results }: { results: readonly MolecularResult[] }) {
-  if (results.length === 0) return <EmptyState title="No results recorded." />;
   return (
-    <Grid readOnly>
+    <Grid readOnly empty={results.length === 0 ? 'No results recorded.' : undefined}>
       {results.map((r) => (
         <tr key={r.id} role="row">
           <Cell>{r.assay_display}</Cell>
@@ -283,7 +285,7 @@ function Editor({ detail, onFail, onMfa }: Omit<Props, 'canWork'>) {
   return (
     // data-testid is how the case shell's Alt+S finds the form to submit.
     <form data-testid="molecular-form" noValidate onSubmit={(e) => { e.preventDefault(); void save(); }}>
-      <Grid>
+      <Grid empty={rows.length === 0 ? EMPTY : undefined}>
         {rows.map((r, i) => (
           <EditRow
             key={r.key} n={i + 1} row={r} assays={assays} batches={batches} errors={errors[i]}
@@ -291,7 +293,6 @@ function Editor({ detail, onFail, onMfa }: Omit<Props, 'canWork'>) {
           />
         ))}
       </Grid>
-      {rows.length === 0 ? <EmptyState title={EMPTY} /> : null}
       <div className="lims-molecular-actions">
         <Button iconStart="plus" isDisabled={rows.length >= MAX_ROWS} onPress={() => { setRows((rs) => [...rs, { key: newKey(), method: '', kitName: '', kitLot: '', comment: '' }]); setDirty(true); }}>Add row</Button>
         <Button type="submit" isLoading={pending} isDisabled={!dirty} shortcut="Alt+S">Save</Button>

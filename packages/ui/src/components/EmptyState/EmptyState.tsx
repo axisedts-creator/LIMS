@@ -4,7 +4,8 @@ import { Icon, type IconName } from '../Icon/Icon';
 export interface EmptyStateProps {
   title: string;
   body?: string;
-  action?: { label: string; onPress: () => void };
+  /** A button (`onPress`) or, for a create action that is a page link, a link styled as the primary button (`href`, T0D-EMPTYTBL-2 / LD-336). */
+  action?: { label: string; onPress: () => void } | { label: string; href: string };
   icon?: IconName;
   'data-testid'?: string;
 }
@@ -15,7 +16,9 @@ export function EmptyState({ title, body, action, icon = 'empty', ...rest }: Emp
       <Icon name={icon} size={32} />
       <p className="lims-state-title">{title}</p>
       {body ? <p className="lims-state-body">{body}</p> : null}
-      {action ? (
+      {action && 'href' in action ? (
+        <a className="lims-btn lims-btn-primary lims-btn-md" href={action.href}>{action.label}</a>
+      ) : action ? (
         <Button variant="primary" onPress={action.onPress}>
           {action.label}
         </Button>

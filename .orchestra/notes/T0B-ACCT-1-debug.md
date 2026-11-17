@@ -6,3 +6,7 @@
 # round 2 (verify: 28 fail / 2008 pass, 1 failed file)
 - All 28 fails = probes/crossTenant.handlers.test.ts on the 12 ACCT-2 ops (503 stubs, outside ACCT-1 scope). counter.unit fix from round 1 holds.
 - No implementation change possible within scope; dispute stands in T0B-ACCT-1-dispute-crosstenant.md (lead: exempt ACCT-2 ops until T0B-ACCT-2, or exclude file from ACCT-1 verify).
+
+# round 3 (verify: 28 fail / 2008 pass, same 1 file)
+- Same 28 fails, all probes/crossTenant.handlers.test.ts: 12 ACCT-2 ops (503 stubs, 23 fails) + 5 frontdesk REGAPI-2 ops (registry count 29 vs 47, createCustomFieldDefinition TypeError, update* expect validation_failed got not_found). None in ACCT-1 code; accounts tests all green.
+- No implementation change in scope; dispute T0B-ACCT-1-dispute-crosstenant.md stands (add: frontdesk 5 belong to T0B-REGAPI-2/probe update).

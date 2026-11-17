@@ -216,6 +216,9 @@ describe('favourite tests', () => {
     reg2.favourites = [ITEM.CBC, ITEM.TSH];
     const u = user();
     await form();
+    // ruling T0D-REGSCREEN-2 round 2: quoteRegistration body needs a patient (frontdesk.yaml RegistrationDraft.required)
+    await u.keyboard('{F2}9841000001');
+    await u.click(await screen.findByRole('option', { name: /Synthetic Patient One/ }, { timeout: T }));
     await u.click(screen.getByRole('tab', { name: /favourites/i }));
     expect(await screen.findByText(/Thyroid stimulating hormone/, undefined, { timeout: T })).toBeTruthy();
     await u.click(await screen.findByText(/Complete blood count/, undefined, { timeout: T }));

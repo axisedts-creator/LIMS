@@ -73,6 +73,10 @@ export interface BillingCommandPortV1 {
    *  and required = true. */
   raiseCreditNoteRequirement(ctx: RequestContext, input: { orderId: Uuidv7; orderItemIds?: readonly Uuidv7[];
     cause: 'order_cancelled' | 'item_removed'; reasonCode: Code }): Promise<{ required: boolean; taskIds: readonly Uuidv7[] }>;
+  /** LD-323 (a): read-only preview of the next INV number of the current BS fiscal year (last_no + 1 of billing.fiscal_counters, pattern applied;
+   *  no row yet = first number of the year). No write, no nextval, no lock: reserves nothing, two callers may see the same number;
+   *  the real number is still allocated by issueOrderInvoice. @throws billing.numbering_pattern_invalid, billing.fiscal_year_closed */
+  previewInvoiceNo(ctx: RequestContext, input: Record<string, never>): Promise<{ invoiceNo: string }>;
   getOrderBillingSummary(ctx: RequestContext, input: { orderId: Uuidv7 }): Promise<{
     invoiceIds: readonly Uuidv7[]; hasIssuedInvoice: boolean; creditChargeIds: readonly Uuidv7[]; balance: OrderBalance }>;
 }

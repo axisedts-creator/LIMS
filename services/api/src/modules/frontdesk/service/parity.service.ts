@@ -358,15 +358,12 @@ export function previewNumbers(hctx: unknown, query: unknown): Promise<Result> {
     // the same counter row the save takes under its row lock (counters.repo nextCounterValue), READ here: last_value + 1, nothing consumed
     const seq = (await readCounter(c.tx, c.tenantId, 'registration_no', branchId)) + 1;
     const regNo = formatNumber(pattern, { seq, year: Number(today.slice(0, 4)), ...(branch === undefined ? {} : { branch }) });
-    // receipt: billing owns its counter (08 R25, frontdesk reads no billing table). A port that offers the read-only preview answers it; otherwise the pattern with seq 1.
-    // ponytail: the fallback is a shape, not the real next number; BillingCommandPort has no preview method in the contract (CR .orchestra/cr/T0B-REGAPI-2.md).
-    const billing = (c.ports as Obj)['BillingCommandPort'];
+    // bill number (LD-323 b): registration payments use issueReceiptNo=false, so the invoice IS the receipt (PRD D-RECEIPT): the number shown is the next INV,
+    // read through BillingCommandPort.previewInvoiceNo (08 R25: frontdesk reads no billing table). Assigned when saved; two users may see the same number.
+    // LD-323 (c): no fallback number ever; if the port call fails the field is empty (the UI shows only the "assigned when saved" label).
     const portCtx = Object.assign(Object.create(c as object), { now: () => c.now().toISOString() });
-    let receiptNo: string | undefined = typeof billing?.previewReceiptNo === 'function' ? (await billing.previewReceiptNo(portCtx, {}))?.receiptNo : undefined;
-    if (typeof receiptNo !== 'string') {
-      const rp = tenant.numbering?.receiptNoPattern;
-      receiptNo = typeof rp === 'string' ? formatNumber(rp, { seq: 1, fy: fiscalYearOf(c.now(), tz), year: Number(today.slice(0, 4)) }) : `RC-${fiscalYearOf(c.now(), tz)}-000001`;
-    }
+    let receiptNo = '';
+    try { receiptNo = String((await (c.ports as Obj)['BillingCommandPort'].previewInvoiceNo(portCtx, {})).invoiceNo); } catch { /* LD-323 (c): empty, never a guessed number */ }
     return { status: 200, body: { centre_id: centreId, next_registration_no: regNo, next_receipt_no: receiptNo, is_preview: true } };
   });
 }

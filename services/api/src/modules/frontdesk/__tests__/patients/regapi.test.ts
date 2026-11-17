@@ -19,9 +19,9 @@ import { PERM, T, TENANT_A, TENANT_B, accessRows, call, consents, fails, newPati
 const create = (body: object, o: Parameters<typeof call>[2] = {}) => call('createPatient', req({ body, headers: { 'idempotency-key': `k-${uid()}` } }), o);
 const createFails = (body: object, o: Parameters<typeof call>[2] = {}) => fails('createPatient', req({ body, headers: { 'idempotency-key': `k-${uid()}` } }), o);
 const get = (id: string, o: Parameters<typeof call>[2] = {}) => call('getPatient', req({ params: { patient_id: id } }), o);
-const patch = (id: string, body: object, ifMatch: string | undefined = '"1"', o: Parameters<typeof call>[2] = {}) =>
-  call('updatePatient', req({ params: { patient_id: id }, body, headers: ifMatch === undefined ? {} : { 'if-match': ifMatch } }), o);
-const patchFails = (id: string, body: object, ifMatch: string | undefined = '"1"', o: Parameters<typeof call>[2] = {}) =>
+const patch = (id: string, body: object, ifMatch: string | null = '"1"', o: Parameters<typeof call>[2] = {}) =>
+  call('updatePatient', req({ params: { patient_id: id }, body, headers: ifMatch === null ? {} : { 'if-match': ifMatch } }), o);
+const patchFails = (id: string, body: object, ifMatch: string | null = '"1"', o: Parameters<typeof call>[2] = {}) =>
   patch(id, body, ifMatch, o).then(() => { throw new Error('expected a rejection'); }, (e) => e);
 const search = (query: string, o: Parameters<typeof call>[2] = {}) => call('searchPatients', req({ body: { query, mode: 'name' } }), o);
 beforeAll(async () => { await seedSettings(); }, T);
@@ -211,7 +211,7 @@ describe('(1) validation: 400 common.validation_failed with the field path, noth
   });
   it('If-Match rules are unchanged by the new fields: missing -> 428, stale -> 409 common.version_conflict', { timeout: T }, async () => {
     const p = await seedPatient('a');
-    expect((await patchFails(p.id, { title: 'dr' }, undefined)).code).toBe('common.precondition_required');
+    expect((await patchFails(p.id, { title: 'dr' }, null)).code).toBe('common.precondition_required');
     const e = await patchFails(p.id, { title: 'dr' }, '"7"');
     expect(e.code).toBe('common.version_conflict');
     expect(e.statusCode).toBe(409);
@@ -322,7 +322,7 @@ describe('(2) government id number: masked everywhere but getPatient, never logg
     const no = govNo(); const no2 = govNo();
     const c = await create(newPatient({ government_id_type: 'citizenship', government_id_number: no, address_province: 'SynProvince', address_district: 'SynDistrict', address_municipality: 'SynMunicipality',
       address_ward: '77', address_tole: 'SynTole', address_postal_code: 'SYN-PC-9', title: 'mr' }));
-    await patch(c.body.id, { government_id_number: no2, address_tole: 'SynTole2' });
+    await patch(c.body.id, { government_id_number: no2, address_tole: 'SynTole2', title: 'dr' }); // title is not on the D-27a exclusion list, so the trigger writes a row
     const log = await ownerRows('audit.audit_log', "tenant_id = $1 AND schema_name = 'frontdesk' AND table_name = 'patients' AND row_id = $2", [TENANT_A, c.body.id]);
     expect(log.length).toBeGreaterThanOrEqual(2);
     const text = JSON.stringify(log);
@@ -436,10 +436,10 @@ describe('(3, 7) existing flows, ids and the duplicate check keep working; a pat
   });
   it('searchPatients summaries are unchanged for patients with and without new fields', { timeout: T }, async () => {
     const t = tag();
-    const a = await seedPatient('a', { full_name: `Syn Plainsearch ${t}`, name_search: `syn plainsearch ${t}` });
+    const a = await create(newPatient({ full_name: `Syn Plainsearch ${t}` })); // via createPatient so both rows share the same null keys (seedPatient sets last_visit_at)
     const b = await create(newPatient({ full_name: `Syn Richsearch ${t}`, ...(await allFields()) }));
     const sa = await search(`plainsearch ${t}`); const sb = await search(`richsearch ${t}`);
-    expect(sa.body.data.map((x: any) => x.id)).toEqual([a.id]);
+    expect(sa.body.data.map((x: any) => x.id)).toEqual([a.body.id]);
     expect(sb.body.data.map((x: any) => x.id)).toEqual([b.body.id]);
     expect(Object.keys(sa.body.data[0]).sort()).toEqual(Object.keys(sb.body.data[0]).sort());
   });

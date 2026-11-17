@@ -21,10 +21,8 @@ export const ALL: Op[] = Object.entries<any>(SPEC.paths).flatMap(([path, item]) 
 export const PARTNER_OPS = ALL.filter((o) => !o.staff);
 export const STAFF_OPS = ALL.filter((o) => o.staff);
 /** Operations that still have no owning task in 06-IMPLEMENTATION-PLAN (settings SA11/SA12): stubs that must fail closed. Move out of this list when implemented. */
-// T0C-MSGDESK-1 ruling: the 10 ticket ids are LD-325 pending stubs until T0B-MSGDESK-1 merges; that task removes them from this list.
-export const UNOWNED_STUBS = ['getPartnerSettings', 'updatePartnerSettings',
-  'createPartnerTicket', 'listPartnerTickets', 'getPartnerTicket', 'replyPartnerTicket', 'closePartnerTicket', 'reopenPartnerTicket',
-  'listMyPartnerTickets', 'createMyPartnerTicket', 'getMyPartnerTicket', 'replyMyPartnerTicket'];
+// T0B-MSGDESK-1 (T0C-MSGDESK-1 ruling item 4): the 10 ticket ids have real handlers now, so they are removed from this list and the ST1-ST4 / not-found probes cover them.
+export const UNOWNED_STUBS = ['getPartnerSettings', 'updatePartnerSettings'];
 
 const UUID = '01940e00-0000-7000-8000-c13220000001';
 /** a path-param-complete request whose ids exist nowhere */

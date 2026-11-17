@@ -51,7 +51,7 @@ export function BatchesScreen({ batches, assays, canWork, status, assayCode, nex
     <>
       <PageHeader
         title="Molecular batches"
-        helpKey="anatomic.batches"
+        helpKey="anatomic.batches"
         actions={canWork ? <Button variant="primary" iconStart="plus" onPress={() => setCreating(true)}>New batch</Button> : null}
       />
       <Inline align="end">

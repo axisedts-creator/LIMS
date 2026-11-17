@@ -105,7 +105,7 @@ export function InstrumentDetail({ instrument, agents, drivers, permissions }: {
     <section aria-label={`Instrument ${i.instrument_code}`}>
       <PageHeader
         title={`${i.instrument_code} — ${i.display_name}`}
-        helpKey="instruments.instruments"
+        helpKey="instruments.instruments"
         status={<InstrumentStatePill state={i.state} />}
         actions={
           <>

@@ -26,7 +26,7 @@ export function DeliveryDetail({ delivery, permissions }: { delivery: Delivery; 
   return (
     <section aria-label="Delivery">
       <PageHeader
-        title="Delivery" helpKey="reporting.delivery" status={<Chip status={delivery.status} />}
+        title="Delivery" helpKey="reporting.delivery" status={<Chip status={delivery.status} />}
         actions={canResend ? <Button onPress={() => void resend()}>Resend</Button> : null}
       />
       <p><a className="lims-link" href="/reporting/deliveries">Back to delivery log</a></p>

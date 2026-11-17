@@ -175,7 +175,7 @@ export function PartnerDetail({ partner, users, manifests, referrers, permission
     <section aria-label="Partner">
       <PageHeader
         title={partner.name}
-        helpKey="partners.detail"
+        helpKey="partners.detail"
         status={<Chip code={partner.status} />}
         actions={canManage ? (
           <>

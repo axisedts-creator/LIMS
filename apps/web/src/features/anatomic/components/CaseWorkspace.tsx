@@ -244,7 +244,7 @@ export function CaseWorkspace({ detail, permissions, templates = [] }: { detail:
     <>
       <PageHeader
         title={accession ?? 'Not accessioned'}
-        helpKey="anatomic.case"
+        helpKey="anatomic.case"
         status={<StatusLabel status={detail.status} />}
         actions={
           <>

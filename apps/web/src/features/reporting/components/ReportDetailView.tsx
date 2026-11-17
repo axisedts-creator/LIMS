@@ -146,7 +146,7 @@ export function ReportDetailView({ report, permissions }: ReportDetailViewProps)
     <section aria-label="Report">
       <PageHeader
         title={`Report · ${report.registration_no}`}
-        helpKey="reporting.report"
+        helpKey="reporting.report"
         status={<Chip status={report.display_status} />}
         actions={
           <>

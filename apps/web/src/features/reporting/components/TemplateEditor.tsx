@@ -89,7 +89,7 @@ export function TemplateEditor({ template, permissions }: { template: TemplateDe
   return (
     <section aria-label="Report template">
       <PageHeader
-        title={template.name} helpKey="reporting.template" status={<Chip status={template.is_active ? 'active' : 'cancelled'} label={template.is_active ? 'Active' : 'Inactive'} />}
+        title={template.name} helpKey="reporting.template" status={<Chip status={template.is_active ? 'active' : 'cancelled'} label={template.is_active ? 'Active' : 'Inactive'} />}
       />
       {error ? <p role="alert" className="lims-error">{error}</p> : null}
       {preview ? (

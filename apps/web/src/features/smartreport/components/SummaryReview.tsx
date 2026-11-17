@@ -115,7 +115,7 @@ export function SummaryReview({ vm }: { vm: SummaryVM }) {
   return (
     <div>
       <PageHeader
-        title="Smart summary" helpKey="smartreport.summary"
+        title="Smart summary" helpKey="smartreport.summary"
         status={<StatusChip kind="generic" status={status} label={statusLabel} tone={statusTone} />}
         actions={canAct ? (
           <>

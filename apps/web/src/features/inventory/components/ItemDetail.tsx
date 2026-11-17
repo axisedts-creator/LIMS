@@ -79,7 +79,7 @@ export function ItemDetail({ item, canManage, uom, tax }: { item: Item; canManag
     <section aria-label="Item">
       <PageHeader
         title={item.name}
-        helpKey="inventory.item"
+        helpKey="inventory.item"
         status={<ActiveChip active={item.is_active} />}
         actions={
           canManage ? (

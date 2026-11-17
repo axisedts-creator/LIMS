@@ -102,7 +102,7 @@ export function NarrativeEditor({ narrative, templates, permissions, signedByNam
 
   const header = (
     <PageHeader
-      title={narrative.test_name} helpKey="reporting.narrative" status={<Chip status={narrative.status} />}
+      title={narrative.test_name} helpKey="reporting.narrative" status={<Chip status={narrative.status} />}
     />
   );
 

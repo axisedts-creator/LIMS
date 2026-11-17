@@ -138,8 +138,9 @@ describe("homecollection.yaml (T0C-10.C17)", () => {
   const text = existsSync(FILE) ? readFileSync(FILE, "utf8") : "";
   const doc: any = text ? parse(text) : { paths: {}, components: {} };
   const ops: Record<string, { method: string; path: string; op: any }> = {};
+  // T0C-SALES-1 (LD-321): updateCollectorFlags is added after the TRD transcription and is pinned by sales1-openapi.test.ts; this file keeps testing exactly the 26 TRD operations.
   for (const [path, item] of Object.entries<any>(doc.paths ?? {}))
-    for (const m of METHODS) if (item?.[m]) ops[item[m].operationId] = { method: m.toUpperCase(), path, op: item[m] };
+    for (const m of METHODS) if (item?.[m] && item[m].operationId !== "updateCollectorFlags") ops[item[m].operationId] = { method: m.toUpperCase(), path, op: item[m] };
 
   const deref = (n: any): any => {
     if (!n?.$ref) return n;

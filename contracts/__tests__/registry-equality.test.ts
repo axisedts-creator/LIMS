@@ -15,6 +15,8 @@ type Entry = Record<string, unknown>;
 // T0C-ACCT-1 (LD-313 c): the only permission codes allowed beyond IC §11. A further code needs a new lead decision and an edit of this list.
 const LD313_ACCOUNTING_CODES = ["billing.account.manage", "billing.account.read", "billing.account_entry.create", "billing.account_entry.reverse", "billing.cash_transfer.decide",
   "billing.cash_transfer.manage", "billing.expense.manage"].sort();
+// T0C-SALES-1 (LD-321): the two sales hierarchy codes (the other LD-321 codes arrive with their own contract tasks and extend this list then).
+const LD321_SALES_CODES = ["partners.sales.manage", "partners.sales.read"];
 
 /** Strict parse: duplicate map keys are errors (IC §7 says "CI parses the file with a YAML parser"). */
 const strictParse = (src: string, what: string): any => {
@@ -179,7 +181,7 @@ describe("AC-0C-1.3 permissions.yaml == IC §11", () => {
     const icCodes = ic.permissions.map((p: Entry) => p.code);
     const extra = file.permissions.filter((p: Entry) => !icCodes.includes(p.code));
     expect(diffByKey(ic.permissions, file.permissions, "code").filter((d) => !d.startsWith("extra "))).toEqual([]);
-    expect(extra.map((p: Entry) => p.code).sort()).toEqual(LD313_ACCOUNTING_CODES);
+    expect(extra.map((p: Entry) => p.code).sort()).toEqual([...LD313_ACCOUNTING_CODES, ...LD321_SALES_CODES].sort());
     expect(file.permissions.filter((p: Entry) => icCodes.includes(p.code)).map((p: Entry) => p.code)).toEqual(icCodes);
     expect({ ...file, permissions: file.permissions.filter((p: Entry) => icCodes.includes(p.code)) }).toEqual(ic);
   });

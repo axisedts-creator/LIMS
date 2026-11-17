@@ -55,7 +55,7 @@ import { WorklistPage } from '@/features/lab/components/worklists/WorklistPage';
 import { PendingPage } from '@/features/lab/components/pending/PendingPage';
 import { TrackingScreen } from '@/features/anatomic/components/tracking/TrackingScreen';
 
-const MANAGE = ['catalog.test.read', 'catalog.test.manage', 'catalog.price_list.read', 'catalog.price_list.manage', 'catalog.doctor.read', 'catalog.doctor.manage', 'catalog.doctor.verify'];
+const MANAGE = ['catalog.test.read', 'catalog.test.manage', 'catalog.price_list.read', 'catalog.price_list.manage', 'catalog.referrer.read', 'catalog.referrer.manage'];
 const FOCUSABLE = 'a[href], button, input, select, textarea, [tabindex], [contenteditable]';
 const wrap = (el: ReactElement) => render(<ToastProvider>{el}</ToastProvider>);
 

@@ -260,6 +260,7 @@ const en: Record<string, string> = {
   'billing.daily_summary.reason.no_create': 'You need the billing.account_entry.create permission to record a deposit.',
   'billing.daily_summary.reason.no_particular': 'Add an active account particular with code BANK_DEPOSIT first (Account masters).',
   'billing.daily_summary.reason.no_centre': 'Pick a centre and a day first.',
+  'billing.daily_summary.reason.search_first': 'Press Search to load this centre and day before saving a deposit.',
   'billing.accounts.col.laboratory': 'Laboratory',
   'billing.accounts.col.client': 'Client',
   'billing.accounts.col.franchise': 'Franchise',

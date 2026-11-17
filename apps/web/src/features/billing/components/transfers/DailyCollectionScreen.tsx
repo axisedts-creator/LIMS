@@ -43,7 +43,9 @@ export function DailyCollectionScreen({ summary, centres, centreId, day, particu
   const inFlight = useRef(false);
   const key = useRef(newKey());
   const bank = particulars.find((p) => p.code === DEPOSIT_CODE && p.is_active);
-  const blocked = !hasPerm(permissions, CREATE) ? D('reason.no_create') : !bank ? D('reason.no_particular') : !centreId || !ISO_DATE.test(day) ? D('reason.no_centre') : undefined;
+  const blocked = !hasPerm(permissions, CREATE) ? D('reason.no_create') : !bank ? D('reason.no_particular') : !centreId || !ISO_DATE.test(day) ? D('reason.no_centre')
+    // Review fix: the deposit posts to the loaded summary (props), so unsearched Lab/Day edits must block Save (no entry on the wrong pocket).
+    : centre !== centreId || date !== day ? D('reason.search_first') : undefined;
 
   const search = () => {
     const p = new URLSearchParams({ ...(centre ? { centre_id: centre } : {}), ...(ISO_DATE.test(date) ? { day: date } : {}) });

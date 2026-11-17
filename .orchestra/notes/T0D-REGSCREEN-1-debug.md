@@ -4,3 +4,5 @@ Fix: none in C0-0D implementation. Needs `quick_add: bool` added to DOCTOR.creat
 Impl change made: none (would be wrong place / ownership breach).
 Round 2 (verify 13:00): same single red test (quickadd.test.tsx:158), 65/66. Re-checked specs.ts:36: DOCTOR.create still lacks `quick_add`; QuickAdd.tsx sends it. No impl fix in C0-0D (C3-owned file; arbiter ruling dispute 2 keeps test red). Needs C3 to add `quick_add: bool`.
 Round 3 (inbox re-read): same single red test (quickadd.test.tsx:158). specs.ts:36 DOCTOR.create still has no `quick_add`; specs.ts:4 comment calls it server-owned. C3-owned file, outside task files; arbiter ruling dispute 2 keeps test red. No impl change, no test edit. Needs C3 CR/fix.
+Round 4 (LD-329): specs.ts DOCTOR.create += `quick_add: bool`; line-4 comment corrected. regscreen1 config 66/66 green.
+REPORT (not edited, per LD-329): catalog web-t33.server.test.ts:166-168 pins DOCTOR.create keys (sends quick_add:true, expects ['display_name','phone_e164']); now red (received extra "quick_add"). Needs C3 test update (expect quick_add kept) or arbiter ruling. Rest of web-t33 config 102/103 green.

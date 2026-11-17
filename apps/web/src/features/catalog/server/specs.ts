@@ -1,7 +1,8 @@
 import 'server-only';
 // Field specs for SCR-09…12 (04-UI-UX §4; contracts/openapi/catalog.yaml). Create-only fields (`code`, `panel_kind`, `party_code`,
 // `doctor_code`) are absent from the PATCH specs so they can never be sent; server-owned fields (is_verified, source, merged_into_id,
-// tenant_id, version, quick_add) are in no spec at all.
+// tenant_id, version) are in no spec at all. `quick_add` is the one exception: DoctorCreate in
+// contracts/openapi/catalog.yaml has it (optional boolean, LD-329), so only DOCTOR.create carries it.
 import { COMMENT_CODE_RE, EMAIL_RE, PANEL_CODE_RE, PARTY_CODE_RE, PHONE_RE } from './types';
 import { bool, exactCode, int, list, oneOf, pick, str, upperCode, uuid, bad, type V } from './shared';
 
@@ -33,7 +34,7 @@ export const COMMENT_CODE = {
 
 const docFields = { qualification: str(0, 120), registration_council: str(0, 20), registration_no: str(0, 30), phone_e164: phone, email, notes: str(0, 500) };
 export const DOCTOR = {
-  create: { doctor_code: upperCode(PARTY_CODE_RE), display_name: str(1, 120), ...docFields },
+  create: { doctor_code: upperCode(PARTY_CODE_RE), display_name: str(1, 120), ...docFields, quick_add: bool },
   required: ['display_name'],
   patch: { display_name: str(1, 120), ...docFields, is_active: bool, unset: list(6, oneOf('qualification', 'registration_council', 'registration_no', 'phone_e164', 'email', 'notes')) },
 } as const;

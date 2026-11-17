@@ -90,9 +90,9 @@ describe('C16-T01 permissions list', () => {
 });
 
 describe('C16-T01 phase-stub replacement (08 A17 P-20): the PR that creates modules/engagement removes EngagementPort from phase-stubs.ts', () => {
-  it('PHASE_STUBS no longer lists EngagementPort and still lists QualityPort', () => {
+  it('PHASE_STUBS no longer lists EngagementPort (and QualityPort is gone too: modules/quality exists, AC-0D-6.3)', () => {
     expect(PHASE_STUBS).not.toContain('EngagementPort');
-    expect([...PHASE_STUBS]).toEqual(['QualityPort']);
+    expect([...PHASE_STUBS]).toEqual([]);
   });
   it('AC-0D-6.3 gate: engagement/index.ts exists, so the port WOULD be stale if still listed; with the committed list nothing is stale', () => {
     expect(findStalePhaseStubs({ phaseStubs: ['EngagementPort'] })).toEqual([{ port: 'EngagementPort', owner: 'engagement' }]);

@@ -22,10 +22,10 @@ describe('T0C-MSGDESK-1: partners manifest covers the new operations (handler or
     const uncovered = specIds.filter((id) => !handlerIds.includes(id) && !pending.includes(id));
     expect(uncovered, `no handler and not pending: ${uncovered.join(', ')}`).toEqual([]);
   });
-  it('every pending id is a spec operationId and appears once; only the new operations may be pending', () => {
+  it('every pending id is a spec operationId and appears once; none of the new operations is still pending', () => {
     expect(pending.filter((id) => !specIds.includes(id))).toEqual([]);
     expect(new Set(pending).size).toBe(pending.length);
-    expect(pending.filter((id) => !NEW_OPS.includes(id)), 'only the T0C-MSGDESK-1 operations may be pending in partners').toEqual([]);
+    expect(pending.filter((id) => NEW_OPS.includes(id)), 'T0B-MSGDESK-1 handles all 10 ticket operations; none may stay pending').toEqual([]);
   });
   it('a handler key that is not a spec operation does not exist (nothing was invented)', () => {
     expect(handlerIds.filter((id) => !specIds.includes(id))).toEqual([]);

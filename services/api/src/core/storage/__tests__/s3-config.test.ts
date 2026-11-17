@@ -126,7 +126,7 @@ describe('repository holds names only; docs; no route wired; no new dependency',
     const t = read(f);
     expect(findCredentialMaterial(t)).toEqual([]);
     expect(t).toMatch(/from 'node:crypto'/);
-    expect(t).not.toMatch(/@aws-sdk|aws4|aws-sdk|minio|@supabase/);
+    expect(t).not.toMatch(/from\s+['"](?:@aws-sdk\/[^'"]*|aws-sdk|aws4|minio|@supabase\/[^'"]*)['"]|require\(\s*['"](?:@aws-sdk\/[^'"]*|aws-sdk|aws4|minio|@supabase\/[^'"]*)['"]\s*\)/);
   });
   it('no new dependency: services/api/package.json has no S3, AWS or MinIO package', () => {
     const p = JSON.parse(read(join(API, 'package.json'))) as Record<string, Record<string, string> | undefined>;

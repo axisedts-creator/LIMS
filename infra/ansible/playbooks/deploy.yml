@@ -199,6 +199,7 @@
 
     - name: Agent release - apply the g_agent_releases seed as lims_migrator (one-shot migrate container)
       changed_when: true
+      no_log: true
       environment: "{{ deploy_compose_env | combine({'PGPASSWORD': deploy_migrator_secret.stdout}) }}"
       ansible.builtin.shell:
         cmd: >-

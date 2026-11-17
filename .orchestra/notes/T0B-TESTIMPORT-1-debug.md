@@ -6,3 +6,7 @@
 ## debugger round 2
 - Cause unchanged: still no writer output (no catalog/import code, no impl note, no docs/ops/CATALOG-IMPORT.md) and lane/C0-0C contract ops not merged. Failures are missing handlers, not a defect.
 - Fix: none applied (whole feature, not a smallest change). Needs merge of lane/C0-0C, then the WRITER step, then re-verify.
+
+## debugger round 3
+- Cause unchanged: no writer output (no catalog/import code, no impl note, no docs/ops/CATALOG-IMPORT.md); lane/C0-0C (T0C-TESTIMPORT-1 contract ops) still not merged into lane/C0-0G. Failures = `H[operationId] is not a function` (missing handlers), not a defect.
+- Fix: none applied (whole feature, not a smallest change; tests must not be touched). Needs merge of lane/C0-0C, then the WRITER step, then re-verify.

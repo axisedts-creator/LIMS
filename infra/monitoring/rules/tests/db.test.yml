@@ -24,6 +24,9 @@ tests:
         eval_time: 10m
         exp_alerts:
           - exp_labels: {severity: page, team: ops, job: postgres_exporter, host: data-1}
+            exp_annotations:
+              summary: "PostgreSQL on data-1 is not answering."
+              runbook_url: "infra/runbooks/db.md#postgresdown"
 
   - interval: 1m
     name: PostgresDown page on lean prod-1
@@ -35,6 +38,9 @@ tests:
         eval_time: 10m
         exp_alerts:
           - exp_labels: {severity: page, team: ops, job: postgres_exporter, host: prod-1}
+            exp_annotations:
+              summary: "PostgreSQL on prod-1 is not answering."
+              runbook_url: "infra/runbooks/db.md#postgresdown"
 
   - interval: 1m
     name: PostgresDown quiet while pg_up is 1
@@ -58,6 +64,9 @@ tests:
         eval_time: 30m
         exp_alerts:
           - exp_labels: {severity: warn, team: ops}
+            exp_annotations:
+              summary: "PostgreSQL connections above 80 % of max_connections."
+              runbook_url: "infra/runbooks/db.md#postgresconnectionshigh"
 
   - interval: 1m
     name: PostgresConnectionsHigh quiet at exactly 80 %
@@ -81,6 +90,9 @@ tests:
         eval_time: 7m
         exp_alerts:
           - exp_labels: {severity: warn, team: ops}
+            exp_annotations:
+              summary: "PostgreSQL reported deadlocks in the last 5 min."
+              runbook_url: "infra/runbooks/db.md#postgresdeadlocks"
 
   - interval: 1m
     name: PostgresDeadlocks quiet when the counter is flat
@@ -102,6 +114,9 @@ tests:
         eval_time: 30m
         exp_alerts:
           - exp_labels: {severity: warn, team: ops}
+            exp_annotations:
+              summary: "A transaction has been open for more than 5 min."
+              runbook_url: "infra/runbooks/db.md#longrunningtx"
 
   - interval: 1m
     name: LongRunningTx quiet at exactly 300 s
@@ -126,6 +141,9 @@ tests:
         eval_time: 2m
         exp_alerts:
           - exp_labels: {severity: warn, team: ops}
+            exp_annotations:
+              summary: "Clients are waiting for a PgBouncer server connection."
+              runbook_url: "infra/runbooks/db.md#pgbouncerwaiting"
 
   - interval: 1m
     name: PgBouncerWaiting quiet at zero waiting
@@ -147,6 +165,9 @@ tests:
         eval_time: 10m
         exp_alerts:
           - exp_labels: {severity: page, team: ops}
+            exp_annotations:
+              summary: "A replication slot retains more than 20 GB of WAL."
+              runbook_url: "infra/runbooks/db.md#replicationslotwalretained"
 
   - interval: 1m
     name: ReplicationSlotWalRetained quiet at 15 GB
@@ -171,6 +192,9 @@ tests:
         eval_time: 5m
         exp_alerts:
           - exp_labels: {severity: page, team: ops}
+            exp_annotations:
+              summary: "PostgreSQL has an invalid index (pg_index.indisvalid = false)."
+              runbook_url: "infra/runbooks/db.md#postgresinvalidindex"
 
   - interval: 1m
     name: PostgresInvalidIndex quiet with no invalid index

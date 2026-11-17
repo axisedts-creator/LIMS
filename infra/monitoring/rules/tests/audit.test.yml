@@ -20,6 +20,9 @@ tests:
         eval_time: 10m
         exp_alerts:
           - exp_labels: {severity: page, team: ops}
+            exp_annotations:
+              summary: "Audit shipping lags more than 5 min."
+              runbook_url: "infra/runbooks/audit.md#auditshippinglagging"
 
   - interval: 1m
     name: AuditShippingLagging quiet at 300 s
@@ -43,6 +46,9 @@ tests:
         eval_time: 10m
         exp_alerts:
           - exp_labels: {severity: page, team: ops}
+            exp_annotations:
+              summary: "The audit shipping subscription is disabled."
+              runbook_url: "infra/runbooks/audit.md#auditshippingdown"
       - alertname: AuditShippingDisabled
         eval_time: 30m
         exp_alerts: []
@@ -77,6 +83,9 @@ tests:
         eval_time: 30m
         exp_alerts:
           - exp_labels: {severity: warn, team: ops}
+            exp_annotations:
+              summary: "Audit shipping is not configured (audit store reports down)."
+              runbook_url: "infra/runbooks/audit.md#auditshippingdisabled"
       - alertname: AuditShippingDown
         eval_time: 30m
         exp_alerts: []
@@ -94,6 +103,9 @@ tests:
         eval_time: 33m
         exp_alerts:
           - exp_labels: {severity: page, team: ops}
+            exp_annotations:
+              summary: "A nightly audit digest re-verification found a mismatch."
+              runbook_url: "infra/runbooks/audit.md#auditdigestmismatch"
 
   - interval: 1m
     name: AuditDigestMismatch quiet on a flat historic counter

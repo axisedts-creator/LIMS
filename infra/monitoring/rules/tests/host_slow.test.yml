@@ -28,6 +28,9 @@ tests:
         eval_time: 36d
         exp_alerts:
           - exp_labels: {severity: warn, team: ops, host: app-1}
+            exp_annotations:
+              summary: "app-1 has not been patched for more than 35 days (04 I9)."
+              runbook_url: "infra/runbooks/host.md#patchoverdue"
 
   - interval: 1d
     name: StorageVolumeForecastFull - 30 d decline projects empty within 90 d -> warn
@@ -39,6 +42,9 @@ tests:
         eval_time: 30d
         exp_alerts:
           - exp_labels: {severity: warn, team: ops, host: app-1, mountpoint: /srv/lims/storage}
+            exp_annotations:
+              summary: "Object storage volume on app-1 is forecast to fill within 90 days; grow the LV (04 I1)."
+              runbook_url: "infra/runbooks/host.md#storagevolumeforecastfull"
 
   - interval: 1d
     name: StorageVolumeForecastFull - flat storage volume -> quiet

@@ -27,6 +27,9 @@ tests:
         eval_time: 27h
         exp_alerts:
           - exp_labels: {severity: page, team: ops, repo: "2"}
+            exp_annotations:
+              summary: "No successful backup to repo 2 for over 26 h."
+              runbook_url: "infra/runbooks/backup.md#backupmissed"
 
   - interval: 10m
     name: BackupMissed - both repos fresh -> quiet
@@ -67,6 +70,9 @@ tests:
         eval_time: 90m
         exp_alerts:
           - exp_labels: {severity: warn, team: ops}
+            exp_annotations:
+              summary: "Object replica last succeeded over 1 h ago or lags over 30 min."
+              runbook_url: "infra/runbooks/backup.md#objectreplicastale"
 
   - interval: 10m
     name: ObjectReplicaStale - last success older than 3 h (page tier true from 190 m) -> warn and page
@@ -80,11 +86,20 @@ tests:
         eval_time: 170m
         exp_alerts:
           - exp_labels: {severity: warn, team: ops}
+            exp_annotations:
+              summary: "Object replica last succeeded over 1 h ago or lags over 30 min."
+              runbook_url: "infra/runbooks/backup.md#objectreplicastale"
       - alertname: ObjectReplicaStale
         eval_time: 200m
         exp_alerts:
           - exp_labels: {severity: page, team: ops}
+            exp_annotations:
+              summary: "Object replica last succeeded over 3 h ago."
+              runbook_url: "infra/runbooks/backup.md#objectreplicastale"
           - exp_labels: {severity: warn, team: ops}
+            exp_annotations:
+              summary: "Object replica last succeeded over 1 h ago or lags over 30 min."
+              runbook_url: "infra/runbooks/backup.md#objectreplicastale"
 
   - interval: 10m
     name: ObjectReplicaStale - lag 2000 s with a fresh success -> warn, never page
@@ -98,10 +113,16 @@ tests:
         eval_time: 60m
         exp_alerts:
           - exp_labels: {severity: warn, team: ops}
+            exp_annotations:
+              summary: "Object replica last succeeded over 1 h ago or lags over 30 min."
+              runbook_url: "infra/runbooks/backup.md#objectreplicastale"
       - alertname: ObjectReplicaStale
         eval_time: 5h
         exp_alerts:
           - exp_labels: {severity: warn, team: ops}
+            exp_annotations:
+              summary: "Object replica last succeeded over 1 h ago or lags over 30 min."
+              runbook_url: "infra/runbooks/backup.md#objectreplicastale"
 
   - interval: 10m
     name: ObjectReplicaStale - lag exactly 1800 s -> quiet

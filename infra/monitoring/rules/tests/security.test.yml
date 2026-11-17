@@ -19,6 +19,9 @@ tests:
         eval_time: 33m
         exp_alerts:
           - exp_labels: {severity: page, team: ops, host: app-1}
+            exp_annotations:
+              summary: "SSH login by a non-ops account on app-1."
+              runbook_url: "infra/runbooks/security.md#sshloginoutsideops"
 
   - interval: 1m
     name: SshLoginOutsideOps quiet on a flat counter
@@ -40,6 +43,9 @@ tests:
         eval_time: 33m
         exp_alerts:
           - exp_labels: {severity: page, team: ops, host: prod-1}
+            exp_annotations:
+              summary: "sudo by an unknown account on prod-1."
+              runbook_url: "infra/runbooks/security.md#sudobyunknown"
 
   - interval: 1m
     name: SudoByUnknown quiet on a flat counter
@@ -61,6 +67,9 @@ tests:
         eval_time: 33m
         exp_alerts:
           - exp_labels: {severity: page, team: ops, host: ops-1}
+            exp_annotations:
+              summary: "Secret decrypted outside a deploy window on ops-1."
+              runbook_url: "infra/runbooks/security.md#secretdecryptunexpected"
 
   - interval: 1m
     name: SecretDecryptUnexpected quiet on a flat counter
@@ -87,6 +96,9 @@ tests:
               notify_tenant: "false"
               jail: lims-auth
               host: app-1
+            exp_annotations:
+              summary: "fail2ban jail lims-auth banned a client on app-1."
+              runbook_url: "infra/runbooks/edge.md#limsauthjailban"
 
   - interval: 1m
     name: LimsAuthJailBan ignores bans of other jails

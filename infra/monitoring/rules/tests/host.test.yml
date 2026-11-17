@@ -27,6 +27,9 @@ tests:
         eval_time: 5m
         exp_alerts:
           - exp_labels: {severity: page, team: ops}
+            exp_annotations:
+              summary: "Every site A target is down."
+              runbook_url: "infra/runbooks/host.md#siteadown"
 
   - interval: 1m
     name: SiteADown full profile - only app-1 down -> not firing (needs every site-A target)
@@ -57,6 +60,9 @@ tests:
         eval_time: 5m
         exp_alerts:
           - exp_labels: {severity: page, team: ops}
+            exp_annotations:
+              summary: "Every site A target is down."
+              runbook_url: "infra/runbooks/host.md#siteadown"
 
   - interval: 1m
     name: SiteADown lean profile - prod-1 up -> not firing
@@ -89,7 +95,13 @@ tests:
         eval_time: 5m
         exp_alerts:
           - exp_labels: {severity: warn, team: ops, host: app-1}
+            exp_annotations:
+              summary: "Clock offset on app-1 exceeds 0.5 s."
+              runbook_url: "infra/runbooks/host.md#clockskew"
           - exp_labels: {severity: warn, team: ops, host: dr-1}
+            exp_annotations:
+              summary: "Clock offset on dr-1 exceeds 0.5 s."
+              runbook_url: "infra/runbooks/host.md#clockskew"
 
   - interval: 1m
     name: HostMemoryPressure warn when available < 10 % for 10m
@@ -110,6 +122,9 @@ tests:
         eval_time: 10m
         exp_alerts:
           - exp_labels: {severity: warn, team: ops, host: prod-1}
+            exp_annotations:
+              summary: "Available memory on prod-1 is below 10 %."
+              runbook_url: "infra/runbooks/host.md#hostmemorypressure"
 
   - interval: 1m
     name: HostMemoryPressure quiet at 12 % available
@@ -135,6 +150,9 @@ tests:
         eval_time: 2h
         exp_alerts:
           - exp_labels: {severity: warn, team: ops, host: data-1}
+            exp_annotations:
+              summary: "data-1 drifted from the playbook (3 changes)."
+              runbook_url: "infra/runbooks/host.md#configdrift"
 
   - interval: 1m
     name: ConfigDrift quiet while no drift is reported
@@ -158,6 +176,9 @@ tests:
         eval_time: 600m
         exp_alerts:
           - exp_labels: {severity: page, team: ops, host: data-1, mountpoint: /var/lib/lims-db}
+            exp_annotations:
+              summary: "Filesystem /var/lib/lims-db on data-1 is forecast to fill within 24 h."
+              runbook_url: "infra/runbooks/host.md#diskfillforecast"
 
   - interval: 1m
     name: DiskFillForecast quiet on a flat filesystem

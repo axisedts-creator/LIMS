@@ -19,6 +19,9 @@ tests:
           - exp_labels:
               severity: none
               team: ops
+            exp_annotations:
+              summary: "Always firing. If this mail stops arriving every 6 h, alerting is broken."
+              runbook_url: "infra/runbooks/ops.md#watchdog"
 
   - interval: 1m
     name: data-1 down -> pending before 2m, page at 2m
@@ -38,6 +41,9 @@ tests:
               job: node
               host: data-1
               instance: "10.79.0.11:9100"
+            exp_annotations:
+              summary: "Target node on data-1 (10.79.0.11:9100) is down."
+              runbook_url: "infra/runbooks/host.md#targetdown"
 
   - interval: 1m
     name: app-1 down -> page
@@ -54,6 +60,9 @@ tests:
               job: api-a
               host: app-1
               instance: "10.79.0.12:9464"
+            exp_annotations:
+              summary: "Target api-a on app-1 (10.79.0.12:9464) is down."
+              runbook_url: "infra/runbooks/host.md#targetdown"
 
   - interval: 1m
     name: lean profile prod-1 (site A, every role) down -> page (LD-45)
@@ -70,6 +79,9 @@ tests:
               job: postgres_exporter
               host: prod-1
               instance: "10.79.0.11:9187"
+            exp_annotations:
+              summary: "Target postgres_exporter on prod-1 (10.79.0.11:9187) is down."
+              runbook_url: "infra/runbooks/host.md#targetdown"
 
   - interval: 1m
     name: site-B hosts down -> warn only (ops-1, dr-1, lean backup-1)
@@ -85,8 +97,17 @@ tests:
         eval_time: 3m
         exp_alerts:
           - exp_labels: {severity: warn, team: ops, job: node, host: backup-1, instance: "10.79.0.15:9100"}
+            exp_annotations:
+              summary: "Target node on backup-1 (10.79.0.15:9100) is down."
+              runbook_url: "infra/runbooks/host.md#targetdown"
           - exp_labels: {severity: warn, team: ops, job: node, host: dr-1, instance: "10.79.0.13:9100"}
+            exp_annotations:
+              summary: "Target node on dr-1 (10.79.0.13:9100) is down."
+              runbook_url: "infra/runbooks/host.md#targetdown"
           - exp_labels: {severity: warn, team: ops, job: node, host: ops-1, instance: "10.79.0.14:9100"}
+            exp_annotations:
+              summary: "Target node on ops-1 (10.79.0.14:9100) is down."
+              runbook_url: "infra/runbooks/host.md#targetdown"
 
   - interval: 1m
     name: all targets up -> TargetDown not firing
@@ -148,6 +169,9 @@ tests:
               severity: warn
               team: ops
               metric: lims_noisy_total
+            exp_annotations:
+              summary: "Metric lims_noisy_total has more than 5000 series (5001); check for an unbounded label."
+              runbook_url: "infra/runbooks/ops.md#metriccardinalityhigh"
 
   - interval: 1m
     name: MetricCardinalityHigh quiet when every metric is small

@@ -23,6 +23,9 @@ tests:
               team: ops
               job: blackbox_http
               instance: "https://lab.example.test"
+            exp_annotations:
+              summary: "Certificate for https://lab.example.test expires in under 21 days."
+              runbook_url: "infra/runbooks/edge.md#tlscertexpiringsoon"
       - alertname: TLSCertExpiryCritical
         eval_time: 1h
         exp_alerts: []
@@ -41,6 +44,9 @@ tests:
               team: ops
               job: blackbox_http
               instance: "https://lab.example.test"
+            exp_annotations:
+              summary: "Certificate for https://lab.example.test expires in under 7 days."
+              runbook_url: "infra/runbooks/edge.md#tlscertexpirycritical"
 
   - interval: 1m
     name: AC-02.3 cert with 22 d left -> neither
@@ -67,6 +73,9 @@ tests:
         eval_time: 20m
         exp_alerts:
           - exp_labels: {severity: page, team: ops}
+            exp_annotations:
+              summary: "More than 2 % of edge requests answered 5xx over 5 min."
+              runbook_url: "infra/runbooks/edge.md#edge5xxrate"
 
   - interval: 1m
     name: Edge5xxRate quiet at 1 % 5xx
@@ -122,6 +131,9 @@ tests:
               team: ops
               job: blackbox_tcp_forbidden
               instance: "203.0.113.10:5432"
+            exp_annotations:
+              summary: "Forbidden port 203.0.113.10:5432 accepts connections."
+              runbook_url: "infra/runbooks/edge.md#forbiddenportopen"
 
   - interval: 1m
     name: ForbiddenPortOpen quiet when every forbidden port refuses
@@ -143,6 +155,9 @@ tests:
         eval_time: 90m
         exp_alerts:
           - exp_labels: {severity: warn, team: ops}
+            exp_annotations:
+              summary: "More than 50 fail2ban bans in the last hour."
+              runbook_url: "infra/runbooks/edge.md#fail2banbanspike"
 
   - interval: 1m
     name: Fail2banBanSpike quiet at 30 bans/h
@@ -167,6 +182,9 @@ tests:
         eval_time: 15m
         exp_alerts:
           - exp_labels: {severity: warn, team: ops}
+            exp_annotations:
+              summary: "One client produced more than 30 edge 404s in 5 min for 15 min."
+              runbook_url: "infra/runbooks/edge.md#edgenotfoundspike"
 
   - interval: 1m
     name: AC-04.7 EdgeNotFoundSpike - exactly 30 per IP never fires
@@ -198,6 +216,9 @@ tests:
         eval_time: 7m
         exp_alerts:
           - exp_labels: {severity: warn, team: ops, dest_class: unlisted}
+            exp_annotations:
+              summary: "Squid denied egress to destination class unlisted."
+              runbook_url: "infra/runbooks/edge.md#egressdenied"
 
   - interval: 1m
     name: EgressDenied quiet when the counter is flat

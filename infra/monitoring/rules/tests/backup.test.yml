@@ -22,6 +22,9 @@ tests:
         eval_time: 15m
         exp_alerts:
           - exp_labels: {severity: warn, team: ops}
+            exp_annotations:
+              summary: "Newest WAL in the site-B repo is over 10 min old while WAL waits to be archived."
+              runbook_url: "infra/runbooks/backup.md#walarchivelagging"
       - alertname: RpoAtRisk
         eval_time: 15m
         exp_alerts: []
@@ -50,10 +53,16 @@ tests:
         eval_time: 15m
         exp_alerts:
           - exp_labels: {severity: page, team: ops}
+            exp_annotations:
+              summary: "Newest WAL in the site-B repo is over 14 min old; the 15 min RPO is at risk."
+              runbook_url: "infra/runbooks/backup.md#rpoatrisk"
       - alertname: WalArchiveLagging
         eval_time: 15m
         exp_alerts:
           - exp_labels: {severity: warn, team: ops}
+            exp_annotations:
+              summary: "Newest WAL in the site-B repo is over 10 min old while WAL waits to be archived."
+              runbook_url: "infra/runbooks/backup.md#walarchivelagging"
 
   - interval: 1m
     name: age exactly 840 s -> RpoAtRisk quiet (strict >, one minute before the 15 min RPO)
@@ -97,6 +106,9 @@ tests:
         eval_time: 15m
         exp_alerts:
           - exp_labels: {severity: page, team: ops}
+            exp_annotations:
+              summary: "Newest WAL in the site-B repo is over 14 min old; the 15 min RPO is at risk."
+              runbook_url: "infra/runbooks/backup.md#rpoatrisk"
 
   - interval: 1m
     name: fresh archive (age 120 s) with unarchived WAL -> quiet
@@ -133,6 +145,9 @@ tests:
         eval_time: 10m
         exp_alerts:
           - exp_labels: {severity: page, team: ops}
+            exp_annotations:
+              summary: "pgbackrest check failed twice in a row (04 I2)."
+              runbook_url: "infra/runbooks/backup.md#walarchivefailing"
 
   - interval: 1m
     name: WalArchiveFailing quiet at 1 failed check
@@ -157,6 +172,9 @@ tests:
         eval_time: 5m
         exp_alerts:
           - exp_labels: {severity: page, team: ops}
+            exp_annotations:
+              summary: "No healthy pgBackRest repo on a site other than the primary's."
+              runbook_url: "infra/runbooks/backup.md#nooffsitearchive"
 
   - interval: 1m
     name: NoOffsiteArchive quiet while an off-site repo is configured, and clears when it is restored
@@ -181,6 +199,9 @@ tests:
         eval_time: 10m
         exp_alerts:
           - exp_labels: {severity: page, team: ops}
+            exp_annotations:
+              summary: "The last restore drill failed or had failed checks."
+              runbook_url: "infra/runbooks/drill.md#restoredrillfailed"
 
   - interval: 1m
     name: RestoreDrillFailed quiet when 0 checks failed
@@ -205,6 +226,9 @@ tests:
         eval_time: 10m
         exp_alerts:
           - exp_labels: {severity: warn, team: ops, job: postgres_exporter, host: dr-1}
+            exp_annotations:
+              summary: "Standby on dr-1 replays more than 60 s behind."
+              runbook_url: "infra/runbooks/backup.md#standbylaghigh"
 
   - interval: 1m
     name: StandbyLagHigh quiet at 60 s

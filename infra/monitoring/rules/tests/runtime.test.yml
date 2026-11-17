@@ -32,6 +32,9 @@ tests:
               service: valkey
               host: app-1
               instance: "10.79.0.12:9121"
+            exp_annotations:
+              summary: "Valkey on app-1: rate-limit backend down, logins/OTP fail closed."
+              runbook_url: "infra/runbooks/runtime.md#valkeydown"
 
   - interval: 1m
     name: ValkeyDown quiet while Valkey is up
@@ -64,6 +67,9 @@ tests:
               service: worker-a
               host: app-1
               instance: "10.79.0.12:9466"
+            exp_annotations:
+              summary: "Worker worker-a on app-1 is down."
+              runbook_url: "infra/runbooks/runtime.md#workerdown"
 
   - interval: 1m
     name: WorkerDown quiet while both workers are up
@@ -90,6 +96,9 @@ tests:
         eval_time: 10m
         exp_alerts:
           - exp_labels: {severity: warn, team: ops, task: reports.render}
+            exp_annotations:
+              summary: "Queue reports.render holds more than 500 jobs."
+              runbook_url: "infra/runbooks/runtime.md#queuebacklog"
 
   - interval: 1m
     name: QueueBacklog quiet at exactly 500
@@ -111,6 +120,9 @@ tests:
         eval_time: 60m
         exp_alerts:
           - exp_labels: {severity: warn, team: ops, name: renderer}
+            exp_annotations:
+              summary: "Container renderer restarted more than 3 times in an hour."
+              runbook_url: "infra/runbooks/runtime.md#rendererrestarting"
 
   - interval: 1m
     name: RendererRestarting quiet at 3 restarts in an hour (> 3 required)
@@ -132,6 +144,9 @@ tests:
         eval_time: 10m
         exp_alerts:
           - exp_labels: {severity: page, team: ops, job: clamd, service: clamd, host: app-1}
+            exp_annotations:
+              summary: "The malware scanner (clamd) on app-1 is down."
+              runbook_url: "infra/runbooks/runtime.md#scannerdown"
 
   - interval: 1m
     name: ScannerDown quiet while clamd is up
@@ -153,6 +168,9 @@ tests:
         eval_time: 30m
         exp_alerts:
           - exp_labels: {severity: warn, team: ops, host: app-1}
+            exp_annotations:
+              summary: "Scanner signatures on app-1 are older than 3 days."
+              runbook_url: "infra/runbooks/runtime.md#scannersignaturesstale"
 
   - interval: 1m
     name: AC-28.2 signatures exactly 3 days old -> quiet
@@ -174,6 +192,9 @@ tests:
         eval_time: 30m
         exp_alerts:
           - exp_labels: {severity: info, team: ops}
+            exp_annotations:
+              summary: "Supabase Studio is enabled; switch it off after use."
+              runbook_url: "infra/runbooks/runtime.md#studioenabled"
 
   - interval: 1m
     name: StudioEnabled quiet while studio is off
@@ -195,6 +216,9 @@ tests:
         eval_time: 33m
         exp_alerts:
           - exp_labels: {severity: page, team: ops}
+            exp_annotations:
+              summary: "A deploy was rolled back by ci/rollback.sh."
+              runbook_url: "infra/runbooks/runtime.md#deployrolledback"
 
   - interval: 1m
     name: DeployRolledBack quiet on a flat counter

@@ -21,7 +21,7 @@ export async function reserveBlock(ctx: SyncCtx, body: unknown, maxBlockSize: nu
   const centreId = b.centre_id === undefined ? undefined : uuidOf(b.centre_id, '/centre_id');
   // FOR SHARE: a concurrent revoke or wipe request waits for this reservation (or this one sees its result)
   assertUsable(await ownDevice(w, deviceId, 'share'));
-  if (centreId && !(await repo.centreExists(w.tx, w.tenantId, centreId))) throw new LimsError('common.not_found');
+  if (centreId && !(await repo.centreExists(w.tx, w.tenantId, centreId))) throw invalid('/centre_id');   // reserveNumberBlock declares no 404
   const last = await repo.advanceCounter(w.tx, w.tenantId, series, size, w.actorId);
   const row = await repo.insertBlock(w.tx, {
     tenantId: w.tenantId, id: uuidv7(), deviceId, series, ...(centreId ? { centreId } : {}), from: last - size + 1, to: last, at: ctx.now(), actorId: w.actorId,

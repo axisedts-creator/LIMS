@@ -146,7 +146,18 @@ describe("analytics.yaml (T0C-10.C8)", () => {
     });
     it('no field, label or text anywhere says "commission" (PRD US-07.3, TRD §5.1)', () => {
       expect(text.length, "empty").toBeGreaterThan(0);
-      expect(text).not.toMatch(/commission/i);
+      // LD-342 / Addendum A39 (founder decision B): the word is allowed ONLY inside the report definitions two_level_commission and tds
+      // (code, titles, descriptions, column names) and their report code enum entry; everywhere else in the file the ban stands.
+      const ALLOWED = ["two_level_commission", "tds"];
+      const strip = (n: any): any =>
+        Array.isArray(n)
+          ? n.filter((x) => !(typeof x === "string" && ALLOWED.includes(x)) && !(x && typeof x === "object" && ALLOWED.includes(x.code))).map(strip)
+          : n && typeof n === "object"
+            ? Object.fromEntries(Object.entries(n).map(([k, v]) => [k, strip(v)]))
+            : n;
+      const rest = stringify(strip(doc));
+      expect(rest.length, "empty after strip").toBeGreaterThan(0);
+      expect(rest).not.toMatch(/commission/i);
     });
   });
 

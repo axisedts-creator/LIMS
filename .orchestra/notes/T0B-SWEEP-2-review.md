@@ -1,16 +1,10 @@
-CHANGES
+APPROVE
 
-Reviewed: git diff 2bf5fa924..83d1034d6 (request.ts, run.ts, classify.ts, sessions.ts, known-failures.json, results, impl notes). Only owned paths are touched. No secrets or PHI. No policy, migration, seed or contract edits. The partner seed is plain SQL on the throwaway DB, which SWEEP-1 already allowed. The working-tree re-run (16:55Z) reproduces 1114 ops / WIRED 890 / DEFECT 224 / DEEP 1103 / SHALLOW 11 / 0 x 429. Only the timestamp changed. I checked fastify 5.12.8 handle-request.js:115-167: handler:start fires only after validateSchema passes, so the `reachedHandler` DEEP rule is sound.
+Reviewed: git diff 2bf5fa924..10c4068ce (request.ts, run.ts, classify.ts, sessions.ts, known-failures.json, gate/depth/sweep2-artifacts tests, results, impl notes). Re-review after the lead reset (LD-307) and my review 06997f057.
+- Owned paths only (services/api/test-sweep/**, .orchestra/notes/T0B-SWEEP-2*). No secrets or PHI. No policy, grant, migration, seed or contract edit. No new names invented.
+- Review 06997f057 item 1 is fixed: gate.test.ts now reads the SWEEP-2 artifacts, and every known-failures entry must have status, class (BUG/CONFIG/HARNESS) and ref. Item 2 is fixed: depth.test.ts covers reachedHandler true, false and undefined, plus 429 and 5xx. sweep2-artifacts checks that every SHALLOW row is a 400 common.validation_failed.
+- Ran `pnpm exec vitest run test-sweep/__tests__` (services/api): 13 files, 132/132 pass.
+- Committed results.json: 1114 rows, 0 x 429, 0 NOT EXERCISED; WIRED/DEEP 879, WIRED/SHALLOW 11, DEFECT/DEEP 224. known-failures.json has 224 entries, so the gate set matches the run.
+- done_when 4: verifyProviderCallback has a stack (callbacks.service.ts:37, no ctx.tx on the public operation).
 
-Ran: `pnpm exec vitest run test-sweep/__tests__` (services/api): 13 files, 127 tests, 3 FAILED, all in gate.test.ts.
-
-1. services/api/test-sweep/__tests__/gate.test.ts:44, :64, :77 fail against the new known-failures.json:
-   - "lists the four platform defects": the platform defects are fixed on main and no longer listed.
-   - "results.json records ... four known defects as DEFECT" and "known-failures.json status equals the status of the committed run": these read the frozen T0B-SWEEP-1-results.json against the live SWEEP-2 known-failures.json, so 22 "listed undefined run 403/500" mismatches appear.
-   This change turns the regression-gate suite red on merge (done_when 5: the sweep must stay a regression gate).
-   Fix (tester step): retarget the "first-run artifacts" block (:63-:81) to .orchestra/notes/T0B-SWEEP-2-results.json. Replace the ":44 four platform defects" assertion with one that checks every known-failures.json entry has `status`, `class` and a reference. After that, the whole `vitest run test-sweep/__tests__` must pass, not only the verify.cmd subset.
-2. services/api/test-sweep/classify.ts:25: the new `reachedHandler` branch decides DEEP vs SHALLOW for every 400 common.validation_failed, but no test covers it. A grep of `__tests__` for reachedHandler finds nothing, and impl note "Open 2" says the same. The task's tests field requires classifier unit tests for DEEP and SHALLOW.
-   Fix (tester step): in classifier.test.ts or depth.test.ts, add two cases:
-   - `classify({status:400, errorCode:'common.validation_failed', reachedHandler:true}).depth === 'DEEP'`
-   - the same input with `reachedHandler:false` or omitted gives `'SHALLOW'`
-   Also add a run-level check (sweep2-artifacts) that every SHALLOW row is a 400 common.validation_failed.
+Non-blocking note: listDeadLetters now answers 200 WIRED (fixed on main). Its "Stack-level explanation" line in T0B-SWEEP-2-results.md still describes the old authz-guard 500. Next writer pass: mark that line as historical or drop it.

@@ -13,3 +13,6 @@
 ## Round 4
 - Cause: registry-equality "routes.yaml == IC §7" was red only for 28 staff.* routes missing from IC §7 (LD-337). Spec commit e4f095ae (in this branch) adds them; re-ran registry-equality now: 14/14 green. Codegen 88/88 green; API 826/826 and DB suite clean in rounds 1-3.
 - No impl change needed; SYNC-1 code was never at fault. Verify should now pass end to end.
+## Round 5
+- Re-ran contracts registry-equality on this branch (includes spec e4f095ae, LD-337): 14/14 green. The log line "cannot find the path" is cmd noise after step 1; no test failed on SYNC-1 code.
+- No impl change needed. Earlier rounds: codegen 88/88, API 826/826, pgTAP clean. Could not rerun the full verify.cmd here (command approval denied).

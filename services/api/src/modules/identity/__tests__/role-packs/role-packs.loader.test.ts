@@ -26,7 +26,7 @@ describe('RM-T01 loader accepts the real data', () => {
     expect(f.packs.map((p) => [p.code, p.roles.length])).toEqual([['elabcorp_default', 19], ['elabassist_standard', 10]]);
     const admin = f.packs[0]!.roles[0]!;
     expect(admin).toMatchObject({ code: 'corp_admin', name: 'Admin', mfa_required: true, base_default_role: 'tenant_admin' });
-    expect(admin.permissions).toHaveLength(155); // LD-310 (T0B-ADMINPERM-1) supersedes LD-254 (115): every tenant staff code of the registry
+    expect(admin.permissions).toHaveLength(162); // 155 + 7 accounting codes (T0C-ACCT-1, LD-313 c); // LD-310 (T0B-ADMINPERM-1) supersedes LD-254 (115): every tenant staff code of the registry
   });
 
   it('parseRolePacks(spec file) still accepts the unchanged spec copy: 19 + 10 roles, corp_admin 115 (spec/ is read-only, LD-310 only widens the module copy)', () => {

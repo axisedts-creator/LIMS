@@ -113,8 +113,9 @@ describe("T0C-REGPARITY-2 contract: lint, baseline kept, additive", () => {
   });
   it("frontdesk.yaml keeps all 29 old operations at their old method + path; billing.yaml has no new operation", () => {
     for (const id of BASELINE_FD) expect(FOPS[id], `${id} removed`).toBeDefined();
-    expect(Object.keys(BOPS).length, "billing operations").toBe(47);
-    expect(Object.keys(bl.paths).length, "billing paths").toBe(45);
+    // T0C-ACCT-1 (LD-313) adds 24 billing operations on 18 new paths (acct1-openapi.test.ts): 47 + 24 = 71 operations, 45 + 18 = 63 paths. REGPARITY-2 itself still adds none.
+    expect(Object.keys(BOPS).length, "billing operations").toBe(47 + 24);
+    expect(Object.keys(bl.paths).length, "billing paths").toBe(45 + 18);
     expect(Object.keys(FOPS).length, "frontdesk operations = 29 old + 18 new").toBe(29 + OPS.length);
     expect(OPS.length).toBe(18);
   });

@@ -8120,6 +8120,849 @@ paths:
           $ref: _common.yaml#/components/responses/TooManyRequests
         "500":
           $ref: _common.yaml#/components/responses/Internal
+  # T0C-MSGDESK-1 (LD-321, LD-325): broadcast messages to an audience (ElabAssist "Messages"). Staff only. This contract only queues messages
+  # through the existing notification outbox (NotificationPort); real sending needs a provider the founder has configured and approved.
+  /v1/engagement/broadcast-templates:
+    get:
+      operationId: listBroadcastTemplates
+      tags:
+        - engagement
+      summary: List broadcast templates (T0C-MSGDESK-1, staff)
+      security:
+        - bearerJwt: []
+      x-permission: engagement.broadcast.read
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.invalid_cursor
+      parameters:
+        - name: is_active
+          in: query
+          required: false
+          schema:
+            type: boolean
+        - name: channel
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 8
+            enum:
+              - sms
+              - whatsapp
+              - email
+        - $ref: _common.yaml#/components/parameters/Cursor
+        - $ref: _common.yaml#/components/parameters/Limit
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BroadcastTemplatePage"
+              examples:
+                synthetic:
+                  value:
+                    data:
+                      - id: 0193c4a0-0000-7000-8000-000000000501
+                        name: Holiday notice (SYNTHETIC)
+                        channel: sms
+                        body: Dear {{party_name}}, {{lab_name}} is closed on Friday.
+                        placeholders:
+                          - party_name
+                          - lab_name
+                        is_active: true
+                        version: 1
+                        created_at: 2026-11-17T04:15:00.000Z
+                        updated_at: 2026-11-17T04:15:00.000Z
+                    page:
+                      limit: 50
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+    post:
+      operationId: createBroadcastTemplate
+      tags:
+        - engagement
+      summary: Create a broadcast template (T0C-MSGDESK-1, staff)
+      description: >-
+        Plain text only (no HTML, no attachment). The body may use only placeholders from the closed list BroadcastPlaceholder, written as {{name}};
+        an unknown placeholder is rejected (engagement.broadcast_placeholder_unknown). The server derives `placeholders` from the body.
+        subject is used by the email channel only.
+      security:
+        - bearerJwt: []
+      x-permission: engagement.broadcast.manage
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - engagement.broadcast_placeholder_unknown
+        - common.idempotency_key_required
+        - common.idempotency_key_reused
+        - common.idempotency_in_progress
+      parameters:
+        - $ref: _common.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BroadcastTemplateCreate"
+            examples:
+              synthetic:
+                value:
+                  name: Holiday notice (SYNTHETIC)
+                  channel: sms
+                  body: Dear {{party_name}}, {{lab_name}} is closed on Friday.
+      responses:
+        "201":
+          description: Created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BroadcastTemplate"
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-000000000502
+                    name: Holiday notice (SYNTHETIC)
+                    channel: sms
+                    body: Dear {{party_name}}, {{lab_name}} is closed on Friday.
+                    placeholders:
+                      - party_name
+                      - lab_name
+                    is_active: true
+                    version: 1
+                    created_at: 2026-11-17T04:15:00.000Z
+                    updated_at: 2026-11-17T04:15:00.000Z
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/engagement/broadcast-templates/{template_id}:
+    patch:
+      operationId: updateBroadcastTemplate
+      tags:
+        - engagement
+      summary: Update a broadcast template (T0C-MSGDESK-1, staff)
+      description: >-
+        Changes name, subject or body; the channel is fixed at creation. The placeholder rule of createBroadcastTemplate applies (closed list).
+      security:
+        - bearerJwt: []
+      x-permission: engagement.broadcast.manage
+      x-context: tenant
+      x-idempotency: optional
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.not_found
+        - engagement.broadcast_placeholder_unknown
+        - common.version_conflict
+        - common.precondition_required
+        - common.idempotency_key_reused
+        - common.idempotency_in_progress
+      parameters:
+        - name: template_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - $ref: _common.yaml#/components/parameters/IfMatch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BroadcastTemplateUpdate"
+            examples:
+              synthetic:
+                value:
+                  body: Dear {{party_name}}, {{lab_name}} opens at 7:00 on Saturday.
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BroadcastTemplate"
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-000000000503
+                    name: Holiday notice (SYNTHETIC)
+                    channel: sms
+                    body: Dear {{party_name}}, {{lab_name}} opens at 7:00 on Saturday.
+                    placeholders:
+                      - party_name
+                      - lab_name
+                    is_active: true
+                    version: 2
+                    created_at: 2026-11-17T04:15:00.000Z
+                    updated_at: 2026-11-17T05:15:00.000Z
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "428":
+          $ref: _common.yaml#/components/responses/PreconditionRequired
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/engagement/broadcast-templates/{template_id}/deactivate:
+    post:
+      operationId: deactivateBroadcastTemplate
+      tags:
+        - engagement
+      summary: Deactivate a broadcast template (T0C-MSGDESK-1, staff)
+      description: Sets is_active false; templates are never deleted. A deactivated template cannot start a new broadcast.
+      security:
+        - bearerJwt: []
+      x-permission: engagement.broadcast.manage
+      x-context: tenant
+      x-idempotency: optional
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.not_found
+        - common.version_conflict
+        - common.precondition_required
+        - common.idempotency_key_reused
+        - common.idempotency_in_progress
+      parameters:
+        - name: template_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - $ref: _common.yaml#/components/parameters/IfMatch
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BroadcastTemplate"
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-000000000504
+                    name: Holiday notice (SYNTHETIC)
+                    channel: sms
+                    body: Dear {{party_name}}, {{lab_name}} is closed on Friday.
+                    placeholders:
+                      - party_name
+                      - lab_name
+                    is_active: false
+                    version: 3
+                    created_at: 2026-11-17T04:15:00.000Z
+                    updated_at: 2026-11-17T06:15:00.000Z
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "428":
+          $ref: _common.yaml#/components/responses/PreconditionRequired
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/engagement/broadcasts:
+    get:
+      operationId: listBroadcasts
+      tags:
+        - engagement
+      summary: List broadcasts, the message log (T0C-MSGDESK-1, staff)
+      security:
+        - bearerJwt: []
+      x-permission: engagement.broadcast.read
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.invalid_cursor
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 16
+            enum:
+              - draft
+              - pending_approval
+              - approved
+              - sending
+              - sent
+              - cancelled
+        - $ref: _common.yaml#/components/parameters/Cursor
+        - $ref: _common.yaml#/components/parameters/Limit
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BroadcastPage"
+              examples:
+                synthetic:
+                  value:
+                    data:
+                      - id: 0193c4a0-0000-7000-8000-000000000505
+                        template_id: 0193c4a0-0000-7000-8000-000000000301
+                        audience_filter:
+                          party_kinds:
+                            - client
+                            - franchise
+                          active_only: true
+                        status: sent
+                        recipient_count: 120
+                        opted_out_count: 4
+                        requested_by: 0193c4a0-0000-7000-8000-000000000321
+                        approved_by: 0193c4a0-0000-7000-8000-000000000322
+                        created_at: 2026-11-17T04:15:00.000Z
+                        updated_at: 2026-11-17T05:15:00.000Z
+                        version: 5
+                    page:
+                      limit: 50
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+    post:
+      operationId: createBroadcast
+      tags:
+        - engagement
+      summary: Create a broadcast in draft; nothing is sent (T0C-MSGDESK-1, staff)
+      description: >-
+        Stores a draft broadcast for an active template and a closed audience filter, with the counted audience (recipient_count; recipients who opted out
+        of the channel are skipped and counted in opted_out_count). At most 5000 recipients per broadcast: a filter matching more is refused
+        (engagement.broadcast_recipient_limit). Nothing is sent and no outbox row is written; sending needs requestBroadcastApproval and then a
+        second person to approve (approveBroadcast). The caller becomes requested_by.
+      security:
+        - bearerJwt: []
+      x-permission: engagement.broadcast.manage
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - engagement.broadcast_recipient_limit
+        - engagement.broadcast_template_inactive
+        - common.idempotency_key_required
+        - common.idempotency_key_reused
+        - common.idempotency_in_progress
+      parameters:
+        - $ref: _common.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BroadcastCreate"
+            examples:
+              synthetic:
+                value:
+                  template_id: 0193c4a0-0000-7000-8000-000000000301
+                  audience_filter:
+                    party_kinds:
+                      - client
+                      - franchise
+                    city: Kathmandu
+                    active_only: true
+      responses:
+        "201":
+          description: Created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Broadcast"
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-000000000506
+                    template_id: 0193c4a0-0000-7000-8000-000000000301
+                    audience_filter:
+                      party_kinds:
+                        - client
+                        - franchise
+                      city: Kathmandu
+                      active_only: true
+                    status: draft
+                    recipient_count: 120
+                    opted_out_count: 4
+                    requested_by: 0193c4a0-0000-7000-8000-000000000321
+                    created_at: 2026-11-17T04:15:00.000Z
+                    updated_at: 2026-11-17T04:15:00.000Z
+                    version: 1
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/engagement/broadcast-audience-previews:
+    post:
+      operationId: previewBroadcastAudience
+      tags:
+        - engagement
+      summary: Preview a broadcast audience; sends nothing (T0C-MSGDESK-1, staff)
+      description: >-
+        Counts the audience of a closed filter and returns a masked sample of at most 20 rows. Sends nothing, queues nothing and stores nothing.
+        Recipients who opted out of the channel are skipped and counted in opted_out_count. A count above 5000 recipients is reported here and
+        refused by createBroadcast (engagement.broadcast_recipient_limit).
+      security:
+        - bearerJwt: []
+      x-permission: engagement.broadcast.manage
+      x-context: tenant
+      x-idempotency: none
+      x-idempotency-justification: E3 read-only POST (a closed filter in the body; counts and a masked sample, writes nothing, sends nothing)
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - engagement.broadcast_template_inactive
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BroadcastAudiencePreviewRequest"
+            examples:
+              synthetic:
+                value:
+                  template_id: 0193c4a0-0000-7000-8000-000000000301
+                  audience_filter:
+                    party_kinds:
+                      - laboratory
+                      - lab_user
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BroadcastAudiencePreview"
+              examples:
+                synthetic:
+                  value:
+                    recipient_count: 2
+                    opted_out_count: 1
+                    sample:
+                      - party_kind: laboratory
+                        party_id: 0193c4a0-0000-7000-8000-000000000331
+                        channel_address: 98******12
+                      - party_kind: lab_user
+                        party_id: 0193c4a0-0000-7000-8000-000000000332
+                        channel_address: 98******34
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/engagement/broadcasts/{broadcast_id}/request-approval:
+    post:
+      operationId: requestBroadcastApproval
+      tags:
+        - engagement
+      summary: Ask a second person to approve a broadcast (T0C-MSGDESK-1, staff)
+      description: >-
+        Moves a draft broadcast to pending_approval; the audience is counted again and the 5000 recipients limit is checked again. Allowed source
+        status: draft; anything else is refused (engagement.broadcast_invalid_transition). Nothing is sent.
+      security:
+        - bearerJwt: []
+      x-permission: engagement.broadcast.manage
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.not_found
+        - engagement.broadcast_invalid_transition
+        - engagement.broadcast_recipient_limit
+        - engagement.broadcast_template_inactive
+        - common.version_conflict
+        - common.precondition_required
+        - common.idempotency_key_required
+        - common.idempotency_key_reused
+        - common.idempotency_in_progress
+      parameters:
+        - name: broadcast_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - $ref: _common.yaml#/components/parameters/IdempotencyKey
+        - $ref: _common.yaml#/components/parameters/IfMatch
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Broadcast"
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-000000000507
+                    template_id: 0193c4a0-0000-7000-8000-000000000301
+                    audience_filter:
+                      party_kinds:
+                        - client
+                    status: pending_approval
+                    recipient_count: 120
+                    opted_out_count: 4
+                    requested_by: 0193c4a0-0000-7000-8000-000000000321
+                    created_at: 2026-11-17T04:15:00.000Z
+                    updated_at: 2026-11-17T04:30:00.000Z
+                    version: 2
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "428":
+          $ref: _common.yaml#/components/responses/PreconditionRequired
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/engagement/broadcasts/{broadcast_id}/approve:
+    post:
+      operationId: approveBroadcast
+      tags:
+        - engagement
+      summary: Approve a broadcast and queue it for sending (T0C-MSGDESK-1, staff, privileged)
+      description: >-
+        Second person rule: sending needs a second person to approve, and the approver is not the requester (engagement.broadcast_self_approval;
+        the table enforces approved_by <> requested_by as well). Allowed source status: pending_approval; anything else is refused
+        (engagement.broadcast_invalid_transition). The approval is refused when no message provider is configured and approved for the template
+        channel (engagement.broadcast_provider_not_configured); real sending uses only a provider the founder has configured and approved (LD-321).
+        On approval the server builds the recipient list again (at most 5000 recipients per broadcast, engagement.broadcast_recipient_limit);
+        recipients who opted out of the channel are skipped and counted in opted_out_count (recipient status skipped). It writes one outbox row
+        per recipient through the existing notification outbox (NotificationPort) with an idempotency key made of the broadcast id and the
+        recipient id, so a retry never double sends. Status moves approved, then sending while the outbox drains, then sent.
+      security:
+        - bearerJwt: []
+      x-permission: engagement.broadcast.approve
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - auth.mfa_required
+        - common.rate_limited
+        - common.internal
+        - common.not_found
+        - engagement.broadcast_self_approval
+        - engagement.broadcast_provider_not_configured
+        - engagement.broadcast_invalid_transition
+        - engagement.broadcast_recipient_limit
+        - engagement.broadcast_template_inactive
+        - common.version_conflict
+        - common.precondition_required
+        - common.idempotency_key_required
+        - common.idempotency_key_reused
+        - common.idempotency_in_progress
+      parameters:
+        - name: broadcast_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - $ref: _common.yaml#/components/parameters/IdempotencyKey
+        - $ref: _common.yaml#/components/parameters/IfMatch
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Broadcast"
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-000000000508
+                    template_id: 0193c4a0-0000-7000-8000-000000000301
+                    audience_filter:
+                      party_kinds:
+                        - client
+                    status: approved
+                    recipient_count: 120
+                    opted_out_count: 4
+                    requested_by: 0193c4a0-0000-7000-8000-000000000321
+                    approved_by: 0193c4a0-0000-7000-8000-000000000322
+                    approved_at: 2026-11-17T05:00:00.000Z
+                    created_at: 2026-11-17T04:15:00.000Z
+                    updated_at: 2026-11-17T05:00:00.000Z
+                    version: 3
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "428":
+          $ref: _common.yaml#/components/responses/PreconditionRequired
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/engagement/broadcasts/{broadcast_id}/cancel:
+    post:
+      operationId: cancelBroadcast
+      tags:
+        - engagement
+      summary: Cancel a broadcast before sending (T0C-MSGDESK-1, staff)
+      description: >-
+        Moves a broadcast to cancelled. Allowed source status: draft, pending_approval or approved (before the outbox rows are written); a broadcast
+        that is sending or sent cannot be cancelled (engagement.broadcast_invalid_transition). Queued outbox rows are never recalled.
+      security:
+        - bearerJwt: []
+      x-permission: engagement.broadcast.manage
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.not_found
+        - engagement.broadcast_invalid_transition
+        - common.version_conflict
+        - common.precondition_required
+        - common.idempotency_key_required
+        - common.idempotency_key_reused
+        - common.idempotency_in_progress
+      parameters:
+        - name: broadcast_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - $ref: _common.yaml#/components/parameters/IdempotencyKey
+        - $ref: _common.yaml#/components/parameters/IfMatch
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Broadcast"
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-000000000509
+                    template_id: 0193c4a0-0000-7000-8000-000000000301
+                    audience_filter:
+                      party_kinds:
+                        - client
+                    status: cancelled
+                    recipient_count: 120
+                    opted_out_count: 4
+                    requested_by: 0193c4a0-0000-7000-8000-000000000321
+                    created_at: 2026-11-17T04:15:00.000Z
+                    updated_at: 2026-11-17T04:40:00.000Z
+                    version: 3
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "428":
+          $ref: _common.yaml#/components/responses/PreconditionRequired
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/engagement/broadcasts/{broadcast_id}/recipients:
+    get:
+      operationId: listBroadcastRecipients
+      tags:
+        - engagement
+      summary: List the recipients of a broadcast with their status (T0C-MSGDESK-1, staff)
+      description: Per recipient status (queued, sent, failed, skipped); channel_address is masked on read.
+      security:
+        - bearerJwt: []
+      x-permission: engagement.broadcast.read
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.not_found
+        - common.invalid_cursor
+      parameters:
+        - name: broadcast_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 8
+            enum:
+              - queued
+              - sent
+              - failed
+              - skipped
+        - $ref: _common.yaml#/components/parameters/Cursor
+        - $ref: _common.yaml#/components/parameters/Limit
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BroadcastRecipientPage"
+              examples:
+                synthetic:
+                  value:
+                    data:
+                      - id: 0193c4a0-0000-7000-8000-000000000510
+                        broadcast_id: 0193c4a0-0000-7000-8000-000000000311
+                        party_kind: client
+                        party_id: 0193c4a0-0000-7000-8000-000000000331
+                        channel_address: 98******12
+                        status: sent
+                        outbox_id: 0193c4a0-0000-7000-8000-000000000351
+                      - id: 0193c4a0-0000-7000-8000-000000000511
+                        broadcast_id: 0193c4a0-0000-7000-8000-000000000311
+                        party_kind: franchise
+                        party_id: 0193c4a0-0000-7000-8000-000000000332
+                        channel_address: 98******34
+                        status: skipped
+                        skip_reason: opted_out
+                    page:
+                      limit: 50
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
 components:
   schemas:
     Account:
@@ -10783,6 +11626,363 @@ components:
           $ref: _common.yaml#/components/schemas/IsoDate
         has_reminder:
           type: boolean
+    # ---- T0C-MSGDESK-1 (LD-321): broadcast messages to an audience ----
+    BroadcastPlaceholder:
+      description: >-
+        The closed list of placeholders a broadcast template body may use, written as {{name}}; any other {{...}} is an unknown placeholder and is
+        rejected. Values are non-PHI (the party display name, the lab name and phone, the send date).
+      type: string
+      maxLength: 16
+      enum:
+        - party_name
+        - lab_name
+        - lab_phone
+        - send_date
+    BroadcastTemplate:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - name
+        - channel
+        - body
+        - placeholders
+        - is_active
+        - version
+        - created_at
+        - updated_at
+      properties:
+        id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        channel:
+          type: string
+          maxLength: 8
+          enum:
+            - sms
+            - whatsapp
+            - email
+        subject:
+          description: Email subject; used by the email channel only.
+          type: string
+          minLength: 1
+          maxLength: 150
+        body:
+          description: Plain text; placeholders only from the closed list BroadcastPlaceholder.
+          type: string
+          minLength: 1
+          maxLength: 1000
+        placeholders:
+          description: The placeholders the body uses, derived by the server from the closed list.
+          type: array
+          maxItems: 4
+          uniqueItems: true
+          items:
+            $ref: "#/components/schemas/BroadcastPlaceholder"
+        is_active:
+          type: boolean
+        version:
+          $ref: _common.yaml#/components/schemas/Version
+        created_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        updated_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+    BroadcastTemplateCreate:
+      description: Body placeholders only from the closed list BroadcastPlaceholder; an unknown placeholder is rejected.
+      type: object
+      additionalProperties: false
+      required:
+        - name
+        - channel
+        - body
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        channel:
+          type: string
+          maxLength: 8
+          enum:
+            - sms
+            - whatsapp
+            - email
+        subject:
+          type: string
+          minLength: 1
+          maxLength: 150
+        body:
+          type: string
+          minLength: 1
+          maxLength: 1000
+    BroadcastTemplateUpdate:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        subject:
+          type: string
+          minLength: 1
+          maxLength: 150
+        body:
+          type: string
+          minLength: 1
+          maxLength: 1000
+    BroadcastTemplatePage:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - page
+      properties:
+        data:
+          type: array
+          maxItems: 200
+          items:
+            $ref: "#/components/schemas/BroadcastTemplate"
+        page:
+          $ref: _common.yaml#/components/schemas/PageInfo
+    BroadcastAudienceFilter:
+      description: >-
+        Closed audience filter (no free query). party_kinds is required; city, priority and active_only narrow it. laboratory = partner labs,
+        franchise = franchise collection centres, client = credit party clients, lab_user = staff users of the lab.
+      type: object
+      additionalProperties: false
+      required:
+        - party_kinds
+      properties:
+        party_kinds:
+          type: array
+          minItems: 1
+          maxItems: 4
+          uniqueItems: true
+          items:
+            type: string
+            maxLength: 10
+            enum:
+              - laboratory
+              - franchise
+              - client
+              - lab_user
+        city:
+          type: string
+          minLength: 1
+          maxLength: 80
+        priority:
+          type: string
+          maxLength: 6
+          enum:
+            - high
+            - normal
+            - low
+        active_only:
+          type: boolean
+    Broadcast:
+      description: >-
+        A broadcast moves draft -> pending_approval -> approved -> sending -> sent, or to cancelled before sending. Sending needs a second person
+        to approve; approved_by is empty until then and is never the requester. recipient_count is at most 5000 recipients; recipients who
+        opted out are skipped and counted in opted_out_count. Each queued recipient gets one outbox row per recipient (idempotency key), so a
+        retry never double sends.
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - template_id
+        - audience_filter
+        - status
+        - recipient_count
+        - opted_out_count
+        - requested_by
+        - created_at
+        - updated_at
+        - version
+      properties:
+        id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        template_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        audience_filter:
+          $ref: "#/components/schemas/BroadcastAudienceFilter"
+        status:
+          type: string
+          maxLength: 16
+          enum:
+            - draft
+            - pending_approval
+            - approved
+            - sending
+            - sent
+            - cancelled
+        recipient_count:
+          type: integer
+          minimum: 0
+          maximum: 5000
+        opted_out_count:
+          type: integer
+          minimum: 0
+          maximum: 1000000
+        requested_by:
+          $ref: _common.yaml#/components/schemas/Uuid
+        approved_by:
+          $ref: _common.yaml#/components/schemas/Uuid
+        approved_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        created_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        updated_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        version:
+          $ref: _common.yaml#/components/schemas/Version
+    BroadcastCreate:
+      description: Template and closed filter only; status, counts, requester and approver are set by the server. Creating sends nothing.
+      type: object
+      additionalProperties: false
+      required:
+        - template_id
+        - audience_filter
+      properties:
+        template_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        audience_filter:
+          $ref: "#/components/schemas/BroadcastAudienceFilter"
+    BroadcastPage:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - page
+      properties:
+        data:
+          type: array
+          maxItems: 200
+          items:
+            $ref: "#/components/schemas/Broadcast"
+        page:
+          $ref: _common.yaml#/components/schemas/PageInfo
+    BroadcastAudiencePreviewRequest:
+      description: template_id (optional) picks the channel used to find addresses and opt outs; without it the sms channel is assumed.
+      type: object
+      additionalProperties: false
+      required:
+        - audience_filter
+      properties:
+        template_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        audience_filter:
+          $ref: "#/components/schemas/BroadcastAudienceFilter"
+    BroadcastRecipientSample:
+      type: object
+      additionalProperties: false
+      required:
+        - party_kind
+        - party_id
+        - channel_address
+      properties:
+        party_kind:
+          type: string
+          maxLength: 10
+          enum:
+            - laboratory
+            - franchise
+            - client
+            - lab_user
+        party_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        channel_address:
+          description: Phone or email, masked on read (never the full value).
+          type: string
+          minLength: 1
+          maxLength: 120
+    BroadcastAudiencePreview:
+      description: Counts and a masked sample; the preview sends nothing and stores nothing. Recipients who opted out are skipped and counted.
+      type: object
+      additionalProperties: false
+      required:
+        - recipient_count
+        - opted_out_count
+        - sample
+      properties:
+        recipient_count:
+          type: integer
+          minimum: 0
+          maximum: 1000000
+        opted_out_count:
+          type: integer
+          minimum: 0
+          maximum: 1000000
+        sample:
+          type: array
+          maxItems: 20
+          items:
+            $ref: "#/components/schemas/BroadcastRecipientSample"
+    BroadcastRecipient:
+      description: One row per party per broadcast; one outbox row per recipient when queued (outbox_id), so a retry never double sends.
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - broadcast_id
+        - party_kind
+        - party_id
+        - channel_address
+        - status
+      properties:
+        id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        broadcast_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        party_kind:
+          type: string
+          maxLength: 10
+          enum:
+            - laboratory
+            - franchise
+            - client
+            - lab_user
+        party_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        channel_address:
+          description: Phone or email, masked on read (never the full value).
+          type: string
+          minLength: 1
+          maxLength: 120
+        status:
+          type: string
+          maxLength: 8
+          enum:
+            - queued
+            - sent
+            - failed
+            - skipped
+        skip_reason:
+          type: string
+          maxLength: 10
+          enum:
+            - opted_out
+            - no_address
+        outbox_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+    BroadcastRecipientPage:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - page
+      properties:
+        data:
+          type: array
+          maxItems: 200
+          items:
+            $ref: "#/components/schemas/BroadcastRecipient"
+        page:
+          $ref: _common.yaml#/components/schemas/PageInfo
   parameters:
     AppVersion:
       name: X-Lims-App-Version

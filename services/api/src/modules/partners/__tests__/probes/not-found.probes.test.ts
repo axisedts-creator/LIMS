@@ -8,7 +8,7 @@ import { manifest } from '../../index.js';
 import { ALL, BY_PATH_ID, ids, minimal, NO_PATH_ID, recCtx, reqFor, settle, UNOWNED_STUBS } from './kit.js';
 
 const H = manifest.handlers as Record<string, (req: any, ctx: any) => Promise<any>>;
-const BY_ID = ALL.filter((o) => o.method === 'GET' && /\{[a-z_]+_id\}/.test(o.path) && !o.path.endsWith('/users') && o.operationId !== 'listPartnerUsersForPartner');
+const BY_ID = ALL.filter((o) => o.method === 'GET' && /\{[a-z_]+_id\}/.test(o.path) && !o.path.endsWith('/users') && o.operationId !== 'listPartnerUsersForPartner' && !UNOWNED_STUBS.includes(o.operationId)); // T0C-MSGDESK-1 ruling: pending ticket stubs skip until T0B-MSGDESK-1
 const OTHER = '01940e00-0000-7000-8000-c13220000f99';
 const reportPort = { ReportingPort: { async openReleasedReportFile() { throw new LimsError('common.not_found'); } } };
 

@@ -4,6 +4,10 @@
 // PIN (CONV, notes/T0B-ACCT-2-tests.md): the invoice payments of billing.ledger_entries of the same centre and business_date (payment, net of reversal / refund rows; gateway rows have
 // no collector and are left out exactly like getDailyCash) are grouped by method_code into the SAME payment_mode rows, so for a day the summary total equals
 // getDailyCash totals.net.amount_paisa + the net credit account entries of the day. A day with nothing -> rows [] and total 0.
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { parse } from 'yaml';
 import { describe, expect, it } from 'vitest';
 import { notFound, rejected } from './helpers.js';
 import { CENTRE, T, TENANT_A, dbRows, expWorld, fire, fundCredit, ok, req, staff, summaryOf, superTx, uid } from './helpers2.js';
@@ -92,6 +96,30 @@ describe('getDailyCollectionSummary reconciles with billing getDailyCash (done_w
     expect(r['esewa_qr'].total_paisa).toBe(dcByMethod['esewa_qr']);
     expect(r['bank_transfer'].total_paisa).toBe(10_000);
     expect(s.total_paisa).toBe(s.rows.reduce((a: number, x: any) => a + x.total_paisa, 0));
+  }, T);
+
+  // Reviewer item (T0B-ACCT-2-review.md): a refund today for yesterday's bill must not break the contract. The bounds are read from billing.yaml (DailyCollectionRow,
+  // DailyCollectionSummary), so the test follows whichever option the lead rules in the CR (signed net, or refunds reported apart); it only fails while the response
+  // violates the declared schema (today minimum: 0 on entry_count and total_paisa vs a negative net).
+  it('a refund-only day (payment on D-1, reversal on D) gives a response that satisfies the DailyCollectionSummary contract', async () => {
+    const w = await expWorld('a');
+    const n = 10 + Math.floor(Math.random() * 15);
+    const prev = '2026-07-' + String(n), day = '2026-07-' + String(n + 1);
+    const cashier = await staff(w.tenant);
+    const orderId = uid();
+    const paid = await payment(w, cashier.id, { method: 'cash', paisa: 45_000, day: prev, orderId });
+    await payment(w, cashier.id, { method: 'cash', paisa: 45_000, day, kind: 'reversal', reverses: paid, orderId });
+    const s = ok(await summaryOf(w.tenant, w.centre, day));
+    const spec: any = parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), '../../../../../../..', 'contracts/openapi/billing.yaml'), 'utf8'));
+    const sch = spec.components.schemas;
+    const row = sch.DailyCollectionRow.properties, top = sch.DailyCollectionSummary.properties;
+    for (const x of s.rows) {
+      expect(Number.isSafeInteger(x.entry_count) && Number.isSafeInteger(x.total_paisa)).toBe(true);
+      if (row.entry_count.minimum !== undefined) expect(x.entry_count).toBeGreaterThanOrEqual(row.entry_count.minimum);
+      if (row.total_paisa.minimum !== undefined) expect(x.total_paisa).toBeGreaterThanOrEqual(row.total_paisa.minimum);
+    }
+    if (top.total_paisa.minimum !== undefined) expect(s.total_paisa).toBeGreaterThanOrEqual(top.total_paisa.minimum);
+    expect(Number.isSafeInteger(s.total_paisa)).toBe(true);
   }, T);
 
   it('same day, another centre\'s payments are not mixed in (centre filter agrees with getDailyCash centre_id)', async () => {

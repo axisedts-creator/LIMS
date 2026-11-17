@@ -23,24 +23,27 @@ import { PageHeader } from '@lims/ui/components/PageHeader';
 import { RadioGroup } from '@lims/ui/components/RadioGroup';
 import { Select } from '@lims/ui/components/Select';
 import { Switch } from '@lims/ui/components/Switch';
+import { TextArea } from '@lims/ui/components/TextArea';
 import { TextField } from '@lims/ui/components/TextField';
 import { useToast } from '@lims/ui/components/Toast';
 import { VisuallyHidden } from '@lims/ui/components/VisuallyHidden';
 import { useRouter } from 'next/navigation';
 import {
-  MAX_ITEMS, MAX_PAY_ROWS, buildDraft, effectivePriority, hasPayErrors, newKey, paymentsOf, plain, registerBody, rowAmount, validateDowntime, validatePayments,
-  type DowntimeErrors, type Downtime, type Item, type PayErrors, type PayRow,
+  COUPON_RE, MAX_ITEMS, MAX_PAY_ROWS, buildDraft, draftPatient, effectivePriority, hasPayErrors, newKey, opt, parseDraftPayload, paymentsOf, plain, registerBody, rowAmount, validateDowntime, validatePayments,
+  type DowntimeErrors, type Downtime, type DraftPayload, type Item, type PayErrors, type PayRow,
 } from '../forms/draft';
 import { SHORTCUT_GROUPS } from '../forms/shortcuts';
 import { enterPicksFirst } from '../hooks/useEnterPicksFirst';
 import { useQuote } from '../hooks/useQuote';
 import { useShortcuts } from '../hooks/useShortcuts';
 import {
-  createRegistrationAction, getDiscountApprovalAction, listDiscountReasonsAction, listPaymentMethodsAction, requestDiscountApprovalAction, searchCreditPartiesAction, searchDoctorsAction,
-  searchOrderablesAction, searchPatientsAction, uploadRegistrationTrfAction,
+  addFavouriteAction, createDraftAction, createRegistrationAction, deleteDraftAction, getDiscountApprovalAction, getPatientRewardsAction, listCustomFieldDefinitionsAction,
+  listDiscountReasonsAction, listFavouritesAction, listIcdCodesAction, listPaymentMethodsAction, listTestNamesAction, previewNumbersAction, removeFavouriteAction,
+  requestDiscountApprovalAction, searchCreditPartiesAction, searchDoctorsAction, searchOrderablesAction, searchPatientsAction, uploadRegistrationTrfAction,
 } from '../server/actions';
-import type { Centre, CodedSetEntry, CreditPartySummary, DoctorSummary, DraftDiscount, NewPatientDraft, OrderableSummary, PatientSummary, RegistrationResult } from '../server/types';
+import type { Centre, CodedSetEntry, CreditPartySummary, CustomFieldDefinition, DoctorSummary, DraftDiscount, IcdCode, NewPatientDraft, NumberPreview, OrderableSummary, PatientSummary, RegistrationResult } from '../server/types';
 import { DiscountDialog } from './DiscountDialog';
+import { DraftsDialog } from './DraftsDialog';
 import { NewPatientForm } from './NewPatientForm';
 import { AddClientDialog, AddDoctorDialog, KIND_LABEL } from './QuickAdd';
 import { SuccessPanel } from './SuccessPanel';
@@ -134,6 +137,28 @@ function Registration({ centres, permissions, defaultCentreId, consentTextVersio
   const [dialog, setDialog] = useState<'none' | 'discount' | 'shortcuts' | 'zero' | 'discard' | 'client' | 'doctor'>('none');
   const [testKey, setTestKey] = useState(0); // remount the test search after each add: clears its text, keeps focus
   const [patientKey, setPatientKey] = useState(0);
+  // LD-310 / T0D-REGSCREEN-2: the backend backed ElabAssist items (T0B-REGAPI-1/2).
+  const [preview, setPreview] = useState<NumberPreview>();
+  const [icdMaster, setIcdMaster] = useState<IcdCode[]>([]);
+  const [customDefs, setCustomDefs] = useState<CustomFieldDefinition[]>([]);
+  const [favs, setFavs] = useState<Set<string>>(new Set());
+  const [known, setKnown] = useState<Record<string, OrderableSummary>>({}); // id -> summary for favourites names (cart, search results, C3 tests list)
+  const [testTab, setTestTab] = useState<'all' | 'favourites'>('all');
+  const [rewards, setRewards] = useState<number>();
+  const [redeem, setRedeem] = useState<number>();
+  const [couponText, setCouponText] = useState('');
+  const [coupon, setCoupon] = useState<string>();
+  const [couponErr, setCouponErr] = useState<string>();
+  const [visitingPaisa, setVisitingPaisa] = useState<number>();
+  const [collectionAt, setCollectionAt] = useState<string>();
+  const [collectedBy, setCollectedBy] = useState('');
+  const [notCollected, setNotCollected] = useState(false);
+  const [sampleRemark, setSampleRemark] = useState('');
+  const [texts, setTexts] = useState({ clinical: '', history: '', mr: '', extRef: '', insCode: '' }); // health text (D-27a): F9 only
+  const [claimPaisa, setClaimPaisa] = useState<number>();
+  const [orderErr, setOrderErr] = useState<{ collectionAt?: string; sampleRemark?: string }>({});
+  const [openedDraft, setOpenedDraft] = useState<string>();
+  const [draftsOpen, setDraftsOpen] = useState(false);
   const submitting_ = useRef(false);
   const rowId = useRef(0);
   const sentKey = useRef<{ hash: string; key: string } | null>(null);
@@ -153,7 +178,11 @@ function Registration({ centres, permissions, defaultCentreId, consentTextVersio
   ];
   const allDiscounts = [...discounts, ...inline];
 
-  const ds = { centreId, patient, newPatient, visit, billing, ...(party ? { creditPartyId: party.id } : {}), ...(referrer ? { referrerId: referrer.id } : {}), collection, urgentAll, items, discounts: allDiscounts };
+  const redeemOk = redeem !== undefined && redeem > 0 && rewards !== undefined && redeem <= rewards;
+  const ds = {
+    centreId, patient, newPatient, visit, billing, ...(party ? { creditPartyId: party.id } : {}), ...(referrer ? { referrerId: referrer.id } : {}), collection, urgentAll, items, discounts: allDiscounts,
+    ...(coupon ? { coupon } : {}), ...(visitingPaisa ? { visitingPaisa } : {}), ...(redeemOk ? { redeemPoints: redeem } : {}),
+  };
   const draft = buildDraft(ds);
   const { state: qs, refresh } = useQuote(draft);
   const quote = qs.status === 'ready' ? qs.quote : null;
@@ -172,6 +201,40 @@ function Registration({ centres, permissions, defaultCentreId, consentTextVersio
   useEffect(() => { void listDiscountReasonsAction().then((r) => { if (r.ok) setReasons([...r.data].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))); }); }, []);
   useEffect(() => { const t = setInterval(() => setNow(new Date()), 30_000); return () => clearInterval(t); }, []);
   useEffect(() => { setBanner(null); }, [JSON.stringify(draft)]); // eslint-disable-line react-hooks/exhaustive-deps
+  // LD-310 / T0D-REGSCREEN-2 reads. Each is quiet on failure: the screen works without it (no alert, no error page).
+  useEffect(() => {
+    let live = true;
+    setPreview(undefined);
+    if (centreId) void previewNumbersAction(centreId).then((r) => { if (live && r.ok) setPreview(r.data); });
+    return () => { live = false; };
+  }, [centreId]);
+  useEffect(() => { void listFavouritesAction().then((r) => { if (r.ok) setFavs(new Set(r.data)); }); }, []);
+  const icdLoaded = useRef(false);
+  useEffect(() => { // lazily: only once a test is in the cart
+    if (items.length === 0 || icdLoaded.current) return;
+    icdLoaded.current = true;
+    void listIcdCodesAction().then((r) => { if (r.ok) setIcdMaster(r.data.filter((c) => c.is_active)); });
+  }, [items.length]);
+  const defsLoaded = useRef(false);
+  useEffect(() => {
+    if (!showNew || defsLoaded.current) return;
+    defsLoaded.current = true;
+    void listCustomFieldDefinitionsAction().then((r) => { if (r.ok) setCustomDefs(r.data.filter((d) => d.is_active)); });
+  }, [showNew]);
+  const canReadPatient = permissions.includes('frontdesk.patient.read'); // getPatientRewards x-permission
+  useEffect(() => {
+    let live = true;
+    setRewards(undefined); setRedeem(undefined);
+    if (patient && canReadPatient) void getPatientRewardsAction(patient.id).then((r) => { if (live && r.ok) setRewards(r.data.balance_points); });
+    return () => { live = false; };
+  }, [patient?.id, canReadPatient]); // eslint-disable-line react-hooks/exhaustive-deps
+  const namesLoaded = useRef(false);
+  useEffect(() => { // favourites carry only ids: names come from what this screen has seen, then from the C3 tests list once
+    if (testTab !== 'favourites' || namesLoaded.current || [...favs].every((id) => known[id])) return;
+    namesLoaded.current = true;
+    void listTestNamesAction().then((list) => setKnown((k) => ({ ...Object.fromEntries(list.map((o) => [o.id, o])), ...k })));
+  }, [testTab, favs, known]);
+  const remember = (os: readonly OrderableSummary[]) => { if (os.some((o) => !known[o.id])) setKnown((k) => ({ ...k, ...Object.fromEntries(os.map((o) => [o.id, o])) })); };
 
   useEffect(() => { // approval wait: poll every 3 s through the BFF (04-UI-UX §1)
     if (approval?.status !== 'pending') return;
@@ -188,9 +251,28 @@ function Registration({ centres, permissions, defaultCentreId, consentTextVersio
     if (!o) return;
     if (items.some((i) => i.orderable.id === o.id)) toast.show({ tone: 'warning', title: 'Already added' });
     else if (items.length >= MAX_ITEMS) toast.show({ tone: 'warning', title: `At most ${MAX_ITEMS} tests per registration` });
-    else setItems((xs) => [...xs, { orderable: o }]);
+    else { setItems((xs) => [...xs, { orderable: o }]); remember([o]); }
     wantFocus.current = 'tests';
     setTestKey((k) => k + 1);
+  };
+  const setIcd = (id: string, icd: string | undefined) => setItems((xs) => xs.map((i) => (i.orderable.id === id ? { ...i, ...(icd ? { icd } : { icd: undefined as never }) } : i)));
+  const icdToAll = (icd: string | undefined) => { if (icd) setItems((xs) => xs.map((i) => ({ ...i, icd }))); };
+  const loadIcd = async (q: string) => {
+    const t = q.trim().toLowerCase();
+    return icdMaster.filter((c) => c.code.toLowerCase().startsWith(t) || c.description.toLowerCase().includes(t)).slice(0, 20);
+  };
+  /** Star toggle: optimistic, reverted (and said) when the API refuses. */
+  const toggleFav = async (id: string) => {
+    const on = !favs.has(id);
+    const flip = (v: boolean) => setFavs((s) => { const n = new Set(s); if (v) n.add(id); else n.delete(id); return n; });
+    flip(on);
+    const r = on ? await addFavouriteAction(id, newKey()) : await removeFavouriteAction(id);
+    if (!r.ok) { flip(!on); toast.show({ tone: 'danger', title: 'Could not save the favourite' }); }
+  };
+  const applyCoupon = () => {
+    const c = couponText.trim().toUpperCase();
+    if (!COUPON_RE.test(c)) { setCouponErr('Enter a valid coupon code: letters, digits, - and _ (at most 32)'); return; }
+    setCouponErr(undefined); setCouponText(c); setCoupon(c);
   };
   const removeItem = (id: string) => {
     setItems((xs) => xs.filter((i) => i.orderable.id !== id)); setDiscounts((ds_) => ds_.filter((d) => d.orderable_id !== id));
@@ -236,6 +318,7 @@ function Registration({ centres, permissions, defaultCentreId, consentTextVersio
     const r = await searchOrderablesAction(q);
     const t = q.trim().toLowerCase();
     const data = r.ok ? r.data : [];
+    remember(data);
     return searchBy === 'both' ? data : data.filter((o) => (searchBy === 'name' ? o.name : o.code).toLowerCase().includes(t));
   };
   const loadDoctors = async (q: string) => { const r = await searchDoctorsAction(q); return r.ok ? r.data : []; };
@@ -259,6 +342,52 @@ function Registration({ centres, permissions, defaultCentreId, consentTextVersio
       if (r.ok) { trfIdsRef.current = [...trfIdsRef.current, r.data.id]; setTrfIds(trfIdsRef.current); }
       else toast.show({ tone: 'danger', title: `${f.name} could not be uploaded` });
     }));
+  };
+
+  /** Profile photo: the TRF upload operation (multipart file + centre_id, no order_id); the id rides as new_patient.profile_photo_attachment_id. */
+  const uploadPhoto = async (f: File) => {
+    const form = new FormData();
+    form.set('file', f);
+    const r = await uploadRegistrationTrfAction(centreId, form, newKey());
+    if (r.ok) return r.data.id;
+    toast.show({ tone: 'danger', title: 'The photo could not be uploaded' });
+    return undefined;
+  };
+
+  // Drafts (LD-310 / T0D-REGSCREEN-2): kept on the server for 14 days, never in the browser. The payload is minimal (see DraftPayload).
+  const canDraft = !!(patient || newPatient || items.length) && !!centreId && !result;
+  const saveDraft = async () => {
+    if (!canDraft) return;
+    const payload: DraftPayload = {
+      ...(patient ? { patient: { patient_id: patient.id } } : newPatient ? { patient: { new_patient: draftPatient(newPatient) } } : {}),
+      centre_id: centreId, visit_type: visit, collection_mode: collection, ...(urgentAll ? { priority: 'urgent' as const } : {}),
+      items: items.map((i) => ({ ...i.orderable, ...(i.priority ? { priority: i.priority } : {}), ...(i.icd ? { icd_code: i.icd } : {}) })),
+      ...(coupon ? { coupon_code: coupon } : {}), ...(visitingPaisa ? { visiting_charge_paisa: visitingPaisa } : {}),
+      ...opt('collected_by_name', collectedBy), ...opt('mr_number', texts.mr), ...opt('external_reference', texts.extRef), ...opt('insurance_code', texts.insCode),
+    };
+    // the payload holds the orderable as {id, code, name, kind}: rename id -> orderable_id for the contract shape
+    const text = JSON.stringify({ ...payload, items: payload.items.map(({ id, ...rest }) => ({ orderable_id: id, ...rest })) });
+    const r = await createDraftAction(centreId, text, newKey());
+    toast.show(r.ok ? { tone: 'success', title: 'Draft saved' } : { tone: 'danger', title: r.title ?? 'The draft could not be saved' });
+  };
+  const restoreDraft = async (p: DraftPayload, draftId: string, patientOf: (id: string) => Promise<PatientSummary | undefined>) => {
+    let who: PatientSummary | undefined;
+    if (p.patient && 'patient_id' in p.patient) { who = await patientOf(p.patient.patient_id); if (!who) return false; }
+    setPatient(who ?? null);
+    setNewPatient(p.patient && 'new_patient' in p.patient ? p.patient.new_patient : null);
+    setShowNew(false); setPatientKey((k) => k + 1);
+    const c = centres.find((x) => x.id === p.centre_id);
+    if (c) { if (c.kind === 'franchise') setFranchiseId(c.id); else { setLabId(c.id); setFranchiseId(''); } }
+    if (p.visit_type) setVisit(p.visit_type);
+    if (p.collection_mode) setCollection(p.collection_mode);
+    setUrgentAll(p.priority === 'urgent');
+    const restored = p.items.slice(0, MAX_ITEMS).map(({ priority, icd_code, ...o }) => ({ orderable: o, ...(priority ? { priority } : {}), ...(icd_code ? { icd: icd_code } : {}) }));
+    setItems(restored); remember(restored.map((i) => i.orderable));
+    setCoupon(p.coupon_code); setCouponText(p.coupon_code ?? ''); setVisitingPaisa(p.visiting_charge_paisa);
+    setCollectedBy(p.collected_by_name ?? '');
+    setTexts((t) => ({ ...t, mr: p.mr_number ?? '', extRef: p.external_reference ?? '', insCode: p.insurance_code ?? '' }));
+    setOpenedDraft(draftId);
+    return true;
   };
 
   const blocked = dialog !== 'none';
@@ -293,14 +422,22 @@ function Registration({ centres, permissions, defaultCentreId, consentTextVersio
       await trfPending.current; // a TRF still uploading joins this registration
       const pan = buyerPan.trim();
       const trf = trfIdsRef.current;
-      const body = { ...registerBody(draft, quote, rows, dt, approval?.status === 'approved' ? approval.id : undefined), ...(pan ? { buyer_pan: pan } : {}), ...(trf.length ? { trf_attachment_ids: trf } : {}) };
+      const order = {
+        ...(collectionAt ? { collection_at: new Date(collectionAt).toISOString() } : {}), ...opt('collected_by_name', collectedBy),
+        ...(notCollected ? { sample_not_collected: true, ...opt('sample_remark', sampleRemark) } : {}),
+        ...opt('clinical_history', texts.clinical), ...opt('patient_history', texts.history), ...opt('mr_number', texts.mr), ...opt('external_reference', texts.extRef),
+        ...opt('insurance_code', texts.insCode), ...(claimPaisa ? { insurance_claim_amount_paisa: claimPaisa } : {}),
+      };
+      const body = { ...registerBody(draft, quote, rows, dt, approval?.status === 'approved' ? approval.id : undefined, newPatient, order), ...(pan ? { buyer_pan: pan } : {}), ...(trf.length ? { trf_attachment_ids: trf } : {}) };
       const hash = JSON.stringify(body);
       if (sentKey.current?.hash !== hash) sentKey.current = { hash, key: newKey() }; // one key per draft: same body → same key on every retry
       const key = sentKey.current.key;
       let r = await createRegistrationAction(body, key);
       if (!r.ok && r.code === 'billing.counter_busy') { await sleep(400); r = await createRegistrationAction(body, key); } // one automatic retry, same key
-      if (r.ok) setResult(r.data);
-      else fail(r.code, r.title, r.errors);
+      if (r.ok) {
+        setResult(r.data);
+        if (openedDraft) void deleteDraftAction(openedDraft); // a registered draft does not linger
+      } else fail(r.code, r.title, r.errors);
     } finally {
       submitting_.current = false;
       setSubmitting(false);
@@ -312,9 +449,14 @@ function Registration({ centres, permissions, defaultCentreId, consentTextVersio
     const pe = billing === 'cash' ? validatePayments(rows, net, requiresReference) : { amount: {}, reference: {}, tendered: {} };
     const de = validateDowntime(dt);
     const labelMissing = billing === 'credit' && clientLabel.trim() === '';
-    setPayErr(pe); setDtErr(de); setFieldErr(labelMissing ? { clientLabel: 'Enter the client label' } : {});
+    const oe = {
+      ...(collectionAt && Date.parse(collectionAt) > Date.now() ? { collectionAt: 'The collection time cannot be in the future' } : {}),
+      ...(notCollected && !sampleRemark.trim() ? { sampleRemark: 'Enter the sample remark' } : {}),
+    };
+    const overRedeem = redeem !== undefined && rewards !== undefined && redeem > rewards;
+    setPayErr(pe); setDtErr(de); setOrderErr(oe); setFieldErr(labelMissing ? { clientLabel: 'Enter the client label' } : {});
     if (de.occurredAt || de.ref) setMoreOpen(true); // the downtime fields live in the More fold
-    if (hasPayErrors(pe) || de.occurredAt || de.ref || labelMissing) {
+    if (hasPayErrors(pe) || de.occurredAt || de.ref || labelMissing || oe.collectionAt || oe.sampleRemark || overRedeem) {
       const i = Object.keys(pe.amount)[0];
       if (labelMissing) focusField('client-label');
       else if (i !== undefined) focusField(`amount-${i}`);
@@ -398,7 +540,7 @@ function Registration({ centres, permissions, defaultCentreId, consentTextVersio
                 <div className="lims-reg-section">
                   {showNew ? (
                     <NewPatientForm consentTextVersion={consentTextVersion} onCancel={closeNewPatient} onUse={(p) => { setNewPatient(p); setPatient(null); closeNewPatient(); }}
-                      findExisting={findExisting} onUseExisting={(p) => { pickPatient(p); closeNewPatient(); }} />
+                      findExisting={findExisting} onUseExisting={(p) => { pickPatient(p); closeNewPatient(); }} customFields={customDefs} uploadPhoto={uploadPhoto} />
                   ) : (
                     <>
                       <div data-field="patient" onKeyDownCapture={onPatientKey}>
@@ -435,8 +577,24 @@ function Registration({ centres, permissions, defaultCentreId, consentTextVersio
                       options={[{ value: '', label: 'None' }, ...franchises.map((c) => ({ value: c.id, label: c.name }))]} />
                   </div>
                   <TextField label="Registration date and time" name="registration_at" maxLength={40} isReadOnly value={fmtNow(now)} />
+                  {/* LD-310 / T0D-REGSCREEN-2: a preview only (previewRegistrationNumbers consumes no counter); the real numbers are assigned on save */}
+                  <div className="lims-reg-pair">
+                    <TextField label="Next lab number" name="next_lab_number" maxLength={32} isReadOnly value={preview?.next_registration_no ?? ''} />
+                    <TextField label="Next bill receipt number" name="next_receipt_number" maxLength={64} isReadOnly value={preview?.next_receipt_no ?? ''} />
+                  </div>
+                  {preview ? <p className="lims-reg-hint">{preview.next_receipt_no_label}</p> : null}
                   <button type="button" className="lims-reg-more" aria-expanded={moreOpen} aria-controls={moreId} onClick={() => setMoreOpen((o) => !o)}>More {moreOpen ? '▴' : '▾'}</button>
-                  <div id={moreId} hidden={!moreOpen} className="lims-reg-section">
+                  <div id={moreId} hidden={!moreOpen} className="lims-reg-section lims-reg-fold">
+                    <TextArea label="Clinical history" name="clinical_history" maxLength={4000} rows={2} showCount={false} value={texts.clinical} onChange={(v) => setTexts((t) => ({ ...t, clinical: v }))} />
+                    <TextArea label="Patient history" name="patient_history" maxLength={4000} rows={2} showCount={false} value={texts.history} onChange={(v) => setTexts((t) => ({ ...t, history: v }))} />
+                    <div className="lims-reg-pair">
+                      <TextField label="MR number" name="mr_number" maxLength={64} value={texts.mr} onChange={(v) => setTexts((t) => ({ ...t, mr: v }))} />
+                      <TextField label="External reference" name="external_reference" maxLength={64} value={texts.extRef} onChange={(v) => setTexts((t) => ({ ...t, extRef: v }))} />
+                    </div>
+                    <div className="lims-reg-pair">
+                      <TextField label="Insurance code" name="insurance_code" maxLength={64} value={texts.insCode} onChange={(v) => setTexts((t) => ({ ...t, insCode: v }))} />
+                      <MoneyField label="Insurance claim amount" name="insurance_claim_amount" {...(claimPaisa !== undefined ? { value: npr(claimPaisa) } : {})} onChange={(m) => setClaimPaisa(m?.amountPaisa)} />
+                    </div>
                     <TextField label="Buyer PAN" name="buyer_pan" maxLength={32} inputMode="numeric" value={buyerPan} onChange={setBuyerPan} />
                     <Switch label="Downtime back-entry" isSelected={dt.on} onChange={(on) => { setDtErr({}); setDt({ on, ref: '' }); }} />
                     {dt.on ? (
@@ -455,29 +613,55 @@ function Registration({ centres, permissions, defaultCentreId, consentTextVersio
                 <div className="lims-reg-section lims-reg-fill">
                   <RadioGroup label="Search tests by" name="test_search_by" orientation="horizontal" value={searchBy} onChange={(v) => { setSearchBy(v); setTestKey((k) => k + 1); }} options={SEARCH_BY} />
                   <div role="tablist" aria-label="Test lists" className="lims-reg-tabs">
-                    <button type="button" role="tab" aria-selected="true" className="lims-reg-tab">All tests</button>
-                    <button type="button" role="tab" aria-selected="false" aria-disabled="true" title="Favourites need a catalog list (T0D-REGSCREEN-2)" className="lims-reg-tab">Favourites</button>
+                    {(['all', 'favourites'] as const).map((tb) => (
+                      <button key={tb} type="button" role="tab" id={`${moreId}-tab-${tb}`} aria-selected={testTab === tb} aria-controls={tb === 'favourites' ? `${moreId}-favs` : undefined} className="lims-reg-tab" onClick={() => setTestTab(tb)}>
+                        {tb === 'all' ? 'All tests' : 'Favourites'}
+                      </button>
+                    ))}
                   </div>
                   <div data-field="tests" onKeyDownCapture={enterPicksFirst}>
                     <Combobox<OrderableSummary> key={testKey} label="Search tests or packages" name="test_search" debounceMs={150} loadOptions={loadOrderables} getKey={(o) => o.id} renderValue={(o) => o.name} onChange={addItem}
                       renderOption={(o) => <span><strong>{o.code}</strong> {o.name} <small>{KIND[o.kind] ?? o.kind}</small></span>} />
                   </div>
+                  {testTab === 'favourites' ? (
+                    <div role="tabpanel" id={`${moreId}-favs`} aria-labelledby={`${moreId}-tab-favourites`} className="lims-reg-favs">
+                      {favs.size === 0 ? <p className="lims-reg-hint">No favourite tests yet. Star a test in the cart to add it.</p> : (
+                        <ul aria-label="Favourite tests" className="lims-reg-fav-list">
+                          {[...favs].flatMap((id) => (known[id] ? [known[id]] : [])).map((o) => (
+                            <li key={o.id}><button type="button" className="lims-reg-fav" onClick={() => addItem(o)}><strong>{o.code}</strong> {o.name}</button></li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  ) : null}
                   <div className="lims-reg-tests-list">
                     {items.length === 0 ? <p>No tests selected yet. Press F4 to search.</p> : (
                       <table aria-label="Selected tests">
-                        <thead><tr><th scope="col">Code</th><th scope="col">Name</th><th scope="col">Kind</th><th scope="col">Priority</th><th scope="col">Price</th><th scope="col">Surcharge</th><th scope="col">Disc. %</th><th scope="col"><VisuallyHidden>Remove</VisuallyHidden></th></tr></thead>
+                        <thead><tr><th scope="col"><VisuallyHidden>Favourite</VisuallyHidden></th><th scope="col">Code</th><th scope="col">Name</th><th scope="col">Kind</th><th scope="col">Priority</th><th scope="col">Price</th><th scope="col">Surcharge</th><th scope="col">Disc. %</th><th scope="col">ICD code</th><th scope="col"><VisuallyHidden>Remove</VisuallyHidden></th></tr></thead>
                         <tbody>
                           {items.map((i) => {
                             const l = lineOf(i.orderable.id);
                             const p = linePct[i.orderable.id];
                             return (
                               <tr key={i.orderable.id} tabIndex={0} onKeyDown={(e) => rowKey(e, i.orderable.id)}>
+                                <td>
+                                  <button type="button" className="lims-reg-star" aria-pressed={favs.has(i.orderable.id)} aria-label={`Favourite ${i.orderable.code}`} onClick={() => void toggleFav(i.orderable.id)}>
+                                    <span aria-hidden="true">{favs.has(i.orderable.id) ? '★' : '☆'}</span>
+                                  </button>
+                                </td>
                                 <td>{i.orderable.code}</td><td>{i.orderable.name}</td><td>{KIND[i.orderable.kind] ?? i.orderable.kind}</td>
                                 <td>{effectivePriority(i, urgentAll) === 'urgent' ? 'Urgent' : 'Routine'}</td>
                                 <td>{l ? plain(l.unit_price.amount_paisa) : '—'}</td><td>—</td>
                                 <td className="lims-reg-cell-field">
                                   <IntegerField label={`${i.orderable.code} discount percent`} name={`line_discount_${i.orderable.code}`} min={0} max={100} {...(p !== undefined ? { value: p } : {})}
                                     onChange={(v) => setLinePct((m) => ({ ...m, [i.orderable.id]: v }))} {...(p !== undefined && p > 100 ? { error: PCT } : {})} />
+                                </td>
+                                <td className="lims-reg-cell-field lims-reg-cell-icd">
+                                  {/* ICD master codes only (free text that is not in the master is not accepted: the combobox commits a picked option only) */}
+                                  <Combobox<IcdCode> label={`${i.orderable.code} ICD code`} name={`icd_${i.orderable.code}`} loadOptions={loadIcd} getKey={(c) => c.code} renderValue={(c) => c.code}
+                                    {...(i.icd ? { value: icdMaster.find((c) => c.code === i.icd) ?? { id: i.icd, code: i.icd, description: '', is_active: true } } : {})}
+                                    onChange={(c) => setIcd(i.orderable.id, c?.code)} renderOption={(c) => <span><strong>{c.code}</strong> {c.description}</span>} />
+                                  <IconButton label={`Apply ${i.orderable.code} ICD code to all`} icon="copy" onPress={() => icdToAll(i.icd)} />
                                 </td>
                                 <td><IconButton label={`Remove ${i.orderable.code}`} icon="close" onPress={() => removeItem(i.orderable.id)} /></td>
                               </tr>
@@ -487,6 +671,15 @@ function Registration({ centres, permissions, defaultCentreId, consentTextVersio
                       </table>
                     )}
                   </div>
+                  <div className="lims-reg-pair">
+                    <DateTimePicker label="Collection date and time" name="collection_at" {...(collectionAt ? { value: collectionAt as NonNullable<DateTimePickerProps['value']> } : {})}
+                      onChange={(v) => { setOrderErr((e) => ({ ...e, collectionAt: undefined as never })); setCollectionAt(v ?? undefined); }} {...(orderErr.collectionAt ? { error: orderErr.collectionAt } : {})} />
+                    <TextField label="Collected by" name="collected_by_name" maxLength={200} value={collectedBy} onChange={setCollectedBy} />
+                  </div>
+                  <Switch label="Sample not collected" isSelected={notCollected} onChange={(v) => { setNotCollected(v); setOrderErr((e) => ({ ...e, sampleRemark: undefined as never })); }} />
+                  {notCollected ? (
+                    <TextField label="Sample remark" name="sample_remark" maxLength={500} isRequired value={sampleRemark} onChange={(v) => { setSampleRemark(v); setOrderErr((e) => ({ ...e, sampleRemark: undefined as never })); }} {...(orderErr.sampleRemark ? { error: orderErr.sampleRemark } : {})} />
+                  ) : null}
                   <div className="lims-reg-pair">
                     <Button variant="ghost" shortcut="Alt+U" onPress={openTrf}>Upload TRF</Button>
                     <Button variant="ghost" onPress={() => { wantFocus.current = 'barcode'; setBarcode(genBarcode()); }}>Generate barcode</Button>
@@ -569,13 +762,32 @@ function Registration({ centres, permissions, defaultCentreId, consentTextVersio
                       : <Banner tone="warning" title={`Approval needed (limit ${quote.discount_evaluation.limit_percent_bp / 100}%)`} action={{ label: 'Request approval (Alt+A)', onPress: () => void requestApproval() }} />
                   ) : null}
                   <Button variant="ghost" shortcut="F6" onPress={() => items.length > 0 && setDialog('discount')} isDisabled={items.length === 0}>Discount</Button>
+                  {/* LD-310 / T0D-REGSCREEN-2: coupon (the server decides validity; front desk cannot list coupons), visiting charge, reward points */}
+                  <div className="lims-reg-pair">
+                    <TextField label="Coupon code" name="coupon_code" maxLength={32} value={couponText} onChange={(v) => { setCouponText(v); setCouponErr(undefined); setCoupon(undefined); }} {...(couponErr ? { error: couponErr } : {})} />
+                    <Button variant="ghost" onPress={applyCoupon}>Apply coupon</Button>
+                  </div>
+                  {coupon && quote ? (
+                    <ul aria-label="Applied coupons" className="lims-reg-coupons">
+                      <li><span>{coupon}</span> <MoneyText value={npr(quote.totals.discount.amount_paisa)} />{' '}
+                        <IconButton label={`Remove coupon ${coupon}`} icon="close" onPress={() => { setCoupon(undefined); setCouponText(''); }} /></li>
+                    </ul>
+                  ) : null}
+                  <div className="lims-reg-pair">
+                    <MoneyField label="Visiting charge" name="visiting_charge" {...(visitingPaisa !== undefined ? { value: npr(visitingPaisa) } : {})} onChange={(m) => setVisitingPaisa(m?.amountPaisa || undefined)} />
+                    {rewards !== undefined ? (
+                      <IntegerField label="Redeem points" name="redeem_reward_points" min={0} max={rewards} {...(redeem !== undefined ? { value: redeem } : {})} onChange={setRedeem}
+                        {...(redeem !== undefined && redeem > rewards ? { error: `More than the balance of ${rewards} points` } : {})} />
+                    ) : null}
+                  </div>
+                  {rewards !== undefined ? <p className="lims-reg-hint">Reward points <strong>{rewards}</strong></p> : null}
                   {billing === 'credit' ? (
                     <p>{party ? `Billed to ${party.name} monthly` : 'Choose a credit party. The bill is charged to it monthly.'}</p>
                   ) : (
                     <div role="group" aria-label="Payment rows">
                       {rows.map((r, i) => (
                         <div key={r.id} className="lims-reg-pay-row">
-                          <Select label={i === 0 ? 'Method' : `Method (row ${i + 1})`} name={`method_${i}`} value={r.method} onChange={(v) => patchRow(i, { method: v })}
+                          <Select label={i === 0 ? 'Method' : `Method (row ${i + 1})`} name={`method_${i}`} value={r.method} onChange={(v) => patchRow(i, { method: v, ...(v !== 'card' ? { cardHolder: undefined as never } : {}) })}
                             options={(methods.length ? methods : [{ code: 'cash', display: 'Cash' }]).map((m) => ({ value: m.code, label: m.display }))} />
                           <div data-field={`amount-${i}`}>
                             <MoneyField label={i === 0 ? 'Amount' : `Amount (row ${i + 1})`} name={`amount_${i}`} {...(rowAmount(r, i, net) > 0 || r.amountTouched === false ? { value: npr(rowAmount(r, i, net)) } : {})}
@@ -589,6 +801,10 @@ function Registration({ centres, permissions, defaultCentreId, consentTextVersio
                               {r.tendered !== undefined && r.tendered >= rowAmount(r, i, net) && rowAmount(r, i, net) > 0 ? <div><span>Change</span> <MoneyText value={npr(r.tendered - rowAmount(r, i, net))} /></div> : null}
                             </>
                           ) : null}
+                          {r.method === 'card' ? (
+                            <TextField label={i === 0 ? 'Card holder name' : `Card holder name (row ${i + 1})`} name={`card_holder_${i}`} maxLength={100} autoComplete="off" value={r.cardHolder ?? ''} onChange={(v) => patchRow(i, { cardHolder: v })} />
+                          ) : null}
+                          <TextField label={i === 0 ? 'Payment remark' : `Payment remark (row ${i + 1})`} name={`payment_remark_${i}`} maxLength={300} value={r.remark ?? ''} onChange={(v) => patchRow(i, { remark: v })} />
                           {i > 0 ? <IconButton label={`Remove payment row ${i + 1}`} icon="close" onPress={() => { clearPay(); setRows((rs) => rs.filter((x) => x.id !== r.id)); }} /> : null}
                         </div>
                       ))}
@@ -619,12 +835,15 @@ function Registration({ centres, permissions, defaultCentreId, consentTextVersio
                 <dd>{quote ? `Limit ${quote.discount_evaluation.limit_percent_bp / 100}%${needsApproval ? ' · approval required' : ''}` : '—'}</dd>
               </div>
             </dl>
+            <Button variant="ghost" isDisabled={!canDraft} onPress={() => void saveDraft()}>Save as draft</Button>
+            <Button variant="ghost" onPress={() => setDraftsOpen(true)}>Drafts</Button>
             <Button variant="primary" type="submit" shortcut="Ctrl+Enter" isDisabled={!canRegister} isLoading={submitting} onPress={submit}>Register &amp; print</Button>
           </aside>
         </>
       )}
 
       {dialog === 'discount' ? <DiscountDialog items={items} onClose={() => setDialog('none')} onApply={(d) => { setDiscounts((x) => [...x, d]); setApproval(null); setDialog('none'); }} /> : null}
+      {draftsOpen ? <DraftsDialog centres={centres} onClose={() => setDraftsOpen(false)} onOpen={async (p, id, patientOf) => { const ok = await restoreDraft(p, id, patientOf); if (ok) setDraftsOpen(false); return ok; }} /> : null}
       {dialog === 'client' ? <AddClientDialog onClose={() => setDialog('none')} onSaved={(p) => { pickParty(p); setDialog('none'); }} /> : null}
       {dialog === 'doctor' ? <AddDoctorDialog onClose={() => setDialog('none')} onSaved={(d) => { setReferrer(d); setFieldErr({}); setDialog('none'); }} /> : null}
       <KeyboardShortcutsDialog isOpen={dialog === 'shortcuts'} onClose={() => setDialog('none')} groups={SHORTCUT_GROUPS} />

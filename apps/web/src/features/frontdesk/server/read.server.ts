@@ -7,8 +7,8 @@ import { ApiError, serverFetch } from '@/core/api/server-fetch';
 import { problem } from '@/core/session/types';
 import {
   UUID_RE,
-  type CatalogOption, type Centre, type Coded, type CodedSetEntry, type CreditPartySummary, type DiscountApproval, type DoctorSummary,
-  type Order, type OrderBilling, type OrderFlag, type OrderSummary, type OrderableSummary, type Page, type Patient, type PatientSummary, type PossibleDuplicate,
+  type CatalogOption, type Centre, type Coded, type CodedSetEntry, type CreditPartySummary, type CustomFieldDefinition, type DiscountApproval, type DoctorSummary,
+  type DraftRecord, type DraftRecordSummary, type IcdCode, type NumberPreview, type PatientRewards, type Order, type OrderBilling, type OrderFlag, type OrderSummary, type OrderableSummary, type Page, type Patient, type PatientSummary, type PossibleDuplicate,
 } from './types';
 
 const bad = () => new ApiError(400, problem('common.validation_failed', 'Validation failed', 400));
@@ -52,7 +52,16 @@ export async function getDiscountApproval(approvalId: string): Promise<{ id: str
   return serverFetch(`/v1/frontdesk/discount-approvals/${id(approvalId)}`);
 }
 
-export const getOrder = (orderId: string) => serverFetch<Order>(`/v1/frontdesk/orders/${id(orderId)}`);
+// LD-310 / T0D-REGSCREEN-2 (T0B-REGAPI-1/2): registration screen reads. All need frontdesk.registration.create except rewards (frontdesk.patient.read).
+export const listIcdCodes = async () => (await serverFetch<Page<IcdCode>>('/v1/frontdesk/icd-codes?is_active=true&limit=200')).data.filter((c) => c.is_active);
+export const listCustomFieldDefinitions = async () => (await serverFetch<Page<CustomFieldDefinition>>('/v1/frontdesk/custom-field-definitions?limit=200')).data;
+export const previewRegistrationNumbers = (centreId: string) => serverFetch<NumberPreview>(`/v1/frontdesk/registrations/number-preview?centre_id=${id(centreId)}`);
+export const listRegistrationDrafts = async () => (await serverFetch<Page<DraftRecordSummary>>('/v1/frontdesk/registration-drafts?limit=200')).data;
+export const getRegistrationDraft = (draftId: string) => serverFetch<DraftRecord>(`/v1/frontdesk/registration-drafts/${id(draftId)}`);
+export const listFavouriteTests = async () => (await serverFetch<Page<{ orderable_id: string }>>('/v1/frontdesk/favourite-tests?limit=200')).data.map((f) => f.orderable_id);
+export const getPatientRewards = (patientId: string) => serverFetch<PatientRewards>(`/v1/frontdesk/patients/${id(patientId)}/rewards?limit=1`);
+
+export const getOrder =(orderId: string) => serverFetch<Order>(`/v1/frontdesk/orders/${id(orderId)}`);
 export const getOrderBilling = (orderId: string) => serverFetch<OrderBilling>(`/v1/billing/orders/${id(orderId)}`);
 export const getPatient = (patientId: string) => serverFetch<Patient>(`/v1/frontdesk/patients/${id(patientId)}`);
 export const listPatientOrders = (patientId: string) => serverFetch<Page<OrderSummary>>(`/v1/frontdesk/patients/${id(patientId)}/orders?limit=50`);

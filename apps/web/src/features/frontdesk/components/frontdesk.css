@@ -65,3 +65,19 @@
 .lims-reg-summary-list { gap: 0.125rem var(--lims-space-4) !important; font-size: 0.75rem; }
 .lims-reg-summary .lims-btn { flex: none; white-space: nowrap; }
 .lims-reg-summary-balance { font-size: 0.9375rem !important; }
+
+/* LD-310 / T0D-REGSCREEN-2: the new groups live inside the three columns; each column and the More fold scroll inside their own box, never the page. */
+[data-reg-column] { min-height: 0; overflow-y: auto; }
+.lims-reg-fold { max-height: 40vh; overflow-y: auto; }
+.lims-reg-grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--lims-space-1-5, 0.375rem) var(--lims-space-2); }
+.lims-reg-favs { max-height: 8rem; overflow-y: auto; }
+.lims-reg-fav-list, .lims-reg-coupons { margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: var(--lims-space-1); }
+.lims-reg-fav { padding: 0 var(--lims-space-2); border: 1px solid var(--lims-neutral-200); border-radius: var(--lims-radius-lg); background: var(--lims-neutral-0); font: inherit; cursor: pointer; }
+.lims-reg-coupons li { display: flex; align-items: center; gap: var(--lims-space-2); }
+.lims-reg-star { border: 0; background: none; font: inherit; color: var(--lims-neutral-600); cursor: pointer; }
+.lims-reg-star[aria-pressed='true'] { color: var(--lims-accent); }
+.lims-reg-fav:focus-visible, .lims-reg-star:focus-visible { outline: 2px solid var(--lims-focus-ring); outline-offset: 2px; }
+.lims-reg-cell-icd { display: flex; align-items: center; gap: var(--lims-space-1); }
+.lims-reg-cell-icd .lims-input { width: 5.5rem; }
+.lims-reg-drafts { max-height: 60vh; overflow-y: auto; }
+.lims-reg-video { width: 100%; max-height: 50vh; }

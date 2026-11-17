@@ -294,10 +294,19 @@ export type ErrorCode =
   | "smartreport.summary_superseded"
   | "smartreport.template_not_approved"
   | "smartreport.validator_failed"
+  | "sync.base_version_stale"
+  | "sync.batch_too_large"
   | "sync.block_size_too_large"
+  | "sync.clock_skew_too_large"
   | "sync.device_revoked"
   | "sync.device_unknown"
+  | "sync.entity_changed"
+  | "sync.number_out_of_block"
+  | "sync.offline_not_allowed"
+  | "sync.op_id_reused"
+  | "sync.result_locked"
   | "sync.series_unknown"
+  | "sync.verification_policy_failed"
   | "sync.wipe_required";
 
 export const ERROR_META: Readonly<Record<ErrorCode, { readonly http: number; readonly owner: string; readonly title: string }>> = {
@@ -595,9 +604,18 @@ export const ERROR_META: Readonly<Record<ErrorCode, { readonly http: number; rea
   "smartreport.summary_superseded": { http: 409, owner: "C14", title: "Summary built on superseded results" },
   "smartreport.template_not_approved": { http: 409, owner: "C14", title: "Template library not approved" },
   "smartreport.validator_failed": { http: 422, owner: "C14", title: "Generated text failed validation" },
+  "sync.base_version_stale": { http: 409, owner: "C0", title: "Base version stale" },
+  "sync.batch_too_large": { http: 422, owner: "C0", title: "Batch too large" },
   "sync.block_size_too_large": { http: 422, owner: "C0", title: "Block size too large" },
+  "sync.clock_skew_too_large": { http: 422, owner: "C0", title: "Clock skew too large" },
   "sync.device_revoked": { http: 403, owner: "C0", title: "Device revoked" },
   "sync.device_unknown": { http: 409, owner: "C0", title: "Device not registered" },
+  "sync.entity_changed": { http: 409, owner: "C0", title: "Entity changed" },
+  "sync.number_out_of_block": { http: 422, owner: "C0", title: "Number outside reserved block" },
+  "sync.offline_not_allowed": { http: 403, owner: "C0", title: "Not allowed offline" },
+  "sync.op_id_reused": { http: 422, owner: "C0", title: "Operation id reused" },
+  "sync.result_locked": { http: 409, owner: "C0", title: "Result locked" },
   "sync.series_unknown": { http: 422, owner: "C0", title: "Number series not available" },
+  "sync.verification_policy_failed": { http: 403, owner: "C0", title: "Verification policy failed" },
   "sync.wipe_required": { http: 409, owner: "C0", title: "Device wipe required" },
 };

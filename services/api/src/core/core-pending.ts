@@ -8,4 +8,10 @@ export const CORE_PENDING_OPERATIONS: readonly string[] = Object.freeze([
   'ackDeviceWipe',
   'getSyncStatus',
   'reserveNumberBlock',
+  // T0C-SYNC-2 (LD-322, LD-325 b): part 2; T0B-SYNC-2..5 remove them with the handlers.
+  'pushSyncBatch',
+  'pullChanges',
+  'listSyncConflicts',
+  'getSyncConflict',
+  'resolveSyncConflict',
 ]);

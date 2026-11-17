@@ -497,6 +497,361 @@ paths:
         '422': { $ref: '_common.yaml#/components/responses/Unprocessable' }
         '429': { $ref: '_common.yaml#/components/responses/TooManyRequests' }
         '500': { $ref: '_common.yaml#/components/responses/Internal' }
+  # ---------- T0C-SYNC-2 (LD-322; design C:/LIMS-state/offline-design-20261117.md sections 2, 3, 4, 5, 7, 8): offline sync part 2 ----------
+  /v1/core/sync/batches:
+    post:
+      operationId: pushSyncBatch
+      tags: [core]
+      summary: Push a batch of queued offline operations (T0C-SYNC-2)
+      description: >-
+        Bulk push of the device outbox when the connection returns. At most 50 operations and 1 MB (1048576 bytes) per
+        batch, one batch in flight per device; a larger batch answers sync.batch_too_large for the whole request. Every
+        operation is applied in its own transaction, in the order sent, so one bad operation never fails the batch: the
+        answer holds one result per op_id (accepted, duplicate, rejected or conflict, a closed error code, and for bills,
+        invoices and receipts the mapping from the PROVISIONAL offline number to the final gap free number). The op_id is
+        the idempotency key (per tenant): re-sending an op_id with the same payload answers duplicate with the first
+        outcome; the same op_id with another payload answers sync.op_id_reused. The server is authoritative: it re-checks
+        the permission of the wrapped operation for the signed in user, the entity version (base_version), the
+        verification policy and the step up rules at sync time, and records server time next to the device time (a clock
+        skew above the limit is flagged or answers sync.clock_skew_too_large). A request level 429 carries Retry-After
+        (retry_after, seconds); the device backs off with full jitter. A revoked device answers sync.device_revoked, a
+        device with a pending wipe sync.wipe_required, before any operation is read.
+      security:
+        - bearerJwt: []
+      x-permission: sync.use
+      x-context: tenant
+      x-idempotency: none
+      x-idempotency-justification: "E3 per operation idempotency: every operation carries its own op_id, the idempotency key per tenant (design principle 3); a replayed op_id answers duplicate with the first outcome, so the batch takes no Idempotency-Key header."
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - sync.batch_too_large
+        - sync.device_unknown
+        - sync.device_revoked
+        - sync.wipe_required
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SyncBatchRequest' }
+            examples:
+              three_operations:
+                value:
+                  device_id: 0193c4a0-0000-7000-8000-0000005c0001
+                  operations:
+                    - op_id: 0193c4a0-0000-7000-8000-0000005d0001
+                      op_type: billing.record_receipt
+                      entity_id: 0193c4a0-0000-7000-8000-0000005d0101
+                      payload: { method_code: SYN_CODE, amount_received_paisa: 150000, reference: Synthetic reference }
+                      device_created_at: '2026-11-17T08:05:00Z'
+                    - op_id: 0193c4a0-0000-7000-8000-0000005d0002
+                      op_type: accession.receive
+                      entity_id: 0193c4a0-0000-7000-8000-0000005d0102
+                      base_version: 2
+                      payload: { processing_centre_id: 0193c4a0-0000-7000-8000-0000005d0201 }
+                      device_created_at: '2026-11-17T08:06:00Z'
+                    - op_id: 0193c4a0-0000-7000-8000-0000005d0003
+                      op_type: result.verify
+                      entity_id: 0193c4a0-0000-7000-8000-0000005d0103
+                      base_version: 3
+                      payload: { acknowledged_flags: [delta] }
+                      device_created_at: '2026-11-17T08:07:00Z'
+      responses:
+        '200':
+          description: One result per op_id, in the order sent.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SyncBatchResult' }
+              examples:
+                accepted_duplicate_conflict:
+                  value:
+                    results:
+                      - op_id: 0193c4a0-0000-7000-8000-0000005d0001
+                        status: accepted
+                        entity_id: 0193c4a0-0000-7000-8000-0000005d0101
+                        number_mappings:
+                          - { document_type: receipt, provisional_number: OFF-5C0001-12, final_number: RCP-2083-000145 }
+                        skew_flag: false
+                      - op_id: 0193c4a0-0000-7000-8000-0000005d0002
+                        status: duplicate
+                        entity_id: 0193c4a0-0000-7000-8000-0000005d0102
+                        skew_flag: false
+                      - op_id: 0193c4a0-0000-7000-8000-0000005d0003
+                        status: conflict
+                        error_code: sync.base_version_stale
+                        conflict_id: 0193c4a0-0000-7000-8000-0000005d0301
+                        entity_id: 0193c4a0-0000-7000-8000-0000005d0103
+                        skew_flag: false
+        '400': { $ref: '_common.yaml#/components/responses/BadRequest' }
+        '401': { $ref: '_common.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '_common.yaml#/components/responses/Forbidden' }
+        '409': { $ref: '_common.yaml#/components/responses/Conflict' }
+        '422': { $ref: '_common.yaml#/components/responses/Unprocessable' }
+        '429': { $ref: '_common.yaml#/components/responses/TooManyRequests' }
+        '500': { $ref: '_common.yaml#/components/responses/Internal' }
+  /v1/core/sync/pull:
+    post:
+      operationId: pullChanges
+      tags: [core]
+      summary: Pull changes of the cacheable reference data (T0C-SYNC-2)
+      description: >-
+        Read by POST because the body carries one opaque cursor per entity type (clients never parse a cursor; absent =
+        from the start). Only the entity types of the whitelist can be pulled (cacheable reads of design section 3; never
+        credentials, users or roles). Each entity type answers a page of upserts (row, version token when the table has
+        one, else updated_at) and tombstones for removed rows (id and time only, no row data), the next cursor and
+        has_more; limit is the page size per entity type. Rows are filtered by the tenant and the permissions of the
+        signed in user. A revoked device answers sync.device_revoked and a device with a pending wipe sync.wipe_required
+        before any data is read.
+      security:
+        - bearerJwt: []
+      x-permission: sync.use
+      x-context: tenant
+      x-idempotency: none
+      x-idempotency-justification: "E3 read-only POST: the cursors per entity type travel in the body; no state written, nothing to replay."
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.invalid_cursor
+        - sync.device_unknown
+        - sync.device_revoked
+        - sync.wipe_required
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SyncPullRequest' }
+            examples:
+              first_pull:
+                value:
+                  device_id: 0193c4a0-0000-7000-8000-0000005c0001
+                  entities: [{ entity_type: test }, { entity_type: doctor, cursor: opaque-AbC123 }]
+                  limit: 200
+      responses:
+        '200':
+          description: One page per requested entity type.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SyncPullResponse' }
+              examples:
+                page:
+                  value:
+                    changes:
+                      - entity_type: test
+                        upserts:
+                          - { id: 0193c4a0-0000-7000-8000-0000005e0001, version: 4, updated_at: '2026-11-17T09:00:00Z', document: { code: CBC, name: Complete blood count } }
+                        tombstones:
+                          - { id: 0193c4a0-0000-7000-8000-0000005e0002, removed_at: '2026-11-17T09:10:00Z' }
+                        next_cursor: opaque-Xy7
+                        has_more: false
+                      - entity_type: doctor
+                        upserts: []
+                        tombstones: []
+                        next_cursor: opaque-AbC123
+                        has_more: false
+                    server_time: '2026-11-17T10:15:00Z'
+        '400': { $ref: '_common.yaml#/components/responses/BadRequest' }
+        '401': { $ref: '_common.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '_common.yaml#/components/responses/Forbidden' }
+        '409': { $ref: '_common.yaml#/components/responses/Conflict' }
+        '429': { $ref: '_common.yaml#/components/responses/TooManyRequests' }
+        '500': { $ref: '_common.yaml#/components/responses/Internal' }
+  /v1/core/sync/conflicts:
+    get:
+      operationId: listSyncConflicts
+      tags: [core]
+      summary: List sync conflicts of the tenant (T0C-SYNC-2)
+      description: >-
+        Conflicts recorded at sync (design section 8); open first. Filters by status and entity type only (no search by
+        patient name). The user who pushed sees the conflict status and conflict_id in the push result.
+      security:
+        - bearerJwt: []
+      x-permission: sync.conflict.resolve
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - auth.mfa_required
+        - common.invalid_cursor
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema: { $ref: '#/components/schemas/SyncConflictStatus' }
+        - name: entity_type
+          in: query
+          required: false
+          schema: { $ref: '#/components/schemas/SyncConflictEntityType' }
+        - $ref: '_common.yaml#/components/parameters/Cursor'
+        - $ref: '_common.yaml#/components/parameters/Limit'
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [data, page]
+                properties:
+                  data:
+                    type: array
+                    maxItems: 200
+                    items: { $ref: '#/components/schemas/SyncConflict' }
+                  page: { $ref: '_common.yaml#/components/schemas/PageInfo' }
+              examples:
+                one_open:
+                  value:
+                    data:
+                      - id: 0193c4a0-0000-7000-8000-0000005d0311
+                        op_id: 0193c4a0-0000-7000-8000-0000005d0003
+                        entity_type: result
+                        entity_id: 0193c4a0-0000-7000-8000-0000005d0103
+                        local_payload: { acknowledged_flags: [delta] }
+                        server_payload: { status: verified, version: 4 }
+                        status: open
+                        created_at: '2026-11-17T10:15:00Z'
+                    page: { limit: 50 }
+        '400': { $ref: '_common.yaml#/components/responses/BadRequest' }
+        '401': { $ref: '_common.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '_common.yaml#/components/responses/Forbidden' }
+        '429': { $ref: '_common.yaml#/components/responses/TooManyRequests' }
+        '500': { $ref: '_common.yaml#/components/responses/Internal' }
+  /v1/core/sync/conflicts/{conflict_id}:
+    get:
+      operationId: getSyncConflict
+      tags: [core]
+      summary: Get one sync conflict with both versions (T0C-SYNC-2)
+      description: >-
+        Shows both versions side by side: the local version the device sent (local_payload) and the server version at the
+        time of the conflict (server_payload), with the resolution once resolved.
+      security:
+        - bearerJwt: []
+      x-permission: sync.conflict.resolve
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.not_found
+        - auth.mfa_required
+      parameters:
+        - $ref: '#/components/parameters/ConflictId'
+      responses:
+        '200':
+          description: The conflict.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SyncConflict' }
+              examples:
+                resolved:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-0000005d0321
+                    op_id: 0193c4a0-0000-7000-8000-0000005d0004
+                    entity_type: patient
+                    entity_id: 0193c4a0-0000-7000-8000-0000005d0104
+                    local_payload: { phone_present: true }
+                    server_payload: { phone_present: false }
+                    status: resolved
+                    resolution: merge
+                    resolved_by: 0193c4a0-0000-7000-8000-0000005c0103
+                    resolved_at: '2026-11-17T11:00:00Z'
+                    reason: Took the new phone number from the device (synthetic)
+                    created_at: '2026-11-17T10:15:00Z'
+        '400': { $ref: '_common.yaml#/components/responses/BadRequest' }
+        '401': { $ref: '_common.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '_common.yaml#/components/responses/Forbidden' }
+        '404': { $ref: '_common.yaml#/components/responses/NotFound' }
+        '429': { $ref: '_common.yaml#/components/responses/TooManyRequests' }
+        '500': { $ref: '_common.yaml#/components/responses/Internal' }
+  /v1/core/sync/conflicts/{conflict_id}/resolve:
+    post:
+      operationId: resolveSyncConflict
+      tags: [core]
+      summary: Resolve a sync conflict (T0C-SYNC-2)
+      description: >-
+        keep_server discards the local version, apply_local applies the local version over the server version, merge
+        applies merged_payload (required for merge, refused otherwise). A reason is always required; the resolution,
+        resolver and time are written once and audited, and a resolved conflict never changes again (a second resolution
+        answers common.immutable_record). If the entity changed on the server after the conflict was recorded the call
+        answers sync.entity_changed: reload both versions and resolve again.
+      security:
+        - bearerJwt: []
+      x-permission: sync.conflict.resolve
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.not_found
+        - auth.mfa_required
+        - common.idempotency_key_required
+        - common.idempotency_key_reused
+        - common.idempotency_in_progress
+        - common.immutable_record
+        - sync.entity_changed
+      parameters:
+        - $ref: '#/components/parameters/ConflictId'
+        - $ref: '_common.yaml#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ResolveSyncConflictRequest' }
+            examples:
+              keep_server:
+                value: { resolution: keep_server, reason: Server copy is newer (synthetic) }
+              merge:
+                value: { resolution: merge, reason: Take the new phone number from the device (synthetic), merged_payload: { phone_present: true } }
+      responses:
+        '200':
+          description: The resolved conflict.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SyncConflict' }
+              examples:
+                kept_server:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-0000005d0331
+                    op_id: 0193c4a0-0000-7000-8000-0000005d0005
+                    entity_type: result
+                    entity_id: 0193c4a0-0000-7000-8000-0000005d0105
+                    local_payload: { acknowledged_flags: [delta] }
+                    server_payload: { status: verified, version: 4 }
+                    status: resolved
+                    resolution: keep_server
+                    resolved_by: 0193c4a0-0000-7000-8000-0000005c0103
+                    resolved_at: '2026-11-17T11:00:00Z'
+                    reason: Server copy is newer (synthetic)
+                    created_at: '2026-11-17T10:15:00Z'
+        '400': { $ref: '_common.yaml#/components/responses/BadRequest' }
+        '401': { $ref: '_common.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '_common.yaml#/components/responses/Forbidden' }
+        '404': { $ref: '_common.yaml#/components/responses/NotFound' }
+        '409': { $ref: '_common.yaml#/components/responses/Conflict' }
+        '422': { $ref: '_common.yaml#/components/responses/Unprocessable' }
+        '429': { $ref: '_common.yaml#/components/responses/TooManyRequests' }
+        '500': { $ref: '_common.yaml#/components/responses/Internal' }
 components:
   schemas:
     Liveness:
@@ -643,7 +998,335 @@ components:
         issued_at: { $ref: '#/components/schemas/IsoDateTime' }
         exhausted_at: { $ref: '#/components/schemas/IsoDateTime' }
         skipped_count: { type: integer, format: int32, minimum: 0, maximum: 2147483647 }
+    # ---------- T0C-SYNC-2 (LD-322) offline sync part 2: push, pull, conflicts ----------
+    SyncBatchRequest:
+      type: object
+      additionalProperties: false
+      description: The 50 operation and 1 MB limits are service rules (sync.batch_too_large); maxItems here is the hard schema bound.
+      required: [device_id, operations]
+      properties:
+        device_id: { $ref: '_common.yaml#/components/schemas/Uuid' }
+        operations:
+          type: array
+          minItems: 1
+          maxItems: 100
+          items: { $ref: '#/components/schemas/SyncOperation' }
+    SyncOperation:
+      description: >-
+        The closed operation catalogue (design section 3). Each entry wraps one existing operation: payload is that
+        operation's request body (same schema, no copied fields); the path id of the wrapped operation travels as entity_id.
+      oneOf:
+        - $ref: '#/components/schemas/SyncOpRegistrationCreateOrder'
+        - $ref: '#/components/schemas/SyncOpBillingRecordReceipt'
+        - $ref: '#/components/schemas/SyncOpCollectionMarkCollected'
+        - $ref: '#/components/schemas/SyncOpAccessionReceive'
+        - $ref: '#/components/schemas/SyncOpResultEnter'
+        - $ref: '#/components/schemas/SyncOpResultVerify'
+        - $ref: '#/components/schemas/SyncOpReportPrintMarker'
+        - $ref: '#/components/schemas/SyncOpDailyCashClose'
+      discriminator:
+        propertyName: op_type
+        mapping:
+          registration.create_order: '#/components/schemas/SyncOpRegistrationCreateOrder'
+          billing.record_receipt: '#/components/schemas/SyncOpBillingRecordReceipt'
+          collection.mark_collected: '#/components/schemas/SyncOpCollectionMarkCollected'
+          accession.receive: '#/components/schemas/SyncOpAccessionReceive'
+          result.enter: '#/components/schemas/SyncOpResultEnter'
+          result.verify: '#/components/schemas/SyncOpResultVerify'
+          report.print_marker: '#/components/schemas/SyncOpReportPrintMarker'
+          daily_cash.close: '#/components/schemas/SyncOpDailyCashClose'
+    SyncOpRegistrationCreateOrder:
+      type: object
+      additionalProperties: false
+      description: >-
+        Wraps createRegistration (frontdesk), permission frontdesk.registration.create. base_version is not required
+        (the operation creates). entity_id is not used. No step up applies, so it is never refused offline with
+        sync.offline_not_allowed for MFA; bill and receipt numbers printed offline are PROVISIONAL (OFF-) and the final
+        numbers come back in number_mappings.
+      required: [op_id, op_type, payload, device_created_at]
+      properties:
+        op_id: { $ref: '_common.yaml#/components/schemas/Uuid' }
+        op_type: { type: string, maxLength: 40, enum: [registration.create_order] }
+        base_version: { $ref: '_common.yaml#/components/schemas/Version' }
+        entity_id: { $ref: '_common.yaml#/components/schemas/Uuid' }
+        payload: { $ref: 'frontdesk.yaml#/components/schemas/CreateRegistrationRequest' }
+        device_created_at: { $ref: '#/components/schemas/IsoDateTime' }
+    SyncOpBillingRecordReceipt:
+      type: object
+      additionalProperties: false
+      description: >-
+        Wraps recordPayment (billing), permission billing.payment.record; entity_id is the order_id. base_version is
+        optional (a payment adds to the order). No step up applies, so it is not refused offline with
+        sync.offline_not_allowed for MFA; the receipt number printed offline is PROVISIONAL (OFF-) and the final gap free
+        number comes back in number_mappings.
+      required: [op_id, op_type, entity_id, payload, device_created_at]
+      properties:
+        op_id: { $ref: '_common.yaml#/components/schemas/Uuid' }
+        op_type: { type: string, maxLength: 40, enum: [billing.record_receipt] }
+        base_version: { $ref: '_common.yaml#/components/schemas/Version' }
+        entity_id: { $ref: '_common.yaml#/components/schemas/Uuid' }
+        payload: { $ref: 'billing.yaml#/components/schemas/RecordPaymentRequest' }
+        device_created_at: { $ref: '#/components/schemas/IsoDateTime' }
+    SyncOpCollectionMarkCollected:
+      type: object
+      additionalProperties: false
+      description: >-
+        Wraps collectSpecimen (lab), permission lab.specimen.collect; entity_id is the specimen_id. base_version is
+        required (the wrapped operation needs If-Match); a stale one answers sync.base_version_stale. No step up applies,
+        so it is not refused offline with sync.offline_not_allowed for MFA.
+      required: [op_id, op_type, base_version, entity_id, payload, device_created_at]
+      properties:
+        op_id: { $ref: '_common.yaml#/components/schemas/Uuid' }
+        op_type: { type: string, maxLength: 40, enum: [collection.mark_collected] }
+        base_version: { $ref: '_common.yaml#/components/schemas/Version' }
+        entity_id: { $ref: '_common.yaml#/components/schemas/Uuid' }
+        payload: { $ref: 'lab.yaml#/components/schemas/CollectSpecimenRequest' }
+        device_created_at: { $ref: '#/components/schemas/IsoDateTime' }
+    SyncOpAccessionReceive:
+      type: object
+      additionalProperties: false
+      description: >-
+        Wraps receiveSpecimen (lab), permission lab.specimen.receive; entity_id is the specimen_id. base_version is
+        required (the wrapped operation needs If-Match); a stale one answers sync.base_version_stale. No step up applies,
+        so it is not refused offline with sync.offline_not_allowed for MFA; a lab code used offline must lie in a block of
+        this device (sync.number_out_of_block).
+      required: [op_id, op_type, base_version, entity_id, payload, device_created_at]
+      properties:
+        op_id: { $ref: '_common.yaml#/components/schemas/Uuid' }
+        op_type: { type: string, maxLength: 40, enum: [accession.receive] }
+        base_version: { $ref: '_common.yaml#/components/schemas/Version' }
+        entity_id: { $ref: '_common.yaml#/components/schemas/Uuid' }
+        payload: { $ref: 'lab.yaml#/components/schemas/ReceiveSpecimenRequest' }
+        device_created_at: { $ref: '#/components/schemas/IsoDateTime' }
+    SyncOpResultEnter:
+      type: object
+      additionalProperties: false
+      description: >-
+        Wraps bulkEnterResults (lab), permission lab.result.enter. base_version is not required (each entry of the payload
+        carries the version of its result); entity_id is not used. A result verified or released on the server meanwhile
+        answers sync.result_locked. No step up applies, so it is not refused offline with sync.offline_not_allowed for MFA.
+      required: [op_id, op_type, payload, device_created_at]
+      properties:
+        op_id: { $ref: '_common.yaml#/components/schemas/Uuid' }
+        op_type: { type: string, maxLength: 40, enum: [result.enter] }
+        base_version: { $ref: '_common.yaml#/components/schemas/Version' }
+        entity_id: { $ref: '_common.yaml#/components/schemas/Uuid' }
+        payload: { $ref: 'lab.yaml#/components/schemas/BulkEnterResultsRequest' }
+        device_created_at: { $ref: '#/components/schemas/IsoDateTime' }
+    SyncOpResultVerify:
+      type: object
+      additionalProperties: false
+      description: >-
+        Wraps verifyResult (lab), permission lab.result.verify; entity_id is the result_id. base_version is required (the
+        wrapped operation needs If-Match). An approval that needs an MFA step up is refused offline with
+        sync.offline_not_allowed unless the tenant policy allows offline approval by a locally signed in pathologist
+        (default off, LD-322 point 3). At sync the verification is re-checked against the T0B-VERLEVEL-1 policy; a failure
+        answers sync.verification_policy_failed and recalls any report printed offline on it.
+      required: [op_id, op_type, base_version, entity_id, payload, device_created_at]
+      properties:
+        op_id: { $ref: '_common.yaml#/components/schemas/Uuid' }
+        op_type: { type: string, maxLength: 40, enum: [result.verify] }
+        base_version: { $ref: '_common.yaml#/components/schemas/Version' }
+        entity_id: { $ref: '_common.yaml#/components/schemas/Uuid' }
+        payload: { $ref: 'lab.yaml#/components/schemas/VerifyResultRequest' }
+        device_created_at: { $ref: '#/components/schemas/IsoDateTime' }
+    SyncOpReportPrintMarker:
+      type: object
+      additionalProperties: false
+      description: >-
+        Wraps createReportPrint (reporting), permission reporting.report.print; entity_id is the report_version_id. It
+        records that a report was printed offline (watermark issued offline, pending sync). base_version is optional. No
+        step up applies, so it is not refused offline with sync.offline_not_allowed for MFA.
+      required: [op_id, op_type, entity_id, payload, device_created_at]
+      properties:
+        op_id: { $ref: '_common.yaml#/components/schemas/Uuid' }
+        op_type: { type: string, maxLength: 40, enum: [report.print_marker] }
+        base_version: { $ref: '_common.yaml#/components/schemas/Version' }
+        entity_id: { $ref: '_common.yaml#/components/schemas/Uuid' }
+        payload: { $ref: 'reporting.yaml#/components/schemas/CreateReportPrintRequest' }
+        device_created_at: { $ref: '#/components/schemas/IsoDateTime' }
+    SyncOpDailyCashClose:
+      type: object
+      additionalProperties: false
+      description: >-
+        Wraps closeCashSession (billing), permission billing.payment.record; entity_id is the cash_session_id.
+        base_version is required (the wrapped operation needs If-Match). When the tenant requires a step up (MFA) to close
+        the day it is refused offline with sync.offline_not_allowed.
+      required: [op_id, op_type, base_version, entity_id, payload, device_created_at]
+      properties:
+        op_id: { $ref: '_common.yaml#/components/schemas/Uuid' }
+        op_type: { type: string, maxLength: 40, enum: [daily_cash.close] }
+        base_version: { $ref: '_common.yaml#/components/schemas/Version' }
+        entity_id: { $ref: '_common.yaml#/components/schemas/Uuid' }
+        payload: { $ref: 'billing.yaml#/components/schemas/CloseCashSessionRequest' }
+        device_created_at: { $ref: '#/components/schemas/IsoDateTime' }
+    SyncOperationStatus:
+      type: string
+      maxLength: 16
+      enum: [accepted, duplicate, rejected, conflict]
+    SyncErrorCode:   # closed: registered codes only, never free text or personal data
+      type: string
+      maxLength: 64
+      enum:
+        - sync.base_version_stale
+        - sync.op_id_reused
+        - sync.batch_too_large
+        - sync.clock_skew_too_large
+        - sync.result_locked
+        - sync.verification_policy_failed
+        - sync.offline_not_allowed
+        - sync.number_out_of_block
+        - sync.entity_changed
+        - common.validation_failed
+        - common.not_found
+        - common.version_conflict
+        - auth.forbidden
+        - common.internal
+    SyncNumberMapping:
+      type: object
+      additionalProperties: false
+      required: [document_type, provisional_number, final_number]
+      properties:
+        document_type: { type: string, maxLength: 8, enum: [bill, invoice, receipt] }
+        provisional_number: { type: string, maxLength: 60, pattern: '^OFF-[A-Za-z0-9-]+$' }
+        final_number: { type: string, minLength: 1, maxLength: 60 }
+    SyncOperationResult:
+      type: object
+      additionalProperties: false
+      required: [op_id, status]
+      properties:
+        op_id: { $ref: '_common.yaml#/components/schemas/Uuid' }
+        status: { $ref: '#/components/schemas/SyncOperationStatus' }
+        error_code: { $ref: '#/components/schemas/SyncErrorCode' }
+        conflict_id: { $ref: '_common.yaml#/components/schemas/Uuid' }
+        entity_id: { $ref: '_common.yaml#/components/schemas/Uuid' }
+        number_mappings:
+          type: array
+          maxItems: 3
+          items: { $ref: '#/components/schemas/SyncNumberMapping' }
+        skew_flag: { type: boolean }
+    SyncBatchResult:
+      type: object
+      additionalProperties: false
+      required: [results]
+      properties:
+        results:
+          type: array
+          maxItems: 100
+          items: { $ref: '#/components/schemas/SyncOperationResult' }
+    SyncEntityType:   # whitelist of cacheable reads (design section 3); never credentials, users or roles
+      type: string
+      maxLength: 40
+      enum: [test, parameter, doctor, centre, price_list_version, verification_policy, print_profile, patient, worklist_item, permission]
+    SyncPullEntity:
+      type: object
+      additionalProperties: false
+      required: [entity_type]
+      properties:
+        entity_type: { $ref: '#/components/schemas/SyncEntityType' }
+        cursor: { type: string, minLength: 1, maxLength: 512 }
+    SyncPullRequest:
+      type: object
+      additionalProperties: false
+      required: [device_id, entities]
+      properties:
+        device_id: { $ref: '_common.yaml#/components/schemas/Uuid' }
+        entities:
+          type: array
+          minItems: 1
+          maxItems: 20
+          items: { $ref: '#/components/schemas/SyncPullEntity' }
+        limit: { type: integer, minimum: 1, maximum: 1000 }
+    SyncUpsert:
+      type: object
+      additionalProperties: false
+      required: [id, updated_at, document]
+      properties:
+        id: { $ref: '_common.yaml#/components/schemas/Uuid' }
+        version: { $ref: '_common.yaml#/components/schemas/Version' }
+        updated_at: { $ref: '#/components/schemas/IsoDateTime' }
+        document:
+          description: The row as the read API returns it (JSON object; shape per entity type).
+    SyncTombstone:
+      type: object
+      additionalProperties: false
+      required: [id, removed_at]
+      properties:
+        id: { $ref: '_common.yaml#/components/schemas/Uuid' }
+        removed_at: { $ref: '#/components/schemas/IsoDateTime' }
+    SyncEntityChanges:
+      type: object
+      additionalProperties: false
+      required: [entity_type, upserts, tombstones, next_cursor, has_more]
+      properties:
+        entity_type: { $ref: '#/components/schemas/SyncEntityType' }
+        upserts:
+          type: array
+          maxItems: 1000
+          items: { $ref: '#/components/schemas/SyncUpsert' }
+        tombstones:
+          type: array
+          maxItems: 1000
+          items: { $ref: '#/components/schemas/SyncTombstone' }
+        next_cursor: { type: string, minLength: 1, maxLength: 512 }
+        has_more: { type: boolean }
+    SyncPullResponse:
+      type: object
+      additionalProperties: false
+      required: [changes, server_time]
+      properties:
+        changes:
+          type: array
+          maxItems: 20
+          items: { $ref: '#/components/schemas/SyncEntityChanges' }
+        server_time: { $ref: '#/components/schemas/IsoDateTime' }
+    SyncConflictStatus:
+      type: string
+      maxLength: 8
+      enum: [open, resolved]
+    SyncResolution:
+      type: string
+      maxLength: 12
+      enum: [keep_server, apply_local, merge]
+    SyncConflictEntityType:
+      type: string
+      minLength: 1
+      maxLength: 60
+      pattern: '^[a-z][a-z_]*$'
+    SyncConflict:
+      type: object
+      additionalProperties: false
+      required: [id, op_id, entity_type, entity_id, local_payload, server_payload, status, created_at]
+      properties:
+        id: { $ref: '_common.yaml#/components/schemas/Uuid' }
+        op_id: { $ref: '_common.yaml#/components/schemas/Uuid' }
+        entity_type: { type: string, minLength: 1, maxLength: 60, pattern: '^[a-z][a-z_]*$' }
+        entity_id: { $ref: '_common.yaml#/components/schemas/Uuid' }
+        local_payload:
+          description: The version the device sent (JSON object).
+        server_payload:
+          description: The server version when the conflict was recorded (JSON object).
+        status: { $ref: '#/components/schemas/SyncConflictStatus' }
+        resolution: { $ref: '#/components/schemas/SyncResolution' }
+        resolved_by: { $ref: '_common.yaml#/components/schemas/Uuid' }
+        resolved_at: { $ref: '#/components/schemas/IsoDateTime' }
+        reason: { type: string, minLength: 1, maxLength: 1000 }
+        created_at: { $ref: '#/components/schemas/IsoDateTime' }
+    ResolveSyncConflictRequest:
+      type: object
+      additionalProperties: false
+      required: [resolution, reason]
+      properties:
+        resolution: { $ref: '#/components/schemas/SyncResolution' }
+        reason: { type: string, minLength: 1, maxLength: 1000 }
+        merged_payload:
+          description: The merged entity (JSON object); required for merge, refused otherwise.
   parameters:
+    ConflictId:
+      name: conflict_id
+      in: path
+      required: true
+      schema: { $ref: '_common.yaml#/components/schemas/Uuid' }
     DeviceId:
       name: device_id
       in: path

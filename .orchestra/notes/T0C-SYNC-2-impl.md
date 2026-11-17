@@ -1,0 +1,33 @@
+# T0C-SYNC-2 impl (LD-322, LD-325 b; design C:/LIMS-state/offline-design-20261117.md)
+- Files: contracts/openapi/core.yaml (5 ops pushSyncBatch, pullChanges, listSyncConflicts, getSyncConflict, resolveSyncConflict + schemas), contracts/errors.yaml (9 codes), lab.yaml + reporting.yaml (inline request bodies of collectSpecimen, receiveSpecimen, bulkEnterResults, verifyResult, createReportPrint hoisted to components, no shape change), services/api/src/core/core-pending.ts (5 ids in CORE_PENDING_OPERATIONS / pendingOperations; T0B-SYNC-2..5 remove them with the handlers), db/migrations/20261117260000_core__add_sync_operations_and_conflicts.sql, db/meta/tables.yaml, db/policies/core.sql; generated: api clients, operations.ts, MSW, error codes, probes core.sync_operation + core.sync_conflict (+ engagement/partners fixtures and clients were stale from the MSGDESK merge, regenerated). Over the 14 file cap only by generated files (lead to rule, same as SYNC-1).
+- [CONV] Where: core.yaml, same file as part 1. Catalogue = SyncOperation oneOf + discriminator on op_type; payload is a plain $ref to the wrapped operation's own request body (identity, no copied fields; inline bodies hoisted). entity_id carries the wrapped path id (required except registration.create_order, result.enter); base_version (_common Version) required exactly where the wrapped op needs If-Match (collection.mark_collected, accession.receive, result.verify, daily_cash.close). Push justification "E3 per operation idempotency" (op_id is the key; no E code fits exactly, lead to audit).
+- Permissions: no new permission code, the SYNC-1 codes are reused: push/pull sync.use; conflicts sync.conflict.resolve (privileged, auth.mfa_required). Wrapped op permission re-checked at sync. Errors (titles/meanings never carry personal data): sync.base_version_stale 409, sync.op_id_reused 422, sync.batch_too_large 422, sync.clock_skew_too_large 422, sync.result_locked 409, sync.verification_policy_failed 403, sync.offline_not_allowed 403, sync.number_out_of_block 422, sync.entity_changed 409.
+- DB: core.sync_operation append-only (PK tenant_id, op_id; column UPDATE grant on the outcome + BEFORE UPDATE trigger: outcome written once while result IS NULL, all else frozen; no DELETE; not row audited). core.sync_conflict open | resolved, keep_server | apply_local | merge, CHECK ties resolved to resolver/time/reason, resolved rows frozen by trigger, row audited. Version column: none added (0 of max 5): every wrapped and pulled table already has `version` (frontdesk.patients, lab.specimens, lab.results, billing.cash_sessions, catalog.tests, catalog.doctors, catalog.price_list_versions, core.collection_centres, reporting.report_versions); tables without one fall back to updated_at; no rewrite of existing rows.
+- Numbering: bill, invoice and receipt numbers stay gap free; offline prints a PROVISIONAL number (OFF- + device + counter), the server assigns the final number and returns it in number_mappings; the accountant must confirm before go live. Conflicts (design section 8): keep_server, apply_local or merge (merged_payload) with a reason, resolved once, audited; sync.entity_changed if the entity moved since.
+- FOUNDER STEP: push-cloud for db/migrations/20261117260000_core__add_sync_operations_and_conflicts.sql (after 20261117250000). Not done here.
+- [CONV] frontdesk.yaml CreateRegistrationRequest: `default` removed from priority / collection_mode (description says absent = routine / walk_in; registration.service.ts already applies both), because the API's ajv refuses defaults inside a oneOf branch and core boot failed on POST /v1/core/sync/batches. [CONV] sync_conflict: "resolved_by set exactly when resolved" is an AFTER row trigger (23514), not part of the CHECK, so the FK answers 23503 first (isolation probe step 6).
+- Runs (writer 2026-11-18): sync2 110/110 + sync1 + lintfix1 + c4/c5/c6 = 1819 pass; registry-equality 14/14; lint-openapi + codegen --check clean; tsc clean; api src/core + frontdesk 3409 pass (42 files need LIMS_TEST_APP_URL, not run); pgTAP T0C-SYNC-2, T0C-SYNC-1, isolation core.sync_operation + core.sync_conflict exit 0. Full codegen suite: 7 fails in c16/identity/msgdesk1/sales1/testmgmt1 (partners/engagement/catalog drift from other lanes, untouched here).
+- OPEN: pull whitelist (test, parameter, doctor, centre, price_list_version, verification_policy, print_profile, patient, worklist_item, permission) and the classification below are lead rulings to confirm; service rules (limits, skew threshold, hash compare, policy re-check) are T0B-SYNC-2..5.
+
+| family | classification | notes |
+|---|---|---|
+| frontdesk registration and order create | queueable | registration.create_order |
+| billing receipts (payments) | queueable | billing.record_receipt, PROVISIONAL OFF- number |
+| billing daily cash close | queueable | daily_cash.close, refused offline if MFA step up needed |
+| homecollection / lab collection | queueable | collection.mark_collected (phlebo Flutter app keeps its own outbox) |
+| lab accession | queueable | accession.receive, lab code from a reserved block |
+| lab result entry | queueable | result.enter |
+| lab result verification | queueable | result.verify, re-checked against verification policy; MFA step up online only |
+| report print marker | queueable | report.print_marker |
+| catalog: test catalog, parameters, price list (price list version) | cacheable read | pullChanges |
+| doctors, centres, verification policy, print profile, permissions | cacheable read | pullChanges |
+| patients (search of cached patients), worklist | cacheable read | pullChanges |
+| billing refund, cancel, void, discounts needing approval | online only | MFA / approval |
+| online payment (payments gateway) | online only | needs the provider |
+| engagement SMS, WhatsApp, broadcast, messaging | online only | needs the provider |
+| identity: first sign in, MFA, user and role administration | online only | security |
+| platform admin, tenant settings | online only | |
+| import (test import, price tool, bulk uploads) | online only | |
+| sales hierarchy, partner portal, analytics / MIS report | online only | |
+| report release, delivery and download | online only | needs the server copy |
+| sync devices, number blocks (reserveNumberBlock) | online only | taken while online |

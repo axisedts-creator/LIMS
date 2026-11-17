@@ -946,22 +946,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              additionalProperties: false
-              required:
-                - variant
-                - copies
-              properties:
-                variant:
-                  type: string
-                  maxLength: 10
-                  enum:
-                    - letterhead
-                    - plain
-                copies:
-                  type: integer
-                  minimum: 1
-                  maximum: 5
+              $ref: '#/components/schemas/CreateReportPrintRequest'
             examples:
               synthetic:
                 value:
@@ -6182,6 +6167,23 @@ paths:
           $ref: _common.yaml#/components/responses/Internal
 components:
   schemas:
+    CreateReportPrintRequest:   # T0C-SYNC-2 (LD-322): hoisted from createReportPrint so the offline sync catalogue (core.yaml) references the same schema
+      type: object
+      additionalProperties: false
+      required:
+        - variant
+        - copies
+      properties:
+        variant:
+          type: string
+          maxLength: 10
+          enum:
+            - letterhead
+            - plain
+        copies:
+          type: integer
+          minimum: 1
+          maximum: 5
     ReportSummary:
       type: object
       additionalProperties: false

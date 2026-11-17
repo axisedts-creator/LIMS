@@ -5,4 +5,4 @@
 - [CONV] cancelExpense: expense row FOR UPDATE; if its entry was already reversed via reverseAccountLedgerEntry, the cancel posts no second reversal.
 - [CONV] daily summary: unreversed non-reversal account credits + getDailyCash rows (payment - |reversal/refund|, collected only) by payment_mode; zero rows dropped.
 - [CONV] allow_negative_pockets via IdentityPort featureFlags (no spec name; tests pin it). Admin = role tenant_admin.
-- Open: a day whose refunds exceed payments gives a negative total_paisa (contract minimum 0); accept centre falls back to ctx.centreId when neither end is a centre.
+- BLOCKED (review item 1): refund-only day gives negative entry_count/total_paisa vs contract minimum 0; CR filed .orchestra/cr/T0B-ACCT-2.md (option a signed net / b separate refund fields), no product change until ruled; accept centre falls back to ctx.centreId when neither end is a centre.

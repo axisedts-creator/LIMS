@@ -470,6 +470,16 @@ export const handlers = [
   http.patch("*/v1/catalog/panels/:panel_id", () => HttpResponse.json({"id":"0193c3a0-0000-7000-8000-000000000209","kind":"panel","code":"CBC","name":"Demo Complete Blood Count","department_id":"0193c3a0-0000-7000-8000-000000000210","department_code":"HAEM","panel_kind":"clinical","sex_restriction":"male","is_orderable":true,"is_active":true,"revision":1,"members":[{"kind":"test","orderable_id":"0193c3a0-0000-7000-8000-000000000211","sort_order":1}],"version":3}, { status: 200 })),
   // replacePanelMembers
   http.put("*/v1/catalog/panels/:panel_id/members", () => HttpResponse.json({"id":"0193c3a0-0000-7000-8000-000000000213","kind":"panel","code":"CBC","name":"Demo Complete Blood Count","department_id":"0193c3a0-0000-7000-8000-000000000214","department_code":"HAEM","panel_kind":"clinical","sex_restriction":"male","is_orderable":true,"is_active":true,"revision":1,"members":[{"kind":"test","orderable_id":"0193c3a0-0000-7000-8000-000000000215","sort_order":1}],"version":3}, { status: 200 })),
+  // comparePriceLists
+  http.get("*/v1/catalog/price-list-comparisons", () => HttpResponse.json({"data":[{"orderable_id":"0193c4a0-0000-7000-8000-000000000530","test_code":"CBC","test_name":"Synthetic Complete Blood Count","price_a_paisa":50000,"price_b_paisa":55000,"difference_paisa":5000,"percent_bp":1000},{"orderable_id":"0193c4a0-0000-7000-8000-000000000531","test_code":"TSH","test_name":"Synthetic Thyroid Stimulating Hormone","price_a_paisa":80000}],"page":{"limit":50}}, { status: 200 })),
+  // listPriceListImportBatches
+  http.get("*/v1/catalog/price-list-import-batches", () => HttpResponse.json({"data":[{"id":"0193c4a0-0000-7000-8000-000000000501","price_list_id":"0193c4a0-0000-7000-8000-000000000502","status":"committed","row_count":120,"error_count":0,"file_sha256":"abababababababababababababababababababababababababababababababab","summary":{"rows":120,"errors":0},"result_price_list_version_id":"0193c4a0-0000-7000-8000-000000000505","created_at":"2026-11-17T04:15:00.000Z","created_by":"0193c4a0-0000-7000-8000-000000000503"}],"page":{"limit":50}}, { status: 200 })),
+  // commitPriceListImport
+  http.post("*/v1/catalog/price-list-import-batches/:batch_id/commit", () => HttpResponse.json({"id":"0193c4a0-0000-7000-8000-000000000505","price_list_id":"0193c4a0-0000-7000-8000-000000000502","version_no":4,"status":"draft","item_count":120,"change_reason":"Synthetic yearly rate revision","version":1}, { status: 201 })),
+  // downloadPriceListTemplate
+  http.get("*/v1/catalog/price-list-import-template", () => new HttpResponse(null, { status: 200 })),
+  // bulkUpdatePriceListDraft
+  http.post("*/v1/catalog/price-list-versions/:price_list_version_id/bulk-update", () => HttpResponse.json({"price_list_version_id":"0193c4a0-0000-7000-8000-000000000505","changed_count":98,"unchanged_count":22}, { status: 200 })),
   // discardPriceListVersionDraft
   http.post("*/v1/catalog/price-list-versions/:price_list_version_id/discard", () => HttpResponse.json({"id":"0193c3a0-0000-7000-8000-000000000295","price_list_id":"0193c3a0-0000-7000-8000-000000000296","version_no":1,"status":"draft","effective_from":"2026-11-05T04:15:00.000Z","effective_to":"2026-11-05T04:15:00.000Z","item_count":120,"source_import_id":"0193c3a0-0000-7000-8000-000000000297","change_reason":"Synthetic change reason","version":3}, { status: 200 })),
   // listPriceListItems
@@ -490,6 +500,10 @@ export const handlers = [
   http.patch("*/v1/catalog/price-lists/:price_list_id", () => HttpResponse.json({"id":"0193c3a0-0000-7000-8000-000000000273","code":"PL-DEFAULT","name":"Demo Complete Blood Count","owner_kind":"default","falls_through":false,"assignments":[{"owner_id":"0193c3a0-0000-7000-8000-000000000274"}],"current_version":{"id":"0193c3a0-0000-7000-8000-000000000275","version_no":1,"effective_from":"2026-11-05T04:15:00.000Z"},"scheduled_version":{"id":"0193c3a0-0000-7000-8000-000000000276","version_no":1,"effective_from":"2026-11-05T04:15:00.000Z"},"draft_version_id":"0193c3a0-0000-7000-8000-000000000277","is_active":true,"version":3}, { status: 200 })),
   // replacePriceListAssignments
   http.put("*/v1/catalog/price-lists/:price_list_id/assignments", () => HttpResponse.json({"id":"0193c3a0-0000-7000-8000-000000000278","code":"PL-DEFAULT","name":"Demo Complete Blood Count","owner_kind":"default","falls_through":false,"assignments":[{"owner_id":"0193c3a0-0000-7000-8000-000000000279"}],"current_version":{"id":"0193c3a0-0000-7000-8000-000000000280","version_no":1,"effective_from":"2026-11-05T04:15:00.000Z"},"scheduled_version":{"id":"0193c3a0-0000-7000-8000-000000000281","version_no":1,"effective_from":"2026-11-05T04:15:00.000Z"},"draft_version_id":"0193c3a0-0000-7000-8000-000000000282","is_active":true,"version":3}, { status: 200 })),
+  // copyPriceList
+  http.post("*/v1/catalog/price-lists/:price_list_id/copy", () => HttpResponse.json({"id":"0193c4a0-0000-7000-8000-000000000521","price_list_id":"0193c4a0-0000-7000-8000-000000000522","version_no":2,"status":"draft","item_count":340,"version":1}, { status: 201 })),
+  // dryRunPriceListImport
+  http.post("*/v1/catalog/price-lists/:price_list_id/import-dry-run", () => HttpResponse.json({"batch":{"id":"0193c4a0-0000-7000-8000-000000000501","price_list_id":"0193c4a0-0000-7000-8000-000000000502","status":"dry_run","row_count":120,"error_count":0,"file_sha256":"abababababababababababababababababababababababababababababababab","summary":{"rows":120,"added":4,"changed":10,"unchanged":106,"errors":0},"created_at":"2026-11-17T04:15:00.000Z","created_by":"0193c4a0-0000-7000-8000-000000000503"},"errors":[]}, { status: 201 })),
   // createPriceListVersionDraft
   http.post("*/v1/catalog/price-lists/:price_list_id/versions", () => HttpResponse.json({"id":"0193c3a0-0000-7000-8000-000000000284","price_list_id":"0193c3a0-0000-7000-8000-000000000285","version_no":1,"status":"draft","effective_from":"2026-11-05T04:15:00.000Z","effective_to":"2026-11-05T04:15:00.000Z","item_count":120,"source_import_id":"0193c3a0-0000-7000-8000-000000000286","change_reason":"Synthetic change reason","version":3}, { status: 201 })),
   // quotePrices
@@ -1073,9 +1087,9 @@ export const handlers = [
   // terminateTenant
   http.post("*/v1/identity/platform/tenants/:tenant_id/terminate", () => HttpResponse.json({"tenant_id":"0193a5c0-0000-7000-8000-000000000090","code":"demo_lab","legal_name":"Demo Lab Pvt. Ltd.","display_name":"Demo Lab","status":"offboarded","timezone":"Asia/Kathmandu","activated_at":"2026-11-05T04:15:00.000Z","created_at":"2026-11-05T04:15:00.000Z","version":6,"status_reason":"Synthetic termination reason","offboarded_at":"2026-11-05T04:45:00.000Z"}, { status: 200 })),
   // listRolePacks
-  http.get("*/v1/identity/role-packs", () => new HttpResponse(null, { status: 200 })),
+  http.get("*/v1/identity/role-packs", () => HttpResponse.json({"data":[{"pack_code":"elabcorp_default","name":"Synthetic Default Pack","roles":[{"code":"corp_admin","name":"Synthetic Admin Role","mfa_required":true,"permission_codes":["identity.role.manage"]}]}]}, { status: 200 })),
   // applyRolePack
-  http.post("*/v1/identity/role-packs/apply", () => new HttpResponse(null, { status: 200 })),
+  http.post("*/v1/identity/role-packs/apply", () => HttpResponse.json({"pack_code":"elabcorp_default","created":["corp_admin"],"updated":[],"unchanged":[]}, { status: 200 })),
   // createRole
   http.post("*/v1/identity/roles", () => HttpResponse.json({"role_id":"0193a5c0-0000-7000-8000-000000000020","code":"front_desk","name":"Front desk","description":"Full tenant administration","is_default":false,"mfa_required":false,"permission_codes":["identity.user.manage","identity.role.manage"],"member_count":0,"is_active":true,"version":1}, { status: 201 })),
   // listRoles

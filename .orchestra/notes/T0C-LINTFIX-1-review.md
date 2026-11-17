@@ -1,0 +1,4 @@
+APPROVE
+Range e424757c1..HEAD: test revision only (apply-role-pack.script.test.ts) — matches arbiter ruling a/b exactly (arrayContaining on 5 ADMINPACK scripts, test/typecheck values still pinned; runbook chosen by file existence, not directory). Other assertions unchanged; no impl change.
+Task context (main...HEAD) checked: core.yaml Readiness.missing_env maxItems 64 / items maxLength 128 (REQUIRED_ENV 22 names, longest 34; LD-332 cited); identity.yaml role pack examples synthetic, valid against schemas, names from role-packs.data.yaml (elabcorp_default, corp_admin); handlers.generated.ts regenerated. No schema/handler/permission/migration/lint rule change; no PHI/secrets; no RLS surface touched.
+Verify re-run 2026-11-17 16:04: codegen lintfix1 + lint-openapi 168/168 (lintRepo root empty); services/api health-env + role-packs + handlers-cover-contract 919/919.

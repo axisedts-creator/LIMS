@@ -178,7 +178,9 @@ function choicesAt(v: unknown, path: string): string[] {
 /** A duplicate key in the tenant is 400 at the key's path (errors.yaml has no 409 for it); the pg text (it holds the value) is dropped. */
 async function insertUnique(c: PatientCtx, t: Master, row: Obj): Promise<Result> {
   try {
-    return { status: 201, body: DTO[t](await insertMaster(c.tx, t, c.tenantId, { id: uuidv7(), ...row })) };
+    const created = await insertMaster(c.tx, t, c.tenantId, { id: uuidv7(), ...row });
+    if (!created) throw new LimsError('common.not_found');   // no row came back (RLS hid it): a LimsError, never a TypeError in the DTO
+    return { status: 201, body: DTO[t](created) };
   } catch (e) {
     if ((e as Obj)?.['code'] === '23505') throw bad(KEY_OF[t].path);
     throw e;
@@ -187,6 +189,7 @@ async function insertUnique(c: PatientCtx, t: Master, row: Obj): Promise<Result>
 async function patchMaster(c: PatientCtx, t: Master, id: unknown, version: number, set: Obj, check?: (cur: Obj, set: Obj) => void): Promise<Result> {
   const cur = typeof id === 'string' && UUID.test(id) ? await lockMaster(c.tx, t, c.tenantId, id) : null;
   if (!cur) throw new LimsError('common.not_found');
+  if (Object.keys(set).length === 0) throw bad('');   // after the tenant lookup: an unknown / other tenant id answers 404 before any body complaint
   if (Number(cur['version']) !== version) throw new LimsError('common.version_conflict');
   check?.(cur, set);
   const row = await updateMaster(c.tx, t, c.tenantId, cur['id'], version, set);
@@ -219,7 +222,6 @@ export async function updateIcdCode(hctx: unknown, params: unknown, headers: unk
   await role(c, P.settingsManage);
   const version = expectedVersion(headers);
   const b = strict(body, ['description', 'is_active']);
-  if (Object.keys(b).length === 0) throw bad('');
   const set: Obj = {};
   if (b['description'] !== undefined) set['description'] = textAt(b['description'], '/description', 500);
   if (b['is_active'] !== undefined) set['is_active'] = boolAt(b['is_active'], '/is_active');
@@ -253,7 +255,6 @@ export async function updateCoupon(hctx: unknown, params: unknown, headers: unkn
   await role(c, P.settingsManage);
   const version = expectedVersion(headers);
   const b = strict(body, ['valid_from', 'valid_to', 'usage_limit', 'is_active']);   // code, amount and percent never change (contract)
-  if (Object.keys(b).length === 0) throw bad('');
   const set: Obj = {};
   if (b['valid_from'] !== undefined) set['valid_from'] = dateAt(b['valid_from'], '/valid_from');
   if (b['valid_to'] !== undefined) set['valid_to'] = dateAt(b['valid_to'], '/valid_to');
@@ -291,7 +292,6 @@ export async function updateCustomFieldDefinition(hctx: unknown, params: unknown
   await role(c, P.settingsManage);
   const version = expectedVersion(headers);
   const b = strict(body, ['label', 'required', 'is_active', 'choices', 'sort_order']);   // field_key and field_type never change
-  if (Object.keys(b).length === 0) throw bad('');
   const set: Obj = {};
   if (b['label'] !== undefined) set['label'] = textAt(b['label'], '/label', 100);
   if (b['required'] !== undefined) set['required'] = boolAt(b['required'], '/required');

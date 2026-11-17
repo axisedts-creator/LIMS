@@ -24,11 +24,10 @@ const OPERATION_IDS = [
   'getCancelledInvoiceRegister', 'getCreditNoteRegister', 'getAuditTrail', 'createBillingExport', 'getBillingExport',
   'getBillingExportContent', 'listCbmsDocuments', 'retryCbmsDocument', 'getBillingSettings', 'updateBillingSettings',
   'listBillingCodes', 'listCreditNoteTasks', 'listFinanceReviewItems', 'resolveFinanceReviewItem',
-  // T0C-ACCT-1 lab accounting (LD-313): the first 12 are T0B-ACCT-1 (below), the rest stay 503 stubs until T0B-ACCT-2
+  // T0C-ACCT-1 lab accounting (LD-313), T0B-ACCT-1. The 12 T0B-ACCT-2 operations have NO handler: they are listed in
+  // manifest.pendingOperations (billing/index.ts) and core answers 501 operation_pending (LD-328 (2), LD-325).
   'listAccountGroups', 'createAccountGroup', 'updateAccountGroup', 'listAccountParticulars', 'createAccountParticular', 'updateAccountParticular',
   'createAccountLedgerEntry', 'listAccountLedgerEntries', 'getAccountLedgerEntry', 'reverseAccountLedgerEntry', 'getAccountStatement', 'getAccountSummary',
-  'listExpenseTypes', 'createExpenseType', 'updateExpenseType', 'createExpense', 'listExpenses', 'cancelExpense',
-  'createCashTransfer', 'listCashTransfers', 'acceptCashTransfer', 'rejectCashTransfer', 'cancelCashTransfer', 'getDailyCollectionSummary',
 ] as const;
 
 export const handlers: Readonly<Record<(typeof OPERATION_IDS)[number], Handler>> = Object.freeze({

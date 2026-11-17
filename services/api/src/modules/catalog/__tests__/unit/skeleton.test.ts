@@ -40,8 +40,9 @@ const isStub = async (h: Handler): Promise<boolean> => {
 };
 
 describe('manifest + autoload (02-TRD §3, §6.3 of core)', () => {
-  it('catalog.yaml declares the 107 operations of 02-TRD §5 plus the 3 category operations of T0C-TESTMGMT-1 (LD-318)', () => {
-    expect(OPS).toHaveLength(110);
+  // Merge of main: T0C-PRICETOOLS-1 (LD-321, LD-325(b)) added 7 price list tool operations, pending until T0B-PRICETOOLS-1.
+  it('catalog.yaml declares the 107 operations of 02-TRD §5 plus the 3 category operations of T0C-TESTMGMT-1 (LD-318) plus the 7 price list tool operations of T0C-PRICETOOLS-1', () => {
+    expect(OPS).toHaveLength(117);
   });
 
   it('manifest has name, openapi path and produces exactly catalog.changed.v1', () => {
@@ -59,9 +60,11 @@ describe('manifest + autoload (02-TRD §3, §6.3 of core)', () => {
     expect(mods.map((m) => m.manifest.name)).toContain('catalog');
   }, 120000); // ruling C3.T-30: cold autoload exceeds the 5000ms default (5.8s per ruling; 18-30s+ measured when run alongside the health tests)
 
-  it('has exactly one function handler per catalog.yaml operationId; manifest.handlers is handlers/index', () => {
-    expect(Object.keys(handlers).sort()).toEqual([...OPS].sort());
-    for (const id of OPS) expect(typeof handlers[id], id).toBe('function');
+  it('has exactly one function handler per catalog.yaml operationId not listed pending (LD-325 b); manifest.handlers is handlers/index', () => {
+    const pendingOps: readonly string[] = (manifest as { pendingOperations?: readonly string[] }).pendingOperations ?? [];
+    const handled = OPS.filter((id) => !pendingOps.includes(id));
+    expect(Object.keys(handlers).sort()).toEqual([...handled].sort());
+    for (const id of handled) expect(typeof handlers[id], id).toBe('function');
     expect(manifest.handlers).toBe(handlers);
   });
 });

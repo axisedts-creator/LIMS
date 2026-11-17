@@ -9,6 +9,7 @@ import { manifest } from '../../index.js';
 
 const spec: any = loadSpec(join(REPO_ROOT, 'contracts/openapi/catalog.yaml'));
 const NEW_OPS = ['listTestCategories', 'createTestCategory', 'updateTestCategory'] as const;
+const PRICETOOLS = ['downloadPriceListTemplate', 'dryRunPriceListImport', 'commitPriceListImport', 'bulkUpdatePriceListDraft', 'copyPriceList', 'comparePriceLists', 'listPriceListImportBatches'] as const;
 const opOf = (id: string): any => { for (const p of Object.values<any>(spec.paths)) for (const m of Object.values<any>(p)) if (m?.operationId === id) return m; };
 const pending = ((manifest as { pendingOperations?: readonly string[] }).pendingOperations ?? []) as readonly string[];
 
@@ -16,16 +17,18 @@ describe('(1) module boot: every operation of catalog.yaml has a real handler', 
   it('the three category operations have a handler in the manifest', () => {
     for (const id of NEW_OPS) { expect(typeof (manifest.handlers as any)[id], id).toBe('function'); expect((manifest.handlers as any)[id], id).toBe((handlers as any)[id]); }
   });
-  it('catalog lists NO pending operation any more (T0B removes the ids it implements, LD-325 b)', () => {
-    expect(pending).toEqual([]);
+  // Merge of main: T0C-PRICETOOLS-1 (LD-321, LD-325(b)) added seven price list tool operations that stay pending until T0B-PRICETOOLS-1.
+  it('catalog lists NO category operation as pending (T0B removes the ids it implements, LD-325 b); only the seven price list tool ids remain', () => {
+    for (const id of NEW_OPS) expect(pending, id).not.toContain(id);
+    expect([...pending].sort()).toEqual([...PRICETOOLS].sort());
   });
-  it('checkHandlers (the boot check, AC-0D-1.2) passes with handlers only and reports no stale pending id', () => {
-    expect(checkHandlers('catalog', spec, manifest.handlers, [])).toEqual([]);
+  it('checkHandlers (the boot check, AC-0D-1.2) passes with handlers plus the price list pending ids and reports no stale pending id', () => {
     expect(checkHandlers('catalog', spec, manifest.handlers, pending)).toEqual([]);
   });
-  it('the contract still has exactly the 110 operations (this task adds handlers, not operations)', () => {
-    expect(operationIds(spec)).toHaveLength(110);
-    expect(Object.keys(manifest.handlers).sort()).toEqual(operationIds(spec).sort());
+  it('the contract has exactly 110 + 7 price list tool operations (this task adds handlers, not operations)', () => {
+    expect(operationIds(spec)).toHaveLength(110 + PRICETOOLS.length);
+    expect([...Object.keys(manifest.handlers), ...pending].sort()).toEqual(operationIds(spec).sort());
+    for (const id of PRICETOOLS) expect(Object.keys(manifest.handlers), id).not.toContain(id);
   });
 });
 

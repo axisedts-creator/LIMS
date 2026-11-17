@@ -7,7 +7,7 @@ import { createReportService, type ReportService, type ReportsCtx } from '../ser
 type Ports = { IdentityPort?: { assertRole(ctx: unknown, r: { permission: string }): Promise<void> } };
 const obj = (v: unknown): Record<string, any> => (typeof v === 'object' && v !== null ? (v as Record<string, any>) : {});
 
-function bind(permission: string, run: (svc: ReportService, ctx: ReportsCtx, req: HandlerRequest) => ReturnType<ReportService['list']>): Handler {
+function bind(permission: string, run: (svc: ReportService, ctx: ReportsCtx, req: HandlerRequest) => ReturnType<ReportService['download']>): Handler {
   return async (req: HandlerRequest, hctx: HandlerContext): Promise<HandlerResult> => {
     const c = hctx as unknown as Partial<ReportsCtx> & { ports?: Ports };
     if (typeof c.tenantId !== 'string' || typeof c.actor?.id !== 'string' || !c.tx || typeof c.now !== 'function') throw new LimsError('auth.unauthenticated');
@@ -20,6 +20,6 @@ function bind(permission: string, run: (svc: ReportService, ctx: ReportsCtx, req
 
 export const reportHandlers: Readonly<Record<string, Handler>> = Object.freeze({
   listMyReports: bind('reporting.portal.view', (svc, ctx, req) => svc.list(ctx, { query: req.query })),
-  downloadMyReport: bind('reporting.portal.download', (svc, ctx, req) => svc.download(ctx, { reportId: obj(req.params)['report_id'], versionNo: obj(req.params)['version_no'] })),
+  downloadMyReport: bind('reporting.portal.download', (svc, ctx, req) => svc.download(ctx, { reportId: obj(req.params)['report_id'], versionNo: obj(req.params)['version_no'], requestHeaders: obj(req.headers) })),   // T0B-FILESTREAM-1: Range / If-None-Match
   getMySmartSummary: bind('reporting.portal.view', (svc, ctx, req) => svc.smart(ctx, { reportId: obj(req.params)['report_id'], versionNo: obj(req.params)['version_no'] })), // T-P4: E24
 });

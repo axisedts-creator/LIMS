@@ -6,6 +6,7 @@
 import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';
 import { LimsError } from '../../../core/errors.js';
 import { contentDisposition } from '../../../core/storage/download.js';
+import type { RequestHeaders, StreamResponse } from '../../../core/storage/stream.js';
 import { loadFrontdeskConfig } from '../config.js';
 import type { IncomingFile, UploadAcceptOptions } from '../../../core/uploads/index.js';
 import { isoUtc } from '../mappers/patient.dto.js';
@@ -17,7 +18,7 @@ import { bad, isObj, patientCtx, strict, type PatientCtx } from './patient.servi
 interface TrfCtx extends PatientCtx {
   readonly uploads: { accept(file: IncomingFile, opts: UploadAcceptOptions): Promise<{ objectPath: string; sha256: string; byteSize: number; mime: string }> };
   readonly storage: { delete(bucket: 'frontdesk-trf', path: string): Promise<void> };
-  readonly download: { stream(input: object): Promise<{ status: number; headers: Record<string, string>; body: Uint8Array }> };
+  readonly download: { stream(input: object): Promise<StreamResponse> };
   readonly core?: { membership?: (c: unknown, i: { membershipId: string }) => Promise<{ displayName: string }> };
 }
 type Row = Record<string, any>;
@@ -124,9 +125,10 @@ export async function getTrfAttachment(hctx: unknown, params: unknown): Promise<
 }
 
 /** Only a `clean` TRF is served (the row state is the gate, never a fresh scan); every successful call writes one trf.view access-log row. */
-export async function getTrfAttachmentContent(hctx: unknown, params: unknown): Promise<{ status: number; headers: Record<string, string>; body: Uint8Array }> {
+/** T0B-FILESTREAM-1 (LD-312): streamed by the core (Range 206 / 416, 304); a TRF is a patient document, so the core default no-store stays. */
+export async function getTrfAttachmentContent(hctx: unknown, params: unknown, requestHeaders?: RequestHeaders): Promise<StreamResponse> {
   const c = trfCtx(hctx);
   const row = await loadVisible(c, params);
   return c.download.stream({ bucket: row['bucket'], objectPath: row['object_path'], filename: fitName(String(row['original_filename'] || 'trf')), contentType: row['mime_type'],
-    scanState: row['scan_state'], access: { action: 'trf.view', entityType: 'trf_attachment', entityId: row['id'], centreId: row['centre_id'], outcome: 'allowed' } });
+    ...(requestHeaders ? { requestHeaders } : {}), scanState: row['scan_state'], access: { action: 'trf.view', entityType: 'trf_attachment', entityId: row['id'], centreId: row['centre_id'], outcome: 'allowed' } });
 }

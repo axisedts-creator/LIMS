@@ -282,6 +282,7 @@ class EgressProbeToolTest(unittest.TestCase):
                 '     h=${@: -2:1}; p=${@: -1}\n'
                 '     for a in $SHIM_ALLOW; do [ "$a" = "$h:$p" ] && exit 0; done; exit 1;;\n'
                 'esac\nexit 1\n', encoding="utf-8", newline="\n")
+            shim.chmod(0o755)  # fake binary must be executable on Linux (Windows Git Bash ignored the mode)
             env = dict(os.environ, PATH=td + os.pathsep + os.environ["PATH"], SHIM_ALLOW=" ".join(allow),
                        DATA_WG_IP=DATA_WG, SMTP_RELAY_HOST=RELAY, **extra)
             return subprocess.run([b, str(PROBE), "auth"], capture_output=True, text=True, env=env, timeout=60)

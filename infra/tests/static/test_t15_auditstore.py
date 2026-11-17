@@ -623,6 +623,8 @@ class LagMetricScript(unittest.TestCase):
         self.bin.mkdir()
         self.tf.mkdir()
         (self.bin / "psql").write_bytes(FAKE_PSQL.encode())
+        for _f in self.bin.iterdir():  # fake binaries must be executable on Linux (Windows Git Bash ignored the mode)
+            _f.chmod(0o755)
 
     def run_script(self, out="t|2.5", rc=0):
         env = dict(os.environ, FIX=_p(self.tmp), FAKE_PSQL_OUT=out, FAKE_PSQL_RC=str(rc), TEXTFILE_DIR=_p(self.tf),

@@ -328,6 +328,8 @@ class RestoreScriptTest(unittest.TestCase):
         for n, body in (("pgbackrest", FAKE_PGBACKREST), ("pg_isready", FAKE_PG_ISREADY), ("pg_ctl", FAKE_OK),
                         ("psql", FAKE_OK), ("postgres", FAKE_OK), ("docker", FAKE_OK)):
             (self.bin / n).write_bytes(body.replace("\r\n", "\n").encode())
+        for _f in self.bin.iterdir():  # fake binaries must be executable on Linux (Windows Git Bash ignored the mode)
+            _f.chmod(0o755)
 
     def run_script(self, extra_env=None, timeout=90):
         env = dict(os.environ, FIX=self.tmp.as_posix(), PGDATA=(self.tmp / "pgdata").as_posix(),
@@ -513,6 +515,8 @@ class ReportScriptTest(unittest.TestCase):
             d.mkdir()
         (self.bin / "git").write_bytes(FAKE_GIT.encode())
         (self.bin / "gh").write_bytes(FAKE_GH.encode())
+        for _f in self.bin.iterdir():  # fake binaries must be executable on Linux (Windows Git Bash ignored the mode)
+            _f.chmod(0o755)
 
     def run_script(self, env_over=None, pr=False, prior=None):
         if prior is not None:

@@ -130,7 +130,7 @@ class Lint(unittest.TestCase):
     def test_yamllint_clean(self):
         y = need_tool(self, "yamllint")
         self.assertTrue(list(INFRA.rglob("*.yaml")), "no YAML under infra/ to lint")
-        r = run([y, str(INFRA)], cwd=ROOT)
+        r = run([y, "-c", "infra/.yamllint", "infra"], cwd=ROOT)  # same relative invocation as run.sh (config ignore: paths are relative to the repo root)
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
 
     def test_ansible_lint_available_and_clean(self):
@@ -139,7 +139,9 @@ class Lint(unittest.TestCase):
             self.skipTest("SKIP ansible-lint (CI only)")
         a = need_tool(self, "ansible-lint")
         if (INFRA / "ansible").is_dir():  # created from T-02 on
-            r = run([a, str(INFRA / "ansible")], cwd=ROOT)
+            # same invocation as run.sh: ANSIBLE_CONFIG + -c, else the repo's ansible-lint profile/roles_path are not loaded
+            r = run([a, "-c", (INFRA / "ansible" / ".ansible-lint").as_posix(), str(INFRA / "ansible")], cwd=ROOT,
+                    env=dict(os.environ, ANSIBLE_CONFIG=(INFRA / "ansible" / "ansible.cfg").as_posix()))
             self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
 
     def test_run_sh_is_green(self):

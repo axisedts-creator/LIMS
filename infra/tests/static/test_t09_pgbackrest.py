@@ -340,6 +340,8 @@ class MetricsScriptTest(unittest.TestCase):
         self.out.mkdir()
         for n, body in (("pgbackrest", FAKE_PGBACKREST), ("psql", FAKE_PSQL)):
             (self.bin / n).write_bytes(body.replace("\r\n", "\n").encode())
+        for _f in self.bin.iterdir():  # fake binaries must be executable on Linux (Windows Git Bash ignored the mode)
+            _f.chmod(0o755)
         self.now = int(time.time())
 
     def run_script(self, backups, repo1_age=10, repo2_age=120, lsn_diff=0, info_fail=False, extra_env=None):
@@ -452,6 +454,7 @@ class CheckCounterTest(unittest.TestCase):
         self.addCleanup(shutil.rmtree, tmp, True)
         fake = tmp / "pgbackrest"
         fake.write_bytes(b'#!/bin/sh\n[ "$(cat "$FIX/mode")" = ok ]\n')
+        fake.chmod(0o755)  # fake binary must be executable on Linux (Windows Git Bash ignored the mode)
         state = tmp / "state"
         state.mkdir()
         env = dict(os.environ, FIX=tmp.as_posix(), STATE_DIR=state.as_posix(), PGBACKREST=fake.as_posix())

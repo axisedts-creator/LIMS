@@ -434,6 +434,8 @@ class EdgeMetricsScriptTest(unittest.TestCase):
         self.bin.mkdir()
         self.out.mkdir()
         (self.bin / "curl").write_bytes(FAKE_CURL.replace("\r\n", "\n").encode())
+        for _f in self.bin.iterdir():  # fake binaries must be executable on Linux (Windows Git Bash ignored the mode)
+            _f.chmod(0o755)
 
     def run_script(self, response="", fail=False, old=None):
         (self.tmp / "vl_response.jsonl").write_text(response, encoding="utf-8")

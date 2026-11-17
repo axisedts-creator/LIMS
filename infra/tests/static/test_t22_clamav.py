@@ -429,6 +429,8 @@ class SyncScript(unittest.TestCase):
         self.bin.mkdir()
         self.src.mkdir()
         (self.bin / "rsync").write_bytes(FAKE_RSYNC.encode())
+        for _f in self.bin.iterdir():  # fake binaries must be executable on Linux (Windows Git Bash ignored the mode)
+            _f.chmod(0o755)
         cvd(self.src / "daily.cvd", 60)
         cvd(self.src / "main.cvd", 86400)
 
@@ -606,6 +608,7 @@ class EicarProbe(unittest.TestCase):
         self.tmp = Path(tempfile.mkdtemp(prefix="t22p-"))
         self.addCleanup(shutil.rmtree, self.tmp, True)
         (self.tmp / "docker").write_bytes(FAKE_DOCKER.encode())
+        (self.tmp / "docker").chmod(0o755)  # fake binary must be executable on Linux (Windows Git Bash ignored the mode)
         if not shutil.which("node"):
             raise AssertionError("node must be installed to run the probe harness")
 

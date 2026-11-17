@@ -147,6 +147,8 @@ class Fake:
         for name, body in (("docker", 'exec "%s" "%s" "$@"' % (Path(sys.executable).as_posix(), (d / "shim.py").as_posix())),
                            ("python3", 'exec "%s" "$@"' % Path(sys.executable).as_posix())):
             (d / name).write_text("#!/usr/bin/env bash\n%s\n" % body, encoding="utf-8", newline="\n")
+        for _f in d.iterdir():  # fake binaries must be executable on Linux (Windows Git Bash ignored the mode)
+            _f.chmod(0o755)
         self.state_file = d / "state.json"
         self.dir = d
 

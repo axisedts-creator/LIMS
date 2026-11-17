@@ -629,6 +629,8 @@ class OpsNoteTest(unittest.TestCase):
         self.bin = self.tmp / "bin"
         self.bin.mkdir()
         (self.bin / "logger").write_bytes(b'#!/usr/bin/env bash\nprintf "%s\\n" "$*" >> "$FIX/logger.log"\n')
+        for _f in self.bin.iterdir():  # fake binaries must be executable on Linux (Windows Git Bash ignored the mode)
+            _f.chmod(0o755)
 
     def run_note(self, *args, user="opsuser", sudo_user=""):
         env = dict(os.environ, FIX=self.tmp.as_posix(), PATH=str(self.bin) + os.pathsep + os.environ.get("PATH", ""),

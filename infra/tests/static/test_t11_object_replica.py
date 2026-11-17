@@ -160,6 +160,8 @@ class GrowScriptTest(unittest.TestCase):
         (self.bin / "lvextend").write_bytes(FAKE_LVEXTEND.encode())
         for n in ("umount", "lvchange", "fsck", "xfs_growfs", "resize2fs", "cryptsetup", "pvresize"):
             (self.bin / n).write_bytes(FAKE_TRACE.encode())
+        for _f in self.bin.iterdir():  # fake binaries must be executable on Linux (Windows Git Bash ignored the mode)
+            _f.chmod(0o755)
 
     def run_grow(self, *args, rc=0):
         env = dict(os.environ, FIX=_p(self.tmp), FAKE_LV_RC=str(rc), PATH=_p(self.bin) + os.pathsep + os.environ.get("PATH", ""))
@@ -356,6 +358,8 @@ class ReplicaBehaviourTest(unittest.TestCase):
         for d in (self.bin, self.src, self.dst, self.out):
             d.mkdir()
         (self.bin / "rsync").write_bytes(FAKE_RSYNC.replace("\r\n", "\n").encode())
+        for _f in self.bin.iterdir():  # fake binaries must be executable on Linux (Windows Git Bash ignored the mode)
+            _f.chmod(0o755)
 
     def put(self, rel, data, age=0):
         p = self.src / rel

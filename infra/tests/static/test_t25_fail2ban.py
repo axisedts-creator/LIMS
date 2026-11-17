@@ -595,6 +595,8 @@ class MetricsScriptTest(unittest.TestCase):
         self.bin.mkdir()
         self.out.mkdir()
         (self.bin / "fail2ban-client").write_bytes(FAKE_CLIENT.replace("\r\n", "\n").encode())
+        for _f in self.bin.iterdir():  # fake binaries must be executable on Linux (Windows Git Bash ignored the mode)
+            _f.chmod(0o755)
 
     def run_script(self, totals=None, down=False, old=None, textfile=True, extra=None):
         for j, n in (totals if totals is not None else {"sshd": 2, "lims-ratelimit": 5, "lims-auth": 0}).items():

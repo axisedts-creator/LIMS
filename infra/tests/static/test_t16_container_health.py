@@ -255,6 +255,8 @@ class _Env(unittest.TestCase):
         for name, body in (("docker", 'exec "%s" "%s" "$@"' % (py, (self.bin / "shim.py").as_posix())),
                            ("python3", 'exec "%s" "$@"' % py), ("python", 'exec "%s" "$@"' % py)):
             (self.bin / name).write_text("#!/usr/bin/env bash\n%s\n" % body, encoding="utf-8", newline="\n")
+        for _f in self.bin.iterdir():  # fake binaries must be executable on Linux (Windows Git Bash ignored the mode)
+            _f.chmod(0o755)
         self.state, self.logf = self.d / "state.json", self.d / "docker.log"
         self.logf.write_text("", encoding="utf-8")
 

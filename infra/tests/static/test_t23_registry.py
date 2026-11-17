@@ -495,6 +495,8 @@ class PushShTest(unittest.TestCase):
         self.bin = self.tmp / "bin"
         self.bin.mkdir()
         (self.bin / "docker").write_text(FAKE_DOCKER, encoding="utf-8", newline="\n")
+        for _f in self.bin.iterdir():  # fake binaries must be executable on Linux (Windows Git Bash ignored the mode)
+            _f.chmod(0o755)
         self.log = self.tmp / "docker.log"
         self.out = self.tmp / "rel"
         self.out.mkdir()
@@ -593,6 +595,8 @@ class RegistryGcPinnedTest(unittest.TestCase):
         self.bin = self.tmp / "bin"
         self.bin.mkdir()
         (self.bin / "docker").write_text("#!/usr/bin/env bash\necho \"$*\" >> \"$FAKE_LOG\"\nexit 0\n", encoding="utf-8", newline="\n")
+        for _f in self.bin.iterdir():  # fake binaries must be executable on Linux (Windows Git Bash ignored the mode)
+            _f.chmod(0o755)
         self.log = self.tmp / "docker.log"
         self.store = self.tmp / "store"
         self.tags = self.store / "docker/registry/v2/repositories/lims/api/_manifests/tags"
@@ -648,6 +652,7 @@ class EgressProbeTest(unittest.TestCase):
     def setUp(self):
         self.tmp = Path(tempfile.mkdtemp(prefix="t23nc"))
         (self.tmp / "nc").write_text(FAKE_NC, encoding="utf-8", newline="\n")
+        (self.tmp / "nc").chmod(0o755)  # fake binary must be executable on Linux (Windows Git Bash ignored the mode)
         self.addCleanup(shutil.rmtree, self.tmp, True)
 
     def probe(self, reach, nc="nc"):

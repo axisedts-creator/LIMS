@@ -174,9 +174,13 @@ class Rig:
         self.flock_log.write_text("", encoding="utf-8")
         for n, body in FAKES.items():
             (self.bin / n).write_text(FAKE_LOGGER % body, encoding="utf-8", newline="\n")
+        for _f in self.bin.iterdir():  # fake binaries must be executable on Linux (Windows Git Bash ignored the mode)
+            _f.chmod(0o755)
         if stub_siblings:
             (self.ci / "smoke.sh").write_text(STUB_SMOKE, encoding="utf-8", newline="\n")
             (self.ci / "rollback.sh").write_text(STUB_ROLLBACK, encoding="utf-8", newline="\n")
+        for _f in self.ci.iterdir():  # sibling scripts are exec'd directly by deploy.sh; the rig copies/stubs must carry +x (git mode is 100644)
+            _f.chmod(0o755)
         self.log.write_text("", encoding="utf-8")
 
     def close(self):
@@ -700,6 +704,7 @@ class EnvLockTest(Base):
     def test_standalone_rollback_takes_the_lock_and_refuses_when_held(self):
         _seed(self.rig, "dev")
         shutil.copy(CI / "rollback.sh", self.rig.ci / "rollback.sh")  # real rollback.sh (LD-90e); smoke stays the stub
+        (self.rig.ci / "rollback.sh").chmod(0o755)
         r = self.rig.run("rollback", "dev")
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertEqual(len(self.rig.flock_calls()), 1)
@@ -714,6 +719,7 @@ class EnvLockTest(Base):
     def test_rollback_called_by_deploy_does_not_take_the_lock_again(self):  # would deadlock on a second open of the same file
         _seed(self.rig, "dev")
         shutil.copy(CI / "rollback.sh", self.rig.ci / "rollback.sh")  # the REAL rollback; smoke stays the stub
+        (self.rig.ci / "rollback.sh").chmod(0o755)
         r = self.rig.run("deploy", "dev", "dev-1", env={"SMOKE_RC": "1"})
         self.assertEqual(r.returncode, 1, r.stderr)
         self.assertEqual(self.rig.names(), ["ansible-playbook", "smoke.sh", "ansible-playbook"], "rollback must redeploy the old digests")
@@ -802,6 +808,7 @@ class ProdKeyTest(Base):
     def test_prod_rollback_needs_and_uses_the_released_key(self):
         _seed(self.rig, "prod")
         shutil.copy(CI / "rollback.sh", self.rig.ci / "rollback.sh")  # real rollback.sh (LD-90e); smoke stays the stub
+        (self.rig.ci / "rollback.sh").chmod(0o755)
         r = self.rig.run("rollback", "prod", env=dict(self.NOKEY))
         self.assertNotEqual(r.returncode, 0)
         self.assertEqual(self.rig.calls("ansible-playbook"), [])

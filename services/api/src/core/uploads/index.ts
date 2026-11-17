@@ -26,9 +26,9 @@ export interface AcceptedUpload {
   readonly scanState: 'pending' | 'clean' | 'infected' | 'unavailable';
 }
 
-const MAX_BYTES = 15 * 1024 * 1024;   // 02-CV §10.2
+export const MAX_BYTES = 15 * 1024 * 1024;   // 02-CV §10.2
 const XLSX = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-const BY_EXT: Readonly<Record<string, UploadMime>> = { pdf: 'application/pdf', png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', csv: 'text/csv', xlsx: XLSX };
+export const BY_EXT: Readonly<Record<string, UploadMime>> = { pdf: 'application/pdf', png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', csv: 'text/csv', xlsx: XLSX };
 const starts = (b: Uint8Array, sig: readonly number[]) => b.length >= sig.length && sig.every((v, i) => b[i] === v);
 const utf8 = new TextDecoder('utf-8', { fatal: true });
 const MAGIC: Readonly<Record<UploadMime, (b: Uint8Array) => boolean>> = {

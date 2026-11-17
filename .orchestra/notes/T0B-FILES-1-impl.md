@@ -1,0 +1,8 @@
+# T0B-FILES-1 impl (writer)
+- Bytes path today (done_when 1): attachment upload/download, report download (staff, portal, engagement), label/PDF print, imports, TRF: ALL pass through the API. Table with file:line in `.orchestra/cr/T0B-FILES-1.nonblocking.md`.
+- New `services/api/src/core/storage/direct.ts` (LD-310): initUpload / confirmUpload / initDownload; > 256 KiB direct, ttl 300 s, size/type/ext/sha256 at signing, create-only, resumable > 8 MiB, confirm-before-record (wrong object deleted only with `unrecorded: true`, review item 1), scan gate + access row after signing, private vs immutable cache.
+- `storage/index.ts`: adapter gains signedUploadUrl / signedDownloadUrl / head + `module`, `tenantId`, `now` (additive); RawStorage methods optional. Exported BY_EXT/MAX_BYTES (uploads) and MIME (download) for reuse.
+- Kit: `FileUpload/uploadQueue.ts` (parallel 3, 3 retries 250 ms doubling capped 30 s, cancel, resume); FileUpload `uploadFile`/`retryDelayMs`/`onUploaded`/`onUploadFailed` props, status text, Cancel / Try again buttons. [CONV] onState gets the file index (names can repeat); cancel(index) accepted.
+- Tests: storage+uploads 123 pass, 1 FAIL pre-existing (adapter.test credential scan hits core/health.ts from T0B-PERF-1, not this task); UI 3 files 64/64. tsc api+ui clean. ESLint config does not cover these paths.
+- NOT direct (done_when 7): no module is wired: needs new routes + P-2 amendment + worker-side scan, raised as CR-C0-FILES-1 (`.orchestra/cr/T0B-FILES-1.nonblocking.md`). Real provider signing waits for SP-1.
+- Open: Try again / a second pick start a new queue, so >3 parallel is possible across batches (ponytail, one shared queue if it matters).

@@ -1,0 +1,2093 @@
+[core] WARNING: Executable file detection not yet supported on 'win32'.
+Schema updated
+psql:/repo/db/migrations/20261105001300_identity__create_identity_schema.sql:7: NOTICE:  schema "identity" already exists, skipping
+psql:/repo/db/migrations/20261105001500_catalog__create_catalog_schema.sql:10: NOTICE:  schema "catalog" already exists, skipping
+psql:/repo/db/migrations/20261105001600_frontdesk__create_frontdesk_schema.sql:7: NOTICE:  schema "frontdesk" already exists, skipping
+psql:/repo/db/migrations/20261105001700_billing__create_billing_schema.sql:7: NOTICE:  schema "billing" already exists, skipping
+psql:/repo/db/migrations/20261105001800_lab__create_lab_schema.sql:10: NOTICE:  schema "lab" already exists, skipping
+psql:/repo/db/migrations/20261105001900_reporting__create_reporting_schema.sql:145: NOTICE:  identifier "message_template_texts__tenant_id_template_code_channel_language__uq" will be truncated to "message_template_texts__tenant_id_template_code_channel_languag"
+psql:/repo/db/migrations/20261105001900_reporting__create_reporting_schema.sql:177: NOTICE:  identifier "report_template_versions__tenant_id_template_id__published__p_uq" will be truncated to "report_template_versions__tenant_id_template_id__published__p_u"
+psql:/repo/db/migrations/20261105001900_reporting__create_reporting_schema.sql:443: NOTICE:  identifier "deliveries__tenant_id_channel_account_id_provider_message_id__p_uq" will be truncated to "deliveries__tenant_id_channel_account_id_provider_message_id__p"
+psql:/repo/db/migrations/20261105001900_reporting__create_reporting_schema.sql:682: NOTICE:  identifier "narrative_versions__tenant_id_narrative_report_id_version_no__uq" will be truncated to "narrative_versions__tenant_id_narrative_report_id_version_no__u"
+psql:/repo/db/migrations/20261115192000_identity__add_provisioning_schema.sql:47: NOTICE:  identifier "tenant_contract_acceptances__tenant_id_document_accepted_at__idx" will be truncated to "tenant_contract_acceptances__tenant_id_document_accepted_at__id"
+                                                       set_config                                                        
+-------------------------------------------------------------------------------------------------------------------------
+ {"tenant_id":"01a1a98a-ac40-7000-8000-00000000a001","sub":"01a1b34e-1000-7eee-9d29-d7ca59a102b5","actor_type":"system"}
+(1 row)
+
+                                                       set_config                                                        
+-------------------------------------------------------------------------------------------------------------------------
+ {"tenant_id":"01a1a98a-ac40-7000-8000-00000000b001","sub":"01a1b34e-1000-7eee-9d29-d7ca59a102b5","actor_type":"system"}
+(1 row)
+
+ set_config 
+------------
+ 
+(1 row)
+
+
+ RUN  v5.1.0 C:/LIMS-lanes/C0-0B/services/api
+
+ ❯ src/modules/frontdesk/__tests__/probes/privilege.live.test.ts (22 tests | 11 failed) 3151ms
+   ❯ approveDiscount (privileged: { id: 'approveDiscount', …(2) }) (4)
+     × with the permission at aal1 => 403 auth.mfa_required, database unchanged 134ms
+     × locked account => the IdentityPort refusal propagates unchanged, database unchanged 164ms
+     × revoked membership (IdentityPort re-validation) => the IdentityPort refusal propagates unchanged, database unchanged 156ms
+   ❯ anonymisePatient (privileged: { id: 'anonymisePatient', …(2) }) (4)
+     × without the permission => 403 auth.forbidden, database unchanged 144ms
+     × with the permission at aal1 => 403 auth.mfa_required, database unchanged 146ms
+     × locked account => the IdentityPort refusal propagates unchanged, database unchanged 121ms
+     × revoked membership (IdentityPort re-validation) => the IdentityPort refusal propagates unchanged, database unchanged 114ms
+   ❯ getFrontdeskSettings (privileged: { id: 'getFrontdeskSettings', …(2) }) (4)
+     × without the permission => 403 auth.forbidden, database unchanged 136ms
+     × with the permission at aal1 => 403 auth.mfa_required, database unchanged 181ms
+     × locked account => the IdentityPort refusal propagates unchanged, database unchanged 168ms
+     × revoked membership (IdentityPort re-validation) => the IdentityPort refusal propagates unchanged, database unchanged 153ms
+ ❯ src/modules/frontdesk/__tests__/probes/crossCentre.live.test.ts (32 tests | 9 failed) 2590ms
+   ❯ getDiscountApproval on an A2 object as an A1-only user (2)
+     × => 404 common.not_found and the A2 row is unchanged 61ms
+   ❯ approveDiscount on an A2 object as an A1-only user (2)
+     × => 404 common.not_found and the A2 row is unchanged 49ms
+   ❯ rejectDiscount on an A2 object as an A1-only user (2)
+     × => 404 common.not_found and the A2 row is unchanged 44ms
+   ❯ getTrfAttachment on an A2 object as an A1-only user (2)
+     × => 404 common.not_found and the A2 row is unchanged 41ms
+   ❯ getTrfAttachmentContent on an A2 object as an A1-only user (2)
+     × => 404 common.not_found and the A2 row is unchanged 46ms
+   ❯ resolveOrderFlag on an A2 object as an A1-only user (2)
+     × => 404 common.not_found and the A2 row is unchanged 54ms
+   ❯ uploadTrf into centre A2 as an A1-only user (1)
+     × => auth.forbidden (or 404), nothing stored 53ms
+   ❯ createRegistration into centre A2 as an A1-only user (1)
+     × => auth.forbidden (or 404), nothing stored 55ms
+   ❯ requestDiscountApproval into centre A2 as an A1-only user (1)
+     × => auth.forbidden (or 404), nothing stored 53ms
+ ❯ src/modules/frontdesk/__tests__/quote/quote.test.ts (56 tests | 1 failed) 1801ms
+   ❯ credit status (TRD Quote.credit_status; US-FD-04.2 "the quote already shows the state") (7)
+     × asks BillingCommandPort.assertCreditAllowed with the party and additional = totals.net (after discounts); cash never asks 24ms
+ ❯ src/modules/frontdesk/__tests__/unit/boot.test.ts (30 tests | 8 failed) 13951ms
+   ❯ manifest (02-TRD §3.1, §6.3 autoloader rules) (4)
+     × passes the core manifest validation against the real contracts (handlers == operationIds, produces == EVENT_PRODUCERS) 191ms
+     × is found by the autoloader in the default modules directory 8324ms
+   ❯ done_when: core boots with module (AC-0D-1.1/1.2 through the real bootstrap, real repo root) (3)
+     × bootstrap with default repoRoot/modulesDir resolves (every operationId has a handler) 1412ms
+     × every frontdesk operation is mounted (never 404/405) and answers unauthenticated calls with 400/401, never by running a stub 1116ms
+     × mounts nothing outside the spec (REQ-SEC-099) 951ms
+   ❯ done_when: unimplemented handlers throw common.service_unavailable (4)
+     × handlers/index.ts exports one function per operationId and nothing else 153ms
+   ❯ done_when: nav entry hidden (apps/web nav.manifest.ts, 04-UI-UX §3) (2)
+     × exports navManifest for module frontdesk with no visible entry yet 21ms
+     × build-nav accepts the real features dir: no errors and no frontdesk entry in the resolved nav 1160ms
+ ❯ src/modules/frontdesk/__tests__/probes/crossTenant.live.test.ts (56 tests | 21 failed) 4224ms
+   ❯ registry (1)
+     × the contract has exactly the 29 frontdesk operations and every one is probed below 8ms
+   ❯ cancelOrder names a tenant-B object (1)
+     × => 404 common.not_found, no B data in the answer, zero B changes in the DB 130ms
+   ❯ listRegistrationDrafts names a tenant-B object (1)
+     × => 404 common.not_found, no B data in the answer, zero B changes in the DB 44ms
+   ❯ createRegistrationDraft names a tenant-B object (1)
+     × => 404 common.not_found, no B data in the answer, zero B changes in the DB 29ms
+   ❯ getRegistrationDraft names a tenant-B object (1)
+     × => 404 common.not_found, no B data in the answer, zero B changes in the DB 28ms
+   ❯ deleteRegistrationDraft names a tenant-B object (1)
+     × => 404 common.not_found, no B data in the answer, zero B changes in the DB 30ms
+   ❯ listFavouriteTests names a tenant-B object (1)
+     × => 404 common.not_found, no B data in the answer, zero B changes in the DB 33ms
+   ❯ addFavouriteTest names a tenant-B object (1)
+     × => 404 common.not_found, no B data in the answer, zero B changes in the DB 31ms
+   ❯ removeFavouriteTest names a tenant-B object (1)
+     × => 404 common.not_found, no B data in the answer, zero B changes in the DB 36ms
+   ❯ previewRegistrationNumbers names a tenant-B object (1)
+     × => 404 common.not_found, no B data in the answer, zero B changes in the DB 36ms
+   ❯ listCustomFieldDefinitions names a tenant-B object (1)
+     × => 404 common.not_found, no B data in the answer, zero B changes in the DB 29ms
+   ❯ createCustomFieldDefinition names a tenant-B object (1)
+     × => 404 common.not_found, no B data in the answer, zero B changes in the DB 33ms
+   ❯ updateCustomFieldDefinition names a tenant-B object (1)
+     × => 404 common.not_found, no B data in the answer, zero B changes in the DB 32ms
+   ❯ listCoupons names a tenant-B object (1)
+     × => 404 common.not_found, no B data in the answer, zero B changes in the DB 24ms
+   ❯ createCoupon names a tenant-B object (1)
+     × => 404 common.not_found, no B data in the answer, zero B changes in the DB 22ms
+   ❯ updateCoupon names a tenant-B object (1)
+     × => 404 common.not_found, no B data in the answer, zero B changes in the DB 24ms
+   ❯ listIcdCodes names a tenant-B object (1)
+     × => 404 common.not_found, no B data in the answer, zero B changes in the DB 31ms
+   ❯ createIcdCode names a tenant-B object (1)
+     × => 404 common.not_found, no B data in the answer, zero B changes in the DB 48ms
+   ❯ updateIcdCode names a tenant-B object (1)
+     × => 404 common.not_found, no B data in the answer, zero B changes in the DB 34ms
+   ❯ getPatientRewards names a tenant-B object (1)
+     × => 404 common.not_found, no B data in the answer, zero B changes in the DB 39ms
+   ❯ arrays that mix an A id with a B id refuse as a whole and change nothing (a+b mixes) (4)
+     × F13 changeOrderItems: remove [A item, B item] => refused, A order and items unchanged 240ms
+ ❯ src/modules/frontdesk/__tests__/probes/tables.live.test.ts (54 tests | 3 failed) 2248ms
+   ❯ structure (catalog queries) (5)
+     × the schema holds exactly the probed tables (a new table must be added to EXPECTED and thereby probed) 16ms
+     × grants: lims_app never has DELETE/TRUNCATE; append-only tables have no UPDATE; g_cs_reasons is SELECT-only 9ms
+   ❯ frontdesk.cs_reasons: tenant A claims against tenant B rows (3)
+     × UPDATE and DELETE of B rows change zero rows (or are refused outright) and B stays byte-identical 73ms
+ ❯ src/modules/frontdesk/__tests__/probes/phi.logscan.live.test.ts (8 tests | 1 failed) 1552ms
+   ❯ planted PHI never reaches a log line, an error response detail, an access_log row or an event payload (8)
+     × F9 createRegistration: the registered patient's demographics stay out of logs, access_log and the order events 60ms
+ ❯ src/modules/frontdesk/__tests__/registration/downtime.test.ts (13 tests | 3 failed) 1079ms
+   ❯ LD-25 accepted back-entry (4)
+     × 2 h old paper form: 201, order registered, server audits entry_mode + downtime_ref; billing sees no back-dated instant (nothing back-dated is sent on) 230ms
+     × entry_mode live (default) is unchanged 58ms
+     × boundaries are inclusive: occurred_at = now and occurred_at = now - 72 h; downtime_ref of exactly 32 chars 59ms
+ ❯ src/modules/frontdesk/__tests__/probes/uploads.live.test.ts (51 tests | 18 failed) 998ms
+   ❯ P-2: no Storage URL / bucket path in ANY response body or header of ANY operation (success or error) (48)
+     × listRegistrationDrafts 4ms
+     × createRegistrationDraft 1ms
+     × getRegistrationDraft 0ms
+     × deleteRegistrationDraft 0ms
+     × listFavouriteTests 0ms
+     × addFavouriteTest 0ms
+     × removeFavouriteTest 0ms
+     × previewRegistrationNumbers 0ms
+     × listCustomFieldDefinitions 0ms
+     × createCustomFieldDefinition 0ms
+     × updateCustomFieldDefinition 0ms
+     × listCoupons 0ms
+     × createCoupon 0ms
+     × updateCoupon 0ms
+     × listIcdCodes 0ms
+     × createIcdCode 0ms
+     × updateIcdCode 0ms
+     × getPatientRewards 0ms
+ ❯ src/modules/frontdesk/__tests__/probes/registry.static.test.ts (56 tests | 20 failed) 116ms
+   ❯ contract <-> probes (3)
+     × the contract has exactly the 29 operations of 02-TRD §7.1 (F1-F26 incl. F8b, F21a, F24 get+put) 11ms
+     × every operation has a probe request in kit.ts (requestFor) and is exercised by the cross-tenant suite 9ms
+   ❯ permission + idempotency table (02-TRD §7.1, contracts/permissions.yaml) (49)
+     × listRegistrationDrafts 1ms
+     × createRegistrationDraft 0ms
+     × getRegistrationDraft 0ms
+     × deleteRegistrationDraft 0ms
+     × listFavouriteTests 0ms
+     × addFavouriteTest 0ms
+     × removeFavouriteTest 0ms
+     × previewRegistrationNumbers 0ms
+     × listCustomFieldDefinitions 0ms
+     × createCustomFieldDefinition 0ms
+     × updateCustomFieldDefinition 0ms
+     × listCoupons 0ms
+     × createCoupon 0ms
+     × updateCoupon 0ms
+     × listIcdCodes 0ms
+     × createIcdCode 0ms
+     × updateIcdCode 0ms
+     × getPatientRewards 0ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 95 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/modules/frontdesk/__tests__/probes/crossCentre.live.test.ts > getDiscountApproval on an A2 object as an A1-only user > => 404 common.not_found and the A2 row is unchanged
+AssertionError: expected { …(15) } to deeply equal { …(15) }
+
+- Expected
++ Received
+
+@@ -8,10 +8,10 @@
+    "event_log": "8",
+    "number_counters": "294c118b33b54665e1f0c4c4381bd855",
+    "order_flags": "5dbcd40fd2f3f4887cbe7fcad914b3c5",
+    "order_items": "83fb7d734a782bef5d1fe9c04f168e6e",
+    "orders": "f7705005fe2991e59d11eaaedbf80afa",
+-   "patient_consents": "b86d35aca7af082d8b80568edc41f352",
+-   "patients": "1641e45237feea49f5ff7fa3d81f45af",
++   "patient_consents": "33f804c5ea4b786ce242cc43ebe0b0fe",
++   "patients": "ccf941b6a0fb602fb331513129109073",
+    "settings": "158846276c81b09b6d2dd6cbb598ba9f",
+    "trf_attachments": "2c031a9bcb1f26eace545555f76f7b19",
+  }
+
+ ❯ src/modules/frontdesk/__tests__/probes/crossCentre.live.test.ts:27:38
+     25|     expect(out.error).toBeInstanceOf(LimsError);
+     26|     expect(codeOf(out), `${out.error?.message}`).toBe('common.not_foun…
+     27|     expect(await snapshot(TENANT_A)).toEqual(before);
+       |                                      ^
+     28|   });
+     29|   it('control: the same call on an A1 object is NOT a 404 (the probe m…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/95]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/probes/crossCentre.live.test.ts > approveDiscount on an A2 object as an A1-only user > => 404 common.not_found and the A2 row is unchanged
+AssertionError: expected { …(15) } to deeply equal { …(15) }
+
+- Expected
++ Received
+
+@@ -9,9 +9,9 @@
+    "number_counters": "294c118b33b54665e1f0c4c4381bd855",
+    "order_flags": "5dbcd40fd2f3f4887cbe7fcad914b3c5",
+    "order_items": "83fb7d734a782bef5d1fe9c04f168e6e",
+    "orders": "f7705005fe2991e59d11eaaedbf80afa",
+    "patient_consents": "c08cec5bcf5a9911441b44169972afc2",
+-   "patients": "ea98f402e3fa118caf9595249e16364f",
++   "patients": "897966d3f1f4c3257a5356e0b8205411",
+    "settings": "158846276c81b09b6d2dd6cbb598ba9f",
+    "trf_attachments": "2c031a9bcb1f26eace545555f76f7b19",
+  }
+
+ ❯ src/modules/frontdesk/__tests__/probes/crossCentre.live.test.ts:27:38
+     25|     expect(out.error).toBeInstanceOf(LimsError);
+     26|     expect(codeOf(out), `${out.error?.message}`).toBe('common.not_foun…
+     27|     expect(await snapshot(TENANT_A)).toEqual(before);
+       |                                      ^
+     28|   });
+     29|   it('control: the same call on an A1 object is NOT a 404 (the probe m…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/95]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/probes/crossCentre.live.test.ts > rejectDiscount on an A2 object as an A1-only user > => 404 common.not_found and the A2 row is unchanged
+AssertionError: expected { …(15) } to deeply equal { …(15) }
+
+- Expected
++ Received
+
+@@ -8,10 +8,10 @@
+    "event_log": "8",
+    "number_counters": "294c118b33b54665e1f0c4c4381bd855",
+    "order_flags": "5dbcd40fd2f3f4887cbe7fcad914b3c5",
+    "order_items": "83fb7d734a782bef5d1fe9c04f168e6e",
+    "orders": "f7705005fe2991e59d11eaaedbf80afa",
+-   "patient_consents": "af1d5b2ac944ce6a1cd9a45f1cbdf183",
+-   "patients": "791a1c4c613cb25aa8c0fc111c866414",
++   "patient_consents": "03622213966b4cef5537e3bc54dfe63c",
++   "patients": "8fa58c5ba46963663d0799764857be21",
+    "settings": "158846276c81b09b6d2dd6cbb598ba9f",
+    "trf_attachments": "2c031a9bcb1f26eace545555f76f7b19",
+  }
+
+ ❯ src/modules/frontdesk/__tests__/probes/crossCentre.live.test.ts:27:38
+     25|     expect(out.error).toBeInstanceOf(LimsError);
+     26|     expect(codeOf(out), `${out.error?.message}`).toBe('common.not_foun…
+     27|     expect(await snapshot(TENANT_A)).toEqual(before);
+       |                                      ^
+     28|   });
+     29|   it('control: the same call on an A1 object is NOT a 404 (the probe m…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/95]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/probes/crossCentre.live.test.ts > getTrfAttachment on an A2 object as an A1-only user > => 404 common.not_found and the A2 row is unchanged
+AssertionError: expected { …(15) } to deeply equal { …(15) }
+
+- Expected
++ Received
+
+@@ -8,10 +8,10 @@
+    "event_log": "8",
+    "number_counters": "294c118b33b54665e1f0c4c4381bd855",
+    "order_flags": "5dbcd40fd2f3f4887cbe7fcad914b3c5",
+    "order_items": "83fb7d734a782bef5d1fe9c04f168e6e",
+    "orders": "f7705005fe2991e59d11eaaedbf80afa",
+-   "patient_consents": "03622213966b4cef5537e3bc54dfe63c",
++   "patient_consents": "a9bd6a74969930f68259c66aca219070",
+    "patients": "b70901adc0a5b0f84408623564ace50d",
+    "settings": "158846276c81b09b6d2dd6cbb598ba9f",
+    "trf_attachments": "2c031a9bcb1f26eace545555f76f7b19",
+  }
+
+ ❯ src/modules/frontdesk/__tests__/probes/crossCentre.live.test.ts:27:38
+     25|     expect(out.error).toBeInstanceOf(LimsError);
+     26|     expect(codeOf(out), `${out.error?.message}`).toBe('common.not_foun…
+     27|     expect(await snapshot(TENANT_A)).toEqual(before);
+       |                                      ^
+     28|   });
+     29|   it('control: the same call on an A1 object is NOT a 404 (the probe m…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/95]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/probes/crossCentre.live.test.ts > getTrfAttachmentContent on an A2 object as an A1-only user > => 404 common.not_found and the A2 row is unchanged
+AssertionError: expected { …(15) } to deeply equal { …(15) }
+
+- Expected
++ Received
+
+@@ -8,10 +8,10 @@
+    "event_log": "8",
+    "number_counters": "294c118b33b54665e1f0c4c4381bd855",
+    "order_flags": "5dbcd40fd2f3f4887cbe7fcad914b3c5",
+    "order_items": "83fb7d734a782bef5d1fe9c04f168e6e",
+    "orders": "f7705005fe2991e59d11eaaedbf80afa",
+-   "patient_consents": "a9bd6a74969930f68259c66aca219070",
+-   "patients": "b70901adc0a5b0f84408623564ace50d",
++   "patient_consents": "d10ee9c651503b28e9e991ca1e4764a4",
++   "patients": "2df011873c7ce72a102c750ca3b02b3e",
+    "settings": "158846276c81b09b6d2dd6cbb598ba9f",
+    "trf_attachments": "2c031a9bcb1f26eace545555f76f7b19",
+  }
+
+ ❯ src/modules/frontdesk/__tests__/probes/crossCentre.live.test.ts:27:38
+     25|     expect(out.error).toBeInstanceOf(LimsError);
+     26|     expect(codeOf(out), `${out.error?.message}`).toBe('common.not_foun…
+     27|     expect(await snapshot(TENANT_A)).toEqual(before);
+       |                                      ^
+     28|   });
+     29|   it('control: the same call on an A1 object is NOT a 404 (the probe m…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/95]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/probes/crossCentre.live.test.ts > resolveOrderFlag on an A2 object as an A1-only user > => 404 common.not_found and the A2 row is unchanged
+AssertionError: expected { …(15) } to deeply equal { …(15) }
+
+- Expected
++ Received
+
+@@ -1,7 +1,7 @@
+  {
+-   "access_log": "0",
++   "access_log": "1",
+    "booking_links": "-",
+    "cs_reasons": "-",
+    "discount_approvals": "5a71bf3785292ed7bd568b11cd56404d",
+    "discounts": "49b1d1c3230fe067eba3615da0c2b4db",
+    "event_inbox": "-",
+
+ ❯ src/modules/frontdesk/__tests__/probes/crossCentre.live.test.ts:27:38
+     25|     expect(out.error).toBeInstanceOf(LimsError);
+     26|     expect(codeOf(out), `${out.error?.message}`).toBe('common.not_foun…
+     27|     expect(await snapshot(TENANT_A)).toEqual(before);
+       |                                      ^
+     28|   });
+     29|   it('control: the same call on an A1 object is NOT a 404 (the probe m…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/95]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/probes/crossCentre.live.test.ts > uploadTrf into centre A2 as an A1-only user > => auth.forbidden (or 404), nothing stored
+AssertionError: expected { …(15) } to deeply equal { …(15) }
+
+- Expected
++ Received
+
+@@ -9,9 +9,9 @@
+    "number_counters": "294c118b33b54665e1f0c4c4381bd855",
+    "order_flags": "59e9438b0cb8ee8ad2ae348e94d324cc",
+    "order_items": "83fb7d734a782bef5d1fe9c04f168e6e",
+    "orders": "f7705005fe2991e59d11eaaedbf80afa",
+    "patient_consents": "d10ee9c651503b28e9e991ca1e4764a4",
+-   "patients": "2df011873c7ce72a102c750ca3b02b3e",
++   "patients": "dbe7a9dd1ed0b61ed2df47a36b7901b4",
+    "settings": "158846276c81b09b6d2dd6cbb598ba9f",
+    "trf_attachments": "2c031a9bcb1f26eace545555f76f7b19",
+  }
+
+ ❯ src/modules/frontdesk/__tests__/probes/crossCentre.live.test.ts:46:38
+     44|     expect(['auth.forbidden', 'common.not_found']).toContain(codeOf(ou…
+     45|     expect(out.probe.trf.storage.paths()).toEqual([]);
+     46|     expect(await snapshot(TENANT_A)).toEqual(before);
+       |                                      ^
+     47|   });
+     48| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/95]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/probes/crossCentre.live.test.ts > createRegistration into centre A2 as an A1-only user > => auth.forbidden (or 404), nothing stored
+AssertionError: expected { …(15) } to deeply equal { …(15) }
+
+- Expected
++ Received
+
+  {
+-   "access_log": "3",
++   "access_log": "4",
+    "booking_links": "-",
+    "cs_reasons": "-",
+    "discount_approvals": "5a71bf3785292ed7bd568b11cd56404d",
+    "discounts": "49b1d1c3230fe067eba3615da0c2b4db",
+    "event_inbox": "-",
+    "event_log": "8",
+    "number_counters": "294c118b33b54665e1f0c4c4381bd855",
+    "order_flags": "59e9438b0cb8ee8ad2ae348e94d324cc",
+    "order_items": "83fb7d734a782bef5d1fe9c04f168e6e",
+    "orders": "f7705005fe2991e59d11eaaedbf80afa",
+-   "patient_consents": "8a13041082c101d1534d62feec7b732a",
++   "patient_consents": "d324ddc48105479f1c45db2553d0111d",
+    "patients": "bec382f9af5d4962b26e0412a4f64726",
+    "settings": "158846276c81b09b6d2dd6cbb598ba9f",
+    "trf_attachments": "2c031a9bcb1f26eace545555f76f7b19",
+  }
+
+ ❯ src/modules/frontdesk/__tests__/probes/crossCentre.live.test.ts:46:38
+     44|     expect(['auth.forbidden', 'common.not_found']).toContain(codeOf(ou…
+     45|     expect(out.probe.trf.storage.paths()).toEqual([]);
+     46|     expect(await snapshot(TENANT_A)).toEqual(before);
+       |                                      ^
+     47|   });
+     48| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/95]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/probes/crossCentre.live.test.ts > requestDiscountApproval into centre A2 as an A1-only user > => auth.forbidden (or 404), nothing stored
+AssertionError: expected { …(15) } to deeply equal { …(15) }
+
+- Expected
++ Received
+
+@@ -8,10 +8,10 @@
+    "event_log": "8",
+    "number_counters": "294c118b33b54665e1f0c4c4381bd855",
+    "order_flags": "59e9438b0cb8ee8ad2ae348e94d324cc",
+    "order_items": "83fb7d734a782bef5d1fe9c04f168e6e",
+    "orders": "f7705005fe2991e59d11eaaedbf80afa",
+-   "patient_consents": "114de40056c6a01d9cced9fda020c412",
+-   "patients": "40eea5280c045556233484842a597880",
++   "patient_consents": "6e3ef1221c5e76d80d6e280e8f3174d0",
++   "patients": "e59e9ca6a217c1e4944a3ced7294a08a",
+    "settings": "158846276c81b09b6d2dd6cbb598ba9f",
+    "trf_attachments": "2c031a9bcb1f26eace545555f76f7b19",
+  }
+
+ ❯ src/modules/frontdesk/__tests__/probes/crossCentre.live.test.ts:46:38
+     44|     expect(['auth.forbidden', 'common.not_found']).toContain(codeOf(ou…
+     45|     expect(out.probe.trf.storage.paths()).toEqual([]);
+     46|     expect(await snapshot(TENANT_A)).toEqual(before);
+       |                                      ^
+     47|   });
+     48| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/95]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/probes/crossTenant.live.test.ts > registry > the contract has exactly the 29 frontdesk operations and every one is probed below
+AssertionError: expected [ …(47) ] to have a length of 29 but got 47
+
+- Expected
++ Received
+
+- 29
++ 47
+
+ ❯ src/modules/frontdesk/__tests__/probes/crossTenant.live.test.ts:28:17
+     26| describe('registry', () => {
+     27|   it('the contract has exactly the 29 frontdesk operations and every o…
+     28|     expect(OPS).toHaveLength(29);
+       |                 ^
+     29|     const probed = OPS.filter((o) => o.pathParams.length > 0 || BODY_I…
+     30|     expect(probed.map((o) => o.id).sort()).toEqual(OPS.map((o) => o.id…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/95]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/probes/crossTenant.live.test.ts > cancelOrder names a tenant-B object > => 404 common.not_found, no B data in the answer, zero B changes in the DB
+AssertionError: expected { …(15) } to deeply equal { …(15) }
+
+- Expected
++ Received
+
+@@ -8,10 +8,10 @@
+    "event_log": "94",
+    "number_counters": "25479b03f51be3f424b339357fa2137b",
+    "order_flags": "cb976e35f1ab9c8d84d9df52daed9349",
+    "order_items": "30485e0306758efd939ebc4ac209f91c",
+    "orders": "a44803a95ca34cc86305bce2a0a3bc82",
+-   "patient_consents": "da3e2f0a0b9d9d711adce525bdfe6066",
+-   "patients": "22684e6a29c8f06af06787738555e655",
++   "patient_consents": "728247846d76922f4f774d04f89b5e86",
++   "patients": "b8fec692881973f4d0db634af6b02d67",
+    "settings": "2971485bd2854c5ad0932b9c4a775681",
+    "trf_attachments": "6e9746e352ca1fcb3980914400c63c35",
+  }
+
+ ❯ src/modules/frontdesk/__tests__/probes/crossTenant.live.test.ts:43:38
+     41|     const seen = JSON.stringify({ code: out.error.code, detail: out.er…
+     42|     for (const needle of [B.patient.id, B.order.id, B.item.id, B.appro…
+     43|     expect(await snapshot(TENANT_B)).toEqual(before);
+       |                                      ^
+     44|   });
+     45| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/95]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/probes/crossTenant.live.test.ts > listRegistrationDrafts names a tenant-B object > => 404 common.not_found, no B data in the answer, zero B changes in the DB
+Error: no probe request for listRegistrationDrafts
+ ❯ requestFor src/modules/frontdesk/__tests__/probes/kit.ts:199:20
+    197|       registration_sms_enabled: false, label_autoprint: false, buyer_p…
+    198|     case 'listFrontdeskCodes': return req({ params: { set_name: 'order…
+    199|     default: throw new Error(`no probe request for ${id}`);
+       |                    ^
+    200|   }
+    201| }
+ ❯ src/modules/frontdesk/__tests__/probes/crossTenant.live.test.ts:37:34
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/95]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/probes/crossTenant.live.test.ts > createRegistrationDraft names a tenant-B object > => 404 common.not_found, no B data in the answer, zero B changes in the DB
+Error: no probe request for createRegistrationDraft
+ ❯ requestFor src/modules/frontdesk/__tests__/probes/kit.ts:199:20
+    197|       registration_sms_enabled: false, label_autoprint: false, buyer_p…
+    198|     case 'listFrontdeskCodes': return req({ params: { set_name: 'order…
+    199|     default: throw new Error(`no probe request for ${id}`);
+       |                    ^
+    200|   }
+    201| }
+ ❯ src/modules/frontdesk/__tests__/probes/crossTenant.live.test.ts:37:34
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/95]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/probes/crossTenant.live.test.ts > getRegistrationDraft names a tenant-B object > => 404 common.not_found, no B data in the answer, zero B changes in the DB
+Error: no probe request for getRegistrationDraft
+ ❯ requestFor src/modules/frontdesk/__tests__/probes/kit.ts:199:20
+    197|       registration_sms_enabled: false, label_autoprint: false, buyer_p…
+    198|     case 'listFrontdeskCodes': return req({ params: { set_name: 'order…
+    199|     default: throw new Error(`no probe request for ${id}`);
+       |                    ^
+    200|   }
+    201| }
+ ❯ src/modules/frontdesk/__tests__/probes/crossTenant.live.test.ts:37:34
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/95]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/probes/crossTenant.live.test.ts > deleteRegistrationDraft names a tenant-B object > => 404 common.not_found, no B data in the answer, zero B changes in the DB
+Error: no probe request for deleteRegistrationDraft
+ ❯ requestFor src/modules/frontdesk/__tests__/probes/kit.ts:199:20
+    197|       registration_sms_enabled: false, label_autoprint: false, buyer_p…
+    198|     case 'listFrontdeskCodes': return req({ params: { set_name: 'order…
+    199|     default: throw new Error(`no probe request for ${id}`);
+       |                    ^
+    200|   }
+    201| }
+ ❯ src/modules/frontdesk/__tests__/probes/crossTenant.live.test.ts:37:34
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/95]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/probes/crossTenant.live.test.ts > listFavouriteTests names a tenant-B object > => 404 common.not_found, no B data in the answer, zero B changes in the DB
+Error: no probe request for listFavouriteTests
+ ❯ requestFor src/modules/frontdesk/__tests__/probes/kit.ts:199:20
+    197|       registration_sms_enabled: false, label_autoprint: false, buyer_p…
+    198|     case 'listFrontdeskCodes': return req({ params: { set_name: 'order…
+    199|     default: throw new Error(`no probe request for ${id}`);
+       |                    ^
+    200|   }
+    201| }
+ ❯ src/modules/frontdesk/__tests__/probes/crossTenant.live.test.ts:37:34
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[16/95]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/probes/crossTenant.live.test.ts > addFavouriteTest names a tenant-B object > => 404 common.not_found, no B data in the answer, zero B changes in the DB
+Error: no probe request for addFavouriteTest
+ ❯ requestFor src/modules/frontdesk/__tests__/probes/kit.ts:199:20
+    197|       registration_sms_enabled: false, label_autoprint: false, buyer_p…
+    198|     case 'listFrontdeskCodes': return req({ params: { set_name: 'order…
+    199|     default: throw new Error(`no probe request for ${id}`);
+       |                    ^
+    200|   }
+    201| }
+ ❯ src/modules/frontdesk/__tests__/probes/crossTenant.live.test.ts:37:34
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[17/95]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/probes/crossTenant.live.test.ts > removeFavouriteTest names a tenant-B object > => 404 common.not_found, no B data in the answer, zero B changes in the DB
+Error: no probe request for removeFavouriteTest
+ ❯ requestFor src/modules/frontdesk/__tests__/probes/kit.ts:199:20
+    197|       registration_sms_enabled: false, label_autoprint: false, buyer_p…
+    198|     case 'listFrontdeskCodes': return req({ params: { set_name: 'order…
+    199|     default: throw new Error(`no probe request for ${id}`);
+       |                    ^
+    200|   }
+    201| }
+ ❯ src/modules/frontdesk/__tests__/probes/crossTenant.live.test.ts:37:34
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[18/95]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/probes/crossTenant.live.test.ts > previewRegistrationNumbers names a tenant-B object > => 404 common.not_found, no B data in the answer, zero B changes in the DB
+Error: no probe request for previewRegistrationNumbers
+ ❯ requestFor src/modules/frontdesk/__tests__/probes/kit.ts:199:20
+    197|       registration_sms_enabled: false, label_autoprint: false, buyer_p…
+    198|     case 'listFrontdeskCodes': return req({ params: { set_name: 'order…
+    199|     default: throw new Error(`no probe request for ${id}`);
+       |                    ^
+    200|   }
+    201| }
+ ❯ src/modules/frontdesk/__tests__/probes/crossTenant.live.test.ts:37:34
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[19/95]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/probes/crossTenant.live.test.ts > listCustomFieldDefinitions names a tenant-B object > => 404 common.not_found, no B data in the answer, zero B changes in the DB
+Error: no probe request for listCustomFieldDefinitions
+ ❯ requestFor src/modules/frontdesk/__tests__/probes/kit.ts:199:20
+    197|       registration_sms_enabled: false, label_autoprint: false, buyer_p…
+    198|     case 'listFrontdeskCodes': return req({ params: { set_name: 'order…
+    199|     default: throw new Error(`no probe request for ${id}`);
+       |                    ^
+    200|   }
+    201| }
+ ❯ src/modules/frontdesk/__tests__/probes/crossTenant.live.test.ts:37:34
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[20/95]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/probes/crossTenant.live.test.ts > createCustomFieldDefinition names a tenant-B object > => 404 common.not_found, no B data in the answer, zero B changes in the DB
+Error: no probe request for createCustomFieldDefinition
+ ❯ requestFor src/modules/frontdesk/__tests__/probes/kit.ts:199:20
+    197|       registration_sms_enabled: false, label_autoprint: false, buyer_p…
+    198|     case 'listFrontdeskCodes': return req({ params: { set_name: 'order…
+    199|     default: throw new Error(`no probe request for ${id}`);
+       |                    ^
+    200|   }
+    201| }
+ ❯ src/modules/frontdesk/__tests__/probes/crossTenant.live.test.ts:37:34
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[21/95]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/probes/crossTenant.live.test.ts > updateCustomFieldDefinition names a tenant-B object > => 404 common.not_found, no B data in the answer, zero B changes in the DB
+Error: no probe request for updateCustomFieldDefinition
+ ❯ requestFor src/modules/frontdesk/__tests__/probes/kit.ts:199:20
+    197|       registration_sms_enabled: false, label_autoprint: false, buyer_p…
+    198|     case 'listFrontdeskCodes': return req({ params: { set_name: 'order…
+    199|     default: throw new Error(`no probe request for ${id}`);
+       |                    ^
+    200|   }
+    201| }
+ ❯ src/modules/frontdesk/__tests__/probes/crossTenant.live.test.ts:37:34
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[22/95]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/probes/crossTenant.live.test.ts > listCoupons names a tenant-B object > => 404 common.not_found, no B data in the answer, zero B changes in the DB
+Error: no probe request for listCoupons
+ ❯ requestFor src/modules/frontdesk/__tests__/probes/kit.ts:199:20
+    197|       registration_sms_enabled: false, label_autoprint: false, buyer_p…
+    198|     case 'listFrontdeskCodes': return req({ params: { set_name: 'order…
+    199|     default: throw new Error(`no probe request for ${id}`);
+       |                    ^
+    200|   }
+    201| }
+ ❯ src/modules/frontdesk/__tests__/probes/crossTenant.live.test.ts:37:34
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[23/95]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/probes/crossTenant.live.test.ts > createCoupon names a tenant-B object > => 404 common.not_found, no B data in the answer, zero B changes in the DB
+Error: no probe request for createCoupon
+ ❯ requestFor src/modules/frontdesk/__tests__/probes/kit.ts:199:20
+    197|       registration_sms_enabled: false, label_autoprint: false, buyer_p…
+    198|     case 'listFrontdeskCodes': return req({ params: { set_name: 'order…
+    199|     default: throw new Error(`no probe request for ${id}`);
+       |                    ^
+    200|   }
+    201| }
+ ❯ src/modules/frontdesk/__tests__/probes/crossTenant.live.test.ts:37:34
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[24/95]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/probes/crossTenant.live.test.ts > updateCoupon names a tenant-B object > => 404 common.not_found, no B data in the answer, zero B changes in the DB
+Error: no probe request for updateCoupon
+ ❯ requestFor src/modules/frontdesk/__tests__/probes/kit.ts:199:20
+    197|       registration_sms_enabled: false, label_autoprint: false, buyer_p…
+    198|     case 'listFrontdeskCodes': return req({ params: { set_name: 'order…
+    199|     default: throw new Error(`no probe request for ${id}`);
+       |                    ^
+    200|   }
+    201| }
+ ❯ src/modules/frontdesk/__tests__/probes/crossTenant.live.test.ts:37:34
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[25/95]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/probes/crossTenant.live.test.ts > listIcdCodes names a tenant-B object > => 404 common.not_found, no B data in the answer, zero B changes in the DB
+Error: no probe request for listIcdCodes
+ ❯ requestFor src/modules/frontdesk/__tests__/probes/kit.ts:199:20
+    197|       registration_sms_enabled: false, label_autoprint: false, buyer_p…
+    198|     case 'listFrontdeskCodes': return req({ params: { set_name: 'order…
+    199|     default: throw new Error(`no probe request for ${id}`);
+       |                    ^
+    200|   }
+    201| }
+ ❯ src/modules/frontdesk/__tests__/probes/crossTenant.live.test.ts:37:34
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[26/95]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/probes/crossTenant.live.test.ts > createIcdCode names a tenant-B object > => 404 common.not_found, no B data in the answer, zero B changes in the DB
+Error: no probe request for createIcdCode
+ ❯ requestFor src/modules/frontdesk/__tests__/probes/kit.ts:199:20
+    197|       registration_sms_enabled: false, label_autoprint: false, buyer_p…
+    198|     case 'listFrontdeskCodes': return req({ params: { set_name: 'order…
+    199|     default: throw new Error(`no probe request for ${id}`);
+       |                    ^
+    200|   }
+    201| }
+ ❯ src/modules/frontdesk/__tests__/probes/crossTenant.live.test.ts:37:34
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[27/95]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/probes/crossTenant.live.test.ts > updateIcdCode names a tenant-B object > => 404 common.not_found, no B data in the answer, zero B changes in the DB
+Error: no probe request for updateIcdCode
+ ❯ requestFor src/modules/frontdesk/__tests__/probes/kit.ts:199:20
+    197|       registration_sms_enabled: false, label_autoprint: false, buyer_p…
+    198|     case 'listFrontdeskCodes': return req({ params: { set_name: 'order…
+    199|     default: throw new Error(`no probe request for ${id}`);
+       |                    ^
+    200|   }
+    201| }
+ ❯ src/modules/frontdesk/__tests__/probes/crossTenant.live.test.ts:37:34
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[28/95]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/probes/crossTenant.live.test.ts > getPatientRewards names a tenant-B object > => 404 common.not_found, no B data in the answer, zero B changes in the DB
+Error: no probe request for getPatientRewards
+ ❯ requestFor src/modules/frontdesk/__tests__/probes/kit.ts:199:20
+    197|       registration_sms_enabled: false, label_autoprint: false, buyer_p…
+    198|     case 'listFrontdeskCodes': return req({ params: { set_name: 'order…
+    199|     default: throw new Error(`no probe request for ${id}`);
+       |                    ^
+    200|   }
+    201| }
+ ❯ src/modules/frontdesk/__tests__/probes/crossTenant.live.test.ts:37:34
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[29/95]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/probes/crossTenant.live.test.ts > arrays that mix an A id with a B id refuse as a whole and change nothing (a+b mixes) > F13 changeOrderItems: remove [A item, B item] => refused, A order and items unchanged
+AssertionError: expected { …(15) } to deeply equal { …(15) }
+
+- Expected
++ Received
+
+  {
+    "access_log": "4",
+-   "booking_links": "d32cff542e3187c3a25643ed4de0addd",
++   "booking_links": "4f45e8ef111e70a8301e033c19bae1e5",
+    "cs_reasons": "16e7e161b15ebbeeb34841ec87959d0b",
+    "discount_approvals": "8731a48eeba472397f7383651ed06156",
+    "discounts": "9a1fb982220eed623d5cbf238516a8ba",
+    "event_inbox": "-",
+    "event_log": "94",
+    "number_counters": "25479b03f51be3f424b339357fa2137b",
+    "order_flags": "cb976e35f1ab9c8d84d9df52daed9349",
+    "order_items": "30485e0306758efd939ebc4ac209f91c",
+    "orders": "a44803a95ca34cc86305bce2a0a3bc82",
+-   "patient_consents": "73afe15357370050c55d6456358ef218",
++   "patient_consents": "00fbf07ef57ef622bcccffaa266df4cb",
+    "patients": "1904d36604fd654d12f010baeceede44",
+    "settings": "c038303c3ac7b3f4b2dc46cfbad3cd6b",
+    "trf_attachments": "6e9746e352ca1fcb3980914400c63c35",
+  }
+
+ ❯ src/modules/frontdesk/__tests__/probes/crossTenant.live.test.ts:167:38
+    165|     expect(['common.not_found', 'common.validation_failed']).toContain…
+    166|     expect(await snap()).toEqual(before);
+    167|     expect(await snapshot(TENANT_B)).toEqual(bBefore);
+       |                                      ^
+    168|   });
+    169|   it('F20 uploadTrf linked to a B order => not_found, nothing stored, …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[30/95]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/probes/phi.logscan.live.test.ts > planted PHI never reaches a log line, an error response detail, an access_log row or an event payload > F9 createRegistration: the registered patient's demographics stay out of logs, access_log and the order events
+AssertionError: frontdesk.referrer_required: expected undefined to be 201 // Object.is equality
+
+- Expected:
+201
+
++ Received:
+undefined
+
+ ❯ src/modules/frontdesk/__tests__/probes/phi.logscan.live.test.ts:102:52
+    100|     const p = await prepare({ side: 'a', patient: { full_name: SENT.na…
+    101|     const r = await run('createRegistration', await fire('createRegist…
+    102|     expect(r.reply?.status, `${r.error?.message}`).toBe(201);
+       |                                                    ^
+    103|     const orderId = r.reply!.body.order?.id ?? (await ownerRows('front…
+    104|     expectClean(await surfaces(r, { orderIds: [orderId] }), 'createReg…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[31/95]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/probes/privilege.live.test.ts > approveDiscount (privileged: { id: 'approveDiscount', …(2) }) > with the permission at aal1 => 403 auth.mfa_required, database unchanged
+AssertionError: expected { …(15) } to deeply equal { …(15) }
+
+- Expected
++ Received
+
+@@ -8,10 +8,10 @@
+    "event_log": "1",
+    "number_counters": "c4410b644b45607cbf61c109d38285ce",
+    "order_flags": "479eb3eea56b922f654c9da2ea3bb296",
+    "order_items": "67c35f9381bf0973fa40169de69dd758",
+    "orders": "52e49463173a399387f36355a5e5c017",
+-   "patient_consents": "2f3955d31171789c04905383e1771b08",
++   "patient_consents": "0093308321f40f5fef59af195854032a",
+    "patients": "80b65616b114d2f84c612b7a23e1f2f0",
+    "settings": "158846276c81b09b6d2dd6cbb598ba9f",
+    "trf_attachments": "b5f664e38a75e549f42939c9b93774d8",
+  }
+
+ ❯ src/modules/frontdesk/__tests__/probes/privilege.live.test.ts:33:38
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[32/95]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/probes/privilege.live.test.ts > approveDiscount (privileged: { id: 'approveDiscount', …(2) }) > locked account => the IdentityPort refusal propagates unchanged, database unchanged
+AssertionError: expected { …(15) } to deeply equal { …(15) }
+
+- Expected
++ Received
+
+@@ -1,10 +1,10 @@
+  {
+    "access_log": "0",
+    "booking_links": "-",
+    "cs_reasons": "-",
+-   "discount_approvals": "c70cee6b2a29275a5707f53939165ef1",
++   "discount_approvals": "0b995ae1979bbd4d49b52933208e137a",
+    "discounts": "29e01b78c497c61cbf9d451af8ef8a12",
+    "event_inbox": "-",
+    "event_log": "2",
+    "number_counters": "8ac975b30752196acb9ae0ab76da6849",
+    "order_flags": "d95bff132831e8a7e0b4d25c85e65ca0",
+
+ ❯ src/modules/frontdesk/__tests__/probes/privilege.live.test.ts:40:38
+     38|     expect(out.reply, `answered ${out.reply?.status}`).toBeUndefined();
+     39|     expect(codeOf(out), `${out.error?.message}`).toBe(code);
+     40|     expect(await snapshot(TENANT_A)).toEqual(before);
+       |                                      ^
+     41|   });
+     42| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[33/95]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/probes/privilege.live.test.ts > approveDiscount (privileged: { id: 'approveDiscount', …(2) }) > revoked membership (IdentityPort re-validation) => the IdentityPort refusal propagates unchanged, database unchanged
+AssertionError: expected { …(15) } to deeply equal { …(15) }
+
+- Expected
++ Received
+
+@@ -9,9 +9,9 @@
+    "number_counters": "c6ebaf34a8b098dd4e58944d19935e84",
+    "order_flags": "c56a6a97e5f6db9c8a85f0816b35e94a",
+    "order_items": "faa165ff6a6920d9168ac57370f5d8dd",
+    "orders": "1a7b21a6772ac17af6dfd0e83121256a",
+    "patient_consents": "1df77d2f16ebda39d98e026c4195efe3",
+-   "patients": "22c771d4be9242fbb39f90f7fc4fc13b",
++   "patients": "9b873735613ad35a4fe09bc4d1fabafd",
+    "settings": "158846276c81b09b6d2dd6cbb598ba9f",
+    "trf_attachments": "103f018401c5658474c10c9fabb0b284",
+  }
+
+ ❯ src/modules/frontdesk/__tests__/probes/privilege.live.test.ts:40:38
+     38|     expect(out.reply, `answered ${out.reply?.status}`).toBeUndefined();
+     39|     expect(codeOf(out), `${out.error?.message}`).toBe(code);
+     40|     expect(await snapshot(TENANT_A)).toEqual(before);
+       |                                      ^
+     41|   });
+     42| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[34/95]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/probes/privilege.live.test.ts > anonymisePatient (privileged: { id: 'anonymisePatient', …(2) }) > without the permission => 403 auth.forbidden, database unchanged
+AssertionError: expected { …(15) } to deeply equal { …(15) }
+
+- Expected
++ Received
+
+@@ -9,9 +9,9 @@
+    "number_counters": "c6ebaf34a8b098dd4e58944d19935e84",
+    "order_flags": "f2ff5321098e01f2b6a036419d154694",
+    "order_items": "1c925a2abe1a02d7361781484cd2b324",
+    "orders": "961e64efcd9d74fc4065d255ee897220",
+    "patient_consents": "310cfbd45f233d4444542c1c79e53013",
+-   "patients": "6102d210bd459fc00765511d84a96bb1",
++   "patients": "ba19b404902ed8f8d296056b981690b7",
+    "settings": "158846276c81b09b6d2dd6cbb598ba9f",
+    "trf_attachments": "3ae8e2c5e2210d9203b35454478721e9",
+  }
+
+ ❯ src/modules/frontdesk/__tests__/probes/privilege.live.test.ts:26:38
+     24|     expect(out.reply, `answered ${out.reply?.status}`).toBeUndefined();
+     25|     expect(codeOf(out), `${out.error?.message}`).toBe('auth.forbidden'…
+     26|     expect(await snapshot(TENANT_A)).toEqual(before);
+       |                                      ^
+     27|   });
+     28|   it('with the permission at aal1 => 403 auth.mfa_required, database u…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[35/95]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/probes/privilege.live.test.ts > anonymisePatient (privileged: { id: 'anonymisePatient', …(2) }) > with the permission at aal1 => 403 auth.mfa_required, database unchanged
+AssertionError: expected { …(15) } to deeply equal { …(15) }
+
+- Expected
++ Received
+
+@@ -1,10 +1,10 @@
+  {
+    "access_log": "0",
+    "booking_links": "-",
+    "cs_reasons": "-",
+-   "discount_approvals": "6cfb86c980440936df5323ae471568f6",
++   "discount_approvals": "1fb46fbddc1bfc00852130a34a3b7f07",
+    "discounts": "13f7108878913452896f19e76efb05a2",
+    "event_inbox": "-",
+    "event_log": "3",
+    "number_counters": "c6ebaf34a8b098dd4e58944d19935e84",
+    "order_flags": "fd2255c3e7337a644fd20076b994ac53",
+
+ ❯ src/modules/frontdesk/__tests__/probes/privilege.live.test.ts:33:38
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[36/95]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/probes/privilege.live.test.ts > anonymisePatient (privileged: { id: 'anonymisePatient', …(2) }) > locked account => the IdentityPort refusal propagates unchanged, database unchanged
+AssertionError: expected { …(15) } to deeply equal { …(15) }
+
+- Expected
++ Received
+
+@@ -9,9 +9,9 @@
+    "number_counters": "92ad1b4ba7f32475a5f88acf12f08b73",
+    "order_flags": "ae4cb5f4db38bf81ef4740c904f51c86",
+    "order_items": "9c6899de3acafcfdb2fdff8bc71945e0",
+    "orders": "2961f725147a9c7913327401eca0d473",
+    "patient_consents": "95600a293ffe0b54ce29ef97a1ac235e",
+-   "patients": "1546b1fa301271a4c4cd764a1e511e12",
++   "patients": "8dbfe27e10d0e13364161ea3eab4e5e9",
+    "settings": "158846276c81b09b6d2dd6cbb598ba9f",
+    "trf_attachments": "71a4359ca5a91041234634171fae18e7",
+  }
+
+ ❯ src/modules/frontdesk/__tests__/probes/privilege.live.test.ts:40:38
+     38|     expect(out.reply, `answered ${out.reply?.status}`).toBeUndefined();
+     39|     expect(codeOf(out), `${out.error?.message}`).toBe(code);
+     40|     expect(await snapshot(TENANT_A)).toEqual(before);
+       |                                      ^
+     41|   });
+     42| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[37/95]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/probes/privilege.live.test.ts > anonymisePatient (privileged: { id: 'anonymisePatient', …(2) }) > revoked membership (IdentityPort re-validation) => the IdentityPort refusal propagates unchanged, database unchanged
+AssertionError: expected { …(15) } to deeply equal { …(15) }
+
+- Expected
++ Received
+
+@@ -1,10 +1,10 @@
+  {
+    "access_log": "0",
+    "booking_links": "-",
+    "cs_reasons": "-",
+-   "discount_approvals": "71ed46a0ee291014f8cc58463344f83c",
++   "discount_approvals": "8d1ffd7404a5a58261c0d5ca0ec51d17",
+    "discounts": "e3680f84cdc664a88914fd8d8cde14a8",
+    "event_inbox": "-",
+    "event_log": "4",
+    "number_counters": "92ad1b4ba7f32475a5f88acf12f08b73",
+    "order_flags": "12e4140c2dc7bea6251a1cb3fa54f3bb",
+
+ ❯ src/modules/frontdesk/__tests__/probes/privilege.live.test.ts:40:38
+     38|     expect(out.reply, `answered ${out.reply?.status}`).toBeUndefined();
+     39|     expect(codeOf(out), `${out.error?.message}`).toBe(code);
+     40|     expect(await snapshot(TENANT_A)).toEqual(before);
+       |                                      ^
+     41|   });
+     42| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[38/95]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/probes/privilege.live.test.ts > getFrontdeskSettings (privileged: { id: 'getFrontdeskSettings', …(2) }) > without the permission => 403 auth.forbidden, database unchanged
+AssertionError: expected { …(15) } to deeply equal { …(15) }
+
+- Expected
++ Received
+
+@@ -1,10 +1,10 @@
+  {
+    "access_log": "0",
+    "booking_links": "-",
+    "cs_reasons": "-",
+-   "discount_approvals": "e8a909dfb292cbea25948b4bb40bbafb",
++   "discount_approvals": "0fe3516c3db4c8da7ee357b4a0d180e8",
+    "discounts": "bc4ae794e7bceedf958853d4ffd9fec7",
+    "event_inbox": "-",
+    "event_log": "4",
+    "number_counters": "92ad1b4ba7f32475a5f88acf12f08b73",
+    "order_flags": "715441442d7884cc96f304a210ca2d78",
+
+ ❯ src/modules/frontdesk/__tests__/probes/privilege.live.test.ts:26:38
+     24|     expect(out.reply, `answered ${out.reply?.status}`).toBeUndefined();
+     25|     expect(codeOf(out), `${out.error?.message}`).toBe('auth.forbidden'…
+     26|     expect(await snapshot(TENANT_A)).toEqual(before);
+       |                                      ^
+     27|   });
+     28|   it('with the permission at aal1 => 403 auth.mfa_required, database u…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[39/95]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/probes/privilege.live.test.ts > getFrontdeskSettings (privileged: { id: 'getFrontdeskSettings', …(2) }) > with the permission at aal1 => 403 auth.mfa_required, database unchanged
+AssertionError: expected { …(15) } to deeply equal { …(15) }
+
+- Expected
++ Received
+
+@@ -8,10 +8,10 @@
+    "event_log": "4",
+    "number_counters": "92ad1b4ba7f32475a5f88acf12f08b73",
+    "order_flags": "1b42eea6f7f21712377677d0ded5bab6",
+    "order_items": "690f45a9f0af371ced05c34cb212ac2d",
+    "orders": "e4d844b9111745a4e4ad9ca35f45eaab",
+-   "patient_consents": "eec1adf6a280be32fd0473719856aa8f",
+-   "patients": "d094d437656ed26e6e9667e19c0bfc50",
++   "patient_consents": "1807ddfbc1c832d13d7ad4da2931c51f",
++   "patients": "e7ea14f1a6d3458fff9cf0cb888ebd82",
+    "settings": "158846276c81b09b6d2dd6cbb598ba9f",
+    "trf_attachments": "1028ab4b0b531e47f2018b6078ac8f22",
+  }
+
+ ❯ src/modules/frontdesk/__tests__/probes/privilege.live.test.ts:33:38
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[40/95]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/probes/privilege.live.test.ts > getFrontdeskSettings (privileged: { id: 'getFrontdeskSettings', …(2) }) > locked account => the IdentityPort refusal propagates unchanged, database unchanged
+AssertionError: expected { …(15) } to deeply equal { …(15) }
+
+- Expected
++ Received
+
+@@ -4,14 +4,14 @@
+    "cs_reasons": "-",
+    "discount_approvals": "a109a08b5e02e052bb6a02b1c7e2793a",
+    "discounts": "a6f63238807d7fe8027ad74ee94ad3cd",
+    "event_inbox": "-",
+    "event_log": "5",
+-   "number_counters": "92ad1b4ba7f32475a5f88acf12f08b73",
++   "number_counters": "9acde72b54a3f5590e3fb7ff511ce490",
+    "order_flags": "b99b304cb250a3241d4c0bd3fb6a10a4",
+    "order_items": "f6ef7eaa828e171864076f9304e6a85d",
+    "orders": "ce25f89dabd280e0f83bc792622cef9d",
+    "patient_consents": "367bb69c45f91a13cbe74446dbbbfc7e",
+-   "patients": "075b84478107bc6de67469cc8d55a149",
++   "patients": "ea75d7dd9942d873b2d219601d59aed2",
+    "settings": "158846276c81b09b6d2dd6cbb598ba9f",
+    "trf_attachments": "744f5ef7774d87a36b62ee4a804bb37b",
+  }
+
+ ❯ src/modules/frontdesk/__tests__/probes/privilege.live.test.ts:40:38
+     38|     expect(out.reply, `answered ${out.reply?.status}`).toBeUndefined();
+     39|     expect(codeOf(out), `${out.error?.message}`).toBe(code);
+     40|     expect(await snapshot(TENANT_A)).toEqual(before);
+       |                                      ^
+     41|   });
+     42| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[41/95]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/probes/privilege.live.test.ts > getFrontdeskSettings (privileged: { id: 'getFrontdeskSettings', …(2) }) > revoked membership (IdentityPort re-validation) => the IdentityPort refusal propagates unchanged, database unchanged
+AssertionError: expected { …(15) } to deeply equal { …(15) }
+
+- Expected
++ Received
+
+@@ -1,10 +1,10 @@
+  {
+    "access_log": "0",
+    "booking_links": "-",
+    "cs_reasons": "-",
+-   "discount_approvals": "6c03556032dc219a54c5e340092c430b",
++   "discount_approvals": "3f2373c2eb24827ba911c5a46eec8c93",
+    "discounts": "6c8ffcc97e5bf97d044c46f484decb7f",
+    "event_inbox": "-",
+    "event_log": "6",
+    "number_counters": "e813fb64d422d77b3f75fee0fb972db1",
+    "order_flags": "20691bf1513b58a7f96e6d7df5c32a6e",
+
+ ❯ src/modules/frontdesk/__tests__/probes/privilege.live.test.ts:40:38
+     38|     expect(out.reply, `answered ${out.reply?.status}`).toBeUndefined();
+     39|     expect(codeOf(out), `${out.error?.message}`).toBe(code);
+     40|     expect(await snapshot(TENANT_A)).toEqual(before);
+       |                                      ^
+     41|   });
+     42| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[42/95]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/probes/registry.static.test.ts > contract <-> probes > the contract has exactly the 29 operations of 02-TRD §7.1 (F1-F26 incl. F8b, F21a, F24 get+put)
+AssertionError: expected [ 'addFavouriteTest', …(46) ] to deeply equal [ 'anonymisePatient', …(28) ]
+
+- Expected
++ Received
+
+  [
++   "addFavouriteTest",
+    "anonymisePatient",
+    "approveDiscount",
+    "cancelOrder",
+    "changeOrderItems",
+    "confirmPreRegisteredOrder",
++   "createCoupon",
++   "createCustomFieldDefinition",
++   "createIcdCode",
+    "createPatient",
+    "createRegistration",
++   "createRegistrationDraft",
++   "deleteRegistrationDraft",
+    "getDiscountApproval",
+    "getFrontdeskSettings",
+    "getOrder",
+    "getPatient",
++   "getPatientRewards",
++   "getRegistrationDraft",
+    "getTrfAttachment",
+    "getTrfAttachmentContent",
++   "listCoupons",
++   "listCustomFieldDefinitions",
+    "listDiscountApprovals",
++   "listFavouriteTests",
+    "listFrontdeskCodes",
++   "listIcdCodes",
+    "listOrderFlags",
+    "listOrders",
+    "listPatientOrders",
+    "listPossibleDuplicatePatients",
++   "listRegistrationDrafts",
++   "previewRegistrationNumbers",
+    "quoteOrderItemsChange",
+    "quoteRegistration",
+    "recordPatientConsent",
+    "rejectDiscount",
++   "removeFavouriteTest",
+    "requestDiscountApproval",
+    "resolveOrderFlag",
+    "searchPatients",
++   "updateCoupon",
++   "updateCustomFieldDefinition",
+    "updateFrontdeskSettings",
++   "updateIcdCode",
+    "updatePatient",
+    "uploadTrf",
+  ]
+
+ ❯ src/modules/frontdesk/__tests__/probes/registry.static.test.ts:34:41
+     32| describe('contract <-> probes', () => {
+     33|   it('the contract has exactly the 29 operations of 02-TRD §7.1 (F1-F2…
+     34|     expect(OPS.map((o) => o.id).sort()).toEqual(Object.keys(EXPECT).so…
+       |                                         ^
+     35|   });
+     36|   it('every operation has a probe request in kit.ts (requestFor) and i…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[43/95]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/probes/registry.static.test.ts > contract <-> probes > every operation has a probe request in kit.ts (requestFor) and is exercised by the cross-tenant suite
+AssertionError: listRegistrationDrafts: expected '// FD-T16 probe kit (helper, not a te…' to contain 'case \'listRegistrationDrafts\''
+
+- Expected
++ Received
+
+- case 'listRegistrationDrafts'
++ // FD-T16 probe kit (helper, not a test): one request table for ALL 29 frontdesk operations (F1-F26 incl. F8b/F21a, 07-SECURITY §6.1), one universal HandlerContext over a REAL PG17 tx
++ // (lims_api, RLS on; same convention as ../admin/helpers.ts, ../approvals/helpers.ts, ../trf/helpers.ts, ../orders/helpers.ts) and the tenant/centre fixtures the probes share.
++ // Needs LIMS_TEST_APP_URL + LIMS_TEST_SUPER_URL (see ../integration/helpers.ts; tests/frontdesk/FD-T16.pg.sh boots PG17). Synthetic data only.
++ // ASSUMED (as every earlier suite): centre scope = IdentityPort.getActor().centreScope / assertRole({permission, centreId}); privileged permissions need aal2 (REQ-SEC-062/067);
++ // the core pipeline (schema, x-permission, Idempotency-Key replay, membership re-validation) is NOT re-run here: the IdentityPort fake models what it hands the handler.
++ import { readFileSync } from 'node:fs';
++ import { join } from 'node:path';
++ import { access } from '../../../../core/audit/access.js';
++ import { createCoreRepo } from '../../../../core/core-repo/index.js';
++ import { LimsError } from '../../../../core/errors.js';
++ import { createEvents } from '../../../../core/events/publish.js';
++ import { REPO_ROOT, loadSpec } from '../../../../core/module.js';
++ import { createDownload } from '../../../../core/storage/download.js';
++ import { createUploads } from '../../../../core/uploads/index.js';
++ import { handlers } from '../../handlers/index.js';
++ import { rows } from '../integration/helpers.js';
++ import { sharedFakes } from '../orders/helpers.js';
++ import { BRANCH, CENTRE, NOW, SYS_ACTOR, TENANT_A, TENANT_B, TENANT_SETTINGS, appTx, consents, ownerRows, phone, seed, seedOrder, seedPatient, seedSettings, superTx, tag, uid } from '../patients/helpers.js';
++ import { O, bill, draft, seedLimits } from '../quote/helpers.js';
++ import { ensureTaskRegistry, rworld, type RWorld } from '../registration/helpers.js';
++ import { makeWorld, pdfBytes, seedTrf, type World as TrfWorld } from '../trf/helpers.js';
++ 
++ export { BRANCH, CENTRE, NOW, O, TENANT_A, TENANT_B, SYS_ACTOR, ownerRows, phone, seed, superTx, tag, uid };
++ export const T = 120_000;
++ export const CENTRE_A2 = '01a1a98a-ac40-7000-8000-00000000a202';
++ export const BRANCH_A2 = '01a1a98a-ac40-7000-8000-00000000a102';
++ export const mid = (side: 'a' | 'b', n: number): string => `01a1a98a-ac40-7000-8000-00000000${side}${n}`;
++ 
++ // ---------------------------------------------------------------- operations (from the contract, not from the handlers)
++ const spec: any = loadSpec(join(REPO_ROOT, 'contracts/openapi/frontdesk.yaml'));
++ export interface OpInfo { id: string; method: string; path: string; permission: string; idempotency: string; pathParams: string[]; isList: boolean }
++ export const OPS: OpInfo[] = Object.entries<any>(spec.paths).flatMap(([path, item]) =>
++   ['get', 'post', 'put', 'patch', 'delete'].filter((m) => item?.[m]?.operationId).map((method) => {
++     const op = item[method];
++     const params: any[] = [...(item.parameters ?? []), ...(op.parameters ?? [])];
++     return { id: op.operationId as string, method, path, permission: op['x-permission'] as string, idempotency: String(op['x-idempotency'] ?? ''),
++       pathParams: [...path.matchAll(/\{([^}]+)\}/g)].map((m) => m[1]!), isList: method === 'get' && params.some((p) => p?.name === 'cursor' || p?.$ref?.endsWith('/Cursor')) } satisfies OpInfo;
++   }));
++ export const opById = (id: string): OpInfo => OPS.find((o) => o.id === id)!;
++ export const fileText = (rel: string): string => readFileSync(join(REPO_ROOT, rel), 'utf8');
++ 
++ /** The frontdesk permission codes (02-TRD §7) and which of them are privileged (aal2): contracts/permissions.yaml is the source, re-read here. */
++ export const PERMS = ['frontdesk.registration.create', 'frontdesk.patient.read', 'frontdesk.order.read', 'frontdesk.order.edit', 'frontdesk.order.cancel', 'frontdesk.discount.apply',
++   'frontdesk.discount.approve', 'frontdesk.trf.upload', 'frontdesk.settings.manage', 'frontdesk.patient.anonymise'] as const;
++ export const PRIVILEGED: ReadonlySet<string> = new Set(['frontdesk.discount.approve', 'frontdesk.settings.manage', 'frontdesk.patient.anonymise']);
++ export const INVOICE_ISSUE = 'billing.invoice.issue';
++ 
++ // ---------------------------------------------------------------- actors
++ export interface Who {
++   tenant: string; membershipId: string; grants: readonly string[]; mfa: 'aal1' | 'aal2'; centreIds: readonly string[]; allCentres?: boolean;
++   /** IdentityPort refuses every assertRole with this code (locked account / revoked membership re-validation, §6.4) */ refuse?: string;
++ }
++ export const mk = (tenant: string, o: Partial<Who> = {}): Who => ({
++   tenant, membershipId: mid(tenant === TENANT_B ? 'b' : 'a', 500), grants: [...PERMS, INVOICE_ISSUE], mfa: 'aal2', centreIds: [tenant === TENANT_B ? CENTRE.b : CENTRE.a], allCentres: false, ...o });
++ /** tenant A, every frontdesk permission at aal2, every centre. */
++ export const FULL_A: Who = mk(TENANT_A, { allCentres: true, centreIds: [CENTRE.a, CENTRE_A2] });
++ export const FULL_B: Who = mk(TENANT_B, { allCentres: true });
++ /** tenant A, same permissions, centre A1 ONLY (the cross-centre actor). */
++ export const A1_ONLY: Who = mk(TENANT_A, { centreIds: [CENTRE.a], allCentres: false, membershipId: mid('a', 501) });
++ export const as = (w: Who, o: Partial<Who>): Who => ({ ...w, ...o });
++ 
++ function identityOf(w: Who) {
++   const calls: Array<{ permission: string; centreId?: string }> = [];
++   return {
++     calls,
++     async assertRole(_c: unknown, r: { permission: string; centreId?: string }) {
++       calls.push({ permission: r?.permission, ...(r?.centreId ? { centreId: r.centreId } : {}) });
++       if (w.refuse) throw new LimsError(w.refuse as never);
++       if (!w.grants.includes(r?.permission)) throw new LimsError('auth.forbidden');
++       if (PRIVILEGED.has(r.permission) && w.mfa !== 'aal2') throw new LimsError('auth.mfa_required');
++       if (r.centreId && !w.allCentres && !w.centreIds.includes(r.centreId)) throw new LimsError('auth.forbidden');
++     },
++     async getActor() {
++       return { actor: { type: 'user', id: SYS_ACTOR, membershipId: w.membershipId }, displayName: 'Synthetic Probe Actor (SYNTHETIC)', roles: [], permissions: [...w.grants],
++         centreScope: { all: w.allCentres === true, centreIds: w.centreIds }, branchIds: [BRANCH.a], mfa: { enrolled: w.mfa === 'aal2', level: w.mfa }, isLocked: w.refuse === 'auth.account_locked' };
++     },
++     async getTenantSettings() { return { ...TENANT_SETTINGS, branding: { displayName: 'Synthetic Lab' } }; },
++   };
++ }
++ 
++ // ---------------------------------------------------------------- one request
++ export interface Probe { logs: string[]; accessCalls: any[]; writes: string[]; requestId: string; identity: ReturnType<typeof identityOf>; w: RWorld; trf: TrfWorld; ctx: any }
++ export interface Outcome { reply?: { status: number; body?: any; headers?: Record<string, string> }; error?: any; probe: Probe }
++ export interface FireOpts { w?: RWorld; lab?: any; billing?: any; catalog?: any; trf?: TrfWorld; requestId?: string; uploads?: unknown; bypassRls?: boolean }
++ export const req = (o: { params?: object; query?: object; headers?: object; body?: unknown } = {}) => ({ params: {}, query: {}, headers: {}, body: undefined, ...o });
++ const WRITE = /^\s*(insert|update|delete|truncate)\b/i;
++ const H = handlers as unknown as Record<string, (r: any, ctx: any) => Promise<{ status: number; body?: any; headers?: Record<string, string> }>>;
++ 
++ // FD-T16 ruling (1): §6.4 "nothing changes" is about the HANDLER, so the harness seeds (seedLimits UPDATEs frontdesk.settings) ONCE, before any snapshot() - never inside fire().
++ let readyP: Promise<void> | undefined;
++ export const ready = (): Promise<void> => (readyP ??= (async () => { await seedLimits(); await seedSettings(); await ensureTaskRegistry(); })());
++ 
++ /** One request = one committed tx under `who.tenant`'s claims (RLS on); on a throw the tx rolls back and the error is returned, never thrown. */
++ export async function fire(operationId: string, r: ReturnType<typeof req>, who: Who, o: FireOpts = {}): Promise<Outcome> {
++   await ready();
++   const side = who.tenant === TENANT_B ? 'b' : 'a';
++   const w = o.w ?? rworld({ creditList: true });
++   const trf = o.trf ?? makeWorld(who.tenant);
++   const probe: Probe = { logs: [], accessCalls: [], writes: [], requestId: o.requestId ?? uid(), identity: identityOf(who), w, trf, ctx: undefined };
++   const lab = o.lab ?? sharedFakes().lab;
++   // FD-T16 ruling (3), as the FD-T11 ruling (contract/helpers.ts:50-52): the LabPort fake grants user actors only via fixtures.grants[actor.id]
++   lab.__seed?.({ grants: { [SYS_ACTOR]: [...who.grants] } });
++   const run = async (rawTx: any) => {
++     rawTx.startedAt = NOW;                                                       // core events.publish stamps occurred_at from tx.startedAt
++     const tx = { query: async (text: string, values?: unknown[]) => {
++       // FD-T16 ruling: capture ONLY the frontdesk shape (trf.service.ts:103); core events FANOUT_SQL (identifier 'core.event_fanout', uuid args) and anything else passes through
++       if (text.trim() === 'SELECT app.enqueue_job($1, $2::jsonb, $3)' && typeof values?.[0] === 'string') {   // the job registry is C0's: capture, do not run
++         const parse = (v: unknown) => { if (typeof v !== 'string') return v; try { return JSON.parse(v); } catch { return v; } };
++         trf.jobs.push({ identifier: values[0], payload: parse(values[1]), jobKey: (values[2] as string | null) ?? null });
++         return { rows: [{ enqueue_job: null }], rowCount: 1 };
++       }
++       if (WRITE.test(text)) probe.writes.push(text);
++       return rawTx.query(text, values);
++     }, startedAt: NOW };
++     const log = (lvl: string) => (obj: unknown, msg?: string) => { probe.logs.push(`${lvl} ${typeof obj === 'string' ? obj : JSON.stringify(obj)} ${msg ?? ''}`); };
++     const ctx: any = {
++       operationId, clientIp: '203.0.113.9', log: { info: log('info'), warn: log('warn'), error: log('error'), debug: log('debug') }, metrics: { inc: () => undefined },
++       tenantId: who.tenant, tx, requestId: probe.requestId, now: () => NOW, centreId: CENTRE[side],
++       actor: { type: 'user', id: SYS_ACTOR, membershipId: who.membershipId },
++       ports: { IdentityPort: probe.identity, CatalogPort: o.catalog ?? w.catalog, BillingCommandPort: o.billing ?? w.billing, NotificationPort: w.notif, LabPort: lab },
++       events: createEvents({ producer: 'frontdesk' }), core: createCoreRepo({} as never), storage: trf.storage.adapter, files: { scan: trf.scanner.scan },
++     };
++     ctx.uploads = o.uploads ?? createUploads({ files: { scan: trf.scanner.scan }, storage: trf.storage.adapter as any, module: 'frontdesk', tenantId: who.tenant, log: { warn: (a: object, m?: string) => ctx.log.warn(a, m) } });
++     ctx.audit = { access: async (e: any) => { probe.accessCalls.push(e); await access(ctx, e); } };
++     ctx.download = createDownload({ storage: trf.storage.adapter as any, audit: ctx.audit });
++     probe.ctx = ctx;
++     return H[operationId]!(r, ctx);
++   };
++   try {
++     const reply = await (o.bypassRls ? superTx(run, who.tenant) : appTx(who.tenant, run));
++     return { reply, probe };
++   } catch (error) {
++     return { error, probe };
++   }
++ }
++ export const codeOf = (o: Outcome): string | undefined => (o.error instanceof LimsError ? (o.error as any).code : undefined);
++ 
++ // ---------------------------------------------------------------- fixtures
++ export interface Objs {
++   side: 'a' | 'b'; centre: string; name: string; patient: any; order: any; item: any; approval: any; discount: any; trf: any; flag: any; w: TrfWorld; at: string;
++ }
++ let seq = 0;
++ /** One full object graph of `side` at `centre`. `at` = a registered_at instant unique to this graph (so list probes can window on it). */
++ export async function objs(side: 'a' | 'b', o: { centre?: string; at?: string; patient?: any } = {}): Promise<Objs> {
++   await ready();
++   const centre = o.centre ?? CENTRE[side];
++   const branch = centre === CENTRE_A2 ? BRANCH_A2 : BRANCH[side];
++   const at = o.at ?? `2026-0${3 + (side === 'a' ? 0 : 1)}-0${1 + (++seq % 8)}T03:03:00.000Z`;
++   const name = `Probe ${tag()} Sentinel`;
++   const patient = o.patient ?? await seedPatient(side, { full_name: name, phone_e164: phone() });
++   const order = await seedOrder(side, patient.id, { centre_id: centre, branch_id: branch, registered_at: at, registration_no: `FDT16-${Date.now() % 1e6}-${++seq}` });
++   const item = rows.item(side, order.id, { centre_id: centre, orderable_id: O.cbc, code: 'CBC' }); await seed('frontdesk.order_items', item);
++   const approval = rows.approval(side, patient.id, { centre_id: centre }); await seed('frontdesk.discount_approvals', approval);
++   const discount = rows.discount(side, order.id, { centre_id: centre }); await seed('frontdesk.discounts', discount);
++   const w = makeWorld(side === 'a' ? TENANT_A : TENANT_B);
++   const trf = await seedTrf(w, { side, centre, orderId: order.id });
++   const flag = rows.flag(side, order.id, { centre_id: centre }); await seed('frontdesk.order_flags', flag);
++   return { side, centre, name: patient.full_name, patient, order, item, approval, discount, trf, flag, w, at };
++ }
++ 
++ /** The request each operation receives when it names `S`'s objects (path, query, body, arrays). */
++ export const FP = 'f'.repeat(64);
++ export function requestFor(id: string, S: Objs): ReturnType<typeof req> {
++   const idem = { 'idempotency-key': uid() };
++   const im = { ...idem, 'if-match': '"1"' };
++   const pdf = { filename: 'probe-trf.pdf', mimeType: 'application/pdf', bytes: pdfBytes('probe') };
++   const D = (extra: Record<string, unknown> = {}) => draft({ patient: { patient_id: S.patient.id }, centre_id: S.centre, ...extra });
++   switch (id) {
++     case 'searchPatients': return req({ body: { query: S.name, mode: 'name', limit: 20 } });
++     case 'createPatient': return req({ headers: idem, body: { full_name: S.name, sex: 'female', age: { years: 43 }, phone_e164: S.patient.phone_e164, consents: consents() } });
++     case 'listPossibleDuplicatePatients': return req({ query: { created_on: '2026-11-10' } });
++     case 'getPatient': return req({ params: { patient_id: S.patient.id } });
++     case 'updatePatient': return req({ params: { patient_id: S.patient.id }, headers: { 'if-match': '"1"' }, body: { full_name: 'Probe Renamed Person' } });
++     case 'recordPatientConsent': return req({ params: { patient_id: S.patient.id }, headers: idem, body: consents() });
++     case 'listPatientOrders': return req({ params: { patient_id: S.patient.id } });
++     case 'anonymisePatient': return req({ params: { patient_id: S.patient.id }, headers: im, body: { reason_code: 'patient_request' } });
++     case 'quoteRegistration': return req({ body: D() });
++     case 'createRegistration': return req({ headers: idem, body: { ...D(), quote_fingerprint: FP, payments: [], trf_attachment_ids: [S.trf.id], discount_approval_id: S.approval.id } });
++     case 'listOrders': return req({ query: { registered_at_from: S.at.slice(0, 10) + 'T00:00:00.000Z', registered_at_to: S.at.slice(0, 10) + 'T23:59:59.000Z' } });
++     case 'getOrder': return req({ params: { order_id: S.order.id } });
++     case 'quoteOrderItemsChange': return req({ params: { order_id: S.order.id }, body: { add: [{ orderable_id: O.cbc }] } });
++     case 'confirmPreRegisteredOrder': return req({ params: { order_id: S.order.id }, headers: im, body: { quote_fingerprint: FP, payments: [] } });
++     case 'changeOrderItems': return req({ params: { order_id: S.order.id }, headers: im, body: { remove: [{ order_item_id: S.item.id, reason_code: 'patient_request' }] } });
++     case 'cancelOrder': return req({ params: { order_id: S.order.id }, headers: im, body: { reason_code: 'patient_request' } });
++     case 'requestDiscountApproval': return req({ headers: idem, body: { centre_id: S.centre, base_fingerprint: FP, discounts: [bill({ kind: 'percent', percent_bp: 3000 })], reason_code: 'staff_family', patient_ref: { patient_id: S.patient.id } } });
++     case 'listDiscountApprovals': return req({ query: { status: 'pending' } });
++     case 'getDiscountApproval': return req({ params: { approval_id: S.approval.id } });
++     case 'approveDiscount': return req({ params: { approval_id: S.approval.id }, headers: im, body: {} });
++     case 'rejectDiscount': return req({ params: { approval_id: S.approval.id }, headers: im, body: { note: 'Synthetic rejection note' } });
++     case 'uploadTrf': return req({ headers: idem, body: { file: pdf, centre_id: S.centre, order_id: S.order.id } });
++     case 'getTrfAttachment': return req({ params: { attachment_id: S.trf.id } });
++     case 'getTrfAttachmentContent': return req({ params: { attachment_id: S.trf.id } });
++     case 'listOrderFlags': return req({ query: { status: 'open' } });
++     case 'resolveOrderFlag': return req({ params: { flag_id: S.flag.id }, headers: im, body: { resolution_code: 'recollected' } });
++     case 'getFrontdeskSettings': return req();
++     case 'updateFrontdeskSettings': return req({ headers: { 'if-match': '"1"' }, body: { discount_self_limit_bp: 500, discount_self_limit_paisa: 100000, discount_absolute_max_bp: 2000, require_referrer: false, consent_text_version: 'v1',
++       registration_sms_enabled: false, label_autoprint: false, buyer_pan_pattern: '^[0-9]{10}$', patient_search_min_chars: 4 } });
++     case 'listFrontdeskCodes': return req({ params: { set_name: 'order_cancel_reasons' } });
++     default: throw new Error(`no probe request for ${id}`);
++   }
++ }
++ 
++ // ---------------------------------------------------------------- owner-side truth
++ export const TENANT_TABLES = ['settings', 'number_counters', 'patients', 'patient_consents', 'orders', 'order_items', 'discount_approvals', 'discounts', 'trf_attachments', 'order_flags',
++   'booking_links', 'cs_reasons', 'event_inbox'] as const;
++ /** md5 over every row of every tenant table of `tenant` (superuser, no RLS): a probe that must not touch tenant B compares this before and after. */
++ export async function snapshot(tenant: string): Promise<Record<string, string>> {
++   await ready();
++   return superTx(async (tx) => {
++     const out: Record<string, string> = {};
++     for (const t of TENANT_TABLES) out[t] = (await tx.query(`SELECT coalesce(md5(string_agg(x::text, '|' ORDER BY x::text)), '-') AS h FROM frontdesk.${t} x WHERE tenant_id = $1`, [tenant])).rows[0].h;
++     out['access_log'] = (await tx.query(`SELECT count(*)::text AS h FROM audit.access_log WHERE tenant_id = $1`, [tenant])).rows[0].h;
++     out['event_log'] = (await tx.query(`SELECT count(*)::text AS h FROM core.event_log WHERE tenant_id = $1`, [tenant])).rows[0].h;
++     return out;
++   }, tenant);
++ }
++ export type { RWorld };
++
+
+ ❯ src/modules/frontdesk/__tests__/probes/registry.static.test.ts:38:44
+     36|   it('every operation has a probe request in kit.ts (requestFor) and i…
+     37|     const kit = text(`${MOD}/__tests__/probes/kit.ts`);
+     38|     for (const o of OPS) expect(kit, o.id).toContain(`case '${o.id}'`);
+       |                                            ^
+     39|   });
+     40|   it('every table of schema frontdesk is named in the table probes', (…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[44/95]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/probes/registry.static.test.ts > permission + idempotency table (02-TRD §7.1, contracts/permissions.yaml) > listRegistrationDrafts
+ FAIL  src/modules/frontdesk/__tests__/probes/registry.static.test.ts > permission + idempotency table (02-TRD §7.1, contracts/permissions.yaml) > createRegistrationDraft
+ FAIL  src/modules/frontdesk/__tests__/probes/registry.static.test.ts > permission + idempotency table (02-TRD §7.1, contracts/permissions.yaml) > getRegistrationDraft
+ FAIL  src/modules/frontdesk/__tests__/probes/registry.static.test.ts > permission + idempotency table (02-TRD §7.1, contracts/permissions.yaml) > deleteRegistrationDraft
+ FAIL  src/modules/frontdesk/__tests__/probes/registry.static.test.ts > permission + idempotency table (02-TRD §7.1, contracts/permissions.yaml) > listFavouriteTests
+ FAIL  src/modules/frontdesk/__tests__/probes/registry.static.test.ts > permission + idempotency table (02-TRD §7.1, contracts/permissions.yaml) > addFavouriteTest
+ FAIL  src/modules/frontdesk/__tests__/probes/registry.static.test.ts > permission + idempotency table (02-TRD §7.1, contracts/permissions.yaml) > removeFavouriteTest
+ FAIL  src/modules/frontdesk/__tests__/probes/registry.static.test.ts > permission + idempotency table (02-TRD §7.1, contracts/permissions.yaml) > previewRegistrationNumbers
+ FAIL  src/modules/frontdesk/__tests__/probes/registry.static.test.ts > permission + idempotency table (02-TRD §7.1, contracts/permissions.yaml) > listCustomFieldDefinitions
+ FAIL  src/modules/frontdesk/__tests__/probes/registry.static.test.ts > permission + idempotency table (02-TRD §7.1, contracts/permissions.yaml) > createCustomFieldDefinition
+ FAIL  src/modules/frontdesk/__tests__/probes/registry.static.test.ts > permission + idempotency table (02-TRD §7.1, contracts/permissions.yaml) > updateCustomFieldDefinition
+ FAIL  src/modules/frontdesk/__tests__/probes/registry.static.test.ts > permission + idempotency table (02-TRD §7.1, contracts/permissions.yaml) > listCoupons
+ FAIL  src/modules/frontdesk/__tests__/probes/registry.static.test.ts > permission + idempotency table (02-TRD §7.1, contracts/permissions.yaml) > createCoupon
+ FAIL  src/modules/frontdesk/__tests__/probes/registry.static.test.ts > permission + idempotency table (02-TRD §7.1, contracts/permissions.yaml) > updateCoupon
+ FAIL  src/modules/frontdesk/__tests__/probes/registry.static.test.ts > permission + idempotency table (02-TRD §7.1, contracts/permissions.yaml) > listIcdCodes
+ FAIL  src/modules/frontdesk/__tests__/probes/registry.static.test.ts > permission + idempotency table (02-TRD §7.1, contracts/permissions.yaml) > createIcdCode
+ FAIL  src/modules/frontdesk/__tests__/probes/registry.static.test.ts > permission + idempotency table (02-TRD §7.1, contracts/permissions.yaml) > updateIcdCode
+ FAIL  src/modules/frontdesk/__tests__/probes/registry.static.test.ts > permission + idempotency table (02-TRD §7.1, contracts/permissions.yaml) > getPatientRewards
+TypeError: undefined is not iterable (cannot read property Symbol(Symbol.iterator))
+ ❯ src/modules/frontdesk/__tests__/probes/registry.static.test.ts:51:30
+     49| describe('permission + idempotency table (02-TRD §7.1, contracts/permi…
+     50|   it.each(OPS.map((o) => [o.id, o] as const))('%s', (_id, o) => {
+     51|     const [perm, required] = EXPECT[o.id]!;
+       |                              ^
+     52|     expect(o.perm).toBe(perm);
+     53|     expect(/required/i.test(o.idem), `x-idempotency=${o.idem}`).toBe(r…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[45/95]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/probes/tables.live.test.ts > structure (catalog queries) > the schema holds exactly the probed tables (a new table must be added to EXPECTED and thereby probed)
+AssertionError: expected [ 'booking_links', 'coupons', …(18) ] to deeply equal [ Array(14) ]
+
+- Expected
++ Received
+
+  [
+    "booking_links",
++   "coupons",
+    "cs_reasons",
++   "custom_field_definitions",
+    "discount_approvals",
+    "discounts",
+    "event_inbox",
++   "favourite_tests",
+    "g_cs_reasons",
++   "icd_codes",
+    "number_counters",
+    "order_flags",
+    "order_items",
+    "orders",
+    "patient_consents",
+    "patients",
++   "registration_drafts",
++   "reward_points_ledger",
+    "settings",
+    "trf_attachments",
+  ]
+
+ ❯ src/modules/frontdesk/__tests__/probes/tables.live.test.ts:33:42
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[46/95]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/probes/tables.live.test.ts > structure (catalog queries) > grants: lims_app never has DELETE/TRUNCATE; append-only tables have no UPDATE; g_cs_reasons is SELECT-only
+AssertionError: DELETE/TRUNCATE: expected [ 'registration_drafts', …(1) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "registration_drafts",
++   "favourite_tests",
++ ]
+
+ ❯ src/modules/frontdesk/__tests__/probes/tables.live.test.ts:44:98
+     42|       has_table_privilege('lims_app', c.oid, 'UPDATE') AS upd, has_tab…
+     43|       FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WH…
+     44|     expect(r.filter((x: any) => x.del || x.trunc).map((x: any) => x.re…
+       |                                                                                                  ^
+     45|     expect(r.filter((x: any) => (APPEND_ONLY.has(x.relname) || GLOBAL.…
+     46|     expect(r.filter((x: any) => GLOBAL.has(x.relname) && x.ins).map((x…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[47/95]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/probes/tables.live.test.ts > frontdesk.cs_reasons: tenant A claims against tenant B rows > UPDATE and DELETE of B rows change zero rows (or are refused outright) and B stays byte-identical
+AssertionError: expected { …(15) } to deeply equal { …(15) }
+
+- Expected
++ Received
+
+@@ -6,12 +6,12 @@
+    "discounts": "3520a5475537be1e02b319734243c9cc",
+    "event_inbox": "-",
+    "event_log": "94",
+    "number_counters": "25479b03f51be3f424b339357fa2137b",
+    "order_flags": "2f8488d4c908d4f7c74c812d603cf638",
+-   "order_items": "070201a6856f2c7dae72c924bdd716f0",
+-   "orders": "784b13047b9654ed72241847cdfd526b",
++   "order_items": "c5f233aed20ee6684d60e520b6f929de",
++   "orders": "58e6515a717dadd0947398987629855f",
+    "patient_consents": "5e76f72d8bafb7b9eecf9052d010660b",
+    "patients": "5e934e8fd90446684b33eaba50891830",
+    "settings": "08ef51513565a899746329d8d9a69eda",
+    "trf_attachments": "28a948dca5011b24ed468f5ca9977cbc",
+  }
+
+ ❯ src/modules/frontdesk/__tests__/probes/tables.live.test.ts:77:38
+     75|       catch (e: any) { expect(e.code, `${sql}: ${e.message}`).toBe('42…
+     76|     }
+     77|     expect(await snapshot(TENANT_B)).toEqual(before);
+       |                                      ^
+     78|   });
+     79| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[48/95]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/probes/uploads.live.test.ts > P-2: no Storage URL / bucket path in ANY response body or header of ANY operation (success or error) > listRegistrationDrafts
+Error: no probe request for listRegistrationDrafts
+ ❯ requestFor src/modules/frontdesk/__tests__/probes/kit.ts:199:20
+    197|       registration_sms_enabled: false, label_autoprint: false, buyer_p…
+    198|     case 'listFrontdeskCodes': return req({ params: { set_name: 'order…
+    199|     default: throw new Error(`no probe request for ${id}`);
+       |                    ^
+    200|   }
+    201| }
+ ❯ src/modules/frontdesk/__tests__/probes/uploads.live.test.ts:49:32
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[49/95]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/probes/uploads.live.test.ts > P-2: no Storage URL / bucket path in ANY response body or header of ANY operation (success or error) > createRegistrationDraft
+Error: no probe request for createRegistrationDraft
+ ❯ requestFor src/modules/frontdesk/__tests__/probes/kit.ts:199:20
+    197|       registration_sms_enabled: false, label_autoprint: false, buyer_p…
+    198|     case 'listFrontdeskCodes': return req({ params: { set_name: 'order…
+    199|     default: throw new Error(`no probe request for ${id}`);
+       |                    ^
+    200|   }
+    201| }
+ ❯ src/modules/frontdesk/__tests__/probes/uploads.live.test.ts:49:32
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[50/95]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/probes/uploads.live.test.ts > P-2: no Storage URL / bucket path in ANY response body or header of ANY operation (success or error) > getRegistrationDraft
+Error: no probe request for getRegistrationDraft
+ ❯ requestFor src/modules/frontdesk/__tests__/probes/kit.ts:199:20
+    197|       registration_sms_enabled: false, label_autoprint: false, buyer_p…
+    198|     case 'listFrontdeskCodes': return req({ params: { set_name: 'order…
+    199|     default: throw new Error(`no probe request for ${id}`);
+       |                    ^
+    200|   }
+    201| }
+ ❯ src/modules/frontdesk/__tests__/probes/uploads.live.test.ts:49:32
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[51/95]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/probes/uploads.live.test.ts > P-2: no Storage URL / bucket path in ANY response body or header of ANY operation (success or error) > deleteRegistrationDraft
+Error: no probe request for deleteRegistrationDraft
+ ❯ requestFor src/modules/frontdesk/__tests__/probes/kit.ts:199:20
+    197|       registration_sms_enabled: false, label_autoprint: false, buyer_p…
+    198|     case 'listFrontdeskCodes': return req({ params: { set_name: 'order…
+    199|     default: throw new Error(`no probe request for ${id}`);
+       |                    ^
+    200|   }
+    201| }
+ ❯ src/modules/frontdesk/__tests__/probes/uploads.live.test.ts:49:32
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[52/95]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/probes/uploads.live.test.ts > P-2: no Storage URL / bucket path in ANY response body or header of ANY operation (success or error) > listFavouriteTests
+Error: no probe request for listFavouriteTests
+ ❯ requestFor src/modules/frontdesk/__tests__/probes/kit.ts:199:20
+    197|       registration_sms_enabled: false, label_autoprint: false, buyer_p…
+    198|     case 'listFrontdeskCodes': return req({ params: { set_name: 'order…
+    199|     default: throw new Error(`no probe request for ${id}`);
+       |                    ^
+    200|   }
+    201| }
+ ❯ src/modules/frontdesk/__tests__/probes/uploads.live.test.ts:49:32
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[53/95]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/probes/uploads.live.test.ts > P-2: no Storage URL / bucket path in ANY response body or header of ANY operation (success or error) > addFavouriteTest
+Error: no probe request for addFavouriteTest
+ ❯ requestFor src/modules/frontdesk/__tests__/probes/kit.ts:199:20
+    197|       registration_sms_enabled: false, label_autoprint: false, buyer_p…
+    198|     case 'listFrontdeskCodes': return req({ params: { set_name: 'order…
+    199|     default: throw new Error(`no probe request for ${id}`);
+       |                    ^
+    200|   }
+    201| }
+ ❯ src/modules/frontdesk/__tests__/probes/uploads.live.test.ts:49:32
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[54/95]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/probes/uploads.live.test.ts > P-2: no Storage URL / bucket path in ANY response body or header of ANY operation (success or error) > removeFavouriteTest
+Error: no probe request for removeFavouriteTest
+ ❯ requestFor src/modules/frontdesk/__tests__/probes/kit.ts:199:20
+    197|       registration_sms_enabled: false, label_autoprint: false, buyer_p…
+    198|     case 'listFrontdeskCodes': return req({ params: { set_name: 'order…
+    199|     default: throw new Error(`no probe request for ${id}`);
+       |                    ^
+    200|   }
+    201| }
+ ❯ src/modules/frontdesk/__tests__/probes/uploads.live.test.ts:49:32
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[55/95]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/probes/uploads.live.test.ts > P-2: no Storage URL / bucket path in ANY response body or header of ANY operation (success or error) > previewRegistrationNumbers
+Error: no probe request for previewRegistrationNumbers
+ ❯ requestFor src/modules/frontdesk/__tests__/probes/kit.ts:199:20
+    197|       registration_sms_enabled: false, label_autoprint: false, buyer_p…
+    198|     case 'listFrontdeskCodes': return req({ params: { set_name: 'order…
+    199|     default: throw new Error(`no probe request for ${id}`);
+       |                    ^
+    200|   }
+    201| }
+ ❯ src/modules/frontdesk/__tests__/probes/uploads.live.test.ts:49:32
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[56/95]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/probes/uploads.live.test.ts > P-2: no Storage URL / bucket path in ANY response body or header of ANY operation (success or error) > listCustomFieldDefinitions
+Error: no probe request for listCustomFieldDefinitions
+ ❯ requestFor src/modules/frontdesk/__tests__/probes/kit.ts:199:20
+    197|       registration_sms_enabled: false, label_autoprint: false, buyer_p…
+    198|     case 'listFrontdeskCodes': return req({ params: { set_name: 'order…
+    199|     default: throw new Error(`no probe request for ${id}`);
+       |                    ^
+    200|   }
+    201| }
+ ❯ src/modules/frontdesk/__tests__/probes/uploads.live.test.ts:49:32
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[57/95]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/probes/uploads.live.test.ts > P-2: no Storage URL / bucket path in ANY response body or header of ANY operation (success or error) > createCustomFieldDefinition
+Error: no probe request for createCustomFieldDefinition
+ ❯ requestFor src/modules/frontdesk/__tests__/probes/kit.ts:199:20
+    197|       registration_sms_enabled: false, label_autoprint: false, buyer_p…
+    198|     case 'listFrontdeskCodes': return req({ params: { set_name: 'order…
+    199|     default: throw new Error(`no probe request for ${id}`);
+       |                    ^
+    200|   }
+    201| }
+ ❯ src/modules/frontdesk/__tests__/probes/uploads.live.test.ts:49:32
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[58/95]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/probes/uploads.live.test.ts > P-2: no Storage URL / bucket path in ANY response body or header of ANY operation (success or error) > updateCustomFieldDefinition
+Error: no probe request for updateCustomFieldDefinition
+ ❯ requestFor src/modules/frontdesk/__tests__/probes/kit.ts:199:20
+    197|       registration_sms_enabled: false, label_autoprint: false, buyer_p…
+    198|     case 'listFrontdeskCodes': return req({ params: { set_name: 'order…
+    199|     default: throw new Error(`no probe request for ${id}`);
+       |                    ^
+    200|   }
+    201| }
+ ❯ src/modules/frontdesk/__tests__/probes/uploads.live.test.ts:49:32
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[59/95]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/probes/uploads.live.test.ts > P-2: no Storage URL / bucket path in ANY response body or header of ANY operation (success or error) > listCoupons
+Error: no probe request for listCoupons
+ ❯ requestFor src/modules/frontdesk/__tests__/probes/kit.ts:199:20
+    197|       registration_sms_enabled: false, label_autoprint: false, buyer_p…
+    198|     case 'listFrontdeskCodes': return req({ params: { set_name: 'order…
+    199|     default: throw new Error(`no probe request for ${id}`);
+       |                    ^
+    200|   }
+    201| }
+ ❯ src/modules/frontdesk/__tests__/probes/uploads.live.test.ts:49:32
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[60/95]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/probes/uploads.live.test.ts > P-2: no Storage URL / bucket path in ANY response body or header of ANY operation (success or error) > createCoupon
+Error: no probe request for createCoupon
+ ❯ requestFor src/modules/frontdesk/__tests__/probes/kit.ts:199:20
+    197|       registration_sms_enabled: false, label_autoprint: false, buyer_p…
+    198|     case 'listFrontdeskCodes': return req({ params: { set_name: 'order…
+    199|     default: throw new Error(`no probe request for ${id}`);
+       |                    ^
+    200|   }
+    201| }
+ ❯ src/modules/frontdesk/__tests__/probes/uploads.live.test.ts:49:32
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[61/95]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/probes/uploads.live.test.ts > P-2: no Storage URL / bucket path in ANY response body or header of ANY operation (success or error) > updateCoupon
+Error: no probe request for updateCoupon
+ ❯ requestFor src/modules/frontdesk/__tests__/probes/kit.ts:199:20
+    197|       registration_sms_enabled: false, label_autoprint: false, buyer_p…
+    198|     case 'listFrontdeskCodes': return req({ params: { set_name: 'order…
+    199|     default: throw new Error(`no probe request for ${id}`);
+       |                    ^
+    200|   }
+    201| }
+ ❯ src/modules/frontdesk/__tests__/probes/uploads.live.test.ts:49:32
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[62/95]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/probes/uploads.live.test.ts > P-2: no Storage URL / bucket path in ANY response body or header of ANY operation (success or error) > listIcdCodes
+Error: no probe request for listIcdCodes
+ ❯ requestFor src/modules/frontdesk/__tests__/probes/kit.ts:199:20
+    197|       registration_sms_enabled: false, label_autoprint: false, buyer_p…
+    198|     case 'listFrontdeskCodes': return req({ params: { set_name: 'order…
+    199|     default: throw new Error(`no probe request for ${id}`);
+       |                    ^
+    200|   }
+    201| }
+ ❯ src/modules/frontdesk/__tests__/probes/uploads.live.test.ts:49:32
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[63/95]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/probes/uploads.live.test.ts > P-2: no Storage URL / bucket path in ANY response body or header of ANY operation (success or error) > createIcdCode
+Error: no probe request for createIcdCode
+ ❯ requestFor src/modules/frontdesk/__tests__/probes/kit.ts:199:20
+    197|       registration_sms_enabled: false, label_autoprint: false, buyer_p…
+    198|     case 'listFrontdeskCodes': return req({ params: { set_name: 'order…
+    199|     default: throw new Error(`no probe request for ${id}`);
+       |                    ^
+    200|   }
+    201| }
+ ❯ src/modules/frontdesk/__tests__/probes/uploads.live.test.ts:49:32
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[64/95]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/probes/uploads.live.test.ts > P-2: no Storage URL / bucket path in ANY response body or header of ANY operation (success or error) > updateIcdCode
+Error: no probe request for updateIcdCode
+ ❯ requestFor src/modules/frontdesk/__tests__/probes/kit.ts:199:20
+    197|       registration_sms_enabled: false, label_autoprint: false, buyer_p…
+    198|     case 'listFrontdeskCodes': return req({ params: { set_name: 'order…
+    199|     default: throw new Error(`no probe request for ${id}`);
+       |                    ^
+    200|   }
+    201| }
+ ❯ src/modules/frontdesk/__tests__/probes/uploads.live.test.ts:49:32
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[65/95]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/probes/uploads.live.test.ts > P-2: no Storage URL / bucket path in ANY response body or header of ANY operation (success or error) > getPatientRewards
+Error: no probe request for getPatientRewards
+ ❯ requestFor src/modules/frontdesk/__tests__/probes/kit.ts:199:20
+    197|       registration_sms_enabled: false, label_autoprint: false, buyer_p…
+    198|     case 'listFrontdeskCodes': return req({ params: { set_name: 'order…
+    199|     default: throw new Error(`no probe request for ${id}`);
+       |                    ^
+    200|   }
+    201| }
+ ❯ src/modules/frontdesk/__tests__/probes/uploads.live.test.ts:49:32
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[66/95]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/registration/downtime.test.ts > LD-25 accepted back-entry > 2 h old paper form: 201, order registered, server audits entry_mode + downtime_ref; billing sees no back-dated instant (nothing back-dated is sent on)
+LimsError: frontdesk.referrer_required
+ ❯ createInTx src/modules/frontdesk/service/registration.service.ts:374:67
+    372|
+    373|   // 2. referrer
+    374|   if (!d.referrerId && settings?.require_referrer === true) throw new …
+       |                                                                   ^
+    375|   if (d.referrerId && !(await catalog.getReferrer(asRc(c), { referrerI…
+    376|
+ ❯ portErrors src/modules/frontdesk/service/registration.service.ts:301:16
+ ❯ src/modules/frontdesk/__tests__/registration/helpers.ts:93:18
+ ❯ appTx src/modules/frontdesk/__tests__/integration/helpers.ts:41:17
+ ❯ register src/modules/frontdesk/__tests__/registration/helpers.ts:90:15
+ ❯ src/modules/frontdesk/__tests__/registration/downtime.test.ts:26:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[67/95]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/registration/downtime.test.ts > LD-25 accepted back-entry > entry_mode live (default) is unchanged
+LimsError: frontdesk.referrer_required
+ ❯ createInTx src/modules/frontdesk/service/registration.service.ts:374:67
+    372|
+    373|   // 2. referrer
+    374|   if (!d.referrerId && settings?.require_referrer === true) throw new …
+       |                                                                   ^
+    375|   if (d.referrerId && !(await catalog.getReferrer(asRc(c), { referrerI…
+    376|
+ ❯ portErrors src/modules/frontdesk/service/registration.service.ts:301:16
+ ❯ src/modules/frontdesk/__tests__/registration/helpers.ts:93:18
+ ❯ appTx src/modules/frontdesk/__tests__/integration/helpers.ts:41:17
+ ❯ register src/modules/frontdesk/__tests__/registration/helpers.ts:90:15
+ ❯ src/modules/frontdesk/__tests__/registration/downtime.test.ts:37:13
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[68/95]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/registration/downtime.test.ts > LD-25 accepted back-entry > boundaries are inclusive: occurred_at = now and occurred_at = now - 72 h; downtime_ref of exactly 32 chars
+LimsError: frontdesk.referrer_required
+ ❯ createInTx src/modules/frontdesk/service/registration.service.ts:374:67
+    372|
+    373|   // 2. referrer
+    374|   if (!d.referrerId && settings?.require_referrer === true) throw new …
+       |                                                                   ^
+    375|   if (d.referrerId && !(await catalog.getReferrer(asRc(c), { referrerI…
+    376|
+ ❯ portErrors src/modules/frontdesk/service/registration.service.ts:301:16
+ ❯ src/modules/frontdesk/__tests__/registration/helpers.ts:93:18
+ ❯ appTx src/modules/frontdesk/__tests__/integration/helpers.ts:41:17
+ ❯ register src/modules/frontdesk/__tests__/registration/helpers.ts:90:15
+ ❯ src/modules/frontdesk/__tests__/registration/downtime.test.ts:42:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[69/95]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/quote/quote.test.ts > credit status (TRD Quote.credit_status; US-FD-04.2 "the quote already shows the state") > asks BillingCommandPort.assertCreditAllowed with the party and additional = totals.net (after discounts); cash never asks
+AssertionError: expected { …(2) } to deeply equal { …(2) }
+
+- Expected
++ Received
+
+  {
+    "additional": {
+      "amountPaisa": 71563,
++     "currency": "NPR",
+    },
+    "creditPartyId": "01900002-0000-7000-8000-00000000038e",
+  }
+
+ ❯ src/modules/frontdesk/__tests__/quote/quote.test.ts:302:28
+    300|     const calls = (w.billingFake as any).calls('assertCreditAllowed');
+    301|     expect(calls).toHaveLength(1);
+    302|     expect(calls[0].input).toEqual({ creditPartyId: CP.ok, additional:…
+       |                            ^
+    303|     const cash = world();
+    304|     await quote(draft(), { w: cash });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[70/95]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/unit/boot.test.ts > manifest (02-TRD §3.1, §6.3 autoloader rules) > passes the core manifest validation against the real contracts (handlers == operationIds, produces == EVENT_PRODUCERS)
+AssertionError: expected [Function] to not throw an error but 'Error: module frontdesk: missing hand…' was thrown
+
+- Expected:
+undefined
+
++ Received:
+"Error: module frontdesk: missing handler for operationId listRegistrationDrafts"
+
+ ❯ src/modules/frontdesk/__tests__/unit/boot.test.ts:77:74
+     75|   it('passes the core manifest validation against the real contracts (…
+     76|     const { manifest } = await load(FILES.index);
+     77|     expect(() => validateManifest('frontdesk', manifest, REPO_ROOT)).n…
+       |                                                                          ^
+     78|   });
+     79|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[71/95]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/unit/boot.test.ts > manifest (02-TRD §3.1, §6.3 autoloader rules) > is found by the autoloader in the default modules directory
+Error: module frontdesk: missing handler for operationId listRegistrationDrafts
+ ❯ checkHandlers src/core/module.ts:162:92
+    160|   if (opSet.size !== ops.length) throw new Error(`module ${name}: dupl…
+    161|   for (const op of ops) {
+    162|     if (!Object.hasOwn(handlers, op) || typeof (handlers as any)[op] !…
+       |                                                                                            ^
+    163|   }
+    164|   for (const k of Object.keys(handlers)) {
+ ❯ validateManifest src/core/module.ts:252:3
+ ❯ autoload src/core/module.ts:264:14
+ ❯ src/modules/frontdesk/__tests__/unit/boot.test.ts:87:18
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[72/95]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/unit/boot.test.ts > done_when: core boots with module (AC-0D-1.1/1.2 through the real bootstrap, real repo root) > bootstrap with default repoRoot/modulesDir resolves (every operationId has a handler)
+Error: module frontdesk: missing handler for operationId listRegistrationDrafts
+ ❯ checkHandlers src/core/module.ts:162:92
+    160|   if (opSet.size !== ops.length) throw new Error(`module ${name}: dupl…
+    161|   for (const op of ops) {
+    162|     if (!Object.hasOwn(handlers, op) || typeof (handlers as any)[op] !…
+       |                                                                                            ^
+    163|   }
+    164|   for (const k of Object.keys(handlers)) {
+ ❯ validateManifest src/core/module.ts:252:3
+ ❯ autoload src/core/module.ts:264:14
+ ❯ bootstrap src/core/bootstrap.ts:55:21
+ ❯ src/modules/frontdesk/__tests__/unit/boot.test.ts:94:17
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[73/95]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/unit/boot.test.ts > done_when: core boots with module (AC-0D-1.1/1.2 through the real bootstrap, real repo root) > every frontdesk operation is mounted (never 404/405) and answers unauthenticated calls with 400/401, never by running a stub
+Error: module frontdesk: missing handler for operationId listRegistrationDrafts
+ ❯ checkHandlers src/core/module.ts:162:92
+    160|   if (opSet.size !== ops.length) throw new Error(`module ${name}: dupl…
+    161|   for (const op of ops) {
+    162|     if (!Object.hasOwn(handlers, op) || typeof (handlers as any)[op] !…
+       |                                                                                            ^
+    163|   }
+    164|   for (const k of Object.keys(handlers)) {
+ ❯ validateManifest src/core/module.ts:252:3
+ ❯ autoload src/core/module.ts:264:14
+ ❯ bootstrap src/core/bootstrap.ts:55:21
+ ❯ src/modules/frontdesk/__tests__/unit/boot.test.ts:101:17
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[74/95]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/unit/boot.test.ts > done_when: core boots with module (AC-0D-1.1/1.2 through the real bootstrap, real repo root) > mounts nothing outside the spec (REQ-SEC-099)
+Error: module frontdesk: missing handler for operationId listRegistrationDrafts
+ ❯ checkHandlers src/core/module.ts:162:92
+    160|   if (opSet.size !== ops.length) throw new Error(`module ${name}: dupl…
+    161|   for (const op of ops) {
+    162|     if (!Object.hasOwn(handlers, op) || typeof (handlers as any)[op] !…
+       |                                                                                            ^
+    163|   }
+    164|   for (const k of Object.keys(handlers)) {
+ ❯ validateManifest src/core/module.ts:252:3
+ ❯ autoload src/core/module.ts:264:14
+ ❯ bootstrap src/core/bootstrap.ts:55:21
+ ❯ src/modules/frontdesk/__tests__/unit/boot.test.ts:116:17
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[75/95]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/unit/boot.test.ts > done_when: unimplemented handlers throw common.service_unavailable > handlers/index.ts exports one function per operationId and nothing else
+AssertionError: expected [ 'anonymisePatient', …(28) ] to deeply equal [ 'addFavouriteTest', …(46) ]
+
+- Expected
++ Received
+
+  [
+-   "addFavouriteTest",
+    "anonymisePatient",
+    "approveDiscount",
+    "cancelOrder",
+    "changeOrderItems",
+    "confirmPreRegisteredOrder",
+-   "createCoupon",
+-   "createCustomFieldDefinition",
+-   "createIcdCode",
+    "createPatient",
+    "createRegistration",
+-   "createRegistrationDraft",
+-   "deleteRegistrationDraft",
+    "getDiscountApproval",
+    "getFrontdeskSettings",
+    "getOrder",
+    "getPatient",
+-   "getPatientRewards",
+-   "getRegistrationDraft",
+    "getTrfAttachment",
+    "getTrfAttachmentContent",
+-   "listCoupons",
+-   "listCustomFieldDefinitions",
+    "listDiscountApprovals",
+-   "listFavouriteTests",
+    "listFrontdeskCodes",
+-   "listIcdCodes",
+    "listOrderFlags",
+    "listOrders",
+    "listPatientOrders",
+    "listPossibleDuplicatePatients",
+-   "listRegistrationDrafts",
+-   "previewRegistrationNumbers",
+    "quoteOrderItemsChange",
+    "quoteRegistration",
+    "recordPatientConsent",
+    "rejectDiscount",
+-   "removeFavouriteTest",
+    "requestDiscountApproval",
+    "resolveOrderFlag",
+    "searchPatients",
+-   "updateCoupon",
+-   "updateCustomFieldDefinition",
+    "updateFrontdeskSettings",
+-   "updateIcdCode",
+    "updatePatient",
+    "uploadTrf",
+  ]
+
+ ❯ src/modules/frontdesk/__tests__/unit/boot.test.ts:128:35
+    126|     const h = mod.handlers ?? mod.default;
+    127|     expect(h, 'handlers/index.ts must export `handlers` (the manifest.…
+    128|     expect(Object.keys(h).sort()).toEqual(operationIds(spec()).sort());
+       |                                   ^
+    129|     for (const fn of Object.values(h)) expect(fn).toBeTypeOf('function…
+    130|     const { manifest } = await load(FILES.index);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[76/95]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/unit/boot.test.ts > done_when: nav entry hidden (apps/web nav.manifest.ts, 04-UI-UX §3) > exports navManifest for module frontdesk with no visible entry yet
+AssertionError: expected [ { …(6) }, …(3) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   {
++     "group": "front_desk",
++     "id": "frontdesk.registration_new",
++     "label": "frontdesk.nav.registration_new",
++     "order": 10,
++     "permission": "frontdesk.registration.create",
++     "routeId": "staff.frontdesk.registration_new",
++   },
++   {
++     "group": "front_desk",
++     "id": "frontdesk.worklist",
++     "label": "frontdesk.nav.worklist",
++     "order": 20,
++     "permission": "frontdesk.order.read",
++     "routeId": "staff.frontdesk.worklist",
++   },
++   {
++     "group": "front_desk",
++     "id": "frontdesk.discount_approvals",
++     "label": "frontdesk.nav.discount_approvals",
++     "order": 30,
++     "permission": "frontdesk.discount.approve",
++     "routeId": "staff.frontdesk.discount_approvals",
++   },
++   {
++     "group": "front_desk",
++     "id": "frontdesk.settings",
++     "label": "core.nav.frontdesk_settings",
++     "order": 40,
++     "permission": "frontdesk.settings.manage",
++     "routeId": "staff.frontdesk.settings",
++   },
++ ]
+
+ ❯ src/modules/frontdesk/__tests__/unit/boot.test.ts:256:33
+    254|     expect(navManifest.module).toBe('frontdesk');
+    255|     expect(Array.isArray(navManifest.entries)).toBe(true);
+    256|     expect(navManifest.entries).toEqual([]);
+       |                                 ^
+    257|   });
+    258|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[77/95]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/unit/boot.test.ts > done_when: nav entry hidden (apps/web nav.manifest.ts, 04-UI-UX §3) > build-nav accepts the real features dir: no errors and no frontdesk entry in the resolved nav
+AssertionError: expected [ { …(8) }, …(3) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   {
++     "group": "front_desk",
++     "id": "frontdesk.registration_new",
++     "label": "frontdesk.nav.registration_new",
++     "module": "frontdesk",
++     "order": 10,
++     "path": "/frontdesk/registrations/new",
++     "permission": "frontdesk.registration.create",
++     "routeId": "staff.frontdesk.registration_new",
++   },
++   {
++     "group": "front_desk",
++     "id": "frontdesk.worklist",
++     "label": "frontdesk.nav.worklist",
++     "module": "frontdesk",
++     "order": 20,
++     "path": "/frontdesk/worklist",
++     "permission": "frontdesk.order.read",
++     "routeId": "staff.frontdesk.worklist",
++   },
++   {
++     "group": "front_desk",
++     "id": "frontdesk.discount_approvals",
++     "label": "frontdesk.nav.discount_approvals",
++     "module": "frontdesk",
++     "order": 30,
++     "path": "/frontdesk/discount-approvals",
++     "permission": "frontdesk.discount.approve",
++     "routeId": "staff.frontdesk.discount_approvals",
++   },
++   {
++     "group": "front_desk",
++     "id": "frontdesk.settings",
++     "label": "core.nav.frontdesk_settings",
++     "module": "frontdesk",
++     "order": 40,
++     "path": "/frontdesk/settings",
++     "permission": "frontdesk.settings.manage",
++     "routeId": "staff.frontdesk.settings",
++   },
++ ]
+
+ ❯ src/modules/frontdesk/__tests__/unit/boot.test.ts:263:68
+    261|     const r = await buildNav(join(REPO_ROOT, 'apps/web/src/features'),…
+    262|     expect(r.errors).toEqual([]);
+    263|     expect(r.entries.filter((e: any) => e.module === 'frontdesk')).toE…
+       |                                                                    ^
+    264|   });
+    265| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[78/95]⎯
+
+
+ Test Files  10 failed | 49 passed (59)
+      Tests  95 failed | 1454 passed (1549)
+   Start at  08:05:11
+   Duration  72.15s (tests 63%, import 31%, transform 3%, setup 3%)
+
+     Import  542 modules were evaluated 4725 times · 59.08s total, 31% of tracked time
+             ~15.93s faster with isolate: false — shared modules are evaluated once per worker instead of once per file
+             learn more: https://vitest.dev/guide/improving-performance#test-isolation
+

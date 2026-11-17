@@ -4,6 +4,7 @@
 //   LIMS_TEST_SUPER_URL superuser (bypasses RLS)                                           -> fixtures + "no RLS" explicit-filter proof + owner checks
 // Missing env or missing `pg` module is a hard failure (never a skip). `pg` must be a devDependency of services/api (FD-T03 writer).
 // Repo contract assumed by these tests: see .orchestra/notes/FD-T03-tests.md.
+import { afterAll, beforeAll } from 'vitest';
 import { uuidv7 } from '../../../../../../../packages/shared-ts/src/uuidv7/index.js';
 export const TENANT_A ='01a1a98a-ac40-7000-8000-00000000a001';
 export const TENANT_B = '01a1a98a-ac40-7000-8000-00000000b001';
@@ -25,6 +26,27 @@ const { default: pg } = (await import(pgModule)) as any;
 const app = new pg.Pool({ connectionString: need('LIMS_TEST_APP_URL'), max: 40 });
 const sup = new pg.Pool({ connectionString: need('LIMS_TEST_SUPER_URL'), max: 4 });
 export const closePools = async () => { await app.end(); await sup.end(); };
+
+// T0B-TESTFIX-2 (LD-314): every live-DB frontdesk test file shares tenant_a / tenant_b on ONE database, and files change tenant-wide state
+// (frontdesk.settings: require_referrer, discount limits, version; snapshots of whole tenant tables in the probes). Run in parallel they
+// bled into each other: referrer_required, discount_approval_required, version_conflict, "expected {15} to deeply equal {15}" snapshot diffs.
+// Cause fix: this module is imported (directly or through a helper) by every file that touches the database, so each such file takes ONE
+// session-level Postgres advisory lock for its whole run (beforeAll .. afterAll). Files queue on the lock across all vitest workers and run one
+// at a time against the shared tenants; static and unit files import no helper and still run in parallel. A dedicated pg.Client (not a pool
+// client) holds the lock, so closePools() in a file's own afterAll cannot wait on it; a dropped connection frees the lock, so a crashed file never blocks the rest.
+const FILE_LOCK_KEY = 314_000_314; // arbitrary constant for this suite (LD-314); no other advisory lock in the repo uses it
+let lockClient: any;
+beforeAll(async () => {
+  lockClient = new pg.Client({ connectionString: need('LIMS_TEST_SUPER_URL') });
+  await lockClient.connect();
+  await lockClient.query('SELECT pg_advisory_lock($1)', [FILE_LOCK_KEY]);   // blocks until the previous file released it
+}, 3_600_000);
+afterAll(async () => {
+  if (!lockClient) return;
+  await lockClient.query('SELECT pg_advisory_unlock($1)', [FILE_LOCK_KEY]).catch(() => {});
+  await lockClient.end().catch(() => {});
+  lockClient = undefined;
+}, 60_000);
 
 // Ruling FD-T04 #1: internal ids are UUIDv7 (02-CONVENTIONS:452/525; core/audit/access.ts enforces it on entityId).
 export const uid = (): string => uuidv7();

@@ -113,7 +113,7 @@ describe('T0D-ACCT-2 message catalogue and copy', () => {
     'transfers.tab.all', 'transfers.tab.sent', 'transfers.tab.received', 'transfers.tab.pending',
     'transfers.reason.no_manage', 'transfers.reason.no_decide', 'transfers.reason.own_transfer', 'transfers.reason.not_receiver', 'transfers.reason.not_pending', 'transfers.reason.not_creator',
     'transfers.balance_sender', 'transfers.balance_receiver', 'transfers.balance_warning', 'transfers.same_party',
-    'daily_summary.title', 'daily_summary.empty', 'daily_summary.deposit', 'daily_summary.save', 'daily_summary.total', 'daily_summary.reason.no_create', 'daily_summary.reason.no_particular',
+    'daily_summary.title', 'daily_summary.empty', 'daily_summary.deposit', 'daily_summary.save', 'daily_summary.total', 'daily_summary.reason.no_create', 'daily_summary.reason.no_particular', 'daily_summary.reason.search_first',
   ];
   it('the keys the screen tests rely on exist in the catalogue (value is not the key)', () => {
     for (const k of KEYS) expect(catalogue[`billing.${k}`], `billing.${k}`).toBeTruthy();

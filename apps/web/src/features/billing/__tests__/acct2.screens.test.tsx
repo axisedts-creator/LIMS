@@ -808,6 +808,27 @@ describe('billing/daily-cash — daily collection summary and deposit', () => {
     await waitFor(() => expect(refresh).toHaveBeenCalled());
   });
 
+  it('Save is blocked while the Lab or Day controls differ from the loaded summary: no deposit is posted to the wrong centre or day until Search is pressed', async () => {
+    const S = await load();
+    const user = userEvent.setup();
+    const { unmount } = wrap(<S {...props()} />);
+    await user.type(screen.getByLabelText(re('billing.daily_summary.deposit')), '500');
+    await pick(user, screen.getByRole('search'), /lab name|centre/i, /Synthetic Centre B2/);
+    const save = () => screen.getByRole('button', { name: re('billing.daily_summary.save') });
+    expectBlockedWithReason(save(), 'billing.daily_summary.reason.search_first');
+    await user.click(save());
+    await new Promise((r) => setTimeout(r, 30));
+    expect(posts()).toEqual([]);
+    unmount();
+    wrap(<S {...props()} />);
+    await user.type(screen.getByLabelText(re('billing.daily_summary.deposit')), '500');
+    fireEvent.change(within(screen.getByRole('search')).getByLabelText(/date|day/i), { target: { value: '2026-11-16' } });
+    expectBlockedWithReason(save(), 'billing.daily_summary.reason.search_first');
+    await user.click(save());
+    await new Promise((r) => setTimeout(r, 30));
+    expect(posts()).toEqual([]);
+  });
+
   it('empty, zero, negative and 3 decimal deposits send nothing', async () => {
     const S = await load();
     const user = userEvent.setup();

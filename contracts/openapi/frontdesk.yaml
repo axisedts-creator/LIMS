@@ -118,6 +118,21 @@ paths:
                   phone_e164: "+15555550100"
                   email: <synthetic-email>
                   address_text: Synthetic Street 1
+                  title: mrs
+                  external_patient_id: MR-SYN-0001
+                  nationality: NP
+                  government_id_type: citizenship
+                  government_id_number: SYN-CIT-0000-4321
+                  address_province: Bagmati
+                  address_district: Kathmandu
+                  address_municipality: Synthetic Municipality
+                  address_ward: "7"
+                  address_tole: Synthetic Tole
+                  address_postal_code: "44600"
+                  profile_photo_attachment_id: 0193c4a0-0000-7000-8000-0000000000aa
+                  custom_fields:
+                    - code: blood_group
+                      value: O+
                   consents:
                     processing: true
                     sms: true
@@ -294,6 +309,21 @@ paths:
                     phone_e164: "+15555550100"
                     email: <synthetic-email>
                     address_text: Synthetic Street 1
+                    title: mrs
+                    external_patient_id: MR-SYN-0001
+                    nationality: NP
+                    government_id_type: citizenship
+                    government_id_number: SYN-CIT-0000-4321
+                    address_province: Bagmati
+                    address_district: Kathmandu
+                    address_municipality: Synthetic Municipality
+                    address_ward: "7"
+                    address_tole: Synthetic Tole
+                    address_postal_code: "44600"
+                    profile_photo_attachment_id: 0193c4a0-0000-7000-8000-0000000000aa
+                    custom_fields:
+                      - code: blood_group
+                        value: O+
                     consents:
                       processing: true
                       sms: true
@@ -360,6 +390,8 @@ paths:
                   phone_e164: "+15555550100"
                   email: <synthetic-email>
                   address_text: Synthetic Street 1
+                  address_ward: "7"
+                  address_tole: Synthetic Tole
                   unset:
                     - birth_on
       responses:
@@ -3859,6 +3891,89 @@ components:
         address_text:
           type: string
           maxLength: 300
+        title:
+          type: string
+          maxLength: 8
+          enum:
+            - mr
+            - mrs
+            - miss
+            - ms
+            - master
+            - baby
+            - baby_of
+            - dr
+            - prof
+            - capt
+            - col
+            - major
+            - sri
+            - smt
+            - kumari
+            - late
+            - sister
+            - reverend
+            - other
+          description: The 19 ElabAssist titles as lower snake_case codes (LD-310).
+        external_patient_id:
+          type: string
+          maxLength: 64
+          minLength: 1
+          description: Lab-typed MR / patient number; unique per tenant when present.
+        nationality:
+          type: string
+          maxLength: 2
+          minLength: 2
+          pattern: ^[A-Z]{2}$
+          description: ISO 3166-1 alpha-2 code.
+        government_id_type:
+          type: string
+          maxLength: 15
+          enum:
+            - citizenship
+            - national_id
+            - passport
+            - driving_licence
+            - voter_id
+            - other
+          description: Nepal government id types (LD-310 (b)).
+        government_id_number:
+          type: string
+          maxLength: 64
+          minLength: 1
+          description: Sensitive (Nepal Individual Privacy Act 2018, LD-310); never logged or written to audit diffs; responses mask it to the last 4 characters except the single patient read.
+        address_province:
+          type: string
+          maxLength: 100
+          minLength: 1
+        address_district:
+          type: string
+          maxLength: 100
+          minLength: 1
+        address_municipality:
+          type: string
+          maxLength: 150
+          minLength: 1
+        address_ward:
+          type: string
+          maxLength: 20
+          minLength: 1
+        address_tole:
+          type: string
+          maxLength: 150
+          minLength: 1
+        address_postal_code:
+          type: string
+          maxLength: 20
+          minLength: 1
+        profile_photo_attachment_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        custom_fields:
+          type: array
+          maxItems: 50
+          items:
+            $ref: "#/components/schemas/PatientCustomField"
+          description: Per-tenant custom field values, validated against the tenant definitions (T0C-REGPARITY-2); codes unique (service-checked).
         consents:
           $ref: "#/components/schemas/Consents"
         duplicate_override:
@@ -3903,18 +4018,127 @@ components:
         address_text:
           type: string
           maxLength: 300
+        title:
+          type: string
+          maxLength: 8
+          enum:
+            - mr
+            - mrs
+            - miss
+            - ms
+            - master
+            - baby
+            - baby_of
+            - dr
+            - prof
+            - capt
+            - col
+            - major
+            - sri
+            - smt
+            - kumari
+            - late
+            - sister
+            - reverend
+            - other
+          description: The 19 ElabAssist titles as lower snake_case codes (LD-310).
+        external_patient_id:
+          type: string
+          maxLength: 64
+          minLength: 1
+          description: Lab-typed MR / patient number; unique per tenant when present.
+        nationality:
+          type: string
+          maxLength: 2
+          minLength: 2
+          pattern: ^[A-Z]{2}$
+          description: ISO 3166-1 alpha-2 code.
+        government_id_type:
+          type: string
+          maxLength: 15
+          enum:
+            - citizenship
+            - national_id
+            - passport
+            - driving_licence
+            - voter_id
+            - other
+          description: Nepal government id types (LD-310 (b)).
+        government_id_number:
+          type: string
+          maxLength: 64
+          minLength: 1
+          description: Sensitive (Nepal Individual Privacy Act 2018, LD-310); never logged or written to audit diffs; responses mask it to the last 4 characters except the single patient read.
+        address_province:
+          type: string
+          maxLength: 100
+          minLength: 1
+        address_district:
+          type: string
+          maxLength: 100
+          minLength: 1
+        address_municipality:
+          type: string
+          maxLength: 150
+          minLength: 1
+        address_ward:
+          type: string
+          maxLength: 20
+          minLength: 1
+        address_tole:
+          type: string
+          maxLength: 150
+          minLength: 1
+        address_postal_code:
+          type: string
+          maxLength: 20
+          minLength: 1
+        profile_photo_attachment_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        custom_fields:
+          type: array
+          maxItems: 50
+          items:
+            $ref: "#/components/schemas/PatientCustomField"
+          description: Per-tenant custom field values, validated against the tenant definitions (T0C-REGPARITY-2); codes unique (service-checked).
         unset:
           type: array
-          maxItems: 4
+          maxItems: 17
           items:
             type: string
-            maxLength: 12
+            maxLength: 27
             enum:
               - birth_on
               - phone_e164
               - email
               - address_text
+              - title
+              - external_patient_id
+              - nationality
+              - government_id_type
+              - government_id_number
+              - address_province
+              - address_district
+              - address_municipality
+              - address_ward
+              - address_tole
+              - address_postal_code
+              - profile_photo_attachment_id
+              - custom_fields
       description: Subset of NewPatient demographics; unset[] clears optional fields.
+    PatientCustomField:
+      type: object
+      additionalProperties: false
+      required:
+        - code
+        - value
+      properties:
+        code:
+          $ref: _common.yaml#/components/schemas/Code
+        value:
+          type: string
+          maxLength: 500
+      description: One custom field value; the service maps the list to the patients.custom_fields jsonb object, code = key (T0C-REGPARITY-1 ruling).
     PatientSummary:
       type: object
       additionalProperties: false
@@ -4023,6 +4247,89 @@ components:
         address_text:
           type: string
           maxLength: 300
+        title:
+          type: string
+          maxLength: 8
+          enum:
+            - mr
+            - mrs
+            - miss
+            - ms
+            - master
+            - baby
+            - baby_of
+            - dr
+            - prof
+            - capt
+            - col
+            - major
+            - sri
+            - smt
+            - kumari
+            - late
+            - sister
+            - reverend
+            - other
+          description: The 19 ElabAssist titles as lower snake_case codes (LD-310).
+        external_patient_id:
+          type: string
+          maxLength: 64
+          minLength: 1
+          description: Lab-typed MR / patient number; unique per tenant when present.
+        nationality:
+          type: string
+          maxLength: 2
+          minLength: 2
+          pattern: ^[A-Z]{2}$
+          description: ISO 3166-1 alpha-2 code.
+        government_id_type:
+          type: string
+          maxLength: 15
+          enum:
+            - citizenship
+            - national_id
+            - passport
+            - driving_licence
+            - voter_id
+            - other
+          description: Nepal government id types (LD-310 (b)).
+        government_id_number:
+          type: string
+          maxLength: 64
+          minLength: 1
+          description: Sensitive (Nepal Individual Privacy Act 2018, LD-310). Full value only in the single patient read for actors holding frontdesk.patient.read; masked to the last 4 characters elsewhere; never in logs, audit diffs or list responses.
+        address_province:
+          type: string
+          maxLength: 100
+          minLength: 1
+        address_district:
+          type: string
+          maxLength: 100
+          minLength: 1
+        address_municipality:
+          type: string
+          maxLength: 150
+          minLength: 1
+        address_ward:
+          type: string
+          maxLength: 20
+          minLength: 1
+        address_tole:
+          type: string
+          maxLength: 150
+          minLength: 1
+        address_postal_code:
+          type: string
+          maxLength: 20
+          minLength: 1
+        profile_photo_attachment_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        custom_fields:
+          type: array
+          maxItems: 50
+          items:
+            $ref: "#/components/schemas/PatientCustomField"
+          description: Per-tenant custom field values, validated against the tenant definitions (T0C-REGPARITY-2); codes unique (service-checked).
         consents:
           $ref: "#/components/schemas/Consents"
         version:

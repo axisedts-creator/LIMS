@@ -6901,6 +6901,7 @@ export interface operations {
             centre_id: string;
             next_registration_no: string;
             next_receipt_no: string;
+            next_receipt_no_label: string;
             is_preview: boolean;
           };
         };

@@ -14,8 +14,6 @@ export const manifest = {
   name: 'catalog',
   openapi: 'contracts/openapi/catalog.yaml',
   handlers,
-  // LD-325(b), T0C-TESTMGMT-1 (LD-318): spec operations without a handler yet (answer 501 operation_pending); T0B-TESTMGMT-1 removes them when it adds the handlers.
-  pendingOperations: ['listTestCategories', 'createTestCategory', 'updateTestCategory'],
   produces: ['catalog.changed.v1'],
   ports: { CatalogPort },
 } as const satisfies ModuleManifest;

@@ -35,7 +35,7 @@ export function decodeCursor(raw: unknown, sort: string): readonly [unknown, str
   let v: unknown;
   try { v = JSON.parse(Buffer.from(raw, 'base64url').toString('utf8')); } catch { throw bad(); }
   if (!Array.isArray(v) || v.length !== 3 || v[0] !== sort || typeof v[2] !== 'string' || !UUID.test(v[2])) throw bad();
-  const ok = sort.replace('-', '') === 'report_order' ? Number.isInteger(v[1]) : typeof v[1] === 'string';
+  const ok = ['report_order', 'display_order'].includes(sort.replace('-', '')) ? Number.isInteger(v[1]) : typeof v[1] === 'string';   // display_order: T0B-TESTMGMT-1 categories
   if (!ok) throw bad();
   return [v[1], v[2]];
 }

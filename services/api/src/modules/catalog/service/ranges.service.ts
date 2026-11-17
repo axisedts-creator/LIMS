@@ -6,7 +6,7 @@
 // [CONV] uuidv7 via relative import until @lims/shared-ts is a services/api dependency (same as analyteVersions.service.ts).
 import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';
 import { LimsError, type FieldError } from '../../../core/errors.js';
-import { findOverlaps } from '../domain/rangeMatch.js';
+import { ageHours, ageWindow, findOverlaps } from '../domain/rangeMatch.js';
 import * as arepo from '../repo/analytes.repo.js';
 import * as repo from '../repo/tests.repo.js';
 import { checkFields, checkUpdate, fail, invalid, isObj, ptr, required, str, unknown as unknownField, UUID, type Ctx, type Deps, type Tx } from './masters.service.js';
@@ -18,12 +18,16 @@ const CRIT: Fam = { entity: 'critical_limit', set: 'critical_limit_sets', band: 
 
 const SET_COLS = ['id', 'analyte_id', 'version_no', 'status', 'unit_code', 'method_id', 'effective_from', 'effective_to', 'change_reason', 'version'];
 const AGE_COLS = ['age_low_value', 'age_low_unit', 'age_high_value', 'age_high_unit'];
-const bandCols = (f: Fam) => (f.ref ? ['sex', ...AGE_COLS, 'specimen_type_id', 'kind', 'low', 'high', 'normal_codes', 'display_text', 'sort_order']
+// T0B-TESTMGMT-1 (LD-318): ElabAssist band fields (reference bands only). Written only when set, so a band without them is stored exactly as before.
+const NEW_REF = ['instrument_id', 'laboratory_id', 'default_range', 'method_id', 'auto_approved_low', 'auto_approved_high'];
+const bandCols = (f: Fam) => (f.ref ? ['sex', ...AGE_COLS, 'specimen_type_id', 'kind', 'low', 'high', 'normal_codes', 'display_text', 'sort_order', ...NEW_REF]
   : ['sex', ...AGE_COLS, 'specimen_type_id', 'low', 'high', 'abnormal_codes', 'sort_order']);
-const BAND_KEYS = (f: Fam) => (f.ref ? ['sex', 'age_low', 'age_high', 'specimen_type_id', 'kind', 'low', 'high', 'normal_codes', 'display_text', 'sort_order']
+const BAND_KEYS = (f: Fam) => (f.ref ? ['sex', 'age_low', 'age_high', 'specimen_type_id', 'kind', 'low', 'high', 'normal_codes', 'display_text', 'sort_order', ...NEW_REF]
   : ['sex', 'age_low', 'age_high', 'specimen_type_id', 'low', 'high', 'abnormal_codes']);
+const lean = (r: Record<string, unknown>) => Object.fromEntries(Object.entries(r).filter(([k, v]) => !NEW_REF.includes(k) || (v != null && v !== false)));
+const SEXES = ['any', 'male', 'female', 'third_gender'];
 const STATUSES = ['draft', 'published', 'superseded', 'retired', 'discarded'];
-const UNITS = ['day', 'week', 'month', 'year'];
+const UNITS = ['hour', 'day', 'week', 'month', 'year'];
 const DEC = /^-?[0-9]+(\.[0-9]+)?$/, CODE = /^[A-Z0-9_+\-]{1,16}$/, ISO_UTC = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
 const BACKDATE_TOLERANCE_MS = 300_000;                                     // AB-18 / AC-03.3
 const MAX_BANDS = 100;
@@ -66,12 +70,13 @@ function checkBand(f: Fam, b: unknown, p: string, pos: number, errors: FieldErro
   const start = errors.length, keys = BAND_KEYS(f);
   for (const k of Object.keys(b)) if (b[k] !== undefined && !keys.includes(k)) errors.push(unknownField(p + ptr(k)));
   const g = (k: string) => (keys.includes(k) ? b[k] : undefined);
-  if (g('sex') === undefined) errors.push(required(`${p}/sex`)); else if (!['any', 'male', 'female'].includes(g('sex') as string)) errors.push(invalid(`${p}/sex`));
+  if (g('sex') === undefined) errors.push(required(`${p}/sex`)); else if (!SEXES.includes(g('sex') as string)) errors.push(invalid(`${p}/sex`));
   const lo = g('age_low') === undefined ? undefined : checkAge(g('age_low'), 0, `${p}/age_low`, errors);
   const hi = g('age_high') === undefined ? undefined : checkAge(g('age_high'), 1, `${p}/age_high`, errors);   // DB CHECK age_high BETWEEN 1 AND 200
+  if (lo && hi && ageHours(...lo) > ageHours(...hi)) errors.push(invalid(`${p}/age_high`));                 // LD-318: age from not above age to (in hours)
   const specimen = g('specimen_type_id');
   if (specimen !== undefined && !isUuid(specimen)) errors.push(invalid(`${p}/specimen_type_id`));
-  const dec = (k: 'low' | 'high') => { const v = g(k); if (v === undefined) return undefined; if (typeof v === 'string' && v.length <= 40 && DEC.test(v)) return v; errors.push(invalid(`${p}/${k}`)); return undefined; };
+  const dec = (k: 'low' | 'high' | 'auto_approved_low' | 'auto_approved_high') => { const v = g(k); if (v === undefined) return undefined; if (typeof v === 'string' && v.length <= 40 && DEC.test(v)) return v; errors.push(invalid(`${p}/${k}`)); return undefined; };
   const low = dec('low'), high = dec('high');
   if (low !== undefined && high !== undefined && cmpDec(low, high) > 0) errors.push(invalid(`${p}/low`));
   const codesRaw = g(f.codes);
@@ -97,6 +102,25 @@ function checkBand(f: Fam, b: unknown, p: string, pos: number, errors: FieldErro
       if (kind === 'ordinal' && !codes?.length) errors.push(required(`${p}/normal_codes`));
     }
     out['kind'] = kind; out['display_text'] = typeof text === 'string' ? text : null;
+    // T0B-TESTMGMT-1 (LD-318): machine / laboratory / method specific band, default range, auto approved band inside the normal band.
+    for (const k of ['instrument_id', 'laboratory_id', 'method_id']) {
+      const v = g(k);
+      if (v !== undefined && !isUuid(v)) errors.push(invalid(`${p}/${k}`));
+      out[k] = v ?? null;
+    }
+    const dflt = g('default_range');
+    if (dflt !== undefined && typeof dflt !== 'boolean') errors.push(invalid(`${p}/default_range`));
+    out['default_range'] = dflt === true;
+    const aLow = dec('auto_approved_low'), aHigh = dec('auto_approved_high');
+    if (aLow !== undefined || aHigh !== undefined) {
+      if (low === undefined && high === undefined) errors.push(invalid(`${p}/${aLow !== undefined ? 'auto_approved_low' : 'auto_approved_high'}`));
+      else if (aLow !== undefined && aHigh !== undefined && cmpDec(aLow, aHigh) > 0) errors.push(invalid(`${p}/auto_approved_low`));
+      else {
+        if (aLow !== undefined && low !== undefined && cmpDec(aLow, low) < 0) errors.push(invalid(`${p}/auto_approved_low`));
+        if (aHigh !== undefined && high !== undefined && cmpDec(aHigh, high) > 0) errors.push(invalid(`${p}/auto_approved_high`));
+      }
+    }
+    out['auto_approved_low'] = aLow ?? null; out['auto_approved_high'] = aHigh ?? null;
   } else if (low === undefined && high === undefined && !codes?.length) errors.push(invalid(p));        // critical_limits__something__ck
   return errors.length === start ? out : undefined;
 }
@@ -105,8 +129,48 @@ function checkBands(f: Fam, v: unknown, min: number): Record<string, unknown>[] 
   if (!Array.isArray(v) || v.length < min || v.length > MAX_BANDS) return fail([invalid('/bands')]);
   const errors: FieldError[] = [];
   const rows = v.map((b, i) => checkBand(f, b, `/bands/${i}`, i, errors));
+  // LD-318: at most one default range per analyte + sex + instrument + laboratory group (the later band is flagged); "exactly one" is a publish rule.
+  if (f.ref) {
+    const seen = new Set<string>();
+    rows.forEach((r, i) => { if (r?.['default_range'] !== true) return; const k = groupKey(r); if (seen.has(k)) errors.push(invalid(`/bands/${i}/default_range`)); seen.add(k); });
+  }
   if (errors.length) fail(errors.slice(0, 50));
   return rows as Record<string, unknown>[];
+}
+const groupKey = (r: Record<string, unknown>) => `${r['sex']}|${r['instrument_id'] ?? ''}|${r['laboratory_id'] ?? ''}`;
+
+/** LD-318 "exactly one default range per group", at publish, for a set that uses default_range / instrument / laboratory (a set using none publishes as before). */
+function defaultErrors(bands: readonly Record<string, unknown>[]): string[] {
+  if (!bands.some((b) => b['default_range'] === true || b['instrument_id'] != null || b['laboratory_id'] != null)) return [];
+  const groups = new Map<string, number[]>();
+  bands.forEach((b, i) => groups.set(groupKey(b), [...(groups.get(groupKey(b)) ?? []), i]));
+  const out: string[] = [];
+  for (const idx of groups.values()) {
+    const d = idx.filter((i) => bands[i]!['default_range'] === true);
+    if (!d.length) out.push(`/bands/${idx[0]}/default_range`);
+    for (const i of d.slice(1)) out.push(`/bands/${i}/default_range`);
+  }
+  return out;
+}
+
+/**
+ * LD-318 "critical outside normal": each critical band must lie outside every normal band it meets (same sex or either 'any', overlapping ages):
+ * critical low < normal low, critical high > normal high. Paths /bands/{i}/low | high of the critical band.
+ */
+function criticalErrors(crit: readonly Record<string, unknown>[], normal: readonly Record<string, unknown>[]): string[] {
+  const out = new Set<string>();
+  const win = (b: Record<string, unknown>) => ageWindow(b as never);
+  crit.forEach((c, i) => {
+    const [cl, ch] = win(c);
+    for (const n of normal) {
+      if (!(c['sex'] === 'any' || n['sex'] === 'any' || c['sex'] === n['sex'])) continue;
+      const [nl, nh] = win(n);
+      if (!(cl < nh && nl < ch)) continue;
+      if (c['low'] != null && n['low'] != null && cmpDec(String(c['low']), String(n['low'])) >= 0) out.add(`/bands/${i}/low`);
+      if (c['high'] != null && n['high'] != null && cmpDec(String(c['high']), String(n['high'])) <= 0) out.add(`/bands/${i}/high`);
+    }
+  });
+  return [...out];
 }
 
 export function createRangesService(deps: Deps) {
@@ -118,6 +182,10 @@ export function createRangesService(deps: Deps) {
     age_high: r.age_high_value != null ? { value: Number(r.age_high_value), unit: r.age_high_unit } : undefined,
     specimen_type_id: r.specimen_type_id, kind: f.ref ? r.kind : undefined, low: r.low != null ? String(r.low) : undefined, high: r.high != null ? String(r.high) : undefined,
     [f.codes]: r[f.codes], display_text: f.ref ? r.display_text : undefined, sort_order: f.ref ? Number(r.sort_order) : undefined,
+    ...(f.ref ? {
+      instrument_id: r.instrument_id, laboratory_id: r.laboratory_id, method_id: r.method_id, default_range: r.default_range,
+      auto_approved_low: r.auto_approved_low != null ? String(r.auto_approved_low) : undefined, auto_approved_high: r.auto_approved_high != null ? String(r.auto_approved_high) : undefined,
+    } : {}),
   });
   const setDto = (f: Fam, s: any, bands: any[]) => compact({
     id: s.id, analyte_id: s.analyte_id, version_no: Number(s.version_no), status: s.status, unit_code: s.unit_code, method_id: s.method_id,
@@ -137,7 +205,20 @@ export function createRangesService(deps: Deps) {
     return (await dtos(ctx, f, [s]))[0]!;
   };
   const insertBands = (ctx: Ctx, f: Fam, setId: string, rows: Record<string, unknown>[]) =>
-    repo.insert(ctx.tx as Tx, f.band, rows.map((r) => ({ id: uuidv7(), tenant_id: ctx.tenantId, set_id: setId, ...r, created_by: ctx.actor.id })), ['created_at']).catch(mapPg);
+    insertLean(ctx, f, rows.map((r) => ({ id: uuidv7(), tenant_id: ctx.tenantId, set_id: setId, ...lean(r), created_by: ctx.actor.id })));
+  /** Multi-row INSERT needs one column list: bands that set different optional NEW_REF columns go in separate statements. */
+  async function insertLean(ctx: Ctx, f: Fam, rows: Record<string, unknown>[]) {
+    const byShape = new Map<string, Record<string, unknown>[]>();
+    for (const r of rows) { const k = Object.keys(r).join(','); byShape.set(k, [...(byShape.get(k) ?? []), r]); }
+    for (const group of byShape.values()) await repo.insert(ctx.tx as Tx, f.band, group, ['created_at']).catch(mapPg);
+  }
+  /** The normal bands a critical set is compared with: the analyte's draft reference set, else its latest published one (none -> nothing to compare). */
+  async function normalBands(ctx: Ctx, analyteId: string): Promise<any[]> {
+    const tx = ctx.tx as Tx, t = ctx.tenantId;
+    const [s] = (await repo.find(tx, REF.set, ['id'], t, { analyte_id: analyteId, status: 'draft' }, { limit: 1 }))
+      .concat(await repo.find(tx, REF.set, ['id'], t, { analyte_id: analyteId, status: 'published' }, { order: 'version_no DESC', limit: 1 }));
+    return s ? bandRows(ctx, REF, [s.id]) : [];
+  }
   const updateSet = (ctx: Ctx, f: Fam, id: string, expected: number, patch: Record<string, unknown>) =>
     repo.update(ctx.tx as Tx, f.set, SET_COLS, { tenantId: ctx.tenantId, id, actorId: ctx.actor.id, expectedVersion: expected }, patch).catch(mapPg)
       .then((row) => { if (!row) throw new LimsError('common.version_conflict'); return row; });
@@ -229,7 +310,8 @@ export function createRangesService(deps: Deps) {
       async replace(ctx: Ctx, input: { id?: unknown; expectedVersion?: unknown; body?: unknown } = {}) {
         const { id, ev } = checkUpdate(input);
         const rows = checkBands(f, checkFields({ fields: {} }, input.body, ['bands'])['bands'], 1);
-        await open(ctx, f, id, ev, 'draft', false);
+        const { set } = await open(ctx, f, id, ev, 'draft', false);
+        if (!f.ref) { const bad = criticalErrors(rows, await normalBands(ctx, set.analyte_id)); if (bad.length) fail(bad.map(invalid)); }
         await repo.deleteBands(ctx.tx as Tx, f.band, ctx.tenantId, id);
         await insertBands(ctx, f, id, rows);
         await updateSet(ctx, f, id, ev, {});
@@ -322,6 +404,9 @@ export function createRangesService(deps: Deps) {
           }
         }
         for (const [i, j] of findOverlaps(bands)) { flag(`/bands/${i}`); flag(`/bands/${j}`); }
+        // T0B-TESTMGMT-1 (LD-318): exactly one default per group (reference), critical outside the normal band in force now (critical).
+        if (f.ref) for (const p of defaultErrors(bands)) flag(p);
+        else for (const p of criticalErrors(bands, await normalBands(ctx, set.analyte_id))) flag(p);
         if (bad.size) fail([...bad.values()].sort((x, y) => (x.path < y.path ? -1 : 1)).slice(0, 50));
 
         const pred = siblings.find((s) => s.status === 'published');

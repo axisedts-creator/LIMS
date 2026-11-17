@@ -20,6 +20,13 @@ sudo bash infra/cutover/bootstrap.sh --rollback                                 
 
 `bootstrap.sh` asks all human inputs once at the start (domain, TLS e-mail, age key custody). Section 2 below stays as the manual, explicit equivalent of what `bootstrap.sh` automates; use it to understand, resume or debug a step.
 
+**bootstrap.sh will pause for these MANUAL steps** (it prints the exact text and waits; with `LIMS_BOOTSTRAP_NONINTERACTIVE=1` it exits 3, you do the step and re-run, done steps are skipped):
+
+1. Install SOPS 3.13.3 (step 3): it is not an Ubuntu package; download the pinned release, verify its sha256, put it in `/usr/local/bin/sops`.
+2. Age key custody (step 5): the private key exists only on this server; name who keeps an offline copy.
+3. Build and push the images, then write the `lims_runtime_images` file (step 8): `infra/ci/build.sh`, `infra/ci/push.sh staging ...` (writes `staging.lock.yaml`), `push.sh mirror` for third-party images; the kit has no converter from the lock to `lims_runtime_images`.
+4. `site.yml` fails closed the first time (step 7): the last play (`lims_runtime : Preconditions`) needs image digests, and the registry that receives them is created by that same run. bootstrap.sh treats exactly that stop as partial, pauses at step 3 above, then re-runs `site.yml` (step 9).
+
 ## 1. Hardware / OS prerequisites
 
 Spec: 04 I1 sizes VM-1 data at 8 vCPU / 32 GB / NVMe >= 10k IOPS / 500 GB and VM-2 app at 8 vCPU / 16 GB / 200 GB, with object storage on a separately growable volume. `staging-lean` collapses data+app+ops into one VM. The founder's server (32 GB RAM, 16 cores) fits; the memory budget is 85 % of RAM (`lims_runtime_max_pct` in the `lims_runtime` role defaults; 27.2 GiB of 32).
@@ -66,7 +73,7 @@ lims_runtime_images: {}       # filled from the release lock, step 2.8 (keys api
 | 2.5 | Host baseline + stack (roles in order: base_os, hardening, wireguard, nftables, chrony, luks_volumes, docker_engine, pgbackrest, auditstore, monitoring, logging, registry, edge_nginx, acme, clamav, secrets_render, valkey, egress_proxy, renderer_runtime, lims_runtime) | `ansible-playbook -i $INV -c local -e @/root/lims-staging-extra.yml infra/ansible/playbooks/site.yml` | `PLAY RECAP` with `failed=0 unreachable=0` |
 | 2.6 | Idempotency (header of `site.yml`: a second run must report zero changes) | same command again | `PLAY RECAP` with `changed=0 failed=0` |
 | 2.7 | LUKS / wg / nft sanity | `bash infra/cutover/server-smoke.sh --only luks-mounts` then `--only wg-up` (needs `LIMS_ENV=staging`, root) | `PASS luks-mounts`, `PASS wg-up` |
-| 2.8 | Images and release lock | `bash infra/ci/build.sh vX.Y.Z-rc.N`, `bash infra/ci/push.sh staging lims/<name>:vX.Y.Z-rc.N ...`, which calls `infra/ci/release-lock.sh` and writes `staging.lock.yaml` in the releases directory | one `registry.lims.internal:5000/<repo>@sha256:<64 hex>` per image in the lock. MANUAL: copy those refs into `lims_runtime_images` in the extra vars file and re-run 2.5 if the runtime was held back for lack of digests. Third-party images go through `push.sh mirror` |
+| 2.8 | Images and release lock | `bash infra/ci/build.sh vX.Y.Z-rc.N`, `bash infra/ci/push.sh staging lims/<name>:vX.Y.Z-rc.N ...`, which calls `infra/ci/release-lock.sh` and writes `staging.lock.yaml` in the releases directory | one `registry.lims.internal:5000/<repo>@sha256:<64 hex>` per image in the lock. MANUAL: copy those refs into `lims_runtime_images` in the extra vars file and re-run 2.5. The first 2.5 run fails closed at `lims_runtime : Preconditions` (no digests yet; the registry comes from the same run); `bootstrap.sh` re-runs `site.yml` at its step 9. Third-party images go through `push.sh mirror` |
 | 2.9 | DB bootstrap, first deploy only | section 4 | `PLAY RECAP failed=0` and the marker file `/srv/lims/pg/bootstrap.done` |
 | 2.10 | Migrations, registry sync, seeds, rolling update | section 4 | `deploy.sh: <rel> deployed to staging` |
 | 2.11 | First pgBackRest backup | `/usr/local/lib/lims/bin/pgbackrest --stanza=lims backup --type=full --repo=1` | rc 0 (`PASS wal-archive` needs it) |

@@ -30,3 +30,6 @@
 - Cause: old verify.cmd ran npx/pnpm without `call`, batch ended after step 1 ("cannot find the path"); log is stale, no test failed.
 - Fix (tester, already in place): verify.cmd has `call` on every npx/pnpm line, `cd /d` first, all 5 steps kept. Debugger changes no file per ruling.
 - SYNC-1 code not at fault (codegen 88/88, API 826/826, pgTAP clean, registry-equality 14/14). Rerun verify to refresh log.
+## Round 10 (single-line verify.cmd now runs; real failure)
+- Log: registry-equality 12/14. Red: `errors.yaml == IC §8` (7 extra codes engagement.broadcast_* x6, partners.ticket_invalid_transition) and `permissions.yaml == IC §11` (partner role has partners.ticket.read/manage). Both come from T0C-MSGDESK-1 (lane C0-0C) via the main merge; IC §8/§11 and the test allow-lists (registry-equality.test.ts:100,193) lack them. SYNC-1's 5 codes and 3 permissions pass.
+- No impl change: removing the MSGDESK codes would violate LD-330 (keep both sides). Test is stale, off-limits for me: see T0C-SYNC-1-dispute.md. Lead: add MSGDESK allow-list to the test or the codes to IC §8/§11 (as LD-337), or run only `-t` cases for SYNC-1 in verify.

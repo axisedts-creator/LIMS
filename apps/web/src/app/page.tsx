@@ -11,7 +11,9 @@ export default async function RootPage(): Promise<never> {
   const s = await getShellSession();
   if (s?.kind === 'platform') redirect('/platform');
   if (s?.kind === 'tenant_staff') {
-    const first = navEntries.find((e) => hasPermission(s.actor.permissions, e.permission));
+    // LD-340 (founder 2026-11-17 20:37 NPT): the admin lands on the Dashboard; anyone without it keeps the first permitted entry
+    const first = navEntries.find((e) => e.id === 'analytics.dashboard' && hasPermission(s.actor.permissions, e.permission))
+      ?? navEntries.find((e) => hasPermission(s.actor.permissions, e.permission));
     if (first) redirect(first.path);
   }
   redirect('/auth/login');

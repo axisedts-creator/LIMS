@@ -52,18 +52,22 @@ const INERT_DEPS: WorkerDeps = {
 };
 
 // CLI: `pnpm --filter @lims/worker registry-sync`. Connects as the migrator login (it must SET LOCAL ROLE lims_owner), never lims_worker.
-// [CONV] LIMS_MIGRATOR_DATABASE_URL (prefix of the existing LIMS_MIGRATOR_PASSWORD); unset -> graphile-worker's DATABASE_URL / PG* fallback (tools/devstack/up.ts).
+// [CONV] LIMS_MIGRATOR_DATABASE_URL (prefix of the existing LIMS_MIGRATOR_PASSWORD); unset -> pg reads PG* (PGHOST, PGUSER, PGSSLMODE, ...).
+// T0B-ASYNC-3 (LD-281): a plain pg Client, no job-queue library: its utils run their own schema migrate step first, which the migrator
+// login on Supabase may not do (42501). LD-282/LD-341: no module config is validated here; that check runs at worker start.
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  const { makeWorkerUtils } = await import('graphile-worker');
+  // @ts-expect-error TS7016: @types/pg is not declared in the worker package (brief: pg only, lockfile unchanged otherwise); Client is used untyped here.
+  const { default: pg } = await import('pg');
   const connectionString = process.env.LIMS_MIGRATOR_DATABASE_URL || undefined;
-  const utils = await makeWorkerUtils(connectionString ? { connectionString } : {});
+  const client = new pg.Client(connectionString ? { connectionString } : {});
   try {
-    const r = await utils.withPgClient((c) => syncAllManifests(c as unknown as SyncClient));
+    await client.connect();
+    const r = await syncAllManifests(client);
     process.stdout.write(`registry-sync upserted ${r.upserted} deactivated ${r.deactivated}\n`);
   } catch (e) {
     process.exitCode = 1;
     process.stderr.write(`registry-sync failed: ${String((e as { code?: unknown }).code ?? '')} ${(e as Error).message}\n`);
   } finally {
-    await utils.release();
+    await client.end().catch(() => undefined);
   }
 }

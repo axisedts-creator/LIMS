@@ -1,6 +1,6 @@
 // C16.T-SEC1 — operation probe matrix (07-SECURITY §6.1 coverage, §6.5 actor confusion / privilege escalation, §5 AB-6 / AB-7 / AB-8 / AB-14; 06-PLAN row T-SEC1 "every operation ... covered").
 // Contract-derived, so a NEW operation or permission cannot ship without landing in a row here: every operationId of contracts/openapi/engagement.yaml is classified (pre-auth / display / patient / staff) and checked.
-// What this proves: the authorization surface DECLARED for each of the 98 operations (security scheme + x-permission + declared errors + closed request/response shapes) cannot let a patient token reach a staff operation,
+// What this proves: the authorization surface DECLARED for each of the 109 operations (security scheme + x-permission + declared errors + closed request/response shapes) cannot let a patient token reach a staff operation,
 // a staff / display / pre-auth credential reach a /me operation, or a body/response carry tenant / account / patient identifiers. Enforcement at run time is core's permission engine (fixed_actor_permissions) + RLS;
 // handler-level 404 probes live with each task's tests (orders P-L1, reports, mybookings, ...) and the SQL binding scan in sql.tenant-binding.test.ts.
 // NOT covered here (needs a live stack): real tokens through the HTTP dispatcher; see .orchestra/notes/T-SEC1-tests.md.
@@ -38,9 +38,9 @@ const okSchemas = (o: Op) => Object.entries<any>(o.op.responses ?? {}).filter(([
 const paramNames = (o: Op) => (o.op.parameters ?? []).map((p: any) => deref(p).name as string);
 
 describe('inventory (07-SECURITY §6.1: every operationId in TRD §5)', () => {
-  it('98 operations, unique ids, every one carries a security scheme and an x-permission that exists in permissions.yaml', () => {
-    expect(OPS).toHaveLength(98);
-    expect(new Set(OPS.map((o) => o.id)).size).toBe(98);
+  it('109 operations (98 + 11 broadcast, T0C-MSGDESK-1), unique ids, every one carries a security scheme and an x-permission that exists in permissions.yaml', () => {
+    expect(OPS).toHaveLength(109);
+    expect(new Set(OPS.map((o) => o.id)).size).toBe(109);
     for (const o of OPS) {
       expect(o.security.length, `${o.id} security`).toBeGreaterThan(0);
       expect(permissionRow(o.permission), `${o.id} -> ${o.permission} must be a row of contracts/permissions.yaml`).toBeDefined();
@@ -48,9 +48,12 @@ describe('inventory (07-SECURITY §6.1: every operationId in TRD §5)', () => {
   });
 
   it('the manifest handles exactly these operations and none is still the T-01 placeholder (a 503 stub is "covered" by nothing)', async () => {
-    expect(Object.keys(manifest.handlers).sort()).toEqual(OPS.map((o) => o.id).sort());
+    // T0C-MSGDESK-1 ruling: LD-325 pending ids have no handler until T0B-MSGDESK-1 merges.
+    const pending = new Set<string>((manifest as { pendingOperations?: readonly string[] }).pendingOperations ?? []);
+    const handled = OPS.filter((o) => !pending.has(o.id));
+    expect(Object.keys(manifest.handlers).sort()).toEqual(handled.map((o) => o.id).sort());
     const stillStubbed: string[] = [];
-    for (const o of OPS) {
+    for (const o of handled) {
       try { await (handlers as any)[o.id]({ params: {}, query: {}, headers: {}, body: {} }, {}); } catch (e: any) { if (e?.code === 'common.service_unavailable') stillStubbed.push(o.id); }
     }
     expect(stillStubbed).toEqual([]);
@@ -59,7 +62,7 @@ describe('inventory (07-SECURITY §6.1: every operationId in TRD §5)', () => {
   it('actor classes: 3 pre-auth, 1 display, the rest split by the /me prefix (patient) vs staff', () => {
     expect(by('preauth').map((o) => o.id).sort()).toEqual(['getPatientAppConfig', 'requestPatientOtp', 'verifyPatientOtp']);
     expect(by('display').map((o) => o.id)).toEqual(['getQueueBoard']);
-    expect(by('patient').length + by('staff').length).toBe(94);
+    expect(by('patient').length + by('staff').length).toBe(105);
     expect(by('patient').length).toBeGreaterThanOrEqual(35);
     expect(by('staff').length).toBeGreaterThanOrEqual(45);
   });

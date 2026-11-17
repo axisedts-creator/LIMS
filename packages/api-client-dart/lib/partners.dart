@@ -31,9 +31,17 @@ class PartnersApi {
   Future<Object?> changePartnerUserRoleByStaff({required String partnerUserId, Map<String, String>? headers, Object? body}) =>
       _send('POST', '/v1/partners/admin/partner-users/${Uri.encodeComponent(partnerUserId)}/role', headers: headers, body: body);
 
+  /// POST /v1/partners/admin/tickets/{ticket_id}/close
+  Future<Object?> closePartnerTicket({required String ticketId, Map<String, String>? headers}) =>
+      _send('POST', '/v1/partners/admin/tickets/${Uri.encodeComponent(ticketId)}/close', headers: headers);
+
   /// POST /v1/partners/manifests
   Future<Object?> createManifest({Map<String, String>? headers, Object? body}) =>
       _send('POST', '/v1/partners/manifests', headers: headers, body: body);
+
+  /// POST /v1/partners/me/tickets
+  Future<Object?> createMyPartnerTicket({Map<String, String>? headers, Object? body}) =>
+      _send('POST', '/v1/partners/me/tickets', headers: headers, body: body);
 
   /// POST /v1/partners/admin/partners
   Future<Object?> createPartner({Map<String, String>? headers, Object? body}) =>
@@ -42,6 +50,10 @@ class PartnersApi {
   /// POST /v1/partners/referrers
   Future<Object?> createPartnerReferrer({Map<String, String>? headers, Object? body}) =>
       _send('POST', '/v1/partners/referrers', headers: headers, body: body);
+
+  /// POST /v1/partners/admin/tickets
+  Future<Object?> createPartnerTicket({Map<String, String>? headers, Object? body}) =>
+      _send('POST', '/v1/partners/admin/tickets', headers: headers, body: body);
 
   /// POST /v1/partners/pickup-requests
   Future<Object?> createPickupRequest({Map<String, String>? headers, Object? body}) =>
@@ -107,6 +119,10 @@ class PartnersApi {
   Future<Object?> getManifestPrintView({required String manifestId}) =>
       _send('GET', '/v1/partners/manifests/${Uri.encodeComponent(manifestId)}/print-view');
 
+  /// GET /v1/partners/me/tickets/{ticket_id}
+  Future<Object?> getMyPartnerTicket({required String ticketId}) =>
+      _send('GET', '/v1/partners/me/tickets/${Uri.encodeComponent(ticketId)}');
+
   /// GET /v1/partners/admin/partners/{partner_id}
   Future<Object?> getPartner({required String partnerId}) =>
       _send('GET', '/v1/partners/admin/partners/${Uri.encodeComponent(partnerId)}');
@@ -130,6 +146,10 @@ class PartnersApi {
   /// GET /v1/partners/statements/{period_month}
   Future<Object?> getPartnerStatement({required String periodMonth}) =>
       _send('GET', '/v1/partners/statements/${Uri.encodeComponent(periodMonth)}');
+
+  /// GET /v1/partners/admin/tickets/{ticket_id}
+  Future<Object?> getPartnerTicket({required String ticketId}) =>
+      _send('GET', '/v1/partners/admin/tickets/${Uri.encodeComponent(ticketId)}');
 
   /// GET /v1/partners/reports/{report_id}/access-slips/{access_slip_id}
   Future<Object?> getPatientAccessSlip({required String reportId, required String accessSlipId}) =>
@@ -167,6 +187,10 @@ class PartnersApi {
   Future<Object?> listManifests({Map<String, Object?>? query}) =>
       _send('GET', '/v1/partners/manifests', query: query);
 
+  /// GET /v1/partners/me/tickets
+  Future<Object?> listMyPartnerTickets({Map<String, Object?>? query}) =>
+      _send('GET', '/v1/partners/me/tickets', query: query);
+
   /// GET /v1/partners/orders
   Future<Object?> listPartnerOrders({Map<String, Object?>? query}) =>
       _send('GET', '/v1/partners/orders', query: query);
@@ -186,6 +210,10 @@ class PartnersApi {
   /// GET /v1/partners/statements
   Future<Object?> listPartnerStatements({Map<String, Object?>? query}) =>
       _send('GET', '/v1/partners/statements', query: query);
+
+  /// GET /v1/partners/admin/tickets
+  Future<Object?> listPartnerTickets({Map<String, Object?>? query}) =>
+      _send('GET', '/v1/partners/admin/tickets', query: query);
 
   /// GET /v1/partners/users
   Future<Object?> listPartnerUsers({Map<String, Object?>? query}) =>
@@ -267,9 +295,21 @@ class PartnersApi {
   Future<Object?> rejectPickup({required String pickupRequestId, Map<String, String>? headers, Object? body}) =>
       _send('POST', '/v1/partners/admin/pickup-requests/${Uri.encodeComponent(pickupRequestId)}/reject', headers: headers, body: body);
 
+  /// POST /v1/partners/admin/tickets/{ticket_id}/reopen
+  Future<Object?> reopenPartnerTicket({required String ticketId, Map<String, String>? headers}) =>
+      _send('POST', '/v1/partners/admin/tickets/${Uri.encodeComponent(ticketId)}/reopen', headers: headers);
+
   /// PUT /v1/partners/manifests/{manifest_id}/lines/{line_id}
   Future<Object?> replaceManifestLine({required String manifestId, required String lineId, Map<String, String>? headers, Object? body}) =>
       _send('PUT', '/v1/partners/manifests/${Uri.encodeComponent(manifestId)}/lines/${Uri.encodeComponent(lineId)}', headers: headers, body: body);
+
+  /// POST /v1/partners/me/tickets/{ticket_id}/messages
+  Future<Object?> replyMyPartnerTicket({required String ticketId, Map<String, String>? headers, Object? body}) =>
+      _send('POST', '/v1/partners/me/tickets/${Uri.encodeComponent(ticketId)}/messages', headers: headers, body: body);
+
+  /// POST /v1/partners/admin/tickets/{ticket_id}/messages
+  Future<Object?> replyPartnerTicket({required String ticketId, Map<String, String>? headers, Object? body}) =>
+      _send('POST', '/v1/partners/admin/tickets/${Uri.encodeComponent(ticketId)}/messages', headers: headers, body: body);
 
   /// POST /v1/partners/users/{partner_user_id}/resend-invitation
   Future<Object?> resendPartnerInvitation({required String partnerUserId, Map<String, String>? headers}) =>

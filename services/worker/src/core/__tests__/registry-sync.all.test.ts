@@ -4,7 +4,7 @@
 //   = syncRegistry(client, buildTaskList(<inert deps>, MANIFESTS).registry), MANIFESTS from ../manifests.js. syncRegistry itself is unchanged.
 //   The CLI entry (only when the file is run directly, never on import) reads LIMS_CORE_WORKER_DATABASE_URL, connects, calls syncAllManifests, exits non-zero on error.
 // The registry table, its policies and the SET LOCAL ROLE lims_owner step do not change (tested in registry-sync.test.ts).
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import { REPO_ROOT } from '../../../../api/src/core/module.js';
@@ -90,6 +90,25 @@ describe('syncAllManifests', () => {
     const mod = await import('../registry-sync.js');
     expect(typeof mod.syncRegistry).toBe('function');
     expect(typeof mod.syncAllManifests).toBe('function');
+  });
+});
+
+// T0B-ASYNC-3 done_when (5), "other modules may have the same import-time checks: the test finds them". Dynamic proof = the tests above (every manifest
+// imported with no module variable). Static proof = no jobs file runs a load*Config()/validate*Config() call at module top level (column 0).
+// Finding of the tester (grep 2026-11-17): payments/index.ts was the only one; the rest call load*Config() inside a task or consumer, at run time.
+describe('no jobs module validates its config at import', () => {
+  const JOBS = join(REPO_ROOT, 'services', 'worker', 'src', 'jobs');
+  const files: string[] = [];
+  const walk = (d: string) => { for (const e of readdirSync(d, { withFileTypes: true })) { if (e.name === '__tests__' || e.name === 'node_modules') continue; const p = join(d, e.name); if (e.isDirectory()) walk(p); else if (/\.ts$/.test(e.name) && !/\.(test|spec)\.ts$/.test(e.name)) files.push(p); } };
+  walk(JOBS);
+  it('the scan sees the jobs files (positive control)', () => { expect(files.length).toBeGreaterThan(50); });
+  it('no top-level (column 0) call of a load*Config / validate*Config function in services/worker/src/jobs', () => {
+    const hits: string[] = [];
+    for (const f of files) {
+      const code = readFileSync(f, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:'"`])\/\/.*$/gm, '$1');
+      for (const m of code.matchAll(/^(?:export\s+)?(?:(?:const|let|var)\s+[\w{}, ]+\s*=\s*|await\s+)?(?:load|validate|parse)\w*Config\w*\(/gm)) hits.push(`${f.slice(JOBS.length + 1)}: ${m[0]}`);
+    }
+    expect(hits, `import-time config check(s): move to worker start\n${hits.join('\n')}`).toEqual([]);
   });
 });
 

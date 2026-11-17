@@ -96,6 +96,12 @@ abstract final class LimsErrorCodes {
   static const String engagementBookingInvalidTransition = 'engagement.booking_invalid_transition';
   static const String engagementBookingLimitReached = 'engagement.booking_limit_reached';
   static const String engagementBookingNotCancellable = 'engagement.booking_not_cancellable';
+  static const String engagementBroadcastInvalidTransition = 'engagement.broadcast_invalid_transition';
+  static const String engagementBroadcastPlaceholderUnknown = 'engagement.broadcast_placeholder_unknown';
+  static const String engagementBroadcastProviderNotConfigured = 'engagement.broadcast_provider_not_configured';
+  static const String engagementBroadcastRecipientLimit = 'engagement.broadcast_recipient_limit';
+  static const String engagementBroadcastSelfApproval = 'engagement.broadcast_self_approval';
+  static const String engagementBroadcastTemplateInactive = 'engagement.broadcast_template_inactive';
   static const String engagementEnquiryInvalidTransition = 'engagement.enquiry_invalid_transition';
   static const String engagementLinkCodeInvalid = 'engagement.link_code_invalid';
   static const String engagementLinkLimitReached = 'engagement.link_limit_reached';
@@ -231,6 +237,7 @@ abstract final class LimsErrorCodes {
   static const String partnersReferrerNotMapped = 'partners.referrer_not_mapped';
   static const String partnersSelfActionForbidden = 'partners.self_action_forbidden';
   static const String partnersSettingOutOfRange = 'partners.setting_out_of_range';
+  static const String partnersTicketInvalidTransition = 'partners.ticket_invalid_transition';
   static const String paymentsAmountNotSupported = 'payments.amount_not_supported';
   static const String paymentsCallbackMismatch = 'payments.callback_mismatch';
   static const String paymentsCallbackStale = 'payments.callback_stale';
@@ -392,6 +399,12 @@ const Map<String, int> limsErrorHttpStatus = <String, int>{
   'engagement.booking_invalid_transition': 409,
   'engagement.booking_limit_reached': 429,
   'engagement.booking_not_cancellable': 409,
+  'engagement.broadcast_invalid_transition': 409,
+  'engagement.broadcast_placeholder_unknown': 422,
+  'engagement.broadcast_provider_not_configured': 422,
+  'engagement.broadcast_recipient_limit': 422,
+  'engagement.broadcast_self_approval': 403,
+  'engagement.broadcast_template_inactive': 422,
   'engagement.enquiry_invalid_transition': 409,
   'engagement.link_code_invalid': 422,
   'engagement.link_limit_reached': 409,
@@ -527,6 +540,7 @@ const Map<String, int> limsErrorHttpStatus = <String, int>{
   'partners.referrer_not_mapped': 422,
   'partners.self_action_forbidden': 409,
   'partners.setting_out_of_range': 422,
+  'partners.ticket_invalid_transition': 409,
   'payments.amount_not_supported': 422,
   'payments.callback_mismatch': 400,
   'payments.callback_stale': 400,

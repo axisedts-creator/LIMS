@@ -34,7 +34,7 @@ const CLAIMS = { sub: '0190a000-0000-7000-8000-00000000c001', actor_type: 'patie
 const open: FastifyInstance[] = [];
 afterEach(async () => { await Promise.all(open.splice(0).map((a) => a.close())); });
 
-async function mk(moduleName: string, preAuth: CoreAuth['preAuth'] | undefined) {
+async function mk(moduleName: string, preAuth: CoreAuth['preAuth'] | undefined, spec: any = SPEC) {
   const app = Fastify({ schemaController, genReqId, frameworkErrors: (e, req, reply) => { sendProblem(e, req, reply); } });
   open.push(app);
   installErrorHandlers(app);
@@ -42,7 +42,7 @@ async function mk(moduleName: string, preAuth: CoreAuth['preAuth'] | undefined) 
   installRouteHooks(app, { responseValidation: false, auth });
   const seen: any[] = [];
   const pipeline = { run: async (c: any) => { seen.push(c); return { status: 200, body: { claims: c.claims ?? null } }; } } as any;
-  await mountSpec(app, moduleName, SPEC, { getPatientAppConfig: async () => ({ status: 200, body: {} }), getPortal: async () => ({ status: 200, body: {} }) }, auth, pipeline);
+  await mountSpec(app, moduleName, spec, { getPatientAppConfig: async () => ({ status: 200, body: {} }), getPortal: async () => ({ status: 200, body: {} }) }, auth, pipeline);
   await app.ready();
   return { app, seen };
 }
@@ -126,5 +126,60 @@ describe('patientPreAuth security handler', () => {
     const res = await app.inject({ method: 'GET', url: '/v1/engagement/app/config', headers: { cookie: 'x-lims-patient-preauth=t.tenant_a' } });
     expect(res.statusCode).toBe(401);
     expect(calls).toHaveLength(0);
+  });
+});
+
+describe('real-world spec shape: no components.securitySchemes after bundling', () => {
+  const { securitySchemes: _drop, ...componentsWithout } = SPEC.components;
+  const BARE = { ...SPEC, components: componentsWithout };
+
+  it('still authenticates through the reviewed header table', async () => {
+    const calls: any[] = [];
+    const { app, seen } = await mk('engagement', okAuth(calls), BARE);
+    const res = await get(app, '/v1/engagement/app/config', { 'x-lims-patient-preauth': 't.tenant_a' });
+    expect(res.statusCode).toBe(200);
+    expect(seen[0].claims).toEqual(CLAIMS);
+    expect(calls[0]).toMatchObject({ scheme: 'patientPreAuth', credential: 't.tenant_a' });
+  });
+
+  it('missing header -> 401, resolver not called', async () => {
+    const calls: any[] = [];
+    const { app } = await mk('engagement', okAuth(calls), BARE);
+    expect((await get(app, '/v1/engagement/app/config')).statusCode).toBe(401);
+    expect(calls).toHaveLength(0);
+  });
+
+  it('a spec that declares the scheme differently (other header) stays fail-closed', async () => {
+    const calls: any[] = [];
+    const odd = { ...SPEC, components: { securitySchemes: { patientPreAuth: { type: 'apiKey', in: 'header', name: 'X-Other' } } } };
+    const { app } = await mk('engagement', okAuth(calls), odd);
+    const res = await get(app, '/v1/engagement/app/config', { 'x-lims-patient-preauth': 't.tenant_a' });
+    expect(res.statusCode).toBe(401);
+    expect(calls).toHaveLength(0);
+  });
+});
+
+describe('real contracts/openapi/engagement.yaml (bundled by loadSpec)', () => {
+  it('patientPreAuth operations authenticate through the handler; the credential header is the contract header', async () => {
+    const { loadSpec } = await import('../module.js');
+    const { join } = await import('node:path');
+    const real = loadSpec(join(import.meta.dirname, '../../../../../contracts/openapi/engagement.yaml'));
+    const handlers: Record<string, any> = {};
+    for (const item of Object.values<any>(real.paths)) for (const op of Object.values<any>(item)) if (op?.operationId) handlers[op.operationId] = async () => ({ status: 200, body: {} });
+    const calls: any[] = [];
+    const app = Fastify({ schemaController, genReqId, frameworkErrors: (e, req, reply) => { sendProblem(e, req, reply); } });
+    open.push(app);
+    installErrorHandlers(app);
+    const auth: CoreAuth = { bff: { verify: () => undefined } as any, clientIp: (() => '203.0.113.7') as any, preAuth: okAuth(calls), verifier: { verify: async () => { throw new Error('unused'); } } as any };
+    installRouteHooks(app, { responseValidation: false, auth });
+    const seen: any[] = [];
+    await mountSpec(app, 'engagement', real, handlers, auth, { run: async (c: any) => { seen.push(c); return { status: 200, body: {} }; } } as any);
+    await app.ready();
+    const ok = await get(app, '/v1/engagement/app/config', { 'x-lims-patient-preauth': 't.tenant_a', 'x-lims-app-version': '0.1.0', 'x-lims-app-platform': 'android' });
+    expect(ok.statusCode).toBe(200);
+    expect(seen[0].claims).toEqual(CLAIMS);
+    expect(calls[0]).toMatchObject({ scheme: 'patientPreAuth', credential: 't.tenant_a', operation: { module: 'engagement', operationId: 'getPatientAppConfig' } });
+    const none = await get(app, '/v1/engagement/app/config', { 'x-lims-app-version': '0.1.0', 'x-lims-app-platform': 'android' });
+    expect(none.statusCode).toBe(401);
   });
 });

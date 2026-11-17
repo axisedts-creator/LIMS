@@ -11,6 +11,7 @@ import type { ClientIpResolver } from './auth/client-ip.js';
 import { AuthError } from './auth/errors.js';
 import { isRenderedProblem, LimsError } from './errors.js';
 import type { JwtVerifier } from './auth/jwt.js';
+import { PRE_AUTH_HEADERS } from './db/allowlists.js';
 import { AUTH_RESOLVER_OWNERS, type Handler } from './module.js';
 import { setErrorCode } from './observability/logging.js';
 import type { Pipeline, PipelineOp } from './pipeline/index.js';
@@ -67,9 +68,12 @@ function securityHandlers(auth: CoreAuth, spec: any): Record<string, (req: Fasti
   // header, a scheme the module does not own, no operation context, an unknown credential or any resolver failure -> 401.
   const pre = auth.preAuth;
   for (const scheme of pre?.schemes ?? []) {
+    // Operation specs carry no securitySchemes once bundled (only _common.yaml / identity.yaml do), so the header comes from the
+    // reviewed table; a spec that does declare the scheme must agree (apiKey in header, same name) or the scheme stays fail-closed.
     const def = spec?.components?.securitySchemes?.[scheme];
-    if (!pre || def?.type !== 'apiKey' || def?.in !== 'header' || typeof def?.name !== 'string') continue; // not declared as a header scheme in this spec
-    const headerName = def.name.toLowerCase();
+    const known = PRE_AUTH_HEADERS[scheme];
+    if (!pre || !known || (def && (def.type !== 'apiKey' || def.in !== 'header' || String(def.name).toLowerCase() !== known.toLowerCase()))) continue;
+    const headerName = known.toLowerCase();
     out[scheme] = async (req) => {
       const cfg = (req.routeOptions.config ?? {}) as { module?: unknown };
       const operationId = (req.routeOptions.schema as { operationId?: unknown } | undefined)?.operationId;

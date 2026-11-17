@@ -47,6 +47,7 @@ export const ledgerEntryDto = (r: Record<string, any>, display: ReadonlyMap<stri
   collected_by: typeof r['collected_by_membership_id'] === 'string'
     ? { membership_id: r['collected_by_membership_id'], display_name: display.get(r['collected_by_membership_id']) ?? STAFF_DISPLAY } : undefined,
   cash_session_id: r['cash_session_id'], created_at: iso(r['created_at']), business_date_bs: bsText(dateText(r['business_date'])),
+  card_holder_name: r['card_holder_name'], payment_remark: r['payment_remark'],   // T0B-REGAPI-2 (LD-310); null columns dropped by present()
 });
 
 export interface SessionRowIn { readonly method_code: string; readonly expected: number; readonly counted?: number }

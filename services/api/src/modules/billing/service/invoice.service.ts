@@ -37,7 +37,10 @@ export interface InvoiceCtx {
   /** core ctx.audit.access: one audit.access_log row on ctx.tx (print, BL-T09). */
   readonly audit?: { access(entry: { action: string; entityType: string; entityId?: string; centreId?: string; outcome: 'allowed' | 'denied'; detail?: Record<string, string | number | boolean> }): Promise<unknown> };
 }
-interface Counter { allocate(tx: never, input: { tenantId: string; series: string; fiscalYearBs: string; actorId: string; invoiceNoPattern?: string; timezone?: string }): Promise<{ lastNo: number; allocatedAt: string }> }
+interface Counter {
+  allocate(tx: never, input: { tenantId: string; series: string; fiscalYearBs: string; actorId: string; invoiceNoPattern?: string; timezone?: string }): Promise<{ lastNo: number; allocatedAt: string }>;
+  peek?(tx: never, input: { tenantId: string; series: string; fiscalYearBs: string }): Promise<number>;
+}
 
 export const DOWNTIME_MAX_HOURS_KEY = 'downtime_backentry_max_hours';
 // LD-26 (2026-11-07, A33-3 training tenant, BL-T14): tenant setting `trainingMode` (set at provisioning only), read through the C2 settings port (CR C2.T16 adds the key).
@@ -552,6 +555,24 @@ export function createInvoiceService(deps: { repo?: BillingRepo; counter: Counte
     }
     return writeNote(ctx, { kind: 'partial', inv, picks, reasonCode, reasonText, taskIds });
   }
-  return { issue, print, printCreditNote, cancel, credit };
+  /** LD-323 (a): the invoice number issue() would assign next, rendered the same way (series scope, fiscal year, pattern, training prefix).
+   *  A plain read of the INV series counter row through counter.peek: nothing written, nothing reserved; two callers may see the same number. */
+  async function previewNo(ctx: InvoiceCtx): Promise<{ invoiceNo: string }> {
+    const tx = ctx.tx as never;
+    const idp = ctx.ports?.IdentityPort;
+    if (!idp || !deps.counter.peek) throw new LimsError('common.internal');
+    const tenant = await idp.getTenantSettings(ctx, { keys: ['numbering', 'timezone', TRAINING_KEY] });
+    const settings = (await repo.getBillingSettings(tx, { tenantId: ctx.tenantId })) ?? { invoice_series_scope: 'tenant' };
+    const scope = settings['invoice_series_scope'];
+    // branch scope needs a branch code the port input does not carry (03-IC issueOrderInvoice has none either): refuse rather than show a wrong number (LD-323 c)
+    if (scope !== 'tenant') throw new LimsError('billing.numbering_pattern_invalid');
+    const pattern = tenant?.numbering?.invoiceNoPattern;
+    if (typeof pattern !== 'string') throw new LimsError('billing.numbering_pattern_invalid');
+    const fy = fiscalYearOf(ctx.now() as IsoUtc, typeof tenant?.timezone === 'string' ? tenant.timezone : 'Asia/Kathmandu');
+    const seq = await deps.counter.peek(tx, { tenantId: ctx.tenantId, series: seriesKey('INV', 'tenant'), fiscalYearBs: fy.long });
+    return { invoiceNo: (tenant?.[TRAINING_KEY] === true ? TRAINING_PREFIX : '') + formatDocumentNumber(pattern, { fy, seq, scope: 'tenant' }) };
+  }
+
+  return { issue, print, printCreditNote, cancel, credit, previewNo };
 }
 export type InvoiceService = ReturnType<typeof createInvoiceService>;

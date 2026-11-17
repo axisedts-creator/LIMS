@@ -27,6 +27,7 @@ const fieldError = (path: string, message = 'Field invalid'): FieldError => ({ p
 interface PaymentInput {
   orderId: string; invoiceId?: string; methodCode: string; amountPaisa: number; reference?: string; captureKind: 'manual' | 'home_collection';
   idempotencyKey: string; collectedByMembershipId?: string; capturedAt?: string; issueReceiptNo: boolean;
+  cardHolderName?: string; paymentRemark?: string;   // T0B-REGAPI-2 (LD-310): personal data / free text, never logged or put in activity details
 }
 
 function checkInput(raw: unknown): PaymentInput {
@@ -61,11 +62,19 @@ function checkInput(raw: unknown): PaymentInput {
   }
   const at = raw['capturedAt'];
   if (at !== undefined && (typeof at !== 'string' || !UTC_INSTANT.test(at) || Number.isNaN(Date.parse(at)))) bad('/capturedAt');
+  const opt = (k: string, max: number): string | undefined => {   // ledger_entries__card_holder_name__ck / __payment_remark__ck: 1..max
+    const v = raw[k];
+    if (v === undefined) return undefined;
+    if (typeof v !== 'string' || v.length === 0 || CONTROL.test(v) || [...v].length > max) { bad(`/${k}`); return undefined; }
+    return v;
+  };
+  const cardHolderName = opt('cardHolderName', 100); const paymentRemark = opt('paymentRemark', 300);
   if (errors.length) throw invalid(...errors);
   return {
     orderId: orderId!, ...(invoiceId === undefined ? {} : { invoiceId }), methodCode: m as string, amountPaisa: amountPaisa!, ...(reference === undefined ? {} : { reference }),
     captureKind: kind as PaymentInput['captureKind'], idempotencyKey: key as string, ...(collectedByMembershipId === undefined ? {} : { collectedByMembershipId }),
     ...(at === undefined ? {} : { capturedAt: at as string }), issueReceiptNo: raw['issueReceiptNo'] as boolean,
+    ...(cardHolderName === undefined ? {} : { cardHolderName }), ...(paymentRemark === undefined ? {} : { paymentRemark }),
   };
 }
 
@@ -167,6 +176,7 @@ export function createLedgerService(deps: { repo?: BillingRepo; counter: Counter
       id: ledgerId, tenantId, branchId: totals.branch_id, centreId: totals.centre_id, orderId: i.orderId, invoiceId: i.invoiceId ?? null, entryKind: 'payment', captureKind: i.captureKind,
       methodCode: i.methodCode, amountPaisa: i.amountPaisa, fiscalYearBs: fy.long, businessDate, collectedByMembershipId: collector, userId: actorId, idempotencyKey: i.idempotencyKey,
       receiptNo: receiptNo ?? null, receiptSeq: receiptSeq ?? null, cashSessionId, referenceText: i.reference ?? null, capturedAtDevice: i.capturedAt ?? null,
+      cardHolderName: i.cardHolderName ?? null, paymentRemark: i.paymentRemark ?? null,
     });
     if (!row) throw new LimsError('common.internal');
 

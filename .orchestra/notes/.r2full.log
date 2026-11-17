@@ -1,0 +1,527 @@
+[core] WARNING: Executable file detection not yet supported on 'win32'.
+Schema updated
+psql:/repo/db/migrations/20261105001300_identity__create_identity_schema.sql:7: NOTICE:  schema "identity" already exists, skipping
+psql:/repo/db/migrations/20261105001500_catalog__create_catalog_schema.sql:10: NOTICE:  schema "catalog" already exists, skipping
+psql:/repo/db/migrations/20261105001600_frontdesk__create_frontdesk_schema.sql:7: NOTICE:  schema "frontdesk" already exists, skipping
+psql:/repo/db/migrations/20261105001700_billing__create_billing_schema.sql:7: NOTICE:  schema "billing" already exists, skipping
+psql:/repo/db/migrations/20261105001800_lab__create_lab_schema.sql:10: NOTICE:  schema "lab" already exists, skipping
+psql:/repo/db/migrations/20261105001900_reporting__create_reporting_schema.sql:145: NOTICE:  identifier "message_template_texts__tenant_id_template_code_channel_language__uq" will be truncated to "message_template_texts__tenant_id_template_code_channel_languag"
+psql:/repo/db/migrations/20261105001900_reporting__create_reporting_schema.sql:177: NOTICE:  identifier "report_template_versions__tenant_id_template_id__published__p_uq" will be truncated to "report_template_versions__tenant_id_template_id__published__p_u"
+psql:/repo/db/migrations/20261105001900_reporting__create_reporting_schema.sql:443: NOTICE:  identifier "deliveries__tenant_id_channel_account_id_provider_message_id__p_uq" will be truncated to "deliveries__tenant_id_channel_account_id_provider_message_id__p"
+psql:/repo/db/migrations/20261105001900_reporting__create_reporting_schema.sql:682: NOTICE:  identifier "narrative_versions__tenant_id_narrative_report_id_version_no__uq" will be truncated to "narrative_versions__tenant_id_narrative_report_id_version_no__u"
+psql:/repo/db/migrations/20261115192000_identity__add_provisioning_schema.sql:47: NOTICE:  identifier "tenant_contract_acceptances__tenant_id_document_accepted_at__idx" will be truncated to "tenant_contract_acceptances__tenant_id_document_accepted_at__id"
+                                                       set_config                                                        
+-------------------------------------------------------------------------------------------------------------------------
+ {"tenant_id":"01a1a98a-ac40-7000-8000-00000000a001","sub":"01a1b34e-1000-7eee-9d29-d7ca59a102b5","actor_type":"system"}
+(1 row)
+
+                                                       set_config                                                        
+-------------------------------------------------------------------------------------------------------------------------
+ {"tenant_id":"01a1a98a-ac40-7000-8000-00000000b001","sub":"01a1b34e-1000-7eee-9d29-d7ca59a102b5","actor_type":"system"}
+(1 row)
+
+ set_config 
+------------
+ 
+(1 row)
+
+
+ RUN  v5.1.0 C:/LIMS-lanes/C0-0B/services/api
+
+ ❯ src/modules/frontdesk/__tests__/regapi2/registration.test.ts (27 tests | 4 failed) 3066ms
+   ❯ quoteRegistration: coupon, visiting charge, redeem points, ICD (read only, totals computed on the server) (6)
+     × visiting charge adds exactly its paisa to totals.net; coupon (amount, percent) subtracts exactly its value; nothing is written or consumed 135ms
+     × a coupon larger than the net is capped: the net is 0, never negative 23ms
+   ❯ coupons at save: applied once per order, usage limit, tenant, rollback (5)
+     × apply: order carries coupon_code and the server derived coupon_amount_paisa, the invoice is for the reduced total, used_count + 1 exactly once (3 quotes before it changed nothing) 76ms
+   ❯ reward points: redeem, ledger entry per change, never below zero (4)
+     × points that were spent between quote and save: 400 /redeem_reward_points, no order, no ledger row, no invoice number, balance untouched 85ms
+ ❯ src/modules/frontdesk/__tests__/regapi2/preview.test.ts (7 tests | 3 failed) 3884ms
+   ❯ previewRegistrationNumbers (7)
+     × does not consume: counter row (value, version, updated_at) and the receipt sequence are unchanged after 5 previews, every preview answers the same, and no write statement is issued 84ms
+     × is a read of the counter, not a reservation: two users previewing get the same numbers; 10 parallel previews do not move the counter 107ms
+     × a centre of another tenant, an unknown centre => 404 common.not_found; missing / malformed centre_id => 400; nothing consumed 86ms
+ ❯ src/modules/frontdesk/__tests__/probes/tables.live.test.ts (79 tests | 1 failed) 6221ms
+   ❯ structure (catalog queries) (6)
+     × the two user deletable tables have exactly one DELETE policy each, bound to the tenant AND the owning membership (LD-315 b); no other table has a DELETE policy 16ms
+ ❯ src/modules/frontdesk/__tests__/contract/FrontdeskPort.booking.contract.test.ts (27 tests | 1 failed) 5224ms
+   ❯ createOrderFromBooking: per-source authorisation (08 R7), actor guard first (5)
+     × centre scope (03-IC §4.3, review FD-T11 #1): a USER actor scoped to centre A passing centre A2 -> common.not_found (a coded error, not a raw RLS error); nothing is written; scope [A, A2] passes 90ms
+ ❯ src/modules/frontdesk/__tests__/registration/rollback.test.ts (13 tests | 2 failed) 4829ms
+   ❯ registration_no counter (per branch) is rolled back with the transaction (US-FD-03.5 frontdesk side) (3)
+     × failed registration leaves the counter where it was; the next success takes the very next number (no gap) 86ms
+     × two sequential successes: numbers strictly increasing by 1 (gapless without failures) 50ms
+{"level":"warn","ts":"2026-11-17T04:38:41.669Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T04:38:41.832Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T04:38:41.833Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' not found"}
+{"level":"warn","ts":"2026-11-17T04:38:41.833Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/csv' not found"}
+{"level":"warn","ts":"2026-11-17T04:38:41.833Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-17T04:38:42.483Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T04:38:42.483Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-17T04:38:42.483Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-17T04:38:42.483Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-17T04:38:44.958Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T04:38:44.958Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' not found"}
+{"level":"warn","ts":"2026-11-17T04:38:44.958Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/xml' not found"}
+{"level":"warn","ts":"2026-11-17T04:38:44.959Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-17T04:38:47.662Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T04:38:47.662Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' not found"}
+{"level":"warn","ts":"2026-11-17T04:38:47.662Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-17T04:38:49.327Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T04:38:49.327Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-17T04:38:49.328Z","service":"api","env":"ci","version":"0.0.0","msg":"Handlers for some security requirements were missing: patientPreAuth, queueDisplayToken"}
+{"level":"warn","ts":"2026-11-17T04:38:50.531Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T04:38:50.531Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-17T04:38:50.531Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-17T04:38:50.531Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-17T04:38:50.531Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-17T04:38:51.529Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T04:38:52.460Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T04:38:52.460Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-17T04:38:52.460Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-17T04:38:52.460Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-17T04:38:52.460Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/csv' not found"}
+{"level":"warn","ts":"2026-11-17T04:38:52.460Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-17T04:38:53.933Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T04:38:53.933Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-17T04:38:53.933Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/octet-stream' not found"}
+{"level":"warn","ts":"2026-11-17T04:38:53.933Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-17T04:38:53.933Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-17T04:38:53.934Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-17T04:38:53.934Z","service":"api","env":"ci","version":"0.0.0","msg":"Handlers for some security requirements were missing: deviceToken"}
+{"level":"warn","ts":"2026-11-17T04:38:55.127Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T04:38:55.127Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/csv' not found"}
+{"level":"warn","ts":"2026-11-17T04:38:56.981Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T04:38:58.578Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T04:38:58.578Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-17T04:38:58.578Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/csv' not found"}
+{"level":"warn","ts":"2026-11-17T04:38:59.344Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T04:38:59.345Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:01.035Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:01.036Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/html' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:01.036Z","service":"api","env":"ci","version":"0.0.0","msg":"Handlers for some security requirements were missing: paymentCallbackToken"}
+{"level":"warn","ts":"2026-11-17T04:39:02.114Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:04.187Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:04.187Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:04.187Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:04.187Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:04.187Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:04.187Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for '*/*' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:04.187Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/plain' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:04.188Z","service":"api","env":"ci","version":"0.0.0","msg":"Handlers for some security requirements were missing: portalSession"}
+{"level":"warn","ts":"2026-11-17T04:39:05.628Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:19.799Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:20.126Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:20.126Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:20.126Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/csv' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:20.126Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:20.948Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:20.948Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:20.948Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:20.948Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:21.907Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:21.907Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:21.907Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/xml' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:21.907Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:22.813Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:22.813Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:22.813Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:23.548Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:23.548Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:23.548Z","service":"api","env":"ci","version":"0.0.0","msg":"Handlers for some security requirements were missing: patientPreAuth, queueDisplayToken"}
+{"level":"warn","ts":"2026-11-17T04:39:24.116Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:24.116Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:24.116Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:24.116Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:24.116Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:24.701Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:25.255Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:25.256Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:25.256Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:25.256Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:25.256Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/csv' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:25.256Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:26.009Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:26.009Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:26.009Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/octet-stream' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:26.009Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:26.009Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:26.009Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:26.009Z","service":"api","env":"ci","version":"0.0.0","msg":"Handlers for some security requirements were missing: deviceToken"}
+{"level":"warn","ts":"2026-11-17T04:39:26.802Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:26.802Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/csv' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:28.591Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:29.614Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:29.614Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:29.614Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/csv' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:30.789Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:30.789Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:31.526Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:31.526Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/html' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:31.526Z","service":"api","env":"ci","version":"0.0.0","msg":"Handlers for some security requirements were missing: paymentCallbackToken"}
+{"level":"warn","ts":"2026-11-17T04:39:32.045Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:32.665Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:32.665Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:32.665Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:32.665Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:32.665Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:32.665Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for '*/*' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:32.665Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/plain' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:32.665Z","service":"api","env":"ci","version":"0.0.0","msg":"Handlers for some security requirements were missing: portalSession"}
+{"level":"warn","ts":"2026-11-17T04:39:33.540Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"info","ts":"2026-11-17T04:39:40.592Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1e7cd-b4ef-7830-9340-0d9bb7afbd81","module":"frontdesk","operation_id":"searchPatients","route":"/v1/frontdesk/patients/search","status":401,"duration_ms":62,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-17T04:39:40.598Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1e7cd-b532-7d10-9572-3cec1b955020","module":"frontdesk","operation_id":"createPatient","route":"/v1/frontdesk/patients","status":400,"duration_ms":3,"db_count":0,"db_ms":0,"error_code":"common.validation_failed","msg":"request"}
+{"level":"info","ts":"2026-11-17T04:39:40.602Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1e7cd-b537-723b-b302-d86b566b02e7","module":"frontdesk","operation_id":"listPossibleDuplicatePatients","route":"/v1/frontdesk/patients/possible-duplicates","status":401,"duration_ms":2,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-17T04:39:40.605Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1e7cd-b53b-7923-a614-2ed900d9d11b","module":"frontdesk","operation_id":"getPatient","route":"/v1/frontdesk/patients/{patient_id}","status":401,"duration_ms":2,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-17T04:39:40.609Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1e7cd-b53f-7ad4-99e7-d1d9447230ea","module":"frontdesk","operation_id":"updatePatient","route":"/v1/frontdesk/patients/{patient_id}","status":400,"duration_ms":2,"db_count":0,"db_ms":0,"error_code":"common.validation_failed","msg":"request"}
+{"level":"info","ts":"2026-11-17T04:39:40.614Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1e7cd-b543-7c1e-a948-520f9f93721d","module":"frontdesk","operation_id":"recordPatientConsent","route":"/v1/frontdesk/patients/{patient_id}/consents","status":400,"duration_ms":2,"db_count":0,"db_ms":0,"error_code":"common.validation_failed","msg":"request"}
+{"level":"info","ts":"2026-11-17T04:39:40.619Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1e7cd-b548-77d6-8a2e-a5832b1bc2d3","module":"frontdesk","operation_id":"listPatientOrders","route":"/v1/frontdesk/patients/{patient_id}/orders","status":401,"duration_ms":2,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-17T04:39:40.622Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1e7cd-b54c-7a9f-b08c-80b0a49bd944","module":"frontdesk","operation_id":"anonymisePatient","route":"/v1/frontdesk/patients/{patient_id}/anonymise","status":400,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"common.validation_failed","msg":"request"}
+{"level":"info","ts":"2026-11-17T04:39:40.625Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1e7cd-b54f-767b-a820-031481a2edec","module":"frontdesk","operation_id":"quoteRegistration","route":"/v1/frontdesk/registrations/quote","status":401,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-17T04:39:40.629Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1e7cd-b552-7d8f-9e52-bdf91d7a3cfb","module":"frontdesk","operation_id":"createRegistration","route":"/v1/frontdesk/registrations","status":400,"duration_ms":2,"db_count":0,"db_ms":0,"error_code":"common.validation_failed","msg":"request"}
+{"level":"info","ts":"2026-11-17T04:39:40.633Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1e7cd-b557-7e67-b15b-4653ba17b93f","module":"frontdesk","operation_id":"listOrders","route":"/v1/frontdesk/orders","status":401,"duration_ms":2,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-17T04:39:40.636Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1e7cd-b55a-7c6b-a7a6-6048a2cfe57e","module":"frontdesk","operation_id":"getOrder","route":"/v1/frontdesk/orders/{order_id}","status":401,"duration_ms":2,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-17T04:39:40.642Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1e7cd-b55d-7ead-95ab-c1dc3ef16f73","module":"frontdesk","operation_id":"quoteOrderItemsChange","route":"/v1/frontdesk/orders/{order_id}/items-changes/quote","status":401,"duration_ms":4,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-17T04:39:40.650Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1e7cd-b565-75c0-bca7-f0701757018d","module":"frontdesk","operation_id":"confirmPreRegisteredOrder","route":"/v1/frontdesk/orders/{order_id}/confirm","status":400,"duration_ms":4,"db_count":0,"db_ms":0,"error_code":"common.validation_failed","msg":"request"}
+{"level":"info","ts":"2026-11-17T04:39:40.656Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1e7cd-b56c-7f81-b20d-e114b9b7de26","module":"frontdesk","operation_id":"changeOrderItems","route":"/v1/frontdesk/orders/{order_id}/items-changes","status":400,"duration_ms":3,"db_count":0,"db_ms":0,"error_code":"common.validation_failed","msg":"request"}
+{"level":"info","ts":"2026-11-17T04:39:40.659Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1e7cd-b571-73c5-be8c-aeb78c20a47c","module":"frontdesk","operation_id":"cancelOrder","route":"/v1/frontdesk/orders/{order_id}/cancel","status":400,"duration_ms":2,"db_count":0,"db_ms":0,"error_code":"common.validation_failed","msg":"request"}
+{"level":"info","ts":"2026-11-17T04:39:40.663Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1e7cd-b575-7005-8c40-6e67e169245c","module":"frontdesk","operation_id":"listDiscountApprovals","route":"/v1/frontdesk/discount-approvals","status":401,"duration_ms":2,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-17T04:39:40.667Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1e7cd-b579-72c4-87c0-61b253745a71","module":"frontdesk","operation_id":"requestDiscountApproval","route":"/v1/frontdesk/discount-approvals","status":400,"duration_ms":2,"db_count":0,"db_ms":0,"error_code":"common.validation_failed","msg":"request"}
+{"level":"info","ts":"2026-11-17T04:39:40.670Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1e7cd-b57c-7fe3-af19-88e60c860aaf","module":"frontdesk","operation_id":"getDiscountApproval","route":"/v1/frontdesk/discount-approvals/{approval_id}","status":401,"duration_ms":2,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-17T04:39:40.673Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1e7cd-b57f-7b88-ad31-14e14a788f66","module":"frontdesk","operation_id":"approveDiscount","route":"/v1/frontdesk/discount-approvals/{approval_id}/approve","status":400,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"common.validation_failed","msg":"request"}
+{"level":"info","ts":"2026-11-17T04:39:40.675Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1e7cd-b581-7a0b-9e16-930c8a2a8d92","module":"frontdesk","operation_id":"rejectDiscount","route":"/v1/frontdesk/discount-approvals/{approval_id}/reject","status":400,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"common.validation_failed","msg":"request"}
+{"level":"info","ts":"2026-11-17T04:39:40.678Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1e7cd-b584-77c8-9998-87ec9c2ef7da","module":"frontdesk","operation_id":"uploadTrf","route":"/v1/frontdesk/trf-attachments","status":400,"duration_ms":2,"db_count":0,"db_ms":0,"error_code":"common.validation_failed","msg":"request"}
+{"level":"info","ts":"2026-11-17T04:39:40.681Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1e7cd-b587-735c-a9cc-8672bf4d7c50","module":"frontdesk","operation_id":"getTrfAttachment","route":"/v1/frontdesk/trf-attachments/{attachment_id}","status":401,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-17T04:39:40.684Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1e7cd-b58a-78ee-8eb9-47f6fa491bbe","module":"frontdesk","operation_id":"getTrfAttachmentContent","route":"/v1/frontdesk/trf-attachments/{attachment_id}/content","status":401,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-17T04:39:40.686Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1e7cd-b58c-7964-8fd1-ba65a0d96ef8","module":"frontdesk","operation_id":"listOrderFlags","route":"/v1/frontdesk/order-flags","status":401,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-17T04:39:40.689Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1e7cd-b58f-790e-b286-cc1abafafeb5","module":"frontdesk","operation_id":"resolveOrderFlag","route":"/v1/frontdesk/order-flags/{flag_id}/resolve","status":400,"duration_ms":2,"db_count":0,"db_ms":0,"error_code":"common.validation_failed","msg":"request"}
+{"level":"info","ts":"2026-11-17T04:39:40.691Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1e7cd-b592-7c55-9225-f61d66471792","module":"frontdesk","operation_id":"getFrontdeskSettings","route":"/v1/frontdesk/settings","status":401,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-17T04:39:40.693Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1e7cd-b594-7229-abab-4d847dea7b09","module":"frontdesk","operation_id":"updateFrontdeskSettings","route":"/v1/frontdesk/settings","status":400,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"common.validation_failed","msg":"request"}
+{"level":"info","ts":"2026-11-17T04:39:40.696Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1e7cd-b597-743b-b86f-e77efb263678","module":"frontdesk","operation_id":"listFrontdeskCodes","route":"/v1/frontdesk/coded-sets/{set_name}","status":400,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"common.validation_failed","msg":"request"}
+{"level":"info","ts":"2026-11-17T04:39:40.708Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1e7cd-b599-7dd6-a295-8d1f581fca5a","module":"frontdesk","operation_id":"listRegistrationDrafts","route":"/v1/frontdesk/registration-drafts","status":401,"duration_ms":11,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-17T04:39:40.710Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1e7cd-b5a5-7078-b464-bcb3d78021ab","module":"frontdesk","operation_id":"createRegistrationDraft","route":"/v1/frontdesk/registration-drafts","status":400,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"common.validation_failed","msg":"request"}
+{"level":"info","ts":"2026-11-17T04:39:40.713Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1e7cd-b5a7-73ae-a1a7-6edb7b425cec","module":"frontdesk","operation_id":"getRegistrationDraft","route":"/v1/frontdesk/registration-drafts/{draft_id}","status":401,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-17T04:39:40.717Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1e7cd-b5aa-7a83-ac05-88c0fdfaed63","module":"frontdesk","operation_id":"deleteRegistrationDraft","route":"/v1/frontdesk/registration-drafts/{draft_id}","status":401,"duration_ms":2,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-17T04:39:40.720Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1e7cd-b5ae-791b-850d-27fffdaa6367","module":"frontdesk","operation_id":"listFavouriteTests","route":"/v1/frontdesk/favourite-tests","status":401,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-17T04:39:40.723Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1e7cd-b5b1-7f59-9e9c-3f0c323f7d70","module":"frontdesk","operation_id":"addFavouriteTest","route":"/v1/frontdesk/favourite-tests","status":400,"duration_ms":2,"db_count":0,"db_ms":0,"error_code":"common.validation_failed","msg":"request"}
+{"level":"info","ts":"2026-11-17T04:39:40.727Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1e7cd-b5b4-728f-8da6-f4eae8e8d48d","module":"frontdesk","operation_id":"removeFavouriteTest","route":"/v1/frontdesk/favourite-tests/{orderable_id}","status":401,"duration_ms":2,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-17T04:39:40.730Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1e7cd-b5b8-710e-94fe-91ecf7250b61","module":"frontdesk","operation_id":"previewRegistrationNumbers","route":"/v1/frontdesk/registrations/number-preview","status":400,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"common.validation_failed","msg":"request"}
+{"level":"info","ts":"2026-11-17T04:39:40.732Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1e7cd-b5ba-73b2-a5bb-024e33c451b2","module":"frontdesk","operation_id":"listCustomFieldDefinitions","route":"/v1/frontdesk/custom-field-definitions","status":401,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-17T04:39:40.736Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1e7cd-b5be-70ab-ac24-c0ab5f122b02","module":"frontdesk","operation_id":"createCustomFieldDefinition","route":"/v1/frontdesk/custom-field-definitions","status":400,"duration_ms":2,"db_count":0,"db_ms":0,"error_code":"common.validation_failed","msg":"request"}
+{"level":"info","ts":"2026-11-17T04:39:40.739Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1e7cd-b5c1-736d-b073-e340275ad46a","module":"frontdesk","operation_id":"updateCustomFieldDefinition","route":"/v1/frontdesk/custom-field-definitions/{definition_id}","status":400,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"common.validation_failed","msg":"request"}
+{"level":"info","ts":"2026-11-17T04:39:40.741Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1e7cd-b5c4-7c52-ae4e-c0d76622c9ab","module":"frontdesk","operation_id":"listCoupons","route":"/v1/frontdesk/coupons","status":401,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-17T04:39:40.745Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1e7cd-b5c6-7f6c-8c2b-73e5bba9d317","module":"frontdesk","operation_id":"createCoupon","route":"/v1/frontdesk/coupons","status":400,"duration_ms":2,"db_count":0,"db_ms":0,"error_code":"common.validation_failed","msg":"request"}
+{"level":"info","ts":"2026-11-17T04:39:40.748Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1e7cd-b5ca-71c4-a6df-c071def26089","module":"frontdesk","operation_id":"updateCoupon","route":"/v1/frontdesk/coupons/{coupon_id}","status":400,"duration_ms":2,"db_count":0,"db_ms":0,"error_code":"common.validation_failed","msg":"request"}
+{"level":"info","ts":"2026-11-17T04:39:40.753Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1e7cd-b5cf-73d2-84ed-8c2d8c4afd60","module":"frontdesk","operation_id":"listIcdCodes","route":"/v1/frontdesk/icd-codes","status":401,"duration_ms":2,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-17T04:39:40.758Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1e7cd-b5d3-751b-9116-e37082e5a538","module":"frontdesk","operation_id":"createIcdCode","route":"/v1/frontdesk/icd-codes","status":400,"duration_ms":2,"db_count":0,"db_ms":0,"error_code":"common.validation_failed","msg":"request"}
+{"level":"info","ts":"2026-11-17T04:39:40.761Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1e7cd-b5d7-7e07-ab16-3b6062d2bb3d","module":"frontdesk","operation_id":"updateIcdCode","route":"/v1/frontdesk/icd-codes/{icd_code_id}","status":400,"duration_ms":2,"db_count":0,"db_ms":0,"error_code":"common.validation_failed","msg":"request"}
+{"level":"info","ts":"2026-11-17T04:39:40.764Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1e7cd-b5da-74da-9878-63204c3ed7bb","module":"frontdesk","operation_id":"getPatientRewards","route":"/v1/frontdesk/patients/{patient_id}/rewards","status":401,"duration_ms":2,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-17T04:39:40.768Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1e7cd-b5dd-7377-af95-e5323b0a9942","module":"frontdesk","operation_id":"getFrontdeskSettings","route":"/v1/frontdesk/settings","status":401,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"warn","ts":"2026-11-17T04:39:45.364Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:45.786Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:45.786Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:45.786Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/csv' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:45.786Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:47.605Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:47.605Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:47.605Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:47.605Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:50.122Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:50.122Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:50.122Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/xml' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:50.122Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:52.359Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:52.359Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:52.359Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:54.404Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:54.404Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:54.404Z","service":"api","env":"ci","version":"0.0.0","msg":"Handlers for some security requirements were missing: patientPreAuth, queueDisplayToken"}
+{"level":"warn","ts":"2026-11-17T04:39:55.766Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:55.767Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:55.767Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:55.767Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:55.767Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:57.356Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:59.152Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:59.152Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:59.152Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:59.152Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:59.152Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/csv' not found"}
+{"level":"warn","ts":"2026-11-17T04:39:59.152Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-17T04:40:01.011Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T04:40:01.012Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-17T04:40:01.012Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/octet-stream' not found"}
+{"level":"warn","ts":"2026-11-17T04:40:01.012Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-17T04:40:01.012Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-17T04:40:01.012Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-17T04:40:01.012Z","service":"api","env":"ci","version":"0.0.0","msg":"Handlers for some security requirements were missing: deviceToken"}
+{"level":"warn","ts":"2026-11-17T04:40:02.748Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T04:40:02.748Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/csv' not found"}
+{"level":"warn","ts":"2026-11-17T04:40:05.298Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T04:40:06.469Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T04:40:06.469Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-17T04:40:06.469Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/csv' not found"}
+{"level":"warn","ts":"2026-11-17T04:40:07.320Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T04:40:07.320Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-17T04:40:07.880Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T04:40:07.880Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/html' not found"}
+{"level":"warn","ts":"2026-11-17T04:40:07.880Z","service":"api","env":"ci","version":"0.0.0","msg":"Handlers for some security requirements were missing: paymentCallbackToken"}
+{"level":"warn","ts":"2026-11-17T04:40:08.325Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T04:40:09.224Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-17T04:40:09.224Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-17T04:40:09.224Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-17T04:40:09.224Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-17T04:40:09.224Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-17T04:40:09.224Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for '*/*' not found"}
+{"level":"warn","ts":"2026-11-17T04:40:09.224Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/plain' not found"}
+{"level":"warn","ts":"2026-11-17T04:40:09.224Z","service":"api","env":"ci","version":"0.0.0","msg":"Handlers for some security requirements were missing: portalSession"}
+{"level":"warn","ts":"2026-11-17T04:40:09.805Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"info","ts":"2026-11-17T04:40:14.067Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1e7ce-37f2-79cf-a0e1-a8b0fbab3537","module":"core","operation_id":"unmatched","status":404,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"common.not_found","msg":"request"}
+{"level":"info","ts":"2026-11-17T04:40:14.068Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1e7ce-37f3-7e68-acd3-b68258382ea1","module":"core","operation_id":"unmatched","status":404,"duration_ms":0,"db_count":0,"db_ms":0,"error_code":"common.not_found","msg":"request"}
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 11 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/modules/frontdesk/__tests__/contract/FrontdeskPort.booking.contract.test.ts > createOrderFromBooking: per-source authorisation (08 R7), actor guard first > centre scope (03-IC §4.3, review FD-T11 #1): a USER actor scoped to centre A passing centre A2 -> common.not_found (a coded error, not a raw RLS error); nothing is written; scope [A, A2] passes
+error: duplicate key value violates unique constraint "orders__tenant_id_registration_no__uq"
+ ❯ ../../node_modules/.pnpm/pg@8.23.1/node_modules/pg/lib/client.js:694:17
+ ❯ insertRow src/modules/frontdesk/repository/shared.repo.ts:21:20
+     19|   for (const c of actorCols) if (row[c] === undefined) { names.push(c)…
+     20|   const values = [tenantId, ...use.map((c) => (jsonCols.includes(c) ? …
+     21|   const { rows } = await tx.query(`INSERT INTO ${table} (${names.join(…
+       |                    ^
+     22|   return rows[0];
+     23| }
+ ❯ Object.createOrderFromBooking src/modules/frontdesk/service/booking.service.ts:244:17
+ ❯ src/modules/frontdesk/__tests__/contract/helpers.ts:64:18
+ ❯ appTx src/modules/frontdesk/__tests__/integration/helpers.ts:63:17
+ ❯ src/modules/frontdesk/__tests__/contract/FrontdeskPort.booking.contract.test.ts:181:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/11]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/regapi2/preview.test.ts > previewRegistrationNumbers > does not consume: counter row (value, version, updated_at) and the receipt sequence are unchanged after 5 previews, every preview answers the same, and no write statement is issued
+AssertionError: expected { last_value: '41', version: 1, …(1) } to match object { last_value: 41 }
+(2 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "last_value": 41,
++   "last_value": "41",
+  }
+
+ ❯ src/modules/frontdesk/__tests__/regapi2/preview.test.ts:38:32
+     36|     expect(new Set(outs.map((o) => JSON.stringify(o.reply!.body))).siz…
+     37|     expect(await counterRow()).toEqual(c0);
+     38|     expect(await counterRow()).toMatchObject({ last_value: 41 });
+       |                                ^
+     39|     expect(await maxReceipt()).toBe(r0);
+     40|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/11]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/regapi2/preview.test.ts > previewRegistrationNumbers > is a read of the counter, not a reservation: two users previewing get the same numbers; 10 parallel previews do not move the counter
+AssertionError: expected { last_value: '41', version: 1, …(1) } to match object { last_value: 41 }
+(2 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "last_value": 41,
++   "last_value": "41",
+  }
+
+ ❯ src/modules/frontdesk/__tests__/regapi2/preview.test.ts:47:32
+     45|     const outs = await Promise.all(Array.from({ length: 10 }, () => pr…
+     46|     for (const o of outs) expect(ok(o).next_registration_no).toBe(regN…
+     47|     expect(await counterRow()).toMatchObject({ last_value: 41 });
+       |                                ^
+     48|   });
+     49|   it('the real save assigns exactly the previewed lab number inside it…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/11]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/regapi2/preview.test.ts > previewRegistrationNumbers > a centre of another tenant, an unknown centre => 404 common.not_found; missing / malformed centre_id => 400; nothing consumed
+AssertionError: expected { last_value: '41', version: 2, …(1) } to match object { last_value: 41 }
+(2 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "last_value": 41,
++   "last_value": "41",
+  }
+
+ ❯ src/modules/frontdesk/__tests__/regapi2/preview.test.ts:65:32
+     63|     rejected(await fire('previewRegistrationNumbers', req({ query: {} …
+     64|     rejected(await preview(fresh(), 'nope'), 'common.validation_failed…
+     65|     expect(await counterRow()).toMatchObject({ last_value: 41 });
+       |                                ^
+     66|   });
+     67|   it('tenant B previews its own centre; its numbers never come from te…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/11]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/regapi2/registration.test.ts > quoteRegistration: coupon, visiting charge, redeem points, ICD (read only, totals computed on the server) > visiting charge adds exactly its paisa to totals.net; coupon (amount, percent) subtracts exactly its value; nothing is written or consumed
+AssertionError: expected { Object (amount_paisa, currency) } to deeply equal { Object (amount_paisa, currency) }
+
+- Expected
++ Received
+
+  {
+-   "amount_paisa": 74100,
++   "amount_paisa": 72600,
+    "currency": "NPR",
+  }
+
+ ❯ src/modules/frontdesk/__tests__/regapi2/registration.test.ts:56:31
+     54|     expect(base.body.totals.net).toEqual(money(NET));
+     55|     const v = await quoteOf({ visiting_charge_paisa: 1500 });
+     56|     expect(v.body.totals.net).toEqual(money(NET + 1500));
+       |                               ^
+     57|     const amt = await mkCoupon({ percent: null, amount_paisa: 5000 });…
+     58|     const a = await quoteOf({ coupon_code: amt }); const p = await quo…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/11]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/regapi2/registration.test.ts > quoteRegistration: coupon, visiting charge, redeem points, ICD (read only, totals computed on the server) > a coupon larger than the net is capped: the net is 0, never negative
+AssertionError: expected { Object (amount_paisa, currency) } to deeply equal { amount_paisa: +0, currency: 'NPR' }
+
+- Expected
++ Received
+
+  {
+-   "amount_paisa": 0,
++   "amount_paisa": 72600,
+    "currency": "NPR",
+  }
+
+ ❯ src/modules/frontdesk/__tests__/regapi2/registration.test.ts:69:67
+     67|   it('a coupon larger than the net is capped: the net is 0, never nega…
+     68|     const big = await mkCoupon({ percent: null, amount_paisa: 9_000_00…
+     69|     expect((await quoteOf({ coupon_code: big })).body.totals.net).toEq…
+       |                                                                   ^
+     70|   });
+     71|   it('every invalid coupon is the SAME 400 at /coupon_code: unknown, o…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/11]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/regapi2/registration.test.ts > coupons at save: applied once per order, usage limit, tenant, rollback > apply: order carries coupon_code and the server derived coupon_amount_paisa, the invoice is for the reduced total, used_count + 1 exactly once (3 quotes before it changed nothing)
+AssertionError: expected { …(7) } to match object { invoiced: { …(2) }, …(2) }
+(6 matching properties omitted from actual)
+
+- Expected
++ Received
+
+@@ -1,12 +1,12 @@
+  {
+    "balance_due": {
+-     "amount_paisa": 56840,
++     "amount_paisa": 62600,
+      "currency": "NPR",
+    },
+    "invoiced": {
+-     "amount_paisa": 66840,
++     "amount_paisa": 72600,
+      "currency": "NPR",
+    },
+    "paid": {
+      "amount_paisa": 10000,
+      "currency": "NPR",
+
+ ❯ src/modules/frontdesk/__tests__/regapi2/registration.test.ts:209:28
+    207|     expect(r.body.order).toMatchObject({ coupon_code: c, coupon_amount…
+    208|     const total = NET - 7260 + 1500;
+    209|     expect(r.body.balance).toMatchObject({ invoiced: money(total), pai…
+       |                            ^
+    210|     expect((await couponRow(c)).used_count).toBe(1);
+    211|     expect(Number((await orderRow(r.body.order.id)).coupon_amount_pais…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/11]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/regapi2/registration.test.ts > reward points: redeem, ledger entry per change, never below zero > points that were spent between quote and save: 400 /redeem_reward_points, no order, no ledger row, no invoice number, balance untouched
+AssertionError: expected [ { …(50) }, { …(50) } ] to have a length of 1 but got 2
+
+- Expected
++ Received
+
+- 1
++ 2
+
+ ❯ src/modules/frontdesk/__tests__/regapi2/registration.test.ts:280:42
+    278|     expect(e.code).toBe('common.validation_failed'); expect(JSON.strin…
+    279|     expect((await ledger(p.patient.id)).length).toBe(before);
+    280|     expect(await ordersOf(p.patient.id)).toHaveLength(1);             …
+       |                                          ^
+    281|     expect(x.w.billingFake.calls('issueOrderInvoice')).toHaveLength(0);
+    282|     expect(await balanceOf(p.patient.id)).toBe(50);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/11]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/registration/rollback.test.ts > registration_no counter (per branch) is rolled back with the transaction (US-FD-03.5 frontdesk side) > failed registration leaves the counter where it was; the next success takes the very next number (no gap)
+error: duplicate key value violates unique constraint "orders__tenant_id_registration_no__uq"
+ ❯ ../../node_modules/.pnpm/pg@8.23.1/node_modules/pg/lib/client.js:694:17
+ ❯ insertRow src/modules/frontdesk/repository/shared.repo.ts:21:20
+     19|   for (const c of actorCols) if (row[c] === undefined) { names.push(c)…
+     20|   const values = [tenantId, ...use.map((c) => (jsonCols.includes(c) ? …
+     21|   const { rows } = await tx.query(`INSERT INTO ${table} (${names.join(…
+       |                    ^
+     22|   return rows[0];
+     23| }
+ ❯ createInTx src/modules/frontdesk/service/registration.service.ts:536:15
+ ❯ portErrors src/modules/frontdesk/service/registration.service.ts:399:16
+ ❯ src/modules/frontdesk/__tests__/registration/helpers.ts:93:18
+ ❯ appTx src/modules/frontdesk/__tests__/integration/helpers.ts:63:17
+ ❯ register src/modules/frontdesk/__tests__/registration/helpers.ts:90:15
+ ❯ src/modules/frontdesk/__tests__/registration/rollback.test.ts:81:16
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/11]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/registration/rollback.test.ts > registration_no counter (per branch) is rolled back with the transaction (US-FD-03.5 frontdesk side) > two sequential successes: numbers strictly increasing by 1 (gapless without failures)
+error: duplicate key value violates unique constraint "orders__tenant_id_registration_no__uq"
+ ❯ ../../node_modules/.pnpm/pg@8.23.1/node_modules/pg/lib/client.js:694:17
+ ❯ insertRow src/modules/frontdesk/repository/shared.repo.ts:21:20
+     19|   for (const c of actorCols) if (row[c] === undefined) { names.push(c)…
+     20|   const values = [tenantId, ...use.map((c) => (jsonCols.includes(c) ? …
+     21|   const { rows } = await tx.query(`INSERT INTO ${table} (${names.join(…
+       |                    ^
+     22|   return rows[0];
+     23| }
+ ❯ createInTx src/modules/frontdesk/service/registration.service.ts:536:15
+ ❯ portErrors src/modules/frontdesk/service/registration.service.ts:399:16
+ ❯ src/modules/frontdesk/__tests__/registration/helpers.ts:93:18
+ ❯ appTx src/modules/frontdesk/__tests__/integration/helpers.ts:63:17
+ ❯ register src/modules/frontdesk/__tests__/registration/helpers.ts:90:15
+ ❯ src/modules/frontdesk/__tests__/registration/rollback.test.ts:98:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/11]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/probes/tables.live.test.ts > structure (catalog queries) > the two user deletable tables have exactly one DELETE policy each, bound to the tenant AND the owning membership (LD-315 b); no other table has a DELETE policy
+AssertionError: expected [ 'event_inbox', …(3) ] to deeply equal [ 'favourite_tests', …(1) ]
+
+- Expected
++ Received
+
+  [
++   "event_inbox",
+    "favourite_tests",
+    "registration_drafts",
++   "trf_attachments",
+  ]
+
+ ❯ src/modules/frontdesk/__tests__/probes/tables.live.test.ts:56:51
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/11]⎯
+
+
+ Test Files  5 failed | 60 passed (65)
+      Tests  11 failed | 1660 passed (1671)
+   Start at  10:23:10
+   Duration  133.92s (tests 83%, import 15%, transform 1%, setup 1%)
+
+    Isolate  65 workers spawned · ~358ms startup each (spawn + environment, per file)
+             at least ~7.41s faster with isolate: false — reuses workers across files instead of one per file
+

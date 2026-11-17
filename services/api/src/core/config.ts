@@ -4,6 +4,7 @@ import { BFF_KINDS, type BffKeyFiles, type BffKind } from './auth/bff-key.js';
 import { createClientIpResolver } from './auth/client-ip.js';
 import { JWT_ALGS, type JwtAlg } from './auth/jwt.js';
 import { IDENTITY_AUTH_OPS, WITH_TENANT_SCOPE_OPS } from './db/allowlists.js';
+import { parseStorageConfig, type StorageConfig } from './storage/s3.js';
 
 export const CORE_ENVS = ['dev', 'ci', 'staging', 'production'] as const;
 export type CoreEnv = (typeof CORE_ENVS)[number];
@@ -48,6 +49,8 @@ export interface CoreConfig {
   readonly tenantBurst: number;
   /** LIMS_CORE_AUTHZ_MODE (SEC-AUTHZ-2, LD-261): stage 8a. Default shadow in EVERY environment until SEC-AUTHZ-9 changes it. */
   readonly authzMode: 'shadow' | 'enforce';
+  /** T0B-STORAGE-1 (LD-316): STORAGE_* names; none = the API streams files itself. A half set stops the boot. */
+  readonly storage: StorageConfig;
 }
 
 function portKey(env: Env, key: string, fallback: number): number {
@@ -149,5 +152,6 @@ export function loadConfig(env: Env = process.env): CoreConfig {
     tenantRps: positive(env, 'LIMS_CORE_TENANT_RPS', 100),
     tenantBurst: positive(env, 'LIMS_CORE_TENANT_BURST', 200),
     authzMode: oneOf(env, 'LIMS_CORE_AUTHZ_MODE', ['shadow', 'enforce'] as const, 'shadow'), // LD-261: shadow everywhere; unknown value throws (boot stops)
+    storage: parseStorageConfig(env),
   });
 }

@@ -403,7 +403,8 @@ describe("T0C-REGPARITY-2 contract: favourite tests, number preview, custom fiel
     expect(s.additionalProperties).toBe(false);
     for (const f of ["next_registration_no", "next_receipt_no", "is_preview"]) { expect(s.properties[f], f).toBeDefined(); expect(s.required, f).toContain(f); }
     expect(s.properties.next_registration_no.type).toBe("string");
-    expect(s.properties.next_receipt_no.type).toBe("string");
+    // T0C-REGPARITY-3 (LD-323, LD-326): next_receipt_no is now [string, null] (the invoice number, null when the preview is unavailable); details in regparity3-openapi.test.ts
+    expect([].concat(s.properties.next_receipt_no.type)).toContain("string");
     expect(s.properties.is_preview.type).toBe("boolean");
     const d = `${op.description ?? ""} ${s.description ?? ""} ${s.properties.next_registration_no.description ?? ""}`;
     expect(d).toMatch(/preview/i);

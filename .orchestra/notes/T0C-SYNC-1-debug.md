@@ -20,3 +20,6 @@
 - Log (20:55) ends after step 1 (codegen 88/88) with "The system cannot find the path specified."; no test failed. registry-equality now 14/14 green here (spec e4f095ae in branch, LD-337).
 - Likely harness cause: T0C-SYNC-1-verify.cmd runs `npx`/`pnpm` (.cmd shims) without `call`, so cmd transfers control and the batch ends/errs after step 1. Tester file, off-limits for me; fix = prefix each npx/pnpm with `call`.
 - No impl change: SYNC-1 code not at fault (codegen 88/88, API 826/826, pgTAP clean in earlier rounds).
+## Round 7
+- verify.cmd now has `call` on every npx/pnpm line and absolute-%~dp0 cd (tester rewrite per LD ruling); the log still holds the old run (one line, "cannot find the path"), no test failed.
+- No impl change: SYNC-1 code not at fault (codegen 88/88, API 826/826, pgTAP clean, registry-equality 14/14). Rerun verify to refresh the log.

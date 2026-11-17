@@ -25,7 +25,11 @@ describe('T0C-MSGDESK-1: partners manifest covers the new operations (handler or
   it('every pending id is a spec operationId and appears once; only the new operations may be pending', () => {
     expect(pending.filter((id) => !specIds.includes(id))).toEqual([]);
     expect(new Set(pending).size).toBe(pending.length);
-    expect(pending.filter((id) => !NEW_OPS.includes(id)), 'only the T0C-MSGDESK-1 operations may be pending in partners').toEqual([]);
+    // LD-349: every MSGDESK id is covered (stub handler per index.ts, or pending); any other pending id must be a partners.sales operation of the contract (T0C-SALES-1, until T0B-SALES-1).
+    for (const id of NEW_OPS) expect(handlerIds.includes(id) || pending.includes(id), `${id} neither handled nor pending`).toBe(true);
+    const salesIds = Object.values<any>(spec.paths).flatMap((p) => Object.values<any>(p))
+      .filter((m) => m?.operationId && ['partners.sales.read', 'partners.sales.manage'].includes(m['x-permission'])).map((m) => m.operationId as string);
+    expect(pending.filter((id) => !NEW_OPS.includes(id) && !salesIds.includes(id)), 'other pending ids must be partners.sales operations').toEqual([]);
   });
   it('a handler key that is not a spec operation does not exist (nothing was invented)', () => {
     expect(handlerIds.filter((id) => !specIds.includes(id))).toEqual([]);

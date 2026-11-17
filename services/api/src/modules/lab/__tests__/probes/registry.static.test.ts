@@ -53,8 +53,9 @@ describe('permission + idempotency table (P-10, 02-TRD §7.1, contracts/permissi
     expect(o.permission).toBe(EXPECT[o.id]);
     expect(ALL_LAB_PERMS).toContain(o.permission);
   });
-  it('privileged (aal2) lab permissions are exactly approve / amend / config.manage / qc_hold.release', () => {
-    expect([...PRIVILEGED].sort()).toEqual(['lab.config.manage', 'lab.qc_hold.release', 'lab.result.amend', 'lab.result.approve']);
+  it('privileged (aal2) lab permissions are exactly approve / amend / config.manage / qc_hold.release / verification_policy.manage', () => {
+    // T0C-VERLEVEL-1 (LD-316): changing who may sign off is privileged (aal2)
+    expect([...PRIVILEGED].sort()).toEqual(['lab.config.manage', 'lab.qc_hold.release', 'lab.result.amend', 'lab.result.approve', 'lab.verification_policy.manage']);
   });
   it('front_desk holds no result permission at all (abuse case 1)', () => {
     const fd = LAB_PERMS.filter((p) => p.roles.includes('front_desk')).map((p) => p.code);

@@ -192,7 +192,7 @@ SELECT is(pg_temp.try($q$UPDATE lab.verification_policy SET active = false WHERE
 SELECT is(pg_temp.po(330, pg_temp.ta(), 'department', jsonb_build_object('department_id', pg_temp.uid(91), 'required_verifiers', 3)), 'ok', 'after deactivation a new active policy for the same department is fine');
 
 -- (1d) application role: upsert path, never delete, tenant isolation
-SELECT is(pg_temp.a($q$UPDATE lab.verification_policy SET required_verifiers = 3, updated_by = '01a1a98a-ac40-7000-8000-00000000a300' WHERE id = '0190c700-0000-7000-8000-000000000330'$q$), 'n=1', 'tenant A staff changes the level of a policy');
+SELECT is(pg_temp.a($q$UPDATE lab.verification_policy SET required_verifiers = 2, updated_by = '01a1a98a-ac40-7000-8000-00000000a300' WHERE id = '0190c700-0000-7000-8000-000000000330'$q$), 'n=1', 'tenant A staff changes the level of a policy');
 SELECT is(pg_temp.a($q$INSERT INTO lab.verification_policy (id, tenant_id, scope, test_id, required_verifiers, require_pathologist, allow_enterer_verify, active, updated_by)
   VALUES ('0190c700-0000-7000-8000-000000000331', '01a1a98a-ac40-7000-8000-00000000a001', 'test', '0190c700-0000-7000-8000-000000000097', 1, false, true, true, '01a1a98a-ac40-7000-8000-00000000a300')$q$), 'n=1', 'tenant A staff inserts a test level policy (level 1, no pathologist, enterer may verify)');
 SELECT is(pg_temp.a($q$DELETE FROM lab.verification_policy WHERE id = '0190c700-0000-7000-8000-000000000331'$q$), 'E42501', 'tenant A staff cannot DELETE a policy (no grant)');

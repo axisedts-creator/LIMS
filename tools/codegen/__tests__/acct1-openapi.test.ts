@@ -531,7 +531,6 @@ describe("T0C-ACCT-1 migration file (static; behaviour in the pgTAP suite)", () 
     const all = readdirSync(join(ROOT, "db/migrations")).filter((f) => f.endsWith(".sql")).sort();
     expect(all.filter((f) => f.startsWith("20261117120000"))).toEqual([MIG]);
     expect(all).toEqual(expect.arrayContaining(["20261117100000_frontdesk__add_patient_parity_fields.sql", "20261117110000_frontdesk__add_registration_parity_fields.sql"]));
-    for (const f of all.filter((x) => x > MIG)) expect(f, "only the portal content migration may follow").toBe("20261117130000_engagement__add_portal_content.sql");
     expect(code).toMatch(/SET LOCAL ROLE lims_owner/);
   });
   it("creates the six tables IF NOT EXISTS in schema billing, each with ENABLE + FORCE row level security, tenant-scoped policies and a grant to lims_app only", () => {

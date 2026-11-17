@@ -3,6 +3,7 @@
 - [CONV] no new route and no new operation: reports run through createAnalyticsExport / createReportSchedule, so no pendingOperations entry. T0B-MISREPORTS-1 builds the report registry and SQL from x-report-definitions.
 - [CONV] PERMISSIONS: no new permission code; the five analytics codes suffice: analytics.collections.read (bill_of_the_day, collection_boy, party_billing), analytics.dashboard.read (sales_representative, consultant, repeated_patient, repeated_test, ipd_opd, outsource), analytics.referral_report.read + flag referralIncentiveReportEnabled (two_level_commission, tds).
 - 04 L19 wording, RULED by the lead (LD-342, founder B, A39): migration drops only g_cs_report_codes__no_c_word__ck; two_level_commission and tds descriptions now state the gate (flag referral_incentive_report, aal2, access log referral_report.view) and base (M33 net billed, held excluded, half up). Reports only, no money moves.
+- LD-346 reset: consultant drops net_billed_paisa, default_sort tests_count desc (volume only, A39-3). OPEN: misreports1-openapi.test.ts:62 still pins consultant net_billed_paisa; tester updates it per LD-346 (1 red case until then, c8 green).
 - OFFLINE (founder 09:19): reports are online only; a shown report may be printed from the cache. Nothing queued offline.
 - FOUNDER STEP: push-cloud of 20261117230000_analytics__add_mis_report_support.sql after merge.
 - Bill Of The Day (bill_of_the_day) and two level commission (two_level_commission) come from C:/LIMS-state/elabassist-accounting-20261117.md, not the 31 list.

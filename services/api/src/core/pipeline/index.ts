@@ -240,6 +240,7 @@ export function createPipeline(d: PipelineDeps) {
     try {
       out = await d.db.requestTx({
         claims, requestId: c.requestId, clientIp: c.clientIp, userAgent: c.userAgent,
+        readOnly: op.method === 'GET' || op.method === 'HEAD', // T0B-PERF-1 (LD-310): 5 s read / 15 s write statement timeout
         operation: { module: op.module, operationId: op.operationId, context: op.context },
       }, async (tx, ctl) => {
         // per attempt: a 40001/40P01 retry re-runs the handler with a fresh context and authz state

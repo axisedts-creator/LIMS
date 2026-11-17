@@ -97,8 +97,8 @@ export function MasterTable<R extends { id: string }>({ caption, cols, rows, emp
   canEdit?: (r: R) => boolean;
   rowExtra?: ((r: R) => ReactNode) | undefined;
 }) {
-  if (rows.length === 0) return <EmptyState title={empty} {...(emptyAction ? { action: emptyAction } : {})} />;
-  const actions = !!onEdit || !!rowExtra;
+  // LD-310 (T0D-CATUNITS-1): headers are drawn even with no rows; the empty state sits in the single body row.
+  const actions = rows.length > 0 && (!!onEdit || !!rowExtra);
   return (
     <table className="lims-table lims-table-regular">
       <caption className="lims-visually-hidden">{caption}</caption>
@@ -111,8 +111,13 @@ export function MasterTable<R extends { id: string }>({ caption, cols, rows, emp
         </tr>
       </thead>
       <tbody>
+        {rows.length === 0 ? (
+          <tr className="lims-row">
+            <td className="lims-cell" colSpan={cols.length}><EmptyState title={empty} {...(emptyAction ? { action: emptyAction } : {})} /></td>
+          </tr>
+        ) : null}
         {rows.map((r) => (
-          <tr key={r.id} className="lims-row">
+          <tr key={(r.id as string | undefined) ?? `global:${codeOf(r)}`/* global units/value sets carry no id (catalog.yaml) */} className="lims-row">
             {cols.map((c) => (
               <td key={c.header} className="lims-cell">{c.cell(r)}</td>
             ))}

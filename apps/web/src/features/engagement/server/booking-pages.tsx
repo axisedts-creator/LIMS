@@ -7,11 +7,29 @@ import { BookableCatalogueHost, BookingDetailHost, BookingNewHost, BookingsHost,
 import { UUID_RE, has, listQueues, resolveCentre } from './queue.server';
 import * as api from './booking.server';
 import { PERM } from './booking.server';
+import { ApiError } from '@/core/api/server-fetch';
 import { dayStartUtc, addDays } from '../components/booking-model';
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
 const noCentre = <EmptyState title="No centre is available for this account." />;
+
+// T0D-ENGBOOK-1 (LD-310): root cause of "Something went wrong" — with an engagement feature switched off the API answers
+// 403 common.feature_disabled and the unguarded list loaders threw into error.tsx. Only that code becomes a plain message;
+// every other error still throws so real faults show the error page with a reference. Read-only: no setting is changed here.
+const isFeatureOff = (e: unknown) => e instanceof ApiError && e.status === 403 && e.problem?.code === 'common.feature_disabled';
+const OFF = Symbol('feature-off');
+const orOff = <T,>(p: Promise<T>): Promise<T | typeof OFF> => p.catch((e) => { if (isFeatureOff(e)) return OFF; throw e; });
+async function switchedOff(title: string, what: string, helpKey: string) {
+  const canManage = await has('engagement.settings.manage').catch(() => false);
+  return (
+    <>
+      <PageHeader title={title} helpKey={helpKey} />
+      <EmptyState title={`${what} are switched off for this lab`} />
+      {canManage ? <p><a href="/engagement/settings">Open Engagement settings</a></p> : null}
+    </>
+  );
+}
 /** Queues for the check-in dialog; staff without engagement.queue.operate get none and can still check in without a token. */
 const queuesFor = (centreId: string) => (has('engagement.queue.operate').then((ok) => (ok ? listQueues(centreId) : [])).catch(() => []));
 
@@ -21,10 +39,11 @@ export async function bookingsPage(searchParams: SearchParams) {
   const today = api.todayKathmandu();
   const [centres, rows, queues, cancelReasons] = await Promise.all([
     api.listCentres(),
-    api.listBookings({ centre_id: centreId, status: ['confirmed', 'checked_in'], slot_start_from: dayStartUtc(today), slot_start_to: dayStartUtc(addDays(today, 1)), sort: 'slot_start' }),
+    orOff(api.listBookings({ centre_id: centreId, status: ['confirmed', 'checked_in'], slot_start_from: dayStartUtc(today), slot_start_to: dayStartUtc(addDays(today, 1)), sort: 'slot_start' })),
     queuesFor(centreId),
     api.listCancelReasons(),
   ]);
+  if (rows === OFF) return switchedOff('Bookings', 'Bookings', 'engagement.bookings');
   return (
     <>
       <PageHeader title="Bookings" helpKey="engagement.bookings" />
@@ -63,7 +82,8 @@ export async function bookingNewPage(searchParams: SearchParams) {
 export async function slotsPage(searchParams: SearchParams) {
   const centreId = await resolveCentre(first((await searchParams)['centre_id']));
   if (!centreId) return noCentre;
-  const [centres, templates, blackouts] = await Promise.all([api.listCentres(), api.listTemplates(), api.listBlackouts()]);
+  const [centres, templates, blackouts] = await Promise.all([api.listCentres(), orOff(api.listTemplates()), orOff(api.listBlackouts())]);
+  if (templates === OFF || blackouts === OFF) return switchedOff('Slot templates and blackouts', 'Bookings', 'engagement.slots');
   return (
     <>
       <PageHeader title="Slot templates and blackouts" helpKey="engagement.slots" />
@@ -73,7 +93,8 @@ export async function slotsPage(searchParams: SearchParams) {
 }
 
 export async function bookablePage() {
-  const items = await api.listBookableItems();
+  const items = await orOff(api.listBookableItems());
+  if (items === OFF) return switchedOff('Bookable catalogue', 'Bookings', 'engagement.bookable');
   return (
     <>
       <PageHeader title="Bookable catalogue" helpKey="engagement.bookable" />

@@ -2026,6 +2026,9 @@ export interface BillingCommandPortV1 {
     cause: 'order_cancelled' | 'item_removed'; reasonCode: Code }): Promise<{ required: boolean; taskIds: readonly Uuidv7[] }>;
   getOrderBillingSummary(ctx: RequestContext, input: { orderId: Uuidv7 }): Promise<{
     invoiceIds: readonly Uuidv7[]; hasIssuedInvoice: boolean; creditChargeIds: readonly Uuidv7[]; balance: OrderBalance }>;
+  /** Read only preview of the next invoice number (INV series, current BS fiscal year): last_no + 1, or the first number of the year when no counter row exists.
+   *  No write, no nextval, no lock, no counter consumed; two callers may see the same value; the real number is assigned when saved (LD-323). */
+  previewInvoiceNo(ctx: RequestContext, input: Record<string, never>): Promise<{ invoiceNo: string }>;
 }
 export type BillingCommandPort = BillingCommandPortV1;
 ```
@@ -3306,6 +3309,9 @@ Existing C0 seed kept. Additions (code — display — requested by). Strict YAM
 - patient.anonymise                 # 08 Addendum A2.9
 - credit_note.print                 # 08 Addendum A2.9
 - receipt.print                     # 08 Addendum A2.9
+# C0 / LD-313 lab accounting (CR-C0-ACCT-1, LD-324)
+- account_entry.create              # "Account ledger entry posted"
+- account_entry.reverse             # "Account ledger entry reversed"
 # C5 (triage batch 1) — 08 A13 D-11
 - specimen_label.print              # per specimen, #14
 - lab_result.view                   # order results grid

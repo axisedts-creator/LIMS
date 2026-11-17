@@ -137,6 +137,8 @@ SELECT is(pg_temp.x('lims_app', pg_temp.cstaff(pg_temp.ta()), format($$INSERT IN
   'E42501', 'tenant: platform_events INSERT refused');
 SELECT is(pg_temp.x('lims_app', pg_temp.cplat(), format($$INSERT INTO identity.auth_events (id, tenant_id, event_type, created_by) VALUES (%L, NULL, 'login_failed', %L)$$, pg_temp.uid(24), pg_temp.uid(101)), 'w'),
   'E42501', 's5.3: platform claims have NO INSERT on auth_events (tenant-less inserts go through app.identity_record_auth_event)');
+-- REAL T0B-GREEN-3 (stays red on purpose; CR .orchestra/cr/T0B-GREEN-3.identity-platform-audit.nonblocking.md, CR-C0-T0B-PROVFIX-1-002): not ok 105, 113, 115, 117, 135, 198, 202, 203 all fail with E42501 from audit.audit_log
+-- (audit_log__insert__owner_only refuses the audit row of a platform-claims write to an audited tenant table). No expectation below was changed to hide it.
 SELECT is(pg_temp.x('lims_app', pg_temp.cplat(), format($$INSERT INTO identity.support_sessions (id, tenant_id, platform_staff_id, scope, reason_text, ticket_ref, duration_minutes, status, created_by, updated_by)
   VALUES (%L, %L, %L, 'read_only', 'synthetic platform request', 'T-3', 15, 'requested', %L, %L)$$, pg_temp.uid(63), pg_temp.ta(), pg_temp.uid(1), pg_temp.uid(101), pg_temp.uid(101)), 'w'), 'n=1', 'platform: support_sessions INSERT (open a support session)');
 SELECT is(pg_temp.x('lims_app', pg_temp.cstaff(pg_temp.ta()), format($$INSERT INTO identity.support_sessions (id, tenant_id, platform_staff_id, scope, reason_text, ticket_ref, duration_minutes, status, created_by, updated_by)
@@ -188,7 +190,8 @@ SELECT is(pg_temp.x('lims_app', pg_temp.cplat(), format($$UPDATE identity.tenant
 SELECT is(pg_temp.x('lims_app', pg_temp.cplat(), format($$UPDATE identity.tenant_settings SET training_mode = false, version = version + 1 WHERE tenant_id = %L$$, pg_temp.ta()), 'w'), 'n=1',
   'an UPDATE that sets training_mode to the value it already has is not a change');
 -- provisioning sets it: the INSERT of the tenant_settings row carries the value (insertSettings, tenant.service.ts); the trigger only refuses UPDATE
-SELECT pg_temp.sysc(pg_temp.ta());
+-- HARNESS fix T0B-GREEN-3 (psql abort audit_log RLS): audit_log__insert__owner_only (20261105000600) admits a core.tenants row only under tenant claims = the row's own tenant, so the system claims are bound to the new tenant for this one insert
+SELECT pg_temp.sysc('01a1a98a-ac40-7000-8000-00000000c001'::uuid);
 INSERT INTO core.tenants (id, tenant_code, legal_name, display_name, status, created_by, updated_by)
   VALUES ('01a1a98a-ac40-7000-8000-00000000c001', 'synthetic_training', 'Synthetic Training Lab', 'Synthetic Training Lab', 'provisioning', pg_temp.sys(), pg_temp.sys());
 SELECT is(pg_temp.x('lims_app', pg_temp.csys('01a1a98a-ac40-7000-8000-00000000c001'::uuid), format($$INSERT INTO identity.tenant_settings (tenant_id, legal_name_snapshot, display_name, training_mode, created_by, updated_by)
@@ -256,7 +259,9 @@ SELECT is(pg_temp.acc('tos', 'v8', 'Synthetic Signer', repeat('t', 81), 8), 'E23
 
 -- ===================================================================================================================================== E. provisioning inserts (LD-223 point 3: ird_annex_records under PLATFORM claims)
 SELECT is(pg_temp.x('lims_app', pg_temp.cplat(), format($$INSERT INTO identity.ird_annex_records (id, tenant_id, annex_code, created_by, updated_by) VALUES (%L, %L, 'annex_2', %L, %L), (%L, %L, 'annex_3', %L, %L), (%L, %L, 'annex_7', %L, %L)$$,
-  pg_temp.uid(4401), pg_temp.tb(), pg_temp.uid(101), pg_temp.uid(101), pg_temp.uid(4402), pg_temp.tb(), pg_temp.uid(101), pg_temp.uid(101), pg_temp.uid(4403), pg_temp.tb(), pg_temp.uid(101), pg_temp.uid(101)), 'w'), 'n=3',
+  -- HARNESS T0B-GREEN-3 (198, 202, 203): tenant B already holds the fixture annex_2 row 4004 (unique tenant_id + annex_code, ird_annex_records__tenant_id_annex_code__p_uq), so the three provisioning inserts
+  -- collided (E23505) before the policy was ever evaluated; "provisioning" now targets the new tenant c001 (created in section C), which has no annex rows. (annex_1 is platform-level, tenant_id NULL by __platform_level__ck.)
+  pg_temp.uid(4401), '01a1a98a-ac40-7000-8000-00000000c001'::uuid, pg_temp.uid(101), pg_temp.uid(101), pg_temp.uid(4402), '01a1a98a-ac40-7000-8000-00000000c001'::uuid, pg_temp.uid(101), pg_temp.uid(101), pg_temp.uid(4403), '01a1a98a-ac40-7000-8000-00000000c001'::uuid, pg_temp.uid(101), pg_temp.uid(101)), 'w'), 'n=3',
   'provisioning: platform claims INSERT the tenant''s annex_2 / annex_3 / annex_7 records (ird_annex_records__insert__platform)');
 SELECT is(pg_temp.x('lims_app', pg_temp.cstaff(pg_temp.tb()), format($$INSERT INTO identity.ird_annex_records (id, tenant_id, annex_code, created_by, updated_by) VALUES (%L, %L, 'annex_3', %L, %L)$$,
   pg_temp.uid(4404), pg_temp.tb(), pg_temp.sys(), pg_temp.sys()), 'w'), 'E42501', 'a tenant staff user never inserts annex records (s5.2)');
@@ -265,8 +270,8 @@ SELECT is(pg_temp.x('lims_app', pg_temp.csys(pg_temp.tb()), format($$INSERT INTO
 SELECT is(pg_temp.x('lims_app', pg_temp.cstaff(pg_temp.tb()), format($$INSERT INTO identity.ird_annex_records (id, tenant_id, annex_code, created_by, updated_by) VALUES (%L, %L, 'annex_3', %L, %L)$$,
   pg_temp.uid(4406), pg_temp.ta(), pg_temp.sys(), pg_temp.sys()), 'w'), 'E42501', 'tenant B staff cannot insert an annex record for tenant A');
 SELECT is(pg_temp.x('lims_app', pg_temp.cplat(), format($$INSERT INTO identity.ird_annex_records (id, tenant_id, annex_code, created_by, updated_by) VALUES (%L, %L, 'annex_3', %L, %L)$$,
-  pg_temp.uid(4407), pg_temp.tb(), pg_temp.uid(101), pg_temp.uid(101)), 'w'), 'E23505', 'a second live row for the same tenant and annex is still a unique-key refusal, not a policy hole');
-SELECT is(pg_temp.x('lims_app', pg_temp.cstaff(pg_temp.tb()), format('SELECT 1 FROM identity.ird_annex_records WHERE id IN (%L, %L, %L)', pg_temp.uid(4401), pg_temp.uid(4402), pg_temp.uid(4403))), 'n=3', 'after provisioning the tenant reads its three annex records (s5.2 tenant SELECT)');
+  pg_temp.uid(4407), '01a1a98a-ac40-7000-8000-00000000c001'::uuid, pg_temp.uid(101), pg_temp.uid(101)), 'w'), 'E23505', 'a second live row for the same tenant and annex is still a unique-key refusal, not a policy hole');
+SELECT is(pg_temp.x('lims_app', pg_temp.cstaff('01a1a98a-ac40-7000-8000-00000000c001'::uuid), format('SELECT 1 FROM identity.ird_annex_records WHERE id IN (%L, %L, %L)', pg_temp.uid(4401), pg_temp.uid(4402), pg_temp.uid(4403))), 'n=3', 'after provisioning the tenant reads its three annex records (s5.2 tenant SELECT)');
 
 SELECT * FROM finish();
 ROLLBACK;

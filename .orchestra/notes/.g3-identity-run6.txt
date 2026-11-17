@@ -1,0 +1,100 @@
+(node:38948) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/LIMS-lanes/C0-0B/db/tools/gen-isolation-probes.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\LIMS-lanes\C0-0B\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+gen-isolation-probes: wrote 460 probe files + _registry.sql to C:\LIMS-lanes\C0-0B\db\tests\isolation, 19 fixture files to C:\LIMS-lanes\C0-0B\db\tests\fixtures\probe-rows
+[core] WARNING: Executable file detection not yet supported on 'win32'.
+Schema updated
+psql:/repo/db/migrations/20261105001300_identity__create_identity_schema.sql:7: NOTICE:  schema "identity" already exists, skipping
+psql:/repo/db/migrations/20261105001500_catalog__create_catalog_schema.sql:10: NOTICE:  schema "catalog" already exists, skipping
+psql:/repo/db/migrations/20261105001600_frontdesk__create_frontdesk_schema.sql:7: NOTICE:  schema "frontdesk" already exists, skipping
+psql:/repo/db/migrations/20261105001700_billing__create_billing_schema.sql:7: NOTICE:  schema "billing" already exists, skipping
+psql:/repo/db/migrations/20261105001800_lab__create_lab_schema.sql:10: NOTICE:  schema "lab" already exists, skipping
+psql:/repo/db/migrations/20261105001900_reporting__create_reporting_schema.sql:145: NOTICE:  identifier "message_template_texts__tenant_id_template_code_channel_language__uq" will be truncated to "message_template_texts__tenant_id_template_code_channel_languag"
+psql:/repo/db/migrations/20261105001900_reporting__create_reporting_schema.sql:177: NOTICE:  identifier "report_template_versions__tenant_id_template_id__published__p_uq" will be truncated to "report_template_versions__tenant_id_template_id__published__p_u"
+psql:/repo/db/migrations/20261105001900_reporting__create_reporting_schema.sql:443: NOTICE:  identifier "deliveries__tenant_id_channel_account_id_provider_message_id__p_uq" will be truncated to "deliveries__tenant_id_channel_account_id_provider_message_id__p"
+psql:/repo/db/migrations/20261105001900_reporting__create_reporting_schema.sql:682: NOTICE:  identifier "narrative_versions__tenant_id_narrative_report_id_version_no__uq" will be truncated to "narrative_versions__tenant_id_narrative_report_id_version_no__u"
+psql:/repo/db/migrations/20261115192000_identity__add_provisioning_schema.sql:47: NOTICE:  identifier "tenant_contract_acceptances__tenant_id_document_accepted_at__idx" will be truncated to "tenant_contract_acceptances__tenant_id_document_accepted_at__id"
+                                                       set_config                                                        
+-------------------------------------------------------------------------------------------------------------------------
+ {"tenant_id":"01a1a98a-ac40-7000-8000-00000000a001","sub":"01a1b34e-1000-7eee-9d29-d7ca59a102b5","actor_type":"system"}
+(1 row)
+
+                                                       set_config                                                        
+-------------------------------------------------------------------------------------------------------------------------
+ {"tenant_id":"01a1a98a-ac40-7000-8000-00000000b001","sub":"01a1b34e-1000-7eee-9d29-d7ca59a102b5","actor_type":"system"}
+(1 row)
+
+ set_config 
+------------
+ 
+(1 row)
+
+NOTICE:  schema "storage" already exists, skipping
+# --- db/tests/identity/AUTH-MFA-COMPLETE-1_platform_event.test.sql
+# --- db/tests/identity/AUTH-PLATFORM-SESSION-1_platform_reads.test.sql
+# --- db/tests/identity/C2-T27_worker_tenant_tasks.test.sql
+# --- db/tests/identity/PLATFORM-DDL-1_policies.test.sql
+not ok 105 - platform: support_sessions INSERT (open a support session)
+# Failed test 105: "platform: support_sessions INSERT (open a support session)"
+#         have: E42501
+#         want: n=1
+not ok 113 - platform: feature_flags UPDATE of another tenant
+# Failed test 113: "platform: feature_flags UPDATE of another tenant"
+#         have: E42501
+#         want: n=1
+not ok 115 - platform: support_sessions UPDATE of another tenant
+# Failed test 115: "platform: support_sessions UPDATE of another tenant"
+#         have: E42501
+#         want: n=1
+not ok 117 - platform: ird_annex_records UPDATE of another tenant
+# Failed test 117: "platform: ird_annex_records UPDATE of another tenant"
+#         have: E42501
+#         want: n=1
+not ok 135 - a platform UPDATE that leaves training_mode alone still works (the trigger is column-specific)
+# Failed test 135: "a platform UPDATE that leaves training_mode alone still works (the trigger is column-specific)"
+#         have: E42501
+#         want: n=1
+not ok 198 - provisioning: platform claims INSERT the tenant's annex_2 / annex_3 / annex_7 records (ird_annex_records__insert__platform)
+# Failed test 198: "provisioning: platform claims INSERT the tenant's annex_2 / annex_3 / annex_7 records (ird_annex_records__insert__platform)"
+#         have: E42501
+#         want: n=3
+not ok 202 - a second live row for the same tenant and annex is still a unique-key refusal, not a policy hole
+# Failed test 202: "a second live row for the same tenant and annex is still a unique-key refusal, not a policy hole"
+#         have: E42501
+#         want: E23505
+not ok 203 - after provisioning the tenant reads its three annex records (s5.2 tenant SELECT)
+# Failed test 203: "after provisioning the tenant reads its three annex records (s5.2 tenant SELECT)"
+#         have: n=0
+#         want: n=3
+# Looks like you failed 8 tests of 203
+# --- db/tests/identity/SESSION-ACTOR-1_session_actor.test.sql
+# --- db/tests/identity/T0B-06_definers.test.sql
+not ok 389 - test 34: mfa_factor inserts a tenant-less factor
+# Failed test 389: "test 34: mfa_factor inserts a tenant-less factor"
+#         have: E23502:null value in column "factor_type" of relation "mfa_factors" violates not-null constraint
+#         want: 1
+not ok 390 - test 34: mfa_factor verifies it
+# Failed test 390: "test 34: mfa_factor verifies it"
+#         have: 0
+#         want: 1
+not ok 391 - test 34: factor status verified
+# Failed test 391: "test 34: factor status verified"
+#         have: NULL
+#         want: verified
+# Looks like you failed 3 tests of 406
+# --- db/tests/identity/T0B-10.C2_lookups.test.sql
+# --- db/tests/identity/T0B-10.C2_maintenance.test.sql
+# --- db/tests/identity/T0B-10.C2_policies.test.sql
+# --- db/tests/identity/T0B-10.C2_schema.test.sql
+# --- db/tests/identity/T0B-ASYNC-1_worker_grants.test.sql
+not ok 58 - lims_worker may execute every overload of app.uuidv7
+# Failed test 58: "lims_worker may execute every overload of app.uuidv7"
+not ok 59 - summary: no app.* function called by worker SQL is closed to lims_worker
+# Failed test 59: "summary: no app.* function called by worker SQL is closed to lims_worker"
+#         have: app.uuidv7()
+#         want: 
+# Looks like you failed 2 tests of 59
+# --- db/tests/identity/T0B-MFAPOL-1_mfa_factors_own.test.sql
+# --- db/tests/identity/T9-A38_platform_set_password.test.sql
+# elapsed 67s

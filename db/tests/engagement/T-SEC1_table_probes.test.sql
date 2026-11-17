@@ -17,16 +17,25 @@ INSERT INTO expected VALUES
  ('patient_reports','SIUD',false),('smart_summaries','SIUD',false),('notifications','SIUD',false),('payment_requests','SIU',false),('queue_definitions','SIU',false),('queue_counters','SIU',false),
  ('queue_day_counters','SIU',false),('queue_tokens','SIU',false),('queue_displays','SIU',false),('reminders','SIU',false),('membership_plans','SIU',false),('patient_memberships','SIU',false),
  ('number_counters','SIUD',false),('enquiries','SIU',false),('enquiry_messages','SI',false),('cs_booking_cancel_reasons','SIU',false),('cs_reminder_reasons','SIU',false),('cs_enquiry_categories','SIU',false),
- ('g_cs_booking_cancel_reasons','S',true),('g_cs_reminder_reasons','S',true),('g_cs_enquiry_categories','S',true),('event_inbox','SI',false);
+ ('g_cs_booking_cancel_reasons','S',true),('g_cs_reminder_reasons','S',true),('g_cs_enquiry_categories','S',true),('event_inbox','SI',false),
+ -- T0B-GREEN-3 (STALE): migration 20261117240000 (T0C-MSGDESK-1) added three staff-only tenant tables (S I U for lims_app, one policy per command, no DELETE)
+ ('broadcast_template','SIU',false),('broadcast','SIU',false),('broadcast_recipient','SIU',false);
 
-SELECT is((SELECT count(*) FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = 'engagement' AND c.relkind IN ('r','p')), (SELECT count(*) FROM expected),
-  'engagement schema holds exactly the 40 tables of 05-SCHEMA §1');
+SELECT is((SELECT count(*) FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = 'engagement' AND c.relkind IN ('r','p')), 43::bigint,
+  'engagement schema holds exactly the 43 tables (40 of 05-SCHEMA §1 + 3 broadcast tables of T0C-MSGDESK-1)');
+SELECT is((SELECT count(*) FROM expected), 43::bigint, 'the probe list has 43 rows');
 SELECT is((SELECT array_agg(c.relname::text ORDER BY c.relname) FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = 'engagement' AND c.relkind IN ('r','p')),
           (SELECT array_agg(tbl ORDER BY tbl) FROM expected), 'no table is missing or unexpected (every table is probed)');
 
 -- RLS enabled AND forced on every table (owner lims_owner; policies TO lims_app)
-SELECT is((SELECT array_agg(c.relname::text ORDER BY c.relname) FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = 'engagement' AND c.relkind IN ('r','p') AND NOT (c.relrowsecurity AND c.relforcerowsecurity)),
-          NULL::text[], 'every engagement table has ENABLE + FORCE ROW LEVEL SECURITY');
+-- T0B-GREEN-3 (HARNESS): the 3 G tables (global coded sets, no tenant_id) are RLS-exempt by design (AC-0B-2.1 / 2.4, db/tests/rls_exempt.txt; T0B-13.C16_schema check 2 asserts it): they carry SELECT only and no policy.
+-- The assertion still names every other table; a second assertion pins that the G tables really are the exempt set, with no policy that would make an exempt table look protected.
+SELECT is((SELECT array_agg(c.relname::text ORDER BY c.relname) FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = 'engagement' AND c.relkind IN ('r','p') AND NOT (c.relrowsecurity AND c.relforcerowsecurity)
+             AND c.relname NOT IN (SELECT tbl FROM expected WHERE is_global)),
+          NULL::text[], 'every engagement table has ENABLE + FORCE ROW LEVEL SECURITY (except the 3 RLS-exempt G tables)');
+SELECT is((SELECT array_agg(c.relname::text ORDER BY c.relname) FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = 'engagement' AND c.relkind IN ('r','p') AND NOT c.relrowsecurity AND NOT c.relforcerowsecurity),
+          (SELECT array_agg(tbl ORDER BY tbl) FROM expected WHERE is_global), 'the tables without RLS are exactly the 3 G tables (rls_exempt.txt)');
+SELECT is((SELECT count(*)::int FROM pg_policies p JOIN expected e ON e.tbl = p.tablename WHERE p.schemaname = 'engagement' AND e.is_global), 0, 'the G tables carry no policy');
 SELECT is((SELECT array_agg(c.relname::text ORDER BY c.relname) FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = 'engagement' AND c.relkind IN ('r','p') AND pg_get_userbyid(c.relowner) <> 'lims_owner'),
           NULL::text[], 'every engagement table is owned by lims_owner');
 
@@ -44,7 +53,8 @@ SELECT is((SELECT array_agg(r.rolname::text || '.' || e.tbl) FROM expected e CRO
 -- policies: one per granted command for lims_app (owner_only policies are TO lims_owner and excluded); naming <table>__<cmd>__<scope>
 SELECT is((SELECT array_agg(e.tbl || ':' || cmd.c ORDER BY e.tbl, cmd.c)
            FROM expected e JOIN LATERAL (VALUES ('S','SELECT'),('I','INSERT'),('U','UPDATE'),('D','DELETE')) AS cmd(l, c) ON position(cmd.l IN e.grants) > 0
-           WHERE NOT EXISTS (SELECT 1 FROM pg_policies p WHERE p.schemaname = 'engagement' AND p.tablename = e.tbl AND 'lims_app' = ANY (p.roles) AND p.cmd IN (cmd.c, 'ALL'))),
+           WHERE NOT e.is_global   -- T0B-GREEN-3 (HARNESS): the G tables are RLS-exempt (no policy by design, see above); their SELECT-only grant is pinned by the grant assertions
+             AND NOT EXISTS (SELECT 1 FROM pg_policies p WHERE p.schemaname = 'engagement' AND p.tablename = e.tbl AND 'lims_app' = ANY (p.roles) AND p.cmd IN (cmd.c, 'ALL'))),
           NULL::text[], 'every granted command has a policy TO lims_app (a grant without a policy would read as zero rows by accident, not by design)');
 SELECT is((SELECT array_agg(p.tablename || '.' || p.policyname ORDER BY 1) FROM pg_policies p WHERE p.schemaname = 'engagement' AND p.cmd = 'ALL' AND 'lims_app' = ANY (p.roles)),
           NULL::text[], 'no FOR ALL policy to lims_app (policies are per command, 02-CV §5)');

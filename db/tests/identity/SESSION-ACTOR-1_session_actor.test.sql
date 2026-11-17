@@ -100,7 +100,9 @@ SELECT ok(pg_get_functiondef(p.oid) ~ 'app\.pre_user_id' AND pg_get_functiondef(
   FROM pg_proc p WHERE p.oid = to_regprocedure('app.identity_session_actor(uuid,uuid,uuid)');
 -- no RLS weakening: the single USING (true) of the database (platform_staff__select__owner_only) stays the only one; FORCE RLS everywhere the function reads
 SELECT is((SELECT count(*) FROM pg_policies WHERE qual = 'true' OR with_check = 'true'), 1::bigint, 'USING (true) / WITH CHECK (true) still appears exactly once (no policy was weakened)');
-SELECT ok(NOT EXISTS (SELECT 1 FROM pg_policies WHERE (qual ~ 'app\.(pre_|maintenance)' OR with_check ~ 'app\.(pre_|maintenance)') AND roles <> '{lims_owner}'), 'every policy mentioning app.pre_* is still TO lims_owner only');
+SELECT ok(NOT EXISTS (SELECT 1 FROM pg_policies WHERE (qual ~ 'app\.(pre_|maintenance)' OR with_check ~ 'app\.(pre_|maintenance)') AND roles <> '{lims_owner}'
+                      AND NOT (schemaname = 'reporting' AND roles = '{lims_reporting_lookup}')),   -- STALE T0B-GREEN-3: C6 lookup policies are TO lims_reporting_lookup (08-CR-REGISTER C6-002, A10.5, D-30; as db/tests/policy, T0B-GREEN-2)
+          'every policy mentioning app.pre_* is still TO lims_owner only (reporting lookup policies: TO lims_reporting_lookup only)');
 SELECT ok((SELECT bool_and(c.relforcerowsecurity AND c.relrowsecurity) FROM pg_class c WHERE c.oid IN
            ('identity.platform_staff'::regclass, 'core.users'::regclass, 'core.tenants'::regclass, 'core.memberships'::regclass, 'core.roles'::regclass, 'core.membership_roles'::regclass)),
           'FORCE + ENABLE RLS on every table the function reads');

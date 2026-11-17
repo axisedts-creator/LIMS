@@ -6,3 +6,7 @@ Reversal: dialog with reason (1-500, not blank) -> POST .../account-ledger-entri
 REVIEW ITEM 1 (tests only): acct1.summaries.server.test.ts (listAccountSummaries -> {summaries, failed, truncated}, <=5 in flight, cut at 200) + 4 partial-banner tests in acct1.screens.test.tsx (props failed?/truncated?, key billing.accounts.summary.partial with "{n}", Banner data-tone=warning); 8 fail until the writer applies the fix. Verify.cmd already globs acct1.*.
 ASSUMED (writer may dispute): pocket of other users needs billing.account.manage (no new code invented); party kind comes from picking Client or Franchise; Entry status/Last modified by are server assigned (columns only).
 Now: 66 of 170 tests fail (screen + source) because the modules, pages, routes, keys do not exist; the 104 others (bl-t20, bl-t23, nav, guards that pass while no accounts file exists) pass. Not run: other billing suites, rs-c2/rs-c3 baselines (new files may shift the rs-c3 hash list: re-record).
+
+## Review round 2 (tester)
+Added: acct1.screens.test.tsx (truncated-only banner text, both banners, no truncated text when only failed) and acct1.summaries.server.test.ts (429 retry after 1000 ms, give up after 3 attempts, no retry on 403; timeouts 15 s).
+Expected to fail until the writer adds catalogue key billing.accounts.summary.truncated, the second Banner and the 429 retry in accounts.server.ts: 4 tests. Run: .orchestra/notes/T0D-ACCT-1-verify.cmd (unchanged).

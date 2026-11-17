@@ -630,6 +630,34 @@ describe('billing/accounts/summary — Account Summary', () => {
     expect(document.querySelector('.lims-banner[data-tone="warning"]')).toBeTruthy();
   });
 
+  // Reviewer round 2 item 1: truncated gets its own warning Banner (key billing.accounts.summary.truncated); the "{n} parties could not be loaded" Banner only when failed > 0.
+  it('truncated with failed 0 shows the truncated text and NOT the "0 parties" text', async () => {
+    const S = await load();
+    wrap(<S {...props({ failed: 0, truncated: true })} />);
+    const truncated = t('billing.accounts.summary.truncated');
+    expect(truncated, 'catalogue key must exist').not.toBe('billing.accounts.summary.truncated');
+    expect(truncated).toBe('Only the first 200 clients and franchises are shown.');
+    const banners = Array.from(document.querySelectorAll('.lims-banner[data-tone="warning"]')) as HTMLElement[];
+    expect(banners.some((b) => b.textContent!.includes(truncated))).toBe(true);
+    const text = document.body.textContent!;
+    expect(text).not.toContain(t('billing.accounts.summary.partial').replace('{n}', '0'));
+    expect(text).not.toMatch(/\b0 parties could not be loaded/);
+  });
+
+  it('failed > 0 and truncated true shows both warning banners', async () => {
+    const S = await load();
+    wrap(<S {...props({ failed: 2, truncated: true })} />);
+    const text = Array.from(document.querySelectorAll('.lims-banner[data-tone="warning"]')).map((b) => b.textContent).join('|');
+    expect(text).toContain(t('billing.accounts.summary.partial').replace('{n}', '2'));
+    expect(text).toContain(t('billing.accounts.summary.truncated'));
+  });
+
+  it('failed > 0 and truncated false does not show the truncated text', async () => {
+    const S = await load();
+    wrap(<S {...props({ failed: 2, truncated: false })} />);
+    expect(document.body.textContent).not.toContain(t('billing.accounts.summary.truncated'));
+  });
+
   it('no banner when nothing failed and nothing was cut (props omitted or zero)', async () => {
     const S = await load();
     const a = wrap(<S {...props()} />);

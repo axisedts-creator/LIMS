@@ -65,6 +65,55 @@ describe('listAccountSummaries (Account Summary BFF)', () => {
     expect(r.summaries).toHaveLength(4);
     expect(r.summaries.map((s) => s.party_id)).not.toContain(U(1001));
     expect(r.truncated).toBe(false);
+  }, 15000); // the 429 retries (3 attempts, 1000 ms waits) take about 2 s
+
+  // Reviewer round 2 item 2: a 429 common.rate_limited waits 1000 ms and retries, at most 3 attempts per party, then counts as failed.
+  it('retries a 429 once after the wait and then loads the party (failed 0)', async () => {
+    const calls = new Map<string, number>();
+    api.use(http.get(`${ORIGIN}/v1/billing/account-summary`, ({ request }) => {
+      const u = new URL(request.url);
+      const id = u.searchParams.get('party_id')!;
+      const n = (calls.get(id) ?? 0) + 1;
+      calls.set(id, n);
+      if (id === U(1001) && n === 1) return HttpResponse.json({ code: 'common.rate_limited', title: 'Too many requests', status: 429 }, { status: 429 });
+      return HttpResponse.json({ party_kind: u.searchParams.get('party_kind'), party_id: id, credit_limit_paisa: 0, outstanding_paisa: 100, outstanding_side: 'debit', is_blocked: false });
+    }));
+    const list = await load();
+    const started = Date.now();
+    const r = await list(parties(3));
+    expect(r.failed).toBe(0);
+    expect(r.summaries.map((s) => s.party_id).sort()).toEqual(parties(3).map((p) => p.id).sort());
+    expect(calls.get(U(1001))).toBe(2);
+    expect(Date.now() - started).toBeGreaterThanOrEqual(900); // waited ~1000 ms before the retry
+  }, 15000);
+
+  it('gives up after 3 attempts on a party that is always 429 and counts it failed', async () => {
+    const calls = new Map<string, number>();
+    api.use(http.get(`${ORIGIN}/v1/billing/account-summary`, ({ request }) => {
+      const u = new URL(request.url);
+      const id = u.searchParams.get('party_id')!;
+      calls.set(id, (calls.get(id) ?? 0) + 1);
+      if (id === U(1001)) return HttpResponse.json({ code: 'common.rate_limited', title: 'Too many requests', status: 429 }, { status: 429 });
+      return HttpResponse.json({ party_kind: u.searchParams.get('party_kind'), party_id: id, credit_limit_paisa: 0, outstanding_paisa: 100, outstanding_side: 'debit', is_blocked: false });
+    }));
+    const list = await load();
+    const r = await list(parties(3));
+    expect(r.failed).toBe(1);
+    expect(r.summaries).toHaveLength(2);
+    expect(calls.get(U(1001))).toBe(3);
+  }, 15000);
+
+  it('does not retry a non-429 refusal (403 counts failed after one attempt)', async () => {
+    const calls = new Map<string, number>();
+    api.use(http.get(`${ORIGIN}/v1/billing/account-summary`, ({ request }) => {
+      const id = new URL(request.url).searchParams.get('party_id')!;
+      calls.set(id, (calls.get(id) ?? 0) + 1);
+      return HttpResponse.json({ code: 'common.forbidden', title: 'Forbidden', status: 403 }, { status: 403 });
+    }));
+    const list = await load();
+    const r = await list(parties(2));
+    expect(r.failed).toBe(2);
+    expect(calls.get(U(1000))).toBe(1);
   });
 
   it('cuts at 200 clients and franchises, reports truncated, and skips pockets and laboratories', async () => {

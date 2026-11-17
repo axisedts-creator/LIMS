@@ -975,7 +975,7 @@ exports[`RS-C8 key-screen snapshots + axe > Pending tests report 1`] = `
 exports[`RS-C8 key-screen snapshots + axe > Report hub (tabs) 1`] = `
 "<div class="lims-page-header">
 <div class="lims-page-header-row">
-<h1 class="lims-page-title">Income</h1>
+<h1 class="lims-page-title">MIS Report</h1>
 <div class="lims-page-status">
 <span class="lims-chip lims-chip-sm lims-tone-neutral" data-tone="neutral">Updated 15/01/2026 10:15 AM</span>
 </div>

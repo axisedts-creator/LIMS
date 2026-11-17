@@ -299,7 +299,10 @@ describe('credit status (TRD Quote.credit_status; US-FD-04.2 "the quote already 
     const r = await quote(draft({ billing_mode: 'credit', credit_party_id: CP.ok, discounts: [bill({ kind: 'amount', amount_paisa: 1000 })] }), { w });
     const calls = (w.billingFake as any).calls('assertCreditAllowed');
     expect(calls).toHaveLength(1);
-    expect(calls[0].input).toEqual({ creditPartyId: CP.ok, additional: { amountPaisa: r.body.totals.net.amount_paisa } });
+    // T0B-TESTFIX-2 (LD-314): J-T01 (d1e03f42a) made the quote send the full Money (amount + currency) as `additional`, because real billing rejects
+    // a missing currency. Still proves additional == totals.net (amount after discounts) and now also its currency (NPR).
+    expect(calls[0].input).toEqual({ creditPartyId: CP.ok, additional: { amountPaisa: r.body.totals.net.amount_paisa, currency: 'NPR' } });
+    expect(r.body.totals.net.currency).toBe('NPR');
     const cash = world();
     await quote(draft(), { w: cash });
     expect((cash.billingFake as any).calls('assertCreditAllowed')).toHaveLength(0);

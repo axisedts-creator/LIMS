@@ -3,13 +3,16 @@
 // (limits 0..10000, self <= absolute max, search min chars 2..10: a value the DB would reject must be a 400, never a 500), 07-SECURITY §6.4 (no permission -> auth.forbidden;
 // privileged at aal1 -> auth.mfa_required), REQ-SEC-062/067 (re-validation through IdentityPort.assertRole), tenant isolation (RLS + explicit tenant filter).
 // Fails now: both operations are stubs (common.service_unavailable).
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { ADMIN, ADMIN_B, BASE_SETTINGS, DESK, NEW_SETTINGS, P, T, TENANT_A, TENANT_B, as, getSettings, putSettings, putSettingsFails, resetSettings, schemaErrors, settingsRow } from './helpers.js';
 
 const WIRE = Object.keys(BASE_SETTINGS);
 const wire = (row: any) => Object.fromEntries(WIRE.map((k) => [k, typeof row[k] === 'string' && /^\d+$/.test(row[k]) && k.endsWith('paisa') ? Number(row[k]) : row[k]]));
 
 beforeEach(async () => { await resetSettings(); }, T);
+// T0B-TESTFIX-2 (LD-314): the PUT tests leave NEW_SETTINGS (sms off, autoprint off, min chars 4, require_referrer, limits, version > 1) in the shared
+// tenant rows; later files (registration, rollback, search, downtime) assume the baseline and failed on it. Restore it when this file ends.
+afterAll(async () => { await resetSettings(); }, T);
 
 describe('F24 GET', () => {
   it('returns the tenant row as a schema-valid FrontdeskSettings with its version, and nothing else (no tenant_id / audit columns)', { timeout: T }, async () => {

@@ -1,0 +1,7 @@
+# T0B-REGAPI-1 impl (writer, LD-310)
+- Files: frontdesk/service/patient.service.ts (13 fields on create/update/get, single + cross-field checks on the resulting state, photo check, 23505 -> 409), repository/patients.repo.ts (insert + update column lists, custom_fields as json), mappers/patient.dto.ts (parity fields, maskTail4, full id only in getPatient), domain/patient.ts (static ISO 3166-1 alpha-2 list of 249, NP postal 5 digits).
+- [CONV] Absent key for a null column (old patients read exactly as before); anonymised rows return none of the 13. New strings stored as typed (no trim), NUL refused, code-point lengths as the column CHECKs.
+- [CONV] Uniqueness decided by the DB index (race-safe); the pg error text (holds the value) is dropped. Interim code identity.code_duplicate + CR .orchestra/cr/T0B-REGAPI-1.md (frontdesk.external_patient_id_duplicate).
+- [CONV] Photo: frontdesk.trf_attachments by id under tenant filter + RLS (tenant + centre: another centre's file is refused too), active, not quarantined/failed, png/jpeg, 1..2097152 bytes; checked only when the id is (re)set.
+- Ran: tsc clean; regapi.static + patients.static 42/42; regapi.test.ts 69/72 on PG17 (3 test defects, see T0B-REGAPI-1-dispute.md). Full frontdesk: other failures are referrer_required settings bleed + apps/web nav, outside this diff; pre-change baseline not run.
+- Open: anonymisePatient does not clear the new personal fields (government id, address parts, photo, custom_fields) - privacy gap, needs a ruling; search by external_patient_id has no contract mode.

@@ -26,3 +26,7 @@
 ## Round 8
 - Log (21:52) is still the old one-line "The system cannot find the path specified."; no test failed. Cause: old verify.cmd ran npx/pnpm without `call`; tester rewrite (call prefix + cd /d) is in place.
 - No impl change: SYNC-1 code not at fault (codegen 88/88, API 826/826, pgTAP clean, registry-equality 14/14). Could not rerun verify.cmd here (command approval denied); lead/queue must rerun it to refresh the log.
+## Round 9
+- Cause: old verify.cmd ran npx/pnpm without `call`, batch ended after step 1 ("cannot find the path"); log is stale, no test failed.
+- Fix (tester, already in place): verify.cmd has `call` on every npx/pnpm line, `cd /d` first, all 5 steps kept. Debugger changes no file per ruling.
+- SYNC-1 code not at fault (codegen 88/88, API 826/826, pgTAP clean, registry-equality 14/14). Rerun verify to refresh log.

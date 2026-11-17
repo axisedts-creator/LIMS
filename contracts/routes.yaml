@@ -222,6 +222,11 @@ routes:
   - { id: staff.billing.cbms, origin: staff_web, path: /billing/cbms, owner: C4, permission: billing.invoice.read }
   - { id: staff.billing.worklist, origin: staff_web, path: /billing/worklist, owner: C4, permission: billing.invoice.read }
   - { id: staff.billing.settings, origin: staff_web, path: /billing/settings, owner: C4, permission: billing.settings.manage }
+  - { id: staff.billing.account_entries, origin: staff_web, path: /billing/accounts/entries, owner: C4, permission: billing.account.read }   # T0D-ACCT-1 (LD-313)
+  - { id: staff.billing.account_ledger, origin: staff_web, path: /billing/accounts/ledger, owner: C4, permission: billing.account.read }
+  - { id: staff.billing.pocket_ledger, origin: staff_web, path: /billing/accounts/pocket, owner: C4, permission: billing.account.read }
+  - { id: staff.billing.account_summary, origin: staff_web, path: /billing/accounts/summary, owner: C4, permission: billing.account.read }
+  - { id: staff.billing.account_masters, origin: staff_web, path: /billing/accounts/masters, owner: C4, permission: billing.account.read }
   - { id: staff.lab.collect, origin: staff_web, path: /lab/collect, owner: C5, permission: lab.specimen.collect }
   - { id: staff.lab.receive, origin: staff_web, path: /lab/receive, owner: C5, permission: lab.specimen.receive }
   - { id: staff.lab.worklists, origin: staff_web, path: /lab/worklists, owner: C5, permission: lab.worklist.read }

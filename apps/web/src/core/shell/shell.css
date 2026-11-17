@@ -4,6 +4,13 @@
 .lims-topbar { display: flex; align-items: center; gap: var(--lims-space-4); width: 100%; }
 .lims-topbar-end { display: flex; align-items: center; gap: var(--lims-space-3); margin-inline-start: auto; }
 .lims-topbar-actor { font-weight: var(--lims-font-weight-medium); }
+/* T0D-DENSITY-1: the actor name opens the user menu (screen density) */
+.lims-user-menu { position: relative; }
+.lims-user-menu-list { position: absolute; inset-inline-end: 0; top: calc(100% + var(--lims-space-1)); }
+.lims-user-menu-heading { padding: var(--lims-space-1) var(--lims-space-2); color: var(--lims-neutral-700); font-size: var(--lims-font-size-xs-size); font-weight: var(--lims-font-weight-semibold); }
+.lims-menuitem[role='menuitemradio'] { cursor: pointer; }
+.lims-menuitem[role='menuitemradio']:focus { outline: 0.125rem solid var(--lims-focus-ring); outline-offset: -0.125rem; }
+.lims-menuitem[aria-checked='true'] { background: var(--lims-accent-subtle); font-weight: var(--lims-font-weight-semibold); }
 .lims-topbar-bell { display: inline-grid; place-items: center; min-width: var(--lims-touch-target-web); min-height: var(--lims-touch-target-web); padding: 0; border-radius: var(--lims-radius-full); }
 .lims-topbar-bell:disabled { grid-auto-flow: column; gap: var(--lims-space-2); padding-inline: var(--lims-space-3); }
 .lims-topbar-bell-note { font-size: var(--lims-font-size-xs-size); color: var(--lims-neutral-700); }
@@ -76,6 +83,13 @@
   .lims-shell-nav[data-drawer-open='true'] { display: flex; position: fixed; inset-block: 0; inset-inline-start: 0; z-index: var(--lims-z-drawer); max-width: 100%; box-shadow: var(--lims-elevation-3); }
   .lims-breadcrumb { display: none; }
 }
+
+/* T0D-DENSITY-1 (LD-310, founder 2026-11-17): compact staff shell, spacing only. The 76 top bar and 46 rail pills of 13-M-SERIES s3 stay
+   (kit compact rules make the top bar controls and Find a screen 30). The bell and menu button stay square at the compact 30. */
+[data-density='compact'] .lims-shell-top { padding-inline: var(--lims-space-4); }
+[data-density='compact'] .lims-topbar { gap: var(--lims-space-3); }
+[data-density='compact'] .lims-topbar-bell, [data-density='compact'] .lims-shell-menu { min-width: 1.875rem; }
+[data-density='compact'] .lims-rail { gap: var(--lims-space-2); }
 
 /* Auth pages (WEB-STYLE-1, LD-198, LD-140): tokens, rem and % only. */
 /* WEB-STYLE-3 (LD-205): no body margin; the page fills the viewport exactly (one 100dvh, no scrollbar). */

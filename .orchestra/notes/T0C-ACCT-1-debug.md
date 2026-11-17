@@ -6,3 +6,6 @@
 - Ran every verify step by hand: codegen vitest 1063/1063, contracts registry-equality 5 passed, role-packs 765/765, pgTAP T0C-ACCT-1 suite finished with no failure (96s).
 - Cause: no code defect. Trailing `The system cannot find the path specified.` is harness/cmd path error (likely hardcoded `C:\Program Files\Git\bin\bash.exe` or `cd /d` under the runner), not a test failure.
 - Fix: none in implementation code. Lead: treat verify as green, or fix the runner bash path.
+## round 3
+- Log (08:37) shows codegen vitest 1063/1063 green, then only `The system cannot find the path specified.` Every path in verify.cmd exists (contracts, registry-equality test, services/api, run-suites.sh, ACCT-1 pgTAP file, Git bash).
+- Cause: harness/cmd error after step 1 (`%~dp0`-relative `cd /d` or runner shell), not an implementation defect. Fix: none in code (tests untouched). Lead: run steps 2-4 of verify.cmd directly or fix the runner; see LD-311.

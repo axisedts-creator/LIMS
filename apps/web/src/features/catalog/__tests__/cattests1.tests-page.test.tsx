@@ -290,7 +290,7 @@ describe('creation form: one form for the button, the empty-state button and /ca
     expect(creates[0]!.headers.get('idempotency-key')).toBeTruthy();
     expect(creates[0]!.body).toMatchObject({ code: 'HGB2', name: 'Hemoglobin A2', department_id: BIOC.id, workflow_type: 'standard', specimen_requirements: [{ specimen_type_id: EDTA.id, is_preferred: true }] });
     expect(Object.keys(creates[0]!.body).sort()).toEqual(expect.arrayContaining(['code', 'name', 'department_id', 'workflow_type', 'specimen_requirements']));
-    await waitFor(() => expect(navLog.some((u) => u.split('?')[0] === `/catalog/tests/${ID(900)}`)).toBe(true));
+    await waitFor(() => expect(navLog.some((u) => u.split('?')[0] === `/catalog/tests/${ID(1000)}`)).toBe(true)); // ID(1000) = id of the mocked 201 body: test(900) sets id ID(100 + 900)
   });
 
   it('a test without a specimen is allowed (add-on on existing material): specimen_requirements is []', async () => {

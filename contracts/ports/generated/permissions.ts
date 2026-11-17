@@ -148,6 +148,8 @@ export type PermissionCode =
   | "partners.referrer.map"
   | "partners.referrer.read"
   | "partners.report.read"
+  | "partners.sales.manage"
+  | "partners.sales.read"
   | "partners.statement.read"
   | "payments.intent.create"
   | "payments.intent.resolve"
@@ -343,6 +345,8 @@ export const PERMISSION_CODES: readonly PermissionCode[] = [
   "partners.referrer.map",
   "partners.referrer.read",
   "partners.report.read",
+  "partners.sales.manage",
+  "partners.sales.read",
   "partners.statement.read",
   "payments.intent.create",
   "payments.intent.resolve",
@@ -437,6 +441,7 @@ export const PRIVILEGED: ReadonlySet<PermissionCode> = new Set([
   "micro.breakpoint.manage",
   "partners.partner.manage",
   "partners.partner_user.manage",
+  "partners.sales.manage",
   "payments.intent.resolve",
   "payments.merchant_config.manage",
   "payments.reconciliation.read",
@@ -526,6 +531,8 @@ export const ROLE_GRANTS: Readonly<Record<string, readonly PermissionCode[]>> = 
     "inventory.po.manage",
     "inventory.report.export",
     "partners.partner.read",
+    "partners.sales.manage",
+    "partners.sales.read",
     "payments.intent.create",
     "payments.intent.resolve",
     "payments.merchant_config.read",
@@ -631,6 +638,8 @@ export const ROLE_GRANTS: Readonly<Record<string, readonly PermissionCode[]>> = 
     "micro.culture.read",
     "partners.partner.read",
     "partners.referrer.map",
+    "partners.sales.manage",
+    "partners.sales.read",
     "quality.autoverify.manage",
     "quality.autoverify.read",
     "quality.config.manage",
@@ -823,6 +832,8 @@ export const ROLE_GRANTS: Readonly<Record<string, readonly PermissionCode[]>> = 
     "partners.partner.manage",
     "partners.partner.read",
     "partners.referrer.map",
+    "partners.sales.manage",
+    "partners.sales.read",
     "payments.merchant_config.manage",
     "payments.merchant_config.read",
     "reporting.channel.manage",

@@ -67,5 +67,6 @@ export const manifest: ModuleManifest = {
   name: 'homecollection',
   openapi: 'contracts/openapi/homecollection.yaml',
   handlers,
+  pendingOperations: ['updateCollectorFlags'], // T0C-SALES-1 (LD-321, LD-325 b): collector Allow Collection / Allow Pickup; T0B-SALES-1 removes it
   produces: ['homecollection.collection.synced.v1'],
 };

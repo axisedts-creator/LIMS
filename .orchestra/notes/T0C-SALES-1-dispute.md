@@ -1,0 +1,5 @@
+# T0C-SALES-1 dispute (debugger, 2026-11-17)
+Only failures in verify: services/api/src/modules/homecollection/__tests__/boot.test.ts (3 of 573). Not caused by this task; the fix needs a test edit, which the debugger may not do.
+1. boot.test.ts:42 `IMPLEMENTED` lists 3 handlers. listHomeVisits (HC-T08, service/visitRead.service.ts, handlers/listHomeVisits.ts) has been a real handler since before this task, so the tests at :94 (dev answers 501) and :108 (staging answers common.internal) treat it as a stub and fail (auth.unauthenticated / not common.internal). Fix: add the real HC handlers to IMPLEMENTED (spec/chunks/C17-home-collection/02-TRD.md H1..H21).
+2. boot.test.ts:202 "boots and mounts every homecollection operation" times out at the 30000 ms default (56 s in verify, 69 s for the file alone). Fix: pass a larger timeout (e.g. 120000) as the third `it` argument.
+This task's only change to homecollection/index.ts is `pendingOperations: ['updateCollectorFlags']` (LD-325 b); no stub or handler is touched. Ruling point 3 already placed these outside this task.

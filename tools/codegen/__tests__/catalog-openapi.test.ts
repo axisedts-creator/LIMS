@@ -243,7 +243,9 @@ describe("inventory equals 02-TRD §5.2 (no missing, no extra operations)", () =
     const mine = new Set(ROWS.map((r) => r.id));
     for (const id of fromTrd) expect(mine.has(id), `TRD operationId ${id} not in test table`).toBe(true);
     // T0C-TESTMGMT-1 (LD-318) adds exactly these three test category operations (pinned in testmgmt1-openapi.test.ts); the 107 above must all still exist and nothing else may appear.
-    expect(Object.keys(ops).sort()).toEqual([...mine, "listTestCategories", "createTestCategory", "updateTestCategory"].sort());
+    // T0C-PRICETOOLS-1 (LD-321) adds exactly the seven price list tool operations (pinned in pricetools1-openapi.test.ts).
+    expect(Object.keys(ops).sort()).toEqual([...mine, "listTestCategories", "createTestCategory", "updateTestCategory",
+      "downloadPriceListTemplate", "dryRunPriceListImport", "commitPriceListImport", "bulkUpdatePriceListDraft", "copyPriceList", "comparePriceLists", "listPriceListImportBatches"].sort());
   });
   it("every path is /v1/catalog/… with tags [catalog]", () => {
     expect(Object.keys(doc.paths ?? {}).length, "no paths").toBeGreaterThan(0);
@@ -416,8 +418,8 @@ describe("examples validate against their schemas; each operation has a servable
     expect(n).toBeGreaterThan(100);
   });
   it("every operation has a 2xx response; JSON ones carry an example Prism can serve", () => {
-    // T0C-TESTMGMT-1 (LD-318): 107 + listTestCategories, createTestCategory, updateTestCategory
-    expect(Object.keys(ops).length).toBe(110);
+    // T0C-TESTMGMT-1 (LD-318): 107 + listTestCategories, createTestCategory, updateTestCategory; T0C-PRICETOOLS-1 (LD-321): + 7 price list tool operations
+    expect(Object.keys(ops).length).toBe(117);
     for (const { op, path, method } of Object.values(ops)) {
       const two = Object.entries<any>(op.responses ?? {}).filter(([c]) => /^2/.test(c));
       expect(two.length, `${method} ${path}: no 2xx`).toBeGreaterThan(0);

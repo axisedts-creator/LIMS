@@ -8,7 +8,8 @@ import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js
 import { LimsError, type FieldError } from '../../../core/errors.js';
 import * as arepo from '../repo/analytes.repo.js';
 import * as repo from '../repo/tests.repo.js';
-import { BOOL, checkFields, checkUpdate, fail, invalid, isObj, required, str, UUID, type Field } from './masters.service.js';
+import { analyzeFormulaGraph } from '../domain/formulaGraph.js';
+import { BOOL, checkFields, checkUpdate, DEC_RE, fail, invalid, isObj, required, RESULT_TYPES, str, unsetOf, UUID, type Field } from './masters.service.js';
 import { checkFormula, formulaInvalid, lockFormulaGraph } from './formulas.service.js';
 import { createRangesService } from './ranges.service.js';
 import { createRevisionService } from './revision.service.js';
@@ -17,12 +18,15 @@ interface Tx { query(text: string, values?: unknown[]): Promise<{ rows: any[] }>
 interface Ctx { readonly tenantId: string; readonly actor: { readonly id: string }; readonly requestId: string; readonly tx: unknown; readonly now?: () => string }
 interface Deps { events: { publish(ctx: unknown, type: string, input: object): Promise<unknown> } }
 
-const AN_COLS = ['id', 'test_id', 'code', 'name', 'print_name', 'report_subheading', 'sort_order', 'is_reportable', 'is_active', 'version'];
+// T0B-TESTMGMT-1 (LD-318): display-only analyte fields (in place, audited) vs version fields (draft only, live through publishAnalyteVersion; done_when 4).
+const AN_DISPLAY = ['trend_name', 'specimen_type_id', 'font', 'result_display_type', 'print_on_negative', 'print_on_worksheet', 'send_in_sms', 'nabl', 'accab_logo', 'is_trend'];
+const AN_COLS = ['id', 'test_id', 'code', 'name', 'print_name', 'report_subheading', 'sort_order', 'is_reportable', 'is_active', 'version', ...AN_DISPLAY];
 const AV_COLS = ['id', 'analyte_id', 'version_no', 'status', 'result_type', 'unit_code', 'decimals', 'method_id', 'value_set_code', 'formula_expression', 'formula_inputs',
-  'effective_from', 'effective_to', 'change_reason', 'version'];
+  'effective_from', 'effective_to', 'change_reason', 'default_value', 'long_text_value', 'high_low', 'require_verification', 'version'];
 const CLINICAL = ['result_type', 'unit_code', 'decimals', 'method_id', 'value_set_code', 'formula_expression'] as const;
-const RESULT_TYPES = ['numeric', 'text', 'ordinal', 'coded', 'attachment', 'narrative'];
-const UNSET = ['unit_code', 'decimals', 'method_id', 'value_set_code', 'formula_expression'];
+const NEW_VERSION = ['default_value', 'long_text_value', 'high_low', 'require_verification'];   // written only when set (DB defaults otherwise)
+const UNSET = ['unit_code', 'decimals', 'method_id', 'value_set_code', 'formula_expression', 'default_value', 'long_text_value', 'high_low'];
+const AN_UNSET = ['trend_name', 'specimen_type_id', 'font', 'result_display_type'];
 const NARRATIVE_WORKFLOWS = ['narrative', 'microbiology', 'anatomic', 'molecular'];
 const BACKDATE_TOLERANCE_MS = 300_000;                                     // AC-03.3
 const ISO_UTC = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
@@ -31,8 +35,12 @@ const UNIT_RE = /^[A-Za-z0-9_]{1,32}$/, VALUE_SET_RE = /^[A-Z0-9_]{1,32}$/;
 
 const INT = (min: number, max: number): Field => ({ t: 'int', min, max });
 const UUID_F: Field = { t: 'uuid' };
-const ANALYTE_FIELDS = { name: str(1, 120), print_name: str(0, 120), report_subheading: str(0, 80), sort_order: INT(0, 9999), is_reportable: BOOL };
-const VERSION_FIELDS = { unit_code: str(1, 32), decimals: INT(0, 6), method_id: UUID_F, value_set_code: str(1, 32), formula_expression: str(1, 500) };
+const DISPLAY_TYPES = ['table', 'note_value_only', 'list_note', 'one_column', 'two_column', 'three_column', 'four_column', 'comment', 'hidden', 'table_with_subheader', 'merge_two_column'];
+const ANALYTE_FIELDS: Record<string, Field> = { name: str(1, 120), print_name: str(0, 120), report_subheading: str(0, 80), sort_order: INT(0, 9999), is_reportable: BOOL,
+  trend_name: str(1, 120), specimen_type_id: UUID_F, font: str(1, 60), result_display_type: { t: 'enum', values: DISPLAY_TYPES },
+  ...Object.fromEntries(['print_on_negative', 'print_on_worksheet', 'send_in_sms', 'nabl', 'accab_logo', 'is_trend'].map((k) => [k, BOOL])) };
+const VERSION_FIELDS: Record<string, Field> = { unit_code: str(1, 32), decimals: INT(0, 6), method_id: UUID_F, value_set_code: str(1, 32), formula_expression: str(1, 500),
+  default_value: str(1, 500), long_text_value: str(1, 20000), require_verification: BOOL };
 const PUBLISH_FIELDS = { change_reason: str(1, 500), reference_range_set_id: UUID_F, critical_limit_set_id: UUID_F, allow_without_ranges: BOOL };
 
 const isUuid = (v: unknown): v is string => typeof v === 'string' && UUID.test(v);
@@ -81,6 +89,7 @@ export function createAnalyteVersionsService(deps: Deps) {
     if (Array.isArray(inputs) && inputs.length) out['formula_input_codes'] = inputs;
     for (const k of ['effective_from', 'effective_to']) if (out[k] != null) out[k] = iso(out[k]);
     for (const k of ['version_no', 'decimals', 'version']) if (out[k] != null) out[k] = Number(out[k]);
+    if (out['high_low'] != null) out['high_low'] = String(out['high_low']);
     return out;
   };
   const analyteDto = (a: any, current?: any, draftId?: string) => compact({
@@ -132,10 +141,11 @@ export function createAnalyteVersionsService(deps: Deps) {
 
   /** Version-field part of a body (create: result_type required; prefix '/initial_version'). */
   function versionInput(input: unknown, prefix: string, requireType: boolean): Record<string, unknown> {
-    const v = checkFields({ fields: VERSION_FIELDS }, input, ['result_type'], prefix);
+    const v = checkFields({ fields: VERSION_FIELDS }, input, ['result_type', 'high_low'], prefix);
     const errors: FieldError[] = [];
     if (v['result_type'] === undefined) { if (requireType) errors.push(required(`${prefix}/result_type`)); }
-    else if (!RESULT_TYPES.includes(v['result_type'] as string)) errors.push(invalid(`${prefix}/result_type`));
+    else if (!(RESULT_TYPES as readonly unknown[]).includes(v['result_type'])) errors.push(invalid(`${prefix}/result_type`));
+    if (v['high_low'] !== undefined && !(typeof v['high_low'] === 'string' && v['high_low'].length <= 40 && DEC_RE.test(v['high_low']))) errors.push(invalid(`${prefix}/high_low`));
     if (v['unit_code'] !== undefined && !UNIT_RE.test(v['unit_code'] as string)) errors.push(invalid(`${prefix}/unit_code`));
     if (v['value_set_code'] !== undefined && !VALUE_SET_RE.test(v['value_set_code'] as string)) errors.push(invalid(`${prefix}/value_set_code`));
     if (errors.length) fail(errors);
@@ -147,9 +157,27 @@ export function createAnalyteVersionsService(deps: Deps) {
     repo.insert(ctx.tx as Tx, 'formula_dependencies', inputIds.map((input) => ({ tenant_id: ctx.tenantId, analyte_version_id: versionId, analyte_id: analyteId, input_analyte_id: input, created_by: ctx.actor.id })), ['created_at']);
 
   /** Validates the formula a version would store: 422 catalog.formula_invalid (paths under `prefix`), else the normalised expression, inputs and units. */
-  async function validated(ctx: Ctx, code: string, v: Record<string, any>, prefix: string) {
+  async function validated(ctx: Ctx, code: string, v: Record<string, any>, prefix: string, testId: string) {
     const f = await checkFormula(ctx, { expression: v['formula_expression'], code, targetType: v['result_type'] });
-    if (f.errors.length) throw formulaInvalid(f.errors.map((e) => ({ ...e, path: prefix + e.path })));
+    const errors = [...f.errors];
+    if (!errors.length && f.inputs.length) {
+      // T0B-TESTMGMT-1 (LD-318 follow-up): an Equation only names analytes of the SAME test, and draft formulas of that test may not close a cycle
+      // (checkFormula's graph holds published edges only; ElabAssist equations are edited as drafts side by side).
+      const tx = ctx.tx as Tx, t = ctx.tenantId;
+      const mine = await repo.find(tx, 'analytes', ['id', 'code'], t, { test_id: testId });
+      const ids = new Set(mine.map((a) => a.id as string));
+      const msg = (message: string) => ({ path: '/formula_expression', code: 'common.field_invalid', message });
+      if (f.inputIds.some((x) => !ids.has(x))) errors.push(msg('formula may only use analytes of the same test'));
+      else {
+        const codeOf = new Map(mine.map((a) => [a.id as string, a.code as string]));
+        const drafts = mine.length ? await repo.find(tx, 'analyte_versions', ['analyte_id', 'formula_inputs'], t, { status: 'draft' }, { anyOf: { col: 'analyte_id', values: [...ids] } }) : [];
+        const edges = new Map<string, string[]>();
+        for (const d of drafts) if (Array.isArray(d.formula_inputs) && d.formula_inputs.length) edges.set(codeOf.get(d.analyte_id)!, d.formula_inputs);
+        const g = analyzeFormulaGraph({ root: code, rootInputs: f.inputs, edges });
+        if (g.cycle) errors.push(msg(`cycle: ${g.cycle.join(' -> ')}`));
+      }
+    }
+    if (errors.length) throw formulaInvalid(errors.map((e) => ({ ...e, path: prefix + e.path })));
     return f;
   }
 
@@ -170,15 +198,15 @@ export function createAnalyteVersionsService(deps: Deps) {
       const tx = ctx.tx as Tx, t = ctx.tenantId, actor = ctx.actor.id;
       const vErrors = await clinicalErrors(tx, t, iv, '/initial_version');
       if (vErrors.length) fail(vErrors);
-      const formula = iv['formula_expression'] != null ? await validated(ctx, code!, iv, '/initial_version') : undefined;
+      const formula = iv['formula_expression'] != null ? await validated(ctx, code!, iv, '/initial_version', testId) : undefined;
 
       await lockOwner(ctx, testId);
       const id = uuidv7(), who = { tenant_id: t, created_by: actor, updated_by: actor };
       await repo.insert(tx, 'analytes', [{ id, ...who, test_id: testId, code, name: b['name'], print_name: b['print_name'] ?? null, report_subheading: b['report_subheading'] ?? null,
-        sort_order: b['sort_order'] ?? 100, is_reportable: b['is_reportable'] ?? true, is_active: true, version: 1 }], ['created_at', 'updated_at']).catch(mapPg);
+        sort_order: b['sort_order'] ?? 100, is_reportable: b['is_reportable'] ?? true, is_active: true, version: 1, ...pick(b, AN_DISPLAY) }], ['created_at', 'updated_at']).catch(mapPg);
       await repo.insert(tx, 'analyte_versions', [{ id: uuidv7(), ...who, analyte_id: id, version_no: 1, status: 'draft', result_type: iv['result_type'],
         unit_code: iv['unit_code'] ?? null, decimals: iv['decimals'] ?? null, method_id: iv['method_id'] ?? null, value_set_code: iv['value_set_code'] ?? null,
-        formula_expression: formula?.normalised ?? null, formula_inputs: formula?.inputs ?? [], version: 1 }], ['created_at', 'updated_at']).catch(mapPg);
+        formula_expression: formula?.normalised ?? null, formula_inputs: formula?.inputs ?? [], version: 1, ...pick(iv, NEW_VERSION) }], ['created_at', 'updated_at']).catch(mapPg);
       await bump(ctx, { id, test_id: testId }, 'created');
       return summary(ctx, id);
     },
@@ -194,7 +222,9 @@ export function createAnalyteVersionsService(deps: Deps) {
     /** #31 — display attributes only; code and test_id never change. */
     async updateAnalyte(ctx: Ctx, input: { id?: unknown; expectedVersion?: unknown; patch?: unknown } = {}) {
       const { id, ev } = checkUpdate(input);
-      const patch = checkFields({ fields: { ...ANALYTE_FIELDS, is_active: BOOL } }, input.patch, []);
+      const patch = checkFields({ fields: { ...ANALYTE_FIELDS, is_active: BOOL } }, input.patch, ['unset']);
+      const nulls = unsetOf(patch, AN_UNSET);
+      delete patch['unset'];
       const tx = ctx.tx as Tx, t = ctx.tenantId;
       const [probe] = await repo.find(tx, 'analytes', ['test_id'], t, { id });
       if (!probe) throw new LimsError('common.not_found');
@@ -202,7 +232,7 @@ export function createAnalyteVersionsService(deps: Deps) {
       const [before] = await repo.find(tx, 'analytes', AN_COLS, t, { id }, { lock: true });
       if (!before) throw new LimsError('common.not_found');
       if (Number(before.version) !== ev) throw new LimsError('common.version_conflict');
-      const after = await repo.update(tx, 'analytes', AN_COLS, { tenantId: t, id, actorId: ctx.actor.id, expectedVersion: ev }, patch).catch(mapPg);
+      const after = await repo.update(tx, 'analytes', AN_COLS, { tenantId: t, id, actorId: ctx.actor.id, expectedVersion: ev }, { ...patch, ...nulls }).catch(mapPg);
       if (!after) throw new LimsError('common.version_conflict');
       await bump(ctx, after, before.is_active === true && after.is_active === false ? 'deactivated' : 'updated');
       return summary(ctx, id);
@@ -225,9 +255,10 @@ export function createAnalyteVersionsService(deps: Deps) {
           .concat(await repo.find(tx, 'analyte_versions', AV_COLS, t, { analyte_id: analyteId }, { order: 'version_no DESC', limit: 1 }));
       if (!source) throw new LimsError('common.not_found');
       const row = { id: uuidv7(), tenant_id: t, created_by: ctx.actor.id, updated_by: ctx.actor.id, analyte_id: analyteId, version_no: Number(last?.version_no ?? 0) + 1,
-        status: 'draft', ...Object.fromEntries(CLINICAL.map((c) => [c, source[c] ?? null])), formula_inputs: source.formula_inputs ?? [], version: 1 };
+        status: 'draft', ...Object.fromEntries(CLINICAL.map((c) => [c, source[c] ?? null])), formula_inputs: source.formula_inputs ?? [], version: 1,
+        ...Object.fromEntries(NEW_VERSION.filter((c) => source[c] != null && source[c] !== false).map((c) => [c, source[c]])) };
       await repo.insert(tx, 'analyte_versions', [row], ['created_at', 'updated_at']).catch(mapPg);
-      return versionDto(row);
+      return versionDto({ require_verification: source.require_verification, ...row });
     },
 
     /** #33 — drafts only (AC-03.2; the DB trigger is the backstop); AC-02.6 on the resulting fields; `unset` clears optional fields. */
@@ -235,7 +266,7 @@ export function createAnalyteVersionsService(deps: Deps) {
       const { id, ev } = checkUpdate(input);
       const patch = versionInput(isObj(input.patch) ? { ...input.patch, unset: undefined } : input.patch, '', false);
       const unset: unknown = isObj(input.patch) ? input.patch['unset'] : undefined;
-      if (unset !== undefined && !(Array.isArray(unset) && unset.length <= 5 && new Set(unset).size === unset.length && unset.every((k) => UNSET.includes(k)))) fail([invalid('/unset')]);
+      if (unset !== undefined && !(Array.isArray(unset) && unset.length <= UNSET.length && new Set(unset).size === unset.length && unset.every((k) => UNSET.includes(k)))) fail([invalid('/unset')]);
       const clear = (unset ?? []) as string[];
       if (clear.some((k) => patch[k] !== undefined)) fail([invalid('/unset')]);
       const tx = ctx.tx as Tx, t = ctx.tenantId;
@@ -247,7 +278,7 @@ export function createAnalyteVersionsService(deps: Deps) {
       const write: Record<string, unknown> = { ...patch, ...Object.fromEntries(clear.map((k) => [k, null])) };
       if (next['formula_expression'] == null) { if (clear.includes('formula_expression')) write['formula_inputs'] = []; }
       else if (patch['formula_expression'] !== undefined || patch['result_type'] !== undefined) {
-        const f = await validated(ctx, owner.code, next, '');
+        const f = await validated(ctx, owner.code, next, '', owner.test_id);
         write['formula_expression'] = f.normalised; write['formula_inputs'] = f.inputs;
       }
       return versionDto(await updateVersion(ctx, id, ev, write));
@@ -291,7 +322,7 @@ export function createAnalyteVersionsService(deps: Deps) {
       let formula: Awaited<ReturnType<typeof validated>> | undefined;
       if (draft.formula_expression != null) {
         await lockFormulaGraph(ctx);
-        formula = await validated({ ...ctx, now: () => now }, analyte.code, draft, '');
+        formula = await validated({ ...ctx, now: () => now }, analyte.code, draft, '', owner.test_id);
         await writeFormulaEdges(ctx, owner.id, id, formula.inputIds);   // TRD §7.2 step 6: BEFORE the status UPDATE (tg_parent_is_draft)
       }
       if (pred) await updateVersion(ctx, pred.id, Number(pred.version), { status: 'superseded', effective_to: new Date(effective) });

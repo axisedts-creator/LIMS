@@ -24,7 +24,10 @@ import { manifest } from '../index.js';
 import { HOMECOLLECTION_PERMISSIONS } from '../permissions.js';
 
 const SPEC = loadSpec(join(REPO_ROOT, 'contracts', 'openapi', 'homecollection.yaml'));
-const OPS = operationIds(SPEC);
+// T0C-SALES-1 (LD-321, LD-325(b)): updateCollectorFlags is added after the 26 TRD operations; it is pending until T0B-SALES-1 and is pinned by contract/sales1.pending.test.ts.
+// This file keeps testing exactly the 26 original operations.
+const SALES1_NEW = 'updateCollectorFlags';
+const OPS = operationIds(SPEC).filter((id) => id !== SALES1_NEW);
 const PERMS = ['homecollection.device.manage', 'homecollection.handover.receive', 'homecollection.settings.manage',
   'homecollection.sync.upload', 'homecollection.visit.assign', 'homecollection.visit.read'];
 // 02-TRD §5.1 H1..H21 + §5.2 A1..A5
@@ -74,7 +77,7 @@ describe('HC-T01 handler map (26 operationIds)', () => {
   });
 
   it('binds every operationId of homecollection.yaml to a function, and nothing else (AC-0D-1.2)', () => {
-    expect(Object.keys(manifest.handlers).sort()).toEqual([...OPS].sort());
+    expect(Object.keys(manifest.handlers).filter((id) => id !== SALES1_NEW).sort()).toEqual([...OPS].sort());
     for (const op of OPS) expect(typeof manifest.handlers[op], op).toBe('function');
   });
 
@@ -202,7 +205,7 @@ describe('HC-T01 boot against the real repo (default modulesDir, real homecollec
     let n = 0;
     for (const [path, item] of Object.entries<any>(SPEC.paths)) {
       for (const [method, op] of Object.entries<any>(item)) {
-        if (!op?.operationId) continue;
+        if (!op?.operationId || op.operationId === SALES1_NEW) continue;
         n++;
         if (!app.hasRoute({ method: method.toUpperCase() as any, url: path.replace(/\{([^}]+)\}/g, ':$1') })) unmounted.push(`${method.toUpperCase()} ${path}`);
       }
@@ -216,7 +219,7 @@ describe('HC-T01 boot against the real repo (default modulesDir, real homecollec
     const probes: { method: string; url: string }[] = [];
     for (const [path, item] of Object.entries<any>(SPEC.paths)) {
       for (const [method, op] of Object.entries<any>(item)) {
-        if (!op?.operationId) continue;
+        if (!op?.operationId || op.operationId === SALES1_NEW) continue;
         const requiredQuery = (op.parameters ?? []).some((p: any) => p.in === 'query' && p.required);
         if (!requiredQuery && !op.requestBody?.required) probes.push({ method: method.toUpperCase(), url: toUrl(path) });
       }

@@ -8,24 +8,31 @@ import { LimsError, type FieldError } from '../../../core/errors.js';
 import { decodeCursor, encodeCursor } from '../mappers/masters.mapper.js';
 import * as repo from '../repo/masters.repo.js';
 import {
-  BOOL, UUID, checkFields, checkUpdate, fail, invalid, isObj, kindOf, lockAt, mapPg, ptr, required, str, unknown,
+  BOOL, RESULT_TYPES, UUID, checkFields, checkUpdate, fail, invalid, isObj, kindOf, lockAt, mapPg, ptr, required, str, unknown, unsetOf,
   type Ctx, type Deps, type Tx,
 } from './masters.service.js';
 import { createRevisionService } from './revision.service.js';
 
-const COLS = ['id', 'code', 'department_id', 'text', 'is_active', 'version'];
+const NEW = ['category_id', 'result_type', 'is_default_template', 'text_format'];   // T0B-TESTMGMT-1 (LD-318, ElabAssist Notes)
+const COLS = ['id', 'code', 'department_id', 'text', 'is_active', 'version', ...NEW];
 const TEXT_COLS = ['id', 'text_version'];
 const CODE_IN = /^[A-Za-z0-9_]{1,16}$/;          // checked BEFORE upper-casing: no Unicode case-fold forgeries (ı -> I)
-const CREATE = { fields: { department_id: { t: 'uuid' } as const, text: str(1, 2000) } };
-const UPDATE = { fields: { text: str(1, 2000), is_active: BOOL } };
+const NEW_FIELDS = { category_id: { t: 'uuid' } as const, result_type: { t: 'enum', values: RESULT_TYPES } as const, is_default_template: BOOL,
+  text_format: { t: 'enum', values: ['plain', 'markdown'] } as const };
+const CREATE = { fields: { department_id: { t: 'uuid' } as const, text: str(1, 2000), ...NEW_FIELDS } };
+const UPDATE = { fields: { text: str(1, 2000), is_active: BOOL, ...NEW_FIELDS } };
+/** LD-318: plain text or safe Markdown, never raw HTML: '<' followed by a letter, '/' or '!' is refused (same rule as the DB CHECK backstop); "<5 mg/dL" stays legal. */
+const RAW_HTML = /<[A-Za-z/!]/;
+const htmlErr = (b: Record<string, unknown>) => { if (typeof b['text'] === 'string' && RAW_HTML.test(b['text'])) fail([invalid('/text')]); };
 
 type R = Record<string, any>;
 const dto = (r: R) => ({
   id: r.id as string, code: r.code as string, ...(r.department_id == null ? {} : { department_id: r.department_id as string }),
   text: r.text as string, is_active: r.is_active === true, version: Number(r.version),
+  ...Object.fromEntries(NEW.filter((k) => r[k] != null).map((k) => [k, r[k]])),
 });
 
-interface ListQuery { department_id?: string; code_prefix?: string; cursor?: string; limit?: number }
+interface ListQuery { department_id?: string; code_prefix?: string; cursor?: string; limit?: number; is_active?: string }
 function checkQuery(query: unknown): ListQuery {
   const q = query === undefined ? {} : query;
   if (!isObj(q)) return fail([invalid('')]);
@@ -34,6 +41,8 @@ function checkQuery(query: unknown): ListQuery {
   for (const [k, v] of Object.entries(q)) {
     if (v === undefined) continue;
     if (k === 'department_id') { if (typeof v === 'string' && UUID.test(v)) out.department_id = v; else errors.push(invalid('/department_id')); }
+    // [CR-pending] .orchestra/cr/T0B-TESTMGMT-1.md: catalog.yaml #57 has no is_active parameter; deactivate-not-delete (done_when 5) needs `all` to show deactivated notes. [CONV] same values as the other lists.
+    else if (k === 'is_active') { if (v === 'true' || v === 'false' || v === 'all') out.is_active = v; else errors.push(invalid('/is_active')); }
     else if (k === 'code_prefix') { if (typeof v === 'string' && CODE_IN.test(v)) out.code_prefix = v.toUpperCase(); else errors.push(invalid('/code_prefix')); }
     else if (k === 'cursor') { if (typeof v !== 'string' || !/^[A-Za-z0-9_-]{1,512}$/.test(v)) throw new LimsError('common.invalid_cursor'); out.cursor = v; }
     else if (k === 'limit') {
@@ -61,9 +70,10 @@ export function createCommentsService(deps: Deps) {
     async listCommentCodes(ctx: Ctx, query?: unknown) {
       const q = checkQuery(query);
       const limit = q.limit ?? 50;
-      const values: unknown[] = [ctx.tenantId, true];
+      const values: unknown[] = [ctx.tenantId];
       const bind = (v: unknown) => { values.push(v); return `$${values.length}`; };
-      const where = ['tenant_id = $1', 'is_active = $2'];
+      const where = ['tenant_id = $1'];
+      if (q.is_active !== 'all') where.push(`is_active = ${bind(q.is_active !== 'false')}`);
       if (q.department_id !== undefined) where.push(`(department_id = ${bind(q.department_id)} OR department_id IS NULL)`);
       if (q.code_prefix !== undefined) {
         // Literal prefix as a range (no LIKE wildcards). ponytail: relies on code ordering byte-wise ([A-Z0-9_] under C/ICU-root collation),
@@ -89,10 +99,12 @@ export function createCommentsService(deps: Deps) {
       else if (code === undefined || !CODE_IN.test(code)) errors.push(invalid('/code'));
       if (b['text'] === undefined) errors.push(required('/text'));
       if (errors.length) fail(errors);
+      htmlErr(b);
       const at = nowOf(ctx);
       const created = await repo.insertRow(ctx.tx as Tx, 'comment_codes', COLS, {
         id: uuidv7(), tenant_id: ctx.tenantId, code: code!.toUpperCase(),
         ...(b['department_id'] === undefined ? {} : { department_id: b['department_id'] }),   // FK (tenant_id, department_id): foreign/unknown -> 23503 -> 404
+        ...Object.fromEntries(NEW.filter((k) => b[k] !== undefined).map((k) => [k, b[k]])),  // category FK too (tenant_id, category_id)
         text: b['text'], is_active: true, created_by: ctx.actor.id, updated_by: ctx.actor.id,
       }).catch(mapPg);
       await insertText(ctx, created.id, 1, created.text, at);
@@ -102,10 +114,13 @@ export function createCommentsService(deps: Deps) {
 
     async updateCommentCode(ctx: Ctx, input: { id?: unknown; expectedVersion?: unknown; patch?: unknown } = {}) {
       const { id, ev } = checkUpdate(input);
-      const patch = checkFields(UPDATE, input.patch, []);
+      const patch = checkFields(UPDATE, input.patch, ['unset']);
+      const nulls = unsetOf(patch, ['category_id', 'result_type']);
+      delete patch['unset'];
+      htmlErr(patch);
       const at = nowOf(ctx);
       const before = await lockAt(ctx, 'comment_codes', COLS, id, ev);
-      const after = await repo.updateRow(ctx.tx as Tx, 'comment_codes', COLS, { tenantId: ctx.tenantId, id, expectedVersion: ev, actorId: ctx.actor.id }, patch);
+      const after = await repo.updateRow(ctx.tx as Tx, 'comment_codes', COLS, { tenantId: ctx.tenantId, id, expectedVersion: ev, actorId: ctx.actor.id }, { ...patch, ...nulls }).catch(mapPg);
       if (!after) throw new LimsError('common.version_conflict');
       if (patch['text'] !== undefined) {
         await (ctx.tx as Tx).query(

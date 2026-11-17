@@ -215,6 +215,9 @@ permissions:
   - { code: partners.referrer.read, privileged: false, roles: [], phase: 2 }   # partner actors   # CR-C13-002
   - { code: partners.referrer.manage, privileged: false, roles: [], phase: 2 }   # partner_admin only   # CR-C13-002
   - { code: partners.partner_user.manage, privileged: true, roles: [], phase: 2 }   # partner_admin only   # CR-C13-002
+  # T0C-SALES-1 (LD-321): sales hierarchy (designations, representatives, manager tree, party assignment, service areas); staff only
+  - { code: partners.sales.read,   privileged: false, roles: [tenant_admin, finance, lab_manager] }
+  - { code: partners.sales.manage, privileged: true,  roles: [tenant_admin, finance, lab_manager] }
   - { code: smartreport.template.manage, privileged: false, roles: [pathologist, lab_manager], phase: 2 }   # CR-C14-003
   - { code: smartreport.summary.approve, privileged: true, roles: [pathologist], phase: 2 }   # per-summary approval (03-IC §4.10 invariant)   # CR-C14-003
   - { code: payments.intent.resolve, privileged: true, roles: [finance], phase: 1.5 }   # CR-C15-005

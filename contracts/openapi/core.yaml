@@ -79,7 +79,10 @@ components:
           type: array
           description: >-
             Names of required LIMS_* environment variables that are unset (LD-288, T0B-OPSDOC-1). Names only, never
-            values. Present only when non-empty.
+            values. Present only when non-empty. Bounds (T0C-LINTFIX-1, LD-332): REQUIRED_ENV lists 22 names, longest
+            34 chars; rounded up.
+          maxItems: 64
           items:
             type: string
+            maxLength: 128
             pattern: '^LIMS_[A-Z0-9_]*[A-Z0-9]$'

@@ -6133,8 +6133,1529 @@ paths:
           $ref: _common.yaml#/components/responses/TooManyRequests
         "500":
           $ref: _common.yaml#/components/responses/Internal
+  /v1/partners/admin/sales/designations:
+    get:
+      operationId: listSalesDesignations
+      tags:
+        - partners
+      summary: List sales designations (levels 1 to 8) (T0C-SALES-1)
+      security:
+        - bearerJwt: []
+      x-permission: partners.sales.read
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.invalid_cursor
+      parameters:
+        - name: is_active
+          in: query
+          required: false
+          schema:
+            type: boolean
+        - name: level
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 8
+        - name: q
+          in: query
+          required: false
+          description: Name prefix, case-insensitive.
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 64
+        - $ref: _common.yaml#/components/parameters/Cursor
+        - $ref: _common.yaml#/components/parameters/Limit
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                  - data
+                  - page
+                properties:
+                  data:
+                    type: array
+                    maxItems: 200
+                    items:
+                      $ref: '#/components/schemas/SalesDesignation'
+                  page:
+                    $ref: _common.yaml#/components/schemas/PageInfo
+              examples:
+                synthetic:
+                  value:
+                    data:
+                      - id: 0193c4a0-0000-7000-8000-0000005a1010
+                        name: Regional Head (synthetic)
+                        level: 2
+                        is_active: true
+                        version: 1
+                        created_at: '2026-11-17T05:10:00.000Z'
+                        updated_at: '2026-11-17T05:10:00.000Z'
+                    page:
+                      limit: 50
+        '400':
+          $ref: _common.yaml#/components/responses/BadRequest
+        '401':
+          $ref: _common.yaml#/components/responses/Unauthorized
+        '403':
+          $ref: _common.yaml#/components/responses/Forbidden
+        '429':
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        '500':
+          $ref: _common.yaml#/components/responses/Internal
+    post:
+      operationId: createSalesDesignation
+      tags:
+        - partners
+      summary: Create a sales designation (T0C-SALES-1)
+      description: The level is unique per tenant (1 = top, 8 = field level); a used level answers common.validation_failed.
+      security:
+        - bearerJwt: []
+      x-permission: partners.sales.manage
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - auth.mfa_required
+        - common.idempotency_key_required
+        - common.idempotency_key_reused
+        - common.idempotency_in_progress
+      parameters:
+        - $ref: _common.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - name
+                - level
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 120
+                level:
+                  type: integer
+                  minimum: 1
+                  maximum: 8
+            examples:
+              synthetic:
+                value:
+                  name: Regional Head (synthetic)
+                  level: 2
+      responses:
+        '201':
+          description: Created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SalesDesignation'
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-0000005a1011
+                    name: Regional Head (synthetic)
+                    level: 2
+                    is_active: true
+                    version: 1
+                    created_at: '2026-11-17T05:10:00.000Z'
+                    updated_at: '2026-11-17T05:10:00.000Z'
+        '400':
+          $ref: _common.yaml#/components/responses/BadRequest
+        '401':
+          $ref: _common.yaml#/components/responses/Unauthorized
+        '403':
+          $ref: _common.yaml#/components/responses/Forbidden
+        '409':
+          $ref: _common.yaml#/components/responses/Conflict
+        '422':
+          $ref: _common.yaml#/components/responses/Unprocessable
+        '429':
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        '500':
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/partners/admin/sales/designations/{designation_id}:
+    patch:
+      operationId: updateSalesDesignation
+      tags:
+        - partners
+      summary: Update a sales designation (T0C-SALES-1)
+      description: is_active false switches a designation off for new representatives; existing representatives keep it. No delete.
+      security:
+        - bearerJwt: []
+      x-permission: partners.sales.manage
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.not_found
+        - auth.mfa_required
+        - common.version_conflict
+        - common.precondition_required
+      parameters:
+        - $ref: '#/components/parameters/DesignationId'
+        - $ref: _common.yaml#/components/parameters/IfMatch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              minProperties: 1
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 120
+                level:
+                  type: integer
+                  minimum: 1
+                  maximum: 8
+                is_active:
+                  type: boolean
+            examples:
+              synthetic:
+                value:
+                  is_active: false
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SalesDesignation'
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-0000005a1012
+                    name: Regional Head (synthetic)
+                    level: 2
+                    is_active: true
+                    version: 1
+                    created_at: '2026-11-17T05:10:00.000Z'
+                    updated_at: '2026-11-17T05:10:00.000Z'
+        '400':
+          $ref: _common.yaml#/components/responses/BadRequest
+        '401':
+          $ref: _common.yaml#/components/responses/Unauthorized
+        '403':
+          $ref: _common.yaml#/components/responses/Forbidden
+        '404':
+          $ref: _common.yaml#/components/responses/NotFound
+        '409':
+          $ref: _common.yaml#/components/responses/Conflict
+        '422':
+          $ref: _common.yaml#/components/responses/Unprocessable
+        '428':
+          $ref: _common.yaml#/components/responses/PreconditionRequired
+        '429':
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        '500':
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/partners/admin/sales/representatives:
+    get:
+      operationId: listSalesRepresentatives
+      tags:
+        - partners
+      summary: List sales representatives (T0C-SALES-1)
+      description: Each row names its designation and its manager (manager_id); the whole manager tree is getSalesTree.
+      security:
+        - bearerJwt: []
+      x-permission: partners.sales.read
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.invalid_cursor
+      parameters:
+        - name: q
+          in: query
+          required: false
+          description: Name prefix, case-insensitive.
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 64
+        - name: designation_id
+          in: query
+          required: false
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - name: manager_id
+          in: query
+          required: false
+          description: Direct reports of this manager.
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - name: is_active
+          in: query
+          required: false
+          schema:
+            type: boolean
+        - $ref: _common.yaml#/components/parameters/Cursor
+        - $ref: _common.yaml#/components/parameters/Limit
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                  - data
+                  - page
+                properties:
+                  data:
+                    type: array
+                    maxItems: 200
+                    items:
+                      $ref: '#/components/schemas/SalesRepresentative'
+                  page:
+                    $ref: _common.yaml#/components/schemas/PageInfo
+              examples:
+                synthetic:
+                  value:
+                    data:
+                      - id: 0193c4a0-0000-7000-8000-0000005a1013
+                        name: Synthetic Representative
+                        phone: '+15555550123'
+                        email: <synthetic-email>
+                        designation_id: 0193c4a0-0000-7000-8000-0000005a1e01
+                        designation_level: 2
+                        manager_id: 0193c4a0-0000-7000-8000-0000005a1e03
+                        joining_date: '2026-04-14'
+                        is_active: true
+                        version: 1
+                        created_at: '2026-11-17T05:10:00.000Z'
+                        updated_at: '2026-11-17T05:10:00.000Z'
+                    page:
+                      limit: 50
+        '400':
+          $ref: _common.yaml#/components/responses/BadRequest
+        '401':
+          $ref: _common.yaml#/components/responses/Unauthorized
+        '403':
+          $ref: _common.yaml#/components/responses/Forbidden
+        '429':
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        '500':
+          $ref: _common.yaml#/components/responses/Internal
+    post:
+      operationId: createSalesRepresentative
+      tags:
+        - partners
+      summary: Create a sales representative (T0C-SALES-1)
+      description: manager_id is optional (top of the tree). The manager must be an active representative of the tenant; an inactive designation, the representative as its own manager or a manager loop answer common.validation_failed. user_id links the staff login of the representative when it uses LIMS.
+      security:
+        - bearerJwt: []
+      x-permission: partners.sales.manage
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - auth.mfa_required
+        - common.idempotency_key_required
+        - common.idempotency_key_reused
+        - common.idempotency_in_progress
+      parameters:
+        - $ref: _common.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - name
+                - designation_id
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 200
+                phone:
+                  type: string
+                  maxLength: 16
+                  pattern: ^\+[1-9][0-9]{7,14}$
+                email:
+                  type: string
+                  minLength: 3
+                  maxLength: 254
+                user_id:
+                  $ref: _common.yaml#/components/schemas/Uuid
+                designation_id:
+                  $ref: _common.yaml#/components/schemas/Uuid
+                manager_id:
+                  $ref: _common.yaml#/components/schemas/Uuid
+                joining_date:
+                  $ref: _common.yaml#/components/schemas/IsoDate
+            examples:
+              synthetic:
+                value:
+                  name: Synthetic Representative
+                  phone: '+15555550123'
+                  email: <synthetic-email>
+                  designation_id: 0193c4a0-0000-7000-8000-0000005a1e01
+                  manager_id: 0193c4a0-0000-7000-8000-0000005a1e03
+                  joining_date: '2026-04-14'
+      responses:
+        '201':
+          description: Created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SalesRepresentative'
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-0000005a1014
+                    name: Synthetic Representative
+                    phone: '+15555550123'
+                    email: <synthetic-email>
+                    designation_id: 0193c4a0-0000-7000-8000-0000005a1e01
+                    designation_level: 2
+                    manager_id: 0193c4a0-0000-7000-8000-0000005a1e03
+                    joining_date: '2026-04-14'
+                    is_active: true
+                    version: 1
+                    created_at: '2026-11-17T05:10:00.000Z'
+                    updated_at: '2026-11-17T05:10:00.000Z'
+        '400':
+          $ref: _common.yaml#/components/responses/BadRequest
+        '401':
+          $ref: _common.yaml#/components/responses/Unauthorized
+        '403':
+          $ref: _common.yaml#/components/responses/Forbidden
+        '409':
+          $ref: _common.yaml#/components/responses/Conflict
+        '422':
+          $ref: _common.yaml#/components/responses/Unprocessable
+        '429':
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        '500':
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/partners/admin/sales/representatives/{representative_id}:
+    patch:
+      operationId: updateSalesRepresentative
+      tags:
+        - partners
+      summary: Update a sales representative (T0C-SALES-1)
+      description: Changing manager_id moves the representative with its whole team; a move that makes the representative its own manager or closes a loop answers common.validation_failed. unset clears optional fields. Deactivation is deactivateSalesRepresentative.
+      security:
+        - bearerJwt: []
+      x-permission: partners.sales.manage
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.not_found
+        - auth.mfa_required
+        - common.version_conflict
+        - common.precondition_required
+      parameters:
+        - $ref: '#/components/parameters/RepresentativeId'
+        - $ref: _common.yaml#/components/parameters/IfMatch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              minProperties: 1
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 200
+                phone:
+                  type: string
+                  maxLength: 16
+                  pattern: ^\+[1-9][0-9]{7,14}$
+                email:
+                  type: string
+                  minLength: 3
+                  maxLength: 254
+                user_id:
+                  $ref: _common.yaml#/components/schemas/Uuid
+                designation_id:
+                  $ref: _common.yaml#/components/schemas/Uuid
+                manager_id:
+                  $ref: _common.yaml#/components/schemas/Uuid
+                joining_date:
+                  $ref: _common.yaml#/components/schemas/IsoDate
+                unset:
+                  type: array
+                  maxItems: 5
+                  uniqueItems: true
+                  items:
+                    type: string
+                    maxLength: 12
+                    enum:
+                      - phone
+                      - email
+                      - user_id
+                      - manager_id
+                      - joining_date
+            examples:
+              synthetic:
+                value:
+                  manager_id: 0193c4a0-0000-7000-8000-0000005a1e03
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SalesRepresentative'
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-0000005a1015
+                    name: Synthetic Representative
+                    phone: '+15555550123'
+                    email: <synthetic-email>
+                    designation_id: 0193c4a0-0000-7000-8000-0000005a1e01
+                    designation_level: 2
+                    manager_id: 0193c4a0-0000-7000-8000-0000005a1e03
+                    joining_date: '2026-04-14'
+                    is_active: true
+                    version: 1
+                    created_at: '2026-11-17T05:10:00.000Z'
+                    updated_at: '2026-11-17T05:10:00.000Z'
+        '400':
+          $ref: _common.yaml#/components/responses/BadRequest
+        '401':
+          $ref: _common.yaml#/components/responses/Unauthorized
+        '403':
+          $ref: _common.yaml#/components/responses/Forbidden
+        '404':
+          $ref: _common.yaml#/components/responses/NotFound
+        '409':
+          $ref: _common.yaml#/components/responses/Conflict
+        '422':
+          $ref: _common.yaml#/components/responses/Unprocessable
+        '428':
+          $ref: _common.yaml#/components/responses/PreconditionRequired
+        '429':
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        '500':
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/partners/admin/sales/representatives/{representative_id}/deactivate:
+    post:
+      operationId: deactivateSalesRepresentative
+      tags:
+        - partners
+      summary: Deactivate a sales representative (T0C-SALES-1)
+      description: Sets is_active false; nothing is deleted. Open party assignments and the reporting line (direct reports keep manager_id) stay as they are and are moved explicitly (unassign, update manager_id); the representative is no longer offered for new assignments.
+      security:
+        - bearerJwt: []
+      x-permission: partners.sales.manage
+      x-context: tenant
+      x-idempotency: optional
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.not_found
+        - auth.mfa_required
+        - common.version_conflict
+        - common.precondition_required
+      parameters:
+        - $ref: '#/components/parameters/RepresentativeId'
+        - $ref: _common.yaml#/components/parameters/IfMatch
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SalesRepresentative'
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-0000005a1016
+                    name: Synthetic Representative
+                    phone: '+15555550123'
+                    email: <synthetic-email>
+                    designation_id: 0193c4a0-0000-7000-8000-0000005a1e01
+                    designation_level: 2
+                    manager_id: 0193c4a0-0000-7000-8000-0000005a1e03
+                    joining_date: '2026-04-14'
+                    is_active: false
+                    version: 2
+                    created_at: '2026-11-17T05:10:00.000Z'
+                    updated_at: '2026-11-17T05:10:00.000Z'
+        '400':
+          $ref: _common.yaml#/components/responses/BadRequest
+        '401':
+          $ref: _common.yaml#/components/responses/Unauthorized
+        '403':
+          $ref: _common.yaml#/components/responses/Forbidden
+        '404':
+          $ref: _common.yaml#/components/responses/NotFound
+        '409':
+          $ref: _common.yaml#/components/responses/Conflict
+        '428':
+          $ref: _common.yaml#/components/responses/PreconditionRequired
+        '429':
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        '500':
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/partners/admin/sales/tree:
+    get:
+      operationId: getSalesTree
+      tags:
+        - partners
+      summary: Get the sales manager tree (T0C-SALES-1)
+      description: Flat, paged list in depth-first order, every manager before its reports; depth is at most 8.
+      security:
+        - bearerJwt: []
+      x-permission: partners.sales.read
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.invalid_cursor
+      parameters:
+        - name: root_id
+          in: query
+          required: false
+          description: Start at this representative; absent = every representative without a manager.
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - name: max_depth
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 8
+            default: 8
+        - name: include_inactive
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+        - $ref: _common.yaml#/components/parameters/Cursor
+        - $ref: _common.yaml#/components/parameters/Limit
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                  - data
+                  - page
+                properties:
+                  data:
+                    type: array
+                    maxItems: 200
+                    items:
+                      $ref: '#/components/schemas/SalesTreeNode'
+                  page:
+                    $ref: _common.yaml#/components/schemas/PageInfo
+              examples:
+                synthetic:
+                  value:
+                    data:
+                      - id: 0193c4a0-0000-7000-8000-0000005a1017
+                        name: Synthetic Representative
+                        designation_id: 0193c4a0-0000-7000-8000-0000005a1e01
+                        designation_level: 2
+                        manager_id: 0193c4a0-0000-7000-8000-0000005a1e03
+                        depth: 2
+                        is_active: true
+                    page:
+                      limit: 50
+        '400':
+          $ref: _common.yaml#/components/responses/BadRequest
+        '401':
+          $ref: _common.yaml#/components/responses/Unauthorized
+        '403':
+          $ref: _common.yaml#/components/responses/Forbidden
+        '429':
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        '500':
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/partners/admin/sales/assignments:
+    post:
+      operationId: assignPartyToRepresentative
+      tags:
+        - partners
+      summary: Assign a party to a sales representative (T0C-SALES-1)
+      description: Party = partner, credit party, doctor or referrer (the LIMS split party model). Dates are inclusive; an assignment of the same party to the same representative that overlaps an existing one answers common.validation_failed.
+      security:
+        - bearerJwt: []
+      x-permission: partners.sales.manage
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - auth.mfa_required
+        - common.idempotency_key_required
+        - common.idempotency_key_reused
+        - common.idempotency_in_progress
+      parameters:
+        - $ref: _common.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - party_kind
+                - party_id
+                - representative_id
+                - effective_from
+              properties:
+                party_kind:
+                  type: string
+                  maxLength: 12
+                  enum:
+                    - partner
+                    - credit_party
+                    - doctor
+                    - referrer
+                party_id:
+                  $ref: _common.yaml#/components/schemas/Uuid
+                representative_id:
+                  $ref: _common.yaml#/components/schemas/Uuid
+                effective_from:
+                  $ref: _common.yaml#/components/schemas/IsoDate
+                effective_to:
+                  $ref: _common.yaml#/components/schemas/IsoDate
+            examples:
+              synthetic:
+                value:
+                  party_kind: credit_party
+                  party_id: 0193c4a0-0000-7000-8000-0000005a1e05
+                  representative_id: 0193c4a0-0000-7000-8000-0000005a1e02
+                  effective_from: '2026-11-17'
+      responses:
+        '201':
+          description: Created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PartySalesAssignment'
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-0000005a1018
+                    party_kind: credit_party
+                    party_id: 0193c4a0-0000-7000-8000-0000005a1e05
+                    representative_id: 0193c4a0-0000-7000-8000-0000005a1e02
+                    effective_from: '2026-11-17'
+                    version: 1
+                    created_at: '2026-11-17T05:10:00.000Z'
+                    updated_at: '2026-11-17T05:10:00.000Z'
+        '400':
+          $ref: _common.yaml#/components/responses/BadRequest
+        '401':
+          $ref: _common.yaml#/components/responses/Unauthorized
+        '403':
+          $ref: _common.yaml#/components/responses/Forbidden
+        '409':
+          $ref: _common.yaml#/components/responses/Conflict
+        '422':
+          $ref: _common.yaml#/components/responses/Unprocessable
+        '429':
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        '500':
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/partners/admin/sales/assignments/{assignment_id}/unassign:
+    post:
+      operationId: unassignPartyFromRepresentative
+      tags:
+        - partners
+      summary: End a party assignment (T0C-SALES-1)
+      description: Closes the assignment by setting effective_to (last day, inclusive; absent = today in the tenant time zone; never before effective_from). The row is kept for history and commission reports.
+      security:
+        - bearerJwt: []
+      x-permission: partners.sales.manage
+      x-context: tenant
+      x-idempotency: optional
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.not_found
+        - auth.mfa_required
+        - common.version_conflict
+        - common.precondition_required
+      parameters:
+        - $ref: '#/components/parameters/AssignmentId'
+        - $ref: _common.yaml#/components/parameters/IfMatch
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                effective_to:
+                  $ref: _common.yaml#/components/schemas/IsoDate
+            examples:
+              synthetic:
+                value:
+                  effective_to: '2026-12-31'
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PartySalesAssignment'
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-0000005a1019
+                    party_kind: credit_party
+                    party_id: 0193c4a0-0000-7000-8000-0000005a1e05
+                    representative_id: 0193c4a0-0000-7000-8000-0000005a1e02
+                    effective_from: '2026-11-17'
+                    version: 2
+                    created_at: '2026-11-17T05:10:00.000Z'
+                    updated_at: '2026-11-17T05:10:00.000Z'
+                    effective_to: '2026-12-31'
+        '400':
+          $ref: _common.yaml#/components/responses/BadRequest
+        '401':
+          $ref: _common.yaml#/components/responses/Unauthorized
+        '403':
+          $ref: _common.yaml#/components/responses/Forbidden
+        '404':
+          $ref: _common.yaml#/components/responses/NotFound
+        '409':
+          $ref: _common.yaml#/components/responses/Conflict
+        '422':
+          $ref: _common.yaml#/components/responses/Unprocessable
+        '428':
+          $ref: _common.yaml#/components/responses/PreconditionRequired
+        '429':
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        '500':
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/partners/admin/sales/representatives/{representative_id}/clients:
+    get:
+      operationId: listRepresentativeClients
+      tags:
+        - partners
+      summary: List a representative's clients (T0C-SALES-1)
+      description: 'Only this representative''s own clients: parties with an active assignment on as_of (effective_from <= as_of <= effective_to, or open ended), with the outstanding balance in paisa and the last bill date. May be cached on the device for offline reading.'
+      security:
+        - bearerJwt: []
+      x-permission: partners.sales.read
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.invalid_cursor
+        - common.not_found
+      parameters:
+        - $ref: '#/components/parameters/RepresentativeId'
+        - name: party_kind
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 12
+            enum:
+              - partner
+              - credit_party
+              - doctor
+              - referrer
+        - name: as_of
+          in: query
+          required: false
+          description: Assignments effective on this date (default today).
+          schema:
+            $ref: _common.yaml#/components/schemas/IsoDate
+        - $ref: _common.yaml#/components/parameters/Cursor
+        - $ref: _common.yaml#/components/parameters/Limit
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                  - data
+                  - page
+                properties:
+                  data:
+                    type: array
+                    maxItems: 200
+                    items:
+                      $ref: '#/components/schemas/RepresentativeClient'
+                  page:
+                    $ref: _common.yaml#/components/schemas/PageInfo
+              examples:
+                synthetic:
+                  value:
+                    data:
+                      - assignment_id: 0193c4a0-0000-7000-8000-0000005a1e04
+                        party_kind: credit_party
+                        party_id: 0193c4a0-0000-7000-8000-0000005a1e05
+                        party_name: Synthetic Clinic
+                        outstanding_paisa: 1250000
+                        last_bill_date: '2026-11-16'
+                        effective_from: '2026-11-17'
+                    page:
+                      limit: 50
+        '400':
+          $ref: _common.yaml#/components/responses/BadRequest
+        '401':
+          $ref: _common.yaml#/components/responses/Unauthorized
+        '403':
+          $ref: _common.yaml#/components/responses/Forbidden
+        '404':
+          $ref: _common.yaml#/components/responses/NotFound
+        '429':
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        '500':
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/partners/admin/sales/service-areas:
+    get:
+      operationId: listServiceAreas
+      tags:
+        - partners
+      summary: List service areas (T0C-SALES-1)
+      security:
+        - bearerJwt: []
+      x-permission: partners.sales.read
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.invalid_cursor
+      parameters:
+        - name: district
+          in: query
+          required: false
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 100
+        - name: centre_id
+          in: query
+          required: false
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - name: is_active
+          in: query
+          required: false
+          schema:
+            type: boolean
+        - name: q
+          in: query
+          required: false
+          description: Name prefix, case-insensitive.
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 64
+        - $ref: _common.yaml#/components/parameters/Cursor
+        - $ref: _common.yaml#/components/parameters/Limit
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                  - data
+                  - page
+                properties:
+                  data:
+                    type: array
+                    maxItems: 200
+                    items:
+                      $ref: '#/components/schemas/ServiceArea'
+                  page:
+                    $ref: _common.yaml#/components/schemas/PageInfo
+              examples:
+                synthetic:
+                  value:
+                    data:
+                      - id: 0193c4a0-0000-7000-8000-0000005a1020
+                        name: Synthetic ward 4
+                        district: Kathmandu
+                        area_text: Synthetic municipality, ward 4
+                        centre_id: 0193c4a0-0000-7000-8000-0000005a1e07
+                        is_active: true
+                        version: 1
+                        created_at: '2026-11-17T05:10:00.000Z'
+                        updated_at: '2026-11-17T05:10:00.000Z'
+                    page:
+                      limit: 50
+        '400':
+          $ref: _common.yaml#/components/responses/BadRequest
+        '401':
+          $ref: _common.yaml#/components/responses/Unauthorized
+        '403':
+          $ref: _common.yaml#/components/responses/Forbidden
+        '429':
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        '500':
+          $ref: _common.yaml#/components/responses/Internal
+    post:
+      operationId: createServiceArea
+      tags:
+        - partners
+      summary: Create a service area (T0C-SALES-1)
+      description: Areas are free text district and area (municipality, ward, landmarks); centre_id absent = the area is served by the whole tenant.
+      security:
+        - bearerJwt: []
+      x-permission: partners.sales.manage
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - auth.mfa_required
+        - common.idempotency_key_required
+        - common.idempotency_key_reused
+        - common.idempotency_in_progress
+      parameters:
+        - $ref: _common.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - name
+                - district
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 200
+                district:
+                  type: string
+                  minLength: 1
+                  maxLength: 100
+                area_text:
+                  type: string
+                  minLength: 1
+                  maxLength: 500
+                centre_id:
+                  $ref: _common.yaml#/components/schemas/Uuid
+            examples:
+              synthetic:
+                value:
+                  name: Synthetic ward 4
+                  district: Kathmandu
+                  area_text: Synthetic municipality, ward 4
+                  centre_id: 0193c4a0-0000-7000-8000-0000005a1e07
+      responses:
+        '201':
+          description: Created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceArea'
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-0000005a1021
+                    name: Synthetic ward 4
+                    district: Kathmandu
+                    area_text: Synthetic municipality, ward 4
+                    centre_id: 0193c4a0-0000-7000-8000-0000005a1e07
+                    is_active: true
+                    version: 1
+                    created_at: '2026-11-17T05:10:00.000Z'
+                    updated_at: '2026-11-17T05:10:00.000Z'
+        '400':
+          $ref: _common.yaml#/components/responses/BadRequest
+        '401':
+          $ref: _common.yaml#/components/responses/Unauthorized
+        '403':
+          $ref: _common.yaml#/components/responses/Forbidden
+        '409':
+          $ref: _common.yaml#/components/responses/Conflict
+        '422':
+          $ref: _common.yaml#/components/responses/Unprocessable
+        '429':
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        '500':
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/partners/admin/sales/service-areas/{service_area_id}:
+    patch:
+      operationId: updateServiceArea
+      tags:
+        - partners
+      summary: Update a service area (T0C-SALES-1)
+      security:
+        - bearerJwt: []
+      x-permission: partners.sales.manage
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.not_found
+        - auth.mfa_required
+        - common.version_conflict
+        - common.precondition_required
+      parameters:
+        - $ref: '#/components/parameters/ServiceAreaId'
+        - $ref: _common.yaml#/components/parameters/IfMatch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              minProperties: 1
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 200
+                district:
+                  type: string
+                  minLength: 1
+                  maxLength: 100
+                area_text:
+                  type: string
+                  minLength: 1
+                  maxLength: 500
+                centre_id:
+                  $ref: _common.yaml#/components/schemas/Uuid
+                unset:
+                  type: array
+                  maxItems: 2
+                  uniqueItems: true
+                  items:
+                    type: string
+                    maxLength: 9
+                    enum:
+                      - area_text
+                      - centre_id
+            examples:
+              synthetic:
+                value:
+                  area_text: Synthetic municipality, ward 5
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceArea'
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-0000005a1022
+                    name: Synthetic ward 4
+                    district: Kathmandu
+                    area_text: Synthetic municipality, ward 4
+                    centre_id: 0193c4a0-0000-7000-8000-0000005a1e07
+                    is_active: true
+                    version: 1
+                    created_at: '2026-11-17T05:10:00.000Z'
+                    updated_at: '2026-11-17T05:10:00.000Z'
+        '400':
+          $ref: _common.yaml#/components/responses/BadRequest
+        '401':
+          $ref: _common.yaml#/components/responses/Unauthorized
+        '403':
+          $ref: _common.yaml#/components/responses/Forbidden
+        '404':
+          $ref: _common.yaml#/components/responses/NotFound
+        '409':
+          $ref: _common.yaml#/components/responses/Conflict
+        '422':
+          $ref: _common.yaml#/components/responses/Unprocessable
+        '428':
+          $ref: _common.yaml#/components/responses/PreconditionRequired
+        '429':
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        '500':
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/partners/admin/sales/service-areas/{service_area_id}/deactivate:
+    post:
+      operationId: deactivateServiceArea
+      tags:
+        - partners
+      summary: Deactivate a service area (T0C-SALES-1)
+      description: Sets is_active false; nothing is deleted.
+      security:
+        - bearerJwt: []
+      x-permission: partners.sales.manage
+      x-context: tenant
+      x-idempotency: optional
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.not_found
+        - auth.mfa_required
+        - common.version_conflict
+        - common.precondition_required
+      parameters:
+        - $ref: '#/components/parameters/ServiceAreaId'
+        - $ref: _common.yaml#/components/parameters/IfMatch
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceArea'
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-0000005a1023
+                    name: Synthetic ward 4
+                    district: Kathmandu
+                    area_text: Synthetic municipality, ward 4
+                    centre_id: 0193c4a0-0000-7000-8000-0000005a1e07
+                    is_active: false
+                    version: 2
+                    created_at: '2026-11-17T05:10:00.000Z'
+                    updated_at: '2026-11-17T05:10:00.000Z'
+        '400':
+          $ref: _common.yaml#/components/responses/BadRequest
+        '401':
+          $ref: _common.yaml#/components/responses/Unauthorized
+        '403':
+          $ref: _common.yaml#/components/responses/Forbidden
+        '404':
+          $ref: _common.yaml#/components/responses/NotFound
+        '409':
+          $ref: _common.yaml#/components/responses/Conflict
+        '428':
+          $ref: _common.yaml#/components/responses/PreconditionRequired
+        '429':
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        '500':
+          $ref: _common.yaml#/components/responses/Internal
+
 components:
   schemas:
+    SalesDesignation:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - name
+        - level
+        - is_active
+        - version
+        - created_at
+        - updated_at
+      properties:
+        id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        level:
+          type: integer
+          minimum: 1
+          maximum: 8
+          description: 1 = top of the sales hierarchy, 8 = field level; unique per tenant.
+        is_active:
+          type: boolean
+        version:
+          $ref: _common.yaml#/components/schemas/Version
+        created_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        updated_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+    SalesRepresentative:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - name
+        - designation_id
+        - designation_level
+        - is_active
+        - version
+        - created_at
+        - updated_at
+      properties:
+        id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        phone:
+          type: string
+          minLength: 1
+          maxLength: 30
+        email:
+          type: string
+          minLength: 3
+          maxLength: 254
+        user_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        designation_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        designation_level:
+          type: integer
+          minimum: 1
+          maximum: 8
+        manager_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        joining_date:
+          $ref: _common.yaml#/components/schemas/IsoDate
+        is_active:
+          type: boolean
+        version:
+          $ref: _common.yaml#/components/schemas/Version
+        created_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        updated_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+    SalesTreeNode:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - name
+        - designation_id
+        - designation_level
+        - depth
+        - is_active
+      properties:
+        id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        designation_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        designation_level:
+          type: integer
+          minimum: 1
+          maximum: 8
+        manager_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        depth:
+          type: integer
+          minimum: 1
+          maximum: 8
+          description: 1 = the root of this answer (root_id, or a representative without a manager).
+        is_active:
+          type: boolean
+    PartySalesAssignment:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - party_kind
+        - party_id
+        - representative_id
+        - effective_from
+        - version
+        - created_at
+        - updated_at
+      properties:
+        id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        party_kind:
+          type: string
+          maxLength: 12
+          enum:
+            - partner
+            - credit_party
+            - doctor
+            - referrer
+        party_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        representative_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        effective_from:
+          $ref: _common.yaml#/components/schemas/IsoDate
+        effective_to:
+          $ref: _common.yaml#/components/schemas/IsoDate
+        version:
+          $ref: _common.yaml#/components/schemas/Version
+        created_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        updated_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+    RepresentativeClient:
+      type: object
+      additionalProperties: false
+      required:
+        - assignment_id
+        - party_kind
+        - party_id
+        - party_name
+        - outstanding_paisa
+        - effective_from
+      properties:
+        assignment_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        party_kind:
+          type: string
+          maxLength: 12
+          enum:
+            - partner
+            - credit_party
+            - doctor
+            - referrer
+        party_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        party_name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        outstanding_paisa:
+          type: integer
+          minimum: -100000000000000
+          maximum: 100000000000000
+          description: Integer paisa owed by the party now (posted ledger balance; negative = advance held).
+        last_bill_date:
+          $ref: _common.yaml#/components/schemas/IsoDate
+        effective_from:
+          $ref: _common.yaml#/components/schemas/IsoDate
+        effective_to:
+          $ref: _common.yaml#/components/schemas/IsoDate
+    ServiceArea:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - name
+        - district
+        - is_active
+        - version
+        - created_at
+        - updated_at
+      properties:
+        id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        district:
+          type: string
+          minLength: 1
+          maxLength: 100
+        area_text:
+          type: string
+          minLength: 1
+          maxLength: 500
+          description: Free text municipality / ward / landmarks (Nepal addresses use district and municipality).
+        centre_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        is_active:
+          type: boolean
+        version:
+          $ref: _common.yaml#/components/schemas/Version
+        created_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        updated_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
     PartnerContext:
       type: object
       additionalProperties: false
@@ -7832,6 +9353,30 @@ components:
               minLength: 1
               maxLength: 160
   parameters:
+    DesignationId:
+      name: designation_id
+      in: path
+      required: true
+      schema:
+        $ref: _common.yaml#/components/schemas/Uuid
+    RepresentativeId:
+      name: representative_id
+      in: path
+      required: true
+      schema:
+        $ref: _common.yaml#/components/schemas/Uuid
+    AssignmentId:
+      name: assignment_id
+      in: path
+      required: true
+      schema:
+        $ref: _common.yaml#/components/schemas/Uuid
+    ServiceAreaId:
+      name: service_area_id
+      in: path
+      required: true
+      schema:
+        $ref: _common.yaml#/components/schemas/Uuid
     ManifestId:
       name: manifest_id
       in: path

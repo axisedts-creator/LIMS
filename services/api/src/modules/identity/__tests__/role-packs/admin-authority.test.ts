@@ -90,8 +90,9 @@ describe('ADMINPACK-1 administrator packs: authority left out on purpose (sectio
     const privileged = r.permissions.filter((c) => PERM.get(c) === true);
     // corp_admin: LD-310 (T0B-ADMINPERM-1) 155 permissions, 59 privileged (every staff code of the registry); std_admin unchanged.
     // T0C-ACCT-1 (LD-313 c): +7 accounting codes, 3 of them privileged (account.manage, account_entry.reverse, cash_transfer.decide) -> 162 / 62.
-    expect(privileged.length, `${admin} privileged`).toBe(admin === 'corp_admin' ? 62 : 35);
-    expect(r.permissions.length, `${admin} permissions`).toBe(admin === 'corp_admin' ? 162 : 102);
+    // T0C-SALES-1 (LD-321): +2 sales codes, 1 privileged (partners.sales.manage) -> 164 / 63; std_admin unchanged.
+    expect(privileged.length, `${admin} privileged`).toBe(admin === 'corp_admin' ? 63 : 35);
+    expect(r.permissions.length, `${admin} permissions`).toBe(admin === 'corp_admin' ? 164 : 102);
     expect(r.mfa_required, admin).toBe(true);
     expect(r.base_default_role, admin).toBe('tenant_admin');
   });

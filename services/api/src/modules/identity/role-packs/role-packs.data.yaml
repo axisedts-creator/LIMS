@@ -135,6 +135,8 @@ packs:
           - partners.partner.read
           - partners.pickup.manage
           - partners.referrer.map
+          - partners.sales.manage
+          - partners.sales.read
           - payments.intent.create
           - payments.intent.resolve
           - payments.merchant_config.manage

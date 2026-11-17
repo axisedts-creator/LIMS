@@ -5,7 +5,8 @@ export type MasterTable = 'departments' | 'specimen_types' | 'containers' | 'met
   | 'comment_codes' | 'comment_code_texts' | 'doctors' | 'credit_parties'   // T-13 / T-15 / T-16 reuse the generic insert/lock/update
   | 'price_lists' | 'price_list_versions' | 'price_list_items'               // T-17 (all three carry version, created_at, updated_at, updated_by)
   | 'surcharge_rules' | 'tax_rules' | 'cs_tax_types'                        // T-18
-  | 'instrument_code_maps';                                                  // T-27
+  | 'instrument_code_maps'                                                   // T-27
+  | 'test_categories';                                                       // T0B-TESTMGMT-1 (LD-318)
 /** Global tables are SELECT-only for lims_app (05-SCHEMA); analyte_versions is read here for the in-use rule only. */
 export type ReadTable = MasterTable | 'g_units' | 'g_value_sets' | 'g_value_set_values' | 'analyte_versions' | 'orderables' | 'g_tax_types';
 

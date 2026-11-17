@@ -2,10 +2,10 @@
 // Rows are the DB columns (05-SCHEMA reference_ranges / critical_limits / *_sets); dates are Date or ISO strings; low/high are decimal STRINGS (scale preserved).
 // Age unknown = `ageDays` absent: birthOn is then ignored and only bands with BOTH age bounds absent match. Default timezone Asia/Kathmandu (08 A13 P-15).
 type D = Date | string;
-type Unit = 'day' | 'week' | 'month' | 'year';
+type Unit = 'hour' | 'day' | 'week' | 'month' | 'year';   // hour: T0B-TESTMGMT-1 (LD-318, ElabAssist age units hour to year)
 
 export interface Band {
-  id: string; sex: string; sort_order?: number | null; specimen_type_id?: string | null;
+  id: string; sex: string; sort_order?: number | null; specimen_type_id?: string | null; instrument_id?: string | null; laboratory_id?: string | null;
   age_low_value?: number | null; age_low_unit?: string | null; age_high_value?: number | null; age_high_unit?: string | null;
   kind?: string; low?: string | null; high?: string | null; normal_codes?: string[] | null; abnormal_codes?: string[] | null; display_text?: string | null;
 }
@@ -17,7 +17,10 @@ export interface BandQuery extends AgeQuery { sex: string; specimenTypeId?: stri
 export interface Age { days: number; weeks: number; months: number; years: number }
 
 const TZ = 'Asia/Kathmandu';
-const DAYS: Record<Unit, number> = { day: 1, week: 7, month: 30.4375, year: 365.25 };   // [CONV] day-count approximation, also the overlap unit (step 6)
+const DAYS: Record<Unit, number> = { hour: 1 / 24, day: 1, week: 7, month: 30.4375, year: 365.25 };   // [CONV] day-count approximation
+/** Age bound in hours (exact integers for every unit: month 730.5, year 8766), the comparison unit of overlap and from <= to (T0B-TESTMGMT-1). */
+const HOURS: Record<Unit, number> = { hour: 1, day: 24, week: 168, month: 730.5, year: 8766 };
+export const ageHours = (value: number, unit: string): number => value * HOURS[unit as Unit];
 const EFFECTIVE = ['published', 'superseded', 'retired'];
 const ms = (d: D) => +new Date(d);
 
@@ -49,7 +52,7 @@ export function selectSet<T extends SetLike>(sets: readonly T[], at: D): T | und
     .sort((a, b) => ms(b.effective_from!) - ms(a.effective_from!))[0];
 }
 
-const ageIn = (a: Age, unit: string) => (unit === 'day' ? a.days : unit === 'week' ? a.weeks : unit === 'month' ? a.months : a.years);
+const ageIn = (a: Age, unit: string) => (unit === 'hour' ? a.days * 24 : unit === 'day' ? a.days : unit === 'week' ? a.weeks : unit === 'month' ? a.months : a.years);   // ponytail: hour from whole days (ageDays), exact hours need the birth time
 const unrestricted = (b: Band) => b.age_low_value == null && b.age_high_value == null;
 const score = (b: Band) => (b.specimen_type_id != null ? 2 : 0) + (b.sex !== 'any' ? 1 : 0);
 
@@ -69,14 +72,20 @@ export function selectBand<T extends Band>(bands: readonly T[], q: BandQuery): T
     .sort((a, b) => score(b) - score(a) || (a.sort_order ?? 100) - (b.sort_order ?? 100) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))[0];
 }
 
-/** Step 6: index pairs [i, j] (i < j) of bands with equal (sex, specimen) whose age intervals [low, high) overlap, compared in days. */
+/** [from, to) of a band in hours; absent bounds = 0 / +inf. */
+export const ageWindow = (b: Band): [number, number] => [b.age_low_value == null ? 0 : ageHours(b.age_low_value, b.age_low_unit!), b.age_high_value == null ? Infinity : ageHours(b.age_high_value, b.age_high_unit!)];
+/**
+ * Step 6: index pairs [i, j] (i < j) of bands of the same group whose age intervals [low, high) overlap, compared in hours.
+ * Group = sex + specimen + instrument + laboratory (T0B-TESTMGMT-1, LD-318: instrument / laboratory specific ranges are separate groups).
+ */
 export function findOverlaps(bands: readonly Band[]): Array<[number, number]> {
-  const win = (b: Band): [number, number] => [b.age_low_value == null ? 0 : b.age_low_value * DAYS[b.age_low_unit as Unit], b.age_high_value == null ? Infinity : b.age_high_value * DAYS[b.age_high_unit as Unit]];
+  const win = ageWindow;
   const out: Array<[number, number]> = [];
   for (let i = 0; i < bands.length; i++) {
     for (let j = i + 1; j < bands.length; j++) {
       const a = bands[i]!, b = bands[j]!;
       if (a.sex !== b.sex || (a.specimen_type_id ?? null) !== (b.specimen_type_id ?? null)) continue;
+      if ((a.instrument_id ?? null) !== (b.instrument_id ?? null) || (a.laboratory_id ?? null) !== (b.laboratory_id ?? null)) continue;
       const [al, ah] = win(a), [bl, bh] = win(b);
       if (al < bh && bl < ah) out.push([i, j]);
     }

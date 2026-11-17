@@ -4,7 +4,7 @@
 export type Verdict = 'WIRED' | 'DEFECT' | 'NOT_EXERCISED';
 export type Depth = 'DEEP' | 'SHALLOW' | 'NOT EXERCISED';
 export type DefectClass = 'BUG' | 'CONFIG' | 'HARNESS';
-export interface ClassifyInput { status: number; timedOut?: boolean; matched?: boolean; holdsPermission?: boolean; errorCode?: string; harnessError?: boolean }
+export interface ClassifyInput { status: number; timedOut?: boolean; matched?: boolean; holdsPermission?: boolean; errorCode?: string; harnessError?: boolean; reachedHandler?: boolean }
 
 export function classify(r: ClassifyInput): { verdict: Verdict; reason: string; depth: Depth } {
   const { status, timedOut = false, matched = true, holdsPermission = true, errorCode = '', harnessError = false } = r;
@@ -20,7 +20,9 @@ export function classify(r: ClassifyInput): { verdict: Verdict; reason: string; 
       : deep('WIRED', `${status}: no session of this kind holds the permission (expected denial)`);
   }
   if (status < 300) return deep('WIRED', 'success');
-  // [CONV] 400 common.validation_failed is the input-schema stage (or a handler's own field check, same shape): SHALLOW. Any other 4xx is a service answer.
+  // [CONV] 400 common.validation_failed is the input-schema stage: SHALLOW. The same shape from the service's own field check (coded set,
+  // row lookup) is a domain answer: DEEP when the run saw fastify's handler start (fires only after schema validation passed). Any other 4xx is a service answer.
+  if (status === 400 && errorCode === 'common.validation_failed' && r.reachedHandler) return deep('WIRED', 'service field check (handler ran)');
   if (status === 400 && errorCode === 'common.validation_failed') return { verdict: 'WIRED', reason: 'stopped at input validation', depth: 'SHALLOW' };
   if ([400, 404, 409, 422].includes(status)) return deep('WIRED', 'validation or not-found answer');
   // [CONV] other 4xx (412/413/415/428...) are pipeline answers after routing, not auth or wiring failures

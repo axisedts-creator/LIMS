@@ -16,16 +16,19 @@ import { makeWorld, seedTrf } from '../trf/helpers.js';
 import { FULL_A, FULL_B, OPS, T, TENANT_A, TENANT_B, codeOf, fire, objs, ownerRows, phone, requestFor, seed, snapshot, superTx, tag, uid, type Objs } from './kit.js';
 
 let A: Objs; let B: Objs;
-const BODY_ID_OPS = new Set(['quoteRegistration', 'createRegistration', 'requestDiscountApproval', 'uploadTrf']);
-const LIST_OPS = new Set(['searchPatients', 'listPossibleDuplicatePatients', 'listOrders', 'listDiscountApprovals', 'listOrderFlags']);
-const TENANT_LEVEL = new Set(['createPatient', 'getFrontdeskSettings', 'updateFrontdeskSettings', 'listFrontdeskCodes']);   // no foreign id to name: covered by their own probes below
+// T0B-REGAPI-2: createRegistrationDraft / addFavouriteTest / previewRegistrationNumbers name a B centre or a B-only orderable in the body or query
+const BODY_ID_OPS = new Set(['quoteRegistration', 'createRegistration', 'requestDiscountApproval', 'uploadTrf', 'createRegistrationDraft', 'addFavouriteTest', 'previewRegistrationNumbers']);
+const NEW_LIST_OPS = ['listRegistrationDrafts', 'listFavouriteTests', 'listCustomFieldDefinitions', 'listCoupons', 'listIcdCodes'] as const;
+const NEW_CREATE_OPS = ['createCustomFieldDefinition', 'createCoupon', 'createIcdCode'] as const;
+const LIST_OPS = new Set(['searchPatients', 'listPossibleDuplicatePatients', 'listOrders', 'listDiscountApprovals', 'listOrderFlags', ...NEW_LIST_OPS]);
+const TENANT_LEVEL = new Set(['createPatient', 'getFrontdeskSettings', 'updateFrontdeskSettings', 'listFrontdeskCodes', ...NEW_CREATE_OPS]);   // no foreign id to name: covered by their own probes below
 const idsOf = (body: any): string[] => (body?.data ?? []).map((x: any) => x.id ?? x.patient?.id).filter(Boolean);
 
 beforeAll(async () => { A = await objs('a', { at: '2026-02-02T03:03:00.000Z' }); B = await objs('b', { at: '2026-02-02T03:03:00.000Z' }); }, T);
 
 describe('registry', () => {
-  it('the contract has exactly the 29 frontdesk operations and every one is probed below', () => {
-    expect(OPS).toHaveLength(29);
+  it('the contract has exactly the 47 frontdesk operations (29 + the 18 of T0C-REGPARITY-2) and every one is probed below', () => {
+    expect(OPS).toHaveLength(47);
     const probed = OPS.filter((o) => o.pathParams.length > 0 || BODY_ID_OPS.has(o.id) || LIST_OPS.has(o.id) || TENANT_LEVEL.has(o.id));
     expect(probed.map((o) => o.id).sort()).toEqual(OPS.map((o) => o.id).sort());
   });
@@ -39,7 +42,8 @@ describe.each(OPS.filter((o) => !TENANT_LEVEL.has(o.id) && !LIST_OPS.has(o.id)).
     expect(out.error, 'expected a LimsError').toBeInstanceOf(LimsError);
     expect(codeOf(out), `${out.error?.message}`).toBe('common.not_found');
     const seen = JSON.stringify({ code: out.error.code, detail: out.error.detail, errors: out.error.errors, extra: { ...out.error } });
-    for (const needle of [B.patient.id, B.order.id, B.item.id, B.approval.id, B.trf.id, B.flag.id, B.name, B.trf.object_path, TENANT_B]) expect(seen, needle).not.toContain(needle);
+    for (const needle of [B.patient.id, B.order.id, B.item.id, B.approval.id, B.trf.id, B.flag.id, B.name, B.trf.object_path, TENANT_B,
+      B.draftId, B.couponId, B.couponCode, B.icdId, B.icdCode, B.fieldId, B.fieldKey, B.favOrderable, B.rewardId]) expect(seen, needle).not.toContain(needle);
     expect(await snapshot(TENANT_B)).toEqual(before);
   });
 });
@@ -93,6 +97,45 @@ describe('list endpoints: B data present => zero B rows, A control row present',
     expect(r.reply!.body.data).toHaveLength(0);
     const rb = await fire('listPossibleDuplicatePatients', { ...requestFor('listPossibleDuplicatePatients', B), query: { created_on: D } }, FULL_B);   // positive control: B sees its own pair
     expect(idsOf(rb.reply!.body).sort()).toEqual([b1.id, b2.id].sort());
+  });
+});
+
+// T0B-REGAPI-2 (LD-315 (11)): every new table is cross tenant probed through its list operation (B row present, A control row present) and its create operation (B untouched).
+describe('T0B-REGAPI-2 list operations: B rows never listed, the A control row is', () => {
+  const ROWS = { listRegistrationDrafts: ['draftId'], listFavouriteTests: ['favOrderable'], listCustomFieldDefinitions: ['fieldId', 'fieldKey'], listCoupons: ['couponId', 'couponCode'], listIcdCodes: ['icdId', 'icdCode'] } as const;
+  it.each(NEW_LIST_OPS.map((o) => [o] as const))('%s', { timeout: T }, async (id) => {
+    const own = await fire(id, requestFor(id, A), FULL_A);
+    expect(own.reply?.status, `${own.error?.code} ${own.error?.message}`).toBe(200);
+    const theirs = await fire(id, requestFor(id, B), FULL_A);
+    expect(theirs.reply?.status, `${theirs.error?.code} ${theirs.error?.message}`).toBe(200);
+    const ownText = JSON.stringify(own.reply!.body); const theirText = JSON.stringify(theirs.reply!.body);
+    for (const k of ROWS[id]) { expect(ownText, `${id}: control row ${k} of A`).toContain((A as any)[k]); expect(theirText, `${id}: ${k} of B`).not.toContain((B as any)[k]); }
+    const positive = await fire(id, requestFor(id, B), FULL_B);                                                       // positive control: B sees its own row
+    for (const k of ROWS[id]) expect(JSON.stringify(positive.reply?.body), `${id}: B control ${k}`).toContain((B as any)[k]);
+  });
+  it('getPatientRewards: A reads A\'s ledger, B\'s patient id answers 404 (covered above) and A\'s balance never counts B points', { timeout: T }, async () => {
+    const own = await fire('getPatientRewards', requestFor('getPatientRewards', A), FULL_A);
+    expect(own.reply?.status, `${own.error?.code}`).toBe(200);
+    expect(own.reply!.body.patient_id).toBe(A.patient.id);
+    expect(JSON.stringify(own.reply!.body)).not.toContain(B.rewardId);
+  });
+});
+describe('T0B-REGAPI-2 create operations never touch the other tenant', () => {
+  it.each(NEW_CREATE_OPS.map((o) => [o] as const))('%s: 201 for A, tenant B byte-identical, A\'s row carries tenant A', { timeout: T }, async (id) => {
+    const before = await snapshot(TENANT_B);
+    const out = await fire(id, requestFor(id, B), FULL_A);
+    expect(out.reply?.status, `${out.error?.code} ${out.error?.message}`).toBe(201);
+    expect(await snapshot(TENANT_B)).toEqual(before);
+    const table = { createCustomFieldDefinition: 'custom_field_definitions', createCoupon: 'coupons', createIcdCode: 'icd_codes' }[id];
+    expect((await ownerRows(`frontdesk.${table}`, 'id = $1', [out.reply!.body.id]))[0].tenant_id).toBe(TENANT_A);
+  });
+  it('updateCoupon / updateIcdCode / updateCustomFieldDefinition with A\'s ids change only A (positive control for the 404 probes above)', { timeout: T }, async () => {
+    const before = await snapshot(TENANT_B);
+    for (const id of ['updateCoupon', 'updateIcdCode', 'updateCustomFieldDefinition'] as const) {
+      const out = await fire(id, requestFor(id, A), FULL_A);
+      expect(out.reply?.status, `${id}: ${out.error?.code} ${out.error?.message}`).toBe(200);
+    }
+    expect(await snapshot(TENANT_B)).toEqual(before);
   });
 });
 

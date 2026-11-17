@@ -101,7 +101,7 @@ describe('done_when: core boots with module (AC-0D-1.1/1.2 through the real boot
     const app = await bootstrap({ config: bootConfig() });
     apps.push(app);
     const ops = operations();
-    expect(ops.length).toBe(29);
+    expect(ops.length).toBe(47);   // T0B-REGAPI-2: 29 + the 18 operations T0C-REGPARITY-2 added (stale count, not a loosened assertion)
     for (const [method, url, op] of ops) {
       const r = await app.inject({ method: method as any, url });
       expect([400, 401], `${op} ${method} ${url} -> ${r.statusCode}`).toContain(r.statusCode);

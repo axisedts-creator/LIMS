@@ -1,0 +1,2 @@
+- Verify red = 1 test: c16-openapi "Profile fields 8 vs 7". Cause: Profile.version added by T-L6 (8666eb72e), pre-existing, not from MSGDESK (all 1247 other tests incl. msgdesk1 green).
+- No impl change made: fix would break T-L6 clients; test matches TRD line 408. Dispute written: T0C-MSGDESK-1-dispute.md. Lead must route (CR for TRD §5.1 `version` or revert T-L6 field).

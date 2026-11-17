@@ -178,10 +178,11 @@ describe("T0C-MSGDESK-1 contract: lint and additive baseline", () => {
       expect(f.op["x-permission"], id).toBe(perm);
     }
   });
-  it("partners.yaml is additive: 68 operations before, exactly 10 new ones now; old operations keep method, path, permission", () => {
+  it("partners.yaml is additive: at least 68 + 10 operations (other LD-321 tasks add more); old operations keep method, path, permission", () => {
     const ids = allOps(P);
-    expect(ids.length, "68 + 10 ticket operations").toBe(78);
-    expect(new Set(ids).size).toBe(78);
+    // ruling T0C-MSGDESK-1: no exact total, T0C-SALES-1 (LD-321) legitimately added 15 partners operations
+    expect(ids.length, "68 + 10 ticket operations, at least").toBeGreaterThanOrEqual(78);
+    expect(new Set(ids).size, "operationIds unique").toBe(ids.length);
     for (const id of Object.keys(PAR)) expect(opOf(P, id), `${id} missing`).toBeDefined();
     for (const [id, m, p, perm] of [["createManifest", "post", "/v1/partners/manifests", "partners.manifest.submit"], ["listPartnerOrders", "get", "/v1/partners/orders", "partners.order.read"],
       ["createPickupRequest", "post", "/v1/partners/pickup-requests", "partners.pickup.request"], ["listPartnerStatements", "get", "/v1/partners/statements", "partners.statement.read"]]) {
@@ -235,11 +236,16 @@ describe("T0C-MSGDESK-1 contract: permissions (done_when 5)", () => {
     expect(p.roles, `${code} tenant_admin`).toContain("tenant_admin");
     expect(code).toMatch(/^[a-z_]+\.[a-z_]+\.[a-z_]+$/);
   });
-  it("the registry grew by exactly the five codes: no engagement or partners code was renamed, removed or added besides them", () => {
+  it("the registry kept every old code and added the five; any other new engagement or partners code is one of the LD-321 list", () => {
     const eng = registry.permissions.filter((p: any) => p.code.startsWith("engagement.")).map((p: any) => p.code);
     const par = registry.permissions.filter((p: any) => p.code.startsWith("partners.")).map((p: any) => p.code);
-    sortedEq(eng, [...OLD_ENG_PERMS, "engagement.broadcast.read", "engagement.broadcast.manage", "engagement.broadcast.approve"]);
-    sortedEq(par, [...OLD_PARTNER_PERMS, "partners.ticket.read", "partners.ticket.manage"]);
+    const MSGDESK = ["engagement.broadcast.read", "engagement.broadcast.manage", "engagement.broadcast.approve", "partners.ticket.read", "partners.ticket.manage"];
+    // LD-321 list (ruling T0C-MSGDESK-1): other tasks may add these, nothing else
+    const LD321 = ["partners.sales.read", "partners.sales.manage", "partners.party_setting.read", "partners.party_setting.manage", "partners.onboarding.decide", "partners.party_id_number.read", "partners.penalty.manage"];
+    for (const c of [...OLD_ENG_PERMS, ...OLD_PARTNER_PERMS, ...MSGDESK]) expect([...eng, ...par], `${c} renamed or removed`).toContain(c);
+    const known = new Set([...OLD_ENG_PERMS, ...OLD_PARTNER_PERMS, ...MSGDESK, ...LD321, "engagement.broadcast.read"]);
+    expect([...eng, ...par].filter((c) => !known.has(c)), "unexpected engagement or partners codes").toEqual([]);
+    expect(new Set([...eng, ...par]).size, "codes unique").toBe(eng.length + par.length);
     expect(byCode.get("engagement.enquiry.respond").roles).toEqual(["front_desk"]);
     expect(byCode.get("partners.partner.manage").privileged).toBe(true);
   });

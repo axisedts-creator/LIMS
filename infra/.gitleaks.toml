@@ -5,4 +5,11 @@ useDefault = true
 
 # Compiled test bytecode folds the runtime-built scanner fixtures into literals.
 [allowlist]
-paths = ['''infra/tests/static/__pycache__/''']
+paths = [
+  '''infra/tests/static/__pycache__/''',
+  # Public upstream Supabase demo defaults (well-known demo JWTs/keys), sha256-pinned in
+  # compose/supabase/upstream/UPSTREAM.lock, never used as real secrets: infra/tests/internal/
+  # secrets_not_default.py proves every deployed value differs. Exactly this one file
+  # (scan paths may be relative or absolute, hence the (^|/) prefix; the tail is anchored with $).
+  '''(^|/)infra/compose/supabase/upstream/\.env\.example$''',
+]

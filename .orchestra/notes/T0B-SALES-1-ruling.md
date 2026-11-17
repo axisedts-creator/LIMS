@@ -1,6 +1,9 @@
-TESTS_WRONG — the test asserts something the spec does not require (say precisely what to change in the test)
-1. services/api/src/modules/partners/__tests__/sales/helpers.ts:124-130 `mkInvoice` seeds billing.invoices with a random invoice_seq and no billing.fiscal_counters row; the BEFORE INSERT guard db/migrations/20261105001700_billing__create_billing_schema.sql:185-191,197 then raises P0001 chronology_violation before any handler runs. The fixture breaks a DB invariant; the assertion is not at fault.
-   CHANGE (fixture only): in the same superTx, upsert billing.fiscal_counters (tenant_id, series 'INV', fiscal_year_bs '2083/84') with last_no = the new seq, using strictly increasing seqs inserted in issued_at order (preferred: keeps the guard live); or SET LOCAL session_replication_role = 'replica' before the INSERT, as wipe() already does at helpers.ts:96. Do not change any assertion in assignments.test.ts.
-2. services/api/src/modules/partners/__tests__/probes/contract-probes.test.ts:80 Q_ALLOWED is a pinned list; the reviewed T0C-SALES-1 contract adds query `q` (name prefix) to listSalesDesignations (contracts/openapi/partners.yaml:6138,6168), listSalesRepresentatives (:6385,6404, "Name prefix, case-insensitive") and listServiceAreas (:7096,7131). These search designation / representative / area names, not patients, so REQ-SEC-098 / AB16 (spec/chunks/C13-b2b-partner-portal/07-SECURITY.md:32,86; 01-PRD.md:154) is not engaged, and FORBIDDEN_QUERY (line 78) still passes.
-   CHANGE: add 'listSalesDesignations', 'listSalesRepresentatives', 'listServiceAreas' to Q_ALLOWED and extend the line 79 comment ("... the staff partner list, and the staff sales master lists by name prefix (T0C-SALES-1)"). Keep the toEqual exact-match and the searchPartnerOrders POST assertions unchanged.
-Implementation stays as is for both points.
+TESTS_WRONG — the mkInvoice fixture inserts values the billing schema forbids; fix the fixture only, assertions unchanged.
+1. Fingerprint shape is sha256 hex: spec/chunks/C4-frontdesk-billing/02-TRD.md:245 ("fingerprint (64 hex ...)") and :417 ("sha256 hex"); enforced by db/migrations/20261105001700_billing__create_billing_schema.sql:115 invoices__fp__ck '^[0-9a-f]{64}$'. Fixture value 'synthetic' (services/api/src/modules/partners/__tests__/sales/helpers.ts:130) can never insert.
+2. invoice_seq must be >= 1 (same migration :94 invoices__seq__ck); helpers.ts:127 Math.floor(Math.random()*2e9) can yield 0.
+3. session_replication_role='replica' disables triggers only, not CHECK constraints, so the earlier replica fix (ruling 55c3ab50a) does not cover these.
+4. Nothing in T0C-SALES-1 / T0B-SALES-1 brief requires the implementation to accept invalid invoices; the outstanding/last-bill-date assertions in assignments.test.ts stay as written.
+CHANGE (test fixture helpers.ts mkInvoice only):
+- quote_fingerprint: crypto.randomBytes(32).toString('hex') (or '0'.repeat(64)).
+- invoice_seq: 1 + Math.floor(Math.random() * 2e9).
+No assertion deleted, skipped or loosened. Implementation stays as is.

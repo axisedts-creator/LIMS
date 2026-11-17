@@ -101,7 +101,9 @@ export function TestsList({ rows, filters, page, pages, filtered, departments, s
           {rows.length === 0 ? (
             // T0D-EMPTYTBL-1 (LD-310): message row + four placeholder rows.
             <EmptyRow colSpan={heads.length}>
-              {filtered ? t('catalog.tests.no_match') : <>{t('catalog.tests.empty')} {newButton}</>}
+              {filtered ? t('catalog.tests.no_match') : <>{t('catalog.tests.empty')} {newButton}{' '}
+                {/* T0D-TESTMGMT-FIX-1: starter workbook import, as on the catalog home */}
+                <Button variant="secondary" isDisabled={!manage} onPress={() => router.push('/catalog/imports')}>Import from Excel</Button></>}
             </EmptyRow>
           ) : (
             rows.map((r) => (

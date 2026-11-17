@@ -41,7 +41,9 @@ describe('contract <-> probes', () => {
   });
   it('every tenant table of schema lab is named by the table probes (P-T), no more, no less', () => {
     const mig = fileText('db/migrations/20261105001800_lab__create_lab_schema.sql');
-    const tenantTables = [...mig.matchAll(/CREATE TABLE lab\.([a-z_]+)/g)].map((m) => m[1]!).filter((t) => !t.startsWith('g_cs_'));
+    // + the two tables of T0C-VERLEVEL-1 (LD-316), created with IF NOT EXISTS in their own migration
+    const verlevel = fileText('db/migrations/20261117150000_lab__add_verification_policy_and_signoffs.sql');
+    const tenantTables = [...[mig, verlevel].flatMap((m) => [...m.matchAll(/CREATE TABLE (?:IF NOT EXISTS )?lab\.([a-z_]+)/g)].map((x) => x[1]!))].filter((t) => !t.startsWith('g_cs_'));
     expect([...LAB_TENANT_TABLES].sort()).toEqual([...tenantTables].sort());
     const probes = fileText(`${MOD}/__tests__/probes/tables.live.test.ts`);
     expect(probes).toContain('LAB_TENANT_TABLES');

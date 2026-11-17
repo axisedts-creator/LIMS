@@ -2,3 +2,8 @@
 - Verify log: 2153 passed, 1 failed: billing boot.test BL-T01 "bootstrap resolves..." Test timed out in 60000ms. No assertion failed; no ACCT-2 test failed.
 - Cause: host load, not product code. The 71 inject requests take 1-9 ms each (log durations); the time is core bootstrap of all modules (about 1 s per module). Run alone with -t it PASSED in 50.8 s (close to the 60 s limit); a second unfiltered alone run under load took 155 s.
 - Fix: none in implementation code (nothing to fix); test timeouts must not be weakened (LD-328 item 5). Re-run verify on a quiet host, or the lead may pass a larger --testTimeout in the verify command (harness side, not a test edit).
+
+## Debugger round 2 (2026-11-17 16:25 NPT)
+- Verify log (16:08): 2153 passed, 1 failed: same billing boot.test BL-T01 timeout at 60000ms. No ACCT-2 or other assertion failed.
+- Cause: unchanged, host load. Test bootstraps every module (about 1 s each); alone it PASSED 9/9 in 58.6 s, only 1.4 s under the limit. The 71 requests take 1-9 ms each. Not a product defect.
+- Fix: none in implementation code. Timeout not weakened (LD-328 item 5). Needs a quiet host, or the lead raises --testTimeout in the verify command (harness side).

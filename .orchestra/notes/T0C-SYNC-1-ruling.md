@@ -1,10 +1,8 @@
-TESTS_WRONG — the tests pin core operationId `requestDeviceWipe`, which the spec already gives to C17 and forbids reusing.
+TESTS_WRONG — contracts/__tests__/registry-equality.test.ts pins the out-of-IC extras to exactly the ACCT/SALES/SYNC allow-lists; after the main merge it also sees T0C-MSGDESK-1 codes that LD-330 requires this lane to keep.
+Change in the test (tester): add `MSGDESK_ERRORS` = engagement.broadcast_invalid_transition, engagement.broadcast_placeholder_unknown, engagement.broadcast_provider_not_configured, engagement.broadcast_recipient_limit, engagement.broadcast_self_approval, engagement.broadcast_template_inactive, partners.ticket_invalid_transition, and use `[...LD322_SYNC_ERRORS, ...MSGDESK_ERRORS].sort()` at line 100.
+Add `MSGDESK_CODES` = partners.ticket.manage, partners.ticket.read to the extra list at line 193. If line 195 (role/pack deep equality) also fails on the partner role grants, filter those two codes out of the role lists before comparing, the same way the extra permissions are filtered. Keep every other assertion.
 Reasons:
-1. spec/program/02-CONVENTIONS.md:311 — operationId must be "unique across ALL specs"; :1143 makes uniqueness a spec-lint gate. The tooling enforces this too: tools/codegen/codegen.ts:465 throws "duplicate operationId across specs".
-2. spec/chunks/C17-home-collection/02-TRD.md:193 (H17), plus 01-PRD.md:199 and 03-APP-FLOW.md:313, already own `requestDeviceWipe` (contracts/openapi/homecollection.yaml:1993). The C17 spec is the other chunk's to change, and CLAUDE.md forbids renaming its ids.
-3. No spec file names a T0C-SYNC-1 operation; `requestDeviceWipe` comes only from the task brief (LD-322 design). Precedence puts 02-CONVENTIONS above the brief, so the name cannot be used as is.
-4. `ackDeviceWipe` does not collide (it appears only in core.yaml:311), so keep it as the brief names it.
-Change in the tests (nothing else):
-- tools/codegen/__tests__/sync1-openapi.test.ts lines 55, 64, 249, 256, 413: rename `requestDeviceWipe` to `requestSyncDeviceWipe`. Keep method, path, permission, idempotency, status and errors as they are. This follows the brief's own pattern (registerSyncDevice, listSyncDevices, revokeSyncDevice).
-- services/api/src/core/__tests__/sync1.pending.test.ts line 13 (NEW_OPS), and the expected core pending list: same rename.
-- The implementation notes must record the rename and its reason (it differs from the brief), so the lead can audit it under LD-310.
+- LD-330 (inbox brief line 35): when both contract lanes add to permissions.yaml or the role pack, the lane that merges second keeps BOTH sides and never drops a permission code. So the SYNC-1 lane may not remove the MSGDESK codes, and only the test can change.
+- spec/program/03-INTERFACE-CATALOG.md §8/§11 do not list any of these codes (grep finds no match), and they do not list ACCT/SALES/SYNC either. The test already handles those with allow-lists (lines 16-23). Nothing in the spec says the extras must be exactly ACCT+SALES+SYNC: that exact pin is a test choice that went stale when MSGDESK merged.
+- Evidence is in the dispute: codegen 88/88, API 248/248, pgTAP exit 0. Only these 2 registry-equality cases are red, and they come from 391a69686 (T0C-MSGDESK-1, lane C0-0C), not from SYNC-1 code.
+- Lead follow-up (not blocking): add the MSGDESK codes to IC §8/§11 the way LD-337 did for the routes, then drop the allow-lists.

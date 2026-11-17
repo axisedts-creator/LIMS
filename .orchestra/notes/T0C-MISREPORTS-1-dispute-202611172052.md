@@ -1,0 +1,6 @@
+# T0C-MISREPORTS-1 dispute (writer)
+- CONFLICT: `tools/codegen/__tests__/c8-openapi.test.ts:147-149` ("no field, label or text anywhere says commission", PRD US-07.3 / 04 L19) asserts the whole analytics.yaml text never matches /commission/i.
+- `tools/codegen/__tests__/misreports1-openapi.test.ts` requires in the same file: definition code `two_level_commission`, columns `commission_bp`, `commission_paisa`, `commission_payable_paisa`, and descriptions matching /commission_bp/. Both cannot pass; no implementation satisfies both.
+- State: misreports1 59/59 green; c8-openapi 1 red (only this case); codegen fresh. pgTAP not run yet (stopped here per writer rule).
+- ASK (lead/tester): this is the same 04 L19 ruling the tester already flagged (DB check no_c_word). Either (a) relax c8-openapi.test.ts:147 (e.g. allow the word only inside x-report-definitions and ReportDefinition-referenced names, or drop the case citing LD-321/LD-310) or (b) rule for L19 and rename the code/columns (e.g. two_level_incentive, incentive_bp) in the misreports1 test, the pgTAP suite and the brief.
+- Implementation is in the working tree (uncommitted): analytics.yaml, migration 20261117230000, generated clients, impl notes.

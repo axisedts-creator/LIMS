@@ -108,7 +108,7 @@ describe('previewInvoiceNo (real implementation, LD-323)', () => {
 
   it('tenant isolation: tenant B sees only its own counter and a tenant A preview never reads tenant B rows', { timeout: T }, async () => {
     await superTx(async (tx: any) => tx.query(`INSERT INTO billing.fiscal_counters (tenant_id, series, fiscal_year_bs, last_no, created_by, updated_by)
-      VALUES ($1, 'INV', $2, 7, $3, $3) ON CONFLICT DO NOTHING`, [TENANT_B, FY, SYS_ACTOR]));
+      VALUES ($1, 'INV', $2, 7, $3, $3) ON CONFLICT DO NOTHING`, [TENANT_B, FY, SYS_ACTOR]), TENANT_B);
     const b = await lastNo(TENANT_B);
     expect(b).toBeGreaterThanOrEqual(7);
     expect((await preview(TENANT_B)).invoiceNo).toBe(`${FY}-${pad(b + 1)}`);

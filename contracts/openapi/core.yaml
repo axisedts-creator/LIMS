@@ -50,6 +50,453 @@ paths:
               schema: { $ref: '#/components/schemas/Readiness' }
               examples:
                 db_down: { value: { status: down, checks: { db: down, ratelimit: ok } } }
+  # ---------- T0C-SYNC-1 (LD-322; design C:/LIMS-state/offline-design-20261117.md sections 4, 5, 6, 7): offline sync part 1 ----------
+  /v1/core/sync/devices:
+    post:
+      operationId: registerSyncDevice
+      tags: [core]
+      summary: Register this device for offline work (T0C-SYNC-1)
+      description: >-
+        Called online by the signed in user on the device (first sign in on a new device is online only). The device
+        generates its own UUID and keeps it. Idempotent per device id: registering the same id again for the same user
+        answers 200 with the existing row (label, platform and app version refreshed, last_seen_at moved), never a second
+        row. A revoked device answers sync.device_revoked; a device with a pending remote wipe answers sync.wipe_required.
+      security:
+        - bearerJwt: []
+      x-permission: sync.use
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.idempotency_key_required
+        - common.idempotency_key_reused
+        - common.idempotency_in_progress
+        - sync.device_revoked
+        - sync.wipe_required
+      parameters:
+        - $ref: '_common.yaml#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SyncDeviceRegistration' }
+            examples:
+              web_pc:
+                value: { id: 0193c4a0-0000-7000-8000-0000005c0001, device_label: Front desk PC 1, platform: web, app_version: 1.4.0 }
+      responses:
+        '200':
+          description: The registered device (new or existing).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SyncDevice' }
+              examples:
+                registered:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-0000005c0011
+                    user_id: 0193c4a0-0000-7000-8000-0000005c0101
+                    device_label: Front desk PC 1
+                    platform: web
+                    app_version: 1.4.0
+                    status: active
+                    first_seen_at: '2026-11-17T04:15:00.000Z'
+                    last_seen_at: '2026-11-17T04:15:00.000Z'
+                    offline_retention_days: 14
+                    created_at: '2026-11-17T04:15:00.000Z'
+                    updated_at: '2026-11-17T04:15:00.000Z'
+        '400': { $ref: '_common.yaml#/components/responses/BadRequest' }
+        '401': { $ref: '_common.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '_common.yaml#/components/responses/Forbidden' }
+        '409': { $ref: '_common.yaml#/components/responses/Conflict' }
+        '422': { $ref: '_common.yaml#/components/responses/Unprocessable' }
+        '429': { $ref: '_common.yaml#/components/responses/TooManyRequests' }
+        '500': { $ref: '_common.yaml#/components/responses/Internal' }
+    get:
+      operationId: listSyncDevices
+      tags: [core]
+      summary: List registered sync devices of the tenant (T0C-SYNC-1)
+      description: Administrator view of the device registry; revoked and wiped devices stay listed (rows are never deleted).
+      security:
+        - bearerJwt: []
+      x-permission: sync.device.manage
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - auth.mfa_required
+        - common.invalid_cursor
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema: { $ref: '#/components/schemas/SyncDeviceStatus' }
+        - name: user_id
+          in: query
+          required: false
+          schema: { $ref: '_common.yaml#/components/schemas/Uuid' }
+        - name: platform
+          in: query
+          required: false
+          schema: { $ref: '#/components/schemas/SyncPlatform' }
+        - $ref: '_common.yaml#/components/parameters/Cursor'
+        - $ref: '_common.yaml#/components/parameters/Limit'
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [data, page]
+                properties:
+                  data:
+                    type: array
+                    maxItems: 200
+                    items: { $ref: '#/components/schemas/SyncDevice' }
+                  page: { $ref: '_common.yaml#/components/schemas/PageInfo' }
+              examples:
+                two_devices:
+                  value:
+                    data:
+                      - id: 0193c4a0-0000-7000-8000-0000005c0021
+                        user_id: 0193c4a0-0000-7000-8000-0000005c0101
+                        device_label: Front desk PC 1
+                        platform: web
+                        app_version: 1.4.0
+                        status: active
+                        first_seen_at: '2026-11-17T04:15:00.000Z'
+                        last_seen_at: '2026-11-17T09:40:00.000Z'
+                        last_sync_at: '2026-11-17T09:40:00.000Z'
+                        last_clock_skew_ms: -1200
+                        offline_retention_days: 14
+                        created_at: '2026-11-17T04:15:00.000Z'
+                        updated_at: '2026-11-17T09:40:00.000Z'
+                      - id: 0193c4a0-0000-7000-8000-0000005c0022
+                        user_id: 0193c4a0-0000-7000-8000-0000005c0102
+                        device_label: Collection tablet 3
+                        platform: android
+                        app_version: 1.3.2
+                        status: wipe_requested
+                        first_seen_at: '2026-11-10T03:00:00.000Z'
+                        last_seen_at: '2026-11-16T11:00:00.000Z'
+                        wipe_requested_at: '2026-11-17T05:00:00.000Z'
+                        offline_retention_days: 14
+                        created_at: '2026-11-10T03:00:00.000Z'
+                        updated_at: '2026-11-17T05:00:00.000Z'
+                    page: { limit: 50 }
+        '400': { $ref: '_common.yaml#/components/responses/BadRequest' }
+        '401': { $ref: '_common.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '_common.yaml#/components/responses/Forbidden' }
+        '429': { $ref: '_common.yaml#/components/responses/TooManyRequests' }
+        '500': { $ref: '_common.yaml#/components/responses/Internal' }
+  /v1/core/sync/devices/{device_id}/revoke:
+    post:
+      operationId: revokeSyncDevice
+      tags: [core]
+      summary: Revoke a sync device (T0C-SYNC-1)
+      description: >-
+        Sets status revoked; the row is kept for the audit trail. From its next contact every sync call of the device is
+        rejected with sync.device_revoked and the device refuses to unlock its local store. Revoking a revoked device answers
+        the unchanged row.
+      security:
+        - bearerJwt: []
+      x-permission: sync.device.manage
+      x-context: tenant
+      x-idempotency: optional
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.not_found
+        - auth.mfa_required
+        - sync.device_unknown
+      parameters:
+        - $ref: '#/components/parameters/DeviceId'
+      responses:
+        '200':
+          description: The revoked device.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SyncDevice' }
+              examples:
+                revoked:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-0000005c0031
+                    user_id: 0193c4a0-0000-7000-8000-0000005c0101
+                    device_label: Front desk PC 1
+                    platform: web
+                    app_version: 1.4.0
+                    status: revoked
+                    first_seen_at: '2026-11-17T04:15:00.000Z'
+                    last_seen_at: '2026-11-17T09:40:00.000Z'
+                    offline_retention_days: 14
+                    created_at: '2026-11-17T04:15:00.000Z'
+                    updated_at: '2026-11-17T10:00:00.000Z'
+        '400': { $ref: '_common.yaml#/components/responses/BadRequest' }
+        '401': { $ref: '_common.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '_common.yaml#/components/responses/Forbidden' }
+        '404': { $ref: '_common.yaml#/components/responses/NotFound' }
+        '409': { $ref: '_common.yaml#/components/responses/Conflict' }
+        '429': { $ref: '_common.yaml#/components/responses/TooManyRequests' }
+        '500': { $ref: '_common.yaml#/components/responses/Internal' }
+  /v1/core/sync/devices/{device_id}/wipe:
+    post:
+      operationId: requestSyncDeviceWipe
+      tags: [core]
+      summary: Request a remote wipe of a sync device (T0C-SYNC-1)
+      description: >-
+        Sets status wipe_requested and wipe_requested_at. The device wipes its local encrypted store on its next contact
+        (getSyncStatus or any sync call answers sync.wipe_required) and then calls ackDeviceWipe. Unsynced operations on
+        that device are lost; the screen warns before the request.
+      security:
+        - bearerJwt: []
+      x-permission: sync.device.manage
+      x-context: tenant
+      x-idempotency: optional
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.not_found
+        - auth.mfa_required
+        - sync.device_unknown
+      parameters:
+        - $ref: '#/components/parameters/DeviceId'
+      responses:
+        '200':
+          description: The device, wipe requested.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SyncDevice' }
+              examples:
+                wipe_requested:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-0000005c0032
+                    user_id: 0193c4a0-0000-7000-8000-0000005c0102
+                    device_label: Collection tablet 3
+                    platform: android
+                    app_version: 1.3.2
+                    status: wipe_requested
+                    first_seen_at: '2026-11-10T03:00:00.000Z'
+                    last_seen_at: '2026-11-16T11:00:00.000Z'
+                    wipe_requested_at: '2026-11-17T05:00:00.000Z'
+                    offline_retention_days: 14
+                    created_at: '2026-11-10T03:00:00.000Z'
+                    updated_at: '2026-11-17T05:00:00.000Z'
+        '400': { $ref: '_common.yaml#/components/responses/BadRequest' }
+        '401': { $ref: '_common.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '_common.yaml#/components/responses/Forbidden' }
+        '404': { $ref: '_common.yaml#/components/responses/NotFound' }
+        '409': { $ref: '_common.yaml#/components/responses/Conflict' }
+        '429': { $ref: '_common.yaml#/components/responses/TooManyRequests' }
+        '500': { $ref: '_common.yaml#/components/responses/Internal' }
+  /v1/core/sync/devices/{device_id}/wipe-ack:
+    post:
+      operationId: ackDeviceWipe
+      tags: [core]
+      summary: Acknowledge a completed remote wipe (T0C-SYNC-1)
+      description: >-
+        Called by the device itself after it wiped its local store: only the signed in owner of that device (user_id of the
+        row) may acknowledge. Records wipe_acked_at; the device stays unusable for offline work until an administrator
+        decides otherwise. A revoked device answers sync.device_revoked.
+      security:
+        - bearerJwt: []
+      x-permission: sync.use
+      x-context: tenant
+      x-idempotency: optional
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.not_found
+        - sync.device_unknown
+        - sync.device_revoked
+      parameters:
+        - $ref: '#/components/parameters/DeviceId'
+      responses:
+        '200':
+          description: The device with the wipe acknowledged.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SyncDevice' }
+              examples:
+                acked:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-0000005c0042
+                    user_id: 0193c4a0-0000-7000-8000-0000005c0102
+                    device_label: Collection tablet 3
+                    platform: android
+                    app_version: 1.3.2
+                    status: wipe_requested
+                    first_seen_at: '2026-11-10T03:00:00.000Z'
+                    last_seen_at: '2026-11-17T06:00:00.000Z'
+                    wipe_requested_at: '2026-11-17T05:00:00.000Z'
+                    wipe_acked_at: '2026-11-17T06:00:00.000Z'
+                    offline_retention_days: 14
+                    created_at: '2026-11-10T03:00:00.000Z'
+                    updated_at: '2026-11-17T06:00:00.000Z'
+        '400': { $ref: '_common.yaml#/components/responses/BadRequest' }
+        '401': { $ref: '_common.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '_common.yaml#/components/responses/Forbidden' }
+        '404': { $ref: '_common.yaml#/components/responses/NotFound' }
+        '409': { $ref: '_common.yaml#/components/responses/Conflict' }
+        '429': { $ref: '_common.yaml#/components/responses/TooManyRequests' }
+        '500': { $ref: '_common.yaml#/components/responses/Internal' }
+  /v1/core/sync/status:
+    get:
+      operationId: getSyncStatus
+      tags: [core]
+      summary: Sync status, limits and retry hints for this device (T0C-SYNC-1)
+      description: >-
+        The first call of every sync cycle. Answers the server time (the device stores its clock skew), the device status
+        (a revoked device answers sync.device_revoked, a device with a pending wipe sync.wipe_required), the minimum app
+        version, the batch limits (at most 50 operations and 1 MB per batch, one batch in flight per device), the retry
+        hints (exponential backoff with full jitter, capped at 5 minutes, honour Retry-After) and whether the tenant policy
+        allows offline approval by a locally signed in pathologist (default false: approvals needing MFA step up are online only).
+      security:
+        - bearerJwt: []
+      x-permission: sync.use
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - sync.device_unknown
+        - sync.device_revoked
+        - sync.wipe_required
+      parameters:
+        - name: device_id
+          in: query
+          required: true
+          schema: { $ref: '_common.yaml#/components/schemas/Uuid' }
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SyncStatus' }
+              examples:
+                active:
+                  value:
+                    server_time: '2026-11-17T10:15:00.000Z'
+                    device_status: active
+                    min_app_version: 1.2.0
+                    limits: { max_batch_operations: 50, max_batch_bytes: 1048576 }
+                    retry: { base_delay_ms: 1000, max_delay_ms: 300000, jitter: full }
+                    offline_approval_allowed: false
+                must_wipe:
+                  value:
+                    server_time: '2026-11-17T10:15:00.000Z'
+                    device_status: wipe_requested
+                    limits: { max_batch_operations: 50, max_batch_bytes: 1048576 }
+                    retry: { base_delay_ms: 1000, max_delay_ms: 300000, jitter: full }
+                    offline_approval_allowed: false
+        '400': { $ref: '_common.yaml#/components/responses/BadRequest' }
+        '401': { $ref: '_common.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '_common.yaml#/components/responses/Forbidden' }
+        '409': { $ref: '_common.yaml#/components/responses/Conflict' }
+        '429': { $ref: '_common.yaml#/components/responses/TooManyRequests' }
+        '500': { $ref: '_common.yaml#/components/responses/Internal' }
+  /v1/core/sync/number-blocks:
+    post:
+      operationId: reserveNumberBlock
+      tags: [core]
+      summary: Reserve a block of lab codes or patient ids for offline use (T0C-SYNC-1)
+      description: >-
+        Online only: a device reserves a block per series while online (design section 4; defaults 200 lab codes and 100
+        patient ids; block size is a tenant setting and a size above the configured maximum answers sync.block_size_too_large).
+        The server picks the next free range; blocks of one tenant and series never overlap (database rule). Numbers the
+        device does not use are recorded as skipped: a gap is allowed for lab codes and patient ids. Bill, invoice and
+        receipt numbers are never issued in blocks (provisional offline numbers, the server assigns the final gap free
+        number at sync), so only the series lab_code and patient_id exist; a series the tenant does not issue in blocks
+        answers sync.series_unknown. remaining_size is the count of unused numbers the device then holds in that series,
+        this block included.
+      security:
+        - bearerJwt: []
+      x-permission: sync.use
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.idempotency_key_required
+        - common.idempotency_key_reused
+        - common.idempotency_in_progress
+        - sync.device_unknown
+        - sync.device_revoked
+        - sync.wipe_required
+        - sync.block_size_too_large
+        - sync.series_unknown
+      parameters:
+        - $ref: '_common.yaml#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/NumberBlockRequest' }
+            examples:
+              lab_codes:
+                value: { device_id: 0193c4a0-0000-7000-8000-0000005c0001, series: lab_code, size: 200 }
+              patient_ids_at_centre:
+                value: { device_id: 0193c4a0-0000-7000-8000-0000005c0001, series: patient_id, centre_id: 0193c4a0-0000-7000-8000-0000005c0201, size: 100 }
+      responses:
+        '201':
+          description: The reserved block.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [block, remaining_size]
+                properties:
+                  block: { $ref: '#/components/schemas/NumberBlock' }
+                  remaining_size: { type: integer, format: int64, minimum: 0, maximum: 9007199254740991 }
+              examples:
+                lab_codes:
+                  value:
+                    block:
+                      id: 0193c4a0-0000-7000-8000-0000005c0301
+                      device_id: 0193c4a0-0000-7000-8000-0000005c0001
+                      series: lab_code
+                      from_value: 1001
+                      to_value: 1200
+                      issued_at: '2026-11-17T04:16:00.000Z'
+                      skipped_count: 0
+                    remaining_size: 200
+        '400': { $ref: '_common.yaml#/components/responses/BadRequest' }
+        '401': { $ref: '_common.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: '_common.yaml#/components/responses/Forbidden' }
+        '409': { $ref: '_common.yaml#/components/responses/Conflict' }
+        '422': { $ref: '_common.yaml#/components/responses/Unprocessable' }
+        '429': { $ref: '_common.yaml#/components/responses/TooManyRequests' }
+        '500': { $ref: '_common.yaml#/components/responses/Internal' }
 components:
   schemas:
     Liveness:
@@ -79,7 +526,126 @@ components:
           type: array
           description: >-
             Names of required LIMS_* environment variables that are unset (LD-288, T0B-OPSDOC-1). Names only, never
-            values. Present only when non-empty.
+            values. Present only when non-empty. Bounds (T0C-LINTFIX-1, LD-332): REQUIRED_ENV lists 22 names, longest
+            34 chars; rounded up.
+          maxItems: 64
           items:
             type: string
+            maxLength: 128
             pattern: '^LIMS_[A-Z0-9_]*[A-Z0-9]$'
+    # ---------- T0C-SYNC-1 (LD-322) offline sync part 1 ----------
+    IsoDateTime:   # instant, UTC; the millisecond fraction is optional (device clocks)
+      type: string
+      format: date-time
+      maxLength: 30
+      pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]{1,6})?Z$'
+    SyncPlatform:
+      type: string
+      maxLength: 8
+      enum: [web, android, ios]
+    SyncDeviceStatus:
+      type: string
+      maxLength: 16
+      enum: [active, revoked, wipe_requested]
+    NumberSeries:   # design section 4: bill, invoice and receipt numbers are never issued in blocks
+      type: string
+      maxLength: 16
+      enum: [lab_code, patient_id]
+    DeviceLabel:
+      type: string
+      minLength: 1
+      maxLength: 120
+    AppVersion:
+      type: string
+      minLength: 1
+      maxLength: 40
+      pattern: '^[0-9A-Za-z][0-9A-Za-z.+-]*$'
+    SyncDeviceRegistration:
+      type: object
+      additionalProperties: false
+      required: [id, device_label, platform, app_version]
+      properties:
+        id: { $ref: '_common.yaml#/components/schemas/Uuid' }
+        device_label: { $ref: '#/components/schemas/DeviceLabel' }
+        platform: { $ref: '#/components/schemas/SyncPlatform' }
+        app_version: { $ref: '#/components/schemas/AppVersion' }
+    SyncDevice:
+      type: object
+      additionalProperties: false
+      required: [id, user_id, device_label, platform, app_version, status, first_seen_at, last_seen_at, offline_retention_days, created_at, updated_at]
+      properties:
+        id: { $ref: '_common.yaml#/components/schemas/Uuid' }
+        user_id: { $ref: '_common.yaml#/components/schemas/Uuid' }
+        device_label: { type: string, minLength: 1, maxLength: 120 }
+        platform: { $ref: '#/components/schemas/SyncPlatform' }
+        app_version: { type: string, minLength: 1, maxLength: 40, pattern: '^[0-9A-Za-z][0-9A-Za-z.+-]*$' }
+        status: { $ref: '#/components/schemas/SyncDeviceStatus' }
+        first_seen_at: { $ref: '#/components/schemas/IsoDateTime' }
+        last_seen_at: { $ref: '#/components/schemas/IsoDateTime' }
+        last_sync_at: { $ref: '#/components/schemas/IsoDateTime' }
+        wipe_requested_at: { $ref: '#/components/schemas/IsoDateTime' }
+        wipe_acked_at: { $ref: '#/components/schemas/IsoDateTime' }
+        last_clock_skew_ms:
+          type: integer
+          format: int64
+          description: Device clock minus server clock at the last contact, in milliseconds (negative = device behind).
+          minimum: -9007199254740991
+          maximum: 9007199254740991
+        offline_retention_days: { type: integer, minimum: 1, maximum: 365 }
+        created_at: { $ref: '#/components/schemas/IsoDateTime' }
+        updated_at: { $ref: '#/components/schemas/IsoDateTime' }
+    SyncLimits:
+      type: object
+      additionalProperties: false
+      required: [max_batch_operations, max_batch_bytes]
+      properties:
+        max_batch_operations: { type: integer, minimum: 1, maximum: 1000 }
+        max_batch_bytes: { type: integer, minimum: 1, maximum: 104857600 }
+    SyncRetry:
+      type: object
+      additionalProperties: false
+      required: [base_delay_ms, max_delay_ms, jitter]
+      properties:
+        base_delay_ms: { type: integer, minimum: 1, maximum: 3600000 }
+        max_delay_ms: { type: integer, minimum: 1, maximum: 3600000 }
+        jitter: { type: string, maxLength: 8, enum: [full] }
+    SyncStatus:
+      type: object
+      additionalProperties: false
+      required: [server_time, device_status, limits, retry, offline_approval_allowed]
+      properties:
+        server_time: { $ref: '#/components/schemas/IsoDateTime' }
+        device_status: { $ref: '#/components/schemas/SyncDeviceStatus' }
+        min_app_version: { $ref: '#/components/schemas/AppVersion' }
+        limits: { $ref: '#/components/schemas/SyncLimits' }
+        retry: { $ref: '#/components/schemas/SyncRetry' }
+        offline_approval_allowed: { type: boolean }
+    NumberBlockRequest:
+      type: object
+      additionalProperties: false
+      required: [device_id, series, size]
+      properties:
+        device_id: { $ref: '_common.yaml#/components/schemas/Uuid' }
+        series: { $ref: '#/components/schemas/NumberSeries' }
+        centre_id: { $ref: '_common.yaml#/components/schemas/Uuid' }
+        size: { type: integer, minimum: 1, maximum: 10000 }
+    NumberBlock:
+      type: object
+      additionalProperties: false
+      required: [id, device_id, series, from_value, to_value, issued_at, skipped_count]
+      properties:
+        id: { $ref: '_common.yaml#/components/schemas/Uuid' }
+        device_id: { $ref: '_common.yaml#/components/schemas/Uuid' }
+        series: { $ref: '#/components/schemas/NumberSeries' }
+        centre_id: { $ref: '_common.yaml#/components/schemas/Uuid' }
+        from_value: { type: integer, format: int64, minimum: 1, maximum: 9007199254740991 }
+        to_value: { type: integer, format: int64, minimum: 1, maximum: 9007199254740991 }
+        issued_at: { $ref: '#/components/schemas/IsoDateTime' }
+        exhausted_at: { $ref: '#/components/schemas/IsoDateTime' }
+        skipped_count: { type: integer, format: int32, minimum: 0, maximum: 2147483647 }
+  parameters:
+    DeviceId:
+      name: device_id
+      in: path
+      required: true
+      schema: { $ref: '_common.yaml#/components/schemas/Uuid' }

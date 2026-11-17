@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Badge } from '@lims/ui/components/Badge';
 import { Banner } from '@lims/ui/components/Banner';
 import { Button } from '@lims/ui/components/Button';
+import { EmptyRow, PlaceholderRows } from '@lims/ui/components/DataTable';
 import { Drawer } from '@lims/ui/components/Drawer';
 import { EmptyState } from '@lims/ui/components/EmptyState';
 import { Form } from '@lims/ui/components/Form';
@@ -97,8 +98,8 @@ export function MasterTable<R extends { id: string }>({ caption, cols, rows, emp
   canEdit?: (r: R) => boolean;
   rowExtra?: ((r: R) => ReactNode) | undefined;
 }) {
-  if (rows.length === 0) return <EmptyState title={empty} {...(emptyAction ? { action: emptyAction } : {})} />;
-  const actions = !!onEdit || !!rowExtra;
+  // LD-310 (T0D-CATUNITS-1): headers are drawn even with no rows; the empty state sits in the single body row.
+  const actions = rows.length > 0 && (!!onEdit || !!rowExtra);
   return (
     <table className="lims-table lims-table-regular">
       <caption className="lims-visually-hidden">{caption}</caption>
@@ -111,8 +112,12 @@ export function MasterTable<R extends { id: string }>({ caption, cols, rows, emp
         </tr>
       </thead>
       <tbody>
+        {rows.length === 0 ? (
+          // T0D-EMPTYTBL-1 (LD-310): message row (create action repeated) + four placeholder rows.
+          <EmptyRow colSpan={cols.length}><EmptyState title={empty} {...(emptyAction ? { action: emptyAction } : {})} /></EmptyRow>
+        ) : null}
         {rows.map((r) => (
-          <tr key={r.id} className="lims-row">
+          <tr key={(r.id as string | undefined) ?? `global:${codeOf(r)}`/* global units/value sets carry no id (catalog.yaml) */} className="lims-row">
             {cols.map((c) => (
               <td key={c.header} className="lims-cell">{c.cell(r)}</td>
             ))}
@@ -129,6 +134,7 @@ export function MasterTable<R extends { id: string }>({ caption, cols, rows, emp
           </tr>
         ))}
       </tbody>
+      {rows.length === 0 ? <PlaceholderRows colSpan={cols.length} /> : null}
     </table>
   );
 }

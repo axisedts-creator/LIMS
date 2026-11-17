@@ -9,6 +9,7 @@ import { CentreSwitcher, type Centre } from './CentreSwitcher';
 import { GlobalSearch } from './GlobalSearch';
 import { NavIcon } from './NavIcon';
 import { Rail, type RailGroup } from './Rail';
+import { UserMenu, useDensity } from './UserMenu';
 
 export type Crumb = { group: string; entry: string } | null;
 
@@ -17,6 +18,8 @@ type Props = {
   crumb: Crumb;
   tenant: string;
   user: { name: string; role: string };
+  /** membership id: the per-user key of the density choice (T0D-DENSITY-1) */
+  memberId?: string | undefined;
   logoSrc: string;
   search: { canPatients: boolean; canSpecimens: boolean };
   centres?: { options: readonly Centre[]; activeId: string | null } | undefined;
@@ -25,10 +28,11 @@ type Props = {
 
 const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex="0"]';
 
-export function ShellFrame({ groups, crumb, tenant, user, logoSrc, search, centres, children }: Props) {
+export function ShellFrame({ groups, crumb, tenant, user, memberId, logoSrc, search, centres, children }: Props) {
   const navId = `lims-nav-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`;
   const [drawer, setDrawer] = useState(false);
   const menu = useRef<HTMLButtonElement>(null);
+  const [density, setDensity] = useDensity(memberId);
 
   const close = () => {
     setDrawer(false);
@@ -55,7 +59,9 @@ export function ShellFrame({ groups, crumb, tenant, user, logoSrc, search, centr
     // eslint-disable-next-line react-hooks/exhaustive-deps -- close only touches a ref and a state setter
   }, [drawer, navId]);
 
+  // T0D-DENSITY-1 (LD-310): compact is the default of every staff screen; the wrapper holds the attribute so the whole shell follows it.
   return (
+    <div className="lims-density" data-density={density}>
     <PageShell
       data-testid="app-shell"
       topBar={
@@ -88,7 +94,7 @@ export function ShellFrame({ groups, crumb, tenant, user, logoSrc, search, centr
               <NavIcon name="bell" />
               <span className="lims-topbar-bell-note" aria-hidden="true">{t('core.shell.notifications_unavailable')}</span>
             </button>
-            <span className="lims-topbar-actor">{user.name}</span>
+            <UserMenu name={user.name} density={density} onChange={setDensity} />
           </div>
         </div>
       }
@@ -96,5 +102,6 @@ export function ShellFrame({ groups, crumb, tenant, user, logoSrc, search, centr
     >
       {children}
     </PageShell>
+    </div>
   );
 }

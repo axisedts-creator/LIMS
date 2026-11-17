@@ -9,11 +9,13 @@ export type ActionResult<T> = { ok: true; data: T } | { ok: false; status: numbe
 export const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export const KEY_RE = /^[A-Za-z0-9_-]{8,64}$/;
 
-export interface Centre { id: string; name: string }
+/** LD-310 / T0D-REGSCREEN-1: `kind` from C2 listCentres (identity enum own|franchise|home_collection); optional for older responses. */
+export interface Centre { id: string; name: string; kind?: 'own' | 'franchise' | 'home_collection' }
 export interface PatientSummary { id: string; patient_code: string; full_name: string; sex: string; age_display: string; phone_masked?: string; last_visit_at?: string; is_anonymised?: boolean }
 export interface OrderableSummary { id: string; kind: 'test' | 'panel'; code: string; name: string }
 export interface DoctorSummary { id: string; doctor_code?: string; display_name: string; is_verified?: boolean }
-export interface CreditPartySummary { id: string; party_code?: string; name: string }
+/** LD-310 / T0D-REGSCREEN-1: kind drives Patient type; credit_limit_paisa / outstanding are shown only when the API returns them. */
+export interface CreditPartySummary { id: string; party_code?: string; name: string; kind?: string; credit_limit_paisa?: number; outstanding?: Money }
 export interface CodedSetEntry { code: string; display: string; sort_order?: number; requires_reference?: boolean }
 
 export interface QuoteLine {
@@ -55,6 +57,8 @@ export type RegisterBody = RegistrationDraft & {
   quote_fingerprint: string; payments: PaymentIn[]; discount_approval_id?: string;
   /** LD-25 (2026-11-07) downtime back-entry; absent = live. */
   entry_mode?: 'downtime_backentry'; occurred_at?: string; downtime_ref?: string;
+  /** LD-310 / T0D-REGSCREEN-1: F9 RegisterRequest fields (contracts/openapi/frontdesk.yaml). */
+  buyer_pan?: string; trf_attachment_ids?: string[];
 };
 export interface DiscountApprovalIn { centre_id: string; base_fingerprint: string; discounts: DraftDiscount[]; reason_code: string; reason_text?: string; patient_id?: string }
 export interface InvoicePrintDoc{ print_no: number; document?: unknown }

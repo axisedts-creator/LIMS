@@ -24,7 +24,10 @@ import { manifest } from '../index.js';
 import { HOMECOLLECTION_PERMISSIONS } from '../permissions.js';
 
 const SPEC = loadSpec(join(REPO_ROOT, 'contracts', 'openapi', 'homecollection.yaml'));
-const OPS = operationIds(SPEC);
+// T0C-SALES-1 (LD-321, LD-325(b)): updateCollectorFlags is added after the 26 TRD operations; it is pending until T0B-SALES-1 and is pinned by contract/sales1.pending.test.ts.
+// This file keeps testing exactly the 26 original operations.
+const SALES1_NEW = 'updateCollectorFlags';
+const OPS = operationIds(SPEC).filter((id) => id !== SALES1_NEW);
 const PERMS = ['homecollection.device.manage', 'homecollection.handover.receive', 'homecollection.settings.manage',
   'homecollection.sync.upload', 'homecollection.visit.assign', 'homecollection.visit.read'];
 // 02-TRD §5.1 H1..H21 + §5.2 A1..A5
@@ -36,7 +39,8 @@ const EXPECTED_OPS = [
   'registerPhleboDevice', 'getSyncSnapshot', 'pushSyncMutations', 'ackSync', 'signOffPhleboDevice',
 ];
 /** operationIds whose stub a later task has replaced; that task moves its ids here (tester-owned list). */
-const IMPLEMENTED: readonly string[] = ['getHomecollectionSettings', 'updateHomecollectionSettings', 'listHomecollectionReasons'];
+// T0C-SALES-1 ruling: HC-T04..HC-T15 bound real handlers for all 26 TRD operations, so none is a stub any more.
+const IMPLEMENTED: readonly string[] = EXPECTED_OPS;
 
 const FAKE_REQ = { params: {}, query: {}, headers: {}, body: {} };
 const noop = () => undefined;
@@ -74,7 +78,7 @@ describe('HC-T01 handler map (26 operationIds)', () => {
   });
 
   it('binds every operationId of homecollection.yaml to a function, and nothing else (AC-0D-1.2)', () => {
-    expect(Object.keys(manifest.handlers).sort()).toEqual([...OPS].sort());
+    expect(Object.keys(manifest.handlers).filter((id) => id !== SALES1_NEW).sort()).toEqual([...OPS].sort());
     for (const op of OPS) expect(typeof manifest.handlers[op], op).toBe('function');
   });
 
@@ -86,6 +90,10 @@ describe('HC-T01 handler map (26 operationIds)', () => {
     return (await import('../index.js')).manifest;
   };
   afterEach(() => { vi.unstubAllEnvs(); vi.resetModules(); });
+
+  it('no HC-T01 skeleton stub remains (a stub coming back is caught here)', () => {
+    expect(stubs).toEqual([]);
+  });
 
   it('in dev every stub answers 501 and never echoes request input (no PHI / token reflection)', async () => {
     const m = await withEnv('dev');
@@ -202,21 +210,21 @@ describe('HC-T01 boot against the real repo (default modulesDir, real homecollec
     let n = 0;
     for (const [path, item] of Object.entries<any>(SPEC.paths)) {
       for (const [method, op] of Object.entries<any>(item)) {
-        if (!op?.operationId) continue;
+        if (!op?.operationId || op.operationId === SALES1_NEW) continue;
         n++;
         if (!app.hasRoute({ method: method.toUpperCase() as any, url: path.replace(/\{([^}]+)\}/g, ':$1') })) unmounted.push(`${method.toUpperCase()} ${path}`);
       }
     }
     expect(n).toBe(26);
     expect(unmounted).toEqual([]);
-  }, 30_000);
+  }, 120_000);
 
   it('fails closed: operations without required query/body answer 401 auth.* without credentials (never 200/501/500); non-spec path is 404', async () => {
     const app = await boot();
     const probes: { method: string; url: string }[] = [];
     for (const [path, item] of Object.entries<any>(SPEC.paths)) {
       for (const [method, op] of Object.entries<any>(item)) {
-        if (!op?.operationId) continue;
+        if (!op?.operationId || op.operationId === SALES1_NEW) continue;
         const requiredQuery = (op.parameters ?? []).some((p: any) => p.in === 'query' && p.required);
         if (!requiredQuery && !op.requestBody?.required) probes.push({ method: method.toUpperCase(), url: toUrl(path) });
       }
@@ -228,5 +236,5 @@ describe('HC-T01 boot against the real repo (default modulesDir, real homecollec
       expect(JSON.parse(r.body).code).toMatch(/^auth\./);
     }
     expect((await app.inject({ method: 'GET', url: '/v1/homecollection/not-in-spec' })).statusCode).toBe(404);
-  }, 60_000);
+  }, 120_000);
 });

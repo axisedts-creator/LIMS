@@ -7,20 +7,13 @@ import { handlers } from './handlers/index.js';
 import { bindIdentityMetrics } from './metrics.js';
 import { createIdentityPort } from './ports/IdentityPort.impl.js';
 import { createCoreAdminRepo } from './repository/core-admin.repo.js';
-import { createPatientWritesRepo } from './repository/patient-writes.repo.js';
-import { createPatientJwtSigner } from './service/patient-jwt.js';
 
 // LD-187 (WIRE-ID, AUTH-SENSITIVE): ports.IdentityPort = the real port, FAIL CLOSED (02-TRD s6.3, AC-0D-6.1/6.2/6.4).
 // [CONV] CR-C2-013 names ctx.core.systemActorPermissions as the source, but core hands module construction nothing: every id is "unknown" = []
 // (the documented result), so a system actor holds no permission. Never widen. Non-blocking CR: .orchestra/cr/WIRE-ID.md.
-// LD-81 / CR-C16 draft: the patient writers (createPatientWritesRepo: three DEFINERs of 20261117000000) and the EdDSA patient signer (createPatientJwtSigner)
-// are wired here. The signer reads LIMS_IDENTITY_PATIENT_JWT_KEY_FILE / _KID lazily on first mint: unset = every mint fails closed with common.internal.
+// LD-81: no mintPatientAccessToken and no patient writers here: openPatientSession / provisionPatientMembership throw common.internal 'not wired'.
 // Construction reads no env, no file, opens no connection (the repo takes ctx.tx per call); the authz metric uses the identity process sink (metrics.ts).
-const IdentityPort = createIdentityPort({
-  repo: { ...createCoreAdminRepo(), ...createPatientWritesRepo() },
-  systemActorPermissions: () => [],
-  mintPatientAccessToken: createPatientJwtSigner(),
-});
+const IdentityPort = createIdentityPort({ repo: createCoreAdminRepo(), systemActorPermissions: () => [] });
 
 // LD-189 (WIRE-DB, AUTH-SENSITIVE): the resolver gets ONLY identityAuthTx, late-bound by core boot once the pool exists (createServices deps.identityDb).
 // Unbound (no database, or before boot) it rejects common.internal, so bearerJwt never authenticates without the DEFINER (CR-C2-020).

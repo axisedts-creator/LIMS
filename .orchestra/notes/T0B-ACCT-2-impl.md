@@ -1,0 +1,8 @@
+# T0B-ACCT-2 impl (writer). Status: DONE after ruling (tests fixed, no product change). PG17 billing suite 2130 pass, 1 fail = boot.test 60 s timeout under host load; boot alone 9/9 (36.8 s), crossTenant 227/227, credit.account (worker never started in full run) 23/23.
+- New: repository/expenses.repo.ts, service/expenses.service.ts, handlers/expenses.handlers.ts. Edited: handlers/index.ts (12 handlers), billing/index.ts (pendingOperations now []), service/accounts.service.ts (shared helpers exported), repository/accounts.repo.ts (findParty user_pocket).
+- [CONV] user_pocket party = active core.memberships row or core.collection_centres row; expense debit = actor pocket, cash, local date of expense_at, comments null.
+- [CONV] accept: transfer row FOR UPDATE -> 403 (receiver, never creator) -> 409 (not pending) -> tenant ledger lock -> balance re-check -> pair on particular CASH_TRANSFER (missing -> 400) -> UPDATE ... WHERE status = 'pending'.
+- [CONV] cancelExpense: expense row FOR UPDATE; if its entry was already reversed via reverseAccountLedgerEntry, the cancel posts no second reversal.
+- [CONV] daily summary: unreversed non-reversal account credits + getDailyCash rows (payment - |reversal/refund|, collected only) by payment_mode; zero rows dropped.
+- [CONV] allow_negative_pockets via IdentityPort featureFlags (no spec name; tests pin it). Admin = role tenant_admin.
+- BLOCKED (review item 1): refund-only day gives negative entry_count/total_paisa vs contract minimum 0; CR filed .orchestra/cr/T0B-ACCT-2.md (option a signed net / b separate refund fields), no product change until ruled; accept centre falls back to ctx.centreId when neither end is a centre.

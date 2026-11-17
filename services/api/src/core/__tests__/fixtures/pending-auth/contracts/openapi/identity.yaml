@@ -1,0 +1,55 @@
+openapi: 3.0.3
+info: { title: fixture identity (T0B-BOOTGATE-1 pending operation behind auth), version: 1.0.0 }
+components:
+  securitySchemes:
+    bearerJwt:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+paths:
+  /v1/identity/whoami:
+    get:
+      operationId: getIdentityWhoami
+      security:
+        - bearerJwt: []
+      x-idempotency: none
+      x-rate-limit-tier: general
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [ok]
+                properties:
+                  ok: { type: boolean }
+  /v1/identity/echo:
+    post:
+      operationId: postIdentityEcho
+      security:
+        - bearerJwt: []
+      x-idempotency: none
+      x-rate-limit-tier: general
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [name]
+              properties:
+                name: { type: string, maxLength: 64 }
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [name]
+                properties:
+                  name: { type: string }

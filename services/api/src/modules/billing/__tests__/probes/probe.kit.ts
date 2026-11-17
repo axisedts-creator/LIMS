@@ -3,7 +3,9 @@
 // The core pipeline (schema / auth / x-permission / aal2 / membership re-validation / RLS) is not re-run here: these probes pin what the
 // HANDLERS promise when the database shows them nothing (RLS-faithful: tenant B rows are invisible to tenant A) and what the contracts declare.
 import { join } from 'node:path';
-import { loadSpec, REPO_ROOT } from '../../../../core/module.js';
+import { loadSpec, operationIds, REPO_ROOT } from '../../../../core/module.js';
+import { manifest as billingManifest } from '../../index.js';
+import { manifest as frontdeskManifest } from '../../../frontdesk/index.js';
 import { handlers as billingHandlers } from '../../handlers/index.js';
 import { handlers as frontdeskHandlers } from '../../../frontdesk/handlers/index.js';
 
@@ -152,6 +154,13 @@ export async function ctxFor(tenantId: string, tx: unknown, o: Record<string, un
 }
 
 /** BL-T22-ruling b (LD-98): BL-T21 payment intents are Phase 1.5 (06-IMPLEMENTATION-PLAN BL-T21 row), not built in v1. They must never answer 2xx (REQ-SEC-099). */
+// LD-328 (T0B-ACCT-1, BOOTGATE-1): an operation listed in its module's pendingOperations has no handler (core answers 501 operation_pending after auth) and never touches the database,
+// so the per-operation cross-tenant block exempts it; crossTenant.handlers.test.ts asserts that every pending id has no handler key.
+const pendingByMod: Record<Mod, readonly string[]> = { billing: billingManifest.pendingOperations ?? [], frontdesk: frontdeskManifest.pendingOperations ?? [] };
+export const pendingIds = (mod: Mod): readonly string[] => pendingByMod[mod];
+export const isPending = (o: { mod: Mod; id: string }) => pendingByMod[o.mod].includes(o.id);
+export const specOpCount = (mod: Mod): number => operationIds(specs[mod]).length;
+
 export const DEFERRED_PHASE_1_5 = ['createPaymentIntent', 'verifyPaymentIntent'] as const;
 export const isDeferred = (id: string) => (DEFERRED_PHASE_1_5 as readonly string[]).includes(id);
 

@@ -10,6 +10,7 @@ import { loadRolePacks, parseRolePacks } from '../../role-packs/loader.js';
 
 const ROOT = join(import.meta.dirname, '../../../../../../..');
 const specText = readFileSync(join(ROOT, 'spec/program/11-ROLE-MATRIX.data.yaml'), 'utf8');
+const moduleText = readFileSync(join(import.meta.dirname, '../../role-packs/role-packs.data.yaml'), 'utf8'); // LD-310: corp_admin differs from the spec copy
 const reg = parse(readFileSync(join(ROOT, 'contracts/permissions.yaml'), 'utf8')) as {
   roles: Array<{ code: string }>; permissions: Array<{ code: string; privileged: boolean; roles: string[] }>;
 };
@@ -20,16 +21,22 @@ const mutate = (fn: (d: Doc) => void): string => { const d = parse(specText) as 
 const role = (d: Doc, code: string) => d.packs.flatMap((p) => p.roles).find((r) => r.code === code)!;
 
 describe('RM-T01 loader accepts the real data', () => {
-  it('parseRolePacks(spec file) returns both packs, 19 + 10 roles, verbatim fields', () => {
-    const f = parseRolePacks(specText, registry);
+  it('parseRolePacks(module data file) returns both packs, 19 + 10 roles, verbatim fields', () => {
+    const f = parseRolePacks(moduleText, registry);
     expect(f.packs.map((p) => [p.code, p.roles.length])).toEqual([['elabcorp_default', 19], ['elabassist_standard', 10]]);
     const admin = f.packs[0]!.roles[0]!;
     expect(admin).toMatchObject({ code: 'corp_admin', name: 'Admin', mfa_required: true, base_default_role: 'tenant_admin' });
-    expect(admin.permissions).toHaveLength(115); // LD-254 (R5a, 11-ROLE-MATRIX section 3.3): 92 + 23 admin additions
+    expect(admin.permissions).toHaveLength(167); // T0C-SYNC-1 (LD-322): +3 sync codes; // 155 + 7 accounting codes (T0C-ACCT-1, LD-313 c) + 2 sales codes (T0C-SALES-1, LD-321); // LD-310 (T0B-ADMINPERM-1) supersedes LD-254 (115): every tenant staff code of the registry
+  });
+
+  it('parseRolePacks(spec file) still accepts the unchanged spec copy: 19 + 10 roles, corp_admin 115 (spec/ is read-only, LD-310 only widens the module copy)', () => {
+    const f = parseRolePacks(specText, registry);
+    expect(f.packs.map((p) => [p.code, p.roles.length])).toEqual([['elabcorp_default', 19], ['elabassist_standard', 10]]);
+    expect(f.packs[0]!.roles[0]!.permissions).toHaveLength(115);
   });
 
   it('loadRolePacks() reads the module data file with the default registry', () => {
-    expect(loadRolePacks()).toEqual(parseRolePacks(specText, registry));
+    expect(loadRolePacks()).toEqual(parseRolePacks(moduleText, registry));
   });
 });
 

@@ -11,6 +11,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { parse } from 'yaml';
+import { STAFF } from './admin-staff-codes';
 
 const ROOT = join(import.meta.dirname, '../../../../../../..');
 const lf = (s: string) => s.replace(/\r\n/g, '\n');
@@ -156,7 +157,9 @@ describe.each(SHEETS)('RM-T03 matrix replay: $pack', ({ pack, roles: nRoles, fea
     expect(extra.filter((c) => !have.has(c)), `${admin.code}: ADMIN_EXTRA codes missing from the pack`).toEqual([]);
     const rest = [...have].filter((c) => !extra.includes(c));
     const ticked = mapped.filter((f) => { const e = f.perms; return e.length > 0 && e.every((p) => have.has(p)); });
-    const explained = new Set([...TENANT_ADMIN, ...ticked.flatMap((f) => f.perms)]);
+    // LD-310 (T0B-ADMINPERM-1, founder: admin gets all features): corp_admin additionally holds every tenant staff code of the registry (STAFF);
+    // that set is pinned exactly by admin-all-permissions.test.ts. std_admin is not widened.
+    const explained = new Set([...TENANT_ADMIN, ...ticked.flatMap((f) => f.perms), ...(admin.code === 'corp_admin' ? STAFF : [])]);
     expect(rest.filter((c) => !explained.has(c)), `${admin.code}: held, but neither tenant_admin, a ticked screen nor ADMIN_EXTRA`).toEqual([]);
   });
 });

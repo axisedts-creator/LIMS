@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 // T0D-MSERIES-1 (LD-246, LD-251; spec/program/13-M-SERIES.md s2.3 and s6.3): kit shape, size and motion.
 //   Button, Chip/Badge, SegmentedTabs (Tabs), TextField, Select are fully round; TextArea (multi-line) is not.
-//   Card, Dialog, Drawer have radius 24 and a Card has no border and no shadow; Button 48 high, TextField / Select 46, compact keeps 40.
+//   Card, Dialog, Drawer have radius 24 and a Card has no border and no shadow; Button 48 high, TextField / Select 46, compact is 30 (T0D-DENSITY-1 replaced the old 40).
 //   Control border stays neutral.300. Motion: tokens only, 150 ms hover/press, every animation off under prefers-reduced-motion,
 //   at most one looping animation, no animation or 3D dependency.
 //
@@ -9,7 +9,9 @@
 // is evaluated for the rendered element. `var(--lims-radius-x)` is resolved through tokens.json. Nothing is mocked.
 //
 // CONTRACT chosen here where 13 gives no class (writer: follow it, or file a dispute):
-//   compact field height: an ancestor with data-density="compact" makes `.lims-input` min-height 40px (13 s2.3 "dense registration (compact) may use fields of 40").
+//   compact field height: an ancestor with data-density="compact" makes `.lims-input` min-height 30px.
+//   T0D-DENSITY-1 (LD-310, founder decision 2026-11-17 04:49 and 05:03 NPT) REPLACES the written kit rule "dense fields stay at 40" (13 s2.3) with 30:
+//   30 px still meets the 24 px minimum target of WCAG 2.2 AA (2.5.8). The rest of this file is unchanged.
 //   Not tested (no kit class exists yet, MSERIES-2 owns the shell): the 46 px nav item, the 296 px sidebar.
 //   "Tag" in the task brief: the kit has no Tag component; the pill chip classes (.lims-chip via Badge/StatusChip) are what is measured.
 import { render } from '@testing-library/react';
@@ -203,7 +205,7 @@ describe('M series shape: radius 24 for Card, Dialog, Drawer (13 s2.3)', () => {
 });
 
 // ---------------------------------------------------------------- 2. size
-describe('M series size (13 s2.3: button 48, field 46, compact 40)', () => {
+describe('M series size (13 s2.3: button 48, field 46; compact 30 since T0D-DENSITY-1, LD-310)', () => {
   it('Button (md) is 48 px high (min-height; text controls never use a fixed height, 04-UI-UX s1.4)', () => {
     const b = elOf(<Button>Save</Button>, '.lims-btn');
     expect(px(declOn(b, 'min-height')), `button min-height ${declOn(b, 'min-height')}`).toBe(48);
@@ -216,14 +218,14 @@ describe('M series size (13 s2.3: button 48, field 46, compact 40)', () => {
     const t = elOf(<Select label="Sex" name="s" options={[{ value: 'f', label: 'F' }]} />, '.lims-select-trigger');
     expect(px(declOn(t, 'min-height'))).toBe(46);
   });
-  it('compact density keeps 40: a field inside [data-density="compact"] is 40 px high (CONTRACT, see header)', () => {
+  it('compact density is 30 (T0D-DENSITY-1, LD-310; was 40): a field inside [data-density="compact"] is 30 px high (CONTRACT, see header)', () => {
     const host = document.createElement('div');
     host.setAttribute('data-density', 'compact');
     const input = document.createElement('input');
     input.className = 'lims-input';
     host.append(input);
     document.body.append(host);
-    expect(px(declOn(input, 'min-height'))).toBe(40);
+    expect(px(declOn(input, 'min-height'))).toBe(30);
   });
   it('the touch target tokens are 48 on web and Flutter (the button height is the touch target)', () => {
     expect(tokens.touchTarget).toEqual({ web: 48, flutter: 48 });

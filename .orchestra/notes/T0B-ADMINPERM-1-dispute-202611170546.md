@@ -1,0 +1,6 @@
+T0B-ADMINPERM-1 dispute (writer): old tests pin the pre-LD-310 corp_admin and now contradict the new test; tester/arbiter must update them (writer may not edit tests).
+- role-packs.data.test.ts: "equals spec/program/11-ROLE-MATRIX.data.yaml unchanged", "equals the spec data role by role", counts corp_admin [115,39] (now 155 perms), R2/R5 "Admin has no clinical sign-off" + overlay-only holders of approve/amend/sign/signout/verify/refund/reverse/cancel. LD-310 (founder: admin gets all features) overrides; spec/ is read-only, so the data file must differ from the spec copy.
+- admin-authority.test.ts (ADMINPACK-1 section 3.3 left-out list, R5a exact pin, privileged count pin): 3 failures, superseded by LD-310.
+- matrix-replay.test.ts, escalation.test.ts, role-packs.loader.test.ts, role-pack.service.test.ts, role-pack.add-missing.test.ts: assert decision codes only on overlay roles / corp_admin equals spec set; superseded the same way.
+- Unrelated, pre-existing (fail on HEAD too): apply-role-pack.script.test.ts (missing docs/runbooks/apply-role-pack.md, 6 package scripts vs 5).
+- Ask: rule that LD-310 supersedes those corp_admin pins; tester rewrites them to the new set (or keep std_admin pins as-is: std_admin not widened, brief names corp_admin only).

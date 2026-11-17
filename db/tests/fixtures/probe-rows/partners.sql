@@ -88,6 +88,18 @@ INSERT INTO partners.price_list_syncs (tenant_id, partner_id, synced_at, created
   (pg_temp.id('02'), pg_temp.id('f3'), now(), pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('01'), pg_temp.id('f4'), now(), pg_temp.id('35'), pg_temp.id('99')),
   (pg_temp.id('01'), pg_temp.id('f5'), now(), pg_temp.id('a3'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
+INSERT INTO partners.sales_designation (id, tenant_id, name, level, created_by, updated_by) VALUES
+  (pg_temp.id('f1'), pg_temp.id('01'), 'probe-1', 1, pg_temp.id('99'), pg_temp.id('99')),
+  (pg_temp.id('f3'), pg_temp.id('02'), 'probe-3', 3, pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
+INSERT INTO partners.sales_representative (id, tenant_id, name, designation_id, created_by, updated_by) VALUES
+  (pg_temp.id('f1'), pg_temp.id('01'), 'probe-1', pg_temp.id('f1'), pg_temp.id('99'), pg_temp.id('99')),
+  (pg_temp.id('f3'), pg_temp.id('02'), 'probe-3', pg_temp.id('f3'), pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
+INSERT INTO partners.party_sales_assignment (id, tenant_id, party_kind, party_id, representative_id, effective_from, created_by, updated_by) VALUES
+  (pg_temp.id('f1'), pg_temp.id('01'), 'partner', pg_temp.id('f1'), pg_temp.id('f1'), now()::date, pg_temp.id('99'), pg_temp.id('99')),
+  (pg_temp.id('f3'), pg_temp.id('02'), 'partner', pg_temp.id('f3'), pg_temp.id('f3'), now()::date, pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
+INSERT INTO partners.service_area (id, tenant_id, name, district, centre_id, created_by, updated_by) VALUES
+  (pg_temp.id('f1'), pg_temp.id('01'), 'probe-1', 'probe-1', pg_temp.id('21'), pg_temp.id('99'), pg_temp.id('99')),
+  (pg_temp.id('f3'), pg_temp.id('02'), 'probe-3', 'probe-3', pg_temp.id('23'), pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
 INSERT INTO partners.statement_months (tenant_id, partner_id, credit_party_id, period_month, fiscal_year_bs, invoiced_paisa, paid_paisa, credited_paisa, closing_balance_paisa, synced_at, created_by, updated_by) VALUES
   (pg_temp.id('01'), pg_temp.id('f1'), pg_temp.id('f1'), date_trunc('month', now())::date, '1111/66', 1, 1, 1, 1, now(), pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('02'), pg_temp.id('f3'), pg_temp.id('f3'), date_trunc('month', now())::date, '3333/88', 3, 3, 3, 3, now(), pg_temp.id('99'), pg_temp.id('99')),

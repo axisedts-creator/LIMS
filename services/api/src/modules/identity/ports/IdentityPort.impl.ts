@@ -16,8 +16,6 @@ import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js
 export interface NewPatientSession {
   id: string; membershipId: string; userId: string; kind: 'patient'; tokenSha256: Buffer; state: 'active'; aal: 'aal1';
   appInstanceId: string; appPlatform: 'android' | 'ios'; idleTimeoutMinutes: number; idleExpiresAt: Date; absoluteExpiresAt: Date; expiresAt: Date; actorId: string;
-  /** exp of the access JWT minted for this session (identity.sessions.access_expires_at is NOT NULL) */
-  accessExpiresAt?: Date;
 }
 /** T31 patient-context writes (08 A28.2: the repo runs them in the identity-system-actor write scope). Optional until the real repo
  *  lands them (.orchestra/cr/T31.md); absent -> the port fails closed with common.internal. */
@@ -25,8 +23,6 @@ export interface PatientWrites {
   createPatientMembership?(ctx: any, i: { accountId: string }): Promise<{ membershipId: string; userId: string }>;
   insertPatientSession?(ctx: any, s: NewPatientSession): Promise<void>;
   deactivatePatientMembership?(ctx: any, i: { membershipId: string }): Promise<void>;
-  /** CR-C16 draft: pre-auth patient read of one membership (RLS hides core.memberships from a patient actor). When present, openPatientSession uses it. */
-  patientMembership?(ctx: any, i: { membershipId: string }): Promise<{ userId: string; status: string; locked: boolean } | undefined>;
 }
 
 export type AuthzOutcome = 'allow' | 'forbidden' | 'mfa_required' | 'locked' | 'support_required';
@@ -394,25 +390,19 @@ export function createIdentityPort(deps: IdentityPortDeps): IdentityPortImpl {
       if (!uuid(i.membershipId)) throw invalid('membership_id_invalid');
       if (!uuid(i.appInstanceId)) throw invalid('app_instance_id_invalid');
       if (i.appPlatform !== 'android' && i.appPlatform !== 'ios') throw invalid('app_platform_invalid');
-      // CR-C16 draft: a patient actor cannot read core.memberships (RLS), so the pre-auth read comes from the DEFINER when the repo has it;
-      // otherwise the staff-shaped read below (kept for the existing seam tests).
-      const m: { membershipId: string; userId: string; status: string; locked: boolean } | undefined = repo.patientMembership
-        ? await repo.patientMembership(ctx, { membershipId: i.membershipId }).then((r) => (r ? { membershipId: i.membershipId, ...r } : undefined))
-        : await repo.membership(ctx, { membershipId: i.membershipId }).then((r) => (r && r.actorType === 'patient' && r.tenantId === ctx.tenantId
-            ? { membershipId: r.membershipId, userId: r.userId, status: r.status, locked: r.lockedAt !== null } : undefined));
-      if (!m) throw err('common.not_found');
-      if (m.status !== 'active' || m.locked) throw err('identity.membership_inactive');
+      const m = await repo.membership(ctx, { membershipId: i.membershipId });
+      if (!m || m.actorType !== 'patient' || m.tenantId !== ctx.tenantId) throw err('common.not_found');
+      if (m.status !== 'active') throw err('identity.membership_inactive');
       if (!repo.insertPatientSession || !deps.mintPatientAccessToken) throw unwired();
       const now = nowMs(); const token = newToken(); const id = newId();
       const absoluteExpiresAt = new Date(now + PATIENT_ABSOLUTE_MS);
-      const expiresAt = new Date(Math.min(now + PATIENT_JWT_MS, absoluteExpiresAt.getTime()));   // never outlives the session
-      // mint first: a signer that is not configured fails the sign-in before anything is written (the request transaction rolls back either way)
-      const accessToken = deps.mintPatientAccessToken({ sub: m.userId, sessionId: id, aal: 'aal1', issuedAt: new Date(now), expiresAt });
       await repo.insertPatientSession(ctx, {
         id, membershipId: m.membershipId, userId: m.userId, kind: 'patient', tokenSha256: createHash('sha256').update(token).digest(), state: 'active', aal: 'aal1',
         appInstanceId: i.appInstanceId, appPlatform: i.appPlatform, idleTimeoutMinutes: PATIENT_IDLE_MIN,
-        idleExpiresAt: new Date(now + PATIENT_IDLE_MIN * 60_000), absoluteExpiresAt, expiresAt: absoluteExpiresAt, actorId: ctx.actor.id, accessExpiresAt: expiresAt,
+        idleExpiresAt: new Date(now + PATIENT_IDLE_MIN * 60_000), absoluteExpiresAt, expiresAt: absoluteExpiresAt, actorId: ctx.actor.id,
       });
+      const expiresAt = new Date(Math.min(now + PATIENT_JWT_MS, absoluteExpiresAt.getTime()));   // never outlives the session
+      const accessToken = deps.mintPatientAccessToken({ sub: m.userId, sessionId: id, aal: 'aal1', issuedAt: new Date(now), expiresAt });
       return { sessionToken: token, accessToken, accessExpiresAt: expiresAt.toISOString() as any, sessionExpiresAt: absoluteExpiresAt.toISOString() as any };
     },
 

@@ -66,6 +66,31 @@ export interface DataTableProps<Row> {
   'data-testid'?: string;
 }
 
+/** T0D-EMPTYTBL-1 (LD-310): four faint rows under the empty message keep the table's height; inert (aria-hidden, no focus, no pointer events in kit.css). */
+const PLACEHOLDERS = [0, 1, 2, 3] as const;
+
+/** Empty native <table>, part 1: the message in one full-width body row. Use inside <tbody>. */
+export function EmptyRow({ colSpan, children }: { colSpan: number; children: ReactNode }) {
+  return (
+    <tr className="lims-row-empty">
+      <td className="lims-cell" colSpan={colSpan}>{children}</td>
+    </tr>
+  );
+}
+
+/** Empty native <table>, part 2: the four placeholder rows, in an aria-hidden <tfoot> after </tbody> so the body holds only the message row. */
+export function PlaceholderRows({ colSpan }: { colSpan: number }) {
+  return (
+    <tfoot aria-hidden="true">
+      {PLACEHOLDERS.map((i) => (
+        <tr key={i} className="lims-row-placeholder" aria-hidden="true">
+          <td colSpan={colSpan} />
+        </tr>
+      ))}
+    </tfoot>
+  );
+}
+
 const BULK_MAX = 200; // CV §4.1
 const ROW_HEIGHT = 40;
 const WINDOW = 60;
@@ -186,7 +211,13 @@ export function DataTable<Row>({
           </Column>
         ) : null}
       </TableHeader>
-      <TableBody renderEmptyState={() => (isLoading ? null : <EmptyState {...emptyState} />)}>
+      {/* react-aria renders the empty state in one cell, so the T0D-EMPTYTBL-1 placeholder rows are inert divs inside it (LD-310). */}
+      <TableBody renderEmptyState={() => (isLoading ? null : (
+        <>
+          <EmptyState {...emptyState} />
+          {PLACEHOLDERS.map((i) => <div key={i} className="lims-row-placeholder" aria-hidden="true" />)}
+        </>
+      ))}>
         {shown.map((r, i) => {
           const id = getRowId(r);
           const st = rowStatus?.(r);

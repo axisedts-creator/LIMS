@@ -175,3 +175,43 @@ CREATE POLICY print_log__select__tenant_centre ON billing.print_log FOR SELECT T
 CREATE POLICY print_log__insert__tenant_centre ON billing.print_log FOR INSERT TO lims_app
   WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system())
          AND ((SELECT app.has_all_centres()) OR (centre_id IS NOT NULL AND centre_id = ANY ((SELECT app.current_centre_ids())::uuid[]))));
+-- T0C-ACCT-1 (LD-313): lab accounting tables (db/migrations/20261117120000_billing__add_lab_accounting.sql); the ledger is append only (SELECT + INSERT).
+CREATE POLICY account_groups__select__tenant ON billing.account_groups FOR SELECT TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+CREATE POLICY account_groups__insert__tenant ON billing.account_groups FOR INSERT TO lims_app
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+CREATE POLICY account_groups__update__tenant ON billing.account_groups FOR UPDATE TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()))
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+CREATE POLICY account_particulars__select__tenant ON billing.account_particulars FOR SELECT TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+CREATE POLICY account_particulars__insert__tenant ON billing.account_particulars FOR INSERT TO lims_app
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+CREATE POLICY account_particulars__update__tenant ON billing.account_particulars FOR UPDATE TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()))
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+CREATE POLICY expense_types__select__tenant ON billing.expense_types FOR SELECT TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+CREATE POLICY expense_types__insert__tenant ON billing.expense_types FOR INSERT TO lims_app
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+CREATE POLICY expense_types__update__tenant ON billing.expense_types FOR UPDATE TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()))
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+CREATE POLICY account_ledger_entries__select__tenant ON billing.account_ledger_entries FOR SELECT TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+CREATE POLICY account_ledger_entries__insert__tenant ON billing.account_ledger_entries FOR INSERT TO lims_app
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+CREATE POLICY expenses__select__tenant ON billing.expenses FOR SELECT TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+CREATE POLICY expenses__insert__tenant ON billing.expenses FOR INSERT TO lims_app
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+CREATE POLICY expenses__update__tenant ON billing.expenses FOR UPDATE TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()))
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+CREATE POLICY cash_transfers__select__tenant ON billing.cash_transfers FOR SELECT TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+CREATE POLICY cash_transfers__insert__tenant ON billing.cash_transfers FOR INSERT TO lims_app
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+CREATE POLICY cash_transfers__update__tenant ON billing.cash_transfers FOR UPDATE TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()))
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));

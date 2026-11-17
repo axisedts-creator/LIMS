@@ -64,11 +64,12 @@ describe('T0D-MSERIES-4 (LD-266): Find a screen field keeps its pill height in t
     expect(one('max-height'), 'no max-height cap either: flex: none is the whole fix').toBeUndefined();
   });
 
-  it('compact density still resolves to 40 px: the kit density rule is untouched and shell.css has no density rule that beats it with a larger value', () => {
-    expect(all(kit, "[data-density='compact'] .lims-input", 'min-height').at(-1)?.v).toBe('40px');
+  // T0D-DENSITY-1 (LD-310, founder 2026-11-17): the compact field is 30 px (was 40); same check against the new value.
+  it('compact density resolves to 30 px: the kit density rule says 30 and shell.css has no density rule that beats it with a larger value', () => {
+    expect(all(kit, "[data-density='compact'] .lims-input", 'min-height').at(-1)?.v).toBe('30px');
     for (const r of shell.filter((x) => x.sels.some((s) => /data-density/.test(s) && /lims-rail-search/.test(s)))) {
       const mh = r.decls.get('min-height');
-      if (mh) expect(Number.parseFloat(mh), `density rule ${r.sels.join(',')}`).toBeLessThanOrEqual(40);
+      if (mh) expect(Number.parseFloat(mh), `density rule ${r.sels.join(',')}`).toBeLessThanOrEqual(30);
     }
   });
 

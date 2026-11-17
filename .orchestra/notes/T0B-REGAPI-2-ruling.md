@@ -1,0 +1,6 @@
+TESTS_WRONG — the tenant isolation fixture seeds a TENANT_B row under TENANT_A claims; audit RLS correctly refuses it. Fixture-only fix, no assertion changes.
+1. billing/__tests__/preview/previewInvoiceNo.test.ts:110-111: pass the tenant as the claims tenant of the fixture tx: `await superTx(async (tx: any) => tx.query(`INSERT ... `, [TENANT_B, FY, SYS_ACTOR]), TENANT_B);`. Assertions at 112-115 stay exactly as they are.
+2. Why: superTx defaults claimsTenant = TENANT_A (frontdesk/__tests__/integration/helpers.ts:69). audit.audit_log is FORCE ROW LEVEL SECURITY (db/migrations/20261105000600_audit__create_audit_tables.sql:36) and its INSERT policy requires tenant_id = app.current_tenant_id() (same file :41-42, db/policies/audit.sql:10-11), so the audit trigger row for tenant B under tenant A claims is refused before any product code runs. That policy is the tenant guard (07-SECURITY tenant isolation); weakening it is not an option.
+3. The pattern is already established in the same test tree: billing/__tests__/accounts/helpers.ts:115 and :119 pass the tenant to superTx.
+4. LD-323 (e) asks for a tenant isolation test; this fix keeps its intent (tenant B sees only its counter, tenant A preview never reads tenant B rows).
+5. Previous ruling items 1-3 (af6560962) stand unchanged.

@@ -20,7 +20,6 @@ export interface AuthCtx {
   readonly tenantId?: string; readonly actor?: { readonly type?: string; readonly id: string }; readonly tx?: unknown;
   now(): string; ports?: any; rateLimit?: { consume(tier: string, key: string): Promise<void> };
   audit?: { access(entry: Record<string, unknown>): Promise<void> }; commitOnError?(): void;
-  log?: { error(o: object, m?: string): void };
 }
 type Scope = { tx: any; tenantId: string; actorId: string };
 type Row = Record<string, any>;
@@ -134,7 +133,7 @@ export function createAuthService() {
         throw Object.assign(new LimsError('common.rate_limited'), { retryAfterSeconds: day.secondsLeft });
       }
 
-      const id = uuidv7(); const token = randomToken(32); const code = config().otpTestCode ?? generateOtp(); // otpTestCode: test-only fixed code, never set in production (config.ts)
+      const id = uuidv7(); const token = randomToken(32); const code = generateOtp();
       const { ciphertext, keyId } = encryptOtpCode(id, code);
       const expiresAt = new Date(nowMs + config().otpTtlSeconds * 1000).toISOString();
       await otpRepo.insertChallenge(s.tx, {
@@ -199,14 +198,7 @@ export function createAuthService() {
             },
           },
         };
-      } catch (e) {
-        // Diagnostics only: error class + code (LimsError code or SQLSTATE) + constraint name; never a message, phone, token or row (REQ-SEC-103).
-        const x = e as { name?: unknown; code?: unknown; constraint?: unknown; routine?: unknown };
-        ctx.log?.error({ event: 'verify_otp_post_match_failed', err_name: typeof x.name === 'string' ? x.name : 'unknown',
-          err_code: typeof x.code === 'string' ? x.code : undefined, constraint: typeof x.constraint === 'string' ? x.constraint : undefined,
-          routine: typeof x.routine === 'string' ? x.routine : undefined }, 'verify_otp_post_match_failed');
-        throw new LimsError('common.internal'); // port or DB failure after a match: rolled back, code stays usable; no detail echoed (TRD §6.2)
-      }
+      } catch { throw new LimsError('common.internal'); } // port or DB failure after a match: rolled back, code stays usable; no detail echoed (TRD §6.2)
     },
   };
 }

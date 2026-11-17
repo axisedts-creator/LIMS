@@ -62,9 +62,11 @@ Without it the worker or `registry-sync` stops with `ERR_MODULE_NOT_FOUND` (for 
 | `LIMS_CORE_IDENTITY_AUTH_OPS` | core | optional | The built-in list of identity authentication operations is used. |
 | `LIMS_CORE_WITH_TENANT_SCOPE_OPS` | core | optional | The built-in list of tenant-scope operations is used. |
 | `LIMS_CORE_METRICS_PORT` | core | optional | Default 9464 for the internal metrics listener (API and worker). |
-| `LIMS_CORE_DB_POOL_MAX` | core | optional | Default pool size 20. |
-| `LIMS_CORE_STATEMENT_TIMEOUT_MS` | core | optional | Default 5000 ms statement timeout. |
+| `LIMS_CORE_DB_POOL_MAX` | core | optional | Default pool size 10 per process (fits the Supabase pooler; 1..60 accepted, T0B-PERF-1). |
+| `LIMS_CORE_STATEMENT_TIMEOUT_MS` | core | optional | Default 5000 ms statement timeout for read requests (GET, HEAD). |
+| `LIMS_CORE_STATEMENT_TIMEOUT_WRITE_MS` | core | optional | Default 15000 ms statement timeout for write requests (T0B-PERF-1). |
 | `LIMS_CORE_LOCK_TIMEOUT_MS` | core | optional | Default 3000 ms lock timeout. |
+| `LIMS_CORE_AUTHZ_MODE` | core | optional | Default shadow in every environment (LD-261): the central permission check logs denials and does not block; an unknown value stops boot. |
 | `LIMS_CORE_FAKE_PORTS` | core | optional | No port is replaced by a fake (fakes are allowed in dev and ci only). |
 | `LIMS_CORE_RATELIMIT_BACKEND` | core | optional | Default postgres. The redis choice is refused at boot (not wired yet). |
 | `LIMS_CORE_REDIS_URL` | core | optional | Not used while the rate-limit backend is postgres. |
@@ -126,10 +128,6 @@ Client address (LD-296): the web sends the browser's address (first `x-forwarded
 | `LIMS_ENGAGEMENT_OTP_HMAC_KEY_FILE` | engagement | required | The API refuses to start (key file of at least 32 bytes is checked at load). |
 | `LIMS_ENGAGEMENT_LINK_HMAC_KEY_FILE` | engagement | required | The API refuses to start (key file of at least 32 bytes is checked at load). |
 | `LIMS_ENGAGEMENT_PHONE_HMAC_KEY_FILE` | engagement | required | The API refuses to start (key file of at least 32 bytes is checked at load). |
-| `LIMS_ENGAGEMENT_OTP_TEST_CODE` | engagement | optional | TEST ONLY (dev, ci, staging). Exactly 6 digits: every patient login OTP is this fixed code (still stored, hashed, attempt-limited and expiring). Refused at boot when `LIMS_CORE_ENV` is production. Unset in normal operation. |
-| `LIMS_IDENTITY_PATIENT_JWT_KEY_FILE` | identity | optional | Path of the Ed25519 private key (PEM, PKCS#8) that signs the patient access JWT (LD-81). Read on first use; unset or unusable = every patient sign-in answers 500 `common.internal` after the OTP check, before anything is written. |
-| `LIMS_IDENTITY_PATIENT_JWT_KID` | identity | optional | Key id written in the patient JWT header, 1-64 of `A-Za-z0-9._-` (LD-81 shape `pat-YYYY-MM`). Unset = same effect as the key file above. |
-| `LIMS_CORE_PATIENT_JWT_PUBLIC_KEY_FILE` | core | optional | Path of the matching Ed25519 public key (PEM). Unset = patient access tokens are not accepted (401). A set but missing or non-Ed25519 file stops the API at boot. |
 | `LIMS_ENGAGEMENT_OTP_ENC_KEYS_FILE` | engagement | required | The API refuses to start (a JSON key file is checked at load). |
 | `LIMS_ENGAGEMENT_OTP_TTL_SECONDS` | engagement | optional | Default 300 seconds (allowed 120 to 600). |
 | `LIMS_ENGAGEMENT_OTP_MAX_ATTEMPTS` | engagement | optional | Default 5 (the only accepted value). |
@@ -167,6 +165,7 @@ Client address (LD-296): the web sends the browser's address (first `x-forwarded
 
 | Name | Module | Required | When unset |
 |---|---|---|---|
+| `LIMS_BILLING_ACCOUNT_ENTRY_MAX_PAISA` | billing | optional | Default 500000000 paisa (NPR 5,000,000.00): the largest single accounting ledger entry the API accepts. |
 | `LIMS_BILLING_CBMS_MODE` | billing | optional | Default stub: invoices are not sent to the tax authority; the live mode is refused until a live client exists. |
 | `LIMS_BILLING_COUNTER_LOCK_TIMEOUT_MS` | billing | optional | Default 3000 ms lock timeout on invoice counters. |
 | `LIMS_BILLING_EXPORT_KEY` | billing | optional | Worker: the tenant billing export job fails (it needs a 32-byte key to encrypt the export). |

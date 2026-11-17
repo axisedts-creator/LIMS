@@ -17,7 +17,6 @@ import type { Row } from '../repository/linkCodes.repo.js';
 import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';
 import { createProjectionService } from './projection.service.js';
 import { invalid, isUuid, parseIfMatch, type SlotCtx } from './slot.service.js';
-import { patientMembershipId } from './patient-ctx.js';
 
 export interface LinkCtx extends SlotCtx {
   readonly audit?: { access(entry: Record<string, unknown>): Promise<void> };
@@ -168,7 +167,7 @@ const reportProfile = (l: Row) => ({
 async function reportAccountOf(ctx: ReportLinkCtx): Promise<Row> {
   if (ctx.actor.type !== 'patient') throw new LimsError('auth.forbidden');
   const { rows } = await ctx.tx.query(
-    `SELECT id, phone_e164, phone_hmac FROM engagement.accounts WHERE tenant_id = $1 AND membership_id = $2 AND status <> 'deleted'`, [ctx.tenantId, patientMembershipId(ctx) ?? ctx.actor.id]);
+    `SELECT id, phone_e164, phone_hmac FROM engagement.accounts WHERE tenant_id = $1 AND membership_id = $2 AND status <> 'deleted'`, [ctx.tenantId, ctx.actor.id]);
   if (!rows[0]) throw new LimsError('auth.forbidden');
   return rows[0];
 }
@@ -282,7 +281,7 @@ export function createLinkService() {
       const { tx, tenantId, userId, now } = scope(ctx);
       const code = parseRedeem(input.body);
       const commitOnError = ctx.commitOnError;
-      const membershipId = patientMembershipId(ctx);
+      const membershipId = ctx.claims?.membership_id;
       if (typeof commitOnError !== 'function' || typeof membershipId !== 'string') throw new LimsError('auth.unauthenticated'); // never redeem without the means to persist a failure
       try {
         const acct = await repo.myAccount(tx, { tenantId, membershipId });

@@ -3,6 +3,7 @@
 // No raw value and nothing patient-linked in the URL (REQ-SEC-028): filters carry status / reason only. Actions live on the detail screen.
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { EmptyRow, PlaceholderRows } from '@lims/ui/components/DataTable';
 import { EmptyState } from '@lims/ui/components/EmptyState';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { EXCEPTION_REASONS, EXCEPTION_STATUSES, type IngestException } from '../server/types';
@@ -31,10 +32,8 @@ export function IngestExceptionList({ items, status = 'open', nextCursor }: Inge
         options={EXCEPTION_REASONS.map((r) => ({ value: r, label: REASON_TEXT[r] ?? r }))} />
       <NativeSelect label="Status" name="status" value={params.get('status') ?? status} onChange={(v) => go('status', v)} placeholder={null}
         options={EXCEPTION_STATUSES.map((s) => ({ value: s, label: s }))} />
-      {items.length === 0 ? (
-        <EmptyState title={`No ${status} instrument exceptions.`} />
-      ) : (
-        <table>
+      {/* T0D-EMPTYTBL-1 (LD-310): headers always drawn; the empty message is a body row. */}
+      <table>
           <caption className="lims-visually-hidden">Instrument exceptions</caption>
           <thead>
             <tr>
@@ -47,6 +46,7 @@ export function IngestExceptionList({ items, status = 'open', nextCursor }: Inge
             </tr>
           </thead>
           <tbody>
+            {items.length === 0 ? <EmptyRow colSpan={6}><EmptyState title={`No ${status} instrument exceptions.`} /></EmptyRow> : null}
             {items.map((e) => (
               <tr key={e.id}>
                 <td><Link href={`/lab/ingest-exceptions/${encodeURIComponent(e.id)}`}>{e.sample_barcode ?? 'No barcode'}</Link></td>
@@ -58,8 +58,8 @@ export function IngestExceptionList({ items, status = 'open', nextCursor }: Inge
               </tr>
             ))}
           </tbody>
+          {items.length === 0 ? <PlaceholderRows colSpan={6} /> : null}
         </table>
-      )}
       {nextCursor ? <p><Link href={more}>Next page</Link></p> : null}
     </section>
   );

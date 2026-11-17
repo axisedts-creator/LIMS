@@ -6,7 +6,6 @@ import { LimsError } from '../../../core/errors.js';
 import { maskPhone } from '../domain/phone.js';
 import * as defaultRepo from '../repository/account.repo.js';
 import { invalid, parseIfMatch, type SlotCtx } from './slot.service.js';
-import { patientMembershipId } from './patient-ctx.js';
 
 export type AccountRepo = typeof defaultRepo;
 export interface AccountCtx extends SlotCtx {
@@ -38,7 +37,7 @@ export function createAccountService(repo: AccountRepo = defaultRepo) {
   const scope = (ctx: AccountCtx) => {
     if (typeof ctx?.tenantId !== 'string' || typeof ctx.actor?.id !== 'string' || !ctx.tx || typeof ctx.now !== 'function') throw new LimsError('auth.unauthenticated');
     if (ctx.actor.type !== 'patient') throw new LimsError('auth.forbidden'); // staff / system actors have no patient account
-    return { tx: ctx.tx as any, tenantId: ctx.tenantId, membershipId: patientMembershipId(ctx) ?? ctx.actor.id, now: iso(ctx.now()) };
+    return { tx: ctx.tx as any, tenantId: ctx.tenantId, membershipId: ctx.actor.id, now: iso(ctx.now()) };
   };
   const mine = async (s: ReturnType<typeof scope>): Promise<Row> => {
     const a = await repo.lockLiveByMembership(s.tx, { tenantId: s.tenantId, membershipId: s.membershipId }).catch(mapDbError);

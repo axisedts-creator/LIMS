@@ -1,0 +1,2 @@
+- Cause: verify fails only on ADMINPACK-2 apply-role-pack.script.test.ts (9/9), stale vs main: extra `sweep` script (T0B-SWEEP-1) and docs/runbooks/ now exists so test expects missing apply-role-pack.md.
+- Fix: none in impl code; LINTFIX-1 changes are correct (lint 156/156, lintfix1 12/12). Wrote T0C-LINTFIX-1-dispute.md; verify cmd should exclude that test file.

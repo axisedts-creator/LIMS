@@ -12,16 +12,18 @@ const STUBS = new Set(UNOWNED_STUBS);
 
 describe('ST4 classification (generator guard)', () => {
   it('every operationId is either partner-facing or staff (/admin), exactly once, and the 68 ops are all covered', () => {
-    expect(OPS.length).toBe(68);
+    // T0C-SALES-1 (LD-321): the 15 sales operations join OPS once T0B-SALES-1 gives them handlers (kit.ts leaves pending ones out), so 68 is a floor, not an exact count
+    expect(OPS.length).toBeGreaterThanOrEqual(68);
     expect(new Set([...PARTNER_OPS, ...STAFF_OPS].map((o) => o.operationId))).toEqual(new Set(OPS));
-    expect(PARTNER_OPS.length + STAFF_OPS.length).toBe(68);
+    expect(PARTNER_OPS.length + STAFF_OPS.length).toBe(OPS.length);
   });
 
   it('AB5/AB6 contract: partner-facing paths carry partner-actor permissions only, /admin paths staff permissions only (no code shared across the two sides)', () => {
     const partnerSide = new Set(PARTNER_OPS.map((o) => o.permission));
     const staffSide = new Set(STAFF_OPS.map((o) => o.permission));
     expect([...partnerSide].filter((p) => staffSide.has(p))).toEqual([]);
-    expect([...staffSide].sort()).toEqual(['partners.manifest.receive', 'partners.partner.manage', 'partners.partner.read', 'partners.pickup.manage', 'partners.referrer.map']);
+    // + partners.sales.read / partners.sales.manage on the sales operations once they are implemented (T0C-SALES-1)
+    expect([...staffSide].filter((p) => !p.startsWith('partners.sales.')).sort()).toEqual(['partners.manifest.receive', 'partners.partner.manage', 'partners.partner.read', 'partners.pickup.manage', 'partners.referrer.map']);
     expect(ALL.every((o) => o.permission?.startsWith('partners.'))).toBe(true); // no platform.* / frontdesk.* / catalog.* code on a partners route
   });
 });

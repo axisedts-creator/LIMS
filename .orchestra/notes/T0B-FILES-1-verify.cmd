@@ -1,0 +1,1 @@
+cd /d "%~dp0..\.." && pnpm --dir services/api exec vitest run src/core/storage/__tests__ src/core/uploads/__tests__ && pnpm --dir packages/ui exec vitest run src/components/__tests__/fileupload-queue.test.ts src/components/__tests__/fileupload-direct.test.tsx src/components/__tests__/batch2-fileupload.test.tsx

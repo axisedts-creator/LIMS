@@ -11,9 +11,25 @@ class CatalogApi {
 
   final LimsTransport _send;
 
+  /// POST /v1/catalog/price-list-versions/{price_list_version_id}/bulk-update
+  Future<Object?> bulkUpdatePriceListDraft({required String priceListVersionId, Map<String, String>? headers, Object? body}) =>
+      _send('POST', '/v1/catalog/price-list-versions/${Uri.encodeComponent(priceListVersionId)}/bulk-update', headers: headers, body: body);
+
   /// POST /v1/catalog/imports/{import_id}/commit
   Future<Object?> commitImport({required String importId, Map<String, String>? headers, Object? body}) =>
       _send('POST', '/v1/catalog/imports/${Uri.encodeComponent(importId)}/commit', headers: headers, body: body);
+
+  /// POST /v1/catalog/price-list-import-batches/{batch_id}/commit
+  Future<Object?> commitPriceListImport({required String batchId, Map<String, String>? headers, Object? body}) =>
+      _send('POST', '/v1/catalog/price-list-import-batches/${Uri.encodeComponent(batchId)}/commit', headers: headers, body: body);
+
+  /// GET /v1/catalog/price-list-comparisons
+  Future<Object?> comparePriceLists({Map<String, Object?>? query}) =>
+      _send('GET', '/v1/catalog/price-list-comparisons', query: query);
+
+  /// POST /v1/catalog/price-lists/{price_list_id}/copy
+  Future<Object?> copyPriceList({required String priceListId, Map<String, String>? headers, Object? body}) =>
+      _send('POST', '/v1/catalog/price-lists/${Uri.encodeComponent(priceListId)}/copy', headers: headers, body: body);
 
   /// POST /v1/catalog/tests/{test_id}/analytes
   Future<Object?> createAnalyte({required String testId, Map<String, String>? headers, Object? body}) =>
@@ -99,6 +115,10 @@ class CatalogApi {
   Future<Object?> createTest({Map<String, String>? headers, Object? body}) =>
       _send('POST', '/v1/catalog/tests', headers: headers, body: body);
 
+  /// POST /v1/catalog/test-categories
+  Future<Object?> createTestCategory({Map<String, String>? headers, Object? body}) =>
+      _send('POST', '/v1/catalog/test-categories', headers: headers, body: body);
+
   /// POST /v1/catalog/units
   Future<Object?> createUnit({Map<String, String>? headers, Object? body}) =>
       _send('POST', '/v1/catalog/units', headers: headers, body: body);
@@ -138,6 +158,14 @@ class CatalogApi {
   /// GET /v1/catalog/import-templates/{kind}
   Future<Object?> downloadImportTemplate({required String kind}) =>
       _send('GET', '/v1/catalog/import-templates/${Uri.encodeComponent(kind)}');
+
+  /// GET /v1/catalog/price-list-import-template
+  Future<Object?> downloadPriceListTemplate({Map<String, Object?>? query}) =>
+      _send('GET', '/v1/catalog/price-list-import-template', query: query);
+
+  /// POST /v1/catalog/price-lists/{price_list_id}/import-dry-run
+  Future<Object?> dryRunPriceListImport({required String priceListId, Map<String, String>? headers, Object? body}) =>
+      _send('POST', '/v1/catalog/price-lists/${Uri.encodeComponent(priceListId)}/import-dry-run', headers: headers, body: body);
 
   /// POST /v1/catalog/surcharge-rules/{surcharge_rule_id}/end
   Future<Object?> endSurchargeRule({required String surchargeRuleId, Map<String, String>? headers, Object? body}) =>
@@ -243,6 +271,10 @@ class CatalogApi {
   Future<Object?> listPanels({Map<String, Object?>? query}) =>
       _send('GET', '/v1/catalog/panels', query: query);
 
+  /// GET /v1/catalog/price-list-import-batches
+  Future<Object?> listPriceListImportBatches({Map<String, Object?>? query}) =>
+      _send('GET', '/v1/catalog/price-list-import-batches', query: query);
+
   /// GET /v1/catalog/price-list-versions/{price_list_version_id}/items
   Future<Object?> listPriceListItems({required String priceListVersionId, Map<String, Object?>? query}) =>
       _send('GET', '/v1/catalog/price-list-versions/${Uri.encodeComponent(priceListVersionId)}/items', query: query);
@@ -270,6 +302,10 @@ class CatalogApi {
   /// GET /v1/catalog/tax-types
   Future<Object?> listTaxTypes({Map<String, Object?>? query}) =>
       _send('GET', '/v1/catalog/tax-types', query: query);
+
+  /// GET /v1/catalog/test-categories
+  Future<Object?> listTestCategories({Map<String, Object?>? query}) =>
+      _send('GET', '/v1/catalog/test-categories', query: query);
 
   /// GET /v1/catalog/tests
   Future<Object?> listTests({Map<String, Object?>? query}) =>
@@ -414,6 +450,10 @@ class CatalogApi {
   /// PATCH /v1/catalog/tests/{test_id}
   Future<Object?> updateTest({required String testId, Map<String, String>? headers, Object? body}) =>
       _send('PATCH', '/v1/catalog/tests/${Uri.encodeComponent(testId)}', headers: headers, body: body);
+
+  /// PATCH /v1/catalog/test-categories/{category_id}
+  Future<Object?> updateTestCategory({required String categoryId, Map<String, String>? headers, Object? body}) =>
+      _send('PATCH', '/v1/catalog/test-categories/${Uri.encodeComponent(categoryId)}', headers: headers, body: body);
 
   /// PATCH /v1/catalog/units/{unit_id}
   Future<Object?> updateUnit({required String unitId, Map<String, String>? headers, Object? body}) =>

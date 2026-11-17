@@ -98,17 +98,19 @@ describe('s4 Register: Patient, Tests, Billing stacked left; sticky summary righ
     expect(valueOf(summary(), /^discount authority$/i)).toMatch(/5\s*%/);
   });
 
-  it('the summary is sticky: its class has a position: sticky rule in kit.css or a feature .css file', async () => {
+  // T0D-REGSCREEN-1 (LD-310, done_when 1): the summary becomes the totals bar fixed at the bottom of the screen: `fixed` or `sticky`, offset by `top` OR `bottom` from a token or 0.
+  // Changed from "position: sticky + top" only; layout proof is in regscreen1.layout.test.ts.
+  it('the summary is pinned: its class has a position: sticky|fixed rule in kit.css or a feature .css file', async () => {
     await renderForm();
     const classes = [...summary().classList];
     expect(classes.length).toBeGreaterThan(0);
     const cssFiles = [kitCss, ...walk(join(web, 'src', 'features', 'frontdesk')).filter((f) => f.endsWith('.css'))];
     const css = cssFiles.map((f) => readFileSync(f, 'utf8')).join('\n');
-    const sticky = classes.some((c) => new RegExp(`\\.${c}(?![\\w-])[^{}]*\\{[^}]*position\\s*:\\s*sticky`).test(css));
-    expect(sticky, `no "position: sticky" rule for .${classes.join(' / .')}`).toBe(true);
-    // tokens only: the offset below the 56 px top bar comes from a var(), not a literal pixel value
-    const rule = css.match(new RegExp(`\\.(?:${classes.join('|')})(?![\\w-])[^{}]*\\{([^}]*position\\s*:\\s*sticky[^}]*)\\}`))?.[1] ?? '';
-    expect(rule).toMatch(/top\s*:\s*(?:0|var\()/);
+    const sticky = classes.some((c) => new RegExp(`\\.${c}(?![\\w-])[^{}]*\\{[^}]*position\\s*:\\s*(?:sticky|fixed)`).test(css));
+    expect(sticky, `no "position: sticky|fixed" rule for .${classes.join(' / .')}`).toBe(true);
+    // tokens only: the offset comes from 0 or a var(), not a literal pixel value
+    const rule = css.match(new RegExp(`\\.(?:${classes.join('|')})(?![\\w-])[^{}]*\\{([^}]*position\\s*:\\s*(?:sticky|fixed)[^}]*)\\}`))?.[1] ?? '';
+    expect(rule).toMatch(/(?:top|bottom)\s*:\s*(?:0|var\()/);
   });
 });
 

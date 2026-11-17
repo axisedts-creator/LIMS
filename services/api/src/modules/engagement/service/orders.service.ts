@@ -7,7 +7,6 @@
 import { LimsError } from '../../../core/errors.js';
 import { specimenStage, type SpecimenStatus } from '../domain/stage.js';
 import { invalid, isUuid, type SlotCtx } from './slot.service.js';
-import { patientMembershipId } from './patient-ctx.js';
 
 export interface OrdersCtx extends SlotCtx { readonly claims?: { readonly membership_id?: unknown } }
 type Out = { status: number; body?: Record<string, unknown>; etag?: string };
@@ -26,7 +25,7 @@ const obj = (v: unknown): Record<string, any> => (typeof v === 'object' && v !==
 const notFound = (): never => { throw new LimsError('common.not_found'); };
 
 export function scope(ctx: OrdersCtx): { tx: any; tenantId: string; nowMs: number; membershipId: string } {
-  const m = patientMembershipId(ctx);
+  const m = ctx?.claims?.membership_id;
   if (typeof ctx?.tenantId !== 'string' || typeof ctx.actor?.id !== 'string' || !ctx.tx || typeof ctx.now !== 'function') throw new LimsError('auth.unauthenticated');
   if (ctx.actor.type !== 'patient' || typeof m !== 'string') throw new LimsError('auth.forbidden');
   return { tx: ctx.tx, tenantId: ctx.tenantId, nowMs: ms(ctx.now()), membershipId: m };

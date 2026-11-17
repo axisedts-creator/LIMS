@@ -133,6 +133,33 @@ CREATE POLICY comment_code_texts__insert__tenant ON catalog.comment_code_texts F
 CREATE POLICY comment_code_texts__update__tenant ON catalog.comment_code_texts FOR UPDATE TO lims_app
   USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()))
   WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+-- T0C-TESTMGMT-1 (LD-318): db/migrations/20261117170000_catalog__test_management_parity.sql; no DELETE policy (deactivate, never delete)
+CREATE POLICY test_categories__select__tenant ON catalog.test_categories FOR SELECT TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+CREATE POLICY test_categories__insert__tenant ON catalog.test_categories FOR INSERT TO lims_app
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+CREATE POLICY test_categories__update__tenant ON catalog.test_categories FOR UPDATE TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()))
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+CREATE POLICY test_stage_tat_targets__select__tenant ON catalog.test_stage_tat_targets FOR SELECT TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+CREATE POLICY test_stage_tat_targets__insert__tenant ON catalog.test_stage_tat_targets FOR INSERT TO lims_app
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+CREATE POLICY test_stage_tat_targets__update__tenant ON catalog.test_stage_tat_targets FOR UPDATE TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()))
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+-- T0C-PRICETOOLS-1 (LD-321): db/migrations/20261117200000_catalog__add_price_list_tools.sql; no DELETE policy (history kept), the error table has no UPDATE policy (append only)
+CREATE POLICY price_list_import_batch__select__tenant ON catalog.price_list_import_batch FOR SELECT TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+CREATE POLICY price_list_import_batch__insert__tenant ON catalog.price_list_import_batch FOR INSERT TO lims_app
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+CREATE POLICY price_list_import_batch__update__tenant ON catalog.price_list_import_batch FOR UPDATE TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()))
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+CREATE POLICY price_list_import_error__select__tenant ON catalog.price_list_import_error FOR SELECT TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+CREATE POLICY price_list_import_error__insert__tenant ON catalog.price_list_import_error FOR INSERT TO lims_app
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
 CREATE POLICY doctors__select__tenant ON catalog.doctors FOR SELECT TO lims_app
   USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
 CREATE POLICY doctors__insert__tenant ON catalog.doctors FOR INSERT TO lims_app

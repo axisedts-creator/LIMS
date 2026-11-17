@@ -14,6 +14,9 @@ export const manifest = {
   name: 'catalog',
   openapi: 'contracts/openapi/catalog.yaml',
   handlers,
+  // LD-325(b): spec operations without a handler yet (answer 501 operation_pending). T0B-TESTMGMT-1 added the three test category handlers.
+  // T0C-PRICETOOLS-1 (LD-321, LD-325(b)): the seven price list tool operations; T0B-PRICETOOLS-1 removes them when it adds the handlers.
+  pendingOperations: ['downloadPriceListTemplate', 'dryRunPriceListImport', 'commitPriceListImport', 'bulkUpdatePriceListDraft', 'copyPriceList', 'comparePriceLists', 'listPriceListImportBatches'],
   produces: ['catalog.changed.v1'],
   ports: { CatalogPort },
 } as const satisfies ModuleManifest;

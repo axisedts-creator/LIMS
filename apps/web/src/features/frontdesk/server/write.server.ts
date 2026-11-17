@@ -76,14 +76,15 @@ export const recordPayment = (orderId: string, r: { method_code: string; amount_
   return send<unknown>('POST', `/v1/billing/orders/${uuid(orderId)}/payments`, r, key);
 };
 
-/** F21 uploadTrf; TrfUploadForm.order_id links the file to the order so it shows in that order's trf_attachments. */
-export function uploadTrf(centreId: string, orderId: string, file: File, key: string) {
+/** F21 uploadTrf; TrfUploadForm.order_id links the file to the order so it shows in that order's trf_attachments.
+ * LD-310 / T0D-REGSCREEN-1: order_id is optional (C4 03-APP-FLOW:89): an upload before registration returns the id F9 `trf_attachment_ids` links. */
+export function uploadTrf(centreId: string, orderId: string | undefined, file: File, key: string) {
   if (!WRITE_KEY_RE.test(key)) throw bad();
   const form = new FormData();
   form.set('centre_id', uuid(centreId));
-  form.set('order_id', uuid(orderId));
+  if (orderId !== undefined) form.set('order_id', uuid(orderId));
   form.set('file', file);
-  return serverFetch<unknown>('/v1/frontdesk/trf-attachments', { method: 'POST', headers: { 'idempotency-key': key }, body: form });
+  return serverFetch<{ id: string }>('/v1/frontdesk/trf-attachments', { method: 'POST', headers: { 'idempotency-key': key }, body: form });
 }
 
 export const approveDiscount =(approvalId: string, v: number, key: string) => send<DiscountApproval>('POST', `/v1/frontdesk/discount-approvals/${uuid(approvalId)}/approve`, {}, key, v);

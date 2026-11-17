@@ -11,4 +11,6 @@ export const manifest: ModuleManifest = {
   handlers,
   ports: { BillingPort: billingPort, BillingCommandPort: billingCommandPort },
   produces: ['billing.invoice.issued.v1', 'billing.invoice.cancelled.v1', 'billing.balance.changed.v1'],
+  // LD-325 (T0B-BOOTGATE-1): T0B-ACCT-2 implemented its 12 operations and removed them; no billing operation is pending.
+  pendingOperations: [],
 };

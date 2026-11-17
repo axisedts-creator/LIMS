@@ -3,8 +3,9 @@
 // The pool is module-private (CV §5.10): modules only ever see the `tx` facade below.
 import { AuthError } from '../auth/errors.js';
 import type { DbClaims } from '../auth/claims.js';
-import { IDENTITY_AUTH_OPS, PRE_AUTH_SCHEMES, WITH_TENANT_SCOPE_OPS } from './allowlists.js';
+import { IDENTITY_AUTH_OPS, WITH_TENANT_SCOPE_OPS } from './allowlists.js';
 import { mapDbError, type DbErrorDeps } from './sqlstate.js';
+import { currentRequestStats } from '../observability/request-stats.js';
 
 export interface PoolClient { query(text: string, values?: unknown[]): Promise<{ rows: any[] }>; release(err?: unknown): void }
 export interface Pool { connect(): Promise<PoolClient> }
@@ -13,6 +14,8 @@ export interface TxOperation { readonly module: string; readonly operationId: st
 export interface TxInput {
   readonly requestId: string; readonly clientIp: string; readonly userAgent?: string | undefined;
   readonly operation: TxOperation; readonly statementTimeoutMs?: number; readonly lockTimeoutMs?: number;
+  /** T0B-PERF-1 (LD-310): GET/HEAD = true (read statement timeout), other methods false (write timeout). Unset = legacy (write if configured, else read). */
+  readonly readOnly?: boolean;
 }
 export interface RequestTxInput extends TxInput { readonly claims: DbClaims }
 
@@ -33,13 +36,13 @@ export interface DbOptions extends DbErrorDeps {
   readonly sleep?: (ms: number) => Promise<void>;
   readonly random?: () => number;
   readonly statementTimeoutMs?: number;
+  /** T0B-PERF-1 (LD-310): statement timeout of write transactions (config 15000). */
+  readonly writeStatementTimeoutMs?: number;
   readonly lockTimeoutMs?: number;
   readonly identitySystemActorId?: string;
   /** PLATFORM-WIRE-1 (LD-267): lazy identity system actor for withTenantScope ONLY (read after every other check passed); never used by identityAuthTx. */
   readonly scopeActorId?: () => Promise<string>;
   readonly identityAuthOps?: Iterable<string>;
-  /** Schemes allowed to open preAuthTx (default PRE_AUTH_SCHEMES). */
-  readonly preAuthSchemes?: Iterable<string>;
   readonly withTenantScopeOps?: Iterable<string>;
 }
 
@@ -56,7 +59,7 @@ const ENQUEUE = /app\.enqueue_job\s*\(/i;
 const enqueued = new WeakMap<object, string>(); // error of a failed app.enqueue_job call -> its task identifier (values[0])
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-interface TxState { readonly kind: 'request' | 'identity_auth' | 'pre_auth'; readonly operation: TxOperation; readonly claimsJson: string; open: boolean; scoped: boolean }
+interface TxState { readonly kind: 'request' | 'identity_auth'; readonly operation: TxOperation; readonly claimsJson: string; open: boolean; scoped: boolean }
 
 const internal = (): Error => new AuthError('common.internal');
 const realSleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
@@ -66,9 +69,11 @@ export function createDb(o: DbOptions) {
   const sleep = o.sleep ?? realSleep;
   const random = o.random ?? Math.random;
   const authOps: ReadonlySet<string> = new Set(o.identityAuthOps ?? IDENTITY_AUTH_OPS);
-  const preAuthSchemes: ReadonlySet<string> = new Set(o.preAuthSchemes ?? PRE_AUTH_SCHEMES);
   const scopeOps: ReadonlySet<string> = new Set(o.withTenantScopeOps ?? WITH_TENANT_SCOPE_OPS);
   const deps: DbErrorDeps = { log: o.log, metrics: o.metrics };
+  const timeoutFor = (readOnly?: boolean): number => (readOnly === true
+    ? o.statementTimeoutMs ?? 5000
+    : readOnly === false ? o.writeStatementTimeoutMs ?? 15000 : o.writeStatementTimeoutMs ?? o.statementTimeoutMs ?? 5000);
   const states = new WeakMap<object, TxState>(); // only tx objects made here are accepted by withTenantScope
 
   async function attempt<T>(kind: TxState['kind'], input: TxInput, claimsJson: string, fn: TxFn<T>, ctl: TxControl): Promise<T> {
@@ -79,7 +84,7 @@ export function createDb(o: DbOptions) {
       await client.query('BEGIN');
       const { rows } = await client.query(OPEN_SQL, [
         claimsJson, String(input.requestId), String(input.clientIp ?? ''), String(input.userAgent ?? '').slice(0, 512),
-        String(input.statementTimeoutMs ?? o.statementTimeoutMs ?? 5000), String(input.lockTimeoutMs ?? o.lockTimeoutMs ?? 3000),
+        String(input.statementTimeoutMs ?? timeoutFor(input.readOnly)), String(input.lockTimeoutMs ?? o.lockTimeoutMs ?? 3000),
       ]);
       let n = 0;
       let bound = false;
@@ -91,8 +96,17 @@ export function createDb(o: DbOptions) {
           throw e;
         });
       };
+      // T0B-PERF-1 (LD-310): every statement the caller issues counts once (ok or failed) in the request's stats; plumbing
+      // (BEGIN/COMMIT, savepoints, the claims set_config) goes through `query` directly and is not counted.
+      const counted = (text: string, values?: unknown[]) => {
+        const stats = currentRequestStats();
+        if (!stats || text === CLAIMS_SQL) return query(text, values);
+        const t0 = performance.now();
+        const done = () => { stats.recordQuery(performance.now() - t0); };
+        return query(text, values).then((r) => { done(); return r; }, (e: unknown) => { done(); throw e; });
+      };
       const tx: Tx = {
-        query,
+        query: counted,
         startedAt: new Date(rows[0].tx_started_at),
         operation: state.operation,
         async savepoint<R>(inner: (t: Tx) => Promise<R>): Promise<R> {
@@ -162,16 +176,6 @@ export function createDb(o: DbOptions) {
     requestTx<T>(input: RequestTxInput, fn: TxFn<T>): Promise<T> {
       if (!input?.claims || !input.operation) return Promise.reject(internal());
       return run('request', input, JSON.stringify(input.claims), fn);
-    },
-
-    /**
-     * Pre-claims transaction for an AuthResolver (02-TRD §6.3): claims are fixed to `{}` (no actor, no tenant), so only
-     * SECURITY DEFINER lookups can succeed. Refused before any SQL unless `scheme` is in PRE_AUTH_SCHEMES; the caller
-     * (core/openapi.ts) additionally checks that the operation's module owns the scheme.
-     */
-    preAuthTx<T>(input: TxInput & { readonly scheme: string }, fn: TxFn<T>): Promise<T> {
-      if (!input?.operation || typeof input.scheme !== 'string' || !preAuthSchemes.has(input.scheme)) return Promise.reject(internal());
-      return run('pre_auth', input, '{}', fn);
     },
 
     /** 08 A25 D-212: refused before any SQL unless identity + x-context identity_auth + allowlisted operationId. */

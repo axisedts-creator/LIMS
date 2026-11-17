@@ -11,10 +11,17 @@ export type PermissionCode =
   | "anatomic.config.manage"
   | "audit.log.export"
   | "audit.log.read"
+  | "billing.account.manage"
+  | "billing.account.read"
+  | "billing.account_entry.create"
+  | "billing.account_entry.reverse"
   | "billing.cash_report.read"
+  | "billing.cash_transfer.decide"
+  | "billing.cash_transfer.manage"
   | "billing.credit_party.manage"
   | "billing.credit_party.read"
   | "billing.data.export"
+  | "billing.expense.manage"
   | "billing.invoice.cancel"
   | "billing.invoice.issue"
   | "billing.invoice.read"
@@ -141,6 +148,8 @@ export type PermissionCode =
   | "partners.referrer.map"
   | "partners.referrer.read"
   | "partners.report.read"
+  | "partners.sales.manage"
+  | "partners.sales.read"
   | "partners.statement.read"
   | "payments.intent.create"
   | "payments.intent.resolve"
@@ -185,7 +194,10 @@ export type PermissionCode =
   | "smartreport.summary.approve"
   | "smartreport.summary.read"
   | "smartreport.template.approve"
-  | "smartreport.template.manage";
+  | "smartreport.template.manage"
+  | "sync.conflict.resolve"
+  | "sync.device.manage"
+  | "sync.use";
 
 export const PERMISSION_CODES: readonly PermissionCode[] = [
   "analytics.collections.read",
@@ -199,10 +211,17 @@ export const PERMISSION_CODES: readonly PermissionCode[] = [
   "anatomic.config.manage",
   "audit.log.export",
   "audit.log.read",
+  "billing.account.manage",
+  "billing.account.read",
+  "billing.account_entry.create",
+  "billing.account_entry.reverse",
   "billing.cash_report.read",
+  "billing.cash_transfer.decide",
+  "billing.cash_transfer.manage",
   "billing.credit_party.manage",
   "billing.credit_party.read",
   "billing.data.export",
+  "billing.expense.manage",
   "billing.invoice.cancel",
   "billing.invoice.issue",
   "billing.invoice.read",
@@ -329,6 +348,8 @@ export const PERMISSION_CODES: readonly PermissionCode[] = [
   "partners.referrer.map",
   "partners.referrer.read",
   "partners.report.read",
+  "partners.sales.manage",
+  "partners.sales.read",
   "partners.statement.read",
   "payments.intent.create",
   "payments.intent.resolve",
@@ -374,6 +395,9 @@ export const PERMISSION_CODES: readonly PermissionCode[] = [
   "smartreport.summary.read",
   "smartreport.template.approve",
   "smartreport.template.manage",
+  "sync.conflict.resolve",
+  "sync.device.manage",
+  "sync.use",
 ];
 
 export const PRIVILEGED: ReadonlySet<PermissionCode> = new Set([
@@ -383,6 +407,9 @@ export const PRIVILEGED: ReadonlySet<PermissionCode> = new Set([
   "anatomic.config.manage",
   "audit.log.export",
   "audit.log.read",
+  "billing.account.manage",
+  "billing.account_entry.reverse",
+  "billing.cash_transfer.decide",
   "billing.credit_party.manage",
   "billing.data.export",
   "billing.invoice.cancel",
@@ -420,6 +447,7 @@ export const PRIVILEGED: ReadonlySet<PermissionCode> = new Set([
   "micro.breakpoint.manage",
   "partners.partner.manage",
   "partners.partner_user.manage",
+  "partners.sales.manage",
   "payments.intent.resolve",
   "payments.merchant_config.manage",
   "payments.reconciliation.read",
@@ -442,6 +470,8 @@ export const PRIVILEGED: ReadonlySet<PermissionCode> = new Set([
   "reporting.token.revoke",
   "smartreport.summary.approve",
   "smartreport.template.approve",
+  "sync.conflict.resolve",
+  "sync.device.manage",
 ]);
 
 // Default role grants (tenant, partner and platform roles) from permissions[].roles.
@@ -469,13 +499,21 @@ export const ROLE_GRANTS: Readonly<Record<string, readonly PermissionCode[]>> = 
     "partners.pickup.manage",
     "reporting.report.print",
     "reporting.report.read",
+    "sync.use",
   ],
   finance: [
     "analytics.collections.read",
+    "billing.account.manage",
+    "billing.account.read",
+    "billing.account_entry.create",
+    "billing.account_entry.reverse",
     "billing.cash_report.read",
+    "billing.cash_transfer.decide",
+    "billing.cash_transfer.manage",
     "billing.credit_party.manage",
     "billing.credit_party.read",
     "billing.data.export",
+    "billing.expense.manage",
     "billing.invoice.cancel",
     "billing.invoice.issue",
     "billing.invoice.read",
@@ -502,12 +540,16 @@ export const ROLE_GRANTS: Readonly<Record<string, readonly PermissionCode[]>> = 
     "inventory.po.manage",
     "inventory.report.export",
     "partners.partner.read",
+    "partners.sales.manage",
+    "partners.sales.read",
     "payments.intent.create",
     "payments.intent.resolve",
     "payments.merchant_config.read",
     "payments.reconciliation.read",
     "payments.refund.approve",
     "payments.refund.request",
+    "sync.conflict.resolve",
+    "sync.use",
   ],
   front_desk: [
     "billing.invoice.issue",
@@ -558,6 +600,7 @@ export const ROLE_GRANTS: Readonly<Record<string, readonly PermissionCode[]>> = 
     "reporting.report.read",
     "reporting.report.release",
     "smartreport.summary.read",
+    "sync.use",
   ],
   lab_manager: [
     "analytics.dashboard.read",
@@ -607,6 +650,8 @@ export const ROLE_GRANTS: Readonly<Record<string, readonly PermissionCode[]>> = 
     "micro.culture.read",
     "partners.partner.read",
     "partners.referrer.map",
+    "partners.sales.manage",
+    "partners.sales.read",
     "quality.autoverify.manage",
     "quality.autoverify.read",
     "quality.config.manage",
@@ -623,6 +668,8 @@ export const ROLE_GRANTS: Readonly<Record<string, readonly PermissionCode[]>> = 
     "reporting.settings.manage",
     "reporting.template.manage",
     "smartreport.template.manage",
+    "sync.conflict.resolve",
+    "sync.use",
   ],
   lab_technologist: [
     "anatomic.case.read",
@@ -663,6 +710,7 @@ export const ROLE_GRANTS: Readonly<Record<string, readonly PermissionCode[]>> = 
     "reporting.narrative.write",
     "reporting.outsourced.attach",
     "reporting.report.read",
+    "sync.use",
   ],
   owner_viewer: [
     "analytics.collections.read",
@@ -676,6 +724,7 @@ export const ROLE_GRANTS: Readonly<Record<string, readonly PermissionCode[]>> = 
     "inventory.cost.read",
     "inventory.item.read",
     "inventory.report.export",
+    "sync.use",
   ],
   partner_admin: [],
   partner_member: [],
@@ -722,6 +771,7 @@ export const ROLE_GRANTS: Readonly<Record<string, readonly PermissionCode[]>> = 
     "smartreport.summary.read",
     "smartreport.template.approve",
     "smartreport.template.manage",
+    "sync.use",
   ],
   phlebotomist: [
     "billing.payment.record",
@@ -730,6 +780,7 @@ export const ROLE_GRANTS: Readonly<Record<string, readonly PermissionCode[]>> = 
     "identity.self.manage",
     "lab.specimen.collect",
     "lab.specimen.read",
+    "sync.use",
   ],
   platform_superadmin: [
     "platform.dead_letter.manage",
@@ -747,6 +798,7 @@ export const ROLE_GRANTS: Readonly<Record<string, readonly PermissionCode[]>> = 
     "reporting.narrative.sign",
     "reporting.narrative.write",
     "reporting.report.read",
+    "sync.use",
   ],
   tenant_admin: [
     "analytics.collections.read",
@@ -755,6 +807,8 @@ export const ROLE_GRANTS: Readonly<Record<string, readonly PermissionCode[]>> = 
     "analytics.schedule.manage",
     "audit.log.export",
     "audit.log.read",
+    "billing.account.manage",
+    "billing.account.read",
     "billing.cash_report.read",
     "billing.credit_party.read",
     "billing.invoice.read",
@@ -797,6 +851,8 @@ export const ROLE_GRANTS: Readonly<Record<string, readonly PermissionCode[]>> = 
     "partners.partner.manage",
     "partners.partner.read",
     "partners.referrer.map",
+    "partners.sales.manage",
+    "partners.sales.read",
     "payments.merchant_config.manage",
     "payments.merchant_config.read",
     "reporting.channel.manage",
@@ -807,6 +863,9 @@ export const ROLE_GRANTS: Readonly<Record<string, readonly PermissionCode[]>> = 
     "reporting.settings.manage",
     "reporting.template.manage",
     "reporting.token.revoke",
+    "sync.conflict.resolve",
+    "sync.device.manage",
+    "sync.use",
   ],
 };
 

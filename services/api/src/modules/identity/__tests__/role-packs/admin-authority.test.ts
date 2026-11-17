@@ -6,6 +6,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { parse } from 'yaml';
+import { STAFF } from './admin-staff-codes';
 
 const ROOT = join(import.meta.dirname, '../../../../../../..');
 type Role = { code: string; mfa_required: boolean; base_default_role: string | null; permissions: string[] };
@@ -52,11 +53,21 @@ describe('ADMINPACK-1 administrator packs: authority left out on purpose (sectio
     std_admin: ['inventory.bench.record', 'payments.merchant_config.manage', 'payments.merchant_config.read'],
   };
 
-  it.each(ADMINS)('%s holds no code of the left-out list (decision, bench, money and platform authority), except the pinned pre-existing holdings', (admin) => {
-    expect(byCode(admin).permissions.filter(leftOut).sort(), `${admin} holds left-out codes`).toEqual(PREEXISTING[admin]);
+  it('std_admin holds no code of the left-out list (decision, bench, money and platform authority), except the pinned pre-existing holdings', () => {
+    expect(byCode('std_admin').permissions.filter(leftOut).sort(), 'std_admin holds left-out codes').toEqual(PREEXISTING.std_admin);
   });
 
-  it.each(ADMINS)('%s: no money authority and no payment intent, refund, reverse or cancel; no result, report or narrative decision; no platform code', (admin) => {
+  // LD-310 (T0B-ADMINPERM-1, founder: admin should get all features) overrides section 3.3 for corp_admin ONLY: it holds every
+  // left-out code that a tenant staff actor can hold, and still no platform code (those are in the shared EXCLUDED list).
+  it('corp_admin (LD-310) holds every left-out code that a tenant staff actor can hold, and no platform code', () => {
+    const held = byCode('corp_admin').permissions.filter(leftOut).sort();
+    expect(held).toEqual(registry.map((p) => p.code).filter((c) => leftOut(c) && STAFF.includes(c)).sort());
+    expect(held.filter((c) => /^platform\./.test(c))).toEqual([]);
+    for (const c of ['lab.result.verify', 'billing.refund.approve', 'payments.intent.create', 'reporting.narrative.sign']) expect(held, c).toContain(c);
+  });
+
+  it('std_admin: no money authority and no payment intent, refund, reverse or cancel; no result, report or narrative decision; no platform code', () => {
+    const admin = 'std_admin';
     const p = byCode(admin).permissions;
     for (const re of [/^payments\.(intent|refund)\./, /^billing\..*(refund|reverse|cancel)/, /^lab\.result\.(verify|approve|amend)$/, /^reporting\.(narrative|report\.(release|regenerate|bulk_release))/, /^platform\./]) {
       expect(p.filter((c) => re.test(c)), `${admin} ${re}`).toEqual([]);
@@ -77,8 +88,11 @@ describe('ADMINPACK-1 administrator packs: authority left out on purpose (sectio
   it.each(ADMINS)('%s: a privileged permission keeps the role mfa_required, and the privileged count is the pinned one (R3)', (admin) => {
     const r = byCode(admin);
     const privileged = r.permissions.filter((c) => PERM.get(c) === true);
-    expect(privileged.length, `${admin} privileged`).toBe(admin === 'corp_admin' ? 39 : 35);
-    expect(r.permissions.length, `${admin} permissions`).toBe(admin === 'corp_admin' ? 115 : 102);
+    // corp_admin: LD-310 (T0B-ADMINPERM-1) 155 permissions, 59 privileged (every staff code of the registry); std_admin unchanged.
+    // T0C-ACCT-1 (LD-313 c): +7 accounting codes, 3 of them privileged (account.manage, account_entry.reverse, cash_transfer.decide) -> 162 / 62.
+    // T0C-SALES-1 (LD-321): +2 sales codes, 1 privileged (partners.sales.manage) -> 164 / 63; std_admin unchanged. T0C-SYNC-1 (LD-322): +3 sync codes, 2 privileged (sync.device.manage, sync.conflict.resolve) -> 167 / 65.
+    expect(privileged.length, `${admin} privileged`).toBe(admin === 'corp_admin' ? 65 : 35);
+    expect(r.permissions.length, `${admin} permissions`).toBe(admin === 'corp_admin' ? 167 : 102);
     expect(r.mfa_required, admin).toBe(true);
     expect(r.base_default_role, admin).toBe('tenant_admin');
   });

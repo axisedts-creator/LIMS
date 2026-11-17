@@ -58,6 +58,12 @@ export async function uploadTrfAction(centreId: string, orderId: string, form: F
   if (!(file instanceof File)) return { ok: false, status: 400, code: 'common.validation_failed' };
   return run(async () => (await uploadTrf(centreId, orderId, file, key), true as const));
 }
+/** LD-310 / T0D-REGSCREEN-1: TRF on the registration screen, before the order exists; the returned id rides in F9 `trf_attachment_ids`. */
+export async function uploadRegistrationTrfAction(centreId: string, form: FormData, key: string): Promise<ActionResult<{ id: string }>> {
+  const file = form.get('file');
+  if (!(file instanceof File)) return { ok: false, status: 400, code: 'common.validation_failed' };
+  return run(async () => ({ id: (await uploadTrf(centreId, undefined, file, key)).id }));
+}
 export async function updatePatientAction(patientId: string, version: number, changes: Record<string, string>): Promise<ActionResult<true>> {
   return run(async () => (await updatePatient(patientId, version, changes), true as const));
 }

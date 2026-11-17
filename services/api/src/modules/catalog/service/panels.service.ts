@@ -16,7 +16,10 @@ import { createRevisionService } from './revision.service.js';
 import { checkQuery, compact, isActiveOf, limitOf, pick } from './tests.service.js';
 
 const ORD_COLS = ['id', 'kind', 'code', 'name', 'department_id', 'sex_restriction', 'is_orderable', 'is_active', 'revision'];
-const PANEL_COLS = ['id', 'panel_kind', 'version', 'is_active'];
+const PANEL_COLS = ['id', 'panel_kind', 'version', 'is_active', 'barcode_text', 'loyalty_points', 'display_order', 'is_popular'];
+// T0B-TESTMGMT-1 (LD-318, ElabAssist Profile / Package): display fields on catalog.panels, changed in place (audited); written only when sent.
+const PANEL_NEW = ['barcode_text', 'loyalty_points', 'display_order', 'is_popular'];
+const PANEL_NEW_FIELDS = { barcode_text: str(1, 64), loyalty_points: { t: 'int', min: 0, max: 1_000_000 } as const, display_order: { t: 'int', min: 0, max: 9999 } as const, is_popular: BOOL };
 const MEMBER_COLS = ['panel_id', 'member_orderable_id', 'sort_order'];
 const MEMBER_ORDER = 'panel_id, sort_order, member_orderable_id';
 const AN_COLS = ['id', 'test_id', 'code', 'name', 'print_name', 'report_subheading', 'sort_order', 'is_reportable'];
@@ -118,6 +121,8 @@ export function createPanelsService(deps: Deps) {
       return [compact({
         id, kind: 'panel', code: o.code, name: o.name, department_id: o.department_id, department_code: o.department_id ? dBy.get(o.department_id) : undefined,
         panel_kind: p.panel_kind, sex_restriction: o.sex_restriction, is_orderable: o.is_orderable === true, is_active: p.is_active === true, revision: Number(o.revision),
+        barcode_text: p.barcode_text, loyalty_points: p.loyalty_points == null ? undefined : Number(p.loyalty_points), display_order: p.display_order == null ? undefined : Number(p.display_order),
+        is_popular: p.is_popular,
         members: mems.filter((m) => m.panel_id === id && kBy.has(m.member_orderable_id))
           .map((m) => ({ kind: kBy.get(m.member_orderable_id), orderable_id: m.member_orderable_id, sort_order: Number(m.sort_order) })),
         version: Number(p.version),
@@ -156,7 +161,7 @@ export function createPanelsService(deps: Deps) {
 
     /** #53 */
     async createPanel(ctx: Ctx, body: unknown) {
-      const b = checkFields({ fields: FIELDS }, body, ['code', 'panel_kind', 'sex_restriction', 'members']);
+      const b = checkFields({ fields: { ...FIELDS, ...PANEL_NEW_FIELDS } }, body, ['code', 'panel_kind', 'sex_restriction', 'members']);
       const errors: FieldError[] = [];
       let code: string | undefined;
       if (b['code'] !== undefined) { try { code = assertCode('orderable', b['code']); } catch { errors.push(invalid('/code')); } }
@@ -173,7 +178,7 @@ export function createPanelsService(deps: Deps) {
       checkGraph(await loadGraph(tx, t, new Set(panels.map((p) => p.id))), id, members);
       await repo.insert(tx, 'orderables', [{ id, ...who, kind: 'panel', code, name: b['name'], department_id: b['department_id'] ?? null,
         sex_restriction: b['sex_restriction'] ?? null, is_orderable: true, is_active: true, revision: 0, version: 1 }], ['created_at', 'updated_at']).catch(mapPg);
-      await repo.insert(tx, 'panels', [{ id, ...who, kind: 'panel', panel_kind: b['panel_kind'], is_active: true, version: 1 }], ['created_at', 'updated_at']).catch(mapPg);
+      await repo.insert(tx, 'panels', [{ id, ...who, kind: 'panel', panel_kind: b['panel_kind'], is_active: true, version: 1, ...pick(b, PANEL_NEW) }], ['created_at', 'updated_at']).catch(mapPg);
       await insertMembers(tx, t, actor, id, members);
       await bump(ctx, id, 'created');
       return one(ctx, id);
@@ -190,12 +195,12 @@ export function createPanelsService(deps: Deps) {
     /** #55 — If-Match; code, panel_kind and members are not patchable (members: #56). */
     async updatePanel(ctx: Ctx, input: { id?: unknown; expectedVersion?: unknown; patch?: unknown } = {}) {
       const { id, ev } = checkUpdate(input);
-      const patch = checkFields({ fields: { ...FIELDS, is_active: BOOL } }, input.patch, ['sex_restriction', 'unset']);
+      const patch = checkFields({ fields: { ...FIELDS, ...PANEL_NEW_FIELDS, is_active: BOOL } }, input.patch, ['sex_restriction', 'unset']);
       const errors: FieldError[] = [];
       enumErr(patch['sex_restriction'], SEX, '/sex_restriction', errors);
       const unset = patch['unset'];
       if (unset !== undefined) {
-        const ok = Array.isArray(unset) && unset.length <= 2 && new Set(unset).size === unset.length && unset.every((u) => u === 'sex_restriction' || u === 'department_id');
+        const ok = Array.isArray(unset) && unset.length <= 3 && new Set(unset).size === unset.length && unset.every((u) => u === 'sex_restriction' || u === 'department_id' || u === 'barcode_text');
         if (!ok) errors.push(invalid('/unset'));
         else for (const u of unset as string[]) if (patch[u] !== undefined) errors.push(invalid(`/${u}`));
       }
@@ -207,10 +212,12 @@ export function createPanelsService(deps: Deps) {
       if (Number(before.version) !== ev) throw new LimsError('common.version_conflict');
       const [ord] = await repo.find(tx, 'orderables', ['id'], t, { id, kind: 'panel' }, { lock: true });
       if (!ord) throw notFound();
-      const nulls = Object.fromEntries(((unset as string[] | undefined) ?? []).map((u) => [u, null]));
+      const all = ((unset as string[] | undefined) ?? []);
+      const nulls = Object.fromEntries(all.filter((u) => u !== 'barcode_text').map((u) => [u, null]));
       const k = { tenantId: t, id, actorId: ctx.actor.id };
       await repo.update(tx, 'orderables', ['id'], k, { ...pick(patch, ['name', 'department_id', 'sex_restriction', 'is_active']), ...nulls }).catch(mapPg);
-      const after = await repo.update(tx, 'panels', PANEL_COLS, { ...k, expectedVersion: ev }, pick(patch, ['is_active']));
+      const after = await repo.update(tx, 'panels', PANEL_COLS, { ...k, expectedVersion: ev },
+        { ...pick(patch, ['is_active', ...PANEL_NEW]), ...(all.includes('barcode_text') ? { barcode_text: null } : {}) });
       if (!after) throw new LimsError('common.version_conflict');
       await bump(ctx, id, before.is_active === true && after.is_active === false ? 'deactivated' : 'updated');
       return one(ctx, id);

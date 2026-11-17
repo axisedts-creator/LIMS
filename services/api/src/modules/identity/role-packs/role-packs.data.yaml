@@ -15,41 +15,60 @@ packs:
           - analytics.referral_report.read
           - analytics.schedule.manage
           - anatomic.case.read
+          - anatomic.case.signout
+          - anatomic.case.work
           - anatomic.config.manage
           - audit.log.export
           - audit.log.read
+          - billing.account.manage
+          - billing.account.read
+          - billing.account_entry.create
+          - billing.account_entry.reverse
           - billing.cash_report.read
+          - billing.cash_transfer.decide
+          - billing.cash_transfer.manage
           - billing.credit_party.manage
           - billing.credit_party.read
           - billing.data.export
+          - billing.expense.manage
+          - billing.invoice.cancel
           - billing.invoice.issue
           - billing.invoice.read
           - billing.invoice.reprint
           - billing.payment.record
+          - billing.payment.reverse
+          - billing.refund.approve
+          - billing.refund.request
           - billing.release.override
           - billing.settings.manage
           - catalog.instrument_code_map.manage
           - catalog.price_list.manage
           - catalog.price_list.read
+          - catalog.reference_range.publish
           - catalog.referrer.export
           - catalog.referrer.manage
           - catalog.referrer.read
           - catalog.test.manage
           - catalog.test.read
           - engagement.bookable_item.manage
+          - engagement.booking.cancel
           - engagement.booking.manage
           - engagement.booking.read
           - engagement.enquiry.read
           - engagement.enquiry.respond
+          - engagement.link.issue
           - engagement.link.read
           - engagement.link.revoke
           - engagement.membership.enrol
           - engagement.membership.read
           - engagement.membership_plan.manage
           - engagement.queue.manage
+          - engagement.queue.operate
+          - engagement.reminder.manage
           - engagement.reminder.read
           - engagement.settings.manage
           - engagement.slot.manage
+          - frontdesk.discount.apply
           - frontdesk.discount.approve
           - frontdesk.order.cancel
           - frontdesk.order.edit
@@ -63,6 +82,7 @@ packs:
           - homecollection.device.manage
           - homecollection.handover.receive
           - homecollection.settings.manage
+          - homecollection.sync.upload
           - homecollection.visit.assign
           - homecollection.visit.read
           - identity.centre.manage
@@ -78,9 +98,12 @@ packs:
           - instruments.instrument.manage
           - instruments.instrument.read
           - instruments.message.read
+          - instruments.message.rematch
+          - inventory.bench.record
           - inventory.cost.read
           - inventory.item.read
           - inventory.master.manage
+          - inventory.po.approve
           - inventory.po.manage
           - inventory.report.export
           - inventory.stock.adjust
@@ -88,8 +111,13 @@ packs:
           - lab.config.manage
           - lab.critical_value.log_notification
           - lab.critical_value.read
+          - lab.qc.capture
+          - lab.qc_hold.release
+          - lab.result.amend
+          - lab.result.approve
           - lab.result.enter
           - lab.result.read
+          - lab.result.verify
           - lab.specimen.collect
           - lab.specimen.label_print
           - lab.specimen.read
@@ -97,33 +125,57 @@ packs:
           - lab.specimen.reject
           - lab.status_board.read
           - lab.worklist.read
+          - lab.worksheet.manage
+          - micro.breakpoint.manage
           - micro.config.manage
           - micro.culture.read
+          - micro.culture.work
           - partners.manifest.receive
           - partners.partner.manage
           - partners.partner.read
           - partners.pickup.manage
           - partners.referrer.map
+          - partners.sales.manage
+          - partners.sales.read
+          - payments.intent.create
+          - payments.intent.resolve
           - payments.merchant_config.manage
           - payments.merchant_config.read
           - payments.reconciliation.read
+          - payments.refund.approve
+          - payments.refund.request
+          - quality.autoverify.manage
           - quality.autoverify.read
           - quality.config.manage
           - quality.qc.manage
           - quality.qc_run.read
+          - quality.qc_run.review
           - quality.tat_alert.ack
           - quality.tat_alert.read
           - reporting.channel.manage
           - reporting.delivery.read
+          - reporting.delivery.resend
           - reporting.message_template.manage
+          - reporting.narrative.sign
+          - reporting.narrative.write
           - reporting.outsourced.attach
           - reporting.report.bulk_download
+          - reporting.report.bulk_release
           - reporting.report.print
           - reporting.report.read
+          - reporting.report.regenerate
+          - reporting.report.release
+          - reporting.report.render
           - reporting.settings.manage
           - reporting.template.manage
           - reporting.token.revoke
+          - smartreport.summary.approve
           - smartreport.summary.read
+          - smartreport.template.approve
+          - smartreport.template.manage
+          - sync.conflict.resolve
+          - sync.device.manage
+          - sync.use
       - code: corp_accession_user
         name: "Accession User"
         mfa_required: false

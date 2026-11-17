@@ -158,18 +158,3 @@ describe('LIMS_ENGAGEMENT_OTP_ENC_KEYS_FILE: JSON {key_id: base64 32 bytes}', ()
     expect(msg).not.toContain(secret);
   });
 });
-
-describe('OTP_TEST_CODE (test-only fixed login OTP)', () => {
-  const key = `${P}OTP_TEST_CODE`;
-  it('is off by default', () => expect(load().otpTestCode).toBeUndefined());
-  it('empty value counts as unset', () => expect(load({ [key]: '' }).otpTestCode).toBeUndefined());
-  it('accepts exactly 6 digits outside production', () => {
-    expect(load({ [key]: '123456' }).otpTestCode).toBe('123456');
-    expect(load({ [key]: '123456' }, { ...good, LIMS_CORE_ENV: 'staging' }).otpTestCode).toBe('123456');
-  });
-  it.each(['12345', '1234567', 'abcdef', '12 456'])('rejects %s naming the key', (v) => bad('OTP_TEST_CODE', v));
-  it('is refused in production', () => {
-    expect(() => load({ [key]: '123456' }, { ...good, ...PROD })).toThrow(/LIMS_ENGAGEMENT_OTP_TEST_CODE/);
-  });
-  it('production without the flag still boots', () => expect(load({}, { ...good, ...PROD }).otpTestCode).toBeUndefined());
-});

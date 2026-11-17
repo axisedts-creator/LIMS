@@ -236,3 +236,32 @@ CREATE POLICY access_slips__insert__partner ON partners.access_slips FOR INSERT 
 CREATE POLICY access_slips__update__system ON partners.access_slips FOR UPDATE TO lims_app
   USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.current_actor_type()) = 'system')
   WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.current_actor_type()) = 'system');
+-- T0C-SALES-1 (LD-321): db/migrations/20261117210000_partners__add_sales_hierarchy.sql; no DELETE policy (deactivate / close, never delete)
+CREATE POLICY sales_designation__select__tenant ON partners.sales_designation FOR SELECT TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+CREATE POLICY sales_designation__insert__tenant ON partners.sales_designation FOR INSERT TO lims_app
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+CREATE POLICY sales_designation__update__tenant ON partners.sales_designation FOR UPDATE TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()))
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+CREATE POLICY sales_representative__select__tenant ON partners.sales_representative FOR SELECT TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+CREATE POLICY sales_representative__insert__tenant ON partners.sales_representative FOR INSERT TO lims_app
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+CREATE POLICY sales_representative__update__tenant ON partners.sales_representative FOR UPDATE TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()))
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+CREATE POLICY party_sales_assignment__select__tenant ON partners.party_sales_assignment FOR SELECT TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+CREATE POLICY party_sales_assignment__insert__tenant ON partners.party_sales_assignment FOR INSERT TO lims_app
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+CREATE POLICY party_sales_assignment__update__tenant ON partners.party_sales_assignment FOR UPDATE TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()))
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+CREATE POLICY service_area__select__tenant ON partners.service_area FOR SELECT TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+CREATE POLICY service_area__insert__tenant ON partners.service_area FOR INSERT TO lims_app
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+CREATE POLICY service_area__update__tenant ON partners.service_area FOR UPDATE TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()))
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));

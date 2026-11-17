@@ -5,15 +5,12 @@ import type { CoreConfig } from './config.js';
 import { genReqId, installErrorHandlers, sendProblem } from './errors.js';
 import { createHealthHandlers, UNWIRED_CHECKS, type EnvSource, type HealthChecks } from './health.js';
 import { autoload, checkHandlers, DEFAULT_MODULES_DIR, loadSpec, REPO_ROOT } from './module.js';
+import { CORE_PENDING_OPERATIONS } from './core-pending.js';
 import { createBffKeyVerifier } from './auth/bff-key.js';
 import type { ClaimsResolver } from './auth/claims-resolver.js';
 import { createClientIpResolver } from './auth/client-ip.js';
-import { createAuthResolverRegistry } from './auth/resolvers.js';
-import { AuthError } from './auth/errors.js';
-import { PRE_AUTH_SCHEMES } from './db/allowlists.js';
-import type { Db } from './db/tx.js';
 import { createJwtVerifier } from './auth/jwt.js';
-import { createCompositeJwtVerifier, createPatientJwtVerifier } from './auth/patient-jwt-verifier.js';
+import { installHttpPerf } from './observability/http-perf.js';
 import { childLoggerFactory, createCoreLogger, installRequestLog } from './observability/logging.js';
 import { createMetrics, type CoreMetrics } from './observability/metrics.js';
 import { claimsOf, installRouteHooks, mountSpec, schemaController, type CoreAuth } from './openapi.js';
@@ -55,21 +52,25 @@ export async function bootstrap(opts: BootstrapOptions): Promise<FastifyInstance
     app.decorate('metrics', metrics);
     installErrorHandlers(app);
     installRequestLog(app, metrics, claimsOf);
+    installHttpPerf(app); // T0B-PERF-1 (LD-310): stats scope, Server-Timing, compression, keep-alive
     const modules = await autoload(modulesDir, repoRoot);
+    // LD-325 (T0B-BOOTGATE-1): stale pending entries warn (handler wins); production refuses any pending entry (stale included)
+    // unless LIMS_ALLOW_PENDING_OPS is exactly 1.
+    // T0C-SYNC-1 (LD-322): the core's own pending sync operations count too (only when the core spec is mounted, see below).
+    const pendingIds = [...(repoRoot === REPO_ROOT ? CORE_PENDING_OPERATIONS.map((id) => `core.${id}`) : []),
+      ...modules.flatMap((m) => (m.manifest.pendingOperations ?? []).map((id) => `${m.manifest.name}.${id}`))];
+    if (pendingIds.length && process.env.NODE_ENV === 'production' && process.env.LIMS_ALLOW_PENDING_OPS !== '1') {
+      throw new Error(`production boot refuses pending operations (set LIMS_ALLOW_PENDING_OPS=1 to override): ${pendingIds.join(', ')}`);
+    }
+    for (const m of modules) {
+      for (const id of m.stalePending) {
+        app.log.warn({ event: 'pending_operation_stale', module: m.manifest.name, operationId: id },
+          `module ${m.manifest.name}: pending operation ${id} has a handler; remove it from pendingOperations`);
+      }
+    }
     // 02-TRD §6.5: key files are read now, so a missing/garbage key or CIDR fails boot (no lazy / network fallback).
-    // Resolver schemes (patientPreAuth ...): the registry is built from the modules' authResolvers; the Db only exists after
-    // bootPipeline (below), so it is bound late. Without a database the handler fails closed (401), like every other path.
-    const resolvers = createAuthResolverRegistry(modules.map((m) => m.manifest));
-    let preAuthDb: Db | undefined;
     const auth: CoreAuth = {
-      preAuth: {
-        schemes: new Set(PRE_AUTH_SCHEMES.filter((k) => resolvers.has(k))),
-        authenticate: async ({ scheme, credential, ...input }) => {
-          if (!preAuthDb) throw new AuthError('auth.unauthenticated');
-          return preAuthDb.preAuthTx({ ...input, scheme }, (tx) => resolvers.authenticate(scheme, credential, tx));
-        },
-      },
-      ...(config.jwt ? { verifier: createCompositeJwtVerifier(createJwtVerifier(config.jwt), config.jwt.patientKeyFile ? createPatientJwtVerifier({ keyFile: config.jwt.patientKeyFile }) : undefined) } : {}),
+      ...(config.jwt ? { verifier: createJwtVerifier(config.jwt) } : {}),
       claimsResolver: modules.find((m) => m.manifest.name === 'identity')?.manifest.claimsResolver as ClaimsResolver | undefined,
       bff: createBffKeyVerifier(config.bffKeyFiles),
       clientIp: createClientIpResolver(config.trustedProxyCidrs),
@@ -77,16 +78,15 @@ export async function bootstrap(opts: BootstrapOptions): Promise<FastifyInstance
     installRouteHooks(app, { responseValidation: config.responseValidation, auth });
     // 02-TRD §6.2 stages 5-11 per request (LD-133, T0D-18): pool, limiter, idempotency, ports, authz guard.
     const pipes = await bootPipeline({ config, modules, log: app.log as any, metrics });
-    preAuthDb = pipes.db;
     app.addHook('onClose', async () => { await pipes.close(); });
     if (repoRoot === REPO_ROOT) {
       // 02-TRD §8: the core's own spec; custom repoRoots (test fixtures) carry module specs only.
       const spec = loadSpec(join(REPO_ROOT, 'contracts', 'openapi', 'core.yaml'));
       const handlers = createHealthHandlers(opts.healthChecks ?? pipes.healthChecks ?? UNWIRED_CHECKS, opts.env) // LD-193: injected, else real, else fail closed;
-      checkHandlers('core', spec, handlers);
-      await mountSpec(app, 'core', spec, handlers, auth, pipes.pipelineFor('core'));
+      checkHandlers('core', spec, handlers, CORE_PENDING_OPERATIONS);
+      await mountSpec(app, 'core', spec, handlers, auth, pipes.pipelineFor('core'), CORE_PENDING_OPERATIONS);
     }
-    for (const m of modules) await mountSpec(app, m.manifest.name, m.spec, m.manifest.handlers, auth, pipes.pipelineFor(m.manifest.name));
+    for (const m of modules) await mountSpec(app, m.manifest.name, m.spec, m.manifest.handlers, auth, pipes.pipelineFor(m.manifest.name), m.manifest.pendingOperations);
     if (config.loadSampleModule) {
       // 02-TRD §14: core-owned, ci only, never deployed; its spec lives next to it, not in contracts/openapi.
       const { manifest } = await import('./__fixtures__/module-sample/index.js');

@@ -3,7 +3,10 @@ import { getRow, insertRow, type Tx } from './shared.repo.js';
 
 const COLS = ['id', 'branch_id', 'centre_id', 'patient_id', 'registration_no', 'status', 'visit_type', 'billing_mode', 'credit_party_id', 'referrer_id',
   'priority', 'collection_mode', 'source', 'source_ref_id', 'partner_id', 'age_years', 'age_months', 'age_days', 'is_first_order_of_patient',
-  'catalog_revision', 'items_version', 'scheduled_at', 'registered_at', 'requires_credit_note'] as const;
+  'catalog_revision', 'items_version', 'scheduled_at', 'registered_at', 'requires_credit_note',
+  // T0B-REGAPI-2 (migration 20261117110000): parity fields; coupon_amount_paisa is server derived
+  'collection_at', 'collected_by_membership_id', 'collected_by_name', 'sample_not_collected', 'sample_remark', 'remark_description', 'clinical_history', 'patient_history',
+  'mr_number', 'external_reference', 'insurance_code', 'insurance_claim_amount_paisa', 'visiting_charge_paisa', 'coupon_code', 'coupon_amount_paisa'] as const;
 
 export const insertOrder = (tx: Tx, tenantId: string, row: Record<string, unknown>) => insertRow(tx, 'frontdesk.orders', COLS, tenantId, row);
 export const getOrderById = (tx: Tx, tenantId: string, id: string) => getRow(tx, 'frontdesk.orders', tenantId, id);
@@ -26,7 +29,7 @@ export async function bumpOrderItemsVersion(tx: Tx, tenantId: string, id: string
 export async function cancelOrderRow(tx: Tx, tenantId: string, id: string, expectedVersion: number,
   c: { at: Date; by: string; reasonCode: string; reasonText?: string; requiresCreditNote: boolean }): Promise<any | null> {
   const { rows } = await tx.query(`UPDATE frontdesk.orders SET status = 'cancelled', cancelled_at = $4, cancelled_by = $5, cancel_reason_code = $6, cancel_reason_text = $7,
-      requires_credit_note = $8, version = version + 1, updated_at = now(), updated_by = (SELECT app.current_actor_id())
+      requires_credit_note = $8, insurance_claim_amount_paisa = CASE WHEN insurance_claim_amount_paisa IS NULL THEN NULL ELSE 0 END, version = version + 1, updated_at = now(), updated_by = (SELECT app.current_actor_id())
     WHERE tenant_id = $1 AND id = $2 AND version = $3 RETURNING *`, [tenantId, id, expectedVersion, c.at, c.by, c.reasonCode, c.reasonText ?? null, c.requiresCreditNote]);
   return rows[0] ?? null;
 }

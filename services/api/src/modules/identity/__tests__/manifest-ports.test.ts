@@ -45,7 +45,7 @@ const TENANT = '123e4567-e89b-42d3-a456-426614174000';
 const IDS = { membership: '223e4567-e89b-42d3-a456-426614174001', user: '323e4567-e89b-42d3-a456-426614174002', app: '423e4567-e89b-42d3-a456-426614174003' };
 
 /** ctx.tx stub: answers only claims + membership reads, records every statement. Anything else is an empty result. */
-function makeTx(claims: Record<string, unknown>, membership?: Record<string, unknown>, patientRead?: Record<string, unknown>) {
+function makeTx(claims: Record<string, unknown>, membership?: Record<string, unknown>) {
   const queries: string[] = [];
   return {
     queries,
@@ -53,7 +53,6 @@ function makeTx(claims: Record<string, unknown>, membership?: Record<string, unk
       queries.push(text);
       if (/app\.current_claims\(\)/.test(text)) return { rows: [{ c: claims }] };
       if (membership && /FROM core\.memberships m/.test(text)) return { rows: [membership] };
-      if (patientRead && /app\.identity_patient_membership/.test(text)) return { rows: [patientRead] };
       return { rows: [] };
     },
   };
@@ -186,7 +185,7 @@ describe('construction (LD-187 rules 1-3: createCoreAdminRepo() + fail-closed sy
     expect(createCoreAdminRepo.mock.calls[0]?.[0] ?? {}).toEqual({});
     expect(createIdentityPort).toHaveBeenCalledTimes(1);
     const deps = (createIdentityPort.mock.calls[0] as unknown[])[0] as any;
-    expect(deps.repo.marker).toBe('repo');   // the core admin repo's members are spread first, then the patient writers (CR-C16 draft)
+    expect(deps.repo).toBe(repo);
     expect(typeof deps.systemActorPermissions).toBe('function');
     expect(manifest.ports.IdentityPort).toBe(port);
   });
@@ -202,12 +201,11 @@ describe('construction (LD-187 rules 1-3: createCoreAdminRepo() + fail-closed sy
     }
   });
 
-  it('CR-C16 draft: the patient writers and a lazy signer are passed; newToken / newId stay defaults', async () => {
+  it('LD-81: mintPatientAccessToken and every patient writer are NOT passed (patient session minting stays unwired)', async () => {
     const { createIdentityPort, createCoreAdminRepo } = await withSpies({ LIMS_IDENTITY_PATIENT_JWT_KEY_FILE: KEY_FILE });
     const deps = (createIdentityPort.mock.calls[0] as unknown[])[0] as any;
-    expect(typeof deps.mintPatientAccessToken).toBe('function');
-    for (const k of ['createPatientMembership', 'insertPatientSession', 'patientMembership']) expect(typeof deps.repo[k], k).toBe('function');
-    expect(Object.keys(deps).sort()).toEqual(expect.not.arrayContaining(['newToken', 'newId']));
+    expect(deps.mintPatientAccessToken).toBeUndefined();
+    expect(Object.keys(deps).sort()).toEqual(expect.not.arrayContaining(['mintPatientAccessToken', 'newToken', 'newId']));
     expect(createCoreAdminRepo).toHaveBeenCalledTimes(1);
   });
 
@@ -304,7 +302,7 @@ describe('fail closed: the system actor has no permission (CR-C2-013 unknown id 
   });
 });
 
-describe('LD-81 / CR-C16 draft: patient sign-in writers are wired; the signer fails closed without its settings', () => {
+describe('LD-81: patient session minting stays unwired (no signer, no patient writer)', () => {
   const patientRow = () => ({
     id: IDS.membership, user_id: IDS.user, tenant_id: TENANT, actor_type: 'patient', status: 'active', locked_at: null, all_centres: false, version: 1,
     partner_role: null, signatory_display_title: null, signatory_registration_no: null, signature_image_ref: null,
@@ -313,37 +311,28 @@ describe('LD-81 / CR-C16 draft: patient sign-in writers are wired; the signer fa
   const preAuth = (tx: unknown) => ctxOf({ type: 'patient', id: IDS.user }, tx);
   const open = { membershipId: IDS.membership, appInstanceId: IDS.app, appPlatform: 'android' };
 
-  const patientRead = { user_id: IDS.user, status: 'active', locked: false };
-
-  it('openPatientSession without the signer settings fails closed with common.internal BEFORE any write; no token, key file untouched', async () => {
-    const port = (await loadManifest()).ports.IdentityPort;
-    const tx = makeTx({ patient_stage: 'pre_auth' }, undefined, patientRead);
-    const e = await rejection(port.openPatientSession(preAuth(tx), open));
-    expect(e.code).toBe('common.internal');
-    expect(tx.queries.some((q) => /^\s*(INSERT|UPDATE|DELETE)/i.test(q) || /app\.identity_patient_open_session/.test(q))).toBe(false);
-  });
-
-  it('openPatientSession with an unusable key file (not an Ed25519 key) fails closed with common.internal; nothing is written and no key text leaks', async () => {
-    const port = (await loadManifest({ LIMS_IDENTITY_PATIENT_JWT_KEY_FILE: KEY_FILE, LIMS_IDENTITY_PATIENT_JWT_KID: 'pat-2026-11' })).ports.IdentityPort;
-    const tx = makeTx({ patient_stage: 'pre_auth' }, undefined, patientRead);
+  it('openPatientSession (needs mintPatientAccessToken) throws common.internal "patient writer not wired"; no write, no token, key file untouched', async () => {
+    const port = (await loadManifest({ LIMS_IDENTITY_PATIENT_JWT_KEY_FILE: KEY_FILE })).ports.IdentityPort;
+    const tx = makeTx({ patient_stage: 'pre_auth' }, patientRow());
     const out: string[] = [];
     for (const s of ['log', 'info', 'warn', 'error', 'debug'] as const) vi.spyOn(console, s).mockImplementation((...a: unknown[]) => { out.push(a.map(String).join(' ')); });
     vi.spyOn(process.stdout, 'write').mockImplementation(((c: unknown) => { out.push(String(c)); return true; }) as never);
     vi.spyOn(process.stderr, 'write').mockImplementation(((c: unknown) => { out.push(String(c)); return true; }) as never);
     const e = await rejection(port.openPatientSession(preAuth(tx), open));
     expect(e.code).toBe('common.internal');
-    expect(tx.queries.some((q) => /^\s*(INSERT|UPDATE|DELETE)/i.test(q) || /app\.identity_patient_open_session/.test(q))).toBe(false);
+    expect(e.detail).toMatch(/patient writer not wired/);
+    expect(tx.queries.some((q) => /^\s*(INSERT|UPDATE|DELETE)/i.test(q))).toBe(false);
     const leaked = [e.message, e.detail, e.stack, ...out].join('\n');
     expect(leaked).not.toContain(KEY_SENTINEL);
     expect(leaked).not.toContain(KEY_DIR_FRAGMENT);
   });
 
-  it('provisionPatientMembership calls only the DEFINER (never a direct INSERT); an empty result is common.internal', async () => {
+  it('provisionPatientMembership (no patient writer in the real repo) throws common.internal "not wired"; no write', async () => {
     const port = (await loadManifest()).ports.IdentityPort;
     const tx = makeTx({ patient_stage: 'pre_auth' });
     const e = await rejection(port.provisionPatientMembership(preAuth(tx), { accountId: IDS.app }));
     expect(e.code).toBe('common.internal');
-    expect(tx.queries.some((q) => /app\.identity_patient_create_membership/.test(q))).toBe(true);
+    expect(e.detail).toMatch(/not wired/);
     expect(tx.queries.some((q) => /^\s*(INSERT|UPDATE|DELETE)/i.test(q))).toBe(false);
   });
 

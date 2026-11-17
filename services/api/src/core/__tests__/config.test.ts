@@ -54,19 +54,3 @@ describe('loadConfig', () => {
     expect(Object.isFrozen(c)).toBe(true);
   });
 });
-
-describe('LIMS_CORE_PATIENT_JWT_PUBLIC_KEY_FILE (CR-C16 draft: optional patient token key)', () => {
-  const base = { LIMS_CORE_ENV: 'ci', LIMS_CORE_JWT_ALG: 'HS256', LIMS_CORE_JWT_ISSUER: 'i', LIMS_CORE_JWT_AUDIENCE: 'a', LIMS_CORE_JWT_KEY_FILE: '/k' };
-  it('is absent from the jwt config unless set (the four-key shape is unchanged)', () => {
-    expect(loadConfig(base).jwt).toEqual({ alg: 'HS256', issuer: 'i', audience: 'a', keyFile: '/k' });
-  });
-  it('is carried as patientKeyFile when set', () => {
-    expect(loadConfig({ ...base, LIMS_CORE_PATIENT_JWT_PUBLIC_KEY_FILE: '/p' }).jwt).toEqual({ alg: 'HS256', issuer: 'i', audience: 'a', keyFile: '/k', patientKeyFile: '/p' });
-  });
-  it('empty counts as unset', () => {
-    expect(loadConfig({ ...base, LIMS_CORE_PATIENT_JWT_PUBLIC_KEY_FILE: '' }).jwt).toEqual({ alg: 'HS256', issuer: 'i', audience: 'a', keyFile: '/k' });
-  });
-  it('without the four primary keys the patient key alone configures nothing', () => {
-    expect(loadConfig({ LIMS_CORE_ENV: 'ci', LIMS_CORE_PATIENT_JWT_PUBLIC_KEY_FILE: '/p' }).jwt).toBeUndefined();
-  });
-});

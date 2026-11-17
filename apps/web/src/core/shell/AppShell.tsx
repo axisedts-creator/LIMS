@@ -70,6 +70,7 @@ export function AppShell({ session, pathname, centres, counts, viewOnly, childre
       crumb={crumb}
       tenant={session.actor.tenantCode ?? ''}
       user={{ name: session.actor.displayName, role: session.actor.roles.join(', ').replace(/_/g, ' ') }}
+      memberId={session.actor.membershipId}
       logoSrc={LOGO_ON_DARK}
       search={{ canPatients: hasPermission(perms, 'frontdesk.patient.read'), canSpecimens: hasPermission(perms, 'lab.specimen.read') }}
       centres={centres}

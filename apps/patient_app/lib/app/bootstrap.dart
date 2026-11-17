@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lims_ui/lims_ui.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 
-import '../core/api/http_transport.dart';
 import 'app.dart';
 import 'flavour.dart';
 import 'providers.dart';
@@ -15,11 +14,7 @@ Future<void> runPatientApp(Flavour flavour) async {
   await SentryFlutter.init(
     (o) => LimsErrorTracking.configure(o, dsn: kErrorTrackingDsn, environment: flavour.env, release: kAppVersion),
     appRunner: () => runApp(ProviderScope(
-      overrides: [
-        flavourProvider.overrideWithValue(flavour),
-        // LOCAL TEST WIRING until the generated lims_api_client lands (CR-C16-016/017).
-        innerTransportProvider.overrideWithValue(buildHttpTransport(baseUrl: flavour.apiBaseUrl)),
-      ],
+      overrides: [flavourProvider.overrideWithValue(flavour)],
       child: const PatientApp(),
     )),
   );

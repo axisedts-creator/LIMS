@@ -1,0 +1,7 @@
+# T0D-CATUNITS-1 impl (writer)
+Files: app/(staff)/catalog/units/page.tsx, app/(staff)/catalog/error.tsx, features/catalog/server/listValueSets.server.ts, components/UnitsScreen.tsx, components/master-ui.tsx (5).
+Root cause: page sent GET /v1/catalog/value-sets?is_active=all; listValueSets declares only `scope`, API checkEnumQuery 422 -> error.tsx digest. Introduced 191d42808 (T-31, 2026-11-08), surfaced once the deployed API enforced strict query keys. Fix at web source: listValueSets now forwards only scope (type narrowed to Pick<UnitsQuery,'scope'>). No other catalog page calls value-sets with is_active (tests/[test_id] calls listValueSets() bare); other pages' is_active=all go to ops that declare it.
+UI: "New unit" in PageHeader actions (follows the open tab: New value set on Value sets); read-only actors get a permission sentence [CONV]. MasterTable (shared) now always draws headers; the empty state sits in one colSpan body row (LD-310, covers every master screen); global rows keyed by code (no id in contract). No symbol/conversion: not in catalog.yaml.
+Error boundary: body names the list from the path segment ("Units could not be loaded.") [CONV] name map; /catalog and unknown segments keep the generic sentence; digest kept, ids never echoed.
+Ran: catunits1 20/20, web-t31 125, cattests1 40, web-t32 107, web-t33 103, web-t34 116, web-t35 96 all pass; tsc no errors in touched files. eslint not installed in apps/web.
+Open: rs-c3.static 3 fail (baseline drift: CATTESTS-1 createTest/tests page imports + listValueSets hash) - tester re-record needed.

@@ -443,7 +443,12 @@ describe('label flow (08 A13 D-4; US-FD-15.1; 04-UI-UX §3.4)', () => {
 });
 
 describe('LD-25 downtime back-entry (2026-11-07): "Downtime back-entry" toggle; occurred_at ≤ now and ≥ now − 72 h; downtime_ref ≤ 32 chars', () => {
-  const toggle = (user: User) => user.click(screen.getByRole('switch', { name: /downtime back-entry/i }));
+  // T0D-REGSCREEN-1 (LD-310): rarely used items sit under the More fold; open it first when collapsed.
+  const openMore = async (user: User) => {
+    const more = screen.queryByRole('button', { name: /^more/i });
+    if (more && more.getAttribute('aria-expanded') !== 'true') await user.click(more);
+  };
+  const toggle = async (user: User) => { await openMore(user); await user.click(screen.getByRole('switch', { name: /downtime back-entry/i })); };
   const fill = async (user: User, when: Date, ref: string) => {
     const t = await screen.findByRole('textbox', { name: /original time/i });
     await user.clear(t);
@@ -457,6 +462,7 @@ describe('LD-25 downtime back-entry (2026-11-07): "Downtime back-entry" toggle; 
   it('off by default: no downtime fields; F9 carries no occurred_at / downtime_ref and entry_mode absent or live', async () => {
     const user = newUser();
     await prepared(user);
+    await openMore(user);
     expect((screen.getByRole('switch', { name: /downtime back-entry/i }) as HTMLInputElement).checked).toBe(false);
     expect(screen.queryByRole('textbox', { name: /original time/i })).toBeNull();
     await submit(user);
@@ -546,6 +552,8 @@ describe('a11y (§9; axe-core, WCAG 2.2 AA minus contrast which jsdom cannot com
   it('success panel', async () => { const user = newUser(); await renderForm(); await ready(user, 1); await submit(user); await text(/R-2083-000042/); await noAxeViolations(); });
   it('downtime fields + shortcuts dialog', async () => {
     const user = newUser(); await renderForm();
+    const more = screen.queryByRole('button', { name: /^more/i });
+    if (more && more.getAttribute('aria-expanded') !== 'true') await user.click(more);
     await user.click(screen.getByRole('switch', { name: /downtime back-entry/i }));
     await screen.findByRole('textbox', { name: /original time/i });
     await noAxeViolations();

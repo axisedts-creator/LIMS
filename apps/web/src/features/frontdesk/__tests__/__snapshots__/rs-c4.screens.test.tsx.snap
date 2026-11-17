@@ -111,9 +111,9 @@ exports[`RS-C4 key-screen snapshots > Daily cash (open shift) 1`] = `
 </div>
 </div>
 <div class="lims-field lims-date-field">
-<label class="lims-label" for="_r_de_">Business date</label>
+<label class="lims-label" for="_r_ii_">Business date</label>
 <div class="lims-input-group">
-<input id="_r_de_" class="lims-input" placeholder="DD/MM/YYYY" autocomplete="off" aria-describedby="_r_de_-h" type="text" value="07/11/2026" name="date">
+<input id="_r_ii_" class="lims-input" placeholder="DD/MM/YYYY" autocomplete="off" aria-describedby="_r_ii_-h" type="text" value="07/11/2026" name="date">
 <button type="button" class="lims-btn lims-btn-ghost lims-icon-btn" aria-label="Open calendar for Business date" aria-expanded="false">
 <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 <rect x="4" y="5" width="16" height="15">
@@ -123,7 +123,7 @@ exports[`RS-C4 key-screen snapshots > Daily cash (open shift) 1`] = `
 </svg>
 </button>
 </div>
-<p id="_r_de_-h" class="lims-description lims-date-hint">2083-07-21 B.S.</p>
+<p id="_r_ii_-h" class="lims-description lims-date-hint">2083-07-21 B.S.</p>
 </div>
 <p>Business date: <span class="lims-bs-ad">2083-07-21 B.S. / <time class="lims-date-text" datetime="2026-11-07">07/11/2026</time>
 </span>
@@ -226,32 +226,11 @@ exports[`RS-C4 key-screen snapshots > Daily cash (open shift) 1`] = `
 `;
 
 exports[`RS-C4 key-screen snapshots > Register: blank 1`] = `
-"<section aria-label="New registration">
+"<section aria-label="New registration" class="lims-reg">
 <div class="lims-page-header">
 <div class="lims-page-header-row">
 <h1 class="lims-page-title">New registration</h1>
 <div class="lims-page-actions">
-<template>
-</template>
-<div class="lims-field" data-rac="">
-<span class="lims-label" id="ID">Centre</span>
-<button id="ID" class="lims-input lims-select-trigger" data-rac="" type="button" tabindex="0" data-aria-id="true" aria-labelledby="ID" aria-haspopup="listbox" aria-expanded="false">
-<span id="ID" class="aria-id" data-rac="">Synthetic Centre A1</span>
-<svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
-<path d="M6 9l6 6 6-6">
-</path>
-</svg>
-</button>
-<div style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: fixed; width: 1px; white-space: nowrap; top: 0px; left: 0px;" aria-hidden="true" data-aria-id="true" data-a11y-ignore="aria-hidden-focus" data-testid="hidden-select-container">
-<label>
-<select tabindex="-1" name="centre">
-<option value="" label="&nbsp;">&nbsp;</option>
-<option value="01a1a98a-ac40-7000-8000-000000000001">Synthetic Centre A1</option>
-<option value="01a1a98a-ac40-7000-8000-000000000007">Synthetic Centre B2</option>
-</select>
-</label>
-</div>
-</div>
 <button class="lims-btn lims-btn-ghost lims-btn-md" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID">
 <span class="lims-btn-label">Shortcuts</span>
 <kbd class="lims-kbd" aria-hidden="true">?</kbd>
@@ -271,7 +250,7 @@ exports[`RS-C4 key-screen snapshots > Register: blank 1`] = `
 <div role="alert">
 </div>
 <div class="lims-reg-layout">
-<div class="lims-reg-main">
+<div data-reg-column="context" class="lims-reg-col">
 <div class="lims-card">
 <h2 class="lims-card-title">Patient</h2>
 <div class="lims-reg-section">
@@ -286,6 +265,7 @@ exports[`RS-C4 key-screen snapshots > Register: blank 1`] = `
 <button class="lims-btn lims-btn-ghost lims-btn-md" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID">
 <span class="lims-btn-label">New patient</span>
 </button>
+<div class="lims-reg-pair">
 <div class="lims-field lims-radio-group" data-rac="" role="radiogroup" aria-orientation="horizontal" id="ID" aria-labelledby="ID" data-orientation="horizontal">
 <span class="lims-label" id="ID">Visit type</span>
 <div class="lims-radio-options lims-horizontal">
@@ -303,7 +283,15 @@ exports[`RS-C4 key-screen snapshots > Register: blank 1`] = `
 </span>IPD</label>
 </div>
 </div>
-<div data-field="referrer">
+<div class="lims-field" data-rac="" data-readonly="true">
+<label class="lims-label" id="ID" for="ID">Patient type</label>
+<div class="lims-input-group">
+<input readonly="" maxlength="60" tabindex="0" id="ID" aria-labelledby="ID" class="lims-input" data-rac="" type="text" value="Walk-in (cash)" name="patient_type">
+</div>
+</div>
+</div>
+<div class="lims-reg-pair">
+<div data-field="referrer" class="lims-reg-grow">
 <template>
 </template>
 <div class="lims-field" data-rac="">
@@ -311,7 +299,9 @@ exports[`RS-C4 key-screen snapshots > Register: blank 1`] = `
 <input aria-autocomplete="list" autocomplete="off" autocorrect="off" spellcheck="false" tabindex="0" id="ID" aria-labelledby="ID" role="combobox" aria-expanded="false" class="lims-input" data-rac="" type="text" value="" name="referrer">
 </div>
 </div>
+</div>
 <span class="lims-chip lims-chip-sm lims-tone-neutral" data-tone="neutral">Self</span>
+<div class="lims-reg-pair">
 <template>
 </template>
 <div class="lims-field" data-rac="">
@@ -343,6 +333,64 @@ exports[`RS-C4 key-screen snapshots > Register: blank 1`] = `
 <span class="lims-switch-thumb">
 </span>
 </span>Urgent order (Alt+R)</label>
+</div>
+<div class="lims-reg-pair">
+<template>
+</template>
+<div class="lims-field" data-rac="">
+<span class="lims-label" id="ID">Laboratory</span>
+<button id="ID" class="lims-input lims-select-trigger" data-rac="" type="button" tabindex="0" data-aria-id="true" aria-labelledby="ID" aria-haspopup="listbox" aria-expanded="false">
+<span id="ID" class="aria-id" data-rac="">Synthetic Centre A1</span>
+<svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M6 9l6 6 6-6">
+</path>
+</svg>
+</button>
+<div style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: fixed; width: 1px; white-space: nowrap; top: 0px; left: 0px;" aria-hidden="true" data-aria-id="true" data-a11y-ignore="aria-hidden-focus" data-testid="hidden-select-container">
+<label>
+<select tabindex="-1" name="centre">
+<option value="" label="&nbsp;">&nbsp;</option>
+<option value="01a1a98a-ac40-7000-8000-000000000001">Synthetic Centre A1</option>
+<option value="01a1a98a-ac40-7000-8000-000000000007">Synthetic Centre B2</option>
+</select>
+</label>
+</div>
+</div>
+<template>
+</template>
+<div class="lims-field" data-rac="" data-disabled="true">
+<span class="lims-label" id="ID">Franchise centre</span>
+<button id="ID" class="lims-input lims-select-trigger" data-rac="" type="button" disabled="" data-aria-id="true" aria-labelledby="ID" aria-haspopup="listbox" aria-expanded="false" data-disabled="true">
+<span id="ID" class="aria-id" data-rac="">None</span>
+<svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M6 9l6 6 6-6">
+</path>
+</svg>
+</button>
+<div style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: fixed; width: 1px; white-space: nowrap; top: 0px; left: 0px;" aria-hidden="true" data-aria-id="true" data-a11y-ignore="aria-hidden-focus" data-testid="hidden-select-container">
+<label>
+<select tabindex="-1" disabled="" name="franchise_centre">
+<option value="" label="&nbsp;">&nbsp;</option>
+<option value="">None</option>
+</select>
+</label>
+</div>
+</div>
+</div>
+<div class="lims-field" data-rac="" data-readonly="true">
+<label class="lims-label" id="ID" for="ID">Registration date and time</label>
+<div class="lims-input-group">
+<input readonly="" maxlength="40" tabindex="0" id="ID" aria-labelledby="ID" class="lims-input" data-rac="" type="text" value="17/11/2026, 11:45" name="registration_at">
+</div>
+</div>
+<button type="button" class="lims-reg-more" aria-expanded="false" aria-controls="_r_0_">More ▾</button>
+<div id="_r_0_" hidden="" class="lims-reg-section">
+<div class="lims-field" data-rac="">
+<label class="lims-label" id="ID" for="ID">Buyer PAN</label>
+<div class="lims-input-group">
+<input maxlength="32" inputmode="numeric" tabindex="0" id="ID" aria-labelledby="ID" class="lims-input" data-rac="" type="text" value="" name="buyer_pan">
+</div>
+</div>
 <label data-aria-id="true" class="lims-switch" data-rac="">
 <span style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: absolute; width: 1px; white-space: nowrap;">
 <input data-aria-id="true" tabindex="0" role="switch" type="checkbox">
@@ -353,8 +401,39 @@ exports[`RS-C4 key-screen snapshots > Register: blank 1`] = `
 </span>Downtime back-entry</label>
 </div>
 </div>
+</div>
+</div>
+<div data-reg-column="tests" class="lims-reg-col">
 <div class="lims-card">
 <h2 class="lims-card-title">Tests</h2>
+<div class="lims-reg-section lims-reg-fill">
+<div class="lims-field lims-radio-group" data-rac="" role="radiogroup" aria-orientation="horizontal" id="ID" aria-labelledby="ID" data-orientation="horizontal">
+<span class="lims-label" id="ID">Search tests by</span>
+<div class="lims-radio-options lims-horizontal">
+<label data-aria-id="true" class="lims-radio" data-rac="">
+<span style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: absolute; width: 1px; white-space: nowrap;">
+<input data-aria-id="true" tabindex="-1" type="radio" value="name" name="test_search_by">
+</span>
+<span class="lims-radio-dot" aria-hidden="true">
+</span>Name</label>
+<label data-aria-id="true" class="lims-radio" data-rac="">
+<span style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: absolute; width: 1px; white-space: nowrap;">
+<input data-aria-id="true" tabindex="-1" type="radio" value="code" name="test_search_by">
+</span>
+<span class="lims-radio-dot" aria-hidden="true">
+</span>Short name</label>
+<label data-aria-id="true" class="lims-radio" data-rac="" data-selected="true">
+<span style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: absolute; width: 1px; white-space: nowrap;">
+<input data-aria-id="true" tabindex="0" type="radio" value="both" checked="" name="test_search_by">
+</span>
+<span class="lims-radio-dot" aria-hidden="true">
+</span>Both</label>
+</div>
+</div>
+<div role="tablist" aria-label="Test lists" class="lims-reg-tabs">
+<button type="button" role="tab" aria-selected="true" class="lims-reg-tab">All tests</button>
+<button type="button" role="tab" aria-selected="false" aria-disabled="true" title="Favourites need a catalog list (T0D-REGSCREEN-2)" class="lims-reg-tab">Favourites</button>
+</div>
 <div data-field="tests">
 <template>
 </template>
@@ -363,11 +442,28 @@ exports[`RS-C4 key-screen snapshots > Register: blank 1`] = `
 <input aria-autocomplete="list" autocomplete="off" autocorrect="off" spellcheck="false" tabindex="0" id="ID" aria-labelledby="ID" role="combobox" aria-expanded="false" class="lims-input" data-rac="" type="text" value="" name="test_search">
 </div>
 </div>
+<div class="lims-reg-tests-list">
 <p>No tests selected yet. Press F4 to search.</p>
-<p>
-<small>TRF upload (Alt+U) is added with the order page.</small>
-</p>
 </div>
+<div class="lims-reg-pair">
+<button class="lims-btn lims-btn-ghost lims-btn-md" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID">
+<span class="lims-btn-label">Upload TRF</span>
+<kbd class="lims-kbd" aria-hidden="true">Alt+U</kbd>
+</button>
+<button class="lims-btn lims-btn-ghost lims-btn-md" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID">
+<span class="lims-btn-label">Generate barcode</span>
+</button>
+<button class="lims-btn lims-btn-ghost lims-btn-md" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID">
+<span class="lims-btn-label">Capture barcode</span>
+</button>
+<button class="lims-btn lims-btn-ghost lims-btn-md" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID">
+<span class="lims-btn-label">Type barcode</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<div data-reg-column="payment" class="lims-reg-col">
 <div class="lims-card">
 <h2 class="lims-card-title">Billing</h2>
 <div class="lims-reg-section">
@@ -389,6 +485,21 @@ exports[`RS-C4 key-screen snapshots > Register: blank 1`] = `
 </div>
 </div>
 <div role="status" aria-live="polite">
+</div>
+<div class="lims-reg-pair">
+<div class="lims-field" data-rac="">
+<label class="lims-label" id="ID" for="ID">Discount percent</label>
+<div class="lims-input-group">
+<input inputmode="numeric" tabindex="0" id="ID" aria-labelledby="ID" class="lims-input" role="spinbutton" aria-valuemin="0" aria-valuemax="100" data-rac="" type="text" value="" name="bill_discount_percent">
+</div>
+</div>
+<div class="lims-field" data-rac="">
+<label class="lims-label" id="ID" for="ID">Discount amount</label>
+<div class="lims-input-group">
+<span class="lims-affix">Rs.</span>
+<input inputmode="decimal" tabindex="0" id="ID" aria-labelledby="ID" class="lims-input" data-rac="" type="text" value="" name="bill_discount_amount">
+</div>
+</div>
 </div>
 <button class="lims-btn lims-btn-ghost lims-btn-md" data-rac="" type="button" disabled="" data-aria-id="true" id="ID" data-disabled="true">
 <span class="lims-btn-label">Discount</span>
@@ -454,6 +565,7 @@ exports[`RS-C4 key-screen snapshots > Register: blank 1`] = `
 </div>
 </div>
 </div>
+</div>
 <aside class="lims-reg-summary" aria-label="Registration summary">
 <h2 class="lims-reg-summary-title">Summary</h2>
 <dl class="lims-reg-summary-list">
@@ -463,6 +575,14 @@ exports[`RS-C4 key-screen snapshots > Register: blank 1`] = `
 </div>
 <div class="lims-reg-summary-row">
 <dt>Total</dt>
+<dd>
+<span class="lims-money">
+<span>Rs.</span> <span>0.00</span>
+</span>
+</dd>
+</div>
+<div class="lims-reg-summary-row">
+<dt>Net</dt>
 <dd>
 <span class="lims-money">
 <span>Rs.</span> <span>0.00</span>
@@ -486,6 +606,22 @@ exports[`RS-C4 key-screen snapshots > Register: blank 1`] = `
 </dd>
 </div>
 <div class="lims-reg-summary-row">
+<dt>Refund</dt>
+<dd>
+<span class="lims-money">
+<span>Rs.</span> <span>0.00</span>
+</span>
+</dd>
+</div>
+<div class="lims-reg-summary-row">
+<dt>Billed</dt>
+<dd>
+<span class="lims-money">
+<span>Rs.</span> <span>0.00</span>
+</span>
+</dd>
+</div>
+<div class="lims-reg-summary-row">
 <dt>Discount authority</dt>
 <dd>—</dd>
 </div>
@@ -495,7 +631,6 @@ exports[`RS-C4 key-screen snapshots > Register: blank 1`] = `
 <kbd class="lims-kbd" aria-hidden="true">Ctrl+Enter</kbd>
 </button>
 </aside>
-</div>
 <div>
 </div>
 </section>
@@ -504,32 +639,11 @@ exports[`RS-C4 key-screen snapshots > Register: blank 1`] = `
 `;
 
 exports[`RS-C4 key-screen snapshots > Register: new-patient form open 1`] = `
-"<section aria-label="New registration">
+"<section aria-label="New registration" class="lims-reg">
 <div class="lims-page-header">
 <div class="lims-page-header-row">
 <h1 class="lims-page-title">New registration</h1>
 <div class="lims-page-actions">
-<template>
-</template>
-<div class="lims-field" data-rac="">
-<span class="lims-label" id="ID">Centre</span>
-<button id="ID" class="lims-input lims-select-trigger" data-rac="" type="button" tabindex="0" data-aria-id="true" aria-labelledby="ID" aria-haspopup="listbox" aria-expanded="false">
-<span id="ID" class="aria-id" data-rac="">Synthetic Centre A1</span>
-<svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
-<path d="M6 9l6 6 6-6">
-</path>
-</svg>
-</button>
-<div style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: fixed; width: 1px; white-space: nowrap; top: 0px; left: 0px;" aria-hidden="true" data-aria-id="true" data-a11y-ignore="aria-hidden-focus" data-testid="hidden-select-container">
-<label>
-<select tabindex="-1" name="centre">
-<option value="" label="&nbsp;">&nbsp;</option>
-<option value="01a1a98a-ac40-7000-8000-000000000001">Synthetic Centre A1</option>
-<option value="01a1a98a-ac40-7000-8000-000000000007">Synthetic Centre B2</option>
-</select>
-</label>
-</div>
-</div>
 <button class="lims-btn lims-btn-ghost lims-btn-md" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID">
 <span class="lims-btn-label">Shortcuts</span>
 <kbd class="lims-kbd" aria-hidden="true">?</kbd>
@@ -549,7 +663,7 @@ exports[`RS-C4 key-screen snapshots > Register: new-patient form open 1`] = `
 <div role="alert">
 </div>
 <div class="lims-reg-layout">
-<div class="lims-reg-main">
+<div data-reg-column="context" class="lims-reg-col">
 <div class="lims-card">
 <h2 class="lims-card-title">Patient</h2>
 <div class="lims-reg-section">
@@ -594,9 +708,9 @@ exports[`RS-C4 key-screen snapshots > Register: new-patient form open 1`] = `
 <fieldset class="lims-reg-fieldset">
 <legend>Age or date of birth</legend>
 <div class="lims-field lims-date-field">
-<label class="lims-label" for="_r_bo_">Date of birth</label>
+<label class="lims-label" for="_r_gs_">Date of birth</label>
 <div class="lims-input-group">
-<input id="_r_bo_" class="lims-input" placeholder="DD/MM/YYYY" autocomplete="off" type="text" value="" name="birth_on">
+<input id="_r_gs_" class="lims-input" placeholder="DD/MM/YYYY" autocomplete="off" type="text" value="" name="birth_on">
 <button type="button" class="lims-btn lims-btn-ghost lims-icon-btn" aria-label="Open calendar for Date of birth" aria-expanded="false">
 <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 <rect x="4" y="5" width="16" height="15">
@@ -633,6 +747,8 @@ exports[`RS-C4 key-screen snapshots > Register: new-patient form open 1`] = `
 <div class="lims-input-group">
 <input maxlength="16" inputmode="tel" tabindex="0" id="ID" aria-labelledby="ID" class="lims-input" data-rac="" type="text" value="" name="mobile">
 </div>
+</div>
+<div role="status" aria-live="polite">
 </div>
 <div class="lims-field" data-rac="">
 <label class="lims-label" id="ID" for="ID">Email</label>
@@ -701,6 +817,7 @@ exports[`RS-C4 key-screen snapshots > Register: new-patient form open 1`] = `
 </button>
 </div>
 </div>
+<div class="lims-reg-pair">
 <div class="lims-field lims-radio-group" data-rac="" role="radiogroup" aria-orientation="horizontal" id="ID" aria-labelledby="ID" data-orientation="horizontal">
 <span class="lims-label" id="ID">Visit type</span>
 <div class="lims-radio-options lims-horizontal">
@@ -718,7 +835,15 @@ exports[`RS-C4 key-screen snapshots > Register: new-patient form open 1`] = `
 </span>IPD</label>
 </div>
 </div>
-<div data-field="referrer">
+<div class="lims-field" data-rac="" data-readonly="true">
+<label class="lims-label" id="ID" for="ID">Patient type</label>
+<div class="lims-input-group">
+<input readonly="" maxlength="60" tabindex="0" id="ID" aria-labelledby="ID" class="lims-input" data-rac="" type="text" value="Walk-in (cash)" name="patient_type">
+</div>
+</div>
+</div>
+<div class="lims-reg-pair">
+<div data-field="referrer" class="lims-reg-grow">
 <template>
 </template>
 <div class="lims-field" data-rac="">
@@ -726,7 +851,9 @@ exports[`RS-C4 key-screen snapshots > Register: new-patient form open 1`] = `
 <input aria-autocomplete="list" autocomplete="off" autocorrect="off" spellcheck="false" tabindex="0" id="ID" aria-labelledby="ID" role="combobox" aria-expanded="false" class="lims-input" data-rac="" type="text" value="" name="referrer">
 </div>
 </div>
+</div>
 <span class="lims-chip lims-chip-sm lims-tone-neutral" data-tone="neutral">Self</span>
+<div class="lims-reg-pair">
 <template>
 </template>
 <div class="lims-field" data-rac="">
@@ -758,6 +885,64 @@ exports[`RS-C4 key-screen snapshots > Register: new-patient form open 1`] = `
 <span class="lims-switch-thumb">
 </span>
 </span>Urgent order (Alt+R)</label>
+</div>
+<div class="lims-reg-pair">
+<template>
+</template>
+<div class="lims-field" data-rac="">
+<span class="lims-label" id="ID">Laboratory</span>
+<button id="ID" class="lims-input lims-select-trigger" data-rac="" type="button" tabindex="0" data-aria-id="true" aria-labelledby="ID" aria-haspopup="listbox" aria-expanded="false">
+<span id="ID" class="aria-id" data-rac="">Synthetic Centre A1</span>
+<svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M6 9l6 6 6-6">
+</path>
+</svg>
+</button>
+<div style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: fixed; width: 1px; white-space: nowrap; top: 0px; left: 0px;" aria-hidden="true" data-aria-id="true" data-a11y-ignore="aria-hidden-focus" data-testid="hidden-select-container">
+<label>
+<select tabindex="-1" name="centre">
+<option value="" label="&nbsp;">&nbsp;</option>
+<option value="01a1a98a-ac40-7000-8000-000000000001">Synthetic Centre A1</option>
+<option value="01a1a98a-ac40-7000-8000-000000000007">Synthetic Centre B2</option>
+</select>
+</label>
+</div>
+</div>
+<template>
+</template>
+<div class="lims-field" data-rac="" data-disabled="true">
+<span class="lims-label" id="ID">Franchise centre</span>
+<button id="ID" class="lims-input lims-select-trigger" data-rac="" type="button" disabled="" data-aria-id="true" aria-labelledby="ID" aria-haspopup="listbox" aria-expanded="false" data-disabled="true">
+<span id="ID" class="aria-id" data-rac="">None</span>
+<svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M6 9l6 6 6-6">
+</path>
+</svg>
+</button>
+<div style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: fixed; width: 1px; white-space: nowrap; top: 0px; left: 0px;" aria-hidden="true" data-aria-id="true" data-a11y-ignore="aria-hidden-focus" data-testid="hidden-select-container">
+<label>
+<select tabindex="-1" disabled="" name="franchise_centre">
+<option value="" label="&nbsp;">&nbsp;</option>
+<option value="">None</option>
+</select>
+</label>
+</div>
+</div>
+</div>
+<div class="lims-field" data-rac="" data-readonly="true">
+<label class="lims-label" id="ID" for="ID">Registration date and time</label>
+<div class="lims-input-group">
+<input readonly="" maxlength="40" tabindex="0" id="ID" aria-labelledby="ID" class="lims-input" data-rac="" type="text" value="17/11/2026, 11:45" name="registration_at">
+</div>
+</div>
+<button type="button" class="lims-reg-more" aria-expanded="false" aria-controls="_r_ba_">More ▾</button>
+<div id="_r_ba_" hidden="" class="lims-reg-section">
+<div class="lims-field" data-rac="">
+<label class="lims-label" id="ID" for="ID">Buyer PAN</label>
+<div class="lims-input-group">
+<input maxlength="32" inputmode="numeric" tabindex="0" id="ID" aria-labelledby="ID" class="lims-input" data-rac="" type="text" value="" name="buyer_pan">
+</div>
+</div>
 <label data-aria-id="true" class="lims-switch" data-rac="">
 <span style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: absolute; width: 1px; white-space: nowrap;">
 <input data-aria-id="true" tabindex="0" role="switch" type="checkbox">
@@ -768,8 +953,39 @@ exports[`RS-C4 key-screen snapshots > Register: new-patient form open 1`] = `
 </span>Downtime back-entry</label>
 </div>
 </div>
+</div>
+</div>
+<div data-reg-column="tests" class="lims-reg-col">
 <div class="lims-card">
 <h2 class="lims-card-title">Tests</h2>
+<div class="lims-reg-section lims-reg-fill">
+<div class="lims-field lims-radio-group" data-rac="" role="radiogroup" aria-orientation="horizontal" id="ID" aria-labelledby="ID" data-orientation="horizontal">
+<span class="lims-label" id="ID">Search tests by</span>
+<div class="lims-radio-options lims-horizontal">
+<label data-aria-id="true" class="lims-radio" data-rac="">
+<span style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: absolute; width: 1px; white-space: nowrap;">
+<input data-aria-id="true" tabindex="-1" type="radio" value="name" name="test_search_by">
+</span>
+<span class="lims-radio-dot" aria-hidden="true">
+</span>Name</label>
+<label data-aria-id="true" class="lims-radio" data-rac="">
+<span style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: absolute; width: 1px; white-space: nowrap;">
+<input data-aria-id="true" tabindex="-1" type="radio" value="code" name="test_search_by">
+</span>
+<span class="lims-radio-dot" aria-hidden="true">
+</span>Short name</label>
+<label data-aria-id="true" class="lims-radio" data-rac="" data-selected="true">
+<span style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: absolute; width: 1px; white-space: nowrap;">
+<input data-aria-id="true" tabindex="0" type="radio" value="both" checked="" name="test_search_by">
+</span>
+<span class="lims-radio-dot" aria-hidden="true">
+</span>Both</label>
+</div>
+</div>
+<div role="tablist" aria-label="Test lists" class="lims-reg-tabs">
+<button type="button" role="tab" aria-selected="true" class="lims-reg-tab">All tests</button>
+<button type="button" role="tab" aria-selected="false" aria-disabled="true" title="Favourites need a catalog list (T0D-REGSCREEN-2)" class="lims-reg-tab">Favourites</button>
+</div>
 <div data-field="tests">
 <template>
 </template>
@@ -778,11 +994,28 @@ exports[`RS-C4 key-screen snapshots > Register: new-patient form open 1`] = `
 <input aria-autocomplete="list" autocomplete="off" autocorrect="off" spellcheck="false" tabindex="0" id="ID" aria-labelledby="ID" role="combobox" aria-expanded="false" class="lims-input" data-rac="" type="text" value="" name="test_search">
 </div>
 </div>
+<div class="lims-reg-tests-list">
 <p>No tests selected yet. Press F4 to search.</p>
-<p>
-<small>TRF upload (Alt+U) is added with the order page.</small>
-</p>
 </div>
+<div class="lims-reg-pair">
+<button class="lims-btn lims-btn-ghost lims-btn-md" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID">
+<span class="lims-btn-label">Upload TRF</span>
+<kbd class="lims-kbd" aria-hidden="true">Alt+U</kbd>
+</button>
+<button class="lims-btn lims-btn-ghost lims-btn-md" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID">
+<span class="lims-btn-label">Generate barcode</span>
+</button>
+<button class="lims-btn lims-btn-ghost lims-btn-md" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID">
+<span class="lims-btn-label">Capture barcode</span>
+</button>
+<button class="lims-btn lims-btn-ghost lims-btn-md" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID">
+<span class="lims-btn-label">Type barcode</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<div data-reg-column="payment" class="lims-reg-col">
 <div class="lims-card">
 <h2 class="lims-card-title">Billing</h2>
 <div class="lims-reg-section">
@@ -804,6 +1037,21 @@ exports[`RS-C4 key-screen snapshots > Register: new-patient form open 1`] = `
 </div>
 </div>
 <div role="status" aria-live="polite">
+</div>
+<div class="lims-reg-pair">
+<div class="lims-field" data-rac="">
+<label class="lims-label" id="ID" for="ID">Discount percent</label>
+<div class="lims-input-group">
+<input inputmode="numeric" tabindex="0" id="ID" aria-labelledby="ID" class="lims-input" role="spinbutton" aria-valuemin="0" aria-valuemax="100" data-rac="" type="text" value="" name="bill_discount_percent">
+</div>
+</div>
+<div class="lims-field" data-rac="">
+<label class="lims-label" id="ID" for="ID">Discount amount</label>
+<div class="lims-input-group">
+<span class="lims-affix">Rs.</span>
+<input inputmode="decimal" tabindex="0" id="ID" aria-labelledby="ID" class="lims-input" data-rac="" type="text" value="" name="bill_discount_amount">
+</div>
+</div>
 </div>
 <button class="lims-btn lims-btn-ghost lims-btn-md" data-rac="" type="button" disabled="" data-aria-id="true" id="ID" data-disabled="true">
 <span class="lims-btn-label">Discount</span>
@@ -871,6 +1119,7 @@ exports[`RS-C4 key-screen snapshots > Register: new-patient form open 1`] = `
 </div>
 </div>
 </div>
+</div>
 <aside class="lims-reg-summary" aria-label="Registration summary">
 <h2 class="lims-reg-summary-title">Summary</h2>
 <dl class="lims-reg-summary-list">
@@ -880,6 +1129,14 @@ exports[`RS-C4 key-screen snapshots > Register: new-patient form open 1`] = `
 </div>
 <div class="lims-reg-summary-row">
 <dt>Total</dt>
+<dd>
+<span class="lims-money">
+<span>Rs.</span> <span>0.00</span>
+</span>
+</dd>
+</div>
+<div class="lims-reg-summary-row">
+<dt>Net</dt>
 <dd>
 <span class="lims-money">
 <span>Rs.</span> <span>0.00</span>
@@ -903,6 +1160,22 @@ exports[`RS-C4 key-screen snapshots > Register: new-patient form open 1`] = `
 </dd>
 </div>
 <div class="lims-reg-summary-row">
+<dt>Refund</dt>
+<dd>
+<span class="lims-money">
+<span>Rs.</span> <span>0.00</span>
+</span>
+</dd>
+</div>
+<div class="lims-reg-summary-row">
+<dt>Billed</dt>
+<dd>
+<span class="lims-money">
+<span>Rs.</span> <span>0.00</span>
+</span>
+</dd>
+</div>
+<div class="lims-reg-summary-row">
 <dt>Discount authority</dt>
 <dd>—</dd>
 </div>
@@ -912,7 +1185,6 @@ exports[`RS-C4 key-screen snapshots > Register: new-patient form open 1`] = `
 <kbd class="lims-kbd" aria-hidden="true">Ctrl+Enter</kbd>
 </button>
 </aside>
-</div>
 <div>
 </div>
 </section>
@@ -921,32 +1193,11 @@ exports[`RS-C4 key-screen snapshots > Register: new-patient form open 1`] = `
 `;
 
 exports[`RS-C4 key-screen snapshots > Register: returning patient, one test, quote and summary filled 1`] = `
-"<section aria-label="New registration">
+"<section aria-label="New registration" class="lims-reg">
 <div class="lims-page-header">
 <div class="lims-page-header-row">
 <h1 class="lims-page-title">New registration</h1>
 <div class="lims-page-actions">
-<template>
-</template>
-<div class="lims-field" data-rac="">
-<span class="lims-label" id="ID">Centre</span>
-<button id="ID" class="lims-input lims-select-trigger" data-rac="" type="button" tabindex="0" data-aria-id="true" aria-labelledby="ID" aria-haspopup="listbox" aria-expanded="false">
-<span id="ID" class="aria-id" data-rac="">Synthetic Centre A1</span>
-<svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
-<path d="M6 9l6 6 6-6">
-</path>
-</svg>
-</button>
-<div style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: fixed; width: 1px; white-space: nowrap; top: 0px; left: 0px;" aria-hidden="true" data-aria-id="true" data-a11y-ignore="aria-hidden-focus" data-testid="hidden-select-container">
-<label>
-<select tabindex="-1" name="centre">
-<option value="" label="&nbsp;">&nbsp;</option>
-<option value="01a1a98a-ac40-7000-8000-000000000001">Synthetic Centre A1</option>
-<option value="01a1a98a-ac40-7000-8000-000000000007">Synthetic Centre B2</option>
-</select>
-</label>
-</div>
-</div>
 <button class="lims-btn lims-btn-ghost lims-btn-md" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID">
 <span class="lims-btn-label">Shortcuts</span>
 <kbd class="lims-kbd" aria-hidden="true">?</kbd>
@@ -966,7 +1217,7 @@ exports[`RS-C4 key-screen snapshots > Register: returning patient, one test, quo
 <div role="alert">
 </div>
 <div class="lims-reg-layout">
-<div class="lims-reg-main">
+<div data-reg-column="context" class="lims-reg-col">
 <div class="lims-card">
 <h2 class="lims-card-title">Patient</h2>
 <div class="lims-reg-section">
@@ -983,6 +1234,7 @@ exports[`RS-C4 key-screen snapshots > Register: returning patient, one test, quo
 <button class="lims-btn lims-btn-ghost lims-btn-md" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID">
 <span class="lims-btn-label">New patient</span>
 </button>
+<div class="lims-reg-pair">
 <div class="lims-field lims-radio-group" data-rac="" role="radiogroup" aria-orientation="horizontal" id="ID" aria-labelledby="ID" data-orientation="horizontal">
 <span class="lims-label" id="ID">Visit type</span>
 <div class="lims-radio-options lims-horizontal">
@@ -1000,7 +1252,15 @@ exports[`RS-C4 key-screen snapshots > Register: returning patient, one test, quo
 </span>IPD</label>
 </div>
 </div>
-<div data-field="referrer">
+<div class="lims-field" data-rac="" data-readonly="true">
+<label class="lims-label" id="ID" for="ID">Patient type</label>
+<div class="lims-input-group">
+<input readonly="" maxlength="60" tabindex="0" id="ID" aria-labelledby="ID" class="lims-input" data-rac="" type="text" value="Walk-in (cash)" name="patient_type">
+</div>
+</div>
+</div>
+<div class="lims-reg-pair">
+<div data-field="referrer" class="lims-reg-grow">
 <template>
 </template>
 <div class="lims-field" data-rac="">
@@ -1008,7 +1268,9 @@ exports[`RS-C4 key-screen snapshots > Register: returning patient, one test, quo
 <input aria-autocomplete="list" autocomplete="off" autocorrect="off" spellcheck="false" tabindex="0" id="ID" aria-labelledby="ID" role="combobox" aria-expanded="false" class="lims-input" data-rac="" type="text" value="" name="referrer">
 </div>
 </div>
+</div>
 <span class="lims-chip lims-chip-sm lims-tone-neutral" data-tone="neutral">Self</span>
+<div class="lims-reg-pair">
 <template>
 </template>
 <div class="lims-field" data-rac="">
@@ -1040,6 +1302,64 @@ exports[`RS-C4 key-screen snapshots > Register: returning patient, one test, quo
 <span class="lims-switch-thumb">
 </span>
 </span>Urgent order (Alt+R)</label>
+</div>
+<div class="lims-reg-pair">
+<template>
+</template>
+<div class="lims-field" data-rac="">
+<span class="lims-label" id="ID">Laboratory</span>
+<button id="ID" class="lims-input lims-select-trigger" data-rac="" type="button" tabindex="0" data-aria-id="true" aria-labelledby="ID" aria-haspopup="listbox" aria-expanded="false">
+<span id="ID" class="aria-id" data-rac="">Synthetic Centre A1</span>
+<svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M6 9l6 6 6-6">
+</path>
+</svg>
+</button>
+<div style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: fixed; width: 1px; white-space: nowrap; top: 0px; left: 0px;" aria-hidden="true" data-aria-id="true" data-a11y-ignore="aria-hidden-focus" data-testid="hidden-select-container">
+<label>
+<select tabindex="-1" name="centre">
+<option value="" label="&nbsp;">&nbsp;</option>
+<option value="01a1a98a-ac40-7000-8000-000000000001">Synthetic Centre A1</option>
+<option value="01a1a98a-ac40-7000-8000-000000000007">Synthetic Centre B2</option>
+</select>
+</label>
+</div>
+</div>
+<template>
+</template>
+<div class="lims-field" data-rac="" data-disabled="true">
+<span class="lims-label" id="ID">Franchise centre</span>
+<button id="ID" class="lims-input lims-select-trigger" data-rac="" type="button" disabled="" data-aria-id="true" aria-labelledby="ID" aria-haspopup="listbox" aria-expanded="false" data-disabled="true">
+<span id="ID" class="aria-id" data-rac="">None</span>
+<svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M6 9l6 6 6-6">
+</path>
+</svg>
+</button>
+<div style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: fixed; width: 1px; white-space: nowrap; top: 0px; left: 0px;" aria-hidden="true" data-aria-id="true" data-a11y-ignore="aria-hidden-focus" data-testid="hidden-select-container">
+<label>
+<select tabindex="-1" disabled="" name="franchise_centre">
+<option value="" label="&nbsp;">&nbsp;</option>
+<option value="">None</option>
+</select>
+</label>
+</div>
+</div>
+</div>
+<div class="lims-field" data-rac="" data-readonly="true">
+<label class="lims-label" id="ID" for="ID">Registration date and time</label>
+<div class="lims-input-group">
+<input readonly="" maxlength="40" tabindex="0" id="ID" aria-labelledby="ID" class="lims-input" data-rac="" type="text" value="17/11/2026, 11:45" name="registration_at">
+</div>
+</div>
+<button type="button" class="lims-reg-more" aria-expanded="false" aria-controls="_r_53_">More ▾</button>
+<div id="_r_53_" hidden="" class="lims-reg-section">
+<div class="lims-field" data-rac="">
+<label class="lims-label" id="ID" for="ID">Buyer PAN</label>
+<div class="lims-input-group">
+<input maxlength="32" inputmode="numeric" tabindex="0" id="ID" aria-labelledby="ID" class="lims-input" data-rac="" type="text" value="" name="buyer_pan">
+</div>
+</div>
 <label data-aria-id="true" class="lims-switch" data-rac="">
 <span style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: absolute; width: 1px; white-space: nowrap;">
 <input data-aria-id="true" tabindex="0" role="switch" type="checkbox">
@@ -1050,8 +1370,39 @@ exports[`RS-C4 key-screen snapshots > Register: returning patient, one test, quo
 </span>Downtime back-entry</label>
 </div>
 </div>
+</div>
+</div>
+<div data-reg-column="tests" class="lims-reg-col">
 <div class="lims-card">
 <h2 class="lims-card-title">Tests</h2>
+<div class="lims-reg-section lims-reg-fill">
+<div class="lims-field lims-radio-group" data-rac="" role="radiogroup" aria-orientation="horizontal" id="ID" aria-labelledby="ID" data-orientation="horizontal">
+<span class="lims-label" id="ID">Search tests by</span>
+<div class="lims-radio-options lims-horizontal">
+<label data-aria-id="true" class="lims-radio" data-rac="">
+<span style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: absolute; width: 1px; white-space: nowrap;">
+<input data-aria-id="true" tabindex="-1" type="radio" value="name" name="test_search_by">
+</span>
+<span class="lims-radio-dot" aria-hidden="true">
+</span>Name</label>
+<label data-aria-id="true" class="lims-radio" data-rac="">
+<span style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: absolute; width: 1px; white-space: nowrap;">
+<input data-aria-id="true" tabindex="-1" type="radio" value="code" name="test_search_by">
+</span>
+<span class="lims-radio-dot" aria-hidden="true">
+</span>Short name</label>
+<label data-aria-id="true" class="lims-radio" data-rac="" data-selected="true">
+<span style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: absolute; width: 1px; white-space: nowrap;">
+<input data-aria-id="true" tabindex="0" type="radio" value="both" checked="" name="test_search_by">
+</span>
+<span class="lims-radio-dot" aria-hidden="true">
+</span>Both</label>
+</div>
+</div>
+<div role="tablist" aria-label="Test lists" class="lims-reg-tabs">
+<button type="button" role="tab" aria-selected="true" class="lims-reg-tab">All tests</button>
+<button type="button" role="tab" aria-selected="false" aria-disabled="true" title="Favourites need a catalog list (T0D-REGSCREEN-2)" class="lims-reg-tab">Favourites</button>
+</div>
 <div data-field="tests">
 <template>
 </template>
@@ -1060,6 +1411,7 @@ exports[`RS-C4 key-screen snapshots > Register: returning patient, one test, quo
 <input aria-autocomplete="list" autocomplete="off" autocorrect="off" spellcheck="false" tabindex="0" id="ID" aria-labelledby="ID" role="combobox" aria-expanded="false" class="lims-input" data-rac="" type="text" value="" name="test_search" data-focused="true" data-focus-visible="true">
 </div>
 </div>
+<div class="lims-reg-tests-list">
 <table aria-label="Selected tests">
 <thead>
 <tr>
@@ -1069,6 +1421,7 @@ exports[`RS-C4 key-screen snapshots > Register: returning patient, one test, quo
 <th scope="col">Priority</th>
 <th scope="col">Price</th>
 <th scope="col">Surcharge</th>
+<th scope="col">Disc. %</th>
 <th scope="col">
 <span style="position: absolute; width: 1px; height: 1px; padding: 0px; margin: -1px; overflow: hidden; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); white-space: nowrap; border: 0px;">Remove</span>
 </th>
@@ -1082,6 +1435,14 @@ exports[`RS-C4 key-screen snapshots > Register: returning patient, one test, quo
 <td>Routine</td>
 <td>100.00</td>
 <td>—</td>
+<td class="lims-reg-cell-field">
+<div class="lims-field" data-rac="">
+<label class="lims-label" id="ID" for="ID">CBC discount percent</label>
+<div class="lims-input-group">
+<input inputmode="numeric" tabindex="0" id="ID" aria-labelledby="ID" class="lims-input" role="spinbutton" aria-valuemin="0" aria-valuemax="100" data-rac="" type="text" value="" name="line_discount_CBC">
+</div>
+</div>
+</td>
 <td>
 <button class="lims-btn lims-btn-ghost lims-icon-btn" data-rac="" type="button" tabindex="0" data-aria-id="true" aria-label="Remove CBC" id="ID">
 <svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
@@ -1093,10 +1454,26 @@ exports[`RS-C4 key-screen snapshots > Register: returning patient, one test, quo
 </tr>
 </tbody>
 </table>
-<p>
-<small>TRF upload (Alt+U) is added with the order page.</small>
-</p>
 </div>
+<div class="lims-reg-pair">
+<button class="lims-btn lims-btn-ghost lims-btn-md" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID">
+<span class="lims-btn-label">Upload TRF</span>
+<kbd class="lims-kbd" aria-hidden="true">Alt+U</kbd>
+</button>
+<button class="lims-btn lims-btn-ghost lims-btn-md" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID">
+<span class="lims-btn-label">Generate barcode</span>
+</button>
+<button class="lims-btn lims-btn-ghost lims-btn-md" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID">
+<span class="lims-btn-label">Capture barcode</span>
+</button>
+<button class="lims-btn lims-btn-ghost lims-btn-md" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID">
+<span class="lims-btn-label">Type barcode</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<div data-reg-column="payment" class="lims-reg-col">
 <div class="lims-card">
 <h2 class="lims-card-title">Billing</h2>
 <div class="lims-reg-section">
@@ -1185,6 +1562,21 @@ exports[`RS-C4 key-screen snapshots > Register: returning patient, one test, quo
 </div>
 </dl>
 </div>
+<div class="lims-reg-pair">
+<div class="lims-field" data-rac="">
+<label class="lims-label" id="ID" for="ID">Discount percent</label>
+<div class="lims-input-group">
+<input inputmode="numeric" tabindex="0" id="ID" aria-labelledby="ID" class="lims-input" role="spinbutton" aria-valuemin="0" aria-valuemax="100" data-rac="" type="text" value="" name="bill_discount_percent">
+</div>
+</div>
+<div class="lims-field" data-rac="">
+<label class="lims-label" id="ID" for="ID">Discount amount</label>
+<div class="lims-input-group">
+<span class="lims-affix">Rs.</span>
+<input inputmode="decimal" tabindex="0" id="ID" aria-labelledby="ID" class="lims-input" data-rac="" type="text" value="" name="bill_discount_amount">
+</div>
+</div>
+</div>
 <button class="lims-btn lims-btn-ghost lims-btn-md" data-rac="" type="button" data-aria-id="true" id="ID" tabindex="0">
 <span class="lims-btn-label">Discount</span>
 <kbd class="lims-kbd" aria-hidden="true">F6</kbd>
@@ -1251,6 +1643,7 @@ exports[`RS-C4 key-screen snapshots > Register: returning patient, one test, quo
 </div>
 </div>
 </div>
+</div>
 <aside class="lims-reg-summary" aria-label="Registration summary">
 <h2 class="lims-reg-summary-title">Summary</h2>
 <dl class="lims-reg-summary-list">
@@ -1263,6 +1656,14 @@ exports[`RS-C4 key-screen snapshots > Register: returning patient, one test, quo
 </div>
 <div class="lims-reg-summary-row">
 <dt>Total</dt>
+<dd>
+<span class="lims-money">
+<span>Rs.</span> <span>113.00</span>
+</span>
+</dd>
+</div>
+<div class="lims-reg-summary-row">
+<dt>Net</dt>
 <dd>
 <span class="lims-money">
 <span>Rs.</span> <span>113.00</span>
@@ -1286,6 +1687,22 @@ exports[`RS-C4 key-screen snapshots > Register: returning patient, one test, quo
 </dd>
 </div>
 <div class="lims-reg-summary-row">
+<dt>Refund</dt>
+<dd>
+<span class="lims-money">
+<span>Rs.</span> <span>0.00</span>
+</span>
+</dd>
+</div>
+<div class="lims-reg-summary-row">
+<dt>Billed</dt>
+<dd>
+<span class="lims-money">
+<span>Rs.</span> <span>113.00</span>
+</span>
+</dd>
+</div>
+<div class="lims-reg-summary-row">
 <dt>Discount authority</dt>
 <dd>Limit 5%</dd>
 </div>
@@ -1295,7 +1712,6 @@ exports[`RS-C4 key-screen snapshots > Register: returning patient, one test, quo
 <kbd class="lims-kbd" aria-hidden="true">Ctrl+Enter</kbd>
 </button>
 </aside>
-</div>
 <div>
 </div>
 </section>

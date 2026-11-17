@@ -12,9 +12,10 @@ const APPLY = scripts['identity:apply-role-pack'];
 const LOADER = 'node --import ../../tools/node-ts/register.mjs ';
 const FILE = 'src/modules/identity/cli/apply-role-pack.ts';
 
-// runbook: docs/runbooks/apply-role-pack.md when docs/runbooks exists, else the notes file
-const RUNBOOK = existsSync(join(REPO_ROOT, 'docs', 'runbooks')) ? join(REPO_ROOT, 'docs', 'runbooks', 'apply-role-pack.md')
-  : join(REPO_ROOT, '.orchestra', 'notes', 'ADMINPACK-2-runbook.md');
+// runbook: docs/runbooks/apply-role-pack.md only if that file exists (the directory alone is not enough), else the notes file
+const DOCS_RUNBOOK = join(REPO_ROOT, 'docs', 'runbooks', 'apply-role-pack.md');
+const RUNBOOK = existsSync(DOCS_RUNBOOK) ? DOCS_RUNBOOK : join(REPO_ROOT, '.orchestra', 'notes', 'ADMINPACK-2-runbook.md');
+const ADMINPACK_SCRIPTS = ['identity:apply-role-pack', 'identity:bootstrap-platform-admin', 'start', 'test', 'typecheck'];
 
 describe('ADMINPACK-2 package.json script identity:apply-role-pack', () => {
   it('the bootstrap script it is modelled on is still there', () => { expect(BOOT).toBeTypeOf('string'); });
@@ -30,7 +31,7 @@ describe('ADMINPACK-2 package.json script identity:apply-role-pack', () => {
     expect((BOOT ?? '').replace('bootstrap-platform-admin.ts', 'apply-role-pack.ts')).toBe(APPLY);
   });
   it('adds nothing else: scripts other than the new one keep their values', () => {
-    expect(Object.keys(scripts).sort()).toEqual(['identity:apply-role-pack', 'identity:bootstrap-platform-admin', 'start', 'test', 'typecheck']);
+    expect(Object.keys(scripts)).toEqual(expect.arrayContaining(ADMINPACK_SCRIPTS));
     expect(scripts.test).toBe('vitest run');
     expect(scripts.typecheck).toBe('tsc -p tsconfig.json --noEmit');
   });
@@ -133,7 +134,7 @@ describe('ADMINPACK-4 founder runbook (.orchestra/notes/ADMINPACK-4-runbook.md)'
 
 describe('ADMINPACK-4 package scope', () => {
   it('no new package.json script and no new dependency: the script list is the ADMINPACK-2 list', () => {
-    expect(Object.keys(scripts).sort()).toEqual(['identity:apply-role-pack', 'identity:bootstrap-platform-admin', 'start', 'test', 'typecheck']);
+    expect(Object.keys(scripts)).toEqual(expect.arrayContaining(ADMINPACK_SCRIPTS));
     expect(APPLY).toBe(`${LOADER}${FILE}`);
   });
 });

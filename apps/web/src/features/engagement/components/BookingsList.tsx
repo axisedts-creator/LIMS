@@ -104,7 +104,7 @@ export function BookingsList({ centres, workingCentreId, today, rows: initial, q
         rows={rows}
         getRowId={(r) => r.id}
         isLoading={loading}
-        emptyState={{ title: 'No bookings for this day.' }}
+        emptyState={{ title: 'No bookings yet' }}
         selection={{ mode: 'single', selectedIds: selected, onChange: setSelected }}
         onRowAction={(r) => router.push(`/engagement/bookings/${r.id}`)}
         columns={[

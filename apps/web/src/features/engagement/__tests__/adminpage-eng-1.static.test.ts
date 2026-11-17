@@ -91,7 +91,13 @@ describe('route row, navigation entry, strings, registries', () => {
 
   it('no new permission and no contract change: permissions.yaml and openapi/engagement.yaml are byte-identical to the tree before this task, and the administrator role holds the permission', () => {
     const perms = read(join(ROOT, 'contracts', 'permissions.yaml'));
-    expect(perms).toBe(gitShow('contracts/permissions.yaml'));
+    // Ruling T0D-ENGBOOK-1: scoped compare; other tasks (T0C-ACCT-1, LD-313) may add billing.* codes, never engagement.*.
+    const basePerms = gitShow('contracts/permissions.yaml');
+    const engLines = (s: string) => s.split('\n').filter((l) => /code: engagement\./.test(l));
+    expect(engLines(perms)).toEqual(engLines(basePerms));
+    const codes = (s: string) => [...s.matchAll(/code: ([\w.]+)/g)].map((m) => m[1]!);
+    const baseCodes = new Set(codes(basePerms));
+    expect(codes(perms).filter((c) => !baseCodes.has(c) && !c.startsWith('billing.'))).toEqual([]);
     expect(perms).toMatch(/code: engagement\.settings\.manage,[^\n]*tenant_admin/);
     expect(read(join(ROOT, 'contracts', 'openapi', 'engagement.yaml'))).toBe(gitShow('contracts/openapi/engagement.yaml'));
   });

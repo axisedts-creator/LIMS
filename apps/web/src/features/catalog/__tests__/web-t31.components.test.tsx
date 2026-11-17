@@ -655,7 +655,7 @@ describe('SCR-05 UnitsScreen', () => {
   it('New lab unit: code keeps its case, regex ^[A-Za-z0-9_]{1,32}$ enforced, display ≤ 32; POST {code, display} with Idempotency-Key', async () => {
     api.use(http.post(`${ORIGIN}/v1/catalog/units`, async ({ request }) => { await rec(request); return HttpResponse.json(unit(49, { code: 'x10_3_per_uL', display: '10^3/µL', scope: 'tenant', version: 1 }), { status: 201 }); }));
     await show();
-    await userEvent.click(screen.getAllByRole('button', { name: /new lab unit/i })[0]!);
+    await userEvent.click(screen.getAllByRole('button', { name: /new (lab )?unit/i })[0]!); // T0D-CATUNITS-1: the button is now "New unit"
     const dlg = screen.getByRole('dialog');
     const code = within(dlg).getByLabelText(/^code/i) as HTMLInputElement;
     await userEvent.type(code, 'bad code');
@@ -693,7 +693,7 @@ describe('SCR-05 UnitsScreen', () => {
 
   it('read-only without manage: no New / Edit anywhere on either tab', async () => {
     await show({ permissions: READ });
-    expect(screen.queryByRole('button', { name: /new lab unit|edit/i })).toBeNull();
+    expect(screen.queryByRole('button', { name: /new (lab )?unit|edit/i })).toBeNull();
     await userEvent.click(screen.getByRole('tab', { name: 'Value sets' }));
     expect(screen.queryByRole('button', { name: /new value set|edit/i })).toBeNull();
   });
@@ -779,7 +779,7 @@ describe('SCR-05 UnitsScreen', () => {
     const a = await show(); await noAxeViolations();
     await userEvent.click(screen.getByRole('tab', { name: 'Value sets' })); await noAxeViolations(); a.unmount();
     const b = await show({ units: GLOBAL_UNITS }); await noAxeViolations();
-    await userEvent.click(screen.getAllByRole('button', { name: /new lab unit/i })[0]!); await noAxeViolations(); b.unmount();
+    await userEvent.click(screen.getAllByRole('button', { name: /new (lab )?unit/i })[0]!); await noAxeViolations(); b.unmount();
   });
 });
 

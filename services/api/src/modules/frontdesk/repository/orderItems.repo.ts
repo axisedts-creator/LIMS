@@ -3,7 +3,7 @@ import { getRow, insertRow, type Tx } from './shared.repo.js';
 
 const COLS = ['id', 'order_id', 'centre_id', 'orderable_id', 'orderable_kind', 'code', 'name', 'test_ids', 'department_id', 'priority', 'outsourced',
   'status', 'unit_price_paisa', 'urgent_surcharge_paisa', 'price_list_id', 'price_list_version', 'price_source', 'vat_treatment', 'other_tax_code',
-  'added_in_items_version'] as const;
+  'added_in_items_version', 'icd_code'] as const;   // icd_code: T0B-REGAPI-2
 
 export const insertOrderItem = (tx: Tx, tenantId: string, row: Record<string, unknown>) => insertRow(tx, 'frontdesk.order_items', COLS, tenantId, row);
 export const getOrderItemById = (tx: Tx, tenantId: string, id: string) => getRow(tx, 'frontdesk.order_items', tenantId, id);

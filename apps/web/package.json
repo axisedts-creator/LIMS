@@ -7,6 +7,7 @@
     "build:nav": "node src/core/nav/build-nav.ts",
     "dev": "pnpm run build:nav && next dev",
     "build": "pnpm run build:nav && next build",
+    "bundle:budget": "node scripts/bundle-budget.mjs .next",
     "typecheck": "pnpm run build:nav && tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {

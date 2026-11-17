@@ -18,13 +18,3 @@ export const WITH_TENANT_SCOPE_OPS: readonly string[] = Object.freeze([
 /** 02-TRD §6.2 stage 9: operations tagged x-context: identity_auth skip the authz guard (D-212). */
 export const authzGuardExempt = (operation: { readonly context?: unknown } | undefined): boolean =>
   operation?.context === 'identity_auth';
-
-/**
- * Auth schemes whose resolver may run before any claims exist (ctx-less `db.preAuthTx`, the only SQL being a SELECT of a
- * SECURITY DEFINER function). Frozen; widening needs a reviewed change here, never configuration.
- * Today: patientPreAuth only (module engagement, C16 CR-C16-005); portalSession/deviceToken/... stay fail-closed until reviewed.
- */
-export const PRE_AUTH_SCHEMES: readonly string[] = Object.freeze(['patientPreAuth']);
-
-/** Header each PRE_AUTH_SCHEMES entry is read from (= contracts/openapi/_common.yaml components.securitySchemes.<name>.name). Operation specs do not carry securitySchemes after bundling, so this is the source of truth at run time. */
-export const PRE_AUTH_HEADERS: Readonly<Record<string, string>> = Object.freeze({ patientPreAuth: 'X-Lims-Patient-PreAuth' });

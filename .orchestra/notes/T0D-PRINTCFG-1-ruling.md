@@ -28,3 +28,50 @@ Use whichever `user()` helper this file already imports/uses elsewhere; if this 
 Do not touch any other test in this file, any other snapshot in this file, rs-c6.static.test.ts, rs-c6.surface.ts, rs-c6.baseline.json, or any source file — PRINTCFG-1 itself never touched this area and this is restyle-drift cleanup only.
 
 WRITER and DEBUGGER: no code change. If a debugger round after this still fails on something inside rs-c6.screens.test.tsx or its snapshot, escalate to lead rather than re-disputing.
+
+## LEAD ITEM LD-399 FOR THE TESTER (written by the lead, 2026-11-19 01:10 NPT)
+
+LD-395 item 1 (tab assertion) landed (commit 8c0a95937). Item 2 (snapshot regen) has not, across two more debugger rounds — the snap file is still stale. Rather than ask you to regenerate it a third time, here is the exact, verified diff pulled directly from the latest verify log.
+
+File: `apps/web/src/features/reporting/__tests__/__snapshots__/rs-c6.screens.test.tsx.snap`, the `RS-C6 key-screen outline snapshots (...) > worklist 1` export.
+
+Current (stale):
+```
+"section Reports
+h1 Reports
+button Help
+button Search
+button Select an item
+button Select an item
+button Open calendar for From
+button Open calendar for To
+button Select an item
+button Reset filters
+input Select all rows
+input Select R2611050001
+a R2611050001
+span Ready to release"
+```
+
+Insert exactly one line, `button Ready to release`, directly after `button Search` and before the first `button Select an item`. Correct (matches the live render exactly, confirmed against the verify log's Received diff):
+```
+"section Reports
+h1 Reports
+button Help
+button Search
+button Ready to release
+button Select an item
+button Select an item
+button Open calendar for From
+button Open calendar for To
+button Select an item
+button Reset filters
+input Select all rows
+input Select R2611050001
+a R2611050001
+span Ready to release"
+```
+
+Make this one-line insertion directly in the `.snap` file (it is a plain literal string, no serialization quirks at this point), or if you prefer, run your normal vitest update-snapshot step against this one test file and confirm the result matches the text above exactly. Either way, touch no other snapshot in this file and no other file.
+
+WRITER and DEBUGGER: no code change. If this one line still is not on disk after this round, stop and escalate to the lead by name rather than a fourth round — something else is blocking the write, not the content.

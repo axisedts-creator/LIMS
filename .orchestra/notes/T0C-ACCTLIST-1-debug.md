@@ -7,3 +7,8 @@
 - Latest verify log (08:16, 804s): 4/4 files, 1106/1106 tests PASSED; exit non-zero only from 4 "Timeout calling onTaskUpdate" unhandled errors (vitest worker RPC starved while whole-repo lintRepo / codegen --check block the worker 40-100s under 9-lane load; same known cause as T0C-ACCT-1, see tools/codegen/vitest.config.ts comments).
 - No assertion failed, no stale generated file, no implementation defect. testTimeout 300_000 and fileParallelism:false already set; vitest's 60s RPC timeout is not configurable. Changed nothing.
 - Needs lead: re-run verify on a quiet machine (lintRepo is 13s idle), or accept 1106/1106 green as pass.
+
+## Debug round 3 (debugger)
+- Verify log: only failure is billing boot.test.ts "bootstrap resolves and every billing operation is mounted" timing out at its own 60_000 ms (took 68.8s under multi-lane load); 13/14 passed, no assertion failed.
+- Re-run alone: boot.test.ts 9/9 passed, ~43s test time. Boot mounts the full spec (all modules), so it is load-bound, not a defect of listAccountSummaries / pendingOperations.
+- Fix: none in implementation. Changed nothing. If it keeps timing out under load the 60_000 in boot.test.ts needs a lead decision (I may not edit tests). Re-run verify on a quieter machine.

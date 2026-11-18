@@ -1,0 +1,5 @@
+# infra/ci/base-images.lock - base images that infra/ci/build.sh passes as --build-arg (one KEY=value per line).
+# NODE_BASE_IMAGE: Node 26.13.0 (spec/program/02-CONVENTIONS.md s1.1), <image>@sha256:<64 hex>, no tag-only reference.
+# EMPTY ON PURPOSE: the image and tag are not in the spec (CR .orchestra/cr/NEPAL-node-base-image.md). build.sh fails
+# closed while this is empty. Record the digest with:  docker buildx imagetools inspect <image>:<tag>
+NODE_BASE_IMAGE=

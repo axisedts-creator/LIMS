@@ -52,3 +52,10 @@ Versions are the 02-TRD §2 values. "C1 pins" means the exact version is fixed w
 | Authenticode signing tool (Linux) | C1 pins in T-34 | to be recorded in T-34 | ops-1 (release service only) | no listener (CLI) |
 
 Not run by C1: qpdf (inside C6's `pdf-sandbox` image; C6 pins and builds it, 08 A25 D-204).
+
+## Build-time network sources (reached while an image is built, never at run time)
+
+Used by `infra/images/postgres-pgbackrest/Dockerfile` (derived DB image, 02-TRD §9.1), built on the server by `infra/cutover/bootstrap.sh` step 8 (the daemon reaches them through the ops proxy where one is configured). `bootstrap.sh` checks both answer (`curl -fsIL`, 20 s) before it builds.
+
+- `github.com` (redirects to `codeload.github.com`): `https://github.com/pgbackrest/pgbackrest/archive/release/2.60.0.tar.gz`, the pgBackRest 2.60.0 release tarball (MIT). Its sha256 is pinned in the Dockerfile (`PGBACKREST_TARBALL_SHA256`, LD-34) and verified inside the build.
+- `dl-cdn.alpinelinux.org`: `https://dl-cdn.alpinelinux.org/alpine/v3.23/main/x86_64/APKINDEX.tar.gz`, Alpine 3.23 `apk` index (build packages and runtime libraries of the Dockerfile; distribution licences).

@@ -37,7 +37,13 @@
 #                             disk, not mounted (except under /srv/lims/), and be used once.
 #   LIMS_LUKS_PASSPHRASES_FILE  optional: a 0600 file holding `luks_volumes_passphrases: {<disk key>: <pass>}` (role
 #                             luks_volumes) for blank disks; else asked silently, one per blank disk
-# Other (optional): LIMS_RUNTIME_IMAGES_FILE (default /etc/lims/bootstrap/runtime-images.yml, MANUAL step 8),
+#   LIMS_SOPS_SHA256          optional, 64 hex: the official sha256 of the pinned sops binary (read it from the checksums
+#                             file of the upstream release; none is recorded in this repo). With it, step 3 verifies the
+#                             installed/downloaded binary; with LIMS_SOPS_URL (https URL of the release binary) or
+#                             LIMS_SOPS_FILE (a local copy) it also downloads/copies and installs it (no MANUAL pause).
+#   LIMS_MIRROR_REPOS         optional "valkey=<lock repo> squid=<lock repo> clamd=<lock repo>": which lock entries (made by
+#                             `push.sh mirror`) are the third-party images; auto-detected when the repo path ends in the key
+# Other (optional): LIMS_RUNTIME_IMAGES_FILE (default /etc/lims/bootstrap/runtime-images.yml, written by step 8 from the lock),
 #   LIMS_WHEELHOUSE (offline pip dir for ansible-core), LIMS_TLS_INSECURE / LIMS_TLS_CA (smoke.sh trust for the ACME
 #   staging CA; set to 1 automatically for acme_mode staging|internal_ca).
 set -Eeuo pipefail
@@ -210,6 +216,10 @@ EXTRA=$STATE/extra.yml
 SHIM=$STATE/bin/ansible-playbook
 LUKS_VARS=$RUNDIR/luks-vars.json
 RUNTIME_KEYS="api worker web portal renderer pdf_sandbox valkey squid"
+# derived DB image (02-TRD s9.1): compose/roles reference registry.lims.internal/lims/postgres-pgbackrest@<digest>
+DB_IMAGE_NAME=lims/postgres-pgbackrest
+BUILD_URLS="https://github.com/pgbackrest/pgbackrest/archive/release/2.60.0.tar.gz https://dl-cdn.alpinelinux.org/alpine/v3.23/main/x86_64/APKINDEX.tar.gz"
+BUILD_HOSTS_NAMES="github.com dl-cdn.alpinelinux.org"
 
 # =========================================================== rollback
 run_rollback() {
@@ -301,6 +311,18 @@ prechecks() {
   else pc disks 0 ""; fi
   pc lims-env 0 ""
   pc staging-lean-dr-backup-empty 0 ""
+  # build-time hosts of the derived DB image (infra/THIRD-PARTY-OPS.md "Build-time network sources"); skipped when it is built
+  bad=""
+  if command -v docker >/dev/null 2>&1 && [ -n "$(docker images -q "$DB_IMAGE_NAME" 2>/dev/null || true)" ]; then
+    echo "PRECHECK build-hosts PASS (image $DB_IMAGE_NAME already built)"
+  elif ! command -v curl >/dev/null 2>&1; then
+    pc build-hosts 1 "curl not installed: cannot check $BUILD_HOSTS_NAMES (step 1 installs it; install curl first)"
+  else
+    for u in $BUILD_URLS; do
+      curl -fsIL --max-time 20 -o /dev/null "$u" 2>/dev/null || { n=${u#https://}; bad="$bad ${n%%/*}"; }
+    done
+    pc build-hosts "$([ -z "$bad" ] && echo 0 || echo 1)" "no answer (curl -fsIL, 20 s) from:$bad (the pgBackRest tarball and the Alpine apk index are fetched while the DB image builds; open that egress or use the ops proxy)"
+  fi
   if [ "$PC_FAILS" -gt 0 ]; then
     if [ "$DRY" -eq 1 ]; then echo "bootstrap: $PC_FAILS precheck(s) would FAIL on this host; a real run would refuse. dry-run continues and exits 0"
     else echo "FAIL $PC_FAILS precheck(s) failed; refusing to change anything"; exit 1; fi
@@ -423,12 +445,13 @@ print_plan() {
 PLAN (what this run will do on THIS host):
   1 packages            apt: git age python3-venv python3-yaml curl ca-certificates
   2 ansible-core        venv $VENV, pip ansible-core==$ANSIBLE_VER
-  3 sops                MANUAL if sops $SOPS_VER is not installed (not an Ubuntu package)
+  3 sops                sops $SOPS_VER: sha256-verified install when LIMS_SOPS_SHA256 + LIMS_SOPS_URL|LIMS_SOPS_FILE are set, else MANUAL (not an Ubuntu package)
   4 local-override      $EXTRA + $SHIM (ansible-playbook -c local), repo inventory untouched
   5 age-key             age-keygen (private key stays in the path you chose)
   6 secrets             lims-secrets checkout, .sops.yaml from the kit, role secrets_render tasks_from generate
   7 site                ansible-playbook -i $INV_NAME site.yml (stops at lims_runtime if no image digests yet)
-  8 images              MANUAL: build.sh, push.sh, release lock, runtime-images file
+  8 images              builds the derived DB image (docker build, infra/images/postgres-pgbackrest); MANUAL only: build.sh, docker login, push.sh,
+                        push.sh mirror; then runtime-images.sh writes the lims_runtime_images file from the release lock
   9 site-runtime        site.yml again with the digests (skipped when 7 was complete)
   10 db-bootstrap       ansible-playbook -i $INV_NAME db-bootstrap.yml (first deploy only; marker guard)
   11 deploy             infra/ci/deploy.sh staging <release> (runs deploy.yml, smoke.sh, rolls back on failure)
@@ -465,16 +488,47 @@ s2_ansible() {
   ok
 }
 
-sops_ok() { command -v sops >/dev/null 2>&1 && sops --version 2>/dev/null | grep -q "$SOPS_VER"; }
+# sops_ok: pinned version installed (and, when LIMS_SOPS_SHA256 is given, that exact binary)
+sops_sha_ok() { [ -z "${LIMS_SOPS_SHA256:-}" ] || [ "$(sha256sum "$(command -v sops)" | cut -d' ' -f1)" = "$LIMS_SOPS_SHA256" ]; }
+sops_ok() { command -v sops >/dev/null 2>&1 && sops --version 2>/dev/null | grep -q "$SOPS_VER" && sops_sha_ok; }
+# sops_install_verified: LIMS_SOPS_URL (https) or LIMS_SOPS_FILE -> sha256 check against LIMS_SOPS_SHA256 -> /usr/local/bin/sops
+sops_install_verified() {
+  local f=$RUNDIR/sops.bin got url_re
+  if [ -n "${LIMS_SOPS_FILE:-}" ]; then
+    [ -f "$LIMS_SOPS_FILE" ] || fail "LIMS_SOPS_FILE not found"
+    f=$LIMS_SOPS_FILE
+  else
+    url_re='^https://[A-Za-z0-9._~:/?#@!%+=&-]+$'
+    [[ $LIMS_SOPS_URL =~ $url_re ]] || fail "LIMS_SOPS_URL must be an https URL"
+    must curl -fsSL --max-time 300 -o "$f" "$LIMS_SOPS_URL"
+  fi
+  got=$(sha256sum "$f" | cut -d' ' -f1)
+  [ "$got" = "$LIMS_SOPS_SHA256" ] || fail "sops sha256 mismatch (got $got, expected LIMS_SOPS_SHA256); nothing installed"
+  must install -m 0755 "$f" /usr/local/bin/sops
+}
 s3_sops() {
   step 3 sops
-  if [ "$DRY" -eq 1 ]; then plan "sops --version must print $SOPS_VER; else MANUAL (instructions printed at run time)"; ok; return 0; fi
-  if sops_ok; then ok "(sops $SOPS_VER present)"; return 0; fi
-  manual sops sops_ok "SOPS $SOPS_VER is not an Ubuntu package (infra/THIRD-PARTY-OPS.md). Install the pinned upstream release:
-  1. download sops-v$SOPS_VER.linux.amd64 and the release's checksums file from the upstream project's v$SOPS_VER release page (build-time source);
-  2. verify the sha256 against the checksums file; do not run an unverified binary;
-  3. install -m 0755 <file> /usr/local/bin/sops
-  4. check: sops --version prints $SOPS_VER"
+  if [ "$DRY" -eq 1 ]; then
+    plan "sops --version must print $SOPS_VER${LIMS_SOPS_SHA256:+ and sha256sum(sops) must equal LIMS_SOPS_SHA256}"
+    plan "else with LIMS_SOPS_SHA256 + (LIMS_SOPS_URL | LIMS_SOPS_FILE): fetch, sha256sum check, install -m 0755 /usr/local/bin/sops"
+    plan "else MANUAL (exact commands printed at run time; the official checksum is read from the upstream release, none is recorded in this repo)"
+    ok; return 0
+  fi
+  if sops_ok; then ok "(sops $SOPS_VER present${LIMS_SOPS_SHA256:+, sha256 verified})"; return 0; fi
+  [ -z "${LIMS_SOPS_SHA256:-}" ] || [[ $LIMS_SOPS_SHA256 =~ ^[0-9a-f]{64}$ ]] || fail "LIMS_SOPS_SHA256 must be 64 lowercase hex"
+  if [ -n "${LIMS_SOPS_SHA256:-}" ] && { [ -n "${LIMS_SOPS_URL:-}" ] || [ -n "${LIMS_SOPS_FILE:-}" ]; }; then
+    sops_install_verified
+    sops_ok || fail "sops installed but 'sops --version' does not print $SOPS_VER"
+    ok "(sops $SOPS_VER installed, sha256 verified)"; return 0
+  fi
+  manual sops sops_ok "SOPS $SOPS_VER is not an Ubuntu package (infra/THIRD-PARTY-OPS.md). Install the pinned upstream release; its checksum is NOT recorded in this repo:
+  1. on the release page of the upstream SOPS project for tag v$SOPS_VER find the binary  sops-v$SOPS_VER.linux.amd64  and the release's checksums file (build-time source);
+       curl -fsSL -o /root/sops-v$SOPS_VER.linux.amd64 '<https URL of that binary>'
+  2. read the official sha256 of that file from the checksums file of the same release (not from the download page of a mirror), then verify:
+       echo '<64 hex official sha256>  /root/sops-v$SOPS_VER.linux.amd64' | sha256sum -c -        (must print OK; never run an unverified binary)
+  3. install -m 0755 /root/sops-v$SOPS_VER.linux.amd64 /usr/local/bin/sops
+  4. check: sops --version prints $SOPS_VER
+  To do 1-3 here on a re-run instead: export LIMS_SOPS_SHA256=<64 hex> LIMS_SOPS_URL=<https URL> (or LIMS_SOPS_FILE=<path>)"
   ok
 }
 
@@ -641,23 +695,49 @@ s7_site() {
   if [ "$rc" -eq 10 ]; then ok "(partial: stopped at the lims_runtime precondition, no image digests yet; step 8 then step 9)"; else ok; fi
 }
 
+# MAP_ARGS: `--map <key>=<lock repo>` for the third-party images (valkey, squid, clamd) pushed by `push.sh mirror`
+MAP_ARGS=()
+build_map_args() {
+  local k kv repo
+  MAP_ARGS=()
+  for kv in ${LIMS_MIRROR_REPOS:-}; do MAP_ARGS+=(--map "$kv"); done
+  [ -f "$LOCK" ] || return 0
+  for k in valkey squid clamd; do
+    case " ${LIMS_MIRROR_REPOS:-} " in *" $k="*) continue ;; esac
+    repo=$(sed -n 's/^  "\(.*\)": ".*"$/\1/p' "$LOCK" | grep -v '^lims/' | grep -E "(^|/)$k\$" | head -n 1 || true)
+    [ -z "$repo" ] || MAP_ARGS+=(--map "$k=$repo")
+  done
+}
+# images_from_lock: release lock -> lims_runtime_images file (infra/ci/runtime-images.sh), then the same check as before
+images_from_lock() {
+  [ -f "$LOCK" ] || return 1
+  build_map_args
+  bash infra/ci/runtime-images.sh staging --lock "$LOCK" --out "$IMAGES_FILE" "${MAP_ARGS[@]}" >/dev/null 2>&1 || return 1
+  images_ok
+}
+
 s8_images() {
   step 8 images
   if [ "$DRY" -eq 1 ]; then
-    plan "require $LOCK and $IMAGES_FILE (lims_runtime_images with: $RUNTIME_KEYS)"
-    note "MANUAL if missing: bash infra/ci/build.sh <release>; bash infra/ci/push.sh staging lims/<name>:<release> ...; push.sh mirror <image>@sha256:<hex> for valkey/squid/clamd; write the refs into the images file"
+    plan "docker build -t $DB_IMAGE_NAME:\$LIMS_RELEASE infra/images/postgres-pgbackrest   (derived DB image; skipped when the tag exists; needs $BUILD_HOSTS_NAMES; the tarball sha256 is checked inside the build, LD-34)"
+    plan "require $LOCK with lims/{api,worker,web,portal,renderer,pdf-sandbox} and the mirrored valkey + squid (+ $DB_IMAGE_NAME for the DB host)"
+    plan "bash infra/ci/runtime-images.sh staging --lock $LOCK --out $IMAGES_FILE [--map valkey|squid|clamd=<lock repo>]   (lock -> lims_runtime_images with: $RUNTIME_KEYS; automatic)"
+    note "MANUAL only if the lock is incomplete: bash infra/ci/build.sh <release> (needs infra/ci/base-images.lock), docker login, push.sh staging ..., push.sh mirror <image>@sha256:<hex>"
     ok; return 0
   fi
-  if images_ok; then ok "(lock and runtime-images file present)"; return 0; fi
-  manual images images_ok "The registry now exists (site.yml). Build and push the images, which writes infra/releases/staging.lock.yaml:
-  1. bash infra/ci/build.sh $LIMS_RELEASE                      (images lims/api worker web portal renderer pdf-sandbox)
+  if [ -z "$(docker images -q "$DB_IMAGE_NAME:$LIMS_RELEASE" 2>/dev/null || true)" ]; then
+    must docker build -t "$DB_IMAGE_NAME:$LIMS_RELEASE" infra/images/postgres-pgbackrest
+  else
+    note "$DB_IMAGE_NAME:$LIMS_RELEASE already built"
+  fi
+  if images_from_lock; then ok "($IMAGES_FILE written from $LOCK)"; return 0; fi
+  manual images images_from_lock "The registry now exists (site.yml). Build and push the images; push.sh writes infra/releases/staging.lock.yaml, then bootstrap writes $IMAGES_FILE from it:
+  1. bash infra/ci/build.sh $LIMS_RELEASE                      (images lims/api worker web portal renderer pdf-sandbox; needs NODE_BASE_IMAGE in infra/ci/base-images.lock, CR NEPAL-node-base-image)
   2. docker login registry.lims.internal:5000                  (push.sh assumes a logged-in docker)
-  3. bash infra/ci/push.sh staging lims/api:$LIMS_RELEASE lims/worker:$LIMS_RELEASE lims/web:$LIMS_RELEASE lims/portal:$LIMS_RELEASE lims/renderer:$LIMS_RELEASE lims/pdf-sandbox:$LIMS_RELEASE
+  3. bash infra/ci/push.sh staging lims/api:$LIMS_RELEASE lims/worker:$LIMS_RELEASE lims/web:$LIMS_RELEASE lims/portal:$LIMS_RELEASE lims/renderer:$LIMS_RELEASE lims/pdf-sandbox:$LIMS_RELEASE $DB_IMAGE_NAME:$LIMS_RELEASE
   4. third-party images (valkey, squid, clamd), by digest: bash infra/ci/push.sh mirror <image>@sha256:<64 hex>
-  5. create $IMAGES_FILE (0600) with the pushed refs:
-       lims_runtime_images:
-         api: registry.lims.internal:5000/lims/api@sha256:<64 hex>
-         (same shape for: $RUNTIME_KEYS clamd)
+     (if the pushed repo path does not end in valkey / squid / clamd, export LIMS_MIRROR_REPOS='valkey=<repo> squid=<repo>' with the repo names push.sh printed)
+  Nothing to write by hand: $IMAGES_FILE is generated by infra/ci/runtime-images.sh (lims_runtime_images: $RUNTIME_KEYS).
   Note: STATUS.md says the web image may not build yet (typecheck red); if build.sh fails, stop and report."
   ok
 }

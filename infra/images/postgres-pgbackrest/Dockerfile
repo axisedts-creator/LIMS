@@ -1,6 +1,7 @@
 # Derived DB image (02-TRD s9.1): supabase/postgres 17.6.1.136 + pgBackRest 2.60.0.
 # Base digest as recorded live in db/meta/decisions/SP-3.md. Base = Alpine 3.23 per upstream
-# Dockerfile-17 (TRD s9.1 VERIFIED); the apk package names below are UNVERIFIED -> T-09 spike on CI.
+# Dockerfile-17 (TRD s9.1 VERIFIED); the apk package names below are VERIFIED 2026-11-18 by the C1 lead against the
+# live Alpine 3.23 index (all exist; `ninja` is satisfied via a provider; builder-stage `apk add` succeeded).
 # zz-lims.conf, pg_hba.conf, pgbackrest.conf and the cipher passes are mounted by compose
 # (02-TRD s7.2), never baked in.
 

@@ -112,8 +112,16 @@ def _for_s(r):
     return 0 if f in ("0", "0m", "0s") else _secs(f)
 
 
+# Scope (module docstring: "C1 alert rules ... 02-TRD s11.3"): T-19 asserts only C1's own families (CAT) with
+# team=ops and names drawn from ALL. Later-chunk module files in rules/tests/ (analytics, payments, core, ...) carry
+# their own names and teams (e.g. C15 PaymentsHeldForReviewStale team=finance, C15 02-TRD s11.2) and are covered by
+# test_t21_module_rules.py (existence, severity/team/runbook lint, labels, promtool test) and, for instruments, by
+# test_t20_bridge_agent_rules.py. restore_drill_overdue.test.yml is T-10's file for C1's RestoreDrillOverdue.
+T19_SCOPE_FILES = T19_TEST_FILES + ["restore_drill_overdue"]
+
+
 def _all_case_files():
-    return sorted(PTESTS.glob("*.test.yml")) if PTESTS.exists() else []
+    return [PTESTS / ("%s.test.yml" % n) for n in T19_SCOPE_FILES if (PTESTS / ("%s.test.yml" % n)).exists()]
 
 
 def _load_cases():

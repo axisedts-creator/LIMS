@@ -1,0 +1,4 @@
+## debugger 2026-11-18 (verify log: 5 boot-test failures)
+Cause: not a FINCTRL defect. Verify run took 385s under load; the core autoload (imports every module via vite-node) exceeded the tests' hardcoded 60_000 ms timeout in billing/frontdesk boot.test.ts. "module X: index.ts exports no manifest" (partners, quality, reporting: a different module each run) is the knock-on of the timed-out import, not a missing manifest (partners/index.ts exports it).
+Evidence: the same frontdesk boot test alone passes (autoload test 48.7s of 60s); runs 1-3 had no boot failure. No new import in the FINCTRL files is heavy. No code change made; tests untouched.
+Next: re-run verify on an idle machine (other lane windows closed). If boot still exceeds 60s with no load, that is a core autoload speed issue (T0B-BOOTGATE-1 area), not this task.

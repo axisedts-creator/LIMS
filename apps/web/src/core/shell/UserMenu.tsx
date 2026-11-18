@@ -1,7 +1,7 @@
 'use client';
 // T0D-DENSITY-1 (LD-310, founder 2026-11-17 04:49 / 05:03 NPT): the actor's name in the top bar opens a menu with the screen density
 // (Compact, the default, or Regular). The choice is kept per user (core/prefs/density: membership id key, compact on any error). Server and first client render are compact, the stored choice is applied after mount (no hydration mismatch).
-import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
+import { useEffect, useRef, useState, type KeyboardEvent, type MouseEvent as ReactMouseEvent } from 'react';
 import { t } from '../i18n/messages';
 import { readDensity, writeDensity, type Density } from '../prefs/density';
 import { NavIcon } from './NavIcon';
@@ -25,11 +25,15 @@ export function useDensity(memberId: string | undefined): [Density, (d: Density)
 }
 
 // LD-340 (founder 2026-11-17 20:50 NPT: "we don't have profile section from where we can signout"): the menu also holds My account and Sign out.
-type Props = { name: string; density: Density; onChange: (d: Density) => void; /** path of the My account screen when the actor may open it */ accountPath?: string | undefined };
-const SIGN_OUT_PATH = '/auth/logout'; // C2 sign-out screen (a POST form behind one button)
+type Props = {
+  name: string; density: Density; onChange: (d: Density) => void; /** path of the My account screen when the actor may open it */ accountPath?: string | undefined;
+  /** T0D-OFFLINE-2: may stop the sign out (preventDefault) while operations are not synced */
+  onSignOut?: ((e: ReactMouseEvent<HTMLAnchorElement>) => void) | undefined;
+};
+export const SIGN_OUT_PATH = '/auth/logout'; // C2 sign-out screen (a POST form behind one button)
 const initials = (n: string) => n.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]!.toUpperCase()).join('');
 
-export function UserMenu({ name, density, onChange, accountPath }: Props) {
+export function UserMenu({ name, density, onChange, accountPath, onSignOut }: Props) {
   const [open, setOpen] = useState(false);
   const button = useRef<HTMLButtonElement>(null);
   const wrap = useRef<HTMLDivElement>(null);
@@ -89,7 +93,7 @@ export function UserMenu({ name, density, onChange, accountPath }: Props) {
           {accountPath ? (
             <a role="menuitem" href={accountPath} tabIndex={-1} className="lims-menuitem" ref={(el) => { items.current[DENSITIES.length] = el; }}>{t('core.shell.my_account')}</a>
           ) : null}
-          <a role="menuitem" href={SIGN_OUT_PATH} tabIndex={-1} className="lims-menuitem" ref={(el) => { items.current[DENSITIES.length + (accountPath ? 1 : 0)] = el; }}>{t('core.shell.sign_out')}</a>
+          <a role="menuitem" href={SIGN_OUT_PATH} tabIndex={-1} className="lims-menuitem" onClick={onSignOut} ref={(el) => { items.current[DENSITIES.length + (accountPath ? 1 : 0)] = el; }}>{t('core.shell.sign_out')}</a>
         </div>
       ) : null}
     </div>

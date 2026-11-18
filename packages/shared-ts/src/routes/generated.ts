@@ -592,6 +592,12 @@ export const ROUTES = {
     "path": "/engagement/bookings",
     "permission": "engagement.booking.read"
   },
+  "staff.engagement.content": {
+    "origin": "staff_web",
+    "owner": "C16",
+    "path": "/engagement/content",
+    "permission": "engagement.content.read"
+  },
   "staff.engagement.enquiries": {
     "origin": "staff_web",
     "owner": "C16",
@@ -1018,6 +1024,12 @@ export const ROUTES = {
     "owner": "C10",
     "path": "/micro/worklist",
     "permission": "micro.culture.read"
+  },
+  "staff.offline": {
+    "origin": "staff_web",
+    "owner": "C0",
+    "path": "/offline",
+    "permission": "sync.use"
   },
   "staff.partners.inbox": {
     "origin": "staff_web",

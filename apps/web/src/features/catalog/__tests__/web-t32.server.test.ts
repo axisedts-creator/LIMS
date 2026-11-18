@@ -47,7 +47,13 @@ afterEach(() => api.resetHandlers());
 afterAll(() => api.close());
 beforeEach(() => { seen.length = 0; });
 
-const load = async <T = Record<string, (...a: any[]) => Promise<any>>>(file: string): Promise<T> => (await import(/* @vite-ignore */ `../server/${file}.server`)) as T;
+type ServerFn = (...a: any[]) => Promise<any>;
+type ServerFnName = 'getTest' | 'getAnalyte' | 'validateFormula' | 'createAnalyteVersionDraft' | 'updateAnalyteVersionDraft' | 'publishAnalyteVersion'
+  | 'publishReferenceRangeSet' | 'publishCriticalLimitSet' | 'replaceReferenceRangeBands' | 'replaceCriticalLimitBands'
+  | 'retireReferenceRangeSet' | 'retireCriticalLimitSet' | 'discardReferenceRangeSetDraft' | 'discardCriticalLimitSetDraft' | 'previewReferenceRange';
+// Known export names are non-optional (noUncheckedIndexedAccess only widens the string index signature).
+type ServerModule = Record<string, ServerFn> & Record<ServerFnName, ServerFn>;
+const load = async <T = ServerModule>(file: string): Promise<T> => (await import(/* @vite-ignore */ `../server/${file}.server`)) as T;
 
 describe('validateFormula (#36, AC-04.8) — read-only POST', () => {
   it('POSTs the body to /v1/catalog/formulas/validate with bearer, no Idempotency-Key, no If-Match; returns the 200 result as is', async () => {
@@ -139,7 +145,7 @@ describe('range / critical sets (#38–#51, AC-05.7/05.9)', () => {
   ])('%s → POST /v1/catalog/%s/{id}/publish with If-Match, Idempotency-Key, change_reason', async (fn, seg) => {
     api.use(http.post(`${ORIGIN}/v1/catalog/${seg}/:id/publish`, rec(() => HttpResponse.json({ id: SET, status: 'published', version: 2 }))));
     const mod = await load('publishRangeSet');
-    await mod[fn](SET, 2, { change_reason: 'Synthetic change reason' }, KEY);
+    await mod[fn]!(SET, 2, { change_reason: 'Synthetic change reason' }, KEY);
     expect(seen[0]!.url.pathname).toBe(`/v1/catalog/${seg}/${SET}/publish`);
     expect(seen[0]!.headers.get('if-match')).toBe('"2"');
     expect(seen[0]!.headers.get('idempotency-key')).toBe(KEY);
@@ -178,7 +184,7 @@ describe('range / critical sets (#38–#51, AC-05.7/05.9)', () => {
   ])('%s (%s, %s) → POST /{id}/retire with If-Match "<version>", Idempotency-Key, change_reason', async (fn, seg) => {
     api.use(http.post(`${ORIGIN}/v1/catalog/${seg}/:id/retire`, rec(() => HttpResponse.json({ id: SET, status: 'retired', version: 3 }))));
     const mod = await load('retireRangeSet');
-    await mod[fn](SET, 2, { change_reason: 'Synthetic retire reason' }, KEY);
+    await mod[fn]!(SET, 2, { change_reason: 'Synthetic retire reason' }, KEY);
     expect(seen[0]!.url.pathname).toBe(`/v1/catalog/${seg}/${SET}/retire`);
     expect(seen[0]!.headers.get('if-match')).toBe('"2"');
     expect(seen[0]!.headers.get('idempotency-key')).toBe(KEY);
@@ -202,7 +208,7 @@ describe('range / critical sets (#38–#51, AC-05.7/05.9)', () => {
   ])('%s (%s, %s) → POST /{id}/discard with If-Match "<version>"', async (fn, seg) => {
     api.use(http.post(`${ORIGIN}/v1/catalog/${seg}/:id/discard`, rec(() => HttpResponse.json({ id: SET, status: 'discarded', version: 3 }))));
     const mod = await load('discardRangeSet');
-    await mod[fn](SET, 2);
+    await mod[fn]!(SET, 2);
     expect(seen[0]!.url.pathname).toBe(`/v1/catalog/${seg}/${SET}/discard`);
     expect(seen[0]!.headers.get('if-match')).toBe('"2"');
   });

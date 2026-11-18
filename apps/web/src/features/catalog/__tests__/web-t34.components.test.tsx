@@ -83,7 +83,7 @@ const prob = (status: number, code: string, extra: Record<string, unknown> = {})
 const sent = (method: string, re: RegExp) => calls.filter((c) => c.method === method && re.test(c.url.pathname));
 const writes = () => calls.filter((c) => c.method !== 'GET' && !/\/prices\/quote$/.test(c.url.pathname));
 const api = setupServer(
-  http.get(`${ORIGIN}/v1/catalog/orderables`, async ({ request }) => { await rec(request); const q = new URL(request.url).searchParams.get('q')!.toLowerCase(); return HttpResponse.json({ data: ORDERABLES.filter((o) => (o.code as string).toLowerCase().startsWith(q) || (o.name as string).toLowerCase().includes(q)), page: { limit: 20 } }); }),
+  http.get(`${ORIGIN}/v1/catalog/orderables`, async ({ request }) => { await rec(request); const q = new URL(request.url).searchParams.get('q')!.toLowerCase(); return HttpResponse.json({ data: ORDERABLES.filter((o: Record<string, unknown>) => (o.code as string).toLowerCase().startsWith(q) || (o.name as string).toLowerCase().includes(q)), page: { limit: 20 } }); }),
   http.get(`${ORIGIN}/v1/identity/centres`, async ({ request }) => { await rec(request); return HttpResponse.json({ data: [{ centre_id: ID(80), code: 'C2', name: 'Synthetic Centre 2', branch_id: ID(81), kind: 'own', is_active: true, version: 1 }] }); }),
   http.post(`${ORIGIN}/v1/catalog/price-list-versions/:id/items/bulk-upsert`, async ({ request }) => { await rec(request); const b: any = await request.clone().json(); return HttpResponse.json({ results: b.items.map((i: any) => ({ orderable_id: i.orderable_id, outcome: 'updated' })) }); }),
   http.post(`${ORIGIN}/v1/catalog/price-list-versions/:id/items/bulk-remove`, async ({ request }) => { await rec(request); return HttpResponse.json({ results: [] }); }),

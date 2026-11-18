@@ -25,7 +25,7 @@ const PL = '01a1a98a-ac40-7000-8000-0000000d0502';
 const XLSX = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 const MB15 = 15 * 1024 * 1024;
 
-const seen: { url: URL; method: string; headers: Headers; body?: any; form?: ParsedForm }[] = [];
+const seen: { url: URL; method: string; headers: Headers; body?: any; form?: ParsedForm | undefined }[] = [];
 const rec = async (r: Request) => {
   const ct = r.headers.get('content-type') ?? '';
   seen.push({

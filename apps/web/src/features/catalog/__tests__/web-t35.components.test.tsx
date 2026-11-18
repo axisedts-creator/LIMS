@@ -62,7 +62,7 @@ const exp = (n: number, o: Record<string, unknown> = {}) => ({ id: ID(n), kind: 
 const issue = (seq: number, o: Record<string, unknown> = {}) => ({ seq, severity: 'error', sheet: 'Prices', row_no: 4, column: 'unit_price_npr', issue_code: 'row.price_decimals', message: 'Synthetic API text', ...o });
 
 // ---- MSW --------------------------------------------------------------------------------------------------------------------------------
-type Call = { method: string; url: URL; headers: Headers; body?: any; form?: ParsedForm };
+type Call = { method: string; url: URL; headers: Headers; body?: any; form?: ParsedForm | undefined };
 const calls: Call[] = [];
 const rec = async (r: Request) => {
   const ct = r.headers.get('content-type') ?? '';
@@ -146,7 +146,7 @@ describe('SCR-18 ImportsScreen', () => {
     const href = el.getAttribute('href') ?? el.closest('a')?.getAttribute('href');
     if (href) expect(href).toBe('/catalog/import-templates/price_list');
     else { // button variant → must fetch the proxy
-      const fetchSpy = vi.fn(async () => new Response(new Uint8Array([0x50, 0x4b]), { headers: { 'content-type': XLSX, 'content-disposition': 'attachment; filename="t.xlsx"' } }));
+      const fetchSpy = vi.fn(async (_input?: unknown) => new Response(new Uint8Array([0x50, 0x4b]), { headers: { 'content-type': XLSX, 'content-disposition': 'attachment; filename="t.xlsx"' } }));
       vi.stubGlobal('fetch', fetchSpy);
       await userEvent.click(el);
       await waitFor(() => expect(String(fetchSpy.mock.calls[0]?.[0])).toMatch(/\/catalog\/import-templates\/price_list$/));

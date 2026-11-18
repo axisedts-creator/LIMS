@@ -15,6 +15,7 @@ import type { Centre, CentreContact, ReportingSettings } from '../server/types';
 import { errorText, hasPerm, humanize, newKey } from './format';
 import { NumberInput, rangeError } from './NumberInput';
 import { SimpleTable, type Col } from './SimpleTable';
+import { t } from '@/core/i18n/messages';
 
 type Draft = Omit<ReportingSettings, 'version'>;
 const ORDERS: Record<string, string[]> = { 'whatsapp,sms': ['whatsapp', 'sms'], 'sms,whatsapp': ['sms', 'whatsapp'], whatsapp: ['whatsapp'], sms: ['sms'] };
@@ -64,7 +65,7 @@ export function ReportingSettingsForm({ settings, contacts, centres, permissions
   const ro = !canManage;
   return (
     <section aria-label="Reporting settings">
-      <PageHeader title="Reporting settings" helpKey="reporting.settings" />
+      <PageHeader title={t('nav.reporting.settings')} helpKey="reporting.settings" />
       <form
         noValidate className="lims-form" onSubmit={(e) => { e.preventDefault(); void submit(); }}
         onKeyDown={(e) => { if (canManage && e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); e.currentTarget.requestSubmit(); } }}

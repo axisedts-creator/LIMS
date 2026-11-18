@@ -246,7 +246,7 @@ export function VisitDetailView({ visit, permissions, codes }: VisitDetailViewPr
   return (
     <div>
       <PageHeader
-        title="Home visit" helpKey="homecollection.visit" breadcrumbs={[{ label: 'Home visits', href: '/homecollection/dispatch' }, { label: 'Visit' }]}
+        title="Home visit" helpKey="homecollection.visit"
         status={<Inline gap={2}><Chip tone={tone} label={label} status={visit.status} /><Chip tone="neutral" label={kindLabel(visit.kind)} status={visit.kind} /></Inline>}
         actions={actions}
       />

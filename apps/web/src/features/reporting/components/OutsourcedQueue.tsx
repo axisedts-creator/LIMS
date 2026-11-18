@@ -14,6 +14,7 @@ import { Chip, When, errorText, hasPerm, newKey } from './format';
 import { fileStateLabel, OutsourcedFilePanel } from './OutsourcedFilePanel';
 import { SimpleTable, type Col } from './SimpleTable';
 import { useUrlFilters } from './useUrlFilters';
+import { t } from '@/core/i18n/messages';
 
 const MAX_BYTES = 15 * 1024 * 1024;
 
@@ -74,7 +75,7 @@ export function OutsourcedQueue({ items, permissions, centres }: { items: readon
   ];
   return (
     <section aria-label="Outsourced reports">
-      <PageHeader title="Outsourced reports" helpKey="reporting.outsourced" />
+      <PageHeader title={t('nav.reporting.outsourced')} helpKey="reporting.outsourced" />
       <FilterBar
         filters={[
           { id: 'state', label: 'File state', kind: 'select', options: [{ value: 'awaiting_file', label: 'Awaiting file' }, { value: 'awaiting_confirmation', label: 'Awaiting confirmation' }, { value: 'confirmed', label: 'Confirmed' }] },

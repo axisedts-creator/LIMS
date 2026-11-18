@@ -13,6 +13,7 @@ import { createPanelAction } from '../server/catalogActions';
 import { PANEL_CODE_RE, type Department, type OrderableSummary, type Panel, type PanelMember } from '../server/types';
 import { DUPLICATE, EditorDialog, MasterTable, StatusBadge, canManage, useListFilter, useListShortcuts, type Col } from './master-ui';
 import { MembersEditor, infoOf, toPayload, type Info } from './PanelMembers';
+import { t } from '@/core/i18n/messages';
 
 export const PACKAGE_COPY = 'Packages are priced as one item. Component prices are not added up.'; // AC-07.6
 export const kindLabel = (k: Panel['panel_kind']) => (k === 'package' ? 'Package' : 'Clinical panel');
@@ -24,7 +25,9 @@ export function PanelsList({ panels, departments, permissions }: { panels: reado
   const manage = canManage(permissions);
   const [creating, setCreating] = useState(false);
   const [kind, setKind] = useState<KindFilter>('all');
-  const { shown, toolbar, search } = useListFilter(panels, (r) => r.name);
+  // T0D-UILIST-3 (LD-353 rule 2): Kind is a select in the one filter row.
+  const kindSelect = <Select<KindFilter> label="Kind" name="kind" value={kind} onChange={setKind} options={[{ value: 'all', label: 'All' }, { value: 'clinical', label: 'Clinical panel' }, { value: 'package', label: 'Package' }]} />;
+  const { shown, toolbar, search } = useListFilter(panels, (r) => r.name, kindSelect);
   const openNew = manage ? () => setCreating(true) : undefined;
   useListShortcuts(search, openNew);
   const rows = shown.filter((p) => kind === 'all' || p.panel_kind === kind);
@@ -38,19 +41,9 @@ export function PanelsList({ panels, departments, permissions }: { panels: reado
   ];
   return (
     <section aria-label="Panels & packages">
-      <PageHeader title="Panels & packages" helpKey="catalog.panels" breadcrumbs={[{ label: 'Catalog', href: '/catalog' }, { label: 'Panels & packages' }]} actions={openNew ? <Button variant="primary" onPress={openNew}>New panel</Button> : null} />
-      <div className="lims-filter-bar">
-        <RadioGroup<KindFilter>
-          label="Kind"
-          name="kind"
-          orientation="horizontal"
-          value={kind}
-          onChange={setKind}
-          options={[{ value: 'all', label: 'All' }, { value: 'clinical', label: 'Clinical panel' }, { value: 'package', label: 'Package' }]}
-        />
-      </div>
+      <PageHeader title={t('catalog.nav.panels')} helpKey="catalog.panels" actions={openNew ? <Button variant="primary" onPress={openNew}>New panel</Button> : null} />
       {toolbar}
-      <MasterTable caption="Panels & packages" cols={cols} rows={rows} empty="No panels yet." emptyAction={openNew ? { label: 'New panel', onPress: openNew } : undefined} />
+      <MasterTable caption="Panels & packages" cols={cols} rows={rows} empty="No test profiles yet." emptyAction={openNew ? { label: 'New panel', onPress: openNew } : undefined} />
       {creating ? <PanelDialog departments={departments} onClose={() => setCreating(false)} /> : null}
     </section>
   );

@@ -176,7 +176,6 @@ export function PartnerDetail({ partner, users, manifests, referrers, permission
       <PageHeader
         title={partner.name}
         helpKey="partners.detail"
-        breadcrumbs={[{ label: 'Partners', href: '/partners' }, { label: partner.partner_code }]}
         status={<Chip code={partner.status} />}
         actions={canManage ? (
           <>

@@ -8,12 +8,14 @@ import { describe, expect, it } from 'vitest';
 import { checkHandlers, loadSpec, REPO_ROOT } from '../module.js';
 import { CORE_PENDING_OPERATIONS } from '../core-pending.js';
 import { createHealthHandlers } from '../health.js';
+import { syncHandlers } from '../sync/index.js';
 import { okChecks } from '../observability/__tests__/helpers.js';
 
 const NEW_OPS = ['registerSyncDevice', 'listSyncDevices', 'revokeSyncDevice', 'requestSyncDeviceWipe', 'ackDeviceWipe', 'getSyncStatus', 'reserveNumberBlock'];
 const spec: any = loadSpec(join(REPO_ROOT, 'contracts/openapi/core.yaml'));
 const specIds: string[] = Object.values<any>(spec.paths).flatMap((p) => Object.values<any>(p).map((m) => m?.operationId).filter(Boolean));
-const healthHandlers = createHealthHandlers(okChecks());
+// LD-325 (a)/(b): a handler wins over a pending id, so the covered set is the handlers bootstrap builds (health + sync), as in registry.static.test.ts.
+const allHandlers = { ...createHealthHandlers(okChecks()), ...syncHandlers };
 const pending: string[] = [...CORE_PENDING_OPERATIONS];
 
 describe('T0C-SYNC-1: core manifest covers the sync operations (handler or pending)', () => {
@@ -21,9 +23,9 @@ describe('T0C-SYNC-1: core manifest covers the sync operations (handler or pendi
     for (const id of [...NEW_OPS, 'getLiveness', 'getReadiness']) expect(specIds, id).toContain(id);
   });
   it('every spec operation has a handler or is listed pending; checkHandlers(core) passes with the pending list (boot check would pass)', () => {
-    const uncovered = specIds.filter((id) => !(id in healthHandlers) && !pending.includes(id));
+    const uncovered = specIds.filter((id) => !(id in allHandlers) && !pending.includes(id));
     expect(uncovered, `no handler and not pending: ${uncovered.join(', ')}`).toEqual([]);
-    expect(() => checkHandlers('core', spec, healthHandlers, pending)).not.toThrow();
+    expect(() => checkHandlers('core', spec, allHandlers, pending)).not.toThrow();
   });
   it('without the pending list the boot check would fail while the handlers are not merged (the reason the list exists)', () => {
     if (pending.length === 0) return; // T0B-SYNC-1 merged: nothing pending, nothing to prove
@@ -36,7 +38,9 @@ describe('T0C-SYNC-1: core manifest covers the sync operations (handler or pendi
     expect(pending).not.toContain('getReadiness');
   });
   it('only the sync operations may be pending in core', () => {
-    expect(pending.filter((id) => !NEW_OPS.includes(id)), 'only the sync operations may be pending in core').toEqual([]);
+    // T0C-SYNC-2 adds pushSyncBatch, pullChanges, listSyncConflicts, getSyncConflict, resolveSyncConflict to the same list (sync2.pending.test.ts)
+    const SYNC2_OPS = ['pushSyncBatch', 'pullChanges', 'listSyncConflicts', 'getSyncConflict', 'resolveSyncConflict'];
+    expect(pending.filter((id) => ![...NEW_OPS, ...SYNC2_OPS].includes(id)), 'only the sync operations may be pending in core').toEqual([]);
   });
   it('bootstrap passes the list to both checkHandlers and mountSpec for core (so a pending id answers 501 operation_pending after auth, not 404)', () => {
     const boot = readFileSync(join(REPO_ROOT, 'services/api/src/core/bootstrap.ts'), 'utf8');

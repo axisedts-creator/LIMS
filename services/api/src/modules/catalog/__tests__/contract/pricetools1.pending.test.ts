@@ -30,7 +30,9 @@ describe('T0C-PRICETOOLS-1: catalog manifest covers the new operations (handler 
   });
   it('each of the seven ids is handled or pending, and no original price list operation was made pending to hide a missing handler', () => {
     for (const id of NEW_OPS) expect(handlerIds.includes(id) || pending.includes(id), `${id} neither handled nor pending`).toBe(true);
-    expect(pending.filter((id) => !NEW_OPS.includes(id) && !TESTMGMT_OPS.includes(id)), 'only the test category and price list tool operations may be pending in catalog').toEqual([]);
+    // T0C-TESTIMPORT-1 (LD-318, LD-325(b)) adds its six operations to the same list (pinned in testimport1.pending.test.ts).
+    const TESTIMPORT = ['downloadCatalogImportTemplate', 'validateCatalogImport', 'commitCatalogImport', 'listCatalogImports', 'getCatalogImport', 'downloadCatalogImportErrors'];
+    expect(pending.filter((id) => !NEW_OPS.includes(id) && !TESTMGMT_OPS.includes(id) && !TESTIMPORT.includes(id)), 'only the test category, price list tool and test import operations may be pending in catalog').toEqual([]);
     for (const id of ['listPriceLists', 'createPriceList', 'replacePriceListAssignments', 'publishPriceListVersion', 'upsertPriceListItems']) expect(handlerIds, `${id} keeps its handler`).toContain(id);
   });
 });

@@ -1,5 +1,7 @@
-# T0C-MSGDESK-1 dispute (debugger)
-Failing: tools/codegen/__tests__/c16-openapi.test.ts "§5.1 DTO field lists exactly" — Profile fields 8 vs 7 (extra `version`).
-Spec: spec/chunks/C16-patient-engagement/02-TRD*.md line 408 lists Profile without `version`; test matches spec.
-Cause: commit 8666eb72e (T-L6 review fixes, 2026-11-14) added required Profile.version to engagement.yaml + patient_app/api-client. Not touched by T0C-MSGDESK-1 (byte-identical Profile block before/after; MSGDESK diff has no Profile change).
-Not fixed: removing `version` would break T-L6 patient app/generated clients; editing the test is forbidden. Needs lead: either CR to add `version` to TRD §5.1 (then tester updates c16 pin) or revert T-L6 field. Same as ruling item 6; must not block MSGDESK.
+TESTS_WRONG — review item 1 (LD-325(b)) moves the 10 partner ticket ids into partners pendingOperations; 16 older api tests pin them as T01 stubs.
+Implementation applied: services/api/src/modules/partners/index.ts PENDING_OPERATIONS += createPartnerTicket, listPartnerTickets, getPartnerTicket, replyPartnerTicket, closePartnerTicket, reopenPartnerTicket, listMyPartnerTickets, createMyPartnerTicket, getMyPartnerTicket, replyMyPartnerTicket (pending ids get no stub; core mounts 501 operation_pending). tsc clean; msgdesk1.pending + core pending-operations 73/73 green.
+Red (all pin the old stub layout, contradict LD-325(b) "every T0C task adds its new operationIds to the pending list"):
+1. partners/__tests__/boot.test.ts "binds every operationId ... and nothing else" — expects manifest.handlers == all 78 spec ids; must be spec ids minus pendingOperations. Same file, the dev-501 and staging-common.internal stub tests iterate the ticket ids (m.handlers[op] is not a function); they must skip pending ids.
+2. partners/__tests__/probes/st4-actor-type.test.ts — counts 78 ops from manifest.handlers (gets 68), the AB5/AB6 shared-code check and the 10 UNOWNED_STUBS cases read ticket ids from handlers; they must read the spec (or handlers ∪ pending) and assert the ticket ids answer 501 operation_pending instead of stub.
+3. partners/__tests__/contract/sales1.pending.test.ts — "only the sales operations may be pending in partners" is the exact-pin pattern of LD-349; must allow ids whose x-permission is partners.ticket.read / partners.ticket.manage (read from the contract).
+Review item 2 (msgdesk1.pending.test.ts:29 → `expect(pending, id).toContain(id)`) is a test item for the tester; it passes now.

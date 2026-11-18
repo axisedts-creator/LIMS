@@ -325,6 +325,7 @@ paths:
                         reason_code: first_print
                         printed_by_display: Synthetic printed_by_display
                         printed_at: 2026-11-05T04:15:00.000Z
+                        style: full
                     page:
                       limit: 50
         "400":
@@ -345,7 +346,7 @@ paths:
       tags:
         - billing
       summary: Print an invoice
-      description: Access log invoice.print.
+      description: "Access log invoice.print. Optional style (T0C-PRINTCFG-1, LD-316): full (default) prints with the invoice print profile; plain_bw prints the plain black and white tax bill (PAN bill): black on white only, no logo, no colour, no shading, no header and no footer text; the body keeps the lines a tax bill needs (lab name, address, seller PAN, bill number and date). The print record stores the style used."
       security:
         - bearerJwt: []
       x-permission: billing.invoice.reprint
@@ -377,6 +378,10 @@ paths:
               synthetic:
                 value:
                   reason_code: first_print
+              plain_bw:
+                value:
+                  reason_code: reprint
+                  style: plain_bw
       responses:
         "200":
           description: Success.
@@ -388,6 +393,7 @@ paths:
                 synthetic:
                   value:
                     print_no: 1
+                    style: full
                     copy_mark: Copy of Original
                     document:
                       id: 0193c4a0-0000-7000-8000-000000000515
@@ -1037,7 +1043,7 @@ paths:
       tags:
         - billing
       summary: Print a credit note
-      description: Access log credit_note.print.
+      description: "Access log credit_note.print. Optional body with style (T0C-PRINTCFG-1, LD-316): full (default) or plain_bw, the plain black and white bill (no logo, no colour, no shading, no header and no footer text; lab name, address, seller PAN, bill number and date stay). The print record stores the style used."
       security:
         - bearerJwt: []
       x-permission: billing.invoice.reprint
@@ -1059,6 +1065,26 @@ paths:
           schema:
             $ref: _common.yaml#/components/schemas/Uuid
         - $ref: _common.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                style:
+                  type: string
+                  maxLength: 8
+                  enum:
+                    - full
+                    - plain_bw
+                  default: full
+                  description: "Print style (LD-316). full: as the credit note print profile says. plain_bw: black and white only, no logo, no colour, no shading, no header and no footer text; lab name, address, seller PAN, bill number and date stay."
+            examples:
+              plain_bw:
+                value:
+                  style: plain_bw
       responses:
         "200":
           description: Success.
@@ -1070,6 +1096,7 @@ paths:
                 synthetic:
                   value:
                     print_no: 1
+                    style: full
                     copy_mark: Copy of Original
                     document:
                       id: 0193c4a0-0000-7000-8000-000000000553
@@ -5666,6 +5693,112 @@ paths:
           $ref: _common.yaml#/components/responses/TooManyRequests
         "500":
           $ref: _common.yaml#/components/responses/Internal
+  /v1/billing/account-summaries:
+    get:
+      operationId: listAccountSummaries
+      tags:
+        - billing
+      summary: List account summaries of all parties
+      description: "LD-358 (founder blanket authority LD-310; LD-325: pending until its handler exists). Account summary list of ElabAssist View Account: every party with credit limit, outstanding balance and blocked flag, searchable by party name. Read only."
+      security:
+        - bearerJwt: []
+      x-permission: billing.account.read
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.invalid_cursor
+      parameters:
+        - name: party_kind
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 12
+            enum:
+              - credit_party
+              - franchise
+              - user_pocket
+              - laboratory
+        - name: q
+          in: query
+          required: false
+          description: Search of the party name.
+          schema:
+            type: string
+            maxLength: 80
+        - name: blocked_only
+          in: query
+          required: false
+          description: When true, only blocked parties.
+          schema:
+            type: boolean
+        - name: outstanding_only
+          in: query
+          required: false
+          description: When true, only parties with outstanding_paisa above 0.
+          schema:
+            type: boolean
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 512
+            pattern: ^[A-Za-z0-9_-]+$
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 50
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountSummaryRowPage"
+              examples:
+                synthetic:
+                  value:
+                    data:
+                      - party_kind: credit_party
+                        party_id: 0193c4a0-0000-7000-8000-00000acc0101
+                        party_name: Synthetic Credit Party A
+                        credit_limit_paisa: 10000000
+                        outstanding_paisa: 50000
+                        outstanding_side: debit
+                        is_blocked: false
+                      - party_kind: franchise
+                        party_id: 0193c4a0-0000-7000-8000-00000acc0102
+                        party_name: Synthetic Franchise B
+                        credit_limit_paisa: 0
+                        outstanding_paisa: 0
+                        outstanding_side: credit
+                        is_blocked: false
+                    page:
+                      limit: 50
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
   /v1/billing/expenses:
     post:
       operationId: createExpense
@@ -7153,6 +7286,13 @@ components:
           maxLength: 200
         printed_at:
           $ref: _common.yaml#/components/schemas/IsoUtc
+        style:
+          type: string
+          maxLength: 8
+          enum:
+            - full
+            - plain_bw
+          description: The print style used (T0C-PRINTCFG-1, LD-316); rows printed before it read full.
     InvoicePrintPage:
       type: object
       additionalProperties: false
@@ -7179,6 +7319,14 @@ components:
             - reprint
             - printer_fault
             - customer_copy
+        style:
+          type: string
+          maxLength: 8
+          enum:
+            - full
+            - plain_bw
+          default: full
+          description: "Print style (T0C-PRINTCFG-1, LD-316). full (default): as the invoice print profile says. plain_bw: the plain black and white tax bill (PAN bill), black on white only, no logo, no colour, no shading, no header and no footer text; the body keeps the lines a tax bill needs (lab name, address, seller PAN, bill number and date)."
     InvoicePrint:
       type: object
       additionalProperties: false
@@ -7190,6 +7338,13 @@ components:
           type: integer
           minimum: 1
           maximum: 2147483647
+        style:
+          type: string
+          maxLength: 8
+          enum:
+            - full
+            - plain_bw
+          description: The print style used (stored on the print record); always returned once T0B-PRINTCFG-1 lands.
         copy_mark:
           type: string
           maxLength: 64
@@ -7524,6 +7679,13 @@ components:
           type: integer
           minimum: 1
           maximum: 2147483647
+        style:
+          type: string
+          maxLength: 8
+          enum:
+            - full
+            - plain_bw
+          description: The print style used (stored on the print record); always returned once T0B-PRINTCFG-1 lands.
         copy_mark:
           type: string
           maxLength: 64
@@ -9580,6 +9742,64 @@ components:
             - debit
         is_blocked:
           type: boolean
+    AccountSummaryRow:
+      type: object
+      additionalProperties: false
+      description: "LD-358. One row of the account summary list (ElabAssist View Account): every AccountSummary field plus the party name. No centre_id: AccountSummary carries no centre."
+      required:
+        - party_kind
+        - party_id
+        - party_name
+        - credit_limit_paisa
+        - outstanding_paisa
+        - outstanding_side
+        - is_blocked
+      properties:
+        party_kind:
+          type: string
+          maxLength: 12
+          enum:
+            - credit_party
+            - franchise
+            - user_pocket
+            - laboratory
+        party_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        party_name:
+          type: string
+          maxLength: 200
+        credit_limit_paisa:
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 9007199254740991
+        outstanding_paisa:
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 9007199254740991
+        outstanding_side:
+          type: string
+          maxLength: 6
+          enum:
+            - credit
+            - debit
+        is_blocked:
+          type: boolean
+    AccountSummaryRowPage:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - page
+      properties:
+        data:
+          type: array
+          maxItems: 200
+          items:
+            $ref: "#/components/schemas/AccountSummaryRow"
+        page:
+          $ref: _common.yaml#/components/schemas/PageInfo
     DailyCollectionRow:
       type: object
       additionalProperties: false

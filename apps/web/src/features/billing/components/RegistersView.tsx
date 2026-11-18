@@ -2,12 +2,14 @@
 // 04-UI-UX §8.7 Registers (statutory): always B.S. AND A.D. date columns. Tabs: Sales register, Cancelled invoices, Credit notes.
 // Export buttons (Excel, XML, PDF) only with billing.data.export.
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
 import { FilterBar } from '@lims/ui/components/FilterBar';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { Tabs } from '@lims/ui/components/Tabs';
 import type { CancelledInvoiceRow, CreditNoteRegisterRow, ExportKind, SalesRegisterRow } from '../server/types';
-import { Ad, InvoiceStatus, hasPerm, humanize, npr } from './format';
+import { Ad, InvoiceStatus, amount, hasPerm, humanize } from './format';
+import type { ListFailure } from './listRead';
 import { ExportButtons } from './ExportButtons';
 import { useUrlFilters } from './useUrlFilters';
 
@@ -18,34 +20,36 @@ const TABS: readonly { id: Tab; label: string; kind: ExportKind }[] = [
   { id: 'credit_notes', label: 'Credit notes', kind: 'credit_notes' },
 ];
 const EMPTY = { title: 'No entries for the selected filters.' };
+/** T0D-UILIST-2: the Sales register header row NotAvailable draws while a register read is pending. */
+export const REGISTER_COLUMNS = ['SN', 'B.S. date', 'A.D. date', 'Invoice no', 'Buyer', 'PAN', 'Total (NPR)', 'Exempt (NPR)', 'Taxable (NPR)', 'VAT (NPR)', 'Other tax (NPR)', 'Status'] as const;
 
 const sales: ColumnDef<SalesRegisterRow>[] = [
-  { id: 'sn', header: 'SN', align: 'end', cell: (r) => String(r.sn) },
+  { id: 'sn', header: 'SN', numeric: true, cell: (r) => String(r.sn) },
   { id: 'bs', header: 'B.S. date', cell: (r) => r.invoice_date_bs },
   { id: 'ad', header: 'A.D. date', cell: (r) => <Ad value={r.invoice_date_ad} /> },
   { id: 'no', header: 'Invoice no', isRowHeader: true, cell: (r) => r.invoice_no },
   { id: 'buyer', header: 'Buyer', cell: (r) => r.buyer_name ?? '—' },
   { id: 'pan', header: 'PAN', cell: (r) => r.buyer_pan ?? '—' },
-  { id: 'total', header: 'Total', align: 'end', cell: (r) => npr(r.total) },
-  { id: 'exempt', header: 'Exempt', align: 'end', cell: (r) => npr(r.exempt) },
-  { id: 'taxable', header: 'Taxable', align: 'end', cell: (r) => npr(r.taxable) },
-  { id: 'vat', header: 'VAT', align: 'end', cell: (r) => npr(r.vat) },
-  { id: 'other', header: 'Other tax', align: 'end', cell: (r) => npr(r.other_tax) },
+  { id: 'total', header: 'Total (NPR)', numeric: true, cell: (r) => amount(r.total) },
+  { id: 'exempt', header: 'Exempt (NPR)', numeric: true, cell: (r) => amount(r.exempt) },
+  { id: 'taxable', header: 'Taxable (NPR)', numeric: true, cell: (r) => amount(r.taxable) },
+  { id: 'vat', header: 'VAT (NPR)', numeric: true, cell: (r) => amount(r.vat) },
+  { id: 'other', header: 'Other tax (NPR)', numeric: true, cell: (r) => amount(r.other_tax) },
   { id: 'status', header: 'Status', cell: (r) => <InvoiceStatus status={r.status} /> },
 ];
 const cancelledCols: ColumnDef<CancelledInvoiceRow>[] = [
-  { id: 'sn', header: 'SN', align: 'end', cell: (r) => String(r.sn) },
+  { id: 'sn', header: 'SN', numeric: true, cell: (r) => String(r.sn) },
   { id: 'bs', header: 'B.S. date', cell: (r) => r.cancelled_date_bs },
   { id: 'ad', header: 'A.D. date', cell: (r) => <Ad value={r.cancelled_date_ad} /> },
   { id: 'no', header: 'Invoice no', isRowHeader: true, cell: (r) => r.invoice_no },
   { id: 'cn', header: 'Credit-note no', cell: (r) => r.credit_note_no },
   { id: 'buyer', header: 'Buyer', cell: (r) => r.buyer_name ?? '—' },
   { id: 'pan', header: 'PAN', cell: (r) => r.buyer_pan ?? '—' },
-  { id: 'total', header: 'Total', align: 'end', cell: (r) => npr(r.total) },
+  { id: 'total', header: 'Total (NPR)', numeric: true, cell: (r) => amount(r.total) },
   { id: 'reason', header: 'Reason', cell: (r) => humanize(r.reason_code) },
 ];
 const creditCols: ColumnDef<CreditNoteRegisterRow>[] = [
-  { id: 'sn', header: 'SN', align: 'end', cell: (r) => String(r.sn) },
+  { id: 'sn', header: 'SN', numeric: true, cell: (r) => String(r.sn) },
   { id: 'bs', header: 'B.S. date', cell: (r) => r.credit_note_date_bs },
   { id: 'ad', header: 'A.D. date', cell: (r) => <Ad value={r.credit_note_date_ad} /> },
   { id: 'cn', header: 'Credit-note no', isRowHeader: true, cell: (r) => r.credit_note_no },
@@ -54,14 +58,17 @@ const creditCols: ColumnDef<CreditNoteRegisterRow>[] = [
   { id: 'buyer', header: 'Buyer', cell: (r) => r.buyer_name ?? '—' },
   { id: 'pan', header: 'PAN', cell: (r) => r.buyer_pan ?? '—' },
   { id: 'reason', header: 'Reason', cell: (r) => humanize(r.reason_code) },
-  { id: 'exempt', header: 'Exempt', align: 'end', cell: (r) => npr(r.exempt) },
-  { id: 'taxable', header: 'Taxable', align: 'end', cell: (r) => npr(r.taxable) },
-  { id: 'vat', header: 'VAT', align: 'end', cell: (r) => npr(r.vat) },
-  { id: 'other', header: 'Other tax', align: 'end', cell: (r) => npr(r.other_tax) },
-  { id: 'net', header: 'Net', align: 'end', cell: (r) => npr(r.net) },
+  { id: 'exempt', header: 'Exempt (NPR)', numeric: true, cell: (r) => amount(r.exempt) },
+  { id: 'taxable', header: 'Taxable (NPR)', numeric: true, cell: (r) => amount(r.taxable) },
+  { id: 'vat', header: 'VAT (NPR)', numeric: true, cell: (r) => amount(r.vat) },
+  { id: 'other', header: 'Other tax (NPR)', numeric: true, cell: (r) => amount(r.other_tax) },
+  { id: 'net', header: 'Net (NPR)', numeric: true, cell: (r) => amount(r.net) },
 ];
 
-export function RegistersView({ sales: salesRows, cancelled, creditNotes, permissions }: { sales: readonly SalesRegisterRow[]; cancelled: readonly CancelledInvoiceRow[]; creditNotes: readonly CreditNoteRegisterRow[]; permissions: readonly string[] }) {
+export function RegistersView({ sales: salesRows, cancelled, creditNotes, permissions, failure }: { sales: readonly SalesRegisterRow[]; cancelled: readonly CancelledInvoiceRow[]; creditNotes: readonly CreditNoteRegisterRow[]; permissions: readonly string[]; failure?: ListFailure }) {
+  const router = useRouter();
+  // T0D-UILIST-2 (LD-353 rule 6): a failed read keeps the title, the filters and the header row; the ErrorState sits in the table body
+  const err = failure ? { error: { title: 'Registers could not be loaded', ...failure, onRetry: () => router.refresh() } } : {};
   const [tab, setTab] = useState<Tab>('sales');
   const f = useUrlFilters(['fiscal_year_bs', 'date_range']);
   const range = Array.isArray(f.value['date_range']) ? (f.value['date_range'] as string[]) : [];
@@ -82,9 +89,9 @@ export function RegistersView({ sales: salesRows, cancelled, creditNotes, permis
         onReset={f.onReset}
       />
       <Tabs items={TABS.map((t) => ({ id: t.id, label: t.label }))} selectedId={tab} onChange={(id) => setTab(id as Tab)} aria-label="Registers">
-        {tab === 'sales' ? <DataTable caption="Sales register" columns={sales} rows={salesRows} getRowId={(r) => String(r.sn) + r.invoice_no} emptyState={EMPTY} /> : null}
-        {tab === 'cancelled' ? <DataTable caption="Cancelled invoices register" columns={cancelledCols} rows={cancelled} getRowId={(r) => String(r.sn) + r.invoice_no} emptyState={EMPTY} /> : null}
-        {tab === 'credit_notes' ? <DataTable caption="Credit notes register" columns={creditCols} rows={creditNotes} getRowId={(r) => String(r.sn) + r.credit_note_no} emptyState={EMPTY} /> : null}
+        {tab === 'sales' ? <DataTable caption="Sales register" cellTitle {...err} columns={sales} rows={salesRows} getRowId={(r) => String(r.sn) + r.invoice_no} emptyState={EMPTY} /> : null}
+        {tab === 'cancelled' ? <DataTable caption="Cancelled invoices register" cellTitle {...err} columns={cancelledCols} rows={cancelled} getRowId={(r) => String(r.sn) + r.invoice_no} emptyState={EMPTY} /> : null}
+        {tab === 'credit_notes' ? <DataTable caption="Credit notes register" cellTitle {...err} columns={creditCols} rows={creditNotes} getRowId={(r) => String(r.sn) + r.credit_note_no} emptyState={EMPTY} /> : null}
       </Tabs>
     </section>
   );

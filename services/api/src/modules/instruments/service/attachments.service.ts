@@ -8,6 +8,7 @@ import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js
 import { LimsError } from '../../../core/errors.js';
 import { assertTenantPath } from '../../../core/storage/index.js';
 import { contentDisposition } from '../../../core/storage/download.js';
+import type { RequestHeaders } from '../../../core/storage/stream.js';
 import type { IncomingFile } from '../../../core/uploads/index.js';
 import { capturedAt as correctedTime } from '../domain/instrumentTime.js';
 import { getDriver } from '../drivers/registry.js';
@@ -137,7 +138,7 @@ export function createAttachmentsService(deps: AttachmentsDeps = {}) {
     },
 
     /** E37 — streams the stored object; only a `clean` attachment is served (core download gate), every call is access-logged. */
-    async downloadInstrumentAttachment(ctx: AttachmentsCtx, input: { instrumentMessageId?: unknown }): Promise<any> {
+    async downloadInstrumentAttachment(ctx: AttachmentsCtx, input: { instrumentMessageId?: unknown; requestHeaders?: RequestHeaders }): Promise<any> {
       if (typeof ctx?.tenantId !== 'string' || !isUuid(ctx.tenantId) || typeof ctx.actor?.id !== 'string' || !ctx.tx) throw new LimsError('auth.unauthenticated');
       const assertRole = ctx.ports?.IdentityPort?.assertRole;
       if (typeof assertRole !== 'function' || !ctx.download) throw new LimsError('common.internal');       // fail closed
@@ -147,7 +148,9 @@ export function createAttachmentsService(deps: AttachmentsDeps = {}) {
       if (!a) throw new LimsError('common.not_found');                                                      // none, RLS-hidden or another tenant: 404
       await assertRole.call(ctx.ports!.IdentityPort, ctx, { permission: READ_PERMISSION, centreId: a['centre_id'] });
       assertTenantPath(ctx.tenantId, a['object_path']);                                                     // a corrupt row never reads outside the caller tenant
+      // T0B-FILESTREAM-1 (LD-312): Range / If-None-Match / If-Range go to the core stream; default no-store kept.
       return ctx.download.stream({ bucket: a['bucket'], objectPath: a['object_path'], filename: fitName(String(a['original_file_name'])), contentType: a['mime_type'], scanState: a['scan_state'],
+        ...(input.requestHeaders ? { requestHeaders: input.requestHeaders } : {}),
         access: { action: 'instrument_message.attachment_view', entityType: 'instrument_message', entityId: id, centreId: a['centre_id'], outcome: 'allowed' } });
     },
   };

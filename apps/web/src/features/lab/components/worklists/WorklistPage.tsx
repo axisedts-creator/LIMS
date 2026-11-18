@@ -6,14 +6,14 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@lims/ui/components/Button';
 import { Card } from '@lims/ui/components/Card';
-import { EmptyRow, PlaceholderRows } from '@lims/ui/components/DataTable';
 import { Dialog } from '@lims/ui/components/Dialog';
-import { EmptyState } from '@lims/ui/components/EmptyState';
 import { Grid } from '@lims/ui/components/Grid';
+import { PageHeader } from '@lims/ui/components/PageHeader';
 import { TextField } from '@lims/ui/components/TextField';
+import { t } from '@/core/i18n/messages';
 import { createWorksheetAction, listInstrumentsAction, listWorklistAction } from '../../server/worklist.actions';
 import type { ActionResult, InstrumentOption, WorklistItem } from '../../server/types';
-import { Failure, NO_ACCESS, hhmm, statusLabel, utc } from '../shared';
+import { ListTable, NO_ACCESS, hhmm, statusLabel, utc } from '../shared';
 
 type Load = { s: 'loading' } | { s: 'ok'; rows: WorklistItem[] } | { s: 'fail'; r: Extract<ActionResult<unknown>, { ok: false }> };
 
@@ -52,8 +52,10 @@ export function WorklistPage({ departmentId, permissions }: { departmentId: stri
 
   return (
     <section aria-label="Worklist">
-      <h1>Worklist</h1>
-      <div className="lims-toolbar">
+      {/* T0D-UILIST-1 (LD-353 template 1, rule 8): title = the menu label in the PageHeader, the one primary action at right; filters in one filter row */}
+      <PageHeader title={t('lab.nav.worklists')} helpKey="lab.worklists"
+        {...(canManage ? { actions: <Button variant="primary" isDisabled={selected.size === 0} onPress={() => setCreating(true)}>Create worksheet</Button> } : {})} />
+      <div role="search" className="lims-filter-bar">
         <label className="lims-field">Priority
           <select className="lims-input" value={priority} onChange={(e) => setPriority(e.target.value)}>
             <option value="">All</option><option value="urgent">★ Urgent</option><option value="routine">Routine</option>
@@ -67,22 +69,19 @@ export function WorklistPage({ departmentId, permissions }: { departmentId: stri
             </select>
           </label>
         ) : null}
-        {canManage ? <Button variant="primary" isDisabled={selected.size === 0} onPress={() => setCreating(true)}>Create worksheet</Button> : null}
       </div>
-      {load.s === 'fail' ? <Failure r={load.r} onRetry={retry} /> : null}
-      {/* T0D-EMPTYTBL-1 (LD-310): once loaded the table is always drawn; an empty list shows its message as a body row. Loading / failure unchanged. */}
-      {load.s === 'ok' ? (
+      {/* T0D-EMPTYTBL-1 (LD-310) + T0D-UILIST-1 (LD-353 rules 5, 6): the table is always drawn once loaded; empty, failure and not-available sit in its body. */}
+      {load.s !== 'loading' ? (
         <Grid columns={2}>
         <div>
-        <table className="lims-table" aria-label="Worklist">
-          <thead><tr>
+        <ListTable caption="Worklist" cols={canManage ? 11 : 10} empty="No pending tests for this department."
+          fail={load.s === 'fail' ? load.r : undefined} onRetry={retry}
+          head={<>
             {canManage ? <th scope="col"><span className="lims-visually-hidden">Select</span></th> : null}
             <th scope="col">Barcode</th><th scope="col">Reg no</th><th scope="col">Patient</th><th scope="col">Test</th><th scope="col">Priority</th>
             <th scope="col">Status</th><th scope="col">Received</th><th scope="col">Age since received</th><th scope="col">TAT target</th><th scope="col">Result entry</th>
-          </tr></thead>
-          <tbody>
-            {rows.length === 0 ? <EmptyRow colSpan={canManage ? 11 : 10}><EmptyState title="No pending tests for this department." /></EmptyRow> : null}
-            {rows.map((r) => (
+          </>}
+          rows={rows.map((r) => (
               <tr key={r.order_test_id}>
                 {canManage ? <td><input type="checkbox" aria-label={`Select ${r.barcode ?? r.registration_no} ${r.test_code}`} checked={selected.has(r.order_test_id)} onChange={() => toggle(r.order_test_id)} /></td> : null}
                 <td>{r.barcode ?? '—'}</td>
@@ -100,10 +99,7 @@ export function WorklistPage({ departmentId, permissions }: { departmentId: stri
                   </Button>
                 </td>
               </tr>
-            ))}
-          </tbody>
-          {rows.length === 0 ? <PlaceholderRows colSpan={canManage ? 11 : 10} /> : null}
-        </table>
+            ))} />
         </div>
         <aside aria-label="Result entry" ref={panel} onKeyDown={(e) => { if (e.key === 'Escape') { e.stopPropagation(); closePanel(); } }}>
           <Card title="Result entry">

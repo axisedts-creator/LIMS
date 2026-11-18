@@ -2,8 +2,12 @@ import 'server-only';
 // C16.T-Q4 page loaders for W6 (queue/page.tsx) and W7 (queue/setup/page.tsx). Order: permission → centre → reads. Missing permission → notFound().
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { EmptyState } from '@lims/ui/components/EmptyState';
+import type { ReactNode } from 'react';
 import { QueueConsoleHost, QueueSetupHost } from '../components/QueueHosts';
+import { PageLoadError } from '../components/PageLoadError';
 import * as api from './queue.server';
+import { t } from '@/core/i18n/messages';
+import { pendingOr } from '@/core/shell/NotAvailable';
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
@@ -14,14 +18,31 @@ async function labName() {
   return (await getShellSession())?.actor.tenantCode ?? '';
 }
 
+/**
+ * T0D-UILIST-3 (LD-353 rule 6): pendingOr (501 -> NotAvailable) plus: any other API failure (an error carrying an HTTP status) renders the
+ * ErrorState inside the page with the title, the request reference and Retry. Errors without a status (notFound, redirect, bugs) still throw.
+ */
+export function pageOr(title: string, columns: readonly string[] | undefined, render: () => Promise<ReactNode>): Promise<ReactNode> {
+  return pendingOr(title, columns, render).catch((e: unknown) => {
+    const x = e as { status?: unknown; problem?: { request_id?: string } } | null;
+    if (typeof x?.status !== 'number') throw e;
+    return <PageLoadError title={title} requestId={x.problem?.request_id} />;
+  });
+}
+
+// T0D-UNSLOP-1 / LD-353 rule 6: a read that answers 501 operation_pending shows NotAvailable with the page title, never error.tsx.
 export async function consolePage(searchParams: SearchParams) {
   await api.requirePerm(api.OPERATE); // engagement.queue.operate
+  return pageOr(t('engagement.nav.queue'), undefined, () => consoleBody(searchParams));
+}
+
+async function consoleBody(searchParams: SearchParams) {
   const centreId = await api.resolveCentre(first((await searchParams)['centre_id']));
   if (!centreId) return <EmptyState title="No centre is available for this account." />;
   const [queues, counters, tokens, lab] = await Promise.all([api.listQueues(centreId), api.listCounters(centreId), api.listTokens(centreId), labName()]);
   return (
     <>
-      <PageHeader title="Queue console" helpKey="engagement.queue" />
+      <PageHeader title={t('engagement.nav.queue')} helpKey="engagement.queue" />
       <QueueConsoleHost labName={lab} centreId={centreId} queues={queues} counters={counters} tokens={tokens} />
     </>
   );
@@ -29,6 +50,10 @@ export async function consolePage(searchParams: SearchParams) {
 
 export async function setupPage(searchParams: SearchParams) {
   await api.requirePerm(api.MANAGE); // engagement.queue.manage
+  return pendingOr('Queue setup', undefined, () => setupBody(searchParams));
+}
+
+async function setupBody(searchParams: SearchParams) {
   const centreId = await api.resolveCentre(first((await searchParams)['centre_id']));
   if (!centreId) return <EmptyState title="No centre is available for this account." />;
   const [queues, counters, displays] = await Promise.all([api.listQueueDefinitions(centreId), api.listCounterDefinitions(centreId), api.listDisplays(centreId)]);

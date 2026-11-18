@@ -35,10 +35,10 @@ describe('route files /homecollection/visits/[visit_id] (04-UI-UX §2.2, §2.6)'
     expect(read(join(route, 'page.tsx'))).not.toMatch(/['"]use client['"]/);
   });
   it('loading.tsx uses LoadingSkeleton variant=detail', () => { expect(read(join(route, 'loading.tsx'))).toMatch(/LoadingSkeleton[^>]*variant=["'{]+detail/); });
-  it('a PageHeader passes helpKey homecollection.visit and the breadcrumb "Home visits"', () => {
+  it('a PageHeader passes helpKey homecollection.visit and no in-page "Home visits" breadcrumb (one trail, in the top bar; T0D-UNSLOP-1 D)', () => {
     const all = [...code(route), VIEW].filter(existsSync).map(read).join('\n');
     expect(all).toMatch(/helpKey=["'{]*homecollection\.visit\b/);
-    expect(all).toMatch(/Home visits/);
+    expect(all).not.toMatch(/breadcrumbs=\{\s*\[[^\]]*Home visits/);
     expect(all).toMatch(/PageHeader/);
   });
   it('page checks homecollection.visit.read before any API call (notFound), reads the session via getShellSession and never touches a token', () => {

@@ -42,6 +42,9 @@ INSERT INTO catalog.exports (id, tenant_id, kind, created_by, updated_by) VALUES
 INSERT INTO catalog.files (id, tenant_id, purpose, file_name, content_type, byte_size, sha256, content, expires_at, created_by) VALUES
   (pg_temp.id('f1'), pg_temp.id('01'), 'import_upload', 'probe-1', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 1, '1111111111111111111111111111111111111111111111111111111111111111', decode(repeat('02', 32), 'hex'), now(), pg_temp.id('99')),
   (pg_temp.id('f3'), pg_temp.id('02'), 'import_upload', 'probe-3', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 3, '3333333333333333333333333333333333333333333333333333333333333333', decode(repeat('04', 32), 'hex'), now(), pg_temp.id('99')) ON CONFLICT DO NOTHING;
+INSERT INTO catalog.import_batch (id, tenant_id, created_by, file_name, file_sha256, template_version, status, payload) VALUES
+  (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('99'), 'probe-1', '1111111111111111111111111111111111111111111111111111111111111111', 'probe-1', 'validated', '{}'),
+  (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('99'), 'probe-3', '3333333333333333333333333333333333333333333333333333333333333333', 'probe-3', 'validated', '{}') ON CONFLICT DO NOTHING;
 INSERT INTO catalog.methods (id, tenant_id, code, name, created_by, updated_by) VALUES
   (pg_temp.id('f1'), pg_temp.id('01'), 'BC', 'probe-1', pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('f3'), pg_temp.id('02'), 'DE', 'probe-3', pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;

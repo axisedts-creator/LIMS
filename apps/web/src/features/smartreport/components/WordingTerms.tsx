@@ -14,6 +14,7 @@ import { TextField } from '@lims/ui/components/TextField';
 import { useToast } from '@lims/ui/components/Toast';
 import { addTermAction, deactivateTermAction } from '../server/actions';
 import { TERM_LANG_LABEL, newKey, type Term } from '../library';
+import { t } from '@/core/i18n/messages';
 
 const EMPTY = 'No lab-specific terms. Global terms always apply.';
 // [CONV] inputs accept more than the limits so an over-long paste is reported, not silently cut.
@@ -57,7 +58,7 @@ export function WordingTerms({ rows }: { rows: Term[] }) {
 
   return (
     <>
-      <PageHeader title="Wording terms" helpKey="smartreport.wording" actions={<Button variant="primary" onPress={() => setAdding(true)}>Add term</Button>} />
+      <PageHeader title={t('smartreport.nav.wording')} helpKey="smartreport.wording" actions={<Button variant="primary" onPress={() => setAdding(true)}>Add term</Button>} />
       {alert ? <div role="alert"><Banner tone="danger" title={alert} /></div> : null}
       {hasTenant ? null : <p>{EMPTY}</p>}
       {rows.length ? (

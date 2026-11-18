@@ -72,7 +72,8 @@ export const Notice = ({ text }: { text: string }) => (
 );
 /** Inside a Dialog: one alert line (client validation and server failures). */
 export const DialogError = ({ text }: { text?: string | undefined }) => (text ? <p role="alert" className="lims-error">{text}</p> : null);
-export function LoadFailed({ title = 'This list could not be loaded.' }: { title?: string }) {
+export const LOAD_FAILED = 'This list could not be loaded.';
+export function LoadFailed({ title = LOAD_FAILED }: { title?: string }) {
   const router = useRouter();
   return (
     <div role="alert">

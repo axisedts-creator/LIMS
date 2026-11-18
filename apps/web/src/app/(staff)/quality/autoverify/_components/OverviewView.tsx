@@ -16,6 +16,7 @@ import { createVersionAction } from '../_lib/actions';
 import { DASH, DECISIONS_HREF, statusOf, versionHref } from '../_lib/format';
 import type { RuleSet, Settings, VersionSummary } from '../_lib/types';
 import { NativeSelect, NoticeBanner, useWrite } from './shared';
+import { t } from '@/core/i18n/messages';
 
 type Iso = DateTextProps['value'];
 const rules = (n: number) => `${n} ${n === 1 ? 'rule' : 'rules'}`;
@@ -41,7 +42,7 @@ export function OverviewView({ ruleSet, settings, canManage }: { ruleSet: RuleSe
   return (
     <>
       <PageHeader
-        title="Auto-verification"
+        title={t('quality.nav.autoverify')}
         helpKey="quality.autoverify"
         actions={<>
           <a className="lims-btn lims-btn-secondary" href={DECISIONS_HREF}>Decisions</a>

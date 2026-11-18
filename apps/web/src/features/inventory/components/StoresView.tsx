@@ -6,9 +6,11 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@lims/ui/components/Button';
 import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
 import { Drawer } from '@lims/ui/components/Drawer';
+import { FilterBar } from '@lims/ui/components/FilterBar';
 import { Icon } from '@lims/ui/components/Icon';
 import { Inline } from '@lims/ui/components/Inline';
 import { PageHeader } from '@lims/ui/components/PageHeader';
+import { Stack } from '@lims/ui/components/Stack';
 import { StatusChip } from '@lims/ui/components/StatusChip';
 import { Tabs } from '@lims/ui/components/Tabs';
 import { useToast } from '@lims/ui/components/Toast';
@@ -17,7 +19,7 @@ import { label, STORE_KINDS } from './codes';
 import { AnalyserBindings } from './AnalyserBindings';
 import { ReorderSettings } from './ReorderSettings';
 import { StoreForm } from './StoreForm';
-import { ActiveChip } from './shared';
+import { ACTIVE_OPTIONS, ActiveChip, contains, useLocalFilters } from './shared';
 
 export interface StoresViewProps {
   stores: readonly Store[];
@@ -50,6 +52,12 @@ export function StoresView(p: StoresViewProps) {
     },
     { id: 'active', header: 'Active', cell: (s) => <ActiveChip active={s.is_active} /> },
   ];
+  // T0D-UILIST-3 (LD-353 template 1): one FilterBar over the loaded stores.
+  const filters = useLocalFilters(p.stores, {
+    q: (s, v) => contains(s.store_code, v) || contains(s.name, v),
+    kind: (s, v) => s.store_kind === v,
+    active: (s, v) => String(s.is_active) === v,
+  });
   const close = () => {
     setOpen(false);
     setCreating(false);
@@ -70,14 +78,27 @@ export function StoresView(p: StoresViewProps) {
       />
       <Tabs items={[{ id: 'stores', label: 'Stores' }, { id: 'analysers', label: 'Analysers' }]} selectedId={tab} onChange={setTab} aria-label="Store sections">
         {tab === 'stores' ? (
-          <DataTable
-            caption="Stores"
-            columns={columns}
-            rows={p.stores}
-            getRowId={(s) => s.id}
-            emptyState={{ title: 'No stores yet.' }}
-            onRowAction={(s) => router.push(`/inventory/stores?store=${s.id}`)}
-          />
+          <Stack>
+            <FilterBar
+              filters={[
+                { id: 'q', label: 'Search code or name', kind: 'text', maxLength: 60 },
+                { id: 'kind', label: 'Kind', kind: 'select', options: STORE_KINDS },
+                { id: 'active', label: 'Status', kind: 'select', options: ACTIVE_OPTIONS },
+              ]}
+              value={filters.value}
+              onChange={filters.onChange}
+              onReset={filters.onReset}
+            />
+            <DataTable
+              caption="Stores"
+              columns={columns}
+              rows={filters.shown}
+              getRowId={(s) => s.id}
+              cellTitle
+              emptyState={{ title: 'No stores yet.' }}
+              onRowAction={(s) => router.push(`/inventory/stores?store=${s.id}`)}
+            />
+          </Stack>
         ) : (
           <AnalyserBindings bindings={p.bindings} instruments={p.instruments} stores={p.stores} canManage={p.canManage} />
         )}

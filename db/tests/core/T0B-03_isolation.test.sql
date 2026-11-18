@@ -105,7 +105,14 @@ SELECT is(pg_temp.n(pg_temp.uB(), format('SELECT 1 FROM %s WHERE %I = %L', t, tc
 SELECT is(pg_temp.n(pg_temp.uA(), $$SELECT 1 FROM audit.audit_log WHERE tenant_id = pg_temp.id('02')$$), 'n=0', 'AC-0B-3.1: audit_log has no tenant B rows for tenant A claims');
 
 -- ================= AC-0B-3.2: INSERT of a tenant B row by tenant A claims -> 42501 =================
-SELECT is(left(pg_temp.w(pg_temp.uA(), ins_b), 6), 'E42501', 'AC-0B-3.2: tenant A claims inserting a tenant B row into ' || t || ' -> 42501') FROM probe;
+-- STALE fix T0B-GREEN-3 (migration 20261105000700, T0B-06 / CR-C2-003 / 08 R3): core.membership_centres has a BEFORE INSERT trigger app.tg_scope_user_only (invoker rights) that runs
+-- BEFORE the RLS WITH CHECK; under tenant A claims it cannot see tenant B's membership, so it refuses the row first with 23514 scope_user_only. The row is still refused;
+-- the RLS 42501 half is proved separately below with that one trigger disabled inside this rolled-back transaction.
+SELECT is(left(pg_temp.w(pg_temp.uA(), ins_b), 6), CASE WHEN t = 'core.membership_centres' THEN 'E23514' ELSE 'E42501' END,
+  'AC-0B-3.2: tenant A claims inserting a tenant B row into ' || t || CASE WHEN t = 'core.membership_centres' THEN ' -> 23514 (scope_user_only trigger fires before RLS)' ELSE ' -> 42501' END) FROM probe;
+ALTER TABLE core.membership_centres DISABLE TRIGGER membership_centres__scope_user_only;
+SELECT is(left(pg_temp.w(pg_temp.uA(), ins_b), 6), 'E42501', 'AC-0B-3.2: tenant A claims inserting a tenant B row into core.membership_centres -> 42501 from the RLS WITH CHECK (scope trigger disabled)') FROM probe WHERE t = 'core.membership_centres';
+ALTER TABLE core.membership_centres ENABLE TRIGGER membership_centres__scope_user_only;
 SELECT is(left(pg_temp.w(pg_temp.uA(), format($$INSERT INTO audit.audit_log (id, tenant_id, schema_name, table_name, action, actor_type) VALUES (%L, %L, 'core', 'branches', 'INSERT', 'user')$$,
   pg_temp.id('b7'), pg_temp.id('01'))), 6), 'E42501', 'AC-0B-5.3 / 3.2: lims_api cannot INSERT into audit_log at all');
 

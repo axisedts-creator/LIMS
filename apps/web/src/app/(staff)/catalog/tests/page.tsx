@@ -5,6 +5,7 @@
 // no view = the Complete test list. ?new=1[&copy=<id>] opens the full Add Test form.
 import { t } from '@/core/i18n/messages';
 import { getShellSession } from '@/core/session/server';
+import { pendingOr } from '@/core/shell/NotAvailable';
 import { CatalogForbidden } from '@/features/catalog/components/CatalogForbidden';
 import { TestDetailsView, type DetailsParam } from '@/features/catalog/components/TestDetailsView';
 import { CategoriesView, PopularView, TestMgmtTabs, VIEWS, type View } from '@/features/catalog/components/TestMgmtViews';
@@ -13,6 +14,8 @@ import { getTest } from '@/features/catalog/server/getTest.server';
 import { listDepartments } from '@/features/catalog/server/listDepartments.server';
 import { listSpecimenTypes } from '@/features/catalog/server/listSpecimenTypes.server';
 import { listAllTests, testsWithSpecimen } from '@/features/catalog/server/listTests.server';
+import { PageError } from '@/features/catalog/components/PageError';
+import { failedRequestId } from '@/features/catalog/components/page-failed';
 import { orForbidden, orMissing } from '@/features/catalog/server/shared';
 import { allTestDetails, listTestCategories } from '@/features/catalog/server/testMgmt.server';
 
@@ -38,7 +41,17 @@ export default async function TestsPage({ searchParams }: { searchParams: Promis
   const asked = one(sp, 'view');
   const view: View = (VIEWS as readonly string[]).includes(asked) && asked !== 'list' ? (asked as View) : 'list';
 
-  const body = await (view === 'details' ? detailsView(sp, permissions) : view === 'categories' ? categoriesView(permissions) : view === 'popular' ? popularView(permissions) : listView(sp, permissions));
+  // T0D-UNSLOP-1 / LD-353 rule 6: 501 operation_pending keeps the title and the header row (NotAvailable), never error.tsx.
+  const heads = [t('catalog.tests.col_code'), t('catalog.tests.col_name'), t('catalog.tests.col_department'), t('catalog.tests.col_status')];
+  // T0D-UILIST-3 / LD-353 rule 6: any other failure keeps the title (PageError with Retry) instead of the error page.
+  let body;
+  try {
+    body = await pendingOr(t('catalog.tests.title'), heads, () =>
+      view === 'details' ? detailsView(sp, permissions) : view === 'categories' ? categoriesView(permissions) : view === 'popular' ? popularView(permissions) : listView(sp, permissions),
+    );
+  } catch (e) {
+    body = <PageError title={t('catalog.tests.title')} requestId={failedRequestId(e)} />;
+  }
   if (body === null) return <CatalogForbidden />;
   return <TestMgmtTabs view={view}>{body}</TestMgmtTabs>;
 }

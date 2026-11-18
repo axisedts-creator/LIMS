@@ -7,9 +7,8 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@lims/ui/components/Button';
 import { DataTable } from '@lims/ui/components/DataTable';
-import { Inline } from '@lims/ui/components/Inline';
+import { FilterBar } from '@lims/ui/components/FilterBar';
 import { PageHeader } from '@lims/ui/components/PageHeader';
-import { Select } from '@lims/ui/components/Select';
 import type { Assay, Batch, BatchStatus } from '../../server/types';
 import { When } from '../common';
 import { BatchStatusChip, MfaDialog } from './batch-shared';
@@ -52,13 +51,18 @@ export function BatchesScreen({ batches, assays, canWork, status, assayCode, nex
       <PageHeader
         title="Molecular batches"
         helpKey="anatomic.batches"
-        breadcrumbs={[{ label: 'Pathology cases', href: '/anatomic' }, { label: 'Molecular batches' }]}
         actions={canWork ? <Button variant="primary" iconStart="plus" onPress={() => setCreating(true)}>New batch</Button> : null}
       />
-      <Inline align="end">
-        <Select label="Status" name="status_filter" options={STATUS_OPTIONS} value={status ?? ALL} onChange={(v) => go({ status: pick(v), assay_code: assayCode })} />
-        <Select label="Assay" name="assay_filter" options={assayOptions} value={assayCode ?? ALL} onChange={(v) => go({ status, assay_code: pick(v) })} />
-      </Inline>
+      {/* T0D-UILIST-1 (LD-353 template 1): Status and Assay are the fields of ONE FilterBar. */}
+      <FilterBar
+        filters={[
+          { id: 'status', label: 'Status', kind: 'select', options: STATUS_OPTIONS },
+          { id: 'assay', label: 'Assay', kind: 'select', options: assayOptions },
+        ]}
+        value={{ status: status ?? ALL, assay: assayCode ?? ALL }}
+        onChange={(v) => go({ status: pick(typeof v['status'] === 'string' ? v['status'] : ALL), assay_code: pick(typeof v['assay'] === 'string' ? v['assay'] : ALL) })}
+        onReset={() => go({})}
+      />
       {/* T0D-EMPTYTBL-2 (LD-310, LD-336): the table is always drawn; the empty message (and New batch with work rights) sit in its body. */}
       <DataTable
           caption="Molecular batches"
@@ -67,8 +71,7 @@ export function BatchesScreen({ batches, assays, canWork, status, assayCode, nex
           getRowId={(b) => b.id}
           emptyState={{
             title: filtered ? 'No batches match these filters.' : 'No batches yet',
-            body: filtered ? 'Change or clear the filters.' : canWork ? 'Create a batch to group molecular samples for one run.' : 'Batches appear here when the lab creates them.',
-            ...(canWork && !filtered ? { action: { label: 'New batch', onPress: () => setCreating(true) } } : {}),
+            body: filtered ? 'Change or clear the filters.' : canWork ? 'Use New batch to group molecular samples for one run.' : 'Batches appear here when the lab creates them.',
           }}
           onRowAction={(b) => router.push(`/anatomic/batches/${b.id}`)}
           {...(nextCursor !== undefined || hasCursor ? { page: { hasNext: nextCursor !== undefined, hasPrevious: hasCursor, onNext: () => go({ status, assay_code: assayCode, cursor: nextCursor }), onPrevious: () => router.back(), limit: 50 } } : {})}

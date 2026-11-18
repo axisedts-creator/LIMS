@@ -10,6 +10,7 @@ import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
 import { DecimalField } from '@lims/ui/components/DecimalField';
 import { Dialog } from '@lims/ui/components/Dialog';
 import { Drawer } from '@lims/ui/components/Drawer';
+import { FilterBar } from '@lims/ui/components/FilterBar';
 import { Inline } from '@lims/ui/components/Inline';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { Stack } from '@lims/ui/components/Stack';
@@ -18,7 +19,7 @@ import { useToast } from '@lims/ui/components/Toast';
 import { cancelTransferAction, createTransferAction, dispatchTransferAction, listStockAction, receiveTransferAction } from '../server/actions';
 import type { BalanceRow, CodedValue, ItemSummary, Lot, Store, Transfer, TransferCreate, TransferLine, TransferStatus, TransferSummary, TransferTarget } from '../server/types';
 import { StockLines, lineErrors, resolveStock, type LineDraft } from './StockLines';
-import { Chip, isoDate, Pick, ProblemBanner, qtyError, useAttemptKey, type Failure } from './shared';
+import { Chip, contains, isoDate, Pick, ProblemBanner, qtyError, useAttemptKey, useLocalFilters, type Failure } from './shared';
 
 const STATUS: Record<TransferStatus, { tone: 'neutral' | 'info' | 'success'; label: string }> = {
   draft: { tone: 'neutral', label: 'Draft' },
@@ -58,10 +59,26 @@ export function TransfersView(p: TransfersViewProps) {
     { id: 'dispatched', header: 'Dispatched', cell: (t) => isoDate(t.dispatched_at) },
     { id: 'received', header: 'Received', cell: (t) => isoDate(t.received_at) },
   ];
+  // T0D-UILIST-3 (LD-353 template 1): one FilterBar over the loaded transfers.
+  const filters = useLocalFilters(p.transfers, {
+    q: (t, v) => contains(t.transfer_no, v),
+    status: (t, v) => t.status === v,
+  });
   return (
     <section aria-label="Transfers">
       <PageHeader title="Transfers" helpKey="inventory.transfers" {...(p.canManage ? { actions: <Button variant="primary" onPress={() => setCreating(true)}>New transfer</Button> } : {})} />
-      <DataTable caption="Transfers" columns={columns} rows={p.transfers} getRowId={(t) => t.id} emptyState={{ title: 'No transfers yet.' }} onRowAction={(t) => router.push(`/inventory/transfers?transfer=${t.id}`)} />
+      <Stack>
+        <FilterBar
+          filters={[
+            { id: 'q', label: 'Search number', kind: 'text', maxLength: 40 },
+            { id: 'status', label: 'Status', kind: 'select', options: Object.entries(STATUS).map(([value, s]) => ({ value, label: s.label })) },
+          ]}
+          value={filters.value}
+          onChange={filters.onChange}
+          onReset={filters.onReset}
+        />
+        <DataTable caption="Transfers" columns={columns} rows={filters.shown} getRowId={(t) => t.id} cellTitle emptyState={{ title: 'No transfers yet.' }} onRowAction={(t) => router.push(`/inventory/transfers?transfer=${t.id}`)} />
+      </Stack>
       <Drawer title="New transfer" isOpen={creating} onClose={close}>
         {creating ? (
           <NewTransfer

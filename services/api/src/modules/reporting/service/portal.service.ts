@@ -5,6 +5,7 @@
 // [CONV] otp_request has no per-link key in the core limiter grammar (only `p:`): the 3-per-hour-per-link budget of P1 is counted from reporting.otp_challenges under the link row lock.
 import { readFileSync } from 'node:fs';
 import { LimsError, type FieldError } from '../../../core/errors.js';
+import type { BucketName, StorageAdapter } from '../../../core/storage/index.js';
 import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';
 import { loadReportingConfig, type ReportingConfig } from '../config.js';
 import { OTP_MAX_ATTEMPTS, verifyOtp } from '../domain/otp.js';
@@ -25,7 +26,7 @@ const DEFAULT_REISSUES_PER_DAY = 3;                                      // sett
 const SEND_TASK = 'reporting.send_portal_otp';
 const REISSUE_TASK = 'reporting.reissue_portal_link';
 const TASK_MAX_ATTEMPTS = 8;                                             // 02-TRD §9
-const REPORT_BUCKET = 'reports';
+const REPORT_BUCKET: BucketName = 'reports';
 const PAY_CREATE_TASK = 'reporting.create_portal_payment_intent';       // PP1 (08 A11.1)
 const PAY_REFRESH_TASK = 'reporting.refresh_portal_payment_request';    // PP2
 const PAY_TASK_MAX_ATTEMPTS = 3;                                         // 02-TRD §9
@@ -47,7 +48,7 @@ export interface PortalCtx {
   tenantId: string; actor: { type: string; id: string }; tx: Tx; now(): string; claims?: Row;
   rateLimit?: { consume(tier: string, key: string): Promise<unknown> };
   audit?: { access(entry: Row): Promise<unknown> };
-  storage?: { read(bucket: string, path: string): Promise<Uint8Array> };
+  storage?: Partial<Pick<StorageAdapter, 'read' | 'readStream'>>;
   ports?: Row; commitOnError?: () => void;
   metrics?: { inc(name: string, labels?: Record<string, string>): void };
 }
@@ -258,9 +259,12 @@ export function createPortalService(deps: { env: Env; newId?: () => string }) {
       const v = (await s.tx.query(`SELECT id, version_no, pdf_object_path FROM reporting.report_versions WHERE tenant_id = $1 AND report_id = $2 AND id = $3 AND status = 'released'`,
         [s.tenantId, s.reportId, input.reportVersionId])).rows[0];
       if (!v || typeof v['pdf_object_path'] !== 'string' || !v['pdf_object_path']) throw new LimsError('common.not_found');   // A5: other report / tenant / superseded
-      const bytes = await ctx.storage.read(REPORT_BUCKET, v['pdf_object_path']);
-      await audit(ctx).access({ action: 'report.portal_download', entityType: 'report_version', entityId: v['id'], outcome: 'allowed', detail: { link_id: s.linkId } });
-      return { bytes, filename: `report-v${v['version_no']}.pdf` };
+      // T0B-FILESTREAM-1 (LD-312): the handler streams the object (core streamStored) and calls logAccess before the first byte (200 / 206 / 304; never 416).
+      const log = audit(ctx);
+      return {
+        storage: ctx.storage, bucket: REPORT_BUCKET, objectPath: v['pdf_object_path'] as string, filename: `report-v${v['version_no']}.pdf`,
+        logAccess: () => log.access({ action: 'report.portal_download', entityType: 'report_version', entityId: v['id'], outcome: 'allowed', detail: { link_id: s.linkId } }),
+      };
     },
 
     /** P5 — stage link or expired_link. Always 202 {}; only an expired, unrevoked link under its daily budget enqueues the reissue task. */

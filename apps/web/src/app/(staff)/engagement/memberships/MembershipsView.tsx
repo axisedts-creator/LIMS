@@ -208,7 +208,7 @@ function PlansPanel({ plans, priceLists, canManage }: { plans: readonly PlanRow[
   const columns: ColumnDef<PlanRow>[] = [
     { id: 'code', header: 'Code', isRowHeader: true, cell: (p) => p.code },
     { id: 'name', header: 'Name', cell: (p) => p.display_name },
-    { id: 'validity', header: 'Validity (days)', cell: (p) => String(p.validity_days) },
+    { id: 'validity', header: 'Validity (days)', numeric: true, cell: (p) => String(p.validity_days) },
     { id: 'list', header: 'Price list', cell: (p) => listName(p.price_list_id) },
     { id: 'status', header: 'Status', cell: (p) => <StatusChip kind="generic" status={p.is_active ? 'active' : 'inactive'} label={p.is_active ? 'Active' : 'Inactive'} tone={p.is_active ? 'success' : 'neutral'} /> },
     ...(canManage ? [{ id: 'actions', header: 'Actions', cell: (p: PlanRow) => <Button size="sm" variant="ghost" onPress={() => setEditing(p)}>{`Edit ${p.code}`}</Button> }] : []),
@@ -217,7 +217,7 @@ function PlansPanel({ plans, priceLists, canManage }: { plans: readonly PlanRow[
     <div className="lims-stack">
       {canManage ? <div className="lims-inline"><Button variant="primary" onPress={() => setEditing('new')}>New plan</Button></div> : null}
       <DataTable<PlanRow>
-        columns={columns} rows={plans} getRowId={(p) => p.id} density="compact" caption="Membership plans"
+        columns={columns} rows={plans} getRowId={(p) => p.id} density="compact" caption="Membership plans" cellTitle /* T0D-UILIST-3, LD-353 rule 5 */
         emptyState={{ title: 'No membership plans', body: 'Create a plan to start enrolling patients.' }}
       />
       {canManage && editing ? <PlanDrawer plan={editing === 'new' ? undefined : editing} priceLists={priceLists} onClose={() => setEditing(undefined)} /> : null}

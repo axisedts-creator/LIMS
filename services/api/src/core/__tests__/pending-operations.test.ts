@@ -290,7 +290,9 @@ describe('every real module boots (handlers plus pendingOperations cover its spe
     const pending: string[] = [...(m.pendingOperations ?? [])];
     const ops = operationIds(loadSpec(join(REPO_ROOT, m.openapi)));
     const lacking = ops.filter((op) => typeof m.handlers?.[op] !== 'function').sort();
-    expect(pending.slice().sort()).toEqual(lacking);
+    // LD-325(a): pending may also list an id that has a handler (stale entry, warn only), so no equality.
+    expect(lacking.filter((op) => !pending.includes(op))).toEqual([]);
+    expect(pending.filter((id) => !ops.includes(id))).toEqual([]);
     expect(new Set(pending).size).toBe(pending.length); // no duplicate entries
   });
 

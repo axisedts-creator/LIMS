@@ -9,6 +9,7 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { t } from '@/core/i18n/messages';
 import axe from 'axe-core';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
@@ -100,7 +101,7 @@ describe('department index (listDepartments)', () => {
     expect(limit).toBeGreaterThanOrEqual(1);
     expect(limit).toBeLessThanOrEqual(200);
     expect(['true', null]).toContain(c.url.searchParams.get('is_active')); // default true: never `all` or `false`
-    expect(screen.getByRole('heading', { level: 1, name: 'Worklists' })).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 1, name: t('lab.nav.worklists') })).toBeTruthy();
   });
 
   it('every department is one link to /lab/worklists/{department_id} showing its name and code, in the order the API returned', async () => {

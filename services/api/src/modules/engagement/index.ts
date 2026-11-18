@@ -26,4 +26,5 @@ export const manifest: ModuleManifest = {
   // LD-325(b), T0C-MSGDESK-1 (LD-321): the 11 broadcast operations have no handler yet (501 operation_pending); T0B-MSGDESK-1 removes them with the handlers.
   pendingOperations: ['listBroadcastTemplates', 'createBroadcastTemplate', 'updateBroadcastTemplate', 'deactivateBroadcastTemplate', 'createBroadcast',
     'previewBroadcastAudience', 'requestBroadcastApproval', 'approveBroadcast', 'cancelBroadcast', 'listBroadcasts', 'listBroadcastRecipients'],
+  // T0B-CONTENT-1 (LD-368, LD-325(b)): the 9 portal content / profile image ids were removed from pendingOperations with their handlers.
 };

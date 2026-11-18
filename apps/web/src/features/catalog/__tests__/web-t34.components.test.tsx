@@ -136,7 +136,7 @@ describe('SCR-13 PriceListsList (AC-13.6 default list; 03-APP-FLOW §5)', () => 
 
   it('empty: "No price list yet — create the default list first."; only default: "Only the default price list exists."', async () => {
     const a = await show([]);
-    expect(screen.getByText('No price list yet — create the default list first.')).toBeTruthy();
+    expect(screen.getByText('No rate master yet — create the default price list first.')).toBeTruthy();
     a.unmount();
     await show([LISTS[0]]);
     expect(screen.getByText('Only the default price list exists.')).toBeTruthy();

@@ -14,6 +14,7 @@ import { cleanup, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
+import { expectErrorState } from '@/__tests__/uilist1.helpers';
 import { ORIGIN, U, axeClean, isEnabled, noRawCodes, npr, problem, recorder, wrap, type Call } from './pg-t19.helpers';
 
 const refresh = vi.hoisted(() => vi.fn());
@@ -74,6 +75,12 @@ const saves = () => calls.filter((c) => c.method === 'POST');
 const field = (name: RegExp) => screen.getByRole('textbox', { name }) as HTMLInputElement;
 const type = async (name: RegExp, v: string) => { const f = field(name); await userEvent.clear(f); if (v) await userEvent.type(f, v); };
 const setDate = async (v: string) => { await type(/business date/i, v); await userEvent.tab(); };
+// The worksheet form's Centre select, not the list FilterBar's Centre select (LD-353 done_when 5 adds the latter). The entry controls are not wrapped in a <form> element.
+const formCentre = () => {
+  const b = screen.getAllByRole('button', { name: /centre/i }).filter((x) => !x.closest('.lims-filter-bar'));
+  expect(b).toHaveLength(1);
+  return b[0]!;
+};
 const saveBtn = () => screen.queryByRole('button', { name: /save worksheet/i });
 const fillOk = async (statement = '12,345.00') => { await type(/bank statement total/i, statement); await type(/statement reference/i, 'BANK-1'); };
 const BANNER = 'Fonepay live payments are not available yet. Use this worksheet to compare Fonepay QR payments recorded at the counter with your bank statement.';
@@ -96,7 +103,7 @@ describe('AC-PG-12.2 form (§2.5)', () => {
   it('fields: Business date (default yesterday), Centre (default "All centres"), read-only system total + entries, Bank statement total, Statement reference (≤100), Note (≤1000)', async () => {
     await view();
     expect(field(/business date/i).value).toBe('11/11/2026');
-    const centre = screen.getByRole('button', { name: /centre/i });
+    const centre = formCentre();
     expect(centre.textContent).toMatch(/All centres/);
     await userEvent.click(centre);
     for (const n of ['All centres', 'Synthetic Centre A1', 'Synthetic Centre B2']) expect(await screen.findByRole('option', { name: n })).toBeTruthy();
@@ -122,7 +129,7 @@ describe('AC-PG-12.2 form (§2.5)', () => {
     await waitFor(() => expect(previews()).toHaveLength(1));
     await setDate('10/11/2026');
     await waitFor(() => expect(previews().some((c) => c.url.searchParams.get('business_date') === '2026-11-10')).toBe(true));
-    await userEvent.click(screen.getByRole('button', { name: /centre/i }));
+    await userEvent.click(formCentre());
     await userEvent.click(await screen.findByRole('option', { name: 'Synthetic Centre A1' }));
     await waitFor(() => expect(previews().some((c) => c.url.searchParams.get('centre_id') === CENTRE)).toBe(true));
     expect((await screen.findAllByText(/4,000\.00/)).length).toBeGreaterThan(0);
@@ -157,7 +164,7 @@ describe('AC-PG-12.2 form (§2.5)', () => {
 
   it('a chosen centre is sent as centre_id', async () => {
     await view();
-    await userEvent.click(screen.getByRole('button', { name: /centre/i }));
+    await userEvent.click(formCentre());
     await userEvent.click(await screen.findByRole('option', { name: 'Synthetic Centre A1' }));
     await screen.findAllByText(/4,000\.00/);
     await fillOk('4,000.00');
@@ -337,14 +344,15 @@ describe('static-qr page.tsx — request (P17)', () => {
     for (const c of calls) { expect(c.url.searchParams.get(key)).not.toBe(bad); expect(c.url.search).not.toMatch(/drop|passwd/); }
   });
 
-  it('API 403 shows no worksheet rows; API 5xx rejects so error.tsx renders', async () => {
+  it('API 403 shows no worksheet rows; API 5xx renders the in-page ErrorState (LD-353 rule 6: title and filters stay, reference, Retry)', async () => {
     perms.current = RESOLVE;
     listF = () => problem('auth.forbidden', 403);
     try { await show(); } catch { /* may reject or render a denied state */ }
     expect(document.body.textContent).not.toMatch(/BANK-STMT-001/);
     cleanup();
-    listF = () => problem('common.dependency_unavailable', 503);
-    await expect(show()).rejects.toBeTruthy();
+    listF = () => problem('common.dependency_unavailable', 503, { request_id: 'req-synthetic-l2' });
+    const { container } = await show();
+    expectErrorState(container, '/payments/static-qr', { filters: 1 });
   });
 
   it('axe: page output has no violations', async () => { perms.current = RESOLVE; await show(); await axeClean(); });

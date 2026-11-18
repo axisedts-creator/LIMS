@@ -75,3 +75,46 @@ span Ready to release"
 Make this one-line insertion directly in the `.snap` file (it is a plain literal string, no serialization quirks at this point), or if you prefer, run your normal vitest update-snapshot step against this one test file and confirm the result matches the text above exactly. Either way, touch no other snapshot in this file and no other file.
 
 WRITER and DEBUGGER: no code change. If this one line still is not on disk after this round, stop and escalate to the lead by name rather than a fourth round — something else is blocking the write, not the content.
+
+
+================================================================================
+LEAD ITEM LD-401 FOR THE WRITER (TESTS_WRONG, one allow-list addition in rs-c6.static.test.ts;
+a plain source edit, NOT the snapshot file -- that is a separate, already-escalated item, see below)
+
+Fresh verify (2026-11-18 20:37 UTC) found one more unlisted web API path, from the same already-landed
+reporting signature-upload code this allow-list already forgives byte changes for (write.server.ts
+is already in PRINTCFG.data_files): the literal is '/v1/identity/users/${uuid' (write.server.ts's
+uploadSignatureAction calls /v1/identity/users/${uuid(userId)}/signature). Confirmed by grep: that is
+the only place it appears, nothing destructive.
+
+EDIT of rs-c6.static.test.ts -- find this exact block (inside the PRINTCFG allow-list object):
+
+    web_api_paths: [
+      '/v1/identity/branches', '/v1/identity/roles', '/v1/identity/settings/branding-assets', '/v1/identity/users',
+      '/v1/reporting/print-profiles', '/v1/reporting/print-profiles${qs', '/v1/reporting/print-profiles/preview',
+      '/v1/reporting/signatory-profiles', '/v1/reporting/signatory-profiles/${uuid',
+    ],
+
+Replace it with:
+
+    web_api_paths: [
+      '/v1/identity/branches', '/v1/identity/roles', '/v1/identity/settings/branding-assets', '/v1/identity/users',
+      '/v1/identity/users/${uuid', // LD-401: write.server.ts's uploadSignatureAction, already-allowed file, no new behaviour
+      '/v1/reporting/print-profiles', '/v1/reporting/print-profiles${qs', '/v1/reporting/print-profiles/preview',
+      '/v1/reporting/signatory-profiles', '/v1/reporting/signatory-profiles/${uuid',
+    ],
+
+That is the whole fix for this LEAD ITEM. Do not touch anything else in this file.
+
+----
+NOTE ON THE WORKLIST SNAPSHOT (rs-c6.screens.test.tsx.snap, "worklist 1", the missing
+"button Ready to release" line): the lead attempted a direct edit of this exact file from outside
+the normal writer/tester flow this round and confirmed, via this same fresh verify run, that the
+edit did not survive -- something in this lane's own flow between the edit and the verify discarded
+the uncommitted change. Combined with the 3+ prior rounds where the LEAD ITEM instruction channel
+did not get this one line applied either (LD-399), this snapshot has now failed through both
+available channels. The lead is not attempting a third approach this round and is escalating this
+specific snapshot to the founder as a tooling/process question. WRITER and DEBUGGER: leave this one
+snapshot alone until you hear otherwise; do not attempt the vitest update-snapshot flag again on it
+this round, and do not mark the task done with it still stale. The web_api_paths edit above is
+normal, ruled work -- apply and commit it as usual.

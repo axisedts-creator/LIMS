@@ -49,6 +49,15 @@ export const accountsHandlers: Readonly<Record<string, Handler>> = Object.freeze
     needKey(req);
     return { status: 201, body: await service().reverseEntry(ctx, { id: obj(req.params)['account_ledger_entry_id'], body: req.body }) };
   }),
+  // T0B-FINCTRL-1 (LD-321): billing.account.manage, Idempotency-Key required (pipeline); the service checks the state.
+  holdLedgerEntry: bind(async (ctx, req) => {
+    needKey(req);
+    return { status: 200, body: await service().holdEntry(ctx, { id: obj(req.params)['account_ledger_entry_id'], body: req.body }) };
+  }),
+  releaseLedgerEntry: bind(async (ctx, req) => {
+    needKey(req);
+    return { status: 200, body: await service().releaseEntry(ctx, { id: obj(req.params)['account_ledger_entry_id'], body: req.body }) };
+  }),
   getAccountStatement: bind(async (ctx, req) => ({ status: 200, body: await service().statement(ctx, req.query) })),
   getAccountSummary: bind(async (ctx, req) => ({ status: 200, body: await service().summary(ctx, req.query) })),
 });

@@ -1,25 +1,20 @@
 'use client';
-// SCR-05 Instruments (04-UI-UX §3). RS-C7 / LD-140: link cards instead of a table (10-DESIGN-SYSTEM s4); same data, filters, sort and routes. "New instrument" opens the SCR-06 form in a Dialog lg. Manage affordances are a UI hint; the API enforces.
+// SCR-05 Instruments (04-UI-UX §3). T0D-UILIST-1 (LD-353): a table again, same data, filters, sort and routes. "New instrument" opens the SCR-06 form in a Dialog lg. Manage affordances are a UI hint; the API enforces.
 import { useEffect, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@lims/ui/components/Button';
-import { Card } from '@lims/ui/components/Card';
+import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
 import { DateText } from '@lims/ui/components/DateText';
 import { Dialog } from '@lims/ui/components/Dialog';
-import { EmptyState } from '@lims/ui/components/EmptyState';
 import { FilterBar, type FilterValue } from '@lims/ui/components/FilterBar';
-import { Grid } from '@lims/ui/components/Grid';
-import { Inline } from '@lims/ui/components/Inline';
 import { PageHeader } from '@lims/ui/components/PageHeader';
-import { RadioGroup } from '@lims/ui/components/RadioGroup';
-import { Stack } from '@lims/ui/components/Stack';
 import { shortcuts } from '@/core/shortcuts/registry';
 import { parseInstrumentQuery, type AgentSummary, type Driver, type InstrumentSummary } from '../server/types';
 import { DriverStatusBadge, INSTRUMENT_STATE_OPTIONS, InstrumentStatePill, PROTOCOL_LABEL, PROTOCOL_OPTIONS, hasPerm } from './labels';
 import type { Centre } from './AgentsList';
 import { InstrumentForm } from './InstrumentForm';
 
-export function InstrumentsList({ instruments, permissions, centres, agents, drivers }: { instruments: readonly InstrumentSummary[]; permissions: readonly string[]; centres: readonly Centre[]; agents: readonly Pick<AgentSummary, 'id' | 'agent_code' | 'display_name' | 'status'>[]; drivers: readonly Driver[] }) {
+export function InstrumentsList({ instruments, permissions, centres, agents, drivers, loadError }: { instruments: readonly InstrumentSummary[]; permissions: readonly string[]; centres: readonly Centre[]; agents: readonly Pick<AgentSummary, 'id' | 'agent_code' | 'display_name' | 'status'>[]; drivers: readonly Driver[]; loadError?: { requestId?: string } }) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -49,37 +44,20 @@ export function InstrumentsList({ instruments, permissions, centres, agents, dri
     ...(q.protocol ? { protocol: q.protocol } : {}),
   };
 
-  const card = (i: InstrumentSummary) => (
-    <article key={i.id} aria-label={i.instrument_code}>
-      <Card>
-        <Stack gap={3}>
-          <Inline justify="between" align="start">
-            <Stack gap={1}>
-              <a className="lims-link" href={`/instruments/instruments/${i.id}`}>{i.instrument_code}</a>
-              <span>{i.display_name}</span>
-            </Stack>
-            <InstrumentStatePill state={i.state} />
-          </Inline>
-          <dl className="lims-dl lims-cols-2">
-            {[
-              { term: 'Vendor / Model', value: [i.vendor, i.model].filter(Boolean).join(' ') || '—' },
-              { term: 'Protocol', value: i.protocol ? (PROTOCOL_LABEL[i.protocol] ?? i.protocol) : '—' },
-              { term: 'Agent', value: i.agent_code ?? '—' },
-              { term: 'Driver', value: i.driver_code ? <>{driverName.get(i.driver_code) ?? i.driver_code} {i.driver_status ? <DriverStatusBadge status={i.driver_status} /> : null}</> : '—' },
-              { term: 'Link state', value: i.link_state ?? '—' },
-              { term: 'Last message', value: i.last_message_at ? <DateText value={i.last_message_at as never} withTime /> : '—' },
-              // 04-UI-UX SCR-05: unmapped codes are text ("3 unmapped"), never colour only; the link goes to SCR-08.
-              { term: 'Unmapped', value: i.unmapped_code_count === undefined ? '—' : <a className="lims-link" href={`/instruments/instruments/${i.id}/mappings`}>{`${i.unmapped_code_count} unmapped`}</a> },
-            ].map((it) => (
-              <div key={it.term} className="lims-dl-item">
-                <dt>{it.term}</dt> <dd>{it.value}</dd>{' '}
-              </div>
-            ))}
-          </dl>
-        </Stack>
-      </Card>
-    </article>
-  );
+  // T0D-UILIST-1 (LD-353 template 1, rules 5 and 8): the link-card grid is a table; the "Sort by" row is the sort of the column headers.
+  const columns: ColumnDef<InstrumentSummary>[] = [
+    { id: 'code', header: 'Code', isRowHeader: true, sortKey: 'instrument_code', cell: (i) => <a className="lims-link" href={`/instruments/instruments/${i.id}`}>{i.instrument_code}</a> },
+    { id: 'name', header: 'Name', cell: (i) => i.display_name },
+    { id: 'vendor', header: 'Vendor / Model', hideBelow: 'xl', cell: (i) => [i.vendor, i.model].filter(Boolean).join(' ') || '—' },
+    { id: 'protocol', header: 'Protocol', hideBelow: 'xl', cell: (i) => (i.protocol ? (PROTOCOL_LABEL[i.protocol] ?? i.protocol) : '—') },
+    { id: 'agent', header: 'Agent', cell: (i) => i.agent_code ?? '—' },
+    { id: 'driver', header: 'Driver', cell: (i) => (i.driver_code ? <>{driverName.get(i.driver_code) ?? i.driver_code} {i.driver_status ? <DriverStatusBadge status={i.driver_status} /> : null}</> : '—') },
+    { id: 'link', header: 'Link state', hideBelow: 'xl', cell: (i) => i.link_state ?? '—' },
+    { id: 'last_message', header: 'Last message', sortKey: 'last_message_at', cell: (i) => (i.last_message_at ? <DateText value={i.last_message_at as never} withTime /> : '—') },
+    // 04-UI-UX SCR-05: unmapped codes are text ("3 unmapped"), never colour only; the link goes to SCR-08.
+    { id: 'unmapped', header: 'Unmapped', align: 'end', cell: (i) => (i.unmapped_code_count === undefined ? '—' : <a className="lims-link" href={`/instruments/instruments/${i.id}/mappings`}>{`${i.unmapped_code_count} unmapped`}</a>) },
+    { id: 'status', header: 'Status', cell: (i) => <InstrumentStatePill state={i.state} /> },
+  ];
 
   return (
     <section aria-label="Instruments">
@@ -95,19 +73,16 @@ export function InstrumentsList({ instruments, permissions, centres, agents, dri
         onChange={(v) => navigate({ centre_id: v.centre_id, agent_id: v.agent_id, state: v.state, protocol: v.protocol })}
         onReset={() => navigate({ centre_id: undefined, agent_id: undefined, state: undefined, protocol: undefined })}
       />
-      <RadioGroup
-        label="Sort by"
-        name="sort"
-        orientation="horizontal"
-        value={q.sort}
-        onChange={(v) => navigate({ sort: v })}
-        options={[{ value: 'instrument_code', label: 'Code' }, { value: '-last_message_at', label: 'Last message (newest first)' }]}
+      <DataTable
+        caption="Instruments"
+        columns={columns}
+        rows={instruments}
+        getRowId={(i) => i.id}
+        sort={{ value: q.sort, onChange: (v) => navigate({ sort: v.includes('last_message_at') ? '-last_message_at' : 'instrument_code' }) }}
+        // the primary action lives in the header only, not again in the EmptyState
+        emptyState={{ title: 'No instruments registered.' }}
+        {...(loadError ? { error: { title: 'The instruments could not be loaded.', ...loadError, onRetry: () => router.refresh() } } : {})}
       />
-      {instruments.length === 0 ? (
-        <EmptyState title="No instruments registered." />
-      ) : (
-        <Grid columns={2}>{instruments.map(card)}</Grid>
-      )}
       {canManage && creating ? (
         <Dialog title="New instrument" isOpen onClose={() => setCreating(false)} size="lg">
           <InstrumentForm mode="create" agents={agents} drivers={drivers} permissions={permissions} onDone={() => setCreating(false)} />

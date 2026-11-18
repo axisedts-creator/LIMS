@@ -166,6 +166,7 @@ const BILLING: Spec[] = [
   S("reverseAccountLedgerEntry", "POST", "/account-ledger-entries/{account_ledger_entry_id}/reverse", BL("account_entry.reverse"), "required", 201, { err: ["billing.ledger_reversal_invalid"] }),
   S("getAccountStatement", "GET", "/account-statement", BL("account.read"), "none", 200),
   S("getAccountSummary", "GET", "/account-summary", BL("account.read"), "none", 200),
+  S("listAccountSummaries", "GET", "/account-summaries", BL("account.read"), "none", 200, { err: INVALID_CURSOR }), // T0C-ACCTLIST-1 (LD-358)
   S("createExpense", "POST", "/expenses", BL("expense.manage"), "required", 201),
   S("listExpenses", "GET", "/expenses", BL("account.read"), "none", 200, { err: INVALID_CURSOR }),
   S("cancelExpense", "POST", "/expenses/{expense_id}/cancel", BL("expense.manage"), "required", 200, { err: [IMM] }),
@@ -182,7 +183,7 @@ const PAGED: Record<string, string[]> = {
   frontdesk: ["listPatientOrders", "listOrders", "listDiscountApprovals", "listOrderFlags", "listPossibleDuplicatePatients"],
   billing: ["listInvoices", "listInvoicePrints", "listCreditNotes", "listRefundRequests", "listLedgerEntries", "listCreditAccounts", "listCreditCharges",
     "getSalesRegister", "getCancelledInvoiceRegister", "getCreditNoteRegister", "getAuditTrail", "listCbmsDocuments", "listDues",
-    "listCreditNoteTasks", "listFinanceReviewItems", "listAccountGroups", "listAccountParticulars", "listExpenseTypes", "listAccountLedgerEntries", "listExpenses", "listCashTransfers"],
+    "listCreditNoteTasks", "listFinanceReviewItems", "listAccountGroups", "listAccountParticulars", "listExpenseTypes", "listAccountLedgerEntries", "listExpenses", "listCashTransfers", "listAccountSummaries"],
 };
 // §5.1 / §5.2 named schemas that must exist as components
 const DTOS: Record<string, string[]> = {
@@ -198,7 +199,7 @@ afterAll(() => tmps.forEach((d) => rmSync(d, { recursive: true, force: true })))
 
 describe.each([
   { name: "frontdesk", specs: FRONTDESK, total: 29 + 18 }, // 29 C4 operations + 18 T0C-REGPARITY-2 operations (LD-310)
-  { name: "billing", specs: BILLING, total: 47 + 24 }, // 47 C4 operations + 24 T0C-ACCT-1 operations (LD-313)
+  { name: "billing", specs: BILLING, total: 47 + 24 + 1 }, // 47 C4 operations + 24 T0C-ACCT-1 operations (LD-313) + listAccountSummaries (T0C-ACCTLIST-1, LD-358)
 ])("$name.yaml (T0C-10.C4)", ({ name, specs, total }) => {
   const FILE = join(ROOT, `contracts/openapi/${name}.yaml`);
   const PFX = `/v1/${name}`;

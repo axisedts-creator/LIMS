@@ -1,5 +1,6 @@
 import 'server-only';
 // SR-01 Review queue (04-UI-UX SR-01): permission -> whitelisted query -> API list -> plain-JSON view model for the client queue.
+import { isPending, NotAvailable } from '@/core/shell/NotAvailable';
 import { SummaryQueue, type QueueRow } from '../components/SummaryQueue';
 import { listCentres, listSummaries, queueFilter, requireRead, smartReportOff, type Centre, type SummaryItem } from './summaries.server';
 
@@ -26,7 +27,11 @@ export async function summariesPage(sp: SP) {
   const admin = perms.includes('identity.settings.manage');
   // The list result is settled (not raced) so a failing list never leaves the centres/flags reads dangling past the request.
   const [settled, centres, off] = await Promise.all([listSummaries(f).then((v) => ({ v }), (e: unknown) => ({ e })), listCentres(), admin ? smartReportOff() : Promise.resolve(false)]);
-  if ('e' in settled) throw settled.e;
+  if ('e' in settled) {
+    // T0D-UNSLOP-1 / LD-353 rule 6: 501 operation_pending keeps the title and the header row, never error.tsx.
+    if (isPending(settled.e)) return <NotAvailable title="Smart summaries" helpKey="smartreport.queue" columns={['Built', 'Registration no.', 'Patient', 'Centre', 'Findings', 'Score band', 'Status']} />;
+    throw settled.e;
+  }
   const list = settled.v;
   const byId = new Map(centres.map((c) => [c.centre_id, c]));
   const rows = (Array.isArray(list?.data) ? list.data : []).map((s) => rowOf(s, byId));

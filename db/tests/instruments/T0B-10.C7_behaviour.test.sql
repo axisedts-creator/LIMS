@@ -344,8 +344,11 @@ SELECT is((SELECT count(*)::int FROM instruments.messages WHERE id = pg_temp.uid
 
 -- C7 check 18: mutability, transitions, audit, views (spec §8 items 6, 8; AC-0B-4.1, 5.1, 5.2)
 -- mutable-column lists (§2.2, §2.6, §2.15, §4)
-SELECT alike(pg_temp.a('UPDATE instruments.agent_credentials SET kind = ''enrolment_code'' WHERE id = ' || quote_literal(pg_temp.uid(431))), 'EP0001|immutable_row%', 'C7 check 18 / AC-0B-4.1: agent_credentials.kind is frozen');
-SELECT alike(pg_temp.a('UPDATE instruments.agent_credentials SET expires_at = now() WHERE id = ' || quote_literal(pg_temp.uid(431))), 'EP0001|immutable_row%', 'AC-0B-4.1: agent_credentials.expires_at is frozen');
+-- STALE/HARNESS fix T0B-GREEN-2: lims_app has a column-level UPDATE grant on agent_credentials that omits kind and expires_at (information_schema.column_privileges; the C7 schema suite passes with it), so the
+-- freeze is enforced by the privilege check (E42501) before the BEFORE UPDATE trigger can raise immutable_row. The property (lims_app cannot change kind / expires_at) is unchanged; the error is the grant's.
+SELECT alike(pg_temp.a('UPDATE instruments.agent_credentials SET kind = ''enrolment_code'' WHERE id = ' || quote_literal(pg_temp.uid(431))), 'E42501|permission denied for table agent_credentials%', 'C7 check 18 / AC-0B-4.1: agent_credentials.kind is frozen (no column UPDATE grant)');
+SELECT alike(pg_temp.a('UPDATE instruments.agent_credentials SET expires_at = now() WHERE id = ' || quote_literal(pg_temp.uid(431))), 'E42501|permission denied for table agent_credentials%', 'AC-0B-4.1: agent_credentials.expires_at is frozen (no column UPDATE grant)');
+SELECT is(has_column_privilege('lims_app', 'instruments.agent_credentials', c, 'UPDATE'), false, 'AC-0B-4.1: lims_app holds no UPDATE on agent_credentials.' || c) FROM unnest(ARRAY['kind','expires_at','secret_sha256','agent_id','tenant_id']) c;
 SELECT alike(pg_temp.a('UPDATE instruments.attachments SET size_bytes = 5 WHERE id = ' || quote_literal(pg_temp.uid(563))), 'EP0001|immutable_row%', 'AC-0B-4.1: attachments.size_bytes is frozen');
 SELECT alike(pg_temp.a('UPDATE instruments.attachments SET mime_type = ''image/png'' WHERE id = ' || quote_literal(pg_temp.uid(563))), 'EP0001|immutable_row%', 'AC-0B-4.1: attachments.mime_type is frozen');
 SELECT is(pg_temp.a('UPDATE instruments.attachments SET sha256 = repeat(''d'', 64) WHERE id = ' || quote_literal(pg_temp.uid(563))), 'n=1', 'AC-0B-4.1: attachments.sha256 is mutable (PDF sanitisation)');

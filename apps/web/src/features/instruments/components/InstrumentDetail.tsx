@@ -106,7 +106,6 @@ export function InstrumentDetail({ instrument, agents, drivers, permissions }: {
       <PageHeader
         title={`${i.instrument_code} — ${i.display_name}`}
         helpKey="instruments.instruments"
-        breadcrumbs={[{ label: 'Instruments', href: '/instruments/instruments' }, { label: i.instrument_code }]}
         status={<InstrumentStatePill state={i.state} />}
         actions={
           <>

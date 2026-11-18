@@ -35,7 +35,7 @@ CREATE FUNCTION pg_temp.q(p_sql text) RETURNS text LANGUAGE plpgsql AS $$ DECLAR
 -- the redeem call, flattened to one text value
 CREATE FUNCTION pg_temp.redeem(p_member int, p_tenant int, p_code text) RETURNS text LANGUAGE sql AS $$
   SELECT pg_temp.x(pg_temp.pc(p_member, p_tenant),
-    format($q$SELECT concat_ws('|', link_code_id, patient_id, relationship, display_name_snapshot, sex_snapshot, existing_link_id, existing_link_was_suspended) FROM app.engagement_redeem_link_code(%L::bytea)$q$, '\x' || encode(pg_temp.h(p_code), 'hex')), 'v') $$;
+    format($q$SELECT concat_ws('|', link_code_id, patient_id, relationship, display_name_snapshot, sex_snapshot, coalesce(existing_link_id::text, ''), existing_link_was_suspended::text) FROM app.engagement_redeem_link_code(%L::bytea)$q$, '\x' || encode(pg_temp.h(p_code), 'hex')), 'v') $$;
 
 -- ---------------------------------------------------------------- fixtures: tenants 1 (A) and 2 (B); patient accounts 301 / 302 (A), 303 (B); codes; links
 SET LOCAL session_replication_role = replica;
@@ -67,6 +67,17 @@ INSERT INTO engagement.account_patient_links (id, tenant_id, account_id, patient
   (pg_temp.id(805), pg_temp.id(1), pg_temp.id(302), pg_temp.id(507), 'other', 'report_link', NULL,              'Synthetic Seven', NULL,    'suspended', 'dormant', now() - interval '1 day', '2026-01-01T00:00:00Z', pg_temp.h('old'), pg_temp.id(98), pg_temp.id(98)),
   (pg_temp.id(806), pg_temp.id(1), pg_temp.id(302), pg_temp.id(508), 'other', 'report_link', NULL,              'Synthetic Eight', NULL,    'suspended', 'dormant', now() - interval '1 day', '2026-01-01T00:00:00Z', NULL, pg_temp.id(98), pg_temp.id(98));
 SET LOCAL session_replication_role = origin;
+-- HARNESS fix T0B-GREEN-3 (same cause and same remedy as T0B-GREEN-2 C17_anonymise): the rows were inserted in THIS transaction, so the DEFINER functions' UPDATEs re-check every FK of the row
+-- and the synthetic parents (patients 501.., link_consents 701.., issuing memberships 97) do not exist: link_codes__patient__fk / account_patient_links__patient__fk aborted the call (E23503) before it did its work.
+-- Every FK of link_codes and account_patient_links except those to core.tenants, engagement.accounts and engagement.link_codes (all seeded) is dropped for this rolled-back transaction only; nothing here asserts an FK,
+-- RLS, the patient column guard and the DEFINER bodies that the assertions exercise stay untouched.
+DO $fk$ DECLARE c record; BEGIN
+  FOR c IN SELECT conrelid::regclass AS t, conname FROM pg_constraint
+           WHERE contype = 'f' AND conrelid IN ('engagement.link_codes'::regclass, 'engagement.account_patient_links'::regclass)
+             AND confrelid NOT IN ('core.tenants'::regclass, 'engagement.accounts'::regclass, 'engagement.link_codes'::regclass) LOOP
+    EXECUTE format('ALTER TABLE %s DROP CONSTRAINT %I', c.t, c.conname);
+  END LOOP;
+END $fk$;
 
 -- ================================================================ §6.6 test 1: helpers return the expected value for tenant A and nothing for tenant B claims
 SELECT is(pg_temp.x(pg_temp.pc(401, 1), 'SELECT app.engagement_account_id()::text', 'v'), pg_temp.id(301)::text, 'T1: account id of patient 401 (tenant A)');
@@ -114,7 +125,7 @@ SELECT is(pg_temp.x(pg_temp.pc(402, 1), format('SELECT concat_ws(%L, link_id, pr
 SELECT is(pg_temp.q($$SELECT concat_ws('|', status, coalesce(suspend_reason, 'null'), coalesce(suspended_at::text, 'null'), visible_from::text, method, (record_phone_hmac_at_link = $$ || quote_literal('\x' || encode(pg_temp.h('p302'), 'hex')) || $$::bytea)::text) FROM engagement.account_patient_links WHERE id = '$$ || pg_temp.id(805) || $$'$$),
   'active|null|null|2026-02-15 00:00:00+00|report_link|true', 'suspended link: reactivated, visible_from = released_at, record_phone_hmac_at_link = the account phone hmac, method unchanged');
 SELECT is(pg_temp.x(pg_temp.pc(401, 1), format('SELECT link_id FROM app.engagement_apply_report_link(%L, %L::timestamptz)', pg_temp.id(599), '2026-02-01T00:00:00Z'), 'v'), '<null>', 'no link for that patient: no row');
-SELECT is(pg_temp.x(pg_temp.pc(401, 1), format('SELECT link_id FROM app.engagement_apply_report_link(%L, %L::timestamptz)', pg_temp.id(507), '2026-02-01T00:00:00Z'), 'v'), '<null>', 'another account\'s link of that patient: no row');
+SELECT is(pg_temp.x(pg_temp.pc(401, 1), format('SELECT link_id FROM app.engagement_apply_report_link(%L, %L::timestamptz)', pg_temp.id(507), '2026-02-01T00:00:00Z'), 'v'), '<null>', 'another account''s link of that patient: no row');
 
 -- ================================================================ §6.6 test 6 / probe P-L9: the patient column guard (outside a DEFINER)
 SELECT matches(pg_temp.x(pg_temp.pc(402, 1), format($u$UPDATE engagement.account_patient_links SET status = 'active', suspend_reason = NULL, suspended_at = NULL WHERE id = %L$u$, pg_temp.id(806)), 'w'), 'immutable_row', 'P-L9: patient UPDATE suspended -> active raises immutable_row');
@@ -123,7 +134,7 @@ SELECT matches(pg_temp.x(pg_temp.pc(401, 1), format($u$UPDATE engagement.account
 SELECT matches(pg_temp.x(pg_temp.pc(401, 1), format($u$UPDATE engagement.account_patient_links SET link_code_id = %L WHERE id = %L$u$, pg_temp.id(601), pg_temp.id(803)), 'w'), 'immutable_row', 'P-L9: patient UPDATE of link_code_id raises immutable_row');
 SELECT is(pg_temp.x(pg_temp.pc(401, 1), format($u$UPDATE engagement.account_patient_links SET relationship = 'parent' WHERE id = %L$u$, pg_temp.id(803)), 'w'), '1', 'P-L9: a relationship change succeeds');
 SELECT is(pg_temp.x(pg_temp.pc(401, 1), format($u$UPDATE engagement.account_patient_links SET status = 'revoked', revoked_by_kind = 'account', revoked_reason_code = 'patient_request', revoked_at = now() WHERE id = %L$u$, pg_temp.id(804)), 'w'), '1', 'P-L9: revoke (remove profile) succeeds');
-SELECT is(pg_temp.x(pg_temp.pc(401, 1), format($u$UPDATE engagement.account_patient_links SET relationship = 'parent' WHERE id = %L$u$, pg_temp.id(806)), 'w'), '0', 'another account\'s link: 0 rows (PAT_ACC)');
+SELECT is(pg_temp.x(pg_temp.pc(401, 1), format($u$UPDATE engagement.account_patient_links SET relationship = 'parent' WHERE id = %L$u$, pg_temp.id(806)), 'w'), '0', 'another account''s link: 0 rows (PAT_ACC)');
 SELECT is(pg_temp.q($$SELECT status FROM engagement.account_patient_links WHERE id = '$$ || pg_temp.id(806) || $$'$$), 'suspended', 'link 806 is still suspended after the refused attempts');
 
 SELECT * FROM finish();

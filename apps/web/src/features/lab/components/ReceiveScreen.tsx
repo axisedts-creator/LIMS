@@ -20,6 +20,7 @@ import { lookupSpecimenAction, receiveSpecimenAction, rejectSpecimenAction } fro
 import type { RejectionReason, Specimen } from '../server/types';
 import { FAILED, NOT_FOUND, call, enterOnEmptyBox, newKey } from './shared';
 import { useSerial } from './useSerial';
+import { t } from '@/core/i18n/messages';
 
 const LOCATION_KEY = 'lims.lab.receive.location'; // value = centre id only
 const LOG_MAX = 50; // [CONV] 03-APP-FLOW §3.3
@@ -165,7 +166,7 @@ function Screen({ centres, rejectionReasons, recollectionDefault, permissions }:
   const reasonText = (code?: string) => rejectionReasons.find((r) => r.code === code)?.display ?? code ?? '';
   return (
     <section aria-label="Receive specimens">
-      <PageHeader title="Receive specimens" helpKey="lab.receive" />
+      <PageHeader title={t('lab.nav.receive')} helpKey="lab.receive" />
       <div ref={bar}>
         <Select
           label="Receiving location"

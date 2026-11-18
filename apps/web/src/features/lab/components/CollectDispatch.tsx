@@ -14,6 +14,7 @@ import { bulkCollectAction, bulkDispatchAction, lookupSpecimenAction } from '../
 import type { Specimen } from '../server/types';
 import { FAILED, NOT_FOUND, call, enterOnEmptyBox, newKey, plural, rowError, statusText } from './shared';
 import { useSerial } from './useSerial';
+import { t } from '@/core/i18n/messages';
 
 const BARCODE = /^[A-Z0-9]{1,20}$/;
 const REGISTRATION = /^[A-Z0-9]{1,40}$/; // registration_no charset (IC §9.3); a value that also fits BARCODE is looked up as a barcode
@@ -33,7 +34,7 @@ function Screen() {
   const [batch, setBatch] = useState<BatchRow[]>([]);
   return (
     <section aria-label="Collect and dispatch">
-      <PageHeader title="Collect & dispatch" helpKey="lab.collect" />
+      <PageHeader title={t('lab.nav.collect')} helpKey="lab.collect" />
       <Tabs
         aria-label="Collect and dispatch"
         items={[{ id: 'collect', label: 'Collect', count: pick.length }, { id: 'dispatch', label: 'Dispatch', count: batch.length }]}

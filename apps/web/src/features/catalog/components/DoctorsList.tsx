@@ -17,6 +17,7 @@ import { createDoctorAction, searchDoctorsAction } from '../server/catalogAction
 import { PARTY_CODE_RE, emailError, phoneError, type DoctorSummary } from '../server/types';
 import { DUPLICATE, EditorDialog, MasterTable, StatusBadge, useListShortcuts, type Col } from './master-ui';
 import { canManageDoctors } from './DoctorDetail';
+import { t } from '@/core/i18n/messages';
 
 const COUNCILS = [{ value: 'none', label: 'None' }, { value: 'NMC', label: 'NMC' }, { value: 'Other', label: 'Other' }] as const;
 
@@ -64,9 +65,8 @@ export function DoctorsList({ doctors, permissions }: { doctors: readonly Doctor
   return (
     <section aria-label="Doctors">
       <PageHeader
-        title="Doctors"
+        title={t('catalog.nav.doctors')}
         helpKey="catalog.doctors"
-        breadcrumbs={[{ label: 'Catalog', href: '/catalog' }, { label: 'Doctors' }]}
         actions={
           <>
             <a className="lims-link" href="/catalog/doctors/verify">Verify queue</a>
@@ -87,19 +87,20 @@ export function DoctorsList({ doctors, permissions }: { doctors: readonly Doctor
           </Banner>
         </div>
       ) : null}
-      <form role="search" className="lims-filter-bar" onSubmit={(e) => void search(e)}>
-        <label className="lims-label" htmlFor="doctor-search">Search doctors</label>
-        <input id="doctor-search" className="lims-input" type="search" maxLength={64} autoComplete="off" value={q} onChange={(e) => setQ(e.target.value)} />
-        <Button type="submit">Search</Button>
-        {results ? <Button variant="ghost" onPress={() => { setResults(null); setQ(''); }}>Clear search</Button> : null}
-      </form>
       {searchError ? <div role="alert"><Banner tone="danger" title="The search could not be run. Try again." /></div> : null}
+      {/* T0D-UNSLOP-1 (LD-344, LD-353 rule 2): search and the radio groups in ONE filter row; the Search button sits next to its input. */}
       <div className="lims-filter-bar">
+        <form role="search" onSubmit={(e) => void search(e)}>
+          <label className="lims-label" htmlFor="doctor-search">Search doctors</label>
+          <input id="doctor-search" className="lims-input" type="search" maxLength={64} autoComplete="off" value={q} onChange={(e) => setQ(e.target.value)} />
+          <Button type="submit">Search</Button>
+          {results ? <Button variant="ghost" onPress={() => { setResults(null); setQ(''); }}>Clear search</Button> : null}
+        </form>
         <RadioGroup label="Verified" name="is_verified" orientation="horizontal" value={verified} onChange={(v) => setParam('is_verified', v)} options={[{ value: 'all', label: 'All' }, { value: 'true', label: 'Verified' }, { value: 'false', label: 'Unverified' }]} />
         <RadioGroup label="Status" name="is_active" orientation="horizontal" value={active} onChange={(v) => setParam('is_active', v)} options={[{ value: 'all', label: 'All' }, { value: 'true', label: 'Active' }, { value: 'false', label: 'Inactive' }]} />
         <RadioGroup label="Source" name="source" orientation="horizontal" value={source} onChange={(v) => setParam('source', v)} options={[{ value: 'all', label: 'All' }, { value: 'back_office', label: 'Back office' }, { value: 'quick_add', label: 'Quick add' }, { value: 'import', label: 'Import' }]} />
       </div>
-      <MasterTable caption="Doctors" cols={cols} rows={rows} empty="No doctors yet." emptyAction={openNew ? { label: 'New doctor', onPress: openNew } : undefined} codeOf={(r) => r.doctor_code} />
+      <MasterTable caption="Doctors" cols={cols} rows={rows} empty="No doctors in Doctor Management yet." emptyAction={openNew ? { label: 'New doctor', onPress: openNew } : undefined} codeOf={(r) => r.doctor_code} />
       {creating ? <DoctorDialog onClose={() => setCreating(false)} onDuplicates={setDupes} /> : null}
     </section>
   );

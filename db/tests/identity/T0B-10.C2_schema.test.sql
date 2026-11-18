@@ -56,7 +56,8 @@ CREATE FUNCTION pg_temp.ok_sess(p_over jsonb) RETURNS text LANGUAGE sql AS $$ SE
 
 -- ===================================================================================================================================== structure
 SELECT has_schema('identity', 'schema identity exists');
-SELECT is(count(*)::int, 18, '18 identity tables (16 FORCE-RLS + 2 g_*) plus event_inbox is 19 relations') FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+-- STALE T0B-GREEN-3: migration 20261115192000 (PLATFORM-DDL-1, CR C2.T22) added identity.tenant_contract_acceptances (FORCE RLS): 19 identity tables = 17 FORCE-RLS + 2 g_*, plus event_inbox is 20 relations
+SELECT is(count(*)::int, 19, '19 identity tables (17 FORCE-RLS + 2 g_*) plus event_inbox is 20 relations') FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
  WHERE n.nspname = 'identity' AND c.relkind = 'r' AND c.relname <> 'event_inbox';
 SELECT is(pg_get_userbyid(c.relowner), 'lims_owner', 'identity.' || c.relname || ' owned by lims_owner') FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
  WHERE n.nspname = 'identity' AND c.relkind = 'r';
@@ -126,12 +127,13 @@ SELECT is(count(*)::int, 1, 'AFTER I/U/D tg_row_audit trigger on identity.' || t
 -- §11 test 26: every __tenant policy has is_staff_or_system in qual and (INSERT/UPDATE) in with_check
 SELECT ok(coalesce(qual, '') ~ 'is_staff_or_system' OR cmd = 'INSERT', policyname || ' USING carries is_staff_or_system') FROM pg_policies WHERE schemaname = 'identity' AND policyname ~ '__tenant$';
 SELECT ok(coalesce(with_check, '') ~ 'is_staff_or_system' OR cmd = 'SELECT', policyname || ' WITH CHECK carries is_staff_or_system') FROM pg_policies WHERE schemaname = 'identity' AND policyname ~ '__tenant$';
-SELECT is(count(*)::int, 33, '33 __tenant policies on identity tables') FROM pg_policies WHERE schemaname = 'identity' AND policyname ~ '__tenant$';
+-- STALE + HARNESS T0B-GREEN-3: 33 in migration 20261105001300 + 2 for tenant_contract_acceptances (20261115192000, CR C2.T22) = 35; event_inbox (2 __tenant policies, T0B-05, 20261105001000) is excluded like in the table count above
+SELECT is(count(*)::int, 35, '35 __tenant policies on identity tables (33 + 2 tenant_contract_acceptances; event_inbox excluded)') FROM pg_policies WHERE schemaname = 'identity' AND policyname ~ '__tenant$' AND tablename <> 'event_inbox';
 -- §11 test 24 (tail): every policy whose qual or with_check mentions app.pre_ / app.maintenance is TO lims_owner only
 SELECT is(roles::text, '{lims_owner}', policyname || ' (GUC-bound) is TO lims_owner only') FROM pg_policies
  WHERE schemaname IN ('identity', 'core') AND (coalesce(qual, '') ~ 'app\.(pre_|maintenance)' OR coalesce(with_check, '') ~ 'app\.(pre_|maintenance)') AND tablename IN (SELECT relname FROM pg_class WHERE relnamespace IN ('identity'::regnamespace, 'core'::regnamespace));
 SELECT is(count(*)::int, 0, 'no identity policy applies to public/anon/authenticated') FROM pg_policies WHERE schemaname = 'identity' AND roles && ARRAY['public', 'anon', 'authenticated']::name[];
-SELECT is(count(*)::int, 0, 'only sessions and mfa_factors have __own policies (partner access, 08 A19 D-101)') FROM pg_policies WHERE schemaname = 'identity' AND policyname ~ '__own' AND tablename NOT IN ('sessions', 'mfa_factors');
+SELECT is(count(*)::int, 0, 'only sessions and mfa_factors have __own policies (partner access, 08 A19 D-101)') FROM pg_policies WHERE schemaname = 'identity' AND policyname ~ '__own($|_)' AND tablename NOT IN ('sessions', 'mfa_factors');   -- HARNESS T0B-GREEN-3: '__own' also matched the 20 `__owner_only` / `__owner_mfa_enrolled` policies (the DEFINER owner policies); '__own($|_)' is the own-row scope word only
 
 -- ===================================================================================================================================== fixtures
 -- platform staff (superadmin) for platform sessions; tenant settings A and B; membership shapes
@@ -278,6 +280,10 @@ SELECT is(pg_temp.msg(format($$INSERT INTO core.membership_branches (tenant_id, 
 SELECT is(pg_temp.st(format($$UPDATE core.memberships SET all_centres = true WHERE id = %L$$, (SELECT id FROM partner_m))), '23514', 'all_centres = true on a non-user membership -> CHECK violation');
 -- §11 test 18: is_active is GENERATED; a second invite of a user with an invited membership -> unique violation
 SELECT is(pg_temp.st($$UPDATE core.memberships SET is_active = false WHERE id = '01a1a98a-ac40-7000-8000-00000000a500'$$), '428C9', 'core.memberships.is_active is generated: write fails');
+-- HARNESS T0B-GREEN-3 (assertions 680, 681): db/seeds/010 seeds no `invited` membership (only active user / partner / patient ones), so the fixture the test selects did not exist; it is created here
+-- (a patient membership for the seeded user a300, who has only a `user` one, so the (tenant, user, actor_type) key is free) and the following assertions are unchanged.
+SELECT is(pg_temp.st(format($$INSERT INTO core.memberships (id, tenant_id, user_id, actor_type, all_centres, status, invited_at, created_by, updated_by) VALUES (%L, '01a1a98a-ac40-7000-8000-00000000a001', '01a1a98a-ac40-7000-8000-00000000a300', 'patient', false, 'invited', now(), %L, %L)$$,
+  pg_temp.uid(7000), pg_temp.sys(), pg_temp.sys())), 'ok', 'fixture: an invited patient membership of a seeded user is inserted');
 CREATE TEMP TABLE invited_m AS SELECT id, user_id, actor_type FROM core.memberships WHERE tenant_id = '01a1a98a-ac40-7000-8000-00000000a001' AND status = 'invited' ORDER BY id LIMIT 1;
 SELECT is((SELECT count(*)::int FROM invited_m), 1, 'fixture: seeded invited membership in tenant A');
 SELECT is(pg_temp.st(format($$INSERT INTO core.memberships (id, tenant_id, user_id, actor_type, all_centres, status, created_by, updated_by) VALUES (%L, '01a1a98a-ac40-7000-8000-00000000a001', %L, %L, false, 'invited', %L, %L)$$,

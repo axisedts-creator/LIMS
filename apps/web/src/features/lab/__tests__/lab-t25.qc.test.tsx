@@ -20,6 +20,7 @@ import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 import type { ReactNode } from 'react';
 import { ToastProvider } from '@lims/ui/components/Toast';
+import { t } from '@/core/i18n/messages';
 
 const nav = { push: vi.fn(), replace: vi.fn(), refresh: vi.fn(), back: vi.fn() };
 vi.mock('next/navigation', () => ({
@@ -95,7 +96,7 @@ async function fillValid(user: ReturnType<typeof userEvent.setup>, dlg: HTMLElem
 describe('QC results list — #43 (04-UI-UX §3.12)', () => {
   it('shows the exact header, the nine columns and one row per result with Instrument / Manual source; loads GET /v1/lab/qc-results with the bearer token', async () => {
     await open();
-    expect(await screen.findByRole('heading', { name: 'QC results (captured — rules arrive with the QC module)' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: t('lab.nav.qc') })).toBeTruthy();
     const heads = screen.getAllByRole('columnheader').map((h) => h.textContent?.trim());
     expect(heads).toEqual(['Time', 'Instrument', 'Analyte', 'Control', 'Lot', 'Level', 'Value', 'Unit', 'Source']);
     const rows = rowsOf();
@@ -117,7 +118,7 @@ describe('QC results list — #43 (04-UI-UX §3.12)', () => {
     const { dlg } = await openDialog();
     const text = document.body.textContent ?? '';
     expect(text).not.toMatch(/\b(pass(ed)?|fail(ed|ure)?|accept(ed|ance)?|reject(ed)?|in control|out of control|violation|westgard|enforc\w*|approved|warning|error limit)\b/i);
-    expect(text).toMatch(/rules arrive with the QC module/);
+    expect(text).toContain(t('lab.nav.qc')); // LD-340: the header is the menu label
     const html = document.body.innerHTML;
     expect(html, 'no semantic colour classes on QC rows').not.toMatch(/(danger|success|warning|text-(red|green|yellow)|bg-(red|green|yellow))/i);
     expect(within(dlg).getByRole('button', { name: /save qc result/i })).toBeTruthy();

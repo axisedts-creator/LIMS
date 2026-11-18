@@ -9,7 +9,7 @@
    - Re-running it after a reboot is safe: finished chunks are skipped, unfinished ones resume; lane windows that are already open are adopted, not duplicated.
    - Lane order below = priority: the chunks that gate the most later work (C4, C6, C5, C3, C15, C16) come first. #>
 param([string]$Integration = "C:\LIMS", [string]$LanesRoot = "C:\LIMS-lanes", [string]$StateDir = "C:\LIMS-state",
-      [int]$MaxLanes = 8, [int]$EveryMinutes = 3, [int]$MinFreeGB = 60, [int]$ResetExtra = 1, [switch]$NoPush)
+      [int]$MaxLanes = 5, [int]$EveryMinutes = 3, [int]$MinFreeGB = 60, [int]$ResetExtra = 1, [switch]$NoPush)
 
 $C0 = "C0-foundation-contracts"
 $log = Join-Path $StateDir "logs\queue.log"
@@ -25,9 +25,20 @@ if ($others.Count) { Q "another queue is already running (pid $($others[0].Proce
 # (balanced by file affinity and dependency order, generated 2026-11-07 from the task lists in C:\LIMS-state\tasks).
 $Queue = @(
   @{ name="C0-0A"; chunk=$C0; filter='^(T0A-|SP-|T0-)'; after=@() },
-  @{ name="C0-0B"; chunk=$C0; filter='^T0B-'; after=@() },
-  @{ name="C0-0C"; chunk=$C0; filter='^T0C-'; after=@() },
-  @{ name="C0-0D"; chunk=$C0; filter='^T0D-(?!UI-)'; after=@() },
+  # 2026-11-17 lead, founder go 12:02 NPT (LD-325): C0 split into streams so API work runs in parallel (see C:\LIMS-state\parallel-layout-20261117.md). Filters are disjoint; MaxLanes 6.
+  @{ name="C0-0B"; chunk=$C0; filter='^T0B-(?!(BOOTGATE|TESTMGMT|VERLEVEL|TESTIMPORT|PRINTCFG|CONTENT|FILESTREAM|SYNC|FINCTRL|PRICETOOLS|SALES|PARTYSET|MISREPORTS|MSGDESK)-)'; after=@() },   # REGAPI, ACCT, TESTFIX, STORAGE, GOLIVE, leftovers
+  @{ name="C0-0G"; chunk=$C0; filter='^T0B-(BOOTGATE|TESTMGMT|VERLEVEL|TESTIMPORT|PRINTCFG|CONTENT|FILESTREAM)-'; after=@() },   # BOOTGATE first, then the catalog and report stream
+  @{ name="C0-0C"; chunk=$C0; filter='^T0C-(?!(REGPARITY-3$|SYNC-|FINCTRL-|PRICETOOLS-|SALES-|PARTYSET-|MISREPORTS-|ACCTFIX-1$|VERLEVEL-1$))'; after=@() },   # contracts, catalog and report stream (TESTMGMT, VERLEVEL, TESTIMPORT, PRINTCFG, CONTENT)
+  @{ name="C0-0M"; chunk=$C0; filter='^T0C-(REGPARITY-3$|SYNC-|FINCTRL-|PRICETOOLS-|SALES-|PARTYSET-|MISREPORTS-)'; after=@() },   # 2026-11-17 lead, founder go 13:19 NPT (LD-330): second contract lane: registration number preview fix, sync, price tools, sales, party settings, MIS reports, message desk
+  @{ name="C0-0N"; chunk=$C0; filter='^T0C-(ACCTFIX|VERLEVEL)-1$'; after=@() },   # 2026-11-17 lead (LD-335, founder asked to speed up 19:19 NPT): critical path contracts: ACCTFIX-1 unblocks T0B-ACCT-2, VERLEVEL-1 starts the verification level API. The older contract lane windows still carry broad filters, so they were busy with another lane task
+  @{ name="C0-0D"; chunk=$C0; filter='^T0D-(?!UI-)(?!(TESTMGMT|TESTIMPORT|VERLEVEL|PRINTCFG|OFFLINE|FINCTRL|PRICETOOLS|SALES|PARTYSET|MISREPORTS|MSGDESK)-)(?!(UIDASH-1|UICONSOLE-1|UICONSOLE-2|UILIST-1|UILIST-2)$)'; after=@() },   # registration, accounting, content, engbook, bundle, UIKIT-1, UILIST-3, UISCAN, UISETTINGS, UIREPORT, UIGUARD (2026-11-18 lead, LD-364: five UI rows moved to C0-0P and C0-0Q)
+  @{ name="C0-0P"; chunk=$C0; filter='^T0D-(UIDASH-1|UICONSOLE-1|UICONSOLE-2)$'; after=@() },   # 2026-11-18 lead, founder asked to increase the lanes 07:29 NPT (LD-364): UI plan rows that wait only for T0D-UIKIT-1 run in parallel: dashboards and consoles
+  @{ name="C0-0Q"; chunk=$C0; filter='^T0D-(UILIST-1|UILIST-2)$'; after=@() },   # 2026-11-18 lead (LD-364): UI plan list screens, two of the three
+  @{ name="C0-0K"; chunk=$C0; filter='^T0D-(TESTMGMT|TESTIMPORT|VERLEVEL|PRINTCFG|OFFLINE)-'; after=@() },                          # screens: tests, verification, print, offline
+  @{ name="C0-0H"; chunk=$C0; filter='^T0B-(SYNC|FINCTRL)-'; after=@() },                                                           # sync API stream
+  @{ name="C0-0I"; chunk=$C0; filter='^T0B-(PRICETOOLS|SALES|PARTYSET)-'; after=@() },                                              # price tools, sales, party settings API
+  @{ name="C0-0J"; chunk=$C0; filter='^T0B-(MISREPORTS|MSGDESK)-'; after=@() },                                                     # MIS reports and message desk API
+  @{ name="C0-0L"; chunk=$C0; filter='^T0D-(FINCTRL|PRICETOOLS|SALES|PARTYSET|MISREPORTS|MSGDESK)-'; after=@() },                   # screens for the last six modules
   # 2026-11-13 lead: the restyle tasks (T0D-UI-R*) were split off C0-0D so they run in parallel with T0D-18 (they touch packages/ui and apps/web/src/core/shell, T0D-18 touches services/api/src/core). R05 (Flutter) is not on the critical path of the RS lanes, so it has its own lane.
   @{ name="C0-0E"; chunk=$C0; filter='^(T0D-UI-R01|T0D-UI-R02|T0D-UI-R03|T0D-UI-R04|T0D-UI-R07)$'; after=@() },
   @{ name="C0-0F"; chunk=$C0; filter='^T0D-UI-R05$'; after=@() },
@@ -63,7 +74,7 @@ $Queue = @(
   @{ name="C2"; chunk="C2-identity-admin"; filter='^(T1|T11|T27|T6|T9|T7|T8|T12|T10|T18|T17|T19|T20|T25|T28|T29)$'; after=@($C0) },
   @{ name="C2b"; chunk="C2-identity-admin"; filter='^(T2|T3|T4|T5|T16|T13|T14|T31|T15|T21|T22|T23|T24|T26|T30|RM-T0[1-5])$'; after=@($C0) },
   @{ name="C7"; chunk="C7-instrument-integration"; filter='^(AG-T01|AG-T02|AG-T04|AG-T05|AG-T06|API-T02|API-T04|API-T14|AG-T11|AG-T10|AG-T13|AG-T17|AG-T14|AG-T12|AG-T15|AG-T16|AG-T18|INT-T01|WEB-T01|WEB-T02|WEB-T03|WEB-T06|WEB-T07)$'; after=@($C0) },
-  @{ name="C7b"; chunk="C7-instrument-integration"; filter='^(API-T01|AG-T03|AG-T08|AG-T07|AG-T09|API-T03|API-T07|API-T08|API-T06|API-T05|API-T09|API-T16|API-T10|API-T15|API-T11|API-T12|API-T13|INT-T03|WEB-T05|WEB-T04|H80-T0[1-8])$'; after=@($C0) },
+  @{ name="C7b"; chunk="C7-instrument-integration"; filter='^(API-T01|AG-T03|AG-T08|AG-T07|AG-T09|API-T03|API-T07|API-T08|API-T06|API-T05|API-T09|API-T16|API-T10|API-T15|API-T11|API-T12|API-T13|INT-T03|WEB-T05|WEB-T04|H80-T0[1-8]|MET-T0[1-7])$'; after=@($C0) },
   @{ name="C8"; chunk="C8-analytics-mis"; filter='^(AN-T01|AN-T02|AN-T03|AN-T07|AN-T08|AN-T09|AN-T10|AN-T14|AN-T15|AN-T22|AN-T15b|AN-T16|AN-T21)$'; after=@($C0) },
   @{ name="C8b"; chunk="C8-analytics-mis"; filter='^(AN-T04|AN-T05|AN-T06|AN-T12|AN-T13|AN-T11|AN-T17|AN-T18|AN-T19|AN-T20|AN-T24|AN-T23)$'; after=@($C0) },
   # 2026-11-13 lead: restyle lanes (spec/program/10-DESIGN-SYSTEM.md). Each runs one RS-<chunk> task and starts only after C0 task T0D-UI-R07 is done (need=).
@@ -90,7 +101,7 @@ function Finished($chunk, $filter = '.*') {
 }
 # gate for "after": a chunk counts as finished for the chunks that wait on it when every task is done or blocked, except leaf tasks nothing else needs yet.
 # Those keep running in their own lane while the next chunks start (they still have to reach done before the build is accepted).
-$GateIgnore = @{ "C0-foundation-contracts" = @("T0B-11","T0C-10.C9","T0C-10.C10","T0C-10.C11","T0C-10.C12","T0C-10.C13","T0C-10.C14","T0C-10.C15","T0C-10.C16","T0C-10.C17","T0D-12c","T0D-12d","T0D-UI-R01","T0D-UI-R02","T0D-UI-R03","T0D-UI-R04","T0D-UI-R05","T0D-UI-R07"); "C2-identity-admin" = @("RS-C2"); "C3-catalog-pricing" = @("RS-C3"); "C4-frontdesk-billing" = @("RS-C4"); "C5-lab-workflow" = @("RS-C5"); "C6-reporting-delivery" = @("RS-C6"); "C7-instrument-integration" = @("RS-C7"); "C8-analytics-mis" = @("RS-C8"); "C15-payment-gateways" = @("RS-C15") }   # C0: per-tenant billing export + live restore proof (AC-0B-6.4): no task depends on it. RS-*: the restyle passes (LD-140) do not hold up the chunks that wait on these chunks (2026-11-13 lead; without this C9-C17 waited for RS-C3..RS-C15)
+$GateIgnore = @{ "C0-foundation-contracts" = @("T0B-11","T0C-10.C9","T0C-10.C10","T0C-10.C11","T0C-10.C12","T0C-10.C13","T0C-10.C14","T0C-10.C15","T0C-10.C16","T0C-10.C17","T0D-12c","T0D-12d","T0D-UI-R01","T0D-UI-R02","T0D-UI-R03","T0D-UI-R04","T0D-UI-R05","T0D-UI-R07","T0D-DEP-01","T0D-DEP-02"); "C2-identity-admin" = @("RS-C2"); "C3-catalog-pricing" = @("RS-C3"); "C4-frontdesk-billing" = @("RS-C4"); "C5-lab-workflow" = @("RS-C5"); "C6-reporting-delivery" = @("RS-C6"); "C7-instrument-integration" = @("RS-C7"); "C8-analytics-mis" = @("RS-C8"); "C15-payment-gateways" = @("RS-C15") }   # C0: per-tenant billing export + live restore proof (AC-0B-6.4): no task depends on it. RS-*: the restyle passes (LD-140) do not hold up the chunks that wait on these chunks (2026-11-13 lead; without this C9-C17 waited for RS-C3..RS-C15)
 # 2026-11-11 lead: wave-2 chunks need their own contracts/openapi file (C0 task T0C-10.Cxx) before a lane may start; GateIgnore keeps these tasks from closing the C0 gate for everyone else
 $Wave2Need = @{ "C9-quality-engine"="T0C-10.C9"; "C10-microbiology"="T0C-10.C10"; "C11-specialty-pathology"="T0C-10.C11"; "C12-inventory"="T0C-10.C12"; "C13-b2b-partner-portal"="T0C-10.C13"; "C14-smart-report"="T0C-10.C14"; "C15-payment-gateways"="T0C-10.C15"; "C16-patient-engagement"="T0C-10.C16"; "C17-home-collection"="T0C-10.C17" }
 function TaskDone($chunk, $id) { $t = Get-Tasks $chunk; if (-not $t) { return $false }; @($t | Where-Object { $_.id -eq $id -and $_.status -eq 'done' }).Count -eq 1 }
@@ -208,7 +219,19 @@ while ($true) {
               }
             }
           } catch { }
-          if (-not $healed) { git -C $wt merge --abort 2>&1 | Out-Null; $mf = "merge of main failed and was aborted: " + ((@($mo) -join ' ') -replace '\s+', ' ') }
+          if (-not $healed) {
+            $mo2 = ((@($mo) -join ' ') -replace '\s+', ' ')
+            git -C $wt merge --abort 2>&1 | Out-Null
+            git -C $wt rev-parse -q --verify MERGE_HEAD 2>&1 | Out-Null
+            if ($LASTEXITCODE -eq 0) { $mf = "merge of main failed and could not be aborted: " + $mo2 }   # still half-merged: never start on it
+            else {
+              # lead 2026-11-14 (founder go 'yes queue fix'): a clean abort leaves the lane on its old base, which is no reason to idle it. run.ps1 merges main again at every task start
+              # and calls the merger agent on conflicts (STALE LANE fallback = old base). Before this change C12b and C13b sat idle after a real code conflict.
+              if (-not $script:MergeWarned) { $script:MergeWarned = @{} }
+              $wkey = 'S:' + $mo2
+              if ($script:MergeWarned[$l.name] -ne $wkey) { $script:MergeWarned[$l.name] = $wkey; Q "LANE $($l.name): merge of main conflicts and was aborted - starting on the old base; run.ps1 retries at each task start with the merger agent. $($mo2.Substring(0, [Math]::Min(300, $mo2.Length)))" }
+            }
+          }
         }
       }
       if ($mf) {

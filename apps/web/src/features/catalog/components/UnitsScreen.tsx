@@ -14,6 +14,7 @@ import { VisuallyHidden } from '@lims/ui/components/VisuallyHidden';
 import { createMasterAction, updateMasterAction } from '../server/actions';
 import { UNIT_CODE_RE, VALUE_CODE_RE, VALUE_SET_CODE_RE, type Unit, type ValueSet, type ValueSetValue } from '../server/types';
 import { DUPLICATE, EditorDialog, MasterTable, canManage, changed, statusText, useListShortcuts, type Col } from './master-ui';
+import { t } from '@/core/i18n/messages';
 
 const scope = (r: { scope: 'global' | 'tenant' }) => (r.scope === 'global' ? 'Global' : 'Lab');
 const SYSTEM = 'Provided by the system';
@@ -34,7 +35,7 @@ export function UnitsScreen({ units, valueSets, permissions }: { units: readonly
     : <Button variant="primary" onPress={() => setSetEditing('new')}>New value set</Button>;
   return (
     <section aria-label="Units & value sets">
-      <PageHeader title="Units & value sets" helpKey="catalog.units" breadcrumbs={[{ label: 'Catalog', href: '/catalog' }, { label: 'Units & value sets' }]} {...(action ? { actions: action } : {})} />
+      <PageHeader title={t('catalog.nav.units')} helpKey="catalog.units" {...(action ? { actions: action } : {})} />
       {manage ? null : <p className="lims-state-body">{READ_ONLY}</p>}
       <Tabs aria-label="Units & value sets" items={[{ id: 'units', label: 'Units' }, { id: 'value_sets', label: 'Value sets' }]} selectedId={tab} onChange={setTab}>
         {tab === 'units'
@@ -58,7 +59,7 @@ function UnitsTab({ rows, manage, editing, setEditing }: { rows: readonly Unit[]
   return (
     <>
       {tenantOnly ? <p className="lims-state-body">Only global units are available. Add a lab-specific unit if needed.</p> : null}
-      <MasterTable caption="Units" cols={cols} rows={rows} empty="No units yet. Add a unit" emptyAction={openNew ? { label: 'New unit', onPress: openNew } : undefined} rowExtra={lock} canEdit={(r) => r.scope === 'tenant'} onEdit={manage ? setEditing : undefined} />
+      <MasterTable caption="Units" cols={cols} rows={rows} empty="No test units yet. Add a unit" emptyAction={openNew ? { label: 'New unit', onPress: openNew } : undefined} rowExtra={lock} canEdit={(r) => r.scope === 'tenant'} onEdit={manage ? setEditing : undefined} />
       {editing ? <UnitDialog item={editing === 'new' ? undefined : editing} onClose={() => setEditing(null)} /> : null}
     </>
   );

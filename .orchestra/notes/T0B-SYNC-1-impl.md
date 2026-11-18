@@ -1,0 +1,8 @@
+# T0B-SYNC-1 impl (writer)
+- Files: services/api/src/core/sync/{index,devices.service,blocks.service,repository,mappers}.ts; core/bootstrap.ts (merges syncHandlers over health), core/core-pending.ts (list now []), core/openapi.ts (exports withoutPendingBearer), core/pipeline/index.ts.
+- [CONV] pipeline portsView: core reads IdentityPort through the frontdesk consumer view (PORT_CONSUMERS has no 'core'); handlers call assertRole themselves because stage 8a is shadow (LD-261). Every other port stays refused for core.
+- [CONV] bootstrap: without LIMS_CORE_JWT_* the core bearer sync ops are not mounted (fail closed, 404, warn core_sync_unmounted). This is outside the brief's file list; the ruling left it for the reviewer.
+- Blocks are carved from lab.barcode_counters / frontdesk.number_counters inside one transaction with a row lock; the number_block_overlap trigger stays on. Bills and receipts are never blocks (LD-322 (1)).
+- Tests: whole src/core suite on the throwaway PG17, 5 runs. Runs 3, 4 and 5 passed back to back (3039 passed, 31 skipped). Run 1 failed jwt.test.ts "last char flipped" and run 2 failed bff-session (a) with a 19 s timeout under load; that file passes 158/158 when run alone. tsc clean.
+- Review fix: blocks.service.ts foreign centre_id now throws invalid('/centre_id') (common.validation_failed, declared by reserveNumberBlock; no 404 in the contract). Whole src/core suite on throwaway PG17: 3 runs back to back green (3039 passed, 31 skipped); tsc clean.
+- Open: jwt.test.ts:75 is flaky. It checks the last char but replaces the second-to-last one, so about 1 run in 64 leaves the token unchanged. It is a test file, so the tester owns the fix. bff-session (a) can time out when the full suite is under load.

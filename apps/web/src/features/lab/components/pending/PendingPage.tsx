@@ -4,6 +4,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { EmptyRow, PlaceholderRows } from '@lims/ui/components/DataTable';
 import { EmptyState } from '@lims/ui/components/EmptyState';
+import { PageHeader } from '@lims/ui/components/PageHeader';
+import { t } from '@/core/i18n/messages';
 import { listPendingAction } from '../../server/worklist.actions';
 import type { ActionResult, PendingItem } from '../../server/types';
 import { Failure, hhmm, statusLabel } from '../shared';
@@ -28,7 +30,8 @@ export function PendingPage({ permissions: _permissions }: { permissions?: reado
 
   return (
     <section aria-label="Pending tests">
-      <h1>Pending tests</h1>
+      {/* T0D-ELABMENU-3 (LD-340): heading = ElabAssist menu label, drawn by the shared PageHeader */}
+      <PageHeader title={t('lab.nav.pending')} helpKey="lab.pending" />
       <label><input type="checkbox" checked={overOnly} onChange={(e) => setOverOnly(e.target.checked)} /> Over target only</label>
       {load.s === 'fail' ? <Failure r={load.r} onRetry={retry} /> : null}
       {/* T0D-EMPTYTBL-1 (LD-310): once loaded the table is always drawn; an empty list shows its message as a body row. Loading / failure unchanged. */}

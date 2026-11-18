@@ -1,0 +1,6 @@
+# T0B-GREEN-2 tests (tester)
+- Edited (pgTAP): homecollection C17 schema+anonymise, partners C13 schema+behaviour, migration_staging C18 schema+behaviour, instruments C7 schema+behaviour, lab C5 schema, reporting C6 schema, storage T0B-12, views C9-T20, policy T0B-08. New: tests/db/T0B-GREEN-2.pgtap.test.mjs (wraps run-suites.sh over all 23 suites of the 10 directories).
+- Run: `.orchestra/notes/T0B-GREEN-2-verify.cmd` (node --test tests/db/T0B-GREEN-2.pgtap.test.mjs, ~4 min, needs docker). Single suite: `bash db/tests/run-suites.sh db/tests/<dir>/<file>.test.sql`.
+- Result: 50 not ok + 3 psql aborts before (founder baseline suites re-run 2026-11-17), 0 after; STALE 21, HARNESS 29 + 3 aborts, REAL 0 parked. One TAP SKIP (storage bucket existence on the empty harness stub, LD-54).
+- Per assertion classification, per-suite before/after, what each changed assertion proves now: .orchestra/notes/T0B-GREEN-2.md. CR: .orchestra/cr/T0B-GREEN-2.migration-staging-loader-role.nonblocking.md (also cites CR-C0-T0B-GREEN-1-004 for the device guard).
+- Not covered: db/tests/isolation, immutability, roles, grants, definers and the other directories (T0B-GREEN-1 / other tasks); bucket existence on a provisioned Storage (needs the real API).

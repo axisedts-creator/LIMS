@@ -23,8 +23,12 @@ CREATE TEMP TABLE append_only(tbl) AS
   UNION SELECT 'core.event_log' WHERE to_regclass('core.event_log') IS NOT NULL
   UNION SELECT n.nspname || '.' || c.relname FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
          WHERE c.relname = 'event_inbox' AND c.relkind = 'r' AND n.nspname NOT IN ('pg_catalog','information_schema');
+-- LD-257 / migration 20261116020000: reporting.provider_events keeps its UPDATE grant (narrowed by policy to the system actor while applied_at IS NULL, not by REVOKE), so it is excluded here and asserted TRUE below
 SELECT is(has_table_privilege(a.r, o.tbl, 'UPDATE'), false, 'AC-0B-4.3 ' || a.r || ' has no UPDATE on ' || o.tbl)
-  FROM append_only o, app_roles a;
+  FROM append_only o, app_roles a WHERE o.tbl <> 'reporting.provider_events';
+-- LD-257 / migration 20261116020000: provider_events UPDATE grant exists for the three application roles (policy provider_events__update__tenant narrows it)
+SELECT is(has_table_privilege(a.r, 'reporting.provider_events', 'UPDATE'), true, 'LD-257 ' || a.r || ' keeps the UPDATE grant on reporting.provider_events (narrowed by policy)')
+  FROM app_roles a WHERE to_regclass('reporting.provider_events') IS NOT NULL;
 SELECT is(has_table_privilege(a.r, o.tbl, 'DELETE'), false, 'AC-0B-4.3 ' || a.r || ' has no DELETE on ' || o.tbl)
   FROM append_only o, app_roles a;
 SELECT ok(count(*) >= 2, 'AC-0B-4.3 the append-only set contains at least audit.audit_log and audit.access_log') FROM append_only;

@@ -63,7 +63,7 @@ export function TestsList({ rows, filters, page, pages, filtered, departments, s
 
   return (
     <section aria-label={t('catalog.tests.list_label')}>
-      <PageHeader title={t('catalog.tests.title')} helpKey="catalog.tests" breadcrumbs={[{ label: t('catalog.nav.home'), href: '/catalog' }, { label: t('catalog.tests.title') }]} actions={newButton} />
+      <PageHeader title={t('catalog.tests.title')} helpKey="catalog.tests" actions={newButton} />
       {manage ? null : <p className="lims-description">{t('catalog.tests.need_manage')}</p>}
       <div className="lims-filter-bar">
         <div onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); go({ q: q.trim().slice(0, 100) }); } }}>

@@ -64,6 +64,15 @@ CREATE TEMP TABLE tc(q) AS VALUES ('micro.cultures'),('micro.culture_transitions
 -- ===================================================================================================================================== fixtures (superuser, replica block)
 -- C10 check 8: configuration, breakpoint sets, cultures + children, instrument records of tenant A (centres a201 / a202) and tenant B (b201)
 SET LOCAL session_replication_role = replica;      -- FIXTURE-ONLY: FK parents of other chunks are not built; RLS, CHECK, NOT NULL stay on; reset to origin below
+-- T0B-GREEN-1 HARNESS (C11 precedent): PostgreSQL re-checks a foreign key on UPDATE for rows inserted by the same transaction, so the pass-case UPDATEs of cultures (check 14) / instrument_records / the isolate counter (check 15) failed with
+-- E23503 on a parent this fixture never builds instead of exercising the guard under test. The constraints towards frontdesk orders / items / patients, catalog tests and instruments (none has a fixture row here) are dropped for this rolled-back
+-- transaction only. The lab.specimens parents ARE built below (the specimen FKs stay live, so check 14's "only the missing lab.specimens parent stops the re-point" assertion keeps its meaning: it re-points to uid(1), which has no row).
+ALTER TABLE micro.cultures DROP CONSTRAINT IF EXISTS cultures__order__fk, DROP CONSTRAINT IF EXISTS cultures__order_item__fk, DROP CONSTRAINT IF EXISTS cultures__patient__fk, DROP CONSTRAINT IF EXISTS cultures__test__fk;
+ALTER TABLE micro.instrument_records DROP CONSTRAINT IF EXISTS instrument_records__instrument__fk;
+SELECT pg_temp.ins('lab.specimens', jsonb_build_object('id', pg_temp.uid(s.n), 'tenant_id', s.t, 'centre_id', s.c, 'order_id', pg_temp.uid(8000 + s.n), 'patient_id', pg_temp.uid(8300), 'barcode', 'MC' || s.n, 'creation_key', 'mc-' || s.n,
+    'specimen_type_code', 'urine', 'priority', 'routine', 'patient_sex', 'female', 'status', 'ordered', 'ordered_at', now()))
+  FROM (VALUES (8501, pg_temp.ta(), pg_temp.id('00000000a201')), (8502, pg_temp.ta(), pg_temp.id('00000000a202')), (8503, pg_temp.tb(), pg_temp.id('00000000b201')), (8504, pg_temp.ta(), pg_temp.id('00000000a201')),
+               (8505, pg_temp.ta(), pg_temp.id('00000000a201')), (8506, pg_temp.ta(), pg_temp.id('00000000a201')), (8301, pg_temp.ta(), pg_temp.id('00000000a201')), (8303, pg_temp.tb(), pg_temp.id('00000000b201'))) s(n, t, c);
 SELECT pg_temp.ins('micro.settings', jsonb_build_object('id', pg_temp.uid(r.n), 'tenant_id', r.t)) FROM (VALUES (511, pg_temp.ta()), (512, pg_temp.tb())) r(n, t);
 SELECT pg_temp.ins('micro.cs_organisms', jsonb_build_object('id', pg_temp.uid(r.n), 'tenant_id', r.t, 'code', r.c, 'display', r.d, 'is_alert', r.al))
   FROM (VALUES (521, pg_temp.ta(), 'escherichia_coli', 'Tenant E. coli', true), (522, pg_temp.tb(), 'b_only_organism', 'B only', false)) r(n, t, c, d, al);
@@ -152,9 +161,9 @@ SELECT matches(pg_temp.ua(pg_temp.m('a50a'), 'INSERT INTO micro.culture_transiti
 -- C10 check 11: non-staff actors (AC-0B-3.6), device actors (§10 item 8, review m#30) and fail-closed without claims (AC-0B-3.7)
 SELECT is(pg_temp.x('lims_app', pg_temp.cl(pg_temp.ta(), k.t, pg_temp.m('a500')), 'SELECT 1 FROM ' || tt.q, 'n'), 'n=0', 'C10 check 11 / AC-0B-3.6: ' || k.t || ' actor sees 0 rows of ' || tt.q) FROM tt CROSS JOIN (VALUES ('partner'),('portal'),('patient')) k(t);
 SELECT is(pg_temp.x('lims_app', pg_temp.cl(pg_temp.ta(), 'device') || jsonb_build_object('centre_id', pg_temp.id('00000000a201')), 'SELECT 1 FROM ' || q, 'n'), 'n=0', 'C10 check 11 / §10 item 8: a device actor of centre A1 sees 0 rows of centre-scoped ' || q) FROM tc;
-SELECT is(pg_temp.x('lims_app', pg_temp.cl(pg_temp.ta(), 'portal', pg_temp.m('a500')), 'UPDATE micro.settings SET recent_window_days = 5'), 'n=0', 'C10 check 11 / AC-0B-3.6: a portal actor updates 0 settings');
+SELECT is(pg_temp.x('lims_app', pg_temp.cl(pg_temp.ta(), 'portal', pg_temp.m('a500')), 'UPDATE micro.settings SET recent_window_days = 5', 'w'), 'n=0', 'C10 check 11 / AC-0B-3.6: a portal actor updates 0 settings');
 SELECT matches(pg_temp.x('lims_app', pg_temp.cl(pg_temp.ta(), 'partner', pg_temp.m('a500')), 'INSERT INTO micro.specimen_isolate_counters (tenant_id, specimen_id, last_seq, created_by, updated_by) VALUES (' || quote_literal(pg_temp.ta()) || ', ' || quote_literal(pg_temp.uid(8399)) || ', 0, '
-  || quote_literal(pg_temp.sys()) || ', ' || quote_literal(pg_temp.sys()) || ')'), '^E42501\|', 'C10 check 11 / AC-0B-3.6: a partner actor cannot INSERT');
+  || quote_literal(pg_temp.sys()) || ', ' || quote_literal(pg_temp.sys()) || ')', 'w'), '^E42501\|', 'C10 check 11 / AC-0B-3.6: a partner actor cannot INSERT');
 SELECT is(pg_temp.x('lims_api', NULL, 'SELECT 1 FROM ' || q, 'n'), 'n=0', 'C10 check 11 / AC-0B-3.7: no claims -> lims_api sees 0 rows of ' || q) FROM tt;
 SELECT is(pg_temp.x('lims_api', '{}'::jsonb, 'SELECT 1 FROM ' || q, 'n'), 'n=0', 'C10 check 11 / AC-0B-3.7: empty claims -> 0 rows of ' || q) FROM tt;
 SELECT is(pg_temp.x('lims_api', NULL, 'SELECT 1 FROM micro.v_pub_report_content', 'n'), 'n=0', 'C10 check 11 / AC-0B-3.7: no claims -> the invoker view returns 0 rows');

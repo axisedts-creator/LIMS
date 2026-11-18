@@ -37,6 +37,8 @@ CREATE FUNCTION pg_temp.sys() RETURNS text LANGUAGE sql AS $$   -- core system a
   SELECT jsonb_build_object('actor_type','system','sub',pg_temp.id('90'),'scope','system')::text $$;
 
 -- ---------- fixtures: tenants A (active) B (suspended) C (offboarded), platform staff, tenant users with email_hmac ----------
+-- T0B-GREEN-3 (LD-268, HARNESS): run-suites.sh loads seed 010 (tenant_a / tenant_b, both active) before every suite; snapshot them so "exactly the fixtures" becomes "fixtures + the seeded rows".
+CREATE TEMP TABLE seed_tenants AS SELECT id, code, status FROM (SELECT id, tenant_code AS code, status FROM core.tenants) s;
 SET LOCAL session_replication_role = replica;
 INSERT INTO core.tenants (id, tenant_code, legal_name, display_name, status, created_by, updated_by) VALUES
   (pg_temp.id('01'), 'lab_a', 'Lab A Pvt Ltd', 'Lab A', 'active',     pg_temp.id('99'), pg_temp.id('99')),
@@ -54,7 +56,8 @@ SELECT pg_temp.chk(to_regprocedure('app.cron_tenant_ids()') IS NOT NULL, (SELECT
   'schema test 22: core.tenants has relforcerowsecurity = true before app.cron_tenant_ids runs');
 SELECT pg_temp.chk(to_regprocedure('app.cron_tenant_ids()') IS NOT NULL,
   pg_temp.x('lims_worker', pg_temp.sys(), format($q$WITH r AS MATERIALIZED (SELECT array_agg(c ORDER BY c) a FROM app.cron_tenant_ids() c)
-     SELECT (a = ARRAY[%L, %L]::uuid[])::text || ':' || coalesce(current_setting('app.maintenance', true), '<null>') FROM r$q$, pg_temp.id('01'), pg_temp.id('02'))),
+     SELECT (a = %L::uuid[])::text || ':' || coalesce(current_setting('app.maintenance', true), '<null>') FROM r$q$,
+     (SELECT array_agg(id ORDER BY id)::text FROM (SELECT id FROM seed_tenants WHERE status IN ('active', 'suspended') UNION SELECT pg_temp.id('01') UNION SELECT pg_temp.id('02')) s))),
   'true:', 'schema test 22: cron_tenant_ids returns exactly the active and suspended ids, and app.maintenance is '''' afterwards');
 SELECT pg_temp.chk(to_regprocedure('app.cron_tenant_ids()') IS NOT NULL,
   (SELECT has_function_privilege('lims_api', to_regprocedure('app.cron_tenant_ids()'), 'EXECUTE')::text), 'false', 'schema test 22: lims_api has no EXECUTE on cron_tenant_ids');
@@ -83,11 +86,11 @@ SELECT pg_temp.chk(to_regprocedure('app.platform_list_tenants(text,text,text,tim
   (SELECT (c.relforcerowsecurity AND s.relforcerowsecurity)::text FROM pg_class c, pg_class s WHERE c.oid = 'core.tenants'::regclass AND s.oid = 'identity.platform_staff'::regclass), 'true',
   'schema test 16: core.tenants and identity.platform_staff have relforcerowsecurity = true');
 SELECT pg_temp.chk(to_regprocedure('app.platform_list_tenants(text,text,text,timestamptz,uuid,integer)') IS NOT NULL,
-  pg_temp.x('lims_api', pg_temp.pcl('61','81'), $$SELECT * FROM app.platform_list_tenants('code')$$, 'n'), 'n=3', 'schema test 16(a): platform claims list every seeded tenant once');
+  pg_temp.x('lims_api', pg_temp.pcl('61','81'), $$SELECT * FROM app.platform_list_tenants('code')$$, 'n'), 'n=' || (3 + (SELECT count(*) FROM seed_tenants)), 'schema test 16(a): platform claims list every seeded tenant once (3 fixtures + the seed 010 tenants)');
 SELECT pg_temp.chk(to_regprocedure('app.platform_list_tenants(text,text,text,timestamptz,uuid,integer)') IS NOT NULL,
-  pg_temp.x('lims_api', pg_temp.pcl('61','81'), $$SELECT * FROM app.platform_list_tenants('code', 'active')$$, 'n'), 'n=1', 'schema test 16(a): p_status narrows');
+  pg_temp.x('lims_api', pg_temp.pcl('61','81'), $$SELECT * FROM app.platform_list_tenants('code', 'active')$$, 'n'), 'n=' || (1 + (SELECT count(*) FROM seed_tenants WHERE status = 'active')), 'schema test 16(a): p_status narrows (fixture lab_a + the active seed tenants; suspended lab_b and offboarded lab_c are excluded)');
 SELECT pg_temp.chk(to_regprocedure('app.platform_list_tenants(text,text,text,timestamptz,uuid,integer)') IS NOT NULL,
-  pg_temp.x('lims_api', pg_temp.pcl('61','81'), $$SELECT string_agg(tenant_code, ',' ORDER BY ordinality) FROM app.platform_list_tenants('code') WITH ORDINALITY$$), 'lab_a,lab_b,lab_c', 'schema test 16(a): code order ascending');
+  pg_temp.x('lims_api', pg_temp.pcl('61','81'), $$SELECT string_agg(tenant_code, ',' ORDER BY ordinality) FROM app.platform_list_tenants('code') WITH ORDINALITY$$), (SELECT string_agg(code, ',' ORDER BY code) FROM (SELECT code FROM seed_tenants UNION SELECT c FROM unnest(ARRAY['lab_a', 'lab_b', 'lab_c']) c) s), 'schema test 16(a): code order ascending');
 SELECT pg_temp.chk(to_regprocedure('app.platform_list_tenants(text,text,text,timestamptz,uuid,integer)') IS NOT NULL,
   pg_temp.x('lims_api', pg_temp.pcl('61','81', 'aal1'), $$SELECT * FROM app.platform_list_tenants('code')$$, 'n'), 'n=0', 'schema test 16: aal1 platform claims -> 0 rows');
 SELECT pg_temp.chk(to_regprocedure('app.platform_list_tenants(text,text,text,timestamptz,uuid,integer)') IS NOT NULL,

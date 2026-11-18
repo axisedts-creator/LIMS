@@ -6,6 +6,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import axe from 'axe-core';
+import { t } from '@/core/i18n/messages';
 import { http, HttpResponse } from 'msw';
 import { ToastProvider } from '@lims/ui/components/Toast';
 import { BANNER_TEXT, BARCODE, FLAG_ENV, ID, INSTRUMENT_A, LIST, OPEN_STATUSES, ORIGIN, PERM_READ, PERM_WORK, api, clean, hit, instrumentList, orgRec, problem, rec, recordList, resetHits, router, rowAction, state, statusChip, useRecords } from './t23.harness';
@@ -73,7 +74,7 @@ describe('layout and columns (§4)', () => {
   it('h1 "Micro instrument data", no primary button on the page (LD-140: no page action)', async () => {
     useRecords(ALL);
     await show();
-    expect(screen.getByRole('heading', { level: 1, name: /^micro instrument data$/i })).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 1, name: t('micro.nav.instrument_records') })).toBeTruthy();
     expect(document.querySelectorAll('button.lims-btn-primary')).toHaveLength(0);
   });
   it('columns: Received, Instrument, Kind, Barcode, Isolate no., Code, Value, Status, Reason', async () => {

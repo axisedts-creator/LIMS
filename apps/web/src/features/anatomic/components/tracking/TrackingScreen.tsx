@@ -158,7 +158,7 @@ export function TrackingScreen({ tab, canWork, sentOut }: { tab: TrackingTab; ca
 
   return (
     <>
-      <PageHeader title="Block & slide tracking" helpKey="anatomic.tracking" breadcrumbs={[{ label: 'Pathology cases', href: '/anatomic' }, { label: 'Block & slide tracking' }]} />
+      <PageHeader title="Block & slide tracking" helpKey="anatomic.tracking" />
       <Tabs
         aria-label="Tracking sections"
         items={[{ id: 'lookup', label: 'Lookup' }, { id: 'sent_out', label: 'Sent out' }]}

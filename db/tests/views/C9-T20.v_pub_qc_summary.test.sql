@@ -10,11 +10,13 @@ SELECT * FROM no_plan();
 SELECT has_view('quality', 'v_pub_qc_summary', 'the published view exists');
 SELECT columns_are('quality', 'v_pub_qc_summary', ARRAY['tenant_id','instrument_id','analyte_id','business_date','runs','accepted_runs','rejected_runs','warnings','last_in_control_run_at'],
   'AC-15.1 exactly the 03-IC §6.7 columns (no more, no fewer)');
-SELECT col_type_is('quality', 'v_pub_qc_summary', 'tenant_id', 'uuid'); SELECT col_type_is('quality', 'v_pub_qc_summary', 'instrument_id', 'uuid'); SELECT col_type_is('quality', 'v_pub_qc_summary', 'analyte_id', 'uuid');
-SELECT col_type_is('quality', 'v_pub_qc_summary', 'business_date', 'date');
-SELECT col_type_is('quality', 'v_pub_qc_summary', 'runs', 'bigint'); SELECT col_type_is('quality', 'v_pub_qc_summary', 'accepted_runs', 'bigint');
-SELECT col_type_is('quality', 'v_pub_qc_summary', 'rejected_runs', 'bigint'); SELECT col_type_is('quality', 'v_pub_qc_summary', 'warnings', 'bigint');
-SELECT col_type_is('quality', 'v_pub_qc_summary', 'last_in_control_run_at', 'timestamp with time zone');
+-- HARNESS fix T0B-GREEN-2: the 4-argument col_type_is('quality', 'v_pub_qc_summary', col, type) resolves to (table, column, type, description), so it asked for a column named v_pub_qc_summary of table quality;
+-- the schema-qualified 5-argument form below checks the view's columns.
+SELECT col_type_is('quality'::name, 'v_pub_qc_summary'::name, 'tenant_id'::name, 'uuid', 'AC-15.1 column tenant_id is uuid'); SELECT col_type_is('quality'::name, 'v_pub_qc_summary'::name, 'instrument_id'::name, 'uuid', 'AC-15.1 column instrument_id is uuid'); SELECT col_type_is('quality'::name, 'v_pub_qc_summary'::name, 'analyte_id'::name, 'uuid', 'AC-15.1 column analyte_id is uuid');
+SELECT col_type_is('quality'::name, 'v_pub_qc_summary'::name, 'business_date'::name, 'date', 'AC-15.1 column business_date is date');
+SELECT col_type_is('quality'::name, 'v_pub_qc_summary'::name, 'runs'::name, 'bigint', 'AC-15.1 column runs is bigint'); SELECT col_type_is('quality'::name, 'v_pub_qc_summary'::name, 'accepted_runs'::name, 'bigint', 'AC-15.1 column accepted_runs is bigint');
+SELECT col_type_is('quality'::name, 'v_pub_qc_summary'::name, 'rejected_runs'::name, 'bigint', 'AC-15.1 column rejected_runs is bigint'); SELECT col_type_is('quality'::name, 'v_pub_qc_summary'::name, 'warnings'::name, 'bigint', 'AC-15.1 column warnings is bigint');
+SELECT col_type_is('quality'::name, 'v_pub_qc_summary'::name, 'last_in_control_run_at'::name, 'timestamp with time zone', 'AC-15.1 column last_in_control_run_at is timestamp with time zone');
 SELECT ok((SELECT coalesce(c.reloptions @> ARRAY['security_invoker=true'] OR c.reloptions @> ARRAY['security_invoker=on'], false)
              FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = 'quality' AND c.relname = 'v_pub_qc_summary'), 'REQ-SEC-031 security_invoker = true (S-20: the caller''s RLS applies)');
 SELECT ok(has_table_privilege('lims_app', 'quality.v_pub_qc_summary', 'SELECT'), 'lims_app may SELECT');

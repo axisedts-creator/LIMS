@@ -93,8 +93,8 @@ SELECT is((SELECT pg_get_userbyid(proowner) FROM pg_proc WHERE oid = 'engagement
 SELECT is((SELECT pg_get_userbyid(proowner) FROM pg_proc WHERE oid = 'engagement.purge_payment_requests()'::regprocedure), 'lims_owner', 'purge_payment_requests is owned by lims_owner');
 SELECT ok((SELECT prosecdef FROM pg_proc WHERE oid = 'engagement.purge_queue()'::regprocedure), 'purge_queue is SECURITY DEFINER');
 SELECT ok((SELECT prosecdef FROM pg_proc WHERE oid = 'engagement.purge_payment_requests()'::regprocedure), 'purge_payment_requests is SECURITY DEFINER');
-SELECT ok((SELECT proconfig @> ARRAY['search_path='] FROM pg_proc WHERE oid = 'engagement.purge_queue()'::regprocedure), 'purge_queue pins search_path = ''''');
-SELECT ok((SELECT proconfig @> ARRAY['search_path='] FROM pg_proc WHERE oid = 'engagement.purge_payment_requests()'::regprocedure), 'purge_payment_requests pins search_path = ''''');
+SELECT ok((SELECT proconfig @> ARRAY['search_path=""'] FROM pg_proc WHERE oid = 'engagement.purge_queue()'::regprocedure), 'purge_queue pins search_path = ''''');
+SELECT ok((SELECT proconfig @> ARRAY['search_path=""'] FROM pg_proc WHERE oid = 'engagement.purge_payment_requests()'::regprocedure), 'purge_payment_requests pins search_path = ''''');
 SELECT ok(has_function_privilege('lims_worker', 'engagement.purge_queue()', 'EXECUTE'), 'lims_worker may execute purge_queue');
 SELECT ok(has_function_privilege('lims_worker', 'engagement.purge_payment_requests()', 'EXECUTE'), 'lims_worker may execute purge_payment_requests');
 SELECT ok(NOT has_function_privilege('lims_app', 'engagement.purge_queue()', 'EXECUTE') AND NOT has_function_privilege('lims_api', 'engagement.purge_queue()', 'EXECUTE'), 'the request roles may not execute purge_queue');
@@ -153,7 +153,10 @@ SELECT is(pg_temp.cnt('otp_challenges', 1) || '/' || pg_temp.cnt('notifications'
 SELECT is(pg_temp.cnt('otp_challenges', 2) || '/' || pg_temp.cnt('notifications', 2) || '/' || pg_temp.cnt('number_counters', 2), '3/2/3', 'tenant B (not the claimed tenant) lost nothing');
 -- link_codes: referenced code kept (task filter) and FK-protected (bare delete)
 -- LD-230 (3): pgTAP has no like()/unlike(); matches()/doesnt_match() with the anchored regex of the same LIKE pattern (% -> .*, _ -> .)
-SELECT matches(pg_temp.app('system', 1, 'DELETE FROM engagement.link_codes WHERE id = ' || quote_literal(pg_temp.id(1012)::text) || '::uuid'), '^E23503:.*$', 'a bare DELETE of a link_code referenced by a link fails on account_patient_links__code__fk (23503): the data layer protects it even if the task filter were missing');
+-- T0B-GREEN-3 (HARNESS): link_codes__delete__tenant (migration 20261115160000) already carries NOT EXISTS (link) in USING, so for lims_app a bare DELETE of the referenced code
+-- is filtered to 0 rows by RLS and never reaches the FK. Two assertions now: (a) RLS hides it (0 rows), (b) the FK itself still refuses the delete when RLS is out of the way (superuser, 23503).
+SELECT is(pg_temp.app('system', 1, 'DELETE FROM engagement.link_codes WHERE id = ' || quote_literal(pg_temp.id(1012)::text) || '::uuid'), '0', 'a bare DELETE of a link_code referenced by a link deletes 0 rows for the system actor (the DELETE policy USING carries NOT EXISTS link)');
+SELECT throws_ok(format('DELETE FROM engagement.link_codes WHERE id = %L', pg_temp.id(1012)), '23503', NULL, 'a bare DELETE of a link_code referenced by a link fails on account_patient_links__code__fk (23503) once RLS is out of the way: the data layer protects it even if the policy filter were missing');
 SELECT is(pg_temp.app('system', 1, 'DELETE FROM engagement.link_codes WHERE NOT EXISTS (SELECT 1 FROM engagement.account_patient_links l WHERE l.tenant_id = link_codes.tenant_id AND l.link_code_id = link_codes.id)'), '1', 'the task''s DELETE (NOT EXISTS link filter) removes only the unreferenced code expired > 90 d ago');
 SELECT is(pg_temp.cnt('link_codes', 1), '2', 'tenant A keeps the REFERENCED expired code (12) and the code expired only 89 d ago (13)');
 SELECT is((SELECT count(*)::int FROM engagement.link_codes WHERE id = pg_temp.id(1012)), 1, 'the referenced link_code row 12 is still there');
@@ -161,10 +164,14 @@ SELECT is(pg_temp.cnt('link_codes', 2), '3', 'tenant B link_codes untouched');
 -- system actor of tenant B cannot delete tenant A rows by id
 SELECT is(pg_temp.app('system', 2, 'DELETE FROM engagement.otp_challenges WHERE tenant_id = ' || quote_literal(pg_temp.id(1)::text) || '::uuid'), '0', 'system actor B deleting tenant A otp_challenges by tenant_id deletes 0 (cross-tenant)');
 -- class-E tables the spec keeps have no system delete path in this task
-SELECT is(pg_temp.app('system', 1, 'DELETE FROM engagement.account_patient_links'), '0', 'the system actor cannot delete account_patient_links (class M, kept)');
+-- T0B-GREEN-3 (HARNESS): lims_app has no DELETE grant on account_patient_links / self_registrations (grant list of 20261115160000, line "GRANT SELECT, INSERT, UPDATE, DELETE ON ... otp_challenges ..." omits them), so the
+-- privilege check fires first (42501), like the payment_requests / queue_tokens lines below; "cannot delete" is proved by (0 rows or 42501) AND the rows still being there.
+SELECT ok(pg_temp.app('system', 1, 'DELETE FROM engagement.account_patient_links') IN ('0') OR pg_temp.app('system', 1, 'DELETE FROM engagement.account_patient_links') LIKE 'E42501:%', 'the system actor cannot delete account_patient_links (class M, kept)');
+SELECT ok(NOT has_table_privilege('lims_app', 'engagement.account_patient_links', 'DELETE') AND NOT has_table_privilege('lims_app', 'engagement.self_registrations', 'DELETE'), 'lims_app holds no DELETE grant on account_patient_links or self_registrations');
+SELECT is(pg_temp.cnt('account_patient_links', 1) || '/' || pg_temp.cnt('self_registrations', 1), '1/0', 'the class-M link row of tenant A is still there after the delete attempts');
 SELECT ok(pg_temp.app('system', 1, 'DELETE FROM engagement.payment_requests') IN ('0') OR pg_temp.app('system', 1, 'DELETE FROM engagement.payment_requests') LIKE 'E42501:%', 'the system actor has no direct DELETE on payment_requests (only the DEFINER purges it)');
 SELECT ok(pg_temp.app('system', 1, 'DELETE FROM engagement.queue_tokens') IN ('0') OR pg_temp.app('system', 1, 'DELETE FROM engagement.queue_tokens') LIKE 'E42501:%', 'the system actor has no direct DELETE on queue_tokens (only the DEFINER purges it)');
-SELECT is(pg_temp.app('system', 1, 'DELETE FROM engagement.self_registrations'), '0', 'no self_registrations row delete exists (row kept; only the personal fields are redacted, B15)');
+SELECT ok(pg_temp.app('system', 1, 'DELETE FROM engagement.self_registrations') IN ('0') OR pg_temp.app('system', 1, 'DELETE FROM engagement.self_registrations') LIKE 'E42501:%', 'no self_registrations row delete exists (row kept; only the personal fields are redacted, B15)');
 
 SELECT * FROM finish();
 ROLLBACK;

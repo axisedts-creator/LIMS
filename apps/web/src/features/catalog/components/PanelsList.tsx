@@ -13,6 +13,7 @@ import { createPanelAction } from '../server/catalogActions';
 import { PANEL_CODE_RE, type Department, type OrderableSummary, type Panel, type PanelMember } from '../server/types';
 import { DUPLICATE, EditorDialog, MasterTable, StatusBadge, canManage, useListFilter, useListShortcuts, type Col } from './master-ui';
 import { MembersEditor, infoOf, toPayload, type Info } from './PanelMembers';
+import { t } from '@/core/i18n/messages';
 
 export const PACKAGE_COPY = 'Packages are priced as one item. Component prices are not added up.'; // AC-07.6
 export const kindLabel = (k: Panel['panel_kind']) => (k === 'package' ? 'Package' : 'Clinical panel');
@@ -38,7 +39,7 @@ export function PanelsList({ panels, departments, permissions }: { panels: reado
   ];
   return (
     <section aria-label="Panels & packages">
-      <PageHeader title="Panels & packages" helpKey="catalog.panels" breadcrumbs={[{ label: 'Catalog', href: '/catalog' }, { label: 'Panels & packages' }]} actions={openNew ? <Button variant="primary" onPress={openNew}>New panel</Button> : null} />
+      <PageHeader title={t('catalog.nav.panels')} helpKey="catalog.panels" actions={openNew ? <Button variant="primary" onPress={openNew}>New panel</Button> : null} />
       <div className="lims-filter-bar">
         <RadioGroup<KindFilter>
           label="Kind"
@@ -50,7 +51,7 @@ export function PanelsList({ panels, departments, permissions }: { panels: reado
         />
       </div>
       {toolbar}
-      <MasterTable caption="Panels & packages" cols={cols} rows={rows} empty="No panels yet." emptyAction={openNew ? { label: 'New panel', onPress: openNew } : undefined} />
+      <MasterTable caption="Panels & packages" cols={cols} rows={rows} empty="No test profiles yet." emptyAction={openNew ? { label: 'New panel', onPress: openNew } : undefined} />
       {creating ? <PanelDialog departments={departments} onClose={() => setCreating(false)} /> : null}
     </section>
   );

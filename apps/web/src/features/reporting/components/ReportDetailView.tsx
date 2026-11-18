@@ -147,7 +147,6 @@ export function ReportDetailView({ report, permissions }: ReportDetailViewProps)
       <PageHeader
         title={`Report · ${report.registration_no}`}
         helpKey="reporting.report"
-        breadcrumbs={[{ label: 'Reports', href: '/reporting' }, { label: report.registration_no }]}
         status={<Chip status={report.display_status} />}
         actions={
           <>

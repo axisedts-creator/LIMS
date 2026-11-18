@@ -262,34 +262,36 @@ describe('S1 dashboard — freshness (US-01.4, 04-UI-UX §2)', () => {
     expect(norm(tileEl('Income (net sales)').textContent)).toMatch(/2,25,000/);
   });
 
-  // review #1: 03-APP-FLOW §5 S1 "stale badge per tile", US-01.4. A tile's cell = the widest ancestor of the tile that holds no other tile (tile + its sub-values + badge).
-  const cellOf = (label: string) => {
-    let el: HTMLElement = tileEl(label);
-    while (el.parentElement && el.parentElement.querySelectorAll('.lims-stat').length === 1) el = el.parentElement;
-    return el;
-  };
+  // T0D-UNSLOP-1 (C), LD-353 rule 8, ruling T0D-UNSLOP-1-ruling.md: ONE freshness note per page replaces the old "stale badge per tile" (03-APP-FLOW §5 S1, overridden by LD-353).
+  // The stale reason stays reachable from that one note (its text or a title attribute); every last value stays shown.
   const STALE = 'Data may be out of date';
   const staleFresh = (family: string) => ['orders', 'income', 'results'].map((f) => (f === family
     ? { family: f, refreshed_at: '2026-01-15T03:45:00.000Z', is_stale: true, stale_reason: 'refresh_lagging', live: false }
     : { family: f, refreshed_at: '2026-01-15T04:30:00.000Z', is_stale: false, live: false }));
+  const notes = (root: HTMLElement) => [...root.querySelectorAll('*')].filter((e) => e.children.length === 0 && (e.textContent ?? '').includes(STALE));
+  const reachable = (note: Element) => norm([note.parentElement?.textContent, note.closest('[title]')?.getAttribute('title'), note.getAttribute('aria-label'), ...[...(note.parentElement?.querySelectorAll('[title]') ?? [])].map((e) => e.getAttribute('title'))].join(' '));
 
-  it('stale income: the stale marker sits in the "Income (net sales)" tile cell and NOT in "Patient visits"; last values still shown', async () => {
+  it('stale income: exactly one note on the page, not inside any tile nor a tile parent; reason reachable from it; last values still shown', async () => {
     dash = () => HttpResponse.json(dashboard({ freshness: staleFresh('income') }));
-    await show();
-    expect(norm(cellOf('Income (net sales)').textContent)).toContain(STALE);
-    expect(norm(cellOf('Income (net sales)').textContent)).toMatch(/2,25,000/);
-    expect(norm(cellOf('Patient visits').textContent)).not.toContain(STALE);
-    expect(norm(cellOf('Results approved').textContent)).not.toContain(STALE);
+    const { container } = await show();
+    const found = notes(container);
+    expect(found).toHaveLength(1);
+    expect(found[0]!.closest('.lims-stat')).toBeNull();
+    for (const stat of container.querySelectorAll('.lims-stat')) expect(norm(stat.parentElement!.textContent)).not.toContain(STALE);
+    expect(reachable(found[0]!)).toContain('Recent changes are still being processed');
+    expect(norm(tileEl('Income (net sales)').textContent)).toMatch(/2,25,000/);
+    expect(norm(tileEl('Patient visits').textContent)).toMatch(/\b12\b/);
+    expect(norm(tileEl('Results approved').textContent)).toMatch(/\b28\b/);
   });
 
-  it.each([
-    ['orders', 'Patient visits', ['Income (net sales)', 'Results approved']],
-    ['results', 'Results approved', ['Patient visits', 'Income (net sales)']],
-  ])('stale %s family marks only the "%s" tile', async (family, label, others) => {
+  it.each(['orders', 'results'])('stale %s family: still exactly one note on the page and none in a tile; last values shown', async (family) => {
     dash = () => HttpResponse.json(dashboard({ freshness: staleFresh(family) }));
-    await show();
-    expect(norm(cellOf(label).textContent)).toContain(STALE);
-    for (const o of others) expect(norm(cellOf(o).textContent)).not.toContain(STALE);
+    const { container } = await show();
+    const found = notes(container);
+    expect(found).toHaveLength(1);
+    expect(found[0]!.closest('.lims-stat')).toBeNull();
+    for (const l of ['Patient visits', 'Income (net sales)', 'Results approved']) expect(norm(tileEl(l).textContent)).not.toContain(STALE);
+    expect(norm(tileEl('Patient visits').textContent)).toMatch(/\b12\b/);
   });
 
   it('never_refreshed shows the marker without crashing when refreshed_at is absent', async () => {

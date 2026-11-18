@@ -54,8 +54,6 @@ const stub = (operationId: string): Handler => async () => {
   throw new LimsError('common.internal', `partners ${operationId} not implemented`);
 };
 
-// LD-325(b), T0C-MSGDESK-1 (LD-321): the 10 ticket operations are covered by the T01 stub below, so the pending list stays empty
-// (core/__tests__/pending-operations.test.ts: pending = spec operations without a handler); T0B-MSGDESK-1 replaces the stubs with handlers.
 const implemented: Readonly<Record<string, Handler>> = {
   getPartnerContext, // T03
   getPartnerDashboard, // T18 A2
@@ -72,8 +70,15 @@ const implemented: Readonly<Record<string, Handler>> = {
   ...salesHandlers, // T0B-SALES-1 (LD-321): the 15 sales hierarchy operations of T0C-SALES-1
 };
 
-/** LD-325 b: operations of partners.yaml without a handler yet (answer 501 operation_pending). T0B-SALES-1 implemented the 15 sales ids of T0C-SALES-1. */
-const PENDING_OPERATIONS: readonly string[] = Object.freeze([]);
+/**
+ * LD-325(b): operations of partners.yaml without a handler yet (answer 501 operation_pending).
+ * T0B-SALES-1 implemented the 15 sales ids of T0C-SALES-1.
+ * T0C-MSGDESK-1 (LD-321): partner ticket ids; T0B-MSGDESK-1 removes them.
+ */
+const PENDING_OPERATIONS: readonly string[] = Object.freeze([
+  'createPartnerTicket', 'listPartnerTickets', 'getPartnerTicket', 'replyPartnerTicket', 'closePartnerTicket', 'reopenPartnerTicket',
+  'listMyPartnerTickets', 'createMyPartnerTicket', 'getMyPartnerTicket', 'replyMyPartnerTicket',
+]);
 
 export const manifest: ModuleManifest = Object.freeze({
   name: 'partners',

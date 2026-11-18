@@ -6,6 +6,7 @@ import { cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactElement } from 'react';
 import { ToastProvider } from '@lims/ui/components/Toast';
+import { t as tr } from '@/core/i18n/messages';
 import { expectCreateTwice, expectEmptyTable, expectNoCardOutsideTables, placeholders, tableOf, headersOf } from './emptytbl2.helpers';
 
 vi.mock('next/navigation', () => ({
@@ -44,7 +45,7 @@ describe('catalog SurchargeRulesScreen (empty)', () => {
   });
   it('the help sentence and the heading stay', () => {
     wrap(<SurchargeRulesScreen {...props} permissions={MANAGE} />);
-    expect(screen.getByRole('heading', { name: /urgent surcharge rules/i })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: tr('catalog.nav.surcharges') })).toBeTruthy();
     expect(screen.getByText(/Applies only when the order item is marked Urgent/)).toBeTruthy();
   });
   it('with a rule: no message, no placeholder rows', () => {

@@ -1,0 +1,8 @@
+# T0C-ACCTLIST-1 tests (LD-358; contract of listAccountSummaries + AccountSummaryRow, no handler)
+- `tools/codegen/__tests__/acctlist1-openapi.test.ts` (24 tests): lint, one new path/op, AccountSummary + getAccountSummary unchanged, no new permission, metadata, 6 query params (q maxLength 80, cursor/limit deep-equal listAccountParticulars), page envelope, closed AccountSummaryRow (+party_name, centre_id optional Uuid not nullable), 2-row example validates, codegen fresh + generated ts/dart/msw/operations carry it, pendingOperations line, no migration/web change, impl notes (follow-ups T0B-ACCTLIST-1, T0D-UILIST-2, centre_id choice).
+- `services/api/src/modules/billing/__tests__/contract/acctlist1.pending.test.ts`: every billing op has a handler or is pending; listAccountSummaries pending, no handler key, nothing else pending.
+- Stale pins edited (billing now 72 ops / 64 paths): `acct1-openapi.test.ts` (+1 op, +1 path), `c4-openapi.test.ts` (billing total 72, new table row, PAGED list).
+- Run: `.orchestra\notes\T0C-ACCTLIST-1-verify.cmd` (codegen vitest x4, api vitest x2, contracts registry-equality).
+- Now red for the right reason: 19/24 of acctlist1 (operation missing), c4 inventory, pending test, billing boot.test is still green until the contract lands (then needs pendingOperations).
+- Implementer: billing.yaml (op+schemas+example), billing index.ts pendingOperations, regenerate clients (codegen), notes `T0C-ACCTLIST-1-impl.md`; error codes: the six of getAccountSummary + common.invalid_cursor.
+- NOT tested: handler SQL/paging behaviour (T0B-ACCTLIST-1), web list (T0D-UILIST-2).

@@ -14,6 +14,13 @@ const ACCOUNTING: SpecRow[] = [
   { name: 'Account masters', path: '/billing/accounts/masters', permission: 'billing.account.read', group: 'billing', orderRange: [50, 60] },
 ].filter((r) => pageExists(r.path));
 
+// T0D-ACCT-2 (LD-313): three more additive entries in the free slots 52, 54, 56 (same rule: they join once the page exists).
+const ACCOUNTING_2: SpecRow[] = [
+  { name: 'Expenses', path: '/billing/expenses', permission: 'billing.account.read', group: 'billing', orderRange: [50, 60] },
+  { name: 'Expense types', path: '/billing/expenses/types', permission: 'billing.account.read', group: 'billing', orderRange: [50, 60] },
+  { name: 'Cash transfers', path: '/billing/cash-transfers', permission: 'billing.account.read', group: 'billing', orderRange: [50, 60] },
+].filter((r) => pageExists(r.path));
+
 specSuite({
   module: 'billing',
   owner: 'C4',
@@ -29,5 +36,6 @@ specSuite({
     { name: 'Finance worklist', path: '/billing/worklist', permission: 'billing.invoice.read', group: 'billing', order: 45 },
     { name: 'Billing settings', path: '/billing/settings', permission: 'billing.settings.manage', group: 'billing', order: 50 },
     ...ACCOUNTING,
+    ...ACCOUNTING_2,
   ],
 });

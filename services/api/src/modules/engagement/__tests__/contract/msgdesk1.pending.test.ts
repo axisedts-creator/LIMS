@@ -24,7 +24,9 @@ describe('T0C-MSGDESK-1: engagement manifest covers the new operations (handler 
   it('every pending id is a spec operationId and appears once; only the new operations may be pending', () => {
     expect(pending.filter((id) => !specIds.includes(id))).toEqual([]);
     expect(new Set(pending).size).toBe(pending.length);
-    expect(pending.filter((id) => !NEW_OPS.includes(id)), 'only the T0C-MSGDESK-1 operations may be pending in engagement').toEqual([]);
+    // T0C-CONTENT-1 (LD-313, LD-325(b)) adds 9 portal content operations that are pending too (content1.pending.test.ts); nothing else may be pending
+    const CONTENT_OPS = ['listPortalContent', 'createPortalContent', 'updatePortalContent', 'deactivatePortalContent', 'reorderPortalContent', 'listMyPortalContent', 'listProfileImages', 'setProfileImage', 'clearProfileImage'];
+    expect(pending.filter((id) => !NEW_OPS.includes(id) && !CONTENT_OPS.includes(id)), 'only the T0C-MSGDESK-1 and T0C-CONTENT-1 operations may be pending in engagement').toEqual([]);
   });
   it('a handler key that is not a spec operation does not exist (nothing was invented)', () => {
     expect(handlerIds.filter((id) => !specIds.includes(id))).toEqual([]);

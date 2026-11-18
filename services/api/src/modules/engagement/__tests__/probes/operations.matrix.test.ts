@@ -38,9 +38,9 @@ const okSchemas = (o: Op) => Object.entries<any>(o.op.responses ?? {}).filter(([
 const paramNames = (o: Op) => (o.op.parameters ?? []).map((p: any) => deref(p).name as string);
 
 describe('inventory (07-SECURITY §6.1: every operationId in TRD §5)', () => {
-  it('109 operations (98 + 11 broadcast, T0C-MSGDESK-1), unique ids, every one carries a security scheme and an x-permission that exists in permissions.yaml', () => {
-    expect(OPS).toHaveLength(109);
-    expect(new Set(OPS.map((o) => o.id)).size).toBe(109);
+  it('118 operations (98 + 11 broadcast, T0C-MSGDESK-1, + 9 portal content, T0C-CONTENT-1), unique ids, every one carries a security scheme and an x-permission that exists in permissions.yaml', () => {
+    expect(OPS).toHaveLength(118);
+    expect(new Set(OPS.map((o) => o.id)).size).toBe(118);
     for (const o of OPS) {
       expect(o.security.length, `${o.id} security`).toBeGreaterThan(0);
       expect(permissionRow(o.permission), `${o.id} -> ${o.permission} must be a row of contracts/permissions.yaml`).toBeDefined();
@@ -62,7 +62,7 @@ describe('inventory (07-SECURITY §6.1: every operationId in TRD §5)', () => {
   it('actor classes: 3 pre-auth, 1 display, the rest split by the /me prefix (patient) vs staff', () => {
     expect(by('preauth').map((o) => o.id).sort()).toEqual(['getPatientAppConfig', 'requestPatientOtp', 'verifyPatientOtp']);
     expect(by('display').map((o) => o.id)).toEqual(['getQueueBoard']);
-    expect(by('patient').length + by('staff').length).toBe(105);
+    expect(by('patient').length + by('staff').length).toBe(114);
     expect(by('patient').length).toBeGreaterThanOrEqual(35);
     expect(by('staff').length).toBeGreaterThanOrEqual(45);
   });

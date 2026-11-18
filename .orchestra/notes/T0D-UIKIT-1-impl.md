@@ -1,0 +1,8 @@
+# T0D-UIKIT-1 impl (writer)
+Files (18): ui FilterBar, DataTable, ErrorState(+story), StatTile(+story), kit.css; new ChartCard, SplitConsole, ScanPanel, SettingsForm, NotAvailable (component + story each); web core/shell/NotAvailable.tsx (re-export, keeps isPending/pendingOr).
+Tests: uikit1 100/100; packages/ui typecheck clean; web r04 75/76, m2 322/324, m4 328/330 (fails = shell.css `.lims-auth-plate` 14s animation, not touched), elabmenu 99/99, unslop1 30/30, web-style-3 101/101.
+For TESTER (ruling point 2): DataTable markup changed (`.lims-table-scroll` wrapper), snapshots to regenerate: ui ui-r03-kit-pass (2 DataTable), rs-c4 (Daily cash, Credit party statement), rs-c7 (2 messages), rs-c8 (5), rs-c15 (6). Diffs checked: only the wrapper.
+Not mine, failing before/without these files: ui density (`.lims-topbar-avatar` 0.6875rem in shell.css; 20-rows NaN), no-raw-style-literals (26 in web tests/manifest), plus-jakarta-sans fonts; rs-c3/c4/c5/c7 static baselines (other tasks); web tsc 321 errors, none in touched files.
+[CONV] cellTitle: react-aria Cell drops `title`, set through the cell ref for string/number cells. ErrorState pageTitle uses helpKey `core.shell.error` (04-UI-UX:384). Column chooser never hides the last column. Scan focus ring = 0.0625rem outline (ui-r03 forbids literal box-shadow). Settings form stays <= 32rem also at 2 columns (brief literal).
+Risk: `.lims-table-scroll` overflow-x makes the sticky header stick inside the table box, not the page (virtual tables already did). SplitConsole height = 100dvh - 10rem.
+Open: merge main + re-run not done (uncommitted worktree; pipeline commits). No contract requests.

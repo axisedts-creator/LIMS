@@ -1,34 +1,9 @@
-// T0D-UNSLOP-1 (A), LD-353 rule 6: an operation that is not built yet (API 501 operation_pending) shows this calm state, never the red
-// error page. The page keeps its menu title (h1) and, for a list screen, the header row of its table. Not a failure: no alert, Retry or reference.
+// T0D-UNSLOP-1 (A), LD-353 rule 6: an operation that is not built yet (API 501 operation_pending) shows the calm NotAvailable state,
+// never the red error page. T0D-UIKIT-1: the component itself now lives in the kit; this file keeps the import path and the helpers.
 import type { ReactNode } from 'react';
-import { PageHeader } from '@lims/ui/components/PageHeader';
+import { NotAvailable } from '@lims/ui/components/NotAvailable';
 
-export function NotAvailable({ title, columns, helpKey = 'shell.not_available' }: { title: string; columns?: readonly string[]; helpKey?: string }) {
-  return (
-    <>
-      <PageHeader title={title} helpKey={helpKey} />
-      {columns?.length ? (
-        <div className="lims-table-scroll">
-          <table className="lims-table lims-table-compact">
-            <thead>
-              <tr>{columns.map((c) => <th key={c} scope="col" className="lims-col">{c}</th>)}</tr>
-            </thead>
-            <tbody>
-              <tr className="lims-row-empty"><td className="lims-cell" colSpan={columns.length}><Calm /></td></tr>
-            </tbody>
-          </table>
-        </div>
-      ) : <Calm />}
-    </>
-  );
-}
-
-const Calm = () => (
-  <div className="lims-state">
-    <p className="lims-state-title">Not available yet</p>
-    <p className="lims-state-body">This part of the system is being built. It appears here once it is switched on.</p>
-  </div>
-);
+export { NotAvailable };
 
 /** The API answered 501 operation_pending (the operation is on the pending list, no handler yet). Duck typed so any feature's ApiError counts. */
 export function isPending(e: unknown): boolean {

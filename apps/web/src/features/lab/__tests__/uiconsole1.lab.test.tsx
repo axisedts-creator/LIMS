@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 // T0D-UICONSOLE-1 (1) critical values and (2) instrument (ingest) exceptions (LD-353 template 2 CONSOLE, rules 5, 6, 8). Each screen renders with fake data: no rows, one row, several rows.
 // CRITICAL VALUES contract (CriticalValueList({ items, status?, nextCursor? }), route /lab/critical-values, menu lab.nav.critical_values):
-//   list headers exactly Age since detected, Analyte, Direction, Status (Detected at moves to the detail); the analyte stays a link to /lab/critical-values/{id}; open rows first.
+//   list headers exactly Age since detected, Detected at, Analyte, Direction, Status; the analyte stays a link to /lab/critical-values/{id}; open rows first.
 //   tiles Open (status open), Acknowledged (status notified), Oldest age (the oldest OPEN row, hh:mm, a dash when none). FilterBar holds a Status filter (the URL filter the page already reads).
 //   detail: analyte, direction text, status text, Detected at, a "Time to acknowledge" note (hh:mm from detection to first_confirmed_notification_at when the API sent it), History
 //   (Detected, Acknowledged when notified, Closed when closed). Bar: a link to /lab/critical-values/{id} whose label ends with the shortcut "(O)". NO new action (no acknowledge, resolve, close).
@@ -58,7 +58,7 @@ const cvMount = async (rows: readonly unknown[]) => {
 };
 
 consoleContract({
-  route: '/lab/critical-values', menuKey: 'lab.nav.critical_values', headers: ['Age since detected', 'Analyte', 'Direction', 'Status'], tileLabels: ['Open', 'Acknowledged', 'Oldest age'],
+  route: '/lab/critical-values', menuKey: 'lab.nav.critical_values', headers: ['Age since detected', 'Detected at', 'Analyte', 'Direction', 'Status'], tileLabels: ['Open', 'Acknowledged', 'Oldest age'],
   emptyText: 'No critical values.', mount: cvMount, empty: [], one: [cvOpenOld], oneId: CV(2), many: cvMany, manyIds: [CV(2), CV(4), CV(1), CV(3)],
   tilesEmpty: { Open: '0', Acknowledged: '0', 'Oldest age': '—' }, tilesOne: { Open: '1', Acknowledged: '0', 'Oldest age': { ageMin: 90 } },
   // the closed event is older (3 h) but not open: the oldest age is the oldest OPEN row
@@ -223,7 +223,7 @@ afterEach(() => { answer = 501; });
 afterAll(() => api.close());
 
 const PAGES = [
-  ['critical values', () => import('@/app/(staff)/lab/critical-values/page'), 'lab.nav.critical_values', ['Age since detected', 'Analyte', 'Direction', 'Status'], ['lab.critical_value.read']],
+  ['critical values', () => import('@/app/(staff)/lab/critical-values/page'), 'lab.nav.critical_values', ['Age since detected', 'Detected at', 'Analyte', 'Direction', 'Status'], ['lab.critical_value.read']],
   ['instrument exceptions', () => import('@/app/(staff)/lab/ingest-exceptions/page'), 'lab.nav.ingest_exceptions', ['Age', 'Barcode', 'Reason', 'Instrument code', 'Status'], []],
 ] as const;
 

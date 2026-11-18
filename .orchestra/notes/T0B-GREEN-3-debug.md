@@ -21,3 +21,8 @@
 - Re-checked log (08:44): same 7 not ok, all engagement (T0B-13.C16_schema 1,2,520,642,698; T-SEC1_table_probes 1,3). Identity/definers all ok.
 - Cause: tests predate migration 20261117130000 (portal_content, profile_image). No implementation fault; no code change possible.
 - Wrote .orchestra/notes/T0B-GREEN-3-dispute.md: tester must update expectations; fixture rows need a CR.
+
+## Round 6 (2026-11-18, LD-367)
+- 09:11 verify log was infra only: `graphile-worker --schema-only failed (SP-2 step b)` before any suite ran (no assertion failed).
+- Reran core+definers+engagement+identity: exit 0, no not ok (log .orchestra/out/T0B-GREEN-3-debug-rerun.log). Engagement STALE counts already fixed by tester per ruling.
+- No code change. The stale dispute note (T0B-GREEN-3-dispute-202611180848.md) is resolved by ruling.

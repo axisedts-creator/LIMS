@@ -5,6 +5,7 @@ import type { Handler } from '../../../core/module.js';
 import { accountsHandlers } from './accounts.handlers.js';
 import { cbmsHandlers } from './cbms.handlers.js';
 import { creditHandlers } from './credit.handlers.js';
+import { discountPolicyHandlers } from './discountPolicy.handlers.js';
 import { expensesHandlers } from './expenses.handlers.js';
 import { exportHandlers } from './export.handlers.js';
 import { invoiceHandlers } from './invoice.handlers.js';
@@ -30,6 +31,10 @@ const OPERATION_IDS = [
   'createAccountLedgerEntry', 'listAccountLedgerEntries', 'getAccountLedgerEntry', 'reverseAccountLedgerEntry', 'getAccountStatement', 'getAccountSummary',
   'listExpenseTypes', 'createExpenseType', 'updateExpenseType', 'createExpense', 'listExpenses', 'cancelExpense',
   'createCashTransfer', 'listCashTransfers', 'acceptCashTransfer', 'rejectCashTransfer', 'cancelCashTransfer', 'getDailyCollectionSummary',
+  // T0C-FINCTRL-1 accounting controls (LD-321): T0B-FINCTRL-1 (removed from manifest.pendingOperations, LD-325 b).
+  'listDiscountReasons', 'createDiscountReason', 'updateDiscountReason', 'listPartyDiscountSlabs', 'createPartyDiscountSlab', 'updatePartyDiscountSlab',
+  'deactivatePartyDiscountSlab', 'resolveDiscountSlab', 'listUserDiscountLimits', 'setUserDiscountLimit', 'listDiscountAuthorities', 'createDiscountAuthority',
+  'deactivateDiscountAuthority', 'getMyDiscountPolicy', 'holdLedgerEntry', 'releaseLedgerEntry',
 ] as const;
 
 export const handlers: Readonly<Record<(typeof OPERATION_IDS)[number], Handler>> = Object.freeze({
@@ -103,4 +108,20 @@ export const handlers: Readonly<Record<(typeof OPERATION_IDS)[number], Handler>>
   rejectCashTransfer: expensesHandlers['rejectCashTransfer']!,
   cancelCashTransfer: expensesHandlers['cancelCashTransfer']!,
   getDailyCollectionSummary: expensesHandlers['getDailyCollectionSummary']!,
+  listDiscountReasons: discountPolicyHandlers['listDiscountReasons']!,
+  createDiscountReason: discountPolicyHandlers['createDiscountReason']!,
+  updateDiscountReason: discountPolicyHandlers['updateDiscountReason']!,
+  listPartyDiscountSlabs: discountPolicyHandlers['listPartyDiscountSlabs']!,
+  createPartyDiscountSlab: discountPolicyHandlers['createPartyDiscountSlab']!,
+  updatePartyDiscountSlab: discountPolicyHandlers['updatePartyDiscountSlab']!,
+  deactivatePartyDiscountSlab: discountPolicyHandlers['deactivatePartyDiscountSlab']!,
+  resolveDiscountSlab: discountPolicyHandlers['resolveDiscountSlab']!,
+  listUserDiscountLimits: discountPolicyHandlers['listUserDiscountLimits']!,
+  setUserDiscountLimit: discountPolicyHandlers['setUserDiscountLimit']!,
+  listDiscountAuthorities: discountPolicyHandlers['listDiscountAuthorities']!,
+  createDiscountAuthority: discountPolicyHandlers['createDiscountAuthority']!,
+  deactivateDiscountAuthority: discountPolicyHandlers['deactivateDiscountAuthority']!,
+  getMyDiscountPolicy: discountPolicyHandlers['getMyDiscountPolicy']!,
+  holdLedgerEntry: accountsHandlers['holdLedgerEntry']!,
+  releaseLedgerEntry: accountsHandlers['releaseLedgerEntry']!,
 });

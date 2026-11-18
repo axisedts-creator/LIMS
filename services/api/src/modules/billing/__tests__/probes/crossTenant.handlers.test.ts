@@ -26,6 +26,20 @@ describe('registry', () => {
 });
 
 // LD-328 (3): a pending operation has NO handler key (core answers 501 operation_pending); T0B-ACCT-1 owns its 12 ops (handlers, not pending), the 12 T0B-ACCT-2 ops stay pending without the 503 stubs.
+// T0B-FINCTRL-1 (LD-321, LD-325 b): the 16 accounting control operations get real handlers and join the per-operation cross-tenant block below (spec derived, so no list edit is needed there).
+const FINCTRL_OPS = ['listDiscountReasons', 'createDiscountReason', 'updateDiscountReason', 'listPartyDiscountSlabs', 'createPartyDiscountSlab', 'updatePartyDiscountSlab', 'deactivatePartyDiscountSlab',
+  'resolveDiscountSlab', 'listUserDiscountLimits', 'setUserDiscountLimit', 'listDiscountAuthorities', 'createDiscountAuthority', 'deactivateDiscountAuthority', 'getMyDiscountPolicy', 'holdLedgerEntry', 'releaseLedgerEntry'];
+describe('pendingOperations FINCTRL', () => {
+  it('billing: the 16 T0B-FINCTRL-1 operations are implemented (a real handler) and not pending, and each is probed by the cross-tenant block', () => {
+    const pending = pendingIds('billing');
+    for (const id of FINCTRL_OPS) {
+      expect(pending, id).not.toContain(id);
+      expect(Object.keys(handlerMap.billing), id).toContain(id);
+      expect(ALL_OPS.some((o) => o.mod === 'billing' && o.id === id && !isPending(o)), `${id} probed`).toBe(true);
+    }
+  });
+});
+
 describe('pendingOperations', () => {
   it.each(['billing', 'frontdesk'] as const)('%s: every pending id has no handler key', (mod) => {
     for (const id of pendingIds(mod)) expect(Object.keys(handlerMap[mod]), `${mod}:${id}`).not.toContain(id);

@@ -1,7 +1,7 @@
 // C8 AN-T10 — the CI gate script __tests__/ci/no-commission.sh (job c8-no-commission, CR-C8-015; PRD US-07.3, B13 "no payout features").
 // Runs the script with bash against (a) the real repo (must be clean) and (b) scratch trees with planted violations. Synthetic files only.
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -86,4 +86,86 @@ describe('c8-no-commission script', () => {
   it('an unreadable root is a tool error (exit 2), never a silent pass', () => {
     expect(run(join(scratch(), 'does-not-exist')).status).toBe(2);
   });
+});
+
+// ---------------------------------------------------------------- T0B-MISREPORTS-1 (LD-342 / A39-6f): the allow list no-commission.allow next to the script
+const ALLOW_FILE = fileURLToPath(new URL('./no-commission.allow', import.meta.url));
+const listed = (): string[] => readFileSync(ALLOW_FILE, 'utf8').split(/\r?\n/).map((l) => l.trim()).filter((l) => l && !l.startsWith('#'));
+/** A private copy of the script with its own allow file (so malformed lists can be tried without touching the real one). */
+function withAllow(text: string): string {
+  const dir = scratch();
+  copyFileSync(fileURLToPath(new URL('./no-commission.sh', import.meta.url)), join(dir, 'no-commission.sh'));
+  writeFileSync(join(dir, 'no-commission.allow'), text);
+  return fwd(join(dir, 'no-commission.sh'));
+}
+const runWith = (script: string, root: string) => spawnSync(BASH, [script, fwd(root)], { encoding: 'utf8', timeout: 60_000 });
+
+describe('c8-no-commission allow list (A39-6f)', () => {
+  it('the shipped list exists, holds exact paths only, all under the scanned C8 paths', () => {
+    expect(existsSync(ALLOW_FILE)).toBe(true);
+    const entries = listed();
+    expect(entries.length).toBeGreaterThan(0);
+    for (const e of entries) {
+      expect(e, e).not.toMatch(/[*?]|\.\.|^\/|\/$|\\/);
+      expect(PATHS.concat(['services/api/src/modules/analytics']).some((p) => e.startsWith(`${p}/`)), e).toBe(true);
+      expect(e, e).not.toMatch(/__tests__/);
+    }
+    expect(new Set(entries).size).toBe(entries.length);
+  });
+
+  it('a listed file may hold the word: exit 0; the same text in a file that is not listed: exit 1 and the file is named', () => {
+    const root = scratch();
+    const first = listed()[0]!;
+    put(root, first, `// ${WORD}\n`);
+    expect(run(root).status).toBe(0);
+    put(root, 'services/api/src/modules/analytics/domain/other.ts', `// ${WORD}\n`);
+    const r = run(root);
+    expect(r.status).toBe(1);
+    expect(r.stdout).toContain('other.ts');
+    expect(r.stdout).not.toContain(first);
+  }, 60_000);
+
+  it('matching is exact: a sibling, a longer name and a different case of a listed path are not exempt', () => {
+    const first = listed()[0]!;
+    for (const variant of [`${first}.bak`, first.replace(/\.ts$/, '2.ts'), first.replace('/domain/', '/Domain/')]) {
+      const root = scratch();
+      put(root, variant, `// ${WORD}\n`);
+      expect(run(root).status, variant).toBe(1);
+    }
+  }, 120_000);
+
+  it('a listed file is exempt, its name too; any other file with the word in its name still fails', () => {
+    const script = withAllow(`services/renderer/templates/analytics/${WORD}_summary.hbs\n`);
+    const root = scratch();
+    put(root, `services/renderer/templates/analytics/${WORD}_summary.hbs`, `${WORD}\n`);
+    expect(runWith(script, root).status).toBe(0);
+    put(root, `services/renderer/templates/analytics/${WORD}_other.hbs`, 'clean\n');
+    const r = runWith(script, root);
+    expect(r.status).toBe(1);
+    expect(r.stdout).toContain(`${WORD}_other.hbs`);
+  }, 60_000);
+
+  it('comments, blank lines, CRLF and surrounding spaces in the list are tolerated', () => {
+    const script = withAllow('# comment\r\n\r\n   services/api/src/modules/analytics/domain/x.ts   \r\n');
+    const root = scratch();
+    put(root, 'services/api/src/modules/analytics/domain/x.ts', `${WORD}\n`);
+    expect(runWith(script, root).status).toBe(0);
+  }, 60_000);
+
+  it.each([['a glob', 'services/api/src/modules/analytics/**'], ['a directory', 'services/api/src/modules/analytics/domain/'], ['a parent segment', 'services/api/../api/x.ts'],
+    ['an absolute path', '/etc/passwd'], ['a question mark', 'services/api/src/modules/analytics/domain/x?.ts']])('a malformed entry (%s) is a tool error: exit 2, nothing passes silently', (_n, entry) => {
+    const script = withAllow(`${entry}\n`);
+    const root = scratch();
+    put(root, 'services/api/src/modules/analytics/domain/x.ts', 'clean\n');
+    const r = runWith(script, root);
+    expect(r.status).toBe(2);
+    expect(r.stderr).toMatch(/bad allow list entry/);
+  }, 60_000);
+
+  it('an empty list exempts nothing', () => {
+    const script = withAllow('# nothing\n');
+    const root = scratch();
+    put(root, listed()[0]!, `${WORD}\n`);
+    expect(runWith(script, root).status).toBe(1);
+  }, 60_000);
 });

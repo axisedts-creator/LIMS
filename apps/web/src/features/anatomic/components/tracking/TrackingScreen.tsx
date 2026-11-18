@@ -5,13 +5,14 @@
 // LD-140 (2026-11-13, binding): kit components and token class names only; one primary button on the page ([Record movement]); statuses show tone, icon and word.
 import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { BarcodeInput, useScanCapture } from '@lims/ui/components/BarcodeInput';
+import { useScanCapture } from '@lims/ui/components/BarcodeInput';
 import { Button } from '@lims/ui/components/Button';
 import { DataTable } from '@lims/ui/components/DataTable';
 import { DescriptionList } from '@lims/ui/components/DescriptionList';
 import { Dialog } from '@lims/ui/components/Dialog';
 import { IconButton } from '@lims/ui/components/IconButton';
 import { PageHeader } from '@lims/ui/components/PageHeader';
+import { ScanPanel } from '@lims/ui/components/ScanPanel';
 import { Switch } from '@lims/ui/components/Switch';
 import { Tabs } from '@lims/ui/components/Tabs';
 import { Timeline } from '@lims/ui/components/Timeline';
@@ -169,11 +170,19 @@ export function TrackingScreen({ tab, canWork, sentOut }: { tab: TrackingTab; ca
           <SentOut rows={sentOut} />
         ) : (
           <>
-            <BarcodeInput label="Scan or type a block or slide label" name="label" pattern={LABEL_PATTERN} submitKeys={['Enter', 'Tab']} clearAfterScan allowManual onScan={(v) => void onScan(v)} />
             {canWork ? <Switch label="Basket mode" isSelected={basketMode} onChange={toggle} /> : null}
-            {message ? <p role="status" className="lims-description">{message}</p> : null}
+            {/* T0D-UISCAN-1 (LD-353 template 3): scan input, last result card (message or the looked-up block / slide), basket = the queue */}
+            <ScanPanel
+              label="Scan or type a block or slide label"
+              name="label"
+              pattern={LABEL_PATTERN}
+              submitKeys={['Enter', 'Tab']}
+              clearAfterScan
+              allowManual
+              onScan={(v) => void onScan(v)}
+              result={message ? <p className="lims-description">{message}</p> : !(basketMode && canWork) && single ? <Result f={single.found} movements={single.movements} /> : null}
+            >
             {basketMode && canWork ? (
-              <>
                 <DataTable
                   caption="Basket"
                   density="compact"
@@ -187,11 +196,9 @@ export function TrackingScreen({ tab, canWork, sentOut }: { tab: TrackingTab; ca
                     { id: 'remove', header: 'Remove', align: 'end', cell: (r) => <IconButton label={`Remove ${r.label}`} icon="close" onPress={() => { setBasket((b) => b.filter((x) => x.id !== r.id)); setMessage(undefined); }} /> },
                   ]}
                 />
-                <Button variant="primary" isDisabled={basket.length === 0} shortcut="Alt+V" onPress={openMovement}>Record movement</Button>
-              </>
-            ) : single ? (
-              <Result f={single.found} movements={single.movements} />
             ) : null}
+            </ScanPanel>
+            {basketMode && canWork ? <Button variant="primary" isDisabled={basket.length === 0} shortcut="Alt+V" onPress={openMovement}>Record movement</Button> : null}
           </>
         )}
       </Tabs>

@@ -200,6 +200,8 @@ routes:
   - { id: staff.engagement.memberships, origin: staff_web, path: /engagement/memberships, owner: C16, permission: engagement.membership.read }
   - { id: staff.engagement.enquiries, origin: staff_web, path: /engagement/enquiries, owner: C16, permission: engagement.enquiry.read }
   - { id: staff.engagement.settings, origin: staff_web, path: /engagement/settings, owner: C16, permission: engagement.settings.manage }
+  # T0D-CONTENT-1 (LD-313): portal content; the five tabs live in the page, not in routes
+  - { id: staff.engagement.content, origin: staff_web, path: /engagement/content, owner: C16, permission: engagement.content.read }
   - { id: staff.engagement.queue_display, origin: staff_web, path: /queue-display, owner: C16, auth: display_token, nav: false }
   - { id: patient_app.payment_done, origin: patient_app, path: "/payments/{payment_request_id}/done", owner: C16, auth: patient, fallback: portal.app_fallback }
   # --- CR-C17-009

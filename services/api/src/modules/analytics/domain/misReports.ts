@@ -37,8 +37,8 @@ const DEFS: MisDef[] = [
   {
     code: 'sales_representative', title: 'Sales representative', permission: DASH, params: ['centre_id', 'representative_id', 'party_id'],
     columns: [S('representative_id', 'Representative'), S('representative_name', 'Representative name'), I('designation_level', 'Designation level'), I('parties_count', 'Parties'),
-      I('orders_registered', 'Orders'), P('net_billed_paisa', 'Net billed'), P('collected_paisa', 'Collected')],
-    sort: { column: 'net_billed_paisa', direction: 'desc' }, rowCap: 2000,
+      I('orders_registered', 'Orders'), P('net_paisa', 'Net'), P('collected_paisa', 'Collected')],
+    sort: { column: 'net_paisa', direction: 'desc' }, rowCap: 2000, // LD-357: per-referrer net billed only in referral_incentive (D-44)
   },
   {
     code: 'consultant', title: 'Consultant', permission: DASH, params: ['centre_id', 'referrer_id', 'department_id'],
@@ -54,7 +54,7 @@ const DEFS: MisDef[] = [
   {
     code: 'repeated_patient', title: 'Repeated patient', permission: DASH, params: ['centre_id', 'min_repeat_count'],
     columns: [S('patient_id', 'Patient id'), S('patient_number', 'Patient number'), I('visit_count', 'Visits'), D('first_visit_date', 'First visit'), D('last_visit_date', 'Last visit'),
-      P('net_billed_paisa', 'Net billed')],
+      P('net_paisa', 'Net')],
     sort: { column: 'visit_count', direction: 'desc' }, rowCap: 5000,
   },
   {
@@ -72,7 +72,7 @@ const DEFS: MisDef[] = [
   {
     code: 'party_billing', title: 'Party billing', permission: COLL, params: ['centre_id', 'party_id'],
     columns: [S('party_id', 'Party'), S('party_name', 'Party name'), S('billing_mode', 'Billing mode'), I('orders_registered', 'Orders'), P('gross_paisa', 'Gross'),
-      P('discount_paisa', 'Discount'), P('net_billed_paisa', 'Net billed'), P('paid_paisa', 'Paid'), P('outstanding_paisa', 'Outstanding')],
+      P('discount_paisa', 'Discount'), P('net_paisa', 'Net'), P('paid_paisa', 'Paid'), P('outstanding_paisa', 'Outstanding')],
     sort: { column: 'outstanding_paisa', direction: 'desc' }, rowCap: 5000,
   },
   {

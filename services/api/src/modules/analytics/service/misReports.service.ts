@@ -130,7 +130,7 @@ const SQL: Readonly<Record<string, { body(q: Q): string; tie: string }>> = {
       pay AS (${paid(q, 'b')}),
       pc AS (SELECT representative_id, count(DISTINCT party_id) AS n FROM asg GROUP BY representative_id)
       SELECT r.id::text AS representative_id, r.name AS representative_name, coalesce(d.level, 0)::int AS designation_level, pc.n AS parties_count,
-             count(b.id) AS orders_registered, coalesce(sum(b.net_paisa), 0) AS net_billed_paisa, coalesce(sum(pay.p), 0) AS collected_paisa
+             count(b.id) AS orders_registered, coalesce(sum(b.net_paisa), 0) AS net_paisa, coalesce(sum(pay.p), 0) AS collected_paisa
         FROM pc JOIN partners.sales_representative r ON r.tenant_id = ${q.t} AND r.id = pc.representative_id
         LEFT JOIN partners.sales_designation d ON d.tenant_id = ${q.t} AND d.id = r.designation_id
         LEFT JOIN b ON b.representative_id = r.id LEFT JOIN pay ON pay.invoice_id = b.id
@@ -174,7 +174,7 @@ const SQL: Readonly<Record<string, { body(q: Q): string; tie: string }>> = {
       net AS (SELECT i.patient_id, sum(i.net_paisa) AS s FROM billing.invoices i
                WHERE i.tenant_id = ${q.t} AND i.status = 'issued' AND i.order_id IN (SELECT o.id FROM o JOIN p ON p.patient_id = o.patient_id) GROUP BY i.patient_id)
       SELECT p.patient_id::text AS patient_id, coalesce(pt.patient_code, '') AS patient_number, p.n AS visit_count, ${ymd('p.f')} AS first_visit_date, ${ymd('p.l')} AS last_visit_date,
-             coalesce(net.s, 0) AS net_billed_paisa
+             coalesce(net.s, 0) AS net_paisa
         FROM p LEFT JOIN frontdesk.patients pt ON pt.tenant_id = ${q.t} AND pt.id = p.patient_id LEFT JOIN net ON net.patient_id = p.patient_id`,
   },
   repeated_test: {
@@ -203,7 +203,7 @@ const SQL: Readonly<Record<string, { body(q: Q): string; tie: string }>> = {
     tie: 'party_id',
     body: (q) => `WITH inv AS (${invoices(q, ` AND i.credit_party_id IS NOT NULL${idIn(q, 'i.credit_party_id', 'party_id')}`)}), pay AS (${paid(q, 'inv')})
       SELECT inv.credit_party_id::text AS party_id, coalesce(max(cp.name), '') AS party_name, coalesce(min(o.billing_mode), 'credit') AS billing_mode,
-             count(DISTINCT inv.order_id) AS orders_registered, sum(inv.gross_paisa) AS gross_paisa, sum(inv.discount_paisa) AS discount_paisa, sum(inv.net_paisa) AS net_billed_paisa,
+             count(DISTINCT inv.order_id) AS orders_registered, sum(inv.gross_paisa) AS gross_paisa, sum(inv.discount_paisa) AS discount_paisa, sum(inv.net_paisa) AS net_paisa,
              coalesce(sum(pay.p), 0) AS paid_paisa, sum(inv.net_paisa) - coalesce(sum(pay.p), 0) AS outstanding_paisa
         FROM inv LEFT JOIN pay ON pay.invoice_id = inv.id
         LEFT JOIN frontdesk.orders o ON o.tenant_id = ${q.t} AND o.id = inv.order_id

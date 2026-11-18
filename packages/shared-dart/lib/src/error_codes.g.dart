@@ -316,6 +316,7 @@ abstract final class LimsErrorCodes {
   static const String syncNumberOutOfBlock = 'sync.number_out_of_block';
   static const String syncOfflineNotAllowed = 'sync.offline_not_allowed';
   static const String syncOpIdReused = 'sync.op_id_reused';
+  static const String syncOpTypeNotAvailable = 'sync.op_type_not_available';
   static const String syncResultLocked = 'sync.result_locked';
   static const String syncSeriesUnknown = 'sync.series_unknown';
   static const String syncVerificationPolicyFailed = 'sync.verification_policy_failed';
@@ -637,6 +638,7 @@ const Map<String, int> limsErrorHttpStatus = <String, int>{
   'sync.number_out_of_block': 422,
   'sync.offline_not_allowed': 403,
   'sync.op_id_reused': 422,
+  'sync.op_type_not_available': 422,
   'sync.result_locked': 409,
   'sync.series_unknown': 422,
   'sync.verification_policy_failed': 403,

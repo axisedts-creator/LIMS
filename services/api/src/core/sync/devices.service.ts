@@ -76,7 +76,7 @@ export async function deviceStatus(ctx: SyncCtx, query: unknown, headers: unknow
 }
 
 /** Design section 5: the device reports its clock in `x-device-time` (ISO instant). Absent or malformed = not reported (a client bug never stops sync). */
-function skewOf(headers: unknown, now: string): { skewMs?: number } {
+export function skewOf(headers: unknown, now: string): { skewMs?: number } {
   const h = headers && typeof headers === 'object' ? (headers as Record<string, unknown>)['x-device-time'] : undefined;
   const v = Array.isArray(h) ? h[0] : h;
   if (typeof v !== 'string' || v.length > 30 || !ISO_INSTANT.test(v)) return {};
@@ -105,7 +105,7 @@ export async function listDevices(ctx: SyncCtx, query: unknown) {
   };
 }
 
-const CURSOR_KEY = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(\.\d{1,6})?[+-]\d{2}(:\d{2})?$/;
+export const CURSOR_KEY = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(\.\d{1,6})?[+-]\d{2}(:\d{2})?$/;
 function decodeCursor(c: unknown): { k: string; i: string } {
   try {
     if (typeof c !== 'string' || c.length > 512) throw 0;

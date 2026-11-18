@@ -3,4 +3,4 @@
 - Edited: core/sync/engine.ts (execute may return outcome rejected + errorCode, writes kept), core/sync/index.ts (8 default adapters), reporting print.service.ts / print.repo.ts / print.handlers.ts (issued_offline; handler wires the production marker store).
 - [CONV] offline approval default off and close step up default off (no tenant setting exists); policy failure set = POLICY_CODES + common.version_conflict; marked letterhead print renders a file; audit of offline approval uses lab_result.view (CR).
 - CR: .orchestra/cr/T0B-SYNC-4.nonblocking.md (new tables, access action, settings, worklist_item pull, render worker watermark).
-- Verify: tsc clean; T0B-SYNC-4.pg.sh 198/201, the 3 failures are test defects -> .orchestra/notes/T0B-SYNC-4-dispute.md. Three-runs + boot test NOT done (stopped on dispute).
+- Verify (after ruling + tester revision ae9841c77, no code change): T0B-SYNC-4.pg.sh 202/202 green three runs in a row (22:41, 22:47, 22:52 NPT 2026-11-18). Existing lab/reporting/billing suites + boot test via SYNC4_SUITE NOT run in this session (command needed approval) -> reviewer verify.

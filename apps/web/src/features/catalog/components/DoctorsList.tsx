@@ -9,7 +9,6 @@ import { Banner } from '@lims/ui/components/Banner';
 import { Button } from '@lims/ui/components/Button';
 import { CodeField } from '@lims/ui/components/CodeField';
 import { PageHeader } from '@lims/ui/components/PageHeader';
-import { RadioGroup } from '@lims/ui/components/RadioGroup';
 import { Select } from '@lims/ui/components/Select';
 import { TextArea } from '@lims/ui/components/TextArea';
 import { TextField } from '@lims/ui/components/TextField';
@@ -96,9 +95,10 @@ export function DoctorsList({ doctors, permissions }: { doctors: readonly Doctor
           <Button type="submit">Search</Button>
           {results ? <Button variant="ghost" onPress={() => { setResults(null); setQ(''); }}>Clear search</Button> : null}
         </form>
-        <RadioGroup label="Verified" name="is_verified" orientation="horizontal" value={verified} onChange={(v) => setParam('is_verified', v)} options={[{ value: 'all', label: 'All' }, { value: 'true', label: 'Verified' }, { value: 'false', label: 'Unverified' }]} />
-        <RadioGroup label="Status" name="is_active" orientation="horizontal" value={active} onChange={(v) => setParam('is_active', v)} options={[{ value: 'all', label: 'All' }, { value: 'true', label: 'Active' }, { value: 'false', label: 'Inactive' }]} />
-        <RadioGroup label="Source" name="source" orientation="horizontal" value={source} onChange={(v) => setParam('source', v)} options={[{ value: 'all', label: 'All' }, { value: 'back_office', label: 'Back office' }, { value: 'quick_add', label: 'Quick add' }, { value: 'import', label: 'Import' }]} />
+        {/* T0D-UILIST-3 (LD-353 rule 2): selects, not radio groups, so every control in the row has one height */}
+        <Select label="Verified" name="is_verified" value={verified} onChange={(v) => setParam('is_verified', v)} options={[{ value: 'all', label: 'All' }, { value: 'true', label: 'Verified' }, { value: 'false', label: 'Unverified' }]} />
+        <Select label="Status" name="is_active" value={active} onChange={(v) => setParam('is_active', v)} options={[{ value: 'all', label: 'All' }, { value: 'true', label: 'Active' }, { value: 'false', label: 'Inactive' }]} />
+        <Select label="Source" name="source" value={source} onChange={(v) => setParam('source', v)} options={[{ value: 'all', label: 'All' }, { value: 'back_office', label: 'Back office' }, { value: 'quick_add', label: 'Quick add' }, { value: 'import', label: 'Import' }]} />
       </div>
       <MasterTable caption="Doctors" cols={cols} rows={rows} empty="No doctors in Doctor Management yet." emptyAction={openNew ? { label: 'New doctor', onPress: openNew } : undefined} codeOf={(r) => r.doctor_code} />
       {creating ? <DoctorDialog onClose={() => setCreating(false)} onDuplicates={setDupes} /> : null}

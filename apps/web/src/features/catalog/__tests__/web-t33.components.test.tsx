@@ -107,6 +107,11 @@ const dialog = () => screen.getByRole('dialog');
 const press = async (name: RegExp, root: HTMLElement = document.body) => userEvent.click(within(root).getByRole('button', { name }));
 const choose = async (root: HTMLElement, label: RegExp, option: string | RegExp) => { await userEvent.click(within(root).getByLabelText(label)); await userEvent.click(await screen.findByRole('option', { name: option })); };
 const text = (root: HTMLElement = document.body) => root.textContent ?? '';
+/** Opens the kit Select labelled `label` (LD-353 rule 2: filters are selects in the FilterBar) and picks `option`. */
+const pick = async (label: string, option: string) => {
+  await userEvent.click(screen.getByRole('button', { name: new RegExp(`\\b${label}\\b`) }));
+  await userEvent.click(await screen.findByRole('option', { name: option }));
+};
 const WORD = /commission/i;
 
 // ================================================================================================================ SCR-09
@@ -142,9 +147,7 @@ describe('SCR-09 PanelsList (AC-07.1, 07.2, 07.6)', () => {
 
   it('Kind filter (Clinical panel / Package) filters rows (local or via URL)', async () => {
     await show();
-    const opt = [...document.querySelectorAll<HTMLElement>('[role=option],[role=radio],[role=tab],button,label')].find((e) => e.textContent?.trim() === 'Package');
-    expect(opt, 'Kind filter control "Package"').toBeTruthy();
-    await userEvent.click(opt!);
+    await pick('Kind', 'Package');
     const urls = [...push.mock.calls, ...replace.mock.calls].map((c) => decodeURIComponent(String(c[0])));
     if (!urls.some((u) => /panel_kind=package|kind=package/.test(u))) {
       expect(screen.queryByText('Lipid profile')).toBeNull();
@@ -465,12 +468,11 @@ describe('SCR-11 DoctorsList (AC-11.1, 11.2, 11.4)', () => {
 
   it('Verified filter "Unverified" → URL param is_verified=false or local filter; Source filter exists (Back office / Quick add / Import)', async () => {
     await show();
-    const ctl = (n: string) => [...document.querySelectorAll<HTMLElement>('[role=option],[role=radio],[role=tab],button,label')].find((e) => e.textContent?.trim() === n);
-    expect(ctl('Unverified')).toBeTruthy();
-    await userEvent.click(ctl('Unverified')!);
+    await pick('Verified', 'Unverified');
     const urls = [...push.mock.calls, ...replace.mock.calls].map((c) => decodeURIComponent(String(c[0])));
     if (!urls.some((u) => /is_verified=false/.test(u))) expect(screen.queryByText('Dr Synthetic Alpha')).toBeNull();
-    for (const s of ['Quick add', 'Back office', 'Import']) expect(text(), `Source option ${s}`).toContain(s);
+    await userEvent.click(screen.getByRole('button', { name: /\bSource\b/ }));
+    for (const s of ['Quick add', 'Back office', 'Import']) expect(await screen.findByRole('option', { name: s }), `Source option ${s}`).toBeTruthy();
   });
 
   it('New doctor (back office): POST /doctors with display name + phone only, Idempotency-Key; code left blank = auto; no is_verified/source from the client (AC-11.1)', async () => {

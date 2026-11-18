@@ -2,6 +2,7 @@
 // The store list is optional (soft): without it the default store shows as "—". LD-140 (2026-11-13): built from packages/ui components only.
 import { PermissionDenied } from '@/core/errors/PermissionDenied';
 import { getShellSession } from '@/core/session/server';
+import { pendingOr } from '@/core/shell/NotAvailable';
 import { SettingsForm } from '@/features/inventory/components/SettingsForm';
 import { FORBIDDEN, getSettings, guarded, listStores, soft } from '@/features/inventory/server/read.server';
 import type { Page, Store } from '@/features/inventory/server/types';
@@ -11,7 +12,11 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
   const session = await getShellSession();
   const perms = session?.actor.permissions ?? [];
   if (!perms.includes('inventory.item.read')) return <PermissionDenied />;
+  // T0D-UILIST-3 / LD-353 rule 6: 501 operation_pending keeps the title (NotAvailable), never error.tsx.
+  return pendingOr('Settings', undefined, () => settingsPage(perms));
+}
 
+async function settingsPage(perms: readonly string[]) {
   const settings = await guarded(getSettings);
   if (settings === FORBIDDEN) return <PermissionDenied />;
   const stores = await soft(listStores, { data: [], page: { limit: 1 } } as Page<Store>);

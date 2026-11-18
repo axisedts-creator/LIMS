@@ -149,7 +149,7 @@ describe('S1 dashboard — tiles (US-01.1, 04-UI-UX §3)', () => {
   it('shows the six tiles with spec labels and values; money in lakh grouping; sub-values; period header in A.D. and B.S.', async () => {
     const { container } = await show();
     expect(norm(tileEl('Patient visits').textContent)).toContain('12');
-    expect(norm(tileEl('Income (net sales)').textContent)).toMatch(/2,25,000/);
+    expect(norm(tileEl('Net sales').textContent)).toMatch(/2,25,000/);
     expect(norm(tileEl('Results approved').textContent)).toContain('28');
     expect(norm(tileEl('Reports pending').textContent)).toContain('5');
     expect(norm(tileEl('Pending tests').textContent)).toContain('9');
@@ -163,20 +163,20 @@ describe('S1 dashboard — tiles (US-01.1, 04-UI-UX §3)', () => {
     await show();
     const href = (l: string) => tileEl(l).closest('a')?.getAttribute('href');
     expect(href('Patient visits')).toBe('/analytics/reports/volume');
-    expect(href('Income (net sales)')).toBe('/analytics/reports/income');
+    expect(href('Net sales')).toBe('/analytics/reports/income');
     expect(href('Results approved')).toBe('/analytics/reports/tests-done');
     expect(href('Reports pending')).toBe('/analytics/reports/pending-tests');
     expect(href('Pending tests')).toBe('/analytics/reports/pending-tests');
   });
 
-  it('shows "Cash collected (net)" → /analytics/collections only when the API sent net_collected_paisa (omitted otherwise, never an empty tile)', async () => {
+  it('shows "Cash collected" → /analytics/collections only when the API sent net_collected_paisa (omitted otherwise, never an empty tile)', async () => {
     await show();
-    expect(Array.from(document.querySelectorAll('.lims-stat-label')).map((e) => e.textContent)).not.toContain('Cash collected (net)');
+    expect(Array.from(document.querySelectorAll('.lims-stat-label')).map((e) => e.textContent)).not.toContain('Cash collected');
     cleanup();
     dash = () => HttpResponse.json(dashboard({ tiles: { net_collected_paisa: tile(1234500, 'paisa', { previous: 1000000, delta: 234500, delta_bp: 2345 }) } }));
     await show();
-    expect(norm(tileEl('Cash collected (net)').textContent)).toMatch(/12,345/);
-    expect(tileEl('Cash collected (net)').closest('a')?.getAttribute('href')).toBe('/analytics/collections');
+    expect(norm(tileEl('Cash collected').textContent)).toMatch(/12,345/);
+    expect(tileEl('Cash collected').closest('a')?.getAttribute('href')).toBe('/analytics/collections');
   });
 
   it('explains T1 and T2 (help text from the copy catalogue)', async () => {
@@ -259,7 +259,7 @@ describe('S1 dashboard — freshness (US-01.4, 04-UI-UX §2)', () => {
     await show();
     expect(screen.getAllByText('Data may be out of date').length).toBeGreaterThan(0);
     expect(norm(document.body.textContent)).toMatch(/Updated /);
-    expect(norm(tileEl('Income (net sales)').textContent)).toMatch(/2,25,000/);
+    expect(norm(tileEl('Net sales').textContent)).toMatch(/2,25,000/);
   });
 
   // T0D-UNSLOP-1 (C), LD-353 rule 8, ruling T0D-UNSLOP-1-ruling.md: ONE freshness note per page replaces the old "stale badge per tile" (03-APP-FLOW §5 S1, overridden by LD-353).
@@ -279,7 +279,7 @@ describe('S1 dashboard — freshness (US-01.4, 04-UI-UX §2)', () => {
     expect(found[0]!.closest('.lims-stat')).toBeNull();
     for (const stat of container.querySelectorAll('.lims-stat')) expect(norm(stat.parentElement!.textContent)).not.toContain(STALE);
     expect(reachable(found[0]!)).toContain('Recent changes are still being processed');
-    expect(norm(tileEl('Income (net sales)').textContent)).toMatch(/2,25,000/);
+    expect(norm(tileEl('Net sales').textContent)).toMatch(/2,25,000/);
     expect(norm(tileEl('Patient visits').textContent)).toMatch(/\b12\b/);
     expect(norm(tileEl('Results approved').textContent)).toMatch(/\b28\b/);
   });
@@ -290,7 +290,7 @@ describe('S1 dashboard — freshness (US-01.4, 04-UI-UX §2)', () => {
     const found = notes(container);
     expect(found).toHaveLength(1);
     expect(found[0]!.closest('.lims-stat')).toBeNull();
-    for (const l of ['Patient visits', 'Income (net sales)', 'Results approved']) expect(norm(tileEl(l).textContent)).not.toContain(STALE);
+    for (const l of ['Patient visits', 'Net sales', 'Results approved']) expect(norm(tileEl(l).textContent)).not.toContain(STALE);
     expect(norm(tileEl('Patient visits').textContent)).toMatch(/\b12\b/);
   });
 
@@ -322,7 +322,7 @@ describe('S1 dashboard — empty (03-APP-FLOW §5)', () => {
     dash = () => HttpResponse.json(dashboard({ tiles: zeros, series: { days: [] }, department_top: [] }));
     await show();
     expect(norm(tileEl('Patient visits').textContent)).toContain('0');
-    expect(norm(tileEl('Income (net sales)').textContent)).toMatch(/0\.00|0\b/);
+    expect(norm(tileEl('Net sales').textContent)).toMatch(/0\.00|0\b/);
     expect(screen.getByText('No activity in this period')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Show yesterday' })).toBeTruthy();
   });
@@ -353,14 +353,14 @@ describe('S1 dashboard — error / permission states (03-APP-FLOW §5)', () => {
     const o = await outcome(() => problem('auth.forbidden', 403));
     if (!o.threw) {
       expect(o.text).not.toContain('Patient visits');
-      expect(o.text).not.toContain('Income (net sales)');
+      expect(o.text).not.toContain('Net sales');
     }
   });
 
   it('secondary reads failing (live pending 503, X20) does not take the other tiles down', async () => {
     await show();
     expect(norm(tileEl('Patient visits').textContent)).toContain('12');
-    expect(norm(tileEl('Income (net sales)').textContent)).toMatch(/2,25,000/);
+    expect(norm(tileEl('Net sales').textContent)).toMatch(/2,25,000/);
   });
 });
 

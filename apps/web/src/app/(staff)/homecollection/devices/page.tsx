@@ -13,7 +13,7 @@ export default async function DevicesPage({ searchParams }: { searchParams: Prom
   const permissions = session?.actor.permissions ?? [];
   if (!permissions.includes('homecollection.device.manage')) notFound();
   const sp = await searchParams;
-  const { q } = deviceQuery(sp);
+  const { q, status } = deviceQuery(sp);
   try {
     // allSettled: every request finishes before the page answers; only the H16 failure matters.
     const [devices, reasons, settings] = await Promise.allSettled([listDevices(q), listReasons('wipe_reasons'), getSettings()] as const);
@@ -21,7 +21,7 @@ export default async function DevicesPage({ searchParams }: { searchParams: Prom
     return (
       <DevicesView
         devices={devices.value.rows} codes={{ wipe_reasons: reasons.status === 'fulfilled' ? reasons.value : [] }}
-        minAppVersion={settings.status === 'fulfilled' ? settings.value.min_app_version : undefined} permissions={permissions} nextCursor={devices.value.next}
+        minAppVersion={settings.status === 'fulfilled' ? settings.value.min_app_version : undefined} permissions={permissions} nextCursor={devices.value.next} status={status.length === 1 ? status[0] : undefined}
       />
     );
   } catch (e) {

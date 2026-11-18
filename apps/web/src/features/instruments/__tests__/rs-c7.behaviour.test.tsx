@@ -2,9 +2,10 @@
 // RS-C7 — Metro Green restyle of the C7 instrument screens (LD-140: appearance and arrangement only; 10-DESIGN-SYSTEM s3, s4, s6, s8).
 // done_when: instrument list as link cards (state dot + word, last heartbeat, queue depth); message and host-query logs as tables with the existing columns; commissioning checklist as a stepper.
 // ASSUMED contracts (dispute through a ruling if wrong; nothing here needs a new API, field or route):
-//  A1 InstrumentsList: no <table>. One card per instrument, an <li>/<article> holding: a link to /instruments/instruments/<id> (name starts with the instrument code), the display name, the state as a kit
-//     StatusChip (tone + icon + word, `.lims-chip[data-tone]`), "Last message" + a kit DateText <time>, the "N unmapped" link to /mappings, vendor/model, protocol, agent code, driver status badge, link state.
-//     Every datum the old columns showed is still on screen. No card inside a card (`.lims-card .lims-card`). Sorting (E23 `sort=-last_message_at`) stays reachable from a control named /last message/i.
+//  A1 InstrumentsList: a kit DataTable (ARIA grid, header row always shown), NOT a card grid. T0D-UILIST-1 arbiter ruling: LD-353 template 1 LIST + rule 5 + done_when (7) bind and override the spec text of
+//     LD-140 for this screen. One row per instrument holding: a link to /instruments/instruments/<id> (text = the instrument code), the display name, the state as a kit status pill
+//     (tone + icon + word, `.lims-chip[data-tone]`), a kit DateText <time> in the "Last message" column ("—" when never), the "N unmapped" link to /mappings, vendor/model, protocol, agent code,
+//     driver status badge, link state. Every datum the old columns showed is still on screen. Sorting (E23 `sort=-last_message_at`) stays reachable from a control named /last message/i.
 //  A2 "last heartbeat" and "queue depth" are AGENT data (AgentHealth); InstrumentSummary has neither, and a restyle may not add data. The instrument cards therefore show last MESSAGE; the heartbeat/queue pair
 //     stays on the Agents table (guarded below). If the lead wants them on instrument cards that needs a CR (new field on the instruments list endpoint).
 //  A3 Message log (SCR-09) and rejected uploads stay kit DataTables with exactly the existing column headers; there is no separate host-query log screen in this chunk (kind "Host query" is a row in the message
@@ -56,24 +57,27 @@ const serious = async () => {
 
 const loadList = async () => (await import('../components/InstrumentsList')).InstrumentsList;
 const listProps = (o: Record<string, unknown> = {}) => ({ instruments: ROWS, permissions: READ, centres: CENTRES, agents: AGENTS_PICK, drivers: DRIVERS, ...o }) as never;
+/** The table row of an instrument (A1 is a table): the row that holds the link to SCR-07 whose text is the instrument code. */
 const cardOf = (instId: string, code: string) => {
   const link = screen.getAllByRole('link').find((l) => l.getAttribute('href') === `/instruments/instruments/${instId}` && (l.textContent ?? '').includes(code));
   expect(link, `a link to ${code}`).toBeTruthy();
-  const card = link!.closest('li, article');
-  expect(card, `${code}: the link sits inside an <li> or <article> card`).toBeTruthy();
-  return card as HTMLElement;
+  const row = link!.closest('tr, [role="row"]');
+  expect(row, `${code}: the link sits inside a table row`).toBeTruthy();
+  return row as HTMLElement;
 };
 
-describe('A1 SCR-05 instruments: link cards (10-DESIGN-SYSTEM s4 Instruments)', () => {
-  it('is not a table any more: no table, no column headers', async () => {
+describe('A1 SCR-05 instruments: table with header row (LD-353 template 1 LIST, rule 5)', () => {
+  it('is a table with a header row: one grid named Instruments, the column headers, no card grid', async () => {
     const InstrumentsList = await loadList();
-    wrap(<InstrumentsList {...listProps()} />);
-    expect(screen.queryByRole('table')).toBeNull();
-    expect(screen.queryAllByRole('columnheader')).toHaveLength(0);
-    expect(screen.queryAllByRole('grid')).toHaveLength(0);
+    const { container } = wrap(<InstrumentsList {...listProps()} />);
+    const grid = screen.getByRole('grid', { name: /^instruments$/i });
+    for (const h of ['Code', 'Name', 'Agent', 'Driver', 'Last message', 'Status']) expect(within(grid).getByRole('columnheader', { name: new RegExp(`^${h}`, 'i') }), h).toBeTruthy();
+    expect(grid.closest('.lims-table-scroll'), 'the table scrolls inside its own box').not.toBeNull();
+    expect(within(grid).getAllByRole('row').length, 'header row + one row per instrument').toBe(ROWS.length + 1);
+    expect(container.querySelectorAll('.lims-card, ul.lims-card-grid, [data-card]'), 'no card grid').toHaveLength(0);
   });
 
-  it('one card per instrument; the card links to SCR-07 and carries every datum the old columns showed', async () => {
+  it('one row per instrument; the row links to SCR-07 and carries every datum the old columns showed', async () => {
     const InstrumentsList = await loadList();
     wrap(<InstrumentsList {...listProps()} />);
     for (const r of ROWS) {
@@ -85,16 +89,16 @@ describe('A1 SCR-05 instruments: link cards (10-DESIGN-SYSTEM s4 Instruments)', 
       expect(t, code).toContain('SV-100');
       expect(t, code).toMatch(/ASTM/);
       expect(t, code).toContain('SYN-AGENT-1');
-      expect(t, code).toContain('Link state');
       expect(t, code).toMatch(/\bup\b/);
     }
+    expect(within(screen.getByRole('grid', { name: /^instruments$/i })).getByRole('columnheader', { name: /link state/i })).toBeTruthy();
     // driver status stays a word, never colour only
     expect(within(cardOf(ROWS[1]!.id as string, 'SIM-CHEM-2')).getByText('Verified')).toBeTruthy();
     expect(within(cardOf(ROWS[2]!.id as string, 'SIM-HEM-1')).getByText('Sketch — not for live use')).toBeTruthy();
     expect(within(cardOf(INST, 'SIM-CHEM-1')).getByText('Generic')).toBeTruthy();
   });
 
-  it('state dot + word: a kit status chip (tone + icon + word) per card, with the tone of the state', async () => {
+  it('state dot + word: a kit status chip (tone + icon + word) per row, with the tone of the state', async () => {
     const InstrumentsList = await loadList();
     wrap(<InstrumentsList {...listProps()} />);
     const want: [string, string, string, RegExp][] = [[INST, 'SIM-CHEM-1', 'neutral', /^draft$/i], [id(0xe02), 'SIM-CHEM-2', 'success', /^live$/i], [id(0xe03), 'SIM-HEM-1', 'info', /^commissioning$/i], [id(0xe05), 'SIM-SUS-1', 'warning', /^suspended$/i]];
@@ -105,24 +109,23 @@ describe('A1 SCR-05 instruments: link cards (10-DESIGN-SYSTEM s4 Instruments)', 
       expect(chip!.textContent, code).toMatch(word);
       expect(chip!.querySelector('svg'), `${code}: an icon beside the word`).toBeTruthy();
     }
-    // the "no results sent" hint stays visible text on commissioning / suspended cards
+    // the "no results sent" hint stays visible text on commissioning / suspended rows
     expect(cardOf(id(0xe03), 'SIM-HEM-1').textContent).toMatch(/no results sent/i);
     expect(cardOf(id(0xe05), 'SIM-SUS-1').textContent).toMatch(/no results sent/i);
   });
 
-  it('last message: a kit date (<time>) with its label; "—" when the instrument never sent one', async () => {
+  it('last message: a kit date (<time>) under the "Last message" column header; "—" when the instrument never sent one', async () => {
     const InstrumentsList = await loadList();
     wrap(<InstrumentsList {...listProps()} />);
+    expect(within(screen.getByRole('grid', { name: /^instruments$/i })).getByRole('columnheader', { name: /last message/i })).toBeTruthy();
     const a = cardOf(INST, 'SIM-CHEM-1');
-    expect(a.textContent).toMatch(/Last message/i);
     expect(a.querySelector('time[datetime="2026-11-07T03:58:00.000Z"]')).toBeTruthy();
     const never = cardOf(id(0xe05), 'SIM-SUS-1');
-    expect(never.textContent).toMatch(/Last message/i);
     expect(never.querySelector('time')).toBeNull();
     expect(never.textContent).toContain('—');
   });
 
-  it('unmapped codes stay text "N unmapped" and a link to SCR-08, inside the card', async () => {
+  it('unmapped codes stay text "N unmapped" and a link to SCR-08, inside the row', async () => {
     const InstrumentsList = await loadList();
     wrap(<InstrumentsList {...listProps()} />);
     const l = within(cardOf(INST, 'SIM-CHEM-1')).getByRole('link', { name: '3 unmapped' });
@@ -130,7 +133,7 @@ describe('A1 SCR-05 instruments: link cards (10-DESIGN-SYSTEM s4 Instruments)', 
     expect(within(cardOf(id(0xe03), 'SIM-HEM-1')).getByRole('link', { name: '12 unmapped' })).toBeTruthy();
   });
 
-  it('one container level and no nested interactive controls: no card in a card, no link inside a link', async () => {
+  it('no nested interactive controls: no link inside a link, no card inside a card', async () => {
     const InstrumentsList = await loadList();
     const { container } = wrap(<InstrumentsList {...listProps()} />);
     expect(container.querySelectorAll('.lims-card .lims-card')).toHaveLength(0);
@@ -165,7 +168,7 @@ describe('A1 SCR-05 instruments: link cards (10-DESIGN-SYSTEM s4 Instruments)', 
     expect(sentCalls).toEqual([]);
   });
 
-  it('SECURITY: names are text, never HTML, on the cards', async () => {
+  it('SECURITY: names are text, never HTML, in the table rows', async () => {
     const InstrumentsList = await loadList();
     wrap(<InstrumentsList {...listProps({ instruments: [summary({ display_name: '<img src=x onerror=alert(1)>', vendor: '<script>alert(1)</script>' })] })} />);
     expect(document.querySelector('img')).toBeNull();
@@ -173,7 +176,7 @@ describe('A1 SCR-05 instruments: link cards (10-DESIGN-SYSTEM s4 Instruments)', 
     expect(document.body.textContent).toContain('<img src=x onerror=alert(1)>');
   });
 
-  it('keyboard only: Tab reaches each card link and its unmapped link in order; Enter on a card link is a link activation (no script handler)', async () => {
+  it('keyboard only: Tab reaches each row link and its unmapped link in order; Enter on a card link is a link activation (no script handler)', async () => {
     const InstrumentsList = await loadList();
     wrap(<InstrumentsList {...listProps({ instruments: [ROWS[0]!, ROWS[1]!] })} />);
     const user = userEvent.setup();

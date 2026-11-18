@@ -1,0 +1,6 @@
+APPROVE
+Scope: git diff c2738986a..HEAD (round after arbiter ruling TESTS_WRONG). Display only; no route, permission, contract, API, CSS or tokens change; only owned paths (features/instruments, anatomic and reporting tests, notes). No PHI, no secrets; names stay text (SECURITY test kept).
+Ruling items: (1) outsourced fixture adds `reporting.outsourced.attach`, assertions kept. (2) SCR-05 is a table with header always shown inside lims-table-scroll, EmptyState/ErrorState in body, sort reachable from header buttons (E23 values only), rs-c7.screens snapshot diff limited to the instruments key (LD-362). (3) t19.pages landing 500/503 now asserts h1 + ErrorState with reference and Retry, no partial rows; case page untouched.
+Runs (reviewer, main already merged, HEAD f2d2c1e52): uilist1 76/76, web-style-3 101/101, rs-c7 33/35, anatomic t19 322/323.
+Remaining reds are pre-existing and not this task (ruling item 4, LD-362): rs-c7.static extra literal `instruments.nav.settings` (added by 598c0c244 T0D-UNSLOP-1), rs-c7.screens messages (snapshot hunk not touched here), t19.nav manifest (no nav change in this diff).
+Note for later (not blocking): `<table role="grid">` without arrow-key navigation; the test name "link cards" in rs-c7.screens is the tester's to rename.

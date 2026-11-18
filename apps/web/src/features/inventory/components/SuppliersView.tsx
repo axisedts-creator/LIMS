@@ -7,13 +7,14 @@ import { Button } from '@lims/ui/components/Button';
 import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
 import { DescriptionList } from '@lims/ui/components/DescriptionList';
 import { Drawer } from '@lims/ui/components/Drawer';
+import { FilterBar } from '@lims/ui/components/FilterBar';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { Tabs } from '@lims/ui/components/Tabs';
 import { useToast } from '@lims/ui/components/Toast';
 import type { CodedValue, Supplier, SupplierItem, SupplierSummary } from '../server/types';
 import { SupplierForm } from './SupplierForm';
 import { SupplierItems, type ItemInfo } from './SupplierItems';
-import { ActiveChip } from './shared';
+import { ACTIVE_OPTIONS, ActiveChip, contains, useLocalFilters } from './shared';
 
 const dash = (v: string | number | undefined) => (v === undefined || v === '' ? '—' : String(v));
 
@@ -50,15 +51,30 @@ export function SuppliersView(p: SuppliersViewProps) {
     toast.show({ tone: 'success', title: msg });
     router.refresh();
   };
+  // T0D-UILIST-3 (LD-353 template 1): one FilterBar over the loaded suppliers.
+  const filters = useLocalFilters(p.suppliers, {
+    q: (x, v) => contains(x.supplier_code, v) || contains(x.name, v),
+    active: (x, v) => String(x.is_active) === v,
+  });
   const s = p.selected;
   return (
     <section aria-label="Suppliers">
       <PageHeader title="Suppliers" helpKey="inventory.suppliers" {...(p.canManage ? { actions: <Button variant="primary" onPress={() => setCreating(true)}>New supplier</Button> } : {})} />
+      <FilterBar
+        filters={[
+          { id: 'q', label: 'Search code or name', kind: 'text', maxLength: 60 },
+          { id: 'active', label: 'Status', kind: 'select', options: ACTIVE_OPTIONS },
+        ]}
+        value={filters.value}
+        onChange={filters.onChange}
+        onReset={filters.onReset}
+      />
       <DataTable
         caption="Suppliers"
         columns={columns}
-        rows={p.suppliers}
+        rows={filters.shown}
         getRowId={(x) => x.id}
+        cellTitle
         emptyState={{ title: 'No suppliers yet.' }}
         onRowAction={(x) => router.push(`/inventory/suppliers?supplier=${x.id}`)}
       />

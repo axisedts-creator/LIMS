@@ -552,7 +552,7 @@ INSERT INTO definer_inventory (fn, owner, execute_roles, touches, policies) VALU
   ('app.identity_expire_support_sessions', 'lims_owner', ARRAY['lims_worker']::text[], ARRAY['identity.support_sessions SELECT, UPDATE']::text[], ARRAY['support_sessions__{select,update}__owner_only']::text[]),
   ('app.identity_finish_breached_import', 'lims_owner', ARRAY['lims_worker']::text[], ARRAY[]::text[], ARRAY[]::text[]),
   ('app.identity_load_breached_batch', 'lims_owner', ARRAY['lims_worker']::text[], ARRAY[]::text[], ARRAY[]::text[]),
-  ('app.identity_login_context', 'lims_owner', ARRAY['lims_api']::text[], ARRAY['per C2 05-SCHEMA §5.4']::text[], ARRAY['owner_only per C2 05-SCHEMA §5.4; roles__select__owner_only, membership_roles__select__owner_only']::text[]),
+  ('app.identity_login_context', 'lims_owner', ARRAY['lims_api', 'lims_worker']::text[], ARRAY['per C2 05-SCHEMA §5.4']::text[], ARRAY['owner_only per C2 05-SCHEMA §5.4; roles__select__owner_only, membership_roles__select__owner_only']::text[]),
   ('app.identity_notify_ip_throttle_hmacs', 'lims_owner', ARRAY['lims_worker']::text[], ARRAY['identity.auth_events SELECT']::text[], ARRAY['auth_events__select__owner_only (app.maintenance = ''identity_notify_ip_throttle'')']::text[]),
   ('app.identity_platform_auth_load_session', 'lims_owner', ARRAY['lims_api']::text[], ARRAY['identity.sessions SELECT', 'identity.platform_staff SELECT']::text[], ARRAY['sessions__select__owner_only', 'platform_staff__select__owner_only']::text[]),
   ('app.identity_platform_auth_read_mfa_factors', 'lims_owner', ARRAY['lims_api']::text[], ARRAY['identity.mfa_factors SELECT']::text[], ARRAY['mfa_factors__select__owner_only']::text[]),

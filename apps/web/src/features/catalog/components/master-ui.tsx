@@ -10,7 +10,7 @@ import { EmptyRow, PlaceholderRows } from '@lims/ui/components/DataTable';
 import { Drawer } from '@lims/ui/components/Drawer';
 import { EmptyState } from '@lims/ui/components/EmptyState';
 import { Form } from '@lims/ui/components/Form';
-import { RadioGroup } from '@lims/ui/components/RadioGroup';
+import { Select } from '@lims/ui/components/Select';
 import { TextField } from '@lims/ui/components/TextField';
 import { useToast } from '@lims/ui/components/Toast';
 import { VisuallyHidden } from '@lims/ui/components/VisuallyHidden';
@@ -57,27 +57,29 @@ export function useListShortcuts(search: { current: HTMLElement | null }, onNew:
 export type StatusFilter = 'all' | 'active' | 'inactive';
 
 /** Search (code/name, client-side over the loaded ≤ 200 rows [CONV]) + Status filter. */
-export function useListFilter<R extends { code: string; is_active: boolean }>(rows: readonly R[], text: (r: R) => string) {
+// T0D-UILIST-3: `extra` = further filter controls of the screen, drawn in the same one-row bar (LD-353 template 1).
+export function useListFilter<R extends { is_active: boolean }>(rows: readonly R[], text: (r: R) => string, extra?: ReactNode, code: (r: R) => string = (r) => (r as { code?: string }).code ?? '') {
   const [q, setQ] = useState('');
   const [status, setStatus] = useState<StatusFilter>('all');
   const search = useRef<HTMLDivElement>(null);
   const needle = q.trim().toLowerCase();
   const shown = rows.filter(
-    (r) => (status === 'all' || r.is_active === (status === 'active')) && (!needle || r.code.toLowerCase().includes(needle) || text(r).toLowerCase().includes(needle)),
+    (r) => (status === 'all' || r.is_active === (status === 'active')) && (!needle || code(r).toLowerCase().includes(needle) || text(r).toLowerCase().includes(needle)),
   );
   const toolbar = (
     <div className="lims-filter-bar">
       <div ref={search}>
         <TextField label="Search" name="q" maxLength={100} value={q} onChange={setQ} />
       </div>
-      <RadioGroup<StatusFilter>
+      {/* T0D-UILIST-3, LD-353 rule 2: a select keeps the row's control height (a radio group is taller) */}
+      <Select<StatusFilter>
         label="Status"
         name="status"
-        orientation="horizontal"
         value={status}
         onChange={setStatus}
         options={[{ value: 'all', label: 'All' }, { value: 'active', label: 'Active' }, { value: 'inactive', label: 'Inactive' }]}
       />
+      {extra}
     </div>
   );
   return { shown, toolbar, search };
@@ -108,7 +110,9 @@ export function MasterTable<R extends { id: string }>({ caption, cols, rows, emp
   // T0D-UNSLOP-1 (LD-353 rules 3 and 5): an all-number column is right aligned (header too); a long text cell carries its full value as title.
   const vals = rows.map((r) => cols.map((c) => c.cell(r)));
   const end = cols.map((_, i) => (isNumberColumn(vals.map((v) => v[i])) ? ' lims-align-end' : ''));
+  // T0D-UILIST-3, LD-353 rule 5: the table scrolls inside the kit box, never the page.
   return (
+    <div className="lims-table-scroll">
     <table className="lims-table lims-table-regular">
       <caption className="lims-visually-hidden">{caption}</caption>
       <thead>
@@ -145,6 +149,7 @@ export function MasterTable<R extends { id: string }>({ caption, cols, rows, emp
       </tbody>
       {rows.length === 0 ? <PlaceholderRows colSpan={cols.length} /> : null}
     </table>
+    </div>
   );
 }
 

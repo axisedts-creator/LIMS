@@ -1,4 +1,5 @@
 // SCR-01 Agents — server component; data via BFF server functions (02-CONVENTIONS §2.4). Filters/sort live in the URL.
+import { ApiError } from '@/core/api/server-fetch';
 import { getShellSession } from '@/core/session/server';
 import { pendingOr } from '@/core/shell/NotAvailable';
 import { AgentsList } from '@/features/instruments/components/AgentsList';
@@ -11,8 +12,15 @@ export default async function AgentsPage({ searchParams }: { searchParams: Promi
   const [session, sp] = await Promise.all([getShellSession(), searchParams]);
   // T0D-UNSLOP-1 / LD-353 rule 6: 501 operation_pending keeps the title and the header row (NotAvailable), never error.tsx.
   return pendingOr('Agents', COLUMNS, async () => {
-    const { data } = await listAgents({ ...parseAgentQuery(sp), limit: 50 });
-    // Centres in scope + working centre: no core API in apps/web yet (CR .orchestra/cr/WEB-T02.md); the dialog shows a field error until then.
-    return <AgentsList agents={data} permissions={session?.actor.permissions ?? []} centres={[]} />;
+    const permissions = session?.actor.permissions ?? [];
+    try {
+      const { data } = await listAgents({ ...parseAgentQuery(sp), limit: 50 });
+      // Centres in scope + working centre: no core API in apps/web yet (CR .orchestra/cr/WEB-T02.md); the dialog shows a field error until then.
+      return <AgentsList agents={data} permissions={permissions} centres={[]} />;
+    } catch (e) {
+      // T0D-UILIST-1 (LD-353 rule 6): a failed read keeps the title and the filters; the table body shows ErrorState with reference and Retry.
+      if (!(e instanceof ApiError) || e.status === 403 || e.status === 501) throw e;
+      return <AgentsList agents={[]} permissions={permissions} centres={[]} loadError={e.problem.request_id ? { requestId: e.problem.request_id } : {}} />;
+    }
   });
 }

@@ -3,6 +3,7 @@
 // reasons) are optional: a failure leaves the matching picker empty instead of breaking the page.
 // LD-140 (2026-11-13): built from packages/ui components only.
 import { PermissionDenied } from '@/core/errors/PermissionDenied';
+import { PageHeader } from '@lims/ui/components/PageHeader';
 import { getShellSession } from '@/core/session/server';
 import { BenchView } from '@/features/inventory/components/BenchView';
 import { FORBIDDEN, guarded, listCodedSet, listContainers, listInstruments, listItems, listStores, listTests, soft } from '@/features/inventory/server/read.server';
@@ -14,7 +15,19 @@ const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
 export default async function BenchPage({ searchParams }: { searchParams: Promise<SP> }) {
   const [session, sp] = await Promise.all([getShellSession(), searchParams]);
   const perms = session?.actor.permissions ?? [];
-  if (!perms.includes('inventory.bench.record')) return <PermissionDenied />;
+  // T0D-UILIST-3 (LD-353 rules 6 and 8): without the bench permission the page keeps its menu title and says so plainly; no API call, no form.
+  // The tenant admin pack does not grant inventory.bench.record (gap listed in notes/T0D-UILIST-3-screens.md).
+  if (!perms.includes('inventory.bench.record')) {
+    return (
+      <section data-testid="permission-denied" aria-label="Bench">
+        <PageHeader title="Bench" helpKey="inventory.bench" />
+        <div className="lims-state">
+          <p className="lims-state-title">No access</p>
+          <p className="lims-state-body">You do not have access to the bench. Ask an administrator for the bench permission.</p>
+        </div>
+      </section>
+    );
+  }
 
   const all = await guarded(() => listStores());
   if (all === FORBIDDEN) return <PermissionDenied />;

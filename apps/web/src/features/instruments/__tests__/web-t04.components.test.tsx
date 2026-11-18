@@ -23,7 +23,7 @@ import userEvent from '@testing-library/user-event';
 import axe from 'axe-core';
 import { delay, http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
-import type { ReactNode } from 'react';
+import type { ComponentProps, ReactNode } from 'react';
 import { ToastProvider } from '@lims/ui/components/Toast';
 
 const push = vi.fn();
@@ -99,7 +99,7 @@ const api = setupServer(
   http.get(MAPS, async ({ request }) => { await rec(request); return HttpResponse.json({ data: MAPROWS, page: { limit: 50 } }); }),
   http.post(MAPS, async ({ request }) => { await rec(request); return HttpResponse.json(cm({ id: M3, version: 1 }), { status: 201 }); }),
   http.patch(`${MAPS}/:id`, async ({ request }) => { await rec(request); return HttpResponse.json(cm({ version: 6 })); }),
-  http.post(`${MAPS}/bulk-upsert`, async ({ request }) => { await rec(request); const b = await request.clone().json(); return HttpResponse.json({ results: b.maps.map((m: any) => ({ direction: m.direction, instrument_code: m.instrument_code, outcome: 'created' })) }); }),
+  http.post(`${MAPS}/bulk-upsert`, async ({ request }) => { await rec(request); const b = (await request.clone().json()) as { maps: any[] }; return HttpResponse.json({ results: b.maps.map((m: any) => ({ direction: m.direction, instrument_code: m.instrument_code, outcome: 'created' })) }); }),
   http.get(IM, async ({ request }) => { await rec(request); return HttpResponse.json({ data: [instrument, other], page: { limit: 50 } }); }),
 );
 beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
@@ -124,7 +124,7 @@ const load = async () => (await import('../components/InstrumentMappings')).Inst
 const show = async (props: Record<string, unknown> = {}) => {
   const C = await load();
   const perms = (props.permissions as string[] | undefined) ?? MANAGE;
-  return wrap(<C instrument={instrument as never} observed={OBSERVED as never} {...(perms.includes(MAN) ? { maps: MAPROWS, tests: TESTS, instruments: [instrument, other] } : {})} permissions={perms} {...(props as object)} />);
+  return wrap(<C instrument={instrument as never} observed={OBSERVED as never} {...((perms.includes(MAN) ? { maps: MAPROWS, tests: TESTS, instruments: [instrument, other] } : {}) as Partial<ComponentProps<typeof C>>)} permissions={perms} {...(props as object)} />);
 };
 const dialog = () => screen.getByRole('dialog');
 const field = (re: RegExp) => within(dialog()).getByLabelText(re) as HTMLInputElement;

@@ -1,8 +1,8 @@
 // T0B-MISREPORTS-1 (LD-321, LD-325, LD-342 / A39, LD-346): the MIS reports of contracts/openapi/analytics.yaml x-report-definitions (T0C-MISREPORTS-1)
 // that this task delivers, as frozen data. Pure: no I/O. [CONV] restated here (not parsed from the YAML at runtime, the worker imports this file too);
 // misreports/registry.static.test.ts pins every field to the contract, so a drift fails the suite.
-// LD-346 (1): consultant is volume only (no money column, sorted by tests_count desc). LD-346 (2): the two gated money reports are PENDING
-// (PENDING_REPORT_CODES in reportRegistry.ts, an allow-listed file of the c8 CI word gate; no row here).
+// LD-346 (1): consultant is volume only (no money column, sorted by tests_count desc). T0B-MISREPORTS-2: the two gated money definitions live in
+// reportRegistry.ts (MIS_ALL_DEFS, an allow-listed file of the c8 CI word gate, A39-3); no row here. isMisReport / MIS_DEFS cover the 9 plain ones only.
 import type { ExportColumn, ExportKind } from '../export/layout.js';
 
 export type MisParam = 'centre_id' | 'party_id' | 'representative_id' | 'referrer_id' | 'department_id' | 'collector_id' | 'min_repeat_count' | 'visit_type';
@@ -11,7 +11,7 @@ export interface MisColumn { readonly name: string; readonly type: ColType; read
 export interface MisDef {
   readonly code: string;
   readonly title: string;
-  readonly permission: 'analytics.dashboard.read' | 'analytics.collections.read';
+  readonly permission: 'analytics.dashboard.read' | 'analytics.collections.read' | 'analytics.referral_report.read';
   readonly params: readonly MisParam[]; // filters besides business_date_from / business_date_to
   readonly columns: readonly MisColumn[];
   readonly sort: { readonly column: string; readonly direction: 'asc' | 'desc' };

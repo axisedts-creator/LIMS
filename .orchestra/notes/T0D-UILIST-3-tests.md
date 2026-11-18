@@ -6,3 +6,5 @@ Judgement calls: price simulator contract is `form.lims-entry-form` + two `.lims
 Open: price lists list is tested (done_when 1) but T0D-PRICETOOLS-1 (not done) may own it, so drop those tests if the lead reads the ownership clause that way; no file list found for T0D-SALES-1 or T0D-PARTYSET-1.
 Not tested: equal control heights and column widths (CSS, no layout in jsdom). web-style-3, m2.source, r04.*, m4.source, elabmenu1.sidebar, m-series-kit are named in the brief and not duplicated here.
 Writer (LD-362): regenerate the rs-cN screen snapshots (rs-c3 etc.) that the markup changes.
+
+Revised per T0D-UILIST-3-ruling.md: catalog imports marker "Synthetic"; homecollection inBar reads FilterBar label elements; web-t31/t33 pick filters via the kit Select (pick helper); t-b6.engbook1 500 test now expects the in-page ErrorState (title, reference, Retry). Verify cmd unchanged. Run: web-t31, web-t33, t-b6 with their vitest.*.config.ts.

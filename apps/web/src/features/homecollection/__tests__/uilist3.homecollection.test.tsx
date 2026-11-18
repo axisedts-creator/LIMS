@@ -33,7 +33,9 @@ const wrap = (el: React.ReactElement) => render(<ToastProvider>{el}</ToastProvid
 const pageHeader = (c: HTMLElement) => c.querySelector<HTMLElement>('.lims-page-header')!;
 /** Text cells (plain string) carry a title attribute with their full text (LD-353 rule 5, kit cellTitle). */
 const titled = (c: HTMLElement, text: string) => [...c.querySelectorAll<HTMLElement>('td[title], [role="gridcell"][title]')].filter((x) => x.getAttribute('title') === text);
-const inBar = (c: HTMLElement, label: string) => new RegExp(`\\b${label}\\b`).test(filterBars(c)[0]?.textContent ?? '');
+/** The label is one of the `.lims-label` elements inside the FilterBar (exact text): the kit puts the label above its control (LD-353 rule 2).
+ *  A kit Switch carries its own label text instead of a `.lims-label`, so its `label` element counts too. */
+const inBar = (c: HTMLElement, label: string) => [...(filterBars(c)[0]?.querySelectorAll('.lims-label, label') ?? [])].some((l) => norm(l.textContent) === label);
 const noControlsInHeader = (c: HTMLElement) => expect(pageHeader(c).querySelectorAll('select, input, [role="combobox"], [role="switch"], [role="listbox"], button[aria-haspopup="listbox"]'), 'filters live in the FilterBar, not in the page header').toHaveLength(0);
 
 const oneRoute = route(1, [A1.id]);

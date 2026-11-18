@@ -84,7 +84,7 @@ const SCREENS: Screen[] = [
     mount: (r) => wrap(<DoctorsList doctors={(r ? [{ id: ID(61), doctor_code: 'DR001', display_name: LONG, qualification: 'MD', is_verified: true, is_active: true }] : []) as never} permissions={MANAGE} />) },
   { name: 'credit parties', path: '/catalog/credit-parties', headers: ['Code', 'Name', 'Kind', 'Credit allowed', 'Price list', 'Status'], long: LONG, marker: 'HOSP1',
     mount: (r) => wrap(<CreditPartiesScreen creditParties={(r ? [base(71, { party_code: 'HOSP1', name: LONG, kind: 'hospital', allows_credit: true })] : []) as never} permissions={MANAGE} />) },
-  { name: 'imports', path: '/catalog/imports', headers: ['Started', 'Kind', 'Target', 'File name', 'Status', 'Errors / Warnings', 'By'], filterBar: 'optional', long: LONG + '.xlsx', marker: 'synthetic',
+  { name: 'imports', path: '/catalog/imports', headers: ['Started', 'Kind', 'Target', 'File name', 'Status', 'Errors / Warnings', 'By'], filterBar: 'optional', long: LONG + '.xlsx', marker: 'Synthetic',
     mount: (r) => wrap(<ImportsScreen imports={(r ? [IMPORT(LONG + '.xlsx')] : []) as never} exports={(r ? [EXPORT()] : []) as never} priceLists={[]} permissions={MANAGE} />) },
   { name: 'price lists', path: '/catalog/price-lists', headers: ['Code', 'Name', 'Applies to', 'Assigned to', 'Current version', 'Scheduled', 'Draft', 'Status'], long: LONG, marker: 'DEFAULT',
     mount: (r) => wrap(<PriceListsList priceLists={(r ? [PLIST(LONG)] : []) as never} permissions={MANAGE} />) },

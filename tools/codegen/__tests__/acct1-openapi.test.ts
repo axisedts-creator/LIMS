@@ -335,7 +335,7 @@ describe("T0C-ACCT-1 contract: account ledger entries", () => {
   it("list filters: centre_id, party_kind, party_id, particular, entry_type, status, entry_date range; there is no update or delete operation for entries", () => {
     for (const p of ["centre_id", "party_kind", "party_id", "account_particular_id", "entry_type", "status", "entry_date_from", "entry_date_to"]) expect(param("listAccountLedgerEntries", p), `filter ${p}`).toBeDefined();
     const mine = Object.values(BOPS).filter((x) => /account-ledger-entries/.test(x.path));
-    expect(mine.map((x) => x.method).sort()).toEqual(["get", "get", "post", "post"]);
+    expect(mine.map((x) => x.method).sort()).toEqual(["get", "get", "post", "post", "post", "post"]); // T0C-FINCTRL-1 (LD-321) adds POST .../hold and .../release
     expect(mine.some((x) => x.method === "put" || x.method === "patch" || x.method === "delete")).toBe(false);
   });
   it("reverse: a body with a required reason_text, returns the NEW reversal entry (201); says append only and one reversal per entry; error billing.ledger_reversal_invalid", () => {
@@ -489,11 +489,11 @@ describe("T0C-ACCT-1 permissions (new codes allowed for this module only, LD-313
     for (const r of p.roles) expect(known.has(r), `${code} unknown role ${r}`).toBe(true);
     expect(code).toMatch(/^[a-z_]+\.[a-z_]+\.[a-z_]+$/);
   });
-  it("the registry grew by exactly these 7 codes: no other code is new in the billing module, and no old billing code is gone or changed", () => {
+  it("the registry grew by exactly these 7 codes plus billing.discount_policy.read and billing.discount_policy.manage (T0C-FINCTRL-1, LD-321): no other code is new in the billing module, and no old billing code is gone or changed", () => {
     const billing = registry.permissions.filter((p: any) => p.code.startsWith("billing.")).map((p: any) => p.code);
     const oldBilling = ["billing.invoice.read", "billing.invoice.issue", "billing.invoice.reprint", "billing.invoice.cancel", "billing.payment.record", "billing.payment.reverse", "billing.refund.approve",
       "billing.refund.request", "billing.credit_party.read", "billing.credit_party.manage", "billing.cash_report.read", "billing.data.export", "billing.release.override", "billing.settings.manage"];
-    expect([...billing].sort()).toEqual([...oldBilling, ...Object.keys(PERMS)].sort());
+    expect([...billing].sort()).toEqual([...oldBilling, ...Object.keys(PERMS), "billing.discount_policy.read", "billing.discount_policy.manage"].sort());
     expect(byCode.get("billing.payment.reverse").roles).toEqual(["finance"]);
     expect(byCode.get("billing.cash_report.read").roles).toEqual(["finance", "tenant_admin", "owner_viewer"]);
   });

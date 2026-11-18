@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@lims/ui/components/Button';
 import { ConfirmDialog } from '@lims/ui/components/ConfirmDialog';
 import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
+import { FilterBar, type FilterValue } from '@lims/ui/components/FilterBar';
 import { Dialog } from '@lims/ui/components/Dialog';
 import { Form } from '@lims/ui/components/Form';
 import { PageHeader } from '@lims/ui/components/PageHeader';
@@ -15,7 +16,10 @@ import { TextField } from '@lims/ui/components/TextField';
 import { useToast } from '@lims/ui/components/Toast';
 import { approveRefundAction, rejectRefundAction, resolveFinanceReviewItemAction } from '../server/actions';
 import type { CreditNoteTask, FinanceReviewItem, RefundRequest } from '../server/types';
-import { Ad, errorText, hasPerm, humanize, npr } from './format';
+import { Ad, amount, errorText, hasPerm, humanize, npr } from './format';
+import type { ListFailure } from './listRead';
+
+export const WORKLIST_COLUMNS = ['Invoice', 'Cause', 'Lines', 'Created'] as const;
 
 type Tab = 'tasks' | 'review' | 'refunds';
 const REVIEW_KIND: Record<string, string> = { home_payment_method_inactive: 'Home-collection payment on an inactive payment method' };
@@ -25,8 +29,13 @@ const RESOLUTIONS = [
   { value: 'other', label: 'Other (note required)' },
 ] as const;
 
-export function FinanceWorklist({ creditNoteTasks, reviewItems, refundRequests, currentMembershipId, permissions }: { creditNoteTasks: readonly CreditNoteTask[]; reviewItems: readonly FinanceReviewItem[]; refundRequests: readonly RefundRequest[]; currentMembershipId: string; permissions: readonly string[] }) {
+export function FinanceWorklist({ creditNoteTasks, reviewItems, refundRequests, currentMembershipId, permissions, failure }: { creditNoteTasks: readonly CreditNoteTask[]; reviewItems: readonly FinanceReviewItem[]; refundRequests: readonly RefundRequest[]; currentMembershipId: string; permissions: readonly string[]; failure?: ListFailure }) {
   const router = useRouter();
+  // T0D-UILIST-2 (LD-353 template 1, rule 6): one FilterBar for all tabs (created date over the loaded rows, display only); a failed read keeps title, filters and header row
+  const [f, setF] = useState<FilterValue>({});
+  const range = Array.isArray(f['created']) ? (f['created'] as readonly string[]) : [];
+  const inRange = (iso: string) => !range[0] || !range[1] || (iso.slice(0, 10) >= range[0] && iso.slice(0, 10) <= range[1]);
+  const err = failure ? { error: { title: 'The worklist could not be loaded', ...failure, onRetry: () => router.refresh() } } : {};
   const toast = useToast();
   const [tab, setTab] = useState<Tab>('tasks');
   const [approving, setApproving] = useState<RefundRequest | null>(null);
@@ -41,19 +50,19 @@ export function FinanceWorklist({ creditNoteTasks, reviewItems, refundRequests, 
   const tasks: ColumnDef<CreditNoteTask>[] = [
     { id: 'invoice', header: 'Invoice', isRowHeader: true, cell: (t) => <a className="lims-link" href={`/billing/invoices/${t.invoice_id}`}>Open invoice</a> },
     { id: 'cause', header: 'Cause', cell: (t) => humanize(t.cause) },
-    { id: 'lines', header: 'Lines', align: 'end', cell: (t) => String(t.invoice_line_ids.length) },
+    { id: 'lines', header: 'Lines', numeric: true, cell: (t) => String(t.invoice_line_ids.length) },
     { id: 'created', header: 'Created', cell: (t) => <Ad value={t.created_at} withTime /> },
   ];
   const review: ColumnDef<FinanceReviewItem>[] = [
     { id: 'kind', header: 'Kind', isRowHeader: true, cell: (i) => REVIEW_KIND[i.kind] ?? humanize(i.kind) },
-    { id: 'amount', header: 'Amount', align: 'end', cell: (i) => npr(i.amount) },
+    { id: 'amount', header: 'Amount (NPR)', numeric: true, cell: (i) => amount(i.amount) },
     { id: 'created', header: 'Created', cell: (i) => <Ad value={i.created_at} withTime /> },
     { id: 'actions', header: 'Actions', cell: (i) => (canApprove && i.status === 'open' ? <Button size="sm" onPress={() => { arm(); setResolving(i); }}>Resolve</Button> : null) },
   ];
   const refunds: ColumnDef<RefundRequest>[] = [
     { id: 'requested', header: 'Requested by', isRowHeader: true, cell: (r) => r.requested_by.display_name },
     { id: 'method', header: 'Method', cell: (r) => humanize(r.method_code) },
-    { id: 'amount', header: 'Amount', align: 'end', cell: (r) => npr(r.refund_amount) },
+    { id: 'amount', header: 'Amount (NPR)', numeric: true, cell: (r) => amount(r.refund_amount) },
     { id: 'reason', header: 'Reason', cell: (r) => humanize(r.reason_code) },
     { id: 'when', header: 'Requested', cell: (r) => <Ad value={r.requested_at} withTime /> },
     {
@@ -75,15 +84,16 @@ export function FinanceWorklist({ creditNoteTasks, reviewItems, refundRequests, 
   return (
     <section aria-label="Finance worklist">
       <PageHeader title="Finance worklist" helpKey="billing.worklist" />
+      <FilterBar filters={[{ id: 'created', label: 'Created', kind: 'date_range' }]} value={f} onChange={setF} onReset={() => setF({})} />
       <Tabs
         items={[{ id: 'tasks', label: 'Credit notes required' }, { id: 'review', label: 'Payments to review' }, { id: 'refunds', label: 'Refund approvals' }]}
         selectedId={tab}
         onChange={(id) => setTab(id as Tab)}
         aria-label="Worklist"
       >
-        {tab === 'tasks' ? <DataTable caption="Credit notes required" columns={tasks} rows={creditNoteTasks} getRowId={(t) => t.id} emptyState={{ title: 'No credit notes are waiting.' }} /> : null}
-        {tab === 'review' ? <DataTable caption="Payments to review" columns={review} rows={reviewItems} getRowId={(i) => i.id} emptyState={{ title: 'No payments to review.' }} /> : null}
-        {tab === 'refunds' ? <DataTable caption="Refund approvals" columns={refunds} rows={refundRequests} getRowId={(r) => r.id} emptyState={{ title: 'No refund requests are waiting.' }} /> : null}
+        {tab === 'tasks' ? <DataTable caption="Credit notes required" columns={tasks} rows={creditNoteTasks.filter((t) => inRange(t.created_at))} {...err} getRowId={(t) => t.id} emptyState={{ title: 'No credit notes are waiting.' }} /> : null}
+        {tab === 'review' ? <DataTable caption="Payments to review" columns={review} rows={reviewItems.filter((i) => inRange(i.created_at))} {...err} getRowId={(i) => i.id} emptyState={{ title: 'No payments to review.' }} /> : null}
+        {tab === 'refunds' ? <DataTable caption="Refund approvals" columns={refunds} rows={refundRequests.filter((x) => inRange(x.requested_at))} {...err} getRowId={(r) => r.id} emptyState={{ title: 'No refund requests are waiting.' }} /> : null}
       </Tabs>
 
       <ConfirmDialog

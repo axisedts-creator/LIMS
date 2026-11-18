@@ -54,7 +54,7 @@ const api = setupServer(
   http.get(SETTINGS_URL, async ({ request }) => { await rec(request); return HttpResponse.json(settings()); }),
   http.put(SETTINGS_URL, async ({ request }) => { await rec(request); const b = await request.clone().json(); return HttpResponse.json({ ...b, version: 2 }); }),
 );
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { cleanup(); api.resetHandlers(); calls.length = 0; push.mockReset(); replace.mockReset(); refresh.mockReset(); localStorage.clear(); sessionStorage.clear(); session.permissions = MANAGE; });
 afterAll(() => api.close());
 

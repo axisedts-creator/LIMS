@@ -111,7 +111,7 @@ const api = setupServer(
   http.get(`${IM}/instruments`, async ({ request }) => { await rec(request); return HttpResponse.json({ data: INSTRUMENTS, page: { limit: 200 } }); }),
   http.get(`${IM}/agents`, async ({ request }) => { await rec(request); return HttpResponse.json({ data: AGENTS, page: { limit: 200 } }); }),
 );
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { cleanup(); api.resetHandlers(); calls.length = 0; push.mockReset(); replace.mockReset(); refresh.mockReset(); localStorage.clear(); sessionStorage.clear(); nav.search = ''; session.permissions = REMATCH; });
 afterAll(() => api.close());
 

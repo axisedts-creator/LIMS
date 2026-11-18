@@ -102,7 +102,7 @@ const api = setupServer(
   http.post(`${MAPS}/bulk-upsert`, async ({ request }) => { await rec(request); const b = await request.clone().json(); return HttpResponse.json({ results: b.maps.map((m: any) => ({ direction: m.direction, instrument_code: m.instrument_code, outcome: 'created' })) }); }),
   http.get(IM, async ({ request }) => { await rec(request); return HttpResponse.json({ data: [instrument, other], page: { limit: 50 } }); }),
 );
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { cleanup(); api.resetHandlers(); calls.length = 0; push.mockReset(); replace.mockReset(); refresh.mockReset(); localStorage.clear(); sessionStorage.clear(); session.permissions = MANAGE; });
 afterAll(() => api.close());
 

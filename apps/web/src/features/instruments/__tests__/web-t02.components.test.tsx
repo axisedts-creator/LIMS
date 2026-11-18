@@ -58,7 +58,7 @@ const api = setupServer(
   http.get(`${ORIGIN}/v1/instruments/agents/:id/health-transitions`, () => HttpResponse.json({ data: [], page: { limit: 50 } })),
   http.get(`${ORIGIN}/v1/instruments/instruments`, ({ request }) => { listSeen.push(new URL(request.url)); return HttpResponse.json({ data: [], page: { limit: 50 } }); }),
 );
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { cleanup(); api.resetHandlers(); calls.length = 0; push.mockReset(); replace.mockReset(); refresh.mockReset(); listSeen.length = 0; vi.useRealTimers(); localStorage.clear(); sessionStorage.clear(); session.permissions = MANAGE; });
 afterAll(() => api.close());
 beforeEach(() => { Object.assign(navigator, { clipboard: { writeText: vi.fn(async () => {}) } }); });

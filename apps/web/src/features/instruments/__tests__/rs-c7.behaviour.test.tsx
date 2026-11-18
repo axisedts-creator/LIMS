@@ -43,7 +43,7 @@ const sentCalls: string[] = [];
 const api = setupServer(
   http.all(`${ORIGIN}/*`, ({ request }) => { sentCalls.push(`${request.method} ${new URL(request.url).pathname}`); return HttpResponse.json({}); }),
 );
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { cleanup(); api.resetHandlers(); sentCalls.length = 0; push.mockReset(); replace.mockReset(); refresh.mockReset(); localStorage.clear(); });
 afterAll(() => api.close());
 

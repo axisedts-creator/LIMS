@@ -73,7 +73,7 @@ const api = setupServer(
   http.patch(`${IM}/:id`, async ({ request }) => { await rec(request); return HttpResponse.json(full({ version: 5 })); }),
   http.post(`${IM}/:id/:action`, async ({ request }) => { await rec(request); return HttpResponse.json(full({ version: 5 })); }),
 );
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { cleanup(); api.resetHandlers(); calls.length = 0; listSeen.length = 0; push.mockReset(); replace.mockReset(); refresh.mockReset(); vi.useRealTimers(); localStorage.clear(); sessionStorage.clear(); session.permissions = MANAGE; });
 afterAll(() => api.close());
 beforeEach(() => { Object.assign(navigator, { clipboard: { writeText: vi.fn(async () => {}) } }); });

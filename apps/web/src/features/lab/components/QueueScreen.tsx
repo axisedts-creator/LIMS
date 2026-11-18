@@ -3,7 +3,7 @@
 // 02-CONVENTIONS §4.5) → per-id outcome dialog. Server state decides: closing the dialog re-fetches the list (router.refresh), rows are never edited locally.
 // Flag acknowledgement mirrors result.service `needed()`: delta fail / critical / unit mismatch / instrument flags each need their own tick before a verify is sent (AC-12.3).
 // 403 auth.mfa_required (AC-16.3): warning banner → "Verify now" → onStepUp → the SAME request re-sent with the SAME key. The API still enforces permission + aal2 (S-01); the UI only hides.
-import { useRef, useState, type KeyboardEvent } from 'react';
+import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Banner } from '@lims/ui/components/Banner';
 import { Button } from '@lims/ui/components/Button';
@@ -14,11 +14,14 @@ import { EmptyState } from '@lims/ui/components/EmptyState';
 import { FlagBadge, type ResultFlag } from '@lims/ui/components/FlagBadge';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { bulkApproveAction, bulkVerifyAction } from '../server/actions';
+import type { ResultSignoff } from '../server/config.types';
+import { getResultSignoffsAction } from '../server/config.actions';
 import type { AckFlag, QueueItem, ResultBulkRow, VerifyItem } from '../server/types';
-import { FAILED, call, newKey } from './shared';
+import { FAILED, call, newKey, utc } from './shared';
 
 export type QueueMode = 'verify' | 'approve';
-export interface QueueProps { items: QueueItem[]; permissions: readonly string[]; onStepUp?: () => Promise<void> | void }
+/** currentUserId (T0D-VERLEVEL-1): the signed in person's user id = signer_user_id of their own sign-offs; without it nothing is dimmed (the API still refuses). */
+export interface QueueProps { items: QueueItem[]; permissions: readonly string[]; onStepUp?: () => Promise<void> | void; currentUserId?: string | undefined }
 
 const MAX = 200; // OpenAPI maxItems
 const AGE_UNKNOWN = 'Age unknown — reference range and critical check not applied'; // 08 A17.1
@@ -37,7 +40,15 @@ const REASON: Record<string, string> = {
   'common.not_found': 'Result not found.',
   'lab.self_approval_forbidden': 'You verified this result. Another pathologist must approve it.',
   'lab.critical_ack_required': 'Record the critical-value notification before approving.',
+  // T0D-VERLEVEL-1 (LD-316, LD-318 follow-up 4): the three sign-off refusals
+  'lab.verifier_not_distinct': 'You already signed this result. A different person must sign it next.',
+  'lab.enterer_cannot_verify': 'You entered this result. Someone else must sign it off.',
+  'lab.pathologist_required': 'The final sign-off of this result must come from a pathologist.',
 };
+/** next_step -> what the row waits for (lab.yaml ResultDto.next_step). */
+const NEXT: Record<string, string> = { verify: 'Needs verifier', approve: 'Needs pathologist', none: 'Ready' };
+const MINE = 'You already signed this result';
+type Chain = ResultSignoff[] | 'error';
 const reason = (code?: string) => (code && REASON[code]) || 'Could not update this result.';
 
 /** Flags this result needs acknowledged before verify (mirrors result.service `needed()`). */
@@ -52,7 +63,7 @@ export function neededFlags(r: QueueItem['result']): AckFlag[] {
 
 type Job = { sig: string; keys: string[]; chunks: VerifyItem[][]; next: number; rows: ResultBulkRow[] };
 
-export function QueueScreen({ mode, items, permissions, onStepUp }: QueueProps & { mode: QueueMode }) {
+export function QueueScreen({ mode, items, permissions, onStepUp, currentUserId }: QueueProps & { mode: QueueMode }) {
   const c = COPY[mode];
   const router = useRouter();
   const pathname = usePathname();
@@ -65,8 +76,27 @@ export function QueueScreen({ mode, items, permissions, onStepUp }: QueueProps &
   const [outcome, setOutcome] = useState<ResultBulkRow[] | null>(null);
   const busyRef = useRef(false);
   const job = useRef<Job | null>(null); // survives the step-up pause so the retry reuses keys + body
+  const [chains, setChains] = useState<Record<string, Chain>>({});
+  const [openChip, setOpenChip] = useState<string | null>(null);
+  const asked = useRef(new Set<string>()); // one sign-off read per row
+  const uid = useId();
 
-  const picked = items.filter((i) => sel.has(i.result.id));
+  // T0D-VERLEVEL-1: rows with sign-offs load their chain once; rows with none never ask
+  useEffect(() => {
+    for (const i of items) {
+      const id = i.result.id;
+      if (!((i.result.signoff_count ?? 0) > 0) || asked.current.has(id)) continue;
+      asked.current.add(id);
+      void call(getResultSignoffsAction(id)).then((r) => setChains((p) => ({ ...p, [id]: r.ok ? r.data : 'error' })));
+    }
+  }, [items]);
+  /** Signed by me on the current version: dimmed, not selectable, never sent. */
+  const mine = (r: QueueItem['result']) => {
+    const ch = chains[r.id];
+    return !!currentUserId && Array.isArray(ch) && ch.some((s) => s.signer_user_id === currentUserId && (r.current_version_no === undefined || s.result_version === r.current_version_no));
+  };
+  const selectable = items.filter((i) => !mine(i.result));
+  const picked = selectable.filter((i) => sel.has(i.result.id));
   const blocked = mode === 'verify' && picked.some((i) => neededFlags(i.result).some((f) => !acks[i.result.id]?.includes(f)));
   const toggle = (id: string, on: boolean) => setSel((p) => { const n = new Set(p); if (on) n.add(id); else n.delete(id); return n; });
   const toggleAck = (id: string, f: AckFlag, on: boolean) => setAcks((p) => ({ ...p, [id]: on ? [...(p[id] ?? []), f] : (p[id] ?? []).filter((x) => x !== f) }));
@@ -162,22 +192,24 @@ export function QueueScreen({ mode, items, permissions, onStepUp }: QueueProps &
             <caption className="lims-visually-hidden">{c.title} queue</caption>
             <thead>
               <tr>
-                <th scope="col">{canAct && items.length > 0 ? <Checkbox label="Select all" isSelected={picked.length === items.length} onChange={(on) => setSel(on ? new Set(items.map((i) => i.result.id)) : new Set())} /> : <span className="lims-visually-hidden">Select</span>}</th>
+                <th scope="col">{canAct && items.length > 0 ? <Checkbox label="Select all" isSelected={picked.length > 0 && picked.length === selectable.length} onChange={(on) => setSel(on ? new Set(selectable.map((i) => i.result.id)) : new Set())} /> : <span className="lims-visually-hidden">Select</span>}</th>
                 <th scope="col">Priority</th>
                 <th scope="col">Reg no</th>
                 <th scope="col">Patient</th>
                 <th scope="col">Analyte</th>
                 <th scope="col">Flags</th>
+                <th scope="col">Sign-off</th>
               </tr>
             </thead>
             <tbody>
-              {items.length === 0 ? <EmptyRow colSpan={6}><EmptyState title={c.empty} /></EmptyRow> : null}
+              {items.length === 0 ? <EmptyRow colSpan={7}><EmptyState title={c.empty} /></EmptyRow> : null}
               {items.map((i) => {
                 const r = i.result;
                 const need = mode === 'verify' ? neededFlags(r) : [];
+                const dim = mine(r);
                 return (
-                  <tr key={r.id} onKeyDown={canAct ? (e) => onRowKey(e, r.id) : undefined}>
-                    <td>{canAct ? <Checkbox label={`Select ${i.registration_no}`} isSelected={sel.has(r.id)} onChange={(on) => toggle(r.id, on)} /> : null}</td>
+                  <tr key={r.id} onKeyDown={canAct ? (e) => onRowKey(e, r.id) : undefined} {...(dim ? { 'aria-disabled': true, className: 'lims-row-dim', style: { opacity: 0.55 } } : {})}>
+                    <td>{canAct ? <Checkbox label={`Select ${i.registration_no}`} isSelected={!dim && sel.has(r.id)} isDisabled={dim} onChange={(on) => toggle(r.id, on)} /> : null}</td>
                     <td>{i.priority}</td>
                     <td>{i.registration_no}</td>
                     <td><span>{i.patient_display.full_name}</span> <span>{i.patient_display.age_sex}</span></td>
@@ -189,11 +221,18 @@ export function QueueScreen({ mode, items, permissions, onStepUp }: QueueProps &
                         <Checkbox key={f} label={`Acknowledge ${FLAG_LABEL[f]}`} isSelected={acks[r.id]?.includes(f) ?? false} onChange={(on) => toggleAck(r.id, f, on)} />
                       )) : null}
                     </td>
+                    <td>
+                      {r.signoff_count !== undefined && r.signoff_required !== undefined ? (
+                        <SignoffCell listId={`${uid}-${r.id}`} count={r.signoff_count} required={r.signoff_required} next={r.next_step} chain={chains[r.id]}
+                          open={openChip === r.id} onToggle={() => setOpenChip((o) => (o === r.id ? null : r.id))} />
+                      ) : null}
+                      {dim ? <div>{MINE}</div> : null}
+                    </td>
                   </tr>
                 );
               })}
             </tbody>
-            {items.length === 0 ? <PlaceholderRows colSpan={6} /> : null}
+            {items.length === 0 ? <PlaceholderRows colSpan={7} /> : null}
           </table>
       </>
       <Dialog title={c.done} isOpen={outcome !== null} onClose={close}>
@@ -214,5 +253,32 @@ export function QueueScreen({ mode, items, permissions, onStepUp }: QueueProps &
         ) : null}
       </Dialog>
     </section>
+  );
+}
+
+/** T0D-VERLEVEL-1: "Signed n of m" chip (a button, so the keyboard reaches it), the next step label and, when open, who signed (plain text, never markup). */
+function SignoffCell({ listId, count, required, next, chain, open, onToggle }: {
+  listId: string; count: number; required: number; next: string | undefined; chain: Chain | undefined; open: boolean; onToggle: () => void;
+}) {
+  const rows = Array.isArray(chain) ? chain : [];
+  return (
+    <div>
+      <button type="button" className="lims-chip" aria-expanded={open} {...(open ? { 'aria-controls': listId } : {})} onClick={onToggle}>{`Signed ${count} of ${required}`}</button>
+      {next && NEXT[next] ? <> <span>{NEXT[next]}</span></> : null}
+      {open ? (
+        chain === 'error' ? <p id={listId}>Could not load who signed.</p>
+          : count === 0 || (chain && rows.length === 0) ? <p id={listId}>No sign-offs yet.</p>
+          : !chain ? <p id={listId} role="status">Loading…</p>
+          : (
+            <ul id={listId} aria-label="Signed by">
+              {rows.map((s) => (
+                <li key={`${s.result_version}-${s.seq}`}>
+                  <span>{s.signer_display_name}</span>{[s.signer_title, s.signer_role_code.replace(/_/g, ' '), utc(s.signed_at)].filter(Boolean).map((x) => ` · ${x}`).join('')}
+                </li>
+              ))}
+            </ul>
+          )
+      ) : null}
+    </div>
   );
 }

@@ -14,6 +14,8 @@ export interface ConsoleSpec {
   menuKey: string;
   /** exact header cells of the queue list, age first */
   headers: readonly string[];
+  /** payments and inventory (review item 1): the first header is exactly headers[0] (the age) and every other name in `headers` is present; extra columns the screen already had are allowed */
+  looseHeaders?: boolean;
   /** exact StatTile labels in order */
   tileLabels: readonly string[];
   /** the empty text of the existing EmptyState (kept verbatim) */
@@ -55,7 +57,10 @@ export function consoleContract(s: ConsoleSpec) {
 
     it.each([['no rows', () => s.empty], ['one row', () => s.one]])('%s: the list header row is drawn and the age comes first', async (_n, rows) => {
       const { container } = await s.mount(rows());
-      expect(listHeaders(container)).toEqual([...s.headers]);
+      if (s.looseHeaders) {
+        expect(listHeaders(container)[0]).toBe(s.headers[0]);
+        expect(listHeaders(container)).toEqual(expect.arrayContaining([...s.headers]));
+      } else expect(listHeaders(container)).toEqual([...s.headers]);
       expect(listHeaders(container)[0]).toMatch(/^age/i);
     });
 

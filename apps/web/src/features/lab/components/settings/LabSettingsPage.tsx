@@ -9,16 +9,21 @@ import { GeneralTab } from './GeneralTab';
 import { QcHoldsTab } from './QcHoldsTab';
 import { ReasonCodesTab } from './ReasonCodesTab';
 
+import { VerificationPolicyTab } from './VerificationPolicyTab';
+
 const TABS = [{ id: 'general', label: 'General' }, { id: 'delta', label: 'Delta rules' }, { id: 'codes', label: 'Reason codes' }, { id: 'holds', label: 'QC holds' }] as const;   // T-25: QC holds
+const VERIFY_TAB = { id: 'verification', label: 'Verification levels' } as const; // T0D-VERLEVEL-1 (LD-316): shown with lab.verification_policy.read or .manage
 
 export function LabSettingsPage({ permissions }: { permissions: readonly string[] }) {
-  const [tab, setTab] = useState<(typeof TABS)[number]['id']>('general');
+  const [tab, setTab] = useState<(typeof TABS)[number]['id'] | typeof VERIFY_TAB.id>('general');
   const canManage = permissions.includes('lab.config.manage');
+  const canManagePolicy = permissions.includes('lab.verification_policy.manage'); // lab.config.manage does NOT edit the policy
+  const items = canManagePolicy || permissions.includes('lab.verification_policy.read') ? [...TABS, VERIFY_TAB] : TABS;
   return (
     <section aria-label="Lab settings">
       <PageHeader title="Lab settings" helpKey="lab.settings" />
-      <Tabs items={TABS} selectedId={tab} onChange={(id) => setTab(id as typeof tab)} aria-label="Settings sections">
-        {tab === 'general' ? <GeneralTab canManage={canManage} /> : tab === 'delta' ? <DeltaRulesTab canManage={canManage} /> : tab === 'codes' ? <ReasonCodesTab canManage={canManage} /> : <QcHoldsTab canRelease={permissions.includes('lab.qc_hold.release')} />}
+      <Tabs items={items} selectedId={tab} onChange={(id) => setTab(id as typeof tab)} aria-label="Settings sections">
+        {tab === 'general' ? <GeneralTab canManage={canManage} /> : tab === 'delta' ? <DeltaRulesTab canManage={canManage} /> : tab === 'codes' ? <ReasonCodesTab canManage={canManage} /> : tab === 'verification' ? <VerificationPolicyTab canManage={canManagePolicy} /> : <QcHoldsTab canRelease={permissions.includes('lab.qc_hold.release')} />}
       </Tabs>
     </section>
   );

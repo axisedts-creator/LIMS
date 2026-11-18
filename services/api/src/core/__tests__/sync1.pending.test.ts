@@ -8,14 +8,14 @@ import { describe, expect, it } from 'vitest';
 import { checkHandlers, loadSpec, REPO_ROOT } from '../module.js';
 import { CORE_PENDING_OPERATIONS } from '../core-pending.js';
 import { createHealthHandlers } from '../health.js';
-import { syncHandlers } from '../sync/index.js';
+import { syncHandlers, syncPart2Handlers } from '../sync/index.js';
 import { okChecks } from '../observability/__tests__/helpers.js';
 
 const NEW_OPS = ['registerSyncDevice', 'listSyncDevices', 'revokeSyncDevice', 'requestSyncDeviceWipe', 'ackDeviceWipe', 'getSyncStatus', 'reserveNumberBlock'];
 const spec: any = loadSpec(join(REPO_ROOT, 'contracts/openapi/core.yaml'));
 const specIds: string[] = Object.values<any>(spec.paths).flatMap((p) => Object.values<any>(p).map((m) => m?.operationId).filter(Boolean));
-// LD-325 (a)/(b): a handler wins over a pending id, so the covered set is the handlers bootstrap builds (health + sync), as in registry.static.test.ts.
-const allHandlers = { ...createHealthHandlers(okChecks()), ...syncHandlers };
+// LD-325 (a)/(b): a handler wins over a pending id, so the covered set is the handlers bootstrap builds (health + sync part 1 + part 2, what bootstrap builds; LD-374 ruling 3.2), as in registry.static.test.ts.
+const allHandlers = { ...createHealthHandlers(okChecks()), ...syncHandlers, ...syncPart2Handlers };
 const pending: string[] = [...CORE_PENDING_OPERATIONS];
 
 describe('T0C-SYNC-1: core manifest covers the sync operations (handler or pending)', () => {

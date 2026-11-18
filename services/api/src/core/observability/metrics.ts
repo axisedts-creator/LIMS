@@ -31,6 +31,10 @@ const DEFS = {
   lims_core_retention_purge_capped_total: ['counter', ['table'], 'Retention purges stopped at the cap, by table'],
   lims_core_storage_deletes_total: ['counter', ['bucket', 'reason'], 'Storage objects deleted by bucket and reason'],
   lims_core_port_consumer_not_listed_total: ['counter', ['module', 'port'], 'Port calls from a consumer not listed for the port'],
+  // T0B-SYNC-2 (LD-322 decision 5): offline sync push engine (bounded labels; tenant_id low cardinality as on events_published)
+  lims_core_sync_operations_total: ['counter', ['status'], 'Pushed offline operations by outcome status'],
+  lims_core_sync_batches_total: ['counter', ['outcome'], 'Pushed offline batches by outcome'],
+  lims_core_sync_oldest_unsynced_age_seconds: ['gauge', ['tenant_id'], 'Age of the oldest unsynced offline work by tenant'],
   // C8 analytics (LD-88 / CR-C8-016; names, types, labels verbatim from C8 02-TRD §13 lines 846-854)
   lims_analytics_refresh_duration_seconds: ['histogram', ['family'], 'Analytics refresh duration in seconds by family'],
   lims_analytics_refresh_failures_total: ['counter', ['family'], 'Analytics refresh failures by family'],

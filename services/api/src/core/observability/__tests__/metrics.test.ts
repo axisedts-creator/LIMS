@@ -23,6 +23,9 @@ const EXPECTED: Record<string, 'counter' | 'gauge' | 'histogram'> = {
   lims_core_fake_ports_active: 'gauge',
   lims_core_phase_stub_ports_active: 'gauge',
   lims_core_authz_not_asserted_total: 'counter',
+  lims_core_sync_operations_total: 'counter',
+  lims_core_sync_batches_total: 'counter',
+  lims_core_sync_oldest_unsynced_age_seconds: 'gauge',
   lims_core_authz_central_deny_total: 'counter', // SEC-AUTHZ-2 (CR SEC-AUTHZ-1.1 'Mode'); only label: operation_id
   lims_core_retention_purged_total: 'counter',
   lims_core_retention_purge_capped_total: 'counter',

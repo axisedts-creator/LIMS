@@ -1,0 +1,1 @@
+set CI=true&& pnpm --dir apps/web exec vitest run --config src/core/offline/__tests__/vitest.offline1.config.ts && pnpm --dir apps/web exec vitest run --config src/features/admin/__tests__/vitest.rs-c2.config.ts

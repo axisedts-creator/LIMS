@@ -2,6 +2,7 @@
 // (the statement of another owner is never fetched without it). The pocket statement may answer 404 until T0B-ACCT-2: shown as not available.
 import { getShellSession } from '@/core/session/server';
 import { PocketLedgerScreen } from '@/features/billing/components/accounts/PocketLedgerScreen';
+import { readList } from '@/features/billing/components/listRead';
 import { dateRange, getAccountStatement, listAccountParticulars, listMembers } from '@/features/billing/server/accounts.server';
 import { UUID_RE } from '@/features/billing/server/types';
 
@@ -16,7 +17,8 @@ export default async function PocketLedgerPage({ searchParams }: { searchParams:
   const [owners, particulars, statement] = await Promise.all([
     canSeeOthers ? listMembers() : Promise.resolve([]),
     listAccountParticulars(),
-    allowed ? getAccountStatement({ party_kind: 'user_pocket', party_id: asked, from, to }).catch(() => null) : Promise.resolve(null),
+    // 404 / 501 operation_pending = not available yet (statement null); T0D-UILIST-2: a 500 keeps title and filters with an ErrorState.
+    allowed ? readList(() => getAccountStatement({ party_kind: 'user_pocket', party_id: asked, from, to })).catch(() => ({ value: null, failure: undefined })) : Promise.resolve({ value: null, failure: undefined }),
   ]);
-  return <PocketLedgerScreen statement={statement} ownerId={asked} currentMembershipId={me} owners={owners} from={from} to={to} particulars={particulars} permissions={permissions} />;
+  return <PocketLedgerScreen statement={statement.value ?? null} failure={statement.failure} ownerId={asked} currentMembershipId={me} owners={owners} from={from} to={to} particulars={particulars} permissions={permissions} />;
 }

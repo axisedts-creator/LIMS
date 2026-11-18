@@ -510,7 +510,7 @@ function Registration({ centres, permissions, defaultCentreId, consentTextVersio
   const paidNow = billing === 'cash' ? sum : 0;
   // Summary amounts are a mirror of the Bill/Payment panels: split into two spans so the existing single-match text queries (fd-t13) still find the Bill panel value once.
   const sumMoney = (paisa: number) => <span className="lims-money"><span>Rs.</span> <span>{plain(paisa)}</span></span>;
-  const total = (label: string, m?: { amount_paisa: number }) => (m ? <div key={label} className="lims-total-row"><dt>{label}</dt><dd><MoneyText value={npr(m.amount_paisa)} /></dd></div> : null);
+  const total = (label: string, m?: { amount_paisa: number }) => (m ? <div key={label} className="lims-total-row"><dt className="lims-label">{label}</dt><dd><MoneyText value={npr(m.amount_paisa)} /></dd></div> : null);
   const sumRow = (label: string, paisa: number, cls = '') => <div className={`lims-reg-summary-row ${cls}`.trim()}><dt>{label}</dt><dd>{sumMoney(paisa)}</dd></div>;
 
   return (
@@ -718,8 +718,8 @@ function Registration({ centres, permissions, defaultCentreId, consentTextVersio
                       </div>
                       {party?.credit_limit_paisa !== undefined || party?.outstanding ? (
                         <dl className="lims-reg-credit">
-                          {party.credit_limit_paisa !== undefined ? <div className="lims-total-row"><dt>Credit limit</dt><dd><MoneyText value={npr(party.credit_limit_paisa)} /></dd></div> : null}
-                          {party.outstanding ? <div className="lims-total-row"><dt>Consumed</dt><dd><MoneyText value={npr(party.outstanding.amount_paisa)} /></dd></div> : null}
+                          {party.credit_limit_paisa !== undefined ? <div className="lims-total-row"><dt className="lims-label">Credit limit</dt><dd><MoneyText value={npr(party.credit_limit_paisa)} /></dd></div> : null}
+                          {party.outstanding ? <div className="lims-total-row"><dt className="lims-label">Consumed</dt><dd><MoneyText value={npr(party.outstanding.amount_paisa)} /></dd></div> : null}
                         </dl>
                       ) : null}
                       {creditState ? <p>Credit status: <Badge tone={creditState === 'ok' ? 'success' : 'danger'}>{creditState === 'ok' ? 'OK' : creditState === 'locked' ? 'Locked' : 'Over limit'}</Badge></p> : null}
@@ -740,7 +740,7 @@ function Registration({ centres, permissions, defaultCentreId, consentTextVersio
                         <dl>
                           {total('Gross', quote.totals.gross)}{total('Discount', quote.totals.discount)}{total('Exempt', quote.totals.exempt)}{total('Taxable', quote.totals.taxable)}
                           {total('VAT', quote.totals.vat)}{total('Other tax', quote.totals.other_tax)}
-                          <div className="lims-total-row lims-total-net"><dt>Net</dt><dd><MoneyText value={npr(net)} /></dd></div>
+                          <div className="lims-total-row lims-total-net"><dt className="lims-label">Net</dt><dd><MoneyText value={npr(net)} /></dd></div>
                         </dl>
                       </>
                     ) : null}
@@ -798,7 +798,7 @@ function Registration({ centres, permissions, defaultCentreId, consentTextVersio
                             <>
                               <MoneyField label={i === 0 ? 'Tendered' : `Tendered (row ${i + 1})`} name={`tendered_${i}`} {...(r.tendered !== undefined ? { value: npr(r.tendered) } : {})}
                                 onChange={(m) => patchRow(i, { tendered: m?.amountPaisa as number })} {...(payErr.tendered[i] ? { error: payErr.tendered[i] } : {})} />
-                              {r.tendered !== undefined && r.tendered >= rowAmount(r, i, net) && rowAmount(r, i, net) > 0 ? <div><span>Change</span> <MoneyText value={npr(r.tendered - rowAmount(r, i, net))} /></div> : null}
+                              {r.tendered !== undefined && r.tendered >= rowAmount(r, i, net) && rowAmount(r, i, net) > 0 ? <div><span className="lims-label">Change</span> <MoneyText value={npr(r.tendered - rowAmount(r, i, net))} /></div> : null}
                             </>
                           ) : null}
                           {r.method === 'card' ? (
@@ -809,7 +809,7 @@ function Registration({ centres, permissions, defaultCentreId, consentTextVersio
                         </div>
                       ))}
                       <Button variant="ghost" iconStart="plus" shortcut="Alt+P" onPress={addRow} isDisabled={rows.length >= MAX_PAY_ROWS}>Add method</Button>
-                      <div role="status"><span>Balance after payment</span> <MoneyText value={npr(Math.max(0, net - sum))} /></div>
+                      <div role="status"><span className="lims-label">Balance after payment</span> <MoneyText value={npr(Math.max(0, net - sum))} /></div>
                     </div>
                   )}
                 </div>

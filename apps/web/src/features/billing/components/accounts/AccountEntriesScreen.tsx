@@ -17,9 +17,10 @@ import { useToast } from '@lims/ui/components/Toast';
 import { t } from '@/core/i18n/messages';
 import { createAccountEntryAction, reverseAccountEntryAction } from '../../server/accounts.actions';
 import type { AccountLedgerEntry, AccountParticular, AccountParty, CreateEntryInput, EntryType, Named } from '../../server/accounts.server';
-import { errorText, formatNpr, hasPerm } from '../format';
+import { errorText, formatAmount, hasPerm } from '../format';
+import type { ListFailure } from '../listRead';
 import { AccountReceiptView } from './AccountReceiptView';
-import { BANK_MODES, GatedButton, ISO_DATE, LabelOnlySelect, LONG_DIGITS, PAYMENT_MODES, PERM, fill, modeText, nameOf, newKey, statusText, toPaisa, typeText } from './accountsShared';
+import { BANK_MODES, GatedButton, ISO_DATE, LIST_FAILED, LabelOnlySelect, LONG_DIGITS, PAYMENT_MODES, PERM, fill, modeText, nameOf, newKey, statusText, toPaisa, typeText } from './accountsShared';
 
 const FILTER_KEYS = ['centre_id', 'party', 'account_particular_id', 'entry_type', 'status', 'entry_date_from', 'entry_date_to'] as const;
 type FilterKey = (typeof FILTER_KEYS)[number];
@@ -34,9 +35,11 @@ export interface AccountEntriesScreenProps {
   permissions: readonly string[];
   /** Current URL filters (API query names; party = "<party_kind>:<party_id>"). */
   filters?: Filters;
+  /** T0D-UILIST-2 (LD-353 rule 6): the list read failed (500+); title and filters stay, the ErrorState sits in the table body. */
+  failure?: ListFailure | undefined;
 }
 
-export function AccountEntriesScreen({ entries, particulars, parties, centres, members, permissions, filters = {} }: AccountEntriesScreenProps) {
+export function AccountEntriesScreen({ entries, particulars, parties, centres, members, permissions, filters = {}, failure }: AccountEntriesScreenProps) {
   const router = useRouter();
   const pathname = usePathname();
   const toast = useToast();
@@ -68,8 +71,9 @@ export function AccountEntriesScreen({ entries, particulars, parties, centres, m
     { id: 'franchise', header: t('billing.accounts.col.franchise'), cell: (e) => (e.party_kind === 'franchise' ? partyName(e) : '') },
     { id: 'entry_date', header: t('billing.accounts.col.entry_date'), cell: (e) => <DateText value={e.entry_date as never} mode="AD_BS" /> },
     { id: 'particulars', header: t('billing.accounts.col.particulars'), cell: (e) => nameOf(particulars, e.account_particular_id) },
-    { id: 'credited', header: t('billing.accounts.col.credited'), align: 'end', cell: (e) => (e.entry_type === 'credit' ? formatNpr(e.amount_paisa) : '') },
-    { id: 'debited', header: t('billing.accounts.col.debited'), align: 'end', cell: (e) => (e.entry_type === 'debit' ? formatNpr(e.amount_paisa) : '') },
+    // T0D-UILIST-2 (LD-353 rule 3, done_when 7): the currency sits in the header, the cell shows the amount with two decimals.
+    { id: 'credited', header: `${t('billing.accounts.col.credited')} (NPR)`, numeric: true, cell: (e) => (e.entry_type === 'credit' ? formatAmount(e.amount_paisa) : '') },
+    { id: 'debited', header: `${t('billing.accounts.col.debited')} (NPR)`, numeric: true, cell: (e) => (e.entry_type === 'debit' ? formatAmount(e.amount_paisa) : '') },
     { id: 'comments', header: t('billing.accounts.col.comments'), cell: (e) => e.comments ?? '' },
     { id: 'payment_mode', header: t('billing.accounts.col.payment_mode'), cell: (e) => modeText(e.payment_mode) },
     { id: 'reference_no', header: t('billing.accounts.col.reference_no'), cell: (e) => e.reference_no ?? '' },
@@ -116,11 +120,22 @@ export function AccountEntriesScreen({ entries, particulars, parties, centres, m
         <Select label={t('billing.accounts.filter.type')} name="entry_type" options={(['credit', 'debit'] as const).map((v) => ({ value: v, label: typeText(v) }))} {...opt('entry_type')} onChange={setNow('entry_type')} />
         <Select label={t('billing.accounts.filter.status')} name="status" options={(['submitted', 'approved', 'rejected', 'reversed'] as const).map((v) => ({ value: v, label: statusText(v) }))} {...opt('status')} onChange={setNow('status')} />
         <TextField label={t('billing.accounts.filter.from')} name="entry_date_from" maxLength={10} description={t('billing.accounts.field.date_hint')} value={f.entry_date_from ?? ''} onChange={(v) => setF({ ...f, entry_date_from: v })} />
-        <TextField label={t('billing.accounts.filter.to')} name="entry_date_to" maxLength={10} value={f.entry_date_to ?? ''} onChange={(v) => setF({ ...f, entry_date_to: v })} />
+        <TextField label={t('billing.accounts.filter.to')} name="entry_date_to" maxLength={10} description={t('billing.accounts.field.date_hint')} value={f.entry_date_to ?? ''} onChange={(v) => setF({ ...f, entry_date_to: v })} />
         <Button variant="primary" onPress={() => apply(Object.fromEntries(Object.entries(f).filter(([k, v]) => !k.startsWith('entry_date') || ISO_DATE.test(v ?? ''))))}>{t('billing.accounts.filter.search')}</Button>
         <Button variant="ghost" onPress={() => apply({})}>{t('billing.accounts.filter.reset')}</Button>
       </div>
-      <DataTable caption={t('billing.accounts.entries.list')} density="compact" columns={columns} rows={entries} getRowId={(e) => e.id} emptyState={{ title: t('billing.accounts.entries.empty') }} />
+      {/* T0D-UILIST-2 (LD-353 rule 5, done_when 2): 15 columns scroll inside the table box, with a column chooser and a sticky first column. */}
+      <DataTable
+        caption={t('billing.accounts.entries.list')}
+        density="compact"
+        columnChooser
+        stickyFirstColumn
+        columns={columns}
+        rows={entries}
+        getRowId={(e) => e.id}
+        emptyState={{ title: t('billing.accounts.entries.empty') }}
+        {...(failure ? { error: { title: LIST_FAILED, ...failure, onRetry: () => router.refresh() } } : {})}
+      />
 
       {creating ? (
         <EntryDialog

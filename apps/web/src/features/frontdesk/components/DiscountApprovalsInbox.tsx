@@ -25,7 +25,7 @@ const lineValue = (l: DiscountLine) => (l.percent_bp !== undefined ? pct(l.perce
 // ponytail: the MFA/profile route is owned by C2 and not named in the spec; "/profile" is the placeholder until C2 publishes it.
 const PROFILE_HREF = '/profile';
 
-export function DiscountApprovalsInbox({ approvals, permissions, currentMembershipId, centres, mfaRequired = false }: { approvals: readonly DiscountApproval[]; permissions: readonly string[]; currentMembershipId: string; centres: readonly { id: string; name: string }[]; mfaRequired?: boolean }) {
+export function DiscountApprovalsInbox({ approvals, permissions, currentMembershipId, centres, mfaRequired = false, failure }: { approvals: readonly DiscountApproval[]; permissions: readonly string[]; currentMembershipId: string; centres: readonly { id: string; name: string }[]; mfaRequired?: boolean; failure?: { requestId?: string } }) {
   const router = useRouter();
   const routerRef = useRef(router);
   routerRef.current = router;
@@ -95,7 +95,9 @@ export function DiscountApprovalsInbox({ approvals, permissions, currentMembersh
     <section aria-label="Discount approvals" onKeyDownCapture={onKeyDownCapture}>
       <PageHeader title="Discount approvals" helpKey="frontdesk.discount_approvals" />
       {mfaRequired || notice?.mfa ? <div role="alert"><Banner tone="warning" title={MFA_BANNER}><a className="lims-link" href={PROFILE_HREF}>Open my profile</a></Banner></div> : notice ? <div role="alert"><Banner tone="danger" title={notice.title} /></div> : null}
-      {mfaRequired ? null : <DataTable caption="Discount approvals" columns={columns} rows={approvals} getRowId={(a) => a.id} emptyState={{ title: 'No pending approvals' }} />}
+      {/* T0D-UILIST-2 (LD-353 rule 6): a failed read keeps the header row; the ErrorState (message, reference, Retry) sits in the table body */}
+      {mfaRequired ? null : <DataTable caption="Discount approvals" columns={columns} rows={approvals} getRowId={(a) => a.id} emptyState={{ title: 'No pending approvals' }}
+        {...(failure ? { error: { title: 'This list could not be loaded.', ...(failure.requestId ? { requestId: failure.requestId } : {}), onRetry: () => router.refresh() } } : {})} />}
 
       <ConfirmDialog
         key={`approve-${key.current}`}

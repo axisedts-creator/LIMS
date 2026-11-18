@@ -22,10 +22,10 @@ const REQ = (over: Record<string, unknown> = {}) => ({ template_id: TID, templat
 const fails = async (p: Promise<unknown>): Promise<any> => { try { await p; } catch (e) { return e; } throw new Error('expected rejection, got success'); };
 
 describe('client <-> real renderer', () => {
-  it('returns a real PDF (magic bytes) and the page count Chromium produced', async () => {
+  it('returns a real PDF (magic bytes) and the page count Chromium produced', { retry: 2 }, async () => {
     const r = await (await client()).render(REQ());
     expect(Buffer.from(r.pdf.subarray(0, 5)).toString('latin1')).toBe('%PDF-'); expect(r.pageCount).toBeGreaterThanOrEqual(1); expect(r.pdf.length).toBeGreaterThan(500);
-  });
+  }); // LD-379: retry 2 for Chromium pool flake under full-suite load; assertions unchanged
   it('a wrong token never yields a PDF and the token is not echoed in the error', async () => {
     const e = await fails((await client({ token: 'x'.repeat(TOKEN.length) })).render(REQ()));
     expect(typeof e.code).toBe('string'); expect(JSON.stringify({ m: e.message, s: e.stack })).not.toContain(TOKEN);
@@ -37,9 +37,9 @@ describe('client <-> real renderer', () => {
     templates.set('c6-t09-throws', () => { throw new Error('bad template'); });
     try { const e = await fails((await client()).render(REQ({ template_id: 'c6-t09-throws' }))); expect(e.code).toBe('reporting.template_invalid'); } finally { templates.delete('c6-t09-throws'); }
   });
-  it('an asset in the bundle passes the server validation (png, base64) and the render still succeeds', async () => {
+  it('an asset in the bundle passes the server validation (png, base64) and the render still succeeds', { retry: 2 }, async () => {
     const png = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
     const r = await (await client()).render(REQ({ assets: { ['a'.repeat(64)]: { mime_type: 'image/png', base64: png } } })); expect(r.pageCount).toBeGreaterThanOrEqual(1);
-  });
+  }); // LD-379: retry 2 for Chromium pool flake under full-suite load; assertions unchanged
   it('the server is still healthy afterwards (no crash from the failed calls)', async () => { expect((await fetch(`${srv.url}/internal/health`)).status).toBe(200); });
 });

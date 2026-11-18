@@ -1,0 +1,8 @@
+Files: features/lab/components/QueueScreen.tsx (console), VerificationQueue.tsx (+pending prop), app/(staff)/lab/{verification,approval}/page.tsx (501 -> console pending) and error.tsx (pageTitle = menu label). No server, CSS, route, permission or operation change.
+[CONV] flagged = flag other than N, critical, or a needed flag ack; a registration is read only when every result is already signed by the user; FilterBar = kit .lims-filter-bar markup holding the Flagged only checkbox (kit FilterBar has no checkbox kind).
+[CONV] queue ticks are native checkboxes (aria-label "Select {reg}") so the six header cells stay exact; Hold is a native disabled button with title "not available yet" (kit Button has no title).
+[CONV] Return for repeat = existing returnResult, once per unsigned result of the selected registration; reasons read from coded set return_reasons when the dialog opens; a failure mid-loop leaves earlier results returned (the refresh shows them).
+Ran: uiconsole2 61/61; uiconsole1 259/259; c5-t33 203/203; elabmenu 99/99; web-style-3 101/101; packages/ui m-series 29/29; tsc: no errors in source files (test-file msw type errors pre-existing).
+Red, not this task: c5-t21 27 and verlevel1 36 (pin old table markup, tester moves them per tests note), emptytbl1 same; rs-c5 3 (worklist snapshot, server baseline, route set: pre-existing); r04.source / m2.source shell CSS 14000 ms motion (pre-existing, no CSS touched).
+No rs-cN snapshot renders the queues, so none regenerated. Merge of main NOT done: git merge needed approval in this session; lead must merge main and re-run.
+Open: CR .orchestra/cr/T0D-UICONSOLE-2.md (verify wait timestamp, department / centre fields, Hold operation).

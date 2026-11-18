@@ -2,34 +2,55 @@
 // Shared body of /lab/verification and /lab/approval (04-UI-UX §3.8, §3.6 "Approve"). Selection → bulk call (≤200 per request, one Idempotency-Key per request,
 // 02-CONVENTIONS §4.5) → per-id outcome dialog. Server state decides: closing the dialog re-fetches the list (router.refresh), rows are never edited locally.
 // Flag acknowledgement mirrors result.service `needed()`: delta fail / critical / unit mismatch / instrument flags each need their own tick before a verify is sent (AC-12.3).
-// 403 auth.mfa_required (AC-16.3): warning banner → "Verify now" → onStepUp → the SAME request re-sent with the SAME key. The API still enforces permission + aal2 (S-01); the UI only hides.
+// 403 auth.mfa_required (AC-16.3): warning banner → "Verify now" → onStepUp → the SAME request re-sent with the SAME key. The API still enforces permission + aal2 (S-01); the UI only disables.
+// T0D-UICONSOLE-2 (LD-353 template 2 CONSOLE, rules 5, 6, 8; LD-364): PageHeader (menu label), ONE FilterBar (Flagged only), StatTiles (Pending, Flagged, Oldest wait) above ONE SplitConsole:
+// queue left = one item per registration; detail right = patient strip, results table, audit line; sticky bar = Select all unflagged (S), Verify|Approve (V|A), Return for repeat (R), Hold (H).
+// Display only: same operations (bulkVerify / bulkApprove / returnResult), same permissions, same VERLEVEL-1 rules. A control the user may not use is disabled with its reason, never hidden.
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Banner } from '@lims/ui/components/Banner';
 import { Button } from '@lims/ui/components/Button';
 import { Checkbox } from '@lims/ui/components/Checkbox';
+import { ConfirmDialog } from '@lims/ui/components/ConfirmDialog';
 import { Dialog } from '@lims/ui/components/Dialog';
 import { EmptyRow, PlaceholderRows } from '@lims/ui/components/DataTable';
 import { EmptyState } from '@lims/ui/components/EmptyState';
 import { FlagBadge, type ResultFlag } from '@lims/ui/components/FlagBadge';
 import { PageHeader } from '@lims/ui/components/PageHeader';
-import { bulkApproveAction, bulkVerifyAction } from '../server/actions';
+import { SplitConsole } from '@lims/ui/components/SplitConsole';
+import { StatTile, StatTileRow } from '@lims/ui/components/StatTile';
+import { t } from '@/core/i18n/messages';
+import { bulkApproveAction, bulkVerifyAction, returnResultAction } from '../server/actions';
 import type { ResultSignoff } from '../server/config.types';
-import { getResultSignoffsAction } from '../server/config.actions';
-import type { AckFlag, QueueItem, ResultBulkRow, VerifyItem } from '../server/types';
+import { getResultSignoffsAction, listCodedSetAction } from '../server/config.actions';
+import type { AckFlag, CodedOption, GridResult, QueueItem, QueueResult, ResultBulkRow, VerifyItem } from '../server/types';
 import { FAILED, call, newKey, utc } from './shared';
+import { hhmm, useNow } from './consoleParts';
+import { ReturnDialog } from './grid/ResultDialogs';
+import { actionError } from './grid/resultModel';
 
 export type QueueMode = 'verify' | 'approve';
-/** currentUserId (T0D-VERLEVEL-1): the signed in person's user id = signer_user_id of their own sign-offs; without it nothing is dimmed (the API still refuses). */
-export interface QueueProps { items: QueueItem[]; permissions: readonly string[]; onStepUp?: () => Promise<void> | void; currentUserId?: string | undefined }
+/** currentUserId (T0D-VERLEVEL-1): the signed in person's user id = signer_user_id of their own sign-offs; without it nothing is dimmed (the API still refuses).
+ *  pending (T0D-UICONSOLE-2, LD-353 rule 6): the queue read answered 501 operation_pending; the console keeps its title, filter and header row and says Not available yet. */
+export interface QueueProps { items: QueueItem[]; permissions: readonly string[]; onStepUp?: () => Promise<void> | void; currentUserId?: string | undefined; pending?: boolean }
+
+/** ResultDto fields the console detail reads (lab.yaml ResultDto); typed here because features/lab/server is pinned by rs-c5.static (LD-140). */
+type Res = QueueResult & Partial<Pick<GridResult, 'value_numeric' | 'value_text' | 'unit_code' | 'reference_range_snapshot' | 'comment_text'>> & {
+  delta?: GridResult['delta']; verified_at?: string;
+};
+type Reg = { no: string; items: (QueueItem & { result: Res })[] };
 
 const MAX = 200; // OpenAPI maxItems
+const DASH = '—';
 const AGE_UNKNOWN = 'Age unknown — reference range and critical check not applied'; // 08 A17.1
 const MFA = 'Approval needs a second check. Verify your identity, then the approval is sent again.';
+const NOT_YET = 'This part of the system is being built. It appears here once it is switched on.';
 const FLAG_LABEL: Record<AckFlag, string> = { delta: 'delta', critical: 'critical', unit_mismatch: 'unit mismatch', instrument_flag: 'instrument flag' };
+const HEADERS = ['Priority', 'Registration no', 'Patient', 'Analyte count', 'Flags', 'Waiting time'];
+const RESULT_HEADERS = ['Analyte', 'Value', 'Unit', 'Reference range', 'Flag', 'Previous value', 'Change', 'Comment', 'Sign-off'];
 const COPY = {
-  verify: { title: 'Verification', empty: 'Nothing waiting for verification.', verb: 'Verify', perm: 'lab.result.verify', done: 'Verification outcome' },
-  approve: { title: 'Approval', empty: 'Nothing waiting for approval.', verb: 'Approve', perm: 'lab.result.approve', done: 'Approval outcome' },
+  verify: { menu: 'lab.nav.verification', empty: 'Nothing waiting for verification.', verb: 'Verify', key: 'v', perm: 'lab.result.verify', done: 'Verification outcome', denied: 'You do not have permission to verify results.' },
+  approve: { menu: 'lab.nav.approval', empty: 'Nothing waiting for approval.', verb: 'Approve', key: 'a', perm: 'lab.result.approve', done: 'Approval outcome', denied: 'You do not have permission to approve results.' },
 } as const;
 /** Per-id reasons (contracts/errors.yaml titles; copy for the two approve codes is verbatim from 04-UI-UX §3.6). Raw codes are never shown. */
 const REASON: Record<string, string> = {
@@ -50,6 +71,7 @@ const NEXT: Record<string, string> = { verify: 'Needs verifier', approve: 'Needs
 const MINE = 'You already signed this result';
 type Chain = ResultSignoff[] | 'error';
 const reason = (code?: string) => (code && REASON[code]) || 'Could not update this result.';
+const isTyping = (el: EventTarget | null) => { const e = el as HTMLElement | null; return !!e && (e.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(e.tagName)); };
 
 /** Flags this result needs acknowledged before verify (mirrors result.service `needed()`). */
 export function neededFlags(r: QueueItem['result']): AckFlag[] {
@@ -60,20 +82,45 @@ export function neededFlags(r: QueueItem['result']): AckFlag[] {
   if (r.instrument_flags?.length) f.push('instrument_flag');
   return f;
 }
+/** [CONV] flagged = a flag other than N, a critical value, or a result that needs a flag acknowledgement (cannot be ticked or bulk selected). */
+const isFlagged = (r: QueueResult) => (!!r.flag && r.flag !== 'N') || r.critical.is_critical || neededFlags(r).length > 0;
+const range = (r: Res) => {
+  if (r.range_unavailable_age_unknown) return AGE_UNKNOWN;
+  const s = r.reference_range_snapshot;
+  if (s?.text) return s.text;
+  return s?.low && s.high ? `${s.low}–${s.high}` : s?.low ? `≥ ${s.low}` : s?.high ? `≤ ${s.high}` : DASH;
+};
+const change = (d: Res['delta']) => (d?.abs ? (d.pct ? `${d.abs} (${d.pct}%)` : d.abs) : DASH);
+
+/** Rows of the same registration grouped, first seen order. */
+function group(items: QueueItem[]): Reg[] {
+  const m = new Map<string, Reg>();
+  for (const i of items) {
+    const g = m.get(i.registration_no) ?? { no: i.registration_no, items: [] };
+    g.items.push(i as Reg['items'][number]);
+    m.set(i.registration_no, g);
+  }
+  return [...m.values()];
+}
 
 type Job = { sig: string; keys: string[]; chunks: VerifyItem[][]; next: number; rows: ResultBulkRow[] };
 
-export function QueueScreen({ mode, items, permissions, onStepUp, currentUserId }: QueueProps & { mode: QueueMode }) {
+export function QueueScreen({ mode, items, permissions, onStepUp, currentUserId, pending }: QueueProps & { mode: QueueMode }) {
   const c = COPY[mode];
+  const title = t(c.menu);
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
-  const canAct = permissions.includes(c.perm);
-  const [sel, setSel] = useState<ReadonlySet<string>>(new Set());
+  const now = useNow();
+  const canAct = permissions.includes(c.perm) && !pending;
+  const [selNo, setSelNo] = useState<string>();
+  const [ticked, setTicked] = useState<ReadonlySet<string>>(new Set());
   const [acks, setAcks] = useState<Record<string, AckFlag[]>>({});
   const [busy, setBusy] = useState(false);
   const [banner, setBanner] = useState<'mfa' | 'error' | null>(null);
   const [outcome, setOutcome] = useState<ResultBulkRow[] | null>(null);
+  const [confirmAll, setConfirmAll] = useState(false);
+  const [returning, setReturning] = useState<CodedOption[] | null>(null);
   const busyRef = useRef(false);
   const job = useRef<Job | null>(null); // survives the step-up pause so the retry reuses keys + body
   const [chains, setChains] = useState<Record<string, Chain>>({});
@@ -91,25 +138,26 @@ export function QueueScreen({ mode, items, permissions, onStepUp, currentUserId 
     }
   }, [items]);
   /** Signed by me on the current version: dimmed, not selectable, never sent. */
-  const mine = (r: QueueItem['result']) => {
+  const mine = (r: QueueResult) => {
     const ch = chains[r.id];
     return !!currentUserId && Array.isArray(ch) && ch.some((s) => s.signer_user_id === currentUserId && (r.current_version_no === undefined || s.result_version === r.current_version_no));
   };
-  const selectable = items.filter((i) => !mine(i.result));
-  const picked = selectable.filter((i) => sel.has(i.result.id));
-  const blocked = mode === 'verify' && picked.some((i) => neededFlags(i.result).some((f) => !acks[i.result.id]?.includes(f)));
-  const toggle = (id: string, on: boolean) => setSel((p) => { const n = new Set(p); if (on) n.add(id); else n.delete(id); return n; });
+  const regs = group(items);
+  const sendable = (g: Reg) => g.items.filter((i) => !mine(i.result));
+  const regMine = (g: Reg) => sendable(g).length === 0 && g.items.some((i) => mine(i.result));
+  const regFlagged = (g: Reg) => g.items.some((i) => isFlagged(i.result));
+  const tickable = (g: Reg) => canAct && !regFlagged(g) && !regMine(g);
+  const sel = regs.find((g) => g.no === selNo);
+  const unflagged = regs.filter(tickable);
+  const tickedRegs = regs.filter((g) => ticked.has(g.no) && tickable(g));
+  const targets = (tickedRegs.length ? tickedRegs : sel ? [sel] : []).flatMap(sendable);
+  const blocked = mode === 'verify' && targets.some((i) => neededFlags(i.result).some((f) => !acks[i.result.id]?.includes(f)));
+  const verified = (g: Reg) => g.items.map((i) => i.result.verified_at).filter((x): x is string => !!x && Number.isFinite(Date.parse(x)));
+  // Waiting time: approval = since the oldest verified_at; verification has no timestamp in VerificationQueueItem (contract gap in the notes), so a dash
+  const waitMs = (g: Reg) => { const v = verified(g); return mode === 'approve' && v.length ? now - Math.min(...v.map(Date.parse)) : undefined; };
+  const waits = regs.map(waitMs).filter((x): x is number => x !== undefined);
+  const toggleTick = (no: string, on: boolean) => setTicked((p) => { const n = new Set(p); if (on) n.add(no); else n.delete(no); return n; });
   const toggleAck = (id: string, f: AckFlag, on: boolean) => setAcks((p) => ({ ...p, [id]: on ? [...(p[id] ?? []), f] : (p[id] ?? []).filter((x) => x !== f) }));
-
-  function onRowKey(e: KeyboardEvent<HTMLTableRowElement>, id: string) {
-    if (e.key !== 'ArrowDown' || !e.shiftKey) return;
-    const next = e.currentTarget.nextElementSibling?.querySelector<HTMLInputElement>('input[type="checkbox"]');
-    if (!next) return;
-    e.preventDefault();
-    const nextId = items[items.findIndex((i) => i.result.id === id) + 1]?.result.id;
-    setSel((p) => new Set(p).add(id).add(nextId ?? id));
-    next.focus();
-  }
 
   async function run(j: Job) {
     for (let i = j.next; i < j.chunks.length; i++) {
@@ -126,14 +174,14 @@ export function QueueScreen({ mode, items, permissions, onStepUp, currentUserId 
     }
     job.current = null;
     setBanner(null);
-    setSel(new Set());
+    setTicked(new Set());
     setAcks({});
     setOutcome(j.rows);
   }
 
-  async function send() {
-    if (busyRef.current || picked.length === 0 || blocked) return;
-    const body: VerifyItem[] = picked.map((i) => ({
+  async function send(list: QueueItem[]) {
+    if (busyRef.current || list.length === 0 || !canAct) return;
+    const body: VerifyItem[] = list.map((i) => ({
       id: i.result.id,
       version: i.result.version,
       ...(mode === 'verify' && neededFlags(i.result).length ? { acknowledged_flags: [...neededFlags(i.result)].sort() } : {}),
@@ -148,6 +196,7 @@ export function QueueScreen({ mode, items, permissions, onStepUp, currentUserId 
     setBanner(null);
     try { await run(job.current); } finally { busyRef.current = false; setBusy(false); }
   }
+  const primary = () => { if (!blocked) void send(targets); };
 
   async function verifyNow() {
     if (busyRef.current || !job.current) return;
@@ -163,6 +212,22 @@ export function QueueScreen({ mode, items, permissions, onStepUp, currentUserId 
     if (job.current) { busyRef.current = true; setBusy(true); try { await run(job.current); } finally { busyRef.current = false; setBusy(false); } }
   }
 
+  // Return for repeat: the existing returnResult operation, once per result of the selected registration (return_reasons read when the dialog opens)
+  async function openReturn() {
+    if (!canAct || !sel || regMine(sel)) return;
+    const r = await call(listCodedSetAction('return_reasons'));
+    setReturning(r.ok ? r.data.filter((x) => x.is_active).map(({ code, display }) => ({ code, display })) : []);
+  }
+  async function doReturn(code: string, comment: string): Promise<string | null> {
+    for (const i of sel ? sendable(sel) : []) {
+      const r = await call(returnResultAction(i.result.id, i.result.version, { reason_code: code, ...(comment.trim() ? { comment: comment.trim() } : {}) }));
+      if (!r.ok) return actionError(r.code);
+    }
+    setReturning(null);
+    router.refresh(); // the returned results leave the queue
+    return null;
+  }
+
   const setFlagged = (on: boolean) => {
     const q = new URLSearchParams(params.toString());
     if (on) q.set('flagged_only', 'true'); else q.delete('flagged_only');
@@ -171,70 +236,136 @@ export function QueueScreen({ mode, items, permissions, onStepUp, currentUserId 
   const close = () => { setOutcome(null); router.refresh(); };
   const failed = (outcome ?? []).filter((o) => o.outcome === 'error');
   const byId = new Map(items.map((i) => [i.result.id, i]));
+  const allResults = unflagged.flatMap(sendable);
+
+  const onKey = (e: KeyboardEvent<HTMLDivElement>) => {
+    if (e.ctrlKey || e.metaKey || e.altKey || isTyping(e.target)) return;
+    const k = e.key.toLowerCase();
+    if (k === 's' && canAct && unflagged.length) { e.preventDefault(); setConfirmAll(true); }
+    else if (k === c.key && canAct && targets.length && !busy) { e.preventDefault(); primary(); }
+    else if (k === 'r' && canAct && sel) { e.preventDefault(); void openReturn(); }
+  };
+
+  const list = (
+    <div className="lims-data-table"><div className="lims-table-scroll">
+      <table className="lims-table" aria-label={`${title} queue`}>
+        <thead><tr>{HEADERS.map((h) => <th key={h} scope="col">{h}</th>)}</tr></thead>
+        <tbody>
+          {regs.length === 0 ? (
+            <EmptyRow colSpan={HEADERS.length}>{pending ? <EmptyState title="Not available yet" body={NOT_YET} /> : <EmptyState title={c.empty} />}</EmptyRow>
+          ) : null}
+          {regs.map((g) => {
+            const first = g.items[0]!;
+            const dim = regMine(g);
+            const w = waitMs(g);
+            const next = first.result.next_step;
+            return (
+              <tr key={g.no} className="lims-row" aria-selected={selNo === g.no} {...(selNo === g.no ? { 'data-selected': 'true' } : {})}
+                {...(dim ? { 'aria-disabled': true, style: { opacity: 0.55 } } : {})}>
+                <td>{first.priority}</td>
+                <td>
+                  <input type="checkbox" aria-label={`Select ${g.no}`} checked={tickable(g) && ticked.has(g.no)} disabled={!tickable(g)} {...(!tickable(g) ? { title: !canAct ? c.denied : dim ? MINE : 'Flagged: open it and review each result' } : {})} onChange={(e) => toggleTick(g.no, e.target.checked)} />{' '}
+                  <button type="button" className="lims-link" data-console-item={g.no} onClick={() => setSelNo(g.no)}>{g.no}</button>
+                </td>
+                <td title={first.patient_display.full_name}>{first.patient_display.full_name}</td>
+                <td className="lims-num">{String(g.items.length)}</td>
+                <td>
+                  {[...new Set(g.items.map((i) => i.result.flag).filter((f): f is string => !!f && f !== 'N'))].map((f) => <FlagBadge key={f} flag={f as ResultFlag} />)}
+                  {next && NEXT[next] ? <span>{NEXT[next]}</span> : null}
+                  {dim ? <div>{MINE}</div> : null}
+                </td>
+                <td className="lims-num" suppressHydrationWarning>{w === undefined ? DASH : hhmm(w)}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+        {regs.length === 0 ? <PlaceholderRows colSpan={HEADERS.length} /> : null}
+      </table>
+    </div></div>
+  );
+
+  const detail = sel ? (
+    <>
+      <h2>{sel.items[0]!.patient_display.full_name}</h2>
+      <p className="lims-console-strip">
+        {[sel.items[0]!.patient_display.age_sex, sel.items[0]!.patient_display.patient_code, sel.no, sel.items[0]!.priority].join(' · ')}
+      </p>
+      <div className="lims-data-table"><div className="lims-table-scroll">
+        <table className="lims-table" aria-label="Results">
+          <thead><tr>{RESULT_HEADERS.map((h) => <th key={h} scope="col">{h}</th>)}</tr></thead>
+          <tbody>
+            {sel.items.map((i) => {
+              const r = i.result;
+              const need = mode === 'verify' ? neededFlags(r) : [];
+              return (
+                <tr key={r.id}>
+                  <td>{r.analyte_code}</td>
+                  <td className="lims-num">{r.value_numeric ?? r.value_text ?? DASH}</td>
+                  <td>{r.unit_code ?? DASH}</td>
+                  <td>{range(r)}</td>
+                  <td>
+                    {r.flag ? <FlagBadge flag={r.flag as ResultFlag} /> : null}
+                    {canAct ? need.map((f) => (
+                      <Checkbox key={f} label={`Acknowledge ${FLAG_LABEL[f]}`} isSelected={acks[r.id]?.includes(f) ?? false} onChange={(on) => toggleAck(r.id, f, on)} />
+                    )) : null}
+                  </td>
+                  <td className="lims-num">{r.delta?.prev_value ?? DASH}</td>
+                  <td className="lims-num">{change(r.delta)}</td>
+                  <td title={r.comment_text}>{r.comment_text ?? DASH}</td>
+                  <td>
+                    {r.signoff_count !== undefined && r.signoff_required !== undefined ? (
+                      <SignoffCell listId={`${uid}-${r.id}`} count={r.signoff_count} required={r.signoff_required} next={r.next_step} chain={chains[r.id]}
+                        open={openChip === r.id} onToggle={() => setOpenChip((o) => (o === r.id ? null : r.id))} />
+                    ) : DASH}
+                    {mine(r) ? <div>{MINE}</div> : null}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div></div>
+      <p data-console-audit="">{auditLine(sel, chains)}</p>
+    </>
+  ) : <p>{pending ? NOT_YET : regs.length ? 'Select a registration to see its results here.' : c.empty}</p>;
+
+  const why = !canAct ? (pending ? null : c.denied) : sel && !tickedRegs.length && regMine(sel) ? MINE : null;
+  const actions = (
+    <>
+      {why ? <p>{why}</p> : null}
+      <Button isDisabled={!canAct || unflagged.length === 0 || busy} onPress={() => setConfirmAll(true)}>Select all unflagged (S)</Button>
+      <Button variant="primary" isLoading={busy} isDisabled={!canAct || targets.length === 0 || blocked} onPress={primary}>
+        {targets.length ? `${c.verb} ${targets.length} (${c.key.toUpperCase()})` : `${c.verb} (${c.key.toUpperCase()})`}
+      </Button>
+      <Button isDisabled={!canAct || !sel || regMine(sel) || busy} onPress={() => void openReturn()}>Return for repeat (R)</Button>
+      {/* No hold operation exists for a queued result (gap in the notes): shown, disabled, with the reason */}
+      <button type="button" className="lims-btn lims-btn-secondary lims-btn-md" disabled title="Hold is not available yet">Hold (H)</button>
+    </>
+  );
 
   return (
-    <section aria-label={c.title}>
-      <PageHeader title={c.title} helpKey={`lab.${mode}`} />
-      <Checkbox label="Flagged only" isSelected={params.get('flagged_only') === 'true'} onChange={setFlagged} />
+    <section aria-label={title}>
+      <PageHeader title={title} helpKey={`lab.${mode}`} />
+      <div role="search" className="lims-filter-bar">
+        <Checkbox label="Flagged only" isSelected={params.get('flagged_only') === 'true'} onChange={setFlagged} />
+      </div>
+      <StatTileRow>
+        <StatTile label="Pending" value={String(regs.length)} />
+        <StatTile label="Flagged" value={String(regs.filter(regFlagged).length)} />
+        <StatTile label="Oldest wait" value={waits.length ? hhmm(Math.max(...waits)) : DASH} />
+      </StatTileRow>
       {banner === 'mfa' ? (
         <div role="alert"><Banner tone="warning" title={MFA} action={{ label: 'Verify now', onPress: () => void verifyNow() }} /></div>
       ) : banner === 'error' ? (
         <div role="alert"><Banner tone="danger" title={FAILED} /></div>
       ) : null}
-      {/* T0D-EMPTYTBL-1 (LD-310): headers always drawn; the empty message is a body row. */}
-      <>
-          {canAct && items.length > 0 ? (
-            <Button variant="primary" isLoading={busy} isDisabled={picked.length === 0 || blocked} onPress={() => void send()}>
-              {`${c.verb} ${picked.length}`}
-            </Button>
-          ) : null}
-          <table>
-            <caption className="lims-visually-hidden">{c.title} queue</caption>
-            <thead>
-              <tr>
-                <th scope="col">{canAct && items.length > 0 ? <Checkbox label="Select all" isSelected={picked.length > 0 && picked.length === selectable.length} onChange={(on) => setSel(on ? new Set(selectable.map((i) => i.result.id)) : new Set())} /> : <span className="lims-visually-hidden">Select</span>}</th>
-                <th scope="col">Priority</th>
-                <th scope="col">Reg no</th>
-                <th scope="col">Patient</th>
-                <th scope="col">Analyte</th>
-                <th scope="col">Flags</th>
-                <th scope="col">Sign-off</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.length === 0 ? <EmptyRow colSpan={7}><EmptyState title={c.empty} /></EmptyRow> : null}
-              {items.map((i) => {
-                const r = i.result;
-                const need = mode === 'verify' ? neededFlags(r) : [];
-                const dim = mine(r);
-                return (
-                  <tr key={r.id} onKeyDown={canAct ? (e) => onRowKey(e, r.id) : undefined} {...(dim ? { 'aria-disabled': true, className: 'lims-row-dim', style: { opacity: 0.55 } } : {})}>
-                    <td>{canAct ? <Checkbox label={`Select ${i.registration_no}`} isSelected={!dim && sel.has(r.id)} isDisabled={dim} onChange={(on) => toggle(r.id, on)} /> : null}</td>
-                    <td>{i.priority}</td>
-                    <td>{i.registration_no}</td>
-                    <td><span>{i.patient_display.full_name}</span> <span>{i.patient_display.age_sex}</span></td>
-                    <td>{r.analyte_code}</td>
-                    <td>
-                      {r.flag ? <FlagBadge flag={r.flag as ResultFlag} /> : null}
-                      {r.range_unavailable_age_unknown ? <div>{AGE_UNKNOWN}</div> : null}
-                      {canAct ? need.map((f) => (
-                        <Checkbox key={f} label={`Acknowledge ${FLAG_LABEL[f]}`} isSelected={acks[r.id]?.includes(f) ?? false} onChange={(on) => toggleAck(r.id, f, on)} />
-                      )) : null}
-                    </td>
-                    <td>
-                      {r.signoff_count !== undefined && r.signoff_required !== undefined ? (
-                        <SignoffCell listId={`${uid}-${r.id}`} count={r.signoff_count} required={r.signoff_required} next={r.next_step} chain={chains[r.id]}
-                          open={openChip === r.id} onToggle={() => setOpenChip((o) => (o === r.id ? null : r.id))} />
-                      ) : null}
-                      {dim ? <div>{MINE}</div> : null}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-            {items.length === 0 ? <PlaceholderRows colSpan={7} /> : null}
-          </table>
-      </>
+      <div onKeyDown={onKey}>
+        <SplitConsole list={list} detail={detail} actions={actions} listLabel={`${title} queue`} detailLabel="Registration" />
+      </div>
+      <ConfirmDialog title={`${c.verb} all unflagged`} isOpen={confirmAll} confirmLabel="Confirm" onCancel={() => setConfirmAll(false)}
+        body={<p>{`${c.verb} ${unflagged.length} registrations, ${allResults.length} results.`}</p>}
+        onConfirm={() => { setConfirmAll(false); void send(allResults); }} />
+      {returning ? <ReturnDialog reasons={returning} onCancel={() => setReturning(null)} onReturn={doReturn} /> : null}
       <Dialog title={c.done} isOpen={outcome !== null} onClose={close}>
         <p>{`${(outcome?.length ?? 0) - failed.length} done, ${failed.length} not done`}</p>
         {failed.length ? (
@@ -254,6 +385,16 @@ export function QueueScreen({ mode, items, permissions, onStepUp, currentUserId 
       </Dialog>
     </section>
   );
+}
+
+/** "Audit · AN1: Name · title · role · time; ..." from the loaded sign-off chains (plain text). */
+function auditLine(g: Reg, chains: Record<string, Chain>) {
+  const parts = g.items.flatMap((i) => {
+    const ch = chains[i.result.id];
+    if (!Array.isArray(ch) || ch.length === 0) return [];
+    return [`${i.result.analyte_code}: ${ch.map((s) => [s.signer_display_name, s.signer_title, s.signer_role_code.replace(/_/g, ' '), utc(s.signed_at)].filter(Boolean).join(' · ')).join(', ')}`];
+  });
+  return `Audit · ${parts.length ? parts.join('; ') : 'no sign-offs recorded yet'}`;
 }
 
 /** T0D-VERLEVEL-1: "Signed n of m" chip (a button, so the keyboard reaches it), the next step label and, when open, who signed (plain text, never markup). */

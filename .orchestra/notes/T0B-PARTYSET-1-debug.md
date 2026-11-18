@@ -7,3 +7,6 @@
 # round 3 (verify log 15:45)
 - Same cause. db421fa97 (T0C-PARTYSET-1 contract) is in main/lane/C0-0M/D/G but still not an ancestor of lane/C0-0I HEAD; no non-test source defines revealPartyIdNumber etc. Failures are "no handler for ..." and /undefined paths, not a code or test defect.
 - No source edited. Needed: merge main into lane/C0-0I, writer implements PARTYSET handlers (remove ids from pendingOperations), then re-run verify.
+# round 4 (verify log 20:10, boot test)
+- Cause: no code defect. real-modules-boot.test.ts times out at its 60s limit (standalone rerun 20:14 also 60.9s; import of all modules is slow under host load, other lanes running). The retry error "module quality: index.ts exports no manifest" is a side effect of the timed-out first import (quality/index.ts does export manifest). The earlier full-run 25 failures are the stale-lane set: lane lacks LD-385 and TESTIMPORT ids (main is not in HEAD; 10 commits ahead).
+- Fix: none in source; tests not touched. Needed: merge main into lane/C0-0I (task START), re-run verify on an idle host. Not a test dispute.

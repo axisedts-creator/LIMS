@@ -1,0 +1,8 @@
+# T0D-UIDASH-1 impl (writer)
+Files: analytics DashboardView; lab StatusBoard, pending/PendingPage; billing DailyCashView, DuesList; quality StatusBoardView, RunsView, LjView, tat/TatView; core/shell/shell.css (.lims-stat-toggle, tokens only); rs-c8.screens snapshot regenerated (LD-362: tile labels, ChartCards, useId shift).
+[CONV] status board tiles are <button class="lims-stat lims-stat-toggle" aria-pressed> (kit StatTile is div/link only); its chart is aria-hidden (tiles carry the same counts; keeps the order table the one table).
+[CONV] Dues "Total due" currency in its own span; chart series label "Amount" (a "Due" header clashed with the table column).
+Display only: every tile/chart is computed from rows the screen already reads; no route, permission, contract or API change.
+Ran: uidash1 config 94/94 pass; billing/analytics/quality/lab suites: only reds are in dispute.md (3 old pins) + pre-existing; web-style-3 101/101; elabmenu 99/99; tsc: 0 errors in touched files; eslint not installed in repo (not run).
+Open (contract requests): getPendingTestsSummary per department for /lab/pending; party on DueRow + centres passed by billing/dues page.tsx; LJ ControlChart (CR-C9-007).
+Main had no new commits to merge (HEAD ahead of main).

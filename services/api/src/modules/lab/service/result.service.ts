@@ -8,6 +8,7 @@ import { assertResultValueEditable, resultTransition, type ResultStatus } from '
 import { createLabEvents } from '../events/publish.js';
 import { criticalAction, evaluateValue, type EvalCtx, type Evaluation } from './evaluation.service.js';
 import { evaluateOrderReadiness, type ReadinessStore } from './order.service.js';
+import { planApprove, planVerify, publishSignedOff, recordSignoff, signoffsOf, withCounters, type Plan, type SignCtx } from './signoff.service.js';
 
 type Sex = 'female' | 'male' | 'other' | 'unknown';
 export interface CalcTarget {
@@ -427,10 +428,61 @@ function checkVerifiable(row: VerifyRow, acknowledged: readonly string[] | undef
   return acks;
 }
 
+// T0B-VERLEVEL-1 (LD-316): with the sign-off seam (production store) verify is one sign-off of the chain. Gates as before (status, hold, flags), then signoff.service
+// planVerify (counter, distinct people, enterer, pathologist); a final sign-off (policy without a pathologist) also runs the approval (R6) and its critical gate.
+// Writes: chain row + counter, R4 verify, [R6 approve], signed_off event. Any failure after the first write propagates (the caller rolls back).
+function checkSignable(row: { status: ResultStatus; onHold: boolean }): void {
+  if (row.status !== 'resulted' && row.status !== 'verified') throw new LimsError('lab.result_invalid_transition');
+  if (row.onHold) throw new LimsError('lab.result_on_hold');
+}
+const signRow = (row: VerifyRow | ApproveRow) => ({ resultId: row.resultId, status: row.status, centreId: row.centreId, currentVersionNo: row.currentVersionNo, orderId: row.orderId,
+  testId: row.testId, departmentId: row.departmentId, verifiedByMembershipId: (row as ApproveRow).verifiedByMembershipId });
+async function criticalGate(ctx: ApprovalCtx, resultId: string): Promise<void> {
+  const { tx, tenantId, store } = ctx;
+  if ((await store.getLabSettings(tx, tenantId)).criticalNotificationBlocksApproval && (await store.hasUnconfirmedCritical(tx, tenantId, resultId))) {
+    throw new LimsError('lab.critical_ack_required');   // no value, no notification detail in the problem (S-19)
+  }
+}
+/** checks of one verify sign-off; nothing is written before this returns (a refusal only writes its denied audit row). */
+async function planVerifySignoff(ctx: VerifyCtx, row: VerifyRow, acknowledged: readonly string[] | undefined, single: boolean): Promise<{ plan: Plan; acks: string[] }> {
+  checkSignable(row);
+  const acks = [...new Set(acknowledged ?? [])];
+  if (needed(row).some((f) => !acks.includes(f))) throw new LimsError('lab.flag_ack_required');
+  const plan = await planVerify(ctx as unknown as SignCtx, signoffsOf(ctx)!, signRow(row), single);
+  if (plan.final) await criticalGate(ctx as unknown as ApprovalCtx, row.resultId);
+  return { plan, acks };
+}
+async function applyVerifySignoff(ctx: VerifyCtx, row: VerifyRow, plan: Plan, acks: string[], single: boolean): Promise<ResultRow> {
+  const s = await recordSignoff(ctx as unknown as SignCtx, signoffsOf(ctx)!, signRow(row), plan, 'verify', single);
+  let out = await applyVerify(ctx, row, { mode: 'manual', acknowledgedFlags: acks });
+  if (plan.final) out = await applyApprove(ctx as unknown as ApprovalCtx, { ...row, status: 'verified', rowVersion: Number(out['version']) }, { approvalRow: false });
+  await publishSignedOff(ctx as unknown as SignCtx, signRow(row), s, 'verify', plan.final, Number(out['version']));
+  return out;
+}
+/** re-read saved rows with their sign-off counters (ResultDto signoff_count / signoff_required / next_step). */
+async function freshRows(ctx: { tx: unknown; tenantId: string; store: unknown }, rows: ResultRow[]): Promise<ResultRow[]> {
+  const get = (ctx.store as { getResults?: EntryStore['getResults'] }).getResults;
+  const fresh = get ? new Map((await get(ctx.tx, ctx.tenantId, rows.map((r) => String(r['id'])))).map((r) => [String(r['id']), r])) : new Map<string, ResultRow>();
+  return withCounters(ctx, rows.map((r) => fresh.get(String(r['id'])) ?? r));
+}
+async function withResultCounters(ctx: { tx: unknown; tenantId: string; store: unknown }, results: EntryOutcome[]): Promise<EntryOutcome[]> {
+  const saved = results.flatMap((r) => (r.result ? [r.result] : []));
+  if (!saved.length) return results;
+  const byId = new Map((await freshRows(ctx, saved)).map((r) => [String(r['id']), r]));
+  return results.map((r) => (r.result ? { ...r, result: byId.get(r.resultId) ?? r.result } : r));
+}
+
 export async function verifyResult(rawCtx: unknown, i: VerifyItem): Promise<ResultRow> {
   const ctx = rawCtx as VerifyCtx;
   const row = await visibleRow(ctx, (await ctx.store.lockForVerify(ctx.tx, ctx.tenantId, [i.resultId]))[0]);
   if (i.version !== row.rowVersion) throw new LimsError('common.version_conflict');   // never trust the client number for the write
+  if (signoffsOf(ctx)) {
+    const { plan, acks } = await planVerifySignoff(ctx, row, i.acknowledgedFlags, true);
+    const out = await applyVerifySignoff(ctx, row, plan, acks, true);
+    if (plan.final) await finishApprovals(ctx as unknown as ApprovalCtx, new Set(row.specimenId ? [row.specimenId] : []), new Set([row.orderId]));
+    else if (row.specimenId) await ctx.store.rollupSpecimen(ctx.tx, ctx.tenantId, row.specimenId);
+    return (await freshRows(ctx, [out]))[0]!;
+  }
   const acks = checkVerifiable(row, i.acknowledgedFlags);
   const out = await applyVerify(ctx, row, { mode: 'manual', acknowledgedFlags: acks });
   if (row.specimenId) await ctx.store.rollupSpecimen(ctx.tx, ctx.tenantId, row.specimenId);
@@ -442,16 +494,25 @@ export async function bulkVerifyResults(rawCtx: unknown, input: { items: readonl
   const ids = [...new Set(input.items.map((x) => x.resultId))].sort();   // 02-TRD §3.2: lock order = result id ascending
   const rows = new Map((await ctx.store.lockForVerify(ctx.tx, ctx.tenantId, ids)).map((r) => [r.resultId, r]));
   const done = new Set<string>();   // ids verified in this batch (a second item for the same id is a lost race)
-  const specimens = new Set<string>();
+  const specimens = new Set<string>(), finals = new Set<string>();
   const results: EntryOutcome[] = [];
+  const chain = Boolean(signoffsOf(ctx));   // T0B-VERLEVEL-1 (LD-316): the same sign-off rules per result; a refusal is a per result error, never an abort
   for (const it of input.items) {
     let stored = false;   // once the store call started, a failure rolls the whole batch back
     try {
       const row = await visibleRow(ctx, rows.get(it.resultId));
       if (done.has(it.resultId) || it.version !== row.rowVersion) throw new LimsError('common.version_conflict');
-      const acks = checkVerifiable(row, it.acknowledgedFlags);
-      stored = true;
-      const out = await applyVerify(ctx, row, { mode: 'manual', acknowledgedFlags: acks });
+      let out: ResultRow;
+      if (chain) {
+        const { plan, acks } = await planVerifySignoff(ctx, row, it.acknowledgedFlags, false);
+        stored = true;
+        out = await applyVerifySignoff(ctx, row, plan, acks, false);
+        if (plan.final) finals.add(row.orderId);
+      } else {
+        const acks = checkVerifiable(row, it.acknowledgedFlags);
+        stored = true;
+        out = await applyVerify(ctx, row, { mode: 'manual', acknowledgedFlags: acks });
+      }
       done.add(it.resultId);
       if (row.specimenId) specimens.add(row.specimenId);
       results.push({ resultId: it.resultId, outcome: 'ok', result: out });
@@ -460,8 +521,9 @@ export async function bulkVerifyResults(rawCtx: unknown, input: { items: readonl
       results.push({ resultId: it.resultId, outcome: 'error', code: err.code });   // never the value, never err.detail (S-19)
     }
   }
-  for (const s of [...specimens].sort()) await ctx.store.rollupSpecimen(ctx.tx, ctx.tenantId, s);   // once per specimen, after every save
-  return { results };
+  if (finals.size) await finishApprovals(ctx as unknown as ApprovalCtx, specimens, finals);   // roll-ups, then readiness of the orders with a final sign-off
+  else for (const s of [...specimens].sort()) await ctx.store.rollupSpecimen(ctx.tx, ctx.tenantId, s);   // once per specimen, after every save
+  return { results: chain ? await withResultCounters(ctx, results) : results };
 }
 
 /** R5 verified -> resulted (no event, 03-IC §10.2); only a verified row can be returned. */
@@ -521,7 +583,7 @@ export interface ApproveStore {
   /** ids unique + ascending (02-TRD §3.2); returns the rows visible to the caller only. */
   lockForApprove(tx: unknown, tenantId: string, ids: readonly string[]): Promise<ApproveRow[]>;
   /** R6 UPDATE ... WHERE version = expectedRowVersion (throws common.version_conflict on a lost race) + lab.approvals row (kind approval, aal2) + immutable result_versions v1 copy. */
-  approve(tx: unknown, tenantId: string, a: { resultId: string; expectedRowVersion: number; membershipId: string; occurredAt: string }): Promise<ResultRow>;
+  approve(tx: unknown, tenantId: string, a: { resultId: string; expectedRowVersion: number; membershipId: string; occurredAt: string; approvalRow?: false }): Promise<ResultRow>;
   /** An open critical event of the result without a notification outcome reached + read_back_confirmed (AC-13.5). */
   hasUnconfirmedCritical(tx: unknown, tenantId: string, resultId: string): Promise<boolean>;
   getLabSettings(tx: unknown, tenantId: string): Promise<{ criticalNotificationBlocksApproval: boolean }>;
@@ -576,11 +638,11 @@ async function checkApprovable(ctx: ApprovalCtx, row: ApproveRow): Promise<void>
 }
 
 /** R6 for an already checked row; the approval call carries no value column (S-03). Any failure after the store call propagates (caller rolls back). */
-async function applyApprove(ctx: ApprovalCtx, row: ApproveRow): Promise<ResultRow> {
+async function applyApprove(ctx: ApprovalCtx, row: ApproveRow, o: { approvalRow?: false } = {}): Promise<ResultRow> {
   const { tx, tenantId, store } = ctx;
   const occurredAt = ctx.now().toISOString();   // server clock
   const membershipId = ctx.actor.membershipId as string;   // checkApprovable fails closed without it
-  const out = await store.approve(tx, tenantId, { resultId: row.resultId, expectedRowVersion: row.rowVersion, membershipId, occurredAt });
+  const out = await store.approve(tx, tenantId, { resultId: row.resultId, expectedRowVersion: row.rowVersion, membershipId, occurredAt, ...o });
   await store.closeOpenCriticalEvents(tx, tenantId, { resultId: row.resultId, closedAt: occurredAt });   // 02-TRD §5.5: R6 closes the events
   // 03-IC §3.10: no value, no verifier; result_version_no is always 1 (the schema pins it).
   await createLabEvents(ctx.events as never).resultApproved(ctx as never, {
@@ -600,9 +662,26 @@ export async function approveResult(rawCtx: unknown, i: { resultId: string; vers
   const ctx = rawCtx as ApprovalCtx;
   const row = await visibleAt(ctx, 'lab.result.approve', (await ctx.store.lockForApprove(ctx.tx, ctx.tenantId, [i.resultId]))[0]);
   if (i.version !== row.rowVersion) throw new LimsError('common.version_conflict');   // never trust the client number for the write
-  await checkApprovable(ctx, row);
-  const out = await applyApprove(ctx, row);
+  const chain = Boolean(signoffsOf(ctx));
+  const plan = chain ? await planApproveSignoff(ctx, row, true) : undefined;
+  if (!plan) await checkApprovable(ctx, row);
+  const out = plan ? await applyApproveSignoff(ctx, row, plan, true) : await applyApprove(ctx, row);
   await finishApprovals(ctx, new Set(row.specimenId ? [row.specimenId] : []), new Set([row.orderId]));
+  return chain ? (await freshRows(ctx, [out]))[0]! : out;
+}
+
+// T0B-VERLEVEL-1 (LD-316): approve = the FINAL sign-off of the chain. Gates: status (resulted only at the last step, e.g. level 1), hold, then signoff.service planApprove
+// (order, self approval, enterer), then the AC-13.5 critical gate; writes: chain row + counter, R6, signed_off event.
+async function planApproveSignoff(ctx: ApprovalCtx, row: ApproveRow, single: boolean): Promise<Plan> {
+  checkSignable(row);
+  const plan = await planApprove(ctx as unknown as SignCtx, signoffsOf(ctx)!, signRow(row), single);
+  await criticalGate(ctx, row.resultId);
+  return plan;
+}
+async function applyApproveSignoff(ctx: ApprovalCtx, row: ApproveRow, plan: Plan, single: boolean): Promise<ResultRow> {
+  const s = await recordSignoff(ctx as unknown as SignCtx, signoffsOf(ctx)!, signRow(row), plan, 'approve', single);
+  const out = await applyApprove(ctx, row);
+  await publishSignedOff(ctx as unknown as SignCtx, signRow(row), s, 'approve', true, Number(out['version']));
   return out;
 }
 
@@ -613,14 +692,16 @@ export async function bulkApproveResults(rawCtx: unknown, input: { items: readon
   const done = new Set<string>();   // ids approved in this batch (a second item for the same id is a lost race)
   const specimens = new Set<string>(), orders = new Set<string>();
   const results: EntryOutcome[] = [];
+  const chain = Boolean(signoffsOf(ctx));   // T0B-VERLEVEL-1 (LD-316): the same sign-off rules per result, per result failures
   for (const it of input.items) {
     let stored = false;   // once the store call started, a failure rolls the whole batch back
     try {
       const row = await visibleAt(ctx, 'lab.result.approve', rows.get(it.resultId));
       if (done.has(it.resultId) || it.version !== row.rowVersion) throw new LimsError('common.version_conflict');
-      await checkApprovable(ctx, row);
+      const plan = chain ? await planApproveSignoff(ctx, row, false) : undefined;
+      if (!plan) await checkApprovable(ctx, row);
       stored = true;
-      const out = await applyApprove(ctx, row);
+      const out = plan ? await applyApproveSignoff(ctx, row, plan, false) : await applyApprove(ctx, row);
       done.add(it.resultId);
       if (row.specimenId) specimens.add(row.specimenId);
       orders.add(row.orderId);
@@ -631,13 +712,15 @@ export async function bulkApproveResults(rawCtx: unknown, input: { items: readon
     }
   }
   await finishApprovals(ctx, specimens, orders);
-  return { results };
+  return { results: chain ? await withResultCounters(ctx, results) : results };
 }
 
 const valueOf = (v: EntryValue): { field: 'numeric' | 'text' | 'ordinal'; text: string } | undefined =>
   v.numeric !== undefined ? { field: 'numeric', text: v.numeric } : v.text !== undefined ? { field: 'text', text: v.text } : v.ordinalCode !== undefined ? { field: 'ordinal', text: v.ordinalCode } : undefined;
 
 /** R7 approved -> approved with a NEW result_versions row (02-TRD §4.3 finding C5 #10). Evaluates the new value, cascades to formulas in the same transaction (AC-09.5). */
+const MODULE_ONLY_AMEND_CODES: ReadonlySet<string> = new Set(['module_phase_progression', 'module_preliminary_update', 'supplementary_report']);
+
 export async function amendResult(rawCtx: unknown, i: AmendInput): Promise<ResultRow> {
   const ctx = rawCtx as ApprovalCtx;
   const { tx, tenantId, store } = ctx;
@@ -652,7 +735,8 @@ export async function amendResult(rawCtx: unknown, i: AmendInput): Promise<Resul
   if (row.status !== 'approved') throw new LimsError('lab.result_invalid_transition');   // a value change before approval is R3, not an amendment
   const reasonCode = i.reasonCode?.trim();
   if (!reasonCode) throw new LimsError('lab.amendment_reason_required');                  // AC-17.3
-  if (!(await store.amendReasonActive(tx, tenantId, reasonCode))) {
+  // C5 05-SCHEMA §2: module-only codes (08 R1 / D-61) are seeded globally but refused by amendResult.
+  if (MODULE_ONLY_AMEND_CODES.has(reasonCode) || !(await store.amendReasonActive(tx, tenantId, reasonCode))) {
     // [CONV] the path is also in `detail` (fixed text, never a submitted value): the T-17 tests read e.detail, the LimsError has no fieldErrors property.
     throw new LimsError('common.validation_failed', 'Invalid field /amendment_reason_code', [{ path: '/amendment_reason_code', code: 'common.field_invalid', message: 'Field invalid' }]);
   }

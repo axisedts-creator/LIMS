@@ -18,6 +18,17 @@ export function nprText(m: PaymentMoney | undefined): string {
 export const kitMoney = (m: PaymentMoney | undefined): Money | undefined =>
   m && Number.isSafeInteger(m.amount_paisa) ? { amountPaisa: m.amount_paisa, currency: 'NPR' } : undefined;
 
+/** T0D-UILIST-2 (LD-353 rule 3): a money TABLE cell, lakh grouping and two decimals like MoneyText, no currency word (the header carries "(NPR)").
+ *  String slicing on the integer paisa, no rupee maths (pg-t18.source). */
+export const cellMoney = (m: PaymentMoney | undefined) => {
+  if (!m || !Number.isSafeInteger(m.amount_paisa)) return '—';
+  const digits = String(Math.abs(m.amount_paisa)).padStart(3, '0');
+  const whole = digits.slice(0, -2);
+  const head = whole.slice(0, -3);
+  const grouped = (head ? head.replace(/\B(?=(\d{2})+(?!\d))/g, ',') + ',' : '') + whole.slice(-3);
+  return <span className="lims-money">{`${m.amount_paisa < 0 ? '-' : ''}${grouped}.${digits.slice(-2)}`}</span>;
+};
+
 export const humanize =(code: string | undefined): string => {
   const s = (code ?? '').replace(/_/g, ' ').trim();
   return s ? s.charAt(0).toUpperCase() + s.slice(1) : '—';

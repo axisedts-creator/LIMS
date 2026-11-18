@@ -4,6 +4,8 @@
    Below 1280 px the columns stack (one track) and the page scrolls normally. */
 .lims-reg-layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--lims-space-3); align-items: stretch; }
 .lims-reg-col { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+/* T0D-UILIST-2 (LD-353 rule 2, done_when 6): the card of each column fills it, so the three columns are equally high. */
+.lims-reg-col > * { flex: 1 1 auto; }
 @media (min-width: 1000px) {
   /* 100dvh minus the shell top bar (44), the page header and the totals bar (LD-340: from 1000 px, the sidebar is now 176 px wide) */
   .lims-reg-layout { grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) minmax(0, 1fr); height: calc(100dvh - 8.6rem); }
@@ -51,14 +53,15 @@
 
 /* LD-340 (founder 2026-11-17 20:27 NPT): the registration fits one screen; compact fields, two fields per row, a one row totals bar. */
 .lims-reg .lims-label { height: auto !important; font-size: 0.75rem !important; }
-.lims-reg input.lims-input, .lims-reg .lims-input { box-sizing: border-box !important; height: 1.75rem !important; min-height: 1.75rem !important; padding-block: 0.125rem !important; }
-.lims-reg select.lims-input, .lims-reg .lims-select { height: 1.75rem !important; }
+/* T0D-UILIST-2 (LD-353 rule 2): one control height, 30 px (1.875rem), for inputs, selects and buttons. */
+.lims-reg input.lims-input, .lims-reg .lims-input { box-sizing: border-box !important; height: 1.875rem !important; min-height: 1.875rem !important; padding-block: 0.125rem !important; }
+.lims-reg select.lims-input, .lims-reg .lims-select { height: 1.875rem !important; }
 .lims-reg .lims-field { gap: 0.125rem !important; }
 .lims-reg-section { gap: var(--lims-space-1-5, 0.375rem) !important; }
 .lims-reg-pair { gap: var(--lims-space-2) !important; }
 .lims-reg-pair > .lims-field, .lims-reg-pair > div:not(.lims-reg-grow) { flex: 1 1 7rem; min-width: 0; }
 .lims-reg-pair .lims-input { width: 100% !important; }
-.lims-reg .lims-btn { min-height: 1.625rem !important; padding-block: 0 !important; }
+.lims-reg .lims-btn { min-height: 1.875rem !important; padding-block: 0 !important; }
 .lims-reg-more { padding: 0.125rem var(--lims-space-2) !important; }
 .lims-reg-summary { flex-wrap: nowrap !important; gap: var(--lims-space-3) !important; margin-top: var(--lims-space-1-5, 0.375rem) !important; padding: var(--lims-space-1-5, 0.375rem) var(--lims-space-3) !important; }
 .lims-reg-summary-title { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }

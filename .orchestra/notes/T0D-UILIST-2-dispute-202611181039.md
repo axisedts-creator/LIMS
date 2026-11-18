@@ -1,0 +1,7 @@
+# T0D-UILIST-2 dispute (writer, round 2)
+1 red left: uilist2.accounts "/billing/accounts/entries > no rows ... sticky first" — `the first cell of a row is sticky too: expected '' to match /lims-sticky-first/`.
+Test is wrong: in the NO ROWS case there is no data row. `bodyRows` (apps/web/src/__tests__/uilist2.helpers.tsx:22) drops empty rows only by `.lims-row-empty` (the native-table EmptyRow class), but the kit DataTable (packages/ui/src/components/DataTable/DataTable.tsx:235) renders its EmptyState through react-aria `renderEmptyState`, which draws `<tr role="row"><td role="gridcell" colSpan>` with no class. So `bodyRows()[0].children[0]` is the colSpan EmptyState cell, not a first-column cell.
+LD-353 rule 5 / done_when (2) ask for a sticky first COLUMN; the kit pins it on the header and every data cell of the first column (packages/ui uikit1.table "on: header cell and every body cell of the FIRST data column"), and the entries header cell is already sticky (the line before passes). A colSpan empty-state cell spanning all 15 columns must not be sticky.
+The writer cannot fix it in owned paths: packages/ui is UIKIT-1 (LD-364 rule 2), and tagging react-aria's empty row from the feature would need DOM mutation.
+Proposed test fix: in bodyRows also drop rows whose only cell has colSpan > 1 (or that contain `.lims-empty-state`), or move the sticky body-cell check to the one-row entries test.
+Everything else green: uilist2 62/63, fd-t14 98/98, pg-t19 224/224, web-style-3 101/101. rs-c4 6 reds = pre-existing rs-c4.static x5 + rs-c4.register x1 (LD-361).

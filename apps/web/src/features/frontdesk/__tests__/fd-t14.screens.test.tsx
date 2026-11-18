@@ -282,10 +282,12 @@ describe('§7 DiscountApprovalsInbox', () => {
   it('columns per §7; row shows requester, gross, discount amount + %, reason, status as text, centre name', async () => {
     const I = await load();
     view(I);
-    for (const h of ['Requested', 'Centre', 'Requested by', 'Gross', 'Discount', 'Reason', 'Status']) expect(screen.getByRole('columnheader', { name: new RegExp('^' + h + '$', 'i') })).toBeTruthy();
+    // LD-353 rule 3 / done_when (7): the currency sits in the money column headers, the cells carry the number only.
+    for (const h of ['Requested', 'Centre', 'Requested by', 'Reason', 'Status']) expect(screen.getByRole('columnheader', { name: new RegExp('^' + h + '$', 'i') })).toBeTruthy();
+    for (const h of ['Gross', 'Discount']) expect(screen.getByRole('columnheader', { name: new RegExp('^' + h + '\\b.*\\bNPR\\b', 'i') })).toBeTruthy();
     const r = rowOf('Synthetic Receptionist');
-    expect(within(r).getByText('NPR 1,500.00')).toBeTruthy();
-    expect(r.textContent).toMatch(/NPR 450\.00/);
+    expect(within(r).getByText('1,500.00').closest('td,[role="gridcell"]')!.className).toMatch(/lims-align-end/);
+    expect(within(r).getByText('450.00').closest('td,[role="gridcell"]')!.className).toMatch(/lims-align-end/);
     expect(r.textContent).toMatch(/30(\.0)?\s?%/);
     expect(within(r).getByText(/pending/i)).toBeTruthy();
     expect(r.textContent).toMatch(/Synthetic Centre A1/);

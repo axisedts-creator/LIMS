@@ -1,6 +1,6 @@
 // Shared presentation helpers for the front-desk screens. Money/date/permission helpers are the billing ones (same chunk, same rules).
 import { StatusChip } from '@lims/ui/components/StatusChip';
-export { Ad, BsAd, formatNpr, hasPerm, humanize, npr } from '@/features/billing/components/format';
+export { Ad, BsAd, amount, formatNpr, hasPerm, humanize, npr } from '@/features/billing/components/format';
 import { humanize } from '@/features/billing/components/format';
 
 /** Status is always words, never colour alone (04-UI-UX §9). */

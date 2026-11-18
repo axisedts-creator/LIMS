@@ -80,5 +80,14 @@ export function toResultDto(row: Row): Dto {
   put(dto, 'verified_by', row['verified_by_membership_id']);
   put(dto, 'approved_at', iso(row['approved_at']));
   put(dto, 'approved_by', row['approved_by_membership_id']);
+  // T0B-VERLEVEL-1 (LD-316): only when the row carries the counters (signoff.service withCounters / the queue SELECT). Level = the frozen number, else the resolved policy.
+  if (present(row['signoff_count'])) {
+    const status = row['status'];
+    const count = status === 'verified' && Number(row['signoff_count']) === 0 ? 1 : Number(row['signoff_count']);   // legacy verified row: its verifier is the sign-off
+    const required = Number(row['signoff_required'] ?? row['vp_level'] ?? 2);
+    dto['signoff_count'] = Number(row['signoff_count']);
+    dto['signoff_required'] = required;
+    dto['next_step'] = status !== 'resulted' && status !== 'verified' ? 'none' : count + 1 >= required ? 'approve' : 'verify';
+  }
   return dto;
 }

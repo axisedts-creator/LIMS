@@ -82,7 +82,7 @@ describe('§8.1 InvoicesList', () => {
     for (const h of ['Invoice no', 'B.S. date', 'A.D. date', 'Buyer', 'Net', 'Status', 'Prints', 'CBMS']) expect(screen.getByRole('columnheader', { name: new RegExp(h, 'i') })).toBeTruthy();
     expect(screen.getByRole('link', { name: 'INV/2083-84/000042' }).getAttribute('href')).toBe(`/billing/invoices/${INV}`);
     const row = screen.getByRole('link', { name: 'INV/2083-84/000042' }).closest('tr')!;
-    expect(within(row).getByText('NPR 1,130.00')).toBeTruthy();
+    expect(within(row).getByText(/^(NPR )?1,130\.00$/)).toBeTruthy(); // T0D-UILIST-2 rule 3: the currency moved into the "Net (NPR)" header
     expect(within(row).getByText('Issued')).toBeTruthy();
     expect(row.textContent).toMatch(/2083-07-21/);
     expect(row.textContent).toMatch(/07\/11\/2026/);

@@ -50,9 +50,9 @@ exports[`RS-C15 key-screen snapshots > Gateway settings 1`] = `
 </div>
 <p>Set · fingerprint ab12cd34</p>
 <div class="lims-field">
-<label class="lims-label" for="_r_hl_">Replace secret key</label>
+<label class="lims-label" for="_r_j2_">Replace secret key</label>
 <div class="lims-input-group">
-<input id="_r_hl_" class="lims-input" autocomplete="new-password" maxlength="256" type="password" value="" name="secret_input">
+<input id="_r_j2_" class="lims-input" autocomplete="new-password" maxlength="256" type="password" value="" name="secret_input">
 </div>
 </div>
 <button class="lims-btn lims-btn-primary lims-btn-md" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID">
@@ -94,9 +94,9 @@ exports[`RS-C15 key-screen snapshots > Gateway settings 1`] = `
 </span>Use Khalti refund API</label>
 <p class="lims-description">Only after the LIMS provider has confirmed the refund API in the sandbox. Otherwise refunds are done in the Khalti dashboard.</p>
 <div class="lims-field">
-<label class="lims-label" for="_r_i3_">Secret key</label>
+<label class="lims-label" for="_r_jg_">Secret key</label>
 <div class="lims-input-group">
-<input id="_r_i3_" class="lims-input" autocomplete="new-password" maxlength="256" type="password" value="" name="secret_input">
+<input id="_r_jg_" class="lims-input" autocomplete="new-password" maxlength="256" type="password" value="" name="secret_input">
 </div>
 </div>
 <button class="lims-btn lims-btn-primary lims-btn-md" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID">
@@ -774,22 +774,14 @@ exports[`RS-C15 key-screen snapshots > Reconciliation: Open findings tab 1`] = `
 <span class="lims-stat-value"> 1</span>
 </a>
 </div>
-<template>
-</template>
-<div class="lims-tabs" data-rac="" data-orientation="horizontal" data-focused="true">
-<div class="lims-tablist" data-rac="" data-collection="aria-id" id="ID" aria-label="Reconciliation" role="tablist" aria-orientation="horizontal" data-orientation="horizontal">
-<div class="lims-tab" data-rac="" tabindex="-1" data-collection="aria-id" data-key="runs" data-aria-id="true" id="ID" aria-selected="false" role="tab">Runs</div>
-<div class="lims-tab" data-rac="" tabindex="0" data-collection="aria-id" data-key="findings" data-aria-id="true" id="ID" aria-selected="true" role="tab" data-hovered="true" aria-controls="ID" data-selected="true" data-focused="true">Open findings</div>
-</div>
-<div id="ID" aria-labelledby="ID" role="tabpanel" class="lims-tabpanel" data-rac="">
 <div role="search" class="lims-filter-bar">
 <div class="lims-field">
-<label class="lims-label" id="_r_6c_">Kind</label>
+<label class="lims-label" id="_r_5n_">Kind</label>
 <template>
 </template>
 <span data-focus-scope-start="true" hidden="">
 </span>
-<div class="lims-listbox lims-chip-list" data-rac="" aria-labelledby="_r_6c_" aria-multiselectable="true" role="listbox" aria-orientation="horizontal" id="ID" tabindex="0" data-collection="aria-id" data-layout="stack" data-orientation="horizontal">
+<div class="lims-listbox lims-chip-list" data-rac="" aria-labelledby="_r_5n_" aria-multiselectable="true" role="listbox" aria-orientation="horizontal" id="ID" tabindex="0" data-collection="aria-id" data-layout="stack" data-orientation="horizontal">
 <div class="lims-option lims-chip" data-rac="" role="option" aria-selected="false" tabindex="-1" data-collection="aria-id" data-key="missed_settlement" data-aria-id="true" id="ID" data-selection-mode="multiple">Missed settlement</div>
 <div class="lims-option lims-chip" data-rac="" role="option" aria-selected="false" tabindex="-1" data-collection="aria-id" data-key="late_payment_found" data-aria-id="true" id="ID" data-selection-mode="multiple">Late payment found</div>
 <div class="lims-option lims-chip" data-rac="" role="option" aria-selected="false" tabindex="-1" data-collection="aria-id" data-key="amount_mismatch" data-aria-id="true" id="ID" data-selection-mode="multiple">Amount mismatch</div>
@@ -825,6 +817,14 @@ exports[`RS-C15 key-screen snapshots > Reconciliation: Open findings tab 1`] = `
 <span class="lims-btn-label">Reset filters</span>
 </button>
 </div>
+<template>
+</template>
+<div class="lims-tabs" data-rac="" data-orientation="horizontal" data-focused="true">
+<div class="lims-tablist" data-rac="" data-collection="aria-id" id="ID" aria-label="Reconciliation" role="tablist" aria-orientation="horizontal" data-orientation="horizontal">
+<div class="lims-tab" data-rac="" tabindex="-1" data-collection="aria-id" data-key="runs" data-aria-id="true" id="ID" aria-selected="false" role="tab">Runs</div>
+<div class="lims-tab" data-rac="" tabindex="0" data-collection="aria-id" data-key="findings" data-aria-id="true" id="ID" aria-selected="true" role="tab" data-hovered="true" aria-controls="ID" data-selected="true" data-focused="true">Open findings</div>
+</div>
+<div id="ID" aria-labelledby="ID" role="tabpanel" class="lims-tabpanel" data-rac="">
 <div class="lims-data-table">
 <div class="lims-table-scroll">
 <template>
@@ -840,8 +840,8 @@ exports[`RS-C15 key-screen snapshots > Reconciliation: Open findings tab 1`] = `
 <th tabindex="-1" data-collection="aria-id" data-key="intent" id="ID" role="columnheader" aria-colindex="4" data-aria-id="true" class="lims-col lims-align-start" data-rac="">Intent</th>
 <th tabindex="-1" data-collection="aria-id" data-key="our_status" id="ID" role="columnheader" aria-colindex="5" data-aria-id="true" class="lims-col lims-align-start" data-rac="">Our status</th>
 <th tabindex="-1" data-collection="aria-id" data-key="provider_status" id="ID" role="columnheader" aria-colindex="6" data-aria-id="true" class="lims-col lims-align-start" data-rac="">Provider status</th>
-<th tabindex="-1" data-collection="aria-id" data-key="our_amount" id="ID" role="columnheader" aria-colindex="7" data-aria-id="true" class="lims-col lims-align-end" data-rac="">Our amount</th>
-<th tabindex="-1" data-collection="aria-id" data-key="provider_amount" id="ID" role="columnheader" aria-colindex="8" data-aria-id="true" class="lims-col lims-align-end" data-rac="">Provider amount</th>
+<th tabindex="-1" data-collection="aria-id" data-key="our_amount" id="ID" role="columnheader" aria-colindex="7" data-aria-id="true" class="lims-col lims-align-end lims-num" data-rac="">Our amount (NPR)</th>
+<th tabindex="-1" data-collection="aria-id" data-key="provider_amount" id="ID" role="columnheader" aria-colindex="8" data-aria-id="true" class="lims-col lims-align-end lims-num" data-rac="">Provider amount (NPR)</th>
 <th tabindex="-1" data-collection="aria-id" data-key="auto" id="ID" role="columnheader" aria-colindex="9" data-aria-id="true" class="lims-col lims-align-start" data-rac="">Automatic action</th>
 <th tabindex="-1" data-collection="aria-id" data-key="actions" id="ID" role="columnheader" aria-colindex="10" data-aria-id="true" class="lims-col lims-align-start" data-rac="">Actions</th>
 </tr>
@@ -874,11 +874,11 @@ exports[`RS-C15 key-screen snapshots > Reconciliation: Open findings tab 1`] = `
 </svg>Started</span>
 </td>
 <td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="5" data-level="1">COMPLETE</td>
-<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="6" data-level="1">
-<span class="lims-money">Rs. 500.00</span>
+<td class="lims-cell lims-align-end lims-num" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="6" data-level="1">
+<span class="lims-money">500.00</span>
 </td>
-<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="7" data-level="1">
-<span class="lims-money">Rs. 500.00</span>
+<td class="lims-cell lims-align-end lims-num" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="7" data-level="1">
+<span class="lims-money">500.00</span>
 </td>
 <td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="8" data-level="1">Marked paid</td>
 <td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="9" data-level="1">
@@ -914,11 +914,11 @@ exports[`RS-C15 key-screen snapshots > Reconciliation: Open findings tab 1`] = `
 </svg>Paid</span>
 </td>
 <td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="5" data-level="1">COMPLETE</td>
-<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="6" data-level="1">
-<span class="lims-money">Rs. 500.00</span>
+<td class="lims-cell lims-align-end lims-num" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="6" data-level="1">
+<span class="lims-money">500.00</span>
 </td>
-<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="7" data-level="1">
-<span class="lims-money">Rs. 450.00</span>
+<td class="lims-cell lims-align-end lims-num" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="7" data-level="1">
+<span class="lims-money">450.00</span>
 </td>
 <td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="8" data-level="1">—</td>
 <td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="9" data-level="1">
@@ -954,11 +954,11 @@ exports[`RS-C15 key-screen snapshots > Reconciliation: Open findings tab 1`] = `
 </svg>Expired</span>
 </td>
 <td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="5" data-level="1">COMPLETE</td>
-<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="6" data-level="1">
-<span class="lims-money">Rs. 500.00</span>
+<td class="lims-cell lims-align-end lims-num" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="6" data-level="1">
+<span class="lims-money">500.00</span>
 </td>
-<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="7" data-level="1">
-<span class="lims-money">Rs. 500.00</span>
+<td class="lims-cell lims-align-end lims-num" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="7" data-level="1">
+<span class="lims-money">500.00</span>
 </td>
 <td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="8" data-level="1">Put under review</td>
 <td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="9" data-level="1">
@@ -982,12 +982,8 @@ exports[`RS-C15 key-screen snapshots > Reconciliation: Open findings tab 1`] = `
 <td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="3" data-level="1">—</td>
 <td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="4" data-level="1">—</td>
 <td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="5" data-level="1">—</td>
-<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="6" data-level="1">
-<span class="lims-money">—</span>
-</td>
-<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="7" data-level="1">
-<span class="lims-money">—</span>
-</td>
+<td class="lims-cell lims-align-end lims-num" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="6" data-level="1">—</td>
+<td class="lims-cell lims-align-end lims-num" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="7" data-level="1">—</td>
 <td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="8" data-level="1">—</td>
 <td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="9" data-level="1">
 <button class="lims-btn lims-btn-secondary lims-btn-sm" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID">
@@ -1042,6 +1038,49 @@ exports[`RS-C15 key-screen snapshots > Reconciliation: Runs tab 1`] = `
 <span class="lims-stat-label">Payments under review</span>
 <span class="lims-stat-value"> 1</span>
 </a>
+</div>
+<div role="search" class="lims-filter-bar">
+<div class="lims-field">
+<label class="lims-label" id="_r_33_">Kind</label>
+<template>
+</template>
+<span data-focus-scope-start="true" hidden="">
+</span>
+<div class="lims-listbox lims-chip-list" data-rac="" aria-labelledby="_r_33_" aria-multiselectable="true" role="listbox" aria-orientation="horizontal" id="ID" tabindex="0" data-collection="aria-id" data-layout="stack" data-orientation="horizontal">
+<div class="lims-option lims-chip" data-rac="" role="option" aria-selected="false" tabindex="-1" data-collection="aria-id" data-key="missed_settlement" data-aria-id="true" id="ID" data-selection-mode="multiple">Missed settlement</div>
+<div class="lims-option lims-chip" data-rac="" role="option" aria-selected="false" tabindex="-1" data-collection="aria-id" data-key="late_payment_found" data-aria-id="true" id="ID" data-selection-mode="multiple">Late payment found</div>
+<div class="lims-option lims-chip" data-rac="" role="option" aria-selected="false" tabindex="-1" data-collection="aria-id" data-key="amount_mismatch" data-aria-id="true" id="ID" data-selection-mode="multiple">Amount mismatch</div>
+<div class="lims-option lims-chip" data-rac="" role="option" aria-selected="false" tabindex="-1" data-collection="aria-id" data-key="gateway_unreachable" data-aria-id="true" id="ID" data-selection-mode="multiple">Provider unreachable</div>
+</div>
+<span data-focus-scope-end="true" hidden="">
+</span>
+</div>
+<template>
+</template>
+<div class="lims-field" data-rac="">
+<span class="lims-label" id="ID">Severity</span>
+<button id="ID" class="lims-input lims-select-trigger" data-rac="" type="button" tabindex="0" data-aria-id="true" aria-labelledby="ID" aria-haspopup="listbox" aria-expanded="false">
+<span id="ID" class="aria-id" data-rac="">All</span>
+<svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M6 9l6 6 6-6">
+</path>
+</svg>
+</button>
+<div style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: fixed; width: 1px; white-space: nowrap; top: 0px; left: 0px;" aria-hidden="true" data-aria-id="true" data-a11y-ignore="aria-hidden-focus" data-testid="hidden-select-container">
+<label>
+<select tabindex="-1" name="severity">
+<option value="" label="&nbsp;">&nbsp;</option>
+<option value="all">All</option>
+<option value="critical">Critical</option>
+<option value="warning">Warning</option>
+<option value="info">Info</option>
+</select>
+</label>
+</div>
+</div>
+<button class="lims-btn lims-btn-ghost lims-btn-md" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID">
+<span class="lims-btn-label">Reset filters</span>
+</button>
 </div>
 <template>
 </template>
@@ -1162,12 +1201,12 @@ exports[`RS-C15 key-screen snapshots > Refunds list 1`] = `
 </div>
 <div role="search" class="lims-filter-bar">
 <div class="lims-field">
-<label class="lims-label" id="_r_1l_">Status</label>
+<label class="lims-label" id="_r_cs_">Status</label>
 <template>
 </template>
 <span data-focus-scope-start="true" hidden="">
 </span>
-<div class="lims-listbox lims-chip-list" data-rac="" aria-labelledby="_r_1l_" aria-multiselectable="true" role="listbox" aria-orientation="horizontal" id="ID" tabindex="0" data-collection="aria-id" data-layout="stack" data-orientation="horizontal">
+<div class="lims-listbox lims-chip-list" data-rac="" aria-labelledby="_r_cs_" aria-multiselectable="true" role="listbox" aria-orientation="horizontal" id="ID" tabindex="0" data-collection="aria-id" data-layout="stack" data-orientation="horizontal">
 <div class="lims-option lims-chip" data-rac="" role="option" aria-selected="false" tabindex="-1" data-collection="aria-id" data-key="pending_approval" data-aria-id="true" id="ID" data-selection-mode="multiple">Waiting for approval</div>
 <div class="lims-option lims-chip" data-rac="" role="option" aria-selected="false" tabindex="-1" data-collection="aria-id" data-key="approved" data-aria-id="true" id="ID" data-selection-mode="multiple">Approved</div>
 <div class="lims-option lims-chip" data-rac="" role="option" aria-selected="false" tabindex="-1" data-collection="aria-id" data-key="requested" data-aria-id="true" id="ID" data-selection-mode="multiple">Refund in progress</div>
@@ -1201,13 +1240,13 @@ exports[`RS-C15 key-screen snapshots > Refunds list 1`] = `
 </label>
 </div>
 </div>
-<div role="group" aria-labelledby="_r_25_-l" class="lims-field lims-date-range">
-<span id="_r_25_-l" class="lims-label">Created</span>
+<div role="group" aria-labelledby="_r_dc_-l" class="lims-field lims-date-range">
+<span id="_r_dc_-l" class="lims-label">Created</span>
 <div class="lims-inline">
 <div class="lims-field lims-date-field">
-<label class="lims-label" for="_r_26_">From</label>
+<label class="lims-label" for="_r_dd_">From</label>
 <div class="lims-input-group">
-<input id="_r_26_" class="lims-input" placeholder="DD/MM/YYYY" autocomplete="off" type="text" value="" name="created_from">
+<input id="_r_dd_" class="lims-input" placeholder="DD/MM/YYYY" autocomplete="off" type="text" value="" name="created_from">
 <button type="button" class="lims-btn lims-btn-ghost lims-icon-btn" aria-label="Open calendar for From" aria-expanded="false">
 <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 <rect x="4" y="5" width="16" height="15">
@@ -1219,9 +1258,9 @@ exports[`RS-C15 key-screen snapshots > Refunds list 1`] = `
 </div>
 </div>
 <div class="lims-field lims-date-field">
-<label class="lims-label" for="_r_27_">To</label>
+<label class="lims-label" for="_r_de_">To</label>
 <div class="lims-input-group">
-<input id="_r_27_" class="lims-input" placeholder="DD/MM/YYYY" autocomplete="off" type="text" value="" name="created_to">
+<input id="_r_de_" class="lims-input" placeholder="DD/MM/YYYY" autocomplete="off" type="text" value="" name="created_to">
 <button type="button" class="lims-btn lims-btn-ghost lims-icon-btn" aria-label="Open calendar for To" aria-expanded="false">
 <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 <rect x="4" y="5" width="16" height="15">
@@ -1381,10 +1420,10 @@ exports[`RS-C15 key-screen snapshots > Static QR worksheets 1`] = `
 </div>
 </div>
 <div class="lims-field lims-date-field">
-<label class="lims-label" for="_r_ff_">Business date<span aria-hidden="true"> *</span>
+<label class="lims-label" for="_r_gd_">Business date<span aria-hidden="true"> *</span>
 </label>
 <div class="lims-input-group">
-<input id="_r_ff_" class="lims-input" placeholder="DD/MM/YYYY" autocomplete="off" required="" aria-describedby="_r_ff_-h" type="text" value="13/11/2026" name="business_date">
+<input id="_r_gd_" class="lims-input" placeholder="DD/MM/YYYY" autocomplete="off" required="" aria-describedby="_r_gd_-h" type="text" value="17/11/2026" name="business_date">
 <button type="button" class="lims-btn lims-btn-ghost lims-icon-btn" aria-label="Open calendar for Business date" aria-expanded="false">
 <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 <rect x="4" y="5" width="16" height="15">
@@ -1394,7 +1433,7 @@ exports[`RS-C15 key-screen snapshots > Static QR worksheets 1`] = `
 </svg>
 </button>
 </div>
-<p id="_r_ff_-h" class="lims-description lims-date-hint">2083-07-27 B.S.</p>
+<p id="_r_gd_-h" class="lims-description lims-date-hint">2083-08-01 B.S.</p>
 </div>
 <template>
 </template>
@@ -1452,6 +1491,65 @@ exports[`RS-C15 key-screen snapshots > Static QR worksheets 1`] = `
 <button class="lims-btn lims-btn-primary lims-btn-md" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID">
 <span class="lims-btn-label">Save worksheet</span>
 </button>
+<div role="search" class="lims-filter-bar">
+<div role="group" aria-labelledby="_r_h9_-l" class="lims-field lims-date-range">
+<span id="_r_h9_-l" class="lims-label">Business date</span>
+<div class="lims-inline">
+<div class="lims-field lims-date-field">
+<label class="lims-label" for="_r_ha_">From</label>
+<div class="lims-input-group">
+<input id="_r_ha_" class="lims-input" placeholder="DD/MM/YYYY" autocomplete="off" type="text" value="" name="business_date_from">
+<button type="button" class="lims-btn lims-btn-ghost lims-icon-btn" aria-label="Open calendar for From" aria-expanded="false">
+<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+<rect x="4" y="5" width="16" height="15">
+</rect>
+<line x1="4" y1="10" x2="20" y2="10">
+</line>
+</svg>
+</button>
+</div>
+</div>
+<div class="lims-field lims-date-field">
+<label class="lims-label" for="_r_hb_">To</label>
+<div class="lims-input-group">
+<input id="_r_hb_" class="lims-input" placeholder="DD/MM/YYYY" autocomplete="off" type="text" value="" name="business_date_to">
+<button type="button" class="lims-btn lims-btn-ghost lims-icon-btn" aria-label="Open calendar for To" aria-expanded="false">
+<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+<rect x="4" y="5" width="16" height="15">
+</rect>
+<line x1="4" y1="10" x2="20" y2="10">
+</line>
+</svg>
+</button>
+</div>
+</div>
+</div>
+</div>
+<template>
+</template>
+<div class="lims-field" data-rac="">
+<span class="lims-label" id="ID">Centre</span>
+<button id="ID" class="lims-input lims-select-trigger" data-rac="" type="button" tabindex="0" data-aria-id="true" aria-labelledby="ID" aria-haspopup="listbox" aria-expanded="false">
+<span id="ID" class="aria-id" data-rac="">All centres</span>
+<svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M6 9l6 6 6-6">
+</path>
+</svg>
+</button>
+<div style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: fixed; width: 1px; white-space: nowrap; top: 0px; left: 0px;" aria-hidden="true" data-aria-id="true" data-a11y-ignore="aria-hidden-focus" data-testid="hidden-select-container">
+<label>
+<select tabindex="-1" name="centre_id">
+<option value="" label="&nbsp;">&nbsp;</option>
+<option value="all">All centres</option>
+<option value="01a1a98a-ac40-7000-8000-000000000003">Synthetic Centre</option>
+</select>
+</label>
+</div>
+</div>
+<button class="lims-btn lims-btn-ghost lims-btn-md" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID">
+<span class="lims-btn-label">Reset filters</span>
+</button>
+</div>
 <div class="lims-data-table">
 <div class="lims-table-scroll">
 <template>
@@ -1463,9 +1561,9 @@ exports[`RS-C15 key-screen snapshots > Static QR worksheets 1`] = `
 <tr role="row">
 <th tabindex="-1" data-collection="aria-id" data-key="date" id="ID" role="columnheader" aria-colindex="1" data-aria-id="true" class="lims-col lims-align-start" data-rac="">Date</th>
 <th tabindex="-1" data-collection="aria-id" data-key="centre" id="ID" role="columnheader" aria-colindex="2" data-aria-id="true" class="lims-col lims-align-start" data-rac="">Centre</th>
-<th tabindex="-1" data-collection="aria-id" data-key="system" id="ID" role="columnheader" aria-colindex="3" data-aria-id="true" class="lims-col lims-align-end" data-rac="">System</th>
-<th tabindex="-1" data-collection="aria-id" data-key="statement" id="ID" role="columnheader" aria-colindex="4" data-aria-id="true" class="lims-col lims-align-end" data-rac="">Statement</th>
-<th tabindex="-1" data-collection="aria-id" data-key="difference" id="ID" role="columnheader" aria-colindex="5" data-aria-id="true" class="lims-col lims-align-end" data-rac="">Difference</th>
+<th tabindex="-1" data-collection="aria-id" data-key="system" id="ID" role="columnheader" aria-colindex="3" data-aria-id="true" class="lims-col lims-align-end lims-num" data-rac="">System (NPR)</th>
+<th tabindex="-1" data-collection="aria-id" data-key="statement" id="ID" role="columnheader" aria-colindex="4" data-aria-id="true" class="lims-col lims-align-end lims-num" data-rac="">Statement (NPR)</th>
+<th tabindex="-1" data-collection="aria-id" data-key="difference" id="ID" role="columnheader" aria-colindex="5" data-aria-id="true" class="lims-col lims-align-end lims-num" data-rac="">Difference (NPR)</th>
 <th tabindex="-1" data-collection="aria-id" data-key="status" id="ID" role="columnheader" aria-colindex="6" data-aria-id="true" class="lims-col lims-align-start" data-rac="">Status</th>
 <th tabindex="-1" data-collection="aria-id" data-key="by" id="ID" role="columnheader" aria-colindex="7" data-aria-id="true" class="lims-col lims-align-start" data-rac="">By</th>
 <th tabindex="-1" data-collection="aria-id" data-key="reference" id="ID" role="columnheader" aria-colindex="8" data-aria-id="true" class="lims-col lims-align-start" data-rac="">Reference</th>
@@ -1477,14 +1575,14 @@ exports[`RS-C15 key-screen snapshots > Static QR worksheets 1`] = `
 <time class="lims-date-text" datetime="2026-11-09">09/11/2026</time>
 </td>
 <td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="1" data-level="1">Synthetic Centre</td>
-<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="2" data-level="1">
-<span class="lims-money">Rs. 15,000.00</span>
+<td class="lims-cell lims-align-end lims-num" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="2" data-level="1">
+<span class="lims-money">15,000.00</span>
 </td>
-<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="3" data-level="1">
-<span class="lims-money">Rs. 15,000.00</span>
+<td class="lims-cell lims-align-end lims-num" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="3" data-level="1">
+<span class="lims-money">15,000.00</span>
 </td>
-<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="4" data-level="1">
-<span class="lims-money">Rs. 0.00</span>
+<td class="lims-cell lims-align-end lims-num" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="4" data-level="1">
+<span class="lims-money">0.00</span>
 </td>
 <td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="5" data-level="1">
 <span class="lims-chip lims-chip-md lims-tone-success" data-tone="success">
@@ -1501,14 +1599,14 @@ exports[`RS-C15 key-screen snapshots > Static QR worksheets 1`] = `
 <time class="lims-date-text" datetime="2026-11-08">08/11/2026</time>
 </td>
 <td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="1" data-level="1">Synthetic Centre</td>
-<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="2" data-level="1">
-<span class="lims-money">Rs. 9,000.00</span>
+<td class="lims-cell lims-align-end lims-num" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="2" data-level="1">
+<span class="lims-money">9,000.00</span>
 </td>
-<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="3" data-level="1">
-<span class="lims-money">Rs. 8,950.00</span>
+<td class="lims-cell lims-align-end lims-num" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="3" data-level="1">
+<span class="lims-money">8,950.00</span>
 </td>
-<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="4" data-level="1">
-<span class="lims-money">Rs. -50.00</span>
+<td class="lims-cell lims-align-end lims-num" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="4" data-level="1">
+<span class="lims-money">-50.00</span>
 </td>
 <td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="5" data-level="1">
 <span class="lims-chip lims-chip-md lims-tone-warning" data-tone="warning">

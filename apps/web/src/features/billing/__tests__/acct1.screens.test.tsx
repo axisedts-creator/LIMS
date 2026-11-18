@@ -90,10 +90,13 @@ const noAxeViolations = async () => {
   expect(r.violations.map((v) => `${v.id}: ${v.nodes[0]?.html}`)).toEqual([]);
 };
 const mod = async <T,>(p: string) => (await import(/* @vite-ignore */ `../components/accounts/${p}`)) as T;
-const money = (rupees: string) => new RegExp(`(NPR|Rs\\.)\\s?${rupees.replace(/[.,]/g, '\\$&')}`);
+// T0D-UILIST-2 rule 3: in the tables the currency moved into the column header, so the prefix in the cell is optional (the grouping and the two decimals stay pinned).
+const money = (rupees: string) => new RegExp(`((NPR|Rs\\.)\\s?)?${rupees.replace(/[.,]/g, '\\$&')}`);
 const AD = /\d{2}\/\d{2}\/\d{4}/;
 const BS = /\d{4}-\d{2}-\d{2}/;
 const headers = () => screen.getAllByRole('columnheader').map((h) => h.textContent!.trim());
+// T0D-UILIST-2 (LD-353 rule 3, done_when 7): a money column carries the currency in its header ("Credited (NPR)"); the ElabAssist column names are otherwise unchanged and still pinned exactly.
+const names = () => headers().map((h) => h.replace(/\s*\(NPR\)$/, ''));
 const placeholders = () => document.querySelectorAll('.lims-row-placeholder[aria-hidden="true"]').length;
 const reasonOf = (el: HTMLElement) => (el.getAttribute('aria-describedby') ?? '').split(/\s+/).map((id) => document.getElementById(id)?.textContent ?? '').join(' ');
 const expectBlockedWithReason = (btn: HTMLElement, key: string) => {
@@ -135,7 +138,7 @@ describe('billing/accounts/entries — View Account list + Account Entry form', 
   it('columns are exactly the ElabAssist View Account columns, in order, from the catalogue', async () => {
     const S = await load();
     wrap(<S {...entriesProps()} />);
-    expect(headers()).toEqual(VIEW_ACCOUNT_COLUMNS);
+    expect(names()).toEqual(VIEW_ACCOUNT_COLUMNS);
     expect(screen.getByRole('heading', { name: t('billing.accounts.entries.title') })).toBeTruthy();
     expect(t('billing.accounts.entries.title')).not.toBe('billing.accounts.entries.title');
   });
@@ -161,7 +164,7 @@ describe('billing/accounts/entries — View Account list + Account Entry form', 
     expect(text).toContain('Synthetic Accountant');
     expect(text).toMatch(/submitted/i);
     // credit in Credited column, nothing in Debited
-    const idx = (h: string) => headers().indexOf(h);
+    const idx = (h: string) => names().indexOf(h);
     expect(cells[idx('Credited')]!.textContent).toMatch(money('1,500.50'));
     expect(cells[idx('Debited')]!.textContent).not.toMatch(/\d/);
     expect(cells[idx('Credited')]!.className).toMatch(/lims-align-end/);
@@ -176,7 +179,7 @@ describe('billing/accounts/entries — View Account list + Account Entry form', 
   it('empty list keeps all 15 headers, a catalogue message row and 4 inert placeholder rows (T0D-EMPTYTBL-1)', async () => {
     const S = await load();
     wrap(<S {...entriesProps({ entries: [] })} />);
-    expect(headers()).toEqual(VIEW_ACCOUNT_COLUMNS);
+    expect(names()).toEqual(VIEW_ACCOUNT_COLUMNS);
     expect(screen.getByText(t('billing.accounts.entries.empty'))).toBeTruthy();
     expect(t('billing.accounts.entries.empty')).not.toBe('billing.accounts.entries.empty');
     expect(placeholders()).toBe(4);
@@ -573,7 +576,7 @@ describe('billing/accounts/summary — Account Summary', () => {
   it('columns are exactly the ElabAssist Account Summary columns, in order', async () => {
     const S = await load();
     wrap(<S {...props()} />);
-    expect(headers()).toEqual(SUMMARY_COLUMNS);
+    expect(names()).toEqual(SUMMARY_COLUMNS);
   });
 
   it('filled rows: party details joined, money right aligned in rupees with lakh grouping, text Debit/Credit and Is Blocked', async () => {
@@ -586,12 +589,12 @@ describe('billing/accounts/summary — Account Summary', () => {
     expect(a.textContent).toMatch(money('12,345.67')); // outstanding
     expect(a.textContent).toMatch(/debit/i);
     const cells = within(a).getAllByRole('gridcell').length ? within(a).getAllByRole('gridcell') : within(a).getAllByRole('cell');
-    expect(cells[headers().indexOf('Credit Limit')]!.className).toMatch(/lims-align-end/);
-    expect(cells[headers().indexOf('Outstanding Amount')]!.className).toMatch(/lims-align-end/);
-    expect(cells[headers().indexOf('Is Blocked')]!.textContent).toMatch(/^(No|Not blocked)/i);
+    expect(cells[names().indexOf('Credit Limit')]!.className).toMatch(/lims-align-end/);
+    expect(cells[names().indexOf('Outstanding Amount')]!.className).toMatch(/lims-align-end/);
+    expect(cells[names().indexOf('Is Blocked')]!.textContent).toMatch(/^(No|Not blocked)/i);
     const b = screen.getAllByRole('row').find((r) => r.textContent!.includes('Synthetic Franchise Beta'))!;
     expect(b.textContent).toMatch(/credit/i);
-    expect(within(b).getAllByRole('gridcell')[headers().indexOf('Is Blocked')]!.textContent).toMatch(/^(Yes|Blocked)/i);
+    expect(within(b).getAllByRole('gridcell')[names().indexOf('Is Blocked')]!.textContent).toMatch(/^(Yes|Blocked)/i);
   });
 
   it('each party links to its ledger with party_kind and party_id', async () => {
@@ -607,7 +610,7 @@ describe('billing/accounts/summary — Account Summary', () => {
   it('empty summary keeps all 13 headers and 4 placeholders', async () => {
     const S = await load();
     wrap(<S {...props({ summaries: [] })} />);
-    expect(headers()).toEqual(SUMMARY_COLUMNS);
+    expect(names()).toEqual(SUMMARY_COLUMNS);
     expect(placeholders()).toBe(4);
   });
 
@@ -620,7 +623,7 @@ describe('billing/accounts/summary — Account Summary', () => {
     const banner = document.querySelector('.lims-banner[data-tone="warning"]') as HTMLElement;
     expect(banner, 'warning Banner').toBeTruthy();
     expect(banner.textContent).toContain(t('billing.accounts.summary.partial').replace('{n}', '3'));
-    expect(headers()).toEqual(SUMMARY_COLUMNS);
+    expect(names()).toEqual(SUMMARY_COLUMNS);
     expect(screen.getAllByRole('row').some((r) => r.textContent!.includes('Synthetic Client Alpha'))).toBe(true);
   });
 

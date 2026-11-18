@@ -6,16 +6,20 @@ import type { Money } from '../server/types';
 
 export const hasPerm = (permissions: readonly string[], key: string) => permissions.includes(key);
 
-/** `NPR 1,250.00` — lakh grouping like the kit's MoneyText (12,34,567.89); the server is authoritative, this is display only. */
-export function formatNpr(paisa: number): string {
+/** `1,250.00` — lakh grouping like the kit's MoneyText (12,34,567.89); the server is authoritative, this is display only. */
+export function formatAmount(paisa: number): string {
   const neg = paisa < 0;
   const abs = Math.abs(Math.trunc(paisa));
   const whole = String(Math.floor(abs / 100));
   const head = whole.slice(0, -3);
   const grouped = (head ? head.replace(/\B(?=(\d{2})+(?!\d))/g, ',') + ',' : '') + whole.slice(-3);
-  return `${neg ? '-' : ''}NPR ${grouped}.${String(abs % 100).padStart(2, '0')}`;
+  return `${neg ? '-' : ''}${grouped}.${String(abs % 100).padStart(2, '0')}`;
 }
+/** `NPR 1,250.00` (documents, totals, toasts). */
+export const formatNpr = (paisa: number) => formatAmount(paisa).replace(/^(-?)/, '$1NPR ');
 export const npr = (m: Money | undefined) => (m ? formatNpr(m.amount_paisa) : '—');
+/** T0D-UILIST-2 (LD-353 rule 3, done_when 7): a money TABLE cell — two decimals, no currency word (the column header carries "(NPR)"). */
+export const amount = (m: Money | undefined) => (m ? formatAmount(m.amount_paisa) : '—');
 
 const ONES = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
 const TENS = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];

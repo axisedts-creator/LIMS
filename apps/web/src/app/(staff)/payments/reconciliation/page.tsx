@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { ApiError } from '@/core/api/server-fetch';
 import { PermissionDenied } from '@/core/errors/PermissionDenied';
 import { getShellSession } from '@/core/session/server';
+import { NotAvailable, isPending } from '@/core/shell/NotAvailable';
 import { ReconciliationView } from '@/features/payments/components/ReconciliationView';
 import { findingsQuery } from '@/features/payments/query';
 import { listPaymentCodes, listPaymentIntents, listReconciliationFindings, listReconciliationRuns } from '@/features/payments/server/read.server';
@@ -34,6 +35,16 @@ export default async function GatewayReconciliationPage({ searchParams }: { sear
     );
   } catch (e) {
     if (e instanceof ApiError && e.status === 403) return <PermissionDenied />;
-    throw e; // 5xx and the rest render error.tsx
+    // T0D-UILIST-2 (LD-353 rule 6): 501 operation_pending = NotAvailable with the header row; 500+ keeps title, filters and header rows with an ErrorState in the table
+    if (isPending(e)) return <NotAvailable title="Gateway reconciliation" columns={['Business date', 'Trigger', 'Status', 'Checked', 'OK', 'Findings', 'Critical', 'Finished']} />;
+    if (e instanceof ApiError && e.status >= 500) {
+      return (
+        <ReconciliationView
+          runs={[]} findings={[]} codes={{ finding_kinds: [], finding_resolutions: [] }} permissions={permissions} filter={filter} stats={{ openCritical: 0, underReview: 0 }}
+          failure={e.problem?.request_id ? { requestId: e.problem.request_id } : {}}
+        />
+      );
+    }
+    throw e; // 4xx render error.tsx
   }
 }

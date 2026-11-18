@@ -56,3 +56,7 @@ Fix: none (tests not mine, baseline not regenerated). Dispute written; lead must
 ## Round 14 (verify 03:03: 2 fail / 35 pass; rs-c4.static frontdesk_feature server_symbols + rs-c4.screens Daily cash snapshot)
 Cause: no OFFLINE-3 defect. Guard drift from already-landed REGSCREEN-2 drafts/favourites/ICD/rewards server symbols (32, e.g. createDraftAction, getPatientRewards, listIcdCodes) and UIDASH-1 Daily cash header/stat row; baseline json frozen.
 Fix: none (tests not mine, no impl change possible). LD-400 said a further trip needs a structural call from the lead/founder, so dispute written: T0D-OFFLINE-3-dispute.md.
+
+## Round 15 (verify 04:23: 1 fail / 36 pass; only rs-c4.screens.test.tsx "Daily cash (open shift)" snapshot)
+Cause: no OFFLINE-3 defect. rs-c4.static now passes (LD-404 applied). Stale .snap: Daily cash screen gained stat row + chart card from already-landed UIDASH-1; OFFLINE-3 touches no Daily cash code.
+Fix: none (snapshot/tests are tester-owned; must be re-recorded with vitest -u on that one file, never hand edited). Dispute written: T0D-OFFLINE-3-dispute.md.

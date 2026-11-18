@@ -16,3 +16,7 @@
 # round 6 (verify log 20:53, 9 files fail / 236 pass; boot test alone passes 2/2)
 - Cause: same stale lane, no code defect. HEAD is still 29 commits behind main (LD-385 commission_bp removal and TESTIMPORT catalog ids are in main only). Fails: referrers.wording (commission in doctor schema, contract side), testmgmt/boot (catalog pending list 13 vs 7, 128 ops vs 117).
 - Fix: none in source, tests untouched, no dispute. Needed: task START merge of main into lane/C0-0I by the merger agent, then re-run verify on an idle host.
+# round 7 (verify log 01:05, 1 fail / 11212 pass; boot test 2/2)
+- Cause: billing repo.static.test.ts "no ${…} interpolation inside any SQL template literal": accounts.repo.ts (holdEntry, releaseEntry) and discountPolicy.repo.ts (FINCTRL, 17 sites) interpolate `${..._COLS}` in SQL. Lane is still 53 commits behind main, which already uses `... ` + COLS concatenation there.
+- Fix: same concatenation in both files (now identical to main; diff vs main is only creditAccounts.repo.ts + index.ts = PARTYSET). repo.static.test.ts 32/32 pass. Tests untouched, no dispute.
+- Not run: full 3x suite on throwaway PG17. Lane still needs a task START merge of main (53 behind) to avoid further stale-lane drift.

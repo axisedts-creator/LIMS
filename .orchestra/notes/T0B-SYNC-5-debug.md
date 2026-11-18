@@ -1,0 +1,3 @@
+# T0B-SYNC-5 debug (2026-11-19 01:25)
+- Cause: verify log = 13 retention.live.test.ts failures (`permission denied for table sync_conflict`: lims_worker has no DELETE grant/RLS policy; migration deliberately withheld, CR-C0-T0B-SYNC-5-001) + 2 static pins (registry.static.test.ts:72, sync2.registry.static.test.ts:96 "no DELETE FROM" hit retention.ts; confirmed by rerun). No new defect; hardening/static.test.ts passes.
+- Fix: none. Per LD-397 item 2 the DELETE grant/policy/pin supersession is founder reserved (180 days + data deletion); no impl change can pass these without it. Task stays BLOCKED on the founder answer; tests, migration, grants untouched.

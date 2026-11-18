@@ -6676,6 +6676,7 @@ paths:
                     status: active
                     history_from: 2026-03-01T04:15:00.000Z
                     patient_code: SYN-000123
+                    version: 2
                     link_id: 01950c16-0000-7000-8000-000000000239
                     account_phone_masked: +99X•••••42
                     patient_id: 01950c16-0000-7000-8000-000000000240
@@ -8963,6 +8964,677 @@ paths:
           $ref: _common.yaml#/components/responses/TooManyRequests
         "500":
           $ref: _common.yaml#/components/responses/Internal
+  # T0C-CONTENT-1 (LD-313, LD-325): portal content for the patient app (ElabAssist "News and Updates", "Slider / Banner Image Upload", "Upload Special Offers",
+  # "Contact Us") and profile images (ElabAssist "Profile Image Upload"). Text is a restricted Markdown subset (LD-313 d), images reuse the branding upload path.
+  /v1/engagement/portal-content:
+    get:
+      operationId: listPortalContent
+      tags:
+        - engagement
+      summary: List portal content, news, banners, offers and contact us, active or not (T0C-CONTENT-1, staff)
+      description: >-
+        Every item of the tenant in any date window, ordered by kind then sort_order. Filters kind and is_active are optional.
+      security:
+        - bearerJwt: []
+      x-permission: engagement.content.read
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.invalid_cursor
+      parameters:
+        - name: kind
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 8
+            enum:
+              - news
+              - banner
+              - offer
+              - contact
+        - name: is_active
+          in: query
+          required: false
+          schema:
+            type: boolean
+        - $ref: _common.yaml#/components/parameters/Cursor
+        - $ref: _common.yaml#/components/parameters/Limit
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PortalContentPage"
+              examples:
+                synthetic:
+                  value:
+                    data:
+                      - id: 0193c4a0-0000-7000-8000-000000000601
+                        kind: banner
+                        title: Winter health check (SYNTHETIC)
+                        image_attachment_id: 0193c4a0-0000-7000-8000-000000000611
+                        link_url: https://example.org/offers/winter
+                        starts_on: 2026-12-01
+                        ends_on: 2026-12-31
+                        sort_order: 1
+                        is_active: true
+                        published_at: 2026-11-17T04:15:00.000Z
+                        created_by: 0193c4a0-0000-7000-8000-000000000621
+                        created_at: 2026-11-17T04:15:00.000Z
+                        updated_at: 2026-11-17T04:15:00.000Z
+                        version: 1
+                    page:
+                      limit: 50
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+    post:
+      operationId: createPortalContent
+      tags:
+        - engagement
+      summary: Add a news item, banner, special offer or contact us entry (T0C-CONTENT-1, staff)
+      description: >-
+        body is a restricted Markdown subset, not a raw HTML rich text editor (LD-313 d): headings (#), bold (**x**), italic (*x* or _x_), bullet and
+        numbered lists, and links written [text](https://...) with https only. No raw HTML (any "<" is rejected, so no tags and no scripts), no image
+        syntax, no reference style link definitions, no numeric character references; maximum length 20000 characters. link_url is https only.
+        title is plain text. The image reuses the existing branding upload path: upload it first with uploadBrandingAsset
+        (POST /v1/identity/settings/branding-assets, re-encoded, PNG or JPEG, size and type limited) and pass its id as image_attachment_id;
+        this contract adds no new upload route. The new item is active; published_at is set by the server.
+      security:
+        - bearerJwt: []
+      x-permission: engagement.content.manage
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.idempotency_key_required
+        - common.idempotency_key_reused
+        - common.idempotency_in_progress
+      parameters:
+        - $ref: _common.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PortalContentCreate"
+            examples:
+              synthetic:
+                value:
+                  kind: news
+                  title: New sample collection hours (SYNTHETIC)
+                  body: "## Opening hours\n\nFrom **1 December** we open at 6:30.\n\n- Sunday to Friday\n- Saturday closed\n\n[Details](https://example.org/hours)"
+      responses:
+        "201":
+          description: Created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PortalContent"
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-000000000602
+                    kind: news
+                    title: New sample collection hours (SYNTHETIC)
+                    body: "## Opening hours\n\nFrom **1 December** we open at 6:30.\n\n- Sunday to Friday\n- Saturday closed\n\n[Details](https://example.org/hours)"
+                    sort_order: 0
+                    is_active: true
+                    published_at: 2026-11-17T04:15:00.000Z
+                    created_by: 0193c4a0-0000-7000-8000-000000000621
+                    created_at: 2026-11-17T04:15:00.000Z
+                    updated_at: 2026-11-17T04:15:00.000Z
+                    version: 1
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/engagement/portal-content/reorder:
+    post:
+      operationId: reorderPortalContent
+      tags:
+        - engagement
+      summary: Reorder the portal content of one kind (T0C-CONTENT-1, staff)
+      description: >-
+        One kind at a time: ids lists every item of that kind in the new order and each item gets sort_order = its position (0 based).
+        An id of another kind, of another tenant or unknown, or an item of the kind left out, is refused (common.validation_failed).
+        Returns the items of the kind in the new order.
+      security:
+        - bearerJwt: []
+      x-permission: engagement.content.manage
+      x-context: tenant
+      x-idempotency: optional
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.idempotency_key_reused
+        - common.idempotency_in_progress
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PortalContentReorder"
+            examples:
+              synthetic:
+                value:
+                  kind: banner
+                  ids:
+                    - 0193c4a0-0000-7000-8000-000000000603
+                    - 0193c4a0-0000-7000-8000-000000000601
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PortalContentPage"
+              examples:
+                synthetic:
+                  value:
+                    data:
+                      - id: 0193c4a0-0000-7000-8000-000000000603
+                        kind: banner
+                        title: Free home collection (SYNTHETIC)
+                        image_attachment_id: 0193c4a0-0000-7000-8000-000000000612
+                        sort_order: 0
+                        is_active: true
+                        created_by: 0193c4a0-0000-7000-8000-000000000621
+                        created_at: 2026-11-17T04:15:00.000Z
+                        updated_at: 2026-11-17T05:15:00.000Z
+                        version: 2
+                      - id: 0193c4a0-0000-7000-8000-000000000650
+                        kind: banner
+                        title: Winter health check (SYNTHETIC)
+                        image_attachment_id: 0193c4a0-0000-7000-8000-000000000611
+                        sort_order: 1
+                        is_active: true
+                        created_by: 0193c4a0-0000-7000-8000-000000000621
+                        created_at: 2026-11-17T04:15:00.000Z
+                        updated_at: 2026-11-17T05:15:00.000Z
+                        version: 2
+                    page:
+                      limit: 200
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/engagement/portal-content/{content_id}:
+    patch:
+      operationId: updatePortalContent
+      tags:
+        - engagement
+      summary: Update a portal content item (T0C-CONTENT-1, staff)
+      description: >-
+        Changes any field of PortalContentUpdate; is_active true reactivates an item. The rules of createPortalContent hold: body is the restricted
+        Markdown subset (no raw HTML, https only links, no images), link_url is https only, ends_on is not before starts_on.
+      security:
+        - bearerJwt: []
+      x-permission: engagement.content.manage
+      x-context: tenant
+      x-idempotency: optional
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.not_found
+        - common.version_conflict
+        - common.precondition_required
+        - common.idempotency_key_reused
+        - common.idempotency_in_progress
+      parameters:
+        - name: content_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - $ref: _common.yaml#/components/parameters/IfMatch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PortalContentUpdate"
+            examples:
+              synthetic:
+                value:
+                  title: New sample collection hours from December (SYNTHETIC)
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PortalContent"
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-000000000651
+                    kind: news
+                    title: New sample collection hours from December (SYNTHETIC)
+                    sort_order: 0
+                    is_active: true
+                    published_at: 2026-11-17T04:15:00.000Z
+                    created_by: 0193c4a0-0000-7000-8000-000000000621
+                    created_at: 2026-11-17T04:15:00.000Z
+                    updated_at: 2026-11-17T05:15:00.000Z
+                    version: 2
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "428":
+          $ref: _common.yaml#/components/responses/PreconditionRequired
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/engagement/portal-content/{content_id}/deactivate:
+    post:
+      operationId: deactivatePortalContent
+      tags:
+        - engagement
+      summary: Deactivate a portal content item; it is never deleted (T0C-CONTENT-1, staff)
+      description: Sets is_active false; the row stays (history is kept, never deleted). The patient app stops showing it at once.
+      security:
+        - bearerJwt: []
+      x-permission: engagement.content.manage
+      x-context: tenant
+      x-idempotency: optional
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.not_found
+        - common.version_conflict
+        - common.precondition_required
+        - common.idempotency_key_reused
+        - common.idempotency_in_progress
+      parameters:
+        - name: content_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - $ref: _common.yaml#/components/parameters/IfMatch
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PortalContent"
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-000000000652
+                    kind: news
+                    title: New sample collection hours from December (SYNTHETIC)
+                    sort_order: 0
+                    is_active: false
+                    published_at: 2026-11-17T04:15:00.000Z
+                    created_by: 0193c4a0-0000-7000-8000-000000000621
+                    created_at: 2026-11-17T04:15:00.000Z
+                    updated_at: 2026-11-17T06:15:00.000Z
+                    version: 3
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "428":
+          $ref: _common.yaml#/components/responses/PreconditionRequired
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/engagement/me/portal-content:
+    get:
+      operationId: listMyPortalContent
+      tags:
+        - engagement
+      summary: Portal content for the patient app, only active items inside their date window (T0C-CONTENT-1)
+      description: >-
+        Returns only items that are active and inside their date window (starts_on on or before today and ends_on on or after today; an open end
+        is allowed), ordered by kind then sort_order, as PortalContentPublic: no staff fields. The only filter is kind; nothing widens the set.
+      security:
+        - bearerJwt: []
+      x-permission: engagement.self.read
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.invalid_cursor
+        - engagement.app_version_unsupported
+      parameters:
+        - name: kind
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 8
+            enum:
+              - news
+              - banner
+              - offer
+              - contact
+        - $ref: _common.yaml#/components/parameters/Cursor
+        - $ref: _common.yaml#/components/parameters/Limit
+        - $ref: "#/components/parameters/AppVersion"
+        - $ref: "#/components/parameters/AppPlatform"
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PortalContentPublicPage"
+              examples:
+                synthetic:
+                  value:
+                    data:
+                      - id: 0193c4a0-0000-7000-8000-000000000653
+                        kind: banner
+                        title: Winter health check (SYNTHETIC)
+                        image_attachment_id: 0193c4a0-0000-7000-8000-000000000611
+                        link_url: https://example.org/offers/winter
+                        starts_on: 2026-12-01
+                        ends_on: 2026-12-31
+                        published_at: 2026-11-17T04:15:00.000Z
+                      - id: 0193c4a0-0000-7000-8000-000000000604
+                        kind: contact
+                        title: Contact us (SYNTHETIC)
+                        body: "Open **6:30 to 18:00**, Sunday to Friday.\n\n[Find us](https://example.org/map)"
+                    page:
+                      limit: 50
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlNoStore"
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "426":
+          $ref: "#/components/responses/AppVersionUnsupported"
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/engagement/profile-images:
+    get:
+      operationId: listProfileImages
+      tags:
+        - engagement
+      summary: Search profile images by profile (T0C-CONTENT-1, staff)
+      description: Filters profile_kind and profile_id find the image of one doctor, centre or staff profile; is_active filters set or cleared images.
+      security:
+        - bearerJwt: []
+      x-permission: engagement.content.read
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.invalid_cursor
+      parameters:
+        - name: profile_kind
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 8
+            enum:
+              - doctor
+              - centre
+              - staff
+        - name: profile_id
+          in: query
+          required: false
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - name: is_active
+          in: query
+          required: false
+          schema:
+            type: boolean
+        - $ref: _common.yaml#/components/parameters/Cursor
+        - $ref: _common.yaml#/components/parameters/Limit
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProfileImagePage"
+              examples:
+                synthetic:
+                  value:
+                    data:
+                      - profile_kind: doctor
+                        profile_id: 0193c4a0-0000-7000-8000-000000000631
+                        image_attachment_id: 0193c4a0-0000-7000-8000-000000000613
+                        is_active: true
+                        updated_at: 2026-11-17T04:15:00.000Z
+                    page:
+                      limit: 50
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/engagement/profile-images/{profile_kind}/{profile_id}:
+    put:
+      operationId: setProfileImage
+      tags:
+        - engagement
+      summary: Set the image of a doctor, centre or staff profile (T0C-CONTENT-1, staff)
+      description: >-
+        Upsert, one image per profile: a cleared image is set again on the same row. The image reuses the existing branding upload path: upload it first
+        with uploadBrandingAsset (POST /v1/identity/settings/branding-assets, re-encoded, PNG or JPEG, size and type limited) and pass its id;
+        this contract adds no new upload route. The image must be a branding asset of the same tenant.
+      security:
+        - bearerJwt: []
+      x-permission: engagement.content.manage
+      x-context: tenant
+      x-idempotency: optional
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.not_found
+        - common.idempotency_key_reused
+        - common.idempotency_in_progress
+      parameters:
+        - name: profile_kind
+          in: path
+          required: true
+          schema:
+            type: string
+            maxLength: 8
+            enum:
+              - doctor
+              - centre
+              - staff
+        - name: profile_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProfileImageSet"
+            examples:
+              synthetic:
+                value:
+                  image_attachment_id: 0193c4a0-0000-7000-8000-000000000613
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProfileImage"
+              examples:
+                synthetic:
+                  value:
+                    profile_kind: doctor
+                    profile_id: 0193c4a0-0000-7000-8000-000000000631
+                    image_attachment_id: 0193c4a0-0000-7000-8000-000000000613
+                    is_active: true
+                    updated_at: 2026-11-17T04:15:00.000Z
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+    delete:
+      operationId: clearProfileImage
+      tags:
+        - engagement
+      summary: Clear the image of a profile; the row is deactivated, not deleted (T0C-CONTENT-1, staff)
+      description: Sets is_active false on the profile image row; the row stays (history is kept) and setProfileImage sets it again.
+      security:
+        - bearerJwt: []
+      x-permission: engagement.content.manage
+      x-context: tenant
+      x-idempotency: optional
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.not_found
+        - common.idempotency_key_reused
+        - common.idempotency_in_progress
+      parameters:
+        - name: profile_kind
+          in: path
+          required: true
+          schema:
+            type: string
+            maxLength: 8
+            enum:
+              - doctor
+              - centre
+              - staff
+        - name: profile_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+      responses:
+        "204":
+          description: Cleared (deactivated).
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
 components:
   schemas:
     Account:
@@ -10609,6 +11281,10 @@ components:
         patient_code:
           type: string
           maxLength: 32
+        version:
+          # [CONV] T0C-MSGDESK-1 ruling item 3: AppLink = Profile (+version, 02-CONVENTIONS.md:348) + staff fields; L4 takes If-Match.
+          # Optional until the T0B engagement owner makes toLink return it (absent optional field is omitted, 02-CONVENTIONS.md:347).
+          $ref: _common.yaml#/components/schemas/Version
         link_id:
           $ref: _common.yaml#/components/schemas/Uuid
         account_phone_masked:
@@ -11981,6 +12657,353 @@ components:
           maxItems: 200
           items:
             $ref: "#/components/schemas/BroadcastRecipient"
+        page:
+          $ref: _common.yaml#/components/schemas/PageInfo
+    # T0C-CONTENT-1 (LD-313, LD-325): portal content and profile images.
+    PortalContent:
+      description: >-
+        A news item, slider or banner, special offer or contact us entry shown in the patient app. body is a restricted Markdown subset (LD-313 d):
+        headings, bold, italic, lists and https only links; no raw HTML, no scripts, no images in the text (the picture is image_attachment_id).
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - kind
+        - title
+        - sort_order
+        - is_active
+        - created_by
+        - created_at
+        - updated_at
+        - version
+      properties:
+        id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        kind:
+          type: string
+          maxLength: 8
+          enum:
+            - news
+            - banner
+            - offer
+            - contact
+        title:
+          description: Plain text; "<" and ">" are refused.
+          type: string
+          minLength: 1
+          maxLength: 200
+          pattern: '^[^<>]*$'
+        body:
+          description: >-
+            Restricted Markdown subset (LD-313 d): headings (#), bold (**x**), italic (*x* or _x_), bullet and numbered lists, and links
+            [text](https://...) with https only. No raw HTML: any "<" is rejected (no tags, no scripts). Image syntax ![..](..), reference
+            style link definitions [x]: ... and numeric character references (&#...) are rejected. Maximum 20000 characters. The patient app
+            renders it with a Markdown renderer that has HTML turned off.
+          type: string
+          maxLength: 20000
+          pattern: '^(?![\s\S]*<)(?![\s\S]*!\[)(?![\s\S]*\]\((?!https://))(?![\s\S]*\]:)(?![\s\S]*&#)[\s\S]*$'
+        image_attachment_id:
+          description: >-
+            Id of a branding asset of the tenant (identity.branding_assets), uploaded through the existing branding upload path uploadBrandingAsset
+            (re-encoded, size and type limited); reuses that resource, no new upload route.
+          allOf:
+            - $ref: _common.yaml#/components/schemas/Uuid
+        link_url:
+          description: https only.
+          type: string
+          minLength: 9
+          maxLength: 2048
+          pattern: '^https://[^\s<>"]+$'
+        starts_on:
+          description: First day shown in the patient app (inclusive); absent = from now.
+          type: string
+          format: date
+          maxLength: 10
+          pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'
+        ends_on:
+          description: Last day shown in the patient app (inclusive), not before starts_on; absent = no end.
+          type: string
+          format: date
+          maxLength: 10
+          pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'
+        sort_order:
+          description: Position inside its kind, 0 first (set by reorderPortalContent).
+          type: integer
+          minimum: 0
+          maximum: 100000
+        is_active:
+          type: boolean
+        published_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        created_by:
+          $ref: _common.yaml#/components/schemas/Uuid
+        created_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        updated_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        version:
+          $ref: _common.yaml#/components/schemas/Version
+    PortalContentCreate:
+      description: >-
+        body is the restricted Markdown subset (headings, bold, italic, lists, https only links; no raw HTML, no scripts, no images);
+        link_url is https only. Images reuse the branding upload path (uploadBrandingAsset); no new upload route.
+      type: object
+      additionalProperties: false
+      required:
+        - kind
+        - title
+      properties:
+        kind:
+          type: string
+          maxLength: 8
+          enum:
+            - news
+            - banner
+            - offer
+            - contact
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+          pattern: '^[^<>]*$'
+        body:
+          description: >-
+            Restricted Markdown subset (LD-313 d): headings (#), bold (**x**), italic (*x* or _x_), bullet and numbered lists, and links
+            [text](https://...) with https only. No raw HTML: any "<" is rejected (no tags, no scripts). Image syntax ![..](..), reference
+            style link definitions [x]: ... and numeric character references (&#...) are rejected. Maximum 20000 characters. The patient app
+            renders it with a Markdown renderer that has HTML turned off.
+          type: string
+          maxLength: 20000
+          pattern: '^(?![\s\S]*<)(?![\s\S]*!\[)(?![\s\S]*\]\((?!https://))(?![\s\S]*\]:)(?![\s\S]*&#)[\s\S]*$'
+        image_attachment_id:
+          description: Id returned by uploadBrandingAsset (the existing branding upload path, reused; no new upload route).
+          allOf:
+            - $ref: _common.yaml#/components/schemas/Uuid
+        link_url:
+          description: https only.
+          type: string
+          minLength: 9
+          maxLength: 2048
+          pattern: '^https://[^\s<>"]+$'
+        starts_on:
+          type: string
+          format: date
+          maxLength: 10
+          pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'
+        ends_on:
+          type: string
+          format: date
+          maxLength: 10
+          pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'
+        sort_order:
+          type: integer
+          minimum: 0
+          maximum: 100000
+    PortalContentUpdate:
+      description: Partial update of the create fields, same rules (Markdown subset, https only); is_active true reactivates an item.
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        kind:
+          type: string
+          maxLength: 8
+          enum:
+            - news
+            - banner
+            - offer
+            - contact
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+          pattern: '^[^<>]*$'
+        body:
+          description: >-
+            Restricted Markdown subset (LD-313 d): headings (#), bold (**x**), italic (*x* or _x_), bullet and numbered lists, and links
+            [text](https://...) with https only. No raw HTML: any "<" is rejected (no tags, no scripts). Image syntax ![..](..), reference
+            style link definitions [x]: ... and numeric character references (&#...) are rejected. Maximum 20000 characters. The patient app
+            renders it with a Markdown renderer that has HTML turned off.
+          type: string
+          maxLength: 20000
+          pattern: '^(?![\s\S]*<)(?![\s\S]*!\[)(?![\s\S]*\]\((?!https://))(?![\s\S]*\]:)(?![\s\S]*&#)[\s\S]*$'
+        image_attachment_id:
+          description: Id returned by uploadBrandingAsset (the existing branding upload path, reused; no new upload route).
+          allOf:
+            - $ref: _common.yaml#/components/schemas/Uuid
+        link_url:
+          description: https only.
+          type: string
+          minLength: 9
+          maxLength: 2048
+          pattern: '^https://[^\s<>"]+$'
+        starts_on:
+          type: string
+          format: date
+          maxLength: 10
+          pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'
+        ends_on:
+          type: string
+          format: date
+          maxLength: 10
+          pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'
+        sort_order:
+          type: integer
+          minimum: 0
+          maximum: 100000
+        is_active:
+          type: boolean
+    PortalContentPage:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - page
+      properties:
+        data:
+          type: array
+          maxItems: 500
+          items:
+            $ref: "#/components/schemas/PortalContent"
+        page:
+          $ref: _common.yaml#/components/schemas/PageInfo
+    PortalContentReorder:
+      description: One kind at a time; the position in ids becomes sort_order (0 based). Every item of the kind is listed once.
+      type: object
+      additionalProperties: false
+      required:
+        - kind
+        - ids
+      properties:
+        kind:
+          type: string
+          maxLength: 8
+          enum:
+            - news
+            - banner
+            - offer
+            - contact
+        ids:
+          type: array
+          minItems: 1
+          maxItems: 500
+          uniqueItems: true
+          items:
+            $ref: _common.yaml#/components/schemas/Uuid
+    PortalContentPublic:
+      description: >-
+        What the patient app shows: only active items inside their starts_on / ends_on window are returned, with no staff fields
+        (no author, audit or concurrency data). body is the restricted Markdown subset (render with HTML off).
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - kind
+        - title
+      properties:
+        id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        kind:
+          type: string
+          maxLength: 8
+          enum:
+            - news
+            - banner
+            - offer
+            - contact
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+          pattern: '^[^<>]*$'
+        body:
+          type: string
+          maxLength: 20000
+        image_attachment_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        link_url:
+          type: string
+          minLength: 9
+          maxLength: 2048
+          pattern: '^https://[^\s<>"]+$'
+        starts_on:
+          type: string
+          format: date
+          maxLength: 10
+          pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'
+        ends_on:
+          type: string
+          format: date
+          maxLength: 10
+          pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'
+        published_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+    PortalContentPublicPage:
+      description: Only active items inside their date window (starts_on, ends_on), no staff fields.
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - page
+      properties:
+        data:
+          type: array
+          maxItems: 200
+          items:
+            $ref: "#/components/schemas/PortalContentPublic"
+        page:
+          $ref: _common.yaml#/components/schemas/PageInfo
+    ProfileImage:
+      type: object
+      additionalProperties: false
+      required:
+        - profile_kind
+        - profile_id
+        - image_attachment_id
+        - is_active
+        - updated_at
+      properties:
+        profile_kind:
+          type: string
+          maxLength: 8
+          enum:
+            - doctor
+            - centre
+            - staff
+        profile_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        image_attachment_id:
+          description: Id of a branding asset of the tenant (uploadBrandingAsset, the existing branding upload path; reused, no new upload route).
+          allOf:
+            - $ref: _common.yaml#/components/schemas/Uuid
+        is_active:
+          description: false after clearProfileImage (the row stays).
+          type: boolean
+        updated_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+    ProfileImageSet:
+      description: The image reuses the branding upload path (uploadBrandingAsset, re-encoded, size and type limited); no new upload route.
+      type: object
+      additionalProperties: false
+      required:
+        - image_attachment_id
+      properties:
+        image_attachment_id:
+          description: Id returned by uploadBrandingAsset, a branding asset of the same tenant.
+          allOf:
+            - $ref: _common.yaml#/components/schemas/Uuid
+    ProfileImagePage:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - page
+      properties:
+        data:
+          type: array
+          maxItems: 200
+          items:
+            $ref: "#/components/schemas/ProfileImage"
         page:
           $ref: _common.yaml#/components/schemas/PageInfo
   parameters:

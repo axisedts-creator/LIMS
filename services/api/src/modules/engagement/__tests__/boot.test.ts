@@ -65,9 +65,9 @@ describe('C16-T01 manifest', () => {
 });
 
 describe('C16-T01 handler map', () => {
-  it('the spec has the 109 unique operationIds (98 of the TRD §5 table + 11 broadcast, T0C-MSGDESK-1)', () => {
-    expect(OPS.length).toBe(109);
-    expect(new Set(OPS).size).toBe(109);
+  it('the spec has the 118 unique operationIds (98 of the TRD §5 table + 11 broadcast, T0C-MSGDESK-1, + 9 portal content, T0C-CONTENT-1)', () => {
+    expect(OPS.length).toBe(118);
+    expect(new Set(OPS).size).toBe(118);
   });
   it('binds every operationId of engagement.yaml to a function, except the LD-325 pending ones, and nothing else', () => {
     // T0C-MSGDESK-1 ruling: the 11 broadcast ids are pending until T0B-MSGDESK-1 merges the handlers and empties the list.
@@ -90,9 +90,10 @@ describe('C16-T01 permissions list', () => {
 });
 
 describe('C16-T01 phase-stub replacement (08 A17 P-20): the PR that creates modules/engagement removes EngagementPort from phase-stubs.ts', () => {
-  it('PHASE_STUBS no longer lists EngagementPort and still lists QualityPort', () => {
+  it('PHASE_STUBS no longer lists EngagementPort', () => {
     expect(PHASE_STUBS).not.toContain('EngagementPort');
-    expect([...PHASE_STUBS]).toEqual(['QualityPort']);
+    // QualityPort removed by T-01 (quality module shipped; AC-0D-6.3)
+    expect([...PHASE_STUBS]).toEqual([]);
   });
   it('AC-0D-6.3 gate: engagement/index.ts exists, so the port WOULD be stale if still listed; with the committed list nothing is stale', () => {
     expect(findStalePhaseStubs({ phaseStubs: ['EngagementPort'] })).toEqual([{ port: 'EngagementPort', owner: 'engagement' }]);

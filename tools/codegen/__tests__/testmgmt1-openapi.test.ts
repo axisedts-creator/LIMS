@@ -118,9 +118,9 @@ describe("T0C-TESTMGMT-1 contract: catalog.yaml lint and additive baseline", () 
 
   it("is additive: the 107 original operations keep method, path, permission and idempotency; exactly 3 new operations", () => {
     const ids = allOps();
-    // T0C-PRICETOOLS-1 (LD-321) adds 7 price list tool operations on top (pinned in pricetools1-openapi.test.ts): 107 original + 3 category operations + 7 = 117
-    expect(ids.length, "107 original + 3 category operations + 7 price list tool operations").toBe(117);
-    expect(new Set(ids).size).toBe(117);
+    // T0C-PRICETOOLS-1 (LD-321) adds 7 price list tool operations on top (pinned in pricetools1-openapi.test.ts): 107 original + 3 category operations + 7 = 117; T0C-TESTIMPORT-1 (LD-318) adds 6 Excel test import operations (pinned in testimport1-openapi.test.ts): 123
+    expect(ids.length, "107 original + 3 category operations + 7 price list tool operations + 6 test import operations").toBe(123);
+    expect(new Set(ids).size).toBe(123);
     for (const id of ["getCatalogRevision", "searchOrderables", "listDepartments", "listTests", "createTest", "getTestDetail", "updateTest", "setTestTatTargets", "createAnalyte", "updateAnalyte",
       "createAnalyteVersionDraft", "updateAnalyteVersionDraft", "publishAnalyteVersion", "validateFormula", "createReferenceRangeSetDraft", "replaceReferenceRangeSetBands", "publishReferenceRangeSet",
       "replaceCriticalLimitSetBands", "listPanels", "createPanel", "updatePanel", "listCommentCodes", "createCommentCode", "updateCommentCode", "listUnits", "listMethods", "listValueSets"]) expect(opOf(id), id).toBeDefined();
@@ -555,11 +555,18 @@ describe("T0C-TESTMGMT-1 generated clients and the pending-operations rule (LD-3
     expect(staleFiles(ROOT)).toEqual([]);
   }, 120_000);
 
-  it("catalog module manifest lists the three new operationIds in pendingOperations (a T0B handler task removes them)", () => {
+  it("catalog module manifest still declares pendingOperations, but the T0B handler task removed the three test category ids and registered handlers (LD-325(b))", () => {
     expect(existsSync(MODULE_INDEX)).toBe(true);
     const t = readFileSync(MODULE_INDEX, "utf8");
     expect(t, "services/api/src/modules/catalog/index.ts must declare pendingOperations").toMatch(/pendingOperations/);
-    for (const id of Object.keys(NEW_OPS)) expect(t, `pendingOperations lists ${id}`).toContain(id);
+    const arr = /pendingOperations\s*:\s*\[([\s\S]*?)\]/.exec(t);
+    expect(arr, "pendingOperations array literal").not.toBeNull();
+    const pending = [...arr![1].matchAll(/['"]([A-Za-z0-9_]+)['"]/g)].map((m) => m[1]);
+    const handlers = readFileSync(join(ROOT, "services/api/src/modules/catalog/handlers/masters.handlers.ts"), "utf8");
+    for (const id of Object.keys(NEW_OPS)) {
+      expect(pending, `${id} must not be pending (T0B-TESTMGMT-1 implemented it)`).not.toContain(id);
+      expect(handlers, `${id} registered in masters.handlers.ts`).toContain(`'${id}'`);
+    }
   });
 });
 

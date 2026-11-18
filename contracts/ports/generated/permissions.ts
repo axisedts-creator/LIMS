@@ -50,6 +50,8 @@ export type PermissionCode =
   | "engagement.broadcast.approve"
   | "engagement.broadcast.manage"
   | "engagement.broadcast.read"
+  | "engagement.content.manage"
+  | "engagement.content.read"
   | "engagement.enquiry.create"
   | "engagement.enquiry.read"
   | "engagement.enquiry.respond"
@@ -255,6 +257,8 @@ export const PERMISSION_CODES: readonly PermissionCode[] = [
   "engagement.broadcast.approve",
   "engagement.broadcast.manage",
   "engagement.broadcast.read",
+  "engagement.content.manage",
+  "engagement.content.read",
   "engagement.enquiry.create",
   "engagement.enquiry.read",
   "engagement.enquiry.respond",
@@ -576,6 +580,7 @@ export const ROLE_GRANTS: Readonly<Record<string, readonly PermissionCode[]>> = 
     "engagement.booking.read",
     "engagement.broadcast.manage",
     "engagement.broadcast.read",
+    "engagement.content.read",
     "engagement.enquiry.read",
     "engagement.enquiry.respond",
     "engagement.link.issue",
@@ -634,6 +639,8 @@ export const ROLE_GRANTS: Readonly<Record<string, readonly PermissionCode[]>> = 
     "engagement.broadcast.approve",
     "engagement.broadcast.manage",
     "engagement.broadcast.read",
+    "engagement.content.manage",
+    "engagement.content.read",
     "engagement.queue.manage",
     "engagement.slot.manage",
     "homecollection.device.manage",
@@ -845,6 +852,8 @@ export const ROLE_GRANTS: Readonly<Record<string, readonly PermissionCode[]>> = 
     "engagement.broadcast.approve",
     "engagement.broadcast.manage",
     "engagement.broadcast.read",
+    "engagement.content.manage",
+    "engagement.content.read",
     "engagement.link.read",
     "engagement.link.revoke",
     "engagement.membership.read",

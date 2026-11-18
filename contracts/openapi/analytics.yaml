@@ -3971,9 +3971,9 @@ x-report-definitions:
       - { name: designation_level, type: integer, title: Designation level }
       - { name: parties_count, type: integer, title: Parties }
       - { name: orders_registered, type: integer, title: Orders }
-      - { name: net_billed_paisa, type: integer_paisa, title: Net billed }
+      - { name: net_paisa, type: integer_paisa, title: Net }
       - { name: collected_paisa, type: integer_paisa, title: Collected }
-    default_sort: { column: net_billed_paisa, direction: desc }
+    default_sort: { column: net_paisa, direction: desc }
     row_cap: 2000
     exportable: true
     schedulable: true
@@ -3984,7 +3984,8 @@ x-report-definitions:
         representative_id: [0193c4a0-0000-7000-8000-000000000301]
   - code: consultant
     title: Consultant
-    description: Orders, tests and net billed amount per consultant (the referring doctor of the order, referrer_id) and department over the period.
+    # LD-346: volume only (A39-3), no per-referrer money outside the referral gate.
+    description: Orders and tests per consultant (the referring doctor of the order, referrer_id) and department over the period; volume only (LD-346).
     permission: analytics.dashboard.read
     params: [business_date_from, business_date_to, centre_id, referrer_id, department_id]
     columns:
@@ -3993,8 +3994,7 @@ x-report-definitions:
       - { name: department_id, type: string, title: Department }
       - { name: orders_registered, type: integer, title: Orders }
       - { name: tests_count, type: integer, title: Tests }
-      - { name: net_billed_paisa, type: integer_paisa, title: Net billed }
-    default_sort: { column: net_billed_paisa, direction: desc }
+    default_sort: { column: tests_count, direction: desc }
     row_cap: 5000
     exportable: true
     schedulable: true
@@ -4035,7 +4035,7 @@ x-report-definitions:
       - { name: visit_count, type: integer, title: Visits }
       - { name: first_visit_date, type: date, title: First visit }
       - { name: last_visit_date, type: date, title: Last visit }
-      - { name: net_billed_paisa, type: integer_paisa, title: Net billed }
+      - { name: net_paisa, type: integer_paisa, title: Net }
     default_sort: { column: visit_count, direction: desc }
     row_cap: 5000
     exportable: true
@@ -4124,7 +4124,7 @@ x-report-definitions:
       - { name: orders_registered, type: integer, title: Orders }
       - { name: gross_paisa, type: integer_paisa, title: Gross }
       - { name: discount_paisa, type: integer_paisa, title: Discount }
-      - { name: net_billed_paisa, type: integer_paisa, title: Net billed }
+      - { name: net_paisa, type: integer_paisa, title: Net }
       - { name: paid_paisa, type: integer_paisa, title: Paid }
       - { name: outstanding_paisa, type: integer_paisa, title: Outstanding }
     default_sort: { column: outstanding_paisa, direction: desc }

@@ -9,12 +9,14 @@ import { Button } from '@lims/ui/components/Button';
 import { ConfirmDialog } from '@lims/ui/components/ConfirmDialog';
 import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
 import { DateText, type DateTextProps } from '@lims/ui/components/DateText';
+import { FilterBar, type FilterDef } from '@lims/ui/components/FilterBar';
 import { Icon } from '@lims/ui/components/Icon';
 import { Inline } from '@lims/ui/components/Inline';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { StatusChip } from '@lims/ui/components/StatusChip';
 import { useToast } from '@lims/ui/components/Toast';
 import { DEVICE_CHANGED, PLATFORM, deviceStatus, failText, hasPerm, humanize, semverLess, toneIcon } from '../labels';
+import { DEVICE_STATUSES } from '../query';
 import { wipeDeviceAction } from '../server/actions';
 import { useSubmissionKey } from '../submission';
 import type { DeviceRow, WipeCodes } from '../types';
@@ -31,7 +33,12 @@ export interface DevicesViewProps {
   minAppVersion?: string | undefined;
   permissions: readonly string[];
   nextCursor?: string | undefined;
+  /** The one ?status the page read (DEVICE_STATUSES); undefined = all. */
+  status?: string | undefined;
 }
+
+const BASE = '/homecollection/devices';
+const FILTERS: FilterDef[] = [{ id: 'status', label: 'Status', kind: 'select', options: DEVICE_STATUSES.map((s) => ({ value: s, label: deviceStatus(s)[1] })) }];
 
 const when = (iso: string | undefined) => (iso ? <DateText value={iso as Iso} withTime /> : 'Never');
 
@@ -93,7 +100,7 @@ function WipeDialog({ device, reasons, onClose }: { device: DeviceRow; reasons: 
   );
 }
 
-export function DevicesView({ devices, codes, minAppVersion, permissions, nextCursor }: DevicesViewProps) {
+export function DevicesView({ devices, codes, minAppVersion, permissions, nextCursor, status }: DevicesViewProps) {
   const router = useRouter();
   const [wipe, setWipe] = useState<DeviceRow | null>(null);
   const canWipe = hasPerm(permissions, MANAGE) && codes.wipe_reasons.length > 0;
@@ -125,8 +132,14 @@ export function DevicesView({ devices, codes, minAppVersion, permissions, nextCu
   return (
     <div>
       <PageHeader title="Phlebotomy phones" helpKey="homecollection.devices" actions={<Button onPress={() => router.refresh()}>Refresh</Button>} />
+      {/* T0D-UILIST-3, LD-353 template 1: one FilterBar; the page already reads ?status (H16 query). */}
+      <FilterBar
+        filters={FILTERS} value={status ? { status } : {}}
+        onChange={(v) => { const s = typeof v['status'] === 'string' ? v['status'] : undefined; if (s !== status) router.replace(s ? `${BASE}?status=${s}` : BASE); }}
+        onReset={() => router.replace(BASE)}
+      />
       <DataTable<DeviceRow>
-        caption="Phlebotomy phones" columns={columns} rows={devices} getRowId={(d) => d.id} density="compact"
+        caption="Phlebotomy phones" columns={columns} rows={devices} getRowId={(d) => d.id} density="compact" cellTitle
         emptyState={{ title: 'No phones registered yet. Phones appear after the first sign-in.' }}
         {...(canWipe
           ? {

@@ -2493,6 +2493,9 @@ routes:
   - { id: staff.billing.pocket_ledger, origin: staff_web, path: /billing/accounts/pocket, owner: C4, permission: billing.account.read }
   - { id: staff.billing.account_summary, origin: staff_web, path: /billing/accounts/summary, owner: C4, permission: billing.account.read }
   - { id: staff.billing.account_masters, origin: staff_web, path: /billing/accounts/masters, owner: C4, permission: billing.account.read }
+  - { id: staff.billing.expenses, origin: staff_web, path: /billing/expenses, owner: C4, permission: billing.account.read }   # T0D-ACCT-2 (LD-313; added to IC section 7 by the lead 2026-11-18, CR-C0-T0C-SYNC-2)
+  - { id: staff.billing.expense_types, origin: staff_web, path: /billing/expenses/types, owner: C4, permission: billing.account.read }
+  - { id: staff.billing.cash_transfers, origin: staff_web, path: /billing/cash-transfers, owner: C4, permission: billing.account.read }
   - { id: staff.lab.collect, origin: staff_web, path: /lab/collect, owner: C5, permission: lab.specimen.collect }
   - { id: staff.lab.receive, origin: staff_web, path: /lab/receive, owner: C5, permission: lab.specimen.receive }
   - { id: staff.lab.worklists, origin: staff_web, path: /lab/worklists, owner: C5, permission: lab.worklist.read }

@@ -1,6 +1,7 @@
 'use client';
 // 04-UI-UX §2.4 Levey-Jennings chart. LD-140: @lims/ui only. Until CR-C9-007 (ControlChart) merges, the chart is a DataTable of the same points + a note (03-APP-FLOW §4);
 // the table is also what AC-08.5 asks for beside the chart, so it stays when the chart arrives.
+// T0D-UIDASH-1 (LD-353 rule 8): the development note banner is gone from the page; no colour literals (accent plus grey from tokens).
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Banner } from '@lims/ui/components/Banner';
@@ -120,7 +121,6 @@ function ChartView({ chart, generatedAt, sp, plans, canManage, exclusionOptions 
       {lost ? <ConnectionLost since={updatedAt} /> : null}
       <Controls sp={sp} plans={plans} chart={data} />
       {data.truncated ? <Banner tone="warning" title="Showing the newest 2,000 points. Narrow the period to see all." /> : null}
-      <Banner tone="info" title="Chart component pending; showing values as a table." />
       <section aria-label="Legend">
         <ul>{(Object.keys(POINT) as (keyof typeof POINT)[]).map((s) => <li key={s}>{`${POINT[s].marker} ${POINT[s].label}`}</li>)}</ul>
       </section>

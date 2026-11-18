@@ -13,7 +13,7 @@ import { TextField } from '@lims/ui/components/TextField';
 import { VisuallyHidden } from '@lims/ui/components/VisuallyHidden';
 import { createMasterAction, updateMasterAction } from '../server/actions';
 import { UNIT_CODE_RE, VALUE_CODE_RE, VALUE_SET_CODE_RE, type Unit, type ValueSet, type ValueSetValue } from '../server/types';
-import { DUPLICATE, EditorDialog, MasterTable, canManage, changed, statusText, useListShortcuts, type Col } from './master-ui';
+import { DUPLICATE, EditorDialog, MasterTable, canManage, changed, statusText, useListFilter, useListShortcuts, type Col } from './master-ui';
 import { t } from '@/core/i18n/messages';
 
 const scope = (r: { scope: 'global' | 'tenant' }) => (r.scope === 'global' ? 'Global' : 'Lab');
@@ -48,7 +48,9 @@ export function UnitsScreen({ units, valueSets, permissions }: { units: readonly
 
 function UnitsTab({ rows, manage, editing, setEditing }: { rows: readonly Unit[]; manage: boolean; editing: Unit | 'new' | null; setEditing: (u: Unit | 'new' | null) => void }) {
   const openNew = manage ? () => setEditing('new') : undefined;
-  useListShortcuts(useRef(null), openNew);
+  // T0D-UILIST-3 (LD-353 template 1): the shared search + status filter row.
+  const { shown, toolbar, search } = useListFilter(rows, (r) => r.display);
+  useListShortcuts(search, openNew);
   const cols: Col<Unit>[] = [
     { header: 'Code', cell: (r) => r.code },
     { header: 'Display', cell: (r) => r.display },
@@ -59,7 +61,8 @@ function UnitsTab({ rows, manage, editing, setEditing }: { rows: readonly Unit[]
   return (
     <>
       {tenantOnly ? <p className="lims-state-body">Only global units are available. Add a lab-specific unit if needed.</p> : null}
-      <MasterTable caption="Units" cols={cols} rows={rows} empty="No test units yet. Add a unit" emptyAction={openNew ? { label: 'New unit', onPress: openNew } : undefined} rowExtra={lock} canEdit={(r) => r.scope === 'tenant'} onEdit={manage ? setEditing : undefined} />
+      {toolbar}
+      <MasterTable caption="Units" cols={cols} rows={shown}empty="No test units yet. Add a unit" emptyAction={openNew ? { label: 'New unit', onPress: openNew } : undefined} rowExtra={lock} canEdit={(r) => r.scope === 'tenant'} onEdit={manage ? setEditing : undefined} />
       {editing ? <UnitDialog item={editing === 'new' ? undefined : editing} onClose={() => setEditing(null)} /> : null}
     </>
   );

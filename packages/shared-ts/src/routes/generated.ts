@@ -346,6 +346,12 @@ export const ROUTES = {
     "path": "/billing/audit-trail",
     "permission": "billing.data.export"
   },
+  "staff.billing.cash_transfers": {
+    "origin": "staff_web",
+    "owner": "C4",
+    "path": "/billing/cash-transfers",
+    "permission": "billing.account.read"
+  },
   "staff.billing.cbms": {
     "origin": "staff_web",
     "owner": "C4",
@@ -375,6 +381,18 @@ export const ROUTES = {
     "owner": "C4",
     "path": "/billing/dues",
     "permission": "billing.invoice.read"
+  },
+  "staff.billing.expense_types": {
+    "origin": "staff_web",
+    "owner": "C4",
+    "path": "/billing/expenses/types",
+    "permission": "billing.account.read"
+  },
+  "staff.billing.expenses": {
+    "origin": "staff_web",
+    "owner": "C4",
+    "path": "/billing/expenses",
+    "permission": "billing.account.read"
   },
   "staff.billing.invoice": {
     "origin": "staff_web",

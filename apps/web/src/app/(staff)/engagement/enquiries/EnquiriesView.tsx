@@ -39,19 +39,20 @@ export function EnquiriesView({ enquiries, categories, nextCursor, hasPrevious }
   const columns: ColumnDef<EnquirySummary>[] = [
     { id: 'last', header: 'Last message', cell: (r) => <DateText value={r.last_message_at as DateTextProps['value']} withTime /> },
     { id: 'topic', header: 'Topic', cell: (r) => topic(r.category_code) },
-    { id: 'subject', header: 'Subject', isRowHeader: true, cell: (r) => <a href={`/engagement/enquiries/${encodeURIComponent(r.id)}`}>{r.subject}</a> },
+    { id: 'subject', header: 'Subject', isRowHeader: true, cell: (r) => <a href={`/engagement/enquiries/${encodeURIComponent(r.id)}`} title={r.subject}>{r.subject}</a> }, // T0D-UILIST-3 (LD-353 rule 5): cut-off subject stays readable
     { id: 'status', header: 'Status', cell: (r) => { const [label, tone] = STATUS_LABEL[r.status] ?? ['Unknown', 'neutral' as const]; return <StatusChip kind="generic" status={r.status} label={label} tone={tone} />; } },
   ];
 
   return (
     <section aria-label="Enquiries">
       <PageHeader title="Enquiries" helpKey="engagement.enquiries" />
-      <div className="lims-inline" role="search" aria-label="Enquiry filters">
+      {/* T0D-UILIST-3 (LD-353 template 1): the one filter row is the kit FilterBar look */}
+      <div className="lims-filter-bar" role="search" aria-label="Enquiry filters">
         <Select label="Status" name="status" value={status} onChange={go}
           options={[{ value: ALL, label: 'All' }, ...Object.entries(STATUS_LABEL).map(([value, [label]]) => ({ value, label }))]} />
       </div>
       <DataTable<EnquirySummary>
-        columns={columns} rows={enquiries} getRowId={(r) => r.id} density="compact" caption="Enquiries"
+        columns={columns} rows={enquiries} getRowId={(r) => r.id} density="compact" caption="Enquiries" cellTitle
         emptyState={{ title: 'No open enquiries', body: 'Patient questions from the app appear here.' }}
         {...(nextCursor || hasPrevious ? { page: { hasNext: !!nextCursor, hasPrevious: !!hasPrevious, limit: 50, onNext: () => nextCursor && router.push(`${pathname}?${new URLSearchParams([...params.entries()].filter(([k]) => k !== 'cursor').concat([['cursor', nextCursor]])).toString()}`), onPrevious: () => router.back() } } : {})}
       />

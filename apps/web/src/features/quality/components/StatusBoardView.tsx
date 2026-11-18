@@ -4,12 +4,16 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Badge } from '@lims/ui/components/Badge';
 import { Banner } from '@lims/ui/components/Banner';
+import { BarChart } from '@lims/ui/components/BarChart';
+import { ChartCard } from '@lims/ui/components/ChartCard';
 import { Checkbox } from '@lims/ui/components/Checkbox';
+import { StatTile, StatTileRow } from '@lims/ui/components/StatTile';
 import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
 import { DateText, type DateTextProps } from '@lims/ui/components/DateText';
 import { FilterBar, type FilterValue } from '@lims/ui/components/FilterBar';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { StatusChip } from '@lims/ui/components/StatusChip';
+import { t } from '@/core/i18n/messages';
 import { QC_STATUS } from '../format';
 import { pollStatusAction } from '../server/actions';
 import type { StatusRow } from '../types';
@@ -22,7 +26,8 @@ const STATUS_OPTIONS = (Object.keys(QC_STATUS) as (keyof typeof QC_STATUS)[]).ma
 export function StatusBoardView({ rows, generatedAt, sp, canManage }: { rows: StatusRow[]; generatedAt: string; sp: Record<string, string>; canManage: boolean }) {
   const router = useRouter();
   const { data, updatedAt, lost } = usePolled(rows, generatedAt, () => pollStatusAction(sp), JSON.stringify(sp));
-  const out = data.filter((r) => r.status === 'out_of_control').length;
+  const count = (s: string) => data.filter((r) => r.status === s).length;
+  const out = count('out_of_control');
 
   // Live region: announces only a change of the out-of-control count, never a plain refresh (04-UI-UX §4).
   const [announce, setAnnounce] = useState('');
@@ -76,7 +81,7 @@ export function StatusBoardView({ rows, generatedAt, sp, canManage }: { rows: St
   return (
     <>
       <PageHeader
-        title="QC status"
+        title={t('quality.nav.status')}
         helpKey="quality.status"
         status={<UpdatedAt at={updatedAt} />}
         actions={canManage ? <a className="lims-btn lims-btn-secondary" href="/quality/setup/materials">Set up QC</a> : null}
@@ -94,6 +99,16 @@ export function StatusBoardView({ rows, generatedAt, sp, canManage }: { rows: St
         onReset={() => router.push('/quality')}
       />
       <Checkbox label="Overdue only" isSelected={sp['overdue_only'] === 'true'} onChange={(on) => go({ overdue_only: on ? 'true' : undefined })} />
+      {/* T0D-UIDASH-1, LD-353 template 5: tiles and the bar count the rows already on the screen (no new operation) */}
+      <StatTileRow>
+        <StatTile label="In control" value={` ${count('in_control')}`} />
+        <StatTile label="Warning" value={` ${count('warning')}`} />
+        <StatTile label="Out of control" value={` ${out}`} />
+        <StatTile label="QC overdue" value={` ${data.filter((r) => r.qc_overdue).length}`} />
+      </StatTileRow>
+      <ChartCard title="Pairs by status" isEmpty={data.length === 0}>
+        <BarChart title="Pairs by status" valueFormat="integer" categories={STATUS_OPTIONS.map((o) => o.label)} series={[{ id: 'n', label: 'Pairs', values: STATUS_OPTIONS.map((o) => count(o.value)) }]} />
+      </ChartCard>
       <DataTable<StatusRow>
         columns={columns} rows={data} getRowId={(r) => r.plan_id} density="compact" caption="QC status by instrument and analyte"
         onRowAction={(r) => router.push(lj(r))}

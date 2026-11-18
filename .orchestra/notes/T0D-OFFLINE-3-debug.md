@@ -7,3 +7,8 @@ Fix: none; no code or test changed. Rerun verify.cmd; if flake recurs under load
 Cause: same single failure (156 ms vs 50 ms cap) in a 170 s verify run; wall-clock event-loop test starved by CPU load. Not an implementation defect.
 Evidence: test alone passes (2.2 s); OFFLINE-3 added no CPU work to the outbox/engine hot path; other 81 offline1 tests pass.
 Fix: none; code and tests unchanged. Lead: run offline1 config alone/serially, or tester widens the threshold. Not mine to edit.
+
+## Round 3
+Cause: same single failure (106 ms in verify; 62 ms when engine file runs alone) in wall-clock "main thread stays free" test; passes in isolation (-t "stays free"). Not an implementation defect.
+Evidence: OFFLINE-3 diff in engine.ts/outbox.ts = 1 WIRE_KEYS entry + 1 optional field + `input.op_id ?? nextId()`; no added CPU work. Other 81 offline1 tests pass.
+Fix: none; code and tests unchanged. Needs lead: run offline1 config serially/alone in verify.cmd, or tester widens the 50 ms cap. Not mine to edit.

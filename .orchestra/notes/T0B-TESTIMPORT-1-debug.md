@@ -10,3 +10,8 @@
 ## debugger round 3
 - Cause unchanged: no writer output (no catalog/import code, no impl note, no docs/ops/CATALOG-IMPORT.md); lane/C0-0C (T0C-TESTIMPORT-1 contract ops) still not merged into lane/C0-0G. Failures = `H[operationId] is not a function` (missing handlers), not a defect.
 - Fix: none applied (whole feature, not a smallest change; tests must not be touched). Needs merge of lane/C0-0C, then the WRITER step, then re-verify.
+
+## debugger round 4
+- Verify: 6079 passed, 1 failed: real-modules-boot.test.ts "bootstrap ... serves core health" timed out at its own hardcoded 60000 ms (168 s run, 112 workers). All TESTIMPORT, catalog and testmgmt boot tests pass.
+- Cause: load flake, not a defect. Same test alone passes in 41 s (2/2). Boot loads every module (~40 s idle) and exceeds 60 s under full-suite load. No catalog/import code involved.
+- Fix: none; no implementation change fits, and the test (T0D-01) is not mine to edit. Re-run verify on an idle PC (LD-367); if it recurs, tester should raise that 60_000 timeout.

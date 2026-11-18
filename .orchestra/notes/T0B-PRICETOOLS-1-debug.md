@@ -6,3 +6,7 @@
 ## debug round 2 2026-11-18
 - Same verify log: only partyset/doctor.test.ts (8, commission_bp) + real-modules-boot timeout (host load) red. main still has no commission_bp in services/api/src, so PARTYSET impl has not merged.
 - Cause unchanged: cross-task dependency, not PRICETOOLS code. No implementation change made; lead must merge T0B-PARTYSET-1 impl first or exclude partyset/ from this verify.
+
+## debug round 3 2026-11-18
+- Same verify log, same 8 reds: partyset/doctor.test.ts (commission_bp) + real-modules-boot timeout (host load). No commission_bp in catalog services on this lane.
+- Cause unchanged: PARTYSET-1 test merged without its impl; not PRICETOOLS code. No change made. Lead: merge T0B-PARTYSET-1 impl or exclude partyset/ from this verify.

@@ -121,9 +121,11 @@ export async function createBulkPrint(c: PrintCtx, ids: string[], variant: Varia
   const found = new Set((await repo.findVersionsForPrint(c.tx, c.tenantId, ids)).filter((v) => v['released_at'] != null).map((v) => v['id'] as string));
   const included = ids.filter((i) => found.has(i)); const excluded = ids.filter((i) => !found.has(i));
   if (included.length === 0) throw new LimsError('reporting.report_not_released');
+  // T0B-SYNC-4 done_when (3): any included version with a pending offline print marker marks the whole bulk print issued offline
+  const issuedOffline = c.offlineMarkers ? (await Promise.all(included.map((v) => c.offlineMarkers!.isPending(c.tx, c.tenantId, v)))).some(Boolean) : false;
   const id = uuidv7(); const expiresAt = new Date(nowMs(c) + TTL_MS).toISOString();
   await repo.insertPrint(c.tx, { id, tenantId: c.tenantId, centreId, kind: 'bulk', versionIds: included, excludedIds: excluded, templateVersionId: null, variant, copies: 1,
-    draftWatermark: false, state: 'rendering', expiresAt, actorId: c.actor.id });
+    draftWatermark: false, state: 'rendering', expiresAt, actorId: c.actor.id, issuedOffline });
   await enqueue(c, BULK_PRINT_TASK, id);
   await audit.access({ action: 'report.bulk_download', entityType: 'print_job', entityId: id, centreId, outcome: 'allowed', detail: { count: included.length } });
   return { status: 202, body: toPrintJob({ id, state: 'rendering', variant, copies: 1, expires_at: expiresAt, excluded_ids: excluded }) };

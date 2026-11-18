@@ -44,7 +44,8 @@ export const printHandlers: Readonly<Record<string, Handler>> = Object.freeze({
   createBulkPrint: async (req: HandlerRequest, hctx: HandlerContext) => {
     const c = staff(hctx); const b = body(req.body, ['ids', 'variant']); const variant = variantOf(b); const ids = b['ids'];
     if (!Array.isArray(ids) || ids.length < 1 || ids.length > MAX_IDS || !ids.every((i) => typeof i === 'string' && UUID.test(i)) || new Set(ids.map((i: string) => i.toLowerCase())).size !== ids.length) throw invalid('/ids');
-    return S.createBulkPrint(c, ids as string[], variant);
+    // T0B-SYNC-4 done_when (3): same production marker seam as createReportPrint
+    return S.createBulkPrint(c.offlineMarkers ? c : Object.assign(Object.create(c), { offlineMarkers: pendingMarkers }), ids as string[], variant);
   },
   previewReportTemplate: async (req: HandlerRequest, hctx: HandlerContext) => {
     const c = staff(hctx); const id = idOr404(req, 'template_id'); const variant = variantOf(body(req.body, ['variant']));

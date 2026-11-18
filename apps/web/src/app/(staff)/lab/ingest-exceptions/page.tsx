@@ -8,8 +8,8 @@ export const metadata = { title: 'Instrument exceptions' };
 
 export default async function IngestExceptionsPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const [session, sp] = await Promise.all([getShellSession(), searchParams]);
-  // T0D-UILIST-1 (LD-353 rule 6): 501 operation_pending keeps the title and the header row; every other failure still throws
-  return pendingOr('Instrument exceptions', ['Barcode', 'Reason', 'Instrument code', 'Instrument', 'Status', 'Received'], async () => {
+  // T0D-UILIST-1, T0D-UICONSOLE-1 (LD-353 rule 6): 501 operation_pending keeps the title and the console header row; every other failure still throws
+  return pendingOr('Instrument exceptions', ['Age', 'Barcode', 'Reason', 'Instrument code', 'Status'], async () => {
     const page = await listIngestExceptions(sp);
     const status = typeof sp['status'] === 'string' && ['open', 'resolved', 'discarded'].includes(sp['status']) ? sp['status'] : 'open';
     return <IngestExceptionList items={page.items} status={status} permissions={session?.actor.permissions ?? []} {...(page.nextCursor ? { nextCursor: page.nextCursor } : {})} />;

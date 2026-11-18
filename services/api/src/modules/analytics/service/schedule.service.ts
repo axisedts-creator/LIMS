@@ -6,7 +6,7 @@ import { ROUTES } from '../../../../../../packages/shared-ts/src/routes/generate
 import { LimsError } from '../../../core/errors.js';
 import { loadAnalyticsConfig } from '../config.js';
 import { businessDateOf } from '../domain/period.js';
-import { getReport } from '../domain/reportRegistry.js';
+import { getReport, isPendingReport, pendingReportError } from '../domain/reportRegistry.js';
 import { intersect } from '../domain/scope.js';
 import {
   PERIOD_RULES, SCHEDULE_FREQUENCIES, isSlotLate, nextSlot, schedulePeriod, validateScheduleName, type PeriodRule,
@@ -81,6 +81,8 @@ export function parseScheduleBody(body: unknown): ScheduleInput {
 
 /** Registry lookup in body order: unknown -> 404 analytics.report_unknown; a report that cannot be scheduled (interfaces) -> 400. Returns the distinct permissions to require of the caller. */
 export function schedulePermissions(codes: readonly string[]): string[] {
+  const pending = codes.find(isPendingReport);
+  if (pending !== undefined) throw pendingReportError(pending); // LD-346 (2): 501 operation_pending, nothing stored
   const defs = codes.map((c) => getReport(c));
   if (defs.some((d) => !d.schedulable)) throw invalidField('report_codes');
   return [...new Set(defs.map((d) => d.permission))];

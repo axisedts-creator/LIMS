@@ -8,6 +8,11 @@ import { loadManifest, pageExists, specSuite } from '../../../core/nav/__tests__
 const row = (id: string, name: string, path: string, permission: string, order: number, phase: string) =>
   ({ name, path, permission, group: 'engagement', order, phase, id: `engagement.${id}`, routeId: `staff.engagement.${id}` }) as const;
 
+// T0D-CONTENT-1 (LD-313): ONE additive entry after Engagement settings. It joins the exact check only once its page exists (same rule as billing accounts).
+const CONTENT = [
+  { name: 'Portal content', path: '/engagement/content', permission: 'engagement.content.read', group: 'engagement', orderRange: [90, 200] as [number, number], id: 'engagement.content', routeId: 'staff.engagement.content' },
+].filter((r) => pageExists(r.path));
+
 specSuite({
   module: 'engagement',
   owner: 'C16',
@@ -22,6 +27,7 @@ specSuite({
     row('bookable', 'Bookable tests', '/engagement/bookable-items', 'engagement.bookable_item.manage', 70, '3'),
     row('queue_setup', 'Queue setup', '/engagement/queue/setup', 'engagement.queue.manage', 80, '2'),
     row('settings', 'Engagement settings', '/engagement/settings', 'engagement.settings.manage', 90, '2'),
+    ...CONTENT,
   ],
 });
 
@@ -30,7 +36,7 @@ describe('ADMINPAGE-ENG-1 (LD-255): Engagement settings entry is present', () =>
     expect(pageExists('/engagement/settings'), 'page /engagement/settings exists').toBe(true);
     const m = await loadManifest('engagement');
     expect(m.entries.filter((e) => e.routeId === 'staff.engagement.settings')).toHaveLength(1);
-    expect(m.entries).toHaveLength(9);
+    expect(m.entries).toHaveLength(9 + CONTENT.length);
   });
 });
 

@@ -3,7 +3,9 @@
 import type { Handler } from '../../../core/module.js';
 import { LimsError } from '../../../core/errors.js';
 import { loadAnalyticsConfig } from '../config.js';
-import { getReport } from '../domain/reportRegistry.js';
+import { isMisReport } from '../domain/misReports.js';
+import { getReport, isPendingReport, pendingReportError } from '../domain/reportRegistry.js';
+import { resolveScope } from '../service/context.service.js';
 import { checkParams, createExport, downloadExport, getExport, listExports, parseCreateBody } from '../service/export.service.js';
 import { branchLabels, departmentLabels } from '../service/labels.service.js';
 import { authorise, periodAndScope, queryOf, type ReportCtx } from './reportRequest.js';
@@ -30,6 +32,7 @@ async function assertFilterIdsKnown(c: ReportCtx, filters: unknown): Promise<voi
 export const createAnalyticsExport: Handler = async (req, ctx) => {
   const c = await authorise(ctx, PERM);
   const body = parseCreateBody(req.body);
+  if (isPendingReport(body.report_code)) throw pendingReportError(body.report_code); // LD-346 (2): after analytics.data.export, before anything is read or written
   const report = getReport(body.report_code); // unknown -> 404 analytics.report_unknown
   await authorise(ctx, report.permission);
   if (report.flag) {
@@ -38,9 +41,12 @@ export const createAnalyticsExport: Handler = async (req, ctx) => {
   }
   if (body.format === 'pdf' && !loadAnalyticsConfig().pdfEnabled) throw new LimsError('common.feature_disabled'); // RenderPort not registered
   checkParams(body.report_code, body.params);
-  const { period, scope } = await periodAndScope(c, body.params);
+  // T0B-MISREPORTS-1: MIS reports take INCLUSIVE business dates capped at 366 days (validated by checkParams); the older reports keep resolvePeriod.
+  const { from, to, scope } = isMisReport(body.report_code)
+    ? { from: body.params.business_date_from as string, to: body.params.business_date_to as string, scope: await resolveScope(c, { centreIds: body.params.centre_id as string[] | undefined, branchIds: body.params.branch_id as string[] | undefined }) } // shapes checked by checkParams
+    : await periodAndScope(c, body.params).then(({ period, scope: s }) => ({ from: period.from as string, to: period.to as string, scope: s }));
   await assertFilterIdsKnown(c, body.params.filters); // 07-SECURITY P1: another tenant's / unknown ids -> 404 at request time, never stored
-  const dto = await createExport(c as never, { body, scope, from: period.from, to: period.to });
+  const dto = await createExport(c as never, { body, scope, from, to });
   return { status: 202, body: dto };
 };
 

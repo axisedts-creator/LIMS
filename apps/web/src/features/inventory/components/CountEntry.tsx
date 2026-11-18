@@ -5,7 +5,6 @@
 // LD-140 (2026-11-13): kit components only; "Post count" is the ONE primary; line state is a word with a tone + icon.
 import { useRef, useState, type KeyboardEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { BarcodeInput } from '@lims/ui/components/BarcodeInput';
 import { Button } from '@lims/ui/components/Button';
 import { ConfirmDialog } from '@lims/ui/components/ConfirmDialog';
 import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
@@ -13,6 +12,7 @@ import { DecimalField } from '@lims/ui/components/DecimalField';
 import { Inline } from '@lims/ui/components/Inline';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { RadioGroup } from '@lims/ui/components/RadioGroup';
+import { ScanPanel } from '@lims/ui/components/ScanPanel';
 import { Stack } from '@lims/ui/components/Stack';
 import { Switch } from '@lims/ui/components/Switch';
 import { useToast } from '@lims/ui/components/Toast';
@@ -91,7 +91,7 @@ export function CountEntry({ count, storeName, items, lots, canManage, canAdjust
     const mine = lines.filter((l) => l.item_id === r.data.id);
     const target = mine.find((l) => !l.counted_qty_base) ?? mine[0];
     if (!target) return setScanMsg('This item is not on this count.');
-    setScanMsg('');
+    setScanMsg(`${r.data.item_code} · ${r.data.name}`); // blind count: the card names the item only, never a quantity
     root.current?.querySelector<HTMLInputElement>(`[data-line="${target.id}"] input`)?.focus();
   };
 
@@ -118,6 +118,7 @@ export function CountEntry({ count, storeName, items, lots, canManage, canAdjust
     { id: 'state', header: 'Line', cell: (l) => (l.counted_qty_base ? <Chip tone="success" label="Recorded" /> : <Chip tone="neutral" label="Not counted" />) },
     ...(reviewing ? [{ id: 'variance', header: 'Variance', align: 'end' as const, cell: (l: CountLine) => (l.variance_qty_base !== undefined ? l.variance_qty_base : '—') }] : []),
   ];
+  const table = <DataTable caption="Count lines" columns={columns} rows={lines} getRowId={(l) => l.id} emptyState={{ title: 'This count has no lines.' }} />;
 
   return (
     <section aria-label="Stock count">
@@ -138,10 +139,13 @@ export function CountEntry({ count, storeName, items, lots, canManage, canAdjust
         <ProblemBanner problem={problem} />
         <p>{`Snapshot taken ${isoDate(count.snapshot_at)}. Count what is on the shelf; the system quantity stays hidden so it cannot bias the count.`}</p>
         {open && canAdjust ? <Switch label="Show system quantity" isSelected={showSystem} onChange={setShowSystem} /> : null}
-        {open && canManage ? <BarcodeInput label="Scan item barcode" name="scan" pattern={BARCODE_VALUE} autoFocus={false} onScan={(v) => void onScan(v)} /> : null}
-        {scanMsg ? <p role="status">{scanMsg}</p> : null}
         <div ref={root}>
-          <DataTable caption="Count lines" columns={columns} rows={lines} getRowId={(l) => l.id} emptyState={{ title: 'This count has no lines.' }} />
+          {open && canManage ? (
+            // T0D-UISCAN-1 (LD-353 template 3): scan input, last result card, the count lines as the queue
+            <ScanPanel label="Scan item barcode" name="scan" pattern={BARCODE_VALUE} autoFocus={false} onScan={(v) => void onScan(v)} result={scanMsg ? <p className="lims-description">{scanMsg}</p> : null}>
+              {table}
+            </ScanPanel>
+          ) : table}
         </div>
       </Stack>
       <ConfirmDialog

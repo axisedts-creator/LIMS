@@ -43,7 +43,7 @@ describe('RS-C5 key screens (DOM snapshots)', () => {
     localStorage.setItem('lims.lab.receive.location', CENTRE_A);
     const { ReceiveScreen } = await import('../components/ReceiveScreen');
     const { container } = wrap(<ReceiveScreen centres={CENTRES} rejectionReasons={REASONS} recollectionDefault={false} permissions={['lab.specimen.receive', 'lab.specimen.reject', 'lab.specimen.read']} />);
-    await screen.findByRole('tablist', { name: /session log/i });
+    await screen.findByRole('search'); // T0D-UISCAN-1: the session-log pills sit in the FilterBar (role=search)
     expect(normalise(container)).toMatchSnapshot();
   });
 

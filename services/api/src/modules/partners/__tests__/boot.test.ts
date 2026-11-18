@@ -28,11 +28,7 @@ const SPEC = loadSpec(join(REPO_ROOT, 'contracts', 'openapi', 'partners.yaml'));
 const SALES1 = ['listSalesDesignations', 'createSalesDesignation', 'updateSalesDesignation', 'listSalesRepresentatives', 'createSalesRepresentative', 'updateSalesRepresentative',
   'deactivateSalesRepresentative', 'getSalesTree', 'assignPartyToRepresentative', 'unassignPartyFromRepresentative', 'listRepresentativeClients', 'listServiceAreas', 'createServiceArea',
   'updateServiceArea', 'deactivateServiceArea'];
-// T0C-MSGDESK-1 (LD-321, LD-325(b)): 10 partner ticket operations, pending until T0B-MSGDESK-1; pinned by contract/msgdesk1.pending.test.ts and excluded here like SALES1.
-const MSGDESK1 = ['createPartnerTicket', 'listPartnerTickets', 'getPartnerTicket', 'replyPartnerTicket', 'closePartnerTicket', 'reopenPartnerTicket',
-  'listMyPartnerTickets', 'createMyPartnerTicket', 'getMyPartnerTicket', 'replyMyPartnerTicket'];
-const PENDING_NEW = [...SALES1, ...MSGDESK1];
-const OPS = operationIds(SPEC).filter((id) => !PENDING_NEW.includes(id));
+const OPS = operationIds(SPEC).filter((id) => !SALES1.includes(id));
 const PERMS = ['partners.manifest.receive', 'partners.manifest.submit', 'partners.order.read', 'partners.partner.manage',
   'partners.partner.read', 'partners.partner_user.manage', 'partners.pickup.manage', 'partners.pickup.request',
   'partners.price_list.read', 'partners.referrer.manage', 'partners.referrer.map', 'partners.referrer.read',
@@ -57,13 +53,16 @@ const IMPLEMENTED: readonly string[] = [
   'listInboundManifests', 'getInboundManifest', 'receiveManifest', 'retryManifestLineConversion', 'markManifestLineNotReceived', // T10 (SI1-SI5)
   'listPartnerOrders', 'searchPartnerOrders', 'getPartnerOrder', 'listPartnerReports', 'markPartnerReportsSeen', 'downloadPartnerReport', // T13 (O1-O3, R1-R3)
   'issuePatientAccessSlip', 'getPatientAccessSlip', 'downloadPatientAccessSlip', // T14 (R4-R6)
+  // T0B-MSGDESK-1 (LD-321)
+  'listPartnerTickets', 'createPartnerTicket', 'getPartnerTicket', 'replyPartnerTicket', 'closePartnerTicket', 'reopenPartnerTicket',
+  'listMyPartnerTickets', 'createMyPartnerTicket', 'getMyPartnerTicket', 'replyMyPartnerTicket',
 ];
 
 const FAKE_REQ = { params: {}, query: {}, headers: {}, body: {} };
 const noop = () => undefined;
 const fakeCtx = (operationId: string) => ({ operationId, clientIp: '127.0.0.1', log: { info: noop, warn: noop, error: noop } }) as any;
 const allOps = () => Object.entries<any>(SPEC.paths).flatMap(([path, item]) =>
-  Object.entries<any>(item).filter(([, op]) => op?.operationId && !PENDING_NEW.includes(op.operationId)).map(([method, op]) => ({ path, method, op })));
+  Object.entries<any>(item).filter(([, op]) => op?.operationId && !SALES1.includes(op.operationId)).map(([method, op]) => ({ path, method, op })));
 
 describe('T01 manifest', () => {
   it('is module partners bound to contracts/openapi/partners.yaml and passes the core manifest validation', () => {
@@ -96,13 +95,13 @@ describe('T01 manifest', () => {
 });
 
 describe('T01 handler map (68 operationIds of partners.yaml)', () => {
-  it('the spec has 68 unique operationIds besides the pending sales and ticket ones', () => {
-    expect(OPS.length).toBe(68);
-    expect(new Set(OPS).size).toBe(68);
+  it('the spec has 78 unique operationIds', () => {
+    expect(OPS.length).toBe(78);
+    expect(new Set(OPS).size).toBe(78);
   });
 
   it('binds every operationId of partners.yaml to a function, and nothing else (AC-0D-1.2)', () => {
-    expect(Object.keys(manifest.handlers).filter((id) => !PENDING_NEW.includes(id)).sort()).toEqual([...OPS].sort());
+    expect(Object.keys(manifest.handlers).filter((id) => !SALES1.includes(id)).sort()).toEqual([...OPS].sort());
     for (const op of OPS) expect(typeof manifest.handlers[op], op).toBe('function');
   });
 
@@ -227,13 +226,13 @@ describe('T01 boot against the real repo (default modulesDir, real partners.yaml
   // version_no is an integer path param (partners.yaml:1800), period_month is YYYY-MM (partners.yaml:7879); a UUID there would 400 before auth.
   const toUrl = (path: string) => path.replace(/\{version_no\}/g, '1').replace(/\{period_month\}/g, '2026-01').replace(/\{[^}]+\}/g, '01940e00-0000-7000-8000-c13000000001');
 
-  it('boots and mounts every partners operation at its spec path and method (68 of 68)', async () => {
+  it('boots and mounts every partners operation at its spec path and method (78 of 78)', async () => {
     const app = await boot();
     const unmounted: string[] = [];
     for (const { path, method } of allOps()) {
       if (!app.hasRoute({ method: method.toUpperCase() as any, url: path.replace(/\{([^}]+)\}/g, ':$1') })) unmounted.push(`${method.toUpperCase()} ${path}`);
     }
-    expect(allOps().length).toBe(68);
+    expect(allOps().length).toBe(78);
     expect(unmounted).toEqual([]);
   }, 600_000); // LD-152: 12 lanes share one machine; boot of all 15 modules exceeded 300 s
 

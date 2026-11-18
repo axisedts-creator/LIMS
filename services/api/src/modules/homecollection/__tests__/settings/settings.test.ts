@@ -3,9 +3,11 @@
 // 08 A19 D-128 (payment_methods[].code must be one of C4's six seed codes), D-129 (notify_patient_on_assign = true -> 400 until CR-C17-014 merges), TRD §5 H19 (second_identifier = birth_date -> 400
 // until CR-C17-003 merges), 02-CV §4.2 (If-Match absent 428, stale 409, malformed 400), 07-SECURITY §4 (privilege escalation: forbidden / mfa_required), 05-SCHEMA §4 settings CHECKs (a value the DB
 // would reject must be a 400, never a 500). Fails now: both operations are HC-T01 stubs (common.internal "not implemented").
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { ADMIN, ADMIN_B, BASE, DEFAULT_PAYMENT_CODES, DEFAULT_SCALARS, DISPATCHER, NEW, P, PHLEBO, SEED_PAYMENT_CODES, SYS_ACTOR, T, TENANT_A, TENANT_B, WIRE, as, getSettings, getSettingsFails,
-  putSettings, putSettingsFails, resetSettings, schemaErrors, settingsRow, settingsRows, superTx, wire } from './helpers.js';
+  putSettings, putSettingsFails, resetSettings, restoreSettings, schemaErrors, settingsRow, settingsRows, superTx, wire } from './helpers.js';
+
+afterAll(async () => { await restoreSettings(); }, T);   // LD-347 isolation: hand the rows other files seeded back
 
 const AUDIT_AND_INTERNAL = ['id', 'tenant_id', 'is_active', 'created_by', 'updated_by', 'created_at', 'updated_at'];
 const pm = (...codes: string[]) => codes.map((code) => ({ code, display: code.slice(0, 40), requires_reference: false }));

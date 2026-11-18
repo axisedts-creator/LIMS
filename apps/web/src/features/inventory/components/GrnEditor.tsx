@@ -142,6 +142,7 @@ export function GrnEditor(p: GrnEditorProps) {
   const [saved, setSaved] = useState<Grn | undefined>(p.grn);
   const [errors, setErrors] = useState<Errors>({ lines: {} });
   const [problem, setProblem] = useState<Failure>();
+  const [scanCard, setScanCard] = useState('');
   const [saving, setSaving] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const saveKey = useAttemptKey();
@@ -179,11 +180,13 @@ export function GrnEditor(p: GrnEditorProps) {
   const onScan = async (value: string) => {
     const r = await lookupBarcodeAction(value); // the value travels in the POST body only
     if (!r.ok) {
+      setScanCard(r.status === 404 ? SCAN_UNKNOWN : '');
       if (r.status === 404) toast.show({ tone: 'danger', title: SCAN_UNKNOWN });
       else setProblem(r);
       return;
     }
     const item = r.data;
+    setScanCard(`${item.item_code} · ${item.name}`); // T0D-UISCAN-1: the last scan result card
     const cur = live.current.lines;
     const same = cur.find((l) => l.item?.id === item.id);
     if (same) {
@@ -315,7 +318,7 @@ export function GrnEditor(p: GrnEditorProps) {
             </>
           ) : null}
           <TextArea label="Notes" name="notes" maxLength={1000} value={s.notes} onChange={(v) => setS((c) => ({ ...c, notes: v }))} />
-          <ScanBox onValue={(v) => void onScan(v)} />
+          <ScanBox onValue={(v) => void onScan(v)} result={scanCard ? <p className="lims-description">{scanCard}</p> : null} />
           {s.lines.map((l, i) => {
             const e = errors.lines[l.key];
             const sl = showAmounts ? saved?.lines[i] : undefined;

@@ -15,3 +15,11 @@ Why: the 2 cases that print a real PDF fail only in the full 166 worker run (fas
 3. In beforeAll after createPool run a direct probe: pool.render of a tiny html page (no client, no server) with the same fresh start loop. If the probe cannot print a PDF after 4 fresh starts, set a module flag, print one console warning line starting with CHROMIUM_UNAVAILABLE plus os.freemem, and the 2 PDF cases skip themselves. When the probe passes, the 2 cases MUST run and pass with every assertion kept (PDF magic bytes, page count, png asset validation, render still succeeds, token never echoed), so a defect in the client or the server still fails.
 4. When a PDF case still fails after the fresh starts, the thrown error must add the raw HTTP status and the first 200 characters of the body of a direct fetch to the render endpoint with the same body (never the token).
 The skip path exists only for Chromium itself being unable to print a trivial page. Do not touch the renderer, the client or any print code.
+
+
+## LEAD ITEM 2 LD-389 FOR THE TESTER (written by the lead, 19:55 NPT; test file item, it is yours)
+File: services/api/src/modules/billing/__tests__/accounts/reversal.test.ts, the test no update path exists for the money columns (line 117). Verdict TESTS_WRONG (dispute 4 of the writer): migration 20261117190000_billing__add_finance_controls.sql (T0C-FINCTRL-1) now grants lims_app a column level UPDATE on status and the hold columns and the guard trigger account_ledger_hold_guard allows only submitted to held and held to submitted; any other status change raises P0001 immutable_row. The invariant (no reversal or edit by UPDATE) still holds, only the error code of the status case changed.
+1. Keep 42501 for UPDATE of amount_paisa and for DELETE.
+2. For UPDATE of status to reversed expect P0001 with message immutable_row; after the refused statement re-read the entry with the helper this file already uses and assert status and amount are unchanged.
+3. Rename the title: money columns and DELETE are refused with 42501, a status change other than hold and release is refused by the guard with P0001.
+4. Grep the other billing tests for the same pin (a status UPDATE expected to give 42501) and fix them the same way. Keep every other assertion. Touch no other file; the migration is right.

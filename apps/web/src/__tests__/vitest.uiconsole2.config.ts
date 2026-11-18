@@ -9,7 +9,8 @@ export default defineConfig({
   esbuild: { jsx: 'automatic' },
   resolve: { alias: { '@/': `${web}src/` } },
   test: {
-    include: ['src/features/lab/__tests__/uiconsole2.*.test.tsx'],
+    // + the two older queue tests whose queries moved to the console markup (review items 2): c5-t21.queues, verlevel1.queues
+    include: ['src/features/lab/__tests__/uiconsole2.*.test.tsx', 'src/features/lab/__tests__/c5-t21.queues.test.tsx', 'src/features/lab/__tests__/verlevel1.queues.test.tsx'],
     environment: 'node', // component files opt in with `// @vitest-environment jsdom`
     restoreMocks: true,
     testTimeout: 30000,

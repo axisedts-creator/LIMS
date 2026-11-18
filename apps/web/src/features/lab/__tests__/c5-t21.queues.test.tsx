@@ -83,15 +83,33 @@ beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
 afterEach(() => { cleanup(); api.resetHandlers(); calls.length = 0; push.mockReset(); refresh.mockReset(); verifyReply = okAll; approveReply = okAll; nVerify = 0; nApprove = 0; });
 afterAll(() => api.close());
 
+// T0D-UICONSOLE-2 (LD-353 template 2 CONSOLE): the queue is ONE row per registration (checkbox "Select {reg}" + the registration button); the results, the acknowledge boxes and
+// the sign-off chip live in the detail pane of the selected registration; the sticky bar has "Select all unflagged (S)" (one confirm, then it sends), "Verify|Approve n (V|A)"
+// (just "Verify (V)" at 0), "Return for repeat (R)" and "Hold (H)". A registration with a flag cannot be ticked; it is opened and acted on from its detail. Every assertion of the
+// old flat table is kept and asked of the console markup.
 const wrap = (ui: ReactNode) => render(<ToastProvider>{ui}</ToastProvider>);
+const queueTable = () => screen.getByRole('table', { name: /queue/i });
+const resultsTable = () => screen.getByRole('table', { name: 'Results' });
 const rowOf = (reg: string) => {
-  const r = screen.getAllByRole('row').find((x) => x.textContent?.includes(reg));
+  const r = within(queueTable()).getAllByRole('row').find((x) => x.textContent?.includes(reg));
   if (!r) throw new Error(`no row for ${reg}`);
   return r;
 };
-const selectBox = (reg: string) => within(rowOf(reg)).getAllByRole('checkbox').find((c) => /select/i.test(c.getAttribute('aria-label') ?? c.closest('label')?.textContent ?? '') || /select/i.test((c as HTMLInputElement).labels?.[0]?.textContent ?? ''))!;
-const ackBox = (reg: string, flag: RegExp) => within(rowOf(reg)).getByRole('checkbox', { name: new RegExp(`acknowledge.*${flag.source}`, 'i') });
-const bulkBtn = (verb: 'Verify' | 'Approve', n?: number) => screen.getByRole('button', { name: new RegExp(`^${verb}\\s*${n ?? '\\d+'}$`, 'i') });
+const selectBox = (reg: string) => within(rowOf(reg)).getByRole('checkbox', { name: `Select ${reg}` }) as HTMLInputElement;
+const openReg = (user: ReturnType<typeof userEvent.setup>, reg: string) => user.click(within(rowOf(reg)).getByRole('button', { name: reg }));
+const ackBox = (flag: RegExp) => within(resultsTable()).getByRole('checkbox', { name: new RegExp(`acknowledge.*${flag.source}`, 'i') });
+const bulkBtn = (verb: 'Verify' | 'Approve', n?: number) => screen.getByRole('button', { name: new RegExp(`^${verb}${n === 0 ? '' : `\\s*${n ?? '\\d+'}`}\\s*\\(${verb[0]}\\)$`, 'i') });
+const outcomeDlg = () => waitFor(() => {
+  const d = screen.getAllByRole('dialog').find((x) => /\d+ done, \d+ not done/.test(x.textContent ?? ''));
+  if (!d) throw new Error('no outcome dialog yet');
+  return d;
+});
+/** "Select all unflagged (S)" opens ONE confirm; Confirm sends (the console has no header "select all" box). */
+const selectAllUnflagged = async (user: ReturnType<typeof userEvent.setup>) => {
+  await user.click(screen.getByRole('button', { name: /^select all unflagged/i }));
+  await user.click(within(await screen.findByRole('dialog')).getByRole('button', { name: /^confirm$/i }));
+};
+const closeOutcome = async (user: ReturnType<typeof userEvent.setup>) => user.click(within(await outcomeDlg()).getByRole('button', { name: /close|done|ok/i }));
 const noAxeViolations = async () => {
   const r = await axe.run(document.body, { rules: { 'color-contrast': { enabled: false } } });
   expect(r.violations.map((v) => `${v.id}: ${v.nodes[0]?.html}`)).toEqual([]);
@@ -101,27 +119,34 @@ const approveCalls = () => calls.filter((c) => c.url.pathname.endsWith('/bulk-ap
 
 // ───────────────────────────────────────── Verification queue
 describe('C5.T-21 verification queue — list, states, permissions', () => {
-  it('renders one row per result with reg no, patient, analyte, priority; empty list → "Nothing waiting for verification."', async () => {
+  it('renders one row per registration with reg no, patient, priority and the analyte in its detail; empty list → "Nothing waiting for verification."', async () => {
+    const user = userEvent.setup();
     const { unmount } = wrap(<VerificationQueue items={[item(1), item(2)]} permissions={VERIFY} />);
     const r1 = rowOf('REG0001');
     expect(within(r1).getByText(/Synthetic Patient 1/)).toBeTruthy();
-    expect(within(r1).getByText(/AN1/)).toBeTruthy();
+    expect(within(r1).getByText('routine')).toBeTruthy();
     expect(within(rowOf('REG0002')).getByText(/Synthetic Patient 2/)).toBeTruthy();
+    await openReg(user, 'REG0001');
+    expect(within(resultsTable()).getByText(/AN1/)).toBeTruthy();
     unmount();
     wrap(<VerificationQueue items={[]} permissions={VERIFY} />);
-    expect(screen.getByText('Nothing waiting for verification.')).toBeTruthy();
+    expect(within(queueTable()).getByText('Nothing waiting for verification.')).toBeTruthy();
   });
 
-  it('range_unavailable_age_unknown → the exact flag text (08 A17.1); a normal row does not show it', () => {
+  it('range_unavailable_age_unknown → the exact flag text (08 A17.1) in the reference range cell of that result; a normal result does not show it', async () => {
+    const user = userEvent.setup();
     wrap(<VerificationQueue items={[item(1, { result: { range_unavailable_age_unknown: true } }), item(2)]} permissions={VERIFY} />);
-    expect(within(rowOf('REG0001')).getByText('Age unknown — reference range and critical check not applied')).toBeTruthy();
-    expect(within(rowOf('REG0002')).queryByText(/Age unknown/)).toBeNull();
+    await openReg(user, 'REG0001');
+    expect(within(resultsTable()).getByText('Age unknown — reference range and critical check not applied')).toBeTruthy();
+    await openReg(user, 'REG0002');
+    expect(within(resultsTable()).queryByText(/Age unknown/)).toBeNull();
   });
 
-  it('without lab.result.verify the screen is read-only: no selection boxes, no Verify button, no request', async () => {
+  it('without lab.result.verify the screen is read-only: every selection box and the Verify button are disabled with the reason in words, no request', async () => {
     wrap(<VerificationQueue items={[item(1)]} permissions={['lab.result.read']} />);
-    expect(within(rowOf('REG0001')).queryAllByRole('checkbox')).toHaveLength(0);
-    expect(screen.queryByRole('button', { name: /^verify/i })).toBeNull();
+    for (const box of within(rowOf('REG0001')).getAllByRole('checkbox')) expect((box as HTMLInputElement).disabled).toBe(true);
+    expect((bulkBtn('Verify', 0) as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.getByText('You do not have permission to verify results.')).toBeTruthy();
     expect(calls).toHaveLength(0);
   });
 
@@ -144,6 +169,7 @@ describe('C5.T-21 verification queue — list, states, permissions', () => {
     expect((selectBox('REG0002') as HTMLInputElement).checked).toBe(true);
     expect((selectBox('REG0003') as HTMLInputElement).checked).toBe(false);
     expect(bulkBtn('Verify', 2)).toBeTruthy();
+    expect(document.activeElement).toBe(selectBox('REG0002')); // focus follows to the next row's box
   });
 
   it('"flagged only" filter navigates with flagged_only=true; the URL carries no patient data (REQ-SEC-028)', async () => {
@@ -166,6 +192,7 @@ describe('C5.T-21 verification queue — list, states, permissions', () => {
     const user = userEvent.setup();
     wrap(<VerificationQueue items={[item(1, { result: DELTA }), item(2)]} permissions={VERIFY} />);
     await user.click(selectBox('REG0002'));
+    await openReg(user, 'REG0001');
     await noAxeViolations();
   });
 });
@@ -182,57 +209,67 @@ describe('C5.T-21 verification queue — bulk verify, flagged-row acknowledgemen
     expect(c.headers.get('idempotency-key')).toBeTruthy();
     expect(c.body.items.map((i: any) => [i.id, i.version])).toEqual([[id(1), 4], [id(2), 1]]);
     for (const i of c.body.items) expect(i.acknowledged_flags ?? []).toEqual([]);
-    expect(await screen.findByRole('dialog')).toBeTruthy();
-    expect(within(screen.getByRole('dialog')).getByText(/2 done, 0 not done/)).toBeTruthy();
+    expect(await outcomeDlg()).toBeTruthy();
+    expect(within(await outcomeDlg()).getByText(/2 done, 0 not done/)).toBeTruthy();
   });
 
-  it('flagged-row acknowledgement: a selected delta-fail row cannot be sent until its "Acknowledge delta" is ticked; then acknowledged_flags = ["delta"] for that row only', async () => {
+  it('flagged-row acknowledgement: a delta-fail registration (opened, it cannot be ticked) cannot be sent until its "Acknowledge delta" is ticked; then acknowledged_flags = ["delta"] for that result only', async () => {
     const user = userEvent.setup();
     wrap(<VerificationQueue items={[item(1, { result: DELTA }), item(2)]} permissions={VERIFY} />);
-    await user.click(selectBox('REG0001'));
-    await user.click(selectBox('REG0002'));
-    const b = bulkBtn('Verify', 2) as HTMLButtonElement;
+    await openReg(user, 'REG0001');
+    expect(selectBox('REG0001').disabled).toBe(true); // flagged: reviewed from its detail, never bulk ticked
+    const b = bulkBtn('Verify', 1) as HTMLButtonElement;
     if (!b.disabled) await user.click(b);
     expect(verifyCalls()).toHaveLength(0); // blocked: nothing sent without the acknowledgement
-    await user.click(ackBox('REG0001', /delta/));
-    await user.click(bulkBtn('Verify', 2));
+    await user.click(ackBox(/delta/));
+    await user.click(bulkBtn('Verify', 1));
     await waitFor(() => expect(verifyCalls()).toHaveLength(1));
     const items = verifyCalls()[0]!.body.items;
+    expect(items.map((i: any) => i.id)).toEqual([id(1)]);
     expect(items.find((i: any) => i.id === id(1)).acknowledged_flags).toEqual(['delta']);
-    expect(items.find((i: any) => i.id === id(2)).acknowledged_flags ?? []).toEqual([]);
+    await closeOutcome(user);
+    await user.click(selectBox('REG0002'));
+    await user.click(bulkBtn('Verify', 1));
+    await waitFor(() => expect(verifyCalls()).toHaveLength(2));
+    const second = verifyCalls()[1]!.body.items;
+    expect(second.find((i: any) => i.id === id(2)).acknowledged_flags ?? []).toEqual([]);
   });
 
   it('a row needing several flags needs EVERY acknowledgement (delta + critical + unit mismatch + instrument flag); the stored list is exactly the needed set', async () => {
     const user = userEvent.setup();
     wrap(<VerificationQueue items={[item(1, { result: { ...DELTA, ...CRIT, unit_mismatch: true, instrument_flags: ['clot'] } })]} permissions={VERIFY} />);
-    await user.click(selectBox('REG0001'));
+    await openReg(user, 'REG0001');
     for (const f of [/delta/, /critical/, /unit.?mismatch/]) {
-      await user.click(ackBox('REG0001', f));
+      await user.click(ackBox(f));
       const b = bulkBtn('Verify', 1) as HTMLButtonElement;
       if (!b.disabled) await user.click(b);
       expect(verifyCalls()).toHaveLength(0); // still one missing
     }
-    await user.click(ackBox('REG0001', /instrument/));
+    await user.click(ackBox(/instrument/));
     await user.click(bulkBtn('Verify', 1));
     await waitFor(() => expect(verifyCalls()).toHaveLength(1));
     expect([...verifyCalls()[0]!.body.items[0].acknowledged_flags].sort()).toEqual(['critical', 'delta', 'instrument_flag', 'unit_mismatch']);
   });
 
-  it('un-selecting a flagged, un-acknowledged row unblocks the rest of the batch', async () => {
+  it('a flagged, un-acknowledged registration open in the detail blocks only itself: ticking an unflagged row sends just that row', async () => {
     const user = userEvent.setup();
     wrap(<VerificationQueue items={[item(1, { result: DELTA }), item(2)]} permissions={VERIFY} />);
-    await user.click(selectBox('REG0001'));
+    await openReg(user, 'REG0001');
+    expect((bulkBtn('Verify', 1) as HTMLButtonElement).disabled).toBe(true); // blocked while only the flagged row is the target
     await user.click(selectBox('REG0002'));
-    await user.click(selectBox('REG0001'));
+    expect((bulkBtn('Verify', 1) as HTMLButtonElement).disabled).toBe(false);
     await user.click(bulkBtn('Verify', 1));
     await waitFor(() => expect(verifyCalls()).toHaveLength(1));
     expect(verifyCalls()[0]!.body.items.map((i: any) => i.id)).toEqual([id(2)]);
   });
 
-  it('a row that needs no acknowledgement shows no acknowledge box (no blanket "acknowledge all")', () => {
+  it('a row that needs no acknowledgement shows no acknowledge box (no blanket "acknowledge all")', async () => {
+    const user = userEvent.setup();
     wrap(<VerificationQueue items={[item(1), item(2, { result: DELTA })]} permissions={VERIFY} />);
-    expect(within(rowOf('REG0001')).queryAllByRole('checkbox', { name: /acknowledge/i })).toHaveLength(0);
-    expect(within(rowOf('REG0002')).getAllByRole('checkbox', { name: /acknowledge/i })).toHaveLength(1);
+    await openReg(user, 'REG0001');
+    expect(within(resultsTable()).queryAllByRole('checkbox', { name: /acknowledge/i })).toHaveLength(0);
+    await openReg(user, 'REG0002');
+    expect(within(resultsTable()).getAllByRole('checkbox', { name: /acknowledge/i })).toHaveLength(1);
   });
 
   it('AC-15.2: 50 selected, 3 come back `common.not_found` → dialog "47 done, 3 not done" with one reason line per failed id; raw codes never shown', async () => {
@@ -241,9 +278,8 @@ describe('C5.T-21 verification queue — bulk verify, flagged-row acknowledgemen
     const failed = new Set([id(7), id(21), id(50)]);
     verifyReply = (b) => HttpResponse.json({ results: b.items.map((i: any) => failed.has(i.id) ? { id: i.id, outcome: 'error', code: 'common.not_found' } : { id: i.id, outcome: 'ok' }) });
     wrap(<VerificationQueue items={items} permissions={VERIFY} />);
-    await user.click(screen.getByRole('checkbox', { name: /select all/i }));
-    await user.click(bulkBtn('Verify', 50));
-    const dlg = await screen.findByRole('dialog');
+    await selectAllUnflagged(user);
+    const dlg = await outcomeDlg();
     expect(within(dlg).getByText(/47 done, 3 not done/)).toBeTruthy();
     for (const reg of ['REG0007', 'REG0021', 'REG0050']) expect(within(dlg).getByText(new RegExp(reg))).toBeTruthy();
     expect(within(dlg).queryByText(/REG0001\b/)).toBeNull(); // ok rows are not listed as failures
@@ -256,9 +292,8 @@ describe('C5.T-21 verification queue — bulk verify, flagged-row acknowledgemen
     const codes = ['lab.result_invalid_transition', 'lab.result_on_hold', 'lab.flag_ack_required', 'common.version_conflict'];
     verifyReply = (b) => HttpResponse.json({ results: b.items.map((i: any, k: number) => ({ id: i.id, outcome: 'error', code: codes[k] })) });
     wrap(<VerificationQueue items={[item(1), item(2), item(3), item(4)]} permissions={VERIFY} />);
-    await user.click(screen.getByRole('checkbox', { name: /select all/i }));
-    await user.click(bulkBtn('Verify', 4));
-    const dlg = await screen.findByRole('dialog');
+    await selectAllUnflagged(user);
+    const dlg = await outcomeDlg();
     expect(within(dlg).getByText(/0 done, 4 not done/)).toBeTruthy();
     expect(dlg.textContent).not.toMatch(/lab\.|common\./);
     const lines = within(dlg).getAllByRole('listitem').map((l) => l.textContent ?? '');
@@ -272,7 +307,7 @@ describe('C5.T-21 verification queue — bulk verify, flagged-row acknowledgemen
     await user.click(selectBox('REG0001'));
     await user.click(selectBox('REG0002'));
     await user.click(bulkBtn('Verify', 2));
-    const dlg = await screen.findByRole('dialog');
+    const dlg = await outcomeDlg();
     await user.click(within(dlg).getByRole('button', { name: /close|done|ok/i }));
     expect(screen.queryByRole('dialog')).toBeNull();
     expect(refresh).toHaveBeenCalled();
@@ -289,7 +324,7 @@ describe('C5.T-21 verification queue — bulk verify, flagged-row acknowledgemen
     await user.click(b);
     await user.click(b);
     release();
-    await screen.findByRole('dialog');
+    await outcomeDlg();
     expect(verifyCalls()).toHaveLength(1);
     expect(screen.getAllByRole('dialog')).toHaveLength(1);
   });
@@ -297,9 +332,7 @@ describe('C5.T-21 verification queue — bulk verify, flagged-row acknowledgemen
   it('more than 200 selected: no single request carries more than 200 items (OpenAPI maxItems 200)', async () => {
     const user = userEvent.setup();
     wrap(<VerificationQueue items={Array.from({ length: 250 }, (_, i) => item(i + 1))} permissions={VERIFY} />);
-    await user.click(screen.getByRole('checkbox', { name: /select all/i }));
-    const b = bulkBtn('Verify') as HTMLButtonElement;
-    if (!b.disabled) await user.click(b);
+    await selectAllUnflagged(user);
     await new Promise((r) => setTimeout(r, 50));
     for (const c of verifyCalls()) expect(c.body.items.length).toBeLessThanOrEqual(200);
     expect(verifyCalls().flatMap((c) => c.body.items).length === 250 || verifyCalls().length === 0).toBe(true); // all sent in batches, or blocked — never truncated silently
@@ -324,27 +357,35 @@ describe('C5.T-21 approval queue — list, bulk approve, step-up (AC-16.3)', () 
     expect(within(rowOf('REG0001')).getByText(/Synthetic Patient 1/)).toBeTruthy();
     unmount();
     wrap(<ApprovalQueue items={[]} permissions={APPROVE} />);
-    expect(screen.getByText('Nothing waiting for approval.')).toBeTruthy();
+    expect(within(queueTable()).getByText('Nothing waiting for approval.')).toBeTruthy();
   });
 
-  it('without lab.result.approve → read-only (no boxes, no Approve button) — the API still enforces aal2 and the permission (S-01)', () => {
+  it('without lab.result.approve → read-only (every box and the Approve button disabled, reason in words) — the API still enforces aal2 and the permission (S-01)', () => {
     wrap(<ApprovalQueue items={[item(1, { result: { status: 'verified' } })]} permissions={['lab.result.read', 'lab.result.verify']} />);
-    expect(screen.queryByRole('button', { name: /^approve/i })).toBeNull();
-    expect(within(rowOf('REG0001')).queryAllByRole('checkbox')).toHaveLength(0);
+    expect((bulkBtn('Approve', 0) as HTMLButtonElement).disabled).toBe(true);
+    for (const box of within(rowOf('REG0001')).getAllByRole('checkbox')) expect((box as HTMLInputElement).disabled).toBe(true);
+    expect(screen.getByText('You do not have permission to approve results.')).toBeTruthy();
   });
 
-  it('bulk approve: POST bulk-approve with an Idempotency-Key and {id, version} only — never acknowledged_flags (approval has no acknowledgement)', async () => {
+  it('bulk approve: POST bulk-approve with an Idempotency-Key and {id, version} only — never acknowledged_flags (approval has no acknowledgement), also for a flagged registration opened from its detail', async () => {
     const user = userEvent.setup();
     wrap(<ApprovalQueue items={[item(1, { result: { status: 'verified', version: 3, ...DELTA } }), item(2, { result: { status: 'verified' } })]} permissions={APPROVE} />);
-    await user.click(selectBox('REG0001'));
-    await user.click(selectBox('REG0002'));
-    await user.click(bulkBtn('Approve', 2));
+    await openReg(user, 'REG0001'); // flagged: not tickable, approved from its detail
+    expect(selectBox('REG0001').disabled).toBe(true);
+    await user.click(bulkBtn('Approve', 1));
     await waitFor(() => expect(approveCalls()).toHaveLength(1));
     const c = approveCalls()[0]!;
     expect(c.headers.get('idempotency-key')).toBeTruthy();
-    expect(c.body).toEqual({ items: [{ id: id(1), version: 3 }, { id: id(2), version: 1 }] });
+    expect(c.body).toEqual({ items: [{ id: id(1), version: 3 }] });
+    expect(within(await outcomeDlg()).getByText(/1 done, 0 not done/)).toBeTruthy();
+    await closeOutcome(user);
+    await user.click(selectBox('REG0002'));
+    await user.click(bulkBtn('Approve', 1));
+    await waitFor(() => expect(approveCalls()).toHaveLength(2));
+    expect(approveCalls()[1]!.body).toEqual({ items: [{ id: id(2), version: 1 }] });
+    expect(approveCalls()[1]!.headers.get('idempotency-key')).not.toBe(c.headers.get('idempotency-key'));
     expect(verifyCalls()).toHaveLength(0);
-    expect(within(await screen.findByRole('dialog')).getByText(/2 done, 0 not done/)).toBeTruthy();
+    expect(within(await outcomeDlg()).getByText(/1 done, 0 not done/)).toBeTruthy();
   });
 
   it('AC-16.3: 403 auth.mfa_required → warning banner "Verify now"; nothing marked approved, no outcome dialog, no raw code', async () => {
@@ -373,7 +414,7 @@ describe('C5.T-21 approval queue — list, bulk approve, step-up (AC-16.3)', () 
     const [a, b] = approveCalls();
     expect(b!.headers.get('idempotency-key')).toBe(a!.headers.get('idempotency-key'));
     expect(b!.body).toEqual(a!.body);
-    expect(within(await screen.findByRole('dialog')).getByText(/1 done, 0 not done/)).toBeTruthy();
+    expect(within(await outcomeDlg()).getByText(/1 done, 0 not done/)).toBeTruthy();
   });
 
   it('step-up cancelled/failed (hook rejects) → no retry is sent, the banner stays, the selection is kept', async () => {
@@ -410,7 +451,7 @@ describe('C5.T-21 approval queue — list, bulk approve, step-up (AC-16.3)', () 
     await user.click(selectBox('REG0001'));
     await user.click(selectBox('REG0002'));
     await user.click(bulkBtn('Approve', 2));
-    const dlg = await screen.findByRole('dialog');
+    const dlg = await outcomeDlg();
     expect(within(dlg).getByText(/1 done, 1 not done/)).toBeTruthy();
     expect(within(dlg).getByText('You verified this result. Another pathologist must approve it.')).toBeTruthy();
     expect(dlg.textContent).not.toMatch(/lab\.self_approval_forbidden/);
@@ -420,9 +461,9 @@ describe('C5.T-21 approval queue — list, bulk approve, step-up (AC-16.3)', () 
     const user = userEvent.setup();
     approveReply = (b) => HttpResponse.json({ results: b.items.map((i: any) => ({ id: i.id, outcome: 'error', code: 'lab.critical_ack_required' })) });
     wrap(<ApprovalQueue items={[item(1, { result: { status: 'verified', ...CRIT } })]} permissions={APPROVE} />);
-    await user.click(selectBox('REG0001'));
+    await openReg(user, 'REG0001'); // critical = flagged: not tickable, approved from its detail
     await user.click(bulkBtn('Approve', 1));
-    const dlg = await screen.findByRole('dialog');
+    const dlg = await outcomeDlg();
     expect(within(dlg).getByText('Record the critical-value notification before approving.')).toBeTruthy();
     const link = within(dlg).getByRole('link') as HTMLAnchorElement;
     expect(link.getAttribute('href')).toContain(CRIT_EVENT);
@@ -434,9 +475,8 @@ describe('C5.T-21 approval queue — list, bulk approve, step-up (AC-16.3)', () 
     const codes = ['lab.result_invalid_transition', 'lab.result_on_hold', 'common.not_found'];
     approveReply = (b) => HttpResponse.json({ results: b.items.map((i: any, k: number) => ({ id: i.id, outcome: 'error', code: codes[k] })) });
     wrap(<ApprovalQueue items={[item(1), item(2), item(3)].map((i) => ({ ...i, result: { ...i.result, status: 'verified' } }))} permissions={APPROVE} />);
-    await user.click(screen.getByRole('checkbox', { name: /select all/i }));
-    await user.click(bulkBtn('Approve', 3));
-    const dlg = await screen.findByRole('dialog');
+    await selectAllUnflagged(user);
+    const dlg = await outcomeDlg();
     expect(within(dlg).getByText(/0 done, 3 not done/)).toBeTruthy();
     expect(dlg.textContent).not.toMatch(/lab\.|common\./);
     expect(within(dlg).getAllByRole('listitem').length).toBeGreaterThanOrEqual(3);

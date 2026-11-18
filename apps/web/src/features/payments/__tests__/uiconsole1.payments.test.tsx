@@ -100,7 +100,7 @@ describe('/payments/review detail, History, bar, filters and security', () => {
     const d = pickItem(container, U(101));
     const text = norm(d.textContent);
     expect(text).toContain('eSewa');
-    expect(text).toMatch(/123,456\.00/);
+    expect(text).toMatch(/1,23,456\.00/);
     expect(text).toContain('Amount does not match');
     expect(text).not.toContain('amount_mismatch');
     expect(d.querySelector(`a[href="/frontdesk/orders/${U(201)}"]`)).toBeTruthy();

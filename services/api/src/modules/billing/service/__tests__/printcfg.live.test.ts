@@ -32,7 +32,9 @@ describe('print style over a real database', () => {
   const print = (invoiceId: string, extra: Record<string, unknown> = {}) => run((c) => svc.print(c, { invoiceId, ...extra }));
   const asSystem = async (stmts: Array<[string, unknown[]?]>) => { const c = await su.connect(); try { await c.query('BEGIN'); await c.query(`SELECT set_config('request.jwt.claims', $1, true)`, [JSON.stringify({ tenant_id: TENANT, sub: SYS, actor_type: 'system' })]);
     for (const [t, v] of stmts) await c.query(t, v); await c.query('COMMIT'); } catch (e) { await c.query('ROLLBACK').catch(() => undefined); throw e; } finally { c.release(); } };
-  const ins = (table: string, row: object): [string, unknown[]] => [`INSERT INTO ${table} SELECT * FROM jsonb_populate_record(NULL::${table}, $1::jsonb)`, [JSON.stringify(row)]];
+  // explicit-column INSERT (ruling dispute 3 point 1): omitted columns take their DB defaults; jsonb_populate_record alone would null them and override the NOT NULL defaults
+  const ins = (table: string, row: object): [string, unknown[]] => { const cols = Object.keys(row).map((k) => `"${k}"`).join(', ');
+    return [`INSERT INTO ${table} (${cols}) SELECT ${cols} FROM jsonb_populate_record(NULL::${table}, $1::jsonb)`, [JSON.stringify(row)]]; };
   const cleanup = () => asSystem([[`DELETE FROM billing.activity_log WHERE tenant_id = $1 AND document_id = ANY($2::uuid[])`, [TENANT, [INV_PLAIN, INV_FULL, INV_OLD, CN1]]],
     [`DELETE FROM billing.print_log WHERE tenant_id = $1 AND document_id = ANY($2::uuid[])`, [TENANT, [INV_PLAIN, INV_FULL, INV_OLD, CN1]]], [`DELETE FROM billing.invoices WHERE tenant_id = $1 AND fiscal_year_bs = $2`, [TENANT, FY]], [`DELETE FROM billing.fiscal_counters WHERE tenant_id = $1 AND fiscal_year_bs = $2`, [TENANT, FY]]]);
   const styles = async (id: string) => (await su.query(`SELECT print_no, style FROM billing.print_log WHERE tenant_id = $1 AND document_id = $2 ORDER BY print_no`, [TENANT, id])).rows.map((r: any) => [r.print_no, r.style]);

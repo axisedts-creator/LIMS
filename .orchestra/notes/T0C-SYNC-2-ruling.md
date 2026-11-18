@@ -1,13 +1,12 @@
-TESTS_WRONG — the item 1 contract tests require free-form `type: object` fields, which the spec forbids; the object-only guarantee belongs in the DB and the service.
+TESTS_WRONG — services/api/src/core/__tests__/sync2.pending.test.ts:14 builds the covered set from health handlers only; it must be the handlers bootstrap actually builds (health + sync).
+
+Change in the test: add `import { syncHandlers } from '../sync/index.js';` and replace line 14 with
+`const healthHandlers = { ...createHealthHandlers(okChecks()), ...syncHandlers };` (same as sync1.pending.test.ts:11,18). No other line changes; 32-35 stays valid (part 2 ids still have no handler).
 
 Reasons:
-1. spec/program/02-CONVENTIONS.md:423: "Every object schema in every spec has `additionalProperties: false` ... CI lint fails a spec object without it." A free-form JSON document typed `type: object` needs `additionalProperties: true` (or omitted), so it breaks this rule. Lint rule 3 enforces it (tools/codegen/lint-openapi.ts:195-197, CI step 7 at 02-CONVENTIONS.md:1143).
-2. The task brief, done_when (1) and (6), names the columns `local_payload`/`server_payload` as jsonb and asks for "closed schemas with additionalProperties false". It never requires these wire fields to be `type: object`. The tests add a requirement the spec does not contain.
-3. The only open-object exemption is LD-119 (lint-openapi.ts:62-64, exactly ONE entry). Adding entries is lint policy owned by the lead, and an arbiter cannot grant it. Option (a) in the dispute is out of scope.
-4. The guarantee is kept where the spec allows it: the DB CHECK `sync_conflict__payloads__ck` / `sync_operation__payload__ck` and the T0B-SYNC-2..5 service validation.
-
-Change to tools/codegen/__tests__/sync2-openapi.test.ts, describe "T0C-SYNC-2 review: JSON document fields are objects (item 1)":
-- Remove the 4 generated `${sch}.${f} is type: object` tests (FIELDS loop, lines ~779-784).
-- Remove "a non-object merged_payload, local_payload or server_payload fails ajv" (lines ~789-798).
-- KEEP the migration test for `sync_conflict__payloads__ck` (line ~785). It is DB-level, consistent with the spec, and already passing.
-- Item 2 tests are unchanged.
+1. LD-325 (a)/(b) (binding, inbox T0C-SYNC-2-arbiter.md:34): every T0B handler task removes the ids it implements from the pending list; a handler wins over a pending id. T0B-SYNC-1 did exactly that for the 7 part 1 ops.
+2. The test's own header (sync2.pending.test.ts:1-2) says it must stay green "on both sides of that move" — with health-only handlers it cannot once part 1 handlers merge.
+3. Boot reality: services/api/src/core/bootstrap.ts:91-92 calls checkHandlers('core', spec, { ...health, ...syncHandlers }, CORE_PENDING_OPERATIONS); the test's line 30 checks a handler set boot never uses.
+4. Sibling test sync1.pending.test.ts:17-18 already uses health + syncHandlers with the same LD-325 rationale.
+5. The only implementation workaround (re-adding 7 implemented ids to CORE_PENDING_OPERATIONS) contradicts LD-325 (b) and would keep the production gate (bootstrap.ts:61) counting implemented ops as pending. Not acceptable.
+6. LD-371 (inbox :38) says no code/contract change is expected in this task; the fix belongs in the test.

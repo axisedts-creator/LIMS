@@ -37,10 +37,11 @@ const NEW_PLAIN_COLLECTIONS = ['bill_of_the_day', 'collection_boy', 'party_billi
 const WORD = ['commis', 'sion'].join('');
 
 describe('registry table (TRD §3.3)', () => {
-  it('exactly the 14 report codes of the g_cs_report_codes seed, in table order (the 9 delivered MIS codes of T0B-MISREPORTS-1 follow them; LD-346: the two MONEY codes are pending, not registry rows)', () => {
+  it('exactly the 14 report codes of the g_cs_report_codes seed, in table order (the 11 MIS codes follow them; T0B-MISREPORTS-2 / LD-346: the two MONEY codes are registry rows now)', () => {
     expect([...REPORT_CODES].slice(0, 14)).toEqual(Object.keys(EXPECTED));
     expect(Object.keys(REPORT_REGISTRY).slice(0, 14)).toEqual(Object.keys(EXPECTED));
-    expect(REPORT_CODES).toHaveLength(14 + 9);
+    expect(REPORT_CODES).toHaveLength(14 + 11);
+    for (const c of MONEY) expect(REPORT_CODES as readonly string[], c).toContain(c);
   });
   it.each(Object.entries(EXPECTED))('%s: permission, families, live sources, schedulable, flag', (code, want) => {
     const r = getReport(code);
@@ -53,8 +54,9 @@ describe('registry table (TRD §3.3)', () => {
     expect(r.flag).toBe(want.flag);
   });
   it('only referral_incentive (and, LD-342 / A39, the two money reports behind the same flag) is behind a tenant flag', () => {
-    // LD-346 (2): the two money codes are pending (no registry row) until T0B-MISREPORTS-2, where this case lists them again behind the same flag.
-    expect(REPORT_CODES.filter((c) => getReport(c).flag !== undefined)).toEqual(['referral_incentive']);
+    // T0B-MISREPORTS-2 (LD-346): the two money codes are registry rows again, behind the same flag (the case LD-346 (2) parked here).
+    expect(REPORT_CODES.filter((c) => getReport(c).flag !== undefined)).toEqual(['referral_incentive', ...MONEY]);
+    for (const c of ['referral_incentive', ...MONEY]) expect(getReport(c).flag, c).toBe('referralIncentiveReportEnabled');
   });
   it('code format matches the schema CHECK (^[a-z_]{2,40}$) and none mentions "commission" (04 L19) except the two codes A39 allows', () => {
     for (const c of REPORT_CODES) {
@@ -73,7 +75,7 @@ describe('permissions are real C8 permission codes (IC §11); no invented names'
     for (const c of REPORT_CODES) expect(['analytics.data.export', 'analytics.schedule.manage']).not.toContain(getReport(c).permission);
   });
   it('privileged referral permission is used by referral_incentive and the two A39 money reports and by nothing else', () => {
-    expect(REPORT_CODES.filter((c) => getReport(c).permission === 'analytics.referral_report.read')).toEqual(['referral_incentive']); // LD-346 (2): the two A39 money reports are pending until T0B-MISREPORTS-2
+    expect(REPORT_CODES.filter((c) => getReport(c).permission === 'analytics.referral_report.read')).toEqual(['referral_incentive', ...MONEY]); // T0B-MISREPORTS-2: pending until now (LD-346 (2))
   });
   it('collections permission gates the collections report (CR-C8-001) and, from T0B-MISREPORTS-1, the three MIS reports of the accounting walk', () => {
     expect(REPORT_CODES.filter((c) => getReport(c).permission === 'analytics.collections.read')).toEqual(['collections', ...NEW_PLAIN_COLLECTIONS]);

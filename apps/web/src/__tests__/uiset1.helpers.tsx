@@ -84,6 +84,19 @@ export async function expectSettingsForm(container: HTMLElement, o: SettingsExpe
   for (const re of o.labels ?? []) expect([...labels].some((l) => re.test(l)), `${where}: a field labelled ${re} is still there`).toBe(true);
 }
 
+/** Old tests that touch every field of a tabbed screen (LD-353 ruling): open the tab that holds `el` before typing or clicking it.
+ *  Inactive sections stay mounted but `hidden`; the tab is the one at the same position as the section (or the tabpanel's aria-labelledby tab). */
+export async function revealTab(el: Element): Promise<void> {
+  const hidden = el.closest('.lims-settings-section[hidden], [role="tabpanel"][hidden]');
+  if (!hidden) return;
+  const labelled = hidden.getAttribute('aria-labelledby');
+  const byLabel = labelled ? document.getElementById(labelled) : null;
+  const sections = [...(hidden.parentElement?.children ?? [])].filter((c) => c.matches('.lims-settings-section, [role="tabpanel"]'));
+  const tab = byLabel ?? screen.getAllByRole('tab')[sections.indexOf(hidden)];
+  expect(tab, 'a tab for the hidden section').toBeTruthy();
+  await userEvent.click(tab!);
+}
+
 /** Dirty state (template 4): the Save bar says "Unsaved changes" only after an edit. Types one character into the first text/number input of the fields. */
 export async function expectDirtyState(container: HTMLElement, path: string): Promise<void> {
   expect(container.querySelector('.lims-settings-bar'), `${path}: the sticky Save bar exists`).not.toBeNull();

@@ -6,6 +6,7 @@ import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http } from 'msw';
 import { ToastProvider } from '@lims/ui/components/Toast';
+import { expectErrorState } from '@/__tests__/uiset1.helpers';
 import { ORIGIN, PERM_MANAGE, PERM_NONE, PERM_READ, api, db, hit, hits, problem, resetDb, resetHits, router, settings, state } from './t20.harness';
 
 vi.mock('next/navigation', async () => (await import('./t20.harness')).navigationMock);
@@ -24,6 +25,8 @@ const mount = async () => {
 const tf = (name: RegExp) => screen.getByRole('textbox', { name });
 const sw = (name: RegExp) => screen.getByRole('switch', { name });
 const puts = () => hit('PUT', /^\/v1\/inventory\/settings$/);
+// LD-353 template 4: the four sections are tabs and only the selected tab is drawn; a field is queried after its tab is opened.
+const openTab = (name: string) => userEvent.click(screen.getByRole('tab', { name }));
 const save = () => userEvent.click(screen.getByRole('button', { name: /^save/i }));
 const replaceText = async (el: HTMLElement, v: string) => { await userEvent.clear(el); await userEvent.type(el, v); };
 
@@ -31,34 +34,40 @@ describe('S18 form (manager)', () => {
   it('shows every spec field with its current value (bp shown as percent)', async () => {
     await mount();
     await screen.findByRole('switch', { name: /automatic consumption/i });
-    expect((sw(/vat included in cost/i) as HTMLInputElement).checked).toBe(true);
     expect((sw(/automatic consumption/i) as HTMLInputElement).checked).toBe(true);
+    expect((sw(/analyser-day rules need activity/i) as HTMLInputElement).checked).toBe(true);
+    expect(screen.getByText(/default consumption store/i)).toBeTruthy();
+    await openTab('Purchasing');
+    expect((sw(/vat included in cost/i) as HTMLInputElement).checked).toBe(true);
     expect((sw(/allow approving own po/i) as HTMLInputElement).checked).toBe(false);
     expect((sw(/allow receipts without po/i) as HTMLInputElement).checked).toBe(true);
     expect((tf(/over-receipt tolerance/i) as HTMLInputElement).value).toBe('2.5');
+    await openTab('Alerts and counts');
     expect((tf(/expiry alert days/i) as HTMLInputElement).value).toBe('30');
     expect((sw(/lock store during count/i) as HTMLInputElement).checked).toBe(false);
-    expect((sw(/analyser-day rules need activity/i) as HTMLInputElement).checked).toBe(true);
     expect((tf(/reconciliation alert/i) as HTMLInputElement).value).toBe('2');
     expect((tf(/back-dating limit/i) as HTMLInputElement).value).toBe('7');
-    expect(screen.getByText(/default consumption store/i)).toBeTruthy();
   });
 
   it('five number-pattern fields, each ≤ 40 chars, showing the stored patterns; help text for VAT (B7) is present', async () => {
     await mount();
     await screen.findByRole('switch', { name: /automatic consumption/i });
+    await openTab('Purchasing');
+    expect(screen.getByText('Turn off if your lab can claim purchase VAT back (ask your auditor).', { exact: false })).toBeTruthy();
+    await openTab('Document numbers');
     for (const v of ['PO-{fy}-{seq:5}', 'GRN-{fy}-{seq:5}', 'TRF-{fy}-{seq:5}', 'CNT-{fy}-{seq:5}', 'DOC-{fy}-{seq:5}']) {
       const el = screen.getByDisplayValue(v) as HTMLInputElement;
       expect(el.maxLength).toBe(40);
     }
     expect(screen.getAllByRole('textbox', { name: /pattern/i }).length).toBe(5);
-    expect(screen.getByText('Turn off if your lab can claim purchase VAT back (ask your auditor).', { exact: false })).toBeTruthy();
   });
 
   it('Save sends ONE PUT with If-Match "<version>", the full SettingsUpdate (no `version`/`id`), percent -> basis points, untouched fields unchanged', async () => {
     await mount();
     await screen.findByRole('switch', { name: /automatic consumption/i });
+    await openTab('Alerts and counts');
     await replaceText(tf(/expiry alert days/i), '45');
+    await openTab('Purchasing');
     await replaceText(tf(/over-receipt tolerance/i), '3');
     await userEvent.click(sw(/allow approving own po/i));
     await save();
@@ -77,9 +86,11 @@ describe('S18 form (manager)', () => {
     api.use(http.put(`${ORIGIN}/v1/inventory/settings`, () => problem('common.validation_failed', 400, { errors: [{ path: '/consumption_enabled_at', code: 'too_old', message: 'Start time cannot be more than 1 hour in the past.' }] })));
     await mount();
     await screen.findByRole('switch', { name: /automatic consumption/i });
+    await openTab('Alerts and counts');
     await replaceText(tf(/expiry alert days/i), '60');
     await save();
     expect(await screen.findAllByText(/start time cannot be more than 1 hour in the past/i)).not.toHaveLength(0);
+    await openTab('Alerts and counts'); // the typed value is kept (it stays in state whichever tab is shown)
     expect((tf(/expiry alert days/i) as HTMLInputElement).value).toBe('60');
     expect(router.refresh).not.toHaveBeenCalled();
   });
@@ -88,6 +99,7 @@ describe('S18 form (manager)', () => {
     api.use(http.put(`${ORIGIN}/v1/inventory/settings`, () => problem('common.version_conflict', 409)));
     await mount();
     await screen.findByRole('switch', { name: /automatic consumption/i });
+    await openTab('Alerts and counts');
     await replaceText(tf(/back-dating limit/i), '10');
     await save();
     expect(await screen.findByText(/req-syn-0001/)).toBeTruthy();
@@ -97,12 +109,16 @@ describe('S18 form (manager)', () => {
   it('client-side ranges: expiry alert days 0 / 366 and back-dating 32 are not sent', async () => {
     await mount();
     await screen.findByRole('switch', { name: /automatic consumption/i });
+    await openTab('Alerts and counts');
     await replaceText(tf(/expiry alert days/i), '366');
     await save();
+    await openTab('Alerts and counts');
     await replaceText(tf(/expiry alert days/i), '30');
     await replaceText(tf(/back-dating limit/i), '32');
     await save();
+    await openTab('Alerts and counts');
     await replaceText(tf(/back-dating limit/i), '7');
+    await openTab('Purchasing');
     await replaceText(tf(/over-receipt tolerance/i), '51');
     await save();
     expect(puts().length).toBe(0);
@@ -132,13 +148,15 @@ describe('AC-22.2 UI hides + access', () => {
     expect(screen.getByTestId('permission-denied')).toBeTruthy();
     expect(hits.length).toBe(0);
   });
-  it('API 403 on GET /settings -> permission-denied; 500 -> page throws to error.tsx', async () => {
+  it('API 403 on GET /settings -> permission-denied; 500 -> ErrorState in the page (title kept, reference, Retry; LD-353 rule 6)', async () => {
     api.use(http.get(`${ORIGIN}/v1/inventory/settings`, () => problem('auth.forbidden', 403)));
     await mount();
     expect(await screen.findByTestId('permission-denied')).toBeTruthy();
     cleanup();
     api.use(http.get(`${ORIGIN}/v1/inventory/settings`, () => problem('common.internal', 500)));
-    await expect(mount()).rejects.toThrow();
+    const { container } = await mount();
+    expectErrorState(container, '/inventory/settings');
+    expect(screen.queryByRole('button', { name: /^save/i })).toBeNull();
   });
   it('settings fixture sanity: automatic consumption off renders an unchecked switch', async () => {
     db.settings = settings({ consumption_enabled_at: undefined });

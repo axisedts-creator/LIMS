@@ -113,7 +113,7 @@ describe('imports and unsafe patterns (REQ-SEC-068; LD-140: packages/ui only, no
   });
   it('uses the kit for what §2.3–2.5 names: PageHeader, DataTable, StatusChip(generic), Drawer, ConfirmDialog (danger + requireReason), Checkbox, Switch, IntegerField, TextField, TextArea(showCount), RadioGroup, Select, Form, Banner', () => {
     const all = ownFiles().map((f) => strip(read(f))).join('\n');
-    for (const k of ['PageHeader', 'DataTable', 'StatusChip', 'Drawer', 'ConfirmDialog', 'Checkbox', 'Switch', 'IntegerField', 'TextField', 'TextArea', 'RadioGroup', 'Select', 'Form', 'Banner', 'Button']) expect(all, k).toMatch(new RegExp(`\\b${k}\\b`));
+    for (const k of ['PageHeader', 'DataTable', 'StatusChip', 'Drawer', 'ConfirmDialog', 'Checkbox', 'Switch', 'IntegerField', 'TextField', 'TextArea', 'RadioGroup', 'Select', 'Form', 'Banner', 'Button']) expect(all, k).toMatch(new RegExp(k === 'Form' ? '\\b(?:Settings)?Form\\b' : `\\b${k}\\b`)); // LD-353 template 4: Form comes through the kit SettingsForm
     expect(all).toMatch(/StatusChip[^>]*kind=["'{]+generic/);
     expect(strip(read(comp('DevicesView')))).toMatch(/tone=["'{]+danger/);
     expect(strip(read(comp('DevicesView')))).toMatch(/requireReason/);

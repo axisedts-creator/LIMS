@@ -4,4 +4,4 @@
 - [CONV] downloads (template, errors file) go through proxyDownload inside a server action, come back base64, then an anchor download: no new route (rs-c2). [CONV] upload = kit FileUpload uploadFile, one Idempotency-Key per pick, 5xx retried same key, 4xx retryable:false with server detail.
 - [CONV] Commit enabled only when batch.status=validated, 0 errors, batch.mode = current mode, not uploading/committed; one key per batch; dialog closes on confirm (double click = one POST). Density from the shell wrapper (T0D-DENSITY-1).
 - Round 2 (after ruling, no code change): testimport1 70/70, testmgmt1 141/141, rs-c2 74/74, web-t35 95/96 then flow test 1/1 on rerun (first run 30 s timeout under load).
-- Open: testfix1 10/122 fail (500/network on /catalog/tests views and /catalog/comment-codes expect a throw); those pages and their imports are untouched by this task, so pre-existing; tester to confirm on clean HEAD.
+- Round 3 (after testfix1 revised per ruling, no code change): testimport1 70/70, testfix1 122/122, web-t35 96/96, testmgmt1 141/141, rs-c2 74/74. Open: none.

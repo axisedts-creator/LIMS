@@ -1,8 +1,8 @@
-TESTS_WRONG — the test asserts something the spec does not require (say precisely what to change in the test)
-
-Reasons and exact change (tester; no implementation change; no contract or migration change):
-1. permissions.test.ts:35 `expect(pending).toEqual([])` requires the whole partners pendingOperations list to be empty. No spec line requires that. The 10 partner ticket ids in services/api/src/modules/partners/index.ts:79-80 are MSGDESK operations, and they belong in that list until T0B-MSGDESK-1 implements them (LD-325(b), task brief line 35; LD-321 MSGDESK = partner message to lab tickets, line 34).
-2. LD-349 (brief line 37) already ruled the reverse exact pin TESTS_WRONG: MSGDESK and sales ids share the partners list. LD-373 (brief line 41) rules this same line 35 TESTS_WRONG, and says the writer and debugger must NOT remove those ids or stub them.
-3. Line 34 already checks every one of the 15 sales ids: each is in the contract, has a function handler, and is not pending. So this is the sales rule the task needs (done_when (1)).
-4. CHANGE (permissions.test.ts:35 only): delete `expect(pending).toEqual([]);` as LD-373 says. Or replace it with the narrower check from the dispute, `expect(pending.filter((id) => OPS.some((o) => o.id === id))).toEqual([]);`. Leave every other assertion in that file exactly as it is.
-5. Do not edit index.ts, the pending list, msgdesk1.pending.test.ts or the contract. Then run the verify (main command and timing command) three times in a row (LD-363, LD-355 (3)).
+TESTS_WRONG — effects.test.ts:308/315 setup depends on cross-file state of the shared tenant B settings row; fix setup only, no assertion change.
+1. Already decided by binding lead decision LD-376 (inbox T0B-SALES-1-arbiter.md:42), which outranks chunk text for this task; this ruling applies it.
+2. services/api/src/modules/homecollection/__tests__/sync/effects.test.ts:308 calls setSettings(TENANT_B, ...false) BEFORE pushWorld (line 310); pushWorld runs ensureSettings (sync/helpers.ts:134) which seeds defaults, so the false value is lost when the row was absent/replaced by an earlier file.
+3. Assertion line 314 (confirmed, null, received_at = handed_over_at) is the spec'd behaviour (03-APP-FLOW §1.3, cited in the test title) and stays untouched.
+4. TESTER: in that test either (a) move line 308 setSettings to after `const w = await pushWorld(...)` (line 310), or (b) replace it with an upsert INSERT ... ON CONFLICT (tenant_id) DO UPDATE SET handover_confirmation_required = false; restore at line 315 the same way (upsert true).
+5. TESTER, same pass (LD-376): grep every file under services/api/src/modules/homecollection/__tests__ for setSettings calls that run before pushWorld/seedWorld and apply the same fix.
+6. Never DELETE homecollection.settings or any audited row (LD-356). No assertion deleted/skipped/loosened (LD-347).
+7. WRITER/DEBUGGER: no implementation change; do not dispute this again; verify once after tester pass (main + timing command, three runs green).

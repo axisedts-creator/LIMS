@@ -109,12 +109,20 @@ describe('reverseAccountLedgerEntry', () => {
     expect(ok(await summary(w))).toMatchObject({ outstanding_paisa: 10_000, outstanding_side: 'credit' });
   }, T);
 
-  it('no update path exists for the money columns: lims_api cannot UPDATE or DELETE the ledger table at all (42501), whatever the service does', async () => {
+  // LD-389: T0C-FINCTRL-1 grants lims_app column UPDATE on status + hold columns; trigger account_ledger_hold_guard allows only submitted<->held, else P0001 immutable_row.
+  it('money columns and DELETE are refused with 42501, a status change other than hold and release is refused by the guard with P0001 immutable_row', async () => {
     const w = await world('a');
     const e = await entry(w, {});
-    for (const sql of ['UPDATE billing.account_ledger_entries SET amount_paisa = 1 WHERE id = $1', "UPDATE billing.account_ledger_entries SET status = 'reversed' WHERE id = $1", 'DELETE FROM billing.account_ledger_entries WHERE id = $1']) {
+    const [before] = await dbEntries(TENANT_A, 'id = $2', [e.id]);
+    for (const sql of ['UPDATE billing.account_ledger_entries SET amount_paisa = 1 WHERE id = $1', 'DELETE FROM billing.account_ledger_entries WHERE id = $1']) {
       const err: any = await appTx(TENANT_A, async (tx: any) => { await tx.query(sql, [e.id]); }).then(() => undefined, (x: any) => x);
       expect(err?.code, sql).toBe('42501');
     }
+    const err: any = await appTx(TENANT_A, async (tx: any) => { await tx.query("UPDATE billing.account_ledger_entries SET status = 'reversed' WHERE id = $1", [e.id]); }).then(() => undefined, (x: any) => x);
+    expect(err?.code).toBe('P0001');
+    expect(err?.message).toMatch(/immutable_row/);
+    const [after] = await dbEntries(TENANT_A, 'id = $2', [e.id]);
+    expect(after).toEqual(before);
+    expect(after).toMatchObject({ status: before.status, amount_paisa: before.amount_paisa });
   }, T);
 });

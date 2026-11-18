@@ -16,3 +16,7 @@ Fix: none; code and tests unchanged. Needs lead: run offline1 config serially/al
 ## Round 4 (LD-391)
 Cause: verify (21:15) fails in rs-c4.static.test.ts (guard vs rs-c4.baseline.json): drift from already-merged billing accounting UI (accounts/expenses routes, ~160 billing.* permission codes, accounts/expenses server+actions logic files, server_imports, /v1/catalog/tests literal). OFFLINE-3 touches no route or permission file. Not an implementation defect.
 Fix: none; LD-391 orders no writer/debugger code change. Tester allow-list covers only 8 routes + 7 codes and under-counts the drift (tester-ld391.md). Needs a new lead ruling naming the rest. Do NOT regenerate rs-c4.baseline.json.
+
+## Round 5 (LD-391, verify 21:22)
+Cause: still only rs-c4.static.test.ts failing (6 tests/3 files in the log tail: billing_app permissions + server_imports accounts.server/expenses.server vs rs-c4.baseline.json). Drift from already-merged billing accounting UI; OFFLINE-3 touches no route/permission/server-import file. Not an implementation defect.
+Fix: none, as LD-391 orders (writer/debugger no code change; baseline json not regenerated). Unchanged blocker from round 4: tester allow-list (8 routes + 7 codes) under-counts the drift; needs a new lead ruling naming logic_files, ~152 permission codes, 2 server_imports and the /v1/catalog/tests literal.

@@ -87,7 +87,7 @@ export function IngestExceptionList({ items, status = 'open', nextCursor }: Inge
       <FilterBar
         filters={[
           { id: 'reason', label: 'Reason', kind: 'select', options: EXCEPTION_REASONS.map((r) => ({ value: r, label: reasonText(r) })) },
-          { id: 'status', label: 'Status', kind: 'select', options: EXCEPTION_STATUSES.map((s) => ({ value: s, label: s })) },
+          { id: 'status', label: 'Status', kind: 'select', options: EXCEPTION_STATUSES.map((s) => ({ value: s, label: s.charAt(0).toUpperCase() + s.slice(1) })) }, // sentence case (LD-353 rule 3)
         ]}
         value={value}
         onChange={go}

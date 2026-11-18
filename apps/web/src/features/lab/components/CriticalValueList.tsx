@@ -23,7 +23,7 @@ import { Facts, History, OpenBar, OpenKey, hhmm, itemProps, oldest, useNow, when
 const DIRECTION: Record<CriticalValueRow['direction'], string> = { high: 'Critical high', low: 'Critical low', abnormal: 'Abnormal' };
 const STATUS: Record<CriticalValueRow['status'], string> = { open: 'Open', notified: 'Notified', closed: 'Closed' };
 const CRITICAL_STATUSES = Object.keys(STATUS) as CriticalValueRow['status'][]; // the server list (adminpages.server) is server-only
-const HEADERS = ['Age since detected', 'Analyte', 'Direction', 'Status'];
+const HEADERS = ['Age since detected', 'Detected at', 'Analyte', 'Direction', 'Status']; // C5 04-UI-UX 3.9 keeps Detected at in the list (arbiter ruling T0D-UICONSOLE-1)
 const href = (id: string) => `/lab/critical-values/${encodeURIComponent(id)}`;
 
 export function CriticalValueList({ items, status, nextCursor }: { items: readonly CriticalValueRow[]; status?: string | undefined; nextCursor?: string | undefined }) {
@@ -48,6 +48,7 @@ export function CriticalValueList({ items, status, nextCursor }: { items: readon
           {rows.map((r) => (
             <tr key={r.id} {...itemProps(r.id, selectedId, setSelectedId)}>
               <td suppressHydrationWarning>{hhmm(age(r))}</td>
+              <td>{when(r.detected_at)}</td>
               <td><Link href={href(r.id)}>{r.analyte_code}</Link></td>
               <td>{DIRECTION[r.direction] ?? r.direction}</td>
               <td>{STATUS[r.status] ?? r.status}</td>

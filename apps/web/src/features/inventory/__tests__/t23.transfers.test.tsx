@@ -4,7 +4,7 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { http, HttpResponse } from 'msw';
+import { http, HttpResponse, type JsonBodyType } from 'msw';
 import { ToastProvider } from '@lims/ui/components/Toast';
 import { ID, IDEM_RE, ORIGIN, PERM_MANAGE, PERM_NONE, PERM_READ, api, hit, hits, isoAgo, page, problem, resetHits, router, state, store, transfer } from './t23.harness';
 
@@ -27,7 +27,7 @@ const choose = async (scope: HTMLElement, label: RegExp, option: RegExp) => {
 };
 const T1 = ID(701);
 const dispatched = (over: Record<string, unknown> = {}) => transfer(1, { status: 'dispatched', dispatched_at: isoAgo(3), version: 2, ...over });
-const useTransfer = (t: unknown) => api.use(http.get(`${ORIGIN}/v1/inventory/transfers/:id`, () => HttpResponse.json(t)));
+const useTransfer = (t: unknown) => api.use(http.get(`${ORIGIN}/v1/inventory/transfers/:id`, () => HttpResponse.json(t as JsonBodyType)));
 const posts = (action: string) => hit('POST', new RegExp(`^/v1/inventory/transfers/[^/]+/${action}$`));
 
 describe('S9 list', () => {

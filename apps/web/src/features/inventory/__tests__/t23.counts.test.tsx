@@ -20,7 +20,7 @@ afterAll(() => api.close());
 const C1 = ID(900);
 const mountList = async () => {
   const mod = await import('../../../app/(staff)/inventory/counts/page');
-  return render(<ToastProvider>{await mod.default({ searchParams: Promise.resolve({}) } as never)}</ToastProvider>);
+  return render(<ToastProvider>{await (mod.default as (props: unknown) => ReturnType<typeof mod.default>)({ searchParams: Promise.resolve({}) } as never)}</ToastProvider>);
 };
 const mountCount = async () => {
   state.path = `/inventory/counts/${C1}`;

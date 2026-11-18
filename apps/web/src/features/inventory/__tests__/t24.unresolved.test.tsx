@@ -20,7 +20,7 @@ afterAll(() => api.close());
 
 const mount = async (sp: Record<string, string | undefined> = {}) => {
   const mod = await import('../../../app/(staff)/inventory/unresolved/page');
-  return render(<ToastProvider>{await mod.default({ searchParams: Promise.resolve(sp) } as never)}</ToastProvider>);
+  return render(<ToastProvider>{await (mod.default as (props: unknown) => ReturnType<typeof mod.default>)({ searchParams: Promise.resolve(sp) } as never)}</ToastProvider>);
 };
 const rowOf = async (text: RegExp) => (await within(await screen.findByRole('grid')).findByText(text)).closest('tr') as HTMLElement;
 const resolves = () => hit('POST', /^\/v1\/inventory\/consumption-facts\/[^/]+\/resolve$/);

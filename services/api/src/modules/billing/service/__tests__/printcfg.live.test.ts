@@ -44,7 +44,8 @@ describe('print style over a real database', () => {
     await cleanup().catch(() => undefined);
     // chronology trigger (spec'd, not under test): billing.fiscal_counters.last_no must equal invoice_seq before each invoice insert; a counter only rises by 1 per UPDATE
     const bump = (n: number): [string, unknown[]] => [`UPDATE billing.fiscal_counters SET last_no = $3 WHERE tenant_id = $1 AND series = 'INV:PCFG' AND fiscal_year_bs = $2`, [TENANT, FY, n]];
-    await asSystem([ins('billing.fiscal_counters', { tenant_id: TENANT, series: 'INV:PCFG', fiscal_year_bs: FY, last_no: 1, created_by: SYS, updated_by: SYS }), ins('billing.invoices', invoice(INV_PLAIN, 1, O1)),
+    // plain INSERT (not jsonb_populate_record, which nulls omitted columns and overrides the NOT NULL defaults is_active/created_at/updated_at) — ruling dispute 2 point 1
+    await asSystem([[`INSERT INTO billing.fiscal_counters (tenant_id, series, fiscal_year_bs, last_no, created_by, updated_by) VALUES ($1,'INV:PCFG',$2,1,$3,$3)`, [TENANT, FY, SYS]], ins('billing.invoices', invoice(INV_PLAIN, 1, O1)),
       bump(2), ins('billing.invoices', invoice(INV_FULL, 2, O2)), bump(3), ins('billing.invoices', invoice(INV_OLD, 3, O3, { print_count: 1 })),
       // the legacy row is inserted WITHOUT the style column so the DB default (full) is what is read back
       [`INSERT INTO billing.print_log (id, tenant_id, centre_id, document_kind, document_id, document_no, print_no, is_copy, printed_at, created_by) VALUES ($1,$2,$3,'invoice',$4,'INV-PCFG-3',1,false,now(),$5)`, [uid(500), TENANT, CENTRE, INV_OLD, SYS]]]);

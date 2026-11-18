@@ -23,6 +23,8 @@ INSERT INTO core.g_permissions (code, module, privileged, phase) VALUES
   ('billing.credit_party.manage', 'billing', true, '1'),
   ('billing.credit_party.read', 'billing', false, '1'),
   ('billing.data.export', 'billing', true, '1'),
+  ('billing.discount_policy.manage', 'billing', true, '1'),
+  ('billing.discount_policy.read', 'billing', false, '1'),
   ('billing.expense.manage', 'billing', false, '1'),
   ('billing.invoice.cancel', 'billing', true, '1'),
   ('billing.invoice.issue', 'billing', false, '1'),

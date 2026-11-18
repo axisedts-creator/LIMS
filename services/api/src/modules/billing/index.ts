@@ -12,5 +12,24 @@ export const manifest: ModuleManifest = {
   ports: { BillingPort: billingPort, BillingCommandPort: billingCommandPort },
   produces: ['billing.invoice.issued.v1', 'billing.invoice.cancelled.v1', 'billing.balance.changed.v1'],
   // LD-325 (T0B-BOOTGATE-1): T0B-ACCT-2 implemented its 12 operations and removed them; no billing operation is pending.
-  pendingOperations: ['listAccountSummaries'], // LD-358 (T0C-ACCTLIST-1): 501 operation_pending until T0B-ACCTLIST-1 writes its handler.
+  pendingOperations: [
+    'listAccountSummaries', // LD-358 (T0C-ACCTLIST-1): until T0B-ACCTLIST-1 writes its handler.
+    // LD-321 / LD-325(b) (T0C-FINCTRL-1): 501 operation_pending until T0B-FINCTRL-1 writes the handlers.
+    'listDiscountReasons',
+    'createDiscountReason',
+    'updateDiscountReason',
+    'listPartyDiscountSlabs',
+    'createPartyDiscountSlab',
+    'updatePartyDiscountSlab',
+    'deactivatePartyDiscountSlab',
+    'resolveDiscountSlab',
+    'listUserDiscountLimits',
+    'setUserDiscountLimit',
+    'listDiscountAuthorities',
+    'createDiscountAuthority',
+    'deactivateDiscountAuthority',
+    'getMyDiscountPolicy',
+    'holdLedgerEntry',
+    'releaseLedgerEntry',
+  ], // 501 operation_pending until the handler task removes the id
 };

@@ -90,7 +90,6 @@ const parse = (s: string): Rule[] => {
   return out;
 };
 const RULES = parse(CSS);
-const KEYFRAMES = new Set([...CSS.matchAll(/@keyframes\s+([\w-]+)/g)].map((m) => m[1]!));
 const RM = /prefers-reduced-motion\s*:\s*reduce/;
 const rulesFor = (cls: RegExp, o: { rm?: boolean } = {}) => RULES.filter((r) => RM.test(r.ctx) === !!o.rm && r.sel.some((s) => cls.test(s)));
 const decl = (rules: Rule[], p: string) => rules.flatMap((r) => [...r.body.matchAll(new RegExp(`(?:^|[;\\s])${p}\\s*:\\s*([^;]+)`, 'g'))].map((m) => m[1]!.trim())).at(-1);
@@ -344,22 +343,20 @@ describe('css contract: layout, plate, motion, fields', () => {
     expect(`${decl(rulesFor(cls('lims-auth-well')), 'border-radius')}`).toMatch(/50%|var\(--lims-radius-full\)/);
   });
 
-  it('the four looping animations exist (plate sway, well wave, chip bob, mark pulse ring) and use keyframes that are defined', () => {
+  // 13-M-SERIES s2.3: at most ONE looping animation per screen; LD-384 / r04: nothing in core/shell/*.css runs longer than 450 ms.
+  it('no hero rule loops (`infinite`) or animates longer than 450 ms (plate, well, chip, mark ring)', () => {
     for (const c of ['lims-auth-plate', 'lims-auth-well', 'lims-auth-chip', 'lims-auth-mark-ring']) {
       const rules = rulesFor(cls(c));
-      const a = animOf(rules);
-      expect(allDecl(rules, 'animation').join(' ') + allDecl(rules, 'animation-iteration-count').join(' '), `${c} loops`).toMatch(/infinite/);
-      const names = [...KEYFRAMES].filter((k) => new RegExp(`(^|[\\s,])${k}([\\s,]|$)`).test(a));
-      expect(names.length, `${c}: animation ${a} must name a defined @keyframes (defined: ${[...KEYFRAMES].join(', ')})`).toBeGreaterThan(0);
+      const a = [animOf(rules), ...allDecl(rules, 'animation-iteration-count'), ...allDecl(rules, 'animation-duration'), ...allDecl(rules, 'animation-delay')].join(' ');
+      expect(a, `${c} must not loop`).not.toMatch(/infinite/);
+      for (const m of a.matchAll(/(\d*\.?\d+)(ms|s)\b/g)) {
+        const ms = Number(m[1]) * (m[2] === 's' ? 1000 : 1);
+        expect(ms, `${c}: ${m[0]} in "${a}" is over 450 ms`).toBeLessThanOrEqual(450);
+      }
     }
   });
 
-  it('prefers-reduced-motion: plate stays tilted, plate / wells / chips / pulse ring stop', () => {
-    for (const c of ['lims-auth-plate', 'lims-auth-well', 'lims-auth-chip', 'lims-auth-mark-ring']) {
-      const rm = rulesFor(cls(c), { rm: true });
-      expect(rm.length, `${c}: no rule inside @media (prefers-reduced-motion: reduce)`).toBeGreaterThan(0);
-      expect(`${decl(rm, 'animation')} ${decl(rm, 'animation-name')}`, `${c} must stop`).toMatch(/\bnone\b/);
-    }
+  it('prefers-reduced-motion: plate stays tilted', () => {
     const t = decl(rulesFor(cls('lims-auth-plate'), { rm: true }), 'transform') ?? '';
     expect(t).toMatch(/rotateX\(/);
     expect(t).toMatch(/rotateZ\(/);

@@ -27,7 +27,10 @@ describe('T0C-ACCTLIST-1: billing manifest covers listAccountSummaries (handler 
   it('every pending id is a real spec operationId and appears once; nothing else is pending but this task\'s id', () => {
     expect(pending.filter((id) => !specIds.includes(id))).toEqual([]);
     expect(new Set(pending).size).toBe(pending.length);
-    expect(pending.filter((id) => id !== ID), 'T0B-ACCT-2 left no billing operation pending; only listAccountSummaries may be').toEqual([]);
+    // T0C-FINCTRL-1 (LD-321, LD-325(b)): its 16 operations are pending until T0B-FINCTRL-1 (pinned in finctrl1.pending.test.ts); nothing else may be pending.
+    const FINCTRL = ['listDiscountReasons', 'createDiscountReason', 'updateDiscountReason', 'listPartyDiscountSlabs', 'createPartyDiscountSlab', 'updatePartyDiscountSlab', 'deactivatePartyDiscountSlab',
+      'resolveDiscountSlab', 'listUserDiscountLimits', 'setUserDiscountLimit', 'listDiscountAuthorities', 'createDiscountAuthority', 'deactivateDiscountAuthority', 'getMyDiscountPolicy', 'holdLedgerEntry', 'releaseLedgerEntry'];
+    expect(pending.filter((id) => id !== ID && !FINCTRL.includes(id)), 'T0B-ACCT-2 left no billing operation pending; only listAccountSummaries and the T0C-FINCTRL-1 ids may be').toEqual([]);
   });
   it('a handler key that is not a spec operation does not exist (nothing was invented)', () => {
     expect(handlerIds.filter((id) => !specIds.includes(id))).toEqual([]);

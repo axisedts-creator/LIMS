@@ -2416,6 +2416,7 @@ paths:
                     percent_of_gross_bp: 1
                     reason_code: SYN_CODE
                     reason_text: Synthetic reason_text
+                    within_limit: true
                     decided_by:
                       membership_id: 0193c4a0-0000-7000-8000-000000000196
                       display_name: Synthetic display_name
@@ -6829,6 +6830,9 @@ components:
         reason_text:
           type: string
           maxLength: 500
+        within_limit:
+          type: boolean
+          description: "T0C-FINCTRL-1 (LD-321): true when the discount is within the requester own billing.user_discount_limit or discount authority; absent on rows written before T0B-FINCTRL-1."
         decided_by:
           $ref: "#/components/schemas/Actor"
         decided_at:

@@ -12,7 +12,7 @@ import { insertInvoiceLines, listInvoiceLines, listInvoiceLinesByOrder, sumCredi
 import { findGatewayPayment, findLedgerByIdempotencyKey, findReversalOf, getLedgerEntry, getPaymentIntentRef, insertLedgerEntry, listLedgerForDay, pageLedger, sumGatewayByIntent, sumLedgerByInvoice, sumLedgerBySession } from './ledger.repo.js';
 import { findActiveOverride, insertReleaseOverride } from './overrides.repo.js';
 import { getPaymentMethod } from './paymentMethods.repo.js';
-import { insertPrintLog } from './printLog.repo.js';
+import { getOriginalPrintStyle, insertPrintLog } from './printLog.repo.js';
 import { decideRefundRequest, getFinanceReviewItem, getRefundRequest, insertFinanceReviewItem, insertRefundRequest, pageFinanceReviewItems, pageRefundRequests, resolveFinanceReviewItem } from './refundRequests.repo.js';
 import { getBillingSettings } from './settings.repo.js';
 import { getExportJob } from './exports.repo.js';
@@ -39,7 +39,7 @@ export const billingRepo = {
   // BL-T12
   findGatewayPayment, getPaymentIntentRef, sumGatewayByIntent, insertFinanceReviewItem, insertReleaseOverride,
   // BL-T09
-  getInvoice, sumCreditedByLine, getCreditNote, listCreditNoteLines, markInvoicePrinted, markCreditNotePrinted, insertPrintLog,
+  getInvoice, sumCreditedByLine, getCreditNote, listCreditNoteLines, markInvoicePrinted, markCreditNotePrinted, insertPrintLog, getOriginalPrintStyle,
   // BL-T14
   getCbmsDocumentForUpdate, insertCbmsSubmission, recordCbmsAttempt, resetCbmsToPending, listCbmsDocuments,
   // BL-T15

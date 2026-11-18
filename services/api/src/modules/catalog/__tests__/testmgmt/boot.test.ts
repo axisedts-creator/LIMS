@@ -10,6 +10,10 @@ import { manifest } from '../../index.js';
 const spec: any = loadSpec(join(REPO_ROOT, 'contracts/openapi/catalog.yaml'));
 const NEW_OPS = ['listTestCategories', 'createTestCategory', 'updateTestCategory'] as const;
 const PRICETOOLS = ['downloadPriceListTemplate', 'dryRunPriceListImport', 'commitPriceListImport', 'bulkUpdatePriceListDraft', 'copyPriceList', 'comparePriceLists', 'listPriceListImportBatches'] as const;
+// T0C-TESTIMPORT-1 added these six operations, handlers by T0B-TESTIMPORT-1 (LD-318, LD-368).
+const TESTIMPORT = ['downloadCatalogImportTemplate', 'validateCatalogImport', 'listCatalogImports', 'getCatalogImport', 'commitCatalogImport', 'downloadCatalogImportErrors'] as const;
+// T0C-PARTYSET-1 added these five ICD master operations, handlers by T0B-PARTYSET-1 (LD-321, LD-325 b).
+const PARTYSET_ICD = ['listIcdMasterCodes', 'searchIcdMasterCodes', 'createIcdMasterCode', 'updateIcdMasterCode', 'deactivateIcdMasterCode'] as const;
 const opOf = (id: string): any => { for (const p of Object.values<any>(spec.paths)) for (const m of Object.values<any>(p)) if (m?.operationId === id) return m; };
 const pending = ((manifest as { pendingOperations?: readonly string[] }).pendingOperations ?? []) as readonly string[];
 
@@ -18,17 +22,19 @@ describe('(1) module boot: every operation of catalog.yaml has a real handler', 
     for (const id of NEW_OPS) { expect(typeof (manifest.handlers as any)[id], id).toBe('function'); expect((manifest.handlers as any)[id], id).toBe((handlers as any)[id]); }
   });
   // Merge of main: T0C-PRICETOOLS-1 (LD-321, LD-325(b)) added seven price list tool operations that stay pending until T0B-PRICETOOLS-1.
-  it('catalog lists NO category operation as pending (T0B removes the ids it implements, LD-325 b); only the seven price list tool ids remain', () => {
+  it('catalog lists NO category operation as pending (T0B removes the ids it implements, LD-325 b); only the seven price list tool ids and the five ICD master ids remain', () => {
     for (const id of NEW_OPS) expect(pending, id).not.toContain(id);
-    expect([...pending].sort()).toEqual([...PRICETOOLS].sort());
+    expect([...pending].sort()).toEqual([...PRICETOOLS, ...PARTYSET_ICD].sort());
   });
-  it('checkHandlers (the boot check, AC-0D-1.2) passes with handlers plus the price list pending ids and reports no stale pending id', () => {
+  it('checkHandlers (the boot check, AC-0D-1.2) passes with handlers plus the price list and ICD master pending ids and reports no stale pending id', () => {
     expect(checkHandlers('catalog', spec, manifest.handlers, pending)).toEqual([]);
   });
-  it('the contract has exactly 110 + 7 price list tool operations (this task adds handlers, not operations)', () => {
-    expect(operationIds(spec)).toHaveLength(110 + PRICETOOLS.length);
+  it('the contract has exactly 110 + 7 price list tool + 6 catalog import + 5 ICD master operations (this task adds handlers, not operations)', () => {
+    expect(operationIds(spec)).toHaveLength(110 + PRICETOOLS.length + TESTIMPORT.length + PARTYSET_ICD.length);
+    for (const id of TESTIMPORT) expect((manifest.handlers as any)[id], id).toBeTypeOf('function');
     expect([...Object.keys(manifest.handlers), ...pending].sort()).toEqual(operationIds(spec).sort());
     for (const id of PRICETOOLS) expect(Object.keys(manifest.handlers), id).not.toContain(id);
+    for (const id of PARTYSET_ICD) expect(Object.keys(manifest.handlers), id).not.toContain(id);
   });
 });
 

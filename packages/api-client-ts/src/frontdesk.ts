@@ -597,6 +597,7 @@ export interface operations {
             percent_of_gross_bp: number;
             reason_code: string;
             reason_text?: string;
+            within_limit?: boolean;
             decided_by?: {
               membership_id: string;
               display_name: string;
@@ -3903,6 +3904,7 @@ export interface operations {
             percent_of_gross_bp: number;
             reason_code: string;
             reason_text?: string;
+            within_limit?: boolean;
             decided_by?: {
               membership_id: string;
               display_name: string;
@@ -5538,6 +5540,7 @@ export interface operations {
               percent_of_gross_bp: number;
               reason_code: string;
               reason_text?: string;
+              within_limit?: boolean;
               decided_by?: {
                 membership_id: string;
                 display_name: string;
@@ -7848,6 +7851,7 @@ export interface operations {
             percent_of_gross_bp: number;
             reason_code: string;
             reason_text?: string;
+            within_limit?: boolean;
             decided_by?: {
               membership_id: string;
               display_name: string;
@@ -8229,6 +8233,7 @@ export interface operations {
             percent_of_gross_bp: number;
             reason_code: string;
             reason_text?: string;
+            within_limit?: boolean;
             decided_by?: {
               membership_id: string;
               display_name: string;

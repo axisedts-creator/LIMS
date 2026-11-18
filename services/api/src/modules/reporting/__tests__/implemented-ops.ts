@@ -22,4 +22,5 @@ export const IMPLEMENTED = new Set([
   'receiveProviderCallback', 'verifyProviderCallback',                                                        // C6-T29 (CB1, CB2)
   'getPortalDues',                                                                                            // C6-T43 (P7)
   'createPortalPaymentRequest', 'getPortalPaymentRequest',                                                    // C6-T42 (PP1, PP2)
+  'listPrintProfiles', 'upsertPrintProfile', 'previewPrintProfile', 'listSignatoryProfiles', 'upsertSignatoryProfile', // T0B-PRINTCFG-1 (LD-316): real handlers, no longer 501 / pending
 ]);

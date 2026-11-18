@@ -9,6 +9,7 @@ import { formulasHandlers } from './formulas.handlers.js';
 import { healthHandlers } from './health.handlers.js';
 import { icdHandlers } from './icd.handlers.js';
 import { importsHandlers } from './imports.handlers.js';
+import { testImportHandlers } from '../import/handlers.js';
 import { instrumentMapsHandlers } from './instrumentMaps.handlers.js';
 import { mastersHandlers } from './masters.handlers.js';
 import { panelsHandlers } from './panels.handlers.js';
@@ -34,4 +35,5 @@ export const handlers: Readonly<Record<string, Handler>> = Object.freeze({
   ...importsHandlers,
   ...exportsHandlers, // T-36: #104–#107 (export API)
   ...icdHandlers, // T0B-PARTYSET-1 (LD-321): the ICD master of T0C-PARTYSET-1
+  ...testImportHandlers, // T0B-TESTIMPORT-1 (LD-318): Excel test import, six operations
 });

@@ -2951,7 +2951,6 @@ export interface operations {
           notes?: string;
           speciality?: string;
           hospital?: string;
-          commission_bp?: number;
           national_id_number?: string;
           quick_add?: boolean;
         };
@@ -2973,7 +2972,6 @@ export interface operations {
             notes?: string;
             speciality?: string;
             hospital?: string;
-            commission_bp?: number;
             national_id_number?: string;
             is_verified: boolean;
             source: "back_office" | "quick_add" | "import";
@@ -10231,7 +10229,6 @@ export interface operations {
             notes?: string;
             speciality?: string;
             hospital?: string;
-            commission_bp?: number;
             national_id_number?: string;
             is_verified: boolean;
             source: "back_office" | "quick_add" | "import";
@@ -15402,7 +15399,6 @@ export interface operations {
             notes?: string;
             speciality?: string;
             hospital?: string;
-            commission_bp?: number;
             national_id_number?: string;
             is_verified: boolean;
             source: "back_office" | "quick_add" | "import";
@@ -20858,10 +20854,9 @@ export interface operations {
           notes?: string;
           speciality?: string;
           hospital?: string;
-          commission_bp?: number;
           national_id_number?: string;
           is_active?: boolean;
-          unset?: ("qualification" | "registration_council" | "registration_no" | "phone_e164" | "email" | "notes" | "speciality" | "hospital" | "commission_bp" | "national_id_number")[];
+          unset?: ("qualification" | "registration_council" | "registration_no" | "phone_e164" | "email" | "notes" | "speciality" | "hospital" | "national_id_number")[];
         };
       };
     };
@@ -20881,7 +20876,6 @@ export interface operations {
             notes?: string;
             speciality?: string;
             hospital?: string;
-            commission_bp?: number;
             national_id_number?: string;
             is_verified: boolean;
             source: "back_office" | "quick_add" | "import";
@@ -24133,7 +24127,6 @@ export interface operations {
             notes?: string;
             speciality?: string;
             hospital?: string;
-            commission_bp?: number;
             national_id_number?: string;
             is_verified: boolean;
             source: "back_office" | "quick_add" | "import";

@@ -138,7 +138,7 @@ UPDATE identity.mfa_factors SET tenant_id = pg_temp.ta() WHERE id = pg_temp.uid(
 SELECT is(pg_temp.v('lims_api', NULL, format($$SELECT has_verified_factor::text FROM app.identity_login_context(%L::uuid)$$, pg_temp.uid(101))), 'false', 'a tenant-bound factor does not count for platform staff');
 -- §11 test 19: membership_count predicate (status = 'active' AND actor_type = 'user')
 -- §11 test 20: choice of membership (ORDER BY updated_at DESC), deactivated membership reported as such
-UPDATE core.memberships SET status = 'deactivated', deactivated_at = now(), deactivated_by = pg_temp.sys(), deactivation_reason_code = 'admin_deactivate' WHERE id = '01a1a98a-ac40-7000-8000-00000000a500';
+UPDATE core.memberships SET status = 'deactivated', deactivated_at = now(), deactivated_by = pg_temp.sys(), deactivation_reason_code = 'other' WHERE id = '01a1a98a-ac40-7000-8000-00000000a500';
 SELECT is(pg_temp.v('lims_api', NULL, format($$SELECT membership_id::text || '|' || membership_status || '|' || membership_count::text FROM app.identity_login_context(%L::uuid)$$, '01a1a98a-ac40-7000-8000-00000000a300')),
   '01a1a98a-ac40-7000-8000-00000000a500|deactivated|0', 'only deactivated user membership: returned with membership_status = deactivated and membership_count = 0 (loginStaff -> 403 identity.membership_inactive)');
 SELECT is(pg_temp.v('lims_api', NULL, format($$SELECT (SELECT count(*) FROM app.identity_login_context(%L::uuid))::text$$, '01a1a98a-ac40-7000-8000-00000000a300')), '1', 'login_context returns one row');
@@ -166,10 +166,12 @@ SELECT is(pg_temp.v('lims_api', jsonb_build_object('sub', pg_temp.sys(), 'actor_
 
 -- ===================================================================================================================================== §11 test 11 / 25: bootstrap
 -- §11 test 11 / 25: app.identity_bootstrap_platform_admin: no claims (CLI path), inserts staff + event, no audit_log row, closes once a superadmin exists
-CREATE TEMP TABLE audit_before AS SELECT count(*)::int AS n FROM audit.audit_log;
 DELETE FROM identity.sessions WHERE platform_staff_id = pg_temp.uid(1);
 DELETE FROM identity.support_sessions WHERE platform_staff_id = pg_temp.uid(1);
 DELETE FROM identity.platform_staff WHERE id = pg_temp.uid(1);
+-- HARNESS T0B-GREEN-3 (assertion 60): the baseline is taken AFTER this fixture clean-up; the DELETE of the audited support_sessions row above writes its own audit_log row (audit trigger, 20261105001300),
+-- which the old order counted as written by the bootstrap. The assertion still proves: the bootstrap call adds no audit_log row.
+CREATE TEMP TABLE audit_before AS SELECT count(*)::int AS n FROM audit.audit_log;
 SELECT is(pg_temp.v('lims_api', NULL, format($$SELECT app.identity_bootstrap_platform_admin(%L::uuid, %L::uuid, 'root@synthetic.example', 'Synthetic Root', %L::uuid)::text$$, pg_temp.uid(3001), pg_temp.uid(3101), pg_temp.uid(3201))), '',
   '-- §11 test 25 bootstrap succeeds with no claims (no audit_context_missing)');
 SELECT is((SELECT count(*)::int FROM identity.platform_staff WHERE id = pg_temp.uid(3001) AND role_code = 'platform_superadmin' AND is_active), 1, 'bootstrap inserted the active superadmin');

@@ -44,7 +44,9 @@ SELECT is(pg_get_userbyid(p.proowner)::text, 'lims_owner', 'owner is still lims_
 SELECT ok(array_to_string(p.proconfig, ',') ~ 'search_path=("")?$', 'search_path is still empty') FROM pg_proc p WHERE p.oid = to_regprocedure('app.identity_login_context(uuid)');
 
 -- it really runs as lims_worker now (no 42501); an unknown user returns no row, it does not raise
-SELECT is(pg_temp.x('lims_worker', $q$SELECT count(*)::text FROM app.identity_login_context('01900000-0000-7000-8000-00000000dead'::uuid)$q$), '0', 'lims_worker calls it: no permission error, no row for an unknown user');
+-- HARNESS T0B-GREEN-3 (assertion 13; the suite was never run by its author): app.identity_login_context (20261105000800) is `FROM (SELECT 1) x LEFT JOIN ...`, so it ALWAYS returns exactly one row; for an unknown user that row has
+-- membership_count = 0 and NULL platform_staff_id / tenant_id / membership_id. Still proved: no permission error (42501) for lims_worker, and no identity data (no staff, tenant or membership) for an unknown user.
+SELECT is(pg_temp.x('lims_worker', $q$SELECT count(*)::text || '|' || coalesce(max(membership_count), -1)::text || '|' || count(platform_staff_id)::text || '|' || count(tenant_id)::text || '|' || count(membership_id)::text FROM app.identity_login_context('01900000-0000-7000-8000-00000000dead'::uuid)$q$), '1|0|0|0|0', 'lims_worker calls it: no permission error, a single row with membership_count 0 and no staff / tenant / membership for an unknown user');
 SELECT matches(pg_temp.x('lims_queue', $q$SELECT count(*)::text FROM app.identity_login_context('01900000-0000-7000-8000-00000000dead'::uuid)$q$), '^E42501:', 'lims_queue is still refused (42501)');
 
 -- the grant is for this one function: the other api-only identity definers stay closed to lims_worker
@@ -55,8 +57,9 @@ SELECT ok(NOT has_function_privilege('lims_worker', p.oid, 'EXECUTE'), 'lims_wor
 
 -- no policy was added, dropped or weakened by this task (LD-189): the one USING (true) of the database stays the only one
 SELECT is((SELECT count(*) FROM pg_policies WHERE qual = 'true' OR with_check = 'true'), 1::bigint, 'USING (true) / WITH CHECK (true) still appears exactly once');
-SELECT ok(NOT EXISTS (SELECT 1 FROM pg_policies WHERE (qual ~ 'app\.(pre_|maintenance)' OR with_check ~ 'app\.(pre_|maintenance)') AND roles <> '{lims_owner}'),
-          'every policy mentioning app.pre_* is still TO lims_owner only');
+SELECT ok(NOT EXISTS (SELECT 1 FROM pg_policies WHERE (qual ~ 'app\.(pre_|maintenance)' OR with_check ~ 'app\.(pre_|maintenance)') AND roles <> '{lims_owner}'
+                      AND NOT (schemaname = 'reporting' AND roles = '{lims_reporting_lookup}')),   -- STALE T0B-GREEN-3: C6 lookup policies are TO lims_reporting_lookup (08-CR-REGISTER C6-002, A10.5, D-30; as db/tests/policy, T0B-GREEN-2)
+          'every policy mentioning app.pre_* is still TO lims_owner only (reporting lookup policies: TO lims_reporting_lookup only)');
 
 -- ================================================================ catalog: every app.* function the worker SQL calls may be executed by lims_worker
 CREATE TEMP TABLE worker_app_fns(fn) AS VALUES
@@ -66,6 +69,7 @@ CREATE TEMP TABLE worker_app_fns(fn) AS VALUES
   ('identity_purge_auth_events'), ('identity_purge_sessions'), ('instruments_agent_state_snapshot'),
   ('purge_instruments_archive'), ('purge_inventory_alerts'), ('queue_depth'), ('uuidv7');
 
+-- REAL T0B-GREEN-3 (stays red on purpose; CR .orchestra/cr/T0B-GREEN-3.identity-worker-uuidv7.nonblocking.md): app.uuidv7() has EXECUTE for lims_owner only, so 58 (uuidv7 row) and 59 (summary) fail while worker SQL calls it.
 SELECT ok(EXISTS (SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace WHERE n.nspname = 'app' AND p.proname = w.fn),
           'worker calls app.' || w.fn || ' and it exists') FROM worker_app_fns w;
 SELECT ok(NOT EXISTS (SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace

@@ -36,6 +36,9 @@ BEGIN
   EXCEPTION WHEN OTHERS THEN r := 'E' || SQLSTATE || ':' || SQLERRM;
   END;
   RESET ROLE;
+  -- HARNESS fix T0B-GREEN-3 (assertions 75, 84): a GUC set by p_pre with is_local = true lives until the end of the TRANSACTION, so the app.pre_user_id of the accepted
+  -- direct-policy insert (601) leaked into the next call ("no GUC set", 602) and let it in. Each direct-policy call now starts from a clean app.pre_user_id.
+  IF p_role = 'lims_owner' THEN RESET app.pre_user_id; END IF;
   PERFORM set_config('request.jwt.claims', '', true);
   RETURN r;
 END $f$;
@@ -193,7 +196,9 @@ SELECT is(pg_temp.nev(620) + pg_temp.nev(621), 0::bigint, 'no row from the non-o
 
 -- ================================================================ no RLS or grant weakening (LD-189)
 SELECT is((SELECT count(*) FROM pg_policies WHERE qual = 'true' OR with_check = 'true'), 1::bigint, 'USING (true) / WITH CHECK (true) still appears exactly once in the database (platform_staff__select__owner_only)');
-SELECT ok(NOT EXISTS (SELECT 1 FROM pg_policies WHERE (qual ~ 'app\.(pre_|maintenance)' OR with_check ~ 'app\.(pre_|maintenance)') AND roles <> '{lims_owner}'), 'every policy mentioning app.pre_* / app.maintenance is still TO lims_owner only');
+SELECT ok(NOT EXISTS (SELECT 1 FROM pg_policies WHERE (qual ~ 'app\.(pre_|maintenance)' OR with_check ~ 'app\.(pre_|maintenance)') AND roles <> '{lims_owner}'
+                      AND NOT (schemaname = 'reporting' AND roles = '{lims_reporting_lookup}')),   -- STALE T0B-GREEN-3: C6 lookup policies are TO lims_reporting_lookup (08-CR-REGISTER C6-002, A10.5, D-30; as db/tests/policy, T0B-GREEN-2)
+          'every policy mentioning app.pre_* / app.maintenance is still TO lims_owner only (reporting lookup policies: TO lims_reporting_lookup only)');
 SELECT ok((SELECT relforcerowsecurity AND relrowsecurity FROM pg_class WHERE oid = 'identity.platform_events'::regclass), 'FORCE + ENABLE RLS still on identity.platform_events');
 SELECT ok(NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'identity' AND tablename = 'platform_events' AND roles && ARRAY['public', 'anon', 'authenticated']::name[]), 'no platform_events policy for PUBLIC / anon / authenticated');
 SELECT ok(NOT EXISTS (SELECT 1 FROM pg_class c, LATERAL aclexplode(c.relacl) a WHERE c.oid = 'identity.platform_events'::regclass

@@ -45,6 +45,18 @@ INSERT INTO partners.order_reports (tenant_id, report_id, version_no, order_id, 
   (pg_temp.id('01'), pg_temp.id('f4'), 4, pg_temp.id('e0'), pg_temp.id('f1'), pg_temp.id('21'), 'probe-4', now(), pg_temp.id('35'), pg_temp.id('99')),
   (pg_temp.id('01'), pg_temp.id('f5'), 5, pg_temp.id('f2'), pg_temp.id('f4'), pg_temp.id('21'), 'probe-5', now(), pg_temp.id('a3'), pg_temp.id('99')),
   (pg_temp.id('01'), pg_temp.id('f6'), 6, pg_temp.id('e0'), pg_temp.id('f1'), pg_temp.id('21'), 'probe-6', now(), pg_temp.id('34'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
+INSERT INTO partners.partner_ticket (id, tenant_id, party_id, subject, created_by, updated_by) VALUES
+  (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('f1'), 'probe-1', pg_temp.id('99'), pg_temp.id('99')),
+  (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('f3'), 'probe-3', pg_temp.id('99'), pg_temp.id('99')),
+  (pg_temp.id('f4'), pg_temp.id('01'), pg_temp.id('f4'), 'probe-4', pg_temp.id('35'), pg_temp.id('99')),
+  (pg_temp.id('f5'), pg_temp.id('01'), pg_temp.id('f5'), 'probe-5', pg_temp.id('a3'), pg_temp.id('99')),
+  (pg_temp.id('f6'), pg_temp.id('01'), pg_temp.id('f5'), 'probe-6', pg_temp.id('34'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
+INSERT INTO partners.partner_ticket_message (id, tenant_id, ticket_id, sender_kind, body, created_by) VALUES
+  (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('f1'), 'partner', 'probe-1', pg_temp.id('99')),
+  (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('f3'), 'partner', 'probe-3', pg_temp.id('99')),
+  (pg_temp.id('f4'), pg_temp.id('01'), pg_temp.id('f4'), 'partner', 'probe-4', pg_temp.id('35')),
+  (pg_temp.id('f5'), pg_temp.id('01'), pg_temp.id('f5'), 'partner', 'probe-5', pg_temp.id('a3')),
+  (pg_temp.id('f6'), pg_temp.id('01'), pg_temp.id('f6'), 'partner', 'probe-6', pg_temp.id('34')) ON CONFLICT DO NOTHING;
 INSERT INTO partners.partner_users (id, tenant_id, partner_id, membership_id, partner_role, display_name, email_masked, invited_by_actor_type, created_by, updated_by) VALUES
   (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('f1'), pg_temp.id('41'), 'partner_admin', 'probe-1', 'probe1@example.com', 'user', pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('f3'), pg_temp.id('43'), 'partner_admin', 'probe-3', 'probe3@example.com', 'user', pg_temp.id('99'), pg_temp.id('99')),

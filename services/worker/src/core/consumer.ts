@@ -45,7 +45,7 @@ function envelopeValidator(type: string): (v: unknown) => boolean {
 }
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-function tenantOf(payload: any, task: string): string {
+export function tenantOf(payload: any, task: string): string {
   const t = payload?.tenant_id;
   if (typeof t !== 'string' || !UUID.test(t)) throw new Error(`${task}: job payload has no valid tenant_id`);
   return t;

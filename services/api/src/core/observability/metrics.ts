@@ -35,6 +35,10 @@ const DEFS = {
   lims_core_sync_operations_total: ['counter', ['status'], 'Pushed offline operations by outcome status'],
   lims_core_sync_batches_total: ['counter', ['outcome'], 'Pushed offline batches by outcome'],
   lims_core_sync_oldest_unsynced_age_seconds: ['gauge', ['tenant_id'], 'Age of the oldest unsynced offline work by tenant'],
+  // T0B-SYNC-5 (LD-322): set by the worker task core.sync_metrics (core/sync/metrics.ts). device_id is bounded by the device registry of the tenant.
+  lims_core_sync_conflicts_open: ['gauge', ['tenant_id'], 'Open offline sync conflicts (conflict inbox size) by tenant'],
+  lims_core_sync_print_recalls: ['gauge', ['tenant_id'], 'Offline printed reports in state recall_required by tenant'],
+  lims_core_sync_device_backlog_age_seconds: ['gauge', ['tenant_id', 'device_id'], 'Seconds since the last sync of an active device seen after it (0 when in sync)'],
   // C8 analytics (LD-88 / CR-C8-016; names, types, labels verbatim from C8 02-TRD §13 lines 846-854)
   lims_analytics_refresh_duration_seconds: ['histogram', ['family'], 'Analytics refresh duration in seconds by family'],
   lims_analytics_refresh_failures_total: ['counter', ['family'], 'Analytics refresh failures by family'],

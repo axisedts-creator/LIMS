@@ -1,0 +1,334 @@
+[core] WARNING: Executable file detection not yet supported on 'win32'.
+Schema updated
+psql:/repo/db/migrations/20261105001300_identity__create_identity_schema.sql:7: NOTICE:  schema "identity" already exists, skipping
+psql:/repo/db/migrations/20261105001500_catalog__create_catalog_schema.sql:10: NOTICE:  schema "catalog" already exists, skipping
+psql:/repo/db/migrations/20261105001600_frontdesk__create_frontdesk_schema.sql:7: NOTICE:  schema "frontdesk" already exists, skipping
+psql:/repo/db/migrations/20261105001700_billing__create_billing_schema.sql:7: NOTICE:  schema "billing" already exists, skipping
+psql:/repo/db/migrations/20261105001800_lab__create_lab_schema.sql:10: NOTICE:  schema "lab" already exists, skipping
+psql:/repo/db/migrations/20261105001900_reporting__create_reporting_schema.sql:145: NOTICE:  identifier "message_template_texts__tenant_id_template_code_channel_language__uq" will be truncated to "message_template_texts__tenant_id_template_code_channel_languag"
+psql:/repo/db/migrations/20261105001900_reporting__create_reporting_schema.sql:177: NOTICE:  identifier "report_template_versions__tenant_id_template_id__published__p_uq" will be truncated to "report_template_versions__tenant_id_template_id__published__p_u"
+psql:/repo/db/migrations/20261105001900_reporting__create_reporting_schema.sql:443: NOTICE:  identifier "deliveries__tenant_id_channel_account_id_provider_message_id__p_uq" will be truncated to "deliveries__tenant_id_channel_account_id_provider_message_id__p"
+psql:/repo/db/migrations/20261105001900_reporting__create_reporting_schema.sql:682: NOTICE:  identifier "narrative_versions__tenant_id_narrative_report_id_version_no__uq" will be truncated to "narrative_versions__tenant_id_narrative_report_id_version_no__u"
+psql:/repo/db/migrations/20261115192000_identity__add_provisioning_schema.sql:47: NOTICE:  identifier "tenant_contract_acceptances__tenant_id_document_accepted_at__idx" will be truncated to "tenant_contract_acceptances__tenant_id_document_accepted_at__id"
+                                                       set_config                                                        
+-------------------------------------------------------------------------------------------------------------------------
+ {"tenant_id":"01a1a98a-ac40-7000-8000-00000000a001","sub":"01a1b34e-1000-7eee-9d29-d7ca59a102b5","actor_type":"system"}
+(1 row)
+
+                                                       set_config                                                        
+-------------------------------------------------------------------------------------------------------------------------
+ {"tenant_id":"01a1a98a-ac40-7000-8000-00000000b001","sub":"01a1b34e-1000-7eee-9d29-d7ca59a102b5","actor_type":"system"}
+(1 row)
+
+ set_config 
+------------
+ 
+(1 row)
+
+                                                       set_config                                                        
+-------------------------------------------------------------------------------------------------------------------------
+ {"tenant_id":"01a1a98a-ac40-7000-8000-00000000a001","sub":"01a1b34e-1004-782c-a681-49b1ce74d717","actor_type":"system"}
+(1 row)
+
+                                                       set_config                                                        
+-------------------------------------------------------------------------------------------------------------------------
+ {"tenant_id":"01a1a98a-ac40-7000-8000-00000000b001","sub":"01a1b34e-1004-782c-a681-49b1ce74d717","actor_type":"system"}
+(1 row)
+
+
+ RUN  v5.1.0 C:/LIMS-lanes/C0-0J/services/api
+
+ ❯ src/modules/analytics/__tests__/misreports/commission.live.test.ts (23 tests | 22 failed) 669ms
+   ❯ two_level_commission (2)
+     × an empty range returns the contract headers and no rows 152ms
+     × columns, integer paisa and basis points only, default sort, no pay / status column 5ms
+   ❯ tds (2)
+     × an empty range returns the contract headers and no rows 4ms
+     × columns, integer paisa and basis points only, default sort, no pay / status column 4ms
+   ❯ two_level_commission: rows equal commission_bp of the settings applied to the posted bills (7)
+     × every party with a settings row and a posted bill has one row; base, rate and amount are right; cancelled and credited amounts are not counted 5ms
+     × level / parent shape (the rule that makes a party level 2 is open: CR T0B-MISREPORTS-2): level 1 or 2; level 1 has no parent; level 2 names a parent other than itself 4ms
+     × reconciles to the billing register: Σ net billed of the rows = issued invoices of the parties minus credited totals (independent SQL) 4ms
+     × rates are read from the party settings at run time (C8 stores none): a changed rate changes the figures, the old rate does not linger 20ms
+     × a party without a settings row has no row in either report (pick), the others are unchanged 30ms
+     × a date range narrows the figures consistently (inclusive end) 5ms
+     × ledger entries on Hold are excluded: holding a ledger entry of a party (and a plain submitted one) changes no figure of either report 5ms
+   ❯ tds: equals commission times tds_bp (3)
+     × per party: commission payable = the commission of the two level report, tds withheld = round(commission x tds_bp / 10000), net payable = difference; the period is echoed 4ms
+     × a party with a zero commission rate has a row of zeros (not an error, not a missing row) 4ms
+     × a changed tds_bp changes only the TDS figures, the commission payable stays 5ms
+   ❯ isolation, query count, paging for the two money reports (8)
+     × two_level_commission: tenant A never sees tenant B parties or B rates (RLS and explicit tenant predicate), and B never sees A 4ms
+     × tds: tenant A never sees tenant B parties or B rates (RLS and explicit tenant predicate), and B never sees A 5ms
+     × two_level_commission: same statement count for the month, one day and an empty range, at most 8; paging returns the same rows 7ms
+     × tds: same statement count for the month, one day and an empty range, at most 8; paging returns the same rows 4ms
+     × two_level_commission: the 366 day cap and a malformed filter use the standard validation error 8ms
+     × tds: the 366 day cap and a malformed filter use the standard validation error 5ms
+     × two_level_commission: a party_id filter narrows to that party (a parent may show with its sub parties: open rule) and cannot reach another tenant 19ms
+     × tds: a party_id filter narrows to that party (a parent may show with its sub parties: open rule) and cannot reach another tenant 6ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 22 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/modules/analytics/__tests__/misreports/commission.live.test.ts > two_level_commission > an empty range returns the contract headers and no rows
+ FAIL  src/modules/analytics/__tests__/misreports/commission.live.test.ts > tds > an empty range returns the contract headers and no rows
+LimsError: analytics.report_unknown
+ ❯ defOf src/modules/analytics/service/misReports.service.ts:27:73
+     25|
+     26| const defOf = (code: string): MisDef => {
+     27|   if (typeof code !== 'string' || !Object.hasOwn(MIS_DEFS, code)) thro…
+       |                                                                         ^
+     28|   return MIS_DEFS[code]!;
+     29| };
+ ❯ Module.runMisReport src/modules/analytics/service/misReports.service.ts:240:13
+ ❯ src/modules/analytics/__tests__/misreports/commission.live.test.ts:36:60
+ ❯ appTx src/modules/frontdesk/__tests__/integration/helpers.ts:63:17
+ ❯ src/modules/analytics/__tests__/misreports/commission.live.test.ts:70:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/22]⎯
+
+ FAIL  src/modules/analytics/__tests__/misreports/commission.live.test.ts > two_level_commission > columns, integer paisa and basis points only, default sort, no pay / status column
+ FAIL  src/modules/analytics/__tests__/misreports/commission.live.test.ts > tds > columns, integer paisa and basis points only, default sort, no pay / status column
+LimsError: analytics.report_unknown
+ ❯ defOf src/modules/analytics/service/misReports.service.ts:27:73
+     25|
+     26| const defOf = (code: string): MisDef => {
+     27|   if (typeof code !== 'string' || !Object.hasOwn(MIS_DEFS, code)) thro…
+       |                                                                         ^
+     28|   return MIS_DEFS[code]!;
+     29| };
+ ❯ Module.runMisReport src/modules/analytics/service/misReports.service.ts:240:13
+ ❯ src/modules/analytics/__tests__/misreports/commission.live.test.ts:36:60
+ ❯ appTx src/modules/frontdesk/__tests__/integration/helpers.ts:63:17
+ ❯ src/modules/analytics/__tests__/misreports/commission.live.test.ts:74:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/22]⎯
+
+ FAIL  src/modules/analytics/__tests__/misreports/commission.live.test.ts > two_level_commission: rows equal commission_bp of the settings applied to the posted bills > every party with a settings row and a posted bill has one row; base, rate and amount are right; cancelled and credited amounts are not counted
+LimsError: analytics.report_unknown
+ ❯ defOf src/modules/analytics/service/misReports.service.ts:27:73
+     25|
+     26| const defOf = (code: string): MisDef => {
+     27|   if (typeof code !== 'string' || !Object.hasOwn(MIS_DEFS, code)) thro…
+       |                                                                         ^
+     28|   return MIS_DEFS[code]!;
+     29| };
+ ❯ Module.runMisReport src/modules/analytics/service/misReports.service.ts:240:13
+ ❯ src/modules/analytics/__tests__/misreports/commission.live.test.ts:36:60
+ ❯ appTx src/modules/frontdesk/__tests__/integration/helpers.ts:63:17
+ ❯ src/modules/analytics/__tests__/misreports/commission.live.test.ts:87:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/22]⎯
+
+ FAIL  src/modules/analytics/__tests__/misreports/commission.live.test.ts > two_level_commission: rows equal commission_bp of the settings applied to the posted bills > level / parent shape (the rule that makes a party level 2 is open: CR T0B-MISREPORTS-2): level 1 or 2; level 1 has no parent; level 2 names a parent other than itself
+LimsError: analytics.report_unknown
+ ❯ defOf src/modules/analytics/service/misReports.service.ts:27:73
+     25|
+     26| const defOf = (code: string): MisDef => {
+     27|   if (typeof code !== 'string' || !Object.hasOwn(MIS_DEFS, code)) thro…
+       |                                                                         ^
+     28|   return MIS_DEFS[code]!;
+     29| };
+ ❯ Module.runMisReport src/modules/analytics/service/misReports.service.ts:240:13
+ ❯ src/modules/analytics/__tests__/misreports/commission.live.test.ts:36:60
+ ❯ appTx src/modules/frontdesk/__tests__/integration/helpers.ts:63:17
+ ❯ src/modules/analytics/__tests__/misreports/commission.live.test.ts:104:22
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/22]⎯
+
+ FAIL  src/modules/analytics/__tests__/misreports/commission.live.test.ts > two_level_commission: rows equal commission_bp of the settings applied to the posted bills > reconciles to the billing register: Σ net billed of the rows = issued invoices of the parties minus credited totals (independent SQL)
+LimsError: analytics.report_unknown
+ ❯ defOf src/modules/analytics/service/misReports.service.ts:27:73
+     25|
+     26| const defOf = (code: string): MisDef => {
+     27|   if (typeof code !== 'string' || !Object.hasOwn(MIS_DEFS, code)) thro…
+       |                                                                         ^
+     28|   return MIS_DEFS[code]!;
+     29| };
+ ❯ Module.runMisReport src/modules/analytics/service/misReports.service.ts:240:13
+ ❯ src/modules/analytics/__tests__/misreports/commission.live.test.ts:36:60
+ ❯ appTx src/modules/frontdesk/__tests__/integration/helpers.ts:63:17
+ ❯ src/modules/analytics/__tests__/misreports/commission.live.test.ts:112:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/22]⎯
+
+ FAIL  src/modules/analytics/__tests__/misreports/commission.live.test.ts > two_level_commission: rows equal commission_bp of the settings applied to the posted bills > rates are read from the party settings at run time (C8 stores none): a changed rate changes the figures, the old rate does not linger
+LimsError: analytics.report_unknown
+ ❯ defOf src/modules/analytics/service/misReports.service.ts:27:73
+     25|
+     26| const defOf = (code: string): MisDef => {
+     27|   if (typeof code !== 'string' || !Object.hasOwn(MIS_DEFS, code)) thro…
+       |                                                                         ^
+     28|   return MIS_DEFS[code]!;
+     29| };
+ ❯ Module.runMisReport src/modules/analytics/service/misReports.service.ts:240:13
+ ❯ src/modules/analytics/__tests__/misreports/commission.live.test.ts:36:60
+ ❯ appTx src/modules/frontdesk/__tests__/integration/helpers.ts:63:17
+ ❯ src/modules/analytics/__tests__/misreports/commission.live.test.ts:123:18
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/22]⎯
+
+ FAIL  src/modules/analytics/__tests__/misreports/commission.live.test.ts > two_level_commission: rows equal commission_bp of the settings applied to the posted bills > a party without a settings row has no row in either report (pick), the others are unchanged
+LimsError: analytics.report_unknown
+ ❯ defOf src/modules/analytics/service/misReports.service.ts:27:73
+     25|
+     26| const defOf = (code: string): MisDef => {
+     27|   if (typeof code !== 'string' || !Object.hasOwn(MIS_DEFS, code)) thro…
+       |                                                                         ^
+     28|   return MIS_DEFS[code]!;
+     29| };
+ ❯ Module.runMisReport src/modules/analytics/service/misReports.service.ts:240:13
+ ❯ src/modules/analytics/__tests__/misreports/commission.live.test.ts:36:60
+ ❯ appTx src/modules/frontdesk/__tests__/integration/helpers.ts:63:17
+ ❯ src/modules/analytics/__tests__/misreports/commission.live.test.ts:132:22
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/22]⎯
+
+ FAIL  src/modules/analytics/__tests__/misreports/commission.live.test.ts > two_level_commission: rows equal commission_bp of the settings applied to the posted bills > a date range narrows the figures consistently (inclusive end)
+LimsError: analytics.report_unknown
+ ❯ defOf src/modules/analytics/service/misReports.service.ts:27:73
+     25|
+     26| const defOf = (code: string): MisDef => {
+     27|   if (typeof code !== 'string' || !Object.hasOwn(MIS_DEFS, code)) thro…
+       |                                                                         ^
+     28|   return MIS_DEFS[code]!;
+     29| };
+ ❯ Module.runMisReport src/modules/analytics/service/misReports.service.ts:240:13
+ ❯ src/modules/analytics/__tests__/misreports/commission.live.test.ts:36:60
+ ❯ appTx src/modules/frontdesk/__tests__/integration/helpers.ts:63:17
+ ❯ src/modules/analytics/__tests__/misreports/commission.live.test.ts:139:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/22]⎯
+
+ FAIL  src/modules/analytics/__tests__/misreports/commission.live.test.ts > two_level_commission: rows equal commission_bp of the settings applied to the posted bills > ledger entries on Hold are excluded: holding a ledger entry of a party (and a plain submitted one) changes no figure of either report
+LimsError: analytics.report_unknown
+ ❯ defOf src/modules/analytics/service/misReports.service.ts:27:73
+     25|
+     26| const defOf = (code: string): MisDef => {
+     27|   if (typeof code !== 'string' || !Object.hasOwn(MIS_DEFS, code)) thro…
+       |                                                                         ^
+     28|   return MIS_DEFS[code]!;
+     29| };
+ ❯ Module.runMisReport src/modules/analytics/service/misReports.service.ts:240:13
+ ❯ src/modules/analytics/__tests__/misreports/commission.live.test.ts:36:60
+ ❯ appTx src/modules/frontdesk/__tests__/integration/helpers.ts:63:17
+ ❯ src/modules/analytics/__tests__/misreports/commission.live.test.ts:148:21
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/22]⎯
+
+ FAIL  src/modules/analytics/__tests__/misreports/commission.live.test.ts > tds: equals commission times tds_bp > per party: commission payable = the commission of the two level report, tds withheld = round(commission x tds_bp / 10000), net payable = difference; the period is echoed
+LimsError: analytics.report_unknown
+ ❯ defOf src/modules/analytics/service/misReports.service.ts:27:73
+     25|
+     26| const defOf = (code: string): MisDef => {
+     27|   if (typeof code !== 'string' || !Object.hasOwn(MIS_DEFS, code)) thro…
+       |                                                                         ^
+     28|   return MIS_DEFS[code]!;
+     29| };
+ ❯ Module.runMisReport src/modules/analytics/service/misReports.service.ts:240:13
+ ❯ src/modules/analytics/__tests__/misreports/commission.live.test.ts:36:60
+ ❯ appTx src/modules/frontdesk/__tests__/integration/helpers.ts:63:17
+ ❯ src/modules/analytics/__tests__/misreports/commission.live.test.ts:166:18
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/22]⎯
+
+ FAIL  src/modules/analytics/__tests__/misreports/commission.live.test.ts > tds: equals commission times tds_bp > a party with a zero commission rate has a row of zeros (not an error, not a missing row)
+LimsError: analytics.report_unknown
+ ❯ defOf src/modules/analytics/service/misReports.service.ts:27:73
+     25|
+     26| const defOf = (code: string): MisDef => {
+     27|   if (typeof code !== 'string' || !Object.hasOwn(MIS_DEFS, code)) thro…
+       |                                                                         ^
+     28|   return MIS_DEFS[code]!;
+     29| };
+ ❯ Module.runMisReport src/modules/analytics/service/misReports.service.ts:240:13
+ ❯ src/modules/analytics/__tests__/misreports/commission.live.test.ts:36:60
+ ❯ appTx src/modules/frontdesk/__tests__/integration/helpers.ts:63:17
+ ❯ src/modules/analytics/__tests__/misreports/commission.live.test.ts:178:16
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/22]⎯
+
+ FAIL  src/modules/analytics/__tests__/misreports/commission.live.test.ts > tds: equals commission times tds_bp > a changed tds_bp changes only the TDS figures, the commission payable stays
+LimsError: analytics.report_unknown
+ ❯ defOf src/modules/analytics/service/misReports.service.ts:27:73
+     25|
+     26| const defOf = (code: string): MisDef => {
+     27|   if (typeof code !== 'string' || !Object.hasOwn(MIS_DEFS, code)) thro…
+       |                                                                         ^
+     28|   return MIS_DEFS[code]!;
+     29| };
+ ❯ Module.runMisReport src/modules/analytics/service/misReports.service.ts:240:13
+ ❯ src/modules/analytics/__tests__/misreports/commission.live.test.ts:36:60
+ ❯ appTx src/modules/frontdesk/__tests__/integration/helpers.ts:63:17
+ ❯ src/modules/analytics/__tests__/misreports/commission.live.test.ts:182:18
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/22]⎯
+
+ FAIL  src/modules/analytics/__tests__/misreports/commission.live.test.ts > isolation, query count, paging for the two money reports > two_level_commission: tenant A never sees tenant B parties or B rates (RLS and explicit tenant predicate), and B never sees A
+ FAIL  src/modules/analytics/__tests__/misreports/commission.live.test.ts > isolation, query count, paging for the two money reports > tds: tenant A never sees tenant B parties or B rates (RLS and explicit tenant predicate), and B never sees A
+LimsError: analytics.report_unknown
+ ❯ defOf src/modules/analytics/service/misReports.service.ts:27:73
+     25|
+     26| const defOf = (code: string): MisDef => {
+     27|   if (typeof code !== 'string' || !Object.hasOwn(MIS_DEFS, code)) thro…
+       |                                                                         ^
+     28|   return MIS_DEFS[code]!;
+     29| };
+ ❯ Module.runMisReport src/modules/analytics/service/misReports.service.ts:240:13
+ ❯ src/modules/analytics/__tests__/misreports/commission.live.test.ts:36:60
+ ❯ appTx src/modules/frontdesk/__tests__/integration/helpers.ts:63:17
+ ❯ src/modules/analytics/__tests__/misreports/commission.live.test.ts:193:43
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/22]⎯
+
+ FAIL  src/modules/analytics/__tests__/misreports/commission.live.test.ts > isolation, query count, paging for the two money reports > two_level_commission: same statement count for the month, one day and an empty range, at most 8; paging returns the same rows
+ FAIL  src/modules/analytics/__tests__/misreports/commission.live.test.ts > isolation, query count, paging for the two money reports > tds: same statement count for the month, one day and an empty range, at most 8; paging returns the same rows
+LimsError: analytics.report_unknown
+ ❯ defOf src/modules/analytics/service/misReports.service.ts:27:73
+     25|
+     26| const defOf = (code: string): MisDef => {
+     27|   if (typeof code !== 'string' || !Object.hasOwn(MIS_DEFS, code)) thro…
+       |                                                                         ^
+     28|   return MIS_DEFS[code]!;
+     29| };
+ ❯ Module.runMisReport src/modules/analytics/service/misReports.service.ts:240:13
+ ❯ src/modules/analytics/__tests__/misreports/commission.live.test.ts:202:129
+ ❯ appTx src/modules/frontdesk/__tests__/integration/helpers.ts:63:17
+ ❯ src/modules/analytics/__tests__/misreports/commission.live.test.ts:203:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/22]⎯
+
+ FAIL  src/modules/analytics/__tests__/misreports/commission.live.test.ts > isolation, query count, paging for the two money reports > two_level_commission: the 366 day cap and a malformed filter use the standard validation error
+ FAIL  src/modules/analytics/__tests__/misreports/commission.live.test.ts > isolation, query count, paging for the two money reports > tds: the 366 day cap and a malformed filter use the standard validation error
+AssertionError: expected 'analytics.report_unknown' to be 'common.validation_failed' // Object.is equality
+
+Expected: "common.validation_failed"
+Received: "analytics.report_unknown"
+
+ ❯ src/modules/analytics/__tests__/misreports/commission.live.test.ts:209:171
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/22]⎯
+
+ FAIL  src/modules/analytics/__tests__/misreports/commission.live.test.ts > isolation, query count, paging for the two money reports > two_level_commission: a party_id filter narrows to that party (a parent may show with its sub parties: open rule) and cannot reach another tenant
+ FAIL  src/modules/analytics/__tests__/misreports/commission.live.test.ts > isolation, query count, paging for the two money reports > tds: a party_id filter narrows to that party (a parent may show with its sub parties: open rule) and cannot reach another tenant
+LimsError: analytics.report_unknown
+ ❯ defOf src/modules/analytics/service/misReports.service.ts:27:73
+     25|
+     26| const defOf = (code: string): MisDef => {
+     27|   if (typeof code !== 'string' || !Object.hasOwn(MIS_DEFS, code)) thro…
+       |                                                                         ^
+     28|   return MIS_DEFS[code]!;
+     29| };
+ ❯ Module.runMisReport src/modules/analytics/service/misReports.service.ts:240:13
+ ❯ src/modules/analytics/__tests__/misreports/commission.live.test.ts:36:60
+ ❯ appTx src/modules/frontdesk/__tests__/integration/helpers.ts:63:17
+ ❯ src/modules/analytics/__tests__/misreports/commission.live.test.ts:213:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[16/22]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  22 failed | 1 passed (23)
+   Start at  01:28:40
+   Duration  1.71s (tests 44%, import 43%, transform 10%, setup 2%, worker 1%)
+

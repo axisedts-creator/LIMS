@@ -33,6 +33,8 @@ vi.mock('@/core/session/server', () => ({
   getRequestPathname: async () => '/payments/review',
 }));
 
+import { card as tabCard } from './pg-t19.helpers';
+
 afterEach(() => { cleanup(); push.mockClear(); });
 
 const ALL = ['payments.reconciliation.read', 'payments.intent.resolve', 'payments.refund.request', 'payments.refund.approve', 'payments.merchant_config.manage'];
@@ -88,7 +90,8 @@ describe('RS-C15 status chips: tone + icon + word (10-DESIGN-SYSTEM s6; A1, A2, 
 
   it('A3 settings: eSewa Enabled/success, Khalti Disabled/neutral, Fonepay "Not available yet"/neutral, each beside the card title', async () => {
     await renderSettings();
-    const card = (name: string) => screen.getByRole('heading', { name }).closest('.lims-card') as HTMLElement;
+    // LD-353 template 4 (T0D-UISETTINGS-1): each gateway is a tab of the kit SettingsForm; the chip sits in that tab's section (card() opens the tab).
+    const card = (name: string) => tabCard(name);
     const chip = (name: string) => { const c = card(name).querySelector<HTMLElement>('.lims-chip'); expect(c, `status chip in the ${name} card`).not.toBeNull(); return c!; };
     expect([chip('eSewa').textContent!.trim(), chip('eSewa').dataset['tone']]).toEqual(['Enabled', 'success']);
     expect([chip('Khalti').textContent!.trim(), chip('Khalti').dataset['tone']]).toEqual(['Disabled', 'neutral']);

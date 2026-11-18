@@ -2,6 +2,7 @@
 // with no tabs and no configuration data; any other failure rejects to error.tsx. `?tab=` and `?set=` are narrowed to known values before anything is fetched.
 // LD-140 (2026-11-13): screens are built from the kit only (see ConfigScreen).
 import { getShellSession } from '@/core/session/server';
+import { loadOr } from '@/core/shell/NotAvailable';
 import { ConfigForbidden } from '@/features/anatomic/components/config/config-shared';
 import { ConfigScreen } from '@/features/anatomic/components/config/ConfigScreen';
 import { loadTab, pickSet, pickTab } from '@/features/anatomic/server/config.load.server';
@@ -11,7 +12,10 @@ export default async function ConfigPage({ searchParams }: { searchParams: Promi
   const sp = await searchParams;
   const session = await getShellSession();
   if (!(session?.actor.permissions ?? []).includes('anatomic.config.manage')) return <ConfigForbidden />;
-  const data = await orForbidden(() => loadTab(pickTab(sp.tab), pickSet(sp.set)));
-  if (data === null) return <ConfigForbidden />;
-  return <ConfigScreen data={data} />;
+  // T0D-UISETTINGS-1 (LD-353 rule 6): 501 → NotAvailable, 5xx → ErrorState in the page (title, reference, Retry); other failures still reject to error.tsx.
+  return loadOr('Pathology setup', undefined, async () => {
+    const data = await orForbidden(() => loadTab(pickTab(sp.tab), pickSet(sp.set)));
+    if (data === null) return <ConfigForbidden />;
+    return <ConfigScreen data={data} />;
+  });
 }

@@ -1,13 +1,13 @@
 'use client';
 // General tab (04-UI-UX §3.13; 02-TRD §9.1): GET /v1/lab/settings -> labelled controls; Save = PUT with If-Match "<version>" and the ten LabSettingsUpdate keys only.
 // The §9.1 ranges are validated here too (the API re-checks: CHECK ranges never reach the database as a 500). Without lab.config.manage the values are read-only.
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { Button } from '@lims/ui/components/Button';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { SettingsForm } from '@lims/ui/components/SettingsForm';
 import { useToast } from '@lims/ui/components/Toast';
 import { getLabSettingsAction, updateLabSettingsAction } from '../../server/config.actions';
 import type { LabSettings } from '../../server/config.types';
 import { call } from '../shared';
-import { AlertText, CheckInput, errText, Field, isStale, TextInput } from './common';
+import { AlertText, CheckInput, errText, Field, isStale, SettingsSection, TextInput } from './common';
 
 type IntKey = 'label_width_mm' | 'label_height_mm' | 'label_copies_default' | 'history_days';
 type BoolKey = 'host_query_requires_received' | 'ingest_auto_receive' | 'critical_notification_blocks_approval' | 'recollection_default' | 'delta_check_enabled';
@@ -32,7 +32,7 @@ const toForm = (s: LabSettings): Form => ({
   critical_notification_blocks_approval: s.critical_notification_blocks_approval, recollection_default: s.recollection_default, delta_check_enabled: s.delta_check_enabled,
 });
 
-export function GeneralTab({ canManage }: { canManage: boolean }) {
+export function GeneralTab({ canManage, tabs }: { canManage: boolean; tabs: ReactNode }) {
   const toast = useToast();
   const [loaded, setLoaded] = useState<{ version: number; form: Form } | null>(null);
   const [readErr, setReadErr] = useState('');
@@ -49,10 +49,7 @@ export function GeneralTab({ canManage }: { canManage: boolean }) {
   }, []);
   useEffect(() => { void load(); }, [load]);
 
-  if (readErr && !loaded) return <AlertText text={readErr} />;
-  if (!loaded || !f) return <p role="status">Loading…</p>;
-
-  const set = <K extends keyof Form>(k: K, v: Form[K]) => setF({ ...f, [k]: v });
+  const set = <K extends keyof Form>(k: K, v: Form[K]) => setF((cur) => (cur ? { ...cur, [k]: v } : cur));
   async function save() {
     if (busyRef.current || !f || !loaded) return;
     const e: Partial<Record<IntKey, string>> = {};
@@ -71,13 +68,22 @@ export function GeneralTab({ canManage }: { canManage: boolean }) {
     if (isStale(r)) await load();   // the user sees the newer values; the next Save uses the new version
   }
 
-  return (
-    <form onSubmit={(e) => { e.preventDefault(); void save(); }} noValidate>
-      <AlertText text={err} />
+  // T0D-UISETTINGS-1: one tree for loading, failed read and loaded, so the tabs in the slot never remount (a click on a tab is never lost).
+  const fields = readErr && !loaded ? <AlertText text={readErr} /> : !loaded || !f ? <p role="status">Loading…</p> : (
+    <>
       {INTS.map((i) => <TextInput key={i.key} label={i.label} type="number" value={f[i.key]} onChange={(v) => set(i.key, v)} error={errs[i.key]} disabled={!canManage} />)}
       <Field label="Label renderer">{(p) => <select {...p} className="lims-input" value="html_svg" disabled={!canManage} onChange={() => undefined}><option value="html_svg">html_svg</option></select>}</Field>
       {BOOLS.map((b) => <CheckInput key={b.key} label={b.label} checked={f[b.key]} onChange={(v) => set(b.key, v)} disabled={!canManage} />)}
-      {canManage ? <Button variant="primary" type="submit" isDisabled={busy}>Save settings</Button> : null}
-    </form>
+    </>
+  );
+  // T0D-UISETTINGS-1 (LD-353 template 4): kit SettingsForm, one "Save settings" in the sticky bar with the dirty note; read only = the same fields, no form.
+  if (!canManage || (readErr && !loaded)) return <SettingsSection tabs={tabs}><div className="lims-settings-fields">{fields}</div></SettingsSection>;
+  return (
+    <>
+      <AlertText text={err} />
+      <SettingsForm tabs={tabs} onSave={save} saveLabel="Save settings" isSaving={busy || !loaded} isDirty={!!loaded && JSON.stringify(f) !== JSON.stringify(loaded.form)}>
+        {fields}
+      </SettingsForm>
+    </>
   );
 }

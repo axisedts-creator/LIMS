@@ -4,15 +4,13 @@
 // Turning automatic consumption on asks for a start time (default now); the server rejects a start older than 1 hour (400 at /consumption_enabled_at).
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button } from '@lims/ui/components/Button';
-import { Card } from '@lims/ui/components/Card';
 import { DateTimePicker, type DateTimePickerProps } from '@lims/ui/components/DateTimePicker';
 import { DecimalField } from '@lims/ui/components/DecimalField';
 import { DescriptionList } from '@lims/ui/components/DescriptionList';
-import { Form } from '@lims/ui/components/Form';
 import { PageHeader } from '@lims/ui/components/PageHeader';
-import { Stack } from '@lims/ui/components/Stack';
+import { SettingsForm as KitSettingsForm } from '@lims/ui/components/SettingsForm';
 import { Switch } from '@lims/ui/components/Switch';
+import { Tabs } from '@lims/ui/components/Tabs';
 import { TextField } from '@lims/ui/components/TextField';
 import { useToast } from '@lims/ui/components/Toast';
 import { saveSettingsAction } from '../server/actions';
@@ -21,6 +19,8 @@ import { Pick, ProblemBanner, yesNo, type Failure } from './shared';
 
 const PATTERN_HINT = 'Patterns can use {yy}, {fy}, {fyl} and {seq:N}, for example PO-{fy}-{seq:5}.';
 const VAT_HELP = 'Turn off if your lab can claim purchase VAT back (ask your auditor).';
+// T0D-UISETTINGS-1 (LD-353 template 4): the four former cards are the four tabs of the kit SettingsForm.
+const TABS = [{ id: 'consumption', label: 'Consumption' }, { id: 'purchasing', label: 'Purchasing' }, { id: 'alerts', label: 'Alerts and counts' }, { id: 'numbers', label: 'Document numbers' }] as const;
 const PATTERNS = [
   { key: 'po_no_pattern', label: 'PO number pattern' },
   { key: 'grn_no_pattern', label: 'Receipt number pattern' },
@@ -54,6 +54,10 @@ export function SettingsForm({ settings: s, stores, canManage }: { settings: Set
   });
   const [problem, setProblem] = useState<Failure>();
   const [saving, setSaving] = useState(false);
+  const [dirty, setDirty] = useState(false);
+  const [tab, setTab] = useState<string>('consumption');
+  /** An edit marks the form dirty (the Save bar says so). */
+  const d = <T,>(set: (v: T) => void) => (v: T) => { set(v); setDirty(true); };
 
   if (!canManage) {
     const storeLabel = stores.find((x) => x.value === s.default_consumption_store_id)?.label ?? '—';
@@ -102,6 +106,7 @@ export function SettingsForm({ settings: s, stores, canManage }: { settings: Set
     const r = await saveSettingsAction(s.version, update);
     setSaving(false);
     if (!r.ok) return setProblem(r);
+    setDirty(false);
     toast.show({ tone: 'success', title: 'Settings saved' });
     router.refresh();
   };
@@ -109,58 +114,57 @@ export function SettingsForm({ settings: s, stores, canManage }: { settings: Set
   return (
     <section aria-label="Settings">
       <PageHeader title="Settings" helpKey="inventory.settings" />
-      <Form onSubmit={onSubmit} {...(problem?.errors ? { problem: { errors: problem.errors } } : {})}>
-        <Stack>
-          <ProblemBanner problem={problem} />
-          <Card title="Consumption">
-            <Stack gap={3}>
-              <Switch
-                label="Automatic consumption"
-                name="auto_consumption"
-                isSelected={autoOn}
-                onChange={(on) => {
-                  setAutoOn(on);
-                  if (on && !startAt) setStartAt(nowIso());
-                  if (!on) setStartAt(undefined);
-                }}
-              />
-              {autoOn ? <DateTimePicker label="Start from" name="consumption_enabled_at" {...(startAt ? { value: startAt } : {})} onChange={setStartAt} /> : null}
-              <Pick label="Default consumption store" name="default_consumption_store_id" options={stores} value={store} onChange={setStore} />
-              <Switch label="Analyser-day rules need activity" name="per_day_requires_activity" isSelected={perDay} onChange={setPerDay} />
-            </Stack>
-          </Card>
-          <Card title="Purchasing">
-            <Stack gap={3}>
-              <Switch label="VAT included in cost" name="vat_in_cost" isSelected={vat} onChange={setVat} />
-              <p className="lims-description">{VAT_HELP}</p>
-              <Switch label="Allow approving own PO" name="po_self_approval_allowed" isSelected={selfApprove} onChange={setSelfApprove} />
-              <Switch label="Allow receipts without PO" name="grn_without_po_allowed" isSelected={grnNoPo} onChange={setGrnNoPo} />
-              <DecimalField label="Over-receipt tolerance %" name="over_receipt_tolerance_bp" decimals={2} min="0" max="50" isRequired {...(tolerance ? { value: tolerance } : {})} onChange={setTolerance} />
-            </Stack>
-          </Card>
-          <Card title="Alerts and counts">
-            <Stack gap={3}>
-              <DecimalField label="Expiry alert days" name="expiry_alert_days" decimals={0} min="1" max="365" isRequired {...(expiryDays ? { value: expiryDays } : {})} onChange={setExpiryDays} />
-              <Switch label="Lock store during count" name="count_locks_store" isSelected={locks} onChange={setLocks} />
-              <DecimalField label="Reconciliation alert %" name="reconciliation_gap_alert_bp" decimals={2} min="0" max="100" isRequired {...(recon ? { value: recon } : {})} onChange={setRecon} />
-              <DecimalField label="Back-dating limit days" name="backdate_max_days" decimals={0} min="0" max="31" isRequired {...(backdate ? { value: backdate } : {})} onChange={setBackdate} />
-            </Stack>
-          </Card>
-          <Card title="Document numbers">
-            <Stack gap={3}>
-              <p className="lims-description">{PATTERN_HINT}</p>
-              {PATTERNS.map((p) => (
-                <TextField key={p.key} label={p.label} name={p.key} maxLength={40} isRequired value={patterns[p.key]} onChange={(v) => setPatterns((cur) => ({ ...cur, [p.key]: v }))} />
-              ))}
-            </Stack>
-          </Card>
-          <div>
-            <Button type="submit" variant="primary" isLoading={saving}>
-              Save
-            </Button>
-          </div>
-        </Stack>
-      </Form>
+      <ProblemBanner problem={problem} />
+      <KitSettingsForm
+        tabs={<Tabs aria-label="Inventory settings sections" items={TABS} selectedId={tab} onChange={setTab} />}
+        onSave={onSubmit} isSaving={saving} isDirty={dirty} {...(problem?.errors ? { problem: { errors: problem.errors } } : {})}
+      >
+        {/* Only the selected tab is drawn (values stay in state and are all saved): a hidden section would put its inputs ahead of the visible ones. */}
+        {tab === 'consumption' ? (
+          <>
+            <Switch
+              label="Automatic consumption"
+              name="auto_consumption"
+              isSelected={autoOn}
+              onChange={(on) => {
+                setAutoOn(on);
+                setDirty(true);
+                if (on && !startAt) setStartAt(nowIso());
+                if (!on) setStartAt(undefined);
+              }}
+            />
+            {/* the start picker is drawn only on its own tab (its value stays in state and is saved); the kit date mask edits on blur, not per key */}
+            {autoOn && tab === 'consumption' ? <DateTimePicker label="Start from" name="consumption_enabled_at" {...(startAt ? { value: startAt } : {})} onChange={d(setStartAt)} /> : null}
+            <Pick label="Default consumption store" name="default_consumption_store_id" options={stores} value={store} onChange={d(setStore)} />
+            <Switch label="Analyser-day rules need activity" name="per_day_requires_activity" isSelected={perDay} onChange={d(setPerDay)} />
+          </>
+        ) : null}
+        {tab === 'purchasing' ? (
+          <>
+            <Switch label="VAT included in cost" name="vat_in_cost" isSelected={vat} onChange={d(setVat)} />
+            <p className="lims-description">{VAT_HELP}</p>
+            <Switch label="Allow approving own PO" name="po_self_approval_allowed" isSelected={selfApprove} onChange={d(setSelfApprove)} />
+            <Switch label="Allow receipts without PO" name="grn_without_po_allowed" isSelected={grnNoPo} onChange={d(setGrnNoPo)} />
+            <DecimalField label="Over-receipt tolerance %" name="over_receipt_tolerance_bp" decimals={2} min="0" max="50" isRequired {...(tolerance ? { value: tolerance } : {})} onChange={d(setTolerance)} />
+          </>
+        ) : null}
+        {tab === 'alerts' ? (
+          <>
+            <DecimalField label="Expiry alert days" name="expiry_alert_days" decimals={0} min="1" max="365" isRequired {...(expiryDays ? { value: expiryDays } : {})} onChange={d(setExpiryDays)} />
+            <Switch label="Lock store during count" name="count_locks_store" isSelected={locks} onChange={d(setLocks)} />
+            <DecimalField label="Reconciliation alert %" name="reconciliation_gap_alert_bp" decimals={2} min="0" max="100" isRequired {...(recon ? { value: recon } : {})} onChange={d(setRecon)} />
+            <DecimalField label="Back-dating limit days" name="backdate_max_days" decimals={0} min="0" max="31" isRequired {...(backdate ? { value: backdate } : {})} onChange={d(setBackdate)} />
+          </>
+        ) : null}
+        {tab === 'numbers' ? (
+          <>
+            <p className="lims-description">{PATTERN_HINT}</p>
+            {PATTERNS.map((p) => (
+              <TextField key={p.key} label={p.label} name={p.key} maxLength={40} isRequired value={patterns[p.key]} onChange={(v) => { setPatterns((cur) => ({ ...cur, [p.key]: v })); setDirty(true); }} />
+            ))}
+          </>
+        ) : null}
+      </KitSettingsForm>
     </section>
   );
 }

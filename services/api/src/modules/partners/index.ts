@@ -78,6 +78,10 @@ const implemented: Readonly<Record<string, Handler>> = {
  * T0C-MSGDESK-1 (LD-321): the partner ticket ids were removed by T0B-MSGDESK-1 with their handlers.
  */
 const PENDING_OPERATIONS: readonly string[] = Object.freeze([
+  // T0C-PARTYSET-1 (LD-321): party commercial settings, onboarding queue, penalties, ID reveal; T0B-PARTYSET-1 removes them
+  'getPartyCommercialSetting', 'setPartyCommercialSetting', 'listPartyOnboarding', 'decidePartyOnboarding',
+  'listNonCompliancePenalties', 'createNonCompliancePenalty', 'updateNonCompliancePenalty', 'deactivateNonCompliancePenalty',
+  'listNonComplianceEvents', 'raiseNonComplianceEvent', 'waiveNonComplianceEvent', 'chargeNonComplianceEvent', 'revealPartyIdNumber',
 ]);
 
 export const manifest: ModuleManifest = Object.freeze({

@@ -24,3 +24,7 @@ Fix: none, as LD-391 orders (writer/debugger no code change; baseline json not r
 ## Round 6 (LD-391, verify 21:28)
 Cause: unchanged. rs-c4.static.test.ts only (permissions ~150 billing.account*/cash_transfer/expense codes, server_imports accounts.server/expenses.server) vs rs-c4.baseline.json; drift from already-merged billing accounting UI. OFFLINE-3 touches no route/permission/server-import file. Not an implementation defect.
 Fix: none (LD-391: no writer/debugger code change; baseline not regenerated). Blocker: LD310_ALLOW (tester-owned) under-counts; needs a new lead ruling widening it (permissions, logic_files, 2 server_imports, /v1/catalog/tests literal).
+
+## Round 7 (verify 00:14; rs-c4 rerun 00:16: same 6 fail / 31 pass)
+Cause: no OFFLINE-3 defect. Pure rs-c4 guard drift from merged work: static same-bytes +4 billing/server files, route /v1/catalog/tests, billing server_imports +4, billing_app server_symbols +19, register test "no /draft/i button" vs REGSCREEN-2 Save as draft/Drafts (RegistrationForm.tsx:891-892), Daily cash snapshot vs UIDASH.
+Fix: none; tests are tester-owned, LD-393 says escalate. Wrote T0D-OFFLINE-3-dispute.md with exact strings. Lead must widen LD310_ALLOW and re-record snapshot; never regenerate baseline.

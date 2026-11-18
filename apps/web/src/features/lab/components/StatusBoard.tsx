@@ -105,6 +105,9 @@ function Board({ centres, initialRows, initialNextCursor, initialRange }: Status
 
   // T0D-UIDASH-1, LD-353 template 5: the tiles count the rows of the loaded page; each tile is the status filter (replaces the status chips).
   const count = (s: BoardStatus) => rows.filter((r) => r.board_status === s).length;
+  // review item 1: the status filter runs on the server, so a status outside the filter is unknown ("—"), never a false 0; "+" while more pages exist.
+  const inFilter = (s: BoardStatus) => statuses.length === 0 || statuses.includes(s);
+  const shownCount = (s: BoardStatus) => (inFilter(s) ? String(count(s)) + (next ? '+' : '') : '—');
 
   return (
     <div>
@@ -117,9 +120,9 @@ function Board({ centres, initialRows, initialNextCursor, initialRange }: Status
       <StatTileRow>
         {BOARD_STATUSES.map((s) => (
           // the kit StatTile is a div or a link; a filter tile is a toggle button with the same parts (leading space keeps "Ready 1" readable)
-          <button key={s} type="button" className="lims-stat lims-stat-toggle" aria-pressed={statuses.includes(s)} aria-label={`${LABEL[s]} ${count(s)}`} onClick={() => toggleStatus(s)}>
+          <button key={s} type="button" className="lims-stat lims-stat-toggle" aria-pressed={statuses.includes(s)} aria-label={`${LABEL[s]} ${shownCount(s)}`} onClick={() => toggleStatus(s)}>
             <span className="lims-stat-label">{LABEL[s]}</span>
-            <span className="lims-stat-value"> {count(s)}</span>
+            <span className="lims-stat-value"> {shownCount(s)}</span>
           </button>
         ))}
       </StatTileRow>
@@ -169,7 +172,7 @@ function Board({ centres, initialRows, initialNextCursor, initialRange }: Status
         {/* [CONV] aria-hidden: the five tiles above carry the same counts to assistive tech, so the chart's hidden data table would only repeat them
             (and make the order table no longer the page's one table) */}
         <div aria-hidden="true">
-        <BarChart title="Samples by status" valueFormat="integer" categories={BOARD_STATUSES.map((s) => LABEL[s])} series={[{ id: 'n', label: 'Orders', values: BOARD_STATUSES.map(count) }]} />
+        <BarChart title="Samples by status" valueFormat="integer" categories={BOARD_STATUSES.map((s) => LABEL[s])} series={[{ id: 'n', label: 'Orders', values: BOARD_STATUSES.map((s) => (inFilter(s) ? count(s) : 0)) }]} />
         </div>
       </ChartCard>
     </div>

@@ -85,7 +85,7 @@ describe('opening (04-UI-UX §3.4 drawer table)', () => {
     const { finalCulture } = await import('./t22.harness');
     await mount(finalCulture());
     const list = (await import('@/core/shortcuts/registry')).shortcuts.list('micro.culture');
-    for (const k of ['Alt+P', 'Alt+F']) act(() => (list as { key: string; run: () => void }[]).find((x) => x.key === k)!.run());
+    for (const k of ['Alt+P', 'Alt+F']) act(() => (list as readonly { key: string; run: () => void }[]).find((x) => x.key === k)!.run());
     expect(screen.queryByRole('dialog', { name: /(preliminary|final) report/i })).toBeNull();
   });
 });

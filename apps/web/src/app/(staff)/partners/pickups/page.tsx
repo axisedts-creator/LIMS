@@ -7,9 +7,11 @@ import { PermissionNotice } from '@/features/partners/components/common';
 
 export const metadata = { title: 'Partner pickups' };
 
-export default async function PickupsPage() {
+export default async function PickupsPage({ searchParams }: { searchParams?: Promise<{ state?: string }> } = {}) {
   const session = await getShellSession();
   if (!(session?.actor.permissions ?? []).includes('partners.pickup.manage')) return <PermissionNotice />;
-  const list = await listPickups({ state: 'requested,scheduled' }).catch((e: unknown) => { if (e instanceof ApiError) return null; throw e; });
-  return <PickupQueue rows={list?.data ?? []} failed={list === null} />;
+  // T0D-UILIST-3: the FilterBar state goes to the existing `state` query of listPickups; default stays the open requests.
+  const state = (await searchParams)?.state;
+  const list = await listPickups({ state: state || 'requested,scheduled' }).catch((e: unknown) => { if (e instanceof ApiError) return null; throw e; });
+  return <PickupQueue rows={list?.data ?? []} failed={list === null} filters={{ state }} />;
 }

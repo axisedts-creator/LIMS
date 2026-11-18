@@ -13,7 +13,7 @@ import { PageHeader } from '@lims/ui/components/PageHeader';
 import { useToast } from '@lims/ui/components/Toast';
 import { mapReferrerAction, rejectMappingAction, searchDoctorsAction, unmapReferrerAction } from '../server/actions';
 import type { ActionResult, DoctorHit, Referrer } from '../server/types';
-import { Chip, DialogError, LoadFailed, Notice, REASONS, errorText, useUrlFilters } from './common';
+import { Chip, DialogError, LOAD_FAILED, Notice, REASONS, errorText, useUrlFilters } from './common';
 
 const STATES = [{ value: 'unmapped', label: 'Not confirmed' }, { value: 'mapped', label: 'Confirmed' }, { value: 'rejected', label: 'Rejected' }];
 
@@ -96,11 +96,10 @@ export function ReferrerMapping({ rows, failed, filters }: { rows: readonly Refe
         onReset={() => setUrl({ mapping_state: undefined })}
       />
       {notice ? <Notice text={notice} /> : null}
-      {failed ? (
-        <LoadFailed />
-      ) : (
-        <DataTable caption="Partner doctors" columns={columns} rows={rows} getRowId={(r) => r.id} emptyState={{ title: 'No doctors', body: 'Doctors typed by partners will show here.' }} />
-      )}
+      {/* T0D-UILIST-3 (LD-353 rules 5 and 6): header row kept on a failed load, ErrorState with Retry in the body; cut-off cells carry a title */}
+      <div {...(failed ? { role: 'alert' } : {})}>
+        <DataTable caption="Partner doctors" columns={columns} rows={rows} getRowId={(r) => r.id} cellTitle {...(failed ? { error: { title: LOAD_FAILED, onRetry: () => router.refresh() } } : {})} emptyState={{ title: 'No doctors', body: 'Doctors typed by partners will show here.' }} />
+      </div>
       {mapping ? <MapDialog referrer={mapping} onClose={() => setMapping(null)} onDone={() => { setMapping(null); done({ ok: true, data: true }, 'Doctor confirmed.'); }} /> : null}
       <ConfirmDialog
         key={rejecting?.id ?? 'none'}

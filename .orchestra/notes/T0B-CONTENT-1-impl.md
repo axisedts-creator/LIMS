@@ -1,7 +1,7 @@
-# T0B-CONTENT-1 impl (writer; LD-313, LD-325)
-- Files: engagement/service/safeMarkdown.ts (validate + render, hand written, no new dependency), service/content.service.ts, repository/content.repo.ts, handlers/content.handlers.ts, handlers/index.ts (+contentHandlers).
-- [CONV] listMyPortalContent answers `Cache-Control: public, max-age=60` + `Vary: Authorization` (done_when 3 beats contract CacheControlNoStore; lead to fix engagement.yaml). Staff actor on it = 403. Patient body is raw Markdown re-checked by validateMarkdown on read (dirty stored body is dropped); renderMarkdown is the shared HTML renderer.
-- [CONV] image ownership = SELECT on identity.branding_assets (same tenant, active, not quarantined, not signature, png/jpeg); the fake IdentityPort has no readBrandingAsset. Foreign = unknown = 400 /image_attachment_id.
-- [CONV] reorder locks the kind FOR UPDATE in id order (no deadlock), must list every item incl. inactive; profile image = INSERT .. ON CONFLICT reuse row; clear = is_active false, 404 if none active.
-- BLOCKER: lane/C0-0C NOT merged (git merge needs approval in this session). Until merged, boot check fails here (9 handlers with no spec op). AFTER MERGE: delete the 9 content ids from `pendingOperations` in engagement/index.ts (0C adds them; static.test requires them gone).
-- Ran: markdown.test.ts 16/16 pass; static.test.ts 13/23 (10 fail only "op in spec", needs merge); tsc clean on new files. NOT run: admin/public/images PG tests, boot tests (need merge + docker verify).
+# T0B-CONTENT-1 impl (writer; LD-313, LD-325, LD-368)
+- Files: engagement/service/safeMarkdown.ts (validate + render, no new dependency), service/content.service.ts, repository/content.repo.ts, handlers/content.handlers.ts, handlers/index.ts (+contentHandlers); engagement/index.ts: 9 content ids dropped from pendingOperations (LD-368).
+- [CONV] listMyPortalContent answers `Cache-Control: public, max-age=60` + `Vary: Authorization` (done_when 3 beats contract CacheControlNoStore; lead to fix engagement.yaml). Staff actor = 403. Patient body re-checked by validateMarkdown on read; renderMarkdown is the shared renderer.
+- [CONV] image ownership = SELECT on identity.branding_assets (same tenant, active, not quarantined, not signature, png/jpeg); foreign = unknown = 400 /image_attachment_id.
+- [CONV] reorder locks kind FOR UPDATE in id order, lists every item incl. inactive; profile image = INSERT .. ON CONFLICT; clear = is_active false, 404 if none active.
+- Ran 2026-11-18 (main merged, PG17 docker, run 1 of 2): 2244 pass, 1 fail, 2 skipped; markdown + static 39/39; tsc clean. Log: T0B-CONTENT-1-run.log.
+- OPEN (not this task, not owned path): pending-operations.test "module reporting" fails: reporting/index.ts maps all 5 PRINTCFG ops to notImplemented stubs AND lists them pending (T0C-PRINTCFG-1 on main). Fix belongs to T0B-PRINTCFG-1 / lead. Run 2 of LIMS_RUNS not reached (runner stops at first failure).

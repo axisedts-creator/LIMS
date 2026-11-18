@@ -8,9 +8,9 @@ import { Button } from '@lims/ui/components/Button';
 import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
 import { DateText, type DateTextProps } from '@lims/ui/components/DateText';
 import { Icon } from '@lims/ui/components/Icon';
+import { FilterBar, type FilterDef, type FilterValue } from '@lims/ui/components/FilterBar';
 import { Inline } from '@lims/ui/components/Inline';
 import { PageHeader } from '@lims/ui/components/PageHeader';
-import { Select } from '@lims/ui/components/Select';
 import { StatusChip } from '@lims/ui/components/StatusChip';
 import { HANDOVER_STATUS, handoverStatus, toneIcon } from '../labels';
 import { HANDOVER_STATUSES } from '../query';
@@ -54,6 +54,16 @@ export function HandoversView({ handovers, centres, centreId, status, nextCursor
     return `${BASE}?${p.toString()}`;
   };
 
+  const filters: FilterDef[] = [
+    { id: 'status', label: 'Status', kind: 'select', options: STATUS_OPTIONS },
+    ...(centres.length ? [{ id: 'centre_id', label: 'Centre', kind: 'select' as const, options: centres.map((c) => ({ value: c.id, label: c.name })) }] : []),
+  ];
+  const onFilter = (v: FilterValue) => {
+    const s = typeof v['status'] === 'string' ? v['status'] : status;
+    const c = typeof v['centre_id'] === 'string' ? v['centre_id'] : centreId;
+    if (s !== status || c !== centreId) router.replace(go({ status: s, ...(c ? { centreId: c } : {}) }));
+  };
+
   const columns: ColumnDef<HandoverSummary>[] = [
     { id: 'at', header: 'Handed over at', cell: (h) => <DateText value={h.handed_over_at as Iso} withTime /> },
     { id: 'from', header: 'From', isRowHeader: true, cell: (h) => h.from.display_name },
@@ -64,21 +74,11 @@ export function HandoversView({ handovers, centres, centreId, status, nextCursor
 
   return (
     <div>
-      <PageHeader
-        title="Tube handovers" helpKey="homecollection.handovers"
-        actions={
-          <Inline gap={2} align="end">
-            <Select
-              label="Status" name="status" options={STATUS_OPTIONS} {...(STATUS_OPTIONS.some((o) => o.value === status) ? { value: status as (typeof STATUS_OPTIONS)[number]['value'] } : {})}
-              onChange={(s) => router.replace(go({ status: s }))}
-            />
-            {centres.length ? <Select label="Centre" name="centre_id" options={centres.map((c) => ({ value: c.id, label: c.name }))} {...(centreId ? { value: centreId } : {})} onChange={(c) => router.replace(go({ centreId: c }))} /> : null}
-            <Button onPress={() => router.refresh()}>Refresh</Button>
-          </Inline>
-        }
-      />
+      <PageHeader title="Tube handovers" helpKey="homecollection.handovers" actions={<Button onPress={() => router.refresh()}>Refresh</Button>} />
+      {/* T0D-UILIST-3, LD-353 template 1: the filters sit in one FilterBar under the header; Refresh stays in the header. */}
+      <FilterBar filters={filters} value={{ ...(STATUS_OPTIONS.some((o) => o.value === status) ? { status } : {}), ...(centreId ? { centre_id: centreId } : {}) }} onChange={onFilter} onReset={() => router.replace(`${BASE}?status=pending`)} />
       <DataTable<HandoverSummary>
-        caption="Tube handovers" columns={columns} rows={handovers} getRowId={(h) => h.id} density="compact"
+        caption="Tube handovers" columns={columns} rows={handovers} getRowId={(h) => h.id} density="compact" cellTitle
         emptyState={{ title: 'No handovers waiting at this centre.' }}
         onRowAction={(h) => setOpen(h)}
         {...(nextCursor ? { page: { hasNext: true, hasPrevious: false, onNext: () => router.push(go({ cursor: nextCursor })), onPrevious: () => router.back(), limit: 50 } } : {})}

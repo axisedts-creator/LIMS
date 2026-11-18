@@ -151,7 +151,7 @@ export function ImportsScreen({ imports, exports: initialExports, priceLists, pe
     { header: 'Started', cell: (r) => fmtDateTime(r.created_at) },
     { header: 'Kind', cell: (r) => KIND_LABEL[r.kind] ?? r.kind },
     { header: 'Target', cell: (r) => (r.target_price_list_id ? (priceLists.find((p) => p.id === r.target_price_list_id)?.code ?? '—') : '—') },
-    { header: 'File name', cell: (r) => <a className="lims-link" href={`/catalog/imports/${r.id}`}>{r.file_name}</a> },
+    { header: 'File name', cell: (r) => <a className="lims-link" href={`/catalog/imports/${r.id}`} title={r.file_name}>{r.file_name}</a> },
     { header: 'Status', cell: (r) => IMPORT_STATUS_LABEL[r.status] ?? r.status },
     { header: 'Errors / Warnings', cell: (r) => `${r.summary.errors} / ${r.summary.warnings}` },
     { header: 'By', cell: (r) => r.created_by.slice(0, 8) },
@@ -212,21 +212,20 @@ export function ImportsScreen({ imports, exports: initialExports, priceLists, pe
         </section>
       ) : null}
 
+      {/* T0D-UILIST-3 (LD-353 template 1): one filter row for both history tables */}
+      <div className="lims-filter-bar">
+        <Select<string> label="Kind" name="imp_kind" value={impKind} onChange={setImpKind} options={kindOptions} />
+        <Select<string> label="Status" name="imp_status" value={impStatus} onChange={setImpStatus} options={[{ value: ALL, label: 'All statuses' }, ...IMPORT_STATUSES.map((s) => ({ value: s, label: IMPORT_STATUS_LABEL[s] }))]} />
+        <Select<string> label="Export kind" name="exp_kind" value={expKind} onChange={setExpKind} options={kindOptions.filter((o) => o.value !== 'credit_parties')} />
+        <Select<string> label="Export status" name="exp_status" value={expStatus} onChange={setExpStatus} options={[{ value: ALL, label: 'All statuses' }, ...EXPORT_STATUSES.map((s) => ({ value: s, label: EXPORT_STATUS_LABEL[s] ?? s }))]} />
+      </div>
       <section aria-labelledby="imp-hist" className="lims-stack">
         <h2 id="imp-hist">Import history</h2>
-        <div className="lims-filter-bar">
-          <Select<string> label="Kind" name="imp_kind" value={impKind} onChange={setImpKind} options={kindOptions} />
-          <Select<string> label="Status" name="imp_status" value={impStatus} onChange={setImpStatus} options={[{ value: ALL, label: 'All statuses' }, ...IMPORT_STATUSES.map((s) => ({ value: s, label: IMPORT_STATUS_LABEL[s] }))]} />
-        </div>
         <MasterTable caption="Import history" cols={importCols} rows={shownImports} empty={imports.length === 0 ? 'No imports yet.' : 'No imports match the filters.'} />
       </section>
 
       <section aria-labelledby="exp-hist" className="lims-stack">
         <h2 id="exp-hist">Exports</h2>
-        <div className="lims-filter-bar">
-          <Select<string> label="Export kind" name="exp_kind" value={expKind} onChange={setExpKind} options={kindOptions.filter((o) => o.value !== 'credit_parties')} />
-          <Select<string> label="Export status" name="exp_status" value={expStatus} onChange={setExpStatus} options={[{ value: ALL, label: 'All statuses' }, ...EXPORT_STATUSES.map((s) => ({ value: s, label: EXPORT_STATUS_LABEL[s] ?? s }))]} />
-        </div>
         <MasterTable caption="Exports" cols={exportCols} rows={shownExports} empty={rows.length === 0 ? 'No exports yet.' : 'No exports match the filters.'} />
       </section>
     </section>

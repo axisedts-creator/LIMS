@@ -42,8 +42,8 @@ const isStub = async (h: Handler): Promise<boolean> => {
 
 describe('manifest + autoload (02-TRD §3, §6.3 of core)', () => {
   // Merge of main: T0C-PRICETOOLS-1 (LD-321, LD-325(b)) added 7 price list tool operations, pending until T0B-PRICETOOLS-1.
-  it('catalog.yaml declares the 107 operations of 02-TRD §5 plus the 3 category operations of T0C-TESTMGMT-1 (LD-318) plus the 7 price list tool operations of T0C-PRICETOOLS-1', () => {
-    expect(OPS).toHaveLength(123); // + the 6 Excel test import operations of T0C-TESTIMPORT-1 (LD-318)
+  it('catalog.yaml declares the 107 operations of 02-TRD §5 plus the 3 category operations of T0C-TESTMGMT-1 (LD-318) plus the 7 price list tool operations of T0C-PRICETOOLS-1 plus the 5 ICD master operations of T0C-PARTYSET-1', () => {
+    expect(OPS).toHaveLength(128); // + the 6 Excel test import operations of T0C-TESTIMPORT-1 (LD-318)
   });
 
   it('manifest has name, openapi path and produces exactly catalog.changed.v1', () => {

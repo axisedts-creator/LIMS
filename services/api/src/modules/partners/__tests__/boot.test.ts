@@ -37,7 +37,7 @@ const PERMS = ['partners.manifest.receive', 'partners.manifest.submit', 'partner
   'partners.partner.read', 'partners.partner_user.manage', 'partners.pickup.manage', 'partners.pickup.request',
   'partners.price_list.read', 'partners.referrer.manage', 'partners.referrer.map', 'partners.referrer.read',
   'partners.report.read', 'partners.sales.manage', 'partners.sales.read', 'partners.statement.read', 'partners.ticket.manage', 'partners.ticket.read',
-  'partners.onboarding.decide', 'partners.party_id_number.read', 'partners.party_setting.manage', 'partners.party_setting.read', 'partners.penalty.manage']; // + the 2 sales codes of T0C-SALES-1 (LD-321) + the 2 ticket codes of T0C-MSGDESK-1 (LD-321) + the 5 party settings codes of T0C-PARTYSET-1 (LD-321)
+  'partners.onboarding.decide', 'partners.party_id_number.read', 'partners.party_setting.manage', 'partners.party_setting.read', 'partners.penalty.manage'].sort(); // + the 2 sales codes of T0C-SALES-1 (LD-321) + the 2 ticket codes of T0C-MSGDESK-1 (LD-321) + the 5 party settings codes of T0C-PARTYSET-1 (LD-321)
 /** Codes held only by partner actors (02-TRD §9.2): never valid on a staff `/v1/partners/admin/...` operation. */
 const PARTNER_ONLY = ['partners.order.read', 'partners.manifest.submit', 'partners.report.read', 'partners.statement.read',
   'partners.price_list.read', 'partners.pickup.request', 'partners.referrer.read', 'partners.referrer.manage'];
@@ -145,7 +145,7 @@ describe('T01 handler map (68 operationIds of partners.yaml)', () => {
 describe('T01 permissions', () => {
   const codes = PERMISSION_CODES.filter((c) => c.startsWith('partners.'));
 
-  it('PARTNERS_PERMISSIONS = the 18 partners.* codes (14 + partners.sales.read / partners.sales.manage of T0C-SALES-1 + partners.ticket.read / partners.ticket.manage of T0C-MSGDESK-1) of contracts/permissions.yaml (no invented code, none missing), frozen', () => {
+  it('PARTNERS_PERMISSIONS = the 23 partners.* codes (14 + partners.sales.read / partners.sales.manage of T0C-SALES-1 + partners.ticket.read / partners.ticket.manage of T0C-MSGDESK-1 + the 5 party settings codes of T0C-PARTYSET-1) of contracts/permissions.yaml (no invented code, none missing), frozen', () => {
     expect([...codes].sort()).toEqual(PERMS);
     expect([...PARTNERS_PERMISSIONS].sort()).toEqual(PERMS);
     expect(new Set(PARTNERS_PERMISSIONS).size).toBe(PARTNERS_PERMISSIONS.length);

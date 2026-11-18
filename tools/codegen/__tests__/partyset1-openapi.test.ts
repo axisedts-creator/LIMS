@@ -149,7 +149,8 @@ describe("T0C-PARTYSET-1 lint and additive baseline", () => {
     for (const id of Object.keys(ICD_OPS)) expect(opIn(C_DOC, id), `${id} missing`).toBeDefined();
     const F = load("contracts/openapi/frontdesk.yaml");
     expect(opIn(F, "listIcdCodes")!.path).toBe("/v1/frontdesk/icd-codes");
-    expect(opIn(F, "createIcdCode")!.op["x-permission"]).toBe("frontdesk.registration.create");
+    expect(opIn(F, "createIcdCode")!.op["x-permission"]).toBe("frontdesk.settings.manage");
+    expect(opIn(F, "listIcdCodes")!.op["x-permission"]).toBe("frontdesk.registration.create");
   });
 });
 

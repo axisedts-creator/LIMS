@@ -214,10 +214,13 @@ export function resultsStore(ctx?: StoreCtx) {
       const row = await one(tx, t, `UPDATE lab.results SET current_version_no = $4, signoff_count = 0, version = version + 1, updated_at = now(), updated_by = $5
           WHERE tenant_id = $1 AND id = $2 AND version = $3 RETURNING *`, [a.resultId, a.expectedRowVersion, a.newVersionNo, rc.actorId]);
       if (!row) throw new LimsError('common.version_conflict');
+      // comment_codes omitted: keep the previous version's codes (result_versions.comment_codes is NOT NULL; an explicit NULL failed with 23502)
+      const prevCodes = a.commentCodes !== undefined ? [...a.commentCodes]
+        : ((await one(tx, t, 'SELECT comment_codes FROM lab.result_versions WHERE tenant_id = $1 AND result_id = $2 AND version_no = $3', [a.resultId, a.previousVersionNo]))?.['comment_codes'] ?? []);
       const cols: Obj = {
         id: uuidv7(), centre_id: row['centre_id'], processing_centre_id: row['processing_centre_id'], result_id: a.resultId, version_no: a.newVersionNo, origin: row['origin'],
         value_numeric: a.value.numeric ?? null, value_text: a.value.text ?? null, ordinal_code: a.value.ordinalCode ?? null, unit_code: row['unit_code'],
-        comment_codes: a.commentCodes === undefined ? null : [...a.commentCodes], comment_text: a.commentText ?? null, approved_at: a.occurredAt, approved_by_membership_id: a.membershipId,
+        comment_codes: prevCodes, comment_text: a.commentText ?? null, approved_at: a.occurredAt, approved_by_membership_id: a.membershipId,
         previous_version_no: a.previousVersionNo, amendment_reason_code: a.reasonCode, amendment_reason_text: a.reasonText ?? null, created_by: rc.actorId, updated_by: rc.actorId,
       };
       const e = evaluationColumns(a.evaluation, 'R7');

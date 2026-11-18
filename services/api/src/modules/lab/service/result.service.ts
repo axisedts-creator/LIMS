@@ -719,6 +719,8 @@ const valueOf = (v: EntryValue): { field: 'numeric' | 'text' | 'ordinal'; text: 
   v.numeric !== undefined ? { field: 'numeric', text: v.numeric } : v.text !== undefined ? { field: 'text', text: v.text } : v.ordinalCode !== undefined ? { field: 'ordinal', text: v.ordinalCode } : undefined;
 
 /** R7 approved -> approved with a NEW result_versions row (02-TRD §4.3 finding C5 #10). Evaluates the new value, cascades to formulas in the same transaction (AC-09.5). */
+const MODULE_ONLY_AMEND_CODES: ReadonlySet<string> = new Set(['module_phase_progression', 'module_preliminary_update', 'supplementary_report']);
+
 export async function amendResult(rawCtx: unknown, i: AmendInput): Promise<ResultRow> {
   const ctx = rawCtx as ApprovalCtx;
   const { tx, tenantId, store } = ctx;
@@ -733,7 +735,8 @@ export async function amendResult(rawCtx: unknown, i: AmendInput): Promise<Resul
   if (row.status !== 'approved') throw new LimsError('lab.result_invalid_transition');   // a value change before approval is R3, not an amendment
   const reasonCode = i.reasonCode?.trim();
   if (!reasonCode) throw new LimsError('lab.amendment_reason_required');                  // AC-17.3
-  if (!(await store.amendReasonActive(tx, tenantId, reasonCode))) {
+  // C5 05-SCHEMA §2: module-only codes (08 R1 / D-61) are seeded globally but refused by amendResult.
+  if (MODULE_ONLY_AMEND_CODES.has(reasonCode) || !(await store.amendReasonActive(tx, tenantId, reasonCode))) {
     // [CONV] the path is also in `detail` (fixed text, never a submitted value): the T-17 tests read e.detail, the LimsError has no fieldErrors property.
     throw new LimsError('common.validation_failed', 'Invalid field /amendment_reason_code', [{ path: '/amendment_reason_code', code: 'common.field_invalid', message: 'Field invalid' }]);
   }

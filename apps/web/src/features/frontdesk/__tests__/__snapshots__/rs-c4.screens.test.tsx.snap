@@ -28,6 +28,7 @@ exports[`RS-C4 key-screen snapshots > Credit party: statement tab 1`] = `
 </div>
 <div id="ID" aria-labelledby="ID" role="tabpanel" class="lims-tabpanel" data-rac="">
 <div class="lims-data-table">
+<div class="lims-table-scroll">
 <template>
 </template>
 <span data-focus-scope-start="true" hidden="">
@@ -67,6 +68,7 @@ exports[`RS-C4 key-screen snapshots > Credit party: statement tab 1`] = `
 </table>
 <span data-focus-scope-end="true" hidden="">
 </span>
+</div>
 <div role="status" class="lims-visually-hidden">
 </div>
 </div>
@@ -128,6 +130,7 @@ exports[`RS-C4 key-screen snapshots > Daily cash (open shift) 1`] = `
 </button>
 </section>
 <div class="lims-data-table">
+<div class="lims-table-scroll">
 <template>
 </template>
 <span data-focus-scope-start="true" hidden="">
@@ -172,11 +175,13 @@ exports[`RS-C4 key-screen snapshots > Daily cash (open shift) 1`] = `
 </table>
 <span data-focus-scope-end="true" hidden="">
 </span>
+</div>
 <div role="status" class="lims-visually-hidden">
 </div>
 </div>
 <h2>Sessions</h2>
 <div class="lims-data-table">
+<div class="lims-table-scroll">
 <template>
 </template>
 <span data-focus-scope-start="true" hidden="">
@@ -207,6 +212,7 @@ exports[`RS-C4 key-screen snapshots > Daily cash (open shift) 1`] = `
 </table>
 <span data-focus-scope-end="true" hidden="">
 </span>
+</div>
 <div role="status" class="lims-visually-hidden">
 </div>
 </div>

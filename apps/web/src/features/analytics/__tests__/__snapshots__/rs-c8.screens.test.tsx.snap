@@ -503,6 +503,7 @@ exports[`RS-C8 key-screen snapshots + axe > Income report 1`] = `
 </figure>
 </div>
 <div class="lims-data-table">
+<div class="lims-table-scroll">
 <template>
 </template>
 <span data-focus-scope-start="true" hidden="">
@@ -617,6 +618,7 @@ exports[`RS-C8 key-screen snapshots + axe > Income report 1`] = `
 </table>
 <span data-focus-scope-end="true" hidden="">
 </span>
+</div>
 <div role="status" class="lims-visually-hidden">
 </div>
 </div>
@@ -890,6 +892,7 @@ exports[`RS-C8 key-screen snapshots + axe > Pending tests report 1`] = `
 </figure>
 </div>
 <div class="lims-data-table">
+<div class="lims-table-scroll">
 <template>
 </template>
 <span data-focus-scope-start="true" hidden="">
@@ -945,6 +948,7 @@ exports[`RS-C8 key-screen snapshots + axe > Pending tests report 1`] = `
 </table>
 <span data-focus-scope-end="true" hidden="">
 </span>
+</div>
 <div role="status" class="lims-visually-hidden">
 </div>
 <div class="lims-pager">
@@ -1146,6 +1150,7 @@ exports[`RS-C8 key-screen snapshots + axe > Report hub (tabs) 1`] = `
 </figure>
 </div>
 <div class="lims-data-table">
+<div class="lims-table-scroll">
 <template>
 </template>
 <span data-focus-scope-start="true" hidden="">
@@ -1260,6 +1265,7 @@ exports[`RS-C8 key-screen snapshots + axe > Report hub (tabs) 1`] = `
 </table>
 <span data-focus-scope-end="true" hidden="">
 </span>
+</div>
 <div role="status" class="lims-visually-hidden">
 </div>
 </div>

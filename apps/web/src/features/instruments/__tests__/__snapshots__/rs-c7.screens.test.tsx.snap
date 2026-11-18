@@ -601,6 +601,7 @@ exports[`RS-C7 key screens (DOM snapshots) > messages: log table with the existi
 </div>
 </div>
 <div class="lims-data-table">
+<div class="lims-table-scroll">
 <template>
 </template>
 <span data-focus-scope-start="true" hidden="">
@@ -683,6 +684,7 @@ exports[`RS-C7 key screens (DOM snapshots) > messages: log table with the existi
 </table>
 <span data-focus-scope-end="true" hidden="">
 </span>
+</div>
 <div role="status" class="lims-visually-hidden">
 </div>
 </div>
@@ -720,6 +722,7 @@ exports[`RS-C7 key screens (DOM snapshots) > messages: rejected uploads table 1`
 </div>
 <div id="ID" aria-labelledby="ID" role="tabpanel" class="lims-tabpanel" data-rac="">
 <div class="lims-data-table">
+<div class="lims-table-scroll">
 <template>
 </template>
 <span data-focus-scope-start="true" hidden="">
@@ -752,6 +755,7 @@ exports[`RS-C7 key screens (DOM snapshots) > messages: rejected uploads table 1`
 </table>
 <span data-focus-scope-end="true" hidden="">
 </span>
+</div>
 <div role="status" class="lims-visually-hidden">
 </div>
 </div>

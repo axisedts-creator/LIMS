@@ -43,6 +43,7 @@ exports[`RS-C8 schedule and export screens: snapshots + axe > My exports 1`] = `
 </div>
 </div>
 <div class="lims-data-table">
+<div class="lims-table-scroll">
 <template>
 </template>
 <span data-focus-scope-start="true" hidden="">
@@ -138,6 +139,7 @@ exports[`RS-C8 schedule and export screens: snapshots + axe > My exports 1`] = `
 </table>
 <span data-focus-scope-end="true" hidden="">
 </span>
+</div>
 <div role="status" class="lims-visually-hidden">
 </div>
 </div>
@@ -508,6 +510,7 @@ exports[`RS-C8 schedule and export screens: snapshots + axe > Schedules list 1`]
 </div>
 </div>
 <div class="lims-data-table">
+<div class="lims-table-scroll">
 <template>
 </template>
 <span data-focus-scope-start="true" hidden="">
@@ -577,6 +580,7 @@ exports[`RS-C8 schedule and export screens: snapshots + axe > Schedules list 1`]
 </table>
 <span data-focus-scope-end="true" hidden="">
 </span>
+</div>
 <div role="status" class="lims-visually-hidden">
 </div>
 </div>

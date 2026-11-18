@@ -146,14 +146,17 @@ describe('S1 dashboard — request (US-01.1, 07-SECURITY)', () => {
 });
 
 describe('S1 dashboard — tiles (US-01.1, 04-UI-UX §3)', () => {
-  it('shows the six tiles with spec labels and values; money in lakh grouping; sub-values; period header in A.D. and B.S.', async () => {
+  // LD-353 template 5 + done_when (1) (ruling T0D-UIDASH-1-ruling.md): exactly four tiles; the Results approved (28) and Pending tests (9) values now live in the pipeline stepper.
+  it('shows the four tiles with their labels and values; money in lakh grouping; sub-values; period header in A.D. and B.S.', async () => {
     const { container } = await show();
     expect(norm(tileEl('Patient visits').textContent)).toContain('12');
     expect(norm(tileEl('Net sales').textContent)).toMatch(/2,25,000/);
-    expect(norm(tileEl('Results approved').textContent)).toContain('28');
     expect(norm(tileEl('Reports pending').textContent)).toContain('5');
-    expect(norm(tileEl('Pending tests').textContent)).toContain('9');
+    const labels = Array.from(document.querySelectorAll('.lims-stat-label')).map((e) => e.textContent);
+    expect(labels).toEqual(['Patient visits', 'Reports pending', 'Net sales']);
     const text = norm(container.textContent);
+    expect(text).toMatch(/Authorised\s*28/);
+    expect(text).toMatch(/In progress\s*9/);
     for (const s of ['New patients 4', 'Tests ordered 31', 'Ready, not released 2', 'Overdue 1', '15 Jan 2026', '2082-10-01']) expect(text).toContain(s);
     expect(text).toMatch(/Invoiced.*2,30,000/);
     expect(text).toMatch(/Credit notes.*5,000/);
@@ -164,9 +167,7 @@ describe('S1 dashboard — tiles (US-01.1, 04-UI-UX §3)', () => {
     const href = (l: string) => tileEl(l).closest('a')?.getAttribute('href');
     expect(href('Patient visits')).toBe('/analytics/reports/volume');
     expect(href('Net sales')).toBe('/analytics/reports/income');
-    expect(href('Results approved')).toBe('/analytics/reports/tests-done');
     expect(href('Reports pending')).toBe('/analytics/reports/pending-tests');
-    expect(href('Pending tests')).toBe('/analytics/reports/pending-tests');
   });
 
   it('shows "Cash collected" → /analytics/collections only when the API sent net_collected_paisa (omitted otherwise, never an empty tile)', async () => {
@@ -216,9 +217,9 @@ describe('S1 dashboard — deltas (US-01.2)', () => {
   });
 
   it('omits the percent when previous is 0 (no delta_bp) but keeps the absolute delta', async () => {
-    dash = () => HttpResponse.json(dashboard({ tiles: { results_approved: tile(28, 'count', { previous: 0, delta: 28 }) } }));
+    dash = () => HttpResponse.json(dashboard({ tiles: { patient_visits: tile(28, 'count', { previous: 0, delta: 28 }) } }));
     await show();
-    const t = norm(tileEl('Results approved').textContent);
+    const t = norm(tileEl('Patient visits').textContent);
     expect(t).toContain('+28');
     expect(t).not.toContain('%');
     expect(t).not.toContain('Infinity');
@@ -234,9 +235,9 @@ describe('S1 dashboard — deltas (US-01.2)', () => {
     expect(t).toContain('16.7%');
   });
 
-  it('shows no delta on the snapshot tiles (Reports pending, Pending tests)', async () => {
+  it('shows no delta on the snapshot tile (Reports pending)', async () => {
     await show();
-    for (const l of ['Reports pending', 'Pending tests']) {
+    for (const l of ['Reports pending']) {
       const t = norm(tileEl(l).textContent);
       expect(t).not.toMatch(/Up|Down|No change|%/);
     }
@@ -281,7 +282,7 @@ describe('S1 dashboard — freshness (US-01.4, 04-UI-UX §2)', () => {
     expect(reachable(found[0]!)).toContain('Recent changes are still being processed');
     expect(norm(tileEl('Net sales').textContent)).toMatch(/2,25,000/);
     expect(norm(tileEl('Patient visits').textContent)).toMatch(/\b12\b/);
-    expect(norm(tileEl('Results approved').textContent)).toMatch(/\b28\b/);
+    expect(norm(container.textContent)).toMatch(/Authorised\s*28/);
   });
 
   it.each(['orders', 'results'])('stale %s family: still exactly one note on the page and none in a tile; last values shown', async (family) => {
@@ -290,7 +291,7 @@ describe('S1 dashboard — freshness (US-01.4, 04-UI-UX §2)', () => {
     const found = notes(container);
     expect(found).toHaveLength(1);
     expect(found[0]!.closest('.lims-stat')).toBeNull();
-    for (const l of ['Patient visits', 'Net sales', 'Results approved']) expect(norm(tileEl(l).textContent)).not.toContain(STALE);
+    for (const l of ['Patient visits', 'Net sales', 'Reports pending']) expect(norm(tileEl(l).textContent)).not.toContain(STALE);
     expect(norm(tileEl('Patient visits').textContent)).toMatch(/\b12\b/);
   });
 

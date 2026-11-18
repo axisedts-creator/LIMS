@@ -1,0 +1,5 @@
+APPROVE
+Re-review of 98dba4f40..HEAD (tester afc5bdd27 + writer 9bd3779a8), against review item 1 of round 1.
+Item 1 fixed: apps/web/src/features/lab/components/StatusBoard.tsx:108-110 adds inFilter/shownCount; a tile outside the server-side status filter shows "—" in its value and aria-label, "+" is added while a next cursor exists, and the chart bar is 0 outside the filter (:175). ChartCard isEmpty is unchanged. The new test case in uidash1.lab.test.tsx:96 checks the value and the aria-label, and no assertion was loosened.
+Ran: uidash1 config 95/95 pass; lab-t27 config 18/18; rs-c5 config 24 pass, 3 red (the worklist screen snapshot, and rs-c5.static for lab/server byte-identity and the lab route set). These 3 reds are not this task: git diff main...HEAD changes no file under features/lab/server or app/, and the status board snapshot is green. They count as pre-existing reds under LD-362.
+No new defect: display only, names unchanged, no route, permission or API change, no PHI and no secrets.

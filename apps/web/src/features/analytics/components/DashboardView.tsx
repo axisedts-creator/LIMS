@@ -4,12 +4,13 @@
 import { useId } from 'react';
 import { Banner } from '@lims/ui/components/Banner';
 import { BarChart } from '@lims/ui/components/BarChart';
-import { Card } from '@lims/ui/components/Card';
+import { ChartCard } from '@lims/ui/components/ChartCard';
 import { EmptyState } from '@lims/ui/components/EmptyState';
 import { FreshnessBadge } from '@lims/ui/components/FreshnessBadge';
 import { PageHeader } from '@lims/ui/components/PageHeader';
-import { StatTile } from '@lims/ui/components/StatTile';
+import { StatTile, StatTileRow } from '@lims/ui/components/StatTile';
 import { TimeSeriesChart } from '@lims/ui/components/TimeSeriesChart';
+import { t } from '@/core/i18n/messages';
 import type { DashboardDto, Tile } from '../server/dashboard.server';
 import { ScopeBanner } from './ScopeBanner';
 import { AutoRefresh, RefreshButton, ShowYesterday } from './DashboardActions';
@@ -57,13 +58,15 @@ export function DashboardView({ dto, query, readOnly = false }: { dto: Dashboard
   // family = freshness[].family feeding the tile (03-APP-FLOW §5 S1 stale badge per tile); report_backlog = snapshot tiles [CONV].
   const cells: Record<string, Cell> = {
     patient_visits: { key: 'patient_visits', label: 'Patient visits', href: '/analytics/reports/volume', family: 'orders', extra: [`New patients ${sub(dto, 'new_patients')}`] },
-    net_sales_paisa: { key: 'net_sales_paisa', label: 'Income (net sales)', href: '/analytics/reports/income', family: 'income', extra: [`Invoiced ${sub(dto, 'invoiced_paisa')}`, `Credit notes ${sub(dto, 'credit_notes_paisa')}`] },
+    net_sales_paisa: { key: 'net_sales_paisa', label: 'Net sales', href: '/analytics/reports/income', family: 'income', extra: [`Invoiced ${sub(dto, 'invoiced_paisa')}`, `Credit notes ${sub(dto, 'credit_notes_paisa')}`] },
     results_approved: { key: 'results_approved', label: 'Results approved', href: '/analytics/reports/tests-done', family: 'results', extra: [`Tests ordered ${sub(dto, 'tests_ordered')}`] },
     reports_pending: { key: 'reports_pending', label: 'Reports pending', href: '/analytics/reports/pending-tests', family: 'report_backlog', extra: [] },
     pending_tests: { key: 'pending_tests', label: 'Pending tests', href: '/analytics/reports/pending-tests', family: 'report_backlog', extra: [] },
-    net_collected_paisa: { key: 'net_collected_paisa', label: 'Cash collected (net)', href: '/analytics/collections', family: 'collections', extra: [] },
+    net_collected_paisa: { key: 'net_collected_paisa', label: 'Cash collected', href: '/analytics/collections', family: 'collections', extra: [] },
   };
   const shown = Object.values(cells).filter((c) => val(dto, c.key));
+  // T0D-UIDASH-1, LD-353 template 5: the tile row holds exactly these four tiles in this order (money tiles only when the API sent them).
+  const tileCells = ['patient_visits', 'reports_pending', 'net_sales_paisa', 'net_collected_paisa'].filter((k) => val(dto, k)).map((k) => cells[k]!);
   const anyDelta = shown.some((c) => delta(val(dto, c.key)!));
   const empty = Object.values(dto.tiles).every((t) => !t || t.value === 0);
   const sent = (k: string) => shown.some((c) => c.key === k);
@@ -93,6 +96,7 @@ export function DashboardView({ dto, query, readOnly = false }: { dto: Dashboard
   // Money strip (s4/s6): only when the API sent money (it applies the money permissions), always with currency (fmt) and period.
   const moneyCells = ['net_sales_paisa', 'net_collected_paisa'].filter(sent).map((k) => cells[k]!);
   const moneyLines = moneyCells.flatMap((c) => [`${c.label} ${fmt(val(dto, c.key)!)}`, ...c.extra]);
+  const canMoney = moneyCells.length > 0;
   const days = dto.series.days;
   const depts = dto.department_top;
   const status = (
@@ -111,7 +115,7 @@ export function DashboardView({ dto, query, readOnly = false }: { dto: Dashboard
       ) : (
         <>
           <AutoRefresh />
-          <PageHeader title="Dashboard" helpKey="analytics.dashboard" status={status} actions={<RefreshButton />} />
+          <PageHeader title={t('analytics.nav.dashboard')} helpKey="analytics.dashboard" status={status} actions={<RefreshButton />} />
         </>
       )}
       <p>
@@ -119,7 +123,7 @@ export function DashboardView({ dto, query, readOnly = false }: { dto: Dashboard
       </p>
       <ScopeBanner scope={dto.scope} />
       {period.timezone !== 'Asia/Kathmandu' ? <Banner tone="info" title="Business days are counted in Nepal time (UTC+05:45)." /> : null}
-      {shown.length > 0 ? <div className="lims-stat-row">{shown.map(tileOf)}</div> : null}
+      {tileCells.length > 0 ? <StatTileRow>{tileCells.map(tileOf)}</StatTileRow> : null}
       {subValues.length > 0 ? <p>{subValues.join(' · ')}</p> : null}
       <ol className="lims-stepper-list" aria-label="Sample pipeline">
         {STAGES.map((s) => {
@@ -170,26 +174,26 @@ export function DashboardView({ dto, query, readOnly = false }: { dto: Dashboard
           <EmptyState title="No activity in this period" />
           {readOnly ? null : <ShowYesterday from={period.business_date_from} query={query} />}
         </>
-      ) : moneyCells.length === 0 ? null : (
-        // net-sales charts are money: shown only with the money strip (the API sent no money tile = this role may not read money)
-        <div className="lims-dash-charts">
-          <Card>
-            <TimeSeriesChart
-              title="Net sales per day"
-              unit="Rs."
-              series={[{ id: 'net', label: 'Net sales', points: days.map((x) => ({ at: x.business_date, value: String(x.net_sales_paisa / 100) })) }]}
-            />
-          </Card>
-          <Card>
-            <BarChart
-              title="Top departments by net sales"
-              valueFormat="money"
-              categories={depts.map((x) => (x.is_multiple ? 'Multiple departments' : x.label))}
-              series={[{ id: 'net', label: 'Net sales', values: depts.map((x) => x.net_paisa) }]}
-            />
-          </Card>
-        </div>
-      )}
+      ) : null}
+      {/* T0D-UIDASH-1, LD-353 rule 10: both frames ALWAYS draw, with "No data yet" when the period is empty or the role may not read money
+          (the API sent no money tile). The charts then get no money data at all, so no amount or department name leaks. */}
+      <div className="lims-dash-charts">
+        <ChartCard title="Net sales per day" isEmpty={!canMoney || days.length === 0}>
+          <TimeSeriesChart
+            title="Net sales per day"
+            {...(canMoney ? { unit: 'Rs.' } : {})}
+            series={[{ id: 'net', label: 'Net sales', points: canMoney ? days.map((x) => ({ at: x.business_date, value: String(x.net_sales_paisa / 100) })) : [] }]}
+          />
+        </ChartCard>
+        <ChartCard title="Top departments" isEmpty={!canMoney || depts.length === 0}>
+          <BarChart
+            title="Top departments by net sales"
+            {...(canMoney ? { valueFormat: 'money' as const } : {})}
+            categories={canMoney ? depts.map((x) => (x.is_multiple ? 'Multiple departments' : x.label)) : []}
+            series={[{ id: 'net', label: 'Net sales', values: canMoney ? depts.map((x) => x.net_paisa) : [] }]}
+          />
+        </ChartCard>
+      </div>
     </>
   );
 }

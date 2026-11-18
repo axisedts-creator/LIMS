@@ -27,9 +27,13 @@ export const pricingHandlers: Readonly<Record<string, Handler>> = Object.freeze(
   createPriceList: bind(async (s, ctx, req) => ({ status: 201, body: await s.createPriceList(ctx, req.body) })),
   getPriceListDetail: bind(async (s, ctx, req) => ({ status: 200, body: await s.getPriceListDetail(ctx, { id: listId(req) }) })),
   updatePriceList: bind(async (s, ctx, req) => ({ status: 200, body: await s.updatePriceList(ctx, { id: listId(req), expectedVersion: ifMatch(req), patch: req.body }) })),
-  replacePriceListAssignments: bind(async (s, ctx, req) => ({
-    status: 200, body: await s.replacePriceListAssignments(ctx, { id: listId(req), expectedVersion: ifMatch(req), body: req.body }),
-  })),
+  // T0B-PRICETOOLS-1 (LD-321): dated assignments; the handler asserts catalog.price_list.manage itself (fail closed without IdentityPort), as the price tools do.
+  replacePriceListAssignments: bind(async (s, ctx, req) => {
+    const identity = (ctx as RCtx).ports?.IdentityPort as { assertRole?: (c: unknown, r: { permission: string }) => Promise<unknown> } | undefined;
+    if (typeof identity?.assertRole !== 'function') throw new LimsError('auth.unauthenticated');
+    await identity.assertRole(ctx, { permission: 'catalog.price_list.manage' });
+    return { status: 200, body: await s.replacePriceListAssignments(ctx, { id: listId(req), expectedVersion: ifMatch(req), body: req.body }) };
+  }),
   createPriceListVersionDraft: bind(async (s, ctx, req) => ({ status: 201, body: await s.createPriceListVersionDraft(ctx, { id: listId(req), body: req.body }) })),
   listPriceListItems: bind(async (s, ctx, req) => ({ status: 200, body: await s.listPriceListItems(ctx, { versionId: versionId(req), query: req.query }) })),
   upsertPriceListItems: bind(async (s, ctx, req) => ({ status: 200, body: await s.upsertPriceListItems(ctx, { versionId: versionId(req), body: req.body }) })),

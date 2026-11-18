@@ -32,6 +32,7 @@ import * as pickupHandlers from './handlers/pickups.js';
 import * as accessSlipHandlers from './handlers/accessSlips.js';
 import * as reportHandlers from './handlers/reports.js';
 import * as referrerHandlers from './handlers/referrers.js';
+import * as partysetHandlers from './handlers/partyset.js';
 import * as salesHandlers from './handlers/sales.js';
 import * as ticketHandlers from './handlers/tickets.js';
 import { reactivatePartner } from './handlers/reactivatePartner.js';
@@ -70,19 +71,16 @@ const implemented: Readonly<Record<string, Handler>> = {
   submitManifest, withdrawManifest, getManifestPrintView, // T09 M8, M9, M11
   listInboundManifests, getInboundManifest, receiveManifest, retryManifestLineConversion, markManifestLineNotReceived, // T10 SI1-SI5
   ...salesHandlers, // T0B-SALES-1 (LD-321): the 15 sales hierarchy operations of T0C-SALES-1
+  ...partysetHandlers, // T0B-PARTYSET-1 (LD-321): the 13 party settings / onboarding / penalty / ID reveal operations of T0C-PARTYSET-1
 };
 
 /**
  * LD-325(b): operations of partners.yaml without a handler yet (answer 501 operation_pending).
  * T0B-SALES-1 implemented the 15 sales ids of T0C-SALES-1.
  * T0C-MSGDESK-1 (LD-321): the partner ticket ids were removed by T0B-MSGDESK-1 with their handlers.
+ * T0C-PARTYSET-1 (LD-321): the 13 party settings ids were removed by T0B-PARTYSET-1 with their handlers.
  */
-const PENDING_OPERATIONS: readonly string[] = Object.freeze([
-  // T0C-PARTYSET-1 (LD-321): party commercial settings, onboarding queue, penalties, ID reveal; T0B-PARTYSET-1 removes them
-  'getPartyCommercialSetting', 'setPartyCommercialSetting', 'listPartyOnboarding', 'decidePartyOnboarding',
-  'listNonCompliancePenalties', 'createNonCompliancePenalty', 'updateNonCompliancePenalty', 'deactivateNonCompliancePenalty',
-  'listNonComplianceEvents', 'raiseNonComplianceEvent', 'waiveNonComplianceEvent', 'chargeNonComplianceEvent', 'revealPartyIdNumber',
-]);
+const PENDING_OPERATIONS: readonly string[] = Object.freeze([]);
 
 export const manifest: ModuleManifest = Object.freeze({
   name: 'partners',

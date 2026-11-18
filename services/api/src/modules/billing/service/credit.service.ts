@@ -317,12 +317,40 @@ export function createCreditService(deps: { repo?: BillingRepo; counter: Counter
     const fromI = from !== undefined ? monthIndex(from) : toI - (MAX_STATEMENT_MONTHS - 1);
     if (toI - fromI + 1 > MAX_STATEMENT_MONTHS) throw new LimsError('billing.export_too_large');
     const rows = await repo.readCreditPartyStatement(tx, { tenantId, creditPartyId: id, fromMonth: `${monthText(fromI)}-01`, toMonth: `${monthText(toI)}-01` }) as Row[];
+    const interest = await interestByMonth(ctx, tenantId, id);
+    const seen = new Set<string>();
     return {
-      rows: rows.map((r) => ({
-        periodMonth: dateText(r['period_month']).slice(0, 7), fiscalYearBs: String(r['fiscal_year_bs']), invoiced: npr(toPaisa(r['invoiced_paisa'])), paid: npr(toPaisa(r['paid_paisa'])),
-        credited: npr(toPaisa(r['credited_paisa'])), closingBalance: npr(toPaisa(r['closing_balance_paisa'])),
-      })),
+      rows: rows.map((r) => {
+        const month = dateText(r['period_month']).slice(0, 7);
+        const line = seen.has(month) ? 0 : interest.get(month) ?? 0;   // one interest line per invoice month (first row of the month)
+        seen.add(month);
+        return {
+          periodMonth: month, fiscalYearBs: String(r['fiscal_year_bs']), invoiced: npr(toPaisa(r['invoiced_paisa'])), paid: npr(toPaisa(r['paid_paisa'])),
+          credited: npr(toPaisa(r['credited_paisa'])), closingBalance: npr(toPaisa(r['closing_balance_paisa'])),
+          ...(line > 0 ? { interestPaisa: line } : {}),   // absent without interest: existing statements read exactly as before
+        };
+      }),
     };
+  }
+
+  /**
+   * T0B-PARTYSET-1 (LD-321) done_when (3): interest_bp_per_day of the party setting as a STATEMENT LINE ONLY, never posted and never part of a balance:
+   * per unpaid overdue invoice floor(unpaid x bp per day x days overdue / 10000), summed per invoice month (period_month). Read only: writes nothing.
+   */
+  async function interestByMonth(ctx: BalanceCtx, tenantId: string, creditPartyId: string): Promise<Map<string, number>> {
+    const out = new Map<string, number>();
+    const facts = (repo as Partial<BillingRepo>).overdueFacts;
+    if (typeof facts !== 'function') return out;
+    const s = await ctx.ports?.IdentityPort?.getTenantSettings(ctx, { keys: ['timezone'] });
+    const tz = typeof s?.timezone === 'string' && s.timezone !== '' ? s.timezone : DEFAULT_TZ;
+    const f = await facts(scope(ctx).tx as never, { tenantId, creditPartyId, today: localDate(ctx.now(), tz), timezone: tz });
+    if (!f.setting || f.setting.interestBpPerDay === 0) return out;
+    for (const i of f.invoices) {
+      if (i.daysOverdue <= 0) continue;
+      const v = Number((BigInt(i.unpaidPaisa) * BigInt(f.setting.interestBpPerDay) * BigInt(i.daysOverdue)) / 10000n);   // exact integer floor
+      out.set(i.periodMonth, (out.get(i.periodMonth) ?? 0) + v);
+    }
+    return out;
   }
 
   return { listAccounts, getAccount, updateAccount, listCharges, issuePeriodicInvoice, recordPartyPayment, statement };

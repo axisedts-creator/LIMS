@@ -67,11 +67,13 @@ const attr = (s: string, name: string): string | undefined => { const m = new Re
 const colIndex = (ref: string): number => { let n = 0; for (const ch of ref) n = n * 26 + ch.charCodeAt(0) - 64; return n - 1; };
 const texts = (xml: string): string => [...xml.replace(/<rPh\b[\s\S]*?<\/rPh>/g, '').matchAll(/<t(?:\s[^>]*)?>([\s\S]*?)<\/t>/g)].map((m) => unxml(m[1]!)).join('');
 
-export interface ReadSheet { rows: { row: number; cells: string[] }[]; dataRows: number }
+/** `types` (T0B-PRICETOOLS-1, additive): per cell 's' text (shared / inline / formula string), 'n' number, 'b' boolean, 'e' error; a number cell is never a formula injection. */
+export interface ReadSheet { rows: { row: number; cells: string[]; types: string[] }[]; dataRows: number }
 export interface Workbook { sheets: Map<string, ReadSheet>; names: string[] }
 
-/** Reads the named sheets of an xlsx (cells as raw strings: shared, inline, boolean 1/0, number text). File-level problems throw catalog.import_invalid_file / import_too_large. */
-export function readWorkbook(bytes: Uint8Array, wanted: readonly string[]): Workbook {
+/** Reads the named sheets of an xlsx ('*' = every sheet, so a formula in a hidden sheet refuses the file too; T0B-PRICETOOLS-1).
+ *  Cells as raw strings: shared, inline, boolean 1/0, number text. File-level problems throw catalog.import_invalid_file / import_too_large. */
+export function readWorkbook(bytes: Uint8Array, wanted: readonly string[] | '*'): Workbook {
   if (bytes.length > MAX_FILE_BYTES) throw new LimsError('catalog.import_too_large');
   const buf = Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   const zip = readZip(buf);
@@ -107,7 +109,7 @@ export function readWorkbook(bytes: Uint8Array, wanted: readonly string[]): Work
   for (const m of wb.matchAll(/<sheet\b[^>]*>/g)) {
     const name = attr(m[0], 'name') ?? '';
     names.push(name);
-    if (!wanted.includes(name)) continue;                                                 // done_when 4: read only the named sheets
+    if (wanted !== '*' && !wanted.includes(name)) continue;                                                // done_when 4: read only the named sheets
     const rel = rels.get(attr(m[0], 'r:id') ?? '');
     const sx = rel ? xml(target(rel)) : undefined;
     if (sx === undefined) invalid(`sheet ${name} has no part`);
@@ -118,11 +120,11 @@ export function readWorkbook(bytes: Uint8Array, wanted: readonly string[]): Work
 }
 
 function parseSheet(xml: string, sst: readonly string[]): ReadSheet {
-  const rows: { row: number; cells: string[] }[] = [];
+  const rows: { row: number; cells: string[]; types: string[] }[] = [];
   let next = 1, dataRows = 0;
   for (const r of xml.matchAll(/<row\b([^>]*?)(?:\/>|>([\s\S]*?)<\/row>)/g)) {
     const rowNo = Number(attr(r[1]!, 'r') ?? next); next = rowNo + 1;
-    const cells: string[] = [];
+    const cells: string[] = []; const types: string[] = [];
     let col = 0;
     for (const c of (r[2] ?? '').matchAll(/<c\b([^>]*?)(?:\/>|>([\s\S]*?)<\/c>)/g)) {
       const ref = attr(c[1]!, 'r'); const ci = ref ? colIndex(/^[A-Z]+/.exec(ref)?.[0] ?? 'A') : col; col = ci + 1;
@@ -130,11 +132,12 @@ function parseSheet(xml: string, sst: readonly string[]): ReadSheet {
       const t = attr(c[1]!, 't'), inner = c[2] ?? '';
       const v = /<v>([\s\S]*?)<\/v>/.exec(inner)?.[1];
       cells[ci] = t === 's' ? sst[Number(v)] ?? '' : t === 'inlineStr' ? texts(inner) : unxml(v ?? '');
+      types[ci] = t === 's' || t === 'inlineStr' || t === 'str' ? 's' : t === 'b' ? 'b' : t === 'e' ? 'e' : 'n';
     }
     const filled = Array.from(cells, (x) => x ?? '');
     if (rowNo > 1 && filled.some((x) => x.trim() !== '')) dataRows++;
     if (dataRows > MAX_ROWS) throw new LimsError('catalog.import_too_large');
-    rows.push({ row: rowNo, cells: filled });
+    rows.push({ row: rowNo, cells: filled, types: Array.from(types, (x) => x ?? 's') });
   }
   return { rows, dataRows };
 }

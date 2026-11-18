@@ -1,63 +1,101 @@
 'use client';
 // /lab/critical-values (C5 04-UI-UX §1 + §3.9, route staff.lab.critical_values, lab.critical_value.read). LD-255 (FOUNDER): lab staff and the administrator reach the list from the menu.
-// Columns the CriticalValueDto can fill: detected at, age since detected (live), analyte, direction text, status text. Open rows first, the rest in API order.
-// The result value is not a list column (it is shown on the detail, which logs the access). Reg no, patient and notifications count are not in the DTO: gaps in the task notes.
+// T0D-UICONSOLE-1 (LD-353 template 2 CONSOLE): PageHeader, one FilterBar (the Status URL filter the page already reads), StatTiles (Open, Acknowledged, Oldest age) above a SplitConsole:
+// queue at left (Age since detected first, open rows first), detail at right (direction, status, Detected at, Time to acknowledge, History), bar = the existing link to the record.
+// No new action. The result value is not shown here (it is shown on the detail, which logs the access). Reg no, patient and notifications count are not in the DTO: gaps in the task notes.
 // [CONV] a closed event's age stops at closed_at instead of running on.
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
 import { EmptyRow, PlaceholderRows } from '@lims/ui/components/DataTable';
 import { EmptyState } from '@lims/ui/components/EmptyState';
+import { FilterBar } from '@lims/ui/components/FilterBar';
 import { PageHeader } from '@lims/ui/components/PageHeader';
-import type { CriticalValueRow } from '../server/adminpages.server';
+import { SplitConsole } from '@lims/ui/components/SplitConsole';
+import { StatTile, StatTileRow } from '@lims/ui/components/StatTile';
+import { t } from '@/core/i18n/messages';
+import type { CriticalValueRow as ServerRow } from '../server/adminpages.server';
+
+// C5 05-SCHEMA critical log column, shown as the time to acknowledge when the API sends it. Typed here because features/lab/server is pinned by rs-c5.static (LD-140).
+type CriticalValueRow = ServerRow & { first_confirmed_notification_at?: string };
+import { Facts, History, OpenBar, OpenKey, hhmm, itemProps, oldest, useNow, when } from './consoleParts';
 
 const DIRECTION: Record<CriticalValueRow['direction'], string> = { high: 'Critical high', low: 'Critical low', abnormal: 'Abnormal' };
 const STATUS: Record<CriticalValueRow['status'], string> = { open: 'Open', notified: 'Notified', closed: 'Closed' };
-const TICK_MS = 30_000;
-
-const when = (iso: string) => new Date(iso).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'UTC' });
-function hhmm(ms: number) {
-  const m = Math.max(0, Math.floor(ms / 60_000));
-  return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
-}
+const CRITICAL_STATUSES = Object.keys(STATUS) as CriticalValueRow['status'][]; // the server list (adminpages.server) is server-only
+const HEADERS = ['Age since detected', 'Detected at', 'Analyte', 'Direction', 'Status']; // C5 04-UI-UX 3.9 keeps Detected at in the list (arbiter ruling T0D-UICONSOLE-1)
+const href = (id: string) => `/lab/critical-values/${encodeURIComponent(id)}`;
 
 export function CriticalValueList({ items, status, nextCursor }: { items: readonly CriticalValueRow[]; status?: string | undefined; nextCursor?: string | undefined }) {
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), TICK_MS);
-    return () => clearInterval(id);
-  }, []);
+  const now = useNow();
+  const router = useRouter();
+  const pathname = usePathname() ?? '/lab/critical-values';
+  const [selectedId, setSelectedId] = useState<string>();
+  const title = t('lab.nav.critical_values');
   const rows = [...items.filter((r) => r.status === 'open'), ...items.filter((r) => r.status !== 'open')];
+  const age = (r: CriticalValueRow) => (r.closed_at ? Date.parse(r.closed_at) : now) - Date.parse(r.detected_at);
+  const open = rows.filter((r) => r.status === 'open');
+  const sel = rows.find((r) => r.id === selectedId);
   const more = `/lab/critical-values?${new URLSearchParams({ ...(status ? { status } : {}), ...(nextCursor ? { cursor: nextCursor } : {}) })}`;
-  return (
-    <section aria-label="Critical values">
-      <PageHeader title="Critical values" helpKey="lab.critical_values" />
-      {/* T0D-EMPTYTBL-1 (LD-310): headers always drawn; the empty message is a body row. T0D-UILIST-1 (LD-353 rule 5): the table scrolls in its own box. */}
-      <div className="lims-data-table"><div className="lims-table-scroll">
-      <table className="lims-table" aria-label="Critical values">
-          <thead>
-            <tr>
-              <th scope="col">Detected at</th>
-              <th scope="col">Age since detected</th>
-              <th scope="col">Analyte</th>
-              <th scope="col">Direction</th>
-              <th scope="col">Status</th>
+  const goStatus = (v: string | undefined) => router.push(v ? `${pathname}?${new URLSearchParams({ status: v })}` : pathname);
+
+  const list = (
+    <div className="lims-data-table"><div className="lims-table-scroll">
+      <table className="lims-table" aria-label={title}>
+        <thead><tr>{HEADERS.map((h) => <th key={h} scope="col">{h}</th>)}</tr></thead>
+        <tbody>
+          {rows.length === 0 ? <EmptyRow colSpan={HEADERS.length}><EmptyState title="No critical values." /></EmptyRow> : null}
+          {rows.map((r) => (
+            <tr key={r.id} {...itemProps(r.id, selectedId, setSelectedId)}>
+              <td suppressHydrationWarning>{hhmm(age(r))}</td>
+              <td>{when(r.detected_at)}</td>
+              <td><Link href={href(r.id)}>{r.analyte_code}</Link></td>
+              <td>{DIRECTION[r.direction] ?? r.direction}</td>
+              <td>{STATUS[r.status] ?? r.status}</td>
             </tr>
-          </thead>
-          <tbody>
-            {rows.length === 0 ? <EmptyRow colSpan={5}><EmptyState title="No critical values." /></EmptyRow> : null}
-            {rows.map((r) => (
-              <tr key={r.id}>
-                <td>{when(r.detected_at)}</td>
-                <td suppressHydrationWarning>{hhmm((r.closed_at ? Date.parse(r.closed_at) : now) - Date.parse(r.detected_at))}</td>
-                <td><Link href={`/lab/critical-values/${encodeURIComponent(r.id)}`}>{r.analyte_code}</Link></td>
-                <td>{DIRECTION[r.direction] ?? r.direction}</td>
-                <td>{STATUS[r.status] ?? r.status}</td>
-              </tr>
-            ))}
-          </tbody>
-          {rows.length === 0 ? <PlaceholderRows colSpan={5} /> : null}
-        </table>
-      </div></div>
+          ))}
+        </tbody>
+        {rows.length === 0 ? <PlaceholderRows colSpan={HEADERS.length} /> : null}
+      </table>
+    </div></div>
+  );
+
+  const ack = sel?.first_confirmed_notification_at;
+  const detail = sel ? (
+    <>
+      <h2>{sel.analyte_code}</h2>
+      <Facts items={[
+        ['Direction', DIRECTION[sel.direction] ?? sel.direction],
+        ['Status', STATUS[sel.status] ?? sel.status],
+        ['Detected at', when(sel.detected_at)],
+        ['Time to acknowledge', ack ? hhmm(Date.parse(ack) - Date.parse(sel.detected_at)) : 'Not acknowledged yet'],
+      ]} />
+      <History events={[
+        ['Detected', sel.detected_at] as const,
+        ...(ack ? [['Acknowledged', ack] as const] : []),
+        ...(sel.closed_at ? [['Closed', sel.closed_at] as const] : []),
+      ]} />
+    </>
+  ) : <p>Select a critical value to see it here.</p>;
+
+  return (
+    <section aria-label={title}>
+      <PageHeader title={title} helpKey="lab.critical_values" />
+      <FilterBar
+        filters={[{ id: 'status', label: 'Status', kind: 'select', options: CRITICAL_STATUSES.map((s) => ({ value: s, label: STATUS[s] })) }]}
+        value={{ status }}
+        onChange={(v) => goStatus(typeof v['status'] === 'string' ? v['status'] : undefined)}
+        onReset={() => goStatus(undefined)}
+      />
+      <StatTileRow>
+        <StatTile label="Open" value={String(open.length)} />
+        <StatTile label="Acknowledged" value={String(rows.filter((r) => r.status === 'notified').length)} />
+        <StatTile label="Oldest age" value={oldest(open.map(age))} />
+      </StatTileRow>
+      <OpenKey href={sel ? href(sel.id) : undefined}>
+        <SplitConsole list={list} detail={detail} listLabel="Critical value queue" detailLabel="Critical value"
+          actions={sel ? <OpenBar href={href(sel.id)} label="Open critical value" /> : undefined} />
+      </OpenKey>
       {nextCursor ? <p><Link href={more}>Next page</Link></p> : null}
     </section>
   );

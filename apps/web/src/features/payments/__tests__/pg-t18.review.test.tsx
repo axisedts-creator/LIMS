@@ -15,6 +15,7 @@ import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 import type { ReactNode } from 'react';
 import { ToastProvider } from '@lims/ui/components/Toast';
+import { actionBar, itemOf, pickItem } from '../../../__tests__/uiconsole1.helpers';
 
 const push = vi.hoisted(() => vi.fn());
 vi.mock('next/navigation', () => ({
@@ -72,17 +73,25 @@ const axeClean = async () => {
 };
 const comp = async () => ((await import(/* @vite-ignore */ '../components/ReviewQueue')) as { ReviewQueue: (p: any) => any }).ReviewQueue;
 const view = async (intents: unknown[] = rows) => { const ReviewQueue = await comp(); return wrap(<ReviewQueue intents={intents as never} permissions={READ} centres={centres} holdReasons={holdReasons} />); };
-const rowOf = (n: number) => document.querySelector(`a[href="/payments/intents/${U(100 + n)}"]`)!.closest('tr') as HTMLElement;
+// T0D-UICONSOLE-1 (LD-353 template 2): the queue row is the console item (data-console-item = intent id); order link, last checked and the intent link are in the detail / bar of the SELECTED payment.
+const rowOf = (n: number) => itemOf(document.body, U(100 + n)) as HTMLElement;
+const detailOf = (n: number) => pickItem(document.body, U(100 + n));
 
 describe('§2.1 ReviewQueue — table', () => {
   it('title "Payment review", caption "Payments needing review", the eight columns in spec order, no header actions', async () => {
     await view();
     expect(screen.getByRole('heading', { name: 'Payment review' })).toBeTruthy();
-    expect(screen.getByRole('grid', { name: /Payments needing review/ })).toBeTruthy();
+    expect(screen.getByRole('table', { name: /Payments needing review/ })).toBeTruthy();
     const heads = screen.getAllByRole('columnheader').map((h) => (h.textContent ?? '').trim().toLowerCase());
-    const want = ['created', 'gateway', 'amount', 'status', 'reason', 'last checked', 'order', 'intent'];
+    expect(heads[0]).toMatch(/^age/); // the age leads the queue list
+    const want = ['created', 'gateway', 'amount', 'status', 'reason'];
     let at = -1;
     for (const w of want) { const i = heads.findIndex((h, k) => k > at && h.startsWith(w)); expect(i, `column ${w} in ${heads.join('|')}`).toBeGreaterThan(at); at = i; }
+    // last checked, order and intent moved to the detail of the selected payment and its bar
+    const d = detailOf(1);
+    expect(d.textContent).toMatch(/Last checked/);
+    expect(d.querySelector(`a[href="/frontdesk/orders/${U(201)}"]`)).toBeTruthy();
+    expect(actionBar(document.body)!.querySelector(`a[href="/payments/intents/${U(101)}"]`)).toBeTruthy();
   });
 
   it('row shows gateway, lakh-grouped NPR amount, TEXT status chip with the C0 label, reason display (not the raw code), order + intent links', async () => {
@@ -93,7 +102,8 @@ describe('§2.1 ReviewQueue — table', () => {
     expect(within(r1).getByText('Under review')).toBeTruthy();
     expect(within(r1).getByText('Amount does not match')).toBeTruthy();
     expect(r1.textContent).not.toMatch(/amount_mismatch/);
-    expect(r1.querySelector(`a[href="/frontdesk/orders/${U(201)}"]`)).toBeTruthy();
+    expect(detailOf(1).querySelector(`a[href="/frontdesk/orders/${U(201)}"]`)).toBeTruthy();
+    expect(actionBar(document.body)!.querySelector(`a[href="/payments/intents/${U(101)}"]`)).toBeTruthy();
     const r2 = rowOf(2);
     expect(within(r2).getByText(/Khalti/)).toBeTruthy();
     expect(within(r2).getByText('NPR 500.00')).toBeTruthy();
@@ -161,12 +171,14 @@ describe('§2.1 ReviewQueue — filters', () => {
 });
 
 describe('§2.1 ReviewQueue — keyboard script (02-CV §14: every action reachable by keyboard)', () => {
-  it('Tab reaches a row; Enter on the row opens the intent detail', async () => {
+  it('Tab reaches a row; Enter on the row selects it and the key O (shown in the bar) opens the intent detail', async () => {
     await view();
     const r = rowOf(1);
     r.focus();
-    if (document.activeElement !== r) { const a = r.querySelector('a[href^="/payments/intents/"]') as HTMLElement; a.focus(); }
+    expect(document.activeElement).toBe(r);
     await userEvent.keyboard('{Enter}');
+    expect(r.getAttribute('aria-selected')).toBe('true');
+    await userEvent.keyboard('o');
     await waitFor(() => {
       const opened = push.mock.calls.some((c) => c[0] === `/payments/intents/${U(101)}`);
       const navigated = (document.activeElement as HTMLAnchorElement | null)?.getAttribute?.('href') === `/payments/intents/${U(101)}`;
@@ -176,9 +188,13 @@ describe('§2.1 ReviewQueue — keyboard script (02-CV §14: every action reacha
 
   it('the intent id and order id are real links (keyboard-focusable, no click-only handlers)', async () => {
     await view();
-    const a = rowOf(1).querySelector(`a[href="/payments/intents/${U(101)}"]`) as HTMLAnchorElement;
+    const d = detailOf(1);
+    const a = actionBar(document.body)!.querySelector(`a[href="/payments/intents/${U(101)}"]`) as HTMLAnchorElement;
     a.focus();
     expect(document.activeElement).toBe(a);
+    const o = d.querySelector(`a[href="/frontdesk/orders/${U(201)}"]`) as HTMLAnchorElement;
+    o.focus();
+    expect(document.activeElement).toBe(o);
   });
 
   it('Alt+R moves focus to the filter reset control', async () => {
@@ -213,7 +229,7 @@ describe('review page.tsx — request (P1/P24)', () => {
     expect((to - from) / 86_400_000).toBeLessThan(8.1);
     expect(headers.get('authorization')).toBe('Bearer jwt-synthetic');
     expect(container.innerHTML).not.toContain('jwt-synthetic');
-    expect(await within(screen.getByRole('grid')).findByText('Amount does not match')).toBeTruthy();
+    expect(await within(screen.getByRole('table')).findByText('Amount does not match')).toBeTruthy();
   });
 
   it('forwards only whitelisted, well-formed params and drops everything else (tenant_id, evil, injected query)', async () => {

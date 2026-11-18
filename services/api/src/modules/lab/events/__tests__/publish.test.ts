@@ -418,7 +418,7 @@ describe('event contract: every 03-IC example payload publishes through its publ
     expect(s.stored('lab.critical_value.detected.v1')[0]!.envelope.payload).toEqual(example('3.13'));
   });
 
-  it('the publishers emit exactly the event types the lab manifest declares in `produces` (7)', async () => {
+  it('the publishers emit exactly the event types the lab manifest declares in `produces` (8)', async () => {
     const s = setup();
     await s.run(async () => {
       await s.lab.specimenStatusChanged(s.ctx, changed(), { specimenVersion: 1 });
@@ -428,9 +428,15 @@ describe('event contract: every 03-IC example payload publishes through its publ
       await s.lab.resultAmended(s.ctx, amendedP(), { resultRowVersion: 1 });
       await s.lab.orderReadyForReport(s.ctx, readyP(), { approvedSet: SET, readinessSeq: 1 });
       await s.lab.criticalValueDetected(s.ctx, criticalP(), { value: VAL, resultRowVersion: 1 });
+      // T0B-VERLEVEL-1 (LD-316, done_when 9): one signed_off event per sign-off.
+      await s.lab.resultSignedOff(s.ctx, {
+        result_id: RES1, result_version_no: 1, order_id: ORDER, test_id: TEST, department_id: DEPT, seq: 1,
+        action: 'verify', signoff_count: 1, signoff_required: 2, is_final: false, signer_user_id: MEMBER,
+        signer_is_pathologist: false, signed_at: '2026-11-05T04:02:10.000Z',
+      }, { resultRowVersion: 1 });
     });
     const types = [...new Set(s.db.events.map((e) => e.eventType))].sort();
-    expect(types).toHaveLength(7);
+    expect(types).toHaveLength(8);
     expect(types).toEqual([...manifest.produces].sort());
   });
 });

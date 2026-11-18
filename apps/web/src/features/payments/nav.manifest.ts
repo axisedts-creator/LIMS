@@ -12,3 +12,6 @@ export const navManifest: NavManifest = {
     { id: 'payments.settings', label: 'payments.nav.settings', routeId: 'staff.payments.settings', permission: 'payments.merchant_config.read', group: 'billing', order: 64, phase: '1.5', section: 'core.nav.section.payments' },
   ],
 };
+
+// T0D-UICONSOLE-1 (LD-353 rule 8): menu label keys the review and refunds pages and error boundaries use as their title.
+export const pageTitleKey = { review: 'payments.nav.review', refunds: 'payments.nav.refunds' } as const;

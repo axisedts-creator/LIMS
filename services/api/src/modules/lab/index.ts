@@ -9,12 +9,11 @@ export const manifest: ModuleManifest = {
   openapi: 'contracts/openapi/lab.yaml',
   handlers,
   ports: { LabPort: labPort },
-  // LD-325 (b) / LD-335: contract operations of T0C-VERLEVEL-1 (LD-316) without a handler yet; T0B-VERLEVEL-1 removes them with the handlers.
-  pendingOperations: ['listVerificationPolicies', 'upsertVerificationPolicy', 'getResultSignoffs'],
-  // = 02-TRD §7.1 = EVENT_PRODUCERS.lab (core validateManifest checks)
+  // LD-325 (b): T0B-VERLEVEL-1 implemented the 3 operations of T0C-VERLEVEL-1 (LD-316); nothing is pending in lab.
+  // = 02-TRD §7.1 = EVENT_PRODUCERS.lab (core validateManifest checks); + lab.result.signed_off.v1 (T0B-VERLEVEL-1, LD-316)
   produces: [
     'lab.specimen.status_changed.v1', 'lab.specimen.rejected.v1',
-    'lab.result.verified.v1', 'lab.result.approved.v1', 'lab.result.amended.v1',
+    'lab.result.verified.v1', 'lab.result.approved.v1', 'lab.result.amended.v1', 'lab.result.signed_off.v1',
     'lab.order.ready_for_report.v1', 'lab.critical_value.detected.v1',
   ],
 };

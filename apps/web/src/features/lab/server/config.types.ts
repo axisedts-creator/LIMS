@@ -17,3 +17,18 @@ export const CODED_SETS = ['rejection_reasons', 'return_reasons', 'amendment_rea
 export type CodedSetName = (typeof CODED_SETS)[number];
 export interface LabCode { code: string; display: string; sort_order: number; is_active: boolean; source: 'global' | 'tenant' }
 export interface LabCodeBody { display: string; sort_order: number; is_active: boolean }
+
+// T0D-VERLEVEL-1 (LD-316): VerificationPolicy / VerificationPolicyUpsert / ResultSignoff (contracts/openapi/lab.yaml), catalog option rows (catalog.yaml listDepartments / listTests).
+export type PolicyScope = 'lab' | 'department' | 'test';
+export interface VerificationPolicy {
+  id: string; scope: PolicyScope; department_id?: string; test_id?: string; required_verifiers: number; require_pathologist: boolean; allow_enterer_verify: boolean;
+  active: boolean; version: number; updated_at: string;
+}
+export interface VerificationPolicyUpsert {
+  scope: PolicyScope; department_id?: string; test_id?: string; required_verifiers: number; require_pathologist: boolean; allow_enterer_verify: boolean;
+}
+export interface ResultSignoff {
+  result_version: number; seq: number; action: 'verify' | 'approve'; signer_user_id?: string; signer_display_name: string; signer_title?: string;
+  signer_role_code: string; signer_is_pathologist: boolean; signer_registration_no?: string; signed_at: string;
+}
+export interface CatalogOption { id: string; code: string; name: string }

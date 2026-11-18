@@ -313,6 +313,7 @@ export type ErrorCode =
   | "sync.number_out_of_block"
   | "sync.offline_not_allowed"
   | "sync.op_id_reused"
+  | "sync.op_type_not_available"
   | "sync.result_locked"
   | "sync.series_unknown"
   | "sync.verification_policy_failed"
@@ -632,6 +633,7 @@ export const ERROR_META: Readonly<Record<ErrorCode, { readonly http: number; rea
   "sync.number_out_of_block": { http: 422, owner: "C0", title: "Number outside reserved block" },
   "sync.offline_not_allowed": { http: 403, owner: "C0", title: "Not allowed offline" },
   "sync.op_id_reused": { http: 422, owner: "C0", title: "Operation id reused" },
+  "sync.op_type_not_available": { http: 422, owner: "C0", title: "Operation type not available" },
   "sync.result_locked": { http: 409, owner: "C0", title: "Result locked" },
   "sync.series_unknown": { http: 422, owner: "C0", title: "Number series not available" },
   "sync.verification_policy_failed": { http: 403, owner: "C0", title: "Verification policy failed" },

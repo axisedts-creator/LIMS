@@ -33,6 +33,7 @@ import * as accessSlipHandlers from './handlers/accessSlips.js';
 import * as reportHandlers from './handlers/reports.js';
 import * as referrerHandlers from './handlers/referrers.js';
 import * as salesHandlers from './handlers/sales.js';
+import * as ticketHandlers from './handlers/tickets.js';
 import { reactivatePartner } from './handlers/reactivatePartner.js';
 import { replaceManifestLine } from './handlers/replaceManifestLine.js';
 import { resyncPartnerProjections } from './handlers/resyncPartnerProjections.js';
@@ -55,6 +56,7 @@ const stub = (operationId: string): Handler => async () => {
 };
 
 const implemented: Readonly<Record<string, Handler>> = {
+  ...ticketHandlers, // T0B-MSGDESK-1 (LD-321): the 10 ticket operations of T0C-MSGDESK-1 (were the T01 stub)
   getPartnerContext, // T03
   getPartnerDashboard, // T18 A2
   ...partnerUserHandlers, // T06 U1-U6, SA8-SA10
@@ -73,11 +75,9 @@ const implemented: Readonly<Record<string, Handler>> = {
 /**
  * LD-325(b): operations of partners.yaml without a handler yet (answer 501 operation_pending).
  * T0B-SALES-1 implemented the 15 sales ids of T0C-SALES-1.
- * T0C-MSGDESK-1 (LD-321): partner ticket ids; T0B-MSGDESK-1 removes them.
+ * T0C-MSGDESK-1 (LD-321): the partner ticket ids were removed by T0B-MSGDESK-1 with their handlers.
  */
 const PENDING_OPERATIONS: readonly string[] = Object.freeze([
-  'createPartnerTicket', 'listPartnerTickets', 'getPartnerTicket', 'replyPartnerTicket', 'closePartnerTicket', 'reopenPartnerTicket',
-  'listMyPartnerTickets', 'createMyPartnerTicket', 'getMyPartnerTicket', 'replyMyPartnerTicket',
 ]);
 
 export const manifest: ModuleManifest = Object.freeze({

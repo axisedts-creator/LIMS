@@ -1,0 +1,6 @@
+# T0D-CONTENT-1 dispute (writer, 2026-11-18, after the revised tests in 836ed05c6)
+- Disputed test: apps/web/src/features/engagement/__tests__/adminpage-eng-1.static.test.ts:102 (it is the old :100/:101 line).
+- It fails with 9 new codes outside billing.*, engagement.content.*, engagement.broadcast.*: lab.verification_policy.read/manage (T0C-VERLEVEL-1, d67a5fdf0), partners.ticket.read/manage (T0C-MSGDESK-1, 391a69686), partners.sales.read/manage (T0C-SALES-1, 7c4c3a99d), sync.use, sync.device.manage, sync.conflict.resolve (T0C-SYNC-1, aa58aea61).
+- All were added on main by other contract tasks. LD-321 names partners.sales.*, partners.ticket.*; LD-322 names sync.use, sync.device.manage, sync.conflict.resolve; VERLEVEL codes come from the same queued wave. T0D-CONTENT-1 does not touch contracts/permissions.yaml. No implementation change can pass the line without reverting main.
+- Proposed change: :102 should check only that ADMINPAGE-ENG-1 added no code, i.e. drop the "no new code" check, or allow any code not starting with `engagement.` except `engagement.content.`/`engagement.broadcast.` (the engagement family is what ADMINPAGE-ENG-1 owns). Cite LD-321, LD-322.
+- State now: content1 96/96, t-b6 104/104, t-l1 35/35, t-q4 82/82, t-r2 33/33, adminpage-eng-1 80/81 (only this line).

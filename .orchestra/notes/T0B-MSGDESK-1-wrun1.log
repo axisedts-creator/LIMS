@@ -1,0 +1,793 @@
+[core] WARNING: Executable file detection not yet supported on 'win32'.
+Schema updated
+psql:/repo/db/migrations/20261105001300_identity__create_identity_schema.sql:7: NOTICE:  schema "identity" already exists, skipping
+psql:/repo/db/migrations/20261105001500_catalog__create_catalog_schema.sql:10: NOTICE:  schema "catalog" already exists, skipping
+psql:/repo/db/migrations/20261105001600_frontdesk__create_frontdesk_schema.sql:7: NOTICE:  schema "frontdesk" already exists, skipping
+psql:/repo/db/migrations/20261105001700_billing__create_billing_schema.sql:7: NOTICE:  schema "billing" already exists, skipping
+psql:/repo/db/migrations/20261105001800_lab__create_lab_schema.sql:10: NOTICE:  schema "lab" already exists, skipping
+psql:/repo/db/migrations/20261105001900_reporting__create_reporting_schema.sql:145: NOTICE:  identifier "message_template_texts__tenant_id_template_code_channel_language__uq" will be truncated to "message_template_texts__tenant_id_template_code_channel_languag"
+psql:/repo/db/migrations/20261105001900_reporting__create_reporting_schema.sql:177: NOTICE:  identifier "report_template_versions__tenant_id_template_id__published__p_uq" will be truncated to "report_template_versions__tenant_id_template_id__published__p_u"
+psql:/repo/db/migrations/20261105001900_reporting__create_reporting_schema.sql:443: NOTICE:  identifier "deliveries__tenant_id_channel_account_id_provider_message_id__p_uq" will be truncated to "deliveries__tenant_id_channel_account_id_provider_message_id__p"
+psql:/repo/db/migrations/20261105001900_reporting__create_reporting_schema.sql:682: NOTICE:  identifier "narrative_versions__tenant_id_narrative_report_id_version_no__uq" will be truncated to "narrative_versions__tenant_id_narrative_report_id_version_no__u"
+psql:/repo/db/migrations/20261115192000_identity__add_provisioning_schema.sql:47: NOTICE:  identifier "tenant_contract_acceptances__tenant_id_document_accepted_at__idx" will be truncated to "tenant_contract_acceptances__tenant_id_document_accepted_at__id"
+                                                       set_config                                                        
+-------------------------------------------------------------------------------------------------------------------------
+ {"tenant_id":"01a1a98a-ac40-7000-8000-00000000a001","sub":"01a1b34e-1000-7eee-9d29-d7ca59a102b5","actor_type":"system"}
+(1 row)
+
+                                                       set_config                                                        
+-------------------------------------------------------------------------------------------------------------------------
+ {"tenant_id":"01a1a98a-ac40-7000-8000-00000000b001","sub":"01a1b34e-1000-7eee-9d29-d7ca59a102b5","actor_type":"system"}
+(1 row)
+
+ set_config 
+------------
+ 
+(1 row)
+
+
+ RUN  v5.1.0 C:/LIMS-lanes/C0-0J/services/api
+
+ ❯ src/modules/engagement/__tests__/msgdesk/templates.test.ts (31 tests | 1 failed) 2257ms
+   ❯ (4) create: closed placeholder list, derived placeholders, row stored for the tenant (16)
+     × unknown placeholder {{party_name} is refused: 422 engagement.broadcast_placeholder_unknown 50ms
+ ❯ src/modules/engagement/__tests__/msgdesk/broadcast.test.ts (46 tests | 44 failed) 5426ms
+   ❯ (2) previewBroadcastAudience: one SQL query, counts and masks, sends nothing (7)
+     × 200 BroadcastAudiencePreview (schema valid); count grows by exactly the seeded clients; sample is masked and capped at 20 91ms
+     × resolves the filter in ONE SQL statement against the party source (no per party query) 200ms
+     × sends nothing and stores nothing: no broadcast row, no recipient row, no NotificationPort call, no outbox write 59ms
+     × active_only true leaves out an inactive party, active_only false counts it 10ms
+     × tenant B parties never count for tenant A 12ms
+     × the preview count equals the recipient rows created at approval for the same filter and data (the two never drift) 106ms
+   ❯ createBroadcast and requestBroadcastApproval (4)
+     × 201 Broadcast draft (schema valid): requested_by is the actor, no approver, counted audience, no recipient rows, nothing sent 76ms
+     × requestBroadcastApproval: draft -> pending_approval (200, version + 1, recounted); any other source status is 409 engagement.broadcast_invalid_transition 22ms
+     × each status change writes an audit event on engagement.broadcast 49ms
+   ❯ (3) approveBroadcast: second person, provider, frozen list, one outbox row per recipient (11)
+     × the approver is never the requester: 403 engagement.broadcast_self_approval, nothing queued, status unchanged 87ms
+     × a second person approves: approved_by = that actor, approved_at set, status approved | sending | sent (200 Broadcast schema valid) 94ms
+     × approving needs the approve permission: manage + read alone is 403 auth.forbidden, nothing queued 45ms
+     × allowed only from pending_approval: a draft, an approved and a cancelled broadcast answer 409 engagement.broadcast_invalid_transition 34ms
+     × no provider configured for the channel: 422 engagement.broadcast_provider_not_configured, nothing queued, no recipient rows, status stays pending_approval 62ms
+     × the recording provider does not count as configured (it never reaches a handset) 64ms
+     × a template deactivated after the request is refused at approval: 422 engagement.broadcast_template_inactive 119ms
+     × one outbox row per recipient: one NotificationPort call per queued recipient, key = broadcast id + recipient id, all keys distinct, outbox_id stored and unique 299ms
+     × the recipient list is frozen at approval: a party added afterwards gets no message and no row 263ms
+     × rendering: only the closed placeholders are passed; email values are HTML escaped; sms values carry no control characters; no phone or email in params 305ms
+     × no personal data in logs: no phone, email or party name in any log line of preview, create, request, approve 446ms
+   ❯ (3) double send proof: retry, crash, concurrent approval (4)
+     × a retry of a successful approval is refused (409) and queues nothing more 196ms
+     × a crash in the middle of the send leaves no half state; the retry ends with exactly one outbox row per recipient 106ms
+     × three approvers at the same moment: exactly one wins, one outbox row per recipient, no duplicate recipient row 192ms
+     × a requester racing as approver and a second person: only the second person can win 93ms
+   ❯ cancelBroadcast, listBroadcasts, listBroadcastRecipients (5)
+     × cancel is allowed from draft, pending_approval and approved-before-send; cancelled twice and sent/sending are 409 invalid_transition 28ms
+     × a cancelled broadcast sends nothing and cannot be revived 67ms
+     × listBroadcasts: schema valid page, status filter, own tenant only 58ms
+     × listBroadcastRecipients: per recipient status, masked address (never the full value), status filter, 404 for an unknown or other tenant broadcast 96ms
+     × the full recipient address is in no response body of any broadcast operation 103ms
+   ❯ (6) permission denied, wrong actor type, cross tenant (13)
+     × listBroadcasts without engagement.broadcast.read: 403 auth.forbidden, broadcast unchanged 59ms
+     × listBroadcastRecipients without engagement.broadcast.read: 403 auth.forbidden, broadcast unchanged 55ms
+     × createBroadcast without engagement.broadcast.manage: 403 auth.forbidden, broadcast unchanged 48ms
+     × previewBroadcastAudience without engagement.broadcast.manage: 403 auth.forbidden, broadcast unchanged 105ms
+     × requestBroadcastApproval without engagement.broadcast.manage: 403 auth.forbidden, broadcast unchanged 70ms
+     × cancelBroadcast without engagement.broadcast.manage: 403 auth.forbidden, broadcast unchanged 62ms
+     × approveBroadcast without engagement.broadcast.approve: 403 auth.forbidden, broadcast unchanged 54ms
+     × partner actor is refused on every broadcast operation (403) 46ms
+     × patient actor is refused on every broadcast operation (403) 95ms
+     × portal actor is refused on every broadcast operation (403) 67ms
+     × device actor is refused on every broadcast operation (403) 62ms
+     × tenant B cannot request, approve or cancel a tenant A broadcast: 404, row unchanged, nothing queued 87ms
+     × a tenant B approval cannot be made by a tenant A actor either (RLS and the tenant filter agree) 422ms
+   ❯ (3) the 5000 recipient cap (tenant B, restored afterwards) (2)
+     × exactly 5000 is accepted; 5001 is refused 422 engagement.broadcast_recipient_limit at create AND at request; the preview still counts and sends nothing 191ms
+     × approval builds the list again and re-checks the cap (audience grew past 5000 between request and approval) 104ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 45 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > (2) previewBroadcastAudience: one SQL query, counts and masks, sends nothing > 200 BroadcastAudiencePreview (schema valid); count grows by exactly the seeded clients; sample is masked and capped at 20
+error: column a.party_kind does not exist
+ ❯ ../../node_modules/.pnpm/pg@8.23.1/node_modules/pg/lib/client.js:694:17
+ ❯ Module.audiencePreview src/modules/engagement/repository/broadcast.repo.ts:68:20
+     66| /** Count plus the first `sample` rows, in ONE statement (count(*) OVE…
+     67| export async function audiencePreview(tx: Q, a: { tenantId: string; ki…
+     68|   const { rows } = await tx.query(`${audienceCte(a.kinds, a.channel)}S…
+       |                    ^
+     69|     ORDER BY a.party_kind, a.party_id LIMIT ${Math.trunc(a.sample)}`, …
+     70|   return { count: rows.length ? Number(rows[0].n) : 0, rows };
+ ❯ Object.preview src/modules/engagement/service/broadcast.service.ts:233:17
+ ❯ src/modules/engagement/handlers/broadcast.handlers.ts:17:17
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:17
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:57:21
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/45]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > (2) previewBroadcastAudience: one SQL query, counts and masks, sends nothing > resolves the filter in ONE SQL statement against the party source (no per party query)
+error: column a.party_kind does not exist
+ ❯ ../../node_modules/.pnpm/pg@8.23.1/node_modules/pg/lib/client.js:694:17
+ ❯ Module.audiencePreview src/modules/engagement/repository/broadcast.repo.ts:68:20
+     66| /** Count plus the first `sample` rows, in ONE statement (count(*) OVE…
+     67| export async function audiencePreview(tx: Q, a: { tenantId: string; ki…
+     68|   const { rows } = await tx.query(`${audienceCte(a.kinds, a.channel)}S…
+       |                    ^
+     69|     ORDER BY a.party_kind, a.party_id LIMIT ${Math.trunc(a.sample)}`, …
+     70|   return { count: rows.length ? Number(rows[0].n) : 0, rows };
+ ❯ Object.preview src/modules/engagement/service/broadcast.service.ts:233:17
+ ❯ src/modules/engagement/handlers/broadcast.handlers.ts:17:17
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:17
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:74:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/45]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > (2) previewBroadcastAudience: one SQL query, counts and masks, sends nothing > sends nothing and stores nothing: no broadcast row, no recipient row, no NotificationPort call, no outbox write
+error: column a.party_kind does not exist
+ ❯ ../../node_modules/.pnpm/pg@8.23.1/node_modules/pg/lib/client.js:694:17
+ ❯ Module.audiencePreview src/modules/engagement/repository/broadcast.repo.ts:68:20
+     66| /** Count plus the first `sample` rows, in ONE statement (count(*) OVE…
+     67| export async function audiencePreview(tx: Q, a: { tenantId: string; ki…
+     68|   const { rows } = await tx.query(`${audienceCte(a.kinds, a.channel)}S…
+       |                    ^
+     69|     ORDER BY a.party_kind, a.party_id LIMIT ${Math.trunc(a.sample)}`, …
+     70|   return { count: rows.length ? Number(rows[0].n) : 0, rows };
+ ❯ Object.preview src/modules/engagement/service/broadcast.service.ts:233:17
+ ❯ src/modules/engagement/handlers/broadcast.handlers.ts:17:17
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:17
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:81:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/45]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > (2) previewBroadcastAudience: one SQL query, counts and masks, sends nothing > active_only true leaves out an inactive party, active_only false counts it
+error: column a.party_kind does not exist
+ ❯ ../../node_modules/.pnpm/pg@8.23.1/node_modules/pg/lib/client.js:694:17
+ ❯ Module.audiencePreview src/modules/engagement/repository/broadcast.repo.ts:68:20
+     66| /** Count plus the first `sample` rows, in ONE statement (count(*) OVE…
+     67| export async function audiencePreview(tx: Q, a: { tenantId: string; ki…
+     68|   const { rows } = await tx.query(`${audienceCte(a.kinds, a.channel)}S…
+       |                    ^
+     69|     ORDER BY a.party_kind, a.party_id LIMIT ${Math.trunc(a.sample)}`, …
+     70|   return { count: rows.length ? Number(rows[0].n) : 0, rows };
+ ❯ Object.preview src/modules/engagement/service/broadcast.service.ts:233:17
+ ❯ src/modules/engagement/handlers/broadcast.handlers.ts:17:17
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:17
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:87:18
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/45]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > (2) previewBroadcastAudience: one SQL query, counts and masks, sends nothing > tenant B parties never count for tenant A
+error: column a.party_kind does not exist
+ ❯ ../../node_modules/.pnpm/pg@8.23.1/node_modules/pg/lib/client.js:694:17
+ ❯ Module.audiencePreview src/modules/engagement/repository/broadcast.repo.ts:68:20
+     66| /** Count plus the first `sample` rows, in ONE statement (count(*) OVE…
+     67| export async function audiencePreview(tx: Q, a: { tenantId: string; ki…
+     68|   const { rows } = await tx.query(`${audienceCte(a.kinds, a.channel)}S…
+       |                    ^
+     69|     ORDER BY a.party_kind, a.party_id LIMIT ${Math.trunc(a.sample)}`, …
+     70|   return { count: rows.length ? Number(rows[0].n) : 0, rows };
+ ❯ Object.preview src/modules/engagement/service/broadcast.service.ts:233:17
+ ❯ src/modules/engagement/handlers/broadcast.handlers.ts:17:17
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:17
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:94:21
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/45]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > (2) previewBroadcastAudience: one SQL query, counts and masks, sends nothing > the preview count equals the recipient rows created at approval for the same filter and data (the two never drift)
+error: column a.party_kind does not exist
+ ❯ ../../node_modules/.pnpm/pg@8.23.1/node_modules/pg/lib/client.js:694:17
+ ❯ Module.audiencePreview src/modules/engagement/repository/broadcast.repo.ts:68:20
+     66| /** Count plus the first `sample` rows, in ONE statement (count(*) OVE…
+     67| export async function audiencePreview(tx: Q, a: { tenantId: string; ki…
+     68|   const { rows } = await tx.query(`${audienceCte(a.kinds, a.channel)}S…
+       |                    ^
+     69|     ORDER BY a.party_kind, a.party_id LIMIT ${Math.trunc(a.sample)}`, …
+     70|   return { count: rows.length ? Number(rows[0].n) : 0, rows };
+ ❯ Object.preview src/modules/engagement/service/broadcast.service.ts:233:17
+ ❯ src/modules/engagement/handlers/broadcast.handlers.ts:17:17
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:17
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:109:18
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/45]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > createBroadcast and requestBroadcastApproval > 201 Broadcast draft (schema valid): requested_by is the actor, no approver, counted audience, no recipient rows, nothing sent
+error: column a.address does not exist
+ ❯ ../../node_modules/.pnpm/pg@8.23.1/node_modules/pg/lib/client.js:694:17
+ ❯ Module.audienceCount src/modules/engagement/repository/broadcast.repo.ts:73:20
+     71| }
+     72| export async function audienceCount(tx: Q, a: { tenantId: string; kind…
+     73|   const { rows } = await tx.query(`${audienceCte(a.kinds, a.channel)}S…
+       |                    ^
+     74|   return Number(rows[0]?.n ?? 0);
+     75| }
+ ❯ countWithinCap src/modules/engagement/service/broadcast.service.ts:164:13
+ ❯ Object.create src/modules/engagement/service/broadcast.service.ts:242:17
+ ❯ src/modules/engagement/handlers/broadcast.handlers.ts:17:17
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:17
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:129:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/45]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > createBroadcast and requestBroadcastApproval > requestBroadcastApproval: draft -> pending_approval (200, version + 1, recounted); any other source status is 409 engagement.broadcast_invalid_transition
+error: column a.address does not exist
+ ❯ ../../node_modules/.pnpm/pg@8.23.1/node_modules/pg/lib/client.js:694:17
+ ❯ Module.audienceCount src/modules/engagement/repository/broadcast.repo.ts:73:20
+     71| }
+     72| export async function audienceCount(tx: Q, a: { tenantId: string; kind…
+     73|   const { rows } = await tx.query(`${audienceCte(a.kinds, a.channel)}S…
+       |                    ^
+     74|   return Number(rows[0]?.n ?? 0);
+     75| }
+ ❯ countWithinCap src/modules/engagement/service/broadcast.service.ts:164:13
+ ❯ Object.create src/modules/engagement/service/broadcast.service.ts:242:17
+ ❯ src/modules/engagement/handlers/broadcast.handlers.ts:17:17
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:17
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:149:16
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/45]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > createBroadcast and requestBroadcastApproval > each status change writes an audit event on engagement.broadcast
+error: column a.address does not exist
+ ❯ ../../node_modules/.pnpm/pg@8.23.1/node_modules/pg/lib/client.js:694:17
+ ❯ Module.audienceCount src/modules/engagement/repository/broadcast.repo.ts:73:20
+     71| }
+     72| export async function audienceCount(tx: Q, a: { tenantId: string; kind…
+     73|   const { rows } = await tx.query(`${audienceCte(a.kinds, a.channel)}S…
+       |                    ^
+     74|   return Number(rows[0]?.n ?? 0);
+     75| }
+ ❯ countWithinCap src/modules/engagement/service/broadcast.service.ts:164:13
+ ❯ Object.create src/modules/engagement/service/broadcast.service.ts:242:17
+ ❯ src/modules/engagement/handlers/broadcast.handlers.ts:17:17
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:17
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ pending src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:50:14
+ ❯ src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:159:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/45]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > (3) approveBroadcast: second person, provider, frozen list, one outbox row per recipient > the approver is never the requester: 403 engagement.broadcast_self_approval, nothing queued, status unchanged
+error: column a.address does not exist
+ ❯ ../../node_modules/.pnpm/pg@8.23.1/node_modules/pg/lib/client.js:694:17
+ ❯ Module.audienceCount src/modules/engagement/repository/broadcast.repo.ts:73:20
+     71| }
+     72| export async function audienceCount(tx: Q, a: { tenantId: string; kind…
+     73|   const { rows } = await tx.query(`${audienceCte(a.kinds, a.channel)}S…
+       |                    ^
+     74|   return Number(rows[0]?.n ?? 0);
+     75| }
+ ❯ countWithinCap src/modules/engagement/service/broadcast.service.ts:164:13
+ ❯ Object.create src/modules/engagement/service/broadcast.service.ts:242:17
+ ❯ src/modules/engagement/handlers/broadcast.handlers.ts:17:17
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:17
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ pending src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:50:14
+ ❯ src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:169:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/45]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > (3) approveBroadcast: second person, provider, frozen list, one outbox row per recipient > a second person approves: approved_by = that actor, approved_at set, status approved | sending | sent (200 Broadcast schema valid)
+error: column a.address does not exist
+ ❯ ../../node_modules/.pnpm/pg@8.23.1/node_modules/pg/lib/client.js:694:17
+ ❯ Module.audienceCount src/modules/engagement/repository/broadcast.repo.ts:73:20
+     71| }
+     72| export async function audienceCount(tx: Q, a: { tenantId: string; kind…
+     73|   const { rows } = await tx.query(`${audienceCte(a.kinds, a.channel)}S…
+       |                    ^
+     74|   return Number(rows[0]?.n ?? 0);
+     75| }
+ ❯ countWithinCap src/modules/engagement/service/broadcast.service.ts:164:13
+ ❯ Object.create src/modules/engagement/service/broadcast.service.ts:242:17
+ ❯ src/modules/engagement/handlers/broadcast.handlers.ts:17:17
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:17
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ pending src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:50:14
+ ❯ src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:179:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/45]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > (3) approveBroadcast: second person, provider, frozen list, one outbox row per recipient > approving needs the approve permission: manage + read alone is 403 auth.forbidden, nothing queued
+error: column a.address does not exist
+ ❯ ../../node_modules/.pnpm/pg@8.23.1/node_modules/pg/lib/client.js:694:17
+ ❯ Module.audienceCount src/modules/engagement/repository/broadcast.repo.ts:73:20
+     71| }
+     72| export async function audienceCount(tx: Q, a: { tenantId: string; kind…
+     73|   const { rows } = await tx.query(`${audienceCte(a.kinds, a.channel)}S…
+       |                    ^
+     74|   return Number(rows[0]?.n ?? 0);
+     75| }
+ ❯ countWithinCap src/modules/engagement/service/broadcast.service.ts:164:13
+ ❯ Object.create src/modules/engagement/service/broadcast.service.ts:242:17
+ ❯ src/modules/engagement/handlers/broadcast.handlers.ts:17:17
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:17
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ pending src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:50:14
+ ❯ src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:191:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/45]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > (3) approveBroadcast: second person, provider, frozen list, one outbox row per recipient > allowed only from pending_approval: a draft, an approved and a cancelled broadcast answer 409 engagement.broadcast_invalid_transition
+error: column a.address does not exist
+ ❯ ../../node_modules/.pnpm/pg@8.23.1/node_modules/pg/lib/client.js:694:17
+ ❯ Module.audienceCount src/modules/engagement/repository/broadcast.repo.ts:73:20
+     71| }
+     72| export async function audienceCount(tx: Q, a: { tenantId: string; kind…
+     73|   const { rows } = await tx.query(`${audienceCte(a.kinds, a.channel)}S…
+       |                    ^
+     74|   return Number(rows[0]?.n ?? 0);
+     75| }
+ ❯ countWithinCap src/modules/engagement/service/broadcast.service.ts:164:13
+ ❯ Object.create src/modules/engagement/service/broadcast.service.ts:242:17
+ ❯ src/modules/engagement/handlers/broadcast.handlers.ts:17:17
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:17
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:199:20
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/45]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > (3) approveBroadcast: second person, provider, frozen list, one outbox row per recipient > no provider configured for the channel: 422 engagement.broadcast_provider_not_configured, nothing queued, no recipient rows, status stays pending_approval
+error: column a.address does not exist
+ ❯ ../../node_modules/.pnpm/pg@8.23.1/node_modules/pg/lib/client.js:694:17
+ ❯ Module.audienceCount src/modules/engagement/repository/broadcast.repo.ts:73:20
+     71| }
+     72| export async function audienceCount(tx: Q, a: { tenantId: string; kind…
+     73|   const { rows } = await tx.query(`${audienceCte(a.kinds, a.channel)}S…
+       |                    ^
+     74|   return Number(rows[0]?.n ?? 0);
+     75| }
+ ❯ countWithinCap src/modules/engagement/service/broadcast.service.ts:164:13
+ ❯ Object.create src/modules/engagement/service/broadcast.service.ts:242:17
+ ❯ src/modules/engagement/handlers/broadcast.handlers.ts:17:17
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:17
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ pending src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:50:14
+ ❯ src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:211:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/45]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > (3) approveBroadcast: second person, provider, frozen list, one outbox row per recipient > the recording provider does not count as configured (it never reaches a handset)
+error: column a.address does not exist
+ ❯ ../../node_modules/.pnpm/pg@8.23.1/node_modules/pg/lib/client.js:694:17
+ ❯ Module.audienceCount src/modules/engagement/repository/broadcast.repo.ts:73:20
+     71| }
+     72| export async function audienceCount(tx: Q, a: { tenantId: string; kind…
+     73|   const { rows } = await tx.query(`${audienceCte(a.kinds, a.channel)}S…
+       |                    ^
+     74|   return Number(rows[0]?.n ?? 0);
+     75| }
+ ❯ countWithinCap src/modules/engagement/service/broadcast.service.ts:164:13
+ ❯ Object.create src/modules/engagement/service/broadcast.service.ts:242:17
+ ❯ src/modules/engagement/handlers/broadcast.handlers.ts:17:17
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:17
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ pending src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:50:14
+ ❯ src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:224:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/45]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > (3) approveBroadcast: second person, provider, frozen list, one outbox row per recipient > a template deactivated after the request is refused at approval: 422 engagement.broadcast_template_inactive
+error: column a.address does not exist
+ ❯ ../../node_modules/.pnpm/pg@8.23.1/node_modules/pg/lib/client.js:694:17
+ ❯ Module.audienceCount src/modules/engagement/repository/broadcast.repo.ts:73:20
+     71| }
+     72| export async function audienceCount(tx: Q, a: { tenantId: string; kind…
+     73|   const { rows } = await tx.query(`${audienceCte(a.kinds, a.channel)}S…
+       |                    ^
+     74|   return Number(rows[0]?.n ?? 0);
+     75| }
+ ❯ countWithinCap src/modules/engagement/service/broadcast.service.ts:164:13
+ ❯ Object.create src/modules/engagement/service/broadcast.service.ts:242:17
+ ❯ src/modules/engagement/handlers/broadcast.handlers.ts:17:17
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:17
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ pending src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:50:14
+ ❯ src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:230:24
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[16/45]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > (3) approveBroadcast: second person, provider, frozen list, one outbox row per recipient > one outbox row per recipient: one NotificationPort call per queued recipient, key = broadcast id + recipient id, all keys distinct, outbox_id stored and unique
+error: column a.address does not exist
+ ❯ ../../node_modules/.pnpm/pg@8.23.1/node_modules/pg/lib/client.js:694:17
+ ❯ Module.audienceCount src/modules/engagement/repository/broadcast.repo.ts:73:20
+     71| }
+     72| export async function audienceCount(tx: Q, a: { tenantId: string; kind…
+     73|   const { rows } = await tx.query(`${audienceCte(a.kinds, a.channel)}S…
+       |                    ^
+     74|   return Number(rows[0]?.n ?? 0);
+     75| }
+ ❯ countWithinCap src/modules/engagement/service/broadcast.service.ts:164:13
+ ❯ Object.create src/modules/engagement/service/broadcast.service.ts:242:17
+ ❯ src/modules/engagement/handlers/broadcast.handlers.ts:17:17
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:17
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ pending src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:50:14
+ ❯ src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:237:28
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[17/45]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > (3) approveBroadcast: second person, provider, frozen list, one outbox row per recipient > the recipient list is frozen at approval: a party added afterwards gets no message and no row
+error: column a.address does not exist
+ ❯ ../../node_modules/.pnpm/pg@8.23.1/node_modules/pg/lib/client.js:694:17
+ ❯ Module.audienceCount src/modules/engagement/repository/broadcast.repo.ts:73:20
+     71| }
+     72| export async function audienceCount(tx: Q, a: { tenantId: string; kind…
+     73|   const { rows } = await tx.query(`${audienceCte(a.kinds, a.channel)}S…
+       |                    ^
+     74|   return Number(rows[0]?.n ?? 0);
+     75| }
+ ❯ countWithinCap src/modules/engagement/service/broadcast.service.ts:164:13
+ ❯ Object.create src/modules/engagement/service/broadcast.service.ts:242:17
+ ❯ src/modules/engagement/handlers/broadcast.handlers.ts:17:17
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:17
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ pending src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:50:14
+ ❯ src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:259:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[18/45]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > (3) approveBroadcast: second person, provider, frozen list, one outbox row per recipient > rendering: only the closed placeholders are passed; email values are HTML escaped; sms values carry no control characters; no phone or email in params
+error: column a.address does not exist
+ ❯ ../../node_modules/.pnpm/pg@8.23.1/node_modules/pg/lib/client.js:694:17
+ ❯ Module.audienceCount src/modules/engagement/repository/broadcast.repo.ts:73:20
+     71| }
+     72| export async function audienceCount(tx: Q, a: { tenantId: string; kind…
+     73|   const { rows } = await tx.query(`${audienceCte(a.kinds, a.channel)}S…
+       |                    ^
+     74|   return Number(rows[0]?.n ?? 0);
+     75| }
+ ❯ countWithinCap src/modules/engagement/service/broadcast.service.ts:164:13
+ ❯ Object.create src/modules/engagement/service/broadcast.service.ts:242:17
+ ❯ src/modules/engagement/handlers/broadcast.handlers.ts:17:17
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:17
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:272:17
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[19/45]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > (3) approveBroadcast: second person, provider, frozen list, one outbox row per recipient > no personal data in logs: no phone, email or party name in any log line of preview, create, request, approve
+error: column a.party_kind does not exist
+ ❯ ../../node_modules/.pnpm/pg@8.23.1/node_modules/pg/lib/client.js:694:17
+ ❯ Module.audiencePreview src/modules/engagement/repository/broadcast.repo.ts:68:20
+     66| /** Count plus the first `sample` rows, in ONE statement (count(*) OVE…
+     67| export async function audiencePreview(tx: Q, a: { tenantId: string; ki…
+     68|   const { rows } = await tx.query(`${audienceCte(a.kinds, a.channel)}S…
+       |                    ^
+     69|     ORDER BY a.party_kind, a.party_id LIMIT ${Math.trunc(a.sample)}`, …
+     70|   return { count: rows.length ? Number(rows[0].n) : 0, rows };
+ ❯ Object.preview src/modules/engagement/service/broadcast.service.ts:233:17
+ ❯ src/modules/engagement/handlers/broadcast.handlers.ts:17:17
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:17
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:297:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[20/45]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > (3) double send proof: retry, crash, concurrent approval > a retry of a successful approval is refused (409) and queues nothing more
+error: column a.address does not exist
+ ❯ ../../node_modules/.pnpm/pg@8.23.1/node_modules/pg/lib/client.js:694:17
+ ❯ Module.audienceCount src/modules/engagement/repository/broadcast.repo.ts:73:20
+     71| }
+     72| export async function audienceCount(tx: Q, a: { tenantId: string; kind…
+     73|   const { rows } = await tx.query(`${audienceCte(a.kinds, a.channel)}S…
+       |                    ^
+     74|   return Number(rows[0]?.n ?? 0);
+     75| }
+ ❯ countWithinCap src/modules/engagement/service/broadcast.service.ts:164:13
+ ❯ Object.create src/modules/engagement/service/broadcast.service.ts:242:17
+ ❯ src/modules/engagement/handlers/broadcast.handlers.ts:17:17
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:17
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ pending src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:50:14
+ ❯ src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:307:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[21/45]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > (3) double send proof: retry, crash, concurrent approval > a crash in the middle of the send leaves no half state; the retry ends with exactly one outbox row per recipient
+error: column a.address does not exist
+ ❯ ../../node_modules/.pnpm/pg@8.23.1/node_modules/pg/lib/client.js:694:17
+ ❯ Module.audienceCount src/modules/engagement/repository/broadcast.repo.ts:73:20
+     71| }
+     72| export async function audienceCount(tx: Q, a: { tenantId: string; kind…
+     73|   const { rows } = await tx.query(`${audienceCte(a.kinds, a.channel)}S…
+       |                    ^
+     74|   return Number(rows[0]?.n ?? 0);
+     75| }
+ ❯ countWithinCap src/modules/engagement/service/broadcast.service.ts:164:13
+ ❯ Object.create src/modules/engagement/service/broadcast.service.ts:242:17
+ ❯ src/modules/engagement/handlers/broadcast.handlers.ts:17:17
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:17
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ pending src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:50:14
+ ❯ src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:317:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[22/45]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > (3) double send proof: retry, crash, concurrent approval > three approvers at the same moment: exactly one wins, one outbox row per recipient, no duplicate recipient row
+error: column a.address does not exist
+ ❯ ../../node_modules/.pnpm/pg@8.23.1/node_modules/pg/lib/client.js:694:17
+ ❯ Module.audienceCount src/modules/engagement/repository/broadcast.repo.ts:73:20
+     71| }
+     72| export async function audienceCount(tx: Q, a: { tenantId: string; kind…
+     73|   const { rows } = await tx.query(`${audienceCte(a.kinds, a.channel)}S…
+       |                    ^
+     74|   return Number(rows[0]?.n ?? 0);
+     75| }
+ ❯ countWithinCap src/modules/engagement/service/broadcast.service.ts:164:13
+ ❯ Object.create src/modules/engagement/service/broadcast.service.ts:242:17
+ ❯ src/modules/engagement/handlers/broadcast.handlers.ts:17:17
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:17
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ pending src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:50:14
+ ❯ src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:334:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[23/45]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > (3) double send proof: retry, crash, concurrent approval > a requester racing as approver and a second person: only the second person can win
+error: column a.address does not exist
+ ❯ ../../node_modules/.pnpm/pg@8.23.1/node_modules/pg/lib/client.js:694:17
+ ❯ Module.audienceCount src/modules/engagement/repository/broadcast.repo.ts:73:20
+     71| }
+     72| export async function audienceCount(tx: Q, a: { tenantId: string; kind…
+     73|   const { rows } = await tx.query(`${audienceCte(a.kinds, a.channel)}S…
+       |                    ^
+     74|   return Number(rows[0]?.n ?? 0);
+     75| }
+ ❯ countWithinCap src/modules/engagement/service/broadcast.service.ts:164:13
+ ❯ Object.create src/modules/engagement/service/broadcast.service.ts:242:17
+ ❯ src/modules/engagement/handlers/broadcast.handlers.ts:17:17
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:17
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ pending src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:50:14
+ ❯ src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:352:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[24/45]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > cancelBroadcast, listBroadcasts, listBroadcastRecipients > cancel is allowed from draft, pending_approval and approved-before-send; cancelled twice and sent/sending are 409 invalid_transition
+error: column a.address does not exist
+ ❯ ../../node_modules/.pnpm/pg@8.23.1/node_modules/pg/lib/client.js:694:17
+ ❯ Module.audienceCount src/modules/engagement/repository/broadcast.repo.ts:73:20
+     71| }
+     72| export async function audienceCount(tx: Q, a: { tenantId: string; kind…
+     73|   const { rows } = await tx.query(`${audienceCte(a.kinds, a.channel)}S…
+       |                    ^
+     74|   return Number(rows[0]?.n ?? 0);
+     75| }
+ ❯ countWithinCap src/modules/engagement/service/broadcast.service.ts:164:13
+ ❯ Object.create src/modules/engagement/service/broadcast.service.ts:242:17
+ ❯ src/modules/engagement/handlers/broadcast.handlers.ts:17:17
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:17
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:364:16
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[25/45]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > cancelBroadcast, listBroadcasts, listBroadcastRecipients > a cancelled broadcast sends nothing and cannot be revived
+error: column a.address does not exist
+ ❯ ../../node_modules/.pnpm/pg@8.23.1/node_modules/pg/lib/client.js:694:17
+ ❯ Module.audienceCount src/modules/engagement/repository/broadcast.repo.ts:73:20
+     71| }
+     72| export async function audienceCount(tx: Q, a: { tenantId: string; kind…
+     73|   const { rows } = await tx.query(`${audienceCte(a.kinds, a.channel)}S…
+       |                    ^
+     74|   return Number(rows[0]?.n ?? 0);
+     75| }
+ ❯ countWithinCap src/modules/engagement/service/broadcast.service.ts:164:13
+ ❯ Object.create src/modules/engagement/service/broadcast.service.ts:242:17
+ ❯ src/modules/engagement/handlers/broadcast.handlers.ts:17:17
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:17
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ pending src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:50:14
+ ❯ src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:379:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[26/45]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > cancelBroadcast, listBroadcasts, listBroadcastRecipients > listBroadcasts: schema valid page, status filter, own tenant only
+error: column a.address does not exist
+ ❯ ../../node_modules/.pnpm/pg@8.23.1/node_modules/pg/lib/client.js:694:17
+ ❯ Module.audienceCount src/modules/engagement/repository/broadcast.repo.ts:73:20
+     71| }
+     72| export async function audienceCount(tx: Q, a: { tenantId: string; kind…
+     73|   const { rows } = await tx.query(`${audienceCte(a.kinds, a.channel)}S…
+       |                    ^
+     74|   return Number(rows[0]?.n ?? 0);
+     75| }
+ ❯ countWithinCap src/modules/engagement/service/broadcast.service.ts:164:13
+ ❯ Object.create src/modules/engagement/service/broadcast.service.ts:242:17
+ ❯ src/modules/engagement/handlers/broadcast.handlers.ts:17:17
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:17
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ pending src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:50:14
+ ❯ src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:387:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[27/45]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > cancelBroadcast, listBroadcasts, listBroadcastRecipients > listBroadcastRecipients: per recipient status, masked address (never the full value), status filter, 404 for an unknown or other tenant broadcast
+error: column a.address does not exist
+ ❯ ../../node_modules/.pnpm/pg@8.23.1/node_modules/pg/lib/client.js:694:17
+ ❯ Module.audienceCount src/modules/engagement/repository/broadcast.repo.ts:73:20
+     71| }
+     72| export async function audienceCount(tx: Q, a: { tenantId: string; kind…
+     73|   const { rows } = await tx.query(`${audienceCte(a.kinds, a.channel)}S…
+       |                    ^
+     74|   return Number(rows[0]?.n ?? 0);
+     75| }
+ ❯ countWithinCap src/modules/engagement/service/broadcast.service.ts:164:13
+ ❯ Object.create src/modules/engagement/service/broadcast.service.ts:242:17
+ ❯ src/modules/engagement/handlers/broadcast.handlers.ts:17:17
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:17
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ pending src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:50:14
+ ❯ src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:399:28
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[28/45]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > cancelBroadcast, listBroadcasts, listBroadcastRecipients > the full recipient address is in no response body of any broadcast operation
+error: column a.address does not exist
+ ❯ ../../node_modules/.pnpm/pg@8.23.1/node_modules/pg/lib/client.js:694:17
+ ❯ Module.audienceCount src/modules/engagement/repository/broadcast.repo.ts:73:20
+     71| }
+     72| export async function audienceCount(tx: Q, a: { tenantId: string; kind…
+     73|   const { rows } = await tx.query(`${audienceCte(a.kinds, a.channel)}S…
+       |                    ^
+     74|   return Number(rows[0]?.n ?? 0);
+     75| }
+ ❯ countWithinCap src/modules/engagement/service/broadcast.service.ts:164:13
+ ❯ Object.create src/modules/engagement/service/broadcast.service.ts:242:17
+ ❯ src/modules/engagement/handlers/broadcast.handlers.ts:17:17
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:17
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ pending src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:50:14
+ ❯ src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:415:28
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[29/45]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > (6) permission denied, wrong actor type, cross tenant > listBroadcasts without engagement.broadcast.read: 403 auth.forbidden, broadcast unchanged
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > (6) permission denied, wrong actor type, cross tenant > listBroadcastRecipients without engagement.broadcast.read: 403 auth.forbidden, broadcast unchanged
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > (6) permission denied, wrong actor type, cross tenant > createBroadcast without engagement.broadcast.manage: 403 auth.forbidden, broadcast unchanged
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > (6) permission denied, wrong actor type, cross tenant > previewBroadcastAudience without engagement.broadcast.manage: 403 auth.forbidden, broadcast unchanged
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > (6) permission denied, wrong actor type, cross tenant > requestBroadcastApproval without engagement.broadcast.manage: 403 auth.forbidden, broadcast unchanged
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > (6) permission denied, wrong actor type, cross tenant > cancelBroadcast without engagement.broadcast.manage: 403 auth.forbidden, broadcast unchanged
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > (6) permission denied, wrong actor type, cross tenant > approveBroadcast without engagement.broadcast.approve: 403 auth.forbidden, broadcast unchanged
+error: column a.address does not exist
+ ❯ ../../node_modules/.pnpm/pg@8.23.1/node_modules/pg/lib/client.js:694:17
+ ❯ Module.audienceCount src/modules/engagement/repository/broadcast.repo.ts:73:20
+     71| }
+     72| export async function audienceCount(tx: Q, a: { tenantId: string; kind…
+     73|   const { rows } = await tx.query(`${audienceCte(a.kinds, a.channel)}S…
+       |                    ^
+     74|   return Number(rows[0]?.n ?? 0);
+     75| }
+ ❯ countWithinCap src/modules/engagement/service/broadcast.service.ts:164:13
+ ❯ Object.create src/modules/engagement/service/broadcast.service.ts:242:17
+ ❯ src/modules/engagement/handlers/broadcast.handlers.ts:17:17
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:17
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ pending src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:50:14
+ ❯ src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:433:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[30/45]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > (6) permission denied, wrong actor type, cross tenant > partner actor is refused on every broadcast operation (403)
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > (6) permission denied, wrong actor type, cross tenant > patient actor is refused on every broadcast operation (403)
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > (6) permission denied, wrong actor type, cross tenant > portal actor is refused on every broadcast operation (403)
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > (6) permission denied, wrong actor type, cross tenant > device actor is refused on every broadcast operation (403)
+error: column a.address does not exist
+ ❯ ../../node_modules/.pnpm/pg@8.23.1/node_modules/pg/lib/client.js:694:17
+ ❯ Module.audienceCount src/modules/engagement/repository/broadcast.repo.ts:73:20
+     71| }
+     72| export async function audienceCount(tx: Q, a: { tenantId: string; kind…
+     73|   const { rows } = await tx.query(`${audienceCte(a.kinds, a.channel)}S…
+       |                    ^
+     74|   return Number(rows[0]?.n ?? 0);
+     75| }
+ ❯ countWithinCap src/modules/engagement/service/broadcast.service.ts:164:13
+ ❯ Object.create src/modules/engagement/service/broadcast.service.ts:242:17
+ ❯ src/modules/engagement/handlers/broadcast.handlers.ts:17:17
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:17
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ pending src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:50:14
+ ❯ src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:441:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[31/45]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > (6) permission denied, wrong actor type, cross tenant > tenant B cannot request, approve or cancel a tenant A broadcast: 404, row unchanged, nothing queued
+error: column a.address does not exist
+ ❯ ../../node_modules/.pnpm/pg@8.23.1/node_modules/pg/lib/client.js:694:17
+ ❯ Module.audienceCount src/modules/engagement/repository/broadcast.repo.ts:73:20
+     71| }
+     72| export async function audienceCount(tx: Q, a: { tenantId: string; kind…
+     73|   const { rows } = await tx.query(`${audienceCte(a.kinds, a.channel)}S…
+       |                    ^
+     74|   return Number(rows[0]?.n ?? 0);
+     75| }
+ ❯ countWithinCap src/modules/engagement/service/broadcast.service.ts:164:13
+ ❯ Object.create src/modules/engagement/service/broadcast.service.ts:242:17
+ ❯ src/modules/engagement/handlers/broadcast.handlers.ts:17:17
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:17
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ pending src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:50:14
+ ❯ src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:446:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[32/45]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > (6) permission denied, wrong actor type, cross tenant > a tenant B approval cannot be made by a tenant A actor either (RLS and the tenant filter agree)
+error: column a.address does not exist
+ ❯ ../../node_modules/.pnpm/pg@8.23.1/node_modules/pg/lib/client.js:694:17
+ ❯ Module.audienceCount src/modules/engagement/repository/broadcast.repo.ts:73:20
+     71| }
+     72| export async function audienceCount(tx: Q, a: { tenantId: string; kind…
+     73|   const { rows } = await tx.query(`${audienceCte(a.kinds, a.channel)}S…
+       |                    ^
+     74|   return Number(rows[0]?.n ?? 0);
+     75| }
+ ❯ countWithinCap src/modules/engagement/service/broadcast.service.ts:164:13
+ ❯ Object.create src/modules/engagement/service/broadcast.service.ts:242:17
+ ❯ src/modules/engagement/handlers/broadcast.handlers.ts:17:17
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:17
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:461:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[33/45]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > (3) the 5000 recipient cap (tenant B, restored afterwards) > exactly 5000 is accepted; 5001 is refused 422 engagement.broadcast_recipient_limit at create AND at request; the preview still counts and sends nothing
+error: column a.party_kind does not exist
+ ❯ ../../node_modules/.pnpm/pg@8.23.1/node_modules/pg/lib/client.js:694:17
+ ❯ Module.audiencePreview src/modules/engagement/repository/broadcast.repo.ts:68:20
+     66| /** Count plus the first `sample` rows, in ONE statement (count(*) OVE…
+     67| export async function audiencePreview(tx: Q, a: { tenantId: string; ki…
+     68|   const { rows } = await tx.query(`${audienceCte(a.kinds, a.channel)}S…
+       |                    ^
+     69|     ORDER BY a.party_kind, a.party_id LIMIT ${Math.trunc(a.sample)}`, …
+     70|   return { count: rows.length ? Number(rows[0].n) : 0, rows };
+ ❯ Object.preview src/modules/engagement/service/broadcast.service.ts:233:17
+ ❯ src/modules/engagement/handlers/broadcast.handlers.ts:17:17
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:17
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:484:21
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[34/45]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > (3) the 5000 recipient cap (tenant B, restored afterwards) > approval builds the list again and re-checks the cap (audience grew past 5000 between request and approval)
+error: column a.party_kind does not exist
+ ❯ ../../node_modules/.pnpm/pg@8.23.1/node_modules/pg/lib/client.js:694:17
+ ❯ Module.audiencePreview src/modules/engagement/repository/broadcast.repo.ts:68:20
+     66| /** Count plus the first `sample` rows, in ONE statement (count(*) OVE…
+     67| export async function audiencePreview(tx: Q, a: { tenantId: string; ki…
+     68|   const { rows } = await tx.query(`${audienceCte(a.kinds, a.channel)}S…
+       |                    ^
+     69|     ORDER BY a.party_kind, a.party_id LIMIT ${Math.trunc(a.sample)}`, …
+     70|   return { count: rows.length ? Number(rows[0].n) : 0, rows };
+ ❯ Object.preview src/modules/engagement/service/broadcast.service.ts:233:17
+ ❯ src/modules/engagement/handlers/broadcast.handlers.ts:17:17
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:17
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:505:21
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[35/45]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/templates.test.ts > (4) create: closed placeholder list, derived placeholders, row stored for the tenant > unknown placeholder {{party_name} is refused: 422 engagement.broadcast_placeholder_unknown
+AssertionError: expected 2 to be +0 // Object.is equality
+
+- Expected
++ Received
+
+- 0
++ 2
+
+ ❯ src/modules/engagement/__tests__/msgdesk/templates.test.ts:44:136
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[36/45]⎯
+
+
+ Test Files  2 failed | 2 passed (4)
+      Tests  45 failed | 92 passed (137)
+   Start at  00:41:02
+   Duration  11.07s (tests 74%, import 21%, transform 5%, setup 1%)
+

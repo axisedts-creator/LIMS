@@ -9,11 +9,13 @@ import { evaluateFreshness } from '../../../../../api/src/modules/analytics/doma
 import { businessDateOf, resolvePeriod } from '../../../../../api/src/modules/analytics/domain/period.js';
 import { getReport } from '../../../../../api/src/modules/analytics/domain/reportRegistry.js';
 import { intersect } from '../../../../../api/src/modules/analytics/domain/scope.js';
-import { writeCsv } from '../../../../../api/src/modules/analytics/export/CsvWriter.js';
+import { isMisReport, MIS_DEFS, misColumns } from '../../../../../api/src/modules/analytics/domain/misReports.js';
+import { checkMisExportParams, MAX_RANGE_DAYS, streamMisReport } from '../../../../../api/src/modules/analytics/service/misReports.service.js';
+import { writeCsv, writeCsvStream } from '../../../../../api/src/modules/analytics/export/CsvWriter.js';
 import { type ExportMeta } from '../../../../../api/src/modules/analytics/export/layout.js';
 import { buildPdfData } from '../../../../../api/src/modules/analytics/export/PdfRequest.js';
 import { buildReport } from '../../../../../api/src/modules/analytics/export/reportTable.js';
-import { writeXlsx } from '../../../../../api/src/modules/analytics/export/XlsxWriter.js';
+import { writeXlsx, writeXlsxStream } from '../../../../../api/src/modules/analytics/export/XlsxWriter.js';
 import * as repo from '../../../../../api/src/modules/analytics/repository/exports.repo.js';
 import { loadFamilyStates } from '../../../../../api/src/modules/analytics/repository/refresh.repo.js';
 import type { TaskHandler } from '../../../core/manifest.js';
@@ -97,8 +99,10 @@ async function build(ctx: any, row: repo.ExportRecord, key: { tenantId: string; 
   if (!scope.all && scope.centreIds.length === 0) throw new Terminal('auth.forbidden');
   await repo.markBuilding(ctx.tx, { ...key, effectiveCentreIds: scope.all ? null : scope.centreIds });
 
-  // step 4: the same service functions as the API, with the explicit scope
   const now: string = ctx.now();
+  if (isMisReport(row.report_code)) return buildMis(ctx, row, key, { scope, now, member, cfg });
+
+  // step 4: the same service functions as the API, with the explicit scope
   const period = resolvePeriod(row.params as never, businessDateOf(now as never), cfg.maxRangeDays);
   const built = await buildReport(ctx, row.report_code, row.params, { period, scope, now });
   if (built.rows.length > cfg.exportMaxRows) throw new Terminal('analytics.export_too_large'); // step 5
@@ -123,6 +127,54 @@ async function build(ctx: any, row: repo.ExportRecord, key: { tenantId: string; 
   await repo.storeFile(ctx.tx, { ...key, content: bytes, contentType, sha256, readyAt, expiresAt: new Date(readyAt.getTime() + cfg.exportTtlHours * HOUR_MS), rowCount: built.rows.length });
   return built.rows.length;
 }
+
+/**
+ * T0B-MISREPORTS-1 (LD-321) steps 4-8 for an MIS report: rows are pulled from streamMisReport page by page and written by the streaming writers, so the
+ * result is never held as one array (pdf excepted: RenderPort takes one document, bounded by the contract row_cap). The row cap fails as export_too_large.
+ */
+async function buildMis(ctx: any, row: repo.ExportRecord, key: { tenantId: string; id: string; actorId: string },
+  a: { scope: { all: boolean; centreIds: readonly string[] }; now: string; member: any; cfg: ReturnType<typeof loadAnalyticsConfig> }): Promise<number> {
+  const { tenantId, id: exportId } = key;
+  let p: ReturnType<typeof checkMisExportParams>;
+  try { p = checkMisExportParams(row.report_code, row.params); } catch { throw new Terminal('common.validation_failed'); } // stored params no longer valid
+  const def = MIS_DEFS[row.report_code]!;
+  const period = resolvePeriod({ business_date_from: p.range.from, business_date_to: nextDay(p.range.to) }, businessDateOf(a.now as never), MAX_RANGE_DAYS); // labels only
+  const meta: ExportMeta = {
+    tenantDisplayName: (await ctx.core.tenant(ctx)).displayName, reportTitle: def.title, periodLabelAd: period.labelAd, periodLabelBs: period.labelBs,
+    scopeLabel: await scopeLabel(ctx, a.scope), generatedAtLocal: local(a.now), exportId, exportedBy: String(a.member.displayName ?? ''), freshnessNote: `Data as of ${local(a.now)}`,
+  };
+  const head = { meta, columns: misColumns(def) };
+  let rows = 0;
+  const source = (async function* () {
+    try {
+      for await (const chunk of streamMisReport(ctx, row.report_code, { range: p.range, scope: a.scope, filters: row.params.filters, chunkRows: 1000 })) {
+        rows += chunk.length;
+        if (rows > a.cfg.exportMaxRows) throw new Terminal('analytics.export_too_large'); // step 5
+        yield chunk;
+      }
+    } catch (e) {
+      if (codeOf(e) === 'common.validation_failed') throw new Terminal('analytics.export_too_large'); // the contract row_cap (params were valid above)
+      throw e;
+    }
+  })();
+
+  const parts: Uint8Array[] = [];
+  let size = 0, contentType: string;
+  const take = (b: Uint8Array) => { size += b.length; if (size > a.cfg.exportMaxBytes) throw new Terminal('analytics.export_too_large'); parts.push(b); }; // step 7, while writing
+  if (row.format === 'csv') { contentType = 'text/csv; charset=utf-8'; for await (const b of writeCsvStream(head, source)) take(b); }
+  else if (row.format === 'xlsx') { contentType = XLSX; for await (const b of writeXlsxStream(head, source)) take(b); }
+  else {
+    const all: Record<string, string | number>[] = []; for await (const c of source) all.push(...c);
+    contentType = 'application/pdf'; take(await renderPdf(ctx, buildPdfData({ ...head, rows: all }), exportId));
+  }
+  const bytes = new Uint8Array(Buffer.concat(parts));
+
+  const sha256 = createHash('sha256').update(bytes).digest('hex'); // step 8
+  const readyAt = new Date(a.now);
+  await repo.storeFile(ctx.tx, { ...key, content: bytes, contentType, sha256, readyAt, expiresAt: new Date(readyAt.getTime() + a.cfg.exportTtlHours * HOUR_MS), rowCount: rows });
+  return rows;
+}
+const nextDay = (iso: string): string => new Date(Date.parse(`${iso}T00:00:00Z`) + 86_400_000).toISOString().slice(0, 10);
 
 /** RenderPort -> bytes; error mapping per TRD §7.2: too large -> analytics.export_too_large, outage -> retry, anything else is a C8 bug -> common.internal + alert. */
 async function renderPdf(ctx: any, data: unknown, exportId: string): Promise<Uint8Array> {

@@ -75,7 +75,7 @@ describe('RS-C4 behaviour unchanged (LD-140: no change to API calls, fields, val
     expect(extraSymbols.filter((s) => !LD310_ALLOW.trf_symbol.test(s))).toEqual([]); // anything that is not the TRF action is forbidden
     expect(extraSymbols.length).toBeLessThanOrEqual(1); // exactly one TRF action
     // LD-391/LD-393 follow-up, T0D-OFFLINE-3 arbiter: only the named route string is forgiven
-    expect(added(was.routes, now.routes).filter((r) => !(LD310_ALLOW.route_strings_added as readonly string[]).includes(r))).toEqual([]); // no route added: POST credit-parties / doctors / trf-attachments already exist
+    expect(added(was.routes, now.routes).filter((r) => !LD310_ALLOW.route_strings_added.test(r))) /* LD-400, T0D-OFFLINE-3 arbiter */.toEqual([]); // no route added: POST credit-parties / doctors / trf-attachments already exist
   });
 
   it('allow-list guard is not vacuous: an unlisted addition would be rejected', () => {
@@ -87,7 +87,9 @@ describe('RS-C4 behaviour unchanged (LD-140: no change to API calls, fields, val
     expect(LD310_ALLOW.billing_accounts_strings.test('frontdesk.order.cancel')).toBe(false);
     // LD-391/LD-393 follow-up, T0D-OFFLINE-3 arbiter
     expect(LD310_ALLOW.logic_files_added).toHaveLength(4);
-    expect(LD310_ALLOW.route_strings_added).toHaveLength(1);
+    // LD-400, T0D-OFFLINE-3 arbiter
+    expect(LD310_ALLOW.route_strings_added.test('/v1/billing/accounts/summary')).toBe(true);
+    expect(LD310_ALLOW.route_strings_added.test('/v1/frontdesk/patients')).toBe(false);
     expect(LD310_ALLOW.accounts_symbols).toHaveLength(64); // LD-398: 19 + 45
     expect(LD310_ALLOW.logic_files_changed).toHaveLength(6);
     expect(LD310_ALLOW.accounts_symbols).not.toContain('deleteEverythingAction');

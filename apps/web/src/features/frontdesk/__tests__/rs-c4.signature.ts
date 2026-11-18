@@ -88,6 +88,8 @@ export const LD310_ALLOW = {
     'catalog.price_list.manage', 'catalog.referrer.manage', 'catalog.code_duplicate',
     'billing.account.manage', 'billing.account.read', 'billing.accounts.col.blocked', 'billing.accounts.col.credit_limit',
     'billing.accounts.col.outstanding', 'billing.accounts.col.side', 'billing.accounts.summary.title',
+    // LD-400, T0D-OFFLINE-3 arbiter: already-landed REGSCREEN-2 patient rewards permission (RegistrationForm.tsx:259).
+    'frontdesk.patient.read',
   ],
   // LD-391 (T0D-OFFLINE-3): route files ADDED by the already-landed billing accounting UI; additions only, baseline json untouched.
   routes_added: [
@@ -110,7 +112,8 @@ export const LD310_ALLOW = {
     'src/features/billing/server/expenses.server.ts',
   ],
   // LD-391/LD-393 follow-up, T0D-OFFLINE-3 arbiter: the one route string added by the already-landed work.
-  route_strings_added: ['/v1/catalog/tests'],
+  // LD-400, T0D-OFFLINE-3 arbiter: scoped regex (billing accounting module namespace + the original entry), not a list.
+  route_strings_added: /^\/v1\/catalog\/tests$|^\/v1\/billing\/|^\/v1\/identity\/(?:centres|users)$|^\/billing\/accounts\/ledger$/,
   server_imports: [
     '@/features/catalog/server/catalogActions',
     '@/features/billing/server/accounts.server',

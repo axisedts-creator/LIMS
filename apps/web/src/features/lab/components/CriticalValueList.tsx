@@ -31,7 +31,8 @@ export function CriticalValueList({ items, status, nextCursor }: { items: readon
   return (
     <section aria-label="Critical values">
       <PageHeader title="Critical values" helpKey="lab.critical_values" />
-      {/* T0D-EMPTYTBL-1 (LD-310): headers always drawn; the empty message is a body row. */}
+      {/* T0D-EMPTYTBL-1 (LD-310): headers always drawn; the empty message is a body row. T0D-UILIST-1 (LD-353 rule 5): the table scrolls in its own box. */}
+      <div className="lims-data-table"><div className="lims-table-scroll">
       <table className="lims-table" aria-label="Critical values">
           <thead>
             <tr>
@@ -56,6 +57,7 @@ export function CriticalValueList({ items, status, nextCursor }: { items: readon
           </tbody>
           {rows.length === 0 ? <PlaceholderRows colSpan={5} /> : null}
         </table>
+      </div></div>
       {nextCursor ? <p><Link href={more}>Next page</Link></p> : null}
     </section>
   );

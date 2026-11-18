@@ -20,10 +20,11 @@ export default async function ReportingWorklistPage({ searchParams }: { params?:
       listCentres(),
     ]);
     return (
-      <>
-        <CriticalAlertsPanel alerts={alerts ? alerts.data : null} hasMore={!!alerts?.page.next_cursor} centreId={centreId} />
-        <ReportsWorklist reports={reports.data} tab={tab} permissions={permissions} centres={centres} nextCursor={reports.page.next_cursor} />
-      </>
+      // LD-353 (T0D-UILIST-1): the alerts panel sits under the page title, inside the worklist
+      <ReportsWorklist
+        reports={reports.data} tab={tab} permissions={permissions} centres={centres} nextCursor={reports.page.next_cursor}
+        alerts={<CriticalAlertsPanel alerts={alerts ? alerts.data : null} hasMore={!!alerts?.page.next_cursor} centreId={centreId} />}
+      />
     );
   });
 }

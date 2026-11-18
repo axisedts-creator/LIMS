@@ -28,12 +28,16 @@ export function IngestExceptionList({ items, status = 'open', nextCursor }: Inge
   return (
     <section aria-label="Instrument exceptions">
       <PageHeader title="Instrument exceptions" helpKey="lab.ingest_exceptions" />
-      <NativeSelect label="Reason" name="reason" value={params.get('reason') ?? ''} onChange={(v) => go('reason', v)} placeholder="All reasons"
-        options={EXCEPTION_REASONS.map((r) => ({ value: r, label: REASON_TEXT[r] ?? r }))} />
-      <NativeSelect label="Status" name="status" value={params.get('status') ?? status} onChange={(v) => go('status', v)} placeholder={null}
-        options={EXCEPTION_STATUSES.map((s) => ({ value: s, label: s }))} />
-      {/* T0D-EMPTYTBL-1 (LD-310): headers always drawn; the empty message is a body row. */}
-      <table>
+      {/* T0D-UILIST-1 (LD-353 rule 2, template 1): the two filters sit in one filter row (kit FilterBar markup); the URL-driven native selects stay */}
+      <div role="search" className="lims-filter-bar">
+        <NativeSelect label="Reason" name="reason" value={params.get('reason') ?? ''} onChange={(v) => go('reason', v)} placeholder="All reasons"
+          options={EXCEPTION_REASONS.map((r) => ({ value: r, label: REASON_TEXT[r] ?? r }))} />
+        <NativeSelect label="Status" name="status" value={params.get('status') ?? status} onChange={(v) => go('status', v)} placeholder={null}
+          options={EXCEPTION_STATUSES.map((s) => ({ value: s, label: s }))} />
+      </div>
+      {/* T0D-EMPTYTBL-1 (LD-310): headers always drawn; the empty message is a body row. T0D-UILIST-1 (LD-353 rule 5): the table scrolls in its own box. */}
+      <div className="lims-data-table"><div className="lims-table-scroll">
+      <table className="lims-table">
           <caption className="lims-visually-hidden">Instrument exceptions</caption>
           <thead>
             <tr>
@@ -60,6 +64,7 @@ export function IngestExceptionList({ items, status = 'open', nextCursor }: Inge
           </tbody>
           {items.length === 0 ? <PlaceholderRows colSpan={6} /> : null}
         </table>
+      </div></div>
       {nextCursor ? <p><Link href={more}>Next page</Link></p> : null}
     </section>
   );

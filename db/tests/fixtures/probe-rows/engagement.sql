@@ -116,6 +116,12 @@ INSERT INTO engagement.payment_requests (id, tenant_id, account_id, order_id, pa
   (pg_temp.id('f4'), pg_temp.id('01'), pg_temp.id('f4'), pg_temp.id('f4'), pg_temp.id('f4'), 'esewa', 'probe-4', pg_temp.id('35'), pg_temp.id('99')),
   (pg_temp.id('f5'), pg_temp.id('01'), pg_temp.id('f5'), pg_temp.id('f5'), pg_temp.id('f5'), 'esewa', 'probe-5', pg_temp.id('a3'), pg_temp.id('99')),
   (pg_temp.id('f6'), pg_temp.id('01'), pg_temp.id('f6'), pg_temp.id('f6'), pg_temp.id('f6'), 'esewa', 'probe-6', pg_temp.id('34'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
+INSERT INTO engagement.portal_content (id, tenant_id, kind, title, created_by, updated_by) VALUES
+  (pg_temp.id('f1'), pg_temp.id('01'), 'news', 'probe-1', pg_temp.id('99'), pg_temp.id('99')),
+  (pg_temp.id('f3'), pg_temp.id('02'), 'news', 'probe-3', pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
+INSERT INTO engagement.profile_image (id, tenant_id, profile_kind, profile_id, image_attachment_id, created_by, updated_by) VALUES
+  (pg_temp.id('f1'), pg_temp.id('01'), 'doctor', pg_temp.id('f1'), pg_temp.id('f1'), pg_temp.id('99'), pg_temp.id('99')),
+  (pg_temp.id('f3'), pg_temp.id('02'), 'doctor', pg_temp.id('f3'), pg_temp.id('f3'), pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
 INSERT INTO engagement.queue_counters (id, tenant_id, centre_id, display_name, created_by, updated_by) VALUES
   (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('21'), 'probe-1', pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('f2'), pg_temp.id('01'), pg_temp.id('22'), 'probe-2', pg_temp.id('99'), pg_temp.id('99')),

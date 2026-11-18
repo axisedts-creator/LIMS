@@ -1209,6 +1209,10 @@ components:
         - lab.result_on_hold
         - lab.flag_ack_required
         - reporting.report_not_released
+        # LD-316 verification levels merged from main: verifyResult codes (T0C-VERLEVEL-1)
+        - lab.verifier_not_distinct
+        - lab.enterer_cannot_verify
+        - lab.pathologist_required
     SyncNumberMapping:
       type: object
       additionalProperties: false

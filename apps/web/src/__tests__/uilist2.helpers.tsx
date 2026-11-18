@@ -18,8 +18,13 @@ export const npr = (paisa: number) => ({ amount_paisa: paisa, currency: 'NPR' })
 const HEAD = 'thead th, [role="columnheader"]';
 /** Header cell texts of the first table, in order. */
 export const headerTexts = (root: ParentNode) => q(root.querySelector('table') ?? root, HEAD).map(txt);
-/** Body rows of the first table (rows without a header cell of their own column header row). */
-export const bodyRows = (root: ParentNode) => q(root.querySelector('table') ?? root, 'tbody tr, [role="row"]').filter((r) => !r.closest('thead') && !r.querySelector('[role="columnheader"]') && !r.classList.contains('lims-row-empty') && r.querySelector('td, [role="gridcell"], [role="rowheader"]'));
+/** Empty-state row: one cell spanning the columns, or holding the kit EmptyState/state markup (ruling T0D-UILIST-2: not a data row). */
+const isEmptyStateRow = (r: Element) => {
+  const cells = [...r.children];
+  return (cells.length === 1 && Number(cells[0]!.getAttribute('colspan') ?? 1) > 1) || !!r.querySelector('.lims-empty-state, .lims-state');
+};
+/** Body rows of the first table (data rows only: no header row, no empty-state row). */
+export const bodyRows = (root: ParentNode) => q(root.querySelector('table') ?? root, 'tbody tr, [role="row"]').filter((r) => !r.closest('thead') && !r.querySelector('[role="columnheader"]') && !r.classList.contains('lims-row-empty') && !isEmptyStateRow(r) && r.querySelector('td, [role="gridcell"], [role="rowheader"]'));
 
 /** Cells of the column whose header matches `header` (RegExp on the header text), taken from the data rows. */
 export function columnCells(root: ParentNode, header: RegExp): { head: Element; cells: Element[] } {

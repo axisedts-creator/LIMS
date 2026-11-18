@@ -16,3 +16,8 @@
 - Ran verify first: identity PLATFORM-DDL-1, T0B-ASYNC-1, definers T0B-08 all ok now (LD-365 migrations 20261118000000/000100 work). 0 psql aborts. 7 not ok left, all in engagement: T0B-13.C16_schema (1,2,520,642,698) and T-SEC1_table_probes (1,3).
 - Cause: STALE expectations. Merge of main brought T0C-CONTENT-1 migration 20261117130000_engagement__add_portal_content.sql (tables portal_content, profile_image): schema has 45 tables, tests want 43; the table, index, audit-trigger and FK counts omit them.
 - No implementation fix possible: code is right, tests are older than the migration. Tester must update those expectations (cite 20261117130000) and, if probe fixture needs rows, file a CR (db/tests/fixtures is harness-owned; the pending probe-rows/engagement.sql edit is the writer's reverted one, left untouched).
+
+## Round 5 (2026-11-18, LD-367)
+- Re-checked log (08:44): same 7 not ok, all engagement (T0B-13.C16_schema 1,2,520,642,698; T-SEC1_table_probes 1,3). Identity/definers all ok.
+- Cause: tests predate migration 20261117130000 (portal_content, profile_image). No implementation fault; no code change possible.
+- Wrote .orchestra/notes/T0B-GREEN-3-dispute.md: tester must update expectations; fixture rows need a CR.

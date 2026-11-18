@@ -93,6 +93,17 @@ describe('/lab/status-board (template 5 REPORT)', () => {
     expect(String(bff.getStatusBoardAction.mock.calls.at(-1)![0].board_status ?? '')).toBe('');
   });
 
+  it('review item 1: with a status filter on, a tile outside the filter shows "—" (the server sent only the filtered rows), never a false 0', async () => {
+    bff.getStatusBoardAction.mockResolvedValue(ok([row(2, { board_status: 'ready' })]));
+    const { container } = await board([row(1), row(2, { board_status: 'ready' })]);
+    await act(async () => { fireEvent.click(buttonOf(tileFor(container, 'Ready'))!); });
+    expect(bff.getStatusBoardAction.mock.calls.at(-1)![0]).toMatchObject({ board_status: 'ready' });
+    const byLabel = Object.fromEntries(tiles(container).map((x) => [tileLabel(x), norm(tileValue(x))]));
+    expect(byLabel.Ready.replace(/\D/g, '')).toBe('1');
+    for (const s of ['Waiting', 'Collected', 'In lab', 'Printed']) expect(byLabel[s], `${s} is outside the filter`).toBe('—');
+    for (const s of ['Waiting', 'Collected', 'In lab', 'Printed']) expect(buttonOf(tileFor(container, s))!.getAttribute('aria-label'), `${s} aria-label`).not.toMatch(/\b0\b/);
+  });
+
   it('the old status chips are gone: only the five tiles carry the status names as buttons', async () => {
     await board([row(1)]);
     for (const name of ['Waiting', 'Collected', 'In lab', 'Ready', 'Printed']) expect(screen.getAllByRole('button', { name: new RegExp(`^${name}\\b`) }), name).toHaveLength(1);

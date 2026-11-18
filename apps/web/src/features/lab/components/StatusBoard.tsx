@@ -102,7 +102,8 @@ function Board({ centres, initialRows, initialNextCursor, initialRange }: Status
   return (
     <div>
       <PageHeader title="Status board" helpKey="lab.status_board" />
-      <div className="lims-filter-bar" role="group" aria-label="Filters">
+      {/* T0D-UILIST-1 (LD-353 rule 2): the one filter row is a search landmark like the kit FilterBar */}
+      <div className="lims-filter-bar" role="search" aria-label="Filters">
         <label>From date <input type="date" className="lims-input" value={fromDay} onChange={(e) => changeDays(e.target.value, toDay)} aria-describedby={rangeErr ? 'board-range-err' : undefined} /></label>
         <label>To date <input type="date" className="lims-input" value={toDay} onChange={(e) => changeDays(fromDay, e.target.value)} aria-describedby={rangeErr ? 'board-range-err' : undefined} /></label>
         <label>Centre{' '}
@@ -121,7 +122,8 @@ function Board({ centres, initialRows, initialNextCursor, initialRange }: Status
       </div>
       {rangeErr ? <p id="board-range-err" role="alert" className="lims-error">{rangeErr}</p> : null}
       {error ? <p role="alert" className="lims-error">{error}</p> : null}
-      {/* T0D-EMPTYTBL-1 (LD-310): headers always drawn; the empty message is a body row. */}
+      {/* T0D-EMPTYTBL-1 (LD-310): headers always drawn; the empty message is a body row. T0D-UILIST-1 (LD-353 rule 5): the table scrolls in its own box. */}
+      <div className="lims-data-table"><div className="lims-table-scroll">
       <table className="lims-table" aria-label="Order status board">
           <thead>
             <tr>
@@ -146,6 +148,7 @@ function Board({ centres, initialRows, initialNextCursor, initialRange }: Status
           </tbody>
           {rows.length === 0 ? <PlaceholderRows colSpan={5} /> : null}
         </table>
+      </div></div>
       {next ? <Button size="sm" onPress={() => { void refresh({}, next); }}>Load more</Button> : null}
     </div>
   );

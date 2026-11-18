@@ -23,7 +23,7 @@ export interface Centre { id: string; name: string }
 
 const POLL_MS = 30_000; // 04-UI-UX SCR-01 auto-refresh [CONV]
 
-export function AgentsList({ agents, permissions, centres, workingCentreId, clockOffsetWarnSeconds = DEFAULT_CLOCK_OFFSET_WARN_SECONDS }: { agents: readonly AgentSummary[]; permissions: readonly string[]; centres: readonly Centre[]; workingCentreId?: string; clockOffsetWarnSeconds?: number }) {
+export function AgentsList({ agents, permissions, centres, workingCentreId, clockOffsetWarnSeconds = DEFAULT_CLOCK_OFFSET_WARN_SECONDS, loadError }: { agents: readonly AgentSummary[]; permissions: readonly string[]; centres: readonly Centre[]; workingCentreId?: string; clockOffsetWarnSeconds?: number; loadError?: { requestId?: string } }) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -86,10 +86,9 @@ export function AgentsList({ agents, permissions, centres, workingCentreId, cloc
         rows={agents}
         getRowId={(a) => a.id}
         sort={{ value: q.sort, onChange: (v) => navigate({ sort: v.includes('last_heartbeat_at') ? '-last_heartbeat_at' : 'agent_code' }) }}
-        emptyState={{
-          title: 'No agents yet. Create one for each lab PC that connects analysers.',
-          ...(canManage ? { action: { label: 'New agent', onPress: () => setCreating(true) } } : {}),
-        }}
+        // LD-353 template 1 (T0D-UILIST-1): the primary action lives in the header only, not again in the EmptyState
+        emptyState={{ title: 'No agents yet. Create one for each lab PC that connects analysers.' }}
+        {...(loadError ? { error: { title: 'The agents could not be loaded.', ...loadError, onRetry: () => router.refresh() } } : {})}
       />
       {canManage && creating ? <NewAgentDialog centres={centres} workingCentreId={workingCentreId} onClose={() => setCreating(false)} /> : null}
     </section>

@@ -3,6 +3,7 @@
 // Rate keys: P2 `o:<challenge_id>` (otp_verify), P4 `l:<link_id>` (report_download); P1 / P5 budgets are counted in the service (see portal.service.ts).
 import { LimsError } from '../../../core/errors.js';
 import { contentDisposition } from '../../../core/storage/download.js';
+import { streamStored, type RequestHeaders } from '../../../core/storage/stream.js';
 import type { Handler, HandlerContext, HandlerRequest } from '../../../core/module.js';
 import { createPortalService, type PortalCtx } from '../service/portal.service.js';
 
@@ -23,12 +24,11 @@ export const portalHandlers: Readonly<Record<string, Handler>> = Object.freeze({
   // REQ-SEC-083 / P-2: attachment + nosniff + no-store; the filename is generated, never taken from stored data.
   downloadPortalReportPdf: async (req: HandlerRequest, hctx: HandlerContext) => {
     const out = await svc.download(ctxOf(hctx), { reportVersionId: obj(req.params)['report_version_id'] });
-    return {
-      status: 200, body: out.bytes, headers: {
-        'content-type': 'application/pdf', 'content-disposition': contentDisposition('attachment', out.filename),
-        'x-content-type-options': 'nosniff', 'cache-control': 'no-store', 'content-length': String(out.bytes.length),
-      },
-    };
+    // T0B-FILESTREAM-1 (LD-312): streamed with Content-Length, ETag, Range and 304; a patient document stays no-store.
+    return streamStored(out.storage, {
+      bucket: out.bucket, objectPath: out.objectPath, requestHeaders: req.headers as RequestHeaders, onServe: out.logAccess,
+      headers: { 'content-type': 'application/pdf', 'content-disposition': contentDisposition('attachment', out.filename), 'x-content-type-options': 'nosniff', 'cache-control': 'no-store' },
+    });
   },
   requestPortalLinkReissue: async (_req: HandlerRequest, hctx: HandlerContext) => svc.requestReissue(ctxOf(hctx)),
   endPortalSession: async (_req: HandlerRequest, hctx: HandlerContext) => svc.endSession(ctxOf(hctx)),

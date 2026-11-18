@@ -1,0 +1,7 @@
+# T0B-CONTENT-1 impl (writer; LD-313, LD-325)
+- Files: engagement/service/safeMarkdown.ts (validate + render, hand written, no new dependency), service/content.service.ts, repository/content.repo.ts, handlers/content.handlers.ts, handlers/index.ts (+contentHandlers).
+- [CONV] listMyPortalContent answers `Cache-Control: public, max-age=60` + `Vary: Authorization` (done_when 3 beats contract CacheControlNoStore; lead to fix engagement.yaml). Staff actor on it = 403. Patient body is raw Markdown re-checked by validateMarkdown on read (dirty stored body is dropped); renderMarkdown is the shared HTML renderer.
+- [CONV] image ownership = SELECT on identity.branding_assets (same tenant, active, not quarantined, not signature, png/jpeg); the fake IdentityPort has no readBrandingAsset. Foreign = unknown = 400 /image_attachment_id.
+- [CONV] reorder locks the kind FOR UPDATE in id order (no deadlock), must list every item incl. inactive; profile image = INSERT .. ON CONFLICT reuse row; clear = is_active false, 404 if none active.
+- BLOCKER: lane/C0-0C NOT merged (git merge needs approval in this session). Until merged, boot check fails here (9 handlers with no spec op). AFTER MERGE: delete the 9 content ids from `pendingOperations` in engagement/index.ts (0C adds them; static.test requires them gone).
+- Ran: markdown.test.ts 16/16 pass; static.test.ts 13/23 (10 fail only "op in spec", needs merge); tsc clean on new files. NOT run: admin/public/images PG tests, boot tests (need merge + docker verify).

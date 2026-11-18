@@ -4,6 +4,7 @@
 // in an error. Logical buckets (03-IC §13.4) are key prefixes `<bucket>/<key>` inside the ONE physical STORAGE_BUCKET [CONV].
 // Not wired to any route here: direct upload/download routes wait for the P-2 spec change (see .orchestra/notes/T0B-STORAGE-1-impl.md).
 import { createHash, createHmac } from 'node:crypto';
+import { Readable } from 'node:stream';
 import type { RawStorage } from './index.js';
 
 export type StorageConfig =
@@ -109,17 +110,22 @@ export function createS3RawStorage(cfg: S3Config, deps: { now?: () => number; fe
   };
   /** Server side calls: short lived URL; raw errors (they may carry the signed URL) are replaced by op + status only. */
   const SERVER_TTL = 60;
-  async function send(op: string, method: string, name: string, o: { signed?: Record<string, string>; body?: Uint8Array; ok?: number[] } = {}): Promise<Response> {
+  async function send(op: string, method: string, name: string, o: { signed?: Record<string, string>; body?: Uint8Array | ReadableStream<Uint8Array>; ok?: number[]; unsigned?: Record<string, string> } = {}): Promise<Response> {
     const url = sign(method, name, SERVER_TTL, o.signed);
     // content-length is bound in the signature; fetch sets it itself from the body (it refuses a hand set one on some runtimes).
-    const headers = Object.fromEntries(Object.entries(o.signed ?? {}).filter(([k]) => k.toLowerCase() !== 'content-length'));
+    const headers = { ...Object.fromEntries(Object.entries(o.signed ?? {}).filter(([k]) => k.toLowerCase() !== 'content-length')), ...o.unsigned };
+    const streamed = o.body !== undefined && !(o.body instanceof Uint8Array);
     let r: Response;
-    try { r = await doFetch(url, { method, headers, ...(o.body ? { body: o.body as BodyInit } : {}) }); } catch { throw new Error(`storage: ${op} failed (network)`); }
+    try { r = await doFetch(url, { method, headers, ...(o.body ? { body: o.body as BodyInit } : {}), ...(streamed ? { duplex: 'half' } : {}) } as RequestInit); } catch { throw new Error(`storage: ${op} failed (network)`); }
     if (r.ok || (o.ok ?? []).includes(r.status)) return r;
     await r.arrayBuffer().catch(() => undefined);
     throw new Error(`storage: ${op} failed (${r.status})`);
   }
   const drain = async (r: Response): Promise<void> => { await r.arrayBuffer().catch(() => undefined); };
+  const validators = (r: Response): { etag?: string; lastModified?: Date } => {
+    const etag = r.headers.get('etag'); const lm = Date.parse(r.headers.get('last-modified') ?? '');
+    return { ...(etag ? { etag } : {}), ...(Number.isFinite(lm) ? { lastModified: new Date(lm) } : {}) };
+  };
 
   return {
     async put(bucket, key, bytes, o) {
@@ -161,6 +167,24 @@ export function createS3RawStorage(cfg: S3Config, deps: { now?: () => number; fe
       if (r.status === 404) return undefined;
       const sha = r.headers.get('x-amz-meta-sha256');
       return { byteSize: Number(r.headers.get('content-length') ?? '0'), contentType: r.headers.get('content-type') ?? 'application/octet-stream', ...(sha ? { sha256: sha } : {}) };
+    },
+    // T0B-FILESTREAM-1 (LD-312): the body is handed back unread; Range is a plain (unsigned) header, allowed with query signing.
+    async getStream(bucket, key, o = {}) {
+      const name = objectPath(bucket, key);
+      const r = await send('get', 'GET', name, o.range ? { unsigned: { range: `bytes=${o.range.start}-${o.range.end}` } } : {});
+      if (o.range && r.status !== 206) { await drain(r); throw new Error('storage: get failed (range ignored)'); }
+      const total = o.range ? /\/(\d+)$/.exec(r.headers.get('content-range') ?? '')?.[1] : r.headers.get('content-length');
+      if (total == null || !/^\d+$/.test(total)) { await drain(r); throw new Error('storage: get failed (no size)'); }
+      return { body: r.body ?? new ReadableStream<Uint8Array>({ start: (c) => c.close() }), size: Number(total), ...validators(r) };
+    },
+    // ponytail: content-length is bound only when the caller knows byteSize; S3 refuses a chunked PUT without it (411), so callers that stream an
+    // unknown size need multipart upload. Today no flow does (accept() buffers what it scans, see T0B-FILESTREAM-1-impl.md).
+    async putStream(bucket, key, body, o) {
+      const signed: Record<string, string> = { 'content-type': o.contentType };
+      if (o.byteSize !== undefined) signed['content-length'] = String(o.byteSize);
+      if (o.ifAbsent) signed['if-none-match'] = '*';
+      const web = Readable.toWeb(Readable.from(body, { objectMode: false })) as unknown as ReadableStream<Uint8Array>;
+      await drain(await send('put', 'PUT', objectPath(bucket, key), { signed, body: web }));
     },
   };
 }

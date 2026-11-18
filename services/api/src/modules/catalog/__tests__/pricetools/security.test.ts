@@ -72,11 +72,12 @@ describe('no personal data in logs, hostile names and text', () => {
 describe('many users at once', () => {
   it('8 simultaneous dry runs of different files on one list: 8 distinct batches, no price written, no draft created', { timeout: T }, async () => {
     const { list } = await mkList();
+    const versionsBefore = await ownerRows('catalog.price_list_versions', 'price_list_id = $1', [list.id]); // createPriceList makes an empty draft v1 (ruling 1)
     const res = await Promise.all(Array.from({ length: 8 }, (_, i) => dryRun(list.id, priceBook([{ code: tests[i % 6]!.code, price: 10 + i }]))));
     expect(res.every((r) => r.status === 201)).toBe(true);
     expect(new Set(res.map((r) => r.body.batch.id)).size).toBe(8);
     expect((await allBatches(list.id)).length).toBe(8);
-    expect(await ownerRows('catalog.price_list_versions', 'price_list_id = $1', [list.id])).toEqual([]);
+    expect(await ownerRows('catalog.price_list_versions', 'price_list_id = $1', [list.id])).toEqual(versionsBefore);
   });
   it('tenant B uploading while tenant A uploads: each tenant\'s batches stay in its own tenant', { timeout: T }, async () => {
     const a = await mkList(TENANT_A); const b = await mkList(TENANT_B); const bTests = await mkTests(await world(TENANT_B), 1);

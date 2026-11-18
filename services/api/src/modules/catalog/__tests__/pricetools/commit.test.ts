@@ -80,10 +80,11 @@ describe('commit: DRAFT only, exact paisa, one transaction', () => {
   it('the file is re-hashed: a batch whose stored hash no longer matches its file is refused and creates nothing', { timeout: T }, async () => {
     const { list } = await mkList();
     const d = await dry(list.id, priceBook([{ code: tests[0]!.code, price: 5 }]));
+    const versionsBefore = await versionRows(list.id); // createPriceList makes an empty draft v1 (ruling 1)
     await superTx(async (tx) => { await tx.query(`UPDATE catalog.price_list_import_batch SET file_sha256 = $2 WHERE id = $1`, [d.batch.id, 'f'.repeat(64)]); }, TENANT_A);
     const e = await pfails('commitPriceListImport', req({ params: { batch_id: d.batch.id }, headers: { 'idempotency-key': uid() }, body: { change_reason: 'x' } }));
     expect(e.statusCode, `${e.code}`).toBeGreaterThanOrEqual(400); expect(e.statusCode).toBeLessThan(500);
-    expect(await versionRows(list.id)).toEqual([]);
+    expect(await versionRows(list.id)).toEqual(versionsBefore);
   });
 });
 

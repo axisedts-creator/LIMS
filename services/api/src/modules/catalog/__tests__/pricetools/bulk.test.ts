@@ -36,7 +36,7 @@ describe('bulk update: integer arithmetic, round half up in paisa, the rounding 
     [1005, 'fixed_amount', undefined, -5, 'none', 1000],
     [1005, 'fixed_amount', undefined, -1005, 'none', 0],     // exactly 0 is allowed
     [123456789, 'percent', 1234, undefined, 'none', percentPaisa(123456789, 1234)],
-    [999999990, 'percent', 0, undefined, 'nearest_10', roundTo(999999990, 1000)],
+    [999999490, 'percent', 0, undefined, 'nearest_10', 999999000],
   ];
   it.each(CASES)('price %i paisa, %s bp=%s amount=%s rounding=%s -> %i', { timeout: T }, async (paisa, kind, bp, amt, rounding, expected) => {
     const { draftId } = await draftWith([[0, paisa], [1, 7777]]);

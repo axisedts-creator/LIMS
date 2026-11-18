@@ -2,10 +2,17 @@
 // (409 catalog.code_duplicate, nothing changed, whole call atomic, race safe), periods may touch or have gaps, and the list a party resolves on a date (quotePrices `at`) is deterministic.
 // Credit parties stand for all three party kinds here (the DB trigger covers referrer and centre: db/tests/catalog/T0C-PRICETOOLS-1_price_list_tools.test.sql).
 import { beforeAll, describe, expect, it } from 'vitest';
-import { NONE, READ, T, TENANT_A, TENANT_B, detail, expectCode, mkList, mkParty, mkTests, ownerRows, pcall, pfails, publishedList, schemaErrors, uid, world, req, type TestRef } from './helpers.js';
+import { NONE, READ, SYS_ACTOR, T, TENANT_A, TENANT_B, detail, expectCode, mkList, mkParty, mkTests, ownerRows, pcall, pfails, publishedList, schemaErrors, superTx, uid, world, req, type TestRef } from './helpers.js';
 
 let tests: TestRef[];
-beforeAll(async () => { tests = await mkTests(await world(TENANT_A), 3); }, T);
+beforeAll(async () => {
+  tests = await mkTests(await world(TENANT_A), 3);
+  // Ruling 4: quotes fail closed with catalog.tax_config_missing without a tenant_default tax rule (contracts/errors.yaml:72): seed one synthetic rule for TENANT_A (only when none exists).
+  await superTx(async (tx) => {
+    const has = (await tx.query(`SELECT 1 FROM catalog.tax_rules WHERE tenant_id = $1 AND scope = 'tenant_default' LIMIT 1`, [TENANT_A])).rows.length;
+    if (!has) await tx.query(`INSERT INTO catalog.tax_rules (id, tenant_id, scope, vat_treatment, effective_from, created_by, updated_by) VALUES ($1, $2, 'tenant_default', 'exempt', '2000-01-01T00:00:00Z', $3, $3)`, [uid(), TENANT_A, SYS_ACTOR]);
+  }, TENANT_A);
+}, T);
 
 const BASE = Date.now();                                    // one fixed origin: day(20) is the SAME instant everywhere, so "touching" really touches
 const day = (n: number) => new Date(BASE + n * 86_400_000).toISOString();
@@ -60,7 +67,7 @@ describe('dated assignments', () => {
     const p = await mkParty(); const l1 = await mkList(TENANT_A, { noParty: true }); const l2 = await mkList(TENANT_A, { noParty: true });
     await replace(l1.list.id, [p.id], { effective_from: day(10) });
     expectCode(await replaceFails(l2.list.id, [p.id], { effective_from: day(500), effective_to: day(501) }), 'catalog.code_duplicate', 409);
-    expect((await replace(l1.list.id, [p.id], { effective_from: day(10), effective_to: day(15) }), 're-setting its own period').status).toBe(200);
+    expect((await replace(l1.list.id, [p.id], { effective_from: day(10), effective_to: day(15) })).status, 're-setting its own period').toBe(200);
     expect((await replace(l2.list.id, [p.id], { effective_from: day(15) })).status, 'free after the shortened period').toBe(200);
   });
   it('an empty or inverted period (effective_to <= effective_from) is refused (400 / 422), never a 500, nothing changes', { timeout: T }, async () => {

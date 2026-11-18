@@ -3,7 +3,7 @@
 import { join } from 'node:path';
 import { REPO_ROOT, loadSpec } from '../../../../core/module.js';
 import { TENANT_A, TENANT_B, superTx, tag, uid, world, req, type World } from '../testmgmt/helpers.js';
-import { XLSX_CT, dry, mkTests, priceBook, publishedList, type TestRef } from '../pricetools/helpers.js';
+import { XLSX_CT, draftOf, dry, mkList, mkTests, priceBook, publishedList, type TestRef } from '../pricetools/helpers.js';
 
 export { TENANT_A, TENANT_B, superTx, tag, uid };
 export const T = 120_000;
@@ -14,14 +14,17 @@ export const NEW_OPS = ['downloadPriceListTemplate', 'dryRunPriceListImport', 'c
 const spec: any = loadSpec(join(REPO_ROOT, 'contracts/openapi/catalog.yaml'));
 export const opOf = (id: string): any => { for (const p of Object.values<any>(spec.paths)) for (const m of Object.values<any>(p)) if (m?.operationId === id) return m; };
 
-export interface Objs { tenant: string; w: World; tests: TestRef[]; list: any; versionId: string; batch: any; badBatch: any }
+export interface Objs { tenant: string; w: World; tests: TestRef[]; list: any; versionId: string; draftVersionId: string; targetList: any; batch: any; badBatch: any }
 /** a list with a published version, one clean dry run batch and one batch that holds an error row, of `tenant`, built through the real handlers */
 export async function objs(tenant: string): Promise<Objs> {
   const w = await world(tenant); const tests = await mkTests(w, 2);
   const pub = await publishedList([{ id: tests[0]!.id, paisa: 1000 }], { tenant });
   const batch = (await dry(pub.list.id, priceBook([{ code: tests[0]!.code, price: 12.5 }]), { tenant })).batch;
   const badBatch = (await dry(pub.list.id, priceBook([{ code: 'NOSUCHPROBE', price: 1 }]), { tenant })).batch;
-  return { tenant, w, tests, list: pub.list, versionId: pub.versionId, batch, badBatch };
+  // ruling 5: bulk needs an open DRAFT (a published version is 409 catalog.version_in_use); copy needs a fresh target list (no common.version_conflict)
+  const draftVersionId = (await draftOf((await mkList(tenant, { noParty: true })).list.id, tenant)).id as string;
+  const targetList = (await mkList(tenant, { noParty: true })).list;
+  return { tenant, w, tests, list: pub.list, versionId: pub.versionId, draftVersionId, targetList, batch, badBatch };
 }
 /** the request each new operation receives when it names `S`'s objects */
 export function requestFor(id: string, S: Objs): ReturnType<typeof req> {
@@ -29,8 +32,8 @@ export function requestFor(id: string, S: Objs): ReturnType<typeof req> {
     case 'downloadPriceListTemplate': return req({ query: { price_list_id: S.list.id } });
     case 'dryRunPriceListImport': return req({ params: { price_list_id: S.list.id }, headers: { 'idempotency-key': uid() }, body: { file: { filename: 'probe.xlsx', mimeType: XLSX_CT, bytes: priceBook([{ code: S.tests[0]!.code, price: 1 }]) } } });
     case 'commitPriceListImport': return req({ params: { batch_id: S.batch.id }, headers: { 'idempotency-key': uid() }, body: { change_reason: 'probe' } });
-    case 'bulkUpdatePriceListDraft': return req({ params: { price_list_version_id: S.versionId }, headers: { 'idempotency-key': uid() }, body: { change_kind: 'percent', percent_bp: 10, rounding: 'none', scope: 'all' } });
-    case 'copyPriceList': return req({ params: { price_list_id: S.list.id }, headers: { 'idempotency-key': uid() }, body: { source_price_list_version_id: S.versionId, mode: 'replace' } });
+    case 'bulkUpdatePriceListDraft': return req({ params: { price_list_version_id: S.draftVersionId }, headers: { 'idempotency-key': uid() }, body: { change_kind: 'percent', percent_bp: 10, rounding: 'none', scope: 'all' } });
+    case 'copyPriceList': return req({ params: { price_list_id: S.targetList.id }, headers: { 'idempotency-key': uid() }, body: { source_price_list_version_id: S.versionId, mode: 'replace' } });
     case 'comparePriceLists': return req({ query: { version_a_id: S.versionId, version_b_id: S.versionId } });
     case 'listPriceListImportBatches': return req({ query: { price_list_id: S.list.id } });
     default: throw new Error(`no probe request for ${id}`);

@@ -181,12 +181,13 @@ describe('the file is checked by magic bytes and size BEFORE parsing; active con
 describe('the list in the path', () => {
   it('an unknown list and another tenant\'s list both answer 404 common.not_found, the same answer, and record nothing', { timeout: T }, async () => {
     const mine = await mkList(TENANT_A);
+    const versionsBefore = await versionRows(mine.list.id); // createPriceList makes an empty draft v1 (ruling 1): compare against it
     const e1 = await pfails('dryRunPriceListImport', req({ params: { price_list_id: mine.list.id }, headers: { 'idempotency-key': uid() }, body: { file: { filename: 'p.xlsx', mimeType: 'x', bytes: good() } } }), { tenant: TENANT_B });
     const e2 = await pfails('dryRunPriceListImport', req({ params: { price_list_id: uid() }, headers: { 'idempotency-key': uid() }, body: { file: { filename: 'p.xlsx', mimeType: 'x', bytes: good() } } }), { tenant: TENANT_B });
     expectCode(e1, 'common.not_found', 404); expectCode(e2, 'common.not_found', 404);
     expect([e1.code, e1.statusCode, e1.detail]).toEqual([e2.code, e2.statusCode, e2.detail]);
     expect(await allBatches(mine.list.id)).toEqual([]);
-    expect((await versionRows(mine.list.id)).length).toBe(0);
+    expect(await versionRows(mine.list.id)).toEqual(versionsBefore);
     expect(await itemRows(uid())).toEqual([]);
   });
 });

@@ -102,10 +102,30 @@ export const LD310_ALLOW = {
   ],
   // LD-393 (T0D-OFFLINE-3): covers the T0B-ACCT-1/T0B-FINCTRL-1 accounting UI i18n and column-label keys landed on main; not a general escape hatch.
   billing_accounts_strings: /^billing\.(account_entry|cash_transfer|expense)\.|^billing\.accounts\.(col|entries|error|field|filter|ledger|masters|pocket|reason|receipt|summary)\./,
+  // LD-391/LD-393 follow-up, T0D-OFFLINE-3 arbiter: accounting logic files ADDED by T0B-ACCT-1/T0B-FINCTRL-1; additions only (baseline.logic keys must all still exist).
+  logic_files_added: [
+    'src/features/billing/server/accounts.actions.ts',
+    'src/features/billing/server/accounts.server.ts',
+    'src/features/billing/server/expenses.actions.ts',
+    'src/features/billing/server/expenses.server.ts',
+  ],
+  // LD-391/LD-393 follow-up, T0D-OFFLINE-3 arbiter: the one route string added by the already-landed work.
+  route_strings_added: ['/v1/catalog/tests'],
   server_imports: [
     '@/features/catalog/server/catalogActions',
     '@/features/billing/server/accounts.server',
     '@/features/billing/server/expenses.server',
+    // LD-391/LD-393 follow-up, T0D-OFFLINE-3 arbiter
+    'server/accounts.actions',
+    'server/accounts.server',
+    'server/expenses.actions',
+    'server/expenses.server',
+  ],
+  // LD-391/LD-393 follow-up, T0D-OFFLINE-3 arbiter: symbols imported from the accounting server files; excluded before the trf_symbol check.
+  accounts_symbols: [
+    'PARTY_KINDS', 'PartyKind', 'TRANSFER_TABS', 'TransferTab', 'UUID_RE', 'cleanFilters', 'dateRange', 'expenseFilters',
+    'getAccountStatement', 'getDailyCollectionSummary', 'listAccountGroups', 'listAccountLedgerEntries', 'listAccountParticulars',
+    'listAccountParties', 'listAccountSummaryRows', 'listCashTransfers', 'listExpenseTypes', 'listExpenses', 'listMembers',
   ],
   server_symbols: ['createCreditPartyAction', 'createDoctorAction'],
   trf_symbol: /Trf/, // at most ONE added symbol beyond server_symbols, and it must match this

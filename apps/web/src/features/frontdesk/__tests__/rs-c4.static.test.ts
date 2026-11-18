@@ -45,7 +45,10 @@ describe('RS-C4 behaviour unchanged (LD-140: no change to API calls, fields, val
   it('api-client, validation, shortcut-table, nav-manifest and url-filter files: same bytes as before (CRLF-insensitive)', () => {
     const now: Record<string, string> = {};
     for (const f of logicFiles()) now[rel(f)] = sha(read(f));
-    expect(Object.keys(now).sort()).toEqual(Object.keys(baseline.logic).sort());
+    // LD-391/LD-393 follow-up, T0D-OFFLINE-3 arbiter: forgive only the named added accounting logic files; a real removal still fails below
+    const addedOk = LD310_ALLOW.logic_files_added as readonly string[];
+    expect(Object.keys(now).filter((k) => !(addedOk.includes(k) && !(k in baseline.logic))).sort()).toEqual(Object.keys(baseline.logic).sort());
+    expect(Object.keys(baseline.logic).filter((k) => !(k in now))).toEqual([]);
     // LD-310 / T0D-REGSCREEN-1: only the four named frontdesk logic files may differ; every other file stays byte-identical
     const changed = Object.keys(baseline.logic).filter((k) => now[k] !== baseline.logic[k] && !(LD310_ALLOW.logic_files as readonly string[]).includes(k));
     expect(changed).toEqual([]);
@@ -66,10 +69,12 @@ describe('RS-C4 behaviour unchanged (LD-140: no change to API calls, fields, val
     expect(removed(was.field_names, now.field_names)).toEqual([]);
     expect(added(was.permissions, now.permissions).filter((p) => !(LD310_ALLOW.permissions as readonly string[]).includes(p) && !LD310_ALLOW.billing_accounts_strings.test(p))).toEqual([]);
     expect(added(was.server_imports, now.server_imports).filter((s) => !(LD310_ALLOW.server_imports as readonly string[]).includes(s))).toEqual([]);
-    const extraSymbols = added(was.server_symbols, now.server_symbols).filter((s) => !(LD310_ALLOW.server_symbols as readonly string[]).includes(s));
+    // LD-391/LD-393 follow-up, T0D-OFFLINE-3 arbiter: accounting server symbols are excluded before the trf_symbol and length checks
+    const extraSymbols = added(was.server_symbols, now.server_symbols).filter((s) => !(LD310_ALLOW.server_symbols as readonly string[]).includes(s) && !(LD310_ALLOW.accounts_symbols as readonly string[]).includes(s));
     expect(extraSymbols.filter((s) => !LD310_ALLOW.trf_symbol.test(s))).toEqual([]); // anything that is not the TRF action is forbidden
     expect(extraSymbols.length).toBeLessThanOrEqual(1); // exactly one TRF action
-    expect(added(was.routes, now.routes)).toEqual([]); // no route added: POST credit-parties / doctors / trf-attachments already exist
+    // LD-391/LD-393 follow-up, T0D-OFFLINE-3 arbiter: only the named route string is forgiven
+    expect(added(was.routes, now.routes).filter((r) => !(LD310_ALLOW.route_strings_added as readonly string[]).includes(r))).toEqual([]); // no route added: POST credit-parties / doctors / trf-attachments already exist
   });
 
   it('allow-list guard is not vacuous: an unlisted addition would be rejected', () => {
@@ -79,6 +84,11 @@ describe('RS-C4 behaviour unchanged (LD-140: no change to API calls, fields, val
     expect(LD310_ALLOW.permissions).not.toContain('frontdesk.order.cancel');
     expect(LD310_ALLOW.trf_symbol.test('deleteEverythingAction')).toBe(false);
     expect(LD310_ALLOW.billing_accounts_strings.test('frontdesk.order.cancel')).toBe(false);
+    // LD-391/LD-393 follow-up, T0D-OFFLINE-3 arbiter
+    expect(LD310_ALLOW.logic_files_added).toHaveLength(4);
+    expect(LD310_ALLOW.route_strings_added).toHaveLength(1);
+    expect(LD310_ALLOW.accounts_symbols).toHaveLength(19);
+    expect(LD310_ALLOW.accounts_symbols).not.toContain('deleteEverythingAction');
   });
 
   it('route tree: the same page/route/layout/loading/error files exist (no route added, removed or renamed)', () => {

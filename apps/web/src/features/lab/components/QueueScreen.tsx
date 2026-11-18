@@ -208,7 +208,7 @@ export function QueueScreen({ mode, items, permissions, onStepUp, currentUserId 
                 const need = mode === 'verify' ? neededFlags(r) : [];
                 const dim = mine(r);
                 return (
-                  <tr key={r.id} onKeyDown={canAct ? (e) => onRowKey(e, r.id) : undefined} {...(dim ? { 'aria-disabled': true, className: 'lims-row-dim' } : {})}>
+                  <tr key={r.id} onKeyDown={canAct ? (e) => onRowKey(e, r.id) : undefined} {...(dim ? { 'aria-disabled': true, className: 'lims-row-dim', style: { opacity: 0.55 } } : {})}>
                     <td>{canAct ? <Checkbox label={`Select ${i.registration_no}`} isSelected={!dim && sel.has(r.id)} isDisabled={dim} onChange={(on) => toggle(r.id, on)} /> : null}</td>
                     <td>{i.priority}</td>
                     <td>{i.registration_no}</td>

@@ -5,7 +5,7 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { cleanup, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { http, HttpResponse } from 'msw';
+import { http, HttpResponse, type JsonBodyType } from 'msw';
 import { setupServer } from 'msw/node';
 import { ORIGIN, LINE, MANIFEST, ORDER, PATIENT, PERM, RECEIVER_PERMS, U, line, manifest, patientHit } from './t16.fixtures';
 import { calls, idemKey, ifMatch, noAxeViolations, of, pageModule, problem, rec, renderPage, wrap } from './t16.harness';
@@ -27,7 +27,7 @@ vi.mock('@/core/session/server', () => ({
 
 let current: unknown = manifest();
 const api = setupServer(
-  http.get(`${ORIGIN}/v1/partners/admin/manifests/:id`, async ({ request, params }) => { await rec(request); return params['id'] === MANIFEST ? HttpResponse.json(current) : problem(404, 'common.not_found'); }),
+  http.get(`${ORIGIN}/v1/partners/admin/manifests/:id`, async ({ request, params }) => { await rec(request); return params['id'] === MANIFEST ? HttpResponse.json(current as JsonBodyType) : problem(404, 'common.not_found'); }),
   http.post(`${ORIGIN}/v1/partners/admin/manifests/:id/receive`, async ({ request }) => { await rec(request); return HttpResponse.json(manifest({ state: 'partially_received', version: 4 })); }),
   http.post(`${ORIGIN}/v1/partners/admin/manifest-lines/:id/retry`, async ({ request }) => { await rec(request); return HttpResponse.json(line(LINE.A, 1, { state: 'converting' }), { status: 202 }); }),
   http.post(`${ORIGIN}/v1/partners/admin/manifest-lines/:id/not-received`, async ({ request }) => { await rec(request); return HttpResponse.json(line(LINE.A, 1, { state: 'not_received' })); }),

@@ -12,3 +12,7 @@ Fix: none; code and tests unchanged. Lead: run offline1 config alone/serially, o
 Cause: same single failure (106 ms in verify; 62 ms when engine file runs alone) in wall-clock "main thread stays free" test; passes in isolation (-t "stays free"). Not an implementation defect.
 Evidence: OFFLINE-3 diff in engine.ts/outbox.ts = 1 WIRE_KEYS entry + 1 optional field + `input.op_id ?? nextId()`; no added CPU work. Other 81 offline1 tests pass.
 Fix: none; code and tests unchanged. Needs lead: run offline1 config serially/alone in verify.cmd, or tester widens the 50 ms cap. Not mine to edit.
+
+## Round 4 (LD-391)
+Cause: verify (21:15) fails in rs-c4.static.test.ts (guard vs rs-c4.baseline.json): drift from already-merged billing accounting UI (accounts/expenses routes, ~160 billing.* permission codes, accounts/expenses server+actions logic files, server_imports, /v1/catalog/tests literal). OFFLINE-3 touches no route or permission file. Not an implementation defect.
+Fix: none; LD-391 orders no writer/debugger code change. Tester allow-list covers only 8 routes + 7 codes and under-counts the drift (tester-ld391.md). Needs a new lead ruling naming the rest. Do NOT regenerate rs-c4.baseline.json.

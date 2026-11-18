@@ -116,6 +116,28 @@ describe('PIN failures wipe the store', () => {
     expect(await store.unlock(PIN)).toMatchObject({ ok: false, reason: 'wiped' });
     expect((await store.status()).state).toBe('wiped');
   });
+
+  it('a 10th attempt interrupted before its wipe (persisted counter already 10) cannot be used to keep guessing: the next unlock, even with the right PIN, wipes', async () => {
+    const { store, dbName, reopen } = await unlockedStore();
+    await store.put('refdata', 'patient:1', { name: SECRET });
+    store.lock();
+    for (let i = 0; i < 9; i++) await store.unlock('wrong-' + i);
+    // simulate the page closing after the counter was charged to 10 but before the wipe ran
+    const db: IDBDatabase = await new Promise((res, rej) => { const r = indexedDB.open(dbName); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
+    await new Promise<void>((res, rej) => {
+      const t = db.transaction('state', 'readwrite');
+      const os = t.objectStore('state');
+      const g = os.get('state');
+      g.onsuccess = () => { os.put({ ...g.result, failed: 10 }); };
+      t.oncomplete = () => res();
+      t.onerror = () => rej(t.error);
+    });
+    db.close();
+    const again = await reopen();
+    expect(await again.unlock(PIN)).toMatchObject({ ok: false, reason: 'wiped' });
+    expect((await again.status()).state).toBe('wiped');
+    expect(await rawDump(dbName)).not.toContain('Sita');
+  });
 });
 
 describe('retention window (default 14 days since the last online sign in)', () => {

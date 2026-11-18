@@ -118,29 +118,26 @@ describe('order and isolation of operations (done_when 2)', () => {
     expect(Object.fromEntries(l.map((x) => [x.op_id, [x.status, x.error_code]]))).toMatchObject({
       [locked.op_id]: ['rejected', 'lab.result_locked'], [boom.op_id]: ['rejected', 'common.internal'], [ok1.op_id]: ['accepted', null] });
   }, T);
-  // T0B-SYNC-3 (tester revision, as asked in T0B-SYNC-2-tests.md): the default registry now holds the four adapters of SYNC-3 (registration.create_order, billing.record_receipt,
-  // collection.mark_collected, accession.receive: tested in ./adapters); the four types of T0B-SYNC-4 keep answering sync.op_type_not_available. Nothing is loosened for them.
-  it('an operation type without an adapter is rejected per operation with sync.op_type_not_available (never accepted, never a server error)', async () => {
+  // T0B-SYNC-4 (tester revision): the default registry now holds ALL eight catalogue types (SYNC-3: registration.create_order, billing.record_receipt, collection.mark_collected,
+  // accession.receive; SYNC-4: result.enter, result.verify, report.print_marker, daily_cash.close; each tested in ./adapters). The catalogue is closed (an unknown op_type is a 400), so
+  // no type is left without an adapter and the default registry can no longer produce sync.op_type_not_available. The assertions that four types answered it are replaced by their
+  // opposite (a default adapter exists for every type); the ledger and per operation properties are kept.
+  it('every one of the eight catalogue types has a default adapter: never sync.op_type_not_available (a payload without a domain shape is refused for another reason, per operation, batch 200)', async () => {
     const dev = await newDevice(A1);
-    const ops = [op('result.enter'), op('result.verify', { base_version: 1, entity_id: uid() }), op('report.print_marker', { entity_id: uid() }), op('daily_cash.close', { base_version: 1, entity_id: uid() })];
-    const o = await devicePush(syncPart2Handlers, A1, dev, ops);
-    expect(o.reply!.status).toBe(200);
-    for (const r of results(o)) expect(r, r.op_id).toMatchObject({ status: 'rejected', error_code: 'sync.op_type_not_available' });
-    const l = await ledger(ops.map((x) => x.op_id));
-    expect(l.map((x) => [x.status, x.error_code])).toEqual(ops.map(() => ['rejected', 'sync.op_type_not_available']));
-  }, T);
-  it('the four types of T0B-SYNC-3 have a default adapter: never sync.op_type_not_available (a payload without a domain shape is refused for another reason)', async () => {
-    const dev = await newDevice(A1);
-    const ops = [op('registration.create_order'), op('billing.record_receipt', { entity_id: uid() }), op('collection.mark_collected', { base_version: 1, entity_id: uid() }), op('accession.receive', { base_version: 1, entity_id: uid() })];
+    const ops = [op('registration.create_order'), op('billing.record_receipt', { entity_id: uid() }), op('collection.mark_collected', { base_version: 1, entity_id: uid() }), op('accession.receive', { base_version: 1, entity_id: uid() }),
+      op('result.enter'), op('result.verify', { base_version: 1, entity_id: uid() }), op('report.print_marker', { entity_id: uid() }), op('daily_cash.close', { base_version: 1, entity_id: uid() })];
     const o = await devicePush(syncPart2Handlers, A1, dev, ops);
     expect(o.reply!.status).toBe(200);
     for (const r of results(o)) { expect(r.status, r.op_id).toBe('rejected'); expect(r.error_code, r.op_id).not.toBe('sync.op_type_not_available'); }
+    const l = await ledger(ops.map((x) => x.op_id));
+    expect(l).toHaveLength(8);
+    expect(l.every((x) => x.status === 'rejected' && x.error_code !== 'sync.op_type_not_available')).toBe(true);
   }, T);
-  it('a type with an adapter next to a type without: the first works, the second is rejected, the batch is 200', async () => {
+  it('a test adapter next to a default adapter: the first works, the second refuses the shapeless payload on its own, the batch is 200', async () => {
     const dev = await newDevice(A1);
-    const good = enter(), none = op('daily_cash.close', { base_version: 1, entity_id: uid() });
-    const r = byId(await devicePush(H, A1, dev, [good, none]));
-    expect(r[good.op_id]!.status).toBe('accepted'); expect(r[none.op_id]).toMatchObject({ status: 'rejected', error_code: 'sync.op_type_not_available' });
+    const good = enter(), shapeless = op('daily_cash.close', { base_version: 1, entity_id: uid() });
+    const r = byId(await devicePush(H, A1, dev, [good, shapeless]));
+    expect(r[good.op_id]!.status).toBe('accepted'); expect(r[shapeless.op_id]).toMatchObject({ status: 'rejected', error_code: 'common.validation_failed' });
   }, T);
 });
 

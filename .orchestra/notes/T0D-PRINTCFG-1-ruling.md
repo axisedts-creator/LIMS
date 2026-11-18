@@ -7,3 +7,24 @@ TESTS_WRONG — rs-c6.screens "worklist" snapshot and rs-c6.static "same form fi
 TEST CHANGE (lead/tester, recorded as T0D-UILIST-1 drift; not done by the PRINTCFG writer): re-record rs-c6.screens.test.tsx.snap "worklist" from current ReportsWorklist.tsx. Then either drop `lookup` from rs-c6.baseline.json field_names (around line 265) or teach the rs-c6.static extractor to read FilterBar `id:` fields. The second option is better because it keeps the PHI lookup field pinned.
 CARRIED FORWARD: the c6-t31 change from the previous ruling still applies. Update c6-t31.screens.test.tsx §2.1 and the CriticalAlertsPanel error case to the LD-353 markup. Find the error by the ErrorState title "Critical alerts could not be loaded" plus its Retry button. Find the lookup by the FilterBar `lookup` field. Keep all behaviour assertions.
 FOR T0D-PRINTCFG-1: pass when its own print and stationery tests, the rest of the reporting and billing suites, and rs-c2 are green. List these 2 rs-c6 cases and the 3 c6-t31 cases as pre-existing T0D-UILIST-1 drift in the task notes. Do not edit ReportsWorklist.tsx or CriticalAlertsPanel.tsx.
+
+## LEAD ITEM LD-395 FOR THE TESTER (written by the lead, 2026-11-19 00:25 NPT; this is yours — the ruling above is correct but incomplete)
+
+You already applied the field_names/extractor half of the ruling above correctly (confirmed in rs-c6.surface.ts). Two things in rs-c6.screens.test.tsx are still unaddressed — fix both, nothing else in this file or any other file:
+
+1. In the `RS-C6 worklist` describe block's "axe clean; one primary at most; tabs and filters keep working markup" test, this line is now wrong because the Status filter is a `kind: 'select'` FilterBar field, not a tab bar (same LD-353 conversion already handled elsewhere in this app):
+```
+expect(screen.getAllByRole('tab').length).toBe(6);
+```
+Replace it with the SAME pattern already proven in `c6-t31.screens.test.tsx` (around lines 108-115) for this exact conversion — click the Status trigger, then read the option list:
+```
+await user().click(screen.getByRole('button', { name: /status/i }));
+expect(screen.getAllByRole('option').length).toBe(6);
+```
+Use whichever `user()` helper this file already imports/uses elsewhere; if this specific test has none in scope, copy the same import c6-t31.screens.test.tsx uses for it. REPORT_TABS (apps/web/src/features/reporting/server/types.ts) still has exactly 6 entries, so "6" is still the right number — only the query method changes, matching the already-landed pattern, not a new one.
+
+2. The re-recorded "worklist" snapshot (__snapshots__/rs-c6.screens.test.tsx.snap) is still stale: it does not contain a `button Ready to release` line that the live render now produces (the Status FilterBar's trigger button shows the currently-selected option's own label, "Ready to release", for this render's tab="ready_to_release" prop). After fix 1 above, re-run the worklist snapshot test with the normal update-snapshot step so it captures the current render fresh, including that button line. Do not hand-edit the .snap file; regenerate it from a passing render.
+
+Do not touch any other test in this file, any other snapshot in this file, rs-c6.static.test.ts, rs-c6.surface.ts, rs-c6.baseline.json, or any source file — PRINTCFG-1 itself never touched this area and this is restyle-drift cleanup only.
+
+WRITER and DEBUGGER: no code change. If a debugger round after this still fails on something inside rs-c6.screens.test.tsx or its snapshot, escalate to lead rather than re-disputing.

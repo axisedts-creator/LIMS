@@ -32,3 +32,7 @@ Fix: none; tests are tester-owned, LD-393 says escalate. Wrote T0D-OFFLINE-3-dis
 ## Round 8 (verify 00:29: 4 fail / 33 pass, rs-c4.static + rs-c4.screens only)
 Cause: no OFFLINE-3 defect. rs-c4 guard drift from merged work: static same-bytes lists billing/nav.manifest.ts, server/{actions,types,write.server}.ts, frontdesk/forms/draft.ts, hooks/useShortcuts.ts; route "/v1/catalog/tests" not in LD310_ALLOW; "Daily cash (open shift)" snapshot lacks UIDASH stat row + chart. None of these files is in the branch diff vs main.
 Fix: none; tests are tester-owned and the baseline json must not be regenerated. Dispute (…-dispute-202611190019.md) still stands; lead must widen LD310_ALLOW (logic_files, routes) and re-record the snapshot.
+
+## Round 9 (verify 00:36: 4 fail / 33 pass, rs-c4.static + rs-c4.screens only)
+Cause: no OFFLINE-3 defect. Same rs-c4 guard drift as round 8: same-bytes list (billing nav.manifest/server actions,types,write.server, frontdesk draft.ts, useShortcuts.ts), route "/v1/catalog/tests", 45 billing symbols, plus 1 screens snapshot. All from already-merged work; OFFLINE-3 diff touches none of them.
+Fix: none; tests are tester-owned, baseline json not regenerated. Dispute T0D-OFFLINE-3-dispute-202611190019.md still stands; lead must widen LD310_ALLOW and re-record the snapshot.

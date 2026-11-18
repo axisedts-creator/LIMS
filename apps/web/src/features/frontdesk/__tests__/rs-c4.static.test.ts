@@ -71,7 +71,8 @@ describe('RS-C4 behaviour unchanged (LD-140: no change to API calls, fields, val
     expect(added(was.permissions, now.permissions).filter((p) => !(LD310_ALLOW.permissions as readonly string[]).includes(p) && !LD310_ALLOW.billing_accounts_strings.test(p))).toEqual([]);
     expect(added(was.server_imports, now.server_imports).filter((s) => !(LD310_ALLOW.server_imports as readonly string[]).includes(s))).toEqual([]);
     // LD-391/LD-393 follow-up, T0D-OFFLINE-3 arbiter: accounting server symbols are excluded before the trf_symbol and length checks
-    const extraSymbols = added(was.server_symbols, now.server_symbols).filter((s) => !(LD310_ALLOW.server_symbols as readonly string[]).includes(s) && !(LD310_ALLOW.accounts_symbols as readonly string[]).includes(s));
+    // LD-403, T0D-OFFLINE-3: regscreen2_symbols excluded the same way accounts_symbols already is
+    const extraSymbols = added(was.server_symbols, now.server_symbols).filter((s) => !(LD310_ALLOW.server_symbols as readonly string[]).includes(s) && !(LD310_ALLOW.accounts_symbols as readonly string[]).includes(s) && !(LD310_ALLOW.regscreen2_symbols as readonly string[]).includes(s));
     expect(extraSymbols.filter((s) => !LD310_ALLOW.trf_symbol.test(s))).toEqual([]); // anything that is not the TRF action is forbidden
     expect(extraSymbols.length).toBeLessThanOrEqual(1); // exactly one TRF action
     // LD-391/LD-393 follow-up, T0D-OFFLINE-3 arbiter: only the named route string is forgiven
@@ -93,6 +94,8 @@ describe('RS-C4 behaviour unchanged (LD-140: no change to API calls, fields, val
     expect(LD310_ALLOW.accounts_symbols).toHaveLength(64); // LD-398: 19 + 45
     expect(LD310_ALLOW.logic_files_changed).toHaveLength(6);
     expect(LD310_ALLOW.accounts_symbols).not.toContain('deleteEverythingAction');
+    expect(LD310_ALLOW.regscreen2_symbols).toHaveLength(32); // LD-403 (arbiter correction: the lead's 31 was a miscount)
+    expect(LD310_ALLOW.regscreen2_symbols).not.toContain('deleteEverythingAction');
   });
 
   it('route tree: the same page/route/layout/loading/error files exist (no route added, removed or renamed)', () => {

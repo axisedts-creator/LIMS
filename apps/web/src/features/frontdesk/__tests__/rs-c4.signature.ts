@@ -148,6 +148,18 @@ export const LD310_ALLOW = {
     'src/features/frontdesk/forms/draft.ts',
     'src/features/frontdesk/hooks/useShortcuts.ts',
   ],
+  // LD-403 (T0D-OFFLINE-3): already-landed T0D-REGSCREEN-2 drafts/custom-fields/favourites/ICD-lookup
+  // symbols (server/actions.ts, server/read.server.ts, server/types.ts); excluded before the
+  // trf_symbol check, same device as accounts_symbols.
+  regscreen2_symbols: [
+    'CustomFieldDefinition', 'DraftRecordSummary', 'IcdCode', 'NumberPreview', 'OrderFields', 'ReceiptDocument',
+    'addFavouriteAction', 'addFavouriteTest', 'createDraftAction', 'createRegistrationDraft', 'deleteDraftAction',
+    'deleteRegistrationDraft', 'getDraftAction', 'getPatient', 'getPatientRewards', 'getPatientRewardsAction',
+    'getPatientSummaryAction', 'getRegistrationDraft', 'listCatalogOptions', 'listCustomFieldDefinitions',
+    'listCustomFieldDefinitionsAction', 'listDraftsAction', 'listFavouriteTests', 'listFavouritesAction',
+    'listIcdCodes', 'listIcdCodesAction', 'listRegistrationDrafts', 'listTestNamesAction', 'previewNumbersAction',
+    'previewRegistrationNumbers', 'removeFavouriteAction', 'removeFavouriteTest',
+  ],
   server_symbols: ['createCreditPartyAction', 'createDoctorAction'],
   trf_symbol: /Trf/, // at most ONE added symbol beyond server_symbols, and it must match this
 } as const;

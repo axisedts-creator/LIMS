@@ -1,0 +1,4 @@
+TEST WRONG (writer, 2026-11-18): uiconsole1.payments.test.tsx:103 `expect(text).toMatch(/123,456\.00/)` for 12345600 paisa asks for international grouping.
+The payment screens use lakh grouping everywhere: labels.tsx:1 (nprText "lakh-grouped NPR text"), kit MoneyText default 'lakh' (12,34,567.89), and the pinned tests pg-t18.review:88, pg-t18.detail:109, pg-t19.refunds:129, rs-c15.behaviour:163 all require lakh. The detail shows nprText -> "NPR 1,23,456.00", which does not contain "123,456.00".
+The brief says "no new data", display only; switching this one screen to international grouping would break the lakh rule the other tests pin.
+Fix: change :103 to /1,23,456\.00/ (the refunds check :177 /2,250\.00/ is the same in both groupings and stays). All other 59 uiconsole1.payments/inventory tests pass with the console markup.

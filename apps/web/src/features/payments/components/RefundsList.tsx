@@ -1,19 +1,26 @@
 'use client';
 // 04-UI-UX §2.3 Gateway refunds. Plain-JSON rows from the server page; every action calls a server action (the token stays on the server).
 // Status is text + tone. Two-person rule: Approve is disabled on your own request (the server decides again). Nothing here claims a refund is done before the server says `completed`.
+// T0D-UICONSOLE-1 (LD-353 template 2 CONSOLE): PageHeader, the same FilterBar, StatTiles (Pending approval, With provider, Oldest age pending approval) above a SplitConsole:
+// queue at left (Age first, API order), detail at right (the columns the table had plus History), sticky bar = the row actions the table had (same gates, same dialogs).
 import { useId, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Banner } from '@lims/ui/components/Banner';
 import { Button } from '@lims/ui/components/Button';
 import { ConfirmDialog } from '@lims/ui/components/ConfirmDialog';
-import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
+import { EmptyRow, PlaceholderRows } from '@lims/ui/components/DataTable';
 import { DateText, type DateTextProps } from '@lims/ui/components/DateText';
 import { DatePicker, type IsoDate } from '@lims/ui/components/DatePicker';
 import { Dialog } from '@lims/ui/components/Dialog';
+import { EmptyState } from '@lims/ui/components/EmptyState';
 import { FilterBar, type FilterDef, type FilterValue } from '@lims/ui/components/FilterBar';
 import { IdText } from '@lims/ui/components/IdText';
 import { PageHeader } from '@lims/ui/components/PageHeader';
+import { SplitConsole } from '@lims/ui/components/SplitConsole';
+import { StatTile, StatTileRow } from '@lims/ui/components/StatTile';
 import { StatusChip } from '@lims/ui/components/StatusChip';
+import { t } from '@/core/i18n/messages';
+import { Facts, History, ShortcutKey, hhmm, itemProps, oldest, useNow } from './consoleParts';
 import { TextField } from '@lims/ui/components/TextField';
 import { useToast } from '@lims/ui/components/Toast';
 import { SECOND_PERSON, failText } from '../errors';
@@ -33,6 +40,8 @@ const ALL = 'all';
 const BASE = '/payments/refunds';
 const REF = /^[A-Za-z0-9_.:/-]{1,100}$/;
 const OPEN_STATES = ['requested', 'held_for_review'];
+const WITH_PROVIDER = ['approved', 'requested', 'held_for_review'];
+const HEADERS = ['Age', 'Requested', 'Gateway', 'Amount', 'Status'];
 const STATUS_OPTIONS = ['pending_approval', 'approved', 'requested', 'held_for_review', 'completed', 'failed', 'rejected'].map((s) => ({ value: s, label: refundStatus(s)[1] }));
 const GATEWAY_OPTIONS = [{ value: ALL, label: 'All' }, { value: 'esewa', label: 'eSewa' }, { value: 'khalti', label: 'Khalti' }];
 
@@ -114,36 +123,72 @@ export function RefundsList({ refunds, permissions, currentMembershipId, codes, 
   const isOwn = (r: RefundDto) => !!currentMembershipId && r.requested_by?.membership_id === currentMembershipId;
   const ownAllowed = (r: RefundDto) => thresholdPaisa !== undefined && thresholdPaisa > 0 && r.amount.amount_paisa <= thresholdPaisa;
 
+  // T0D-UICONSOLE-1: the row actions the table had, same gates, now for the selected refund in the sticky bar; the first one carries its shortcut letter.
+  type Act = { key: string; label: string; variant?: 'secondary' | 'danger'; run: () => void; blocked?: boolean };
+  const actsOf = (r: RefundDto): Act[] => [
+    ...(canApprove && r.status === 'pending_approval'
+      ? [{ key: 'A', label: 'Approve', variant: 'secondary' as const, run: () => open('approve', r), blocked: isOwn(r) && !ownAllowed(r) }, { key: 'R', label: 'Reject', variant: 'danger' as const, run: () => open('reject', r) }]
+      : []),
+    ...(canApprove && OPEN_STATES.includes(r.status) && r.mode !== 'api' ? [{ key: 'C', label: 'Confirm refund done', variant: 'secondary' as const, run: () => open('confirm', r) }] : []),
+    ...(canRecheck && OPEN_STATES.includes(r.status) ? [{ key: 'R', label: 'Re-check', run: () => void recheck(r) }] : []),
+    ...(canApprove && OPEN_STATES.includes(r.status) ? [{ key: 'M', label: 'Mark refund failed', variant: 'danger' as const, run: () => open('fail', r) }] : []),
+  ];
   const actions = (r: RefundDto) => (
     <div className="lims-row-actions">
-      {canApprove && r.status === 'pending_approval' ? (
-        <>
-          {isOwn(r) && !ownAllowed(r) ? (
-            <SecondPersonHint />
-          ) : (
-            <Button size="sm" variant="secondary" onPress={() => open('approve', r)}>Approve</Button>
-          )}
-          <Button size="sm" variant="danger" onPress={() => open('reject', r)}>Reject</Button>
-        </>
-      ) : null}
-      {canApprove && OPEN_STATES.includes(r.status) && r.mode !== 'api' ? <Button size="sm" variant="secondary" onPress={() => open('confirm', r)}>Confirm refund done</Button> : null}
-      {canRecheck && OPEN_STATES.includes(r.status) ? <Button size="sm" onPress={() => void recheck(r)}>Re-check</Button> : null}
-      {canApprove && OPEN_STATES.includes(r.status) ? <Button size="sm" variant="danger" onPress={() => open('fail', r)}>Mark refund failed</Button> : null}
+      {actsOf(r).map((a, i) => {
+        const label = i === 0 ? `${a.label} (${a.key})` : a.label;
+        return a.blocked
+          ? <SecondPersonHint key={a.label} label={label} />
+          : <Button key={a.label} size="sm" {...(a.variant ? { variant: a.variant } : {})} onPress={a.run}>{label}</Button>;
+      })}
     </div>
   );
+  const [selectedId, setSelectedId] = useState<string>();
+  const now = useNow();
+  const sel = refunds.find((r) => r.id === selectedId);
+  const first = sel ? actsOf(sel)[0] : undefined;
+  const age = (r: RefundDto) => now - Date.parse(r.requested_at);
+  const pending = refunds.filter((r) => r.status === 'pending_approval');
+  const statusChip = (r: RefundDto) => { const [tone, label] = refundStatus(r.status); return <StatusChip kind="generic" status={r.status} tone={tone} label={label} />; };
 
-  const columns: ColumnDef<RefundDto>[] = [
-    { id: 'requested', header: 'Requested', isRowHeader: true, cell: (r) => <DateText value={r.requested_at as Iso} withTime /> },
-    { id: 'gateway', header: 'Gateway', cell: (r) => gatewayLabel(r.gateway) },
-    { id: 'amount', header: 'Amount', align: 'end', cell: (r) => amt(r.amount) },
-    { id: 'status', header: 'Status', cell: (r) => { const [tone, label] = refundStatus(r.status); return <StatusChip kind="generic" status={r.status} tone={tone} label={label} />; } },
-    { id: 'mode', header: 'Mode', cell: (r) => (r.mode === 'api' ? 'Provider API' : 'Manual') },
-    { id: 'requested_by', header: 'Requested by', cell: (r) => r.requested_by?.display_name || '—' },
-    { id: 'approved_by', header: 'Approved by', cell: (r) => r.approved_by?.display_name || '—' },
-    { id: 'reason', header: 'Reason under review', cell: (r) => (r.held_reason ? holdName.get(r.held_reason) ?? humanize(r.held_reason) : '—') },
-    { id: 'intent', header: 'Intent', cell: (r) => <a href={`/payments/intents/${r.intent_id}`} aria-label={`Payment ${r.intent_id.slice(0, 8)}`}><IdText value={r.intent_id} /></a> },
-    { id: 'actions', header: 'Actions', cell: actions },
-  ];
+  const list = (
+    <div className="lims-data-table"><div className="lims-table-scroll">
+      <table className="lims-table">
+        <caption className="lims-visually-hidden">Gateway refunds</caption>
+        <thead><tr>{HEADERS.map((h) => <th key={h} scope="col" {...(h === 'Amount' ? { className: 'lims-align-end' } : {})}>{h}</th>)}</tr></thead>
+        <tbody>
+          {refunds.length === 0 ? <EmptyRow colSpan={HEADERS.length}><EmptyState title="No refunds." body="Refund requests appear here until they are completed." /></EmptyRow> : null}
+          {refunds.map((r) => (
+            <tr key={r.id} {...itemProps(r.id, selectedId, setSelectedId)}>
+              <td suppressHydrationWarning>{hhmm(age(r))}</td>
+              <td><DateText value={r.requested_at as Iso} withTime /></td>
+              <td>{gatewayLabel(r.gateway)}</td>
+              <td className="lims-align-end lims-num">{amt(r.amount)}</td>
+              <td>{statusChip(r)}</td>
+            </tr>
+          ))}
+        </tbody>
+        {refunds.length === 0 ? <PlaceholderRows colSpan={HEADERS.length} /> : null}
+      </table>
+    </div></div>
+  );
+
+  const detail = sel ? (
+    <>
+      <h2>{`Refund of ${nprText(sel.amount)}`}</h2>
+      <Facts items={[
+        ['Gateway', gatewayLabel(sel.gateway)],
+        ['Amount', amt(sel.amount)],
+        ['Status', statusChip(sel)],
+        ['Mode', sel.mode === 'api' ? 'Provider API' : 'Manual'],
+        ['Requested by', sel.requested_by?.display_name || '—'],
+        ['Approved by', sel.approved_by?.display_name || '—'],
+        ['Reason under review', sel.held_reason ? holdName.get(sel.held_reason) ?? humanize(sel.held_reason) : '—'],
+        ['Payment', <a key="p" href={`/payments/intents/${sel.intent_id}`} aria-label={`Payment ${sel.intent_id.slice(0, 8)}`}><IdText value={sel.intent_id} /></a>],
+      ]} />
+      <History events={[['Requested', sel.requested_at] as const, ...(sel.approved_at ? [['Approved', sel.approved_at] as const] : [])]} />
+    </>
+  ) : <p>Select a refund to see it here.</p>;
 
   const f: RefundsFilter = filter ?? { status: [] };
   const filters: FilterDef[] = [
@@ -167,14 +212,23 @@ export function RefundsList({ refunds, permissions, currentMembershipId, codes, 
   const needTextNote = needText ? <p role="alert" className="lims-error">Enter details for this reason.</p> : null;
   return (
     <>
-      <PageHeader title="Gateway refunds" helpKey="payments.refunds" />
+      <PageHeader title={t('payments.nav.refunds')} helpKey="payments.refunds" />
       {banner ? <div role="alert"><Banner tone="danger" title={banner} /></div> : null}
       <FilterBar filters={filters} value={value} onChange={go} onReset={() => router.push(BASE)} />
-      <DataTable<RefundDto>
-        columns={columns} rows={refunds} getRowId={(r) => r.id} density="compact" caption="Gateway refunds"
-        emptyState={{ title: 'No refunds.', body: 'Refund requests appear here until they are completed.' }}
-        {...(nextCursor || hasPrevious ? { page: { hasNext: !!nextCursor, hasPrevious: !!hasPrevious, onNext: () => nextCursor && go(value, nextCursor), onPrevious: () => router.back(), limit: 50 } } : {})}
-      />
+      <StatTileRow>
+        <StatTile label="Pending approval" value={String(pending.length)} />
+        <StatTile label="With provider" value={String(refunds.filter((r) => WITH_PROVIDER.includes(r.status)).length)} />
+        <StatTile label="Oldest age" value={oldest(pending.map(age))} />
+      </StatTileRow>
+      <ShortcutKey letter={first?.key} run={first && !first.blocked ? first.run : undefined}>
+        <SplitConsole list={list} detail={detail} listLabel="Refund queue" detailLabel="Refund" actions={sel ? actions(sel) : undefined} />
+      </ShortcutKey>
+      {nextCursor || hasPrevious ? (
+        <div className="lims-pager">
+          <Button size="sm" variant="secondary" isDisabled={!hasPrevious} onPress={() => router.back()}>Previous</Button>
+          <Button size="sm" variant="secondary" isDisabled={!nextCursor} onPress={() => nextCursor && go(value, nextCursor)}>Next</Button>
+        </div>
+      ) : null}
       {dlg?.kind === 'approve' ? (
         <ConfirmDialog
           key={dlg.key} isOpen title={`Approve refund of ${nprText(dlg.refund.amount)}?`} confirmLabel="Approve" onCancel={close} onConfirm={() => approve(dlg)}
@@ -220,7 +274,7 @@ export function RefundsList({ refunds, permissions, currentMembershipId, codes, 
 
 /** A disabled Approve on your own request, with the reason shown on hover and keyboard focus (Esc hides it). Own handlers instead of the kit Tooltip: that one
  *  ignores the first pointer event of a session, so the reason could be missing for the very first hover. */
-function SecondPersonHint() {
+function SecondPersonHint({ label }: { label: string }) {
   const id = useId();
   const [show, setShow] = useState(false);
   return (
@@ -228,7 +282,7 @@ function SecondPersonHint() {
       tabIndex={0} {...(show ? { 'aria-describedby': id } : {})} onMouseEnter={() => setShow(true)} onMouseLeave={() => setShow(false)} onFocus={() => setShow(true)}
       onBlur={() => setShow(false)} onKeyDown={(e) => { if (e.key === 'Escape') setShow(false); }}
     >
-      <Button size="sm" variant="secondary" isDisabled>Approve</Button>
+      <Button size="sm" variant="secondary" isDisabled>{label}</Button>
       {show ? <span id={id} role="tooltip" className="lims-tooltip">{SECOND_PERSON}</span> : null}
     </span>
   );

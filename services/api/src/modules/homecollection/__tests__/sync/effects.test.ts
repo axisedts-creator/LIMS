@@ -305,9 +305,10 @@ describe('handover.recorded (US-12-1, US-12-3, 03-APP-FLOW §4 + §5.7, D-125)',
     expect(await handoverRows(w)).toHaveLength(0);
   });
   it('handover_confirmation_required = false -> status confirmed at once, received_by_membership_id stays empty, received_at = handed_over_at (03-APP-FLOW §1.3)', { timeout: T }, async () => {
+    // LD-376: setSettings is a plain UPDATE; run it AFTER pushWorld (which seeds the tenant B settings row) so the row exists whatever file ran before.
+    const w = await pushWorld({ file: FILE, s: 'b', specimens: 1 });
     await setSettings(TENANT_B, 'handover_confirmation_required = $2', [false]);   // helper: $1 is the tenant id
     try {
-      const w = await pushWorld({ file: FILE, s: 'b', specimens: 1 });
       await pushM(w, collectAll(w));
       await pushM(w, [M.handover(w, [w.specimens[0]!.specimenId])]);
       const [ho] = await handoverRows(w);

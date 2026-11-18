@@ -31,6 +31,17 @@ export async function reserveBlock(ctx: SyncCtx, body: unknown, maxBlockSize: nu
   return { block: toNumberBlock(row), remaining_size: remaining };
 }
 
+/** T0B-SYNC-3 (design section 4): a patient id or lab code used offline must lie in a block of THIS device for its series, else
+ *  sync.number_out_of_block. Validation only: the wrapped service still allocates its own numbers (open point in the impl note). */
+export async function assertReservedInDeviceBlocks(ctx: { tenantId: string; tx: unknown }, op: { deviceId: string; reservedNumbers?: { patientId?: number; labCodes?: number[] } }): Promise<void> {
+  const r = op.reservedNumbers;
+  if (!r) return;
+  const tx = ctx.tx as repo.Tx;
+  const base = { tenantId: ctx.tenantId, deviceId: op.deviceId };
+  if (r.patientId !== undefined && !(await repo.inDeviceBlocks(tx, { ...base, series: 'patient_id', values: [r.patientId] }))) throw new LimsError('sync.number_out_of_block');
+  if (r.labCodes?.length && !(await repo.inDeviceBlocks(tx, { ...base, series: 'lab_code', values: r.labCodes }))) throw new LimsError('sync.number_out_of_block');
+}
+
 /** Unused numbers of a block are reported skipped (a gap is allowed for these series); the block is then closed and drops out of
  *  remaining_size. No contract operation yet (part 1): the sync batch of T0B-SYNC-2 calls it. Repeating the same report is a no-op. */
 export async function reportBlockSkipped(ctx: SyncCtx, input: { blockId: unknown; skippedCount: unknown }) {

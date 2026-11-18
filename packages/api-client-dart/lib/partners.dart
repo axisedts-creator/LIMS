@@ -31,6 +31,10 @@ class PartnersApi {
   Future<Object?> changePartnerUserRoleByStaff({required String partnerUserId, Map<String, String>? headers, Object? body}) =>
       _send('POST', '/v1/partners/admin/partner-users/${Uri.encodeComponent(partnerUserId)}/role', headers: headers, body: body);
 
+  /// POST /v1/partners/admin/penalty-events/{event_id}/charge
+  Future<Object?> chargeNonComplianceEvent({required String eventId, Map<String, String>? headers}) =>
+      _send('POST', '/v1/partners/admin/penalty-events/${Uri.encodeComponent(eventId)}/charge', headers: headers);
+
   /// POST /v1/partners/admin/tickets/{ticket_id}/close
   Future<Object?> closePartnerTicket({required String ticketId, Map<String, String>? headers}) =>
       _send('POST', '/v1/partners/admin/tickets/${Uri.encodeComponent(ticketId)}/close', headers: headers);
@@ -42,6 +46,10 @@ class PartnersApi {
   /// POST /v1/partners/me/tickets
   Future<Object?> createMyPartnerTicket({Map<String, String>? headers, Object? body}) =>
       _send('POST', '/v1/partners/me/tickets', headers: headers, body: body);
+
+  /// POST /v1/partners/admin/penalties
+  Future<Object?> createNonCompliancePenalty({Map<String, String>? headers, Object? body}) =>
+      _send('POST', '/v1/partners/admin/penalties', headers: headers, body: body);
 
   /// POST /v1/partners/admin/partners
   Future<Object?> createPartner({Map<String, String>? headers, Object? body}) =>
@@ -71,6 +79,10 @@ class PartnersApi {
   Future<Object?> createServiceArea({Map<String, String>? headers, Object? body}) =>
       _send('POST', '/v1/partners/admin/sales/service-areas', headers: headers, body: body);
 
+  /// POST /v1/partners/admin/penalties/{penalty_id}/deactivate
+  Future<Object?> deactivateNonCompliancePenalty({required String penaltyId, Map<String, String>? headers}) =>
+      _send('POST', '/v1/partners/admin/penalties/${Uri.encodeComponent(penaltyId)}/deactivate', headers: headers);
+
   /// POST /v1/partners/referrers/{referrer_id}/deactivate
   Future<Object?> deactivatePartnerReferrer({required String referrerId, Map<String, String>? headers}) =>
       _send('POST', '/v1/partners/referrers/${Uri.encodeComponent(referrerId)}/deactivate', headers: headers);
@@ -90,6 +102,10 @@ class PartnersApi {
   /// POST /v1/partners/admin/sales/service-areas/{service_area_id}/deactivate
   Future<Object?> deactivateServiceArea({required String serviceAreaId, Map<String, String>? headers}) =>
       _send('POST', '/v1/partners/admin/sales/service-areas/${Uri.encodeComponent(serviceAreaId)}/deactivate', headers: headers);
+
+  /// POST /v1/partners/admin/onboarding/{onboarding_id}/decision
+  Future<Object?> decidePartyOnboarding({required String onboardingId, Map<String, String>? headers, Object? body}) =>
+      _send('POST', '/v1/partners/admin/onboarding/${Uri.encodeComponent(onboardingId)}/decision', headers: headers, body: body);
 
   /// DELETE /v1/partners/manifests/{manifest_id}/lines/{line_id}
   Future<Object?> deleteManifestLine({required String manifestId, required String lineId, Map<String, String>? headers}) =>
@@ -151,6 +167,10 @@ class PartnersApi {
   Future<Object?> getPartnerTicket({required String ticketId}) =>
       _send('GET', '/v1/partners/admin/tickets/${Uri.encodeComponent(ticketId)}');
 
+  /// GET /v1/partners/admin/party-settings/{party_kind}/{party_id}
+  Future<Object?> getPartyCommercialSetting({required String partyKind, required String partyId}) =>
+      _send('GET', '/v1/partners/admin/party-settings/${Uri.encodeComponent(partyKind)}/${Uri.encodeComponent(partyId)}');
+
   /// GET /v1/partners/reports/{report_id}/access-slips/{access_slip_id}
   Future<Object?> getPatientAccessSlip({required String reportId, required String accessSlipId}) =>
       _send('GET', '/v1/partners/reports/${Uri.encodeComponent(reportId)}/access-slips/${Uri.encodeComponent(accessSlipId)}');
@@ -191,6 +211,14 @@ class PartnersApi {
   Future<Object?> listMyPartnerTickets({Map<String, Object?>? query}) =>
       _send('GET', '/v1/partners/me/tickets', query: query);
 
+  /// GET /v1/partners/admin/penalty-events
+  Future<Object?> listNonComplianceEvents({Map<String, Object?>? query}) =>
+      _send('GET', '/v1/partners/admin/penalty-events', query: query);
+
+  /// GET /v1/partners/admin/penalties
+  Future<Object?> listNonCompliancePenalties({Map<String, Object?>? query}) =>
+      _send('GET', '/v1/partners/admin/penalties', query: query);
+
   /// GET /v1/partners/orders
   Future<Object?> listPartnerOrders({Map<String, Object?>? query}) =>
       _send('GET', '/v1/partners/orders', query: query);
@@ -226,6 +254,10 @@ class PartnersApi {
   /// GET /v1/partners/admin/partners
   Future<Object?> listPartners({Map<String, Object?>? query}) =>
       _send('GET', '/v1/partners/admin/partners', query: query);
+
+  /// GET /v1/partners/admin/onboarding
+  Future<Object?> listPartyOnboarding({Map<String, Object?>? query}) =>
+      _send('GET', '/v1/partners/admin/onboarding', query: query);
 
   /// GET /v1/partners/pickup-requests
   Future<Object?> listPickupRequests({Map<String, Object?>? query}) =>
@@ -266,6 +298,10 @@ class PartnersApi {
   /// POST /v1/partners/admin/pickup-requests/{pickup_request_id}/picked-up
   Future<Object?> markPickupCollected({required String pickupRequestId, Map<String, String>? headers, Object? body}) =>
       _send('POST', '/v1/partners/admin/pickup-requests/${Uri.encodeComponent(pickupRequestId)}/picked-up', headers: headers, body: body);
+
+  /// POST /v1/partners/admin/penalty-events
+  Future<Object?> raiseNonComplianceEvent({Map<String, String>? headers, Object? body}) =>
+      _send('POST', '/v1/partners/admin/penalty-events', headers: headers, body: body);
 
   /// POST /v1/partners/admin/partners/{partner_id}/reactivate
   Future<Object?> reactivatePartner({required String partnerId, Map<String, String>? headers}) =>
@@ -323,6 +359,10 @@ class PartnersApi {
   Future<Object?> retryManifestLineConversion({required String lineId, Map<String, String>? headers, Object? body}) =>
       _send('POST', '/v1/partners/admin/manifest-lines/${Uri.encodeComponent(lineId)}/retry', headers: headers, body: body);
 
+  /// POST /v1/partners/admin/parties/{party_kind}/{party_id}/id-number
+  Future<Object?> revealPartyIdNumber({required String partyKind, required String partyId, Object? body}) =>
+      _send('POST', '/v1/partners/admin/parties/${Uri.encodeComponent(partyKind)}/${Uri.encodeComponent(partyId)}/id-number', body: body);
+
   /// POST /v1/partners/admin/pickup-requests/{pickup_request_id}/schedule
   Future<Object?> schedulePickup({required String pickupRequestId, Map<String, String>? headers, Object? body}) =>
       _send('POST', '/v1/partners/admin/pickup-requests/${Uri.encodeComponent(pickupRequestId)}/schedule', headers: headers, body: body);
@@ -334,6 +374,10 @@ class PartnersApi {
   /// POST /v1/partners/orders/search
   Future<Object?> searchPartnerOrders({Object? body}) =>
       _send('POST', '/v1/partners/orders/search', body: body);
+
+  /// PUT /v1/partners/admin/party-settings/{party_kind}/{party_id}
+  Future<Object?> setPartyCommercialSetting({required String partyKind, required String partyId, Map<String, String>? headers, Object? body}) =>
+      _send('PUT', '/v1/partners/admin/party-settings/${Uri.encodeComponent(partyKind)}/${Uri.encodeComponent(partyId)}', headers: headers, body: body);
 
   /// POST /v1/partners/manifests/{manifest_id}/submit
   Future<Object?> submitManifest({required String manifestId, Map<String, String>? headers}) =>
@@ -354,6 +398,10 @@ class PartnersApi {
   /// PATCH /v1/partners/manifests/{manifest_id}
   Future<Object?> updateManifest({required String manifestId, Map<String, String>? headers, Object? body}) =>
       _send('PATCH', '/v1/partners/manifests/${Uri.encodeComponent(manifestId)}', headers: headers, body: body);
+
+  /// PATCH /v1/partners/admin/penalties/{penalty_id}
+  Future<Object?> updateNonCompliancePenalty({required String penaltyId, Map<String, String>? headers, Object? body}) =>
+      _send('PATCH', '/v1/partners/admin/penalties/${Uri.encodeComponent(penaltyId)}', headers: headers, body: body);
 
   /// PATCH /v1/partners/admin/partners/{partner_id}
   Future<Object?> updatePartner({required String partnerId, Map<String, String>? headers, Object? body}) =>
@@ -378,6 +426,10 @@ class PartnersApi {
   /// PATCH /v1/partners/admin/sales/service-areas/{service_area_id}
   Future<Object?> updateServiceArea({required String serviceAreaId, Map<String, String>? headers, Object? body}) =>
       _send('PATCH', '/v1/partners/admin/sales/service-areas/${Uri.encodeComponent(serviceAreaId)}', headers: headers, body: body);
+
+  /// POST /v1/partners/admin/penalty-events/{event_id}/waive
+  Future<Object?> waiveNonComplianceEvent({required String eventId, Map<String, String>? headers, Object? body}) =>
+      _send('POST', '/v1/partners/admin/penalty-events/${Uri.encodeComponent(eventId)}/waive', headers: headers, body: body);
 
   /// POST /v1/partners/manifests/{manifest_id}/withdraw
   Future<Object?> withdrawManifest({required String manifestId, Map<String, String>? headers, Object? body}) =>

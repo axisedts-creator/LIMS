@@ -433,7 +433,9 @@ describe("T0C-SALES-1 permissions (done_when 5)", () => {
     const partners = registry.permissions.filter((p: any) => p.code.startsWith("partners.")).map((p: any) => p.code);
     sortedEq(partners, ["partners.manifest.receive", "partners.manifest.submit", "partners.order.read", "partners.partner.manage", "partners.partner.read", "partners.partner_user.manage", "partners.pickup.manage",
       "partners.pickup.request", "partners.price_list.read", "partners.referrer.manage", "partners.referrer.map", "partners.referrer.read", "partners.report.read", "partners.statement.read",
-      "partners.sales.read", "partners.sales.manage"]);
+      "partners.sales.read", "partners.sales.manage",
+      // T0C-PARTYSET-1 (LD-321): the five party settings codes are pinned in partyset1-openapi.test.ts; the other LD-321 tasks' codes are pinned in theirs
+      "partners.party_setting.read", "partners.party_setting.manage", "partners.onboarding.decide", "partners.party_id_number.read", "partners.penalty.manage"]);
     expect(byCode.get("partners.referrer.map").roles).toEqual(["tenant_admin", "lab_manager"]);
     expect(byCode.get("partners.referrer.read").roles).toEqual([]);
     expect(registry.fixed_actor_permissions.partner.partner_admin.join(",")).not.toContain("partners.sales");

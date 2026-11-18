@@ -292,6 +292,9 @@ importers:
       axe-core:
         specifier: 4.14.0
         version: 4.14.0
+      fake-indexeddb:
+        specifier: 6.2.8
+        version: 6.2.8
       jsdom:
         specifier: 31.0.0
         version: 31.0.0
@@ -1941,6 +1944,10 @@ packages:
   expect-type@1.4.0:
     resolution: {integrity: sha512-KfYbmpRm0VbLjEvVa9yGwCi9GI34xvi7A/HXYWQO65CSD2u3MczUJSuwXKFIxlGsgBQizV9q5J9NHj4VG0n+pA==}
     engines: {node: '>=12.0.0'}
+
+  fake-indexeddb@6.2.8:
+    resolution: {integrity: sha512-mpVW/HLUqwKXJ6F/s0hMgdK1eQfM4ncTHDioNGHWL0WKV3VcZCoZq1NKgboBbAge07aRCO7L48yziKssL59XEQ==}
+    engines: {node: '>=18'}
 
   fast-decode-uri-component@1.0.1:
     resolution: {integrity: sha512-WKgKWg5eUxvRZGwW8FvfbaH7AXSh2cL+3j5fMGzUMCxWBJ3dV3a7Wz8y2f/uQ0e3B6WmodD3oS54jTQ9HVTIIg==}
@@ -4443,6 +4450,8 @@ snapshots:
   eurodigit@3.1.3: {}
 
   expect-type@1.4.0: {}
+
+  fake-indexeddb@6.2.8: {}
 
   fast-decode-uri-component@1.0.1: {}
 

@@ -592,6 +592,12 @@ export const ROUTES = {
     "path": "/engagement/bookings",
     "permission": "engagement.booking.read"
   },
+  "staff.engagement.content": {
+    "origin": "staff_web",
+    "owner": "C16",
+    "path": "/engagement/content",
+    "permission": "engagement.content.read"
+  },
   "staff.engagement.enquiries": {
     "origin": "staff_web",
     "owner": "C16",

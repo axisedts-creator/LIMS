@@ -23,7 +23,7 @@ vi.mock('next/navigation', () => ({
 vi.mock('server-only', () => ({}));
 vi.mock('@/core/session/server', () => ({
   getAccessToken: async () => 'jwt-synthetic',
-  getShellSession: async () => ({ actor: { permissions: ADMIN, displayName: 'Synthetic Reporter', membershipId: '01950c12-0000-7000-8000-000000000900', tenantCode: 'syn', roles: [] } }),
+  getShellSession: async () => ({ actor: { permissions: [...ADMIN, 'reporting.outsourced.attach' /* staff.reporting.outsourced route gate, 03-INTERFACE-CATALOG */], displayName: 'Synthetic Reporter', membershipId: '01950c12-0000-7000-8000-000000000900', tenantCode: 'syn', roles: [] } }),
   getRequestPathname: async () => '/reporting',
 }));
 process.env['LIMS_ORIGIN_API'] = ORIGIN;

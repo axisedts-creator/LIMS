@@ -41,7 +41,7 @@
 - Qualification — already present (Doctor.qualification)
 - Hospital — added (catalog.doctors.hospital)
 - Registration number — already present (Doctor.registration_no + registration_council)
-- Doctor rate — LD-385: NOT on the doctor record (C3 AC-11.5); lives only in party_commercial_setting.commission_bp for party_kind doctor (A39-3(iii))
+- Doctor rate — not added on the doctor record (LD-385): (C3 AC-11.5); lives only in party_commercial_setting.commission_bp for party_kind doctor (A39-3(iii))
 ### ICD
 - ICD master — added (catalog.icd_code, 5 *IcdMasterCode operations); frontdesk.icd_codes already present as the registration pick list
 ### Outsource, Interlab, Center Test Mapping (reporting.yaml and partners.yaml read first)

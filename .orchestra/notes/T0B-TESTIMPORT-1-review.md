@@ -1,0 +1,6 @@
+CHANGES
+Range 285bb5964..HEAD (4 commits). Only code change: services/api/src/modules/catalog/__tests__/testmgmt/boot.test.ts. It matches LD-386 exactly: PARTYSET_ICD has the 5 ids, pending = PRICETOOLS + PARTYSET_ICD sorted, length = 110 + 7 + 6 + 5, no ICD id has a handler, titles updated, no assertion removed. referrers.wording.test.ts and the CI greps were not touched. No contract, migration, RLS, permission or error code change in this range. No PHI and no secrets. probe-rows/catalog.sql already has catalog.import_batch.
+
+1. services/api/.orchestra/notes/T0B-TESTIMPORT-1-debug.md:1 — a stray notes file outside the owned paths. The debugger wrote it with the wrong working directory, so it created a second `.orchestra` tree inside services/api. Fix: `git rm services/api/.orchestra/notes/T0B-TESTIMPORT-1-debug.md`, then append its 5 lines to `.orchestra/notes/T0B-TESTIMPORT-1-debug.md` as "## debugger round 4 (second run)". Leave services/api/.orchestra/ with no files.
+
+Not a code defect, for the verify gate: the impl note says the suite has NOT had 3 green runs yet. The failures are boot timeouts and a perf p95 under host load (LD-367/368). done_when (7) needs 3 green runs before done. Do not loosen the 60 s or 120 s timeouts in this task.

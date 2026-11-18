@@ -41,6 +41,14 @@
 #                             file of the upstream release; none is recorded in this repo). With it, step 3 verifies the
 #                             installed/downloaded binary; with LIMS_SOPS_URL (https URL of the release binary) or
 #                             LIMS_SOPS_FILE (a local copy) it also downloads/copies and installs it (no MANUAL pause).
+#   LIMS_NODE_BASE_IMAGE      Node base image for lims/api, worker, web: `<image>:26.13.0[-variant]` or the same with `@sha256:<64 hex>`.
+#                             Asked once, default shown `node:26.13.0-bookworm-slim` [CONV] (candidate from C6's renderer Dockerfiles; CR
+#                             .orchestra/cr/NEPAL-node-base-image.md). The Node version must be 26.13.0 (02-CONVENTIONS 1.1), else refused.
+#                             Non-interactive: must be set (no guess). Step 8 resolves a tag to its manifest-list digest ON THIS SERVER
+#                             (docker buildx imagetools inspect, else docker pull + RepoDigests), prints it and needs an explicit
+#                             confirmation (typed `yes`, or LIMS_CONFIRM_BASE_IMAGE=1), then writes it to the server-local
+#                             /etc/lims/bootstrap/base-images.lock, which build.sh reads via BASE_IMAGES_LOCK. The repo's
+#                             infra/ci/base-images.lock stays EMPTY (no digest is ever committed).
 #   LIMS_MIRROR_REPOS         optional "valkey=<lock repo> squid=<lock repo> clamd=<lock repo>": which lock entries (made by
 #                             `push.sh mirror`) are the third-party images; auto-detected when the repo path ends in the key
 # Other (optional): LIMS_RUNTIME_IMAGES_FILE (default /etc/lims/bootstrap/runtime-images.yml, written by step 8 from the lock),
@@ -250,6 +258,7 @@ run_rollback() {
   n=9; step $n undo-site-runtime; note "no one-shot undo (site.yml is idempotent); see step 7"; ok
   n=8; step $n undo-images
   note "MANUAL: infra/releases/staging.lock.yaml is the kit's file; to go back: bash infra/ci/release-lock.sh staging <previous refs>"
+  note "KEPT: $NODE_LOCK (server-local Node base image pin; rm it by hand to be asked to confirm a digest again)"
   if [ "$DRY" -eq 1 ]; then plan "rm -f $IMAGES_FILE"; else rm -f "$IMAGES_FILE"; fi
   ok
   n=7; step $n undo-site
@@ -329,8 +338,84 @@ prechecks() {
   fi
 }
 
+# =========================================================== Node base image (step 8)
+# 02-CONVENTIONS 1.1: Node 26.13.0, base image by digest. The image/variant is not in the spec: CR .orchestra/cr/NEPAL-node-base-image.md.
+# The digest is resolved and confirmed ON THIS SERVER and kept in a server-local lock (never in the repo); build.sh reads it via BASE_IMAGES_LOCK.
+NODE_VERSION=26.13.0
+NODE_DEFAULT=node:26.13.0-bookworm-slim # [CONV] the founder's default to confirm; same variant as C6's renderer Dockerfiles
+NODE_LOCK=$STATE/base-images.lock
+# node_ref_check REF: returns 0 when REF is <image>:<tag>[@sha256:<64 hex>] (the shape build.sh accepts) and the tag is Node $NODE_VERSION;
+# else prints the reason and returns 1
+node_ref_check() {
+  local ref=$1 tag
+  [[ $ref =~ ^[a-z0-9][a-z0-9._/-]*(:[A-Za-z0-9_.-]+)?(@sha256:[0-9a-f]{64})?$ ]] || { echo "not <image>:<tag>[@sha256:<64 hex>]"; return 1; }
+  tag=${ref%%@*}; tag=${tag##*/}
+  case $tag in *:*) tag=${tag#*:} ;; *) tag="" ;; esac
+  [ -n "$tag" ] || { echo "no tag, so the Node version cannot be checked (name it, e.g. $NODE_DEFAULT)"; return 1; }
+  [[ $tag == "$NODE_VERSION" || $tag == "$NODE_VERSION"-* ]] || { echo "tag '$tag' is not Node $NODE_VERSION (02-CONVENTIONS 1.1)"; return 1; }
+}
+# node_digest_of REF: prints the manifest-list digest (sha256:<64 hex>) of the tag REF as the registry serves it now
+node_digest_of() {
+  local ref=$1 d=""
+  if docker buildx version >/dev/null 2>&1; then
+    d=$(docker buildx imagetools inspect "$ref" 2>/dev/null | sed -n 's/^Digest:[[:space:]]*\(sha256:[0-9a-f]\{64\}\)[[:space:]]*$/\1/p' | head -n 1) || d=""
+  fi
+  if [ -z "$d" ]; then # no buildx (or it failed): pull, then read RepoDigests
+    docker pull -q "$ref" >/dev/null 2>&1 || return 1
+    d=$(docker image inspect --format '{{index .RepoDigests 0}}' "$ref" 2>/dev/null) || return 1
+    d=${d##*@}
+  fi
+  [[ $d =~ ^sha256:[0-9a-f]{64}$ ]] || return 1
+  echo "$d"
+}
+# node_resolve REF: prints <image>:<tag>@sha256:<64 hex> on stdout (reasons on stderr), return 1 when refused or unresolvable. No prompt, no write.
+node_resolve() {
+  local ref=$1 why d
+  why=$(node_ref_check "$ref") || { echo "refused: '$ref': $why" >&2; return 1; }
+  case $ref in *@sha256:*) echo "$ref"; return 0 ;; esac
+  d=$(node_digest_of "$ref") || { echo "cannot resolve '$ref' to a digest (docker buildx imagetools inspect and docker pull both failed: no registry access?)" >&2; return 1; }
+  echo "$ref@$d"
+}
+# node_confirm REF: explicit human confirmation of a digest read from the registry (typed yes, or LIMS_CONFIRM_BASE_IMAGE=1)
+node_confirm() {
+  local a=""
+  echo "  Node base image to pin: $1"
+  echo "  (digest read from the registry just now; recorded only in $NODE_LOCK on this server, never in the repo)"
+  if [ "${LIMS_CONFIRM_BASE_IMAGE:-0}" = 1 ]; then echo "  confirmed by LIMS_CONFIRM_BASE_IMAGE=1"; return 0; fi
+  [ "$NONINT" != 1 ] || fail "non-interactive: check the digest above, then set LIMS_CONFIRM_BASE_IMAGE=1 and re-run"
+  [ -t 0 ] || fail "stdin is not a terminal: set LIMS_CONFIRM_BASE_IMAGE=1 after checking the digest above"
+  read -r -p "  Type 'yes' to use this digest: " a || fail "no input"
+  [ "$a" = yes ] || fail "base image digest not confirmed; nothing written"
+}
+node_lock_value() { [ -f "$NODE_LOCK" ] && sed -n 's/^NODE_BASE_IMAGE=//p' "$NODE_LOCK" | tail -n 1 || true; }
+node_lock_write() {
+  local tmp
+  install -d -m 0700 "$STATE"
+  tmp=$(mktemp "$STATE/.base-images.lock.XXXXXX")
+  {
+    echo "# bootstrap.sh step 8: SERVER-LOCAL copy of the base image lock (not the repo's infra/ci/base-images.lock, which stays empty)."
+    echo "# Use: BASE_IMAGES_LOCK=$NODE_LOCK bash infra/ci/build.sh <release>.  Node $NODE_VERSION (02-CONVENTIONS 1.1)."
+    echo "NODE_BASE_IMAGE=$1"
+  } >"$tmp"
+  chmod 0644 "$tmp"
+  mv -f "$tmp" "$NODE_LOCK"
+}
+# node_base_prepare: LIMS_NODE_BASE_IMAGE -> confirmed digest ref in $NODE_LOCK (idempotent: a lock for the same <image>:<tag> is kept)
+node_base_prepare() {
+  local want=$LIMS_NODE_BASE_IMAGE have pinned
+  have=$(node_lock_value)
+  if [ -n "$have" ] && node_ref_check "$have" >/dev/null 2>&1 && [[ $have == *@sha256:* ]] \
+    && { [ "$have" = "$want" ] || [ "${have%%@*}" = "$want" ]; }; then
+    note "Node base image already pinned and confirmed in $NODE_LOCK: $have"; return 0
+  fi
+  pinned=$(node_resolve "$want") || fail "Node base image: $want (see above)"
+  case $want in *@sha256:*) note "Node base image given by digest: $pinned" ;; *) node_confirm "$pinned" ;; esac
+  node_lock_write "$pinned"
+  note "wrote $NODE_LOCK (NODE_BASE_IMAGE=$pinned)"
+}
+
 # =========================================================== inputs, asked ONCE
-ANSWER_NAMES="LIMS_ORIGIN_STAFF_WEB LIMS_ORIGIN_PORTAL LIMS_ORIGIN_API LIMS_ACME_EMAIL LIMS_ACME_MODE SOPS_AGE_KEY_FILE LIMS_SECRETS_DIR LIMS_RELEASE"
+ANSWER_NAMES="LIMS_ORIGIN_STAFF_WEB LIMS_ORIGIN_PORTAL LIMS_ORIGIN_API LIMS_ACME_EMAIL LIMS_ACME_MODE SOPS_AGE_KEY_FILE LIMS_SECRETS_DIR LIMS_RELEASE LIMS_NODE_BASE_IMAGE"
 for _k in $(disk_list | awk '{ print $1 }'); do ANSWER_NAMES="$ANSWER_NAMES $(disk_var "$_k")"; done
 load_answers() {
   local k v n
@@ -365,6 +450,12 @@ collect_inputs() {
       note "$k = ${!k:-<asked at run time or taken from the variable>}"
     done
     note "LIMS_ACME_MODE = ${LIMS_ACME_MODE:-staging}   (letsencrypt|staging|internal_ca)"
+    if [ -n "${LIMS_NODE_BASE_IMAGE:-}" ]; then
+      if v=$(node_ref_check "$LIMS_NODE_BASE_IMAGE"); then note "LIMS_NODE_BASE_IMAGE = $LIMS_NODE_BASE_IMAGE   (digest confirmed at step 8)"
+      else note "LIMS_NODE_BASE_IMAGE = $LIMS_NODE_BASE_IMAGE   would FAIL $v"; fi
+    else
+      note "LIMS_NODE_BASE_IMAGE would ASK: Node base image [default to confirm: $NODE_DEFAULT]   (must be Node $NODE_VERSION; step 8 resolves the digest and asks you to confirm it)"
+    fi
     note "SOPS_AGE_KEY_FILE = ${SOPS_AGE_KEY_FILE:-$KEY_DEFAULT}   (age private key stays on this server at this path)"
     note "LIMS_SECRETS_DIR = ${LIMS_SECRETS_DIR:-/root/lims-secrets-work}"
     for k in $(disk_list | awk '{ print $1 }'); do
@@ -383,6 +474,9 @@ collect_inputs() {
   ask SOPS_AGE_KEY_FILE "where the age PRIVATE key is kept (path on this server)" "$KEY_DEFAULT"
   ask LIMS_SECRETS_DIR "lims-secrets checkout directory (path on this server)" /root/lims-secrets-work
   ask LIMS_RELEASE "release id for the first deploy (vX.Y.Z-rc.N)"
+  [ "$NONINT" != 1 ] || [ -n "${LIMS_NODE_BASE_IMAGE:-}" ] || fail "non-interactive: set LIMS_NODE_BASE_IMAGE (e.g. $NODE_DEFAULT; Node $NODE_VERSION)"
+  ask LIMS_NODE_BASE_IMAGE "Node $NODE_VERSION base image for api/worker/web (step 8 pins its digest; confirm or change)" "$NODE_DEFAULT"
+  v=$(node_ref_check "$LIMS_NODE_BASE_IMAGE") || fail "LIMS_NODE_BASE_IMAGE '$LIMS_NODE_BASE_IMAGE': $v"
   resolve_disks
   if [ -n "$DISK_ASK" ]; then
     echo "  whole disks under /dev/disk/by-id (partitions left out; pick the 4 EMPTY private disks, never the OS disk):"
@@ -450,8 +544,9 @@ PLAN (what this run will do on THIS host):
   5 age-key             age-keygen (private key stays in the path you chose)
   6 secrets             lims-secrets checkout, .sops.yaml from the kit, role secrets_render tasks_from generate
   7 site                ansible-playbook -i $INV_NAME site.yml (stops at lims_runtime if no image digests yet)
-  8 images              builds the derived DB image (docker build, infra/images/postgres-pgbackrest); MANUAL only: build.sh, docker login, push.sh,
-                        push.sh mirror; then runtime-images.sh writes the lims_runtime_images file from the release lock
+  8 images              builds the derived DB image (docker build, infra/images/postgres-pgbackrest); pins the Node base image digest in the
+                        server-local $NODE_LOCK (resolved here, you confirm it); MANUAL only: build.sh (BASE_IMAGES_LOCK=that file), docker login,
+                        push.sh, push.sh mirror; then runtime-images.sh writes the lims_runtime_images file from the release lock
   9 site-runtime        site.yml again with the digests (skipped when 7 was complete)
   10 db-bootstrap       ansible-playbook -i $INV_NAME db-bootstrap.yml (first deploy only; marker guard)
   11 deploy             infra/ci/deploy.sh staging <release> (runs deploy.yml, smoke.sh, rolls back on failure)
@@ -722,7 +817,10 @@ s8_images() {
     plan "docker build -t $DB_IMAGE_NAME:\$LIMS_RELEASE infra/images/postgres-pgbackrest   (derived DB image; skipped when the tag exists; needs $BUILD_HOSTS_NAMES; the tarball sha256 is checked inside the build, LD-34)"
     plan "require $LOCK with lims/{api,worker,web,portal,renderer,pdf-sandbox} and the mirrored valkey + squid (+ $DB_IMAGE_NAME for the DB host)"
     plan "bash infra/ci/runtime-images.sh staging --lock $LOCK --out $IMAGES_FILE [--map valkey|squid|clamd=<lock repo>]   (lock -> lims_runtime_images with: $RUNTIME_KEYS; automatic)"
-    note "MANUAL only if the lock is incomplete: bash infra/ci/build.sh <release> (needs infra/ci/base-images.lock), docker login, push.sh staging ..., push.sh mirror <image>@sha256:<hex>"
+    plan "Node base image (only if the lock is incomplete): LIMS_NODE_BASE_IMAGE=${LIMS_NODE_BASE_IMAGE:-$NODE_DEFAULT}: refuse unless Node $NODE_VERSION; if not <image>@sha256:<64 hex> then docker buildx imagetools inspect <ref> (else docker pull + docker image inspect RepoDigests) -> manifest-list digest"
+    note "would ASK: print the digest and require an explicit confirmation (typed 'yes', or LIMS_CONFIRM_BASE_IMAGE=1); nothing is pinned without it"
+    plan "write NODE_BASE_IMAGE=<image>:<tag>@sha256:<64 hex> to $NODE_LOCK (server-local; the repo's infra/ci/base-images.lock stays empty)"
+    note "MANUAL only if the lock is incomplete: BASE_IMAGES_LOCK=$NODE_LOCK bash infra/ci/build.sh <release>, docker login, push.sh staging ..., push.sh mirror <image>@sha256:<hex>"
     ok; return 0
   fi
   if [ -z "$(docker images -q "$DB_IMAGE_NAME:$LIMS_RELEASE" 2>/dev/null || true)" ]; then
@@ -731,8 +829,10 @@ s8_images() {
     note "$DB_IMAGE_NAME:$LIMS_RELEASE already built"
   fi
   if images_from_lock; then ok "($IMAGES_FILE written from $LOCK)"; return 0; fi
+  node_base_prepare
   manual images images_from_lock "The registry now exists (site.yml). Build and push the images; push.sh writes infra/releases/staging.lock.yaml, then bootstrap writes $IMAGES_FILE from it:
-  1. bash infra/ci/build.sh $LIMS_RELEASE                      (images lims/api worker web portal renderer pdf-sandbox; needs NODE_BASE_IMAGE in infra/ci/base-images.lock, CR NEPAL-node-base-image)
+  1. BASE_IMAGES_LOCK=$NODE_LOCK bash infra/ci/build.sh $LIMS_RELEASE
+                                                               (images lims/api worker web portal renderer pdf-sandbox; the Node base image digest was pinned and confirmed just now in the server-local $NODE_LOCK, CR NEPAL-node-base-image)
   2. docker login registry.lims.internal:5000                  (push.sh assumes a logged-in docker)
   3. bash infra/ci/push.sh staging lims/api:$LIMS_RELEASE lims/worker:$LIMS_RELEASE lims/web:$LIMS_RELEASE lims/portal:$LIMS_RELEASE lims/renderer:$LIMS_RELEASE lims/pdf-sandbox:$LIMS_RELEASE $DB_IMAGE_NAME:$LIMS_RELEASE
   4. third-party images (valkey, squid, clamd), by digest: bash infra/ci/push.sh mirror <image>@sha256:<64 hex>

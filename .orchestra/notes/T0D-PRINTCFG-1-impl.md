@@ -1,0 +1,8 @@
+# T0D-PRINTCFG-1 impl (writer)
+Files (17): reporting/components/{PrintStationery.tsx, SignatoryProfiles.tsx, print-stationery.css (new), ReportDetailView.tsx}; reporting/server/{types,read.server,write.server,actions}.ts; app/(staff)/{reporting,billing}/settings/page.tsx; billing/components/{InvoiceDetailView.tsx, InvoiceDocument.tsx, print/InvoicePrintView.tsx, billing.css}; billing/server/{types,write.server,actions}.ts; core/prefs/print-style.ts (new).
+Results: printcfg1 72/72, bl-t20 54, acct1 194, acct2 268, bl-t23 25, rs-c2 74 green. rs-c6 7 fail and c6-t31 3 fail: see dispute (5 baseline pins need re-record; worklist ones pre-existing from T0D-UILIST-1).
+[CONV] Sections are siblings of the settings forms in the pages (keeps c6-t31/bl-t20 form tests free of new requests); they load client side so a failed read stays inline.
+[CONV] Branch picker = kit Select with the button's aria-labelledby ids swapped so the name reads "Branch <value>" (apps/web has no react-aria-components dependency).
+[CONV] Remembered bill style lives in core/prefs/print-style.ts (density.ts pattern): bl-t20 forbids web storage in billing UI code; the value is a UI preference, not PHI.
+[CONV] Signature upload: kind 'logo' on uploadBrandingAsset (no signature kind, CR needed); needs identity.settings.manage; images shown via the existing /engagement/content/assets proxy. Signer key user_id joined to membership_id (CR gap). Plain B/W bill also stripped client side (no logo/phones/footer note).
+Open: CR for signature asset kind and user_id on UserSummary; recipient_type (LD-319) not editable; finance-only users get 403 from the API on invoice profiles until CR T0C-PRINTCFG-1 is ruled; 1366x768 fit not machine-checked.

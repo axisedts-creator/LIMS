@@ -137,7 +137,7 @@ describe('credit parties — handlers over the service, validated against the Op
     const r = await call(seeded(), 'getCreditParty', req({ params: { credit_party_id: X.id } }));
     expect(r.status).toBe(200);
     expect(itemOk(r.body)).toEqual([]);
-    expect(r.body).toMatchObject({ id: X.id, party_code: 'CPX1', allows_credit: false, pan: '123456789', contact_phone_e164: P1, contact_email: 'billing@example.test', billing_address: 'Synthetic Street 1, Synthetic City' });
+    expect(r.body).toMatchObject({ id: X.id, party_code: 'CPX1', allows_credit: false, pan: '*****6789', contact_phone_e164: P1, contact_email: 'billing@example.test', billing_address: 'Synthetic Street 1, Synthetic City' }); // T0B-PARTYSET-1 ruling item 2: pan masked in every read
   });
 
   it('AC-12.4 / AB-22 / S-11: GET one with catalog.price_list.read only (front_desk) -> still a valid CreditParty, but pan, contact_phone_e164, contact_email and billing_address are ABSENT', { timeout: T }, async () => {

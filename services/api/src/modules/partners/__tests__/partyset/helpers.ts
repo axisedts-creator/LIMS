@@ -4,7 +4,10 @@
 // every handler asserts its own x-permission through IdentityPort.assertRole; privileged partners.party_id_number.read needs aal2 (else auth.mfa_required);
 // ctx.commitOnError() (core feature) keeps the tx alive when the handler throws after calling it; the mask = '*' x (length-4) + last four characters (see contract examples).
 import { expect } from 'vitest';
+import { createCoreRepo } from '../../../../core/core-repo/index.js';
 import { LimsError } from '../../../../core/errors.js';
+import { createEvents } from '../../../../core/events/publish.js';
+import { manifest as catalogManifest } from '../../../catalog/index.js';
 import { manifest as partnersManifest } from '../../index.js';
 import { appTx } from '../../../frontdesk/__tests__/integration/helpers.js';
 import { BRANCH, CENTRE, NOW, SYS_ACTOR, T, TENANT_A, TENANT_B, TODAY_NPT, auditRows, codeOf, dbRow, dbRows, forbidden, idem, ifm, mkCreditParty, mkDoctor, mkInvoice,
@@ -37,11 +40,22 @@ const WRITE = /^\s*(insert|update|delete|truncate)\b/i;
 type H = (r: any, ctx: any) => Promise<{ status: number; body?: any; headers?: Record<string, string> }>;
 
 /** One request = one committed tx under `who.tenant` (RLS on); a throw rolls back and is RETURNED as {error} (unless the handler called ctx.commitOnError() first: then the tx commits). */
+let registryDone = false;
+/** app.enqueue_job rejects identifiers absent from core.g_task_registry (same as frontdesk ensureTaskRegistry; the FD-T03 boot skips registry-sync). The partners tasks updatePartner / statements enqueue are added (ruling item 1). Superuser, idempotent. */
+async function ensureTaskRegistry(): Promise<void> {
+  if (registryDone) return;
+  await superTx(async (tx) => { await tx.query(`INSERT INTO core.g_task_registry (identifier,module,kind,scope,max_attempts) VALUES
+    ('core.event_fanout','core','core','per_tenant',25), ('partners.sync_price_list','partners','task','per_tenant',5), ('partners.sync_statements','partners','task','per_tenant',5),
+    ('partners.reconcile_orders','partners','task','per_tenant',5) ON CONFLICT DO NOTHING`); });
+  registryDone = true;
+}
+
 export async function fire(operationId: string, r: ReturnType<typeof req>, who: Who, o: { now?: Date; manifest?: { handlers: Record<string, unknown> } } = {}): Promise<Outcome> {
   const probe: Probe = { sql: [], writes: [], logs: [], identity: [], access: [] };
   const handler = (((o.manifest ?? partnersManifest).handlers) as Record<string, H | undefined>)[operationId];
   if (typeof handler !== 'function') return { error: new Error(`no handler for ${operationId} (still pending / stub)`), probe };
   const at = o.now ?? NOW;
+  await ensureTaskRegistry();
   const run = async (raw: any) => {
     let keep = false;
     const tx = { startedAt: at, query: (text: string, values?: unknown[]) => { probe.sql.push(text); if (WRITE.test(text)) probe.writes.push(text); return raw.query(text, values); } };
@@ -59,7 +73,9 @@ export async function fire(operationId: string, r: ReturnType<typeof req>, who: 
         },
         async getActor() { return { actor: { type: 'user', id: who.userId, membershipId: who.membershipId }, displayName: 'Synthetic Caller', roles: [], permissions: [...who.grants], centreScope: { all: true, centreIds: [] }, branchIds: [], mfa: { enrolled: who.mfa === 'aal2', level: who.mfa }, isLocked: false }; },
         async getTenantSettings() { return { timezone: 'Asia/Kathmandu', numbering: {}, channels: {}, featureFlags: {} }; },
-      } },
+      }, CatalogPort: catalogManifest.ports.CatalogPort },
+      // ruling item 1: what the pipeline always supplies (ctx.events = real core createEvents, ctx.core = real createCoreRepo reading core.branches / core.centres)
+      events: createEvents({ producer: (o.manifest as { name?: string } | undefined)?.name ?? 'partners' }), core: createCoreRepo({} as never),
       audit: { access: async (e: any) => { probe.access.push(e); } }, commitOnError: () => { keep = true; },
     };
     try { return { reply: await handler(r, ctx) } as { reply?: any; error?: unknown }; } catch (e) { if (keep) return { error: e }; throw e; }

@@ -26,7 +26,9 @@ const PRIVILEGED_HERE: ReadonlySet<string> = new Set([P.approve]);
 export const mid = (side: 'a' | 'b', n: number): string => `01a1a98a-ac40-7000-8000-00000000${side}${n}`;
 export const MIN = 60_000;
 
-export interface Who { tenant: string; membershipId: string; displayName: string; grants: readonly string[]; mfa: 'aal1' | 'aal2'; centreIds: readonly string[] }
+export interface Who { tenant: string; membershipId: string; displayName: string; grants: readonly string[]; mfa: 'aal1' | 'aal2'; centreIds: readonly string[];
+  /** T0B-FINCTRL-1: extra IdentityPort.getTenantSettings keys (require_discount_reason). Absent = the shared TENANT_SETTINGS, as before. */
+  settings?: Record<string, unknown> }
 /** Front-desk operator: may request and register, may NOT approve. */
 export const REQUESTER: Who = { tenant: TENANT_A, membershipId: mid('a', 501), displayName: 'Synthetic Lab Alpha Front desk (SYNTHETIC)', grants: [P.apply, P.reg, P.inv], mfa: 'aal1', centreIds: [CENTRE.a] };
 /** Finance approver at aal2 (holds frontdesk.discount.approve). */
@@ -53,7 +55,7 @@ function identityOf(w: Who) {
       return { actor: { type: 'system', id: SYS_ACTOR, membershipId: w.membershipId }, displayName: w.displayName, roles: [], permissions: [...w.grants],
         centreScope: { all: false, centreIds: w.centreIds }, branchIds: [BRANCH.a], mfa: { enrolled: w.mfa === 'aal2', level: w.mfa }, isLocked: false };
     },
-    async getTenantSettings() { return TENANT_SETTINGS; },
+    async getTenantSettings() { return w.settings ? { ...TENANT_SETTINGS, ...w.settings } : TENANT_SETTINGS; },
   };
 }
 

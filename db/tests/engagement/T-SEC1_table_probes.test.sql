@@ -19,11 +19,13 @@ INSERT INTO expected VALUES
  ('number_counters','SIUD',false),('enquiries','SIU',false),('enquiry_messages','SI',false),('cs_booking_cancel_reasons','SIU',false),('cs_reminder_reasons','SIU',false),('cs_enquiry_categories','SIU',false),
  ('g_cs_booking_cancel_reasons','S',true),('g_cs_reminder_reasons','S',true),('g_cs_enquiry_categories','S',true),('event_inbox','SI',false),
  -- T0B-GREEN-3 (STALE): migration 20261117240000 (T0C-MSGDESK-1) added three staff-only tenant tables (S I U for lims_app, one policy per command, no DELETE)
- ('broadcast_template','SIU',false),('broadcast','SIU',false),('broadcast_recipient','SIU',false);
+ ('broadcast_template','SIU',false),('broadcast','SIU',false),('broadcast_recipient','SIU',false),
+ -- T0B-GREEN-3 (STALE): migration 20261117130000_engagement__add_portal_content.sql (T0C-CONTENT-1, LD-313/LD-325) added two staff-write tenant tables (S I U for lims_app, no DELETE)
+ ('portal_content','SIU',false),('profile_image','SIU',false);
 
-SELECT is((SELECT count(*) FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = 'engagement' AND c.relkind IN ('r','p')), 43::bigint,
-  'engagement schema holds exactly the 43 tables (40 of 05-SCHEMA §1 + 3 broadcast tables of T0C-MSGDESK-1)');
-SELECT is((SELECT count(*) FROM expected), 43::bigint, 'the probe list has 43 rows');
+SELECT is((SELECT count(*) FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = 'engagement' AND c.relkind IN ('r','p')), 45::bigint,
+  'engagement schema holds exactly the 45 tables (40 of 05-SCHEMA §1 + 3 broadcast tables of T0C-MSGDESK-1 + portal_content and profile_image of migration 20261117130000)');
+SELECT is((SELECT count(*) FROM expected), 45::bigint, 'the probe list has 45 rows');
 SELECT is((SELECT array_agg(c.relname::text ORDER BY c.relname) FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = 'engagement' AND c.relkind IN ('r','p')),
           (SELECT array_agg(tbl ORDER BY tbl) FROM expected), 'no table is missing or unexpected (every table is probed)');
 

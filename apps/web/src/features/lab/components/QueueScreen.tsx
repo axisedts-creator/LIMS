@@ -246,6 +246,15 @@ export function QueueScreen({ mode, items, permissions, onStepUp, currentUserId,
     else if (k === 'r' && canAct && sel) { e.preventDefault(); void openReturn(); }
   };
 
+  // 04-UI-UX §3.8 "Bulk select (Space, Shift+↓)": Shift+ArrowDown ticks this and the next tickable registration and moves focus to its box (j/k stay with SplitConsole)
+  const onRowKey = (e: KeyboardEvent<HTMLInputElement>, g: Reg) => {
+    if (e.key !== 'ArrowDown' || !e.shiftKey || !tickable(g)) return;
+    e.preventDefault();
+    const next = regs.slice(regs.indexOf(g) + 1).find(tickable);
+    setTicked((p) => new Set([...p, g.no, ...(next ? [next.no] : [])]));
+    if (next) [...(e.currentTarget.closest('table')?.querySelectorAll<HTMLInputElement>('[data-queue-tick]') ?? [])].find((x) => x.dataset.queueTick === next.no)?.focus();
+  };
+
   const list = (
     <div className="lims-data-table"><div className="lims-table-scroll">
       <table className="lims-table" aria-label={`${title} queue`}>
@@ -264,7 +273,7 @@ export function QueueScreen({ mode, items, permissions, onStepUp, currentUserId,
                 {...(dim ? { 'aria-disabled': true, style: { opacity: 0.55 } } : {})}>
                 <td>{first.priority}</td>
                 <td>
-                  <input type="checkbox" aria-label={`Select ${g.no}`} checked={tickable(g) && ticked.has(g.no)} disabled={!tickable(g)} {...(!tickable(g) ? { title: !canAct ? c.denied : dim ? MINE : 'Flagged: open it and review each result' } : {})} onChange={(e) => toggleTick(g.no, e.target.checked)} />{' '}
+                  <input type="checkbox" aria-label={`Select ${g.no}`} data-queue-tick={g.no} checked={tickable(g) && ticked.has(g.no)} disabled={!tickable(g)} {...(!tickable(g) ? { title: !canAct ? c.denied : dim ? MINE : 'Flagged: open it and review each result' } : {})} onChange={(e) => toggleTick(g.no, e.target.checked)} onKeyDown={(e) => onRowKey(e, g)} />{' '}
                   <button type="button" className="lims-link" data-console-item={g.no} onClick={() => setSelNo(g.no)}>{g.no}</button>
                 </td>
                 <td title={first.patient_display.full_name}>{first.patient_display.full_name}</td>

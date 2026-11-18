@@ -5,7 +5,7 @@ import { spawnSync } from 'node:child_process';
 import { gzipSync } from 'node:zlib';
 import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import ts from 'typescript';
+import * as nodeModule from 'node:module';
 
 const web = fileURLToPath(new URL('../../../../', import.meta.url));
 const dir = join(web, 'src/core/offline');
@@ -18,10 +18,12 @@ describe('offline layer source', () => {
     for (const m of ['index.ts', 'store.ts', 'outbox.ts', 'engine.ts', 'connectivity.ts', 'device.ts', 'register-sw.ts']) expect(names, m).toContain(m);
   });
 
-  it('shell JavaScript grows by at most 25 KB gzipped (transpiled, comments removed: a conservative upper bound of the minified bundle)', () => {
+  it('shell JavaScript grows by at most 25 KB gzipped (raw source gzip, upper bound)', () => {
     const files = impl();
     expect(files.length).toBeGreaterThan(0);
-    const js = files.map((f) => ts.transpileModule(readFileSync(f, 'utf8'), { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext, removeComments: true } }).outputText).join('\n');
+    // upper bound: raw source (types and comments included) can only over-count the minified bundle; strip types when node offers it
+    const strip = (nodeModule as { stripTypeScriptTypes?: (c: string, o?: { mode: string }) => string }).stripTypeScriptTypes;
+    const js = files.map((f) => { const src = readFileSync(f, 'utf8'); try { return strip && !f.endsWith('.tsx') ? strip(src, { mode: 'transform' }) : src; } catch { return src; } }).join('\n');
     const sw = existsSync(join(web, 'public/sw.js')) ? readFileSync(join(web, 'public/sw.js')) : Buffer.alloc(0);
     const kb = gzipSync(Buffer.from(js)).length / 1024;
     expect(kb, `offline layer is ${kb.toFixed(1)} KB gzip`).toBeLessThanOrEqual(25);

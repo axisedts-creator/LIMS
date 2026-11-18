@@ -1,3 +1,14 @@
+TESTS_WRONG — rs-c4.static.test.ts:74-75 rejects 32 frontdesk_feature server_symbols that are already-landed T0D-REGSCREEN-2 work; no spec line ties them to OFFLINE-3. Apply lead item LD-403 (bottom of this file) with ONE correction.
+Reasons (arbiter, 2026-11-19 03:30, dispute round 14 of verify 03:03):
+1. LD-140 guard binds restyle tasks only (spec/program/10-DESIGN-SYSTEM.md:132-136); lane diff has no OFFLINE-3 source in frontdesk/server.
+2. All 32 names are absent from baseline frontdesk_feature.server_symbols (rs-c4.baseline.json:123-200; the hits for ReceiptDocument/getPatient/listCatalogOptions at :289/:347/:349 are other areas) and are exported from frontdesk/server/*.ts (grep). Writer note (commit e0e76438d) also counts +32.
+3. LD-403 (lead, below) is the lead's pattern decision after LD-400's "escalate instead"; arbiter follows it. Its list has 32 names but its EDIT 3 says toHaveLength(31): counting error.
+TESTER (rs-c4.signature.ts and rs-c4.static.test.ts only; never edit rs-c4.baseline.json): apply LD-403 EDITS 1-3 verbatim EXCEPT write `expect(LD310_ALLOW.regscreen2_symbols).toHaveLength(32); // LD-403`. Commit the two test files themselves, not only notes; run vitest.rs-c4.config.ts and paste the result in the tester note.
+Daily cash (open shift) snapshot: stays parked per the lead NOTE below (escalated to founder); task is NOT done while it is stale. Not an OFFLINE-3 implementation defect.
+WRITER and DEBUGGER: no code change. Could not run vitest here (permission denied); facts from dispute, writer note, grep.
+
+---- prior arbiter ruling (superseded by the above) ----
+
 TESTS_WRONG — rs-c4 still asserts the already-landed REGSCREEN-2/accounting/UIDASH-1 drift is absent; binding LD-400 (task brief) ruled it allowed and fixed the pattern, but its edits are not in C0-0K, so the tester must apply them.
 Reasons (arbiter, 2026-11-19 02:50, dispute round 13 of verify 02:42):
 1. Prior CR_NEEDED (below) waited on a lead pattern decision per LD-398; LD-400 (brief; lead decisions in the brief override spec text) is that decision: route_strings_added becomes a scoped regex. CR resolved; no CR file needed.
@@ -216,3 +227,60 @@ WRITER and DEBUGGER: leave this one snapshot alone until you hear otherwise; do 
 vitest update-snapshot flag again on it this round, and do not mark the task done with it still
 stale. Everything else in this LEAD ITEM (the four edits above) is normal, ruled work -- apply and
 commit those as usual.
+
+----
+LEAD ITEM, LD-403 (T0D-OFFLINE-3): new rs-c4 server_symbols gap -- 31 already-landed T0D-REGSCREEN-2
+drafts/custom-fields/favourites/ICD-lookup symbols (CustomFieldDefinition, DraftRecordSummary, IcdCode,
+NumberPreview, OrderFields, ReceiptDocument, addFavouriteAction, addFavouriteTest, createDraftAction,
+createRegistrationDraft, deleteDraftAction, deleteRegistrationDraft, getDraftAction, getPatient,
+getPatientRewards, getPatientRewardsAction, getPatientSummaryAction, getRegistrationDraft,
+listCatalogOptions, listCustomFieldDefinitions, listCustomFieldDefinitionsAction, listDraftsAction,
+listFavouriteTests, listFavouritesAction, listIcdCodes, listIcdCodesAction, listRegistrationDrafts,
+listTestNamesAction, previewNumbersAction, previewRegistrationNumbers, removeFavouriteAction,
+removeFavouriteTest), all exported from the 3 already-allowed logic_files (server/actions.ts,
+server/read.server.ts, server/types.ts) -- same pattern as LD-391/393/398/400/401. None destructive:
+all read/list/create-draft/delete-draft/favourite-toggle/preview actions and type names; no account,
+party or ledger symbol among them, and none match the trf_symbol pattern either.
+
+EDIT 1 of rs-c4.signature.ts -- inside LD310_ALLOW, find this exact line:
+
+  server_symbols: ['createCreditPartyAction', 'createDoctorAction'],
+
+Replace it with:
+
+  // LD-403 (T0D-OFFLINE-3): already-landed T0D-REGSCREEN-2 drafts/custom-fields/favourites/ICD-lookup
+  // symbols (server/actions.ts, server/read.server.ts, server/types.ts); excluded before the
+  // trf_symbol check, same device as accounts_symbols.
+  regscreen2_symbols: [
+    'CustomFieldDefinition', 'DraftRecordSummary', 'IcdCode', 'NumberPreview', 'OrderFields', 'ReceiptDocument',
+    'addFavouriteAction', 'addFavouriteTest', 'createDraftAction', 'createRegistrationDraft', 'deleteDraftAction',
+    'deleteRegistrationDraft', 'getDraftAction', 'getPatient', 'getPatientRewards', 'getPatientRewardsAction',
+    'getPatientSummaryAction', 'getRegistrationDraft', 'listCatalogOptions', 'listCustomFieldDefinitions',
+    'listCustomFieldDefinitionsAction', 'listDraftsAction', 'listFavouriteTests', 'listFavouritesAction',
+    'listIcdCodes', 'listIcdCodesAction', 'listRegistrationDrafts', 'listTestNamesAction', 'previewNumbersAction',
+    'previewRegistrationNumbers', 'removeFavouriteAction', 'removeFavouriteTest',
+  ],
+  server_symbols: ['createCreditPartyAction', 'createDoctorAction'],
+
+EDIT 2 of rs-c4.static.test.ts -- find this exact line:
+
+    const extraSymbols = added(was.server_symbols, now.server_symbols).filter((s) => !(LD310_ALLOW.server_symbols as readonly string[]).includes(s) && !(LD310_ALLOW.accounts_symbols as readonly string[]).includes(s));
+
+Replace it with:
+
+    // LD-403, T0D-OFFLINE-3: regscreen2_symbols excluded the same way accounts_symbols already is
+    const extraSymbols = added(was.server_symbols, now.server_symbols).filter((s) => !(LD310_ALLOW.server_symbols as readonly string[]).includes(s) && !(LD310_ALLOW.accounts_symbols as readonly string[]).includes(s) && !(LD310_ALLOW.regscreen2_symbols as readonly string[]).includes(s));
+
+EDIT 3 of rs-c4.static.test.ts -- find this exact line:
+
+    expect(LD310_ALLOW.accounts_symbols).not.toContain('deleteEverythingAction');
+
+Replace it with:
+
+    expect(LD310_ALLOW.accounts_symbols).not.toContain('deleteEverythingAction');
+    expect(LD310_ALLOW.regscreen2_symbols).toHaveLength(31); // LD-403
+    expect(LD310_ALLOW.regscreen2_symbols).not.toContain('deleteEverythingAction');
+
+That is the whole fix for this LEAD ITEM. Do not touch anything else in either file. Do not touch
+the Daily cash snapshot in this round -- still parked per the note above, awaiting the founder's
+answer on the snapshot-editing tooling gap.

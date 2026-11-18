@@ -13,3 +13,6 @@
 # round 5 (verify log 20:20 full run, 25 fail / 9 files)
 - Cause: stale lane, no code defect. main has 0 matches of commission_bp in catalog.yaml and partyset/doctor.test.ts (LD-385, d3480c343); lane HEAD (29 commits behind main) still has the old contract+tests, so 7 doctor commission_bp tests fail; writer correctly omits the column (referrers.service.ts:23). Other fails = TESTIMPORT catalog-import ids pending in lane (testmgmt/boot.test.ts, import/*), not owned here.
 - Fix: none in source, tests untouched. Needed: task START merge of main into lane/C0-0I (merger agent), then re-run verify on an idle host. Boot test alone passes 2/2 (20:41).
+# round 6 (verify log 20:53, 9 files fail / 236 pass; boot test alone passes 2/2)
+- Cause: same stale lane, no code defect. HEAD is still 29 commits behind main (LD-385 commission_bp removal and TESTIMPORT catalog ids are in main only). Fails: referrers.wording (commission in doctor schema, contract side), testmgmt/boot (catalog pending list 13 vs 7, 128 ops vs 117).
+- Fix: none in source, tests untouched, no dispute. Needed: task START merge of main into lane/C0-0I by the merger agent, then re-run verify on an idle host.

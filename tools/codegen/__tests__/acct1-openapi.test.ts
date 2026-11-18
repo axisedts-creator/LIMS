@@ -137,8 +137,9 @@ describe("T0C-ACCT-1 contract: lint, baseline kept, additive", () => {
     for (const id of BASELINE) expect(BOPS[id], `${id} removed`).toBeDefined();
     expect(OPS.length).toBe(24);
     // T0C-ACCTLIST-1 (LD-358): +1 operation listAccountSummaries on +1 path /v1/billing/account-summaries (pinned in acctlist1-openapi.test.ts)
-    expect(Object.keys(BOPS).length).toBe(47 + OPS.length + 1);
-    expect(Object.keys(bl.paths).length).toBe(45 + 18 + 1);
+    // T0C-FINCTRL-1 (LD-321): +16 operations on +13 paths (pinned in finctrl1-openapi.test.ts)
+    expect(Object.keys(BOPS).length).toBe(47 + OPS.length + 1 + 16);
+    expect(Object.keys(bl.paths).length).toBe(45 + 18 + 1 + 13);
     expect(BOPS.listLedgerEntries.path).toBe("/v1/billing/ledger-entries");
     expect(BOPS.reverseLedgerEntry.path).toBe("/v1/billing/ledger-entries/{ledger_entry_id}/reverse");
     expect(BOPS.reverseLedgerEntry.op["x-permission"]).toBe("billing.payment.reverse");
@@ -325,7 +326,7 @@ describe("T0C-ACCT-1 contract: account ledger entries", () => {
     for (const f of ["id", "centre_id", "party_kind", "party_id", "entry_date", "account_particular_id", "entry_type", "amount_paisa", "payment_mode", "bank_name", "reference_no", "payment_details", "comments",
       "status", "reverses_entry_id", "receipt_no", "created_by", "last_modified_by", "created_at"]) expect(item.properties[f], `entry.${f}`).toBeDefined();
     for (const f of ["id", "centre_id", "party_kind", "party_id", "entry_date", "account_particular_id", "entry_type", "amount_paisa", "status", "receipt_no", "created_at"]) expect(item.required, `entry.${f} required`).toContain(f);
-    expect([...deref(item.properties.status).enum].sort()).toEqual(["approved", "rejected", "reversed", "submitted"]);
+    expect([...deref(item.properties.status).enum].sort()).toEqual(["approved", "held", "rejected", "reversed", "submitted"]); // T0C-FINCTRL-1 (LD-321) adds held
     expect(item.properties.tenant_id).toBeUndefined();
     expect(JSON.stringify(item.properties.created_at)).toContain("IsoUtc");
     expect(JSON.stringify(schemaOf("getAccountLedgerEntry", "res"))).toBe(JSON.stringify(item));

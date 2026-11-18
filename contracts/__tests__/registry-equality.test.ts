@@ -37,6 +37,8 @@ const MSGDESK_CODES = ["engagement.broadcast.approve", "engagement.broadcast.man
 // T0C-CONTENT-1 (LD-313 c): the two portal content codes, staff only, not privileged (the patient read reuses engagement.self.read).
 const CONTENT_CODES = ["engagement.content.manage", "engagement.content.read"];
 // T0C-PARTYSET-1 (LD-321): party commercial settings, onboarding queue, masked ID reveal (privileged), penalties (partners) and the ICD master (catalog); pinned in tools/codegen/__tests__/partyset1-openapi.test.ts.
+// T0C-FINCTRL-1 (LD-321): discount policy read and manage (manage privileged); pinned in tools/codegen/__tests__/finctrl1-openapi.test.ts.
+const FINCTRL_CODES = ["billing.discount_policy.manage", "billing.discount_policy.read"];
 const PARTYSET_CODES = ["catalog.icd.manage", "partners.onboarding.decide", "partners.party_id_number.read", "partners.party_setting.manage", "partners.party_setting.read", "partners.penalty.manage"];
 
 /** Strict parse: duplicate map keys are errors (IC §7 says "CI parses the file with a YAML parser"). */
@@ -211,7 +213,7 @@ describe("AC-0C-1.3 permissions.yaml == IC §11", () => {
     const icCodes = ic.permissions.map((p: Entry) => p.code);
     const extra = file.permissions.filter((p: Entry) => !icCodes.includes(p.code));
     expect(diffByKey(ic.permissions, file.permissions, "code").filter((d) => !d.startsWith("extra "))).toEqual([]);
-    expect(extra.map((p: Entry) => p.code).sort()).toEqual([...LD313_ACCOUNTING_CODES, ...LD321_SALES_CODES, ...LD322_SYNC_CODES, ...LD316_VERLEVEL_CODES, ...MSGDESK_CODES, ...CONTENT_CODES, ...PARTYSET_CODES].sort());
+    expect(extra.map((p: Entry) => p.code).sort()).toEqual([...LD313_ACCOUNTING_CODES, ...LD321_SALES_CODES, ...LD322_SYNC_CODES, ...LD316_VERLEVEL_CODES, ...MSGDESK_CODES, ...CONTENT_CODES, ...PARTYSET_CODES, ...FINCTRL_CODES].sort());
     expect(file.permissions.filter((p: Entry) => icCodes.includes(p.code)).map((p: Entry) => p.code)).toEqual(icCodes);
     expect({ ...file, fixed_actor_permissions: fileFixed, permissions: file.permissions.filter((p: Entry) => icCodes.includes(p.code)) }).toEqual(ic);
   });

@@ -41,6 +41,7 @@ packs:
           - billing.refund.request
           - billing.release.override
           - billing.settings.manage
+          - catalog.icd.manage
           - catalog.instrument_code_map.manage
           - catalog.price_list.manage
           - catalog.price_list.read
@@ -138,8 +139,13 @@ packs:
           - micro.culture.read
           - micro.culture.work
           - partners.manifest.receive
+          - partners.onboarding.decide
           - partners.partner.manage
           - partners.partner.read
+          - partners.party_id_number.read
+          - partners.party_setting.manage
+          - partners.party_setting.read
+          - partners.penalty.manage
           - partners.pickup.manage
           - partners.referrer.map
           - partners.sales.manage

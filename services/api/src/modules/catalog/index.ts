@@ -17,7 +17,9 @@ export const manifest = {
   // LD-325(b): spec operations without a handler yet (answer 501 operation_pending). T0B-TESTMGMT-1 added the three test category handlers.
   // T0C-PRICETOOLS-1 (LD-321, LD-325(b)): the seven price list tool operations; T0B-PRICETOOLS-1 removes them when it adds the handlers.
   // T0B-TESTIMPORT-1 (LD-325(b)): the six Excel test import operations now have handlers and left this list.
-  pendingOperations: ['downloadPriceListTemplate', 'dryRunPriceListImport', 'commitPriceListImport', 'bulkUpdatePriceListDraft', 'copyPriceList', 'comparePriceLists', 'listPriceListImportBatches'],
+  pendingOperations: ['downloadPriceListTemplate', 'dryRunPriceListImport', 'commitPriceListImport', 'bulkUpdatePriceListDraft', 'copyPriceList', 'comparePriceLists', 'listPriceListImportBatches',
+    // T0C-PARTYSET-1 (LD-321, LD-325(b)): the ICD master; T0B-PARTYSET-1 removes them when it adds the handlers
+    'listIcdMasterCodes', 'searchIcdMasterCodes', 'createIcdMasterCode', 'updateIcdMasterCode', 'deactivateIcdMasterCode'],
   produces: ['catalog.changed.v1'],
   ports: { CatalogPort },
 } as const satisfies ModuleManifest;

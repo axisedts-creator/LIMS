@@ -29,7 +29,10 @@ describe('T0C-MSGDESK-1: partners manifest covers the new operations (handler or
     // T0C-SALES-1 (LD-349): any other pending id must be a partners.sales operation of the contract (until T0B-SALES-1).
     const salesIds = Object.values<any>(spec.paths).flatMap((p) => Object.values<any>(p))
       .filter((m) => m?.operationId && ['partners.sales.read', 'partners.sales.manage'].includes(m['x-permission'])).map((m) => m.operationId as string);
-    expect(pending.filter((id) => !salesIds.includes(id)), 'other pending ids must be partners.sales operations').toEqual([]);
+    // T0C-PARTYSET-1 (LD-321): the 13 party settings operations are pending until T0B-PARTYSET-1.
+    const partysetIds = Object.values<any>(spec.paths).flatMap((p) => Object.values<any>(p))
+      .filter((m) => m?.operationId && /^partners\.(party_setting|onboarding|party_id_number|penalty)\./.test(m['x-permission'] ?? '')).map((m) => m.operationId as string);
+    expect(pending.filter((id) => !salesIds.includes(id) && !partysetIds.includes(id)), 'other pending ids must be partners.sales or party settings operations').toEqual([]);
   });
   it('a handler key that is not a spec operation does not exist (nothing was invented)', () => {
     expect(handlerIds.filter((id) => !specIds.includes(id))).toEqual([]);

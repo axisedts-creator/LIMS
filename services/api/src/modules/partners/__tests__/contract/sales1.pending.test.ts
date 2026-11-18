@@ -34,7 +34,10 @@ describe('T0C-SALES-1: partners manifest covers the sales operations (handler or
     // other pending ids must be partners.ticket operations of the contract (T0C-MSGDESK-1, until T0B-MSGDESK-1), read from the spec
     const ticketIds = Object.values<any>(spec.paths).flatMap((p) => Object.values<any>(p))
       .filter((m) => m?.operationId && ['partners.ticket.read', 'partners.ticket.manage'].includes(m['x-permission'])).map((m) => m.operationId as string);
-    expect(pending.filter((id) => !NEW_OPS.includes(id) && !ticketIds.includes(id)), 'only sales or ticket operations may be pending in partners').toEqual([]);
+    // T0C-PARTYSET-1 (LD-321): its 13 operations (partners.party_setting / onboarding / party_id_number / penalty codes) are pending until T0B-PARTYSET-1
+    const partysetIds = Object.values<any>(spec.paths).flatMap((p) => Object.values<any>(p))
+      .filter((m) => m?.operationId && /^partners\.(party_setting|onboarding|party_id_number|penalty)\./.test(m['x-permission'] ?? '')).map((m) => m.operationId as string);
+    expect(pending.filter((id) => !NEW_OPS.includes(id) && !ticketIds.includes(id) && !partysetIds.includes(id)), 'only sales, ticket or party settings operations may be pending in partners').toEqual([]);
   });
   it('the partners permission list holds the two sales codes (services/api/src/modules/partners/permissions.ts)', async () => {
     const { PARTNERS_PERMISSIONS } = await import('../../permissions.js');

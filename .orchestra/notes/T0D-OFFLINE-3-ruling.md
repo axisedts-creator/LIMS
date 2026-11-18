@@ -1,3 +1,13 @@
+TESTS_WRONG — rs-c4.static.test.ts:79 rejects 9 frontdesk_feature route strings that are already-landed T0D-REGSCREEN-2 work; no spec line ties them to OFFLINE-3. Apply lead item LD-404 (bottom of this file) verbatim.
+Reasons (arbiter, 2026-11-19, dispute after tester 62ed67017):
+1. LD-140 guard binds restyle tasks only (spec/program/10-DESIGN-SYSTEM.md:132-136); the 9 strings live in frontdesk/server/read.server.ts:56-61,77 and write.server.ts:94-98 (grep), REGSCREEN-2 drafts/custom fields/favourites/ICD/number preview, not OFFLINE-3 code.
+2. LD-404 (lead, binding in this lane) is the itemized, anchored regex for exactly these 9; its EDIT 1 "find" text matches rs-c4.signature.ts:116 and EDIT 2 "find" text matches rs-c4.static.test.ts:93 exactly (checked). No correction needed this time.
+TESTER (rs-c4.signature.ts and rs-c4.static.test.ts only; never edit rs-c4.baseline.json): apply LD-404 EDITS 1-2 verbatim. Commit the two test files themselves, not only notes; run vitest.rs-c4.config.ts and paste the result in the tester note.
+Daily cash (open shift) snapshot: still parked per lead (awaiting founder); task is NOT done while it is stale. Not an OFFLINE-3 implementation defect.
+WRITER and DEBUGGER: no code change. Lane-isolation question in LD-404 NOTE TO FOUNDER is outside arbiter scope.
+
+---- prior arbiter ruling (superseded by the above) ----
+
 TESTS_WRONG — rs-c4.static.test.ts:74-75 rejects 32 frontdesk_feature server_symbols that are already-landed T0D-REGSCREEN-2 work; no spec line ties them to OFFLINE-3. Apply lead item LD-403 (bottom of this file) with ONE correction.
 Reasons (arbiter, 2026-11-19 03:30, dispute round 14 of verify 03:03):
 1. LD-140 guard binds restyle tasks only (spec/program/10-DESIGN-SYSTEM.md:132-136); lane diff has no OFFLINE-3 source in frontdesk/server.
@@ -284,3 +294,61 @@ Replace it with:
 That is the whole fix for this LEAD ITEM. Do not touch anything else in either file. Do not touch
 the Daily cash snapshot in this round -- still parked per the note above, awaiting the founder's
 answer on the snapshot-editing tooling gap.
+
+----
+LEAD ITEM, LD-404 (T0D-OFFLINE-3): rs-c4.static.test.ts:79 route_strings_added gap -- 9 more
+already-landed T0D-REGSCREEN-2 route strings (drafts/custom-fields/favourites/ICD/number-preview,
+same module as LD-403's regscreen2_symbols), confirmed by direct source grep of
+frontdesk/server/read.server.ts and write.server.ts (not in the OFFLINE-3 diff): the exact strings
+the ROUTE scanner captures are /v1/frontdesk/custom-field-definitions, /v1/frontdesk/favourite-tests,
+/v1/frontdesk/favourite-tests/${uuid (truncates at the open paren of uuid(orderableId) inside the
+template literal -- this is correct scanner behaviour, not a bug), /v1/frontdesk/icd-codes,
+/v1/frontdesk/registration-drafts, /v1/frontdesk/registration-drafts/${id,
+/v1/frontdesk/registration-drafts/${uuid, /v1/frontdesk/registrations/number-preview, and
+/v1/catalog/${kind} (this one keeps its closing brace because kind has no parens inside the
+template expression). Verified the extended regex below against all 9 plus the existing allow-list
+entries as true, and against /v1/frontdesk/patients and 7 other near-miss negative controls as
+false, with a standalone regex test before writing this.
+
+EDIT 1 of rs-c4.signature.ts -- find this exact line:
+
+  route_strings_added: /^\/v1\/catalog\/tests$|^\/v1\/billing\/|^\/v1\/identity\/(?:centres|users)$|^\/billing\/accounts\/ledger$/,
+
+Replace it with:
+
+  // LD-404 (T0D-OFFLINE-3): extended again for 9 more already-landed T0D-REGSCREEN-2 frontdesk routes
+  // (drafts, custom fields, favourites, ICD lookup, number preview) and the catalog kind lookup route.
+  // Each alternative is itemized and anchored (no open prefix on /v1/frontdesk/) so an unrelated
+  // frontdesk route, such as /v1/frontdesk/patients, is still rejected.
+  route_strings_added: /^\/v1\/catalog\/tests$|^\/v1\/catalog\/\$\{kind\}$|^\/v1\/billing\/|^\/v1\/identity\/(?:centres|users)$|^\/billing\/accounts\/ledger$|^\/v1\/frontdesk\/custom-field-definitions$|^\/v1\/frontdesk\/favourite-tests$|^\/v1\/frontdesk\/favourite-tests\/\$\{uuid$|^\/v1\/frontdesk\/icd-codes$|^\/v1\/frontdesk\/registration-drafts$|^\/v1\/frontdesk\/registration-drafts\/\$\{id$|^\/v1\/frontdesk\/registration-drafts\/\$\{uuid$|^\/v1\/frontdesk\/registrations\/number-preview$/,
+
+EDIT 2 of rs-c4.static.test.ts -- find this exact line:
+
+    expect(LD310_ALLOW.route_strings_added.test('/v1/frontdesk/patients')).toBe(false);
+
+Replace it with:
+
+    expect(LD310_ALLOW.route_strings_added.test('/v1/frontdesk/patients')).toBe(false);
+    expect(LD310_ALLOW.route_strings_added.test('/v1/frontdesk/icd-codes')).toBe(true); // LD-404
+    expect(LD310_ALLOW.route_strings_added.test('/v1/frontdesk/custom-field-definitions/extra')).toBe(false); // LD-404: still scoped, not a prefix match
+
+That is the whole fix for this LEAD ITEM. Do not touch anything else in either file. Do not touch
+the Daily cash snapshot in this round -- still parked, awaiting the founder.
+
+NOTE TO FOUNDER (separate from the LEAD ITEM above, read this part yourself, not the tester):
+This is the 6th distinct rs-c4/LD310_ALLOW allow-list category gap found on T0D-OFFLINE-3 alone
+this session (LD-391, LD-393, LD-398, LD-400/401, LD-403, now LD-404), every single one caused by
+the same root cause: lane C0-0K is a SHARED WORKTREE that keeps re-merging a fast-moving main, so
+every other already-approved feature that lands on main (billing accounting, then REGSCREEN-2)
+shows up inside OFFLINE-3's own lane as a "new addition" against its frozen pre-restyle baseline,
+even though OFFLINE-3's own actual diff has been confirmed unchanged and correct since round 1 (12+
+rounds now). I said in LD-403 I would raise this as a standing question rather than keep patching
+indefinitely once a 6th gap appeared; this is that 6th gap, so I am raising it now rather than
+quietly doing a 7th. The individual fixes have all been small, safe, and mechanically verifiable
+(grep the symbol or route back to an already-landed, already-approved task), so I am not blocked
+and I am not asking you to approve this specific fix -- it is done. What I am asking is whether the
+lane itself should be isolated from main (stop auto-remerging) until OFFLINE-3 is done, or whether
+OFFLINE-3 should be fast-tracked to merge now so it stops catching every other team's landed work,
+since at the current rate of already-landed features merging into main, this could keep recurring.
+This is a lane/process question about how C0-0K is set up, not a feature decision, so it is outside
+what I would rule on myself under LD-310.

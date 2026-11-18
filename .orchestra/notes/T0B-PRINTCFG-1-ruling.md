@@ -5,3 +5,13 @@ TESTS_WRONG — dispute 3 point 1 is a fixture defect (tester fixes it, same cla
 2. LOAD ONLY (ruling dispute 2 point 3 stands): render.client.integration renderer unreachable, bulk-release.load self-check timing and billing boot.test.ts timeout are environmental; no code change. The 3 green runs must still be shown (fewer parallel lanes if needed).
 3. Ruling dispute 2 point 2 (portal SQL to repository/portal.repo.ts) is accepted as done.
 After 1 the writer re-runs the print tests, the reporting and billing suites and the boot test 3x.
+
+
+## LEAD ITEM LD-382 FOR THE TESTER (written by the lead, 17:10 NPT; this is a test file item and it is yours)
+File: services/api/src/modules/reporting/__tests__/render.client.integration.test.ts. Change only this file.
+Why: the 2 cases that print a real PDF fail only in the full 166 worker run (fast, renderer unreachable or failed), pass alone 6 of 6, and the renderer code is identical to main. The vitest retry 2 added for LD-379 cannot help: a retry re-runs inside the same file and reuses the one Chromium pool and renderer server made in beforeAll. The PC is short of virtual memory.
+1. createPool with contexts 1 instead of 2.
+2. Remove the retry 2 option from the 2 PDF cases. Add a helper that, when a render fails with code reporting.render_unavailable, closes the server and the pool, waits 1500 ms times the attempt number, creates a NEW pool and a NEW server (reassign srv and the client url) and tries again, up to 4 attempts inside the 90 s case timeout.
+3. In beforeAll after createPool run a direct probe: pool.render of a tiny html page (no client, no server) with the same fresh start loop. If the probe cannot print a PDF after 4 fresh starts, set a module flag, print one console warning line starting with CHROMIUM_UNAVAILABLE plus os.freemem, and the 2 PDF cases skip themselves. When the probe passes, the 2 cases MUST run and pass with every assertion kept (PDF magic bytes, page count, png asset validation, render still succeeds, token never echoed), so a defect in the client or the server still fails.
+4. When a PDF case still fails after the fresh starts, the thrown error must add the raw HTTP status and the first 200 characters of the body of a direct fetch to the render endpoint with the same body (never the token).
+The skip path exists only for Chromium itself being unable to print a trivial page. Do not touch the renderer, the client or any print code.

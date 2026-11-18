@@ -52,3 +52,7 @@ Fix: none (tests not mine, baseline not regenerated). Lead edits likely landed i
 ## Round 13 (verify 02:42: 3 fail / 34 pass; rs-c4.static x2 + rs-c4.screens Daily cash)
 Cause: no OFFLINE-3 defect. Same rs-c4 guard drift (frontdesk.patient.read, 22 billing route strings, Daily cash snapshot). LD-400 direct edits still NOT on disk in C0-0K: rs-c4.signature.ts:113 still `route_strings_added: ['/v1/catalog/tests']`, rs-c4.static.test.ts:90 still toHaveLength(1); tree clean for apps/.
 Fix: none (tests not mine, baseline not regenerated). Dispute written; lead must apply LD-400 edits in C0-0K and commit before next verify.
+
+## Round 14 (verify 03:03: 2 fail / 35 pass; rs-c4.static frontdesk_feature server_symbols + rs-c4.screens Daily cash snapshot)
+Cause: no OFFLINE-3 defect. Guard drift from already-landed REGSCREEN-2 drafts/favourites/ICD/rewards server symbols (32, e.g. createDraftAction, getPatientRewards, listIcdCodes) and UIDASH-1 Daily cash header/stat row; baseline json frozen.
+Fix: none (tests not mine, no impl change possible). LD-400 said a further trip needs a structural call from the lead/founder, so dispute written: T0D-OFFLINE-3-dispute.md.

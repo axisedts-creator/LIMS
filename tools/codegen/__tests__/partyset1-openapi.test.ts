@@ -449,8 +449,8 @@ describe("T0C-PARTYSET-1 government ID numbers: masked reads, privileged reveal 
 });
 
 describe("T0C-PARTYSET-1 shapes: doctor master parity (done_when 4)", () => {
-  const NEWF = ["speciality", "hospital", "commission_bp", "national_id_number"];
-  it("DoctorCreate and DoctorUpdate gain speciality, hospital, commission_bp, national_id_number as optional fields; nothing existing is required or removed", () => {
+  const NEWF = ["speciality", "hospital", "national_id_number"];
+  it("DoctorCreate and DoctorUpdate gain speciality, hospital, national_id_number as optional fields; nothing existing is required or removed", () => {
     for (const id of ["createDoctor", "updateDoctor"]) {
       const s = reqSchema(C_DOC, id);
       const p = allProps(C_DOC, s);
@@ -460,28 +460,37 @@ describe("T0C-PARTYSET-1 shapes: doctor master parity (done_when 4)", () => {
       expect(p.speciality).toMatchObject({ type: "string" });
       expect(p.speciality.maxLength).toBeLessThanOrEqual(120);
       expect(p.hospital.maxLength).toBeLessThanOrEqual(200);
-      expect(p.commission_bp).toMatchObject({ type: "integer", minimum: 0, maximum: 10000 });
     }
     expect(reqSchema(C_DOC, "createDoctor").required).toEqual(["display_name"]);
   });
-  it("Doctor and DoctorCreated responses carry speciality, hospital, commission_bp, national_id_number (not required)", () => {
+  it("Doctor and DoctorCreated responses carry speciality, hospital, national_id_number (not required)", () => {
     for (const id of ["getDoctor", "createDoctor", "updateDoctor"]) {
       const s = okSchema(C_DOC, id);
       const p = allProps(C_DOC, s);
       for (const f of NEWF) { expect(p[f], `${id} response ${f}`).toBeDefined(); expect(s.required ?? [], f).not.toContain(f); }
-      expect(p.commission_bp.type).toBe("integer");
     }
     expect(allProps(C_DOC, C_DOC.components.schemas.Doctor).speciality).toBeDefined();
   });
-  it("payloads: valid doctor with the new fields; commission 10001, negative, fractional, string and 33 char ID rejected", () => {
+  it("payloads: valid doctor with the new fields; 33 char ID, oversize speciality and hospital rejected; a rate field is refused (LD-385)", () => {
     const v = validatorFor("catalog.yaml", C_DOC, "createDoctor", "req");
-    const ok = { display_name: "Synthetic Doctor", speciality: "Pathology (synthetic)", hospital: "Synthetic Hospital", commission_bp: 1500, national_id_number: "SYN-NID-0001", qualification: "MD (synthetic)", registration_no: "SYN-1" };
+    const ok = { display_name: "Synthetic Doctor", speciality: "Pathology (synthetic)", hospital: "Synthetic Hospital", national_id_number: "SYN-NID-0001", qualification: "MD (synthetic)", registration_no: "SYN-1" };
     expect(v(ok), JSON.stringify(v.errors?.[0])).toBe(true);
-    for (const bad of [{ commission_bp: 10001 }, { commission_bp: -1 }, { commission_bp: 12.5 }, { commission_bp: "10" }, { national_id_number: "N".repeat(33) }, { speciality: "s".repeat(121) }, { hospital: "h".repeat(201) }])
+    for (const bad of [{ commission_bp: 1500 }, { national_id_number: "N".repeat(33) }, { speciality: "s".repeat(121) }, { hospital: "h".repeat(201) }])
       expect(v({ ...ok, ...bad }), `accepted ${JSON.stringify(bad)}`).toBe(false);
     const u = validatorFor("catalog.yaml", C_DOC, "updateDoctor", "req");
-    expect(u({ commission_bp: 0 })).toBe(true);
-    expect(u({ commission_bp: 10001 })).toBe(false);
+    expect(u({ speciality: "Pathology (synthetic)" })).toBe(true);
+    expect(u({ commission_bp: 0 }), "closed schema: no doctor rate on update").toBe(false);
+  });
+  it("LD-385: Doctor, DoctorCreate, DoctorUpdate, DoctorSummary (and DoctorCreated if present) have no commission-like property (C3 AC-11.5); the rate lives in partners party settings only", () => {
+    for (const n of ["Doctor", "DoctorCreate", "DoctorUpdate", "DoctorSummary", "DoctorCreated"]) {
+      const sc = C_DOC.components.schemas[n];
+      if (!sc) { expect(n, "only DoctorCreated may be absent").toBe("DoctorCreated"); continue; }
+      expect(Object.keys(allProps(C_DOC, sc)).filter((k) => /commission/i.test(k)), `${n} must have no commission like property`).toEqual([]);
+    }
+    for (const id of ["createDoctor", "updateDoctor", "getDoctor"]) {
+      const names = Object.keys(allProps(C_DOC, id === "getDoctor" ? okSchema(C_DOC, id) : reqSchema(C_DOC, id)));
+      expect(names.filter((k) => /commission/i.test(k)), id).toEqual([]);
+    }
   });
 });
 
@@ -636,10 +645,12 @@ describe("T0C-PARTYSET-1 migration file (static; behaviour in the pgTAP suite)",
     }
     expect(code).not.toMatch(/TO\s+(PUBLIC|anon|authenticated)\b/i);
   });
-  it("adds the government ID and doctor columns with ADD COLUMN IF NOT EXISTS: partners.partners (tax_number, national_id_number), catalog.doctors (speciality, hospital, commission_bp, national_id_number)", () => {
-    for (const [t, cols] of [["partners.partners", ["tax_number", "national_id_number"]], ["catalog.doctors", ["speciality", "hospital", "commission_bp", "national_id_number"]]] as const)
+  it("adds the government ID and doctor columns with ADD COLUMN IF NOT EXISTS: partners.partners (tax_number, national_id_number), catalog.doctors (speciality, hospital, national_id_number; no rate, LD-385)", () => {
+    for (const [t, cols] of [["partners.partners", ["tax_number", "national_id_number"]], ["catalog.doctors", ["speciality", "hospital", "national_id_number"]]] as const)
       for (const c of cols) expect(code, `${t}.${c}`).toMatch(new RegExp(`ALTER TABLE ${t.replace(".", "\\.")}[^;]*ADD COLUMN IF NOT EXISTS ${c}\\b`, "is"));
-    expect(code).toMatch(/commission_bp\s+integer/i);
+    expect(code, "LD-385: no ADD COLUMN commission_bp on catalog.doctors").not.toMatch(/ALTER TABLE catalog\.doctors[^;]*commission/is);
+    expect(code, "LD-385: no doctors__commission_bp__ck").not.toMatch(/doctors__commission/i);
+    expect(code, "commission_bp stays on partners.party_commercial_setting").toMatch(/party_commercial_setting[\s\S]*commission_bp\s+integer/i);
   });
   it("policies are re-runnable; every CREATE TABLE and INDEX is IF NOT EXISTS (tenant_id first); every ADD CONSTRAINT is pg_constraint guarded", () => {
     for (const m of code.matchAll(/CREATE\s+POLICY\s+(\S+)\s+ON\s+(\S+)/gi)) {
@@ -694,7 +705,7 @@ describe("T0C-PARTYSET-1 implementation notes: FIELD MAP, permissions, retention
   // the labels the BRIEF names from the evidence (C:/LIMS-state/elabassist-sales-20261117.md and -other-); the evidence itself is outside the tester sandbox
   const LABELS = ["Commission", "PAN", "Aadhar", "Printing block", "Header", "Approve", "Hold", "Auto release", "WhatsApp", "Insurance", "Print exception", "Lab number scheme", "Billing cycle", "Invoice payment",
     "Blocking", "Warning", "Interest per day", "Priority", "Header and footer", "ICD master", "Outsource", "Interlab", "Center Test Mapping", "Non Compliance", "National ID number", "Speciality", "Qualification",
-    "Hospital", "Registration number", "Doctor commission"];
+    "Hospital", "Registration number", "Doctor rate"];
   it("notes exist, name the migration as a founder step (push-cloud), cite LD-321, list every operation id, the pendingOperations move and T0B-PARTYSET-1", () => {
     expect(existsSync(NOTES), ".orchestra/notes/T0C-PARTYSET-1-impl.md missing").toBe(true);
     expect(t).toContain(MIG);

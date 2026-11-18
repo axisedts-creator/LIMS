@@ -5142,7 +5142,6 @@ paths:
                   notes: Synthetic notes
                   speciality: Pathology (synthetic)
                   hospital: Synthetic Hospital
-                  commission_bp: 1500
                   national_id_number: SYN-NID-0001
                   quick_add: false
       responses:
@@ -5166,7 +5165,6 @@ paths:
                     notes: Synthetic notes
                     speciality: Pathology (synthetic)
                     hospital: Synthetic Hospital
-                    commission_bp: 1500
                     national_id_number: "********0001"
                     is_verified: false
                     source: back_office
@@ -5238,7 +5236,6 @@ paths:
                     notes: Synthetic notes
                     speciality: Pathology (synthetic)
                     hospital: Synthetic Hospital
-                    commission_bp: 1500
                     national_id_number: "********0001"
                     is_verified: false
                     source: back_office
@@ -5297,7 +5294,6 @@ paths:
                   notes: Synthetic notes
                   speciality: Pathology (synthetic)
                   hospital: Synthetic Hospital
-                  commission_bp: 1500
                   national_id_number: SYN-NID-0001
                   is_active: true
                   unset:
@@ -5323,7 +5319,6 @@ paths:
                     notes: Synthetic notes
                     speciality: Pathology (synthetic)
                     hospital: Synthetic Hospital
-                    commission_bp: 1500
                     national_id_number: "********0001"
                     is_verified: false
                     source: back_office
@@ -12646,11 +12641,6 @@ components:
         hospital:
           type: string
           maxLength: 200
-        commission_bp:
-          description: Doctor commission in basis points (1500 = 15 percent). T0C-PARTYSET-1.
-          type: integer
-          minimum: 0
-          maximum: 10000
         national_id_number:
           description: National ID number, masked (last four characters only, for example ********0001); the full value needs partners.party_id_number.read (revealPartyIdNumber). T0C-PARTYSET-1.
           type: string
@@ -12775,11 +12765,6 @@ components:
           type: string
           minLength: 1
           maxLength: 200
-        commission_bp:
-          description: Doctor commission in basis points (1500 = 15 percent). T0C-PARTYSET-1.
-          type: integer
-          minimum: 0
-          maximum: 10000
         national_id_number:
           description: National ID number, full value (every read shows it masked). T0C-PARTYSET-1.
           type: string
@@ -12838,11 +12823,6 @@ components:
         hospital:
           type: string
           maxLength: 200
-        commission_bp:
-          description: Doctor commission in basis points (1500 = 15 percent). T0C-PARTYSET-1.
-          type: integer
-          minimum: 0
-          maximum: 10000
         national_id_number:
           description: National ID number, masked (last four characters only, for example ********0001); the full value needs partners.party_id_number.read (revealPartyIdNumber). T0C-PARTYSET-1.
           type: string
@@ -12906,11 +12886,6 @@ components:
           type: string
           minLength: 1
           maxLength: 200
-        commission_bp:
-          description: Doctor commission in basis points (1500 = 15 percent). T0C-PARTYSET-1.
-          type: integer
-          minimum: 0
-          maximum: 10000
         national_id_number:
           description: National ID number, full value (every read shows it masked). T0C-PARTYSET-1.
           type: string
@@ -12920,7 +12895,7 @@ components:
           type: boolean
         unset:
           type: array
-          maxItems: 10
+          maxItems: 9
           items:
             type: string
             maxLength: 20
@@ -12933,7 +12908,6 @@ components:
               - notes
               - speciality
               - hospital
-              - commission_bp
               - national_id_number
     DoctorMerge:
       type: object

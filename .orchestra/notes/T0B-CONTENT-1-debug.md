@@ -8,3 +8,6 @@
 ## round 3
 - Same cause: lane/C0-0C (T0C-CONTENT-1 spec ops) not merged; engagement.yaml has 0 setProfileImage. No impl defect.
 - Fix needed: `git merge lane/C0-0C`, then drop 9 content ids from pendingOperations in engagement/index.ts. Merge denied again (needs approval); no code changed. Lead must merge, re-run verify.
+## round 4 (after main merge)
+- Cause: not CONTENT-1. Only failure = pending-operations.test:293 for module reporting; it contradicts printcfg1.pending.test.ts:36-44 (stubs must be pending vs pending must equal non-function handlers).
+- Fix: none in owned paths; dispute written to T0B-CONTENT-1-dispute.md. Owner T0B-PRINTCFG-1 or lead. Engagement/content tests green.

@@ -31,8 +31,12 @@ FROM ${NODE_BASE_IMAGE} AS runtime
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/packages ./packages
+# [CONV] tokens.css is a git-ignored build output that next.config.mjs checks at start-up; take the one the build stage made (read-only rootfs cannot regenerate it).
+COPY --from=build /app/packages/ui/dist ./packages/ui/dist
 COPY --from=deps /app/apps/web/node_modules ./apps/web/node_modules
 COPY --from=deps /app/apps/web/package.json /app/apps/web/next.config.mjs ./apps/web/
+# [CONV] public/ (icon-512.png, referenced by the manifest) is served by `next start` from the working directory.
+COPY --from=deps /app/apps/web/public ./apps/web/public
 COPY --from=build /app/apps/web/.next ./apps/web/.next
 # Read-only root filesystem (REQ-SEC-130). The only writable path is /tmp (mount a tmpfs: docker run --read-only --tmpfs /tmp):
 # Next's runtime cache dir apps/web/.next/cache is replaced by a symlink to /tmp, so cache writes land under /tmp.

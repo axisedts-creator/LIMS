@@ -10,6 +10,7 @@ const NEW_OPS = ['downloadCatalogImportTemplate', 'validateCatalogImport', 'comm
 const OTHER_PENDING_OK = [
   'listTestCategories', 'createTestCategory', 'updateTestCategory', // T0C-TESTMGMT-1 (pending until T0B-TESTMGMT-1)
   'downloadPriceListTemplate', 'dryRunPriceListImport', 'commitPriceListImport', 'bulkUpdatePriceListDraft', 'copyPriceList', 'comparePriceLists', 'listPriceListImportBatches', // T0C-PRICETOOLS-1
+  'listIcdMasterCodes', 'searchIcdMasterCodes', 'createIcdMasterCode', 'updateIcdMasterCode', 'deactivateIcdMasterCode', // T0C-PARTYSET-1 (LD-321)
 ];
 const spec: any = loadSpec(join(REPO_ROOT, 'contracts/openapi/catalog.yaml'));
 const specIds: string[] = Object.values<any>(spec.paths).flatMap((p) => Object.values<any>(p).map((m) => m?.operationId).filter(Boolean));

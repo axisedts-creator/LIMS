@@ -247,7 +247,9 @@ describe("inventory equals 02-TRD §5.2 (no missing, no extra operations)", () =
     expect(Object.keys(ops).sort()).toEqual([...mine, "listTestCategories", "createTestCategory", "updateTestCategory",
       "downloadPriceListTemplate", "dryRunPriceListImport", "commitPriceListImport", "bulkUpdatePriceListDraft", "copyPriceList", "comparePriceLists", "listPriceListImportBatches",
       // T0C-TESTIMPORT-1 (LD-318) adds exactly the six Excel test import operations (pinned in testimport1-openapi.test.ts).
-      "downloadCatalogImportTemplate", "validateCatalogImport", "commitCatalogImport", "listCatalogImports", "getCatalogImport", "downloadCatalogImportErrors"].sort());
+      "downloadCatalogImportTemplate", "validateCatalogImport", "commitCatalogImport", "listCatalogImports", "getCatalogImport", "downloadCatalogImportErrors",
+      // T0C-PARTYSET-1 (LD-321) adds exactly the five ICD master operations (pinned in partyset1-openapi.test.ts).
+      "listIcdMasterCodes", "searchIcdMasterCodes", "createIcdMasterCode", "updateIcdMasterCode", "deactivateIcdMasterCode"].sort());
   });
   it("every path is /v1/catalog/… with tags [catalog]", () => {
     expect(Object.keys(doc.paths ?? {}).length, "no paths").toBeGreaterThan(0);
@@ -421,7 +423,8 @@ describe("examples validate against their schemas; each operation has a servable
   });
   it("every operation has a 2xx response; JSON ones carry an example Prism can serve", () => {
     // T0C-TESTMGMT-1 (LD-318): 107 + listTestCategories, createTestCategory, updateTestCategory; T0C-PRICETOOLS-1 (LD-321): + 7 price list tool operations; T0C-TESTIMPORT-1 (LD-318): + 6 Excel test import operations
-    expect(Object.keys(ops).length).toBe(123);
+    // T0C-PARTYSET-1 (LD-321): + 5 ICD master operations -> 128
+    expect(Object.keys(ops).length).toBe(128);
     for (const { op, path, method } of Object.values(ops)) {
       const two = Object.entries<any>(op.responses ?? {}).filter(([c]) => /^2/.test(c));
       expect(two.length, `${method} ${path}: no 2xx`).toBeGreaterThan(0);

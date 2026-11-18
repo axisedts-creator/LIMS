@@ -33,6 +33,8 @@ describe('T0C-TESTMGMT-1: catalog manifest covers the new operations (handler or
     const PRICETOOLS = ['downloadPriceListTemplate', 'dryRunPriceListImport', 'commitPriceListImport', 'bulkUpdatePriceListDraft', 'copyPriceList', 'comparePriceLists', 'listPriceListImportBatches'];
     // T0C-TESTIMPORT-1 (LD-318, LD-325(b)) adds its six operations to the same list (pinned in testimport1.pending.test.ts).
     const TESTIMPORT = ['downloadCatalogImportTemplate', 'validateCatalogImport', 'commitCatalogImport', 'listCatalogImports', 'getCatalogImport', 'downloadCatalogImportErrors'];
-    expect(pending.filter((id) => !NEW_OPS.includes(id) && !PRICETOOLS.includes(id) && !TESTIMPORT.includes(id)), 'only the category, price list tool and test import operations may be pending in catalog').toEqual([]);
+    // T0C-PARTYSET-1 (LD-321, LD-325(b)) adds its five ICD master operations (pinned in partyset1.pending.test.ts).
+    const PARTYSET = ['listIcdMasterCodes', 'searchIcdMasterCodes', 'createIcdMasterCode', 'updateIcdMasterCode', 'deactivateIcdMasterCode'];
+    expect(pending.filter((id) => !NEW_OPS.includes(id) && !PRICETOOLS.includes(id) && !TESTIMPORT.includes(id) && !PARTYSET.includes(id)), 'only the category, price list tool and test import operations may be pending in catalog').toEqual([]);
   });
 });

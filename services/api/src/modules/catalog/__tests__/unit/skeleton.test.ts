@@ -27,6 +27,7 @@ const NINE = [
   'catalog.test.read', 'catalog.test.manage', 'catalog.price_list.read', 'catalog.price_list.manage',
   'catalog.referrer.manage', 'catalog.instrument_code_map.manage',
   'catalog.referrer.read', 'catalog.reference_range.publish', 'catalog.referrer.export',
+  'catalog.icd.manage', // T0C-PARTYSET-1 (LD-321): the ICD master (the list keeps its historic name NINE)
 ];
 const REQ = { params: {}, query: {}, headers: {}, body: undefined };
 const CTX = { operationId: 'x', clientIp: '203.0.113.7', log: { info() {}, warn() {}, error() {} } };

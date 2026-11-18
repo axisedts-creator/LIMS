@@ -43,6 +43,10 @@ export function Rail({ groups, tenant, user, logoSrc, navId, drawerOpen, onClose
     scrollTo.current = null;
   });
 
+  // LD-352: the user card shows the first role and how many more (the full list is in the tooltip), never a wrapped list
+  const roles = user.role.split(',').map((x) => x.trim()).filter(Boolean);
+  const first = roles[0] ?? '';
+  const roleShort = `${first.charAt(0).toUpperCase()}${first.slice(1)}${roles.length > 1 ? ` +${roles.length - 1}` : ''}`;
   const q = query.trim().toLowerCase();
   const filtering = q.length > 0;
   const shown = filtering
@@ -107,7 +111,7 @@ export function Rail({ groups, tenant, user, logoSrc, navId, drawerOpen, onClose
                     <li key={e.id} className="lims-rail-item" data-entry-id={e.id}>
                       <Link href={e.path} className="lims-rail-link" aria-current={e.current ? 'page' : undefined} data-chord={e.chord} onClick={onClose}>
                         <NavIcon name={e.icon} />
-                        <span className="lims-rail-label">{e.label}</span>
+                        <span className="lims-rail-label" title={e.label}>{e.label}</span>
                       </Link>
                       {e.badge !== undefined ? <span className="lims-rail-badge" data-badge="">{e.badge}</span> : null}
                       {e.viewOnly ? <span className="lims-rail-viewonly" data-view-only="">{t('core.nav.view_only')}</span> : null}
@@ -125,8 +129,8 @@ export function Rail({ groups, tenant, user, logoSrc, navId, drawerOpen, onClose
         })}
       </div>
       <div className="lims-rail-user" data-testid="user-card">
-        <span className="lims-rail-user-name">{user.name}</span>
-        <span className="lims-rail-user-role">{user.role}</span>
+        <span className="lims-rail-user-name" title={user.name}>{user.name}</span>
+        <span className="lims-rail-user-role" title={user.role}>{roleShort}</span>
       </div>
     </div>
   );

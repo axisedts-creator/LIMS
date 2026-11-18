@@ -202,6 +202,10 @@ describe('centre scope on the default seam: a specimen of a centre outside the a
   };
   beforeAll(async () => {
     await fixture(async (q) => {
+      // ruling T0B-SYNC-3 (arbiter): the RLS helpers app.has_all_centres() / app.current_centre_ids() read core.memberships + core.membership_centres by the membership_id claim (= USER.a1 in helpers.ts);
+      // with no row the specimens__select__tenant_centre policy hides every row. Seed the membership so DB visibility matches the identity fake (centres a1 and a2). is_active is generated from status.
+      await q(`INSERT INTO core.memberships (id, tenant_id, user_id, actor_type, all_centres, status, created_by, updated_by) VALUES ($1, $2, $1, 'user', false, 'active', $1, $1) ON CONFLICT DO NOTHING`, [USER.a1, TENANT_A]);
+      for (const c of [CENTRE.a1, CENTRE.a2]) await q(`INSERT INTO core.membership_centres (tenant_id, membership_id, centre_id, created_by) VALUES ($1, $2, $3, $2) ON CONFLICT DO NOTHING`, [TENANT_A, USER.a1, c]);
       await q(`INSERT INTO lab.orders (id, tenant_id, centre_id, branch_id, patient_id, registration_no, visit_type, priority, source, registered_at, patient_sex, last_order_seq, created_by, updated_by)
         VALUES ($1, $2, $3, $4, $5, $6, 'opd', 'routine', 'front_desk', now(), 'female', 1, $7, $7)`, [ids.order, TENANT_A, CENTRE.a2, uid(), uid(), `SYNSCOPE${ids.order.slice(-8)}`, USER.a1]);
       for (const status of ['received', 'rejected', 'ordered']) {
@@ -212,7 +216,8 @@ describe('centre scope on the default seam: a specimen of a centre outside the a
     });
   }, T);
   afterAll(async () => {
-    await fixture(async (q) => { await q('DELETE FROM lab.specimens WHERE order_id = $1', [ids.order]); await q('DELETE FROM lab.orders WHERE id = $1', [ids.order]); });
+    await fixture(async (q) => { await q('DELETE FROM lab.specimens WHERE order_id = $1', [ids.order]); await q('DELETE FROM lab.orders WHERE id = $1', [ids.order]);
+      await q('DELETE FROM core.membership_centres WHERE tenant_id = $1 AND membership_id = $2', [TENANT_A, USER.a1]); await q('DELETE FROM core.memberships WHERE tenant_id = $1 AND id = $2', [TENANT_A, USER.a1]); });
   }, T);
   const outside = { grants: { centreIds: [CENTRE.a1] } };
 

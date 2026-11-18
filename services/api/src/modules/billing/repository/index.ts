@@ -3,7 +3,7 @@ import { insertActivity } from './activity.repo.js';
 import { getOrderBalance, listDues, lockOrderBalance, readOrderTotals, upsertOrderBalance } from './balances.repo.js';
 import { closeCashSession, findOpenCashSession, getCashSession, insertCashSession, listCashSessionsForDay } from './cashSessions.repo.js';
 import { enqueueCbmsSync, getCbmsDocumentForUpdate, insertCbmsSubmission, listCbmsDocuments, recordCbmsAttempt, resetCbmsToPending } from './cbms.repo.js';
-import { getCreditAccount, listCreditAccounts, readCreditPartyStatement, sumOpenCreditExposure, updateCreditAccount, upsertCreditAccount } from './creditAccounts.repo.js';
+import { getCreditAccount, listCreditAccounts, lockOverdue, overdueFacts, readCreditPartyStatement, sumOpenCreditExposure, updateCreditAccount, upsertCreditAccount } from './creditAccounts.repo.js';
 import { insertCreditCharges, listCreditChargesByOrder, listCreditChargesByParty, lockUninvoicedCreditCharges, markCreditChargesInvoiced, voidCreditChargesByIds } from './creditCharges.repo.js';
 import { getCreditNote, insertCreditNote, insertCreditNoteLines, listCreditNoteLines, listCreditNoteLinesByInvoice, markCreditNotePrinted } from './creditNotes.repo.js';
 import { getCreditNoteTask, insertCreditNoteTask, listOpenCreditNoteTasks, resolveCreditNoteTasks } from './creditNoteTasks.repo.js';
@@ -44,5 +44,7 @@ export const billingRepo = {
   getCbmsDocumentForUpdate, insertCbmsSubmission, recordCbmsAttempt, resetCbmsToPending, listCbmsDocuments,
   // BL-T15
   listSalesRegister, listCancelledInvoices, listCreditNoteRegister, listAuditTrail, countExportRows, insertExportJob, enqueueExportRender, getExportJob,
+  // T0B-PARTYSET-1 (LD-321): the party settings runtime effects (overdue block / warning, statement interest line); optional on injected fakes
+  overdueFacts, lockOverdue,
 };
 export type BillingRepo = typeof billingRepo;

@@ -148,6 +148,16 @@ export async function writeOutcome(tx: Tx, tenantId: string, opId: string, o: { 
     [tenantId, opId, o.status, JSON.stringify(o.result), o.errorCode ?? null, o.skew]);
 }
 
+/** T0B-SYNC-3: true when every value lies in a block issued to this device for this series (an exhausted block still counts: its numbers
+ *  were issued to the device and may have been printed before it closed). RLS and tenant_id keep other tenants' blocks out. */
+export async function inDeviceBlocks(tx: Tx, a: { tenantId: string; deviceId: string; series: 'lab_code' | 'patient_id'; values: readonly number[] }): Promise<boolean> {
+  if (a.values.length === 0) return true;
+  const { rows } = await tx.query(
+    `SELECT bool_and(EXISTS (SELECT 1 FROM core.number_block b WHERE b.tenant_id = $1 AND b.device_id = $2 AND b.series = $3 AND v BETWEEN b.from_value AND b.to_value)) AS ok
+       FROM unnest($4::bigint[]) AS v`, [a.tenantId, a.deviceId, a.series, a.values]);
+  return rows[0]?.ok === true;
+}
+
 // ---------- T0B-SYNC-2: conflicts (core.sync_conflict) ----------
 const CF = `id, op_id, entity_type, entity_id, local_payload, server_payload, status, resolution, resolved_by, resolved_at, reason, created_at`;
 

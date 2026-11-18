@@ -26,9 +26,42 @@ export interface SyncAdapter {
   conflictCheck?(ctx: HandlerContext, op: SyncOp): Promise<undefined | { entityType: string; serverPayload: object }>;
   currentServerPayload?(ctx: HandlerContext, input: { entityId: string }): Promise<object>;
   applyResolution?(ctx: HandlerContext, input: { resolution: 'apply_local' | 'merge'; opId: string; entityId: string; entityType: string; payload: object; idempotencyKey: string }): Promise<unknown>;
-  execute(ctx: HandlerContext, op: SyncOp): Promise<{ entityId?: string; numberMappings?: Array<{ document_type: string; provisional_number: string; final_number: string }> }>;
+  /** T0B-SYNC-3: `outcome: 'duplicate'` = the entity is already in that state or further (no change, no error code). */
+  execute(ctx: HandlerContext, op: SyncOp): Promise<{ entityId?: string; outcome?: 'accepted' | 'duplicate'; numberMappings?: NumberMapping[] }>;
 }
-export interface SyncOp { opId: string; opType: string; entityId?: string; baseVersion?: number; payload: Record<string, unknown>; deviceCreatedAt: string; idempotencyKey: string }
+export interface NumberMapping { document_type: string; provisional_number: string; final_number: string }
+/** T0B-SYNC-3: deviceId always; reservedNumbers from the envelope key `reserved_numbers` (registration.create_order: patient id and lab codes,
+ *  accession.receive: lab codes), part of the payload hash. */
+export interface SyncOp { opId: string; opType: string; entityId?: string; baseVersion?: number; payload: Record<string, unknown>; deviceCreatedAt: string; idempotencyKey: string;
+  deviceId: string; reservedNumbers?: { patientId?: number; labCodes?: number[] } }
+
+/** T0B-SYNC-3: thrown by SyncAdapter.execute when the server state contradicts the operation: the operation's SAVEPOINT is rolled back, a
+ *  core.sync_conflict row is written (local = op payload, server = serverPayload) and the result is conflict with errorCode. */
+export class SyncConflictError extends Error {
+  readonly entityType: string; readonly entityId: string | undefined; readonly serverPayload: object; readonly errorCode: string;
+  constructor(a: { entityType: string; entityId?: string | undefined; serverPayload: object; errorCode: string }) {
+    super('sync conflict');
+    this.name = 'SyncConflictError';
+    this.entityType = a.entityType; this.entityId = a.entityId; this.serverPayload = a.serverPayload; this.errorCode = a.errorCode;
+  }
+}
+
+/** T0B-SYNC-3 (LD-322 decision 1, design section 4): the provisional number of a document printed offline, derived from (device id, op id)
+ *  only, so the device and the server compute the same one and a replay returns the identical mapping. `doc` tells documents of one op apart. */
+export const provisionalNumber = (deviceId: string, opId: string, doc: string): string =>
+  `OFF-${deviceId.replace(/-/g, '').slice(0, 8)}-${opId.replace(/-/g, '')}-${doc}`.toUpperCase();
+
+/** T0B-SYNC-3: top level shape of a wrapped request schema (required keys present, no unknown key), the closed code
+ *  common.validation_failed otherwise. Deeper rules stay with the wrapped service. */
+export function payloadShape(file: string, schema: string): (payload: unknown) => void {
+  let s: { required?: string[]; properties?: Record<string, unknown> } | undefined;
+  return (payload) => {
+    s ??= (loadSpec(join(REPO_ROOT, 'contracts', 'openapi', file)) as any).components.schemas[schema];
+    if (payload === null || typeof payload !== 'object' || Array.isArray(payload)) throw new LimsError('common.validation_failed');
+    const keys = Object.keys(payload);
+    if (keys.some((k) => !Object.hasOwn(s!.properties ?? {}, k)) || (s!.required ?? []).some((k) => !keys.includes(k))) throw new LimsError('common.validation_failed');
+  };
+}
 
 export interface PushSettings {
   maxBatchOperations: number; maxBatchBytes: number;
@@ -45,7 +78,21 @@ const CATALOGUE: Readonly<Record<string, { entity: boolean; version: boolean }>>
   'result.enter': { entity: false, version: false }, 'result.verify': { entity: true, version: true },
   'report.print_marker': { entity: true, version: false }, 'daily_cash.close': { entity: true, version: true },
 };
-const OP_KEYS = ['op_id', 'op_type', 'entity_id', 'base_version', 'payload', 'device_created_at'];
+const OP_KEYS = ['op_id', 'op_type', 'entity_id', 'base_version', 'payload', 'device_created_at', 'reserved_numbers'];
+/** T0B-SYNC-3: which op types may carry reserved numbers of a device block, and which series (design section 4: blocks for lab codes and patient ids only). */
+const RESERVED: Readonly<Record<string, readonly string[]>> = { 'registration.create_order': ['patient_id', 'lab_codes'], 'accession.receive': ['lab_codes'] };
+const MAX_LAB_CODES = 50;
+const blockNo = (v: unknown): v is number => typeof v === 'number' && Number.isSafeInteger(v) && v >= 1;
+function reservedOf(v: unknown, opType: string, w: string): SyncOp['reservedNumbers'] {
+  if (v === undefined) return undefined;
+  const allowed = RESERVED[opType];
+  if (!allowed) throw invalid(w);
+  const o = objectWith(v, allowed, w);
+  if (o.patient_id !== undefined && !blockNo(o.patient_id)) throw invalid(`${w}/patient_id`);
+  const labs = o.lab_codes;
+  if (labs !== undefined && (!Array.isArray(labs) || labs.length > MAX_LAB_CODES || !labs.every(blockNo))) throw invalid(`${w}/lab_codes`);
+  return { ...(o.patient_id !== undefined ? { patientId: o.patient_id as number } : {}), ...(labs !== undefined ? { labCodes: labs as number[] } : {}) };
+}
 
 let closedCodes: ReadonlySet<string> | undefined;
 /** core.yaml SyncErrorCode: the only codes a result may carry (registered codes, never free text). */
@@ -88,9 +135,12 @@ function parseOp(v: unknown, i: number): Parsed {
   if (p === null || typeof p !== 'object' || Array.isArray(p)) throw invalid(`${w}/payload`);
   const at = o.device_created_at;
   if (typeof at !== 'string' || !ISO_INSTANT.test(at) || !Number.isFinite(Date.parse(at))) throw invalid(`${w}/device_created_at`);
-  const hash = createHash('sha256').update(canonical({ op_type: opType, entity_id: entityId ?? null, base_version: bv ?? null, payload: p })).digest('hex');
+  const reservedNumbers = reservedOf(o.reserved_numbers, opType, `${w}/reserved_numbers`);
+  // reserved_numbers joins the hash only when present, so the hash of an operation without it is unchanged since T0B-SYNC-2
+  const hashed = { op_type: opType, entity_id: entityId ?? null, base_version: bv ?? null, payload: p, ...(o.reserved_numbers !== undefined ? { reserved_numbers: o.reserved_numbers } : {}) };
+  const hash = createHash('sha256').update(canonical(hashed)).digest('hex');
   return { index: i, opId, opType, ...(entityId ? { entityId } : {}), ...(bv !== undefined ? { baseVersion: bv } : {}), payload: p as Record<string, unknown>,
-    deviceCreatedAt: at, idempotencyKey: opId, hash, at: instant(at) };
+    deviceCreatedAt: at, idempotencyKey: opId, deviceId: '', ...(reservedNumbers ? { reservedNumbers } : {}), hash, at: instant(at) };
 }
 
 /** ponytail: in process sliding window per handler instance (pinned by the tests); several API instances each allow the limit, move to
@@ -145,12 +195,24 @@ export function createPushEngine(s: PushSettings, registry: ReadonlyMap<string, 
               return { op_id: op.opId, status: 'conflict', error_code: 'sync.base_version_stale', conflict_id: id, entity_id: op.entityId, skew_flag: skew };
             }
             const r = await adapter.execute(cx, op);
-            return { op_id: op.opId, status: 'accepted', ...(r?.entityId ? { entity_id: r.entityId } : {}),
+            return { op_id: op.opId, status: r?.outcome === 'duplicate' ? 'duplicate' : 'accepted', ...(r?.entityId ? { entity_id: r.entityId } : {}),
               ...(r?.numberMappings?.length ? { number_mappings: r.numberMappings.slice(0, 3) } : {}), skew_flag: skew };
           });
           if (!ran) throw new LimsError('common.internal');   // no SAVEPOINT available: never run an operation outside its own transaction
           out = ran;
         } catch (e) {
+          if (e instanceof SyncConflictError) {
+            // the SAVEPOINT is rolled back already (no effect, no number); the conflict row is written on the request tx, outside it.
+            // A create has no server entity yet: the op id names the conflict's entity [CONV] (core.sync_conflict.entity_id is NOT NULL).
+            const id = uuidv7();
+            const entityId = e.entityId ?? op.entityId ?? op.opId;
+            await repo.insertConflict(w.tx, { tenantId: w.tenantId, id, opId: op.opId, entityType: e.entityType, entityId, local: op.payload, server: e.serverPayload, actorId: w.actorId });
+            const code = syncErrorCodes().has(e.errorCode) ? e.errorCode : 'common.internal';
+            const named = e.entityId ?? op.entityId;
+            out = { op_id: op.opId, status: 'conflict', error_code: code, conflict_id: id, ...(named ? { entity_id: named } : {}), skew_flag: skew };
+            await repo.writeOutcome(w.tx, w.tenantId, op.opId, { status: out.status, result: out, errorCode: out.error_code, skew });
+            return out;
+          }
           const code = codeOf(e);
           if (code === 'common.internal') ctx.log?.warn({ event: 'sync_operation_failed', op_type: op.opType });
           out = { op_id: op.opId, status: 'rejected', error_code: code, skew_flag: skew };
@@ -171,7 +233,7 @@ export function createPushEngine(s: PushSettings, registry: ReadonlyMap<string, 
       count(ctx, 'lims_core_sync_batches_total', { outcome: 'too_large' });
       throw new LimsError('sync.batch_too_large');
     }
-    const ops = list.map(parseOp);
+    const ops = list.map(parseOp).map((o) => ({ ...o, deviceId }));
     if (!(await repo.tryDeviceLock(w.tx, w.tenantId, deviceId))) {
       count(ctx, 'lims_core_sync_batches_total', { outcome: 'busy' });
       throw busy(5);

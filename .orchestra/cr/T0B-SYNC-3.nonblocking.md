@@ -1,0 +1,10 @@
+Title: CR-C0-T0B-SYNC-3: an access-log action for "offline operation applied at sync", and a way to USE a reserved patient id / lab code
+From chunk: C0            To owner: C0 contract owner via lead
+Type: gap
+Blocking? no (adapters work with the nearest existing code and validate reserved numbers only)
+Problem: (1) done_when 1 puts the device time "in the audit event" when the entity has no captured time field (accession.receive, registration.create_order). audit.g_cs_access_actions has no sync action; the adapters use `patient.view` (the same stand-in frontdesk uses for the LD-25 back entry, CR FD-T06-ld25-gaps) with detail { event: sync_operation_applied, op_id, op_type, device_created_at }. (2) The registration service and the lab service allocate patient_code and barcodes themselves; the adapters can only VALIDATE that reserved_numbers lie in a block of the device (sync.number_out_of_block), not make the service use them, so a label printed offline with a reserved number differs from the server number. reserved_numbers is an envelope key the engine accepts (T0B-SYNC-3 tests pin it) that core.yaml SyncOp* does not declare (additionalProperties false).
+Proposed change (exact): (1) add access action `sync.operation_apply` to the seed of audit.g_cs_access_actions (codegen source) and use it in modules/frontdesk/sync/registration.adapter.ts and modules/lab/sync/specimenMove.ts. (2) declare `reserved_numbers { patient_id?: int>=1, lab_codes?: int>=1[] maxItems 50 }` on SyncOpRegistrationCreateOrder and SyncOpAccessionReceive in core.yaml, and add an optional `reserved` input to registration create / specimen receive so the service uses the reserved number instead of allocating one.
+Backward compatible? yes (additive)
+Tenant/security impact: none (ids and times only in the detail, no personal data).
+IRD/regulatory impact: none (bill / receipt numbers stay gap free and server assigned, LD-322 decision 1).
+Tests that will prove it: access_log row with the new action per applied op; a registration with reserved patient id P gets patient_code of P.

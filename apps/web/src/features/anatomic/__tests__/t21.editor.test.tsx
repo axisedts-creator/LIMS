@@ -294,7 +294,7 @@ describe('images in report (picker)', () => {
   });
 
   it('thumbnails/captions are text (REQ-SEC-088); image src is the same-origin BFF route only', async () => {
-    await open(reportCase({ images: [{ ...reportCase().images[0], caption: '<img src=x onerror=alert(1)>' }] }));
+    await open(reportCase({ images: [{ ...(reportCase().images as Record<string, unknown>[])[0], caption: '<img src=x onerror=alert(1)>' }] }));
     expect(document.querySelector('img[src="x"]')).toBeNull();
     for (const i of Array.from(document.querySelectorAll('img'))) expect(i.getAttribute('src') ?? '').toMatch(/^\/anatomic\/images\//);
   });

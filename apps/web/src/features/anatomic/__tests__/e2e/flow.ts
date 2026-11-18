@@ -20,7 +20,7 @@ export class Api {
   async call(
     method: 'GET' | 'POST' | 'PUT',
     path: string,
-    o: { body?: unknown; multipart?: Record<string, string | { name: string; mimeType: string; buffer: Buffer }>; ifMatch?: string | number; op?: Op; expect?: number } = {},
+    o: { body?: unknown; multipart?: Record<string, string | { name: string; mimeType: string; buffer: Buffer }>; ifMatch?: string | number; op?: Op | undefined; expect?: number } = {},
   ): Promise<{ res: APIResponse; json: Json }> {
     const headers: Record<string, string> = {};
     if (o.ifMatch !== undefined) headers['If-Match'] = `"${o.ifMatch}"`;

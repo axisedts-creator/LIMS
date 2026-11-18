@@ -109,8 +109,12 @@ describe('§2.1 ReportsWorklist', () => {
     const W = await load();
     view(W, [summary()]);
     expect(screen.getByRole('heading', { level: 1, name: 'Reports' })).toBeTruthy();
-    const tabs = screen.getAllByRole('tab').map((t) => t.textContent?.replace(/\s+/g, ' ').trim());
-    expect(tabs).toEqual(['Awaiting content', 'Ready to release', 'Held (dues)', 'Render failed', 'Released today', 'All']);
+    // LD-353 template 1 (T0D-UILIST-1): the six statuses are the options of the FilterBar "Status" select, not a tab bar
+    const six = ['Awaiting content', 'Ready to release', 'Held (dues)', 'Render failed', 'Released today', 'All'];
+    await user().click(screen.getByRole('button', { name: /status/i }));
+    const tabs = screen.getAllByRole('option').map((o) => o.textContent?.replace(/\s+/g, ' ').trim() ?? '');
+    expect(tabs.filter((t) => six.includes(t))).toEqual(six);
+    await user().keyboard('{Escape}');
     for (const h of ['Reg no', 'Patient', 'Centre', 'Family', 'Items', 'Status', 'Version', 'Registered', 'Updated']) expect(screen.getByRole('columnheader', { name: new RegExp(h, 'i') })).toBeTruthy();
     expect(screen.getByRole('table').querySelector('caption')).toBeTruthy();
     const link = screen.getByRole('link', { name: 'R2611050001' });
@@ -282,12 +286,13 @@ describe('§2.9 CriticalAlertsPanel', () => {
     expect(screen.getByText('No critical alerts in the last 24 hours.')).toBeTruthy();
   });
 
-  it('error (alerts=null): inline alert with Retry; Retry re-reads R18 and shows rows', async () => {
+  it('error (alerts=null): ErrorState "Critical alerts could not be loaded" with Retry; Retry re-reads R18 and shows rows', async () => {
     const P = await load();
     const u = user();
     wrap(<P alerts={null} />);
-    const err = screen.getByRole('alert');
-    await u.click(within(err).getByRole('button', { name: /retry/i }));
+    // LD-353 rule 6: found by its ErrorState title and Retry button, no longer by role="alert"
+    expect(screen.getByText('Critical alerts could not be loaded')).toBeTruthy();
+    await u.click(screen.getByRole('button', { name: /retry/i }));
     await waitFor(() => expect(calls.some((c) => c.url.pathname === '/v1/reporting/critical-alerts')).toBe(true));
     expect(await screen.findByText('R2611050001')).toBeTruthy();
   });

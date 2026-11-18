@@ -1,0 +1,7 @@
+# W3c - remaining apps/web type errors (C2 C4 C5 C6 C9 C10 C11 C12 C13 C17)
+- Types only; every change is in a test/harness file; no assertion, input or runtime behaviour changed. `pnpm typecheck` (minus catalog/instruments/webfix1) now has 0 errors.
+- [CONV] C6 rs-c6.portal.test.tsx: the two token pages (r/[token]/page, report/page) are loaded via a typed dynamic import with an absolute-path variable specifier, so tsc does not follow them into apps/portal (whose `@/` would resolve to apps/web/src). vitest imports the same real files; 60/60 as before. Static imports of the other portal pages are unchanged.
+- Patterns used: `| undefined` on optional params (exactOptionalPropertyTypes); `satisfies Branch/Centre` for fixtures passed to OrgUnits (Unit = X & Record<string, unknown>); typed `Mock<(fd) => Promise<ActionResult>>` for form actions; `NavManifest` type for the admin nav test; `Record<K, ...>` loaders for lab pages (noUncheckedIndexedAccess); msw `JsonBodyType` casts; `!` only on indexes the test already guarantees.
+- Also fixed (not in the listed chunks but in the lead's grep): src/__tests__/web-auth-redirect.test.ts, features/billing (C4) nav-complete.billing.test.ts, features/platform provision1.form.test.tsx.
+- Vitest before/after over all configs of the touched dirs: identical failures (known pre-existing); vg5/vg7/anatomic-t21 failed before and pass after (flaky under parallel load, unrelated to types).
+- File list: /tmp/claude-0/w3c-files.txt

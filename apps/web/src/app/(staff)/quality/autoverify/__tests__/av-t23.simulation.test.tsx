@@ -36,7 +36,7 @@ const setSim = (version = sim(), report = reportDto(), settings = settingsDto())
   routes['GET /v1/quality/settings'] = json(settings);
 };
 
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 beforeEach(() => { resetApi(AV_MANAGE); seedAv(); setSim(); });
 afterEach(() => { cleanup(); api.resetHandlers(); });
 afterAll(() => api.close());

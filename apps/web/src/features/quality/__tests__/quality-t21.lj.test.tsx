@@ -24,7 +24,7 @@ const LJ = '/v1/quality/lj-chart';
 const sp = (o: Record<string, string> = {}) => ({ searchParams: { plan_id: PLAN_1, level_id: LEVEL_1, ...o } });
 const CHART_KIT = existsSync(join(UI_SRC, 'ControlChart'));
 
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 beforeEach(() => { resetApi(PERM_READ); routes[`GET ${LJ}`] = json(ljDto()); });
 afterEach(() => { cleanup(); api.resetHandlers(); });
 afterAll(() => api.close());

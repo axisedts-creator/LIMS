@@ -20,7 +20,7 @@ vi.mock('@/core/session/server', async () => (await import('./quality-t22.harnes
 
 const PAGE = 'setup/materials/page';
 const POST_MAT = `${BASE}/control-materials`;
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 beforeEach(() => resetApi(PERM_SETUP_WRITE));
 afterEach(() => { cleanup(); api.resetHandlers(); });
 afterAll(() => api.close());

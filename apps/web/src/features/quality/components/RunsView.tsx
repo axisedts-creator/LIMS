@@ -1,7 +1,6 @@
 'use client';
 // 04-UI-UX §2.2 QC runs. LD-140: @lims/ui only. Sort is run time descending only (the API offers nothing else).
 import { useRouter } from 'next/navigation';
-import { Checkbox } from '@lims/ui/components/Checkbox';
 import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
 import { DateText, type DateTextProps } from '@lims/ui/components/DateText';
 import { FilterBar, type FilterValue } from '@lims/ui/components/FilterBar';
@@ -19,7 +18,7 @@ export interface PlanLabels { [planId: string]: { instrument: string; analyte: s
 export function RunsView({ rows, next, hasPrevious, sp, labels }: { rows: RunSummary[]; next?: string; hasPrevious: boolean; sp: Record<string, string>; labels: PlanLabels }) {
   const router = useRouter();
   const go = (patch: Record<string, string | undefined>) => router.push(`/quality/runs${qs({ ...sp, cursor: undefined, ...patch })}`);
-  const filter: FilterValue = { status: sp['status'], outcome: sp['outcome'] };
+  const filter: FilterValue = { status: sp['status'], outcome: sp['outcome'], needs_action: sp['needs_action'] };
 
   const columns: ColumnDef<RunSummary>[] = [
     { id: 'run_at', header: 'Run time', isRowHeader: true, cell: (r) => <a href={`/quality/qc-runs/${r.id}`}><DateText value={r.run_at as Iso} withTime /></a> },
@@ -47,12 +46,13 @@ export function RunsView({ rows, next, hasPrevious, sp, labels }: { rows: RunSum
         filters={[
           { id: 'status', label: 'Status', kind: 'select', options: opts(RUN_STATUS) },
           { id: 'outcome', label: 'Outcome', kind: 'select', options: opts(OUTCOME) },
+          // T0D-UILIST-1 (LD-353 template 1): the loose "Needs action" checkbox is a field of the one FilterBar.
+          { id: 'needs_action', label: 'Needs action', kind: 'select', options: [{ value: 'true', label: 'Needs action' }] },
         ]}
         value={filter}
-        onChange={(v) => go({ status: typeof v['status'] === 'string' ? v['status'] : undefined, outcome: typeof v['outcome'] === 'string' ? v['outcome'] : undefined })}
+        onChange={(v) => { const s = (k: string) => (typeof v[k] === 'string' ? (v[k] as string) : undefined); go({ status: s('status'), outcome: s('outcome'), needs_action: s('needs_action') }); }}
         onReset={() => router.push('/quality/runs')}
       />
-      <Checkbox label="Needs action" isSelected={sp['needs_action'] === 'true'} onChange={(on) => go({ needs_action: on ? 'true' : undefined })} />
       <DataTable<RunSummary>
         columns={columns} rows={rows} getRowId={(r) => r.id} density="compact" caption="QC runs"
         onRowAction={(r) => router.push(`/quality/qc-runs/${r.id}`)}

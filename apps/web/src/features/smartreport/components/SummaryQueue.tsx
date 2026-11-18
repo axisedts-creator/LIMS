@@ -19,6 +19,8 @@ export interface QueueRow {
 interface Props {
   rows: QueueRow[]; status: string[]; sort: string; hasPrevious: boolean; next?: string; featureOff: boolean;
   centreId?: string | undefined; hasCritical: boolean; centres: { value: string; label: string }[];
+  /** T0D-UILIST-1, LD-353 rule 6: the list read failed; the table keeps its header and shows the ErrorState. */
+  loadError?: { requestId?: string };
 }
 
 const PATH = '/smartreport/summaries';
@@ -30,7 +32,7 @@ const SHORTCUTS = [{ id: 'queue', title: 'Review queue', shortcuts: [
 ] }];
 type Iso = DateTextProps['value']; // the API sends validated IsoUtc strings; the plain-JSON view model carries them as string
 
-export function SummaryQueue({ rows, status, sort, hasPrevious, next, featureOff, centreId, hasCritical, centres }: Props) {
+export function SummaryQueue({ rows, status, sort, hasPrevious, next, featureOff, centreId, hasCritical, centres, loadError }: Props) {
   const router = useRouter();
   const root = useRef<HTMLDivElement>(null);
   const [help, setHelp] = useState(false);
@@ -107,6 +109,7 @@ export function SummaryQueue({ rows, status, sort, hasPrevious, next, featureOff
         sort={{ value: sort, onChange: (s) => go({ status, centreId, hasCritical, sort: s }) }}
         onRowAction={(r) => router.push(`${PATH}/${encodeURIComponent(r.id)}`)}
         emptyState={{ title: 'No summaries waiting for review.' }}
+        {...(loadError ? { error: { title: 'The summaries could not be loaded.', ...loadError, onRetry: () => router.refresh() } } : {})}
         page={{ hasNext: !!next, hasPrevious, onNext: () => next && go({ status, centreId, hasCritical, sort, cursor: next }), onPrevious: () => router.back(), limit: 50 }}
       />
       <KeyboardShortcutsDialog isOpen={help} onClose={() => setHelp(false)} groups={SHORTCUTS} />

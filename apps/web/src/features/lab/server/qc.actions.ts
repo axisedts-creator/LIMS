@@ -13,7 +13,9 @@ async function run<T>(f: () => Promise<T>): Promise<ActionResult<T>> {
     return { ok: true, data: await f() };
   } catch (e) {
     if (!(e instanceof ApiError)) throw e;
-    return { ok: false, status: e.status, code: e.problem.code, title: e.problem.title };
+    // T0D-UILIST-1 (LD-353 rule 6): the ErrorState shows the request id as its Reference (same mapping as worklist.actions)
+    const id = e.problem.request_id;
+    return { ok: false, status: e.status, code: e.problem.code, title: e.problem.title, ...(typeof id === 'string' ? { requestId: id } : {}) };
   }
 }
 const JSON_HEADERS = { 'content-type': 'application/json' };

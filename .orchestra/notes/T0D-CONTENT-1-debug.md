@@ -1,1 +1,2 @@
 - Cause: t-l1:85 single-match query vs 2 "Issue app code" buttons from T0D-EMPTYTBL-2 (AppAccess.tsx:201,223), not CONTENT-1 code. No impl fix possible without breaking emptytbl2.other:54. See T0D-CONTENT-1-dispute.md.
+- Round 2: adminpage-eng-1.static:97 compares all engagement.* permission lines to base; main now carries engagement.content.* and engagement.broadcast.* (T0C-CONTENT-1, LD-313c/LD-321). Not caused by this task; test contradicts LD-313c. See T0D-CONTENT-1-dispute.md. No impl change made.

@@ -10,3 +10,8 @@ Fix: none possible in impl (spec/ read-only; same failure on main). CR filed: .o
 ## Round 4 (2026-11-18)
 Verify log: 208/208 codegen green; only red = registry-equality routes.yaml==IC §7, 3 extra ids (staff.billing.expenses/expense_types/cash_transfers). Re-checked: main routes.yaml has them, main IC §7 does not.
 Fix: none in impl (spec/ read-only, same failure on main, not a SYNC-2 defect). CR .orchestra/cr/T0C-SYNC-2.md stands; needs lead to add the 3 rows to IC §7 in routes.yaml order. No code change.
+
+## Round 5 (2026-11-18)
+Cause: spec/IC fix merged; sole red = sync2.pending.test.ts line 14 builds covered set from health handlers only, ignores syncHandlers (T0B-SYNC-1 on main removed the 7 part 1 ids from pending, per LD-325 b).
+Fix: none in impl; only hack = re-add 7 implemented ids to CORE_PENDING_OPERATIONS (undoes T0B-SYNC-1, violates LD-325 b). Test is wrong vs sync1.pending.test.ts:17-18.
+Dispute written: .orchestra/notes/T0C-SYNC-2-dispute.md. Stopped.

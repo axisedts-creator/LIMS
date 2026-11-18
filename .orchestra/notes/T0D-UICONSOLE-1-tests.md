@@ -1,0 +1,10 @@
+# T0D-UICONSOLE-1 tests (tester)
+Shared: apps/web/src/__tests__/uiconsole1.{contract.tsx,helpers.ts,pages.tsx} (CONSOLE contract; `looseHeaders` = age first + the named columns, extra old columns allowed; pages = 501 NotAvailable, 500, error.tsx).
+Lab (done, 199 green): features/lab/__tests__/uiconsole1.lab.test.tsx. NEW (review item 1): features/payments/__tests__/uiconsole1.payments.test.tsx (review + refunds), features/inventory/__tests__/uiconsole1.inventory.test.tsx (waiting consumption).
+Run all: `.orchestra/notes/T0D-UICONSOLE-1-verify.cmd` (config src/__tests__/vitest.uiconsole1.config.ts already globs payments/inventory uiconsole1.* and the old pg-t18, pg-t19, t24 tests).
+RULING applied (12:33): payments:103 now lakh /1,23,456\.00/; pg-t18, pg-t19, t24.unresolved moved from role=grid / row buttons to the console (table, data-console-item row, detail facts, bar buttons), no assertion dropped. verify config: 8 files, 259/259 green. rs-c15.behaviour / rs-c15.screens not touched (not in this config).
+Earlier: the 2 new files were RED for the right reason (no .lims-console / data-console-item / StatTile row; 501 not handled; error.tsx and inventory ErrorState lose the h1). 6 of 60 already pass (filters, Load more).
+Pinned names for the writer: tiles review [Under review, Waiting for provider, Oldest age]; refunds [Pending approval, With provider, Oldest age]; inventory [Waiting, Analysers affected, Oldest age]; History labels Created/Checked/Paid, Requested/Approved, Occurred.
+Bar: review = link /payments/intents/{id} "(O)", no button; refunds = the existing row actions of the selected refund, first one with a shortcut; inventory = "Post to store… (P)" then Dismiss, only with canManage.
+Writer: pages payments/review, payments/refunds, inventory/unresolved need isPending -> NotAvailable (columns start with Age); inventory 500 keeps the h1; the 3 error.tsx keep the menu title (LabError pattern).
+Old pg-t18, pg-t19, t24.unresolved pin the DataTable grid (rows, row buttons): the tester updates them once the writer's markup exists (assertions kept, queries moved to the console), as done for c5-t23.

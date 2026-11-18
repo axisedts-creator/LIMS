@@ -5,4 +5,4 @@ Files: analytics DashboardView; lab StatusBoard, pending/PendingPage; billing Da
 Display only: every tile/chart is computed from rows the screen already reads; no route, permission, contract or API change.
 Ran: uidash1 config 94/94 pass; billing/analytics/quality/lab suites: only reds are in dispute.md (3 old pins) + pre-existing; web-style-3 101/101; elabmenu 99/99; tsc: 0 errors in touched files; eslint not installed in repo (not run).
 Open (contract requests): getPendingTestsSummary per department for /lab/pending; party on DueRow + centres passed by billing/dues page.tsx; LJ ControlChart (CR-C9-007).
-Main had no new commits to merge (HEAD ahead of main).
+After ruling (tests revised 06d4350): an-t18 58/58, quality-t21 115/115 (+1 skip), lab-t26 35/36 (only pre-existing "No worksheets" red), uidash1 94/94, rs-c8 36/36; no code change needed. Merge of main (T0B-GREEN-3, T0D-UILIST-1) NOT done: git merge blocked by permission in this session.

@@ -34,7 +34,7 @@ import {
 } from '../forms/draft';
 import { SHORTCUT_GROUPS } from '../forms/shortcuts';
 import { enterPicksFirst } from '../hooks/useEnterPicksFirst';
-import { useQuote } from '../hooks/useQuote';
+import { useQuote, type QuoteState } from '../hooks/useQuote';
 import { useShortcuts } from '../hooks/useShortcuts';
 import {
   addFavouriteAction, createDraftAction, createRegistrationAction, deleteDraftAction, getDiscountApprovalAction, getPatientRewardsAction, listCustomFieldDefinitionsAction,
@@ -46,7 +46,13 @@ import { DiscountDialog } from './DiscountDialog';
 import { DraftsDialog } from './DraftsDialog';
 import { NewPatientForm } from './NewPatientForm';
 import { AddClientDialog, AddDoctorDialog, KIND_LABEL } from './QuickAdd';
-import { SuccessPanel } from './SuccessPanel';
+import { SuccessPanel, type OfflineSaved } from './SuccessPanel';
+// T0D-OFFLINE-3 (LD-322; done_when 1, 5): offline the form searches, prices and registers from the encrypted cache (core/offline/flows.ts)
+import { isOnline, useOfflineFlows, useOfflineSnapshot } from '@/core/offline/ui/OfflineProvider';
+import { BlockWarning } from '@/core/offline/ui/OfflineParts';
+import { OfflineError } from '@/core/offline/store';
+import type { Quote, RegistrationDraft } from '../server/types';
+import type { ReceiptDocument } from '@/features/billing/server/types';
 import './frontdesk.css';
 import { t } from '@/core/i18n/messages';
 
@@ -132,6 +138,10 @@ function Registration({ centres, permissions, defaultCentreId, consentTextVersio
   const [banner, setBanner] = useState<BannerState>(null);
   const [approval, setApproval] = useState<Approval>(null);
   const [result, setResult] = useState<RegistrationResult | null>(null);
+  const [savedOffline, setSavedOffline] = useState<OfflineSaved>();
+  const flows = useOfflineFlows();
+  const offSnap = useOfflineSnapshot();
+  const offline = !!flows?.registerOrder && !!offSnap && !isOnline(offSnap);
   const [submitting, setSubmitting] = useState(false);
   const [noMatch, setNoMatch] = useState(false);
   const [dialog, setDialog] = useState<'none' | 'discount' | 'shortcuts' | 'zero' | 'discard' | 'client' | 'doctor'>('none');
@@ -184,7 +194,32 @@ function Registration({ centres, permissions, defaultCentreId, consentTextVersio
     ...(coupon ? { coupon } : {}), ...(visitingPaisa ? { visitingPaisa } : {}), ...(redeemOk ? { redeemPoints: redeem } : {}),
   };
   const draft = buildDraft(ds);
-  const { state: qs, refresh } = useQuote(draft);
+  const offlineQuote = async (d: RegistrationDraft) => {
+    const q = await flows!.quote!(d);
+    if (!q.ok) return { ok: false as const, code: q.code, title: q.code === 'catalog.no_price' ? 'A test has no price in the price list kept on this device' : 'Prices could not be calculated' };
+    const m = (n: number) => ({ amount_paisa: n, currency: 'NPR' });
+    const data = {
+      lines: [], totals: { gross: m(q.gross_paisa), discount: m(q.discount_paisa), exempt: m(0), taxable: m(0), vat: m(0), other_tax: m(0), net: m(q.net_paisa) },
+      discount_evaluation: { ...q.discount_evaluation, limit_paisa: Math.floor((q.gross_paisa * q.discount_evaluation.limit_percent_bp) / 10_000) },
+      quote_fingerprint: q.quote_fingerprint, base_fingerprint: q.quote_fingerprint,
+    } as unknown as Quote;
+    return { ok: true as const, data };
+  };
+  const onlineQuote = useQuote(offline ? null : draft); // offline the cached price list quotes instead (same 'ready' gate on Register)
+  const [offQs, setOffQs] = useState<QuoteState>({ status: 'idle' });
+  const [offNonce, setOffNonce] = useState(0);
+  const draftKey = draft ? JSON.stringify(draft) : '';
+  useEffect(() => {
+    if (!offline || !draft) { setOffQs({ status: 'idle' }); return; }
+    let gone = false;
+    setOffQs({ status: 'pending' });
+    void offlineQuote(draft).catch(() => ({ ok: false as const, code: 'common.internal', title: 'Prices could not be calculated' }))
+      .then((r) => { if (!gone) setOffQs(r.ok ? { status: 'ready', quote: r.data } : { status: 'error', code: r.code, title: r.title }); });
+    return () => { gone = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- draftKey stands for draft
+  }, [offline, draftKey, offNonce]);
+  const qs = offline ? offQs : onlineQuote.state;
+  const refresh = offline ? () => setOffNonce((n) => n + 1) : onlineQuote.refresh;
   const quote = qs.status === 'ready' ? qs.quote : null;
   const net = quote?.totals.net.amount_paisa ?? 0;
   const creditState = billing === 'credit' ? quote?.credit_status?.state : undefined;
@@ -295,7 +330,7 @@ function Registration({ centres, permissions, defaultCentreId, consentTextVersio
   const loadPatients = async (q: string) => {
     const t = q.trim();
     if (!validQuery(t)) { setNoMatch(false); return []; }
-    const r = await searchPatientsAction(t);
+    const r = offline ? { ok: true as const, data: (await flows!.searchPatients!(t)) as PatientSummary[] } : await searchPatientsAction(t);
     const data = r.ok ? r.data : [];
     setNoMatch(r.ok && data.length === 0);
     return data;
@@ -315,7 +350,7 @@ function Registration({ centres, permissions, defaultCentreId, consentTextVersio
   };
   /** Search tests by Name, Short name (code) or Both: the API matches both; the choice narrows the list here. */
   const loadOrderables = async (q: string) => {
-    const r = await searchOrderablesAction(q);
+    const r = offline ? { ok: true as const, data: (await flows!.searchTests!(q)) as OrderableSummary[] } : await searchOrderablesAction(q);
     const t = q.trim().toLowerCase();
     const data = r.ok ? r.data : [];
     remember(data);
@@ -395,6 +430,9 @@ function Registration({ centres, permissions, defaultCentreId, consentTextVersio
 
   const fail = (code: string, title: string | undefined, errors?: { path: string; code: string }[]) => {
     switch (code) {
+      case 'sync.offline_not_allowed': setBanner({ tone: 'warning', title: 'Coupons, reward points, TRF upload and discount approval need an internet connection.' }); return;
+      case 'catalog.no_price': setBanner({ tone: 'danger', title: 'A test has no price in the price list kept on this device' }); return;
+      case 'common.validation_failed': setBanner({ tone: 'danger', title: 'Check the order: tests, centre, patient and payments.' }); return;
       case 'common.version_conflict': setBanner({ tone: 'warning', title: 'Prices changed since you added tests. Review and register again.' }); refresh(); return;
       case 'frontdesk.patient_duplicate_suspected': setBanner({ tone: 'warning', title: 'A patient with the same name, age and mobile may already exist. Search for them before creating a new patient.' }); return;
       case 'frontdesk.discount_approval_required': setBanner({ tone: 'warning', title: 'Approval needed before this discount can be used' }); return;
@@ -429,6 +467,19 @@ function Registration({ centres, permissions, defaultCentreId, consentTextVersio
         ...opt('insurance_code', texts.insCode), ...(claimPaisa ? { insurance_claim_amount_paisa: claimPaisa } : {}),
       };
       const body = { ...registerBody(draft, quote, rows, dt, approval?.status === 'approved' ? approval.id : undefined, newPatient, order), ...(pan ? { buyer_pan: pan } : {}), ...(trf.length ? { trf_attachment_ids: trf } : {}) };
+      if (offline) { // one local record plus one outbox operation; the same refusal codes as F9
+        try {
+          const o = await flows!.registerOrder!(body);
+          const issued = new Date().toISOString();
+          const pays = (body.payments ?? []) as { method_code: string; amount_received_paisa: number }[];
+          setSavedOffline({
+            lab_codes: o.lab_codes, ...(o.patient_code ? { patient_code: o.patient_code } : {}),
+            receipts: o.receipt_nos.map((no, i) => ({ receipt_no: no, issued_at: issued, invoice_nos: [o.invoice_no], method_code: pays[i]!.method_code, amount: { amount_paisa: pays[i]!.amount_received_paisa, currency: 'NPR' } }) as ReceiptDocument),
+          });
+          setResult({ order: { id: o.order_local_id, registration_no: '', status: 'pending_sync', billing_mode: billing }, invoice: { id: o.op_id, invoice_no: o.invoice_no, status: 'provisional' } });
+        } catch (e) { fail(e instanceof OfflineError ? e.code : 'common.internal', undefined); }
+        return;
+      }
       const hash = JSON.stringify(body);
       if (sentKey.current?.hash !== hash) sentKey.current = { hash, key: newKey() }; // one key per draft: same body → same key on every retry
       const key = sentKey.current.key;
@@ -528,9 +579,11 @@ function Registration({ centres, permissions, defaultCentreId, consentTextVersio
         ) : null}
         {creditState === 'locked' || creditState === 'over_limit' ? <Banner tone="danger" title={CREDIT} /> : null}
       </div>
+      <BlockWarning series="lab_code" />
+      {newPatient ? <BlockWarning series="patient_id" /> : null}
 
       {result ? (
-        <SuccessPanel result={result} onNew={onReset} onOpenOrder={openOrder} retryLabelsRef={retryLabels} />
+        <SuccessPanel result={result} onNew={onReset} onOpenOrder={openOrder} retryLabelsRef={retryLabels} {...(savedOffline ? { offline: savedOffline } : {})} />
       ) : (
         <>
           {/* LD-310 / T0D-REGSCREEN-1: three columns at >= 1280 px (context | tests | payment); the totals bar follows, fixed at the bottom. */}

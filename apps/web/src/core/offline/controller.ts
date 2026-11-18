@@ -7,6 +7,8 @@ import { createSyncEngine, type SyncEngine } from './engine';
 import { createOutbox, type AttentionItem, type ConflictItem, type Operation, type Outbox } from './outbox';
 import { createPrefetcher, DEFAULT_CACHE_CAP_BYTES, type Prefetcher } from './prefetch';
 import { OfflineError, openOfflineStore, type OfflineStore, type StoreState, type UnlockResult } from './store';
+import { createOfflineFlows, type OfflineFlows } from './flows';
+import { createNumbers, type BlockSeries, type Numbers } from './numbers';
 
 export const DISCARD_OP_TYPE = 'sync.discard';
 export const MAX_REASON = 1000;
@@ -18,7 +20,7 @@ export interface OfflineSnapshot {
   skewFlag: boolean; now: number; permissions: readonly string[]; signedInUsers: number;
 }
 export interface ResolveBody { resolution: string; reason: string; merged_payload?: unknown }
-interface Parts { outbox: Outbox; engine: SyncEngine; prefetcher?: Prefetcher | undefined; connectivity?: Connectivity; deviceId?: string | undefined }
+interface Parts { outbox: Outbox; engine: SyncEngine; prefetcher?: Prefetcher | undefined; connectivity?: Connectivity; deviceId?: string | undefined; numbers?: Numbers; flows?: OfflineFlows }
 
 export interface ControllerOptions {
   store: OfflineStore; connectivity: Connectivity; fetch?: typeof fetch; userId: string; permissions: readonly string[];
@@ -71,6 +73,8 @@ export function createOfflineController(o: ControllerOptions) {
 
   const controller = {
     getSnapshot: () => snap,
+    /** T0D-OFFLINE-3: the operation adapters once attached and unlocked, else null */
+    flows: () => (parts?.flows && o.store.isUnlocked() ? parts.flows : null),
     subscribe(l: () => void) { subs.add(l); return () => { subs.delete(l); }; },
     refresh,
     async syncNow(): Promise<void> {
@@ -138,6 +142,10 @@ export function createOfflineController(o: ControllerOptions) {
         const st = await c.refreshStatus().catch(() => null);
         if (st && st.device_status !== 'active') await pollDeviceStatus({ store: o.store, deviceId: parts.deviceId, baseUrl: base, fetch: f }).catch(() => undefined);
         if (o.store.isUnlocked()) await parts.prefetcher?.run();
+        // T0D-OFFLINE-3 (LD-322 decision 1): top up the lab code and patient id blocks while online, from 20 percent left
+        if (o.store.isUnlocked() && parts.numbers && o.permissions.includes('frontdesk.registration.create')) {
+          for (const s of ['lab_code', 'patient_id'] as BlockSeries[]) if ((await parts.numbers.remaining(s)).warn) await parts.numbers.reserve(s).catch(() => undefined);
+        }
       }
       await refresh();
     },
@@ -168,8 +176,10 @@ export async function startLiveOffline(o: { userId: string; permissions: readonl
       const outbox = createOutbox(store, { deviceId, userId: o.userId });
       const engine = createSyncEngine({ outbox, deviceId, baseUrl, onSyncing: (b) => c.setSyncing(b) });
       const prefetcher = createPrefetcher({ store, deviceId, baseUrl, permissions: o.permissions, isOnline: () => c.state() === 'online', isIdle: () => Date.now() - lastInput > IDLE_MS });
+      const numbers = createNumbers({ store, deviceId, baseUrl });
+      const flows = createOfflineFlows({ store, outbox, prefetcher, numbers, deviceId, permissions: o.permissions });
       await c.check();
-      return { outbox, engine, prefetcher, connectivity: c, deviceId };
+      return { outbox, engine, prefetcher, connectivity: c, deviceId, numbers, flows };
     },
   });
   let signedIn = false; let running = false;

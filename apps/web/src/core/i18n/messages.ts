@@ -740,6 +740,22 @@ const en: Record<string, string> = {
   'offline.code.sync.clock_skew_too_large': 'The device clock was too far off',
   'offline.code.sync.op_type_not_available': 'This operation cannot be synced yet',
   'offline.code.other': 'Refused by the server',
+  // T0D-OFFLINE-3 (LD-322): offline flows in the screens
+  'offline.badge.pending': 'Pending sync',
+  'offline.badge.conflict': 'Sync conflict',
+  'offline.badge.rejected': 'Rejected at sync',
+  'offline.watermark': 'Issued offline, pending sync',
+  'offline.block.lab_code': 'Lab codes',
+  'offline.block.patient_id': 'Patient ids',
+  'offline.block.low': '{what} on this device are running low: {n} left. After that new ones are provisional and marked PENDING until sync.',
+  'offline.saved_offline': 'Saved on this device. It is sent when the server can be reached.',
+  'offline.online_only.order.cancel': 'Cancelling an order needs an internet connection.',
+  'offline.online_only.order.refund': 'A refund needs an internet connection.',
+  'offline.online_only.payment.online': 'Online payment needs an internet connection.',
+  'offline.online_only.message.sms': 'SMS needs an internet connection.',
+  'offline.online_only.message.whatsapp': 'WhatsApp needs an internet connection.',
+  'offline.online_only.price_list.change': 'Price list changes need an internet connection.',
+  'offline.online_only.master.change': 'Master data changes need an internet connection.',
 };
 
 export function t(key: string): string {

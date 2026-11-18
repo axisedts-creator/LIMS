@@ -19,6 +19,8 @@ import { Ad, BsAd, InvoiceStatus, cbmsLabel, errorText, formatNpr, hasPerm, huma
 import { InvoiceDocument } from './InvoiceDocument';
 import { InvoicePrintFrame } from './print/InvoicePrintView';
 import './billing.css';
+// T0D-OFFLINE-3 (LD-322; done_when 4): refund and cancel are online only; offline they are disabled with the reason shown
+import { useOnlineOnly } from '@/core/offline/ui/OfflineProvider';
 
 type Open = 'none' | 'cancel' | 'reprint' | 'credit' | 'refund';
 const newKey = () => crypto.randomUUID();
@@ -37,6 +39,8 @@ export function InvoiceDetailView({ invoice, prints, creditNotes, permissions }:
   const canPrint = hasPerm(permissions, 'billing.invoice.reprint');
   const canCancel = hasPerm(permissions, 'billing.invoice.cancel') && !cancelled;
   const canRefund = (hasPerm(permissions, 'billing.refund.request') || hasPerm(permissions, 'billing.refund.approve')) && !!invoice.order_id;
+  const refundGate = useOnlineOnly('order.refund');
+  const cancelGate = useOnlineOnly('order.cancel');
   const fail = (code: string, title: string) => toast.show({ tone: 'danger', title, description: errorText(code) });
 
   const doPrint = async (reasonCode: string) => {
@@ -68,9 +72,10 @@ export function InvoiceDetailView({ invoice, prints, creditNotes, permissions }:
                 Print
               </Button>
             ) : null}
-            {canCancel ? <Button variant="danger" onPress={() => openDialog('cancel')}>Cancel invoice</Button> : null}
-            {canCancel ? <Button onPress={() => openDialog('credit')}>Partial credit</Button> : null}
-            {canRefund ? <Button onPress={() => openDialog('refund')}>Request refund</Button> : null}
+            {canCancel ? <Button variant="danger" isDisabled={cancelGate.disabled} onPress={() => openDialog('cancel')}>Cancel invoice</Button> : null}
+            {canCancel ? <Button isDisabled={cancelGate.disabled} onPress={() => openDialog('credit')}>Partial credit</Button> : null}
+            {canRefund ? <Button isDisabled={refundGate.disabled} onPress={() => openDialog('refund')}>Request refund</Button> : null}
+            {(canCancel && cancelGate.reason) || (canRefund && refundGate.reason) ? <span className="lims-description">{canRefund ? refundGate.reason : cancelGate.reason}</span> : null}
           </>
         }
       />

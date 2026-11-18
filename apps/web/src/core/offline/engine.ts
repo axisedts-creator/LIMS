@@ -8,7 +8,7 @@ export const MAX_BATCH_OPERATIONS = 50;
 export const MAX_BATCH_BYTES = 1_048_576;
 export const MAX_BACKOFF_MS = 300_000;
 const LOCK_NAME = 'lims-offline-sync';
-const WIRE_KEYS = ['op_id', 'op_type', 'base_version', 'entity_id', 'payload', 'device_created_at'] as const;
+const WIRE_KEYS = ['op_id', 'op_type', 'base_version', 'entity_id', 'payload', 'device_created_at', 'reserved_numbers'] as const; // reserved_numbers: T0D-OFFLINE-3
 
 /** Full jitter: uniform in [0, min(cap, base * 2^attempt)), cap never above 5 minutes. */
 export function backoffDelayMs(attempt: number, cfg: { baseMs: number; maxMs: number }, random: () => number = Math.random): number {

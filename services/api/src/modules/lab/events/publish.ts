@@ -1,4 +1,4 @@
-// C5 T-04: typed publishers for the 7 lab events (02-TRD §7.1; 03-IC §3.7–§3.13).
+// C5 T-04: typed publishers for the 7 lab events (+ lab.result.signed_off.v1, T0B-VERLEVEL-1) (02-TRD §7.1; 03-IC §3.7–§3.13).
 // Payloads go through verbatim (core validates against contracts/events/*.schema.json, additionalProperties false, so any
 // non-IC key — barcode, value, comment — fails closed with common.internal and nothing is stored; S-12 / REQ-SEC-006).
 import { createHash } from 'node:crypto';
@@ -42,6 +42,9 @@ export function createLabEvents(events: Events) {
     // Key literal `:approved:1` per §7.1; the schema pins result_version_no = 1.
     resultApproved: (ctx: Ctx, p: Payload, m: { resultRowVersion: number }) =>
       pub(ctx, 'lab.result.approved.v1', p, 'result', p.result_id, m.resultRowVersion, `${p.result_id}:approved:1`),
+    // T0B-VERLEVEL-1 (LD-316): one per sign-off; the key names the result version and the chain seq.
+    resultSignedOff: (ctx: Ctx, p: Payload, m: { resultRowVersion: number }) =>
+      pub(ctx, 'lab.result.signed_off.v1', p, 'result', p.result_id, m.resultRowVersion, `${p.result_id}:signed_off:${p.result_version_no}:${p.seq}`),
     resultAmended: (ctx: Ctx, p: Payload, m: { resultRowVersion: number }) =>
       pub(ctx, 'lab.result.amended.v1', p, 'result', p.result_id, m.resultRowVersion,
         `${p.result_id}:amended:${p.new_version_no}`),

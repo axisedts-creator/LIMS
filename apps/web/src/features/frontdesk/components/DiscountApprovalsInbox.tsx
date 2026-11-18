@@ -16,7 +16,7 @@ import { TextField } from '@lims/ui/components/TextField';
 import { useToast } from '@lims/ui/components/Toast';
 import { approveDiscountAction, rejectDiscountAction } from '../server/actions';
 import type { DiscountApproval, DiscountLine } from '../server/types';
-import { Ad, MFA_BANNER, NEEDS_APPROVER_ROLE, Status, errorText, formatNpr, hasPerm, humanize, npr } from './format';
+import { Ad, MFA_BANNER, amount, NEEDS_APPROVER_ROLE, Status, errorText, formatNpr, hasPerm, humanize, npr } from './format';
 
 type Dlg = { kind: 'approve' | 'reject' | 'details'; a: DiscountApproval };
 const POLL_MS = 10_000;
@@ -60,8 +60,10 @@ export function DiscountApprovalsInbox({ approvals, permissions, currentMembersh
     { id: 'centre', header: 'Centre', cell: (a) => centreName.get(a.centre_id) ?? '—' },
     { id: 'by', header: 'Requested by', cell: (a) => a.requested_by.display_name },
     { id: 'patient', header: 'Patient code', cell: (a) => a.patient_code ?? '—' },
-    { id: 'gross', header: 'Gross', align: 'end', cell: (a) => npr(a.gross) },
-    { id: 'discount', header: 'Discount', align: 'end', cell: (a) => `${npr(a.computed_discount)} · ${pct(a.percent_of_gross_bp)}` },
+    // T0D-UILIST-2 (LD-353 rule 3, done_when 7): the currency sits in the header, the cell shows the number with two decimals; the percent gets its own column.
+    { id: 'gross', header: 'Gross (NPR)', numeric: true, cell: (a) => amount(a.gross) },
+    { id: 'discount', header: 'Discount (NPR)', numeric: true, cell: (a) => amount(a.computed_discount) },
+    { id: 'percent', header: 'Percent', numeric: true, cell: (a) => pct(a.percent_of_gross_bp) },
     { id: 'reason', header: 'Reason', cell: (a) => (a.reason_text ? `${humanize(a.reason_code)} — ${a.reason_text}` : humanize(a.reason_code)) },
     { id: 'status', header: 'Status', cell: (a) => <Status status={a.status} /> },
     {

@@ -49,8 +49,9 @@ export function FrontdeskWorklist({ flags, orders, preRegistered, duplicates, re
     { id: 'candidates', header: 'Possible matches', cell: (d) => <ul>{d.candidates.map((c) => <li key={c.id}><a className="lims-link" href={`/frontdesk/patients/${c.id}`}>{patientLabel(c)}</a> {c.phone_masked}</li>)}</ul> },
   ];
 
-  const loadFailed = () => <Banner tone="danger" title="This list could not be loaded." action={{ label: 'Try again', onPress: () => router.refresh() }} />;
-  const flagTable = (kind: string, caption: string) => (failed.includes('flags') ? loadFailed() : <DataTable caption={caption} columns={flagColumns} rows={open(kind)} getRowId={(f) => f.id} emptyState={EMPTY} onRowAction={(f) => router.push(`/frontdesk/orders/${f.order_id}`)} />);
+  // T0D-UILIST-2 (LD-353 rules 5, 6): a failed list keeps its header row and shows the ErrorState (Retry) in the table body, not a banner instead of the table
+  const err = (l: List) => (failed.includes(l) ? { error: { title: 'This list could not be loaded.', onRetry: () => router.refresh() } } : {});
+  const flagTable = (kind: string, caption: string) => <DataTable caption={caption} columns={flagColumns} rows={open(kind)} getRowId={(f) => f.id} emptyState={EMPTY} onRowAction={(f) => router.push(`/frontdesk/orders/${f.order_id}`)} {...err('flags')} />;
 
   // R on a focused row resolves it. Capture phase: runs before the grid's type-ahead can move focus.
   const onKeyDownCapture = (e: KeyboardEvent) => {
@@ -79,8 +80,8 @@ export function FrontdeskWorklist({ flags, orders, preRegistered, duplicates, re
       <Tabs items={tabs} selectedId={tab} onChange={(id) => setTab(id as Tab)} aria-label="Worklist">
         {tab === 'recollection' ? flagTable('recollection_required', 'Recollection needed') : null}
         {tab === 'booking' ? flagTable('booking_cancelled_after_registration', 'Booking cancelled after registration') : null}
-        {tab === 'pre' ? (failed.includes('preRegistered') ? loadFailed() : <DataTable caption="Pre-registered today" columns={preColumns} rows={preRegistered} getRowId={(o) => o.id} emptyState={EMPTY} onRowAction={(o) => router.push(`/frontdesk/orders/${o.id}`)} />) : null}
-        {tab === 'dup' && canSeeDuplicates ? (failed.includes('duplicates') ? loadFailed() : <DataTable caption="Possible duplicates created today" columns={dupColumns} rows={duplicates} getRowId={(d) => d.patient.id} emptyState={EMPTY} onRowAction={(d) => router.push(`/frontdesk/patients/${d.patient.id}`)} />) : null}
+        {tab === 'pre' ? <DataTable caption="Pre-registered today" columns={preColumns} rows={preRegistered} getRowId={(o) => o.id} emptyState={EMPTY} onRowAction={(o) => router.push(`/frontdesk/orders/${o.id}`)} {...err('preRegistered')} /> : null}
+        {tab === 'dup' && canSeeDuplicates ? <DataTable caption="Possible duplicates created today" columns={dupColumns} rows={duplicates} getRowId={(d) => d.patient.id} emptyState={EMPTY} onRowAction={(d) => router.push(`/frontdesk/patients/${d.patient.id}`)} {...err('duplicates')} /> : null}
       </Tabs>
 
       <ConfirmDialog

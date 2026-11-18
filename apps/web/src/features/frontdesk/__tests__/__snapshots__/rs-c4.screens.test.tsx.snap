@@ -668,7 +668,7 @@ exports[`RS-C4 key-screen snapshots > Register: blank 1`] = `
 <kbd class="lims-kbd" aria-hidden="true">Alt+P</kbd>
 </button>
 <div role="status">
-<span>Balance after payment</span> <span class="lims-money">Rs. 0.00</span>
+<span class="lims-label">Balance after payment</span> <span class="lims-money">Rs. 0.00</span>
 </div>
 </div>
 </div>
@@ -1549,7 +1549,7 @@ exports[`RS-C4 key-screen snapshots > Register: new-patient form open 1`] = `
 <kbd class="lims-kbd" aria-hidden="true">Alt+P</kbd>
 </button>
 <div role="status">
-<span>Balance after payment</span> <span class="lims-money">Rs. 0.00</span>
+<span class="lims-label">Balance after payment</span> <span class="lims-money">Rs. 0.00</span>
 </div>
 </div>
 </div>
@@ -2072,43 +2072,43 @@ exports[`RS-C4 key-screen snapshots > Register: returning patient, one test, quo
 </table>
 <dl>
 <div class="lims-total-row">
-<dt>Gross</dt>
+<dt class="lims-label">Gross</dt>
 <dd>
 <span class="lims-money">Rs. 100.00</span>
 </dd>
 </div>
 <div class="lims-total-row">
-<dt>Discount</dt>
+<dt class="lims-label">Discount</dt>
 <dd>
 <span class="lims-money">Rs. 0.00</span>
 </dd>
 </div>
 <div class="lims-total-row">
-<dt>Exempt</dt>
+<dt class="lims-label">Exempt</dt>
 <dd>
 <span class="lims-money">Rs. 0.00</span>
 </dd>
 </div>
 <div class="lims-total-row">
-<dt>Taxable</dt>
+<dt class="lims-label">Taxable</dt>
 <dd>
 <span class="lims-money">Rs. 100.00</span>
 </dd>
 </div>
 <div class="lims-total-row">
-<dt>VAT</dt>
+<dt class="lims-label">VAT</dt>
 <dd>
 <span class="lims-money">Rs. 13.00</span>
 </dd>
 </div>
 <div class="lims-total-row">
-<dt>Other tax</dt>
+<dt class="lims-label">Other tax</dt>
 <dd>
 <span class="lims-money">Rs. 0.00</span>
 </dd>
 </div>
 <div class="lims-total-row lims-total-net">
-<dt>Net</dt>
+<dt class="lims-label">Net</dt>
 <dd>
 <span class="lims-money">Rs. 113.00</span>
 </dd>
@@ -2224,7 +2224,7 @@ exports[`RS-C4 key-screen snapshots > Register: returning patient, one test, quo
 <kbd class="lims-kbd" aria-hidden="true">Alt+P</kbd>
 </button>
 <div role="status">
-<span>Balance after payment</span> <span class="lims-money">Rs. 0.00</span>
+<span class="lims-label">Balance after payment</span> <span class="lims-money">Rs. 0.00</span>
 </div>
 </div>
 </div>

@@ -1,0 +1,1 @@
+pnpm --dir apps/web run build:nav && pnpm --dir apps/web exec vitest run --config src/__tests__/vitest.uilist2.config.ts && pnpm --dir apps/web exec vitest run --config src/__tests__/vitest.web-style-3.config.ts

@@ -27,7 +27,9 @@ export const modeText = (m: string) => known(`billing.accounts.mode.${m}`, human
 export const statusText = (s: string) => known(`billing.accounts.status.${s}`, humanize(s));
 export const typeText = (s: string) => t(`billing.accounts.type.${s}`);
 export const sideText = (s: string) => t(`billing.accounts.side.${s}`);
-export const nameOf = (list: readonly Named[] | readonly AccountParty[], id: string | undefined) => list.find((x) => x.id === id)?.name ?? '—';
+/** T0D-UILIST-2 (LD-353 rule 6): ErrorState title of a failed list read (same wording as core/shell LoadError). */
+export const LIST_FAILED = 'This list could not be loaded.';
+export const nameOf =(list: readonly Named[] | readonly AccountParty[], id: string | undefined) => list.find((x) => x.id === id)?.name ?? '—';
 export const newKey = () => crypto.randomUUID();
 
 /** "1500.50" -> 150050 paisa; undefined when not a positive amount with at most 2 decimals. Pure string math, no float. */

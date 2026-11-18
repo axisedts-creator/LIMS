@@ -2,6 +2,7 @@
 // then ids (non-uuid == unknown), then the body (additionalProperties: false), then the service. Never echoes input.
 import { LimsError, type FieldError } from '../../../core/errors.js';
 import type { Handler, HandlerContext, HandlerRequest } from '../../../core/module.js';
+import type { RequestHeaders } from '../../../core/storage/stream.js';
 import * as S from '../service/print.service.js';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -37,7 +38,7 @@ export const printHandlers: Readonly<Record<string, Handler>> = Object.freeze({
     return S.createReportPrint(c, id, variant, copies);
   },
   getReportPrint: async (req: HandlerRequest, hctx: HandlerContext) => { const c = staff(hctx); return S.getReportPrint(c, idOr404(req, 'print_id')); },
-  downloadReportPrintPdf: async (req: HandlerRequest, hctx: HandlerContext) => { const c = staff(hctx); return S.downloadReportPrintPdf(c, idOr404(req, 'print_id')); },
+  downloadReportPrintPdf: async (req: HandlerRequest, hctx: HandlerContext) => { const c = staff(hctx); return S.downloadReportPrintPdf(c, idOr404(req, 'print_id'), req.headers as RequestHeaders); },
   createBulkPrint: async (req: HandlerRequest, hctx: HandlerContext) => {
     const c = staff(hctx); const b = body(req.body, ['ids', 'variant']); const variant = variantOf(b); const ids = b['ids'];
     if (!Array.isArray(ids) || ids.length < 1 || ids.length > MAX_IDS || !ids.every((i) => typeof i === 'string' && UUID.test(i)) || new Set(ids.map((i: string) => i.toLowerCase())).size !== ids.length) throw invalid('/ids');

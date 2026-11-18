@@ -136,8 +136,9 @@ describe("T0C-ACCT-1 contract: lint, baseline kept, additive", () => {
   it("billing.yaml keeps all 47 old operations; +24 new = 71 operations on 63 paths; the old ledger-entries operations are untouched", () => {
     for (const id of BASELINE) expect(BOPS[id], `${id} removed`).toBeDefined();
     expect(OPS.length).toBe(24);
-    expect(Object.keys(BOPS).length).toBe(47 + OPS.length);
-    expect(Object.keys(bl.paths).length).toBe(45 + 18);
+    // T0C-ACCTLIST-1 (LD-358): +1 operation listAccountSummaries on +1 path /v1/billing/account-summaries (pinned in acctlist1-openapi.test.ts)
+    expect(Object.keys(BOPS).length).toBe(47 + OPS.length + 1);
+    expect(Object.keys(bl.paths).length).toBe(45 + 18 + 1);
     expect(BOPS.listLedgerEntries.path).toBe("/v1/billing/ledger-entries");
     expect(BOPS.reverseLedgerEntry.path).toBe("/v1/billing/ledger-entries/{ledger_entry_id}/reverse");
     expect(BOPS.reverseLedgerEntry.op["x-permission"]).toBe("billing.payment.reverse");

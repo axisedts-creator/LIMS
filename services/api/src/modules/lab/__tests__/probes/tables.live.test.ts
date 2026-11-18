@@ -30,7 +30,11 @@ afterAll(async () => { await closePools(); });
 describe('harness', () => { it('the migrated database is provided (fails, never skips, under LIMS_T03_REQUIRE_DB=1)', () => { if (requireDb) expect(live).toBe(true); }); });
 
 describe.skipIf(!live)('P-T every lab tenant table (LAB_TENANT_TABLES)', () => {
-  it('the table list is the schema (28 tenant tables; the 4 g_cs_* global tables are not tenant-scoped)', () => { expect(LAB_TENANT_TABLES).toHaveLength(28); });
+  it('the table list is the schema (30 tenant tables = 28 + lab.verification_policy + lab.result_signoff of T0C-VERLEVEL-1; the 4 g_cs_* global tables are not tenant-scoped)', () => {
+    expect(LAB_TENANT_TABLES).toHaveLength(30);
+    expect(LAB_TENANT_TABLES).toContain('verification_policy');
+    expect(LAB_TENANT_TABLES).toContain('result_signoff');
+  });
 
   it.each([...LAB_TENANT_TABLES].map((t) => [t] as const))('%s: A claims see 0 tenant-B rows, and UPDATE of B rows affects 0', { timeout: T }, async (t) => {
     const ownerB = Number((await owner(`SELECT count(*)::int AS n FROM lab.${t} WHERE tenant_id = $1`, [TENANT_B]))[0].n);
@@ -102,6 +106,25 @@ describe.skipIf(!live)('S-05 critical notifications are append-only', () => {
     expect((await rejects(asA((c) => c.query("UPDATE lab.critical_notifications SET comment = 'edited' WHERE tenant_id = $1", [TENANT_A])))).code).toBe('42501');
     expect((await rejects(asA((c) => c.query('DELETE FROM lab.critical_notifications WHERE tenant_id = $1', [TENANT_A])))).code).toBe('42501');
     expect(Number((await owner('SELECT count(*)::int AS n FROM lab.critical_notifications WHERE tenant_id = $1', [TENANT_A]))[0].n)).toBeGreaterThanOrEqual(1);
+  });
+});
+
+// T0B-VERLEVEL-1 (LD-316; T0C migration 20261117150000): the sign-off chain is APPEND ONLY (07-SECURITY: evidence of who signed). lims_api holds SELECT + INSERT only.
+describe.skipIf(!live)('LD-316 lab.result_signoff is append-only, lab.verification_policy is never deleted', () => {
+  it('UPDATE and DELETE on lab.result_signoff => permission denied (42501), even on tenant-A rows', { timeout: T }, async () => {
+    expect((await rejects(asA((c) => c.query("UPDATE lab.result_signoff SET signer_display_name = 'edited' WHERE tenant_id = $1", [TENANT_A])))).code).toBe('42501');
+    expect((await rejects(asA((c) => c.query('DELETE FROM lab.result_signoff WHERE tenant_id = $1', [TENANT_A])))).code).toBe('42501');
+    expect((await rejects(asA((c) => c.query('TRUNCATE lab.result_signoff')))).code).toBe('42501');
+  });
+  it('UPDATE of a signed-off row cannot be done by the app role: the snapshot columns are what was signed', { timeout: T }, async () => {
+    for (const col of ['signer_user_id', 'signer_is_pathologist', 'signer_registration_no', 'signer_signature_asset_id', 'seq', 'action']) {
+      expect((await rejects(asA((c) => c.query(`UPDATE lab.result_signoff SET ${col} = ${col} WHERE tenant_id = $1`, [TENANT_A])))).code, col).toBe('42501');
+    }
+  });
+  it('lab.verification_policy: DELETE denied, UPDATE (deactivate) allowed for the app role', { timeout: T }, async () => {
+    expect((await rejects(asA((c) => c.query('DELETE FROM lab.verification_policy WHERE tenant_id = $1', [TENANT_A])))).code).toBe('42501');
+    const n = await asA(async (c) => (await c.query('UPDATE lab.verification_policy SET active = active WHERE tenant_id = $1', [TENANT_A])).rowCount);
+    expect(n, 'tenant A has at least its default lab policy').toBeGreaterThanOrEqual(1);
   });
 });
 

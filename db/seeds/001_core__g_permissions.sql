@@ -52,6 +52,8 @@ INSERT INTO core.g_permissions (code, module, privileged, phase) VALUES
   ('engagement.broadcast.approve', 'engagement', true, '1'),
   ('engagement.broadcast.manage', 'engagement', false, '1'),
   ('engagement.broadcast.read', 'engagement', false, '1'),
+  ('engagement.content.manage', 'engagement', false, '1'),
+  ('engagement.content.read', 'engagement', false, '1'),
   ('engagement.enquiry.create', 'engagement', false, '3'),
   ('engagement.enquiry.read', 'engagement', false, '3'),
   ('engagement.enquiry.respond', 'engagement', false, '3'),

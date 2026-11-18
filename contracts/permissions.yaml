@@ -261,6 +261,9 @@ permissions:
   - { code: engagement.broadcast.read,    privileged: false, roles: [tenant_admin, front_desk, lab_manager] }
   - { code: engagement.broadcast.manage,  privileged: false, roles: [tenant_admin, front_desk, lab_manager] }
   - { code: engagement.broadcast.approve, privileged: true,  roles: [tenant_admin, lab_manager] }
+  # T0C-CONTENT-1 (LD-313 c): portal content (news, banners, offers, contact us) and profile images; staff only, not privileged; the patient read reuses engagement.self.read
+  - { code: engagement.content.read,      privileged: false, roles: [tenant_admin, front_desk, lab_manager] }
+  - { code: engagement.content.manage,    privileged: false, roles: [tenant_admin, lab_manager] }
   - { code: homecollection.handover.receive, privileged: false, roles: [centre_staff, front_desk, lab_technologist], phase: 3 }   # CR-C17-008
   - { code: homecollection.device.manage, privileged: true, roles: [tenant_admin, lab_manager], phase: 3 }   # CR-C17-008
   - { code: homecollection.settings.manage, privileged: true, roles: [tenant_admin, lab_manager], phase: 3 }   # CR-C17-008

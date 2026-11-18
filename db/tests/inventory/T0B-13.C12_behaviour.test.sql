@@ -117,9 +117,9 @@ SELECT is(pg_temp.x('lims_app', pg_temp.cl(pg_temp.ta(), 'user', pg_temp.m('a500
 -- C12 check 11: non-staff actors (AC-0B-3.6), device actors and fail-closed without claims (AC-0B-3.7)
 SELECT is(pg_temp.x('lims_app', pg_temp.cl(pg_temp.ta(), k.t, pg_temp.m('a500')), 'SELECT 1 FROM ' || tt.q, 'n'), 'n=0', 'C12 check 11 / AC-0B-3.6: ' || k.t || ' actor sees 0 rows of ' || tt.q) FROM tt CROSS JOIN (VALUES ('partner'),('portal'),('patient')) k(t);
 SELECT is(pg_temp.x('lims_app', pg_temp.cl(pg_temp.ta(), 'device', NULL), 'SELECT 1 FROM inventory.items', 'n'), 'n=2', 'C12 check 11 / §4.1: a device actor (staff, system or device) sees the tenant''s rows');
-SELECT is(pg_temp.x('lims_app', pg_temp.cl(pg_temp.ta(), 'portal', pg_temp.m('a500')), 'UPDATE inventory.settings SET backdate_max_days = 5'), 'n=0', 'C12 check 11 / AC-0B-3.6: a portal actor updates 0 settings');
+SELECT is(pg_temp.x('lims_app', pg_temp.cl(pg_temp.ta(), 'portal', pg_temp.m('a500')), 'UPDATE inventory.settings SET backdate_max_days = 5', 'w'), 'n=0', 'C12 check 11 / AC-0B-3.6: a portal actor updates 0 settings');
 SELECT matches(pg_temp.x('lims_app', pg_temp.cl(pg_temp.ta(), 'partner', pg_temp.m('a500')), 'INSERT INTO inventory.suppliers (id, tenant_id, supplier_code, name, created_by, updated_by) VALUES (' || pg_temp.q(pg_temp.uid(9102)) || ', ' || pg_temp.q(pg_temp.ta()) || ', ''X-2'', ''X'', '
-  || pg_temp.q(pg_temp.sys()) || ', ' || pg_temp.q(pg_temp.sys()) || ')'), '^E42501\|', 'C12 check 11 / AC-0B-3.6: a partner actor cannot INSERT');
+  || pg_temp.q(pg_temp.sys()) || ', ' || pg_temp.q(pg_temp.sys()) || ')', 'w'), '^E42501\|', 'C12 check 11 / AC-0B-3.6: a partner actor cannot INSERT');
 SELECT is(pg_temp.x('lims_api', NULL, 'SELECT 1 FROM ' || q, 'n'), 'n=0', 'C12 check 11 / AC-0B-3.7: no claims -> lims_api sees 0 rows of ' || q) FROM tt;
 SELECT is(pg_temp.x('lims_api', '{}'::jsonb, 'SELECT 1 FROM ' || q, 'n'), 'n=0', 'C12 check 11 / AC-0B-3.7: empty claims -> 0 rows of ' || q) FROM tt;
 SELECT is(pg_temp.x('lims_api', NULL, 'SELECT 1 FROM inventory.g_cs_uom', 'n'), 'n=19', 'C12 check 11: the global coded sets stay readable without claims (no tenant data)');
@@ -200,7 +200,7 @@ SELECT matches(pg_temp.sa('INSERT INTO inventory.alerts (id, tenant_id, alert_ki
   || ', ''below_reorder'', ''open-1'', now(), now(), ' || pg_temp.q(pg_temp.sys()) || ', ' || pg_temp.q(pg_temp.sys()) || ')'), '^E23505\|', 'C12 check 14: only one open alert per dedupe key (alerts__tenant_id_dedupe__p_uq)');
 -- alerts purge (§4.3, D-72, P-18(c)): system actor + expired rows + own tenant only
 SELECT is(pg_temp.ua('DELETE FROM inventory.alerts WHERE expires_at < now()'), 'n=0', 'C12 check 14 / D-72: a staff USER cannot purge alerts (the DELETE policy admits the system actor only)');
-SELECT is(pg_temp.x('lims_app', pg_temp.cl(pg_temp.ta(), 'device', NULL), 'DELETE FROM inventory.alerts WHERE expires_at < now()'), 'n=0', 'C12 check 14 / D-72: a device actor cannot purge alerts');
+SELECT is(pg_temp.x('lims_app', pg_temp.cl(pg_temp.ta(), 'device', NULL), 'DELETE FROM inventory.alerts WHERE expires_at < now()', 'w'), 'n=0', 'C12 check 14 / D-72: a device actor cannot purge alerts');
 SELECT is(pg_temp.sa('DELETE FROM inventory.alerts WHERE id = ' || pg_temp.q(pg_temp.uid(1001))), 'n=0', 'C12 check 14 / D-72: an open (not expired) alert cannot be deleted');
 SELECT is(pg_temp.sa('DELETE FROM inventory.alerts WHERE id = ' || pg_temp.q(pg_temp.uid(1005))), 'n=0', 'C12 check 14 / D-72: a resolved alert inside its 365 days cannot be deleted');
 SELECT is(pg_temp.sa('DELETE FROM inventory.alerts WHERE id = ' || pg_temp.q(pg_temp.uid(1006))), 'n=0', 'C12 check 14 / D-72: tenant A cannot delete tenant B''s expired alert');

@@ -64,7 +64,7 @@ SET LOCAL session_replication_role = origin;
 -- ---------------------------------------------------------------- the function: owner, DEFINER, search_path, grants (05-SCHEMA §6.6 inventory row)
 SELECT is((SELECT pg_get_userbyid(proowner) FROM pg_proc WHERE oid = 'app.engagement_resolve_display(bytea)'::regprocedure), 'lims_owner', 'resolve_display is owned by lims_owner');
 SELECT ok((SELECT prosecdef FROM pg_proc WHERE oid = 'app.engagement_resolve_display(bytea)'::regprocedure), 'resolve_display is SECURITY DEFINER');
-SELECT ok((SELECT proconfig @> ARRAY['search_path='] FROM pg_proc WHERE oid = 'app.engagement_resolve_display(bytea)'::regprocedure), 'resolve_display pins search_path = ''''');
+SELECT ok((SELECT proconfig @> ARRAY['search_path=""'] FROM pg_proc WHERE oid = 'app.engagement_resolve_display(bytea)'::regprocedure), 'resolve_display pins search_path = ''''');
 SELECT ok(has_function_privilege('lims_api', 'app.engagement_resolve_display(bytea)', 'EXECUTE'), 'lims_api may execute resolve_display');
 SELECT ok(NOT has_function_privilege('public', 'app.engagement_resolve_display(bytea)', 'EXECUTE'), 'PUBLIC may not execute resolve_display');
 

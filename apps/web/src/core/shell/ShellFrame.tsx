@@ -80,7 +80,7 @@ export function ShellFrame({ groups, crumb, tenant, user, memberId, logoSrc, sea
           <nav className="lims-breadcrumb" aria-label={t('core.nav.breadcrumb')}>
             {crumb ? (
               <ol>
-                <li>{crumb.group}</li>
+                {crumb.group.trim().toLowerCase() !== crumb.entry.trim().toLowerCase() ? <li>{crumb.group}</li> : null}
                 <li aria-current="page">{crumb.entry}</li>
               </ol>
             ) : null}

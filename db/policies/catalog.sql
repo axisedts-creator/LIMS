@@ -160,6 +160,14 @@ CREATE POLICY price_list_import_error__select__tenant ON catalog.price_list_impo
   USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
 CREATE POLICY price_list_import_error__insert__tenant ON catalog.price_list_import_error FOR INSERT TO lims_app
   WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+-- T0C-TESTIMPORT-1 (LD-318): db/migrations/20261117180000_catalog__add_import_batches.sql; no DELETE policy (history kept); the append only rule is the import_batch__guard trigger
+CREATE POLICY import_batch__select__tenant ON catalog.import_batch FOR SELECT TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+CREATE POLICY import_batch__insert__tenant ON catalog.import_batch FOR INSERT TO lims_app
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+CREATE POLICY import_batch__update__tenant ON catalog.import_batch FOR UPDATE TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()))
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
 CREATE POLICY doctors__select__tenant ON catalog.doctors FOR SELECT TO lims_app
   USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
 CREATE POLICY doctors__insert__tenant ON catalog.doctors FOR INSERT TO lims_app

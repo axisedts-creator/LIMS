@@ -58,9 +58,15 @@ abstract final class LimsErrorCodes {
   static const String billingRefundSelfApprovalForbidden = 'billing.refund_self_approval_forbidden';
   static const String catalogCodeDuplicate = 'catalog.code_duplicate';
   static const String catalogFormulaInvalid = 'catalog.formula_invalid';
+  static const String catalogImportAlreadyCommitted = 'catalog.import_already_committed';
+  static const String catalogImportBatchExpired = 'catalog.import_batch_expired';
+  static const String catalogImportHasErrors = 'catalog.import_has_errors';
   static const String catalogImportInvalid = 'catalog.import_invalid';
+  static const String catalogImportInvalidFile = 'catalog.import_invalid_file';
   static const String catalogImportNotCommittable = 'catalog.import_not_committable';
   static const String catalogImportStaleBase = 'catalog.import_stale_base';
+  static const String catalogImportTemplateOutdated = 'catalog.import_template_outdated';
+  static const String catalogImportTooLarge = 'catalog.import_too_large';
   static const String catalogInstrumentCodeUnmapped = 'catalog.instrument_code_unmapped';
   static const String catalogNoPrice = 'catalog.no_price';
   static const String catalogNoReferenceRange = 'catalog.no_reference_range';
@@ -364,9 +370,15 @@ const Map<String, int> limsErrorHttpStatus = <String, int>{
   'billing.refund_self_approval_forbidden': 403,
   'catalog.code_duplicate': 409,
   'catalog.formula_invalid': 422,
+  'catalog.import_already_committed': 409,
+  'catalog.import_batch_expired': 409,
+  'catalog.import_has_errors': 409,
   'catalog.import_invalid': 422,
+  'catalog.import_invalid_file': 422,
   'catalog.import_not_committable': 409,
   'catalog.import_stale_base': 409,
+  'catalog.import_template_outdated': 422,
+  'catalog.import_too_large': 413,
   'catalog.instrument_code_unmapped': 422,
   'catalog.no_price': 422,
   'catalog.no_reference_range': 422,

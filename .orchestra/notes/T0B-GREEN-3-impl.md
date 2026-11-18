@@ -1,0 +1,6 @@
+# T0B-GREEN-3 impl (writer)
+- Files changed: none outside this note (+ run log .g3-writer-run.txt). Tester commit 8cc39102a holds every allowed STALE/HARNESS fix in db/tests/**.
+- Run 2026-11-18: `bash db/tests/run-suites.sh db/tests/{identity,core,definers,engagement}/*.test.sql` (33 suites, 214 s, pinned image): 0 psql aborts; 10 not ok, all REAL with CR: identity/PLATFORM-DDL-1_policies 105, 113, 115, 117, 135, 198, 202, 203 (CR-C0-T0B-GREEN-3-001, audit_log__insert__owner_only); identity/T0B-ASYNC-1_worker_grants 58, 59 (CR-C0-T0B-GREEN-3-002, app.uuidv7 EXECUTE for lims_worker). Only SKIPs: core/T0B-03_audit 55-59 (by design).
+- The tester's earlier `psql failed: T0B-10.C2_schema` (docker ".exe: command not found") did not recur: harness flake, suite passes.
+- [CONV] Stop-list respected (LD-268): REAL defects not fixed here; no policy, grant, migration, seed, contract or db/meta edit. definer-inventory.yaml lims_worker row stays a CR (outside task files).
+- Open: tester did not write `.orchestra/notes/T0B-GREEN-3-tests.md`, `T0B-GREEN-3.md` (identity classification) or a node wrapper test like tests/db/T0B-GREEN-2.pgtap.test.mjs; core/definers/engagement fragments are in .g3-core-definers.md / .g3-engagement.md. Lead decides CR-001/002 and the inventory CR. No dispute filed.

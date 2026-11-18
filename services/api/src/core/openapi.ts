@@ -261,7 +261,7 @@ const HTTP_METHODS = new Set(['get', 'put', 'post', 'delete', 'options', 'head',
  * verifier is configured: such an operation could never pass auth, so it gets no route at all (fail closed, 404) instead of
  * blocking a boot that mounts the core health operations. A bearerJwt operation with a real handler still needs JWT config.
  */
-function withoutPendingBearer(spec: any, pending: readonly string[]): any {
+export function withoutPendingBearer(spec: any, pending: readonly string[]): any {
   if (!pending.length) return spec;
   const needsBearer = (op: any) => (op?.security ?? spec?.security ?? []).some((r: any) => r && Object.hasOwn(r, 'bearerJwt'));
   const paths: Record<string, any> = {};

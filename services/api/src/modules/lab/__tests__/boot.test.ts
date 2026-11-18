@@ -28,7 +28,7 @@ const VERLEVEL1 = ['listVerificationPolicies', 'upsertVerificationPolicy', 'getR
 const OPS = operationIds(SPEC).filter((id) => !VERLEVEL1.includes(id));
 const LAB_EVENTS_PRODUCED = [
   'lab.critical_value.detected.v1', 'lab.order.ready_for_report.v1', 'lab.result.amended.v1', 'lab.result.approved.v1',
-  'lab.result.verified.v1', 'lab.specimen.rejected.v1', 'lab.specimen.status_changed.v1',
+  'lab.result.signed_off.v1', 'lab.result.verified.v1', 'lab.specimen.rejected.v1', 'lab.specimen.status_changed.v1',   // + signed_off: one per sign-off (T0B-VERLEVEL-1, LD-316)
 ];
 /** operationIds whose stub a later task has replaced; that task moves its ids here (tester-owned list). */
 const IMPLEMENTED: readonly string[] = [
@@ -61,6 +61,8 @@ const IMPLEMENTED: readonly string[] = [
   'getLabSettings', 'updateLabSettings', 'listDeltaCheckRules', 'createDeltaCheckRule', 'versionDeltaCheckRule', 'deactivateDeltaCheckRule', 'listLabCodedSet', 'upsertLabCode',
   // T-25 QC capture + holds (#43-#46)
   'listQcResults', 'captureQcResult', 'listQcHolds', 'releaseQcHold',
+  // T0B-VERLEVEL-1 (LD-316) verification levels
+  'listVerificationPolicies', 'upsertVerificationPolicy', 'getResultSignoffs',
 ];
 
 const FAKE_REQ = { params: {}, query: {}, headers: {}, body: {} };
@@ -74,7 +76,7 @@ describe('T-01 manifest', () => {
     expect(() => validateManifest('lab', manifest, REPO_ROOT)).not.toThrow();
   });
 
-  it('produces exactly the 7 lab events (02-TRD §7.1 = EVENT_PRODUCERS.lab)', () => {
+  it('produces exactly the 8 lab events (02-TRD §7.1 = EVENT_PRODUCERS.lab)', () => {
     expect([...manifest.produces].sort()).toEqual(LAB_EVENTS_PRODUCED);
     expect([...(eventProducers().lab ?? [])].sort()).toEqual(LAB_EVENTS_PRODUCED);
   });

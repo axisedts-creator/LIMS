@@ -72,6 +72,12 @@
 - { code: catalog.tax_config_missing, http: 422, owner: C3, title: "Tax configuration missing", meaning: "No tenant-default tax rule (04 L15/L25, B7)" }   # CR-C3-003
 - { code: catalog.import_not_committable, http: 409, owner: C3, title: "Import cannot be committed", meaning: "Not in validated state, expired, or already committed" }   # CR-C3-003
 - { code: catalog.import_stale_base, http: 409, owner: C3, title: "Price list changed since export", meaning: "Base version superseded; resend with accept_stale_base" }   # CR-C3-003
+- { code: catalog.import_invalid_file, http: 422, owner: C3, title: "Import file is not a valid workbook", meaning: "Excel test import: not an xlsx by magic bytes, xlsm or xls, macros, external links, zip bomb or unreadable" }   # T0C-TESTIMPORT-1 (LD-318)
+- { code: catalog.import_template_outdated, http: 422, owner: C3, title: "Import template is outdated", meaning: "Excel test import: the template version of the file is not the current one; download the template again" }   # T0C-TESTIMPORT-1 (LD-318)
+- { code: catalog.import_too_large, http: 413, owner: C3, title: "Import file too large", meaning: "Excel test import: more than 5 MB, or more than 5000 rows per sheet" }   # T0C-TESTIMPORT-1 (LD-318)
+- { code: catalog.import_has_errors, http: 409, owner: C3, title: "Import batch has errors", meaning: "Excel test import: a rejected batch (it has errors) cannot be committed; fix the file and validate again" }   # T0C-TESTIMPORT-1 (LD-318)
+- { code: catalog.import_batch_expired, http: 409, owner: C3, title: "Import batch expired", meaning: "Excel test import: a batch older than 24 hours cannot be committed; validate the file again" }   # T0C-TESTIMPORT-1 (LD-318)
+- { code: catalog.import_already_committed, http: 409, owner: C3, title: "Import batch already committed", meaning: "Excel test import: the batch was already committed" }   # T0C-TESTIMPORT-1 (LD-318)
 # frontdesk (C4)
 - { code: frontdesk.patient_duplicate_suspected, http: 409, owner: C4, title: "Possible duplicate patient", meaning: "Dedupe match; confirm or merge (01 §1.1)" }
 - { code: frontdesk.consent_required,      http: 422, owner: C4, title: "Consent required", meaning: "REQ-SEC-005" }

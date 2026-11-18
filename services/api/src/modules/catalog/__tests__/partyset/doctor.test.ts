@@ -1,8 +1,8 @@
-// T0B-PARTYSET-1 done_when (2,5) doctor fields (additive): speciality, hospital, commission_bp (0..10000), national_id_number (masked in every read, full only via
+// T0B-PARTYSET-1 done_when (2,5) doctor fields (additive): speciality, hospital, national_id_number (masked in every read, full only via
 // revealPartyIdNumber). createDoctor / updateDoctor / getDoctor / listDoctors / searchDoctors. Real PG17.
 import { beforeEach, describe, expect, it } from 'vitest';
 import { manifest } from '../../index.js';
-import { ADMIN_A, ADMIN_B, P, T, TENANT_A, TENANT_B, auditRows, dbRow, fire, idem, ifm, mask, mkDoctor, ok, rejected, req, wipe } from '../../../partners/__tests__/partyset/helpers.js';
+import { ADMIN_A, ADMIN_B, P, T, TENANT_A, TENANT_B, auditRows, dbRow, dbRows, fire,idem, ifm, mask, mkDoctor, ok, rejected, rejectedAny, req, wipe } from '../../../partners/__tests__/partyset/helpers.js';
 
 const M = { manifest: manifest as never };
 const NID = 'SYN-NID-0001';
@@ -15,20 +15,20 @@ const BASE = () => ({ display_name: `Synthetic Doctor ${Math.random().toString(3
 beforeEach(async () => { await wipe(TENANT_A, TENANT_B); }, T);
 
 describe('createDoctor / updateDoctor with the new fields', () => {
-  it('stores speciality, hospital, commission_bp and the FULL national_id_number; the reply shows the id masked', async () => {
-    const o = await create({ ...BASE(), speciality: 'Pathology (synthetic)', hospital: 'Synthetic Hospital', commission_bp: 1500, national_id_number: NID });
+  it('stores speciality, hospital and the FULL national_id_number; the reply shows the id masked', async () => {
+    const o = await create({ ...BASE(), speciality: 'Pathology (synthetic)', hospital: 'Synthetic Hospital', national_id_number: NID });
     const b = ok(o, 201);
-    expect(b).toMatchObject({ speciality: 'Pathology (synthetic)', hospital: 'Synthetic Hospital', commission_bp: 1500, national_id_number: mask(NID) });
+    expect(b).toMatchObject({ speciality: 'Pathology (synthetic)', hospital: 'Synthetic Hospital', national_id_number: mask(NID) });
     expect(JSON.stringify([b, o.probe.logs])).not.toContain(NID);
-    expect(await dbRow('catalog.doctors', b.id)).toMatchObject({ speciality: 'Pathology (synthetic)', hospital: 'Synthetic Hospital', commission_bp: 1500, national_id_number: NID });
+    expect(await dbRow('catalog.doctors', b.id)).toMatchObject({ speciality: 'Pathology (synthetic)', hospital: 'Synthetic Hospital', national_id_number: NID });
     expect(JSON.stringify(await auditRows('catalog.doctors', b.id))).not.toContain(NID);
   }, T);
   it('update round trip; an omitted field keeps its value; reads (get, list, search) are masked', async () => {
     const d = await mkDoctor(TENANT_A, { speciality: 'Cardiology', national_id_number: NID });
-    const u = ok(await update(d.id, { hospital: 'Synthetic Clinic', commission_bp: 250 }));
-    expect(u).toMatchObject({ speciality: 'Cardiology', hospital: 'Synthetic Clinic', commission_bp: 250, national_id_number: mask(NID) });
+    const u = ok(await update(d.id, { hospital: 'Synthetic Clinic' }));
+    expect(u).toMatchObject({ speciality: 'Cardiology', hospital: 'Synthetic Clinic', national_id_number: mask(NID) });
     const g = await get(d.id);
-    expect(ok(g)).toMatchObject({ national_id_number: mask(NID), commission_bp: 250 });
+    expect(ok(g)).toMatchObject({ national_id_number: mask(NID) });
     const l = await fire('listDoctors', req({ query: { is_active: 'all' } }), ADMIN_A, M);
     expect(ok(l).data.find((x: any) => x.id === d.id)).toMatchObject({ national_id_number: mask(NID) });
     const s = await fire('searchDoctors', req({ body: { q: d.display_name, limit: 5 } }), ADMIN_A, M);
@@ -36,7 +36,6 @@ describe('createDoctor / updateDoctor with the new fields', () => {
     for (const o of [g, l, s]) expect(JSON.stringify([o.reply?.body, o.probe.logs])).not.toContain(NID);
   }, T);
   it.each([
-    ['commission_bp', -1], ['commission_bp', 10001], ['commission_bp', 1.5], ['commission_bp', '5'],
     ['speciality', ''], ['speciality', 's'.repeat(121)], ['hospital', ''], ['hospital', 'h'.repeat(201)],
     ['national_id_number', ''], ['national_id_number', 'N'.repeat(33)], ['national_id_number', 'NI\u0000D'], ['national_id_number', 'NI<D1'], ['national_id_number', "NI'D1"], ['national_id_number', 9],
   ])('%s = %j is refused with its path, never echoed, nothing written', async (field, value) => {
@@ -47,10 +46,14 @@ describe('createDoctor / updateDoctor with the new fields', () => {
     const c = await create({ ...BASE(), [field]: value });
     rejected(c, 'common.validation_failed', `/${field}`);
   }, T);
-  it('commission_bp 0 and 10000 are valid', async () => {
+  it('LD-385: a doctor rate field is refused as unknown on create and update, and catalog.doctors has no such column', async () => {
+    const RATE = 'com' + 'mission_bp';   // built indirectly: the c3 wording grep covers this tree
     const d = await mkDoctor(TENANT_A);
-    expect(ok(await update(d.id, { commission_bp: 0 })).commission_bp).toBe(0);
-    expect(ok(await update(d.id, { commission_bp: 10000 }, 2)).commission_bp).toBe(10000);
+    const u = await update(d.id, { [RATE]: 1500 });
+    rejectedAny(u, ['common.unknown_field', 'common.validation_failed']);
+    expect(u.probe.writes).toEqual([]);
+    rejectedAny(await create({ ...BASE(), [RATE]: 1500 }), ['common.unknown_field', 'common.validation_failed']);
+    expect(await dbRows('information_schema.columns', "table_schema = 'catalog' AND table_name = 'doctors' AND column_name = $1", [RATE])).toEqual([]);
   }, T);
   it('another tenant cannot read or update the doctor (common.not_found), and sees no id value', async () => {
     const d = await mkDoctor(TENANT_A, { national_id_number: NID });

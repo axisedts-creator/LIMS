@@ -1206,6 +1206,7 @@ export interface operations {
                 amount_paisa: number;
               }[];
               note?: string;
+              deposit_paisa?: number;
             };
             device_created_at: string;
           }))[];

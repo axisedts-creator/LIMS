@@ -4,7 +4,7 @@
 // empty with ONE EmptyState in the body; money columns right aligned with NPR in the header and two decimals; API 500 keeps the title and filters with an ErrorState (reference + Retry); 501
 // operation_pending = NotAvailable with the header row. Not pinned (notes): /payments/review, /payments/refunds, /payments/settings, intent detail (not in done_when 5).
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
@@ -71,7 +71,8 @@ describe('/payments/reconciliation', () => {
     expectFilterBars(container, P, 1);
     expectTable(container, P, { min: RUN_HEADS.length, headers: RUN_HEADS });
     await userEvent.setup({ delay: null }).click(screen.getByRole('tab', { name: /open findings/i }));
-    await screen.findByText('Missed settlement');
+    // LD-353 FilterBar draws a Kind chip with the same text: assert the cell, scoped to the table.
+    await waitFor(() => expect(within(container.querySelector('table')!).getByText('Missed settlement')).toBeTruthy());
     expectHeader(container, P, { action: 'Run now' });
     expectFilterBars(container, P, 1);
     expectMoneyColumn(container, P, /^Our amount\b/i);
@@ -105,7 +106,7 @@ describe('/payments/reconciliation', () => {
 
 describe('/payments/static-qr', () => {
   const P = '/payments/static-qr';
-  const HEADS = ['Date', 'Centre', 'System', 'Statement', 'Difference', 'Status', 'By', 'Reference'];
+  const HEADS = ['Date', 'Centre', /^System\b/i, /^Statement\b/i, /^Difference\b/i, 'Status', 'By', 'Reference'];
   it('no worksheets: menu title, ONE FilterBar, header row, one EmptyState', async () => {
     serveQr(() => page([]));
     const { container } = await show('static-qr/page');

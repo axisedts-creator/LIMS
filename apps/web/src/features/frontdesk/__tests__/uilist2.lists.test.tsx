@@ -105,7 +105,7 @@ describe(D, () => {
     const { container } = await show('discount-approvals/page');
     await screen.findByText(/no pending approvals/i);
     expectHeader(container, D);
-    expectTable(container, D, { min: 8, headers: ['Requested', 'Centre', 'Requested by', 'Gross', 'Reason', 'Status', 'Actions'] });
+    expectTable(container, D, { min: 8, headers: ['Requested', 'Centre', 'Requested by', /^Gross\b/i, 'Reason', 'Status', 'Actions'] });
     expectEmptyState(container, D);
   });
 

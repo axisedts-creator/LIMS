@@ -98,7 +98,7 @@ describe('/billing/accounts/entries', () => {
     expectFilterBars(container, P, 1);
     expectEqualDates(container, P);
     expectBarButton(container, P, /reset/i);
-    expectTable(container, P, { min: 13, headers: ['Entry Date', 'Credited', 'Debited'] });
+    expectTable(container, P, { min: 13, headers: ['Entry Date', /^Credited\b/i, /^Debited\b/i] });
     expectWideTable(container, P, 13);
     expectEmptyState(container, P);
   });
@@ -186,7 +186,7 @@ describe('/billing/accounts/summary', () => {
     expectHeader(container, P);
     expectFilterBars(container, P, 1);
     expect(q(container, '.lims-filter-bar .lims-filter-search input').length, `${P}: a search field in the FilterBar`).toBe(1);
-    expectTable(container, P, { min: 10, headers: ['Client Name', 'Credit Limit', 'Outstanding Amount', 'Is Blocked'] });
+    expectTable(container, P, { min: 10, headers: ['Client Name', /^Credit Limit\b/i, /^Outstanding Amount\b/i, 'Is Blocked'] });
     expectEmptyState(container, P);
     expect(seen, 'one list read (LD-358), not one account-summary call per party').toContain('/v1/billing/account-summaries');
     expect(seen).not.toContain('/v1/billing/account-summary');

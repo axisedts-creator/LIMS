@@ -1,12 +1,12 @@
 // T0B-SYNC-3 done_when (1), (4), (5), (6): collection.mark_collected and accession.receive through the real engine + the real adapters on a real PG17 (RLS on). The lab SERVICE LAYER
 // (collectSpecimen / receiveSpecimen) is a recording double; the specimen state the adapter reads comes through the `readSpecimen` seam (./doubles.ts header) so each state / version
 // combination of the conflict matrix can be set up without a full order graph. The DEFAULT seam (SELECT from lab.specimens under RLS) is exercised with an unknown id.
-import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('../../../../modules/frontdesk/service/registration.service.js', async (orig) => (await import('./doubles.js')).registrationMock(orig as never));
 vi.mock('../../../../modules/billing/service/ledger.service.js', async (orig) => (await import('./doubles.js')).ledgerMock(orig as never));
 vi.mock('../../../../modules/lab/service/specimen.service.js', async (orig) => (await import('./doubles.js')).specimenMock(orig as never));
 import { LimsError } from '../../../errors.js';
-import { A1, B1, TENANT_A, USER, CENTRE, code, conflictsOf, devicePush, engine, iso, newDevice, NOW, okBody, op, reserve, setCounters, uid, ok } from '../helpers2.js';
+import { A1, B1, TENANT_A, USER, CENTRE, code, conflictsOf, devicePush, engine, iso, newDevice, NOW, okBody, op, reserve, setCounters, superTx, uid, ok } from '../helpers2.js';
 import { behave, calls, ensureCounter, readSpecimen, reset, specimens } from './doubles.js';
 import { createCollectionMarkCollectedAdapter, collectionMarkCollectedAdapter } from '../../../../modules/lab/sync/collection.adapter.js';
 import { createAccessionReceiveAdapter, accessionReceiveAdapter } from '../../../../modules/lab/sync/accession.adapter.js';
@@ -36,7 +36,13 @@ describe('collection.mark_collected (done_when 1, 4)', () => {
     const { ctx, args } = calls.collect[0]!;
     expect(ctx.tenantId).toBe(TENANT_A); expect(ctx.actor).toMatchObject({ id: USER.a1, membershipId: USER.a1 });
     expect(args[0]).toMatchObject({ specimen_id: id }); expect(args[1]).toMatchObject({ 'if-match': '"2"' });
-    expect(args[2].collected_at).toBe(iso(at));
+    expect(args[2].collected_at).toBe(at.toISOString());   // review T0B-SYNC-3 item 3: the online service takes exactly 3 fraction digits (specimen.service.ts ISO_MS), so the instant is passed as `.000Z`, not `Z`
+  }, T);
+  it('device time with microseconds (the engine accepts up to 6 fraction digits): accepted, collected_at reaches the service with exactly 3 (review item 3)', async () => {
+    const dev = await newDevice(A1);
+    const id = spec('ordered', 2); const r = col(id, 2); r.device_created_at = '2026-11-17T08:30:00.123456Z';
+    expect(one(await devicePush(H, A1, dev, [r]))).toMatchObject({ status: 'accepted', entity_id: id });
+    expect(calls.collect[0]!.args[2].collected_at).toBe('2026-11-17T08:30:00.123Z');
   }, T);
   it('a collected_at the device put in the payload is kept (the device time only fills an absent one)', async () => {
     const dev = await newDevice(A1);
@@ -184,6 +190,51 @@ describe('accession.receive: a lab code used offline lies in a block of this dev
   it('a patient id is not accepted on a lab operation: common.validation_failed', async () => {
     const o = await devicePush(H, A1, dev, [rec(spec('collected', 3), 3, { reserved_numbers: { patient_id: block.from_value } })]);
     expect(code(o) ?? one(o).error_code).toBe('common.validation_failed');
+  }, T);
+});
+
+// review T0B-SYNC-3 item 1 (done_when 5, REQ-SEC-017, T-32 "a foreign specimen is 404"): the DEFAULT seam must apply the same centre scope as the online service, BEFORE the adapter classifies.
+// Real lab.orders + lab.specimens rows (FK checks off for the fixture only) in centre a2; the actor's scope comes from the identity fake (grants.centreIds).
+describe('centre scope on the default seam: a specimen of a centre outside the actor scope is common.not_found, never duplicate / conflict (review item 1)', () => {
+  const ids: { order: string; byStatus: Record<string, string> } = { order: uid(), byStatus: {} };
+  const fixture = async (fn: (q: (s: string, v?: unknown[]) => Promise<unknown>) => Promise<unknown>): Promise<void> => {
+    await superTx(async (tx) => { await tx.query('SET LOCAL session_replication_role = replica'); await fn((s, v) => tx.query(s, v)); });
+  };
+  beforeAll(async () => {
+    await fixture(async (q) => {
+      await q(`INSERT INTO lab.orders (id, tenant_id, centre_id, branch_id, patient_id, registration_no, visit_type, priority, source, registered_at, patient_sex, last_order_seq, created_by, updated_by)
+        VALUES ($1, $2, $3, $4, $5, $6, 'opd', 'routine', 'front_desk', now(), 'female', 1, $7, $7)`, [ids.order, TENANT_A, CENTRE.a2, uid(), uid(), `SYNSCOPE${ids.order.slice(-8)}`, USER.a1]);
+      for (const status of ['received', 'rejected', 'ordered']) {
+        const id = uid(); ids.byStatus[status] = id;
+        await q(`INSERT INTO lab.specimens (id, tenant_id, centre_id, order_id, patient_id, barcode, creation_key, specimen_type_code, priority, patient_sex, status, ordered_at, version, created_by, updated_by)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, 'SER', 'routine', 'female', $8, now(), 5, $9, $9)`, [id, TENANT_A, CENTRE.a2, ids.order, uid(), `SYN${id.slice(-12).toUpperCase().replace(/-/g, '0')}`, uid(), status, USER.a1]);
+      }
+    });
+  }, T);
+  afterAll(async () => {
+    await fixture(async (q) => { await q('DELETE FROM lab.specimens WHERE order_id = $1', [ids.order]); await q('DELETE FROM lab.orders WHERE id = $1', [ids.order]); });
+  }, T);
+  const outside = { grants: { centreIds: [CENTRE.a1] } };
+
+  it('actor scoped to centre a1, specimen of centre a2 already further (received): collection.mark_collected and accession.receive are rejected common.not_found, not duplicate', async () => {
+    const dev = await newDevice(A1);
+    const ops = [col(ids.byStatus['received']!, 2), rec(ids.byStatus['received']!, 2)];
+    const rs = okBody(await devicePush(HD, A1, dev, ops, outside)).results;
+    for (const r of rs) expect(r, r.op_id).toMatchObject({ status: 'rejected', error_code: 'common.not_found' });
+    expect(await conflictsOf(ops.map((o: any) => o.op_id))).toHaveLength(0);
+    expect(calls.collect).toHaveLength(0); expect(calls.receive).toHaveLength(0);
+  }, T);
+  it('same actor, specimen of centre a2 contradicted (rejected) or at a newer version: common.not_found, no core.sync_conflict row (the server state is not leaked)', async () => {
+    const dev = await newDevice(A1);
+    const ops = [col(ids.byStatus['rejected']!, 2), rec(ids.byStatus['rejected']!, 2), col(ids.byStatus['ordered']!, 2), rec(ids.byStatus['ordered']!, 2)];
+    const rs = okBody(await devicePush(HD, A1, dev, ops, outside)).results;
+    for (const r of rs) expect(r, r.op_id).toMatchObject({ status: 'rejected', error_code: 'common.not_found' });
+    expect(await conflictsOf(ops.map((o: any) => o.op_id))).toHaveLength(0);
+  }, T);
+  it('control: an actor whose scope has centre a2 sees the same specimen: duplicate (so the rows above are readable and only the scope hides them)', async () => {
+    const dev = await newDevice(A1);
+    const rs = okBody(await devicePush(HD, A1, dev, [col(ids.byStatus['received']!, 2), rec(ids.byStatus['received']!, 2)], { grants: { centreIds: [CENTRE.a2] } })).results;
+    expect(rs.map((r: any) => r.status)).toEqual(['duplicate', 'duplicate']);
   }, T);
 });
 

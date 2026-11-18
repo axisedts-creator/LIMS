@@ -35,8 +35,14 @@ describe('the adapter calls the billing service layer as the signed in user (don
     const at = new Date(NOW.getTime() - 5 * 3_600_000);
     const r = rc({}, at);
     await devicePush(H, A1, dev, [r]);
-    expect(calls.recordPayment[0]!.args[0].capturedAt).toBe(iso(at));
+    expect(calls.recordPayment[0]!.args[0].capturedAt).toBe(at.toISOString());   // review T0B-SYNC-3 item 3: the same instant, at most 3 fraction digits (the ledger's capturedAt rule)
     expect((await ledger([r.op_id]))[0].device_created_at.toISOString().replace(/\.\d{3}Z$/, 'Z')).toBe(iso(at));
+  }, T);
+  it('device time with microseconds (the engine accepts up to 6 fraction digits): accepted, capturedAt reaches the service with exactly 3 (review item 3)', async () => {
+    const dev = await newDevice(A1);
+    const r = rc({}); r.device_created_at = '2026-11-17T08:30:00.123456Z';
+    expect(one(await devicePush(H, A1, dev, [r]))).toMatchObject({ status: 'accepted', entity_id: r.entity_id });
+    expect(calls.recordPayment[0]!.args[0].capturedAt).toBe('2026-11-17T08:30:00.123Z');
   }, T);
   it('the body can not attribute money to someone else: collector, capture kind and receipt choice come from the adapter, not the payload', async () => {
     const dev = await newDevice(A1);

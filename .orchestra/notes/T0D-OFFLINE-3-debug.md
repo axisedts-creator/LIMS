@@ -36,3 +36,7 @@ Fix: none; tests are tester-owned and the baseline json must not be regenerated.
 ## Round 9 (verify 00:36: 4 fail / 33 pass, rs-c4.static + rs-c4.screens only)
 Cause: no OFFLINE-3 defect. Same rs-c4 guard drift as round 8: same-bytes list (billing nav.manifest/server actions,types,write.server, frontdesk draft.ts, useShortcuts.ts), route "/v1/catalog/tests", 45 billing symbols, plus 1 screens snapshot. All from already-merged work; OFFLINE-3 diff touches none of them.
 Fix: none; tests are tester-owned, baseline json not regenerated. Dispute T0D-OFFLINE-3-dispute-202611190019.md still stands; lead must widen LD310_ALLOW and re-record the snapshot.
+
+## Round 10 (verify 00:43: 4 fail / 33 pass, rs-c4.static + rs-c4.screens only)
+Cause: no OFFLINE-3 defect. Same rs-c4 guard drift as rounds 8-9 (same-bytes list, frontdesk/billing allow-list gaps, 1 screens snapshot) from already-merged work; OFFLINE-3 diff touches none of it.
+Fix: none; tests are tester-owned, baseline json not regenerated. Dispute T0D-OFFLINE-3-dispute-202611190019.md still stands; lead must widen LD310_ALLOW and re-record the snapshot.

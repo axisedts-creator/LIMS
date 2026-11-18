@@ -1,8 +1,8 @@
-# T0B-MISREPORTS-2 impl (writer). Status: implemented; 2 stale AN-T21 P13 probe cases disputed (T0B-MISREPORTS-2-dispute.md).
+# T0B-MISREPORTS-2 impl (writer). Status: implemented; P13 probe revised per ruling (LD-402), no code change this pass.
 - Files: analytics/domain/reportRegistry.ts (two money MisDefs + MIS_ALL_DEFS/isMisCode/MONEY_REPORT_CODES, rows in contract order with flag, PENDING_REPORT_CODES = [], 501 helpers removed), domain/misReports.ts (permission type), service/misReports.service.ts (SQL two_level_commission + tds), handlers/exports.ts (no 501; referral_report.view access entry after data.export),
   export/reportTable.ts + worker jobs/analytics/tasks/build_export.ts (use isMisCode / MIS_ALL_DEFS), service/schedule.service.ts (no 501; dispatcher omits every flagged code when flag off).
 - [CONV] Money defs live in reportRegistry.ts (allow-listed for the word, A39-3); domain/misReports.ts stays word free. Base = Σ(gross - discount - credited_total) of issued credit invoices, rates from partners.party_commercial_setting (credit_party) at run time, half up per row, ONE statement per page.
 - [CONV] Held ledger entries never enter the base (invoice based; Hold lives on billing.account_ledger_entries). Every row level 1, parent '' (no party->parent link: CR T0B-MISREPORTS-2 item 1 open).
 - [CONV] referral_report.view on export request only for the two money codes (detail report_code/from/to); referral_incentive export behaviour unchanged.
-- Checks: tsc clean; static analytics 2653 pass / 2 fail (P13); PG17 commission.live 23/23; full PG17 gate x1: 2843 pass / 2 fail (P13). 3 consecutive runs not done (blocked on the dispute).
+- Checks (post-ruling): tsc clean; static analytics 2655 pass / 0 fail; PG17 gate tests/analytics/T0B-MISREPORTS-2.pg.sh 3 invocations, each 3 runs: 2845 pass / 0 fail every run.
 - Open: parent / level 2 rule (lead CR); run view (report_run page) access log for money codes not touched; core/sync static failures seen in a wider run are outside this task.

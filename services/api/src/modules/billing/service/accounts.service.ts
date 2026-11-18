@@ -9,6 +9,7 @@
 import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';
 import { LimsError, type FieldError } from '../../../core/errors.js';
 import { loadBillingConfig } from '../config.js';
+import { fiscalYearLabel, fyStartOf } from '../domain/fiscalYear.js';
 import { toPaisa } from '../domain/money/paisa.js';
 import * as repo from '../repository/accounts.repo.js';
 import type { BalanceCtx } from './balance.service.js';
@@ -21,7 +22,8 @@ type Tx = Parameters<typeof repo.getGroup>[0];
 const NATURES = ['income', 'expense', 'asset', 'liability'] as const;
 const PARTY_KINDS = ['credit_party', 'franchise', 'user_pocket', 'laboratory'] as const;
 const ENTRY_TYPES = ['credit', 'debit'] as const;
-const STATUSES = ['submitted', 'approved', 'rejected', 'reversed'] as const;
+const STATUSES = ['submitted', 'approved', 'rejected', 'reversed', 'held'] as const;
+const FY_LABEL = /^[0-9]{4}\/[0-9]{2}$/;                         // contract fiscal_year_label pattern
 const CODE = /^[A-Z0-9_]{1,32}$/;
 const PAYMENT_MODE = /^[a-z][a-z0-9_]{0,49}$/;
 const CARD_RUN = /[0-9]{13}/;                                   // contract pattern: never a 13+ digit run (card number, REQ-SEC-056)
@@ -135,6 +137,9 @@ export const entryDto = (r: Row) => present({
   entry_type: r['entry_type'], amount_paisa: toPaisa(r['amount_paisa']), payment_mode: r['payment_mode'], bank_name: r['bank_name'], reference_no: r['reference_no'],
   payment_details: r['payment_details'], comments: r['comments'], status: r['status'], reverses_entry_id: r['reverses_entry_id'], receipt_no: r['receipt_no'],
   created_by: r['created_by'], last_modified_by: r['last_modified_by'], created_at: iso(r['created_at']),
+  // T0B-FINCTRL-1 (LD-321): hold history and the server set fiscal year label (absent when NULL)
+  held_reason: r['held_reason'], held_by: r['held_by'], held_at: r['held_at'] == null ? undefined : iso(r['held_at']),
+  released_by: r['released_by'], released_at: r['released_at'] == null ? undefined : iso(r['released_at']), fiscal_year_label: r['fiscal_year_label'],
 });
 /** A signed BigInt balance as the contract's non-negative amount + side (credit when >= 0). */
 const sided = (b: bigint): { paisa: number; side: 'credit' | 'debit' } => ({ paisa: toPaisa(String(b < 0n ? -b : b)), side: b < 0n ? 'debit' : 'credit' });
@@ -150,6 +155,28 @@ export function createAccountsService(deps: AccountsDeps = {}) {
     const s = idp ? await idp.getTenantSettings(ctx, { keys: ['timezone'] }) : undefined;
     const tz = typeof s?.timezone === 'string' && s.timezone !== '' ? s.timezone : DEFAULT_TZ;
     return localDate(iso((ctx.now as () => unknown)()), tz);
+  }
+  /** T0B-FINCTRL-1 done_when 5: label of `date` from the tenant setting fiscal_year_start_bs ({ month, day }; absent = Shrawan 1), computed at write time. */
+  async function fyLabel(ctx: BalanceCtx, date: string, path: string): Promise<string> {
+    const idp = ctx.ports?.IdentityPort;
+    // [CONV] fiscal_year_start_bs is not a TenantSettings key of the port contract yet: read untyped, absent = Shrawan 1 (CR in the notes)
+    const s = idp ? await (idp.getTenantSettings as (c: unknown, i: { keys: readonly string[] }) => Promise<unknown>).call(idp, ctx, { keys: ['fiscal_year_start_bs'] }) : undefined;
+    try { return fiscalYearLabel(date as never, fyStartOf((s as Record<string, unknown> | undefined)?.['fiscal_year_start_bs'])); } catch { throw fail([path]); }   // outside the B.S. table
+  }
+  /** hold / release: one request body { reason } (1..500, not blank), never logged nor audited as text. */
+  function holdReason(body: unknown): string {
+    const c = new Checker(isRec(body) ? body : {});
+    if (!isRec(body)) c.flag('');
+    c.only(['reason']);
+    const reason = c.text('reason', 500, true);
+    if (reason !== undefined && reason.trim() === '') c.flag('reason');
+    c.done();
+    return reason!;
+  }
+  /** After a refused UPDATE: 404 for an unknown / other tenant id, else 409 (wrong state). */
+  async function refuse(tx: Tx, tenantId: string, id: string): Promise<never> {
+    if (!(await repo.getEntry(tx, tenantId, id))) throw notFound();
+    throw new LimsError('common.immutable_record');
   }
 
   /** Optimistic update shared by both masters: 428 without If-Match, 400 malformed, 404 unknown / other tenant, 409 stale. */
@@ -273,12 +300,13 @@ export function createAccountsService(deps: AccountsDeps = {}) {
       if (!particular) throw notFound();
       if (!particular.active) throw fail(['/account_particular_id']);                               // inactive particular or inactive group
       if (!(await repo.findParty(tx, tenantId, partyKind!, partyId!))) throw notFound();
+      const fy = await fyLabel(ctx, entryDate!, '/entry_date');
       // contract: credit limit and blocked party are NOT enforced here (records only)
       const seq = await repo.nextReceiptSeq(tx, tenantId);
       const row = await repo.insertEntry(tx, {
         id: uuidv7(), tenantId, centreId: centreId!, partyKind: partyKind!, partyId: partyId!, entryDate: entryDate!, particularId: particularId!, entryType: entryType!,
         amountPaisa: amount!, paymentMode: mode!, bankName: bankName ?? null, referenceNo: referenceNo ?? null, paymentDetails: details ?? null, comments: comments ?? null,
-        reversesEntryId: null, receiptNo: receiptNoOf(seq), receiptSeq: seq, actorId,
+        reversesEntryId: null, receiptNo: receiptNoOf(seq), receiptSeq: seq, actorId, fiscalYearLabel: fy,
       });
       // LD-324 (c), CR-C0-ACCT-1: access_log row in the same tx; detail ids only (no comments / bank / reference / payment free text).
       await auditOf(ctx)({ action: 'account_entry.create', entityType: 'account_ledger_entry', entityId: row['id'], centreId: centreId!, outcome: 'allowed' });
@@ -302,6 +330,7 @@ export function createAccountsService(deps: AccountsDeps = {}) {
       set('centreId', c.uuid('centre_id')); set('partyKind', c.oneOf('party_kind', PARTY_KINDS)); set('partyId', c.uuid('party_id'));
       set('particularId', c.uuid('account_particular_id')); set('entryType', c.oneOf('entry_type', ENTRY_TYPES)); set('status', c.oneOf('status', STATUSES));
       set('dateFrom', c.date('entry_date_from')); set('dateTo', c.date('entry_date_to'));
+      set('fiscalYearLabel', c.text('fiscal_year_label', 7, false, FY_LABEL));                   // T0B-FINCTRL-1: the ElabAssist Financial Year search
       if (f.dateFrom !== undefined && f.dateTo !== undefined && f.dateFrom > f.dateTo) c.flag('entry_date_from');
       c.done();
       if (q['cursor'] !== undefined) f.beforeSeq = decode<number>(q['cursor'], 'account_ledger_entries', (k) => Number.isSafeInteger(k) && (k as number) > 0);
@@ -320,13 +349,15 @@ export function createAccountsService(deps: AccountsDeps = {}) {
       const reason = c.text('reason_text', 500, true);
       c.done();
       const today0 = await today(ctx);
+      const fy = await fyLabel(ctx, today0, '/reason_text');
       // The tenant receipt lock is taken BEFORE the original is read: every ledger insert of the tenant is serialised by it, so a concurrent reversal of the
       // same entry is committed (and seen by the read below) before this one proceeds -> 409, never a second row.
       if (!(await repo.getEntry(tx, tenantId, id))) throw notFound();
       const seq = await repo.nextReceiptSeq(tx, tenantId);
       const orig = await repo.getEntry(tx, tenantId, id);                                          // re-read under the lock (derived status is current)
       if (!orig) throw notFound();
-      if (orig['reverses_entry_id'] != null || orig['status'] === 'reversed') throw new LimsError('billing.ledger_reversal_invalid');
+      // [CONV] T0B-FINCTRL-1: a held entry is not posted; it is released first, then reversed
+      if (orig['reverses_entry_id'] != null || orig['status'] === 'reversed' || orig['status'] === 'held') throw new LimsError('billing.ledger_reversal_invalid');
       try {
         const row = await repo.insertEntry(tx, {
           id: uuidv7(), tenantId, centreId: orig['centre_id'], partyKind: orig['party_kind'], partyId: orig['party_id'],
@@ -334,7 +365,7 @@ export function createAccountsService(deps: AccountsDeps = {}) {
           particularId: orig['account_particular_id'], entryType: orig['entry_type'] === 'credit' ? 'debit' : 'credit', amountPaisa: toPaisa(orig['amount_paisa']),
           paymentMode: orig['payment_mode'], bankName: orig['bank_name'] ?? null, referenceNo: orig['reference_no'] ?? null, paymentDetails: orig['payment_details'] ?? null,
           comments: reason!,                                                                            // contract example: the reversal's comments carry reason_text
-          reversesEntryId: id, receiptNo: receiptNoOf(seq), receiptSeq: seq, actorId,
+          reversesEntryId: id, receiptNo: receiptNoOf(seq), receiptSeq: seq, actorId, fiscalYearLabel: fy,
         });
         // LD-324 (c): entity = the NEW reversal entry; the original id only in detail.reverses_entry_id.
         await auditOf(ctx)({ action: 'account_entry.reverse', entityType: 'account_ledger_entry', entityId: row['id'], centreId: orig['centre_id'], outcome: 'allowed', detail: { reverses_entry_id: id } });
@@ -343,6 +374,27 @@ export function createAccountsService(deps: AccountsDeps = {}) {
         if (isUniqueViolation(e, 'account_ledger_entries__tenant_id_reverses__uq')) throw new LimsError('billing.ledger_reversal_invalid');
         throw e;
       }
+    },
+
+    // ------------------------------------------------ T0B-FINCTRL-1 (LD-321) hold and release: submitted to held and back, a reason each, one access_log record each
+    async holdEntry(ctx: BalanceCtx, i: { id: unknown; body: unknown }) {
+      const { tx, tenantId, actorId } = scope(ctx);
+      const id = pathId(i.id, 'account_ledger_entry_id');
+      const reason = holdReason(i.body);
+      await repo.lockLedger(tx, tenantId);                                                        // serialised with reversals of the tenant
+      const row = (await repo.holdEntry(tx, { tenantId, id, reason, actorId, at: iso((ctx.now as () => unknown)()) })) ?? (await refuse(tx, tenantId, id));
+      // [CONV] the closed access action set has no hold name yet: account_entry.reverse + detail.transition (reason text never audited); CR in the notes
+      await auditOf(ctx)({ action: 'account_entry.reverse', entityType: 'account_ledger_entry', entityId: id, centreId: row['centre_id'], outcome: 'allowed', detail: { transition: 'hold' } });
+      return entryDto(row);
+    },
+    async releaseEntry(ctx: BalanceCtx, i: { id: unknown; body: unknown }) {
+      const { tx, tenantId, actorId } = scope(ctx);
+      const id = pathId(i.id, 'account_ledger_entry_id');
+      holdReason(i.body);                                                                          // required and validated; not stored (no release reason column in the contract)
+      await repo.lockLedger(tx, tenantId);
+      const row = (await repo.releaseEntry(tx, { tenantId, id, actorId, at: iso((ctx.now as () => unknown)()) })) ?? (await refuse(tx, tenantId, id));
+      await auditOf(ctx)({ action: 'account_entry.reverse', entityType: 'account_ledger_entry', entityId: id, centreId: row['centre_id'], outcome: 'allowed', detail: { transition: 'release' } });
+      return entryDto(row);
     },
 
     // ------------------------------------------------ statement / summary

@@ -23,7 +23,7 @@ async function baseline(who: any, dev: string, type: string): Promise<string | u
 const insertDoctors = async (tenant: string, n: number, tag: string): Promise<string[]> => {
   const ids = Array.from({ length: n }, () => uid());
   await superTx((tx) => tx.query(`INSERT INTO catalog.doctors (id, tenant_id, doctor_code, display_name, name_normalised, source, created_by, updated_by)
-    SELECT i, $1, $3 || '-' || substr(i::text, 25), 'Dr Synthetic ' || $3, lower('dr synthetic ' || $3), 'back_office', $4, $4 FROM unnest($2::uuid[]) AS i`, [tenant, ids, tag, SEED_ACTOR]), tenant);
+    SELECT i, $1, 'S2P-' || upper(substr(i::text, 25)), 'Dr Synthetic ' || $3, lower('dr synthetic ' || $3), 'back_office', $4, $4 FROM unnest($2::uuid[]) AS i`, [tenant, ids, tag, SEED_ACTOR]), tenant);
   return ids;
 };
 const take = (changes: any, type: string) => changes.find((c: any) => c.entity_type === type)!;

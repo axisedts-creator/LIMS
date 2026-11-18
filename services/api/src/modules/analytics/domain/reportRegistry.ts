@@ -2,6 +2,7 @@
 import { LimsError } from '../../../core/errors.js';
 import type { AnalyticsPermission } from '../permissions.js';
 import type { Family } from './families.js';
+import { MIS_DEFS, MIS_REPORT_CODES } from './misReports.js';
 
 export interface ReportDef {
   readonly code: string;
@@ -50,7 +51,20 @@ const ENTRIES = [
   def('delivery', DASH, ['deliveries', 'releases'], [...KL, 'reports_released', 'deliveries_created', 'deliveries_delivered', 'deliveries_failed']),
   def('interfaces', DASH, ['interface_messages'], [...KL, 'messages_received', 'messages_failed', 'error_rate_bp'],
     { liveSources: ['agent_status'], schedulable: false }),
+  // T0B-MISREPORTS-1 (LD-321, LD-346): the delivered MIS rows, contract order. Live SQL over the base tables (no rollup family); columns = the contract columns.
+  ...MIS_REPORT_CODES.map((code) => { const d = MIS_DEFS[code]!; return def(code, d.permission, [], d.columns.map((c) => c.name)); }),
 ];
+
+/**
+ * LD-346 (2): codes of the contract's x-report-definitions with no registry row yet (the pattern of the T0B-BOOTGATE-1 pendingOperations list).
+ * Export and schedule answer 501 operation_pending after authorisation; no handler, no fixture, no rates. T0B-MISREPORTS-2 removes them.
+ */
+export const PENDING_REPORT_CODES: readonly string[] = Object.freeze(['two_level_commission', 'tds']);
+export const isPendingReport = (code: unknown): boolean => typeof code === 'string' && PENDING_REPORT_CODES.includes(code);
+/** 501 operation_pending (not a registry error code: core/errors.ts sendProblem renders it with pendingProblem). */
+export function pendingReportError(code: string): LimsError {
+  return Object.assign(new LimsError('operation_pending', `report ${code}`), { statusCode: 501 });
+}
 
 export const REPORT_REGISTRY: Readonly<Record<string, ReportDef>> = Object.freeze(Object.fromEntries(ENTRIES));
 export const REPORT_CODES: readonly string[] = Object.freeze(ENTRIES.map(([code]) => code));

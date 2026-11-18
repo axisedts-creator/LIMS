@@ -12,6 +12,8 @@ import {
   type ReportsContext,
 } from '../service/reports.service.js';
 import { MAX_FILTER_IDS } from '../service/context.service.js';
+import { isMisReport } from '../domain/misReports.js';
+import { checkMisExportParams } from '../service/misReports.service.js';
 import type { ExportCell, ExportColumn, ExportKind } from './layout.js';
 
 type Row = Record<string, unknown>;
@@ -73,10 +75,12 @@ const SPECS: Readonly<Record<string, Spec>> = Object.freeze({
   },
 });
 
-export const isExportable = (code: string): boolean => Object.hasOwn(SPECS, code);
+// T0B-MISREPORTS-1: the MIS reports are built by service/misReports.service.ts (streamMisReport in the worker), not through SPECS; their params are checked here too.
+export const isExportable = (code: string): boolean => Object.hasOwn(SPECS, code) || isMisReport(code);
 
 /** Request-time check of the report-specific params (allow-lists, limits). Throws common.validation_failed; reads nothing. */
 export function checkReportParams(code: string, params: Row): void {
+  if (isMisReport(code)) { checkMisExportParams(code, params); return; }
   const spec = SPECS[code];
   if (!spec) throw invalidField('report_code');
   spec.args(params);

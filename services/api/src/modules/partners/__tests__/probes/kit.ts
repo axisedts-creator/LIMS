@@ -21,7 +21,7 @@ export const ALL: Op[] = Object.entries<any>(SPEC.paths).flatMap(([path, item]) 
 export const PARTNER_OPS = ALL.filter((o) => !o.staff);
 export const STAFF_OPS = ALL.filter((o) => o.staff);
 /** Operations that still have no owning task in 06-IMPLEMENTATION-PLAN (settings SA11/SA12): stubs that must fail closed. Move out of this list when implemented. */
-// The 10 partner ticket ids (T0C-MSGDESK-1) are pending (LD-325(b)), so line 13 already leaves them out; they join the matrices when T0B-MSGDESK-1 moves them from pending to handlers.
+// T0B-MSGDESK-1 (T0C-MSGDESK-1 ruling item 4): the 10 ticket ids have real handlers now, so they are removed from this list and the ST1-ST4 / not-found probes cover them.
 export const UNOWNED_STUBS = ['getPartnerSettings', 'updatePartnerSettings'];
 
 const UUID = '01940e00-0000-7000-8000-c13220000001';

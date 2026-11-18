@@ -22,14 +22,14 @@ describe('T0C-MSGDESK-1: partners manifest covers the new operations (handler or
     const uncovered = specIds.filter((id) => !handlerIds.includes(id) && !pending.includes(id));
     expect(uncovered, `no handler and not pending: ${uncovered.join(', ')}`).toEqual([]);
   });
-  it('every pending id is a spec operationId and appears once; only the new operations may be pending', () => {
+  it('every pending id is a spec operationId and appears once; none of the new operations is still pending', () => {
     expect(pending.filter((id) => !specIds.includes(id))).toEqual([]);
     expect(new Set(pending).size).toBe(pending.length);
-    // LD-349: every MSGDESK id is in pending (review item 2); any other pending id must be a partners.sales operation of the contract (T0C-SALES-1, until T0B-SALES-1).
-    for (const id of NEW_OPS) expect(pending, `${id} must be in pendingOperations (LD-325(b))`).toContain(id);
+    expect(pending.filter((id) => NEW_OPS.includes(id)), 'T0B-MSGDESK-1 handles all 10 ticket operations; none may stay pending').toEqual([]);
+    // T0C-SALES-1 (LD-349): any other pending id must be a partners.sales operation of the contract (until T0B-SALES-1).
     const salesIds = Object.values<any>(spec.paths).flatMap((p) => Object.values<any>(p))
       .filter((m) => m?.operationId && ['partners.sales.read', 'partners.sales.manage'].includes(m['x-permission'])).map((m) => m.operationId as string);
-    expect(pending.filter((id) => !NEW_OPS.includes(id) && !salesIds.includes(id)), 'other pending ids must be partners.sales operations').toEqual([]);
+    expect(pending.filter((id) => !salesIds.includes(id)), 'other pending ids must be partners.sales operations').toEqual([]);
   });
   it('a handler key that is not a spec operation does not exist (nothing was invented)', () => {
     expect(handlerIds.filter((id) => !specIds.includes(id))).toEqual([]);

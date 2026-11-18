@@ -226,7 +226,7 @@ SELECT is(pg_temp.v('lims_api', jsonb_build_object('sub', pg_temp.sys(), 'actor_
   'EP0001:identity_platform_auth_write_invalid_input', 'session_update refuses an unlisted key (tenant_id)');
 SELECT is(pg_temp.v('lims_api', jsonb_build_object('sub', pg_temp.sys(), 'actor_type', 'system'), format($$SELECT app.identity_platform_auth_write_session_update(%L::uuid, %L::uuid, '{"kind":"tenant_staff"}'::jsonb)::text$$, pg_temp.uid(101), pg_temp.uid(2101))),
   'EP0001:identity_platform_auth_write_invalid_input', 'session_update refuses an unlisted key (kind)');
-SELECT is(pg_temp.v('lims_api', jsonb_build_object('sub', pg_temp.sys(), 'actor_type', 'system'), format($$SELECT app.identity_platform_auth_write_session_update(%L::uuid, %L::uuid, '{"state":"revoked"}'::jsonb)::text || '|' || coalesce(current_setting('app.pre_user_id', true), 'NULL')$$, pg_temp.uid(101), pg_temp.uid(2101))),
+SELECT is(pg_temp.v('lims_api', jsonb_build_object('sub', pg_temp.sys(), 'actor_type', 'system'), format($$SELECT app.identity_platform_auth_write_session_update(%L::uuid, %L::uuid, '{"state":"revoked","revoked_at":"2026-11-07T00:00:00Z","revoke_reason":"logout"}'::jsonb)::text || '|' || coalesce(current_setting('app.pre_user_id', true), 'NULL')$$, pg_temp.uid(101), pg_temp.uid(2101))),   -- HARNESS T0B-GREEN-3: sessions__revoke__ck (20261105001300) needs revoked_at + revoke_reason with state revoked
   '1|', 'app.pre_user_id is empty after session_update');
 -- mfa factor
 SELECT is(pg_temp.v('lims_api', jsonb_build_object('sub', pg_temp.sys(), 'actor_type', 'system'), format($$SELECT app.identity_platform_auth_write_mfa_factor(%L::uuid, NULL, %L::jsonb)::text$$, pg_temp.uid(101),
@@ -253,10 +253,14 @@ SELECT is(pg_temp.v('lims_api', jsonb_build_object('sub', pg_temp.sys(), 'actor_
 SELECT is((SELECT last_login_at IS NOT NULL FROM identity.platform_staff WHERE id = pg_temp.uid(1)), true, 'platform_staff.last_login_at is set');
 SELECT is(pg_temp.v('lims_api', jsonb_build_object('sub', pg_temp.sys(), 'actor_type', 'system'), format($$SELECT app.identity_platform_auth_write_staff_login(%L::uuid)::text || '|' || coalesce(current_setting('app.pre_user_id', true), 'NULL')$$, pg_temp.uid(101))), '1|', 'app.pre_user_id empty after staff_login');
 -- a lims_api session that sets app.pre_user_id itself still cannot insert or update a platform session (owner policies are TO lims_owner)
-SELECT matches(pg_temp.v('lims_api', jsonb_build_object('sub', pg_temp.sys(), 'actor_type', 'system'), format($$SELECT set_config('app.pre_user_id', %L, true) || '|' || (WITH i AS (INSERT INTO identity.sessions SELECT * FROM jsonb_populate_record(NULL::identity.sessions, %L::jsonb) RETURNING 1) SELECT count(*)::text FROM i)$$,
-  pg_temp.uid(101)::text, pg_temp.psess(jsonb_build_object('id', pg_temp.uid(2105), 'gotrue_session_id', pg_temp.uid(2205), 'token_sha256', pg_temp.h32('p2')))::text)), '^E42501', 'lims_api setting app.pre_user_id itself cannot INSERT a platform session');
-SELECT is(pg_temp.v('lims_api', jsonb_build_object('sub', pg_temp.sys(), 'actor_type', 'system'), format($$SELECT set_config('app.pre_user_id', %L, true) || '|' || (WITH u AS (UPDATE identity.sessions SET state = 'revoked' WHERE id = %L RETURNING 1) SELECT count(*)::text FROM u)$$,
-  pg_temp.uid(101)::text, pg_temp.uid(2101)::text)), pg_temp.uid(101)::text || '|0', 'lims_api setting app.pre_user_id itself updates 0 platform sessions');
+-- HARNESS fix T0B-GREEN-3 (assertions 90, 91): a data-modifying WITH inside a scalar subquery is E0A000 ("must be at the top level"), so the statement never reached RLS. The GUC is now set
+-- by its own statement (transaction-local, so it is still set when the next call runs as lims_api, exactly the attacker's position) and the DML is a top-level WITH ... SELECT count(*); the GUC is cleared after.
+SELECT set_config('app.pre_user_id', pg_temp.uid(101)::text, true);
+SELECT matches(pg_temp.v('lims_api', jsonb_build_object('sub', pg_temp.sys(), 'actor_type', 'system'), format($$WITH i AS (INSERT INTO identity.sessions SELECT * FROM jsonb_populate_record(NULL::identity.sessions, %L::jsonb) RETURNING 1) SELECT count(*)::text FROM i$$,
+  pg_temp.psess(jsonb_build_object('id', pg_temp.uid(2105), 'gotrue_session_id', pg_temp.uid(2205), 'token_sha256', pg_temp.h32('p2')))::text)), '^E42501', 'lims_api setting app.pre_user_id itself cannot INSERT a platform session');
+SELECT is(pg_temp.v('lims_api', jsonb_build_object('sub', pg_temp.sys(), 'actor_type', 'system'), format($$WITH u AS (UPDATE identity.sessions SET state = 'revoked', revoked_at = now(), revoke_reason = 'logout' WHERE id = %L RETURNING 1) SELECT count(*)::text FROM u$$,
+  pg_temp.uid(2101)::text)), '0', 'lims_api setting app.pre_user_id itself updates 0 platform sessions');
+SELECT set_config('app.pre_user_id', '', true);
 
 SELECT * FROM finish();
 ROLLBACK;

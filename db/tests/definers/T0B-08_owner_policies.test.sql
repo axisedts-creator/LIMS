@@ -32,6 +32,8 @@ BEGIN
 END $f$;
 
 -- ---------- fixtures: tenant A with one user / membership / role (core, T0B-03), written with triggers off ----------
+-- T0B-GREEN-3 (LD-268, HARNESS): run-suites.sh loads seed 010 (tenant_a / tenant_b, both active) before every suite; count them so "sees the tenant" is "sees fixture + seeded tenants".
+CREATE TEMP TABLE seed_tenants AS SELECT id FROM core.tenants;
 SET LOCAL session_replication_role = replica;
 INSERT INTO core.tenants (id, tenant_code, legal_name, display_name, status, created_by, updated_by) VALUES
   (pg_temp.id('01'), 'lab_a', 'Lab A Pvt Ltd', 'Lab A', 'active', pg_temp.id('99'), pg_temp.id('99'));
@@ -66,8 +68,8 @@ SELECT is(pg_temp.as_g('lims_owner', NULL, jsonb_build_object('app.pre_user_id',
 SELECT is(pg_temp.as_g(r, NULL, jsonb_build_object('app.maintenance', m), 'SELECT 1 FROM core.tenants'), 'n=0',
           'schema test 16(b)/22: ' || r || ' setting app.maintenance = ' || m || ' itself sees 0 core.tenants rows')
   FROM unnest(ARRAY['lims_api','lims_worker']) r, unnest(ARRAY['platform_list_tenants','cron_tenant_ids']) m;
-SELECT is(pg_temp.as_g('lims_owner', NULL, jsonb_build_object('app.maintenance', 'cron_tenant_ids'), 'SELECT 1 FROM core.tenants'), 'n=1',
-  'owner with app.maintenance = cron_tenant_ids sees the tenant (the function path works)');
+SELECT is(pg_temp.as_g('lims_owner', NULL, jsonb_build_object('app.maintenance', 'cron_tenant_ids'), 'SELECT 1 FROM core.tenants'), 'n=' || (1 + (SELECT count(*) FROM seed_tenants)),
+  'owner with app.maintenance = cron_tenant_ids sees the fixture tenant plus the seed 010 tenants (the function path works)');
 SELECT is(pg_temp.as_g('lims_owner', NULL, jsonb_build_object('app.maintenance', 'some_other_function'), 'SELECT 1 FROM core.tenants'), 'n=0',
   'owner with another function''s app.maintenance name sees 0 tenants (08 A15.3: the GUC value is the function name)');
 SELECT is(pg_temp.as_g('lims_worker', NULL, jsonb_build_object('app.maintenance', 'identity_tenants_for_email_hmacs'), 'SELECT 1 FROM core.users'), 'n=0',

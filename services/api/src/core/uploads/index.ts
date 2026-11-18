@@ -4,7 +4,7 @@
 // The client filename only selects the expected type; it never reaches the stored key.
 import { uuidv7 } from '../../../../../packages/shared-ts/src/uuidv7/index.js';
 import { LimsError } from '../errors.js';
-import { assertOwned, assertTenantPath, type BucketName, type StorageAdapter } from '../storage/index.js';
+import { assertOwned, assertTenantPath, iterableOf, type BucketName, type ByteSource, type StorageAdapter } from '../storage/index.js';
 import { ImageRejected, reencodePng } from './image.js';
 import type { ScanResult } from './scan.js';
 
@@ -12,8 +12,9 @@ export { createFiles, type ScanResult } from './scan.js';
 
 export type UploadMime = 'application/pdf' | 'image/jpeg' | 'image/png' | 'text/csv'
   | 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-/** [CONV] not defined by 03-IC: what the multipart layer hands to accept(). */
+/** [CONV] not defined by 03-IC: what the multipart layer hands to accept(). T0B-FILESTREAM-1 (LD-312): bytes, or a stream with the declared size. */
 export interface IncomingFile { readonly filename: string; readonly mimeType: string; readonly bytes: Uint8Array }
+export interface StreamedFile { readonly filename: string; readonly mimeType: string; readonly stream: ByteSource; readonly declaredSize?: number }
 export interface UploadAcceptOptions {
   readonly allow: readonly UploadMime[]; readonly maxBytes: number;
   readonly bucket: BucketName; readonly objectPath: string;
@@ -45,21 +46,53 @@ export function createUploads(o: {
   log?: { warn(obj: object, msg?: string): void }; metrics?: unknown;
 }) {
   const unsupported = () => new LimsError('common.unsupported_media_type');
+  /** Expected type from the client filename's extension, only when the declared type agrees; never part of the stored key. */
+  const typeOf = (file: { filename: unknown; mimeType: unknown }): UploadMime | undefined => {
+    if (typeof file.filename !== 'string' || typeof file.mimeType !== 'string') return undefined;
+    const base = file.filename.split(/[\\/]/).pop() ?? '';
+    const dot = base.lastIndexOf('.');
+    const mime = dot > 0 ? BY_EXT[base.slice(dot + 1).toLowerCase()] : undefined;
+    return mime && file.mimeType.split(';')[0]!.trim().toLowerCase() === mime ? mime : undefined;
+  };
+  /** T0B-FILESTREAM-1 (LD-312): a streamed body is read up to maxBytes and no further (413 at the limit, a declaredSize over it refused before
+   *  the first byte), and a wrong type is refused from its first bytes. What passes is held once, because every kind accept() takes today is
+   *  inspected before it is stored: the scanner takes bytes (scan 'required': PDF / image / XLSX), PNG is re-encoded (REQ-SEC-083..085), CSV is
+   *  checked whole for UTF-8 and NUL. At most maxBytes (<= 15 MiB, 02-CV §10.2) is held. */
+  async function readLimited(file: { filename: unknown; mimeType: unknown; stream: unknown; declaredSize?: unknown }, opts: UploadAcceptOptions): Promise<Uint8Array> {
+    if (typeof file.declaredSize === 'number' && file.declaredSize > opts.maxBytes) throw new LimsError('common.payload_too_large');
+    const src = iterableOf(file.stream);
+    const mime = typeOf(file);
+    if (!src || !mime || !opts.allow.includes(mime)) throw unsupported();
+    // One growing buffer (chunks are copied in and dropped), sized from declaredSize when given; a lying declaredSize only costs a regrow.
+    const hint = typeof file.declaredSize === 'number' && Number.isInteger(file.declaredSize) && file.declaredSize > 0 ? file.declaredSize : 64 * 1024;
+    let buf = Buffer.allocUnsafe(Math.min(hint, opts.maxBytes)); let size = 0; let typeChecked = mime === 'text/csv';   // CSV has no magic: checked whole later
+    try {
+      for await (const c of src) {
+        if (!(c instanceof Uint8Array)) throw unsupported();
+        if (size + c.length > opts.maxBytes) throw new LimsError('common.payload_too_large');   // stops reading the source here
+        if (size + c.length > buf.length) { const next = Buffer.allocUnsafe(Math.min(opts.maxBytes, Math.max(buf.length * 2, size + c.length))); buf.copy(next, 0, 0, size); buf = next; }
+        buf.set(c, size); size += c.length;
+        if (!typeChecked && size >= 8) { if (!MAGIC[mime](buf.subarray(0, size))) throw unsupported(); typeChecked = true; }
+      }
+    } catch (e) {
+      if (e instanceof LimsError) throw e;
+      throw unsupported();   // [CONV] a body that breaks off is refused like an unreadable one; the source error text is never echoed
+    }
+    return buf.subarray(0, size);
+  }
   return {
-    async accept(file: IncomingFile, opts: UploadAcceptOptions): Promise<AcceptedUpload> {
+    async accept(file: IncomingFile | StreamedFile, opts: UploadAcceptOptions): Promise<AcceptedUpload> {
       // Programming errors in the calling module (bad options) -> 500.
       if (!Array.isArray(opts?.allow) || opts.allow.length === 0 || !opts.allow.every((m) => Object.hasOwn(MAGIC, m))
         || !Number.isInteger(opts.maxBytes) || opts.maxBytes < 1 || opts.maxBytes > MAX_BYTES
         || (opts.scan !== 'required' && opts.scan !== 'not_applicable')
         || (opts.images?.maxMegapixels !== undefined && !(opts.images.maxMegapixels > 0 && opts.images.maxMegapixels <= 40))) throw new LimsError('common.internal');
       assertOwned(o.module, opts.bucket); assertTenantPath(o.tenantId, opts.objectPath);
-      const bytes = file?.bytes;
+      const bytes = file && 'stream' in file && !('bytes' in file) ? await readLimited(file, opts) : (file as { bytes?: unknown })?.bytes;
       if (!(bytes instanceof Uint8Array) || typeof file.filename !== 'string' || typeof file.mimeType !== 'string') throw unsupported();
       if (bytes.length > opts.maxBytes) throw new LimsError('common.payload_too_large');
-      const base = file.filename.split(/[\\/]/).pop() ?? '';
-      const dot = base.lastIndexOf('.');
-      const mime = dot > 0 ? BY_EXT[base.slice(dot + 1).toLowerCase()] : undefined;
-      if (!mime || bytes.length === 0 || !opts.allow.includes(mime) || file.mimeType.split(';')[0]!.trim().toLowerCase() !== mime || !MAGIC[mime](bytes)) throw unsupported();
+      const mime = typeOf(file);
+      if (!mime || bytes.length === 0 || !opts.allow.includes(mime) || !MAGIC[mime](bytes)) throw unsupported();
       if (opts.scan === 'not_applicable' && mime !== 'text/csv') throw new LimsError('common.internal');
 
       let stored: Uint8Array = bytes; let image: { width: number; height: number } | undefined;

@@ -65,7 +65,7 @@ SELECT is((SELECT count(*)::int FROM pg_policies p WHERE p.schemaname = 'instrum
 SELECT is((SELECT array_agg(p.policyname::text ORDER BY p.policyname::text) FROM pg_policies p WHERE p.schemaname = 'instruments' AND p.tablename <> 'event_inbox' AND p.roles = ARRAY['lims_owner']::name[] AND p.cmd = 'SELECT' AND p.tablename IN ('agent_credentials','agents','agent_status')),
   ARRAY['agent_credentials__select__owner_only','agent_status__select__owner_only','agents__select__owner_only'], 'C7 check 5: resolver / snapshot owner_only SELECT policies');
 SELECT is((SELECT count(*)::int FROM pg_policies p WHERE p.schemaname = 'instruments' AND p.tablename <> 'event_inbox' AND p.roles = ARRAY['lims_owner']::name[]), 23, 'C7 check 5: 23 policies TO lims_owner only');
-SELECT is((SELECT array_agg(DISTINCT p.tablename::text ORDER BY p.tablename::text) FROM pg_policies p WHERE p.schemaname = 'instruments' AND p.cmd = 'DELETE'),
+SELECT is((SELECT array_agg(DISTINCT p.tablename::text ORDER BY p.tablename::text) FROM pg_policies p WHERE p.schemaname = 'instruments' AND p.tablename <> 'event_inbox' AND p.cmd = 'DELETE'),
   ARRAY['agent_commands','agent_health_transitions','agent_log_bundles','attachments','message_duplicates','message_records','message_rejections','messages','observed_codes','processing_runs'],
   'C7 check 5: DELETE policies exactly on the 10 purge tables');
 SELECT is((SELECT count(*)::int FROM pg_policies p WHERE p.schemaname = 'instruments' AND p.cmd = 'DELETE' AND NOT (p.roles = ARRAY['lims_owner']::name[] AND p.policyname ~ '__delete__owner_only$')), 0, 'C7 check 5: every DELETE policy is __delete__owner_only TO lims_owner (no lims_app DELETE policy)');
@@ -81,8 +81,11 @@ SELECT ok(p.policyname ~ ('^' || p.tablename || '__(select|insert|update|delete)
 SELECT ok(coalesce(p.qual, '') || coalesce(p.with_check, '') ~ 'current_centre_ids\(\)( AS current_centre_ids)?\)::uuid\[\]', 'C7 check 6: A16.1 cast in ' || p.policyname)
   FROM pg_policies p WHERE p.schemaname = 'instruments' AND coalesce(p.qual, '') || coalesce(p.with_check, '') ~ 'current_centre_ids';
 SELECT ok(coalesce(p.qual, '') || coalesce(p.with_check, '') ~ 'is_staff_or_system', 'C7 check 6: staff guard in ' || p.policyname || ' (review #15)') FROM pg_policies p WHERE p.schemaname = 'instruments' AND p.policyname ~ '^settings__';
-SELECT is((SELECT count(*)::int FROM pg_policies p WHERE p.schemaname = 'instruments' AND p.tablename <> 'settings' AND coalesce(p.qual, '') || coalesce(p.with_check, '') ~ 'is_staff_or_system'), 0,
-  'C7 check 6: device actors write the centre tables, so no staff guard on them (§1.1)');
+-- STALE fix T0B-GREEN-2 (CR-C13-011 ACCEPT, 08-CR-REGISTER R10 item 5; see CR-C0-T0B-GREEN-1-004): app.is_staff_or_system() is actor_type IN ('user','system','device'), so the guard now sits in every
+-- instruments policy AND admits the device actor. The property of §1.1 (device actors, i.e. the bridge agent, can write the centre tables) therefore holds through the guard: pin that the guard admits 'device'
+-- and that the policy of a device-written centre table carries it (it would break the agent if the guard dropped 'device').
+SELECT matches(pg_get_functiondef('app.is_staff_or_system()'::regprocedure), '''user'',\s*''system'',\s*''device''', 'C7 check 6: app.is_staff_or_system() admits the device actor, so the guard on the centre tables does not lock the bridge agent out (§1.1, CR-C13-011)');
+SELECT is((SELECT count(*)::int FROM pg_policies p WHERE p.schemaname = 'instruments' AND p.tablename IN ('messages','agent_commands') AND p.roles = ARRAY['lims_app']::name[] AND coalesce(p.qual, '') || coalesce(p.with_check, '') !~ 'is_staff_or_system'), 0, 'C7 check 6: the device-written centre tables carry the staff-or-system guard (which admits device) in every lims_app policy');
 SELECT is((SELECT count(*)::int FROM pg_policies p WHERE p.schemaname = 'instruments' AND p.tablename IN ('settings') AND coalesce(p.qual, '') || coalesce(p.with_check, '') ~ 'centre'), 0, 'C7 check 6: settings is tenant-only');
 SELECT ok(p.qual ~ 'app\.maintenance' AND p.qual ~ 'purge_instruments_archive' AND p.qual ~ 'current_tenant_id', 'C7 check 6: purge owner policy ' || p.policyname || ' is bound to app.maintenance AND the claim tenant (one tenant per call, A13 P-6)')
   FROM pg_policies p WHERE p.schemaname = 'instruments' AND p.roles = ARRAY['lims_owner']::name[] AND p.tablename IN (SELECT t FROM rt) AND p.tablename NOT IN ('agent_credentials','agents','agent_status');
@@ -156,7 +159,9 @@ SELECT is((SELECT count(*)::int FROM pg_constraint k JOIN pg_class s ON s.oid = 
             WHERE k.contype = 'f' AND s.relnamespace = 'instruments'::regnamespace AND t.relnamespace NOT IN ('instruments'::regnamespace, 'core'::regnamespace)), 0,
   'C7 check 10 / AC-0B-6.2: instruments FKs point only into instruments / core (never lab, catalog, reporting)');
 SELECT is((SELECT count(*)::int FROM pg_constraint k JOIN pg_class s ON s.oid = k.conrelid JOIN pg_class t ON t.oid = k.confrelid
-            WHERE k.contype = 'f' AND t.relnamespace = 'instruments'::regnamespace AND s.relnamespace <> 'instruments'::regnamespace), 0, 'C7 check 10: no FK into instruments from another schema');
+            WHERE k.contype = 'f' AND t.relnamespace = 'instruments'::regnamespace AND s.relnamespace <> 'instruments'::regnamespace), 14, 'C7 check 10: 14 FKs into instruments from later chunks only (STALE fix T0B-GREEN-2: inventory 6, micro 4, quality 4)');
+SELECT is((SELECT array_agg(DISTINCT s.relnamespace::regnamespace::text ORDER BY s.relnamespace::regnamespace::text) FROM pg_constraint k JOIN pg_class s ON s.oid = k.conrelid JOIN pg_class t ON t.oid = k.confrelid
+            WHERE k.contype = 'f' AND t.relnamespace = 'instruments'::regnamespace AND s.relnamespace <> 'instruments'::regnamespace), ARRAY['inventory','micro','quality'], 'C7 check 10 / AC-0B-6.2: FKs into instruments come only from the chunks built after C7 (C9 quality, C10 micro, C12 inventory)');
 SELECT is((SELECT count(*)::int FROM pg_constraint k WHERE k.contype = 'f' AND k.conrelid IN (SELECT c.oid FROM pg_class c WHERE c.relnamespace = 'instruments'::regnamespace) AND k.conname !~ '__fk$'), 0, 'all instruments FK names end __fk');
 SELECT is((SELECT count(*)::int FROM pg_constraint k WHERE k.contype = 'f' AND k.conrelid IN (SELECT c.oid FROM pg_class c WHERE c.relnamespace = 'instruments'::regnamespace) AND array_length(k.conkey, 1) > 1
             AND k.conkey[1] <> (SELECT attnum FROM pg_attribute WHERE attrelid = k.conrelid AND attname = 'tenant_id')), 0, 'composite FKs lead with tenant_id (AC-0B-3.5)');

@@ -2,6 +2,7 @@
 // the contract enums / UUID before it is forwarded, anything else is dropped (no query injection). Store and item codes are resolved here.
 // LD-140 (2026-11-13): built from packages/ui components only.
 import { PermissionDenied } from '@/core/errors/PermissionDenied';
+import { pendingOr } from '@/core/shell/NotAvailable';
 import { getShellSession } from '@/core/session/server';
 import { AlertsView, type AlertRow } from '@/features/inventory/components/AlertsView';
 import { FORBIDDEN, guarded, listAlerts, listItems, listStores, lotsByItems, soft } from '@/features/inventory/server/read.server';
@@ -21,6 +22,11 @@ export default async function AlertsPage({ searchParams }: { searchParams: Promi
   const storeParam = one(sp['store_id']);
   const storeId = storeParam && UUID_RE.test(storeParam) ? storeParam : undefined;
 
+  // T0D-UNSLOP-1 / LD-353 rule 6: 501 operation_pending keeps the title and the header row (NotAvailable), never error.tsx.
+  return pendingOr('Alerts', ['Kind', 'Store', 'Item', 'Lot', 'First raised', 'Last raised', 'Occurrences', 'Status'], () => alerts(perms, kind as AlertKind | undefined, statuses, storeId));
+}
+
+async function alerts(perms: readonly string[], kind: AlertKind | undefined, statuses: AlertStatus[], storeId: string | undefined) {
   const list = await guarded(() => listAlerts({ ...(statuses.length ? { status: statuses } : {}), ...(kind ? { alertKind: kind as AlertKind } : {}), ...(storeId ? { storeId } : {}) }));
   if (list === FORBIDDEN) return <PermissionDenied />;
 

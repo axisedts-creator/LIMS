@@ -19,6 +19,8 @@ export const LAB_PERMISSIONS = Object.freeze([
   'lab.worksheet.manage',
   'lab.config.manage',
   'lab.qc_hold.release',
+  'lab.verification_policy.read', // T0C-VERLEVEL-1 (LD-316)
+  'lab.verification_policy.manage', // T0C-VERLEVEL-1 (LD-316)
 ] as const);
 
 export type LabPermission = (typeof LAB_PERMISSIONS)[number];

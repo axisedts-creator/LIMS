@@ -2,9 +2,16 @@
 // Read-only except the access log. Plain SQL (no JOIN); every statement binds tenant_id besides RLS. Visibility = the caller's ACTIVE links + released_at >= link.visible_from (PAT_VIS does the same in Postgres).
 // [CONV] profile_id = the link id; patient_id never leaves the service. [CONV] A foreign / hidden / unknown report or version is one and the same 404 (no existence oracle), before any rate-limit or port call.
 // [CONV] E23: rate limit (report_download, l:<link_id>) counts every attempt that passed the visibility check, failed ones included (03-APP-FLOW §5.2); the signed URL is fetched server-side and never leaves.
-// [CONV] The file is read whole, sha256-checked against the port digest, and only then is report.download written (§9.4: only when the stream completed). Any failure throws -> the request transaction rolls back.
+// [CONV] The file is sha256-checked against the port digest (streamed, T0B-FILESTREAM-1), and only then is report.download written (§9.4). Any failure before the first byte throws -> the request transaction rolls back.
 import { createHash } from 'node:crypto';
+import { createReadStream, createWriteStream } from 'node:fs';
+import { mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { Readable } from 'node:stream';
+import { pipeline } from 'node:stream/promises';
 import { LimsError } from '../../../core/errors.js';
+import { respond, type RequestHeaders, type StreamResponse } from '../../../core/storage/stream.js';
 import { engagementMetrics } from '../metrics.js';
 import { myLinks, scope, type Link, type OrdersCtx } from './orders.service.js';
 import { invalid, isUuid } from './slot.service.js';
@@ -57,12 +64,20 @@ function parseList(q: Record<string, any>): { profileId?: string; orderId?: stri
 /** The port's own errors are folded to the two codes the TRD §6.2 table allows; anything else is a dependency failure. */
 const portError = (e: unknown): LimsError => (e as { code?: unknown })?.code === 'common.not_found' ? new LimsError('common.not_found') : unavailable();
 
-async function readFile(url: string): Promise<Buffer> {
+/** T0B-FILESTREAM-1 (LD-312): ONE GET of the signed URL, streamed through sha256 into a private temp file (dir 0700, file 0600), never held in memory.
+ *  Any failure (status, connection reset mid-stream, DNS, TLS, disk) is a dependency failure that never echoes the URL; the temp dir is removed. */
+async function spool(url: string): Promise<{ dir: string; path: string; size: number; sha256: string }> {
+  const dir = await mkdtemp(join(tmpdir(), 'lims-e23-'));
+  const path = join(dir, 'report.pdf');
+  const h = createHash('sha256'); let size = 0;
   try {
     const res = await fetch(url);
-    if (!res.ok) throw unavailable();
-    return Buffer.from(await res.arrayBuffer());
-  } catch { throw unavailable(); } // connection reset mid-stream, DNS, TLS ... (never echo the URL)
+    if (res.status !== 200 || !res.body) { await res.body?.cancel().catch(() => undefined); throw unavailable(); }
+    await pipeline(Readable.fromWeb(res.body as import('node:stream/web').ReadableStream<Uint8Array>),
+      async function* (src: AsyncIterable<Uint8Array>) { for await (const c of src) { h.update(c); size += c.length; yield c; } },
+      createWriteStream(path, { mode: 0o600 }));
+  } catch { await rm(dir, { recursive: true, force: true }).catch(() => undefined); throw unavailable(); }
+  return { dir, path, size, sha256: h.digest('hex') };
 }
 
 /** E24 view: only the displayed fields of the stored snapshot (SmartSummaryView is additionalProperties:false); optional parts are omitted, never null. */
@@ -125,7 +140,7 @@ export function createReportService() {
     },
 
     /** E23: visibility (404) -> rate limit -> port -> storage -> sha256 -> access log -> bytes. */
-    async download(ctx: ReportsCtx, req: { reportId: unknown; versionNo: unknown }): Promise<Out> {
+    async download(ctx: ReportsCtx, req: { reportId: unknown; versionNo: unknown; requestHeaders?: RequestHeaders }): Promise<Out | StreamResponse> {
       const { tx, tenantId, membershipId } = scope(ctx);
       if (!isUuid(req.reportId)) return invalid('/report_id');
       const versionNo = Number(req.versionNo);
@@ -138,15 +153,27 @@ export function createReportService() {
       await ctx.rateLimit.consume('report_download', `l:${link.id}`); // 20 / hour / link (04 §4); 429 + Retry-After, or 503 when the backend is down (fails closed)
       let file: { sha256: string; signedUrl: string };
       try { file = await ctx.ports.ReportingPort.openReleasedReportFile(ctx, { reportId: r['report_id'], versionNo }); } catch (e) { const err = portError(e); engagementMetrics.reportDownload(ctx, err.code === 'common.not_found' ? 'not_found' : 'unavailable'); throw err; }
-      let bytes: Buffer;
-      try { bytes = await readFile(file.signedUrl); } catch (e) { engagementMetrics.reportDownload(ctx, 'unavailable'); throw e; }
-      const digest = createHash('sha256').update(bytes).digest('hex');
-      if (typeof file.sha256 !== 'string' || digest !== file.sha256.toLowerCase()) { engagementMetrics.reportDownload(ctx, 'integrity'); throw unavailable(); } // corrupted / truncated: no bytes, no access-log row (07 E23)
-      await ctx.audit.access({ action: 'report.download', entityType: 'report', entityId: r['report_id'], outcome: 'allowed' });
-      engagementMetrics.reportDownload(ctx, 'ok');
-      return { status: 200, body: new Uint8Array(bytes), headers: {
-        'content-type': 'application/pdf', 'content-disposition': `attachment; filename="report-${versionNo}.pdf"`, 'cache-control': 'no-store', 'x-content-type-options': 'nosniff', 'content-length': String(bytes.length),
-      } };
+      if (typeof file.sha256 !== 'string') { engagementMetrics.reportDownload(ctx, 'integrity'); throw unavailable(); }
+      // T0B-FILESTREAM-1 (LD-312): the file is no longer held in memory. It is spooled once to a private temp file while hashed; 07 E23 holds: a corrupt /
+      // truncated file gives no bytes and no access-log row, and the row is written inside the request transaction before the first byte. The client then
+      // gets the temp file as a stream (Range 206 / 416 and 304 by the core). The temp dir is removed when the body closes (or at once when there is none).
+      // ponytail: a patient PDF sits on local disk for the length of one download; serve from storage directly once SP-1 / P-2 allow it (CR-C0-FILES-1).
+      let f: Awaited<ReturnType<typeof spool>>;
+      try { f = await spool(file.signedUrl); } catch (e) { engagementMetrics.reportDownload(ctx, 'unavailable'); throw e; }
+      const cleanup = (): void => { void rm(f.dir, { recursive: true, force: true }).catch(() => undefined); };
+      try {
+        if (f.sha256 !== file.sha256.toLowerCase()) { engagementMetrics.reportDownload(ctx, 'integrity'); throw unavailable(); }
+        const audit = ctx.audit;
+        const out = await respond({
+          meta: { size: f.size, etag: `"${f.sha256}"` },   // [CONV] strong ETag = the verified digest (never the storage URL or the storage's own ETag)
+          open: async (range) => ({ body: createReadStream(f.path, range ? { start: range.start, end: range.end } : {}), size: f.size }),
+          ...(req.requestHeaders ? { requestHeaders: req.requestHeaders } : {}),
+          onServe: async () => { await audit.access({ action: 'report.download', entityType: 'report', entityId: r['report_id'], outcome: 'allowed' }); engagementMetrics.reportDownload(ctx, 'ok'); },
+          headers: { 'content-type': 'application/pdf', 'content-disposition': `attachment; filename="report-${versionNo}.pdf"`, 'x-content-type-options': 'nosniff' },   // cache-control: core default no-store
+        });
+        if (out.body instanceof Readable) out.body.once('close', cleanup); else cleanup();
+        return out;
+      } catch (e) { cleanup(); throw e; }
     },
   };
 }

@@ -16,6 +16,7 @@ import axe from 'axe-core';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 import { ToastProvider } from '@lims/ui/components/Toast';
+import { t } from '@/core/i18n/messages';
 
 const refresh = vi.fn();
 const nav = vi.hoisted(() => ({ path: '/catalog/units' }));
@@ -103,7 +104,7 @@ describe('the page loads (root cause: value-sets was asked with is_active)', () 
   it('empty lists: the page renders instead of throwing; the API rejected nothing', async () => {
     await show();
     expect(rejected).toEqual([]);
-    expect(screen.getByRole('heading', { level: 1, name: /units/i })).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 1, name: t('catalog.nav.units') })).toBeTruthy();
   });
 
   it('GET /v1/catalog/value-sets carries no is_active (the operation declares only scope); GET /units may ask is_active=all', async () => {
@@ -143,7 +144,7 @@ describe('the page loads (root cause: value-sets was asked with is_active)', () 
 describe('header, always-drawn headers, empty state', () => {
   it('header has the title and a New unit button for a manager', async () => {
     await show();
-    expect(screen.getByRole('heading', { level: 1, name: 'Units & value sets' })).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 1, name: t('catalog.nav.units') })).toBeTruthy();
     expect(newButtons().length).toBeGreaterThan(0);
     expect(newButtons().every(enabled)).toBe(true);
   });
@@ -153,7 +154,7 @@ describe('header, always-drawn headers, empty state', () => {
     expect(headers()).toEqual(['Code', 'Display', 'Scope', 'Status']);
     const rows = bodyRows();
     expect(rows).toHaveLength(1);
-    expect(rows[0]!.textContent).toMatch(/No units yet\.?\s*Add a unit/);
+    expect(rows[0]!.textContent).toMatch(/No test units yet\.?\s*Add a unit/) // LD-340: menu label "Test Unit";
     expect(within(rows[0]!).getAllByRole('button', { name: /^new unit$/i }).length).toBeGreaterThan(0);
     expect(newButtons().length).toBeGreaterThanOrEqual(2); // header + row
     await noAxeViolations();

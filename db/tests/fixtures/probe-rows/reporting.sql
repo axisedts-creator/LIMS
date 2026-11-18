@@ -21,6 +21,9 @@ INSERT INTO reporting.print_jobs (id, tenant_id, centre_id, kind, variant, expir
   (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('21'), 'single', 'letterhead', now(), pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('f2'), pg_temp.id('01'), pg_temp.id('22'), 'single', 'letterhead', now(), pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('23'), 'single', 'letterhead', now(), pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
+INSERT INTO reporting.print_profile (id, tenant_id, document_kind, paper_mode, created_by, updated_by) VALUES
+  (pg_temp.id('f1'), pg_temp.id('01'), 'report', 'letterhead_image', pg_temp.id('99'), pg_temp.id('99')),
+  (pg_temp.id('f3'), pg_temp.id('02'), 'report', 'letterhead_image', pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
 INSERT INTO reporting.provider_events (id, tenant_id, channel_account_id, provider_kind, provider_message_id, status_raw, mapped_status, created_by) VALUES
   (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('f1'), 'probe-1', 'probe-1', 'probe-1', 'sent', pg_temp.id('99')),
   (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('f3'), 'probe-3', 'probe-3', 'probe-3', 'sent', pg_temp.id('99')) ON CONFLICT DO NOTHING;
@@ -103,6 +106,9 @@ INSERT INTO reporting.qr_tokens (id, tenant_id, centre_id, report_id, report_ver
   (pg_temp.id('f4'), pg_temp.id('01'), pg_temp.id('21'), pg_temp.id('f4'), pg_temp.id('f4'), decode(repeat('05', 32), 'hex'), 'probe-4', 'probe-4', '{}', now(), pg_temp.id('35'), pg_temp.id('99')),
   (pg_temp.id('f5'), pg_temp.id('01'), pg_temp.id('21'), pg_temp.id('f5'), pg_temp.id('f5'), decode(repeat('06', 32), 'hex'), 'probe-5', 'probe-5', '{}', now(), pg_temp.id('a3'), pg_temp.id('99')),
   (pg_temp.id('f6'), pg_temp.id('01'), pg_temp.id('21'), pg_temp.id('f6'), pg_temp.id('f6'), decode(repeat('07', 32), 'hex'), 'probe-6', 'probe-6', '{}', now(), pg_temp.id('34'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
+INSERT INTO reporting.signatory_profile (id, tenant_id, user_id, display_name, created_by, updated_by) VALUES
+  (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('31'), 'probe-1', pg_temp.id('99'), pg_temp.id('99')),
+  (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('33'), 'probe-3', pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
 INSERT INTO reporting.staff_assignments (id, tenant_id, membership_id, assignment, created_by, updated_by) VALUES
   (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('41'), 'nominated_signatory', pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('43'), 'nominated_signatory', pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;

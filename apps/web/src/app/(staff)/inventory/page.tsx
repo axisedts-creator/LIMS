@@ -2,6 +2,7 @@
 // LD-140 (2026-11-13): built from packages/ui components only. Counts are of OPEN alerts / unresolved facts; any API failure other than 403 throws to
 // error.tsx (no fake zero counts), 403 shows the no-access state. Store, item and lot labels are resolved here so the browser gets codes, not ids.
 import { PermissionDenied } from '@/core/errors/PermissionDenied';
+import { pendingOr } from '@/core/shell/NotAvailable';
 import { getShellSession } from '@/core/session/server';
 import { InventoryHome, type HomeAlertRow } from '@/features/inventory/components/InventoryHome';
 import { FORBIDDEN, getItem, getSettings, guarded, listAlerts, listBindings, listItems, listOpeningMovements, listRules, listStores, listUnresolvedFacts, lotsByItems, soft } from '@/features/inventory/server/read.server';
@@ -39,7 +40,11 @@ export default async function InventoryHomePage({ searchParams }: { searchParams
   const session = await getShellSession();
   const perms = session?.actor.permissions ?? [];
   if (!perms.includes('inventory.item.read')) return <PermissionDenied />;
+  // T0D-UNSLOP-1 / LD-353 rule 6: an alerts or settings read that answers 501 operation_pending shows NotAvailable, not error.tsx.
+  return pendingOr('Inventory', undefined, () => home(perms));
+}
 
+async function home(perms: readonly string[]) {
   const open = (alertKind?: AlertKind) => listAlerts({ status: ['open'], alertKind });
   const base = await guarded(() =>
     Promise.all([open(), open('below_reorder'), open('expiry_soon'), open('expired_on_hand'), listUnresolvedFacts(), getSettings()]),

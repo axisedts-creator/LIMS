@@ -2,6 +2,8 @@
 // core pipeline; these handlers re-check what they need (fail closed), are pure reads, never echo input, and never log PHI. Centre scoping = RLS `__tenant_centre` (unknown id == other centre == 404).
 import { LimsError, type FieldError } from '../../../core/errors.js';
 import type { Handler, HandlerContext, HandlerRequest } from '../../../core/module.js';
+import type { StorageAdapter } from '../../../core/storage/index.js';
+import { streamStored, type RequestHeaders } from '../../../core/storage/stream.js';
 import { displayStatus, toDetail, toSummary, toVersionSummary } from '../mappers/report.mapper.js';
 import * as Q from '../repository/reports-read.repo.js';
 import { findReportRefs, listCriticalAlertDeliveries } from '../repository/delivery.repo.js';
@@ -38,7 +40,7 @@ const CA_KEYS = new Set(['centre_id', 'since', 'cursor', 'limit']);
 const DAY_MS = 86_400_000;
 
 type Ctx = { tenantId: string; actor: { id: string; type?: string }; tx: { query(sql: string, v: unknown[]): Promise<{ rows: any[] }> }; ports?: Record<string, any>;
-  storage?: { read(bucket: 'reports', path: string): Promise<Uint8Array> }; audit?: { access(e: Record<string, unknown>): Promise<unknown> } };
+  storage?: Partial<Pick<StorageAdapter, 'read' | 'readStream'>>; audit?: { access(e: Record<string, unknown>): Promise<unknown> } };
 const obj = (v: unknown): Record<string, any> => (typeof v === 'object' && v !== null && !Array.isArray(v) ? (v as Record<string, any>) : {});
 const invalid = (path: string): LimsError => new LimsError('common.validation_failed', undefined, [{ path, code: 'common.field_invalid', message: 'Field invalid' } satisfies FieldError]);
 
@@ -179,14 +181,16 @@ export const reportsReadHandlers: Readonly<Record<string, Handler>> = Object.fre
     const path = v['pdf_object_path'];
     if (typeof path !== 'string' || !path) throw new LimsError('reporting.report_not_released');   // rendering / render_failed: nothing to serve
     if (!path.startsWith(`${c.tenantId}/`)) throw new LimsError('common.internal');                // never read outside the caller's tenant prefix
-    const bytes = await c.storage.read('reports', path);
-    await c.audit.access({ action: 'report.download', entityType: 'report_version', entityId: v['id'], centreId: v['centre_id'], outcome: 'allowed' });
-    return {
-      status: 200, body: bytes, headers: {
+    // T0B-FILESTREAM-1 (LD-312): streamed from storage with Content-Length, ETag, Range (206 / 416) and 304; the access-log row is written for 200 / 206 / 304 before the first byte.
+    const audit = c.audit;
+    return streamStored(c.storage, {
+      bucket: 'reports', objectPath: path, requestHeaders: req.headers as RequestHeaders,
+      onServe: () => audit.access({ action: 'report.download', entityType: 'report_version', entityId: v['id'], centreId: v['centre_id'], outcome: 'allowed' }),
+      headers: {
         'content-type': 'application/pdf', 'content-disposition': `attachment; filename="report-v${Number(v['version_no'])}.pdf"`,   // version_no only: no patient / registration data in the name
-        'x-content-type-options': 'nosniff', 'cache-control': 'no-store', 'content-security-policy': 'sandbox', 'content-length': String(bytes.length),
+        'x-content-type-options': 'nosniff', 'cache-control': 'no-store', 'content-security-policy': 'sandbox',
       },
-    };
+    });
   },
   // R18 — critical alerts panel (02-TRD §6.1 CriticalAlert; AC-14.3; review fix #16). Grouped from critical_value_alert deliveries by critical_event_id; no value / name / destination.
   // ponytail: the whole window (<= 7 days) is grouped and paged in memory; a GROUP BY statement if the panel ever holds thousands of alerts.

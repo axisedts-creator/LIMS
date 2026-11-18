@@ -25,5 +25,8 @@ export const manifest: ModuleManifest = {
   authResolvers: { patientPreAuth, queueDisplayToken }, // patientPreAuth: T-A2 (CR-C16-005); queueDisplayToken: T-Q3
   // LD-325(b), T0C-MSGDESK-1 (LD-321): the 11 broadcast operations have no handler yet (501 operation_pending); T0B-MSGDESK-1 removes them with the handlers.
   pendingOperations: ['listBroadcastTemplates', 'createBroadcastTemplate', 'updateBroadcastTemplate', 'deactivateBroadcastTemplate', 'createBroadcast',
-    'previewBroadcastAudience', 'requestBroadcastApproval', 'approveBroadcast', 'cancelBroadcast', 'listBroadcasts', 'listBroadcastRecipients'],
+    'previewBroadcastAudience', 'requestBroadcastApproval', 'approveBroadcast', 'cancelBroadcast', 'listBroadcasts', 'listBroadcastRecipients',
+    // T0C-CONTENT-1 (LD-313, LD-325(b)): portal content and profile images; T0B-CONTENT-1 removes these with the handlers.
+    'listPortalContent', 'createPortalContent', 'updatePortalContent', 'deactivatePortalContent', 'reorderPortalContent', 'listMyPortalContent',
+    'listProfileImages', 'setProfileImage', 'clearProfileImage'],
 };

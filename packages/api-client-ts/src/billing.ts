@@ -28,6 +28,9 @@ export interface paths {
   "/v1/billing/account-statement": {
     get: operations["getAccountStatement"];
   };
+  "/v1/billing/account-summaries": {
+    get: operations["listAccountSummaries"];
+  };
   "/v1/billing/account-summary": {
     get: operations["getAccountSummary"];
   };
@@ -7721,6 +7724,158 @@ export interface operations {
       };
     };
   };
+  listAccountSummaries: {
+    parameters: {
+      query?: {
+        party_kind?: "credit_party" | "franchise" | "user_pocket" | "laboratory";
+        q?: string;
+        blocked_only?: boolean;
+        outstanding_only?: boolean;
+        cursor?: string;
+        limit?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/json": {
+            data: ({
+              party_kind: "credit_party" | "franchise" | "user_pocket" | "laboratory";
+              party_id: string;
+              party_name: string;
+              credit_limit_paisa: number;
+              outstanding_paisa: number;
+              outstanding_side: "credit" | "debit";
+              is_blocked: boolean;
+            })[];
+            page: {
+              next_cursor?: string;
+              limit: number;
+            };
+          };
+        };
+      };
+      400: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      401: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      403: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      404: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      429: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      500: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+    };
+  };
   listBillingCodes: {
     parameters: {
       query?: never;
@@ -9468,6 +9623,7 @@ export interface operations {
               reason_code?: "first_print" | "reprint" | "printer_fault" | "customer_copy";
               printed_by_display: string;
               printed_at: string;
+              style?: "full" | "plain_bw";
             })[];
             page: {
               next_cursor?: string;
@@ -10131,13 +10287,20 @@ export interface operations {
       };
       cookie?: never;
     };
-    requestBody?: never;
+    requestBody?: {
+      content: {
+        "application/json": {
+          style?: "full" | "plain_bw";
+        };
+      };
+    };
     responses: {
       200: {
         headers: { [name: string]: unknown };
         content: {
           "application/json": {
             print_no: number;
+            style?: "full" | "plain_bw";
             copy_mark?: string;
             document: {
               id: string;
@@ -10366,6 +10529,7 @@ export interface operations {
       content: {
         "application/json": {
           reason_code?: "first_print" | "reprint" | "printer_fault" | "customer_copy";
+          style?: "full" | "plain_bw";
         };
       };
     };
@@ -10375,6 +10539,7 @@ export interface operations {
         content: {
           "application/json": {
             print_no: number;
+            style?: "full" | "plain_bw";
             copy_mark?: string;
             document: {
               id: string;

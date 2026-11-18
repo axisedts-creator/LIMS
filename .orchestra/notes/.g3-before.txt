@@ -1,0 +1,620 @@
+(node:38868) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/LIMS-lanes/C0-0B/db/tools/gen-isolation-probes.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\LIMS-lanes\C0-0B\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+gen-isolation-probes: wrote 460 probe files + _registry.sql to C:\LIMS-lanes\C0-0B\db\tests\isolation, 19 fixture files to C:\LIMS-lanes\C0-0B\db\tests\fixtures\probe-rows
+[core] WARNING: Executable file detection not yet supported on 'win32'.
+Schema updated
+psql:/repo/db/migrations/20261105001300_identity__create_identity_schema.sql:7: NOTICE:  schema "identity" already exists, skipping
+psql:/repo/db/migrations/20261105001500_catalog__create_catalog_schema.sql:10: NOTICE:  schema "catalog" already exists, skipping
+psql:/repo/db/migrations/20261105001600_frontdesk__create_frontdesk_schema.sql:7: NOTICE:  schema "frontdesk" already exists, skipping
+psql:/repo/db/migrations/20261105001700_billing__create_billing_schema.sql:7: NOTICE:  schema "billing" already exists, skipping
+psql:/repo/db/migrations/20261105001800_lab__create_lab_schema.sql:10: NOTICE:  schema "lab" already exists, skipping
+psql:/repo/db/migrations/20261105001900_reporting__create_reporting_schema.sql:145: NOTICE:  identifier "message_template_texts__tenant_id_template_code_channel_language__uq" will be truncated to "message_template_texts__tenant_id_template_code_channel_languag"
+psql:/repo/db/migrations/20261105001900_reporting__create_reporting_schema.sql:177: NOTICE:  identifier "report_template_versions__tenant_id_template_id__published__p_uq" will be truncated to "report_template_versions__tenant_id_template_id__published__p_u"
+psql:/repo/db/migrations/20261105001900_reporting__create_reporting_schema.sql:443: NOTICE:  identifier "deliveries__tenant_id_channel_account_id_provider_message_id__p_uq" will be truncated to "deliveries__tenant_id_channel_account_id_provider_message_id__p"
+psql:/repo/db/migrations/20261105001900_reporting__create_reporting_schema.sql:682: NOTICE:  identifier "narrative_versions__tenant_id_narrative_report_id_version_no__uq" will be truncated to "narrative_versions__tenant_id_narrative_report_id_version_no__u"
+psql:/repo/db/migrations/20261115192000_identity__add_provisioning_schema.sql:47: NOTICE:  identifier "tenant_contract_acceptances__tenant_id_document_accepted_at__idx" will be truncated to "tenant_contract_acceptances__tenant_id_document_accepted_at__id"
+                                                       set_config                                                        
+-------------------------------------------------------------------------------------------------------------------------
+ {"tenant_id":"01a1a98a-ac40-7000-8000-00000000a001","sub":"01a1b34e-1000-7eee-9d29-d7ca59a102b5","actor_type":"system"}
+(1 row)
+
+                                                       set_config                                                        
+-------------------------------------------------------------------------------------------------------------------------
+ {"tenant_id":"01a1a98a-ac40-7000-8000-00000000b001","sub":"01a1b34e-1000-7eee-9d29-d7ca59a102b5","actor_type":"system"}
+(1 row)
+
+ set_config 
+------------
+ 
+(1 row)
+
+NOTICE:  schema "storage" already exists, skipping
+# --- db/tests/identity/AUTH-MFA-COMPLETE-1_platform_event.test.sql
+not ok 75 - policy: no GUC set -> refused
+# Failed test 75: "policy: no GUC set -> refused"
+#         have: n=1
+#         want: E42501:new row violates row-level security policy for table "platform_events"
+not ok 84 - policy: no refused row exists
+# Failed test 84: "policy: no refused row exists"
+#         have: 1
+#         want: 0
+not ok 89 - every policy mentioning app.pre_* / app.maintenance is still TO lims_owner only
+# Failed test 89: "every policy mentioning app.pre_* / app.maintenance is still TO lims_owner only"
+# Looks like you failed 3 tests of 94
+# --- db/tests/identity/AUTH-PLATFORM-SESSION-1_platform_reads.test.sql
+psql:db/tests/fixtures/T0B-06_identity_standin.sql:155: NOTICE:  identity tables exist; stand-ins not created
+psql:db/tests/identity/AUTH-PLATFORM-SESSION-1_platform_reads.test.sql:59: NOTICE:  column "idle_timeout_minutes" of relation "sessions" already exists, skipping
+psql:db/tests/identity/AUTH-PLATFORM-SESSION-1_platform_reads.test.sql:60: NOTICE:  column "app_instance_id" of relation "sessions" already exists, skipping
+psql:db/tests/identity/AUTH-PLATFORM-SESSION-1_platform_reads.test.sql:61: NOTICE:  column "app_platform" of relation "sessions" already exists, skipping
+psql:db/tests/identity/AUTH-PLATFORM-SESSION-1_platform_reads.test.sql:62: NOTICE:  column "gotrue_factor_id" of relation "mfa_factors" already exists, skipping
+psql:db/tests/identity/AUTH-PLATFORM-SESSION-1_platform_reads.test.sql:63: NOTICE:  column "factor_type" of relation "mfa_factors" already exists, skipping
+psql:db/tests/identity/AUTH-PLATFORM-SESSION-1_platform_reads.test.sql:81: ERROR:  new row for relation "sessions" violates check constraint "sessions__kind_shape__ck"
+DETAIL:  Failing row contains (01900000-0000-7000-8000-000000000068, null, platform, 01900000-0000-7000-8000-000000000022, null, null, 01900000-0000-7000-8000-0000000000cc, \x00000000000000000000000000000000000000000000000000000000000000..., null, active, aal1, \xb104, \xa104, k1, 2026-11-17 18:35:46.522073+00, 20, 2026-11-17 18:30:46.522073+00, 2026-11-17 18:50:46.522073+00, 2026-11-18 04:30:46.522073+00, 0, null, null, null, null, null, null, null, null, 2026-11-18 18:30:46.522073+00, 1, 2026-11-17 18:30:46.522073+00, 01900000-0000-7000-8000-000000000063, 2026-11-17 18:30:46.522073+00, 01900000-0000-7000-8000-000000000063).
+psql failed: db/tests/identity/AUTH-PLATFORM-SESSION-1_platform_reads.test.sql
+# --- db/tests/identity/C2-T27_worker_tenant_tasks.test.sql
+# --- db/tests/identity/PLATFORM-DDL-1_policies.test.sql
+ok 1 - fixture: 19 s5.3 policies are required
+ok 2 - the catalog holds all 19 identity <table>__<command>__platform policies of s5.3
+ok 3 - identity.platform_staff__select__platform is FOR SELECT
+ok 4 - identity.platform_staff__insert__platform is FOR INSERT
+ok 5 - identity.platform_staff__update__platform is FOR UPDATE
+ok 6 - identity.platform_events__select__platform is FOR SELECT
+ok 7 - identity.platform_events__insert__platform is FOR INSERT
+ok 8 - identity.auth_events__select__platform is FOR SELECT
+ok 9 - identity.feature_flags__select__platform is FOR SELECT
+ok 10 - identity.feature_flags__update__platform is FOR UPDATE
+ok 11 - identity.support_sessions__select__platform is FOR SELECT
+ok 12 - identity.support_sessions__insert__platform is FOR INSERT
+ok 13 - identity.support_sessions__update__platform is FOR UPDATE
+ok 14 - identity.ird_annex_records__select__platform is FOR SELECT
+ok 15 - identity.ird_annex_records__insert__platform is FOR INSERT
+ok 16 - identity.ird_annex_records__update__platform is FOR UPDATE
+ok 17 - identity.ird_annex_events__select__platform is FOR SELECT
+ok 18 - identity.ird_annex_events__insert__platform is FOR INSERT
+ok 19 - identity.ird_annex_documents__select__platform is FOR SELECT
+ok 20 - identity.ird_annex_documents__insert__platform is FOR INSERT
+ok 21 - identity.ird_annex_documents__update__platform is FOR UPDATE
+ok 22 - identity.platform_staff__select__platform is TO lims_app only
+ok 23 - identity.platform_staff__insert__platform is TO lims_app only
+ok 24 - identity.platform_staff__update__platform is TO lims_app only
+ok 25 - identity.platform_events__select__platform is TO lims_app only
+ok 26 - identity.platform_events__insert__platform is TO lims_app only
+ok 27 - identity.auth_events__select__platform is TO lims_app only
+ok 28 - identity.feature_flags__select__platform is TO lims_app only
+ok 29 - identity.feature_flags__update__platform is TO lims_app only
+ok 30 - identity.support_sessions__select__platform is TO lims_app only
+ok 31 - identity.support_sessions__insert__platform is TO lims_app only
+ok 32 - identity.support_sessions__update__platform is TO lims_app only
+ok 33 - identity.ird_annex_records__select__platform is TO lims_app only
+ok 34 - identity.ird_annex_records__insert__platform is TO lims_app only
+ok 35 - identity.ird_annex_records__update__platform is TO lims_app only
+ok 36 - identity.ird_annex_events__select__platform is TO lims_app only
+ok 37 - identity.ird_annex_events__insert__platform is TO lims_app only
+ok 38 - identity.ird_annex_documents__select__platform is TO lims_app only
+ok 39 - identity.ird_annex_documents__insert__platform is TO lims_app only
+ok 40 - identity.ird_annex_documents__update__platform is TO lims_app only
+ok 41 - identity.platform_staff__select__platform predicate is app.is_platform_actor() (verbatim s5.3)
+ok 42 - identity.platform_staff__insert__platform predicate is app.is_platform_actor() (verbatim s5.3)
+ok 43 - identity.platform_staff__update__platform predicate is app.is_platform_actor() (verbatim s5.3)
+ok 44 - identity.platform_events__select__platform predicate is app.is_platform_actor() (verbatim s5.3)
+ok 45 - identity.platform_events__insert__platform predicate is app.is_platform_actor() (verbatim s5.3)
+ok 46 - identity.auth_events__select__platform predicate is app.is_platform_actor() (verbatim s5.3)
+ok 47 - identity.feature_flags__select__platform predicate is app.is_platform_actor() (verbatim s5.3)
+ok 48 - identity.feature_flags__update__platform predicate is app.is_platform_actor() (verbatim s5.3)
+ok 49 - identity.support_sessions__select__platform predicate is app.is_platform_actor() (verbatim s5.3)
+ok 50 - identity.support_sessions__insert__platform predicate is app.is_platform_actor() (verbatim s5.3)
+ok 51 - identity.support_sessions__update__platform predicate is app.is_platform_actor() (verbatim s5.3)
+ok 52 - identity.ird_annex_records__select__platform predicate is app.is_platform_actor() (verbatim s5.3)
+ok 53 - identity.ird_annex_records__insert__platform predicate is app.is_platform_actor() (verbatim s5.3)
+ok 54 - identity.ird_annex_records__update__platform predicate is app.is_platform_actor() (verbatim s5.3)
+ok 55 - identity.ird_annex_events__select__platform predicate is app.is_platform_actor() (verbatim s5.3)
+ok 56 - identity.ird_annex_events__insert__platform predicate is app.is_platform_actor() (verbatim s5.3)
+ok 57 - identity.ird_annex_documents__select__platform predicate is app.is_platform_actor() (verbatim s5.3)
+ok 58 - identity.ird_annex_documents__insert__platform predicate is app.is_platform_actor() (verbatim s5.3)
+ok 59 - identity.ird_annex_documents__update__platform predicate is app.is_platform_actor() (verbatim s5.3)
+ok 60 - identity.platform_staff__insert__platform has WITH CHECK (is_platform_actor)
+ok 61 - identity.platform_staff__update__platform has WITH CHECK (is_platform_actor)
+ok 62 - identity.platform_events__insert__platform has WITH CHECK (is_platform_actor)
+ok 63 - identity.feature_flags__update__platform has WITH CHECK (is_platform_actor)
+ok 64 - identity.support_sessions__insert__platform has WITH CHECK (is_platform_actor)
+ok 65 - identity.support_sessions__update__platform has WITH CHECK (is_platform_actor)
+ok 66 - identity.ird_annex_records__insert__platform has WITH CHECK (is_platform_actor)
+ok 67 - identity.ird_annex_records__update__platform has WITH CHECK (is_platform_actor)
+ok 68 - identity.ird_annex_events__insert__platform has WITH CHECK (is_platform_actor)
+ok 69 - identity.ird_annex_documents__insert__platform has WITH CHECK (is_platform_actor)
+ok 70 - identity.ird_annex_documents__update__platform has WITH CHECK (is_platform_actor)
+ok 71 - identity.platform_staff__update__platform has USING (is_platform_actor)
+ok 72 - identity.feature_flags__update__platform has USING (is_platform_actor)
+ok 73 - identity.support_sessions__update__platform has USING (is_platform_actor)
+ok 74 - identity.ird_annex_records__update__platform has USING (is_platform_actor)
+ok 75 - identity.ird_annex_documents__update__platform has USING (is_platform_actor)
+ok 76 - s5.3: no platform INSERT policy on auth_events
+ok 77 - s5.3: ird_annex_events is INSERT-only
+ok 78 - no identity __delete__platform policy exists
+ok 79 - no duplicate policy names in schema identity
+ok 80 - the 10 pre-existing identity __platform policies are all still there
+ok 81 - sample of pre-existing tenant / owner_only policies is untouched
+ok 82 - no tenant-role INSERT policy on ird_annex_records other than the platform one (s5.2: tenants never insert)
+ok 83 - exactly one lims_app INSERT policy on ird_annex_records: the platform one (LD-223 option (3) preferred; the fallback tenant policy is not taken)
+ok 84 - every identity __platform policy is TO lims_app only
+ok 85 - PLATFORM-DDL-1 adds no SECURITY DEFINER function
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ok 86 - platform: platform_staff SELECT
+ok 87 - tenant: platform_staff SELECT refused (0 rows)
+ok 88 - platform: platform_events SELECT
+ok 89 - tenant: platform_events SELECT refused
+ok 90 - platform: auth_events SELECT all rows (tenant A, tenant B, tenant-less; PL-8)
+ok 91 - tenant A: auth_events sees only its own row
+ok 92 - platform: feature_flags SELECT both tenants
+ok 93 - tenant A: feature_flags sees only its own
+ok 94 - platform: support_sessions SELECT both tenants
+ok 95 - tenant B: support_sessions sees only its own
+ok 96 - platform: ird_annex_records SELECT both tenants
+ok 97 - tenant A: ird_annex_records sees only its own
+ok 98 - platform: ird_annex_events SELECT
+ok 99 - platform: ird_annex_documents SELECT
+ok 100 - platform: platform_staff INSERT
+ok 101 - tenant: platform_staff INSERT refused
+ok 102 - platform: platform_events INSERT
+ok 103 - tenant: platform_events INSERT refused
+ok 104 - s5.3: platform claims have NO INSERT on auth_events (tenant-less inserts go through app.identity_record_auth_event)
+not ok 105 - platform: support_sessions INSERT (open a support session)
+# Failed test 105: "platform: support_sessions INSERT (open a support session)"
+#         have: E42501
+#         want: n=1
+ok 106 - tenant: support_sessions INSERT refused
+ok 107 - platform: ird_annex_events INSERT
+ok 108 - tenant: ird_annex_events INSERT refused
+ok 109 - platform: ird_annex_documents INSERT
+ok 110 - tenant: ird_annex_documents INSERT refused
+ok 111 - platform: platform_staff UPDATE
+ok 112 - tenant: platform_staff UPDATE touches no row
+not ok 113 - platform: feature_flags UPDATE of another tenant
+# Failed test 113: "platform: feature_flags UPDATE of another tenant"
+#         have: E42501
+#         want: n=1
+ok 114 - tenant A: cannot UPDATE tenant B feature_flags
+not ok 115 - platform: support_sessions UPDATE of another tenant
+# Failed test 115: "platform: support_sessions UPDATE of another tenant"
+#         have: E42501
+#         want: n=1
+ok 116 - tenant A: cannot UPDATE tenant B support_sessions
+not ok 117 - platform: ird_annex_records UPDATE of another tenant
+# Failed test 117: "platform: ird_annex_records UPDATE of another tenant"
+#         have: E42501
+#         want: n=1
+ok 118 - tenant A: cannot UPDATE tenant B ird_annex_records
+ok 119 - platform: ird_annex_documents UPDATE of scan_state (trigger P-19 allows only this column)
+ok 120 - platform: ird_annex_documents UPDATE of any other column is refused by the P-19 trigger / column grant
+ok 121 - tenant: ird_annex_documents UPDATE touches no row
+ok 122 - ird_annex_events is append-only: platform UPDATE refused (no grant, no policy)
+ok 123 - platform aal1: support_sessions returns 0 rows
+ok 124 - scope <> platform: ird_annex_records returns 0 rows
+ok 125 - platform aal1: ird_annex_records INSERT refused
+ok 126 - identity.tenant_settings.training_mode exists
+ok 127 - training_mode is boolean
+ok 128 - training_mode is NOT NULL
+ok 129 - training_mode defaults to false
+ok 130 - existing / default rows are live (training_mode = false)
+ok 131 - training_mode cannot be changed by the tenant-scoped system actor after provisioning (trigger)
+ok 132 - training_mode cannot be changed by a tenant staff user
+ok 133 - training_mode cannot be changed by platform claims either (no tenant / platform PATCH path, LD-26)
+ok 134 - training_mode is still false after the refused updates
+not ok 135 - a platform UPDATE that leaves training_mode alone still works (the trigger is column-specific)
+# Failed test 135: "a platform UPDATE that leaves training_mode alone still works (the trigger is column-specific)"
+#         have: E42501
+#         want: n=1
+ok 136 - an UPDATE that sets training_mode to the value it already has is not a change
+
+psql:db/tests/identity/PLATFORM-DDL-1_policies.test.sql:193: ERROR:  new row violates row-level security policy for table "audit_log"
+CONTEXT:  SQL statement "INSERT INTO audit.audit_log (id, tenant_id, centre_id, schema_name, table_name, row_id, action, changed_columns,
+                               old_values, new_values, actor_id, actor_type, membership_id, support_session_id,
+                               request_id, client_ip, user_agent, detail, occurred_at, created_at, created_by)
+  VALUES (app.uuidv7(),
+          -- core.tenants has no tenant_id column: its own id, also when no tenant claim is present (platform context, 08 A12.5)
+          coalesce(v_row ->> 'tenant_id', CASE WHEN TG_TABLE_SCHEMA = 'core' AND TG_TABLE_NAME = 'tenants' THEN v_row ->> 'id' END)::uuid,
+          nullif(v_row ->> 'centre_id', '')::uuid,
+          TG_TABLE_SCHEMA, TG_TABLE_NAME, nullif(v_row ->> 'id', '')::uuid, TG_OP, v_changed, v_old, v_new,
+          v_sub, CASE WHEN v_sub IS NULL THEN 'system' ELSE coalesce(v_claims ->> 'actor_type', 'user') END,
+          nullif(v_claims ->> 'membership_id', '')::uuid, nullif(v_claims ->> 'support_session_id', '')::uuid,
+          nullif(current_setting('app.request_id', true), '')::uuid,
+          nullif(current_setting('app.client_ip', true), '')::inet,
+          left(nullif(current_setting('app.user_agent', true), ''), 512),
+          CASE WHEN v_sub IS NULL THEN jsonb_build_object('maintenance', v_maint) END,   -- 08 A28.5
+          now(), now(), v_sub)"
+PL/pgSQL function app.tg_row_audit() line 38 at SQL statement
+psql failed: db/tests/identity/PLATFORM-DDL-1_policies.test.sql
+# --- db/tests/identity/SESSION-ACTOR-1_session_actor.test.sql
+not ok 15 - every policy mentioning app.pre_* is still TO lims_owner only
+# Failed test 15: "every policy mentioning app.pre_* is still TO lims_owner only"
+# Looks like you failed 1 test of 50
+# --- db/tests/identity/T0B-06_definers.test.sql
+psql:db/tests/fixtures/T0B-06_identity_standin.sql:155: NOTICE:  identity tables exist; stand-ins not created
+psql:db/tests/identity/T0B-06_definers.test.sql:88: ERROR:  null value in column "gotrue_factor_id" of relation "mfa_factors" violates not-null constraint
+DETAIL:  Failing row contains (01900000-0000-7000-8000-000000000047, 01900000-0000-7000-8000-000000000001, 01900000-0000-7000-8000-00000000001f, null, totp, verified, null, null, null, null, null, t, 1, 2026-11-17 18:30:52.973922+00, 01900000-0000-7000-8000-000000000063, 2026-11-17 18:30:52.973922+00, 01900000-0000-7000-8000-000000000063).
+psql failed: db/tests/identity/T0B-06_definers.test.sql
+# --- db/tests/identity/T0B-10.C2_lookups.test.sql
+ok 1 - FORCE RLS on identity.sessions
+ok 2 - FORCE RLS on identity.mfa_factors
+ok 3 - FORCE RLS on identity.tenant_settings
+ok 4 - FORCE RLS on identity.support_sessions
+ok 5 - FORCE RLS on identity.auth_events
+ok 6 - FORCE RLS on identity.platform_staff
+ok 7 - FORCE RLS on identity.platform_events
+ok 8 - FORCE RLS on core.memberships
+ok 9 - FORCE RLS on core.users
+ok 10 - FORCE RLS on core.tenants
+ok 11 - FORCE RLS on core.roles
+ok 12 - FORCE RLS on core.membership_roles
+
+
+
+
+
+
+
+
+
+ok 13 - session_by_token(current hash): token_reused = false
+ok 14 - session_by_token(previous hash): same session, token_reused = true
+ok 15 - previous hash resolves the same session id
+ok 16 - revoked session: no row for the current hash
+ok 17 - revoked session: no row for the previous hash
+ok 18 - unknown hash: no row
+ok 19 - expired session: no row
+ok 20 - -- §11 test 24(c) app.pre_session_token_sha256 is empty again after session_by_token returns
+ok 21 - -- §11 test 24(b) lims_api setting the pre-session GUC itself sees 0 identity.sessions rows
+ok 22 - lims_worker setting the pre-session GUC itself sees 0 identity.sessions rows
+ok 23 - lims_api setting app.pre_user_id itself sees 0 core.memberships / core.users rows (08 A12.7)
+ok 24 - lims_api setting app.pre_tenant_id itself sees 0 tenants / roles / tenant_settings rows
+ok 25 - lims_api setting app.pre_gotrue_session_id itself sees 0 support_sessions / mfa_factors / auth_events rows
+ok 26 - lims_api setting app.pre_support_session_id itself sees 0 support_sessions rows
+ok 27 - lims_api setting app.maintenance itself sees 0 sessions / invitations rows (08 A15.3)
+ok 28 - -- §11 test 22 resolve_session returns tenant_status, membership_status = active and membership_locked = false
+ok 29 - resolve_session: no row for a wrong sub
+ok 30 - resolve_session leaves app.pre_user_id / pre_gotrue_session_id / pre_tenant_id empty (08 A15.1)
+ok 31 - -- §11 test 18 membership_locked = true exactly when locked_at IS NOT NULL
+ok 32 - login_context: membership_locked = true for a locked membership
+ok 33 - login_context: membership_locked = false when unlocked
+ok 34 - resolve_session(platform session): staff id, role and the active support session with support_tenant_status
+ok 35 - support_expires_at returned for an active support session
+ok 36 - ended support session: the five support columns are NULL
+ok 37 - active but expired support session: support columns NULL
+ok 38 - -- §11 test 22 login_context(staff): tenant, membership, membership_status = active, membership_count = 1
+ok 39 - login_context: verified factor seen; idle / absolute come from the tenant settings
+ok 40 - login_context: mfa_required derives from the membership's roles
+ok 41 - unverified factor: has_verified_factor = false
+ok 42 - login_context(platform staff): staff id, role, membership_count 0, no tenant, mfa_required, verified tenant-less factor (08 A15.2)
+ok 43 - a tenant-bound factor does not count for platform staff
+psql:db/tests/identity/T0B-10.C2_lookups.test.sql:141: ERROR:  new row for relation "memberships" violates check constraint "memberships__deactivation_reason__ck"
+DETAIL:  Failing row contains (01a1a98a-ac40-7000-8000-00000000a500, 01a1a98a-ac40-7000-8000-00000000a001, 01a1a98a-ac40-7000-8000-00000000a300, user, t, deactivated, null, null, 2026-11-17 18:30:53.632559+00, 01a1b34e-1000-7eee-9d29-d7ca59a102b5, admin_deactivate, null, null, null, null, null, null, null, null, null, 1, f, 2026-11-17 18:30:41.713156+00, 01a1b34e-1000-7eee-9d29-d7ca59a102b5, 2026-11-17 18:30:41.713156+00, 01a1b34e-1000-7eee-9d29-d7ca59a102b5).
+psql failed: db/tests/identity/T0B-10.C2_lookups.test.sql
+# --- db/tests/identity/T0B-10.C2_maintenance.test.sql
+not ok 78 - app.pre_user_id is empty after session_update
+# Failed test 78: "app.pre_user_id is empty after session_update"
+#         have: E23514:new row for relation "sessions" violates check constraint "sessions__revoke__ck"
+#         want: 1|
+not ok 90 - lims_api setting app.pre_user_id itself cannot INSERT a platform session
+# Failed test 90: "lims_api setting app.pre_user_id itself cannot INSERT a platform session"
+#                   'E0A000:WITH clause containing a data-modifying statement must be at the top level'
+#    doesn't match: '^E42501'
+not ok 91 - lims_api setting app.pre_user_id itself updates 0 platform sessions
+# Failed test 91: "lims_api setting app.pre_user_id itself updates 0 platform sessions"
+#         have: E0A000:WITH clause containing a data-modifying statement must be at the top level
+#         want: 0190c200-0000-7000-8000-000000000101|0
+# Looks like you failed 3 tests of 91
+# --- db/tests/identity/T0B-10.C2_policies.test.sql
+# --- db/tests/identity/T0B-10.C2_schema.test.sql
+not ok 2 - 18 identity tables (16 FORCE-RLS + 2 g_*) plus event_inbox is 19 relations
+# Failed test 2: "18 identity tables (16 FORCE-RLS + 2 g_*) plus event_inbox is 19 relations"
+#         have: 19
+#         want: 18
+not ok 555 - 33 __tenant policies on identity tables
+# Failed test 555: "33 __tenant policies on identity tables"
+#         have: 37
+#         want: 33
+not ok 591 - only sessions and mfa_factors have __own policies (partner access, 08 A19 D-101)
+# Failed test 591: "only sessions and mfa_factors have __own policies (partner access, 08 A19 D-101)"
+#         have: 20
+#         want: 0
+not ok 680 - fixture: seeded invited membership in tenant A
+# Failed test 680: "fixture: seeded invited membership in tenant A"
+#         have: 0
+#         want: 1
+not ok 681 - second invite of the same user while an invited membership exists -> unique violation
+# Failed test 681: "second invite of the same user while an invited membership exists -> unique violation"
+#         have: 23502
+#         want: 23505
+# Looks like you failed 5 tests of 688
+# --- db/tests/identity/T0B-ASYNC-1_worker_grants.test.sql
+not ok 13 - lims_worker calls it: no permission error, no row for an unknown user
+# Failed test 13: "lims_worker calls it: no permission error, no row for an unknown user"
+#         have: 1
+#         want: 0
+not ok 22 - every policy mentioning app.pre_* is still TO lims_owner only
+# Failed test 22: "every policy mentioning app.pre_* is still TO lims_owner only"
+not ok 58 - lims_worker may execute every overload of app.uuidv7
+# Failed test 58: "lims_worker may execute every overload of app.uuidv7"
+not ok 59 - summary: no app.* function called by worker SQL is closed to lims_worker
+# Failed test 59: "summary: no app.* function called by worker SQL is closed to lims_worker"
+#         have: app.uuidv7()
+#         want: 
+# Looks like you failed 4 tests of 59
+# --- db/tests/identity/T0B-MFAPOL-1_mfa_factors_own.test.sql
+# --- db/tests/identity/T9-A38_platform_set_password.test.sql
+# --- db/tests/core/T0B-03_audit.test.sql
+ok 55 # SKIP identity.platform_staff exists (C2/T0B-06): platform-context audit assertions run with its own fixtures there
+ok 56 # SKIP identity.platform_staff exists (C2/T0B-06): platform-context audit assertions run with its own fixtures there
+ok 57 # SKIP identity.platform_staff exists (C2/T0B-06): platform-context audit assertions run with its own fixtures there
+ok 58 # SKIP identity.platform_staff exists (C2/T0B-06): platform-context audit assertions run with its own fixtures there
+ok 59 # SKIP identity.platform_staff exists (C2/T0B-06): platform-context audit assertions run with its own fixtures there
+# --- db/tests/core/T0B-03_isolation.test.sql
+not ok 39 - AC-0B-3.2: tenant A claims inserting a tenant B row into core.membership_centres -> 42501
+# Failed test 39: "AC-0B-3.2: tenant A claims inserting a tenant B row into core.membership_centres -> 42501"
+#         have: E23514
+#         want: E42501
+# Looks like you failed 1 test of 237
+# --- db/tests/core/T0B-03_schema.test.sql
+not ok 15 - schema test 17: every policy mentioning app.pre_ / app.maintenance is TO lims_owner only
+# Failed test 15: "schema test 17: every policy mentioning app.pre_ / app.maintenance is TO lims_owner only"
+#     Unexpected records:
+#         (qr_tokens__select__lookup)
+#         (report_versions__select__lookup)
+#         (portal_links__select__lookup)
+#         (portal_links__select__owner_only)
+#         (portal_links__update__owner_only)
+#         (reports__select__owner_only)
+#         (report_versions__select__owner_only)
+#         (deliveries__select__owner_only)
+#         (portal_sessions__select__lookup)
+#         (channel_accounts__select__lookup)
+#         (provider_events__insert__lookup)
+#         (provider_events__select__lookup)
+# Looks like you failed 1 test of 168
+# --- db/tests/core/T0B-05_platform.test.sql
+not ok 43 - schema test 17: every policy mentioning app.pre_ / app.maintenance is TO lims_owner only
+# Failed test 43: "schema test 17: every policy mentioning app.pre_ / app.maintenance is TO lims_owner only"
+#         have: 12
+#         want: 0
+not ok 146 - schema test 22: cron_tenant_ids returns exactly the active and suspended tenants (not provisioning / offboarded)
+# Failed test 146: "schema test 22: cron_tenant_ids returns exactly the active and suspended tenants (not provisioning / offboarded)"
+#         have: 01900000-0000-7000-8000-000000000001,01900000-0000-7000-8000-000000000002,01a1a98a-ac40-7000-8000-00000000a001,01a1a98a-ac40-7000-8000-00000000b001
+#         want: 01900000-0000-7000-8000-000000000001,01900000-0000-7000-8000-000000000002
+not ok 147 - app.maintenance is '' while/after the rows are consumed (reset in body)
+# Failed test 147: "app.maintenance is '' while/after the rows are consumed (reset in body)"
+#         have: 4
+#         want: 2
+# Looks like you failed 3 tests of 213
+# --- db/tests/core/T0B-05_queue.test.sql
+# --- db/tests/core/T0B-06_membership_branches.test.sql
+# --- db/tests/core/T0C-SYNC-1_sync_devices_blocks.test.sql
+# --- db/tests/definers/T0B-08_contracts_helpers.test.sql
+not ok 20 - a platform session reads 0 identity.platform_staff rows directly (owner policy only)
+# Failed test 20: "a platform session reads 0 identity.platform_staff rows directly (owner policy only)"
+#         have: n=2
+#         want: n=0
+# Looks like you failed 1 test of 27
+# --- db/tests/definers/T0B-08_contracts_platform.test.sql
+not ok 2 - schema test 22: cron_tenant_ids returns exactly the active and suspended ids, and app.maintenance is '' afterwards
+# Failed test 2: "schema test 22: cron_tenant_ids returns exactly the active and suspended ids, and app.maintenance is '' afterwards"
+#         have: false:
+#         want: true:
+not ok 12 - schema test 16(a): platform claims list every seeded tenant once
+# Failed test 12: "schema test 16(a): platform claims list every seeded tenant once"
+#         have: n=5
+#         want: n=3
+not ok 13 - schema test 16(a): p_status narrows
+# Failed test 13: "schema test 16(a): p_status narrows"
+#         have: n=3
+#         want: n=1
+not ok 14 - schema test 16(a): code order ascending
+# Failed test 14: "schema test 16(a): code order ascending"
+#         have: lab_a,lab_b,lab_c,tenant_a,tenant_b
+#         want: lab_a,lab_b,lab_c
+# Looks like you failed 4 tests of 45
+# --- db/tests/definers/T0B-08_inventory.test.sql
+not ok 163 - app.identity_login_context(uuid): EXECUTE for lims_worker is false per the inventory
+# Failed test 163: "app.identity_login_context(uuid): EXECUTE for lims_worker is false per the inventory"
+#         have: true
+#         want: false
+# Looks like you failed 1 test of 538
+# --- db/tests/definers/T0B-08_owner_policies.test.sql
+not ok 31 - owner with app.maintenance = cron_tenant_ids sees the tenant (the function path works)
+# Failed test 31: "owner with app.maintenance = cron_tenant_ids sees the tenant (the function path works)"
+#         have: n=3
+#         want: n=1
+# Looks like you failed 1 test of 50
+# --- db/tests/engagement/T-A2_resolve_preauth.test.sql
+not ok 3 - resolve_preauth pins search_path = ''
+# Failed test 3: "resolve_preauth pins search_path = ''"
+not ok 45 - counter_key otp_day:<yyyymmdd> satisfies number_counters__key__ck
+# Failed test 45: "counter_key otp_day:<yyyymmdd> satisfies number_counters__key__ck"
+#     died: 23502: null value in column "created_by" of relation "number_counters" violates not-null constraint
+#         DETAIL:     Failing row contains (01950c16-0000-7000-8000-000000000001, otp_day:20260301, 1, 2026-11-19 18:31:16.340624+00, 2026-11-17 18:31:16.340624+00, null, 2026-11-17 18:31:16.340624+00).
+#         SCHEMA:     engagement
+#         TABLE:      number_counters
+#         COLUMN:     created_by
+#         CONTEXT:
+#             SQL statement "INSERT INTO engagement.number_counters (tenant_id, counter_key, last_value, expires_at) VALUES ('01950c16-0000-7000-8000-000000000001', 'otp_day:20260301', 1, now() + interval '2 days')"
+#             PL/pgSQL function lives_ok(text,text) line 14 at EXECUTE
+not ok 46 - a dashed date is refused by number_counters__key__ck
+# Failed test 46: "a dashed date is refused by number_counters__key__ck"
+#       caught: 23502: null value in column "created_by" of relation "number_counters" violates not-null constraint
+#       wanted: 23514
+not ok 47 - a 7-digit day is refused by number_counters__key__ck
+# Failed test 47: "a 7-digit day is refused by number_counters__key__ck"
+#       caught: 23502: null value in column "created_by" of relation "number_counters" violates not-null constraint
+#       wanted: 23514
+# Looks like you failed 4 tests of 47
+# --- db/tests/engagement/T-A3_pre_acc.test.sql
+# --- db/tests/engagement/T-L2_redeem_link_code.test.sql
+psql:db/tests/fixtures/T0B-06_identity_standin.sql:155: NOTICE:  identity tables exist; stand-ins not created
+ok 1 - T1: account id of patient 401 (tenant A)
+ok 2 - T1: tenant B claims carrying a tenant A membership: no account
+ok 3 - T1: a tenant B membership under tenant A claims: no account
+ok 4 - T1: patient ids = the ACTIVE links of account 301 only
+ok 5 - T1: tenant B account without links: empty
+ok 6 - T1: patient_visible: an active link with visible_from 2026-02-01 is visible now
+ok 7 - T1: a patient whose link is suspended (502, account 302) is not visible to account 301
+ok 8 - patient actors have no policy on link_codes (SELECT sees 0 rows)
+ok 9 - patient actors cannot UPDATE link_codes directly (0 rows)
+ok 10 - a text parameter is refused: the signature is (bytea) (08 A2.4)
+ok 11 - another account (phone p302) redeeming 601 (bound to p301): no row
+ok 12 - wrong phone: the code is still issued
+ok 13 - tenant B claims cannot redeem a tenant A code
+ok 14 - an EXPIRED code: no row
+ok 15 - an unknown code: no row
+ok 16 - a tenant B code under tenant A claims: no row
+not ok 17 - redeem for the bound phone: (code, patient, relationship, name, sex, no existing link)
+# Failed test 17: "redeem for the bound phone: (code, patient, relationship, name, sex, no existing link)"
+#         have: E23503:insert or update on table "link_codes" violates foreign key constraint "link_codes__patient__fk"
+#         want: 01950c16-0000-7000-8000-000000000259|01950c16-0000-7000-8000-0000000001f5|self|Synthetic One|female||false
+not ok 18 - the code is redeemed by account 301
+# Failed test 18: "the code is redeemed by account 301"
+#         have: <null>
+#         want: redeemed/true
+not ok 19 - redeeming it again: no row (single use)
+# Failed test 19: "redeeming it again: no row (single use)"
+#         have: E23503:insert or update on table "link_codes" violates foreign key constraint "link_codes__patient__fk"
+#         want: <null>
+ok 20 - and by any other account: no row
+ok 21 - the DEFINER inserts no link when none exists (the service does, after the limits)
+not ok 22 - redeem for a patient with a suspended link: existing_link_id + was_suspended
+# Failed test 22: "redeem for a patient with a suspended link: existing_link_id + was_suspended"
+#         have: E23503:insert or update on table "link_codes" violates foreign key constraint "link_codes__patient__fk"
+#         want: 01950c16-0000-7000-8000-00000000025a|01950c16-0000-7000-8000-0000000001f6|child|Synthetic Two|male|01950c16-0000-7000-8000-000000000321|true
+not ok 23 - link 801: active, suspension cleared, visible_from NULL, method link_code, link_code_id set, version + 1, sex copied, record_phone_hmac_at_link refreshed
+# Failed test 23: "link 801: active, suspension cleared, visible_from NULL, method link_code, link_code_id set, version + 1, sex copied, record_phone_hmac_at_link refreshed"
+#         have: suspended|phone_mismatch|2026-11-17 17:31:18.014922+00|2026-11-07 18:31:18.014922+00|link_code|01950c16-0000-7000-8000-00000000025e|1|false
+#         want: active|null|null|null|link_code|01950c16-0000-7000-8000-00000000025a|2|male|true
+not ok 24 - redeem for a patient with an active link: existing_link_id, was_suspended false
+# Failed test 24: "redeem for a patient with an active link: existing_link_id, was_suspended false"
+#         have: E23503:insert or update on table "link_codes" violates foreign key constraint "link_codes__patient__fk"
+#         want: 01950c16-0000-7000-8000-00000000025f|01950c16-0000-7000-8000-0000000001f8|other|Synthetic Four|female|01950c16-0000-7000-8000-000000000322|false
+not ok 25 - link 802: visible_from NULL, method link_code
+# Failed test 25: "link 802: visible_from NULL, method link_code"
+#         have: active|2026-02-01 00:00:00+00|report_link
+#         want: active|null|link_code|01950c16-0000-7000-8000-00000000025f
+not ok 26 - active link: row returned
+# Failed test 26: "active link: row returned"
+#         have: E23503:insert or update on table "account_patient_links" violates foreign key constraint "account_patient_links__patient__fk"
+#         want: 01950c16-0000-7000-8000-000000000323|active
+not ok 27 - active link: visible_from = least(old, released_at)
+# Failed test 27: "active link: visible_from = least(old, released_at)"
+#         have: 2026-03-01 00:00:00+00
+#         want: 2026-02-01 00:00:00+00
+not ok 28 - a later released_at is accepted ...
+# Failed test 28: "a later released_at is accepted ..."
+#         have: E23503:insert or update on table "account_patient_links" violates foreign key constraint "account_patient_links__patient__fk"
+#         want: 01950c16-0000-7000-8000-000000000323
+not ok 29 - ... but never narrows the history
+# Failed test 29: "... but never narrows the history"
+#         have: 2026-03-01 00:00:00+00
+#         want: 2026-02-01 00:00:00+00
+not ok 30 - full-history link: row returned
+# Failed test 30: "full-history link: row returned"
+#         have: E23503:insert or update on table "account_patient_links" violates foreign key constraint "account_patient_links__patient__fk"
+#         want: 01950c16-0000-7000-8000-000000000324
+ok 31 - full-history link (visible_from NULL) stays NULL
+not ok 32 - suspended link: row returned with prior_status suspended
+# Failed test 32: "suspended link: row returned with prior_status suspended"
+#         have: E23503:insert or update on table "account_patient_links" violates foreign key constraint "account_patient_links__patient__fk"
+#         want: 01950c16-0000-7000-8000-000000000325|suspended
+not ok 33 - suspended link: reactivated, visible_from = released_at, record_phone_hmac_at_link = the account phone hmac, method unchanged
+# Failed test 33: "suspended link: reactivated, visible_from = released_at, record_phone_hmac_at_link = the account phone hmac, method unchanged"
+#         have: suspended|dormant|2026-11-16 18:31:18.014922+00|2026-01-01 00:00:00+00|report_link|false
+#         want: active|null|null|2026-02-15 00:00:00+00|report_link|true
+ok 34 - no link for that patient: no row
+psql:db/tests/engagement/T-L2_redeem_link_code.test.sql:126: error: invalid command \'s
+psql failed: db/tests/engagement/T-L2_redeem_link_code.test.sql
+# --- db/tests/engagement/T-OPS1_purge.test.sql
+not ok 5 - purge_queue pins search_path = ''
+# Failed test 5: "purge_queue pins search_path = ''"
+not ok 6 - purge_payment_requests pins search_path = ''
+# Failed test 6: "purge_payment_requests pins search_path = ''"
+not ok 49 - a bare DELETE of a link_code referenced by a link fails on account_patient_links__code__fk (23503): the data layer protects it even if the task filter were missing
+# Failed test 49: "a bare DELETE of a link_code referenced by a link fails on account_patient_links__code__fk (23503): the data layer protects it even if the task filter were missing"
+#                   '0'
+#    doesn't match: '^E23503:.*$'
+not ok 55 - the system actor cannot delete account_patient_links (class M, kept)
+# Failed test 55: "the system actor cannot delete account_patient_links (class M, kept)"
+#         have: E42501:permission denied for table account_patient_links
+#         want: 0
+not ok 58 - no self_registrations row delete exists (row kept; only the personal fields are redacted, B15)
+# Failed test 58: "no self_registrations row delete exists (row kept; only the personal fields are redacted, B15)"
+#         have: E42501:permission denied for table self_registrations
+#         want: 0
+# Looks like you failed 5 tests of 58
+# --- db/tests/engagement/T-Q3_resolve_display.test.sql
+not ok 3 - resolve_display pins search_path = ''
+# Failed test 3: "resolve_display pins search_path = ''"
+# Looks like you failed 1 test of 32
+# --- db/tests/engagement/T-SEC1_table_probes.test.sql
+not ok 1 - engagement schema holds exactly the 40 tables of 05-SCHEMA §1
+# Failed test 1: "engagement schema holds exactly the 40 tables of 05-SCHEMA §1"
+#         have: 43
+#         want: 40
+not ok 2 - no table is missing or unexpected (every table is probed)
+# Failed test 2: "no table is missing or unexpected (every table is probed)"
+#         have: {account_patient_links,accounts,addresses,bookable_items,booking_centres,booking_items,booking_transitions,bookings,broadcast,broadcast_recipient,broadcast_template,cs_booking_cancel_reasons,cs_enquiry_categories,cs_reminder_reasons,enquiries,enquiry_messages,event_inbox,g_cs_booking_cancel_reasons,g_cs_enquiry_categories,g_cs_reminder_reasons,link_codes,link_consents,membership_plans,notifications,number_counters,otp_challenges,patient_memberships,patient_order_specimens,patient_orders,patient_reports,payment_requests,queue_counters,queue_day_counters,queue_definitions,queue_displays,queue_tokens,reminders,self_registrations,settings,slot_blackouts,slot_occupancy,slot_templates,smart_summaries}
+#         want: {account_patient_links,accounts,addresses,bookable_items,booking_centres,booking_items,booking_transitions,bookings,cs_booking_cancel_reasons,cs_enquiry_categories,cs_reminder_reasons,enquiries,enquiry_messages,event_inbox,g_cs_booking_cancel_reasons,g_cs_enquiry_categories,g_cs_reminder_reasons,link_codes,link_consents,membership_plans,notifications,number_counters,otp_challenges,patient_memberships,patient_order_specimens,patient_orders,patient_reports,payment_requests,queue_counters,queue_day_counters,queue_definitions,queue_displays,queue_tokens,reminders,self_registrations,settings,slot_blackouts,slot_occupancy,slot_templates,smart_summaries}
+not ok 3 - every engagement table has ENABLE + FORCE ROW LEVEL SECURITY
+# Failed test 3: "every engagement table has ENABLE + FORCE ROW LEVEL SECURITY"
+#         have: {g_cs_booking_cancel_reasons,g_cs_enquiry_categories,g_cs_reminder_reasons}
+#         want: NULL
+not ok 11 - every granted command has a policy TO lims_app (a grant without a policy would read as zero rows by accident, not by design)
+# Failed test 11: "every granted command has a policy TO lims_app (a grant without a policy would read as zero rows by accident, not by design)"
+#         have: {g_cs_booking_cancel_reasons:SELECT,g_cs_enquiry_categories:SELECT,g_cs_reminder_reasons:SELECT}
+#         want: NULL
+# Looks like you failed 4 tests of 17
+# --- db/tests/engagement/T0B-13.C16_schema.test.sql
+not ok 1 - C16 check 1: engagement holds 36 tenant + 3 G tables + event_inbox (39 chunk tables = 05-SCHEMA §3 count of table statements)
+# Failed test 1: "C16 check 1: engagement holds 36 tenant + 3 G tables + event_inbox (39 chunk tables = 05-SCHEMA §3 count of table statements)"
+#         have: 43
+#         want: 40
+not ok 2 - C16 check 1: the table set equals the §3 inventory
+# Failed test 2: "C16 check 1: the table set equals the §3 inventory"
+#         have: {account_patient_links,accounts,addresses,bookable_items,booking_centres,booking_items,booking_transitions,bookings,broadcast,broadcast_recipient,broadcast_template,cs_booking_cancel_reasons,cs_enquiry_categories,cs_reminder_reasons,enquiries,enquiry_messages,g_cs_booking_cancel_reasons,g_cs_enquiry_categories,g_cs_reminder_reasons,link_codes,link_consents,membership_plans,notifications,number_counters,otp_challenges,patient_memberships,patient_order_specimens,patient_orders,patient_reports,payment_requests,queue_counters,queue_day_counters,queue_definitions,queue_displays,queue_tokens,reminders,self_registrations,settings,slot_blackouts,slot_occupancy,slot_templates,smart_summaries}
+#         want: {account_patient_links,accounts,addresses,bookable_items,booking_centres,booking_items,booking_transitions,bookings,cs_booking_cancel_reasons,cs_enquiry_categories,cs_reminder_reasons,enquiries,enquiry_messages,g_cs_booking_cancel_reasons,g_cs_enquiry_categories,g_cs_reminder_reasons,link_codes,link_consents,membership_plans,notifications,number_counters,otp_challenges,patient_memberships,patient_order_specimens,patient_orders,patient_reports,payment_requests,queue_counters,queue_day_counters,queue_definitions,queue_displays,queue_tokens,reminders,self_registrations,settings,slot_blackouts,slot_occupancy,slot_templates,smart_summaries}
+not ok 99 - C16 check 2 / AC-0B-3.5: tenant_id is NOT NULL everywhere
+# Failed test 99: "C16 check 2 / AC-0B-3.5: tenant_id is NOT NULL everywhere"
+#         have: 2
+#         want: 0
+not ok 140 - C16 check 3: tenant predicate in every lims_app policy
+# Failed test 140: "C16 check 3: tenant predicate in every lims_app policy"
+#         have: 3
+#         want: 0
+not ok 142 - C16 check 3 / REQ-SEC-016: no USING (true)
+# Failed test 142: "C16 check 3 / REQ-SEC-016: no USING (true)"
+#         have: 10
+#         want: 0
+not ok 489 - C16 check 5: exactly the 46 spec indexes beyond the constraint-backed ones (no extra index)
+# Failed test 489: "C16 check 5: exactly the 46 spec indexes beyond the constraint-backed ones (no extra index)"
+#         have: 51
+#         want: 46
+not ok 601 - C16 check 6 / AC-0B-5.3: 22 audit triggers (20 class M + 2 class C); none on class A / E / G
+# Failed test 601: "C16 check 6 / AC-0B-5.3: 22 audit triggers (20 class M + 2 class C); none on class A / E / G"
+#         have: 24
+#         want: 22
+# Looks like you failed 7 tests of 675
+# --- db/tests/engagement/T0B-CNTPOL-1_number_counters.test.sql
+# --- db/tests/engagement/T0C-MSGDESK-1_broadcast_and_tickets.test.sql
+# elapsed 139s

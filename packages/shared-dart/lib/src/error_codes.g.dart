@@ -58,9 +58,15 @@ abstract final class LimsErrorCodes {
   static const String billingRefundSelfApprovalForbidden = 'billing.refund_self_approval_forbidden';
   static const String catalogCodeDuplicate = 'catalog.code_duplicate';
   static const String catalogFormulaInvalid = 'catalog.formula_invalid';
+  static const String catalogImportAlreadyCommitted = 'catalog.import_already_committed';
+  static const String catalogImportBatchExpired = 'catalog.import_batch_expired';
+  static const String catalogImportHasErrors = 'catalog.import_has_errors';
   static const String catalogImportInvalid = 'catalog.import_invalid';
+  static const String catalogImportInvalidFile = 'catalog.import_invalid_file';
   static const String catalogImportNotCommittable = 'catalog.import_not_committable';
   static const String catalogImportStaleBase = 'catalog.import_stale_base';
+  static const String catalogImportTemplateOutdated = 'catalog.import_template_outdated';
+  static const String catalogImportTooLarge = 'catalog.import_too_large';
   static const String catalogInstrumentCodeUnmapped = 'catalog.instrument_code_unmapped';
   static const String catalogNoPrice = 'catalog.no_price';
   static const String catalogNoReferenceRange = 'catalog.no_reference_range';
@@ -188,10 +194,12 @@ abstract final class LimsErrorCodes {
   static const String labBarcodeDuplicate = 'lab.barcode_duplicate';
   static const String labBarcodePatternInvalid = 'lab.barcode_pattern_invalid';
   static const String labCriticalAckRequired = 'lab.critical_ack_required';
+  static const String labEntererCannotVerify = 'lab.enterer_cannot_verify';
   static const String labFlagAckRequired = 'lab.flag_ack_required';
   static const String labFormulaInputsMissing = 'lab.formula_inputs_missing';
   static const String labModuleResultInvalid = 'lab.module_result_invalid';
   static const String labModuleResultStale = 'lab.module_result_stale';
+  static const String labPathologistRequired = 'lab.pathologist_required';
   static const String labRejectionReasonRequired = 'lab.rejection_reason_required';
   static const String labResultInvalidTransition = 'lab.result_invalid_transition';
   static const String labResultLocked = 'lab.result_locked';
@@ -202,6 +210,7 @@ abstract final class LimsErrorCodes {
   static const String labSpecimenInvalidTransition = 'lab.specimen_invalid_transition';
   static const String labSpecimenNotFound = 'lab.specimen_not_found';
   static const String labSpecimenNotReceivable = 'lab.specimen_not_receivable';
+  static const String labVerifierNotDistinct = 'lab.verifier_not_distinct';
   static const String microAmendmentReasonRequired = 'micro.amendment_reason_required';
   static const String microAntibioticNotInPanel = 'micro.antibiotic_not_in_panel';
   static const String microAstCategoryNotAllowed = 'micro.ast_category_not_allowed';
@@ -370,9 +379,15 @@ const Map<String, int> limsErrorHttpStatus = <String, int>{
   'billing.refund_self_approval_forbidden': 403,
   'catalog.code_duplicate': 409,
   'catalog.formula_invalid': 422,
+  'catalog.import_already_committed': 409,
+  'catalog.import_batch_expired': 409,
+  'catalog.import_has_errors': 409,
   'catalog.import_invalid': 422,
+  'catalog.import_invalid_file': 422,
   'catalog.import_not_committable': 409,
   'catalog.import_stale_base': 409,
+  'catalog.import_template_outdated': 422,
+  'catalog.import_too_large': 413,
   'catalog.instrument_code_unmapped': 422,
   'catalog.no_price': 422,
   'catalog.no_reference_range': 422,
@@ -500,10 +515,12 @@ const Map<String, int> limsErrorHttpStatus = <String, int>{
   'lab.barcode_duplicate': 409,
   'lab.barcode_pattern_invalid': 500,
   'lab.critical_ack_required': 409,
+  'lab.enterer_cannot_verify': 403,
   'lab.flag_ack_required': 409,
   'lab.formula_inputs_missing': 422,
   'lab.module_result_invalid': 422,
   'lab.module_result_stale': 409,
+  'lab.pathologist_required': 403,
   'lab.rejection_reason_required': 422,
   'lab.result_invalid_transition': 409,
   'lab.result_locked': 409,
@@ -514,6 +531,7 @@ const Map<String, int> limsErrorHttpStatus = <String, int>{
   'lab.specimen_invalid_transition': 409,
   'lab.specimen_not_found': 404,
   'lab.specimen_not_receivable': 409,
+  'lab.verifier_not_distinct': 409,
   'micro.amendment_reason_required': 422,
   'micro.antibiotic_not_in_panel': 422,
   'micro.ast_category_not_allowed': 422,

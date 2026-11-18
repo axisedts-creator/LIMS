@@ -50,6 +50,8 @@ export type PermissionCode =
   | "engagement.broadcast.approve"
   | "engagement.broadcast.manage"
   | "engagement.broadcast.read"
+  | "engagement.content.manage"
+  | "engagement.content.read"
   | "engagement.enquiry.create"
   | "engagement.enquiry.read"
   | "engagement.enquiry.respond"
@@ -132,6 +134,8 @@ export type PermissionCode =
   | "lab.specimen.receive"
   | "lab.specimen.reject"
   | "lab.status_board.read"
+  | "lab.verification_policy.manage"
+  | "lab.verification_policy.read"
   | "lab.worklist.read"
   | "lab.worksheet.manage"
   | "micro.breakpoint.manage"
@@ -255,6 +259,8 @@ export const PERMISSION_CODES: readonly PermissionCode[] = [
   "engagement.broadcast.approve",
   "engagement.broadcast.manage",
   "engagement.broadcast.read",
+  "engagement.content.manage",
+  "engagement.content.read",
   "engagement.enquiry.create",
   "engagement.enquiry.read",
   "engagement.enquiry.respond",
@@ -337,6 +343,8 @@ export const PERMISSION_CODES: readonly PermissionCode[] = [
   "lab.specimen.receive",
   "lab.specimen.reject",
   "lab.status_board.read",
+  "lab.verification_policy.manage",
+  "lab.verification_policy.read",
   "lab.worklist.read",
   "lab.worksheet.manage",
   "micro.breakpoint.manage",
@@ -455,6 +463,7 @@ export const PRIVILEGED: ReadonlySet<PermissionCode> = new Set([
   "lab.qc_hold.release",
   "lab.result.amend",
   "lab.result.approve",
+  "lab.verification_policy.manage",
   "micro.breakpoint.manage",
   "partners.partner.manage",
   "partners.partner_user.manage",
@@ -576,6 +585,7 @@ export const ROLE_GRANTS: Readonly<Record<string, readonly PermissionCode[]>> = 
     "engagement.booking.read",
     "engagement.broadcast.manage",
     "engagement.broadcast.read",
+    "engagement.content.read",
     "engagement.enquiry.read",
     "engagement.enquiry.respond",
     "engagement.link.issue",
@@ -634,6 +644,8 @@ export const ROLE_GRANTS: Readonly<Record<string, readonly PermissionCode[]>> = 
     "engagement.broadcast.approve",
     "engagement.broadcast.manage",
     "engagement.broadcast.read",
+    "engagement.content.manage",
+    "engagement.content.read",
     "engagement.queue.manage",
     "engagement.slot.manage",
     "homecollection.device.manage",
@@ -661,6 +673,8 @@ export const ROLE_GRANTS: Readonly<Record<string, readonly PermissionCode[]>> = 
     "lab.result.read",
     "lab.specimen.read",
     "lab.status_board.read",
+    "lab.verification_policy.manage",
+    "lab.verification_policy.read",
     "lab.worklist.read",
     "lab.worksheet.manage",
     "micro.breakpoint.manage",
@@ -717,6 +731,7 @@ export const ROLE_GRANTS: Readonly<Record<string, readonly PermissionCode[]>> = 
     "lab.specimen.receive",
     "lab.specimen.reject",
     "lab.status_board.read",
+    "lab.verification_policy.read",
     "lab.worklist.read",
     "lab.worksheet.manage",
     "micro.culture.read",
@@ -770,6 +785,7 @@ export const ROLE_GRANTS: Readonly<Record<string, readonly PermissionCode[]>> = 
     "lab.result.verify",
     "lab.specimen.read",
     "lab.status_board.read",
+    "lab.verification_policy.read",
     "lab.worklist.read",
     "micro.breakpoint.manage",
     "micro.culture.read",
@@ -845,6 +861,8 @@ export const ROLE_GRANTS: Readonly<Record<string, readonly PermissionCode[]>> = 
     "engagement.broadcast.approve",
     "engagement.broadcast.manage",
     "engagement.broadcast.read",
+    "engagement.content.manage",
+    "engagement.content.read",
     "engagement.link.read",
     "engagement.link.revoke",
     "engagement.membership.read",

@@ -3,6 +3,7 @@
 import { ApiError } from '@/core/api/server-fetch';
 import { PermissionDenied } from '@/core/errors/PermissionDenied';
 import { getShellSession } from '@/core/session/server';
+import { isPending, NotAvailable } from '@/core/shell/NotAvailable';
 import { SettingsView } from '@/features/frontdesk/settings/SettingsView';
 import { getFrontdeskSettings } from '@/features/frontdesk/settings/server';
 
@@ -16,6 +17,7 @@ export default async function FrontdeskSettingsPage({ searchParams }: { searchPa
     return <SettingsView key={settings.version} settings={settings} />; // key: "Reload" (router.refresh) remounts the form with the fresh values
   } catch (e) {
     if (e instanceof ApiError && e.status === 403) return e.problem.code === 'auth.mfa_required' ? <SettingsView mfaRequired /> : <PermissionDenied />;
+    if (isPending(e)) return <NotAvailable title="Front desk settings" helpKey="frontdesk.settings" />; // T0D-UNSLOP-1 / LD-353 rule 6
     throw e; // 5xx and the rest render error.tsx
   }
 }

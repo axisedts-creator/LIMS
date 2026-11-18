@@ -46,6 +46,21 @@ CREATE POLICY message_template_texts__insert__tenant ON reporting.message_templa
 CREATE POLICY message_template_texts__update__tenant ON reporting.message_template_texts FOR UPDATE TO lims_app
   USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()))
   WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+-- T0C-PRINTCFG-1 (LD-316, LD-319(1)): db/migrations/20261117160000_reporting__add_print_profiles_and_signatories.sql; no DELETE policy (rows are deactivated)
+CREATE POLICY print_profile__select__tenant ON reporting.print_profile FOR SELECT TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+CREATE POLICY print_profile__insert__tenant ON reporting.print_profile FOR INSERT TO lims_app
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+CREATE POLICY print_profile__update__tenant ON reporting.print_profile FOR UPDATE TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()))
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+CREATE POLICY signatory_profile__select__tenant ON reporting.signatory_profile FOR SELECT TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+CREATE POLICY signatory_profile__insert__tenant ON reporting.signatory_profile FOR INSERT TO lims_app
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+CREATE POLICY signatory_profile__update__tenant ON reporting.signatory_profile FOR UPDATE TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()))
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
 CREATE POLICY report_templates__select__tenant ON reporting.report_templates FOR SELECT TO lims_app
   USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
 CREATE POLICY report_templates__insert__tenant ON reporting.report_templates FOR INSERT TO lims_app

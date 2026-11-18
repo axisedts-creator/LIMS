@@ -53,6 +53,22 @@ BEGIN
   PERFORM set_config('request.jwt.claims', coalesce(saved, ''), true);
   RETURN r;
 END $f$;
+-- T0B-GREEN-1: like pg_temp.x (mode w) but the statement is rolled back (inner block raises a sentinel after reading ROW_COUNT), so a write that the policy ADMITS leaves no fixture behind; result 'rc=<n>' or 'E<sqlstate>|<message>'
+CREATE FUNCTION pg_temp.xr(p_role text, p_claims jsonb, p_sql text) RETURNS text LANGUAGE plpgsql AS $f$
+DECLARE r text; n bigint; saved text := current_setting('request.jwt.claims', true);
+BEGIN
+  PERFORM set_config('request.jwt.claims', coalesce(p_claims::text, ''), true);
+  EXECUTE format('SET LOCAL ROLE %I', p_role);
+  BEGIN
+    BEGIN
+      EXECUTE p_sql; GET DIAGNOSTICS n = ROW_COUNT;
+      RAISE EXCEPTION USING ERRCODE = 'P0099', MESSAGE = 'rc=' || n;
+    EXCEPTION WHEN SQLSTATE 'P0099' THEN r := SQLERRM; END;
+  EXCEPTION WHEN OTHERS THEN r := 'E' || SQLSTATE || '|' || SQLERRM; END;
+  RESET ROLE;
+  PERFORM set_config('request.jwt.claims', coalesce(saved, ''), true);
+  RETURN r;
+END $f$;
 CREATE FUNCTION pg_temp.cl(p_tenant uuid, p_type text DEFAULT 'system', p_mem uuid DEFAULT NULL) RETURNS jsonb LANGUAGE sql AS $$
   SELECT jsonb_build_object('actor_type', p_type, 'tenant_id', p_tenant, 'sub', pg_temp.sys()) || CASE WHEN p_mem IS NULL THEN '{}'::jsonb ELSE jsonb_build_object('membership_id', p_mem) END $$;
 CREATE FUNCTION pg_temp.sa(p_sql text, p_mode text DEFAULT 'w') RETURNS text LANGUAGE sql AS $$ SELECT pg_temp.x('lims_app', pg_temp.cl(pg_temp.ta()), p_sql, p_mode) $$;                  -- tenant A system actor
@@ -168,9 +184,14 @@ SELECT matches(pg_temp.sa('INSERT INTO payments.g_cs_reasons (id, set_name, code
 SELECT matches(pg_temp.sa('UPDATE payments.g_cs_reasons SET is_active = false'), '^E42501\|', 'C15 test 1: the global coded set is not updatable by lims_app');
 
 -- C15 test 2 (reads): staff-actor guard (AC-0B-3.6, 08 A17 P-16): partner, portal, patient (and device) claims of the same tenant read 0 rows of every payments tenant table; user and system see their rows
-SELECT is(pg_temp.x('lims_app', pg_temp.cl(pg_temp.ta(), k.t, pg_temp.m('a500')), 'SELECT 1 FROM ' || tt.q, 'n'), 'n=0', 'C15 test 2 / AC-0B-3.6: ' || k.t || ' actor sees 0 rows of ' || tt.q) FROM tt CROSS JOIN (VALUES ('partner'),('portal'),('patient'),('device')) k(t);
+SELECT is(pg_temp.x('lims_app', pg_temp.cl(pg_temp.ta(), k.t, pg_temp.m('a500')), 'SELECT 1 FROM ' || tt.q, 'n'), 'n=0', 'C15 test 2 / AC-0B-3.6: ' || k.t || ' actor sees 0 rows of ' || tt.q) FROM tt CROSS JOIN (VALUES ('partner'),('portal'),('patient')) k(t);
+-- T0B-GREEN-1 STALE (08 R10 item 5 / CR-C13-011: app.is_staff_or_system() = actor_type IN ('user','system','device'); same expectation as C12 check 11): the staff guard admits a device actor, and payments policies carry no centre clause (§3),
+-- so a device actor reads exactly the tenant rows the system actor reads, none of tenant B (check 1). 01-PRD AC-0B-3.6a still says "device reads 0 rows": see CR T0B-GREEN-1-device-actor.
+SELECT is(pg_temp.x('lims_app', pg_temp.cl(pg_temp.ta(), 'device', pg_temp.m('a500')), 'SELECT 1 FROM ' || tt.q, 'n'), pg_temp.sa('SELECT 1 FROM ' || tt.q, 'n'), 'C15 test 2 / AC-0B-3.6 / CR-C13-011: device actor reads the same tenant rows as the system actor of ' || tt.q) FROM tt;
 SELECT is(pg_temp.x('lims_app', pg_temp.cl(pg_temp.ta(), k.t, pg_temp.m('a500')), 'SELECT 1 FROM ' || tt.q, 'n') ~ '^n=[1-9]', true, 'C15 test 2: ' || k.t || ' actor sees its rows of ' || tt.q) FROM tt CROSS JOIN (VALUES ('user'),('system')) k(t);
-SELECT is(pg_temp.x('lims_app', pg_temp.cl(pg_temp.ta(), k.t, pg_temp.m('a500')), 'UPDATE payments.merchant_accounts SET updated_by = updated_by'), 'n=0', 'C15 test 2 / AC-0B-3.6: a ' || k.t || ' actor updates 0 merchant accounts') FROM (VALUES ('partner'),('portal'),('patient'),('device')) k(t);
+SELECT is(pg_temp.x('lims_app', pg_temp.cl(pg_temp.ta(), k.t, pg_temp.m('a500')), 'UPDATE payments.merchant_accounts SET updated_by = updated_by', 'w'), 'n=0', 'C15 test 2 / AC-0B-3.6: a ' || k.t || ' actor updates 0 merchant accounts') FROM (VALUES ('partner'),('portal'),('patient')) k(t);
+-- T0B-GREEN-1 STALE (CR-C13-011, see above): the device actor's UPDATE is admitted by the policy (both tenant A merchant accounts); rolled back by pg_temp.xr so no audit row or fixture change is left
+SELECT is(pg_temp.xr('lims_app', pg_temp.cl(pg_temp.ta(), 'device', pg_temp.m('a500')), 'UPDATE payments.merchant_accounts SET updated_by = updated_by'), 'rc=2', 'C15 test 2 / AC-0B-3.6 / CR-C13-011: a device actor updates the 2 tenant A merchant accounts (staff guard admits device; rolled back)');
 SELECT is(pg_temp.x('lims_app', pg_temp.cl(pg_temp.ta(), k.t, pg_temp.m('a500')), 'SELECT 1 FROM ' || tg.q, 'n'), 'n=55', 'C15 test 2 / AC-0B-3.5: global coded set stays readable for a ' || k.t || ' claim (no tenant data)') FROM tg CROSS JOIN (VALUES ('partner'),('portal'),('patient')) k(t);
 -- AC-0B-3.7: no claims / empty claims fail closed
 SELECT is(pg_temp.x('lims_api', NULL, 'SELECT 1 FROM ' || q, 'n'), 'n=0', 'C15 test 2 / AC-0B-3.7: no claims -> lims_api sees 0 rows of ' || q) FROM tt;
@@ -201,7 +222,11 @@ SELECT matches(pg_temp.sa(pg_temp.cps(q, aid, jsonb_build_object('id', pg_temp.u
 SELECT is(pg_temp.sa('UPDATE ' || q || ' SET updated_by = updated_by WHERE tenant_id = ' || pg_temp.q(pg_temp.tb())), 'n=0', 'C15 test 1 / AC-0B-3.3: tenant A updates 0 tenant B rows of ' || q) FROM ts;
 -- C15 test 2 (writes): every INSERT by a non-staff actor fails the policy (P-16)
 SELECT matches(pg_temp.x('lims_app', pg_temp.cl(pg_temp.ta(), k.t, pg_temp.m('a500')), pg_temp.cps(tt.q, tt.aid, jsonb_build_object('id', pg_temp.uid(5200 + tt.aid))), 'w'), '^E42501\|', 'C15 test 2 / AC-0B-3.6: a ' || k.t || ' actor cannot INSERT into ' || tt.q)
-  FROM tt CROSS JOIN (VALUES ('partner'),('portal'),('patient'),('device')) k(t);
+  FROM tt CROSS JOIN (VALUES ('partner'),('portal'),('patient')) k(t);
+-- T0B-GREEN-1 STALE (CR-C13-011, see check "C15 test 2 / AC-0B-3.6" above): the INSERT policy admits a device actor, so the statement is not refused by RLS (42501): it succeeds (rc=1) or reaches a later constraint (unique violation 23505 of the copied row);
+-- pg_temp.xr rolls every statement back, so no fixture row is added
+SELECT doesnt_match(pg_temp.xr('lims_app', pg_temp.cl(pg_temp.ta(), 'device', pg_temp.m('a500')), pg_temp.cps(tt.q, tt.aid, jsonb_build_object('id', pg_temp.uid(5200 + tt.aid)))), '^E42501\|', 'C15 test 2 / AC-0B-3.6 / CR-C13-011: a device actor INSERT into ' || tt.q || ' is not refused by RLS (staff guard admits device; rolled back)')
+  FROM tt;
 -- C15 test 3: immutability of the non-listed intent / refund / finding / static_qr columns (AC-0B-4.1): app.enforce_mutable_columns raises P0001 immutable_row
 SELECT is(pg_temp.sa('UPDATE payments.intents SET ' || c.c || ' = ' || c.v || ' WHERE id = ' || pg_temp.u(6101)), 'EP0001|immutable_row', 'C15 test 3 / AC-0B-4.1: intents.' || c.c || ' is immutable after insert')
   FROM (VALUES ('order_id', pg_temp.u(2399)), ('amount_paisa', 'amount_paisa + 1'), ('gateway', '''esewa'''), ('environment', '''production'''), ('merchant_account_id', pg_temp.u(6002)), ('idempotency_key', '''eng:changed'''), ('request_fingerprint', quote_literal(repeat('b', 64))),
@@ -311,6 +336,12 @@ CREATE TEMP TABLE rpair AS SELECT row_number() OVER (ORDER BY a.s, b.s)::int AS 
 SELECT is((SELECT count(*)::int FROM ipair), 72, 'C15 test 4: 72 ordered intent status pairs'); SELECT is((SELECT count(*)::int FROM ipair WHERE ok), 18, 'C15 test 4: 18 allowed intent transitions');
 SELECT is((SELECT count(*)::int FROM rpair), 42, 'C15 test 5: 42 ordered refund status pairs'); SELECT is((SELECT count(*)::int FROM rpair WHERE ok), 8, 'C15 test 5: 8 allowed refund transitions');
 SET LOCAL session_replication_role = replica;
+-- T0B-GREEN-1 HARNESS: PostgreSQL re-checks every foreign key on UPDATE of a row inserted by the same transaction, so each pair fixture needs its REAL parents: the order of every intent / refund fixture (82000 + n) and, for the refund pairs, a
+-- settled parent intent 84000 + n on its own order 86000 + n (own order: one open intent per order). Without them every allowed pair failed with intents__order__fk / refunds__intent__fk instead of moving its row.
+SELECT pg_temp.ins('frontdesk.orders', jsonb_build_object('id', pg_temp.uid(o.n), 'tenant_id', pg_temp.ta(), 'branch_id', pg_temp.id('00000000a101'), 'centre_id', pg_temp.id('00000000a201'), 'patient_id', pg_temp.uid(2201), 'registration_no', 'R-' || o.n, 'status', 'registered', 'visit_type', 'opd', 'billing_mode', 'cash',
+    'priority', 'routine', 'collection_mode', 'walk_in', 'source', 'front_desk', 'is_first_order_of_patient', true, 'catalog_revision', 1, 'registered_at', now()))
+  FROM (SELECT 82000 + n AS n FROM ipair UNION ALL SELECT 86000 + n FROM rpair) o;
+SELECT pg_temp.ins('payments.intents', pg_temp.ib(84000 + n, pg_temp.ta(), 86000 + n, 'khalti', 'settled')) FROM rpair;
 SELECT pg_temp.ins('payments.intents', pg_temp.ib(81000 + n, pg_temp.ta(), 82000 + n, 'khalti', f)) FROM ipair;
 SELECT pg_temp.ins('payments.refunds', pg_temp.rb(83000 + n, pg_temp.ta(), 84000 + n, 82000 + n, 'khalti', 'manual', f)) FROM rpair;
 SET LOCAL session_replication_role = origin;

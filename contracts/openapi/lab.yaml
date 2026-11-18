@@ -2780,6 +2780,7 @@ paths:
       tags:
         - lab
       summary: Verify a result
+      description: "Verification levels (LD-316): the active verification policy (most specific of test, department, lab; default level 2 with a pathologist) says how many DIFFERENT people (level 1, 2 or 3) must sign off this result version before it is final. Each sign-off appends one row to the sign-off chain (getResultSignoffs). The same person never signs one version twice (lab.verifier_not_distinct); the enterer of the result may not sign it unless the policy allows it (lab.enterer_cannot_verify); when the policy requires a pathologist the final sign-off needs lab.result.approve (lab.pathologist_required). verifyResult records a non-final sign-off; when the policy has require_pathologist false and this sign-off reaches signoff_required, it is the final one (status approved, next_step none); when require_pathologist is true and this sign-off would be the final one, it is refused with lab.pathologist_required (the final sign-off is approveResult); the response carries signoff_count, signoff_required and next_step."
       security:
         - bearerJwt: []
       x-permission: lab.result.verify
@@ -2798,6 +2799,9 @@ paths:
         - lab.result_invalid_transition
         - lab.result_on_hold
         - lab.flag_ack_required
+        - lab.verifier_not_distinct
+        - lab.enterer_cannot_verify
+        - lab.pathologist_required
       parameters:
         - name: result_id
           in: path
@@ -2881,6 +2885,9 @@ paths:
                       reason_text: Synthetic reason_text
                       amended_at: 2026-11-05T04:15:00.000Z
                       amended_by: 0193c4a0-0000-7000-8000-000000000244
+                    signoff_count: 1
+                    signoff_required: 2
+                    next_step: approve
         "400":
           $ref: _common.yaml#/components/responses/BadRequest
         "401":
@@ -2920,6 +2927,9 @@ paths:
         - lab.result_invalid_transition
         - lab.result_on_hold
         - lab.flag_ack_required
+        - lab.verifier_not_distinct
+        - lab.enterer_cannot_verify
+        - lab.pathologist_required
       parameters:
         - $ref: _common.yaml#/components/parameters/IdempotencyKey
       requestBody:
@@ -3192,6 +3202,7 @@ paths:
       tags:
         - lab
       summary: Approve a result
+      description: "Verification levels (LD-316): the active verification policy (most specific of test, department, lab; default level 2 with a pathologist) says how many DIFFERENT people (level 1, 2 or 3) must sign off this result version before it is final. Each sign-off appends one row to the sign-off chain (getResultSignoffs). The same person never signs one version twice (lab.verifier_not_distinct); the enterer of the result may not sign it unless the policy allows it (lab.enterer_cannot_verify); when the policy requires a pathologist the final sign-off needs lab.result.approve (lab.pathologist_required). approveResult records the final sign-off (seq = signoff_required); lab.self_approval_forbidden stays for the approver who verified the same version."
       security:
         - bearerJwt: []
       x-permission: lab.result.approve
@@ -3210,6 +3221,9 @@ paths:
         - lab.result_invalid_transition
         - lab.result_on_hold
         - lab.self_approval_forbidden
+        - lab.verifier_not_distinct
+        - lab.enterer_cannot_verify
+        - lab.pathologist_required
         - lab.critical_ack_required
         - auth.mfa_required
       parameters:
@@ -3295,6 +3309,9 @@ paths:
                       reason_text: Synthetic reason_text
                       amended_at: 2026-11-05T04:15:00.000Z
                       amended_by: 0193c4a0-0000-7000-8000-000000000282
+                    signoff_count: 2
+                    signoff_required: 2
+                    next_step: none
         "400":
           $ref: _common.yaml#/components/responses/BadRequest
         "401":
@@ -3334,6 +3351,9 @@ paths:
         - lab.result_invalid_transition
         - lab.result_on_hold
         - lab.self_approval_forbidden
+        - lab.verifier_not_distinct
+        - lab.enterer_cannot_verify
+        - lab.pathologist_required
         - lab.critical_ack_required
         - auth.mfa_required
       parameters:
@@ -5524,6 +5544,215 @@ paths:
           $ref: _common.yaml#/components/responses/TooManyRequests
         "500":
           $ref: _common.yaml#/components/responses/Internal
+  /v1/lab/verification-policies:
+    get:
+      operationId: listVerificationPolicies
+      tags:
+        - lab
+      summary: List the active verification policies (lab, departments, tests)
+      description: "T0C-VERLEVEL-1 (LD-316): the active policies of the tenant. The lab scope policy always exists (default level 2, pathologist required, enterer may not verify); department and test policies override it, the most specific wins."
+      security:
+        - bearerJwt: []
+      x-permission: lab.verification_policy.read
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VerificationPolicyList"
+              examples:
+                synthetic:
+                  value:
+                    data:
+                      - id: 0193c4a0-0000-7000-8000-000000000901
+                        scope: lab
+                        required_verifiers: 2
+                        require_pathologist: true
+                        allow_enterer_verify: false
+                        active: true
+                        version: 1
+                        updated_at: 2026-11-17T04:00:00.000Z
+                      - id: 0193c4a0-0000-7000-8000-000000000902
+                        scope: test
+                        test_id: 0193c4a0-0000-7000-8000-000000000903
+                        required_verifiers: 3
+                        require_pathologist: true
+                        allow_enterer_verify: false
+                        active: true
+                        version: 2
+                        updated_at: 2026-11-17T04:00:00.000Z
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+    put:
+      operationId: upsertVerificationPolicy
+      tags:
+        - lab
+      summary: Create or update the verification policy of the lab, a department or a test
+      description: "T0C-VERLEVEL-1 (LD-316): one active policy per scope target (the lab, one department, one test); the body names the target, the server creates it or updates the active one. A policy is deactivated with active false and never deleted (there is no DELETE); the lab scope policy cannot be deactivated. A change applies to results whose sign-off has not started; a result keeps the level it started with."
+      security:
+        - bearerJwt: []
+      x-permission: lab.verification_policy.manage
+      x-context: tenant
+      x-idempotency: optional
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.version_conflict
+        - common.precondition_required
+        - auth.mfa_required
+      parameters:
+        - name: If-Match
+          in: header
+          required: false
+          description: Required when an active policy for the target exists (missing -> 428); creating a new one sends none (TRD §3.2).
+          schema:
+            type: string
+            maxLength: 12
+            pattern: ^"[1-9][0-9]*"$
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VerificationPolicyUpsert"
+            examples:
+              synthetic:
+                value:
+                  scope: department
+                  department_id: 0193c4a0-0000-7000-8000-000000000904
+                  required_verifiers: 3
+                  require_pathologist: true
+                  allow_enterer_verify: false
+                  active: true
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VerificationPolicy"
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-000000000905
+                    scope: department
+                    department_id: 0193c4a0-0000-7000-8000-000000000904
+                    required_verifiers: 3
+                    require_pathologist: true
+                    allow_enterer_verify: false
+                    active: true
+                    version: 1
+                    updated_at: 2026-11-17T04:00:00.000Z
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "428":
+          $ref: _common.yaml#/components/responses/PreconditionRequired
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/lab/results/{result_id}/signoffs:
+    get:
+      operationId: getResultSignoffs
+      tags:
+        - lab
+      summary: Sign-off chain of a result (every version)
+      description: "T0C-VERLEVEL-1 (LD-316): the append only chain of sign-offs, ordered by result_version then seq. Each row is a snapshot of the signer taken at signing time (name, role, registration number, whether the signer held lab.result.approve); it never changes afterwards. signer_title is read from the signer's current signatory profile and is not part of the snapshot. Only sign-offs with signer_is_pathologist true print as signatures on the report (PRINTCFG); technologist sign-offs never do. Results approved before LD-316 have no chain rows (their counters were backfilled)."
+      security:
+        - bearerJwt: []
+      x-permission: lab.result.read
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+      parameters:
+        - name: result_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResultSignoffList"
+              examples:
+                synthetic:
+                  value:
+                    data:
+                      - result_version: 1
+                        seq: 1
+                        action: verify
+                        signer_user_id: 0193c4a0-0000-7000-8000-000000000906
+                        signer_display_name: Synthetic Technologist
+                        signer_title: Lab Technologist
+                        signer_role_code: lab_technologist
+                        signer_is_pathologist: false
+                        signed_at: 2026-11-17T04:00:00.000Z
+                      - result_version: 1
+                        seq: 2
+                        action: approve
+                        signer_user_id: 0193c4a0-0000-7000-8000-000000000907
+                        signer_display_name: Synthetic Pathologist
+                        signer_title: Consultant Pathologist
+                        signer_role_code: pathologist
+                        signer_is_pathologist: true
+                        signer_registration_no: SYN-0001
+                        signed_at: 2026-11-17T04:30:00.000Z
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
 components:
   schemas:
     VerifyResultRequest:   # T0C-SYNC-2 (LD-322): hoisted from verifyResult so the offline sync catalogue (core.yaml) references the same schema
@@ -5597,6 +5826,148 @@ components:
       properties:
         collected_at:
           $ref: _common.yaml#/components/schemas/IsoUtc
+    VerificationPolicy:
+      type: object
+      additionalProperties: false
+      description: "T0C-VERLEVEL-1 (LD-316): verification level policy of the lab, a department or a test (the most specific active one wins). Level 1, 2 or 3 is the number of DIFFERENT people who must sign off a result before it is approved; the enterer may sign only when allow_enterer_verify is true; require_pathologist makes the final sign-off a pathologist one."
+      required:
+        - id
+        - scope
+        - required_verifiers
+        - require_pathologist
+        - allow_enterer_verify
+        - active
+        - version
+        - updated_at
+      properties:
+        id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        scope:
+          type: string
+          maxLength: 10
+          enum:
+            - lab
+            - department
+            - test
+        department_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        test_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        required_verifiers:
+          type: integer
+          minimum: 1
+          maximum: 3
+          description: Verification level 1, 2 or 3 = number of different people who must sign off a result.
+        require_pathologist:
+          type: boolean
+          description: The final sign-off must come from a signer holding lab.result.approve (a pathologist).
+        allow_enterer_verify:
+          type: boolean
+          description: The enterer of a result may sign it off (default false, LD-318 follow-up 4).
+        active:
+          type: boolean
+        version:
+          $ref: _common.yaml#/components/schemas/Version
+        updated_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+    VerificationPolicyUpsert:
+      type: object
+      additionalProperties: false
+      description: "T0C-VERLEVEL-1 (LD-316): the target (scope lab; department + department_id; test + test_id, exactly the one that matches the scope) and the level 1, 2 or 3 (number of different people). Omitted flags take the defaults: require_pathologist true, allow_enterer_verify false (the enterer may not verify), active true. active false deactivates, never deletes."
+      required:
+        - scope
+        - required_verifiers
+      properties:
+        scope:
+          type: string
+          maxLength: 10
+          enum:
+            - lab
+            - department
+            - test
+        department_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        test_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        required_verifiers:
+          type: integer
+          minimum: 1
+          maximum: 3
+        require_pathologist:
+          type: boolean
+        allow_enterer_verify:
+          type: boolean
+        active:
+          type: boolean
+    VerificationPolicyList:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+      properties:
+        data:
+          type: array
+          maxItems: 2000
+          items:
+            $ref: "#/components/schemas/VerificationPolicy"
+    ResultSignoff:
+      type: object
+      additionalProperties: false
+      description: "T0C-VERLEVEL-1 (LD-316): one row of the append only sign-off chain of a result version. The signer fields are a snapshot taken at signing time and never change; signer_is_pathologist records whether the signer held lab.result.approve then. Only rows with signer_is_pathologist true print as signatures on the report; the signature image reference is internal and not exposed."
+      required:
+        - result_version
+        - seq
+        - action
+        - signer_display_name
+        - signer_role_code
+        - signer_is_pathologist
+        - signed_at
+      properties:
+        result_version:
+          type: integer
+          minimum: 1
+          maximum: 2147483647
+        seq:
+          type: integer
+          minimum: 1
+          maximum: 3
+        action:
+          type: string
+          maxLength: 10
+          enum:
+            - verify
+            - approve
+        signer_user_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        signer_display_name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        signer_title:
+          type: string
+          maxLength: 120
+          description: Professional title from the signer's current signatory profile (not snapshotted; for example Consultant Pathologist).
+        signer_role_code:
+          $ref: _common.yaml#/components/schemas/Code
+        signer_is_pathologist:
+          type: boolean
+        signer_registration_no:
+          type: string
+          maxLength: 60
+          description: Professional council registration number, snapshot at signing time.
+        signed_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+    ResultSignoffList:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+      properties:
+        data:
+          type: array
+          maxItems: 300
+          items:
+            $ref: "#/components/schemas/ResultSignoff"
     SpecimenDto:
       type: object
       additionalProperties: false
@@ -6362,6 +6733,24 @@ components:
               $ref: _common.yaml#/components/schemas/IsoUtc
             amended_by:
               $ref: _common.yaml#/components/schemas/Uuid
+        signoff_count:
+          type: integer
+          minimum: 0
+          maximum: 3
+          description: Sign-offs recorded for the current version (T0C-VERLEVEL-1, LD-316); legacy rows are backfilled (verified 1, approved 2).
+        signoff_required:
+          type: integer
+          minimum: 1
+          maximum: 3
+          description: Verification level of this result (number of different people who must sign off), taken from the policy when sign-off starts (LD-316).
+        next_step:
+          type: string
+          maxLength: 10
+          enum:
+            - verify
+            - approve
+            - none
+          description: verify = a further non-final sign-off is due; approve = the next sign-off is the final one; none = nothing to sign (pending, approved, cancelled).
     OrderResultsResponse:
       type: object
       additionalProperties: false

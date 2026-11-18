@@ -60,6 +60,14 @@ CREATE TEMP TABLE tt(q) AS VALUES
 -- ===================================================================================================================================== fixtures (superuser, replica block)
 -- C9 check 8: plans, targets, runs, observations, auto-verify, TAT rows of tenant A (centres a201 / a202) and tenant B (b201)
 SET LOCAL session_replication_role = replica;      -- FIXTURE-ONLY: FK parents of other chunks are not built; RLS, CHECK, NOT NULL stay on; reset to origin below
+-- T0B-GREEN-1 HARNESS (C11 precedent): PostgreSQL re-checks a foreign key on UPDATE for rows inserted by the same transaction, so every FK towards a parent this fixture never builds (instruments, catalog tests / analytes, lab qc_results,
+-- control levels / lots) made the UPDATE tests (check 14 / 15) fail with E23503 instead of exercising the guard under test. Those constraints are dropped for this rolled-back transaction only; the in-chunk FKs (plan, plan_version, target, run)
+-- and the cross-tenant composite FK probe of check 15 (qc_plan_versions__plan__fk) stay live.
+ALTER TABLE quality.qc_plans DROP CONSTRAINT IF EXISTS qc_plans__instrument__fk, DROP CONSTRAINT IF EXISTS qc_plans__test__fk, DROP CONSTRAINT IF EXISTS qc_plans__analyte__fk;
+ALTER TABLE quality.qc_targets DROP CONSTRAINT IF EXISTS qc_targets__lot__fk, DROP CONSTRAINT IF EXISTS qc_targets__level__fk;
+ALTER TABLE quality.qc_runs DROP CONSTRAINT IF EXISTS qc_runs__instrument__fk, DROP CONSTRAINT IF EXISTS qc_runs__analyte__fk;
+ALTER TABLE quality.qc_observations DROP CONSTRAINT IF EXISTS qc_observations__source_row__fk, DROP CONSTRAINT IF EXISTS qc_observations__instrument__fk, DROP CONSTRAINT IF EXISTS qc_observations__analyte__fk,
+  DROP CONSTRAINT IF EXISTS qc_observations__level__fk, DROP CONSTRAINT IF EXISTS qc_observations__lot__fk;
 SELECT pg_temp.ins('quality.qc_plans', jsonb_build_object('id', pg_temp.uid(r.n), 'tenant_id', r.t, 'instrument_id', pg_temp.uid(r.n + 1000), 'test_id', pg_temp.uid(2000), 'analyte_id', pg_temp.uid(r.n + 3000), 'status', 'active'))
   FROM (VALUES (1, pg_temp.ta()), (2, pg_temp.tb())) r(n, t);
 SELECT pg_temp.ins('quality.qc_plan_versions', jsonb_build_object('id', pg_temp.uid(r.n), 'tenant_id', r.t, 'plan_id', pg_temp.uid(r.p), 'version_no', 1, 'controls_per_run', 2, 'composition', jsonb_build_array(jsonb_build_object('level_id', pg_temp.uid(4000), 'count', 2)),
@@ -133,9 +141,11 @@ SELECT matches(pg_temp.ua(pg_temp.m('a50a'), 'INSERT INTO quality.tat_alert_acks
 
 -- C9 check 11: non-staff actors (AC-0B-3.6) and fail-closed without claims (AC-0B-3.7)
 SELECT is(pg_temp.x('lims_app', pg_temp.cl(pg_temp.ta(), k.t, pg_temp.m('a500')), 'SELECT 1 FROM ' || tt.q, 'n'), 'n=0', 'C9 check 11 / AC-0B-3.6: ' || k.t || ' actor sees 0 rows of ' || tt.q) FROM tt CROSS JOIN (VALUES ('partner'),('portal'),('patient')) k(t);
-SELECT is(pg_temp.x('lims_app', pg_temp.cl(pg_temp.ta(), 'portal', pg_temp.m('a500')), 'UPDATE quality.qc_plans SET status = ''inactive'''), 'n=0', 'C9 check 11 / AC-0B-3.6: a portal actor updates 0 plans');
-SELECT matches(pg_temp.x('lims_app', pg_temp.cl(pg_temp.ta(), 'partner', pg_temp.m('a500')), 'INSERT INTO quality.sync_state (id, tenant_id, qc_cursor_at) VALUES (' || quote_literal(pg_temp.uid(903)) || ', ' || quote_literal(pg_temp.ta()) || ', now())'), '^E42501\|', 'C9 check 11 / AC-0B-3.6: a partner actor cannot INSERT');
-SELECT is(pg_temp.x('lims_app', pg_temp.cl(pg_temp.ta(), 'device'), 'SELECT 1 FROM quality.qc_plans', 'n'), 'n=0', 'C9 check 11: a device actor is not staff and sees 0 plans');
+SELECT is(pg_temp.x('lims_app', pg_temp.cl(pg_temp.ta(), 'portal', pg_temp.m('a500')), 'UPDATE quality.qc_plans SET status = ''inactive''', 'w'), 'n=0', 'C9 check 11 / AC-0B-3.6: a portal actor updates 0 plans');
+SELECT matches(pg_temp.x('lims_app', pg_temp.cl(pg_temp.ta(), 'partner', pg_temp.m('a500')), 'INSERT INTO quality.sync_state (id, tenant_id, qc_cursor_at) VALUES (' || quote_literal(pg_temp.uid(903)) || ', ' || quote_literal(pg_temp.ta()) || ', now())', 'w'), '^E42501\|', 'C9 check 11 / AC-0B-3.6: a partner actor cannot INSERT');
+-- T0B-GREEN-1 STALE (08 R10 item 5 / CR-C13-011: app.is_staff_or_system() = actor_type IN ('user','system','device'); same expectation as C12 check 11): a device actor IS admitted by the staff guard and, quality.qc_plans being tenant-scoped, reads the
+-- tenant's plans exactly as the system actor does (never another tenant's: check 9). 01-PRD AC-0B-3.6a still says "device reads 0 rows": see CR T0B-GREEN-1-device-actor.
+SELECT is(pg_temp.x('lims_app', pg_temp.cl(pg_temp.ta(), 'device'), 'SELECT 1 FROM quality.qc_plans', 'n'), pg_temp.sa('SELECT 1 FROM quality.qc_plans', 'n'), 'C9 check 11 / CR-C13-011: a device actor passes the staff guard and sees the tenant''s plans like the system actor');
 SELECT is(pg_temp.x('lims_api', NULL, 'SELECT 1 FROM ' || q, 'n'), 'n=0', 'C9 check 11 / AC-0B-3.7: no claims -> lims_api sees 0 rows of ' || q) FROM tt;
 SELECT is(pg_temp.x('lims_api', '{}'::jsonb, 'SELECT 1 FROM ' || q, 'n'), 'n=0', 'C9 check 11 / AC-0B-3.7: empty claims -> 0 rows of ' || q) FROM tt;
 SELECT is(pg_temp.x('lims_api', NULL, 'SELECT 1 FROM quality.v_pub_qc_summary', 'n'), 'n=0', 'C9 check 11 / AC-0B-3.7: no claims -> the invoker view returns 0 rows');

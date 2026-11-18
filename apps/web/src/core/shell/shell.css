@@ -7,24 +7,31 @@
 /* T0D-DENSITY-1: the actor name opens the user menu (screen density) */
 .lims-user-menu { position: relative; }
 .lims-user-menu-list { position: absolute; inset-inline-end: 0; top: calc(100% + var(--lims-space-1)); }
-.lims-user-menu-heading { padding: var(--lims-space-1) var(--lims-space-2); color: var(--lims-neutral-700); font-size: var(--lims-font-size-xs-size); font-weight: var(--lims-font-weight-semibold); }
+.lims-user-menu-heading { padding: var(--lims-space-1) var(--lims-space-2); color: var(--lims-neutral-700); font-size: var(--lims-font-size-xs-size); font-weight: var(--lims-font-weight-medium); }
 .lims-menuitem[role='menuitemradio'] { cursor: pointer; }
 .lims-menuitem[role='menuitemradio']:focus { outline: 0.125rem solid var(--lims-focus-ring); outline-offset: -0.125rem; }
-.lims-menuitem[aria-checked='true'] { background: var(--lims-accent-subtle); font-weight: var(--lims-font-weight-semibold); }
+.lims-menuitem[aria-checked='true'] { background: var(--lims-accent-subtle); font-weight: var(--lims-font-weight-medium); }
 .lims-topbar-bell { display: inline-grid; place-items: center; min-width: var(--lims-touch-target-web); min-height: var(--lims-touch-target-web); padding: 0; border-radius: var(--lims-radius-full); }
 .lims-topbar-bell:disabled { grid-auto-flow: column; gap: var(--lims-space-2); padding-inline: var(--lims-space-3); }
 .lims-topbar-bell-note { font-size: var(--lims-font-size-xs-size); color: var(--lims-neutral-700); }
 .lims-breadcrumb ol { display: flex; gap: var(--lims-space-2); margin: 0; padding: 0; list-style: none; color: var(--lims-neutral-700); }
 .lims-breadcrumb li + li::before { content: '/'; margin-inline-end: var(--lims-space-2); color: var(--lims-neutral-500); }
-.lims-breadcrumb [aria-current='page'] { color: var(--lims-neutral-900); font-weight: var(--lims-font-weight-semibold); }
+.lims-breadcrumb [aria-current='page'] { color: var(--lims-neutral-900); font-weight: var(--lims-font-weight-medium); }
 .lims-centre-switcher { width: auto; border: 0.0625rem solid var(--lims-accent); border-radius: var(--lims-radius-full); }
 .lims-shell-menu { display: none; }
-.lims-search { position: relative; flex: 1; max-width: 560px; }
+.lims-search { position: relative; flex: 1; max-width: 26rem; }
 .lims-search-input { width: 100%; padding-inline-end: var(--lims-space-8); }
 .lims-search-hint { position: absolute; inset-inline-end: var(--lims-space-2); top: 50%; transform: translateY(-50%); padding: 0 var(--lims-space-1); border-radius: var(--lims-radius-sm); background: var(--lims-neutral-100); color: var(--lims-neutral-700); font-size: var(--lims-font-size-xs-size); }
 .lims-search-results { position: absolute; inset-inline: 0; top: calc(100% + var(--lims-space-1)); margin: 0; padding: var(--lims-space-2); }
 .lims-search-results ul { list-style: none; margin: 0; padding: 0; }
 .lims-search-results a { display: flex; justify-content: space-between; gap: var(--lims-space-2); padding: var(--lims-space-1) var(--lims-space-2); border-radius: var(--lims-radius-md); color: inherit; text-decoration: none; }
+/* T0D-UNSLOP-1 (LD-344, LD-353 rule 2): a search inside a filter row is a short label + a box of at most 24rem + its Search button beside it. */
+.lims-filter-bar > form[role='search'] { display: flex; flex-wrap: wrap; align-items: center; gap: var(--lims-space-2); }
+.lims-filter-bar input[type='search'] { flex: 1 1 12rem; max-width: 24rem; }
+/* T0D-UNSLOP-1 (C), LD-353 rule 10 and template 5: one row of equal status tiles; hero chart two thirds, side chart one third. */
+.lims-stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: var(--lims-space-2); }
+.lims-dash-charts { display: grid; grid-template-columns: 2fr 1fr; gap: var(--lims-space-4); }
+@media (max-width: 64rem) { .lims-dash-charts { grid-template-columns: 1fr; } }
 .lims-search-code { color: var(--lims-neutral-700); font-variant-numeric: tabular-nums; }
 
 /* sidebar: brand, Find a screen, scrolling groups, user card pinned at the bottom */
@@ -46,24 +53,24 @@
 .lims-rail-count { font-size: var(--lims-font-size-xs-size); font-variant-numeric: tabular-nums; }
 .lims-rail-chevron { flex: none; }
 .lims-rail-header[aria-expanded='true'] .lims-rail-chevron { transform: rotate(90deg); }
-.lims-rail-header[aria-expanded='true'] { font-size: var(--lims-font-size-xs-size); font-variant: small-caps; letter-spacing: 0.04em; }
+.lims-rail-header[aria-expanded='true'] { background: color-mix(in srgb, var(--lims-accent-fg) 12%, transparent); }
 .lims-rail .lims-sidenav { display: flex; flex-direction: column; gap: var(--lims-space-0-5); margin: 0; padding: 0; list-style: none; }
 /* a closed group's list carries [hidden]; the author display above would beat the UA [hidden] rule */
 .lims-rail .lims-sidenav[hidden] { display: none; }
-.lims-rail-subheading { padding: var(--lims-space-2) var(--lims-space-4) var(--lims-space-1); font-size: var(--lims-font-size-xs-size); font-weight: var(--lims-font-weight-semibold); }
+.lims-rail-subheading { padding: var(--lims-space-2) var(--lims-space-4) var(--lims-space-1); font-size: var(--lims-font-size-xs-size); font-weight: var(--lims-font-weight-medium); }
 .lims-rail-item { position: relative; display: flex; align-items: center; }
 .lims-rail-link { display: flex; flex: 1; align-items: center; gap: var(--lims-space-3); min-width: 0; min-height: 46px; padding: 0 var(--lims-space-4); border-radius: var(--lims-radius-full); color: inherit; font-weight: var(--lims-font-weight-medium); text-decoration: none; }
 .lims-rail-link:hover { background: color-mix(in srgb, var(--lims-accent-fg) 12%, transparent); }
 .lims-rail-link[aria-current='page'] { background: var(--lims-accent-highlight); color: var(--lims-neutral-900); border-radius: var(--lims-radius-full); }
 .lims-rail-icon { flex: none; }
 .lims-rail-badge, .lims-rail-viewonly, .lims-rail-create { position: absolute; inset-inline-end: var(--lims-space-2); top: 50%; transform: translateY(-50%); }
-.lims-rail-badge { min-width: var(--lims-space-6); padding: 0 var(--lims-space-2); border-radius: var(--lims-radius-full); background: var(--lims-accent-pop); color: var(--lims-neutral-900); font-size: var(--lims-font-size-xs-size); font-weight: var(--lims-font-weight-semibold); font-variant-numeric: tabular-nums; text-align: center; pointer-events: none; }
+.lims-rail-badge { min-width: var(--lims-space-6); padding: 0 var(--lims-space-2); border-radius: var(--lims-radius-full); background: var(--lims-accent-pop); color: var(--lims-neutral-900); font-size: var(--lims-font-size-xs-size); font-weight: var(--lims-font-weight-medium); font-variant-numeric: tabular-nums; text-align: center; pointer-events: none; }
 .lims-rail-viewonly { padding: 0 var(--lims-space-2); border: 0.0625rem solid color-mix(in srgb, var(--lims-accent-fg) 60%, var(--lims-accent)); border-radius: var(--lims-radius-full); font-size: var(--lims-font-size-xs-size); pointer-events: none; }
 .lims-rail-item:has(.lims-rail-badge) .lims-rail-viewonly { inset-inline-end: var(--lims-space-12); }
 .lims-rail-create { display: inline-grid; place-items: center; width: var(--lims-space-8); height: var(--lims-space-8); border: 0.0625rem solid color-mix(in srgb, var(--lims-accent-fg) 60%, var(--lims-accent)); border-radius: var(--lims-radius-full); color: inherit; }
 .lims-rail-link[aria-current='page'] ~ .lims-rail-create { border-color: var(--lims-neutral-900); color: var(--lims-neutral-900); }
 .lims-rail-user { display: flex; flex-direction: column; padding: var(--lims-space-3) var(--lims-space-4); border-radius: var(--lims-radius-xl); background: color-mix(in srgb, var(--lims-accent-fg) 10%, var(--lims-accent)); }
-.lims-rail-user-name { font-weight: var(--lims-font-weight-semibold); }
+.lims-rail-user-name { font-weight: var(--lims-font-weight-medium); }
 .lims-rail-user-role { font-size: var(--lims-font-size-sm-size); }
 /* focus in the sidebar: accent.pop (an accent.default ring would vanish on the fill) */
 .lims-shell-nav a:focus-visible, .lims-shell-nav button:focus-visible, .lims-shell-nav input:focus-visible { outline: 3px solid var(--lims-accent-pop); outline-offset: 2px; }
@@ -232,34 +239,67 @@ body { margin: 0; }
 
 /* LD-340 (founder 2026-11-17 20:27 NPT, review of the live site): one narrow sidebar the width of the logo, one logo (the tenant label under it is
    hidden), short rows, a slim top bar, the bell as an icon only. Sizes only, no colour. Tested live at 1272 x 668 before it was written here. */
-.lims-shell-nav { width: 11rem !important; padding: var(--lims-space-2) !important; }
+.lims-shell-nav { width: 14.5rem !important; padding: 0 var(--lims-space-2) var(--lims-space-2) !important; }
 .lims-rail { gap: var(--lims-space-2) !important; }
 .lims-rail-logo { width: 100% !important; max-width: 9rem; }
 .lims-rail-tenant { display: none !important; }
-.lims-rail-search { min-height: 1.75rem !important; padding-inline: var(--lims-space-3) !important; font-size: 0.78125rem !important; }
+.lims-rail-search { min-height: 2rem !important; padding-inline: var(--lims-space-3) !important; font-size: var(--lims-font-size-sm-size) !important; }
 .lims-rail-scroll { overflow-x: hidden; }
-.lims-rail-header { min-width: 0; min-height: 1.875rem !important; padding: 0 var(--lims-space-2) !important; gap: var(--lims-space-2) !important; font-size: 0.78125rem !important; }
+.lims-rail-header { min-width: 0; min-height: 2rem !important; padding: 0 var(--lims-space-2) !important; gap: var(--lims-space-2) !important; font-size: var(--lims-font-size-sm-size) !important; }
 .lims-rail-group-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.lims-rail-link { min-height: 1.75rem !important; padding: 0 var(--lims-space-2) !important; gap: var(--lims-space-2) !important; font-size: 0.78125rem !important; line-height: 1.15 !important; }
-.lims-rail-label { min-width: 0; overflow-wrap: anywhere; }
-.lims-rail-user { padding: var(--lims-space-2) var(--lims-space-3) !important; font-size: 0.75rem !important; }
-.lims-rail-user-role { font-size: 0.6875rem !important; }
+.lims-rail-link { min-height: 2rem !important; padding: 0 var(--lims-space-2) !important; gap: var(--lims-space-2) !important; font-size: var(--lims-font-size-sm-size) !important; line-height: 1.15 !important; }
+.lims-rail-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lims-rail-user { padding: var(--lims-space-2) var(--lims-space-3) !important; font-size: var(--lims-font-size-sm-size) !important; }
+.lims-rail-user-role { font-size: var(--lims-font-size-xs-size) !important; }
 .lims-shell-top { min-height: 2.75rem !important; padding-inline: var(--lims-space-3) !important; }
 .lims-topbar-bell, .lims-topbar-bell:disabled { display: inline-grid !important; grid-auto-flow: row !important; place-items: center !important; min-width: 1.875rem !important; min-height: 1.875rem !important; padding: 0 !important; }
 .lims-topbar-bell:disabled { opacity: 0.55; }
 .lims-topbar-bell-note { display: none !important; }
 .lims-shell-main { padding: var(--lims-space-2) var(--lims-space-4) !important; }
-.lims-page-title { font-size: 1.25rem !important; line-height: 1.2 !important; }
+.lims-page-title { font-size: 1rem !important; line-height: 1.3 !important; }
 .lims-card { padding: var(--lims-space-2) var(--lims-space-3) !important; }
-.lims-card-title { margin: 0 0 var(--lims-space-1-5, 0.375rem) !important; font-size: 0.875rem !important; }
+.lims-card-title { margin: 0 0 var(--lims-space-1-5, 0.375rem) !important; font-size: var(--lims-font-size-base-size) !important; }
 
 /* LD-340 (cont.): ElabAssist-style menu pieces, profile menu with Sign out */
 .lims-rail-direct { margin: 0; }
 .lims-rail-direct-link { color: inherit; text-decoration: none; }
 .lims-rail-direct-link[aria-current='page'] { background: var(--lims-accent-highlight); color: var(--lims-neutral-900); }
-.lims-rail-subheading { padding: var(--lims-space-1) var(--lims-space-2) 0 !important; font-size: 0.6875rem !important; letter-spacing: 0.04em; text-transform: uppercase; opacity: 0.75; }
+.lims-rail-subheading { padding: var(--lims-space-2) var(--lims-space-2) 0 !important; font-size: var(--lims-font-size-xs-size) !important; letter-spacing: 0.04em; text-transform: uppercase; opacity: 0.75; }
 .lims-topbar-actor { display: inline-flex !important; align-items: center; gap: var(--lims-space-2); min-height: 1.875rem !important; padding-inline: var(--lims-space-2) !important; }
-.lims-topbar-avatar { display: inline-grid; place-items: center; flex: none; inline-size: 1.5rem; block-size: 1.5rem; border-radius: var(--lims-radius-full); background: var(--lims-accent); color: var(--lims-accent-fg); font-size: 0.6875rem; font-weight: var(--lims-font-weight-semibold); }
+.lims-topbar-avatar { display: inline-grid; place-items: center; flex: none; inline-size: 1.5rem; block-size: 1.5rem; border-radius: var(--lims-radius-full); background: var(--lims-accent); color: var(--lims-accent-fg); font-size: var(--lims-font-size-xs-size); font-weight: var(--lims-font-weight-medium); }
 .lims-topbar-actor-chevron { flex: none; inline-size: 1rem; block-size: 1rem; transform: rotate(90deg); }
 .lims-user-menu-sep { block-size: 0.0625rem; margin: var(--lims-space-1) 0; background: color-mix(in srgb, currentColor 18%, transparent); }
 a.lims-menuitem { display: block; color: inherit; text-decoration: none; }
+
+/* LD-344 (founder 2026-11-17 22:20 NPT): sidebar names fit on one line (14.5rem), no screen counts on the group rows, the "+" shortcut is small and
+   keeps clear of the name; one title style on every screen (the Admin pages used the browser h1, 28 px bold); no browser bold in headings or table headers. */
+.lims-rail-count { display: none; }
+.lims-rail-create { width: 1.5rem !important; height: 1.5rem !important; }
+.lims-rail-item:has(.lims-rail-create) .lims-rail-link { padding-inline-end: 2.25rem !important; }
+:where(.lims-shell-main) h1 { margin: 0; font-size: 1rem; font-weight: var(--lims-font-weight-semibold); line-height: 1.3; }
+:where(.lims-shell-main) h2 { font-size: var(--lims-font-size-md-size); font-weight: var(--lims-font-weight-medium); }
+:where(.lims-shell-main) h3, :where(.lims-shell-main) h4 { font-size: var(--lims-font-size-base-size); font-weight: var(--lims-font-weight-medium); }
+:where(.lims-shell-main) th { font-weight: var(--lims-font-weight-medium); }
+
+/* LD-344 (founder 2026-11-17 22:20 NPT): letters 10 percent smaller on the web app. Only here: tokens.json stays as it is, so the phone apps
+   (packages/ui-flutter reads the same tokens) keep their sizes. rem, 1rem = 16 px: 10.8, 11.7, 12.6, 14.4, 16.2, 18, 21.6, 27 px. */
+:root {
+  --lims-font-size-xs-size: 0.675rem;
+  --lims-font-size-sm-size: 0.73125rem;
+  --lims-font-size-base-size: 0.7875rem;
+  --lims-font-size-md-size: 0.9rem;
+  --lims-font-size-lg-size: 1.0125rem;
+  --lims-font-size-xl-size: 1.125rem;
+  --lims-font-size-2xl-size: 1.35rem;
+  --lims-font-size-3xl-size: 1.6875rem;
+  --lims-font-size-base-line-height: 1.125rem;
+}
+
+/* LD-352 (founder 2026-11-17 23:16 NPT, screenshot of the live sidebar): the logo is centred in a band as high as the white top bar, the Find a screen
+   field sits below that band with space around it, the user card is two short single lines, the top bar trail and the page title are smaller. */
+.lims-rail-brand { position: relative; justify-content: center; min-height: 2.75rem; margin-bottom: var(--lims-space-2); }
+.lims-rail-search { margin-bottom: var(--lims-space-2); }
+.lims-rail-close { position: absolute; inset-inline-end: 0; top: 50%; transform: translateY(-50%); }
+.lims-rail-user-name, .lims-rail-user-role { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lims-rail-user-role { opacity: 0.85; }
+.lims-shell-top .lims-breadcrumb { font-size: var(--lims-font-size-base-size); }

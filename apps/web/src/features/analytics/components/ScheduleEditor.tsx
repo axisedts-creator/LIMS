@@ -103,7 +103,7 @@ export function ScheduleEditor({ init, reports, recipients, centres, id, version
 
   return (
     <>
-      <PageHeader title={id ? 'Edit scheduled report' : 'New scheduled report'} helpKey="analytics.schedules" breadcrumbs={[{ label: 'Scheduled reports', href: '/analytics/schedules' }, { label: id ? 'Edit' : 'New' }]} />
+      <PageHeader title={id ? 'Edit scheduled report' : 'New scheduled report'} helpKey="analytics.schedules" />
       {failure ? (
         <div role="alert">
           <Banner tone="danger" title={failure.text} {...(failure.conflict ? { action: { label: 'Reload latest version', onPress: () => router.refresh() } } : {})} />

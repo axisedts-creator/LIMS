@@ -245,7 +245,6 @@ export function CaseWorkspace({ detail, permissions, templates = [] }: { detail:
       <PageHeader
         title={accession ?? 'Not accessioned'}
         helpKey="anatomic.case"
-        breadcrumbs={[{ label: 'Pathology cases', href: '/anatomic' }, { label: accession ?? 'Case' }]}
         status={<StatusLabel status={detail.status} />}
         actions={
           <>

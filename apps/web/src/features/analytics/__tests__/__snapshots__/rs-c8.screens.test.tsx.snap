@@ -5,7 +5,9 @@ exports[`RS-C8 key-screen snapshots + axe > Dashboard: populated (pipeline, need
 <div class="lims-page-header-row">
 <h1 class="lims-page-title">Dashboard</h1>
 <div class="lims-page-status">
+<span>
 <span class="lims-chip lims-chip-sm lims-tone-neutral" data-tone="neutral">Updated 15/01/2026 10:15 AM</span>
+</span>
 </div>
 <div class="lims-page-actions">
 <button class="lims-btn lims-btn-secondary lims-btn-md" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID">
@@ -24,6 +26,51 @@ exports[`RS-C8 key-screen snapshots + axe > Dashboard: populated (pipeline, need
 </div>
 </div>
 <p>15 Jan 2026 · 2082-10-01 B.S.</p>
+<div class="lims-stat-row">
+<a class="lims-stat lims-stat-link" href="/analytics/reports/volume">
+<span class="lims-stat-label">Patient visits</span>
+<span class="lims-stat-value"> 12</span>
+<span class="lims-stat-delta lims-tone-success" data-tone="success">
+<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 19V5M5 12l7-7 7 7">
+</path>
+</svg> Up +2 (20.0%)<span class="lims-stat-judgement"> (better)</span>
+</span>
+</a>
+<a class="lims-stat lims-stat-link" href="/analytics/reports/income">
+<span class="lims-stat-label">Income (net sales)</span>
+<span class="lims-stat-value"> Rs. 2,25,000.00</span>
+<span class="lims-stat-delta lims-tone-success" data-tone="success">
+<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 19V5M5 12l7-7 7 7">
+</path>
+</svg> Up +Rs. 16,900.00 (8.1%)<span class="lims-stat-judgement"> (better)</span>
+</span>
+</a>
+<a class="lims-stat lims-stat-link" href="/analytics/reports/tests-done">
+<span class="lims-stat-label">Results approved</span>
+<span class="lims-stat-value"> 28</span>
+<span class="lims-stat-delta lims-tone-success" data-tone="success">
+<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 19V5M5 12l7-7 7 7">
+</path>
+</svg> Up +2 (7.7%)<span class="lims-stat-judgement"> (better)</span>
+</span>
+</a>
+<a class="lims-stat lims-stat-link" href="/analytics/reports/pending-tests">
+<span class="lims-stat-label">Reports pending</span>
+<span class="lims-stat-value"> 5</span>
+</a>
+<a class="lims-stat lims-stat-link" href="/analytics/reports/pending-tests">
+<span class="lims-stat-label">Pending tests</span>
+<span class="lims-stat-value"> 9</span>
+</a>
+<a class="lims-stat lims-stat-link" href="/analytics/collections">
+<span class="lims-stat-label">Cash collected (net)</span>
+<span class="lims-stat-value"> Rs. 1,90,000.00</span>
+</a>
+</div>
+<p>New patients 4 · Tests ordered 31</p>
 <ol class="lims-stepper-list" aria-label="Sample pipeline">
 <li class="lims-step">
 <span class="lims-step-label">Draft</span>
@@ -36,29 +83,14 @@ exports[`RS-C8 key-screen snapshots + axe > Dashboard: populated (pipeline, need
 </li>
 <li class="lims-step">
 <a href="/analytics/reports/pending-tests">
-<span class="lims-step-label">In progress</span> <div class="lims-stat">
-<span class="lims-stat-label">Pending tests</span>
-<span class="lims-stat-value">9</span>
-</div>
-</a>
+<span class="lims-step-label">In progress</span> 9</a>
 </li>
 <li class="lims-step">
 <span class="lims-step-label">To authorise</span>
 </li>
 <li class="lims-step">
 <a href="/analytics/reports/tests-done">
-<span class="lims-step-label">Authorised</span> <div class="lims-stat">
-<span class="lims-stat-label">Results approved</span>
-<span class="lims-stat-value">28</span>
-<span class="lims-stat-delta lims-tone-success" data-tone="success">
-<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
-<path d="M12 19V5M5 12l7-7 7 7">
-</path>
-</svg> Up +2 (7.7%)<span class="lims-stat-judgement"> (better)</span>
-</span>
-</div>
-</a>
-<p>Tests ordered 31</p>
+<span class="lims-step-label">Authorised</span> 28</a>
 </li>
 <li class="lims-step">
 <span class="lims-step-label">Released</span>
@@ -80,56 +112,14 @@ exports[`RS-C8 key-screen snapshots + axe > Dashboard: populated (pipeline, need
 </section>
 <section aria-labelledby="_r_1_">
 <h2 id="_r_1_">Money, 15 Jan 2026</h2>
-<div class="lims-inline" style="gap: var(--lims-space-4); align-items: flex-start; justify-content: flex-start; flex-wrap: wrap;">
-<div>
-<a class="lims-stat lims-stat-link" href="/analytics/reports/income">
-<span class="lims-stat-label">Income (net sales)</span>
-<span class="lims-stat-value">Rs. 2,25,000.00</span>
-<span class="lims-stat-delta lims-tone-success" data-tone="success">
-<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
-<path d="M12 19V5M5 12l7-7 7 7">
-</path>
-</svg> Up +Rs. 16,900.00 (8.1%)<span class="lims-stat-judgement"> (better)</span>
-</span>
-</a>
-<p>Invoiced Rs. 2,30,000.00</p>
-<p>Credit notes Rs. 5,000.00</p>
-</div>
-<div>
-<a class="lims-stat lims-stat-link" href="/analytics/collections">
-<span class="lims-stat-label">Cash collected (net)</span>
-<span class="lims-stat-value">Rs. 1,90,000.00</span>
-</a>
-</div>
-</div>
+<p>Income (net sales) Rs. 2,25,000.00 · Invoiced Rs. 2,30,000.00 · Credit notes Rs. 5,000.00 · Cash collected (net) Rs. 1,90,000.00</p>
 </section>
-<div class="lims-inline" style="gap: var(--lims-space-4); align-items: flex-start; justify-content: flex-start; flex-wrap: wrap;">
-<div>
-<a class="lims-stat lims-stat-link" href="/analytics/reports/volume">
-<span class="lims-stat-label">Patient visits</span>
-<span class="lims-stat-value">12</span>
-<span class="lims-stat-delta lims-tone-success" data-tone="success">
-<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
-<path d="M12 19V5M5 12l7-7 7 7">
-</path>
-</svg> Up +2 (20.0%)<span class="lims-stat-judgement"> (better)</span>
-</span>
-</a>
-<p>New patients 4</p>
-</div>
-<div>
-<a class="lims-stat lims-stat-link" href="/analytics/reports/pending-tests">
-<span class="lims-stat-label">Reports pending</span>
-<span class="lims-stat-value">5</span>
-</a>
-</div>
-</div>
 <p>vs yesterday</p>
 <ul>
 <li>Counts each patient once per centre per day. Over several days the same person can be counted more than once.</li>
 <li>Income = invoices issued (incl. VAT/other tax) minus credit notes. Cash collected is shown separately.</li>
 </ul>
-<div class="lims-grid lims-cols-2" style="gap: var(--lims-space-4);">
+<div class="lims-dash-charts">
 <div class="lims-card">
 <figure class="lims-chart">
 <figcaption id="_r_6_-t" class="lims-chart-title">Net sales per day</figcaption>
@@ -226,7 +216,9 @@ exports[`RS-C8 key-screen snapshots + axe > Dashboard: role without money tiles 
 <div class="lims-page-header-row">
 <h1 class="lims-page-title">Dashboard</h1>
 <div class="lims-page-status">
+<span>
 <span class="lims-chip lims-chip-sm lims-tone-neutral" data-tone="neutral">Updated 15/01/2026 10:15 AM</span>
+</span>
 </div>
 <div class="lims-page-actions">
 <button class="lims-btn lims-btn-secondary lims-btn-md" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID">
@@ -245,6 +237,37 @@ exports[`RS-C8 key-screen snapshots + axe > Dashboard: role without money tiles 
 </div>
 </div>
 <p>15 Jan 2026 · 2082-10-01 B.S.</p>
+<div class="lims-stat-row">
+<a class="lims-stat lims-stat-link" href="/analytics/reports/volume">
+<span class="lims-stat-label">Patient visits</span>
+<span class="lims-stat-value"> 12</span>
+<span class="lims-stat-delta lims-tone-success" data-tone="success">
+<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 19V5M5 12l7-7 7 7">
+</path>
+</svg> Up +2 (20.0%)<span class="lims-stat-judgement"> (better)</span>
+</span>
+</a>
+<a class="lims-stat lims-stat-link" href="/analytics/reports/tests-done">
+<span class="lims-stat-label">Results approved</span>
+<span class="lims-stat-value"> 28</span>
+<span class="lims-stat-delta lims-tone-success" data-tone="success">
+<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 19V5M5 12l7-7 7 7">
+</path>
+</svg> Up +2 (7.7%)<span class="lims-stat-judgement"> (better)</span>
+</span>
+</a>
+<a class="lims-stat lims-stat-link" href="/analytics/reports/pending-tests">
+<span class="lims-stat-label">Reports pending</span>
+<span class="lims-stat-value"> 5</span>
+</a>
+<a class="lims-stat lims-stat-link" href="/analytics/reports/pending-tests">
+<span class="lims-stat-label">Pending tests</span>
+<span class="lims-stat-value"> 9</span>
+</a>
+</div>
+<p>New patients 4 · Tests ordered 31</p>
 <ol class="lims-stepper-list" aria-label="Sample pipeline">
 <li class="lims-step">
 <span class="lims-step-label">Draft</span>
@@ -257,29 +280,14 @@ exports[`RS-C8 key-screen snapshots + axe > Dashboard: role without money tiles 
 </li>
 <li class="lims-step">
 <a href="/analytics/reports/pending-tests">
-<span class="lims-step-label">In progress</span> <div class="lims-stat">
-<span class="lims-stat-label">Pending tests</span>
-<span class="lims-stat-value">9</span>
-</div>
-</a>
+<span class="lims-step-label">In progress</span> 9</a>
 </li>
 <li class="lims-step">
 <span class="lims-step-label">To authorise</span>
 </li>
 <li class="lims-step">
 <a href="/analytics/reports/tests-done">
-<span class="lims-step-label">Authorised</span> <div class="lims-stat">
-<span class="lims-stat-label">Results approved</span>
-<span class="lims-stat-value">28</span>
-<span class="lims-stat-delta lims-tone-success" data-tone="success">
-<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
-<path d="M12 19V5M5 12l7-7 7 7">
-</path>
-</svg> Up +2 (7.7%)<span class="lims-stat-judgement"> (better)</span>
-</span>
-</div>
-</a>
-<p>Tests ordered 31</p>
+<span class="lims-step-label">Authorised</span> 28</a>
 </li>
 <li class="lims-step">
 <span class="lims-step-label">Released</span>
@@ -299,27 +307,6 @@ exports[`RS-C8 key-screen snapshots + axe > Dashboard: role without money tiles 
 </li>
 </ul>
 </section>
-<div class="lims-inline" style="gap: var(--lims-space-4); align-items: flex-start; justify-content: flex-start; flex-wrap: wrap;">
-<div>
-<a class="lims-stat lims-stat-link" href="/analytics/reports/volume">
-<span class="lims-stat-label">Patient visits</span>
-<span class="lims-stat-value">12</span>
-<span class="lims-stat-delta lims-tone-success" data-tone="success">
-<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
-<path d="M12 19V5M5 12l7-7 7 7">
-</path>
-</svg> Up +2 (20.0%)<span class="lims-stat-judgement"> (better)</span>
-</span>
-</a>
-<p>New patients 4</p>
-</div>
-<div>
-<a class="lims-stat lims-stat-link" href="/analytics/reports/pending-tests">
-<span class="lims-stat-label">Reports pending</span>
-<span class="lims-stat-value">5</span>
-</a>
-</div>
-</div>
 <p>vs yesterday</p>
 <ul>
 <li>Counts each patient once per centre per day. Over several days the same person can be counted more than once.</li>
@@ -516,6 +503,7 @@ exports[`RS-C8 key-screen snapshots + axe > Income report 1`] = `
 </figure>
 </div>
 <div class="lims-data-table">
+<div class="lims-table-scroll">
 <template>
 </template>
 <span data-focus-scope-start="true" hidden="">
@@ -630,6 +618,7 @@ exports[`RS-C8 key-screen snapshots + axe > Income report 1`] = `
 </table>
 <span data-focus-scope-end="true" hidden="">
 </span>
+</div>
 <div role="status" class="lims-visually-hidden">
 </div>
 </div>
@@ -903,6 +892,7 @@ exports[`RS-C8 key-screen snapshots + axe > Pending tests report 1`] = `
 </figure>
 </div>
 <div class="lims-data-table">
+<div class="lims-table-scroll">
 <template>
 </template>
 <span data-focus-scope-start="true" hidden="">
@@ -958,6 +948,7 @@ exports[`RS-C8 key-screen snapshots + axe > Pending tests report 1`] = `
 </table>
 <span data-focus-scope-end="true" hidden="">
 </span>
+</div>
 <div role="status" class="lims-visually-hidden">
 </div>
 <div class="lims-pager">
@@ -975,7 +966,7 @@ exports[`RS-C8 key-screen snapshots + axe > Pending tests report 1`] = `
 exports[`RS-C8 key-screen snapshots + axe > Report hub (tabs) 1`] = `
 "<div class="lims-page-header">
 <div class="lims-page-header-row">
-<h1 class="lims-page-title">Income</h1>
+<h1 class="lims-page-title">MIS Report</h1>
 <div class="lims-page-status">
 <span class="lims-chip lims-chip-sm lims-tone-neutral" data-tone="neutral">Updated 15/01/2026 10:15 AM</span>
 </div>
@@ -1159,6 +1150,7 @@ exports[`RS-C8 key-screen snapshots + axe > Report hub (tabs) 1`] = `
 </figure>
 </div>
 <div class="lims-data-table">
+<div class="lims-table-scroll">
 <template>
 </template>
 <span data-focus-scope-start="true" hidden="">
@@ -1273,6 +1265,7 @@ exports[`RS-C8 key-screen snapshots + axe > Report hub (tabs) 1`] = `
 </table>
 <span data-focus-scope-end="true" hidden="">
 </span>
+</div>
 <div role="status" class="lims-visually-hidden">
 </div>
 </div>

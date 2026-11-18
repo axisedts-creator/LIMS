@@ -53,8 +53,6 @@ const stub = (operationId: string): Handler => async () => {
   throw new LimsError('common.internal', `partners ${operationId} not implemented`);
 };
 
-// LD-325(b), T0C-MSGDESK-1 (LD-321): the 10 ticket operations are covered by the T01 stub below, so the pending list stays empty
-// (core/__tests__/pending-operations.test.ts: pending = spec operations without a handler); T0B-MSGDESK-1 replaces the stubs with handlers.
 const implemented: Readonly<Record<string, Handler>> = {
   getPartnerContext, // T03
   getPartnerDashboard, // T18 A2
@@ -70,12 +68,18 @@ const implemented: Readonly<Record<string, Handler>> = {
   listInboundManifests, getInboundManifest, receiveManifest, retryManifestLineConversion, markManifestLineNotReceived, // T10 SI1-SI5
 };
 
-/** T0C-SALES-1 (LD-321, LD-325 b): sales hierarchy operations of partners.yaml without a handler yet (answer 501 operation_pending); T0B-SALES-1 removes them. */
+/**
+ * LD-325(b): operations of partners.yaml without a handler yet (answer 501 operation_pending).
+ * T0C-SALES-1 (LD-321): sales hierarchy ids; T0B-SALES-1 removes them.
+ * T0C-MSGDESK-1 (LD-321): partner ticket ids; T0B-MSGDESK-1 removes them.
+ */
 const PENDING_OPERATIONS: readonly string[] = Object.freeze([
   'listSalesDesignations', 'createSalesDesignation', 'updateSalesDesignation',
   'listSalesRepresentatives', 'createSalesRepresentative', 'updateSalesRepresentative', 'deactivateSalesRepresentative', 'getSalesTree',
   'assignPartyToRepresentative', 'unassignPartyFromRepresentative', 'listRepresentativeClients',
   'listServiceAreas', 'createServiceArea', 'updateServiceArea', 'deactivateServiceArea',
+  'createPartnerTicket', 'listPartnerTickets', 'getPartnerTicket', 'replyPartnerTicket', 'closePartnerTicket', 'reopenPartnerTicket',
+  'listMyPartnerTickets', 'createMyPartnerTicket', 'getMyPartnerTicket', 'replyMyPartnerTicket',
 ]);
 
 export const manifest: ModuleManifest = Object.freeze({

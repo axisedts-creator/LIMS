@@ -2,12 +2,16 @@
 // FD-T10 already covers: EICAR, EICAR polyglot, .pdf.exe, SVG, HTML-as-PDF/JPEG, 0-byte, 15 MiB / 16 MB, PNG EXIF/GPS strip, F21a headers (attachment / nosniff / no-store), scan gate, tenant + centre 404.
 // Here: (1) a JPEG that is also HTML (polyglot) and a JPEG with EXIF GPS through the REAL core uploads: never stored with the script / GPS intact; (2) a PDF with JavaScript: accepted only as
 // `pending` and never served before the worker marks it clean; (3) "a scan of every F response body and header for Storage URL strings (must be none — P-2)" over all 29 operations.
-import { beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { resetSettings } from '../admin/helpers.js';
 import { GPS, URL_SENTINEL, jpegBytes, makeWorld, pdfBytes } from '../trf/helpers.js';
 import { FULL_A, OPS, T, TENANT_A, codeOf, fire, objs, requestFor, req, uid, type Objs } from './kit.js';
 
 let A: Objs;
 beforeAll(async () => { A = await objs('a'); }, T);
+// T0B-TESTFIX-2 (LD-314, arbiter ruling): the P-2 sweep fires updateFrontdeskSettings (kit.ts:214, valid if-match "1") which succeeds and leaves
+// min chars 4 / sms off in tenant A; restore the baseline (same pattern as admin/settings.test.ts) so later files see the seeded settings.
+afterAll(async () => { await resetSettings(); }, T);
 const stored = (w: ReturnType<typeof makeWorld>): string[] => [...w.storage.objects.values()].map((b) => b.toString('latin1'));
 const upload = (w: ReturnType<typeof makeWorld>, file: { filename: string; mimeType: string; bytes: Uint8Array }) =>
   fire('uploadTrf', req({ headers: { 'idempotency-key': uid() }, body: { file, centre_id: A.centre } }), FULL_A, { trf: w });

@@ -1,0 +1,4 @@
+# T0C-CONTENT-1 dispute (debugger, 2026-11-18)
+Verify fails only at contracts/__tests__/registry-equality.test.ts:106 ("errors.yaml == IC §8"): the allow list of extra codes is `[...LD322_SYNC_ERRORS, ...MSGDESK_ERRORS]`, but contracts/errors.yaml also holds 6 `catalog.import_*` codes (import_invalid_file, import_template_outdated, import_too_large, import_has_errors, import_batch_expired, import_already_committed), lines 75-80, added by T0C-TESTIMPORT-1 (LD-318) and pinned in tools/codegen/__tests__/testimport1-openapi.test.ts:57,186.
+T0C-CONTENT-1 adds no error code and does not touch errors.yaml (last change d4d6d5c74, TESTIMPORT-1). The test is stale, not the implementation. Already named pre-existing and out of scope in T0C-CONTENT-1-ruling.md.
+Fix needed (tester or lead, not me): add the 6 catalog.import_* codes to the allow list at registry-equality.test.ts:23-26. I may not edit tests, so I stop here.

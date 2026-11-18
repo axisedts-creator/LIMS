@@ -131,6 +131,8 @@ export async function openOfflineStore(o: OpenOptions = {}) {
         s('state').put({ ...cur, failed: f });
         return f;
       });
+      // limit already reached by an earlier attempt interrupted before its wipe (reload mid derive): wipe now, never check the PIN
+      if (failed > maxFailures) { await wipe('wiped'); return { ok: false, reason: 'wiped' }; }
       const kr = (await transact(['keyring'], 'readonly', (s) => req(s('keyring').get('keyring')))) as KeyringRecord | undefined;
       let unwrapped: CryptoKey | null = null;
       if (kr) {

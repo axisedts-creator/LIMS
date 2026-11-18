@@ -118,7 +118,8 @@ describe('behaviour unchanged: API calls, field names, validation, permissions, 
   const PRINTCFG = {
     data_files: ['web/features/reporting/server/actions.ts', 'web/features/reporting/server/read.server.ts', 'web/features/reporting/server/types.ts', 'web/features/reporting/server/write.server.ts'],
     web_api_paths: [
-      '/v1/identity/branches', '/v1/identity/roles', '/v1/identity/settings/branding-assets', '/v1/identity/users',
+      '/v1/identity/branches', '/v1/identity/roles', '/v1/identity/users',
+      '/v1/identity/users/${uuid', // signature upload: uploadUserSignature POST /v1/identity/users/{membership_id}/signature (review item 1)
       '/v1/reporting/print-profiles', '/v1/reporting/print-profiles${qs', '/v1/reporting/print-profiles/preview',
       '/v1/reporting/signatory-profiles', '/v1/reporting/signatory-profiles/${uuid',
     ],

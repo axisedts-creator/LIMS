@@ -22,7 +22,7 @@ vi.mock('next/navigation', async () => (await import('../../__tests__/t20.harnes
 vi.mock('server-only', () => ({}));
 vi.mock('@/core/session/server', async () => (await import('../../__tests__/t20.harness')).sessionMock);
 
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterAll(() => api.close());
 afterEach(() => cleanup());
 

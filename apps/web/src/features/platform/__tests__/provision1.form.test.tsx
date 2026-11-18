@@ -18,7 +18,7 @@ vi.mock('next/cache', async () => (await import('./t26.harness')).cacheMock);
 vi.mock('server-only', () => ({}));
 vi.mock('@/core/session/server', async () => (await import('./t26.harness')).sessionMock);
 
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 beforeEach(() => resetApi(SUPER));
 afterEach(() => { cleanup(); api.resetHandlers(); });
 afterAll(() => api.close());

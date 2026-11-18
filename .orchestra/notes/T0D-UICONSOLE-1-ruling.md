@@ -1,10 +1,10 @@
-TESTS_WRONG — two tests assert things the spec does not require; this replaces item 4 of the first ruling (kept below for history).
-Change 1 (uiconsole1.lab.test.tsx lines 4, 61, 226): the critical values list headers become exactly ['Age since detected', 'Detected at', 'Analyte', 'Direction', 'Status']; drop "(Detected at moves to the detail)" from :4. Keep the Detected at assertion in the detail (:82). adminpage-lab-1.critical-values.test.tsx:106 stays unchanged. The writer then puts the Detected at column back in the list, right after Age since detected.
-Change 2 (c5-t23.exceptions.test.tsx:135 and :137, the "filters" test only): replace `user.selectOptions(screen.getByRole('combobox', { name: /reason/i }), 'unmapped_code')` with a click on `getByRole('button', { name: /reason/i })` and then on the option 'Code not mapped' (same for status and 'Resolved'), as uiconsole1.lab.test.tsx:161-164 does. Keep the reason=unmapped_code / status=resolved and no-barcode/no-value URL assertions. The Discard dialog comboboxes (:251, :262, :271, :289) are not affected.
+TESTS_WRONG — uiconsole1.payments.test.tsx:103 asserts international grouping; the spec requires lakh grouping for displayed money.
+Change in the test: line 103 `expect(text).toMatch(/123,456\.00/)` -> `expect(text).toMatch(/1,23,456\.00/)` (12345600 paisa in lakh grouping). Leave :177 `/2,250\.00/` as is (same in both groupings).
 Reasons:
-1. spec/chunks/C5-lab-workflow/04-UI-UX.md:207 lists "detected at" as a list column. LD-353 template 2 (arbiter brief :32) and the brief (:21, "queue list ... with the priority or age first", "No new data") only require age first. Nothing removes Detected at from the list, so the uiconsole1 "exactly, without Detected at" header list goes beyond the spec. Detected at in the list, after the age column, satisfies both tests.
-2. c5-t23 says in its own header (:11) "a Select named /reason/i"; no spec line requires a native <select>. The brief (:21) and LD-364 (1) (:34) require the kit FilterBar, and the kit Select renders a button trigger (first ruling, reason 2). Brief :21 says "update every test that pinned the old markup".
-3. Dispute item 3 (missing uiconsole1.payments / uiconsole1.inventory tests, -tests.md, verify.cmd): this is still tester work (brief :21 TESTS FIRST, LD-367 :35). Payments and inventory stay unchanged until those tests exist.
-
---- first ruling (items 1-3 stand; item 4 replaced above) ---
-TESTS_WRONG — uiconsole1.lab.test.tsx "FilterBar: Reason and Status ..." anchors the trigger name with `^`; changed to /reason/i and /status/i (done in 3b23237b3).
+- spec/chunks/C0-foundation-contracts/02-TRD.md:162 — "Default display grouping `lakh` [CONV] ... e.g. `Rs. 12,34,567.89`; `international` available. Display only."
+- spec/chunks/C0-foundation-contracts/04-UI-UX.md:205 — MoneyTextProps grouping 'lakh' | 'international' (lakh is the default per TRD:162).
+- spec/chunks/C15-payment-gateways/04-UI-UX.md:21 — payments screens use lakh grouping.
+- Brief: display only, "no new data"; switching this one screen to international would contradict the above and the pinned lakh tests (pg-t18.review, pg-t18.detail, pg-t19.refunds, rs-c15.behaviour).
+Debugger item (56 old tests in inventory/t24.unresolved, payments/pg-t18.review, payments/pg-t19.refunds pinning role="grid" and old column order): also TESTS_WRONG.
+- No spec line requires role="grid" for payment review, refunds or unresolved stock; the only `role="grid"` in spec/chunks is C5-lab-workflow/04-UI-UX.md:249 (lab result entry grid), not these screens.
+- Brief done_when (template 2 CONSOLE, LD-353) mandates SplitConsole with priority/age first and says "update every test that pinned the old markup, never delete, skip or loosen an assertion". Tester updates those 3 files: locate rows by table/row/columnheader roles and the new header order; keep every assertion's intent.

@@ -6,6 +6,7 @@ import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
+import type { NavManifest } from '@/core/nav/types';
 
 const WEB = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', '..');
 const APP = join(WEB, 'src', 'app', '(staff)', 'admin');
@@ -61,7 +62,7 @@ describe('C2.T20 static — nav manifest (04-UI-UX §1: group "Administration", 
   it('features/admin/nav.manifest.ts exists with module "admin" and group admin entries carrying the spec permissions', async () => {
     const f = join(FEAT, 'nav.manifest.ts');
     expect(existsSync(f), f).toBe(true);
-    const { navManifest } = (await import(/* @vite-ignore */ '../nav.manifest')) as { navManifest: { module: string; entries: Array<{ id: string; routeId: string; permission: string; group: string; order: number; chord?: string }> } };
+    const { navManifest } = (await import(/* @vite-ignore */ '../nav.manifest')) as { navManifest: NavManifest };
     expect(navManifest.module).toBe('admin');
     expect(navManifest.entries.length).toBeGreaterThanOrEqual(13);
     expect(new Set(navManifest.entries.map((e) => e.group))).toEqual(new Set(['admin']));
@@ -76,7 +77,7 @@ describe('C2.T20 static — nav manifest (04-UI-UX §1: group "Administration", 
     expect(navManifest.entries.filter((e) => /platform/.test(e.routeId) || /^platform\./.test(e.permission))).toEqual([]);
   });
   it('"My account" (ME-1) is reachable for identity.self.manage (shell user menu or manifest entry)', async () => {
-    const { navManifest } = (await import(/* @vite-ignore */ '../nav.manifest')) as { navManifest: { entries: Array<{ permission: string; routeId: string }> } };
+    const { navManifest } = (await import(/* @vite-ignore */ '../nav.manifest')) as { navManifest: NavManifest };
     const shell = readFileSync(join(WEB, 'src', 'core', 'shell', 'AppShell.tsx'), 'utf8');
     expect(navManifest.entries.some((e) => e.permission === 'identity.self.manage') || /\/admin\/me/.test(shell)).toBe(true);
   });

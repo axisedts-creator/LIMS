@@ -14,9 +14,10 @@ import { join } from 'node:path';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import axe from 'axe-core';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 import AuthLayout from '@/app/(auth)/layout';
 import { LoginForm } from '../LoginForm';
+import type { ActionResult } from '../messages';
 import { MfaChallengeForm } from '../MfaChallengeForm';
 import { SetPasswordForm } from '../SetPasswordForm';
 import { WakingState } from '../WakingState';
@@ -103,17 +104,18 @@ describe('WakingState (presentation)', () => {
 });
 
 // ------------------------------------------------------------------ the forms
-const sequence = (...results: unknown[]) => {
-  const fn = vi.fn();
-  results.forEach((r, i) => fn.mockImplementationOnce(async () => (i === results.length - 1 ? r : r)));
-  fn.mockImplementation(async () => results[results.length - 1]);
+type ActionMock = Mock<(fd: FormData) => Promise<ActionResult>>;
+const sequence = (...results: unknown[]): ActionMock => {
+  const fn: ActionMock = vi.fn();
+  results.forEach((r, i) => fn.mockImplementationOnce(async () => (i === results.length - 1 ? r : r) as ActionResult));
+  fn.mockImplementation(async () => results[results.length - 1] as ActionResult);
   return fn;
 };
-const sent = (fn: ReturnType<typeof vi.fn>, i: number) => Object.fromEntries((fn.mock.calls[i]![0] as FormData).entries());
+const sent = (fn: ActionMock, i: number) => Object.fromEntries((fn.mock.calls[i]![0] as FormData).entries());
 
 interface Case {
   name: string;
-  draw: (action: ReturnType<typeof vi.fn>) => void;
+  draw: (action: ActionMock) => void;
   submit: (u: ReturnType<typeof userEvent.setup>) => Promise<void>;
   values: Record<string, string>;
 }
@@ -152,7 +154,7 @@ const CASES: Case[] = [
 
 describe.each(CASES)('$name on no answer from the API', ({ draw, submit, values }) => {
   // fake only the timers the state uses; userEvent runs with delay:null so it never waits on a timer
-  const setup = async (action: ReturnType<typeof vi.fn>) => {
+  const setup = async (action: ActionMock) => {
     draw(action);
     const u = userEvent.setup({ delay: null });
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });

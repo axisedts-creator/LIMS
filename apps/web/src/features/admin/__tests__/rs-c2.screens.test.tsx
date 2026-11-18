@@ -60,8 +60,8 @@ const catalog: Permission[] = [
 ];
 const roleFd: Role = { role_id: u(11), code: 'front_desk', name: 'Front desk', is_default: true, mfa_required: false, permission_codes: ['frontdesk.order.read'], member_count: 3, is_active: true, version: 2 };
 const roleLab: Role = { role_id: u(12), code: 'lab_admin', name: 'Lab admin', is_default: false, mfa_required: true, permission_codes: ['lab.result.approve'], member_count: 0, is_active: true, version: 3 };
-const branch: Branch = { branch_id: u(20), code: 'KTM', name: 'Kathmandu lab', is_processing_lab: true, is_active: true, version: 1 };
-const centre: Centre = { centre_id: u(30), code: 'C01', name: 'Central Collection', branch_id: u(20), kind: 'own', address_text: 'Synthetic Road 1', phone: '+97711111111', is_active: true, version: 4 };
+const branch = { branch_id: u(20), code: 'KTM', name: 'Kathmandu lab', is_processing_lab: true, is_active: true, version: 1 } satisfies Branch;
+const centre = { centre_id: u(30), code: 'C01', name: 'Central Collection', branch_id: u(20), kind: 'own', address_text: 'Synthetic Road 1', phone: '+97711111111', is_active: true, version: 4 } satisfies Centre;
 const user: UserSummary = { membership_id: u(2), display_name: 'Synthetic Sita Rai', email_masked: 'te***@example.test', status: 'active', is_locked: false, roles: [{ role_id: u(11), code: 'front_desk', name: 'Front desk' }], all_centres: false, centre_count: 2, mfa_enrolled: true, last_login_at: '2026-11-10T09:00:00.000Z', version: 4 };
 const settings = { version: 7, display_name: 'Synthetic Lab', contact_email: 'lab@example.test' };
 

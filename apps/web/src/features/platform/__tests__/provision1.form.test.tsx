@@ -125,7 +125,7 @@ describe('Provision tenant sends contract_acceptance (LD-29, LD-275)', () => {
   });
 
   it.each([['tos', 'ToS version'], ['dpa', 'DPA version'], ['name', 'accepted by (name)'], ['title', 'accepted by (title)']] as const)(
-    'a missing %s (%s) is refused in the form with an error and no API call', async (skip) => {
+    'a missing %s (%s) is refused in the form with an error and no API call', async (skip, _label) => {
       await show('tenants/new/page');
       const u = await fillAll(skip);
       await u.click(submit());

@@ -114,7 +114,10 @@ export const verify = (o: Partial<Op> = {}, at?: Date): Op => op('result.verify'
 // ---- identity fake with per call permission and centre scope control (sync permission codes are all granted by default)
 export interface Grants { codes?: readonly string[] | ((permission: string) => boolean); centreIds?: readonly string[]; all?: boolean }
 const EVERYTHING = (): boolean => true;
-export interface Fire2 { now?: Date; grants?: Grants; headers?: Record<string, string>; metrics?: Array<{ kind: string; name: string; labels?: any; v?: number }>; bypassRls?: boolean; requestId?: string }
+/** T0B-SYNC-4 (additive): `audits` collects every ctx.audit.access(event) of the request; `actorPermissions` is what IdentityPort.getActor() reports as the held permission codes
+ *  (the signer snapshot of signoff.service reads `permissions` to decide "is a pathologist" = holds lab.result.approve; assertRole of a privileged code would need aal2, which an offline sync session lacks). */
+export interface Fire2 { now?: Date; grants?: Grants; headers?: Record<string, string>; metrics?: Array<{ kind: string; name: string; labels?: any; v?: number }>; bypassRls?: boolean; requestId?: string;
+  audits?: any[]; actorPermissions?: readonly string[] }
 const claims = (tenant: string, sub: string, type: string) => JSON.stringify({ tenant_id: tenant, sub, actor_type: type, membership_id: sub });
 
 /** One request = one tx under `who`'s claims (RLS on), like helpers.fire, PLUS ctx.db.tx (SAVEPOINT per operation), ctx.metrics capture and a getActor with a centre scope.
@@ -143,10 +146,10 @@ export async function fire2(handlers: Record<string, any>, operationId: string, 
       actor: { type: who.type ?? 'user', id: who.userId, membershipId: who.userId },
       log: { info: log('info'), warn: log('warn'), error: log('error'), debug: log('debug') },
       metrics: { inc: (name: string, labels?: any, v?: number) => { metrics.push({ kind: 'inc', name, labels, v: v ?? 1 }); }, set: (name: string, v: number, labels?: any) => { metrics.push({ kind: 'set', name, labels, v }); }, observe: () => undefined },
-      audit: { access: async () => undefined }, events: {}, core: {}, db: {}, noRetry: () => undefined,
+      audit: { access: async (e: any) => { o.audits?.push(structuredClone(e)); } }, events: {}, core: {}, db: {}, noRetry: () => undefined,
       ports: { IdentityPort: {
         async assertRole(_c: unknown, req: { permission: string }) { asserted.push(req?.permission); if (!allowed(req?.permission)) throw new LimsError('auth.forbidden'); },
-        async getActor() { return { centreScope: { all: g.all ?? (g.centreIds === undefined), centreIds: g.centreIds ?? [] } }; },
+        async getActor() { return { centreScope: { all: g.all ?? (g.centreIds === undefined), centreIds: g.centreIds ?? [] }, ...(o.actorPermissions ? { permissions: [...o.actorPermissions], roles: ['user'], displayName: 'Synthetic Signer' } : {}) }; },
       } },
     };
     ctx.db.tx = async (fn: (cx: any) => Promise<unknown>) => {   // SAVEPOINT inside the request transaction (HandlerContext.db.tx)

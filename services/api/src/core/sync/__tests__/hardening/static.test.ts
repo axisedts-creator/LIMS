@@ -115,7 +115,7 @@ describe('runbook docs/ops/OFFLINE-SYNC.md (done_when 5)', () => {
   });
   it('every sync.* error code the runbook mentions is a registered code of the closed list (no invented names); no personal data (no names, phone numbers, emails)', () => {
     const d = doc(); const known = closed();
-    const codes = [...d.matchAll(/\bsync\.[a-z_]+\b/g)].map((m) => m[0]).filter((c) => !['sync.use', 'sync.device.manage', 'sync.conflict.resolve'].includes(c));
+    const codes = [...d.matchAll(/\bsync\.[a-z_]+(?:\.[a-z_]+)*\b/g)].map((m) => m[0]).filter((c) => !['sync.use', 'sync.device.manage', 'sync.conflict.resolve'].includes(c));
     expect(codes.length).toBeGreaterThan(0);
     // request level codes of the device operations are registered on the HTTP response, not in SyncErrorCode
     const requestLevel = new Set(['sync.device_revoked', 'sync.wipe_required', 'sync.device_unknown']);

@@ -126,6 +126,24 @@ export const LD310_ALLOW = {
     'PARTY_KINDS', 'PartyKind', 'TRANSFER_TABS', 'TransferTab', 'UUID_RE', 'cleanFilters', 'dateRange', 'expenseFilters',
     'getAccountStatement', 'getDailyCollectionSummary', 'listAccountGroups', 'listAccountLedgerEntries', 'listAccountParticulars',
     'listAccountParties', 'listAccountSummaryRows', 'listCashTransfers', 'listExpenseTypes', 'listExpenses', 'listMembers',
+    // LD-398 (T0D-OFFLINE-3): 45 more accounting types and action functions from the already-landed billing accounting module; nothing destructive.
+    'AccountGroup', 'AccountLedgerEntry', 'AccountParticular', 'AccountParty', 'AccountStatement', 'AccountStatementRow',
+    'AccountSummary', 'CashTransfer', 'CreateEntryInput', 'CreateExpenseInput', 'CreateTransferInput', 'DailyCollectionSummary',
+    'EntryType', 'Expense', 'ExpenseType', 'GroupNature', 'Named', 'PRINT_STYLES', 'PocketBalance', 'PrintStyle', 'STYLE_LABEL',
+    'TransferKind', 'cancelExpense', 'cancelExpenseAction', 'createAccountEntryAction', 'createAccountGroup', 'createAccountGroupAction',
+    'createAccountLedgerEntry', 'createAccountParticular', 'createAccountParticularAction', 'createCashTransfer', 'createCashTransferAction',
+    'createExpense', 'createExpenseAction', 'createExpenseType', 'decideCashTransfer', 'decideCashTransferAction', 'getPocketBalance',
+    'getPocketBalanceAction', 'reverseAccountEntryAction', 'reverseAccountLedgerEntry', 'saveExpenseTypeAction', 'updateAccountMaster',
+    'updateAccountMasterAction', 'updateExpenseType',
+  ],
+  // LD-398 (T0D-OFFLINE-3): already-landed REGSCREEN-2 drafts feature + billing accounting module; bytes may change, same as logic_files.
+  logic_files_changed: [
+    'src/features/billing/nav.manifest.ts',
+    'src/features/billing/server/actions.ts',
+    'src/features/billing/server/types.ts',
+    'src/features/billing/server/write.server.ts',
+    'src/features/frontdesk/forms/draft.ts',
+    'src/features/frontdesk/hooks/useShortcuts.ts',
   ],
   server_symbols: ['createCreditPartyAction', 'createDoctorAction'],
   trf_symbol: /Trf/, // at most ONE added symbol beyond server_symbols, and it must match this

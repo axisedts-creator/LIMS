@@ -50,7 +50,7 @@ describe('RS-C4 behaviour unchanged (LD-140: no change to API calls, fields, val
     expect(Object.keys(now).filter((k) => !(addedOk.includes(k) && !(k in baseline.logic))).sort()).toEqual(Object.keys(baseline.logic).sort());
     expect(Object.keys(baseline.logic).filter((k) => !(k in now))).toEqual([]);
     // LD-310 / T0D-REGSCREEN-1: only the four named frontdesk logic files may differ; every other file stays byte-identical
-    const changed = Object.keys(baseline.logic).filter((k) => now[k] !== baseline.logic[k] && !(LD310_ALLOW.logic_files as readonly string[]).includes(k));
+    const changed = Object.keys(baseline.logic).filter((k) => now[k] !== baseline.logic[k] && !(LD310_ALLOW.logic_files as readonly string[]).includes(k) && !(LD310_ALLOW.logic_files_changed as readonly string[]).includes(k));
     expect(changed).toEqual([]);
   });
 
@@ -64,7 +64,8 @@ describe('RS-C4 behaviour unchanged (LD-140: no change to API calls, fields, val
     expect(removed(was.server_symbols, now.server_symbols)).toEqual([]);
     // T0D-UNSLOP-1 (D), ruling T0D-UNSLOP-1-ruling.md: "/billing/credit-parties" in billing_feature was only the href of the removed in-page CreditPartyDetail crumb (one trail, in the top bar);
     // the page route itself is still pinned by the "existing pages still exist" test below. Nothing else may be removed.
-    const CRUMB_ONLY: Partial<Record<Area, string[]>> = { billing_feature: ['/billing/credit-parties'] };
+    // LD-398 (T0D-OFFLINE-3): "/v1/catalog/tests" moved into billing_feature's own code (already an allowed addition there); only a test-harness mock in frontdesk still mentions it, which this guard does not scan.
+    const CRUMB_ONLY: Partial<Record<Area, string[]>> = { billing_feature: ['/billing/credit-parties'], frontdesk_feature: ['/v1/catalog/tests'] };
     expect(removed(was.routes, now.routes).filter((r) => !(CRUMB_ONLY[area] ?? []).includes(r))).toEqual([]);
     expect(removed(was.field_names, now.field_names)).toEqual([]);
     expect(added(was.permissions, now.permissions).filter((p) => !(LD310_ALLOW.permissions as readonly string[]).includes(p) && !LD310_ALLOW.billing_accounts_strings.test(p))).toEqual([]);
@@ -87,7 +88,8 @@ describe('RS-C4 behaviour unchanged (LD-140: no change to API calls, fields, val
     // LD-391/LD-393 follow-up, T0D-OFFLINE-3 arbiter
     expect(LD310_ALLOW.logic_files_added).toHaveLength(4);
     expect(LD310_ALLOW.route_strings_added).toHaveLength(1);
-    expect(LD310_ALLOW.accounts_symbols).toHaveLength(19);
+    expect(LD310_ALLOW.accounts_symbols).toHaveLength(64); // LD-398: 19 + 45
+    expect(LD310_ALLOW.logic_files_changed).toHaveLength(6);
     expect(LD310_ALLOW.accounts_symbols).not.toContain('deleteEverythingAction');
   });
 

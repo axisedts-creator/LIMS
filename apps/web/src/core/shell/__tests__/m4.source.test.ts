@@ -51,10 +51,10 @@ describe('T0D-MSERIES-4 (LD-266): Find a screen field keeps its pill height in t
     }
   });
 
-  it('the fix does not alter the field otherwise: width 100%, min-height 28 px (LD-340: was 46), radius full, accent border/fill/text, and no fixed height', () => {
+  it('the fix does not alter the field otherwise: width 100%, min-height 32 px (LD-344: was 28, LD-340: was 46), radius full, accent border/fill/text, and no fixed height', () => {
     const one = (p: string) => all(shell, '.lims-rail-search', p).at(-1)?.v;
     expect(one('width')).toBe('100%');
-    expect(one('min-height')).toBe('1.75rem !important'); // 28 px, the compact sidebar block of shell.css (LD-340)
+    expect(one('min-height')).toBe('2rem !important'); // 28 px, the compact sidebar block of shell.css (LD-340)
     expect(one('border-radius')).toBe('var(--lims-radius-full)');
     expect(one('box-sizing')).toBe('border-box');
     expect(one('border')).toMatch(/color-mix\(in srgb, var\(--lims-accent-fg\) 60%, var\(--lims-accent\)\)/);

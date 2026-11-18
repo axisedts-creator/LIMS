@@ -42,7 +42,7 @@
 .lims-kbd { font-family: var(--lims-font-family-mono); font-size: var(--lims-font-size-xs-size); opacity: 0.8; }
 .lims-popover { background: var(--lims-neutral-0); border: 1px solid var(--lims-neutral-200); border-radius: var(--lims-radius-lg); box-shadow: var(--lims-elevation-2); z-index: var(--lims-z-dropdown); }
 .lims-popover-body { padding: var(--lims-space-3); outline: none; max-width: 360px; }
-.lims-popover-title { margin: 0 0 var(--lims-space-2); font-size: var(--lims-font-size-md-size); font-weight: var(--lims-font-weight-semibold); }
+.lims-popover-title { margin: 0 0 var(--lims-space-2); font-size: var(--lims-font-size-md-size); font-weight: var(--lims-font-weight-medium); }
 .lims-tooltip { max-width: 280px; padding: var(--lims-space-1) var(--lims-space-2); border-radius: var(--lims-radius-lg); background: var(--lims-neutral-900); color: var(--lims-neutral-0); font-size: var(--lims-font-size-sm-size); z-index: var(--lims-z-dropdown); }
 .lims-spinner { display: inline-flex; align-items: center; }
 .lims-menu, .lims-listbox { padding: var(--lims-space-1); outline: none; min-width: 160px; }
@@ -73,7 +73,7 @@ textarea.lims-input, .lims-input.lims-rte-surface, .lims-egrid-table .lims-input
 .lims-check-box, .lims-radio-dot { display: inline-grid; place-items: center; width: 16px; min-height: 16px; border: 1px solid var(--lims-neutral-500); border-radius: var(--lims-radius-sm); }
 .lims-radio-dot { border-radius: var(--lims-radius-full); }
 .lims-check[data-selected] .lims-check-box { background: var(--lims-accent); color: var(--lims-accent-fg); border-color: var(--lims-accent); }
-.lims-radio[data-selected] .lims-radio-dot { border: 5px solid var(--lims-accent); }
+.lims-radio[data-selected] .lims-radio-dot { border: 4px solid var(--lims-accent); }
 .lims-switch-track { display: inline-flex; width: 32px; min-height: 18px; padding: 2px; border-radius: var(--lims-radius-full); background: var(--lims-neutral-500); }
 .lims-switch-thumb { width: 14px; min-height: 14px; border-radius: var(--lims-radius-full); background: var(--lims-neutral-0); transition: transform var(--lims-motion-duration-fast) var(--lims-motion-easing); }
 .lims-switch[data-selected] .lims-switch-track { background: var(--lims-accent); }
@@ -82,7 +82,7 @@ textarea.lims-input, .lims-input.lims-rte-surface, .lims-egrid-table .lims-input
 .lims-radio-options.lims-horizontal { flex-direction: row; flex-wrap: wrap; gap: var(--lims-space-4); }
 .lims-form { display: flex; flex-direction: column; gap: var(--lims-space-4); }
 .lims-error-summary { padding: var(--lims-space-3) var(--lims-space-4); border: 2px solid var(--lims-tone-danger-fg); border-radius: var(--lims-radius-md); background: var(--lims-tone-danger-bg); }
-.lims-error-summary-title { margin: 0 0 var(--lims-space-2); font-weight: var(--lims-font-weight-semibold); color: var(--lims-tone-danger-fg); }
+.lims-error-summary-title { margin: 0 0 var(--lims-space-2); font-weight: var(--lims-font-weight-medium); color: var(--lims-tone-danger-fg); }
 .lims-error-summary a { color: var(--lims-tone-danger-fg); }
 
 /* Overlays */
@@ -105,18 +105,18 @@ textarea.lims-input, .lims-input.lims-rte-surface, .lims-egrid-table .lims-input
 .lims-dialog-footer { display: flex; justify-content: flex-end; gap: var(--lims-space-2); }
 .lims-drawer-section { display: flex; flex-direction: column; gap: var(--lims-space-3); padding-block: var(--lims-space-4); border-top: 1px solid var(--lims-neutral-200); }
 .lims-drawer-section-header { display: flex; justify-content: space-between; align-items: center; gap: var(--lims-space-2); }
-.lims-drawer-section-title { margin: 0; font-size: var(--lims-font-size-md-size); font-weight: var(--lims-font-weight-semibold); }
+.lims-drawer-section-title { margin: 0; font-size: var(--lims-font-size-md-size); font-weight: var(--lims-font-weight-medium); }
 
 /* Feedback */
 .lims-toast-region { position: fixed; inset-block-end: var(--lims-space-4); inset-inline-end: var(--lims-space-4); display: flex; flex-direction: column; gap: var(--lims-space-2); z-index: var(--lims-z-toast); }
 .lims-toast, .lims-banner { display: flex; align-items: flex-start; gap: var(--lims-space-3); padding: var(--lims-space-3); border: 1px solid; border-radius: var(--lims-radius-lg); }
 .lims-toast { min-width: 280px; box-shadow: var(--lims-elevation-2); }
 .lims-toast p, .lims-banner p { margin: 0; }
-.lims-toast-title, .lims-banner-title { font-weight: var(--lims-font-weight-semibold); }
+.lims-toast-title, .lims-banner-title { font-weight: var(--lims-font-weight-medium); }
 .lims-toast-text, .lims-banner-text { flex: 1; }
 .lims-state { display: flex; flex-direction: column; align-items: center; gap: var(--lims-space-2); padding: var(--lims-space-8); text-align: center; }
 .lims-state p { margin: 0; }
-.lims-state-title { font-weight: var(--lims-font-weight-semibold); font-size: var(--lims-font-size-md-size); }
+.lims-state-title { font-weight: var(--lims-font-weight-medium); font-size: var(--lims-font-size-md-size); }
 .lims-skeleton { display: flex; flex-direction: column; gap: var(--lims-space-2); }
 .lims-skeleton-row { min-height: 16px; border-radius: var(--lims-radius-sm); background: var(--lims-neutral-200); }
 
@@ -147,7 +147,7 @@ textarea.lims-input, .lims-input.lims-rte-surface, .lims-egrid-table .lims-input
 .lims-tablist { display: flex; flex-wrap: wrap; gap: var(--lims-space-1); }
 .lims-tab { display: inline-flex; align-items: center; gap: var(--lims-space-2); min-height: 40px; padding: 0 var(--lims-space-4); border: 1px solid transparent; border-radius: var(--lims-radius-full); cursor: pointer; outline: none; }
 .lims-tab:hover, .lims-tab[data-hovered] { background: var(--lims-neutral-100); }
-.lims-tab[data-selected] { background: var(--lims-accent-subtle); border-color: var(--lims-accent); color: var(--lims-accent-hover); font-weight: var(--lims-font-weight-semibold); }
+.lims-tab[data-selected] { background: var(--lims-accent-subtle); border-color: var(--lims-accent); color: var(--lims-accent-hover); font-weight: var(--lims-font-weight-medium); }
 .lims-tab-badge { padding: 0 var(--lims-space-1); border-radius: var(--lims-radius-full); background: var(--lims-neutral-100); font-size: var(--lims-font-size-xs-size); font-variant-numeric: tabular-nums; }
 .lims-tabpanel { outline: none; padding-top: var(--lims-space-4); }
 
@@ -243,7 +243,7 @@ textarea.lims-input, .lims-input.lims-rte-surface, .lims-egrid-table .lims-input
 .lims-row-placeholder > td { border-bottom: 1px solid var(--lims-neutral-100); }
 div.lims-row-placeholder { min-height: 32px; border-bottom: 1px solid var(--lims-neutral-100); }
 .lims-bulk-bar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--lims-space-2); padding: var(--lims-space-2) var(--lims-space-3); margin-bottom: var(--lims-space-2); border-radius: var(--lims-radius-md); background: var(--lims-accent-subtle); }
-.lims-bulk-count { font-weight: var(--lims-font-weight-semibold); font-variant-numeric: tabular-nums; margin-inline-end: auto; }
+.lims-bulk-count { font-weight: var(--lims-font-weight-medium); font-variant-numeric: tabular-nums; margin-inline-end: auto; }
 .lims-align-end { text-align: end; }
 .lims-align-center { text-align: center; }
 .lims-data-table [role='gridcell']:focus, .lims-data-table [role='rowheader']:focus, .lims-data-table [role='row']:focus { outline: 2px solid var(--lims-focus-ring); outline-offset: -2px; }
@@ -299,3 +299,8 @@ div.lims-row-placeholder { min-height: 32px; border-bottom: 1px solid var(--lims
 .lims-form[data-label-placement='start'] .lims-field > .lims-label { flex: 0 0 9rem; }
 .lims-form[data-label-placement='start'] .lims-field > :not(.lims-label) { flex: 1 1 calc(100% - 9rem - var(--lims-space-3)); }
 .lims-form[data-label-placement='start'] .lims-field > :not(.lims-label) ~ :not(.lims-label) { flex-basis: 100%; padding-inline-start: calc(9rem + var(--lims-space-3)); }
+
+/* LD-344 (founder 2026-11-17 22:20 NPT): table headers are medium, not the browser bold (every table showed 700) */
+.lims-table th, .lims-egrid-table th { font-weight: var(--lims-font-weight-medium); }
+/* LD-344: the selected radio (5 px ring on a content-box) was 26 px against 18 px unselected; one box size for both */
+.lims-check-box, .lims-radio-dot { box-sizing: border-box; }

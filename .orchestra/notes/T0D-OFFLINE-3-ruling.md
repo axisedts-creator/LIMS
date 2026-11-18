@@ -1,3 +1,18 @@
+TESTS_WRONG — rs-c4 still asserts the already-landed REGSCREEN-2/accounting/UIDASH-1 drift is absent; binding LD-400 (task brief) ruled it allowed and fixed the pattern, but its edits are not in C0-0K, so the tester must apply them.
+Reasons (arbiter, 2026-11-19 02:50, dispute round 13 of verify 02:42):
+1. Prior CR_NEEDED (below) waited on a lead pattern decision per LD-398; LD-400 (brief; lead decisions in the brief override spec text) is that decision: route_strings_added becomes a scoped regex. CR resolved; no CR file needed.
+2. LD-400 claims direct edits, but C0-0K has rs-c4.signature.ts:113 `route_strings_added: ['/v1/catalog/tests']`, rs-c4.static.test.ts:78 `.includes(r)`, :90 `toHaveLength(1)`, and no `frontdesk.patient.read` in LD310_ALLOW.permissions (grep). LD-401 corrects LD-400 that its edits did not land in this lane.
+3. Drift source unchanged: LD-140 guard binds restyle tasks only (spec/program/10-DESIGN-SYSTEM.md:132-136); frontdesk.patient.read is REGSCREEN-2 (RegistrationForm.tsx:259); no OFFLINE-3 source causes any failure. Not IMPLEMENTATION_WRONG.
+TESTER (rs-c4.signature.ts, rs-c4.static.test.ts, rs-c4.screens snapshot only; comment "LD-400, T0D-OFFLINE-3 arbiter"; never edit rs-c4.baseline.json):
+1. signature.ts: add 'frontdesk.patient.read' to LD310_ALLOW.permissions.
+2. signature.ts:113: replace the list with a regex, e.g. `route_strings_added: /^\/v1\/billing\/|^\/v1\/identity\/(centres|users)$|^\/billing\/accounts\/ledger$|^\/v1\/catalog\/tests$/,` (adjust only so it matches exactly the 22 strings in the verify 02:42 log; must still match '/v1/catalog/tests').
+3. static.test.ts:78: `.filter((r) => !LD310_ALLOW.route_strings_added.test(r))`.
+4. static.test.ts:90: replace toHaveLength(1) with `expect(LD310_ALLOW.route_strings_added.test('/v1/billing/accounts/summary')).toBe(true)` and `expect(LD310_ALLOW.route_strings_added.test('/v1/frontdesk/patients')).toBe(false)`.
+5. Re-record ONLY "Daily cash (open shift)" with the runner: `vitest -u -t "Daily cash \(open shift\)"` on rs-c4.screens.test.tsx; never hand-edit the .snap; confirm git diff shows that .snap changed and no other snapshot did. Commit the test files themselves (earlier rounds committed only notes).
+WRITER and DEBUGGER: no code change. Per LD-400, if rs-c4 trips again in any category, escalate to the lead (founder structural call); no further allow-list patch.
+
+---- prior arbiter ruling (superseded by the above) ----
+
 CR_NEEDED — the spec has no rule for how the frozen rs-c4 restyle baseline treats approved feature work merged from main, and binding LD-398 forbids a 5th allow-list patch without a lead pattern decision; CR text in .orchestra/cr/T0D-OFFLINE-3.md.
 Reasons (arbiter, 2026-11-19 01:50, dispute of verify 01:49):
 1. LD-140 guard scope is restyle tasks only (spec/program/10-DESIGN-SYSTEM.md:132-136); it says nothing about later feature drift or re-pinning rs-c4.baseline.json. That rule is missing.

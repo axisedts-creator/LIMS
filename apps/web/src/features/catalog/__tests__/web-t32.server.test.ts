@@ -42,7 +42,7 @@ const rec = (fn: (s: Seen) => Response | Promise<Response>) => async ({ request 
 const problem = (code: string, status: number, extra: Record<string, unknown> = {}) =>
   HttpResponse.json({ type: `urn:lims:error:${code}`, title: code, status, code, ...extra }, { status });
 const api = setupServer();
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => api.resetHandlers());
 afterAll(() => api.close());
 beforeEach(() => { seen.length = 0; });

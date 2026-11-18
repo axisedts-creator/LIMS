@@ -78,7 +78,7 @@ const problem = (code: string, status: number, extra: Record<string, unknown> = 
   HttpResponse.json({ type: `urn:lims:error:${code}`, title: code, status, code, ...extra }, { status });
 const calls = (m: string, re: RegExp) => seen.filter((s) => s.method === m && re.test(s.url.pathname));
 const api = setupServer();
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { cleanup(); api.resetHandlers(); });
 afterAll(() => api.close());
 beforeEach(() => { seen = []; push.mockClear(); refresh.mockClear(); });

@@ -40,7 +40,7 @@ const server = setupServer(
   http.post(`${ORIGIN}/v1/catalog/imports`, async ({ request }) => { await rec(request); return HttpResponse.json(imp, { status: 201 }); }),
   http.post(`${ORIGIN}/v1/catalog/*`, async ({ request }) => { await rec(request); return HttpResponse.json({ ...imp, status: 'committing' }, { status: 202 }); }),
 );
-beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => server.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { server.resetHandlers(); seen.length = 0; tok.value = 'jwt-synthetic'; });
 afterAll(() => server.close());
 

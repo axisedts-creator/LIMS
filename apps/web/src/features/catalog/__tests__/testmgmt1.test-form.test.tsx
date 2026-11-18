@@ -51,7 +51,7 @@ const FIELDS: Record<'Basics' | 'Report' | 'Flags' | 'Turnaround', Field[]> = {
 };
 const STAGES = ['registration', 'sample_collection', 'accession', 'result', 'approval_1', 'approval_2', 'release'];
 
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterAll(() => api.close());
 beforeEach(() => { reset(); loadTests(FULL); });
 afterEach(() => { cleanup(); api.resetHandlers(); });

@@ -78,7 +78,7 @@ const api = setupServer(
   }),
 );
 
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { cleanup(); api.resetHandlers(); unitCalls.length = 0; setCalls.length = 0; rejected.length = 0; writes.length = 0; refresh.mockReset(); UNITS = []; SETS = []; session.permissions = MANAGE; nav.path = '/catalog/units'; });
 afterAll(() => api.close());
 beforeEach(() => { document.body.innerHTML = ''; session.permissions = MANAGE; });

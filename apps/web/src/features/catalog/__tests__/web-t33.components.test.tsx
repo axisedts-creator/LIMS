@@ -91,7 +91,7 @@ const api = setupServer(
   http.get(`${ORIGIN}/v1/catalog/doctors/:id`, async ({ request, params }) => { await rec(request); return HttpResponse.json(doctor(31, { id: params.id as string })); }),
   http.get(`${ORIGIN}/v1/catalog/*`, async ({ request }) => { await rec(request); return HttpResponse.json({ data: [], page: { limit: 50 } }); }),
 );
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { cleanup(); api.resetHandlers(); calls.length = 0; push.mockReset(); replace.mockReset(); refresh.mockReset(); localStorage.clear(); sessionStorage.clear(); session.permissions = TEST_MANAGE; });
 afterAll(() => api.close());
 beforeEach(() => { document.body.innerHTML = ''; });

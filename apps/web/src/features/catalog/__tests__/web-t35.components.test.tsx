@@ -78,7 +78,7 @@ const api = setupServer(
   http.get(`${ORIGIN}/v1/catalog/imports/:id/issues`, async ({ request }) => { await rec(request); return HttpResponse.json({ data: [], page: { limit: 50 } }); }),
   http.get(`${ORIGIN}/v1/catalog/*`, async ({ request }) => { await rec(request); return HttpResponse.json({ data: [], page: { limit: 50 } }); }),
 );
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { cleanup(); api.resetHandlers(); calls.length = 0; push.mockReset(); replace.mockReset(); refresh.mockReset(); vi.unstubAllGlobals(); });
 afterAll(() => api.close());
 beforeEach(() => { document.body.innerHTML = ''; });

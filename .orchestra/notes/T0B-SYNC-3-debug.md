@@ -1,0 +1,5 @@
+- 2026-11-18 debugger: 1 fail = lab.live.test.ts:234 control (expects duplicate, gets rejected common.not_found). Not an implementation defect.
+- Cause: fixture rows (centre a2) are invisible under RLS policy specimens__select__tenant_centre (lab schema migration :1008): app.current_centre_ids() reads core.memberships / core.membership_centres by membership_id = USER.a1, and no sync test seeds them. The IdentityPort fake's grants.centreIds does not change DB visibility.
+- No code fix: making the seam see the row would mean bypassing RLS or the centre scope, which breaks REQ-SEC-017 / T-32. Tests are read-only for me.
+- Existing dispute .orchestra/notes/T0B-SYNC-3-dispute.md stands (fixture fix: seed core.memberships + core.membership_centres for USER.a1 in TENANT_A, or run the control as actor_type 'system'; assertions unchanged).
+- Could not re-run the PG17 harness here (command needs approval in this session); diagnosis is static, from the migration, helpers2.ts and the writer's measured result.

@@ -118,15 +118,23 @@ describe('order and isolation of operations (done_when 2)', () => {
     expect(Object.fromEntries(l.map((x) => [x.op_id, [x.status, x.error_code]]))).toMatchObject({
       [locked.op_id]: ['rejected', 'lab.result_locked'], [boom.op_id]: ['rejected', 'common.internal'], [ok1.op_id]: ['accepted', null] });
   }, T);
+  // T0B-SYNC-3 (tester revision, as asked in T0B-SYNC-2-tests.md): the default registry now holds the four adapters of SYNC-3 (registration.create_order, billing.record_receipt,
+  // collection.mark_collected, accession.receive: tested in ./adapters); the four types of T0B-SYNC-4 keep answering sync.op_type_not_available. Nothing is loosened for them.
   it('an operation type without an adapter is rejected per operation with sync.op_type_not_available (never accepted, never a server error)', async () => {
     const dev = await newDevice(A1);
-    const ops = [op('registration.create_order'), op('billing.record_receipt', { entity_id: uid() }), op('collection.mark_collected', { base_version: 1, entity_id: uid() }), op('accession.receive', { base_version: 1, entity_id: uid() }),
-      op('result.enter'), op('result.verify', { base_version: 1, entity_id: uid() }), op('report.print_marker', { entity_id: uid() }), op('daily_cash.close', { base_version: 1, entity_id: uid() })];
+    const ops = [op('result.enter'), op('result.verify', { base_version: 1, entity_id: uid() }), op('report.print_marker', { entity_id: uid() }), op('daily_cash.close', { base_version: 1, entity_id: uid() })];
     const o = await devicePush(syncPart2Handlers, A1, dev, ops);
     expect(o.reply!.status).toBe(200);
     for (const r of results(o)) expect(r, r.op_id).toMatchObject({ status: 'rejected', error_code: 'sync.op_type_not_available' });
     const l = await ledger(ops.map((x) => x.op_id));
     expect(l.map((x) => [x.status, x.error_code])).toEqual(ops.map(() => ['rejected', 'sync.op_type_not_available']));
+  }, T);
+  it('the four types of T0B-SYNC-3 have a default adapter: never sync.op_type_not_available (a payload without a domain shape is refused for another reason)', async () => {
+    const dev = await newDevice(A1);
+    const ops = [op('registration.create_order'), op('billing.record_receipt', { entity_id: uid() }), op('collection.mark_collected', { base_version: 1, entity_id: uid() }), op('accession.receive', { base_version: 1, entity_id: uid() })];
+    const o = await devicePush(syncPart2Handlers, A1, dev, ops);
+    expect(o.reply!.status).toBe(200);
+    for (const r of results(o)) { expect(r.status, r.op_id).toBe('rejected'); expect(r.error_code, r.op_id).not.toBe('sync.op_type_not_available'); }
   }, T);
   it('a type with an adapter next to a type without: the first works, the second is rejected, the batch is 200', async () => {
     const dev = await newDevice(A1);

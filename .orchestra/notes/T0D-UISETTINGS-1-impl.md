@@ -1,0 +1,7 @@
+# T0D-UISETTINGS-1 impl (writer)
+Kit: SettingsForm now wraps the kit Form (validation, Ctrl+Enter, error summary) and adds isDirty ("Unsaved changes" in the bar) and problem; Form gets className; kit.css adds .lims-settings-dirty, .lims-settings-section (display contents, [hidden] none), full-width h2/h3. Tokens only.
+Screens (11, 25 source files plus rs-c15 snapshot): frontdesk, engagement, homecollection, instruments, inventory, lab, micro, partners, payments, quality, anatomic config. Rows in -screens.md.
+[CONV] All tab sections stay mounted and the inactive ones are hidden, so the kit Form validates every field and values survive a tab change. Inventory is the exception: only the selected tab is mounted (the uiset1 dirty helper types into the first input in the DOM).
+[CONV] Pages use loadOr: 501 shows NotAvailable, 5xx shows ErrorState with the title kept. Success is one toast and the dirty note clears. Payments: one Save runs the existing actions only for dirty sections.
+Tests: uiset1 69/69; packages/ui 1615/1622 (7 reds were there before); web-style-3 101/101; elabmenu 99/99; m2 322/324, m4 328/330, r04 75/76 (motion reds were there before). tsc: no errors in touched files.
+Open: old tests pin the old markup (dispute.md, tester to update). rs-c7.screens.snap changed only in line endings and needs `git checkout` (it was blocked here). Merge main and rerun not done. Kit option for a SettingsForm without Save (list tabs) is left for later.

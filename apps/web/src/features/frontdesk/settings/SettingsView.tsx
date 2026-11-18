@@ -5,15 +5,15 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Banner } from '@lims/ui/components/Banner';
-import { Button } from '@lims/ui/components/Button';
-import { Card } from '@lims/ui/components/Card';
 import { Checkbox } from '@lims/ui/components/Checkbox';
 import { DecimalField } from '@lims/ui/components/DecimalField';
-import { Form } from '@lims/ui/components/Form';
 import { IntegerField } from '@lims/ui/components/IntegerField';
 import { MoneyField, type Money } from '@lims/ui/components/MoneyField';
 import { PageHeader } from '@lims/ui/components/PageHeader';
+import { SettingsForm as KitSettingsForm } from '@lims/ui/components/SettingsForm';
+import { Tabs } from '@lims/ui/components/Tabs';
 import { TextField } from '@lims/ui/components/TextField';
+import { useToast } from '@lims/ui/components/Toast';
 import { saveFrontdeskSettingsAction } from './actions';
 import { FIELD_LABEL, SELF_ABOVE_MAX, bpToPercent, panPatternError, percentToBp, type FrontdeskSettings, type FrontdeskSettingsBody } from './model';
 
@@ -25,6 +25,9 @@ const NOT_ACCEPTED = 'Some values were not accepted. Check the marked fields.';
 type Name = keyof FrontdeskSettingsBody;
 type Errors = Partial<Record<Name, string>>;
 type Banner_ = { kind: 'error'; title: string } | { kind: 'conflict' } | null;
+// T0D-UISETTINGS-1 (LD-353 template 4): the two former cards are the two tabs of the kit SettingsForm.
+const TABS = [{ id: 'discounts', label: 'Discounts' }, { id: 'registration', label: 'Registration' }] as const;
+const DISCOUNT_FIELDS: readonly Name[] = ['discount_self_limit_bp', 'discount_self_limit_paisa', 'discount_absolute_max_bp'];
 
 export function SettingsView({ settings, mfaRequired = false }: { settings?: FrontdeskSettings | undefined; mfaRequired?: boolean }) {
   return (
@@ -50,7 +53,9 @@ function SettingsForm({ initial }: { initial: FrontdeskSettings }) {
   const [version, setVersion] = useState(initial.version);
   const [errors, setErrors] = useState<Errors>({});
   const [banner, setBanner] = useState<Banner_>(null);
-  const [saved, setSaved] = useState(false);
+  const [dirty, setDirty] = useState(false);
+  const [tab, setTab] = useState<string>('discounts');
+  const toast = useToast();
   const [saving, setSaving] = useState(false);
   const [focus, setFocus] = useState<{ name: Name; n: number } | null>(null);
   const root = useRef<HTMLDivElement>(null);
@@ -59,21 +64,21 @@ function SettingsForm({ initial }: { initial: FrontdeskSettings }) {
     if (focus) root.current?.querySelector<HTMLElement>(`[name="${focus.name}"]`)?.focus();
   }, [focus]);
 
-  /** An edit clears the saved status and the error of the field(s) it touches. */
+  /** An edit marks the form dirty and clears the error of the field(s) it touches. */
   const edit = <T,>(set: (v: T) => void, ...names: Name[]) => (v: T) => {
     set(v);
-    setSaved(false);
+    setDirty(true);
     if (names.length) setErrors((e) => Object.fromEntries(Object.entries(e).filter(([k]) => !names.includes(k as Name))));
   };
   const fail = (e: Errors, title: string, first: Name) => {
     setErrors(e);
     setBanner({ kind: 'error', title });
+    setTab(DISCOUNT_FIELDS.includes(first) ? 'discounts' : 'registration'); // the named field is on screen before it is focused
     setFocus((f) => ({ name: first, n: (f?.n ?? 0) + 1 }));
   };
 
   async function submit() {
     setBanner(null);
-    setSaved(false);
     setErrors({});
     const selfBp = percentToBp(selfPct ?? '');
     const maxBp = percentToBp(absMax ?? '');
@@ -90,7 +95,8 @@ function SettingsForm({ initial }: { initial: FrontdeskSettings }) {
       const r = await saveFrontdeskSettingsAction(version, body);
       if (r.ok) {
         setVersion(r.settings.version); // the next save sends the version this one returned
-        setSaved(true);
+        setDirty(false);
+        toast.show({ tone: 'success', title: 'Settings saved.' }); // LD-353 template 4: one success toast, no in-page banner
       } else if (r.status === 409) setBanner({ kind: 'conflict' });
       else if (r.status === 403) setBanner({ kind: 'error', title: r.code === 'auth.mfa_required' ? MFA_COPY : 'You do not have permission to change these settings.' });
       else if (r.status === 429) setBanner({ kind: 'error', title: 'Too many requests. Wait a moment and try again.' });
@@ -118,9 +124,12 @@ function SettingsForm({ initial }: { initial: FrontdeskSettings }) {
           </Banner>
         ) : null}
       </div>
-      <div role="status">{saved ? <Banner tone="success" title="Settings saved." /> : null}</div>
-      <Form onSubmit={submit}>
-        <Card title="Discounts">
+      <KitSettingsForm
+        tabs={<Tabs aria-label="Front desk settings sections" items={TABS} selectedId={tab} onChange={setTab} />}
+        onSave={submit} isSaving={saving} isDirty={dirty}
+      >
+        {/* every section stays mounted (kit Form validates all fields, values survive a tab change); the inactive one is hidden */}
+        <div className="lims-settings-section" hidden={tab !== 'discounts'}>
           <DecimalField
             label={FIELD_LABEL.discount_self_limit_bp} name="discount_self_limit_bp" decimals={2} min="0" max="100" isRequired
             description="Discounts up to this percent are applied without approval." {...(selfPct !== undefined ? { value: selfPct } : {})}
@@ -135,8 +144,8 @@ function SettingsForm({ initial }: { initial: FrontdeskSettings }) {
             description="No discount above this percent can be requested." {...(absMax !== undefined ? { value: absMax } : {})}
             onChange={edit(setAbsMax, 'discount_absolute_max_bp', 'discount_self_limit_bp')} {...err('discount_absolute_max_bp')}
           />
-        </Card>
-        <Card title="Registration">
+        </div>
+        <div className="lims-settings-section" hidden={tab !== 'registration'}>
           <Checkbox label={FIELD_LABEL.require_referrer} name="require_referrer" isSelected={referrer} onChange={edit(setReferrer)} />
           <TextField
             label={FIELD_LABEL.consent_text_version} name="consent_text_version" maxLength={32} isRequired value={consent}
@@ -152,9 +161,8 @@ function SettingsForm({ initial }: { initial: FrontdeskSettings }) {
             label={FIELD_LABEL.patient_search_min_chars} name="patient_search_min_chars" min={1} max={100} isRequired
             {...(minChars !== undefined ? { value: minChars } : {})} onChange={edit(setMinChars, 'patient_search_min_chars')} {...err('patient_search_min_chars')}
           />
-        </Card>
-        <Button variant="primary" type="submit" isDisabled={saving} shortcut="Ctrl+Enter">Save</Button>
-      </Form>
+        </div>
+      </KitSettingsForm>
     </div>
   );
 }

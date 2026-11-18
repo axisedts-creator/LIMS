@@ -21,20 +21,21 @@ describe('(1) module boot: every operation of catalog.yaml has a real handler', 
   it('the three category operations have a handler in the manifest', () => {
     for (const id of NEW_OPS) { expect(typeof (manifest.handlers as any)[id], id).toBe('function'); expect((manifest.handlers as any)[id], id).toBe((handlers as any)[id]); }
   });
-  // Merge of main: T0C-PRICETOOLS-1 (LD-321, LD-325(b)) added seven price list tool operations that stay pending until T0B-PRICETOOLS-1.
-  it('catalog lists NO category operation as pending (T0B removes the ids it implements, LD-325 b); only the seven price list tool ids and the five ICD master ids remain', () => {
+  // T0B-PRICETOOLS-1 (done_when 1, LD-325 b, ruling 6) implements the seven price list tool ids; the five ICD master ids are implemented in the same module, so nothing is pending.
+  it('catalog lists NO operation as pending (T0B removes the ids it implements, LD-325 b); every price list tool and ICD master id has a handler function in the manifest', () => {
     for (const id of NEW_OPS) expect(pending, id).not.toContain(id);
-    expect([...pending].sort()).toEqual([...PRICETOOLS, ...PARTYSET_ICD].sort());
+    expect([...pending]).toEqual([]);
+    for (const id of [...PRICETOOLS, ...PARTYSET_ICD]) expect(typeof (manifest.handlers as any)[id], id).toBe('function');
   });
-  it('checkHandlers (the boot check, AC-0D-1.2) passes with handlers plus the price list and ICD master pending ids and reports no stale pending id', () => {
+  it('checkHandlers (the boot check, AC-0D-1.2) passes with the real handlers and reports no stale pending id', () => {
     expect(checkHandlers('catalog', spec, manifest.handlers, pending)).toEqual([]);
   });
   it('the contract has exactly 110 + 7 price list tool + 6 catalog import + 5 ICD master operations (this task adds handlers, not operations)', () => {
     expect(operationIds(spec)).toHaveLength(110 + PRICETOOLS.length + TESTIMPORT.length + PARTYSET_ICD.length);
     for (const id of TESTIMPORT) expect((manifest.handlers as any)[id], id).toBeTypeOf('function');
     expect([...Object.keys(manifest.handlers), ...pending].sort()).toEqual(operationIds(spec).sort());
-    for (const id of PRICETOOLS) expect(Object.keys(manifest.handlers), id).not.toContain(id);
-    for (const id of PARTYSET_ICD) expect(Object.keys(manifest.handlers), id).not.toContain(id);
+    for (const id of PRICETOOLS) expect(Object.keys(manifest.handlers), id).toContain(id);
+    for (const id of PARTYSET_ICD) expect(Object.keys(manifest.handlers), id).toContain(id);
   });
 });
 

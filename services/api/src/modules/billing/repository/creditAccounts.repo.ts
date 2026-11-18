@@ -39,6 +39,36 @@ export async function sumOpenCreditExposure(tx: Q, a: { tenantId: string; credit
   return rows[0]?.exposure ?? '0';
 }
 
+/**
+ * T0B-PARTYSET-1 (LD-321) done_when (3): the party commercial setting of a credit party (partners.party_commercial_setting; undefined = none saved = no rule)
+ * and its unpaid issued periodic credit invoices with days overdue: due date = invoice date (tenant time zone) + invoice_payment_days, overdue = today - due.
+ * Unpaid = net - credited - payments posted against the invoice (the same rule as sumOpenCreditExposure).
+ */
+export async function overdueFacts(tx: Q, a: { tenantId: string; creditPartyId: string; today: string; timezone: string }): Promise<{
+  setting?: { paymentDays: number; blockingDays: number; warningDays: number; autoBlock: boolean; interestBpPerDay: number };
+  invoices: Array<{ periodMonth: string; unpaidPaisa: number; daysOverdue: number }>;
+}> {
+  const s = (await tx.query(`SELECT invoice_payment_days, invoice_blocking_days, invoice_warning_days, auto_block_overdue, interest_bp_per_day FROM partners.party_commercial_setting
+      WHERE tenant_id = $1 AND party_kind = $3 AND party_id = $2`, [a.tenantId, a.creditPartyId, 'credit_party'])).rows[0] as Record<string, unknown> | undefined;
+  if (!s) return { invoices: [] };
+  const setting = { paymentDays: Number(s['invoice_payment_days']), blockingDays: Number(s['invoice_blocking_days']), warningDays: Number(s['invoice_warning_days']),
+    autoBlock: s['auto_block_overdue'] === true, interestBpPerDay: Number(s['interest_bp_per_day']) };
+  const { rows } = await tx.query(
+    `SELECT to_char(x.period_month, 'YYYY-MM') AS period_month, x.unpaid::text AS unpaid, ($3::date - ((x.issued_at AT TIME ZONE $4::text)::date + $5::int)) AS days_overdue
+       FROM (SELECT i.period_month, i.issued_at, i.net_paisa - i.credited_total_paisa
+                    - COALESCE((SELECT SUM(l.amount_paisa) FROM billing.ledger_entries l WHERE l.tenant_id = i.tenant_id AND l.invoice_id = i.id), 0) AS unpaid
+               FROM billing.invoices i
+              WHERE i.tenant_id = $1 AND i.credit_party_id = $2 AND i.is_periodic_credit_bill AND i.status = 'issued') x
+      WHERE x.unpaid > 0`, [a.tenantId, a.creditPartyId, a.today, a.timezone, setting.paymentDays]);
+  return { setting, invoices: rows.map((r) => ({ periodMonth: String(r['period_month']), unpaidPaisa: Number(r['unpaid']), daysOverdue: Number(r['days_overdue']) })) };
+}
+
+/** done_when (3): set the existing block flag with a visible reason (lock_reasons code credit_days_exceeded); an existing lock (manual or not) is never rewritten */
+export async function lockOverdue(tx: Q, a: { tenantId: string; creditPartyId: string; userId: string }): Promise<void> {
+  await tx.query(`UPDATE billing.credit_accounts SET is_locked = true, lock_reason_code = $3, locked_at = now(), locked_by = $4, version = version + 1, updated_at = now(), updated_by = $4
+     WHERE tenant_id = $1 AND credit_party_id = $2 AND NOT is_locked`, [a.tenantId, a.creditPartyId, 'credit_days_exceeded', a.userId]);
+}
+
 /** B19 list: keyset on credit_party_id; the caller asks for limit + 1 to learn whether a next page exists. */
 export async function listCreditAccounts(tx: Q, a: { tenantId: string; afterPartyId?: string; limit: number }): Promise<Record<string, any>[]> {
   const p: unknown[] = [a.tenantId];

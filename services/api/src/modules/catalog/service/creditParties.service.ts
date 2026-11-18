@@ -6,6 +6,7 @@
 // [CONV] auto code CP{seq:5} from code_counters (key party_code; `next_value` = next to hand out); a blank party_code is an absent one.
 import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';   // [CONV] relative import (same as masters.service.ts)
 import { LimsError, type FieldError } from '../../../core/errors.js';
+import { maskedOrAbsent } from '../../partners/domain/id-number.js';   // T0B-PARTYSET-1: the one masking place
 import { decodeCursor, encodeCursor } from '../mappers/masters.mapper.js';
 import * as repo from '../repo/masters.repo.js';
 import {
@@ -58,7 +59,8 @@ function checkBody(input: unknown, allowed: readonly string[]): Record<string, u
 type R = Record<string, any>;
 const partyDto = (r: R, sensitive: boolean) => {
   const out: R = { id: r.id, party_code: r.party_code, name: r.name, kind: r.kind, allows_credit: r.allows_credit === true };
-  if (sensitive) for (const k of SENSITIVE) if (r[k] != null) out[k] = r[k];
+  // T0B-PARTYSET-1 done_when (5): pan leaves masked in every read (domain/id-number.ts); the full value only via revealPartyIdNumber
+  if (sensitive) for (const k of SENSITIVE) if (r[k] != null) out[k] = k === 'pan' ? maskedOrAbsent(r[k]) : r[k];
   out['is_active'] = r.is_active === true; out['version'] = Number(r.version);
   return out;
 };
@@ -107,7 +109,7 @@ export function createCreditPartiesService(deps: CreditPartiesDeps) {
   async function nextCode(ctx: Ctx): Promise<string> {
     const { rows } = await q(ctx,
       'INSERT INTO catalog.code_counters (tenant_id, counter_key, next_value, created_by) VALUES ($1, $2, 2, $3) ' +
-      'ON CONFLICT (tenant_id, counter_key) DO UPDATE SET next_value = next_value + 1, updated_at = now() RETURNING next_value',
+      'ON CONFLICT (tenant_id, counter_key) DO UPDATE SET next_value = catalog.code_counters.next_value + 1, updated_at = now() RETURNING next_value',
       [ctx.tenantId, 'party_code', ctx.actor.id]);
     return `CP${String(Number(rows[0].next_value) - 1).padStart(5, '0')}`;
   }

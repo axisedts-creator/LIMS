@@ -100,6 +100,8 @@ export const creditHandlers: Readonly<Record<string, Handler>> = Object.freeze({
         rows: r.rows.map((x) => ({
           period_month: x.periodMonth, fiscal_year_bs: x.fiscalYearBs, invoiced: moneyOf(x.invoiced.amountPaisa), paid: moneyOf(x.paid.amountPaisa),
           credited: moneyOf(x.credited.amountPaisa), closing_balance: moneyOf(x.closingBalance.amountPaisa),
+          // T0B-PARTYSET-1 (LD-321): interest per day as a statement line only, never posted, not in closing_balance (CR: CreditPartyStatement has no field yet)
+          ...(x.interestPaisa !== undefined ? { interest_paisa: x.interestPaisa } : {}),
         })),
       },
     };

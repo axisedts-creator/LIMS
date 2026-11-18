@@ -12,6 +12,17 @@ export async function lockReportForRelease(tx: Tx, tenantId: string, reportId: s
     WHERE tenant_id = $1 AND id = $2 FOR UPDATE`, [tenantId, reportId])).rows[0];
 }
 
+/**
+ * T0B-PARTYSET-1 (LD-321) done_when (3): auto_release_reports of the report's party (partner or referring doctor) in partners.party_commercial_setting.
+ * Default off: no row, or the flag false, answers false. Read only by the auto release path when the tenant switch says manual (additive).
+ */
+export async function partyAutoRelease(tx: Tx, tenantId: string, partnerId: string | null, doctorId: string | null): Promise<boolean> {
+  if (!partnerId && !doctorId) return false;
+  const { rows } = await tx.query(`SELECT 1 FROM partners.party_commercial_setting WHERE tenant_id = $1 AND auto_release_reports = true
+    AND ((party_kind = $2 AND party_id = $3::uuid) OR (party_kind = $4 AND party_id = $5::uuid)) LIMIT 1`, [tenantId, 'partner', partnerId, 'doctor', doctorId]);
+  return rows.length > 0;
+}
+
 export async function hasNewerVersion(tx: Tx, tenantId: string, reportId: string, versionNo: number): Promise<boolean> {
   return (await tx.query(`SELECT version_no FROM reporting.report_versions WHERE tenant_id = $1 AND report_id = $2 AND version_no > $3 AND status <> 'discarded' LIMIT 1`,
     [tenantId, reportId, versionNo])).rows.length > 0;

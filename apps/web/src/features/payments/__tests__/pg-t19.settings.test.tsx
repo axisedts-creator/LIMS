@@ -60,7 +60,7 @@ const api = setupServer(
   http.get(`${ORIGIN}/v1/payments/settings`, async ({ request }) => { await rec(request); return HttpResponse.json(settings()); }),
   http.put(`${ORIGIN}/v1/payments/settings`, async ({ request }) => { await rec(request); return putSettings(); }),
 );
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { cleanup(); api.resetHandlers(); calls.length = 0; refresh.mockReset(); perms.current = READ; reset(); delete process.env['LIMS_PAYMENTS_GATEWAY_ENV']; });
 afterAll(() => api.close());
 

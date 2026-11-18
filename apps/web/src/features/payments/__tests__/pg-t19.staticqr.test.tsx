@@ -59,7 +59,7 @@ const api = setupServer(
   http.get(`${ORIGIN}/v1/payments/static-qr-reconciliations`, async ({ request }) => { await rec(request); return listF(); }),
   http.post(`${ORIGIN}/v1/payments/static-qr-reconciliations`, async ({ request }) => { await rec(request); return save(); }),
 );
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 beforeEach(() => { vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(new Date('2026-11-12T06:00:00Z')); });
 afterEach(() => { vi.useRealTimers(); cleanup(); api.resetHandlers(); calls.length = 0; refresh.mockReset(); perms.current = READ; reset(); });
 afterAll(() => api.close());

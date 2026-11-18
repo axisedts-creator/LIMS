@@ -61,7 +61,7 @@ const api = setupServer(
   http.get(`${ORIGIN}/v1/payments/coded-sets/hold_reasons`, () => HttpResponse.json({ data: holdReasons })),
   http.get(`${ORIGIN}/v1/payments/*`, () => problem('common.dependency_unavailable', 503)),
 );
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { cleanup(); api.resetHandlers(); calls.length = 0; push.mockReset(); list = () => HttpResponse.json({ data: rows, page: { limit: 50 } }); });
 afterAll(() => api.close());
 

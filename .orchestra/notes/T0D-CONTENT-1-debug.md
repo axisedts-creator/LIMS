@@ -1,0 +1,1 @@
+- Cause: t-l1:85 single-match query vs 2 "Issue app code" buttons from T0D-EMPTYTBL-2 (AppAccess.tsx:201,223), not CONTENT-1 code. No impl fix possible without breaking emptytbl2.other:54. See T0D-CONTENT-1-dispute.md.

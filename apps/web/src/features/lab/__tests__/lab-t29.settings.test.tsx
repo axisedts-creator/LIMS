@@ -83,7 +83,7 @@ beforeEach(() => {
 afterEach(() => { cleanup(); api.resetHandlers(); calls.length = 0; });
 afterAll(() => api.close());
 
-const load = async (name = 'LabSettingsPage') => (await import(/* @vite-ignore */ `../components/settings/${name}`)) as Record<string, (p: any) => ReactNode>; // variable path: a missing module fails each test, not the file
+const load = async (name = 'LabSettingsPage') => (await import(/* @vite-ignore */ `../components/settings/${name}`)) as Record<'LabSettingsPage', (p: Record<string, unknown>) => ReactNode>; // variable path: a missing module fails each test, not the file
 const open = async (permissions: readonly string[] = MANAGE) => {
   const { LabSettingsPage } = await load();
   return render(<ToastProvider><LabSettingsPage permissions={permissions} /></ToastProvider>);

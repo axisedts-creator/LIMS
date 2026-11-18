@@ -67,7 +67,7 @@ beforeEach(() => {
 afterEach(() => { cleanup(); api.resetHandlers(); calls.length = 0; });
 afterAll(() => api.close());
 
-const load = async () => (await import(/* @vite-ignore */ '../components/qc/QcResultsPage')) as Record<string, (p: any) => ReactNode>; // variable-ish path: a missing module fails each test, not the file
+const load = async () => (await import(/* @vite-ignore */ '../components/qc/QcResultsPage')) as Record<'QcResultsPage', (p: Record<string, unknown>) => ReactNode>; // variable-ish path: a missing module fails each test, not the file
 const open = async (permissions: readonly string[] = CAPTURE, over: Record<string, unknown> = {}) => {
   const { QcResultsPage } = await load();
   return render(<ToastProvider><QcResultsPage permissions={permissions} centres={CENTRES} instruments={INSTRUMENTS} {...over} /></ToastProvider>);

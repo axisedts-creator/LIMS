@@ -84,7 +84,7 @@ beforeEach(() => {
 afterEach(() => { cleanup(); api.resetHandlers(); calls.length = 0; document.head.querySelectorAll('style').forEach((s) => s.remove()); });
 afterAll(() => api.close());
 
-const load = async (dir: string, name: string) => (await import(/* @vite-ignore */ `../components/${dir}/${name}`)) as Record<string, (p: any) => ReactNode>; // variable path: a missing module fails each test, not the file
+const load = async <K extends string>(dir: string, name: K) => (await import(/* @vite-ignore */ `../components/${dir}/${name}`)) as Record<K, (p: Record<string, unknown>) => ReactNode>; // variable path: a missing module fails each test, not the file
 const openWorklist = async (permissions: readonly string[] = ['lab.worklist.read', 'lab.worksheet.manage']) => {
   const { WorklistPage } = await load('worklists', 'WorklistPage');
   return render(<ToastProvider><WorklistPage departmentId={DEPT} permissions={permissions} /></ToastProvider>);

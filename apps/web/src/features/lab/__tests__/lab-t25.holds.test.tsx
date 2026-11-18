@@ -69,7 +69,7 @@ beforeEach(() => {
 afterEach(() => { cleanup(); api.resetHandlers(); calls.length = 0; });
 afterAll(() => api.close());
 
-const load = async () => (await import(/* @vite-ignore */ '../components/settings/LabSettingsPage')) as Record<string, (p: any) => ReactNode>;
+const load = async () => (await import(/* @vite-ignore */ '../components/settings/LabSettingsPage')) as Record<'LabSettingsPage', (p: Record<string, unknown>) => ReactNode>;
 const open = async (permissions: readonly string[] = MANAGE) => {
   const { LabSettingsPage } = await load();
   return render(<ToastProvider><LabSettingsPage permissions={permissions} /></ToastProvider>);

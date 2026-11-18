@@ -23,6 +23,8 @@ export interface PrintCtx {
   readonly tenantId: string; readonly actor: { readonly type?: string; readonly id: string; readonly centreId?: string }; readonly tx: repo.Tx; readonly centreId?: string;
   readonly ports?: Record<string, any>; readonly now?: () => string;
   readonly storage?: Partial<Pick<StorageAdapter, 'read' | 'readStream'>>; readonly audit?: { access(e: Record<string, unknown>): Promise<unknown> };
+  /** T0B-SYNC-4 done_when (3): pending offline print marker of a version (core/sync/offlineSignoffs.ts pendingMarkers); absent = never issued offline. */
+  readonly offlineMarkers?: { isPending(tx: repo.Tx, tenantId: string, reportVersionId: string): Promise<boolean> };
 }
 type Variant = 'letterhead' | 'plain';
 
@@ -63,10 +65,11 @@ export async function createReportPrint(c: PrintCtx, versionId: string, variant:
   if (!v) throw new LimsError('common.not_found');
   const draft = v['released_at'] == null;
   if (draft) await assertDraftPrint(c);
-  const noFile = !draft && variant === 'letterhead';
+  const issuedOffline = c.offlineMarkers ? await c.offlineMarkers.isPending(c.tx, c.tenantId, versionId) : false;
+  const noFile = !draft && variant === 'letterhead' && !issuedOffline;   // a marked print needs its own rendered file, never the canonical PDF
   const id = uuidv7(); const expiresAt = new Date(nowMs(c) + TTL_MS).toISOString();
   await repo.insertPrint(c.tx, { id, tenantId: c.tenantId, centreId: v['centre_id'], kind: 'single', versionIds: [versionId], excludedIds: [], templateVersionId: v['template_version_id'] ?? null,
-    variant, copies, draftWatermark: draft, state: noFile ? 'ready' : 'rendering', expiresAt, actorId: c.actor.id });
+    variant, copies, draftWatermark: draft, state: noFile ? 'ready' : 'rendering', expiresAt, actorId: c.actor.id, issuedOffline });
   const at = new Date(nowMs(c));
   await insertDeliveryRow(c.tx, { id: uuidv7(), tenantId: c.tenantId, centreId: v['centre_id'], channel: 'print', purpose: 'report_ready', templateCode: null, recipientKind: 'patient',
     recipientId: v['patient_id'] ?? null, destinationMasked: null, destinationSha256: null, destinationE164: null, params: {}, idempotencyKey: `${id}:print`, relatedType: 'report',

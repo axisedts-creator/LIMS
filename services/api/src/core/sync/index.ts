@@ -12,6 +12,10 @@ import { registrationCreateOrderAdapter } from '../../modules/frontdesk/sync/reg
 import { billingRecordReceiptAdapter } from '../../modules/billing/sync/receipt.adapter.js';
 import { collectionMarkCollectedAdapter } from '../../modules/lab/sync/collection.adapter.js';
 import { accessionReceiveAdapter } from '../../modules/lab/sync/accession.adapter.js';
+import { resultEnterAdapter } from '../../modules/lab/sync/resultEnter.adapter.js';
+import { resultVerifyAdapter } from '../../modules/lab/sync/resultVerify.adapter.js';
+import { reportPrintMarkerAdapter } from '../../modules/reporting/sync/printMarker.adapter.js';
+import { dailyCashCloseAdapter } from '../../modules/billing/sync/cashClose.adapter.js';
 
 export interface SyncSettings {
   maxBatchOperations: number; maxBatchBytes: number; maxBlockSize: number; minAppVersion?: string | undefined;
@@ -57,8 +61,9 @@ export const DEFAULT_PART2_SETTINGS: Readonly<Part2Settings> = Object.freeze({
   skewFlagMs: 300_000, skewRejectMs: 86_400_000, deviceBatchesPerMinute: 30, tenantBatchesPerMinute: 1200,
 });
 
-/** T0B-SYNC-3: the default registry = the four adapters below; the four types of T0B-SYNC-4 answer sync.op_type_not_available until then. */
-export const DEFAULT_SYNC_ADAPTERS: readonly SyncAdapter[] = [registrationCreateOrderAdapter, billingRecordReceiptAdapter, collectionMarkCollectedAdapter, accessionReceiveAdapter];
+/** T0B-SYNC-3 + T0B-SYNC-4: the default registry = one adapter per catalogue type (eight). */
+export const DEFAULT_SYNC_ADAPTERS: readonly SyncAdapter[] = [registrationCreateOrderAdapter, billingRecordReceiptAdapter, collectionMarkCollectedAdapter, accessionReceiveAdapter,
+  resultEnterAdapter, resultVerifyAdapter, reportPrintMarkerAdapter, dailyCashCloseAdapter];
 
 /** `adapters` install the dispatcher registry over the defaults (one per opType, a later entry replaces an earlier one). */
 export function createSyncPart2Handlers(deps: { settings?: Partial<SyncSettings & Part2Settings>; adapters?: readonly SyncAdapter[] } = {}): Record<string, Handler> {

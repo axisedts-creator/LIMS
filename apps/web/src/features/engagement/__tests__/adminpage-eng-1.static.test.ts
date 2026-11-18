@@ -91,15 +91,16 @@ describe('route row, navigation entry, strings, registries', () => {
 
   it('no new permission outside the allowed families and no lost contract: base engagement codes unchanged, the settings operations still exist, and the administrator role holds the permission', () => {
     const perms = read(join(ROOT, 'contracts', 'permissions.yaml'));
-    // Ruling T0D-CONTENT-1 (after T0D-ENGBOOK-1): LD-313 (a, c) puts portal content in the engagement module and allows new codes for it; LD-321 names
-    // engagement.broadcast.*. So new engagement.content.* and engagement.broadcast.* codes (T0C-CONTENT-1, T0C-MSGDESK-1) and billing.* codes are allowed;
+    // Ruling T0D-CONTENT-1 (after T0D-ENGBOOK-1): LD-313 (a, c) puts portal content in the engagement module and allows new codes for it; LD-316, LD-321
+    // and LD-322 authorise new non-engagement codes (lab.verification_policy.*, partners.sales.*, partners.ticket.*, sync.*) added by other contract tasks.
+    // So the "no new code" check applies to the engagement family alone: new engagement.content.* and engagement.broadcast.* codes are allowed;
     // every engagement code that existed at BASE must still be present unchanged.
     const basePerms = gitShow('contracts/permissions.yaml');
     const engLines = (s: string) => s.split('\n').filter((l) => /code: engagement\./.test(l));
     for (const l of engLines(basePerms)) expect(perms.split('\n')).toContain(l);
     const codes = (s: string) => [...s.matchAll(/code: ([\w.]+)/g)].map((m) => m[1]!);
     const baseCodes = new Set(codes(basePerms));
-    expect(codes(perms).filter((c) => !baseCodes.has(c) && !c.startsWith('billing.') && !c.startsWith('engagement.content.') && !c.startsWith('engagement.broadcast.'))).toEqual([]);
+    expect(codes(perms).filter((c) => !baseCodes.has(c) && c.startsWith('engagement.') && !c.startsWith('engagement.content.') && !c.startsWith('engagement.broadcast.'))).toEqual([]);
     expect(perms).toMatch(/code: engagement\.settings\.manage,[^\n]*tenant_admin/);
     const api = read(join(ROOT, 'contracts', 'openapi', 'engagement.yaml'));
     expect(api).toMatch(/operationId: getEngagementSettings/);

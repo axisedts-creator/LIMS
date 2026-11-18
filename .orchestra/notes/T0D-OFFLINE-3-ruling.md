@@ -1,3 +1,15 @@
+CR_NEEDED — the spec has no rule for how the frozen rs-c4 restyle baseline treats approved feature work merged from main, and binding LD-398 forbids a 5th allow-list patch without a lead pattern decision; CR text in .orchestra/cr/T0D-OFFLINE-3.md.
+Reasons (arbiter, 2026-11-19 01:50, dispute of verify 01:49):
+1. LD-140 guard scope is restyle tasks only (spec/program/10-DESIGN-SYSTEM.md:132-136); it says nothing about later feature drift or re-pinning rs-c4.baseline.json. That rule is missing.
+2. Lane diff `git diff main...HEAD -- apps/web` = 4 test files, 0 source files: no OFFLINE-3 implementation causes any failure, so it is not IMPLEMENTATION_WRONG.
+3. Item 1 confirmed: `frontdesk.patient.read` came from T0D-REGSCREEN-2 (commit 35ca99fa4; RegistrationForm.tsx:259, server/read.server.ts:55), already on main.
+4. Items 2-3 (22 billing_feature route strings, Daily cash snapshot) are the same accounting/UIDASH-1 drift as LD-391/LD-393/LD-398.
+5. LD-398 (task brief, binding over spec): "if this same guard blocks again ... the pattern itself, not just the list, needs a decision from me before a 5th round". So the arbiter may not order another TESTS_WRONG widening.
+6. CR proposes A (re-pin baseline at a recorded main SHA by lead LD, then delete feature-drift allow entries) or B (guard gates restyle tasks only). Recommended: A.
+WRITER, TESTER, DEBUGGER: no change until the lead records a decision. Could not re-run vitest here (permission denied); facts taken from the dispute plus git/grep checks.
+
+---- prior arbiter ruling (superseded by the line above) ----
+
 TESTS_WRONG — the rs-c4 guard asserts that already-landed, already-ruled feature work (T0B-ACCT-1/T0B-FINCTRL-1 accounting, T0D-REGSCREEN-2 drafts, T0D-UIDASH-1 stat row + chart) never happened; no spec line requires T0D-OFFLINE-3 to undo it.
 Reasons (arbiter, 2026-11-19, after re-running vitest.rs-c4.config.ts: exactly the 6 failures listed in T0D-OFFLINE-3-dispute.md, nothing else):
 1. rs-c4 enforces LD-140 "restyle = behaviour unchanged" (spec/program/10-DESIGN-SYSTEM.md:132-136); it binds restyle tasks, not later approved feature tasks. `git diff main...HEAD -- apps/web` shows OFFLINE-3 lane changes only the two rs-c4 tester files; none of the 6 drifts is OFFLINE-3 code.

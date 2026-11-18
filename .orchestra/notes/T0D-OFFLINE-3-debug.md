@@ -20,3 +20,7 @@ Fix: none; LD-391 orders no writer/debugger code change. Tester allow-list cover
 ## Round 5 (LD-391, verify 21:22)
 Cause: still only rs-c4.static.test.ts failing (6 tests/3 files in the log tail: billing_app permissions + server_imports accounts.server/expenses.server vs rs-c4.baseline.json). Drift from already-merged billing accounting UI; OFFLINE-3 touches no route/permission/server-import file. Not an implementation defect.
 Fix: none, as LD-391 orders (writer/debugger no code change; baseline json not regenerated). Unchanged blocker from round 4: tester allow-list (8 routes + 7 codes) under-counts the drift; needs a new lead ruling naming logic_files, ~152 permission codes, 2 server_imports and the /v1/catalog/tests literal.
+
+## Round 6 (LD-391, verify 21:28)
+Cause: unchanged. rs-c4.static.test.ts only (permissions ~150 billing.account*/cash_transfer/expense codes, server_imports accounts.server/expenses.server) vs rs-c4.baseline.json; drift from already-merged billing accounting UI. OFFLINE-3 touches no route/permission/server-import file. Not an implementation defect.
+Fix: none (LD-391: no writer/debugger code change; baseline not regenerated). Blocker: LD310_ALLOW (tester-owned) under-counts; needs a new lead ruling widening it (permissions, logic_files, 2 server_imports, /v1/catalog/tests literal).

@@ -6,4 +6,4 @@
 - Ran: tsc api clean; vitest analytics + core boot (no DB): 2711 pass; fails = dispute items 1-3, boot "30 of 30" 30 s timeout (known env slowness, AN-T11/T15 notes), *.live (no DB).
 - NOT run: tests/analytics/T0B-MISREPORTS-1.pg.sh (live PG17, perf, 3 runs) — the docker script needs approval this session denied. Must run before done.
 - Round 2 (LD-357): sales_representative (+default_sort), repeated_patient, party_billing column net_billed_paisa -> net_paisa in misReports.ts + SQL aliases; P13 and registry.static green. tsc clean. PG17 run 1: 2786 pass, 5 fail = 4 live cases pinning the old key (dispute) + analytics boot.test 30 s timeout (env slowness, also before this change).
-- Open: dispute.md (reports.live.test.ts:172/176/186/262/300/303 still pin net_billed_paisa). Founder step: none new (migration 230000 unchanged).
+- Round 3 (after tester rename): PG17 run 1: 2790 pass, 1 fail = analytics boot.test AN-T01 "30 of 30" 30 s timeout (37 s even alone; profiled: core ajv compile of all module specs, not analytics). Open: dispute.md (raise :246 to 60_000 like real-modules-boot). Runs 2-3 not reached. Founder step: none new.

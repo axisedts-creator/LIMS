@@ -104,11 +104,14 @@ export function createPipeline(d: PipelineDeps) {
   /** ctx.ports: the registry view of this module; IdentityPort wrapped so stage 9 sees assertRole (getters keep the consumer check lazy). */
   function portsView(module: string, az: RequestAuthz): PortRegistry {
     const view = d.ports.portsFor(module);
+    // T0B-SYNC-1 [CONV] like stage 8a below: the core's own handlers (sync, LD-322) read IdentityPort through a listed consumer's view,
+    // since PORT_CONSUMERS (generated from the spec) has no 'core' entry. Every other port stays refused for core.
+    const idView = module === 'core' ? d.ports.portsFor('frontdesk') : view;
     const out: Record<string, unknown> = {};
     for (const k of Object.keys(view)) {
       Object.defineProperty(out, k, {
         enumerable: true,
-        get: k === 'IdentityPort' ? () => az.identity(view[k] as { assertRole(...a: unknown[]): unknown }) : () => view[k],
+        get: k === 'IdentityPort' ? () => az.identity(idView[k] as { assertRole(...a: unknown[]): unknown }) : () => view[k],
       });
     }
     return Object.freeze(out);

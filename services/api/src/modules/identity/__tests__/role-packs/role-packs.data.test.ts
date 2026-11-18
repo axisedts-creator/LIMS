@@ -29,7 +29,7 @@ const DEFAULT_ROLE_CODES = [...registry.roles, ...registry.partner_roles, ...reg
 // admin gets every tenant staff code (176 permissions, 67 privileged; 155 / 59 + the 7 accounting codes of T0C-ACCT-1, LD-313 c, + the 5 MSGDESK codes of T0C-MSGDESK-1, LD-321, + the 2 sales codes of T0C-SALES-1, LD-321, + the 3 sync codes of T0C-SYNC-1, LD-322, + the 2 verification policy codes of T0C-VERLEVEL-1, LD-316, + the 2 portal content codes of T0C-CONTENT-1, LD-313 c).
 const EXPECTED: Record<string, Record<string, [number, number]>> = {
   elabcorp_default: {
-    corp_admin: [176, 67], corp_accession_user: [22, 0], corp_accounts: [18, 6], corp_franchise_user: [24, 0], // corp_admin: + 2 sales codes of T0C-SALES-1 (LD-321), 1 privileged; + 3 sync codes of T0C-SYNC-1 (LD-322), 2 privileged; + 2 verification policy codes of T0C-VERLEVEL-1 (LD-316), 1 privileged; + 2 portal content codes of T0C-CONTENT-1 (LD-313 c), none privileged
+    corp_admin: [182, 68], corp_accession_user: [22, 0], corp_accounts: [18, 6], corp_franchise_user: [24, 0], // corp_admin: + 6 codes of T0C-PARTYSET-1 (LD-321), 1 privileged (partners.party_id_number.read); + 2 sales codes of T0C-SALES-1 (LD-321), 1 privileged; + 3 sync codes of T0C-SYNC-1 (LD-322), 2 privileged; + 2 verification policy codes of T0C-VERLEVEL-1 (LD-316), 1 privileged; + 2 portal content codes of T0C-CONTENT-1 (LD-313 c), none privileged
     corp_client_operator: [44, 8], corp_laboratory_admin: [11, 0], corp_laboratory_lab_user: [24, 0],
     corp_laboratory_user: [18, 0], corp_collection_center: [22, 1], corp_it_department: [5, 0],
     corp_junior_lab_user: [24, 0], corp_sr_lab_user: [51, 9], corp_sr_lab_user_t2: [51, 9], corp_pathologist: [45, 7],

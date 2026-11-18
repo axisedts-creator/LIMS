@@ -3,7 +3,7 @@
 import { ApiError } from '@/core/api/server-fetch';
 import { PermissionDenied } from '@/core/errors/PermissionDenied';
 import { getShellSession } from '@/core/session/server';
-import { isPending, NotAvailable } from '@/core/shell/NotAvailable';
+import { loadOr } from '@/core/shell/NotAvailable';
 import { SettingsView } from '@/features/frontdesk/settings/SettingsView';
 import { getFrontdeskSettings } from '@/features/frontdesk/settings/server';
 
@@ -12,12 +12,14 @@ export const metadata = { title: 'Front desk settings' };
 export default async function FrontdeskSettingsPage({ searchParams }: { searchParams?: Promise<Record<string, string | string[] | undefined>> }) {
   const [session] = await Promise.all([getShellSession(), searchParams]);
   if (!(session?.actor.permissions ?? []).includes('frontdesk.settings.manage')) return <PermissionDenied />;
-  try {
-    const settings = await getFrontdeskSettings();
-    return <SettingsView key={settings.version} settings={settings} />; // key: "Reload" (router.refresh) remounts the form with the fresh values
-  } catch (e) {
-    if (e instanceof ApiError && e.status === 403) return e.problem.code === 'auth.mfa_required' ? <SettingsView mfaRequired /> : <PermissionDenied />;
-    if (isPending(e)) return <NotAvailable title="Front desk settings" helpKey="frontdesk.settings" />; // T0D-UNSLOP-1 / LD-353 rule 6
-    throw e; // 5xx and the rest render error.tsx
-  }
+  // T0D-UISETTINGS-1 (LD-353 rule 6): 501 → NotAvailable, 5xx → ErrorState in the page (title, reference, Retry); the rest render error.tsx.
+  return loadOr('Front desk settings', undefined, async () => {
+    try {
+      const settings = await getFrontdeskSettings();
+      return <SettingsView key={settings.version} settings={settings} />; // key: "Reload" (router.refresh) remounts the form with the fresh values
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 403) return e.problem.code === 'auth.mfa_required' ? <SettingsView mfaRequired /> : <PermissionDenied />;
+      throw e;
+    }
+  });
 }

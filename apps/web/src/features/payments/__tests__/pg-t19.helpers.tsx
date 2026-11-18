@@ -1,6 +1,6 @@
 // PG-T19 shared test helpers (tester-owned; not a test file). No vi.mock here: every test file declares its own mocks (they are hoisted per file).
 import { expect } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import axe from 'axe-core';
 import { HttpResponse } from 'msw';
@@ -38,7 +38,19 @@ export const describedText = (el: HTMLElement) => {
   const ids = (el.getAttribute('aria-describedby') ?? '').split(/\s+/).filter(Boolean);
   return [...ids.map((i) => document.getElementById(i)?.textContent ?? ''), el.getAttribute('title') ?? '', el.getAttribute('aria-label') ?? ''].join(' ');
 };
-/** The kit Card whose h2 title is `name`. */
-export const card = (name: string | RegExp) => screen.getByRole('heading', { name }).closest('.lims-card') as HTMLElement;
+/** The section called `name`. LD-353 template 4 (T0D-UISETTINGS-1): sections are the tabs of the kit SettingsForm; this opens the tab `name` and returns its panel
+ *  (role=tabpanel, or the .lims-settings-section at the same position as the tab). Screens that still draw a kit Card (h2 title) are found by their heading. */
+export const card = (name: string | RegExp) => {
+  const hit = (t: string) => (typeof name === 'string' ? t === name : name.test(t));
+  const tabs = screen.queryAllByRole('tab');
+  const i = tabs.findIndex((t) => hit(t.textContent ?? ''));
+  if (i < 0) return screen.getByRole('heading', { name }).closest('.lims-card') as HTMLElement;
+  fireEvent.click(tabs[i]!); // synchronous (wrapped in act): the panel is visible when this returns
+  const own = [...document.querySelectorAll<HTMLElement>('.lims-settings-section')];
+  const panels = own.length ? own : [...document.querySelectorAll<HTMLElement>('[role="tabpanel"]')];
+  const panel = panels[i];
+  if (!panel) throw new Error(`no panel for tab ${String(name)}`);
+  return panel;
+};
 /** No problem+json code or kit/internal identifier is ever shown to a user. */
 export const noRawCodes = () => expect(document.body.textContent).not.toMatch(/\b(payments|common|auth|billing)\.[a-z_]+\b|urn:lims|Bearer |jwt-synthetic/);

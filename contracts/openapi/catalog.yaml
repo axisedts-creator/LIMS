@@ -5140,6 +5140,10 @@ paths:
                   phone_e164: "+15555550100"
                   email: <synthetic-email>
                   notes: Synthetic notes
+                  speciality: Pathology (synthetic)
+                  hospital: Synthetic Hospital
+                  commission_bp: 1500
+                  national_id_number: SYN-NID-0001
                   quick_add: false
       responses:
         "201":
@@ -5160,6 +5164,10 @@ paths:
                     phone_e164: "+15555550100"
                     email: <synthetic-email>
                     notes: Synthetic notes
+                    speciality: Pathology (synthetic)
+                    hospital: Synthetic Hospital
+                    commission_bp: 1500
+                    national_id_number: "********0001"
                     is_verified: false
                     source: back_office
                     merged_into_id: 0193c3a0-0000-7000-8000-000000000229
@@ -5228,6 +5236,10 @@ paths:
                     phone_e164: "+15555550100"
                     email: <synthetic-email>
                     notes: Synthetic notes
+                    speciality: Pathology (synthetic)
+                    hospital: Synthetic Hospital
+                    commission_bp: 1500
+                    national_id_number: "********0001"
                     is_verified: false
                     source: back_office
                     merged_into_id: 0193c3a0-0000-7000-8000-000000000234
@@ -5283,6 +5295,10 @@ paths:
                   phone_e164: "+15555550100"
                   email: <synthetic-email>
                   notes: Synthetic notes
+                  speciality: Pathology (synthetic)
+                  hospital: Synthetic Hospital
+                  commission_bp: 1500
+                  national_id_number: SYN-NID-0001
                   is_active: true
                   unset:
                     - qualification
@@ -5305,6 +5321,10 @@ paths:
                     phone_e164: "+15555550100"
                     email: <synthetic-email>
                     notes: Synthetic notes
+                    speciality: Pathology (synthetic)
+                    hospital: Synthetic Hospital
+                    commission_bp: 1500
+                    national_id_number: "********0001"
                     is_verified: false
                     source: back_office
                     merged_into_id: 0193c3a0-0000-7000-8000-000000000237
@@ -5539,7 +5559,7 @@ paths:
                         name: Demo Complete Blood Count
                         kind: hospital
                         allows_credit: false
-                        pan: "000000000"
+                        pan: "*****0000"
                         contact_phone_e164: "+15555550100"
                         contact_email: <synthetic-email>
                         billing_address: Synthetic billing_address
@@ -5608,7 +5628,7 @@ paths:
                     name: Demo Complete Blood Count
                     kind: hospital
                     allows_credit: false
-                    pan: "000000000"
+                    pan: "*****0000"
                     contact_phone_e164: "+15555550100"
                     contact_email: <synthetic-email>
                     billing_address: Synthetic billing_address
@@ -5665,7 +5685,7 @@ paths:
                     name: Demo Complete Blood Count
                     kind: hospital
                     allows_credit: false
-                    pan: "000000000"
+                    pan: "*****0000"
                     contact_phone_e164: "+15555550100"
                     contact_email: <synthetic-email>
                     billing_address: Synthetic billing_address
@@ -5739,7 +5759,7 @@ paths:
                     name: Demo Complete Blood Count
                     kind: hospital
                     allows_credit: false
-                    pan: "000000000"
+                    pan: "*****0000"
                     contact_phone_e164: "+15555550100"
                     contact_email: <synthetic-email>
                     billing_address: Synthetic billing_address
@@ -9483,8 +9503,435 @@ paths:
           $ref: _common.yaml#/components/responses/TooManyRequests
         "500":
           $ref: _common.yaml#/components/responses/Internal
+  # ---- T0C-PARTYSET-1 (LD-321): per tenant ICD master (catalog.icd_code). Separate from the frontdesk registration pick list (frontdesk.icd_codes, listIcdCodes). ----
+  /v1/catalog/icd-master:
+    get:
+      operationId: listIcdMasterCodes
+      tags:
+        - catalog
+      summary: List the ICD master codes of the tenant (T0C-PARTYSET-1)
+      description: Ordered by code. q matches a code prefix or title words, case-insensitive; inactive codes are included unless is_active is given.
+      security:
+        - bearerJwt: []
+      x-permission: catalog.icd.manage
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.invalid_cursor
+      parameters:
+        - name: q
+          in: query
+          required: false
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 64
+        - name: chapter
+          in: query
+          required: false
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 120
+        - name: is_active
+          in: query
+          required: false
+          schema:
+            type: boolean
+        - $ref: _common.yaml#/components/parameters/Cursor
+        - $ref: _common.yaml#/components/parameters/Limit
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                  - data
+                  - page
+                properties:
+                  data:
+                    type: array
+                    maxItems: 200
+                    items:
+                      $ref: "#/components/schemas/IcdMasterCode"
+                  page:
+                    $ref: _common.yaml#/components/schemas/PageInfo
+              examples:
+                synthetic:
+                  value:
+                    data:
+                      - id: 0193c4a0-0000-7000-8000-0000005b6001
+                        code: E11.9
+                        title: "Synthetic: type 2 diabetes mellitus without complications"
+                        chapter: Chapter IV (synthetic)
+                        is_active: true
+                        version: 1
+                        created_at: '2026-11-17T05:10:00.000Z'
+                        updated_at: '2026-11-17T05:10:00.000Z'
+                    page:
+                      limit: 50
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+    post:
+      operationId: createIcdMasterCode
+      tags:
+        - catalog
+      summary: Add a code to the ICD master (T0C-PARTYSET-1)
+      description: The code is unique per tenant (a used code answers common.validation_failed); upper case letters, digits and dots, for example E11.9.
+      security:
+        - bearerJwt: []
+      x-permission: catalog.icd.manage
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.idempotency_key_required
+        - common.idempotency_key_reused
+        - common.idempotency_in_progress
+      parameters:
+        - $ref: _common.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - code
+                - title
+              properties:
+                code:
+                  type: string
+                  pattern: ^[0-9A-Z][0-9A-Z.]{0,15}$
+                  maxLength: 16
+                title:
+                  type: string
+                  minLength: 1
+                  maxLength: 500
+                chapter:
+                  type: string
+                  minLength: 1
+                  maxLength: 120
+            examples:
+              synthetic:
+                value:
+                  code: E11.9
+                  title: "Synthetic: type 2 diabetes mellitus without complications"
+                  chapter: Chapter IV (synthetic)
+      responses:
+        "201":
+          description: Created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IcdMasterCode"
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-0000005b7000
+                    code: E11.9
+                    title: "Synthetic: type 2 diabetes mellitus without complications"
+                    chapter: Chapter IV (synthetic)
+                    is_active: true
+                    version: 1
+                    created_at: '2026-11-17T05:10:00.000Z'
+                    updated_at: '2026-11-17T05:10:00.000Z'
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/catalog/icd-master/search:
+    get:
+      operationId: searchIcdMasterCodes
+      tags:
+        - catalog
+      summary: Search the ICD master for a picker (T0C-PARTYSET-1)
+      description: Matches a code prefix or title words (case-insensitive) and returns active codes only, best match first; no paging (at most limit rows).
+      security:
+        - bearerJwt: []
+      x-permission: catalog.icd.manage
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 64
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 20
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                  - data
+                properties:
+                  data:
+                    type: array
+                    maxItems: 50
+                    items:
+                      $ref: "#/components/schemas/IcdMasterCode"
+              examples:
+                synthetic:
+                  value:
+                    data:
+                      - id: 0193c4a0-0000-7000-8000-0000005b7001
+                        code: E11.9
+                        title: "Synthetic: type 2 diabetes mellitus without complications"
+                        chapter: Chapter IV (synthetic)
+                        is_active: true
+                        version: 1
+                        created_at: '2026-11-17T05:10:00.000Z'
+                        updated_at: '2026-11-17T05:10:00.000Z'
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/catalog/icd-master/{icd_code_id}:
+    patch:
+      operationId: updateIcdMasterCode
+      tags:
+        - catalog
+      summary: Update the title or chapter of an ICD master code (T0C-PARTYSET-1)
+      description: A code is never renamed; add a new code and deactivate the old one instead.
+      security:
+        - bearerJwt: []
+      x-permission: catalog.icd.manage
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.not_found
+        - common.version_conflict
+        - common.precondition_required
+      parameters:
+        - name: icd_code_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - $ref: _common.yaml#/components/parameters/IfMatch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              minProperties: 1
+              properties:
+                title:
+                  type: string
+                  minLength: 1
+                  maxLength: 500
+                chapter:
+                  type: string
+                  minLength: 1
+                  maxLength: 120
+            examples:
+              synthetic:
+                value:
+                  chapter: Chapter IV (synthetic)
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IcdMasterCode"
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-0000005b7002
+                    code: E11.9
+                    title: "Synthetic: type 2 diabetes mellitus without complications"
+                    chapter: Chapter IV (synthetic)
+                    is_active: true
+                    version: 2
+                    created_at: '2026-11-17T05:10:00.000Z'
+                    updated_at: '2026-11-17T05:10:00.000Z'
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "428":
+          $ref: _common.yaml#/components/responses/PreconditionRequired
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/catalog/icd-master/{icd_code_id}/deactivate:
+    post:
+      operationId: deactivateIcdMasterCode
+      tags:
+        - catalog
+      summary: Deactivate an ICD master code (T0C-PARTYSET-1)
+      description: Sets is_active false so the code is no longer offered in search; it stays on existing orders and in history. Nothing is deleted.
+      security:
+        - bearerJwt: []
+      x-permission: catalog.icd.manage
+      x-context: tenant
+      x-idempotency: optional
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.not_found
+        - common.version_conflict
+        - common.precondition_required
+      parameters:
+        - name: icd_code_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - $ref: _common.yaml#/components/parameters/IfMatch
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IcdMasterCode"
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-0000005b7003
+                    code: E11.9
+                    title: "Synthetic: type 2 diabetes mellitus without complications"
+                    chapter: Chapter IV (synthetic)
+                    is_active: false
+                    version: 3
+                    created_at: '2026-11-17T05:10:00.000Z'
+                    updated_at: '2026-11-17T05:10:00.000Z'
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "428":
+          $ref: _common.yaml#/components/responses/PreconditionRequired
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
 components:
   schemas:
+    IcdMasterCode:
+      description: One code of the per tenant ICD master (T0C-PARTYSET-1). Deactivate, never delete.
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - code
+        - title
+        - is_active
+        - version
+        - created_at
+        - updated_at
+      properties:
+        id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        code:
+          type: string
+          pattern: ^[0-9A-Z][0-9A-Z.]{0,15}$
+          maxLength: 16
+        title:
+          type: string
+          minLength: 1
+          maxLength: 500
+        chapter:
+          type: string
+          minLength: 1
+          maxLength: 120
+        is_active:
+          type: boolean
+        version:
+          $ref: _common.yaml#/components/schemas/Version
+        created_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        updated_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
     Department:
       type: object
       additionalProperties: false
@@ -12193,6 +12640,21 @@ components:
         notes:
           type: string
           maxLength: 500
+        speciality:
+          type: string
+          maxLength: 120
+        hospital:
+          type: string
+          maxLength: 200
+        commission_bp:
+          description: Doctor commission in basis points (1500 = 15 percent). T0C-PARTYSET-1.
+          type: integer
+          minimum: 0
+          maximum: 10000
+        national_id_number:
+          description: National ID number, masked (last four characters only, for example ********0001); the full value needs partners.party_id_number.read (revealPartyIdNumber). T0C-PARTYSET-1.
+          type: string
+          maxLength: 64
         is_verified:
           type: boolean
         source:
@@ -12305,6 +12767,24 @@ components:
         notes:
           type: string
           maxLength: 500
+        speciality:
+          type: string
+          minLength: 1
+          maxLength: 120
+        hospital:
+          type: string
+          minLength: 1
+          maxLength: 200
+        commission_bp:
+          description: Doctor commission in basis points (1500 = 15 percent). T0C-PARTYSET-1.
+          type: integer
+          minimum: 0
+          maximum: 10000
+        national_id_number:
+          description: National ID number, full value (every read shows it masked). T0C-PARTYSET-1.
+          type: string
+          minLength: 1
+          maxLength: 32
         quick_add:
           type: boolean
     DoctorCreated:
@@ -12352,6 +12832,21 @@ components:
         notes:
           type: string
           maxLength: 500
+        speciality:
+          type: string
+          maxLength: 120
+        hospital:
+          type: string
+          maxLength: 200
+        commission_bp:
+          description: Doctor commission in basis points (1500 = 15 percent). T0C-PARTYSET-1.
+          type: integer
+          minimum: 0
+          maximum: 10000
+        national_id_number:
+          description: National ID number, masked (last four characters only, for example ********0001); the full value needs partners.party_id_number.read (revealPartyIdNumber). T0C-PARTYSET-1.
+          type: string
+          maxLength: 64
         is_verified:
           type: boolean
         source:
@@ -12403,11 +12898,29 @@ components:
         notes:
           type: string
           maxLength: 500
+        speciality:
+          type: string
+          minLength: 1
+          maxLength: 120
+        hospital:
+          type: string
+          minLength: 1
+          maxLength: 200
+        commission_bp:
+          description: Doctor commission in basis points (1500 = 15 percent). T0C-PARTYSET-1.
+          type: integer
+          minimum: 0
+          maximum: 10000
+        national_id_number:
+          description: National ID number, full value (every read shows it masked). T0C-PARTYSET-1.
+          type: string
+          minLength: 1
+          maxLength: 32
         is_active:
           type: boolean
         unset:
           type: array
-          maxItems: 6
+          maxItems: 10
           items:
             type: string
             maxLength: 20
@@ -12418,6 +12931,10 @@ components:
               - phone_e164
               - email
               - notes
+              - speciality
+              - hospital
+              - commission_bp
+              - national_id_number
     DoctorMerge:
       type: object
       additionalProperties: false
@@ -12462,6 +12979,7 @@ components:
         allows_credit:
           type: boolean
         pan:
+          description: PAN, masked (last four characters only, for example ********0001); the full value needs partners.party_id_number.read (revealPartyIdNumber). T0C-PARTYSET-1.
           type: string
           maxLength: 20
         contact_phone_e164:

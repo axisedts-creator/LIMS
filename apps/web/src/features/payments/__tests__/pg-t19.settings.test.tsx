@@ -16,6 +16,7 @@ import { cleanup, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
+import { expectErrorState } from '@/__tests__/uiset1.helpers';
 import { ORIGIN, axeClean, card, isEnabled, noRawCodes, npr, problem, recorder, wrap, type Call } from './pg-t19.helpers';
 
 const refresh = vi.hoisted(() => vi.fn());
@@ -71,7 +72,10 @@ const view = async (permissions: readonly string[] = MANAGE, o: { environment?: 
 };
 const puts = (re: RegExp) => calls.filter((c) => c.method === 'PUT' && re.test(c.url.pathname));
 const tests = () => calls.filter((c) => c.method === 'POST' && c.url.pathname.endsWith('/test'));
-const saveIn = (c: HTMLElement) => within(c).queryByRole('button', { name: /^save/i });
+// LD-353 template 4: ONE Save, in the sticky bar (not one per card); it saves only the sections that were edited. `c` is kept so the call sites read the same.
+const saveIn = (_c?: HTMLElement) => screen.queryByRole('button', { name: /^save/i });
+// Save does nothing for a pristine form (no section is dirty): this edits the eSewa product code to the same value so a bare Save has something to send.
+const touch = async (c: HTMLElement = card(/^eSewa$/)) => { const el = textIn(c, /product code/i); await retype(el, el.value); };
 const textIn = (c: HTMLElement, name: RegExp) => within(c).getByRole('textbox', { name }) as HTMLInputElement;
 const secretIn = (c: HTMLElement) => c.querySelector('input[type="password"]') as HTMLInputElement | null;
 const retype = async (el: HTMLInputElement, v: string) => { await userEvent.clear(el); if (v) await userEvent.type(el, v); };
@@ -91,10 +95,11 @@ describe('§2.6 layout', () => {
 
   it('eSewa card fields: Enabled switch, Product code (≤ 64), Secret key; Khalti card: Enabled, Website URL (≤ 300, help text), Secret key, "Use Khalti refund API" with its description', async () => {
     await view(MANAGE, { accounts: [] });
-    const e = card(/^eSewa$/), k = card(/^Khalti$/);
+    const e = card(/^eSewa$/);
     expect(within(e).getByRole('switch', { name: /^enabled$/i })).toBeTruthy();
     expect(textIn(e, /product code/i).maxLength).toBe(64);
     expect(within(e).getByText(/^Secret key/)).toBeTruthy();
+    const k = card(/^Khalti$/); // tabs: opening Khalti hides eSewa
     expect(within(k).getByRole('switch', { name: /^enabled$/i })).toBeTruthy();
     expect(textIn(k, /website url/i).maxLength).toBe(300);
     expect(within(k).getByText('Khalti requires your website address.')).toBeTruthy();
@@ -158,7 +163,8 @@ describe('AC-PG-10.1 / REQ-SEC-058 / ST-13 — the secret is write-only', () => 
 
   it('saving without typing a secret sends NO `secret` key (the stored one is kept) and only allow-listed fields', async () => {
     await view();
-    await userEvent.click(saveIn(card(/^eSewa$/))!);
+    await touch();
+    await userEvent.click(saveIn()!);
     await waitFor(() => expect(puts(/esewa\/uat$/)).toHaveLength(1));
     const b = puts(/esewa\/uat$/)[0]!.body;
     expect('secret' in b).toBe(false);
@@ -180,7 +186,8 @@ describe('AC-PG-10.1 / REQ-SEC-058 / ST-13 — the secret is write-only', () => 
 
   it('If-Match = the card version; an absent row is created without If-Match', async () => {
     await view();
-    await userEvent.click(saveIn(card(/^eSewa$/))!);
+    await touch();
+    await userEvent.click(saveIn()!);
     await waitFor(() => expect(puts(/esewa\/uat$/)).toHaveLength(1));
     expect(puts(/esewa\/uat$/)[0]!.headers.get('if-match')).toMatch(/3/);
     cleanup();
@@ -213,7 +220,8 @@ describe('AC-PG-10.3 environment rules and validation', () => {
 
   it('PUT goes to the deployment environment only (production ⇒ …/esewa/production), never the other one', async () => {
     await view(MANAGE, { environment: 'production', accounts: [esewa({ environment: 'production' }), khalti({ environment: 'production' })] });
-    await userEvent.click(saveIn(card(/^eSewa$/))!);
+    await touch();
+    await userEvent.click(saveIn()!);
     await waitFor(() => expect(puts(/esewa/)).toHaveLength(1));
     expect(puts(/esewa/)[0]!.url.pathname).toBe('/v1/payments/merchant-accounts/esewa/production');
     expect(calls.some((c) => /\/uat(\/|$)/.test(c.url.pathname))).toBe(false);
@@ -273,7 +281,8 @@ describe('AC-PG-10.3 environment rules and validation', () => {
   it('server 400 common.validation_failed ⇒ plain inline text, no raw code; 409 common.version_conflict ⇒ "changed / reload" guidance', async () => {
     putAccount = () => problem('common.validation_failed', 400);
     await view();
-    await userEvent.click(saveIn(card(/^eSewa$/))!);
+    await touch();
+    await userEvent.click(saveIn()!);
     await waitFor(() => expect(puts(/esewa/)).toHaveLength(1));
     await new Promise((r) => setTimeout(r, 50));
     noRawCodes();
@@ -281,7 +290,8 @@ describe('AC-PG-10.3 environment rules and validation', () => {
     cleanup();
     putAccount = () => problem('common.version_conflict', 409);
     await view();
-    await userEvent.click(saveIn(card(/^eSewa$/))!);
+    await touch();
+    await userEvent.click(saveIn()!);
     expect(await screen.findByText(/changed|reload/i)).toBeTruthy();
     noRawCodes();
   });
@@ -289,7 +299,8 @@ describe('AC-PG-10.3 environment rules and validation', () => {
   it('a double click on Save sends one request only (race / double submit)', async () => {
     putAccount = async () => { await new Promise((r) => setTimeout(r, 100)); return HttpResponse.json(esewa({ version: 4 })); };
     await view();
-    await userEvent.dblClick(saveIn(card(/^eSewa$/))!);
+    await touch();
+    await userEvent.dblClick(saveIn()!);
     await new Promise((r) => setTimeout(r, 250));
     expect(puts(/esewa/)).toHaveLength(1);
   });
@@ -371,13 +382,15 @@ describe('AC-PG-10.5 permissions', () => {
   });
   it('with manage: eSewa / Khalti / settings Save and Test connection are enabled', async () => {
     await view(MANAGE);
-    for (const n of [/^eSewa$/, /^Khalti$/, /^Refunds and labels$/]) expect(isEnabled(saveIn(card(n)))).toBe(true);
+    expect(screen.getAllByRole('button', { name: /^save/i })).toHaveLength(1); // one Save for eSewa, Khalti and the settings (LD-353 template 4)
+    expect(isEnabled(saveIn(card(/^Khalti$/)))).toBe(true);
     expect(isEnabled(within(card(/^eSewa$/)).getByRole('button', { name: /test connection/i }))).toBe(true);
   });
   it('403 auth.forbidden from the API (stale permissions) ⇒ plain permission text, no raw code', async () => {
     putAccount = () => problem('auth.forbidden', 403);
     await view(MANAGE);
-    await userEvent.click(saveIn(card(/^eSewa$/))!);
+    await touch();
+    await userEvent.click(saveIn()!);
     expect(await screen.findByText(/permission/i)).toBeTruthy();
     noRawCodes();
   });
@@ -432,7 +445,8 @@ describe('§6 a11y', () => {
     cleanup();
     putAccount = () => problem('common.validation_failed', 400);
     await view(MANAGE);
-    await userEvent.click(saveIn(card(/^eSewa$/))!);
+    await touch();
+    await userEvent.click(saveIn()!);
     await waitFor(() => expect(puts(/esewa/)).toHaveLength(1));
     await axeClean();
   });
@@ -484,15 +498,17 @@ describe('settings page.tsx — requests (P20 / P23)', () => {
     expect(document.body.innerHTML).not.toMatch(/LEAK/);
   });
 
-  it('API 403 shows no account data; API 5xx rejects so error.tsx renders', async () => {
+  it('API 403 shows no account data; API 5xx renders ErrorState in the page', async () => {
     process.env['LIMS_PAYMENTS_GATEWAY_ENV'] = 'uat';
     perms.current = MANAGE;
     listAccounts = () => problem('auth.forbidden', 403);
     try { await show(); } catch { /* may reject or render a denied state */ }
     expect(document.body.textContent).not.toMatch(/LIMS_ESEWA_01|fingerprint/);
     cleanup();
-    listAccounts = () => problem('common.dependency_unavailable', 503);
-    await expect(show()).rejects.toBeTruthy();
+    listAccounts = () => problem('common.dependency_unavailable', 503, { request_id: 'req-synthetic' });
+    const { container } = await show(); // LD-353 rule 6: ErrorState in the page, title kept, reference + Retry, no form
+    expectErrorState(container, '/payments/settings');
+    expect(screen.queryAllByRole('button', { name: /^save/i })).toHaveLength(0);
   });
 
   it('axe: page output has no violations', async () => { process.env['LIMS_PAYMENTS_GATEWAY_ENV'] = 'uat'; perms.current = MANAGE; await show(); await axeClean(); });

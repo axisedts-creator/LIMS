@@ -8,6 +8,7 @@ import userEvent from '@testing-library/user-event';
 import axe from 'axe-core';
 import { http, HttpResponse } from 'msw';
 import { ToastProvider } from '@lims/ui/components/Toast';
+import { expectErrorState } from '@/__tests__/uiset1.helpers';
 import { IDEM_RE, ID, ORIGIN, PERM_CONFIG, PERM_WORK, TEST_X, TEST_Y, api, assayRow, hit, hits, page, problem, resetHits, router, state, stains, t23Defaults, tplSummary } from './t23.harness';
 
 vi.mock('next/navigation', async () => (await import('./t23.harness')).navigationMock);
@@ -84,9 +85,12 @@ describe('access (AC-14.4 UI side)', () => {
     expect(screen.queryAllByRole('tab')).toHaveLength(0);
   });
 
-  it.each([500, 503])('%i from the API rejects so error.tsx renders (no partial form)', async (status) => {
-    api.use(http.get(`${ORIGIN}/v1/anatomic/settings`, () => problem('common.internal', status)));
-    await expect(configPage()).rejects.toBeTruthy();
+  it.each([500, 503])('%i from the API renders ErrorState in the page: title kept, reference and Retry, no partial form (LD-353 rule 6)', async (status) => {
+    api.use(http.get(`${ORIGIN}/v1/anatomic/settings`, () => problem('common.internal', status, { request_id: 'req-synthetic' })));
+    const { container } = await configPage();
+    expectErrorState(container, '/anatomic/config');
+    expect(screen.queryAllByRole('button', { name: /^save/i })).toHaveLength(0);
+    expect(screen.queryAllByRole('tab')).toHaveLength(0);
   });
 
   it('a 403 auth.forbidden on a write (direct call by a user who lost the permission) shows a permission message and keeps the form', async () => {

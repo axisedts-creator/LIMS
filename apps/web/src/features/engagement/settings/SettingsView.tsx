@@ -5,16 +5,16 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Banner } from '@lims/ui/components/Banner';
-import { Button } from '@lims/ui/components/Button';
-import { Card } from '@lims/ui/components/Card';
 import { Checkbox } from '@lims/ui/components/Checkbox';
-import { Form } from '@lims/ui/components/Form';
 import { IntegerField } from '@lims/ui/components/IntegerField';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { Select } from '@lims/ui/components/Select';
+import { SettingsForm as KitSettingsForm } from '@lims/ui/components/SettingsForm';
 import { Switch } from '@lims/ui/components/Switch';
+import { Tabs } from '@lims/ui/components/Tabs';
 import { TextArea } from '@lims/ui/components/TextArea';
 import { TextField } from '@lims/ui/components/TextField';
+import { useToast } from '@lims/ui/components/Toast';
 import { saveEngagementSettingsAction } from './actions';
 import {
   CONSENT_VERSION_ERROR, GATEWAYS, INTS, LABEL, PREFIX_ERROR, SWITCHES, VERSION_ERROR, VERSION_RE, parsePrefixes,
@@ -37,6 +37,17 @@ const FEATURES = SWITCHES.filter(([k]) => k !== 'auto_no_show' && k !== 'auto_fo
 const FIELD_LABEL: Partial<Record<string, string>> = {
   ...LABEL, ...Object.fromEntries(SWITCHES), ...Object.fromEntries(ALL_INTS.map((i) => [i.key, i.label])),
 };
+// T0D-UISETTINGS-1 (LD-353 template 4): the five former cards are the five tabs of the kit SettingsForm.
+type Tab = 'features' | 'app' | 'booking' | 'reminder' | 'queue';
+const TABS = [{ id: 'features', label: 'Features' }, { id: 'app', label: 'Patient app' }, { id: 'booking', label: 'Bookings' }, { id: 'reminder', label: 'Reminders' }, { id: 'queue', label: 'Queue' }] as const;
+/** The tab that holds a field, so a field error opens its tab before focusing it. */
+function tabOf(n: Name): Tab {
+  if (FEATURES.some(([k]) => k === n)) return 'features';
+  if (n === 'auto_no_show' || n === 'home_collection_centre_id' || INTS.booking.some((i) => i.key === n)) return 'booking';
+  if (n === 'auto_follow_up_reminders' || INTS.reminder.some((i) => i.key === n)) return 'reminder';
+  if (INTS.queue.some((i) => i.key === n)) return 'queue';
+  return 'app';
+}
 
 export function SettingsView({ settings, centres = [], mfaRequired = false }: { settings?: EngagementSettings | undefined; centres?: Centre[]; mfaRequired?: boolean }) {
   return (
@@ -64,7 +75,9 @@ function SettingsForm({ initial, centres }: { initial: EngagementSettings; centr
   const [version, setVersion] = useState(initial.version);
   const [errors, setErrors] = useState<Errors>({});
   const [banner, setBanner] = useState<Banner_>(null);
-  const [saved, setSaved] = useState(false);
+  const [dirty, setDirty] = useState(false);
+  const [tab, setTab] = useState<string>('features');
+  const toast = useToast();
   const [saving, setSaving] = useState(false);
   const [focus, setFocus] = useState<{ name: Name; n: number } | null>(null);
   const root = useRef<HTMLDivElement>(null);
@@ -73,21 +86,21 @@ function SettingsForm({ initial, centres }: { initial: EngagementSettings; centr
     if (focus) root.current?.querySelector<HTMLElement>(`[name="${focus.name}"]`)?.focus();
   }, [focus]);
 
-  /** An edit clears the saved status and the error of the field(s) it touches. */
+  /** An edit marks the form dirty and clears the error of the field(s) it touches. */
   const edit = <T,>(set: (v: T) => void, ...names: Name[]) => (v: T) => {
     set(v);
-    setSaved(false);
+    setDirty(true);
     if (names.length) setErrors((e) => Object.fromEntries(Object.entries(e).filter(([k]) => !names.includes(k as Name))));
   };
   const fail = (e: Errors, title: string, first: Name) => {
     setErrors(e);
     setBanner({ kind: 'error', title });
+    setTab(tabOf(first)); // the named field is on screen before it is focused
     setFocus((f) => ({ name: first, n: (f?.n ?? 0) + 1 }));
   };
 
   async function submit() {
     setBanner(null);
-    setSaved(false);
     setErrors({});
     const missing = ALL_INTS.find((i) => ints[i.key] === undefined);
     if (missing) return fail({ [missing.key]: `${missing.label} must be a whole number from ${missing.min} to ${missing.max}.` }, NOT_ACCEPTED, missing.key);
@@ -109,7 +122,8 @@ function SettingsForm({ initial, centres }: { initial: EngagementSettings; centr
       const r = await saveEngagementSettingsAction(version, body);
       if (r.ok) {
         setVersion(r.settings.version); // the next save sends the version this one returned
-        setSaved(true);
+        setDirty(false);
+        toast.show({ tone: 'success', title: 'Settings saved.' }); // LD-353 template 4: one success toast, no in-page banner
       } else if (r.status === 409) setBanner({ kind: 'conflict' });
       else if (r.status === 403) setBanner({ kind: 'error', title: r.code === 'auth.mfa_required' ? MFA_COPY : 'You do not have permission to change these settings.' });
       else if (r.status === 429) setBanner({ kind: 'error', title: 'Too many requests. Wait a moment and try again.' });
@@ -148,12 +162,12 @@ function SettingsForm({ initial, centres }: { initial: EngagementSettings; centr
           </Banner>
         ) : null}
       </div>
-      <div role="status">{saved ? <Banner tone="success" title="Settings saved." /> : null}</div>
-      <Form onSubmit={submit}>
-        <Card title="Features">
-          {FEATURES.map(([k, label]) => toggle(k, label))}
-        </Card>
-        <Card title="Patient app">
+      <KitSettingsForm
+        tabs={<Tabs aria-label="Engagement settings sections" items={TABS} selectedId={tab} onChange={setTab} />}
+        onSave={submit} isSaving={saving} isDirty={dirty}
+      >
+        <div className="lims-settings-section" hidden={tab !== 'features'}>{FEATURES.map(([k, label]) => toggle(k, label))}</div>
+        <div className="lims-settings-section" hidden={tab !== 'app'}>
           <TextField
             // maxItems 5 x "+NNNN" (5 chars) joined by ", " = 33; 34 allows one trailing space
             label={LABEL.allowed_phone_prefixes} name="allowed_phone_prefixes" value={prefixes} maxLength={34} description="Up to 5 prefixes separated by commas, for example +977, +91."
@@ -180,19 +194,18 @@ function SettingsForm({ initial, centres }: { initial: EngagementSettings; centr
             onChange={edit(setDisclaimer, 'smart_report_disclaimer_text')} {...err('smart_report_disclaimer_text')}
           />
           {numbers('app')}
-        </Card>
-        <Card title="Bookings">
+        </div>
+        <div className="lims-settings-section" hidden={tab !== 'booking'}>
           {numbers('booking')}
           {toggle('auto_no_show', 'Auto no-show')}
           {centreOptions.length ? <Select label={LABEL.home_collection_centre_id} name="home_collection_centre_id" options={centreOptions} {...(centre ? { value: centre } : {})} onChange={edit(setCentre, 'home_collection_centre_id')} /> : null}
-        </Card>
-        <Card title="Reminders">
+        </div>
+        <div className="lims-settings-section" hidden={tab !== 'reminder'}>
           {toggle('auto_follow_up_reminders', 'Auto follow-up reminders')}
           {numbers('reminder')}
-        </Card>
-        <Card title="Queue">{numbers('queue')}</Card>
-        <Button variant="primary" type="submit" isDisabled={saving} shortcut="Ctrl+Enter">Save</Button>
-      </Form>
+        </div>
+        <div className="lims-settings-section" hidden={tab !== 'queue'}>{numbers('queue')}</div>
+      </KitSettingsForm>
     </div>
   );
 }

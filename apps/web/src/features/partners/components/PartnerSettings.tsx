@@ -2,12 +2,11 @@
 // SS-1 Partner settings (02-TRD §10.2): one form, one Save for the whole object. The settings carry no version; the ETag of the GET is the If-Match of the PUT.
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button } from '@lims/ui/components/Button';
-import { Form } from '@lims/ui/components/Form';
 import { IntegerField } from '@lims/ui/components/IntegerField';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { t } from '@/core/i18n/messages';
 import { RadioGroup } from '@lims/ui/components/RadioGroup';
+import { SettingsForm } from '@lims/ui/components/SettingsForm';
 import { Switch } from '@lims/ui/components/Switch';
 import { TextArea } from '@lims/ui/components/TextArea';
 import { TextField } from '@lims/ui/components/TextField';
@@ -29,8 +28,9 @@ export function PartnerSettings({ initial, etag, canManage }: { initial: Setting
   });
   const [notice, setNotice] = useState<string>();
   const [busy, setBusy] = useState(false);
-  const set = <K extends keyof Settings>(k: K) => (v: Settings[K]) => setS((o) => ({ ...o, [k]: v }));
-  const num = (k: NumKey) => (v: number | undefined) => setNums((o) => ({ ...o, [k]: v }));
+  const [dirty, setDirty] = useState(false);
+  const set = <K extends keyof Settings>(k: K) => (v: Settings[K]) => { setS((o) => ({ ...o, [k]: v })); setDirty(true); };
+  const num = (k: NumKey) => (v: number | undefined) => { setNums((o) => ({ ...o, [k]: v })); setDirty(true); };
   const ro = !canManage;
 
   const save = async () => {
@@ -38,17 +38,14 @@ export function PartnerSettings({ initial, etag, canManage }: { initial: Setting
     setNotice(undefined);
     try {
       const r = await saveSettingsAction({ ...s, ...(nums as Record<NumKey, number>) }, etag);
-      if (r.ok) { toast.show({ tone: 'success', title: 'Settings saved.' }); router.refresh(); } else setNotice(errorText(r.code, r.status));
+      if (r.ok) { setDirty(false); toast.show({ tone: 'success', title: 'Settings saved.' }); router.refresh(); } else setNotice(errorText(r.code, r.status));
     } finally {
       setBusy(false);
     }
   };
 
-  return (
-    <section aria-label="Partner settings">
-      <PageHeader title={t('partners.nav.settings')} helpKey="partners.settings" />
-      {notice ? <Notice text={notice} /> : null}
-      <Form onSubmit={save}>
+  const fields = (
+    <>
         <RadioGroup label="Default order creation" name="default_conversion_mode" options={MODES} value={s.default_conversion_mode} onChange={set('default_conversion_mode')} isReadOnly={ro} />
         <Switch label="Show standard-rate tests to partners" isSelected={s.include_default_price_list} onChange={set('include_default_price_list')} isDisabled={ro} />
         <Switch label="Require confirmed doctors" isSelected={s.require_mapped_referrer} onChange={set('require_mapped_referrer')} isDisabled={ro} />
@@ -60,8 +57,19 @@ export function PartnerSettings({ initial, etag, canManage }: { initial: Setting
         <IntegerField label="Daily report downloads per user" name="report_download_daily_cap_per_user" isRequired min={50} max={5000} {...(nums.report_download_daily_cap_per_user !== undefined ? { value: nums.report_download_daily_cap_per_user } : {})} onChange={num('report_download_daily_cap_per_user')} isReadOnly={ro} />
         <TextField label="Consent text version" name="consent_text_version" maxLength={32} isRequired value={s.consent_text_version} onChange={set('consent_text_version')} isReadOnly={ro} />
         <TextArea label="Consent statement" name="consent_statement" maxLength={2000} rows={5} isRequired value={s.consent_statement} onChange={set('consent_statement')} isReadOnly={ro} />
-        {canManage ? <Button type="submit" variant="primary" isLoading={busy}>Save settings</Button> : null}
-      </Form>
+    </>
+  );
+
+  return (
+    <section aria-label="Partner settings">
+      <PageHeader title={t('partners.nav.settings')} helpKey="partners.settings" />
+      {notice ? <Notice text={notice} /> : null}
+      {/* T0D-UISETTINGS-1 (LD-353 template 4): one section, so no tabs; read only shows the values without the Save bar. */}
+      {canManage ? (
+        <SettingsForm onSave={save} saveLabel="Save settings" isSaving={busy} isDirty={dirty}>{fields}</SettingsForm>
+      ) : (
+        <div className="lims-settings"><div className="lims-settings-form"><div className="lims-settings-fields">{fields}</div></div></div>
+      )}
     </section>
   );
 }

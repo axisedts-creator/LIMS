@@ -6,6 +6,7 @@ import { sqlExceptionStore } from '../service/exception.service.js';
 import { resultSideStore } from '../service/result-side.store.js';
 import { criticalStore } from './critical.store.js';
 import { resultsStore, type StoreCtx } from './results.store.js';
+import { signoffStore } from './signoff.store.js';
 import { worklistStore } from './worklist.store.js';
 
 export function labStore(tx: unknown, ctx?: StoreCtx) {
@@ -16,6 +17,6 @@ export function labStore(tx: unknown, ctx?: StoreCtx) {
     ? sqlExceptionStore(ctx.actor.id, { ...resultSideStore({ tenantId: ctx.tenantId, requestId: ctx.requestId ?? '', tx: tx as never, now: () => ctx.now().toISOString(),
       actor: { type: ctx.actor.type ?? 'user', ...ctx.actor }, ports: ctx.ports }), ...results, getResultForAssign: results.getResultForAssign })
     : {};
-  return { ...exceptions, ...criticalStore(), ...worklistStore(), ...results };
+  return { ...exceptions, ...criticalStore(), ...worklistStore(), ...results, signoffs: signoffStore() };   // T0B-VERLEVEL-1 (LD-316) sign-off seam
 }
 export type LabStore = ReturnType<typeof labStore>;

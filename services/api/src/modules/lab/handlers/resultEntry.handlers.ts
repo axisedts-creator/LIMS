@@ -7,6 +7,7 @@
 // live entry rejects both fields (no back-dating of anything else). max hours = tenant setting downtime_backentry_max_hours, DEFAULT 72 until that setting has a column.
 import { LimsError, type FieldError } from '../../../core/errors.js';
 import type { Handler, HandlerContext, HandlerRequest, HandlerResult } from '../../../core/module.js';
+import { withCounters } from '../service/signoff.service.js';
 import { toResultDto } from '../mappers/result.mapper.js';
 import { labStore } from '../store/labStore.js';
 import { bulkEnterResults, type EntryInput, type EntryStore, type ResultRow } from '../service/result.service.js';
@@ -111,7 +112,7 @@ const getResult: Handler = async (req, hctx) => {
   // authz after the object load (P-02); 08 A13 D-13 hub lab: the processing centre also sees the result (T-32 P-12)
   try { await assertRead(ctx, row['centre_id']); }
   catch (e) { if (!(e instanceof LimsError && e.code === 'common.not_found' && typeof row['processing_centre_id'] === 'string')) throw e; await assertRead(ctx, row['processing_centre_id']); }
-  return { status: 200, body: toResultDto(row) };
+  return { status: 200, body: toResultDto((await withCounters(ctx, [row]))[0]!) };   // T0B-VERLEVEL-1 (LD-316): signoff_count / signoff_required / next_step
 };
 
 const listOrderResults: Handler = async (req, hctx) => {

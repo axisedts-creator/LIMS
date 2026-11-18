@@ -10,6 +10,8 @@ import { manifest } from '../../index.js';
 const spec: any = loadSpec(join(REPO_ROOT, 'contracts/openapi/catalog.yaml'));
 const NEW_OPS = ['listTestCategories', 'createTestCategory', 'updateTestCategory'] as const;
 const PRICETOOLS = ['downloadPriceListTemplate', 'dryRunPriceListImport', 'commitPriceListImport', 'bulkUpdatePriceListDraft', 'copyPriceList', 'comparePriceLists', 'listPriceListImportBatches'] as const;
+// T0C-TESTIMPORT-1 added these six operations, handlers by T0B-TESTIMPORT-1 (LD-318, LD-368).
+const TESTIMPORT = ['downloadCatalogImportTemplate', 'validateCatalogImport', 'listCatalogImports', 'getCatalogImport', 'commitCatalogImport', 'downloadCatalogImportErrors'] as const;
 const opOf = (id: string): any => { for (const p of Object.values<any>(spec.paths)) for (const m of Object.values<any>(p)) if (m?.operationId === id) return m; };
 const pending = ((manifest as { pendingOperations?: readonly string[] }).pendingOperations ?? []) as readonly string[];
 
@@ -25,8 +27,9 @@ describe('(1) module boot: every operation of catalog.yaml has a real handler', 
   it('checkHandlers (the boot check, AC-0D-1.2) passes with handlers plus the price list pending ids and reports no stale pending id', () => {
     expect(checkHandlers('catalog', spec, manifest.handlers, pending)).toEqual([]);
   });
-  it('the contract has exactly 110 + 7 price list tool operations (this task adds handlers, not operations)', () => {
-    expect(operationIds(spec)).toHaveLength(110 + PRICETOOLS.length);
+  it('the contract has exactly 110 + 7 price list tool + 6 catalog import operations (this task adds handlers, not operations)', () => {
+    expect(operationIds(spec)).toHaveLength(110 + PRICETOOLS.length + TESTIMPORT.length);
+    for (const id of TESTIMPORT) expect((manifest.handlers as any)[id], id).toBeTypeOf('function');
     expect([...Object.keys(manifest.handlers), ...pending].sort()).toEqual(operationIds(spec).sort());
     for (const id of PRICETOOLS) expect(Object.keys(manifest.handlers), id).not.toContain(id);
   });

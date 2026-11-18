@@ -5,3 +5,7 @@ export * from './engine';
 export * from './connectivity';
 export * from './device';
 export * from './register-sw';
+// T0D-OFFLINE-2: status chip state, reference data prefetch, the controller of the offline screens
+export * from './chip';
+export * from './prefetch';
+export * from './controller';

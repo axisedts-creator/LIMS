@@ -1025,6 +1025,12 @@ export const ROUTES = {
     "path": "/micro/worklist",
     "permission": "micro.culture.read"
   },
+  "staff.offline": {
+    "origin": "staff_web",
+    "owner": "C0",
+    "path": "/offline",
+    "permission": "sync.use"
+  },
   "staff.partners.inbox": {
     "origin": "staff_web",
     "owner": "C13",

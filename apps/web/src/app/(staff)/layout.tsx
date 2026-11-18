@@ -4,6 +4,7 @@ import { PermissionDenied } from '@/core/errors/PermissionDenied';
 import { hasPermission, matchStaffRoute } from '@/core/permissions/routes';
 import { getRequestPathname, getShellSession } from '@/core/session/server';
 import { AppShell } from '@/core/shell/AppShell';
+import { OfflineProvider } from '@/core/offline/ui/OfflineProvider';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,9 +16,13 @@ export default async function StaffLayout({ children }: { children: ReactNode })
   const pathname = await getRequestPathname();
   const route = matchStaffRoute(pathname);
   const allowed = !route || hasPermission(session.actor.permissions, route.permission);
+  // T0D-OFFLINE-2 (LD-322): the provider starts the offline layer in the browser for roles with sync.use; the shell shows its chip,
+  // banner and unlock overlay only once it runs. Without IndexedDB or sync.use nothing changes.
   return (
-    <AppShell session={session} pathname={pathname} menu="elab">
-      {allowed ? children : <PermissionDenied />}
-    </AppShell>
+    <OfflineProvider live={{ userId: session.actor.membershipId ?? '', permissions: session.actor.permissions }}>
+      <AppShell session={session} pathname={pathname} menu="elab">
+        {allowed ? children : <PermissionDenied />}
+      </AppShell>
+    </OfflineProvider>
   );
 }

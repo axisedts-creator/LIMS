@@ -2,7 +2,7 @@
 // Validates its own input (the Excel import of T0B-TESTIMPORT-1 will call it directly). Deactivate, never delete (done_when 5): no delete path exists.
 // Unique (tenant, department, lower(name)) is the index test_categories__tenant_id_department_id_lower_name__uq: 23505 -> 409 catalog.code_duplicate;
 // the composite FK (tenant_id, department_id) makes an unknown or other tenant's department 23503 -> 404 common.not_found (same answer, S-1).
-// [CONV] catalog.changed.v1 has no entity_type for a category yet: a category bumps as 'department' (it is department master data). CR .orchestra/cr/T0B-TESTMGMT-1.md.
+// LD-333(b): a category bumps as entity_type test_category (added to catalog.changed.v1 by T0C-TESTIMPORT-1); entity_id stays the category id.
 import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';
 import type { FieldError } from '../../../core/errors.js';
 import { LimsError } from '../../../core/errors.js';
@@ -15,7 +15,7 @@ import { checkQuery, isActiveOf, limitOf } from './tests.service.js';
 const COLS = ['id', 'department_id', 'name', 'display_order', 'print_footer', 'footer_text', 'is_active', 'version'];
 const FIELDS: Record<string, Field> = { name: str(1, 200), display_order: { t: 'int', min: 0, max: 9999 }, print_footer: BOOL, footer_text: str(1, 2000), is_active: BOOL };
 const SORTS = ['name', '-name', 'display_order', '-display_order'];
-const ENTITY = 'department';   // [CONV] see header
+const ENTITY = 'test_category';   // LD-333(b)
 
 type R = Record<string, any>;
 const dto = (r: R) => ({

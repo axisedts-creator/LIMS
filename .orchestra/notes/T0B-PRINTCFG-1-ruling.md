@@ -1,0 +1,25 @@
+TESTS_WRONG — dispute 3 point 1 is a fixture defect (tester fixes it, same class as ruling dispute 2 point 1); point 2 is load only. No assertion may be removed or loosened.
+1. TESTER, billing/service/__tests__/printcfg.live.test.ts:16-20 + :35/:48-49 — `ins('billing.invoices', ...)` uses `jsonb_populate_record`, which nulls every column the `invoice()` helper omits and so overrides the NOT NULL defaults of billing.invoices (db/migrations/20261105001700_billing__create_billing_schema.sql:65 `is_periodic_credit_bill`, :75 `credited_total_paisa`, :80 `cbms_cancel_attempts`, :83 `created_at`, :84 `updated_at`). No later migration adds NOT NULL columns to invoices. The spec requires none of these to be NULL; the test does not intend to test them.
+   Fix (fixture only, pick one): (a) add `is_periodic_credit_bill: false, credited_total_paisa: 0, cbms_cancel_attempts: 0, created_at: <iso now>, updated_at: <iso now>` to the `invoice()` helper; or (b) build `ins()` as an explicit-column INSERT (`INSERT INTO t (<keys of row>) SELECT <keys> FROM jsonb_populate_record(NULL::t, $1)`) so omitted columns take their DB defaults. (b) is preferred: it removes this defect class for every table in the file at once.
+   Tester: check every remaining `ins()` row (invoices, and any print_log/invoice_lines rows) against the DDL once, :630-635 for print_log, :199-212 for invoice_lines.
+2. LOAD ONLY (ruling dispute 2 point 3 stands): render.client.integration renderer unreachable, bulk-release.load self-check timing and billing boot.test.ts timeout are environmental; no code change. The 3 green runs must still be shown (fewer parallel lanes if needed).
+3. Ruling dispute 2 point 2 (portal SQL to repository/portal.repo.ts) is accepted as done.
+After 1 the writer re-runs the print tests, the reporting and billing suites and the boot test 3x.
+
+
+## LEAD ITEM LD-382 FOR THE TESTER (written by the lead, 17:10 NPT; this is a test file item and it is yours)
+File: services/api/src/modules/reporting/__tests__/render.client.integration.test.ts. Change only this file.
+Why: the 2 cases that print a real PDF fail only in the full 166 worker run (fast, renderer unreachable or failed), pass alone 6 of 6, and the renderer code is identical to main. The vitest retry 2 added for LD-379 cannot help: a retry re-runs inside the same file and reuses the one Chromium pool and renderer server made in beforeAll. The PC is short of virtual memory.
+1. createPool with contexts 1 instead of 2.
+2. Remove the retry 2 option from the 2 PDF cases. Add a helper that, when a render fails with code reporting.render_unavailable, closes the server and the pool, waits 1500 ms times the attempt number, creates a NEW pool and a NEW server (reassign srv and the client url) and tries again, up to 4 attempts inside the 90 s case timeout.
+3. In beforeAll after createPool run a direct probe: pool.render of a tiny html page (no client, no server) with the same fresh start loop. If the probe cannot print a PDF after 4 fresh starts, set a module flag, print one console warning line starting with CHROMIUM_UNAVAILABLE plus os.freemem, and the 2 PDF cases skip themselves. When the probe passes, the 2 cases MUST run and pass with every assertion kept (PDF magic bytes, page count, png asset validation, render still succeeds, token never echoed), so a defect in the client or the server still fails.
+4. When a PDF case still fails after the fresh starts, the thrown error must add the raw HTTP status and the first 200 characters of the body of a direct fetch to the render endpoint with the same body (never the token).
+The skip path exists only for Chromium itself being unable to print a trivial page. Do not touch the renderer, the client or any print code.
+
+
+## LEAD ITEM 2 LD-389 FOR THE TESTER (written by the lead, 19:55 NPT; test file item, it is yours)
+File: services/api/src/modules/billing/__tests__/accounts/reversal.test.ts, the test no update path exists for the money columns (line 117). Verdict TESTS_WRONG (dispute 4 of the writer): migration 20261117190000_billing__add_finance_controls.sql (T0C-FINCTRL-1) now grants lims_app a column level UPDATE on status and the hold columns and the guard trigger account_ledger_hold_guard allows only submitted to held and held to submitted; any other status change raises P0001 immutable_row. The invariant (no reversal or edit by UPDATE) still holds, only the error code of the status case changed.
+1. Keep 42501 for UPDATE of amount_paisa and for DELETE.
+2. For UPDATE of status to reversed expect P0001 with message immutable_row; after the refused statement re-read the entry with the helper this file already uses and assert status and amount are unchanged.
+3. Rename the title: money columns and DELETE are refused with 42501, a status change other than hold and release is refused by the guard with P0001.
+4. Grep the other billing tests for the same pin (a status UPDATE expected to give 42501) and fix them the same way. Keep every other assertion. Touch no other file; the migration is right.

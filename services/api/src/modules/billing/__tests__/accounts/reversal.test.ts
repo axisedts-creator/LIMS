@@ -109,12 +109,28 @@ describe('reverseAccountLedgerEntry', () => {
     expect(ok(await summary(w))).toMatchObject({ outstanding_paisa: 10_000, outstanding_side: 'credit' });
   }, T);
 
-  it('no update path exists for the money columns: lims_api cannot UPDATE or DELETE the ledger table at all (42501), whatever the service does', async () => {
+  it('no update path exists for the money columns: lims_api cannot UPDATE amount_paisa or DELETE a ledger row (42501), whatever the service does', async () => {
     const w = await world('a');
     const e = await entry(w, {});
-    for (const sql of ['UPDATE billing.account_ledger_entries SET amount_paisa = 1 WHERE id = $1', "UPDATE billing.account_ledger_entries SET status = 'reversed' WHERE id = $1", 'DELETE FROM billing.account_ledger_entries WHERE id = $1']) {
+    for (const sql of ['UPDATE billing.account_ledger_entries SET amount_paisa = 1 WHERE id = $1', 'DELETE FROM billing.account_ledger_entries WHERE id = $1']) {
       const err: any = await appTx(TENANT_A, async (tx: any) => { await tx.query(sql, [e.id]); }).then(() => undefined, (x: any) => x);
       expect(err?.code, sql).toBe('42501');
     }
+  }, T);
+
+  // T0B-FINCTRL-1 ruling (TESTS_WRONG): the later planned T0C-FINCTRL-1 migration grants UPDATE on status + hold columns only (hold / release), guarded by a trigger
+  // that raises P0001 immutable_row for any other transition. A direct write of status = 'reversed' must still be refused, and the row must be unchanged.
+  it("a direct SET status = 'reversed' is refused (42501 or P0001 immutable_row) and leaves the status unchanged", async () => {
+    const w = await world('a');
+    const e = await entry(w, {});
+    const sql = "UPDATE billing.account_ledger_entries SET status = 'reversed' WHERE id = $1";
+    const before: any = await appTx(TENANT_A, async (tx: any) => (await tx.query('SELECT status FROM billing.account_ledger_entries WHERE id = $1', [e.id])).rows[0]);
+    const err: any = await appTx(TENANT_A, async (tx: any) => { await tx.query(sql, [e.id]); }).then(() => undefined, (x: any) => x);
+    expect(err, 'the write must not succeed').toBeDefined();
+    expect(['42501', 'P0001'], `${err?.code} ${err?.message}`).toContain(err?.code);
+    if (err?.code === 'P0001') expect(err.message).toMatch(/immutable_row/);
+    const after: any = await appTx(TENANT_A, async (tx: any) => (await tx.query('SELECT status FROM billing.account_ledger_entries WHERE id = $1', [e.id])).rows[0]);
+    expect(after.status).toBe(before.status);
+    expect(after.status).not.toBe('reversed');
   }, T);
 });

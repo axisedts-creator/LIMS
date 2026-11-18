@@ -8,6 +8,7 @@ import { exportsHandlers } from './exports.handlers.js';
 import { formulasHandlers } from './formulas.handlers.js';
 import { healthHandlers } from './health.handlers.js';
 import { importsHandlers } from './imports.handlers.js';
+import { testImportHandlers } from '../import/handlers.js';
 import { instrumentMapsHandlers } from './instrumentMaps.handlers.js';
 import { mastersHandlers } from './masters.handlers.js';
 import { panelsHandlers } from './panels.handlers.js';
@@ -32,4 +33,5 @@ export const handlers: Readonly<Record<string, Handler>> = Object.freeze({
   ...instrumentMapsHandlers, // T-27: #92–#95 (instrument code maps)
   ...importsHandlers,
   ...exportsHandlers, // T-36: #104–#107 (export API)
+  ...testImportHandlers, // T0B-TESTIMPORT-1 (LD-318): Excel test import, six operations
 });

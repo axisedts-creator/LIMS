@@ -1,0 +1,8 @@
+# T0B-TESTIMPORT-1 impl (writer) — STOPPED on dispute (T0B-TESTIMPORT-1-dispute.md: 2 test harness defects)
+- NEW `services/api/src/modules/catalog/import/`: fields.ts (one field list: template, parser, validator), xlsx.ts (node:zlib reader/writer, bomb/macro/link/OLE/XXE/formula refusals), validate.ts (all rules, 1000 cap), service.ts (6 ops; commit via existing tests/analyte/ranges/panels services, DRAFTS only), handlers.ts. handlers/index.ts registers them; catalog index.ts drops the 6 pending ids.
+- ranges.service.ts: export cmpDec / criticalErrors / groupKey (reused, not copied). categories.service.ts ENTITY -> test_category (LD-333 b). docs/ops/CATALOG-IMPORT.md (audit: xlsx 0.18.5 high, exceljs moderate; pick = no new dependency).
+- [CONV] Instrument / Laboratory Code: no port exposes those masters to catalog, so any value -> unknown_master (lists empty). Category Name must exist (tests require unknown_master).
+- [CONV] gender any kept as an any-sex band (third_gender separate, test expects no overlap); division by constant zero detected by evaluateFormula on 2 random input sets (AST opaque).
+- [CONV] update mode: test row updated in place, new DRAFT analyte version / draft range set; existing panels left unchanged. Idempotency by advisory lock + lookup (tenant, sha, mode).
+- Checks: tsc clean; static + pending-ops + boot (no DB) pass; import folder on PG17 132/180 pass, 46 failures are the disputed helper defects; full catalog suite x3 NOT run.
+- Open: probe kit / EXPECTED rows for import_batch not added (test files); errors-file includes Meta + Lists so a fixed file re-validates.

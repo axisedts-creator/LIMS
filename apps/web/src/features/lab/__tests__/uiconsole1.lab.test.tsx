@@ -158,10 +158,10 @@ describe('/lab/ingest-exceptions detail, History, bar, filters and security', ()
     const bar = filterBars(container)[0]!;
     expect(norm(bar.textContent)).toMatch(/reason/i);
     expect(norm(bar.textContent)).toMatch(/status/i);
-    await user.click(within(bar).getByRole('button', { name: /^reason/i }));
+    await user.click(within(bar).getByRole('button', { name: /reason/i }));
     await user.click(await screen.findByRole('option', { name: 'Code not mapped' }));
     expect(String(push.mock.calls.at(-1)![0])).toMatch(/reason=unmapped_code/);
-    await user.click(within(bar).getByRole('button', { name: /^status/i }));
+    await user.click(within(bar).getByRole('button', { name: /status/i }));
     await user.click(await screen.findByRole('option', { name: /resolved/i }));
     const target = String(push.mock.calls.at(-1)![0]);
     expect(target).toMatch(/status=resolved/);

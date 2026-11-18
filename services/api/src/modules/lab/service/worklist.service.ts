@@ -180,7 +180,7 @@ export async function listWorklistItems(hctx: unknown, query: unknown): Promise<
   return { status: 200, body: { data, page } };
 }
 
-// ---- #34 listVerificationQueue (02-TRD §5.4; T-32 / P-03 / P-10): stage verify = resulted rows, approve = verified rows; oldest result first, centre-scoped. ----
+// ---- #34 listVerificationQueue (02-TRD §5.4; T-32 / P-03 / P-10): stage verify / approve by the sign-off counters (T0B-VERLEVEL-1, LD-316, store/worklist.store.ts); oldest result first, centre-scoped. ----
 export async function listVerificationQueue(hctx: unknown, query: unknown): Promise<Result> {
   const c = ctxOf(hctx);
   await role(c, 'lab.result.read');
@@ -193,7 +193,7 @@ export async function listVerificationQueue(hctx: unknown, query: unknown): Prom
   const departmentId = uuidQ(q, 'department_id'), priority = priorityQ(q);
   const after = decode(q['cursor'], stage);
   const s = await scopeOf(c as never);
-  const raw = await c.store.listQueueRows(c.tx, c.tenantId, omit({ status: stage === 'verify' ? 'resulted' : 'verified', departmentId, priority, flaggedOnly: f === true || f === 'true' ? true : undefined,
+  const raw = await c.store.listQueueRows(c.tx, c.tenantId, omit({ stage, callerId: c.actor.id, departmentId, priority, flaggedOnly: f === true || f === 'true' ? true : undefined,
     scopeCentreIds: scopeIds(s), limit: limit + 1, after }));
   const { rows, page } = paged(raw, c, s, limit, stage, (r) => String(iso(r['queue_at'])));
   const names = await patientDisplays(c, rows);

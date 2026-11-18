@@ -101,6 +101,7 @@ export function BookingsList({ centres, workingCentreId, today, rows: initial, q
       {error ? <Banner tone="danger" title={error} /> : null}
       <DataTable
         caption="Bookings"
+        cellTitle
         rows={rows}
         getRowId={(r) => r.id}
         isLoading={loading}
@@ -112,7 +113,8 @@ export function BookingsList({ centres, workingCentreId, today, rows: initial, q
           { id: 'no', header: 'Booking no.', isRowHeader: true, cell: (r) => <span className="lims-mono">{r.booking_no}</span> },
           { id: 'patient', header: 'Patient', cell: (r) => r.patient_name || '—' },
           { id: 'type', header: 'Type', cell: (r) => KIND_LABEL[r.booking_kind] ?? r.booking_kind },
-          { id: 'tests', header: 'Tests', align: 'end', cell: (r) => num(r.items.length) },
+          // T0D-UILIST-3 (LD-353 rule 5): count plus the test names; the cut off cell carries them as title (cellTitle)
+          { id: 'tests', header: 'Tests', cell: (r) => (r.items.length ? `${num(r.items.length)}· ${r.items.map((i) => i.display_name).join(', ')}` : num(0)) },
           { id: 'source', header: 'Source', cell: (r) => SOURCE_LABEL(r.created_via) },
           { id: 'status', header: 'Status', cell: (r) => { const s = statusOf(r.status); return <StatusChip kind="generic" status={r.status} tone={s.tone} label={s.label} />; } },
           { id: 'order', header: 'Order', cell: (r) => (r.order_id ? <a href={`/frontdesk/orders/${encodeURIComponent(r.order_id)}`}>Open order</a> : '—') },

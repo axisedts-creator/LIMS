@@ -228,6 +228,9 @@ export function createPushEngine(s: PushSettings, registry: ReadonlyMap<string, 
             await repo.writeOutcome(w.tx, w.tenantId, op.opId, { status: out.status, result: out, errorCode: out.error_code, skew });
             return out;
           }
+          // 02-TRD §6.4: a serialization failure or deadlock is never an op outcome; rethrow so the whole request tx is retried (T0B-SYNC-5 ruling).
+          const pg = (e as { code?: unknown } | null)?.code;
+          if (pg === '40001' || pg === '40P01') throw e;
           const code = codeOf(e);
           if (code === 'common.internal') ctx.log?.warn({ event: 'sync_operation_failed', op_type: op.opType });
           out = { op_id: op.opId, status: 'rejected', error_code: code, skew_flag: skew };

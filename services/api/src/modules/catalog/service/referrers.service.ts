@@ -140,7 +140,8 @@ export interface ReferrersDeps extends Deps {
 
 export function createReferrersService(deps: ReferrersDeps) {
   const revision = createRevisionService(deps);
-  const nowOf = (ctx: Ctx) => ctx.now?.() ?? new Date().toISOString();
+  // T0B-PARTYSET-1: accept a Date as well as the pipeline's ISO string (same normalisation as CatalogPort.impl nowOf); the event schema needs a string.
+  const nowOf = (ctx: Ctx): string => { const n: unknown = ctx.now?.(); return typeof n === 'string' ? n : (n instanceof Date ? n : new Date()).toISOString(); };
   const bump = (ctx: Ctx, id: string, changeKind: string, at: string) =>
     revision.bumpRevision(ctx, { entityType: 'doctor', entityId: id, changeKind, effectiveFrom: at });
   const q = (ctx: Ctx, text: string, values: unknown[]) => (ctx.tx as Tx).query(text, values);
@@ -149,7 +150,7 @@ export function createReferrersService(deps: ReferrersDeps) {
   async function nextCode(ctx: Ctx): Promise<string> {
     const { rows } = await q(ctx,
       'INSERT INTO catalog.code_counters (tenant_id, counter_key, next_value, created_by) VALUES ($1, $2, 2, $3) ' +
-      'ON CONFLICT (tenant_id, counter_key) DO UPDATE SET next_value = next_value + 1, updated_at = now() RETURNING next_value',
+      'ON CONFLICT (tenant_id, counter_key) DO UPDATE SET next_value = catalog.code_counters.next_value + 1, updated_at = now() RETURNING next_value',
       [ctx.tenantId, 'doctor_code', ctx.actor.id]);
     return `DR${String(Number(rows[0].next_value) - 1).padStart(5, '0')}`;
   }

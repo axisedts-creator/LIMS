@@ -109,7 +109,7 @@ export function createCreditPartiesService(deps: CreditPartiesDeps) {
   async function nextCode(ctx: Ctx): Promise<string> {
     const { rows } = await q(ctx,
       'INSERT INTO catalog.code_counters (tenant_id, counter_key, next_value, created_by) VALUES ($1, $2, 2, $3) ' +
-      'ON CONFLICT (tenant_id, counter_key) DO UPDATE SET next_value = next_value + 1, updated_at = now() RETURNING next_value',
+      'ON CONFLICT (tenant_id, counter_key) DO UPDATE SET next_value = catalog.code_counters.next_value + 1, updated_at = now() RETURNING next_value',
       [ctx.tenantId, 'party_code', ctx.actor.id]);
     return `CP${String(Number(rows[0].next_value) - 1).padStart(5, '0')}`;
   }

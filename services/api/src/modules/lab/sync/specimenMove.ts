@@ -10,8 +10,15 @@ import type { HandlerContext } from '../../../core/module.js';
 import { LimsError } from '../../../core/errors.js';
 import { assertReservedInDeviceBlocks } from '../../../core/sync/blocks.service.js';
 import { SyncConflictError, auditSyncApplied, payloadShape, type SyncAdapter, type SyncOp } from '../../../core/sync/engine.js';
+import { scopeOf, visible } from '../service/specimen.service.js';
 
 export type ReadSpecimen = (ctx: HandlerContext, specimenId: string) => Promise<{ status: string; version: number } | undefined>;
+/** Default seam: the tenant row (SQL of the adapter) filtered by the SAME centre scope as the online service (review item 1, REQ-SEC-017,
+ *  T-32: a foreign specimen is common.not_found BEFORE any classification, so its state never leaks as duplicate / conflict). */
+export const scopedRead = (sql: string): ReadSpecimen => async (ctx, id) => {
+  const row = (await (ctx as any).tx.query(sql, [ctx.tenantId, id])).rows[0];
+  return row && visible(await scopeOf(ctx as never), row) ? { status: row.status, version: Number(row.version) } : undefined;
+};
 type Move = (c: unknown, params: unknown, headers: unknown, body: unknown) => Promise<unknown>;
 
 /** The forward path of a specimen (specimen.state.ts S2..S10, S13): a later position means the move already happened. */

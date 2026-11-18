@@ -25,7 +25,7 @@ export const billingRecordReceiptAdapter: SyncAdapter = {
       orderId, methodCode: b['method_code'], amount: { amountPaisa: b['amount_received_paisa'], currency: 'NPR' },
       ...(b['reference'] === undefined ? {} : { reference: b['reference'] }), ...(b['invoice_id'] === undefined ? {} : { invoiceId: b['invoice_id'] }),
       ...(b['card_holder_name'] === undefined ? {} : { cardHolderName: b['card_holder_name'] }), ...(b['payment_remark'] === undefined ? {} : { paymentRemark: b['payment_remark'] }),
-      captureKind: 'manual', issueReceiptNo: true, capturedAt: op.deviceCreatedAt, idempotencyKey: `${orderId}:pay:${op.opId}`,
+      captureKind: 'manual', issueReceiptNo: true, capturedAt: new Date(op.deviceCreatedAt).toISOString() /* engine allows 6 fraction digits, the ledger 3 (review item 2) */, idempotencyKey: `${orderId}:pay:${op.opId}`,
     });
     return {
       entityId: orderId,

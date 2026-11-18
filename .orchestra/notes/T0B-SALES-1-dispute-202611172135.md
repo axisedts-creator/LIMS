@@ -1,0 +1,4 @@
+TESTS_WRONG — T0B-SALES-1 (writer, 2026-11-17, second round after ruling 55c3ab50a)
+1. services/api/src/modules/partners/__tests__/sales/helpers.ts:127-130 `mkInvoice` (assignments.test.ts "outstanding_paisa ... SAME query"): the replica fix removed the chronology trigger, but the INSERT now fails on a CHECK, which replica mode does not disable: `error: new row for relation "invoices" violates check constraint "invoices__fp__ck"` (db/migrations/20261105001700_billing__create_billing_schema.sql:115, quote_fingerprint ~ '^[0-9a-f]{64}$'). Fixture value 'synthetic' breaks it.
+   CHANGE (fixture only): quote_fingerprint: '0'.repeat(64) (or crypto.randomBytes(32).toString('hex')). Also invoice_seq: Math.floor(Math.random() * 2e9) can be 0 and break invoices__seq__ck (line 94, >= 1): use 1 + Math.floor(...). Assertions unchanged.
+Implementation stays as is.

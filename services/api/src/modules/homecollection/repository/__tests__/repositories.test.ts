@@ -231,6 +231,8 @@ describe('reasons.repo — global seed codes (D-130), no tenant filter, paramete
   const A = hc.reason('visit_cancel_reasons', `hct03_${uid().slice(-8).replace(/-/g, '')}_a`, { sort_order: 9001 });
   const B = hc.reason('visit_cancel_reasons', `hct03_${uid().slice(-8).replace(/-/g, '')}_b`, { sort_order: 9002 });
   beforeAll(async () => { await seed('homecollection.g_cs_reasons', B); await seed('homecollection.g_cs_reasons', A); });
+  // arbiter T0B-SALES-1: g_cs_reasons is global seed-only (05-SCHEMA §2, H20); remove the non-spec fixture rows so no other file ever sees them
+  afterAll(async () => { await superTx((tx) => tx.query('DELETE FROM homecollection.g_cs_reasons WHERE id = ANY($1)', [[A.id, B.id]])); });
   it('listReasonsBySet(tx, setCode) returns active rows ordered by sort_order and takes no tenant argument', async () => {
     const m = await load('reasons');
     const got = await appTx(TENANT_A, (tx) => m.listReasonsBySet(tx, 'visit_cancel_reasons'));

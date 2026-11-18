@@ -88,15 +88,32 @@ afterEach(() => { cleanup(); api.resetHandlers(); calls.length = 0; push.mockRes
 afterAll(() => api.close());
 
 const wrap = (ui: ReactNode) => render(<ToastProvider>{ui}</ToastProvider>);
+// T0D-UICONSOLE-2 (LD-353 template 2 CONSOLE): one queue row per registration (checkbox "Select {reg}", the registration button, the next step label and, for a row the person already
+// signed, the dimmed row with the reason); the "Signed n of m" chip button and the sign-off list sit in the detail pane of the selected registration; "Select all unflagged (S)" opens one
+// confirm that sends; the primary button reads "Verify|Approve n (V|A)". Every assertion of the old flat table is kept and asked of the console markup.
+type User = ReturnType<typeof userEvent.setup>;
+const queueTable = () => screen.getByRole('table', { name: /queue/i });
+const resultsTable = () => screen.getByRole('table', { name: 'Results' });
 const rowOf = (reg: string) => {
-  const r = screen.getAllByRole('row').find((x) => x.textContent?.includes(reg));
+  const r = within(queueTable()).getAllByRole('row').find((x) => x.textContent?.includes(reg));
   if (!r) throw new Error(`no row for ${reg}`);
   return r;
 };
-const selectBox = (reg: string) => within(rowOf(reg)).getAllByRole('checkbox').find((c) => /select/i.test(c.getAttribute('aria-label') ?? '') || /select/i.test((c as HTMLInputElement).labels?.[0]?.textContent ?? ''))!;
-const bulkBtn = (verb: 'Verify' | 'Approve', n?: number) => screen.getByRole('button', { name: new RegExp(`^${verb}\\s*${n ?? '\\d+'}$`, 'i') });
+const selectBox = (reg: string) => within(rowOf(reg)).getByRole('checkbox', { name: `Select ${reg}` }) as HTMLInputElement;
+const openReg = (user: User, reg: string) => user.click(within(rowOf(reg)).getByRole('button', { name: reg }));
+const bulkBtn = (verb: 'Verify' | 'Approve', n?: number) => screen.getByRole('button', { name: new RegExp(`^${verb}${n === 0 ? '' : `\\s*${n ?? '\\d+'}`}\\s*\\(${verb[0]}\\)$`, 'i') });
 const signoffCalls = () => calls.filter((c) => c.method === 'GET' && c.url.pathname.endsWith('/signoffs'));
-const chipBtn = (reg: string, text: RegExp) => within(rowOf(reg)).getByRole('button', { name: text });
+const chipBtn = async (user: User, reg: string, text: RegExp) => { await openReg(user, reg); return within(resultsTable()).getByRole('button', { name: text }); };
+const outcomeDlg = () => waitFor(() => {
+  const d = screen.getAllByRole('dialog').find((x) => /\d+ done, \d+ not done/.test(x.textContent ?? ''));
+  if (!d) throw new Error('no outcome dialog yet');
+  return d;
+});
+/** "Select all unflagged (S)" opens ONE confirm; Confirm sends. */
+const selectAllUnflagged = async (user: User) => {
+  await user.click(screen.getByRole('button', { name: /^select all unflagged/i }));
+  await user.click(within(await screen.findByRole('dialog')).getByRole('button', { name: /^confirm$/i }));
+};
 
 const QUEUES = [
   ['verification queue', (items: any[], extra: Over = {}) => wrap(<VerificationQueue items={items} permissions={VERIFY} {...extra} />), 'Verify' as const, VERIFY],
@@ -111,26 +128,41 @@ describe.each(QUEUES)('T0D-VERLEVEL-1 %s — chip and next step', (_name, mount)
     ['level 3, one signed', 3, 1, 'verify', 'Signed 1 of 3', 'Needs verifier'],
     ['level 3, two signed', 3, 2, 'approve', 'Signed 2 of 3', 'Needs pathologist'],
     ['level 3, all signed', 3, 3, 'none', 'Signed 3 of 3', 'Ready'],
-  ] as const)('%s: chip and next step label', (_t, required, count, next, chip, step) => {
+  ] as const)('%s: chip and next step label', async (_t, required, count, next, chip, step) => {
+    const user = userEvent.setup();
     mount([lvl(1, required, count, next)]);
-    const row = rowOf('REG0001');
-    expect(within(row).getByText(chip)).toBeTruthy();
+    const row = rowOf('REG0001'); // queue row: next step
     expect(within(row).getByText(step)).toBeTruthy();
     for (const other of ['Needs verifier', 'Needs pathologist', 'Ready'].filter((x) => x !== step)) expect(within(row).queryByText(other)).toBeNull();
+    await openReg(user, 'REG0001'); // detail row: the chip (a button) and the same next step
+    expect(within(resultsTable()).getByText(chip)).toBeTruthy();
+    expect(within(resultsTable()).getByText(step)).toBeTruthy();
+    for (const other of ['Needs verifier', 'Needs pathologist', 'Ready'].filter((x) => x !== step)) expect(within(resultsTable()).queryByText(other)).toBeNull();
   });
 
-  it('every row has its own chip: a mixed page shows each row\'s own count, level and next step', () => {
+  it('every row has its own chip: a mixed page shows each row\'s own count, level and next step', async () => {
+    const user = userEvent.setup();
     mount([lvl(1, 2, 0, 'verify'), lvl(2, 3, 2, 'approve'), lvl(3, 1, 0, 'approve')]);
-    expect(within(rowOf('REG0001')).getByText('Signed 0 of 2')).toBeTruthy();
-    expect(within(rowOf('REG0002')).getByText('Signed 2 of 3')).toBeTruthy();
-    expect(within(rowOf('REG0003')).getByText('Signed 0 of 1')).toBeTruthy();
+    expect(within(rowOf('REG0001')).getByText('Needs verifier')).toBeTruthy();
+    expect(within(rowOf('REG0002')).getByText('Needs pathologist')).toBeTruthy();
+    expect(within(rowOf('REG0003')).getByText('Needs pathologist')).toBeTruthy();
+    await openReg(user, 'REG0001');
+    expect(within(resultsTable()).getByText('Signed 0 of 2')).toBeTruthy();
+    await openReg(user, 'REG0002');
+    expect(within(resultsTable()).getByText('Signed 2 of 3')).toBeTruthy();
+    await openReg(user, 'REG0003');
+    expect(within(resultsTable()).getByText('Signed 0 of 1')).toBeTruthy();
   });
 
-  it('old rows without the three fields still render: no chip, no next step, no crash, no sign-off request', () => {
+  it('old rows without the three fields still render: no chip, no next step, no crash, no sign-off request', async () => {
+    const user = userEvent.setup();
     mount([item(1)]);
     const row = rowOf('REG0001');
     expect(within(row).getByText(/Synthetic Patient 1/)).toBeTruthy();
     expect(row.textContent).not.toMatch(/Signed \d+ of \d+|Needs verifier|Needs pathologist/);
+    await openReg(user, 'REG0001');
+    expect(within(resultsTable()).getByText(/AN1/)).toBeTruthy();
+    expect(resultsTable().textContent).not.toMatch(/Signed \d+ of \d+|Needs verifier|Needs pathologist/);
     expect(signoffCalls()).toHaveLength(0);
   });
 
@@ -138,7 +170,7 @@ describe.each(QUEUES)('T0D-VERLEVEL-1 %s — chip and next step', (_name, mount)
     const user = userEvent.setup();
     mount([lvl(1, 2, 0, 'verify'), lvl(2, 2, 0, 'verify')]);
     await user.click(selectBox('REG0001'));
-    expect((screen.getAllByRole('button').find((b) => /^(verify|approve)\s*1$/i.test(b.textContent ?? '')) as HTMLButtonElement).disabled).toBe(false);
+    expect((screen.getAllByRole('button').find((b) => /^(verify|approve)\s*1\s*\([va]\)$/i.test(b.textContent ?? '')) as HTMLButtonElement).disabled).toBe(false);
   });
 });
 
@@ -147,8 +179,8 @@ describe.each(QUEUES)('T0D-VERLEVEL-1 %s — who signed', (_name, mount) => {
     const user = userEvent.setup();
     signoffs[id(1)] = [signoff(1, OTHER, 'Synthetic Signer One'), signoff(2, THIRD, 'Synthetic Signer Two', { signer_title: 'Consultant Pathologist', signer_role_code: 'pathologist', signer_is_pathologist: true, signed_at: '2026-11-17T09:30:00.000Z', action: 'approve' })];
     mount([lvl(1, 3, 2, 'approve')]);
-    await user.click(chipBtn('REG0001', /signed 2 of 3/i));
-    const one = (await screen.findByText('Synthetic Signer One')).closest('li')!;
+    await user.click(await chipBtn(user, 'REG0001', /signed 2 of 3/i));
+    const one =(await screen.findByText('Synthetic Signer One')).closest('li')!;
     expect(one.textContent).toContain('Senior Technologist');
     expect(one.textContent).toMatch(/technologist/);
     expect(one.textContent).toContain('2026-11-17 04:15');
@@ -164,7 +196,7 @@ describe.each(QUEUES)('T0D-VERLEVEL-1 %s — who signed', (_name, mount) => {
     const user = userEvent.setup();
     signoffs[id(1)] = [signoff(1, OTHER, 'Synthetic Signer One')];
     mount([lvl(1, 2, 1, 'approve')]);
-    chipBtn('REG0001', /signed 1 of 2/i).focus();
+    (await chipBtn(user, 'REG0001', /signed 1 of 2/i)).focus();
     await user.keyboard('{Enter}');
     expect(await screen.findByText('Synthetic Signer One')).toBeTruthy();
   });
@@ -183,18 +215,20 @@ describe.each(QUEUES)('T0D-VERLEVEL-1 %s — who signed', (_name, mount) => {
     const user = userEvent.setup();
     signoffs[id(1)] = [signoff(1, OTHER, '<img src=x onerror=alert(1)>')];
     mount([lvl(1, 2, 1, 'approve')]);
-    await user.click(chipBtn('REG0001', /signed 1 of 2/i));
+    await user.click(await chipBtn(user, 'REG0001', /signed 1 of 2/i));
     expect(await screen.findByText('<img src=x onerror=alert(1)>')).toBeTruthy();
     expect(document.querySelector('img[src="x"]')).toBeNull();
   });
 
   it('a failing sign-off read (500) leaves the chip and next step in place; the row is still usable', async () => {
+    const user = userEvent.setup();
     signoffStatus = 500;
     mount([lvl(1, 2, 1, 'approve')]);
     await waitFor(() => expect(signoffCalls().length).toBeGreaterThanOrEqual(1));
-    const row = rowOf('REG0001');
-    expect(within(row).getByText('Signed 1 of 2')).toBeTruthy();
-    expect(within(row).getByText('Needs pathologist')).toBeTruthy();
+    expect(within(rowOf('REG0001')).getByText('Needs pathologist')).toBeTruthy();
+    await openReg(user, 'REG0001');
+    expect(within(resultsTable()).getByText('Signed 1 of 2')).toBeTruthy();
+    expect(within(resultsTable()).getByText('Needs pathologist')).toBeTruthy();
     expect(document.body.textContent).not.toMatch(/common\.internal/);
   });
 
@@ -202,7 +236,7 @@ describe.each(QUEUES)('T0D-VERLEVEL-1 %s — who signed', (_name, mount) => {
     const user = userEvent.setup();
     signoffs[id(1)] = [signoff(1, OTHER, 'Synthetic Signer One')];
     mount([lvl(1, 2, 1, 'approve'), lvl(2, 3, 0, 'verify')]);
-    await user.click(chipBtn('REG0001', /signed 1 of 2/i));
+    await user.click(await chipBtn(user, 'REG0001', /signed 1 of 2/i));
     await screen.findByText('Synthetic Signer One');
     const r = await axe.run(document.body, { rules: { 'color-contrast': { enabled: false } } });
     expect(r.violations.map((v) => `${v.id}: ${v.nodes[0]?.html}`)).toEqual([]);
@@ -218,7 +252,9 @@ describe.each(QUEUES)('T0D-VERLEVEL-1 %s — rows the signed in person already s
     await waitFor(() => expect(rowOf('REG0001').getAttribute('aria-disabled')).toBe('true'));
     const mine = rowOf('REG0001');
     expect(within(mine).getByText(/you already signed this result/i)).toBeTruthy();
-    expect(within(mine).getByText('Signed 1 of 2')).toBeTruthy(); // dimmed, not hidden
+    expect(within(mine).getByText('Needs pathologist')).toBeTruthy(); // dimmed, not hidden
+    await openReg(user, 'REG0001'); // its detail stays reachable with the chip
+    expect(within(resultsTable()).getByText('Signed 1 of 2')).toBeTruthy();
     expect((selectBox('REG0001') as HTMLInputElement).disabled).toBe(true);
     expect(rowOf('REG0002').getAttribute('aria-disabled')).not.toBe('true');
     expect(within(rowOf('REG0002')).queryByText(/you already signed/i)).toBeNull();
@@ -226,7 +262,15 @@ describe.each(QUEUES)('T0D-VERLEVEL-1 %s — rows the signed in person already s
     expect(Number(getComputedStyle(mine).opacity)).toBeLessThan(1);
     expect(Number(getComputedStyle(mine).opacity)).toBeGreaterThan(0);
     expect(getComputedStyle(rowOf('REG0002')).opacity).not.toBe('0.55');
-    await user.click(screen.getByRole('checkbox', { name: /select all/i }));
+    // "Select all unflagged" skips the dimmed row: the one confirm counts only REG0002 (1 registration, 1 result); cancelled, nothing is ticked or sent
+    await user.click(screen.getByRole('button', { name: /^select all unflagged/i }));
+    const dlg = await screen.findByRole('dialog');
+    expect(dlg.textContent).toMatch(/1 registrations, 1 results/);
+    await user.click(within(dlg).getByRole('button', { name: /^cancel$/i }));
+    expect(calls.filter((c) => c.method === 'POST')).toHaveLength(0);
+    expect((selectBox('REG0001') as HTMLInputElement).checked).toBe(false);
+    // ticking the other row works and the primary button counts only it
+    await user.click(selectBox('REG0002'));
     expect(bulkBtn(verb, 1)).toBeTruthy();
     expect((selectBox('REG0002') as HTMLInputElement).checked).toBe(true);
     expect((selectBox('REG0001') as HTMLInputElement).checked).toBe(false);
@@ -238,9 +282,9 @@ describe.each(QUEUES)('T0D-VERLEVEL-1 %s — rows the signed in person already s
     signoffs[id(2)] = [signoff(1, OTHER, 'Synthetic Signer One')];
     mount([lvl(1, 2, 1, 'approve'), lvl(2, 2, 1, 'approve')], { currentUserId: ME });
     await waitFor(() => expect(rowOf('REG0001').getAttribute('aria-disabled')).toBe('true'));
-    await user.click(screen.getByRole('checkbox', { name: /select all/i }));
-    await user.click(bulkBtn(verb, 1));
+    await selectAllUnflagged(user);
     await waitFor(() => expect(calls.filter((c) => c.method === 'POST')).toHaveLength(1));
+    expect(calls.find((c) => c.method === 'POST')!.url.pathname).toBe(`/v1/lab/results/bulk-${verb.toLowerCase()}`);
     expect(calls.find((c) => c.method === 'POST')!.body.items.map((i: any) => i.id)).toEqual([id(2)]);
   });
 
@@ -267,9 +311,8 @@ describe.each(QUEUES)('T0D-VERLEVEL-1 %s — refusals explained in words (bulk, 
     const codes = ['lab.verifier_not_distinct', 'lab.enterer_cannot_verify', 'lab.pathologist_required'];
     reply((b) => HttpResponse.json({ results: b.items.map((i: any, k: number) => ({ id: i.id, outcome: 'error', code: codes[k] })) }));
     mount([lvl(1, 2, 0, 'verify'), lvl(2, 2, 0, 'verify'), lvl(3, 2, 1, 'approve')]);
-    await user.click(screen.getByRole('checkbox', { name: /select all/i }));
-    await user.click(bulkBtn(verb, 3));
-    const dlg = await screen.findByRole('dialog');
+    await selectAllUnflagged(user);
+    const dlg = await outcomeDlg();
     expect(within(dlg).getByText(/0 done, 3 not done/)).toBeTruthy();
     expect(dlg.textContent).not.toMatch(/lab\.|common\./);
     const lines = within(dlg).getAllByRole('listitem').map((l) => l.textContent ?? '');
@@ -287,9 +330,8 @@ describe.each(QUEUES)('T0D-VERLEVEL-1 %s — refusals explained in words (bulk, 
     const user = userEvent.setup();
     reply((b) => HttpResponse.json({ results: b.items.map((i: any, k: number) => (k === 1 ? { id: i.id, outcome: 'error', code: 'lab.pathologist_required' } : { id: i.id, outcome: 'ok' })) }));
     mount([lvl(1, 2, 0, 'verify'), lvl(2, 2, 1, 'approve'), lvl(3, 2, 0, 'verify')]);
-    await user.click(screen.getByRole('checkbox', { name: /select all/i }));
-    await user.click(bulkBtn(verb, 3));
-    const dlg = await screen.findByRole('dialog');
+    await selectAllUnflagged(user);
+    const dlg = await outcomeDlg();
     expect(within(dlg).getByText(/2 done, 1 not done/)).toBeTruthy();
     const lines = within(dlg).getAllByRole('listitem');
     expect(lines).toHaveLength(1);

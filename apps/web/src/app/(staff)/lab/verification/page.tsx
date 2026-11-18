@@ -1,12 +1,19 @@
 // 04-UI-UX §3.8 (route /lab/verification). A failed read throws → error.tsx (an empty list would say "Nothing waiting" while results wait).
+// T0D-UICONSOLE-2 (LD-353 rule 6): 501 operation_pending keeps the console (title, filter, queue header row) and shows Not available yet; every other failure still throws.
+import { isPending } from '@/core/shell/NotAvailable';
 import { getShellSession } from '@/core/session/server';
 import { VerificationQueue } from '@/features/lab/components/VerificationQueue';
 import { listVerificationQueue } from '@/features/lab/server/read.server';
 
-export const metadata = { title: 'Verification' };
+export const metadata = { title: 'Verify' };
 
 export default async function VerificationPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const [session, sp] = await Promise.all([getShellSession(), searchParams]);
-  const items = await listVerificationQueue('verify', sp);
-  return <VerificationQueue items={items} permissions={session?.actor.permissions ?? []} />;
+  const permissions = session?.actor.permissions ?? [];
+  try {
+    return <VerificationQueue items={await listVerificationQueue('verify', sp)} permissions={permissions} />;
+  } catch (e) {
+    if (isPending(e)) return <VerificationQueue items={[]} permissions={permissions} pending />;
+    throw e;
+  }
 }

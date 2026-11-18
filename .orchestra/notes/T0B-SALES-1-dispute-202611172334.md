@@ -1,0 +1,9 @@
+# T0B-SALES-1 dispute (writer, run after 8d9601975, --no-file-parallelism)
+Run 1: 7 files failed / 81 passed; 47 tests failed / 3475 passed. All new sales + collector files and real-modules-boot GREEN. Every failure is in a pre-existing homecollection file whose fixtures collide with another file's state on the shared DB (now in a fixed serial order):
+1. dispatch/assign.test.ts BASE '2027-04-01' == snapshot/helpers.ts BASE_DAY Date.UTC(2027,3,1): snapshot seeds routes for the same member+date, so routeFor() hits the unique key (route row undefined / "expected [] got [route]"). 10 fails.
+2. dispatch/schedule.test.ts BASE '2028-03-01' lies inside sync/helpers.ts BASE_DAY 2028-02-01 + 120 days per file: routes already exist on those dates. 24 fails.
+3. settings/helpers.ts:121 DELETEs homecollection.settings per tenant and reseeds its own values: repositories.test.ts:201 (tenant B settings id changed), sync/guards.test.ts (tenant B payment_methods) and observability/logscan.live.test.ts (homecollection.app_version_unsupported from the reseeded min app version) then fail. 11 fails.
+4. handovers/read.test.ts expects an empty page but other files' handovers remain (shared tenant). 1 fail.
+5. repository/static.test.ts flags `${values.length}` in handovers.repo.ts: file not touched by this task (git diff main...HEAD shows no change).
+Code check: this task's homecollection changes are additive (no collector_flags row = both true; only collectorFlags.test.ts creates rows, on fresh memberships, dates 2027-07). None of the failing paths read a flag row.
+ASK: tester/arbiter give each file disjoint dates (assign vs snapshot, schedule vs sync), restore settings after settings/helpers resets (or per-file tenants), clean up handovers; item 5 belongs to the handovers owner. No assertion change needed in the implementation.

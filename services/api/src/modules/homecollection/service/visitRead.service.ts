@@ -7,6 +7,7 @@ import { LimsError, type FieldError } from '../../../core/errors.js';
 import { loadHomecollectionConfig } from '../config.js';
 import { toEligibleDto, toRouteDto, toVisitDetailDto, toVisitSummaryDto, type Names } from '../mappers/visit.mapper.js';
 import { HOMECOLLECTION_PERMISSIONS } from '../permissions.js';
+import { getCollectorFlags } from '../repository/collectorFlags.repo.js';
 import { listAssignmentsByVisit } from '../repository/visitAssignments.repo.js';
 import { listVisitFlagsByVisit } from '../repository/visitFlags.repo.js';
 import { listTransitionsByVisit } from '../repository/visitTransitions.repo.js';
@@ -240,7 +241,10 @@ export async function listEligiblePhlebotomists(hctx: unknown, query: unknown): 
   const centreId = uuidParam(q['centre_id'], '/centre_id');
   const routeDate = optDate(q, 'route_date');
   await c.ports.IdentityPort.assertRole(c, { permission: PERM_VISIT_ASSIGN, centreId });
-  const roster = (await rosterOf(c, centreId)).slice(0, 200);
+  const all = await rosterOf(c, centreId);
+  // T0B-SALES-1 (LD-321): additive collector flags; no row = both true. allow_collection=false is never offered for a home collection route.
+  const flags = await getCollectorFlags(c.tx, c.tenantId, all.map((m) => m.membershipId));
+  const roster = all.filter((m) => flags.get(m.membershipId)?.allow_collection !== false).slice(0, 200);
   const loads = routeDate && roster.length > 0 ? await listActiveLoadByMembers(c.tx, c.tenantId, routeDate, roster.map((m) => m.membershipId)) : [];
   const max = Number((await getSettings(c.tx, c.tenantId))?.['max_visits_per_route'] ?? 40);   // tenant default 40 (TRD §11.2)
   const cap = loadHomecollectionConfig().snapshotMaxVisits;                                       // LIMS_HOMECOLLECTION_SNAPSHOT_MAX_VISITS (60)
@@ -249,7 +253,8 @@ export async function listEligiblePhlebotomists(hctx: unknown, query: unknown): 
     const route = mine.find((l) => l['centre_id'] === centreId);
     const active = route ? Number(route['active_visits']) : 0;
     const total = mine.reduce((n, l) => n + Number(l['active_visits']), 0);
-    return toEligibleDto(m, { active, ...(route ? { routeId: route['route_id'] } : {}), full: routeDate !== undefined && (active >= max || total >= cap) });   // one flag for both H3 refusals (D-131)
+    return { ...toEligibleDto(m, { active, ...(route ? { routeId: route['route_id'] } : {}), full: routeDate !== undefined && (active >= max || total >= cap) }),   // one flag for both H3 refusals (D-131)
+      allow_collection: true, allow_pickup: flags.get(m.membershipId)?.allow_pickup ?? true };
   });
   return { status: 200, body: { data } };
 }

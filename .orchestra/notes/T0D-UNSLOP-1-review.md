@@ -1,5 +1,7 @@
-CHANGES
-Re-review at f4852bace (`git diff f81509890..HEAD`): the new writer commit changes only .orchestra/notes/T0D-UNSLOP-1-impl.md (rounds 05:45 and 05:47, still BLOCKED). No code, test or snapshot changed since 2e2dd94ab. The earlier findings still hold: rs-c4/rs-c6/rs-c7/rs-c8.screens snaps differ only in the allowed ways; LD-360 ruling 1 closes items 2-4; there is no permission, route, contract or API change; no PHI; no secrets; only owned paths.
-Re-run now: vitest.rs-c8.config.ts gives 35/36 (1 failed: rs-c8.screens.admin "New schedule form").
+APPROVE
 
-1. apps/web/src/features/analytics/__tests__/__snapshots__/rs-c8.screens.admin.test.tsx.snap ("New schedule form"): still stale, so rs-c8 is 35/36, not the 36/36 LD-360 requires. The open dispute (.orchestra/notes/T0D-UNSLOP-1-dispute.md, the `data-label-placement="above"` attribute from T0D-DENSITY-1 Form.tsx) still has no lead ruling after LD-360. Fix: the LEAD rules on the dispute. If the attribute is allowed, the writer runs `pnpm --dir apps/web exec vitest run -c src/features/analytics/__tests__/vitest.rs-c8.config.ts -u rs-c8.screens.admin`, checks that the diff shows only the removed crumb and that attribute, and commits the .snap, so rs-c8 ends 36/36. The writer and tester have nothing else to do until then.
+Re-review of d53126dc3..HEAD (T0D-UNSLOP-1) per LD-360 / LD-361.
+- Only code-side change: rs-c8.screens.admin.test.tsx.snap "New schedule form": removed Scheduled reports crumb + data-label-placement="above" on lims-form (from T0D-DENSITY-1 a2a2474f7). Both inside the LD-360 + LD-361 allow-list. No other snapshot, test or assertion touched.
+- Other changes are .orchestra notes only (impl, ruling, dispute file renamed).
+- Runs (2026-11-18 06:36 NPT): rs-c8 36/36, unslop1 30/30, an-t18 58/58.
+- No route, permission, contract, API, PHI-log or secret change in this range. Cap 75 and part B handled by LD-360 (moved to T0D-UILIST-1/2/3, T0D-UISETTINGS-1).

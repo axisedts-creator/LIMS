@@ -170,3 +170,15 @@ CREATE POLICY orders__insert__tenant ON lab.orders FOR INSERT TO lims_app
 CREATE POLICY orders__update__tenant ON lab.orders FOR UPDATE TO lims_app
   USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()) AND (SELECT app.has_all_centres()))
   WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()) AND (SELECT app.has_all_centres()));
+-- T0C-VERLEVEL-1 (LD-316): 20261117150000_lab__add_verification_policy_and_signoffs.sql; result_signoff is append only (no UPDATE / DELETE policy).
+CREATE POLICY verification_policy__select__tenant ON lab.verification_policy FOR SELECT TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+CREATE POLICY verification_policy__insert__tenant ON lab.verification_policy FOR INSERT TO lims_app
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+CREATE POLICY verification_policy__update__tenant ON lab.verification_policy FOR UPDATE TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()))
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+CREATE POLICY result_signoff__select__tenant ON lab.result_signoff FOR SELECT TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+CREATE POLICY result_signoff__insert__tenant ON lab.result_signoff FOR INSERT TO lims_app
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));

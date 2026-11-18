@@ -134,6 +134,8 @@ export type PermissionCode =
   | "lab.specimen.receive"
   | "lab.specimen.reject"
   | "lab.status_board.read"
+  | "lab.verification_policy.manage"
+  | "lab.verification_policy.read"
   | "lab.worklist.read"
   | "lab.worksheet.manage"
   | "micro.breakpoint.manage"
@@ -341,6 +343,8 @@ export const PERMISSION_CODES: readonly PermissionCode[] = [
   "lab.specimen.receive",
   "lab.specimen.reject",
   "lab.status_board.read",
+  "lab.verification_policy.manage",
+  "lab.verification_policy.read",
   "lab.worklist.read",
   "lab.worksheet.manage",
   "micro.breakpoint.manage",
@@ -459,6 +463,7 @@ export const PRIVILEGED: ReadonlySet<PermissionCode> = new Set([
   "lab.qc_hold.release",
   "lab.result.amend",
   "lab.result.approve",
+  "lab.verification_policy.manage",
   "micro.breakpoint.manage",
   "partners.partner.manage",
   "partners.partner_user.manage",
@@ -668,6 +673,8 @@ export const ROLE_GRANTS: Readonly<Record<string, readonly PermissionCode[]>> = 
     "lab.result.read",
     "lab.specimen.read",
     "lab.status_board.read",
+    "lab.verification_policy.manage",
+    "lab.verification_policy.read",
     "lab.worklist.read",
     "lab.worksheet.manage",
     "micro.breakpoint.manage",
@@ -724,6 +731,7 @@ export const ROLE_GRANTS: Readonly<Record<string, readonly PermissionCode[]>> = 
     "lab.specimen.receive",
     "lab.specimen.reject",
     "lab.status_board.read",
+    "lab.verification_policy.read",
     "lab.worklist.read",
     "lab.worksheet.manage",
     "micro.culture.read",
@@ -777,6 +785,7 @@ export const ROLE_GRANTS: Readonly<Record<string, readonly PermissionCode[]>> = 
     "lab.result.verify",
     "lab.specimen.read",
     "lab.status_board.read",
+    "lab.verification_policy.read",
     "lab.worklist.read",
     "micro.breakpoint.manage",
     "micro.culture.read",

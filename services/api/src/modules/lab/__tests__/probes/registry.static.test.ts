@@ -7,7 +7,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { REPO_ROOT } from '../../../../core/module.js';
 import { handlers } from '../../handlers/index.js';
-import { ALL_LAB_PERMS, LAB_PERMS, OPS, PRIVILEGED, LAB_TENANT_TABLES, fileText } from './kit.js';
+import { ALL_LAB_PERMS, LAB_PERMS, OPS, PRIVILEGED, LAB_TENANT_TABLES, VERLEVEL1_OPS, fileText } from './kit.js';
 
 const MOD = 'services/api/src/modules/lab';
 const walk = (dir: string): string[] => readdirSync(join(REPO_ROOT, dir)).flatMap((f) => {
@@ -33,7 +33,7 @@ describe('contract <-> probes', () => {
   it('the contract has exactly the 55 lab operations and the handler map has exactly those keys', () => {
     expect(OPS).toHaveLength(55);
     expect(OPS.map((o) => o.id).sort()).toEqual(Object.keys(EXPECT).sort());
-    expect(Object.keys(handlers).sort()).toEqual(OPS.map((o) => o.id).sort());
+    expect(Object.keys(handlers).filter((id) => !VERLEVEL1_OPS.includes(id)).sort()).toEqual(OPS.map((o) => o.id).sort());   // + 3 verification level ids: handler or pending (T0C-VERLEVEL-1)
   });
   it('every operation has a probe request in kit.ts (requestFor)', () => {
     const kit = fileText(`${MOD}/__tests__/probes/kit.ts`);
@@ -55,8 +55,9 @@ describe('permission + idempotency table (P-10, 02-TRD §7.1, contracts/permissi
     expect(o.permission).toBe(EXPECT[o.id]);
     expect(ALL_LAB_PERMS).toContain(o.permission);
   });
-  it('privileged (aal2) lab permissions are exactly approve / amend / config.manage / qc_hold.release', () => {
-    expect([...PRIVILEGED].sort()).toEqual(['lab.config.manage', 'lab.qc_hold.release', 'lab.result.amend', 'lab.result.approve']);
+  it('privileged (aal2) lab permissions are exactly approve / amend / config.manage / qc_hold.release / verification_policy.manage', () => {
+    // T0C-VERLEVEL-1 (LD-316): changing who may sign off is privileged (aal2)
+    expect([...PRIVILEGED].sort()).toEqual(['lab.config.manage', 'lab.qc_hold.release', 'lab.result.amend', 'lab.result.approve', 'lab.verification_policy.manage']);
   });
   it('front_desk holds no result permission at all (abuse case 1)', () => {
     const fd = LAB_PERMS.filter((p) => p.roles.includes('front_desk')).map((p) => p.code);

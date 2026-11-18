@@ -1,0 +1,9 @@
+# T0D-UILIST-3 dispute (writer)
+Writer did not edit any test. These assertions cannot pass with a correct LD-353 implementation:
+1. `catalog/__tests__/uilist3.catalog.test.tsx` imports "one row ... the row is drawn": marker `'synthetic'` (lower case) is read from the FIRST `tbody` (import history), but lower-case `synthetic` only exists in the EXPORT row (`synthetic-export.xlsx`, second tbody); the import row says `Synthetic long label...`. Fix: marker `'Synthetic'`, or read all tbodies.
+2. `homecollection/__tests__/uilist3.homecollection.test.tsx` `inBar()` uses `\bLabel\b` on the bar's textContent. The kit Select/DatePicker/Switch put the label right against the next text (`"StatusSelect an item..."`), so `\bStatus\b` never matches although the control sits in the FilterBar (6 reds: dispatch x2, handovers x2, devices x2). Fix: read the label elements (`.lims-label`) or drop the trailing `\b`.
+3. Old tests pin the radio markup that the new uilist3 tests (rule 2: no radio group in a FilterBar) forbid; the brief says "update every test that pinned the old markup", which is tester work:
+   - `catalog/__tests__/web-t31.components.test.tsx` "Status filter Inactive / All": clicks a visible `Inactive` control; now a kit Select (open the select, pick the option).
+   - `catalog/__tests__/web-t33.components.test.tsx` "Kind filter (Clinical panel / Package)" and DoctorsList "Verified filter Unverified": same, Kind / Verified / Status / Source are kit Selects now.
+   - `engagement/__tests__/t-b6.engbook1` "a real fault (500) is NOT hidden ... loader still throws": done_when (4) and uilist3.engagement.pages demand an ErrorState inside the page on 500; both cannot pass. Fix: assert the ErrorState (title, reference, Retry) instead of the throw.
+Pre-existing, not this task: t-l1 app-access empty state, adminpage-eng-1 static byte baseline, `web-t33.server` createDoctor (extra body field), `hc-t18.source` x2 (tests/e2e/HC-T30 file).

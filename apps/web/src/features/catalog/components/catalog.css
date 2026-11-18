@@ -39,3 +39,8 @@
 .catalog-two-list { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: var(--lims-space-2); align-items: start; }
 .catalog-pick-list { max-block-size: 24rem; overflow-y: auto; margin: 0; border: 1px solid var(--lims-neutral-300); }
 .catalog-swatch-black { background: var(--lims-neutral-900); border-color: var(--lims-neutral-900); }
+/* T0D-UILIST-3, LD-353 template 6 ENTRY FORM (price simulator): two columns from 64rem, sticky footer with the submit button. */
+.lims-entry-form { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--lims-space-4); align-items: start; }
+@media (min-width: 64rem) { .lims-entry-form { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.lims-entry-col { display: flex; flex-direction: column; gap: var(--lims-space-2); min-width: 0; }
+.lims-entry-footer { grid-column: 1 / -1; position: sticky; bottom: 0; display: flex; justify-content: flex-start; gap: var(--lims-space-2); padding-block: var(--lims-space-3); border-top: 0.0625rem solid var(--lims-neutral-200); background: var(--lims-neutral-0); }

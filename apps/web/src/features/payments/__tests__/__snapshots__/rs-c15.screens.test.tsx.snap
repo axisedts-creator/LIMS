@@ -648,7 +648,7 @@ exports[`RS-C15 key-screen snapshots > Payment review queue 1`] = `
 </div>
 <div class="lims-stat">
 <span class="lims-stat-label">Oldest age</span>
-<span class="lims-stat-value">194:56</span>
+<span class="lims-stat-value">194:00</span>
 </div>
 </div>
 <div>
@@ -670,7 +670,7 @@ exports[`RS-C15 key-screen snapshots > Payment review queue 1`] = `
 </thead>
 <tbody>
 <tr data-console-item="01a1a98a-ac40-7000-8000-000000000101" tabindex="0" aria-selected="false" class="lims-row">
-<td>194:56</td>
+<td>194:00</td>
 <td>
 <time class="lims-date-text" datetime="2026-11-10T04:00:00.000Z">10/11/2026 09:45 AM</time>
 </td>
@@ -688,7 +688,7 @@ exports[`RS-C15 key-screen snapshots > Payment review queue 1`] = `
 <td>Amount differs from the due</td>
 </tr>
 <tr data-console-item="01a1a98a-ac40-7000-8000-000000000102" tabindex="0" aria-selected="false" class="lims-row">
-<td>195:56</td>
+<td>195:00</td>
 <td>
 <time class="lims-date-text" datetime="2026-11-10T03:00:00.000Z">10/11/2026 08:45 AM</time>
 </td>
@@ -706,7 +706,7 @@ exports[`RS-C15 key-screen snapshots > Payment review queue 1`] = `
 <td>Provider declined</td>
 </tr>
 <tr data-console-item="01a1a98a-ac40-7000-8000-000000000103" tabindex="0" aria-selected="false" class="lims-row">
-<td>196:56</td>
+<td>196:00</td>
 <td>
 <time class="lims-date-text" datetime="2026-11-10T02:00:00.000Z">10/11/2026 07:45 AM</time>
 </td>
@@ -1288,7 +1288,7 @@ exports[`RS-C15 key-screen snapshots > Refunds list 1`] = `
 </div>
 <div class="lims-stat">
 <span class="lims-stat-label">Oldest age</span>
-<span class="lims-stat-value">193:56</span>
+<span class="lims-stat-value">193:00</span>
 </div>
 </div>
 <div>
@@ -1309,7 +1309,7 @@ exports[`RS-C15 key-screen snapshots > Refunds list 1`] = `
 </thead>
 <tbody>
 <tr data-console-item="01a1a98a-ac40-7000-8000-000000000701" tabindex="0" aria-selected="false" class="lims-row">
-<td>193:56</td>
+<td>193:00</td>
 <td>
 <time class="lims-date-text" datetime="2026-11-10T05:00:00.000Z">10/11/2026 10:45 AM</time>
 </td>
@@ -1326,7 +1326,7 @@ exports[`RS-C15 key-screen snapshots > Refunds list 1`] = `
 </td>
 </tr>
 <tr data-console-item="01a1a98a-ac40-7000-8000-000000000702" tabindex="0" aria-selected="false" class="lims-row">
-<td>193:56</td>
+<td>193:00</td>
 <td>
 <time class="lims-date-text" datetime="2026-11-10T05:00:00.000Z">10/11/2026 10:45 AM</time>
 </td>
@@ -1343,7 +1343,7 @@ exports[`RS-C15 key-screen snapshots > Refunds list 1`] = `
 </td>
 </tr>
 <tr data-console-item="01a1a98a-ac40-7000-8000-000000000703" tabindex="0" aria-selected="false" class="lims-row">
-<td>193:56</td>
+<td>193:00</td>
 <td>
 <time class="lims-date-text" datetime="2026-11-10T05:00:00.000Z">10/11/2026 10:45 AM</time>
 </td>
@@ -1360,7 +1360,7 @@ exports[`RS-C15 key-screen snapshots > Refunds list 1`] = `
 </td>
 </tr>
 <tr data-console-item="01a1a98a-ac40-7000-8000-000000000704" tabindex="0" aria-selected="false" class="lims-row">
-<td>193:56</td>
+<td>193:00</td>
 <td>
 <time class="lims-date-text" datetime="2026-11-10T05:00:00.000Z">10/11/2026 10:45 AM</time>
 </td>

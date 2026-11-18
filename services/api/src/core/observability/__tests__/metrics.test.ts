@@ -26,6 +26,10 @@ const EXPECTED: Record<string, 'counter' | 'gauge' | 'histogram'> = {
   lims_core_sync_operations_total: 'counter',
   lims_core_sync_batches_total: 'counter',
   lims_core_sync_oldest_unsynced_age_seconds: 'gauge',
+  // T0B-SYNC-5 (additive; nothing removed or loosened): conflict inbox size, recall count, backlog age per device
+  lims_core_sync_conflicts_open: 'gauge',
+  lims_core_sync_print_recalls: 'gauge',
+  lims_core_sync_device_backlog_age_seconds: 'gauge',
   lims_core_authz_central_deny_total: 'counter', // SEC-AUTHZ-2 (CR SEC-AUTHZ-1.1 'Mode'); only label: operation_id
   lims_core_retention_purged_total: 'counter',
   lims_core_retention_purge_capped_total: 'counter',

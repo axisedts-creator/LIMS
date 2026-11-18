@@ -170,10 +170,10 @@ export async function holdEntry(tx: Tx, a: { tenantId: string; id: string; reaso
       last_modified_by = $4, updated_at = now()
     WHERE e.tenant_id = $1 AND e.id = $2 AND e.status = 'submitted'
       AND NOT EXISTS (SELECT 1 FROM billing.account_ledger_entries r WHERE r.tenant_id = e.tenant_id AND r.reverses_entry_id = e.id)
-    RETURNING ${ENTRY_RETURNING}`, [a.tenantId, a.id, a.reason, a.actorId, a.at])).rows[0];
+    RETURNING ` + ENTRY_RETURNING, [a.tenantId, a.id, a.reason, a.actorId, a.at])).rows[0];
 }
 /** held -> submitted (the only earlier status a hold can come from); the held_* columns stay as history. */
 export async function releaseEntry(tx: Tx, a: { tenantId: string; id: string; actorId: string; at: string }): Promise<Row | undefined> {
   return (await tx.query(`UPDATE billing.account_ledger_entries SET status = 'submitted', released_by = $3, released_at = $4::timestamptz, last_modified_by = $3, updated_at = now()
-    WHERE tenant_id = $1 AND id = $2 AND status = 'held' RETURNING ${ENTRY_RETURNING}`, [a.tenantId, a.id, a.actorId, a.at])).rows[0];
+    WHERE tenant_id = $1 AND id = $2 AND status = 'held' RETURNING ` + ENTRY_RETURNING, [a.tenantId, a.id, a.actorId, a.at])).rows[0];
 }

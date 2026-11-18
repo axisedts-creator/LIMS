@@ -45,6 +45,9 @@ describe('one look: same root, same title and body elements, same spacing', () =
   it('kit.css gives no state variant its own padding, gap or margin (outside the data-density override that already exists)', () => {
     const variants = rulesMatching(/\.lims-state(?![-\w])/).filter((r) => r.sels.every((s) => !s.startsWith("[data-density")));
     for (const r of variants) {
+      // ruling T0D-UIKIT-1: a shared element reset (`.lims-state p { margin: 0 }`) applies to all three states and adds no spacing
+      const onlyMargin0 = r.decls.size === 1 && r.decls.get('margin') === '0';
+      if (onlyMargin0 && r.sels.every((s) => /^\.lims-state [a-z]+$/.test(s))) continue;
       for (const p of ['padding', 'padding-block', 'padding-inline', 'gap', 'margin', 'row-gap']) {
         if (!r.decls.has(p)) continue;
         // the one base rule `.lims-state { ... }` may declare them; a rule that also names a tone, a state kind or a page class may not

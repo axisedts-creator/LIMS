@@ -1,0 +1,1 @@
+pnpm --dir apps/web run build:nav && pnpm --dir apps/web exec vitest run -c src/features/analytics/__tests__/vitest.uidash1.config.ts && pnpm --dir apps/web exec vitest run -c src/features/analytics/__tests__/vitest.an-t18.config.ts

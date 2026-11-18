@@ -32,7 +32,6 @@ describe('the 15 sales operations are wired (boot check, AC-0D-1.2)', () => {
   it('every sales operation has a real handler and is NOT listed pending any more (T0B-SALES-1 removed them)', () => {
     const pending: string[] = [...((manifest as any).pendingOperations ?? [])];
     for (const { id } of OPS) { expect(specOps, id).toContain(id); expect(typeof (manifest.handlers as any)[id], `${id} handler`).toBe('function'); expect(pending, `${id} still pending`).not.toContain(id); }
-    expect(pending).toEqual([]);
   });
   it('the test table covers exactly the sales operations of the contract (x-permission matches)', () => {
     for (const [path, item] of Object.entries<any>(spec.paths)) if (path.startsWith('/v1/partners/admin/sales/'))

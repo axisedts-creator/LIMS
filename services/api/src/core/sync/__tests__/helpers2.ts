@@ -29,6 +29,8 @@ const { default: pg } = (await import(pgModule)) as any;
 const need = (k: string): string => { const v = process.env[k]; if (!v) throw new Error(`${k} is not set: run .orchestra\\notes\\T0B-SYNC-2-verify.cmd`); return v; };
 const appPool = new pg.Pool({ connectionString: need('LIMS_TEST_APP_URL'), max: 60 });
 const supPool = new pg.Pool({ connectionString: need('LIMS_TEST_SUPER_URL'), max: 4 });
+// T0B-SYNC-5 (additive): the chaos tests kill a checked-out connection (pg_terminate_backend); pg then emits 'error' on that client, which must not become an uncaught exception.
+appPool.on('error', () => {}); appPool.on('connect', (c: any) => { c.on('error', () => {}); });
 export const closePools = async (): Promise<void> => { await appPool.end().catch(() => {}); await supPool.end().catch(() => {}); };
 afterAll(closePools, 60_000);
 

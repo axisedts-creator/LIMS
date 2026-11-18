@@ -1,5 +1,7 @@
 // SCR-10 Comment codes — server component via the BFF; 403 → no-access page.
+import { t } from '@/core/i18n/messages';
 import { getShellSession } from '@/core/session/server';
+import { pendingOr } from '@/core/shell/NotAvailable';
 import { CatalogForbidden } from '@/features/catalog/components/CatalogForbidden';
 import { CommentCodesScreen } from '@/features/catalog/components/CommentCodesScreen';
 import { listCommentCodes } from '@/features/catalog/server/listCommentCodes.server';
@@ -9,6 +11,11 @@ import { orForbidden } from '@/features/catalog/server/shared';
 export default async function CommentCodesPage() {
   const session = await getShellSession();
   // T0D-TESTMGMT-FIX-1 (LD-340): departments only feeds a dropdown; a failure renders the list with a note instead of error.tsx.
+  // T0D-UNSLOP-1 / LD-353 rule 6: 501 operation_pending keeps the title and the header row (NotAvailable), never error.tsx.
+  return pendingOr(t('catalog.nav.comment_codes'), ['Code', 'Department', 'Text', 'Status', 'Version'], () => list(session?.actor.permissions ?? []));
+}
+
+async function list(permissions: readonly string[]) {
   let deptFailed = false;
   const r = await orForbidden(() =>
     Promise.all([
@@ -20,7 +27,7 @@ export default async function CommentCodesPage() {
   return (
     <>
       {deptFailed ? <p role="note" className="lims-description">Departments could not be loaded; the page is shown without them. Reload to try again.</p> : null}
-      <CommentCodesScreen commentCodes={r[0].data} departments={r[1].data} permissions={session?.actor.permissions ?? []} />
+      <CommentCodesScreen commentCodes={r[0].data} departments={r[1].data} permissions={permissions} />
     </>
   );
 }

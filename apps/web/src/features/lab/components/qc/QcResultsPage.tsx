@@ -11,6 +11,7 @@ import { UUID_RE } from '../../server/types';
 import { NativeSelect } from '../NativeSelect';
 import { AlertText, errText, Field, ShortId } from '../settings/common';
 import { call, newKey, utc } from '../shared';
+import { t } from '@/core/i18n/messages';
 
 const DEC = /^-?[0-9]+(\.[0-9]+)?$/;
 const CODE = /^[A-Za-z0-9][A-Za-z0-9_.:-]{0,99}$/;
@@ -82,7 +83,7 @@ export function QcResultsPage({ permissions, centres, instruments }: { permissio
 
   return (
     <section aria-label="QC results">
-      <PageHeader title="QC results (captured — rules arrive with the QC module)" helpKey="lab.qc" />
+      <PageHeader title={t('lab.nav.qc')} helpKey="lab.qc" />
       {err ? <AlertText text={err} /> : null}
       {canCapture ? <Button variant="primary" onPress={show}>Add QC result</Button> : null}
       {rows === null ? <p role="status">Loading…</p> : rows.length === 0 ? <p>No QC results captured.</p> : (

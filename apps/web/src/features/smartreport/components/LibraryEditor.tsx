@@ -38,7 +38,7 @@ export function LibraryEditor({ version, blocks, rules, mappings, groups, organG
 
   return (
     <Ctx.Provider value={ctx}>
-      <PageHeader title={`Library v${version.version_no}`} breadcrumbs={[{ label: 'Library', href: '/smartreport/library' }, { label: `v${version.version_no}` }]} helpKey="smartreport.library.editor" />
+      <PageHeader title={`Library v${version.version_no}`} helpKey="smartreport.library.editor" />
       {review}
       {version.status !== 'draft' && !review ? <Banner tone="info" title={`This version is ${statusText(version.status)}; create a new draft to change it.`} /> : null}
       {notDraft ? (

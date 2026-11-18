@@ -29,20 +29,21 @@ const received = (over: Record<string, unknown> = {}) => detail({ status: 'recei
 const banner = (re: RegExp) => Array.from(document.querySelectorAll('[data-tone]')).filter((e) => e.classList.contains('lims-banner') && re.test(e.textContent ?? ''));
 
 describe('header (§4.2)', () => {
-  it('breadcrumbs "Pathology cases › accession", h1 = accession, StatusChip with tone+icon+word', async () => {
+  it('one trail (T0D-UNSLOP-1 D): no in-page "Pathology cases" breadcrumb, h1 = accession, StatusChip with tone+icon+word', async () => {
     await mount(detail({ accession_no: 'SP26-000042' }));
     expect(screen.getByRole('heading', { level: 1, name: 'SP26-000042' })).toBeTruthy();
-    const crumb = screen.getByRole('link', { name: /^pathology cases$/i }) as HTMLAnchorElement;
-    expect(crumb.getAttribute('href')).toBe('/anatomic');
+    expect(screen.queryByRole('navigation', { name: /breadcrumb/i })).toBeNull();
+    expect(screen.queryByRole('link', { name: /^pathology cases$/i })).toBeNull();
     const chip = screen.getAllByText('Accessioned').map((e) => e.closest('[data-tone]')).find(Boolean) as HTMLElement;
     expect(chip.getAttribute('data-tone')).toBe('info');
     expect(chip.querySelector('svg,[data-icon],[aria-hidden=true]')).toBeTruthy();
   });
 
-  it('un-accessioned case: h1 "Not accessioned", breadcrumb leaf "Case"', async () => {
+  it('un-accessioned case: h1 "Not accessioned", no in-page trail (one trail, in the top bar)', async () => {
     await mount(received());
     expect(screen.getByRole('heading', { level: 1, name: 'Not accessioned' })).toBeTruthy();
-    expect(document.body.textContent).toMatch(/Pathology cases\s*[›>\/]?\s*Case/);
+    expect(screen.queryByRole('navigation', { name: /breadcrumb/i })).toBeNull();
+    expect(document.body.textContent).not.toMatch(/Pathology cases\s*[›>\/]?\s*Case/);
   });
 
   it('DescriptionList: Patient (name, age/sex, code), Case kind, Priority, Centre, Received, Accessioned, Assigned pathologist, Tests, Current version', async () => {

@@ -8,8 +8,10 @@ import { Button } from '@lims/ui/components/Button';
 import { Card } from '@lims/ui/components/Card';
 import { Form } from '@lims/ui/components/Form';
 import { IntegerField } from '@lims/ui/components/IntegerField';
+import { PageHeader } from '@lims/ui/components/PageHeader';
 import { TextField } from '@lims/ui/components/TextField';
 import { useToast } from '@lims/ui/components/Toast';
+import { t } from '@/core/i18n/messages';
 import { fieldErrorsByPointer } from '../forms/errors';
 import { SETTINGS_RANGES, settingsBody, validateSettings, type SettingsNumKey } from '../forms/settings';
 import help from '../help/instruments.settings';
@@ -99,6 +101,8 @@ export function InstrumentSettingsForm({ settings, permissions = [] }: { setting
 
   return (
     <section aria-label="Instrument settings">
+      {/* T0D-UNSLOP-1 (LD-344, LD-353 rule 8): the page had no h1; the title is the menu name. */}
+      <PageHeader title={t('instruments.nav.settings')} helpKey="instruments.settings" />
       <Form onSubmit={submit}>
         {alert ? (
           <div role="alert">

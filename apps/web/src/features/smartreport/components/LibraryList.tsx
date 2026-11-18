@@ -13,6 +13,7 @@ import { Select } from '@lims/ui/components/Select';
 import { StatusChip } from '@lims/ui/components/StatusChip';
 import { createVersionAction } from '../server/actions';
 import { LANG_LABEL, STATUS_LABEL, newKey, type Summary } from '../library';
+import { t } from '@/core/i18n/messages';
 
 const REASON = 'A draft or a version in review already exists';
 const date = (v?: string) => (v ? <DateText value={v as DateTextProps['value']} /> : '—');
@@ -68,7 +69,7 @@ export function LibraryList({ rows }: { rows: Summary[] }) {
 
   return (
     <>
-      <PageHeader title="Smart report library" helpKey="smartreport.library" actions={newDraft} />
+      <PageHeader title={t('smartreport.nav.library')} helpKey="smartreport.library" actions={newDraft} />
       {error ? <div role="alert"><Banner tone="danger" title={error} /></div> : null}
       {/* T0D-EMPTYTBL-2 (LD-310, LD-336): the table is always drawn; the starter-draft button sits in the empty message row (the inFlight guard keeps it to one request). */}
       <DataTable<Summary>

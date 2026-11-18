@@ -443,6 +443,7 @@ exports[`RS-C15 key-screen snapshots > Payment detail: Refunds tab 1`] = `
 </div>
 <div id="ID" aria-labelledby="ID" role="tabpanel" class="lims-tabpanel" data-rac="">
 <div class="lims-data-table">
+<div class="lims-table-scroll">
 <template>
 </template>
 <span data-focus-scope-start="true" hidden="">
@@ -509,6 +510,7 @@ exports[`RS-C15 key-screen snapshots > Payment detail: Refunds tab 1`] = `
 </table>
 <span data-focus-scope-end="true" hidden="">
 </span>
+</div>
 <div role="status" class="lims-visually-hidden">
 </div>
 </div>
@@ -636,6 +638,7 @@ exports[`RS-C15 key-screen snapshots > Payment review queue 1`] = `
 </button>
 </div>
 <div class="lims-data-table">
+<div class="lims-table-scroll">
 <template>
 </template>
 <span data-focus-scope-start="true" hidden="">
@@ -756,6 +759,7 @@ exports[`RS-C15 key-screen snapshots > Payment review queue 1`] = `
 </table>
 <span data-focus-scope-end="true" hidden="">
 </span>
+</div>
 <div role="status" class="lims-visually-hidden">
 </div>
 </div>
@@ -850,6 +854,7 @@ exports[`RS-C15 key-screen snapshots > Reconciliation: Open findings tab 1`] = `
 </button>
 </div>
 <div class="lims-data-table">
+<div class="lims-table-scroll">
 <template>
 </template>
 <span data-focus-scope-start="true" hidden="">
@@ -1022,6 +1027,7 @@ exports[`RS-C15 key-screen snapshots > Reconciliation: Open findings tab 1`] = `
 </table>
 <span data-focus-scope-end="true" hidden="">
 </span>
+</div>
 <div role="status" class="lims-visually-hidden">
 </div>
 </div>
@@ -1074,6 +1080,7 @@ exports[`RS-C15 key-screen snapshots > Reconciliation: Runs tab 1`] = `
 </div>
 <div id="ID" aria-labelledby="ID" role="tabpanel" class="lims-tabpanel" data-rac="">
 <div class="lims-data-table">
+<div class="lims-table-scroll">
 <template>
 </template>
 <span data-focus-scope-start="true" hidden="">
@@ -1154,6 +1161,7 @@ exports[`RS-C15 key-screen snapshots > Reconciliation: Runs tab 1`] = `
 </table>
 <span data-focus-scope-end="true" hidden="">
 </span>
+</div>
 <div role="status" class="lims-visually-hidden">
 </div>
 </div>
@@ -1259,6 +1267,7 @@ exports[`RS-C15 key-screen snapshots > Refunds list 1`] = `
 </button>
 </div>
 <div class="lims-data-table">
+<div class="lims-table-scroll">
 <template>
 </template>
 <span data-focus-scope-start="true" hidden="">
@@ -1413,6 +1422,7 @@ exports[`RS-C15 key-screen snapshots > Refunds list 1`] = `
 </table>
 <span data-focus-scope-end="true" hidden="">
 </span>
+</div>
 <div role="status" class="lims-visually-hidden">
 </div>
 </div>
@@ -1520,6 +1530,7 @@ exports[`RS-C15 key-screen snapshots > Static QR worksheets 1`] = `
 <span class="lims-btn-label">Save worksheet</span>
 </button>
 <div class="lims-data-table">
+<div class="lims-table-scroll">
 <template>
 </template>
 <span data-focus-scope-start="true" hidden="">
@@ -1590,6 +1601,7 @@ exports[`RS-C15 key-screen snapshots > Static QR worksheets 1`] = `
 </table>
 <span data-focus-scope-end="true" hidden="">
 </span>
+</div>
 <div role="status" class="lims-visually-hidden">
 </div>
 </div>

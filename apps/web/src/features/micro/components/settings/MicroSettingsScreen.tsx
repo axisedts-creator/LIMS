@@ -11,6 +11,7 @@ import { GeneralTab } from './GeneralTab';
 import { MappingsTab } from './MappingsTab';
 import { PanelsTab } from './PanelsTab';
 import { ProtocolsTab } from './ProtocolsTab';
+import { t } from '@/core/i18n/messages';
 
 const TABS = [{ id: 'dictionaries', label: 'Dictionaries' }, { id: 'protocols', label: 'Plating protocols' }, { id: 'panels', label: 'AST panels' }, { id: 'mappings', label: 'Instrument mappings' }, { id: 'general', label: 'General' }] as const;
 
@@ -19,7 +20,7 @@ export function MicroSettingsScreen({ settings, permissions }: { settings: Micro
   const canManage = permissions.includes(PERM.config);
   return (
     <section aria-label="Micro settings">
-      <PageHeader title="Micro settings" helpKey="micro.settings" breadcrumbs={[{ label: 'Microbiology' }, { label: 'Settings' }]} />
+      <PageHeader title={t('micro.nav.settings')} helpKey="micro.settings" />
       <Tabs items={TABS} selectedId={tab} onChange={setTab} aria-label="Settings sections">
         {tab === 'dictionaries' ? <DictionariesTab canManage={canManage} /> : null}
         {tab === 'protocols' ? <ProtocolsTab canManage={canManage} /> : null}

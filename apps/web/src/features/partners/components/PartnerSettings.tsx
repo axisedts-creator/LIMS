@@ -6,6 +6,7 @@ import { Button } from '@lims/ui/components/Button';
 import { Form } from '@lims/ui/components/Form';
 import { IntegerField } from '@lims/ui/components/IntegerField';
 import { PageHeader } from '@lims/ui/components/PageHeader';
+import { t } from '@/core/i18n/messages';
 import { RadioGroup } from '@lims/ui/components/RadioGroup';
 import { Switch } from '@lims/ui/components/Switch';
 import { TextArea } from '@lims/ui/components/TextArea';
@@ -45,7 +46,7 @@ export function PartnerSettings({ initial, etag, canManage }: { initial: Setting
 
   return (
     <section aria-label="Partner settings">
-      <PageHeader title="Partner settings" helpKey="partners.settings" />
+      <PageHeader title={t('partners.nav.settings')} helpKey="partners.settings" />
       {notice ? <Notice text={notice} /> : null}
       <Form onSubmit={save}>
         <RadioGroup label="Default order creation" name="default_conversion_mode" options={MODES} value={s.default_conversion_mode} onChange={set('default_conversion_mode')} isReadOnly={ro} />

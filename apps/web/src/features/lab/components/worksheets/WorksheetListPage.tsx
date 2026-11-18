@@ -4,6 +4,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '@lims/ui/components/Button';
 import { EmptyRow, PlaceholderRows } from '@lims/ui/components/DataTable';
+import { PageHeader } from '@lims/ui/components/PageHeader';
+import { t } from '@/core/i18n/messages';
 import { listWorksheetsAction } from '../../server/worklist.actions';
 import type { ActionResult, WorksheetSummary } from '../../server/types';
 import { Failure, utc } from '../shared';
@@ -31,7 +33,8 @@ export function WorksheetListPage({ permissions: _permissions }: { permissions?:
 
   return (
     <section aria-label="Worksheets">
-      <h1>Worksheets</h1>
+      {/* T0D-ELABMENU-3 (LD-340): heading = ElabAssist menu label, drawn by the shared PageHeader */}
+      <PageHeader title={t('lab.nav.worksheets')} helpKey="lab.worklists" />
       {load.s === 'loading' ? <p role="status">Loading…</p> : null}
       {load.s === 'fail' ? <Failure r={load.r} onRetry={retry} /> : null}
       {/* T0D-EMPTYTBL-2 (LD-310, LD-336): once loaded the table is always drawn; an empty list is one message row plus four placeholder rows. Loading and error unchanged. */}

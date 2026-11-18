@@ -33,7 +33,7 @@ export function CreditPartyDetail({ party, charges, statement }: { party: Credit
   ];
   return (
     <section aria-label={`Credit party ${party.name}`}>
-      <PageHeader title={party.name} helpKey="billing.credit_party" breadcrumbs={[{ label: 'Credit parties', href: '/billing/credit-parties' }, { label: party.code }]} />
+      <PageHeader title={party.name} helpKey="billing.credit_party" />
       <Tabs items={[{ id: 'terms', label: 'Terms' }, { id: 'charges', label: 'Charges' }, { id: 'statement', label: 'Statement' }]} selectedId={tab} onChange={(id) => setTab(id as Tab)} aria-label="Credit party">
         {tab === 'terms' ? (
           <DescriptionList

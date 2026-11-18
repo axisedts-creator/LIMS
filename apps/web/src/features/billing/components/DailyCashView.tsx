@@ -15,6 +15,7 @@ import { closeCashSessionAction } from '../server/actions';
 import type { CashSession, DailyCash, Money } from '../server/types';
 import { Ad, BsAd, errorText, formatNpr, hasPerm, humanize, npr } from './format';
 import { ExportButtons } from './ExportButtons';
+import { t } from '@/core/i18n/messages';
 
 type Line = DailyCash['rows'][number] | { total: true; gross: Money; reversed: Money; net: Money };
 const isTotal = (l: Line): l is Extract<Line, { total: true }> => 'total' in l;
@@ -48,7 +49,7 @@ export function DailyCashView({ report, session, permissions }: { report: DailyC
   ];
   return (
     <section aria-label="Daily cash">
-      <PageHeader title="Daily cash" helpKey="billing.daily_cash" actions={hasPerm(permissions, 'billing.data.export') ? <ExportButtons kind="daily_cash" formats={['xlsx']} filters={{ from: report.business_date, to: report.business_date }} /> : null} />
+      <PageHeader title={t('nav.billing.daily_cash')} helpKey="billing.daily_cash" actions={hasPerm(permissions, 'billing.data.export') ? <ExportButtons kind="daily_cash" formats={['xlsx']} filters={{ from: report.business_date, to: report.business_date }} /> : null} />
       <DatePicker label="Business date" name="date" value={report.business_date as IsoDate} onChange={(d) => d && nav.replace(`${pathname}?date=${d}`)} />
       <p>Business date: <BsAd bs={report.business_date_bs} ad={report.business_date} /></p>
       {session && session.status === 'open' ? <MyShift session={session} /> : null}

@@ -3,6 +3,7 @@ import { call } from '@/features/admin/server/api';
 import { Denied, Frame, LoadError, gate } from '@/features/admin/server/page-kit';
 import type { Branch, Centre, Role } from '@/features/admin/lib';
 import { InviteForm } from '@/features/admin/components/InviteForm';
+import { t } from '@/core/i18n/messages';
 
 export default async function InviteUserPage() {
   if (!(await gate('identity.user.manage'))) return <Denied />;
@@ -13,7 +14,7 @@ export default async function InviteUserPage() {
   ]);
   const failed = [roles, centres, branches].find((r) => !r.ok);
   return (
-    <Frame title="Invite user">
+    <Frame title={t('admin.nav.user_new')}>
       {failed && !failed.ok ? <LoadError fail={failed} what="the invitation form" /> : roles.ok && centres.ok && branches.ok ? (
         <InviteForm roles={roles.data.data} centres={centres.data.data} branches={branches.data.data} />
       ) : null}

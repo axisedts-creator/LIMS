@@ -4,3 +4,4 @@ export default { title: 'Feedback/ErrorState', component: ErrorState, args: { ti
 
 export const WithRetry = { args: { body: 'Check your connection.', requestId: '0190a1b2', onRetry: () => {} } };
 export const Plain = {};
+export const KeepsPageTitle = { args: { pageTitle: 'Reporting', requestId: '0190a1b2', onRetry: () => {} } };

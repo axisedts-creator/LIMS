@@ -6,6 +6,7 @@ import { DateText, type DateTextProps } from '@lims/ui/components/DateText';
 import { FilterBar, type FilterValue } from '@lims/ui/components/FilterBar';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { StatusChip } from '@lims/ui/components/StatusChip';
+import { t } from '@/core/i18n/messages';
 import { UNASSIGNED } from '../format';
 import type { UnassignedObservation } from '../types';
 import { qs } from './Shared';
@@ -45,7 +46,7 @@ export function ObservationsView({ rows, next, hasPrevious, sp, canManage, instr
 
   return (
     <>
-      <PageHeader title="Unassigned QC" helpKey="quality.observations" />
+      <PageHeader title={t('quality.nav.observations')} helpKey="quality.observations" />
       <FilterBar
         filters={[{ id: 'status', label: 'Status', kind: 'select', multiple: true, options: STATUS_OPTIONS }]}
         value={filter}

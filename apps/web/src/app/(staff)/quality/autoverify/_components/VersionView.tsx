@@ -69,7 +69,6 @@ export function VersionView({ version, report, settings, canManage }: { version:
       <PageHeader
         title={`Version ${version.version_no}`}
         helpKey="quality.autoverify_version"
-        breadcrumbs={[{ label: 'Auto-verification', href: OVERVIEW_HREF }, { label: `Version ${version.version_no}` }]}
         status={<StatusChip kind="generic" status={status} label={st.label} tone={st.tone} />}
         actions={canManage ? (
           <>

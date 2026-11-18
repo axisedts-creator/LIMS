@@ -61,12 +61,13 @@ export function createOutbox(store: OfflineStore, ctx: { deviceId: string; userI
     });
   }
 
+  const make = (input: OperationInput): Operation => ({ ...input, op_id: nextId(), device_created_at: new Date(now()).toISOString(), device_id: ctx.deviceId, user_id: ctx.userId });
+
   return {
     /** Appends the operation and its local changes atomically; crypto runs first, then one readwrite transaction. */
     async append(input: OperationInput, localChanges: LocalChange[] = []): Promise<Operation> {
       locked();
-      const ms = now();
-      const op: Operation = { ...input, op_id: nextId(), device_created_at: new Date(ms).toISOString(), device_id: ctx.deviceId, user_id: ctx.userId };
+      const op = make(input);
       const rec = await store.encryptRecord('outbox', op.op_id, op, { attempts: 0 });
       const local = await Promise.all(localChanges.map(async (c) => [c.store, await store.encryptRecord(c.store, c.key, c.value)] as const));
       await store.transact(['outbox', ...new Set(localChanges.map((c) => c.store))], 'readwrite', (s) => {
@@ -92,6 +93,28 @@ export function createOutbox(store: OfflineStore, ctx: { deviceId: string; userI
     moveToConflicts: (opId: string, conflictId: string, code?: string | undefined) => settle({ conflicts: [{ opId, conflictId, code }] }),
     saveNumberMappings: (m: NumberMapping[]) => settle({ mappings: m }),
     settle,
+    /** T0D-OFFLINE-2: takes an item out of needs attention in ONE transaction, either back into the outbox with the same op_id
+     *  (Retry: the op_id is the server idempotency key) or replaced by a new operation (the audited discard). null = unknown item. */
+    async release(opId: string, replacement?: OperationInput): Promise<Operation | null> {
+      locked();
+      const r = (await store.transact(['attention'], 'readonly', (s) => req(s('attention').get(opId)))) as SealedRecord | undefined;
+      if (!r) return null;
+      const { code: _c, at: _a, ...orig } = await store.decryptRecord<AttentionItem>('attention', r);
+      const op = replacement ? make(replacement) : orig;
+      const rec = await store.encryptRecord('outbox', op.op_id, op, { attempts: 0 });
+      const done = await store.transact(['outbox', 'attention'], 'readwrite', async (s) => {
+        if (!(await req(s('attention').get(opId)))) return false; // a parallel call took it first
+        s('attention').delete(opId);
+        s('outbox').put(rec);
+        return true;
+      });
+      return done ? op : null;
+    },
+    /** T0D-OFFLINE-2: a conflict resolved on the server leaves the local list. */
+    async dropConflict(conflictId: string) {
+      const hit = (await all<ConflictItem>('conflicts')).filter((c) => c.conflict_id === conflictId).map((c) => c.op_id);
+      if (hit.length) await store.transact(['conflicts'], 'readwrite', (s) => { for (const id of hit) s('conflicts').delete(id); });
+    },
     needsAttention: () => all<AttentionItem>('attention'),
     conflicts: () => all<ConflictItem>('conflicts'),
     numberMappings: () => all<NumberMapping>('mappings'),

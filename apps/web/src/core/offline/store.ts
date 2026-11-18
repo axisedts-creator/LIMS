@@ -97,6 +97,35 @@ export async function openOfflineStore(o: OpenOptions = {}) {
 
   const expired = (st: StateRecord) => st.signedInAt === undefined || now() - st.signedInAt >= retentionMs;
 
+  /** One PIN attempt (unlock and changePin): charged first (atomic read-modify-write), then the data key is unwrapped. */
+  async function attempt(pin: string, extractable: boolean): Promise<{ ok: true; dataKey: CryptoKey } | Exclude<UnlockResult, { ok: true }>> {
+    const st = await readState();
+    if (!st) return { ok: false, reason: 'not_setup' };
+    if (st.status === 'wiped' || st.status === 'revoked') return { ok: false, reason: st.status };
+    if (expired(st)) return { ok: false, reason: 'expired' };
+    const failed = await transact(['state'], 'readwrite', async (s) => {
+      const cur = (await req(s('state').get('state'))) as StateRecord;
+      const f = cur.failed + 1;
+      s('state').put({ ...cur, failed: f });
+      return f;
+    });
+    // limit already reached by an earlier attempt interrupted before its wipe (reload mid derive): wipe now, never check the PIN
+    if (failed > maxFailures) { await wipe('wiped'); return { ok: false, reason: 'wiped' }; }
+    const kr = (await transact(['keyring'], 'readonly', (s) => req(s('keyring').get('keyring')))) as KeyringRecord | undefined;
+    let dataKey: CryptoKey | null = null;
+    if (kr) {
+      try {
+        dataKey = await subtle().unwrapKey('raw', kr.wrapped, await kek(String(pin), kr.salt, kr.iterations), 'AES-KW', { name: 'AES-GCM', length: 256 }, extractable, ['encrypt', 'decrypt']);
+      } catch { dataKey = null; }
+    }
+    if (dataKey) {
+      await transact(['state'], 'readwrite', async (s) => { const cur = (await req(s('state').get('state'))) as StateRecord; s('state').put({ ...cur, failed: 0 }); });
+      return { ok: true, dataKey };
+    }
+    if (failed >= maxFailures || !kr) { await wipe('wiped'); return { ok: false, reason: 'wiped' }; }
+    return { ok: false, reason: 'wrong_pin', attemptsLeft: maxFailures - failed };
+  }
+
   const store = {
     /** Online sign in: set the PIN of a fresh (empty or wiped) store. A set-up store keeps its key: use markOnlineSignIn. */
     async setupPin(pin: string, ctx: { userId: string }) {
@@ -120,33 +149,21 @@ export async function openOfflineStore(o: OpenOptions = {}) {
       await writeState({ ...st, signedInAt: now() });
     },
     async unlock(pin: string): Promise<UnlockResult> {
-      const st = await readState();
-      if (!st) return { ok: false, reason: 'not_setup' };
-      if (st.status === 'wiped' || st.status === 'revoked') return { ok: false, reason: st.status };
-      if (expired(st)) return { ok: false, reason: 'expired' };
-      // charge the attempt first (atomic read-modify-write), then check the PIN
-      const failed = await transact(['state'], 'readwrite', async (s) => {
-        const cur = (await req(s('state').get('state'))) as StateRecord;
-        const f = cur.failed + 1;
-        s('state').put({ ...cur, failed: f });
-        return f;
-      });
-      // limit already reached by an earlier attempt interrupted before its wipe (reload mid derive): wipe now, never check the PIN
-      if (failed > maxFailures) { await wipe('wiped'); return { ok: false, reason: 'wiped' }; }
-      const kr = (await transact(['keyring'], 'readonly', (s) => req(s('keyring').get('keyring')))) as KeyringRecord | undefined;
-      let unwrapped: CryptoKey | null = null;
-      if (kr) {
-        try {
-          unwrapped = await subtle().unwrapKey('raw', kr.wrapped, await kek(String(pin), kr.salt, kr.iterations), 'AES-KW', { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
-        } catch { unwrapped = null; }
-      }
-      if (unwrapped) {
-        await transact(['state'], 'readwrite', async (s) => { const cur = (await req(s('state').get('state'))) as StateRecord; s('state').put({ ...cur, failed: 0 }); });
-        key = unwrapped;
-        return { ok: true };
-      }
-      if (failed >= maxFailures || !kr) { await wipe('wiped'); return { ok: false, reason: 'wiped' }; }
-      return { ok: false, reason: 'wrong_pin', attemptsLeft: maxFailures - failed };
+      const r = await attempt(pin, false);
+      if (!r.ok) return r;
+      key = r.dataKey;
+      return { ok: true };
+    },
+    /** T0D-OFFLINE-2: an attempt like unlock (a wrong old PIN is charged); on success the SAME data key is wrapped again under
+     *  the new PIN with a new salt, so no record is re-encrypted. Works locked or unlocked; the lock state does not change. */
+    async changePin(oldPin: string, newPin: string): Promise<UnlockResult> {
+      if (typeof newPin !== 'string' || newPin.length === 0) throw new OfflineError('offline.pin_required');
+      const r = await attempt(oldPin, true);
+      if (!r.ok) return r;
+      const salt = globalThis.crypto.getRandomValues(new Uint8Array(16));
+      const wrapped = await subtle().wrapKey('raw', r.dataKey, await kek(newPin, salt, PBKDF2_ITERATIONS), 'AES-KW');
+      await transact(['keyring'], 'readwrite', (s) => { s('keyring').put({ k: 'keyring', salt, wrapped, iterations: PBKDF2_ITERATIONS } satisfies KeyringRecord); });
+      return { ok: true };
     },
     lock() { key = null; },
     isUnlocked: () => key !== null,

@@ -5,7 +5,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Banner } from '@lims/ui/components/Banner';
-import { BarcodeInput, useScanCapture } from '@lims/ui/components/BarcodeInput';
+import { useScanCapture } from '@lims/ui/components/BarcodeInput';
 import { Button } from '@lims/ui/components/Button';
 import { Checkbox } from '@lims/ui/components/Checkbox';
 import { ConfirmDialog } from '@lims/ui/components/ConfirmDialog';
@@ -14,6 +14,7 @@ import { DateText, type DateTextProps } from '@lims/ui/components/DateText';
 import { Drawer } from '@lims/ui/components/Drawer';
 import { Icon } from '@lims/ui/components/Icon';
 import { Inline } from '@lims/ui/components/Inline';
+import { ScanPanel } from '@lims/ui/components/ScanPanel';
 import { Stack } from '@lims/ui/components/Stack';
 import { StatusChip } from '@lims/ui/components/StatusChip';
 import { useToast } from '@lims/ui/components/Toast';
@@ -42,7 +43,7 @@ export function HandoverDrawer({ handover, isOpen, onClose }: HandoverDrawerProp
   const done = useRef(false);
   const [load, setLoad] = useState<Load>({ state: 'loading' });
   const [got, setGot] = useState<ReadonlySet<string>>(new Set());
-  const [scanError, setScanError] = useState('');
+  const [lastScan, setLastScan] = useState('');
   const [error, setError] = useState('');
   const [asking, setAsking] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -68,8 +69,8 @@ export function HandoverDrawer({ handover, isOpen, onClose }: HandoverDrawerProp
 
   const onScan = (value: string) => {
     const hit = items.find((i) => i.barcode === value);
-    if (!hit) { setScanError(NOT_IN_HANDOVER); return; }
-    setScanError('');
+    if (!hit) { setLastScan(NOT_IN_HANDOVER); return; } // a foreign value is never shown back
+    setLastScan(`${hit.barcode}: Received`);
     setGot((s) => new Set(s).add(hit.specimen_id)); // a tube already received stays received: a repeat scan is ignored
   };
   useScanCapture({ onScan, enabled: isOpen && !closed && !!pending && !asking });
@@ -120,6 +121,7 @@ export function HandoverDrawer({ handover, isOpen, onClose }: HandoverDrawerProp
       : { id: 'outcome', header: 'Outcome', cell: outcome },
   ];
 
+  const table = <DataTable<HandoverItem> caption="Tubes in this handover" columns={columns} rows={items} getRowId={(i) => i.specimen_id} density="compact" emptyState={{ title: 'No tubes in this handover.' }} />;
   const n = data ? total : handover.item_count;
   return (
     <Drawer title={`Handover from ${handover.from.display_name} · ${n} ${noun(n)}`} isOpen={isOpen && !closed} onClose={onClose} width="lg">
@@ -128,7 +130,6 @@ export function HandoverDrawer({ handover, isOpen, onClose }: HandoverDrawerProp
       {data ? (
         <div onKeyDown={(e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && !e.defaultPrevented) { e.preventDefault(); confirm(); } }}>
           <Stack>
-            {pending ? <BarcodeInput label="Scan tube" name="scan" onScan={onScan} {...(scanError ? { error: scanError } : {})} /> : null}
             {pending ? (
               <p role="status">Received {got.size} of {total}</p>
             ) : (
@@ -137,7 +138,12 @@ export function HandoverDrawer({ handover, isOpen, onClose }: HandoverDrawerProp
                 {data.received_at ? <> · <DateText value={data.received_at as Iso} withTime /></> : null}
               </p>
             )}
-            <DataTable<HandoverItem> caption="Tubes in this handover" columns={columns} rows={items} getRowId={(i) => i.specimen_id} density="compact" emptyState={{ title: 'No tubes in this handover.' }} />
+            {pending ? (
+              // T0D-UISCAN-1 (LD-353 template 3): scan input, last result card, the tubes table as the queue
+              <ScanPanel label="Scan tube" name="scan" onScan={onScan} result={lastScan ? <p className="lims-description">{lastScan}</p> : null}>
+                {table}
+              </ScanPanel>
+            ) : table}
             {error && !asking ? <div role="alert"><Banner tone="danger" title={error} /></div> : null}
             {pending ? (
               <Inline justify="end">

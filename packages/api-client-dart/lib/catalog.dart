@@ -71,6 +71,10 @@ class CatalogApi {
   Future<Object?> createExport({Map<String, String>? headers, Object? body}) =>
       _send('POST', '/v1/catalog/exports', headers: headers, body: body);
 
+  /// POST /v1/catalog/icd-master
+  Future<Object?> createIcdMasterCode({Map<String, String>? headers, Object? body}) =>
+      _send('POST', '/v1/catalog/icd-master', headers: headers, body: body);
+
   /// POST /v1/catalog/imports
   Future<Object?> createImport({Map<String, String>? headers, Object? body}) =>
       _send('POST', '/v1/catalog/imports', headers: headers, body: body);
@@ -130,6 +134,10 @@ class CatalogApi {
   /// POST /v1/catalog/value-sets
   Future<Object?> createValueSet({Map<String, String>? headers, Object? body}) =>
       _send('POST', '/v1/catalog/value-sets', headers: headers, body: body);
+
+  /// POST /v1/catalog/icd-master/{icd_code_id}/deactivate
+  Future<Object?> deactivateIcdMasterCode({required String icdCodeId, Map<String, String>? headers}) =>
+      _send('POST', '/v1/catalog/icd-master/${Uri.encodeComponent(icdCodeId)}/deactivate', headers: headers);
 
   /// POST /v1/catalog/analyte-versions/{analyte_version_id}/discard
   Future<Object?> discardAnalyteVersionDraft({required String analyteVersionId, Map<String, String>? headers}) =>
@@ -271,6 +279,10 @@ class CatalogApi {
   Future<Object?> listExports({Map<String, Object?>? query}) =>
       _send('GET', '/v1/catalog/exports', query: query);
 
+  /// GET /v1/catalog/icd-master
+  Future<Object?> listIcdMasterCodes({Map<String, Object?>? query}) =>
+      _send('GET', '/v1/catalog/icd-master', query: query);
+
   /// GET /v1/catalog/imports/{import_id}/issues
   Future<Object?> listImportIssues({required String importId, Map<String, Object?>? query}) =>
       _send('GET', '/v1/catalog/imports/${Uri.encodeComponent(importId)}/issues', query: query);
@@ -407,6 +419,10 @@ class CatalogApi {
   Future<Object?> searchDoctors({Object? body}) =>
       _send('POST', '/v1/catalog/doctors/search', body: body);
 
+  /// GET /v1/catalog/icd-master/search
+  Future<Object?> searchIcdMasterCodes({Map<String, Object?>? query}) =>
+      _send('GET', '/v1/catalog/icd-master/search', query: query);
+
   /// GET /v1/catalog/orderables
   Future<Object?> searchOrderables({Map<String, Object?>? query}) =>
       _send('GET', '/v1/catalog/orderables', query: query);
@@ -442,6 +458,10 @@ class CatalogApi {
   /// PATCH /v1/catalog/doctors/{doctor_id}
   Future<Object?> updateDoctor({required String doctorId, Map<String, String>? headers, Object? body}) =>
       _send('PATCH', '/v1/catalog/doctors/${Uri.encodeComponent(doctorId)}', headers: headers, body: body);
+
+  /// PATCH /v1/catalog/icd-master/{icd_code_id}
+  Future<Object?> updateIcdMasterCode({required String icdCodeId, Map<String, String>? headers, Object? body}) =>
+      _send('PATCH', '/v1/catalog/icd-master/${Uri.encodeComponent(icdCodeId)}', headers: headers, body: body);
 
   /// PATCH /v1/catalog/instrument-code-maps/{map_id}
   Future<Object?> updateInstrumentCodeMap({required String mapId, Map<String, String>? headers, Object? body}) =>

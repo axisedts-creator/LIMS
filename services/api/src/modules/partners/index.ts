@@ -80,6 +80,10 @@ const PENDING_OPERATIONS: readonly string[] = Object.freeze([
   'listSalesRepresentatives', 'createSalesRepresentative', 'updateSalesRepresentative', 'deactivateSalesRepresentative', 'getSalesTree',
   'assignPartyToRepresentative', 'unassignPartyFromRepresentative', 'listRepresentativeClients',
   'listServiceAreas', 'createServiceArea', 'updateServiceArea', 'deactivateServiceArea',
+  // T0C-PARTYSET-1 (LD-321): party commercial settings, onboarding queue, penalties, ID reveal; T0B-PARTYSET-1 removes them
+  'getPartyCommercialSetting', 'setPartyCommercialSetting', 'listPartyOnboarding', 'decidePartyOnboarding',
+  'listNonCompliancePenalties', 'createNonCompliancePenalty', 'updateNonCompliancePenalty', 'deactivateNonCompliancePenalty',
+  'listNonComplianceEvents', 'raiseNonComplianceEvent', 'waiveNonComplianceEvent', 'chargeNonComplianceEvent', 'revealPartyIdNumber',
 ]);
 
 export const manifest: ModuleManifest = Object.freeze({

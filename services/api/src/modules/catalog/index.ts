@@ -18,7 +18,9 @@ export const manifest = {
   // T0C-PRICETOOLS-1 (LD-321, LD-325(b)): the seven price list tool operations; T0B-PRICETOOLS-1 removes them when it adds the handlers.
   pendingOperations: ['downloadPriceListTemplate', 'dryRunPriceListImport', 'commitPriceListImport', 'bulkUpdatePriceListDraft', 'copyPriceList', 'comparePriceLists', 'listPriceListImportBatches',
     // T0C-TESTIMPORT-1 (LD-318, LD-325(b), LD-335): pending until T0B-TESTIMPORT-1 adds the handlers
-    'downloadCatalogImportTemplate', 'validateCatalogImport', 'commitCatalogImport', 'listCatalogImports', 'getCatalogImport', 'downloadCatalogImportErrors'],
+    'downloadCatalogImportTemplate', 'validateCatalogImport', 'commitCatalogImport', 'listCatalogImports', 'getCatalogImport', 'downloadCatalogImportErrors',
+    // T0C-PARTYSET-1 (LD-321, LD-325(b)): the ICD master; T0B-PARTYSET-1 removes them when it adds the handlers
+    'listIcdMasterCodes', 'searchIcdMasterCodes', 'createIcdMasterCode', 'updateIcdMasterCode', 'deactivateIcdMasterCode'],
   produces: ['catalog.changed.v1'],
   ports: { CatalogPort },
 } as const satisfies ModuleManifest;

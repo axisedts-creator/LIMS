@@ -6,13 +6,13 @@ import { describe, expect, it } from 'vitest';
 import { checkHandlers, loadSpec, REPO_ROOT } from '../module.js';
 import { CORE_PENDING_OPERATIONS } from '../core-pending.js';
 import { createHealthHandlers } from '../health.js';
-import { syncHandlers } from '../sync/index.js';
+import { syncHandlers, syncPart2Handlers } from '../sync/index.js';
 import { okChecks } from '../observability/__tests__/helpers.js';
 
 const SYNC2_OPS = ['pushSyncBatch', 'pullChanges', 'listSyncConflicts', 'getSyncConflict', 'resolveSyncConflict'];
 const spec: any = loadSpec(join(REPO_ROOT, 'contracts/openapi/core.yaml'));
 const specIds: string[] = Object.values<any>(spec.paths).flatMap((p) => Object.values<any>(p).map((m) => m?.operationId).filter(Boolean));
-const healthHandlers = { ...createHealthHandlers(okChecks()), ...syncHandlers };
+const healthHandlers = { ...createHealthHandlers(okChecks()), ...syncHandlers, ...syncPart2Handlers };
 const pending: string[] = [...CORE_PENDING_OPERATIONS];
 
 describe('T0C-SYNC-2: core manifest covers the part 2 sync operations (handler or pending)', () => {

@@ -6,7 +6,7 @@ import { genReqId, installErrorHandlers, sendProblem } from './errors.js';
 import { createHealthHandlers, UNWIRED_CHECKS, type EnvSource, type HealthChecks } from './health.js';
 import { autoload, checkHandlers, DEFAULT_MODULES_DIR, loadSpec, REPO_ROOT } from './module.js';
 import { CORE_PENDING_OPERATIONS } from './core-pending.js';
-import { syncHandlers } from './sync/index.js';
+import { syncHandlers, syncPart2Handlers } from './sync/index.js';
 import { createBffKeyVerifier } from './auth/bff-key.js';
 import type { ClaimsResolver } from './auth/claims-resolver.js';
 import { createClientIpResolver } from './auth/client-ip.js';
@@ -85,10 +85,10 @@ export async function bootstrap(opts: BootstrapOptions): Promise<FastifyInstance
       // T0B-SYNC-1 [CONV]: without LIMS_CORE_JWT_* no bearerJwt call can authenticate, so the core mounts its public health operations
       // only (the sync routes are absent, 404, fail closed) instead of refusing boot; the same rule mountSpec applies to pending ids.
       const full = loadSpec(join(REPO_ROOT, 'contracts', 'openapi', 'core.yaml'));
-      const spec = auth.verifier ? full : withoutPendingBearer(full, Object.keys(syncHandlers));
+      const spec = auth.verifier ? full : withoutPendingBearer(full, [...Object.keys(syncHandlers), ...Object.keys(syncPart2Handlers)]);
       if (!auth.verifier) app.log.warn({ event: 'core_sync_unmounted' }, 'no JWT config: core sync operations are not mounted');
-      // LD-193: injected, else real, else fail closed; T0B-SYNC-1 (LD-322, LD-325 b): plus the offline sync handlers.
-      const handlers = { ...createHealthHandlers(opts.healthChecks ?? pipes.healthChecks ?? UNWIRED_CHECKS, opts.env), ...(auth.verifier ? syncHandlers : {}) };
+      // LD-193: injected, else real, else fail closed; T0B-SYNC-1 / T0B-SYNC-2 (LD-322, LD-325 b): plus the offline sync handlers, parts 1 and 2.
+      const handlers = { ...createHealthHandlers(opts.healthChecks ?? pipes.healthChecks ?? UNWIRED_CHECKS, opts.env), ...(auth.verifier ? { ...syncHandlers, ...syncPart2Handlers } : {}) };
       checkHandlers('core', spec, handlers, CORE_PENDING_OPERATIONS);
       await mountSpec(app, 'core', spec, handlers, auth, pipes.pipelineFor('core'), CORE_PENDING_OPERATIONS);
     }

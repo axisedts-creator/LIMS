@@ -559,7 +559,7 @@ describe("T0C-SYNC-2 examples (done_when 6)", () => {
 });
 
 describe("T0C-SYNC-2 error codes: the closed list (done_when 4)", () => {
-  it("errors.yaml holds the nine new sync.* codes, owner C0, with the pinned http status and a title and meaning free of personal data; the five part 1 codes stay", () => {
+  it("errors.yaml holds the ten new sync.* codes (the nine pinned here plus sync.op_type_not_available, LD-374), owner C0, with the pinned http status and a title and meaning free of personal data; the five part 1 codes stay", () => {
     for (const [code, http] of Object.entries(NEW_ERRORS)) {
       const e = errorsYaml.find((x: any) => x.code === code);
       expect(e, `${code} missing from contracts/errors.yaml`).toBeDefined();
@@ -570,7 +570,7 @@ describe("T0C-SYNC-2 error codes: the closed list (done_when 4)", () => {
       expect(`${e.title} ${e.meaning}`, `${code}: no name, e-mail, phone, id placeholder`).not.toMatch(/@|\{|\}|%s|\$\{|patient name|\b9[78]\d{8}\b/i);
     }
     const sync = errorsYaml.filter((e) => String(e.code).startsWith("sync.")).map((e) => e.code);
-    sortedEq(sync, ["sync.device_revoked", "sync.device_unknown", "sync.block_size_too_large", "sync.series_unknown", "sync.wipe_required", ...Object.keys(NEW_ERRORS)]);
+    sortedEq(sync, ["sync.device_revoked", "sync.device_unknown", "sync.block_size_too_large", "sync.series_unknown", "sync.wipe_required", "sync.op_type_not_available", ...Object.keys(NEW_ERRORS)]);
   });
   it("every new code is reachable: listed in an x-error-codes of one of the 5 operations or in the error_code enum of the push result; none is used by a file other than core.yaml", () => {
     const used = new Set<string>([...Object.keys(OPS).flatMap((id) => opIn(C_DOC, id)?.op["x-error-codes"] ?? []), ...enumOf(props(deref(props(okSchema("pushSyncBatch")).results.items)).error_code)]);

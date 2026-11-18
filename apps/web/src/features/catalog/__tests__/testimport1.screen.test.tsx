@@ -74,8 +74,9 @@ const countOf = (label: string): string => {
 /** Upload a valid file and wait until the dry run answered. */
 async function validated(body: Record<string, any> = CLEAN(), f = xlsxFile()) {
   API.validate = [() => HttpResponse.json(body, { status: 201 })];
+  const before = validates().length;
   await pick(f);
-  await waitFor(() => expect(validates()).toHaveLength(1));
+  await waitFor(() => expect(validates()).toHaveLength(before + 1));
   await waitFor(() => expect(countOf('Tests')).toMatch(/\b2\b/));
 }
 const noAxe = async () => { const r = await axe.run(document.body, { rules: { 'color-contrast': { enabled: false }, region: { enabled: false } } }); expect(r.violations.map((v) => `${v.id}: ${v.nodes[0]?.html}`)).toEqual([]); };
@@ -391,7 +392,7 @@ describe('step 3: validate (counts, errors table, errors file)', () => {
     await pick(xlsxFile('fixed.xlsx'));
     await waitFor(() => expect(validates()).toHaveLength(2));
     await waitFor(() => expect(countOf('Errors')).toMatch(/\b0\b/));
-    expect(bodyRows(errTable())).toHaveLength(0);
+    expectEmptyTable(errTable(), /no errors/i, ['Sheet', 'Row', 'Column', 'Problem']);
     expect(commitBtn().disabled).toBe(false);
   });
 });

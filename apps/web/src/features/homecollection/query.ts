@@ -43,7 +43,7 @@ export function deviceQuery(sp: SP) {
   const q = new URLSearchParams({ limit: '100' });
   if (status.length) q.set('status', status.join(','));
   if (cursor && CURSOR.test(cursor)) q.set('cursor', cursor);
-  return { q };
+  return { q, status };
 }
 
 export function dispatchQuery(sp: SP, now: number, centres: readonly Centre[]) {

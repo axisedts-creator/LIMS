@@ -104,7 +104,7 @@ export function RemindersView({ reminders, permissions, reasons, searchPatients,
       <Filters />
       {error ? <div role="alert"><Banner tone="danger" title={error.text} {...(error.reload ? { action: { label: 'Reload', onPress: () => router.refresh() } } : {})} /></div> : null}
       <DataTable<ReminderRow>
-        columns={columns} rows={reminders} getRowId={(r) => r.id} density="compact" caption="Reminders"
+        columns={columns} rows={reminders} getRowId={(r) => r.id} density="compact" caption="Reminders" cellTitle
         emptyState={{ title: 'No reminders', body: 'Nothing is scheduled in this date range.' }}
         {...(nextCursor || hasPrevious ? { page: { hasNext: !!nextCursor, hasPrevious: !!hasPrevious, limit: 50, onNext: () => nextCursor && router.push(`${pathname}?${new URLSearchParams([...params.entries()].filter(([k]) => k !== 'cursor').concat([['cursor', nextCursor]])).toString()}`), onPrevious: () => router.back() } } : {})}
       />
@@ -144,7 +144,8 @@ function Filters() {
   };
   return (
     <>
-      <div className="lims-inline" role="search" aria-label="Reminder filters">
+      {/* T0D-UILIST-3 (LD-353 template 1): range, status and kind in the one kit FilterBar row */}
+      <div className="lims-filter-bar" role="search" aria-label="Reminder filters">
         <div role="group" aria-label="Due date range" className="lims-inline">
           <TextField label="From" name="due_from" maxLength={10} inputMode="numeric" description="DD/MM/YYYY" value={from} onChange={(v) => { setFrom(v); onRange(v, to); }} />
           <TextField label="To" name="due_to" maxLength={10} inputMode="numeric" description="DD/MM/YYYY" value={to} onChange={(v) => { setTo(v); onRange(from, v); }} />

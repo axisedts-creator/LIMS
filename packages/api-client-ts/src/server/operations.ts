@@ -69287,6 +69287,114 @@ export interface Operations {
       };
     };
   };
+  getSyncConflict: {
+    params: {
+      conflict_id: string;
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        id: string;
+        op_id: string;
+        entity_type: string;
+        entity_id: string;
+        local_payload: unknown;
+        server_payload: unknown;
+        status: "open" | "resolved";
+        resolution?: "keep_server" | "apply_local" | "merge";
+        resolved_by?: string;
+        resolved_at?: string;
+        reason?: string;
+        created_at: string;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   getSyncSnapshot: {
     params: Record<string, never>;
     query: {
@@ -101097,6 +101205,109 @@ export interface Operations {
       };
     };
   };
+  listSyncConflicts: {
+    params: Record<string, never>;
+    query: {
+      status?: "open" | "resolved";
+      entity_type?: string;
+      cursor?: string;
+      limit?: number;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        data: ({
+          id: string;
+          op_id: string;
+          entity_type: string;
+          entity_id: string;
+          local_payload: unknown;
+          server_payload: unknown;
+          status: "open" | "resolved";
+          resolution?: "keep_server" | "apply_local" | "merge";
+          resolved_by?: string;
+          resolved_at?: string;
+          reason?: string;
+          created_at: string;
+        })[];
+        page: {
+          next_cursor?: string;
+          limit: number;
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   listSyncDevices: {
     params: Record<string, never>;
     query: {
@@ -109657,6 +109868,429 @@ export interface Operations {
         }[];
       };
       428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  pullChanges: {
+    params: Record<string, never>;
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: {
+      device_id: string;
+      entities: ({
+        entity_type: "test" | "parameter" | "doctor" | "centre" | "price_list_version" | "verification_policy" | "print_profile" | "patient" | "worklist_item" | "permission";
+        cursor?: string;
+      })[];
+      limit?: number;
+    };
+    responses: {
+      200: ({
+        changes: ({
+          entity_type: "test" | "parameter" | "doctor" | "centre" | "price_list_version" | "verification_policy" | "print_profile" | "patient" | "worklist_item" | "permission";
+          upserts: {
+            id: string;
+            version?: number;
+            updated_at: string;
+            document: unknown;
+          }[];
+          tombstones: {
+            id: string;
+            removed_at: string;
+          }[];
+          next_cursor: string;
+          has_more: boolean;
+        })[];
+        server_time: string;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  pushSyncBatch: {
+    params: Record<string, never>;
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: {
+      device_id: string;
+      operations: (({
+        op_id: string;
+        op_type: "registration.create_order";
+        base_version?: number;
+        entity_id?: string;
+        payload: {
+          patient: ({
+            patient_id: string;
+          } | {
+            new_patient: {
+              full_name: string;
+              sex: "male" | "female" | "other" | "unknown";
+              birth_on?: string;
+              age?: {
+                years: number;
+                months?: number;
+                days?: number;
+              };
+              phone_e164?: string;
+              email?: string;
+              address_text?: string;
+              title?: "mr" | "mrs" | "miss" | "ms" | "master" | "baby" | "baby_of" | "dr" | "prof" | "capt" | "col" | "major" | "sri" | "smt" | "kumari" | "late" | "sister" | "reverend" | "other";
+              external_patient_id?: string;
+              nationality?: string;
+              government_id_type?: "citizenship" | "national_id" | "passport" | "driving_licence" | "voter_id" | "other";
+              government_id_number?: string;
+              address_province?: string;
+              address_district?: string;
+              address_municipality?: string;
+              address_ward?: string;
+              address_tole?: string;
+              address_postal_code?: string;
+              profile_photo_attachment_id?: string;
+              custom_fields?: {
+                code: string;
+                value: string;
+              }[];
+              consents: {
+                processing: boolean;
+                sms: boolean;
+                whatsapp: boolean;
+                email: boolean;
+                share_with_referrer: boolean;
+                consent_text_version: string;
+              };
+              duplicate_override?: {
+                reason_code: string;
+              };
+            };
+          });
+          centre_id: string;
+          visit_type: "opd" | "ipd";
+          billing_mode: "cash" | "credit";
+          credit_party_id?: string;
+          referrer_id?: string;
+          priority?: "routine" | "urgent";
+          collection_mode?: "walk_in" | "home" | "centre" | "partner";
+          items: ({
+            orderable_id: string;
+            priority?: "routine" | "urgent";
+            icd_code?: string;
+          })[];
+          discounts?: ({
+            scope: "line" | "bill";
+            orderable_id?: string;
+            kind: "amount" | "percent";
+            amount_paisa?: number;
+            percent_bp?: number;
+            reason_code: string;
+            reason_text?: string;
+          })[];
+          buyer_pan?: string;
+          quote_fingerprint: string;
+          payments: {
+            method_code: string;
+            amount_received_paisa: number;
+            reference?: string;
+            tendered_paisa?: number;
+            card_holder_name?: string;
+            payment_remark?: string;
+          }[];
+          trf_attachment_ids?: string[];
+          discount_approval_id?: string;
+          collection_at?: string;
+          collected_by_membership_id?: string;
+          collected_by_name?: string;
+          sample_not_collected?: boolean;
+          sample_remark?: string;
+          remark_description?: string;
+          clinical_history?: string;
+          patient_history?: string;
+          mr_number?: string;
+          external_reference?: string;
+          insurance_code?: string;
+          insurance_claim_amount_paisa?: number;
+          visiting_charge_paisa?: number;
+          coupon_code?: string;
+          redeem_reward_points?: number;
+        };
+        device_created_at: string;
+      } | {
+        op_id: string;
+        op_type: "billing.record_receipt";
+        base_version?: number;
+        entity_id: string;
+        payload: {
+          method_code: string;
+          amount_received_paisa: number;
+          reference?: string;
+          invoice_id?: string;
+          card_holder_name?: string;
+          payment_remark?: string;
+        };
+        device_created_at: string;
+      } | {
+        op_id: string;
+        op_type: "collection.mark_collected";
+        base_version: number;
+        entity_id: string;
+        payload: {
+          collected_at?: string;
+        };
+        device_created_at: string;
+      } | {
+        op_id: string;
+        op_type: "accession.receive";
+        base_version: number;
+        entity_id: string;
+        payload: {
+          processing_centre_id: string;
+        };
+        device_created_at: string;
+      } | {
+        op_id: string;
+        op_type: "result.enter";
+        base_version?: number;
+        entity_id?: string;
+        payload: {
+          entries: {
+            result_id: string;
+            version: number;
+            value_numeric?: string;
+            value_text?: string;
+            ordinal_code?: string;
+            manual_abnormal?: boolean;
+            comment_codes?: string[];
+            comment_text?: string;
+          }[];
+        };
+        device_created_at: string;
+      } | {
+        op_id: string;
+        op_type: "result.verify";
+        base_version: number;
+        entity_id: string;
+        payload: {
+          acknowledged_flags?: ("delta" | "critical" | "unit_mismatch" | "instrument_flag")[];
+        };
+        device_created_at: string;
+      } | {
+        op_id: string;
+        op_type: "report.print_marker";
+        base_version?: number;
+        entity_id: string;
+        payload: {
+          variant: "letterhead" | "plain";
+          copies: number;
+        };
+        device_created_at: string;
+      } | {
+        op_id: string;
+        op_type: "daily_cash.close";
+        base_version: number;
+        entity_id: string;
+        payload: {
+          counted: {
+            method_code: string;
+            amount_paisa: number;
+          }[];
+          note?: string;
+        };
+        device_created_at: string;
+      }))[];
+    };
+    responses: {
+      200: ({
+        results: ({
+          op_id: string;
+          status: "accepted" | "duplicate" | "rejected" | "conflict";
+          error_code?: "sync.base_version_stale" | "sync.op_id_reused" | "sync.batch_too_large" | "sync.clock_skew_too_large" | "sync.result_locked" | "sync.verification_policy_failed" | "sync.offline_not_allowed" | "sync.number_out_of_block" | "sync.entity_changed" | "common.validation_failed" | "common.not_found" | "common.version_conflict" | "auth.forbidden" | "common.internal" | "billing.payment_exceeds_due" | "billing.order_not_invoiced" | "billing.counter_busy" | "common.immutable_record" | "common.precondition_required" | "frontdesk.patient_duplicate_suspected" | "frontdesk.consent_required" | "frontdesk.referrer_required" | "frontdesk.discount_approval_required" | "frontdesk.discount_exceeds_limit" | "catalog.test_inactive" | "catalog.no_price" | "catalog.tax_config_missing" | "billing.credit_limit_exceeded" | "billing.credit_party_locked" | "billing.fiscal_year_closed" | "billing.numbering_pattern_invalid" | "lab.specimen_invalid_transition" | "lab.specimen_inactive" | "lab.specimen_not_receivable" | "lab.result_value_invalid" | "lab.result_locked" | "lab.result_invalid_transition" | "lab.result_on_hold" | "lab.flag_ack_required" | "reporting.report_not_released" | "lab.verifier_not_distinct" | "lab.enterer_cannot_verify" | "lab.pathologist_required";
+          conflict_id?: string;
+          entity_id?: string;
+          number_mappings?: ({
+            document_type: "bill" | "invoice" | "receipt";
+            provisional_number: string;
+            final_number: string;
+          })[];
+          skew_flag?: boolean;
+        })[];
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
         type: string;
         title: string;
         status: number;
@@ -126581,6 +127215,148 @@ export interface Operations {
         }[];
       };
       403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  resolveSyncConflict: {
+    params: {
+      conflict_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+    };
+    body: {
+      resolution: "keep_server" | "apply_local" | "merge";
+      reason: string;
+      merged_payload?: unknown;
+    };
+    responses: {
+      200: ({
+        id: string;
+        op_id: string;
+        entity_type: string;
+        entity_id: string;
+        local_payload: unknown;
+        server_payload: unknown;
+        status: "open" | "resolved";
+        resolution?: "keep_server" | "apply_local" | "merge";
+        resolved_by?: string;
+        resolved_at?: string;
+        reason?: string;
+        created_at: string;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
         type: string;
         title: string;
         status: number;

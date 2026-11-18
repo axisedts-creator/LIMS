@@ -101,7 +101,8 @@ export function RulesView(p: RulesViewProps) {
       <Stack>
         <a className="lims-link" href={CONSUMPTION_HELP}>Help: how automatic deduction works</a>
         <ProblemBanner problem={problem} />
-        <Inline gap={2}>
+        {/* T0D-UILIST-3 (LD-353 template 1): the filters are the page's one FilterBar row (kit .lims-filter-bar). */}
+        <div role="search" className="lims-filter-bar">
           <Pick label="Kind filter" name="kind" options={[{ value: ALL, label: 'All kinds' }, ...RULE_KINDS.map((k) => ({ value: k, label: KIND_LABEL[k] }))]} value={p.filters.kind ?? ALL} onChange={pickFilter('kind')} />
           <Pick label="Test filter" name="test" options={[{ value: ALL, label: 'All tests' }, ...p.tests.map((t) => ({ value: t.id, label: `${t.code} · ${t.name}` }))]} value={p.filters.test ?? ALL} onChange={pickFilter('test')} />
           <Pick label="Analyser filter" name="analyser" options={[{ value: ALL, label: 'All analysers' }, ...p.instruments.map((i) => ({ value: i.id, label: `${i.instrument_code} · ${i.display_name}` }))]} value={p.filters.analyser ?? ALL} onChange={pickFilter('analyser')} />
@@ -120,8 +121,8 @@ export function RulesView(p: RulesViewProps) {
             onChange={(v) => go({ item: v?.id })}
           />
           <Checkbox label="Show history" isSelected={p.filters.history} onChange={(v) => go({ history: v ? '1' : undefined })} />
-        </Inline>
-        <DataTable caption="Consumption rules" columns={columns} rows={p.rules} getRowId={(r) => r.id} emptyState={{ title: 'No consumption rules. Automatic deduction does nothing until you add rules.' }} />
+        </div>
+        <DataTable caption="Consumption rules" columns={columns} rows={p.rules} getRowId={(r) => r.id} cellTitle emptyState={{ title: 'No consumption rules. Automatic deduction does nothing until you add rules.' }} />
       </Stack>
       <Drawer title="New consumption rule" isOpen={creating} onClose={() => setCreating(false)}>
         {creating ? (

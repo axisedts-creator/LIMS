@@ -213,3 +213,18 @@ CREATE POLICY number_block__insert__tenant ON core.number_block FOR INSERT TO li
 CREATE POLICY number_block__update__tenant ON core.number_block FOR UPDATE TO lims_app
   USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()))
   WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+-- T0C-SYNC-2 (LD-322): db/migrations/20261117260000_core__add_sync_operations_and_conflicts.sql; no DELETE policy (append-only ledger, conflicts resolved once)
+CREATE POLICY sync_operation__select__tenant ON core.sync_operation FOR SELECT TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+CREATE POLICY sync_operation__insert__tenant ON core.sync_operation FOR INSERT TO lims_app
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+CREATE POLICY sync_operation__update__tenant ON core.sync_operation FOR UPDATE TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()))
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+CREATE POLICY sync_conflict__select__tenant ON core.sync_conflict FOR SELECT TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+CREATE POLICY sync_conflict__insert__tenant ON core.sync_conflict FOR INSERT TO lims_app
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+CREATE POLICY sync_conflict__update__tenant ON core.sync_conflict FOR UPDATE TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()))
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));

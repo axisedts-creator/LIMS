@@ -11,6 +11,7 @@ import { ApiError } from '@/core/api/server-fetch';
 import { dayStartUtc, addDays } from '../components/booking-model';
 import { t } from '@/core/i18n/messages';
 import { pendingOr } from '@/core/shell/NotAvailable';
+import { pageOr } from './queue-pages';
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
@@ -36,8 +37,9 @@ async function switchedOff(title: string, what: string, helpKey: string) {
 const queuesFor = (centreId: string) => (has('engagement.queue.operate').then((ok) => (ok ? listQueues(centreId) : [])).catch(() => []));
 
 // T0D-UNSLOP-1 / LD-353 rule 6: a read that answers 501 operation_pending shows NotAvailable (title + header row), never error.tsx.
+// T0D-UILIST-3: any other API failure -> ErrorState inside the page (pageOr), not error.tsx.
 export const bookingsPage = (searchParams: SearchParams) =>
-  pendingOr('Bookings', ['Time', 'Booking no.', 'Patient', 'Type', 'Tests', 'Source', 'Status', 'Order'], () => bookingsBody(searchParams));
+  pageOr('Bookings', ['Time', 'Booking no.', 'Patient', 'Type', 'Tests', 'Source', 'Status', 'Order'], () => bookingsBody(searchParams));
 
 async function bookingsBody(searchParams: SearchParams) {
   const centreId = await resolveCentre(first((await searchParams)['centre_id']));
@@ -102,7 +104,11 @@ async function slotsBody(searchParams: SearchParams) {
   );
 }
 
-export async function bookablePage() {
+// T0D-UILIST-3 (LD-353 rule 6): 501 operation_pending -> NotAvailable with the title and the header row.
+export const bookablePage = () =>
+  pendingOr(t('engagement.nav.bookable'), ['Code', 'Name', 'Kind', 'Types', 'Indicative price', 'Synced at', 'Active'], bookableBody);
+
+async function bookableBody() {
   const items = await orOff(api.listBookableItems());
   if (items === OFF) return switchedOff('Bookable catalogue', 'Bookings', 'engagement.bookable');
   return (

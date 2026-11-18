@@ -351,12 +351,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              additionalProperties: false
-              description: collected_at ≤ now and ≥ now−72h [CONV]; absent = now.
-              properties:
-                collected_at:
-                  $ref: _common.yaml#/components/schemas/IsoUtc
+              $ref: '#/components/schemas/CollectSpecimenRequest'
             examples:
               synthetic:
                 value:
@@ -666,13 +661,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              additionalProperties: false
-              required:
-                - processing_centre_id
-              properties:
-                processing_centre_id:
-                  $ref: _common.yaml#/components/schemas/Uuid
+              $ref: '#/components/schemas/ReceiveSpecimenRequest'
             examples:
               synthetic:
                 value:
@@ -2471,46 +2460,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              additionalProperties: false
-              required:
-                - entries
-              properties:
-                entries:
-                  type: array
-                  minItems: 1
-                  maxItems: 200
-                  items:
-                    type: object
-                    additionalProperties: false
-                    description: Exactly one value field unless only comments change (handler check).
-                    required:
-                      - result_id
-                      - version
-                    properties:
-                      result_id:
-                        $ref: _common.yaml#/components/schemas/Uuid
-                      version:
-                        $ref: _common.yaml#/components/schemas/Version
-                      value_numeric:
-                        $ref: _common.yaml#/components/schemas/DecimalString
-                      value_text:
-                        type: string
-                        maxLength: 2000
-                      ordinal_code:
-                        type: string
-                        maxLength: 16
-                        pattern: ^[A-Z0-9_+\-]{1,16}$
-                      manual_abnormal:
-                        type: boolean
-                      comment_codes:
-                        type: array
-                        maxItems: 10
-                        items:
-                          $ref: _common.yaml#/components/schemas/Code
-                      comment_text:
-                        type: string
-                        maxLength: 1000
+              $ref: '#/components/schemas/BulkEnterResultsRequest'
             examples:
               synthetic:
                 value:
@@ -2864,20 +2814,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              additionalProperties: false
-              properties:
-                acknowledged_flags:
-                  type: array
-                  maxItems: 4
-                  items:
-                    type: string
-                    maxLength: 15
-                    enum:
-                      - delta
-                      - critical
-                      - unit_mismatch
-                      - instrument_flag
+              $ref: '#/components/schemas/VerifyResultRequest'
             examples:
               synthetic:
                 value:
@@ -5818,6 +5755,77 @@ paths:
           $ref: _common.yaml#/components/responses/Internal
 components:
   schemas:
+    VerifyResultRequest:   # T0C-SYNC-2 (LD-322): hoisted from verifyResult so the offline sync catalogue (core.yaml) references the same schema
+      type: object
+      additionalProperties: false
+      properties:
+        acknowledged_flags:
+          type: array
+          maxItems: 4
+          items:
+            type: string
+            maxLength: 15
+            enum:
+              - delta
+              - critical
+              - unit_mismatch
+              - instrument_flag
+    BulkEnterResultsRequest:   # T0C-SYNC-2 (LD-322): hoisted from bulkEnterResults so the offline sync catalogue (core.yaml) references the same schema
+      type: object
+      additionalProperties: false
+      required:
+        - entries
+      properties:
+        entries:
+          type: array
+          minItems: 1
+          maxItems: 200
+          items:
+            type: object
+            additionalProperties: false
+            description: Exactly one value field unless only comments change (handler check).
+            required:
+              - result_id
+              - version
+            properties:
+              result_id:
+                $ref: _common.yaml#/components/schemas/Uuid
+              version:
+                $ref: _common.yaml#/components/schemas/Version
+              value_numeric:
+                $ref: _common.yaml#/components/schemas/DecimalString
+              value_text:
+                type: string
+                maxLength: 2000
+              ordinal_code:
+                type: string
+                maxLength: 16
+                pattern: ^[A-Z0-9_+\-]{1,16}$
+              manual_abnormal:
+                type: boolean
+              comment_codes:
+                type: array
+                maxItems: 10
+                items:
+                  $ref: _common.yaml#/components/schemas/Code
+              comment_text:
+                type: string
+                maxLength: 1000
+    ReceiveSpecimenRequest:   # T0C-SYNC-2 (LD-322): hoisted from receiveSpecimen so the offline sync catalogue (core.yaml) references the same schema
+      type: object
+      additionalProperties: false
+      required:
+        - processing_centre_id
+      properties:
+        processing_centre_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+    CollectSpecimenRequest:   # T0C-SYNC-2 (LD-322): hoisted from collectSpecimen so the offline sync catalogue (core.yaml) references the same schema
+      type: object
+      additionalProperties: false
+      description: collected_at ≤ now and ≥ now−72h [CONV]; absent = now.
+      properties:
+        collected_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
     VerificationPolicy:
       type: object
       additionalProperties: false

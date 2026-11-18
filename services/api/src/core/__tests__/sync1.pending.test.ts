@@ -38,7 +38,9 @@ describe('T0C-SYNC-1: core manifest covers the sync operations (handler or pendi
     expect(pending).not.toContain('getReadiness');
   });
   it('only the sync operations may be pending in core', () => {
-    expect(pending.filter((id) => !NEW_OPS.includes(id)), 'only the sync operations may be pending in core').toEqual([]);
+    // T0C-SYNC-2 adds pushSyncBatch, pullChanges, listSyncConflicts, getSyncConflict, resolveSyncConflict to the same list (sync2.pending.test.ts)
+    const SYNC2_OPS = ['pushSyncBatch', 'pullChanges', 'listSyncConflicts', 'getSyncConflict', 'resolveSyncConflict'];
+    expect(pending.filter((id) => ![...NEW_OPS, ...SYNC2_OPS].includes(id)), 'only the sync operations may be pending in core').toEqual([]);
   });
   it('bootstrap passes the list to both checkHandlers and mountSpec for core (so a pending id answers 501 operation_pending after auth, not 404)', () => {
     const boot = readFileSync(join(REPO_ROOT, 'services/api/src/core/bootstrap.ts'), 'utf8');

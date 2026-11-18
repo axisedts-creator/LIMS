@@ -275,7 +275,7 @@ describe('AC-07.3 — pending list: anchors are always named, awaiting rows incl
     await openPending();
     await screen.findByText('R2611050001');
     pendingReply = () => page([]);
-    await userEvent.click(screen.getByRole('checkbox', { name: /over target only/i }));
+    await userEvent.click(screen.getByRole('switch', { name: /over target only/i }));
     await waitFor(() => expect(ops('pending').at(-1)!.url.searchParams.get('over_target')).toBe('true'));
     expect(await screen.findByText('Nothing pending.')).toBeTruthy();
   });

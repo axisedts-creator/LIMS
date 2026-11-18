@@ -6,10 +6,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen, within } from '@testing-library/react';
 import * as H from './t-b6.harness';
+import { menuLabel } from '@/features/catalog/__tests__/uilist3.helpers';
 
 const h = vi.hoisted(() => {
   class ApiError extends Error {
-    constructor(readonly status: number, readonly problem: { code: string; status: number; title: string; type: string }) { super(`${problem.code} (${status})`); }
+    constructor(readonly status: number, readonly problem: { code: string; status: number; title: string; type: string; request_id?: string }) { super(`${problem.code} (${status})`); }
   }
   return { ApiError, perms: [] as string[], calls: [] as { path: string; method: string }[], route: (_p: string, _i?: RequestInit): unknown => undefined };
 });
@@ -77,10 +78,16 @@ describe('feature switched off (403 common.feature_disabled) — bookings', () =
     expect(H.pageText()).not.toMatch(/something went wrong|could not be loaded/i);
     expect(screen.getByRole('grid', { name: /booking/i })).toBeTruthy();
   });
-  it('a real fault (500) is NOT hidden: the loader still throws so the error page with a reference shows', async () => {
-    api(() => { throw new h.ApiError(500, { type: 'urn:lims:error:common.internal', title: 'Internal error', status: 500, code: 'common.internal' }); });
+  // T0D-UILIST-3 (LD-353 rule 6, done_when 4): a real fault is still shown, now as an ErrorState inside the page (title, message, reference, Retry), not as the error page.
+  it('a real fault (500) is NOT hidden: the page shows its title and an ErrorState with the reference and Retry, no empty state, no raw code', async () => {
+    api(() => { throw new h.ApiError(500, { type: 'urn:lims:error:common.internal', title: 'Internal error', status: 500, code: 'common.internal', request_id: 'req-0a1b2c3d' }); });
     const { bookingsPage } = await loaders();
-    await expect(bookingsPage(Promise.resolve({}))).rejects.toBeInstanceOf(h.ApiError);
+    const { container } = await show(bookingsPage(Promise.resolve({})));
+    expect(H.norm(container.querySelector('h1')?.textContent)).toBe(menuLabel('/engagement/bookings'));
+    expect(container.querySelector('.lims-state.lims-tone-danger'), 'ErrorState').toBeTruthy();
+    expect(H.pageText()).toContain('Reference: req-0a1b2c3d');
+    expect(screen.getByRole('button', { name: 'Retry' })).toBeTruthy();
+    expect(H.pageText()).not.toMatch(/No bookings yet|switched off|common\.internal|\(500\)/);
   });
 });
 

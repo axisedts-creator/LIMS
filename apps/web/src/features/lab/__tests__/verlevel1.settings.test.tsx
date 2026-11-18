@@ -355,7 +355,9 @@ describe('Verification levels tab — accessibility and compact density (T0D-DEN
 
   it('the section does not override the 30 px / 13 px compact values and never removes the focus ring (static scan of the new file)', async () => {
     const { readFileSync, existsSync } = await import('node:fs');
-    const f = new URL('../components/settings/VerificationPolicyTab.tsx', import.meta.url);
+    const { fileURLToPath } = await import('node:url');
+    const { dirname, join } = await import('node:path');
+    const f = join(dirname(fileURLToPath(import.meta.url)), '../components/settings/VerificationPolicyTab.tsx');
     expect(existsSync(f), 'components/settings/VerificationPolicyTab.tsx must exist').toBe(true);
     const src = readFileSync(f, 'utf8');
     expect(src).not.toMatch(/outline\s*:\s*(none|0)\b/);

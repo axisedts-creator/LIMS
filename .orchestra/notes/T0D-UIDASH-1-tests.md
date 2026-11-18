@@ -1,8 +1,9 @@
 # T0D-UIDASH-1 tests (tester)
-New (config `analytics/__tests__/vitest.uidash1.config.ts`, include `features/*/__tests__/uidash1.*.test.tsx`; helpers `analytics/__tests__/uidash1.helpers.tsx`):
-- analytics `uidash1.dashboard` (done_when 1), lab `uidash1.lab` (2 status board, 3 pending), billing `uidash1.billing` (4 daily cash, 5 dues), quality `uidash1.quality` (6; 7 = NotAvailable inside ChartCard in lab pending and dues). Each renders no rows and with rows: h1 = menu label (read from nav manifest), one FilterBar, table header present, StatTile row, ChartCard always drawn ("No data yet" when empty), 501/failure keep title.
-- Edited old pins: an-t18.page and rs-c8.dashboard tile labels "Income (net sales)" -> "Net sales", "Cash collected (net)" -> "Cash collected" (assertions kept, only the label text).
-Run: `.orchestra/notes/T0D-UIDASH-1-verify.cmd` (after build:nav). State now: 48 of the new tests red for the right reason (no StatTiles/ChartCards, header slot, switch, 501 state); regression guards (h1, pipeline) green.
-Writer to do (LD-362): regenerate rs-c8 / rs-c4 / rs-c7 / rs-c15 screen snapshots; rs-c8.dashboard "pipeline, then needs you, then money" order and the money strip may need the writer's reconcile if the layout moves (not changed by me). web-style-3, m2.source, r04.*, m4.source, elabmenu1.sidebar, m-series-kit are not duplicated here: run them as named in the brief.
-Judgement calls (change the test, not the brief, if wrong): dashboard keeps extra tiles after the first four; dues party filter = a control labelled "Party"; QC runs tiles Accepted/Rejected/Needs action; TAT tiles Warning/Breached/Escalated; QC status tiles In control/Warning/Out of control/No QC data; chart titles contain "by status", "by department", "method", "aging".
-Not tested: chart widths (two thirds/one third) and 240 to 320 px height (CSS), server pages (pages.tsx) error states, LJ restyle beyond "no tone colour outside chips, no inline colour".
+Config: apps/web/src/__tests__/vitest.uidash1.config.ts; helpers: apps/web/src/__tests__/uidash1.helpers.ts.
+Files (table-driven, empty + one-row per screen, LD-367): features/analytics/__tests__/uidash1.dashboard.test.tsx; features/lab/__tests__/uidash1.lab.test.tsx (board + pending);
+features/billing/__tests__/uidash1.billing.test.tsx (daily cash + dues); features/quality/__tests__/uidash1.quality.test.tsx (indicators, runs, TAT, Levey-Jennings).
+Updated old pin (name regex only, no assertion loosened): lab/__tests__/lab-t27.board.test.tsx (chips become StatTile buttons "Ready {count}"). Also run: analytics unslop1.dashboard.test.tsx.
+Run: .orchestra\notes\T0D-UIDASH-1-verify.cmd (runs build:nav first; generated.ts is not committed).
+Now: 48 failed / 46 passed (6 files); fails are the missing StatTile/ChartCard/NotAvailable/FilterBar markup, as intended.
+Review round (10:06): ruling items 1-3 were already applied (switch query, tile set, LJ note). Added to uidash1.lab.test.tsx "review item 1": status filter on, tiles outside it must read "—" not 0 (currently red: Waiting '0'; writer fix = StatusBoard shownCount per review).
+Not covered: rs-cN snapshots (writer regenerates, LD-362); web-style-3 and shell tests run by the writer after its CSS.

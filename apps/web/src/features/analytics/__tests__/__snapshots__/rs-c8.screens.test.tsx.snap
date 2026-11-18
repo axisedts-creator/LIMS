@@ -37,8 +37,12 @@ exports[`RS-C8 key-screen snapshots + axe > Dashboard: populated (pipeline, need
 </svg> Up +2 (20.0%)<span class="lims-stat-judgement"> (better)</span>
 </span>
 </a>
+<a class="lims-stat lims-stat-link" href="/analytics/reports/pending-tests">
+<span class="lims-stat-label">Reports pending</span>
+<span class="lims-stat-value"> 5</span>
+</a>
 <a class="lims-stat lims-stat-link" href="/analytics/reports/income">
-<span class="lims-stat-label">Income (net sales)</span>
+<span class="lims-stat-label">Net sales</span>
 <span class="lims-stat-value"> Rs. 2,25,000.00</span>
 <span class="lims-stat-delta lims-tone-success" data-tone="success">
 <svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
@@ -47,26 +51,8 @@ exports[`RS-C8 key-screen snapshots + axe > Dashboard: populated (pipeline, need
 </svg> Up +Rs. 16,900.00 (8.1%)<span class="lims-stat-judgement"> (better)</span>
 </span>
 </a>
-<a class="lims-stat lims-stat-link" href="/analytics/reports/tests-done">
-<span class="lims-stat-label">Results approved</span>
-<span class="lims-stat-value"> 28</span>
-<span class="lims-stat-delta lims-tone-success" data-tone="success">
-<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
-<path d="M12 19V5M5 12l7-7 7 7">
-</path>
-</svg> Up +2 (7.7%)<span class="lims-stat-judgement"> (better)</span>
-</span>
-</a>
-<a class="lims-stat lims-stat-link" href="/analytics/reports/pending-tests">
-<span class="lims-stat-label">Reports pending</span>
-<span class="lims-stat-value"> 5</span>
-</a>
-<a class="lims-stat lims-stat-link" href="/analytics/reports/pending-tests">
-<span class="lims-stat-label">Pending tests</span>
-<span class="lims-stat-value"> 9</span>
-</a>
 <a class="lims-stat lims-stat-link" href="/analytics/collections">
-<span class="lims-stat-label">Cash collected (net)</span>
+<span class="lims-stat-label">Cash collected</span>
 <span class="lims-stat-value"> Rs. 1,90,000.00</span>
 </a>
 </div>
@@ -112,7 +98,7 @@ exports[`RS-C8 key-screen snapshots + axe > Dashboard: populated (pipeline, need
 </section>
 <section aria-labelledby="_r_1_">
 <h2 id="_r_1_">Money, 15 Jan 2026</h2>
-<p>Income (net sales) Rs. 2,25,000.00 · Invoiced Rs. 2,30,000.00 · Credit notes Rs. 5,000.00 · Cash collected (net) Rs. 1,90,000.00</p>
+<p>Net sales Rs. 2,25,000.00 · Invoiced Rs. 2,30,000.00 · Credit notes Rs. 5,000.00 · Cash collected Rs. 1,90,000.00</p>
 </section>
 <p>vs yesterday</p>
 <ul>
@@ -120,10 +106,14 @@ exports[`RS-C8 key-screen snapshots + axe > Dashboard: populated (pipeline, need
 <li>Income = invoices issued (incl. VAT/other tax) minus credit notes. Cash collected is shown separately.</li>
 </ul>
 <div class="lims-dash-charts">
-<div class="lims-card">
+<section class="lims-chart-card" aria-labelledby="_r_6_">
+<header class="lims-chart-card-header">
+<h2 id="_r_6_" class="lims-chart-card-title">Net sales per day</h2>
+</header>
+<div class="lims-chart-frame">
 <figure class="lims-chart">
-<figcaption id="_r_6_-t" class="lims-chart-title">Net sales per day</figcaption>
-<svg role="img" aria-labelledby="_r_6_-t" viewBox="0 0 600 240" width="100%" height="240" class="lims-chart-svg">
+<figcaption id="_r_7_-t" class="lims-chart-title">Net sales per day</figcaption>
+<svg role="img" aria-labelledby="_r_7_-t" viewBox="0 0 600 240" width="100%" height="240" class="lims-chart-svg">
 <line class="lims-chart-axis" x1="56" y1="212" x2="588" y2="212">
 </line>
 <line class="lims-chart-axis" x1="56" y1="12" x2="56" y2="212">
@@ -167,10 +157,15 @@ exports[`RS-C8 key-screen snapshots + axe > Dashboard: populated (pipeline, need
 </div>
 </figure>
 </div>
-<div class="lims-card">
+</section>
+<section class="lims-chart-card" aria-labelledby="_r_8_">
+<header class="lims-chart-card-header">
+<h2 id="_r_8_" class="lims-chart-card-title">Top departments</h2>
+</header>
+<div class="lims-chart-frame">
 <figure class="lims-chart">
-<figcaption id="_r_7_-t" class="lims-chart-title">Top departments by net sales</figcaption>
-<svg role="img" aria-labelledby="_r_7_-t" viewBox="0 0 600 240" width="100%" height="240" class="lims-chart-svg">
+<figcaption id="_r_9_-t" class="lims-chart-title">Top departments by net sales</figcaption>
+<svg role="img" aria-labelledby="_r_9_-t" viewBox="0 0 600 240" width="100%" height="240" class="lims-chart-svg">
 <line class="lims-chart-axis" x1="56" y1="204" x2="588" y2="204">
 </line>
 <text class="lims-chart-tick" x="52" y="12" text-anchor="end">Rs. 9,000.00</text>
@@ -206,6 +201,7 @@ exports[`RS-C8 key-screen snapshots + axe > Dashboard: populated (pipeline, need
 </div>
 </figure>
 </div>
+</section>
 </div>
 <div class="lims-toast-region">
 </div>"
@@ -248,23 +244,9 @@ exports[`RS-C8 key-screen snapshots + axe > Dashboard: role without money tiles 
 </svg> Up +2 (20.0%)<span class="lims-stat-judgement"> (better)</span>
 </span>
 </a>
-<a class="lims-stat lims-stat-link" href="/analytics/reports/tests-done">
-<span class="lims-stat-label">Results approved</span>
-<span class="lims-stat-value"> 28</span>
-<span class="lims-stat-delta lims-tone-success" data-tone="success">
-<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
-<path d="M12 19V5M5 12l7-7 7 7">
-</path>
-</svg> Up +2 (7.7%)<span class="lims-stat-judgement"> (better)</span>
-</span>
-</a>
 <a class="lims-stat lims-stat-link" href="/analytics/reports/pending-tests">
 <span class="lims-stat-label">Reports pending</span>
 <span class="lims-stat-value"> 5</span>
-</a>
-<a class="lims-stat lims-stat-link" href="/analytics/reports/pending-tests">
-<span class="lims-stat-label">Pending tests</span>
-<span class="lims-stat-value"> 9</span>
 </a>
 </div>
 <p>New patients 4 · Tests ordered 31</p>
@@ -293,8 +275,8 @@ exports[`RS-C8 key-screen snapshots + axe > Dashboard: role without money tiles 
 <span class="lims-step-label">Released</span>
 </li>
 </ol>
-<section aria-labelledby="_r_8_">
-<h2 id="_r_8_">Needs you</h2>
+<section aria-labelledby="_r_a_">
+<h2 id="_r_a_">Needs you</h2>
 <ul>
 <li>
 <a href="/analytics/reports/pending-tests">Overdue 1</a>
@@ -312,6 +294,83 @@ exports[`RS-C8 key-screen snapshots + axe > Dashboard: role without money tiles 
 <li>Counts each patient once per centre per day. Over several days the same person can be counted more than once.</li>
 <li>Income = invoices issued (incl. VAT/other tax) minus credit notes. Cash collected is shown separately.</li>
 </ul>
+<div class="lims-dash-charts">
+<section class="lims-chart-card" aria-labelledby="_r_g_">
+<header class="lims-chart-card-header">
+<h2 id="_r_g_" class="lims-chart-card-title">Net sales per day</h2>
+</header>
+<div class="lims-chart-frame">
+<figure class="lims-chart">
+<figcaption id="_r_h_-t" class="lims-chart-title">Net sales per day</figcaption>
+<svg role="img" aria-labelledby="_r_h_-t" viewBox="0 0 600 240" width="100%" height="240" class="lims-chart-svg">
+<line class="lims-chart-axis" x1="56" y1="212" x2="588" y2="212">
+</line>
+<line class="lims-chart-axis" x1="56" y1="12" x2="56" y2="212">
+</line>
+</svg>
+<ul class="lims-chart-legend">
+<li class="lims-series-0">
+<svg aria-hidden="true" width="24" height="8">
+<line x1="0" y1="4" x2="24" y2="4" stroke="currentColor" stroke-width="2">
+</line>
+</svg>
+<span>Net sales</span>
+</li>
+</ul>
+<div class="lims-visually-hidden">
+<table>
+<caption>Net sales per day</caption>
+<thead>
+<tr>
+<th scope="col">Time</th>
+<th scope="col">Net sales</th>
+</tr>
+</thead>
+<tbody>
+</tbody>
+</table>
+</div>
+</figure>
+<p class="lims-chart-empty">No data yet</p>
+</div>
+</section>
+<section class="lims-chart-card" aria-labelledby="_r_i_">
+<header class="lims-chart-card-header">
+<h2 id="_r_i_" class="lims-chart-card-title">Top departments</h2>
+</header>
+<div class="lims-chart-frame">
+<figure class="lims-chart">
+<figcaption id="_r_j_-t" class="lims-chart-title">Top departments by net sales</figcaption>
+<svg role="img" aria-labelledby="_r_j_-t" viewBox="0 0 600 240" width="100%" height="240" class="lims-chart-svg">
+<line class="lims-chart-axis" x1="56" y1="204" x2="588" y2="204">
+</line>
+<text class="lims-chart-tick" x="52" y="12" text-anchor="end">1</text>
+</svg>
+<ul class="lims-chart-legend">
+<li class="lims-series-0 lims-pattern-solid">
+<span class="lims-chart-swatch" aria-hidden="true">
+</span>
+<span>Net sales</span>
+</li>
+</ul>
+<div class="lims-visually-hidden">
+<table>
+<caption>Top departments by net sales</caption>
+<thead>
+<tr>
+<th scope="col">Category</th>
+<th scope="col">Net sales</th>
+</tr>
+</thead>
+<tbody>
+</tbody>
+</table>
+</div>
+</figure>
+<p class="lims-chart-empty">No data yet</p>
+</div>
+</section>
+</div>
 <div class="lims-toast-region">
 </div>"
 `;
@@ -399,12 +458,12 @@ exports[`RS-C8 key-screen snapshots + axe > Income report 1`] = `
 <div>
 <div role="search" class="lims-filter-bar">
 <div class="lims-field">
-<label class="lims-label" id="_r_4g_">Centre</label>
+<label class="lims-label" id="_r_4m_">Centre</label>
 <template>
 </template>
 <span data-focus-scope-start="true" hidden="">
 </span>
-<div class="lims-listbox lims-chip-list" data-rac="" aria-labelledby="_r_4g_" aria-multiselectable="true" role="listbox" aria-orientation="horizontal" id="ID" tabindex="0" data-collection="aria-id" data-layout="stack" data-orientation="horizontal">
+<div class="lims-listbox lims-chip-list" data-rac="" aria-labelledby="_r_4m_" aria-multiselectable="true" role="listbox" aria-orientation="horizontal" id="ID" tabindex="0" data-collection="aria-id" data-layout="stack" data-orientation="horizontal">
 <div class="lims-option lims-chip" data-rac="" role="option" aria-selected="false" tabindex="-1" data-collection="aria-id" data-key="01a1a98a-ac40-7000-8000-000000000002" data-aria-id="true" id="ID" data-selection-mode="multiple">Synthetic Centre A</div>
 <div class="lims-option lims-chip" data-rac="" role="option" aria-selected="false" tabindex="-1" data-collection="aria-id" data-key="01a1a98a-ac40-7000-8000-000000000003" data-aria-id="true" id="ID" data-selection-mode="multiple">Synthetic Centre B</div>
 </div>
@@ -412,12 +471,12 @@ exports[`RS-C8 key-screen snapshots + axe > Income report 1`] = `
 </span>
 </div>
 <div class="lims-field">
-<label class="lims-label" id="_r_4m_">Branch</label>
+<label class="lims-label" id="_r_4s_">Branch</label>
 <template>
 </template>
 <span data-focus-scope-start="true" hidden="">
 </span>
-<div class="lims-listbox lims-chip-list" data-rac="" aria-labelledby="_r_4m_" aria-multiselectable="true" role="listbox" aria-orientation="horizontal" id="ID" tabindex="0" data-collection="aria-id" data-layout="stack" data-orientation="horizontal">
+<div class="lims-listbox lims-chip-list" data-rac="" aria-labelledby="_r_4s_" aria-multiselectable="true" role="listbox" aria-orientation="horizontal" id="ID" tabindex="0" data-collection="aria-id" data-layout="stack" data-orientation="horizontal">
 <div class="lims-option lims-chip" data-rac="" role="option" aria-selected="false" tabindex="-1" data-collection="aria-id" data-key="01a1a98a-ac40-7000-8000-000000000004" data-aria-id="true" id="ID" data-selection-mode="multiple">Synthetic Branch North</div>
 </div>
 <span data-focus-scope-end="true" hidden="">
@@ -465,8 +524,8 @@ exports[`RS-C8 key-screen snapshots + axe > Income report 1`] = `
 </div>
 <div class="lims-card">
 <figure class="lims-chart">
-<figcaption id="_r_59_-t" class="lims-chart-title">Net sales per group</figcaption>
-<svg role="img" aria-labelledby="_r_59_-t" viewBox="0 0 600 240" width="100%" height="240" class="lims-chart-svg">
+<figcaption id="_r_5f_-t" class="lims-chart-title">Net sales per group</figcaption>
+<svg role="img" aria-labelledby="_r_5f_-t" viewBox="0 0 600 240" width="100%" height="240" class="lims-chart-svg">
 <line class="lims-chart-axis" x1="56" y1="204" x2="588" y2="204">
 </line>
 <text class="lims-chart-tick" x="52" y="12" text-anchor="end">Rs. 2,25,000.00</text>
@@ -676,12 +735,12 @@ exports[`RS-C8 key-screen snapshots + axe > Pending tests report 1`] = `
 <div>
 <div role="search" class="lims-filter-bar">
 <div class="lims-field">
-<label class="lims-label" id="_r_7k_">Centre</label>
+<label class="lims-label" id="_r_7q_">Centre</label>
 <template>
 </template>
 <span data-focus-scope-start="true" hidden="">
 </span>
-<div class="lims-listbox lims-chip-list" data-rac="" aria-labelledby="_r_7k_" aria-multiselectable="true" role="listbox" aria-orientation="horizontal" id="ID" tabindex="0" data-collection="aria-id" data-layout="stack" data-orientation="horizontal">
+<div class="lims-listbox lims-chip-list" data-rac="" aria-labelledby="_r_7q_" aria-multiselectable="true" role="listbox" aria-orientation="horizontal" id="ID" tabindex="0" data-collection="aria-id" data-layout="stack" data-orientation="horizontal">
 <div class="lims-option lims-chip" data-rac="" role="option" aria-selected="false" tabindex="-1" data-collection="aria-id" data-key="01a1a98a-ac40-7000-8000-000000000002" data-aria-id="true" id="ID" data-selection-mode="multiple">Synthetic Centre A</div>
 <div class="lims-option lims-chip" data-rac="" role="option" aria-selected="false" tabindex="-1" data-collection="aria-id" data-key="01a1a98a-ac40-7000-8000-000000000003" data-aria-id="true" id="ID" data-selection-mode="multiple">Synthetic Centre B</div>
 </div>
@@ -689,36 +748,36 @@ exports[`RS-C8 key-screen snapshots + axe > Pending tests report 1`] = `
 </span>
 </div>
 <div class="lims-field">
-<label class="lims-label" id="_r_7q_">Branch</label>
+<label class="lims-label" id="_r_80_">Branch</label>
 <template>
 </template>
 <span data-focus-scope-start="true" hidden="">
 </span>
-<div class="lims-listbox lims-chip-list" data-rac="" aria-labelledby="_r_7q_" aria-multiselectable="true" role="listbox" aria-orientation="horizontal" id="ID" tabindex="0" data-collection="aria-id" data-layout="stack" data-orientation="horizontal">
+<div class="lims-listbox lims-chip-list" data-rac="" aria-labelledby="_r_80_" aria-multiselectable="true" role="listbox" aria-orientation="horizontal" id="ID" tabindex="0" data-collection="aria-id" data-layout="stack" data-orientation="horizontal">
 <div class="lims-option lims-chip" data-rac="" role="option" aria-selected="false" tabindex="-1" data-collection="aria-id" data-key="01a1a98a-ac40-7000-8000-000000000004" data-aria-id="true" id="ID" data-selection-mode="multiple">Synthetic Branch North</div>
 </div>
 <span data-focus-scope-end="true" hidden="">
 </span>
 </div>
 <div class="lims-field">
-<label class="lims-label" id="_r_80_">Department</label>
+<label class="lims-label" id="_r_86_">Department</label>
 <template>
 </template>
 <span data-focus-scope-start="true" hidden="">
 </span>
-<div class="lims-listbox lims-chip-list" data-rac="" aria-labelledby="_r_80_" aria-multiselectable="true" role="listbox" aria-orientation="horizontal" id="ID" tabindex="0" data-collection="aria-id" data-layout="stack" data-orientation="horizontal">
+<div class="lims-listbox lims-chip-list" data-rac="" aria-labelledby="_r_86_" aria-multiselectable="true" role="listbox" aria-orientation="horizontal" id="ID" tabindex="0" data-collection="aria-id" data-layout="stack" data-orientation="horizontal">
 <div class="lims-option lims-chip" data-rac="" role="option" aria-selected="false" tabindex="-1" data-collection="aria-id" data-key="01a1a98a-ac40-7000-8000-000000000005" data-aria-id="true" id="ID" data-selection-mode="multiple">Synthetic Biochemistry</div>
 </div>
 <span data-focus-scope-end="true" hidden="">
 </span>
 </div>
 <div class="lims-field">
-<label class="lims-label" id="_r_86_">Status</label>
+<label class="lims-label" id="_r_8c_">Status</label>
 <template>
 </template>
 <span data-focus-scope-start="true" hidden="">
 </span>
-<div class="lims-listbox lims-chip-list" data-rac="" aria-labelledby="_r_86_" aria-multiselectable="true" role="listbox" aria-orientation="horizontal" id="ID" tabindex="0" data-collection="aria-id" data-layout="stack" data-orientation="horizontal">
+<div class="lims-listbox lims-chip-list" data-rac="" aria-labelledby="_r_8c_" aria-multiselectable="true" role="listbox" aria-orientation="horizontal" id="ID" tabindex="0" data-collection="aria-id" data-layout="stack" data-orientation="horizontal">
 <div class="lims-option lims-chip" data-rac="" role="option" aria-selected="false" tabindex="-1" data-collection="aria-id" data-key="awaiting_collection" data-aria-id="true" id="ID" data-selection-mode="multiple">Awaiting collection</div>
 <div class="lims-option lims-chip" data-rac="" role="option" aria-selected="false" tabindex="-1" data-collection="aria-id" data-key="awaiting_receipt" data-aria-id="true" id="ID" data-selection-mode="multiple">Awaiting receipt</div>
 <div class="lims-option lims-chip" data-rac="" role="option" aria-selected="false" tabindex="-1" data-collection="aria-id" data-key="in_process" data-aria-id="true" id="ID" data-selection-mode="multiple">In process</div>
@@ -729,12 +788,12 @@ exports[`RS-C8 key-screen snapshots + axe > Pending tests report 1`] = `
 </span>
 </div>
 <div class="lims-field">
-<label class="lims-label" id="_r_8c_">Processing branch</label>
+<label class="lims-label" id="_r_8i_">Processing branch</label>
 <template>
 </template>
 <span data-focus-scope-start="true" hidden="">
 </span>
-<div class="lims-listbox lims-chip-list" data-rac="" aria-labelledby="_r_8c_" aria-multiselectable="true" role="listbox" aria-orientation="horizontal" id="ID" tabindex="0" data-collection="aria-id" data-layout="stack" data-orientation="horizontal">
+<div class="lims-listbox lims-chip-list" data-rac="" aria-labelledby="_r_8i_" aria-multiselectable="true" role="listbox" aria-orientation="horizontal" id="ID" tabindex="0" data-collection="aria-id" data-layout="stack" data-orientation="horizontal">
 <div class="lims-option lims-chip" data-rac="" role="option" aria-selected="false" tabindex="-1" data-collection="aria-id" data-key="01a1a98a-ac40-7000-8000-000000000004" data-aria-id="true" id="ID" data-selection-mode="multiple">Synthetic Branch North</div>
 </div>
 <span data-focus-scope-end="true" hidden="">
@@ -845,8 +904,8 @@ exports[`RS-C8 key-screen snapshots + axe > Pending tests report 1`] = `
 </div>
 <div class="lims-card">
 <figure class="lims-chart">
-<figcaption id="_r_9a_-t" class="lims-chart-title">Pending tests by department</figcaption>
-<svg role="img" aria-labelledby="_r_9a_-t" viewBox="0 0 600 240" width="100%" height="240" class="lims-chart-svg">
+<figcaption id="_r_9g_-t" class="lims-chart-title">Pending tests by department</figcaption>
+<svg role="img" aria-labelledby="_r_9g_-t" viewBox="0 0 600 240" width="100%" height="240" class="lims-chart-svg">
 <line class="lims-chart-axis" x1="56" y1="204" x2="588" y2="204">
 </line>
 <text class="lims-chart-tick" x="52" y="12" text-anchor="end">6</text>
@@ -1046,12 +1105,12 @@ exports[`RS-C8 key-screen snapshots + axe > Report hub (tabs) 1`] = `
 <div>
 <div role="search" class="lims-filter-bar">
 <div class="lims-field">
-<label class="lims-label" id="_r_11_">Centre</label>
+<label class="lims-label" id="_r_17_">Centre</label>
 <template>
 </template>
 <span data-focus-scope-start="true" hidden="">
 </span>
-<div class="lims-listbox lims-chip-list" data-rac="" aria-labelledby="_r_11_" aria-multiselectable="true" role="listbox" aria-orientation="horizontal" id="ID" tabindex="0" data-collection="aria-id" data-layout="stack" data-orientation="horizontal">
+<div class="lims-listbox lims-chip-list" data-rac="" aria-labelledby="_r_17_" aria-multiselectable="true" role="listbox" aria-orientation="horizontal" id="ID" tabindex="0" data-collection="aria-id" data-layout="stack" data-orientation="horizontal">
 <div class="lims-option lims-chip" data-rac="" role="option" aria-selected="false" tabindex="-1" data-collection="aria-id" data-key="01a1a98a-ac40-7000-8000-000000000002" data-aria-id="true" id="ID" data-selection-mode="multiple">Synthetic Centre A</div>
 <div class="lims-option lims-chip" data-rac="" role="option" aria-selected="false" tabindex="-1" data-collection="aria-id" data-key="01a1a98a-ac40-7000-8000-000000000003" data-aria-id="true" id="ID" data-selection-mode="multiple">Synthetic Centre B</div>
 </div>
@@ -1059,12 +1118,12 @@ exports[`RS-C8 key-screen snapshots + axe > Report hub (tabs) 1`] = `
 </span>
 </div>
 <div class="lims-field">
-<label class="lims-label" id="_r_17_">Branch</label>
+<label class="lims-label" id="_r_1d_">Branch</label>
 <template>
 </template>
 <span data-focus-scope-start="true" hidden="">
 </span>
-<div class="lims-listbox lims-chip-list" data-rac="" aria-labelledby="_r_17_" aria-multiselectable="true" role="listbox" aria-orientation="horizontal" id="ID" tabindex="0" data-collection="aria-id" data-layout="stack" data-orientation="horizontal">
+<div class="lims-listbox lims-chip-list" data-rac="" aria-labelledby="_r_1d_" aria-multiselectable="true" role="listbox" aria-orientation="horizontal" id="ID" tabindex="0" data-collection="aria-id" data-layout="stack" data-orientation="horizontal">
 <div class="lims-option lims-chip" data-rac="" role="option" aria-selected="false" tabindex="-1" data-collection="aria-id" data-key="01a1a98a-ac40-7000-8000-000000000004" data-aria-id="true" id="ID" data-selection-mode="multiple">Synthetic Branch North</div>
 </div>
 <span data-focus-scope-end="true" hidden="">
@@ -1112,8 +1171,8 @@ exports[`RS-C8 key-screen snapshots + axe > Report hub (tabs) 1`] = `
 </div>
 <div class="lims-card">
 <figure class="lims-chart">
-<figcaption id="_r_1q_-t" class="lims-chart-title">Net sales per group</figcaption>
-<svg role="img" aria-labelledby="_r_1q_-t" viewBox="0 0 600 240" width="100%" height="240" class="lims-chart-svg">
+<figcaption id="_r_20_-t" class="lims-chart-title">Net sales per group</figcaption>
+<svg role="img" aria-labelledby="_r_20_-t" viewBox="0 0 600 240" width="100%" height="240" class="lims-chart-svg">
 <line class="lims-chart-axis" x1="56" y1="204" x2="588" y2="204">
 </line>
 <text class="lims-chart-tick" x="52" y="12" text-anchor="end">Rs. 2,25,000.00</text>

@@ -222,6 +222,10 @@ describe.each(QUEUES)('T0D-VERLEVEL-1 %s — rows the signed in person already s
     expect((selectBox('REG0001') as HTMLInputElement).disabled).toBe(true);
     expect(rowOf('REG0002').getAttribute('aria-disabled')).not.toBe('true');
     expect(within(rowOf('REG0002')).queryByText(/you already signed/i)).toBeNull();
+    // Review item 1: the dim must be a real style (no stylesheet defines .lims-row-dim), not only a class name.
+    expect(Number(getComputedStyle(mine).opacity)).toBeLessThan(1);
+    expect(Number(getComputedStyle(mine).opacity)).toBeGreaterThan(0);
+    expect(getComputedStyle(rowOf('REG0002')).opacity).not.toBe('0.55');
     await user.click(screen.getByRole('checkbox', { name: /select all/i }));
     expect(bulkBtn(verb, 1)).toBeTruthy();
     expect((selectBox('REG0002') as HTMLInputElement).checked).toBe(true);

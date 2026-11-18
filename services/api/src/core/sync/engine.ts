@@ -51,6 +51,14 @@ export class SyncConflictError extends Error {
 export const provisionalNumber = (deviceId: string, opId: string, doc: string): string =>
   `OFF-${deviceId.replace(/-/g, '').slice(0, 8)}-${opId.replace(/-/g, '')}-${doc}`.toUpperCase();
 
+/** T0B-SYNC-3 (done_when 1): an entity with no captured time field keeps the device time in the audit event of the operation.
+ *  One sync owned event for every adapter, so module access-log lists (lab D-11) stay about reads of the module's own data.
+ *  [CR .orchestra/cr/T0B-SYNC-3.nonblocking.md] no sync access action exists; patient.view is the nearest code (as the LD-25 back entry). */
+export async function auditSyncApplied(ctx: HandlerContext, entityType: string, entityId: string, op: SyncOp): Promise<void> {
+  await (ctx as any).audit.access({ action: 'patient.view', entityType, entityId, outcome: 'allowed',
+    detail: { event: 'sync_operation_applied', op_id: op.opId, op_type: op.opType, device_created_at: op.deviceCreatedAt } });
+}
+
 /** T0B-SYNC-3: top level shape of a wrapped request schema (required keys present, no unknown key), the closed code
  *  common.validation_failed otherwise. Deeper rules stay with the wrapped service. */
 export function payloadShape(file: string, schema: string): (payload: unknown) => void {

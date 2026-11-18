@@ -9,7 +9,7 @@
 import type { HandlerContext } from '../../../core/module.js';
 import { LimsError } from '../../../core/errors.js';
 import { assertReservedInDeviceBlocks } from '../../../core/sync/blocks.service.js';
-import { SyncConflictError, payloadShape, type SyncAdapter, type SyncOp } from '../../../core/sync/engine.js';
+import { SyncConflictError, auditSyncApplied, payloadShape, type SyncAdapter, type SyncOp } from '../../../core/sync/engine.js';
 
 export type ReadSpecimen = (ctx: HandlerContext, specimenId: string) => Promise<{ status: string; version: number } | undefined>;
 type Move = (c: unknown, params: unknown, headers: unknown, body: unknown) => Promise<unknown>;
@@ -34,12 +34,7 @@ export function specimenMoveAdapter(a: {
       if (a.from.includes(s.status)) {
         if (now.version !== op.baseVersion) throw new SyncConflictError({ entityType: 'specimen', entityId: id, serverPayload: now, errorCode: 'sync.base_version_stale' });
         await a.move(ctx, { specimen_id: id }, { 'if-match': `"${op.baseVersion}"` }, a.body(op));
-        if (a.audit) {
-          // no captured time field on this move: the device time goes into the audit event of the operation (done_when 1).
-          // [CR .orchestra/cr/T0B-SYNC-3.md] audit.g_cs_access_actions has no sync action; patient.view is the nearest code, as frontdesk does for LD-25 back entry.
-          await (ctx as any).audit.access({ action: 'patient.view', entityType: 'specimen', entityId: id, outcome: 'allowed',
-            detail: { event: 'sync_operation_applied', op_id: op.opId, op_type: op.opType, device_created_at: op.deviceCreatedAt } });
-        }
+        if (a.audit) await auditSyncApplied(ctx, 'specimen', id, op); // no captured time field on this move (done_when 1)
         return { entityId: id };
       }
       if (PATH.indexOf(s.status) >= target) return { entityId: id, outcome: 'duplicate' };

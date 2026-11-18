@@ -12,7 +12,7 @@ import { join } from 'node:path';
 import { LimsError } from '../../../core/errors.js';
 import { loadSpec, REPO_ROOT } from '../../../core/module.js';
 import { assertReservedInDeviceBlocks } from '../../../core/sync/blocks.service.js';
-import { SyncConflictError, payloadShape, provisionalNumber, type NumberMapping, type SyncAdapter } from '../../../core/sync/engine.js';
+import { SyncConflictError, auditSyncApplied, payloadShape, provisionalNumber, type NumberMapping, type SyncAdapter } from '../../../core/sync/engine.js';
 import { create, quote } from '../service/registration.service.js';
 
 let draftKeys: readonly string[] | undefined;
@@ -54,12 +54,7 @@ export const registrationCreateOrderAdapter: SyncAdapter = {
     if (typeof invoiceNo === 'string') maps.push({ document_type: 'invoice', provisional_number: provisionalNumber(op.deviceId, op.opId, 'INV'), final_number: invoiceNo });
     const receipts = (Array.isArray(body.ledger_entries) ? body.ledger_entries : []).map((x: unknown) => rec(x).receipt_no).filter((n: unknown): n is string => typeof n === 'string');
     receipts.forEach((n: string, i: number) => maps.push({ document_type: 'receipt', provisional_number: provisionalNumber(op.deviceId, op.opId, `RC${i ? i + 1 : ''}`), final_number: n }));
-    if (orderId) {
-      // the order has no captured time field: the device time goes into the audit event of the operation (done_when 1).
-      // [CR .orchestra/cr/T0B-SYNC-3.md] no sync access action exists; patient.view is the nearest code, as the LD-25 back entry above uses.
-      await (ctx as any).audit.access({ action: 'patient.view', entityType: 'order', entityId: orderId, outcome: 'allowed',
-        detail: { event: 'sync_operation_applied', op_id: op.opId, op_type: op.opType, device_created_at: op.deviceCreatedAt } });
-    }
+    if (orderId) await auditSyncApplied(ctx, 'order', orderId, op); // the order has no captured time field (done_when 1)
     return { ...(orderId ? { entityId: orderId } : {}), ...(maps.length ? { numberMappings: maps } : {}) };
   },
 };

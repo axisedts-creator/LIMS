@@ -71,6 +71,7 @@ export function GlobalSearch({ canPatients, canSpecimens }: { canPatients: boole
         className="lims-input lims-search-input"
         aria-label={t('core.shell.search_label')}
         placeholder={t('core.shell.search_placeholder')}
+        title={t('core.shell.search_fields')}
         maxLength={100}
         autoComplete="off"
         aria-controls={result ? resultsId : undefined}

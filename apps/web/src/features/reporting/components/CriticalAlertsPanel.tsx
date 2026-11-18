@@ -3,7 +3,6 @@
 // Never shows a value, an analyte or a patient name. A load failure is inline (Retry) and never fails the worklist.
 import { useEffect, useRef, useState } from 'react';
 import { Button } from '@lims/ui/components/Button';
-import { EmptyState } from '@lims/ui/components/EmptyState';
 import { ErrorState } from '@lims/ui/components/ErrorState';
 import { listCriticalAlertsAction } from '../server/actions';
 import type { CriticalAlert } from '../server/types';
@@ -33,19 +32,20 @@ export function CriticalAlertsPanel({ alerts, hasMore = false, centreId }: { ale
     return () => clearInterval(t);
   }, [centreId]);
 
-  const count = rows === null ? '' : more ? '50+' : String(rows.length);
+  // LD-353 rule 6 (T0D-UILIST-1): a failed read is one slim ErrorState banner under the title, not a card that pushes the worklist down
+  if (rows === null) return <ErrorState title="Critical alerts could not be loaded" body="The worklist below still works." onRetry={() => void load().catch(() => undefined)} />;
+  const count = more ? '50+' : String(rows.length);
   return (
     <section className="lims-card" aria-labelledby="crit-title">
       <div className="lims-card-header">
         <h2 id="crit-title">Critical alerts</h2>
-        {rows !== null ? <span className="lims-badge">{count}</span> : null}
+        <span className="lims-badge">{count}</span>
         <Button size="sm" variant="ghost" onPress={() => setOpen(!open)}>{open ? 'Hide' : 'Show'}</Button>
       </div>
       {open ? (
-        rows === null ? (
-          <div role="alert"><ErrorState title="Critical alerts could not be loaded" body="The worklist below still works." onRetry={() => void load().catch(() => undefined)} /></div>
-        ) : rows.length === 0 ? (
-          <EmptyState title="No critical alerts in the last 24 hours." />
+        rows.length === 0 ? (
+          // LD-353 rule 6: the page's one EmptyState belongs to the worklist table; an empty side panel is one plain line
+          <p className="lims-description">No critical alerts in the last 24 hours.</p>
         ) : (
           <ul className="lims-list">
             {rows.map((a) => (

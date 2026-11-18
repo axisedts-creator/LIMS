@@ -83,8 +83,8 @@ const colourOf = (decl: string) => /(var\(--lims-[a-z0-9-]+\)|color-mix\(in srgb
 const ACCENT = hex(tokenHex('accent'));
 
 describe('sidebar geometry and colour (13-M-SERIES s3)', () => {
-  it('176 px (11rem, LD-340: was 296) wide on accent.default with white text, viewport height, flex column', () => {
-    expect(px(val(isNav, 'width'))).toBe(176);
+  it('232 px (14.5rem, LD-344: was 176, LD-340: was 296) wide on accent.default with white text, viewport height, flex column', () => {
+    expect(px(val(isNav, 'width'))).toBe(232);
     expect(val(isNav, 'background') ?? val(isNav, 'background-color')).toMatch(/^var\(--lims-accent\)$/);
     expect(val(isNav, 'color')).toMatch(/^var\(--lims-accent-fg\)$/);
     expect(val(isNav, 'height') ?? val(isNav, 'max-height')).toMatch(/100d?vh/);
@@ -100,9 +100,9 @@ describe('sidebar geometry and colour (13-M-SERIES s3)', () => {
     expect(val(isNav, 'overflow') ?? val(isNav, 'overflow-y')).not.toBe('auto'); // the sidebar itself does not scroll
   });
 
-  it('entry pill: 28 px (1.75rem, LD-340: was 46), fully round, weight 500; the active entry is the accent.highlight pill with a dark token text (>= 4.5:1)', () => {
+  it('entry pill: 32 px (2rem, LD-344: was 28, LD-340: was 46), fully round, weight 500; the active entry is the accent.highlight pill with a dark token text (>= 4.5:1)', () => {
     const link = /\.lims-rail-link$/;
-    expect(px(val(link, 'min-height') ?? val(link, 'height'))).toBe(28);
+    expect(px(val(link, 'min-height') ?? val(link, 'height'))).toBe(32);
     expect(val(link, 'border-radius')).toBe('var(--lims-radius-full)');
     expect(val(link, 'font-weight')).toMatch(/var\(--lims-font-weight-medium\)|^500$/);
     const act = /\.lims-rail-link\[aria-current='?page'?\]$/;
@@ -119,9 +119,9 @@ describe('sidebar geometry and colour (13-M-SERIES s3)', () => {
     expect(ratio(c, ACCENT)).toBeGreaterThanOrEqual(4.5);
   });
 
-  it('Find a screen: 28 px pill (1.75rem, LD-340: was 46); its border keeps 3:1 on accent.default (#8FB8B0 or lighter)', () => {
+  it('Find a screen: 32 px pill (2rem, LD-344: was 28, LD-340: was 46); its border keeps 3:1 on accent.default (#8FB8B0 or lighter)', () => {
     const f = /\.lims-rail-search$/;
-    expect(px(val(f, 'min-height') ?? val(f, 'height'))).toBe(28);
+    expect(px(val(f, 'min-height') ?? val(f, 'height'))).toBe(32);
     expect(val(f, 'border-radius')).toBe('var(--lims-radius-full)');
     const b = val(f, 'border-color') ?? colourOf(val(f, 'border')!);
     expect(ratio(colour(b), ACCENT), `border ${b}`).toBeGreaterThanOrEqual(3);

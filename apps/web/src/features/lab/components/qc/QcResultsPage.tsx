@@ -10,7 +10,10 @@ import type { NamedOption, QcCaptureBody, QcResult } from '../../server/qc.types
 import { UUID_RE } from '../../server/types';
 import { NativeSelect } from '../NativeSelect';
 import { AlertText, errText, Field, ShortId } from '../settings/common';
-import { call, newKey, utc } from '../shared';
+import { call, ListTable, newKey, NUM, utc, type Fail } from '../shared';
+
+const QC_COLUMNS = ['Time', 'Instrument', 'Analyte', 'Control', 'Lot', 'Level', 'Value', 'Unit', 'Source'] as const;
+import { t } from '@/core/i18n/messages';
 
 const DEC = /^-?[0-9]+(\.[0-9]+)?$/;
 const CODE = /^[A-Za-z0-9][A-Za-z0-9_.:-]{0,99}$/;
@@ -43,6 +46,7 @@ export function QcResultsPage({ permissions, centres, instruments }: { permissio
   const [rows, setRows] = useState<QcResult[] | null>(null);
   const [next, setNext] = useState<string | undefined>();
   const [err, setErr] = useState('');
+  const [fail, setFail] = useState<Fail | undefined>();
   const [open, setOpen] = useState(false);
   const [f, setF] = useState<Form>(EMPTY);
   const [errs, setErrs] = useState<Errors>({});
@@ -53,7 +57,9 @@ export function QcResultsPage({ permissions, centres, instruments }: { permissio
 
   const load = useCallback(async (cursor?: string) => {
     const r = await call(listQcResultsAction(cursor));
-    if (r.ok) { setRows((x) => (cursor ? [...(x ?? []), ...r.data.data] : r.data.data)); setNext(r.data.page.next_cursor); setErr(''); } else { setRows((x) => x ?? []); setErr(errText(r)); }
+    if (r.ok) { setRows((x) => (cursor ? [...(x ?? []), ...r.data.data] : r.data.data)); setNext(r.data.page.next_cursor); setErr(''); setFail(undefined); }
+    else if (!cursor) { setRows(null); setFail(r); }   // T0D-UILIST-1: a failed first read is the in-table state (LD-353 rule 6)
+    else setErr(errText(r));
   }, []);
   useEffect(() => { void load(); }, [load]);
 
@@ -82,28 +88,23 @@ export function QcResultsPage({ permissions, centres, instruments }: { permissio
 
   return (
     <section aria-label="QC results">
-      <PageHeader title="QC results (captured — rules arrive with the QC module)" helpKey="lab.qc" />
+      {/* T0D-UILIST-1 (LD-353 template 1, rules 5, 6, 8): menu title with "Add QC result" at right; the table header is always drawn and an empty list,
+          a failed first read (ErrorState with Reference and Retry) or a pending operation (Not available yet) sits in its body. A failed "Load more" keeps the alert line. */}
+      <PageHeader title={t('lab.nav.qc')} helpKey="lab.qc" {...(canCapture ? { actions: <Button variant="primary" onPress={show}>Add QC result</Button> } : {})} />
       {err ? <AlertText text={err} /> : null}
-      {canCapture ? <Button variant="primary" onPress={show}>Add QC result</Button> : null}
-      {rows === null ? <p role="status">Loading…</p> : rows.length === 0 ? <p>No QC results captured.</p> : (
-        <>
-          <table className="lims-table">
-            <thead><tr>{['Time', 'Instrument', 'Analyte', 'Control', 'Lot', 'Level', 'Value', 'Unit', 'Source'].map((h) => <th key={h} scope="col">{h}</th>)}</tr></thead>
-            <tbody>
-              {rows.map((r) => (
-                <tr key={r.id}>
-                  <td>{utc(r.instrument_result_time)}</td>
-                  <td>{names.get(r.instrument_id) ?? <ShortId value={r.instrument_id} />}</td>
-                  <td><ShortId value={r.analyte_id} /></td>
-                  <td>{r.control_id_raw}</td><td>{r.control_lot_raw ?? '—'}</td><td>{r.control_level ?? '—'}</td><td>{r.value_numeric}</td><td>{r.unit_code ?? '—'}</td>
-                  <td>{SOURCE[r.source] ?? r.source}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {next ? <Button variant="secondary" onPress={() => void load(next)}>Load more</Button> : null}
-        </>
-      )}
+      {rows === null && !fail ? <p role="status">Loading…</p> : null}
+      <ListTable caption="QC results" cols={QC_COLUMNS.length} empty="No QC results captured." fail={fail} onRetry={() => { setFail(undefined); void load(); }}
+        head={QC_COLUMNS.map((h) => <th key={h} scope="col" {...(h === 'Value' ? { className: NUM } : {})}>{h}</th>)}
+        rows={rows?.map((r) => (
+          <tr key={r.id}>
+            <td>{utc(r.instrument_result_time)}</td>
+            <td>{names.get(r.instrument_id) ?? <ShortId value={r.instrument_id} />}</td>
+            <td><ShortId value={r.analyte_id} /></td>
+            <td>{r.control_id_raw}</td><td>{r.control_lot_raw ?? '—'}</td><td>{r.control_level ?? '—'}</td><td className={NUM}>{r.value_numeric}</td><td>{r.unit_code ?? '—'}</td>
+            <td>{SOURCE[r.source] ?? r.source}</td>
+          </tr>
+        ))} />
+      {rows && rows.length > 0 && next ?<Button variant="secondary" onPress={() => void load(next)}>Load more</Button> : null}
 
       <Dialog
         title="Add QC result"

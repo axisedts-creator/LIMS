@@ -5,6 +5,8 @@
 // - A draft print (unreleased version) needs reporting.report.release on top of print (D-37) and always renders a file with draft_watermark.
 // - ASSUMED [CONV]: the working centre (bulk / preview `centre_id`) is ctx.centreId; expires_at = ctx.now() + 24 h computed in JS; jobs carry {tenant_id, print_job_id}, 5 attempts.
 import { LimsError } from '../../../core/errors.js';
+import type { BucketName, StorageAdapter } from '../../../core/storage/index.js';
+import { streamStored, type RequestHeaders } from '../../../core/storage/stream.js';
 import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';
 import { insertDeliveryRow } from '../repository/delivery.repo.js';
 import * as repo from '../repository/print.repo.js';
@@ -20,7 +22,7 @@ const PRINTS_BUCKET = 'reporting-prints';
 export interface PrintCtx {
   readonly tenantId: string; readonly actor: { readonly type?: string; readonly id: string; readonly centreId?: string }; readonly tx: repo.Tx; readonly centreId?: string;
   readonly ports?: Record<string, any>; readonly now?: () => string;
-  readonly storage?: { read(bucket: any, path: string): Promise<Uint8Array> }; readonly audit?: { access(e: Record<string, unknown>): Promise<unknown> };
+  readonly storage?: Partial<Pick<StorageAdapter, 'read' | 'readStream'>>; readonly audit?: { access(e: Record<string, unknown>): Promise<unknown> };
 }
 type Variant = 'letterhead' | 'plain';
 
@@ -82,7 +84,7 @@ export async function getReportPrint(c: PrintCtx, printId: string) {
 }
 
 /** R12. Letterhead single (no own file) streams the canonical version PDF; every other print streams its own file. Never outside the tenant prefix. */
-export async function downloadReportPrintPdf(c: PrintCtx, printId: string) {
+export async function downloadReportPrintPdf(c: PrintCtx, printId: string, requestHeaders?: RequestHeaders) {
   const p = await repo.findPrint(c.tx, c.tenantId, printId);
   if (!p) throw new LimsError('common.not_found');
   if (!c.storage) throw new LimsError('common.internal');
@@ -96,14 +98,15 @@ export async function downloadReportPrintPdf(c: PrintCtx, printId: string) {
     bucket = 'reports'; path = v['pdf_object_path'];
   } else { bucket = PRINTS_BUCKET; path = p['object_path']; }
   if (typeof path !== 'string' || !path.startsWith(`${c.tenantId}/`)) throw new LimsError('common.internal');   // never read outside the caller's tenant prefix
-  const bytes = await c.storage.read(bucket, path);
-  await audit.access({ action: 'report.download', entityType: 'print_job', entityId: p['id'], centreId: p['centre_id'], outcome: 'allowed' });
-  return {
-    status: 200, body: bytes, headers: {
+  // T0B-FILESTREAM-1 (LD-312): streamed (Content-Length, ETag, Range, 304); the access-log row before the first byte, none for a 416.
+  return streamStored(c.storage, {
+    bucket: bucket as BucketName, objectPath: path, ...(requestHeaders ? { requestHeaders } : {}),
+    onServe: () => audit.access({ action: 'report.download', entityType: 'print_job', entityId: p['id'], centreId: p['centre_id'], outcome: 'allowed' }),
+    headers: {
       'content-type': 'application/pdf', 'content-disposition': `attachment; filename="print-${p['id']}.pdf"`,   // ids only: no patient data in the name
-      'x-content-type-options': 'nosniff', 'cache-control': 'no-store', 'content-security-policy': 'sandbox', 'content-length': String(bytes.length),
+      'x-content-type-options': 'nosniff', 'cache-control': 'no-store', 'content-security-policy': 'sandbox',
     },
-  };
+  });
 }
 
 /** R13 (REQ-SEC-100 privileged: assertRole carries auth.mfa_required). Unreleased / unknown / out-of-scope ids are excluded and listed; none printable -> report_not_released. */

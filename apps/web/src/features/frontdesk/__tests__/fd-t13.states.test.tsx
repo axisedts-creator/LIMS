@@ -4,6 +4,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { t } from '@/core/i18n/messages';
 import { PATH, HttpResponse, MONEY, ORDER, PERMS, UNIT, calls, delay, handlers, noAxeViolations, of, party, problem, push, quoteFor, renderForm, result, setup } from './fd-t13.harness';
 
 setup();
@@ -43,7 +44,7 @@ describe('states (03-APP-FLOW §10 row Registration)', () => {
   it('blank: focus on patient search, centre = default, OPD/Cash/walk-in/Self defaults, Register disabled, no API call yet beyond lookups', async () => {
     await renderForm();
     expect(document.activeElement).toBe(screen.getByRole('combobox', { name: /search (patient|name)/i }));
-    expect(screen.getByRole('heading', { name: /new registration/i })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: t('frontdesk.nav.registration_new') })).toBeTruthy();
     expect((screen.getByRole('button', { name: /register & print/i }) as HTMLButtonElement).disabled).toBe(true);
     expect(of('POST', PATH.quote)).toHaveLength(0);
     expect(of('POST', PATH.register)).toHaveLength(0);

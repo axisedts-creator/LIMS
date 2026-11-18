@@ -37,6 +37,8 @@ export const manifest: ModuleManifest = Object.freeze({
   openapi: OPENAPI,
   handlers: Object.freeze(Object.fromEntries(operationIds(loadSpec(join(REPO_ROOT, OPENAPI)))
     .map((op) => [op, Object.hasOwn(implemented, op) ? implemented[op]! : notImplemented]))),
+  // LD-325(b), LD-335: T0C-PRINTCFG-1 (LD-316) contract operations without a handler yet (501 operation_pending); T0B-PRINTCFG-1 removes them with the handlers.
+  pendingOperations: Object.freeze(['listPrintProfiles', 'upsertPrintProfile', 'previewPrintProfile', 'listSignatoryProfiles', 'upsertSignatoryProfile']),
   produces: Object.freeze(['reporting.report.released.v1', 'reporting.delivery.status_changed.v1']),
   systemPermissions: REPORTING_SYSTEM_PERMISSIONS,
   authResolvers: Object.freeze({ portalSession: portalSessionResolver }),   // CR-C6-001

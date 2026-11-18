@@ -102,7 +102,7 @@ export function MessagesList({ messages, rejections, instruments, agents }: {
 
   return (
     <section aria-label="Messages">
-      <PageHeader title="Messages" helpKey="instruments.messages" breadcrumbs={[{ label: 'Instruments', href: '/instruments/instruments' }, { label: 'Messages' }]} />
+      <PageHeader title="Messages" helpKey="instruments.messages" />
       <Tabs items={TABS} selectedId={tab} onChange={setTab} aria-label="Message sections">
         {tab === 'messages' ? (
           <>

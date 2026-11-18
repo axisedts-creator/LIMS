@@ -43,6 +43,7 @@ exports[`RS-C8 schedule and export screens: snapshots + axe > My exports 1`] = `
 </div>
 </div>
 <div class="lims-data-table">
+<div class="lims-table-scroll">
 <template>
 </template>
 <span data-focus-scope-start="true" hidden="">
@@ -138,6 +139,7 @@ exports[`RS-C8 schedule and export screens: snapshots + axe > My exports 1`] = `
 </table>
 <span data-focus-scope-end="true" hidden="">
 </span>
+</div>
 <div role="status" class="lims-visually-hidden">
 </div>
 </div>
@@ -147,16 +149,6 @@ exports[`RS-C8 schedule and export screens: snapshots + axe > My exports 1`] = `
 
 exports[`RS-C8 schedule and export screens: snapshots + axe > New schedule form 1`] = `
 "<div class="lims-page-header">
-<nav aria-label="Breadcrumb" class="lims-breadcrumbs">
-<ol>
-<li>
-<a href="/analytics/schedules">Scheduled reports</a>
-</li>
-<li>
-<span aria-current="page">New</span>
-</li>
-</ol>
-</nav>
 <div class="lims-page-header-row">
 <h1 class="lims-page-title">New scheduled report</h1>
 <div class="lims-page-actions">
@@ -173,7 +165,7 @@ exports[`RS-C8 schedule and export screens: snapshots + axe > New schedule form 
 </div>
 </div>
 <div>
-<form novalidate="" class="lims-form">
+<form novalidate="" class="lims-form" data-label-placement="above">
 <div class="lims-field" data-rac="" data-required="true">
 <label class="lims-label" id="ID" for="ID">Name<span aria-hidden="true"> *</span>
 </label>
@@ -518,6 +510,7 @@ exports[`RS-C8 schedule and export screens: snapshots + axe > Schedules list 1`]
 </div>
 </div>
 <div class="lims-data-table">
+<div class="lims-table-scroll">
 <template>
 </template>
 <span data-focus-scope-start="true" hidden="">
@@ -587,6 +580,7 @@ exports[`RS-C8 schedule and export screens: snapshots + axe > Schedules list 1`]
 </table>
 <span data-focus-scope-end="true" hidden="">
 </span>
+</div>
 <div role="status" class="lims-visually-hidden">
 </div>
 </div>

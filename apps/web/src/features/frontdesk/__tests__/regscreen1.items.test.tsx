@@ -132,10 +132,12 @@ describe('web-only items are on the screen, each by label', () => {
     await waitFor(() => expect((screen.getByRole('textbox', { name: /client label/i }) as HTMLInputElement).value).toBe(party.name), { timeout: T });
   });
 
-  it('Favourites is a disabled placeholder tab (no favourites API exists), the other tab is selected', async () => {
+  // T0D-REGSCREEN-2 (LD-310): the favourites API now exists (listFavouriteTests), so the placeholder tab became a live tab; the full behaviour is pinned in regscreen2.drafts.test.tsx.
+  it('Favourites is a live tab now (T0D-REGSCREEN-2), the All tests tab is the one selected at first', async () => {
     await form();
     const fav = screen.getByRole('tab', { name: /favourites/i });
-    expect(fav.getAttribute('aria-disabled') === 'true' || (fav as HTMLButtonElement).disabled).toBe(true);
+    expect(fav.getAttribute('aria-disabled') === 'true' || (fav as HTMLButtonElement).disabled).toBe(false);
+    expect(fav.getAttribute('aria-selected')).toBe('false');
     expect(screen.getAllByRole('tab').some((t) => t !== fav && t.getAttribute('aria-selected') === 'true')).toBe(true);
   });
 

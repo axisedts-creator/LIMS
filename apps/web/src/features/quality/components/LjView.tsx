@@ -1,6 +1,7 @@
 'use client';
 // 04-UI-UX §2.4 Levey-Jennings chart. LD-140: @lims/ui only. Until CR-C9-007 (ControlChart) merges, the chart is a DataTable of the same points + a note (03-APP-FLOW §4);
 // the table is also what AC-08.5 asks for beside the chart, so it stays when the chart arrives.
+// T0D-UIDASH-1 (LD-353 rule 8): the development note banner is gone from the page; no colour literals (accent plus grey from tokens).
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Banner } from '@lims/ui/components/Banner';
@@ -18,6 +19,7 @@ import { RadioGroup } from '@lims/ui/components/RadioGroup';
 import { Select } from '@lims/ui/components/Select';
 import { StatusChip } from '@lims/ui/components/StatusChip';
 import { useToast } from '@lims/ui/components/Toast';
+import { t } from '@/core/i18n/messages';
 import { POINT, fixed, rulesText, z2 } from '../format';
 import { excludeObservationAction, pollLjAction } from '../server/actions';
 import type { CodeOption, LjChart, LjPoint, LjSeries, LjTarget, StatusRow } from '../types';
@@ -25,7 +27,7 @@ import { usePolled } from './polling';
 import { ConnectionLost, UpdatedAt, qs, useAttemptKey } from './Shared';
 
 type Iso = DateTextProps['value'];
-const TITLE = 'Levey-Jennings chart';
+const TITLE = t('quality.nav.lj_chart'); // T0D-ELABMENU-3 (LD-340): ElabAssist menu label
 const SIGMA = [['+1SD', 1], ['−1SD', -1], ['+2SD', 2], ['−2SD', -2], ['+3SD', 3], ['−3SD', -3]] as const;
 const FAIL = { 'common.version_conflict': 'This value changed. Reload the page and try again.', 'quality.qc_run_already_evaluated': 'This value belongs to an evaluated run and can no longer be excluded.' } as Record<string, string>;
 
@@ -35,7 +37,7 @@ export interface LjViewProps extends Common { chart?: LjChart; generatedAt: stri
 export function LjView(p: LjViewProps) {
   return p.chart ? <ChartView {...p} chart={p.chart} /> : (
     <>
-      <PageHeader title={TITLE} helpKey="quality.lj_chart" />
+      <PageHeader title={t('quality.nav.lj_chart')} helpKey="quality.lj_chart" />
       <Controls {...p} />
       <EmptyState title="Choose a plan" body="Pick an instrument and analyte to see its QC values over time." />
     </>
@@ -119,7 +121,6 @@ function ChartView({ chart, generatedAt, sp, plans, canManage, exclusionOptions 
       {lost ? <ConnectionLost since={updatedAt} /> : null}
       <Controls sp={sp} plans={plans} chart={data} />
       {data.truncated ? <Banner tone="warning" title="Showing the newest 2,000 points. Narrow the period to see all." /> : null}
-      <Banner tone="info" title="Chart component pending; showing values as a table." />
       <section aria-label="Legend">
         <ul>{(Object.keys(POINT) as (keyof typeof POINT)[]).map((s) => <li key={s}>{`${POINT[s].marker} ${POINT[s].label}`}</li>)}</ul>
       </section>

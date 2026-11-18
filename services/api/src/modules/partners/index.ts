@@ -70,7 +70,11 @@ const implemented: Readonly<Record<string, Handler>> = {
   listInboundManifests, getInboundManifest, receiveManifest, retryManifestLineConversion, markManifestLineNotReceived, // T10 SI1-SI5
 };
 
-/** T0C-SALES-1 (LD-321, LD-325 b): sales hierarchy operations of partners.yaml without a handler yet (answer 501 operation_pending); T0B-SALES-1 removes them. */
+/**
+ * LD-325(b): operations of partners.yaml without a handler yet (answer 501 operation_pending).
+ * T0C-SALES-1 (LD-321): sales hierarchy ids; T0B-SALES-1 removes them.
+ * T0C-MSGDESK-1 (LD-321): the partner ticket ids were removed by T0B-MSGDESK-1 with their handlers.
+ */
 const PENDING_OPERATIONS: readonly string[] = Object.freeze([
   'listSalesDesignations', 'createSalesDesignation', 'updateSalesDesignation',
   'listSalesRepresentatives', 'createSalesRepresentative', 'updateSalesRepresentative', 'deactivateSalesRepresentative', 'getSalesTree',

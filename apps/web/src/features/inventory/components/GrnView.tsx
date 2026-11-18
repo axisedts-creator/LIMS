@@ -17,6 +17,7 @@ import type { CodedValue, Grn, GrnLine, GrnSummary, Item, Po, Store, SupplierSum
 import { GrnEditor } from './GrnEditor';
 import { GrnStatusChip, KIND_LABEL, rs, taxText } from './PoShared';
 import { isoDate, useUrlFilters } from './shared';
+import { t } from '@/core/i18n/messages';
 
 export interface GrnViewProps {
   grns: readonly GrnSummary[];
@@ -67,7 +68,7 @@ export function GrnView(p: GrnViewProps) {
   const editable = !!sel && sel.status === 'draft' && canManage;
   return (
     <section aria-label="Goods receipts">
-      <PageHeader title="Receipts" helpKey="inventory.receipts" {...(canManage ? { actions: <Button variant="primary" onPress={() => setCreating(true)}>New receipt</Button> } : {})} />
+      <PageHeader title={t('inventory.nav.receipts')} helpKey="inventory.receipts" {...(canManage ? { actions: <Button variant="primary" onPress={() => setCreating(true)}>New receipt</Button> } : {})} />
       <Stack>
         <FilterBar filters={defs} {...filters} />
         <DataTable caption="Goods receipts" columns={columns} rows={p.grns} getRowId={(r) => r.id} emptyState={{ title: 'No receipts' }} onRowAction={(r) => router.push(`/inventory/receipts?grn=${r.id}`)} />

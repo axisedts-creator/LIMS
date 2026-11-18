@@ -100,7 +100,6 @@ export function AgentDetail({ agent, transitions, instruments, permissions, cloc
       <PageHeader
         title={`${agent.agent_code} — ${agent.display_name}`}
         helpKey="instruments.agents"
-        breadcrumbs={[{ label: 'Agents', href: '/instruments/agents' }, { label: agent.agent_code }]}
         status={
           <>
             <HealthChip state={h.state} /> <AgentStatusChip status={agent.status} />

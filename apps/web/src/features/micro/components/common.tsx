@@ -4,6 +4,7 @@
 import { useRouter } from 'next/navigation';
 import { Banner, type BannerProps } from '@lims/ui/components/Banner';
 import { DateText, type DateTextProps } from '@lims/ui/components/DateText';
+import { ErrorState } from '@lims/ui/components/ErrorState';
 import type { DateTimePickerProps } from '@lims/ui/components/DateTimePicker';
 import { Icon, type IconName } from '@lims/ui/components/Icon';
 import type { ActionResult } from '../server/types';
@@ -66,5 +67,11 @@ export function Chip({ tone, label }: { tone: Tone; label: string }) {
   );
 }
 
-export const yesNo = (b: boolean | undefined) => (b ? 'Yes' : 'No');
+/** T0D-UILIST-1, LD-353 rule 6: a failed page read keeps the page title (h1) and shows ErrorState with reference and Retry (one re-read), never error.tsx. */
+export function MicroLoadError({ title, requestId }: { title: string; requestId?: string }) {
+  const router = useRouter();
+  return <ErrorState pageTitle={title} title="This list could not be loaded." body="Try again. If it keeps happening, tell your administrator." {...(requestId ? { requestId } : {})} onRetry={() => router.refresh()} />;
+}
+
+export const yesNo =(b: boolean | undefined) => (b ? 'Yes' : 'No');
 export const rowsOf = <T,>(r: ActionResult<T[]>): T[] => (r.ok ? r.data : []);

@@ -80,7 +80,6 @@ export function ItemDetail({ item, canManage, uom, tax }: { item: Item; canManag
       <PageHeader
         title={item.name}
         helpKey="inventory.item"
-        breadcrumbs={[{ label: 'Items', href: '/inventory/items' }, { label: item.item_code }]}
         status={<ActiveChip active={item.is_active} />}
         actions={
           canManage ? (

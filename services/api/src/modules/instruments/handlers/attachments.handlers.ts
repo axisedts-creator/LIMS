@@ -2,6 +2,7 @@
 // limit and the required Idempotency-Key are enforced by the core pipeline from contracts/openapi/instruments.yaml; this maps request -> service and fails closed
 // without an authenticated context.
 import { LimsError } from '../../../core/errors.js';
+import type { RequestHeaders } from '../../../core/storage/stream.js';
 import type { Handler, HandlerContext, HandlerRequest } from '../../../core/module.js';
 import { createAttachmentsService, type AttachmentsCtx } from '../service/attachments.service.js';
 
@@ -29,6 +30,7 @@ export const attachmentsHandlers = Object.freeze({
   downloadInstrumentAttachment: (async (req: HandlerRequest, hctx: HandlerContext) => {
     const c = hctx as unknown as Partial<AttachmentsCtx>;
     if (!authed(c)) throw new LimsError('auth.unauthenticated');
-    return attachments.downloadInstrumentAttachment(c, { instrumentMessageId: (req.params as Record<string, unknown> | undefined)?.['instrument_message_id'] });
+    const hasHeaders = typeof req.headers === 'object' && req.headers !== null && Object.keys(req.headers).length > 0;   // T0B-FILESTREAM-1: Range / If-None-Match / If-Range
+    return attachments.downloadInstrumentAttachment(c, { instrumentMessageId: (req.params as Record<string, unknown> | undefined)?.['instrument_message_id'], ...(hasHeaders ? { requestHeaders: req.headers as RequestHeaders } : {}) });
   }) as Handler,
 } satisfies Record<string, Handler>);

@@ -1,14 +1,12 @@
 'use client';
 // 04-UI-UX §2.1 Reports worklist: six tabs, filters in the URL, barcode/registration-no. search, bulk release (reporting.report.bulk_release).
 // Polls by refreshing the server component every 30 s (02-CV §2.4). Shortcuts §1.1 on page id staff.reporting.worklist.
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@lims/ui/components/Button';
 import { ConfirmDialog } from '@lims/ui/components/ConfirmDialog';
 import { FilterBar } from '@lims/ui/components/FilterBar';
 import { PageHeader } from '@lims/ui/components/PageHeader';
-import { Tabs } from '@lims/ui/components/Tabs';
-import { TextField } from '@lims/ui/components/TextField';
 import { useToast } from '@lims/ui/components/Toast';
 import { bulkReleaseAction, searchReportsAction } from '../server/actions';
 import { REPORT_TABS, type BulkResult, type Centre, type ReportSummary, type ReportTab } from '../server/types';
@@ -25,14 +23,18 @@ const EMPTY: Record<ReportTab, string> = {
 };
 const OUTCOME: Record<string, string> = { released: 'Released', blocked_due: 'Held for dues' };
 const REG_NO = /^R\d{10}$/;
+const FILTER_KEYS = ['centre_id', 'family', 'registered', 'review'] as const;
 
-export interface ReportsWorklistProps { reports: readonly ReportSummary[]; tab: ReportTab; permissions: readonly string[]; centres: readonly Centre[]; nextCursor?: string | undefined }
+export interface ReportsWorklistProps { reports: readonly ReportSummary[]; tab: ReportTab; permissions: readonly string[]; centres: readonly Centre[]; nextCursor?: string | undefined;
+  /** The critical alerts panel, drawn under the title (LD-353 rule 6: a failed panel is a slim banner under the title, never above it). */
+  alerts?: ReactNode;
+}
 
-export function ReportsWorklist({ reports, tab, permissions, centres, nextCursor }: ReportsWorklistProps) {
+export function ReportsWorklist({ reports, tab, permissions, centres, nextCursor, alerts }: ReportsWorklistProps) {
   const router = useRouter();
   const sp = useSearchParams();
   const toast = useToast();
-  const f = useUrlFilters(['centre_id', 'family', 'registered', 'review']);
+  const f = useUrlFilters(FILTER_KEYS);
   const canBulk = hasPerm(permissions, 'reporting.report.bulk_release');
   const canBarcode = hasPerm(permissions, 'lab.specimen.read');
   const selectable = canBulk && (tab === 'ready_to_release' || tab === 'held');
@@ -79,8 +81,7 @@ export function ReportsWorklist({ reports, tab, permissions, centres, nextCursor
     router.refresh();
   };
 
-  const search = async (e: FormEvent) => {
-    e.preventDefault();
+  const search = async () => {
     const v = query.trim().toUpperCase();
     setSearchMsg(undefined);
     setFound([]);
@@ -92,6 +93,16 @@ export function ReportsWorklist({ reports, tab, permissions, centres, nextCursor
     if (r.data.length === 0) setSearchMsg(isReg ? 'No report found for this registration no.' : 'No report found for this barcode');
     else if (r.data.length === 1) router.push(`/reporting/reports/${r.data[0]!.id}`);
     else setFound(r.data);
+  };
+
+  // LD-353 template 1 (T0D-UILIST-1): ONE FilterBar holds the lookup, the URL filters and the status (formerly the tab bar).
+  // The lookup stays in component state, never in the URL (PHI, 04-UI-UX §1.2); the status still goes through goTab.
+  const barValue = { ...f.value, tab, lookup: query };
+  const onBar = (v: Readonly<Record<string, string | readonly string[] | undefined>>) => {
+    const { lookup, tab: nextTab, ...rest } = v;
+    setQuery(typeof lookup === 'string' ? lookup : '');
+    if (typeof nextTab === 'string' && nextTab !== tab) { goTab(nextTab); return; }
+    if (FILTER_KEYS.some((k) => String(rest[k] ?? '') !== String(f.value[k] ?? ''))) f.onChange(rest);
   };
 
   const columns: Col<ReportSummary>[] = [
@@ -119,27 +130,26 @@ export function ReportsWorklist({ reports, tab, permissions, centres, nextCursor
         helpKey="reporting.worklist"
         actions={selectable && selected.size > 0 ? <Button variant="primary" shortcut="Alt+R" onPress={askBulk}>{`Release ${selected.size}`}</Button> : null}
       />
-      <form onSubmit={(e) => void search(e)} className="lims-inline-form">
-        <div ref={searchBox}>
-          <TextField label={canBarcode ? 'Registration no. or barcode' : 'Registration no.'} name="lookup" maxLength={20} value={query} onChange={setQuery} autoComplete="off" />
-        </div>
-        <Button type="submit">Search</Button>
-      </form>
+      {alerts}
+      <div ref={searchBox} onKeyDown={(e) => { if (e.key === 'Enter' && (e.target as HTMLElement).getAttribute('name') === 'lookup') { e.preventDefault(); void search(); } }}>
+        <FilterBar
+          filters={[
+            { id: 'lookup', label: canBarcode ? 'Registration no. or barcode' : 'Registration no.', kind: 'text', maxLength: 20 },
+            { id: 'tab', label: 'Status', kind: 'select', options: REPORT_TABS.map((t) => ({ value: t, label: TAB_LABEL[t] })) },
+            { id: 'centre_id', label: 'Centre', kind: 'select', options: centres.map((c) => ({ value: c.id, label: c.name })) },
+            { id: 'family', label: 'Family', kind: 'select', options: [{ value: 'laboratory', label: 'Lab' }, { value: 'narrative', label: 'Narrative' }] },
+            { id: 'registered', label: 'Registered', kind: 'date_range' },
+            { id: 'review', label: 'Review flag', kind: 'select', options: [{ value: 'yes', label: 'Needs review' }, { value: 'no', label: 'No review flag' }] },
+          ]}
+          value={barValue} onChange={onBar} onReset={() => { setQuery(''); f.onReset(); }} onSearch={() => void search()}
+        />
+      </div>
       {searchMsg ? <p role="status" className="lims-description">{searchMsg}</p> : null}
       {found.length > 0 ? (
         <ul className="lims-list" aria-label="Matching reports">
           {found.map((r) => <li key={r.id} className="lims-list-row"><a className="lims-link lims-mono" href={`/reporting/reports/${r.id}`}>{r.registration_no}</a> {r.patient_display_name}</li>)}
         </ul>
       ) : null}
-      <FilterBar
-        filters={[
-          { id: 'centre_id', label: 'Centre', kind: 'select', options: centres.map((c) => ({ value: c.id, label: c.name })) },
-          { id: 'family', label: 'Family', kind: 'select', options: [{ value: 'laboratory', label: 'Lab' }, { value: 'narrative', label: 'Narrative' }] },
-          { id: 'registered', label: 'Registered', kind: 'date_range' },
-          { id: 'review', label: 'Review flag', kind: 'select', options: [{ value: 'yes', label: 'Needs review' }, { value: 'no', label: 'No review flag' }] },
-        ]}
-        value={f.value} onChange={f.onChange} onReset={f.onReset}
-      />
       {counts ? <p role="status">{`${counts.ok} released · ${counts.held} held for dues · ${result!.sent - counts.ok - counts.held} not released`}</p> : null}
       {result ? (
         <SimpleTable
@@ -152,14 +162,12 @@ export function ReportsWorklist({ reports, tab, permissions, centres, nextCursor
           empty={{ title: 'Nothing was released.' }}
         />
       ) : null}
-      <Tabs aria-label="Report status" selectedId={tab} onChange={goTab} items={REPORT_TABS.map((t) => ({ id: t, label: TAB_LABEL[t] }))}>
-        <SimpleTable
-          caption={`Reports: ${TAB_LABEL[tab]}`}
-          columns={columns} rows={reports} getRowId={(r) => r.id} empty={{ title: EMPTY[tab] }}
-          {...(selectable ? { selection: { selectedIds: selected, onChange: setSelected, label: (id: string) => `Select ${byId.get(id)?.registration_no ?? 'report'}` } } : {})}
-        />
-        {nextCursor ? <p><a className="lims-link" href={`/reporting?${new URLSearchParams({ ...Object.fromEntries(sp.entries()), tab, cursor: nextCursor }).toString()}`}>Next page</a></p> : null}
-      </Tabs>
+      <SimpleTable
+        caption={`Reports: ${TAB_LABEL[tab]}`}
+        columns={columns} rows={reports} getRowId={(r) => r.id} empty={{ title: EMPTY[tab] }}
+        {...(selectable ? { selection: { selectedIds: selected, onChange: setSelected, label: (id: string) => `Select ${byId.get(id)?.registration_no ?? 'report'}` } } : {})}
+      />
+      {nextCursor ? <p><a className="lims-link" href={`/reporting?${new URLSearchParams({ ...Object.fromEntries(sp.entries()), tab, cursor: nextCursor }).toString()}`}>Next page</a></p> : null}
       <ConfirmDialog
         title={`Release ${selected.size} reports?`}
         body="Reports with dues will stay held unless an override exists. Messages are sent to patients who agreed to them."

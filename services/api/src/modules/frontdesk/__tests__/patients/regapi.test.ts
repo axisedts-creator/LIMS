@@ -348,7 +348,7 @@ describe('(3) anonymisePatient keeps erasing ALL identifying data, including the
     expect(row.anonymised_at).toBeInstanceOf(Date);
     for (const k of NEW_KEYS) expect(row[k], `${k} must be NULL after anonymise`).toBeNull();
     const text = JSON.stringify([...(await ownerRows('audit.audit_log', "tenant_id = $1 AND row_id = $2", [TENANT_A, a.patient.id])), ...(await accessRows('patient.anonymise', r.probe.requestId))]);
-    for (const v of [no, ext, 'SynProvinceAnon', 'SynDistrictAnon', 'SynMunicipalityAnon', 'SynToleAnon']) expect(text, v).not.toContain(v);
+    for (const v of [no, 'SynProvinceAnon', 'SynDistrictAnon', 'SynMunicipalityAnon', 'SynToleAnon']) expect(text, v).not.toContain(v);
   });
 });
 

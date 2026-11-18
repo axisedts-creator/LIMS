@@ -10,6 +10,7 @@ import { Combobox } from '@lims/ui/components/Combobox';
 import { EmptyRow, PlaceholderRows } from '@lims/ui/components/DataTable';
 import { DateTimePicker } from '@lims/ui/components/DateTimePicker';
 import { EmptyState } from '@lims/ui/components/EmptyState';
+import { FilterBar, type FilterValue } from '@lims/ui/components/FilterBar';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { RadioGroup } from '@lims/ui/components/RadioGroup';
 import { Select } from '@lims/ui/components/Select';
@@ -21,6 +22,7 @@ import { createTaxRuleAction, createTaxTypeAction, endTaxRuleAction, updateTaxTy
 import { HS_CODE_RE, parsePercentBp, TAX_CODE_RE, TAX_DISCLAIMER, type Department, type OrderableSummary, type TaxRule, type TaxType } from '../server/types';
 import { errAt, fmtDateTime } from './shared';
 import { ActionDialog, canManagePrices, TaxDisclaimer, useWhen } from './pricing-ui';
+import { t } from '@/core/i18n/messages';
 
 type Scope = TaxRule['scope'];
 type Vat = TaxRule['vat_treatment'];
@@ -45,18 +47,31 @@ export function TaxScreen({ rules, taxTypes, departments, orderables, permission
   const hasDefault = rules.some((r) => r.scope === 'tenant_default' && !ended(r, now));
   const vatBp = taxTypes.find((t) => t.code === 'VAT')?.rate_bp ?? 1300;
   const rateOf = (code?: string) => { const t = taxTypes.find((x) => x.code === code); return t?.rate_bp !== undefined ? ` ${pct(t.rate_bp)}` : ''; };
+  // T0D-UILIST-3, LD-353 template 1: one FilterBar row, client side over the loaded rules [CONV].
+  const [f, setF] = useState<FilterValue>({});
+  const shown = rules.filter((r) => (!f.scope || r.scope === f.scope) && (!f.status || ended(r, now) === (f.status === 'ended')));
   const appliesTo = (r: TaxRule) => (r.scope === 'tenant_default' ? 'Lab default' : r.scope === 'department' ? `Department ${departments.find((d) => d.id === r.department_id)?.name ?? r.department_id}` : `Orderable ${(() => { const o = orderables.find((x) => x.id === r.orderable_id); return o ? `${o.code} — ${o.name}` : r.orderable_id; })()}`);
 
   return (
     <section aria-label="Tax rules and tax types">
-      <PageHeader title="Tax rules & tax types" helpKey="catalog.tax" breadcrumbs={[{ label: 'Pricing' }, { label: 'Tax' }]} />
+      <PageHeader title={t('catalog.nav.tax')} helpKey="catalog.tax" />
       <Banner tone="info" title={`${TAX_DISCLAIMER} Configure what your auditor confirms.`} />
       <Tabs aria-label="Tax" items={[{ id: 'rules', label: 'Rules' }, { id: 'types', label: 'Tax types' }]} selectedId={tab} onChange={setTab}>
         {tab === 'rules' ? (
           <>
             {!hasDefault ? <div role="alert"><Banner tone="danger" title="Prices cannot be quoted until a lab default tax rule exists." /></div> : null}
             {manage ? <Button variant="primary" onPress={() => setDialog('rule')}>New rule</Button> : null}
+            <FilterBar
+              filters={[
+                { id: 'scope', kind: 'select', label: 'Applies to', options: SCOPE_OPTIONS },
+                { id: 'status', kind: 'select', label: 'Status', options: [{ value: 'current', label: 'Current' }, { value: 'ended', label: 'Ended' }] },
+              ]}
+              value={f}
+              onChange={setF}
+              onReset={() => setF({})}
+            />
             {/* T0D-EMPTYTBL-2 (LD-310, LD-336): both tabs always draw their table; the empty message (and the create action for a manager) is the one body row. */}
+            <div className="lims-table-scroll">
             <table className="lims-table lims-table-regular">
                 <caption className="lims-visually-hidden">Tax rules</caption>
                 <thead>
@@ -68,10 +83,12 @@ export function TaxScreen({ rules, taxTypes, departments, orderables, permission
                 <tbody>
                   {rules.length === 0 ? (
                     <EmptyRow colSpan={manage ? 7 : 6}><EmptyState title="No tax rules. Prices cannot be quoted until a tenant default rule exists." {...(manage ? { action: { label: 'New rule', onPress: () => setDialog('rule') } } : {})} /></EmptyRow>
+                  ) : shown.length === 0 ? (
+                    <EmptyRow colSpan={manage ? 7 : 6}><EmptyState title="No rules match the filters." /></EmptyRow>
                   ) : null}
-                  {rules.map((r) => (
+                  {shown.map((r) => (
                     <tr key={r.id} className="lims-row">
-                      <td className="lims-cell">{appliesTo(r)}</td>
+                      <td className="lims-cell" title={appliesTo(r)}>{appliesTo(r)}</td>
                       <td className="lims-cell">{r.vat_treatment === 'exempt' ? 'Exempt' : `Taxable ${pct(vatBp)}`}</td>
                       <td className="lims-cell">{r.other_tax_code ? `${r.other_tax_code}${rateOf(r.other_tax_code)}` : '—'}</td>
                       <td className="lims-cell">{r.hs_code ?? '—'}</td>
@@ -81,12 +98,14 @@ export function TaxScreen({ rules, taxTypes, departments, orderables, permission
                     </tr>
                   ))}
                 </tbody>
-                {rules.length === 0 ? <PlaceholderRows colSpan={manage ? 7 : 6} /> : null}
+                {shown.length === 0 ? <PlaceholderRows colSpan={manage ? 7 : 6} /> : null}
               </table>
+            </div>
           </>
         ) : (
           <>
             {manage ? <Button variant="primary" onPress={() => setDialog('type')}>New tax type</Button> : null}
+            <div className="lims-table-scroll">
             <table className="lims-table lims-table-regular">
               <caption className="lims-visually-hidden">Tax types</caption>
               <thead>
@@ -113,6 +132,7 @@ export function TaxScreen({ rules, taxTypes, departments, orderables, permission
               </tbody>
               {taxTypes.length === 0 ? <PlaceholderRows colSpan={manage ? 7 : 6} /> : null}
             </table>
+            </div>
           </>
         )}
       </Tabs>

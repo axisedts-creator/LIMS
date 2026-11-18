@@ -8,6 +8,7 @@ import { Button } from '@lims/ui/components/Button';
 import { CodeField } from '@lims/ui/components/CodeField';
 import { EmptyRow, PlaceholderRows } from '@lims/ui/components/DataTable';
 import { EmptyState } from '@lims/ui/components/EmptyState';
+import { FilterBar, type FilterValue } from '@lims/ui/components/FilterBar';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { RadioGroup } from '@lims/ui/components/RadioGroup';
 import { TextField } from '@lims/ui/components/TextField';
@@ -16,6 +17,7 @@ import { PRICE_LIST_CODE_RE, type PriceList, type PriceOwnerKind } from '../serv
 import { StatusBadge } from './master-ui';
 import { fmtDateTime } from './shared';
 import { ActionDialog, canManagePrices } from './pricing-ui';
+import { t } from '@/core/i18n/messages';
 
 export const OWNER_LABEL: Record<PriceOwnerKind, string> = { default: 'Default', credit_party: 'Hospital-company', referrer: 'Doctor', centre: 'Centre' };
 const KIND_OPTIONS = (Object.keys(OWNER_LABEL) as PriceOwnerKind[]).map((value) => ({ value, label: OWNER_LABEL[value] }));
@@ -24,12 +26,27 @@ export function PriceListsList({ priceLists, permissions }: { priceLists: readon
   const manage = canManagePrices(permissions);
   const [creating, setCreating] = useState(false);
   const open = manage ? () => setCreating(true) : undefined;
+  // T0D-UILIST-3, LD-353 template 1: one FilterBar row, client side over the loaded lists [CONV].
+  const [f, setF] = useState<FilterValue>({});
+  const q = typeof f.q === 'string' ? f.q.trim().toLowerCase() : '';
+  const shown = priceLists.filter((p) => (!q || p.code.toLowerCase().includes(q) || p.name.toLowerCase().includes(q)) && (!f.owner_kind || p.owner_kind === f.owner_kind) && (!f.status || p.is_active === (f.status === 'active')));
   return (
     <section aria-label="Price lists">
-      <PageHeader title="Price lists" helpKey="catalog.price_lists" breadcrumbs={[{ label: 'Pricing' }, { label: 'Price lists' }]} actions={open ? <Button variant="primary" onPress={open}>New price list</Button> : null} />
+      <PageHeader title={t('catalog.nav.price_lists')} helpKey="catalog.price_lists" actions={open ? <Button variant="primary" onPress={open}>New price list</Button> : null} />
       {/* T0D-EMPTYTBL-1 (LD-310): headers always drawn; the empty message (with New price list repeated) is a body row. */}
+      <FilterBar
+        filters={[
+          { id: 'q', kind: 'text', label: 'Search', maxLength: 100 },
+          { id: 'owner_kind', kind: 'select', label: 'Applies to', options: KIND_OPTIONS },
+          { id: 'status', kind: 'select', label: 'Status', options: [{ value: 'active', label: 'Active' }, { value: 'inactive', label: 'Inactive' }] },
+        ]}
+        value={f}
+        onChange={setF}
+        onReset={() => setF({})}
+      />
       <>
           {priceLists.length === 1 && priceLists[0]!.owner_kind === 'default' ? <p>Only the default price list exists.</p> : null}
+          <div className="lims-table-scroll">
           <table className="lims-table lims-table-regular">
             <caption className="lims-visually-hidden">Price lists</caption>
             <thead>
@@ -39,12 +56,14 @@ export function PriceListsList({ priceLists, permissions }: { priceLists: readon
             </thead>
             <tbody>
               {priceLists.length === 0 ? (
-                <EmptyRow colSpan={8}><EmptyState title="No price list yet — create the default list first." {...(open ? { action: { label: 'New price list', onPress: open } } : {})} /></EmptyRow>
+                <EmptyRow colSpan={8}><EmptyState title="No rate master yet — create the default price list first." {...(open ? { action: { label: 'New price list', onPress: open } } : {})} /></EmptyRow>
+              ) : shown.length === 0 ? (
+                <EmptyRow colSpan={8}><EmptyState title="No price lists match the filters." /></EmptyRow>
               ) : null}
-              {priceLists.map((p) => (
+              {shown.map((p) => (
                 <tr key={p.id} className="lims-row">
                   <td className="lims-cell"><a className="lims-link" href={`/catalog/price-lists/${p.id}`}>{p.code}</a></td>
-                  <td className="lims-cell">{p.name}</td>
+                  <td className="lims-cell" title={p.name}>{p.name}</td>
                   <td className="lims-cell">{OWNER_LABEL[p.owner_kind]}</td>
                   <td className="lims-cell">{p.owner_kind === 'default' ? '—' : p.assignments.length}</td>
                   <td className="lims-cell">{p.current_version ? `v${p.current_version.version_no} · ${fmtDateTime(p.current_version.effective_from)}` : '—'}</td>
@@ -54,8 +73,9 @@ export function PriceListsList({ priceLists, permissions }: { priceLists: readon
                 </tr>
               ))}
             </tbody>
-            {priceLists.length === 0 ? <PlaceholderRows colSpan={8} /> : null}
+            {shown.length === 0 ? <PlaceholderRows colSpan={8} /> : null}
           </table>
+          </div>
       </>
       {creating ? <NewPriceListDialog onClose={() => setCreating(false)} /> : null}
     </section>

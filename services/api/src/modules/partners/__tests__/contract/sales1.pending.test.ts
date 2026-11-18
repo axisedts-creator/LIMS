@@ -31,7 +31,10 @@ describe('T0C-SALES-1: partners manifest covers the sales operations (handler or
   });
   it('each new id is handled or pending, and none of the 68 original operations was made pending to hide a missing handler', () => {
     for (const id of NEW_OPS) expect(handlerIds.includes(id) || pending.includes(id), `${id} neither handled nor pending`).toBe(true);
-    expect(pending.filter((id) => !NEW_OPS.includes(id)), 'only the sales operations may be pending in partners').toEqual([]);
+    // other pending ids must be partners.ticket operations of the contract (T0C-MSGDESK-1, until T0B-MSGDESK-1), read from the spec
+    const ticketIds = Object.values<any>(spec.paths).flatMap((p) => Object.values<any>(p))
+      .filter((m) => m?.operationId && ['partners.ticket.read', 'partners.ticket.manage'].includes(m['x-permission'])).map((m) => m.operationId as string);
+    expect(pending.filter((id) => !NEW_OPS.includes(id) && !ticketIds.includes(id)), 'only sales or ticket operations may be pending in partners').toEqual([]);
   });
   it('the partners permission list holds the two sales codes (services/api/src/modules/partners/permissions.ts)', async () => {
     const { PARTNERS_PERMISSIONS } = await import('../../permissions.js');

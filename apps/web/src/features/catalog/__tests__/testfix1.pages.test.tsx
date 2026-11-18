@@ -166,7 +166,7 @@ describe('empty Complete Test List (done_when 4)', () => {
   it('draws the column headers, "No tests yet" inside the table, four placeholder rows', async () => {
     const root = shown(await open('tests'));
     const t = tableOf(root);
-    expectEmptyTable(t, /no tests yet/i, ['Short name', 'Category', 'Price']);
+    expectEmptyTable(t, /no test details yet/i, ['Short name', 'Category', 'Price']); // LD-340: menu label "Test Details"
     const heads = lc(headersOf(t));
     for (const h of [/^code$/, /^name$/, /department/, /workflow/, /status/]) expect(heads.some((x) => h.test(x)), `header ${h}: ${heads.join(' | ')}`).toBe(true);
     expect(heads).toHaveLength(8);
@@ -199,14 +199,14 @@ describe('empty Complete Test List (done_when 4)', () => {
   it('a read-only user sees the headers and the message but no enabled New test / Import from Excel', async () => {
     const root = shown(await open('tests', '', READ));
     const t = tableOf(root);
-    expectEmptyTable(t, /no tests yet/i);
+    expectEmptyTable(t, /no test details yet/i);
     for (const b of within(root).queryAllByRole('button', { name: /^new test$|import from excel/i })) expect(b.hasAttribute('disabled') || b.getAttribute('aria-disabled') === 'true', `${b.textContent} must be disabled`).toBe(true);
     expect(within(root).queryAllByRole('link', { name: /import from excel/i })).toHaveLength(0);
   });
   it('a failing secondary list does not hide the empty table (headers, message and actions stay)', async () => {
     API.fail.set(P.departments, 500);
     const root = shown(await open('tests'));
-    expectEmptyTable(tableOf(root), /no tests yet/i);
+    expectEmptyTable(tableOf(root), /no test details yet/i);
     expect(within(tableOf(root)).getAllByRole('button', { name: /^new test$/i }).length).toBeGreaterThanOrEqual(1);
     expect(warnings(root)).toHaveLength(1);
   });

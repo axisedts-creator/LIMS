@@ -108,7 +108,7 @@ export interface EventPayloads {
   };
   "catalog.changed.v1": {
     catalog_revision: number;
-    entity_type: "department" | "specimen_type" | "container" | "test" | "analyte" | "panel" | "reference_range" | "critical_limit" | "comment_code" | "doctor" | "credit_party" | "price_list" | "surcharge_rule" | "tat_target" | "instrument_code_map" | "global_reference" | "method" | "unit" | "value_set" | "tax_rule" | "catalog_import";
+    entity_type: "department" | "specimen_type" | "container" | "test" | "analyte" | "panel" | "reference_range" | "critical_limit" | "comment_code" | "doctor" | "credit_party" | "price_list" | "surcharge_rule" | "tat_target" | "instrument_code_map" | "global_reference" | "method" | "unit" | "value_set" | "tax_rule" | "catalog_import" | "test_category";
     entity_id: string;
     change_kind: "created" | "updated" | "deactivated" | "versioned";
     effective_from: string;

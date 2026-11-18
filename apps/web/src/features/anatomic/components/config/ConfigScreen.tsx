@@ -28,7 +28,7 @@ export function ConfigScreen({ data }: { data: TabData }) {
   const router = useRouter();
   return (
     <>
-      <PageHeader title="Pathology setup" helpKey="anatomic.config" breadcrumbs={[{ label: 'Pathology cases', href: '/anatomic' }, { label: 'Pathology setup' }]} />
+      <PageHeader title="Pathology setup" helpKey="anatomic.config" />
       <Tabs items={TABS} selectedId={data.tab} onChange={(id) => router.push(`/anatomic/config?tab=${id}`)} aria-label="Pathology setup sections">
         {data.tab === 'settings' ? <SettingsTab settings={data.settings} stains={data.stains} /> : null}
         {data.tab === 'stains' ? <StainsTab stains={data.stains} /> : null}

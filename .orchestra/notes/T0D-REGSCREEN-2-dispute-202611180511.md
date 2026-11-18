@@ -1,0 +1,6 @@
+T0D-REGSCREEN-2 dispute round 2 (writer). After the ruling fixes: regscreen2 86/87, regscreen1 75/75, fd-t13 70/70, fd-t14 98/98, tsc clean for frontdesk source.
+1 red, test defect: regscreen2.drafts.test.tsx:223 (`with favourites it lists them by name ... adds it to the cart and the quote`).
+- Lines 220-222 now pass (names resolve via GET /v1/catalog/tests and /panels per ruling 4; CBC lands in the cart).
+- Line 223 waits for POST /v1/frontdesk/registrations/quote with items [CBC], but the test never picks a patient. quoteRegistration takes RegistrationDraft (contracts/openapi/frontdesk.yaml:719), whose `required` lists `patient` (frontdesk.yaml:5669-5670). A quote without a patient is a contract violation (422 common.validation_failed), so the screen correctly sends none (forms/draft.ts:28, unchanged since FD-T13; fd-t13.states.test.tsx:49 expects no quote on a blank form).
+- Fix (test only, assertion kept): pick the patient before adding the favourite, as patientAndCbc does, e.g. `await u.keyboard('{F2}9841000001'); await u.click(await screen.findByRole('option', { name: /Synthetic Patient One/ }, { timeout: T }));` right after `await form();`.
+Implementation note of ruling 4 done: listTestNamesAction now resolves panels too (read.server.ts listCatalogOptions('panels'), actions.ts).

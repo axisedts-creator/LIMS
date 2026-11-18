@@ -9,6 +9,7 @@ import { DataTable } from '@lims/ui/components/DataTable';
 import { DatePicker, type IsoDate } from '@lims/ui/components/DatePicker';
 import { DateTimePicker, type DateTimePickerProps } from '@lims/ui/components/DateTimePicker';
 import { Drawer } from '@lims/ui/components/Drawer';
+import { FilterBar, type FilterValue } from '@lims/ui/components/FilterBar';
 import { IntegerField } from '@lims/ui/components/IntegerField';
 import { RadioGroup } from '@lims/ui/components/RadioGroup';
 import { Select } from '@lims/ui/components/Select';
@@ -184,9 +185,24 @@ export function SlotsAdmin({ centres, workingCentreId, today, templates: t0, bla
   const [failure, setFailure] = useState<string>();
   const centreName = new Map(centres.map((c) => [c.id, centreLabel(c)]));
   const close = () => setForm(null);
+  // T0D-UILIST-3 (LD-353 template 1): one FilterBar over both tables; display only, filters the loaded rows (a blackout without a type matches every type).
+  const [filters, setFilters] = useState<FilterValue>({});
+  const fCentre = typeof filters['centre_id'] === 'string' ? filters['centre_id'] : undefined;
+  const fKind = typeof filters['booking_kind'] === 'string' ? filters['booking_kind'] : undefined;
+  const shownTemplates = templates.filter((t) => (!fCentre || t.centre_id === fCentre) && (!fKind || t.booking_kind === fKind));
+  const shownBlackouts = blackouts.filter((b) => (!fCentre || b.centre_id === fCentre) && (!fKind || !b.booking_kind || b.booking_kind === fKind));
 
   return (
     <div className="lims-stack">
+      <FilterBar
+        filters={[
+          { id: 'centre_id', label: 'Centre', kind: 'select', options: centres.map((c) => ({ value: c.id, label: centreLabel(c) })) },
+          { id: 'booking_kind', label: 'Type', kind: 'select', options: KIND_OPTIONS },
+        ]}
+        value={filters}
+        onChange={setFilters}
+        onReset={() => setFilters({})}
+      />
       {notice ? <Banner tone={notice.tone} title={notice.text} /> : null}
       {failure ? <p role="alert" className="lims-error">{failure}</p> : null}
 
@@ -194,7 +210,8 @@ export function SlotsAdmin({ centres, workingCentreId, today, templates: t0, bla
       <div className="lims-inline"><Button variant="primary" onPress={() => setForm({ kind: 'template' })}>New template</Button></div>
       <DataTable
         caption="Slot templates"
-        rows={templates}
+        cellTitle
+        rows={shownTemplates}
         getRowId={(t) => t.id}
         emptyState={{ title: 'No slot templates yet.' }}
         columns={[
@@ -225,7 +242,8 @@ export function SlotsAdmin({ centres, workingCentreId, today, templates: t0, bla
       <div className="lims-inline"><Button onPress={() => setForm({ kind: 'blackout' })}>Add blackout</Button></div>
       <DataTable
         caption="Slot blackouts"
-        rows={blackouts}
+        cellTitle
+        rows={shownBlackouts}
         getRowId={(b) => b.id}
         emptyState={{ title: 'No blackouts.' }}
         columns={[

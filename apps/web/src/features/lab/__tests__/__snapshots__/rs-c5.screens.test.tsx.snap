@@ -4,7 +4,7 @@ exports[`RS-C5 key screens (DOM snapshots) > collect / dispatch: tabs with count
 "<section aria-label="Collect and dispatch">
 <div class="lims-page-header">
 <div class="lims-page-header-row">
-<h1 class="lims-page-title">Collect &amp; dispatch</h1>
+<h1 class="lims-page-title">Accession / Dispatch</h1>
 <div class="lims-page-actions">
 <span data-help-key="lab.collect">
 <button class="lims-btn lims-btn-ghost lims-btn-md" data-rac="" type="button" tabindex="0" data-ID="true" id="ID">
@@ -56,7 +56,7 @@ exports[`RS-C5 key screens (DOM snapshots) > receive: scan box, location, sessio
 "<section aria-label="Receive specimens">
 <div class="lims-page-header">
 <div class="lims-page-header-row">
-<h1 class="lims-page-title">Receive specimens</h1>
+<h1 class="lims-page-title">Receive</h1>
 <div class="lims-page-actions">
 <span data-help-key="lab.receive">
 <button class="lims-btn lims-btn-ghost lims-btn-md" data-rac="" type="button" tabindex="0" data-ID="true" id="ID">

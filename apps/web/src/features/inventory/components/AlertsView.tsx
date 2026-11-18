@@ -17,7 +17,12 @@ import { Chip, isoDate, ProblemBanner, useUrlFilters, type Failure } from './sha
 
 export interface AlertRow { alert: Alert; store: string; item: string; lot: string }
 
-export function AlertsView({ rows, stores, canAcknowledge }: { rows: readonly AlertRow[]; stores: readonly { value: string; label: string }[]; canAcknowledge: boolean }) {
+/** T0D-UILIST-3 (LD-353 rule 6): the list read failed. `pending` = 501 operation_pending (calm NotAvailable line); otherwise an ErrorState with Retry. */
+export type AlertsLoadFailure = { pending: true } | { pending: false; requestId?: string | undefined };
+
+const NOT_AVAILABLE = { title: 'Not available yet', body: 'This part of the system is being built. It appears here once it is switched on.' };
+
+export function AlertsView({ rows, stores, canAcknowledge, loadFailure }: { rows: readonly AlertRow[]; stores: readonly { value: string; label: string }[]; canAcknowledge: boolean; loadFailure?: AlertsLoadFailure }) {
   const router = useRouter();
   const toast = useToast();
   const [pending, setPending] = useState<string>();
@@ -84,7 +89,17 @@ export function AlertsView({ rows, stores, canAcknowledge }: { rows: readonly Al
           onReset={filters.onReset}
         />
         <ProblemBanner problem={problem} />
-        <DataTable caption="Alerts" columns={columns} rows={rows} getRowId={(r) => r.alert.id} emptyState={{ title: 'No alerts.' }} />
+        <DataTable
+          caption="Alerts"
+          columns={columns}
+          rows={rows}
+          getRowId={(r) => r.alert.id}
+          cellTitle
+          emptyState={loadFailure?.pending ? NOT_AVAILABLE : { title: 'No alerts.' }}
+          {...(loadFailure && !loadFailure.pending
+            ? { error: { title: 'Alerts could not be loaded.', ...(loadFailure.requestId ? { requestId: loadFailure.requestId } : {}), onRetry: () => router.refresh() } }
+            : {})}
+        />
       </Stack>
     </section>
   );

@@ -2,7 +2,7 @@
 -- Copied from db/migrations/20261105000600_audit__create_audit_tables.sql, the source of truth; CI diffs pg_policies against this
 -- file. Append-only: no UPDATE/DELETE policy. audit.g_cs_access_actions is class G (no RLS, no policy).
 
--- from 20261105000600_audit__create_audit_tables.sql
+-- from 20261105000600_audit__create_audit_tables.sql (audit_log__insert__owner_only replaced by 20261118000000, LD-365)
 CREATE POLICY audit_log__select__tenant ON audit.audit_log FOR SELECT TO lims_app
   USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system())            -- guard added (08 A23.3)
          AND (centre_id IS NULL OR (SELECT app.has_all_centres())                                     -- CR-C2-010 centre clause,
@@ -15,7 +15,12 @@ CREATE POLICY audit_log__insert__owner_only ON audit.audit_log FOR INSERT TO lim
            OR ((SELECT app.current_actor_id()) IS NULL                                    -- 08 A28.5: a row changed inside a
                AND actor_id IS NULL AND actor_type = 'system'                             -- maintenance DEFINER (no claims),
                AND nullif(current_setting('app.maintenance', true), '') IS NOT NULL       -- audited under the row's tenant_id
-               AND detail ->> 'maintenance' = current_setting('app.maintenance', true)));
+               AND detail ->> 'maintenance' = current_setting('app.maintenance', true))
+           OR ((SELECT app.current_tenant_id()) IS NULL                                   -- LD-365: platform write to one of four
+               AND (SELECT app.is_platform_actor())                                       -- identity tables, audited under the
+               AND actor_id = (SELECT app.current_actor_id())                             -- row's own tenant_id
+               AND schema_name = 'identity'
+               AND table_name IN ('support_sessions', 'ird_annex_records', 'feature_flags', 'tenant_settings')));
 
 CREATE POLICY access_log__select__tenant ON audit.access_log FOR SELECT TO lims_app
   USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system())

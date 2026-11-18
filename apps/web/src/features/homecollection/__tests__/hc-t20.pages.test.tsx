@@ -53,7 +53,7 @@ const api = setupServer(
   http.get(`${API}/reasons`, async ({ request }) => { await rec(request); return reasons(); }),
   http.get(`${ORIGIN}/v1/identity/centres`, async ({ request }) => { await rec(request); return centres(); }),
 );
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 beforeEach(() => { vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(new Date('2026-11-14T04:00:00Z')); });
 afterEach(() => { vi.useRealTimers(); cleanup(); api.resetHandlers(); calls.length = 0; captured.props = undefined; perms.current = []; reset(); });
 afterAll(() => api.close());

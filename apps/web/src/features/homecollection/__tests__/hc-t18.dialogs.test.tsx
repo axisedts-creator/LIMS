@@ -52,7 +52,7 @@ const api = setupServer(
   http.post(`${API}/visits/:id/cancel`, async ({ request }) => { await rec(request); return cancel(); }),
   http.get(`${API}/phlebotomists`, async ({ request }) => { await rec(request); return phlebos(); }),
 );
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 beforeEach(() => { vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(new Date('2026-11-13T04:00:00Z')); }); // 13/11/2026 09:45 AM Kathmandu
 afterEach(() => { vi.useRealTimers(); cleanup(); api.resetHandlers(); calls.length = 0; refresh.mockReset(); onClose.mockReset(); reset(); });
 afterAll(() => api.close());

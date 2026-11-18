@@ -15,3 +15,7 @@
 - Cause: not an impl defect. Only failure in verify: real-modules-boot.test.ts timed out at 60000ms in the full run (114s, 61 files). Other 60 files, 2244 tests incl. all content tests, passed.
 - Rerun alone: 2/2 passed in 57s, so boot takes about 55s here, near the 60s cap. PC load, per LD-367/LD-368.
 - Fix: none in code, tests untouched. Re-run verify with the PC idle; if it keeps timing out the lead can raise that test's timeout or run it alone.
+## round 6
+- Cause: not an impl defect. Same as round 5: only real-modules-boot.test.ts timed out at 60000ms in the full run; 60 other files (2244 tests, all content tests) passed.
+- Rerun alone again: 2/2 passed (60.6s total, boot about 55s). Slow boot on this PC under load (LD-367/LD-368).
+- Fix: none in code, tests untouched. Re-run verify with the PC idle; if it keeps timing out the lead should raise that test's timeout or run it alone.

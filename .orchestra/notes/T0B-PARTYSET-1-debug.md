@@ -10,3 +10,6 @@
 # round 4 (verify log 20:10, boot test)
 - Cause: no code defect. real-modules-boot.test.ts times out at its 60s limit (standalone rerun 20:14 also 60.9s; import of all modules is slow under host load, other lanes running). The retry error "module quality: index.ts exports no manifest" is a side effect of the timed-out first import (quality/index.ts does export manifest). The earlier full-run 25 failures are the stale-lane set: lane lacks LD-385 and TESTIMPORT ids (main is not in HEAD; 10 commits ahead).
 - Fix: none in source; tests not touched. Needed: merge main into lane/C0-0I (task START), re-run verify on an idle host. Not a test dispute.
+# round 5 (verify log 20:20 full run, 25 fail / 9 files)
+- Cause: stale lane, no code defect. main has 0 matches of commission_bp in catalog.yaml and partyset/doctor.test.ts (LD-385, d3480c343); lane HEAD (29 commits behind main) still has the old contract+tests, so 7 doctor commission_bp tests fail; writer correctly omits the column (referrers.service.ts:23). Other fails = TESTIMPORT catalog-import ids pending in lane (testmgmt/boot.test.ts, import/*), not owned here.
+- Fix: none in source, tests untouched. Needed: task START merge of main into lane/C0-0I (merger agent), then re-run verify on an idle host. Boot test alone passes 2/2 (20:41).

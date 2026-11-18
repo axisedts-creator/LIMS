@@ -59,7 +59,7 @@ const putOk = async ({ request }: { request: Request }) => {
   return HttpResponse.json(current);
 };
 const api = setupServer(http.get(S, getHandler), http.put(S, putOk));
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' })); // any other operation than F24 fails the test
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' })); // any other operation than F24 fails the test
 afterEach(() => { cleanup(); api.resetHandlers(); calls.length = 0; refresh.mockReset(); session.perms = []; current = settings(); });
 afterAll(() => api.close());
 

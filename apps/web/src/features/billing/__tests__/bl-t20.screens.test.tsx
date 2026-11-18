@@ -60,7 +60,7 @@ const api = setupServer(
   http.post(`${ORIGIN}/v1/billing/refund-requests/:id/reject`, async ({ request }) => { await rec(request); return HttpResponse.json({}, { status: 200 }); }),
   http.post(`${ORIGIN}/v1/billing/cbms/documents/:kind/:id/retry`, async ({ request }) => { await rec(request); return HttpResponse.json({ cbms_state: 'pending' }, { status: 202 }); }),
 );
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { cleanup(); api.resetHandlers(); calls.length = 0; push.mockReset(); localStorage.clear(); sessionStorage.clear(); });
 afterAll(() => api.close());
 

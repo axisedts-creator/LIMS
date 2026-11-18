@@ -40,7 +40,7 @@ const api = setupServer(
   http.get(`${ORIGIN}/v1/catalog/*`, () => HttpResponse.json({ data: [] })),
   http.get(`${ORIGIN}/v1/frontdesk/trf-attachments/:id`, () => problem(404, 'common.not_found')),
 );
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { cleanup(); api.resetHandlers(); session.perms = []; });
 afterAll(() => api.close());
 

@@ -82,6 +82,9 @@ INSERT INTO lab.result_observations (id, tenant_id, centre_id, result_id, source
   (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('21'), pg_temp.id('f1'), 'instrument', pg_temp.id('99')),
   (pg_temp.id('f2'), pg_temp.id('01'), pg_temp.id('22'), pg_temp.id('f2'), 'instrument', pg_temp.id('99')),
   (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('23'), pg_temp.id('f3'), 'instrument', pg_temp.id('99')) ON CONFLICT DO NOTHING;
+INSERT INTO lab.result_signoff (id, tenant_id, result_id, result_version, seq, action, signer_user_id, signer_display_name, signer_role_code, signer_is_pathologist, signed_at) VALUES
+  (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('f1'), 1, 1, 'verify', pg_temp.id('f1'), 'probe-1', 'probe-1', false, now()),
+  (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('f3'), 3, 3, 'verify', pg_temp.id('f3'), 'probe-3', 'probe-3', false, now()) ON CONFLICT DO NOTHING;
 INSERT INTO lab.result_versions (id, tenant_id, centre_id, result_id, version_no, origin, is_critical, approved_at, approved_by_membership_id, created_by, updated_by) VALUES
   (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('21'), pg_temp.id('f1'), 1, 'instrument', false, now(), pg_temp.id('f1'), pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('f2'), pg_temp.id('01'), pg_temp.id('22'), pg_temp.id('f2'), 1, 'instrument', false, now(), pg_temp.id('f2'), pg_temp.id('99'), pg_temp.id('99')),
@@ -90,6 +93,9 @@ INSERT INTO lab.specimen_transitions (id, tenant_id, centre_id, specimen_id, tra
   (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('21'), pg_temp.id('f1'), 'S12', 'probe-1', 1, now(), 'user', pg_temp.id('32'), pg_temp.id('99')),
   (pg_temp.id('f2'), pg_temp.id('01'), pg_temp.id('22'), pg_temp.id('f2'), 'S3', 'probe-2', 2, now(), 'user', pg_temp.id('32'), pg_temp.id('99')),
   (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('23'), pg_temp.id('f3'), 'S14', 'probe-3', 3, now(), 'user', pg_temp.id('33'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
+INSERT INTO lab.verification_policy (id, tenant_id, scope, required_verifiers, updated_by) VALUES
+  (pg_temp.id('f1'), pg_temp.id('01'), 'lab', 1, pg_temp.id('99')),
+  (pg_temp.id('f3'), pg_temp.id('02'), 'lab', 3, pg_temp.id('99')) ON CONFLICT DO NOTHING;
 INSERT INTO lab.verifications (id, tenant_id, centre_id, result_id, kind, mode, result_row_version, occurred_at, created_by) VALUES
   (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('21'), pg_temp.id('f1'), 'verified', 'manual', 1, now(), pg_temp.id('99')),
   (pg_temp.id('f2'), pg_temp.id('01'), pg_temp.id('22'), pg_temp.id('f2'), 'verified', 'manual', 2, now(), pg_temp.id('99')),

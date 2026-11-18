@@ -7,6 +7,7 @@ import { cleanup, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { ToastProvider } from '@lims/ui/components/Toast';
+import { expectErrorState } from '@/__tests__/uilist1.helpers';
 import { ID, ORIGIN, PERM_NONE, PERM_READ, PERM_WORK, api, detail, hit, hits, page, problem, resetHits, router, state, summary } from './t19.harness';
 
 vi.mock('next/navigation', async () => (await import('./t19.harness')).navigationMock);
@@ -96,9 +97,13 @@ describe('worklist page /anatomic', () => {
     expect(document.body.textContent).toMatch(/permission|access/i);
   });
 
-  it.each([500, 503])('%i from the API rejects so error.tsx renders (no partial table)', async (status) => {
-    api.use(http.get(`${ORIGIN}/v1/anatomic/cases`, () => problem('common.internal', status)));
-    await expect(worklist()).rejects.toBeTruthy();
+  // T0D-UILIST-1 done_when (6) + LD-353 rule 6 (arbiter ruling): the landing resolves and draws ErrorState inside the page; it no longer rejects to error.tsx.
+  it.each([500, 503])('%i from the API resolves: h1 kept, ErrorState with Reference and Retry, no partial table rows', async (status) => {
+    api.use(http.get(`${ORIGIN}/v1/anatomic/cases`, () => problem('common.internal', status, { request_id: ID(1) })));
+    const { container } = await worklist();
+    expectErrorState(container, '/anatomic');
+    expect(screen.queryAllByRole('link', { name: /^SP26-/ })).toHaveLength(0);
+    expect(container.querySelectorAll('tbody a').length, 'no partial case rows').toBe(0);
   });
 
   it('401 (no session token) never calls the API with an empty bearer', async () => {

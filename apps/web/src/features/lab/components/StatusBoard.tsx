@@ -123,7 +123,8 @@ function Board({ centres, initialRows, initialNextCursor, initialRange }: Status
           </button>
         ))}
       </StatTileRow>
-      <div className="lims-filter-bar" role="group" aria-label="Filters">
+      {/* T0D-UILIST-1 (LD-353 rule 2): the one filter row is a search landmark like the kit FilterBar */}
+      <div className="lims-filter-bar" role="search" aria-label="Filters">
         <label>From date <input type="date" className="lims-input" value={fromDay} onChange={(e) => changeDays(e.target.value, toDay)} aria-describedby={rangeErr ? 'board-range-err' : undefined} /></label>
         <label>To date <input type="date" className="lims-input" value={toDay} onChange={(e) => changeDays(fromDay, e.target.value)} aria-describedby={rangeErr ? 'board-range-err' : undefined} /></label>
         <label>Centre{' '}
@@ -135,14 +136,7 @@ function Board({ centres, initialRows, initialNextCursor, initialRange }: Status
       </div>
       {rangeErr ? <p id="board-range-err" role="alert" className="lims-error">{rangeErr}</p> : null}
       {error ? <p role="alert" className="lims-error">{error}</p> : null}
-      <ChartCard title="Samples by status" isEmpty={rows.length === 0}>
-        {/* [CONV] aria-hidden: the five tiles above carry the same counts to assistive tech, so the chart's hidden data table would only repeat them
-            (and make the order table no longer the page's one table) */}
-        <div aria-hidden="true">
-        <BarChart title="Samples by status" valueFormat="integer" categories={BOARD_STATUSES.map((s) => LABEL[s])} series={[{ id: 'n', label: 'Orders', values: BOARD_STATUSES.map(count) }]} />
-        </div>
-      </ChartCard>
-      {/* T0D-EMPTYTBL-1 (LD-310): headers always drawn; the empty message is a body row. LD-353 rule 5: full width, scrolls in its own box. */}
+      {/* T0D-EMPTYTBL-1 (LD-310): headers always drawn; the empty message is a body row. T0D-UILIST-1 / LD-353 rule 5: full width, scrolls in its own box. */}
       <div className="lims-data-table"><div className="lims-table-scroll">
       <table className="lims-table" aria-label="Order status board">
           <thead>
@@ -170,6 +164,14 @@ function Board({ centres, initialRows, initialNextCursor, initialRange }: Status
         </table>
       </div></div>
       {next ? <Button size="sm" onPress={() => { void refresh({}, next); }}>Load more</Button> : null}
+      {/* merge of T0D-UILIST-1: the chart sits below the order table so the order table stays the page's first table */}
+      <ChartCard title="Samples by status" isEmpty={rows.length === 0}>
+        {/* [CONV] aria-hidden: the five tiles above carry the same counts to assistive tech, so the chart's hidden data table would only repeat them
+            (and make the order table no longer the page's one table) */}
+        <div aria-hidden="true">
+        <BarChart title="Samples by status" valueFormat="integer" categories={BOARD_STATUSES.map((s) => LABEL[s])} series={[{ id: 'n', label: 'Orders', values: BOARD_STATUSES.map(count) }]} />
+        </div>
+      </ChartCard>
     </div>
   );
 }

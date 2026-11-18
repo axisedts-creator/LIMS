@@ -18,7 +18,7 @@ import { t } from '@/core/i18n/messages';
 const REASON = 'A draft or a version in review already exists';
 const date = (v?: string) => (v ? <DateText value={v as DateTextProps['value']} /> : '—');
 
-export function LibraryList({ rows }: { rows: Summary[] }) {
+export function LibraryList({ rows, loadError }: { rows: Summary[]; loadError?: { requestId?: string } }) {
   const router = useRouter();
   const [error, setError] = useState<string>();
   const [busy, setBusy] = useState(false);
@@ -59,7 +59,7 @@ export function LibraryList({ rows }: { rows: Summary[] }) {
   const newDraft = (
     <span className="lims-inline">
       <Menu
-        trigger={<Button variant="primary" isDisabled={blocked || busy}>New draft</Button>}
+        trigger={<Button variant="primary" isDisabled={blocked || busy || !!loadError}>New draft</Button>}
         items={[{ id: 'clone_active', label: 'From active version' }, { id: 'starter', label: 'From starter draft' }, { id: 'clone_version', label: 'From version…' }]}
         onAction={(id) => { setError(undefined); if (id === 'clone_version') setPickOpen(true); else void create({ source: id }); }}
       />
@@ -75,6 +75,7 @@ export function LibraryList({ rows }: { rows: Summary[] }) {
       <DataTable<Summary>
         columns={columns} rows={rows} getRowId={(r) => r.id} caption="Library versions" density="compact"
         emptyState={{ title: 'No library yet. Start from the starter draft.', action: { label: 'Start from the starter draft', onPress: () => void create({ source: 'starter' }) } }}
+        {...(loadError ? { error: { title: 'The library versions could not be loaded.', ...loadError, onRetry: () => router.refresh() } } : {})}
       />
       <Dialog
         title="New draft from a version" isOpen={pickOpen} onClose={() => setPickOpen(false)}

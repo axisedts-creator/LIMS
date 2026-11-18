@@ -8,10 +8,20 @@ import { ReviewPanel } from '../components/ReviewPanel';
 import { WordingTerms } from '../components/WordingTerms';
 import { UUID_RE, diffLibrary } from '../library';
 import * as api from './library.server';
+import { serverFailure } from './summaries-page';
 
 export async function libraryListPage() {
   await api.requireManage();
-  return <LibraryList rows={(await api.listVersions()).slice(0, 50)} />;
+  try {
+    // awaited here so a failed read lands in the catch below, not in error.tsx
+    const rows = (await api.listVersions()).slice(0, 50);
+    return <LibraryList rows={rows} />;
+  } catch (e) {
+    // T0D-UILIST-1 / LD-353 rule 6: a 5xx keeps the title and the header row with an ErrorState (reference, Retry), never error.tsx
+    const failed = serverFailure(e);
+    if (!failed) throw e;
+    return <LibraryList rows={[]} loadError={failed} />;
+  }
 }
 
 export async function libraryEditorPage(id: string) {

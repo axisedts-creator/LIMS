@@ -2,6 +2,7 @@
 // never the red error page. T0D-UIKIT-1: the component itself now lives in the kit; this file keeps the import path and the helpers.
 import type { ReactNode } from 'react';
 import { NotAvailable } from '@lims/ui/components/NotAvailable';
+import { LoadError } from './LoadError';
 
 export { NotAvailable };
 
@@ -18,5 +19,19 @@ export async function pendingOr(title: string, columns: readonly string[] | unde
   } catch (e) {
     if (isPending(e)) return <NotAvailable title={title} {...(columns ? { columns } : {})} />;
     throw e;
+  }
+}
+
+/**
+ * T0D-UILIST-1 (LD-353 rule 6): pendingOr, and any other API failure of 500 or above keeps the page title and shows ErrorState (reference + Retry) in the page.
+ * 4xx (403 no access, 404, 400) still throw so each page's own gate or notFound() handles them. Duck typed like isPending.
+ */
+export async function loadOr(title: string, columns: readonly string[] | undefined, render: () => Promise<ReactNode> | ReactNode): Promise<ReactNode> {
+  try {
+    return await pendingOr(title, columns, render);
+  } catch (e) {
+    const x = e as { status?: number; problem?: { request_id?: string } } | null;
+    if (typeof x?.status !== 'number' || x.status < 500) throw e;
+    return <LoadError title={title} {...(x.problem?.request_id ? { requestId: x.problem.request_id } : {})} />;
   }
 }

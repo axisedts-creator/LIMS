@@ -17,6 +17,9 @@ const LD313_ACCOUNTING_CODES = ["billing.account.manage", "billing.account.read"
   "billing.cash_transfer.manage", "billing.expense.manage"].sort();
 // T0C-SALES-1 (LD-321): the two sales hierarchy codes (the other LD-321 codes arrive with their own contract tasks and extend this list then).
 const LD321_SALES_CODES = ["partners.sales.manage", "partners.sales.read"];
+// T0C-VERLEVEL-1 (LD-316): the two verification policy codes (permissions) and the three verification level error codes (errors.yaml) beyond IC §11 / IC §8.
+const LD316_VERLEVEL_CODES = ["lab.verification_policy.manage", "lab.verification_policy.read"];
+const LD316_VERLEVEL_ERRORS = ["lab.enterer_cannot_verify", "lab.pathologist_required", "lab.verifier_not_distinct"];
 // T0C-SYNC-1 (LD-322): offline sync part 1. sync.use has TWO segments (named verbatim by the brief); g_permissions__code__ck and gen-permissions accept 2 or 3 segments for it.
 const LD322_SYNC_CODES = ["sync.conflict.resolve", "sync.device.manage", "sync.use"];
 // T0C-SYNC-1 (LD-322): the closed sync error list, the only error codes allowed beyond IC section 8 (owner C0).
@@ -103,10 +106,11 @@ describe("AC-0C-1.3 errors.yaml == IC §8", () => {
     const ic: Entry[] = icDoc(8);
     const file: Entry[] = contractDoc("errors.yaml");
     expect(Array.isArray(file), "errors.yaml root must be a list").toBe(true);
-    // T0C-SYNC-1 (LD-322): exactly the five sync.* codes may follow the IC codes; every IC entry stays unchanged and in order.
+    // T0C-SYNC-1 (LD-322) + T0C-VERLEVEL-1 (LD-316): EXACTLY the five sync.* codes and the 3 verification level error codes may follow the IC codes
+    // (spec/ is read-only, the lead records the widening in the CR register); every IC entry stays unchanged and in order. A further code needs a new lead decision and an edit of this list.
     const icCodes = ic.map((e) => String(e.code));
     const extra = file.filter((e) => !icCodes.includes(String(e.code)));
-    expect(extra.map((e) => String(e.code)).sort()).toEqual([...LD322_SYNC_ERRORS, ...MSGDESK_ERRORS, ...TESTIMPORT_ERRORS].sort());
+    expect(extra.map((e) => String(e.code)).sort()).toEqual([...LD322_SYNC_ERRORS, ...LD316_VERLEVEL_ERRORS, ...MSGDESK_ERRORS, ...TESTIMPORT_ERRORS].sort());
     const core = file.filter((e) => icCodes.includes(String(e.code)));
     expect(diffByKey(ic, core, "code")).toEqual([]);
     expect(core.map((e) => e.code)).toEqual(ic.map((e) => e.code)); // order preserved
@@ -202,7 +206,7 @@ describe("AC-0C-1.3 permissions.yaml == IC §11", () => {
     const icCodes = ic.permissions.map((p: Entry) => p.code);
     const extra = file.permissions.filter((p: Entry) => !icCodes.includes(p.code));
     expect(diffByKey(ic.permissions, file.permissions, "code").filter((d) => !d.startsWith("extra "))).toEqual([]);
-    expect(extra.map((p: Entry) => p.code).sort()).toEqual([...LD313_ACCOUNTING_CODES, ...LD321_SALES_CODES, ...LD322_SYNC_CODES, ...MSGDESK_CODES, ...CONTENT_CODES].sort());
+    expect(extra.map((p: Entry) => p.code).sort()).toEqual([...LD313_ACCOUNTING_CODES, ...LD321_SALES_CODES, ...LD322_SYNC_CODES, ...LD316_VERLEVEL_CODES, ...MSGDESK_CODES, ...CONTENT_CODES].sort());
     expect(file.permissions.filter((p: Entry) => icCodes.includes(p.code)).map((p: Entry) => p.code)).toEqual(icCodes);
     expect({ ...file, fixed_actor_permissions: fileFixed, permissions: file.permissions.filter((p: Entry) => icCodes.includes(p.code)) }).toEqual(ic);
   });

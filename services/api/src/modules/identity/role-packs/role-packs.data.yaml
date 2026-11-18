@@ -129,6 +129,8 @@ packs:
           - lab.specimen.receive
           - lab.specimen.reject
           - lab.status_board.read
+          - lab.verification_policy.manage
+          - lab.verification_policy.read
           - lab.worklist.read
           - lab.worksheet.manage
           - micro.breakpoint.manage

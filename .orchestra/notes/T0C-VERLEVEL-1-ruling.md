@@ -1,0 +1,8 @@
+TESTS_WRONG — the `permissions.yaml == IC §11` case asserted exact equality of fixed_actor_permissions with IC §11 and so rejected partners.ticket.read and partners.ticket.manage on the partner fixed actor, which T0C-MSGDESK-1 added under LD-321 (already on main); T0C-VERLEVEL-1 did not cause it.
+Change in the test (tester): compare fixed_actor_permissions after removing exactly the MSGDESK codes (partners.ticket.read, partners.ticket.manage) from the file side; keep the comparison exact (no wildcard), keep the LD-316 VERLEVEL entries unchanged; no implementation change.
+STATUS: this change is ALREADY on lane/C0-0N: merge e46098c83 brought the LD-330 `noMsgdesk` filter (contracts/__tests__/registry-equality.test.ts:30, :194-196, MSGDESK_CODES). Re-run 23:07 NPT: `vitest run contracts/__tests__/registry-equality.test.ts -t "permissions.yaml == IC"` = 5 passed, 0 failed. The tester needs no further edit; the writer re-runs verify.
+Reasons:
+1. LD-348 (inbox brief line 42, binding lead decision) rules exactly this case TESTS_WRONG with this test change.
+2. LD-321 (inbox brief line 36) names partners.ticket.read / partners.ticket.manage as new codes added by the contract tasks; spec/program/03-INTERFACE-CATALOG.md:3040 says chunks add codes by CR, so IC §11 (:3062 fixed_actor_permissions) lagging behind a lead decision is not a VERLEVEL defect.
+3. The test itself (registry-equality.test.ts:15-30) admits listed extras only by lead decision; LD-321/LD-330 is that decision for MSGDESK.
+4. Side note: db/tests/fixtures/probe-rows/{engagement,lab,partners}.sql rewritten by run-suites.sh are not part of this task and must not be committed (LD-348).

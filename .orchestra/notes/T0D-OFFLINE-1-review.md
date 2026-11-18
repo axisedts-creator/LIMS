@@ -1,10 +1,8 @@
-CHANGES
-Verified: offline1 81/81 pass, rs-c2 74/74 pass (run locally). Routes, bodies and result shapes match packages/api-client-ts/src/core.ts (pushSyncBatch, registerSyncDevice with Idempotency-Key, getSyncStatus, ackDeviceWipe, /v1/core/health/live). No logging, no secrets, only owned paths, fake-indexeddb pinned exactly (dev only).
+APPROVE
+Re-review after review fixes (308195777, 72980f2b5). Verified locally: offline1 82/82 pass, rs-c2 74/74 pass.
 
-1. apps/web/src/core/offline/store.ts:127-146 — the 10-wrong-PIN wipe can be bypassed. The wipe runs only AFTER the PBKDF2 derive/unwrap (hundreds of ms) of the attempt that reaches the limit. If the page is closed/reloaded in that window, the persisted counter is >= 10 but the store is not wiped, and every later unlock() just charges 11, 12, ... and still checks the PIN: unlimited guesses (the header comment at store.ts:4-5 promises the opposite; done_when (2) "10 wrong PINs wipe the store").
-   Fix: in unlock(), right after the charging transaction returns `failed`, add
-   `if (failed > maxFailures) { await wipe('wiped'); return { ok: false, reason: 'wiped' }; }`
-   before reading the keyring / deriving the key (keep the existing `failed >= maxFailures` wipe at line 146).
-   Test (offline1.store.test.ts, "PIN failures wipe the store"): set up a store, lock, make 9 wrong unlocks, then write the state record directly through the raw DB with `failed: 10` (simulating a 10th attempt interrupted before its wipe), reopen, and assert `unlock(PIN)` (the RIGHT PIN) returns `{ ok: false, reason: 'wiped' }` and status().state === 'wiped'.
+Previous defect 1 (10-wrong-PIN wipe bypass via reload mid derive) is fixed: store.ts unlock() now wipes when the charged counter exceeds maxFailures, before reading the keyring or deriving any key, so the PIN is never checked again. The new test in offline1.store.test.ts ("a 10th attempt interrupted before its wipe ...") writes failed: 10 through the raw DB, reopens, and asserts the RIGHT PIN returns reason 'wiped', state 'wiped', and no plaintext remains.
 
-Notes, not blocking: the service worker is not registered anywhere yet and no precache manifest is generated, so done_when (1) is only met at code level (writer deferred to T0D-OFFLINE-2: needs a session free shell route); expired stores are refused at unlock but only wiped when purgeExpired() is called, which nothing calls yet — wire both in OFFLINE-2.
+Re-checked: engine (one flight, Web Locks ifAvailable / BroadcastChannel fallback, 50 ops / 1 MB, full jitter capped at 300000 ms, Retry-After, per op settlement in one tx), outbox (UUIDv7 monotonic, append atomic with local change), sw.js (no API or navigation responses cached, SKIP_WAITING only on message). No logging, no secrets, only owned paths, fake-indexeddb pinned exactly as a devDependency.
+
+Carried forward, not blocking (for T0D-OFFLINE-2): the service worker is not registered and no precache manifest is generated yet (needs a session free shell route); purgeExpired() is not called anywhere yet (expired stores are refused at unlock but only wiped when it runs); a conflict result without conflict_id stays in the outbox.

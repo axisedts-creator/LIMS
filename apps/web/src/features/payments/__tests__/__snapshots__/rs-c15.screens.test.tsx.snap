@@ -50,9 +50,9 @@ exports[`RS-C15 key-screen snapshots > Gateway settings 1`] = `
 </div>
 <p>Set · fingerprint ab12cd34</p>
 <div class="lims-field">
-<label class="lims-label" for="_r_j2_">Replace secret key</label>
+<label class="lims-label" for="_r_fh_">Replace secret key</label>
 <div class="lims-input-group">
-<input id="_r_j2_" class="lims-input" autocomplete="new-password" maxlength="256" type="password" value="" name="secret_input">
+<input id="_r_fh_" class="lims-input" autocomplete="new-password" maxlength="256" type="password" value="" name="secret_input">
 </div>
 </div>
 <button class="lims-btn lims-btn-primary lims-btn-md" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID">
@@ -94,9 +94,9 @@ exports[`RS-C15 key-screen snapshots > Gateway settings 1`] = `
 </span>Use Khalti refund API</label>
 <p class="lims-description">Only after the LIMS provider has confirmed the refund API in the sandbox. Otherwise refunds are done in the Khalti dashboard.</p>
 <div class="lims-field">
-<label class="lims-label" for="_r_jg_">Secret key</label>
+<label class="lims-label" for="_r_fv_">Secret key</label>
 <div class="lims-input-group">
-<input id="_r_jg_" class="lims-input" autocomplete="new-password" maxlength="256" type="password" value="" name="secret_input">
+<input id="_r_fv_" class="lims-input" autocomplete="new-password" maxlength="256" type="password" value="" name="secret_input">
 </div>
 </div>
 <button class="lims-btn lims-btn-primary lims-btn-md" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID">
@@ -648,7 +648,7 @@ exports[`RS-C15 key-screen snapshots > Payment review queue 1`] = `
 </div>
 <div class="lims-stat">
 <span class="lims-stat-label">Oldest age</span>
-<span class="lims-stat-value">194:27</span>
+<span class="lims-stat-value">194:56</span>
 </div>
 </div>
 <div>
@@ -670,7 +670,7 @@ exports[`RS-C15 key-screen snapshots > Payment review queue 1`] = `
 </thead>
 <tbody>
 <tr data-console-item="01a1a98a-ac40-7000-8000-000000000101" tabindex="0" aria-selected="false" class="lims-row">
-<td>194:27</td>
+<td>194:56</td>
 <td>
 <time class="lims-date-text" datetime="2026-11-10T04:00:00.000Z">10/11/2026 09:45 AM</time>
 </td>
@@ -688,7 +688,7 @@ exports[`RS-C15 key-screen snapshots > Payment review queue 1`] = `
 <td>Amount differs from the due</td>
 </tr>
 <tr data-console-item="01a1a98a-ac40-7000-8000-000000000102" tabindex="0" aria-selected="false" class="lims-row">
-<td>195:27</td>
+<td>195:56</td>
 <td>
 <time class="lims-date-text" datetime="2026-11-10T03:00:00.000Z">10/11/2026 08:45 AM</time>
 </td>
@@ -706,7 +706,7 @@ exports[`RS-C15 key-screen snapshots > Payment review queue 1`] = `
 <td>Provider declined</td>
 </tr>
 <tr data-console-item="01a1a98a-ac40-7000-8000-000000000103" tabindex="0" aria-selected="false" class="lims-row">
-<td>196:27</td>
+<td>196:56</td>
 <td>
 <time class="lims-date-text" datetime="2026-11-10T02:00:00.000Z">10/11/2026 07:45 AM</time>
 </td>
@@ -776,12 +776,12 @@ exports[`RS-C15 key-screen snapshots > Reconciliation: Open findings tab 1`] = `
 </div>
 <div role="search" class="lims-filter-bar">
 <div class="lims-field">
-<label class="lims-label" id="_r_5n_">Kind</label>
+<label class="lims-label" id="_r_4b_">Kind</label>
 <template>
 </template>
 <span data-focus-scope-start="true" hidden="">
 </span>
-<div class="lims-listbox lims-chip-list" data-rac="" aria-labelledby="_r_5n_" aria-multiselectable="true" role="listbox" aria-orientation="horizontal" id="ID" tabindex="0" data-collection="aria-id" data-layout="stack" data-orientation="horizontal">
+<div class="lims-listbox lims-chip-list" data-rac="" aria-labelledby="_r_4b_" aria-multiselectable="true" role="listbox" aria-orientation="horizontal" id="ID" tabindex="0" data-collection="aria-id" data-layout="stack" data-orientation="horizontal">
 <div class="lims-option lims-chip" data-rac="" role="option" aria-selected="false" tabindex="-1" data-collection="aria-id" data-key="missed_settlement" data-aria-id="true" id="ID" data-selection-mode="multiple">Missed settlement</div>
 <div class="lims-option lims-chip" data-rac="" role="option" aria-selected="false" tabindex="-1" data-collection="aria-id" data-key="late_payment_found" data-aria-id="true" id="ID" data-selection-mode="multiple">Late payment found</div>
 <div class="lims-option lims-chip" data-rac="" role="option" aria-selected="false" tabindex="-1" data-collection="aria-id" data-key="amount_mismatch" data-aria-id="true" id="ID" data-selection-mode="multiple">Amount mismatch</div>
@@ -1041,12 +1041,12 @@ exports[`RS-C15 key-screen snapshots > Reconciliation: Runs tab 1`] = `
 </div>
 <div role="search" class="lims-filter-bar">
 <div class="lims-field">
-<label class="lims-label" id="_r_33_">Kind</label>
+<label class="lims-label" id="_r_1n_">Kind</label>
 <template>
 </template>
 <span data-focus-scope-start="true" hidden="">
 </span>
-<div class="lims-listbox lims-chip-list" data-rac="" aria-labelledby="_r_33_" aria-multiselectable="true" role="listbox" aria-orientation="horizontal" id="ID" tabindex="0" data-collection="aria-id" data-layout="stack" data-orientation="horizontal">
+<div class="lims-listbox lims-chip-list" data-rac="" aria-labelledby="_r_1n_" aria-multiselectable="true" role="listbox" aria-orientation="horizontal" id="ID" tabindex="0" data-collection="aria-id" data-layout="stack" data-orientation="horizontal">
 <div class="lims-option lims-chip" data-rac="" role="option" aria-selected="false" tabindex="-1" data-collection="aria-id" data-key="missed_settlement" data-aria-id="true" id="ID" data-selection-mode="multiple">Missed settlement</div>
 <div class="lims-option lims-chip" data-rac="" role="option" aria-selected="false" tabindex="-1" data-collection="aria-id" data-key="late_payment_found" data-aria-id="true" id="ID" data-selection-mode="multiple">Late payment found</div>
 <div class="lims-option lims-chip" data-rac="" role="option" aria-selected="false" tabindex="-1" data-collection="aria-id" data-key="amount_mismatch" data-aria-id="true" id="ID" data-selection-mode="multiple">Amount mismatch</div>
@@ -1201,12 +1201,12 @@ exports[`RS-C15 key-screen snapshots > Refunds list 1`] = `
 </div>
 <div role="search" class="lims-filter-bar">
 <div class="lims-field">
-<label class="lims-label" id="_r_cs_">Status</label>
+<label class="lims-label" id="_r_bg_">Status</label>
 <template>
 </template>
 <span data-focus-scope-start="true" hidden="">
 </span>
-<div class="lims-listbox lims-chip-list" data-rac="" aria-labelledby="_r_cs_" aria-multiselectable="true" role="listbox" aria-orientation="horizontal" id="ID" tabindex="0" data-collection="aria-id" data-layout="stack" data-orientation="horizontal">
+<div class="lims-listbox lims-chip-list" data-rac="" aria-labelledby="_r_bg_" aria-multiselectable="true" role="listbox" aria-orientation="horizontal" id="ID" tabindex="0" data-collection="aria-id" data-layout="stack" data-orientation="horizontal">
 <div class="lims-option lims-chip" data-rac="" role="option" aria-selected="false" tabindex="-1" data-collection="aria-id" data-key="pending_approval" data-aria-id="true" id="ID" data-selection-mode="multiple">Waiting for approval</div>
 <div class="lims-option lims-chip" data-rac="" role="option" aria-selected="false" tabindex="-1" data-collection="aria-id" data-key="approved" data-aria-id="true" id="ID" data-selection-mode="multiple">Approved</div>
 <div class="lims-option lims-chip" data-rac="" role="option" aria-selected="false" tabindex="-1" data-collection="aria-id" data-key="requested" data-aria-id="true" id="ID" data-selection-mode="multiple">Refund in progress</div>
@@ -1240,13 +1240,13 @@ exports[`RS-C15 key-screen snapshots > Refunds list 1`] = `
 </label>
 </div>
 </div>
-<div role="group" aria-labelledby="_r_dc_-l" class="lims-field lims-date-range">
-<span id="_r_dc_-l" class="lims-label">Created</span>
+<div role="group" aria-labelledby="_r_c0_-l" class="lims-field lims-date-range">
+<span id="_r_c0_-l" class="lims-label">Created</span>
 <div class="lims-inline">
 <div class="lims-field lims-date-field">
-<label class="lims-label" for="_r_dd_">From</label>
+<label class="lims-label" for="_r_c1_">From</label>
 <div class="lims-input-group">
-<input id="_r_dd_" class="lims-input" placeholder="DD/MM/YYYY" autocomplete="off" type="text" value="" name="created_from">
+<input id="_r_c1_" class="lims-input" placeholder="DD/MM/YYYY" autocomplete="off" type="text" value="" name="created_from">
 <button type="button" class="lims-btn lims-btn-ghost lims-icon-btn" aria-label="Open calendar for From" aria-expanded="false">
 <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 <rect x="4" y="5" width="16" height="15">
@@ -1258,9 +1258,9 @@ exports[`RS-C15 key-screen snapshots > Refunds list 1`] = `
 </div>
 </div>
 <div class="lims-field lims-date-field">
-<label class="lims-label" for="_r_de_">To</label>
+<label class="lims-label" for="_r_c2_">To</label>
 <div class="lims-input-group">
-<input id="_r_de_" class="lims-input" placeholder="DD/MM/YYYY" autocomplete="off" type="text" value="" name="created_to">
+<input id="_r_c2_" class="lims-input" placeholder="DD/MM/YYYY" autocomplete="off" type="text" value="" name="created_to">
 <button type="button" class="lims-btn lims-btn-ghost lims-icon-btn" aria-label="Open calendar for To" aria-expanded="false">
 <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 <rect x="4" y="5" width="16" height="15">
@@ -1288,7 +1288,7 @@ exports[`RS-C15 key-screen snapshots > Refunds list 1`] = `
 </div>
 <div class="lims-stat">
 <span class="lims-stat-label">Oldest age</span>
-<span class="lims-stat-value">193:27</span>
+<span class="lims-stat-value">193:56</span>
 </div>
 </div>
 <div>
@@ -1309,7 +1309,7 @@ exports[`RS-C15 key-screen snapshots > Refunds list 1`] = `
 </thead>
 <tbody>
 <tr data-console-item="01a1a98a-ac40-7000-8000-000000000701" tabindex="0" aria-selected="false" class="lims-row">
-<td>193:27</td>
+<td>193:56</td>
 <td>
 <time class="lims-date-text" datetime="2026-11-10T05:00:00.000Z">10/11/2026 10:45 AM</time>
 </td>
@@ -1326,7 +1326,7 @@ exports[`RS-C15 key-screen snapshots > Refunds list 1`] = `
 </td>
 </tr>
 <tr data-console-item="01a1a98a-ac40-7000-8000-000000000702" tabindex="0" aria-selected="false" class="lims-row">
-<td>193:27</td>
+<td>193:56</td>
 <td>
 <time class="lims-date-text" datetime="2026-11-10T05:00:00.000Z">10/11/2026 10:45 AM</time>
 </td>
@@ -1343,7 +1343,7 @@ exports[`RS-C15 key-screen snapshots > Refunds list 1`] = `
 </td>
 </tr>
 <tr data-console-item="01a1a98a-ac40-7000-8000-000000000703" tabindex="0" aria-selected="false" class="lims-row">
-<td>193:27</td>
+<td>193:56</td>
 <td>
 <time class="lims-date-text" datetime="2026-11-10T05:00:00.000Z">10/11/2026 10:45 AM</time>
 </td>
@@ -1360,7 +1360,7 @@ exports[`RS-C15 key-screen snapshots > Refunds list 1`] = `
 </td>
 </tr>
 <tr data-console-item="01a1a98a-ac40-7000-8000-000000000704" tabindex="0" aria-selected="false" class="lims-row">
-<td>193:27</td>
+<td>193:56</td>
 <td>
 <time class="lims-date-text" datetime="2026-11-10T05:00:00.000Z">10/11/2026 10:45 AM</time>
 </td>
@@ -1420,10 +1420,10 @@ exports[`RS-C15 key-screen snapshots > Static QR worksheets 1`] = `
 </div>
 </div>
 <div class="lims-field lims-date-field">
-<label class="lims-label" for="_r_gd_">Business date<span aria-hidden="true"> *</span>
+<label class="lims-label" for="_r_cs_">Business date<span aria-hidden="true"> *</span>
 </label>
 <div class="lims-input-group">
-<input id="_r_gd_" class="lims-input" placeholder="DD/MM/YYYY" autocomplete="off" required="" aria-describedby="_r_gd_-h" type="text" value="17/11/2026" name="business_date">
+<input id="_r_cs_" class="lims-input" placeholder="DD/MM/YYYY" autocomplete="off" required="" aria-describedby="_r_cs_-h" type="text" value="17/11/2026" name="business_date">
 <button type="button" class="lims-btn lims-btn-ghost lims-icon-btn" aria-label="Open calendar for Business date" aria-expanded="false">
 <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 <rect x="4" y="5" width="16" height="15">
@@ -1433,7 +1433,7 @@ exports[`RS-C15 key-screen snapshots > Static QR worksheets 1`] = `
 </svg>
 </button>
 </div>
-<p id="_r_gd_-h" class="lims-description lims-date-hint">2083-08-01 B.S.</p>
+<p id="_r_cs_-h" class="lims-description lims-date-hint">2083-08-01 B.S.</p>
 </div>
 <template>
 </template>
@@ -1492,13 +1492,13 @@ exports[`RS-C15 key-screen snapshots > Static QR worksheets 1`] = `
 <span class="lims-btn-label">Save worksheet</span>
 </button>
 <div role="search" class="lims-filter-bar">
-<div role="group" aria-labelledby="_r_h9_-l" class="lims-field lims-date-range">
-<span id="_r_h9_-l" class="lims-label">Business date</span>
+<div role="group" aria-labelledby="_r_do_-l" class="lims-field lims-date-range">
+<span id="_r_do_-l" class="lims-label">Business date</span>
 <div class="lims-inline">
 <div class="lims-field lims-date-field">
-<label class="lims-label" for="_r_ha_">From</label>
+<label class="lims-label" for="_r_dp_">From</label>
 <div class="lims-input-group">
-<input id="_r_ha_" class="lims-input" placeholder="DD/MM/YYYY" autocomplete="off" type="text" value="" name="business_date_from">
+<input id="_r_dp_" class="lims-input" placeholder="DD/MM/YYYY" autocomplete="off" type="text" value="" name="business_date_from">
 <button type="button" class="lims-btn lims-btn-ghost lims-icon-btn" aria-label="Open calendar for From" aria-expanded="false">
 <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 <rect x="4" y="5" width="16" height="15">
@@ -1510,9 +1510,9 @@ exports[`RS-C15 key-screen snapshots > Static QR worksheets 1`] = `
 </div>
 </div>
 <div class="lims-field lims-date-field">
-<label class="lims-label" for="_r_hb_">To</label>
+<label class="lims-label" for="_r_dq_">To</label>
 <div class="lims-input-group">
-<input id="_r_hb_" class="lims-input" placeholder="DD/MM/YYYY" autocomplete="off" type="text" value="" name="business_date_to">
+<input id="_r_dq_" class="lims-input" placeholder="DD/MM/YYYY" autocomplete="off" type="text" value="" name="business_date_to">
 <button type="button" class="lims-btn lims-btn-ghost lims-icon-btn" aria-label="Open calendar for To" aria-expanded="false">
 <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 <rect x="4" y="5" width="16" height="15">

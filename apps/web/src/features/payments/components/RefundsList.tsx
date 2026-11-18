@@ -146,6 +146,7 @@ export function RefundsList({ refunds, permissions, currentMembershipId, codes, 
   const [selectedId, setSelectedId] = useState<string>();
   const now = useNow();
   const sel = refunds.find((r) => r.id === selectedId);
+  const paymentHref = (r: RefundDto) => `/payments/intents/${r.intent_id}`; // route string byte-equal to the pre-console list (rs-c15.static, LD-140)
   const first = sel ? actsOf(sel)[0] : undefined;
   const age = (r: RefundDto) => now - Date.parse(r.requested_at);
   const pending = refunds.filter((r) => r.status === 'pending_approval');
@@ -184,7 +185,7 @@ export function RefundsList({ refunds, permissions, currentMembershipId, codes, 
         ['Requested by', sel.requested_by?.display_name || '—'],
         ['Approved by', sel.approved_by?.display_name || '—'],
         ['Reason under review', sel.held_reason ? holdName.get(sel.held_reason) ?? humanize(sel.held_reason) : '—'],
-        ['Payment', <a key="p" href={`/payments/intents/${sel.intent_id}`} aria-label={`Payment ${sel.intent_id.slice(0, 8)}`}><IdText value={sel.intent_id} /></a>],
+        ['Payment', <a key="p" href={paymentHref(sel)} aria-label={`Payment ${sel.intent_id.slice(0, 8)}`}><IdText value={sel.intent_id} /></a>],
       ]} />
       <History events={[['Requested', sel.requested_at] as const, ...(sel.approved_at ? [['Approved', sel.approved_at] as const] : [])]} />
     </>

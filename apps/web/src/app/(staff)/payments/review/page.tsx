@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { ApiError } from '@/core/api/server-fetch';
 import { PermissionDenied } from '@/core/errors/PermissionDenied';
 import { t } from '@/core/i18n/messages';
+import { pageTitleKey } from '@/features/payments/nav.manifest';
 import { pendingOr } from '@/core/shell/NotAvailable';
 import { getShellSession } from '@/core/session/server';
 import { ReviewQueue } from '@/features/payments/components/ReviewQueue';
@@ -15,7 +16,7 @@ export default async function PaymentReviewPage({ searchParams }: { searchParams
   const { query, filter } = reviewQuery(await searchParams, Date.now());
   try {
     // T0D-UICONSOLE-1 (LD-353 rule 6): 501 operation_pending keeps the menu title and the console header row; every other failure still throws
-    return await pendingOr(t('payments.nav.review'), ['Age', 'Created', 'Gateway', 'Amount', 'Status', 'Reason'], async () => {
+    return await pendingOr(t(pageTitleKey.review), ['Age', 'Created', 'Gateway', 'Amount', 'Status', 'Reason'], async () => {
       const [list, holdReasons] = await Promise.all([listPaymentIntents(query), listPaymentCodes('hold_reasons')]);
       const next = list?.page?.next_cursor;
       return (

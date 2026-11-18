@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { ApiError } from '@/core/api/server-fetch';
 import { PermissionDenied } from '@/core/errors/PermissionDenied';
 import { t } from '@/core/i18n/messages';
+import { pageTitleKey } from '@/features/payments/nav.manifest';
 import { pendingOr } from '@/core/shell/NotAvailable';
 import { getShellSession } from '@/core/session/server';
 import { RefundsList } from '@/features/payments/components/RefundsList';
@@ -16,7 +17,7 @@ export default async function GatewayRefundsPage({ searchParams }: { searchParam
   const { query, filter } = refundsQuery(await searchParams);
   try {
     // T0D-UICONSOLE-1 (LD-353 rule 6): 501 operation_pending keeps the menu title and the console header row; every other failure still throws
-    return await pendingOr(t('payments.nav.refunds'), ['Age', 'Requested', 'Gateway', 'Amount', 'Status'], async () => {
+    return await pendingOr(t(pageTitleKey.refunds), ['Age', 'Requested', 'Gateway', 'Amount', 'Status'], async () => {
       // Two-person threshold (P23) only when the actor may read settings; a 403 there leaves it unset and the server decides.
       const threshold = permissions.includes('payments.merchant_config.read')
         ? getPaymentSettings().then((s) => s.refund_two_person_threshold.amount_paisa, (e: unknown) => { if (e instanceof ApiError && e.status === 403) return undefined; throw e; })

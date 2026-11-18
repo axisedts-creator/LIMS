@@ -92,7 +92,9 @@ export function ReviewQueue({ intents, centres, holdReasons, filter, nextCursor,
   const age = (r: PaymentIntentSummary) => now - Date.parse(r.created_at);
   const held = intents.filter((r) => r.status === 'held_for_review');
   const sel = intents.find((r) => r.id === selectedId);
-  const intentHref = (id: string) => `/payments/intents/${id}`;
+  // route strings kept byte-equal to the pre-console list (rs-c15.static, LD-140)
+  const intentHref = (r: PaymentIntentSummary) => `/payments/intents/${r.id}`;
+  const orderHref = (r: PaymentIntentSummary) => `/frontdesk/orders/${r.order_id}`;
 
   const list = (
     <div className="lims-data-table"><div className="lims-table-scroll">
@@ -126,7 +128,7 @@ export function ReviewQueue({ intents, centres, holdReasons, filter, nextCursor,
         ['Status', <StatusChip key="s" kind="payment_intent" status={sel.status} />],
         ['Reason', reason(sel)],
         ['Last checked', sel.last_checked_at ? <DateText key="c" value={sel.last_checked_at as Iso} withTime /> : '—'],
-        ['Order', <a key="o" href={`/frontdesk/orders/${sel.order_id}`} aria-label={`Order ${sel.order_id.slice(0, 8)}`}><IdText value={sel.order_id} /></a>],
+        ['Order', <a key="o" href={orderHref(sel)} aria-label={`Order ${sel.order_id.slice(0, 8)}`}><IdText value={sel.order_id} /></a>],
       ]} />
       <History events={[
         ['Created', sel.created_at] as const,
@@ -145,9 +147,9 @@ export function ReviewQueue({ intents, centres, holdReasons, filter, nextCursor,
         <StatTile label="Waiting for provider" value={String(intents.filter((r) => r.status === 'pending').length)} />
         <StatTile label="Oldest age" value={oldest(held.map(age))} />
       </StatTileRow>
-      <ShortcutKey letter="O" run={sel ? () => router.push(intentHref(sel.id)) : undefined}>
+      <ShortcutKey letter="O" run={sel ? () => router.push(intentHref(sel)) : undefined}>
         <SplitConsole list={list} detail={detail} listLabel="Payments needing review" detailLabel="Payment"
-          actions={sel ? <a href={intentHref(sel.id)}>Open payment (O)</a> : undefined} />
+          actions={sel ? <a href={intentHref(sel)}>Open payment (O)</a> : undefined} />
       </ShortcutKey>
       {nextCursor || hasPrevious ? (
         <div className="lims-pager">

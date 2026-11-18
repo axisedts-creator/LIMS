@@ -5,7 +5,10 @@
 // rejected rows, a separate conflict list.
 import { OfflineError, req, type DataStoreName, type OfflineStore, type SealedRecord } from './store';
 
-export interface OperationInput { op_type: string; payload: unknown; base_version?: number; entity_id?: string }
+/** T0D-OFFLINE-3: reserved_numbers carries device block numbers to the server (assertReservedInDeviceBlocks); op_id lets a caller
+ *  print the provisional numbers of an operation before it is appended (it must come from nextId). */
+export interface ReservedNumbers { patient_id?: number; lab_codes?: number[] }
+export interface OperationInput { op_type: string; payload: unknown; base_version?: number; entity_id?: string; reserved_numbers?: ReservedNumbers; op_id?: string }
 export interface Operation extends OperationInput { op_id: string; device_created_at: string; device_id: string; user_id: string }
 export interface LocalChange { store: DataStoreName; key: string; value: unknown }
 export interface AttentionItem extends Operation { code: string; at: string }
@@ -61,9 +64,10 @@ export function createOutbox(store: OfflineStore, ctx: { deviceId: string; userI
     });
   }
 
-  const make = (input: OperationInput): Operation => ({ ...input, op_id: nextId(), device_created_at: new Date(now()).toISOString(), device_id: ctx.deviceId, user_id: ctx.userId });
+  const make = (input: OperationInput): Operation => ({ ...input, op_id: input.op_id ?? nextId(), device_created_at: new Date(now()).toISOString(), device_id: ctx.deviceId, user_id: ctx.userId });
 
   return {
+    nextId,
     /** Appends the operation and its local changes atomically; crypto runs first, then one readwrite transaction. */
     async append(input: OperationInput, localChanges: LocalChange[] = []): Promise<Operation> {
       locked();

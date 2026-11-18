@@ -6,13 +6,18 @@ import { flushSync } from 'react-dom';
 import { t } from '../../i18n/messages';
 import { tf } from '../chip';
 import type { OfflineController, OfflineSnapshot } from '../controller';
+import type { OfflineFlows } from '../flows';
+import { onlineOnlyReason, type OnlineOnlyAction } from '../guards';
 
-type Ctl = Pick<OfflineController, 'getSnapshot' | 'subscribe' | 'syncNow' | 'retry' | 'discard' | 'loadConflict' | 'resolveConflict' | 'unlock' | 'setupPin' | 'changePin'>;
+type Ctl = Pick<OfflineController, 'getSnapshot' | 'subscribe' | 'syncNow' | 'retry' | 'discard' | 'loadConflict' | 'resolveConflict' | 'unlock' | 'setupPin' | 'changePin'> & { flows?: () => Flows | null };
 const Ctx = createContext<Ctl | null>(null);
+/** T0D-OFFLINE-3: the parts of the flows the screens use (a test hands a stand-in) */
+export type Flows = Pick<OfflineFlows, 'display' | 'statusOf'> & { numbers: Pick<OfflineFlows['numbers'], 'remaining'> } & Partial<OfflineFlows>;
+const FlowsCtx = createContext<Flows | null>(null);
 
-type Props = { controller?: Ctl | null; live?: { userId: string; permissions: readonly string[] }; children: ReactNode };
+type Props = { controller?: Ctl | null; flows?: Flows | null; live?: { userId: string; permissions: readonly string[] }; children: ReactNode };
 
-export function OfflineProvider({ controller, live, children }: Props) {
+export function OfflineProvider({ controller, flows, live, children }: Props) {
   const [own, setOwn] = useState<Ctl | null>(null);
   const userId = live?.userId;
   const perms = live?.permissions.join(' ');
@@ -25,8 +30,18 @@ export function OfflineProvider({ controller, live, children }: Props) {
       .catch(() => undefined); // no offline layer on this browser: the shell works as before
     return () => { gone = true; stop?.(); };
   }, [controller, userId, perms]);
-  return <Ctx.Provider value={controller ?? own}>{children}</Ctx.Provider>;
+  const ctl = controller ?? own;
+  return <Ctx.Provider value={ctl}><LiveFlows ctl={ctl} flows={flows}>{children}</LiveFlows></Ctx.Provider>;
 }
+
+/** the live controller builds its flows once the store is unlocked and the device is known: re-read them on every snapshot */
+function LiveFlows({ ctl, flows, children }: { ctl: Ctl | null; flows: Flows | null | undefined; children: ReactNode }) {
+  useOfflineSnapshot();
+  return <FlowsCtx.Provider value={flows ?? ctl?.flows?.() ?? null}>{children}</FlowsCtx.Provider>;
+}
+
+/** T0D-OFFLINE-3: the offline flows, or null (no provider, no offline layer, locked or not attached yet) */
+export const useOfflineFlows = () => useContext(FlowsCtx);
 
 export const useOfflineController = () => useContext(Ctx);
 
@@ -46,4 +61,12 @@ export function blocked(s: OfflineSnapshot, permission: string, needsOnline = fa
   if (!s.permissions.includes(permission)) return tf('offline.no_permission', { p: permission });
   if (needsOnline && !isOnline(s)) return t('offline.need_online');
   return null;
+}
+
+/** T0D-OFFLINE-3 (done_when 4): an online only action is disabled offline (degraded counts as offline) with a visible reason.
+ *  Without a provider (the online screens as before) nothing is disabled. */
+export function useOnlineOnly(action: OnlineOnlyAction): { disabled: boolean; reason: string | null } {
+  const s = useOfflineSnapshot();
+  const reason = s ? onlineOnlyReason(action, isOnline(s)) : null;
+  return { disabled: reason !== null, reason };
 }

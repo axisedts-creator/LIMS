@@ -74,13 +74,19 @@ describe('RS-C4 behaviour unchanged (LD-140: no change to API calls, fields, val
 
   it('allow-list guard is not vacuous: an unlisted addition would be rejected', () => {
     expect(LD310_ALLOW.logic_files).toHaveLength(4);
+    expect(LD310_ALLOW.routes_added).toHaveLength(8);
     expect(LD310_ALLOW.logic_files).not.toContain('src/features/frontdesk/forms/draft.ts'); // validation stays pinned
     expect(LD310_ALLOW.permissions).not.toContain('frontdesk.order.cancel');
     expect(LD310_ALLOW.trf_symbol.test('deleteEverythingAction')).toBe(false);
   });
 
   it('route tree: the same page/route/layout/loading/error files exist (no route added, removed or renamed)', () => {
-    expect(routeFiles()).toEqual(baseline.route_files);
+    const now = routeFiles();
+    const allowed = LD310_ALLOW.routes_added as readonly string[];
+    // LD-391: only the named additions are forgiven; any other added route fails here
+    expect(now.filter((f) => !(allowed.includes(f) && !baseline.route_files.includes(f)))).toEqual(baseline.route_files);
+    // a real removal or rename of an existing route still fails
+    expect(baseline.route_files.filter((f) => !now.includes(f))).toEqual([]);
   });
 
   it('the existing registration and billing pages still exist at the same paths', () => {

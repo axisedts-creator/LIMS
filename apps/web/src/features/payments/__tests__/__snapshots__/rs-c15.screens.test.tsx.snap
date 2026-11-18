@@ -66,9 +66,9 @@ exports[`RS-C15 key-screen snapshots > Gateway settings 1`] = `
 </div>
 <p>Set · fingerprint ab12cd34</p>
 <div class="lims-field">
-<label class="lims-label" for="_r_d_">Replace secret key</label>
+<label class="lims-label" for="_r_fl_">Replace secret key</label>
 <div class="lims-input-group">
-<input id="_r_d_" class="lims-input" autocomplete="new-password" maxlength="256" type="password" value="" name="secret_input">
+<input id="_r_fl_" class="lims-input" autocomplete="new-password" maxlength="256" type="password" value="" name="secret_input">
 </div>
 </div>
 <div>
@@ -108,9 +108,9 @@ exports[`RS-C15 key-screen snapshots > Gateway settings 1`] = `
 </span>Use Khalti refund API</label>
 <p class="lims-description">Only after the LIMS provider has confirmed the refund API in the sandbox. Otherwise refunds are done in the Khalti dashboard.</p>
 <div class="lims-field">
-<label class="lims-label" for="_r_p_">Secret key</label>
+<label class="lims-label" for="_r_g1_">Secret key</label>
 <div class="lims-input-group">
-<input id="_r_p_" class="lims-input" autocomplete="new-password" maxlength="256" type="password" value="" name="secret_input">
+<input id="_r_g1_" class="lims-input" autocomplete="new-password" maxlength="256" type="password" value="" name="secret_input">
 </div>
 </div>
 <div>

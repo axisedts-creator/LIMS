@@ -103,8 +103,8 @@ describe('route row, navigation entry, strings, registries', () => {
     expect(codes(perms).filter((c) => !baseCodes.has(c) && c.startsWith('engagement.') && !c.startsWith('engagement.content.') && !c.startsWith('engagement.broadcast.'))).toEqual([]);
     expect(perms).toMatch(/code: engagement\.settings\.manage,[^\n]*tenant_admin/);
     const api = read(join(ROOT, 'contracts', 'openapi', 'engagement.yaml'));
-    expect(api).toMatch(/operationId: getEngagementSettings/);
-    expect(api).toMatch(/operationId: updateEngagementSettings/);
+    expect(api).toMatch(/operationId: getEngagementSettings(?![A-Za-z0-9_])/);
+    expect(api).toMatch(/operationId: updateEngagementSettings(?![A-Za-z0-9_])/);
   });
 
   it("the manifest entry is engagement.settings (C16 04-UI-UX 1.3): label key engagement.nav.settings = 'Engagement settings', group engagement, order 90, phase 2, no new chord", async () => {

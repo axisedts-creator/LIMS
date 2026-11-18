@@ -1,9 +1,8 @@
-TESTS_WRONG — adminpage-eng-1.static.test.ts:102 pins every permission code repo-wide against BASE 052539369, but later lead decisions authorise new non-engagement codes that other contract tasks have since added on main.
-- Change in test, line 102 only: apply the "no new code" filter to the engagement family alone, i.e.
-  `codes(perms).filter((c) => !baseCodes.has(c) && c.startsWith('engagement.') && !c.startsWith('engagement.content.') && !c.startsWith('engagement.broadcast.'))` must equal `[]`.
-  Keep lines 97-99 (base engagement lines unchanged), 103 (settings.manage held by tenant_admin) and 104-106 (operations exist) exactly as they are. Update the comment at 94-96 to cite LD-316, LD-321 and LD-322.
-- Why: ADMINPAGE-ENG-1 / T0D-CONTENT-1 owns only the engagement family. CLAUDE.md says lead decisions override chunk text, and inbox brief LD-313 (c) (.orchestra/inbox/T0D-CONTENT-1-arbiter.md:32) allows new codes per module.
-- LD-321 (same file, line 33) names partners.sales.read/manage and partners.ticket.read/manage. LD-322 (line 34) names sync.use, sync.device.manage and sync.conflict.resolve.
-- lab.verification_policy.read/manage come from LD-316: contracts/permissions.yaml:125-126 and contracts/__tests__/registry-equality.test.ts:21 (LD316_VERLEVEL_CODES).
-- T0D-CONTENT-1 does not own contracts/permissions.yaml (brief "files", line 15-19). So no implementation change in this task can satisfy the current line 102 without reverting authorised work on main.
-- The billing.* allowance can stay or go once the filter is scoped to engagement.*. With the scoped filter it has no effect, so drop it.
+TESTS_WRONG — the test asserts something the spec does not require (say precisely what to change in the test)
+- apps/web/src/features/engagement/__tests__/adminpage-eng-1.static.test.ts:106 and :107 contain a raw byte 0x08 (backspace) after `getEngagementSettings` / `updateEngagementSettings` (confirmed by grep for \x08: both lines match). It is a mangled `\b`, so the regex can never match.
+- The spec names the operationIds without any such byte: spec/chunks/C16-patient-engagement/02-TRD.md:524 (`getEngagementSettings`, GET /settings) and :525 (`updateEngagementSettings`, PUT /settings).
+- The contract is correct: contracts/openapi/engagement.yaml:7849 `operationId: getEngagementSettings`, :7925 `operationId: updateEngagementSettings`.
+- Binding lead decision LD-377 (2026-11-18 13:08 NPT) gives the same ruling, TESTS_WRONG.
+- TESTER, change exactly this: line 106 `expect(api).toMatch(/operationId: getEngagementSettings(?![A-Za-z0-9_])/);` and line 107 `expect(api).toMatch(/operationId: updateEngagementSettings(?![A-Za-z0-9_])/);`. Do not use `\b` or any other backslash-letter escape in regexes written through a shell or heredoc.
+- After the edit, check that every touched test file has 0 bytes of 0x08.
+- WRITER/DEBUGGER: implementation accepted; no code or contract change. Re-run the engagement web tests after the tester pass.

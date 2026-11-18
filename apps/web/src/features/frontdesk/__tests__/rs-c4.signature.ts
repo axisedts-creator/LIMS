@@ -100,7 +100,13 @@ export const LD310_ALLOW = {
     'src/app/(staff)/billing/expenses/page.tsx',
     'src/app/(staff)/billing/expenses/types/page.tsx',
   ],
-  server_imports: ['@/features/catalog/server/catalogActions'],
+  // LD-393 (T0D-OFFLINE-3): covers the T0B-ACCT-1/T0B-FINCTRL-1 accounting UI i18n and column-label keys landed on main; not a general escape hatch.
+  billing_accounts_strings: /^billing\.(account_entry|cash_transfer|expense)\.|^billing\.accounts\.(col|entries|error|field|filter|ledger|masters|pocket|reason|receipt|summary)\./,
+  server_imports: [
+    '@/features/catalog/server/catalogActions',
+    '@/features/billing/server/accounts.server',
+    '@/features/billing/server/expenses.server',
+  ],
   server_symbols: ['createCreditPartyAction', 'createDoctorAction'],
   trf_symbol: /Trf/, // at most ONE added symbol beyond server_symbols, and it must match this
 } as const;

@@ -64,7 +64,7 @@ describe('RS-C4 behaviour unchanged (LD-140: no change to API calls, fields, val
     const CRUMB_ONLY: Partial<Record<Area, string[]>> = { billing_feature: ['/billing/credit-parties'] };
     expect(removed(was.routes, now.routes).filter((r) => !(CRUMB_ONLY[area] ?? []).includes(r))).toEqual([]);
     expect(removed(was.field_names, now.field_names)).toEqual([]);
-    expect(added(was.permissions, now.permissions).filter((p) => !(LD310_ALLOW.permissions as readonly string[]).includes(p))).toEqual([]);
+    expect(added(was.permissions, now.permissions).filter((p) => !(LD310_ALLOW.permissions as readonly string[]).includes(p) && !LD310_ALLOW.billing_accounts_strings.test(p))).toEqual([]);
     expect(added(was.server_imports, now.server_imports).filter((s) => !(LD310_ALLOW.server_imports as readonly string[]).includes(s))).toEqual([]);
     const extraSymbols = added(was.server_symbols, now.server_symbols).filter((s) => !(LD310_ALLOW.server_symbols as readonly string[]).includes(s));
     expect(extraSymbols.filter((s) => !LD310_ALLOW.trf_symbol.test(s))).toEqual([]); // anything that is not the TRF action is forbidden
@@ -78,6 +78,7 @@ describe('RS-C4 behaviour unchanged (LD-140: no change to API calls, fields, val
     expect(LD310_ALLOW.logic_files).not.toContain('src/features/frontdesk/forms/draft.ts'); // validation stays pinned
     expect(LD310_ALLOW.permissions).not.toContain('frontdesk.order.cancel');
     expect(LD310_ALLOW.trf_symbol.test('deleteEverythingAction')).toBe(false);
+    expect(LD310_ALLOW.billing_accounts_strings.test('frontdesk.order.cancel')).toBe(false);
   });
 
   it('route tree: the same page/route/layout/loading/error files exist (no route added, removed or renamed)', () => {

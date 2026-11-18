@@ -142,9 +142,9 @@ export async function listSignatoriesAction(): Promise<ActionResult<SignatoryRow
 export async function upsertSignatoryAction(userId: string, b: SignatoryInput): Promise<ActionResult<SignatoryProfile>> {
   return run(() => upsertSignatoryProfile(userId, b));
 }
-export async function uploadSignatureAction(form: FormData, key: string): Promise<ActionResult<{ asset_id: string }>> {
+export async function uploadSignatureAction(userId: string, form: FormData, key: string): Promise<ActionResult<{ asset_id: string }>> {
   const f = form.get('file');
-  return run(() => (f instanceof Blob ? uploadSignatureImage(f, key) : Promise.reject(new ApiError(400, problem('common.validation_failed', 'Validation failed', 400)))));
+  return run(() => (f instanceof Blob ? uploadSignatureImage(userId, f, key) : Promise.reject(new ApiError(400, problem('common.validation_failed', 'Validation failed', 400)))));
 }
 export async function updateSettingsAction(version: number, patch: Partial<Omit<ReportingSettings, 'version'>>, key: string): Promise<ActionResult<ReportingSettings>> {
   return run(() => updateSettings(version, patch, key));

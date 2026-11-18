@@ -1,8 +1,8 @@
 'use client';
 // T0D-PRINTCFG-1 done_when (2) (LD-316): Signatories list on the reporting settings. One row per staff user holding lab.result.approve; the row editor
 // sets the printed name, title, registration number, active flag and the signature image. The image is shrunk in the browser to fit 600 x 200 pixels
-// (never enlarged, aspect kept), must be PNG or JPEG and at most 300 KB after shrinking, and goes through the existing branding upload route.
-// Images are shown through the existing branding image proxy (/engagement/content/assets/<id>); no new route.
+// (never enlarged, aspect kept), must be PNG or JPEG and at most 300 KB after shrinking, and goes through uploadUserSignature
+// (identity.yaml, keyed by the row user_id). The contract has no signature read route, so a stored image shows as "Signature on file" (CR: .orchestra/cr/T0D-PRINTCFG-1.md).
 import { useEffect, useRef, useState } from 'react';
 import { Banner } from '@lims/ui/components/Banner';
 import { Button } from '@lims/ui/components/Button';
@@ -20,7 +20,6 @@ const MAX_W = 600;
 const MAX_H = 200;
 const MAX_BYTES = 300 * 1024;
 const TYPES = ['image/png', 'image/jpeg'];
-const imageSrc = (assetId: string) => `/engagement/content/assets/${encodeURIComponent(assetId)}`;
 const nameOf = (r: SignatoryRow) => r.profile?.display_name ?? r.user_name;
 
 /** Fits w x h into 600 x 200 keeping the ratio; never enlarges. */
@@ -60,7 +59,7 @@ export function SignatoryProfiles({ permissions }: { permissions: readonly strin
     { id: 'name', header: 'Name', rowHeader: true, cell: nameOf },
     { id: 'title', header: 'Title', cell: (r) => r.profile?.title || '—' },
     { id: 'reg', header: 'Registration number', cell: (r) => r.profile?.registration_no || '—' },
-    { id: 'sig', header: 'Signature', cell: (r) => (r.profile?.signature_asset_id ? <img src={imageSrc(r.profile.signature_asset_id)} alt={`Signature of ${nameOf(r)}`} className="pcfg-sig-thumb" /> : 'No signature') },
+    { id: 'sig', header: 'Signature', cell: (r) => (r.profile?.signature_asset_id ? 'Signature on file' : 'No signature') },
     { id: 'active', header: 'Active', cell: (r) => (r.profile?.is_active ? 'Yes' : 'No') },
     ...(canManage ? [{ id: 'edit', header: 'Actions', cell: (r: SignatoryRow) => <button type="button" className="lims-btn lims-btn-secondary lims-btn-sm" aria-label={`Edit ${nameOf(r)}`} onClick={() => setEditing(r)}>Edit</button> }] : []), // native button: the kit Button takes no aria-label
   ];
@@ -98,7 +97,7 @@ function SignerDialog({ row, onClose, onSaved }: { row: SignatoryRow; onClose: (
       if (blob.size > MAX_BYTES) { setPickError('The picture is larger than 300 KB after shrinking. Choose a smaller or simpler picture.'); return; }
       const form = new FormData();
       form.append('file', new File([blob], file.type === 'image/png' ? 'signature.png' : 'signature.jpg', { type: file.type }));
-      const r = await uploadSignatureAction(form, newKey()).catch(() => null);
+      const r = await uploadSignatureAction(row.user_id, form, newKey()).catch(() => null);
       if (r?.ok) setAsset(r.data.asset_id);
       else setPickError(`Could not upload the picture: ${r ? errorText(r.code) : 'the server did not answer'}.`);
     })();
@@ -134,7 +133,7 @@ function SignerDialog({ row, onClose, onSaved }: { row: SignatoryRow; onClose: (
       </div>
       {asset ? (
         <div>
-          <img src={imageSrc(asset)} alt={`Signature of ${nameOf(row)}`} className="pcfg-sig-image" />
+          <p>Signature on file</p>
           <Button variant="ghost" onPress={() => { setAsset(undefined); setPickError(undefined); }}>Remove signature</Button>
         </div>
       ) : null}

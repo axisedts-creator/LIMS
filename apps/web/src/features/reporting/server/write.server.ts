@@ -123,20 +123,23 @@ export const upsertSignatoryProfile = (userId: string, b: SignatoryInput) => {
   return send<SignatoryProfile>({ method: 'PUT', path: `/v1/reporting/signatory-profiles/${uuid(userId)}`, body: { display_name, ...(title ? { title } : {}), ...(registration_no ? { registration_no } : {}), ...(signature_asset_id ? { signature_asset_id } : {}), is_active } });
 };
 const SIGNATURE_MAX = 300 * 1024;
-/** uploadBrandingAsset, the existing upload route (no new route). [CONV] kind 'logo': BrandingAssetUpload.kind has no signature value (CR gap, as T0D-CONTENT-1).
- * Multipart is built from bytes like engagement/server/content-actions.ts so the file part keeps its content type. */
-export async function uploadSignatureImage(file: Blob, key: string) {
+/** uploadUserSignature (identity.yaml, POST users membership signature), multipart `file` only, Idempotency-Key. Never the branding route:
+ * it would replace the lab logo (review T0D-PRINTCFG-1 item 1). Multipart is built from bytes like engagement/server/content-actions.ts so the file part keeps its content type. */
+export async function uploadSignatureImage(userId: string, file: Blob, key: string) {
   if (!['image/png', 'image/jpeg'].includes(file.type) || file.size === 0 || file.size > SIGNATURE_MAX) throw bad();
   const boundary = `----lims${newBoundary()}`;
   const enc = new TextEncoder();
   const name = file.type === 'image/png' ? 'signature.png' : 'signature.jpg';
-  const head = `--${boundary}\r\nContent-Disposition: form-data; name="kind"\r\n\r\nlogo\r\n--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="${name}"\r\nContent-Type: ${file.type}\r\n\r\n`;
+  const head = `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="${name}"\r\nContent-Type: ${file.type}\r\n\r\n`;
   const parts = [enc.encode(head), new Uint8Array(await file.arrayBuffer()), enc.encode(`\r\n--${boundary}--\r\n`)];
   const body = new Uint8Array(parts.reduce((n, p) => n + p.length, 0));
   let at = 0;
   for (const p of parts) { body.set(p, at); at += p.length; }
   if (!KEY_RE.test(key)) throw bad();
-  return serverFetch<{ asset_id: string; scan_state?: string }>('/v1/identity/settings/branding-assets', { method: 'POST', headers: { 'content-type': `multipart/form-data; boundary=${boundary}`, 'idempotency-key': key }, body });
+  const res = await serverFetch<{ signatory?: { signature_asset_id?: string } }>(`/v1/identity/users/${uuid(userId)}/signature`, { method: 'POST', headers: { 'content-type': `multipart/form-data; boundary=${boundary}`, 'idempotency-key': key }, body });
+  const asset_id = res.signatory?.signature_asset_id;
+  if (!asset_id) throw bad();
+  return { asset_id };
 }
 const newBoundary = () => crypto.randomUUID().replace(/-/g, '');
 

@@ -35,7 +35,8 @@ describe('writeCsvStream', () => {
   });
   it('an empty result still produces the header block and the label row (the empty range of every report)', async () => {
     const { csv } = await load();
-    const text = Buffer.from(cat(await drain(csv.writeCsvStream({ meta: META, columns: [...COLUMNS] }, source([]).it)))).toString('utf8');
+    // UTF-8 BOM is required (02-TRD.md:33) and pinned byte-equal above; strip it before splitting lines (as xlsxRead.ts csvParts does).
+    const text = Buffer.from(cat(await drain(csv.writeCsvStream({ meta: META, columns: [...COLUMNS] }, source([]).it)))).toString('utf8').replace(/^﻿/, '');
     expect(text).toContain('Invoice number'); expect(text).toContain('# Tenant: Test Lab Pvt Ltd'); expect(text.split('\r\n').filter((l) => !l.startsWith('#') && l.trim()).length).toBe(1);
   });
   it('lazy: the first bytes are produced before the source is exhausted, the source is never read ahead by more than a chunk or two, and every chunk is consumed exactly once', async () => {

@@ -77,9 +77,11 @@ describe('every plain report: shape, empty range, ordering, paging, limits', () 
   it('paging by cursor returns every row exactly once, in the same order as one big page; the last page has no cursor', async () => {
     for (const code of ['bill_of_the_day', 'party_billing', 'ipd_opd', 'consultant']) {
       const whole = await rowsOf(code);
-      const paged = await withCtx(A, 'rls', ({ ctx }) => allPages(ctx, code, { range: rangeOf(FROM, TO), scope: ALL }, 7));
+      // party_billing is one row per party (analytics.yaml:4117-4129) and kit.ts seeds 4 parties: page it at 2 so it still spans pages (LD-346 ruling point 4).
+      const size = code === 'party_billing' ? 2 : 7;
+      const paged = await withCtx(A, 'rls', ({ ctx }) => allPages(ctx, code, { range: rangeOf(FROM, TO), scope: ALL }, size));
       expect(paged, code).toEqual(whole);
-      expect(whole.length, code).toBeGreaterThan(7);
+      expect(whole.length, code).toBeGreaterThan(size);
     }
     const last = await withCtx(A, 'rls', async ({ ctx }) => (await misReports()).runMisReport(ctx, 'bill_of_the_day', { range: rangeOf(FROM, TO), scope: ALL, limit: 1000 }));
     expect(last.next_cursor).toBeUndefined();

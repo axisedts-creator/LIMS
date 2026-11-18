@@ -91,6 +91,8 @@ describe('RS-C4 behaviour unchanged (LD-140: no change to API calls, fields, val
     // LD-400, T0D-OFFLINE-3 arbiter
     expect(LD310_ALLOW.route_strings_added.test('/v1/billing/accounts/summary')).toBe(true);
     expect(LD310_ALLOW.route_strings_added.test('/v1/frontdesk/patients')).toBe(false);
+    expect(LD310_ALLOW.route_strings_added.test('/v1/frontdesk/icd-codes')).toBe(true); // LD-404
+    expect(LD310_ALLOW.route_strings_added.test('/v1/frontdesk/custom-field-definitions/extra')).toBe(false); // LD-404: still scoped, not a prefix match
     expect(LD310_ALLOW.accounts_symbols).toHaveLength(64); // LD-398: 19 + 45
     expect(LD310_ALLOW.logic_files_changed).toHaveLength(6);
     expect(LD310_ALLOW.accounts_symbols).not.toContain('deleteEverythingAction');

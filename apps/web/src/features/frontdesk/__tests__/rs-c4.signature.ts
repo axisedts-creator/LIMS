@@ -113,7 +113,11 @@ export const LD310_ALLOW = {
   ],
   // LD-391/LD-393 follow-up, T0D-OFFLINE-3 arbiter: the one route string added by the already-landed work.
   // LD-400, T0D-OFFLINE-3 arbiter: scoped regex (billing accounting module namespace + the original entry), not a list.
-  route_strings_added: /^\/v1\/catalog\/tests$|^\/v1\/billing\/|^\/v1\/identity\/(?:centres|users)$|^\/billing\/accounts\/ledger$/,
+  // LD-404 (T0D-OFFLINE-3): extended again for 9 more already-landed T0D-REGSCREEN-2 frontdesk routes
+  // (drafts, custom fields, favourites, ICD lookup, number preview) and the catalog kind lookup route.
+  // Each alternative is itemized and anchored (no open prefix on /v1/frontdesk/) so an unrelated
+  // frontdesk route, such as /v1/frontdesk/patients, is still rejected.
+  route_strings_added: /^\/v1\/catalog\/tests$|^\/v1\/catalog\/\$\{kind\}$|^\/v1\/billing\/|^\/v1\/identity\/(?:centres|users)$|^\/billing\/accounts\/ledger$|^\/v1\/frontdesk\/custom-field-definitions$|^\/v1\/frontdesk\/favourite-tests$|^\/v1\/frontdesk\/favourite-tests\/\$\{uuid$|^\/v1\/frontdesk\/icd-codes$|^\/v1\/frontdesk\/registration-drafts$|^\/v1\/frontdesk\/registration-drafts\/\$\{id$|^\/v1\/frontdesk\/registration-drafts\/\$\{uuid$|^\/v1\/frontdesk\/registrations\/number-preview$/,
   server_imports: [
     '@/features/catalog/server/catalogActions',
     '@/features/billing/server/accounts.server',

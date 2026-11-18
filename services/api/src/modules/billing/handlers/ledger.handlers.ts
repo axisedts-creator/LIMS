@@ -105,6 +105,7 @@ export const ledgerHandlers:Readonly<Record<string, Handler>> = Object.freeze({
     const b = obj(req.body);
     const dto = await createCashService().closeCashSession(ctx, {
       sessionId: obj(req.params)['cash_session_id'], expectedVersion: ifMatch(req), counted: b['counted'], ...(b['note'] === undefined ? {} : { note: b['note'] }),
+      ...(Object.hasOwn(b, 'deposit_paisa') ? { deposit: b['deposit_paisa'] } : {}),          // T0B-FINCTRL-1: an explicit null is refused, absent = 0
     });
     return { status: 200, body: dto, headers: etagged(dto as { version: number }) };
   }),

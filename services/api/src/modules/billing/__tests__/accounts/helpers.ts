@@ -35,6 +35,10 @@ export interface Who {
   roles?: string[];
   /** IdentityPort.getTenantSettings featureFlags (T0B-ACCT-2: allow_negative_pockets). */
   flags?: Record<string, boolean>;
+  /** T0B-FINCTRL-1: extra IdentityPort.getTenantSettings keys (require_discount_reason, fiscal_year_start_bs), merged next to timezone / featureFlags. */
+  settings?: Record<string, unknown>;
+  /** T0B-FINCTRL-1: ctx.actor.membershipId (cash sessions belong to a membership). Absent = not set, as before. */
+  membershipId?: string;
 }
 export async function fire(operationId: string, r: ReturnType<typeof req>, o: { tenant?: string; now?: Date; requestId?: string } & Who = {}): Promise<Outcome> {
   const tenant = o.tenant ?? TENANT_A;
@@ -51,11 +55,11 @@ export async function fire(operationId: string, r: ReturnType<typeof req>, o: { 
       const log = (lvl: string) => (obj: unknown, msg?: string) => { out.logs.push(`${lvl} ${typeof obj === 'string' ? obj : JSON.stringify(obj)} ${msg ?? ''}`); };
       const identity = {
         assertRole: async () => undefined, getActor: async () => ({ actor: { type: 'system', id: actorId }, displayName: 'Synthetic Accountant', roles: o.roles ?? ['finance'], permissions: [], centreScope: { all: o.centreIds === undefined, centreIds: o.centreIds ?? [CENTRE[side]] }, branchIds: [], mfa: { enrolled: true, level: 'aal2' }, isLocked: false }),
-        getTenantSettings: async () => ({ timezone: 'Asia/Kathmandu', numbering: {}, channels: {}, featureFlags: o.flags ?? {} }),
+        getTenantSettings: async () => ({ timezone: 'Asia/Kathmandu', numbering: {}, channels: {}, featureFlags: o.flags ?? {}, ...(o.settings ?? {}) }),
       };
       const ctx: any = {
         operationId, clientIp: '203.0.113.9', log: { info: log('info'), warn: log('warn'), error: log('error'), debug: log('debug') }, metrics: { inc: () => undefined },
-        tenantId: tenant, tx, requestId: out.requestId, now: () => now, centreId: CENTRE[side], actor: { type: 'system', id: actorId },
+        tenantId: tenant, tx, requestId: out.requestId, now: () => now, centreId: CENTRE[side], actor: { type: 'system', id: actorId, ...(o.membershipId ? { membershipId: o.membershipId } : {}) },
         ports: { IdentityPort: identity }, events: createEvents({ producer: 'billing' }),
       };
       ctx.audit = { access: async (e: any) => { out.accessCalls.push(e); await access(ctx, e); } };

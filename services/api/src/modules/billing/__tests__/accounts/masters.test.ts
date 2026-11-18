@@ -104,7 +104,7 @@ describe('account particulars', () => {
   it('listAccountParticulars: tenant scoped, paged, contract shape, no tenant B row', async () => {
     const a = await world('a'); const b = await world('b');
     ok(await mkPart(a.groupId, `P_${tag()}`), 201);
-    const body = ok(await fire('listAccountParticulars', req({ query: { limit: 200 } })));
+    const body = ok(await fire('listAccountParticulars', req({ query: { limit: 200, account_group_id: a.groupId } })));
     const ids = body.data.map((p: any) => p.id);
     expect(ids).toContain(a.particularId);
     expect(ids).not.toContain(b.particularId);

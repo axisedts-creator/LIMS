@@ -82,7 +82,8 @@ export const API = {
 };
 export const puts = () => API.of('PUT', /\/v1\/reporting\/print-profiles$/);
 export const previews = () => API.of('POST', /\/print-profiles\/preview$/);
-export const uploads = () => API.of('POST', /branding-assets$/);
+export const uploads = () => API.of('POST', /\/v1\/identity\/users\/[^/]+\/signature$/);
+export const brandingUploads = () => API.of('POST', /branding-assets/);
 export const sigPuts = () => API.of('PUT', /\/signatory-profiles\//);
 
 const log = async (request: Request, extra: Partial<Call> = {}) => {
@@ -152,11 +153,13 @@ export const api = setupServer(
     if (API.usersFail) return prob(403, 'auth.forbidden');
     return HttpResponse.json({ data: roles });
   }),
-  http.post(`${ORIGIN}/v1/identity/settings/branding-assets`, async ({ request }) => {
+  // uploadUserSignature (identity.yaml): POST /v1/identity/users/{membership_id}/signature, multipart `file` only, answers the User with signatory.signature_asset_id.
+  // The branding-assets route is deliberately NOT mocked: it would replace the lab logo (review T0D-PRINTCFG-1 item 1), so any call to it fails as an unhandled request.
+  http.post(`${ORIGIN}/v1/identity/users/:uid/signature`, async ({ request, params }) => {
     const raw = await request.text();
     await log(request, { form: parseMultipart(request.headers.get('content-type') ?? '', raw), raw });
     if (API.uploadFail) return prob(API.uploadFail.status, API.uploadFail.code);
-    return HttpResponse.json({ asset_id: ASSET, kind: 'letterhead_header', width: 600, height: 200, sha256: 'ab'.repeat(32), scan_state: 'clean' }, { status: 201 });
+    return HttpResponse.json({ ...userRow(String(params['uid']), 'Synthetic', PATHO_ROLE), signatory: { signature_asset_id: ASSET } }, { status: 200 });
   }),
   http.get(`${ORIGIN}/v1/*`, async ({ request }) => { await log(request); return HttpResponse.json({ data: [], page: { limit: 50 } }); }),
 );

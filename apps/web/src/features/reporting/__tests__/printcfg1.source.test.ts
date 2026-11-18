@@ -35,8 +35,10 @@ describe('typed server calls exist in the feature server folders (brief: reporti
     const t = reportingServer.map((f) => f.t).join('\n');
     for (const path of ['/v1/reporting/print-profiles', '/v1/reporting/print-profiles/preview', '/v1/reporting/signatory-profiles']) expect(t.includes(path), path).toBe(true);
   });
-  it('the signature image goes through the existing branding upload route (no new upload route)', () => {
-    expect(all.some((f) => f.t.includes('/v1/identity/settings/branding-assets'))).toBe(true);
+  it('the signature image goes through the existing uploadUserSignature route, never the branding route (it would replace the lab logo)', () => {
+    const t = reportingServer.map((f) => f.t).join('\n');
+    expect(/\/v1\/identity\/users\/.*\/signature/.test(t)).toBe(true);
+    expect(reporting.filter((f) => f.t.includes('branding-assets')).map((f) => rel(f.p))).toEqual([]);
   });
   it('billing/server forwards the print style to printInvoice', () => {
     const t = billingServer.map((f) => f.t).join('\n');

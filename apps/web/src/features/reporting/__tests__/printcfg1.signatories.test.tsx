@@ -2,17 +2,17 @@
 // T0D-PRINTCFG-1 done_when (2) + (6): Signatories list on /reporting/settings (page default export; no component name pinned). ASSUMED contract (dispute if wrong):
 //   region aria-label "Signatories" with a table whose column headers are Name, Title, Registration number, Signature, Active (always rendered, also when empty, with an empty line).
 //   Rows = one per staff user whose role holds lab.result.approve (listUsers + listRoles permission_codes), joined to listSignatoryProfiles on user_id === membership_id
-//   (gap: UserSummary has no user_id, see notes). Name = profile display_name when a profile exists, else the user display name. Signature cell: an <img> with an alt naming the
-//   signature and a src that contains the asset id (served through the existing BFF proxy route; no new route), or the text "No signature". Active cell: Yes / No.
+//   (gap: UserSummary has no user_id, see notes). Name = profile display_name when a profile exists, else the user display name. Signature cell: the text "Signature on file" (no image: the
+//   contract has no signature read route, review item 2) or the text "No signature". Active cell: Yes / No.
 //   Text "Only pathologist sign-offs print as signatures" is on screen. Row button "Edit <name>" opens a dialog with Name, Title, Registration number, Active, a file input for the
 //   signature image, "Remove signature" (when there is an image) and Save. The image is shrunk in the browser to fit 600 x 200 (never upscaled, aspect kept), must be at most 300 KB
-//   after shrinking, PNG or JPEG only, and goes through uploadBrandingAsset (multipart file + kind, Idempotency-Key). Save is upsertSignatoryProfile (PUT) with
+//   after shrinking, PNG or JPEG only, and goes through uploadUserSignature (POST /v1/identity/users/{user_id}/signature, multipart `file` only, Idempotency-Key; the answer's signatory.signature_asset_id is the id). Save is upsertSignatoryProfile (PUT) with
 //   signature_asset_id = the uploaded asset id; remove = PUT without signature_asset_id. Server errors show role=alert inside the dialog and keep it open.
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { cleanup, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {
-  API, ASSET, ASSET_OLD, U_PATHO, U_PATHO2, U_TECH, allowedSignatoryKeys, api, img, openReportingSettings, picture, sigPuts, signatory, stubImaging, uploads, userRow, PATHO_ROLE, TECH_ROLE,
+  API, ASSET, ASSET_OLD, U_PATHO, U_PATHO2, U_TECH, allowedSignatoryKeys, api, brandingUploads, img, openReportingSettings, picture, sigPuts, signatory, stubImaging, uploads, userRow, PATHO_ROLE, TECH_ROLE,
 } from './printcfg1.harness';
 
 beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
@@ -56,7 +56,8 @@ describe('list (done_when 2)', () => {
     const a = rowOf(s, /^Dr Synthetic Patho$/);
     expect(within(a).getByText('Consultant Pathologist (SYNTHETIC)')).toBeTruthy();
     expect(within(a).getByText('SYN-REG-0001')).toBeTruthy();
-    expect(within(a).getByRole('img', { name: /signature/i }).getAttribute('src')).toContain(ASSET_OLD);
+    expect(within(a).getByText(/signature on file/i)).toBeTruthy(); // no image read route exists in the contract (review item 2)
+    expect(within(a).queryByRole('img')).toBeNull();
     expect(within(a).getByText(/^yes$/i)).toBeTruthy();
     expect(within(rowOf(s, /^Dr Second Patho$/)).getByText(/no signature/i)).toBeTruthy();
     expect(within(rowOf(s, /^Dr Inactive Patho$/)).getByText(/^no$/i)).toBeTruthy();
@@ -162,7 +163,9 @@ describe('signature image (done_when 2)', () => {
     expect(uploads().length).toBe(1);
     const up = uploads()[0]!;
     expect(up.headers.get('idempotency-key')?.length).toBeGreaterThan(8);
-    expect(['logo', 'letterhead_header', 'letterhead_footer']).toContain(up.form!.get('kind')); // BrandingAssetUpload.kind enum (gap: no signature kind, see notes)
+    expect(up.path).toBe(`/v1/identity/users/${U_PATHO2}/signature`); // uploadUserSignature, keyed by the row's user_id
+    expect(up.form!.keys()).toEqual(['file']); // no `kind` part: FileUpload has only `file`
+    expect(brandingUploads().length).toBe(0); // never the branding route (it would replace the lab logo)
     const f = up.form!.get('file') as { name: string; text: string };
     expect(f.name).toMatch(/\.(png|jpe?g)$/i);
     expect(up.raw).toMatch(/content-type:\s*image\/(png|jpeg)/i);
@@ -221,7 +224,8 @@ describe('signature image (done_when 2)', () => {
   it('replace: an existing image is shown, a new pick uploads and the PUT carries the new id', async () => {
     const u = user();
     const d = await openEditor(u, /Dr Synthetic Patho/);
-    expect(within(d).getByRole('img', { name: /signature/i }).getAttribute('src')).toContain(ASSET_OLD);
+    expect(within(d).getByText(/signature on file/i)).toBeTruthy();
+    expect(within(d).queryByRole('img')).toBeNull();
     await pickAndSave(u, d, picture('new.jpg', 'image/jpeg'));
     await waitFor(() => expect(sigPuts().length).toBe(1));
     expect(uploads().length).toBe(1);
@@ -233,7 +237,7 @@ describe('signature image (done_when 2)', () => {
     const u = user();
     const d = await openEditor(u, /Dr Synthetic Patho/);
     await u.click(within(d).getByRole('button', { name: /remove signature/i }));
-    expect(within(d).queryByRole('img', { name: /signature/i })).toBeNull();
+    expect(within(d).queryByText(/signature on file/i)).toBeNull();
     await u.click(within(d).getByRole('button', { name: SAVE }));
     await waitFor(() => expect(sigPuts().length).toBe(1));
     expect(lastPut().json.signature_asset_id).toBeUndefined();

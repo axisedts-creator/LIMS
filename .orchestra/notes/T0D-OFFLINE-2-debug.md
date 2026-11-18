@@ -3,3 +3,5 @@ Fix: none made. shell.css is not an OFFLINE-2 file; test is not wrong (13-M-SERI
 All OFFLINE-2 suites pass per verify log (offline2 140, offline1 82, density 350, rs-c2 74).
 
 Round 2: re-confirmed. Same single failure (r04.source.test.ts motion, lims-sway 14s in shell.css from UIDASH-1). No OFFLINE-2 code involved; no edit made. Lead must route to UIDASH-1 follow-up or waive.
+
+Round 3: same single failure (lims-sway 14s, shell.css, UIDASH-1). shell.css untouched by OFFLINE-2; no edit made. Needs lead ruling or UIDASH-1 follow-up.

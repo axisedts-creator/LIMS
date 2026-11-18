@@ -21,7 +21,7 @@ const S = '/v1/analytics/schedules';
 const FUTURE = '2099-01-01T00:00:00.000Z';
 const PERMS = ['analytics.schedule.manage', 'analytics.dashboard.read', 'analytics.data.export'];
 
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 beforeEach(() => {
   resetApi(PERMS);
   routes[`GET ${S}`] = json({ data: [scheduleDto(), scheduleDto({ id: '01a1a98a-ac40-7000-8000-000000000041', name: 'Weekly volume', frequency: 'weekly', is_active: false })], page: { limit: 20 } });

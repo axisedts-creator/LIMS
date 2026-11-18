@@ -31,7 +31,7 @@ const PERMS = ['analytics.data.export'];
 const FUTURE = '2099-01-01T00:00:00.000Z';
 const list = (data: unknown[], page: Record<string, unknown> = { limit: 20 }) => json({ data, page });
 
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 beforeEach(() => { resetApi(PERMS); routes[`GET ${LIST}`] = list([exportDto(1, { expires_at: FUTURE })]); });
 afterEach(() => { vi.useRealTimers(); cleanup(); api.resetHandlers(); });
 afterAll(() => api.close());

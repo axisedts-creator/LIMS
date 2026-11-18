@@ -85,7 +85,7 @@ const api = setupServer(
   http.get(`${ORIGIN}/v1/analytics/*`, () => problem('common.dependency_unavailable', 503)),
 );
 function setVisibility(v: 'visible' | 'hidden') { Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => v }); }
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { cleanup(); vi.useRealTimers(); routerRefresh.mockClear(); setVisibility('visible'); api.resetHandlers(); calls.length = 0; dash = () => HttpResponse.json(dashboard()); refresh = () => HttpResponse.json({}, { status: 202 }); });
 afterAll(() => api.close());
 

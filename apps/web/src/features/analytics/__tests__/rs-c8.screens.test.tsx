@@ -41,7 +41,7 @@ async function dashboard(tiles: Record<string, unknown>) {
   return render(<ToastProvider>{await mod.default({ searchParams: Promise.resolve({}) })}</ToastProvider>);
 }
 
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 beforeEach(() => { resetApi(); session.permissions = ['analytics.dashboard.read', 'analytics.collections.read', 'billing.cash_report.read']; });
 afterEach(() => { cleanup(); api.resetHandlers(); });
 afterAll(() => api.close());

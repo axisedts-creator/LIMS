@@ -169,11 +169,11 @@ describe('sales representative, consultant and collection boy: rows and totals r
     const top = rows.find((r) => r.representative_id === A.reps!.top)!, sub = rows.find((r) => r.representative_id === A.reps!.sub)!;
     for (const [row, who, level, name] of [[top, 'top', 7, 'Synthetic Head Rep'], [sub, 'sub', 8, 'Synthetic Exec Rep']] as const) {
       const bs = assigned(who, FROM, TO);
-      expect(row, who).toMatchObject({ representative_name: name, designation_level: level, orders_registered: bs.length, net_billed_paisa: sum(bs.map((b) => b.net)), collected_paisa: sum(bs.map((b) => b.paid)) });
+      expect(row, who).toMatchObject({ representative_name: name, designation_level: level, orders_registered: bs.length, net_paisa: sum(bs.map((b) => b.net)), collected_paisa: sum(bs.map((b) => b.paid)) });
     }
     expect(top.parties_count).toBe(2); expect(sub.parties_count).toBe(1);
     expect(rows.map((r) => r.representative_id).sort(), 'no row for a representative of another tenant').toEqual([A.reps!.top, A.reps!.sub].sort());
-    expect(sum(rows.map((r) => r.net_billed_paisa))).toBe(sum([...assigned('top', FROM, TO), ...assigned('sub', FROM, TO)].map((b) => b.net)));
+    expect(sum(rows.map((r) => r.net_paisa))).toBe(sum([...assigned('top', FROM, TO), ...assigned('sub', FROM, TO)].map((b) => b.net)));
     const unassigned = A.bills.filter((b) => b.partyId === A.spec.parties[3]);
     expect(unassigned.length).toBeGreaterThan(0); // fixture sanity: this party's bills belong to nobody
     expect(sum(rows.map((r) => r.orders_registered))).toBe(assigned('top', FROM, TO).length + assigned('sub', FROM, TO).length);
@@ -183,7 +183,7 @@ describe('sales representative, consultant and collection boy: rows and totals r
     const rows = await rowsOf('sales_representative', { range: rangeOf(FROM, '2020-06-15') });
     const top = rows.find((r) => r.representative_id === A.reps!.top)!;
     expect(top.parties_count).toBe(1);
-    expect(top.net_billed_paisa).toBe(sum(assigned('top', FROM, '2020-06-15').map((b) => b.net)));
+    expect(top.net_paisa).toBe(sum(assigned('top', FROM, '2020-06-15').map((b) => b.net)));
     expect(top.orders_registered).toBe(assigned('top', FROM, '2020-06-15').length);
   }, T);
 
@@ -259,7 +259,7 @@ describe('repeated patient, repeated test, IPD and OPD, party billing', () => {
       expect(rows.map((r) => r.patient_id).sort()).toEqual(want.map(([id]) => id).sort());
       for (const r of rows) {
         const bs = byP.get(r.patient_id)!; const days = bs.map((b) => b.day).sort();
-        expect(r).toMatchObject({ patient_number: bs[0]!.patientCode, visit_count: bs.length, first_visit_date: days[0], last_visit_date: days.at(-1), net_billed_paisa: sum(bs.map((b) => b.net)) });
+        expect(r).toMatchObject({ patient_number: bs[0]!.patientCode, visit_count: bs.length, first_visit_date: days[0], last_visit_date: days.at(-1), net_paisa: sum(bs.map((b) => b.net)) });
       }
       expect(want.length, `fixture has repeat patients at min ${min ?? 2}`).toBeGreaterThan(0);
     }
@@ -297,10 +297,10 @@ describe('repeated patient, repeated test, IPD and OPD, party billing', () => {
     for (const r of rows) {
       const bs = g.get(r.party_id)!;
       expect(r).toMatchObject({ billing_mode: 'credit', orders_registered: bs.length, gross_paisa: sum(bs.map((b) => b.gross)), discount_paisa: sum(bs.map((b) => b.discount)),
-        net_billed_paisa: sum(bs.map((b) => b.net)), paid_paisa: sum(bs.map((b) => b.paid)), outstanding_paisa: sum(bs.map((b) => b.net - b.paid)) });
+        net_paisa: sum(bs.map((b) => b.net)), paid_paisa: sum(bs.map((b) => b.paid)), outstanding_paisa: sum(bs.map((b) => b.net - b.paid)) });
     }
     const register = Number((await ownerSql(`SELECT coalesce(sum(net_paisa),0)::bigint AS n FROM billing.invoices WHERE tenant_id = $1 AND status = 'issued' AND credit_party_id IS NOT NULL`, [TENANT_A]))[0].n);
-    expect(sum(rows.map((r) => r.net_billed_paisa))).toBe(register);
+    expect(sum(rows.map((r) => r.net_paisa))).toBe(register);
   }, T);
 
   it('outsource: runs and returns its contract columns (the outsourced work rule is not seeded in this fixture)', async () => {

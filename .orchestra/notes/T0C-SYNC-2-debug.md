@@ -6,3 +6,7 @@ No impl fix possible without lint policy change (lead-owned). Existing dispute s
 ## Round 3 (2026-11-18, LD-369)
 Cause: sync2-openapi/codegen/pending tests now green (208/208) via regenerated clients + SyncErrorCode additions already in tree. Last red: registry-equality routes.yaml==IC §7: 3 extra ids (staff.billing.expenses/expense_types/cash_transfers) from T0D-ACCT-2 on main, absent in IC §7.
 Fix: none possible in impl (spec/ read-only; same failure on main). CR filed: .orchestra/cr/T0C-SYNC-2.md. Not a SYNC-2 defect.
+
+## Round 4 (2026-11-18)
+Verify log: 208/208 codegen green; only red = registry-equality routes.yaml==IC §7, 3 extra ids (staff.billing.expenses/expense_types/cash_transfers). Re-checked: main routes.yaml has them, main IC §7 does not.
+Fix: none in impl (spec/ read-only, same failure on main, not a SYNC-2 defect). CR .orchestra/cr/T0C-SYNC-2.md stands; needs lead to add the 3 rows to IC §7 in routes.yaml order. No code change.

@@ -101,6 +101,8 @@ const SPECS: Spec[] = [
   S("54", "upsertLabCode", "PUT", "/coded-sets/{set_name}/codes/{code}", CFG, O, 200, { im: true, err: [MFA] }),
 ];
 const TOTAL = 55;
+// T0C-VERLEVEL-1 (LD-316): 3 verification level operations are added after the 55 TRD operations (pinned by verlevel1-openapi.test.ts); this file keeps testing exactly the 55 original ones.
+const VERLEVEL1 = ["listVerificationPolicies", "upsertVerificationPolicy", "getResultSignoffs"];
 const BULK = ["bulkCollectSpecimens", "bulkDispatchSpecimens", "bulkReceiveSpecimens", "bulkVerifyResults", "bulkApproveResults"];
 const DTOS = ["SpecimenDto", "SpecimenDetailDto", "LabelDataDto", "LabOrderDto", "WorklistItemDto", "PendingItemDto", "WorksheetDto",
   "ResultDto", "ResultVersionDto", "CriticalNotificationDto", "QcResultDto", "LabSettingsDto"];
@@ -113,7 +115,7 @@ describe("lab.yaml (T0C-10.C5)", () => {
   const doc: any = text ? parse(text) : { paths: {}, components: {} };
   const ops: Record<string, { method: string; path: string; op: any }> = {};
   for (const [path, item] of Object.entries<any>(doc.paths ?? {}))
-    for (const m of METHODS) if (item?.[m]) ops[item[m].operationId] = { method: m.toUpperCase(), path, op: item[m] };
+    for (const m of METHODS) if (item?.[m] && !VERLEVEL1.includes(item[m].operationId)) ops[item[m].operationId] = { method: m.toUpperCase(), path, op: item[m] };
 
   const deref = (n: any): any => {
     if (!n?.$ref) return n;

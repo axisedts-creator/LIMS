@@ -4,6 +4,7 @@ import { call } from '@/features/admin/server/api';
 import { Denied, Frame, LoadError, gate } from '@/features/admin/server/page-kit';
 import { idParam, one, pick, qs, type Page, type SP, type UserSummary } from '@/features/admin/lib';
 import { UsersTable } from '@/features/admin/components/UsersTable';
+import { t } from '@/core/i18n/messages';
 
 const STATUS = ['invited', 'active', 'deactivated'] as const;
 const BOOL = ['true', 'false'] as const;
@@ -28,7 +29,7 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
     </div>
   );
   return (
-    <Frame title="Users" actions={perms.has('identity.user.manage') ? <Link href="/admin/users/new" className="lims-btn lims-btn-primary">Invite user</Link> : null}>
+    <Frame title={t('admin.nav.users')} actions={perms.has('identity.user.manage') ? <Link href="/admin/users/new" className="lims-btn lims-btn-primary">Invite user</Link> : null}>
       <form method="get" action="/admin/users" className="lims-filterbar" aria-label="Filters">
         {select('status', 'Status', [['', 'All'], ['invited', 'Invited'], ['active', 'Active'], ['deactivated', 'Deactivated']])}
         {select('is_locked', 'Locked', [['', 'Any'], ['true', 'Locked'], ['false', 'Not locked']])}

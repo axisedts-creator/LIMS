@@ -9,7 +9,7 @@
    - Re-running it after a reboot is safe: finished chunks are skipped, unfinished ones resume; lane windows that are already open are adopted, not duplicated.
    - Lane order below = priority: the chunks that gate the most later work (C4, C6, C5, C3, C15, C16) come first. #>
 param([string]$Integration = "C:\LIMS", [string]$LanesRoot = "C:\LIMS-lanes", [string]$StateDir = "C:\LIMS-state",
-      [int]$MaxLanes = 9, [int]$EveryMinutes = 3, [int]$MinFreeGB = 60, [int]$ResetExtra = 1, [switch]$NoPush)
+      [int]$MaxLanes = 5, [int]$EveryMinutes = 3, [int]$MinFreeGB = 60, [int]$ResetExtra = 1, [switch]$NoPush)
 
 $C0 = "C0-foundation-contracts"
 $log = Join-Path $StateDir "logs\queue.log"

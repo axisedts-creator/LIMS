@@ -11,6 +11,7 @@ import type { InstrumentLite, InstrumentRecordRow } from '../../server/types';
 import { OPEN_STATUSES, STATUS_FILTER } from './labels';
 import { RecordTable } from './RecordTable';
 import { useRecordFlow } from './RecordFlow';
+import { t } from '@/core/i18n/messages';
 
 const BANNER = 'Instrument results are matched to cultures manually until automatic matching is enabled.';
 const RANGE_TOO_LONG = 'Choose a period of at most 31 days.'; // [CONV] 04-UI-UX §4 Received max 31 days (the kit FilterBar cannot enforce maxDays)
@@ -75,7 +76,7 @@ export function InstrumentRecordsScreen({ rows, instruments, nextCursor, lookupP
   return (
     <section aria-label="Micro instrument data">
       <Stack gap={3}>
-        <PageHeader title="Micro instrument data" helpKey="micro.instrument_records" />
+        <PageHeader title={t('micro.nav.instrument_records')} helpKey="micro.instrument_records" />
         {lookupPortOn ? null : <Banner tone="info" title={BANNER} />}
         <FilterBar filters={filters} value={filterValue} onChange={onFilters} onReset={() => go({ match_status: undefined, instrument_id: undefined, received_at_from: undefined, received_at_to: undefined })} />
         {tooLong ? <Banner tone="warning" title={RANGE_TOO_LONG} /> : null}

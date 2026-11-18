@@ -18,6 +18,7 @@ import { RadioGroup } from '@lims/ui/components/RadioGroup';
 import { Select } from '@lims/ui/components/Select';
 import { StatusChip } from '@lims/ui/components/StatusChip';
 import { useToast } from '@lims/ui/components/Toast';
+import { t } from '@/core/i18n/messages';
 import { POINT, fixed, rulesText, z2 } from '../format';
 import { excludeObservationAction, pollLjAction } from '../server/actions';
 import type { CodeOption, LjChart, LjPoint, LjSeries, LjTarget, StatusRow } from '../types';
@@ -25,7 +26,7 @@ import { usePolled } from './polling';
 import { ConnectionLost, UpdatedAt, qs, useAttemptKey } from './Shared';
 
 type Iso = DateTextProps['value'];
-const TITLE = 'Levey-Jennings chart';
+const TITLE = t('quality.nav.lj_chart'); // T0D-ELABMENU-3 (LD-340): ElabAssist menu label
 const SIGMA = [['+1SD', 1], ['−1SD', -1], ['+2SD', 2], ['−2SD', -2], ['+3SD', 3], ['−3SD', -3]] as const;
 const FAIL = { 'common.version_conflict': 'This value changed. Reload the page and try again.', 'quality.qc_run_already_evaluated': 'This value belongs to an evaluated run and can no longer be excluded.' } as Record<string, string>;
 
@@ -35,7 +36,7 @@ export interface LjViewProps extends Common { chart?: LjChart; generatedAt: stri
 export function LjView(p: LjViewProps) {
   return p.chart ? <ChartView {...p} chart={p.chart} /> : (
     <>
-      <PageHeader title={TITLE} helpKey="quality.lj_chart" />
+      <PageHeader title={t('quality.nav.lj_chart')} helpKey="quality.lj_chart" />
       <Controls {...p} />
       <EmptyState title="Choose a plan" body="Pick an instrument and analyte to see its QC values over time." />
     </>

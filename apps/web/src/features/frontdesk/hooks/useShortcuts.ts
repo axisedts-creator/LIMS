@@ -37,7 +37,9 @@ export function useShortcuts(map: ShortcutMap): void {
       e.preventDefault();
       fn();
     };
-    document.addEventListener('keydown', on);
-    return () => document.removeEventListener('keydown', on);
+    // Capture phase (T0D-REGSCREEN-2): react-aria buttons and selects stop Enter from bubbling, so Ctrl+Enter after picking a payment method or
+    // pressing Apply coupon was lost. Only the mapped keys are prevented, everything else still reaches the focused control.
+    document.addEventListener('keydown', on, true);
+    return () => document.removeEventListener('keydown', on, true);
   }, []);
 }

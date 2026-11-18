@@ -64,13 +64,11 @@ describe('request shape (REQ-SEC-026/027)', () => {
 });
 
 describe('layout (04-UI-UX §3)', () => {
-  it('title = test name; breadcrumbs Microbiology › Culture; the five tabs in order; Instrument data badge = open count', async () => {
+  it('title = test name; one trail (T0D-UNSLOP-1 D: no in-page Microbiology › Culture breadcrumb); the five tabs in order; Instrument data badge = open count', async () => {
     api.use(http.get(`${ORIGIN}/v1/micro/cultures/:id`, () => HttpResponse.json(culture({ open_instrument_record_count: 3 }))));
     await show();
     expect(screen.getByRole('heading', { level: 1, name: /Synthetic Urine Culture/ })).toBeTruthy();
-    const crumbs = screen.getByRole('navigation', { name: /breadcrumb/i });
-    expect(crumbs.textContent).toMatch(/Microbiology/);
-    expect(crumbs.textContent).toMatch(/Culture/);
+    expect(screen.queryByRole('navigation', { name: /breadcrumb/i })).toBeNull();
     expect(screen.getAllByRole('tab').map((t) => t.textContent?.replace(/\s+/g, ' ').trim())).toEqual(['Setup & plates', 'Reads & stains', 'Isolates & AST', 'Reports', 'Instrument data (3)']);
     expect(screen.getAllByRole('tab')[0]!.getAttribute('aria-selected')).toBe('true');
   });

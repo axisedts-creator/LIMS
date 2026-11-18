@@ -16,6 +16,7 @@ import { PRICE_LIST_CODE_RE, type PriceList, type PriceOwnerKind } from '../serv
 import { StatusBadge } from './master-ui';
 import { fmtDateTime } from './shared';
 import { ActionDialog, canManagePrices } from './pricing-ui';
+import { t } from '@/core/i18n/messages';
 
 export const OWNER_LABEL: Record<PriceOwnerKind, string> = { default: 'Default', credit_party: 'Hospital-company', referrer: 'Doctor', centre: 'Centre' };
 const KIND_OPTIONS = (Object.keys(OWNER_LABEL) as PriceOwnerKind[]).map((value) => ({ value, label: OWNER_LABEL[value] }));
@@ -26,7 +27,7 @@ export function PriceListsList({ priceLists, permissions }: { priceLists: readon
   const open = manage ? () => setCreating(true) : undefined;
   return (
     <section aria-label="Price lists">
-      <PageHeader title="Price lists" helpKey="catalog.price_lists" breadcrumbs={[{ label: 'Pricing' }, { label: 'Price lists' }]} actions={open ? <Button variant="primary" onPress={open}>New price list</Button> : null} />
+      <PageHeader title={t('catalog.nav.price_lists')} helpKey="catalog.price_lists" actions={open ? <Button variant="primary" onPress={open}>New price list</Button> : null} />
       {/* T0D-EMPTYTBL-1 (LD-310): headers always drawn; the empty message (with New price list repeated) is a body row. */}
       <>
           {priceLists.length === 1 && priceLists[0]!.owner_kind === 'default' ? <p>Only the default price list exists.</p> : null}
@@ -39,7 +40,7 @@ export function PriceListsList({ priceLists, permissions }: { priceLists: readon
             </thead>
             <tbody>
               {priceLists.length === 0 ? (
-                <EmptyRow colSpan={8}><EmptyState title="No price list yet — create the default list first." {...(open ? { action: { label: 'New price list', onPress: open } } : {})} /></EmptyRow>
+                <EmptyRow colSpan={8}><EmptyState title="No rate master yet — create the default price list first." {...(open ? { action: { label: 'New price list', onPress: open } } : {})} /></EmptyRow>
               ) : null}
               {priceLists.map((p) => (
                 <tr key={p.id} className="lims-row">

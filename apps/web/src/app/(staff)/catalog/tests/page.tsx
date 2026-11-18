@@ -5,6 +5,7 @@
 // no view = the Complete test list. ?new=1[&copy=<id>] opens the full Add Test form.
 import { t } from '@/core/i18n/messages';
 import { getShellSession } from '@/core/session/server';
+import { pendingOr } from '@/core/shell/NotAvailable';
 import { CatalogForbidden } from '@/features/catalog/components/CatalogForbidden';
 import { TestDetailsView, type DetailsParam } from '@/features/catalog/components/TestDetailsView';
 import { CategoriesView, PopularView, TestMgmtTabs, VIEWS, type View } from '@/features/catalog/components/TestMgmtViews';
@@ -38,7 +39,11 @@ export default async function TestsPage({ searchParams }: { searchParams: Promis
   const asked = one(sp, 'view');
   const view: View = (VIEWS as readonly string[]).includes(asked) && asked !== 'list' ? (asked as View) : 'list';
 
-  const body = await (view === 'details' ? detailsView(sp, permissions) : view === 'categories' ? categoriesView(permissions) : view === 'popular' ? popularView(permissions) : listView(sp, permissions));
+  // T0D-UNSLOP-1 / LD-353 rule 6: 501 operation_pending keeps the title and the header row (NotAvailable), never error.tsx.
+  const heads = [t('catalog.tests.col_code'), t('catalog.tests.col_name'), t('catalog.tests.col_department'), t('catalog.tests.col_status')];
+  const body = await pendingOr(t('catalog.tests.title'), heads, () =>
+    view === 'details' ? detailsView(sp, permissions) : view === 'categories' ? categoriesView(permissions) : view === 'popular' ? popularView(permissions) : listView(sp, permissions),
+  );
   if (body === null) return <CatalogForbidden />;
   return <TestMgmtTabs view={view}>{body}</TestMgmtTabs>;
 }

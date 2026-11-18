@@ -132,9 +132,9 @@ describe('catalog list screens (empty, manage rights)', () => {
   it('Departments', () => { const { container } = wrap(<DepartmentsList departments={[]} permissions={MANAGE} />); expectEmptyTable(container, null); expectCreateTwice(container, /^new /i); });
   it('Doctors', () => { const { container } = wrap(<DoctorsList doctors={[]} permissions={MANAGE} />); expectEmptyTable(container, null); expectCreateTwice(container, /^new |^add /i); });
   it('Specimens', () => { const { container } = wrap(<SpecimensScreen specimenTypes={[]} containers={[]} permissions={MANAGE} />); expectEmptyTable(container, null); expectCreateTwice(container, /^new /i); });
-  it('Units', () => { const { container } = wrap(<UnitsScreen units={[]} valueSets={[]} permissions={MANAGE} />); expectEmptyTable(container, /No units yet/); expectCreateTwice(container, /^new unit$/i); });
+  it('Units', () => { const { container } = wrap(<UnitsScreen units={[]} valueSets={[]} permissions={MANAGE} />); expectEmptyTable(container, /No test units yet/); expectCreateTwice(container, /^new unit$/i); });
   it('Panels', () => { const { container } = wrap(<PanelsList panels={[]} departments={[]} permissions={MANAGE} />); expectEmptyTable(container, null); expectCreateTwice(container, /^new /i); });
-  it('Price lists', () => { const { container } = wrap(<PriceListsList priceLists={[]} permissions={MANAGE} />); expectEmptyTable(container, /No price list/i); expectCreateTwice(container, /^new price list$/i); });
+  it('Price lists', () => { const { container } = wrap(<PriceListsList priceLists={[]} permissions={MANAGE} />); expectEmptyTable(container, /No rate master yet/i); expectCreateTwice(container, /^new price list$/i); });
   it('Credit parties', () => { const { container } = wrap(<CreditPartiesScreen creditParties={[]} permissions={MANAGE} />); expectEmptyTable(container, null); expectCreateTwice(container, /^new /i); });
   it('Tests', () => {
     const { container } = wrap(<TestsList rows={[]} filters={{ q: '', department_id: '', specimen_type_id: '', is_active: '' }} page={1} pages={1} filtered={false} departments={[]} specimenTypes={[]} manage openNew={false} />);

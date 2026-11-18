@@ -7,9 +7,12 @@
 // filter is asserted on listAccountLedgerEntries (fiscal_year_label), the ElabAssist "Financial Year" search (CR needed if getAccountStatement must filter too: see the notes).
 import { describe, expect, it } from 'vitest';
 import { bsToAd, fiscalYearBs, type IsoDate } from '../../../../../../../packages/shared-ts/src/bsdate/index.js';
-import { entry, moneyIsInteger, ok, post, prng, rejected, reverse } from '../accounts/helpers.js';
+import { entry as baseEntry, moneyIsInteger, ok, post as basePost, prng, rejected, reverse } from '../accounts/helpers.js';
 import { T, addDays, dbEntry, dbRows, fire, idem, listEntries, req, superTx, world } from './kit.js';
 
+// Ruling T0B-FINCTRL-1 dispute 2: the label depends on entry_date only, so every entry here is a DEBIT; dailySummary.test.ts counts credits only and uses these dates as private days.
+const entry = (w: any, o: Record<string, unknown> = {}) => baseEntry(w, { entry_type: 'debit', ...o });
+const post = (w: any, o: Record<string, unknown> = {}, who: { tenant?: string; now?: Date } = {}) => basePost(w, { entry_type: 'debit', ...o }, who);
 const label = (d: string) => fiscalYearBs(d as IsoDate).long;
 const shrawan1 = (y: number) => bsToAd({ year: y, month: 4, day: 1 }) as string;
 
@@ -69,7 +72,7 @@ describe('fiscal_year_label at write time', () => {
     const settings = { fiscal_year_start_bs: { month: 10, day: 1 } };
     const control = ok(await post(w, { entry_date: addDays(prev, -1) }), 201);               // no setting: Poush 2082 is in the Shrawan 1 year 2082/83
     expect(control.fiscal_year_label).toBe('2082/83');
-    const mk = (date: string) => fire('createAccountLedgerEntry', req({ headers: idem(), body: { centre_id: w.centre, party_kind: 'credit_party', party_id: w.partyId, entry_date: date, account_particular_id: w.particularId, entry_type: 'credit', amount_paisa: 1000, payment_mode: 'cash' } }), { tenant: w.tenant, settings });
+    const mk = (date: string) => fire('createAccountLedgerEntry', req({ headers: idem(), body: { centre_id: w.centre, party_kind: 'credit_party', party_id: w.partyId, entry_date: date, account_particular_id: w.particularId, entry_type: 'debit', amount_paisa: 1000, payment_mode: 'cash' } }), { tenant: w.tenant, settings });
     expect(ok(await mk(addDays(prev, -1)), 201).fiscal_year_label).toBe('2081/82');           // day before Magh 1 2082: the year that started on Magh 1 2081
     expect(ok(await mk(prev), 201).fiscal_year_label).toBe('2082/83');                        // Magh 1 2082 itself
     expect(ok(await mk('2026-11-17'), 201).fiscal_year_label).toBe('2082/83');                // Mangsir 2083 is before Magh 1 2083

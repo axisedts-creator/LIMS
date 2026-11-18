@@ -98,8 +98,8 @@ export const ledgerMock = async (orig: () => Promise<any>) => ({ ...(await orig(
   createLedgerService: () => ({ recordPayment: (ctx: any, input: any) => { calls.recordPayment.push({ ctx, args: [input] }); return behave.recordPayment(ctx, input); },
     reverseEntry: async () => { throw new Error('the receipt adapter must never reverse'); } }) });
 export const specimenMock = async (orig: () => Promise<any>) => ({ ...(await orig()),
-  collectSpecimen: (ctx: any, ...a: any[]) => { calls.collect.push({ ctx, args: a }); return behave.collect(ctx, a[1]); },
-  receiveSpecimen: (ctx: any, ...a: any[]) => { calls.receive.push({ ctx, args: a }); return behave.receive(ctx, a[1]); } });
+  collectSpecimen: (ctx: any, ...a: any[]) => { calls.collect.push({ ctx, args: a }); return behave.collect(ctx, a[0]); },
+  receiveSpecimen: (ctx: any, ...a: any[]) => { calls.receive.push({ ctx, args: a }); return behave.receive(ctx, a[0]); } });
 // every test file repeats these three lines at its top (vi.mock is hoisted per test file, never from a helper):
 //   vi.mock('../../../../modules/frontdesk/service/registration.service.js', async (orig) => (await import('./doubles.js')).registrationMock(orig as never));
 //   vi.mock('../../../../modules/billing/service/ledger.service.js', async (orig) => (await import('./doubles.js')).ledgerMock(orig as never));

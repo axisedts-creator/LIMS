@@ -33,7 +33,7 @@ const api = setupServer(
   http.post(`${ORIGIN}/v1/partners/admin/manifest-lines/:id/not-received`, async ({ request }) => { await rec(request); return HttpResponse.json(line(LINE.A, 1, { state: 'not_received' })); }),
   http.post(`${ORIGIN}/v1/frontdesk/patients/search`, async ({ request }) => { await rec(request); return HttpResponse.json({ data: [patientHit()] }); }),
 );
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { cleanup(); api.resetHandlers(); calls.length = 0; refresh.mockReset(); current = manifest(); session.perms = []; localStorage.clear(); sessionStorage.clear(); });
 afterAll(() => api.close());
 

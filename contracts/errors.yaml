@@ -345,3 +345,13 @@
 - { code: sync.block_size_too_large, http: 422, owner: C0, title: "Block size too large", meaning: "Requested number block size is above the configured maximum" }
 - { code: sync.series_unknown, http: 422, owner: C0, title: "Number series not available", meaning: "The series is not issued in blocks for this tenant" }
 - { code: sync.wipe_required, http: 409, owner: C0, title: "Device wipe required", meaning: "A remote wipe was requested; wipe local data and acknowledge before any other sync" }
+# T0C-SYNC-2 (LD-322): offline sync part 2 (push, pull, conflicts); closed list owned by C0; titles and meanings never carry personal data
+- { code: sync.base_version_stale, http: 409, owner: C0, title: "Base version stale", meaning: "The entity changed on the server after the version the device edited; the operation was not applied" }
+- { code: sync.op_id_reused, http: 422, owner: C0, title: "Operation id reused", meaning: "The op_id was already used with a different payload; generate a new op_id for a new operation" }
+- { code: sync.batch_too_large, http: 422, owner: C0, title: "Batch too large", meaning: "The batch is above 50 operations or 1 MB; split it and retry" }
+- { code: sync.clock_skew_too_large, http: 422, owner: C0, title: "Clock skew too large", meaning: "The device clock differs from the server clock beyond the allowed limit; correct the device time" }
+- { code: sync.result_locked, http: 409, owner: C0, title: "Result locked", meaning: "The result was verified or released on the server; an offline change cannot be applied" }
+- { code: sync.verification_policy_failed, http: 403, owner: C0, title: "Verification policy failed", meaning: "The offline verification does not meet the verification policy at sync time; any offline print is recalled" }
+- { code: sync.offline_not_allowed, http: 403, owner: C0, title: "Not allowed offline", meaning: "The operation needs an online step up or is online only for this tenant" }
+- { code: sync.number_out_of_block, http: 422, owner: C0, title: "Number outside reserved block", meaning: "A lab code or patient id used offline is not inside a block reserved by this device" }
+- { code: sync.entity_changed, http: 409, owner: C0, title: "Entity changed", meaning: "The entity changed since the conflict was recorded; reload both versions and resolve again" }

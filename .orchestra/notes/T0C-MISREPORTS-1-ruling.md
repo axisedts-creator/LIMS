@@ -1,6 +1,7 @@
-TESTS_WRONG — db/tests/analytics/T0C-MISREPORTS-1_report_codes.test.sql:42 pins 8 columns; the table has always had 9. Change the expected value 8 to 9 and the description/comment (line 41-42) to "keeps its 9 columns"; keep the case.
+TESTS_WRONG — tools/codegen/__tests__/misreports1-openapi.test.ts:62 PINS.consultant.cols still requires net_billed_paisa, which the binding ruling removed.
 Reasons:
-- db/migrations/20261105002100_analytics__create_analytics_schema.sql:16-20 creates analytics.g_cs_report_codes with 9 columns: code, display, system, system_version, sort_order, is_active, is_exportable, is_schedulable, created_at.
-- No migration alters its columns: the only ALTER TABLE on it is db/migrations/20261117230000_analytics__add_mis_report_support.sql:15 (DROP CONSTRAINT IF EXISTS g_cs_report_codes__no_c_word__ck), which LD-342 explicitly allows ("the migration drops only the check g_cs_report_codes__no_c_word__ck").
-- Task brief done_when (2)/(6) and LD-321 MIGRATIONS: 230000 adds a column/index only if needed; none was added, so the case's intent ("no supporting column was needed") is unchanged count = 9.
-- No spec line requires 8 columns; the 8 is a tester miscount, not a requirement.
+1. LD-346 (1) (lead decision, binding over spec text for this task, .orchestra/inbox/T0C-MISREPORTS-1-arbiter.md:40): consultant "loses the column net_billed_paisa and sorts by tests_count descending (volume only)"; brief RULING 2 (line 21): "the tester updates the contract test that pins the column".
+2. spec/program/08-CR-REGISTER.md:3147 Addendum A39-3: per-referrer money/commission wording only inside two_level_commission and tds; consultant is outside the gate, so a money column there contradicts A39-3 as LD-346 reads it.
+3. Implementation already conforms: contracts/openapi/analytics.yaml:3985-3997 has no net_billed_paisa, has tests_count integer, default_sort tests_count desc.
+Change to the test (tester only): line 62 -> consultant: { perm: DASH, params: ["referrer_id", "department_id"], cols: { orders_registered: "integer", tests_count: "integer" } }.
+Optionally add a negative assertion that consultant has no column named net_billed_paisa and default_sort is { column: tests_count, direction: desc }. Do not delete or skip any case; no yaml change.

@@ -9,3 +9,5 @@ Round 4: verify.log ends "The system cannot find the path specified." right afte
 No implementation defect, no code change. Fix belongs to the harness: run verify.cmd by absolute path, or use absolute cd. Manual rerun of every step was green in round 3.
 Round 5: verify.log again ends at "The system cannot find the path specified." after codegen step 1 (577/577 green); steps 2-5 never ran. Same harness cause as round 4 (verify.cmd step 2 `cd /d "%~dp0..\..\contracts"` runs from tools\codegen; breaks if %~dp0 is relative).
 No implementation defect, no code change, tests untouched. Fix belongs to the harness: run verify.cmd by absolute path. Manual rerun of all steps was green in round 3.
+Round 6: steps 1-4 of verify green (codegen 577/577, contracts, API 6 files 301/301, boot T-01 3 passed). Step 5 (pgTAP via nested bash.exe) died with "cygheap read copy failed ... Win32 error 299" = Cygwin fork failure (host memory/load), not a test or code failure.
+No implementation defect, no code change, tests untouched. Fix is harness: rerun verify when host is idle. Manual pgTAP rerun not possible this session (command denied by permission prompt).

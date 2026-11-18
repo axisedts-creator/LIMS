@@ -1,0 +1,8 @@
+# T0D-VERLEVEL-1 impl (writer)
+Files: components/settings/VerificationPolicyTab.tsx (new), settings/LabSettingsPage.tsx (5th tab), components/QueueScreen.tsx (chip, next step, who signed, dimming, 3 refusal texts), VerificationQueue.tsx (currentUserId prop), server/config.actions.ts (list/upsert policy, getResultSignoffs, department/test options), server/config.types.ts, server/types.ts (QueueResult sign-off fields). 7 files.
+[CONV] New actions live in config.actions.ts, not a new file: adminpage-lab-1.static scans every lab file added since its BASE for /v1 paths and raw <input>/<button>; a new file broke 2 of its tests.
+[CONV] "Already signed" = a signer_user_id equal to currentUserId on result_version == current_version_no (ResultDto signoff_count counts the current version only); dimmed rows are dropped from the selection, never sent.
+[CONV] Test search filters the first 200 tests (listTests limit max) in the browser; department list likewise (ponytail note in code).
+Tests: verlevel1 66/67 (1 test defect, see T0D-VERLEVEL-1-dispute.md); c5-t21 35/35, lab-t29 39/39, rs-c2 74/74. Other lab suites: same failures as clean HEAD (adminpage-lab-1 3, lab-t11 1, lab-t25 1, lab-t26 3, rs-c5 3), none new. tsc: no errors in source; eslint not installed in this worktree.
+Open: pages app/(staff)/lab/{verification,approval}/page.tsx do not pass currentUserId yet: the shell session actor has only membershipId (core/session/store.ts holds userId but core is not lab-owned) -> CR or follow-up needed; until then nothing is dimmed and the API refuses with lab.verifier_not_distinct.
+Not verified: 1366x768 fit and focus ring visuals (jsdom); "Updated by" shows a dash (no field in VerificationPolicy).

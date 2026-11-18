@@ -32,6 +32,9 @@
 .lims-stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: var(--lims-space-2); }
 .lims-dash-charts { display: grid; grid-template-columns: 2fr 1fr; gap: var(--lims-space-4); }
 @media (max-width: 64rem) { .lims-dash-charts { grid-template-columns: 1fr; } }
+/* T0D-UIDASH-1 (LD-353 rule 4): a status tile that is also a filter (lab status board); pressed = the accent border. */
+.lims-stat-toggle { font: inherit; text-align: start; cursor: pointer; }
+.lims-stat-toggle[aria-pressed='true'] { border-color: var(--lims-accent); }
 .lims-search-code { color: var(--lims-neutral-700); font-variant-numeric: tabular-nums; }
 
 /* sidebar: brand, Find a screen, scrolling groups, user card pinned at the bottom */

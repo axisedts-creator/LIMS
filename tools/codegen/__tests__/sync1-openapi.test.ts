@@ -129,10 +129,10 @@ describe("T0C-SYNC-1 core.yaml: lint and additive baseline", () => {
     expect(C_DOC.openapi).toBe("3.0.3");
     for (const k of Object.keys(C_DOC.paths)) expect(k.startsWith("/v1/core/"), k).toBe(true);
   });
-  it("core.yaml is additive: the 2 health operations stay unchanged, exactly 7 new ones, unique ids", () => {
+  it("core.yaml is additive: the 2 health operations stay unchanged, the 7 part 1 operations exist, unique ids (T0C-SYNC-2 adds 5 more: 2 health + 7 + 5 = 14; its own test pins them)", () => {
     const ids = idsOf(C_DOC);
-    expect(ids.length, "2 health + 7 sync").toBe(9);
-    expect(new Set(ids).size).toBe(9);
+    expect(ids.length, "2 health + 7 sync part 1 + 5 sync part 2").toBe(14);
+    expect(new Set(ids).size).toBe(14);
     expect(opIn(C_DOC, "getLiveness")!.path).toBe("/v1/core/health/live");
     expect(opIn(C_DOC, "getReadiness")!.path).toBe("/v1/core/health/ready");
     expect(opIn(C_DOC, "getLiveness")!.op["x-public"]).toBeDefined();
@@ -367,7 +367,8 @@ describe("T0C-SYNC-1 examples", () => {
 
 describe("T0C-SYNC-1 error codes: the closed list (done_when 4)", () => {
   it("errors.yaml holds exactly five sync.* codes, owner C0, with the pinned http status and a title and meaning free of personal data; no other code was added", () => {
-    const sync = errorsYaml.filter((e) => String(e.code).startsWith("sync."));
+    // T0C-SYNC-2 widened the list by nine more sync.* codes (sync2-openapi.test.ts pins them); the five of part 1 stay exactly as pinned here.
+    const sync = errorsYaml.filter((e) => Object.keys(NEW_ERRORS).includes(String(e.code)));
     sortedEq(sync.map((e) => e.code), Object.keys(NEW_ERRORS));
     for (const e of sync) {
       expect(e.owner, e.code).toBe("C0");

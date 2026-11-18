@@ -2,7 +2,10 @@
 // 04-UI-UX §8.5 Daily cash: staff × method table with totals, sessions table (variance as text), Export (B28 daily_cash), My shift + Close shift (B17b).
 import { useRef, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
+import { BarChart } from '@lims/ui/components/BarChart';
 import { Button } from '@lims/ui/components/Button';
+import { ChartCard } from '@lims/ui/components/ChartCard';
+import { StatTile, StatTileRow } from '@lims/ui/components/StatTile';
 import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
 import { DatePicker, type IsoDate } from '@lims/ui/components/DatePicker';
 import { Dialog } from '@lims/ui/components/Dialog';
@@ -47,11 +50,26 @@ export function DailyCashView({ report, session, permissions }: { report: DailyC
     { id: 'counted', header: 'Counted cash', align: 'end', cell: (s) => npr(cashRow(s)?.counted) },
     { id: 'variance', header: 'Variance', cell: (s) => varianceText(cashRow(s)?.variance) },
   ];
+  // T0D-UIDASH-1, LD-353 template 5: tiles and the method bar come from the report the screen already reads (no new operation).
+  const variance = report.sessions.reduce((sum, s) => sum + (cashRow(s)?.variance?.amount_paisa ?? 0), 0);
+  const methods = [...new Set(report.rows.map((r) => r.method_code))];
+  const netOf = (m: string) => report.rows.filter((r) => r.method_code === m).reduce((sum, r) => sum + r.net.amount_paisa, 0);
   return (
     <section aria-label="Daily cash">
-      <PageHeader title={t('nav.billing.daily_cash')} helpKey="billing.daily_cash" actions={hasPerm(permissions, 'billing.data.export') ? <ExportButtons kind="daily_cash" formats={['xlsx']} filters={{ from: report.business_date, to: report.business_date }} /> : null} />
-      <DatePicker label="Business date" name="date" value={report.business_date as IsoDate} onChange={(d) => d && nav.replace(`${pathname}?date=${d}`)} />
-      <p>Business date: <BsAd bs={report.business_date_bs} ad={report.business_date} /></p>
+      {/* the business date is written once, in the header slot (LD-353 template 5) */}
+      <PageHeader title={t('nav.billing.daily_cash')} helpKey="billing.daily_cash" status={<BsAd bs={report.business_date_bs} ad={report.business_date} />} actions={hasPerm(permissions, 'billing.data.export') ? <ExportButtons kind="daily_cash" formats={['xlsx']} filters={{ from: report.business_date, to: report.business_date }} /> : null} />
+      <div role="search" className="lims-filter-bar">
+        <DatePicker label="Business date" name="date" showAlternate={false} value={report.business_date as IsoDate} onChange={(d) => d && nav.replace(`${pathname}?date=${d}`)} />
+      </div>
+      <StatTileRow>
+        <StatTile label="Gross" value={npr(report.totals.gross)} />
+        <StatTile label="Reversed" value={npr(report.totals.reversed)} />
+        <StatTile label="Net" value={npr(report.totals.net)} />
+        <StatTile label="Variance" value={varianceText({ amount_paisa: variance, currency: 'NPR' })} />
+      </StatTileRow>
+      <ChartCard title="Net by payment method" isEmpty={methods.length === 0}>
+        <BarChart title="Net by payment method" valueFormat="money" categories={methods.map(humanize)} series={[{ id: 'net', label: 'Net', values: methods.map(netOf) }]} />
+      </ChartCard>
       {session && session.status === 'open' ? <MyShift session={session} /> : null}
       <DataTable caption="Collections by staff and method" columns={collections} rows={lines} getRowId={(l) => (isTotal(l) ? 'total' : `${l.collected_by.membership_id}-${l.method_code}`)} emptyState={{ title: 'No collections for this date.' }} />
       <h2>Sessions</h2>

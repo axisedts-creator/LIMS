@@ -159,7 +159,7 @@ describe('RS-C8 dashboard — money strip only where the API sent money, with cu
   it('no paisa tile from the API (a role without money access): no strip, no money label, no "Rs." figure outside charts', async () => {
     const { container } = await open(without(...MONEY_KEYS));
     expect(moneyStrip()).toBeNull();
-    expect(screen.queryByText(/^(net sales|cash collected)$/i)).toBeNull();
+    expect(screen.queryByText(/^(income \(net sales\)|cash collected \(net\))$/i)).toBeNull();
     expect(norm(container.textContent)).not.toMatch(/Rs\. [\d,]+\.\d\d/);
   });
 

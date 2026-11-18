@@ -24,6 +24,9 @@ const LD316_VERLEVEL_ERRORS = ["lab.enterer_cannot_verify", "lab.pathologist_req
 const LD322_SYNC_CODES = ["sync.conflict.resolve", "sync.device.manage", "sync.use"];
 // T0C-SYNC-1 (LD-322): the closed sync error list, the only error codes allowed beyond IC section 8 (owner C0).
 const LD322_SYNC_ERRORS = ["sync.block_size_too_large", "sync.device_revoked", "sync.device_unknown", "sync.series_unknown", "sync.wipe_required"];
+// T0C-SYNC-2 (LD-322, brief done_when 4): offline sync part 2 closes the list with nine more sync.* codes (owner C0); none carries personal data. No new permission code (the SYNC-1 codes are reused).
+const LD322_SYNC2_ERRORS = ["sync.base_version_stale", "sync.batch_too_large", "sync.clock_skew_too_large", "sync.entity_changed", "sync.number_out_of_block", "sync.offline_not_allowed",
+  "sync.op_id_reused", "sync.result_locked", "sync.verification_policy_failed"];
 // T0C-MSGDESK-1 (LD-330: the lane that merges second keeps BOTH sides): codes from the other contract lane, not in IC yet.
 const MSGDESK_ERRORS = ["engagement.broadcast_invalid_transition", "engagement.broadcast_placeholder_unknown", "engagement.broadcast_provider_not_configured", "engagement.broadcast_recipient_limit",
   "engagement.broadcast_self_approval", "engagement.broadcast_template_inactive", "partners.ticket_invalid_transition"];
@@ -110,7 +113,7 @@ describe("AC-0C-1.3 errors.yaml == IC §8", () => {
     // (spec/ is read-only, the lead records the widening in the CR register); every IC entry stays unchanged and in order. A further code needs a new lead decision and an edit of this list.
     const icCodes = ic.map((e) => String(e.code));
     const extra = file.filter((e) => !icCodes.includes(String(e.code)));
-    expect(extra.map((e) => String(e.code)).sort()).toEqual([...LD322_SYNC_ERRORS, ...LD316_VERLEVEL_ERRORS, ...MSGDESK_ERRORS, ...TESTIMPORT_ERRORS].sort());
+    expect(extra.map((e) => String(e.code)).sort()).toEqual([...LD322_SYNC_ERRORS, ...LD322_SYNC2_ERRORS, ...LD316_VERLEVEL_ERRORS, ...MSGDESK_ERRORS, ...TESTIMPORT_ERRORS].sort());
     const core = file.filter((e) => icCodes.includes(String(e.code)));
     expect(diffByKey(ic, core, "code")).toEqual([]);
     expect(core.map((e) => e.code)).toEqual(ic.map((e) => e.code)); // order preserved

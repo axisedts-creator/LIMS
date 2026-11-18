@@ -6,7 +6,10 @@ import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { Badge } from '@lims/ui/components/Badge';
 import { Button } from '@lims/ui/components/Button';
+import { BarChart } from '@lims/ui/components/BarChart';
+import { ChartCard } from '@lims/ui/components/ChartCard';
 import { Checkbox } from '@lims/ui/components/Checkbox';
+import { StatTile, StatTileRow } from '@lims/ui/components/StatTile';
 import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
 import { DateText, type DateTextProps } from '@lims/ui/components/DateText';
 import { FilterBar, type FilterValue } from '@lims/ui/components/FilterBar';
@@ -37,7 +40,8 @@ export function TatView({ page, generatedAt, sp, canAck, departments = [], centr
   const { data, updatedAt, lost } = usePolled(page, generatedAt, () => pollTatAction(sp), JSON.stringify(sp), POLL_MS);
   const [ackFor, setAckFor] = useState<TatAlert>();
   const rows = data.rows;
-  const escalated = rows.filter((r) => r.alert_level === 'escalated').length;
+  const level = (l: string) => rows.filter((r) => r.alert_level === l).length;
+  const escalated = level('escalated');
 
   // Live region: announces only a change of the escalated count, never a plain refresh (04-UI-UX §4).
   const [announce, setAnnounce] = useState('');
@@ -55,9 +59,9 @@ export function TatView({ page, generatedAt, sp, canAck, departments = [], centr
   // Row shortcut A (02-TRD §14 keyboard-only): only while a row (not a field or button) has focus.
   const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
     if (!canAck || e.key.toLowerCase() !== 'a' || e.ctrlKey || e.metaKey || e.altKey) return;
-    const t = e.target as HTMLElement;
-    if (t.closest('input,textarea,select,button,a')) return;
-    const id = t.closest('[data-row-id]')?.getAttribute('data-row-id');
+    const el = e.target as HTMLElement;
+    if (el.closest('input,textarea,select,button,a')) return;
+    const id = el.closest('[data-row-id]')?.getAttribute('data-row-id');
     const row = rows.find((r) => r.tat_item_id === id);
     if (row && outranksAck(row)) {
       e.preventDefault();
@@ -130,6 +134,13 @@ export function TatView({ page, generatedAt, sp, canAck, departments = [], centr
         onReset={() => router.push(BASE)}
       />
       <Checkbox label="Acknowledged only" isSelected={sp['acknowledged'] === 'true'} onChange={(on) => go({ acknowledged: on ? 'true' : undefined })} />
+      {/* T0D-UIDASH-1, LD-353 template 5: tiles and the bar count the alerts of this page (no new operation) */}
+      <StatTileRow>
+        {LEVEL_OPTIONS.map((l) => <StatTile key={l.value} label={l.label} value={` ${level(l.value)}`} />)}
+      </StatTileRow>
+      <ChartCard title="Alerts by level" isEmpty={rows.length === 0}>
+        <BarChart title="Alerts by level" valueFormat="integer" categories={LEVEL_OPTIONS.map((l) => l.label)} series={[{ id: 'n', label: 'Alerts', values: LEVEL_OPTIONS.map((l) => level(l.value)) }]} />
+      </ChartCard>
       <div onKeyDown={onKeyDown}>
         <DataTable<TatAlert>
           columns={columns} rows={rows} getRowId={(r) => r.tat_item_id} density="compact" caption="TAT alerts"

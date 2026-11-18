@@ -5777,7 +5777,7 @@ components:
           enum:
             - routine
             - urgent
-          default: routine
+          description: "Absent = routine, applied by the handler (no schema default since T0C-SYNC-2, LD-322; the offline catalogue reuses this schema inside a oneOf, where ajv refuses defaults)."
         collection_mode:
           type: string
           maxLength: 7
@@ -5786,7 +5786,7 @@ components:
             - home
             - centre
             - partner
-          default: walk_in
+          description: "Absent = walk_in, applied by the handler (no schema default since T0C-SYNC-2, LD-322; the offline catalogue reuses this schema inside a oneOf, where ajv refuses defaults)."
         items:
           type: array
           maxItems: 50

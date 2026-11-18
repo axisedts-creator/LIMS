@@ -1,0 +1,281 @@
+
+ RUN  v5.1.0 C:/LIMS-lanes/C0-0P/apps/web
+
+Warning: Failed to load CA certificates off thread: invalid argument
+
+<--- Last few GCs --->
+
+[53596:0000012EE96C8000]      372 ms: Scavenge 5.7 (7.5) -> 5.6 (8.0) MB, pooled: 0.0 MB, 1.16 / 0.00 ms (average mu = 1.000, current mu = 1.000) allocation failure; 
+[53596:0000012EE96C8000]      695 ms: Scavenge 8.6 (10.5) -> 7.6 (11.0) MB, pooled: 0.0 MB, 1.14 / 0.00 ms (average mu = 1.000, current mu = 1.000) allocation failure; 
+[53596:0000012EE96C8000]      737 ms: Scavenge 8.0 (11.0) -> 7.8 (11.5) MB, pooled: 0.0 MB, 2.07 / 0.00 ms (average mu = 1.000, current mu = 1.000) allocation failure; 
+
+FATAL ERROR: Zone Allocation failed - process out of memory
+----- Native stack trace -----
+
+
+<--- Last few GCs --->
+
+[42408:000002EE98EBB000]      336 ms: Scavenge 5.7 (7.5) -> 5.5 (8.0) MB, pooled: 0.0 MB, 1.33 / 0.00 ms (average mu = 1.000, current mu = 1.000) allocation failure; 
+[42408:000002EE98EBB000]      565 ms: Scavenge 8.6 (10.5) -> 7.7 (10.8) MB, pooled: 0.0 MB, 1.14 / 0.00 ms (average mu = 1.000, current mu = 1.000) allocation failure; 
+[42408:000002EE98EBB000]      624 ms: Scavenge 9.3 (12.3) -> 8.4 (13.3) MB, pooled: 0.0 MB, 1.26 / 0.00 ms (average mu = 1.000, current mu = 1.000) allocation failure; 
+
+FATAL ERROR: MarkCompactCollector: young object promotion failed Allocation failed - JavaScript heap out of memory
+----- Native stack trace -----
+
+
+<--- Last few GCs --->
+
+[42408:000002EE98EBB000]      336 ms: Scavenge 5.7 (7.5) -> 5.5 (8.0) MB, pooled: 0.0 MB, 1.33 / 0.00 ms (average mu = 1.000, current mu = 1.000) allocation failure; 
+[42408:000002EE98EBB000]      565 ms: Scavenge 8.6 (10.5) -> 7.7 (10.8) MB, pooled: 0.0 MB, 1.14 / 0.00 ms (average mu = 1.000, current mu = 1.000) allocation failure; 
+[42408:000002EE98EBB000]      624 ms: Scavenge 9.3 (12.3) -> 8.4 (13.3) MB, pooled: 0.0 MB, 1.26 / 0.00 ms (average mu = 1.000, current mu = 1.000) allocation failure; 
+
+FATAL ERROR: MarkCompactCollector: young object promotion failed Allocation failed - JavaScript heap out of memory
+----- Native stack trace -----
+
+
+<--- Last few GCs --->
+
+[42408:000002EE98EBB000]      336 ms: Scavenge 5.7 (7.5) -> 5.5 (8.0) MB, pooled: 0.0 MB, 1.33 / 0.00 ms (average mu = 1.000, current mu = 1.000) allocation failure; 
+[42408:000002EE98EBB000]      565 ms: Scavenge 8.6 (10.5) -> 7.7 (10.8) MB, pooled: 0.0 MB, 1.14 / 0.00 ms (average mu = 1.000, current mu = 1.000) allocation failure; 
+[42408:000002EE98EBB000]      624 ms: Scavenge 9.3 (12.3) -> 8.4 (13.3) MB, pooled: 0.0 MB, 1.26 / 0.00 ms (average mu = 1.000, current mu = 1.000) allocation failure; 
+
+FATAL ERROR: MarkCompactCollector: young object promotion failed Allocation failed - JavaScript heap out of memory
+----- Native stack trace -----
+
+
+<--- Last few GCs --->
+
+[42408:000002EE98EBB000]      336 ms: Scavenge 5.7 (7.5) -> 5.5 (8.0) MB, pooled: 0.0 MB, 1.33 / 0.00 ms (average mu = 1.000, current mu = 1.000) allocation failure; 
+[42408:000002EE98EBB000]      565 ms: Scavenge 8.6 (10.5) -> 7.7 (10.8) MB, pooled: 0.0 MB, 1.14 / 0.00 ms (average mu = 1.000, current mu = 1.000) allocation failure; 
+[42408:000002EE98EBB000]      624 ms: Scavenge 9.3 (12.3) -> 8.4 (13.3) MB, pooled: 0.0 MB, 1.26 / 0.00 ms (average mu = 1.000, current mu = 1.000) allocation failure; 
+
+FATAL ERROR: MarkCompactCollector: young object promotion failed Allocation failed - JavaScript heap out of memory
+----- Native stack trace -----
+
+ 1: 00007FF7D3E312B6 
+ 1: 00007FF7D3E312B6 
+ 2: 00007FF7D49D10A7 
+ 1: 00007FF7D3E312B6 
+ 3: 00007FF7D47DF4B7 
+ 2: 00007FF7D49D10A7 
+ 4: 00007FF7D47BEF8F 
+ 2: 00007FF7D49D10A7 
+ 3: 00007FF7D47DF4B7 
+ 3: 00007FF7D47DF4B7 
+ 4: 00007FF7D47BEF8F 
+ 4: 00007FF7D47BEF8F 
+ 5: 00007FF7D47B375C 
+ 5: 00007FF7D47B375C 
+ 5: 00007FF7D47B375C 
+ 6: 00007FF7D47B340B 
+ 6: 00007FF7D47B340B 
+ 7: 00007FF7D47B3031 
+ 7: 00007FF7D47B3031 
+ 8: 00007FF7D47C4B38 
+ 8: 00007FF7D47C4B38 
+ 9: 00007FF7D525420F 
+ 9: 00007FF7D525420F 
+ 6: 00007FF7D47B340B 
+10: 00007FF7D3D7B75E 
+ 7: 00007FF7D47B3031 
+10: 00007FF7D3D7B75E 
+ 8: 00007FF7D47C4B38 
+11: 00007FF7D4A27CA6 
+ 9: 00007FF7D525420F 
+11: 00007FF7D4A27CA6 
+12: 00007FF7D5F915B3 
+12: 00007FF7D5F915B3 
+13: 00007FFB6E81DDA7 
+10: 00007FF7D3D7B75E 
+14: 00007FFB6FB39C5C 
+11: 00007FF7D4A27CA6 
+13: 00007FFB6E81DDA7 
+12: 00007FF7D5F915B3 
+14: 00007FFB6FB39C5C 
+13: 00007FFB6E81DDA7 
+14: 00007FFB6FB39C5C 
+ 1: 00007FF7D3E312B6 
+ 2: 00007FF7D49D10A7 
+ 3: 00007FF7D438F9F3 
+ 4: 00007FF7D5218F23 
+ 5: 00007FF7D521963B 
+ 6: 00007FF7D41B0E06 
+ 7: 00007FF7D41DBE47 
+ 8: 00007FF7D41DB332 
+ 9: 00007FF7D41F0B9F 
+10: 00007FF7D41C378C 
+11: 00007FF7D41DE959 
+12: 00007FF7D41F20AA 
+13: 00007FF7D41F327A 
+14: 00007FF7D41C9AD2 
+15: 00007FF7D41DA6E2 
+16: 00007FF7D41DA348 
+17: 00007FF7D41DBE83 
+18: 00007FF7D41DB332 
+19: 00007FF7D41F0B9F 
+20: 00007FF7D41F8041 
+21: 00007FF7D41F856B 
+22: 00007FF7D41F8729 
+23: 00007FF7D41F8ADF 
+24: 00007FF7D41C9932 
+25: 00007FF7D41DA6E2 
+26: 00007FF7D420C14B 
+27: 00007FF7D4264E6E 
+28: 00007FF7D4262EF7 
+29: 00007FF7D495E90F 
+30: 00007FF7D42648A2 
+31: 00007FF7D525420F 
+32: 00007FF7D3D7B75E 
+33: 00007FF7D4A27CA6 
+34: 00007FF7D5F915B3 
+35: 00007FFB6E81DDA7 
+36: 00007FFB6FB39C5C 
+
+<--- Last few GCs --->
+
+[41876:000001CB01C6D000]      931 ms: Scavenge 9.3 (12.3) -> 8.4 (13.0) MB, pooled: 0.0 MB, 1.39 / 0.00 ms (average mu = 1.000, current mu = 1.000) allocation failure; 
+[41876:000001CB01C6D000]     1119 ms: Scavenge 14.6 (17.5) -> 13.0 (18.8) MB, pooled: 0.0 MB, 2.60 / 0.01 ms (average mu = 1.000, current mu = 1.000) allocation failure; 
+[41876:000001CB01C6D000]     1401 ms: Scavenge 15.8 (21.0) -> 14.6 (23.0) MB, pooled: 0.0 MB, 7.01 / 0.00 ms (average mu = 1.000, current mu = 1.000) allocation failure; 
+
+FATAL ERROR: AlignedAlloc Allocation failed - process out of memory
+----- Native stack trace -----
+
+ 1: 00007FF7D3E312B6 
+ 2: 00007FF7D49D10A7 
+ 3: 00007FF7D4392B5C 
+ 4: 00007FF7D4507D7B 
+ 5: 00007FF7D4506182 
+ 6: 00007FF7D48219E7 
+ 7: 00007FF7D482205A 
+ 8: 00007FF7D46AFA09 
+ 9: 00007FF7D46B64A9 
+10: 00007FF7D46B680C 
+11: 00007FF7D46AF598 
+12: 00007FF7D46AF324 
+13: 00007FF7D4986300 
+14: 000001CB39FBB43A 
+⎯⎯⎯⎯⎯⎯ Unhandled Errors ⎯⎯⎯⎯⎯⎯
+
+Vitest caught 6 unhandled errors during the test run.
+This might cause false positive tests. Resolve unhandled errors to make sure your tests are not affected.
+
+⎯⎯⎯⎯⎯⎯ Unhandled Error ⎯⎯⎯⎯⎯⎯⎯
+Error: [vitest-pool]: Worker forks emitted error.
+ ❯ EventEmitter.onTaskError ../../node_modules/.pnpm/vitest@5.1.0_@opentelemetry_703a059b317a0164430bc9431d5349d0/node_modules/vitest/dist/chunks/index.Di8au7q4.js:5926:21
+ ❯ EventEmitter.emit node:events:520:22
+ ❯ ChildProcess.emitUnexpectedExit ../../node_modules/.pnpm/vitest@5.1.0_@opentelemetry_703a059b317a0164430bc9431d5349d0/node_modules/vitest/dist/chunks/index.Di8au7q4.js:5401:22
+ ❯ ChildProcess.emit node:events:508:20
+ ❯ Process.ChildProcess._handle.onexit node:internal/child_process:294:12
+
+Caused by: Error: Worker exited unexpectedly with exit code 134 during starting state
+ ❯ ChildProcess.emitUnexpectedExit ../../node_modules/.pnpm/vitest@5.1.0_@opentelemetry_703a059b317a0164430bc9431d5349d0/node_modules/vitest/dist/chunks/index.Di8au7q4.js:5399:33
+ ❯ ChildProcess.emit node:events:508:20
+ ❯ Process.ChildProcess._handle.onexit node:internal/child_process:294:12
+
+
+⎯⎯⎯⎯⎯⎯ Unhandled Error ⎯⎯⎯⎯⎯⎯⎯
+Error: [vitest-pool]: Failed to start forks worker for test files C:/LIMS-lanes/C0-0P/apps/web/src/features/lab/__tests__/uidash1.lab.test.tsx.
+ ❯ ../../node_modules/.pnpm/vitest@5.1.0_@opentelemetry_703a059b317a0164430bc9431d5349d0/node_modules/vitest/dist/chunks/index.Di8au7q4.js:5932:94
+ ❯ processTicksAndRejections node:internal/process/task_queues:104:5
+ ❯ Pool.schedule ../../node_modules/.pnpm/vitest@5.1.0_@opentelemetry_703a059b317a0164430bc9431d5349d0/node_modules/vitest/dist/chunks/index.Di8au7q4.js:5932:5
+
+Caused by: Error: Cannot find package 'C:\LIMS-lanes\C0-0P\node_modules\.pnpm\vitest@5.1.0_@opentelemetry_703a059b317a0164430bc9431d5349d0\node_modules\jsdom\index.js' imported from C:\LIMS-lanes\C0-0P\node_modules\.pnpm\vitest@5.1.0_@opentelemetry_703a059b317a0164430bc9431d5349d0\node_modules\vitest\dist\chunks\index.Bi0NXYPf.js
+Did you mean to import "jsdom/lib/api.js"?
+ ❯ legacyMainResolve node:internal/modules/esm/resolve:201:26
+ ❯ packageResolve node:internal/modules/esm/resolve:774:12
+ ❯ moduleResolve node:internal/modules/esm/resolve:855:18
+ ❯ defaultResolve node:internal/modules/esm/resolve:988:11
+ ❯ #cachedDefaultResolve node:internal/modules/esm/loader:697:20
+ ❯ #resolveAndMaybeBlockOnLoaderThread node:internal/modules/esm/loader:714:38
+ ❯ ModuleLoader.resolveSync node:internal/modules/esm/loader:746:52
+ ❯ #resolve node:internal/modules/esm/loader:679:17
+ ❯ ModuleLoader.getOrCreateModuleJob node:internal/modules/esm/loader:599:35
+ ❯ node:internal/modules/esm/loader:628:32
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Serialized Error: { code: 'ERR_MODULE_NOT_FOUND' }
+
+⎯⎯⎯⎯⎯⎯ Unhandled Error ⎯⎯⎯⎯⎯⎯⎯
+Error: [vitest-pool]: Worker forks emitted error.
+ ❯ EventEmitter.onTaskError ../../node_modules/.pnpm/vitest@5.1.0_@opentelemetry_703a059b317a0164430bc9431d5349d0/node_modules/vitest/dist/chunks/index.Di8au7q4.js:5926:21
+ ❯ EventEmitter.emit node:events:520:22
+ ❯ ChildProcess.emitUnexpectedExit ../../node_modules/.pnpm/vitest@5.1.0_@opentelemetry_703a059b317a0164430bc9431d5349d0/node_modules/vitest/dist/chunks/index.Di8au7q4.js:5401:22
+ ❯ ChildProcess.emit node:events:508:20
+ ❯ Process.ChildProcess._handle.onexit node:internal/child_process:294:12
+
+Caused by: Error: Worker exited unexpectedly with exit code 134 during starting state
+ ❯ ChildProcess.emitUnexpectedExit ../../node_modules/.pnpm/vitest@5.1.0_@opentelemetry_703a059b317a0164430bc9431d5349d0/node_modules/vitest/dist/chunks/index.Di8au7q4.js:5399:33
+ ❯ ChildProcess.emit node:events:508:20
+ ❯ Process.ChildProcess._handle.onexit node:internal/child_process:294:12
+
+
+⎯⎯⎯⎯⎯⎯ Unhandled Error ⎯⎯⎯⎯⎯⎯⎯
+Error: [vitest-pool]: Failed to start forks worker for test files C:/LIMS-lanes/C0-0P/apps/web/src/features/quality/__tests__/uidash1.quality.test.tsx.
+ ❯ ../../node_modules/.pnpm/vitest@5.1.0_@opentelemetry_703a059b317a0164430bc9431d5349d0/node_modules/vitest/dist/chunks/index.Di8au7q4.js:5932:94
+ ❯ processTicksAndRejections node:internal/process/task_queues:104:5
+ ❯ Pool.schedule ../../node_modules/.pnpm/vitest@5.1.0_@opentelemetry_703a059b317a0164430bc9431d5349d0/node_modules/vitest/dist/chunks/index.Di8au7q4.js:5932:5
+
+Caused by: Error: Cannot find module '../../jsdom/living/webstorage/Storage-impl.js'
+Require stack:
+- C:\LIMS-lanes\C0-0P\node_modules\.pnpm\jsdom@31.0.0\node_modules\jsdom\lib\generated\idl\Storage.js
+- C:\LIMS-lanes\C0-0P\node_modules\.pnpm\jsdom@31.0.0\node_modules\jsdom\lib\generated\idl\StorageEventInit.js
+- C:\LIMS-lanes\C0-0P\node_modules\.pnpm\jsdom@31.0.0\node_modules\jsdom\lib\generated\idl\StorageEvent.js
+- C:\LIMS-lanes\C0-0P\node_modules\.pnpm\jsdom@31.0.0\node_modules\jsdom\lib\jsdom\living\nodes\Document-impl.js
+- C:\LIMS-lanes\C0-0P\node_modules\.pnpm\jsdom@31.0.0\node_modules\jsdom\lib\generated\idl\Document.js
+- C:\LIMS-lanes\C0-0P\node_modules\.pnpm\jsdom@31.0.0\node_modules\jsdom\lib\generated\idl\XMLDocument.js
+- C:\LIMS-lanes\C0-0P\node_modules\.pnpm\jsdom@31.0.0\node_modules\jsdom\lib\jsdom\living\documents.js
+- C:\LIMS-lanes\C0-0P\node_modules\.pnpm\jsdom@31.0.0\node_modules\jsdom\lib\jsdom\living\nodes\DOMImplementation-impl.js
+- C:\LIMS-lanes\C0-0P\node_modules\.pnpm\jsdom@31.0.0\node_modules\jsdom\lib\generated\idl\DOMImplementation.js
+- C:\LIMS-lanes\C0-0P\node_modules\.pnpm\jsdom@31.0.0\node_modules\jsdom\lib\jsdom\living\interfaces.js
+- C:\LIMS-lanes\C0-0P\node_modules\.pnpm\jsdom@31.0.0\node_modules\jsdom\lib\jsdom\browser\Window.js
+- C:\LIMS-lanes\C0-0P\node_modules\.pnpm\jsdom@31.0.0\node_modules\jsdom\lib\api.js
+ ❯ Module._resolveFilename node:internal/modules/cjs/loader:1475:15
+ ❯ wrapResolveFilename node:internal/modules/cjs/loader:1048:27
+ ❯ defaultResolveImplForCJSLoading node:internal/modules/cjs/loader:1072:10
+ ❯ resolveForCJSWithHooks node:internal/modules/cjs/loader:1093:12
+ ❯ Module._load node:internal/modules/cjs/loader:1261:25
+ ❯ wrapModuleLoad node:internal/modules/cjs/loader:255:19
+ ❯ Module.require node:internal/modules/cjs/loader:1575:12
+ ❯ require node:internal/modules/helpers:191:16
+ ❯ Object.<anonymous> ../../node_modules/.pnpm/jsdom@31.0.0/node_modules/jsdom/lib/generated/idl/Storage.js:405:14
+ ❯ Module._compile node:internal/modules/cjs/loader:1831:14
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Serialized Error: { code: 'MODULE_NOT_FOUND', requireStack: [ 'C:\LIMS-lanes\C0-0P\node_modules\.pnpm\jsdom@31.0.0\node_modules\jsdom\lib\generated\idl\Storage.js', 'C:\LIMS-lanes\C0-0P\node_modules\.pnpm\jsdom@31.0.0\node_modules\jsdom\lib\generated\idl\StorageEventInit.js', 'C:\LIMS-lanes\C0-0P\node_modules\.pnpm\jsdom@31.0.0\node_modules\jsdom\lib\generated\idl\StorageEvent.js', 'C:\LIMS-lanes\C0-0P\node_modules\.pnpm\jsdom@31.0.0\node_modules\jsdom\lib\jsdom\living\nodes\Document-impl.js', 'C:\LIMS-lanes\C0-0P\node_modules\.pnpm\jsdom@31.0.0\node_modules\jsdom\lib\generated\idl\Document.js', 'C:\LIMS-lanes\C0-0P\node_modules\.pnpm\jsdom@31.0.0\node_modules\jsdom\lib\generated\idl\XMLDocument.js', 'C:\LIMS-lanes\C0-0P\node_modules\.pnpm\jsdom@31.0.0\node_modules\jsdom\lib\jsdom\living\documents.js', 'C:\LIMS-lanes\C0-0P\node_modules\.pnpm\jsdom@31.0.0\node_modules\jsdom\lib\jsdom\living\nodes\DOMImplementation-impl.js', 'C:\LIMS-lanes\C0-0P\node_modules\.pnpm\jsdom@31.0.0\node_modules\jsdom\lib\generated\idl\DOMImplementation.js', 'C:\LIMS-lanes\C0-0P\node_modules\.pnpm\jsdom@31.0.0\node_modules\jsdom\lib\jsdom\living\interfaces.js', 'C:\LIMS-lanes\C0-0P\node_modules\.pnpm\jsdom@31.0.0\node_modules\jsdom\lib\jsdom\browser\Window.js', 'C:\LIMS-lanes\C0-0P\node_modules\.pnpm\jsdom@31.0.0\node_modules\jsdom\lib\api.js' ] }
+
+⎯⎯⎯⎯⎯⎯ Unhandled Error ⎯⎯⎯⎯⎯⎯⎯
+Error: [vitest-pool]: Worker forks emitted error.
+ ❯ EventEmitter.onTaskError ../../node_modules/.pnpm/vitest@5.1.0_@opentelemetry_703a059b317a0164430bc9431d5349d0/node_modules/vitest/dist/chunks/index.Di8au7q4.js:5926:21
+ ❯ EventEmitter.emit node:events:520:22
+ ❯ ChildProcess.emitUnexpectedExit ../../node_modules/.pnpm/vitest@5.1.0_@opentelemetry_703a059b317a0164430bc9431d5349d0/node_modules/vitest/dist/chunks/index.Di8au7q4.js:5401:22
+ ❯ ChildProcess.emit node:events:508:20
+ ❯ Process.ChildProcess._handle.onexit node:internal/child_process:294:12
+
+Caused by: Error: Worker exited unexpectedly with exit code 134 during starting state
+ ❯ ChildProcess.emitUnexpectedExit ../../node_modules/.pnpm/vitest@5.1.0_@opentelemetry_703a059b317a0164430bc9431d5349d0/node_modules/vitest/dist/chunks/index.Di8au7q4.js:5399:33
+ ❯ ChildProcess.emit node:events:508:20
+ ❯ Process.ChildProcess._handle.onexit node:internal/child_process:294:12
+
+
+⎯⎯⎯⎯⎯⎯ Unhandled Error ⎯⎯⎯⎯⎯⎯⎯
+Error: [vitest-pool]: Worker forks emitted error.
+ ❯ EventEmitter.onTaskError ../../node_modules/.pnpm/vitest@5.1.0_@opentelemetry_703a059b317a0164430bc9431d5349d0/node_modules/vitest/dist/chunks/index.Di8au7q4.js:5926:21
+ ❯ EventEmitter.emit node:events:520:22
+ ❯ ChildProcess.emitUnexpectedExit ../../node_modules/.pnpm/vitest@5.1.0_@opentelemetry_703a059b317a0164430bc9431d5349d0/node_modules/vitest/dist/chunks/index.Di8au7q4.js:5401:22
+ ❯ ChildProcess.emit node:events:508:20
+ ❯ Process.ChildProcess._handle.onexit node:internal/child_process:294:12
+
+Caused by: Error: Worker exited unexpectedly with exit code 3221226505 during starting state
+ ❯ ChildProcess.emitUnexpectedExit ../../node_modules/.pnpm/vitest@5.1.0_@opentelemetry_703a059b317a0164430bc9431d5349d0/node_modules/vitest/dist/chunks/index.Di8au7q4.js:5399:33
+ ❯ ChildProcess.emit node:events:508:20
+ ❯ Process.ChildProcess._handle.onexit node:internal/child_process:294:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+
+
+ Test Files  no tests
+      Tests  no tests
+     Errors  6 errors
+   Start at  08:12:25
+   Duration  6.94s
+

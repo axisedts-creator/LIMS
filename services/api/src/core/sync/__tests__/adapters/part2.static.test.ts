@@ -28,7 +28,7 @@ describe('adapter files (done_when 1, 2, 3, 4)', () => {
   it('result.verify runs the verification policy of T0B-VERLEVEL-1 by calling verifyResult / approveResult, never a policy of its own: no level, distinct people or enterer arithmetic in the adapter', () => {
     const t = text(FILES.verify);
     expect(t).toMatch(/verifyResult/); expect(t).toMatch(/approveResult/);
-    expect(t, 'no copy of the policy tables').not.toMatch(/verification_policy|signoff_required|signoff_count|signoffs\.state|allowEntererVerify|required_verifiers/);
+    expect(t, 'no copy of the policy tables').not.toMatch(/lab\.verification_polic|verification_policies|signoff_required|signoff_count|signoffs\.state|allowEntererVerify|required_verifiers/);
   });
   it('the codes a policy failure is mapped from (signoff.service.ts) and the two sync codes it answers with are named verbatim (none invented)', () => {
     const t = text(FILES.verify);

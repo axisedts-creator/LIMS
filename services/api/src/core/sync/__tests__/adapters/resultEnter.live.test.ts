@@ -28,12 +28,19 @@ describe('result.enter, append only through the existing result service (done_wh
     expect(ctx.tenantId).toBe(TENANT_A); expect(ctx.actor).toMatchObject({ id: USER.a1 });
     expect(args[0].entries).toEqual([{ resultId: id, version: 1, valueNumeric: '5.4' }]);
   }, T);
-  it('a downtime back-entry carries its block (occurredAt, downtimeRef) to the service; every value kind and comment is mapped', async () => {
+  it('every value kind and comment is mapped (the payload is the contract BulkEnterResultsRequest: only `entries`; no invented downtime keys, A33-2 belongs to C5)', async () => {
     const dev = await newDevice(A1);
-    const id = res('entered', 1); const at = iso(new Date(NOW.getTime() - 5 * 3_600_000));
-    const r = enter(id, 1, { payload: { entry_mode: 'downtime_backentry', occurred_at: at, downtime_ref: 'DT-OFFLINE-1', entries: [{ result_id: id, version: 1, value_text: 'reactive', manual_abnormal: true, comment_codes: ['C1'], comment_text: 'synthetic' }] } });
+    const id = res('entered', 1);
+    const r = enter(id, 1, { payload: { entries: [{ result_id: id, version: 1, value_text: 'reactive', manual_abnormal: true, comment_codes: ['C1'], comment_text: 'synthetic' }] } });
     expect(one(await devicePush(H, A1, dev, [r])).status).toBe('accepted');
-    expect(calls.enter[0]!.args[0]).toEqual({ entries: [{ resultId: id, version: 1, valueText: 'reactive', manualAbnormal: true, commentCodes: ['C1'], commentText: 'synthetic' }], downtime: { occurredAt: at, downtimeRef: 'DT-OFFLINE-1' } });
+    expect(calls.enter[0]!.args[0]).toEqual({ entries: [{ resultId: id, version: 1, valueText: 'reactive', manualAbnormal: true, commentCodes: ['C1'], commentText: 'synthetic' }] });
+  }, T);
+  it('a payload carrying entry_mode (a key the contract schema does not have) is rejected common.validation_failed: the schema is the contract one, nothing invented', async () => {
+    const dev = await newDevice(A1);
+    const id = res('entered', 1);
+    const r = enter(id, 1, { payload: { entry_mode: 'downtime_backentry', entries: [{ result_id: id, version: 1, value_text: 'reactive' }] } });
+    expect(one(await devicePush(H, A1, dev, [r]))).toMatchObject({ status: 'rejected', error_code: 'common.validation_failed' });
+    expect(calls.enter).toHaveLength(0);
   }, T);
   it('several entries in one operation are one service call with all of them, in order', async () => {
     const dev = await newDevice(A1);
@@ -57,8 +64,9 @@ describe('result.enter, append only through the existing result service (done_wh
     const dev = await newDevice(A1);
     const [open, locked] = [res('entered', 1), res('verified', 2)];
     const r = enter(open, 1, { payload: { entries: [{ result_id: open, version: 1, value_numeric: '1' }, { result_id: locked, version: 1, value_numeric: '2' }] } });
+    const before = (await effectTags(['enter'])).length;   // sync2_test.effect is shared with SYNC-2/3 suites and never truncated: compare, do not assume empty
     expect(one(await devicePush(H, A1, dev, [r]))).toMatchObject({ status: 'rejected', error_code: 'sync.result_locked' });
-    expect(calls.enter).toHaveLength(0); expect(await effectTags(['enter'])).toHaveLength(0);
+    expect(calls.enter).toHaveLength(0); expect(await effectTags(['enter'])).toHaveLength(before);
     expect((await alertRows(TENANT_A)).map((x) => x.result_id)).toEqual([locked]);
   }, T);
   it('the alert carries ids and codes only: no value, no entered text, no person name', async () => {

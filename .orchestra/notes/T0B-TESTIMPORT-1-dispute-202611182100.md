@@ -1,0 +1,7 @@
+# T0B-TESTIMPORT-1 dispute (writer, 2026-11-18 21:00 NPT) — TESTS_WRONG (test isolation, not this task's code)
+- Verify (log .orchestra/notes/T0B-TESTIMPORT-1-wrun5.log): run 1 and run 2 green (112 files, 6080 passed, 3 skipped); run 3: 1 failed / 6079 passed.
+- Failing: src/modules/catalog/__tests__/testmgmt/panelsNotes.test.ts:122 "deactivate instead of delete ..." — `expected [ …(50) ] to include '<new note id>'`.
+- Cause: listCommentCodes (comments.service.ts:86) pages `ORDER BY code ASC, id ASC` with the default limit 50. The 3 runs share one throwaway DB and TENANT_A, so each run adds comment codes; by run 3 the tenant has more than 50, and the new note's code sorts past page 1. The test assumes the whole tenant list fits one page.
+- Not an implementation defect: paging is the contract behaviour; T0B-TESTIMPORT-1 did not touch comments.service.ts or this test (T0B-TESTMGMT-1 owns both).
+- Proposed test fix (tester): query with a filter that isolates the new row (e.g. `q`/code filter if the contract has one) or follow `next_cursor` until the id is found, or pass `limit: 200`; keep every assertion.
+- Review item applied: stray services/api/.orchestra/notes/T0B-TESTIMPORT-1-debug.md removed (git rm), its lines appended to .orchestra/notes/T0B-TESTIMPORT-1-debug.md as "debugger round 4 (second run)". The two MSGDESK files in services/api/.orchestra/notes belong to T0B-MSGDESK-1 and were left.

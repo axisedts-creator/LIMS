@@ -4,3 +4,4 @@
 - Verify attempt 1: 6079 pass, 1 fail (real-modules-boot 60 s timeout). Attempt 2: 6077 pass, 3 fail, all time-based: real-modules-boot (265 s vs 60 s), pending-operations real boot (245 s vs 120 s), readsWrites.perf write-tx p95 115.7 ms > 50 ms. Every import + functional catalog test passed both times.
 - Diagnosis: host load (other lanes running; boot normally takes seconds), per LD-367/368 rerun before code change. NOT 3 green runs yet.
 - Open: rerun verify on a quiet host; probe kit / EXPECTED rows for import_batch still owned by tester.
+- Round 5 (review fix): stray services/api/.orchestra debug note moved into .orchestra/notes (git rm). Verify: runs 1-2 green (6080 pass), run 3 failed 1 test: testmgmt/panelsNotes.test.ts:122, paging past 50 rows because runs share the DB. Disputed (dispute-202611182100.md), no code change.

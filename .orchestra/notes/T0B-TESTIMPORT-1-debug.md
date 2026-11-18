@@ -15,3 +15,9 @@
 - Verify: 6079 passed, 1 failed: real-modules-boot.test.ts "bootstrap ... serves core health" timed out at its own hardcoded 60000 ms (168 s run, 112 workers). All TESTIMPORT, catalog and testmgmt boot tests pass.
 - Cause: load flake, not a defect. Same test alone passes in 41 s (2/2). Boot loads every module (~40 s idle) and exceeds 60 s under full-suite load. No catalog/import code involved.
 - Fix: none; no implementation change fits, and the test (T0D-01) is not mine to edit. Re-run verify on an idle PC (LD-367); if it recurs, tester should raise that 60_000 timeout.
+
+## debugger round 4 (second run)
+
+- Verify log: 6078 pass, 2 fail, both boot timeouts (real-modules-boot 60 s, pending-operations real boot 120 s). All import + catalog functional tests pass. No assertion failure, no code error.
+- Reran real-modules-boot alone: still times out (61 s, ~100 s wall), so not only 112-worker load; import/*.ts has no heavy load-time work (only imports + constants). Root cause of slow boot NOT isolated (no profiler access in this session).
+- Fix: none applied (no defect found; tests untouched). Next: rerun verify on quiet host (LD-367/368); if boot still >60 s, profile bootstrap (node --cpu-prof) and compare with main to see if catalog import code adds to it.

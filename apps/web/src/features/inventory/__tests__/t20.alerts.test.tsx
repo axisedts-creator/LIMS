@@ -13,7 +13,7 @@ vi.mock('server-only', () => ({}));
 vi.mock('@/core/session/server', async () => (await import('./t20.harness')).sessionMock);
 
 const STOCK_MANAGE = ['inventory.item.read', 'inventory.stock.manage'];
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 beforeEach(() => {
   resetHits(); resetDb(); Object.values(router).forEach((f) => f.mockReset());
   state.permissions = STOCK_MANAGE; state.path = '/inventory/alerts';

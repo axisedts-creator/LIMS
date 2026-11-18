@@ -14,6 +14,7 @@ import { instrumentMapsHandlers } from './instrumentMaps.handlers.js';
 import { mastersHandlers } from './masters.handlers.js';
 import { panelsHandlers } from './panels.handlers.js';
 import { pricingHandlers } from './pricing.handlers.js';
+import { priceToolsHandlers } from './priceTools.handlers.js';
 import { rangePreviewHandlers } from './rangePreview.handlers.js';
 import { rangesHandlers } from './ranges.handlers.js';
 import { referrersHandlers } from './referrers.handlers.js';
@@ -36,4 +37,5 @@ export const handlers: Readonly<Record<string, Handler>> = Object.freeze({
   ...exportsHandlers, // T-36: #104–#107 (export API)
   ...icdHandlers, // T0B-PARTYSET-1 (LD-321): the ICD master of T0C-PARTYSET-1
   ...testImportHandlers, // T0B-TESTIMPORT-1 (LD-318): Excel test import, six operations
+  ...priceToolsHandlers, // T0B-PRICETOOLS-1 (LD-321): price list Excel import, bulk update, copy, compare, history (seven operations)
 });

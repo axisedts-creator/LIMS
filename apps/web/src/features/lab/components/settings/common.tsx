@@ -13,6 +13,11 @@ export const isStale = (r: Extract<ActionResult<unknown>, { ok: false }>): boole
 /** [CONV] T-25: IdText markup (first 8 chars, full id in the title) without the ellipsis — the T-25 tests match the 8 characters as the whole cell text. */
 export const ShortId = ({ value }: { value: string }) => <span className="lims-id"><span className="lims-mono" title={value}>{value.slice(0, 8)}</span></span>;
 
+/** T0D-UISETTINGS-1 (LD-353 template 4): the SettingsForm layout without a form, so a list tab (or a read-only General) keeps the tabs slot of the screen. */
+export const SettingsSection = ({ tabs, children }: { tabs: ReactNode; children: ReactNode }) => (
+  <div className="lims-settings"><div className="lims-settings-tabs">{tabs}</div>{children}</div>
+);
+
 export const AlertText =({ text }: { text: string }) => (text ? <div role="alert"><p>{text}</p></div> : null);
 
 interface FieldProps { label: string; error?: string | undefined; children: (p: { id: string; 'aria-invalid'?: true; 'aria-describedby'?: string }) => ReactNode }

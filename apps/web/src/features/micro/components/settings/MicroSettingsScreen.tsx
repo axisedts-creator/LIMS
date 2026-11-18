@@ -18,16 +18,20 @@ const TABS = [{ id: 'dictionaries', label: 'Dictionaries' }, { id: 'protocols', 
 export function MicroSettingsScreen({ settings, permissions }: { settings: MicroSettingsDto; permissions: readonly string[] }) {
   const [tab, setTab] = useState<string>('dictionaries');
   const canManage = permissions.includes(PERM.config);
+  const tabs = <Tabs items={TABS} selectedId={tab} onChange={setTab} aria-label="Settings sections" />; // T0D-UISETTINGS-1 (LD-353 template 4): the SettingsForm tabs slot
   return (
     <section aria-label="Micro settings">
       <PageHeader title={t('micro.nav.settings')} helpKey="micro.settings" />
-      <Tabs items={TABS} selectedId={tab} onChange={setTab} aria-label="Settings sections">
-        {tab === 'dictionaries' ? <DictionariesTab canManage={canManage} /> : null}
-        {tab === 'protocols' ? <ProtocolsTab canManage={canManage} /> : null}
-        {tab === 'panels' ? <PanelsTab canManage={canManage} /> : null}
-        {tab === 'mappings' ? <MappingsTab canManage={canManage} /> : null}
-        {tab === 'general' ? <GeneralTab settings={settings} canManage={canManage} /> : null}
-      </Tabs>
+      {tab === 'general' ? <GeneralTab settings={settings} canManage={canManage} tabs={tabs} /> : (
+        // the list tabs keep their own tables and drawers under the same tabs slot (no form, no second Save)
+        <div className="lims-settings">
+          <div className="lims-settings-tabs">{tabs}</div>
+          {tab === 'dictionaries' ? <DictionariesTab canManage={canManage} /> : null}
+          {tab === 'protocols' ? <ProtocolsTab canManage={canManage} /> : null}
+          {tab === 'panels' ? <PanelsTab canManage={canManage} /> : null}
+          {tab === 'mappings' ? <MappingsTab canManage={canManage} /> : null}
+        </div>
+      )}
     </section>
   );
 }

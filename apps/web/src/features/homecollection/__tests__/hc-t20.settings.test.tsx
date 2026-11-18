@@ -9,7 +9,8 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 import { cleanup, screen, waitFor, within } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
-import { API, SETTINGS, SETTINGS_KEYS, U, axeClean, fill, noRawCodes, problem, recorder, userEvent, wrap, type Call } from './hc-t20.helpers';
+import { revealTab } from '@/__tests__/uiset1.helpers';
+import { API, SETTINGS, SETTINGS_KEYS, U, axeClean, fill as fillBase, noRawCodes, problem, recorder, userEvent, wrap, type Call } from './hc-t20.helpers';
 
 const refresh = vi.hoisted(() => vi.fn());
 vi.mock('next/navigation', () => ({
@@ -43,14 +44,19 @@ const view = async (s: unknown = SETTINGS) => {
   return wrap(<SettingsForm settings={s as never} />);
 };
 const f = (name: RegExp) => screen.getByLabelText(name) as HTMLInputElement;
-const submit = async (from: HTMLElement) => { from.focus(); await userEvent.keyboard('{Control>}{Enter}{/Control}'); };
+// LD-353 template 4: the five sections are tabs; the tab that holds a field is opened before it is typed into or clicked.
+const fill = async (el: HTMLElement, v: string) => { await revealTab(el); await fillBase(el, v); };
+const click = async (el: HTMLElement) => { await revealTab(el); await userEvent.click(el); };
+const openTab = (name: string) => userEvent.click(screen.getByRole('tab', { name }));
+const submit = async (from: HTMLElement) => { await revealTab(from); from.focus(); await userEvent.keyboard('{Control>}{Enter}{/Control}'); };
 const settle = () => new Promise((r) => setTimeout(r, 60));
 
 describe('layout (§2.5)', () => {
-  it('title and the five sections', async () => {
+  it('title and the five sections (tabs)', async () => {
     await view();
     expect(screen.getByRole('heading', { level: 1, name: /home collection settings/i })).toBeTruthy();
-    for (const s of ['Sync & privacy', 'Visit checks', 'Payments', 'Handover', 'Routes & messages']) expect(screen.getByRole('heading', { name: s })).toBeTruthy();
+    expect(screen.getAllByRole('tab').map((t) => t.textContent)).toEqual(['Sync & privacy', 'Visit checks', 'Payments', 'Handover', 'Routes & messages']);
+    for (const s of ['Sync & privacy', 'Visit checks', 'Payments', 'Handover', 'Routes & messages']) { await openTab(s); expect(screen.getByRole('tab', { name: s }).getAttribute('aria-selected')).toBe('true'); }
   });
   it('every field shows the stored value', async () => {
     await view();
@@ -96,6 +102,7 @@ describe('things that are not built yet stay switched off (CR-C17-003 / 010 / 01
   });
   it('Second identifier: Phone number is selectable, Date of birth is disabled until CR-C17-003', async () => {
     await view();
+    await openTab('Visit checks');
     expect((screen.getByRole('radio', { name: /phone number/i }) as HTMLInputElement).checked).toBe(true);
     expect((screen.getByRole('radio', { name: /date of birth/i }) as HTMLInputElement).disabled).toBe(true);
   });
@@ -133,8 +140,8 @@ describe('submit (H19)', () => {
   });
   it('toggles are sent as booleans', async () => {
     await view();
-    await userEvent.click(f(/^allow maps hand-off/i));
-    await userEvent.click(f(/^confirmation at centre required/i));
+    await click(f(/^allow maps hand-off/i));
+    await click(f(/^confirmation at centre required/i));
     await submit(f(/^sync interval/i));
     await waitFor(() => expect(puts()).toHaveLength(1));
     expect(puts()[0]!.body.map_handoff_enabled).toBe(false);
@@ -218,7 +225,7 @@ describe('ranges are enforced before anything is sent (TRD §11.2)', () => {
 describe('payment methods (D-128: only C4\'s six seed codes; 1..10; each code at most once)', () => {
   const rows = () => screen.getAllByRole('row').filter((r) => within(r).queryByLabelText(/^label/i));
   it('lists the stored methods with code, label (≤ 40) and "Reference required"', async () => {
-    await view();
+    await view(); await openTab('Payments');
     expect(rows()).toHaveLength(4);
     const r = rows()[1]!;
     expect((within(r).getByLabelText(/^label/i) as HTMLInputElement).value).toBe('Fonepay QR');
@@ -226,24 +233,24 @@ describe('payment methods (D-128: only C4\'s six seed codes; 1..10; each code at
     expect((within(r).getByLabelText(/reference required/i) as HTMLInputElement).checked).toBe(true);
   });
   it('the code Select offers exactly cash, card, esewa, khalti, fonepay_qr, bank_transfer (shown as their names)', async () => {
-    await view();
+    await view(); await openTab('Payments');
     await userEvent.click(within(rows()[0]!).getByRole('button', { name: /code|method/i }));
     const names = (await screen.findAllByRole('option')).map((o) => o.textContent);
     expect(names.sort()).toEqual(['Bank transfer', 'Card', 'Cash', 'Fonepay QR', 'Khalti', 'eSewa'].sort());
   });
   it('removing the last remaining method is not possible (min 1)', async () => {
-    await view({ ...SETTINGS, payment_methods: [SETTINGS.payment_methods[0]] });
+    await view({ ...SETTINGS, payment_methods: [SETTINGS.payment_methods[0]] }); await openTab('Payments');
     const rm = within(rows()[0]!).queryByRole('button', { name: /remove|delete/i });
     if (rm) expect((rm as HTMLButtonElement).disabled || rm.getAttribute('aria-disabled') === 'true').toBe(true);
   });
   it('adding is blocked at 10 methods', async () => {
     const ten = Array.from({ length: 10 }, (_, i) => ({ code: ['cash', 'card', 'esewa', 'khalti', 'fonepay_qr', 'bank_transfer'][i % 6]!, display: `Method ${i}`, requires_reference: false }));
-    await view({ ...SETTINGS, payment_methods: ten });
+    await view({ ...SETTINGS, payment_methods: ten }); await openTab('Payments');
     const add = screen.queryByRole('button', { name: /add (payment )?method/i }) as HTMLButtonElement | null;
     if (add) expect(add.disabled || add.getAttribute('aria-disabled') === 'true').toBe(true);
   });
   it('the same code twice -> no PUT and a message', async () => {
-    await view();
+    await view(); await openTab('Payments');
     await userEvent.click(within(rows()[2]!).getByRole('button', { name: /code|method/i })); // esewa -> cash
     await userEvent.click(await screen.findByRole('option', { name: 'Cash' }));
     // LD-171: wait for the popover to close and row 3 to show Cash before submitting (slow jsdom renders).
@@ -254,15 +261,15 @@ describe('payment methods (D-128: only C4\'s six seed codes; 1..10; each code at
     expect(puts()).toHaveLength(0);
   });
   it('an unknown code in stored data is not silently submitted as another code (no PUT until fixed)', async () => {
-    await view({ ...SETTINGS, payment_methods: [{ code: 'bitcoin', display: 'Coin', requires_reference: false }] });
+    await view({ ...SETTINGS, payment_methods: [{ code: 'bitcoin', display: 'Coin', requires_reference: false }] }); await openTab('Payments');
     await submit(f(/^sync interval/i));
     await settle();
     expect(puts()).toHaveLength(0);
   });
   it('editing a label and the reference flag is sent in payment_methods', async () => {
-    await view();
+    await view(); await openTab('Payments');
     await fill(within(rows()[0]!).getByLabelText(/^label/i), 'Cash at door');
-    await userEvent.click(within(rows()[0]!).getByLabelText(/reference required/i));
+    await click(within(rows()[0]!).getByLabelText(/reference required/i));
     await submit(f(/^sync interval/i));
     await waitFor(() => expect(puts()).toHaveLength(1));
     expect(puts()[0]!.body.payment_methods[0]).toEqual({ code: 'cash', display: 'Cash at door', requires_reference: true });

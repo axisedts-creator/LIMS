@@ -1,9 +1,10 @@
-CHANGES
-Re-review of `git diff fb965f47b..HEAD` (HEAD 935b33d6a; 935b33d6a changed only impl notes). Code unchanged since the first review and still matches done_when (2)-(9) and LD-353: 31 files under the 40 cap, no forbidden folders, tokens.json untouched, kit.css tokens only, names verbatim, nothing invented. RLS, idempotency and rate tier do not apply (display only). Review item 2 is closed: main 977c571c7 is an ancestor of HEAD (checked with `git merge-base --is-ancestor`), and the impl notes record the re-run. The ui-r03-kit-pass snapshots were regenerated in d41beec9e.
+APPROVE
+Re-review of `git diff daf502d51..HEAD` (HEAD a8a54c1c2). Under LD-362 the writer regenerated the rs-cN screen snapshots for rs-c4 (2), rs-c7 (2), rs-c8 (5) and rs-c15 (6). I diffed every changed `.snap` line: the only changes are 16 `<div class="lims-table-scroll">` / `</div>` pairs, which is UIKIT-1 markup (DataTable.tsx:321). No assertion or test file was edited. No static or register baseline was rewritten. The code is the same as at the earlier review, which found it matched done_when (2)-(9) and LD-353.
 
-1. Review item 1 is still open (done_when (10): "every existing story and test still passes"). d41beec9e regenerated only ui-r03-kit-pass. The 15 web DataTable snapshots still pin the old markup without `.lims-table-scroll` (DataTable.tsx:321). Re-run at HEAD: `vitest run -c src/features/payments/__tests__/vitest.rs-c15.config.ts` gives 6 failed, 35 passed ("Snapshot ... mismatched": Payment review queue, Reconciliation: Runs tab, Reconciliation: Open findings tab, Payment detail: Refunds tab, Refunds list, Static QR worksheets).
-   - apps/web/src/features/frontdesk/__tests__/rs-c4.screens.test.tsx: "Daily cash (open shift)", "Credit party: statement tab"
-   - apps/web/src/features/instruments/__tests__/rs-c7.screens.test.tsx: "messages: log table with the existing columns", "messages: rejected uploads table"
-   - apps/web/src/features/analytics/__tests__/rs-c8.screens.test.tsx (Report hub (tabs), Income report, Pending tests report) and rs-c8.screens.admin.test.tsx (Schedules list, My exports)
-   - apps/web/src/features/payments/__tests__/rs-c15.screens.test.tsx: all 6 listed above
-   Fix (TESTER): from apps/web, after `pnpm run build:nav`, run `pnpm exec vitest run -u -c src/features/<feature>/__tests__/vitest.rs-cN.config.ts` with the `-t` name filter for these snapshot tests, or `-u` on the screens test files only, so that static baselines owned by other tasks are not rewritten. Check that each `.snap` diff only adds the `<div class="lims-table-scroll">` wrapper or other UIKIT-1 markup. Commit only those `.snap` files, then re-run the four configs. The only failures left should be the static and register ones from other tasks.
+Re-run at HEAD after `pnpm run build:nav`:
+- rs-c8: 36/36 pass.
+- rs-c15: 40/41 pass. The one red is "Static QR worksheets". Its only diff is business_date (13/11/2026 became 17/11/2026, and the B.S. line changed with it), because the date comes from the clock. This is not UIKIT-1. It is logged in notes/T0D-UIKIT-1-dispute.md for the tester to pin the clock.
+- rs-c4: 31/37 pass. The 6 reds are rs-c4.static x5 and rs-c4.register `draft`. LD-362 lists both as pre-existing reds from other tasks.
+- rs-c7: 34/35 pass. The 1 red is rs-c7.static permissions, also pre-existing and listed in LD-362.
+
+Review item 1 is closed. The only reds left are the pre-existing ones named in LD-362 plus the clock-dependent snapshot.

@@ -6,10 +6,17 @@ type Q = Pick<Tx, 'query'>;
 /** One row per print. A duplicate (tenant, kind, document, print_no) raises 23505 print_log__tenant_id_doc_print__uq and is not swallowed. Absent centre_id / reason_code = NULL. */
 export async function insertPrintLog(tx: Q, row: Record<string, unknown>): Promise<void> {
   await tx.query(
-    `INSERT INTO billing.print_log (id, tenant_id, centre_id, document_kind, document_id, document_no, print_no, is_copy, reason_code, printed_at, created_by)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+    `INSERT INTO billing.print_log (id, tenant_id, centre_id, document_kind, document_id, document_no, print_no, is_copy, reason_code, printed_at, created_by, style)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
     [row['id'], row['tenant_id'], row['centre_id'] ?? null, row['document_kind'], row['document_id'], row['document_no'], row['print_no'], row['is_copy'],
-      row['reason_code'] ?? null, row['printed_at'], row['created_by']]);
+      row['reason_code'] ?? null, row['printed_at'], row['created_by'], row['style'] ?? 'full']);
+}
+
+/** T0B-PRINTCFG-1 (LD-316): the style of the original print (print_no 1); undefined when never printed. Rows from before the column read 'full' (DB default). */
+export async function getOriginalPrintStyle(tx: Q, a: { tenantId: string; documentKind: 'invoice' | 'credit_note'; documentId: string }): Promise<'full' | 'plain_bw' | undefined> {
+  const { rows } = await tx.query('SELECT style FROM billing.print_log WHERE tenant_id = $1 AND document_kind = $2 AND document_id = $3 AND print_no = 1', [a.tenantId, a.documentKind, a.documentId]);
+  const s = rows[0]?.['style'];
+  return s === 'full' || s === 'plain_bw' ? s : undefined;
 }
 
 export async function listPrintLog(tx: Q, a: { tenantId: string; documentKind: 'invoice' | 'credit_note' | 'receipt'; documentId: string }): Promise<Record<string, unknown>[]> {

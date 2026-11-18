@@ -19,7 +19,7 @@ function bind(fn: (svc: InvoiceReadService, ctx: BalanceCtx, req: HandlerRequest
 const obj = (v: unknown): Record<string, any> => (typeof v === 'object' && v !== null ? (v as Record<string, any>) : {});
 
 // B3 printInvoice / B6 printCreditNote: schema, auth, x-permission (billing.invoice.reprint) and x-idempotency are the pipeline's. Only the path id and the
-// optional reason_code reach the service: the body can never steer print_no, is_copy, the clock, the tenant or the actor.
+// optional reason_code and style reach the service: the body can never steer print_no, is_copy, the clock, the tenant or the actor.
 let commands: InvoiceService | undefined;
 const commandService = (): InvoiceService => (commands ??= createInvoiceService({ counter: createCounterService() as never, events: createBillingEvents(createEvents({ producer: 'billing' }) as never) }));
 function bindPrint(run: (svc: InvoiceService, ctx: InvoiceCtx, req: HandlerRequest) => Promise<unknown>): Handler {
@@ -29,7 +29,10 @@ function bindPrint(run: (svc: InvoiceService, ctx: InvoiceCtx, req: HandlerReque
     return { status: 200, body: await run(commandService(), c as InvoiceCtx, req) };
   };
 }
-const reasonOf = (req: HandlerRequest): { reasonCode?: unknown } => { const r = obj(req.body)['reason_code']; return r === undefined ? {} : { reasonCode: r }; };
+const reasonOf = (req: HandlerRequest): { reasonCode?: unknown; style?: unknown } => {
+  const b = obj(req.body); const r = b['reason_code']; const st = b['style'];   // style: T0B-PRINTCFG-1 (LD-316), validated by the service
+  return { ...(r === undefined ? {} : { reasonCode: r }), ...(st === undefined ? {} : { style: st }) };
+};
 
 // B4 / B5 write handlers: HTTP snake_case body -> service input; the response is read back in the same transaction (the pipeline commits after the handler returns).
 const writeService = () => createInvoiceService({ counter: createCounterService() as never, events: createBillingEvents(createEvents({ producer: 'billing' }) as never) });

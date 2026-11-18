@@ -12,6 +12,7 @@ import { regenerateHandlers } from './handlers/regenerate.handlers.js';
 import { releaseHandlers } from './handlers/release.handlers.js';
 import { reportsReadHandlers } from './handlers/reports-read.handlers.js';
 import { printHandlers } from './handlers/print.handlers.js';
+import { printProfileHandlers } from './handlers/printProfile.handlers.js';
 import { retryRenderHandlers } from './handlers/retry-render.handlers.js';
 import { settingsHandlers } from './handlers/settings.handlers.js';
 import { templatesHandlers } from './handlers/templates.handlers.js';
@@ -30,15 +31,15 @@ export const config = loadReportingConfig(process.env);
 const notImplemented: Handler = async () => ({ status: 501 });
 
 const OPENAPI = 'contracts/openapi/reporting.yaml';
-const implemented: Readonly<Record<string, Handler>> = { ...settingsHandlers, ...outsourcedHandlers, ...narrativeImageHandlers, ...narrativeHandlers, ...templatesHandlers, ...retryRenderHandlers, ...printHandlers, ...regenerateHandlers, ...releaseHandlers, ...reportsReadHandlers, ...portalHandlers, ...verifyHandlers, ...deliveryHandlers, ...messagingAdminHandlers, ...callbackHandlers };
+const implemented: Readonly<Record<string, Handler>> = { ...settingsHandlers, ...outsourcedHandlers, ...narrativeImageHandlers, ...narrativeHandlers, ...templatesHandlers, ...retryRenderHandlers, ...printHandlers, ...regenerateHandlers, ...releaseHandlers, ...reportsReadHandlers, ...portalHandlers, ...verifyHandlers, ...deliveryHandlers, ...messagingAdminHandlers, ...callbackHandlers, ...printProfileHandlers };
 
 export const manifest: ModuleManifest = Object.freeze({
   name: 'reporting',
   openapi: OPENAPI,
   handlers: Object.freeze(Object.fromEntries(operationIds(loadSpec(join(REPO_ROOT, OPENAPI)))
     .map((op) => [op, Object.hasOwn(implemented, op) ? implemented[op]! : notImplemented]))),
-  // LD-325(b), LD-335: T0C-PRINTCFG-1 (LD-316) contract operations without a handler yet (501 operation_pending); T0B-PRINTCFG-1 removes them with the handlers.
-  pendingOperations: Object.freeze(['listPrintProfiles', 'upsertPrintProfile', 'previewPrintProfile', 'listSignatoryProfiles', 'upsertSignatoryProfile']),
+  // LD-325(b): T0B-PRINTCFG-1 implemented the five T0C-PRINTCFG-1 operations; nothing is pending.
+  pendingOperations: Object.freeze([]),
   produces: Object.freeze(['reporting.report.released.v1', 'reporting.delivery.status_changed.v1']),
   systemPermissions: REPORTING_SYSTEM_PERMISSIONS,
   authResolvers: Object.freeze({ portalSession: portalSessionResolver }),   // CR-C6-001

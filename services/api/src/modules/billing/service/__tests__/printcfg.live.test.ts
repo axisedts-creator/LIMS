@@ -34,7 +34,7 @@ describe('print style over a real database', () => {
     for (const [t, v] of stmts) await c.query(t, v); await c.query('COMMIT'); } catch (e) { await c.query('ROLLBACK').catch(() => undefined); throw e; } finally { c.release(); } };
   const ins = (table: string, row: object): [string, unknown[]] => [`INSERT INTO ${table} SELECT * FROM jsonb_populate_record(NULL::${table}, $1::jsonb)`, [JSON.stringify(row)]];
   const cleanup = () => asSystem([[`DELETE FROM billing.activity_log WHERE tenant_id = $1 AND document_id = ANY($2::uuid[])`, [TENANT, [INV_PLAIN, INV_FULL, INV_OLD, CN1]]],
-    [`DELETE FROM billing.print_log WHERE tenant_id = $1 AND document_id = ANY($2::uuid[])`, [TENANT, [INV_PLAIN, INV_FULL, INV_OLD, CN1]]], [`DELETE FROM billing.invoices WHERE tenant_id = $1 AND fiscal_year_bs = $2`, [TENANT, FY]]]);
+    [`DELETE FROM billing.print_log WHERE tenant_id = $1 AND document_id = ANY($2::uuid[])`, [TENANT, [INV_PLAIN, INV_FULL, INV_OLD, CN1]]], [`DELETE FROM billing.invoices WHERE tenant_id = $1 AND fiscal_year_bs = $2`, [TENANT, FY]], [`DELETE FROM billing.fiscal_counters WHERE tenant_id = $1 AND fiscal_year_bs = $2`, [TENANT, FY]]]);
   const styles = async (id: string) => (await su.query(`SELECT print_no, style FROM billing.print_log WHERE tenant_id = $1 AND document_id = $2 ORDER BY print_no`, [TENANT, id])).rows.map((r: any) => [r.print_no, r.style]);
 
   beforeAll(async () => {
@@ -42,7 +42,10 @@ describe('print style over a real database', () => {
     const pg: any = await import(['p', 'g'].join('')); const Pool = (pg.default ?? pg).Pool;
     su = new Pool({ connectionString: SU, max: 3 }); db = createDb({ pool: new Pool({ connectionString: APP, max: 8 }), identitySystemActorId: SYS });
     await cleanup().catch(() => undefined);
-    await asSystem([ins('billing.invoices', invoice(INV_PLAIN, 1, O1)), ins('billing.invoices', invoice(INV_FULL, 2, O2)), ins('billing.invoices', invoice(INV_OLD, 3, O3, { print_count: 1 })),
+    // chronology trigger (spec'd, not under test): billing.fiscal_counters.last_no must equal invoice_seq before each invoice insert; a counter only rises by 1 per UPDATE
+    const bump = (n: number): [string, unknown[]] => [`UPDATE billing.fiscal_counters SET last_no = $3 WHERE tenant_id = $1 AND series = 'INV:PCFG' AND fiscal_year_bs = $2`, [TENANT, FY, n]];
+    await asSystem([ins('billing.fiscal_counters', { tenant_id: TENANT, series: 'INV:PCFG', fiscal_year_bs: FY, last_no: 1, created_by: SYS, updated_by: SYS }), ins('billing.invoices', invoice(INV_PLAIN, 1, O1)),
+      bump(2), ins('billing.invoices', invoice(INV_FULL, 2, O2)), bump(3), ins('billing.invoices', invoice(INV_OLD, 3, O3, { print_count: 1 })),
       // the legacy row is inserted WITHOUT the style column so the DB default (full) is what is read back
       [`INSERT INTO billing.print_log (id, tenant_id, centre_id, document_kind, document_id, document_no, print_no, is_copy, printed_at, created_by) VALUES ($1,$2,$3,'invoice',$4,'INV-PCFG-3',1,false,now(),$5)`, [uid(500), TENANT, CENTRE, INV_OLD, SYS]]]);
   });

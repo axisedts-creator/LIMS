@@ -7,7 +7,7 @@
 //   * invoice / credit_note profiles: the handler calls IdentityPort.assertRole(ctx, { permission: 'billing.settings.manage' }) (contract text "also need billing.settings.manage, checked by the handler");
 //     a refusal (auth.forbidden) writes nothing. report profiles never ask for the billing code. The open CR (finance only) is NOT decided here.
 //   * unknown or other tenant user in upsertSignatoryProfile -> common.not_found; markup / over long text -> common.validation_failed (the pipeline schema is not in the way when handlers are called directly).
-//   * each upsert writes one audit.access_log row (outcome allowed) whose action starts with 'reporting.print_profile.' / 'reporting.signatory_profile.' [action text not pinned beyond the prefix].
+//   * each upsert writes one audit.access_log row (outcome allowed) whose action is 'settings.change' (action codes are two segments <entity>.<verb>, 02-CONVENTIONS:302; ruling T0B-PRINTCFG-1-ruling.md) with entity_type 'print_profile' / 'signatory_profile'.
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { access } from '../../../../core/audit/access.js';
 import { createDb } from '../../../../core/db/tx.js';
@@ -15,7 +15,7 @@ import { manifest } from '../../index.js';
 
 const APP = process.env['LIMS_TEST_APP_URL'], SU = process.env['LIMS_TEST_SUPER_URL'];
 const A = '01a1a98a-ac40-7000-8000-00000000a001', B = '01a1a98a-ac40-7000-8000-00000000b001';
-const BR_A = '01a1a98a-ac40-7000-8000-00000000a101';
+const BR_A = '01a1a98a-ac40-7000-8000-00000000a101', CENTRE_A = '01a1a98a-ac40-7000-8000-00000000a201';
 const SYS = '01a1b34e-1000-7eee-9d29-d7ca59a102b5';
 const uid = (n: number) => `0190c500-0000-7000-8000-${String(n).padStart(12, '0')}`;
 const H = manifest.handlers as Record<string, (req: unknown, ctx: unknown) => Promise<{ status: number; body?: any }>>;
@@ -24,13 +24,14 @@ describe('T0B-PRINTCFG-1 handlers over a real database', () => {
   let su: any, db: ReturnType<typeof createDb>; let reqN = 0;
   const denied = new Set<string>();
   const identity = { async assertRole(_c: unknown, r: { permission: string }) { if (denied.has(r.permission)) throw Object.assign(new Error('forbidden'), { code: 'auth.forbidden', statusCode: 403 }); } };
-  const tx = <T>(tenant: string, fn: (ctx: any) => Promise<T>) => db.requestTx({ claims: { actor_type: 'user', tenant_id: tenant, sub: SYS, membership_id: uid(1) } as never, requestId: uid(900 + ++reqN), clientIp: '203.0.113.9',
+  // withCentre: a working centre on ctx + an all-centres (system) claim, needed by previewPrintProfile (print_jobs RLS insert needs tenant + centre; ruling point 3)
+  const tx = <T>(tenant: string, fn: (ctx: any) => Promise<T>, withCentre = false) => db.requestTx({ claims: { actor_type: withCentre ? 'system' : 'user', tenant_id: tenant, sub: SYS, membership_id: uid(1) } as never, requestId: uid(900 + ++reqN), clientIp: '203.0.113.9',
     operation: { module: 'reporting', operationId: 'T0B-PRINTCFG-1.live' } }, async (t) => {
-    const c: any = { tenantId: tenant, requestId: uid(900 + reqN), actor: { type: 'user', id: SYS, membershipId: uid(1) }, tx: t, now: () => new Date().toISOString(), ports: { IdentityPort: identity } };
+    const c: any = { tenantId: tenant, requestId: uid(900 + reqN), actor: { type: 'user', id: SYS, membershipId: uid(1) }, ...(withCentre ? { centreId: CENTRE_A } : {}), tx: t, now: () => new Date().toISOString(), ports: { IdentityPort: identity } };
     c.audit = { access: (e: never) => access(c, e) };
     return fn(c);
   });
-  const call = (op: string, tenant: string, req: Record<string, unknown>) => tx(tenant, (c) => H[op]!({ params: {}, query: {}, headers: {}, ...req }, c));
+  const call = (op: string, tenant: string, req: Record<string, unknown>) => tx(tenant, (c) => H[op]!({ params: {}, query: {}, headers: {}, ...req }, c), op === 'previewPrintProfile');
   const fail = async (p: Promise<unknown>): Promise<{ code?: string }> => { try { await p; } catch (e) { return e as { code?: string }; } throw new Error('expected a failure'); };
   const owner = async (sql: string, v: unknown[] = []) => (await su.query(sql, v)).rows;
   let userA: string | undefined, userB: string | undefined;
@@ -119,11 +120,11 @@ describe('T0B-PRINTCFG-1 handlers over a real database', () => {
     expect((await owner('SELECT count(*)::int AS n FROM reporting.print_profile WHERE tenant_id = $1', [A]))[0].n).toBe(before);
   });
 
-  it('every upsert is audited (audit.access_log, outcome allowed)', async () => {
+  it('every upsert is audited (audit.access_log, outcome allowed, action settings.change, entity_type print_profile)', async () => {
     const r = await call('upsertPrintProfile', A, { body: { document_kind: 'credit_note', paper_mode: 'plain', header_text: 'audited (T0BPC)' } });
-    const rows = await owner(`SELECT action FROM audit.access_log WHERE tenant_id = $1 AND entity_id = $2 AND outcome = 'allowed'`, [A, r.body.id]);
+    const rows = await owner(`SELECT action FROM audit.access_log WHERE tenant_id = $1 AND entity_id = $2 AND entity_type = 'print_profile' AND outcome = 'allowed'`, [A, r.body.id]);
     expect(rows.length).toBeGreaterThanOrEqual(1);
-    expect(rows.some((x: any) => String(x.action).startsWith('reporting.print_profile.'))).toBe(true);
+    expect(rows.some((x: any) => x.action === 'settings.change')).toBe(true);
   });
 
   it('previewPrintProfile: 202 with a render job; accepts no patient / report / invoice / order id', async () => {

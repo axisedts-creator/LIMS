@@ -10,4 +10,7 @@ SUITE_PATHS="${PRINTCFG_SUITE:-src/modules/reporting src/modules/billing}"
 sed "s#^SUITE=.*#SUITE=\"$SUITE_PATHS\"#; s#vitest run \"\$SUITE\"#vitest run --no-file-parallelism \$SUITE#" tests/frontdesk/FD-T03.pg.sh > "$TMP"
 grep -q "^SUITE=\"$SUITE_PATHS\"" "$TMP"
 grep -q -- "--no-file-parallelism" "$TMP"
+# seed core.g_task_registry 'reporting.render_print' (previewPrintProfile; ruling T0B-PRINTCFG-1-ruling.md point 3) right before the test URLs are exported
+sed -i '/^export LIMS_TEST_APP_URL=/i SU -f /repo/tests/reporting/T0B-PRINTCFG-1.registry.sql' "$TMP"
+grep -q "T0B-PRINTCFG-1.registry.sql" "$TMP"
 LIMS_T03_REQUIRE_DB=1 bash "$TMP"

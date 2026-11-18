@@ -40,3 +40,7 @@ Fix: none; tests are tester-owned, baseline json not regenerated. Dispute T0D-OF
 ## Round 10 (verify 00:43: 4 fail / 33 pass, rs-c4.static + rs-c4.screens only)
 Cause: no OFFLINE-3 defect. Same rs-c4 guard drift as rounds 8-9 (same-bytes list, frontdesk/billing allow-list gaps, 1 screens snapshot) from already-merged work; OFFLINE-3 diff touches none of it.
 Fix: none; tests are tester-owned, baseline json not regenerated. Dispute T0D-OFFLINE-3-dispute-202611190019.md still stands; lead must widen LD310_ALLOW and re-record the snapshot.
+
+## Round 11 (verify 01:49: 3 fail / 34 pass; rs-c4.static x2 + rs-c4.screens Daily cash)
+Cause: no OFFLINE-3 defect. Guard drift from merged work: frontdesk.patient.read (REGSCREEN-2), 22 billing accounting route strings, Daily cash snapshot. Branch diff vs main has no implementation files.
+Fix: none; tests are tester-owned, baseline json not regenerated. Wrote T0D-OFFLINE-3-dispute.md; lead must widen LD310_ALLOW (permission + billing route allow) and re-record the snapshot.

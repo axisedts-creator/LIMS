@@ -103,7 +103,7 @@ SELECT is(has_table_privilege('lims_app', to_regclass('billing.' || x.t), x.priv
                ('cash_transfers','SELECT',true),('cash_transfers','INSERT',true),('cash_transfers','UPDATE',true),('cash_transfers','DELETE',false)) x(t, priv, want);
 -- append only: if there is any column level UPDATE grant on the ledger it is on status / last_modified_by / updated_at only (never amount, party, type, dates)
 SELECT is((SELECT count(*)::int FROM pg_attribute a WHERE a.attrelid = 'billing.account_ledger_entries'::regclass AND a.attnum > 0 AND NOT a.attisdropped
-            AND has_column_privilege('lims_app', a.attrelid, a.attname, 'UPDATE') AND a.attname NOT IN ('status','last_modified_by','updated_at')), 0, 'no column of the ledger except status / last_modified_by / updated_at can be updated by lims_app');
+            AND has_column_privilege('lims_app', a.attrelid, a.attname, 'UPDATE') AND a.attname NOT IN ('status','last_modified_by','updated_at','held_reason','held_by','held_at','released_by','released_at')), 0, 'no column of the ledger except status / last_modified_by / updated_at (+ the T0C-FINCTRL-1 hold columns held_* / released_*) can be updated by lims_app');
 SELECT is(coalesce(has_table_privilege(r.role, to_regclass('billing.' || n.t), 'SELECT'), false), false, r.role || ' has no grant on ' || n.t) FROM nt n CROSS JOIN (VALUES ('anon'),('authenticated'),('lims_monitor')) r(role) WHERE EXISTS (SELECT 1 FROM pg_roles WHERE rolname = r.role);
 SELECT is((SELECT a.attname FROM pg_attribute a WHERE a.attrelid = i.indrelid AND a.attnum = i.indkey[0]), 'tenant_id', '§9 test 2: ' || c.relname || ' index ' || ic.relname || ' leads with tenant_id')
   FROM pg_index i JOIN pg_class c ON c.oid = i.indrelid JOIN pg_class ic ON ic.oid = i.indexrelid

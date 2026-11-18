@@ -1,6 +1,6 @@
 -- T0C-PARTYSET-1 pgTAP suite (LD-321; founder blanket authority LD-310; priority 2026-11-17 09:18 NPT) for migration 20261117220000_partners__add_party_settings_and_penalties.sql:
 -- four tenant tables in schema partners (party_commercial_setting, party_onboarding, non_compliance_penalty, non_compliance_event), one in schema catalog (icd_code), new columns on
--- partners.partners (tax_number, national_id_number) and catalog.doctors (speciality, hospital, commission_bp, national_id_number), and audit triggers that never copy ID numbers.
+-- partners.partners (tax_number, national_id_number) and catalog.doctors (speciality, hospital, national_id_number; NO rate column, LD-385), and audit triggers that never copy ID numbers.
 -- Covers: shape + CHECKs, ranges (0..365 days, 0..10000 bp), enums, onboarding transitions (pending -> approved | held | rejected, held -> approved | rejected only), penalty event transitions
 -- (raised -> waived | charged only, charged needs ledger_entry_id, one ledger entry once), ICD unique per tenant, ID numbers never in audit.audit_log, composite tenant FKs, ENABLE + FORCE RLS,
 -- grants (no DELETE), isolation probes (A/B, patient / partner / portal actors), idempotent re-apply. Synthetic data only. One rolled-back transaction. RLS is never disabled: fixtures are written
@@ -19,7 +19,7 @@
 --    (no FK pinned: the ledger table belongs to billing), decided_by uuid NULL); raised <=> decided_by IS NULL; charged <=> ledger_entry_id IS NOT NULL; ledger_entry_id unique per tenant when set (charged once);
 --    transitions raised -> waived | charged only (trigger); a charged event keeps its ledger_entry_id for good.
 --  - catalog.icd_code(code ^[0-9A-Z][0-9A-Z.]{0,15}$ unique per tenant, title 1..500, chapter NULL 1..120, is_active DEFAULT true). It is separate from frontdesk.icd_codes (see the contract test header).
---  - partners.partners gains tax_number, national_id_number text NULL (1..32 chars); catalog.doctors gains speciality text NULL (1..120), hospital text NULL (1..200), commission_bp integer NULL 0..10000,
+--  - partners.partners gains tax_number, national_id_number text NULL (1..32 chars); catalog.doctors gains speciality text NULL (1..120), hospital text NULL (1..200),
 --    national_id_number text NULL (1..32). app.tg_row_audit() copies whole rows into audit_log, so the audit triggers partners__audit, doctors__audit, credit_parties__audit are re-created with the ID
 --    columns as excluded arguments: an ID number is never in audit.audit_log (done_when 3).
 --  - lims_app has SELECT, INSERT, UPDATE and NO DELETE on the five new tables.
@@ -146,21 +146,21 @@ SELECT is((SELECT count(*)::int FROM pg_attribute a WHERE a.attrelid = 'partners
 -- ===================================================================================================================================== new columns on partners.partners and catalog.doctors
 SELECT is((SELECT format_type(a.atttypid, a.atttypmod) FROM pg_attribute a WHERE a.attrelid = to_regclass(m.t) AND a.attname = m.col AND NOT a.attisdropped), m.typ, m.t || '.' || m.col || ' is ' || m.typ)
   FROM (VALUES ('partners.partners','tax_number','text'),('partners.partners','national_id_number','text'),('catalog.doctors','speciality','text'),('catalog.doctors','hospital','text'),
-               ('catalog.doctors','commission_bp','integer'),('catalog.doctors','national_id_number','text')) m(t, col, typ);
+               ('catalog.doctors','national_id_number','text')) m(t, col, typ);
 SELECT is((SELECT a.attnotnull FROM pg_attribute a WHERE a.attrelid = to_regclass(m.t) AND a.attname = m.col AND NOT a.attisdropped), false, m.t || '.' || m.col || ' is nullable (optional, existing rows unchanged)')
-  FROM (VALUES ('partners.partners','tax_number'),('partners.partners','national_id_number'),('catalog.doctors','speciality'),('catalog.doctors','hospital'),('catalog.doctors','commission_bp'),('catalog.doctors','national_id_number')) m(t, col);
+  FROM (VALUES ('partners.partners','tax_number'),('partners.partners','national_id_number'),('catalog.doctors','speciality'),('catalog.doctors','hospital'),('catalog.doctors','national_id_number')) m(t, col);
 SELECT is((SELECT a.atthasdef FROM pg_attribute a WHERE a.attrelid = to_regclass(m.t) AND a.attname = m.col AND NOT a.attisdropped), false, m.t || '.' || m.col || ' has no DEFAULT (no rewrite of old rows)')
-  FROM (VALUES ('partners.partners','tax_number'),('partners.partners','national_id_number'),('catalog.doctors','speciality'),('catalog.doctors','hospital'),('catalog.doctors','commission_bp'),('catalog.doctors','national_id_number')) m(t, col);
+  FROM (VALUES ('partners.partners','tax_number'),('partners.partners','national_id_number'),('catalog.doctors','speciality'),('catalog.doctors','hospital'),('catalog.doctors','national_id_number')) m(t, col);
 SELECT is((SELECT count(*)::int FROM pg_attribute a WHERE a.attrelid = 'catalog.credit_parties'::regclass AND a.attname = 'pan' AND NOT a.attisdropped), 1, 'catalog.credit_parties.pan is kept (never renamed; masked at read)');
 SELECT is(pg_temp.try('catalog.doctors', pg_temp.doc(1, pg_temp.ta())), 'ok', 'a doctor without the new fields still inserts (additive)');
-SELECT is(pg_temp.try('catalog.doctors', pg_temp.doc(2, pg_temp.ta(), '{"speciality":"Pathology (synthetic)","hospital":"Synthetic Hospital","commission_bp":1500,"national_id_number":"SYN-NID-LEAK-0002"}')), 'ok',
-  'a doctor with speciality, hospital, commission_bp and national_id_number');
-SELECT is(pg_temp.try('catalog.doctors', pg_temp.doc(3, pg_temp.ta(), '{"commission_bp":0}')), 'ok', 'commission_bp 0 accepted');
-SELECT is(pg_temp.try('catalog.doctors', pg_temp.doc(4, pg_temp.ta(), '{"commission_bp":10000}')), 'ok', 'commission_bp 10000 accepted');
+SELECT is(pg_temp.try('catalog.doctors', pg_temp.doc(2, pg_temp.ta(), '{"speciality":"Pathology (synthetic)","hospital":"Synthetic Hospital","national_id_number":"SYN-NID-LEAK-0002"}')), 'ok',
+  'a doctor with speciality, hospital and national_id_number');
+-- LD-385: the per doctor rate lives only in partners.party_commercial_setting (party_kind doctor); the C3 doctor table carries none
+SELECT is((SELECT count(*)::int FROM pg_attribute a WHERE a.attrelid = 'catalog.doctors'::regclass AND a.attnum > 0 AND NOT a.attisdropped AND a.attname ~* 'commission'), 0, 'catalog.doctors has no commission_bp column (LD-385)');
+SELECT is((SELECT count(*)::int FROM pg_constraint k WHERE k.conrelid = 'catalog.doctors'::regclass AND (k.conname ~* 'commission' OR pg_get_constraintdef(k.oid) ~* 'commission')), 0, 'catalog.doctors has no commission constraint (LD-385)');
 SELECT is(pg_temp.try('catalog.doctors', pg_temp.doc(5, pg_temp.tb(), '{"national_id_number":"SYN-NID-LEAK-0005"}')), 'ok', 'tenant B doctor with an ID number');
 SELECT is(pg_temp.try('catalog.doctors', pg_temp.doc(10 + t.i, pg_temp.ta(), t.o)), '23514', t.lbl)
-  FROM (VALUES (1, '{"commission_bp":10001}'::jsonb, 'commission_bp 10001 -> check_violation'), (2, '{"commission_bp":-1}'::jsonb, 'commission_bp -1 -> check_violation'),
-               (3, jsonb_build_object('national_id_number', repeat('N', 33)), '33 char national_id_number -> check_violation'), (4, '{"national_id_number":""}'::jsonb, 'empty national_id_number -> check_violation'),
+  FROM (VALUES (3, jsonb_build_object('national_id_number', repeat('N', 33)), '33 char national_id_number -> check_violation'), (4, '{"national_id_number":""}'::jsonb, 'empty national_id_number -> check_violation'),
                (5, jsonb_build_object('speciality', repeat('s', 121)), 'oversize speciality -> check_violation'), (6, jsonb_build_object('hospital', repeat('h', 201)), 'oversize hospital -> check_violation'),
                (7, '{"speciality":""}'::jsonb, 'empty speciality -> check_violation')) t(i, o, lbl);
 SELECT is((SELECT count(*)::int FROM pg_constraint k WHERE k.conrelid = 'partners.partners'::regclass AND k.contype = 'c' AND pg_get_constraintdef(k.oid) ~ 'national_id_number'), 1, 'partners.partners has a CHECK on national_id_number length');
@@ -385,7 +385,7 @@ RESET ROLE;
 SELECT is(pg_temp.state(), (SELECT s FROM before_state), 're-apply: tables, columns, constraints, indexes, policies, triggers and row counts are unchanged');
 SELECT is((SELECT status FROM partners.party_onboarding WHERE id = pg_temp.uid(203)), 'rejected', 're-apply: no data rewrite (onboarding decision intact)');
 SELECT is((SELECT ledger_entry_id FROM partners.non_compliance_event WHERE id = pg_temp.uid(402)), pg_temp.uid(7003), 're-apply: no data rewrite (ledger entry intact)');
-SELECT is((SELECT commission_bp FROM catalog.doctors WHERE id = pg_temp.uid(4)), 10000, 're-apply: no data rewrite (doctor commission intact)');
+SELECT is((SELECT count(*)::int FROM pg_attribute a WHERE a.attrelid = 'catalog.doctors'::regclass AND a.attnum > 0 AND NOT a.attisdropped AND a.attname ~* 'commission'), 0, 're-apply: catalog.doctors still has no commission column (LD-385)');
 SELECT is(has_table_privilege('lims_app', 'partners.non_compliance_event', 'DELETE'), false, 're-apply keeps DELETE revoked');
 SELECT is((SELECT count(*)::int FROM pg_trigger WHERE tgrelid = 'catalog.doctors'::regclass AND tgname = 'doctors__audit' AND pg_get_triggerdef(oid) ~ 'national_id_number'), 1, 're-apply keeps the audit exclusion');
 

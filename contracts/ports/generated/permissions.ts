@@ -21,6 +21,8 @@ export type PermissionCode =
   | "billing.credit_party.manage"
   | "billing.credit_party.read"
   | "billing.data.export"
+  | "billing.discount_policy.manage"
+  | "billing.discount_policy.read"
   | "billing.expense.manage"
   | "billing.invoice.cancel"
   | "billing.invoice.issue"
@@ -236,6 +238,8 @@ export const PERMISSION_CODES: readonly PermissionCode[] = [
   "billing.credit_party.manage",
   "billing.credit_party.read",
   "billing.data.export",
+  "billing.discount_policy.manage",
+  "billing.discount_policy.read",
   "billing.expense.manage",
   "billing.invoice.cancel",
   "billing.invoice.issue",
@@ -442,6 +446,7 @@ export const PRIVILEGED: ReadonlySet<PermissionCode> = new Set([
   "billing.cash_transfer.decide",
   "billing.credit_party.manage",
   "billing.data.export",
+  "billing.discount_policy.manage",
   "billing.invoice.cancel",
   "billing.payment.reverse",
   "billing.refund.approve",
@@ -546,6 +551,8 @@ export const ROLE_GRANTS: Readonly<Record<string, readonly PermissionCode[]>> = 
     "billing.credit_party.manage",
     "billing.credit_party.read",
     "billing.data.export",
+    "billing.discount_policy.manage",
+    "billing.discount_policy.read",
     "billing.expense.manage",
     "billing.invoice.cancel",
     "billing.invoice.issue",
@@ -589,6 +596,7 @@ export const ROLE_GRANTS: Readonly<Record<string, readonly PermissionCode[]>> = 
     "sync.use",
   ],
   front_desk: [
+    "billing.discount_policy.read",
     "billing.invoice.issue",
     "billing.invoice.read",
     "billing.invoice.reprint",
@@ -868,6 +876,8 @@ export const ROLE_GRANTS: Readonly<Record<string, readonly PermissionCode[]>> = 
     "billing.account.read",
     "billing.cash_report.read",
     "billing.credit_party.read",
+    "billing.discount_policy.manage",
+    "billing.discount_policy.read",
     "billing.invoice.read",
     "billing.release.override",
     "billing.settings.manage",

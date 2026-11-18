@@ -55,6 +55,14 @@ class BillingApi {
   Future<Object?> createCashTransfer({Map<String, String>? headers, Object? body}) =>
       _send('POST', '/v1/billing/cash-transfers', headers: headers, body: body);
 
+  /// POST /v1/billing/discount-authorities
+  Future<Object?> createDiscountAuthority({Map<String, String>? headers, Object? body}) =>
+      _send('POST', '/v1/billing/discount-authorities', headers: headers, body: body);
+
+  /// POST /v1/billing/discount-reasons
+  Future<Object?> createDiscountReason({Map<String, String>? headers, Object? body}) =>
+      _send('POST', '/v1/billing/discount-reasons', headers: headers, body: body);
+
   /// POST /v1/billing/expenses
   Future<Object?> createExpense({Map<String, String>? headers, Object? body}) =>
       _send('POST', '/v1/billing/expenses', headers: headers, body: body);
@@ -63,6 +71,10 @@ class BillingApi {
   Future<Object?> createExpenseType({Map<String, String>? headers, Object? body}) =>
       _send('POST', '/v1/billing/expense-types', headers: headers, body: body);
 
+  /// POST /v1/billing/discount-slabs
+  Future<Object?> createPartyDiscountSlab({Map<String, String>? headers, Object? body}) =>
+      _send('POST', '/v1/billing/discount-slabs', headers: headers, body: body);
+
   /// POST /v1/billing/orders/{order_id}/payment-intents
   Future<Object?> createPaymentIntent({required String orderId, Map<String, String>? headers, Object? body}) =>
       _send('POST', '/v1/billing/orders/${Uri.encodeComponent(orderId)}/payment-intents', headers: headers, body: body);
@@ -70,6 +82,14 @@ class BillingApi {
   /// POST /v1/billing/orders/{order_id}/release-overrides
   Future<Object?> createReleaseOverride({required String orderId, Map<String, String>? headers, Object? body}) =>
       _send('POST', '/v1/billing/orders/${Uri.encodeComponent(orderId)}/release-overrides', headers: headers, body: body);
+
+  /// POST /v1/billing/discount-authorities/{discount_authority_id}/deactivate
+  Future<Object?> deactivateDiscountAuthority({required String discountAuthorityId, Map<String, String>? headers}) =>
+      _send('POST', '/v1/billing/discount-authorities/${Uri.encodeComponent(discountAuthorityId)}/deactivate', headers: headers);
+
+  /// POST /v1/billing/discount-slabs/{party_discount_slab_id}/deactivate
+  Future<Object?> deactivatePartyDiscountSlab({required String partyDiscountSlabId, Map<String, String>? headers}) =>
+      _send('POST', '/v1/billing/discount-slabs/${Uri.encodeComponent(partyDiscountSlabId)}/deactivate', headers: headers);
 
   /// GET /v1/billing/account-ledger-entries/{account_ledger_entry_id}
   Future<Object?> getAccountLedgerEntry({required String accountLedgerEntryId}) =>
@@ -135,6 +155,10 @@ class BillingApi {
   Future<Object?> getMyCashSession() =>
       _send('GET', '/v1/billing/cash-sessions/current');
 
+  /// GET /v1/billing/discount-policy/me
+  Future<Object?> getMyDiscountPolicy() =>
+      _send('GET', '/v1/billing/discount-policy/me');
+
   /// GET /v1/billing/orders/{order_id}
   Future<Object?> getOrderBilling({required String orderId}) =>
       _send('GET', '/v1/billing/orders/${Uri.encodeComponent(orderId)}');
@@ -146,6 +170,10 @@ class BillingApi {
   /// GET /v1/billing/registers/sales
   Future<Object?> getSalesRegister({Map<String, Object?>? query}) =>
       _send('GET', '/v1/billing/registers/sales', query: query);
+
+  /// POST /v1/billing/account-ledger-entries/{account_ledger_entry_id}/hold
+  Future<Object?> holdLedgerEntry({required String accountLedgerEntryId, Map<String, String>? headers, Object? body}) =>
+      _send('POST', '/v1/billing/account-ledger-entries/${Uri.encodeComponent(accountLedgerEntryId)}/hold', headers: headers, body: body);
 
   /// POST /v1/billing/invoices/{invoice_id}/credit-notes
   Future<Object?> issuePartialCreditNote({required String invoiceId, Map<String, String>? headers, Object? body}) =>
@@ -199,6 +227,14 @@ class BillingApi {
   Future<Object?> listCreditNotes({Map<String, Object?>? query}) =>
       _send('GET', '/v1/billing/credit-notes', query: query);
 
+  /// GET /v1/billing/discount-authorities
+  Future<Object?> listDiscountAuthorities({Map<String, Object?>? query}) =>
+      _send('GET', '/v1/billing/discount-authorities', query: query);
+
+  /// GET /v1/billing/discount-reasons
+  Future<Object?> listDiscountReasons({Map<String, Object?>? query}) =>
+      _send('GET', '/v1/billing/discount-reasons', query: query);
+
   /// GET /v1/billing/dues
   Future<Object?> listDues({Map<String, Object?>? query}) =>
       _send('GET', '/v1/billing/dues', query: query);
@@ -227,9 +263,17 @@ class BillingApi {
   Future<Object?> listLedgerEntries({Map<String, Object?>? query}) =>
       _send('GET', '/v1/billing/ledger-entries', query: query);
 
+  /// GET /v1/billing/discount-slabs
+  Future<Object?> listPartyDiscountSlabs({Map<String, Object?>? query}) =>
+      _send('GET', '/v1/billing/discount-slabs', query: query);
+
   /// GET /v1/billing/refund-requests
   Future<Object?> listRefundRequests({Map<String, Object?>? query}) =>
       _send('GET', '/v1/billing/refund-requests', query: query);
+
+  /// GET /v1/billing/discount-limits
+  Future<Object?> listUserDiscountLimits({Map<String, Object?>? query}) =>
+      _send('GET', '/v1/billing/discount-limits', query: query);
 
   /// POST /v1/billing/credit-notes/{credit_note_id}/print
   Future<Object?> printCreditNote({required String creditNoteId, Map<String, String>? headers, Object? body}) =>
@@ -255,9 +299,17 @@ class BillingApi {
   Future<Object?> rejectRefund({required String refundRequestId, Map<String, String>? headers, Object? body}) =>
       _send('POST', '/v1/billing/refund-requests/${Uri.encodeComponent(refundRequestId)}/reject', headers: headers, body: body);
 
+  /// POST /v1/billing/account-ledger-entries/{account_ledger_entry_id}/release
+  Future<Object?> releaseLedgerEntry({required String accountLedgerEntryId, Map<String, String>? headers, Object? body}) =>
+      _send('POST', '/v1/billing/account-ledger-entries/${Uri.encodeComponent(accountLedgerEntryId)}/release', headers: headers, body: body);
+
   /// POST /v1/billing/orders/{order_id}/refund-requests
   Future<Object?> requestRefund({required String orderId, Map<String, String>? headers, Object? body}) =>
       _send('POST', '/v1/billing/orders/${Uri.encodeComponent(orderId)}/refund-requests', headers: headers, body: body);
+
+  /// GET /v1/billing/discount-slabs/resolve
+  Future<Object?> resolveDiscountSlab({Map<String, Object?>? query}) =>
+      _send('GET', '/v1/billing/discount-slabs/resolve', query: query);
 
   /// POST /v1/billing/finance-review-items/{item_id}/resolve
   Future<Object?> resolveFinanceReviewItem({required String itemId, Map<String, String>? headers, Object? body}) =>
@@ -275,6 +327,10 @@ class BillingApi {
   Future<Object?> reverseLedgerEntry({required String ledgerEntryId, Map<String, String>? headers, Object? body}) =>
       _send('POST', '/v1/billing/ledger-entries/${Uri.encodeComponent(ledgerEntryId)}/reverse', headers: headers, body: body);
 
+  /// PUT /v1/billing/discount-limits/{user_id}
+  Future<Object?> setUserDiscountLimit({required String userId, Map<String, String>? headers, Object? body}) =>
+      _send('PUT', '/v1/billing/discount-limits/${Uri.encodeComponent(userId)}', headers: headers, body: body);
+
   /// PATCH /v1/billing/account-groups/{account_group_id}
   Future<Object?> updateAccountGroup({required String accountGroupId, Map<String, String>? headers, Object? body}) =>
       _send('PATCH', '/v1/billing/account-groups/${Uri.encodeComponent(accountGroupId)}', headers: headers, body: body);
@@ -291,9 +347,17 @@ class BillingApi {
   Future<Object?> updateCreditAccount({required String creditPartyId, Map<String, String>? headers, Object? body}) =>
       _send('PUT', '/v1/billing/credit-parties/${Uri.encodeComponent(creditPartyId)}', headers: headers, body: body);
 
+  /// PATCH /v1/billing/discount-reasons/{discount_reason_id}
+  Future<Object?> updateDiscountReason({required String discountReasonId, Map<String, String>? headers, Object? body}) =>
+      _send('PATCH', '/v1/billing/discount-reasons/${Uri.encodeComponent(discountReasonId)}', headers: headers, body: body);
+
   /// PATCH /v1/billing/expense-types/{expense_type_id}
   Future<Object?> updateExpenseType({required String expenseTypeId, Map<String, String>? headers, Object? body}) =>
       _send('PATCH', '/v1/billing/expense-types/${Uri.encodeComponent(expenseTypeId)}', headers: headers, body: body);
+
+  /// PATCH /v1/billing/discount-slabs/{party_discount_slab_id}
+  Future<Object?> updatePartyDiscountSlab({required String partyDiscountSlabId, Map<String, String>? headers, Object? body}) =>
+      _send('PATCH', '/v1/billing/discount-slabs/${Uri.encodeComponent(partyDiscountSlabId)}', headers: headers, body: body);
 
   /// POST /v1/billing/orders/{order_id}/payment-intents/{intent_id}/verify
   Future<Object?> verifyPaymentIntent({required String orderId, required String intentId}) =>

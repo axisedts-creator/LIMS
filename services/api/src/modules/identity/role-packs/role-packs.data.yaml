@@ -30,6 +30,8 @@ packs:
           - billing.credit_party.manage
           - billing.credit_party.read
           - billing.data.export
+          - billing.discount_policy.manage
+          - billing.discount_policy.read
           - billing.expense.manage
           - billing.invoice.cancel
           - billing.invoice.issue

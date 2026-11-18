@@ -7,3 +7,6 @@
 ## round 2 (2026-11-18)
 - Same failure after round 1: verify log stops with "The system cannot find the path specified." right after the codegen step. Cause: `%~dp0` in verify.cmd is not expanded because run.ps1 runs the line via `cmd /c "(...)"`, not as a batch file (same bug as T0C-SYNC-1, obs 14670); T0C-SALES-1 passes with absolute paths.
 - Fix: .orchestra/notes/T0C-PARTYSET-1-verify.cmd now uses absolute lane paths and `bash.exe -c "cd ... && bash db/tests/run-suites.sh ..."` like SALES-1. No implementation or test file changed.
+
+## round 3 (2026-11-18)
+- 5 failures, all stale commission_bp pins in partyset1-openapi.test.ts vs LD-385. Implementation already correct. Dispute written (T0C-PARTYSET-1-dispute.md); no code or test edited.

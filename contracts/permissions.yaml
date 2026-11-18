@@ -98,6 +98,8 @@ permissions:
   # T0C-ACCT-1 (LD-313 c): lab accounting in the billing module (account groups / particulars / expense types, account ledger, expenses, cash transfers)
   - { code: billing.account.read,          privileged: false, roles: [finance, tenant_admin] }
   - { code: billing.account.manage,        privileged: true,  roles: [finance, tenant_admin] }   # account group / particular / expense type masters
+  - { code: billing.discount_policy.read,  privileged: false, roles: [finance, tenant_admin, front_desk] }   # T0C-FINCTRL-1 (LD-321): discount reasons, slabs, limits, authorities, my policy
+  - { code: billing.discount_policy.manage, privileged: true, roles: [finance, tenant_admin] }              # T0C-FINCTRL-1 (LD-321): discount masters (deactivate, never delete)
   - { code: billing.account_entry.create,  privileged: false, roles: [finance] }
   - { code: billing.account_entry.reverse, privileged: true,  roles: [finance] }                 # a correction is a reversal entry, never an edit (LD-313 b)
   - { code: billing.expense.manage,        privileged: false, roles: [finance] }

@@ -176,6 +176,23 @@ const BILLING: Spec[] = [
   S("rejectCashTransfer", "POST", "/cash-transfers/{cash_transfer_id}/reject", BL("cash_transfer.decide"), "required", 200, { err: [IMM] }),
   S("cancelCashTransfer", "POST", "/cash-transfers/{cash_transfer_id}/cancel", BL("cash_transfer.manage"), "required", 200, { err: [IMM] }),
   S("getDailyCollectionSummary", "GET", "/daily-collection-summary", BL("account.read"), "none", 200),
+  // T0C-FINCTRL-1 (LD-321): 16 additive accounting control operations (discount reasons, slabs per party, per user limits, authorities, policy, hold / release of ledger entries); shapes in finctrl1-openapi.test.ts.
+  S("listDiscountReasons", "GET", "/discount-reasons", BL("discount_policy.read"), "none", 200, { err: INVALID_CURSOR }),
+  S("createDiscountReason", "POST", "/discount-reasons", BL("discount_policy.manage"), "required", 201),
+  S("updateDiscountReason", "PATCH", "/discount-reasons/{discount_reason_id}", BL("discount_policy.manage"), "optional", 200, { im: true, err: [VC, "common.precondition_required"] }),
+  S("listPartyDiscountSlabs", "GET", "/discount-slabs", BL("discount_policy.read"), "none", 200, { err: INVALID_CURSOR }),
+  S("createPartyDiscountSlab", "POST", "/discount-slabs", BL("discount_policy.manage"), "required", 201),
+  S("updatePartyDiscountSlab", "PATCH", "/discount-slabs/{party_discount_slab_id}", BL("discount_policy.manage"), "optional", 200, { im: true, err: [VC, "common.precondition_required"] }),
+  S("deactivatePartyDiscountSlab", "POST", "/discount-slabs/{party_discount_slab_id}/deactivate", BL("discount_policy.manage"), "optional", 200, { im: true, err: [VC, "common.precondition_required"] }),
+  S("resolveDiscountSlab", "GET", "/discount-slabs/resolve", BL("discount_policy.read"), "none", 200),
+  S("listUserDiscountLimits", "GET", "/discount-limits", BL("discount_policy.read"), "none", 200, { err: INVALID_CURSOR }),
+  S("setUserDiscountLimit", "PUT", "/discount-limits/{user_id}", BL("discount_policy.manage"), "optional", 200, { im: true, err: [VC] }),
+  S("listDiscountAuthorities", "GET", "/discount-authorities", BL("discount_policy.read"), "none", 200, { err: INVALID_CURSOR }),
+  S("createDiscountAuthority", "POST", "/discount-authorities", BL("discount_policy.manage"), "required", 201),
+  S("deactivateDiscountAuthority", "POST", "/discount-authorities/{discount_authority_id}/deactivate", BL("discount_policy.manage"), "optional", 200, { im: true, err: [VC, "common.precondition_required"] }),
+  S("getMyDiscountPolicy", "GET", "/discount-policy/me", BL("discount_policy.read"), "none", 200),
+  S("holdLedgerEntry", "POST", "/account-ledger-entries/{account_ledger_entry_id}/hold", BL("account.manage"), "required", 200, { err: [IMM] }),
+  S("releaseLedgerEntry", "POST", "/account-ledger-entries/{account_ledger_entry_id}/release", BL("account.manage"), "required", 200, { err: [IMM] }),
 ];
 
 // Which list operations take cursor + limit (TRD: "page of …" / `cursor&limit` in the path column)
@@ -183,7 +200,8 @@ const PAGED: Record<string, string[]> = {
   frontdesk: ["listPatientOrders", "listOrders", "listDiscountApprovals", "listOrderFlags", "listPossibleDuplicatePatients"],
   billing: ["listInvoices", "listInvoicePrints", "listCreditNotes", "listRefundRequests", "listLedgerEntries", "listCreditAccounts", "listCreditCharges",
     "getSalesRegister", "getCancelledInvoiceRegister", "getCreditNoteRegister", "getAuditTrail", "listCbmsDocuments", "listDues",
-    "listCreditNoteTasks", "listFinanceReviewItems", "listAccountGroups", "listAccountParticulars", "listExpenseTypes", "listAccountLedgerEntries", "listExpenses", "listCashTransfers", "listAccountSummaries"],
+    "listCreditNoteTasks", "listFinanceReviewItems", "listAccountGroups", "listAccountParticulars", "listExpenseTypes", "listAccountLedgerEntries", "listExpenses", "listCashTransfers", "listAccountSummaries",
+    "listDiscountReasons", "listPartyDiscountSlabs", "listUserDiscountLimits", "listDiscountAuthorities"], // + T0C-FINCTRL-1 (LD-321)
 };
 // §5.1 / §5.2 named schemas that must exist as components
 const DTOS: Record<string, string[]> = {
@@ -199,7 +217,7 @@ afterAll(() => tmps.forEach((d) => rmSync(d, { recursive: true, force: true })))
 
 describe.each([
   { name: "frontdesk", specs: FRONTDESK, total: 29 + 18 }, // 29 C4 operations + 18 T0C-REGPARITY-2 operations (LD-310)
-  { name: "billing", specs: BILLING, total: 47 + 24 + 1 }, // 47 C4 operations + 24 T0C-ACCT-1 operations (LD-313) + listAccountSummaries (T0C-ACCTLIST-1, LD-358)
+  { name: "billing", specs: BILLING, total: 47 + 24 + 1 + 16 }, // 47 C4 operations + 24 T0C-ACCT-1 operations (LD-313) + listAccountSummaries (T0C-ACCTLIST-1, LD-358)
 ])("$name.yaml (T0C-10.C4)", ({ name, specs, total }) => {
   const FILE = join(ROOT, `contracts/openapi/${name}.yaml`);
   const PFX = `/v1/${name}`;

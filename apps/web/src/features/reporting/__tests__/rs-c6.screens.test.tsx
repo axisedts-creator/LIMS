@@ -187,7 +187,11 @@ describe('RS-C6 worklist', () => {
     const W = await loadWorklist();
     wrap(<W reports={[summary()] as never} tab="ready_to_release" permissions={BULK} centres={centres} />);
     expect(primaryButtons().length).toBeLessThanOrEqual(1);
-    expect(screen.getAllByRole('tab').length).toBe(6);
+    // LD-395: Status is a FilterBar select since LD-353, so count its options, not tabs.
+    const u = userEvent.setup();
+    await u.click(screen.getByRole('button', { name: /status/i }));
+    expect(screen.getAllByRole('option').length).toBe(6);
+    await u.keyboard('{Escape}');
     await noSeriousAxe();
   });
 });

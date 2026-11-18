@@ -90,6 +90,9 @@ export interface paths {
   "/v1/lab/results/{result_id}/return": {
     post: operations["returnResult"];
   };
+  "/v1/lab/results/{result_id}/signoffs": {
+    get: operations["getResultSignoffs"];
+  };
   "/v1/lab/results/{result_id}/verify": {
     post: operations["verifyResult"];
   };
@@ -144,6 +147,10 @@ export interface paths {
   };
   "/v1/lab/status-board": {
     get: operations["getStatusBoard"];
+  };
+  "/v1/lab/verification-policies": {
+    get: operations["listVerificationPolicies"];
+    put: operations["upsertVerificationPolicy"];
   };
   "/v1/lab/verification-queue": {
     get: operations["listVerificationQueue"];
@@ -249,6 +256,9 @@ export interface operations {
               amended_at: string;
               amended_by: string;
             };
+            signoff_count?: number;
+            signoff_required?: number;
+            next_step?: "verify" | "approve" | "none";
           };
         };
       };
@@ -504,6 +514,9 @@ export interface operations {
               amended_at: string;
               amended_by: string;
             };
+            signoff_count?: number;
+            signoff_required?: number;
+            next_step?: "verify" | "approve" | "none";
           };
         };
       };
@@ -758,6 +771,9 @@ export interface operations {
                 amended_at: string;
                 amended_by: string;
               };
+              signoff_count?: number;
+              signoff_required?: number;
+              next_step?: "verify" | "approve" | "none";
             };
           };
         };
@@ -984,6 +1000,9 @@ export interface operations {
                   amended_at: string;
                   amended_by: string;
                 };
+                signoff_count?: number;
+                signoff_required?: number;
+                next_step?: "verify" | "approve" | "none";
               };
             })[];
           };
@@ -1662,6 +1681,9 @@ export interface operations {
                   amended_at: string;
                   amended_by: string;
                 };
+                signoff_count?: number;
+                signoff_required?: number;
+                next_step?: "verify" | "approve" | "none";
               };
             })[];
             recomputed: ({
@@ -1723,6 +1745,9 @@ export interface operations {
                 amended_at: string;
                 amended_by: string;
               };
+              signoff_count?: number;
+              signoff_required?: number;
+              next_step?: "verify" | "approve" | "none";
             })[];
           };
         };
@@ -2183,6 +2208,9 @@ export interface operations {
                   amended_at: string;
                   amended_by: string;
                 };
+                signoff_count?: number;
+                signoff_required?: number;
+                next_step?: "verify" | "approve" | "none";
               };
             })[];
           };
@@ -4728,6 +4756,9 @@ export interface operations {
               amended_at: string;
               amended_by: string;
             };
+            signoff_count?: number;
+            signoff_required?: number;
+            next_step?: "verify" | "approve" | "none";
           };
         };
       };
@@ -4871,6 +4902,152 @@ export interface operations {
               unit_code?: string;
               flag?: "LL" | "L" | "N" | "H" | "HH" | "A";
               version_no: number;
+            })[];
+          };
+        };
+      };
+      400: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      401: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      403: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      404: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      429: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      500: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+    };
+  };
+  getResultSignoffs: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        result_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/json": {
+            data: ({
+              result_version: number;
+              seq: number;
+              action: "verify" | "approve";
+              signer_user_id?: string;
+              signer_display_name: string;
+              signer_title?: string;
+              signer_role_code: string;
+              signer_is_pathologist: boolean;
+              signer_registration_no?: string;
+              signed_at: string;
             })[];
           };
         };
@@ -6191,6 +6368,9 @@ export interface operations {
                   amended_at: string;
                   amended_by: string;
                 };
+                signoff_count?: number;
+                signoff_required?: number;
+                next_step?: "verify" | "approve" | "none";
               })[];
             })[];
           };
@@ -7106,6 +7286,150 @@ export interface operations {
       };
     };
   };
+  listVerificationPolicies: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/json": {
+            data: ({
+              id: string;
+              scope: "lab" | "department" | "test";
+              department_id?: string;
+              test_id?: string;
+              required_verifiers: number;
+              require_pathologist: boolean;
+              allow_enterer_verify: boolean;
+              active: boolean;
+              version: number;
+              updated_at: string;
+            })[];
+          };
+        };
+      };
+      400: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      401: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      403: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      404: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      429: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      500: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+    };
+  };
   listVerificationQueue: {
     parameters: {
       query: {
@@ -7186,6 +7510,9 @@ export interface operations {
                   amended_at: string;
                   amended_by: string;
                 };
+                signoff_count?: number;
+                signoff_required?: number;
+                next_step?: "verify" | "approve" | "none";
               };
               registration_no: string;
               barcode?: string;
@@ -9452,6 +9779,9 @@ export interface operations {
               amended_at: string;
               amended_by: string;
             };
+            signoff_count?: number;
+            signoff_required?: number;
+            next_step?: "verify" | "approve" | "none";
           };
         };
       };
@@ -10200,6 +10530,200 @@ export interface operations {
       };
     };
   };
+  upsertVerificationPolicy: {
+    parameters: {
+      query?: never;
+      header?: {
+        "If-Match"?: string;
+      };
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": {
+          scope: "lab" | "department" | "test";
+          department_id?: string;
+          test_id?: string;
+          required_verifiers: number;
+          require_pathologist?: boolean;
+          allow_enterer_verify?: boolean;
+          active?: boolean;
+        };
+      };
+    };
+    responses: {
+      200: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/json": {
+            id: string;
+            scope: "lab" | "department" | "test";
+            department_id?: string;
+            test_id?: string;
+            required_verifiers: number;
+            require_pathologist: boolean;
+            allow_enterer_verify: boolean;
+            active: boolean;
+            version: number;
+            updated_at: string;
+          };
+        };
+      };
+      400: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      401: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      403: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      404: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      409: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      428: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      429: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      500: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+    };
+  };
   verifyResult: {
     parameters: {
       query?: never;
@@ -10281,6 +10805,9 @@ export interface operations {
               amended_at: string;
               amended_by: string;
             };
+            signoff_count?: number;
+            signoff_required?: number;
+            next_step?: "verify" | "approve" | "none";
           };
         };
       };

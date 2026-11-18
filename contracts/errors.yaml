@@ -128,6 +128,10 @@
 # added by 08 §4.2
 - { code: lab.barcode_pattern_invalid, http: 500, owner: C5, title: "Barcode numbering configuration invalid", meaning: "Rendered barcode violates [A-Z0-9]{1,20} or counter overflow" }   # CR-C5-005
 - { code: lab.specimen_inactive, http: 409, owner: C5, title: "Specimen inactive", meaning: "Order cancelled or test removed; specimen not usable" }   # CR-C5-005
+# T0C-VERLEVEL-1 (LD-316): verification levels 1, 2, 3 (lab.verification_policy, lab.result_signoff)
+- { code: lab.verifier_not_distinct, http: 409, owner: C5, title: "Already signed by this person", meaning: "Each sign-off of one result version must come from a different person (LD-316)" }
+- { code: lab.enterer_cannot_verify, http: 403, owner: C5, title: "The person who entered the result cannot sign it off", meaning: "Verification policy allow_enterer_verify is false (default; LD-316, LD-318 follow-up 4)" }
+- { code: lab.pathologist_required, http: 403, owner: C5, title: "Final sign-off needs a pathologist", meaning: "Verification policy require_pathologist is true and the signer does not hold lab.result.approve (LD-316)" }
 - { code: lab.flag_ack_required, http: 409, owner: C5, title: "Flag acknowledgement required", meaning: "Delta/critical/unit/instrument flag must be acknowledged before verification" }   # CR-C5-005
 # reporting + notifications + portal (C6)
 - { code: reporting.release_blocked_due,   http: 409, owner: C6, title: "Report held until payment", meaning: "Hold-till-paid (00 D1)" }

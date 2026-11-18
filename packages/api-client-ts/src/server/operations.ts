@@ -3102,6 +3102,9 @@ export interface Operations {
           amended_at: string;
           amended_by: string;
         };
+        signoff_count?: number;
+        signoff_required?: number;
+        next_step?: "verify" | "approve" | "none";
       });
       400: {
         type: string;
@@ -4673,6 +4676,9 @@ export interface Operations {
           amended_at: string;
           amended_by: string;
         };
+        signoff_count?: number;
+        signoff_required?: number;
+        next_step?: "verify" | "approve" | "none";
       });
       400: {
         type: string;
@@ -5878,6 +5884,9 @@ export interface Operations {
             amended_at: string;
             amended_by: string;
           };
+          signoff_count?: number;
+          signoff_required?: number;
+          next_step?: "verify" | "approve" | "none";
         };
       });
       400: {
@@ -6686,6 +6695,9 @@ export interface Operations {
               amended_at: string;
               amended_by: string;
             };
+            signoff_count?: number;
+            signoff_required?: number;
+            next_step?: "verify" | "approve" | "none";
           };
         })[];
       });
@@ -7208,6 +7220,9 @@ export interface Operations {
               amended_at: string;
               amended_by: string;
             };
+            signoff_count?: number;
+            signoff_required?: number;
+            next_step?: "verify" | "approve" | "none";
           };
         })[];
         recomputed: ({
@@ -7269,6 +7284,9 @@ export interface Operations {
             amended_at: string;
             amended_by: string;
           };
+          signoff_count?: number;
+          signoff_required?: number;
+          next_step?: "verify" | "approve" | "none";
         })[];
       });
       400: {
@@ -7879,6 +7897,9 @@ export interface Operations {
               amended_at: string;
               amended_by: string;
             };
+            signoff_count?: number;
+            signoff_required?: number;
+            next_step?: "verify" | "approve" | "none";
           };
         })[];
       });
@@ -67212,6 +67233,9 @@ export interface Operations {
           amended_at: string;
           amended_by: string;
         };
+        signoff_count?: number;
+        signoff_required?: number;
+        next_step?: "verify" | "approve" | "none";
       });
       400: {
         type: string;
@@ -67317,6 +67341,114 @@ export interface Operations {
           unit_code?: string;
           flag?: "LL" | "L" | "N" | "H" | "HH" | "A";
           version_no: number;
+        })[];
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  getResultSignoffs: {
+    params: {
+      result_id: string;
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        data: ({
+          result_version: number;
+          seq: number;
+          action: "verify" | "approve";
+          signer_user_id?: string;
+          signer_display_name: string;
+          signer_title?: string;
+          signer_role_code: string;
+          signer_is_pathologist: boolean;
+          signer_registration_no?: string;
+          signed_at: string;
         })[];
       });
       400: {
@@ -90291,6 +90423,9 @@ export interface Operations {
               amended_at: string;
               amended_by: string;
             };
+            signoff_count?: number;
+            signoff_required?: number;
+            next_step?: "verify" | "approve" | "none";
           })[];
         })[];
       });
@@ -102317,6 +102452,112 @@ export interface Operations {
       };
     };
   };
+  listVerificationPolicies: {
+    params: Record<string, never>;
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        data: ({
+          id: string;
+          scope: "lab" | "department" | "test";
+          department_id?: string;
+          test_id?: string;
+          required_verifiers: number;
+          require_pathologist: boolean;
+          allow_enterer_verify: boolean;
+          active: boolean;
+          version: number;
+          updated_at: string;
+        })[];
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   listVerificationQueue: {
     params: Record<string, never>;
     query: {
@@ -102391,6 +102632,9 @@ export interface Operations {
               amended_at: string;
               amended_by: string;
             };
+            signoff_count?: number;
+            signoff_required?: number;
+            next_step?: "verify" | "approve" | "none";
           };
           registration_no: string;
           barcode?: string;
@@ -128875,6 +129119,9 @@ export interface Operations {
           amended_at: string;
           amended_by: string;
         };
+        signoff_count?: number;
+        signoff_required?: number;
+        next_step?: "verify" | "approve" | "none";
       });
       400: {
         type: string;
@@ -158448,6 +158695,148 @@ export interface Operations {
       };
     };
   };
+  upsertVerificationPolicy: {
+    params: Record<string, never>;
+    query: Record<string, never>;
+    headers: {
+      "If-Match"?: string;
+    };
+    body: {
+      scope: "lab" | "department" | "test";
+      department_id?: string;
+      test_id?: string;
+      required_verifiers: number;
+      require_pathologist?: boolean;
+      allow_enterer_verify?: boolean;
+      active?: boolean;
+    };
+    responses: {
+      200: ({
+        id: string;
+        scope: "lab" | "department" | "test";
+        department_id?: string;
+        test_id?: string;
+        required_verifiers: number;
+        require_pathologist: boolean;
+        allow_enterer_verify: boolean;
+        active: boolean;
+        version: number;
+        updated_at: string;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   validateCatalogImport: {
     params: Record<string, never>;
     query: Record<string, never>;
@@ -159603,6 +159992,9 @@ export interface Operations {
           amended_at: string;
           amended_by: string;
         };
+        signoff_count?: number;
+        signoff_required?: number;
+        next_step?: "verify" | "approve" | "none";
       });
       400: {
         type: string;

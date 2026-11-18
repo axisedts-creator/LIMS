@@ -35,8 +35,10 @@ export const uid = (): string => uuidv7();                            // unique 
 // ---------------------------------------------------------------- the contract (operations) - from lab.yaml, never from the handlers
 const spec: any = loadSpec(join(REPO_ROOT, 'contracts/openapi/lab.yaml'));
 export interface OpInfo { id: string; method: string; path: string; permission: string; idempotency: string; pathParams: string[]; queryParams: string[]; isList: boolean; operation: any }
+// T0C-VERLEVEL-1 (LD-316, LD-325(b)): the 3 verification level operations are pending until T0B-VERLEVEL-1 (pinned by contract/verlevel1.pending.test.ts); these probes keep covering the 55 original operations.
+export const VERLEVEL1_OPS: readonly string[] = ['listVerificationPolicies', 'upsertVerificationPolicy', 'getResultSignoffs'];
 export const OPS: OpInfo[] = Object.entries<any>(spec.paths).flatMap(([path, item]) =>
-  ['get', 'post', 'put', 'patch', 'delete'].filter((m) => item?.[m]?.operationId).map((method) => {
+  ['get', 'post', 'put', 'patch', 'delete'].filter((m) => item?.[m]?.operationId && !VERLEVEL1_OPS.includes(item[m].operationId)).map((method) => {
     const op = item[method];
     const params: any[] = [...(item.parameters ?? []), ...(op.parameters ?? [])];
     return { id: op.operationId as string, method, path, permission: op['x-permission'] as string, idempotency: String(op['x-idempotency'] ?? ''), operation: op,

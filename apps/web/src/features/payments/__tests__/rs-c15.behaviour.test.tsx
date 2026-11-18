@@ -160,10 +160,10 @@ describe('RS-C15 arrangement guards (10-DESIGN-SYSTEM s3, s4 Accounts, s6; A5)',
     for (const h of ['Found', 'Severity', 'Kind', 'Intent', 'Our status', 'Provider status', 'Our amount', 'Provider amount', 'Automatic action', 'Actions']) expect(within(grid).getByRole('columnheader', { name: new RegExp(`^${h}`) })).toBeTruthy();
   });
 
-  it('money columns stay right-aligned and use the kit amount text (Rs. lakh grouping) in ledger-style tables', async () => {
+  it('money columns stay right-aligned and use the kit amount text (lakh grouping; T0D-UILIST-2 rule 3: the currency moves into the header "Our amount (NPR)") in ledger-style tables', async () => {
     await renderRecon();
     const grid = await openFindings();
-    for (const c of columnCells(grid, /^our amount$/i).filter((x) => x.textContent!.trim() !== '—')) expect(c.querySelector('.lims-money')).not.toBeNull();
+    for (const c of columnCells(grid, /^our amount\b/i).filter((x) => x.textContent!.trim() !== '—')) expect(c.querySelector('.lims-money')).not.toBeNull();
     const heads = [...grid.querySelectorAll('[role="columnheader"]')].filter((h) => /amount/i.test(h.textContent ?? ''));
     expect(heads.length).toBe(2);
   });

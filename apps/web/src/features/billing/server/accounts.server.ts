@@ -96,7 +96,16 @@ export function getAccountSummary(q: { party_kind: PartyKind; party_id: string }
   return serverFetch<AccountSummary>(`/v1/billing/account-summary${qs(q)}`);
 }
 
-type CentreRow = { centre_id?: string; id?: string; name: string; kind?: string; centre_kind?: string; address?: string; phone?: string; email?: string; created_at?: string };
+/** LD-358 AccountSummaryRow: every AccountSummary field plus the party name. */
+export interface AccountSummaryRow extends AccountSummary { party_name: string }
+/** T0D-UILIST-2 (LD-358): ONE list read, operation listAccountSummaries (GET /v1/billing/account-summaries); 501 operation_pending until T0B-ACCTLIST-1.
+ *  `q` = party name search (contract maxLength 80). ponytail: first 200 rows only; add cursor paging when a tenant has more parties. */
+export function listAccountSummaryRows(f: { q?: string | undefined } = {}) {
+  const q = f.q?.trim().slice(0, 80);
+  return serverFetch<Page<AccountSummaryRow>>(`/v1/billing/account-summaries${qs({ q, limit: 200 })}`);
+}
+
+type CentreRow ={ centre_id?: string; id?: string; name: string; kind?: string; centre_kind?: string; address?: string; phone?: string; email?: string; created_at?: string };
 type UserRow = { membership_id?: string; id?: string; display_name?: string };
 type CreditPartyRow = { id: string; name: string; credit_limit_paisa?: number; address?: string; contact_person?: string; phone?: string; email?: string; pan?: string; created_at?: string };
 const centreId = (c: CentreRow) => (c.centre_id ?? c.id) as string;

@@ -83,7 +83,23 @@ export const LD310_ALLOW = {
     'src/features/frontdesk/server/read.server.ts',
     'src/features/frontdesk/server/types.ts',
   ],
-  permissions: ['catalog.price_list.manage', 'catalog.referrer.manage', 'catalog.code_duplicate'],
+  // LD-391 (T0D-OFFLINE-3): the 7 billing.account* codes came from the already-landed T0B-ACCT-1/T0B-FINCTRL-1 accounting UI.
+  permissions: [
+    'catalog.price_list.manage', 'catalog.referrer.manage', 'catalog.code_duplicate',
+    'billing.account.manage', 'billing.account.read', 'billing.accounts.col.blocked', 'billing.accounts.col.credit_limit',
+    'billing.accounts.col.outstanding', 'billing.accounts.col.side', 'billing.accounts.summary.title',
+  ],
+  // LD-391 (T0D-OFFLINE-3): route files ADDED by the already-landed billing accounting UI; additions only, baseline json untouched.
+  routes_added: [
+    'src/app/(staff)/billing/accounts/entries/page.tsx',
+    'src/app/(staff)/billing/accounts/ledger/page.tsx',
+    'src/app/(staff)/billing/accounts/masters/page.tsx',
+    'src/app/(staff)/billing/accounts/pocket/page.tsx',
+    'src/app/(staff)/billing/accounts/summary/page.tsx',
+    'src/app/(staff)/billing/cash-transfers/page.tsx',
+    'src/app/(staff)/billing/expenses/page.tsx',
+    'src/app/(staff)/billing/expenses/types/page.tsx',
+  ],
   server_imports: ['@/features/catalog/server/catalogActions'],
   server_symbols: ['createCreditPartyAction', 'createDoctorAction'],
   trf_symbol: /Trf/, // at most ONE added symbol beyond server_symbols, and it must match this

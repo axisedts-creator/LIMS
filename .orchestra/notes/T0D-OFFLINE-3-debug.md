@@ -48,3 +48,7 @@ Fix: none; tests are tester-owned, baseline json not regenerated. Wrote T0D-OFFL
 ## Round 12 (verify 02:37: 3 fail / 34 pass; rs-c4.static x2 + rs-c4.screens Daily cash)
 Cause: no OFFLINE-3 defect. Same rs-c4 guard drift (frontdesk.patient.read, 22 billing route strings, Daily cash snapshot). LD-400 says the lead edited rs-c4.signature.ts / rs-c4.static.test.ts / snap directly, but those edits are NOT on disk in C0-0K: signature.ts:113 still `route_strings_added: ['/v1/catalog/tests']`, static.test.ts:90 still toHaveLength(1), git status shows only ruling notes modified, last commit touching them is the 01:42 tester commit.
 Fix: none (tests not mine, baseline not regenerated). Lead edits likely landed in another checkout or were never saved; re-apply them in C0-0K (or commit/merge them) before the next verify.
+
+## Round 13 (verify 02:42: 3 fail / 34 pass; rs-c4.static x2 + rs-c4.screens Daily cash)
+Cause: no OFFLINE-3 defect. Same rs-c4 guard drift (frontdesk.patient.read, 22 billing route strings, Daily cash snapshot). LD-400 direct edits still NOT on disk in C0-0K: rs-c4.signature.ts:113 still `route_strings_added: ['/v1/catalog/tests']`, rs-c4.static.test.ts:90 still toHaveLength(1); tree clean for apps/.
+Fix: none (tests not mine, baseline not regenerated). Dispute written; lead must apply LD-400 edits in C0-0K and commit before next verify.

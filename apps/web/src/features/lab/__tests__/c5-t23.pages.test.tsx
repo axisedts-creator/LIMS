@@ -40,7 +40,7 @@ const api = setupServer(
     { code: 'OLD_REASON', display: 'Old reason', sort_order: 3, is_active: false, source: 'tenant' },
   ] }); }),
 );
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { api.resetHandlers(); seen.length = 0; });
 afterAll(() => api.close());
 

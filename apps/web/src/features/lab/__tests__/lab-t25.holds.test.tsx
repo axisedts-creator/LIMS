@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 // C5 T-25 — Lab settings "QC holds" tab (04-UI-UX §3.13: "QC holds (list; Release with comment — Phase 2 copy 'Holds are created by the QC module')"; 02-TRD §5.7 rows 45-46; 03-APP-FLOW QC hold lifecycle;
-// 07-SECURITY S-16, REQ-SEC-062/067 `auth.mfa_required`). Real HTTP goes to LIMS_ORIGIN_API (MSW); `onUnhandledRequest: 'error'`.
+// 07-SECURITY S-16, REQ-SEC-062/067 `auth.mfa_required`). Real HTTP goes to LIMS_ORIGIN_API (MSW); `onUnhandledFrame: 'error'`.
 // ASSUMED contract (T-29 owns the page; this task adds the fourth tab to components/settings/LabSettingsPage.tsx — the writer matches the names or disputes):
 //   Tab (role="tab") "QC holds" next to General / Delta rules / Reason codes; it loads GET /v1/lab/qc-holds?status=active (bearer token) when opened — the other tabs' requests are not made for it.
 //   A "Status" select (options "Active" / "Released") switches the list: GET /v1/lab/qc-holds?status=released.
@@ -60,7 +60,7 @@ const api = setupServer(
     host_query_requires_received: true, ingest_auto_receive: false, critical_notification_blocks_approval: true, recollection_default: true, delta_check_enabled: true, history_days: 730 }); }),
   quiet('/v1/lab/delta-check-rules'),
 );
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 beforeEach(() => {
   listReply = (status) => HttpResponse.json({ data: status === 'released' ? [REL] : [HOLD1, HOLD2] });
   releaseReply = () => HttpResponse.json({ ...HOLD1, status: 'released', released_at: '2026-11-05T06:00:00.000Z', release_comment: 'x' });

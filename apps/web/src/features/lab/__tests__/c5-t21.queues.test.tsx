@@ -79,7 +79,7 @@ const api = setupServer(
   http.post(`${ORIGIN}/v1/lab/results/bulk-verify`, async ({ request }) => { await rec(request); return verifyReply(await request.clone().json(), nVerify++); }),
   http.post(`${ORIGIN}/v1/lab/results/bulk-approve`, async ({ request }) => { await rec(request); return approveReply(await request.clone().json(), nApprove++); }),
 );
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { cleanup(); api.resetHandlers(); calls.length = 0; push.mockReset(); refresh.mockReset(); verifyReply = okAll; approveReply = okAll; nVerify = 0; nApprove = 0; });
 afterAll(() => api.close());
 

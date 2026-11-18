@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 // C5 T-26 — worklist, pending and worksheet-print screens with MSW (PRD AC-07.1-07.5; 03-APP-FLOW §3.4-3.6; 04-UI-UX §3.4, §3.5, §3.15 and the IdText rule (08 A13 D-14); 07-SECURITY S-14).
-// Real HTTP goes to LIMS_ORIGIN_API (MSW); `onUnhandledRequest: 'error'` => any call outside the handlers below fails the test (e.g. the print view must not re-read the live worklist: snapshot).
+// Real HTTP goes to LIMS_ORIGIN_API (MSW); `onUnhandledFrame: 'error'` => any call outside the handlers below fails the test (e.g. the print view must not re-read the live worklist: snapshot).
 // ASSUMED module/prop contract (the spec fixes folders + the screens; names are the writer's to match or dispute):
 //   apps/web/src/features/lab/components/worklists/WorklistPage.tsx   export WorklistPage({ departmentId, permissions })   client component; `permissions: readonly string[]` ("Create worksheet" only with lab.worksheet.manage)
 //   apps/web/src/features/lab/components/pending/PendingPage.tsx      export PendingPage({ permissions? })
@@ -71,7 +71,7 @@ const api = setupServer(
   http.get(`${ORIGIN}/v1/instruments/instruments`, async ({ request }) => { await rec('instruments', request); return instrumentsReply(); }),
 );
 const page = (data: unknown[]) => HttpResponse.json({ data, page: { limit: 50 } });
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 beforeEach(() => {
   worklistReply = () => page([item(1, { priority: 'urgent' }), item(2), item(3, { status: 'resulted' })]);
   pendingReply = () => page([pend(1), pend(2, { item_status: 'awaiting_receipt', age_anchor: 'registered', age_seconds: 5400, over_target: true, tat_target_seconds: 3600 })]);

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 // C5 T-25 — QC results screen `/lab/qc` (04-UI-UX §1 nav row `lab.qc.capture`, §3.12; 02-TRD §5.7 rows 43-44; PRD AC-19.2, AC-19.3 "no UI text implies QC acceptance, rejection or enforcement").
-// Real HTTP goes to LIMS_ORIGIN_API (MSW); `onUnhandledRequest: 'error'` => any call outside the handlers below fails the test.
+// Real HTTP goes to LIMS_ORIGIN_API (MSW); `onUnhandledFrame: 'error'` => any call outside the handlers below fails the test.
 // ASSUMED module/prop contract (the spec fixes the screen, not the names; the writer matches them or disputes):
 //   apps/web/src/features/lab/components/qc/QcResultsPage.tsx   export QcResultsPage({ permissions, centres, instruments })   client component
 //     centres: { id, name }[] (the user's active centres), instruments: { id, name }[] (C7 list, D-14), permissions: readonly string[]. It loads GET /v1/lab/qc-results itself (bearer token, cursor paging).
@@ -58,7 +58,7 @@ const api = setupServer(
   http.get(`${ORIGIN}/v1/lab/qc-results`, async ({ request }) => { await rec(request); return listReply(new URL(request.url)); }),
   http.post(`${ORIGIN}/v1/lab/qc-results`, async ({ request }) => { await rec(request); return postReply(); }),
 );
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 beforeEach(() => {
   listReply = () => HttpResponse.json({ data: [row(1), row(2, { source: 'manual', instrument_id: I2, control_lot_raw: undefined, control_level: undefined, unit_code: undefined, value_numeric: '12' })], page: { limit: 50 } });
   postReply = () => HttpResponse.json(row(9, { source: 'manual', control_id_raw: 'CTRL-NEW', value_numeric: '5.40' }), { status: 201 });

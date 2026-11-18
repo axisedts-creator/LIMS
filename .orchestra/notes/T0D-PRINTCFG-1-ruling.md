@@ -1,3 +1,11 @@
+TESTS_WRONG — rs-c6.static PRINTCFG.web_api_paths allow-list lacks the contract signature route that review item 1 requires, and the rs-c6 worklist snapshot still lacks the LD-399 line.
+1. Review item 1 (.orchestra/notes/T0D-PRINTCFG-1-review.md:5) requires the upload via uploadUserSignature `POST /v1/identity/users/{membership_id}/signature` (contracts/openapi/identity.yaml:1540); the implementation does this (apps/web/src/features/reporting/server/write.server.ts:139). Extractor entry: `/v1/identity/users/${uuid`.
+2. TESTER, apps/web/src/features/reporting/__tests__/rs-c6.static.test.ts:120-121, PRINTCFG.web_api_paths: add `'/v1/identity/users/${uuid'`; remove `'/v1/identity/settings/branding-assets'` (grep: no non-test reporting file calls it now; review item 1 forbids it).
+3. TESTER, apps/web/src/features/reporting/__tests__/__snapshots__/rs-c6.screens.test.tsx.snap lines 72-73 read `button Search` then `button Select an item`; insert exactly one line `button Ready to release` between them (LD-399; label from ReportsWorklist.tsx:19 TAB_LABEL; T0D-UILIST-1 drift per LD-395). Confirm with `git diff --stat` that the .snap itself changed. Fallback: `vitest -u` on rs-c6.screens.test.tsx only, then check the only snapshot diff is that line.
+4. WRITER and DEBUGGER: no code change. Brief scope (inbox :15, :20) is met; neither gap is a spec requirement on the implementation.
+5. LD-400 said item 3 was on disk; it is not (snap lines 72-73 checked this round). Per LD-399, if it does not land this round, escalate by name.
+
+--- previous rulings (history) ---
 TESTS_WRONG — rs-c6.screens "worklist" snapshot and rs-c6.static "same form field names" pin pre-LD-353 ReportsWorklist.tsx markup that T0D-UILIST-1 replaced. Neither the T0D-PRINTCFG-1 brief nor the spec requires that markup for this task.
 1. The brief gates are (inbox T0D-PRINTCFG-1-arbiter.md:20-21): the new print and stationery tests, the reporting and billing web suites, and an unchanged rs-c2. The files list (line 15) does not include ReportsWorklist.tsx.
 2. Git: the last change to ReportsWorklist.tsx is 74ea3e301 [writer] T0D-UILIST-1 impl. No PRINTCFG commit touches it. rs-c6.baseline.json and rs-c6.screens.test.tsx.snap were last recorded before that (2e2dd94ab T0D-UNSLOP-1, 3252b31dc T0D-WEBFIX-1).

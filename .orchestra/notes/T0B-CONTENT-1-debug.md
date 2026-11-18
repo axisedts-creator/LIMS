@@ -11,3 +11,7 @@
 ## round 4 (after main merge)
 - Cause: not CONTENT-1. Only failure = pending-operations.test:293 for module reporting; it contradicts printcfg1.pending.test.ts:36-44 (stubs must be pending vs pending must equal non-function handlers).
 - Fix: none in owned paths; dispute written to T0B-CONTENT-1-dispute.md. Owner T0B-PRINTCFG-1 or lead. Engagement/content tests green.
+## round 5 (after LD-368 merge)
+- Cause: not an impl defect. Only failure in verify: real-modules-boot.test.ts timed out at 60000ms in the full run (114s, 61 files). Other 60 files, 2244 tests incl. all content tests, passed.
+- Rerun alone: 2/2 passed in 57s, so boot takes about 55s here, near the 60s cap. PC load, per LD-367/LD-368.
+- Fix: none in code, tests untouched. Re-run verify with the PC idle; if it keeps timing out the lead can raise that test's timeout or run it alone.

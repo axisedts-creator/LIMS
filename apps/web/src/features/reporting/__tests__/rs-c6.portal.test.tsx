@@ -3,17 +3,25 @@
 // components, called directly with params), put the markup in jsdom and check structure + axe. Behaviour must not change: same forms, same targets,
 // the app-fallback pages make no API call. Mobile-first / 44 px / token-only CSS is in rs-c6.static.test.ts (jsdom has no layout).
 // The portal has no vitest of its own, so these run through apps/web (vitest.rs-c6.config.ts maps `@/` per importer). Synthetic data only.
+import { join } from 'node:path';
 import * as React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import axe from 'axe-core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import Landing from '../../../../../portal/src/app/r/[token]/page';
-import Report from '../../../../../portal/src/app/r/[token]/report/page';
 import AppFallback from '../../../../../portal/src/app/app/[...slug]/page';
 import AppReport from '../../../../../portal/src/app/app/reports/[report_id]/page';
 import PhleboFallback from '../../../../../portal/src/app/phlebo/[...slug]/page';
 import Home from '../../../../../portal/src/app/page';
 import { getSession } from '../../../../../portal/src/server/session';
+
+// The two token pages import portal-only `@/` modules, which this (web) tsconfig would resolve to apps/web/src. Load them through a variable specifier with
+// an explicit signature: tsc does not follow it into apps/portal, vitest still imports the very same files (the `@/` alias is mapped per importer).
+const loadTokenPage = async <Q extends Record<string, string | undefined>>(rel: string) => {
+  const file = join(import.meta.dirname, '..', '..', '..', '..', '..', 'portal', 'src', 'app', rel);
+  return ((await import(/* @vite-ignore */ file)) as { default: (props: { params: Promise<{ token: string }>; searchParams: Promise<Q> }) => Promise<React.ReactElement> }).default;
+};
+const Landing = await loadTokenPage<Record<string, string>>('r/[token]/page');
+const Report = await loadTokenPage<{ pay?: string }>('r/[token]/report/page');
 
 (globalThis as { React?: typeof React }).React = React; // portal tsconfig is jsx:preserve; give the transform the global it may expect
 

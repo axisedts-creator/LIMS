@@ -22,3 +22,8 @@
 - Cause: unchanged, no product defect (LD-423 ruling). Tree clean; 65 tsc errors + 11 `as any` (>2) remain because only the tester role may keep edits to EXISTING test files (run.ps1 Enforce).
 - Fix: none by debugger (would be reverted; test files off-limits). Ruling: tester applies the round-3 fix set + writer round-4 `as any` replacements, then commits.
 - Result: vg6 3/7 red until tester commits; no product code touched.
+
+## Round 6
+- Cause: unchanged, no product defect (LD-423). Tree clean; 19 catalog/frontdesk/billing test files still use msw `onUnhandledRequest`; vg6 3/7 red (tsc errors, TS2722 x35, `as any` 11>2).
+- Fix: none by debugger. Test-file edits are tester-only (run.ps1 Enforce reverts debugger/writer edits). Ruling says no more debug rounds on this fix.
+- Result: waiting on tester to apply round-3 fix set + writer round-4 `as any` replacements and commit. No product code touched.

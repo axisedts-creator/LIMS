@@ -3,3 +3,4 @@
 - Fix: none in implementation code; guards are correct. Snapshot is tester-owned (writer/debugger cannot keep a change), so TESTER must run `node tests/security/classify-authz.mjs` to regenerate it and the lane commits it. Not a spec dispute.
 - Separate, not in verify cmd: existing billing/payments suites lack IdentityPort fixtures (~297 tests fail); needs a tester fixture round.
 - Round 2 (verify log 13:41:44): same 7 node failures, same cause (fresh classifier 931 guarded-exact vs stale committed snapshot). No implementation change; guards stay. Needs tester snapshot regen + lane commit, then re-verify.
+- Round 3: log tail unchanged (authz-classification.test.mjs:88 deepStrictEqual, actual guarded-exact 931 vs committed 838). Still no implementation defect; no code change. Blocked on tester regen of tests/security/authz-classification.json + lane commit.

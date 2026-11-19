@@ -1,6 +1,6 @@
-# VERIFY-GREEN-8 impl (writer, pass after LD-427 ruling / tester commit 1d93420ad)
-- Files changed by writer: none. No VERIFY-GREEN-8-review.md exists; ruling LD-427 says "WRITER: there is nothing for you to do".
-- Rerun 2026-11-19 16:35: gate vitest.vg8 7/8. tsc -p apps/web TS2883 fixed by tester (1d93420ad).
-- Red: test 3 `as any` 90 > 80. Tester note: VG8 added 0; the extra 10 come from other tasks' new test files (T0D-OFFLINE-1, T0D-PRINTCFG-1, T0D-ELABMENU-1, T0D-WEBFIX-2, offline3.fixtures).
-- [CONV] Not an implementation cause; test-owned paths; ruling forbids touching pre-existing casts. No dispute from writer.
-- Open for lead: raise BASELINE_AS_ANY to 90, or open a task to narrow those casts. `turbo run typecheck --continue` per-package counts not run.
+# VERIFY-GREEN-8 impl (writer, pass after ruling TESTS_WRONG / tester commit fe3d80257)
+- Files changed by writer: none. Implementation needed no change (ruling: stale constant in gate only; tester raised BASELINE_AS_ANY 80 -> 90).
+- Rerun 2026-11-19 16:38: gate `vitest.vg8.config.ts` 8/8 green.
+- `turbo run typecheck --filter=@lims/web --continue`: exit 0 (2/2 tasks successful). Worktree clean after run.
+- [CONV] Only test files/helpers changed across VG8 (tester 1d93420ad, fe3d80257, debugger rounds); no product file, so no money/order emitted value, rounding, status or SQL changed.
+- Open: per-package before/after counts across all packages (`turbo run typecheck --continue` unfiltered) not rerun; apps/portal errors belong to VERIFY-GREEN-5. 24 extra `as any` from other lanes' tests remain (out of scope per ruling).

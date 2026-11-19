@@ -9,3 +9,6 @@
 - Round 4 (2026-11-19 15:53 log): same 2 reds, 6/8. Test 1: 65 TS2883 in test harness/helper/fixture exports (need explicit return types). Test 3: `as any` 90 > 80.
 - Cause is test-side only (tester-owned `__tests__`, LD-424/LD-425, ruling 757347041 keeps test 1). No implementation cause, no spec contradiction, no dispute. Debugger may not edit tests: nothing fixed.
 - Next: tester annotates the 65 exports and replaces ~10 VG8-added `as any` with narrow typed casts.
+- Round 5 (2026-11-19 15:53 log): identical to round 4, 6/8. Test 1: 65 TS2883 in `*.harness.tsx`/`*.helpers.tsx`/`rs-c15.fixtures.tsx` exports. Test 3: `as any` 90 > 80.
+- Cause test-side only (tester-owned `__tests__`, LD-424/LD-425, ruling 757347041). No implementation cause, no spec contradiction, no dispute. Nothing fixed by debugger.
+- Next: tester annotates the 65 exports with explicit return types, replaces ~10 VG8-added `as any` with narrow typed casts. Debugger rerun is a loop until then.

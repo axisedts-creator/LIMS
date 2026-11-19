@@ -29,3 +29,7 @@
 # round 8 (2026-11-19) - verify log 10:26: 53/54, only load.live.test.ts:82 fails: p95 47388 ms > P95_BATCH_MS_BOUND 30000 (kit.ts:35). No 40P01/40001 (LD-415 question answered: neither fires now).
 - Cause: unchanged from round 7. Test kit locks the gap-free counter first in every adapter (LD-412), so 400 batches serialise on one tenant counter; p95 grows with load (34.7s, 42.0s, 47.4s across runs). Test-kit locking/bound, not engine code.
 - Fix: none. Impl speedup = engine/adapter locking change (breaks done_when 6); kit.ts and the bound are test code, barred to me. dispute-202611191030.md still unanswered (raise bound, or counter only for receipt ops); waiting on arbiter TESTS_WRONG ruling.
+
+# round 9 (2026-11-19 10:40) - verify log 10:39: 53/54, only load.live.test.ts:82 fails: p95 53292 ms > P95_BATCH_MS_BOUND 30000 (kit.ts:35)
+- Cause: unchanged from rounds 7-8. Every kit adapter locks the gap-free tenant counter first (LD-412), so 400 batches serialise on it; p95 keeps growing (34.7s, 42.0s, 47.4s, 53.3s). No 40P01/40001. Test-kit locking and bound, not engine code.
+- Fix: none. Impl speedup = engine/adapter locking change (breaks done_when 6); kit.ts and the bound are test code, barred to me. dispute-202611191030.md (10:18) still unanswered; waiting on arbiter ruling.

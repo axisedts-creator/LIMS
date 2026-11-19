@@ -132,9 +132,11 @@ describe('C5.T-23 list /lab/ingest-exceptions', () => {
   it('filters: choosing a reason / status navigates with reason= / status=; the URL carries no barcode or value (REQ-SEC-028)', async () => {
     const user = userEvent.setup();
     wrap(<IngestExceptionList items={[exc(1)] as never} permissions={READ} />);
-    await user.selectOptions(screen.getByRole('combobox', { name: /reason/i }), 'unmapped_code');
+    await user.click(screen.getByRole('button', { name: /reason/i }));
+    await user.click(await screen.findByRole('option', { name: 'Code not mapped' }));
     expect(String(push.mock.calls.at(-1)![0])).toMatch(/reason=unmapped_code/);
-    await user.selectOptions(screen.getByRole('combobox', { name: /status/i }), 'resolved');
+    await user.click(screen.getByRole('button', { name: /status/i }));
+    await user.click(await screen.findByRole('option', { name: 'Resolved' }));
     const target = String(push.mock.calls.at(-1)![0]);
     expect(target).toMatch(/status=resolved/);
     expect(target).not.toMatch(/SN0001|13\.4|HGB/);

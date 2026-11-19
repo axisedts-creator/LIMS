@@ -7,7 +7,8 @@ import { SupportAccess, type SupportSession } from '@/features/admin/components/
 export default async function SupportAccessPage() {
   const perms = await gate('audit.log.read');
   if (!perms) return <Denied />;
-  const r = await call<Page<SupportSession>>('GET', '/v1/identity/support-sessions', { query: { limit: '50' } });
+  // LD-301: listTenantSupportSessions declares only `status`; sending `limit` answered 400 common.validation_failed on staging.
+  const r = await call<Page<SupportSession>>('GET', '/v1/identity/support-sessions');
   if (!r.ok) return <LoadError fail={r} what="support access" />;
   return <SupportAccess sessions={r.data.data} canDecide={perms.has('identity.settings.manage')} />;
 }

@@ -8,6 +8,7 @@ import { describe, expect, it } from 'vitest';
 import { handlers } from '../../handlers/index.js';
 import { isLimsError } from '../../../../core/errors.js';
 import { loadSpec, REPO_ROOT } from '../../../../core/module.js';
+import { manifest } from '../../index.js';
 import { makeIdentity } from '../helpers/identity.js';
 import { makeExportsDb, NOW, TENANT_A, TENANT_B, V7 } from '../helpers/exportsDb.js';
 
@@ -46,8 +47,10 @@ describe('CR-C3-008 / 06 T-36: probes/pending.json is empty and no operation is 
 
   it('every operationId in catalog.yaml has a handler that is not the 503 not_implemented stub', async () => {
     const spec: any = loadSpec(join(REPO_ROOT, 'contracts/openapi/catalog.yaml'));
-    const ids: string[] = Object.values<any>(spec.paths).flatMap((p) => Object.values<any>(p).map((m) => m?.operationId).filter(Boolean));
-    expect(ids).toHaveLength(107);
+    // LD-325 / T0C-TESTMGMT-1: spec operations listed in manifest.pendingOperations answer 501 operation_pending until their T0B task lands; they are exempt here, the original 107 are not.
+    const pendingOps = new Set<string>(((manifest as { pendingOperations?: readonly string[] }).pendingOperations) ?? []);
+    const ids: string[] = Object.values<any>(spec.paths).flatMap((p) => Object.values<any>(p).map((m) => m?.operationId).filter(Boolean)).filter((id: string) => !pendingOps.has(id));
+    expect(ids.length).toBeGreaterThanOrEqual(107);
     const stubs: string[] = [];
     for (const id of ids) {
       const h = H[id];

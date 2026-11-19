@@ -1,0 +1,1 @@
+@cd /d "%~dp0..\.." && "C:\Program Files\Git\bin\bash.exe" -c "bash db/tests/run-suites.sh db/tests/core/*.test.sql db/tests/definers/*.test.sql db/tests/engagement/*.test.sql db/tests/identity/*.test.sql"

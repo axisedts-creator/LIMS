@@ -325,6 +325,7 @@ paths:
                         reason_code: first_print
                         printed_by_display: Synthetic printed_by_display
                         printed_at: 2026-11-05T04:15:00.000Z
+                        style: full
                     page:
                       limit: 50
         "400":
@@ -345,7 +346,7 @@ paths:
       tags:
         - billing
       summary: Print an invoice
-      description: Access log invoice.print.
+      description: "Access log invoice.print. Optional style (T0C-PRINTCFG-1, LD-316): full (default) prints with the invoice print profile; plain_bw prints the plain black and white tax bill (PAN bill): black on white only, no logo, no colour, no shading, no header and no footer text; the body keeps the lines a tax bill needs (lab name, address, seller PAN, bill number and date). The print record stores the style used."
       security:
         - bearerJwt: []
       x-permission: billing.invoice.reprint
@@ -377,6 +378,10 @@ paths:
               synthetic:
                 value:
                   reason_code: first_print
+              plain_bw:
+                value:
+                  reason_code: reprint
+                  style: plain_bw
       responses:
         "200":
           description: Success.
@@ -388,6 +393,7 @@ paths:
                 synthetic:
                   value:
                     print_no: 1
+                    style: full
                     copy_mark: Copy of Original
                     document:
                       id: 0193c4a0-0000-7000-8000-000000000515
@@ -1037,7 +1043,7 @@ paths:
       tags:
         - billing
       summary: Print a credit note
-      description: Access log credit_note.print.
+      description: "Access log credit_note.print. Optional body with style (T0C-PRINTCFG-1, LD-316): full (default) or plain_bw, the plain black and white bill (no logo, no colour, no shading, no header and no footer text; lab name, address, seller PAN, bill number and date stay). The print record stores the style used."
       security:
         - bearerJwt: []
       x-permission: billing.invoice.reprint
@@ -1059,6 +1065,26 @@ paths:
           schema:
             $ref: _common.yaml#/components/schemas/Uuid
         - $ref: _common.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                style:
+                  type: string
+                  maxLength: 8
+                  enum:
+                    - full
+                    - plain_bw
+                  default: full
+                  description: "Print style (LD-316). full: as the credit note print profile says. plain_bw: black and white only, no logo, no colour, no shading, no header and no footer text; lab name, address, seller PAN, bill number and date stay."
+            examples:
+              plain_bw:
+                value:
+                  style: plain_bw
       responses:
         "200":
           description: Success.
@@ -1070,6 +1096,7 @@ paths:
                 synthetic:
                   value:
                     print_no: 1
+                    style: full
                     copy_mark: Copy of Original
                     document:
                       id: 0193c4a0-0000-7000-8000-000000000553
@@ -4415,6 +4442,3288 @@ paths:
           $ref: _common.yaml#/components/responses/TooManyRequests
         "500":
           $ref: _common.yaml#/components/responses/Internal
+  # ---------- T0C-ACCT-1 (LD-313): lab accounting, 24 additive operations ----------
+  /v1/billing/account-groups:
+    get:
+      operationId: listAccountGroups
+      tags:
+        - billing
+      summary: List account groups
+      security:
+        - bearerJwt: []
+      x-permission: billing.account.read
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.invalid_cursor
+      parameters:
+        - name: nature
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 9
+            enum:
+              - income
+              - expense
+              - asset
+              - liability
+        - name: is_active
+          in: query
+          required: false
+          schema:
+            type: boolean
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 512
+            pattern: ^[A-Za-z0-9_-]+$
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 50
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountGroupPage"
+              examples:
+                synthetic:
+                  value:
+                    data:
+                      - id: 0193c4a0-0000-7000-8000-00000acc0001
+                        code: INCOME_LAB
+                        name: Laboratory income
+                        nature: income
+                        is_active: true
+                        version: 1
+                        created_at: 2026-11-17T04:15:00.000Z
+                        updated_at: 2026-11-17T04:15:00.000Z
+                    page:
+                      limit: 50
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+    post:
+      operationId: createAccountGroup
+      tags:
+        - billing
+      summary: Create an account group
+      description: LD-313 (founder blanket authority LD-310). Code unique per tenant (upper case); a duplicate -> common.validation_failed.
+      security:
+        - bearerJwt: []
+      x-permission: billing.account.manage
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.idempotency_key_reused
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 64
+            pattern: ^[A-Za-z0-9_-]{1,64}$
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAccountGroupRequest"
+            examples:
+              synthetic:
+                value:
+                  code: INCOME_LAB
+                  name: Laboratory income
+                  nature: income
+      responses:
+        "201":
+          description: Created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountGroup"
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-00000acc0002
+                    code: INCOME_LAB
+                    name: Laboratory income
+                    nature: income
+                    is_active: true
+                    version: 1
+                    created_at: 2026-11-17T04:15:00.000Z
+                    updated_at: 2026-11-17T04:15:00.000Z
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/billing/account-groups/{account_group_id}:
+    patch:
+      operationId: updateAccountGroup
+      tags:
+        - billing
+      summary: Update an account group
+      description: LD-313 (founder blanket authority LD-310). Code and nature never change (postings depend on them).
+      security:
+        - bearerJwt: []
+      x-permission: billing.account.manage
+      x-context: tenant
+      x-idempotency: optional
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.version_conflict
+        - common.precondition_required
+      parameters:
+        - name: account_group_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - name: If-Match
+          in: header
+          required: true
+          schema:
+            type: string
+            maxLength: 12
+            pattern: ^"[1-9][0-9]*"$
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateAccountGroupRequest"
+            examples:
+              synthetic:
+                value:
+                  name: Laboratory income
+                  is_active: true
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountGroup"
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-00000acc0003
+                    code: INCOME_LAB
+                    name: Laboratory income
+                    nature: income
+                    is_active: true
+                    version: 1
+                    created_at: 2026-11-17T04:15:00.000Z
+                    updated_at: 2026-11-17T04:15:00.000Z
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "428":
+          $ref: _common.yaml#/components/responses/PreconditionRequired
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/billing/account-particulars:
+    get:
+      operationId: listAccountParticulars
+      tags:
+        - billing
+      summary: List account particulars
+      security:
+        - bearerJwt: []
+      x-permission: billing.account.read
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.invalid_cursor
+      parameters:
+        - name: account_group_id
+          in: query
+          required: false
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - name: is_active
+          in: query
+          required: false
+          schema:
+            type: boolean
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 512
+            pattern: ^[A-Za-z0-9_-]+$
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 50
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountParticularPage"
+              examples:
+                synthetic:
+                  value:
+                    data:
+                      - id: 0193c4a0-0000-7000-8000-00000acc0004
+                        account_group_id: 0193c4a0-0000-7000-8000-00000acc0005
+                        code: LAB_TESTS
+                        name: Laboratory tests
+                        is_active: true
+                        version: 1
+                        created_at: 2026-11-17T04:15:00.000Z
+                        updated_at: 2026-11-17T04:15:00.000Z
+                    page:
+                      limit: 50
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+    post:
+      operationId: createAccountParticular
+      tags:
+        - billing
+      summary: Create an account particular
+      description: LD-313 (founder blanket authority LD-310). Unknown group -> common.not_found; duplicate code -> common.validation_failed.
+      security:
+        - bearerJwt: []
+      x-permission: billing.account.manage
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.idempotency_key_reused
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 64
+            pattern: ^[A-Za-z0-9_-]{1,64}$
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAccountParticularRequest"
+            examples:
+              synthetic:
+                value:
+                  account_group_id: 0193c4a0-0000-7000-8000-00000acc0006
+                  code: LAB_TESTS
+                  name: Laboratory tests
+      responses:
+        "201":
+          description: Created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountParticular"
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-00000acc0007
+                    account_group_id: 0193c4a0-0000-7000-8000-00000acc0008
+                    code: LAB_TESTS
+                    name: Laboratory tests
+                    is_active: true
+                    version: 1
+                    created_at: 2026-11-17T04:15:00.000Z
+                    updated_at: 2026-11-17T04:15:00.000Z
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/billing/account-particulars/{account_particular_id}:
+    patch:
+      operationId: updateAccountParticular
+      tags:
+        - billing
+      summary: Update an account particular
+      description: LD-313 (founder blanket authority LD-310). Group and code never change.
+      security:
+        - bearerJwt: []
+      x-permission: billing.account.manage
+      x-context: tenant
+      x-idempotency: optional
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.version_conflict
+        - common.precondition_required
+      parameters:
+        - name: account_particular_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - name: If-Match
+          in: header
+          required: true
+          schema:
+            type: string
+            maxLength: 12
+            pattern: ^"[1-9][0-9]*"$
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateAccountParticularRequest"
+            examples:
+              synthetic:
+                value:
+                  name: Laboratory tests
+                  is_active: true
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountParticular"
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-00000acc0009
+                    account_group_id: 0193c4a0-0000-7000-8000-00000acc000a
+                    code: LAB_TESTS
+                    name: Laboratory tests
+                    is_active: true
+                    version: 1
+                    created_at: 2026-11-17T04:15:00.000Z
+                    updated_at: 2026-11-17T04:15:00.000Z
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "428":
+          $ref: _common.yaml#/components/responses/PreconditionRequired
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/billing/expense-types:
+    get:
+      operationId: listExpenseTypes
+      tags:
+        - billing
+      summary: List expense types
+      security:
+        - bearerJwt: []
+      x-permission: billing.account.read
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.invalid_cursor
+      parameters:
+        - name: is_active
+          in: query
+          required: false
+          schema:
+            type: boolean
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 512
+            pattern: ^[A-Za-z0-9_-]+$
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 50
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExpenseTypePage"
+              examples:
+                synthetic:
+                  value:
+                    data:
+                      - id: 0193c4a0-0000-7000-8000-00000acc000b
+                        name: Electricity
+                        account_particular_id: 0193c4a0-0000-7000-8000-00000acc000c
+                        is_active: true
+                        version: 1
+                        created_at: 2026-11-17T04:15:00.000Z
+                        updated_at: 2026-11-17T04:15:00.000Z
+                    page:
+                      limit: 50
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+    post:
+      operationId: createExpenseType
+      tags:
+        - billing
+      summary: Create an expense type
+      description: LD-313 (founder blanket authority LD-310). Unknown particular -> common.not_found; duplicate name (any case) -> common.validation_failed.
+      security:
+        - bearerJwt: []
+      x-permission: billing.account.manage
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.idempotency_key_reused
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 64
+            pattern: ^[A-Za-z0-9_-]{1,64}$
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateExpenseTypeRequest"
+            examples:
+              synthetic:
+                value:
+                  name: Electricity
+                  account_particular_id: 0193c4a0-0000-7000-8000-00000acc000d
+      responses:
+        "201":
+          description: Created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExpenseType"
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-00000acc000e
+                    name: Electricity
+                    account_particular_id: 0193c4a0-0000-7000-8000-00000acc000f
+                    is_active: true
+                    version: 1
+                    created_at: 2026-11-17T04:15:00.000Z
+                    updated_at: 2026-11-17T04:15:00.000Z
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/billing/expense-types/{expense_type_id}:
+    patch:
+      operationId: updateExpenseType
+      tags:
+        - billing
+      summary: Update an expense type
+      description: LD-313 (founder blanket authority LD-310).
+      security:
+        - bearerJwt: []
+      x-permission: billing.account.manage
+      x-context: tenant
+      x-idempotency: optional
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.version_conflict
+        - common.precondition_required
+      parameters:
+        - name: expense_type_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - name: If-Match
+          in: header
+          required: true
+          schema:
+            type: string
+            maxLength: 12
+            pattern: ^"[1-9][0-9]*"$
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateExpenseTypeRequest"
+            examples:
+              synthetic:
+                value:
+                  name: Electricity
+                  is_active: false
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExpenseType"
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-00000acc0010
+                    name: Electricity
+                    account_particular_id: 0193c4a0-0000-7000-8000-00000acc0011
+                    is_active: true
+                    version: 1
+                    created_at: 2026-11-17T04:15:00.000Z
+                    updated_at: 2026-11-17T04:15:00.000Z
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "428":
+          $ref: _common.yaml#/components/responses/PreconditionRequired
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/billing/account-ledger-entries:
+    post:
+      operationId: createAccountLedgerEntry
+      tags:
+        - billing
+      summary: Create an account ledger entry
+      description: "LD-313 (founder blanket authority LD-310). Records only: no money is moved. The entry is append only (never updated or deleted); a correction is a reversal entry. The server assigns status submitted and receipt_no from the per tenant receipt counter. Unknown centre, particular or party -> common.not_found. Credit limit and blocked party are not enforced here."
+      security:
+        - bearerJwt: []
+      x-permission: billing.account_entry.create
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.idempotency_key_reused
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 64
+            pattern: ^[A-Za-z0-9_-]{1,64}$
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAccountLedgerEntryRequest"
+            examples:
+              synthetic:
+                value:
+                  centre_id: 0193c4a0-0000-7000-8000-00000acc0012
+                  party_kind: credit_party
+                  party_id: 0193c4a0-0000-7000-8000-00000acc0013
+                  entry_date: 2026-11-17
+                  account_particular_id: 0193c4a0-0000-7000-8000-00000acc0014
+                  entry_type: credit
+                  amount_paisa: 150000
+                  payment_mode: bank_transfer
+                  bank_name: Synthetic Bank
+                  reference_no: SYN-REF-1
+                  comments: Synthetic comment
+      responses:
+        "201":
+          description: Created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountLedgerEntry"
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-00000acc0015
+                    centre_id: 0193c4a0-0000-7000-8000-00000acc0016
+                    party_kind: credit_party
+                    party_id: 0193c4a0-0000-7000-8000-00000acc0017
+                    entry_date: 2026-11-17
+                    account_particular_id: 0193c4a0-0000-7000-8000-00000acc0018
+                    entry_type: credit
+                    amount_paisa: 150000
+                    payment_mode: bank_transfer
+                    bank_name: Synthetic Bank
+                    reference_no: SYN-REF-1
+                    comments: Synthetic comment
+                    status: submitted
+                    receipt_no: ACC-000001
+                    created_by: 0193c4a0-0000-7000-8000-00000acc0019
+                    last_modified_by: 0193c4a0-0000-7000-8000-00000acc001a
+                    created_at: 2026-11-17T04:15:00.000Z
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+    get:
+      operationId: listAccountLedgerEntries
+      tags:
+        - billing
+      summary: List account ledger entries
+      security:
+        - bearerJwt: []
+      x-permission: billing.account.read
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.invalid_cursor
+      parameters:
+        - name: centre_id
+          in: query
+          required: false
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - name: party_kind
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 12
+            enum:
+              - credit_party
+              - franchise
+              - user_pocket
+              - laboratory
+        - name: party_id
+          in: query
+          required: false
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - name: account_particular_id
+          in: query
+          required: false
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - name: entry_type
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 6
+            enum:
+              - credit
+              - debit
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 9
+            enum:
+              - submitted
+              - approved
+              - rejected
+              - reversed
+              - held
+        - name: fiscal_year_label
+          in: query
+          required: false
+          schema:
+            type: string
+            minLength: 7
+            maxLength: 7
+            pattern: ^[0-9]{4}/[0-9]{2}$
+        - name: entry_date_from
+          in: query
+          required: false
+          schema:
+            $ref: _common.yaml#/components/schemas/IsoDate
+        - name: entry_date_to
+          in: query
+          required: false
+          schema:
+            $ref: _common.yaml#/components/schemas/IsoDate
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 512
+            pattern: ^[A-Za-z0-9_-]+$
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 50
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountLedgerEntryPage"
+              examples:
+                synthetic:
+                  value:
+                    data:
+                      - id: 0193c4a0-0000-7000-8000-00000acc001b
+                        centre_id: 0193c4a0-0000-7000-8000-00000acc001c
+                        party_kind: credit_party
+                        party_id: 0193c4a0-0000-7000-8000-00000acc001d
+                        entry_date: 2026-11-17
+                        account_particular_id: 0193c4a0-0000-7000-8000-00000acc001e
+                        entry_type: credit
+                        amount_paisa: 150000
+                        payment_mode: bank_transfer
+                        bank_name: Synthetic Bank
+                        reference_no: SYN-REF-1
+                        comments: Synthetic comment
+                        status: submitted
+                        receipt_no: ACC-000001
+                        created_by: 0193c4a0-0000-7000-8000-00000acc001f
+                        last_modified_by: 0193c4a0-0000-7000-8000-00000acc0020
+                        created_at: 2026-11-17T04:15:00.000Z
+                    page:
+                      limit: 50
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/billing/account-ledger-entries/{account_ledger_entry_id}:
+    get:
+      operationId: getAccountLedgerEntry
+      tags:
+        - billing
+      summary: Get an account ledger entry
+      security:
+        - bearerJwt: []
+      x-permission: billing.account.read
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+      parameters:
+        - name: account_ledger_entry_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountLedgerEntry"
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-00000acc0021
+                    centre_id: 0193c4a0-0000-7000-8000-00000acc0022
+                    party_kind: credit_party
+                    party_id: 0193c4a0-0000-7000-8000-00000acc0023
+                    entry_date: 2026-11-17
+                    account_particular_id: 0193c4a0-0000-7000-8000-00000acc0024
+                    entry_type: credit
+                    amount_paisa: 150000
+                    payment_mode: bank_transfer
+                    bank_name: Synthetic Bank
+                    reference_no: SYN-REF-1
+                    comments: Synthetic comment
+                    status: submitted
+                    receipt_no: ACC-000001
+                    created_by: 0193c4a0-0000-7000-8000-00000acc0025
+                    last_modified_by: 0193c4a0-0000-7000-8000-00000acc0026
+                    created_at: 2026-11-17T04:15:00.000Z
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/billing/account-ledger-entries/{account_ledger_entry_id}/reverse:
+    post:
+      operationId: reverseAccountLedgerEntry
+      tags:
+        - billing
+      summary: Reverse an account ledger entry
+      description: "LD-313 (founder blanket authority LD-310). Append only: the original entry is never updated or deleted. Creates and returns a NEW reversal entry (opposite type, same amount, centre, party and particular, reverses_entry_id = the original). One reversal per entry; a reversal cannot be reversed -> billing.ledger_reversal_invalid."
+      security:
+        - bearerJwt: []
+      x-permission: billing.account_entry.reverse
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.idempotency_key_reused
+        - billing.ledger_reversal_invalid
+      parameters:
+        - name: account_ledger_entry_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 64
+            pattern: ^[A-Za-z0-9_-]{1,64}$
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReverseAccountLedgerEntryRequest"
+            examples:
+              synthetic:
+                value:
+                  reason_text: Synthetic wrong particular
+      responses:
+        "201":
+          description: Created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountLedgerEntry"
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-00000acc0028
+                    centre_id: 0193c4a0-0000-7000-8000-00000acc0029
+                    party_kind: credit_party
+                    party_id: 0193c4a0-0000-7000-8000-00000acc002a
+                    entry_date: 2026-11-17
+                    account_particular_id: 0193c4a0-0000-7000-8000-00000acc002b
+                    entry_type: debit
+                    amount_paisa: 150000
+                    payment_mode: bank_transfer
+                    bank_name: Synthetic Bank
+                    reference_no: SYN-REF-1
+                    comments: Synthetic wrong particular
+                    status: submitted
+                    receipt_no: ACC-000002
+                    created_by: 0193c4a0-0000-7000-8000-00000acc002c
+                    last_modified_by: 0193c4a0-0000-7000-8000-00000acc002d
+                    created_at: 2026-11-17T04:15:00.000Z
+                    reverses_entry_id: 0193c4a0-0000-7000-8000-00000acc0027
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/billing/account-statement:
+    get:
+      operationId: getAccountStatement
+      tags:
+        - billing
+      summary: Ledger statement of one party for a date range
+      description: "LD-313 (founder blanket authority LD-310). Opening balance before `from`, rows in entry order with a running balance, closing balance and the totals of credits and debits. A reversal appears as its own row of the opposite type. At most 1000 rows: a longer range -> common.validation_failed (narrow the range)."
+      security:
+        - bearerJwt: []
+      x-permission: billing.account.read
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+      parameters:
+        - name: party_kind
+          in: query
+          required: true
+          schema:
+            type: string
+            maxLength: 12
+            enum:
+              - credit_party
+              - franchise
+              - user_pocket
+              - laboratory
+        - name: party_id
+          in: query
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - name: from
+          in: query
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/IsoDate
+        - name: to
+          in: query
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/IsoDate
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountStatement"
+              examples:
+                synthetic:
+                  value:
+                    party_kind: credit_party
+                    party_id: 0193c4a0-0000-7000-8000-00000acc0031
+                    from: 2026-11-01
+                    to: 2026-11-17
+                    opening_balance_paisa: 50000
+                    opening_balance_side: credit
+                    rows:
+                      - entry_id: 0193c4a0-0000-7000-8000-00000acc002e
+                        entry_date: 2026-11-05
+                        receipt_no: ACC-000010
+                        entry_type: credit
+                        account_particular_id: 0193c4a0-0000-7000-8000-00000acc0030
+                        status: approved
+                        credit_paisa: 150000
+                        debit_paisa: 0
+                        balance_paisa: 200000
+                        balance_side: credit
+                      - entry_id: 0193c4a0-0000-7000-8000-00000acc002f
+                        entry_date: 2026-11-12
+                        receipt_no: ACC-000011
+                        entry_type: debit
+                        account_particular_id: 0193c4a0-0000-7000-8000-00000acc0030
+                        status: submitted
+                        credit_paisa: 0
+                        debit_paisa: 250000
+                        balance_paisa: 50000
+                        balance_side: debit
+                    closing_balance_paisa: 50000
+                    closing_balance_side: debit
+                    total_credit_paisa: 150000
+                    total_debit_paisa: 250000
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/billing/account-summary:
+    get:
+      operationId: getAccountSummary
+      tags:
+        - billing
+      summary: Account summary of one party
+      description: LD-313 (founder blanket authority LD-310). Credit limit, outstanding balance with its side, blocked flag.
+      security:
+        - bearerJwt: []
+      x-permission: billing.account.read
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+      parameters:
+        - name: party_kind
+          in: query
+          required: true
+          schema:
+            type: string
+            maxLength: 12
+            enum:
+              - credit_party
+              - franchise
+              - user_pocket
+              - laboratory
+        - name: party_id
+          in: query
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountSummary"
+              examples:
+                synthetic:
+                  value:
+                    party_kind: credit_party
+                    party_id: 0193c4a0-0000-7000-8000-00000acc0032
+                    credit_limit_paisa: 10000000
+                    outstanding_paisa: 50000
+                    outstanding_side: debit
+                    is_blocked: false
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/billing/account-summaries:
+    get:
+      operationId: listAccountSummaries
+      tags:
+        - billing
+      summary: List account summaries of all parties
+      description: "LD-358 (founder blanket authority LD-310; LD-325: pending until its handler exists). Account summary list of ElabAssist View Account: every party with credit limit, outstanding balance and blocked flag, searchable by party name. Read only."
+      security:
+        - bearerJwt: []
+      x-permission: billing.account.read
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.invalid_cursor
+      parameters:
+        - name: party_kind
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 12
+            enum:
+              - credit_party
+              - franchise
+              - user_pocket
+              - laboratory
+        - name: q
+          in: query
+          required: false
+          description: Search of the party name.
+          schema:
+            type: string
+            maxLength: 80
+        - name: blocked_only
+          in: query
+          required: false
+          description: When true, only blocked parties.
+          schema:
+            type: boolean
+        - name: outstanding_only
+          in: query
+          required: false
+          description: When true, only parties with outstanding_paisa above 0.
+          schema:
+            type: boolean
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 512
+            pattern: ^[A-Za-z0-9_-]+$
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 50
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountSummaryRowPage"
+              examples:
+                synthetic:
+                  value:
+                    data:
+                      - party_kind: credit_party
+                        party_id: 0193c4a0-0000-7000-8000-00000acc0101
+                        party_name: Synthetic Credit Party A
+                        credit_limit_paisa: 10000000
+                        outstanding_paisa: 50000
+                        outstanding_side: debit
+                        is_blocked: false
+                      - party_kind: franchise
+                        party_id: 0193c4a0-0000-7000-8000-00000acc0102
+                        party_name: Synthetic Franchise B
+                        credit_limit_paisa: 0
+                        outstanding_paisa: 0
+                        outstanding_side: credit
+                        is_blocked: false
+                    page:
+                      limit: 50
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/billing/expenses:
+    post:
+      operationId: createExpense
+      tags:
+        - billing
+      summary: Record an expense
+      description: "LD-313 (founder blanket authority LD-310). Records only: no money is moved. Unknown centre or expense type -> common.not_found."
+      security:
+        - bearerJwt: []
+      x-permission: billing.expense.manage
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.idempotency_key_reused
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 64
+            pattern: ^[A-Za-z0-9_-]{1,64}$
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateExpenseRequest"
+            examples:
+              synthetic:
+                value:
+                  centre_id: 0193c4a0-0000-7000-8000-00000acc0033
+                  expense_at: 2026-11-17T04:15:00.000Z
+                  expense_type_id: 0193c4a0-0000-7000-8000-00000acc0034
+                  amount_paisa: 25000
+                  description: Synthetic electricity bill
+      responses:
+        "201":
+          description: Created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Expense"
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-00000acc0035
+                    centre_id: 0193c4a0-0000-7000-8000-00000acc0036
+                    expense_at: 2026-11-17T04:15:00.000Z
+                    expense_type_id: 0193c4a0-0000-7000-8000-00000acc0037
+                    amount_paisa: 25000
+                    description: Synthetic electricity bill
+                    version: 1
+                    created_by: 0193c4a0-0000-7000-8000-00000acc0038
+                    created_at: 2026-11-17T04:15:00.000Z
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+    get:
+      operationId: listExpenses
+      tags:
+        - billing
+      summary: List expenses
+      security:
+        - bearerJwt: []
+      x-permission: billing.account.read
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.invalid_cursor
+      parameters:
+        - name: centre_id
+          in: query
+          required: false
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - name: expense_type_id
+          in: query
+          required: false
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - name: expense_at_from
+          in: query
+          required: false
+          schema:
+            $ref: _common.yaml#/components/schemas/IsoUtc
+        - name: expense_at_to
+          in: query
+          required: false
+          schema:
+            $ref: _common.yaml#/components/schemas/IsoUtc
+        - name: include_cancelled
+          in: query
+          required: false
+          schema:
+            type: boolean
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 512
+            pattern: ^[A-Za-z0-9_-]+$
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 50
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExpensePage"
+              examples:
+                synthetic:
+                  value:
+                    data:
+                      - id: 0193c4a0-0000-7000-8000-00000acc0039
+                        centre_id: 0193c4a0-0000-7000-8000-00000acc003a
+                        expense_at: 2026-11-17T04:15:00.000Z
+                        expense_type_id: 0193c4a0-0000-7000-8000-00000acc003b
+                        amount_paisa: 25000
+                        description: Synthetic electricity bill
+                        version: 1
+                        created_by: 0193c4a0-0000-7000-8000-00000acc003c
+                        created_at: 2026-11-17T04:15:00.000Z
+                    page:
+                      limit: 50
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/billing/expenses/{expense_id}/cancel:
+    post:
+      operationId: cancelExpense
+      tags:
+        - billing
+      summary: Cancel an expense
+      description: LD-313 (founder blanket authority LD-310). Sets cancelled_at once; an already cancelled expense -> common.immutable_record. Expenses are never deleted.
+      security:
+        - bearerJwt: []
+      x-permission: billing.expense.manage
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.idempotency_key_reused
+        - common.immutable_record
+      parameters:
+        - name: expense_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 64
+            pattern: ^[A-Za-z0-9_-]{1,64}$
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CancelExpenseRequest"
+            examples:
+              synthetic:
+                value:
+                  reason_text: Synthetic duplicate entry
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Expense"
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-00000acc003d
+                    centre_id: 0193c4a0-0000-7000-8000-00000acc003e
+                    expense_at: 2026-11-17T04:15:00.000Z
+                    expense_type_id: 0193c4a0-0000-7000-8000-00000acc003f
+                    amount_paisa: 25000
+                    description: Synthetic electricity bill
+                    version: 2
+                    created_by: 0193c4a0-0000-7000-8000-00000acc0040
+                    created_at: 2026-11-17T04:15:00.000Z
+                    cancelled_at: 2026-11-17T04:15:00.000Z
+                    cancel_reason_text: Synthetic duplicate entry
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/billing/cash-transfers:
+    post:
+      operationId: createCashTransfer
+      tags:
+        - billing
+      summary: Request a cash transfer
+      description: "LD-313 (founder blanket authority LD-310). Records only: no money is moved. The transfer starts pending; from and to must differ."
+      security:
+        - bearerJwt: []
+      x-permission: billing.cash_transfer.manage
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.idempotency_key_reused
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 64
+            pattern: ^[A-Za-z0-9_-]{1,64}$
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCashTransferRequest"
+            examples:
+              synthetic:
+                value:
+                  from_kind: user
+                  from_id: 0193c4a0-0000-7000-8000-00000acc0041
+                  to_kind: centre
+                  to_id: 0193c4a0-0000-7000-8000-00000acc0042
+                  amount_paisa: 500000
+                  remark: Synthetic hand over
+      responses:
+        "201":
+          description: Created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CashTransfer"
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-00000acc0043
+                    from_kind: user
+                    from_id: 0193c4a0-0000-7000-8000-00000acc0044
+                    to_kind: centre
+                    to_id: 0193c4a0-0000-7000-8000-00000acc0045
+                    amount_paisa: 500000
+                    status: pending
+                    remark: Synthetic hand over
+                    version: 1
+                    created_by: 0193c4a0-0000-7000-8000-00000acc0046
+                    created_at: 2026-11-17T04:15:00.000Z
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+    get:
+      operationId: listCashTransfers
+      tags:
+        - billing
+      summary: List cash transfers
+      security:
+        - bearerJwt: []
+      x-permission: billing.account.read
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.invalid_cursor
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 9
+            enum:
+              - pending
+              - accepted
+              - rejected
+              - cancelled
+        - name: from_id
+          in: query
+          required: false
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - name: to_id
+          in: query
+          required: false
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 512
+            pattern: ^[A-Za-z0-9_-]+$
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 50
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CashTransferPage"
+              examples:
+                synthetic:
+                  value:
+                    data:
+                      - id: 0193c4a0-0000-7000-8000-00000acc0047
+                        from_kind: user
+                        from_id: 0193c4a0-0000-7000-8000-00000acc0048
+                        to_kind: centre
+                        to_id: 0193c4a0-0000-7000-8000-00000acc0049
+                        amount_paisa: 500000
+                        status: pending
+                        remark: Synthetic hand over
+                        version: 1
+                        created_by: 0193c4a0-0000-7000-8000-00000acc004a
+                        created_at: 2026-11-17T04:15:00.000Z
+                    page:
+                      limit: 50
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/billing/cash-transfers/{cash_transfer_id}/accept:
+    post:
+      operationId: acceptCashTransfer
+      tags:
+        - billing
+      summary: Accept a pending cash transfer
+      description: "LD-313 (founder blanket authority LD-310). (b): accept posts a balanced pair of account ledger entries (debit the sender, credit the receiver, same amount) in one transaction with the status change. The decider must not be the creator (sender / requester) of the transfer -> auth.forbidden. A transfer that is no longer pending -> common.immutable_record."
+      security:
+        - bearerJwt: []
+      x-permission: billing.cash_transfer.decide
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.idempotency_key_reused
+        - common.immutable_record
+      parameters:
+        - name: cash_transfer_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 64
+            pattern: ^[A-Za-z0-9_-]{1,64}$
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CashTransfer"
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-00000acc004c
+                    from_kind: user
+                    from_id: 0193c4a0-0000-7000-8000-00000acc004d
+                    to_kind: centre
+                    to_id: 0193c4a0-0000-7000-8000-00000acc004e
+                    amount_paisa: 500000
+                    status: accepted
+                    remark: Synthetic hand over
+                    version: 2
+                    created_by: 0193c4a0-0000-7000-8000-00000acc004f
+                    created_at: 2026-11-17T04:15:00.000Z
+                    decided_by: 0193c4a0-0000-7000-8000-00000acc004b
+                    decided_at: 2026-11-17T04:15:00.000Z
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/billing/cash-transfers/{cash_transfer_id}/reject:
+    post:
+      operationId: rejectCashTransfer
+      tags:
+        - billing
+      summary: Reject a pending cash transfer
+      description: LD-313 (founder blanket authority LD-310). The decider must not be the creator of the transfer -> auth.forbidden. A transfer that is no longer pending -> common.immutable_record. No ledger entry is posted.
+      security:
+        - bearerJwt: []
+      x-permission: billing.cash_transfer.decide
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.idempotency_key_reused
+        - common.immutable_record
+      parameters:
+        - name: cash_transfer_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 64
+            pattern: ^[A-Za-z0-9_-]{1,64}$
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CashTransfer"
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-00000acc0051
+                    from_kind: user
+                    from_id: 0193c4a0-0000-7000-8000-00000acc0052
+                    to_kind: centre
+                    to_id: 0193c4a0-0000-7000-8000-00000acc0053
+                    amount_paisa: 500000
+                    status: rejected
+                    remark: Synthetic hand over
+                    version: 2
+                    created_by: 0193c4a0-0000-7000-8000-00000acc0054
+                    created_at: 2026-11-17T04:15:00.000Z
+                    decided_by: 0193c4a0-0000-7000-8000-00000acc0050
+                    decided_at: 2026-11-17T04:15:00.000Z
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/billing/cash-transfers/{cash_transfer_id}/cancel:
+    post:
+      operationId: cancelCashTransfer
+      tags:
+        - billing
+      summary: Cancel a pending cash transfer
+      description: LD-313 (founder blanket authority LD-310). Only the creator (requester) of the transfer cancels it, while it is pending (decided_by = the creator); otherwise common.immutable_record. No ledger entry is posted.
+      security:
+        - bearerJwt: []
+      x-permission: billing.cash_transfer.manage
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.idempotency_key_reused
+        - common.immutable_record
+      parameters:
+        - name: cash_transfer_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 64
+            pattern: ^[A-Za-z0-9_-]{1,64}$
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CashTransfer"
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-00000acc0056
+                    from_kind: user
+                    from_id: 0193c4a0-0000-7000-8000-00000acc0057
+                    to_kind: centre
+                    to_id: 0193c4a0-0000-7000-8000-00000acc0058
+                    amount_paisa: 500000
+                    status: cancelled
+                    remark: Synthetic hand over
+                    version: 2
+                    created_by: 0193c4a0-0000-7000-8000-00000acc0059
+                    created_at: 2026-11-17T04:15:00.000Z
+                    decided_by: 0193c4a0-0000-7000-8000-00000acc0055
+                    decided_at: 2026-11-17T04:15:00.000Z
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/billing/daily-collection-summary:
+    get:
+      operationId: getDailyCollectionSummary
+      tags:
+        - billing
+      summary: Daily collection summary by payment mode for a centre and day
+      description: LD-313 (founder blanket authority LD-310).
+      security:
+        - bearerJwt: []
+      x-permission: billing.account.read
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+      parameters:
+        - name: centre_id
+          in: query
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - name: day
+          in: query
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/IsoDate
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DailyCollectionSummary"
+              examples:
+                synthetic:
+                  value:
+                    centre_id: 0193c4a0-0000-7000-8000-00000acc005a
+                    day: 2026-11-17
+                    rows:
+                      - payment_mode: cash
+                        entry_count: 2
+                        total_paisa: 300000
+                      - payment_mode: bank_transfer
+                        entry_count: 1
+                        total_paisa: 150000
+                    total_paisa: 450000
+                refund_only_day:
+                  value:
+                    centre_id: 0193c4a0-0000-7000-8000-00000acc005a
+                    day: 2026-11-18
+                    rows:
+                      - payment_mode: cash
+                        entry_count: -1
+                        total_paisa: -50000
+                    total_paisa: -50000
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/billing/discount-reasons:
+    get:
+      operationId: listDiscountReasons
+      tags:
+        - billing
+      summary: List discount reasons
+      description: T0C-FINCTRL-1 (LD-321, founder blanket authority LD-310). The tenant discount reason master (ElabAssist Discount Reason), ordered by display_order.
+      security:
+        - bearerJwt: []
+      x-permission: billing.discount_policy.read
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.invalid_cursor
+      parameters:
+        - name: is_active
+          in: query
+          required: false
+          schema:
+            type: boolean
+        - &a1
+          $ref: _common.yaml#/components/parameters/Cursor
+        - &a2
+          $ref: _common.yaml#/components/parameters/Limit
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DiscountReasonPage"
+              examples:
+                synthetic:
+                  value:
+                    data:
+                      - id: 0193c4a0-0000-7000-8000-00000fc00100
+                        code: PARTNER_FAMILY
+                        name: Partner Family
+                        is_active: true
+                        display_order: 1
+                        version: 1
+                        created_at: 2026-11-17T04:15:00.000Z
+                        updated_at: 2026-11-17T04:15:00.000Z
+                    page:
+                      limit: 50
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+    post:
+      operationId: createDiscountReason
+      tags:
+        - billing
+      summary: Create a discount reason
+      description: T0C-FINCTRL-1 (LD-321, founder blanket authority LD-310). Code unique per tenant (upper case, immutable); a duplicate -> common.validation_failed. Reasons are deactivated, never deleted.
+      security:
+        - bearerJwt: []
+      x-permission: billing.discount_policy.manage
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.idempotency_key_reused
+      parameters:
+        - &a3
+          name: Idempotency-Key
+          in: header
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 64
+            pattern: ^[A-Za-z0-9_-]{1,64}$
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateDiscountReasonRequest"
+            examples:
+              synthetic:
+                value:
+                  code: PARTNER_FAMILY
+                  name: Partner Family
+                  display_order: 1
+      responses:
+        "201":
+          description: Created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DiscountReason"
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-00000fc00101
+                    code: PARTNER_FAMILY
+                    name: Partner Family
+                    is_active: true
+                    display_order: 1
+                    version: 1
+                    created_at: 2026-11-17T04:15:00.000Z
+                    updated_at: 2026-11-17T04:15:00.000Z
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/billing/discount-reasons/{discount_reason_id}:
+    patch:
+      operationId: updateDiscountReason
+      tags:
+        - billing
+      summary: Update a discount reason
+      description: T0C-FINCTRL-1 (LD-321, founder blanket authority LD-310). Rename, reorder or deactivate (is_active false); the code never changes (approvals and reports refer to it). No delete.
+      security:
+        - bearerJwt: []
+      x-permission: billing.discount_policy.manage
+      x-context: tenant
+      x-idempotency: optional
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.version_conflict
+        - common.precondition_required
+      parameters:
+        - name: discount_reason_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - name: If-Match
+          in: header
+          required: true
+          schema:
+            type: string
+            maxLength: 12
+            pattern: ^"[1-9][0-9]*"$
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateDiscountReasonRequest"
+            examples:
+              synthetic:
+                value:
+                  name: Partner Family
+                  display_order: 2
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DiscountReason"
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-00000fc00102
+                    code: PARTNER_FAMILY
+                    name: Partner Family
+                    is_active: true
+                    display_order: 2
+                    version: 2
+                    created_at: 2026-11-17T04:15:00.000Z
+                    updated_at: 2026-11-17T04:15:00.000Z
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "428":
+          $ref: _common.yaml#/components/responses/PreconditionRequired
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/billing/discount-slabs:
+    get:
+      operationId: listPartyDiscountSlabs
+      tags:
+        - billing
+      summary: List party discount slabs
+      description: T0C-FINCTRL-1 (LD-321, founder blanket authority LD-310). ElabAssist Discount slab per party.
+      security:
+        - bearerJwt: []
+      x-permission: billing.discount_policy.read
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.invalid_cursor
+      parameters:
+        - name: party_kind
+          in: query
+          required: false
+          schema: &a4
+            type: string
+            maxLength: 12
+            enum:
+              - credit_party
+              - partner
+              - doctor
+              - franchise
+        - name: party_id
+          in: query
+          required: false
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - name: is_active
+          in: query
+          required: false
+          schema:
+            type: boolean
+        - *a1
+        - *a2
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PartyDiscountSlabPage"
+              examples:
+                synthetic:
+                  value:
+                    data:
+                      - id: 0193c4a0-0000-7000-8000-00000fc00103
+                        party_kind: credit_party
+                        party_id: 0193c4a0-0000-7000-8000-00000fc00003
+                        amount_from_paisa: 0
+                        amount_to_paisa: 100000
+                        discount_bp: 500
+                        effective_from: 2026-11-17
+                        is_active: true
+                        version: 1
+                        created_at: 2026-11-17T04:15:00.000Z
+                        updated_at: 2026-11-17T04:15:00.000Z
+                    page:
+                      limit: 50
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+    post:
+      operationId: createPartyDiscountSlab
+      tags:
+        - billing
+      summary: Create a party discount slab
+      description: "T0C-FINCTRL-1 (LD-321, founder blanket authority LD-310). Amount range is half open [amount_from_paisa, amount_to_paisa); dates are inclusive, effective_to absent = open ended. Two ACTIVE slabs of one party must not overlap in both the amount range and the date range: an overlap -> common.validation_failed (enforced in the database)."
+      security:
+        - bearerJwt: []
+      x-permission: billing.discount_policy.manage
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.idempotency_key_reused
+      parameters:
+        - *a3
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePartyDiscountSlabRequest"
+            examples:
+              synthetic:
+                value:
+                  party_kind: credit_party
+                  party_id: 0193c4a0-0000-7000-8000-00000fc00003
+                  amount_from_paisa: 0
+                  amount_to_paisa: 100000
+                  discount_bp: 500
+                  effective_from: 2026-11-17
+      responses:
+        "201":
+          description: Created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PartyDiscountSlab"
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-00000fc00104
+                    party_kind: credit_party
+                    party_id: 0193c4a0-0000-7000-8000-00000fc00003
+                    amount_from_paisa: 0
+                    amount_to_paisa: 100000
+                    discount_bp: 500
+                    effective_from: 2026-11-17
+                    is_active: true
+                    version: 1
+                    created_at: 2026-11-17T04:15:00.000Z
+                    updated_at: 2026-11-17T04:15:00.000Z
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/billing/discount-slabs/{party_discount_slab_id}:
+    patch:
+      operationId: updatePartyDiscountSlab
+      tags:
+        - billing
+      summary: Update a party discount slab
+      description: T0C-FINCTRL-1 (LD-321, founder blanket authority LD-310). Changes the ranges or the percentage; the party never changes. The no overlap rule is checked again -> common.validation_failed.
+      security:
+        - bearerJwt: []
+      x-permission: billing.discount_policy.manage
+      x-context: tenant
+      x-idempotency: optional
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.version_conflict
+        - common.precondition_required
+      parameters:
+        - name: party_discount_slab_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - name: If-Match
+          in: header
+          required: true
+          schema:
+            type: string
+            maxLength: 12
+            pattern: ^"[1-9][0-9]*"$
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdatePartyDiscountSlabRequest"
+            examples:
+              synthetic:
+                value:
+                  discount_bp: 750
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PartyDiscountSlab"
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-00000fc00105
+                    party_kind: credit_party
+                    party_id: 0193c4a0-0000-7000-8000-00000fc00003
+                    amount_from_paisa: 0
+                    amount_to_paisa: 100000
+                    discount_bp: 750
+                    effective_from: 2026-11-17
+                    is_active: true
+                    version: 2
+                    created_at: 2026-11-17T04:15:00.000Z
+                    updated_at: 2026-11-17T04:15:00.000Z
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "428":
+          $ref: _common.yaml#/components/responses/PreconditionRequired
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/billing/discount-slabs/{party_discount_slab_id}/deactivate:
+    post:
+      operationId: deactivatePartyDiscountSlab
+      tags:
+        - billing
+      summary: Deactivate a party discount slab
+      description: T0C-FINCTRL-1 (LD-321, founder blanket authority LD-310). Sets is_active false (never deleted); idempotent on an inactive slab.
+      security:
+        - bearerJwt: []
+      x-permission: billing.discount_policy.manage
+      x-context: tenant
+      x-idempotency: optional
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.version_conflict
+        - common.precondition_required
+      parameters:
+        - name: party_discount_slab_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - name: If-Match
+          in: header
+          required: true
+          schema:
+            type: string
+            maxLength: 12
+            pattern: ^"[1-9][0-9]*"$
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PartyDiscountSlab"
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-00000fc00106
+                    party_kind: credit_party
+                    party_id: 0193c4a0-0000-7000-8000-00000fc00003
+                    amount_from_paisa: 0
+                    amount_to_paisa: 100000
+                    discount_bp: 500
+                    effective_from: 2026-11-17
+                    is_active: false
+                    version: 2
+                    created_at: 2026-11-17T04:15:00.000Z
+                    updated_at: 2026-11-17T04:15:00.000Z
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "428":
+          $ref: _common.yaml#/components/responses/PreconditionRequired
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/billing/discount-slabs/resolve:
+    get:
+      operationId: resolveDiscountSlab
+      tags:
+        - billing
+      summary: Resolve the discount slab for a party and bill amount
+      description: "T0C-FINCTRL-1 (LD-321, founder blanket authority LD-310). Returns the active slab of the party whose half open amount range holds amount_paisa on on_date (default: today, Asia/Kathmandu). No slab -> matched false. A read the offline layer may cache."
+      security:
+        - bearerJwt: []
+      x-permission: billing.discount_policy.read
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+      parameters:
+        - name: party_kind
+          in: query
+          required: true
+          schema: *a4
+        - name: party_id
+          in: query
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - name: amount_paisa
+          in: query
+          required: true
+          schema:
+            type: integer
+            format: int64
+            minimum: 0
+            maximum: 9007199254740991
+        - name: on_date
+          in: query
+          required: false
+          schema:
+            $ref: _common.yaml#/components/schemas/IsoDate
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DiscountSlabResolution"
+              examples:
+                synthetic:
+                  value:
+                    matched: true
+                    slab:
+                      id: 0193c4a0-0000-7000-8000-00000fc00107
+                      party_kind: credit_party
+                      party_id: 0193c4a0-0000-7000-8000-00000fc00003
+                      amount_from_paisa: 0
+                      amount_to_paisa: 100000
+                      discount_bp: 500
+                      effective_from: 2026-11-17
+                      is_active: true
+                      version: 1
+                      created_at: 2026-11-17T04:15:00.000Z
+                      updated_at: 2026-11-17T04:15:00.000Z
+                    discount_bp: 500
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/billing/discount-limits:
+    get:
+      operationId: listUserDiscountLimits
+      tags:
+        - billing
+      summary: List per user discount limits
+      description: "T0C-FINCTRL-1 (LD-321, founder blanket authority LD-310). ElabAssist Discount Limit: the most a user may give on one bill without approval."
+      security:
+        - bearerJwt: []
+      x-permission: billing.discount_policy.read
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.invalid_cursor
+      parameters:
+        - name: user_id
+          in: query
+          required: false
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - name: is_active
+          in: query
+          required: false
+          schema:
+            type: boolean
+        - *a1
+        - *a2
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserDiscountLimitPage"
+              examples:
+                synthetic:
+                  value:
+                    data:
+                      - id: 0193c4a0-0000-7000-8000-00000fc00108
+                        user_id: 0193c4a0-0000-7000-8000-00000fc00005
+                        max_discount_bp: 1000
+                        max_discount_paisa: 50000
+                        is_active: true
+                        version: 1
+                        created_at: 2026-11-17T04:15:00.000Z
+                        updated_at: 2026-11-17T04:15:00.000Z
+                    page:
+                      limit: 50
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/billing/discount-limits/{user_id}:
+    put:
+      operationId: setUserDiscountLimit
+      tags:
+        - billing
+      summary: Set the discount limit of a user
+      description: "T0C-FINCTRL-1 (LD-321, founder blanket authority LD-310). Creates or replaces the one active limit of the user (path user_id). If-Match is optional: absent on the first save, the current version afterwards."
+      security:
+        - bearerJwt: []
+      x-permission: billing.discount_policy.manage
+      x-context: tenant
+      x-idempotency: optional
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.version_conflict
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - name: If-Match
+          in: header
+          required: false
+          schema:
+            type: string
+            maxLength: 12
+            pattern: ^"[1-9][0-9]*"$
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SetUserDiscountLimitRequest"
+            examples:
+              synthetic:
+                value:
+                  max_discount_bp: 1000
+                  max_discount_paisa: 50000
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserDiscountLimit"
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-00000fc00109
+                    user_id: 0193c4a0-0000-7000-8000-00000fc00005
+                    max_discount_bp: 1000
+                    max_discount_paisa: 50000
+                    is_active: true
+                    version: 1
+                    created_at: 2026-11-17T04:15:00.000Z
+                    updated_at: 2026-11-17T04:15:00.000Z
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/billing/discount-authorities:
+    get:
+      operationId: listDiscountAuthorities
+      tags:
+        - billing
+      summary: List discount authorities
+      description: "T0C-FINCTRL-1 (LD-321, founder blanket authority LD-310). ElabAssist Discount Authority / Authorize person: who may approve a discount above a limit, and up to how much."
+      security:
+        - bearerJwt: []
+      x-permission: billing.discount_policy.read
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.invalid_cursor
+      parameters:
+        - name: user_id
+          in: query
+          required: false
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - name: is_active
+          in: query
+          required: false
+          schema:
+            type: boolean
+        - *a1
+        - *a2
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DiscountAuthorityPage"
+              examples:
+                synthetic:
+                  value:
+                    data:
+                      - id: 0193c4a0-0000-7000-8000-00000fc00110
+                        user_id: 0193c4a0-0000-7000-8000-00000fc00007
+                        max_discount_bp: 5000
+                        max_discount_paisa: 500000
+                        is_active: true
+                        version: 1
+                        created_at: 2026-11-17T04:15:00.000Z
+                        updated_at: 2026-11-17T04:15:00.000Z
+                    page:
+                      limit: 50
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+    post:
+      operationId: createDiscountAuthority
+      tags:
+        - billing
+      summary: Create a discount authority
+      description: T0C-FINCTRL-1 (LD-321, founder blanket authority LD-310). Deactivated, never deleted.
+      security:
+        - bearerJwt: []
+      x-permission: billing.discount_policy.manage
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.idempotency_key_reused
+      parameters:
+        - *a3
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateDiscountAuthorityRequest"
+            examples:
+              synthetic:
+                value:
+                  user_id: 0193c4a0-0000-7000-8000-00000fc00007
+                  max_discount_bp: 5000
+                  max_discount_paisa: 500000
+      responses:
+        "201":
+          description: Created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DiscountAuthority"
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-00000fc00111
+                    user_id: 0193c4a0-0000-7000-8000-00000fc00007
+                    max_discount_bp: 5000
+                    max_discount_paisa: 500000
+                    is_active: true
+                    version: 1
+                    created_at: 2026-11-17T04:15:00.000Z
+                    updated_at: 2026-11-17T04:15:00.000Z
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/billing/discount-authorities/{discount_authority_id}/deactivate:
+    post:
+      operationId: deactivateDiscountAuthority
+      tags:
+        - billing
+      summary: Deactivate a discount authority
+      description: T0C-FINCTRL-1 (LD-321, founder blanket authority LD-310). Sets is_active false (never deleted).
+      security:
+        - bearerJwt: []
+      x-permission: billing.discount_policy.manage
+      x-context: tenant
+      x-idempotency: optional
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.version_conflict
+        - common.precondition_required
+      parameters:
+        - name: discount_authority_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - name: If-Match
+          in: header
+          required: true
+          schema:
+            type: string
+            maxLength: 12
+            pattern: ^"[1-9][0-9]*"$
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DiscountAuthority"
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-00000fc00112
+                    user_id: 0193c4a0-0000-7000-8000-00000fc00007
+                    max_discount_bp: 5000
+                    max_discount_paisa: 500000
+                    is_active: false
+                    version: 2
+                    created_at: 2026-11-17T04:15:00.000Z
+                    updated_at: 2026-11-17T04:15:00.000Z
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "428":
+          $ref: _common.yaml#/components/responses/PreconditionRequired
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/billing/discount-policy/me:
+    get:
+      operationId: getMyDiscountPolicy
+      tags:
+        - billing
+      summary: Get my discount policy
+      description: T0C-FINCTRL-1 (LD-321, founder blanket authority LD-310). The caller own active limit and authority (absent = none) and the active discount reasons, for the billing screen. Never another user. A read the offline layer may cache.
+      security:
+        - bearerJwt: []
+      x-permission: billing.discount_policy.read
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MyDiscountPolicy"
+              examples:
+                synthetic:
+                  value:
+                    own_limit:
+                      max_discount_bp: 1000
+                      max_discount_paisa: 50000
+                    reasons:
+                      - code: PARTNER_FAMILY
+                        name: Partner Family
+                        display_order: 1
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/billing/account-ledger-entries/{account_ledger_entry_id}/hold:
+    post:
+      operationId: holdLedgerEntry
+      tags:
+        - billing
+      summary: Hold an account ledger entry
+      description: T0C-FINCTRL-1 (LD-321, founder blanket authority LD-310). Only a submitted entry can be held (submitted -> held); anything else -> common.immutable_record. Amount, party, particular, date and type never change. Posted balances, statements and summaries exclude held entries until they are released; held entries are listed apart.
+      security:
+        - bearerJwt: []
+      x-permission: billing.account.manage
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.idempotency_key_reused
+        - common.immutable_record
+      parameters:
+        - name: account_ledger_entry_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - *a3
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LedgerHoldReasonRequest"
+            examples:
+              synthetic:
+                value:
+                  reason: Cheque not cleared
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountLedgerEntry"
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-00000fc00113
+                    centre_id: 0193c4a0-0000-7000-8000-00000fc00009
+                    party_kind: credit_party
+                    party_id: 0193c4a0-0000-7000-8000-00000fc00010
+                    entry_date: 2026-11-17
+                    account_particular_id: 0193c4a0-0000-7000-8000-00000fc00011
+                    entry_type: credit
+                    amount_paisa: 150000
+                    payment_mode: cheque
+                    bank_name: Synthetic Bank
+                    reference_no: SYN-REF-1
+                    comments: Synthetic comment
+                    receipt_no: ACC-000001
+                    created_by: 0193c4a0-0000-7000-8000-00000fc00012
+                    last_modified_by: 0193c4a0-0000-7000-8000-00000fc00013
+                    created_at: 2026-11-17T04:15:00.000Z
+                    fiscal_year_label: 2083/84
+                    status: held
+                    held_reason: Cheque not cleared
+                    held_by: 0193c4a0-0000-7000-8000-00000fc00014
+                    held_at: 2026-11-17T04:15:00.000Z
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/billing/account-ledger-entries/{account_ledger_entry_id}/release:
+    post:
+      operationId: releaseLedgerEntry
+      tags:
+        - billing
+      summary: Release a held account ledger entry
+      description: T0C-FINCTRL-1 (LD-321, founder blanket authority LD-310). Only a held entry can be released; it returns to submitted and counts in posted balances again (held_* stay as history, released_by / released_at are set). Anything else -> common.immutable_record.
+      security:
+        - bearerJwt: []
+      x-permission: billing.account.manage
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.idempotency_key_reused
+        - common.immutable_record
+      parameters:
+        - name: account_ledger_entry_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - *a3
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LedgerHoldReasonRequest"
+            examples:
+              synthetic:
+                value:
+                  reason: Cheque cleared
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountLedgerEntry"
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-00000fc00114
+                    centre_id: 0193c4a0-0000-7000-8000-00000fc00009
+                    party_kind: credit_party
+                    party_id: 0193c4a0-0000-7000-8000-00000fc00010
+                    entry_date: 2026-11-17
+                    account_particular_id: 0193c4a0-0000-7000-8000-00000fc00011
+                    entry_type: credit
+                    amount_paisa: 150000
+                    payment_mode: cheque
+                    bank_name: Synthetic Bank
+                    reference_no: SYN-REF-1
+                    comments: Synthetic comment
+                    receipt_no: ACC-000001
+                    created_by: 0193c4a0-0000-7000-8000-00000fc00012
+                    last_modified_by: 0193c4a0-0000-7000-8000-00000fc00013
+                    created_at: 2026-11-17T04:15:00.000Z
+                    fiscal_year_label: 2083/84
+                    status: submitted
+                    held_reason: Cheque not cleared
+                    held_by: 0193c4a0-0000-7000-8000-00000fc00014
+                    held_at: 2026-11-17T04:15:00.000Z
+                    released_by: 0193c4a0-0000-7000-8000-00000fc00015
+                    released_at: 2026-11-17T04:15:00.000Z
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
 components:
   schemas:
     Actor:
@@ -4773,6 +8082,16 @@ components:
           type: string
           maxLength: 10
           pattern: ^[0-9]{4}-[0-9]{2}-[0-9]{2}$
+        card_holder_name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: "LD-310: name on the card. Personal data: never in logs or audit diffs."
+        payment_remark:
+          type: string
+          minLength: 1
+          maxLength: 300
+          description: "LD-310: free-text remark on the payment."
     CreditChargeDto:
       type: object
       additionalProperties: false
@@ -4829,6 +8148,16 @@ components:
           minimum: 1
           maximum: 9007199254740991
           format: int64
+        card_holder_name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: "LD-310: name on the card. Personal data: never in logs or audit diffs."
+        payment_remark:
+          type: string
+          minLength: 1
+          maxLength: 300
+          description: "LD-310: free-text remark on the payment."
       description: "02-CV §4.7 interpretation: CR-C4-012. tendered_paisa: cash only, UI change display."
     Fingerprint:
       type: string
@@ -5155,6 +8484,13 @@ components:
           maxLength: 200
         printed_at:
           $ref: _common.yaml#/components/schemas/IsoUtc
+        style:
+          type: string
+          maxLength: 8
+          enum:
+            - full
+            - plain_bw
+          description: The print style used (T0C-PRINTCFG-1, LD-316); rows printed before it read full.
     InvoicePrintPage:
       type: object
       additionalProperties: false
@@ -5181,6 +8517,14 @@ components:
             - reprint
             - printer_fault
             - customer_copy
+        style:
+          type: string
+          maxLength: 8
+          enum:
+            - full
+            - plain_bw
+          default: full
+          description: "Print style (T0C-PRINTCFG-1, LD-316). full (default): as the invoice print profile says. plain_bw: the plain black and white tax bill (PAN bill), black on white only, no logo, no colour, no shading, no header and no footer text; the body keeps the lines a tax bill needs (lab name, address, seller PAN, bill number and date)."
     InvoicePrint:
       type: object
       additionalProperties: false
@@ -5192,6 +8536,13 @@ components:
           type: integer
           minimum: 1
           maximum: 2147483647
+        style:
+          type: string
+          maxLength: 8
+          enum:
+            - full
+            - plain_bw
+          description: The print style used (stored on the print record); always returned once T0B-PRINTCFG-1 lands.
         copy_mark:
           type: string
           maxLength: 64
@@ -5526,6 +8877,13 @@ components:
           type: integer
           minimum: 1
           maximum: 2147483647
+        style:
+          type: string
+          maxLength: 8
+          enum:
+            - full
+            - plain_bw
+          description: The print style used (stored on the print record); always returned once T0B-PRINTCFG-1 lands.
         copy_mark:
           type: string
           maxLength: 64
@@ -5933,6 +9291,16 @@ components:
           maxLength: 100
         invoice_id:
           $ref: _common.yaml#/components/schemas/Uuid
+        card_holder_name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: "LD-310: name on the card. Personal data: never in logs or audit diffs."
+        payment_remark:
+          type: string
+          minLength: 1
+          maxLength: 300
+          description: "LD-310: free-text remark on the payment."
     RecordPaymentResult:
       type: object
       additionalProperties: false
@@ -6272,6 +9640,18 @@ components:
         note:
           type: string
           maxLength: 500
+        previous_outstanding_cash_paisa:
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 9007199254740991
+          description: "T0C-FINCTRL-1 (LD-321): cash carried forward from the day before (ElabAssist Previous Outstanding Cash), set when the session opens."
+        deposit_paisa:
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 9007199254740991
+          description: "T0C-FINCTRL-1 (LD-321): cash deposited (ElabAssist Deposit Amount); 0 until recorded."
         version:
           $ref: _common.yaml#/components/schemas/Version
       description: "[CONV] expected per method, counted, variance (TRD B17)."
@@ -6304,6 +9684,12 @@ components:
         note:
           type: string
           maxLength: 500
+        deposit_paisa:
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 9007199254740991
+          description: "T0C-FINCTRL-1 (LD-321): optional cash deposited at close (ElabAssist Deposit Amount)."
     DailyCash:
       type: object
       additionalProperties: false
@@ -6977,3 +10363,1310 @@ components:
           maxLength: 500
         refund_ledger_entry_id:
           $ref: _common.yaml#/components/schemas/Uuid
+    # ---------- T0C-ACCT-1 (LD-313): lab accounting schemas ----------
+    AccountGroup:
+      type: object
+      additionalProperties: false
+      description: "LD-313: account group master (code and nature are immutable after create)."
+      required:
+        - id
+        - code
+        - name
+        - nature
+        - is_active
+        - version
+        - created_at
+        - updated_at
+      properties:
+        id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        code:
+          type: string
+          minLength: 1
+          maxLength: 32
+          pattern: ^[A-Z0-9_]{1,32}$
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        nature:
+          type: string
+          maxLength: 9
+          enum:
+            - income
+            - expense
+            - asset
+            - liability
+        is_active:
+          type: boolean
+        version:
+          $ref: _common.yaml#/components/schemas/Version
+        created_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        updated_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+    AccountGroupPage:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - page
+      properties:
+        data:
+          type: array
+          maxItems: 200
+          items:
+            $ref: "#/components/schemas/AccountGroup"
+        page:
+          $ref: _common.yaml#/components/schemas/PageInfo
+    CreateAccountGroupRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - code
+        - name
+        - nature
+      properties:
+        code:
+          type: string
+          minLength: 1
+          maxLength: 32
+          pattern: ^[A-Z0-9_]{1,32}$
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        nature:
+          type: string
+          maxLength: 9
+          enum:
+            - income
+            - expense
+            - asset
+            - liability
+        is_active:
+          type: boolean
+    UpdateAccountGroupRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        is_active:
+          type: boolean
+      minProperties: 1
+    AccountParticular:
+      type: object
+      additionalProperties: false
+      description: "LD-313: account particular master (group and code are immutable after create)."
+      required:
+        - id
+        - account_group_id
+        - code
+        - name
+        - is_active
+        - version
+        - created_at
+        - updated_at
+      properties:
+        id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        account_group_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        code:
+          type: string
+          minLength: 1
+          maxLength: 32
+          pattern: ^[A-Z0-9_]{1,32}$
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        is_active:
+          type: boolean
+        version:
+          $ref: _common.yaml#/components/schemas/Version
+        created_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        updated_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+    AccountParticularPage:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - page
+      properties:
+        data:
+          type: array
+          maxItems: 200
+          items:
+            $ref: "#/components/schemas/AccountParticular"
+        page:
+          $ref: _common.yaml#/components/schemas/PageInfo
+    CreateAccountParticularRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - account_group_id
+        - code
+        - name
+      properties:
+        account_group_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        code:
+          type: string
+          minLength: 1
+          maxLength: 32
+          pattern: ^[A-Z0-9_]{1,32}$
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        is_active:
+          type: boolean
+    UpdateAccountParticularRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        is_active:
+          type: boolean
+      minProperties: 1
+    ExpenseType:
+      type: object
+      additionalProperties: false
+      description: "LD-313: expense type master; name unique per tenant ignoring case."
+      required:
+        - id
+        - name
+        - account_particular_id
+        - is_active
+        - version
+        - created_at
+        - updated_at
+      properties:
+        id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        account_particular_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        is_active:
+          type: boolean
+        version:
+          $ref: _common.yaml#/components/schemas/Version
+        created_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        updated_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+    ExpenseTypePage:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - page
+      properties:
+        data:
+          type: array
+          maxItems: 200
+          items:
+            $ref: "#/components/schemas/ExpenseType"
+        page:
+          $ref: _common.yaml#/components/schemas/PageInfo
+    CreateExpenseTypeRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - name
+        - account_particular_id
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        account_particular_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        is_active:
+          type: boolean
+    UpdateExpenseTypeRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        account_particular_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        is_active:
+          type: boolean
+      minProperties: 1
+    CreateAccountLedgerEntryRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - centre_id
+        - party_kind
+        - party_id
+        - entry_date
+        - account_particular_id
+        - entry_type
+        - amount_paisa
+        - payment_mode
+      properties:
+        centre_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        party_kind:
+          type: string
+          maxLength: 12
+          enum:
+            - credit_party
+            - franchise
+            - user_pocket
+            - laboratory
+        party_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        entry_date:
+          $ref: _common.yaml#/components/schemas/IsoDate
+        account_particular_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        entry_type:
+          type: string
+          maxLength: 6
+          enum:
+            - credit
+            - debit
+        amount_paisa:
+          type: integer
+          format: int64
+          minimum: 1
+          maximum: 9007199254740991
+        payment_mode:
+          type: string
+          minLength: 1
+          maxLength: 50
+          pattern: ^[a-z][a-z0-9_]{0,49}$
+        bank_name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        reference_no:
+          type: string
+          minLength: 1
+          maxLength: 100
+          pattern: ^(?![\s\S]*[0-9]{13})[\s\S]*$
+        payment_details:
+          type: string
+          minLength: 1
+          maxLength: 1000
+          pattern: ^(?![\s\S]*[0-9]{13})[\s\S]*$
+        comments:
+          type: string
+          minLength: 1
+          maxLength: 2000
+    AccountLedgerEntry:
+      type: object
+      additionalProperties: false
+      description: "LD-313 (b): append only accounting ledger entry in integer paisa; a correction is a reversal entry (reverses_entry_id set), never an edit."
+      required:
+        - id
+        - centre_id
+        - party_kind
+        - party_id
+        - entry_date
+        - account_particular_id
+        - entry_type
+        - amount_paisa
+        - payment_mode
+        - status
+        - receipt_no
+        - created_by
+        - last_modified_by
+        - created_at
+      properties:
+        id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        centre_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        party_kind:
+          type: string
+          maxLength: 12
+          enum:
+            - credit_party
+            - franchise
+            - user_pocket
+            - laboratory
+        party_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        entry_date:
+          $ref: _common.yaml#/components/schemas/IsoDate
+        account_particular_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        entry_type:
+          type: string
+          maxLength: 6
+          enum:
+            - credit
+            - debit
+        amount_paisa:
+          type: integer
+          format: int64
+          minimum: 1
+          maximum: 9007199254740991
+        payment_mode:
+          type: string
+          minLength: 1
+          maxLength: 50
+          pattern: ^[a-z][a-z0-9_]{0,49}$
+        bank_name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        reference_no:
+          type: string
+          minLength: 1
+          maxLength: 100
+          pattern: ^(?![\s\S]*[0-9]{13})[\s\S]*$
+        payment_details:
+          type: string
+          minLength: 1
+          maxLength: 1000
+          pattern: ^(?![\s\S]*[0-9]{13})[\s\S]*$
+        comments:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        status:
+          type: string
+          maxLength: 9
+          enum:
+            - submitted
+            - approved
+            - rejected
+            - reversed
+            - held
+          description: "T0C-FINCTRL-1 (LD-321): held = on hold (ElabAssist Entry Status Hold); posted balances, statements and summaries count every status except held."
+        held_reason:
+          type: string
+          minLength: 1
+          maxLength: 500
+        held_by:
+          $ref: _common.yaml#/components/schemas/Uuid
+        held_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        released_by:
+          $ref: _common.yaml#/components/schemas/Uuid
+        released_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        fiscal_year_label:
+          type: string
+          minLength: 7
+          maxLength: 7
+          pattern: ^[0-9]{4}/[0-9]{2}$
+          description: "T0C-FINCTRL-1 (LD-321): Nepali fiscal year (B.S.) such as 2083/84, set by the server from entry_date (year start Shrawan 1 until the accountant confirms)."
+        reverses_entry_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        receipt_no:
+          type: string
+          minLength: 1
+          maxLength: 64
+        created_by:
+          $ref: _common.yaml#/components/schemas/Uuid
+        last_modified_by:
+          $ref: _common.yaml#/components/schemas/Uuid
+        created_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+    AccountLedgerEntryPage:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - page
+      properties:
+        data:
+          type: array
+          maxItems: 200
+          items:
+            $ref: "#/components/schemas/AccountLedgerEntry"
+        page:
+          $ref: _common.yaml#/components/schemas/PageInfo
+    ReverseAccountLedgerEntryRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - reason_text
+      properties:
+        reason_text:
+          type: string
+          minLength: 1
+          maxLength: 500
+    AccountStatementRow:
+      type: object
+      additionalProperties: false
+      required:
+        - entry_id
+        - entry_date
+        - receipt_no
+        - entry_type
+        - account_particular_id
+        - status
+        - credit_paisa
+        - debit_paisa
+        - balance_paisa
+        - balance_side
+      properties:
+        entry_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        entry_date:
+          $ref: _common.yaml#/components/schemas/IsoDate
+        receipt_no:
+          type: string
+          minLength: 1
+          maxLength: 64
+        entry_type:
+          type: string
+          maxLength: 6
+          enum:
+            - credit
+            - debit
+        account_particular_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        reverses_entry_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        status:
+          type: string
+          maxLength: 9
+          enum:
+            - submitted
+            - approved
+            - rejected
+            - reversed
+        credit_paisa:
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 9007199254740991
+        debit_paisa:
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 9007199254740991
+        balance_paisa:
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 9007199254740991
+        balance_side:
+          type: string
+          maxLength: 6
+          enum:
+            - credit
+            - debit
+    AccountStatement:
+      type: object
+      additionalProperties: false
+      description: Opening balance = credits - debits of the party before `from`; each row carries the running balance after it; closing balance = opening balance + total credits - total debits. A balance is a non-negative amount plus a side. A reversal is an ordinary row of the opposite type, so an entry and its reversal net to zero.
+      required:
+        - party_kind
+        - party_id
+        - from
+        - to
+        - opening_balance_paisa
+        - opening_balance_side
+        - rows
+        - closing_balance_paisa
+        - closing_balance_side
+        - total_credit_paisa
+        - total_debit_paisa
+      properties:
+        party_kind:
+          type: string
+          maxLength: 12
+          enum:
+            - credit_party
+            - franchise
+            - user_pocket
+            - laboratory
+        party_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        from:
+          $ref: _common.yaml#/components/schemas/IsoDate
+        to:
+          $ref: _common.yaml#/components/schemas/IsoDate
+        opening_balance_paisa:
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 9007199254740991
+        opening_balance_side:
+          type: string
+          maxLength: 6
+          enum:
+            - credit
+            - debit
+        rows:
+          type: array
+          maxItems: 1000
+          items:
+            $ref: "#/components/schemas/AccountStatementRow"
+        closing_balance_paisa:
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 9007199254740991
+        closing_balance_side:
+          type: string
+          maxLength: 6
+          enum:
+            - credit
+            - debit
+        total_credit_paisa:
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 9007199254740991
+        total_debit_paisa:
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 9007199254740991
+    AccountSummary:
+      type: object
+      additionalProperties: false
+      description: credit_limit_paisa 0 = no limit set. For a credit_party the limit and is_blocked come from its billing credit account (is_locked); other party kinds have limit 0 and is_blocked false.
+      required:
+        - party_kind
+        - party_id
+        - credit_limit_paisa
+        - outstanding_paisa
+        - outstanding_side
+        - is_blocked
+      properties:
+        party_kind:
+          type: string
+          maxLength: 12
+          enum:
+            - credit_party
+            - franchise
+            - user_pocket
+            - laboratory
+        party_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        credit_limit_paisa:
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 9007199254740991
+        outstanding_paisa:
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 9007199254740991
+        outstanding_side:
+          type: string
+          maxLength: 6
+          enum:
+            - credit
+            - debit
+        is_blocked:
+          type: boolean
+    AccountSummaryRow:
+      type: object
+      additionalProperties: false
+      description: "LD-358. One row of the account summary list (ElabAssist View Account): every AccountSummary field plus the party name. No centre_id: AccountSummary carries no centre."
+      required:
+        - party_kind
+        - party_id
+        - party_name
+        - credit_limit_paisa
+        - outstanding_paisa
+        - outstanding_side
+        - is_blocked
+      properties:
+        party_kind:
+          type: string
+          maxLength: 12
+          enum:
+            - credit_party
+            - franchise
+            - user_pocket
+            - laboratory
+        party_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        party_name:
+          type: string
+          maxLength: 200
+        credit_limit_paisa:
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 9007199254740991
+        outstanding_paisa:
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 9007199254740991
+        outstanding_side:
+          type: string
+          maxLength: 6
+          enum:
+            - credit
+            - debit
+        is_blocked:
+          type: boolean
+    AccountSummaryRowPage:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - page
+      properties:
+        data:
+          type: array
+          maxItems: 200
+          items:
+            $ref: "#/components/schemas/AccountSummaryRow"
+        page:
+          $ref: _common.yaml#/components/schemas/PageInfo
+    DailyCollectionRow:
+      type: object
+      additionalProperties: false
+      description: "One payment mode of the day: net of refunds and reversals booked on that day, negative when refunds exceed collections (LD-334)."
+      required:
+        - payment_mode
+        - entry_count
+        - total_paisa
+      properties:
+        payment_mode:
+          type: string
+          minLength: 1
+          maxLength: 50
+          pattern: ^[a-z][a-z0-9_]{0,49}$
+        entry_count:
+          type: integer
+          description: "Entry count net of refunds and reversals booked on that day, negative when refunds exceed collections (LD-334)."
+          minimum: -2147483648
+          maximum: 2147483647
+        total_paisa:
+          type: integer
+          format: int64
+          description: "Amount in paisa net of refunds and reversals booked on that day, negative when refunds exceed collections (LD-334)."
+          minimum: -9007199254740991
+          maximum: 9007199254740991
+    DailyCollectionSummary:
+      type: object
+      additionalProperties: false
+      description: Credit entries of the centre on that entry date, net of their reversals, grouped by payment mode; total_paisa = sum of the rows.
+      required:
+        - centre_id
+        - day
+        - rows
+        - total_paisa
+      properties:
+        centre_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        day:
+          $ref: _common.yaml#/components/schemas/IsoDate
+        rows:
+          type: array
+          maxItems: 100
+          items:
+            $ref: "#/components/schemas/DailyCollectionRow"
+        total_paisa:
+          type: integer
+          format: int64
+          description: "Sum of the rows in paisa, net of refunds and reversals booked on that day, negative when refunds exceed collections (LD-334)."
+          minimum: -9007199254740991
+          maximum: 9007199254740991
+    Expense:
+      type: object
+      additionalProperties: false
+      description: "LD-313: expense; amount, type and centre are immutable (a correction is cancel and re-enter)."
+      required:
+        - id
+        - centre_id
+        - expense_at
+        - expense_type_id
+        - amount_paisa
+        - version
+        - created_by
+        - created_at
+      properties:
+        id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        centre_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        expense_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        expense_type_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        amount_paisa:
+          type: integer
+          format: int64
+          minimum: 1
+          maximum: 9007199254740991
+        description:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        ledger_entry_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        cancelled_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        cancel_reason_text:
+          type: string
+          minLength: 1
+          maxLength: 500
+        version:
+          $ref: _common.yaml#/components/schemas/Version
+        created_by:
+          $ref: _common.yaml#/components/schemas/Uuid
+        created_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+    ExpensePage:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - page
+      properties:
+        data:
+          type: array
+          maxItems: 200
+          items:
+            $ref: "#/components/schemas/Expense"
+        page:
+          $ref: _common.yaml#/components/schemas/PageInfo
+    CreateExpenseRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - centre_id
+        - expense_at
+        - expense_type_id
+        - amount_paisa
+      properties:
+        centre_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        expense_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        expense_type_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        amount_paisa:
+          type: integer
+          format: int64
+          minimum: 1
+          maximum: 9007199254740991
+        description:
+          type: string
+          minLength: 1
+          maxLength: 2000
+    CancelExpenseRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        reason_text:
+          type: string
+          minLength: 1
+          maxLength: 500
+    CashTransfer:
+      type: object
+      additionalProperties: false
+      description: "LD-313: cash transfer between users and centres; only a pending transfer changes status."
+      required:
+        - id
+        - from_kind
+        - from_id
+        - to_kind
+        - to_id
+        - amount_paisa
+        - status
+        - version
+        - created_by
+        - created_at
+      properties:
+        id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        from_kind:
+          type: string
+          maxLength: 6
+          enum:
+            - user
+            - centre
+        from_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        to_kind:
+          type: string
+          maxLength: 6
+          enum:
+            - user
+            - centre
+        to_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        amount_paisa:
+          type: integer
+          format: int64
+          minimum: 1
+          maximum: 9007199254740991
+        status:
+          type: string
+          maxLength: 9
+          enum:
+            - pending
+            - accepted
+            - rejected
+            - cancelled
+        remark:
+          type: string
+          minLength: 1
+          maxLength: 1000
+        decided_by:
+          $ref: _common.yaml#/components/schemas/Uuid
+        decided_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        version:
+          $ref: _common.yaml#/components/schemas/Version
+        created_by:
+          $ref: _common.yaml#/components/schemas/Uuid
+        created_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+    CashTransferPage:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - page
+      properties:
+        data:
+          type: array
+          maxItems: 200
+          items:
+            $ref: "#/components/schemas/CashTransfer"
+        page:
+          $ref: _common.yaml#/components/schemas/PageInfo
+    CreateCashTransferRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - from_kind
+        - from_id
+        - to_kind
+        - to_id
+        - amount_paisa
+      properties:
+        from_kind:
+          type: string
+          maxLength: 6
+          enum:
+            - user
+            - centre
+        from_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        to_kind:
+          type: string
+          maxLength: 6
+          enum:
+            - user
+            - centre
+        to_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        amount_paisa:
+          type: integer
+          format: int64
+          minimum: 1
+          maximum: 9007199254740991
+        remark:
+          type: string
+          minLength: 1
+          maxLength: 1000
+    DiscountReason:
+      type: object
+      additionalProperties: false
+      description: T0C-FINCTRL-1 (LD-321, founder blanket authority LD-310). Tenant discount reason (ElabAssist Discount Reason).
+      required:
+        - id
+        - code
+        - name
+        - is_active
+        - display_order
+        - version
+        - created_at
+        - updated_at
+      properties:
+        id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        code: &a1
+          type: string
+          minLength: 1
+          maxLength: 32
+          pattern: ^[A-Z0-9_]{1,32}$
+        name: &a2
+          type: string
+          minLength: 1
+          maxLength: 200
+        is_active:
+          type: boolean
+        display_order: &a3
+          type: integer
+          minimum: 0
+          maximum: 9999
+        version: &a4
+          $ref: _common.yaml#/components/schemas/Version
+        created_at: &a5
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        updated_at: &a6
+          $ref: _common.yaml#/components/schemas/IsoUtc
+    DiscountReasonPage:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - page
+      properties:
+        data:
+          type: array
+          maxItems: 200
+          items:
+            $ref: "#/components/schemas/DiscountReason"
+        page:
+          $ref: _common.yaml#/components/schemas/PageInfo
+    CreateDiscountReasonRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - code
+        - name
+      properties:
+        code: *a1
+        name: *a2
+        display_order: *a3
+    UpdateDiscountReasonRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        name: *a2
+        display_order: *a3
+        is_active:
+          type: boolean
+      minProperties: 1
+    PartyDiscountSlab:
+      type: object
+      additionalProperties: false
+      description: T0C-FINCTRL-1 (LD-321, founder blanket authority LD-310). Discount slab of one party (ElabAssist Discount slab); effective_to absent = open ended.
+      required:
+        - id
+        - party_kind
+        - party_id
+        - amount_from_paisa
+        - amount_to_paisa
+        - discount_bp
+        - effective_from
+        - is_active
+        - version
+        - created_at
+        - updated_at
+      properties:
+        id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        party_kind: &a7
+          type: string
+          maxLength: 12
+          enum:
+            - credit_party
+            - partner
+            - doctor
+            - franchise
+        party_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        amount_from_paisa:
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 9007199254740991
+          description: Lower bound, inclusive.
+        amount_to_paisa: &a8
+          type: integer
+          format: int64
+          minimum: 1
+          maximum: 9007199254740991
+          description: "Upper bound, exclusive (not included): the slab holds amounts from amount_from_paisa up to but not including amount_to_paisa; greater than amount_from_paisa."
+        discount_bp:
+          type: integer
+          minimum: 0
+          maximum: 10000
+          description: Discount in basis points (500 = 5 percent).
+        effective_from:
+          $ref: _common.yaml#/components/schemas/IsoDate
+        effective_to:
+          $ref: _common.yaml#/components/schemas/IsoDate
+        is_active:
+          type: boolean
+        version: *a4
+        created_at: *a5
+        updated_at: *a6
+    PartyDiscountSlabPage:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - page
+      properties:
+        data:
+          type: array
+          maxItems: 200
+          items:
+            $ref: "#/components/schemas/PartyDiscountSlab"
+        page:
+          $ref: _common.yaml#/components/schemas/PageInfo
+    CreatePartyDiscountSlabRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - party_kind
+        - party_id
+        - amount_from_paisa
+        - amount_to_paisa
+        - discount_bp
+        - effective_from
+      properties:
+        party_kind: *a7
+        party_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        amount_from_paisa:
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 9007199254740991
+        amount_to_paisa: *a8
+        discount_bp:
+          type: integer
+          minimum: 0
+          maximum: 10000
+        effective_from:
+          $ref: _common.yaml#/components/schemas/IsoDate
+        effective_to:
+          $ref: _common.yaml#/components/schemas/IsoDate
+    UpdatePartyDiscountSlabRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        amount_from_paisa:
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 9007199254740991
+        amount_to_paisa: *a8
+        discount_bp:
+          type: integer
+          minimum: 0
+          maximum: 10000
+        effective_from:
+          $ref: _common.yaml#/components/schemas/IsoDate
+        effective_to:
+          $ref: _common.yaml#/components/schemas/IsoDate
+      minProperties: 1
+    DiscountSlabResolution:
+      type: object
+      additionalProperties: false
+      description: T0C-FINCTRL-1 (LD-321, founder blanket authority LD-310). matched false = no active slab (slab and discount_bp absent).
+      required:
+        - matched
+      properties:
+        matched:
+          type: boolean
+        slab:
+          $ref: "#/components/schemas/PartyDiscountSlab"
+        discount_bp:
+          type: integer
+          minimum: 0
+          maximum: 10000
+    UserDiscountLimit:
+      type: object
+      additionalProperties: false
+      description: T0C-FINCTRL-1 (LD-321, founder blanket authority LD-310). Per user discount limit (ElabAssist Discount Limit); one active row per user.
+      required:
+        - id
+        - user_id
+        - max_discount_bp
+        - max_discount_paisa
+        - is_active
+        - version
+        - created_at
+        - updated_at
+      properties:
+        id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        user_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        max_discount_bp:
+          type: integer
+          minimum: 0
+          maximum: 10000
+        max_discount_paisa:
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 9007199254740991
+          description: Most discount on one bill, paisa.
+        is_active:
+          type: boolean
+        version: *a4
+        created_at: *a5
+        updated_at: *a6
+    UserDiscountLimitPage:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - page
+      properties:
+        data:
+          type: array
+          maxItems: 200
+          items:
+            $ref: "#/components/schemas/UserDiscountLimit"
+        page:
+          $ref: _common.yaml#/components/schemas/PageInfo
+    SetUserDiscountLimitRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - max_discount_bp
+        - max_discount_paisa
+      properties:
+        max_discount_bp:
+          type: integer
+          minimum: 0
+          maximum: 10000
+        max_discount_paisa:
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 9007199254740991
+        is_active:
+          type: boolean
+    DiscountAuthority:
+      type: object
+      additionalProperties: false
+      description: T0C-FINCTRL-1 (LD-321, founder blanket authority LD-310). Discount authority (ElabAssist Discount Authority / Authorize person).
+      required:
+        - id
+        - user_id
+        - max_discount_bp
+        - max_discount_paisa
+        - is_active
+        - version
+        - created_at
+        - updated_at
+      properties:
+        id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        user_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        max_discount_bp:
+          type: integer
+          minimum: 0
+          maximum: 10000
+        max_discount_paisa:
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 9007199254740991
+        is_active:
+          type: boolean
+        version: *a4
+        created_at: *a5
+        updated_at: *a6
+    DiscountAuthorityPage:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - page
+      properties:
+        data:
+          type: array
+          maxItems: 200
+          items:
+            $ref: "#/components/schemas/DiscountAuthority"
+        page:
+          $ref: _common.yaml#/components/schemas/PageInfo
+    CreateDiscountAuthorityRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - user_id
+        - max_discount_bp
+        - max_discount_paisa
+      properties:
+        user_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        max_discount_bp:
+          type: integer
+          minimum: 0
+          maximum: 10000
+        max_discount_paisa:
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 9007199254740991
+    DiscountCeiling:
+      type: object
+      additionalProperties: false
+      required:
+        - max_discount_bp
+        - max_discount_paisa
+      properties:
+        max_discount_bp:
+          type: integer
+          minimum: 0
+          maximum: 10000
+        max_discount_paisa:
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 9007199254740991
+    DiscountReasonOption:
+      type: object
+      additionalProperties: false
+      required:
+        - code
+        - name
+      properties:
+        code: *a1
+        name: *a2
+        display_order: *a3
+    MyDiscountPolicy:
+      type: object
+      additionalProperties: false
+      description: T0C-FINCTRL-1 (LD-321, founder blanket authority LD-310). The signed in user own limit and authority (absent = none) and the active reasons.
+      required:
+        - reasons
+      properties:
+        own_limit:
+          $ref: "#/components/schemas/DiscountCeiling"
+        authority:
+          $ref: "#/components/schemas/DiscountCeiling"
+        reasons:
+          type: array
+          maxItems: 200
+          items:
+            $ref: "#/components/schemas/DiscountReasonOption"
+    LedgerHoldReasonRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - reason
+      properties:
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 500

@@ -109,7 +109,7 @@ export function StockView(p: StockViewProps) {
             <p>No transfers on the way.</p>
           )}
         </Card>
-        <DataTable caption="Stock balances" columns={columns} rows={p.rows} getRowId={(b) => `${b.item_id}:${b.lot_id ?? ''}`} emptyState={{ title: 'No stock for these filters.' }} />
+        <DataTable caption="Stock balances" columns={columns} rows={p.rows} getRowId={(b) => `${b.item_id}:${b.lot_id ?? ''}`} cellTitle emptyState={{ title: 'No stock for these filters.' }} />
       </Stack>
       {p.storeId ? <IssueDrawer storeId={p.storeId} row={issuing} departments={p.departments} instruments={p.instruments} onClose={() => setIssuing(undefined)} /> : null}
       <Drawer title="Movements" isOpen={!!moving} onClose={() => setMoving(undefined)}>

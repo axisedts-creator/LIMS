@@ -1,0 +1,6 @@
+# c8-no-commission allow list (LD-342 / A39-3, A39-6f). Exact repo-relative paths of non-test files under the C8 paths that may hold the word.
+# Allowed by A39-3: ONLY the two report definitions two_level_commission and tds (registry rows, report columns, message keys, web catalogue label).
+# Every line is reviewed in every diff. A path here is exempt for its content and its name; add nothing else.
+services/api/src/modules/analytics/domain/reportRegistry.ts
+services/api/src/modules/analytics/export/reportTable.ts
+services/api/src/modules/analytics/service/misReports.service.ts

@@ -178,3 +178,20 @@ export function useUrlFilters(keys: readonly string[], ranges: readonly { id: st
   }, [value]);
   return { value, onChange: setValue, onReset: () => setValue({}) };
 }
+
+/** Status filter options for an `is_active` boolean (value = String(is_active)). */
+export const ACTIVE_OPTIONS = [{ value: 'true', label: 'Active' }, { value: 'false', label: 'Inactive' }] as const;
+
+/** Case-insensitive "contains" for a text filter. */
+export const contains = (text: string | undefined, q: string) => (text ?? '').toLowerCase().includes(q.trim().toLowerCase());
+
+/**
+ * T0D-UILIST-3 (LD-353 template 1 LIST: one FilterBar per list): filters over the rows already on the page, for lists whose API read takes
+ * no filter. `match[id]` decides one filter; an empty filter matches every row.
+ * ponytail: filters the loaded page only (≤ 100-200 rows); move to URL filters (useUrlFilters) when the read gains query params.
+ */
+export function useLocalFilters<R>(rows: readonly R[], match: Readonly<Record<string, (r: R, v: string) => boolean>>) {
+  const [value, setValue] = useState<FilterValue>({});
+  const shown = rows.filter((r) => Object.entries(match).every(([k, f]) => { const v = value[k]; return typeof v !== 'string' || v === '' || f(r, v); }));
+  return { shown, value, onChange: setValue, onReset: () => setValue({}) };
+}

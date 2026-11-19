@@ -58,9 +58,15 @@ abstract final class LimsErrorCodes {
   static const String billingRefundSelfApprovalForbidden = 'billing.refund_self_approval_forbidden';
   static const String catalogCodeDuplicate = 'catalog.code_duplicate';
   static const String catalogFormulaInvalid = 'catalog.formula_invalid';
+  static const String catalogImportAlreadyCommitted = 'catalog.import_already_committed';
+  static const String catalogImportBatchExpired = 'catalog.import_batch_expired';
+  static const String catalogImportHasErrors = 'catalog.import_has_errors';
   static const String catalogImportInvalid = 'catalog.import_invalid';
+  static const String catalogImportInvalidFile = 'catalog.import_invalid_file';
   static const String catalogImportNotCommittable = 'catalog.import_not_committable';
   static const String catalogImportStaleBase = 'catalog.import_stale_base';
+  static const String catalogImportTemplateOutdated = 'catalog.import_template_outdated';
+  static const String catalogImportTooLarge = 'catalog.import_too_large';
   static const String catalogInstrumentCodeUnmapped = 'catalog.instrument_code_unmapped';
   static const String catalogNoPrice = 'catalog.no_price';
   static const String catalogNoReferenceRange = 'catalog.no_reference_range';
@@ -96,6 +102,12 @@ abstract final class LimsErrorCodes {
   static const String engagementBookingInvalidTransition = 'engagement.booking_invalid_transition';
   static const String engagementBookingLimitReached = 'engagement.booking_limit_reached';
   static const String engagementBookingNotCancellable = 'engagement.booking_not_cancellable';
+  static const String engagementBroadcastInvalidTransition = 'engagement.broadcast_invalid_transition';
+  static const String engagementBroadcastPlaceholderUnknown = 'engagement.broadcast_placeholder_unknown';
+  static const String engagementBroadcastProviderNotConfigured = 'engagement.broadcast_provider_not_configured';
+  static const String engagementBroadcastRecipientLimit = 'engagement.broadcast_recipient_limit';
+  static const String engagementBroadcastSelfApproval = 'engagement.broadcast_self_approval';
+  static const String engagementBroadcastTemplateInactive = 'engagement.broadcast_template_inactive';
   static const String engagementEnquiryInvalidTransition = 'engagement.enquiry_invalid_transition';
   static const String engagementLinkCodeInvalid = 'engagement.link_code_invalid';
   static const String engagementLinkLimitReached = 'engagement.link_limit_reached';
@@ -182,10 +194,12 @@ abstract final class LimsErrorCodes {
   static const String labBarcodeDuplicate = 'lab.barcode_duplicate';
   static const String labBarcodePatternInvalid = 'lab.barcode_pattern_invalid';
   static const String labCriticalAckRequired = 'lab.critical_ack_required';
+  static const String labEntererCannotVerify = 'lab.enterer_cannot_verify';
   static const String labFlagAckRequired = 'lab.flag_ack_required';
   static const String labFormulaInputsMissing = 'lab.formula_inputs_missing';
   static const String labModuleResultInvalid = 'lab.module_result_invalid';
   static const String labModuleResultStale = 'lab.module_result_stale';
+  static const String labPathologistRequired = 'lab.pathologist_required';
   static const String labRejectionReasonRequired = 'lab.rejection_reason_required';
   static const String labResultInvalidTransition = 'lab.result_invalid_transition';
   static const String labResultLocked = 'lab.result_locked';
@@ -196,6 +210,7 @@ abstract final class LimsErrorCodes {
   static const String labSpecimenInvalidTransition = 'lab.specimen_invalid_transition';
   static const String labSpecimenNotFound = 'lab.specimen_not_found';
   static const String labSpecimenNotReceivable = 'lab.specimen_not_receivable';
+  static const String labVerifierNotDistinct = 'lab.verifier_not_distinct';
   static const String microAmendmentReasonRequired = 'micro.amendment_reason_required';
   static const String microAntibioticNotInPanel = 'micro.antibiotic_not_in_panel';
   static const String microAstCategoryNotAllowed = 'micro.ast_category_not_allowed';
@@ -231,6 +246,7 @@ abstract final class LimsErrorCodes {
   static const String partnersReferrerNotMapped = 'partners.referrer_not_mapped';
   static const String partnersSelfActionForbidden = 'partners.self_action_forbidden';
   static const String partnersSettingOutOfRange = 'partners.setting_out_of_range';
+  static const String partnersTicketInvalidTransition = 'partners.ticket_invalid_transition';
   static const String paymentsAmountNotSupported = 'payments.amount_not_supported';
   static const String paymentsCallbackMismatch = 'payments.callback_mismatch';
   static const String paymentsCallbackStale = 'payments.callback_stale';
@@ -290,6 +306,21 @@ abstract final class LimsErrorCodes {
   static const String smartreportSummarySuperseded = 'smartreport.summary_superseded';
   static const String smartreportTemplateNotApproved = 'smartreport.template_not_approved';
   static const String smartreportValidatorFailed = 'smartreport.validator_failed';
+  static const String syncBaseVersionStale = 'sync.base_version_stale';
+  static const String syncBatchTooLarge = 'sync.batch_too_large';
+  static const String syncBlockSizeTooLarge = 'sync.block_size_too_large';
+  static const String syncClockSkewTooLarge = 'sync.clock_skew_too_large';
+  static const String syncDeviceRevoked = 'sync.device_revoked';
+  static const String syncDeviceUnknown = 'sync.device_unknown';
+  static const String syncEntityChanged = 'sync.entity_changed';
+  static const String syncNumberOutOfBlock = 'sync.number_out_of_block';
+  static const String syncOfflineNotAllowed = 'sync.offline_not_allowed';
+  static const String syncOpIdReused = 'sync.op_id_reused';
+  static const String syncOpTypeNotAvailable = 'sync.op_type_not_available';
+  static const String syncResultLocked = 'sync.result_locked';
+  static const String syncSeriesUnknown = 'sync.series_unknown';
+  static const String syncVerificationPolicyFailed = 'sync.verification_policy_failed';
+  static const String syncWipeRequired = 'sync.wipe_required';
 }
 
 /// HTTP status per error code.
@@ -349,9 +380,15 @@ const Map<String, int> limsErrorHttpStatus = <String, int>{
   'billing.refund_self_approval_forbidden': 403,
   'catalog.code_duplicate': 409,
   'catalog.formula_invalid': 422,
+  'catalog.import_already_committed': 409,
+  'catalog.import_batch_expired': 409,
+  'catalog.import_has_errors': 409,
   'catalog.import_invalid': 422,
+  'catalog.import_invalid_file': 422,
   'catalog.import_not_committable': 409,
   'catalog.import_stale_base': 409,
+  'catalog.import_template_outdated': 422,
+  'catalog.import_too_large': 413,
   'catalog.instrument_code_unmapped': 422,
   'catalog.no_price': 422,
   'catalog.no_reference_range': 422,
@@ -387,6 +424,12 @@ const Map<String, int> limsErrorHttpStatus = <String, int>{
   'engagement.booking_invalid_transition': 409,
   'engagement.booking_limit_reached': 429,
   'engagement.booking_not_cancellable': 409,
+  'engagement.broadcast_invalid_transition': 409,
+  'engagement.broadcast_placeholder_unknown': 422,
+  'engagement.broadcast_provider_not_configured': 422,
+  'engagement.broadcast_recipient_limit': 422,
+  'engagement.broadcast_self_approval': 403,
+  'engagement.broadcast_template_inactive': 422,
   'engagement.enquiry_invalid_transition': 409,
   'engagement.link_code_invalid': 422,
   'engagement.link_limit_reached': 409,
@@ -473,10 +516,12 @@ const Map<String, int> limsErrorHttpStatus = <String, int>{
   'lab.barcode_duplicate': 409,
   'lab.barcode_pattern_invalid': 500,
   'lab.critical_ack_required': 409,
+  'lab.enterer_cannot_verify': 403,
   'lab.flag_ack_required': 409,
   'lab.formula_inputs_missing': 422,
   'lab.module_result_invalid': 422,
   'lab.module_result_stale': 409,
+  'lab.pathologist_required': 403,
   'lab.rejection_reason_required': 422,
   'lab.result_invalid_transition': 409,
   'lab.result_locked': 409,
@@ -487,6 +532,7 @@ const Map<String, int> limsErrorHttpStatus = <String, int>{
   'lab.specimen_invalid_transition': 409,
   'lab.specimen_not_found': 404,
   'lab.specimen_not_receivable': 409,
+  'lab.verifier_not_distinct': 409,
   'micro.amendment_reason_required': 422,
   'micro.antibiotic_not_in_panel': 422,
   'micro.ast_category_not_allowed': 422,
@@ -522,6 +568,7 @@ const Map<String, int> limsErrorHttpStatus = <String, int>{
   'partners.referrer_not_mapped': 422,
   'partners.self_action_forbidden': 409,
   'partners.setting_out_of_range': 422,
+  'partners.ticket_invalid_transition': 409,
   'payments.amount_not_supported': 422,
   'payments.callback_mismatch': 400,
   'payments.callback_stale': 400,
@@ -581,4 +628,19 @@ const Map<String, int> limsErrorHttpStatus = <String, int>{
   'smartreport.summary_superseded': 409,
   'smartreport.template_not_approved': 409,
   'smartreport.validator_failed': 422,
+  'sync.base_version_stale': 409,
+  'sync.batch_too_large': 422,
+  'sync.block_size_too_large': 422,
+  'sync.clock_skew_too_large': 422,
+  'sync.device_revoked': 403,
+  'sync.device_unknown': 409,
+  'sync.entity_changed': 409,
+  'sync.number_out_of_block': 422,
+  'sync.offline_not_allowed': 403,
+  'sync.op_id_reused': 422,
+  'sync.op_type_not_available': 422,
+  'sync.result_locked': 409,
+  'sync.series_unknown': 422,
+  'sync.verification_policy_failed': 403,
+  'sync.wipe_required': 409,
 };

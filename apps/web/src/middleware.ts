@@ -12,7 +12,8 @@ import { problem, type Problem } from './core/session/types';
 
 export const config = {
   runtime: 'nodejs',
-  matcher: ['/((?!_next/|__nextjs|favicon.ico).*)'],
+  // T0D-FAVICON-1 (LD-310): icon + manifest files are public static assets; without this the login tab gets a 307 instead of the icon.
+  matcher: ['/((?!_next/|__nextjs|favicon.ico|icon\\.png|apple-icon\\.png|icon-512\\.png|manifest\\.webmanifest).*)'],
 };
 
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
@@ -104,6 +105,8 @@ export async function middleware(req: NextRequest) {
     const r = await (await getSessionResolver()).resolve(sid, { touch: !req.headers.has(BACKGROUND_HEADER) });
     if (!r.ok) {
       if (r.status === 401) return unauth(r.problem, r.problem.code === 'auth.session_expired' ? 'expired' : 'missing');
+      // T0D-WAKE-1 (LD-277, RS-07): no answer from the API -> documents see the waking state in place (URL kept, so a refresh retries).
+      if (r.waking && !wantsJson(req)) return secure(NextResponse.rewrite(new URL('/auth/waking', req.nextUrl.origin), { request: { headers: fwd } }), csp);
       return problemResponse(r.problem, r.status, csp);
     }
     fwd.set(H_SESSION, encodeSession(r.session));

@@ -139,9 +139,10 @@ describe('AC-08.1 / AC-08.5 — points, SD lines, hidden table', () => {
     expect(t).toMatch(/established/i);
   });
 
-  it.runIf(!CHART_KIT)('until CR-C9-007 merges: fallback note and the same points as a visible table', async () => {
+  // LD-353 rule 8 + done_when (6) (ruling T0D-UIDASH-1-ruling.md): no development note on the page; the same points stay shown.
+  it.runIf(!CHART_KIT)('until CR-C9-007 merges: no development note, the same points as a visible table', async () => {
     await show(PAGE, sp());
-    expect(pageText()).toContain('Chart component pending; showing values as a table.');
+    expect(pageText()).not.toContain('Chart component pending');
     expect(pointRows(pointsTable())).toHaveLength(6);
   });
 

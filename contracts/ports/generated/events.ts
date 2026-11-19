@@ -18,6 +18,7 @@ export type EventType =
   | "lab.order.ready_for_report.v1"
   | "lab.result.amended.v1"
   | "lab.result.approved.v1"
+  | "lab.result.signed_off.v1"
   | "lab.result.verified.v1"
   | "lab.specimen.rejected.v1"
   | "lab.specimen.status_changed.v1"
@@ -108,7 +109,7 @@ export interface EventPayloads {
   };
   "catalog.changed.v1": {
     catalog_revision: number;
-    entity_type: "department" | "specimen_type" | "container" | "test" | "analyte" | "panel" | "reference_range" | "critical_limit" | "comment_code" | "doctor" | "credit_party" | "price_list" | "surcharge_rule" | "tat_target" | "instrument_code_map" | "global_reference" | "method" | "unit" | "value_set" | "tax_rule" | "catalog_import";
+    entity_type: "department" | "specimen_type" | "container" | "test" | "analyte" | "panel" | "reference_range" | "critical_limit" | "comment_code" | "doctor" | "credit_party" | "price_list" | "surcharge_rule" | "tat_target" | "instrument_code_map" | "global_reference" | "method" | "unit" | "value_set" | "tax_rule" | "catalog_import" | "test_category";
     entity_id: string;
     change_kind: "created" | "updated" | "deactivated" | "versioned";
     effective_from: string;
@@ -339,6 +340,21 @@ export interface EventPayloads {
     approved_at: string;
     approved_by_membership_id: string;
   };
+  "lab.result.signed_off.v1": {
+    result_id: string;
+    result_version_no: number;
+    order_id: string;
+    test_id: string;
+    department_id: string;
+    seq: number;
+    action: "verify" | "approve";
+    signoff_count: number;
+    signoff_required: number;
+    is_final: boolean;
+    signer_user_id: string;
+    signer_is_pathologist: boolean;
+    signed_at: string;
+  };
   "lab.result.verified.v1": {
     result_id: string;
     result_version_no: number;
@@ -449,7 +465,7 @@ export const EVENT_PRODUCERS: Readonly<Record<string, readonly EventType[]>> = {
   frontdesk: ["frontdesk.order.cancelled.v1", "frontdesk.order.created.v1", "frontdesk.order.items_changed.v1"],
   homecollection: ["homecollection.collection.synced.v1"],
   instruments: ["instruments.agent.health_changed.v1", "instruments.calibration.received.v1", "instruments.qc.received.v1", "instruments.result.received.v1"],
-  lab: ["lab.critical_value.detected.v1", "lab.order.ready_for_report.v1", "lab.result.amended.v1", "lab.result.approved.v1", "lab.result.verified.v1", "lab.specimen.rejected.v1", "lab.specimen.status_changed.v1"],
+  lab: ["lab.critical_value.detected.v1", "lab.order.ready_for_report.v1", "lab.result.amended.v1", "lab.result.approved.v1", "lab.result.signed_off.v1", "lab.result.verified.v1", "lab.specimen.rejected.v1", "lab.specimen.status_changed.v1"],
   payments: ["payments.intent.settled.v1"],
   quality: ["quality.qc_run.rejected.v1"],
   reporting: ["reporting.delivery.status_changed.v1", "reporting.report.released.v1"],

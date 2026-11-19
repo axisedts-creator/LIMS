@@ -1,0 +1,1 @@
+- 2026-11-18 debugger: no impl fix; 2 stale-test reds (partners pending SALES ops, engagement PHASE_STUBS QualityPort) -> dispute.md

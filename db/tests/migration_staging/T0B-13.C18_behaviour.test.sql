@@ -87,6 +87,12 @@ BEGIN
   END LOOP;
 END $seed$;
 SET LOCAL session_replication_role = origin;
+-- HARNESS fix T0B-GREEN-2 (CR T0B-GREEN-2.migration-staging-loader-role): under LD-226 lims_migration has no lims_app membership, so it has no EXECUTE on app.current_tenant_id() /
+-- app.is_staff_or_system() and every query of a migration_staging table fails with E42501 "permission denied for function current_tenant_id" (the psql abort at the first T1 line).
+-- The first assertion pins that current state (red when D-136 is decided and the grant lands); then the D-136 PROPOSED EXCEPTION of C18 05-SCHEMA s2 is applied inside this rolled-back
+-- transaction only, so T1..T11 prove the policies, grants and guards as the spec defines them for the loader.
+SELECT is(has_function_privilege('lims_migration', 'app.current_tenant_id()', 'EXECUTE'), false, 'C18 setup / LD-226: without the D-136 grant lims_migration cannot evaluate its own policies (CR T0B-GREEN-2 migration-staging-loader-role)');
+GRANT lims_app TO lims_migration WITH INHERIT TRUE, SET FALSE;
 
 -- C18 T1 (§12.1): every table, claims of tenant A as lims_migration + actor system: SELECT sees A's rows only (>= 1, 0 of B); INSERT with B's tenant_id fails; UPDATE / DELETE of B rows affect 0 rows (AC-0B-3.1, 3.2, 3.3, 3.4, 3.7)
 SELECT cmp_ok(pg_temp.m('system', 1, format('SELECT 1 FROM migration_staging.%I', t), 'n')::int, '>=', 1, 'C18 T1 / AC-0B-3.1: tenant A (system actor) sees its own rows of migration_staging.' || t) FROM tbl;
@@ -98,7 +104,7 @@ SELECT is(left(pg_temp.m('system', 1, format('UPDATE migration_staging.%I SET te
 SELECT is(pg_temp.m('system', 1, format('DELETE FROM migration_staging.%I WHERE tenant_id = pg_temp.id(2)', t)), '0', 'C18 T1 / AC-0B-3.3: DELETE of tenant-B rows affects 0 rows in migration_staging.' || t) FROM tbl WHERE t IN ('stg_patients', 'stg_visits', 'stg_results', 'stg_documents', 'stg_financial', 'stg_masters', 'match_pairs', 'samples', 'issues');
 SELECT is(pg_temp.m('system', 3, 'SELECT count(*) FROM migration_staging.runs', 'v'), '0', 'C18 T1 / AC-0B-3.5: a tenant claim for an unknown tenant sees no row');
 SELECT is(pg_temp.x('lims_migration', jsonb_build_object('actor_type', 'system', 'sub', pg_temp.id(99))::text, 'SELECT count(*) FROM migration_staging.runs', 'v'), '0', 'C18 T1 / AC-0B-3.5: no tenant claim -> no row (fail closed)');
-SELECT is((SELECT count(*)::int FROM migration_staging.runs WHERE tenant_id = pg_temp.id(1)), 5, 'C18 T1: control (superuser): the 5 tenant-A runs are really there (the zeros above are not vacuous)');
+SELECT is((SELECT count(*)::int FROM migration_staging.runs WHERE tenant_id = pg_temp.id(1)), 6, 'C18 T1: control (superuser): the 5 seeded tenant-A runs plus the one inserted by the AC-0B-3.4 line above are really there (the zeros above are not vacuous)');
 
 -- C18 T2 (§12.2): lims_api, lims_worker, lims_app (directly), lims_analytics, anon, authenticated: no SELECT on any table, no USAGE on the schema (AC-0B-4.3, §1.1)
 SELECT is(has_table_privilege(r, 'migration_staging.' || t, 'SELECT'), false, 'C18 T2 / AC-0B-4.3: ' || r || ' has no SELECT on migration_staging.' || t) FROM tbl, unnest(ARRAY['lims_api','lims_worker','lims_app','lims_analytics','anon','authenticated']) r;
@@ -125,11 +131,12 @@ SELECT is(left(pg_temp.m('system', 1, format('DELETE FROM migration_staging.%I',
 -- C18 T5 (§12.5): runs lifecycle guard (migration_staging.runs_lifecycle_guard, BEFORE UPDATE on runs): a representative forbidden transition (validated -> loading) is rejected; the 22 transitions T1..T22 of 03-APP-FLOW §2 are accepted (AC-0B-4.1)
 CREATE FUNCTION pg_temp.mv(p_run int, p_to text, p_extra text DEFAULT '') RETURNS text LANGUAGE plpgsql AS $$
 BEGIN
+  PERFORM set_config('request.jwt.claims', pg_temp.cl('system', 1), true);   -- HARNESS fix T0B-GREEN-2: migration_staging.runs has runs__audit (class M), which raises audit_context_missing without claims
   EXECUTE format('UPDATE migration_staging.runs SET status = %L, updated_at = now() %s WHERE id = pg_temp.id(%s)', p_to, p_extra, p_run);
   RETURN 'ok';
 EXCEPTION WHEN OTHERS THEN RETURN 'E' || SQLSTATE || ':' || SQLERRM;
 END $$;
-DO $mk$ DECLARE k int; BEGIN FOR k IN 31..40 LOOP EXECUTE pg_temp.ins('runs', 1, k, 1); END LOOP; END $mk$;   -- 10 fresh runs in tenant A, status created (ids 1031..1040)
+DO $mk$ DECLARE k int; BEGIN PERFORM set_config('request.jwt.claims', pg_temp.cl('system', 1), true); FOR k IN 31..40 LOOP EXECUTE pg_temp.ins('runs', 1, k, 1); END LOOP; END $mk$;   -- 10 fresh runs in tenant A, status created (ids 1031..1040)
 SELECT matches(pg_temp.mv(1031, 'loading'), '^E', 'C18 T5 / §12.5: created -> loading is rejected');
 SELECT is(pg_temp.mv(1031, 'staging'), 'ok', 'C18 T5 / T2: created -> staging');
 SELECT is(pg_temp.mv(1031, 'staged'), 'ok', 'C18 T5 / T3: staging -> staged');

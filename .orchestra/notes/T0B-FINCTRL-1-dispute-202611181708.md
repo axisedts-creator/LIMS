@@ -1,0 +1,8 @@
+# T0B-FINCTRL-1 dispute (writer) — 3 stale T0B-ACCT-1/2 pins contradict the T0C-FINCTRL-1 contract
+Run: `bash tests/billing/T0B-FINCTRL-1.pg.sh` (throwaway PG17) -> 750 passed, 3 failed (log .orchestra/notes/T0B-FINCTRL-1-run2.log). Every new FINCTRL test, both boot tests, the frontdesk approvals suites and the cross tenant probes pass; tsc clean.
+
+1. `billing/__tests__/accounts/reversal.test.ts:112-117` expects lims_api `UPDATE billing.account_ledger_entries SET status = 'reversed'` -> 42501 (no UPDATE grant).
+   The T0C-FINCTRL-1 migration 20261117190000 (reviewed, merged) GRANTs lims_app UPDATE on status + hold columns (hold / release) and guards it by trigger, so the answer is now P0001 immutable_row. This fails with or without this task's code (DB change, not service code). Proposal: keep the amount_paisa UPDATE and DELETE -> 42501 assertions; for the status UPDATE accept 42501 OR P0001 (still refused).
+2. `accounts.static.test.ts:87-91` and `accounts2.static.test.ts:104-107` forbid the text `UPDATE billing.account_ledger_entries` in any source. holdLedgerEntry / releaseLedgerEntry (contract: submitted -> held -> submitted, done_when 4) can only be implemented with that UPDATE (accounts.repo.ts holdEntry / releaseEntry, status + hold columns only; DB guard + column grant enforce the rest).
+   Proposal: allow the UPDATE only when its SET list is limited to status / held_* / released_* / last_modified_by / updated_at (e.g. assert no `amount_paisa|entry_date|party_id|entry_type|fiscal_year_label` appears in a SET of that table), keep the DELETE / sequence / float rules unchanged.
+Precedent: LD-358 / T0C-FINCTRL-1 arbiter ruling (stale pin legitimately superseded by a later planned task). No assertion was edited by the writer.

@@ -1,5 +1,6 @@
 // Permission codes checked by module lab (02-CV §2.2, §10.1). Copied verbatim from contracts/permissions.yaml (# lab (C5)
 // block + 08 §4.1 additions, CR-C5-004). The T-01 test pins this list to every `lab.*` code of the registry.
+// Codes only, no SQL: every check runs for the caller's tenant (tenant_id from ctx, never from a request).
 export const LAB_PERMISSIONS = Object.freeze([
   'lab.status_board.read',
   'lab.specimen.read',
@@ -19,6 +20,8 @@ export const LAB_PERMISSIONS = Object.freeze([
   'lab.worksheet.manage',
   'lab.config.manage',
   'lab.qc_hold.release',
+  'lab.verification_policy.read', // T0C-VERLEVEL-1 (LD-316)
+  'lab.verification_policy.manage', // T0C-VERLEVEL-1 (LD-316)
 ] as const);
 
 export type LabPermission = (typeof LAB_PERMISSIONS)[number];

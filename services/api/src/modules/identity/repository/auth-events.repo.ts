@@ -78,15 +78,19 @@ const LOGIN_CONTEXT_SQL = `SELECT platform_staff_id, platform_role, platform_act
   idle_timeout_minutes, absolute_session_hours FROM app.identity_login_context($1::uuid)`;
 // LD-208 SESSION-ACTOR-1: SessionState.actor source; read-only DEFINER, ids as bind parameters only
 const SESSION_ACTOR_SQL = 'SELECT display_name, role_codes, tenant_code FROM app.identity_session_actor($1::uuid, $2::uuid, $3::uuid)';
+// LD-300 / T0B-LOGIN-1: absolute_expires_at ($16) and expires_at ($19) capped at the DATABASE now() + 12 h (same now() as created_at), so
+// sessions__absolute__ck holds even when the application clock is ahead of the database clock. Never patient rows here.
 const SESSION_SQL = `INSERT INTO identity.sessions (id, tenant_id, kind, user_id, membership_id, gotrue_session_id, token_sha256, state, aal,
   refresh_token_enc, access_token_enc, enc_key_id, access_expires_at, idle_timeout_minutes, idle_expires_at, absolute_expires_at,
   client_ip, user_agent, expires_at, created_by, updated_by)
-  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, nullif($17, '')::inet, $18, $19, $20, $20)`;
+  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, least($16::timestamptz, now() + interval '12 hours'), nullif($17, '')::inet, $18,
+  least($19::timestamptz, now() + interval '12 hours'), $20, $20)`;
 // T31 staff_mobile: same row + app_instance_id / app_platform (sessions__app__ck)
 const APP_SESSION_SQL = `INSERT INTO identity.sessions (id, tenant_id, kind, user_id, membership_id, gotrue_session_id, token_sha256, state, aal,
   refresh_token_enc, access_token_enc, enc_key_id, access_expires_at, idle_timeout_minutes, idle_expires_at, absolute_expires_at,
   client_ip, user_agent, expires_at, created_by, updated_by, app_instance_id, app_platform)
-  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, nullif($17, '')::inet, $18, $19, $20, $20, $21, $22)`;
+  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, least($16::timestamptz, now() + interval '12 hours'), nullif($17, '')::inet, $18,
+  least($19::timestamptz, now() + interval '12 hours'), $20, $20, $21, $22)`;
 // T31 AU-T17: permission through an active role of the membership (tenant bound; plain SQL under the tenant policies)
 const MEMBERSHIP_PERMISSION_SQL = `SELECT EXISTS (SELECT 1 FROM core.membership_roles mr
     JOIN core.roles r ON r.tenant_id = mr.tenant_id AND r.id = mr.role_id AND r.is_active

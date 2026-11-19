@@ -76,7 +76,9 @@ export function createConfirmEmailToken(deps: ConfirmDeps) {
       } else {
         const tenantId = row['tenant_id']; const membershipId = row['membership_id'];
         // [CONV] usable = exactly one membership, tenant active, not locked, invited (invite) or active; anything else = invalid link (no oracle)
-        if (Number(row['membership_count']) !== 1 || typeof tenantId !== 'string' || typeof membershipId !== 'string' || row['tenant_status'] !== 'active'
+        // LD-299 T0B-ACTIVATE-1: an invite link also works while the tenant is provisioning (its first admin must accept before activateTenant); recovery needs active
+        const tenantOk = row['tenant_status'] === 'active' || (type === 'invite' && row['tenant_status'] === 'provisioning');
+        if (Number(row['membership_count']) !== 1 || typeof tenantId !== 'string' || typeof membershipId !== 'string' || !tenantOk
           || row['membership_locked'] !== false || !['active', 'invited'].includes(row['membership_status'])) throw bad();
         if (!tx.bindTenant) throw new LimsError('common.internal');
         await tx.bindTenant(tenantId);   // D-212: tenant from the DEFINER row only

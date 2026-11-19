@@ -23,7 +23,11 @@ export interface InvoiceDetail extends InvoiceSummary {
   last_printed_at?: string; cbms_cancel_state?: string; version: number;
   cbms_submissions: { document_kind: string; attempt_no: number; client_mode: string; outcome: string; submitted_at: string }[];
 }
-export interface InvoicePrintRow { print_no: number; is_copy: boolean; reason_code: string; printed_by_display: string; printed_at: string }
+export interface InvoicePrintRow { print_no: number; is_copy: boolean; reason_code: string; printed_by_display: string; printed_at: string; style?: PrintStyle }
+/** printInvoice style (T0C-PRINTCFG-1, LD-316): full = as the invoice print profile says; plain_bw = the plain black and white tax bill (PAN bill). */
+export type PrintStyle = 'full' | 'plain_bw';
+export const PRINT_STYLES: readonly PrintStyle[] = ['full', 'plain_bw'];
+export const STYLE_LABEL: Record<PrintStyle, string> = { full: 'Full bill', plain_bw: 'Plain black and white bill' };
 export interface Branding { legal_name?: string; address_lines?: string[]; phones?: string[]; images?: { kind: string; data_uri: string }[] }
 export interface InvoicePrintDocument extends InvoiceDetail {
   branding?: Branding; dates?: { bs: string; ad: string }; payment_block?: { paid: Money; balance_due: Money }; print_no?: number;

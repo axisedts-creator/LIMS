@@ -107,6 +107,11 @@ const dialog = () => screen.getByRole('dialog');
 const press = async (name: RegExp, root: HTMLElement = document.body) => userEvent.click(within(root).getByRole('button', { name }));
 const choose = async (root: HTMLElement, label: RegExp, option: string | RegExp) => { await userEvent.click(within(root).getByLabelText(label)); await userEvent.click(await screen.findByRole('option', { name: option })); };
 const text = (root: HTMLElement = document.body) => root.textContent ?? '';
+/** Opens the kit Select labelled `label` (LD-353 rule 2: filters are selects in the FilterBar) and picks `option`. */
+const pick = async (label: string, option: string) => {
+  await userEvent.click(screen.getByRole('button', { name: new RegExp(`\\b${label}\\b`) }));
+  await userEvent.click(await screen.findByRole('option', { name: option }));
+};
 const WORD = /commission/i;
 
 // ================================================================================================================ SCR-09
@@ -126,11 +131,11 @@ describe('SCR-09 PanelsList (AC-07.1, 07.2, 07.6)', () => {
 
   it('empty: exact copy "No panels yet." + "New panel" for managers only', async () => {
     const a = await show([], TEST_MANAGE);
-    expect(screen.getByText('No panels yet.')).toBeTruthy();
+    expect(screen.getByText('No test profiles yet.')).toBeTruthy();
     expect(screen.getAllByRole('button', { name: /new panel/i }).length).toBeGreaterThan(0);
     a.unmount();
     await show([], TEST_READ);
-    expect(screen.getByText('No panels yet.')).toBeTruthy();
+    expect(screen.getByText('No test profiles yet.')).toBeTruthy();
     expect(screen.queryByRole('button', { name: /new panel/i })).toBeNull();
   });
 
@@ -142,9 +147,7 @@ describe('SCR-09 PanelsList (AC-07.1, 07.2, 07.6)', () => {
 
   it('Kind filter (Clinical panel / Package) filters rows (local or via URL)', async () => {
     await show();
-    const opt = [...document.querySelectorAll<HTMLElement>('[role=option],[role=radio],[role=tab],button,label')].find((e) => e.textContent?.trim() === 'Package');
-    expect(opt, 'Kind filter control "Package"').toBeTruthy();
-    await userEvent.click(opt!);
+    await pick('Kind', 'Package');
     const urls = [...push.mock.calls, ...replace.mock.calls].map((c) => decodeURIComponent(String(c[0])));
     if (!urls.some((u) => /panel_kind=package|kind=package/.test(u))) {
       expect(screen.queryByText('Lipid profile')).toBeNull();
@@ -443,7 +446,7 @@ describe('SCR-11 DoctorsList (AC-11.1, 11.2, 11.4)', () => {
 
   it('empty: exact copy "No doctors yet."', async () => {
     await show([]);
-    expect(screen.getByText('No doctors yet.')).toBeTruthy();
+    expect(screen.getByText('No doctors in Doctor Management yet.')).toBeTruthy();
   });
 
   it('list never shows phone/email (summaries carry none; even if a row object has them they are not rendered — AC-11.4)', async () => {
@@ -465,12 +468,11 @@ describe('SCR-11 DoctorsList (AC-11.1, 11.2, 11.4)', () => {
 
   it('Verified filter "Unverified" → URL param is_verified=false or local filter; Source filter exists (Back office / Quick add / Import)', async () => {
     await show();
-    const ctl = (n: string) => [...document.querySelectorAll<HTMLElement>('[role=option],[role=radio],[role=tab],button,label')].find((e) => e.textContent?.trim() === n);
-    expect(ctl('Unverified')).toBeTruthy();
-    await userEvent.click(ctl('Unverified')!);
+    await pick('Verified', 'Unverified');
     const urls = [...push.mock.calls, ...replace.mock.calls].map((c) => decodeURIComponent(String(c[0])));
     if (!urls.some((u) => /is_verified=false/.test(u))) expect(screen.queryByText('Dr Synthetic Alpha')).toBeNull();
-    for (const s of ['Quick add', 'Back office', 'Import']) expect(text(), `Source option ${s}`).toContain(s);
+    await userEvent.click(screen.getByRole('button', { name: /\bSource\b/ }));
+    for (const s of ['Quick add', 'Back office', 'Import']) expect(await screen.findByRole('option', { name: s }), `Source option ${s}`).toBeTruthy();
   });
 
   it('New doctor (back office): POST /doctors with display name + phone only, Idempotency-Key; code left blank = auto; no is_verified/source from the client (AC-11.1)', async () => {
@@ -791,7 +793,7 @@ describe('SCR-12 CreditPartiesScreen (AC-12.1…12.4)', () => {
 
   it('empty copy "No credit parties or affiliations yet."; the Billing note is always present', async () => {
     await show([]);
-    expect(screen.getByText('No credit parties or affiliations yet.')).toBeTruthy();
+    expect(screen.getByText('No clients or affiliations yet.')).toBeTruthy();
     expect(text()).toContain('Credit limits, credit days and monthly statements are managed in Billing.');
   });
 

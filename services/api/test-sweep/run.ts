@@ -22,7 +22,7 @@ import { loadOperations, type Operation } from './ops.js';
 import { createPacer, withRateLimitRetry } from './pace.js';
 import { buildRequest } from './request.js';
 import { assertLocalDatabase } from './safety.js';
-import { createRunKey, createSessions, permissionSets, SESSION_KINDS, SWEEP_PARTNER_ID, TENANT_A, type SessionKind } from './sessions.js';
+import { BRANCH_A, CENTRE_A, createRunKey, createSessions, permissionSets, SESSION_KINDS, SWEEP_PARTNER_ID, TENANT_A, type SessionKind } from './sessions.js';
 import { renderResults, type SweepRow } from './summary.js';
 
 const ROOT = resolve(import.meta.dirname, '..', '..', '..');
@@ -158,13 +158,17 @@ async function main(): Promise<number> {
     const stacksByRid = new Map<string, string>();
     const onHandlerError = (m: any) => { const id = m?.request?.id; if (id && m.error) stacksByRid.set(String(id), trimStack(m.error)); };
     diagnostics.subscribe('tracing:fastify.request.handler:error', onHandlerError);
+    // fastify publishes handler:start only after schema validation passed (handle-request.js preHandlerCallback): DEEP evidence for a 400
+    const reachedByRid = new Set<string>();
+    const onHandlerStart = (m: any) => { const id = m?.request?.id; if (id) reachedByRid.add(String(id)); };
+    diagnostics.subscribe('tracing:fastify.request.handler:start', onHandlerStart);
     log('booting the real API (all modules)...');
     app = await bootstrap({ config: loadConfig(process.env), logStream });
 
     // LD-270 done_when 1: `u:` is 10/s burst 20 per subject, hard-coded (ratelimit/index.ts:41), so pace each session under it.
     const pacer = createPacer({ ratePerSecond: 9, burst: 18, now: Date.now, sleep });
     // seeded row ids (seed 010 + sessions.ts) by parameter / property name; anything else gets a placeholder (a 404 is DEEP)
-    const ids: Record<string, string> = { tenant_id: TENANT_A, partner_id: SWEEP_PARTNER_ID };
+    const ids: Record<string, string> = { tenant_id: TENANT_A, partner_id: SWEEP_PARTNER_ID, branch_id: BRANCH_A, centre_id: CENTRE_A };
     const rows: SweepRow[] = [];
     const stacks = new Map<string, string>();
     for (const op of ops) {
@@ -191,7 +195,7 @@ async function main(): Promise<number> {
         if (!timedOut) { harnessError = true; body = { code: 'inject_error', detail: String(e) }; }
       }
       const code = String(body?.code ?? '');
-      const c = classify({ status, timedOut, matched, holdsPermission: holds, errorCode: code, harnessError });
+      const c = classify({ status, timedOut, matched, holdsPermission: holds, errorCode: code, harnessError, reachedHandler: rid !== '' && reachedByRid.has(rid) });
       const stack = stacksByRid.get(rid);
       if (stack) stacks.set(op.operationId, stack);
       const fields = Array.isArray(body?.errors) ? body.errors.slice(0, 4).map((f: any) => `${f.path ?? '?'} ${f.code ?? ''}`.trim()).join('; ') : '';
@@ -204,6 +208,7 @@ async function main(): Promise<number> {
         defectClass: defect ? defectClass({ status, errorCode: code, detail, reason: c.reason }) : '', detail: defect || c.depth === 'SHALLOW' ? detail || c.reason : detail });
     }
     diagnostics.unsubscribe('tracing:fastify.request.handler:error', onHandlerError);
+    diagnostics.unsubscribe('tracing:fastify.request.handler:start', onHandlerStart);
     const meta = { at: new Date().toISOString(), operations: ops.length, sessionKinds: SESSION_KINDS };
     writeFileSync(join(NOTES, 'T0B-SWEEP-2-results.json'), JSON.stringify({ meta, rows }, null, 1) + '\n');
     writeFileSync(join(NOTES, 'T0B-SWEEP-2-results.md'), renderResults(rows, { at: meta.at, sections: [stackSection(rows, stacks)] }));

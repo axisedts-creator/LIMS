@@ -11,6 +11,10 @@ class EngagementApi {
 
   final LimsTransport _send;
 
+  /// POST /v1/engagement/broadcasts/{broadcast_id}/approve
+  Future<Object?> approveBroadcast({required String broadcastId, Map<String, String>? headers}) =>
+      _send('POST', '/v1/engagement/broadcasts/${Uri.encodeComponent(broadcastId)}/approve', headers: headers);
+
   /// POST /v1/engagement/queues/{queue_id}/call-next
   Future<Object?> callNextQueueToken({required String queueId, Object? body}) =>
       _send('POST', '/v1/engagement/queues/${Uri.encodeComponent(queueId)}/call-next', body: body);
@@ -18,6 +22,10 @@ class EngagementApi {
   /// POST /v1/engagement/bookings/{booking_id}/cancel
   Future<Object?> cancelBooking({required String bookingId, Map<String, String>? headers, Object? body}) =>
       _send('POST', '/v1/engagement/bookings/${Uri.encodeComponent(bookingId)}/cancel', headers: headers, body: body);
+
+  /// POST /v1/engagement/broadcasts/{broadcast_id}/cancel
+  Future<Object?> cancelBroadcast({required String broadcastId, Map<String, String>? headers}) =>
+      _send('POST', '/v1/engagement/broadcasts/${Uri.encodeComponent(broadcastId)}/cancel', headers: headers);
 
   /// POST /v1/engagement/memberships/{membership_id}/cancel
   Future<Object?> cancelMembership({required String membershipId, Map<String, String>? headers, Object? body}) =>
@@ -39,6 +47,10 @@ class EngagementApi {
   Future<Object?> checkInBooking({required String bookingId, Map<String, String>? headers, Object? body}) =>
       _send('POST', '/v1/engagement/bookings/${Uri.encodeComponent(bookingId)}/check-in', headers: headers, body: body);
 
+  /// DELETE /v1/engagement/profile-images/{profile_kind}/{profile_id}
+  Future<Object?> clearProfileImage({required String profileKind, required String profileId}) =>
+      _send('DELETE', '/v1/engagement/profile-images/${Uri.encodeComponent(profileKind)}/${Uri.encodeComponent(profileId)}');
+
   /// POST /v1/engagement/enquiries/{enquiry_id}/close
   Future<Object?> closeEnquiry({required String enquiryId, Map<String, String>? headers}) =>
       _send('POST', '/v1/engagement/enquiries/${Uri.encodeComponent(enquiryId)}/close', headers: headers);
@@ -50,6 +62,14 @@ class EngagementApi {
   /// POST /v1/engagement/bookings
   Future<Object?> createBookingForPatient({Map<String, String>? headers, Object? body}) =>
       _send('POST', '/v1/engagement/bookings', headers: headers, body: body);
+
+  /// POST /v1/engagement/broadcasts
+  Future<Object?> createBroadcast({Map<String, String>? headers, Object? body}) =>
+      _send('POST', '/v1/engagement/broadcasts', headers: headers, body: body);
+
+  /// POST /v1/engagement/broadcast-templates
+  Future<Object?> createBroadcastTemplate({Map<String, String>? headers, Object? body}) =>
+      _send('POST', '/v1/engagement/broadcast-templates', headers: headers, body: body);
 
   /// POST /v1/engagement/queue-counters
   Future<Object?> createCounter({Map<String, String>? headers, Object? body}) =>
@@ -75,6 +95,10 @@ class EngagementApi {
   Future<Object?> createPaymentRequest({required String orderId, Map<String, String>? headers, Object? body}) =>
       _send('POST', '/v1/engagement/me/orders/${Uri.encodeComponent(orderId)}/payment-requests', headers: headers, body: body);
 
+  /// POST /v1/engagement/portal-content
+  Future<Object?> createPortalContent({Map<String, String>? headers, Object? body}) =>
+      _send('POST', '/v1/engagement/portal-content', headers: headers, body: body);
+
   /// POST /v1/engagement/queues
   Future<Object?> createQueue({Map<String, String>? headers, Object? body}) =>
       _send('POST', '/v1/engagement/queues', headers: headers, body: body);
@@ -95,9 +119,17 @@ class EngagementApi {
   Future<Object?> createSlotTemplate({Map<String, String>? headers, Object? body}) =>
       _send('POST', '/v1/engagement/slot-templates', headers: headers, body: body);
 
+  /// POST /v1/engagement/broadcast-templates/{template_id}/deactivate
+  Future<Object?> deactivateBroadcastTemplate({required String templateId, Map<String, String>? headers}) =>
+      _send('POST', '/v1/engagement/broadcast-templates/${Uri.encodeComponent(templateId)}/deactivate', headers: headers);
+
   /// POST /v1/engagement/me/addresses/{address_id}/deactivate
   Future<Object?> deactivateMyAddress({required String addressId, Map<String, String>? headers}) =>
       _send('POST', '/v1/engagement/me/addresses/${Uri.encodeComponent(addressId)}/deactivate', headers: headers);
+
+  /// POST /v1/engagement/portal-content/{content_id}/deactivate
+  Future<Object?> deactivatePortalContent({required String contentId, Map<String, String>? headers}) =>
+      _send('POST', '/v1/engagement/portal-content/${Uri.encodeComponent(contentId)}/deactivate', headers: headers);
 
   /// POST /v1/engagement/slot-blackouts/{blackout_id}/deactivate
   Future<Object?> deactivateSlotBlackout({required String blackoutId, Map<String, String>? headers}) =>
@@ -187,6 +219,18 @@ class EngagementApi {
   Future<Object?> listBookings({Map<String, Object?>? query}) =>
       _send('GET', '/v1/engagement/bookings', query: query);
 
+  /// GET /v1/engagement/broadcasts/{broadcast_id}/recipients
+  Future<Object?> listBroadcastRecipients({required String broadcastId, Map<String, Object?>? query}) =>
+      _send('GET', '/v1/engagement/broadcasts/${Uri.encodeComponent(broadcastId)}/recipients', query: query);
+
+  /// GET /v1/engagement/broadcast-templates
+  Future<Object?> listBroadcastTemplates({Map<String, Object?>? query}) =>
+      _send('GET', '/v1/engagement/broadcast-templates', query: query);
+
+  /// GET /v1/engagement/broadcasts
+  Future<Object?> listBroadcasts({Map<String, Object?>? query}) =>
+      _send('GET', '/v1/engagement/broadcasts', query: query);
+
   /// GET /v1/engagement/queue-setup/counters
   Future<Object?> listCounterDefinitions({Map<String, Object?>? query}) =>
       _send('GET', '/v1/engagement/queue-setup/counters', query: query);
@@ -251,6 +295,10 @@ class EngagementApi {
   Future<Object?> listMyOrders({Map<String, Object?>? query, Map<String, String>? headers}) =>
       _send('GET', '/v1/engagement/me/orders', query: query, headers: headers);
 
+  /// GET /v1/engagement/me/portal-content
+  Future<Object?> listMyPortalContent({Map<String, Object?>? query, Map<String, String>? headers}) =>
+      _send('GET', '/v1/engagement/me/portal-content', query: query, headers: headers);
+
   /// GET /v1/engagement/me/profiles
   Future<Object?> listMyProfiles({Map<String, String>? headers}) =>
       _send('GET', '/v1/engagement/me/profiles', headers: headers);
@@ -266,6 +314,14 @@ class EngagementApi {
   /// GET /v1/engagement/patients/{patient_id}/memberships
   Future<Object?> listPatientMemberships({required String patientId}) =>
       _send('GET', '/v1/engagement/patients/${Uri.encodeComponent(patientId)}/memberships');
+
+  /// GET /v1/engagement/portal-content
+  Future<Object?> listPortalContent({Map<String, Object?>? query}) =>
+      _send('GET', '/v1/engagement/portal-content', query: query);
+
+  /// GET /v1/engagement/profile-images
+  Future<Object?> listProfileImages({Map<String, Object?>? query}) =>
+      _send('GET', '/v1/engagement/profile-images', query: query);
 
   /// GET /v1/engagement/queue-setup/queues
   Future<Object?> listQueueDefinitions({Map<String, Object?>? query}) =>
@@ -307,6 +363,10 @@ class EngagementApi {
   Future<Object?> pairQueueDisplay({Object? body}) =>
       _send('POST', '/v1/engagement/queue-displays', body: body);
 
+  /// POST /v1/engagement/broadcast-audience-previews
+  Future<Object?> previewBroadcastAudience({Object? body}) =>
+      _send('POST', '/v1/engagement/broadcast-audience-previews', body: body);
+
   /// POST /v1/engagement/queue-tokens/{token_id}/recall
   Future<Object?> recallQueueToken({required String tokenId, Map<String, String>? headers}) =>
       _send('POST', '/v1/engagement/queue-tokens/${Uri.encodeComponent(tokenId)}/recall', headers: headers);
@@ -323,6 +383,10 @@ class EngagementApi {
   Future<Object?> removeMyProfile({required String profileId, Map<String, String>? headers}) =>
       _send('POST', '/v1/engagement/me/profiles/${Uri.encodeComponent(profileId)}/remove', headers: headers);
 
+  /// POST /v1/engagement/portal-content/reorder
+  Future<Object?> reorderPortalContent({Object? body}) =>
+      _send('POST', '/v1/engagement/portal-content/reorder', body: body);
+
   /// POST /v1/engagement/enquiries/{enquiry_id}/messages
   Future<Object?> replyEnquiry({required String enquiryId, Map<String, String>? headers, Object? body}) =>
       _send('POST', '/v1/engagement/enquiries/${Uri.encodeComponent(enquiryId)}/messages', headers: headers, body: body);
@@ -330,6 +394,10 @@ class EngagementApi {
   /// POST /v1/engagement/me/enquiries/{enquiry_id}/messages
   Future<Object?> replyMyEnquiry({required String enquiryId, Map<String, String>? headers, Object? body}) =>
       _send('POST', '/v1/engagement/me/enquiries/${Uri.encodeComponent(enquiryId)}/messages', headers: headers, body: body);
+
+  /// POST /v1/engagement/broadcasts/{broadcast_id}/request-approval
+  Future<Object?> requestBroadcastApproval({required String broadcastId, Map<String, String>? headers}) =>
+      _send('POST', '/v1/engagement/broadcasts/${Uri.encodeComponent(broadcastId)}/request-approval', headers: headers);
 
   /// POST /v1/engagement/auth/otp-challenges
   Future<Object?> requestPatientOtp({Map<String, String>? headers, Object? body}) =>
@@ -347,6 +415,10 @@ class EngagementApi {
   Future<Object?> revokeQueueDisplay({required String displayId, Map<String, String>? headers}) =>
       _send('POST', '/v1/engagement/queue-displays/${Uri.encodeComponent(displayId)}/revoke', headers: headers);
 
+  /// PUT /v1/engagement/profile-images/{profile_kind}/{profile_id}
+  Future<Object?> setProfileImage({required String profileKind, required String profileId, Object? body}) =>
+      _send('PUT', '/v1/engagement/profile-images/${Uri.encodeComponent(profileKind)}/${Uri.encodeComponent(profileId)}', body: body);
+
   /// POST /v1/engagement/queue-tokens/{token_id}/skip
   Future<Object?> skipQueueToken({required String tokenId, Map<String, String>? headers}) =>
       _send('POST', '/v1/engagement/queue-tokens/${Uri.encodeComponent(tokenId)}/skip', headers: headers);
@@ -362,6 +434,10 @@ class EngagementApi {
   /// POST /v1/engagement/queue-tokens/{token_id}/transfer
   Future<Object?> transferQueueToken({required String tokenId, Map<String, String>? headers, Object? body}) =>
       _send('POST', '/v1/engagement/queue-tokens/${Uri.encodeComponent(tokenId)}/transfer', headers: headers, body: body);
+
+  /// PATCH /v1/engagement/broadcast-templates/{template_id}
+  Future<Object?> updateBroadcastTemplate({required String templateId, Map<String, String>? headers, Object? body}) =>
+      _send('PATCH', '/v1/engagement/broadcast-templates/${Uri.encodeComponent(templateId)}', headers: headers, body: body);
 
   /// PUT /v1/engagement/queue-counters/{counter_id}
   Future<Object?> updateCounter({required String counterId, Map<String, String>? headers, Object? body}) =>
@@ -386,6 +462,10 @@ class EngagementApi {
   /// PATCH /v1/engagement/me/profiles/{profile_id}
   Future<Object?> updateMyProfile({required String profileId, Map<String, String>? headers, Object? body}) =>
       _send('PATCH', '/v1/engagement/me/profiles/${Uri.encodeComponent(profileId)}', headers: headers, body: body);
+
+  /// PATCH /v1/engagement/portal-content/{content_id}
+  Future<Object?> updatePortalContent({required String contentId, Map<String, String>? headers, Object? body}) =>
+      _send('PATCH', '/v1/engagement/portal-content/${Uri.encodeComponent(contentId)}', headers: headers, body: body);
 
   /// PUT /v1/engagement/queues/{queue_id}
   Future<Object?> updateQueue({required String queueId, Map<String, String>? headers, Object? body}) =>

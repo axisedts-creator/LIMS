@@ -1,0 +1,8 @@
+# T0D-WEBFIX-2 tests (tester)
+Files (apps/web/src/features/webfix2/__tests__/): vitest.webfix2.config.ts, webfix2.nav-labels.test.ts, webfix2.bell.test.tsx, webfix2.date-header.test.tsx, webfix2.price-simulator.test.tsx. Run: .orchestra/notes/T0D-WEBFIX-2-verify.cmd
+Now: 8 fail, 6 pass (right reasons). nav: 85 manifest keys (label/section/createLabel; brief said ~41) resolve to themselves, add them to core/i18n/messages.ts. bell: disabled with no visible/tooltip reason. date: API label_bs is already "2083-08-01 B.S." (shared-ts formatBs 'display'), web appends a 2nd " B.S." in DashboardView:121, ReportView:294, ReportRunView:14, ScheduleEditor:84. simulator: PriceSimulator.tsx:104 hint still "Leave empty for now.".
+Bell contract: disabled bell needs a reason (/later release|not available yet|coming soon/) in visible text, title and accessible name, and must not take focus (disabled attr, or aria-disabled + tabindex=-1). A working bell passes.
+Date contract: one "B.S." whether label_bs is "2083-08-01" or "2083-08-01 B.S."; no `} B.S.` literal in the four components (a shared helper is fine; test is on rendered output, not a formatter name).
+Simulator contract: hint must say what At does (prices valid at that date/time) and leave empty for the current price. Wording free.
+rs-c2.baseline.json NOT touched: these tests do not run rs-c2.static; it is still stale (x-forwarded-for / x-real-ip entries present) for the writer's existing-shell-test run, LD-303 re-record belongs to WAKE-1 / MSERIES-6.
+Not run: existing web shell tests (r04/m2) that may assert the bell name "Notifications"; the new name must still contain "Notifications".

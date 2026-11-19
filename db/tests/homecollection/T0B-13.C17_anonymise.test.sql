@@ -68,11 +68,18 @@ BEGIN
   END LOOP;
 END $seed$;
 SET LOCAL session_replication_role = origin;
+-- HARNESS fix T0B-GREEN-2: the seeded rows were inserted in THIS transaction, so the function's UPDATE re-checks every FK of the row (PostgreSQL RI rule for rows
+-- created by the current transaction) and the synthetic parents (centres, branches, orders, patients, specimens, collections, handovers) do not exist: visits__centre__fk
+-- failed and the function never reached its work. The FKs to those parents are dropped for this rolled-back transaction only (nothing here asserts an FK; the RLS,
+-- the immutable_row guard and the DEFINER owner path that the assertions exercise stay untouched).
+ALTER TABLE homecollection.visits DROP CONSTRAINT visits__branch__fk, DROP CONSTRAINT visits__centre__fk, DROP CONSTRAINT visits__order__fk, DROP CONSTRAINT visits__patient__fk;
+ALTER TABLE homecollection.handover_items DROP CONSTRAINT handover_items__centre__fk, DROP CONSTRAINT handover_items__to_centre__fk, DROP CONSTRAINT handover_items__collection__fk,
+  DROP CONSTRAINT handover_items__handover__fk, DROP CONSTRAINT handover_items__specimen__fk;
 
 -- ---------------------------------------------------------------- the DEFINER: owner, DEFINER, search_path, grants (§4.2 inventory row)
 SELECT is((SELECT pg_get_userbyid(proowner) FROM pg_proc WHERE oid = 'app.homecollection_anonymise_retired_visits(timestamptz)'::regprocedure), 'lims_owner', 'AC-0B-6.3: the anonymise function is owned by lims_owner');
 SELECT ok((SELECT prosecdef FROM pg_proc WHERE oid = 'app.homecollection_anonymise_retired_visits(timestamptz)'::regprocedure), 'AC-0B-4.1: the anonymise function is SECURITY DEFINER');
-SELECT ok((SELECT proconfig @> ARRAY['search_path='] FROM pg_proc WHERE oid = 'app.homecollection_anonymise_retired_visits(timestamptz)'::regprocedure), 'search_path is pinned to the empty path');
+SELECT ok((SELECT proconfig @> ARRAY['search_path=""'] FROM pg_proc WHERE oid = 'app.homecollection_anonymise_retired_visits(timestamptz)'::regprocedure), 'search_path is pinned to the empty path');
 SELECT ok(has_function_privilege('lims_worker', 'app.homecollection_anonymise_retired_visits(timestamptz)', 'EXECUTE'), 'lims_worker may execute the anonymise function');
 SELECT ok(NOT has_function_privilege('lims_app', 'app.homecollection_anonymise_retired_visits(timestamptz)', 'EXECUTE') AND NOT has_function_privilege('lims_api', 'app.homecollection_anonymise_retired_visits(timestamptz)', 'EXECUTE'), 'the request roles may not execute the anonymise function');
 

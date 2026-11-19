@@ -249,8 +249,9 @@ describe('payment.captured (US-07-7, AB5, D-PAY)', () => {
     expect(codes(await pushM(w, [M.payment(w, { method: 'barter_goats' })]))).toEqual(['common.validation_failed']);
   });
   it('requires_reference method: missing reference -> rejected validation_failed; with reference -> applied (tenant B settings)', { timeout: T }, async () => {
-    await setSettings(TENANT_B, 'payment_methods = $2::jsonb', [JSON.stringify([{ code: 'cash', display: 'Cash', requires_reference: false }, { code: 'fonepay_qr', display: 'Fonepay QR', requires_reference: true }])]);
     const w = await pushWorld({ file: FILE, s: 'b' });
+    // LD-363: setSettings is a plain UPDATE; run it AFTER pushWorld so the tenant B settings row exists whatever file ran before.
+    await setSettings(TENANT_B, 'payment_methods = $2::jsonb', [JSON.stringify([{ code: 'cash', display: 'Cash', requires_reference: false }, { code: 'fonepay_qr', display: 'Fonepay QR', requires_reference: true }])]);
     expect(codes(await pushM(w, [M.payment(w, { method: 'fonepay_qr' })]))).toEqual(['common.validation_failed']);
     expect(outcomes(await pushM(w, [M.payment(w, { method: 'fonepay_qr', reference: 'FP-SYN-0001' })]))).toEqual(['applied']);
   });

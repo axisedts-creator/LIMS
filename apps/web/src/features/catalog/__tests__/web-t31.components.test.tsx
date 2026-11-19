@@ -90,7 +90,11 @@ const fieldBad = (root: HTMLElement) => within(root).queryAllByRole('alert').len
 const rowOf = (code: string) => screen.getByRole('row', { name: new RegExp(`\\b${code}\\b`) });
 const edit = async (code: string) => { await userEvent.click(within(rowOf(code)).getByRole('button', { name: /edit/i })); return screen.getByRole('dialog'); };
 const save = async () => userEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: /^save$/i }));
-const control = (name: string) => [...document.querySelectorAll<HTMLElement>('[role=option],[role=radio],[role=tab],button,label')].find((e) => e.textContent?.trim() === name);
+/** Opens the kit Select labelled `label` (LD-353 rule 2: filters are selects in the FilterBar) and picks `option`. */
+const pick = async (label: string, option: string) => {
+  await userEvent.click(screen.getByRole('button', { name: new RegExp(`\\b${label}\\b`) }));
+  await userEvent.click(await screen.findByRole('option', { name: option }));
+};
 
 // ------------------------------------------------------------------------------------------------ SCR-01
 describe('SCR-01 CatalogHome (03-APP-FLOW §5)', () => {
@@ -200,11 +204,11 @@ describe('SCR-02 DepartmentsList (AC-01.1, AC-01.2, AC-01.4, AC-01.6)', () => {
 
   it('empty: exact copy "No departments yet." + "New department" (manage only)', async () => {
     const a = await show([], MANAGE);
-    expect(screen.getByText('No departments yet.')).toBeTruthy();
+    expect(screen.getByText('No test categories yet.')).toBeTruthy();
     expect(screen.getAllByRole('button', { name: /new department/i }).length).toBeGreaterThan(0);
     a.unmount();
     await show([], READ);
-    expect(screen.getByText('No departments yet.')).toBeTruthy();
+    expect(screen.getByText('No test categories yet.')).toBeTruthy();
     expect(screen.queryByRole('button', { name: /new department/i })).toBeNull();
   });
 
@@ -224,7 +228,7 @@ describe('SCR-02 DepartmentsList (AC-01.1, AC-01.2, AC-01.4, AC-01.6)', () => {
 
   it('Status filter Inactive / All (URL param or local filter)', async () => {
     await show();
-    await userEvent.click(control('Inactive')!);
+    await pick('Status', 'Inactive');
     const urls = [...push.mock.calls, ...replace.mock.calls].map((c) => decodeURIComponent(String(c[0])));
     const viaUrl = urls.some((u) => /is_active=false|status=inactive/.test(u));
     if (!viaUrl) {
@@ -459,7 +463,7 @@ describe('SCR-03 SpecimensScreen (AC-01.5: report label shown)', () => {
 
   it('empty states: "No specimen types yet." and (assumed same pattern) "No containers yet."', async () => {
     await show({ specimenTypes: [], containers: [] });
-    expect(screen.getByText('No specimen types yet.')).toBeTruthy();
+    expect(screen.getByText('No test groups (specimen types) yet.')).toBeTruthy();
     await userEvent.click(screen.getByRole('tab', { name: 'Containers' }));
     expect(screen.getByText('No containers yet.')).toBeTruthy();
   });
@@ -655,7 +659,7 @@ describe('SCR-05 UnitsScreen', () => {
   it('New lab unit: code keeps its case, regex ^[A-Za-z0-9_]{1,32}$ enforced, display ≤ 32; POST {code, display} with Idempotency-Key', async () => {
     api.use(http.post(`${ORIGIN}/v1/catalog/units`, async ({ request }) => { await rec(request); return HttpResponse.json(unit(49, { code: 'x10_3_per_uL', display: '10^3/µL', scope: 'tenant', version: 1 }), { status: 201 }); }));
     await show();
-    await userEvent.click(screen.getAllByRole('button', { name: /new lab unit/i })[0]!);
+    await userEvent.click(screen.getAllByRole('button', { name: /new (lab )?unit/i })[0]!); // T0D-CATUNITS-1: the button is now "New unit"
     const dlg = screen.getByRole('dialog');
     const code = within(dlg).getByLabelText(/^code/i) as HTMLInputElement;
     await userEvent.type(code, 'bad code');
@@ -693,7 +697,7 @@ describe('SCR-05 UnitsScreen', () => {
 
   it('read-only without manage: no New / Edit anywhere on either tab', async () => {
     await show({ permissions: READ });
-    expect(screen.queryByRole('button', { name: /new lab unit|edit/i })).toBeNull();
+    expect(screen.queryByRole('button', { name: /new (lab )?unit|edit/i })).toBeNull();
     await userEvent.click(screen.getByRole('tab', { name: 'Value sets' }));
     expect(screen.queryByRole('button', { name: /new value set|edit/i })).toBeNull();
   });
@@ -779,7 +783,7 @@ describe('SCR-05 UnitsScreen', () => {
     const a = await show(); await noAxeViolations();
     await userEvent.click(screen.getByRole('tab', { name: 'Value sets' })); await noAxeViolations(); a.unmount();
     const b = await show({ units: GLOBAL_UNITS }); await noAxeViolations();
-    await userEvent.click(screen.getAllByRole('button', { name: /new lab unit/i })[0]!); await noAxeViolations(); b.unmount();
+    await userEvent.click(screen.getAllByRole('button', { name: /new (lab )?unit/i })[0]!); await noAxeViolations(); b.unmount();
   });
 });
 

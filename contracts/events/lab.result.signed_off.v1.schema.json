@@ -1,0 +1,104 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:lims:event:lab.result.signed_off.v1",
+  "$comment": "T0B-VERLEVEL-1 (LD-316): one event per sign-off of a result version (verifyResult or approveResult). Ids and counters only: no value, no signer name, no registration number, no signature.",
+  "allOf": [
+    {
+      "$ref": "urn:lims:event:_envelope.v1"
+    },
+    {
+      "type": "object",
+      "properties": {
+        "event_type": {
+          "const": "lab.result.signed_off.v1"
+        },
+        "producer": {
+          "const": "lab"
+        },
+        "aggregate": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "result"
+            }
+          }
+        },
+        "payload": {
+          "$ref": "#/$defs/Payload"
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "Payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "result_id",
+        "result_version_no",
+        "order_id",
+        "test_id",
+        "department_id",
+        "seq",
+        "action",
+        "signoff_count",
+        "signoff_required",
+        "is_final",
+        "signer_user_id",
+        "signer_is_pathologist",
+        "signed_at"
+      ],
+      "properties": {
+        "result_id": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+        },
+        "result_version_no": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "order_id": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+        },
+        "test_id": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+        },
+        "department_id": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3
+        },
+        "action": {
+          "enum": [
+            "verify",
+            "approve"
+          ]
+        },
+        "signoff_count": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3
+        },
+        "signoff_required": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3
+        },
+        "is_final": {
+          "type": "boolean"
+        },
+        "signer_user_id": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Uuid"
+        },
+        "signer_is_pathologist": {
+          "type": "boolean"
+        },
+        "signed_at": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/IsoUtc"
+        }
+      }
+    }
+  }
+}

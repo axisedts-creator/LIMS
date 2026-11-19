@@ -1,0 +1,7 @@
+TESTS_WRONG — the rs-c8.screens.admin "New schedule form" snapshot pins stale markup; regenerate it, do not change Form.tsx.
+- The snapshot (apps/web/src/features/analytics/__tests__/__snapshots__/rs-c8.screens.admin.test.tsx.snap:176) has `<form novalidate="" class="lims-form">` without `data-label-placement`, and it still has the in-page crumb (same snap, line 150).
+- The implementation is right: packages/ui/src/components/Form/Form.tsx:27 defaults `labelPlacement = 'above'` and line 99 renders `data-label-placement={labelPlacement}`. That came from T0D-DENSITY-1 (commit a2a2474f7), which is already committed, so the snap went stale before this task.
+- The crumb removal is required by task part (D), "one trail, in the top bar" (task brief, done_when (D)).
+- LD-361 (binding lead decision for this task, inbox line 36) adds exactly this attribute to the LD-360 allow-list.
+- Change to make (WRITER, under LD-360 ruling 2 and LD-361): `pnpm --dir apps/web exec vitest run -c src/features/analytics/__tests__/vitest.rs-c8.config.ts -u rs-c8.screens.admin`. Check that the diff is only the removed Scheduled reports crumb plus `data-label-placement="above"`. If only line endings changed, restore the file with git checkout. Then commit the .snap. rs-c8 must end at 36/36.
+- Touch no other snapshot, test or assertion. The reds in rs-c4.static, rs-c4.register and rs-c7.static are out of scope (LD-361).

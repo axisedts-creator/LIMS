@@ -1,0 +1,8 @@
+APPROVE
+Reviewed git diff 9a08dfde9..HEAD (6 commits) against LD-324/325/326/328 and done_when.
+- LD-328 (1)(2): ACCT-1 12 ops have handlers; ACCT-2 12 ops removed from handlers/index.ts and listed in billing manifest.pendingOperations; production boot guard (core/bootstrap.ts:59) still refuses non-empty pending lists unless LIMS_ALLOW_PENDING_OPS=1.
+- LD-328 (3): probe kit exempts only manifest-pending ops, asserts pending ids have no handler key, counts derived from specs, DEFERRED_PHASE_1_5 block kept. boot.test checks handlers + pending == operationIds, disjoint (arbiter TESTS_WRONG ruling b0127e03c).
+- LD-324 (c)/(d): access_log account_entry.create / account_entry.reverse (accounts.service.ts:284, :340), reversal entityId = new id, detail = { reverses_entry_id } only; seed 003 has both codes, matching 03-IC 13.1. New reverse test checks one row, ids only, no comments/bank/reference/payment_details/reason in rows or logs.
+- No spec/, contracts/ or db/ edits in range; no PHI or secrets; names verbatim.
+- Ran: vitest crossTenant.handlers + boot.test = 213/213 pass; tsc --noEmit clean.
+NOTE (not blocking): debugger round 1 edited frontdesk/service/parity.service.ts (T0B-REGAPI-2 file, outside this task's billing file list) because frontdesk pendingOperations is [] on this lane, so LD-328 (3)'s premise that the 5 frontdesk ops drop out did not hold. The change is a real fix (cross-tenant id now 404 before the empty-body 400; no TypeError on an empty insert return), own-tenant empty-body behaviour stays 400 (masters.test.ts:44,100,157). Not run by me: regapi2/masters.test.ts and the PG suite (need docker PG). Lead: tell T0B-REGAPI-2's next pass that this file changed.

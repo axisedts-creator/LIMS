@@ -2,6 +2,9 @@
 import { notFound } from 'next/navigation';
 import { ApiError } from '@/core/api/server-fetch';
 import { PermissionDenied } from '@/core/errors/PermissionDenied';
+import { t } from '@/core/i18n/messages';
+import { pageTitleKey } from '@/features/payments/nav.manifest';
+import { pendingOr } from '@/core/shell/NotAvailable';
 import { getShellSession } from '@/core/session/server';
 import { ReviewQueue } from '@/features/payments/components/ReviewQueue';
 import { reviewQuery } from '@/features/payments/query';
@@ -12,14 +15,17 @@ export default async function PaymentReviewPage({ searchParams }: { searchParams
   if (!permissions.includes('payments.reconciliation.read')) notFound();
   const { query, filter } = reviewQuery(await searchParams, Date.now());
   try {
-    const [list, holdReasons] = await Promise.all([listPaymentIntents(query), listPaymentCodes('hold_reasons')]);
-    const next = list?.page?.next_cursor;
-    return (
-      <ReviewQueue
-        intents={(Array.isArray(list?.data) ? list.data : []).slice(0, 50)} permissions={permissions} centres={[]} holdReasons={holdReasons} filter={filter}
-        hasPrevious={query.has('cursor')} {...(next ? { nextCursor: next } : {})}
-      />
-    );
+    // T0D-UICONSOLE-1 (LD-353 rule 6): 501 operation_pending keeps the menu title and the console header row; every other failure still throws
+    return await pendingOr(t(pageTitleKey.review), ['Age', 'Created', 'Gateway', 'Amount', 'Status', 'Reason'], async () => {
+      const [list, holdReasons] = await Promise.all([listPaymentIntents(query), listPaymentCodes('hold_reasons')]);
+      const next = list?.page?.next_cursor;
+      return (
+        <ReviewQueue
+          intents={(Array.isArray(list?.data) ? list.data : []).slice(0, 50)} permissions={permissions} centres={[]} holdReasons={holdReasons} filter={filter}
+          hasPrevious={query.has('cursor')} {...(next ? { nextCursor: next } : {})}
+        />
+      );
+    });
   } catch (e) {
     if (e instanceof ApiError && e.status === 403) return <PermissionDenied />;
     throw e; // 5xx and the rest render error.tsx

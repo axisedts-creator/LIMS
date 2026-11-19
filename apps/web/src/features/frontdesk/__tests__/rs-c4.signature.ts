@@ -68,6 +68,43 @@ export function routeFiles(): string[] {
   return [...walk(join(web, OWNED.frontdesk_app)), ...walk(join(web, OWNED.billing_app))].map(rel).filter((f) => /\/(?:page|route|layout|loading|error|not-found)\.tsx?$/.test(f)).sort();
 }
 
+/**
+ * LD-310 / T0D-REGSCREEN-1 allow-list (arbiter ruling .orchestra/notes/T0D-REGSCREEN-1-ruling.md). LD-140 "behaviour unchanged" stays in force for RS-C4;
+ * this feature task is the only exception and permits EXACTLY the items below, nothing else. The baseline json is NOT regenerated.
+ *  - logic files whose bytes may change (quick add on the existing credit party / doctor APIs, TRF upload before the order via trf_attachment_ids, centre kinds, credit limit);
+ *  - permission codes that may be ADDED (both already exist in spec/program/03-INTERFACE-CATALOG.md:3070-3071; no new code, no route);
+ *  - the one server import and the symbols that may be ADDED; the TRF action is the single extra symbol whose name contains "Trf" (the writer names it in the notes).
+ * Removals are never allowed: every baseline permission, route, import, symbol and field name must still be present.
+ */
+export const LD310_ALLOW = {
+  logic_files: [
+    'src/features/frontdesk/server/actions.ts',
+    'src/features/frontdesk/server/write.server.ts',
+    'src/features/frontdesk/server/read.server.ts',
+    'src/features/frontdesk/server/types.ts',
+  ],
+  // LD-391 (T0D-OFFLINE-3): the 7 billing.account* codes came from the already-landed T0B-ACCT-1/T0B-FINCTRL-1 accounting UI.
+  permissions: [
+    'catalog.price_list.manage', 'catalog.referrer.manage', 'catalog.code_duplicate',
+    'billing.account.manage', 'billing.account.read', 'billing.accounts.col.blocked', 'billing.accounts.col.credit_limit',
+    'billing.accounts.col.outstanding', 'billing.accounts.col.side', 'billing.accounts.summary.title',
+  ],
+  // LD-391 (T0D-OFFLINE-3): route files ADDED by the already-landed billing accounting UI; additions only, baseline json untouched.
+  routes_added: [
+    'src/app/(staff)/billing/accounts/entries/page.tsx',
+    'src/app/(staff)/billing/accounts/ledger/page.tsx',
+    'src/app/(staff)/billing/accounts/masters/page.tsx',
+    'src/app/(staff)/billing/accounts/pocket/page.tsx',
+    'src/app/(staff)/billing/accounts/summary/page.tsx',
+    'src/app/(staff)/billing/cash-transfers/page.tsx',
+    'src/app/(staff)/billing/expenses/page.tsx',
+    'src/app/(staff)/billing/expenses/types/page.tsx',
+  ],
+  server_imports: ['@/features/catalog/server/catalogActions'],
+  server_symbols: ['createCreditPartyAction', 'createDoctorAction'],
+  trf_symbol: /Trf/, // at most ONE added symbol beyond server_symbols, and it must match this
+} as const;
+
 export function buildBaseline() {
   const logic: Record<string, string> = {};
   for (const f of logicFiles()) logic[rel(f)] = sha(read(f));

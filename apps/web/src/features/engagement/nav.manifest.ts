@@ -14,5 +14,6 @@ export const navManifest: NavManifest = {
     { id: 'engagement.bookable', label: 'engagement.nav.bookable', routeId: 'staff.engagement.bookable', permission: 'engagement.bookable_item.manage', group: 'engagement', order: 70, phase: '3' },
     { id: 'engagement.queue_setup', label: 'engagement.nav.queue_setup', routeId: 'staff.engagement.queue_setup', permission: 'engagement.queue.manage', group: 'engagement', order: 80, phase: '2' },
     { id: 'engagement.settings', label: 'engagement.nav.settings', routeId: 'staff.engagement.settings', permission: 'engagement.settings.manage', group: 'engagement', order: 90, phase: '2' }, // ADMINPAGE-ENG-1 (LD-255)
+    { id: 'engagement.content', label: 'engagement.nav.content', routeId: 'staff.engagement.content', permission: 'engagement.content.read', group: 'engagement', order: 100 }, // T0D-CONTENT-1 (LD-313)
   ],
 };

@@ -81,8 +81,17 @@ export interface SmartSectionRenderer {
   renderSections(input: { summary: unknown; calendarDisplay: string; timezone: string }): string;
 }
 
+/** T0B-PRINTCFG-1 (LD-316, LD-319(1)): the resolved print profile (contract PrintProfile, snake_case). With it, paper_mode alone decides header and footer. */
+export interface PrintProfile {
+  paper_mode: 'letterhead_image' | 'typed_header_footer' | 'preprinted_paper' | 'plain';
+  header_text: string; footer_text: string; reserve_top_mm: number; reserve_bottom_mm: number;
+  show_logo: boolean; show_seller_pan?: boolean; grayscale: boolean; font_size_pt: number;
+}
+
 export interface RenderInput {
   document: ReportDocument; config: TemplateConfig; variant: 'letterhead' | 'plain'; assets: AssetResolver; smart?: SmartSectionRenderer;
+  /** T0B-PRINTCFG-1: absent = the template config and variant decide, exactly as before. */
+  printProfile?: PrintProfile;
   /** LD-26 (A33-3): tenant.training_mode, read by the caller through the C2 settings read port; templates have no other route to it. */
   trainingMode?: boolean;
 }

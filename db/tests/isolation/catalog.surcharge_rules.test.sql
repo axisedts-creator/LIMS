@@ -174,9 +174,10 @@ END $d$;
 \ir ../fixtures/probe-rows/analytics.sql
 \ir ../fixtures/probe-rows/billing.sql
 \ir ../fixtures/probe-rows/catalog.sql
+\ir ../fixtures/probe-rows/core.sql
 \ir ../fixtures/probe-rows/frontdesk.sql
-\ir ../fixtures/probe-rows/engagement.sql
 \ir ../fixtures/probe-rows/identity.sql
+\ir ../fixtures/probe-rows/engagement.sql
 \ir ../fixtures/probe-rows/instruments.sql
 \ir ../fixtures/probe-rows/inventory.sql
 \ir ../fixtures/probe-rows/lab.sql

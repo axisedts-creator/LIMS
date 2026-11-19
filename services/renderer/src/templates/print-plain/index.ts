@@ -13,16 +13,27 @@ export function pageRules(input: RenderInput): string {
   const m = config.page?.margin_mm ?? ({} as Partial<RenderInput['config']['page']['margin_mm']>);
   const lh = config.letterhead ?? ({} as Partial<RenderInput['config']['letterhead']>);
   const size = config.page?.size === 'Letter' ? 'Letter' : 'A4';
-  const [top, bottom, rt, rb] = [mm(m.top, 25), mm(m.bottom, 25), mm(lh.plain_reserve_top_mm), mm(lh.plain_reserve_bottom_mm)];
-  let out = `@page{size:${size};margin:calc(${top} + ${rt}) ${mm(m.right, 10)} calc(${bottom} + ${rb}) ${mm(m.left, 10)}}\n`;
-  if (variant !== 'letterhead') return out;
+  const pp = input.printProfile;
+  const [top, bottom] = [mm(m.top, 25), mm(m.bottom, 25)];
+  // T0B-PRINTCFG-1 (LD-316): with a profile, paper_mode decides. preprinted_paper: the margin IS the profile reserve (the lab own pad prints there;
+  // [CONV] at least 5 mm, the printer's unprintable edge); typed_header_footer / plain: the template margin only; letterhead_image: as the letterhead variant.
+  let [t, b] = [`calc(${top} + ${mm(lh.plain_reserve_top_mm)})`, `calc(${bottom} + ${mm(lh.plain_reserve_bottom_mm)})`];
+  if (pp?.paper_mode === 'preprinted_paper') [t, b] = [mm(Math.max(pp.reserve_top_mm, 5)), mm(Math.max(pp.reserve_bottom_mm, 5))];
+  else if (pp && pp.paper_mode !== 'letterhead_image') [t, b] = [top, bottom];
+  const out = `@page{size:${size};margin:${t} ${mm(m.right, 10)} ${b} ${mm(m.left, 10)}}\n`;
+  if (pp ? pp.paper_mode !== 'letterhead_image' : variant !== 'letterhead') return out;
   const band = (box: 'top-center' | 'bottom-center', ref: Parameters<typeof assets.dataUri>[0] | undefined, pad: string) => {
     if (!ref) return '';
-    const uri = dataImage(assets, ref);
+    let uri = dataImage(assets, ref);
+    // T0B-PRINTCFG-1 grayscale: a margin box background ignores CSS filter, so the (already validated) image is wrapped in an SVG with a desaturate filter.
+    if (pp?.grayscale) {
+      uri = `"data:image/svg+xml;base64,${Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="100%" height="100%">` +
+        `<filter id="g"><feColorMatrix type="saturate" values="0"/></filter><image width="100%" height="100%" filter="url(#g)" xlink:href="${uri}"/></svg>`).toString('base64')}"`;
+    }
     return `@${box}{content:"";width:100%;${box === 'top-center' ? 'padding-top' : 'padding-bottom'}:${pad};` +
       `background-image:url(${uri});background-size:contain;background-repeat:no-repeat;background-position:center;background-origin:content-box;background-clip:content-box}`;
   };
-  const head = lh.header_asset === 'branding' ? band('top-center', d.lab.headerAssetRef ?? d.lab.logoAssetRef, top) : '';
-  const foot = lh.footer_asset === 'branding' ? band('bottom-center', d.lab.footerAssetRef, bottom) : '';
+  const head = pp || lh.header_asset === 'branding' ? band('top-center', d.lab.headerAssetRef ?? d.lab.logoAssetRef, top) : '';
+  const foot = pp || lh.footer_asset === 'branding' ? band('bottom-center', d.lab.footerAssetRef, bottom) : '';
   return head || foot ? `${out}@page{${head}${foot}}\n` : out;
 }

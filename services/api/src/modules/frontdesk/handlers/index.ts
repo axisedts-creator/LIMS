@@ -32,6 +32,8 @@ import { handler as searchPatients } from './searchPatients.js';
 import { handler as updateFrontdeskSettings } from './updateFrontdeskSettings.js';
 import { handler as updatePatient } from './updatePatient.js';
 import { handler as uploadTrf } from './uploadTrf.js';
+import { handler as previewRegistrationNumbers } from './previewRegistrationNumbers.js';
+import * as parity from './parity.js';
 
 const OPERATION_IDS = [
   'searchPatients', 'createPatient', 'listPossibleDuplicatePatients', 'getPatient', 'updatePatient', 'recordPatientConsent',
@@ -40,6 +42,10 @@ const OPERATION_IDS = [
   'listDiscountApprovals', 'getDiscountApproval', 'approveDiscount', 'rejectDiscount', 'uploadTrf', 'getTrfAttachment',
   'getTrfAttachmentContent', 'listOrderFlags', 'resolveOrderFlag', 'getFrontdeskSettings', 'updateFrontdeskSettings',
   'listFrontdeskCodes',
+  // T0B-REGAPI-2 (LD-315 a): the 18 operations of T0C-REGPARITY-2
+  'createRegistrationDraft', 'listRegistrationDrafts', 'getRegistrationDraft', 'deleteRegistrationDraft', 'addFavouriteTest', 'listFavouriteTests', 'removeFavouriteTest',
+  'previewRegistrationNumbers', 'listCustomFieldDefinitions', 'createCustomFieldDefinition', 'updateCustomFieldDefinition', 'listCoupons', 'createCoupon', 'updateCoupon',
+  'listIcdCodes', 'createIcdCode', 'updateIcdCode', 'getPatientRewards',
 ] as const;
 type OperationId = (typeof OPERATION_IDS)[number];
 
@@ -54,6 +60,7 @@ const real: Partial<Record<OperationId, Handler>> = {
   quoteOrderItemsChange, changeOrderItems, cancelOrder, uploadTrf, getTrfAttachment, getTrfAttachmentContent,
   confirmPreRegisteredOrder, listOrderFlags, resolveOrderFlag,
   anonymisePatient, getFrontdeskSettings, updateFrontdeskSettings, listFrontdeskCodes, listPossibleDuplicatePatients,
+  ...parity, previewRegistrationNumbers,
 };
 
 export const handlers: Readonly<Record<OperationId, Handler>> = Object.freeze(

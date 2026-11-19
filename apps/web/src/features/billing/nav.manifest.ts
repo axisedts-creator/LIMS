@@ -14,5 +14,16 @@ export const navManifest: NavManifest = {
     { id: 'billing.cbms', label: 'nav.billing.cbms', routeId: 'staff.billing.cbms', permission: 'billing.invoice.read', group: 'billing', order: 40 },
     { id: 'billing.worklist', label: 'nav.billing.worklist', routeId: 'staff.billing.worklist', permission: 'billing.invoice.read', group: 'billing', order: 45 },
     { id: 'billing.settings', label: 'nav.billing.settings', routeId: 'staff.billing.settings', permission: 'billing.settings.manage', group: 'billing', order: 50 },
+    // T0D-ACCT-1 (LD-313): lab accounting, inside 50-60 (billing 60-64 stay with C15 payments).
+    // [CONV] T0D-ACCT-2: the ACCT-1 entries moved to 51-51.8 so the ACCT-2 entries can take 52/54/56 and still follow them in spec order.
+    { id: 'billing.account_entries', label: 'nav.billing.account_entries', routeId: 'staff.billing.account_entries', permission: 'billing.account.read', group: 'billing', order: 51 },
+    { id: 'billing.account_ledger', label: 'nav.billing.account_ledger', routeId: 'staff.billing.account_ledger', permission: 'billing.account.read', group: 'billing', order: 51.2 },
+    { id: 'billing.pocket_ledger', label: 'nav.billing.pocket_ledger', routeId: 'staff.billing.pocket_ledger', permission: 'billing.account.read', group: 'billing', order: 51.4 },
+    { id: 'billing.account_summary', label: 'nav.billing.account_summary', routeId: 'staff.billing.account_summary', permission: 'billing.account.read', group: 'billing', order: 51.6 },
+    { id: 'billing.account_masters', label: 'nav.billing.account_masters', routeId: 'staff.billing.account_masters', permission: 'billing.account.read', group: 'billing', order: 51.8 },
+    // T0D-ACCT-2 (LD-313): Expense, Expense Type, Cash Transfer at 52/54/56.
+    { id: 'billing.expenses', label: 'nav.billing.expenses', routeId: 'staff.billing.expenses', permission: 'billing.account.read', group: 'billing', order: 52 },
+    { id: 'billing.expense_types', label: 'nav.billing.expense_types', routeId: 'staff.billing.expense_types', permission: 'billing.account.read', group: 'billing', order: 54 },
+    { id: 'billing.cash_transfers', label: 'nav.billing.cash_transfers', routeId: 'staff.billing.cash_transfers', permission: 'billing.account.read', group: 'billing', order: 56 },
   ],
 };

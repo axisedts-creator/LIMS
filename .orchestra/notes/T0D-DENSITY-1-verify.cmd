@@ -1,0 +1,1 @@
+pnpm --dir packages/ui run build && pnpm --dir packages/ui exec vitest run src/components && pnpm --dir apps/web run build:nav && pnpm --dir apps/web exec vitest run --config src/core/shell/__tests__/vitest.density.config.ts

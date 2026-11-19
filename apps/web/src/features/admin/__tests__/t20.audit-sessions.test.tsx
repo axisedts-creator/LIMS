@@ -404,48 +404,17 @@ describe('AD-15 Access review (US-G1)', () => {
     await showOrThrown('access-review');
     expect(calls).toEqual([]);
   });
-  it('table User, Roles, Centres, MFA, Last login, Status for every ACTIVE membership; NO export/download control on this screen', async () => {
+  // LD-301 (T0D-WEBFIX-1): listAccessReviews/recordAccessReview are notImplemented in the API (500 common.internal), so the page says so
+  // plainly and calls nothing. The users table, review banners and the record-review dialog tests are retired until the API exists.
+  it('LD-301: a holder of identity.user.read sees a plain "not available yet" message, no error reference, no table, no Record button, and NO API call', async () => {
     await show('access-review');
-    expect(headersOf(gridNamed(/access review|users/i))).toEqual(expect.arrayContaining(['User', 'Roles', 'Centres', 'MFA', 'Last login', 'Status']));
-    expect(rowTexts(gridNamed(/access review|users/i))).toHaveLength(3);
-    expect(callsTo('GET', `${ID}/users`).at(-1)!.url.searchParams.get('status')).toBe('active');
-    expect(screen.queryByRole('button', { name: /export|download|csv/i })).toBeNull();
-    expect(screen.queryByRole('link', { name: /export|download|csv/i })).toBeNull();
-  });
-  it('last review older than 90 days → WARNING banner "Last review: {date}"; recent review → info (not warning)', async () => {
-    await show('access-review');
-    expect(pageText()).toMatch(/Last review:/);
-    expect(screen.getAllByRole('alert').map((a) => norm(a.textContent)).join(' ')).toMatch(/Last review/);
-    cleanup();
-    routes[`GET ${R}`] = json({ data: [{ access_review_id: 'ar1', reviewed_by_membership_id: ME_M, memberships_reviewed: 3, reviewed_at: iso(30) }] });
-    await show('access-review');
-    expect(screen.queryAllByRole('alert').map((a) => norm(a.textContent)).join(' ')).not.toMatch(/Last review/);
-  });
-  it('no review yet → warning banner (due)', async () => {
-    routes[`GET ${R}`] = json({ data: [] });
-    await show('access-review');
-    expect(screen.getAllByRole('alert').length).toBeGreaterThan(0);
-  });
-  it('[Record review completed]: dialog with Notes ≤2000 and the count auto-filled = rows shown; POST {memberships_reviewed:3, notes}', async () => {
-    routes[`POST ${R}`] = json({ access_review_id: 'ar2', reviewed_by_membership_id: ME_M, memberships_reviewed: 3, notes: 'Synthetic review notes', reviewed_at: NOW }, 201);
-    await show('access-review');
-    const user = userEvent.setup();
-    await user.click(screen.getByRole('button', { name: /record review completed/i }));
-    const d = await dlg();
-    expect(norm(d.textContent)).toMatch(/\b3\b/);
-    await user.type(within(d).getByLabelText(/notes/i), 'Synthetic review notes');
-    await user.click(within(d).getByRole('button', { name: /record|confirm|save/i }));
-    await waitFor(() => expect(callsTo('POST', R)).toHaveLength(1));
-    expect(bodyOf(callsTo('POST', R)[0])).toEqual({ memberships_reviewed: 3, notes: 'Synthetic review notes' });
-  });
-  it('notes over 2000 chars are refused client-side', async () => {
-    await show('access-review');
-    const user = userEvent.setup();
-    await user.click(screen.getByRole('button', { name: /record review completed/i }));
-    const d = await dlg();
-    await act(async () => { await user.click(within(d).getByLabelText(/notes/i)); await user.paste('x'.repeat(2001)); });
-    await user.click(within(d).getByRole('button', { name: /record|confirm|save/i }));
-    expect(callsTo('POST', R)).toHaveLength(0);
+    expect(pageText()).toMatch(/not available yet/i);
+    expect(pageText()).not.toMatch(/reference|something went wrong|could not load/i);
+    expect(screen.queryByRole('grid')).toBeNull();
+    expect(screen.queryByRole('button', { name: /record review completed|export|download|csv/i })).toBeNull();
+    expect(callsTo('GET', R)).toEqual([]);
+    expect(callsTo('POST', R)).toEqual([]);
+    expect(calls).toEqual([]);
   });
   it('a11y', async () => { await show('access-review'); await axeClean(); });
 });

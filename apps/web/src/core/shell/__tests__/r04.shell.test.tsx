@@ -143,7 +143,7 @@ describe('top bar', () => {
     mount();
     expect(within(screen.getByRole('banner')).getByText('Ctrl+K')).toBeTruthy();
     const box = screen.getByRole('searchbox', { name: /search patients/i }); // Find a screen is a second searchbox (13:68, 13:72)
-    const hint = `${box.getAttribute('placeholder') ?? ''} ${box.getAttribute('aria-label') ?? ''} ${box.getAttribute('aria-description') ?? ''}`;
+    const hint = `${box.getAttribute('placeholder') ?? ''} ${box.getAttribute('aria-label') ?? ''} ${box.getAttribute('aria-description') ?? ''} ${box.getAttribute('title') ?? ''}`; // LD-344: the short placeholder, the field list in title
     for (const f of [/name/i, /lab code|registration/i, /mobile/i, /patient id|patient code/i, /barcode/i]) expect(hint).toMatch(f);
   });
 

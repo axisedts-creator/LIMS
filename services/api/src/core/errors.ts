@@ -119,10 +119,29 @@ function normalise(err: unknown): unknown {
 const rendered = new WeakSet<object>();
 export const isRenderedProblem = (payload: unknown): boolean => typeof payload === 'object' && payload !== null && rendered.has(payload);
 
+/**
+ * LD-325 (T0B-BOOTGATE-1): 501 body of a pendingOperations stub. operation_pending is not a registry code (contracts/errors.yaml),
+ * so it is built here, not by toProblem; marked rendered so the stage-12 response check lets it through.
+ */
+export function pendingProblem(operationId: string, instance: string, requestId: string): object {
+  const p = {
+    type: 'urn:lims:error:operation_pending', title: 'Operation pending', status: 501, code: 'operation_pending',
+    detail: clamp(`operation ${operationId} is not implemented yet`, 2000), instance: clamp(instance, 2048),
+    request_id: isUuidv7(requestId) ? requestId : uuidv7(),
+  };
+  rendered.add(p);
+  return p;
+}
+
 const pathOf = (url: string): string => url.split('?', 1)[0]!; // REQ-SEC-098: never the query string
 
 export function sendProblem(err: unknown, req: FastifyRequest, reply: FastifyReply): FastifyReply {
   const e = normalise(err);
+  if (isLimsError(e, 'operation_pending')) { // LD-346: a pending report code thrown by a handler -> the same 501 body as a pending operation
+    const pp = pendingProblem(e.detail ?? 'unknown', pathOf(req.url), String(req.id));
+    setErrorCode(req, 'operation_pending');
+    return reply.code(501).type('application/problem+json').send(pp);
+  }
   const p = toProblem(e, pathOf(req.url), String(req.id));
   setErrorCode(req, p.code);
   if (p.status >= 500) {

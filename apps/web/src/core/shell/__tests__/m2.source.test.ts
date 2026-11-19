@@ -47,7 +47,8 @@ const rules = parseCss([read(join(ROOT, 'packages', 'ui', 'src', 'components', '
 const baseRules = (sel: RegExp) => rules.filter((r) => !r.media && r.sels.some((s) => sel.test(s)));
 /** value of a property after the cascade of the matching rules (last declaration wins; specificity is not modelled) */
 const val = (sel: RegExp, prop: string) => baseRules(sel).map((r) => r.decls.get(prop)).filter((v): v is string => !!v).at(-1);
-const px = (v?: string) => Number(/^(\d+(?:\.\d+)?)px$/.exec(v ?? '')?.[1] ?? NaN);
+// T0D-ELABMENU-1 (LD-340): the compact sidebar block at the end of shell.css states sizes in rem with !important; 1rem = 16px, the important flag is not part of the size.
+const px = (v?: string) => { const m = /^(\d+(?:\.\d+)?)(px|rem)(?:\s*!important)?$/.exec((v ?? '').trim()); return m ? Number(m[1]) * (m[2] === 'rem' ? 16 : 1) : NaN; };
 const isNav = /(^|\s)\.lims-shell-nav$/;
 
 // ---------------------------------------------------------------- colours from tokens
@@ -82,8 +83,8 @@ const colourOf = (decl: string) => /(var\(--lims-[a-z0-9-]+\)|color-mix\(in srgb
 const ACCENT = hex(tokenHex('accent'));
 
 describe('sidebar geometry and colour (13-M-SERIES s3)', () => {
-  it('296 px wide on accent.default with white text, viewport height, flex column', () => {
-    expect(px(val(isNav, 'width'))).toBe(296);
+  it('232 px (14.5rem, LD-344: was 176, LD-340: was 296) wide on accent.default with white text, viewport height, flex column', () => {
+    expect(px(val(isNav, 'width'))).toBe(232);
     expect(val(isNav, 'background') ?? val(isNav, 'background-color')).toMatch(/^var\(--lims-accent\)$/);
     expect(val(isNav, 'color')).toMatch(/^var\(--lims-accent-fg\)$/);
     expect(val(isNav, 'height') ?? val(isNav, 'max-height')).toMatch(/100d?vh/);
@@ -99,9 +100,9 @@ describe('sidebar geometry and colour (13-M-SERIES s3)', () => {
     expect(val(isNav, 'overflow') ?? val(isNav, 'overflow-y')).not.toBe('auto'); // the sidebar itself does not scroll
   });
 
-  it('entry pill: 46 px, fully round, weight 500; the active entry is the accent.highlight pill with a dark token text (>= 4.5:1)', () => {
+  it('entry pill: 32 px (2rem, LD-344: was 28, LD-340: was 46), fully round, weight 500; the active entry is the accent.highlight pill with a dark token text (>= 4.5:1)', () => {
     const link = /\.lims-rail-link$/;
-    expect(px(val(link, 'min-height') ?? val(link, 'height'))).toBe(46);
+    expect(px(val(link, 'min-height') ?? val(link, 'height'))).toBe(32);
     expect(val(link, 'border-radius')).toBe('var(--lims-radius-full)');
     expect(val(link, 'font-weight')).toMatch(/var\(--lims-font-weight-medium\)|^500$/);
     const act = /\.lims-rail-link\[aria-current='?page'?\]$/;
@@ -118,9 +119,9 @@ describe('sidebar geometry and colour (13-M-SERIES s3)', () => {
     expect(ratio(c, ACCENT)).toBeGreaterThanOrEqual(4.5);
   });
 
-  it('Find a screen: 46 px pill; its border keeps 3:1 on accent.default (#8FB8B0 or lighter)', () => {
+  it('Find a screen: 32 px pill (2rem, LD-344: was 28, LD-340: was 46); its border keeps 3:1 on accent.default (#8FB8B0 or lighter)', () => {
     const f = /\.lims-rail-search$/;
-    expect(px(val(f, 'min-height') ?? val(f, 'height'))).toBe(46);
+    expect(px(val(f, 'min-height') ?? val(f, 'height'))).toBe(32);
     expect(val(f, 'border-radius')).toBe('var(--lims-radius-full)');
     const b = val(f, 'border-color') ?? colourOf(val(f, 'border')!);
     expect(ratio(colour(b), ACCENT), `border ${b}`).toBeGreaterThanOrEqual(3);
@@ -149,8 +150,8 @@ describe('sidebar geometry and colour (13-M-SERIES s3)', () => {
 });
 
 describe('top bar (13-M-SERIES s3: 76 px, centre switcher = outlined pill, notifications)', () => {
-  it('top bar is at least 76 px high (the 56 px of the R03 kit is replaced)', () => {
-    expect(px(val(/(^|\s)\.lims-shell-top$/, 'min-height'))).toBe(76);
+  it('top bar is 44 px high (2.75rem, LD-340: was 76; the 56 px of the R03 kit stays replaced)', () => {
+    expect(px(val(/(^|\s)\.lims-shell-top$/, 'min-height'))).toBe(44);
   });
   it('centre switcher: fully round with an accent.default outline', () => {
     const s = /(^|\s)\.lims-centre-switcher$/;

@@ -6,6 +6,7 @@ import type { FastifyBaseLogger, FastifyInstance, FastifyRequest } from 'fastify
 // [CONV] relative import until @lims/shared-ts is a services/api dependency (lockfile is C0-0A's, LD-05).
 import { createLogger, type Logger } from '../../../../../packages/shared-ts/src/logger/index.js';
 import type { CoreConfig } from '../config.js';
+import { dbStatsOf } from './http-perf.js';
 import type { CoreMetrics } from './metrics.js';
 import { parseTraceparent } from './tracing.js';
 
@@ -55,10 +56,11 @@ export function installRequestLog(app: FastifyInstance, metrics: CoreMetrics, ac
     const ms = reply.elapsedTime;
     metrics.observe('lims_http_request_duration_seconds', ms / 1000, { module, operation_id });
     const a = actorOf(req);
+    const db = dbStatsOf(req); // T0B-PERF-1 (LD-310): query count and time of this request
     req.log[status >= 500 ? 'error' : 'info']({
       module, operation_id,
       route: operationId ? req.routeOptions.url?.replace(/:(\w+)/g, '{$1}') : undefined,
-      status, duration_ms: Math.round(ms), error_code: errorCodes.get(req),
+      status, duration_ms: Math.round(ms), db_count: db.count, db_ms: Math.round(db.ms * 10) / 10, error_code: errorCodes.get(req),
       tenant_id: a?.tenant_id, actor_id: a?.sub, actor_type: a?.actor_type,
     }, 'request');
   });

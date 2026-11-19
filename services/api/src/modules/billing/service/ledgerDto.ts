@@ -47,6 +47,7 @@ export const ledgerEntryDto = (r: Record<string, any>, display: ReadonlyMap<stri
   collected_by: typeof r['collected_by_membership_id'] === 'string'
     ? { membership_id: r['collected_by_membership_id'], display_name: display.get(r['collected_by_membership_id']) ?? STAFF_DISPLAY } : undefined,
   cash_session_id: r['cash_session_id'], created_at: iso(r['created_at']), business_date_bs: bsText(dateText(r['business_date'])),
+  card_holder_name: r['card_holder_name'], payment_remark: r['payment_remark'],   // T0B-REGAPI-2 (LD-310); null columns dropped by present()
 });
 
 export interface SessionRowIn { readonly method_code: string; readonly expected: number; readonly counted?: number }
@@ -73,5 +74,8 @@ export function cashSessionDto(s: Record<string, any>, display: ReadonlyMap<stri
     opened_at: iso(s['opened_at']), closed_at: closed && s['closed_at'] ? iso(s['closed_at']) : undefined,
     rows: sessionRows([...methods].map((m) => ({ method_code: m, expected: expected.get(m) ?? 0, ...(counted ? { counted: counted.get(m) ?? 0 } : {}) }))),
     note: s['close_note'], version: Number(s['version']),
+    // T0B-FINCTRL-1 (LD-321): carried forward cash and the deposit, integer paisa (absent on a row read before the migration)
+    previous_outstanding_cash_paisa: s['previous_outstanding_cash_paisa'] == null ? undefined : toPaisa(String(s['previous_outstanding_cash_paisa'])),
+    deposit_paisa: s['deposit_paisa'] == null ? undefined : toPaisa(String(s['deposit_paisa'])),
   });
 }

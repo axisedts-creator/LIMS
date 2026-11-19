@@ -7,6 +7,7 @@ import { ErrorState } from '@lims/ui/components/ErrorState';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { StatTile } from '@lims/ui/components/StatTile';
 import type { CatalogCounts, CatalogHealthReport } from '../server/types';
+import { t } from '@/core/i18n/messages';
 
 const has = (p: readonly string[], x: string) => p.includes(x);
 const n = (v: number | undefined) => (v === undefined ? '—' : String(v));
@@ -43,7 +44,7 @@ export function CatalogHome({ health, counts, revision, permissions, requestId }
   return (
     <section aria-label="Catalog">
       <PageHeader
-        title="Catalog"
+        title={t('catalog.nav.home')}
         helpKey="catalog.home"
         actions={
           <>

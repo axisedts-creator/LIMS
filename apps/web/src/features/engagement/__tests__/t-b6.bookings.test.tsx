@@ -60,9 +60,10 @@ describe('W1 list — columns and cells', () => {
     expect(open!.getAttribute('href')).toBe(`/engagement/bookings/${H.id(101)}`);
   });
 
-  it('empty list → "No bookings for this day."', async () => {
+  // T0D-ENGBOOK-1 / LD-310: done_when (2) fixes the empty text as "No bookings yet" (was "No bookings for this day.").
+  it('empty list → "No bookings yet"', async () => {
     await H.showBookings(H.bookingsActions(), { rows: [] });
-    expect(H.pageText()).toContain('No bookings for this day.');
+    expect(H.pageText()).toContain('No bookings yet');
   });
 
   it('only a confirmed booking can be checked in; cancelled rows offer neither Check in nor Cancel', async () => {

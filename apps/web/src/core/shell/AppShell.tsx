@@ -4,7 +4,9 @@
 import type { ReactNode } from 'react';
 import { t } from '../i18n/messages';
 import { navEntries } from '../nav/generated';
+import { ELAB_GROUPS, ELAB_PLACE, fallbackGroup } from '../nav/elab-menu';
 import { RAIL_GROUPS } from '../nav/rail-groups';
+import type { ResolvedNavEntry } from '../nav/types';
 import { hasPermission } from '../permissions/routes';
 import type { ShellSession } from '../session/types';
 import { LOGO_ON_DARK } from './brand';
@@ -32,35 +34,48 @@ type Props = {
   counts?: Readonly<Record<string, number>>;
   /** entry ids shown with the "view only" tag */
   viewOnly?: readonly string[];
+  /** LD-340: 'elab' = ElabAssist menu (the staff layout); default 'modules' = the 14 module groups */
+  menu?: 'modules' | 'elab';
   children: ReactNode;
 };
 
-export function AppShell({ session, pathname, centres, counts, viewOnly, children }: Props) {
+export function AppShell({ session, pathname, centres, counts, viewOnly, menu = 'modules', children }: Props) {
   const perms = session.actor.permissions;
   const platform = session.kind === 'platform';
-  const groups: RailGroup[] = RAIL_GROUPS.filter((g) => (g.id === 'platform') === platform)
-    .map((g) => ({
-      id: g.id,
-      label: t(g.labelKey),
-      items: navEntries
-        .filter((e) => e.group === g.id && hasPermission(perms, e.permission))
-        .sort((a, b) => a.order - b.order || a.id.localeCompare(b.id))
-        .map((e) => ({
-          id: e.id,
-          label: t(e.label),
-          path: e.path,
-          current: pathname === e.path,
-          ...(e.icon ? { icon: e.icon } : {}),
-          ...(e.chord ? { chord: e.chord } : {}),
-          ...(e.section ? { section: t(e.section) } : {}),
-          ...(e.createPath && e.createLabel && e.createPermission && hasPermission(perms, e.createPermission)
-            ? { createPath: e.createPath, createLabel: t(e.createLabel) } : {}),
-          ...(counts && Object.hasOwn(counts, e.id) && Number.isFinite(counts[e.id]) ? { badge: counts[e.id]! } : {}),
-          ...(viewOnly?.includes(e.id) ? { viewOnly: true } : {}),
-        })),
-    }))
-    .filter((g) => g.items.length > 0)
-    .map((g) => ({ ...g, items: bySection(g.items) }));
+  const toItem = (e: ResolvedNavEntry, section: string | undefined) => ({
+    id: e.id,
+    label: t(e.label),
+    path: e.path,
+    current: pathname === e.path,
+    ...(e.icon ? { icon: e.icon } : {}),
+    ...(e.chord ? { chord: e.chord } : {}),
+    ...(section ? { section: t(section) } : {}),
+    ...(e.createPath && e.createLabel && e.createPermission && hasPermission(perms, e.createPermission)
+      ? { createPath: e.createPath, createLabel: t(e.createLabel) } : {}),
+    ...(counts && Object.hasOwn(counts, e.id) && Number.isFinite(counts[e.id]) ? { badge: counts[e.id]! } : {}),
+    ...(viewOnly?.includes(e.id) ? { viewOnly: true } : {}),
+  });
+  const permitted = navEntries.filter((e) => hasPermission(perms, e.permission));
+  // LD-340: staff shell = the ElabAssist menu (core/nav/elab-menu.ts); the platform shell and menu="modules" keep the 14 module groups.
+  const base: RailGroup[] = (menu === 'elab' && !platform
+    ? ELAB_GROUPS.map((g) => ({
+        id: g.id,
+        label: t(g.labelKey),
+        ...(g.direct ? { direct: true } : {}),
+        items: permitted
+          .filter((e) => e.group !== 'platform' && (ELAB_PLACE.get(e.id)?.group ?? fallbackGroup(e.group)) === g.id)
+          .sort((a, b) => (ELAB_PLACE.get(a.id)?.pos ?? 1e6) - (ELAB_PLACE.get(b.id)?.pos ?? 1e6) || a.order - b.order || a.id.localeCompare(b.id))
+          .map((e) => toItem(e, ELAB_PLACE.get(e.id)?.section ?? e.section)),
+      }))
+    : RAIL_GROUPS.filter((g) => (g.id === 'platform') === platform).map((g) => ({
+        id: g.id,
+        label: t(g.labelKey),
+        items: permitted
+          .filter((e) => e.group === g.id)
+          .sort((a, b) => a.order - b.order || a.id.localeCompare(b.id))
+          .map((e) => toItem(e, e.section)),
+      })));
+  const groups: RailGroup[] = base.filter((g) => g.items.length > 0).map((g) => ({ ...g, items: bySection(g.items) }));
   const active = groups.flatMap((g) => g.items.filter((e) => e.current).map((e) => ({ group: g.label, entry: e.label })))[0];
   const crumb: Crumb = active ?? null;
   const now = Date.now();
@@ -70,6 +85,7 @@ export function AppShell({ session, pathname, centres, counts, viewOnly, childre
       crumb={crumb}
       tenant={session.actor.tenantCode ?? ''}
       user={{ name: session.actor.displayName, role: session.actor.roles.join(', ').replace(/_/g, ' ') }}
+      memberId={session.actor.membershipId}
       logoSrc={LOGO_ON_DARK}
       search={{ canPatients: hasPermission(perms, 'frontdesk.patient.read'), canSpecimens: hasPermission(perms, 'lab.specimen.read') }}
       centres={centres}

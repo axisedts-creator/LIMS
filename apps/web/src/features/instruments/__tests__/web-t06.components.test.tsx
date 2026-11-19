@@ -18,6 +18,7 @@ import { delay, http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 import type { ReactNode } from 'react';
 import { ToastProvider } from '@lims/ui/components/Toast';
+import { expectErrorState, revealTab } from '@/__tests__/uiset1.helpers';
 
 const push = vi.fn();
 const replace = vi.fn();
@@ -77,7 +78,8 @@ const L = {
   to: /update window to/i,
 };
 const field = (re: RegExp) => screen.getByLabelText(re) as HTMLInputElement;
-const setField = async (re: RegExp, v: string) => { const el = field(re); await userEvent.clear(el); if (v) await userEvent.type(el, v); };
+// LD-353 template 4: the two sections are tabs (inactive one hidden); the tab holding a field is opened before it is typed into.
+const setField = async (re: RegExp, v: string) => { const el = field(re); await revealTab(el); await userEvent.clear(el); if (v) await userEvent.type(el, v); };
 const save = () => userEvent.click(screen.getByRole('button', { name: /^save$/i }));
 const show = async (props: Record<string, unknown> = {}) => {
   const { InstrumentSettingsForm } = await import('../components/InstrumentSettingsForm');
@@ -419,10 +421,12 @@ describe('page → BFF (E40)', () => {
     expect(el.props.permissions).not.toContain('instruments.instrument.manage');
   });
 
-  it('settings page: API 403 / 500 are NOT turned into a rendered form or not-found (error.tsx handles them)', async () => {
+  it('settings page: API 403 is NOT turned into a rendered form or not-found (error.tsx handles it); 500 renders ErrorState in the page (title kept, reference, Retry; LD-353 rule 6) and no form', async () => {
     api.use(http.get(SETTINGS_URL, () => problem(403, 'auth.forbidden')));
     await expect(page()).rejects.toMatchObject({ status: 403 });
-    api.use(http.get(SETTINGS_URL, () => problem(500, 'common.internal')));
-    await expect(page()).rejects.toMatchObject({ status: 500 });
+    api.use(http.get(SETTINGS_URL, () => problem(500, 'common.internal', { request_id: 'req-synthetic' })));
+    const { container } = wrap((await page()) as never);
+    expectErrorState(container, '/instruments/settings');
+    expect(screen.queryByRole('button', { name: /^save$/i })).toBeNull();
   });
 });

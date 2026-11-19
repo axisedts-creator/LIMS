@@ -107,6 +107,10 @@ class LabApi {
   Future<Object?> getResultHistory({required String resultId, Map<String, Object?>? query}) =>
       _send('GET', '/v1/lab/results/${Uri.encodeComponent(resultId)}/history', query: query);
 
+  /// GET /v1/lab/results/{result_id}/signoffs
+  Future<Object?> getResultSignoffs({required String resultId}) =>
+      _send('GET', '/v1/lab/results/${Uri.encodeComponent(resultId)}/signoffs');
+
   /// GET /v1/lab/specimens/{specimen_id}
   Future<Object?> getSpecimen({required String specimenId}) =>
       _send('GET', '/v1/lab/specimens/${Uri.encodeComponent(specimenId)}');
@@ -158,6 +162,10 @@ class LabApi {
   /// GET /v1/lab/specimens
   Future<Object?> listSpecimens({Map<String, Object?>? query}) =>
       _send('GET', '/v1/lab/specimens', query: query);
+
+  /// GET /v1/lab/verification-policies
+  Future<Object?> listVerificationPolicies() =>
+      _send('GET', '/v1/lab/verification-policies');
 
   /// GET /v1/lab/verification-queue
   Future<Object?> listVerificationQueue({Map<String, Object?>? query}) =>
@@ -222,6 +230,10 @@ class LabApi {
   /// PUT /v1/lab/coded-sets/{set_name}/codes/{code}
   Future<Object?> upsertLabCode({required String setName, required String code, Map<String, String>? headers, Object? body}) =>
       _send('PUT', '/v1/lab/coded-sets/${Uri.encodeComponent(setName)}/codes/${Uri.encodeComponent(code)}', headers: headers, body: body);
+
+  /// PUT /v1/lab/verification-policies
+  Future<Object?> upsertVerificationPolicy({Map<String, String>? headers, Object? body}) =>
+      _send('PUT', '/v1/lab/verification-policies', headers: headers, body: body);
 
   /// POST /v1/lab/results/{result_id}/verify
   Future<Object?> verifyResult({required String resultId, Map<String, String>? headers, Object? body}) =>

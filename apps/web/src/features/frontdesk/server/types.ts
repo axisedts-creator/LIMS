@@ -9,11 +9,13 @@ export type ActionResult<T> = { ok: true; data: T } | { ok: false; status: numbe
 export const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export const KEY_RE = /^[A-Za-z0-9_-]{8,64}$/;
 
-export interface Centre { id: string; name: string }
+/** LD-310 / T0D-REGSCREEN-1: `kind` from C2 listCentres (identity enum own|franchise|home_collection); optional for older responses. */
+export interface Centre { id: string; name: string; kind?: 'own' | 'franchise' | 'home_collection' }
 export interface PatientSummary { id: string; patient_code: string; full_name: string; sex: string; age_display: string; phone_masked?: string; last_visit_at?: string; is_anonymised?: boolean }
 export interface OrderableSummary { id: string; kind: 'test' | 'panel'; code: string; name: string }
 export interface DoctorSummary { id: string; doctor_code?: string; display_name: string; is_verified?: boolean }
-export interface CreditPartySummary { id: string; party_code?: string; name: string }
+/** LD-310 / T0D-REGSCREEN-1: kind drives Patient type; credit_limit_paisa / outstanding are shown only when the API returns them. */
+export interface CreditPartySummary { id: string; party_code?: string; name: string; kind?: string; credit_limit_paisa?: number; outstanding?: Money }
 export interface CodedSetEntry { code: string; display: string; sort_order?: number; requires_reference?: boolean }
 
 export interface QuoteLine {
@@ -38,24 +40,45 @@ export interface RegistrationResult {
 }
 
 export interface DraftDiscount { scope: 'bill' | 'line'; kind: 'amount' | 'percent'; orderable_id?: string; amount_paisa?: number; percent_bp?: number; reason_code: string; reason_text?: string }
+/** LD-310 / T0D-REGSCREEN-2: NewPatient keys of contracts/openapi/frontdesk.yaml (T0C-REGPARITY-1). government_id_number is sensitive (LD-310 (b)). */
 export interface NewPatientDraft {
   full_name: string; sex: string; birth_on?: string; age?: { years: number; months: number; days: number };
   phone_e164?: string; email?: string; address_text?: string;
+  title?: string; external_patient_id?: string; nationality?: string; government_id_type?: string; government_id_number?: string;
+  address_province?: string; address_district?: string; address_municipality?: string; address_ward?: string; address_tole?: string; address_postal_code?: string;
+  profile_photo_attachment_id?: string; custom_fields?: { code: string; value: string }[];
   consents: { processing: boolean; sms: boolean; whatsapp: boolean; email: boolean; share_with_referrer: boolean; consent_text_version: string };
 }
+export interface DraftItem { orderable_id: string; priority: 'routine' | 'urgent'; icd_code?: string }
+/** F8 RegistrationDraft (T0C-REGPARITY-2 adds coupon_code, visiting_charge_paisa, redeem_reward_points, items[].icd_code). */
 export interface RegistrationDraft {
   patient: { patient_id: string } | { new_patient: NewPatientDraft };
   centre_id: string; visit_type: 'opd' | 'ipd'; billing_mode: 'cash' | 'credit'; priority: 'routine' | 'urgent'; collection_mode: string;
   credit_party_id?: string; referrer_id?: string;
-  items: { orderable_id: string; priority: 'routine' | 'urgent' }[];
+  items: DraftItem[];
   discounts?: DraftDiscount[];
+  coupon_code?: string; visiting_charge_paisa?: number; redeem_reward_points?: number;
 }
-export interface PaymentIn { method_code: string; amount_received_paisa: number; reference?: string; tendered_paisa?: number }
-export type RegisterBody = RegistrationDraft & {
+export interface PaymentIn { method_code: string; amount_received_paisa: number; reference?: string; tendered_paisa?: number; card_holder_name?: string; payment_remark?: string }
+/** LD-310 / T0D-REGSCREEN-2: the F9-only order fields (CreateRegistrationRequest). Health text (D-27a) is never in F8. */
+export interface OrderFields {
+  collection_at?: string; collected_by_name?: string; sample_not_collected?: boolean; sample_remark?: string;
+  clinical_history?: string; patient_history?: string; mr_number?: string; external_reference?: string; insurance_code?: string; insurance_claim_amount_paisa?: number;
+}
+export type RegisterBody = RegistrationDraft & OrderFields & {
   quote_fingerprint: string; payments: PaymentIn[]; discount_approval_id?: string;
   /** LD-25 (2026-11-07) downtime back-entry; absent = live. */
   entry_mode?: 'downtime_backentry'; occurred_at?: string; downtime_ref?: string;
+  /** LD-310 / T0D-REGSCREEN-1: F9 RegisterRequest fields (contracts/openapi/frontdesk.yaml). */
+  buyer_pan?: string; trf_attachment_ids?: string[];
 };
+// LD-310 / T0D-REGSCREEN-2 reads (T0B-REGAPI-1/2): only the fields the registration screen uses.
+export interface IcdCode { id: string; code: string; description: string; is_active: boolean }
+export interface CustomFieldDefinition { id: string; field_key: string; label: string; field_type: 'text' | 'number' | 'date' | 'choice'; required: boolean; is_active: boolean; choices?: string[]; sort_order?: number }
+export interface NumberPreview { centre_id: string; next_registration_no: string; next_receipt_no: string; next_receipt_no_label: string }
+export interface DraftRecordSummary { id: string; centre_id: string; created_at: string; updated_at: string; expires_at: string }
+export interface DraftRecord extends DraftRecordSummary { payload: string }
+export interface PatientRewards { patient_id: string; balance_points: number }
 export interface DiscountApprovalIn { centre_id: string; base_fingerprint: string; discounts: DraftDiscount[]; reason_code: string; reason_text?: string; patient_id?: string }
 export interface InvoicePrintDoc{ print_no: number; document?: unknown }
 export interface LabelReadiness { order_id: string; specimens: unknown[]; labels_route?: string }

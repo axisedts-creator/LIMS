@@ -2,7 +2,9 @@
 // then ids (non-uuid == unknown), then the body (additionalProperties: false), then the service. Never echoes input.
 import { LimsError, type FieldError } from '../../../core/errors.js';
 import type { Handler, HandlerContext, HandlerRequest } from '../../../core/module.js';
+import type { RequestHeaders } from '../../../core/storage/stream.js';
 import * as S from '../service/print.service.js';
+import { pendingMarkers } from '../../../core/sync/offlineSignoffs.js';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const MAX_IDS = 200;                                   // REQ-SEC-100
@@ -34,14 +36,16 @@ export const printHandlers: Readonly<Record<string, Handler>> = Object.freeze({
     const c = staff(hctx); const id = idOr404(req, 'report_version_id');
     const b = body(req.body, ['variant', 'copies']); const variant = variantOf(b); const copies = b['copies'];
     if (typeof copies !== 'number' || !Number.isInteger(copies) || copies < 1 || copies > 5) throw invalid('/copies');
-    return S.createReportPrint(c, id, variant, copies);
+    // T0B-SYNC-4 done_when (3): the production marker store unless the ctx brings its own seam
+    return S.createReportPrint(c.offlineMarkers ? c : Object.assign(Object.create(c), { offlineMarkers: pendingMarkers }), id, variant, copies);
   },
   getReportPrint: async (req: HandlerRequest, hctx: HandlerContext) => { const c = staff(hctx); return S.getReportPrint(c, idOr404(req, 'print_id')); },
-  downloadReportPrintPdf: async (req: HandlerRequest, hctx: HandlerContext) => { const c = staff(hctx); return S.downloadReportPrintPdf(c, idOr404(req, 'print_id')); },
+  downloadReportPrintPdf: async (req: HandlerRequest, hctx: HandlerContext) => { const c = staff(hctx); return S.downloadReportPrintPdf(c, idOr404(req, 'print_id'), req.headers as RequestHeaders); },
   createBulkPrint: async (req: HandlerRequest, hctx: HandlerContext) => {
     const c = staff(hctx); const b = body(req.body, ['ids', 'variant']); const variant = variantOf(b); const ids = b['ids'];
     if (!Array.isArray(ids) || ids.length < 1 || ids.length > MAX_IDS || !ids.every((i) => typeof i === 'string' && UUID.test(i)) || new Set(ids.map((i: string) => i.toLowerCase())).size !== ids.length) throw invalid('/ids');
-    return S.createBulkPrint(c, ids as string[], variant);
+    // T0B-SYNC-4 done_when (3): same production marker seam as createReportPrint
+    return S.createBulkPrint(c.offlineMarkers ? c : Object.assign(Object.create(c), { offlineMarkers: pendingMarkers }), ids as string[], variant);
   },
   previewReportTemplate: async (req: HandlerRequest, hctx: HandlerContext) => {
     const c = staff(hctx); const id = idOr404(req, 'template_id'); const variant = variantOf(body(req.body, ['variant']));

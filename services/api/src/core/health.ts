@@ -1,5 +1,6 @@
 // getLiveness / getReadiness (02-TRD §8, contracts/openapi/core.yaml). x-public: dependency names and states only.
 import type { Handler } from './module.js';
+import { STORAGE_KEY_ENV } from './storage/env.js';
 
 export type CheckState = 'ok' | 'degraded' | 'down';
 export interface HealthChecks {
@@ -8,14 +9,21 @@ export interface HealthChecks {
 }
 
 const STATES: readonly unknown[] = ['ok', 'degraded', 'down'];
-/** A throw or an out-of-enum value is `down`; the error itself never reaches the response.
- *  ponytail: no per-check timeout; the real checks (later tasks) bound their own I/O via statement/connect timeouts. */
+/** T0B-PERF-1 (LD-310): a check that hangs is `down` after this bound, so the web's wake poll always gets an answer.
+ *  [CONV] 3000 ms: above the 2000 ms probe bound of the real checks (LD-193), which therefore answer first. */
+const CHECK_BOUND_MS = 3000;
+
+/** A throw, an out-of-enum value or a hang past CHECK_BOUND_MS is `down`; the error itself never reaches the response. */
 const run = async (c: () => Promise<CheckState>): Promise<CheckState> => {
+  let timer: ReturnType<typeof setTimeout> | undefined;
   try {
-    const s = await c();
+    const bound = new Promise<CheckState>((r) => { timer = setTimeout(() => r('down'), CHECK_BOUND_MS); timer.unref?.(); });
+    const s = await Promise.race([Promise.resolve().then(c), bound]);
     return STATES.includes(s) ? s : 'down';
   } catch {
     return 'down';
+  } finally {
+    clearTimeout(timer);
   }
 };
 
@@ -24,7 +32,7 @@ const run = async (c: () => Promise<CheckState>): Promise<CheckState> => {
  *  LIMS_CORE_DATABASE_URL is not listed: its absence already shows as checks.db down. */
 export const REQUIRED_ENV: readonly string[] = Object.freeze([
   'LIMS_CORE_ENV', 'LIMS_CORE_JWT_ALG', 'LIMS_CORE_JWT_AUDIENCE', 'LIMS_CORE_JWT_ISSUER',
-  'LIMS_CORE_JWT_KEY_FILE', 'LIMS_CORE_RATELIMIT_KEY_FILE', 'LIMS_CORE_STORAGE_KEY_FILE',
+  'LIMS_CORE_JWT_KEY_FILE', 'LIMS_CORE_RATELIMIT_KEY_FILE', STORAGE_KEY_ENV,
   'LIMS_ENGAGEMENT_LINK_HMAC_KEY_FILE', 'LIMS_ENGAGEMENT_OTP_ENC_KEYS_FILE', 'LIMS_ENGAGEMENT_OTP_HMAC_KEY_FILE',
   'LIMS_ENGAGEMENT_PHONE_HMAC_KEY_FILE', 'LIMS_IDENTITY_EMAIL_HMAC_KEY', 'LIMS_IDENTITY_GOTRUE_SERVICE_KEY',
   'LIMS_IDENTITY_GOTRUE_URL', 'LIMS_IDENTITY_TOKEN_ENC_KEYS', 'LIMS_ORIGIN_API', 'LIMS_ORIGIN_PORTAL',

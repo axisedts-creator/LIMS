@@ -22,7 +22,8 @@ import { createRolePackRepo, createRolePackService } from '../../service/role-pa
 
 type PackRole = { code: string; name: string; mfa_required: boolean; permissions: string[] };
 type Pack = { code: string; roles: PackRole[] };
-const matrix = parse(readFileSync(join(REPO_ROOT, 'spec', 'program', '11-ROLE-MATRIX.data.yaml'), 'utf8')) as { packs: Pack[] };
+// LD-310 (T0B-ADMINPERM-1): the service loads the module data file, whose corp_admin is wider than the spec copy; compare against the module data file.
+const matrix = parse(readFileSync(join(REPO_ROOT, 'services', 'api', 'src', 'modules', 'identity', 'role-packs', 'role-packs.data.yaml'), 'utf8')) as { packs: Pack[] };
 const PACK = (code: string): Pack => matrix.packs.find((p) => p.code === code)!;
 const CORP = PACK('elabcorp_default'), STD = PACK('elabassist_standard');
 const sorted = (a: readonly string[]) => [...a].sort();

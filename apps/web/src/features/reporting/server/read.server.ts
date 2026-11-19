@@ -3,7 +3,7 @@ import 'server-only';
 // and centre scope, the UI only hides. Query values are validated by shape before they leave the BFF.
 import { ApiError, serverFetch } from '@/core/api/server-fetch';
 import { problem } from '@/core/session/types';
-import { REPORT_TABS, UUID_RE, type Centre, type ChannelAccount, type CentreContact, type CodedOption, type CriticalAlert, type Delivery, type MessageTemplate, type Narrative, type NarrativeTemplate, type OutsourcedItem, type Page, type ReportDetail, type ReportSummary, type ReportTab, type ReportTemplateRow, type ReportingSettings, type TemplateDetail } from './types';
+import { REPORT_TABS, UUID_RE, type Centre, type ChannelAccount, type CentreContact, type CodedOption, type CriticalAlert, type Delivery, type MessageTemplate, type Narrative, type NarrativeTemplate, type OutsourcedItem, type Page, type ReportDetail, type ReportSummary, type ReportTab, type ReportTemplateRow, type ReportingSettings, type TemplateDetail, type Branch, type PrintProfile, type SignatoryProfile } from './types';
 
 const bad = () => new ApiError(400, problem('common.validation_failed', 'Validation failed', 400));
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -51,8 +51,9 @@ export function listReports(q: WorklistQuery = {}) {
   }, { centre_id: UUID_RE, family: ENUM('laboratory', 'narrative'), sort: ENUM('-updated_at', 'registered_at', '-released_at'), cursor: CURSOR_RE })}`);
 }
 export const getReport = (reportId: string) => serverFetch<ReportDetail>(`/v1/reporting/reports/${id(reportId)}`);
+// LD-301: no `limit` — the deployed handler rejects any limit (coerced to a number) with 400; the API default is 50.
 export const listCriticalAlerts = (centreId?: string, now = Date.now()) =>
-  serverFetch<Page<CriticalAlert>>(`/v1/reporting/critical-alerts${qs({ centre_id: centreId, since: new Date(now - 86_400_000).toISOString(), limit: 50 }, { centre_id: UUID_RE })}`);
+  serverFetch<Page<CriticalAlert>>(`/v1/reporting/critical-alerts${qs({ centre_id: centreId, since: new Date(now - 86_400_000).toISOString() }, { centre_id: UUID_RE })}`);
 export const listOutsourcedItems = (q: { state?: string | undefined; centreId?: string | undefined } = {}) =>
   serverFetch<Page<OutsourcedItem>>(`/v1/reporting/outsourced-items${qs({ state: q.state, centre_id: q.centreId, limit: 50 }, { state: ENUM('awaiting_file', 'awaiting_confirmation', 'confirmed'), centre_id: UUID_RE })}`);
 export const getNarrative = (narrativeId: string) => serverFetch<Narrative>(`/v1/reporting/narratives/${id(narrativeId)}`);
@@ -82,4 +83,20 @@ export const listReportingCodes = (set: 'regeneration_reasons' | 'token_revoke_r
   serverFetch<{ data: CodedOption[] }>(`/v1/reporting/coded-sets/${set}`);
 /** C4 listBillingCodes — override reasons for the held-for-dues override dialog. */
 export const listOverrideReasons = () => serverFetch<{ data: CodedOption[] }>('/v1/billing/coded-sets/override_reasons');
-export const getReportPrint = (printId: string) => serverFetch<{ id: string; state: string; variant?: string; copies?: number; expires_at?: string }>(`/v1/reporting/prints/${id(printId)}`);
+// ── T0D-PRINTCFG-1 (LD-316): print profiles, signer profiles and the staff who may sign (lab.result.approve).
+export const listPrintProfiles = (q: { document_kind?: string | undefined; branch_id?: string | undefined } = {}) =>
+  serverFetch<{ data: PrintProfile[] }>(`/v1/reporting/print-profiles${qs(q, { document_kind: ENUM('report', 'invoice', 'credit_note'), branch_id: UUID_RE })}`);
+export const listSignatoryProfiles = () => serverFetch<{ data: SignatoryProfile[] }>('/v1/reporting/signatory-profiles');
+export const listBranches = () => serverFetch<{ data: Branch[] }>('/v1/identity/branches').then((r) => (r.data ?? []).filter((b) => b.is_active !== false && UUID_RE.test(b.branch_id)));
+/** Users whose role holds lab.result.approve. [CONV] the signer key is user_id; UserSummary carries membership_id only, joined as equal (CR gap, same as VERLEVEL).
+ * ponytail: first 200 active users only; page with next_cursor if a lab ever has more staff. */
+export async function listApprovers(): Promise<{ id: string; name: string }[]> {
+  type U = { membership_id: string; display_name?: string; roles?: { role_id: string }[] };
+  const [users, roles] = await Promise.all([
+    serverFetch<{ data: U[] }>('/v1/identity/users?status=active&limit=200'),
+    serverFetch<{ data: { role_id: string; permission_codes?: string[] }[] }>('/v1/identity/roles'),
+  ]);
+  const approve = new Set((roles.data ?? []).filter((r) => r.permission_codes?.includes('lab.result.approve')).map((r) => r.role_id));
+  return (users.data ?? []).filter((u) => UUID_RE.test(u.membership_id) && u.roles?.some((r) => approve.has(r.role_id))).map((u) => ({ id: u.membership_id, name: u.display_name ?? '—' }));
+}
+export const getReportPrint =(printId: string) => serverFetch<{ id: string; state: string; variant?: string; copies?: number; expires_at?: string }>(`/v1/reporting/prints/${id(printId)}`);

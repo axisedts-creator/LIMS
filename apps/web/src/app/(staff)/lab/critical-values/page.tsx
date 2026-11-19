@@ -2,6 +2,7 @@
 // Permission first (the API is never called without it); a 403 from the API is the permission-denied page, any other failure (including 400) throws to error.tsx.
 import { ApiError } from '@/core/api/server-fetch';
 import { PermissionDenied } from '@/core/errors/PermissionDenied';
+import { NotAvailable, isPending } from '@/core/shell/NotAvailable';
 import { getShellSession } from '@/core/session/server';
 import { CriticalValueList } from '@/features/lab/components/CriticalValueList';
 import { CRITICAL_STATUSES, listCriticalValues } from '@/features/lab/server/adminpages.server';
@@ -17,6 +18,8 @@ export default async function CriticalValuesPage({ searchParams }: { searchParam
     return <CriticalValueList items={page.items} status={status} nextCursor={page.nextCursor} />;
   } catch (e) {
     if (e instanceof ApiError && e.status === 403) return <PermissionDenied />;
+    // T0D-UILIST-1, T0D-UICONSOLE-1 (LD-353 rule 6): 501 operation_pending keeps the title and the console header row
+    if (isPending(e)) return <NotAvailable title="Critical values" columns={['Age since detected', 'Detected at', 'Analyte', 'Direction', 'Status']} />;
     throw e;
   }
 }

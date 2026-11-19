@@ -8,7 +8,9 @@ import { decodeCursor, encodeCursor, globalSetDto, globalUnitDto, setDto, toDto,
 import * as repo from '../repo/masters.repo.js';
 import { createRevisionService } from './revision.service.js';
 
-export type Field = { t: 'str'; min: number; max: number } | { t: 'int'; min: number; max: number } | { t: 'bool' } | { t: 'uuid' };
+// T0B-TESTMGMT-1 (LD-318): 'enum' (closed value list) and 'strs' (unique string list, item paths /<k>/<i>) added for the test management parity fields.
+export type Field = { t: 'str'; min: number; max: number } | { t: 'int'; min: number; max: number } | { t: 'bool' } | { t: 'uuid' }
+  | { t: 'enum'; values: readonly string[] } | { t: 'strs'; max: number; itemMax: number };
 interface Def { R: string; table: repo.MasterTable; entity: string; fields: Record<string, Field>; required: readonly string[]; sorts: readonly string[] }
 
 export const str = (min: number, max: number): Field => ({ t: 'str', min, max });
@@ -42,7 +44,16 @@ function okValue(f: Field, v: unknown): boolean {
     case 'int': return Number.isInteger(v) && (v as number) >= f.min && (v as number) <= f.max;
     case 'bool': return typeof v === 'boolean';
     case 'uuid': return typeof v === 'string' && UUID.test(v);
+    case 'enum': return typeof v === 'string' && f.values.includes(v);
+    case 'strs': return listErrors(f, v, '').length === 0;
   }
+}
+/** 'strs': not a list / too long / duplicates -> the list path; a bad item -> its own path. */
+function listErrors(f: { max: number; itemMax: number }, v: unknown, path: string): FieldError[] {
+  if (!Array.isArray(v) || v.length > f.max) return [invalid(path)];
+  const errors = v.flatMap((x, i) => (typeof x === 'string' && x.length >= 1 && x.length <= f.itemMax ? [] : [invalid(`${path}/${i}`)]));
+  if (!errors.length && new Set(v).size !== v.length) errors.push(invalid(path));
+  return errors;
 }
 export const ptr = (k: string) => `/${k.replaceAll('~', '~0').replaceAll('/', '~1')}`;
 /** Declared fields only (S-5); undefined values are treated as absent. */
@@ -56,12 +67,23 @@ export function checkFields(def: Pick<Def, 'fields'>, input: unknown, extra: rea
     if (extra.includes(k)) { out[k] = v; continue; }
     const f = Object.hasOwn(def.fields, k) ? def.fields[k] : undefined;
     if (!f) errors.push(unknown(prefix + ptr(k)));
+    else if (f.t === 'strs') { const e = listErrors(f, v, `${prefix}/${k}`); if (e.length) errors.push(...e); else out[k] = v; }
     else if (!okValue(f, v)) errors.push(invalid(`${prefix}/${k}`));
     else out[k] = v;
   }
   if (errors.length) fail(errors);
   return out;
 }
+
+/** PATCH `unset` (T0B-TESTMGMT-1): a unique list of `allowed` optional fields, none of them also sent in the same body; else 400 /unset. Returns the columns to NULL. */
+export function unsetOf(patch: Record<string, unknown>, allowed: readonly string[]): Record<string, null> {
+  const u = patch['unset'];
+  if (u === undefined) return {};
+  if (!Array.isArray(u) || u.length > allowed.length || new Set(u).size !== u.length || !u.every((k) => allowed.includes(k) && patch[k] === undefined)) fail([invalid('/unset')]);
+  return Object.fromEntries((u as string[]).map((k) => [k, null]));
+}
+export const DEC_RE = /^-?[0-9]+(\.[0-9]+)?$/;
+export const RESULT_TYPES = ['numeric', 'text', 'ordinal', 'coded', 'attachment', 'narrative', 'boolean', 'test_footer', 'space', 'graph', 'html_descriptive'] as const;   // LD-318
 
 export interface Tx { query(text: string, values?: unknown[]): Promise<{ rows: any[] }> }
 export interface Ctx { readonly tenantId: string; readonly actor: { readonly id: string }; readonly requestId: string; readonly tx: unknown; readonly now?: () => string }

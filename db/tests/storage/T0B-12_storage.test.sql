@@ -27,7 +27,11 @@ BEGIN
 END $f$;
 
 -- REQ-SEC-034 buckets: all 11 of 08 §4.8 exist, all private, nothing else (reporting-legacy is reserved, not created)
-SELECT is_empty($$SELECT b FROM want WHERE NOT EXISTS (SELECT 1 FROM storage.buckets s WHERE s.id = want.b)$$, 'REQ-SEC-034 every 08 §4.8 bucket exists');
+-- HARNESS fix T0B-GREEN-2 (LD-54, LD-230 (8)): the harness image has only the minimal storage stub of run-suites.sh and NO bucket rows (buckets come from the Storage API via db/provisioning/create-storage-buckets.mjs).
+-- On a stub with zero buckets the existence assertion cannot be evaluated: it is reported as a TAP SKIP (never a silent pass). On a provisioned DB (any bucket present) it runs unchanged and fails if one of the 11 is missing.
+-- tests/db/T0B-GREEN-2.pgtap.test.mjs proves the other half: the provisioning script creates exactly this list of 11.
+SELECT CASE WHEN (SELECT count(*) FROM storage.buckets) = 0 THEN skip('storage.buckets is the empty run-suites.sh stub (LD-54: buckets are provisioned through the Storage API); run on a provisioned DB for the existence probe', 1)
+            ELSE is_empty($$SELECT b FROM want WHERE NOT EXISTS (SELECT 1 FROM storage.buckets s WHERE s.id = want.b)$$, 'REQ-SEC-034 every 08 §4.8 bucket exists') END;
 SELECT is_empty($$SELECT id FROM storage.buckets WHERE public IS DISTINCT FROM false$$, 'REQ-SEC-034 no bucket is public');
 SELECT is_empty($$SELECT id FROM storage.buckets WHERE id NOT IN (SELECT b FROM want)$$, 'REQ-SEC-034 no bucket outside the 08 §4.8 list');
 SELECT is((SELECT count(*) FROM storage.buckets WHERE id = 'reporting-legacy'), 0::bigint, 'reporting-legacy is reserved (B4), not created');
@@ -44,13 +48,20 @@ SELECT is_empty($$SELECT tablename || '.' || policyname FROM pg_policies
 SELECT is(has_table_privilege(r, 'storage.objects', p), false, 'REQ-SEC-034 ' || r || ' has no ' || p || ' on storage.objects')
   FROM unnest(ARRAY['lims_app','lims_api','lims_worker']) r, unnest(ARRAY['SELECT','INSERT','UPDATE','DELETE']) p;
 
+-- HARNESS fix T0B-GREEN-2: the run-suites.sh stub (LD-230 (8)) carries none of the default grants a real Supabase Storage schema gives anon / authenticated, so every probe below ended in a plain
+-- permission denied (E42501) before RLS was reached and the n=0 expectations (RLS filtering) could not be observed. Restore the Supabase default grants for this rolled-back transaction so the
+-- probes test what the file is about: RLS with NO end-user policy denies. (No-op on a real Supabase Storage schema, which has them already.)
+GRANT USAGE ON SCHEMA storage TO anon, authenticated;
+GRANT ALL ON storage.objects, storage.buckets TO anon, authenticated;
+
 -- fixture (superuser; RLS does not apply): one object per tenant per bucket. Controls prove the zeros below are not vacuous.
-CREATE TEMP TABLE tn(k text, t uuid) AS VALUES ('a','01900000-0000-7000-8000-0000000000a1'::uuid), ('b','01900000-0000-7000-8000-0000000000b2'::uuid);
+-- HARNESS fix T0B-GREEN-2: CREATE TABLE t(col type) AS <query> is a syntax error; column names only (also for actor below)
+CREATE TEMP TABLE tn(k, t) AS VALUES ('a','01900000-0000-7000-8000-0000000000a1'::uuid), ('b','01900000-0000-7000-8000-0000000000b2'::uuid);
 INSERT INTO storage.objects (bucket_id, name) SELECT w.b, tn.t::text || '/t0b12-probe.pdf' FROM want w, tn;
 SELECT is((SELECT count(*) FROM storage.objects WHERE name LIKE '%/t0b12-probe.pdf'), 22::bigint, 'control: 11 buckets x 2 tenants seeded');
 
 -- probes: tenant A's end-user token (authenticated) and the bare anon key, against every bucket
-CREATE TEMP TABLE actor(role text, claims text) AS VALUES
+CREATE TEMP TABLE actor(role, claims) AS VALUES
   ('authenticated', '{"role":"authenticated","tenant_id":"01900000-0000-7000-8000-0000000000a1","actor_type":"user"}'),
   ('anon',          '{"role":"anon"}');
 SELECT is(pg_temp.x(a.role, a.claims, format('SELECT 1 FROM storage.objects WHERE bucket_id = %L', w.b)), 'n=0',

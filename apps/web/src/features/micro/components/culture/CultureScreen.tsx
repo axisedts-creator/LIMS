@@ -159,7 +159,6 @@ export function CultureScreen({ culture, patient, specimen, permissions }: Cultu
       <Stack gap={3}>
         <PageHeader
           title={culture.test_name}
-          breadcrumbs={[{ label: 'Microbiology', href: '/micro/worklist' }, { label: 'Culture' }]}
           status={<CultureStatusChip status={culture.status} />}
           actions={actions}
           helpKey="micro.culture"

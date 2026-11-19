@@ -112,8 +112,30 @@ describe('behaviour unchanged: API calls, field names, validation, permissions, 
     expect(base.field_names.length).toBeGreaterThan(20);
     expect(base.imported_server_symbols.length).toBeGreaterThan(50);
   });
-  it('data, action, API-client, route-handler, middleware and nav files are untouched', () => {
-    expect(now.data_files).toEqual(base.data_files);
+  // T0D-PRINTCFG-1 / LD-316 allow-list (arbiter ruling .orchestra/notes/T0D-PRINTCFG-1-ruling.md): the RS-C6 "no change" rule covers the restyle pass
+  // only (10-DESIGN-SYSTEM s8), the later feature task T0D-PRINTCFG-1 adds typed calls for print profiles, preview, signatory profiles and the
+  // signature upload. Only these entries may differ from the baseline; anything else still fails. The baseline file itself is not re-recorded.
+  const PRINTCFG = {
+    data_files: ['web/features/reporting/server/actions.ts', 'web/features/reporting/server/read.server.ts', 'web/features/reporting/server/types.ts', 'web/features/reporting/server/write.server.ts'],
+    web_api_paths: [
+      '/v1/identity/branches', '/v1/identity/roles', '/v1/identity/settings/branding-assets', '/v1/identity/users',
+      '/v1/reporting/print-profiles', '/v1/reporting/print-profiles${qs', '/v1/reporting/print-profiles/preview',
+      '/v1/reporting/signatory-profiles', '/v1/reporting/signatory-profiles/${uuid',
+    ],
+    imported_server_symbols: [
+      'server/actions#listBranchesAction', 'server/actions#listPrintProfilesAction', 'server/actions#listSignatoriesAction', 'server/actions#previewPrintProfileAction',
+      'server/actions#uploadSignatureAction', 'server/actions#upsertPrintProfileAction', 'server/actions#upsertSignatoryAction',
+      'server/types#Branch', 'server/types#DocumentKind', 'server/types#PAPER_LABEL', 'server/types#PAPER_MODES', 'server/types#PaperMode', 'server/types#PrintProfile',
+      'server/types#PrintProfileFields', 'server/types#PrintProfileInput', 'server/types#SignatoryRow', 'server/types#plainError', 'server/types#typedTextError',
+    ],
+    permission_codes: ['billing.settings.manage', 'lab.result.approve'],
+    field_names: ['branch_id', 'display_name', 'font_size_pt', 'footer_text', 'header_text', 'paper_mode', 'registration_no', 'reserve_bottom_mm', 'reserve_top_mm', 'title'],
+  };
+  const without = (xs: string[], allowed: string[]) => xs.filter((x) => !allowed.includes(x));
+  it('data, action, API-client, route-handler, middleware and nav files are untouched (except the T0D-PRINTCFG-1 typed calls, LD-316)', () => {
+    const keep = (o: Record<string, string>) => Object.fromEntries(Object.entries(o).filter(([k]) => !PRINTCFG.data_files.includes(k)));
+    expect(keep(now.data_files)).toEqual(keep(base.data_files));
+    for (const f of PRINTCFG.data_files) expect(now.data_files[f], `${f} must still exist`).toMatch(/^[a-f0-9]{64}$/);
   });
   it('same route files (no route added, removed or renamed)', () => {
     expect(now.route_files).toEqual(base.route_files);
@@ -125,16 +147,16 @@ describe('behaviour unchanged: API calls, field names, validation, permissions, 
     expect(now.portal_api_calls).toEqual(base.portal_api_calls);
   });
   it('same web API paths', () => {
-    expect(now.web_api_paths).toEqual(base.web_api_paths);
+    expect(without(now.web_api_paths, PRINTCFG.web_api_paths)).toEqual(base.web_api_paths); // T0D-PRINTCFG-1 / LD-316 additions allowed
   });
   it('same server actions / API helpers imported by the screens', () => {
-    expect(now.imported_server_symbols).toEqual(base.imported_server_symbols);
+    expect(without(now.imported_server_symbols, PRINTCFG.imported_server_symbols)).toEqual(base.imported_server_symbols); // T0D-PRINTCFG-1 / LD-316
   });
   it('same permission codes', () => {
-    expect(now.permission_codes).toEqual(base.permission_codes);
+    expect(without(now.permission_codes, PRINTCFG.permission_codes)).toEqual(base.permission_codes); // T0D-PRINTCFG-1 / LD-316
   });
   it('same form field names', () => {
-    expect(now.field_names).toEqual(base.field_names);
+    expect(without(now.field_names, PRINTCFG.field_names)).toEqual(base.field_names); // T0D-PRINTCFG-1 / LD-316
   });
   it('portal package.json untouched (no new dependency; fonts and tokens come from @lims/ui)', () => {
     expect(now.portal_package_json).toBe(base.portal_package_json);

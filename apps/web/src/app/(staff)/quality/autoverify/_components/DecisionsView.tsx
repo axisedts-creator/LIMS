@@ -88,7 +88,7 @@ export function DecisionsView({ rows, next, hasPrevious, problem, sp }: Props) {
   const i = d?.inputs;
   return (
     <>
-      <PageHeader title="Auto-verification decisions" helpKey="quality.autoverify_decisions" breadcrumbs={[{ label: 'Auto-verification', href: OVERVIEW_HREF }, { label: 'Decisions' }]} />
+      <PageHeader title="Auto-verification decisions" helpKey="quality.autoverify_decisions" />
       <div role="search" className="lims-filter-bar">
         <div className="lims-field">
           <label className="lims-label" htmlFor={`${dateId}-from`}>Period from</label>

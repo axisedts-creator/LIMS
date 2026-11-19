@@ -104,11 +104,14 @@ export function createPipeline(d: PipelineDeps) {
   /** ctx.ports: the registry view of this module; IdentityPort wrapped so stage 9 sees assertRole (getters keep the consumer check lazy). */
   function portsView(module: string, az: RequestAuthz): PortRegistry {
     const view = d.ports.portsFor(module);
+    // T0B-SYNC-1 [CONV] like stage 8a below: the core's own handlers (sync, LD-322) read IdentityPort through a listed consumer's view,
+    // since PORT_CONSUMERS (generated from the spec) has no 'core' entry. Every other port stays refused for core.
+    const idView = module === 'core' ? d.ports.portsFor('frontdesk') : view;
     const out: Record<string, unknown> = {};
     for (const k of Object.keys(view)) {
       Object.defineProperty(out, k, {
         enumerable: true,
-        get: k === 'IdentityPort' ? () => az.identity(view[k] as { assertRole(...a: unknown[]): unknown }) : () => view[k],
+        get: k === 'IdentityPort' ? () => az.identity(idView[k] as { assertRole(...a: unknown[]): unknown }) : () => view[k],
       });
     }
     return Object.freeze(out);
@@ -138,6 +141,10 @@ export function createPipeline(d: PipelineDeps) {
     const uuidClaim = (v: unknown): string | undefined => (typeof v === 'string' && UUID.test(v) ? v : undefined);
     const staffId = platform && uuidClaim((claims as Record<string, unknown>)['platform_staff_id']);
     const sessionId = platform && uuidClaim((claims as Record<string, unknown>)['lims_session_id']);
+    // T0D-ELABMENU-2 (LD-340): the identity self handlers (bindSelf) need ctx.sessionId; a tenant user or partner session gets it from the
+    // verified claims only (UUID, else the key stays absent and the handler answers 401). Device and platform sessions get none.
+    const selfSessionId = !platform && typeof claims?.tenant_id === 'string' && (claims.actor_type === 'user' || claims.actor_type === 'partner')
+      ? uuidClaim((claims as Record<string, unknown>)['lims_session_id']) : undefined;
     const ctx: HandlerContext = Object.freeze({
       // RequestContext (IC §4.1)
       tenantId: claims?.tenant_id,
@@ -145,6 +152,7 @@ export function createPipeline(d: PipelineDeps) {
       ...platform,
       ...(staffId ? { platformStaffId: staffId } : {}),
       ...(sessionId ? { platformSessionId: sessionId } : {}),
+      ...(selfSessionId ? { sessionId: selfSessionId } : {}),
       requestId: c.requestId,
       tx,
       now: () => (tx ? tx.startedAt.toISOString() : new Date().toISOString()),
@@ -240,6 +248,7 @@ export function createPipeline(d: PipelineDeps) {
     try {
       out = await d.db.requestTx({
         claims, requestId: c.requestId, clientIp: c.clientIp, userAgent: c.userAgent,
+        readOnly: op.method === 'GET' || op.method === 'HEAD', // T0B-PERF-1 (LD-310): 5 s read / 15 s write statement timeout
         operation: { module: op.module, operationId: op.operationId, context: op.context },
       }, async (tx, ctl) => {
         // per attempt: a 40001/40P01 retry re-runs the handler with a fresh context and authz state

@@ -9,7 +9,6 @@ import { ConfirmDialog } from '@lims/ui/components/ConfirmDialog';
 import { DataTable } from '@lims/ui/components/DataTable';
 import { DateText, type DateTextProps } from '@lims/ui/components/DateText';
 import { Dialog } from '@lims/ui/components/Dialog';
-import { EmptyState } from '@lims/ui/components/EmptyState';
 import { PrintFrame } from '@lims/ui/components/PrintFrame';
 import { RadioGroup } from '@lims/ui/components/RadioGroup';
 import { Select } from '@lims/ui/components/Select';
@@ -201,15 +200,13 @@ export function AppAccess({ patient, links, codes, recordPhoneMasked, consent, l
       <p>{patient.display_name}{patient.patient_code ? ` · ${patient.patient_code}` : ''}</p>
       <Button variant="primary" onPress={() => setIssuing(true)}>Issue app code</Button>
       {failure ? <p role="alert" className="lims-error">{failure}</p> : null}
-      {links.length === 0 && codes.length === 0 ? (
-        <EmptyState title="This patient has no app access" body="Issue an app code so the patient or a guardian can see reports in the app." />
-      ) : (
-        <>
+      {/* T0D-EMPTYTBL-2 (LD-310, LD-336): both tables are always drawn; each empty one shows its message in its body, and the codes table repeats Issue app code. */}
+      <>
           <DataTable
             caption="App accounts linked"
             rows={[...links]}
             getRowId={(l) => l.link_id}
-            emptyState={{ title: 'No app accounts linked.' }}
+            emptyState={links.length === 0 && codes.length === 0 ? { title: 'This patient has no app access', body: 'Issue an app code so the patient or a guardian can see reports in the app.' } : { title: 'No app accounts linked.' }}
             columns={[
               { id: 'phone', header: 'Phone', isRowHeader: true, cell: (l) => l.account_phone_masked },
               { id: 'rel', header: 'Relationship', cell: (l) => REL_LABEL[l.relationship] ?? l.relationship },
@@ -223,7 +220,7 @@ export function AppAccess({ patient, links, codes, recordPhoneMasked, consent, l
             caption="Codes"
             rows={[...codes]}
             getRowId={(c) => c.link_code_id}
-            emptyState={{ title: 'No codes issued.' }}
+            emptyState={{ title: 'No codes issued.', action: { label: 'Issue app code', onPress: () => setIssuing(true) } }}
             columns={[
               { id: 'issued', header: 'Issued', isRowHeader: true, cell: (c) => date(c.issued_at) },
               { id: 'expires', header: 'Expires', cell: (c) => date(c.expires_at) },
@@ -231,8 +228,7 @@ export function AppAccess({ patient, links, codes, recordPhoneMasked, consent, l
               { id: 'revoke', header: 'Revoke', cell: (c) => (c.status === 'issued' ? <Button size="sm" variant="danger" onPress={() => setRevokingCode(c)}>Revoke code</Button> : null) },
             ]}
           />
-        </>
-      )}
+      </>
       {issuing ? <IssueDialog patient={patient} recordPhoneMasked={recordPhoneMasked} consent={consent} labName={labName} onIssue={actions.issue} onClose={closeIssue} /> : null}
       {revokingLink ? (
         <ConfirmDialog

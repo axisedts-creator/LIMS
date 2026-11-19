@@ -1,6 +1,7 @@
 // Production session path (08 R10, 02-TRD §12.1): forward the opaque __Host-lims_sid cookie to C2 resolveSession
 // with the BFF's own X-Lims-Bff-Key. C2 decides idle/absolute expiry and refreshes tokens server-side;
 // its 401 auth.session_expired is relayed unchanged.
+import { clientContextHeaders } from '../api/client-context';
 import { readBffKey } from './bff-key';
 import { SESSION_COOKIE } from './cookie';
 import { problem, type Problem, type Resolution, type SessionResolver } from './types';
@@ -28,11 +29,13 @@ export const c2Resolver: SessionResolver = {
   async resolve(sessionId, { touch }): Promise<Resolution> {
     const origin = process.env.LIMS_ORIGIN_API;
     if (!origin) throw new Error('LIMS_ORIGIN_API is not set');
+    const client = await clientContextHeaders(); // LD-296: real client address + browser user agent; {} outside a request scope
     let res: Response;
     try {
       res = await fetch(new URL(RESOLVE_SESSION_PATH, origin), {
         method: 'POST',
         headers: {
+          ...client,
           'content-type': 'application/json',
           accept: 'application/json',
           'X-Lims-Bff-Key': bffKey(),
@@ -44,7 +47,8 @@ export const c2Resolver: SessionResolver = {
         signal: AbortSignal.timeout(TIMEOUT_MS),
       });
     } catch {
-      return unavailable();
+      // T0D-WAKE-1 (LD-277, RS-07): no answer (timeout / connection failure) = the API is likely waking up; HTTP answers never carry it.
+      return { ...unavailable(), waking: true };
     }
     const body = (await res.json().catch(() => undefined)) as unknown;
     if (res.status === 401) {

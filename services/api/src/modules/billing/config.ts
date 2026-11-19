@@ -13,6 +13,7 @@ export interface BillingConfig {
   readonly exportMaxRows: number;
   readonly exportPdfMaxRows: number;
   readonly exportTtlHours: number;
+  readonly accountEntryMaxPaisa: number;
 }
 
 export function loadBillingConfig(env: NodeJS.ProcessEnv = process.env): BillingConfig {
@@ -26,5 +27,7 @@ export function loadBillingConfig(env: NodeJS.ProcessEnv = process.env): Billing
     exportMaxRows: int(env, 'LIMS_BILLING_EXPORT_MAX_ROWS', 100000),
     exportPdfMaxRows: int(env, 'LIMS_BILLING_EXPORT_PDF_MAX_ROWS', 5000),
     exportTtlHours: int(env, 'LIMS_BILLING_EXPORT_TTL_HOURS', 24),
+    // T0B-ACCT-1 (LD-313, done_when 5) [CONV]: largest single accounting ledger entry, integer paisa; default NPR 5,000,000.00.
+    accountEntryMaxPaisa: Math.min(int(env, 'LIMS_BILLING_ACCOUNT_ENTRY_MAX_PAISA', 500_000_000), Number.MAX_SAFE_INTEGER - 1),
   });
 }

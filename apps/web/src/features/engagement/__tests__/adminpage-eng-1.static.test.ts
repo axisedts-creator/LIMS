@@ -89,11 +89,22 @@ describe('route row, navigation entry, strings, registries', () => {
     expect(routes.filter((r) => r.id === 'staff.engagement.settings')).toHaveLength(1);
   });
 
-  it('no new permission and no contract change: permissions.yaml and openapi/engagement.yaml are byte-identical to the tree before this task, and the administrator role holds the permission', () => {
+  it('no new permission outside the allowed families and no lost contract: base engagement codes unchanged, the settings operations still exist, and the administrator role holds the permission', () => {
     const perms = read(join(ROOT, 'contracts', 'permissions.yaml'));
-    expect(perms).toBe(gitShow('contracts/permissions.yaml'));
+    // Ruling T0D-CONTENT-1 (after T0D-ENGBOOK-1): LD-313 (a, c) puts portal content in the engagement module and allows new codes for it; LD-316, LD-321
+    // and LD-322 authorise new non-engagement codes (lab.verification_policy.*, partners.sales.*, partners.ticket.*, sync.*) added by other contract tasks.
+    // So the "no new code" check applies to the engagement family alone: new engagement.content.* and engagement.broadcast.* codes are allowed;
+    // every engagement code that existed at BASE must still be present unchanged.
+    const basePerms = gitShow('contracts/permissions.yaml');
+    const engLines = (s: string) => s.split('\n').filter((l) => /code: engagement\./.test(l));
+    for (const l of engLines(basePerms)) expect(perms.split('\n')).toContain(l);
+    const codes = (s: string) => [...s.matchAll(/code: ([\w.]+)/g)].map((m) => m[1]!);
+    const baseCodes = new Set(codes(basePerms));
+    expect(codes(perms).filter((c) => !baseCodes.has(c) && c.startsWith('engagement.') && !c.startsWith('engagement.content.') && !c.startsWith('engagement.broadcast.'))).toEqual([]);
     expect(perms).toMatch(/code: engagement\.settings\.manage,[^\n]*tenant_admin/);
-    expect(read(join(ROOT, 'contracts', 'openapi', 'engagement.yaml'))).toBe(gitShow('contracts/openapi/engagement.yaml'));
+    const api = read(join(ROOT, 'contracts', 'openapi', 'engagement.yaml'));
+    expect(api).toMatch(/operationId: getEngagementSettings(?![A-Za-z0-9_])/);
+    expect(api).toMatch(/operationId: updateEngagementSettings(?![A-Za-z0-9_])/);
   });
 
   it("the manifest entry is engagement.settings (C16 04-UI-UX 1.3): label key engagement.nav.settings = 'Engagement settings', group engagement, order 90, phase 2, no new chord", async () => {

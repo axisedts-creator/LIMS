@@ -102,6 +102,11 @@ export interface ModuleManifest {
   readonly systemPermissions?: readonly string[];
   readonly claimsResolver?: unknown;
   readonly authResolvers?: Readonly<Record<string, unknown>>;
+  /**
+   * LD-325 (T0B-BOOTGATE-1): spec operationIds whose handler has not merged yet; each answers 501 operation_pending after
+   * auth and the pipeline. T0C contract tasks add ids, T0B handler tasks remove them. Production boot refuses a non empty list.
+   */
+  readonly pendingOperations?: readonly string[];
 }
 
 /** PORT_OWNERS from IC §4 headings, as listed in 02-TRD §6.3. */
@@ -152,18 +157,29 @@ export function operationIds(spec: any): string[] {
   return ids;
 }
 
-/** Handler key set must equal the spec operationId set (AC-0D-1.2). */
-export function checkHandlers(name: string, spec: any, handlers: unknown): void {
+/**
+ * AC-0D-1.2 kept (LD-325, T0B-BOOTGATE-1): handlers plus pendingOperations cover the spec operationId set; every handler key
+ * is a spec operationId; every pending id is a spec operationId. Returns the stale pending ids (they also have a handler:
+ * the handler wins, the caller warns; a stale entry never breaks boot because handler lanes may merge first).
+ */
+export function checkHandlers(name: string, spec: any, handlers: unknown, pending: unknown = []): string[] {
   if (!handlers || typeof handlers !== 'object') throw new Error(`module ${name}: handlers missing`);
+  if (!Array.isArray(pending) || !pending.every((p) => typeof p === 'string')) throw new Error(`module ${name}: pendingOperations must be a string array`);
+  if (new Set(pending).size !== pending.length) throw new Error(`module ${name}: duplicate entry in pendingOperations`);
   const ops = operationIds(spec);
   const opSet = new Set(ops);
   if (opSet.size !== ops.length) throw new Error(`module ${name}: duplicate operationId in spec`);
+  for (const p of pending) {
+    if (!opSet.has(p)) throw new Error(`module ${name}: pendingOperations entry ${p} has no operationId in ${name} spec`);
+  }
+  const has = (op: string) => Object.hasOwn(handlers, op) && typeof (handlers as any)[op] === 'function';
   for (const op of ops) {
-    if (!Object.hasOwn(handlers, op) || typeof (handlers as any)[op] !== 'function') throw new Error(`module ${name}: missing handler for operationId ${op}`);
+    if (!has(op) && !pending.includes(op)) throw new Error(`module ${name}: missing handler for operationId ${op}`);
   }
   for (const k of Object.keys(handlers)) {
     if (!opSet.has(k)) throw new Error(`module ${name}: handler ${k} has no operationId in ${name} spec`);
   }
+  return pending.filter(has);
 }
 
 const sameSet = (a: readonly string[], b: readonly string[]) =>
@@ -172,6 +188,8 @@ const sameSet = (a: readonly string[], b: readonly string[]) =>
 export interface LoadedModule {
   readonly manifest: ModuleManifest;
   readonly spec: any;
+  /** LD-325: pending ids that also have a handler (bootstrap warns once per id). */
+  readonly stalePending: readonly string[];
 }
 
 export function loadSpec(file: string): any {
@@ -249,8 +267,8 @@ export function validateManifest(dir: string, m: any, repoRoot: string): LoadedM
     if (PORT_OWNERS[p] !== dir) throw new Error(`module ${dir}: port ${p} is not owned by this module (PORT_OWNERS)`);
   }
   const spec = loadSpec(file);
-  checkHandlers(dir, spec, m.handlers);
-  return { manifest: m, spec };
+  const stalePending = checkHandlers(dir, spec, m.handlers, m.pendingOperations ?? []);
+  return { manifest: m, spec, stalePending };
 }
 
 /** `<modulesDir>/*\/index.ts` — no central list. A missing directory means no modules. */

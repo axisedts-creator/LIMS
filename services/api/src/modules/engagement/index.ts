@@ -23,4 +23,7 @@ export const manifest: ModuleManifest = {
     'engagement.link.read', 'engagement.link.revoke', 'engagement.bookable_item.manage', 'engagement.membership.enrol',
   ],
   authResolvers: { patientPreAuth, queueDisplayToken }, // patientPreAuth: T-A2 (CR-C16-005); queueDisplayToken: T-Q3
+  // LD-325(b): T0B-MSGDESK-1 implemented the 11 broadcast operations T0C-MSGDESK-1 listed here, so the pending list is empty.
+  pendingOperations: [],
+  // T0B-CONTENT-1 (LD-368, LD-325(b)): the 9 portal content / profile image ids were removed from pendingOperations with their handlers.
 };

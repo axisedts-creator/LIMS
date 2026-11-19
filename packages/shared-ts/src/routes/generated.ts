@@ -316,11 +316,41 @@ export const ROUTES = {
     "path": "/anatomic",
     "permission": "anatomic.case.read"
   },
+  "staff.billing.account_entries": {
+    "origin": "staff_web",
+    "owner": "C4",
+    "path": "/billing/accounts/entries",
+    "permission": "billing.account.read"
+  },
+  "staff.billing.account_ledger": {
+    "origin": "staff_web",
+    "owner": "C4",
+    "path": "/billing/accounts/ledger",
+    "permission": "billing.account.read"
+  },
+  "staff.billing.account_masters": {
+    "origin": "staff_web",
+    "owner": "C4",
+    "path": "/billing/accounts/masters",
+    "permission": "billing.account.read"
+  },
+  "staff.billing.account_summary": {
+    "origin": "staff_web",
+    "owner": "C4",
+    "path": "/billing/accounts/summary",
+    "permission": "billing.account.read"
+  },
   "staff.billing.audit_trail": {
     "origin": "staff_web",
     "owner": "C4",
     "path": "/billing/audit-trail",
     "permission": "billing.data.export"
+  },
+  "staff.billing.cash_transfers": {
+    "origin": "staff_web",
+    "owner": "C4",
+    "path": "/billing/cash-transfers",
+    "permission": "billing.account.read"
   },
   "staff.billing.cbms": {
     "origin": "staff_web",
@@ -352,6 +382,18 @@ export const ROUTES = {
     "path": "/billing/dues",
     "permission": "billing.invoice.read"
   },
+  "staff.billing.expense_types": {
+    "origin": "staff_web",
+    "owner": "C4",
+    "path": "/billing/expenses/types",
+    "permission": "billing.account.read"
+  },
+  "staff.billing.expenses": {
+    "origin": "staff_web",
+    "owner": "C4",
+    "path": "/billing/expenses",
+    "permission": "billing.account.read"
+  },
   "staff.billing.invoice": {
     "origin": "staff_web",
     "owner": "C4",
@@ -363,6 +405,12 @@ export const ROUTES = {
     "owner": "C4",
     "path": "/billing/invoices",
     "permission": "billing.invoice.read"
+  },
+  "staff.billing.pocket_ledger": {
+    "origin": "staff_web",
+    "owner": "C4",
+    "path": "/billing/accounts/pocket",
+    "permission": "billing.account.read"
   },
   "staff.billing.registers": {
     "origin": "staff_web",
@@ -543,6 +591,12 @@ export const ROUTES = {
     "owner": "C16",
     "path": "/engagement/bookings",
     "permission": "engagement.booking.read"
+  },
+  "staff.engagement.content": {
+    "origin": "staff_web",
+    "owner": "C16",
+    "path": "/engagement/content",
+    "permission": "engagement.content.read"
   },
   "staff.engagement.enquiries": {
     "origin": "staff_web",
@@ -970,6 +1024,12 @@ export const ROUTES = {
     "owner": "C10",
     "path": "/micro/worklist",
     "permission": "micro.culture.read"
+  },
+  "staff.offline": {
+    "origin": "staff_web",
+    "owner": "C0",
+    "path": "/offline",
+    "permission": "sync.use"
   },
   "staff.partners.inbox": {
     "origin": "staff_web",

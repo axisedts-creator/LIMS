@@ -3,7 +3,7 @@
     "web/features/reporting/nav.manifest.ts": "9f3d2a33f0bbe913f95b562e0f4202e2583a036dca6fba4c800f99fc386e98dc",
     "web/features/reporting/server/actions.ts": "80dc1ff7230c92a77ab96628ee60008fe07b11503c0d1309b092812ec2c32786",
     "web/features/reporting/server/pdf.server.ts": "a82d2c5fc0e4fa286e9ce667ab8a522e5eff29da755f05de76bed9ed3474b15a",
-    "web/features/reporting/server/read.server.ts": "0e2c58ad23bb9b64b027e626103957153d4013abeda068ec4433e811752018ae",
+    "web/features/reporting/server/read.server.ts": "4f2699e17a0f3cf42e4344d38611211d3b2fbf48c954eb514295ac064660be4c",
     "web/features/reporting/server/types.ts": "6a7e0b3ede51472022cee1559ed294c6b8e85970fe857d7fa9457578c268e801",
     "web/features/reporting/server/write.server.ts": "dc339f26637e1cd0e03351a7d65f5aeae9d558f2e2297bec6807463c5f1f8b96",
     "web/features/reporting/components/useShortcuts.ts": "6a94ec461ff2fcccbf673d2df50cc2723e460e11964582424875d09c686bd616",

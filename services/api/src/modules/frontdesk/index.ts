@@ -9,4 +9,6 @@ export const manifest: ModuleManifest = {
   produces: ['frontdesk.order.created.v1', 'frontdesk.order.items_changed.v1', 'frontdesk.order.cancelled.v1'],
   handlers,
   ports: { FrontdeskPort: frontdeskPort },
+  // LD-325 (T0B-BOOTGATE-1): empty because T0B-REGAPI-2 now has a handler for every contract operation.
+  pendingOperations: [],
 };

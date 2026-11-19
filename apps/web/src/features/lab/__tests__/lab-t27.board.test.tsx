@@ -76,7 +76,8 @@ describe('T-27 status board table (AC-18.1)', () => {
   it('empty result: "No registrations in this period."', async () => {
     await show([]);
     expect(screen.getByText('No registrations in this period.')).toBeTruthy();
-    expect(screen.queryByRole('table')).toBeNull();
+    // T0D-EMPTYTBL-1 / LD-310: empty board still draws its header row.
+    expect(within(screen.getByRole('table')).getAllByRole('columnheader').length).toBeGreaterThanOrEqual(3);
   });
 
   it('shows "Updated {time}" text and has no axe violations', async () => {
@@ -143,7 +144,7 @@ describe('T-27 auto-refresh every 30 s by polling, with a pause toggle (03-APP-F
 // and APPENDS the returned rows; the button is gone when the last page has no next_cursor. A poll / filter change resets to page 1.
 describe('T-27 paging: page.next_cursor is not ignored (AC-18.1)', () => {
   const withCursor = (data: unknown[], next_cursor?: string) => ({ ok: true, data: { data, page: { limit: 50, ...(next_cursor ? { next_cursor } : {}) } } });
-  const pickReady = async () => { await act(async () => { fireEvent.click(screen.getByRole('button', { name: /^Ready$/ })); }); };
+  const pickReady = async () => { await act(async () => { fireEvent.click(screen.getByRole('button', { name: /^Ready\b/ })); }); }; // T0D-UIDASH-1: the status chip is now a StatTile button, its name is "Ready {count}"
 
   it('shows "Load more" when the response has next_cursor and appends the next page with that cursor', async () => {
     bff.getStatusBoardAction.mockResolvedValueOnce(withCursor([row(1, { board_status: 'ready' })], 'cur-page-2'))
@@ -174,13 +175,14 @@ describe('T-27 filters: status chips and centre', () => {
   it('toggling status chips requests board_status as a csv of the chosen statuses (and none when cleared)', async () => {
     await show([row(1)]);
     const chip = (name: RegExp) => screen.getByRole('button', { name });
-    await act(async () => { fireEvent.click(chip(/^Ready$/)); });
-    await act(async () => { fireEvent.click(chip(/^Printed$/)); });
+    // T0D-UIDASH-1: the chips are StatTile buttons named "{label} {count}"; same assertions, name matched by its first word
+    await act(async () => { fireEvent.click(chip(/^Ready\b/)); });
+    await act(async () => { fireEvent.click(chip(/^Printed\b/)); });
     const last = bff.getStatusBoardAction.mock.calls.at(-1)![0] as Record<string, string>;
     expect(String(last.board_status).split(',').sort()).toEqual(['printed', 'ready']);
-    expect(chip(/^Ready$/).getAttribute('aria-pressed')).toBe('true');
-    await act(async () => { fireEvent.click(chip(/^Ready$/)); });
-    await act(async () => { fireEvent.click(chip(/^Printed$/)); });
+    expect(chip(/^Ready\b/).getAttribute('aria-pressed')).toBe('true');
+    await act(async () => { fireEvent.click(chip(/^Ready\b/)); });
+    await act(async () => { fireEvent.click(chip(/^Printed\b/)); });
     const cleared = bff.getStatusBoardAction.mock.calls.at(-1)![0] as Record<string, string>;
     expect(cleared.board_status ?? '').toBe('');
   });

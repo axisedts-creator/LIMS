@@ -13,11 +13,12 @@ import { Select } from '@lims/ui/components/Select';
 import { StatusChip } from '@lims/ui/components/StatusChip';
 import { createVersionAction } from '../server/actions';
 import { LANG_LABEL, STATUS_LABEL, newKey, type Summary } from '../library';
+import { t } from '@/core/i18n/messages';
 
 const REASON = 'A draft or a version in review already exists';
 const date = (v?: string) => (v ? <DateText value={v as DateTextProps['value']} /> : '—');
 
-export function LibraryList({ rows }: { rows: Summary[] }) {
+export function LibraryList({ rows, loadError }: { rows: Summary[]; loadError?: { requestId?: string } }) {
   const router = useRouter();
   const [error, setError] = useState<string>();
   const [busy, setBusy] = useState(false);
@@ -58,7 +59,7 @@ export function LibraryList({ rows }: { rows: Summary[] }) {
   const newDraft = (
     <span className="lims-inline">
       <Menu
-        trigger={<Button variant="primary" isDisabled={blocked || busy}>New draft</Button>}
+        trigger={<Button variant="primary" isDisabled={blocked || busy || !!loadError}>New draft</Button>}
         items={[{ id: 'clone_active', label: 'From active version' }, { id: 'starter', label: 'From starter draft' }, { id: 'clone_version', label: 'From version…' }]}
         onAction={(id) => { setError(undefined); if (id === 'clone_version') setPickOpen(true); else void create({ source: id }); }}
       />
@@ -68,16 +69,14 @@ export function LibraryList({ rows }: { rows: Summary[] }) {
 
   return (
     <>
-      <PageHeader title="Smart report library" helpKey="smartreport.library" actions={newDraft} />
+      <PageHeader title={t('smartreport.nav.library')} helpKey="smartreport.library" actions={newDraft} />
       {error ? <div role="alert"><Banner tone="danger" title={error} /></div> : null}
-      {rows.length === 0 ? (
-        <div className="lims-state">
-          <p className="lims-state-title">No library yet. Start from the starter draft.</p>
-          <Button variant="primary" isLoading={busy} onPress={() => void create({ source: 'starter' })}>Start from the starter draft</Button>
-        </div>
-      ) : (
-        <DataTable<Summary> columns={columns} rows={rows} getRowId={(r) => r.id} caption="Library versions" density="compact" emptyState={{ title: 'No library yet. Start from the starter draft.' }} />
-      )}
+      {/* T0D-EMPTYTBL-2 (LD-310, LD-336): the table is always drawn; the starter-draft button sits in the empty message row (the inFlight guard keeps it to one request). */}
+      <DataTable<Summary>
+        columns={columns} rows={rows} getRowId={(r) => r.id} caption="Library versions" density="compact"
+        emptyState={{ title: 'No library yet. Start from the starter draft.', action: { label: 'Start from the starter draft', onPress: () => void create({ source: 'starter' }) } }}
+        {...(loadError ? { error: { title: 'The library versions could not be loaded.', ...loadError, onRetry: () => router.refresh() } } : {})}
+      />
       <Dialog
         title="New draft from a version" isOpen={pickOpen} onClose={() => setPickOpen(false)}
         footer={<Button variant="primary" isDisabled={!source} isLoading={busy} onPress={() => source && void create({ source: 'clone_version', source_version_id: source })}>Create draft</Button>}

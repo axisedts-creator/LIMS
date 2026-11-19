@@ -5,11 +5,15 @@
 // [CONV] otp_request has no per-link key in the core limiter grammar (only `p:`): the 3-per-hour-per-link budget of P1 is counted from reporting.otp_challenges under the link row lock.
 import { readFileSync } from 'node:fs';
 import { LimsError, type FieldError } from '../../../core/errors.js';
+import type { BucketName, StorageAdapter } from '../../../core/storage/index.js';
 import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';
 import { loadReportingConfig, type ReportingConfig } from '../config.js';
 import { OTP_MAX_ATTEMPTS, verifyOtp } from '../domain/otp.js';
 import { issueToken } from '../domain/tokens.js';
 import { findLinkRecipient, findOpenRequestOfLink, findPortalPaymentGateways, findReportForPayment, findRequestOfLink, insertQueuedRequest } from '../repository/portal-payment.repo.js';
+import {
+  INSERT_LINK, INSERT_CHALLENGE, INSERT_SESSION, SELECT_LIVE_SESSION, SLIDE_SESSION, END_SESSION, SELECT_REPORT_FOR_LINK, SELECT_VERSION_STATUS, SELECT_REPORT_FOR_VIEW, SELECT_RELEASED_VERSION, SELECT_QR_OF_VERSION, SELECT_LINK_VIEW, SELECT_PAYMENT_GATEWAYS, SELECT_BALANCE_DUE, SELECT_LINK_RECIPIENT_KIND, SELECT_LATEST_QR_LAB_NAME, SELECT_DOWNLOAD_VERSION, LOCK_LINK_FOR_CHALLENGE, SELECT_RECENT_CHALLENGES, SUPERSEDE_CHALLENGES, LOCK_CHALLENGE, BUMP_CHALLENGE_ATTEMPTS, EXHAUST_CHALLENGE, VERIFY_CHALLENGE, SELECT_LINK_FOR_SESSION, MARK_LINK_USED, LOCK_LINK_FOR_REISSUE, SELECT_REISSUE_MAX, SET_REISSUE_COUNT,
+} from '../repository/portal.repo.js';
 
 type Row = Record<string, any>;
 type Tx = { query(sql: string, values?: unknown[]): Promise<{ rows: Row[] }> };
@@ -25,7 +29,7 @@ const DEFAULT_REISSUES_PER_DAY = 3;                                      // sett
 const SEND_TASK = 'reporting.send_portal_otp';
 const REISSUE_TASK = 'reporting.reissue_portal_link';
 const TASK_MAX_ATTEMPTS = 8;                                             // 02-TRD §9
-const REPORT_BUCKET = 'reports';
+const REPORT_BUCKET: BucketName = 'reports';
 const PAY_CREATE_TASK = 'reporting.create_portal_payment_intent';       // PP1 (08 A11.1)
 const PAY_REFRESH_TASK = 'reporting.refresh_portal_payment_request';    // PP2
 const PAY_TASK_MAX_ATTEMPTS = 3;                                         // 02-TRD §9
@@ -37,17 +41,12 @@ const KATHMANDU = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kathmandu' 
 const STATUS_LABEL: Readonly<Record<string, string>> = { final: 'Final report', partial: 'Partial report', preliminary: 'Preliminary report', amended: 'Amended report', addendum: 'Addendum' };   // [CONV]
 
 const ENQUEUE = 'SELECT app.enqueue_job($1, $2::jsonb, $3, $4, $5)';
-const INSERT_LINK = `INSERT INTO reporting.portal_links (id, tenant_id, centre_id, report_id, bound_version_no, channel, recipient_kind, patient_display_snapshot,
-  token_sha256, expires_at, created_by, updated_by) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $11)`;
-const INSERT_CHALLENGE = `INSERT INTO reporting.otp_challenges (id, tenant_id, link_id, channel, status, expires_at, created_by) VALUES ($1, $2, $3, $4, 'pending_send', $5, $6)`;
-const INSERT_SESSION = `INSERT INTO reporting.portal_sessions (id, tenant_id, link_id, report_id, token_sha256, last_seen_at, idle_expires_at, absolute_expires_at,
-  link_purpose, created_by) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`;
 
 export interface PortalCtx {
   tenantId: string; actor: { type: string; id: string }; tx: Tx; now(): string; claims?: Row;
   rateLimit?: { consume(tier: string, key: string): Promise<unknown> };
   audit?: { access(entry: Row): Promise<unknown> };
-  storage?: { read(bucket: string, path: string): Promise<Uint8Array> };
+  storage?: Partial<Pick<StorageAdapter, 'read' | 'readStream'>>;
   ports?: Row; commitOnError?: () => void;
   metrics?: { inc(name: string, labels?: Record<string, string>): void };
 }
@@ -87,12 +86,11 @@ export function createPortalService(deps: { env: Env; newId?: () => string }) {
     if (stage === 'link') throw new LimsError('reporting.otp_required');             // AC-11.12
     if (stage !== 'session' || typeof ctx.claims?.['portal_session_id'] !== 'string') throw new LimsError('reporting.link_invalid');
     const now = ctx.now();
-    const s = (await tx.query(`SELECT id, link_id, report_id, link_purpose, idle_expires_at, absolute_expires_at FROM reporting.portal_sessions
-      WHERE tenant_id = $1 AND id = $2 AND ended_at IS NULL`, [tenantId, ctx.claims['portal_session_id']])).rows[0];
+    const s = (await tx.query(SELECT_LIVE_SESSION, [tenantId, ctx.claims['portal_session_id']])).rows[0];
     if (!s || ms(s['idle_expires_at']) <= Date.parse(now) || ms(s['absolute_expires_at']) <= Date.parse(now)) throw new LimsError('reporting.link_invalid');
     if (slide) {
       const idle = new Date(Math.min(Date.parse(now) + config().portalSessionIdleMinutes * MIN, ms(s['absolute_expires_at']))).toISOString();
-      await tx.query(`UPDATE reporting.portal_sessions SET last_seen_at = $3, idle_expires_at = $4 WHERE tenant_id = $1 AND id = $2 AND ended_at IS NULL`, [tenantId, s['id'], now, idle]);
+      await tx.query(SLIDE_SESSION, [tenantId, s['id'], now, idle]);
     }
     return { tx, tenantId, sessionId: s['id'] as string, linkId: s['link_id'] as string, reportId: s['report_id'] as string, purpose: s['link_purpose'] as string, now };
   }
@@ -109,14 +107,14 @@ export function createPortalService(deps: { env: Env; newId?: () => string }) {
       const origin = deps.env['LIMS_ORIGIN_PORTAL']?.replace(/\/+$/, '');
       if (!origin) throw new LimsError('common.internal');
 
-      const r = (await tx.query(`SELECT id, centre_id, released_version_no, patient_display_name FROM reporting.reports WHERE tenant_id = $1 AND id = $2`, [tenantId, input.reportId])).rows[0];
+      const r = (await tx.query(SELECT_REPORT_FOR_LINK, [tenantId, input.reportId])).rows[0];
       if (!r) throw new LimsError('common.not_found');
       const released = r['released_version_no'] as number | null;
       if (released === null || released === undefined) throw new LimsError('reporting.report_not_released');
       const versionNo = (input.versionNo as number | undefined) ?? released;
       if (versionNo < released) throw new LimsError('reporting.report_superseded');
       const v = versionNo === released
-        ? (await tx.query(`SELECT status FROM reporting.report_versions WHERE tenant_id = $1 AND report_id = $2 AND version_no = $3`, [tenantId, input.reportId, versionNo])).rows[0] : undefined;
+        ? (await tx.query(SELECT_VERSION_STATUS, [tenantId, input.reportId, versionNo])).rows[0] : undefined;
       if (v?.['status'] !== 'released') throw new LimsError('reporting.report_not_released');
 
       const settings = await (ctx.ports?.['IdentityPort'] as Row | undefined)?.['getTenantSettings']?.(ctx, { keys: ['reportLinkTtlDays'] });
@@ -135,17 +133,17 @@ export function createPortalService(deps: { env: Env; newId?: () => string }) {
     async createChallenge(ctx: PortalCtx) {
       const { tx, tenantId, actorId } = scope(ctx);
       if (ctx.claims?.['portal_stage'] !== 'link') throw new LimsError('reporting.link_invalid');   // also expired_link and session
-      const link = (await tx.query(`SELECT id, otp_channel FROM reporting.portal_links WHERE tenant_id = $1 AND id = $2 AND revoked_at IS NULL FOR UPDATE`, [tenantId, actorId])).rows[0];
+      const link = (await tx.query(LOCK_LINK_FOR_CHALLENGE, [tenantId, actorId])).rows[0];
       if (!link) throw new LimsError('reporting.link_invalid');
       const now = Date.parse(ctx.now());
-      const recent = (await tx.query(`SELECT created_at FROM reporting.otp_challenges WHERE tenant_id = $1 AND link_id = $2 AND created_at > $3 ORDER BY created_at DESC LIMIT $4`,
+      const recent = (await tx.query(SELECT_RECENT_CHALLENGES,
         [tenantId, actorId, new Date(now - HOUR).toISOString(), CHALLENGES_PER_HOUR])).rows;
       if (recent.length >= CHALLENGES_PER_HOUR) {
         const e = new LimsError('common.rate_limited');
         e.retryAfterSeconds = Math.max(1, Math.ceil((ms(recent[CHALLENGES_PER_HOUR - 1]!['created_at']) + HOUR - now) / 1000));
         throw e;
       }
-      await tx.query(`UPDATE reporting.otp_challenges SET status = 'superseded' WHERE tenant_id = $1 AND link_id = $2 AND status IN ('pending_send', 'pending')`, [tenantId, actorId]);
+      await tx.query(SUPERSEDE_CHALLENGES, [tenantId, actorId]);
       const id = newId(); const channel = (link['otp_channel'] as string | null) ?? 'sms';
       await tx.query(INSERT_CHALLENGE, [id, tenantId, actorId, channel, new Date(now + config().otpTtlSeconds * 1000).toISOString(), actorId]);
       await tx.query(ENQUEUE, [SEND_TASK, JSON.stringify({ tenant_id: tenantId, challenge_id: id }), `portal_otp:${id}`, null, TASK_MAX_ATTEMPTS]);
@@ -163,27 +161,27 @@ export function createPortalService(deps: { env: Env; newId?: () => string }) {
       await ctx.rateLimit.consume('otp_verify', `o:${challengeId}`);                  // 5 per OTP lifetime, key = challenge id
 
       const now = ctx.now();
-      const c = (await tx.query(`SELECT id, status, attempts, code_hmac, expires_at FROM reporting.otp_challenges WHERE tenant_id = $1 AND id = $2 AND link_id = $3 FOR UPDATE`,
+      const c = (await tx.query(LOCK_CHALLENGE,
         [tenantId, challengeId, actorId])).rows[0];
       if (!c) throw new LimsError('auth.otp_invalid');
       if (c['status'] === 'exhausted' || (c['status'] === 'pending' && c['attempts'] >= OTP_MAX_ATTEMPTS)) throw new LimsError('auth.otp_attempts_exhausted');
       if (c['status'] !== 'pending' || !c['code_hmac'] || ms(c['expires_at']) <= Date.parse(now)) throw new LimsError('auth.otp_invalid');
 
       if (!verifyOtp(hmacKey(), challengeId, code, new Uint8Array(c['code_hmac']))) {
-        const upd = (await tx.query(`UPDATE reporting.otp_challenges SET attempts = attempts + 1 WHERE tenant_id = $1 AND id = $2 AND status = 'pending' AND attempts < $3 RETURNING attempts`,
+        const upd = (await tx.query(BUMP_CHALLENGE_ATTEMPTS,
           [tenantId, challengeId, OTP_MAX_ATTEMPTS])).rows[0];
         const exhausted = !!upd && upd['attempts'] >= OTP_MAX_ATTEMPTS;
-        if (exhausted) await tx.query(`UPDATE reporting.otp_challenges SET status = 'exhausted' WHERE tenant_id = $1 AND id = $2 AND status = 'pending'`, [tenantId, challengeId]);
+        if (exhausted) await tx.query(EXHAUST_CHALLENGE, [tenantId, challengeId]);
         await audit(ctx).access({ action: 'auth.otp_failure', entityType: 'otp_challenge', entityId: challengeId, outcome: 'denied', detail: { attempts: Number(upd?.['attempts'] ?? OTP_MAX_ATTEMPTS) } });
         ctx.commitOnError?.();                                                     // the counter must survive this 4xx (P-42)
         ctx.metrics?.inc('lims_reporting_otp_verify_failures_total', { tenant_id: tenantId });   // T33: brute-force alert (REQ-SEC-133); tenant_id only, never challenge/link id
         throw new LimsError(exhausted ? 'auth.otp_attempts_exhausted' : 'auth.otp_invalid');
       }
 
-      const done = (await tx.query(`UPDATE reporting.otp_challenges SET status = 'verified', verified_at = $3 WHERE tenant_id = $1 AND id = $2 AND status = 'pending' RETURNING id`,
+      const done = (await tx.query(VERIFY_CHALLENGE,
         [tenantId, challengeId, now])).rows[0];
       if (!done) throw new LimsError('auth.otp_invalid');                              // single use: lost a race
-      const link = (await tx.query(`SELECT id, report_id, purpose FROM reporting.portal_links WHERE tenant_id = $1 AND id = $2 AND revoked_at IS NULL`, [tenantId, actorId])).rows[0];
+      const link = (await tx.query(SELECT_LINK_FOR_SESSION, [tenantId, actorId])).rows[0];
       if (!link) throw new LimsError('reporting.link_invalid');
 
       const { token, tokenSha256 } = issueToken('session');
@@ -191,7 +189,7 @@ export function createPortalService(deps: { env: Env; newId?: () => string }) {
       const idle = new Date(t + config().portalSessionIdleMinutes * MIN).toISOString();
       const absolute = new Date(t + config().portalSessionAbsoluteMinutes * MIN).toISOString();
       await tx.query(INSERT_SESSION, [sessionId, tenantId, actorId, link['report_id'], Buffer.from(tokenSha256), now, idle, absolute, link['purpose'], actorId]);
-      await tx.query(`UPDATE reporting.portal_links SET last_used_at = $3, use_count = use_count + 1 WHERE tenant_id = $1 AND id = $2`, [tenantId, actorId, now]);
+      await tx.query(MARK_LINK_USED, [tenantId, actorId, now]);
       await audit(ctx).access({ action: 'portal.session_start', entityType: 'portal_session', entityId: sessionId, outcome: 'allowed', detail: { link_id: actorId } });
       return { status: 200, body: { session_token: token, idle_expires_at: idle, absolute_expires_at: absolute, link_purpose: link['purpose'] as string } };
     },
@@ -201,12 +199,11 @@ export function createPortalService(deps: { env: Env; newId?: () => string }) {
       const s = await liveSession(ctx, true);
       if (s.purpose !== 'report') throw new LimsError('common.not_found');             // A26
       const { tx, tenantId } = s;
-      const r = (await tx.query(`SELECT id, family, released_version_no, billing_balance_due_paisa FROM reporting.reports WHERE tenant_id = $1 AND id = $2`, [tenantId, s.reportId])).rows[0];
+      const r = (await tx.query(SELECT_REPORT_FOR_VIEW, [tenantId, s.reportId])).rows[0];
       if (!r || r['released_version_no'] === null || r['released_version_no'] === undefined) throw new LimsError('common.not_found');
-      const v = (await tx.query(`SELECT id, version_no, report_kind, released_at, smart_summary_json FROM reporting.report_versions
-        WHERE tenant_id = $1 AND report_id = $2 AND version_no = $3 AND status = 'released'`, [tenantId, s.reportId, r['released_version_no']])).rows[0];
-      const qr = v && (await tx.query(`SELECT lab_name_snapshot, panel_names_snapshot FROM reporting.qr_tokens WHERE tenant_id = $1 AND report_version_id = $2 AND revoked_at IS NULL`, [tenantId, v['id']])).rows[0];
-      const link = (await tx.query(`SELECT recipient_kind, patient_display_snapshot FROM reporting.portal_links WHERE tenant_id = $1 AND id = $2`, [tenantId, s.linkId])).rows[0];
+      const v = (await tx.query(SELECT_RELEASED_VERSION, [tenantId, s.reportId, r['released_version_no']])).rows[0];
+      const qr = v && (await tx.query(SELECT_QR_OF_VERSION, [tenantId, v['id']])).rows[0];
+      const link = (await tx.query(SELECT_LINK_VIEW, [tenantId, s.linkId])).rows[0];
       if (!v || !qr || !link) throw new LimsError('common.not_found');
 
       const report: Row = { family: r['family'], report_kind: v['report_kind'], status_label: STATUS_LABEL[v['report_kind']] ?? 'Report', issued_at: iso(v['released_at']),
@@ -216,7 +213,7 @@ export function createPortalService(deps: { env: Env; newId?: () => string }) {
       const summary = typeof v['smart_summary_json'] === 'string' ? JSON.parse(v['smart_summary_json']) : v['smart_summary_json'];
       if (summary !== null && summary !== undefined) body['smart_summary'] = summary;
       if (link['recipient_kind'] === 'patient' && Number(r['billing_balance_due_paisa']) > 0) {
-        const st = (await tx.query(`SELECT portal_payment_gateways FROM reporting.settings WHERE tenant_id = $1`, [tenantId])).rows[0];
+        const st = (await tx.query(SELECT_PAYMENT_GATEWAYS, [tenantId])).rows[0];
         const dues: Row = { balance_due_paisa: Number(r['billing_balance_due_paisa']), online_gateways: Array.isArray(st?.['portal_payment_gateways']) ? st['portal_payment_gateways'] : [] };
         const open = await findOpenRequestOfLink(tx, tenantId, s.linkId);               // this link's request only (AC-18.4)
         if (open) dues['open_request'] = { id: open['id'], status: open['status'] };
@@ -232,14 +229,14 @@ export function createPortalService(deps: { env: Env; newId?: () => string }) {
     async getDues(ctx: PortalCtx) {
       const s = await liveSession(ctx, true);
       const { tx, tenantId } = s;
-      const r = (await tx.query(`SELECT billing_balance_due_paisa FROM reporting.reports WHERE tenant_id = $1 AND id = $2`, [tenantId, s.reportId])).rows[0];
-      const link = (await tx.query(`SELECT recipient_kind FROM reporting.portal_links WHERE tenant_id = $1 AND id = $2`, [tenantId, s.linkId])).rows[0];
+      const r = (await tx.query(SELECT_BALANCE_DUE, [tenantId, s.reportId])).rows[0];
+      const link = (await tx.query(SELECT_LINK_RECIPIENT_KIND, [tenantId, s.linkId])).rows[0];
       if (!r || !link) throw new LimsError('common.not_found');
-      const qr = (await tx.query(`SELECT lab_name_snapshot FROM reporting.qr_tokens WHERE tenant_id = $1 AND report_id = $2 AND revoked_at IS NULL ORDER BY issued_at DESC LIMIT 1`, [tenantId, s.reportId])).rows[0];
+      const qr = (await tx.query(SELECT_LATEST_QR_LAB_NAME, [tenantId, s.reportId])).rows[0];
       const body: Row = { lab_name: typeof qr?.['lab_name_snapshot'] === 'string' && qr['lab_name_snapshot'] ? qr['lab_name_snapshot'] : 'Laboratory', report_follows: s.purpose === 'dues' };
       const due = Number(r['billing_balance_due_paisa']);
       if (link['recipient_kind'] === 'patient' && due > 0) {
-        const st = (await tx.query(`SELECT portal_payment_gateways FROM reporting.settings WHERE tenant_id = $1`, [tenantId])).rows[0];
+        const st = (await tx.query(SELECT_PAYMENT_GATEWAYS, [tenantId])).rows[0];
         const dues: Row = { balance_due_paisa: due, online_gateways: Array.isArray(st?.['portal_payment_gateways']) ? st['portal_payment_gateways'] : [] };
         const open = await findOpenRequestOfLink(tx, tenantId, s.linkId);
         if (open) dues['open_request'] = { id: open['id'], status: open['status'] };
@@ -255,12 +252,15 @@ export function createPortalService(deps: { env: Env; newId?: () => string }) {
       if (typeof input?.reportVersionId !== 'string' || !UUID.test(input.reportVersionId)) throw new LimsError('common.not_found');
       if (!ctx.rateLimit || !ctx.storage) throw new LimsError('common.internal');
       await ctx.rateLimit.consume('report_download', `l:${s.linkId}`);
-      const v = (await s.tx.query(`SELECT id, version_no, pdf_object_path FROM reporting.report_versions WHERE tenant_id = $1 AND report_id = $2 AND id = $3 AND status = 'released'`,
+      const v = (await s.tx.query(SELECT_DOWNLOAD_VERSION,
         [s.tenantId, s.reportId, input.reportVersionId])).rows[0];
       if (!v || typeof v['pdf_object_path'] !== 'string' || !v['pdf_object_path']) throw new LimsError('common.not_found');   // A5: other report / tenant / superseded
-      const bytes = await ctx.storage.read(REPORT_BUCKET, v['pdf_object_path']);
-      await audit(ctx).access({ action: 'report.portal_download', entityType: 'report_version', entityId: v['id'], outcome: 'allowed', detail: { link_id: s.linkId } });
-      return { bytes, filename: `report-v${v['version_no']}.pdf` };
+      // T0B-FILESTREAM-1 (LD-312): the handler streams the object (core streamStored) and calls logAccess before the first byte (200 / 206 / 304; never 416).
+      const log = audit(ctx);
+      return {
+        storage: ctx.storage, bucket: REPORT_BUCKET, objectPath: v['pdf_object_path'] as string, filename: `report-v${v['version_no']}.pdf`,
+        logAccess: () => log.access({ action: 'report.portal_download', entityType: 'report_version', entityId: v['id'], outcome: 'allowed', detail: { link_id: s.linkId } }),
+      };
     },
 
     /** P5 — stage link or expired_link. Always 202 {}; only an expired, unrevoked link under its daily budget enqueues the reissue task. */
@@ -270,15 +270,15 @@ export function createPortalService(deps: { env: Env; newId?: () => string }) {
       if (stage !== 'link' && stage !== 'expired_link') throw new LimsError('reporting.link_invalid');
       const done = { status: 202, body: {} };
       if (stage === 'link') return done;
-      const link = (await tx.query(`SELECT id, reissue_count_day, reissue_day::text AS reissue_day FROM reporting.portal_links WHERE tenant_id = $1 AND id = $2 AND revoked_at IS NULL FOR UPDATE`,
+      const link = (await tx.query(LOCK_LINK_FOR_REISSUE,
         [tenantId, actorId])).rows[0];
       if (!link) throw new LimsError('reporting.link_invalid');
       const day = KATHMANDU.format(new Date(ctx.now()));
       const used = String(link['reissue_day'] ?? '').slice(0, 10) === day ? Number(link['reissue_count_day']) : 0;
-      const st = (await tx.query(`SELECT link_reissue_max_per_day FROM reporting.settings WHERE tenant_id = $1`, [tenantId])).rows[0];
+      const st = (await tx.query(SELECT_REISSUE_MAX, [tenantId])).rows[0];
       if (used >= Number(st?.['link_reissue_max_per_day'] ?? DEFAULT_REISSUES_PER_DAY)) return done;
       const n = used + 1;
-      await tx.query(`UPDATE reporting.portal_links SET reissue_count_day = $3, reissue_day = $4::date WHERE tenant_id = $1 AND id = $2`, [tenantId, actorId, n, day]);
+      await tx.query(SET_REISSUE_COUNT, [tenantId, actorId, n, day]);
       await tx.query(ENQUEUE, [REISSUE_TASK, JSON.stringify({ tenant_id: tenantId, link_id: actorId, reissue_day: day, n }), `reissue:${actorId}:${day}:${n}`, null, TASK_MAX_ATTEMPTS]);
       return done;
     },
@@ -330,7 +330,7 @@ export function createPortalService(deps: { env: Env; newId?: () => string }) {
     /** P6 — stage session. Ends this session only; the link and its OTP budget are untouched. */
     async endSession(ctx: PortalCtx) {
       const s = await liveSession(ctx, false);
-      await s.tx.query(`UPDATE reporting.portal_sessions SET ended_at = $3 WHERE tenant_id = $1 AND id = $2 AND ended_at IS NULL`, [s.tenantId, s.sessionId, s.now]);
+      await s.tx.query(END_SESSION, [s.tenantId, s.sessionId, s.now]);
       return { status: 204 };
     },
   };

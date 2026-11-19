@@ -22,7 +22,7 @@ export interface Problem { type: string; title: string; status: number; code: st
 
 export type Resolution =
   | { ok: true; session: ShellSession; accessToken: string }
-  | { ok: false; status: number; problem: Problem };
+  | { ok: false; status: number; problem: Problem; waking?: true }; // T0D-WAKE-1: set only when the API gave no answer
 
 export interface SessionResolver {
   resolve(sessionId: string, opts: { touch: boolean }): Promise<Resolution>;

@@ -76,8 +76,9 @@ describe('AB2 / US-15.1: partner-facing request contracts', () => {
 
 describe('AB16 / US-07.8 / REQ-SEC-098: no patient search term in any URL', () => {
   const FORBIDDEN_QUERY = /^(patient|patient_name|full_name|name|phone|phone_e164|dob|birth_on|registration_no|partner_sample_ref|sample_ref|manifest_no|clinical_note|email)$/i;
-  // free-text `q` exists only where the searched thing is not a patient: price list / orderable catalogue, the partner's own referrer (doctor) list, the staff partner list.
-  const Q_ALLOWED = ['listPartnerPriceList', 'searchPartnerOrderables', 'listPartnerReferrers', 'listPartners'];
+  // free-text `q` exists only where the searched thing is not a patient: price list / orderable catalogue, the partner's own referrer (doctor) list, the staff partner list, and the staff sales master lists by name prefix (T0C-SALES-1).
+  const Q_ALLOWED = ['listPartnerPriceList', 'searchPartnerOrderables', 'listPartnerReferrers', 'listPartners', 'listSalesDesignations', 'listSalesRepresentatives', 'listServiceAreas',
+    'listPartyOnboarding', 'listNonCompliancePenalties']; // T0B-PARTYSET-1 ruling 3a: partners.yaml declares q on both (:8354/:8397, :8543/:8566)
 
   it('no operation has a query parameter that can carry patient-identifying data', () => {
     const bad = ALL.flatMap((o) => paramsOf(o.op).filter((p) => p.in === 'query' && FORBIDDEN_QUERY.test(p.name)).map((p) => `${o.operationId}:${p.name}`));

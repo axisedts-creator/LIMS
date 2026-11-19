@@ -1,0 +1,108 @@
+(node:47108) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/LIMS-lanes/C0-0B/db/tools/gen-isolation-probes.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\LIMS-lanes\C0-0B\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+gen-isolation-probes: wrote 465 probe files + _registry.sql to C:\LIMS-lanes\C0-0B\db\tests\isolation, 19 fixture files to C:\LIMS-lanes\C0-0B\db\tests\fixtures\probe-rows
+[core] WARNING: Executable file detection not yet supported on 'win32'.
+Schema updated
+psql:/repo/db/migrations/20261105001300_identity__create_identity_schema.sql:7: NOTICE:  schema "identity" already exists, skipping
+psql:/repo/db/migrations/20261105001500_catalog__create_catalog_schema.sql:10: NOTICE:  schema "catalog" already exists, skipping
+psql:/repo/db/migrations/20261105001600_frontdesk__create_frontdesk_schema.sql:7: NOTICE:  schema "frontdesk" already exists, skipping
+psql:/repo/db/migrations/20261105001700_billing__create_billing_schema.sql:7: NOTICE:  schema "billing" already exists, skipping
+psql:/repo/db/migrations/20261105001800_lab__create_lab_schema.sql:10: NOTICE:  schema "lab" already exists, skipping
+psql:/repo/db/migrations/20261105001900_reporting__create_reporting_schema.sql:145: NOTICE:  identifier "message_template_texts__tenant_id_template_code_channel_language__uq" will be truncated to "message_template_texts__tenant_id_template_code_channel_languag"
+psql:/repo/db/migrations/20261105001900_reporting__create_reporting_schema.sql:177: NOTICE:  identifier "report_template_versions__tenant_id_template_id__published__p_uq" will be truncated to "report_template_versions__tenant_id_template_id__published__p_u"
+psql:/repo/db/migrations/20261105001900_reporting__create_reporting_schema.sql:443: NOTICE:  identifier "deliveries__tenant_id_channel_account_id_provider_message_id__p_uq" will be truncated to "deliveries__tenant_id_channel_account_id_provider_message_id__p"
+psql:/repo/db/migrations/20261105001900_reporting__create_reporting_schema.sql:682: NOTICE:  identifier "narrative_versions__tenant_id_narrative_report_id_version_no__uq" will be truncated to "narrative_versions__tenant_id_narrative_report_id_version_no__u"
+psql:/repo/db/migrations/20261115192000_identity__add_provisioning_schema.sql:47: NOTICE:  identifier "tenant_contract_acceptances__tenant_id_document_accepted_at__idx" will be truncated to "tenant_contract_acceptances__tenant_id_document_accepted_at__id"
+                                                       set_config                                                        
+-------------------------------------------------------------------------------------------------------------------------
+ {"tenant_id":"01a1a98a-ac40-7000-8000-00000000a001","sub":"01a1b34e-1000-7eee-9d29-d7ca59a102b5","actor_type":"system"}
+(1 row)
+
+                                                       set_config                                                        
+-------------------------------------------------------------------------------------------------------------------------
+ {"tenant_id":"01a1a98a-ac40-7000-8000-00000000b001","sub":"01a1b34e-1000-7eee-9d29-d7ca59a102b5","actor_type":"system"}
+(1 row)
+
+ set_config 
+------------
+ 
+(1 row)
+
+NOTICE:  schema "storage" already exists, skipping
+# --- db/tests/identity/AUTH-MFA-COMPLETE-1_platform_event.test.sql
+# --- db/tests/identity/AUTH-PLATFORM-SESSION-1_platform_reads.test.sql
+# --- db/tests/identity/C2-T27_worker_tenant_tasks.test.sql
+# --- db/tests/identity/PLATFORM-DDL-1_policies.test.sql
+# --- db/tests/identity/SESSION-ACTOR-1_session_actor.test.sql
+# --- db/tests/identity/T0B-06_definers.test.sql
+# --- db/tests/identity/T0B-10.C2_lookups.test.sql
+# --- db/tests/identity/T0B-10.C2_maintenance.test.sql
+# --- db/tests/identity/T0B-10.C2_policies.test.sql
+# --- db/tests/identity/T0B-10.C2_schema.test.sql
+# --- db/tests/identity/T0B-ASYNC-1_worker_grants.test.sql
+# --- db/tests/identity/T0B-MFAPOL-1_mfa_factors_own.test.sql
+      0 [main] bash (51548) child_copy: cygheap read copy failed, 0x0..0x80000D5B0, done 0, windows pid 51548, Win32 error 299
+      1 [main] bash 629833 dofork: child -1 - forked process 51548 died unexpectedly, retry 0, exit code 0xC0000142, errno 11
+db/tests/run-suites.sh: fork: retry: Resource temporarily unavailable
+# --- db/tests/identity/T9-A38_platform_set_password.test.sql
+# --- db/tests/core/T0B-03_audit.test.sql
+ok 55 # SKIP identity.platform_staff exists (C2/T0B-06): platform-context audit assertions run with its own fixtures there
+ok 56 # SKIP identity.platform_staff exists (C2/T0B-06): platform-context audit assertions run with its own fixtures there
+ok 57 # SKIP identity.platform_staff exists (C2/T0B-06): platform-context audit assertions run with its own fixtures there
+ok 58 # SKIP identity.platform_staff exists (C2/T0B-06): platform-context audit assertions run with its own fixtures there
+ok 59 # SKIP identity.platform_staff exists (C2/T0B-06): platform-context audit assertions run with its own fixtures there
+# --- db/tests/core/T0B-03_isolation.test.sql
+# --- db/tests/core/T0B-03_schema.test.sql
+# --- db/tests/core/T0B-05_platform.test.sql
+# --- db/tests/core/T0B-05_queue.test.sql
+# --- db/tests/core/T0B-06_membership_branches.test.sql
+# --- db/tests/core/T0C-SYNC-1_sync_devices_blocks.test.sql
+# --- db/tests/definers/T0B-08_contracts_helpers.test.sql
+# --- db/tests/definers/T0B-08_contracts_platform.test.sql
+# --- db/tests/definers/T0B-08_inventory.test.sql
+# --- db/tests/definers/T0B-08_owner_policies.test.sql
+# --- db/tests/engagement/T-A2_resolve_preauth.test.sql
+# --- db/tests/engagement/T-A3_pre_acc.test.sql
+# --- db/tests/engagement/T-L2_redeem_link_code.test.sql
+# --- db/tests/engagement/T-OPS1_purge.test.sql
+# --- db/tests/engagement/T-Q3_resolve_display.test.sql
+# --- db/tests/engagement/T-SEC1_table_probes.test.sql
+not ok 1 - engagement schema holds exactly the 43 tables (40 of 05-SCHEMA §1 + 3 broadcast tables of T0C-MSGDESK-1)
+# Failed test 1: "engagement schema holds exactly the 43 tables (40 of 05-SCHEMA §1 + 3 broadcast tables of T0C-MSGDESK-1)"
+#         have: 45
+#         want: 43
+not ok 3 - no table is missing or unexpected (every table is probed)
+# Failed test 3: "no table is missing or unexpected (every table is probed)"
+#         have: {account_patient_links,accounts,addresses,bookable_items,booking_centres,booking_items,booking_transitions,bookings,broadcast,broadcast_recipient,broadcast_template,cs_booking_cancel_reasons,cs_enquiry_categories,cs_reminder_reasons,enquiries,enquiry_messages,event_inbox,g_cs_booking_cancel_reasons,g_cs_enquiry_categories,g_cs_reminder_reasons,link_codes,link_consents,membership_plans,notifications,number_counters,otp_challenges,patient_memberships,patient_order_specimens,patient_orders,patient_reports,payment_requests,portal_content,profile_image,queue_counters,queue_day_counters,queue_definitions,queue_displays,queue_tokens,reminders,self_registrations,settings,slot_blackouts,slot_occupancy,slot_templates,smart_summaries}
+#         want: {account_patient_links,accounts,addresses,bookable_items,booking_centres,booking_items,booking_transitions,bookings,broadcast,broadcast_recipient,broadcast_template,cs_booking_cancel_reasons,cs_enquiry_categories,cs_reminder_reasons,enquiries,enquiry_messages,event_inbox,g_cs_booking_cancel_reasons,g_cs_enquiry_categories,g_cs_reminder_reasons,link_codes,link_consents,membership_plans,notifications,number_counters,otp_challenges,patient_memberships,patient_order_specimens,patient_orders,patient_reports,payment_requests,queue_counters,queue_day_counters,queue_definitions,queue_displays,queue_tokens,reminders,self_registrations,settings,slot_blackouts,slot_occupancy,slot_templates,smart_summaries}
+# Looks like you failed 2 tests of 20
+# --- db/tests/engagement/T0B-13.C16_schema.test.sql
+not ok 1 - C16 check 1: engagement holds 39 tenant (36 of 05-SCHEMA §3 + 3 broadcast tables of T0C-MSGDESK-1) + 3 G tables + event_inbox (43 tables)
+# Failed test 1: "C16 check 1: engagement holds 39 tenant (36 of 05-SCHEMA §3 + 3 broadcast tables of T0C-MSGDESK-1) + 3 G tables + event_inbox (43 tables)"
+#         have: 45
+#         want: 43
+not ok 2 - C16 check 1: the table set equals the §3 inventory
+# Failed test 2: "C16 check 1: the table set equals the §3 inventory"
+#         have: {account_patient_links,accounts,addresses,bookable_items,booking_centres,booking_items,booking_transitions,bookings,broadcast,broadcast_recipient,broadcast_template,cs_booking_cancel_reasons,cs_enquiry_categories,cs_reminder_reasons,enquiries,enquiry_messages,g_cs_booking_cancel_reasons,g_cs_enquiry_categories,g_cs_reminder_reasons,link_codes,link_consents,membership_plans,notifications,number_counters,otp_challenges,patient_memberships,patient_order_specimens,patient_orders,patient_reports,payment_requests,portal_content,profile_image,queue_counters,queue_day_counters,queue_definitions,queue_displays,queue_tokens,reminders,self_registrations,settings,slot_blackouts,slot_occupancy,slot_templates,smart_summaries}
+#         want: {account_patient_links,accounts,addresses,bookable_items,booking_centres,booking_items,booking_transitions,bookings,broadcast,broadcast_recipient,broadcast_template,cs_booking_cancel_reasons,cs_enquiry_categories,cs_reminder_reasons,enquiries,enquiry_messages,g_cs_booking_cancel_reasons,g_cs_enquiry_categories,g_cs_reminder_reasons,link_codes,link_consents,membership_plans,notifications,number_counters,otp_challenges,patient_memberships,patient_order_specimens,patient_orders,patient_reports,payment_requests,queue_counters,queue_day_counters,queue_definitions,queue_displays,queue_tokens,reminders,self_registrations,settings,slot_blackouts,slot_occupancy,slot_templates,smart_summaries}
+not ok 520 - C16 check 5: exactly the 51 indexes beyond the constraint-backed ones (46 spec + 5 of the T0C-MSGDESK-1 broadcast tables, migration 20261117240000; no extra index)
+# Failed test 520: "C16 check 5: exactly the 51 indexes beyond the constraint-backed ones (46 spec + 5 of the T0C-MSGDESK-1 broadcast tables, migration 20261117240000; no extra index)"
+#         have: 52
+#         want: 51
+not ok 642 - C16 check 6 / AC-0B-5.3: 24 audit triggers (22 of 05-SCHEMA + broadcast_template and broadcast, T0C-MSGDESK-1); none on class A / E / G
+# Failed test 642: "C16 check 6 / AC-0B-5.3: 24 audit triggers (22 of 05-SCHEMA + broadcast_template and broadcast, T0C-MSGDESK-1); none on class A / E / G"
+#         have: 26
+#         want: 24
+not ok 698 - C16 check 7 / AC-0B-6.2: engagement FKs point into engagement, core, frontdesk only (01 §5 R3)
+# Failed test 698: "C16 check 7 / AC-0B-6.2: engagement FKs point into engagement, core, frontdesk only (01 §5 R3)"
+#         have: {core,engagement,frontdesk,identity}
+#         want: {core,engagement,frontdesk}
+# Looks like you failed 5 tests of 716
+# --- db/tests/engagement/T0B-CNTPOL-1_number_counters.test.sql
+# --- db/tests/engagement/T0C-CONTENT-1_portal_content.test.sql
+# --- db/tests/engagement/T0C-MSGDESK-1_broadcast_and_tickets.test.sql
+# --- db/tests/audit/T0B-04_audit.test.sql
+# elapsed 949s
+suites exceeded the 10 minute CI budget

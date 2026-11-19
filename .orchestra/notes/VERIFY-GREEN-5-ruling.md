@@ -85,3 +85,19 @@ rs-c6.screens.test.tsx only, re-recording the worklist snapshot only, then commi
 file. Do not touch any other snapshot in that file. Do not re-run -u against the whole suite.
 
 Reset applied: changes.
+
+
+----
+LEAD ITEM, LD-419 (2026-11-19):
+rs-c6.static data_files pin for portal/src/middleware.ts is stale after SEC-HDR-1 landed its
+headers on that file (x-frame-options, permissions-policy). Confirmed directly: the hash the
+test computes (sha256, utf8, CRLF normalized to LF) is
+eee6ef484dcce3e66c449f97896646f472c8765d93d6db4cf7db7ab7cce303b4; the committed baseline at
+rs-c6.baseline.json line 11 still has f355c051ab8e45ef901fa38bbecb55637f1a53096f345cec814e06214a740d3e.
+
+RULING: TESTS_WRONG, baseline pin only. Edit only line 11 of
+apps/web/src/features/reporting/__tests__/rs-c6.baseline.json to the new hash above. Nothing
+else in the baseline file changes. Do not touch portal/src/middleware.ts itself. Tester owned;
+writer and debugger may not touch this file.
+
+Reset applied: changes.

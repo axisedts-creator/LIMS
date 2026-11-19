@@ -145,7 +145,7 @@ describe('fail closed: a limiter failure on the login tier denies', () => {
   });
 });
 
-describe('keys are HMAC-ed before they reach the store; only app.ratelimit_hit is used', () => {
+describe('keys are HMAC-ed before they reach the store; only app.ratelimit_hit / ratelimit_peek / ratelimit_clear (LD-410) are used', () => {
   it('the SQL and values never contain the raw IP or the raw account key; every key is 64 hex chars', async () => {
     const { pg, process_ } = world(); const l = process_();
     await l.checkIp(IP); await l.consumeAttempt(ACCT); await l.recordAccountFailure(ACCT); await l.accountState(ACCT);
@@ -153,7 +153,7 @@ describe('keys are HMAC-ed before they reach the store; only app.ratelimit_hit i
     await l.checkIp(IP); await l.clearAccountFailures(ACCT);
     expect(pg.executed.length).toBeGreaterThan(0);
     for (const { sql, values } of pg.executed) {
-      expect(sql).toMatch(/app\.ratelimit_hit/); expect(sql).not.toMatch(/rate_limit_counters/);
+      expect(sql).toMatch(/app\.ratelimit_(hit|peek|clear)/); expect(sql).not.toMatch(/rate_limit_counters/);
       expect(values[0]).toMatch(/^[0-9a-f]{64}$/);
       expect(JSON.stringify([sql, values])).not.toContain(IP);
       expect(JSON.stringify([sql, values])).not.toContain(ACCT);

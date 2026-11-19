@@ -1,0 +1,1 @@
+pnpm --dir services/api exec vitest run src/modules/identity/__tests__/authz4.identity-guards.test.ts src/modules/identity/__tests__/handlers-cover-contract.test.ts src/modules/identity/__tests__/security src/modules/identity/handlers/__tests__/session-actor.permissions.test.ts && node --test tests/security/authz-identity.test.mjs tests/security/authz-classification.test.mjs

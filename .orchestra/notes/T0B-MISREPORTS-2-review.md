@@ -1,5 +1,6 @@
 APPROVE
-Range 825bab9a7..HEAD is empty: HEAD == 825bab9a7 (the previous [reviewer] commit), so this pass has no code, test, contract or migration changes to review.
-- Previous review of 382496e64..2a8140b19 (contract.probe.test.ts edits per arbiter ruling / LD-402) still stands: owned path only, names verbatim, no assertion loosened, no PHI/secrets.
-- Not re-reviewed: impl commits before 382496e64.
-- Open (not a defect of this range): A39-4 parent/sub party link (CR-C0-MISREPORTS2-001 item 1) stays blocked with founder per LD-310/LD-402.
+Range 1361c8a92..HEAD (commit ece23aca0): the only change is one line added to .orchestra/notes/T0B-MISREPORTS-2-impl.md, a writer post-review note (no code change; tsc clean; PG17 gate 3 runs 70 files / 2849 pass / 0 fail / 51 skipped).
+- No source, migration, contract, test or probe file changed, so nothing new to check for names, RLS, permissions, idempotency, rate tier, error codes, PHI, secrets or path ownership. Only an owned notes file changed. No assertion was touched.
+- The previous review (1361c8a92) still applies: APPROVE for 91dedfba2..1361c8a92.
+- Still owed (outside this range, carried over): a full review of commit b57a7232d (migration 20261119000000_partners__add_party_parent_credit_party.sql plus the LD-408 join) against LD-408.
+- Not re-run by the reviewer: the PG17 gate figures are as the writer reported them.

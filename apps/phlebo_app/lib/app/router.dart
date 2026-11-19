@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lims_shared/lims_shared.dart';
 
+import 'phlebo_preview.dart';
 import 'routes.dart';
 
 String _colon(String tpl) => tpl.replaceAllMapped(RegExp(r'\{(\w+)\}'), (m) => ':${m[1]}');
@@ -18,7 +19,7 @@ Widget _placeholder(String id) => Scaffold(body: Center(child: Text(id)));
 GoRouter buildRouter() => GoRouter(
       initialLocation: phleboRouteLocation(_today()),
       routes: [
-        GoRoute(path: _colon(limsRoutePaths['phlebo_app.route']!), builder: (_, __) => _placeholder('phlebo_app.route')),
+        GoRoute(path: _colon(limsRoutePaths['phlebo_app.route']!), builder: (_, __) => kPhleboPreview ? const PhleboPreviewHome() : _placeholder('phlebo_app.route')),
         GoRoute(path: _colon(limsRoutePaths['phlebo_app.visit']!), builder: (_, __) => _placeholder('phlebo_app.visit')),
       ],
     );

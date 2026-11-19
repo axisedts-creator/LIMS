@@ -28,7 +28,7 @@ android {
         applicationId = "np.lims.phlebo_app"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
+        minSdk = 26 // sentry_flutter (LD-24 error tracking) requires API 26, same as patient_app
         targetSdk = flutter.targetSdkVersion
         // Uses the version code from pubspec.yaml. When using split APKs, 1000 * ABI_VERSION
         // is added automatically by Flutter. (https://developer.android.com/studio/build/configure-apk-splits#configure-APK-versions)
@@ -36,6 +36,11 @@ android {
         // flag during build.
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+    }
+
+    // The flavours below set app_name through resValue, which AGP 8+ only allows when this is on.
+    buildFeatures {
+        resValues = true
     }
 
     // HC-T21 flavours; Dart side reads --dart-define=FLAVOR (lib/app/flavor.dart). Release signing config is

@@ -31,3 +31,7 @@ dependency_overrides:
     path: ../../packages/shared-dart
   lims_ui:
     path: ../../packages/ui-flutter
+
+flutter:
+  # Bundles the Material Icons font the screens draw with (Icons.*); without it every icon renders as a wrong glyph.
+  uses-material-design: true

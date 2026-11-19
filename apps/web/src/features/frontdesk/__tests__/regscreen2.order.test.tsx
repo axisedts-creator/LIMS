@@ -209,7 +209,7 @@ describe('ICD code per test, with apply to all', () => {
   };
 
   it('the codes come from the ICD master (active only); picking one for CBC sends icd_code on that item in the quote and in F9, the other item has none', async () => {
-    reg2.icd = [...(reg2.icd as any[]), { id: U(79), code: 'Z99', description: 'Retired code', is_active: false, version: 1 }];
+    reg2.icd = [...(reg2.icd as unknown[]), { id: U(79), code: 'Z99', description: 'Retired code', is_active: false, version: 1 }];
     const u = user();
     await form();
     await twoTests(u);

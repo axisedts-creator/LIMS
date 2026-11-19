@@ -121,8 +121,8 @@ export const downloads: { name: string; href: string }[] = [];
 export function captureDownloads() {
   downloads.length = 0;
   vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (this: HTMLAnchorElement) { downloads.push({ name: this.download, href: this.href }); });
-  (URL as any).createObjectURL = vi.fn(() => 'blob:synthetic');
-  (URL as any).revokeObjectURL = vi.fn();
+  (URL as unknown as Record<string, unknown>).createObjectURL = vi.fn(() => 'blob:synthetic');
+  (URL as unknown as Record<string, unknown>).revokeObjectURL = vi.fn();
 }
 
 export const xlsxFile = (name = 'tests.xlsx', size = 64, type = XLSX) => new File([new Uint8Array(size).fill(0x50)], name, { type });

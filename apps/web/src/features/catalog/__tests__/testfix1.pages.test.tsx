@@ -73,7 +73,7 @@ const api = setupServer(
   }),
 );
 
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterAll(() => api.close());
 beforeEach(() => { API.shape = 'paged'; API.fail.clear(); API.data = {}; API.calls.length = 0; TM.session.permissions = MANAGE; TM.nav.search = ''; });
 afterEach(() => { cleanup(); api.resetHandlers(); TM.push.mockClear(); TM.replace.mockClear(); TM.refresh.mockReset(); });

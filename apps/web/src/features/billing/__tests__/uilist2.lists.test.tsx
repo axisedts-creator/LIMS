@@ -54,7 +54,7 @@ const CASES: Case[] = [
 ];
 
 const api = setupServer();
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { cleanup(); api.resetHandlers(); });
 afterAll(() => api.close());
 const serve = (c: Case, main: () => Response) => api.use(

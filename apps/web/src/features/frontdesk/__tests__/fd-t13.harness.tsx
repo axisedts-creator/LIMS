@@ -163,7 +163,7 @@ vi.mock('@/core/session/server', () => ({
 
 /** Call once at the top of each test file. */
 export function setup() {
-  beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+  beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
   afterEach(() => {
     cleanup(); api.resetHandlers(); calls.length = 0; push.mockReset();
     Object.assign(handlers, defaults);

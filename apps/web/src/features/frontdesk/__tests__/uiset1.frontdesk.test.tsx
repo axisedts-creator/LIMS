@@ -42,7 +42,7 @@ const api = setupServer(
   http.get(S, () => HttpResponse.json(settings())),
   http.put(S, async ({ request }) => { puts.push(await request.clone().json()); return HttpResponse.json(settings({ version: 8 })); }),
 );
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { cleanup(); api.resetHandlers(); puts.length = 0; refresh.mockReset(); session.perms = ['frontdesk.settings.manage']; });
 afterAll(() => api.close());
 

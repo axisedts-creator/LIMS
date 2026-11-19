@@ -118,7 +118,7 @@ const api = setupServer(
 );
 let createReply = (): Response => HttpResponse.json({ ...test(900, 'HGB2', 'Hemoglobin A2', BIOC), report_order: 100, version: 1, specimen_requirements: [], analytes: [], tat_targets: [] }, { status: 201 });
 
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => {
   cleanup(); api.resetHandlers(); listCalls.length = 0; rejected.length = 0; creates.length = 0; navLog.length = 0; used.clear();
   push.mockClear(); replace.mockClear(); refresh.mockReset(); session.permissions = MANAGE; TESTS = FIVE; nav.search = '';

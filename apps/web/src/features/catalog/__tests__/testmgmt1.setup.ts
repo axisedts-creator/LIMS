@@ -1,13 +1,13 @@
 // T0D-TESTMGMT-1 shared mocks (setupFiles). State lives on globalThis.__TM so the test files and the mocked modules see the same object.
-import { vi } from 'vitest';
+import { vi, type Mock } from 'vitest';
 
 type TM = {
   nav: { search: string; path: string };
   session: { permissions: string[] };
   navLog: string[];
-  push: ReturnType<typeof vi.fn>;
-  replace: ReturnType<typeof vi.fn>;
-  refresh: ReturnType<typeof vi.fn>;
+  push: Mock<(u: string) => void>;
+  replace: Mock<(u: string) => void>;
+  refresh: Mock<() => void>;
 };
 const g = globalThis as unknown as { __TM?: TM };
 const navLog: string[] = [];

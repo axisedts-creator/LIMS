@@ -53,7 +53,7 @@ const api = setupServer(
   http.patch(`${ORIGIN}/v1/catalog/*`, async ({ request }) => { await rec(request); return HttpResponse.json({ ...DEPTS[0], version: 4 }); }),
   http.get(`${ORIGIN}/v1/catalog/*`, () => HttpResponse.json({ data: [], page: { limit: 20 } })),
 );
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { cleanup(); api.resetHandlers(); calls.length = 0; refresh.mockReset(); });
 afterAll(() => api.close());
 beforeEach(() => { document.body.innerHTML = ''; });

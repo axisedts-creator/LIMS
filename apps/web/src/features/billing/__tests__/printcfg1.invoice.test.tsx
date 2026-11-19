@@ -33,11 +33,11 @@ const row = (o: Record<string, unknown> = {}) => ({ print_no: 1, is_copy: false,
 
 const posts: { json: any; headers: Headers }[] = [];
 let printFail = false;
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 beforeEach(() => {
   API.reset(); posts.length = 0; printFail = false; localStorage.clear(); PC.session.permissions = FINANCE;
   api.use(http.post(`${ORIGIN}/v1/billing/invoices/:id/print`, async ({ request }) => {
-    const json = await request.json() as any;
+    const json = await request.json() as { style?: string; [k: string]: unknown };
     posts.push({ json, headers: request.headers });
     if (printFail) return prob(500, 'common.internal');
     return HttpResponse.json({ print_no: 1, style: json.style ?? 'full', document: printDoc() });

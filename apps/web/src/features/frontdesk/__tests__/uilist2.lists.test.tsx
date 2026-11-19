@@ -32,7 +32,7 @@ const order = { id: U(1), registration_no: 'R-2083-000001', patient_id: U(2), pa
 const approval = { id: U(30), status: 'pending', centre_id: U(3), patient_code: 'P-000123', requested_by: { membership_id: U(91), display_name: 'Synthetic Receptionist' }, discounts: [{ scope: 'bill', kind: 'percent', percent_bp: 3000, reason_code: 'staff_relative' }], computed_discount: npr(45000), gross: npr(150000), percent_of_gross_bp: 3000, reason_code: 'staff_relative', expires_at: '2099-11-07T04:15:00.000Z', version: 7 };
 
 const api = setupServer();
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { cleanup(); api.resetHandlers(); });
 afterAll(() => api.close());
 const serveWork = (o: { flags?: () => Response; orders?: () => Response } = {}) => api.use(

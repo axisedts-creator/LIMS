@@ -33,7 +33,7 @@ const api = setupServer(
     return HttpResponse.json({ party_kind: u.searchParams.get('party_kind'), party_id: id, credit_limit_paisa: 0, outstanding_paisa: 100, outstanding_side: 'debit', is_blocked: false });
   }),
 );
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { api.resetHandlers(); inFlight = 0; peak = 0; seen = []; failIds = new Set(); });
 afterAll(() => api.close());
 

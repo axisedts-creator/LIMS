@@ -1,7 +1,8 @@
-# VERIFY-GREEN-6 impl (writer)
-- Files: 19 test files (catalog 12, frontdesk 6, billing bl-t20) `listen({onUnhandledRequest})` → `onUnhandledFrame` (msw 3.0.3 renamed it; old key was silently ignored, so 'error' is now really enforced; all suites still green) [CONV].
-- web-t32.server: `load` default generic `Record<string, any>` (35 TS2722 + 2 TS18048 gone). t32.components: `res as Record<string, unknown>`. t33/t34.components: `ord()` return type annotated. t35: `| undefined` on optional `form`/`filename` (exactOptionalPropertyTypes), `vi.fn(async (..._a: unknown[])`.
-- tsc apps/web errors under features/{catalog,frontdesk,billing}: 65 before, 0 after. Other dirs untouched (other tasks); whole-package turbo count not re-run.
-- Money/order: no emitted value, rounding, status or SQL changed; only test files, no product file; no ts-ignore/`as any`/skipLibCheck added.
-- Run green: vg6 gate 7/7; catalog t31 125, t32 107, t33 103, t34 116, t35 96, rs-c3 25; frontdesk fd-t13 70, fd-t14 98, rs-c4 36, adminpage-fd-1 45; billing bl-t20 54.
-- Open: no runtime question, no CR needed. Same msw rename still pending in other dirs (engagement, quality, shell).
+# VERIFY-GREEN-6 impl (writer, round 4, LD-423)
+- Files (test files/helpers only, 44, see `git diff --name-only`): msw 3.0.3 `listen({onUnhandledRequest})`->`onUnhandledFrame` in 37 files (old key ignored, so 'error' is now enforced; suites green) [CONV]; t32.server `load` default `Record<string, any>`; t32.components `res as Record<string, unknown>`; t33/t34 `ord(): Record<string, unknown>`; t35 `| undefined` on optional form/filename + fetchSpy `(..._a: unknown[])`; testmgmt1.setup `Mock<...>` types; nav-complete.billing `satisfies SpecRow[]`; uilist2.invoices `Promise<ReactNode>` cast.
+- `as any` pin (<=2): 11 later-added `as any` (regscreen1/2, testimport1.harness, acct1, printcfg1) replaced by typed casts / direct `URL.createObjectURL =` assignment; runtime same.
+- tsc apps/web errors under features/{catalog,frontdesk,billing}: 88 before (catalog 70, frontdesk 8, billing 10), 0 after. Whole-package `turbo run typecheck --continue` not re-run.
+- Money/order: no emitted value, rounding, status or SQL changed; no product file; no ts-ignore/expect-error/skipLibCheck/new `as any`.
+- Green: vg6 7/7; catalog t31 125, t32 107, t34 116, t35 96, t38 216, testmgmt1 141, testimport1 70, testfix1 122, uilist3 173, cattests1 40, catunits1 20; frontdesk fd-t13 70, fd-t14 98, fd-t17 18, regscreen1 75, regscreen2 87; billing acct1 194, acct2 268, bl-t20 54, bl-t23 25; uilist2 63, uiset1 69, printcfg1 72.
+- Red, not from this diff (failing tests in unedited files or product/static pins): emptytbl1/emptytbl2 (unedited), rs-c3.static + rs-c4.static/screens/register + adminpage-fd-1.static (baseline hashes/permissions.yaml), web-t33.server createDoctor (product now sends `quick_add`), nav-complete admin-pack/build. Not baseline-run on clean HEAD.
+- Open: edits are on disk UNCOMMITTED (git add needed approval) — rounds 1-3 lost them; orchestrator must commit this tree.

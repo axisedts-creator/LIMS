@@ -1,5 +1,7 @@
 APPROVE
-Range 825bab9a7..HEAD is empty: HEAD == 825bab9a7 (the previous [reviewer] commit), so this pass has no code, test, contract or migration changes to review.
-- Previous review of 382496e64..2a8140b19 (contract.probe.test.ts edits per arbiter ruling / LD-402) still stands: owned path only, names verbatim, no assertion loosened, no PHI/secrets.
-- Not re-reviewed: impl commits before 382496e64.
-- Open (not a defect of this range): A39-4 parent/sub party link (CR-C0-MISREPORTS2-001 item 1) stays blocked with founder per LD-310/LD-402.
+Range 91dedfba2..HEAD: the only code change is services/api/src/modules/analytics/__tests__/misreports/kit.ts:103-105, plus notes and the live log.
+- kit.ts adds one catalog.credit_parties row per spec.parties[i], exactly as the ruling (TESTS_WRONG, commission.live.test.ts:124) asks. The columns match db/migrations/20261105001500_catalog__create_catalog_schema.sql:652-673. party_code `SP`+12 hex characters matches `^[A-Z0-9_\-]{1,20}$`, kind 'partner_lab' is in the CHECK list, the name is synthetic and 1-160 characters, and the tenant_id is the same as the world tenant. The path is owned by the chunk, no assertion was changed or loosened, and there is no PHI or secret.
+- Impl unchanged per the ruling (misReports.service.ts not touched). Live log: 70 files passed / 4 skipped, 2849 passed / 0 failed / 51 skipped.
+- Debug note on the perf.live sales_representative flake belongs to the MISREPORTS-1 report, and no test was touched for it. Accepted as load-related, not a defect of this range.
+- Not reviewed here: commit b57a7232d (migration 20261119000000_partners__add_party_parent_credit_party.sql and the LD-408 join). It falls between the last review (eb3aa2f40) and this base, so it is outside the given range. A quick read found it additive and idempotent, with a composite tenant FK to catalog.credit_parties and a self-parent CHECK on a table that already has RLS. A full review of that commit against LD-408 is still owed.
+- Open (not a defect): the referral_report.view access entry on the report_run view for money codes (impl.md "Open").

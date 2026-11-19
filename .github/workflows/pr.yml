@@ -382,6 +382,14 @@ jobs:
       - if: steps.plan.outputs.run == 'true'
         name: pnpm install
         run: corepack enable && pnpm install --frozen-lockfile
+      # SEC-DEPS-1 (LD-239, audit 9.1): production tree must have no high or critical advisory; the full tree is reported only.
+      - if: steps.plan.outputs.run == 'true'
+        name: pnpm audit prod (blocking, SEC-DEPS-1)
+        run: pnpm audit --prod --audit-level=high
+      - if: steps.plan.outputs.run == 'true'
+        name: pnpm audit full tree (non-blocking, SEC-DEPS-1)
+        continue-on-error: true
+        run: pnpm audit --audit-level=high
       - if: steps.plan.outputs.run == 'true'
         name: licence allowlist, banned list, pnpm audit triage file (gates 12/13)
         run: |

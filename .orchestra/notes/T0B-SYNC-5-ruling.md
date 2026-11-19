@@ -1,3 +1,16 @@
+TESTS_WRONG — load.live.test.ts:40/:82 are right. The fixture services/api/src/core/sync/__tests__/hardening/kit.ts:74-95 takes row locks in per-batch order, so concurrent batches deadlock. Apply LD-418: at the start of each batch, before its first write, take `pg_advisory_xact_lock` on every key the batch will touch (s5_patient, s5_order and s5_state keys, plus the gap-free counter series ONLY when the batch holds a billing.record_receipt op). Deduplicate the keys, sort them by key string, then run the ops. Remove the LD-417 counter-first FOR UPDATE at kit.ts:77-79 (the pre-lock covers it); nextNo stays as is.
+1. Dispute (writer, 11:07 NPT) = debugger dispute 11:15: load.live.test.ts:40 fails with common.dependency_unavailable after the LD-417 kit change. The writer proposes kit fix (a), a sorted-key pre-lock.
+2. spec/chunks/C0-foundation-contracts/02-TRD.md:604 (§6.4): on 40001/40P01 the whole request tx is retried up to 3 times; :617 maps exhausted retries to 503 common.dependency_unavailable. Engine and harness follow this, so production is correct.
+3. Cause is the fixture lock order. kit.ts:88-89 insert shared patient/order keys (a pool of 300) with ON CONFLICT DO NOTHING in batch order: batch A holds P1 and waits on P2 while batch B holds P2 and waits on P1. This is a test-kit defect, not a spec gap.
+4. LD-412 already approved this pre-lock option, and LD-418 (binding lead decision for this task) chose it. Under the CLAUDE.md precedence the lead decisions settle it, so no CR is needed.
+5. The other seven adapters lock only the keys they touch, so the LD-417 p95 gain is kept. P95_BATCH_MS_BOUND stays 30000 ms.
+6. Do NOT change load.live.test.ts (:40 `expect(failures).toEqual([])`, :82 p95), done_when, LIMS_CORE_TX_RETRY_MAX or backoff (LD-415), engine.ts, or any production file.
+7. TESTER (cheap, asked by LD-415 and LD-418): log the SQLSTATE of each attempt in helpers2.ts fire2 to confirm 40P01 on the next run. The ruling does not depend on it.
+8. WRITER: no implementation item. Retention stays dropped (LD-407).
+
+---
+## PRIOR RULING (dispute 2, 2026-11-19 01:00 NPT) — engine rethrow applied; kept for the record
+
 IMPLEMENTATION_WRONG — load.live.test.ts:50 (`rejected` = 0 on a clean load) is right; engine.ts:218-233 must not turn SQLSTATE 40001/40P01 into a per-op `rejected common.internal`, it must rethrow so the whole request tx is retried (02-TRD §6.4).
 1. Dispute 2 (writer, 2026-11-19 01:00 NPT): 305/351 rejected ops in the load run; writer suspects 40P01 between the patient row and the gap-free counter row.
 2. spec/chunks/C0-foundation-contracts/02-TRD.md:604: SQLSTATE 40001/40P01 means the WHOLE request transaction is retried up to LIMS_CORE_TX_RETRY_MAX (3) times (:945); after the retries it ends `503 common.dependency_unavailable` (:617). 03-APP-FLOW.md:287 (E-5) says the same.
@@ -147,5 +160,48 @@ test kit instead of fixing it).
 If p95 is still over bound after this change with 40001/40P01 still absent, that is a new
 finding (real contention on the counter from receipt-issuing batches alone) and needs a fresh
 look, not a further kit tweak on guesswork.
+
+Reset: C0-0H T0B-SYNC-5 to changes.
+
+----
+LEAD ITEM, LD-418 (2026-11-19).
+
+Cause, per the debugger own analysis (round 10): LD-417 removed the gap-free counter lock from
+seven of the eight kit adapters. That counter lock was never meant to guard patient/order
+inserts, but it was accidentally doing so anyway, because every adapter took it first. Underneath
+it, kit.ts already had a real, separate defect: the registration adapter inserts s5_patient (from
+a shared pool of 300 keys, reused across 200 devices) then s5_order, in per-batch order, with no
+lock ordering across batches. Two concurrent batches that touch the same two patient keys in
+opposite order deadlock on the uncommitted unique-index locks from ON CONFLICT DO NOTHING (batch A
+holds key1, wants key2; batch B holds key2, wants key1). The counter lock masked this by
+coincidentally forcing a shared serialization point; removing it (correctly, per LD-417, for the
+p95 problem) exposed the pre-existing gap.
+
+This is not a new defect introduced by LD-417; it is the same class of problem LD-412 already
+named and already offered two fixes for: reorder kit.ts so every adapter takes the counter first,
+or give registration a sorted-key pre-lock across all rows it will touch, whichever the tester
+finds mechanically cleaner, as long as every adapter acquires locks in the same order. The writer
+picked the counter-first option. That choice is what produced both follow-on problems (LD-417 own
+p95 bound, and now this). Patching this one gap and leaving the general shape alone just invites a
+third one later (e.g. order-key vs state-key) on the next load profile.
+
+RULING: TESTS_WRONG, kit.ts only, adopt the other option LD-412 already approved instead of
+continuing to patch the first one. Before a batch first write, it takes an advisory lock (or
+equivalent) on every key it will touch in that batch, patient, order, and, for
+billing.record_receipt only, the gap-free counter, sorted into one fixed global order (e.g. by
+the key string itself), then performs its inserts. This replaces both the narrowed counter-first
+rule from LD-417 and the missing patient/order ordering with one mechanism: no two concurrent
+batches can form a wait cycle on any key they overlap on, so there is no second special case to
+find later. billing.record_receipt still takes the counter as part of its own sorted set, because
+it still needs it; the other seven adapters take only the keys they actually touch, so the p95
+fix from LD-417 is not undone.
+
+No done_when change, no assertion loosened (load.live.test.ts stays expect(failures).toEqual([])
+and the P95_BATCH_MS_BOUND stays 30000ms), no production code touched, this is kit.ts fixture
+discipline only, the same bound LD-412 and LD-417 both held to.
+
+Ask: log the SQLSTATE on this one next run if it is cheap to add (round 10 40P01 is inferred from
+the code, not read off the error), useful confirmation, but the fix above is correct either way
+and the ruling does not wait on it.
 
 Reset: C0-0H T0B-SYNC-5 to changes.

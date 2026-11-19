@@ -1,3 +1,12 @@
+TESTS_WRONG — rs-c6.screens.test.tsx:190 and the :214 worklist snapshot assert the pre-UILIST tab bar, which LD-353 no longer requires; the C6/T0D-UILIST-1 test owner must update them; no VG5 implementation change.
+Reasons (round 4, 2026-11-19):
+1. rs-c6.screens.test.tsx:190 expects `getAllByRole('tab')` = 6. ReportsWorklist.tsx:98 (T0D-UILIST-1, 74ea3e301) replaced the tab bar with one FilterBar status control under LD-353 template 1, a binding lead decision (cited in .orchestra/notes/T0D-UILIST-1-ruling.md:3). The test asserts markup the binding decision removed.
+2. Change in the test: replace the `tab` count at :190 with an assertion that the FilterBar status control exists and offers the same 6 statuses (and keep the axe and the one-primary checks). Re-record the `worklist` outline snapshot (:211-215) once, under T0D-UILIST-1/LD-362, as was done for rs-c7 instruments (T0D-UILIST-1-impl.md:2).
+3. The fix belongs to the owner of apps/web/src/features/reporting/__tests__ (C6 / T0D-UILIST-1 follow-up), not VG5. The VG5 brief `files` excludes __tests__.
+4. These reds were already there before VG5: they fail the same way with the LD-405 tsconfig line reverted (VERIFY-GREEN-5-dispute.md:2). LD-362 (T0D-UILIST-1-ruling.md:5): a task does not fix reds it did not cause. So the 2 rs-c6 reds do not block VG5 if the writer shows they fail the same way before its commit. All other VG5 checks (vg5, web-build-2, the rest of rs-c6) must stay green.
+5. The VG5 implementation (the LD-405 line in apps/web/tsconfig.json) stays as the lead ordered. Do not revert the worklist; reverting it would undo LD-353.
+
+==== history (earlier rounds, kept for the record) ====
 CR_NEEDED — the spec itself is contradictory/missing
 Reasons:
 1. The 9 errors sit in apps/portal/src/app/r/[token]/{page,report/page}.tsx. apps/portal is owned by C6 (spec/program/01-CHUNK-MAP.md:143), not C1. The brief's `files` is apps/web/src/** only, so C1 cannot "fix the import" there.

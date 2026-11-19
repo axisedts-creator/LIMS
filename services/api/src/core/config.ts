@@ -121,9 +121,17 @@ function oneOf<T extends string>(env: Env, key: string, allowed: readonly T[], f
   return v as T;
 }
 
+/**
+ * SEC-ENV-1 (LD-236; audit 10.2, 6.6): the ONE production-mode switch. True when LIMS_CORE_ENV or NODE_ENV is exactly `production` (fail towards production:
+ * render.yaml sets only LIMS_CORE_ENV, so NODE_ENV alone missed it). Staging (LIMS_CORE_ENV=staging, NODE_ENV unset) stays non-production. Reads only `env`.
+ */
+export function isProductionEnv(env: Env): boolean {
+  return env['LIMS_CORE_ENV'] === 'production' || env['NODE_ENV'] === 'production';
+}
+
 export function loadConfig(env: Env = process.env): CoreConfig {
   const coreEnv = oneOf(env, 'LIMS_CORE_ENV', CORE_ENVS);
-  const rv = oneOf(env, 'LIMS_CORE_RESPONSE_VALIDATION', ['on', 'off'], coreEnv === 'production' ? 'off' : 'on');
+  const rv = oneOf(env, 'LIMS_CORE_RESPONSE_VALIDATION', ['on', 'off'], isProductionEnv(env) ? 'off' : 'on');
   const sample = oneOf(env, 'LIMS_CORE_LOAD_SAMPLE_MODULE', ['0', '1'], '0');
   return Object.freeze({
     env: coreEnv,

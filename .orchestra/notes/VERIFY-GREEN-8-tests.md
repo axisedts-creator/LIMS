@@ -1,0 +1,6 @@
+# VERIFY-GREEN-8 tests (tester)
+- RED gate: `apps/web/src/__tests__/vg8.typecheck.test.ts` (config `vitest.vg8.config.ts`): `tsc -p apps/web` must have 0 errors under apps/web/src (now ~287: TS2353 'onUnhandledRequest' msw fixtures ~250, TS2604 x7 + TS2786 x7 lab JSX pages, TS2375/TS2352 admin, TS2379/TS2698/TS4104/TS2532/TS2345 misc).
+- Tolerated only if listed `repo/path:line` in notes/VERIFY-GREEN-8.md AND `.orchestra/cr/VERIFY-GREEN-8*.md` exists. Never tolerable: TS2604/TS2786 and the `onUnhandledRequest` TS2353 (typing fix); lab dir must be fully clean.
+- Pins green now, must stay: no @ts-ignore/expect-error/nocheck, skipLibCheck, skip/todo; `as any` <= 66 (vgN guard files excluded); it()/test() lines >= 6867 and expect( >= 18541 (all apps/web/src); writer/debugger commits touch only test files/helpers (no product file).
+- Run: `.orchestra\notes\VERIFY-GREEN-8-verify.cmd` (RED until fixed; the pins are green now).
+- Not covered: apps/portal non-test errors (TS2307 x7, TS7006 x2 = VERIFY-GREEN-5); money/order emitted values (writer states "none changed" in review note; before/after counts via `turbo run typecheck --continue`); existing suites for these dirs are not rerun here.

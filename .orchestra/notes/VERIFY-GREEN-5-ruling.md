@@ -6,3 +6,47 @@ Reasons:
 4. vg5.typecheck.test.ts:45 matches the brief text "alias or path wrong -> fix the import", so the test is not wrong on its own terms. But the brief and test require a fix that no file C1 owns can deliver, and CLAUDE.md says "edit only paths your chunk owns". That contradiction is in the spec/brief and needs a CR (spec/program/04-CHANGE-REQUESTS.md:24-38).
 5. CR text: .orchestra/cr/VERIFY-GREEN-5.md (options a/b/c). The lead picks one; if the lead accepts deferral, vg5 line 45 must be relaxed by the lead, not by the lane.
 6. The writer did not breach any rule: no stub, no tsconfig edit kept, no test edited.
+
+----
+LEAD RULING, LD-405 (CR-C1-VG5): picking option (a) from the CR (.orchestra/cr/VERIFY-GREEN-5.md).
+This CR has sat unanswered since 2026-11-16; ruling now under LD-310 (pure types/config choice,
+no money, data, credentials, schema-outside-task-files or SEC-GATE-1 involved).
+
+Why (a), not (b) or (c): (b) (give apps/portal its own vitest+tsconfig so the test runs from inside
+portal) is the architecturally cleanest option but is a new-infrastructure build, not a one-line
+fix, and needs C6 (its lane is idle right now, nothing queued to pick this up for a while). (c)
+touches apps/portal's own production page files AND the frozen rs-c6.baseline.json import-key pins
+-- avoided on the same grounds this session has avoided touching any other frozen baseline. (a) is
+one line, in a file C0-0D owns but is not currently using (its queue is idle behind T0D-OFFLINE-4),
+touches no frozen baseline, and is fully reversible.
+
+Known downside, accepted and flagged rather than ignored: a paths fallback is program-wide, so it
+could in principle let an unrelated future `@/` import in apps/web silently resolve into
+apps/portal/src instead of correctly failing as a genuine missing module (LD-250 concern named in
+the CR itself). Not treating this as a reason to block a fix that has been stuck 3 days; if it ever
+actually masks a real missing-module error, narrow or remove the fallback then, as its own task.
+
+CROSS-CHUNK AUTHORIZATION (this is the one-time supersession, precedent LD-358 pattern): apps/web/
+tsconfig.json is normally C0-0D-owned, not C1-owned. This ruling explicitly authorizes C1's own
+lane to make this one, narrow edit to that file for this task only, citing LD-405 as the
+authorization, rather than waiting on C0-0D's idle queue. Do not use this as a precedent to edit
+any other C0-0D-owned file without a separate explicit ruling.
+
+EDIT of apps/web/tsconfig.json -- find the "@/*" entry inside compilerOptions.paths (read the file
+first; do not guess its exact current formatting) and change it from:
+
+  "@/*": ["./src/*"]
+
+to:
+
+  "@/*": ["./src/*", "../portal/src/*"]
+
+(adjust bracket/comma style to match the file's existing formatting exactly; do not reformat
+anything else in the file). Do not touch rs-c6.baseline.json, vg5.typecheck.test.ts, or any product
+file. This should make `turbo run typecheck --filter=@lims/web` pass with 0 non-test errors as
+vg5.typecheck.test.ts:45 already requires, with no change to that test needed. If it does NOT
+resolve cleanly as expected (e.g. a naming collision between a web file and a portal file under the
+same `@/` path), stop and write a dispute rather than forcing it -- do not fall back to (c) or (b)
+without a new ruling.
+
+Reset: C1 VERIFY-GREEN-5 to changes.

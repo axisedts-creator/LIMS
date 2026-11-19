@@ -174,8 +174,8 @@ async function openPage(path: string, mod: () => Promise<unknown>, perms: string
   const ui = await m.default({ params: Promise.resolve({}), searchParams: Promise.resolve({}) });
   return render(<ToastProvider>{ui}</ToastProvider>);
 }
-export const openReportingSettings = (perms: string[] = MANAGE_REPORT) => openPage('/reporting/settings', () => import('@/app/(staff)/reporting/settings/page'), perms);
-export const openBillingSettings = (perms: string[] = MANAGE_BILL) => openPage('/billing/settings', () => import('@/app/(staff)/billing/settings/page'), perms);
+export const openReportingSettings = (perms: string[] = MANAGE_REPORT): Promise<ReturnType<typeof render>> => openPage('/reporting/settings', () => import('@/app/(staff)/reporting/settings/page'), perms);
+export const openBillingSettings = (perms: string[] = MANAGE_BILL): Promise<ReturnType<typeof render>> => openPage('/billing/settings', () => import('@/app/(staff)/billing/settings/page'), perms);
 
 /** Pick an option of a kit Select (react-aria button + listbox) or of a native select, by accessible names. */
 export async function choose(u: UserEvent, label: RegExp, option: RegExp) {

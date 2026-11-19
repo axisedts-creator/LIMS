@@ -5,6 +5,7 @@
 //   vi.mock('@/core/session/server', async () => (await import('./sr-t20.harness')).sessionMock)
 // Synthetic data only. Fixtures follow contracts/openapi/smartreport.yaml (LibraryVersion, DenyTerm, SmartSummaryPreview).
 import { vi } from 'vitest';
+import type { render } from '@testing-library/react';
 import {
   BLOCK_ADVICE, BLOCK_DERANGED, BLOCK_FOLLOWUP, GROUPS, ORGAN_GROUPS, ANALYTE_ALT, MEMBER_PATH, SR, VER_APPROVED, VER_REVIEW, blockDto, json, routes, router, ruleDto, show, summaryDto, versionDto, vp,
 } from './sr-t20.harness';
@@ -76,10 +77,10 @@ export function mountReviewApi(over: Record<string, unknown> = {}, v = VER_REVIE
   routes[`GET ${vp(VER_APPROVED, '/groups')}`] = json({ data: GROUPS });
   routes['GET /v1/smartreport/library/coded-sets/organ_groups'] = json(ORGAN_GROUPS);
 }
-export const showReview = (v = VER_REVIEW) => show(REVIEW_PAGE, { library_version_id: v });
+export const showReview = (v = VER_REVIEW): Promise<ReturnType<typeof render>> => show(REVIEW_PAGE, { library_version_id: v });
 
 // ---------------------------------------------------------------- step-up observation (the shell flow is not specified beyond "handled by the shell on auth.mfa_required")
-export const loc = { reload: vi.fn(), assign: vi.fn(), replace: vi.fn() };
+export const loc: Record<'reload' | 'assign' | 'replace', ReturnType<typeof vi.fn>> = { reload: vi.fn(), assign: vi.fn(), replace: vi.fn() };
 export function stubLocation() {
   loc.reload.mockClear(); loc.assign.mockClear(); loc.replace.mockClear();
   vi.stubGlobal('location', { ...window.location, href: window.location.href, reload: loc.reload, assign: loc.assign, replace: loc.replace });
@@ -101,7 +102,7 @@ export const TENANT_TERMS = [
   termDto({ id: uid(302), term: 'old banned phrase', language: 'any', reason: undefined, is_active: false, version: 2 }),
 ];
 export const mountTerms = (data: unknown[] = [...GLOBAL_TERMS, ...TENANT_TERMS]) => { routes[`GET ${TERMS}`] = json({ data }); };
-export const showWording = () => show(WORDING_PAGE, {});
+export const showWording = (): Promise<ReturnType<typeof render>> => show(WORDING_PAGE, {});
 
 // ---------------------------------------------------------------- preview fixture (SmartSummaryPreview example from the contract)
 export const PREVIEW = {

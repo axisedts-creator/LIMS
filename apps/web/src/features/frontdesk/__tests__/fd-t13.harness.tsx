@@ -147,7 +147,7 @@ type DraftRow = { id: string; centre_id: string; payload: string; created_at: st
 const fresh = () => ({ preview: { ...PREVIEW } as Record<string, string>, favourites: [] as string[], icd: [...ICD] as unknown[], customFields: [...CUSTOM] as unknown[], drafts: [] as DraftRow[], rewards: 120 });
 export const reg2 = fresh();
 
-export const push = vi.fn();
+export const push: ReturnType<typeof vi.fn> = vi.fn();
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push, replace: vi.fn(), refresh: vi.fn(), back: vi.fn() }),
   usePathname: () => '/frontdesk/registrations/new',
@@ -172,9 +172,9 @@ export function setup() {
   afterAll(() => api.close());
 }
 
-export const wrap = (ui: ReactNode) => render(<ToastProvider>{ui}</ToastProvider>);
+export const wrap = (ui: ReactNode): ReturnType<typeof render> => render(<ToastProvider>{ui}</ToastProvider>);
 export const mod = async <T,>(p: string) => (await import(/* @vite-ignore */ `../components/${p}`)) as T;
-export async function renderForm(props: Record<string, unknown> = {}) {
+export async function renderForm(props: Record<string, unknown> = {}): Promise<ReturnType<typeof render>> {
   const { RegistrationForm } = await mod<{ RegistrationForm: any }>('RegistrationForm');
   return wrap(<RegistrationForm centres={centres} permissions={PERMS} defaultCentreId={CENTRE} {...props} />);
 }

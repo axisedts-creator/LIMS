@@ -75,12 +75,12 @@ export const setupActions = (over: Record<string, unknown> = {}) => ({
 export const loadConsole = async () => ((await import(/* @vite-ignore */ '../components/QueueConsole')) as { QueueConsole: (p: any) => any }).QueueConsole;
 export const loadSetup = async () => ((await import(/* @vite-ignore */ '../components/QueueSetup')) as { QueueSetup: (p: any) => any }).QueueSetup;
 
-export async function showConsole(actions = consoleActions(), props: Record<string, unknown> = {}) {
+export async function showConsole(actions = consoleActions(), props: Record<string, unknown> = {}): Promise<ReturnType<typeof render> & { actions: ReturnType<typeof consoleActions> }> {
   const QueueConsole = await loadConsole();
   const view = render(<ToastProvider><QueueConsole labName={LAB} centreId={CENTRE} queues={queues()} counters={counters()} tokens={tokens()} actions={actions} {...props} /></ToastProvider>);
   return { ...view, actions };
 }
-export async function showSetup(actions = setupActions(), props: Record<string, unknown> = {}) {
+export async function showSetup(actions = setupActions(), props: Record<string, unknown> = {}): Promise<ReturnType<typeof render> & { actions: ReturnType<typeof setupActions> }> {
   const QueueSetup = await loadSetup();
   const view = render(<ToastProvider><QueueSetup centreId={CENTRE} queues={queues()} counters={counters()} displays={displays()} actions={actions} {...props} /></ToastProvider>);
   return { ...view, actions };

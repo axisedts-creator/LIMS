@@ -4,6 +4,7 @@
 import { LimsError } from '../../../core/errors.js';
 import { createEvents } from '../../../core/events/publish.js';
 import type { Handler, HandlerContext, HandlerRequest, HandlerResult } from '../../../core/module.js';
+import { guarded } from './_guard.js';
 import { moneyOf, toPaisa } from '../domain/money/paisa.js';
 import { createBillingEvents } from '../events/publish.js';
 import type { BalanceCtx } from '../service/balance.service.js';
@@ -43,7 +44,7 @@ const pageOf = (limit: unknown, kind: string, nextAfter: string | undefined) => 
 const cursorId = (q: Record<string, any>, kind: string): string | undefined => (q['cursor'] === undefined ? undefined : decodeCursor(q['cursor'], kind, 'int').id);
 const partyOf = (req: HandlerRequest) => obj(req.params)['credit_party_id'];
 
-export const creditHandlers: Readonly<Record<string, Handler>> = Object.freeze({
+const creditHandlersRaw: Readonly<Record<string, Handler>> = Object.freeze({
   listCreditAccounts: bind(200, async (s, ctx, req) => {
     const q = obj(req.query), after = cursorId(q, 'credit_accounts');
     const r = await s.listAccounts(ctx, { limit: q['limit'], ...(after === undefined ? {} : { afterPartyId: after }) });
@@ -106,4 +107,16 @@ export const creditHandlers: Readonly<Record<string, Handler>> = Object.freeze({
       },
     };
   }),
+});
+
+// SEC-AUTHZ-6 (LD-189 AUTH-SENSITIVE, LD-261; SEC-AUTHZ-1.1): the contract x-permission is asked FIRST, before the wrapped handler reads or writes anything.
+export const creditHandlers: Readonly<Record<string, Handler>> = Object.freeze({
+  ...creditHandlersRaw,
+  listCreditAccounts: guarded('billing.credit_party.read', creditHandlersRaw['listCreditAccounts']!),
+  getCreditAccount: guarded('billing.credit_party.read', creditHandlersRaw['getCreditAccount']!),
+  updateCreditAccount: guarded('billing.credit_party.manage', creditHandlersRaw['updateCreditAccount']!),
+  listCreditCharges: guarded('billing.credit_party.read', creditHandlersRaw['listCreditCharges']!),
+  issuePeriodicInvoice: guarded('billing.credit_party.manage', creditHandlersRaw['issuePeriodicInvoice']!),
+  recordCreditPartyPayment: guarded('billing.payment.record', creditHandlersRaw['recordCreditPartyPayment']!),
+  getCreditPartyStatement: guarded('billing.credit_party.read', creditHandlersRaw['getCreditPartyStatement']!),
 });

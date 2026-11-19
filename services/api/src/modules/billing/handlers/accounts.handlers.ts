@@ -5,6 +5,7 @@
 // authenticated request context (bind). The service re-validates every value, so a handler called directly never writes an invalid row.
 import { LimsError } from '../../../core/errors.js';
 import type { Handler, HandlerRequest } from '../../../core/module.js';
+import { guarded } from './_guard.js';
 import { createAccountsService, type AccountsService } from '../service/accounts.service.js';
 import { bind, obj } from './ledger.handlers.js';
 import { ifMatch } from './settings.handlers.js';
@@ -18,7 +19,7 @@ const needKey = (req: HandlerRequest) => {
   if (typeof k !== 'string' || k === '') throw new LimsError('common.idempotency_key_required');
 };
 
-export const accountsHandlers: Readonly<Record<string, Handler>> = Object.freeze({
+const accountsHandlersRaw: Readonly<Record<string, Handler>> = Object.freeze({
   listAccountGroups: bind(async (ctx, req) => ({ status: 200, body: await service().listGroups(ctx, req.query) })),
   createAccountGroup: bind(async (ctx, req) => {
     needKey(req);
@@ -60,4 +61,23 @@ export const accountsHandlers: Readonly<Record<string, Handler>> = Object.freeze
   }),
   getAccountStatement: bind(async (ctx, req) => ({ status: 200, body: await service().statement(ctx, req.query) })),
   getAccountSummary: bind(async (ctx, req) => ({ status: 200, body: await service().summary(ctx, req.query) })),
+});
+
+// SEC-AUTHZ-6 (LD-189 AUTH-SENSITIVE, LD-261; SEC-AUTHZ-1.1): the contract x-permission is asked FIRST, before the wrapped handler reads or writes anything.
+export const accountsHandlers: Readonly<Record<string, Handler>> = Object.freeze({
+  ...accountsHandlersRaw,
+  listAccountGroups: guarded('billing.account.read', accountsHandlersRaw['listAccountGroups']!),
+  createAccountGroup: guarded('billing.account.manage', accountsHandlersRaw['createAccountGroup']!),
+  updateAccountGroup: guarded('billing.account.manage', accountsHandlersRaw['updateAccountGroup']!),
+  listAccountParticulars: guarded('billing.account.read', accountsHandlersRaw['listAccountParticulars']!),
+  createAccountParticular: guarded('billing.account.manage', accountsHandlersRaw['createAccountParticular']!),
+  updateAccountParticular: guarded('billing.account.manage', accountsHandlersRaw['updateAccountParticular']!),
+  createAccountLedgerEntry: guarded('billing.account_entry.create', accountsHandlersRaw['createAccountLedgerEntry']!),
+  listAccountLedgerEntries: guarded('billing.account.read', accountsHandlersRaw['listAccountLedgerEntries']!),
+  getAccountLedgerEntry: guarded('billing.account.read', accountsHandlersRaw['getAccountLedgerEntry']!),
+  reverseAccountLedgerEntry: guarded('billing.account_entry.reverse', accountsHandlersRaw['reverseAccountLedgerEntry']!),
+  getAccountStatement: guarded('billing.account.read', accountsHandlersRaw['getAccountStatement']!),
+  getAccountSummary: guarded('billing.account.read', accountsHandlersRaw['getAccountSummary']!),
+  holdLedgerEntry: guarded('billing.account.manage', accountsHandlersRaw['holdLedgerEntry']!),
+  releaseLedgerEntry: guarded('billing.account.manage', accountsHandlersRaw['releaseLedgerEntry']!),
 });

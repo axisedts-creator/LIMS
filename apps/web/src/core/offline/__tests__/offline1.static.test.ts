@@ -48,7 +48,7 @@ describe('offline layer source', () => {
 
   it('the PBKDF2 iteration count constant is at least 600000 and the failure limit is 10', () => {
     const src = impl().map((f) => readFileSync(f, 'utf8')).join('\n');
-    const m = [...src.matchAll(/(\d[\d_]{5,})/g)].map((x) => Number(x[1].replace(/_/g, ''))).filter((n) => n >= 600_000 && n < 10_000_000);
+    const m = [...src.matchAll(/(\d[\d_]{5,})/g)].map((x) => Number(x[1]!.replace(/_/g, ''))).filter((n) => n >= 600_000 && n < 10_000_000);
     expect(m.length, 'a PBKDF2 iteration constant >= 600000 must appear in the source').toBeGreaterThan(0);
     expect(src).toMatch(/PBKDF2/);
     expect(src).toMatch(/AES-GCM/);

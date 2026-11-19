@@ -48,7 +48,7 @@ const api = setupServer(
   http.post(`${API}/visits/:id/flags/:flag/resolve`, async ({ request }) => { await rec(request); return resolve(); }),
   http.post(`${API}/visits/:id/revisits`, async ({ request }) => { await rec(request); return revisit(); }),
 );
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 beforeEach(() => { vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(new Date('2026-11-14T05:00:00Z')); });
 afterEach(() => { vi.useRealTimers(); cleanup(); api.resetHandlers(); calls.length = 0; refresh.mockReset(); push.mockReset(); reset(); });
 afterAll(() => api.close());

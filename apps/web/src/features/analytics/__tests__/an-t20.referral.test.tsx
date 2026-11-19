@@ -39,7 +39,7 @@ const monthly = body({
   ],
 });
 
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 beforeEach(() => { resetApi(READ); routes[`GET ${PATH}`] = json(body()); });
 afterEach(() => { cleanup(); api.resetHandlers(); });
 afterAll(() => api.close());

@@ -71,7 +71,7 @@ const api = setupServer(
     });
   }),
 );
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { cleanup(); api.resetHandlers(); calls.length = 0; db.clear(); push.mockReset(); replace.mockReset(); localStorage.clear(); sessionStorage.clear(); });
 afterAll(() => api.close());
 

@@ -58,9 +58,9 @@ describe('snapshot', () => {
     const s = b.controller.getSnapshot();
     expect(s.pending.map((o: { op_id: string }) => o.op_id)).toEqual([p.op_id]);
     expect(s.attention.map((o: { op_id: string }) => o.op_id)).toEqual([a.op_id]);
-    expect(s.attention[0].code).toBe('sync.result_locked');
+    expect(s.attention[0]!.code).toBe('sync.result_locked');
     expect(s.conflicts.map((o: { op_id: string }) => o.op_id)).toEqual([c.op_id]);
-    expect(s.conflicts[0].conflict_id).toBe(CID);
+    expect(s.conflicts[0]!.conflict_id).toBe(CID);
     expect(s.permissions).toEqual(PERMS);
     expect(s.storeState).toBe('unlocked');
     expect(s.conn).toBe('offline'); // nothing has asked the server yet; refresh makes no network call
@@ -178,7 +178,7 @@ describe('Discard (an audited operation sent at the next sync)', () => {
     const s = b.controller.getSnapshot();
     expect(s.attention).toEqual([]);
     expect(s.pending).toHaveLength(1);
-    const d = s.pending[0];
+    const d = s.pending[0]!;
     expect(d.op_type).toMatch(/discard/);
     expect(d.op_id).not.toBe(a.op_id);
     const body = JSON.stringify(d.payload);

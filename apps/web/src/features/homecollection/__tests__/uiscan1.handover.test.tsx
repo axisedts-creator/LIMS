@@ -25,12 +25,12 @@ vi.mock('@/core/session/server', () => ({
 
 let body: () => Record<string, unknown> = () => detail(1);
 const api = setupServer(http.get(`${API}/handovers/:id`, () => HttpResponse.json(body())));
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { cleanup(); api.resetHandlers(); body = () => detail(1); });
 afterAll(() => api.close());
 
 const open = async (h: unknown = HV1, barcode = 'HCT200001') => {
-  const { HandoverDrawer } = (await import('../components/HandoverDrawer')) as { HandoverDrawer: (p: unknown) => unknown };
+  const { HandoverDrawer } = (await import('../components/HandoverDrawer')) as { HandoverDrawer: (p: unknown) => import('react').ReactNode };
   wrap(<HandoverDrawer {...({ handover: h, isOpen: true, onClose: vi.fn() } as object)} />);
   const d = await screen.findByRole('dialog');
   await within(d).findByText(barcode);

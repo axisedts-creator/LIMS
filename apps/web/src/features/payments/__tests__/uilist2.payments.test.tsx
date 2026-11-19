@@ -29,7 +29,7 @@ vi.mock('@/core/session/server', () => ({
 }));
 
 const api = setupServer();
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { cleanup(); api.resetHandlers(); });
 afterAll(() => api.close());
 const codeSet = (set: string) => (set === 'finding_kinds' ? reconCodes.finding_kinds : set === 'finding_resolutions' ? reconCodes.finding_resolutions : []);

@@ -63,7 +63,7 @@ const api = setupServer(
   http.get(`${ORIGIN}/v1/catalog/departments`, async ({ request }) => { await rec('depts', request); return deptReply(); }),
   http.get(`${ORIGIN}/v1/catalog/tests`, async ({ request }) => { await rec('tests', request); return testReply(); }),
 );
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 beforeEach(() => {
   listReply = () => HttpResponse.json({ data: [LAB, DEPT, TEST] });
   putReply = () => HttpResponse.json({ ...LAB, version: 2 });

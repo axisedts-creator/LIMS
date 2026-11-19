@@ -27,7 +27,7 @@ const api = setupServer(
   http.get(`${ORIGIN}/v1/identity/centres`, async ({ request }) => { await rec(request); return centresReply(); }),
   http.get(`${ORIGIN}/v1/instruments/instruments`, async ({ request }) => { await rec(request); return instrumentsReply(); }),
 );
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { api.resetHandlers(); calls.length = 0; session.permissions = ['lab.qc.capture']; });
 afterAll(() => api.close());
 const ok = () => {

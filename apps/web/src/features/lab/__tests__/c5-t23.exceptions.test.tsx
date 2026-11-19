@@ -78,7 +78,7 @@ const api = setupServer(
   http.get(`${ORIGIN}/v1/lab/orders/${ORDER}/results`, async ({ request }) => { await rec(request); return HttpResponse.json({ order: { id: ORDER }, items: [
     { order_item_id: id(0x700), test: { id: id(0x701), code: 'CBC', name: 'CBC' }, results: [resultDto(R_HGB, 'HGB'), resultDto(R_WBC, 'WBC'), resultDto(id(0x603), 'PLT', 'cancelled')] }] }); }),
 );
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => {
   cleanup(); api.resetHandlers(); calls.length = 0; push.mockReset(); refresh.mockReset(); reapplyDelay = 0;
   reapplyReply = () => HttpResponse.json({ exception: { ...exc(1), status: 'resolved', resolution: 'applied', resolved_at: '2026-06-15T05:00:00.000Z' }, outcome: 'applied' });

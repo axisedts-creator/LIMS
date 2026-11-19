@@ -15,7 +15,7 @@ import { API, ORIGIN, PC, api, profile } from './printcfg1.harness';
 import { RELEASE, U, detail, vsum } from './c6-t31.fixtures';
 
 const posts: { path: string; json: any }[] = [];
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 beforeEach(() => {
   API.reset(); posts.length = 0; PC.session.permissions = RELEASE;
   api.use(http.post(`${ORIGIN}/v1/reporting/report-versions/:id/prints`, async ({ request }) => {

@@ -24,7 +24,7 @@ const user = () => userEvent.setup();
 const btn = (re: RegExp) => screen.queryByRole('button', { name: re });
 const dialog = () => { const d = screen.queryByRole('dialog') ?? screen.queryByRole('alertdialog'); if (!d) throw new Error('no dialog is open'); return d; };
 
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 beforeEach(() => { resetApi(AV_MANAGE); seedAv(); });
 afterEach(() => { cleanup(); api.resetHandlers(); });
 afterAll(() => api.close());

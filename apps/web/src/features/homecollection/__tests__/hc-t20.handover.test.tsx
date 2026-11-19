@@ -46,7 +46,7 @@ const api = setupServer(
   http.get(`${API}/handovers/:id`, async ({ request }) => { await rec(request); return getOne(); }),
   http.post(`${API}/handovers/:id/confirm`, async ({ request }) => { await rec(request); return confirm(); }),
 );
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 beforeEach(() => { vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(new Date('2026-11-14T04:00:00Z')); });
 afterEach(() => { vi.useRealTimers(); cleanup(); api.resetHandlers(); calls.length = 0; refresh.mockReset(); replace.mockReset(); onClose.mockReset(); reset(); });
 afterAll(() => api.close());

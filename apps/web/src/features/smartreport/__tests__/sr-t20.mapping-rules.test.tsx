@@ -26,7 +26,7 @@ vi.mock('@/core/session/server', async () => (await import('./sr-t20.harness')).
 
 const FOLLOWUP_BANNER = 'Follow-up suggestions are shown to patients. Keep them conservative; they must be justified by a finding. Prices and booking links are never shown.';
 const G = vp(VER_DRAFT, '/groups'), A = vp(VER_DRAFT, '/analyte-groups'), R = vp(VER_DRAFT, '/rules');
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 beforeEach(() => { resetApi(MANAGE); mountEditorApi(); });
 afterEach(() => { cleanup(); api.resetHandlers(); });
 afterAll(() => api.close());

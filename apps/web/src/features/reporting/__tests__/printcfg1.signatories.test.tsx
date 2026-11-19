@@ -15,7 +15,7 @@ import {
   API, ASSET, ASSET_OLD, U_PATHO, U_PATHO2, U_TECH, allowedSignatoryKeys, api, img, openReportingSettings, picture, sigPuts, signatory, stubImaging, uploads, userRow, PATHO_ROLE, TECH_ROLE,
 } from './printcfg1.harness';
 
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 beforeEach(() => { API.reset(); stubImaging(); API.signatories = [signatory(U_PATHO, 'Dr Synthetic Patho')]; });
 afterEach(() => { cleanup(); api.resetHandlers(); });
 afterAll(() => api.close());

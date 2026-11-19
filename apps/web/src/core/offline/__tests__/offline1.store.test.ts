@@ -256,7 +256,7 @@ describe('operation shape', () => {
     expect((await outbox.pending()).map((o) => o.op_id)).toEqual(ids);
     env.c.advance(1000);
     const later = await outbox.append(orderOp(9));
-    expect(later.op_id > ids[5]).toBe(true);
+    expect(later.op_id > ids[5]!).toBe(true);
     expect(later.device_created_at).toBe('2026-11-18T06:00:01.000Z');
   });
 });

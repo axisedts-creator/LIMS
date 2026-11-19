@@ -83,7 +83,7 @@ const api = setupServer(
     return HttpResponse.json({ data: signoffs[String(params['rid'])] ?? [] });
   }),
 );
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { cleanup(); api.resetHandlers(); calls.length = 0; push.mockReset(); refresh.mockReset(); verifyReply = okAll; approveReply = okAll; signoffs = {}; signoffStatus = 200; });
 afterAll(() => api.close());
 

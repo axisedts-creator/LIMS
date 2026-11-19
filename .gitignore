@@ -22,4 +22,5 @@ Claude outputs/
 
 # SEC-HYG-1 (LD-240, audit 11.1): local tool output, never tracked
 .tmp/
+*.tmp
 test-results/

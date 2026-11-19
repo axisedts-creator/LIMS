@@ -7,6 +7,7 @@ import type { Handler, HandlerContext, HandlerRequest } from '../../../core/modu
 import { resolveCriticalLimits, resolveReferenceRange, selectSet } from '../domain/rangeMatch.js';
 import * as repo from '../repo/tests.repo.js';
 import { fail, invalid, isObj, unknown as unknownField, UUID, type Ctx, type Tx } from '../service/masters.service.js';
+import { guarded } from './_guard.js';
 
 const KEYS = ['analyte_id', 'sex', 'age_days', 'birth_on', 'specimen_type_code', 'at'];
 const SEX = ['male', 'female', 'other', 'unknown'];
@@ -39,7 +40,7 @@ const REF_NAMES = { referenceRangeId: 'reference_range_id', unitCode: 'unit_code
 const CRIT_NAMES = { criticalLimitId: 'critical_limit_id', abnormalCodes: 'abnormal_codes' };
 
 export const rangePreviewHandlers: Readonly<Record<string, Handler>> = Object.freeze({
-  previewReferenceRange: (async (req: HandlerRequest, hctx: HandlerContext) => {
+  previewReferenceRange: guarded('catalog.test.read', (async (req: HandlerRequest, hctx: HandlerContext) => {
     const c = hctx as unknown as Partial<Ctx>;
     if (typeof c.tenantId !== 'string' || !c.tx) throw new LimsError('auth.unauthenticated');
     const tx = c.tx as Tx, t = c.tenantId;
@@ -68,5 +69,5 @@ export const rangePreviewHandlers: Readonly<Record<string, Handler>> = Object.fr
       status: 200,
       body: { no_reference_range: !ref, ...(ref ? { reference_range: dto(ref, REF_NAMES) } : {}), ...(crit ? { critical_limits: dto(crit, CRIT_NAMES) } : {}) },
     };
-  }) as Handler,
+  }) as Handler),
 });

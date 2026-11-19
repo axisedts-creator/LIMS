@@ -9,3 +9,7 @@
 # round 3 (2026-11-19 01:40)
 - Cause: verify log (01:31 run) = 14 failed / 72, 58 pass; 10 FAIL lines are retention.live.test.ts `permission denied for table sync_conflict` (no lims_worker DELETE grant/policy, CR-C0-T0B-SYNC-5-001); remaining 4 = same static pins as rounds 1-2. No new defect.
 - Fix: none. LD-397 item 2: founder-reserved; tests, migration, grants untouched. Task stays BLOCKED on the founder answer.
+
+# round 4 (2026-11-19 08:45) — load.live.test.ts:40, 16x common.dependency_unavailable
+- Cause: lock-order inversion inside the TEST-ONLY synthetic adapters (hardening/kit.ts:80-93): batch A inserts patient/order/state keys (uncommitted unique-index locks) then takes the gap-free counter (doubles.ts nextNo); batch B holds the counter (to end of tx), then inserts a key A holds -> 40P01. Engine rethrow (engine.ts:233) and core retry (tx.ts:150, 3x, 10-50 ms jitter) behave per 02-TRD §6.4; no production adapter or engine code is involved.
+- Fix: none possible in implementation code (a tenant-wide batch lock would change production behaviour, done_when 6). Fix belongs in kit.ts (counter first / sorted keys) = test code, forbidden to me; ruling item 5 also bars the writer. Wrote dispute-202611190850.md; stopped.

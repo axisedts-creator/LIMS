@@ -40,3 +40,38 @@ Apply this single regex change at the match site in static.test.ts (the one the 
 Do NOT: skip, loosen, or delete retention.live.test.ts; write or re-add the migration; touch db/policies/core.sql, db/meta/tables.yaml, or any GRANT/POLICY statement; touch the pgTAP pins in `db/tests/core/T0C-SYNC-2_sync_operations_conflicts.test.sql` (lines 87/91). These all require the founder's decision first, then an explicit arbiter/lead supersession ruling (precedent LD-358) before anyone edits them.
 
 WRITER and DEBUGGER: after item 1 is fixed, if retention.live.test.ts is the ONLY remaining failure, that is the expected, already-flagged wait state — do not dispute it again and do not run more debugger rounds on it. Report/leave as blocked on that one item and move to other work; this unblocks once the founder answers and a follow-up LD ruling lands.
+
+----
+LEAD RULING, LD-407: founder declined CR-C0-T0B-SYNC-5-001 (DELETE policy / GRANT DELETE to
+lims_worker on the 5 core.sync_* tables, 180 day purge). Verbatim in chat (08:04 NPT): "sync 5 no".
+
+This is final: no DELETE policy, no GRANT DELETE, on any of core.sync_operation, core.sync_conflict,
+core.sync_signoff_outcome, core.sync_print_marker, core.sync_alert. The existing never deleted
+contract (db/tests/core/T0C-SYNC-2_sync_operations_conflicts.test.sql lines 87/91, db/meta/tables.yaml)
+stands exactly as pinned -- not superseded, not touched.
+
+The RETENTION sub-requirement of this task's done_when (item 3) is dropped entirely as a result.
+Everything else in done_when -- LOAD, CHAOS, OBSERVABILITY, RUNBOOK (minus its retention section) --
+is unaffected and still applies in full.
+
+EDITS:
+1. core/sync/retention.ts: remove the DELETE logic so it issues no DELETE statement on any of the 5
+   tables. If nothing else in the module has a purpose once deletion is removed, delete the module
+   and its call sites rather than leaving dead code behind.
+2. Worker cron.ts / tasklist.ts: remove the core.sync_retention daily cron registration. There is no
+   job to run.
+3. Delete retention.live.test.ts in full (the 13 failing tests) -- there is no retention feature left
+   to test.
+4. Do NOT touch registry.static.test.ts:71 or sync2.registry.static.test.ts:95 ("rows are never
+   deleted: no DELETE ... in sync code") or the pgTAP pins named above. They are correct as written
+   and were never in question -- this ruling confirms them, it does not supersede them.
+5. docs/ops/OFFLINE-SYNC.md: remove the retention/purge section. Replace it with one short line: the
+   sync ledger tables are retained indefinitely, no automatic deletion (LD-407, founder, 2026-11-19).
+6. core/sync/metrics.ts and the 3 observability gauges (backlog age, conflict inbox size, recall
+   count, etc.) stay as built -- unrelated to deletion, done_when (4) OBSERVABILITY still applies.
+
+Not ruled on here, stay open on their own track (neither is money or data, the lane/arbiter handles
+normally): the load.live.test.ts:50 deadlock dispute (40P01/40001, TESTS_WRONG vs. engine retry) and
+the static.test.ts runbook-regex dispute (sync.device / sync.conflict exclusion-list bug).
+
+Reset: C0-0H T0B-SYNC-5 to changes.

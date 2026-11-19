@@ -2,3 +2,5 @@
 - No smallest in-scope fix: relative specifiers break rs-c6 pins, and a tsconfig `paths` fallback is C0-0D-owned and rejected in review.
 - vg5 test rejects the notes+CR path for these errors, so the test and the brief disagree. Dispute written, no code changed.
 - Round 4 (2026-11-19): remaining verify fail is rs-c6.screens worklist (tab role + snapshot), pre-existing, caused by T0D-UILIST-1 FilterBar change (LD-353), not by LD-405 tsconfig edit. No code changed. Dispute: VERIFY-GREEN-5-dispute.md.
+- Round 5 (2026-11-19): only red left is rs-c6.screens `worklist` snapshot; .snap:68-83 still lacks `button Ready to release` after `button Search` (FilterBar status control, LD-353). Stale test file, not VG5 code (LD-405 tsconfig line only).
+- No implementation change possible or needed. Per ruling (TESTS_WRONG round 5) + dispute-202611190857.md: tester must run `vitest run -u` on rs-c6.screens (T0D-UILIST-1/LD-362) and commit the .snap. Stopped.

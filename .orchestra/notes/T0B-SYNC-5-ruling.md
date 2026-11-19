@@ -118,3 +118,34 @@ Either way, load.live.test.ts assertion stays exactly as LD-412 already said: no
 done_when from this item.
 
 Reset applied: changes.
+
+----
+LEAD ITEM, LD-417 (2026-11-19).
+
+LD-415 question is answered: debugger round 8 confirms neither 40001 nor 40P01 fires anymore.
+LD-412 fix holds; this is a different, later-appearing problem, not a residual deadlock.
+
+Cause, per the writer own diagnosis (agrees with the debugger): LD-412 told every kit adapter to
+take the gap-free counter row before its other inserts, to keep one global lock order. Only one of
+the eight synthetic adapter types, billing.record_receipt, actually calls nextNo on that counter;
+the other seven (registration, collection, accession, result.enter, result.verify,
+report.print_marker, daily_cash.close) never touch it in production or in the real adapters they
+stand in for. Making all eight take that lock anyway, purely for ordering, now serialises all 400
+load-test batches on one row, and p95 batch time climbs past the 30000 ms bound (34.7s, 42.0s,
+47.4s, 53.3s across repeated runs).
+
+RULING: TESTS_WRONG, kit.ts only, same discipline as LD-412 (no done_when change, no assertion
+loosened, no production code touched). Narrow which adapters take the counter lock to exactly the
+one that needs it: only the billing.record_receipt adapter calls nextNo and must still take that
+lock before its own patient/order/state work (LD-412 ordering requirement stands for this
+adapter). The other seven adapters stop taking the counter lock at all, since nothing they do
+needs it and production own code never has them touch it either. This removes the artificial
+contention LD-412 incidentally introduced into unrelated adapters, rather than just raising the
+bound to tolerate it (the bound stays 30000 ms; a wider bound would hide a fidelity problem in the
+test kit instead of fixing it).
+
+If p95 is still over bound after this change with 40001/40P01 still absent, that is a new
+finding (real contention on the counter from receipt-issuing batches alone) and needs a fresh
+look, not a further kit tweak on guesswork.
+
+Reset: C0-0H T0B-SYNC-5 to changes.

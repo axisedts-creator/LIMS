@@ -71,15 +71,16 @@ export function mixedAdapters(series: string): any[] {
   const event = (ctx: any, op: any, kind: string) => ctx.tx.query('INSERT INTO sync2_test.s5_event (tenant_id, op_id, kind) VALUES ($1, $2, $3)', [ctx.tenantId, op.opId, kind]);
   const once = async (ctx: any, op: any, state: string): Promise<boolean> =>
     (await ctx.tx.query('INSERT INTO sync2_test.s5_state (tenant_id, entity_id, state, op_id) VALUES ($1, $2, $3, $4) ON CONFLICT DO NOTHING RETURNING 1', [ctx.tenantId, op.entityId, state, op.opId])).rows.length === 1;
-  // LD-412 (2026-11-19): every adapter takes the gap free counter row FIRST (row lock to the end of the request tx, no increment so no gap), then its own keys.
-  // One lock order for all eight types: no cycle between a batch holding patient/order/state keys and one holding the counter. Lock only, nextNo still allocates.
+  // LD-412 (2026-11-19): the adapter that uses the gap free counter takes the counter row FIRST (row lock to the end of the request tx, no increment so no gap), then its own keys.
+  // LD-417 (2026-11-19): ONLY billing.record_receipt (the one adapter that calls nextNo) takes it; the other seven never touch the counter, as in production, so the 400 load batches
+  // are not serialised on one row (p95 bound stays 30000 ms). Lock only, nextNo still allocates.
   const lockCounterFirst = (ctx: any) => ctx.tx.query(
     `WITH ins AS (INSERT INTO sync2_test.numbers (tenant_id, series, last_no) VALUES ($1, $2, 0) ON CONFLICT (tenant_id, series) DO NOTHING RETURNING 1)
      SELECT 1 FROM sync2_test.numbers WHERE tenant_id = $1 AND series = $2 FOR UPDATE`, [ctx.tenantId, series]);
   const make = (opType: string, permission: string, execute: (ctx: any, op: any) => Promise<any>): any => ({
     opType, permission,
     validate(p: any) { if (p?.invalid === true) throw new LimsError('common.validation_failed'); },
-    execute: async (ctx: any, op: any) => { await lockCounterFirst(ctx); return execute(ctx, op); },
+    execute: async (ctx: any, op: any) => { if (opType === 'billing.record_receipt') await lockCounterFirst(ctx); return execute(ctx, op); },
   });
   return [
     make('registration.create_order', 'frontdesk.registration.create', async (ctx, op) => {

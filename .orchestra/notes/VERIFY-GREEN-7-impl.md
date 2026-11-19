@@ -1,4 +1,4 @@
-# VERIFY-GREEN-7 impl (writer)
+# VERIFY-GREEN-7 impl (writer, LD-424 pass): fix applied and committed by tester (4d4c55e44, 56 test files/helpers). Ruling has no implementation-file items; writer made no code change this pass. Re-verified 2026-11-19: vg7 7/7, tsc in-scope errors 0.
 - Files: 42 test files under features/{instruments,inventory,partners,quality}/**/__tests__ (incl. quality-t22.harness.tsx helper); no product file.
 - [CONV] LD-268 msw v3: `onUnhandledRequest` -> `onUnhandledFrame` in `server.listen()` (TS2353 x42, same as VERIFY-GREEN-6).
 - [CONV] TS2698 x28: `props()`/`listProps()` `as never` -> `as unknown as ComponentProps<Awaited<ReturnType<typeof load>>>` (rs-c7, web-t03); `request.clone().json()` cast `as Record<string, unknown>` (web-t06); harness `lots: [] as Record<string, unknown>[]` (quality-t22). Runtime values unchanged.

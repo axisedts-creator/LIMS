@@ -27,13 +27,13 @@ vi.mock('@/core/session/server', () => ({
 
 let current: unknown = manifest();
 const api = setupServer(
-  http.get(`${ORIGIN}/v1/partners/admin/manifests/:id`, async ({ request, params }) => { await rec(request); return params['id'] === MANIFEST ? HttpResponse.json(current) : problem(404, 'common.not_found'); }),
+  http.get(`${ORIGIN}/v1/partners/admin/manifests/:id`, async ({ request, params }) => { await rec(request); return params['id'] === MANIFEST ? HttpResponse.json(current as never) : problem(404, 'common.not_found'); }),
   http.post(`${ORIGIN}/v1/partners/admin/manifests/:id/receive`, async ({ request }) => { await rec(request); return HttpResponse.json(manifest({ state: 'partially_received', version: 4 })); }),
   http.post(`${ORIGIN}/v1/partners/admin/manifest-lines/:id/retry`, async ({ request }) => { await rec(request); return HttpResponse.json(line(LINE.A, 1, { state: 'converting' }), { status: 202 }); }),
   http.post(`${ORIGIN}/v1/partners/admin/manifest-lines/:id/not-received`, async ({ request }) => { await rec(request); return HttpResponse.json(line(LINE.A, 1, { state: 'not_received' })); }),
   http.post(`${ORIGIN}/v1/frontdesk/patients/search`, async ({ request }) => { await rec(request); return HttpResponse.json({ data: [patientHit()] }); }),
 );
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { cleanup(); api.resetHandlers(); calls.length = 0; refresh.mockReset(); current = manifest(); session.perms = []; localStorage.clear(); sessionStorage.clear(); });
 afterAll(() => api.close());
 

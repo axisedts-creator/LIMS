@@ -17,7 +17,7 @@ import userEvent from '@testing-library/user-event';
 import axe from 'axe-core';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
-import type { ReactNode } from 'react';
+import type { ComponentProps, ReactNode } from 'react';
 import { ToastProvider } from '@lims/ui/components/Toast';
 
 const push = vi.fn();
@@ -73,7 +73,7 @@ const api = setupServer(
   http.patch(`${IM}/:id`, async ({ request }) => { await rec(request); return HttpResponse.json(full({ version: 5 })); }),
   http.post(`${IM}/:id/:action`, async ({ request }) => { await rec(request); return HttpResponse.json(full({ version: 5 })); }),
 );
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { cleanup(); api.resetHandlers(); calls.length = 0; listSeen.length = 0; push.mockReset(); replace.mockReset(); refresh.mockReset(); vi.useRealTimers(); localStorage.clear(); sessionStorage.clear(); session.permissions = MANAGE; });
 afterAll(() => api.close());
 beforeEach(() => { Object.assign(navigator, { clipboard: { writeText: vi.fn(async () => {}) } }); });
@@ -106,7 +106,8 @@ describe('SCR-05 InstrumentsList', () => {
     summary({ id: '01a1a98a-ac40-7000-8000-0000000e0004', instrument_code: 'SIM-OLD-1', display_name: 'Old one', state: 'retired', unmapped_code_count: 0 }),
     summary({ id: '01a1a98a-ac40-7000-8000-0000000e0005', instrument_code: 'SIM-SUS-1', display_name: 'Paused', state: 'suspended', unmapped_code_count: 0 }),
   ];
-  const props = (o: Record<string, unknown> = {}) => ({ instruments: rows, permissions: READ, centres, agents, drivers: DRIVERS, ...o }) as never;
+  // LD-424: `as never` cannot be spread (TS2698); typed as the component props instead. Types only, same runtime value.
+  const props = (o: Record<string, unknown> = {}) => ({ instruments: rows, permissions: READ, centres, agents, drivers: DRIVERS, ...o }) as unknown as ComponentProps<Awaited<ReturnType<typeof load>>>;
 
   // RS-C7 ruling (A5): the done_when "instrument list as link cards" and LD-140 override the 04-UI-UX column layout; contract is rs-c7.behaviour A1.
   it('renders one link card per instrument (no columns); the instrument code links to SCR-07 and the card carries the old column data', async () => {
@@ -191,7 +192,7 @@ describe('SCR-05 InstrumentsList', () => {
     const keys = help.shortcuts.map((s: { keys: string }) => s.keys);
     expect(keys).toContain('Alt+I');
     expect(keys).not.toContain('Alt+N');
-    expect(help.shortcuts.find((s: { keys: string }) => s.keys === 'Alt+I').action).toBe('New instrument');
+    expect(help.shortcuts.find((s: { keys: string }) => s.keys === 'Alt+I')!.action).toBe('New instrument');
   });
 
   it('SECURITY: display names are rendered as text, never HTML', async () => {

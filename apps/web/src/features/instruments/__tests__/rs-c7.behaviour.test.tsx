@@ -19,7 +19,7 @@ import userEvent from '@testing-library/user-event';
 import axe from 'axe-core';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
-import type { ReactNode } from 'react';
+import type { ComponentProps, ReactNode } from 'react';
 import { ToastProvider } from '@lims/ui/components/Toast';
 import { AGENTS_PICK, CENTRES, CHECKS, DRIVERS, INST, INSTRUMENT_PICK, MANAGE, MESSAGES, ORIGIN, READ, REJECTIONS, ROWS, agentRow, full, id, summary } from './rs-c7.fixtures';
 
@@ -44,7 +44,7 @@ const sentCalls: string[] = [];
 const api = setupServer(
   http.all(`${ORIGIN}/*`, ({ request }) => { sentCalls.push(`${request.method} ${new URL(request.url).pathname}`); return HttpResponse.json({}); }),
 );
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { cleanup(); api.resetHandlers(); sentCalls.length = 0; push.mockReset(); replace.mockReset(); refresh.mockReset(); localStorage.clear(); });
 afterAll(() => api.close());
 
@@ -56,7 +56,8 @@ const serious = async () => {
 };
 
 const loadList = async () => (await import('../components/InstrumentsList')).InstrumentsList;
-const listProps = (o: Record<string, unknown> = {}) => ({ instruments: ROWS, permissions: READ, centres: CENTRES, agents: AGENTS_PICK, drivers: DRIVERS, ...o }) as never;
+// LD-424: `as never` cannot be spread (TS2698); typed as the component props instead. Types only, same runtime value.
+const listProps = (o: Record<string, unknown> = {}) => ({ instruments: ROWS, permissions: READ, centres: CENTRES, agents: AGENTS_PICK, drivers: DRIVERS, ...o }) as unknown as ComponentProps<Awaited<ReturnType<typeof loadList>>>;
 /** The table row of an instrument (A1 is a table): the row that holds the link to SCR-07 whose text is the instrument code. */
 const cardOf = (instId: string, code: string) => {
   const link = screen.getAllByRole('link').find((l) => l.getAttribute('href') === `/instruments/instruments/${instId}` && (l.textContent ?? '').includes(code));

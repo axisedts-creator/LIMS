@@ -26,7 +26,7 @@ const server = setupServer(
   http.get(URL_SETTINGS, async ({ request }) => { await rec(request); return HttpResponse.json(settings()); }),
   http.put(URL_SETTINGS, async ({ request }) => { await rec(request); return HttpResponse.json(settings({ version: 2 })); }),
 );
-beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => server.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { server.resetHandlers(); seen.length = 0; });
 afterAll(() => server.close());
 

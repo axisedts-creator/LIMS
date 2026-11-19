@@ -47,7 +47,7 @@ const server = setupServer(
     return HttpResponse.json({ data: [], page: { limit: 50 } });
   }),
 );
-beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => server.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { server.resetHandlers(); seen.length = 0; });
 afterAll(() => server.close());
 

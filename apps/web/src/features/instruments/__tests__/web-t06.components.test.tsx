@@ -53,9 +53,9 @@ const problem = (status: number, code: string, extra: Record<string, unknown> = 
 const puts = () => calls.filter((c) => c.method === 'PUT');
 const api = setupServer(
   http.get(SETTINGS_URL, async ({ request }) => { await rec(request); return HttpResponse.json(settings()); }),
-  http.put(SETTINGS_URL, async ({ request }) => { await rec(request); const b = await request.clone().json(); return HttpResponse.json({ ...b, version: 2 }); }),
+  http.put(SETTINGS_URL, async ({ request }) => { await rec(request); const b = (await request.clone().json()) as Record<string, unknown>; return HttpResponse.json({ ...b, version: 2 }); }),
 );
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { cleanup(); api.resetHandlers(); calls.length = 0; push.mockReset(); replace.mockReset(); refresh.mockReset(); localStorage.clear(); sessionStorage.clear(); session.permissions = MANAGE; });
 afterAll(() => api.close());
 
@@ -192,7 +192,7 @@ describe('SCR-11 save → E41 with If-Match (AC-15.5)', () => {
   });
 
   it('double-click on Save sends ONE PUT while in flight', async () => {
-    api.use(http.put(SETTINGS_URL, async ({ request }) => { await rec(request); await delay(150); return HttpResponse.json({ ...(await request.clone().json()), version: 2 }); }));
+    api.use(http.put(SETTINGS_URL, async ({ request }) => { await rec(request); await delay(150); return HttpResponse.json({ ...((await request.clone().json()) as Record<string, unknown>), version: 2 }); }));
     await show();
     await setField(L.backlog, '600');
     const btn = screen.getByRole('button', { name: /^save$/i });

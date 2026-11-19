@@ -75,3 +75,46 @@ normally): the load.live.test.ts:50 deadlock dispute (40P01/40001, TESTS_WRONG v
 the static.test.ts runbook-regex dispute (sync.device / sync.conflict exclusion-list bug).
 
 Reset: C0-0H T0B-SYNC-5 to changes.
+
+----
+LEAD RULING, LD-412: load.live.test.ts deadlock (40P01) is a test-kit fixture bug, not a production
+defect. Writer dispute 3 and debugger dispute 4 independently converge: kit.ts's synthetic adapters
+take locks in inconsistent order across operation types (registration: patient/order then counter;
+plain receipt: counter directly), creating a genuine lock cycle under 200 concurrent devices that
+recurs through every retry. The engine's 40P01/40001 rethrow and the harness's 3x whole-request
+retry (02-TRD 6.4) are both correct as designed; a real production fix would need a tenant-wide
+batch lock, which serialises sync and is exactly what done_when (6) forbids.
+
+RULING: TESTS WRONG, fix is in kit.ts, not production code, not a looser assertion. Reorder the
+synthetic adapters so every one of them takes the gap-free counter row before the
+patient/order/state inserts (or gives registration a sorted-key pre-lock across everything it will
+touch) -- tester's choice of mechanics, as long as every adapter locks in the SAME order.
+load.live.test.ts's assertion stays exactly as written.
+
+Reset: C0-0H T0B-SYNC-5 to changes.
+
+----
+LEAD ITEM, LD-415 (2026-11-19):
+
+The rerun after LD-412 no longer hangs (4 of 5 test files pass), but load.live.test.ts still fails:
+23 operations come back as common.dependency_unavailable. Per helpers2.ts fire2, that only happens
+when SQLSTATE 40001 or 40P01 fires on every one of RETRY_MAX (3) attempts. 40P01 is a true
+deadlock, the thing LD-412 targeted. 40001 is a serialization failure under SERIALIZABLE isolation,
+which Postgres can raise even with perfectly consistent lock order, purely from concurrent write
+conflicts, and a lock-ordering fix does not address it.
+
+Debugger: capture which SQLSTATE is actually firing on these 23 (log it per attempt if the harness
+does not already) before changing anything further.
+
+If it is 40P01: LD-412 reordering is still incomplete somewhere in kit.ts across the eight adapter
+types; find the remaining adapter(s) with inconsistent lock order and fix under LD-412 own terms.
+
+If it is 40001: stop there. Do not touch LIMS_CORE_TX_RETRY_MAX, backoff, or jitter in
+core/db/tx.ts yourself. Write up what you found and the lead will rule on raising the retry budget,
+adding backoff, or another approach, since that changes production resilience behavior, not just
+the test kit.
+
+Either way, load.live.test.ts assertion stays exactly as LD-412 already said: no change to it or to
+done_when from this item.
+
+Reset applied: changes.

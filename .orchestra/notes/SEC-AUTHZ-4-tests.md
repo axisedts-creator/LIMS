@@ -4,4 +4,5 @@
 - New tests/security/authz-identity.test.mjs: identity unguarded = 0 (fresh run and snapshot); guarded-other needs an exception row (handlerPermission = asserted) or a CR; session-flow/public classes unchanged; snapshot == fresh run.
 - Run: `.orchestra/notes/SEC-AUTHZ-4-verify.cmd`. Now: vitest 230/275 fail (no guard: assertRole never asked, or validation/not_found before guard); node 5/8 fail.
 - Snapshot NOT regenerated (code absent; it already drifts: classifier shows 229 unguarded). After the writer commits: `node tests/security/classify-authz.mjs > tests/security/authz-classification.json`; lane commits it.
+- Ruling revision: ctx of the 6 identity *.handlers.test.ts (user, role, org, settings, self, tenant-access; incl. the no-context cases) now has `ports.IdentityPort.assertRole` stub; no expectation changed; 237/237 pass.
 - Not covered: real IdentityPort/DB, centre-scoped asserts, log/PII per op, "no permission widened" (reviewer reads git diff of contracts/, role packs, SQL).

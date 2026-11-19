@@ -3,6 +3,7 @@
 // then the keyed render job `render:<id>` (same key the assembly and sweep_stuck_renders use, so a live job collapses). Errors never echo input.
 import { LimsError, type FieldError } from '../../../core/errors.js';
 import type { Handler, HandlerContext, HandlerRequest } from '../../../core/module.js';
+import { guarded } from './_guard.js';
 import { Q } from '../repository/retry-render.repo.js';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -11,7 +12,7 @@ const RENDER_MAX_ATTEMPTS = 5;                                   // 02-CV §7.5
 const ENQUEUE = 'SELECT app.enqueue_job($1, $2::jsonb, $3, $4, $5)';
 const obj = (v: unknown): Record<string, any> => (typeof v === 'object' && v !== null ? (v as Record<string, any>) : {});
 
-export const retryRenderHandlers: Readonly<Record<string, Handler>> = Object.freeze({
+const retryRenderRaw: Readonly<Record<string, Handler>> = Object.freeze({
   retryRenderReportVersion: async (req: HandlerRequest, hctx: HandlerContext) => {
     const c = hctx as unknown as { tenantId?: string; actor?: { id?: string }; tx?: { query(sql: string, v: unknown[]): Promise<{ rows: any[] }> } };
     if (typeof c.tenantId !== 'string' || typeof c.actor?.id !== 'string' || !c.tx) throw new LimsError('auth.unauthenticated');
@@ -38,4 +39,10 @@ export const retryRenderHandlers: Readonly<Record<string, Handler>> = Object.fre
       body: { id, version_no: v.version_no, status: 'rendering', report_kind: v.report_kind, completeness: v.completeness, version: done.version },
     };
   },
+});
+
+// SEC-AUTHZ-7 (LD-189, LD-261): retryRenderReportVersion asks its contract x-permission through IdentityPort.assertRole before the wrapped handler runs (see _guard.ts).
+export const retryRenderHandlers: Readonly<Record<string, Handler>> = Object.freeze({
+  ...retryRenderRaw,
+  retryRenderReportVersion: guarded('reporting.report.render', retryRenderRaw['retryRenderReportVersion']!),
 });

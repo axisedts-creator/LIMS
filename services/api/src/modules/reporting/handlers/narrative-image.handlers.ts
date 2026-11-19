@@ -2,6 +2,7 @@
 // contracts/openapi/reporting.yaml; these map request -> service and fail closed without an authenticated request context.
 import { LimsError } from '../../../core/errors.js';
 import type { Handler, HandlerContext, HandlerRequest } from '../../../core/module.js';
+import { guarded } from './_guard.js';
 import { contentDisposition } from '../../../core/storage/download.js';
 import { createNarrativeImageService } from '../service/narrative-image.service.js';
 import type { OutsourcedCtx } from '../service/outsourced.service.js';
@@ -14,7 +15,7 @@ function ctxOf(hctx: HandlerContext): OutsourcedCtx {
   return c as OutsourcedCtx;
 }
 
-export const narrativeImageHandlers: Readonly<Record<string, Handler>> = Object.freeze({
+const narrativeImageRaw: Readonly<Record<string, Handler>> = Object.freeze({
   uploadNarrativeImage: async (req: HandlerRequest, hctx: HandlerContext) => {
     const b = obj(req.body);
     return { status: 201, body: await svc.upload(ctxOf(hctx), { narrativeId: obj(req.params)['narrative_id'], file: b['file'], caption: b['caption'] }) };
@@ -30,4 +31,10 @@ export const narrativeImageHandlers: Readonly<Record<string, Handler>> = Object.
       },
     };
   },
+});
+
+// SEC-AUTHZ-7 (LD-189, LD-261): getNarrativeImageContent asks its contract x-permission (reporting.report.read) before the wrapped handler runs (see _guard.ts); the upload keeps its own write guard.
+export const narrativeImageHandlers: Readonly<Record<string, Handler>> = Object.freeze({
+  ...narrativeImageRaw,
+  getNarrativeImageContent: guarded('reporting.report.read', narrativeImageRaw['getNarrativeImageContent']!),
 });

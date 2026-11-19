@@ -2,6 +2,7 @@
 // then ids (non-uuid == unknown), then the body (additionalProperties: false), then the service. Never echoes input.
 import { LimsError, type FieldError } from '../../../core/errors.js';
 import type { Handler, HandlerContext, HandlerRequest } from '../../../core/module.js';
+import { guarded } from './_guard.js';
 import type { RequestHeaders } from '../../../core/storage/stream.js';
 import * as S from '../service/print.service.js';
 import { pendingMarkers } from '../../../core/sync/offlineSignoffs.js';
@@ -31,7 +32,7 @@ const variantOf = (b: Record<string, unknown>): 'letterhead' | 'plain' => {
   return b['variant'];
 };
 
-export const printHandlers: Readonly<Record<string, Handler>> = Object.freeze({
+const printRaw: Readonly<Record<string, Handler>> = Object.freeze({
   createReportPrint: async (req: HandlerRequest, hctx: HandlerContext) => {
     const c = staff(hctx); const id = idOr404(req, 'report_version_id');
     const b = body(req.body, ['variant', 'copies']); const variant = variantOf(b); const copies = b['copies'];
@@ -51,4 +52,14 @@ export const printHandlers: Readonly<Record<string, Handler>> = Object.freeze({
     const c = staff(hctx); const id = idOr404(req, 'template_id'); const variant = variantOf(body(req.body, ['variant']));
     return S.previewReportTemplate(c, id, variant);
   },
+});
+
+// SEC-AUTHZ-7 (LD-189, LD-261): each row below asks its contract x-permission through IdentityPort.assertRole before the wrapped handler runs (see _guard.ts);
+// createBulkPrint keeps its own reporting.report.bulk_download check.
+export const printHandlers: Readonly<Record<string, Handler>> = Object.freeze({
+  ...printRaw,
+  createReportPrint: guarded('reporting.report.print', printRaw['createReportPrint']!),
+  getReportPrint: guarded('reporting.report.print', printRaw['getReportPrint']!),
+  downloadReportPrintPdf: guarded('reporting.report.print', printRaw['downloadReportPrintPdf']!),
+  previewReportTemplate: guarded('reporting.template.manage', printRaw['previewReportTemplate']!),
 });

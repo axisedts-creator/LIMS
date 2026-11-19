@@ -1,8 +1,6 @@
-# VERIFY-GREEN-8 impl (writer)
-- Files: ~190 test files/helpers under apps/web/src (`__tests__`, `tests/e2e`); no product file touched (git status: only test paths).
-- [CONV] LD-268 msw v3: `onUnhandledRequest:` -> `onUnhandledFrame:` in `server.listen()` (176 files, TS2353). Lab JSX (TS2604/2786 x7): `(await load(..)).Page!` (indexed access is possibly undefined; runtime same).
-- [CONV] Types only: spread-of-never `as never` -> `as unknown as ComponentProps<..>` (rs-c7, web-t03), json() casts (web-t04/t06), `HttpResponse.json(x as never)`, `| undefined` on optional props (exactOptionalPropertyTypes: flow.ts, web-t35 x3), `!` on indexed reads (web-t32.server, web-t03, HC-T30), `as unknown as` (t20.static), `as never` (rs-c2, web-t04 props), readonly cast (micro t22), `(skip, _label)` (provision1), conditional `{cookie}` spread (web-auth-redirect), page called with 0 args (t23.counts) / narrow fn cast (t24).
-- No @ts-ignore/expect-error/`as any`/skipLibCheck added. No assertion changed. No money/order emitted value, rounding, status or SQL changed.
-- `tsc -p apps/web`: 287 errors under apps/web/src -> 0. Package total 296 -> 9 (all apps/portal TS2307 x7 + TS7006 x2 = VERIFY-GREEN-5). `turbo run typecheck --continue` not run.
-- Gate `VERIFY-GREEN-8-verify.cmd`: 8/8 green. Feature suites green (own configs): lab-t25/t26/t29, web-t32, web-t35, rs-c7, web-t04, quality-t22, inventory t23/t24, micro t22, partners t16, anatomic t21.
-- Open: `rs-c2.static` "data files untouched" fails on hashes of platform/actions.ts + shared.ts (changed by PLATFORM-PROVISION-1 commit 9677e24a3, not by this task; needs a tester/lead baseline refresh). Many other suites not re-run. Note: VG-6/7 notes claim fixes that were NOT in this tree; redone here.
+# VERIFY-GREEN-8 impl (writer, pass after LD-425)
+- Files changed by writer: none. No review note exists; ruling LD-425 routes the whole fix to the tester; tester commit d0e5aa3f3 holds it (158 test files; msw `onUnhandledFrame` everywhere, only comments still say `onUnhandledRequest`). No product file in scope.
+- [CONV] Writer may not edit test files/helpers (LD-423/424/425), so remaining red items are left to tester/lead.
+- Rerun 2026-11-19: `tsc -p apps/web --noEmit` = 65 errors, all TS2883 (inferred type not nameable: vitest `Procedure`, testing-library `PrettyFormatOptions`) in ~28 `__tests__/*.harness.tsx`/helpers exports (`router`, `navigationMock`, `show*`, `open*`). Fix = explicit type annotations on those exports (tester-owned).
+- Gate vitest.vg8: 5/8. Red: (1) the 65 TS2883 above; (2) `@ts-*` scan hits `src/__tests__/sec-hyg1.pollers.test.tsx` (SEC-HYG-1, tester 8a5eac684, not this task); (3) `as any` 90 > 66 baseline (other tasks).
+- Open for lead: (2) and (3) are pins broken by other tasks; decide whether VG-8 gate owns them. `turbo run typecheck --continue` not run.

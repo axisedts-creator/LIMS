@@ -42,7 +42,7 @@ const RANGE = { from: '2026-11-19T00:00:00.000Z', to: '2026-11-19T23:59:59.999Z'
 const sbRow = (n: number, s: string) => ({ order_id: uuid(100 + n), registration_no: `REG9${String(n).padStart(4, '0')}`, patient_display: { full_name: `Synthetic Patient ${n}`, age_sex: '34Y/F', patient_code: `P-SYN-${n}` }, centre_id: uuid(2), board_status: s, rejected_specimens: 0, priority: 'routine' });
 const wrap = (el: ReactElement) => render(<ToastProvider>{el}</ToastProvider>);
 
-interface Poller { name: string; period: number; mount: () => ReturnType<typeof render>; calls: () => number; fail?: () => void; stillShown?: () => void }
+interface Poller { name: string; period: number; mount: () => Promise<ReturnType<typeof render>>; calls: () => number; fail?: () => void; stillShown?: () => void }
 const POLLERS: Poller[] = [
   {
     name: 'QueueConsole', period: 5_000, calls: () => h.listTokens.mock.calls.length,

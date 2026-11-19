@@ -1,3 +1,12 @@
+TESTS_WRONG — rs-c4.screens.test.tsx:74 "Daily cash (open shift) 1" still pins pre-UIDASH-1 markup (.snap last changed a96e6abff, T0D-UILIST-2); OFFLINE-3 does not own that screen. The fix (re-record + commit that one .snap) is PARKED by lead item LD-416: do nothing to the snapshot until the founder answers.
+Reasons (arbiter, 2026-11-19, dispute 08:40 "LD-409 edit NOT on disk"):
+1. Writer's fact confirmed: `git log` on the .snap shows a96e6abff as last change; tester commit ac5df00d2 did not include it. The test is still wrong for the reasons in the round-15 ruling below (spec/program/10-DESIGN-SYSTEM.md:135,137; OFFLINE-3 done_when (1)-(6) never mention Daily cash).
+2. LD-416 (bottom of this file, lines 396-415, binding, newer than LD-409) withdraws LD-409 and reinstates LD-401: no tester-channel or direct lead edit of this snapshot; task stays not-done on this one point only.
+3. Hence TESTS_WRONG, but no executor acts now. TESTER: no edit. WRITER and DEBUGGER: no code change; do not re-dispute this snapshot. When the founder rules, the change is exactly the round-15 command below, and the committed diff must contain the .snap itself (check `git show --stat`).
+4. Everything else in OFFLINE-3 (LD-398/400/401/404 items) stands; rs-c4 otherwise 36/37 passing per writer.
+
+---- prior arbiter ruling, round 15 (superseded by the above; its TESTER command is on hold per LD-416) ----
+
 TESTS_WRONG — rs-c4.screens.test.tsx:74 "Daily cash (open shift)" snapshot pins pre-UIDASH-1 markup; no spec line ties the Daily cash screen to OFFLINE-3. Apply lead ruling LD-409 (bottom of this file): re-record that one snapshot.
 Reasons (arbiter, 2026-11-19, dispute round 15):
 1. rs-c4 snapshots are RS-task visual records (spec/program/10-DESIGN-SYSTEM.md:135,137); a later landed feature (T0D-UIDASH-1, LD-353 rule 10/template 5) legitimately changed the screen. Diff is additive (stat row + chart card before "My shift").

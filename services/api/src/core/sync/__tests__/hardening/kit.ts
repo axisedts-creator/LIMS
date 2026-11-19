@@ -71,6 +71,8 @@ export function mixedAdapters(series: string): any[] {
   const event = (ctx: any, op: any, kind: string) => ctx.tx.query('INSERT INTO sync2_test.s5_event (tenant_id, op_id, kind) VALUES ($1, $2, $3)', [ctx.tenantId, op.opId, kind]);
   const once = async (ctx: any, op: any, state: string): Promise<boolean> =>
     (await ctx.tx.query('INSERT INTO sync2_test.s5_state (tenant_id, entity_id, state, op_id) VALUES ($1, $2, $3, $4) ON CONFLICT DO NOTHING RETURNING 1', [ctx.tenantId, op.entityId, state, op.opId])).rows.length === 1;
+  // LD-418 (2026-11-19): no per adapter locking. Lock order across concurrent batches is made safe once per batch by lockBatchKeys (see syncEngine below): every key the batch will touch
+  // is taken with pg_advisory_xact_lock, deduplicated and sorted, before the first write. Supersedes the LD-412 / LD-417 counter-first FOR UPDATE.
   const make = (opType: string, permission: string, execute: (ctx: any, op: any) => Promise<any>): any => ({
     opType, permission,
     validate(p: any) { if (p?.invalid === true) throw new LimsError('common.validation_failed'); },
@@ -112,7 +114,28 @@ export function mixedAdapters(series: string): any[] {
     }),
   ];
 }
-export const syncEngine = (series: string, settings: Record<string, unknown> = {}) => engine(settings, mixedAdapters(series));
+/** LD-418: the keys one batch will write, as lock names. s5_patient / s5_order keys (registration), s5_state keys (collection, accession, daily cash: entity + state), and the gap free counter
+ *  series ONLY when the batch holds a billing.record_receipt op. Deduplicated and sorted by key string = one global order for every batch. */
+export function batchLockKeys(tenantId: string, series: string, ops: ReadonlyArray<any>): string[] {
+  const keys = new Set<string>();
+  const stateOf: Record<string, string> = { 'collection.mark_collected': 'collected', 'accession.receive': 'received', 'daily_cash.close': 'closed' };
+  for (const o of ops) {
+    if (o?.op_type === 'registration.create_order') { keys.add(`s5_patient:${o.payload?.patient_key}`); keys.add(`s5_order:${o.payload?.order_key}`); }
+    else if (o?.op_type === 'billing.record_receipt') keys.add(`counter:${tenantId}:${series}`);
+    else if (stateOf[o?.op_type] && o.entity_id) keys.add(`s5_state:${o.entity_id}:${stateOf[o.op_type]}`);
+  }
+  return [...keys].sort();
+}
+export async function lockBatchKeys(ctx: any, series: string, ops: ReadonlyArray<any>): Promise<void> {
+  for (const k of batchLockKeys(ctx.tenantId, series, ops)) await ctx.tx.query('SELECT pg_advisory_xact_lock(hashtextextended($1, 0))', [`${ctx.tenantId}:${k}`]);
+}
+export const syncEngine = (series: string, settings: Record<string, unknown> = {}) => {
+  const H = engine(settings, mixedAdapters(series));
+  const push = H.pushSyncBatch;
+  // each attempt (also a 40001/40P01 retry of the whole request tx) re-takes the locks first, before the engine or an adapter writes anything
+  H.pushSyncBatch = async (req: any, ctx: any) => { await lockBatchKeys(ctx, series, Array.isArray(req?.body?.operations) ? req.body.operations : []); return push(req, ctx); };
+  return H;
+};
 
 // ---------------------------------------------------------------- operation plans
 export interface PlannedOp { op: Op; kind: string }

@@ -33,3 +33,7 @@
 # round 9 (2026-11-19 10:40) - verify log 10:39: 53/54, only load.live.test.ts:82 fails: p95 53292 ms > P95_BATCH_MS_BOUND 30000 (kit.ts:35)
 - Cause: unchanged from rounds 7-8. Every kit adapter locks the gap-free tenant counter first (LD-412), so 400 batches serialise on it; p95 keeps growing (34.7s, 42.0s, 47.4s, 53.3s). No 40P01/40001. Test-kit locking and bound, not engine code.
 - Fix: none. Impl speedup = engine/adapter locking change (breaks done_when 6); kit.ts and the bound are test code, barred to me. dispute-202611191030.md (10:18) still unanswered; waiting on arbiter ruling.
+
+# round 10 (2026-11-19 11:15) - verify log 11:08: 53/54, load.live.test.ts:40 fails, 72x common.dependency_unavailable (post LD-417; p95 no longer reached)
+- Cause: LD-417 dropped the counter lock from 7 adapters; that lock also serialised batches inserting shared s5_patient keys (kit.ts:88, pool 300, random order per batch) => lock-order inversion 40P01 (inferred, SQLSTATE not logged) survives 3 retries. Test-kit only.
+- Fix: none. Impl fix = tenant batch lock / retry budget = production change (done_when 6, LD-415); kit.ts barred to me. Wrote dispute-202611191115.md; stopped.

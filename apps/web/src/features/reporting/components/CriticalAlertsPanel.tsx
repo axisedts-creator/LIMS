@@ -28,7 +28,8 @@ export function CriticalAlertsPanel({ alerts, hasMore = false, centreId }: { ale
     return false;
   };
   useEffect(() => {
-    const t = setInterval(() => { void load().catch(() => undefined); }, POLL_MS);
+    // LD-240: no request while the tab is hidden.
+    const t = setInterval(() => { if (document.visibilityState !== 'hidden') void load().catch(() => undefined); }, POLL_MS);
     return () => clearInterval(t);
   }, [centreId]);
 

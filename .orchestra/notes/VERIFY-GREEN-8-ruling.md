@@ -1,25 +1,6 @@
-LEAD ITEM, LD-425 (2026-11-19):
-
-Cause: identical mechanism to VERIFY-GREEN-6 and VERIFY-GREEN-7 (LD-423, LD-424). The writer own
-roughly 190 test-file edits were not in the tree (the commit held only the impl note; 178 files
-still used the old msw call; 287 tsc errors under apps/web/src). The debugger redid the
-identical fix and reports it green (tsc under apps/web down from 296 to 9, the remaining 9 all
-in apps/portal and already covered by VERIFY-GREEN-5, not this task; gate vitest.vg8 8 of 8; the
-lab, instruments and catalog suites named in the debug note green), but the edits are again
-uncommitted, for the same Enforce reason as LD-423 and LD-424: an existing test file can only be
-kept by the tester.
-
-RULING: route through the tester, same as LD-423 and LD-424. The fix is already fully specified
-in the debug note and already proven to pass; no further debug rounds are needed on this
-specific fix.
-
-For the tester: apply exactly the fix in VERIFY-GREEN-8-debug.md: the msw rename across the 178
-named test files, the lab non-null marks, and the roughly 30 type-only casts and markers in the
-other 25 named test files. Test files only, no product file, no assertion loosened, no
-escape-hatch cast, matching the debug note exactly. Confirm tsc under apps/web goes from 296 to
-9 (the remaining 9 are apps/portal, VERIFY-GREEN-5 own scope, not this task), gate vitest.vg8 is
-8 of 8, and the lab, instruments and catalog suites named in the debug note stay green, then
-commit. Writer and debugger may not make this edit stick; only a tester commit will survive the
-next pass.
-
-Reset: C1 VERIFY-GREEN-8 to changes.
+TESTS_WRONG — gate tests 2 and 3 (vg8.typecheck.test.ts:73-85) assert more than the task requires; test 1 (line 47-57) is right and stays.
+Change in apps/web/src/__tests__/vg8.typecheck.test.ts (tester):
+1. Line 75 `allowed`: add `sec-hyg1\.pollers\.test\.tsx`. Its `(p.fail ? it : it.skip)` (sec-hyg1.pollers.test.tsx:157) is a data-driven skip added by SEC-HYG-1 on 2026-11-19 (81acaf606), after this gate was written (f944a2cb3, 2026-11-16); it hides no type error. The brief forbids hiding devices "added to hide an error" (inbox VERIFY-GREEN-8-arbiter.md:18), not another task's conditional test.
+2. Line 115 `BASELINE_AS_ANY`: re-measure on the tree before VERIFY-GREEN-8 edits (git grep -cw 'as any' HEAD -- apps/web/src, excluding vgN guards = 80 at 818f6275c; was 60 at f944a2cb3; the +20 come from later lanes: printcfg1.harness 7, offline1.store 4, webfix2 x3 4, elabmenu1 x2 3, density 1, offline3.fixtures 1). Set 80 and update the comment/date.
+Not a test change, binding on the tester's fix: test 1 stands. The 65 TS2883 in *.harness.tsx / *.helpers.tsx / rs-c15.fixtures.tsx must be fixed with explicit return-type annotations (test-helper, type-only edits are in scope per brief :15-18). The debugger log's 90 `as any` means VG8 edits added about 10: replace each with a narrow typed cast; the new baseline 80 must hold after the fix ("no `as any` ... added", brief :18).
+Spec: plan 06-IMPLEMENTATION-PLAN.md has no VERIFY-GREEN-8 row (grep, 0 hits), so the task brief done_when is the governing text; LD-424/LD-425 routing (tester commits test files) still applies.

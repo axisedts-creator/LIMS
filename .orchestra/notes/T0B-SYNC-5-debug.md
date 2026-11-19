@@ -17,3 +17,7 @@
 # round 5 (2026-11-19 08:50) — verify log 08:48: only load.live.test.ts:40 fails (13x 40P01 -> common.dependency_unavailable); 53/54 pass, retention gone (LD-407)
 - Cause: same as round 4, lock-order inversion in test-only synthetic adapters (hardening/kit.ts:80-93 vs doubles.ts nextNo). No code changed since round 4; dispute-202611190850.md still unanswered.
 - Fix: none. Fix is in kit.ts (test code, forbidden to me); implementation fix would need a tenant-wide batch lock (violates done_when 6). Waiting for arbiter TESTS_WRONG ruling.
+
+# round 6 (2026-11-19 08:58) - inbox re-run, no new ruling on dispute-202611190850.md; verify log unchanged (53/54, load.live.test.ts:40 only)
+- Cause: unchanged, lock-order inversion in test-only kit.ts adapters (40P01 survives 3 request retries). Retention gone per LD-407 (not a failure).
+- Fix: none. Impl fix would need tenant-wide batch lock (breaks done_when 6); kit.ts is test code, barred to me. Waiting on arbiter TESTS_WRONG ruling.

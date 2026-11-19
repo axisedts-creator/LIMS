@@ -177,10 +177,11 @@ describe('credit parties — handlers over the service, validated against the Op
     expect(r.body).not.toHaveProperty('contact_email');
   });
 
-  it('PATCH by a manage caller still returns no sensitive field', { timeout: T }, async () => {
+  it('PATCH by a manage caller -> 200 and the sensitive fields are present (S-11)', { timeout: T }, async () => {
     const r = await call(seeded(), 'updateCreditParty', req({ params: { credit_party_id: X.id }, headers: IM1, body: { name: 'Renamed' } }), [MANAGE]);
     expect(r.status).toBe(200);
-    expect(JSON.stringify(r.body)).not.toMatch(SECRETS);
+    expect(r.body).toMatchObject({ name: 'Renamed', pan: '*****6789', contact_phone_e164: P1, contact_email: 'billing@example.test', billing_address: 'Synthetic Street 1, Synthetic City' });
+    expect(JSON.stringify(r.body)).not.toMatch(/123456789/); // full PAN never leaves
   });
 
   it('AC-01.6 pattern on PATCH: no If-Match -> 428; stale -> 409 version_conflict; nothing written', { timeout: T }, async () => {

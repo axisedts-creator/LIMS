@@ -3,4 +3,5 @@
 - [CONV] prism-cli KEPT (not removed): root mock:* scripts and tester-owned c10..c17 tests need it; faker 5.5.3 (GHSA-qxc2-j82w-r537) and uuid 8.3.2 (GHSA-w5hq-g745-h8pq) stay, named in the CR. `pnpm audit` now: 1 high + 1 moderate, both dev-only via prism.
 - Tests: tests/security/sec-deps1.test.mjs 18/18 green; `pnpm install --frozen-lockfile` ok.
 - Open: `pnpm -s verify` red at @lims/web#typecheck (msw onUnhandledRequest TS2353 etc., 0 errors mention yaml/vitest/ajv; msw/vite/vitest-in-web unchanged) - not shown pre-existing against a clean HEAD (baseline worktree was denied). Codegen 7 and contracts 20 vitest failures are count/spec-drift asserts (IC blocks, pendingOperations), same caveat.
+- Review round 1: only item (continue-on-error vs ci-workflows gate test) is test-owned, fixed by tester c6adbe34a; no impl change. Re-run: sec-deps1 18/18; tools/lint 438 pass / 2 fail (supabase-pin, build smoke ERR_PNPM_IGNORED_BUILDS, pre-existing, not this diff).
 - db/meta/decisions/T0-03-dependencies.md still lists ajv 8.17.1 / yaml 2.8.1 (outside my paths; T0-03.pins test still passes on those rows).

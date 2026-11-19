@@ -1,3 +1,4 @@
 - Cause: the 9 errors come only from portal pages pulled in by rs-c6.portal.test.tsx; `@/` there resolves to web/src.
 - No smallest in-scope fix: relative specifiers break rs-c6 pins, and a tsconfig `paths` fallback is C0-0D-owned and rejected in review.
 - vg5 test rejects the notes+CR path for these errors, so the test and the brief disagree. Dispute written, no code changed.
+- Round 4 (2026-11-19): remaining verify fail is rs-c6.screens worklist (tab role + snapshot), pre-existing, caused by T0D-UILIST-1 FilterBar change (LD-353), not by LD-405 tsconfig edit. No code changed. Dispute: VERIFY-GREEN-5-dispute.md.

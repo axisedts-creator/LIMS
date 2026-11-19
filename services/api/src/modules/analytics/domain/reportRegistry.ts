@@ -2,7 +2,7 @@
 import { LimsError } from '../../../core/errors.js';
 import type { AnalyticsPermission } from '../permissions.js';
 import type { Family } from './families.js';
-import { MIS_DEFS, MIS_REPORT_CODES } from './misReports.js';
+import { MIS_DEFS, type MisColumn, type MisDef } from './misReports.js';
 
 export interface ReportDef {
   readonly code: string;
@@ -14,6 +14,31 @@ export interface ReportDef {
   readonly flag?: string;
   readonly exportColumns: readonly string[]; // [CONV] wire names (snake_case) of the export table; money as *_paisa, ratios *_bp, durations *_seconds
 }
+
+// T0B-MISREPORTS-2 (LD-346, A39-1..4): the two money report definitions, restated from contracts/openapi/analytics.yaml x-report-definitions (pinned by
+// misreports/registry.static.test.ts). They live here, not in domain/misReports.ts, because A39-3 allows the word only in this allow-listed file.
+const FLAG = 'referralIncentiveReportEnabled';
+const col = (name: string, type: MisColumn['type'], title: string): MisColumn => Object.freeze({ name, type, title });
+const money = (code: string, title: string, columns: MisColumn[], sort: string): MisDef => Object.freeze({
+  code, title, permission: 'analytics.referral_report.read' as const, params: Object.freeze(['centre_id', 'party_id'] as const), columns: Object.freeze(columns),
+  sort: Object.freeze({ column: sort, direction: 'desc' as const }), rowCap: 5000,
+});
+const MONEY_DEFS: readonly MisDef[] = [
+  money('two_level_commission', 'Two level commission', [col('parent_party_id', 'string', 'Parent party'), col('parent_party_name', 'string', 'Parent party name'),
+    col('party_id', 'string', 'Sub party'), col('party_name', 'string', 'Sub party name'), col('level', 'integer', 'Level'), col('orders_registered', 'integer', 'Orders'),
+    col('net_billed_paisa', 'integer_paisa', 'Net billed'), col('commission_bp', 'basis_points', 'Commission rate'), col('commission_paisa', 'integer_paisa', 'Commission')], 'commission_paisa'),
+  money('tds', 'TDS', [col('party_id', 'string', 'Party'), col('party_name', 'string', 'Party name'), col('period_from', 'date', 'Period from'), col('period_to', 'date', 'Period to'),
+    col('commission_payable_paisa', 'integer_paisa', 'Commission payable'), col('tds_bp', 'basis_points', 'TDS rate'), col('tds_withheld_paisa', 'integer_paisa', 'TDS withheld'),
+    col('net_payable_paisa', 'integer_paisa', 'Net payable')], 'tds_withheld_paisa'),
+];
+/** The two A39 money codes: flag + analytics.referral_report.read at aal2 + access log referral_report.view. */
+export const MONEY_REPORT_CODES: readonly string[] = Object.freeze(MONEY_DEFS.map((d) => d.code));
+/** Every MIS definition (the 9 plain ones of domain/misReports.ts + the two money ones). */
+export const MIS_ALL_DEFS: Readonly<Record<string, MisDef>> = Object.freeze({ ...MIS_DEFS, ...Object.fromEntries(MONEY_DEFS.map((d) => [d.code, d])) });
+export const isMisCode = (code: unknown): code is string => typeof code === 'string' && Object.hasOwn(MIS_ALL_DEFS, code);
+/** Contract order of x-report-definitions. */
+const MIS_ORDER = ['bill_of_the_day', 'two_level_commission', 'sales_representative', 'consultant', 'collection_boy', 'repeated_patient', 'repeated_test', 'ipd_opd', 'tds',
+  'party_billing', 'outsource'];
 
 const DASH = 'analytics.dashboard.read';
 const KL = ['key', 'label'];
@@ -51,20 +76,16 @@ const ENTRIES = [
   def('delivery', DASH, ['deliveries', 'releases'], [...KL, 'reports_released', 'deliveries_created', 'deliveries_delivered', 'deliveries_failed']),
   def('interfaces', DASH, ['interface_messages'], [...KL, 'messages_received', 'messages_failed', 'error_rate_bp'],
     { liveSources: ['agent_status'], schedulable: false }),
-  // T0B-MISREPORTS-1 (LD-321, LD-346): the delivered MIS rows, contract order. Live SQL over the base tables (no rollup family); columns = the contract columns.
-  ...MIS_REPORT_CODES.map((code) => { const d = MIS_DEFS[code]!; return def(code, d.permission, [], d.columns.map((c) => c.name)); }),
+  // T0B-MISREPORTS-1 (LD-321, LD-346): the MIS rows, contract order. Live SQL over the base tables (no rollup family); columns = the contract columns.
+  // T0B-MISREPORTS-2 (LD-346, A39-2): the two money rows sit behind the referral flag and the privileged permission (aal2 enforced by authorise).
+  ...MIS_ORDER.map((code) => {
+    const d = MIS_ALL_DEFS[code]!;
+    return def(code, d.permission, [], d.columns.map((c) => c.name), MONEY_REPORT_CODES.includes(code) ? { flag: FLAG } : {});
+  }),
 ];
 
-/**
- * LD-346 (2): codes of the contract's x-report-definitions with no registry row yet (the pattern of the T0B-BOOTGATE-1 pendingOperations list).
- * Export and schedule answer 501 operation_pending after authorisation; no handler, no fixture, no rates. T0B-MISREPORTS-2 removes them.
- */
-export const PENDING_REPORT_CODES: readonly string[] = Object.freeze(['two_level_commission', 'tds']);
-export const isPendingReport = (code: unknown): boolean => typeof code === 'string' && PENDING_REPORT_CODES.includes(code);
-/** 501 operation_pending (not a registry error code: core/errors.ts sendProblem renders it with pendingProblem). */
-export function pendingReportError(code: string): LimsError {
-  return Object.assign(new LimsError('operation_pending', `report ${code}`), { statusCode: 501 });
-}
+/** LD-346 (2) pending list (the pendingOperations pattern). T0B-MISREPORTS-2 delivered both codes, so it is empty. */
+export const PENDING_REPORT_CODES: readonly string[] = Object.freeze([]);
 
 export const REPORT_REGISTRY: Readonly<Record<string, ReportDef>> = Object.freeze(Object.fromEntries(ENTRIES));
 export const REPORT_CODES: readonly string[] = Object.freeze(ENTRIES.map(([code]) => code));

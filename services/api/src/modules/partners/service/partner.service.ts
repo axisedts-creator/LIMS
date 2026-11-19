@@ -4,8 +4,9 @@
 // request value is ever part of SQL text. Staff actor = { type:'user' }; created_by/updated_by come from ctx.actor only (REQ-SEC-024).
 // Optimistic concurrency: UPDATE ... WHERE version = $n; 0 rows = common.version_conflict. Credit party is never changeable (TRD §5.3 SA4 DECISION).
 import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';
-import { LimsError } from '../../../core/errors.js';
+import { LimsError, type FieldError } from '../../../core/errors.js';
 import type { HandlerContext, HandlerResult } from '../../../core/module.js';
+import { ID_NUMBER_FIELDS, isIdNumber, type IdNumberField } from '../domain/id-number.js';
 import { assertTransition, type PartnerStatus } from '../domain/partner.state.js';
 import { toPartnerAdminDto, toPartnerAdminSummaryDto, type CreditPartyRef, type CentreRef, type PartnerRow } from '../mappers/partner.dto.js';
 
@@ -57,12 +58,27 @@ function partnerId(req: Req): string {
   return typeof v === 'string' && v !== '' ? v : notFound(); // uuid shape: validated by the core against OpenAPI
 }
 const body = (req: Req): Record<string, unknown> => (isObj(req.body) ? req.body : {});
+
+/**
+ * T0B-PARTYSET-1 (LD-321) done_when (2, 5): tax_number (PAN) / national_id_number, checked BEFORE any SQL: 1..32 letters, digits and '-' (length and characters
+ * only; the lab accountant confirms the exact format). A failure names the field path and never echoes the value. Stored in full, answered masked.
+ */
+function idNumbersOf(b: Record<string, unknown>): Partial<Record<IdNumberField, string>> {
+  const out: Partial<Record<IdNumberField, string>> = {}; const bad: string[] = [];
+  for (const k of ID_NUMBER_FIELDS) {
+    const v = b[k];
+    if (v === undefined) continue;
+    if (isIdNumber(v)) out[k] = v; else bad.push(`/${k}`);
+  }
+  if (bad.length) throw new LimsError('common.validation_failed', undefined, bad.map((path) => ({ path, code: 'common.field_invalid', message: 'Field invalid' }) as FieldError));
+  return out;
+}
 const str = (v: unknown): string | undefined => (typeof v === 'string' ? v : undefined);
 
 // ---- reads ----
 // Counts and projection timestamps come from derived tables joined in the same SELECT (no WHERE inside; the tenant is bound on the outer statement and by RLS).
 const COLS = 'p.id, p.partner_code, p.name, p.status, p.credit_party_id, p.receiving_branch_id, p.receiving_centre_id, p.conversion_mode, p.contact_email, p.contact_phone_e164, p.address_text, '
-  + 'p.suspend_reason_code, p.created_at, p.version, '
+  + 'p.suspend_reason_code, p.created_at, p.version, p.tax_number, p.national_id_number, '
   + "to_char(p.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS created_key, "
   + 'COALESCE(u.n, 0)::int AS active_users, COALESCE(m.n, 0)::int AS open_manifests, pl.synced_at AS price_list_synced_at, st.synced_at AS statements_synced_at';
 const FROM = 'FROM partners.partners p '
@@ -176,6 +192,7 @@ export async function create(req: Req, ctx: HandlerContext): Promise<HandlerResu
   const cpId = str(b['credit_party_id']) ?? invalid();
   const branchId = str(b['receiving_branch_id']) ?? invalid();
   const centreId = str(b['receiving_centre_id']) ?? invalid();
+  const ids = idNumbersOf(b);
 
   const cp = await creditParty(ctx, cpId);
   if (!cp.isActive) throw new LimsError('partners.credit_party_inactive');
@@ -188,9 +205,10 @@ export async function create(req: Req, ctx: HandlerContext): Promise<HandlerResu
   }
   const id = uuidv7();
   const ins = await tx(ctx).query(
-    'INSERT INTO partners.partners (id, tenant_id, partner_code, name, credit_party_id, receiving_branch_id, receiving_centre_id, conversion_mode, contact_email, contact_phone_e164, address_text, created_by, updated_by) '
-    + 'VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $12) ON CONFLICT DO NOTHING RETURNING id',
-    [id, tenantId, code, name, cpId, branchId, centreId, mode, str(b['contact_email']) ?? null, str(b['contact_phone_e164']) ?? null, str(b['address_text']) ?? null, actorId],
+    'INSERT INTO partners.partners (id, tenant_id, partner_code, name, credit_party_id, receiving_branch_id, receiving_centre_id, conversion_mode, contact_email, contact_phone_e164, address_text, created_by, updated_by, tax_number, national_id_number) '
+    + 'VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $12, $13, $14) ON CONFLICT DO NOTHING RETURNING id',
+    [id, tenantId, code, name, cpId, branchId, centreId, mode, str(b['contact_email']) ?? null, str(b['contact_phone_e164']) ?? null, str(b['address_text']) ?? null, actorId,
+      ids.tax_number ?? null, ids.national_id_number ?? null],
   ).catch((e: { code?: string; constraint?: string }) => { throw e?.code === '23505' ? duplicate(/credit_party/.test(e.constraint ?? '')) : e; });
   if (ins.rows.length === 0) { // lost a race or a pre-existing row: which unique key?
     const hit = await tx(ctx).query('SELECT id FROM partners.partners WHERE tenant_id = $1 AND partner_code = $2', [tenantId, code]);
@@ -204,12 +222,13 @@ export async function create(req: Req, ctx: HandlerContext): Promise<HandlerResu
 const duplicate = (creditParty: boolean): LimsError => new LimsError(creditParty ? 'partners.credit_party_in_use' : 'partners.code_duplicate');
 
 // ---- SA4 ----
-const OPTIONAL = ['contact_email', 'contact_phone_e164', 'address_text'] as const;
+const OPTIONAL = ['contact_email', 'contact_phone_e164', 'address_text', ...ID_NUMBER_FIELDS] as const;
 export async function update(req: Req, ctx: HandlerContext): Promise<HandlerResult> {
   const { tenantId, actorId } = await authorize(ctx, MANAGE);
   const expected = ifMatch(req);
   const id = partnerId(req);
   const b = body(req);
+  const ids = idNumbersOf(b);   // before any SQL: a bad id number writes nothing and is never echoed
   const cur = await lock(ctx, tenantId, id, expected);
 
   const sets: string[] = []; const vals: unknown[] = [tenantId, id, expected];
@@ -219,7 +238,8 @@ export async function update(req: Req, ctx: HandlerContext): Promise<HandlerResu
     if (typeof u !== 'string' || !(OPTIONAL as readonly string[]).includes(u) || b[u] !== undefined) invalid();
     if (!sets.some((s) => s.startsWith(`${u} =`))) sets.push(`${u} = NULL`);
   }
-  for (const col of ['name', 'conversion_mode', ...OPTIONAL] as const) { const v = str(b[col]); if (v !== undefined) set(col, v); }
+  for (const col of ['name', 'conversion_mode', 'contact_email', 'contact_phone_e164', 'address_text'] as const) { const v = str(b[col]); if (v !== undefined) set(col, v); }
+  for (const col of ID_NUMBER_FIELDS) { const v = ids[col]; if (v !== undefined) set(col, v); }
   const branchId = str(b['receiving_branch_id']); const centreId = str(b['receiving_centre_id']);
   if (branchId !== undefined || centreId !== undefined) {
     const nb = branchId ?? String(cur['receiving_branch_id']); const nc = centreId ?? String(cur['receiving_centre_id']);

@@ -9,7 +9,8 @@ import { evaluateFreshness } from '../../../../../api/src/modules/analytics/doma
 import { businessDateOf, resolvePeriod } from '../../../../../api/src/modules/analytics/domain/period.js';
 import { getReport } from '../../../../../api/src/modules/analytics/domain/reportRegistry.js';
 import { intersect } from '../../../../../api/src/modules/analytics/domain/scope.js';
-import { isMisReport, MIS_DEFS, misColumns } from '../../../../../api/src/modules/analytics/domain/misReports.js';
+import { misColumns } from '../../../../../api/src/modules/analytics/domain/misReports.js';
+import { isMisCode as isMisReport, MIS_ALL_DEFS as MIS_DEFS } from '../../../../../api/src/modules/analytics/domain/reportRegistry.js'; // T0B-MISREPORTS-2: + the two money codes
 import { checkMisExportParams, MAX_RANGE_DAYS, streamMisReport } from '../../../../../api/src/modules/analytics/service/misReports.service.js';
 import { writeCsv, writeCsvStream } from '../../../../../api/src/modules/analytics/export/CsvWriter.js';
 import { type ExportMeta } from '../../../../../api/src/modules/analytics/export/layout.js';

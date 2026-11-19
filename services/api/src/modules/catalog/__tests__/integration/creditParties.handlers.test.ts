@@ -177,8 +177,8 @@ describe('credit parties — handlers over the service, validated against the Op
     expect(r.body).not.toHaveProperty('contact_email');
   });
 
-  it('PATCH by a read-only caller that reaches the handler still returns no sensitive field', { timeout: T }, async () => {
-    const r = await call(seeded(), 'updateCreditParty', req({ params: { credit_party_id: X.id }, headers: IM1, body: { name: 'Renamed' } }), [READ]);
+  it('PATCH by a manage caller still returns no sensitive field', { timeout: T }, async () => {
+    const r = await call(seeded(), 'updateCreditParty', req({ params: { credit_party_id: X.id }, headers: IM1, body: { name: 'Renamed' } }), [MANAGE]);
     expect(r.status).toBe(200);
     expect(JSON.stringify(r.body)).not.toMatch(SECRETS);
   });

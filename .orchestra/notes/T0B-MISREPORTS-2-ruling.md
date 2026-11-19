@@ -1,3 +1,13 @@
+TESTS_WRONG — the assertion at commission.live.test.ts:124 is right; the test FIXTURE is wrong. Change only services/api/src/modules/analytics/__tests__/misreports/kit.ts: in the world setup (the replica-mode insert transaction, kit.ts:~101) insert one catalog.credit_parties row per spec.parties[i] (same tenant_id, id = spec.parties[i], a synthetic name such as "Synthetic Party 0".."3", plus the table's other NOT NULL columns). Do not change or loosen line 124 or any other assertion; do not change misReports.service.ts for this.
+Reasons:
+- contracts/openapi/analytics.yaml:3946,3948 define parent_party_name / party_name as the party's name; LD-408 (lines 29-30 of the older ruling below) says parent_party_name is "populated from the parent party", i.e. its credit-party identity.
+- db/migrations/20261105001500_catalog__create_catalog_schema.sql:656 makes catalog.credit_parties.name NOT NULL with CHECK length(name) BETWEEN 1 AND 160, so any real level-2 row has a non-empty parent name; line 124 states exactly that.
+- kit.ts:55 creates parties as bare uid()s and kit.ts:101 inserts under session_replication_role = replica, bypassing the FK, so the fixture holds credit_party_id values that cannot exist in a valid database. That is the defect, not the assertion.
+- A name sourced elsewhere (e.g. invoice buyer_name) would break the contract column meaning; the implementation's join on catalog.credit_parties is correct.
+- Rerun commission.live, tds.live and the analytics suites after the fixture change (line 97 typeof checks still hold).
+
+----
+PREVIOUS RULINGS (kept for history)
 TESTS_WRONG — both disputed cases of src/modules/analytics/__tests__/probes/contract.probe.test.ts are stale pins written before A39; change only these two lines/blocks:
 1. Line 92: `expect(owners).toEqual([['referral_incentive', 'referralIncentiveReportEnabled']]);` -> `expect(owners).toEqual([['referral_incentive', 'referralIncentiveReportEnabled'], ['two_level_commission', 'referralIncentiveReportEnabled']]);` (order checked: referral_incentive is in ENTRIES at reportRegistry.ts:69, before the MIS_ORDER spread at :81 that yields two_level_commission).
 2. Lines 95-97 `allowed` Set: add `'service/misReports.service.ts', // LD-402: A39 two_level_commission SQL outputs the contract column net_billed_paisa`.

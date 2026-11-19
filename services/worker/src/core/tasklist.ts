@@ -6,7 +6,7 @@ import { withDeadLetter, type GraphileJob, type GraphileTask } from './deadlette
 import { EVT_MAX_ATTEMPTS, consumerIdentifier, fanoutRun } from './fanout.js';
 import { validateManifests, type TenantScope, type WorkerManifest } from './manifest.js';
 import { RETENTION_TIMEOUT_MS, retentionRun } from './retention.js';
-import { SYNC_METRICS, SYNC_RETENTION, syncMetricsRun, syncRetentionRun } from './sync.js';
+import { SYNC_METRICS, syncMetricsRun } from './sync.js';
 
 export interface Claims { readonly sub: string; readonly tenant_id?: string; readonly actor_type: 'system' }
 export interface WorkerTx { query(text: string, values?: unknown[]): Promise<{ rows: any[] }> }
@@ -78,11 +78,10 @@ export function buildTaskList(deps: WorkerDeps, manifests: readonly WorkerManife
   add({ identifier: 'core.event_fanout', module: 'core', kind: 'core', scope: 'per_tenant', maxAttempts: 25 }, fanoutRun(deps, subscribers));
   add({ identifier: 'core.retention_purge', module: 'core', kind: 'core', scope: 'platform', maxAttempts: 5 }, retentionRun(deps));
   add({ identifier: 'core.queue_depth_probe', module: 'core', kind: 'core', scope: 'platform', maxAttempts: DEFAULT_TASK_ATTEMPTS }, queueDepthRun(deps));
-  // T0B-SYNC-5: per tenant core tasks; a cron fire fans out to one job per tenant, a tenant job runs the body
-  for (const [id, run, attempts] of [[SYNC_RETENTION, syncRetentionRun(deps), 5], [SYNC_METRICS, syncMetricsRun(deps), 1]] as const) {
-    add({ identifier: id, module: 'core', kind: 'core', scope: 'per_tenant', maxAttempts: attempts },
-      (payload) => (isCronFire(payload) ? cronTick(id, new Date(payload._cron.ts)) : run(payload)));
-  }
+  // T0B-SYNC-5: per tenant core task; a cron fire fans out to one job per tenant, a tenant job runs the body
+  const syncMetrics = syncMetricsRun(deps);
+  add({ identifier: SYNC_METRICS, module: 'core', kind: 'core', scope: 'per_tenant', maxAttempts: 1 },
+    (payload) => (isCronFire(payload) ? cronTick(SYNC_METRICS, new Date(payload._cron.ts)) : syncMetrics(payload)));
 
   return { taskList, registry, taskOptions, cronItems: cronItems(schedule), cronTick };
 }

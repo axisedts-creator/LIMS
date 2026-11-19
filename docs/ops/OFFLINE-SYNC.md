@@ -1,7 +1,7 @@
 # Offline sync runbook (T0B-SYNC-5, LD-322)
 
 Scope: the server side of offline work (T0B-SYNC-1 to T0B-SYNC-5): device registry, push of batches, conflict inbox, sign offs and prints made
-offline, retention and metrics. Design source: `C:/LIMS-state/offline-design-20261117.md`. Synthetic data only in every example.
+offline, and metrics. Design source: `C:/LIMS-state/offline-design-20261117.md`. Synthetic data only in every example.
 
 Permissions: `sync.use` (a device pushes and pulls), `sync.device.manage` (list, revoke, wipe devices), `sync.conflict.resolve` (conflict inbox).
 
@@ -86,17 +86,8 @@ Exposed through the existing metrics path (`/metrics` of the api and of the work
 | `lims_core_sync_conflicts_open{tenant_id}` | above 20 open conflicts, or any open conflict older than 2 days |
 | `lims_core_sync_print_recalls{tenant_id}` | above 0 (every recall needs a person) |
 | `lims_core_sync_oldest_unsynced_age_seconds{tenant_id}` | above 86400 seconds (backlog of the tenant) |
-| `lims_core_retention_purged_total{table}` | 0 rows for 7 days while the ledger grows, or `lims_core_retention_purge_capped_total` moving on 3 runs in a row |
 
-## Retention
+## Ledger retention
 
-The worker task `core.sync_retention` (daily, 03:30 Asia/Kathmandu, one job per tenant) removes, in small batches with row locks only:
-
-- resolved conflicts resolved more than 180 days ago (default retention 180 days);
-- operations received more than 180 days ago that have no conflict row left and no pending or recall_required print marker,
-  with their sign off outcomes, alerts and confirmed print marker.
-
-It never removes an open conflict (or its operation), a pending print marker (or its operation), a recall_required marker, or audit
-events: the audit log only grows. Each run stops after 200 batches of 500 rows; the rest goes on the next run
-(`lims_core_retention_purge_capped_total`). The task `core.sync_metrics` (every 5 minutes, per tenant) refreshes the sync gauges.
-Open point: the retention days are the default for every tenant until a tenant setting exists.
+The sync ledger tables are retained indefinitely, no automatic deletion (LD-407, founder, 2026-11-19).
+The task `core.sync_metrics` (every 5 minutes, per tenant) refreshes the sync gauges.

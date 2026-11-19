@@ -295,7 +295,8 @@ describe('read-only, least privilege, repeatable', () => {
     expect(identity.calls.map((c) => c.permission)).not.toContain(PUBLISH); expect(identity.calls.map((c) => c.permission)).not.toContain(MANAGE);
   });
 
-  it('works when the context carries no IdentityPort (the x-permission floor is the core pipeline\'s)', { timeout: T }, async () => {
+  // SEC-AUTHZ-5: the handler now asks IdentityPort.assertRole(catalog.test.read) itself (fails closed without a port); the fixture context carries a granting port.
+  it('works when the IdentityPort grants the x-permission (the guard is the handler\'s and the core pipeline\'s)', { timeout: T }, async () => {
     const e = main(); const r = await e.db.run((ctx) => H[OP]!(req(valid()), ctx));
     expect(r.status).toBe(200); expect(r.body.reference_range).toEqual(BAND_M);
   });

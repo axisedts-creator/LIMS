@@ -217,7 +217,7 @@ describe.each(FAMILIES)('$name permission matrix (S-4, AB-8, AB-21, AC-05.9, AC-
 
   it.each([['publish', f.publish, 'D2'], ['retire', f.retire, 'P1']] as const)('%s fails closed without an IdentityPort in the context (auth.unauthenticated), zero data access', { timeout: T }, async (_n, id, which) => {
     const e = world(f);
-    const x = await rejection(e.db.run((ctx) => H[id]!(req({ params: { set_id: which === 'D2' ? D2(f).id : P1(f).id }, headers: { ...IFM, ...IDEM }, body: id === f.publish ? pBody() : rBody() }), ctx)));
+    const x = await rejection(e.db.run((ctx) => H[id]!(req({ params: { set_id: which === 'D2' ? D2(f).id : P1(f).id }, headers: { ...IFM, ...IDEM }, body: id === f.publish ? pBody() : rBody() }), { ...ctx, ports: {} })));
     expect(isLimsError(x, 'auth.unauthenticated')).toBe(true); untouched(e);
   });
 

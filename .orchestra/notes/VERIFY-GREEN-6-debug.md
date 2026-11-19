@@ -17,3 +17,8 @@
 - Cause: no product defect (LD-423). run.ps1 Enforce reverts debugger/writer edits to EXISTING test files; tree is clean again (HEAD 7531bca1c), writer round-4 edits (44 files) not present.
 - Fix: none by debugger (test-file edits are tester-only; not repeating). Tester must apply round-3 fix set + writer round-4 extras (11 `as any` replacements) and commit.
 - Result: tsc still failing (vg6 3/7 red: tsc errors, TS2722 x35, `as any` 11>2) until tester commits.
+
+## Round 5
+- Cause: unchanged, no product defect (LD-423 ruling). Tree clean; 65 tsc errors + 11 `as any` (>2) remain because only the tester role may keep edits to EXISTING test files (run.ps1 Enforce).
+- Fix: none by debugger (would be reverted; test files off-limits). Ruling: tester applies the round-3 fix set + writer round-4 `as any` replacements, then commits.
+- Result: vg6 3/7 red until tester commits; no product code touched.

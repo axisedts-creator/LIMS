@@ -1,0 +1,9 @@
+CR_NEEDED — the spec itself is contradictory/missing (write the CR text into `.orchestra/cr/SEC-ABUSE-1.md` using spec/program/04-CHANGE-REQUESTS.md)
+1. The disputed tests (abuse1.limits.test.ts:39-54, :94-101) assert what LD-237 (1) binds: "SAME thresholds, windows and lockout semantics" — loginStaff.ts:25-29,56-61 today exposes accountState {failures, lastFailureAt} and clearAccountFailures. The tests are not wrong.
+2. The only store primitive the spec defines is app.ratelimit_hit (C0 05-SCHEMA.md:1101-1119; 03-INTERFACE-CATALOG.md:3469; db/migrations/20261105000900_core__create_event_log.sql:188-206): every call INSERT/UPDATEs hits and returns only allowed/retry_after_seconds. No read without consuming, no delete, no last-hit time.
+3. core.rate_limit_counters has no grants to any app role (C0 05-SCHEMA.md:254, :325; db/tests/core/T0B-05_platform.test.sql:65,359), so the API cannot read or clear it directly either.
+4. The estimate is a sliding-window approximation (05-SCHEMA.md:1115), so even counting via hits cannot give the exact 60 min / 10 min windows nor lastFailureAt = T0+30 s that the tests require.
+5. LD-237 forbids a migration ("No migration and no contract change"), yet (1) is impossible without new DEFINER functions: the binding decision is self-contradictory. Lead must rule (approve CR to C0-0B, or amend LD-237).
+6. Unblocked parts (no migration needed) may proceed if the lead splits the task: login tier on changeOwnPassword/confirmEmailToken (LD-237 (2)), `i:` IP bucket on general (LD-237 (3)), web client-IP helper (LD-237 (4)).
+7. Also noted: handlers/user.http.ts:22 calls createAuthLimits(undefined).clearAccountFailures — outside the file list; it would fail closed once moved to the store; include in the follow-up.
+CR text: .orchestra/cr/SEC-ABUSE-1.md (supersedes the writer's SEC-ABUSE-1.1.nonblocking.md draft; same content, marked blocking).

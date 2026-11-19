@@ -6,3 +6,7 @@ Needed: land C0-0B migration per LD-410 items 1-4 (+definer-inventory), then wri
 Same 10 reds (abuse1.limits.test.ts fail-closed/no-Maps), 126 other tests green. Cause unchanged: LD-410 part (1) needs app.ratelimit_peek/_clear + last_hit; grep of db/ still empty (C0-0B migration not landed).
 No code fix: store-backed loginStaff against today DB = missing function = every staff login 503. No test edit, no migration from C1. Tests right, no dispute.
 Needed: lead lands C0-0B per LD-410 items 1-4, then writer does items 5 (RateLimitBackend/RateLimiter peek/clear, createAuthLimits on them, user.http.ts:22 clear non-throwing).
+## round 3 (2026-11-19 09:18)
+Same 10 reds, log unchanged since round 2. grep for ratelimit_peek/_clear in db/ (this lane and main) still empty: C0-0B migration not landed.
+No code fix possible without that migration (store-backed loginStaff = missing function = every staff login 503). No test edit, no migration from C1. Tests right, no dispute.
+Needed: lead lands C0-0B per LD-410 items 1-4; then writer does item 5 (peek/clear on RateLimitBackend/RateLimiter, createAuthLimits on them, user.http.ts:22 clear non-throwing).

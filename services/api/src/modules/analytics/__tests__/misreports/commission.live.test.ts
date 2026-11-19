@@ -2,8 +2,8 @@
 // the settings applied to the net billed base of posted data (M33), the TDS report equals commission times tds_bp, every report returns its headers on an empty range; (5) cross tenant,
 // paging and a statement count bound; LD-346 / A39-1, A39-4 (reports only). Re-added from .orchestra/notes/T0B-MISREPORTS-2-commission.live.test.ts.txt (moved out of
 // T0B-MISREPORTS-1 by LD-346 (2)), ADAPTED to the real settings table: partners.party_commercial_setting (migration 20261117220000), keyed by (party_kind, party_id), columns
-// commission_bp and tds_bp. It has NO parent party column and no other table links a party to a parent (CR .orchestra/cr/T0B-MISREPORTS-2.md), so the rule that makes a party level 2
-// is NOT pinned here: only its shape is (level 1 or 2; level 1 -> parent '' ; level 2 -> a parent id other than the party). REAL PG17.
+// commission_bp and tds_bp. Parent / sub party rule: LD-408 (CR-C0-MISREPORTS2-001 item 1): two additive columns on the same table, parent_credit_party_id (nullable) and
+// credit_self_not_parent (boolean not null default false); parent set + flag false -> level 2 with parent id / name filled, flag true or no parent -> level 1 with both ''. REAL PG17.
 // Pinned picks (writer may dispute through the reviewer): base of a party = sum over its ISSUED (not cancelled) credit invoices in the range of gross - discount - credited_total
 // (M33, before tax, minus credit notes); rounding half up per row: commission = round(base * commission_bp / 10000), tds_withheld = round(commission * tds_bp / 10000),
 // net_payable = commission - tds_withheld, integers; a row exists iff the party has a settings row of party_kind credit_party and >= 1 posted invoice in the range; the figures of a
@@ -23,7 +23,7 @@ async function putSettings(w: World, rates: Record<number, { c: number; t: numbe
   const rows = Object.keys(rates).map(Number).map((i) => ({
     id: uid(), tenant_id: w.spec.tenant, party_kind: 'credit_party', party_id: w.spec.parties[i], auto_release_reports: false, whatsapp_enabled: false, insurance_enabled: false,
     print_exception: false, auto_block_overdue: false, billing_cycle: 'monthly', invoice_payment_days: 30, invoice_blocking_days: 60, invoice_warning_days: 45, interest_bp_per_day: 0,
-    commission_bp: rates[i]!.c, tds_bp: rates[i]!.t, priority: 'P3', header_footer_mode: 'both', version: 1, created_at: '2020-06-01T00:00:00Z', updated_at: '2020-06-01T00:00:00Z', created_by: ACTOR, updated_by: ACTOR })); // jsonb_populate_recordset leaves omitted columns NULL, defaults do not apply
+    commission_bp: rates[i]!.c, tds_bp: rates[i]!.t, parent_credit_party_id: null, credit_self_not_parent: false, priority: 'P3', header_footer_mode: 'both', version: 1, created_at: '2020-06-01T00:00:00Z', updated_at: '2020-06-01T00:00:00Z', created_by: ACTOR, updated_by: ACTOR })); // jsonb_populate_recordset leaves omitted columns NULL, defaults do not apply
   await superTx(async (tx) => {
     await tx.query('SET LOCAL session_replication_role = replica');
     await tx.query(`INSERT INTO ${SETTINGS} SELECT * FROM jsonb_populate_recordset(NULL::${SETTINGS}, $1::jsonb)`, [JSON.stringify(rows)]);
@@ -31,6 +31,8 @@ async function putSettings(w: World, rates: Record<number, { c: number; t: numbe
 }
 const dropSettings = (w: World) => superTx(async (tx) => { await tx.query('SET LOCAL session_replication_role = replica'); await tx.query(`DELETE FROM ${SETTINGS} WHERE tenant_id = $1 AND party_id = ANY($2::uuid[])`, [w.spec.tenant, w.spec.parties]); }, w.spec.tenant);
 const setRate = (w: World, i: number, c: number, t: number) => superTx(async (tx) => { await tx.query('SET LOCAL session_replication_role = replica'); await tx.query(`UPDATE ${SETTINGS} SET commission_bp = $3, tds_bp = $4 WHERE tenant_id = $1 AND party_id = $2`, [w.spec.tenant, w.spec.parties[i], c, t]); }, w.spec.tenant);
+// LD-408: link party i to parent party p (null = standalone) and set the "keep this outlet's own commission" switch
+const setParent = (w: World, i: number, p: number | null, selfKeep = false) => superTx(async (tx) => { await tx.query('SET LOCAL session_replication_role = replica'); await tx.query(`UPDATE ${SETTINGS} SET parent_credit_party_id = $3, credit_self_not_parent = $4 WHERE tenant_id = $1 AND party_id = $2`, [w.spec.tenant, w.spec.parties[i], p === null ? null : w.spec.parties[p], selfKeep]); }, w.spec.tenant);
 
 const run = (code: string, a: Record<string, unknown> = {}, w: World = A, mode: 'rls' | 'owner' = 'rls') =>
   withCtx(w, mode, async ({ ctx }) => (await misReports()).runMisReport(ctx, code, { range: rangeOf(FROM, TO), scope: ALL, limit: 1000, ...a }));
@@ -106,6 +108,34 @@ describe('two_level_commission: rows equal commission_bp of the settings applied
       if (r.level === 1) { expect(r.parent_party_id).toBe(''); expect(r.parent_party_name).toBe(''); }
       else { expect(r.parent_party_id).toMatch(/^[0-9a-f-]{36}$/); expect(r.parent_party_id).not.toBe(r.party_id); expect(r.parent_party_name.length).toBeGreaterThan(0); }
     }
+  }, T);
+
+  // LD-408 parent / sub party rule (founder: explicit link on the party, an outlet may keep its own commission). Parent = party 0, sub = party 1 (both have settings rows and posted bills).
+  it('LD-408 no parent link: the party is level 1 and parent_party_id / parent_party_name are empty strings', async () => {
+    const r = (await run('two_level_commission')).rows.find((x) => x.party_id === A.spec.parties[1])!;
+    expect(r).toMatchObject({ level: 1, parent_party_id: '', parent_party_name: '' });
+  }, T);
+  it('LD-408 parent link and credit_self_not_parent = false (default): level 2, parent id and name come from the parent party; the parent itself stays level 1', async () => {
+    await setParent(A, 1, 0, false);
+    try {
+      const rows = (await run('two_level_commission')).rows;
+      const sub = rows.find((x) => x.party_id === A.spec.parties[1])!, parent = rows.find((x) => x.party_id === A.spec.parties[0])!;
+      expect(sub).toMatchObject({ level: 2, parent_party_id: A.spec.parties[0], parent_party_name: parent.party_name });
+      expect(sub.parent_party_name.length).toBeGreaterThan(0);
+      expect(parent).toMatchObject({ level: 1, parent_party_id: '', parent_party_name: '' });
+    } finally { await setParent(A, 1, null); }
+  }, T);
+  it('LD-408 parent link and credit_self_not_parent = true: the outlet keeps its own commission, level 1 and parent fields stay empty although the link is on file', async () => {
+    await setParent(A, 1, 0, true);
+    try {
+      const sub = (await run('two_level_commission')).rows.find((x) => x.party_id === A.spec.parties[1])!;
+      expect(sub).toMatchObject({ level: 1, parent_party_id: '', parent_party_name: '' });
+    } finally { await setParent(A, 1, null); }
+  }, T);
+  it('LD-408 the schema has the two columns: parent_credit_party_id nullable, credit_self_not_parent boolean not null default false', async () => {
+    const cols = await ownerSql(`SELECT column_name, data_type, is_nullable, column_default FROM information_schema.columns WHERE table_schema = 'partners' AND table_name = 'party_commercial_setting' AND column_name IN ('parent_credit_party_id','credit_self_not_parent') ORDER BY column_name`);
+    expect(cols.map((c) => [c.column_name, c.data_type, c.is_nullable])).toEqual([['credit_self_not_parent', 'boolean', 'NO'], ['parent_credit_party_id', 'uuid', 'YES']]);
+    expect(String(cols[0].column_default)).toMatch(/false/);
   }, T);
 
   it('reconciles to the billing register: Σ net billed of the rows = issued invoices of the parties minus credited totals (independent SQL)', async () => {

@@ -100,6 +100,9 @@ export async function seedWorld(spec: WorldSpec): Promise<World> {
   await superTx(async (tx) => {
     await tx.query('SET LOCAL session_replication_role = replica');
     await ins(tx, 'core.memberships', spec.collectors.map((id, i) => ({ id, tenant_id: t, user_id: uid(), actor_type: 'user', status: 'active', created_by: SYS_ACTOR, updated_by: SYS_ACTOR, version: 1 + 0 * i })));
+    // LD-408 ruling: every party id carries a real catalog.credit_parties row (name NOT NULL), so parent_party_name has a source.
+    await ins(tx, 'catalog.credit_parties', spec.parties.map((id, i) => ({
+      id, tenant_id: t, party_code: `SP${id.replace(/-/g, '').slice(-12).toUpperCase()}`, name: `Synthetic Party ${i}`, kind: 'partner_lab', allows_credit: true, version: 1, is_active: true, ...audit })));
     await ins(tx, 'frontdesk.patients', patients.map((p, i) => ({
       id: p.id, tenant_id: t, patient_code: p.code, full_name: `Synthetic Patient ${i}`, name_search: `synthetic patient ${i}`, sex: 'female', birth_on: '1990-01-01',
       phone_e164: '+9779800000001', source: 'front_desk', registered_centre_id: spec.centres[0], ...audit })));

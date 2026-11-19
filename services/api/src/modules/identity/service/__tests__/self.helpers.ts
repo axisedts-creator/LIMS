@@ -145,7 +145,7 @@ export async function makeWorld(o: { breached?: (sha1: Buffer) => boolean } = {}
   function ctxFor(key: Who, current: { id: string }, c: Record<string, unknown> = {}) {
     const p = people.get(key)!; const commitOnError = vi.fn(() => { order.push('commitOnError'); });
     const ctx: any = { tenantId: p.tenantId, actor: { type: p.type, id: p.userId, membershipId: p.membershipId }, sessionId: current.id, aal: 'aal2', ...(p.partnerRole ? { partnerRole: p.partnerRole } : {}),
-      requestId: REQ_ID, clientIp: CLIENT_IP, tx: { __tx: 'T10-request-tx', query: vi.fn(async () => ({ rows: [], rowCount: 0 })) }, now: () => NOW, log, commitOnError, audit: { access: audit }, ...c };
+      requestId: REQ_ID, clientIp: CLIENT_IP, tx: { __tx: 'T10-request-tx', query: vi.fn(async () => ({ rows: [], rowCount: 0 })) }, now: () => NOW, log, commitOnError, audit: { access: audit }, rateLimit: { consume: async () => undefined } /* SEC-ABUSE-1: changeOwnPassword consumes the login tier; default = allow */, ...c };
     return { ctx, commitOnError };
   }
   /** run one service operation inside the envelope; resolves with the service result or rejects with its error */

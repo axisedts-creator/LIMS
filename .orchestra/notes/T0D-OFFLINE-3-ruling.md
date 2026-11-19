@@ -391,3 +391,25 @@ actual answer rather than another allow-list/snapshot patch -- raise it plainly 
 patching an 8th one.
 
 Reset: C0-0K T0D-OFFLINE-3 to changes.
+
+----
+LEAD ITEM, LD-416 (2026-11-19), CORRECTING LD-409:
+
+LD-409 was a mistake. It reopened the Daily cash snapshot through the tester-instruction channel
+without checking LD-401 first, and LD-401 had already declared that channel broken after three or
+more rounds and ordered it left alone pending the founder. Result, per the writer dispute dated
+2026-11-19 08:40: LD-409 edit not on disk, same failure mode as every prior attempt.
+
+One useful new fact: the tester own note for LD-409 shows the vitest -u run genuinely rewrote the
+snapshot in its own process (a real diff, not a CI=true no-op). The writer then found the worktree
+clean and the snap file still at its old commit. So the write happens, then something between that
+and the next commit discards it, which matches LD-401 own theory (the lane re-merge of main wiping
+an uncommitted change) rather than anything simpler.
+
+REINSTATING LD-401: no further attempt through the tester channel or a direct lead edit. Leave this
+one snapshot untouched. The task stays not-done on this point only; everything else in OFFLINE-3
+proceeds as already ruled (LD-398/400/401/404 items are unaffected by this correction). This is now
+being raised with the founder directly in chat; no further ruling on the snapshot until he answers.
+
+Reset applied: changes (for the writer to confirm nothing else has regressed; the snapshot item
+itself is not part of this reset).

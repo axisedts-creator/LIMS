@@ -72,13 +72,13 @@ function loadSnapshot() {
 }
 
 // ---------- oracle sanity ----------
-test('oracle: contracts hold 1018 unique operationIds (993 with x-permission, 25 x-public, none of both missing)', () => {
+// SEC-AUTHZ-4 ruling: totals follow the contracts (the CR's 1018 baseline stays checked via the CR tests below), no frozen literals.
+test('oracle: contracts hold unique operationIds, each with x-permission or x-public, none of both missing', () => {
   assert.deepEqual(dupes, [], 'operationId must be unique across contracts');
-  assert.equal(CONTRACT.size, 1018);
   const withPerm = [...CONTRACT.values()].filter((o) => o.permission);
   const pub = [...CONTRACT.values()].filter((o) => o.isPublic);
-  assert.equal(withPerm.length, 993);
-  assert.equal(pub.length, 25);
+  assert.ok(CONTRACT.size >= 1018, 'contracts never shrink below the SEC-AUTHZ-1 baseline');
+  assert.equal(withPerm.length + pub.length, CONTRACT.size);
   assert.equal([...CONTRACT.values()].filter((o) => !o.permission && !o.isPublic).length, 0);
   assert.equal(withPerm.filter((o) => o.permission.startsWith('platform.')).length > 0, true);
 });
@@ -101,8 +101,8 @@ test('every operationId of contracts/openapi appears exactly once, with no extra
   const keys = Object.keys(snap.operations);
   assert.equal(new Set(keys).size, keys.length);
   assert.deepEqual([...keys].sort(), [...CONTRACT.keys()].sort());
-  assert.equal(snap.total, 1018);
-  assert.equal(keys.length, 1018);
+  assert.equal(snap.total, CONTRACT.size);
+  assert.equal(keys.length, CONTRACT.size);
 });
 
 test('each operation is in exactly one known class; counts are the real recount', () => {
@@ -115,7 +115,7 @@ test('each operation is in exactly one known class; counts are the real recount'
   }
   const nonZero = Object.fromEntries(Object.entries(snap.counts).filter(([, n]) => n !== 0));
   assert.deepEqual(nonZero, recount, 'counts must equal the per-operation recount (no class may be missing)');
-  assert.equal(Object.values(snap.counts).reduce((a, b) => a + b, 0), 1018);
+  assert.equal(Object.values(snap.counts).reduce((a, b) => a + b, 0), CONTRACT.size);
 });
 
 test('entries carry the contract x-permission and the right evidence fields', () => {
@@ -160,9 +160,12 @@ test('anchors fixed by LD-235 / verifier A', () => {
     assert.equal(ops[id]?.class, 'identity-session-flow', id);
   for (const id of ['launchEsewaPayment', 'esewaSuccessCallback', 'esewaFailureCallback', 'khaltiReturnCallback'])
     assert.equal(ops[id]?.class, 'scheme-callback-token', id);
-  // identity inviteUser (user.service.ts:387-412) and the tenant-access operations check no permission.
-  for (const id of ['inviteUser', 'approveSupportSession', 'denySupportSession', 'revokeSupportSession'])
-    assert.equal(ops[id]?.class, 'unguarded', id);
+  // SEC-AUTHZ-4 ruling: inviteUser (identity.user.manage) and the three support-session operations (identity.settings.manage)
+  // are guarded with exactly their x-permission after the identity guards landed (was `unguarded` at SEC-AUTHZ-1).
+  for (const id of ['inviteUser', 'approveSupportSession', 'denySupportSession', 'revokeSupportSession']) {
+    assert.equal(ops[id]?.class, 'guarded-exact', id);
+    assert.equal(ops[id]?.permission, CONTRACT.get(id).permission, `${id}: asserts exactly its x-permission`);
+  }
   // platform.* operations need another guard (IdentityPort.impl.ts:229).
   assert.equal(ops.openSupportSession?.class, 'platform');
 });

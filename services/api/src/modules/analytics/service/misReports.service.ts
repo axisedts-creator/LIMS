@@ -110,14 +110,17 @@ const paid = (q: Q, inv: string) => `SELECT l.invoice_id, sum(l.amount_paisa) AS
  * base = Σ (gross - discount - credited_total) of its OWN issued invoices (posted data, cancelled excluded, credit notes subtracted); the rates are read from the
  * settings at run time (C8 stores none); commission = round half up (base x commission_bp / 10000); tds = round half up (commission x tds_bp / 10000).
  * [CONV] Held ledger entries (billing.account_ledger_entries, FINCTRL) never enter the base: it is invoice based (CR T0B-MISREPORTS-2 item 2).
- * [CONV] No party -> parent party link exists (CR T0B-MISREPORTS-2 item 1, open): every row is level 1 with an empty parent until the lead rules.
+ * LD-408 (CR-C0-MISREPORTS2-001 item 1): parent_credit_party_id set and credit_self_not_parent false -> level 2 with the parent id / name; otherwise level 1, parent ''.
+ * [CONV] the figures of a level 2 row stay the outlet's own (the parent's roll up is read from the parent columns; LD-408 gives no summing rule).
  */
 const halfUp = (n: string, bp: string) => `floor((${n} * ${bp} + 5000)::numeric / 10000)::bigint`;
 const partyMoney = (q: Q) => `WITH inv AS (${invoices(q, ` AND i.credit_party_id IS NOT NULL${idIn(q, 'i.credit_party_id', 'party_id')}`)}),
       b AS (SELECT inv.credit_party_id AS party_id, count(DISTINCT inv.order_id) AS n, sum(inv.gross_paisa - inv.discount_paisa - inv.credited_total_paisa) AS base FROM inv GROUP BY 1)
-      SELECT b.party_id, coalesce(cp.name, '') AS party_name, b.n, b.base, s.commission_bp, s.tds_bp, ${halfUp('b.base', 's.commission_bp')} AS c
+      SELECT b.party_id, coalesce(cp.name, '') AS party_name, b.n, b.base, s.commission_bp, s.tds_bp, ${halfUp('b.base', 's.commission_bp')} AS c,
+             CASE WHEN s.credit_self_not_parent THEN NULL ELSE s.parent_credit_party_id END AS parent_id, coalesce(pp.name, '') AS parent_name
         FROM b JOIN partners.party_commercial_setting s ON s.tenant_id = ${q.t} AND s.party_kind = 'credit_party' AND s.party_id = b.party_id
-        LEFT JOIN catalog.credit_parties cp ON cp.tenant_id = ${q.t} AND cp.id = b.party_id`;
+        LEFT JOIN catalog.credit_parties cp ON cp.tenant_id = ${q.t} AND cp.id = b.party_id
+        LEFT JOIN catalog.credit_parties pp ON pp.tenant_id = ${q.t} AND pp.id = s.parent_credit_party_id AND NOT s.credit_self_not_parent`;
 const orders = (q: Q) => `SELECT o.id, o.patient_id, (o.registered_at AT TIME ZONE ${TZ})::date AS d FROM frontdesk.orders o
   WHERE o.tenant_id = ${q.t} AND o.status <> 'cancelled' AND ${inRange(q, 'o.registered_at')} AND ${q.centre('o.centre_id')}`;
 
@@ -227,7 +230,8 @@ const SQL: Readonly<Record<string, { body(q: Q): string; tie: string }>> = {
   two_level_commission: {
     tie: 'party_id',
     body: (q) => `WITH m AS (${partyMoney(q)})
-      SELECT '' AS parent_party_id, '' AS parent_party_name, m.party_id::text AS party_id, m.party_name, 1 AS level, m.n AS orders_registered,
+      SELECT coalesce(m.parent_id::text, '') AS parent_party_id, m.parent_name AS parent_party_name, m.party_id::text AS party_id, m.party_name,
+             CASE WHEN m.parent_id IS NULL THEN 1 ELSE 2 END AS level, m.n AS orders_registered,
              m.base AS net_billed_paisa, m.commission_bp, m.c AS commission_paisa FROM m`,
   },
   tds: {

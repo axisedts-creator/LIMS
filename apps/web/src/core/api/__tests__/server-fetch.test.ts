@@ -1,5 +1,5 @@
 // T0A-CLIENTIP-1 / LD-296: serverFetch (core/api/server-fetch.ts) forwards the real client ip and browser user agent.
-//   (1) x-forwarded-for = first entry of the incoming header (bare IP literal only), user-agent = the browser's (trimmed, <= 512); missing -> not sent.
+//   (1) x-forwarded-for (outgoing) = incoming x-vercel-forwarded-for, else x-real-ip (bare IP literal only; SEC-ABUSE-1 / LD-237: never the client-supplied x-forwarded-for), user-agent = the browser's (trimmed, <= 512); missing -> not sent.
 //   (2) KEY ON READS (done_when 2): X-Lims-Bff-Key via readBffKey, cached after the first success; if readBffKey throws serverFetch keeps working without the key.
 //       NOTE for the writer: if reading services/api/src/core/openapi.ts + claims-resolver.ts shows a verified BFF kind changes anything beyond the client
 //       address for a bearer request, do NOT send the key (the brief says: write a CR + notes). Then the "KEY ON READS" describe below is the part that
@@ -43,8 +43,10 @@ beforeEach(async () => {
 afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 
 describe('client address and user agent', () => {
-  it('sends x-forwarded-for (first entry) and the browser user agent; the bearer token is still sent', async () => {
-    incoming({ 'x-forwarded-for': '203.0.113.7, 10.0.0.1', 'user-agent': UA });
+  // SEC-ABUSE-1 / LD-237: the incoming address is x-vercel-forwarded-for, else x-real-ip; a client-supplied x-forwarded-for is never read.
+  // The OUTGOING header to the API is still named x-forwarded-for (the API honours it only with the verified BFF key).
+  it('sends x-forwarded-for (from x-vercel-forwarded-for) and the browser user agent; the bearer token is still sent', async () => {
+    incoming({ 'x-vercel-forwarded-for': '203.0.113.7', 'x-forwarded-for': '6.6.6.6, 10.0.0.1', 'user-agent': UA });
     await expect(serverFetch('/v1/lab/orders')).resolves.toEqual({ ok: true });
     const s = sent();
     expect(s.get('x-forwarded-for')).toBe('203.0.113.7');
@@ -56,8 +58,13 @@ describe('client address and user agent', () => {
     await serverFetch('/v1/lab/orders');
     expect(sent().get('x-forwarded-for')).toBe('198.51.100.9');
   });
+  it('a client-supplied x-forwarded-for alone is not forwarded (spoofable first element)', async () => {
+    incoming({ 'x-forwarded-for': '6.6.6.6, 10.0.0.1', 'user-agent': UA });
+    await serverFetch('/v1/lab/orders');
+    expect(sent().has('x-forwarded-for')).toBe(false);
+  });
   it('IPv6 client', async () => {
-    incoming({ 'x-forwarded-for': '2001:db8::1, 10.0.0.1' });
+    incoming({ 'x-vercel-forwarded-for': '2001:db8::1' });
     await serverFetch('/v1/lab/orders');
     expect(sent().get('x-forwarded-for')).toBe('2001:db8::1');
   });
@@ -66,8 +73,8 @@ describe('client address and user agent', () => {
     await serverFetch('/v1/lab/orders');
     expect(sent().get('user-agent')).toBe('z'.repeat(512));
   });
-  it.each(['not-an-ip', '203.0.113.7:443', 'unknown'])('junk first entry %j -> x-forwarded-for not sent', async (xff) => {
-    incoming({ 'x-forwarded-for': xff, 'user-agent': UA });
+  it.each(['not-an-ip', '203.0.113.7:443', 'unknown'])('junk x-vercel-forwarded-for %j -> x-forwarded-for not sent', async (xff) => {
+    incoming({ 'x-vercel-forwarded-for': xff, 'user-agent': UA });
     await serverFetch('/v1/lab/orders');
     expect(sent().has('x-forwarded-for')).toBe(false);
     expect(sent().get('user-agent')).toBe(UA);
@@ -86,7 +93,7 @@ describe('client address and user agent', () => {
     expect(sent().has('user-agent')).toBe(false);
   });
   it('a caller-supplied header in init.headers is kept (existing behaviour)', async () => {
-    incoming({ 'x-forwarded-for': '203.0.113.7' });
+    incoming({ 'x-vercel-forwarded-for': '203.0.113.7' });
     await serverFetch('/v1/lab/orders', { method: 'POST', headers: { 'content-type': 'application/json', 'idempotency-key': 'k-1' }, body: '{}' });
     const s = sent();
     expect(s.get('idempotency-key')).toBe('k-1');
@@ -94,7 +101,7 @@ describe('client address and user agent', () => {
     expect(s.get('x-forwarded-for')).toBe('203.0.113.7');
   });
   it('the incoming cookie, authorization and bff key are never copied onto the API call', async () => {
-    incoming({ 'x-forwarded-for': '203.0.113.7', cookie: '__Host-lims_sid=SECRET-SID', authorization: 'Bearer BROWSER-SECRET', 'x-lims-bff-key': 'BROWSER-FORGED-KEY' });
+    incoming({ 'x-vercel-forwarded-for': '203.0.113.7', cookie: '__Host-lims_sid=SECRET-SID', authorization: 'Bearer BROWSER-SECRET', 'x-lims-bff-key': 'BROWSER-FORGED-KEY' });
     process.env.LIMS_WEB_BFF_KEY = KEY;
     await serverFetch('/v1/lab/orders');
     const s = sent();
@@ -106,7 +113,7 @@ describe('client address and user agent', () => {
   it('nothing is logged (no key, token, cookie or user agent)', async () => {
     const spies = (['log', 'info', 'warn', 'error', 'debug'] as const).map((k) => vi.spyOn(console, k).mockImplementation(() => {}));
     process.env.LIMS_WEB_BFF_KEY = KEY;
-    incoming({ 'x-forwarded-for': '203.0.113.7', 'user-agent': UA, cookie: '__Host-lims_sid=SECRET-SID' });
+    incoming({ 'x-vercel-forwarded-for': '203.0.113.7', 'user-agent': UA, cookie: '__Host-lims_sid=SECRET-SID' });
     await serverFetch('/v1/lab/orders');
     for (const s of spies) expect(s).not.toHaveBeenCalled();
   });
@@ -115,7 +122,7 @@ describe('client address and user agent', () => {
 describe('KEY ON READS (done_when 2): X-Lims-Bff-Key through readBffKey, cached', () => {
   it('sends X-Lims-Bff-Key when a key is configured (env fallback, LIMS_CORE_ENV=ci)', async () => {
     process.env.LIMS_WEB_BFF_KEY = KEY;
-    incoming({ 'x-forwarded-for': '203.0.113.7' });
+    incoming({ 'x-vercel-forwarded-for': '203.0.113.7' });
     await serverFetch('/v1/lab/orders');
     expect(sent().get('x-lims-bff-key')).toBe(KEY);
   });
@@ -136,7 +143,7 @@ describe('KEY ON READS (done_when 2): X-Lims-Bff-Key through readBffKey, cached'
     expect(sent(1).get('x-lims-bff-key')).toBe(KEY);
   });
   it('readBffKey throws (no key configured: dev / test) -> serverFetch still works, no key header, address and agent still sent', async () => {
-    incoming({ 'x-forwarded-for': '203.0.113.7', 'user-agent': UA });
+    incoming({ 'x-vercel-forwarded-for': '203.0.113.7', 'user-agent': UA });
     await expect(serverFetch('/v1/lab/orders')).resolves.toEqual({ ok: true });
     const s = sent();
     expect(s.has('x-lims-bff-key')).toBe(false);

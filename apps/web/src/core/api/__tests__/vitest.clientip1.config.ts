@@ -13,6 +13,7 @@ export default defineConfig({
       'src/core/api/__tests__/server-fetch.test.ts',
       'src/core/session/__tests__/c2.client-context.test.ts',
       'src/features/admin/auth/__tests__/t12.client-context.test.ts',
+      'src/core/api/__tests__/abuse1.single-helper.static.test.ts', // SEC-ABUSE-1
     ],
     environment: 'node',
     restoreMocks: true,

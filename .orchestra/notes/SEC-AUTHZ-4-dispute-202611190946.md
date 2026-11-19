@@ -1,0 +1,6 @@
+# SEC-AUTHZ-4 dispute (writer, round 3): SEC-AUTHZ-1 test pins pre-SEC-AUTHZ-4 state
+Test: tests/security/authz-classification.test.mjs — 4 of its cases fail on the regenerated snapshot (22757265b); authz-identity.test.mjs and vitest (779/779) pass.
+1. Lines 75-77, 104-105, 118: `assert.equal(..., 1018)` hard-codes the SEC-AUTHZ-1 contract total. Contracts now hold 1177 operationIds (159 added by merges of other modules after SEC-AUTHZ-2, not this task). This test fails on the contracts alone, whatever the snapshot says.
+2. Lines 163-165 (anchors): asserts inviteUser, approveSupportSession, denySupportSession, revokeSupportSession are class `unguarded`. Task brief done_when requires exactly these four to be denied without their permission and identity unguarded = 0; they are now `guarded-exact`. The anchor describes the SEC-AUTHZ-1 baseline and contradicts this task.
+Spec: SEC-AUTHZ-4 done_when ("inviteUser is denied ...; the unguarded count of module identity is 0 in the regenerated snapshot").
+Needed (tester): make the totals follow the contracts (or update to 1177) and move the four anchors to `guarded-exact`. Line 194 (CR states 1018) is about the CR text and can stay. No implementation change possible or needed.

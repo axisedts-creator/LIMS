@@ -7,3 +7,32 @@ CR_NEEDED — the spec itself is contradictory/missing (write the CR text into `
 6. Unblocked parts (no migration needed) may proceed if the lead splits the task: login tier on changeOwnPassword/confirmEmailToken (LD-237 (2)), `i:` IP bucket on general (LD-237 (3)), web client-IP helper (LD-237 (4)).
 7. Also noted: handlers/user.http.ts:22 calls createAuthLimits(undefined).clearAccountFailures — outside the file list; it would fail closed once moved to the store; include in the follow-up.
 CR text: .orchestra/cr/SEC-ABUSE-1.md (supersedes the writer's SEC-ABUSE-1.1.nonblocking.md draft; same content, marked blocking).
+
+----
+LEAD RULING, LD-410 (CR-C1-SEC-ABUSE-1): amending LD-237 to allow this one narrow migration.
+
+LD-237 asked for exact same lockout semantics (including clear on success) using only the existing
+hit-and-check limiter, plus a blanket no-migration rule -- those two turned out incompatible. This
+is rate-limiter bookkeeping, not business/user data, and EXECUTE on the two new functions goes only
+to lims_api, which already holds the base grant -- not a new role or broader access, so it is within
+LD-310, not a founder item. Clearing on success was deliberate in LD-237's original wording and is
+worth keeping.
+
+APPROVED exactly as the CR proposes, to C0-0B:
+1. ALTER TABLE core.rate_limit_counters ADD COLUMN last_hit timestamptz (nullable), set by
+   app.ratelimit_hit on insert and update; ratelimit_hit's own signature is unchanged.
+2. app.ratelimit_peek(p_key_hash text, p_window_seconds int, OUT hits int, OUT last_hit
+   timestamptz): STABLE, SECURITY DEFINER, search_path = '', never writes.
+3. app.ratelimit_clear(p_key_hash text) RETURNS void: VOLATILE, SECURITY DEFINER, search_path = '',
+   deletes only the row(s) for that one key_hash.
+4. GRANT EXECUTE on both to lims_api only; owner lims_owner; both added to
+   db/meta/definer-inventory.yaml.
+5. RateLimitBackend gains peek/clear; RateLimiter gains peek(tier,key)/clear(tier,key) with the same
+   HMAC + prefix rules as the rest of the limiter; fail closed on the login tier.
+6. 60-minute failure-window bucket size is C0-0B's own implementation call.
+
+Unblock now, no need to wait on the migration: (2) changeOwnPassword/confirmEmailToken onto the
+login tier, (3) the 'i:' IP-bucket on general, (4) the web client-IP helper. Only part (1)
+(loginStaff.ts's own exact failure/lockout semantics) waits on the migration landing.
+
+Reset: C1 SEC-ABUSE-1 to changes.

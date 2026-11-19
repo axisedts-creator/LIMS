@@ -1,9 +1,18 @@
-CHANGES
+APPROVE
 
-1. apps/web/src/__tests__/sec-hyg1.pollers.test.tsx:45 — the new test file adds 5 type errors to `pnpm -s verify` (`@lims/web:typecheck` TS2322 at lines 49, 58, 65, 74, 83: `mount` is typed `() => ReturnType<typeof render>` but every entry is `async`). Fix: change the interface member to `mount: () => Promise<ReturnType<typeof render>>;`. Re-run `pnpm --dir apps/web exec tsc --noEmit -p .` and confirm no `sec-hyg1` lines remain (the other web typecheck errors, e.g. MSW `onUnhandledRequest`, offline tests, existed before this task and are not this task's to fix).
+Round 2 (diff 98166f24..da4bcb37). Both items from round 1 are fixed:
+1. apps/web/src/__tests__/sec-hyg1.pollers.test.tsx: `mount` is now typed as Promise. `tsc --noEmit -p apps/web` shows no errors in sec-hyg1 or in the five poller files. The 378 web typecheck errors that remain were there before this task (MSW `onUnhandledRequest`, offline tests) and are not in its scope.
+2. tools/lint/gen-stubbed-operations.mjs:32: the gate now also matches `notImplemented` and `stub(`. The doc text names a generic fail-closed error. Regenerating gives the same list; `--check` exits 0.
 
-2. tools/lint/gen-stubbed-operations.mjs:32 — `if (!/not implemented/.test(src)) return [];` runs on comment-stripped source, so modules whose fallback has no literal "not implemented" text are silently skipped: frontdesk (handlers/index.ts:52-53, `notImplemented` throws `common.service_unavailable`) and reporting (index.ts:31, `notImplemented` returns 501). Today they have no stubs (reviewer probe with a widened gate produced the identical doc), but a future stub in either module would never appear and `--check` would still pass, so done_when "lists every operationId that maps to a stub ... a test fails when it is stale" does not hold for them. Fix: change the gate to `if (!/not implemented|\bnotImplemented\b|\bstub\(/.test(src)) return [];`, regenerate docs/stubbed-operations.md (expected unchanged), and in docs text line 4 (generator line 59) replace "(`common.internal`; 501 on dev)" with "(a fail-closed error such as `common.internal`, `common.service_unavailable` or 501)" so it is true for every module's fallback; then regenerate.
+What I checked and found correct:
+- `git ls-files` lists no `.tmp` or `test-results/` path.
+- .gitignore has `.tmp/`, `*.tmp` and `test-results/`.
+- The five pollers still use their original intervals and catch paths.
+- homecollection and anatomic, the examples named in LD-240, have no stubs left. The test's independent oracle agrees.
+- No PHI, no secrets, no spec, contracts or db edits. Every path is inside the LD-240 file list.
+- CR SEC-HYG-1.1.nonblocking.md covers wiring the tests into verify and CI.
 
-Checked, no defect: no `.tmp`/`test-results` path tracked (`git ls-files`); `.gitignore` adds `.tmp/`, `*.tmp`, `test-results/` and `*.tmp` does not hide `.tmpl`; files removed with `--cached` only. Five pollers guard with `document.visibilityState !== 'hidden'` inside the existing interval; periods and catch paths untouched; inline guard instead of `usePolling` is justified (the hook's 5/15/30 s back-off would change error handling, which LD-240 forbids) and matches the 3 existing pausing pollers. Remaining unguarded setInterval sites in apps/web are clocks or bounded export polls. No PHI (synthetic names), no secrets, no spec/contracts/db edits, paths within the LD-240 file list.
-Runs: `node --test tests/security/sec-hyg1.test.mjs` 12/12 pass; `vitest --config src/__tests__/vitest.sec-hyg1.config.ts` 29 pass, 2 skipped (router.refresh pollers have no failure path); `pnpm -s verify` FAILS at `@lims/web:typecheck` (item 1 plus pre-existing errors).
-Note (not blocking): neither test is wired into `pnpm -s verify` or .github/workflows, so the freshness test only fails when someone runs it; wiring it is outside the LD-240 file list, so a follow-up `SEC-HYG-1.1.nonblocking.md` CR is appropriate.
+Runs:
+- `node --test tests/security/sec-hyg1.test.mjs`: 12/12 pass.
+- vitest with `vitest.sec-hyg1.config.ts`: 29 pass, 2 skipped by design.
+- `pnpm -s verify` is still red, but only because of the web typecheck errors that existed before this task.

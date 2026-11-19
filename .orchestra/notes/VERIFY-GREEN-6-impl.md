@@ -1,8 +1,7 @@
-# VERIFY-GREEN-6 impl (writer, round 4, LD-423)
-- Files (test files/helpers only, 44, see `git diff --name-only`): msw 3.0.3 `listen({onUnhandledRequest})`->`onUnhandledFrame` in 37 files (old key ignored, so 'error' is now enforced; suites green) [CONV]; t32.server `load` default `Record<string, any>`; t32.components `res as Record<string, unknown>`; t33/t34 `ord(): Record<string, unknown>`; t35 `| undefined` on optional form/filename + fetchSpy `(..._a: unknown[])`; testmgmt1.setup `Mock<...>` types; nav-complete.billing `satisfies SpecRow[]`; uilist2.invoices `Promise<ReactNode>` cast.
-- `as any` pin (<=2): 11 later-added `as any` (regscreen1/2, testimport1.harness, acct1, printcfg1) replaced by typed casts / direct `URL.createObjectURL =` assignment; runtime same.
-- tsc apps/web errors under features/{catalog,frontdesk,billing}: 88 before (catalog 70, frontdesk 8, billing 10), 0 after. Whole-package `turbo run typecheck --continue` not re-run.
-- Money/order: no emitted value, rounding, status or SQL changed; no product file; no ts-ignore/expect-error/skipLibCheck/new `as any`.
-- Green: vg6 7/7; catalog t31 125, t32 107, t34 116, t35 96, t38 216, testmgmt1 141, testimport1 70, testfix1 122, uilist3 173, cattests1 40, catunits1 20; frontdesk fd-t13 70, fd-t14 98, fd-t17 18, regscreen1 75, regscreen2 87; billing acct1 194, acct2 268, bl-t20 54, bl-t23 25; uilist2 63, uiset1 69, printcfg1 72.
-- Red, not from this diff (failing tests in unedited files or product/static pins): emptytbl1/emptytbl2 (unedited), rs-c3.static + rs-c4.static/screens/register + adminpage-fd-1.static (baseline hashes/permissions.yaml), web-t33.server createDoctor (product now sends `quick_add`), nav-complete admin-pack/build. Not baseline-run on clean HEAD.
-- Open: edits are on disk UNCOMMITTED (git add needed approval) — rounds 1-3 lost them; orchestrator must commit this tree.
+# VERIFY-GREEN-6 impl (writer, round 7, LD-423/LD-426)
+- Files changed this round: none. The fix (msw `onUnhandledRequest`->`onUnhandledFrame` plus type-only casts in the catalog/frontdesk/billing test files and helpers) landed in tester commit cb58414d4, as LD-423 routed it [CONV].
+- No VERIFY-GREEN-6-review.md exists, so there are no implementation-file items to apply. No product file was touched.
+- tsc (apps/web, `tsc --noEmit -p .`): 0 errors under features/{catalog,frontdesk,billing} (88 before: catalog 70, frontdesk 8, billing 10). 198 errors remain elsewhere in apps/web and are out of this task's scope. `turbo run typecheck --continue` not re-run.
+- Verify cmd suites green: vg6 7/7, web-t32 107/107, web-t35 96/96.
+- Money/order: no emitted value, rounding, status or SQL changed; no ts-ignore/expect-error/skipLibCheck/new `as any`.
+- Open: the earlier list of red suites in unedited files (emptytbl1/2, rs-c3/rs-c4 static, web-t33.server createDoctor) still stands and is not part of this task.

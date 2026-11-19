@@ -21,3 +21,7 @@
 # round 6 (2026-11-19 08:58) - inbox re-run, no new ruling on dispute-202611190850.md; verify log unchanged (53/54, load.live.test.ts:40 only)
 - Cause: unchanged, lock-order inversion in test-only kit.ts adapters (40P01 survives 3 request retries). Retention gone per LD-407 (not a failure).
 - Fix: none. Impl fix would need tenant-wide batch lock (breaks done_when 6); kit.ts is test code, barred to me. Waiting on arbiter TESTS_WRONG ruling.
+
+# round 7 (2026-11-19 10:25) - verify log 10:23: 53/54, only load.live.test.ts:82 fails: p95 34693 ms > P95_BATCH_MS_BOUND 30000 (kit.ts:35)
+- Cause: after LD-412 every kit adapter locks the gap-free counter first, so 400 batches serialise on one tenant counter (~0.6 s each, 40 in flight). Test-kit locking and bound, not engine code; no deadlock, no 40001.
+- Fix: none. Impl speedup would change engine/adapter locking (breaks done_when 6); kit.ts/bound is test code, barred to me. dispute-202611191030.md already covers it (raise bound, or counter only for receipt ops); waiting on arbiter ruling.

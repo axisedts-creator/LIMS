@@ -60,3 +60,7 @@ Fix: none (tests not mine, no impl change possible). LD-400 said a further trip 
 ## Round 15 (verify 04:23: 1 fail / 36 pass; only rs-c4.screens.test.tsx "Daily cash (open shift)" snapshot)
 Cause: no OFFLINE-3 defect. rs-c4.static now passes (LD-404 applied). Stale .snap: Daily cash screen gained stat row + chart card from already-landed UIDASH-1; OFFLINE-3 touches no Daily cash code.
 Fix: none (snapshot/tests are tester-owned; must be re-recorded with vitest -u on that one file, never hand edited). Dispute written: T0D-OFFLINE-3-dispute.md.
+
+## Round 16 (verify 10:32: 1 fail / 36 pass; only rs-c4.screens.test.tsx "Daily cash (open shift) 1" snapshot)
+Cause: no OFFLINE-3 defect. Stale .snap pins pre-UIDASH-1 Daily cash markup (new stat row + chart card from already-landed work); OFFLINE-3 touches no Daily cash code.
+Fix: none (snapshot is test-owned; LD-416 parks the re-record pending founder answer). Dispute: T0D-OFFLINE-3-dispute-202611191045.md.

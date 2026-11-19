@@ -1,7 +1,6 @@
 APPROVE
-Range 91dedfba2..HEAD: the only code change is services/api/src/modules/analytics/__tests__/misreports/kit.ts:103-105, plus notes and the live log.
-- kit.ts adds one catalog.credit_parties row per spec.parties[i], exactly as the ruling (TESTS_WRONG, commission.live.test.ts:124) asks. The columns match db/migrations/20261105001500_catalog__create_catalog_schema.sql:652-673. party_code `SP`+12 hex characters matches `^[A-Z0-9_\-]{1,20}$`, kind 'partner_lab' is in the CHECK list, the name is synthetic and 1-160 characters, and the tenant_id is the same as the world tenant. The path is owned by the chunk, no assertion was changed or loosened, and there is no PHI or secret.
-- Impl unchanged per the ruling (misReports.service.ts not touched). Live log: 70 files passed / 4 skipped, 2849 passed / 0 failed / 51 skipped.
-- Debug note on the perf.live sales_representative flake belongs to the MISREPORTS-1 report, and no test was touched for it. Accepted as load-related, not a defect of this range.
-- Not reviewed here: commit b57a7232d (migration 20261119000000_partners__add_party_parent_credit_party.sql and the LD-408 join). It falls between the last review (eb3aa2f40) and this base, so it is outside the given range. A quick read found it additive and idempotent, with a composite tenant FK to catalog.credit_parties and a self-parent CHECK on a table that already has RLS. A full review of that commit against LD-408 is still owed.
-- Open (not a defect): the referral_report.view access entry on the report_run view for money codes (impl.md "Open").
+Range 1361c8a92..HEAD (commit ece23aca0): the only change is one line added to .orchestra/notes/T0B-MISREPORTS-2-impl.md, a writer post-review note (no code change; tsc clean; PG17 gate 3 runs 70 files / 2849 pass / 0 fail / 51 skipped).
+- No source, migration, contract, test or probe file changed, so nothing new to check for names, RLS, permissions, idempotency, rate tier, error codes, PHI, secrets or path ownership. Only an owned notes file changed. No assertion was touched.
+- The previous review (1361c8a92) still applies: APPROVE for 91dedfba2..1361c8a92.
+- Still owed (outside this range, carried over): a full review of commit b57a7232d (migration 20261119000000_partners__add_party_parent_credit_party.sql plus the LD-408 join) against LD-408.
+- Not re-run by the reviewer: the PG17 gate figures are as the writer reported them.

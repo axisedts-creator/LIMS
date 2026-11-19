@@ -4,4 +4,5 @@
 - No exception rows (authz-exceptions.json stays []): all 53 handlers assert exactly x-permission. No wrong contract x-permission found, so no CR. No contract, permission, role pack, SQL change.
 - Run: authz4 + handlers-cover-contract + identity security + session-actor 779/779 pass; fresh classifier: identity unguarded 0 (applyRolePack guarded-exact). node --test authz-*: only snapshot-drift tests fail (tester regenerates).
 - Round 2 (after ruling, no code change): verify.cmd vitest 779/779; full identity vitest 6745 pass, 13 fail all outside this diff (abuse1.limits x10 = SEC-ABUSE-1 red tests; ci-scripts service-key grep, route-guard AppShell.tsx, mfa T0B-06 definer count). node: only snapshot tests fail until tester regenerates. Open: /me ops now deny mfa_pending sessions (assertRole step 2), as the central stage already does; check the web MFA-enrolment screens do not call /me in that state.
+- Round 3 (after tester revision 6d74ab9ce, no code change): verify.cmd vitest 779/779, node --test authz-identity + authz-classification 27/27 pass.
 - tsc: no error in identity handlers. Not run: full api suite (DB live tests have no database here).

@@ -1,5 +1,6 @@
 // T0A-CLIENTIP-1 / LD-296: the login call (features/admin/auth/actions.ts `call`, used by every AU action) sends the real client ip and the
-// BROWSER user agent (replacing node's) next to X-Lims-Bff-Key. The ip is the first entry of x-forwarded-for (else x-real-ip), only when it is a bare literal.
+// BROWSER user agent (replacing node's) next to X-Lims-Bff-Key. SEC-ABUSE-1 / LD-237: the ip is x-vercel-forwarded-for, else x-real-ip, only when it is a bare literal;
+// the client-supplied x-forwarded-for list is never read (its first element is attacker-chosen). The outgoing header to the API keeps the name x-forwarded-for.
 // Same harness as t12.actions.test.ts (MSW stands in for /v1/identity/auth/*).
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { BFF_KEY, SID, api, apiCalls, form, headerStore, headersMock, json, navigationMock, reply, resetApi, run, sessionState, setEnv, NEW_TOKEN } from './t12.harness';
@@ -35,15 +36,15 @@ const incoming = (o: Record<string, string>) => {
 };
 
 describe('loginStaffAction sends the client context', () => {
-  it('browser user agent replaces node; first x-forwarded-for entry; BFF key kept', async () => {
-    incoming({ 'x-forwarded-for': '203.0.113.7, 10.0.0.1', 'user-agent': UA });
+  it('browser user agent replaces node; x-vercel-forwarded-for (not a spoofed x-forwarded-for); BFF key kept', async () => {
+    incoming({ 'x-vercel-forwarded-for': '203.0.113.7', 'x-forwarded-for': '6.6.6.6, 10.0.0.1', 'user-agent': UA });
     const h = await login();
     expect(h.get('user-agent')).toBe(UA);
     expect(h.get('x-forwarded-for')).toBe('203.0.113.7');
     expect(h.get('x-lims-bff-key')).toBe(BFF_KEY);
   });
   it('user agent is trimmed and capped at 512', async () => {
-    incoming({ 'x-forwarded-for': '203.0.113.7', 'user-agent': `  ${'m'.repeat(700)}  ` });
+    incoming({ 'x-vercel-forwarded-for': '203.0.113.7', 'user-agent': `  ${'m'.repeat(700)}  ` });
     expect((await login()).get('user-agent')).toBe('m'.repeat(512));
   });
   it('x-real-ip fallback', async () => {
@@ -51,21 +52,21 @@ describe('loginStaffAction sends the client context', () => {
     expect((await login()).get('x-forwarded-for')).toBe('198.51.100.9');
   });
   it('IPv6 client', async () => {
-    incoming({ 'x-forwarded-for': '2001:db8::1, 10.0.0.1', 'user-agent': UA });
+    incoming({ 'x-vercel-forwarded-for': '2001:db8::1', 'user-agent': UA });
     expect((await login()).get('x-forwarded-for')).toBe('2001:db8::1');
   });
-  it.each(['203.0.113.7:51234', 'not-an-ip', '[2001:db8::1]:443', 'unknown'])('junk or port first entry %j is NOT forwarded (the API would otherwise log it or fall back)', async (xff) => {
-    incoming({ 'x-forwarded-for': xff, 'user-agent': UA });
+  it.each(['203.0.113.7:51234', 'not-an-ip', '[2001:db8::1]:443', 'unknown'])('junk or port x-vercel-forwarded-for %j is NOT forwarded (the API would otherwise log it or fall back)', async (xff) => {
+    incoming({ 'x-vercel-forwarded-for': xff, 'user-agent': UA });
     expect((await login()).has('x-forwarded-for')).toBe(false);
   });
   it('no incoming user agent -> the web adds none of its own (no fabricated value)', async () => {
-    incoming({ 'x-forwarded-for': '203.0.113.7' });
+    incoming({ 'x-vercel-forwarded-for': '203.0.113.7' });
     const ua = (await login()).get('user-agent');
     expect(ua === null || ua === 'node' || /^node/.test(ua)).toBe(true); // undici's own default may remain; the web must not invent a browser string
     expect(ua).not.toMatch(/Mozilla/);
   });
   it('every AU action carries it, a cookie-bound one included (mfa/verify)', async () => {
-    incoming({ 'x-forwarded-for': '203.0.113.7', 'user-agent': UA });
+    incoming({ 'x-vercel-forwarded-for': '203.0.113.7', 'user-agent': UA });
     reply['/mfa/verify'] = () => json(200, { state: 'active' });
     await run(() => A.verifyMfaAction(form({ code: '123456' })));
     const [c] = apiCalls('/mfa/verify');
@@ -74,13 +75,13 @@ describe('loginStaffAction sends the client context', () => {
     expect(c?.headers.get('cookie')).toContain(SID);
   });
   it('the incoming cookie and authorization are never forwarded verbatim (only the sid the action reads)', async () => {
-    incoming({ 'x-forwarded-for': '203.0.113.7', 'user-agent': UA, cookie: 'other=SECRET-COOKIE', authorization: 'Bearer BROWSER-SECRET' });
+    incoming({ 'x-vercel-forwarded-for': '203.0.113.7', 'user-agent': UA, cookie: 'other=SECRET-COOKIE', authorization: 'Bearer BROWSER-SECRET' });
     const h = await login();
     expect(h.get('authorization')).toBeNull();
     expect([...h.values()].join('|')).not.toMatch(/SECRET-COOKIE|BROWSER-SECRET/);
   });
   it('request body is still only the credentials (the user agent is a header, not a field)', async () => {
-    incoming({ 'x-forwarded-for': '203.0.113.7', 'user-agent': UA });
+    incoming({ 'x-vercel-forwarded-for': '203.0.113.7', 'user-agent': UA });
     await login();
     expect(apiCalls('/login')[0]?.body).toEqual({ email: 'user@example.test', password: 'Correct-horse-battery-1' });
   });

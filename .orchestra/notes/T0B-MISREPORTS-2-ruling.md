@@ -54,3 +54,17 @@ invoice base, so it correctly has zero effect. The already-implemented neutralit
 nothing to build here.
 
 Reset: C0-0J T0B-MISREPORTS-2 to changes.
+
+----
+LEAD RULING, LD-411: load.live.test.ts:124 parent_party_name.length > 0 failure is a fixture bug,
+not a problem with the LD-408 design. kit.ts never seeds catalog.credit_parties rows for its
+synthetic parties (FK not enforced under session_replication_role = replica), so every party_name
+and parent_party_name comes back ''. The LD-408 implementation itself is correct: level 2,
+parent_party_id and parent_party_name all resolve right, 26/27 live pass, tsc clean.
+
+RULING: TESTS WRONG (fixture), fix per the writer's own suggestion -- seed catalog.credit_parties
+rows (tenant_id, id = spec.parties[i], a synthetic name) in kit.ts world setup or putSettings, for
+every synthetic party. Do not invent a name from elsewhere (e.g. invoice buyer_name). No assertion
+is loosened.
+
+Reset: C0-0J T0B-MISREPORTS-2 to changes.

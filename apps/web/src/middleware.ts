@@ -48,6 +48,9 @@ function secure(res: NextResponse, csp: string): NextResponse {
   res.headers.set(CSP_HEADER, csp);
   res.headers.set('x-content-type-options', 'nosniff');
   res.headers.set('referrer-policy', 'same-origin');
+  res.headers.set('x-frame-options', 'DENY'); // SEC-HDR-1 (LD-238): matches CSP frame-ancestors 'none'
+  // SEC-HDR-1 (LD-238): camera=(self) only because apps/web/src/features/frontdesk/components/NewPatientForm.tsx captures a photo; the rest unused.
+  res.headers.set('permissions-policy', 'camera=(self), microphone=(), geolocation=(), payment=()');
   res.headers.set('cache-control', 'no-store');
   return res;
 }

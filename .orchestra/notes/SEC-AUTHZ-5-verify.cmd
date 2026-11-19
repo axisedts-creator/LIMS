@@ -1,0 +1,1 @@
+pnpm --dir services/api exec vitest run src/modules/catalog/__tests__/authz5.catalog-guards.test.ts src/modules/catalog/__tests__/integration src/modules/catalog/__tests__/probes/permissions.branches.test.ts && node --test tests/security/authz-catalog.test.mjs tests/security/authz-classification.test.mjs tests/security/authz-identity.test.mjs

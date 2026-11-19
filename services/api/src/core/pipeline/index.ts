@@ -89,7 +89,8 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const unavailable = (): LimsError => new LimsError('common.dependency_unavailable');
 
 export function createPipeline(d: PipelineDeps) {
-  const limiter = (): RateLimiter => d.rateLimiter ?? { consume: async () => { throw unavailable(); } };
+  const down = async (): Promise<never> => { throw unavailable(); };
+  const limiter = (): RateLimiter => d.rateLimiter ?? { consume: down, peek: down, clear: down };
 
   /** Stage 5 (§6.7): `general` = actor + tenant bucket, `ingest` = device bucket; other tiers via ctx.rateLimit in the handler. */
   async function rateLimit(op: PipelineOp, claims: DbClaims | undefined, clientIp: string): Promise<void> {
@@ -189,7 +190,12 @@ export function createPipeline(d: PipelineDeps) {
       core: d.shared.core,
       audit: Object.freeze({ access: (entry: AccessLogEntry) => (tx ? access(ctx as any, entry) : noTx()) }),
       events: d.shared.events,
-      rateLimit: Object.freeze({ consume: (tier: RateLimitTier, key: string) => limiter().consume(tier, key) }),
+      rateLimit: Object.freeze({
+        consume: (tier: RateLimitTier, key: string) => limiter().consume(tier, key),
+        // SEC-ABUSE-1 (LD-410): the login failure windows of identity/handlers/loginStaff.ts read and clear their counters here.
+        peek: (tier: RateLimitTier, key: string) => limiter().peek(tier, key),
+        clear: (tier: RateLimitTier, key: string) => limiter().clear(tier, key),
+      }),
       uploads: d.shared.uploads,
       files: d.shared.files,
       storage: d.shared.storage,

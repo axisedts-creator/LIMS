@@ -12,6 +12,7 @@ import type { ClaimsResolver } from './auth/claims-resolver.js';
 import { createClientIpResolver } from './auth/client-ip.js';
 import { createJwtVerifier } from './auth/jwt.js';
 import { installHttpPerf } from './observability/http-perf.js';
+import { installSecurityHeaders } from './observability/security-headers.js';
 import { childLoggerFactory, createCoreLogger, installRequestLog } from './observability/logging.js';
 import { createMetrics, type CoreMetrics } from './observability/metrics.js';
 import { claimsOf, installRouteHooks, mountSpec, schemaController, withoutPendingBearer, type CoreAuth } from './openapi.js';
@@ -54,6 +55,7 @@ export async function bootstrap(opts: BootstrapOptions): Promise<FastifyInstance
     installErrorHandlers(app);
     installRequestLog(app, metrics, claimsOf);
     installHttpPerf(app); // T0B-PERF-1 (LD-310): stats scope, Server-Timing, compression, keep-alive
+    installSecurityHeaders(app); // SEC-HDR-1 (LD-238): nosniff, Referrer-Policy, no-store on authenticated JSON
     const modules = await autoload(modulesDir, repoRoot);
     // LD-325 (T0B-BOOTGATE-1): stale pending entries warn (handler wins); production refuses any pending entry (stale included)
     // unless LIMS_ALLOW_PENDING_OPS is exactly 1.

@@ -4,6 +4,7 @@ import { LimsError } from '../../../core/errors.js';
 import type { Handler, HandlerContext, HandlerRequest } from '../../../core/module.js';
 import { createTestsService } from '../service/tests.service.js';
 import { ifMatch } from './masters.handlers.js';
+import { guarded } from './_guard.js';
 
 type Svc = ReturnType<typeof createTestsService>;
 type Ctx = Parameters<Svc['createTest']>[0] & { events?: Parameters<typeof createTestsService>[0]['events'] };
@@ -19,12 +20,12 @@ function bind(run: (svc: Svc, ctx: Ctx, req: HandlerRequest) => Promise<{ status
 const ok = (body: unknown) => ({ status: 200, body });
 
 export const testsHandlers: Readonly<Record<string, Handler>> = Object.freeze({
-  searchOrderables: bind(async (s, c, r) => ok(await s.searchOrderables(c, r.query))),
-  listTests: bind(async (s, c, r) => ok(await s.listTests(c, r.query))),
-  createTest: bind(async (s, c, r) => ({ status: 201, body: await s.createTest(c, r.body) })),
-  getTestDetail: bind(async (s, c, r) => ok(await s.getTestDetail(c, { id: obj(r.params)['test_id'], as_of: obj(r.query)['as_of'] }))),
-  updateTest: bind(async (s, c, r) => ok(await s.updateTest(c, { id: obj(r.params)['test_id'], expectedVersion: ifMatch(r), patch: r.body }))),
-  replaceTestSpecimenRequirements: bind(async (s, c, r) =>
-    ok(await s.replaceTestSpecimenRequirements(c, { id: obj(r.params)['test_id'], expectedVersion: ifMatch(r), body: r.body }))),
-  setTestTatTargets: bind(async (s, c, r) => ok(await s.setTestTatTargets(c, { id: obj(r.params)['test_id'], expectedVersion: ifMatch(r), body: r.body }))),
+  searchOrderables: guarded('catalog.test.read', bind(async (s, c, r) => ok(await s.searchOrderables(c, r.query)))),
+  listTests: guarded('catalog.test.read', bind(async (s, c, r) => ok(await s.listTests(c, r.query)))),
+  createTest: guarded('catalog.test.manage', bind(async (s, c, r) => ({ status: 201, body: await s.createTest(c, r.body) }))),
+  getTestDetail: guarded('catalog.test.read', bind(async (s, c, r) => ok(await s.getTestDetail(c, { id: obj(r.params)['test_id'], as_of: obj(r.query)['as_of'] })))),
+  updateTest: guarded('catalog.test.manage', bind(async (s, c, r) => ok(await s.updateTest(c, { id: obj(r.params)['test_id'], expectedVersion: ifMatch(r), patch: r.body })))),
+  replaceTestSpecimenRequirements: guarded('catalog.test.manage', bind(async (s, c, r) =>
+    ok(await s.replaceTestSpecimenRequirements(c, { id: obj(r.params)['test_id'], expectedVersion: ifMatch(r), body: r.body })))),
+  setTestTatTargets: guarded('catalog.test.manage', bind(async (s, c, r) => ok(await s.setTestTatTargets(c, { id: obj(r.params)['test_id'], expectedVersion: ifMatch(r), body: r.body })))),
 });

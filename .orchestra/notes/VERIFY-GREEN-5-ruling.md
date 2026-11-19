@@ -1,3 +1,12 @@
+TESTS_WRONG — the `worklist` snapshot in __snapshots__/rs-c6.screens.test.tsx.snap:68-83 is stale (it lacks the FilterBar status button `button Ready to release` after `button Search`); the tester must re-record it (`vitest run -u` on rs-c6.screens, under T0D-UILIST-1/LD-362) and commit the .snap; no VG5 implementation change.
+Reasons (round 5, 2026-11-19):
+1. Round-4 ruling item 2 ordered the `worklist` outline snapshot re-recorded once. 077c743de changed only rs-c6.screens.test.tsx; the .snap at :68-83 still holds the old outline, so :220 fails on the stored baseline, not on the product.
+2. The extra `button Ready to release` is the FilterBar status control that the test at :192 itself now clicks (LD-353 template 1, ReportsWorklist.tsx:98). The new markup is required; the stored snapshot is what is wrong.
+3. verify.cmd sets CI=true, so vitest will not write a new snapshot; only an explicit `-u` run by the test owner can. The writer may not edit test or snapshot files (brief `files` excludes __tests__).
+4. Change: re-record only the `worklist 1` entry; leave the other 3 snapshots (report detail, held, delivery detail) as they are. Keep the snapshot test itself (LD-170 baseline).
+5. VG5 implementation (LD-405 tsconfig line) stays. Rest of round-4 items 3-5 still apply.
+
+==== round 4 (kept for the record) ====
 TESTS_WRONG — rs-c6.screens.test.tsx:190 and the :214 worklist snapshot assert the pre-UILIST tab bar, which LD-353 no longer requires; the C6/T0D-UILIST-1 test owner must update them; no VG5 implementation change.
 Reasons (round 4, 2026-11-19):
 1. rs-c6.screens.test.tsx:190 expects `getAllByRole('tab')` = 6. ReportsWorklist.tsx:98 (T0D-UILIST-1, 74ea3e301) replaced the tab bar with one FilterBar status control under LD-353 template 1, a binding lead decision (cited in .orchestra/notes/T0D-UILIST-1-ruling.md:3). The test asserts markup the binding decision removed.

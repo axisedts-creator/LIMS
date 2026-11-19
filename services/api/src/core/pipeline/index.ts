@@ -2,6 +2,7 @@
 // observability/logging.ts). One run() per request; the HandlerContext built here has exactly the §6.3 members.
 // Errors thrown by a stage or the handler are rethrown after the rollback and the idempotency key release; a handler RESULT
 // with status >= 400 is returned (and rolled back unless ctx.commitOnError() was called).
+import { createHmac } from 'node:crypto';
 import type { BffKind } from '../auth/bff-key.js';
 import type { DbClaims } from '../auth/claims.js';
 import { access, type AccessLogEntry } from '../audit/access.js';
@@ -91,8 +92,17 @@ export function createPipeline(d: PipelineDeps) {
   const limiter = (): RateLimiter => d.rateLimiter ?? { consume: async () => { throw unavailable(); } };
 
   /** Stage 5 (§6.7): `general` = actor + tenant bucket, `ingest` = device bucket; other tiers via ctx.rateLimit in the handler. */
-  async function rateLimit(op: PipelineOp, claims: DbClaims | undefined): Promise<void> {
-    if (!claims) return; // public: no actor/tenant key [CONV]
+  async function rateLimit(op: PipelineOp, claims: DbClaims | undefined, clientIp: string): Promise<void> {
+    if (!claims) {
+      // SEC-ABUSE-1 (LD-237 (3)): a public operation on `general` consumes one IP bucket, key 'i:' + HMAC(client IP); the limiter HMACs the
+      // whole key again with its secret before the store. [CONV] the inner HMAC key is a fixed label (it only shapes the key: every instance must
+      // derive the same one). Other tiers are the handler's (login, otp_*, qr_verify, report_download): no double counting. No limiter wired
+      // (DB-less dev/ci boot) = the `general` fail-open policy.
+      if (op.rateLimitTier !== 'general' || !d.rateLimiter) return;
+      if (typeof clientIp !== 'string' || !clientIp) throw new LimsError('common.internal');   // the edge always sets it; never skip silently
+      await d.rateLimiter.consume('general', `i:${createHmac('sha256', 'lims.pipeline.public-ip').update(clientIp).digest('hex')}`);
+      return;
+    }
     if (op.rateLimitTier === 'general') {
       await limiter().consume('general', `u:${claims.sub}`);
       if (typeof claims.tenant_id === 'string') await limiter().consume('general', `t:${claims.tenant_id}`);
@@ -218,7 +228,7 @@ export function createPipeline(d: PipelineDeps) {
       return c.handler(c.req, buildCtx(c, az, undefined, undefined, () => undefined));
     }
 
-    await rateLimit(op, claims); // stage 5
+    await rateLimit(op, claims, c.clientIp); // stage 5
 
     // LD-204 (AUTH-ACTOR-1): before stage 6 so a failed read leaves no idempotency state; fails closed (common.internal), handler never runs.
     let systemActorId: string | undefined;

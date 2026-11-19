@@ -38,7 +38,8 @@ export function createRateLimiter(opts: RateLimiterOptions): RateLimiter {
   const tBurst = opts.tenant?.burst ?? 200;
   // tier -> key prefix -> rule (02-TRD §6.7 table).
   const RULES: Record<RateLimitTier, Record<string, Rule>> = {
-    general: { 'u:': (b, h) => b.tokenBucket(h, 10, 20), 't:': (b, h) => b.tokenBucket(h, tRps, tBurst) },
+    // SEC-ABUSE-1 (LD-237 (3)): 'i:<hmac(ip)>' = a public operation without claims; same per-client bucket as 'u:'.
+    general: { 'u:': (b, h) => b.tokenBucket(h, 10, 20), 't:': (b, h) => b.tokenBucket(h, tRps, tBurst), 'i:': (b, h) => b.tokenBucket(h, 10, 20) },
     ingest: { 'd:': (b, h) => b.slidingWindow(h, 60, 60) },
     // `f:<ip>` failed-attempt rule is applied by C2 with its own thresholds; not accepted here.
     login: { 'a:': (b, h) => b.slidingWindow(h, 3600, 10) },

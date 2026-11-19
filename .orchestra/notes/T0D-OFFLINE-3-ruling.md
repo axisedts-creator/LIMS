@@ -1,3 +1,14 @@
+TESTS_WRONG — rs-c4.screens.test.tsx:74 "Daily cash (open shift)" snapshot pins pre-UIDASH-1 markup; no spec line ties the Daily cash screen to OFFLINE-3. Apply lead ruling LD-409 (bottom of this file): re-record that one snapshot.
+Reasons (arbiter, 2026-11-19, dispute round 15):
+1. rs-c4 snapshots are RS-task visual records (spec/program/10-DESIGN-SYSTEM.md:135,137); a later landed feature (T0D-UIDASH-1, LD-353 rule 10/template 5) legitimately changed the screen. Diff is additive (stat row + chart card before "My shift").
+2. OFFLINE-3 done_when (1)-(6) cover registration, billing receipts, collection/accession; none touches Daily cash. Lane diff has no Daily cash source change.
+3. LD-409 (lead, binding in this lane) lifts the earlier "parked" note: regenerate ONLY this snapshot.
+TESTER (rs-c4.screens.test.tsx.snap only, via the runner, never hand-edit): `pnpm --dir apps/web exec vitest run --config src/features/frontdesk/__tests__/vitest.rs-c4.config.ts -u -t "Daily cash \(open shift\)" src/features/frontdesk/__tests__/rs-c4.screens.test.tsx`. Confirm git diff changes only "Daily cash (open shift) 1" (Register x3, Credit party untouched). Commit the .snap itself, not only notes; paste the run result in the tester note.
+Flag (not blocking, per LD-409): new markup drops Business date aria-describedby + hint; owner of Daily cash screen to restore.
+WRITER and DEBUGGER: no code change. Next same-family gap: escalate lane-isolation question (LD-404/LD-409), do not patch.
+
+---- prior arbiter ruling (superseded by the above) ----
+
 TESTS_WRONG — rs-c4.static.test.ts:79 rejects 9 frontdesk_feature route strings that are already-landed T0D-REGSCREEN-2 work; no spec line ties them to OFFLINE-3. Apply lead item LD-404 (bottom of this file) verbatim.
 Reasons (arbiter, 2026-11-19, dispute after tester 62ed67017):
 1. LD-140 guard binds restyle tasks only (spec/program/10-DESIGN-SYSTEM.md:132-136); the 9 strings live in frontdesk/server/read.server.ts:56-61,77 and write.server.ts:94-98 (grep), REGSCREEN-2 drafts/custom fields/favourites/ICD/number preview, not OFFLINE-3 code.
@@ -352,3 +363,31 @@ OFFLINE-3 should be fast-tracked to merge now so it stops catching every other t
 since at the current rate of already-landed features merging into main, this could keep recurring.
 This is a lane/process question about how C0-0K is set up, not a feature decision, so it is outside
 what I would rule on myself under LD-310.
+
+----
+LEAD RULING, LD-409: Daily cash (open shift) snapshot, the 7th rs-c4 allow-list-family gap, same
+root cause as LD-391/393/398/400/401/403/404 (shared worktree re-merging a fast moving main pulls
+in other tasks already-landed work as new against OFFLINE-3's frozen baseline).
+
+Read the full diff from the verify log. This screen gained its real content elsewhere (stat row:
+Gross/Reversed/Net/Variance; a Net-by-payment-method chart with an accessible hidden data table;
+a page-status date badge in the header) while OFFLINE-3's baseline still expects the old bare
+placeholder markup. Not OFFLINE-3's own regression -- OFFLINE-3 has never touched this file.
+
+Separately flagged, not blocking: the new markup also drops the Business date input's
+aria-describedby and its paired BS-calendar hint paragraph that the old markup had. Looks like an
+incidental accessibility loss in whatever task built the stat row/chart. Whoever owns the Daily
+Cash screen's real implementation should look at restoring it -- not OFFLINE-3's problem to fix,
+and not holding OFFLINE-3 up for it.
+
+EDIT: regenerate only the "Daily cash (open shift)" snapshot in rs-c4.screens.test.tsx to match
+the screen's current real rendered output (the full diff already shown in the verify log is what
+the new snapshot should capture). Do not touch the other 4 snapshots in that file -- Register
+(3 cases) and Credit party are passing and out of scope.
+
+If an 8th gap of this same family appears after this, that is a strong enough signal that the
+lane-architecture question raised in LD-404 (isolate the lane vs. fast-track the merge) needs an
+actual answer rather than another allow-list/snapshot patch -- raise it plainly rather than quietly
+patching an 8th one.
+
+Reset: C0-0K T0D-OFFLINE-3 to changes.

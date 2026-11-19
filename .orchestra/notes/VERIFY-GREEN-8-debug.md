@@ -12,3 +12,6 @@
 - Round 5 (2026-11-19 15:53 log): identical to round 4, 6/8. Test 1: 65 TS2883 in `*.harness.tsx`/`*.helpers.tsx`/`rs-c15.fixtures.tsx` exports. Test 3: `as any` 90 > 80.
 - Cause test-side only (tester-owned `__tests__`, LD-424/LD-425, ruling 757347041). No implementation cause, no spec contradiction, no dispute. Nothing fixed by debugger.
 - Next: tester annotates the 65 exports with explicit return types, replaces ~10 VG8-added `as any` with narrow typed casts. Debugger rerun is a loop until then.
+- Round 6 (2026-11-19 16:35 log): gate 7/8. TS2883 fixed by tester. Only red: `as any` 90 > 80 (vg8.typecheck.test.ts:82).
+- Cause: stale baseline; VG8 added 0 `as any` (tester verified), 24 extra are from other tasks' new test files (OFFLINE-1, PRINTCFG-1, ELABMENU-1, WEBFIX-2). No implementation cause; nothing fixed.
+- Dispute written: VERIFY-GREEN-8-dispute.md (lead: raise baseline to 90 or task to narrow those casts).

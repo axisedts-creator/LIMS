@@ -13,3 +13,7 @@
 # round 4 (2026-11-19 08:45) — load.live.test.ts:40, 16x common.dependency_unavailable
 - Cause: lock-order inversion inside the TEST-ONLY synthetic adapters (hardening/kit.ts:80-93): batch A inserts patient/order/state keys (uncommitted unique-index locks) then takes the gap-free counter (doubles.ts nextNo); batch B holds the counter (to end of tx), then inserts a key A holds -> 40P01. Engine rethrow (engine.ts:233) and core retry (tx.ts:150, 3x, 10-50 ms jitter) behave per 02-TRD §6.4; no production adapter or engine code is involved.
 - Fix: none possible in implementation code (a tenant-wide batch lock would change production behaviour, done_when 6). Fix belongs in kit.ts (counter first / sorted keys) = test code, forbidden to me; ruling item 5 also bars the writer. Wrote dispute-202611190850.md; stopped.
+
+# round 5 (2026-11-19 08:50) — verify log 08:48: only load.live.test.ts:40 fails (13x 40P01 -> common.dependency_unavailable); 53/54 pass, retention gone (LD-407)
+- Cause: same as round 4, lock-order inversion in test-only synthetic adapters (hardening/kit.ts:80-93 vs doubles.ts nextNo). No code changed since round 4; dispute-202611190850.md still unanswered.
+- Fix: none. Fix is in kit.ts (test code, forbidden to me); implementation fix would need a tenant-wide batch lock (violates done_when 6). Waiting for arbiter TESTS_WRONG ruling.

@@ -84,9 +84,20 @@ describe.skipIf(files.length === 0)('source rules', () => {
 
 describe('US-07.3: the word "commission" appears nowhere in C8 web paths (CI grep, case-insensitive)', () => {
   it('app/(staff)/analytics/** and features/analytics/** (tests excluded)', () => {
+    // A39-3 (ii) / A39-7 / A39-8 (08-CR-REGISTER.md): the word is allowed ONLY in the web catalogue label of the two gated reports
+    // (two_level_commission, tds) = apps/web/src/features/analytics/report-codes.ts. Mirror of A39-6(a) for c8-openapi: strip those
+    // definitions (rows, the A39-3 comment line, the MIS_GATED list), then assert the word is absent from the remainder and from every other file.
+    const EXEMPT = join(FEATURE, 'report-codes.ts');
     const all = [...walk(APP), ...walk(FEATURE)].filter((f) => !/__tests__/.test(f));
     expect(all.length).toBeGreaterThan(0);
-    const hits = all.filter((f) => /commission/i.test(read(f)));
+    expect(all).toContain(EXEMPT);
+    const stripGated = (s: string) =>
+      s
+        .replace(/\{ code: '(?:two_level_commission|tds)'[\s\S]*?\] \},?/g, '')
+        .split('\n')
+        .filter((l) => !/A39-3|MIS_GATED/.test(l))
+        .join('\n');
+    const hits = all.filter((f) => /commission/i.test(f === EXEMPT ? stripGated(read(f)) : read(f)));
     expect(hits).toEqual([]);
   });
 });

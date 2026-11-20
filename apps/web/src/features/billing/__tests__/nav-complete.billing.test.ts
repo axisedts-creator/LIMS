@@ -29,6 +29,11 @@ const DISCOUNTS: SpecRow[] = ([
   { name: 'Discount authorities', path: '/billing/discounts/authorities', permission: 'billing.discount_policy.read', group: 'billing', orderRange: [50, 60] },
 ] satisfies SpecRow[]).filter((r) => pageExists(r.path));
 
+// T0D-MISREPORTS-1 (LD-321, ruling): one additive entry between Daily cash (20) and Credit parties (25); joins once the page exists.
+const BILL_OF_THE_DAY: SpecRow[] = ([
+  { name: 'Bill Of The Day', path: '/billing/bill-of-the-day', permission: 'analytics.collections.read', group: 'billing', orderRange: [20, 25] },
+] satisfies SpecRow[]).filter((r) => pageExists(r.path));
+
 specSuite({
   module: 'billing',
   owner: 'C4',
@@ -37,6 +42,7 @@ specSuite({
     { name: 'Invoices', path: '/billing/invoices', permission: 'billing.invoice.read', group: 'billing', order: 10 },
     { name: 'Dues', path: '/billing/dues', permission: 'billing.invoice.read', group: 'billing', order: 15 },
     { name: 'Daily cash', path: '/billing/daily-cash', permission: 'billing.cash_report.read', group: 'billing', order: 20, routeId: 'staff.billing.daily_cash' },
+    ...BILL_OF_THE_DAY,
     { name: 'Credit parties', path: '/billing/credit-parties', permission: 'billing.credit_party.read', group: 'billing', order: 25 },
     { name: 'Registers', path: '/billing/registers', permission: 'billing.invoice.read', group: 'billing', order: 30 },
     { name: 'Audit trail', path: '/billing/audit-trail', permission: 'billing.data.export', group: 'billing', order: 35 },

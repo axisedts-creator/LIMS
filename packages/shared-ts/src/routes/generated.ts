@@ -346,6 +346,12 @@ export const ROUTES = {
     "path": "/billing/audit-trail",
     "permission": "billing.data.export"
   },
+  "staff.billing.bill_of_the_day": {
+    "origin": "staff_web",
+    "owner": "C4",
+    "path": "/billing/bill-of-the-day",
+    "permission": "analytics.collections.read"
+  },
   "staff.billing.cash_transfers": {
     "origin": "staff_web",
     "owner": "C4",
@@ -375,6 +381,30 @@ export const ROUTES = {
     "owner": "C4",
     "path": "/billing/daily-cash",
     "permission": "billing.cash_report.read"
+  },
+  "staff.billing.discount_authorities": {
+    "origin": "staff_web",
+    "owner": "C4",
+    "path": "/billing/discounts/authorities",
+    "permission": "billing.discount_policy.read"
+  },
+  "staff.billing.discount_limits": {
+    "origin": "staff_web",
+    "owner": "C4",
+    "path": "/billing/discounts/limits",
+    "permission": "billing.discount_policy.read"
+  },
+  "staff.billing.discount_reasons": {
+    "origin": "staff_web",
+    "owner": "C4",
+    "path": "/billing/discounts/reasons",
+    "permission": "billing.discount_policy.read"
+  },
+  "staff.billing.discount_slabs": {
+    "origin": "staff_web",
+    "owner": "C4",
+    "path": "/billing/discounts/slabs",
+    "permission": "billing.discount_policy.read"
   },
   "staff.billing.dues": {
     "origin": "staff_web",
@@ -477,6 +507,12 @@ export const ROUTES = {
     "owner": "C3",
     "path": "/catalog",
     "permission": "catalog.test.read"
+  },
+  "staff.catalog.icd": {
+    "origin": "staff_web",
+    "owner": "C3",
+    "path": "/catalog/icd",
+    "permission": "catalog.icd.manage"
   },
   "staff.catalog.import": {
     "origin": "staff_web",
@@ -1049,11 +1085,29 @@ export const ROUTES = {
     "path": "/partners/manifests/{manifest_id}",
     "permission": "partners.manifest.receive"
   },
+  "staff.partners.onboarding": {
+    "origin": "staff_web",
+    "owner": "C13",
+    "path": "/partners/onboarding",
+    "permission": "partners.onboarding.decide"
+  },
   "staff.partners.partner": {
     "origin": "staff_web",
     "owner": "C13",
     "path": "/partners/{partner_id}",
     "permission": "partners.partner.read"
+  },
+  "staff.partners.penalties": {
+    "origin": "staff_web",
+    "owner": "C13",
+    "path": "/partners/penalties",
+    "permission": "partners.penalty.manage"
+  },
+  "staff.partners.penalty_events": {
+    "origin": "staff_web",
+    "owner": "C13",
+    "path": "/partners/penalty-events",
+    "permission": "partners.penalty.manage"
   },
   "staff.partners.pickups": {
     "origin": "staff_web",
@@ -1066,6 +1120,30 @@ export const ROUTES = {
     "owner": "C13",
     "path": "/partners/referrers",
     "permission": "partners.referrer.map"
+  },
+  "staff.partners.sales_areas": {
+    "origin": "staff_web",
+    "owner": "C13",
+    "path": "/partners/sales/areas",
+    "permission": "partners.sales.read"
+  },
+  "staff.partners.sales_clients": {
+    "origin": "staff_web",
+    "owner": "C13",
+    "path": "/partners/sales/clients",
+    "permission": "partners.sales.read"
+  },
+  "staff.partners.sales_designations": {
+    "origin": "staff_web",
+    "owner": "C13",
+    "path": "/partners/sales/designations",
+    "permission": "partners.sales.read"
+  },
+  "staff.partners.sales_representatives": {
+    "origin": "staff_web",
+    "owner": "C13",
+    "path": "/partners/sales/representatives",
+    "permission": "partners.sales.read"
   },
   "staff.partners.settings": {
     "origin": "staff_web",

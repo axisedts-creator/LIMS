@@ -244,6 +244,7 @@ routes:
   - { id: staff.billing.discount_slabs, origin: staff_web, path: /billing/discounts/slabs, owner: C4, permission: billing.discount_policy.read }
   - { id: staff.billing.discount_limits, origin: staff_web, path: /billing/discounts/limits, owner: C4, permission: billing.discount_policy.read }
   - { id: staff.billing.discount_authorities, origin: staff_web, path: /billing/discounts/authorities, owner: C4, permission: billing.discount_policy.read }
+  - { id: staff.billing.bill_of_the_day, origin: staff_web, path: /billing/bill-of-the-day, owner: C4, permission: analytics.collections.read }   # T0D-MISREPORTS-1 (LD-321)
   - { id: staff.offline, origin: staff_web, path: /offline, owner: C0, permission: sync.use }   # T0D-OFFLINE-2 (LD-322): Offline panel and conflict inbox
   - { id: staff.lab.collect, origin: staff_web, path: /lab/collect, owner: C5, permission: lab.specimen.collect }
   - { id: staff.lab.receive, origin: staff_web, path: /lab/receive, owner: C5, permission: lab.specimen.receive }

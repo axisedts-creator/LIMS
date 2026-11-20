@@ -83,7 +83,8 @@ export function ExportDialog({ isOpen, onClose, reportCode, params, summary, pdf
         options={[{ value: 'xlsx', label: 'Excel (.xlsx)' }, { value: 'csv', label: 'CSV (.csv)' }, { value: 'pdf', label: 'PDF', ...(pdfEnabled ? {} : { isDisabled: true }) }] /* LD-83: kit RadioGroup per-option isDisabled */}
         {...(pdfEnabled ? {} : { description: 'PDF export is not available yet' })}
       />
-      <DescriptionList
+      {/* T0D-MISREPORTS-1 (A39): access refused = no detail of the report it refused (the money report names stay off screen) */}
+      {fail === 'forbidden' ? null : <DescriptionList
         items={[
           { term: 'Report', value: summary.report },
           { term: 'Period (A.D.)', value: summary.periodAd },
@@ -91,7 +92,7 @@ export function ExportDialog({ isOpen, onClose, reportCode, params, summary, pdf
           { term: 'Centres', value: summary.centres.length ? summary.centres.join(', ') : 'All centres' },
           ...(summary.groupBy ? [{ term: 'Group by', value: summary.groupBy }] : []),
         ]}
-      />
+      />}
       <Checkbox label="I will keep this file inside the lab and delete it when no longer needed." isSelected={ack} onChange={setAck} />
       {/* LD-140: kit Inline instead of an inline style object */}
       <Inline gap={2} justify="end">

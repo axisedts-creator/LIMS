@@ -84,6 +84,10 @@ exports[`RS-C4 key-screen snapshots > Daily cash (open shift) 1`] = `
 <div class="lims-page-header">
 <div class="lims-page-header-row">
 <h1 class="lims-page-title">Daily Payment Collection</h1>
+<div class="lims-page-status">
+<span class="lims-bs-ad">2083-07-21 B.S. / <time class="lims-date-text" datetime="2026-11-07">07/11/2026</time>
+</span>
+</div>
 <div class="lims-page-actions">
 <div class="lims-export-buttons">
 <button class="lims-btn lims-btn-secondary lims-btn-md" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID">
@@ -102,10 +106,11 @@ exports[`RS-C4 key-screen snapshots > Daily cash (open shift) 1`] = `
 </div>
 </div>
 </div>
+<div role="search" class="lims-filter-bar">
 <div class="lims-field lims-date-field">
 <label class="lims-label" for="_r_sb_">Business date</label>
 <div class="lims-input-group">
-<input id="_r_sb_" class="lims-input" placeholder="DD/MM/YYYY" autocomplete="off" aria-describedby="_r_sb_-h" type="text" value="07/11/2026" name="date">
+<input id="_r_sb_" class="lims-input" placeholder="DD/MM/YYYY" autocomplete="off" type="text" value="07/11/2026" name="date">
 <button type="button" class="lims-btn lims-btn-ghost lims-icon-btn" aria-label="Open calendar for Business date" aria-expanded="false">
 <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 <rect x="4" y="5" width="16" height="15">
@@ -115,11 +120,70 @@ exports[`RS-C4 key-screen snapshots > Daily cash (open shift) 1`] = `
 </svg>
 </button>
 </div>
-<p id="_r_sb_-h" class="lims-description lims-date-hint">2083-07-21 B.S.</p>
 </div>
-<p>Business date: <span class="lims-bs-ad">2083-07-21 B.S. / <time class="lims-date-text" datetime="2026-11-07">07/11/2026</time>
+</div>
+<div class="lims-stat-row">
+<div class="lims-stat">
+<span class="lims-stat-label">Gross</span>
+<span class="lims-stat-value">NPR 3,390.00</span>
+</div>
+<div class="lims-stat">
+<span class="lims-stat-label">Reversed</span>
+<span class="lims-stat-value">NPR 113.00</span>
+</div>
+<div class="lims-stat">
+<span class="lims-stat-label">Net</span>
+<span class="lims-stat-value">NPR 3,277.00</span>
+</div>
+<div class="lims-stat">
+<span class="lims-stat-label">Variance</span>
+<span class="lims-stat-value">No variance</span>
+</div>
+</div>
+<section class="lims-chart-card" aria-labelledby="_r_sc_">
+<header class="lims-chart-card-header">
+<h2 id="_r_sc_" class="lims-chart-card-title">Net by payment method</h2>
+</header>
+<div class="lims-chart-frame">
+<figure class="lims-chart">
+<figcaption id="_r_sd_-t" class="lims-chart-title">Net by payment method</figcaption>
+<svg role="img" aria-labelledby="_r_sd_-t" viewBox="0 0 600 240" width="100%" height="240" class="lims-chart-svg">
+<line class="lims-chart-axis" x1="56" y1="204" x2="588" y2="204">
+</line>
+<text class="lims-chart-tick" x="52" y="12" text-anchor="end">Rs. 3,277.00</text>
+<g>
+<rect class="lims-chart-bar lims-series-0 lims-pattern-solid" x="109.2" y="12" width="425.6" height="192" fill="currentColor">
+</rect>
+<text class="lims-chart-tick" x="322" y="228" text-anchor="middle">Cash</text>
+</g>
+</svg>
+<ul class="lims-chart-legend">
+<li class="lims-series-0 lims-pattern-solid">
+<span class="lims-chart-swatch" aria-hidden="true">
 </span>
-</p>
+<span>Net</span>
+</li>
+</ul>
+<div class="lims-visually-hidden">
+<table>
+<caption>Net by payment method</caption>
+<thead>
+<tr>
+<th scope="col">Category</th>
+<th scope="col">Net</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<th scope="row">Cash</th>
+<td>Rs. 3,277.00</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
+</section>
 <section aria-label="My shift">
 <h2>My shift</h2>
 <ul>

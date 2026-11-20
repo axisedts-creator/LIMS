@@ -72,3 +72,7 @@ Fix: none (snapshot is test-owned; I may not edit it). LD-416 parks the re-recor
 ## Round 18 (verify 10:48: 1 fail / 36 pass; only rs-c4.screens.test.tsx "Daily cash (open shift) 1" snapshot)
 Cause: no OFFLINE-3 defect. Stale .snap pins pre-UIDASH-1 Daily cash markup (stat row + chart card from already-landed work); OFFLINE-3 touches no Daily cash code.
 Fix: none (snapshot is test-owned; LD-416 parks re-record pending founder). Dispute unchanged: T0D-OFFLINE-3-dispute-202611191045.md.
+
+## Round 19 (verify 06:27: 1 fail / 36 pass; rs-c4.screens "Daily cash (open shift) 1" snapshot only)
+Cause: stale .snap (pre-UIDASH-1 Daily cash markup); no OFFLINE-3 code defect. Per LD-430 debugger/writer own rs-cN snaps.
+Fix: re-recorded that one snapshot with vitest -u (rs-c4 config, 1 updated). Full rs-c4 config run without -u: 4 files, 37 tests pass.

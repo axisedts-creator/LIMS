@@ -6,7 +6,7 @@
 import 'server-only';
 import { ApiError, serverFetch } from '@/core/api/server-fetch';
 import { problem } from '@/core/session/types';
-import { SALES, isKind, isUuid, type PartyKind } from './sales.server';
+import { isKind, isUuid, type PartyKind } from './sales.server';
 import { KEY_RE } from './types';
 
 export type SalesResult = { ok: true } | { ok: false; status: number; code: string; errors?: { path: string; message: string }[] };
@@ -62,10 +62,10 @@ const nonEmpty = (o: Record<string, unknown>) => { if (Object.keys(o).length ===
 const level = (v: unknown) => { if (!Number.isInteger(v) || (v as number) < 1 || (v as number) > 8) throw bad(); return v; };
 const bool = (v: unknown) => { if (typeof v !== 'boolean') throw bad(); return v; };
 export async function createDesignationAction(b: { name: string; level: number }, key: string) {
-  return run(() => send('POST', `${SALES}/designations`, { name: str(b.name, 120), level: level(b.level) }, { key }));
+  return run(() => send('POST', `/v1/partners/admin/sales/designations`, { name: str(b.name, 120), level: level(b.level) }, { key }));
 }
 export async function updateDesignationAction(id: string, version: number, b: { name?: string; level?: number; is_active?: boolean }) {
-  return run(() => send('PATCH', `${SALES}/designations/${uuid(id)}`, nonEmpty(clean(b, { name: (v) => str(v, 120), level, is_active: bool })), { version }));
+  return run(() => send('PATCH', `/v1/partners/admin/sales/designations/${uuid(id)}`, nonEmpty(clean(b, { name: (v) => str(v, 120), level, is_active: bool })), { version }));
 }
 
 // ---- representatives ----
@@ -82,14 +82,14 @@ export async function createRepresentativeAction(b: Record<string, unknown>, key
   return run(async () => {
     const body = clean(b, REP_RULES);
     if (!body['name'] || !body['designation_id']) throw bad();
-    return send('POST', `${SALES}/representatives`, body, { key });
+    return send('POST', `/v1/partners/admin/sales/representatives`, body, { key });
   });
 }
 export async function updateRepresentativeAction(id: string, version: number, b: Record<string, unknown>) {
-  return run(() => send('PATCH', `${SALES}/representatives/${uuid(id)}`, nonEmpty(clean(b, REP_RULES, REP_UNSET)), { version }));
+  return run(() => send('PATCH', `/v1/partners/admin/sales/representatives/${uuid(id)}`, nonEmpty(clean(b, REP_RULES, REP_UNSET)), { version }));
 }
 export async function deactivateRepresentativeAction(id: string, version: number) {
-  return run(() => send('POST', `${SALES}/representatives/${uuid(id)}/deactivate`, {}, { version }));
+  return run(() => send('POST', `/v1/partners/admin/sales/representatives/${uuid(id)}/deactivate`, {}, { version }));
 }
 
 // ---- client assignment ----
@@ -99,13 +99,13 @@ export async function assignPartyAction(b: { party_kind: PartyKind; party_id: st
     const from = day(b.effective_from);
     const to = b.effective_to !== undefined ? day(b.effective_to) : undefined;
     if (to !== undefined && to < from) throw bad();
-    return send('POST', `${SALES}/assignments`, { party_kind: b.party_kind, party_id: uuid(b.party_id), representative_id: uuid(b.representative_id), effective_from: from, ...(to ? { effective_to: to } : {}) }, { key });
+    return send('POST', `/v1/partners/admin/sales/assignments`, { party_kind: b.party_kind, party_id: uuid(b.party_id), representative_id: uuid(b.representative_id), effective_from: from, ...(to ? { effective_to: to } : {}) }, { key });
   });
 }
 /** If-Match: RepresentativeClient carries no assignment version, and an assignment only ever changes by this call, so it is "1"
  * ([CONV] GAP, CR T0D-SALES-1: add `version` to RepresentativeClient). A stale call answers 409 and the screen says so. */
 export async function unassignPartyAction(assignmentId: string, effectiveTo?: string) {
-  return run(() => send('POST', `${SALES}/assignments/${uuid(assignmentId)}/unassign`, effectiveTo !== undefined ? { effective_to: day(effectiveTo) } : {}, { version: 1 }));
+  return run(() => send('POST', `/v1/partners/admin/sales/assignments/${uuid(assignmentId)}/unassign`, effectiveTo !== undefined ? { effective_to: day(effectiveTo) } : {}, { version: 1 }));
 }
 
 // ---- service areas (free text district and area, not pincodes: LD-321) ----
@@ -114,12 +114,12 @@ export async function createServiceAreaAction(b: Record<string, unknown>, key: s
   return run(async () => {
     const body = clean(b, AREA_RULES);
     if (!body['name'] || !body['district']) throw bad();
-    return send('POST', `${SALES}/service-areas`, body, { key });
+    return send('POST', `/v1/partners/admin/sales/service-areas`, body, { key });
   });
 }
 export async function updateServiceAreaAction(id: string, version: number, b: Record<string, unknown>) {
-  return run(() => send('PATCH', `${SALES}/service-areas/${uuid(id)}`, nonEmpty(clean(b, AREA_RULES, ['area_text', 'centre_id'])), { version }));
+  return run(() => send('PATCH', `/v1/partners/admin/sales/service-areas/${uuid(id)}`, nonEmpty(clean(b, AREA_RULES, ['area_text', 'centre_id'])), { version }));
 }
 export async function deactivateServiceAreaAction(id: string, version: number) {
-  return run(() => send('POST', `${SALES}/service-areas/${uuid(id)}/deactivate`, {}, { version }));
+  return run(() => send('POST', `/v1/partners/admin/sales/service-areas/${uuid(id)}/deactivate`, {}, { version }));
 }

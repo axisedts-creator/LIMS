@@ -4,10 +4,11 @@
 //     cursor paging (Previous / Next, 100 rows a page) moves through the URL.
 //   - Gated: a button that is disabled without partners.sales.manage and points (aria-describedby) at the one visible reason line of the page.
 //   - DateInput: a native date input (no picker library) with its label and error.
-import { useId, useRef } from 'react';
+import { useId, useRef, useState, type ReactNode } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Button, type ButtonProps } from '@lims/ui/components/Button';
 import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
+import { Dialog } from '@lims/ui/components/Dialog';
 import { FilterBar } from '@lims/ui/components/FilterBar';
 import { t } from '@/core/i18n/messages';
 import type { SalesResult } from '../server/salesActions';
@@ -98,6 +99,38 @@ export function StatusFilter({ value }: { value: string | undefined }) {
   );
 }
 
+/** Confirm, then run one write (deactivate / unassign); a refusal stays in the dialog as a plain sentence. `children` = extra fields; `check` refuses in the browser. */
+export function ConfirmWrite({ title, body, confirm, onClose, onDone, act, check, children }: {
+  title: string; body: string; confirm: string; onClose: () => void; onDone: () => void;
+  act: () => Promise<SalesResult>; check?: () => boolean; children?: ReactNode;
+}) {
+  const [text, setText] = useState<string>();
+  const [busy, setBusy] = useState(false);
+  const once = useOnce();
+  const go = () => once(async () => {
+    if (check && !check()) return;
+    setBusy(true);
+    setText(undefined);
+    try {
+      const r = await act();
+      if (r.ok) return onDone();
+      setText(failure(r, []).text);
+    } finally {
+      setBusy(false);
+    }
+  });
+  return (
+    <Dialog title={title} isOpen onClose={onClose} size="sm"
+      footer={<><Button variant="ghost" onPress={onClose}>{t('partners.sales.cancel')}</Button><Button variant="danger" isLoading={busy} onPress={() => void go()}>{confirm}</Button></>}>
+      <div className="lims-stack">
+        <p className="lims-description">{body}</p>
+        {children}
+        <Alert text={text} />
+      </div>
+    </Dialog>
+  );
+}
+
 export type Col<R> = ColumnDef<R>;
 /** The kit DataTable (compact, cut off cells titled) with the LD-336 empty and failed states. The wrapper carries `sales-empty-state` while the
  * body shows the EmptyState, so the empty table can be told apart from a loaded one without reading the text. */
@@ -112,10 +145,12 @@ export function SalesTable<R>({ caption, columns, rows, getRowId, empty, failed,
   nextCursor?: string | undefined;
 }) {
   const url = useUrl();
+  // a trailing space ends every cell so a row reads as words ("1 Synthetic Regional Head Yes"), also for copy and screen readers; text cells keep their title
+  const spaced = columns.map((c) => ({ ...c, cell: (r: R) => { const v = c.cell(r); return typeof v === 'string' || typeof v === 'number' ? `${v} ` : <>{v}{' '}</>; } }));
   return (
     <div className={!failed && rows.length === 0 ? 'sales-empty-state' : undefined} {...(failed ? { role: 'alert' } : {})}>
       <DataTable<R>
-        caption={caption} columns={columns} rows={rows} getRowId={getRowId} density="compact" cellTitle emptyState={empty}
+        caption={caption} columns={spaced} rows={rows} getRowId={getRowId} density="compact" cellTitle emptyState={empty}
         {...(failed ? { error: { title: failed, onRetry: url.refresh } } : {})}
         {...(nextCursor || url.cursor ? { page: { hasNext: !!nextCursor, hasPrevious: !!url.cursor, onNext: () => url.go({ cursor: nextCursor }, true), onPrevious: url.back, limit: 100 } } : {})}
       />

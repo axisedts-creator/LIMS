@@ -6,7 +6,7 @@ import 'server-only';
 import { ApiError } from '@/core/api/server-fetch';
 import type { HandoverDetail, PhlebotomistOption, ScheduleBody, SettingsBody } from '../types';
 import { getHandover, listPhlebotomists } from './read.server';
-import { assignVisit, cancelVisit, confirmHandover, createRevisit, resequenceRoute, resolveFlag, revealPhone, reviewCollection, saveSettings, scheduleVisit, unassignVisit, wipeDevice } from './write.server';
+import { assignVisit, cancelVisit, confirmHandover, createRevisit, resequenceRoute, resolveFlag, revealPhone, reviewCollection, saveSettings, scheduleVisit, unassignVisit, updateCollectorFlags, wipeDevice } from './write.server';
 
 export type ActionResult =
   | { ok: true; status?: string; version?: number; id?: string }
@@ -75,6 +75,10 @@ export async function confirmHandoverAction(id: string, version: number, items: 
 /** H17 requestDeviceWipe. */
 export async function wipeDeviceAction(id: string, version: number, reasonCode: string, reasonText: string | undefined, key: string): Promise<ActionResult> {
   return run(() => wipeDevice(id, version, reasonCode, reasonText, key));
+}
+/** T0D-SALES-1 (LD-321) updateCollectorFlags: the Collector settings dialog (only the changed boxes). */
+export async function updateCollectorFlagsAction(membershipId: string, flags: { allow_collection?: boolean; allow_pickup?: boolean }): Promise<ActionResult> {
+  return run(async () => { await updateCollectorFlags(membershipId, flags); return undefined; });
 }
 /** H19 updateHomecollectionSettings. */
 export async function saveSettingsAction(version: number, body: SettingsBody): Promise<ActionResult> {

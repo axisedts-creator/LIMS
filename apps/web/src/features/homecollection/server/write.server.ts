@@ -148,7 +148,21 @@ export function wipeDevice(id: string, version: number, reasonCode: string, reas
   });
 }
 
-const PAYMENT_CODES = ['cash', 'card', 'esewa', 'khalti', 'fonepay_qr', 'bank_transfer'];
+/** T0D-SALES-1 (LD-321) updateCollectorFlags: only the flags sent change; no If-Match and no Idempotency-Key (x-idempotency none: two booleans, last write wins). */
+export function updateCollectorFlags(membershipId: string, flags: { allow_collection?: boolean; allow_pickup?: boolean }) {
+  if (!UUID.test(membershipId)) throw bad();
+  const body: Record<string, boolean> = {};
+  for (const k of ['allow_collection', 'allow_pickup'] as const) {
+    const v = flags[k];
+    if (v === undefined) continue;
+    if (typeof v !== 'boolean') throw bad();
+    body[k] = v;
+  }
+  if (Object.keys(body).length === 0) throw bad();
+  return serverFetch<Out>(`/v1/homecollection/phlebotomists/${membershipId}`, { method: 'PATCH', headers: json, body: JSON.stringify(body) });
+}
+
+const PAYMENT_CODES =['cash', 'card', 'esewa', 'khalti', 'fonepay_qr', 'bank_transfer'];
 const SEMVER = /^\d{1,6}\.\d{1,6}\.\d{1,6}$/;
 const RANGES: Record<string, readonly [number, number]> = {
   sync_interval_seconds: [60, 900], offline_purge_hours: [4, 24], gps_retention_days: [7, 365], handover_overdue_hours: [1, 24], max_visits_per_route: [1, 60], clock_tolerance_seconds: [60, 3600],

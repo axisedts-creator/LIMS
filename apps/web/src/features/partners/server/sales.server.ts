@@ -6,7 +6,6 @@ import { t } from '@/core/i18n/messages';
 import { problem } from '@/core/session/types';
 import { UUID_RE, type Page } from './types';
 
-export const SALES = '/v1/partners/admin/sales';
 export type PartyKind = 'credit_party' | 'partner' | 'doctor' | 'referrer';
 export const PARTY_KINDS: readonly PartyKind[] = ['credit_party', 'partner', 'doctor', 'referrer'];
 
@@ -43,15 +42,15 @@ const qs = (q: ListQuery, limit: number, extra: Record<string, string> = {}) => 
 };
 
 // Lists are paged at 100 rows (Next follows page.next_cursor); the picker reads ask one page of 200 (the API maximum).
-export const listSalesDesignations = (q: ListQuery = {}, limit = 100) => serverFetch<Page<SalesDesignation>>(`${SALES}/designations${qs(q, limit)}`);
-export const listSalesRepresentatives = (q: ListQuery = {}, limit = 100) => serverFetch<Page<SalesRepresentative>>(`${SALES}/representatives${qs(q, limit)}`);
+export const listSalesDesignations = (q: ListQuery = {}, limit = 100) => serverFetch<Page<SalesDesignation>>(`/v1/partners/admin/sales/designations${qs(q, limit)}`);
+export const listSalesRepresentatives = (q: ListQuery = {}, limit = 100) => serverFetch<Page<SalesRepresentative>>(`/v1/partners/admin/sales/representatives${qs(q, limit)}`);
 /** Depth-first, every manager before its reports; inactive nodes included so the tree and the manager picker see the whole team.
  * ponytail: one page of 200 nodes; a tenant with more representatives needs paging here (next_cursor). */
-export const getSalesTree = () => serverFetch<Page<SalesTreeNode>>(`${SALES}/tree?include_inactive=true&limit=200`);
-export const listServiceAreas = (q: ListQuery = {}) => serverFetch<Page<ServiceArea>>(`${SALES}/service-areas${qs(q, 100)}`);
+export const getSalesTree = () => serverFetch<Page<SalesTreeNode>>(`/v1/partners/admin/sales/tree?include_inactive=true&limit=200`);
+export const listServiceAreas = (q: ListQuery = {}) => serverFetch<Page<ServiceArea>>(`/v1/partners/admin/sales/service-areas${qs(q, 100)}`);
 export function listRepresentativeClients(representativeId: string, partyKind?: PartyKind) {
   if (!isUuid(representativeId)) throw bad();
-  return serverFetch<Page<RepresentativeClient>>(`${SALES}/representatives/${representativeId}/clients${qs({}, 200, partyKind && isKind(partyKind) ? { party_kind: partyKind } : {})}`);
+  return serverFetch<Page<RepresentativeClient>>(`/v1/partners/admin/sales/representatives/${representativeId}/clients${qs({}, 200, partyKind && isKind(partyKind) ? { party_kind: partyKind } : {})}`);
 }
 
 type Named = { id: string; centre_id?: string; name?: string; display_name?: string; is_active?: boolean; status?: string };

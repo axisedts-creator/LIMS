@@ -81,7 +81,7 @@ export function SalesDesignations({ rows, failed, nextCursor, isActive, permissi
 
   const columns: Col<SalesDesignation>[] = [
     { id: 'level', header: t('partners.sales.col.level'), numeric: true, cell: (d) => String(d.level) },
-    { id: 'name', header: t('partners.sales.col.name'), cell: (d) => d.name },
+    { id: 'name', header: t('partners.sales.col.name'), isRowHeader: true, cell: (d) => d.name },
     { id: 'active', header: t('partners.sales.col.active'), cell: (d) => yesNo(d.is_active) },
     {
       id: 'actions', header: t('partners.sales.col.actions'),

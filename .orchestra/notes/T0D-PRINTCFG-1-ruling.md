@@ -1,3 +1,11 @@
+TESTS_WRONG — rs-c6.screens "worklist 1" snapshot still lacks `button Ready to release`; implementation correct. The WRITER (not tester) must make the one-line .snap edit.
+1. Confirmed on disk 2026-11-20: rs-c6.screens.test.tsx.snap:72 `button Search` is followed directly by `button Select an item`; no `button Ready to release` line in worklist 1.
+2. Live render emits it: ReportsWorklist.tsx:19 TAB_LABEL ready_to_release (T0D-UILIST-1 FilterBar, LD-353 template 1, inbox :33). No spec line requires the pre-LD-353 markup (brief gates inbox :20-21).
+3. Root cause of every failed round: .orchestra/run.ps1:61 TestExempt matches `__tests__/__snapshots__/rs-c[0-9]+\..*\.snap`, so run.ps1:163-170 treats this file as non-test: Enforce REVERTS any tester edit and ALLOWS writer/debugger edits. Tester commit df4a425c3 holding only notes is the expected result, not a bug (LD-430).
+4. WRITER, only change: in apps/web/src/features/reporting/__tests__/__snapshots__/rs-c6.screens.test.tsx.snap, insert exactly one line `button Ready to release` after line 72 (`button Search`), before line 73. Commit it; confirm `git show --stat HEAD` lists the .snap; run rs-c6 (expect 60/60).
+5. TESTER: no action. DEBUGGER: no code change. Do not re-dispute; the dispute's "new info" (tester commit lacks .snap) is fully explained by item 3.
+
+--- previous rulings (history) ---
 TESTS_WRONG — rs-c6.screens "worklist 1" snapshot still lacks `button Ready to release`; implementation is correct, no code change.
 1. Dispute (.orchestra/notes/T0D-PRINTCFG-1-dispute.md:2-4) confirmed on disk 2026-11-20: rs-c6.screens.test.tsx.snap:72-73 still read `button Search` then `button Select an item`.
 2. The live render emits the line: ReportsWorklist.tsx:19 TAB_LABEL ready_to_release = 'Ready to release' (FilterBar Status select trigger, T0D-UILIST-1 / LD-353 template 1 "FilterBar in one row", inbox :33). Not in this task's files (inbox :15).

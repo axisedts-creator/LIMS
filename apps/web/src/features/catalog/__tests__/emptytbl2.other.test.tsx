@@ -114,12 +114,11 @@ describe('lab WorksheetListPage (empty)', () => {
     expect(container.querySelector('.lims-row-placeholder')).toBeNull();
     expect(screen.queryByText(/No worksheets/)).toBeNull();
   });
-  it('after a failure: the error with Retry, not an empty table', async () => {
+  it('after a failure: the error with Retry inside the table, no empty message', async () => {
     m.listWorksheetsAction.mockResolvedValue({ ok: false, status: 500, code: 'common.internal', requestId: 'req-synthetic' });
-    const { container } = render(<WorksheetListPage />);
+    render(<WorksheetListPage />);
     await waitFor(() => expect(screen.getByRole('button', { name: /retry/i })).toBeTruthy());
     expect(screen.queryByText(/No worksheets/)).toBeNull();
-    expect(container.querySelector('.lims-row-placeholder')).toBeNull();
   });
   it('with a worksheet: the row links to the print view and there are no placeholder rows', async () => {
     m.listWorksheetsAction.mockResolvedValue({ ok: true, data: { data: [{ id: 'w1', title: 'Morning run', created_at: '2026-11-17T01:00:00.000Z', row_count: 12 }], page: {} } });

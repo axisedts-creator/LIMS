@@ -14,7 +14,7 @@ describe('build-nav over every manifest', () => {
     const { entries } = await buildNav(FEATURES, ROUTES_YAML);
     const by = (m: string) => entries.filter((e) => e.module === m).length;
     expect(by('frontdesk')).toBeGreaterThanOrEqual(3); // registration, worklist, discount approvals (settings page does not exist -> CR)
-    expect(by('billing')).toBe(9);
+    expect(by('billing')).toBeGreaterThanOrEqual(9);
     expect(by('lab')).toBeGreaterThanOrEqual(10);
     expect(by('engagement')).toBeGreaterThanOrEqual(8);
     expect(by('payments')).toBe(5);

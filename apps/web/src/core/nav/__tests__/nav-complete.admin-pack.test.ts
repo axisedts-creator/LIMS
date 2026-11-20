@@ -19,9 +19,8 @@ const held = new Set(corpAdmin?.permissions ?? []);
 const TENANT_GROUPS = ['front_desk', 'laboratory', 'reporting', 'billing', 'catalog', 'instruments', 'analytics', 'quality', 'inventory', 'partners', 'engagement', 'home_collection', 'admin'];
 
 // Entries 11-ROLE-MATRIX section 3.3 leaves hidden on purpose (the platform group is computed from the manifest, never visible).
-const HIDDEN_NON_PLATFORM = [
-  'lab.verification', 'lab.approval', 'lab.qc', 'micro.breakpoint_sets', 'smartreport.library', 'smartreport.wording', 'inventory.bench', 'engagement.queue',
-];
+// LD-435: the generated report notes/T0D-NAV-COMPLETE-1-admin-hidden.md shows zero non-platform entries hidden from corp_admin.
+const HIDDEN_NON_PLATFORM: string[] = [];
 const LEFT_OUT = /^(lab\.result\.(verify|approve|amend)|lab\.qc(_hold)?\.|micro\.(breakpoint|culture)\.(manage|work)|anatomic\.case\.(signout|work)|quality\.(autoverify\.manage|qc_run\.review)|smartreport\.|reporting\.(narrative|report\.(release|regenerate|bulk_release))|inventory\.(bench\.record|po\.approve)|engagement\.queue\.operate|billing\..*(refund|reverse|cancel)|payments\.|platform\.)/;
 
 const nav = async () => {

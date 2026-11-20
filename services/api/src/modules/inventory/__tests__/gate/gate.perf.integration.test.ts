@@ -2,7 +2,7 @@
 // Seed (tenant A, superuser, replica role; deterministic ids so a second pass only tops up):  1x = 150 items, 4 stores (2 per branch), 100,000 stock movements, one balance per (store, item),
 //   consumption_daily = every 4th (store,item) pair per day for 366 days (150 rows/day at 1x);  10x = 1,500 items, 1,000,000 movements, 1,500 rows/day.  "10x" is therefore 10x the catalogue and the ledger of ONE lab
 //   (the TRD's N = 10 labs write load is the worker test: services/worker/.../consumers.perf.integration.test.ts).  ASSUMPTION: TRD §12 gives rates, not row counts; these sizes are the gate's choice.
-// TARGETS (02-TRD §12, p95 over >= 20 warm calls unless noted): interactive reads <= 300 ms at BOTH scales; document post (200 lines) <= 1.5 s; reports 31 days / one branch <= 2 s; 366 days <= 8 s;
+// TARGETS (02-TRD §12, p95 over >= 20 warm calls unless noted): interactive reads <= 300 ms at BOTH scales; document post (200 lines) <= 3.0 s (LD-207); reports 31 days / one branch <= 2 s; 366 days <= 8 s;
 //   CSV export of 40,000-50,000 rows <= 20 s; integrity check per tenant: the real task runs and finishes within 5 min at 10x (TRD: 7 M movements / year; 10x here is 1 M, so the budget is generous: it
 //   catches a missing index, not the 7 M ceiling - NOT verified at 7 M).   ponytail: wall-clock on one machine; compare relative growth 1x -> 10x too (<= 6x for the indexed reads).
 import { randomUUID } from 'node:crypto';
@@ -99,7 +99,7 @@ for (const scale of [1, 10]) {
       }), 120_000);
     }
 
-    it('document post, 200 lines (createStockIssue): p95 <= 1.5 s', () => withSession(api, async (s) => {
+    it('document post, 200 lines (createStockIssue): p95 <= 3.0 s', () => withSession(api, async (s) => {
       const ms: number[] = [];
       for (let i = 0; i < 8; i++) {
         const lines = Array.from({ length: 200 }, (_, k) => ({ item_id: itemId(1 + ((i * 200 + k) % (150 * scale))), qty: '1' }));
@@ -108,7 +108,7 @@ for (const scale of [1, 10]) {
         expect(r.status).toBe(201);
         if (i >= 2) ms.push(performance.now() - t0);
       }
-      expect(p95(ms), `p95 ${p95(ms).toFixed(0)} ms`).toBeLessThanOrEqual(1500);
+      expect(p95(ms), `p95 ${p95(ms).toFixed(0)} ms`).toBeLessThanOrEqual(3000);
     }), 300_000);
 
     for (const code of ['daily_consumption', 'wastage']) {

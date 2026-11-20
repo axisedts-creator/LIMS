@@ -1,3 +1,13 @@
+TESTS_WRONG — the 7 red lab guards (lab-t11, rs-c5 static/screens, adminpage-lab-1 static/worklists) pin main-landed lab work; OFFLINE-3 touches no lab or contracts file. Apply LEAD ITEM LD-432 (bottom of this file) verbatim: TESTER items 1-6, WRITER item 7.
+Reasons (arbiter, 2026-11-20, dispute of 07:15):
+1. `git diff main...HEAD -- apps/web/src/features/lab "apps/web/src/app/(staff)/lab" contracts` is empty (rechecked); OFFLINE-3 done_when (1)-(6) name no lab guard subject.
+2. Dispute items 2,3,5,6 are frozen-baseline drift (family of LD-391..431): LD-432 items 2-5 fix them. Dispute 7 = LD-432 item 6 (exact-text matcher). Dispute 4 = LD-432 item 7 (writer-owned rs-cN snap, LD-430).
+3. Dispute 1 is a real spec point: spec/chunks/C0-foundation-contracts/07-SECURITY.md:65 (REQ-SEC-088) and spec/program/02-CONVENTIONS.md:81,1038 forbid dangerouslySetInnerHTML with non-constant input; LabelPage.tsx:160 injects renderer output `html`. LD-432 item 1 only removes lab-t11's duplicate check (lab-t10.static.test.ts:62 still pins at most 2 uses); it does NOT clear REQ-SEC-088.
+FLAG (non-blocking for OFFLINE-3; owner = PRINTCFG-1/label renderer): show `html` is escaped/sanitised (DOMPurify, 02-CONVENTIONS.md:1038) and add an XSS payload test (07-SECURITY.md:65).
+Commit the changed test, baseline and .snap files themselves (check `git show --stat`), not only notes. WRITER otherwise: no code change.
+
+---- prior arbiter ruling (superseded by the above) ----
+
 TESTS_WRONG — rs-c4.screens.test.tsx "Daily cash (open shift) 1" pinned pre-UIDASH-1 markup; the fix is ALREADY COMMITTED in d78f3e4b2 (debugger round 19, per LD-430). No further test or code change.
 Reasons (arbiter, 2026-11-20, dispute of 06:22 "snap lost before commit"):
 1. Dispute (commit 300a78830, 06:22) predates d78f3e4b2 (06:28), whose `git show --stat` includes __snapshots__/rs-c4.screens.test.tsx.snap (+72/-4). Writer's "last commit is a96e6abff" is now stale.
@@ -486,3 +496,60 @@ itself.
 TESTER: make this one edit now, as your own test file change, and commit it. This file is an
 ordinary test file, not a TestExempt snapshot, so this is normal tester owned work.
 WRITER: nothing for you to do here.
+
+=== LEAD ITEM, LD-432 (2026-11-20) ===
+Round 21 pulled in SEVEN failures, all outside OFFLINE-3 own files
+(confirmed: git diff main HEAD for features/lab, app/(staff)/lab and
+contracts is empty). Same family as every earlier LD-391 through LD-431
+entry, now hitting the lab area instead of frontdesk.
+
+TESTER, five items:
+
+1. lab-t11.static.test.ts: own() currently walks the whole of features/lab.
+Narrow it to exclude the labels component directory (components/labels),
+so it stops catching LabelPage.tsx, which lab-t10.static.test.ts already
+and deliberately allows up to two dangerouslySetInnerHTML uses in (print
+region plus style, see that test own comment). Keep own() covering
+everything else it covers today (the collect and receive scan screens and
+their app route files); only the labels directory is excluded.
+
+2. rs-c5.static.test.ts, test features/lab/server/** is byte identical to
+the pre-restyle baseline: regenerate rs-c5.baseline.json server field from
+the current tree (sha256 of each file under features/lab/server, text
+read with CRLF normalised to LF first, same as the test itself does).
+
+3. rs-c5.static.test.ts, test the set of (staff)/lab page routes is
+unchanged: regenerate rs-c5.baseline.json routes field: the sorted list of
+every page.tsx path under app/(staff)/lab exactly as the test lists them
+today (18 now, baseline currently says 16).
+
+4. adminpage-lab-1.static.test.ts, test only those two rows were added to
+routes.yaml: change the second expectation from requiring the new id list
+to equal exactly staff.lab.critical_values and staff.lab.worklists, to
+requiring only that both of those two ids are present among the new ids
+(a contains check, not an equals check); keep the first expectation
+(nothing present at BASE was removed) exactly as it is.
+
+5. adminpage-lab-1.static.test.ts, test permissions.yaml and openapi are
+byte identical to the tree before this task: change the git diff call from
+comparing against the frozen BASE constant to comparing against main, so
+the check reads as whether this task itself touched those paths, not
+whether anyone has touched them since BASE.
+
+6. adminpage-lab-1.worklists.test.tsx, the department link text lookup
+(around the every department is one link test): replace the getByText
+call that passes the department code string with exact:false with a text
+matcher function that returns true only when the element own trimmed text
+content equals the department code exactly; this stops HAEM from loosely
+matching inside the Haematology department name in the same container.
+
+WRITER, one item:
+
+7. rs-c5.screens.test.tsx.snap: regenerate only the worklist, table with
+the right panel open on the first sample snapshot entry; everything else
+in that file stays as is. This is the same rs-cN snap exemption as the
+rs-c4 and rs-c6 fixes of LD-430.
+
+Both roles: do nothing else on this task beyond your item(s) above; the
+rest of OFFLINE-3 is otherwise green (88/88 plus the other configs listed
+in the writer own 07:15 note).

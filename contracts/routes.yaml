@@ -182,6 +182,10 @@ routes:
   - { id: staff.partners.pickups, origin: staff_web, path: /partners/pickups, owner: C13, permission: partners.pickup.manage }
   - { id: staff.partners.referrers, origin: staff_web, path: /partners/referrers, owner: C13, permission: partners.referrer.map }
   - { id: staff.partners.settings, origin: staff_web, path: /partners/settings, owner: C13, permission: partners.partner.manage }
+  - { id: staff.partners.sales_designations, origin: staff_web, path: /partners/sales/designations, owner: C13, permission: partners.sales.read }   # T0D-SALES-1 (LD-321)
+  - { id: staff.partners.sales_representatives, origin: staff_web, path: /partners/sales/representatives, owner: C13, permission: partners.sales.read }
+  - { id: staff.partners.sales_clients, origin: staff_web, path: /partners/sales/clients, owner: C13, permission: partners.sales.read }
+  - { id: staff.partners.sales_areas, origin: staff_web, path: /partners/sales/areas, owner: C13, permission: partners.sales.read }
   # --- CR-C15-007
   - { id: staff.payments.review, origin: staff_web, path: /payments/review, owner: C15, permission: payments.reconciliation.read }
   - { id: staff.payments.intent, origin: staff_web, path: "/payments/intents/{intent_id}", owner: C15, permission: payments.reconciliation.read }

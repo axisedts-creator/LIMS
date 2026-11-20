@@ -1,0 +1,7 @@
+# T0D-SALES-1 dispute (writer): TESTS_WRONG — sales1.harness.tsx:136 can never find a page file
+
+- `import.meta.glob('../../../app/(staff)/partners/sales/*/page.tsx')` — vite/tinyglobby reads `(staff)` as a glob group (matches `staff`, not the literal folder `(staff)`), so PAGES is always `{}` and `openSales` throws "missing page file" even when the page exists.
+- Proof (scratch vitest run in apps/web, file deleted after): `app/(staff)/partners/sales/designations/page.tsx` exists; unescaped pattern -> `[]`; also `../../../app/(staff)/partners/*/page.tsx` -> `[]`; escaped `'../../../app/\\(staff\\)/partners/sales/*/page.tsx'` -> `['../../../app/(staff)/partners/sales/designations/page.tsx']` (key comes back with the literal parens, so line 145's lookup works unchanged).
+- Effect: every screen and clients test (all that call openSales) fails whatever the implementation; no source-side workaround exists (the glob runs in the tester file).
+- Fix: line 136 -> `import.meta.glob('../../../app/\\(staff\\)/partners/sales/*/page.tsx')`. Nothing else needs to change.
+- Writer state: server reads/actions (features/partners/server/sales.server.ts, salesActions.ts), SalesCommon + SalesDesignations components, designations page, routes.yaml rows, nav entries (+ regenerated core/nav/generated.ts), catalogue keys are in the working tree, uncommitted; representatives, clients, areas, collector dialog, walk note still to do after the ruling.

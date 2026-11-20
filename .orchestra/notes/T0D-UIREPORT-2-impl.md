@@ -6,4 +6,4 @@ Files: analytics/components/{ReportView.tsx, MisReportView.tsx, report-types.ts}
 - Bill of the Day: one `.lims-period`, one FilterBar (wrapper is `lims-period-custom`), tiles "—", two empty chart cards (no read op, CR open).
 - Kept: income ">31 groups" note (now on the hero card), interfaces "Agents by state" card (an-t19 pins it).
 - Collections (ruling 14:01): main read first, then one getCollectionsReport read with group_by=day (same params) for the hero line; group_by=day reuses the main body; failure = No data yet [CONV].
-Open: rs-c8.static red only — tester must re-pin report-page.tsx and report-views.ts hashes in rs-c8.baseline.json to these final bytes (ruling item 2). All other verify.cmd suites green; tsc clean for analytics/server. CRs: TAT by department, interfaces per day, MIS read. Pending tests and quality untouched.
+Open: none for tests — after tester re-pin (4b2b387d1) every verify.cmd suite is green (2026-11-20, rs-c8.static 10/10, uireport2 78 pass + 8 tester skips); tsc clean for analytics/server. CRs: TAT by department, interfaces per day, MIS read. Pending tests and quality untouched.

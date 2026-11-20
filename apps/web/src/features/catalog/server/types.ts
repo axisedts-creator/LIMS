@@ -14,7 +14,7 @@ export type ResultType = 'numeric' | 'ordinal' | 'coded' | 'text' | 'narrative';
 
 export interface FieldError { path?: string; code?: string; message: string }
 /** Server-action result: ApiError cannot cross the action boundary (Next strips messages), so the code travels as data. */
-export type ActionResult<T> = { ok: true; data: T } | { ok: false; status: number; code: string; errors?: FieldError[] };
+export type ActionResult<T> = { ok: true; data: T } | { ok: false; status: number; code: string; errors?: FieldError[]; detail?: string };
 
 export interface TestDto {
   id: string; code: string; name: string; department_id: string; workflow_type: string;
@@ -150,7 +150,7 @@ export type PriceOwnerKind = 'default' | 'credit_party' | 'referrer' | 'centre';
 export interface Money { amount_paisa: number; currency: 'NPR' }
 export interface PriceListVersionRef { id: string; version_no: number; effective_from: string }
 export interface PriceList {
-  id: string; code: string; name: string; owner_kind: PriceOwnerKind; falls_through: boolean; assignments: { owner_id: string }[];
+  id: string; code: string; name: string; owner_kind: PriceOwnerKind; falls_through: boolean; assignments: { owner_id: string; effective_from?: string; effective_to?: string }[];
   current_version?: PriceListVersionRef; scheduled_version?: PriceListVersionRef; draft_version_id?: string; is_active: boolean; version: number;
 }
 export interface PriceListVersion {

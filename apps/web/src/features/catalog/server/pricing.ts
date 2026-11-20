@@ -57,7 +57,8 @@ export const updatePriceList = updateOf<PriceList>('price-lists', { name: str(1,
 export const replacePriceListAssignments = async (id: string, version: number, input: unknown) => {
   uuid(id);
   const h = match(version);
-  return send<PriceList>(`price-lists/${id}/assignments`, 'PUT', pick(input, { owner_ids: list(500, uuid) }, ['owner_ids']), h);
+  // T0D-PRICETOOLS-1 (LD-321): the optional period applies to every owner of the call; absent = the old body (server defaults).
+  return send<PriceList>(`price-lists/${id}/assignments`, 'PUT', pick(input, { owner_ids: list(500, uuid), effective_from: iso, effective_to: iso }, ['owner_ids']), h);
 };
 
 // ---- versions + items (SCR-14)

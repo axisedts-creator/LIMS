@@ -1,0 +1,4 @@
+# T0D-PRINTCFG-1 dispute (writer, 2026-11-20)
+TESTS_WRONG (unchanged item): apps/web/src/features/reporting/__tests__/__snapshots__/rs-c6.screens.test.tsx.snap "worklist 1" lacks the line `button Ready to release` (between `button Search` and `button Select an item`). rs-c6 59/60; that snapshot is the only failure.
+Evidence: `git show --stat df4a425c3` ([tester] T0D-PRINTCFG-1 tests revised per ruling) lists only .orchestra/notes files; `git log -- <snap>` last commit is 2e2dd94ab; grep for "button Ready to release" in the snap = no match. Working tree was clean at start, so this time it is not a discarded uncommitted edit: the tester commit never included the .snap, even with the LD-428 run.ps1 fix in place.
+Per LD-428: new information, request a fresh debug round on the tester flow (why the .snap edit is not made or staged). Writer made no code change; all other verify suites green (printcfg1 72, c6-t31 200, bl-t20 54, acct1 194, acct2 268, bl-t23 25, rs-c2 74).

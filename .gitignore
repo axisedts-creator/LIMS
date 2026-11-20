@@ -24,3 +24,5 @@ Claude outputs/
 .tmp/
 *.tmp
 test-results/
+
+.next/

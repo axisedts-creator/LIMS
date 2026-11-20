@@ -6,3 +6,9 @@ Exceptions pre-registered (tester): /admin/* R1 (pinned Frame), registration for
 State now: 8 red (R1 5 pages, R2 65, R3 21, R4 7, R5 12, R6 9, 2 notes files missing), detectors + plumbing green. Offending files, not pages: R1 5 pages, R2 ~25 files (master-ui, PartysetCommon, LjView, RulesView, billing screens...), R3 catalog.css, R4 7 pages (enquiries, memberships, reminders, orders, patients, offline), R5 11 files, R6 5 files (ReportView:109, ReportBody, ResultPanels, autoverify ReportView, SummaryReview).
 RISK FOR LEAD: ~50 files break rules today, the brief caps the task at 12 files. Tests are NOT loosened; if a legacy baseline is wanted, rule it (LD) and the tester adds dated entries. Judgement calls: R4 accepts an error.tsx with ErrorState (title kept is not checked); R2 counts shared components (a hand built row in PartysetCommon fails every page importing it).
 Not tested: rendering with fake data (static walk only, as the brief says), pinned-page edits (rs-c2.static does that).
+
+## Update LD-434 (CR-C0-0D-UIGUARD-1, option A) - tester
+REAL regex now also accepts `legacy baseline LD-434, fix in T0D-UIGUARD-1-<FEATURE>` and `owned by T0D-<id>`. Rules R1-R6 and the stale-entry test are unchanged.
+uiguard1.exceptions.ts: +/admin/* rule 2 (pinned) and 115 per-route legacy entries via `legacy(FEATURE, rule, files, routes)`, grouped CATALOG BILLING PARTNERS LAB QUALITY SMARTREPORT ENGAGEMENT FRONTDESK HOMECOLLECTION INVENTORY INSTRUMENTS ANALYTICS OFFLINE. No `owned by` entry: no open task owns an offender.
+State: 23 green, 2 red = writer's notes/T0D-UIGUARD-1-screens.md and -exceptions.md (missing). Exceptions.md needs one line per registry entry: route + "rule N".
+WRITER NOTE: when you fix a file (catalog.css R3, R6 charts, R4 pages) its entries go stale and fail the guard; tell the tester which entries to delete (tester owns the registry), do not edit it.

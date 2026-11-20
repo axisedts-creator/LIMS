@@ -69,8 +69,8 @@ describe('uiguard1: the exceptions list is honest', () => {
     expect(bad.map((e) => `${e.route} rule ${e.rule}`)).toEqual([]);
   });
 
-  it('only a real obstacle may be excepted: pinned admin/platform page, entry form, QueueBoard display, print stationery or a pending catch-all', () => {
-    const REAL = /pinned|rs-c2\.static|registration entry form|QueueBoard|print stationery|label sheet|catch-all/i;
+  it('only a real obstacle may be excepted: pinned admin/platform page, entry form, QueueBoard display, print stationery, a pending catch-all, a dated legacy baseline (LD-434) or a file owned by an open T0D task', () => {
+    const REAL = /pinned|rs-c2\.static|registration entry form|QueueBoard|print stationery|label sheet|catch-all|legacy baseline LD-434, fix in T0D-UIGUARD-1-[A-Z]+|owned by T0D-[A-Z0-9-]+/i;
     const bad = EXCEPTIONS.filter((e) => !REAL.test(e.reason));
     expect(bad.map((e) => `${e.route} rule ${e.rule}: ${e.reason}`)).toEqual([]);
   });

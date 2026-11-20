@@ -9,6 +9,8 @@ import { createPrefetcher, DEFAULT_CACHE_CAP_BYTES, type Prefetcher } from './pr
 import { OfflineError, openOfflineStore, type OfflineStore, type StoreState, type UnlockResult } from './store';
 import { createOfflineFlows, type OfflineFlows } from './flows';
 import { createNumbers, type BlockSeries, type Numbers } from './numbers';
+import { createLabFlows } from './labflows';
+import { createCashFlows } from './cashflows';
 
 export const DISCARD_OP_TYPE = 'sync.discard';
 export const MAX_REASON = 1000;
@@ -177,7 +179,9 @@ export async function startLiveOffline(o: { userId: string; permissions: readonl
       const engine = createSyncEngine({ outbox, deviceId, baseUrl, onSyncing: (b) => c.setSyncing(b) });
       const prefetcher = createPrefetcher({ store, deviceId, baseUrl, permissions: o.permissions, isOnline: () => c.state() === 'online', isIdle: () => Date.now() - lastInput > IDLE_MS });
       const numbers = createNumbers({ store, deviceId, baseUrl });
-      const flows = createOfflineFlows({ store, outbox, prefetcher, numbers, deviceId, permissions: o.permissions });
+      // T0D-OFFLINE-4 (LD-322): one flows object for the screens: part 1 flows, result entry / sign-off / print marker, daily cash close
+      const flows = Object.assign(createOfflineFlows({ store, outbox, prefetcher, numbers, deviceId, permissions: o.permissions }),
+        createLabFlows({ store, outbox, deviceId, userId: o.userId, permissions: o.permissions }), createCashFlows({ store, outbox, permissions: o.permissions }));
       await c.check();
       return { outbox, engine, prefetcher, connectivity: c, deviceId, numbers, flows };
     },

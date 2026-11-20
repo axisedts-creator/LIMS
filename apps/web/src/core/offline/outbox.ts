@@ -23,9 +23,11 @@ export interface Settlement {
 
 const hex = (n: number, w: number) => n.toString(16).padStart(w, '0');
 
-/** RFC 9562 UUIDv7 with a monotonic 12 bit counter in rand_a, so ids made in one millisecond still sort in creation order. */
+/** RFC 9562 UUIDv7 with a monotonic 12 bit counter in rand_a, so ids made in one millisecond still sort in creation order.
+ *  T0D-OFFLINE-4 (LD-322): the counter is shared by every factory of the tab, so the outboxes of two people on one shared PC (and the print marker
+ *  that follows the sign-off it relies on) still sort in creation order. */
+let lastMs = -1; let seq = 0;
 export function uuidV7Factory(now: () => number = Date.now) {
-  let lastMs = -1; let seq = 0;
   return () => {
     let ms = now();
     if (ms <= lastMs) { ms = lastMs; seq++; if (seq > 0xfff) { ms++; seq = 0; } } else seq = globalThis.crypto.getRandomValues(new Uint16Array(1))[0]! & 0x3ff;

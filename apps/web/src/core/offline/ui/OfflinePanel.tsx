@@ -243,7 +243,8 @@ export function OfflinePanel() {
       <DataTable title={t('offline.attention')} cols={cols('reason', 'action')} empty={t('offline.empty.attention')} rows={s.attention} note={<Why why={useWhy} />}
         cells={(r) => (
           <>
-            <td>{codeLabel(r.code ?? '')}</td>
+            {/* T0D-OFFLINE-4 (LD-322 decision 2): a sign-off refused at sync recalls the reports printed offline on it */}
+            <td>{r.op_type === 'result.verify' && r.code === 'sync.verification_policy_failed' ? t('offline.recall') : codeLabel(r.code ?? '')}</td>
             <td className="lims-offline-actions">
               <Gated why={useWhy} onClick={() => { void c.retry(r.op_id).catch(() => undefined); }}>{t('offline.retry')}</Gated>
               <Gated why={useWhy} onClick={() => setDiscarding(r.op_id)}>{t('offline.discard')}</Gated>

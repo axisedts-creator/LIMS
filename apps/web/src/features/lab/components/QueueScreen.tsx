@@ -20,6 +20,8 @@ import { PageHeader } from '@lims/ui/components/PageHeader';
 import { SplitConsole } from '@lims/ui/components/SplitConsole';
 import { StatTile, StatTileRow } from '@lims/ui/components/StatTile';
 import { t } from '@/core/i18n/messages';
+import { isOnline, useOfflineFlows, useOfflineSnapshot } from '@/core/offline/ui/OfflineProvider';
+import { PendingSyncBadge } from '@/core/offline/ui/OfflineParts';
 import { bulkApproveAction, bulkVerifyAction, returnResultAction } from '../server/actions';
 import type { ResultSignoff } from '../server/config.types';
 import { getResultSignoffsAction, listCodedSetAction } from '../server/config.actions';
@@ -54,17 +56,18 @@ const COPY = {
 } as const;
 /** Per-id reasons (contracts/errors.yaml titles; copy for the two approve codes is verbatim from 04-UI-UX §3.6). Raw codes are never shown. */
 const REASON: Record<string, string> = {
-  'lab.result_invalid_transition': 'This result is no longer in the right state.',
+  'lab.result_invalid_transition': t('lab.reason.lab.result_invalid_transition'),
   'lab.result_on_hold': 'This result is on hold.',
-  'lab.flag_ack_required': 'Acknowledge the flags before verifying.',
+  'lab.flag_ack_required': t('lab.reason.lab.flag_ack_required'),
   'common.version_conflict': 'This result changed since the list was loaded. Reload and try again.',
   'common.not_found': 'Result not found.',
   'lab.self_approval_forbidden': 'You verified this result. Another pathologist must approve it.',
   'lab.critical_ack_required': 'Record the critical-value notification before approving.',
-  // T0D-VERLEVEL-1 (LD-316, LD-318 follow-up 4): the three sign-off refusals
-  'lab.verifier_not_distinct': 'You already signed this result. A different person must sign it next.',
-  'lab.enterer_cannot_verify': 'You entered this result. Someone else must sign it off.',
-  'lab.pathologist_required': 'The final sign-off of this result must come from a pathologist.',
+  // T0D-VERLEVEL-1 (LD-316, LD-318 follow-up 4): the three sign-off refusals; T0D-OFFLINE-4 (LD-322): texts in the catalogue, shared with the offline checks
+  'lab.verifier_not_distinct': t('lab.reason.lab.verifier_not_distinct'),
+  'lab.enterer_cannot_verify': t('lab.reason.lab.enterer_cannot_verify'),
+  'lab.pathologist_required': t('lab.reason.lab.pathologist_required'),
+  'sync.offline_not_allowed': t('offline.refusal.sync.offline_not_allowed'),
 };
 /** next_step -> what the row waits for (lab.yaml ResultDto.next_step). */
 const NEXT: Record<string, string> = { verify: 'Needs verifier', approve: 'Needs pathologist', none: 'Ready' };
@@ -113,6 +116,11 @@ export function QueueScreen({ mode, items, permissions, onStepUp, currentUserId,
   const params = useSearchParams();
   const now = useNow();
   const canAct = permissions.includes(c.perm) && !pending;
+  // T0D-OFFLINE-4 (LD-322 decisions 2 and 3; done_when 2, 3): offline, each sign-off is checked LOCALLY against the cached policy (same reasons as online)
+  // and queued as one result.verify; the server checks again at sync. Approval (MFA step up) stays online only.
+  const flows = useOfflineFlows();
+  const snap = useOfflineSnapshot();
+  const offline = mode === 'verify' && !!flows?.verifyResult && !!snap && !isOnline(snap);
   const [selNo, setSelNo] = useState<string>();
   const [ticked, setTicked] = useState<ReadonlySet<string>>(new Set());
   const [acks, setAcks] = useState<Record<string, AckFlag[]>>({});
@@ -186,6 +194,22 @@ export function QueueScreen({ mode, items, permissions, onStepUp, currentUserId,
       version: i.result.version,
       ...(mode === 'verify' && neededFlags(i.result).length ? { acknowledged_flags: [...neededFlags(i.result)].sort() } : {}),
     }));
+    if (offline) {
+      busyRef.current = true; setBusy(true); setBanner(null);
+      const rows: ResultBulkRow[] = [];
+      try {
+        for (const b of body) {
+          const input = { result_id: b.id, ...(b.acknowledged_flags ? { acknowledged_flags: b.acknowledged_flags } : {}) };
+          const chk = await flows!.checkVerify!(b.id, input);
+          const r = chk.allowed ? await flows!.verifyResult!(input) : { ok: false as const, code: chk.code };
+          rows.push(r.ok ? { id: b.id, outcome: 'ok' } : { id: b.id, outcome: 'error', code: r.code });
+        }
+      } catch (e) {
+        rows.push(...body.slice(rows.length).map((x) => ({ id: x.id, outcome: 'error' as const, code: (e as { code?: string }).code ?? 'common.internal' })));
+      } finally { busyRef.current = false; setBusy(false); }
+      setTicked(new Set()); setAcks({}); setOutcome(rows);
+      return;
+    }
     const sig = JSON.stringify(body);
     if (job.current?.sig !== sig) {
       const chunks = Array.from({ length: Math.ceil(body.length / MAX) }, (_, k) => body.slice(k * MAX, (k + 1) * MAX));
@@ -233,7 +257,7 @@ export function QueueScreen({ mode, items, permissions, onStepUp, currentUserId,
     if (on) q.set('flagged_only', 'true'); else q.delete('flagged_only');
     router.push(q.size ? `${pathname}?${q}` : pathname);
   };
-  const close = () => { setOutcome(null); router.refresh(); };
+  const close = () => { setOutcome(null); if (!offline) router.refresh(); };
   const failed = (outcome ?? []).filter((o) => o.outcome === 'error');
   const byId = new Map(items.map((i) => [i.result.id, i]));
   const allResults = unflagged.flatMap(sendable);
@@ -327,6 +351,7 @@ export function QueueScreen({ mode, items, permissions, onStepUp, currentUserId,
                         open={openChip === r.id} onToggle={() => setOpenChip((o) => (o === r.id ? null : r.id))} />
                     ) : DASH}
                     {mine(r) ? <div>{MINE}</div> : null}
+                    <PendingSyncBadge id={r.id} />
                   </td>
                 </tr>
               );

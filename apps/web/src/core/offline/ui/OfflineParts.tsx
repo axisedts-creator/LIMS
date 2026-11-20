@@ -53,6 +53,23 @@ export function PendingSyncBadge({ status, id }: { status?: RecordStatus | null;
   return <span role="status" className={`lims-chip lims-chip-${s.state === 'pending' ? 'warn' : 'danger'}`}>{t(`offline.badge.${s.state}`)}</span>;
 }
 
+/** T0D-OFFLINE-4 (LD-322 decision 2): on a report printed offline: the watermark while pending, a recall banner when a sign-off it relied on was refused at
+ *  sync, nothing once confirmed (or never printed offline). Re-read on every controller snapshot. No provider: nothing. */
+export function ReportOfflineMarker({ reportVersionId }: { reportVersionId: string }) {
+  const flows = useOfflineFlows();
+  const tick = useOfflineSnapshot()?.now;
+  const [state, setState] = useState<string | null>(null);
+  useEffect(() => {
+    if (!flows?.reportStatus) return;
+    let gone = false;
+    flows.reportStatus(reportVersionId).then((s) => { if (!gone) setState(s.state); }, () => undefined);
+    return () => { gone = true; };
+  }, [flows, reportVersionId, tick]);
+  if (state === 'pending') return <div className="lims-offline-watermark" aria-label={t('offline.watermark')}>{t('offline.watermark')}</div>;
+  if (state === 'recall') return <div role="alert" className="lims-alert lims-alert-danger">{t('offline.recall.banner')}</div>;
+  return null;
+}
+
 export function BlockWarning({ series }: { series: BlockSeries }) {
   const flows = useOfflineFlows();
   const tick = useOfflineSnapshot()?.now;

@@ -87,7 +87,9 @@ export function createOfflineFlows(o: FlowsOptions) {
   /** pending first, then conflict, then rejected; keyed by op id and by entity id */
   async function statusMap(): Promise<Record<string, RecordStatus>> {
     const l = await lists(); const m: Record<string, RecordStatus> = {};
-    const put = (op: Operation, s: RecordStatus) => { for (const k of [op.op_id, op.entity_id]) if (k && !m[k]) m[k] = s; };
+    // T0D-OFFLINE-4 (LD-322): a result.enter has no entity id; its result ids are payload.entries[].result_id
+    const ids = (op: Operation) => (op.op_type === 'result.enter' ? ((op.payload as Any)?.entries ?? []).map((e: Any) => e?.result_id) : []);
+    const put = (op: Operation, s: RecordStatus) => { for (const k of [op.op_id, op.entity_id, ...ids(op)]) if (typeof k === 'string' && k && !m[k]) m[k] = s; };
     for (const op of l.pending) put(op, { state: 'pending' });
     for (const c of l.conflicts) put(c, { state: 'conflict', code: c.code, conflict_id: c.conflict_id });
     for (const a of l.attention) put(a, { state: 'rejected', code: a.code });

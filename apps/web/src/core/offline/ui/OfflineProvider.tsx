@@ -7,12 +7,14 @@ import { t } from '../../i18n/messages';
 import { tf } from '../chip';
 import type { OfflineController, OfflineSnapshot } from '../controller';
 import type { OfflineFlows } from '../flows';
+import type { CashFlows } from '../cashflows';
+import type { LabFlows } from '../labflows';
 import { onlineOnlyReason, type OnlineOnlyAction } from '../guards';
 
 type Ctl = Pick<OfflineController, 'getSnapshot' | 'subscribe' | 'syncNow' | 'retry' | 'discard' | 'loadConflict' | 'resolveConflict' | 'unlock' | 'setupPin' | 'changePin'> & { flows?: () => Flows | null };
 const Ctx = createContext<Ctl | null>(null);
 /** T0D-OFFLINE-3: the parts of the flows the screens use (a test hands a stand-in) */
-export type Flows = Pick<OfflineFlows, 'display' | 'statusOf'> & { numbers: Pick<OfflineFlows['numbers'], 'remaining'> } & Partial<OfflineFlows>;
+export type Flows = Pick<OfflineFlows, 'display' | 'statusOf'> & { numbers: Pick<OfflineFlows['numbers'], 'remaining'> } & Partial<OfflineFlows & LabFlows & CashFlows>; // T0D-OFFLINE-4: lab and cash adapters
 const FlowsCtx = createContext<Flows | null>(null);
 
 type Props = { controller?: Ctl | null; flows?: Flows | null; live?: { userId: string; permissions: readonly string[] }; children: ReactNode };

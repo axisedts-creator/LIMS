@@ -12,6 +12,9 @@ import { PageHeader } from '@lims/ui/components/PageHeader';
 import { RadioGroup } from '@lims/ui/components/RadioGroup';
 import { Switch } from '@lims/ui/components/Switch';
 import { useToast } from '@lims/ui/components/Toast';
+import { t } from '@/core/i18n/messages';
+import { isOnline, useOfflineFlows, useOfflineSnapshot } from '@/core/offline/ui/OfflineProvider';
+import { ReportOfflineMarker } from '@/core/offline/ui/OfflineParts';
 import { createPrintAction, getPrintAction, listCodesAction, listPrintProfilesAction, listOverrideReasonsAction, recordOverrideAction, regenerateAction, releaseVersionAction, retryRenderAction, revokeQrAction } from '../server/actions';
 import { PAPER_LABEL, type ReportDetail, type ReportItem, type VersionSummary } from '../server/types';
 import { Chip, When, errorText, formatNpr, hasPerm, humanize, newKey } from './format';
@@ -37,6 +40,9 @@ export interface ReportDetailViewProps { report: ReportDetail; permissions: read
 export function ReportDetailView({ report, permissions }: ReportDetailViewProps) {
   const router = useRouter();
   const toast = useToast();
+  const flows = useOfflineFlows();
+  const snap = useOfflineSnapshot();
+  const offline = !!flows?.printReport && !!snap && !isOnline(snap); // T0D-OFFLINE-4 (LD-322)
   const [dlg, setDlg] = useState<Dlg>(null);
   const [showDiscarded, setShowDiscarded] = useState(false);
   const [heldBalance, setHeldBalance] = useState<number | undefined | null>(null); // null = no blocked release seen in this session
@@ -122,6 +128,15 @@ export function ReportDetailView({ report, permissions }: ReportDetailViewProps)
     setBusy(true);
     setDlgError(undefined);
     try {
+      if (offline) {
+        // T0D-OFFLINE-4 (LD-322 decision 2; done_when 4): allowed only when every sign-off is accepted by the server or captured on this device;
+        // queues the report.print_marker operation and prints this page with the issued offline, pending sync marker
+        const q = await flows!.printReport!({ report_version_id: latest.id, variant: variant === 'letterhead' ? 'letterhead' : 'plain', copies });
+        if (!q.ok) { setDlgError(q.message); return; }
+        setDlg(null); toast.show({ tone: 'success', title: t('offline.saved_offline') });
+        setTimeout(() => window.print(), 0);
+        return;
+      }
       const r = await createPrintAction(latest.id, { variant: variant === 'letterhead' ? 'letterhead' : 'plain', copies }, key.current);
       if (r.ok) { rekey(); setDlg(null); setPrint(r.data); setPrintTicks(0); return; }
       setDlgError(errorText(r.code));
@@ -172,6 +187,7 @@ export function ReportDetailView({ report, permissions }: ReportDetailViewProps)
         }
       />
 
+      {latest ? <ReportOfflineMarker reportVersionId={latest.id} /> : null}
       {held ? (
         <Banner tone="warning" title={balance !== undefined ? `Held for dues — ${formatNpr(balance)} outstanding` : 'Held for dues'} {...(canOverride ? { action: { label: 'Record override', onPress: () => setDlg('override') } } : {})} />
       ) : null}

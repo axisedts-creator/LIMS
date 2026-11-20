@@ -756,6 +756,20 @@ const en: Record<string, string> = {
   'offline.online_only.message.whatsapp': 'WhatsApp needs an internet connection.',
   'offline.online_only.price_list.change': 'Price list changes need an internet connection.',
   'offline.online_only.master.change': 'Master data changes need an internet connection.',
+  // T0D-OFFLINE-4 (LD-322): the sign-off refusals, one text online (QueueScreen) and offline (core/offline/labflows.ts)
+  'lab.reason.lab.result_invalid_transition': 'This result is no longer in the right state.',
+  'lab.reason.lab.flag_ack_required': 'Acknowledge the flags before verifying.',
+  'lab.reason.lab.verifier_not_distinct': 'You already signed this result. A different person must sign it next.',
+  'lab.reason.lab.enterer_cannot_verify': 'You entered this result. Someone else must sign it off.',
+  'lab.reason.lab.pathologist_required': 'The final sign-off of this result must come from a pathologist.',
+  'offline.refusal.sync.result_locked': 'This result is already verified or has a sign-off waiting to sync. It cannot be changed here.',
+  'offline.refusal.sync.offline_not_allowed': 'The final approval needs a second identity check. Approve it again when this device is online.',
+  'offline.refusal.reporting.print_not_ready': 'Every result of this report needs its sign-offs before it can be printed offline.',
+  'offline.refusal.cash_closed': 'This cash day is already closed.',
+  'offline.refusal.cash_step_up': 'Closing the day needs a second identity check. Close it when this device is online.',
+  'offline.code.sync.verification_policy_failed': 'Sign-off refused at sync',
+  'offline.recall': 'Sign-off refused at sync: recall any report printed on this result',
+  'offline.recall.banner': 'Recall this report: a sign-off it was printed on was refused at sync. Do not hand it out; print it again after the result is signed off.',
 };
 
 export function t(key: string): string {

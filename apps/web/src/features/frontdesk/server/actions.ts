@@ -6,13 +6,14 @@ import 'server-only';
 import { ApiError } from '@/core/api/server-fetch';
 import { printInvoice } from '@/features/billing/server/write.server';
 import {
-  getDiscountApproval, getPatient, getPatientRewards, getRegistrationDraft, listCatalogOptions, listCustomFieldDefinitions, listDiscountReasons, listFavouriteTests, listIcdCodes,
+  getDiscountApproval, getMyDiscountPolicy, getPatient, getPatientRewards, getRegistrationDraft, listCatalogOptions, listCustomFieldDefinitions, listDiscountReasons, listFavouriteTests, listIcdCodes,
   listPaymentMethods, listRegistrationDrafts, previewRegistrationNumbers, searchCreditParties, searchDoctors, searchOrderables, searchPatients,
 } from './read.server';
 import {
   addFavouriteTest, approveDiscount, cancelOrder, changeOrderItems, createRegistration, createRegistrationDraft, deleteRegistrationDraft, quoteOrderItemsChange, quoteRegistration,
   recordPatientConsent, recordPayment, rejectDiscount, removeFavouriteTest, requestDiscountApproval, requestLabelPrints, resolveOrderFlag, updatePatient, uploadTrf,
 } from './write.server';
+import type { MyDiscountPolicy } from './read.server';
 import type {
   ActionResult, CodedSetEntry, Consents, CreditPartySummary, CustomFieldDefinition, DiscountApprovalIn, DoctorSummary, DraftRecord, DraftRecordSummary, IcdCode, InvoicePrintDoc,
   LabelReadiness, NumberPreview, OrderableSummary, PatientRewards, PatientSummary, Quote, RegisterBody, RegistrationDraft, RegistrationResult,
@@ -42,6 +43,8 @@ export async function requestDiscountApprovalAction(b: DiscountApprovalIn, key: 
 export async function printInvoiceAction(invoiceId: string, reasonCode: string, key: string): Promise<ActionResult<InvoicePrintDoc>> { return run(() => printInvoice(invoiceId, reasonCode, key)); }
 export async function requestLabelPrintsAction(orderId: string): Promise<ActionResult<LabelReadiness>> { return run(() => requestLabelPrints(orderId)); }
 export async function listDiscountReasonsAction(): Promise<ActionResult<CodedSetEntry[]>> { return run(() => listDiscountReasons()); }
+/** T0D-FINCTRL-1 (LD-321): requester limit, authority and tenant reasons for the discount form. */
+export async function getMyDiscountPolicyAction(): Promise<ActionResult<MyDiscountPolicy>> { return run(() => getMyDiscountPolicy()); }
 export async function getDiscountApprovalAction(id: string): Promise<ActionResult<{ id: string; status?: string; state?: string }>> { return run(() => getDiscountApproval(id)); }
 
 export async function cancelOrderAction(orderId: string, version: number, r: { reason_code: string; reason_text?: string }, key: string): Promise<ActionResult<true>> {

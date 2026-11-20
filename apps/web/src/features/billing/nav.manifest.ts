@@ -25,5 +25,10 @@ export const navManifest: NavManifest = {
     { id: 'billing.expenses', label: 'nav.billing.expenses', routeId: 'staff.billing.expenses', permission: 'billing.account.read', group: 'billing', order: 52 },
     { id: 'billing.expense_types', label: 'nav.billing.expense_types', routeId: 'staff.billing.expense_types', permission: 'billing.account.read', group: 'billing', order: 54 },
     { id: 'billing.cash_transfers', label: 'nav.billing.cash_transfers', routeId: 'staff.billing.cash_transfers', permission: 'billing.account.read', group: 'billing', order: 56 },
+    // T0D-FINCTRL-1 (LD-321): Discount Reason, Discount slab per party, Discount Limit, Discount Authority at 57-58.5 (still below C15's 60).
+    { id: 'billing.discount_reasons', label: 'nav.billing.discount_reasons', routeId: 'staff.billing.discount_reasons', permission: 'billing.discount_policy.read', group: 'billing', order: 57 },
+    { id: 'billing.discount_slabs', label: 'nav.billing.discount_slabs', routeId: 'staff.billing.discount_slabs', permission: 'billing.discount_policy.read', group: 'billing', order: 57.5 },
+    { id: 'billing.discount_limits', label: 'nav.billing.discount_limits', routeId: 'staff.billing.discount_limits', permission: 'billing.discount_policy.read', group: 'billing', order: 58 },
+    { id: 'billing.discount_authorities', label: 'nav.billing.discount_authorities', routeId: 'staff.billing.discount_authorities', permission: 'billing.discount_policy.read', group: 'billing', order: 58.5 },
   ],
 };

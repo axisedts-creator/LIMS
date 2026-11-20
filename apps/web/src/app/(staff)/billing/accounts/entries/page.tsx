@@ -6,7 +6,8 @@ import { readList } from '@/features/billing/components/listRead';
 import { cleanFilters, listAccountLedgerEntries, listAccountParticulars, listAccountParties, listMembers } from '@/features/billing/server/accounts.server';
 import { UUID_RE } from '@/features/billing/server/types';
 
-const KEYS = ['centre_id', 'account_particular_id', 'entry_type', 'status', 'entry_date_from', 'entry_date_to'] as const;
+// T0D-FINCTRL-1 (LD-321): status may be 'held'; fiscal_year_label (B.S., e.g. 2083/84) filters listAccountLedgerEntries.
+const KEYS = ['centre_id', 'account_particular_id', 'entry_type', 'status', 'entry_date_from', 'entry_date_to', 'fiscal_year_label'] as const;
 
 export default async function AccountEntriesPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const [session, sp] = await Promise.all([getShellSession(), searchParams]);

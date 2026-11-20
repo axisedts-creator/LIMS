@@ -1,3 +1,13 @@
+TESTS_WRONG — rs-c4.screens.test.tsx "Daily cash (open shift) 1" pinned pre-UIDASH-1 markup; the fix is ALREADY COMMITTED in d78f3e4b2 (debugger round 19, per LD-430). No further test or code change.
+Reasons (arbiter, 2026-11-20, dispute of 06:22 "snap lost before commit"):
+1. Dispute (commit 300a78830, 06:22) predates d78f3e4b2 (06:28), whose `git show --stat` includes __snapshots__/rs-c4.screens.test.tsx.snap (+72/-4). Writer's "last commit is a96e6abff" is now stale.
+2. Arbiter ran the full rs-c4 config (vitest.rs-c4.config.ts, no -u) at 06:36: 4 files, 37/37 pass.
+3. Snapshot is not OFFLINE-3 scope: rs-c4 snaps are RS visual records (spec/program/10-DESIGN-SYSTEM.md:135,137); OFFLINE-3 done_when (1)-(6) never names Daily cash. LD-430 (this file, LEAD ITEM LD-430) assigns rs-cN snaps to writer/debugger, which d78f3e4b2 satisfied.
+WRITER: no change; rerun verify. TESTER and DEBUGGER: no change. Do not re-dispute this snapshot.
+Flag (unchanged, non-blocking): Business date lost aria-describedby/hint; Daily cash screen owner to restore.
+
+---- prior arbiter ruling (superseded by the above) ----
+
 TESTS_WRONG — rs-c4.screens.test.tsx:74 "Daily cash (open shift) 1" still pins pre-UIDASH-1 markup (.snap last changed a96e6abff, T0D-UILIST-2); OFFLINE-3 does not own that screen. The fix (re-record + commit that one .snap) is PARKED by lead item LD-416: do nothing to the snapshot until the founder answers.
 Reasons (arbiter, 2026-11-19, dispute 08:40 "LD-409 edit NOT on disk"):
 1. Writer's fact confirmed: `git log` on the .snap shows a96e6abff as last change; tester commit ac5df00d2 did not include it. The test is still wrong for the reasons in the round-15 ruling below (spec/program/10-DESIGN-SYSTEM.md:135,137; OFFLINE-3 done_when (1)-(6) never mention Daily cash).

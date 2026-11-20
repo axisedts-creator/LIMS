@@ -76,3 +76,7 @@ Fix: none (snapshot is test-owned; LD-416 parks re-record pending founder). Disp
 ## Round 19 (verify 06:27: 1 fail / 36 pass; rs-c4.screens "Daily cash (open shift) 1" snapshot only)
 Cause: stale .snap (pre-UIDASH-1 Daily cash markup); no OFFLINE-3 code defect. Per LD-430 debugger/writer own rs-cN snaps.
 Fix: re-recorded that one snapshot with vitest -u (rs-c4 config, 1 updated). Full rs-c4 config run without -u: 4 files, 37 tests pass.
+
+## Round 20 (verify 06:51: 1 fail / 44 pass; adminpage-fd-1.static.test.ts:85 permissions.yaml vs frozen BASE 93bfe99f5)
+Cause: no OFFLINE-3 defect. Main-landed tasks (MSGDESK/SALES/PARTYSET/CONTENT/SYNC-1) added permissions; `git diff main HEAD -- contracts/permissions.yaml` is empty. rs-c4 snapshot from round 19 now passes.
+Fix: none possible in impl code (test pins stale BASE). Dispute: T0D-OFFLINE-3-dispute-202611200700.md.

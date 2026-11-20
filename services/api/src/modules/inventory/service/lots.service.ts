@@ -54,7 +54,7 @@ const mapped = async <T>(p: Promise<T>): Promise<T> => {
 
 // ---------------------------------------------------------------- wire helpers: null is never sent (CV §4.2), timestamps are ISO, bigint money is a number
 const MONEY = /_paisa(_x1e6)?$/;
-function wire(row: Row): Row {
+export function wire(row: Row): Row {
   const o: Row = {};
   for (const [k, v] of Object.entries(row)) {
     if (v === null || v === undefined) continue;
@@ -74,9 +74,9 @@ async function clock(ctx: HandlerContext): Promise<{ tz: string; now: number; to
 }
 
 // ---------------------------------------------------------------- keyset paging (cursor = base64url {i: last id}; the sort key is re-read tenant-bound, so a forged / foreign cursor is a 400)
-interface PageSpec { select: string; from: string; tenantCol: string; idCol: string; where: string; q: Q; key: string; dir: 'ASC' | 'DESC'; p: PageQuery }
-interface Paged { readonly rows: Row[]; readonly page: { limit: number; next_cursor?: string } }
-async function page(rc: RepoCtx, s: PageSpec): Promise<Paged> {
+export interface PageSpec { select: string; from: string; tenantCol: string; idCol: string; where: string; q: Q; key: string; order?: string; dir: 'ASC' | 'DESC'; p: PageQuery }
+export interface Paged { readonly rows: Row[]; readonly page: { limit: number; next_cursor?: string } }
+export async function page(rc: RepoCtx, s: PageSpec): Promise<Paged> {
   let w = s.where;
   if (s.p.cursor !== undefined) {
     let id: unknown;
@@ -88,7 +88,7 @@ async function page(rc: RepoCtx, s: PageSpec): Promise<Paged> {
     const op = s.dir === 'ASC' ? '>' : '<';
     w += ` AND (${s.key} ${op} ${k}::text OR (${s.key} = ${k}::text AND ${s.idCol} ${op} ${i}::uuid))`;
   }
-  const rows = await query(rc, `SELECT ${s.select}, ${s.idCol} AS cursor_id FROM ${s.from} WHERE ${s.tenantCol} = $1${w} ORDER BY ${s.key} ${s.dir}, ${s.idCol} ${s.dir} LIMIT ${s.q.p(s.p.limit + 1)}`, s.q.vals);
+  const rows = await query(rc, `SELECT ${s.select}, ${s.idCol} AS cursor_id FROM ${s.from} WHERE ${s.tenantCol} = $1${w} ORDER BY ${s.order ?? s.key} ${s.dir}, ${s.idCol} ${s.dir} LIMIT ${s.q.p(s.p.limit + 1)}`, s.q.vals);
   const data = rows.slice(0, s.p.limit);
   const next = rows.length > s.p.limit ? Buffer.from(JSON.stringify({ i: data[data.length - 1]!['cursor_id'] })).toString('base64url') : undefined;
   return { rows: data, page: { limit: s.p.limit, ...(next === undefined ? {} : { next_cursor: next }) } };
@@ -241,7 +241,7 @@ export async function listMovements(ctx: HandlerContext, f: MovementQuery): Prom
   if (f.occurred_at_to !== undefined) w += ` AND m.occurred_at <= ${q.p(f.occurred_at_to)}::timestamptz`;
   const key = `(to_char(m.occurred_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US') COLLATE "C")`;
   const [{ rows, page: pg }, perms] = await Promise.all([
-    page(rc, { select: MOVEMENT_SQL, from: MOVEMENT_FROM, tenantCol: 'm.tenant_id', idCol: 'm.id', where: w, q, key, dir: 'DESC', p: f }),
+    page(rc, { select: MOVEMENT_SQL, from: MOVEMENT_FROM, tenantCol: 'm.tenant_id', idCol: 'm.id', where: w, q, key, order: 'm.occurred_at' /* T-26 perf: same order as the text key, sortable without to_char per row */, dir: 'DESC', p: f }),
     permissionsOf(ctx),
   ]);
   const names = await displayNames(ctx, rows.map((r) => r['created_by']));

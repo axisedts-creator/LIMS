@@ -315,7 +315,7 @@ describe.skipIf(!live)('T-17 AC-14.3 / D-74 unmapped QC: counted, never deducted
     }));
 });
 
-describe.skipIf(!live)('T-17 AC-14.4 duplicate QC event deducts nothing', () => {
+describe.skipIf(!live)('T-17 IT-4 AC-14.4 duplicate QC event (same event_id, same basis key) deducts nothing', () => {
   run('the same idempotency_key delivered again under a NEW event id: one fact, one set of movements, qc_events counted once', async (s) => {
     await enable(s, ENABLED); const p = qcPayload(); const e1 = envelope('qc', p, { idempotency_key: 'SYN-IDEM-QC-DUP' }), e2 = envelope('qc', p, { idempotency_key: 'SYN-IDEM-QC-DUP' });
     const c0 = await balance(s, SB, IQ2); await deliver('qc', s, e1); await deliver('qc', s, e2);

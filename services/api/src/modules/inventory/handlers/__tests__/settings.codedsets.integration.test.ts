@@ -15,7 +15,7 @@
 //   - Coded-set entries (#28/#29) are exactly {code, display, reason_group?, uom_kind?, sort_order?, is_active}: no id/tenant_id/version/scope/system. The tenant row version is not on the wire; a client addresses the row it just created with If-Match "1".
 //   - #29 If-Match: absent on a missing tenant row creates it; absent on an existing tenant row => 409 common.version_conflict (#29 declares no 428 in the contract; review item 1); stale => 409. A first PUT of a code that only exists globally creates the shadow row (no If-Match).
 //   - A tenant cs_* row, active or not, shadows the global row with the same (group,) code (repo comment in codedSets.repo.ts). Unknown set_name => 400 or 404, never 500. #28 reason_group is optional per contract (required:false): without it every group is returned.
-//   - A default_consumption_store_id that is not a store of THIS tenant => 400 common.validation_failed at /default_consumption_store_id, identical for "other tenant's store" and "no such store" (no existence oracle).
+//   - A default_consumption_store_id that is not a store of THIS tenant => 404 common.not_found (T-26 ruling; 02-CV §11.3.1, 07 P-T1), identical for "other tenant's store" and "no such store" (no existence oracle). No rule in 02-TRD:264 for a 400.
 //   - The 3600 s rule uses a +/-200 s margin (the handler may take now from ctx.now() or the database; tests do not rely on the exact boundary).
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -281,13 +281,13 @@ describe.skipIf(!live)('#27 updateInventorySettings', () => {
     });
   });
 
-  it('default_consumption_store_id: own store accepted; another tenant\'s store and an unknown id give the SAME 400 at /default_consumption_store_id (no oracle, no FK 500)', async () => {
+  it('default_consumption_store_id: own store accepted; another tenant\'s store and an unknown id give the identical 404 common.not_found (T-26 ruling, 02-CV §11.3.1; no oracle, no FK 500)', async () => {
     await inTx(A, async (ctx, q) => {
       const other = await rej(put(ctx, full({ default_consumption_store_id: STORE_B })));
       const none = await rej(put(ctx, full({ default_consumption_store_id: uid(987654) })));
-      expect(bad(other)).toEqual(['common.validation_failed', 400]);
+      expect(bad(other)).toEqual(['common.not_found', 404]);
       expect([bad(none), paths(none), none.detail]).toEqual([bad(other), paths(other), other.detail]);
-      expect(paths(other)).toContain('/default_consumption_store_id');
+      expect(JSON.stringify(other)).not.toContain(STORE_B);
       expect((await readSettings(q, A))[0]).toMatchObject({ default_consumption_store_id: null, version: 1 });
       const ok = await put(ctx, full({ default_consumption_store_id: STORE_A }));
       expect(ok.body).toMatchObject({ default_consumption_store_id: STORE_A, version: 2 });

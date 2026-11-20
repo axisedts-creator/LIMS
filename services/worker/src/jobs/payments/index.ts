@@ -1,6 +1,6 @@
 // Payments WorkerManifest (02-TRD §8, 02-CONVENTIONS §2.3). §8.2: this module consumes no events; the tasks/crons of §8.3 are added by the tasks that implement them
-// (PG-T11: poll_intent, sweep_open_intents). Boot checks (TRD §9.3, "API and worker"): config is validated at import.
-import { loadPaymentsConfig } from '../../../../api/src/modules/payments/config.js';
+// (PG-T11: poll_intent, sweep_open_intents). Boot checks (TRD §9.3, "API and worker"): LD-341 (T0B-ASYNC-3) moved loadPaymentsConfig() from import
+// to worker start (startWorker in core/bootstrap.ts), so registry-sync can import this manifest without any LIMS_PAYMENTS_* variable.
 import type { PaymentsDeps } from '../../../../api/src/modules/payments/service/outcome.service.js';
 import type { Ctx } from '../../../../api/src/modules/payments/repository/shared.js';
 import type { TaskHandler, WorkerManifest } from '../../core/manifest.js';
@@ -11,8 +11,6 @@ import { POLL_INTENT, createPollIntent } from './tasks/poll_intent.js';
 import { RECONCILE_BATCH, createReconcileBatch } from './tasks/reconcile_batch.js';
 import { RECONCILE_TENANT, createReconcileTenant } from './tasks/reconcile_tenant.js';
 import { SWEEP_OPEN_INTENTS, createSweepOpenIntents } from './tasks/sweep_open_intents.js';
-
-export const config = loadPaymentsConfig();
 
 // [CONV] The runtime (KEK, gateway adapters, events/jobs ports, ledger + frontdesk ports) is supplied once at worker start, like the API's createPaymentProviderPort deps.
 // Until it is bound a job fails closed (throws -> queue backoff) instead of guessing; nothing is read from the payload to compensate.

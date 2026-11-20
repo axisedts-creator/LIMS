@@ -1,0 +1,112 @@
+// Pipeline stage 8a, central authorization (SEC-AUTHZ-2; LD-261 shadow by default, LD-189, LD-277;
+// CR .orchestra/cr/SEC-AUTHZ-1.1.nonblocking.md; C0 02-TRD 6.2 stage 8a + 9, 07-SECURITY AB-5).
+// Runs inside the request transaction (after stage 7) and before the handler. It asserts the operation's x-permission once, in one place;
+// it never widens anything: it asks the same IdentityPort.assertRole the handlers use and returns its errors unchanged.
+import { readFileSync } from 'node:fs';
+import { LimsError } from '../errors.js';
+import type { HandlerContext } from '../module.js';
+import type { RequestAuthz } from '../ports/authz-guard.js';
+import type { PortLog, PortMetrics } from '../ports/registry.js';
+import { PlatformAuthz, type PlatformAuthzCtx } from '../../modules/identity/platform/authz.js'; // read use only (SEC-AUTHZ-3)
+
+export type AuthzMode = 'shadow' | 'enforce';
+export interface AuthzException { readonly operationId: string; readonly handlerPermission: string; readonly reason: string }
+
+/** What stage 8a needs of an operation (PipelineOp has these fields). */
+export interface CentralOp {
+  readonly module: string; readonly operationId: string; readonly public: boolean;
+  readonly permission?: string | undefined; readonly scheme?: string | undefined;
+}
+/** The verified claims fields stage 8a reads (never request input). */
+export interface CentralClaims { readonly actor_type?: string }
+
+/** Documented skip reasons: the operation is not this stage's business. null = the stage checks it. */
+export function skipReason(op: CentralOp): string | null {
+  if (op.public) return 'x-public';
+  if (op.scheme === 'bffSession') return 'bffSession (identity session flow)';
+  if (op.permission === undefined || op.permission === '') return 'no x-permission (stage 9 still applies)';
+  return null; // platform.* is checked here too (SEC-AUTHZ-3, PlatformAuthz)
+}
+
+/** Loader check for authz-exceptions.json: a list of { operationId, handlerPermission, reason }, no duplicates, existing operationId when `ids` is given. */
+export function validateAuthzExceptions(entries: unknown, ids?: ReadonlySet<string>): asserts entries is readonly AuthzException[] {
+  if (!Array.isArray(entries)) throw new Error('authz-exceptions: must be a list');
+  const seen = new Set<string>();
+  for (const e of entries as unknown[]) {
+    if (typeof e !== 'object' || e === null || Array.isArray(e)) throw new Error('authz-exceptions: entry is not an object');
+    const { operationId, handlerPermission, reason } = e as Record<string, unknown>;
+    if (typeof operationId !== 'string' || operationId === '') throw new Error('authz-exceptions: operationId is required');
+    if (ids && !ids.has(operationId)) throw new Error(`authz-exceptions: ${operationId} is not an operationId of the contracts`);
+    if (seen.has(operationId)) throw new Error(`authz-exceptions: ${operationId} is listed twice`);
+    seen.add(operationId);
+    if (typeof handlerPermission !== 'string' || handlerPermission === '') throw new Error(`authz-exceptions: ${operationId} needs a handlerPermission`);
+    if (typeof reason !== 'string' || reason.trim() === '') throw new Error(`authz-exceptions: ${operationId} needs a reason`);
+  }
+}
+
+/** Reads and validates core/pipeline/authz-exceptions.json (boot fails on a bad file). */
+export function loadAuthzExceptions(ids?: ReadonlySet<string>): readonly AuthzException[] {
+  const list: unknown = JSON.parse(readFileSync(new URL('./authz-exceptions.json', import.meta.url), 'utf8'));
+  validateAuthzExceptions(list, ids);
+  return Object.freeze(list.map((e) => Object.freeze({ ...e })));
+}
+
+const forbidden = (): LimsError => new LimsError('auth.forbidden');
+
+export function createAuthzCentral(o: {
+  mode: AuthzMode; log: PortLog; metrics: PortMetrics;
+  systemPermissions?: Readonly<Record<string, readonly string[]>> | undefined;
+  exceptions?: readonly AuthzException[] | undefined;
+  /** the IdentityPort as the core reads it (unwrapped; the stage wraps it per request unless the operation is exception-listed). */
+  identityPort: () => { assertRole(...a: any[]): any };
+}) {
+  const exceptions = new Map((o.exceptions ?? []).map((e) => [e.operationId, e.handlerPermission]));
+
+  /** Throws the assertRole / auth.forbidden error in enforce, logs and returns in shadow. */
+  async function check(op: CentralOp, claims: CentralClaims | undefined, ctx: HandlerContext, az: RequestAuthz): Promise<void> {
+    if (skipReason(op) !== null) return;
+    const actorType = typeof claims?.actor_type === 'string' ? claims.actor_type : 'unknown';
+    const exception = exceptions.get(op.operationId);
+    const permission = exception ?? op.permission!;
+    // LD-277: a checked operation counts as asserted for stage 9 (shadow and enforce), whatever the actor kind. Exception-listed operations keep
+    // the current stage 9 behaviour. Marking goes through the guard wrapper over a no-op port, so authz-guard.ts needs no code change.
+    const mark = (): void => { if (exception === undefined) void az.identity({ assertRole: () => undefined }).assertRole(); };
+    const platformOp = permission.startsWith('platform.');
+    if (platformOp || (actorType !== 'user' && actorType !== 'device')) mark(); // user/device paths mark through the wrapper when they call assertRole
+    try {
+      // SEC-AUTHZ-3 (CR SEC-AUTHZ-1.1 item 7, C2 02-TRD 7.2 step 3): platform.* is decided by PlatformAuthz only; IdentityPort.assertRole rejects it.
+      // ctx carries platformRole/aal only for a verified platform session (pipeline buildCtx); any other actor or session fails inside assertPlatform
+      // with auth.forbidden (no role, not a user actor) or auth.mfa_required (privileged code below aal2), before the handler.
+      if (platformOp) { PlatformAuthz.assertPlatform(ctx as unknown as PlatformAuthzCtx, permission); return; }
+      switch (actorType) {
+        // device: the IdentityPort resolves the credential (device_kind) to its own fixed permission set, so it asks assertRole like a user.
+        case 'user': case 'device': {
+          const port = exception === undefined ? az.identity(o.identityPort()) : o.identityPort();
+          await port.assertRole(ctx, { permission }); // no centre or branch: baseline; handlers add scope
+          return;
+        }
+        case 'system':
+          if (o.systemPermissions?.[op.module]?.includes(permission)) return;
+          throw forbidden();
+        case 'patient': case 'partner': case 'portal':
+          // ponytail: bearerJwt staff operations only; their own scheme (portalSession, patientPreAuth) is authenticated by its resolver, not decided here.
+          if (op.scheme === undefined || op.scheme === 'bearerJwt') throw forbidden();
+          return;
+        default:
+          throw forbidden();
+      }
+    } catch (e) {
+      const code = (e as { code?: unknown })?.code;
+      if (typeof code === 'string' && /^(auth|identity)\./.test(code)) {
+        // a denial: auth.forbidden, auth.mfa_required, identity.support_session_required. No person id, token, email or tenant id in the line or label (LD-189).
+        o.log.warn({ event: 'authz_central_deny', operation_id: op.operationId, actor_type: actorType, permission, mode: o.mode }, 'central authorization denied');
+        try { o.metrics.inc('lims_core_authz_central_deny_total', { operation_id: op.operationId }); } catch { /* a metrics failure never changes the decision */ }
+      } else if (o.mode === 'shadow') {
+        o.log.warn({ event: 'authz_central_error', operation_id: op.operationId, actor_type: actorType, mode: o.mode }, 'central authorization could not decide');
+      }
+      if (o.mode === 'enforce') throw e; // fail closed: the dependency error propagates, the handler never runs
+    }
+  }
+
+  return { check };
+}

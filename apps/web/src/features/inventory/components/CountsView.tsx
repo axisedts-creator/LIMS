@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@lims/ui/components/Button';
 import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
 import { Drawer } from '@lims/ui/components/Drawer';
+import { FilterBar } from '@lims/ui/components/FilterBar';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { Stack } from '@lims/ui/components/Stack';
 import { TextArea } from '@lims/ui/components/TextArea';
@@ -12,7 +13,7 @@ import { useToast } from '@lims/ui/components/Toast';
 import { createCountAction } from '../server/actions';
 import type { Category, CountStatus, CountSummary, CountCreate, Store } from '../server/types';
 import { CATEGORIES } from './codes';
-import { Chip, isoDate, Pick, ProblemBanner, useAttemptKey, type Failure } from './shared';
+import { Chip, isoDate, Pick, ProblemBanner, useAttemptKey, useLocalFilters, type Failure } from './shared';
 
 export const COUNT_STATUS: Record<CountStatus, { tone: 'neutral' | 'info' | 'success'; label: string }> = {
   open: { tone: 'info', label: 'Open' },
@@ -33,10 +34,23 @@ export function CountsView({ counts, stores, canManage }: { counts: readonly Cou
     { id: 'opened', header: 'Opened', cell: (c) => isoDate(c.snapshot_at) },
     { id: 'posted', header: 'Posted', cell: (c) => isoDate(c.posted_at) },
   ];
+  // T0D-UILIST-3 (LD-353 template 1): one FilterBar over the loaded counts.
+  const filters = useLocalFilters(counts, { store: (c, v) => c.store_id === v, status: (c, v) => c.status === v });
   return (
     <section aria-label="Stock counts">
       <PageHeader title="Stock counts" helpKey="inventory.counts" {...(canManage ? { actions: <Button variant="primary" onPress={() => setCreating(true)}>New count</Button> } : {})} />
-      <DataTable caption="Stock counts" columns={columns} rows={counts} getRowId={(c) => c.id} emptyState={{ title: 'No counts' }} onRowAction={(c) => router.push(`/inventory/counts/${c.id}`)} />
+      <Stack>
+        <FilterBar
+          filters={[
+            { id: 'store', label: 'Store', kind: 'select', options: stores.map((s) => ({ value: s.id, label: s.store_code })) },
+            { id: 'status', label: 'Status', kind: 'select', options: Object.entries(COUNT_STATUS).map(([value, s]) => ({ value, label: s.label })) },
+          ]}
+          value={filters.value}
+          onChange={filters.onChange}
+          onReset={filters.onReset}
+        />
+        <DataTable caption="Stock counts" columns={columns} rows={filters.shown} getRowId={(c) => c.id} cellTitle emptyState={{ title: 'No counts' }} onRowAction={(c) => router.push(`/inventory/counts/${c.id}`)} />
+      </Stack>
       <Drawer title="New count" isOpen={creating} onClose={() => setCreating(false)}>
         {creating ? (
           <NewCount

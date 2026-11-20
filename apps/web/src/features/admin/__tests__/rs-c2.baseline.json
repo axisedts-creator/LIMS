@@ -3,13 +3,13 @@
     "features/admin/actions.ts": "2d482d843e6cd5673bbd4a06b872778ee8c5414aa414c765e589ef96545c2522",
     "features/admin/lib.ts": "49560b7bac6d96595667f85dfe52088e4df413eb52212c93ec40097367713cb2",
     "features/admin/server/api.ts": "b83aafeb55c7e8195449f77f55ac06f03c278cb945bceb021039add8ba754776",
-    "features/admin/auth/actions.ts": "a68b695254e2a2c605b0a25c60996607b0ef3c04a638746fbec450857ecf9f66",
-    "features/admin/auth/messages.ts": "cd5221d70d8d996ab524e025b065ca69dc82245ebc18494a180dcdf9e6955c5b",
+    "features/admin/auth/actions.ts": "f0dc75ddde9089c84965ee65796f784910896d8cb4d9b72eec10082defd8393e",
+    "features/admin/auth/messages.ts": "c05d966283da3df00e38118dabdc51494f05b7e7fd60972e5020c6b5011062a9",
     "features/admin/roles/actions.ts": "db1ad33f223495c24f73d43fab5e339b8e7de8059a07927b6061848b48544212",
-    "features/admin/nav.manifest.ts": "3656e42f1642965eb0059c5a61f866053810ab4cfb054057131717b890c58c53",
-    "features/platform/actions.ts": "7f6c66d96e6e65755454acf9ef343c57f863a35452f0f307e28333b9af664b5e",
+    "features/admin/nav.manifest.ts": "4eed7c3413275739e461d2528bfb33d0b95c0e3b7a3f411f77fac77143a32b0b",
+    "features/platform/actions.ts": "6a19465c3102a9047e5602933c2ff9445d772ee0c1a052918f5cb513cdf60b9d",
     "features/platform/server.ts": "14b227a343a17b883888214f74c72ccb0235894460c6dec6ef414266ebac4172",
-    "features/platform/shared.ts": "7ecda1dfa890bdabce81340398a8cf7a4d2d5f069500133bf135a1cf1d530fe5",
+    "features/platform/shared.ts": "6a2d3c5d1e17e55e2284b4beaaf36c62b58004c9b800e15303e64c3f9c52fb91",
     "features/platform/nav.manifest.ts": "a328981ad19103e065372d29f659fb17cea17e464d3830d697ad7223a07feda8"
   },
   "routes": [
@@ -19,8 +19,11 @@
     "app/(auth)/auth/logout/page.tsx",
     "app/(auth)/auth/mfa/enrol/page.tsx",
     "app/(auth)/auth/mfa/page.tsx",
+    "app/(auth)/auth/page.tsx",
     "app/(auth)/auth/session-expired/page.tsx",
     "app/(auth)/auth/set-password/page.tsx",
+    "app/(auth)/auth/waking/page.tsx",
+    "app/(auth)/layout.tsx",
     "app/(platform)/layout.tsx",
     "app/(platform)/platform/auth-events/page.tsx",
     "app/(platform)/platform/dead-letters/[dead_letter_id]/page.tsx",
@@ -102,6 +105,7 @@
     "admin.nav.sessions",
     "admin.nav.settings",
     "admin.nav.support_access",
+    "admin.nav.user_invite",
     "admin.nav.user_new",
     "admin.nav.users",
     "anatomic.case.read",
@@ -165,8 +169,6 @@
     "pack_code",
     "password",
     "retry-after",
-    "source",
-    "x-forwarded-for",
-    "x-real-ip"
+    "source"
   ]
 }

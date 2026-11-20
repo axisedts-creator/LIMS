@@ -14,19 +14,20 @@ import { createAuthEventsRepo, type AuthEvent } from '../repository/auth-events.
 import { createBreachedRepo } from '../repository/breached.repo.js';
 import { createMfaRepo, type MfaRepo, type SessionRef } from '../repository/mfa.repo.js';
 import type { AuthLimits } from '../service/auth.service.js';
+import { loadSessionActor } from '../service/session-actor.js';
 import { createAuthLimits } from './loginStaff.js';
 import { bodyObject, envHmac, gotrueCall, gw, invalid, sessionToken } from './verifyMfaChallenge.js';
 
 export interface SetPasswordDeps {
   gotrue: Pick<GoTrueGateway, 'adminUpdatePassword'>;
-  repo: Pick<MfaRepo, 'sessionByToken' | 'loadSession' | 'updateSession' | 'loginContext' | 'revokeOtherSessions' | 'acceptInvitation' | 'enqueue'>;
+  repo: Pick<MfaRepo, 'sessionByToken' | 'loadSession' | 'updateSession' | 'loginContext' | 'sessionActor' | 'membershipPermissions' | 'revokeOtherSessions' | 'acceptInvitation' | 'enqueue'>;
   events: { recordTenantless(tx: Tx, e: AuthEvent): Promise<void>; recordTenant(tx: Tx, e: AuthEvent): Promise<void> };
   limits: Pick<AuthLimits, 'consumeAttempt' | 'clearAccountFailures'>;
   breached: { isBreached(tx: Tx, sha1: Buffer): Promise<boolean> };
   hmac?: (normalisedEmail: string) => string; newId?: () => string; now?: () => Date;
 }
 interface Hctx extends HandlerContext {
-  requestId: string; bffKey?: string; actor?: { type: string; id: string };
+  requestId: string; bffKey?: HandlerContext['bffKey']; actor?: { type: string; id: string };   // VERIFY-GREEN-1 / LD-253: type-only, log inherited
   db: { identityAuthTx<T>(input: TxInput, fn: TxFn<T>): Promise<T> };
 }
 
@@ -72,13 +73,18 @@ export function createSetPasswordFromSetup(deps: SetPasswordDeps) {
       // AU-T4: policy before GoTrue; breached lookup only for a policy-valid password; a lookup error fails closed
       const verdict = await evaluatePassword(pw, { isBreached: (sha1) => deps.breached.isBreached(tx, sha1) });
       if (!verdict.ok) throw new LimsError(verdict.code);
-      await gotrueCall(() => deps.gotrue.adminUpdatePassword(s.userId, pw));
-
+      // LD-222 AUTH-ACTOR-2: state, actor and (active only) permissions are read BEFORE the irreversible GoTrue password change and the
+      // invitation accept, so a missing actor / failed read is common.internal with nothing kept (never a 500 after a committed change).
       const row: Record<string, any> = (await deps.repo.loginContext(tx, s.userId)) ?? {};
-      const accepted = await deps.repo.acceptInvitation(tx, { tenantId: s.tenantId, membershipId: s.membershipId, userId: s.userId, at: now, actorId });
       // SS8 = SS3/SS4 MFA rule: a verified factor -> mfa_pending; platform always needs MFA (08 A28.1); else tenant role rule
       const state = row['has_verified_factor'] === true ? 'mfa_pending'
         : s.kind === 'platform' || row['mfa_required'] === true ? 'mfa_enrolment_required' : 'active';
+      const actor = await loadSessionActor((k) => deps.repo.sessionActor(tx, k),
+        { userId: s.userId, tenantId: s.kind === 'platform' ? null : s.tenantId, membershipId: s.kind === 'platform' ? null : s.membershipId }, ctx.log, ctx.requestId,
+        { state, tenantPermissions: (membershipId) => deps.repo.membershipPermissions(tx, { tenantId: s.tenantId!, membershipId }) });
+      await gotrueCall(() => deps.gotrue.adminUpdatePassword(s.userId, pw));
+
+      const accepted = await deps.repo.acceptInvitation(tx, { tenantId: s.tenantId, membershipId: s.membershipId, userId: s.userId, at: now, actorId });
       await deps.repo.updateSession(tx, ref, { state, actorId });
       const revoked = await deps.repo.revokeOtherSessions(tx, { tenantId: s.tenantId, userId: s.userId, exceptSessionId: s.sessionId, reason: 'password_change', actorId });
       // 02-TRD §10: per session, tenant kinds only. LD-99 / 08 A38-2: no identity.gotrue_signout for platform (adminSignOutUser would
@@ -97,7 +103,7 @@ export function createSetPasswordFromSetup(deps: SetPasswordDeps) {
       return {
         status: 200 as const,
         body: { session_id: s.sessionId, kind: s.kind, state, aal: load.aal, idle_expires_at: load.idleExpiresAt.toISOString(),
-          absolute_expires_at: load.absoluteExpiresAt.toISOString() },
+          absolute_expires_at: load.absoluteExpiresAt.toISOString(), actor },
       };
     });
   };

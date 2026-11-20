@@ -15,6 +15,7 @@ import {
   CORRECTIVE, PERM_CFG_READ, PLAN_DEFAULTS, choose, PERM_CFG_WRITE, SETTINGS, anyDlg, api, axeClean, bodyOf, calls, callsTo, dataRows, dlg, field, fill, gridNamed, headersOf, json, norm, pageText, problem, resetApi, routes, router,
   settingsDto, show, showOrThrown, user,
 } from './quality-t24.harness';
+import { expectErrorState } from '@/__tests__/uiset1.helpers';
 
 vi.mock('next/navigation', async () => (await import('./quality-t24.harness')).navigationMock);
 vi.mock('server-only', () => ({}));
@@ -29,7 +30,7 @@ const card = (name: RegExp) => {
 const save = (root: HTMLElement) => within(root).getByRole('button', { name: /^save/i });
 const num = (label: RegExp, root: HTMLElement = document.body) => within(root).getByLabelText(label) as HTMLInputElement;
 
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 beforeEach(() => resetApi(PERM_CFG_WRITE));
 afterEach(() => { cleanup(); api.resetHandlers(); });
 afterAll(() => api.close());
@@ -46,9 +47,11 @@ describe('access and states', () => {
     await show(PAGE);
     expect(pageText()).toContain('The QC module is not switched on for your lab yet.');
   });
-  it('5xx rejects (error.tsx)', async () => {
-    routes[`GET ${SETTINGS}`] = () => problem('common.internal', 500);
-    expect(await showOrThrown(PAGE)).toBeTruthy();
+  it('5xx renders ErrorState in the page: title kept, reference and Retry, no form (LD-353 rule 6)', async () => {
+    routes[`GET ${SETTINGS}`] = () => problem('common.internal', 500, { request_id: 'req-synthetic' });
+    const { container } = await show(PAGE);
+    expectErrorState(container, '/quality/settings');
+    expect(screen.queryAllByRole('button', { name: /^save/i })).toHaveLength(0);
   });
   it('the render sends only GETs; the Bearer token is never rendered', async () => {
     const { container } = await show(PAGE);
@@ -102,9 +105,11 @@ describe('settings tab (04-UI-UX §2.11)', () => {
       expect(el.disabled || el.readOnly).toBe(true);
     }
   });
-  it('LD-140: one Save per editable card (three) and none is the page-level primary action', async () => {
-    await show(PAGE);
-    expect(screen.getAllByRole('button', { name: /^save/i })).toHaveLength(3);
+  it('LD-353 template 4: exactly one Save, in the sticky .lims-settings-bar (it replaces the per-card Saves)', async () => {
+    const { container } = await show(PAGE);
+    expect(screen.getAllByRole('button', { name: /^save/i })).toHaveLength(1);
+    expect(container.querySelectorAll('.lims-settings-bar button[type="submit"]')).toHaveLength(1);
+    expect(container.querySelectorAll('.lims-settings-fields .lims-card')).toHaveLength(0);
   });
 });
 

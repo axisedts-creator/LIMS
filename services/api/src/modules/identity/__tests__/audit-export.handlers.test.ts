@@ -2,7 +2,8 @@
 // ASSUMED: handlers/<operationId>.ts export `<operationId>: Handler`; each calls the singleton/factory `createAuditExportService()` of ../service/audit-export.service.js
 // with (ctx, input): create -> req.body as is; list -> req.query as is; get/download -> { exportId: req.params.export_id }; the service result
 // ({status, body, headers?}) is returned unchanged. Without tenantId / actor.id / tx on the context -> LimsError auth.unauthenticated and NO service call.
-// The core pipeline (not the handler) enforces x-permission audit.log.export and Idempotency-Key (contract tests below).
+// The core pipeline enforces Idempotency-Key (contract tests below); the handler also asserts audit.log.export via IdentityPort.assertRole
+// (fails closed with common.internal when the port is absent; ruling T0B-ADMINFIX-1-ruling.md, same guard as the audit-view fixture).
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const svc = vi.hoisted(() => ({
@@ -20,7 +21,7 @@ import { TENANT_A, USER, MEM, REQ_ID, idN, readIdentitySpec, rejection } from '.
 const OPS = ['createAuditExport', 'listAuditExports', 'getAuditExport', 'downloadAuditExport'] as const;
 const MODS: Record<string, any> = { createAuditExport: createMod, listAuditExports: listMod, getAuditExport: getMod, downloadAuditExport: downloadMod };
 const load = (op: string) => (MODS[op][op] ?? MODS[op].default) as (req: any, ctx: any) => Promise<any>;
-const ctxOk = () => ({ operationId: 'x', clientIp: '203.0.113.9', log: { info() {}, warn() {}, error() {} }, tenantId: TENANT_A, requestId: REQ_ID, tx: { name: 'tx' }, actor: { type: 'user', id: USER, membershipId: MEM }, audit: { access: async () => {} } });
+const ctxOk = () => ({ operationId: 'x', clientIp: '203.0.113.9', log: { info() {}, warn() {}, error() {} }, tenantId: TENANT_A, requestId: REQ_ID, tx: { name: 'tx' }, actor: { type: 'user', id: USER, membershipId: MEM }, audit: { access: async () => {} }, ports: { IdentityPort: { assertRole: async () => {} } } });
 const bare = { operationId: 'x', clientIp: '203.0.113.9', log: { info() {}, warn() {}, error() {} } };
 const EID = idN(0x1234);
 

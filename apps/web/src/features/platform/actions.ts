@@ -3,7 +3,7 @@
 // before calling /v1/identity/platform/* — the browser can call actions directly, so the client checks are only UX.
 import { call, P, platformPermissions, qs } from './server';
 import {
-  ANNEX_STATUSES, CURSOR_RE, DATE_RE, EMAIL_RE, IDEMPOTENCY_RE, MAX_CIDRS, MAX_UPLOAD_BYTES, PAN_RE, PERM, TENANT_CODE_RE, UNIT_CODE_RE, UPLOAD_TYPES,
+  ACCEPT_MAX, ISO_UTC_RE, ANNEX_STATUSES, CURSOR_RE, DATE_RE, EMAIL_RE, IDEMPOTENCY_RE, MAX_CIDRS, MAX_UPLOAD_BYTES, PAN_RE, PERM, TENANT_CODE_RE, UNIT_CODE_RE, UPLOAD_TYPES,
   isCidr, isUuid,
   type AnnexRecord, type AnnexStatus, type DeadLetter, type Fail, type LifecycleAction, type PageOf, type PlatformSession, type Result,
   type Settings, type StaffMember, type SupportSession, type Tenant,
@@ -34,11 +34,22 @@ export interface ProvisionInput {
   first_branch: { code: string; name: string; address_text?: string };
   first_centre: { code: string; name: string; kind: string; address_text?: string };
   first_admin: { email: string; display_name: string };
+  contract_acceptance: { tos: Acceptance; dpa: Acceptance };   // LD-29 / LD-275
 }
+export interface Acceptance { version: string; accepted_by_name: string; accepted_by_title: string; accepted_at: string }
+const acceptanceOk = (x: unknown): x is Acceptance => {
+  if (typeof x !== 'object' || x === null) return false;
+  const o = x as Record<string, unknown>;
+  return Object.keys(o).sort().join() === 'accepted_at,accepted_by_name,accepted_by_title,version'
+    && str(o['version'], 1, ACCEPT_MAX.version) && str(o['accepted_by_name'], 1, ACCEPT_MAX.name) && str(o['accepted_by_title'], 1, ACCEPT_MAX.title)
+    && typeof o['accepted_at'] === 'string' && ISO_UTC_RE.test(o['accepted_at']) && !Number.isNaN(Date.parse(o['accepted_at']));
+};
+const pickAcceptance = (x: Acceptance): Acceptance => ({ version: x.version, accepted_by_name: x.accepted_by_name, accepted_by_title: x.accepted_by_title, accepted_at: x.accepted_at });
 export async function provisionTenantAction(input: ProvisionInput, key: string): Promise<Result<Tenant>> {
   if (!(await need(PERM.manage))) return forbidden();
-  const b = input?.first_branch, c = input?.first_centre, a = input?.first_admin;
-  const ok = IDEMPOTENCY_RE.test(key) && TENANT_CODE_RE.test(input?.code ?? '') && str(input.legal_name, 1, 200) && str(input.display_name, 1, 120)
+  const b = input?.first_branch, c = input?.first_centre, a = input?.first_admin, ca = input?.contract_acceptance;
+  const ok = IDEMPOTENCY_RE.test(key)
+    && !!ca && Object.keys(ca).sort().join() === 'dpa,tos' && acceptanceOk(ca.tos) && acceptanceOk(ca.dpa) && TENANT_CODE_RE.test(input?.code ?? '') && str(input.legal_name, 1, 200) && str(input.display_name, 1, 120)
     && (input.pan === undefined || PAN_RE.test(input.pan))
     && (input.calendar_display === undefined || ['AD', 'BS', 'AD_BS', 'BS_AD'].includes(input.calendar_display))
     && !!b && UNIT_CODE_RE.test(b.code) && str(b.name, 1, 120) && (b.address_text === undefined || str(b.address_text, 0, 300))
@@ -51,6 +62,7 @@ export async function provisionTenantAction(input: ProvisionInput, key: string):
     first_branch: { code: b.code, name: b.name, ...(b.address_text ? { address_text: b.address_text } : {}) },
     first_centre: { code: c.code, name: c.name, kind: c.kind, ...(c.address_text ? { address_text: c.address_text } : {}) },
     first_admin: { email: a.email, display_name: a.display_name },
+    contract_acceptance: { tos: pickAcceptance(ca.tos), dpa: pickAcceptance(ca.dpa) },
   };
   return call(`${P}/tenants`, json('POST', body, { 'idempotency-key': key }));
 }

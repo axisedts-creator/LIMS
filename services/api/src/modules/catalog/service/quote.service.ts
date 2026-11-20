@@ -96,8 +96,17 @@ export function createQuoteService(_deps: QuoteDeps = {}) {
       }
 
       // ---- the list assigned to each owner, and the tenant default
-      const assigned = async (col: string, owner: string | undefined): Promise<string | undefined> =>
-        owner === undefined ? undefined : (await q(`SELECT price_list_id FROM catalog.price_list_assignments WHERE tenant_id = $1 AND ${col} = $2`, [T, owner]))[0]?.price_list_id;
+      // T0B-PRICETOOLS-1 (LD-321): an owner may hold one list per period ([effective_from, effective_to), never overlapping: DB trigger); the period holding `at` wins, the
+      // latest start first (deterministic). [CONV] a start equal to created_at is the "from creation" default and counts from the beginning (orders priced before the
+      // assignment existed keep resolving as before the dated assignments); an explicit start is honoured. Rows without the columns (older fixtures) count as open.
+      const assigned = async (col: string, owner: string | undefined): Promise<string | undefined> => {
+        if (owner === undefined) return undefined;
+        const t = Date.parse(at);
+        const rows = await q(`SELECT price_list_id, effective_from, effective_to, created_at FROM catalog.price_list_assignments WHERE tenant_id = $1 AND ${col} = $2`, [T, owner]);
+        const start = (r: R) => (r.effective_from == null || (r.created_at != null && +new Date(r.effective_from) === +new Date(r.created_at)) ? -Infinity : +new Date(r.effective_from));
+        return rows.filter((r) => start(r) <= t && (r.effective_to == null || t < +new Date(r.effective_to)))
+          .sort((a, b) => start(b) - start(a) || (a.price_list_id < b.price_list_id ? -1 : 1))[0]?.price_list_id;
+      };
       const ids: Partial<Record<PriceSource, string | undefined>> = {
         explicit: explicitList?.id, credit_party: await assigned('credit_party_id', req.context.credit_party_id),
         referrer: await assigned('doctor_id', referrerId), centre: await assigned('centre_id', req.context.centre_id),

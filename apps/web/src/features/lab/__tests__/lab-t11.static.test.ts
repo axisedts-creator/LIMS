@@ -13,7 +13,9 @@ const SCREENS = ['CollectDispatch', 'ReceiveScreen'];
 const walk = (d: string): string[] => (existsSync(d) ? readdirSync(d).flatMap((n) => { const p = join(d, n); return n === '__tests__' || n === 'node_modules' ? [] : statSync(p).isDirectory() ? walk(p) : [p]; }) : []);
 const src = (p: string) => readFileSync(p, 'utf8');
 const component = (c: string) => join(feat, 'components', `${c}.tsx`);
-const own = () => [...walk(feat), ...PAGES.flatMap((p) => walk(join(app, p)))].filter((f) => /\.(tsx?|mjs)$/.test(f));
+// LD-432: components/labels (LabelPage.tsx) is excluded; lab-t10.static.test.ts owns it and allows up to two dangerouslySetInnerHTML uses there (print region + style).
+const LABELS_DIR = join(feat, 'components', 'labels');
+const own = () => [...walk(feat), ...PAGES.flatMap((p) => walk(join(app, p)))].filter((f) => /\.(tsx?|mjs)$/.test(f) && !f.startsWith(LABELS_DIR));
 
 describe('C5.T-11 routes (03-APP-FLOW §3.2/§3.3)', () => {
   it.each(PAGES)('app/(staff)/lab/%s/page.tsx exists and is a server component (no "use client", default export)', (p) => {

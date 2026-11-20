@@ -10,16 +10,19 @@ import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js
 import type { GoTrueGateway } from '../gotrue/gateway.js';
 import { createAuthEventsRepo, type AuthEvent, type NewSession } from '../repository/auth-events.repo.js';
 import { createMfaRepo, type MfaRepo } from '../repository/mfa.repo.js';
+import { loadSessionActor, type SessionActor } from '../service/session-actor.js';
 import { bodyObject, gotrueCall, gw, invalid } from './verifyMfaChallenge.js';
 
 export interface ConfirmDeps {
   gotrue: Pick<GoTrueGateway, 'verifyEmailToken'>;
-  repo: Pick<MfaRepo, 'loginContext' | 'insertSession' | 'insertPlatformSession'>;
+  repo: Pick<MfaRepo, 'loginContext' | 'sessionActor' | 'insertSession' | 'insertPlatformSession'>;
   events: { recordTenantless(tx: Tx, e: AuthEvent): Promise<void>; recordTenant(tx: Tx, e: AuthEvent): Promise<void> };
   hmac?: (normalisedEmail: string) => string; newId?: () => string; newToken?: () => string; now?: () => Date;
 }
 interface Hctx extends HandlerContext {
-  requestId: string; bffKey?: string; actor?: { type: string; id: string };
+  // VERIFY-GREEN-1 / LD-253 / LD-189: type-only; bffKey and log now inherit HandlerContext (no runtime change).
+  requestId: string; bffKey?: HandlerContext['bffKey']; actor?: { type: string; id: string };
+  rateLimit?: { consume(tier: 'login', key: string): Promise<void> };
   db: { identityAuthTx<T>(input: TxInput, fn: TxFn<T>): Promise<T> };
 }
 
@@ -43,6 +46,9 @@ export function createConfirmEmailToken(deps: ConfirmDeps) {
     if (ctx.bffKey !== 'staff_web') throw bad();   // AU-T13: staff sessions serve the staff_web BFF only
     const ua = (req.headers as Record<string, unknown> | undefined)?.['user-agent'];
     const userAgent = typeof ua === 'string' ? ua : undefined;
+    // SEC-ABUSE-1 (LD-237 (2)): the declared `login` tier, per client IP (never the token: it is a secret), before GoTrue; fail closed.
+    if (!ctx.rateLimit) throw new LimsError('common.dependency_unavailable');
+    await ctx.rateLimit.consume('login', `a:confirm:${ctx.clientIp}`);
 
     return ctx.db.identityAuthTx({ operation: OPERATION, requestId: ctx.requestId, clientIp: ctx.clientIp, userAgent }, async (tx, ctl) => {
       ctl.noRetry();   // a verified GoTrue token is consumed: never replay
@@ -61,19 +67,26 @@ export function createConfirmEmailToken(deps: ConfirmDeps) {
       const ev = (o: Partial<AuthEvent>): AuthEvent => ({ id: newId(), eventType: OPENED[type], userId: t.userId, sessionId: base.id,
         clientIp: ctx.clientIp, userAgent, requestId: ctx.requestId, actorId, ...o });
 
-      let s: NewSession;
+      // LD-222 AUTH-ACTOR-2: SessionState.actor (required by the contract) is read before the first write; state is password_setup, so never permissions
+      let s: NewSession; let actor: SessionActor;
+      const actorOf = (tenantId: string | null, membershipId: string | null) => loadSessionActor((k) => deps.repo.sessionActor(tx, k),
+        { userId: t.userId, tenantId, membershipId }, ctx.log, ctx.requestId);
       if (row['platform_staff_id'] && !row['tenant_id']) {
         if (row['platform_active'] !== true) throw bad();
+        actor = await actorOf(null, null);
         s = { ...base, tenantId: null, kind: 'platform', membershipId: null, platformStaffId: row['platform_staff_id'] };
         await deps.repo.insertPlatformSession(tx, s);
         await deps.events.recordTenantless(tx, ev({ platformStaffId: s.platformStaffId! }));
       } else {
         const tenantId = row['tenant_id']; const membershipId = row['membership_id'];
         // [CONV] usable = exactly one membership, tenant active, not locked, invited (invite) or active; anything else = invalid link (no oracle)
-        if (Number(row['membership_count']) !== 1 || typeof tenantId !== 'string' || typeof membershipId !== 'string' || row['tenant_status'] !== 'active'
+        // LD-299 T0B-ACTIVATE-1: an invite link also works while the tenant is provisioning (its first admin must accept before activateTenant); recovery needs active
+        const tenantOk = row['tenant_status'] === 'active' || (type === 'invite' && row['tenant_status'] === 'provisioning');
+        if (Number(row['membership_count']) !== 1 || typeof tenantId !== 'string' || typeof membershipId !== 'string' || !tenantOk
           || row['membership_locked'] !== false || !['active', 'invited'].includes(row['membership_status'])) throw bad();
         if (!tx.bindTenant) throw new LimsError('common.internal');
         await tx.bindTenant(tenantId);   // D-212: tenant from the DEFINER row only
+        actor = await actorOf(tenantId, membershipId);
         s = { ...base, tenantId, kind: 'tenant_staff', membershipId, platformStaffId: null };
         await deps.repo.insertSession(tx, s);
         await deps.events.recordTenant(tx, ev({ tenantId, membershipId }));
@@ -81,7 +94,7 @@ export function createConfirmEmailToken(deps: ConfirmDeps) {
       return {
         status: 200 as const,
         body: { session_token: token, session: { session_id: s.id, kind: s.kind, state: s.state, aal: s.aal,
-          idle_expires_at: s.idleExpiresAt.toISOString(), absolute_expires_at: s.absoluteExpiresAt.toISOString() } },
+          idle_expires_at: s.idleExpiresAt.toISOString(), absolute_expires_at: s.absoluteExpiresAt.toISOString(), actor } },
       };
     });
   };

@@ -10,6 +10,7 @@ const allowed: Edge[] = [
   ['pending', 'failed'], ['sent', 'failed'], // job exhausted
   ['sent', 'sent'], // resend (attempt_no + 1)
   ['sent', 'accepted'],
+  ['pending', 'accepted'], // T0B-ACTIVATE-2 / LD-302: a verified invite token accepts a pending invitation (no worker needed)
   ['sent', 'expired'], // cron
   ['pending', 'revoked'], ['sent', 'revoked'], // deactivate
   ['expired', 'sent'], ['failed', 'sent'], // resend creates a new sent attempt

@@ -9,19 +9,19 @@ SELECT * FROM no_plan();
 SELECT is_empty($$SELECT rolname FROM pg_roles WHERE rolname LIKE 'lims\_%' AND (rolbypassrls OR rolsuper)$$,
   'AC-0B-1.1 no lims_% role has rolsuper or rolbypassrls');
 
--- exact role set (no role outside the table; lims_migration is not created)
+-- exact role set (no role outside the table; lims_migration is created NOLOGIN, LD-226)
 SELECT is(ARRAY(SELECT rolname::text FROM pg_roles WHERE rolname LIKE 'lims\_%' ORDER BY rolname::text COLLATE "C"),
-  ARRAY['lims_analytics','lims_api','lims_app','lims_audit_ship','lims_migrator','lims_monitor',
+  ARRAY['lims_analytics','lims_api','lims_app','lims_audit_ship','lims_migration','lims_migrator','lims_monitor',
         'lims_owner','lims_queue','lims_replicator','lims_reporting_lookup','lims_worker']::text[],
-  'exactly the 11 spec roles exist; lims_migration not created');
+  'exactly the 12 roles exist (11 spec roles + lims_migration NOLOGIN, LD-226)');
 
 -- AC-0B-1.2: lims_owner NOLOGIN, plus the other NOLOGIN roles
 SELECT is(rolcanlogin, false, r || ' rolcanlogin = false')
-  FROM pg_roles, unnest(ARRAY['lims_owner','lims_app','lims_queue','lims_reporting_lookup','lims_analytics']) r WHERE rolname = r;
+  FROM pg_roles, unnest(ARRAY['lims_owner','lims_app','lims_queue','lims_reporting_lookup','lims_analytics','lims_migration']) r WHERE rolname = r;
 SELECT is(rolcanlogin, true, r || ' rolcanlogin = true')
   FROM pg_roles, unnest(ARRAY['lims_migrator','lims_api','lims_worker','lims_monitor','lims_replicator','lims_audit_ship']) r WHERE rolname = r;
 
--- every lims_% role: no createdb / createrole / bypassrls / super (4 flags x 11 roles)
+-- every lims_% role: no createdb / createrole / bypassrls / super (4 flags x 12 roles)
 SELECT is_empty($$SELECT rolname FROM pg_roles WHERE rolname LIKE 'lims\_%' AND (rolcreatedb OR rolcreaterole)$$,
   'no lims_% role has CREATEDB or CREATEROLE');
 
@@ -35,11 +35,15 @@ SELECT g.rolname::text AS grp, u.rolname::text AS member, a.inherit_option AS in
   FROM pg_auth_members a JOIN pg_roles g ON g.oid = a.roleid JOIN pg_roles u ON u.oid = a.member
  WHERE u.rolname LIKE 'lims\_%' AND g.rolname LIKE 'lims\_%';
 SELECT is(ARRAY(SELECT grp || '|' || member || '|' || inh::text || '|' || setopt::text FROM m ORDER BY grp || '|' || member || '|' || inh::text || '|' || setopt::text COLLATE "C"),
-  ARRAY['lims_app|lims_api|true|false','lims_app|lims_worker|true|false',
+  ARRAY['lims_app|lims_api|true|false','lims_app|lims_migrator|false|true','lims_app|lims_worker|true|false',
         'lims_owner|lims_migrator|false|true','lims_queue|lims_migrator|false|true',
         'lims_queue|lims_worker|true|false','lims_reporting_lookup|lims_migrator|false|true']::text[],
   'lims_% memberships and INHERIT/SET options match 05-SCHEMA §1 exactly');
 SELECT is(pg_has_role('lims_monitor','pg_monitor','MEMBER'), true, 'lims_monitor is member of pg_monitor');
+-- C18 05-SCHEMA s2 CI assertions for lims_migration (LD-226): no bypassrls/super (covered above), owns nothing, member of no lims_% role (no lims_app membership: D-136 undecided)
+SELECT is(pg_has_role('lims_migration', r, 'MEMBER'), false, 'lims_migration is not a member of ' || r)
+  FROM unnest(ARRAY['lims_owner','lims_queue','lims_reporting_lookup','lims_app']) r;
+SELECT is_empty($$SELECT c.relname FROM pg_class c WHERE c.relowner = 'lims_migration'::regrole$$, 'lims_migration owns no relation');
 
 -- privilege-escalation: api/worker cannot SET ROLE to owner / queue(api) / reporting_lookup; api is not in queue/owner/lookup
 SELECT is(pg_has_role(u, r, 'MEMBER'), false, u || ' is not a member of ' || r)
@@ -54,6 +58,8 @@ SELECT is((SELECT array_to_string(rolconfig, ',') FROM pg_roles WHERE rolname='l
   'idle_in_transaction_session_timeout=30s,search_path=""', 'lims_api session guards') ;
 SELECT is((SELECT array_to_string(rolconfig, ',') FROM pg_roles WHERE rolname='lims_worker'),
   'idle_in_transaction_session_timeout=120s,search_path=""', 'lims_worker session guards');
+SELECT is((SELECT array_to_string(ARRAY(SELECT c FROM unnest(rolconfig) c ORDER BY c COLLATE "C"), ',') FROM pg_roles WHERE rolname='lims_migration'),
+  'idle_in_transaction_session_timeout=300s,search_path="",statement_timeout=30min', 'lims_migration session guards');
 
 -- 01_database.sql: CREATE on DB to lims_owner WITH GRANT OPTION only; schema test 30 no standing CREATE
 SELECT is(has_database_privilege('lims_owner', current_database(), 'CREATE'), true, 'lims_owner has CREATE on database');
@@ -63,7 +69,7 @@ SELECT is_empty($$SELECT r.rolname FROM pg_roles r
      AND has_database_privilege(r.oid, current_database(), 'CREATE')$$,
   'CREATE on database held by lims_owner only (among non-superuser, non-Supabase roles)');
 SELECT is(has_database_privilege(r, current_database(), 'CREATE'), false, r || ' has no database CREATE (D-201)')
-  FROM unnest(ARRAY['lims_worker','lims_api','lims_queue','lims_reporting_lookup','lims_app','lims_migrator','lims_monitor','lims_analytics']) r;
+  FROM unnest(ARRAY['lims_worker','lims_api','lims_queue','lims_reporting_lookup','lims_app','lims_migrator','lims_monitor','lims_analytics','lims_migration']) r;
 SELECT is(has_schema_privilege(r, 'app', 'CREATE'), false, r || ' has no CREATE on schema app (D-201)')
   FROM unnest(ARRAY['lims_worker','lims_api','lims_queue','lims_reporting_lookup']) r;
 SELECT is(has_schema_privilege('public', 'public', 'CREATE'), false, 'PUBLIC has no CREATE on schema public');
@@ -72,7 +78,7 @@ SELECT is_empty($$SELECT a.privilege_type FROM pg_database d, aclexplode(d.datac
 
 -- CONNECT grants
 SELECT is(has_database_privilege(r, current_database(), 'CONNECT'), true, r || ' can CONNECT')
-  FROM unnest(ARRAY['lims_migrator','lims_api','lims_worker','lims_monitor','lims_audit_ship']) r;
+  FROM unnest(ARRAY['lims_migrator','lims_api','lims_worker','lims_monitor','lims_audit_ship','lims_migration']) r;
 SELECT is(has_database_privilege('lims_app', current_database(), 'CONNECT'), false, 'group role lims_app has no CONNECT');
 
 -- extensions schema usage (08 A31.1)

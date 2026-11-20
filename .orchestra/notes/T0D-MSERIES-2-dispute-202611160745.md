@@ -1,0 +1,11 @@
+# T0D-MSERIES-2 dispute (writer, round 1)
+Implementation done; m2 config 309/314. The 5 failures and the web-style/rs-c fails below are test defects or baselines I may not edit.
+
+1. `m2.groups.test.ts` "a section is one contiguous run in manifest order": real data cannot pass. micro (C10 04-UI-UX s1) and anatomic (C11 s1) are BOTH spec-fixed at laboratory orders 60..63 and pinned verbatim by `micro/__tests__/nav.manifest.test.ts` and `anatomic/__tests__/t19.nav.test.ts`; sorted by order+id they interleave. Fix: drop the test (the sidebar now keeps each section in one run, `bySection` in AppShell.tsx), or the lead raises a CR to move anatomic to 70..73 (spec + t19 change).
+2. `m2.sidebar.test.tsx` "never throws on regex characters": `u.type(field(), '([*+?^$')` throws inside user-event ("Expected key descriptor but found '*'"): `[` opens a key descriptor. Escape it as `'([[*+?^$'`.
+3. `r04.shell.test.tsx` "every link points at the manifest path": after openAll only the last group is open, so getByRole('link') of closed groups fails by contract (closed lists are `hidden`). Check hrefs with `querySelector('li[data-entry-id] > a')` as m2.sidebar does.
+4. `r04.shell.test.tsx` "search affordance": `screen.getByRole('searchbox')` now finds two (global search + Find a screen, both required). Use `{ name: /search patients/i }`.
+5. `r04.search.test.tsx` XSS: `document.querySelector('img')` now finds the required Metro Labs logo. Use `img[src="x"]` / `img:not([alt="Metro Labs"])`.
+6. web-style-1/2/3/4 "added css lines: no px": the only new px are the values m2.source/r04.source REQUIRE in px (296px, 46px, 76px, outline 3px / offset 2px). Contradictory pins; exempt those lines or let m2 accept rem.
+7. web-style-2 (b) and web-style-3 (b) "layout: no img": the logo <img alt="Metro Labs"> required by m2.entry; web-style-4 was updated, 2/3 were not.
+8. Baselines/snapshots changed by this task (tester refresh): rs-c2 "snapshot: sign-in" (LoginForm lost the placeholder lockup), rs-c2 "nav files untouched"/"same permission codes" (admin/nav.manifest.ts gained createRouteId/createLabel), rs-c15 snapshot/static (payments manifest gained `section`; the 31->38 code diff may be partly pre-existing, not isolated). Likely pre-existing, not mine: rs-c2 "same route files", rs-c5 lab/server byte-identity, anatomic t19 chord 'g t'.

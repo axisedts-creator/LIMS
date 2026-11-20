@@ -12,6 +12,7 @@ import { createDepartment } from './createDepartment.server';
 import { createMethod } from './createMethod.server';
 import { createCriticalLimitSetDraft, createReferenceRangeSetDraft } from './createRangeSetDraft.server';
 import { createSpecimenType } from './createSpecimenType.server';
+import { createTest } from './createTest.server';
 import { createUnit } from './createUnit.server';
 import { createValueSet } from './createValueSet.server';
 import { discardCriticalLimitSetDraft, discardReferenceRangeSetDraft } from './discardRangeSet.server';
@@ -71,6 +72,10 @@ export async function updateMasterAction(kind: MasterKind, id: string, version: 
   return run(() => saved(() => op(kind).update(id, version, input)));
 }
 
+/** T0D-CATTESTS-1 (LD-310): the Tests page New test form. */
+export async function createTestAction(input: unknown, idempotencyKey: string): Promise<ActionResult<Saved>> {
+  return run(() => saved(() => createTest(input, idempotencyKey)));
+}
 export async function updateTestAction(testId: string, version: number, fields: Parameters<typeof updateTest>[2]): Promise<ActionResult<TestDto>> {
   return run(() => updateTest(testId, version, fields));
 }

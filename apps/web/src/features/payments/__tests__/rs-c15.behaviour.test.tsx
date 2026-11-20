@@ -33,6 +33,8 @@ vi.mock('@/core/session/server', () => ({
   getRequestPathname: async () => '/payments/review',
 }));
 
+import { card as tabCard } from './pg-t19.helpers';
+
 afterEach(() => { cleanup(); push.mockClear(); });
 
 const ALL = ['payments.reconciliation.read', 'payments.intent.resolve', 'payments.refund.request', 'payments.refund.approve', 'payments.merchant_config.manage'];
@@ -88,7 +90,8 @@ describe('RS-C15 status chips: tone + icon + word (10-DESIGN-SYSTEM s6; A1, A2, 
 
   it('A3 settings: eSewa Enabled/success, Khalti Disabled/neutral, Fonepay "Not available yet"/neutral, each beside the card title', async () => {
     await renderSettings();
-    const card = (name: string) => screen.getByRole('heading', { name }).closest('.lims-card') as HTMLElement;
+    // LD-353 template 4 (T0D-UISETTINGS-1): each gateway is a tab of the kit SettingsForm; the chip sits in that tab's section (card() opens the tab).
+    const card = (name: string) => tabCard(name);
     const chip = (name: string) => { const c = card(name).querySelector<HTMLElement>('.lims-chip'); expect(c, `status chip in the ${name} card`).not.toBeNull(); return c!; };
     expect([chip('eSewa').textContent!.trim(), chip('eSewa').dataset['tone']]).toEqual(['Enabled', 'success']);
     expect([chip('Khalti').textContent!.trim(), chip('Khalti').dataset['tone']]).toEqual(['Disabled', 'neutral']);
@@ -160,10 +163,10 @@ describe('RS-C15 arrangement guards (10-DESIGN-SYSTEM s3, s4 Accounts, s6; A5)',
     for (const h of ['Found', 'Severity', 'Kind', 'Intent', 'Our status', 'Provider status', 'Our amount', 'Provider amount', 'Automatic action', 'Actions']) expect(within(grid).getByRole('columnheader', { name: new RegExp(`^${h}`) })).toBeTruthy();
   });
 
-  it('money columns stay right-aligned and use the kit amount text (Rs. lakh grouping) in ledger-style tables', async () => {
+  it('money columns stay right-aligned and use the kit amount text (lakh grouping; T0D-UILIST-2 rule 3: the currency moves into the header "Our amount (NPR)") in ledger-style tables', async () => {
     await renderRecon();
     const grid = await openFindings();
-    for (const c of columnCells(grid, /^our amount$/i).filter((x) => x.textContent!.trim() !== '—')) expect(c.querySelector('.lims-money')).not.toBeNull();
+    for (const c of columnCells(grid, /^our amount\b/i).filter((x) => x.textContent!.trim() !== '—')) expect(c.querySelector('.lims-money')).not.toBeNull();
     const heads = [...grid.querySelectorAll('[role="columnheader"]')].filter((h) => /amount/i.test(h.textContent ?? ''));
     expect(heads.length).toBe(2);
   });

@@ -89,11 +89,12 @@ describe('P13 net_billed_paisa never leaves the flag-gated referral report (08 A
     expect(REPORT_REGISTRY['top_referrers']!.exportColumns).not.toContain('net_billed_paisa');
     expect(REPORT_REGISTRY['dashboard']!.exportColumns).not.toContain('net_billed_paisa');
     const owners = Object.entries(REPORT_REGISTRY).filter(([, d]) => d.exportColumns.includes('net_billed_paisa')).map(([c, d]) => [c, (d as any).flag]);
-    expect(owners).toEqual([['referral_incentive', 'referralIncentiveReportEnabled']]);
+    expect(owners).toEqual([['referral_incentive', 'referralIncentiveReportEnabled'], ['two_level_commission', 'referralIncentiveReportEnabled']]);
   });
   it('in C8 source (non-test), net_billed_paisa appears only in the referral / billing-rollup files', () => {
     const allowed = new Set([
       'domain/reportRegistry.ts', 'export/reportTable.ts', 'mappers/reports.dto.ts', 'repository/refresh.repo.ts', 'repository/rollups.repo.ts', 'service/referral.service.ts',
+      'service/misReports.service.ts', // LD-402: A39 two_level_commission SQL outputs the contract column net_billed_paisa
     ]);
     const hits = sources(ANALYTICS_SRC).filter((f) => readFileSync(f, 'utf8').includes('net_billed_paisa')).map((f) => relative(ANALYTICS_SRC, f).replaceAll('\\', '/'));
     expect(hits.filter((h) => !allowed.has(h))).toEqual([]);

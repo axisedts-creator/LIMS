@@ -1,0 +1,1 @@
+pnpm --dir services/api exec vitest run src/modules/identity/handlers/__tests__/audit.chain.test.ts src/modules/identity/__tests__/audit-wire.handlers.test.ts src/modules/identity/__tests__/audit-view.handlers.test.ts src/modules/identity/__tests__/audit-export.handlers.test.ts

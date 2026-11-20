@@ -8,73 +8,67 @@ import { gotrueGatewayFromEnv } from '../gotrue/gateway.http.js';
 import type { GoTrueGateway } from '../gotrue/gateway.js';
 import { createAuthEventsRepo, createAuthRepo } from '../repository/auth-events.repo.js';
 import { createAuthService, type AuthCtx, type AuthDeps, type AuthLimits } from '../service/auth.service.js';
-import { idMetrics } from '../metrics.js';
 
 export interface LoginHctx extends HandlerContext {
-  requestId: string; bffKey?: string; actor?: { type: string; id: string }; commitOnError?: () => void;
-  rateLimit?: { consume(tier: 'login', key: string): Promise<void> };
+  requestId: string; bffKey?: HandlerContext['bffKey']; actor?: { type: string; id: string }; commitOnError?: () => void;
+  rateLimit?: LoginLimiter;
   db: { identityAuthTx<T>(input: TxInput, fn: TxFn<T>): Promise<T> };
 }
 
-const H = 3_600_000;
-
 // ---------- AuthLimits adapter ----------
-// a:<hmac> 10/h is C0's `login` rule (ctx.rateLimit.consume). C0 has no `f:` rule and no non-consuming read (core/ratelimit RULES), so the
-// failure windows below are process-local (.orchestra/cr/T6.md).
-// ponytail: per-instance Maps; N API instances = N x the thresholds and a restart forgets them. Move to the C0 store when the CR lands.
-const fails = new Map<string, number[]>();      // a:<hmac> failure times, sliding 60 min (03-APP-FLOW §3.3)
-const ipFails = new Map<string, number[]>();    // f:<ip> failure times, sliding 10 min (08 A1)
-const ipAttempts = new Map<string, number[]>(); // f:<ip> attempts while throttled, sliding 60 s
-const ipUntil = new Map<string, number>();      // f:<ip> throttle end
-const ipLast = new Map<string, number>();       // f:<ip> last failure (T28 stuffing gauge, 15 min)
-const MAX_KEYS = 100_000;
+// SEC-ABUSE-1 (LD-237 (1), LD-410, LD-414): every counter lives in the limiter's `login` tier (Postgres app.ratelimit_hit / _peek / _clear,
+// keys HMAC'd by the limiter), so N API instances share one budget and a restart forgets nothing. Fail closed: no limiter or a store
+// failure = common.dependency_unavailable. Thresholds, windows and lockout are unchanged from the process-local version:
+const ACCOUNT_WINDOW_MS = 60 * 60_000;  // x:<acct> failures, sliding 60 min (03-APP-FLOW §3.3)
+const IP_FAIL_LIMIT = 10;               // f:<ip> 10 failures in a sliding 10 min engage the throttle (08 A1)
+const IP_FAIL_WINDOW_MS = 10 * 60_000;
+const IP_THROTTLE_MS = 30 * 60_000;     // t:<ip> throttle lasts 30 min from the engaging failure
+// a:<acct> 10/h and g:<ip> 5 attempts / 60 s while throttled are limiter rules (core/ratelimit RULES.login).
+// ponytail: last_hit (DB clock) is compared with the API clock; NTP skew of a few seconds shifts the 30 min / 60 min edges by as much.
+// The T28 stuffing / ip-throttle gauges were fed by the process Maps and are no longer set here (.orchestra/cr/SEC-ABUSE-1.2.nonblocking.md).
 
-function window(m: Map<string, number[]>, key: string, now: number, ms: number): number[] {
-  const a = (m.get(key) ?? []).filter((t) => t > now - ms);
-  if (a.length) m.set(key, a); else m.delete(key);
-  if (m.size > MAX_KEYS) m.delete(m.keys().next().value as string); // bound memory under key spraying: oldest key goes
-  return a;
+export interface LoginLimiter {
+  consume(tier: 'login', key: string): Promise<void>;
+  // optional in the type (core/module.ts HandlerContext declares consume only); missing at run time = fail closed (rl() below)
+  peek?(tier: 'login', key: string): Promise<{ hits: number; lastHit: Date | null }>;
+  clear?(tier: 'login', key: string): Promise<void>;
 }
-const Q = 15 * 60_000;
-/** T28 backing gauges (02-TRD §13) from the same process-local windows [CONV; the auth_events sample is CR-C2-T28-002].
- *  ponytail: O(keys) scan per failure, bounded by MAX_KEYS; fine for login traffic. */
-function gauges(t: number) {
-  let throttled = 0; for (const u of ipUntil.values()) if (u > t) throttled += 1;
-  let accounts = 0; for (const a of fails.values()) if ((a[a.length - 1] ?? 0) > t - Q) accounts += 1;
-  let ips = 0; for (const l of ipLast.values()) if (l > t - Q) ips += 1;
-  idMetrics.ipThrottlesActive(undefined, throttled);
-  idMetrics.stuffing(undefined, accounts, ips);
-}
-const limitedFor = (ms: number) => Object.assign(new LimsError('common.rate_limited'), { retryAfterSeconds: Math.max(1, Math.ceil(ms / 1000)) });
 
-export function createAuthLimits(rateLimit: LoginHctx['rateLimit'], now: () => number = Date.now): AuthLimits {
+export function createAuthLimits(rateLimit: LoginLimiter | undefined, now: () => number = Date.now): AuthLimits {
+  const rl = (): Required<LoginLimiter> => {
+    if (!rateLimit || typeof rateLimit.peek !== 'function' || typeof rateLimit.clear !== 'function') throw new LimsError('common.dependency_unavailable');
+    return rateLimit as Required<LoginLimiter>;
+  };
+  /** the latest hit of `key` when it is younger than `ms`, else null (a stale row counts as nothing). */
+  const fresh = async (key: string, ms: number) => {
+    const p = await rl().peek('login', key);
+    return p.lastHit && now() - p.lastHit.getTime() < ms ? p : null;
+  };
   return {
     async consumeAttempt(k) {
       if (!rateLimit) throw new LimsError('common.dependency_unavailable'); // fail closed
       await rateLimit.consume('login', `a:${k}`);
     },
     async accountState(k) {
-      const a = window(fails, `a:${k}`, now(), H);
-      return { failures: a.length, lastFailureAt: a.length ? new Date(a[a.length - 1]!) : null };
+      const p = await fresh(`x:${k}`, ACCOUNT_WINDOW_MS);
+      return p ? { failures: p.hits, lastFailureAt: p.lastHit } : { failures: 0, lastFailureAt: null };
     },
-    async recordAccountFailure(k) { const key = `a:${k}`; const a = window(fails, key, now(), H); a.push(now()); fails.set(key, a); },
-    async clearAccountFailures(k) { fails.delete(`a:${k}`); },
+    async recordAccountFailure(k) { await rl().consume('login', `x:${k}`); },
+    // Without a limiter there is nothing to clear (and no counter that could lock anyone out); a store failure still throws.
+    async clearAccountFailures(k) { if (rateLimit) await rl().clear('login', `x:${k}`); },
     async checkIp(ip) {
-      const key = `f:${ip}`; const t = now();
-      if ((ipUntil.get(key) ?? 0) <= t) { if (ipUntil.delete(key)) gauges(t); return; }
-      const a = window(ipAttempts, key, t, 60_000);
-      if (a.length >= 5) throw limitedFor(a[0]! + 60_000 - t);
-      a.push(t); ipAttempts.set(key, a);
+      if (!(await fresh(`t:${ip}`, IP_THROTTLE_MS))) return;
+      await rl().consume('login', `g:${ip}`);   // 5 / 60 s while throttled -> common.rate_limited with Retry-After
     },
     async recordIpFailure(ip) {
-      const key = `f:${ip}`; const t = now();
-      const a = window(ipFails, key, t, 600_000); a.push(t); ipFails.set(key, a);
-      const engaged = a.length >= 10 && (ipUntil.get(key) ?? 0) <= t;
-      if (engaged) ipUntil.set(key, t + 30 * 60_000);
-      ipLast.delete(key); ipLast.set(key, t);                                  // re-insert: Map order = recency
-      if (ipLast.size > MAX_KEYS) ipLast.delete(ipLast.keys().next().value as string);
-      gauges(t);
-      return { engaged, windowStart: new Date(a[0]!) };
+      const prior = await fresh(`f:${ip}`, IP_FAIL_WINDOW_MS);
+      if (!prior) await rl().consume('login', `w:${ip}`);   // first failure of a run: window start marker
+      await rl().consume('login', `f:${ip}`);
+      const failures = (prior?.hits ?? 0) + 1;
+      const engaged = failures >= IP_FAIL_LIMIT && !(await fresh(`t:${ip}`, IP_THROTTLE_MS));
+      if (!engaged) return { engaged, windowStart: new Date(now()) };
+      await rl().consume('login', `t:${ip}`);
+      return { engaged, windowStart: (await fresh(`w:${ip}`, IP_FAIL_WINDOW_MS))?.lastHit ?? new Date(now()) };
     },
   };
 }

@@ -3,15 +3,19 @@ import { join } from 'node:path';
 import Fastify, { type FastifyInstance } from 'fastify';
 import type { CoreConfig } from './config.js';
 import { genReqId, installErrorHandlers, sendProblem } from './errors.js';
-import { createHealthHandlers, UNWIRED_CHECKS, type HealthChecks } from './health.js';
+import { createHealthHandlers, UNWIRED_CHECKS, type EnvSource, type HealthChecks } from './health.js';
 import { autoload, checkHandlers, DEFAULT_MODULES_DIR, loadSpec, REPO_ROOT } from './module.js';
+import { CORE_PENDING_OPERATIONS } from './core-pending.js';
+import { syncHandlers, syncPart2Handlers } from './sync/index.js';
 import { createBffKeyVerifier } from './auth/bff-key.js';
 import type { ClaimsResolver } from './auth/claims-resolver.js';
 import { createClientIpResolver } from './auth/client-ip.js';
 import { createJwtVerifier } from './auth/jwt.js';
+import { installHttpPerf } from './observability/http-perf.js';
+import { installSecurityHeaders } from './observability/security-headers.js';
 import { childLoggerFactory, createCoreLogger, installRequestLog } from './observability/logging.js';
 import { createMetrics, type CoreMetrics } from './observability/metrics.js';
-import { claimsOf, installRouteHooks, mountSpec, schemaController, type CoreAuth } from './openapi.js';
+import { claimsOf, installRouteHooks, mountSpec, schemaController, withoutPendingBearer, type CoreAuth } from './openapi.js';
 import { bootPipeline } from './pipeline/boot.js';
 
 export interface BootstrapOptions {
@@ -22,6 +26,8 @@ export interface BootstrapOptions {
   readonly modulesDir?: string;
   /** Readiness dependency checks (02-TRD §8). Default: not wired yet, so readiness reports down. */
   readonly healthChecks?: HealthChecks;
+  /** T0B-OPSDOC-1 (LD-277): env whose required LIMS_* names readiness checks (names only). Default: no env check. */
+  readonly env?: EnvSource;
   /** Log sink (one JSON line per write). Default: stdout. */
   readonly logStream?: { write(line: string): void };
 }
@@ -48,7 +54,23 @@ export async function bootstrap(opts: BootstrapOptions): Promise<FastifyInstance
     app.decorate('metrics', metrics);
     installErrorHandlers(app);
     installRequestLog(app, metrics, claimsOf);
+    installHttpPerf(app); // T0B-PERF-1 (LD-310): stats scope, Server-Timing, compression, keep-alive
+    installSecurityHeaders(app); // SEC-HDR-1 (LD-238): nosniff, Referrer-Policy, no-store on authenticated JSON
     const modules = await autoload(modulesDir, repoRoot);
+    // LD-325 (T0B-BOOTGATE-1): stale pending entries warn (handler wins); production refuses any pending entry (stale included)
+    // unless LIMS_ALLOW_PENDING_OPS is exactly 1.
+    // T0C-SYNC-1 (LD-322): the core's own pending sync operations count too (only when the core spec is mounted, see below).
+    const pendingIds = [...(repoRoot === REPO_ROOT ? CORE_PENDING_OPERATIONS.map((id) => `core.${id}`) : []),
+      ...modules.flatMap((m) => (m.manifest.pendingOperations ?? []).map((id) => `${m.manifest.name}.${id}`))];
+    if (pendingIds.length && process.env.NODE_ENV === 'production' && process.env.LIMS_ALLOW_PENDING_OPS !== '1') {
+      throw new Error(`production boot refuses pending operations (set LIMS_ALLOW_PENDING_OPS=1 to override): ${pendingIds.join(', ')}`);
+    }
+    for (const m of modules) {
+      for (const id of m.stalePending) {
+        app.log.warn({ event: 'pending_operation_stale', module: m.manifest.name, operationId: id },
+          `module ${m.manifest.name}: pending operation ${id} has a handler; remove it from pendingOperations`);
+      }
+    }
     // 02-TRD §6.5: key files are read now, so a missing/garbage key or CIDR fails boot (no lazy / network fallback).
     const auth: CoreAuth = {
       ...(config.jwt ? { verifier: createJwtVerifier(config.jwt) } : {}),
@@ -62,12 +84,17 @@ export async function bootstrap(opts: BootstrapOptions): Promise<FastifyInstance
     app.addHook('onClose', async () => { await pipes.close(); });
     if (repoRoot === REPO_ROOT) {
       // 02-TRD §8: the core's own spec; custom repoRoots (test fixtures) carry module specs only.
-      const spec = loadSpec(join(REPO_ROOT, 'contracts', 'openapi', 'core.yaml'));
-      const handlers = createHealthHandlers(opts.healthChecks ?? pipes.healthChecks ?? UNWIRED_CHECKS) // LD-193: injected, else real, else fail closed;
-      checkHandlers('core', spec, handlers);
-      await mountSpec(app, 'core', spec, handlers, auth, pipes.pipelineFor('core'));
+      // T0B-SYNC-1 [CONV]: without LIMS_CORE_JWT_* no bearerJwt call can authenticate, so the core mounts its public health operations
+      // only (the sync routes are absent, 404, fail closed) instead of refusing boot; the same rule mountSpec applies to pending ids.
+      const full = loadSpec(join(REPO_ROOT, 'contracts', 'openapi', 'core.yaml'));
+      const spec = auth.verifier ? full : withoutPendingBearer(full, [...Object.keys(syncHandlers), ...Object.keys(syncPart2Handlers)]);
+      if (!auth.verifier) app.log.warn({ event: 'core_sync_unmounted' }, 'no JWT config: core sync operations are not mounted');
+      // LD-193: injected, else real, else fail closed; T0B-SYNC-1 / T0B-SYNC-2 (LD-322, LD-325 b): plus the offline sync handlers, parts 1 and 2.
+      const handlers = { ...createHealthHandlers(opts.healthChecks ?? pipes.healthChecks ?? UNWIRED_CHECKS, opts.env), ...(auth.verifier ? { ...syncHandlers, ...syncPart2Handlers } : {}) };
+      checkHandlers('core', spec, handlers, CORE_PENDING_OPERATIONS);
+      await mountSpec(app, 'core', spec, handlers, auth, pipes.pipelineFor('core'), CORE_PENDING_OPERATIONS);
     }
-    for (const m of modules) await mountSpec(app, m.manifest.name, m.spec, m.manifest.handlers, auth, pipes.pipelineFor(m.manifest.name));
+    for (const m of modules) await mountSpec(app, m.manifest.name, m.spec, m.manifest.handlers, auth, pipes.pipelineFor(m.manifest.name), m.manifest.pendingOperations);
     if (config.loadSampleModule) {
       // 02-TRD §14: core-owned, ci only, never deployed; its spec lives next to it, not in contracts/openapi.
       const { manifest } = await import('./__fixtures__/module-sample/index.js');

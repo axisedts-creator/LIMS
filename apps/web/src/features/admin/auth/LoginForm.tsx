@@ -4,9 +4,10 @@ import { useId, useState, type FormEvent } from 'react';
 import { Banner } from '@lims/ui/components/Banner';
 import { Button } from '@lims/ui/components/Button';
 import { RequiredNote } from '../ui';
-import { AuthIcon, AuthMark } from './AuthArt';
+import { AuthIcon } from './AuthArt';
 import { PasswordField } from './PasswordField';
 import { EMAIL_RE, errorCopy, type ActionResult } from './messages';
+import { useAuthSubmit, WakingState } from './WakingState';
 
 export interface LoginFormProps {
   action: (fd: FormData) => Promise<ActionResult>;
@@ -21,8 +22,7 @@ export function LoginForm({ action, loggedOut, mfaFailed, next }: LoginFormProps
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fieldErr, setFieldErr] = useState<{ email?: string; password?: string }>({});
-  const [failure, setFailure] = useState<Extract<ActionResult, { ok: false }>>();
-  const [pending, setPending] = useState(false);
+  const { failure, pending, send, retry } = useAuthSubmit(action);
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -33,26 +33,18 @@ export function LoginForm({ action, loggedOut, mfaFailed, next }: LoginFormProps
     };
     setFieldErr(errs);
     if (errs.email || errs.password) return;
-    const fd = new FormData(e.currentTarget);
-    setPending(true);
-    setFailure(undefined);
-    try {
-      const r = await action(fd);
-      if (r && !r.ok) setFailure(r);
-    } catch {
-      setFailure({ ok: false, code: 'common.dependency_unavailable' });
-    } finally {
-      setPending(false);
-    }
+    await send(new FormData(e.currentTarget));
   }
 
+  if (failure?.waking) return <WakingState onRetry={retry} />; // T0D-WAKE-1 (LD-277)
   return (
     <div className="lims-auth-card">
-      <div className="lims-lockup">
-        <AuthMark />
-        <p className="lims-wordmark">LIMS</p>
-      </div>
-      <h1>Log in</h1>
+      {/* T0D-MSERIES-2 (LD-251, 13-M-SERIES s5): the Metro Labs logo sits in the auth layout; no placeholder mark in the card */}
+      {/* T0D-MSERIES-5 (LD-276, board M1-entry): pill, heading, text, Work email, Forgot password? on the password label row, Continue.
+          The board's Patient or partner portal button has no route in contracts/routes.yaml, so it is left out (LD-250). */}
+      <span className="lims-auth-pill">Staff sign-in</span>
+      <h1>Welcome back</h1>
+      <p>Sign in with your work email. A one-time code confirms it is you.</p>
       {loggedOut ? <Banner tone="info" title="You have been logged out." /> : null}
       {mfaFailed ? <Banner tone="warning" title="Too many incorrect codes. Log in again." /> : null}
       {failure ? (
@@ -65,7 +57,7 @@ export function LoginForm({ action, loggedOut, mfaFailed, next }: LoginFormProps
         <div className="lims-field">
           <div className="lims-label-row">
             <label className="lims-label" htmlFor={`${id}-email`}>
-              Email
+              Work email
             </label>
             <RequiredNote />
           </div>
@@ -101,13 +93,13 @@ export function LoginForm({ action, loggedOut, mfaFailed, next }: LoginFormProps
           onChange={setPassword}
           error={fieldErr.password}
           isDisabled={pending}
+          labelAction={<a href="/auth/forgot">Forgot password?</a>}
         />
         <Button type="submit" variant="primary" isLoading={pending}>
-          Log in
+          Continue
           <AuthIcon kind="arrow" className="lims-btn-arrow" />
         </Button>
       </form>
-      <a href="/auth/forgot">Forgot password?</a>
     </div>
   );
 }

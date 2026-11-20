@@ -1,0 +1,1 @@
+pnpm --dir services/api exec vitest run src/modules/identity/__tests__/session-range.contract.test.ts src/modules/identity/__tests__/session-range.checks.test.ts src/modules/identity/service/__tests__/auth.session-clamp.test.ts src/modules/identity/service/__tests__/settings.service.test.ts src/modules/identity/domain/__tests__/settings.ranges.test.ts

@@ -1,0 +1,7 @@
+# T0B-MISREPORTS-2 dispute (writer, LD-408 pass, 2026-11-19)
+TEST WRONG: commission.live.test.ts:124 `expect(sub.parent_party_name.length).toBeGreaterThan(0)` cannot pass with the current fixture.
+- Names come from catalog.credit_parties.name (the credit-party identity LD-408 says to FK against; party_name of every row uses the same join).
+- kit.ts:55 makes `spec.parties` as bare uid()s and never inserts catalog.credit_parties rows (inserts run under session_replication_role = replica, so the FK on invoices.credit_party_id is not enforced). So party_name AND parent_party_name are '' for every party: the run shows level 2 + parent_party_id = parties[0] + parent_party_name = parent.party_name ('') all pass; only the length > 0 line fails.
+- Inventing a name from elsewhere (e.g. invoice buyer_name) would be a scan dodge, not the contract column.
+Suggested fix (test side only): seed catalog.credit_parties rows (tenant_id, id = spec.parties[i], synthetic name) in kit.ts world setup or in putSettings. No assertion needs loosening.
+Implementation done this pass (uncommitted, awaiting the fixture fix): migration db/migrations/20261119000000_partners__add_party_parent_credit_party.sql (two LD-408 columns, composite FK to catalog.credit_parties, CHECK credit_party only + no self link), db/meta/tables.yaml (2 columns), misReports.service.ts (level / parent from the link unless credit_self_not_parent). Live file: 26/27 pass, only line 124 fails. tsc clean.

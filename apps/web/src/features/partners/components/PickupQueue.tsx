@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@lims/ui/components/Button';
 import { ConfirmDialog } from '@lims/ui/components/ConfirmDialog';
 import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
+import { FilterBar } from '@lims/ui/components/FilterBar';
 import { DateTimePicker } from '@lims/ui/components/DateTimePicker';
 import { Dialog } from '@lims/ui/components/Dialog';
 import { PageHeader } from '@lims/ui/components/PageHeader';
@@ -12,7 +13,11 @@ import { TextField } from '@lims/ui/components/TextField';
 import { useToast } from '@lims/ui/components/Toast';
 import { markPickedUpAction, rejectPickupAction, schedulePickupAction } from '../server/actions';
 import type { ActionResult, Pickup } from '../server/types';
-import { Ad, Chip, DialogError, LoadFailed, Notice, REASONS, errorText } from './common';
+import { Ad, Chip, DialogError, LOAD_FAILED, Notice, REASONS, errorText, useUrlFilters } from './common';
+
+export const OPEN = 'requested,scheduled';
+/** T0D-UILIST-3 (LD-353 template 1): the state filter; the default is the open requests. */
+const STATES = [{ value: OPEN, label: 'Open requests' }, { value: 'picked_up,rejected,cancelled', label: 'Closed requests' }];
 
 function ScheduleDialog({ pickup, onClose, onDone }: { pickup: Pickup; onClose: () => void; onDone: (r: ActionResult<unknown>) => void }) {
   const [from, setFrom] = useState<string>();
@@ -45,8 +50,9 @@ function ScheduleDialog({ pickup, onClose, onDone }: { pickup: Pickup; onClose: 
   );
 }
 
-export function PickupQueue({ rows, failed }: { rows: readonly Pickup[]; failed: boolean }) {
+export function PickupQueue({ rows, failed, filters = {} }: { rows: readonly Pickup[]; failed: boolean; filters?: { state?: string | undefined } }) {
   const router = useRouter();
+  const setUrl = useUrlFilters();
   const toast = useToast();
   const [notice, setNotice] = useState<string>();
   const [scheduling, setScheduling] = useState<Pickup | null>(null);
@@ -79,12 +85,17 @@ export function PickupQueue({ rows, failed }: { rows: readonly Pickup[]; failed:
   return (
     <section aria-label="Partner pickups">
       <PageHeader title="Partner pickups" helpKey="partners.pickups" />
+      <FilterBar
+        filters={[{ id: 'state', label: 'Status', kind: 'select', options: STATES }]}
+        value={{ state: filters.state ?? OPEN }}
+        onChange={(v) => setUrl({ state: v['state'] === OPEN ? undefined : (v['state'] as string | undefined) })}
+        onReset={() => setUrl({ state: undefined })}
+      />
       {notice ? <Notice text={notice} /> : null}
-      {failed ? (
-        <LoadFailed />
-      ) : (
-        <DataTable caption="Partner pickups" columns={columns} rows={rows} getRowId={(p) => p.id} emptyState={{ title: 'No pickup requests', body: 'Requests from partners will show here.' }} />
-      )}
+      {/* LD-353 rules 5 and 6: 9 columns get a column chooser; header row kept on a failed load, ErrorState with Retry in the body */}
+      <div {...(failed ? { role: 'alert' } : {})}>
+        <DataTable caption="Partner pickups" columns={columns} rows={rows} getRowId={(p) => p.id} cellTitle columnChooser {...(failed ? { error: { title: LOAD_FAILED, onRetry: () => router.refresh() } } : {})} emptyState={{ title: 'No pickup requests', body: 'Requests from partners will show here.' }} />
+      </div>
       {scheduling ? <ScheduleDialog pickup={scheduling} onClose={() => setScheduling(null)} onDone={(r) => { setScheduling(null); done(r, 'Pickup scheduled.'); }} /> : null}
       <ConfirmDialog
         title="Mark picked up"

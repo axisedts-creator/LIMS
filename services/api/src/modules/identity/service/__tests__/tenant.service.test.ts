@@ -28,16 +28,31 @@ describe('provisionTenant - the bundle (AC-E1.1, 03-APP-FLOW s9.1)', () => {
     const { svc, ctx, f, tx, scopes } = setup(); const r = await svc.provisionTenant(ctx, PROVISION); const id = r.body.tenant_id;
     for (const c of f.calls) expect(c.tx).toBe(tx);
     expect(scopes).toEqual([id]); expect(f.by('insert')).toHaveLength(1); expect(f.by('insert')[0]!.scope).toBeNull();
-    for (const m of ['insertBranch', 'insertCentre', 'seedRoles', 'insertSettings', 'seedFlags', 'seedIrdAnnexes', 'insertAcceptances', 'insertAdmin', 'insertInvitation', 'accessLog'])
+    for (const m of ['insertBranch', 'insertCentre', 'seedRoles', 'insertSettings', 'seedFlags', 'insertAcceptances', 'insertAdmin', 'insertInvitation', 'accessLog'])
       { expect(f.by(m), m).toHaveLength(1); expect(f.by(m)[0]!.scope, m).toBe(id); expect(f.by(m)[0]!.args[0], m).toBe(id); }
     expect(f.order.indexOf('insert')).toBeLessThan(f.order.indexOf(`scope:${id}`));
   });
-  it('seeds the default roles of contracts/permissions.yaml roles: (10), settings defaults + body values, flag registry defaults, annex_2/3/7 not_started', async () => {
+  // The fake repository records the scope of every call (rec). Only the core.tenants insert may run outside the scope (its audit row is covered by the 08 A12.5 clause);
+  // every other call that writes an audited tenant table (annexes, branches, centres, roles, settings, flags, acceptances, memberships, invitations, access log) must run inside withTenantScope(new tenant).
+  it('T0B-PROVFIX-1: for EVERY repository call of provisionTenant, the scope is recorded; only the findByCode read and the core.tenants insert may run outside withTenantScope(new tenant id)', async () => {
+    const { svc, ctx, f } = setup(); const id = (await svc.provisionTenant(ctx, PROVISION)).body.tenant_id;
+    const OUTSIDE_OK = new Set(['findByCode', 'insert']);
+    const outside = f.calls.filter((c) => c.scope !== id).map((c) => c.m);
+    expect(outside.filter((m) => !OUTSIDE_OK.has(m)), 'audited-table writes outside the new tenant scope').toEqual([]);
+    for (const m of ['insertBranch', 'insertCentre', 'seedRoles', 'insertSettings', 'seedFlags', 'insertAcceptances', 'insertAdmin', 'insertInvitation', 'accessLog'])
+      expect(f.by(m).map((c) => c.scope), m).toEqual([id]);
+    expect(f.by('insert').map((c) => c.scope)).toEqual([null]);
+  });
+  it('seeds the default roles of contracts/permissions.yaml roles: (10), settings defaults + body values, flag registry defaults', async () => {
     const { svc, ctx, f } = setup(); const id = (await svc.provisionTenant(ctx, { ...PROVISION, pan: '123456789' })).body.tenant_id;
     expect(ROLE_CODES).toHaveLength(10); expect([...f.by('seedRoles')[0]!.args[1] as string[]].sort()).toEqual([...ROLE_CODES].sort());
     expect(f.by('insertSettings')[0]!.args[1]).toMatchObject({ timezone: 'Asia/Kathmandu', calendarDisplay: 'AD_BS', pan: '123456789', legalName: PROVISION.legalName, displayName: 'Synthetic Gamma', trainingMode: false });
-    expect([...f.by('seedIrdAnnexes')[0]!.args[1] as string[]].sort()).toEqual(['annex_2', 'annex_3', 'annex_7']);
-    expect(f.data(id).annexes.map((a) => a.status)).toEqual(['not_started', 'not_started', 'not_started']); expect(f.data(id).flags.length).toBeGreaterThan(0);
+    expect(f.data(id).flags.length).toBeGreaterThan(0);
+  });
+  // LD-295 (T0B-PROVFIX-1): the annex seed is refused by RLS in both placements; annex rows are not seeded at provisioning until the audit policy migration (T0B-PROVFIX-3).
+  it('provisionTenant does not call seedIrdAnnexes (LD-295)', async () => {
+    const { svc, ctx, f } = setup(); const id = (await svc.provisionTenant(ctx, PROVISION)).body.tenant_id;
+    expect(f.by('seedIrdAnnexes')).toHaveLength(0); expect(f.data(id).annexes).toEqual([]);
   });
   it('first branch + first centre (centre linked to the branch) and the first admin: invited, tenant_admin, email normalised (trim+lower), HMAC, invitation + identity.send_invitation job; GoTrue user created BEFORE the tx writes', async () => {
     const { svc, ctx, f, gotrue } = setup(); const id = (await svc.provisionTenant(ctx, PROVISION)).body.tenant_id;

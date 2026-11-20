@@ -76,6 +76,7 @@ export async function reviewHeldCollection(hctx: unknown, params: unknown, heade
       ...(visit['kind'] === 'booking' && visit['booking_id'] ? { booking_id: visit['booking_id'] } : {}),
       synced_at: now.toISOString(),
       collections: [{ client_mutation_id: col['client_mutation_id'], specimen_id: col['specimen_id'], barcode_verified: col['barcode_verified'] === true, collected_at_device: new Date(col['collected_at']).toISOString() }],
+      payments: [],                                                                                   // the event schema requires the key (empty array allowed)
     }, { visitVersion: Number(visit['version']) });
     appliedEventId = sent.eventId;
   }

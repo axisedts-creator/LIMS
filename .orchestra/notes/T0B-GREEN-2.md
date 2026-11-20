@@ -1,0 +1,40 @@
+# T0B-GREEN-2 classification (tester)
+Run: `bash db/tests/run-suites.sh` over the 23 suites of homecollection, partners, migration_staging, instruments, lab, reporting, storage, views, policy, app, on the pinned image, lane worktree 2026-11-17 (LD-273: header printed BEFORE its suite; attribution below is from my own run, not the brief). Numbers are the TAP numbers of the BEFORE run.
+Totals: 50 not ok + 3 psql aborts before; 0 not ok, 0 aborts after. STALE 21, HARNESS 29 (+3 aborts, all HARNESS), REAL 0 left red (one nonblocking CR for a gap that is a decided state, see end).
+
+## Per suite: not ok before -> after
+- homecollection C17_anonymise 6 -> 0; C17_schema 8 -> 0
+- partners C13_behaviour psql abort -> 0; C13_schema 11 -> 0; T0C-SALES-1 0 -> 0
+- migration_staging C18_behaviour psql abort -> 0; C18_schema 2 -> 0
+- instruments C7_behaviour 2 -> 0; C7_schema 3 -> 0; H80-T05, MET-T04 0 -> 0
+- lab C5_schema 1 -> 0; C5_behaviour 0 -> 0
+- reporting C6_schema 2 -> 0; C6_behaviour, C6-T38, C6-T43, PEVPOL-1 0 -> 0
+- storage T0B-12 psql abort (after 20 ok) -> 0 (1 SKIP)
+- views C9-T20 9 -> 0; T0B-08_views 0 -> 0
+- policy T0B-08_policy_shape 6 -> 0; app T0B-02_helpers 0 -> 0
+
+## STALE (21): the expectation is older than an approved migration / LD / CR; updated, each still proves its property
+- C17_schema 1, 2, 48, 320, and 353 (hidden, same cause): migration 20261117210000 (T0C-SALES-1, LD-321) added homecollection.collector_flags (class C, centre-less, S I U, 3 policies, audit trigger). Added to the `rt` table; counts 17->18 tables, 41->44 lims_app policies, 10->11 audit triggers, 15->16 tenant tables. Proves: inventory, grants, FORCE RLS, tenant FK, mandatory columns now cover collector_flags too.
+- C13_schema 1, 35, 74: partners holds 6 more tables (partner_ticket, partner_ticket_message: migration 20261117240000 T0C-MSGDESK-1; sales_designation, sales_representative, party_sales_assignment, service_area: 20261117210000). Added to `rt` (policy counts 6/4/3/3/3/3, grants S I U except the append-only message table S I): 24 tables, 115 policies (93 + 22). 255: 2 more functions (party_sales_assignment__no_overlap, sales_representative__manager_guard). 282, 283: 14 -> 18 triggers (+ access_slips__mutable_columns, pickup_request_manifests__mutable_columns from 20261115200000; + the 2 sales guards).
+- C18_schema 37, 38: LD-226 / CR-C18-001 (db/bootstrap/00_roles.sql): lims_migration has NO lims_app membership (D-136 undecided). Now: member of no role, and pg_has_role MEMBER false for lims_app / lims_owner / lims_queue (the named property "never owner / queue" is kept and tightened). Go red when D-136 is accepted and the grant lands (then restore).
+- C7_schema 284: CR-C13-011 / 08 R10 item 5: app.is_staff_or_system() = actor_type IN (user, system, device), so every instruments policy carries the guard and it admits the device actor. Now proves: the guard function admits 'device' and the messages / agent_commands lims_app policies carry it (see CR-C0-T0B-GREEN-1-004 for the open least-privilege question).
+- C7_schema 670, C5_schema 942: later chunks reference earlier ones (FK direction rule AC-0B-6.2 is "earlier never points at later"): into instruments from inventory 6, micro 4, quality 4 = 14; into lab from anatomic 3, homecollection 4, micro 3, quality 4 = 14. Now proves the exact count and the exact set of referencing schemas.
+- policy 468, 469, 481: 08-CR-REGISTER C6-002 role row / A10.5 / D-30: the C6 pre-tenant lookup policies (12, schema reporting) are TO lims_reporting_lookup (some still named __owner_only). Exception limited to schema reporting AND roles exactly {lims_reporting_lookup}; new assertion: that role appears in no other schema and never next to another role.
+- policy 474: migration 20261116030000 (T0B-CNTPOL-1, LD-257): three RESTRICTIVE policies on engagement.number_counters. Exception is those three names TO lims_app; new assertion: exactly 3 RESTRICTIVE policies exist.
+- policy 484: C16 05-SCHEMA §5.1 / LD-257: engagement settings, number_counters, cs_booking_cancel_reasons, cs_reminder_reasons, cs_enquiry_categories __tenant policies list the admitted actor types (incl. patient, device) instead of is_staff_or_system. Exception is those 7 names; new assertion: each has the tenant predicate and an explicit current_actor_type list.
+- policy 486: policy naming: C16 uses scope words that extend the actor (`__patient_account`, `__preauth*`), C2 identity tables serve partner through actor-agnostic `__own` / `__own_user`. The check now accepts `__<actor>(_word)*`, identity `__own*`, and engagement `__preauth*` whose text names 'patient'.
+
+## HARNESS (29 + 3 aborts): fixture, helper or test-text defect; fixed in the tests
+- C17_anonymise 3: proconfig is stored as `search_path=""`, test compared to `search_path=`. 12, 13, 15, 21, 23: rows seeded in the same transaction make the function's UPDATE re-check every FK, the synthetic parents do not exist (visits__centre__fk); the FKs to those parents are dropped inside the rolled-back transaction (nothing asserts them; RLS, immutable_row guard and DEFINER path untouched).
+- C17_schema 49, 90, 91: policy queries lacked `tablename <> 'event_inbox'` although the header says event_inbox (T0B-05) is excluded. 87: the `true` regex matched the `, true)` of `current_setting('app.maintenance', true)`; now strips current_setting(...) first, still fails on a literal USING (true).
+- C13_behaviour abort: a statement mixed tenant A and B rows; audit_log__insert__owner_only needs tenant = claims tenant (LD-230 (2) already fixed this in `ins`); the two raw INSERTs now go through `ins` / per-tenant claims.
+- C13_schema 76, 77: event_inbox owner / DELETE policies not excluded. 82: expected 21 staff_centre policies but shape C projections (order_tracking, tracked_specimens, order_reports) have SELECT only (05-SCHEMA §8 shape table) = 4*3 + 3 = 15. 248: `proacl LIKE '%=X/%'` matched `lims_owner=X/lims_owner`; now matches only a PUBLIC item. 252: counted event_inbox's tenant FK; now count = rows of rt.
+- C18_behaviour abort: see CR T0B-GREEN-2-001: no EXECUTE on app helpers for lims_migration, so the first T1 line fails; the D-136 PROPOSED grant is applied inside the rolled-back transaction after an assertion that pins the current state. Then 93 (control expected 5 runs; the AC-0B-3.4 line inserted a 6th) and the T5 helpers (runs has runs__audit: set claims, else audit_context_missing).
+- C7_behaviour 292, 293: lims_app has a column-level UPDATE grant that omits kind and expires_at, so the privilege check (E42501) fires before the immutable_row trigger. Expectation is E42501 and 5 has_column_privilege assertions pin the missing grants.
+- C7_schema 169, C6_schema 243, 244: event_inbox DELETE policy counted.
+- storage abort: `CREATE TEMP TABLE t(col type) AS VALUES` is a syntax error (also `actor`). After that, every probe died with E42501 before RLS because the run-suites.sh stub has no Supabase default grants: restored for the transaction (no-op on real Supabase). 1: bucket existence cannot be evaluated on the empty stub (LD-54: buckets come from the Storage API): TAP SKIP when storage.buckets is empty, unchanged otherwise; the node wrapper proves the provisioning script's 11 buckets equal the probe list.
+- views C9-T20 3..11: `col_type_is('quality','v_pub_qc_summary','tenant_id','uuid')` resolves to (table, column, type, description); schema-qualified 5-argument form used. The view itself exists and 19 assertions pass.
+
+## REAL / CR
+- None left red. CR-C0-T0B-GREEN-2-001 (nonblocking): lims_migration cannot run its policies until D-136 is decided; behaviour tests prove the policies under the proposed grant. Device actor admitted by is_staff_or_system: CR-C0-T0B-GREEN-1-004 (already open).
+- Not in these directories, not run: db/tests/immutability (the "every class C/B table ... enforce_mutable_columns" assertion; collector_flags, partner_ticket and the 4 sales tables have no __mutable_columns trigger, check it in that suite's task).

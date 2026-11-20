@@ -16,6 +16,8 @@ import { Tabs } from '@lims/ui/components/Tabs';
 import { TextField } from '@lims/ui/components/TextField';
 import { useToast } from '@lims/ui/components/Toast';
 import { PAYMENT_METHODS } from '@/features/billing/server/types';
+// T0D-OFFLINE-3 (LD-322; done_when 4): cancel is online only; offline the button is disabled with the reason next to it
+import { useOnlineOnly } from '@/core/offline/ui/OfflineProvider';
 import { cancelOrderAction, changeOrderItemsAction, quoteItemsChangeAction, recordPaymentAction, uploadTrfAction } from '../server/actions';
 import type { CatalogOption, Coded, Order, OrderBilling, OrderItem } from '../server/types';
 import { BsAd, Status, errorText, formatNpr, hasPerm, humanize, npr } from './format';
@@ -45,6 +47,7 @@ export function OrderView({ order, billing, permissions, cancelReasons, removalR
   const cancelled = order.status === 'cancelled';
   const editable = order.status === 'registered' && hasPerm(permissions, 'frontdesk.order.edit');
   const canCancel = !cancelled && hasPerm(permissions, 'frontdesk.order.cancel');
+  const cancelGate = useOnlineOnly('order.cancel');
   // Booked orders are confirmed through the registration payment panel (F12 needs quote_fingerprint + payments, FD-T13); this page only flags them.
   const booked = order.status === 'pre_registered' && hasPerm(permissions, 'frontdesk.registration.create');
   const paid = billing?.balance.paid.amount_paisa ?? 0;
@@ -64,7 +67,7 @@ export function OrderView({ order, billing, permissions, cancelReasons, removalR
         title={order.registration_no}
         helpKey="frontdesk.order"
         status={<Status status={order.status} />}
-        actions={canCancel ? <Button variant="danger" onPress={() => openDialog({ kind: 'cancel' })}>Cancel order</Button> : null}
+        actions={canCancel ? <><Button variant="danger" isDisabled={cancelGate.disabled} onPress={() => openDialog({ kind: 'cancel' })}>Cancel order</Button>{cancelGate.reason ? <span className="lims-description">{cancelGate.reason}</span> : null}</> : null}
       />
       <dl className="lims-order-header">
         <div><dt>Patient</dt><dd><a className="lims-link" href={`/frontdesk/patients/${order.patient.id}`}>{order.patient.full_name}</a> ({order.patient.patient_code}, {humanize(order.patient.sex)}{order.patient.age_at_order ? `, ${order.patient.age_at_order}` : ''})</dd></div>

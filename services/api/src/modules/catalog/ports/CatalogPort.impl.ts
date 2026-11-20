@@ -5,6 +5,7 @@
 import type {
   AnalyteDefinition, CatalogPortV1, CriticalLimitsMatch, InstrumentCodeMapping, PanelDefinition, PriceQuote, ReferenceRangeMatch, ResolvedOrderables, TestDefinition,
 } from '../../../../../../contracts/ports/CatalogPort.js';
+import type { DecimalString, RequestContext, Uuidv7 } from '../../../../../../contracts/ports/common.js';
 import { LimsError } from '../../../core/errors.js';
 import type { CatalogCache } from '../cache/catalogCache.js';
 import { expandToTestIds, type PanelGraph } from '../domain/panelGraph.js';
@@ -16,6 +17,8 @@ import { createQuoteService } from '../service/quote.service.js';
 
 type Row = Record<string, any>;
 type Ctx = { tenantId: string; tx: { query(text: string, values?: unknown[]): Promise<{ rows: any[] }> }; now(): string | Date };
+// VERIFY-GREEN-2 (LD-268): RequestContext.tx is the opaque DbTx brand; the real handle has query(). Identity at runtime, types only.
+const asCtx = (c: RequestContext): Ctx => c as unknown as Ctx;
 export type CatalogPortNonPrice = Pick<CatalogPortV1, 'getTest' | 'getPanel' | 'resolveOrderables' | 'referenceRangeFor' | 'criticalLimitsFor' | 'mapInstrumentCode'
   | 'getReferrer' | 'getCreditParty' | 'resolveCommentCodes'>;
 export type CatalogPortImpl = CatalogPortNonPrice & Pick<CatalogPortV1, 'priceFor' | 'getTaxRate' | 'getPriceListStatus'>;
@@ -60,7 +63,7 @@ interface TestBundle {
   id: string; code: string; name: string; departmentId: string; departmentCode: string; departmentName: string; workflowType: TestDefinition['workflowType'];
   isActive: boolean; revision: number; usesExistingMaterial: boolean; reqs: Req[]; analytes: AnalyteBundle[]; tat: Tat[];
 }
-interface PanelNode { id: string; code: string; name: string; panelKind: PanelDefinition['panelKind']; sexRestriction?: 'male' | 'female'; isActive: boolean; revision: number; members: Array<{ kind: 'test' | 'panel'; id: string }> }
+interface PanelNode { id: string; code: string; name: string; panelKind: PanelDefinition['panelKind']; sexRestriction?: 'male' | 'female'; isActive: boolean; revision: number; members: Array<{ kind: 'test' | 'panel'; id: Uuidv7 }> }
 interface RangeBundle { versions: Array<{ status: string; effective_from: Date; effective_to: Date | null; unit_code: string | null; method_id: string | null }>; ref: RangeSet[]; crit: RangeSet[]; specimenIds: Record<string, string> }
 
 export function createCatalogPort(deps: { cache: CatalogCache }): CatalogPortImpl {
@@ -162,7 +165,7 @@ export function createCatalogPort(deps: { cache: CatalogCache }): CatalogPortImp
       }];
     });
     return {
-      id: b.id, code: b.code, name: b.name, departmentId: b.departmentId, departmentCode: b.departmentCode, departmentName: b.departmentName,
+      id: b.id as Uuidv7, code: b.code, name: b.name, departmentId: b.departmentId as Uuidv7, departmentCode: b.departmentCode, departmentName: b.departmentName,
       specimenTypeCodes: b.reqs.map((r) => r.specimenTypeCode), ...opt('containerCode', pref?.containerCode),
       workflowType: b.workflowType, analytes,
       ...(routine || urgent ? { tatTargetSeconds: { ...(routine ? { routine: routine.seconds } : {}), ...(urgent ? { urgent: urgent.seconds } : {}) } } : {}),
@@ -189,7 +192,7 @@ export function createCatalogPort(deps: { cache: CatalogCache }): CatalogPortImp
       });
     });
   }
-  const panelDef = (n: PanelNode): PanelDefinition => ({ id: n.id, code: n.code, name: n.name, panelKind: n.panelKind, members: n.members.map((m) => ({ ...m })), ...opt('sexRestriction', n.sexRestriction), isActive: n.isActive, revision: n.revision });
+  const panelDef = (n: PanelNode): PanelDefinition => ({ id: n.id as Uuidv7, code: n.code, name: n.name, panelKind: n.panelKind, members: n.members.map((m) => ({ ...m })), ...opt('sexRestriction', n.sexRestriction), isActive: n.isActive, revision: n.revision });
 
   // ---- analyte ranges
   async function loadRanges(ctx: Ctx, analyteId: string): Promise<RangeBundle> {
@@ -234,22 +237,22 @@ export function createCatalogPort(deps: { cache: CatalogCache }): CatalogPortImp
   return {
     async getTest(ctx, input) {
       const id = uuid(input?.testId, 'testId');
-      const asOf = asOfOf(ctx as Ctx, input.asOf);
-      const b = await testBundle(ctx as Ctx, await revisionOf(ctx as Ctx), id);
+      const asOf = asOfOf(asCtx(ctx), input.asOf);
+      const b = await testBundle(asCtx(ctx), await revisionOf(asCtx(ctx)), id);
       if (input.requireActive === true && !b.isActive) throw new LimsError('catalog.test_inactive');
       return definitionOf(b, asOf);
     },
 
     async getPanel(ctx, input) {
       const id = uuid(input?.panelId, 'panelId');
-      asOfOf(ctx as Ctx, input.asOf);                                // validated; panels carry no time-dependent data
-      const n = await cache.getOrLoad((ctx as Ctx).tenantId, await revisionOf(ctx as Ctx), 'panel', id, async () => (await loadPanels(ctx as Ctx, new Map(), [id]))[0]!);
+      asOfOf(asCtx(ctx), input.asOf);                                // validated; panels carry no time-dependent data
+      const n = await cache.getOrLoad((asCtx(ctx)).tenantId, await revisionOf(asCtx(ctx)), 'panel', id, async () => (await loadPanels(asCtx(ctx), new Map(), [id]))[0]!);
       if (input.requireActive === true && !n.isActive) throw new LimsError('catalog.test_inactive');
       return panelDef(n);
     },
 
     async resolveOrderables(c, input): Promise<ResolvedOrderables> {
-      const ctx = c as Ctx;
+      const ctx = asCtx(c);
       if (!input || !Array.isArray(input.orderableIds) || input.orderableIds.length === 0) throw invalid('orderableIds');
       const inputIds = input.orderableIds.map((x: unknown) => uuid(x, 'orderableIds'));
       const asOf = asOfOf(ctx, input.asOf);
@@ -318,9 +321,9 @@ export function createCatalogPort(deps: { cache: CatalogCache }): CatalogPortImp
       }
       const cmp = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
       return {
-        orderables,
+        orderables: orderables as unknown as ResolvedOrderables['orderables'],
         tests: order.map((id) => definitionOf(tests.get(id)!, asOf)),
-        specimenRequirements: [...groups.values()].sort((a, b) => cmp(a.specimenTypeCode, b.specimenTypeCode) || cmp(a.containerCode ?? '', b.containerCode ?? '')),
+        specimenRequirements: [...groups.values()].sort((a, b) => cmp(a.specimenTypeCode, b.specimenTypeCode) || cmp(a.containerCode ?? '', b.containerCode ?? '')) as unknown as ResolvedOrderables['specimenRequirements'],
         catalogRevision: rev,
       };
     },
@@ -348,7 +351,7 @@ export function createCatalogPort(deps: { cache: CatalogCache }): CatalogPortImp
 
     /** §7.6a. Reads only C3 tax-type rows on ctx.tx (VAT: global g_tax_types; else cs_tax_types of ctx.tenantId); uncached, so a rate edit is visible at once. */
     async getTaxRate(c, input): Promise<Awaited<ReturnType<CatalogPortV1['getTaxRate']>>> {
-      const ctx = c as Ctx;
+      const ctx = asCtx(c);
       const missing = () => new LimsError('catalog.tax_config_missing');
       const i = input && typeof input === 'object' ? (input as Row) : {};
       const taxCode: unknown = i['taxCode'];
@@ -367,7 +370,7 @@ export function createCatalogPort(deps: { cache: CatalogCache }): CatalogPortImp
 
     /** §7.4a (08 A24.1). Uncached (two indexed reads on ctx.tx, tenant bound from ctx) so a version change is visible at once; unknown / other-tenant id -> common.not_found, nothing disclosed. */
     async getPriceListStatus(c, input) {
-      const ctx = c as Ctx;
+      const ctx = asCtx(c);
       const priceListId = uuid((input as Row | null | undefined)?.['priceListId'], 'priceListId');
       const [list] = await q(ctx, 'SELECT id, is_active FROM catalog.price_lists WHERE tenant_id = $1 AND id = $2', [ctx.tenantId, priceListId]);
       if (!list) throw notFound();
@@ -377,24 +380,24 @@ export function createCatalogPort(deps: { cache: CatalogCache }): CatalogPortImp
 
     async referenceRangeFor(ctx, input): Promise<ReferenceRangeMatch> {
       const i = rangeInput(input);
-      const { b, query } = await rangesFor(ctx as Ctx, i);
+      const { b, query } = await rangesFor(asCtx(ctx), i);
       const m = resolveReferenceRange({ sets: b.ref, versions: b.versions, query });
       if (!m) throw new LimsError('catalog.no_reference_range');
       const codes = (m as { normalCodes?: readonly string[] }).normalCodes;
-      return { ...m, ...(codes ? { normalCodes: [...codes] } : {}) } as ReferenceRangeMatch;
+      return { ...m, ...(codes ? { normalCodes: [...codes] } : {}) } as unknown as ReferenceRangeMatch;
     },
 
     async criticalLimitsFor(ctx, input): Promise<CriticalLimitsMatch | undefined> {
       const i = rangeInput(input);
-      const { b, query } = await rangesFor(ctx as Ctx, i);
+      const { b, query } = await rangesFor(asCtx(ctx), i);
       const m = resolveCriticalLimits({ sets: b.crit, versions: b.versions, query });
       const codes = (m as { abnormalCodes?: readonly string[] } | undefined)?.abnormalCodes;
-      return m && ({ ...m, ...(codes ? { abnormalCodes: [...codes] } : {}) } as CriticalLimitsMatch);
+      return m && ({ ...m, ...(codes ? { abnormalCodes: [...codes] } : {}) } as unknown as CriticalLimitsMatch);
     },
 
     /** CR-C3-001. Uncached, read-only. 'notification' (contact data) only for user|system actors (AB-19); a merged doctor reports its canonical id. */
     async getReferrer(c, input) {
-      const ctx = c as Ctx;
+      const ctx = asCtx(c);
       if (!input || typeof input !== 'object') throw invalid('input');
       if (input.purpose !== 'display' && input.purpose !== 'notification') throw invalid('purpose');
       const id = uuid(input.referrerId, 'referrerId');
@@ -402,7 +405,7 @@ export function createCatalogPort(deps: { cache: CatalogCache }): CatalogPortImp
       const cols = `id, doctor_code, display_name, qualification, registration_no, is_verified, is_active, merged_into_id${input.purpose === 'notification' ? ', phone_e164, email' : ''}`;
       const r = (await q(ctx, `SELECT ${cols} FROM catalog.doctors WHERE tenant_id = $1 AND id = $2`, [ctx.tenantId, id]))[0];
       if (!r) throw notFound();
-      let canonical: string = r.id, next: string | null = r.merged_into_id;
+      let canonical: Uuidv7 = r.id, next: string | null = r.merged_into_id;
       for (let hop = 0; next != null; hop++) {
         if (hop >= MAX_HOPS) throw notFound();
         const d = (await q(ctx, 'SELECT id, merged_into_id FROM catalog.doctors WHERE tenant_id = $1 AND id = $2', [ctx.tenantId, next]))[0];
@@ -420,7 +423,7 @@ export function createCatalogPort(deps: { cache: CatalogCache }): CatalogPortImp
 
     /** CR-C3-001. 'billing' (pan, address) and 'notification' (contact) only for user|system actors (AB-19). priceListId = the assigned list when it is active. */
     async getCreditParty(c, input) {
-      const ctx = c as Ctx;
+      const ctx = asCtx(c);
       if (!input || typeof input !== 'object') throw invalid('input');
       const purpose = input.purpose;
       if (purpose !== 'display' && purpose !== 'notification' && purpose !== 'billing') throw invalid('purpose');
@@ -443,7 +446,7 @@ export function createCatalogPort(deps: { cache: CatalogCache }): CatalogPortImp
 
     /** CR-C3-001 (§4.14). Department entry wins over tenant-wide; inactive / unknown codes -> `unknown`; asOf = the text version effective then, [from, to). Two bulk reads. */
     async resolveCommentCodes(c, input) {
-      const ctx = c as Ctx;
+      const ctx = asCtx(c);
       if (!input || typeof input !== 'object' || !Array.isArray(input.codes) || input.codes.length > 50) throw invalid('codes');
       if (input.codes.some((x: unknown) => typeof x !== 'string')) throw invalid('codes');
       const dept = input.departmentId === undefined ? undefined : uuid(input.departmentId, 'departmentId');
@@ -468,7 +471,7 @@ export function createCatalogPort(deps: { cache: CatalogCache }): CatalogPortImp
 
     /** §7.8. Uncached on purpose: one indexed read (instrument_code_maps__inbound/outbound__p_uq), so an edit or deactivation is visible to the very next request. */
     async mapInstrumentCode(c, input): Promise<InstrumentCodeMapping> {
-      const ctx = c as Ctx;
+      const ctx = asCtx(c);
       if (!input || typeof input !== 'object') throw invalid('input');
       const instrumentId = uuid(input.instrumentId, 'instrumentId');
       if (input.direction !== 'inbound' && input.direction !== 'outbound') throw invalid('direction');
@@ -491,7 +494,7 @@ export function createCatalogPort(deps: { cache: CatalogCache }): CatalogPortImp
       const units = r.unit_from_raw != null && r.unit_to_code != null && r.unit_factor != null;
       return {
         mappingId: r.id, instrumentId: r.instrument_id, instrumentCode: r.instrument_code, analyteId: r.analyte_id, testId: r.test_id,
-        ...(units ? { unitConversion: { fromUnitRaw: r.unit_from_raw, toUnitCode: r.unit_to_code, factor: String(r.unit_factor) } } : {}),
+        ...(units ? { unitConversion: { fromUnitRaw: r.unit_from_raw, toUnitCode: r.unit_to_code, factor: String(r.unit_factor) as DecimalString } } : {}),
         ...(r.flag_map != null ? { flagMap: { ...r.flag_map } } : {}),
       };
     },

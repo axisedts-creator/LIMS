@@ -1,0 +1,45 @@
+# T0C-MISREPORTS-1 impl (LD-321, LD-325, LD-337)
+- Files: contracts/openapi/analytics.yaml (root x-report-definitions with 11 definitions, closed schema ReportDefinition, 5 new ExportParams filters, one export example), db/migrations/20261117230000_analytics__add_mis_report_support.sql (11 rows of analytics.g_cs_report_codes, drops g_cs_report_codes__no_c_word__ck), regenerated clients.
+- [CONV] no new route and no new operation: reports run through createAnalyticsExport / createReportSchedule, so no pendingOperations entry. T0B-MISREPORTS-1 builds the report registry and SQL from x-report-definitions.
+- [CONV] PERMISSIONS: no new permission code; the five analytics codes suffice: analytics.collections.read (bill_of_the_day, collection_boy, party_billing), analytics.dashboard.read (sales_representative, consultant, repeated_patient, repeated_test, ipd_opd, outsource), analytics.referral_report.read + flag referralIncentiveReportEnabled (two_level_commission, tds).
+- 04 L19 wording, RULED by the lead (LD-342, founder B, A39): migration drops only g_cs_report_codes__no_c_word__ck; two_level_commission and tds descriptions now state the gate (flag referral_incentive_report, aal2, access log referral_report.view) and base (M33 net billed, held excluded, half up). Reports only, no money moves.
+- LD-346 reset: consultant drops net_billed_paisa, default_sort tests_count desc (volume only, A39-3). Tester revised misreports1-openapi.test.ts per ruling (553d36aac); verify.cmd green: vitest 294/294, pgTAP 3 suites clean.
+- LD-357 reset: net_billed_paisa renamed to net_paisa (title Net) in sales_representative (column and default_sort), repeated_patient, party_billing; referral_incentive keeps net_billed_paisa (D-44). Report defs are not in generated clients: codegen --check and lint clean, vitest 295/295, pgTAP report_codes clean.
+- OFFLINE (founder 09:19): reports are online only; a shown report may be printed from the cache. Nothing queued offline.
+- FOUNDER STEP: push-cloud of 20261117230000_analytics__add_mis_report_support.sql after merge.
+- Bill Of The Day (bill_of_the_day) and two level commission (two_level_commission) come from C:/LIMS-state/elabassist-accounting-20261117.md, not the 31 list.
+- ElabAssist filters not mapped to a param: patient (PHI; use the frontdesk patient search), test (department_id instead), amount status (paid / due are columns), area (service areas are free text; later), company (= party_id), user in lab (audit trail covers it).
+- Evidence file C:/LIMS-state/elabassist-other-20261117.md not readable in this sandbox; the 31 type names below are those pinned by the tester.
+
+## FIELD MAP (31 ElabAssist MIS report types)
+- Doctor Accounts — already present: top_referrers and referral_incentive
+- Laboratory Summary — already present: income and volume
+- Laboratory Details — already present: tests_done
+- Test Details — already present: tests_done
+- Patient Details — not added because a patient list is PHI and the frontdesk patient search covers it; analytics stays aggregate
+- Test Registration — already present: volume
+- Franchise — already present: top_centres
+- Franchise Details — already present: top_centres with the centre filter
+- Dispatch Sheet — already present: delivery
+- Company Details — added: party_billing
+- Doctor Accounts IPD/OPD — added: ipd_opd (referrer filter)
+- Laboratory IPD/OPD — added: ipd_opd
+- Franchise IPD/OPD — added: ipd_opd (centre and party filters)
+- Patient Bill Report — added: bill_of_the_day
+- Consolidate Report — already present: income
+- OutSource Report — added: outsource
+- Payment History Report — already present: collections
+- TAT Details Report — already present: tat
+- CASH PARTY Report — added: party_billing
+- CREDIT PARTY Report — added: party_billing
+- Daily Payment History Report — already present: collections (group by day)
+- CollectionBoy Details — added: collection_boy
+- EntityBilling With TDS — added: tds
+- Client Postpaid Bill — added: party_billing
+- Client Details — added: party_billing
+- Sales Representative — added: sales_representative
+- Sales Report — already present: income
+- Consultant MIS — added: consultant
+- Critical Value MIS — already present: quality_indicators
+- Repeated and Non Repeated MIS — added: repeated_patient and repeated_test
+- InterLab Transfer MIS — added: outsource

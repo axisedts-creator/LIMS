@@ -336,30 +336,6 @@ exports[`visual snapshots of the key screens are recorded > snapshot: settings 1
 </div>"
 `;
 
-exports[`visual snapshots of the key screens are recorded > snapshot: sign-in 1`] = `
-"<div>
-<div class="lims-auth-card">
-<p class="lims-wordmark">LIMS</p>
-<h1>Log in</h1>
-<form novalidate="">
-<div class="lims-field">
-<label class="lims-label" for="#id-email">Email</label> <p class="lims-description">Required</p> <input id="#id-email" class="lims-input" autocomplete="username" maxlength="254" required="" type="email" value="" name="email">
-</div>
-<div class="lims-field">
-<label class="lims-label" for="#id">Password</label> <p class="lims-description">Required</p> <div class="lims-input-group">
-<input id="#id" class="lims-input" autocomplete="current-password" maxlength="128" required="" type="password" value="" name="password">
-<button type="button" class="lims-btn lims-btn-ghost lims-btn-sm" aria-pressed="false">Show</button>
-</div>
-</div>
-<button class="lims-btn lims-btn-primary lims-btn-md" data-rac="" type="submit" tabindex="0" data-#id="true" id="#id">
-<span class="lims-btn-label">Log in</span>
-</button>
-</form>
-<a href="/auth/forgot">Forgot password?</a>
-</div>
-</div>"
-`;
-
 exports[`visual snapshots of the key screens are recorded > snapshot: users 1`] = `
 "<div>
 <div class="lims-field">

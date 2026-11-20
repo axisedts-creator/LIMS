@@ -7,7 +7,7 @@ export const navManifest: NavManifest = {
   module: 'admin',
   entries: [
     { id: 'admin.me', label: 'admin.nav.me', routeId: 'staff.admin.me', permission: 'identity.self.manage', group: 'admin', order: 10 },
-    { id: 'admin.users', label: 'admin.nav.users', routeId: 'staff.admin.users', permission: 'identity.user.read', group: 'admin', order: 20 },
+    { id: 'admin.users', label: 'admin.nav.users', routeId: 'staff.admin.users', permission: 'identity.user.read', group: 'admin', order: 20, createRouteId: 'staff.admin.user_new', createLabel: 'admin.nav.user_invite' }, // LD-251: round "+"
     { id: 'admin.user_new', label: 'admin.nav.user_new', routeId: 'staff.admin.user_new', permission: 'identity.user.manage', group: 'admin', order: 30 },
     { id: 'admin.roles', label: 'admin.nav.roles', routeId: 'staff.admin.roles', permission: 'identity.user.read', group: 'admin', order: 40 },
     { id: 'admin.branches', label: 'admin.nav.branches', routeId: 'staff.admin.branches', permission: 'identity.user.read', group: 'admin', order: 50 },

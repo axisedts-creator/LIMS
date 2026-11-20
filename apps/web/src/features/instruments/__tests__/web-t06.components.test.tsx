@@ -18,6 +18,7 @@ import { delay, http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 import type { ReactNode } from 'react';
 import { ToastProvider } from '@lims/ui/components/Toast';
+import { expectErrorState, revealTab } from '@/__tests__/uiset1.helpers';
 
 const push = vi.fn();
 const replace = vi.fn();
@@ -52,9 +53,9 @@ const problem = (status: number, code: string, extra: Record<string, unknown> = 
 const puts = () => calls.filter((c) => c.method === 'PUT');
 const api = setupServer(
   http.get(SETTINGS_URL, async ({ request }) => { await rec(request); return HttpResponse.json(settings()); }),
-  http.put(SETTINGS_URL, async ({ request }) => { await rec(request); const b = await request.clone().json(); return HttpResponse.json({ ...b, version: 2 }); }),
+  http.put(SETTINGS_URL, async ({ request }) => { await rec(request); const b = (await request.clone().json()) as Record<string, unknown>; return HttpResponse.json({ ...b, version: 2 }); }),
 );
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { cleanup(); api.resetHandlers(); calls.length = 0; push.mockReset(); replace.mockReset(); refresh.mockReset(); localStorage.clear(); sessionStorage.clear(); session.permissions = MANAGE; });
 afterAll(() => api.close());
 
@@ -77,7 +78,8 @@ const L = {
   to: /update window to/i,
 };
 const field = (re: RegExp) => screen.getByLabelText(re) as HTMLInputElement;
-const setField = async (re: RegExp, v: string) => { const el = field(re); await userEvent.clear(el); if (v) await userEvent.type(el, v); };
+// LD-353 template 4: the two sections are tabs (inactive one hidden); the tab holding a field is opened before it is typed into.
+const setField = async (re: RegExp, v: string) => { const el = field(re); await revealTab(el); await userEvent.clear(el); if (v) await userEvent.type(el, v); };
 const save = () => userEvent.click(screen.getByRole('button', { name: /^save$/i }));
 const show = async (props: Record<string, unknown> = {}) => {
   const { InstrumentSettingsForm } = await import('../components/InstrumentSettingsForm');
@@ -190,7 +192,7 @@ describe('SCR-11 save → E41 with If-Match (AC-15.5)', () => {
   });
 
   it('double-click on Save sends ONE PUT while in flight', async () => {
-    api.use(http.put(SETTINGS_URL, async ({ request }) => { await rec(request); await delay(150); return HttpResponse.json({ ...(await request.clone().json()), version: 2 }); }));
+    api.use(http.put(SETTINGS_URL, async ({ request }) => { await rec(request); await delay(150); return HttpResponse.json({ ...((await request.clone().json()) as Record<string, unknown>), version: 2 }); }));
     await show();
     await setField(L.backlog, '600');
     const btn = screen.getByRole('button', { name: /^save$/i });
@@ -419,10 +421,12 @@ describe('page → BFF (E40)', () => {
     expect(el.props.permissions).not.toContain('instruments.instrument.manage');
   });
 
-  it('settings page: API 403 / 500 are NOT turned into a rendered form or not-found (error.tsx handles them)', async () => {
+  it('settings page: API 403 is NOT turned into a rendered form or not-found (error.tsx handles it); 500 renders ErrorState in the page (title kept, reference, Retry; LD-353 rule 6) and no form', async () => {
     api.use(http.get(SETTINGS_URL, () => problem(403, 'auth.forbidden')));
     await expect(page()).rejects.toMatchObject({ status: 403 });
-    api.use(http.get(SETTINGS_URL, () => problem(500, 'common.internal')));
-    await expect(page()).rejects.toMatchObject({ status: 500 });
+    api.use(http.get(SETTINGS_URL, () => problem(500, 'common.internal', { request_id: 'req-synthetic' })));
+    const { container } = wrap((await page()) as never);
+    expectErrorState(container, '/instruments/settings');
+    expect(screen.queryByRole('button', { name: /^save$/i })).toBeNull();
   });
 });

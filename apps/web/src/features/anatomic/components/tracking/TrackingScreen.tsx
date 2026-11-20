@@ -5,14 +5,14 @@
 // LD-140 (2026-11-13, binding): kit components and token class names only; one primary button on the page ([Record movement]); statuses show tone, icon and word.
 import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { BarcodeInput, useScanCapture } from '@lims/ui/components/BarcodeInput';
+import { useScanCapture } from '@lims/ui/components/BarcodeInput';
 import { Button } from '@lims/ui/components/Button';
 import { DataTable } from '@lims/ui/components/DataTable';
 import { DescriptionList } from '@lims/ui/components/DescriptionList';
 import { Dialog } from '@lims/ui/components/Dialog';
-import { EmptyState } from '@lims/ui/components/EmptyState';
 import { IconButton } from '@lims/ui/components/IconButton';
 import { PageHeader } from '@lims/ui/components/PageHeader';
+import { ScanPanel } from '@lims/ui/components/ScanPanel';
 import { Switch } from '@lims/ui/components/Switch';
 import { Tabs } from '@lims/ui/components/Tabs';
 import { Timeline } from '@lims/ui/components/Timeline';
@@ -84,7 +84,7 @@ function Result({ f, movements }: { f: Found; movements: readonly Movement[] }) 
 }
 
 function SentOut({ rows }: { rows: readonly SentOutRow[] }) {
-  if (rows.length === 0) return <EmptyState title="Nothing is sent out" body="Blocks you send out appear here until they are returned." />;
+  // T0D-EMPTYTBL-1 (LD-310): the kit DataTable draws the headers and puts the empty message + placeholder rows in the body.
   const oldestFirst = [...rows].sort((a, b) => (a.block.last_movement_at ?? '').localeCompare(b.block.last_movement_at ?? ''));
   return (
     <DataTable
@@ -92,7 +92,7 @@ function SentOut({ rows }: { rows: readonly SentOutRow[] }) {
       density="compact"
       rows={oldestFirst}
       getRowId={(r) => r.block.id}
-      emptyState={{ title: 'Nothing is sent out' }}
+      emptyState={{ title: 'Nothing is sent out', body: 'Blocks you send out appear here until they are returned.' }}
       columns={[
         { id: 'label', header: 'Label', isRowHeader: true, cell: (r) => <span className="lims-mono">{r.block.label}</span> },
         { id: 'case', header: 'Case', cell: (r) => <a className="lims-link" href={`/anatomic/cases/${r.block.case_id}`}>{r.block.accession_no}</a> },
@@ -159,7 +159,7 @@ export function TrackingScreen({ tab, canWork, sentOut }: { tab: TrackingTab; ca
 
   return (
     <>
-      <PageHeader title="Block & slide tracking" helpKey="anatomic.tracking" breadcrumbs={[{ label: 'Pathology cases', href: '/anatomic' }, { label: 'Block & slide tracking' }]} />
+      <PageHeader title="Block & slide tracking" helpKey="anatomic.tracking" />
       <Tabs
         aria-label="Tracking sections"
         items={[{ id: 'lookup', label: 'Lookup' }, { id: 'sent_out', label: 'Sent out' }]}
@@ -170,11 +170,19 @@ export function TrackingScreen({ tab, canWork, sentOut }: { tab: TrackingTab; ca
           <SentOut rows={sentOut} />
         ) : (
           <>
-            <BarcodeInput label="Scan or type a block or slide label" name="label" pattern={LABEL_PATTERN} submitKeys={['Enter', 'Tab']} clearAfterScan allowManual onScan={(v) => void onScan(v)} />
             {canWork ? <Switch label="Basket mode" isSelected={basketMode} onChange={toggle} /> : null}
-            {message ? <p role="status" className="lims-description">{message}</p> : null}
+            {/* T0D-UISCAN-1 (LD-353 template 3): scan input, last result card (message or the looked-up block / slide), basket = the queue */}
+            <ScanPanel
+              label="Scan or type a block or slide label"
+              name="label"
+              pattern={LABEL_PATTERN}
+              submitKeys={['Enter', 'Tab']}
+              clearAfterScan
+              allowManual
+              onScan={(v) => void onScan(v)}
+              result={message ? <p className="lims-description">{message}</p> : !(basketMode && canWork) && single ? <Result f={single.found} movements={single.movements} /> : null}
+            >
             {basketMode && canWork ? (
-              <>
                 <DataTable
                   caption="Basket"
                   density="compact"
@@ -188,11 +196,9 @@ export function TrackingScreen({ tab, canWork, sentOut }: { tab: TrackingTab; ca
                     { id: 'remove', header: 'Remove', align: 'end', cell: (r) => <IconButton label={`Remove ${r.label}`} icon="close" onPress={() => { setBasket((b) => b.filter((x) => x.id !== r.id)); setMessage(undefined); }} /> },
                   ]}
                 />
-                <Button variant="primary" isDisabled={basket.length === 0} shortcut="Alt+V" onPress={openMovement}>Record movement</Button>
-              </>
-            ) : single ? (
-              <Result f={single.found} movements={single.movements} />
             ) : null}
+            </ScanPanel>
+            {basketMode && canWork ? <Button variant="primary" isDisabled={basket.length === 0} shortcut="Alt+V" onPress={openMovement}>Record movement</Button> : null}
           </>
         )}
       </Tabs>

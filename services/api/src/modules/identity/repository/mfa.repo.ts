@@ -70,12 +70,16 @@ const PLATFORM_EVENT_SQL = `INSERT INTO identity.platform_events (id, event_type
     request_id, client_ip, created_by)
   VALUES ($1, $2, $3, $4, NULL, $5::jsonb, $6, $7, nullif($8, '')::inet, $9)`;
 
+const PLATFORM_MFA_ENROLLED_DEFINER = 'SELECT app.identity_platform_auth_write_mfa_enrolled_event($1::uuid, $2::jsonb) AS n';
+
 // T9 (03-APP-FLOW §3.7 SS8 / M2): tenant rows only, under the bound tenant. Platform: see revokeOtherSessions / acceptInvitation.
 const REVOKE_OTHERS_SQL = `UPDATE identity.sessions SET state = 'revoked', revoked_at = now(), revoked_by = $5, revoke_reason = $4,
     updated_at = now(), updated_by = $5, version = version + 1
   WHERE tenant_id = $1 AND user_id = $2 AND id <> $3 AND state NOT IN ('revoked', 'expired') RETURNING id, kind`;
+// LD-299 T0B-ACTIVATE-1: sent only (03-APP-FLOW §2.6 / M2); pending acceptance raised as CR .orchestra/cr/T0B-ACTIVATE-1.nonblocking.md (ACTIVATE-1c)
+// LD-302 (CR-C0-ACTIVATE-1c): pending or sent; the verified GoTrue invite token proves the address, staging has no worker to move pending->sent
 const INVITE_ACCEPT_SQL = `UPDATE identity.invitations SET status = 'accepted', accepted_at = $4, updated_at = now(), updated_by = $5, version = version + 1
-  WHERE tenant_id = $1 AND membership_id = $2 AND user_id = $3 AND status = 'sent' AND expires_at > $4 RETURNING id`;
+  WHERE tenant_id = $1 AND membership_id = $2 AND user_id = $3 AND status IN ('pending', 'sent') AND expires_at > $4 RETURNING id`;
 // LD-99 / 08 A38-1: platform kind (identityAuthTx, no tenant)
 const REVOKE_OTHERS_DEFINER = 'SELECT app.identity_platform_auth_write_revoke_other_sessions($1::uuid, $2::uuid, $3::text) AS ids';
 const INVITE_ACCEPT_BY_USER_DEFINER = 'SELECT app.identity_platform_auth_write_invitation_accept_by_user($1::uuid) AS n';
@@ -98,6 +102,7 @@ export function createMfaRepo(o: { seal?: Sealer; open?: Opener } = {}) {
 
   const repo = {
     sessionActor: auth.sessionActor,   // LD-208 SESSION-ACTOR-1 (resolveSession)
+    membershipPermissions: auth.membershipPermissions,   // LD-222 AUTH-ACTOR-2 (active tenant sessions only)
     loginContext: auth.loginContext, insertSession: auth.insertSession, insertPlatformSession: auth.insertPlatformSession,   // T9 confirmEmailToken
 
     /** T9 SS8: every OTHER non-terminal session of the user -> revoked (password_change). */
@@ -243,6 +248,16 @@ export function createMfaRepo(o: { seal?: Sealer; open?: Opener } = {}) {
       detail: Record<string, unknown>; requestId: string; clientIp: string; actorId: string }): Promise<void> {
       await tx.query(PLATFORM_EVENT_SQL, [e.id, e.eventType, e.targetType, e.targetId, JSON.stringify(e.detail ?? {}), e.actorPlatformStaffId,
         e.requestId, e.clientIp ?? '', e.actorId]);
+    },
+    /**
+     * LD-221 AUTH-MFA-COMPLETE-1 (08 A28.1, A25 D-215): the platform_mfa_enrolled event of a platform session that is still aal1. Only the DEFINER may write it
+     * (owner policy platform_events__insert__owner_mfa_enrolled); event_type, target_type and target = actor = the staff row are fixed here, never caller input.
+     */
+    async recordPlatformMfaEnrolledEvent(tx: Q, e: { id: string; userId: string; platformStaffId: string; detail: Record<string, unknown>;
+      requestId: string; clientIp: string; actorId: string }): Promise<void> {
+      const row = { id: e.id, event_type: 'platform_mfa_enrolled', target_type: 'platform_staff', target_id: e.platformStaffId, target_tenant_id: null,
+        detail: e.detail ?? {}, actor_platform_staff_id: e.platformStaffId, request_id: e.requestId, client_ip: e.clientIp ?? '', created_by: e.actorId };
+      definerOk((await tx.query(PLATFORM_MFA_ENROLLED_DEFINER, [e.userId, JSON.stringify(row)])).rows, 'platform mfa enrolled event');
     },
   };
   return repo;

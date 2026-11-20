@@ -3,6 +3,8 @@ import 'server-only';
 // LD-140: no markup of their own; everything is composed from the client views, which use @lims/ui only.
 import { notFound } from 'next/navigation';
 import { ApiError } from '@/core/api/server-fetch';
+import { t } from '@/core/i18n/messages';
+import { pendingOr } from '@/core/shell/NotAvailable';
 import { LjView } from '../components/LjView';
 import { ObservationsView } from '../components/ObservationsView';
 import { QualityNotice } from '../components/Shared';
@@ -27,22 +29,30 @@ export async function statusBoardPage(sp: SP) {
   return <StatusBoardView key={JSON.stringify(clean)} rows={r.data} generatedAt={now()} sp={clean} canManage={r.perms.includes(MANAGE)} />;
 }
 
+// T0D-UILIST-1 (LD-353 rule 6): 501 operation_pending keeps the menu title and the header row (NotAvailable), never error.tsx.
+const RUN_COLUMNS = ['Run time', 'Instrument', 'Analyte', 'N', 'Mode', 'Observations', 'Outcome', 'Rules', 'Needs action', 'Closed at'];
+const OBS_COLUMNS = ['Observed at', 'Instrument', 'Analyte', 'Control id', 'Lot', 'Level', 'Value', 'Status', 'Fix'];
+
 export async function runsPage(sp: SP) {
   const q = runsQuery(sp);
-  const r = await gated(async () => ({ runs: await getRuns(q), plans: await planOptions() }));
-  if ('gate' in r) return notice(r.gate, 'QC runs', 'quality.runs');
-  const labels = Object.fromEntries(r.data.plans.map((p) => [p.plan_id, { instrument: p.instrument_label, analyte: p.analyte_code }]));
-  return <RunsView rows={r.data.runs.rows} hasPrevious={q.has('cursor')} sp={plain(q, ['limit', 'sort'])} labels={labels} {...(r.data.runs.next ? { next: r.data.runs.next } : {})} />;
+  return pendingOr('QC runs', RUN_COLUMNS, async () => {
+    const r = await gated(async () => ({ runs: await getRuns(q), plans: await planOptions() }));
+    if ('gate' in r) return notice(r.gate, 'QC runs', 'quality.runs');
+    const labels = Object.fromEntries(r.data.plans.map((p) => [p.plan_id, { instrument: p.instrument_label, analyte: p.analyte_code }]));
+    return <RunsView rows={r.data.runs.rows} hasPrevious={q.has('cursor')} sp={plain(q, ['limit', 'sort'])} labels={labels} {...(r.data.runs.next ? { next: r.data.runs.next } : {})} />;
+  });
 }
 
 export async function observationsPage(sp: SP) {
   const q = observationsQuery(sp);
-  const r = await gated(async () => ({ obs: await getUnassigned(q), plans: await planOptions() }));
-  if ('gate' in r) return notice(r.gate, 'Unassigned QC', 'quality.observations');
-  const clean = plain(q, ['limit', 'sort']);
-  if (clean['status'] === UNASSIGNED_STATUSES.join(',')) delete clean['status']; // the default is not a filter
-  const instruments = Object.fromEntries(r.data.plans.map((p) => [p.instrument_id, p.instrument_label]));
-  return <ObservationsView rows={r.data.obs.rows} hasPrevious={q.has('cursor')} sp={clean} canManage={r.perms.includes(MANAGE)} instruments={instruments} {...(r.data.obs.next ? { next: r.data.obs.next } : {})} />;
+  return pendingOr(t('quality.nav.observations'), OBS_COLUMNS, async () => {
+    const r = await gated(async () => ({ obs: await getUnassigned(q), plans: await planOptions() }));
+    if ('gate' in r) return notice(r.gate, 'Unassigned QC', 'quality.observations');
+    const clean = plain(q, ['limit', 'sort']);
+    if (clean['status'] === UNASSIGNED_STATUSES.join(',')) delete clean['status']; // the default is not a filter
+    const instruments = Object.fromEntries(r.data.plans.map((p) => [p.instrument_id, p.instrument_label]));
+    return <ObservationsView rows={r.data.obs.rows} hasPrevious={q.has('cursor')} sp={clean} canManage={r.perms.includes(MANAGE)} instruments={instruments} {...(r.data.obs.next ? { next: r.data.obs.next } : {})} />;
+  });
 }
 
 export async function runDetailPage(params: { qc_run_id?: string }) {

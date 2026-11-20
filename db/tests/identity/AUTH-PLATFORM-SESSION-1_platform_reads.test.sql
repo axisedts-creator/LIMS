@@ -66,8 +66,8 @@ INSERT INTO core.tenants (id, tenant_code, legal_name, display_name, status, cre
   (pg_temp.id(1), 'lab_a', 'Lab A Pvt Ltd', 'Lab A', 'active', pg_temp.id(99), pg_temp.id(99));
 -- staff 61 = user 32 (the founder-like platform admin); staff 62 = user 33 (a second admin); user 34 has NO platform_staff row
 INSERT INTO identity.platform_staff (id, user_id, email_normalized, display_name, role_code, is_active, created_by, updated_by) VALUES
-  (pg_temp.id(61), pg_temp.id(32), 'staff32@example.test', 'Staff 32', 'platform_admin', true, pg_temp.id(99), pg_temp.id(99)),
-  (pg_temp.id(62), pg_temp.id(33), 'staff33@example.test', 'Staff 33', 'platform_admin', true, pg_temp.id(99), pg_temp.id(99));
+  (pg_temp.id(61), pg_temp.id(32), 'staff32@example.test', 'Staff 32', 'platform_superadmin', true, pg_temp.id(99), pg_temp.id(99)),
+  (pg_temp.id(62), pg_temp.id(33), 'staff33@example.test', 'Staff 33', 'platform_superadmin', true, pg_temp.id(99), pg_temp.id(99));
 -- sessions: 101 platform user 32 (aal1, the live case) · 102 platform user 33 (another user) · 103 TENANT session of user 32 (kind tenant_staff, tenant 1)
 --           104 platform user 34 (no staff row -> e-mail NULL) · 105 platform user 32, revoked (returned as stored; the service decides) · 106 untouched control (user 33)
 INSERT INTO identity.sessions (id, tenant_id, user_id, kind, state, aal, membership_id, platform_staff_id, gotrue_session_id, token_sha256,
@@ -76,9 +76,14 @@ INSERT INTO identity.sessions (id, tenant_id, user_id, kind, state, aal, members
   (pg_temp.id(101), NULL,          pg_temp.id(32), 'platform',     'active',  'aal1', NULL,           pg_temp.id(61), pg_temp.id(201), pg_temp.h(1), '\xa101', '\xb101', 'k1', now() + interval '5 minutes', now() - interval '1 minute', now() + interval '20 minutes', now() + interval '10 hours', now() + interval '1 day', 2, 20, NULL,  pg_temp.id(99), pg_temp.id(99)),
   (pg_temp.id(102), NULL,          pg_temp.id(33), 'platform',     'active',  'aal2', NULL,           pg_temp.id(62), pg_temp.id(202), pg_temp.h(2), '\xa102', '\xb102', 'k1', now() + interval '5 minutes', now(),                      now() + interval '20 minutes', now() + interval '10 hours', now() + interval '1 day', 0, 15, NULL,  pg_temp.id(99), pg_temp.id(99)),
   (pg_temp.id(103), pg_temp.id(1), pg_temp.id(32), 'tenant_staff', 'active',  'aal1', pg_temp.id(41), NULL,            pg_temp.id(203), pg_temp.h(3), '\xa103', '\xb103', 'k1', now() + interval '5 minutes', now(),                      now() + interval '20 minutes', now() + interval '10 hours', now() + interval '1 day', 0, 20, NULL,  pg_temp.id(99), pg_temp.id(99)),
-  (pg_temp.id(104), NULL,          pg_temp.id(34), 'platform',     'active',  'aal1', NULL,           NULL,            pg_temp.id(204), pg_temp.h(4), '\xa104', '\xb104', 'k1', now() + interval '5 minutes', now(),                      now() + interval '20 minutes', now() + interval '10 hours', now() + interval '1 day', 0, 20, NULL,  pg_temp.id(99), pg_temp.id(99)),
-  (pg_temp.id(105), NULL,          pg_temp.id(32), 'platform',     'revoked', 'aal1', NULL,           pg_temp.id(61), pg_temp.id(205), pg_temp.h(5), '\xa105', '\xb105', 'k1', now() + interval '5 minutes', now(),                      now() + interval '20 minutes', now() + interval '10 hours', now() + interval '1 day', 0, 20, now(), pg_temp.id(99), pg_temp.id(99)),
+  -- HARNESS fix T0B-GREEN-3 (psql abort sessions__kind_shape__ck, migration 20261105001300): a platform session must carry platform_staff_id; 104 now points at a staff id (63) that has NO platform_staff row, which still proves "no staff row for the user -> email NULL" (the LEFT JOIN is on staff id AND user id)
+  (pg_temp.id(104), NULL,          pg_temp.id(34), 'platform',     'active',  'aal1', NULL,           pg_temp.id(63),  pg_temp.id(204), pg_temp.h(4), '\xa104', '\xb104', 'k1', now() + interval '5 minutes', now(),                      now() + interval '20 minutes', now() + interval '10 hours', now() + interval '1 day', 0, 20, NULL,  pg_temp.id(99), pg_temp.id(99)),
   (pg_temp.id(106), NULL,          pg_temp.id(33), 'platform',     'active',  'aal1', NULL,           pg_temp.id(62), pg_temp.id(206), pg_temp.h(6), '\xa106', '\xb106', 'k1', now() + interval '5 minutes', now(),                      now() + interval '20 minutes', now() + interval '10 hours', now() + interval '1 day', 0, 20, NULL,  pg_temp.id(99), pg_temp.id(99));
+-- 105 (revoked): HARNESS fix T0B-GREEN-3, sessions__revoke__ck (state = 'revoked') = (revoked_at AND revoke_reason NOT NULL) needs a revoke_reason; own INSERT
+INSERT INTO identity.sessions (id, tenant_id, user_id, kind, state, aal, membership_id, platform_staff_id, gotrue_session_id, token_sha256,
+                               access_token_enc, refresh_token_enc, enc_key_id, access_expires_at, last_seen_at, idle_expires_at, absolute_expires_at, expires_at,
+                               mfa_failed_attempts, idle_timeout_minutes, revoked_at, revoke_reason, created_by, updated_by) VALUES
+  (pg_temp.id(105), NULL,          pg_temp.id(32), 'platform',     'revoked', 'aal1', NULL,           pg_temp.id(61), pg_temp.id(205), pg_temp.h(5), '\xa105', '\xb105', 'k1', now() + interval '5 minutes', now(),                      now() + interval '20 minutes', now() + interval '10 hours', now() + interval '1 day', 0, 20, now(), 'logout', pg_temp.id(99), pg_temp.id(99));
 -- factors: 301 user 32 unverified · 302 user 32 verified · 303 user 32 REMOVED · 304 user 32 TENANT factor (tenant 1) · 305 user 33 verified · 306 user 34 unverified
 INSERT INTO identity.mfa_factors (id, tenant_id, user_id, gotrue_factor_id, factor_type, status, verified_at, friendly_name, removed_at, created_by, updated_by) VALUES
   (pg_temp.id(301), NULL,          pg_temp.id(32), pg_temp.id(401), 'totp', 'unverified', NULL,  NULL,       NULL,  pg_temp.id(99), pg_temp.id(99)),
@@ -213,8 +218,9 @@ SELECT is((SELECT mfa_failed_attempts FROM identity.sessions WHERE id = pg_temp.
 
 -- ================================================================ (vii) no RLS or grant weakening
 SELECT is((SELECT count(*) FROM pg_policies WHERE qual = 'true' OR with_check = 'true'), 1::bigint, '(vii) USING (true) / WITH CHECK (true) still appears exactly once in the database (platform_staff__select__owner_only)');
-SELECT ok(NOT EXISTS (SELECT 1 FROM pg_policies WHERE (qual ~ 'app\.(pre_|maintenance)' OR with_check ~ 'app\.(pre_|maintenance)') AND roles <> '{lims_owner}'),
-          '(vii) every policy mentioning app.pre_* / app.maintenance is still TO lims_owner only');
+SELECT ok(NOT EXISTS (SELECT 1 FROM pg_policies WHERE (qual ~ 'app\.(pre_|maintenance)' OR with_check ~ 'app\.(pre_|maintenance)') AND roles <> '{lims_owner}'
+                      AND NOT (schemaname = 'reporting' AND roles = '{lims_reporting_lookup}')),   -- STALE T0B-GREEN-3: C6 lookup policies are TO lims_reporting_lookup (08-CR-REGISTER C6-002, A10.5, D-30; as db/tests/policy, T0B-GREEN-2)
+          '(vii) every policy mentioning app.pre_* / app.maintenance is still TO lims_owner only (reporting lookup policies: TO lims_reporting_lookup only)');
 SELECT ok((SELECT bool_and(c.relforcerowsecurity AND c.relrowsecurity) FROM pg_class c WHERE c.oid IN
            ('identity.sessions'::regclass, 'identity.mfa_factors'::regclass, 'identity.platform_staff'::regclass)), '(vii) FORCE + ENABLE RLS on identity.sessions, mfa_factors, platform_staff');
 SELECT ok(EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'identity' AND tablename = 'sessions' AND policyname = 'sessions__select__owner_only' AND roles = '{lims_owner}'
@@ -228,8 +234,12 @@ SELECT ok(NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'identity' AN
 SELECT ok(NOT EXISTS (SELECT 1 FROM pg_class c, LATERAL aclexplode(c.relacl) a WHERE c.oid IN ('identity.sessions'::regclass, 'identity.mfa_factors'::regclass, 'identity.platform_staff'::regclass)
                        AND (a.grantee = 0 OR a.grantee IN (SELECT oid FROM pg_roles WHERE rolname IN ('anon', 'authenticated')))),
           '(vii) no table grant of the three tables to PUBLIC, anon or authenticated (the functions read as the owner; no grant was added for them)');
-SELECT ok(NOT has_table_privilege('lims_app', 'identity.platform_staff', 'INSERT') AND NOT has_table_privilege('lims_app', 'identity.platform_staff', 'UPDATE')
-          AND NOT has_table_privilege('lims_app', 'identity.platform_staff', 'DELETE'), '(vii) lims_app still has no write privilege on identity.platform_staff');
+-- STALE T0B-GREEN-3 (assertion 104): lims_app has held SELECT, INSERT, UPDATE on identity.platform_staff since migration 20261105001300 (class M, grants block) and the 20261115191000 __platform policies (PLATFORM-DDL-1, LD-223)
+-- use it, so "no INSERT / UPDATE grant" was never true. The property this task needs is that its read definers added no write path: no DELETE, and every INSERT / UPDATE policy that applies to lims_app is guarded by the platform actor.
+SELECT ok(NOT has_table_privilege('lims_app', 'identity.platform_staff', 'DELETE')
+          AND (SELECT count(*) > 0 AND bool_and(coalesce(qual, '') || coalesce(with_check, '') ~ 'is_platform_actor') FROM pg_policies
+                WHERE schemaname = 'identity' AND tablename = 'platform_staff' AND cmd IN ('INSERT', 'UPDATE', 'ALL') AND (roles && ARRAY['lims_app', 'public']::name[])),
+          '(vii) lims_app has no DELETE on identity.platform_staff and every INSERT / UPDATE policy that applies to lims_app requires app.is_platform_actor()');
 
 SELECT * FROM finish();
 ROLLBACK;

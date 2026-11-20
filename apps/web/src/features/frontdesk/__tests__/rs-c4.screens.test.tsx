@@ -4,7 +4,7 @@
 //   pnpm --dir apps/web exec vitest run --config src/features/frontdesk/__tests__/vitest.rs-c4.config.ts --pool=threads -u rs-c4.screens
 // into __snapshots__/rs-c4.screens.test.tsx.snap (LD-170 lets the writer/debugger keep that file). With CI=true a missing snapshot FAILS, which is the state today.
 // Do not edit a test or the implementation just to make a snapshot match. DOM is serialised (not pixels): react-aria generated ids are normalised.
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MONEY, PATH, UNIT, of, renderForm, setup, wrap } from './fd-t13.harness';
@@ -20,6 +20,9 @@ const norm = (html: string) =>
     .replace(/(id|for|aria-labelledby|aria-describedby|aria-controls|aria-owns|aria-activedescendant)="[^"]*(?:aria-id|:rN:)[^"]*"/g, '$1="ID"')
     .replace(/></g, '>\n<');
 const snap = (el: Element) => expect(norm(el.innerHTML)).toMatchSnapshot();
+// T0D-REGSCREEN-1 ruling (dispute 3): register screen shows the registration time (done_when 2), so its 3 snapshots freeze Date only; timers stay real for react-aria/user-event.
+const freezeDate = () => { vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(new Date('2026-11-17T06:00:00Z')); };
+afterEach(() => { vi.useRealTimers(); });
 
 const party = { id: U(4), code: 'SYNCORP', name: 'Synthetic Corp', credit_limit_paisa: 5000000, credit_days: 30, is_locked: false, outstanding: npr(95000), version: 1 };
 const statement = [
@@ -35,11 +38,13 @@ const report = {
 
 describe('RS-C4 key-screen snapshots', () => {
   it('Register: blank', async () => {
+    freezeDate();
     const v = await renderForm();
     snap(v.container);
   });
 
   it('Register: returning patient, one test, quote and summary filled', async () => {
+    freezeDate();
     const user = userEvent.setup({ delay: null });
     const v = await renderForm();
     await user.keyboard('{F2}9841000001');
@@ -55,6 +60,7 @@ describe('RS-C4 key-screen snapshots', () => {
   });
 
   it('Register: new-patient form open', async () => {
+    freezeDate();
     const user = userEvent.setup({ delay: null });
     const v = await renderForm();
     await user.keyboard('{Alt>}n{/Alt}');

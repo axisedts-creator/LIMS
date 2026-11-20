@@ -1,0 +1,1 @@
+node --test tests/db/T0B-CNTPOL-1.static.test.mjs && node --test --test-name-pattern="policies written|policy matrix|DEFINER functions|triggers:" tests/db/T0B-13.C16.engagement.test.mjs

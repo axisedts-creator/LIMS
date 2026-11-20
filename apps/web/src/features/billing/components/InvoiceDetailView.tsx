@@ -8,27 +8,39 @@ import { Checkbox } from '@lims/ui/components/Checkbox';
 import { ConfirmDialog } from '@lims/ui/components/ConfirmDialog';
 import { Dialog } from '@lims/ui/components/Dialog';
 import { Form } from '@lims/ui/components/Form';
+import { RadioGroup } from '@lims/ui/components/RadioGroup';
 import { MoneyField, type Money as FieldMoney } from '@lims/ui/components/MoneyField';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { Select } from '@lims/ui/components/Select';
 import { TextField } from '@lims/ui/components/TextField';
 import { useToast } from '@lims/ui/components/Toast';
 import { cancelInvoiceAction, issuePartialCreditNoteAction, printInvoiceAction, requestRefundAction } from '../server/actions';
-import { CANCEL_REASONS, PAYMENT_METHODS, REFUND_REASONS, REPRINT_REASONS, type CreditNoteSummary, type InvoiceDetail, type InvoicePrintDocument, type InvoicePrintRow } from '../server/types';
+import { CANCEL_REASONS, PAYMENT_METHODS, PRINT_STYLES, REFUND_REASONS, REPRINT_REASONS, STYLE_LABEL, type CreditNoteSummary, type InvoiceDetail, type InvoicePrintDocument, type InvoicePrintRow, type PrintStyle } from '../server/types';
 import { Ad, BsAd, InvoiceStatus, cbmsLabel, errorText, formatNpr, hasPerm, humanize, npr } from './format';
 import { InvoiceDocument } from './InvoiceDocument';
 import { InvoicePrintFrame } from './print/InvoicePrintView';
 import './billing.css';
+// T0D-OFFLINE-3 (LD-322; done_when 4): refund and cancel are online only; offline they are disabled with the reason shown
+import { useOnlineOnly } from '@/core/offline/ui/OfflineProvider';
+import { readPrintStyle, writePrintStyle } from '@/core/prefs/print-style';
 
-type Open = 'none' | 'cancel' | 'reprint' | 'credit' | 'refund';
+type Open = 'none' | 'cancel' | 'print' | 'credit' | 'refund';
 const newKey = () => crypto.randomUUID();
+// T0D-PRINTCFG-1 done_when (4) (LD-316): the last print style is remembered per browser through core/prefs (untrusted values read Full bill).
+const isStyle = (v: unknown): v is PrintStyle => PRINT_STYLES.includes(v as PrintStyle);
+const rememberedStyle = readPrintStyle;
+const remember = writePrintStyle;
+/** Style of the first print (lowest print_no); rows printed before styles existed read full. undefined when no row is known. */
+const firstStyle = (prints: readonly InvoicePrintRow[]): PrintStyle | undefined => {
+  const first = [...prints].sort((a, b) => a.print_no - b.print_no)[0];
+  return first ? (isStyle(first.style) ? first.style : 'full') : undefined;
+};
 
 export function InvoiceDetailView({ invoice, prints, creditNotes, permissions }: { invoice: InvoiceDetail; prints: readonly InvoicePrintRow[]; creditNotes: readonly CreditNoteSummary[]; permissions: readonly string[] }) {
   const router = useRouter();
   const toast = useToast();
   const [open, setOpen] = useState<Open>('none');
-  const [printing, setPrinting] = useState<InvoicePrintDocument | null>(null);
-  const [busy, setBusy] = useState(false);
+  const [printing, setPrinting] = useState<{ document: InvoicePrintDocument; style: PrintStyle } | null>(null);
   // One Idempotency-Key per dialog open: a retry after a failure is the same request (02-CONVENTIONS §4.5).
   const key = useRef(newKey());
   const openDialog = (o: Open) => { key.current = newKey(); setOpen(o); };
@@ -37,13 +49,15 @@ export function InvoiceDetailView({ invoice, prints, creditNotes, permissions }:
   const canPrint = hasPerm(permissions, 'billing.invoice.reprint');
   const canCancel = hasPerm(permissions, 'billing.invoice.cancel') && !cancelled;
   const canRefund = (hasPerm(permissions, 'billing.refund.request') || hasPerm(permissions, 'billing.refund.approve')) && !!invoice.order_id;
+  const refundGate = useOnlineOnly('order.refund');
+  const cancelGate = useOnlineOnly('order.cancel');
   const fail = (code: string, title: string) => toast.show({ tone: 'danger', title, description: errorText(code) });
 
-  const doPrint = async (reasonCode: string) => {
-    const r = await printInvoiceAction(invoice.id, reasonCode, key.current);
+  const doPrint = async (reasonCode: string, style: PrintStyle) => {
+    const r = await printInvoiceAction(invoice.id, reasonCode, key.current, style);
     if (!r.ok) return fail(r.code, 'Could not print the invoice');
     setOpen('none');
-    setPrinting({ ...r.data.document, ...(r.data.copy_mark ? { copy_mark: r.data.copy_mark } : {}) });
+    setPrinting({ document: { ...r.data.document, ...(r.data.copy_mark ? { copy_mark: r.data.copy_mark } : {}) }, style: isStyle(r.data.style) ? r.data.style : style });
   };
 
   return (
@@ -55,22 +69,12 @@ export function InvoiceDetailView({ invoice, prints, creditNotes, permissions }:
         actions={
           <>
             {canPrint ? (
-              <Button
-                variant="primary"
-                isLoading={busy}
-                onPress={async () => {
-                  if (invoice.print_count >= 1) return openDialog('reprint');
-                  key.current = newKey();
-                  setBusy(true);
-                  try { await doPrint('first_print'); } finally { setBusy(false); }
-                }}
-              >
-                Print
-              </Button>
+              <Button variant="primary" onPress={() => openDialog('print')}>Print</Button>
             ) : null}
-            {canCancel ? <Button variant="danger" onPress={() => openDialog('cancel')}>Cancel invoice</Button> : null}
-            {canCancel ? <Button onPress={() => openDialog('credit')}>Partial credit</Button> : null}
-            {canRefund ? <Button onPress={() => openDialog('refund')}>Request refund</Button> : null}
+            {canCancel ? <Button variant="danger" isDisabled={cancelGate.disabled} onPress={() => openDialog('cancel')}>Cancel invoice</Button> : null}
+            {canCancel ? <Button isDisabled={cancelGate.disabled} onPress={() => openDialog('credit')}>Partial credit</Button> : null}
+            {canRefund ? <Button isDisabled={refundGate.disabled} onPress={() => openDialog('refund')}>Request refund</Button> : null}
+            {(canCancel && cancelGate.reason) || (canRefund && refundGate.reason) ? <span className="lims-description">{canRefund ? refundGate.reason : cancelGate.reason}</span> : null}
           </>
         }
       />
@@ -88,11 +92,11 @@ export function InvoiceDetailView({ invoice, prints, creditNotes, permissions }:
           {prints.length === 0 ? <p>Not printed yet.</p> : (
             <table>
               <caption>Print history</caption>
-              <thead><tr><th scope="col">No</th><th scope="col">Type</th><th scope="col">By</th><th scope="col">Time</th><th scope="col">Reason</th></tr></thead>
+              <thead><tr><th scope="col">No</th><th scope="col">Type</th><th scope="col">Style</th><th scope="col">By</th><th scope="col">Time</th><th scope="col">Reason</th></tr></thead>
               <tbody>
                 {prints.map((p) => (
                   <tr key={p.print_no}>
-                    <td>{p.print_no}</td><td>{p.is_copy ? 'Copy' : 'Original'}</td><td>{p.printed_by_display}</td>
+                    <td>{p.print_no}</td><td>{p.is_copy ? 'Copy' : 'Original'}</td><td>{STYLE_LABEL[isStyle(p.style) ? p.style : 'full']}</td><td>{p.printed_by_display}</td>
                     <td><Ad value={p.printed_at} withTime /></td><td>{humanize(p.reason_code)}</td>
                   </tr>
                 ))}
@@ -136,19 +140,41 @@ export function InvoiceDetailView({ invoice, prints, creditNotes, permissions }:
           router.refresh();
         }}
       />
-      <ConfirmDialog
-        title="Print invoice"
-        isOpen={open === 'reprint'}
-        confirmLabel="Print"
-        onCancel={() => setOpen('none')}
-        requireReason={{ codedSet: 'billing.print_reasons', options: REPRINT_REASONS }}
-        body={<p>This invoice was already printed. The new print is marked as a copy.</p>}
-        onConfirm={async ({ reasonCode }) => { if (reasonCode) await doPrint(reasonCode); }}
-      />
-      {printing ? <InvoicePrintFrame document={printing} isOpen onDone={() => { setPrinting(null); router.refresh(); }} /> : null}
+      {open === 'print' ? <PrintDialog reprint={invoice.print_count >= 1} first={firstStyle(prints)} onClose={() => setOpen('none')} onPrint={doPrint} /> : null}
+      {printing ? <InvoicePrintFrame document={printing.document} plain={printing.style === 'plain_bw'} isOpen onDone={() => { setPrinting(null); router.refresh(); }} /> : null}
       {open === 'credit' ? <PartialCreditDialog invoice={invoice} idempotencyKey={key.current} onClose={() => setOpen('none')} onDone={(no) => { setOpen('none'); toast.show({ tone: 'success', title: `Credit note ${no} issued.` }); router.refresh(); }} onFail={(c) => fail(c, 'Could not issue the credit note')} /> : null}
       {open === 'refund' ? <RefundDialog invoice={invoice} refundable={remaining} idempotencyKey={key.current} onClose={() => setOpen('none')} onDone={() => { setOpen('none'); toast.show({ tone: 'success', title: 'Refund request sent for approval.' }); router.refresh(); }} onFail={(c) => fail(c, 'Could not request the refund')} /> : null}
     </section>
+  );
+}
+
+/** T0D-PRINTCFG-1 done_when (4): Full bill or Plain black and white bill. A reprint keeps the style of the first print (a tax bill keeps its style). */
+function PrintDialog({ reprint, first, onClose, onPrint }: { reprint: boolean; first: PrintStyle | undefined; onClose: () => void; onPrint: (reasonCode: string, style: PrintStyle) => Promise<void> }) {
+  const locked = reprint && first !== undefined;
+  const [style, setStyle] = useState<PrintStyle>(() => (locked ? first : rememberedStyle()));
+  const [reasonCode, setReasonCode] = useState<string>();
+  const [error, setError] = useState<string>();
+  const [busy, setBusy] = useState(false);
+  const submit = async () => {
+    if (busy) return;
+    if (reprint && !reasonCode) return setError('Choose a reason.');
+    setBusy(true);
+    try {
+      if (!locked) remember(style);
+      await onPrint(reprint ? reasonCode! : 'first_print', style);
+    } finally { setBusy(false); }
+  };
+  return (
+    <Dialog
+      title="Print invoice" isOpen onClose={onClose} size="sm"
+      footer={<><Button variant="ghost" onPress={onClose} isDisabled={busy}>Cancel</Button><Button variant="primary" isLoading={busy} onPress={() => void submit()}>Print</Button></>}
+    >
+      {reprint ? <p>This invoice was already printed. The new print is marked as a copy.</p> : null}
+      {locked ? <p>First printed as {STYLE_LABEL[first]}. A reprint keeps that style.</p> : null}
+      <RadioGroup<PrintStyle> label="Bill style" name="style" value={style} isDisabled={locked} onChange={setStyle} options={PRINT_STYLES.map((s) => ({ value: s, label: STYLE_LABEL[s] }))} />
+      {reprint ? <Select label="Reason" name="reason_code" isRequired options={REPRINT_REASONS.map((r) => ({ value: r.code, label: r.display }))} {...(reasonCode ? { value: reasonCode } : {})} onChange={(v) => { setReasonCode(v); setError(undefined); }} /> : null}
+      {error ? <p role="alert" className="lims-error">{error}</p> : null}
+    </Dialog>
   );
 }
 

@@ -1,0 +1,6 @@
+# VERIFY-GREEN-1 impl (writer, after LD-256 reset): gate `.orchestra/notes/VERIFY-GREEN-1-verify.cmd` steps all pass.
+- Files (types/specifiers only): contracts/ports/*.ts x14 (`.js` on relative + import() specifiers); identity handlers x5 (`bffKey?: HandlerContext['bffKey']`, narrower `log?` override dropped; no runtime line, LD-189); analytics mappers/schedules.dto.ts (exported result DTO types, TS2883); packages/shared-ts/tsconfig.json (stale exclude dropped).
+- Gate run 2026-11-16: TS2835/TS2883/TS2430 in `turbo run typecheck --continue` = 0; shared-ts `tsc --noEmit` ok; shared-ts node tests 228/228 pass; api vitest identity handlers+service 2888 pass, 20 skipped, 0 fail.
+- [CONV] shared-ts TS5097 `.ts` specifiers (bsdate/index.ts:2, formula/index.ts:3) kept: node --test needs them; `.js` broke 13 tests; allowing would loosen tsconfig.
+- Remaining typecheck: api 66, worker 27, web 290. Full backlog per file/class/reason in VERIFY-GREEN-1-baseline.md "Backlog" (incl. 58+ un-hidden billing/catalog/frontdesk/partners errors). Not queued (LD-256: founder priority call).
+- No review/ruling file existed for this round; nothing else to apply. Open: full verify stays red until the backlog task.

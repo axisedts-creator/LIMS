@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lims_ui/lims_ui.dart';
 
 import '../orders/orders_format.dart';
+import '../orders/status_look.dart';
 import 'report_viewer_screen.dart';
 import 'reports_api.dart';
 import 'reports_providers.dart';
@@ -80,7 +81,13 @@ class _ReportsListScreenState extends ConsumerState<ReportsListScreen> {
         child: Scaffold(
           appBar: AppBar(title: const Text('Reports')),
           body: Column(children: [
-            SwitchListTile(title: const Text('Show older versions'), value: _older, onChanged: _toggle),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(LimsTokens.space4, LimsTokens.space4, LimsTokens.space4, 0),
+              child: Card(
+                clipBehavior: Clip.antiAlias,
+                child: SwitchListTile(title: const Text('Show older versions'), value: _older, onChanged: _toggle),
+              ),
+            ),
             Expanded(child: _body()),
           ]),
         ),
@@ -88,9 +95,9 @@ class _ReportsListScreenState extends ConsumerState<ReportsListScreen> {
 
   Widget _body() {
     if (_rows.isEmpty) {
-      if (_failed) return LimsErrorState(title: 'Something went wrong', message: 'We could not load your reports.', onRetry: _reload);
+      if (_failed) return StateCard(LimsErrorState(title: 'Something went wrong', message: 'We could not load your reports.', onRetry: _reload));
       if (!_loaded) return const Center(child: CircularProgressIndicator());
-      return const LimsEmptyState(title: "No reports yet. You'll see them here when the lab releases them.");
+      return const StateCard(LimsEmptyState(title: "No reports yet. You'll see them here when the lab releases them."));
     }
     return RefreshIndicator(
       onRefresh: _reload,
@@ -125,8 +132,8 @@ class _ReportRow extends StatelessWidget {
         child: LimsCard(
           title: panels.isEmpty ? 'Lab report' : panels.join(', '),
           child: Wrap(spacing: LimsTokens.space2, runSpacing: LimsTokens.space1, crossAxisAlignment: WrapCrossAlignment.center, children: [
-            LimsStatusChip(kind: 'generic', status: report['kind'] is String ? report['kind']! as String : 'unknown', tone: tone, label: label),
-            if (report['smart_summary_available'] == true) const LimsStatusChip(kind: 'generic', status: 'smart_summary', tone: 'info', label: 'Smart summary'),
+            ToneChip(LimsStatusChip(kind: 'generic', status: report['kind'] is String ? report['kind']! as String : 'unknown', tone: tone, label: label)),
+            if (report['smart_summary_available'] == true) const ToneChip(LimsStatusChip(kind: 'generic', status: 'smart_summary', tone: 'info', label: 'Smart summary')),
             Text(dateTimeText(report['released_at'])),
             if (replaced) const Text('Replaced by a newer version'),
           ]),

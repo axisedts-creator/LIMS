@@ -59,6 +59,8 @@ const codes = (r: { data: any[] }) => r.data.map((x) => x.party_code);
 const SENSITIVE = ['pan', 'contact_phone_e164', 'contact_email', 'billing_address'];
 const noSensitive = (x: object) => { for (const k of SENSITIVE) expect(x, k).not.toHaveProperty(k); };
 const DTO_KEYS = ['id', 'party_code', 'name', 'kind', 'allows_credit', ...SENSITIVE, 'is_active', 'version'];
+// T0B-PARTYSET-1 ruling item 2 (done_when 5; contracts/openapi/catalog.yaml CreditParty.pan "*****0000"): every reply masks the pan ('*' x (len-4) + last four); the DB row keeps the full value.
+const MASKED = { pan: '*****6789' };
 const FULL = { pan: '123456789', contact_phone_e164: P1, contact_email: 'billing@example.test', billing_address: 'Synthetic Street 1, Synthetic City' };
 
 // ====================================================================================================== CREATE
@@ -85,7 +87,7 @@ describe('createCreditParty (#68) — AC-12.1 auto party_code', () => {
   it('allows_credit defaults to true when omitted; every optional field round-trips for a manage holder; all six kinds are accepted', { timeout: T }, async () => {
     const { db, svc } = setup();
     const out = await create(db, svc, { name: 'Synthetic Company', kind: 'company', ...FULL });
-    expect(out).toEqual({ id: out.id, party_code: 'CP00001', name: 'Synthetic Company', kind: 'company', allows_credit: true, ...FULL, is_active: true, version: 1 });
+    expect(out).toEqual({ id: out.id, party_code: 'CP00001', name: 'Synthetic Company', kind: 'company', allows_credit: true, ...FULL, ...MASKED, is_active: true, version: 1 });
     expect(db.row(out.id)).toMatchObject({ allows_credit: true, ...FULL });
     for (const kind of ['hospital', 'company', 'clinic', 'partner_lab', 'insurer', 'other']) expect((await create(db, svc, { name: `K ${kind}`, kind })).kind).toBe(kind);
   });
@@ -288,7 +290,7 @@ describe('getCreditParty (#69) and the sensitive-field allow-list — AC-12.4, S
   it('a holder of catalog.price_list.manage gets the full CreditParty (pan, phone, e-mail, address included); exact keys, no internal columns', { timeout: T }, async () => {
     const { db, svc } = setup({ credit_parties: [full] });
     const out = await get(db, svc, full.id);
-    expect(out).toEqual({ id: full.id, party_code: 'CPSEED1', name: 'Synthetic Party 1', kind: 'hospital', allows_credit: false, ...FULL, is_active: true, version: 3 });
+    expect(out).toEqual({ id: full.id, party_code: 'CPSEED1', name: 'Synthetic Party 1', kind: 'hospital', allows_credit: false, ...FULL, ...MASKED, is_active: true, version: 3 });
     for (const k of ['tenant_id', 'created_by', 'updated_by', 'created_at', 'updated_at', 'price_list_id']) expect(out).not.toHaveProperty(k);
   });
 
@@ -364,7 +366,7 @@ describe('listCreditParties (#67)', () => {
     const out = await list(db, svc);
     expect(codes(out).sort()).toEqual(['CP00001', 'CP00002', 'CP00003', 'LAB1']);
     expect(out.page.limit).toBe(50);
-    expect(out.data.find((x: Row) => x.party_code === 'CP00001')).toEqual({ id: cp(1, A).id, party_code: 'CP00001', name: 'Synthetic Party 1', kind: 'hospital', allows_credit: true, ...FULL, is_active: true, version: 1 });
+    expect(out.data.find((x: Row) => x.party_code === 'CP00001')).toEqual({ id: cp(1, A).id, party_code: 'CP00001', name: 'Synthetic Party 1', kind: 'hospital', allows_credit: true, ...FULL, ...MASKED, is_active: true, version: 1 });
     for (const x of out.data) for (const k of Object.keys(x)) expect(DTO_KEYS).toContain(k);
     expect(JSON.stringify(out)).not.toMatch(/BONLY|B Secret/);
   });
@@ -474,7 +476,7 @@ describe('updateCreditParty (#70)', () => {
   it('patch -> 200 CreditParty with version+1; only the patched fields change (party_code never); event `updated` (entity credit_party) + revision +1 in the same transaction', { timeout: T }, async () => {
     const { db, svc } = setup({ credit_parties: [base()] });
     const out = await upd(db, svc, ID1, 1, { name: 'Renamed Hospital', kind: 'insurer', allows_credit: false, pan: '987654321', contact_phone_e164: P2, contact_email: 'new@example.test', billing_address: 'New Street 2' }, { at: at(3) });
-    expect(out).toEqual({ id: ID1, party_code: 'CPSEED1', name: 'Renamed Hospital', kind: 'insurer', allows_credit: false, pan: '987654321', contact_phone_e164: P2, contact_email: 'new@example.test', billing_address: 'New Street 2', is_active: true, version: 2 });
+    expect(out).toEqual({ id: ID1, party_code: 'CPSEED1', name: 'Renamed Hospital', kind: 'insurer', allows_credit: false, pan: '*****4321', contact_phone_e164: P2, contact_email: 'new@example.test', billing_address: 'New Street 2', is_active: true, version: 2 });
     expect(db.row(ID1)).toMatchObject({ version: 2, updated_by: USER, party_code: 'CPSEED1' });
     expect(ms(db.row(ID1)!.updated_at)).toBe(+at(3));
     const ev = events(db);

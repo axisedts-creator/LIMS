@@ -946,22 +946,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              additionalProperties: false
-              required:
-                - variant
-                - copies
-              properties:
-                variant:
-                  type: string
-                  maxLength: 10
-                  enum:
-                    - letterhead
-                    - plain
-                copies:
-                  type: integer
-                  minimum: 1
-                  maximum: 5
+              $ref: '#/components/schemas/CreateReportPrintRequest'
             examples:
               synthetic:
                 value:
@@ -4753,6 +4738,357 @@ paths:
           $ref: _common.yaml#/components/responses/TooManyRequests
         "500":
           $ref: _common.yaml#/components/responses/Internal
+  /v1/reporting/print-profiles:
+    get:
+      operationId: listPrintProfiles
+      tags:
+        - reporting
+      summary: List print profiles (own header and footer, paper mode) per branch, document kind and recipient type
+      description: "T0C-PRINTCFG-1 (LD-316, LD-319(1)). Report profiles need reporting.settings.manage; invoice and credit_note profiles also need billing.settings.manage (the billing settings permission), checked by the handler. Until CR T0C-PRINTCFG-1 is ruled, a finance-only user (billing.settings.manage without reporting.settings.manage) cannot manage invoice or credit_note profiles. A profile without branch_id is the lab default; without recipient_type it applies to every recipient."
+      security:
+        - bearerJwt: []
+      x-permission: reporting.settings.manage
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+      parameters:
+        - name: document_kind
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 11
+            enum:
+              - report
+              - invoice
+              - credit_note
+        - name: branch_id
+          in: query
+          required: false
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PrintProfileList"
+              examples:
+                synthetic:
+                  value:
+                    data:
+                      - id: 0193c4a0-0000-7000-8000-000000000a01
+                        document_kind: report
+                        recipient_type: patient
+                        paper_mode: preprinted_paper
+                        header_text: ""
+                        footer_text: ""
+                        reserve_top_mm: 45
+                        reserve_bottom_mm: 25
+                        show_logo: false
+                        show_seller_pan: true
+                        grayscale: false
+                        font_size_pt: 10
+                        is_active: true
+                        updated_at: 2026-11-17T04:15:00.000Z
+                        updated_by: 0193c4a0-0000-7000-8000-000000000a02
+                      - id: 0193c4a0-0000-7000-8000-000000000a03
+                        branch_id: 0193c4a0-0000-7000-8000-000000000a04
+                        document_kind: invoice
+                        paper_mode: plain
+                        header_text: ""
+                        footer_text: ""
+                        reserve_top_mm: 0
+                        reserve_bottom_mm: 0
+                        show_logo: false
+                        show_seller_pan: true
+                        grayscale: true
+                        font_size_pt: 10
+                        is_active: true
+                        updated_at: 2026-11-17T04:15:00.000Z
+                        updated_by: 0193c4a0-0000-7000-8000-000000000a02
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+    put:
+      operationId: upsertPrintProfile
+      tags:
+        - reporting
+      summary: Create or replace the print profile of one key (branch, document kind, recipient type)
+      description: "T0C-PRINTCFG-1 (LD-316, LD-319(1)). Upsert by key: branch_id (omitted = the lab default), document_kind and recipient_type (omitted = every recipient); one active row per key. Report profiles need reporting.settings.manage; invoice and credit_note profiles also need billing.settings.manage (the billing settings permission), checked by the handler. Until CR T0C-PRINTCFG-1 is ruled, a finance-only user (billing.settings.manage without reporting.settings.manage) cannot manage invoice or credit_note profiles. Audited."
+      security:
+        - bearerJwt: []
+      x-permission: reporting.settings.manage
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PrintProfileInput"
+            examples:
+              typed_report:
+                value:
+                  document_kind: report
+                  paper_mode: typed_header_footer
+                  header_text: "Synthetic Diagnostic Lab (SYNTHETIC)\nKathmandu"
+                  footer_text: Thank you (SYNTHETIC)
+                  font_size_pt: 10
+              branch_plain_invoice:
+                value:
+                  branch_id: 0193c4a0-0000-7000-8000-000000000a04
+                  document_kind: invoice
+                  paper_mode: plain
+                  grayscale: true
+                  show_seller_pan: true
+              preprinted_report:
+                value:
+                  document_kind: report
+                  recipient_type: doctor
+                  paper_mode: preprinted_paper
+                  reserve_top_mm: 45
+                  reserve_bottom_mm: 25
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PrintProfile"
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-000000000a05
+                    document_kind: report
+                    paper_mode: typed_header_footer
+                    header_text: "Synthetic Diagnostic Lab (SYNTHETIC)\nKathmandu"
+                    footer_text: Thank you (SYNTHETIC)
+                    reserve_top_mm: 0
+                    reserve_bottom_mm: 0
+                    show_logo: false
+                    show_seller_pan: true
+                    grayscale: false
+                    font_size_pt: 10
+                    is_active: true
+                    updated_at: 2026-11-17T04:15:00.000Z
+                    updated_by: 0193c4a0-0000-7000-8000-000000000a02
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/reporting/print-profiles/preview:
+    post:
+      operationId: previewPrintProfile
+      tags:
+        - reporting
+      summary: Render a preview of a draft print profile with synthetic sample data
+      description: "T0C-PRINTCFG-1 (LD-316). Synthetic sample data only: the preview never uses real patient data and accepts no patient, report, invoice or order id. Same render job as previewReportTemplate. Report previews need reporting.settings.manage; invoice and credit_note previews also need billing.settings.manage (the billing settings permission), checked by the handler. Until CR T0C-PRINTCFG-1 is ruled, a finance-only user (billing.settings.manage without reporting.settings.manage) cannot manage invoice or credit_note profiles. Nothing is stored."
+      security:
+        - bearerJwt: []
+      x-permission: reporting.settings.manage
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.idempotency_key_reused
+      parameters:
+        - $ref: _common.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PrintProfilePreviewRequest"
+            examples:
+              synthetic:
+                value:
+                  document_kind: invoice
+                  paper_mode: typed_header_footer
+                  header_text: Synthetic Diagnostic Lab (SYNTHETIC)
+                  footer_text: Thank you (SYNTHETIC)
+      responses:
+        "202":
+          description: Accepted; the render job of the synthetic preview.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PrintJob"
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-000000000a06
+                    state: rendering
+                    variant: plain
+                    copies: 1
+                    expires_at: 2026-11-17T04:15:00.000Z
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "428":
+          $ref: _common.yaml#/components/responses/PreconditionRequired
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/reporting/signatory-profiles:
+    get:
+      operationId: listSignatoryProfiles
+      tags:
+        - reporting
+      summary: List signer profiles (name, title, registration number, signature image id)
+      description: "T0C-PRINTCFG-1 (LD-316). Only sign-offs by a signer holding lab.result.approve print as a signature on the report; the image itself is a stored file, never returned inline."
+      security:
+        - bearerJwt: []
+      x-permission: reporting.settings.manage
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SignatoryProfileList"
+              examples:
+                synthetic:
+                  value:
+                    data:
+                      - user_id: 0193c4a0-0000-7000-8000-000000000a07
+                        display_name: Dr Synthetic Pathologist
+                        title: Consultant Pathologist (SYNTHETIC)
+                        registration_no: SYN-REG-0001
+                        signature_asset_id: 0193c4a0-0000-7000-8000-000000000a08
+                        is_active: true
+                        updated_at: 2026-11-17T04:15:00.000Z
+                        updated_by: 0193c4a0-0000-7000-8000-000000000a02
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/reporting/signatory-profiles/{user_id}:
+    put:
+      operationId: upsertSignatoryProfile
+      tags:
+        - reporting
+      summary: Create or replace the signer profile of one user
+      description: "T0C-PRINTCFG-1 (LD-316). One row per user of the tenant (404 if the user is unknown). signature_asset_id is the id of an uploaded image file; omitted = no image. Audited."
+      security:
+        - bearerJwt: []
+      x-permission: reporting.settings.manage
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SignatoryProfileInput"
+            examples:
+              synthetic:
+                value:
+                  display_name: Dr Synthetic Pathologist
+                  title: Consultant Pathologist (SYNTHETIC)
+                  registration_no: SYN-REG-0001
+                  signature_asset_id: 0193c4a0-0000-7000-8000-000000000a08
+                  is_active: true
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SignatoryProfile"
+              examples:
+                synthetic:
+                  value:
+                    user_id: 0193c4a0-0000-7000-8000-000000000a07
+                    display_name: Dr Synthetic Pathologist
+                    title: Consultant Pathologist (SYNTHETIC)
+                    registration_no: SYN-REG-0001
+                    signature_asset_id: 0193c4a0-0000-7000-8000-000000000a08
+                    is_active: true
+                    updated_at: 2026-11-17T04:15:00.000Z
+                    updated_by: 0193c4a0-0000-7000-8000-000000000a02
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
   /v1/reporting/settings:
     get:
       operationId: getReportingSettings
@@ -6182,6 +6518,23 @@ paths:
           $ref: _common.yaml#/components/responses/Internal
 components:
   schemas:
+    CreateReportPrintRequest:   # T0C-SYNC-2 (LD-322): hoisted from createReportPrint so the offline sync catalogue (core.yaml) references the same schema
+      type: object
+      additionalProperties: false
+      required:
+        - variant
+        - copies
+      properties:
+        variant:
+          type: string
+          maxLength: 10
+          enum:
+            - letterhead
+            - plain
+        copies:
+          type: integer
+          minimum: 1
+          maximum: 5
     ReportSummary:
       type: object
       additionalProperties: false
@@ -7110,6 +7463,326 @@ components:
           description: "Bulk print: ids not released (reporting.report_not_released per id)."
         error_code:
           $ref: _common.yaml#/components/schemas/Code
+    PrintProfile:
+      type: object
+      additionalProperties: false
+      description: "T0C-PRINTCFG-1 (LD-316, LD-319(1)): own header and footer for printed reports and bills, per branch, document kind and recipient type."
+      required:
+        - id
+        - document_kind
+        - paper_mode
+        - header_text
+        - footer_text
+        - reserve_top_mm
+        - reserve_bottom_mm
+        - show_logo
+        - show_seller_pan
+        - grayscale
+        - font_size_pt
+        - is_active
+        - updated_at
+        - updated_by
+      properties:
+        id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        branch_id:
+          allOf:
+            - $ref: _common.yaml#/components/schemas/Uuid
+          description: Omitted = the lab default (every branch without its own profile).
+        document_kind:
+          type: string
+          maxLength: 11
+          enum:
+            - report
+            - invoice
+            - credit_note
+        recipient_type:
+          type: string
+          maxLength: 10
+          enum:
+            - patient
+            - doctor
+            - franchise
+            - laboratory
+            - other
+          description: Copy the profile is for (LD-319(1)); omitted = every recipient.
+        paper_mode:
+          type: string
+          maxLength: 19
+          enum:
+            - letterhead_image
+            - typed_header_footer
+            - preprinted_paper
+            - plain
+          description: "letterhead_image: the lab letterhead image; typed_header_footer: header_text and footer_text; preprinted_paper: blank space (reserve_top_mm, reserve_bottom_mm) for the lab own printed notepad; plain: no header and no footer."
+        header_text:
+          type: string
+          maxLength: 967
+          pattern: '^[^<>\u0000-\u001f\u007f]{0,120}(\n[^<>\u0000-\u001f\u007f]{0,120}){0,7}$'
+          description: "Plain text only (LD-316): at most 8 lines of 120 characters each, lines split at a newline; no markup (no < or >) and no control characters. Printed at the top in typed_header_footer mode."
+        footer_text:
+          type: string
+          maxLength: 967
+          pattern: '^[^<>\u0000-\u001f\u007f]{0,120}(\n[^<>\u0000-\u001f\u007f]{0,120}){0,7}$'
+          description: "Plain text only (LD-316): at most 8 lines of 120 characters each, lines split at a newline; no markup (no < or >) and no control characters. Printed at the bottom in typed_header_footer mode."
+        reserve_top_mm:
+          type: integer
+          minimum: 0
+          maximum: 80
+          description: Blank space at the top in mm (pre printed notepad).
+        reserve_bottom_mm:
+          type: integer
+          minimum: 0
+          maximum: 60
+          description: Blank space at the bottom in mm (pre printed notepad).
+        show_logo:
+          type: boolean
+        show_seller_pan:
+          type: boolean
+          description: Print the seller PAN (a tax bill carries it).
+        grayscale:
+          type: boolean
+        font_size_pt:
+          type: integer
+          minimum: 8
+          maximum: 12
+        is_active:
+          type: boolean
+        updated_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        updated_by:
+          $ref: _common.yaml#/components/schemas/Uuid
+    PrintProfileList:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+      properties:
+        data:
+          type: array
+          maxItems: 200
+          items:
+            $ref: "#/components/schemas/PrintProfile"
+    PrintProfileInput:
+      type: object
+      additionalProperties: false
+      description: Upsert body; the key is branch_id (omitted = the lab default), document_kind and recipient_type (omitted = every recipient).
+      required:
+        - document_kind
+        - paper_mode
+      properties:
+        branch_id:
+          allOf:
+            - $ref: _common.yaml#/components/schemas/Uuid
+          description: Omitted = the lab default (every branch without its own profile).
+        document_kind:
+          type: string
+          maxLength: 11
+          enum:
+            - report
+            - invoice
+            - credit_note
+        recipient_type:
+          type: string
+          maxLength: 10
+          enum:
+            - patient
+            - doctor
+            - franchise
+            - laboratory
+            - other
+          description: Copy the profile is for (LD-319(1)); omitted = every recipient.
+        paper_mode:
+          type: string
+          maxLength: 19
+          enum:
+            - letterhead_image
+            - typed_header_footer
+            - preprinted_paper
+            - plain
+          description: "letterhead_image: the lab letterhead image; typed_header_footer: header_text and footer_text; preprinted_paper: blank space (reserve_top_mm, reserve_bottom_mm) for the lab own printed notepad; plain: no header and no footer."
+        header_text:
+          type: string
+          maxLength: 967
+          pattern: '^[^<>\u0000-\u001f\u007f]{0,120}(\n[^<>\u0000-\u001f\u007f]{0,120}){0,7}$'
+          description: "Plain text only (LD-316): at most 8 lines of 120 characters each, lines split at a newline; no markup (no < or >) and no control characters. Printed at the top in typed_header_footer mode."
+        footer_text:
+          type: string
+          maxLength: 967
+          pattern: '^[^<>\u0000-\u001f\u007f]{0,120}(\n[^<>\u0000-\u001f\u007f]{0,120}){0,7}$'
+          description: "Plain text only (LD-316): at most 8 lines of 120 characters each, lines split at a newline; no markup (no < or >) and no control characters. Printed at the bottom in typed_header_footer mode."
+        reserve_top_mm:
+          type: integer
+          minimum: 0
+          maximum: 80
+          default: 0
+          description: Blank space at the top in mm (pre printed notepad).
+        reserve_bottom_mm:
+          type: integer
+          minimum: 0
+          maximum: 60
+          default: 0
+          description: Blank space at the bottom in mm (pre printed notepad).
+        show_logo:
+          type: boolean
+          default: false
+        show_seller_pan:
+          type: boolean
+          default: true
+          description: Print the seller PAN (a tax bill carries it).
+        grayscale:
+          type: boolean
+          default: false
+        font_size_pt:
+          type: integer
+          minimum: 8
+          maximum: 12
+          default: 10
+        is_active:
+          type: boolean
+          default: true
+    PrintProfilePreviewRequest:
+      type: object
+      additionalProperties: false
+      description: A draft profile rendered with synthetic sample data only; no patient, report, invoice or order id is accepted.
+      required:
+        - document_kind
+        - paper_mode
+      properties:
+        document_kind:
+          type: string
+          maxLength: 11
+          enum:
+            - report
+            - invoice
+            - credit_note
+        recipient_type:
+          type: string
+          maxLength: 10
+          enum:
+            - patient
+            - doctor
+            - franchise
+            - laboratory
+            - other
+          description: Copy the profile is for (LD-319(1)); omitted = every recipient.
+        paper_mode:
+          type: string
+          maxLength: 19
+          enum:
+            - letterhead_image
+            - typed_header_footer
+            - preprinted_paper
+            - plain
+          description: "letterhead_image: the lab letterhead image; typed_header_footer: header_text and footer_text; preprinted_paper: blank space (reserve_top_mm, reserve_bottom_mm) for the lab own printed notepad; plain: no header and no footer."
+        header_text:
+          type: string
+          maxLength: 967
+          pattern: '^[^<>\u0000-\u001f\u007f]{0,120}(\n[^<>\u0000-\u001f\u007f]{0,120}){0,7}$'
+          description: "Plain text only (LD-316): at most 8 lines of 120 characters each, lines split at a newline; no markup (no < or >) and no control characters. Printed at the top in typed_header_footer mode."
+        footer_text:
+          type: string
+          maxLength: 967
+          pattern: '^[^<>\u0000-\u001f\u007f]{0,120}(\n[^<>\u0000-\u001f\u007f]{0,120}){0,7}$'
+          description: "Plain text only (LD-316): at most 8 lines of 120 characters each, lines split at a newline; no markup (no < or >) and no control characters. Printed at the bottom in typed_header_footer mode."
+        reserve_top_mm:
+          type: integer
+          minimum: 0
+          maximum: 80
+          description: Blank space at the top in mm (pre printed notepad).
+        reserve_bottom_mm:
+          type: integer
+          minimum: 0
+          maximum: 60
+          description: Blank space at the bottom in mm (pre printed notepad).
+        show_logo:
+          type: boolean
+        show_seller_pan:
+          type: boolean
+          description: Print the seller PAN (a tax bill carries it).
+        grayscale:
+          type: boolean
+        font_size_pt:
+          type: integer
+          minimum: 8
+          maximum: 12
+    SignatoryProfile:
+      type: object
+      additionalProperties: false
+      description: "T0C-PRINTCFG-1 (LD-316): the signer block of one user. Only sign-offs by a signer holding lab.result.approve (pathologist) print as a signature."
+      required:
+        - user_id
+        - display_name
+        - is_active
+        - updated_at
+        - updated_by
+      properties:
+        user_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        display_name:
+          type: string
+          minLength: 1
+          maxLength: 120
+          pattern: '^[^<>\u0000-\u001f\u007f]+$'
+          description: Name printed under the signature; plain text, no markup.
+        title:
+          type: string
+          maxLength: 120
+          pattern: '^[^<>\u0000-\u001f\u007f]*$'
+        registration_no:
+          type: string
+          maxLength: 60
+          pattern: '^[^<>\u0000-\u001f\u007f]*$'
+          description: Council registration number (label from the template, for example NMC No.).
+        signature_asset_id:
+          allOf:
+            - $ref: _common.yaml#/components/schemas/Uuid
+          description: Id of an uploaded signature image file; omitted = no image.
+        is_active:
+          type: boolean
+        updated_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        updated_by:
+          $ref: _common.yaml#/components/schemas/Uuid
+    SignatoryProfileList:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+      properties:
+        data:
+          type: array
+          maxItems: 500
+          items:
+            $ref: "#/components/schemas/SignatoryProfile"
+    SignatoryProfileInput:
+      type: object
+      additionalProperties: false
+      required:
+        - display_name
+      properties:
+        display_name:
+          type: string
+          minLength: 1
+          maxLength: 120
+          pattern: '^[^<>\u0000-\u001f\u007f]+$'
+          description: Name printed under the signature; plain text, no markup.
+        title:
+          type: string
+          maxLength: 120
+          pattern: '^[^<>\u0000-\u001f\u007f]*$'
+        registration_no:
+          type: string
+          maxLength: 60
+          pattern: '^[^<>\u0000-\u001f\u007f]*$'
+          description: Council registration number (label from the template, for example NMC No.).
+        signature_asset_id:
+          allOf:
+            - $ref: _common.yaml#/components/schemas/Uuid
+          description: Id of an uploaded signature image file; omitted = no image.
+        is_active:
+          type: boolean
+          default: true
     TemplateConfig:
       type: object
       additionalProperties: false

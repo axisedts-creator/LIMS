@@ -25,7 +25,7 @@ const api = setupServer(
   http.get(`${LAB}/coded-sets/rejection_reasons`, async ({ request }) => { await rec(request); return HttpResponse.json({ data: [{ code: 'haemolysed', display: 'Haemolysed', sort_order: 1, is_active: true, source: 'global' }, { code: 'old_reason', display: 'Old reason', sort_order: 2, is_active: false, source: 'tenant' }] }); }),
   http.get(`${LAB}/settings`, async ({ request }) => { await rec(request); return HttpResponse.json(settings()); }),
 );
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { api.resetHandlers(); calls.length = 0; });
 afterAll(() => api.close());
 

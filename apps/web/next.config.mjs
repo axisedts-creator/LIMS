@@ -14,6 +14,8 @@ const nextConfig = {
   // LD-195 (WEB-BUILD-2): build type-check skips tests; tsconfig.json + the typecheck script still cover them.
   typescript: { tsconfigPath: 'tsconfig.build.json' },
   images: { unoptimized: true, remotePatterns: [] }, // no remote image origin (08 A18.1)
+  // T0D-BUNDLE-1 (LD-310 / LD-312): react-aria ships 34 locales of screen-reader strings per component; keep en-US only.
+  turbopack: { rules: { 'intlStrings.mjs': { loaders: [fileURLToPath(new URL('./scripts/aria-locales-loader.cjs', import.meta.url))] } } },
 };
 
 export default nextConfig;

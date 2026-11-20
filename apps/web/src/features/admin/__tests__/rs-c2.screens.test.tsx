@@ -47,6 +47,10 @@ import { RoleEditor } from '../components/RoleEditor';
 import { OrgUnits } from '../components/OrgUnits';
 import { SettingsScreen } from '../components/SettingsScreen';
 import type { Branch, Centre, Permission, Role, UserSummary } from '../lib';
+import type { ComponentProps } from 'react';
+
+// VERIFY-GREEN-8 (LD-425): type-only; OrgUnits' Unit is not exported, same objects at runtime.
+const asUnits = (...x: Array<Branch | Centre>) => x as unknown as ComponentProps<typeof OrgUnits>['units'];
 
 const here = dirname(fileURLToPath(import.meta.url));
 const u = (n: number) => `01a1a98a-ac40-7000-8000-${String(n).padStart(12, '0')}`;
@@ -90,8 +94,8 @@ const SCREENS: Screen[] = [
   { name: 'users', ui: () => <UsersTable rows={[user]} /> },
   { name: 'roles-new', ui: () => withToast(<RoleEditor catalog={catalog} canEdit />) },
   { name: 'roles-edit-privileged', ui: () => withToast(<RoleEditor role={roleLab} catalog={catalog} canEdit />) },
-  { name: 'centres', ui: () => withToast(<OrgUnits kind="centres" units={[centre]} branches={[branch]} canEdit />) },
-  { name: 'branches', ui: () => withToast(<OrgUnits kind="branches" units={[branch]} branches={[branch]} canEdit />) },
+  { name: 'centres', ui: () => withToast(<OrgUnits kind="centres" units={asUnits(centre)} branches={[branch]} canEdit />) },
+  { name: 'branches', ui: () => withToast(<OrgUnits kind="branches" units={asUnits(branch)} branches={[branch]} canEdit />) },
   { name: 'settings', ui: () => withToast(<SettingsScreen settings={settings} flags={[]} annexes={[]} />) },
 ];
 
@@ -133,15 +137,16 @@ describe.each(SCREENS)('screen: $name', ({ name, ui }) => {
     render(ui());
     const t = norm(document.body.textContent);
     expect(t).not.toMatch(/\p{Extended_Pictographic}/u);
-    expect(t).not.toMatch(/welcome back/i);
+    // T0D-MSERIES-5 (LD-276, board M1-entry.png): the sign-in heading IS "Welcome back"; every other screen keeps the no-greeting rule.
+    if (name !== 'sign-in') expect(t).not.toMatch(/welcome back/i);
   });
 });
 
 // ---------------------------------------------------------------- s3 "Required" (fails until restyled)
 describe('s3 required fields say "Required"; optional ones do not', () => {
-  it('sign-in: Email and Password', () => {
+  it('sign-in: Work email and Password', () => {
     render(<LoginForm action={ok()} />);
-    expect(says(byLabel(document, 'Email'))).toBe(true);
+    expect(says(byLabel(document, 'Work email'))).toBe(true);
     expect(says(byLabel(document, 'Password'))).toBe(true);
   });
 
@@ -165,7 +170,7 @@ describe('s3 required fields say "Required"; optional ones do not', () => {
 
   it('centre drawer (new): Code and Name say it, Address and Phone do not', async () => {
     const user = userEvent.setup();
-    render(withToast(<OrgUnits kind="centres" units={[centre]} branches={[branch]} canEdit />));
+    render(withToast(<OrgUnits kind="centres" units={asUnits(centre)} branches={[branch]} canEdit />));
     await user.click(screen.getByRole('button', { name: 'New centre' }));
     const dialog = await screen.findByRole('dialog');
     expect(says(byLabel(dialog, 'Code'))).toBe(true);
@@ -305,7 +310,8 @@ describe('s4 roles: PermissionMatrix with an MFA badge on roles that hold privil
 
 // ---------------------------------------------------------------- keyboard-only path (guard)
 describe('keyboard-only path through the main task', () => {
-  it('sign-in: Tab reaches Email, Password, then Log in; Enter on the button submits the same FormData', async () => {
+  // T0D-MSERIES-5 (LD-276): M1 board order = Work email, Forgot password? (on the password label row, before the field), Password, [Show/Hide], Continue.
+  it('sign-in: Tab reaches Work email, Forgot password?, Password, then Continue; Enter on the button submits the same FormData', async () => {
     const action = ok();
     const user = userEvent.setup();
     render(<LoginForm action={action} />);
@@ -318,11 +324,12 @@ describe('keyboard-only path through the main task', () => {
     };
     expect((await visit()).getAttribute('name')).toBe('email');
     await user.keyboard('user@example.test');
+    expect(norm((await visit()).textContent)).toBe('Forgot password?');
     expect((await visit()).getAttribute('name')).toBe('password');
     await user.keyboard('Correct-horse-1');
     let a = await visit();
-    for (let i = 0; i < 3 && norm(a.textContent) !== 'Log in'; i++) a = await visit(); // the show/hide toggle may sit between
-    expect(norm(a.textContent), `tab order: ${seen.join(' > ')}`).toBe('Log in');
+    for (let i = 0; i < 3 && norm(a.textContent) !== 'Continue'; i++) a = await visit(); // the show/hide toggle may sit between
+    expect(norm(a.textContent), `tab order: ${seen.join(' > ')}`).toBe('Continue');
     await user.keyboard('{Enter}');
     await waitFor(() => expect(action).toHaveBeenCalledTimes(1));
     const sent = Object.fromEntries((action.mock.calls[0]![0] as FormData).entries());
@@ -331,7 +338,7 @@ describe('keyboard-only path through the main task', () => {
 
   it('centres: the unit name is a button, Enter opens the drawer, focus moves into it, Escape closes it', async () => {
     const user = userEvent.setup();
-    render(withToast(<OrgUnits kind="centres" units={[centre]} branches={[branch]} canEdit />));
+    render(withToast(<OrgUnits kind="centres" units={asUnits(centre)} branches={[branch]} canEdit />));
     const trigger = screen.getByRole('button', { name: centre.name });
     trigger.focus();
     await user.keyboard('{Enter}');
@@ -362,13 +369,11 @@ describe('visual snapshots of the key screens are recorded', () => {
     const file = join(here, '__snapshots__', 'rs-c2.screens.test.tsx.snap');
     expect(existsSync(file), 'record with -u (see the header of this file)').toBe(true);
     const text = readFileSync(file, 'utf8');
-    for (const s of ['sign-in', 'users', 'roles-edit-privileged', 'centres drawer', 'settings']) expect(text, `snapshot "${s}"`).toContain(`snapshot: ${s} `);
+    // T0D-MSERIES-5 (LD-276): the sign-in snapshot is retired; the structure of every entry screen is asserted by auth/__tests__/m5.entry.test.tsx (headings, order, chips, plate, no stepper).
+    for (const s of ['users', 'roles-edit-privileged', 'centres drawer', 'settings']) expect(text, `snapshot "${s}"`).toContain(`snapshot: ${s} `);
+    expect(text).not.toContain('snapshot: sign-in ');
   });
 
-  it('snapshot: sign-in', () => {
-    render(<LoginForm action={ok()} />);
-    expect(snapHtml()).toMatchSnapshot();
-  });
   it('snapshot: users', () => {
     render(<UsersTable rows={[user]} />);
     expect(snapHtml()).toMatchSnapshot();
@@ -379,7 +384,7 @@ describe('visual snapshots of the key screens are recorded', () => {
   });
   it('snapshot: centres drawer', async () => {
     const user = userEvent.setup();
-    render(withToast(<OrgUnits kind="centres" units={[centre]} branches={[branch]} canEdit />));
+    render(withToast(<OrgUnits kind="centres" units={asUnits(centre)} branches={[branch]} canEdit />));
     await user.click(screen.getByRole('button', { name: centre.name }));
     await screen.findByRole('dialog');
     expect(snapHtml()).toMatchSnapshot();

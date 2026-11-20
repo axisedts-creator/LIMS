@@ -1,0 +1,1 @@
+pnpm --dir services/api exec vitest run src/core/pipeline/__tests__/self-session-ctx.test.ts src/modules/identity/service/__tests__/self.pipeline.test.ts && pnpm --dir apps/web exec vitest run --config src/features/admin/__tests__/vitest.elabmenu2.config.ts

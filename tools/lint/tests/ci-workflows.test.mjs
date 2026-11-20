@@ -198,7 +198,12 @@ test('runner OS: c7-go-windows runs on Windows, every other pr.yml job on Linux 
 });
 
 test('gates cannot be bypassed inside pr.yml (no continue-on-error / `|| true`)', () => {
-  const t = read('.github/workflows/pr.yml');
+  // LD-239 (SEC-DEPS-1): the ONE allowed continue-on-error is the non-blocking full audit step,
+  // whose run: is exactly `pnpm audit --audit-level=high`; every other step stays gated.
+  const full = read('.github/workflows/pr.yml');
+  const allowed = /^[ \t]+continue-on-error:[ \t]*true[ \t]*\r?\n[ \t]+run:[ \t]*pnpm audit --audit-level=high[ \t]*$/gm;
+  assert.ok((full.match(allowed) ?? []).length <= 1, 'at most one continue-on-error step (LD-239 full audit)');
+  const t = full.replace(allowed, '');
   assert.doesNotMatch(t, /continue-on-error:\s*true/);
   assert.doesNotMatch(t, /\|\|\s*true\b/);
   assert.doesNotMatch(t, /\|\|\s*exit 0\b/);

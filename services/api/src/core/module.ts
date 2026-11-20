@@ -37,6 +37,14 @@ export interface HandlerContext {
   // LD-133: `type` optional in the TYPE only (modules identity/lab/smartreport narrow actor to { id }); the pipeline always sets it.
   readonly actor?: { readonly type?: string; readonly id: string; readonly membershipId?: string; readonly supportSessionId?: string } | undefined;
   readonly requestId: string;
+  /** LD-241 / CR-C2-004: platform session only (claims.scope platform, platform_role platform_*); absent for every other session. */
+  readonly platformRole?: string;
+  /** LD-241: the claims' aal, platform session only (PlatformAuthz privileged codes need aal2). */
+  readonly aal?: 'aal1' | 'aal2';
+  /** LD-267 PLATFORM-WIRE-1: claims.platform_staff_id, platform session only (key absent when missing / not a UUID). */
+  readonly platformStaffId?: string;
+  /** LD-267 / CR-C2-T21: claims.lims_session_id, platform session only (key absent when missing / not a UUID). */
+  readonly platformSessionId?: string;
   /** LD-133: `| object` in the TYPE only (lab/smartreport type tx as object); the pipeline always hands the Tx of requestTx. */
   readonly tx?: Tx | object | undefined;
   /**
@@ -51,6 +59,8 @@ export interface HandlerContext {
     tx?<T>(fn: (ctx: HandlerContext) => Promise<T>): Promise<T>;
     /** 08 A25 D-212 (§6.2 stage 7): identity + x-context identity_auth + LIMS_CORE_IDENTITY_AUTH_OPS only; the core's own operation is used. */
     identityAuthTx?<T>(input: TxInput, fn: TxFn<T>): Promise<T>;
+    /** LD-267 PLATFORM-WIRE-1 (02-TRD §6.3, D-214): platform session only; identity + x-context platform + allowlisted operationId, on this request's tx. */
+    withTenantScope?<T>(tx: unknown, tenantId: string, fn: () => Promise<T>): Promise<T>;
   };
   readonly core: unknown;
   /** LD-133: optional / entry widened in the TYPE only (lab declares access(e: Record<string, unknown>)). */
@@ -92,6 +102,11 @@ export interface ModuleManifest {
   readonly systemPermissions?: readonly string[];
   readonly claimsResolver?: unknown;
   readonly authResolvers?: Readonly<Record<string, unknown>>;
+  /**
+   * LD-325 (T0B-BOOTGATE-1): spec operationIds whose handler has not merged yet; each answers 501 operation_pending after
+   * auth and the pipeline. T0C contract tasks add ids, T0B handler tasks remove them. Production boot refuses a non empty list.
+   */
+  readonly pendingOperations?: readonly string[];
 }
 
 /** PORT_OWNERS from IC §4 headings, as listed in 02-TRD §6.3. */
@@ -142,18 +157,29 @@ export function operationIds(spec: any): string[] {
   return ids;
 }
 
-/** Handler key set must equal the spec operationId set (AC-0D-1.2). */
-export function checkHandlers(name: string, spec: any, handlers: unknown): void {
+/**
+ * AC-0D-1.2 kept (LD-325, T0B-BOOTGATE-1): handlers plus pendingOperations cover the spec operationId set; every handler key
+ * is a spec operationId; every pending id is a spec operationId. Returns the stale pending ids (they also have a handler:
+ * the handler wins, the caller warns; a stale entry never breaks boot because handler lanes may merge first).
+ */
+export function checkHandlers(name: string, spec: any, handlers: unknown, pending: unknown = []): string[] {
   if (!handlers || typeof handlers !== 'object') throw new Error(`module ${name}: handlers missing`);
+  if (!Array.isArray(pending) || !pending.every((p) => typeof p === 'string')) throw new Error(`module ${name}: pendingOperations must be a string array`);
+  if (new Set(pending).size !== pending.length) throw new Error(`module ${name}: duplicate entry in pendingOperations`);
   const ops = operationIds(spec);
   const opSet = new Set(ops);
   if (opSet.size !== ops.length) throw new Error(`module ${name}: duplicate operationId in spec`);
+  for (const p of pending) {
+    if (!opSet.has(p)) throw new Error(`module ${name}: pendingOperations entry ${p} has no operationId in ${name} spec`);
+  }
+  const has = (op: string) => Object.hasOwn(handlers, op) && typeof (handlers as any)[op] === 'function';
   for (const op of ops) {
-    if (!Object.hasOwn(handlers, op) || typeof (handlers as any)[op] !== 'function') throw new Error(`module ${name}: missing handler for operationId ${op}`);
+    if (!has(op) && !pending.includes(op)) throw new Error(`module ${name}: missing handler for operationId ${op}`);
   }
   for (const k of Object.keys(handlers)) {
     if (!opSet.has(k)) throw new Error(`module ${name}: handler ${k} has no operationId in ${name} spec`);
   }
+  return pending.filter(has);
 }
 
 const sameSet = (a: readonly string[], b: readonly string[]) =>
@@ -162,6 +188,8 @@ const sameSet = (a: readonly string[], b: readonly string[]) =>
 export interface LoadedModule {
   readonly manifest: ModuleManifest;
   readonly spec: any;
+  /** LD-325: pending ids that also have a handler (bootstrap warns once per id). */
+  readonly stalePending: readonly string[];
 }
 
 export function loadSpec(file: string): any {
@@ -239,8 +267,8 @@ export function validateManifest(dir: string, m: any, repoRoot: string): LoadedM
     if (PORT_OWNERS[p] !== dir) throw new Error(`module ${dir}: port ${p} is not owned by this module (PORT_OWNERS)`);
   }
   const spec = loadSpec(file);
-  checkHandlers(dir, spec, m.handlers);
-  return { manifest: m, spec };
+  const stalePending = checkHandlers(dir, spec, m.handlers, m.pendingOperations ?? []);
+  return { manifest: m, spec, stalePending };
 }
 
 /** `<modulesDir>/*\/index.ts` — no central list. A missing directory means no modules. */

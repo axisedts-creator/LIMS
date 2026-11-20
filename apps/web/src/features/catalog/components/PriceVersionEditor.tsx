@@ -14,11 +14,13 @@ import { EditableGrid, type EditableGridRow } from '@lims/ui/components/Editable
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { TextArea } from '@lims/ui/components/TextArea';
 import { useToast } from '@lims/ui/components/Toast';
+import { t } from '@/core/i18n/messages';
 import { searchOrderablesAction } from '../server/catalogActions';
 import { createVersionDraftAction, publishVersionAction, removeItemsAction, upsertItemsAction } from '../server/pricingActions';
 import { BULK_MAX, formatNpr, parseNpr, type Department, type OrderableSummary, type PriceItem, type PriceListVersion, type PricedOrderable } from '../server/types';
 import { errAt, FailBanner, newKey, STATUS_LABEL, STATUS_TONE, type Fail } from './shared';
 import { ActionDialog, canManagePrices, useWhen } from './pricing-ui';
+import { BulkUpdateDialog, type BulkRow } from './BulkUpdateDialog';
 
 const PRICE_ERROR = 'Enter a price between 0.00 and 9,999,999.99 with at most 2 decimals.';
 const COLUMNS = [
@@ -62,6 +64,17 @@ export function PriceVersionEditor({ priceList, version, items, currentItems, or
   const [busy, setBusy] = useState(false);
   const [n, setN] = useState(0); // remounts the combobox after each pick so its text is cleared
   const saving = useRef(false);
+  const [bulk, setBulk] = useState(false);
+
+  // T0D-PRICETOOLS-1: a bulk update changes prices on the server, then router.refresh() brings new items; take them over as the saved base.
+  const firstItems = useRef(items);
+  useEffect(() => {
+    if (firstItems.current === items) return;
+    firstItems.current = items;
+    setBase(Object.fromEntries(items.map((i) => [i.orderable_id, i.unit_price.amount_paisa])));
+    const ids = items.map((i) => i.orderable_id);
+    setOrder((o) => [...ids, ...o.filter((id) => !ids.includes(id) && added[id])]); // keep rows added here and not saved yet
+  }, [items]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const info = useMemo(() => {
     const m = new Map<string, Info>();
@@ -231,6 +244,9 @@ export function PriceVersionEditor({ priceList, version, items, currentItems, or
 
   const addOptions = async (q: string): Promise<OrderableSummary[]> => (await searchOrderablesAction(q)).filter((o) => !order.includes(o.id));
   const showDone = done && version.status === 'draft';
+  // T0D-PRICETOOLS-1: the bulk-update dialog works on the saved prices of a draft; shown disabled with the reason otherwise.
+  const bulkWhy = !manage ? t('catalog.price_tools.need_manage') : version.status !== 'draft' ? t('catalog.price_tools.bulk.only_draft') : dirty ? t('catalog.price_tools.bulk.save_first') : undefined;
+  const bulkRows: BulkRow[] = order.flatMap((id) => (base[id] === undefined ? [] : [{ id, code: info.get(id)?.code ?? '', departmentId: info.get(id)?.department_id, paisa: base[id]! }]));
 
   return (
     <section aria-label="Price list version">
@@ -257,6 +273,8 @@ export function PriceVersionEditor({ priceList, version, items, currentItems, or
           {!editable && manage ? <div className="lims-inline">{createButton}</div> : null}
           <div className="lims-filter-bar">
             <input type="search" className="lims-input" aria-label="Search prices" placeholder="Search code or name" maxLength={100} value={query} onChange={(e) => setQuery(e.target.value)} />
+            <Button isDisabled={!!bulkWhy} onPress={() => setBulk(true)}>{t('catalog.price_tools.bulk.button')}</Button>
+            {bulkWhy ? <span className="lims-description">{bulkWhy}</span> : null}
             {editable ? (
               <>
                 <Combobox<OrderableSummary>
@@ -286,6 +304,7 @@ export function PriceVersionEditor({ priceList, version, items, currentItems, or
           </div>
         </>
       )}
+      {bulk ? <BulkUpdateDialog versionId={version.id} rows={bulkRows} departments={departments} onClose={() => setBulk(false)} /> : null}
       {publishing ? <PublishVersionDialog version={version} onClose={() => setPublishing(false)} onDone={() => setDone(true)} /> : null}
     </section>
   );

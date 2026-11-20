@@ -46,7 +46,7 @@ const api = setupServer(
   http.patch(`${ORIGIN}/v1/frontdesk/patients/:id`, async ({ request }) => { await rec(request); return HttpResponse.json(patient({ version: 5 })); }),
   http.post(`${ORIGIN}/v1/frontdesk/patients/:id/consents`, async ({ request }) => { await rec(request); return HttpResponse.json({ id: U(95), patient_id: PATIENT, consents: patient().consents, recorded_at: '2026-11-07T04:00:00.000Z', recorded_by: { membership_id: ME, display_name: 'Me' } }); }),
 );
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { cleanup(); api.resetHandlers(); calls.length = 0; refresh.mockReset(); vi.useRealTimers(); localStorage.clear(); sessionStorage.clear(); });
 afterAll(() => api.close());
 
@@ -282,10 +282,12 @@ describe('§7 DiscountApprovalsInbox', () => {
   it('columns per §7; row shows requester, gross, discount amount + %, reason, status as text, centre name', async () => {
     const I = await load();
     view(I);
-    for (const h of ['Requested', 'Centre', 'Requested by', 'Gross', 'Discount', 'Reason', 'Status']) expect(screen.getByRole('columnheader', { name: new RegExp('^' + h + '$', 'i') })).toBeTruthy();
+    // LD-353 rule 3 / done_when (7): the currency sits in the money column headers, the cells carry the number only.
+    for (const h of ['Requested', 'Centre', 'Requested by', 'Reason', 'Status']) expect(screen.getByRole('columnheader', { name: new RegExp('^' + h + '$', 'i') })).toBeTruthy();
+    for (const h of ['Gross', 'Discount']) expect(screen.getByRole('columnheader', { name: new RegExp('^' + h + '\\b.*\\bNPR\\b', 'i') })).toBeTruthy();
     const r = rowOf('Synthetic Receptionist');
-    expect(within(r).getByText('NPR 1,500.00')).toBeTruthy();
-    expect(r.textContent).toMatch(/NPR 450\.00/);
+    expect(within(r).getByText('1,500.00').closest('td,[role="gridcell"]')!.className).toMatch(/lims-align-end/);
+    expect(within(r).getByText('450.00').closest('td,[role="gridcell"]')!.className).toMatch(/lims-align-end/);
     expect(r.textContent).toMatch(/30(\.0)?\s?%/);
     expect(within(r).getByText(/pending/i)).toBeTruthy();
     expect(r.textContent).toMatch(/Synthetic Centre A1/);

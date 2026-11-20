@@ -11,7 +11,7 @@ import { createDb, type Db, type Pool, type PoolClient } from '../db/tx.js';
 import { LimsError } from '../errors.js';
 import { createEvents } from '../events/publish.js';
 import { createIdempotency } from '../idempotency.js';
-import { PORT_OWNERS, REPO_ROOT, type LoadedModule } from '../module.js';
+import { operationIds, PORT_OWNERS, REPO_ROOT, type LoadedModule } from '../module.js';
 import type { CoreMetrics, MetricName } from '../observability/metrics.js';
 import { createAuthzGuard } from '../ports/authz-guard.js';
 import { PHASE_STUBS } from '../ports/phase-stubs.js';
@@ -21,6 +21,7 @@ import { createPgBackend } from '../ratelimit/pg.js';
 import type { HealthChecks } from '../health.js';
 import { createFiles } from '../uploads/index.js';
 import { createHealthChecks } from './healthChecks.js';
+import { loadAuthzExceptions } from './authz-central.js';
 import { createPipeline, type Pipeline } from './index.js';
 
 const FAKES_DIR = join(REPO_ROOT, 'packages', 'fakes', 'src');
@@ -111,7 +112,9 @@ export async function bootPipeline(o: {
   if (config.databaseUrl) {
     // [CONV] pg is a devDependency of services/api until C0-0A moves it (LD-05); loaded only when a database is configured.
     const { default: Pg } = await import('pg');
-    pg = new Pg.Pool({ connectionString: config.databaseUrl, max: config.dbPoolMax, connectionTimeoutMillis: 10_000 }) as any;
+    pg = new Pg.Pool({ connectionString: config.databaseUrl, max: config.dbPoolMax, connectionTimeoutMillis: 10_000,
+      // T0B-PERF-1 (LD-310): idle clients go back to the Supabase pooler after 30 s
+      idleTimeoutMillis: 30_000 }) as any;
     pg!.on('error', (e) => log.warn({ event: 'db_pool_error', code: e?.code }, 'db_pool_error')); // idle client lost: never crash
   }
   const pool: Pool | undefined = pg && {
@@ -119,8 +122,10 @@ export async function bootPipeline(o: {
     connect: () => pg!.connect().catch((e: any) => { throw Object.assign(new Error('db_connect_failed'), { code: typeof e?.code === 'string' ? e.code : '08006' }); }),
   };
   const db = pool && createDb({
-    pool, log, metrics, retryMax: config.txRetryMax, statementTimeoutMs: config.statementTimeoutMs, lockTimeoutMs: config.lockTimeoutMs,
+    pool, log, metrics, retryMax: config.txRetryMax, statementTimeoutMs: config.statementTimeoutMs, writeStatementTimeoutMs: config.writeStatementTimeoutMs, lockTimeoutMs: config.lockTimeoutMs,
     identityAuthOps: config.identityAuthOps, withTenantScopeOps: config.withTenantScopeOps,
+    // PLATFORM-WIRE-1 (LD-267): ctx.db.withTenantScope of a platform request uses the lazily read identity system actor (declared below).
+    scopeActorId: () => identityActor!(),
   });
 
   let rateLimiter: RateLimiter | undefined;
@@ -158,7 +163,7 @@ export async function bootPipeline(o: {
       return pendingActor;
     };
     const openDb = (identitySystemActorId: string): Db => createDb({
-      pool, log, metrics, retryMax: config.txRetryMax, statementTimeoutMs: config.statementTimeoutMs, lockTimeoutMs: config.lockTimeoutMs,
+      pool, log, metrics, retryMax: config.txRetryMax, statementTimeoutMs: config.statementTimeoutMs, writeStatementTimeoutMs: config.writeStatementTimeoutMs, lockTimeoutMs: config.lockTimeoutMs,
       identityAuthOps: config.identityAuthOps, withTenantScopeOps: config.withTenantScopeOps, identitySystemActorId,
     });
     identityAuthDb = async () => (actorDb ??= openDb(await identityActor!()));
@@ -170,6 +175,10 @@ export async function bootPipeline(o: {
   const idempotency = db && createIdempotency({ db, log });
 
   const authz = createAuthzGuard({ env: config.env, log, metrics });
+  // SEC-AUTHZ-2: stage 8a inputs; a malformed authz-exceptions.json stops the boot.
+  // every entry must name an operationId of a loaded module contract (SEC-AUTHZ-2 done_when)
+  const authzExceptions = loadAuthzExceptions(new Set(modules.flatMap((m) => operationIds(m.spec))));
+  const systemPermissions = Object.freeze(Object.fromEntries(modules.map((m) => [m.manifest.name, Object.freeze([...(m.manifest.systemPermissions ?? [])])])));
   // ponytail: core-internal 4-arg withTenantScope / systemActorOf exist in the worker only; ctx.core.deadLetters.replay answers 500 here.
   const internal = (): never => { throw new LimsError('common.internal'); };
   const core = createCoreRepo({ withTenantScope: internal, systemActorOf: internal, log });
@@ -192,6 +201,8 @@ export async function bootPipeline(o: {
       if (!p) {
         p = createPipeline({
           env: config.env, db, identityActor, identityAuthDb, idempotency, rateLimiter, authz, ports, services, log, metrics, coreMetrics: o.metrics,
+          authzMode: config.authzMode, systemPermissions, authzExceptions, // SEC-AUTHZ-2: stage 8a
+
           shared: { ...shared, events: createEvents({ producer: module, log, metrics }) },
         });
         cache.set(module, p);

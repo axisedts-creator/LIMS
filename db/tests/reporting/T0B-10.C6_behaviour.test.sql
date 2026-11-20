@@ -346,8 +346,9 @@ SELECT is((SELECT count(*)::int FROM audit.audit_log WHERE schema_name = 'report
 -- app.reporting_ingest_provider_callback: LD-49 (b) (C6-T29) -- the DEFINER only validates the token and records the events; it returns the resolved tenant id (uuid) or NULL and never enqueues.
 -- The C6 API handler enqueues reporting.apply_provider_events under withTenantScope(returned tenant, reporting system actor). NULL (not -1) is the reject value: a uuid column cannot hold -1.
 SELECT is((SELECT pg_get_function_result(p.oid) FROM pg_proc p WHERE p.oid = 'app.reporting_ingest_provider_callback(text, bytea, jsonb)'::regprocedure), 'uuid', 'LD-49 (b): returns the tenant id (uuid)');
-SELECT unlike((SELECT p.prosrc FROM pg_proc p WHERE p.oid = 'app.reporting_ingest_provider_callback(text, bytea, jsonb)'::regprocedure), '%enqueue_job%', 'LD-49 (b): the DEFINER does not enqueue');
-SELECT unlike((SELECT p.prosrc FROM pg_proc p WHERE p.oid = 'app.reporting_ingest_provider_callback(text, bytea, jsonb)'::regprocedure), '%request.jwt%', 'LD-49 (b): the DEFINER never sets JWT claims');
+-- LD-230 (3): pgTAP has no like()/unlike(); matches()/doesnt_match() with the anchored regex of the same LIKE pattern (% -> .*, _ -> .)
+SELECT doesnt_match((SELECT p.prosrc FROM pg_proc p WHERE p.oid = 'app.reporting_ingest_provider_callback(text, bytea, jsonb)'::regprocedure), '^.*enqueue.job.*$', 'LD-49 (b): the DEFINER does not enqueue');
+SELECT doesnt_match((SELECT p.prosrc FROM pg_proc p WHERE p.oid = 'app.reporting_ingest_provider_callback(text, bytea, jsonb)'::regprocedure), '^.*request\.jwt.*$', 'LD-49 (b): the DEFINER never sets JWT claims');
 SELECT is(pg_temp.x('lims_api', NULL, format($$ SELECT app.reporting_ingest_provider_callback('recording', decode(%L, 'hex'), %L::jsonb) $$, repeat('44', 32),
   jsonb_build_array(jsonb_build_object('id', pg_temp.uid(601), 'provider_message_id', 'pm-1', 'status_raw', 'ok', 'mapped_status', 'sent', 'occurred_at', now()))::text), 's'), pg_temp.ta()::text,
   'C6 check 14 / LD-49 (b): provider callback with a valid token stores the event and returns the TENANT ID');

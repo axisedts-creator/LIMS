@@ -37,7 +37,7 @@ const instant = (v: string) => {
   return new Date(t).toISOString();
 };
 
-export interface Out { status?: string; version?: number }
+export interface Out { status?: string; version?: number; id?: string }
 const UNSET = ['note_for_phlebotomist', 'landmark', 'coordinates'];
 
 /** H5 scheduleHomeVisit. */
@@ -92,6 +92,43 @@ export function cancelVisit(id: string, version: number, reasonCode: string, rea
   return serverFetch<Out>(p, { method: 'POST', headers: { ...json, ...idem(key), ...ver(version) }, body: JSON.stringify({ reason_code: reasonCode, ...(t ? { reason_text: t } : {}) }) });
 }
 
+// ---- HC-T19 ----
+/** H8 resolveHomeVisitFlag: If-Match = the flag's version; the key comes from the caller. */
+export function resolveFlag(id: string, flagId: string, version: number, resolutionCode: string, note: string | undefined, key: string) {
+  if (!UUID.test(id) || !UUID.test(flagId) || !CODE.test(resolutionCode)) throw bad();
+  const t = text(note, 500);
+  return serverFetch<Out>(`/v1/homecollection/visits/${id}/flags/${flagId}/resolve`, {
+    method: 'POST', headers: { ...json, ...idem(key), ...ver(version) }, body: JSON.stringify({ resolution_code: resolutionCode, ...(t ? { note: t } : {}) }),
+  });
+}
+
+/** H9 reviewHeldCollection: Idempotency-Key from the caller (a retry re-sends it) + If-Match = the collection's version. */
+export function reviewCollection(id: string, version: number, decision: string, reasonCode: string, reasonText: string | undefined, key: string) {
+  if (!UUID.test(id) || (decision !== 'apply' && decision !== 'discard') || !CODE.test(reasonCode)) throw bad();
+  const t = text(reasonText, 500);
+  return serverFetch<Out>(`/v1/homecollection/collections/${id}/review`, {
+    method: 'POST', headers: { ...json, ...idem(key), ...ver(version) }, body: JSON.stringify({ decision, reason_code: reasonCode, ...(t ? { reason_text: t } : {}) }),
+  });
+}
+
+/** H7 createHomeRevisit: 201 with the NEW visit; only its id goes back to the browser. */
+export async function createRevisit(id: string, version: number, reasonCode: string, reasonText: string | undefined, key: string): Promise<Out> {
+  if (!UUID.test(id) || !CODE.test(reasonCode)) throw bad();
+  const t = text(reasonText, 500);
+  const r = await serverFetch<Out & { id?: unknown }>(`/v1/homecollection/visits/${id}/revisits`, {
+    method: 'POST', headers: { ...json, ...idem(key), ...ver(version) }, body: JSON.stringify({ reason_code: reasonCode, ...(t ? { reason_text: t } : {}) }),
+  });
+  return { ...(typeof r?.id === 'string' && UUID.test(r.id) ? { id: r.id } : {}) };
+}
+
+const E164 = /^\+[1-9]\d{6,14}$/;
+/** H21 revealHomeVisitPhone: no body, no If-Match; the API writes the access-log row. The number is returned to the caller only, never logged or stored here. */
+export async function revealPhone(id: string): Promise<{ phone?: string }> {
+  if (!UUID.test(id)) throw bad();
+  const r = await serverFetch<{ phone_e164?: unknown }>(`/v1/homecollection/visits/${id}/phone-reveal`, { method: 'POST', headers: json, body: '{}' });
+  return typeof r?.phone_e164 === 'string' && E164.test(r.phone_e164) ? { phone: r.phone_e164 } : {};
+}
+
 /** H15 confirmHandover: exactly the handover's items, each received true/false. Idempotency-Key from the caller (a retry re-sends it) + If-Match = handover version. */
 export function confirmHandover(id: string, version: number, items: readonly { specimen_id: string; received: boolean }[], key: string) {
   if (!UUID.test(id) || items.length < 1 || items.length > 50) throw bad();
@@ -111,7 +148,21 @@ export function wipeDevice(id: string, version: number, reasonCode: string, reas
   });
 }
 
-const PAYMENT_CODES = ['cash', 'card', 'esewa', 'khalti', 'fonepay_qr', 'bank_transfer'];
+/** T0D-SALES-1 (LD-321) updateCollectorFlags: only the flags sent change; no If-Match and no Idempotency-Key (x-idempotency none: two booleans, last write wins). */
+export function updateCollectorFlags(membershipId: string, flags: { allow_collection?: boolean; allow_pickup?: boolean }) {
+  if (!UUID.test(membershipId)) throw bad();
+  const body: Record<string, boolean> = {};
+  for (const k of ['allow_collection', 'allow_pickup'] as const) {
+    const v = flags[k];
+    if (v === undefined) continue;
+    if (typeof v !== 'boolean') throw bad();
+    body[k] = v;
+  }
+  if (Object.keys(body).length === 0) throw bad();
+  return serverFetch<Out>(`/v1/homecollection/phlebotomists/${membershipId}`, { method: 'PATCH', headers: json, body: JSON.stringify(body) });
+}
+
+const PAYMENT_CODES =['cash', 'card', 'esewa', 'khalti', 'fonepay_qr', 'bank_transfer'];
 const SEMVER = /^\d{1,6}\.\d{1,6}\.\d{1,6}$/;
 const RANGES: Record<string, readonly [number, number]> = {
   sync_interval_seconds: [60, 900], offline_purge_hours: [4, 24], gps_retention_days: [7, 365], handover_overdue_hours: [1, 24], max_visits_per_route: [1, 60], clock_tolerance_seconds: [60, 3600],

@@ -16,13 +16,12 @@ import { StatusChip } from '@lims/ui/components/StatusChip';
 import { Tabs } from '@lims/ui/components/Tabs';
 import { useToast } from '@lims/ui/components/Toast';
 import { failText } from '../errors';
-import { MoneyText } from '@lims/ui/components/MoneyText';
-import { hasPerm, humanize, instantText, kitMoney, statusLabel, statusTone } from '../labels';
+import { cellMoney, hasPerm, humanize, instantText, statusLabel, statusTone } from '../labels';
 import { resolveFindingAction, startReconciliationAction, type ActionResult } from '../server/actions';
 import type { FindingDto, PaymentMoney, ReconCodes, ReconStats, ReconciliationRunDto } from '../types';
 
-/** Standalone amount via kit MoneyText (04-UI-UX:21); em dash when absent. */
-const amt = (m: PaymentMoney | undefined) => { const k = kitMoney(m); return k ? <MoneyText value={k} /> : <span className="lims-money">—</span>; };
+/** T0D-UILIST-2 (LD-353 rule 3): a money TABLE cell shows two decimals and lakh grouping, no currency word; the column header carries "(NPR)". */
+const amt = cellMoney;
 
 type Iso = DateTextProps['value'];
 type Fail = Extract<ActionResult, { ok: false }>;
@@ -43,6 +42,8 @@ export interface ReconciliationViewProps {
   filter?: FindingsFilter;
   nextCursor?: string;
   hasPrevious?: boolean;
+  /** T0D-UILIST-2 (LD-353 rule 6): the read failed (500+); title, filters and header rows stay, the ErrorState sits in the table body. */
+  failure?: { requestId?: string };
 }
 
 const when = (v: string | undefined, time = false) => (v ? <DateText value={v as Iso} {...(time ? { withTime: true } : {})} /> : '—');
@@ -50,7 +51,7 @@ const when = (v: string | undefined, time = false) => (v ? <DateText value={v as
 const ourStatus = (s: string | undefined) => (s ? (s === 'initiated' ? 'Started' : statusLabel(s)) : '—');
 const sev = (s: string) => (Object.hasOwn(SEVERITY, s) ? SEVERITY[s as keyof typeof SEVERITY] : (['neutral', humanize(s)] as const));
 
-export function ReconciliationView({ runs, findings, stats, permissions, codes, filter, nextCursor, hasPrevious }: ReconciliationViewProps) {
+export function ReconciliationView({ runs, findings, stats, permissions, codes, filter, nextCursor, hasPrevious, failure }: ReconciliationViewProps) {
   const router = useRouter();
   const toast = useToast();
   const canResolve = hasPerm(permissions, 'payments.intent.resolve');
@@ -105,8 +106,8 @@ export function ReconciliationView({ runs, findings, stats, permissions, codes, 
     { id: 'intent', header: 'Intent', cell: (f) => (f.intent_id ? <a href={`/payments/intents/${f.intent_id}`} aria-label={`Payment ${f.intent_id.slice(0, 8)}`}><IdText value={f.intent_id} /></a> : '—') },
     { id: 'our_status', header: 'Our status', cell: (f) => (f.our_status ? <StatusChip kind="generic" status={f.our_status} tone={statusTone(f.our_status)} label={ourStatus(f.our_status)} /> : '—') }, // RS-C15 A1 (LD-140): chip = tone + icon + word
     { id: 'provider_status', header: 'Provider status', cell: (f) => f.gateway_status_raw ?? '—' },
-    { id: 'our_amount', header: 'Our amount', align: 'end', cell: (f) => amt(f.our_amount) },
-    { id: 'provider_amount', header: 'Provider amount', align: 'end', cell: (f) => amt(f.gateway_amount) },
+    { id: 'our_amount', header: 'Our amount (NPR)', numeric: true, cell: (f) => amt(f.our_amount) },
+    { id: 'provider_amount', header: 'Provider amount (NPR)', numeric: true, cell: (f) => amt(f.gateway_amount) },
     { id: 'auto', header: 'Automatic action', cell: (f) => (f.auto_action ? AUTO_ACTION[f.auto_action] ?? '—' : '—') },
     { id: 'actions', header: 'Actions', cell: (f) => <Button size="sm" isDisabled={!canResolve} onPress={() => { setNeedText(false); setBanner(''); setDlg({ finding: f, key: globalThis.crypto.randomUUID() }); }}>Resolve</Button> },
   ];
@@ -117,6 +118,7 @@ export function ReconciliationView({ runs, findings, stats, permissions, codes, 
     { id: 'severity', label: 'Severity', kind: 'select', options: SEVERITY_OPTIONS },
   ];
   const value: FilterValue = { kind: f.kind, severity: f.severity ?? ALL };
+  const error = failure ? { title: 'This list could not be loaded.', ...(failure.requestId ? { requestId: failure.requestId } : {}), onRetry: () => router.refresh() } : undefined;
   const go = (v: FilterValue, cursor?: string) => {
     const p = new URLSearchParams();
     const one = (k: string, x: string | readonly string[] | undefined) => { const j = typeof x === 'string' ? x : x?.join(','); if (j && j !== ALL) p.set(k, j); };
@@ -136,17 +138,18 @@ export function ReconciliationView({ runs, findings, stats, permissions, codes, 
         <StatTile label="Open critical findings" value={` ${stats.openCritical}`} />
         <StatTile label="Payments under review" value={` ${stats.underReview}`} href="/payments/review" />
       </div>
+      {/* T0D-UILIST-2 (LD-353 template 1): ONE FilterBar, above the tabs and on both (it filters the findings list) */}
+      <FilterBar filters={filters} value={value} onChange={go} onReset={() => router.push(BASE)} />
       <Tabs aria-label="Reconciliation" selectedId={tab} onChange={setTab} items={[{ id: 'runs', label: 'Runs' }, { id: 'findings', label: 'Open findings' }]}>
         {tab === 'runs' ? (
           <DataTable<ReconciliationRunDto>
-            columns={runCols} rows={runs} getRowId={(r) => r.id} density="compact" caption="Reconciliation runs"
+            columns={runCols} rows={runs} getRowId={(r) => r.id} density="compact" caption="Reconciliation runs" {...(error ? { error } : {})}
             emptyState={{ title: 'No reconciliation runs yet.', body: 'Nightly runs will be listed here.' }}
           />
         ) : (
           <>
-            <FilterBar filters={filters} value={value} onChange={go} onReset={() => router.push(BASE)} />
             <DataTable<FindingDto>
-              columns={findingCols} rows={findings} getRowId={(r) => r.id} density="compact" caption="Open findings"
+              columns={findingCols} rows={findings} getRowId={(r) => r.id} density="compact" caption="Open findings" {...(error ? { error } : {})}
               emptyState={{ title: 'No open findings.', body: 'Differences with the provider appear here.' }}
               {...(nextCursor || hasPrevious ? { page: { hasNext: !!nextCursor, hasPrevious: !!hasPrevious, onNext: () => nextCursor && go(value, nextCursor), onPrevious: () => router.back(), limit: 50 } } : {})}
             />

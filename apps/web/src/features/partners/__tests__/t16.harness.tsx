@@ -28,7 +28,7 @@ export const rec = async (r: Request) => {
 export const of = (method: string, re: RegExp) => calls.filter((c) => c.method === method && re.test(c.url.pathname));
 export const problem = (status: number, code: string, extra: Record<string, unknown> = {}) =>
   HttpResponse.json({ type: `urn:lims:error:${code}`, title: code, status, code, ...extra }, { status, headers: { 'content-type': 'application/problem+json' } });
-export const wrap = (ui: ReactNode) => render(<ToastProvider>{ui}</ToastProvider>);
+export const wrap = (ui: ReactNode): ReturnType<typeof render> => render(<ToastProvider>{ui}</ToastProvider>);
 export const noAxeViolations = async () => {
   const r = await axe.run(document.body, { rules: { 'color-contrast': { enabled: false } } });
   expect(r.violations.map((v) => `${v.id}: ${v.nodes[0]?.html}`)).toEqual([]);
@@ -38,7 +38,7 @@ type PageModule = { default: (p: any) => Promise<ReactNode> | ReactNode };
 export const pageModule = async (rel: string, file = 'page') => (await import(/* @vite-ignore */ `../../../app/(staff)/partners/${rel ? `${rel}/` : ''}${file}`)) as PageModule;
 export const sp = (o: Record<string, string> = {}) => Promise.resolve(o);
 /** Renders a server page the way Next does: await the async component, then mount its output. */
-export async function renderPage(rel: string, props: { params?: Record<string, string>; searchParams?: Record<string, string> } = {}) {
+export async function renderPage(rel: string, props: { params?: Record<string, string>; searchParams?: Record<string, string> } = {}): Promise<ReturnType<typeof render>> {
   const { default: Page } = await pageModule(rel);
   return wrap(await Page({ params: Promise.resolve(props.params ?? {}), searchParams: Promise.resolve(props.searchParams ?? {}) }));
 }

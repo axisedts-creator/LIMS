@@ -102,6 +102,19 @@ export interface paths {
   "/v1/catalog/health-report": {
     get: operations["getCatalogHealthReport"];
   };
+  "/v1/catalog/icd-master": {
+    get: operations["listIcdMasterCodes"];
+    post: operations["createIcdMasterCode"];
+  };
+  "/v1/catalog/icd-master/search": {
+    get: operations["searchIcdMasterCodes"];
+  };
+  "/v1/catalog/icd-master/{icd_code_id}": {
+    patch: operations["updateIcdMasterCode"];
+  };
+  "/v1/catalog/icd-master/{icd_code_id}/deactivate": {
+    post: operations["deactivateIcdMasterCode"];
+  };
   "/v1/catalog/import-templates/{kind}": {
     get: operations["downloadImportTemplate"];
   };
@@ -158,6 +171,21 @@ export interface paths {
   "/v1/catalog/panels/{panel_id}/members": {
     put: operations["replacePanelMembers"];
   };
+  "/v1/catalog/price-list-comparisons": {
+    get: operations["comparePriceLists"];
+  };
+  "/v1/catalog/price-list-import-batches": {
+    get: operations["listPriceListImportBatches"];
+  };
+  "/v1/catalog/price-list-import-batches/{batch_id}/commit": {
+    post: operations["commitPriceListImport"];
+  };
+  "/v1/catalog/price-list-import-template": {
+    get: operations["downloadPriceListTemplate"];
+  };
+  "/v1/catalog/price-list-versions/{price_list_version_id}/bulk-update": {
+    post: operations["bulkUpdatePriceListDraft"];
+  };
   "/v1/catalog/price-list-versions/{price_list_version_id}/discard": {
     post: operations["discardPriceListVersionDraft"];
   };
@@ -183,6 +211,12 @@ export interface paths {
   };
   "/v1/catalog/price-lists/{price_list_id}/assignments": {
     put: operations["replacePriceListAssignments"];
+  };
+  "/v1/catalog/price-lists/{price_list_id}/copy": {
+    post: operations["copyPriceList"];
+  };
+  "/v1/catalog/price-lists/{price_list_id}/import-dry-run": {
+    post: operations["dryRunPriceListImport"];
   };
   "/v1/catalog/price-lists/{price_list_id}/versions": {
     post: operations["createPriceListVersionDraft"];
@@ -239,6 +273,29 @@ export interface paths {
   "/v1/catalog/tax-types/{tax_type_id}": {
     patch: operations["updateTaxType"];
   };
+  "/v1/catalog/test-categories": {
+    get: operations["listTestCategories"];
+    post: operations["createTestCategory"];
+  };
+  "/v1/catalog/test-categories/{category_id}": {
+    patch: operations["updateTestCategory"];
+  };
+  "/v1/catalog/test-import-batches": {
+    get: operations["listCatalogImports"];
+    post: operations["validateCatalogImport"];
+  };
+  "/v1/catalog/test-import-batches/{batch_id}": {
+    get: operations["getCatalogImport"];
+  };
+  "/v1/catalog/test-import-batches/{batch_id}/commit": {
+    post: operations["commitCatalogImport"];
+  };
+  "/v1/catalog/test-import-batches/{batch_id}/errors-file": {
+    get: operations["downloadCatalogImportErrors"];
+  };
+  "/v1/catalog/test-import-template": {
+    get: operations["downloadCatalogImportTemplate"];
+  };
   "/v1/catalog/tests": {
     get: operations["listTests"];
     post: operations["createTest"];
@@ -273,6 +330,403 @@ export interface paths {
 }
 
 export interface operations {
+  bulkUpdatePriceListDraft: {
+    parameters: {
+      query?: never;
+      header: {
+        "Idempotency-Key": string;
+      };
+      path: {
+        price_list_version_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": {
+          change_kind: "percent" | "fixed_amount";
+          percent_bp?: number;
+          amount_paisa?: number;
+          rounding: "none" | "nearest_rupee" | "nearest_5" | "nearest_10";
+          scope: "all" | "department" | "listed_tests";
+          department_id?: string;
+          orderable_ids?: string[];
+        };
+      };
+    };
+    responses: {
+      200: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/json": {
+            price_list_version_id: string;
+            changed_count: number;
+            unchanged_count: number;
+          };
+        };
+      };
+      400: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      401: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      403: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      404: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      409: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      422: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      429: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      500: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+    };
+  };
+  commitCatalogImport: {
+    parameters: {
+      query?: never;
+      header: {
+        "If-Match": string;
+        "Idempotency-Key": string;
+      };
+      path: {
+        batch_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": {
+          confirm: true;
+        };
+      };
+    };
+    responses: {
+      201: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/json": {
+            batch: {
+              id: string;
+              file_name: string;
+              file_sha256: string;
+              template_version: string;
+              mode: "create_only" | "update";
+              status: "validated" | "rejected" | "committed" | "expired";
+              counts: {
+                tests: number;
+                analytes: number;
+                ranges: number;
+                panels: number;
+                errors: number;
+              };
+              created_by: string;
+              created_at: string;
+              validated_at?: string;
+              committed_at?: string;
+              committed_by?: string;
+              version: number;
+            };
+            created: {
+              tests: number;
+              analytes: number;
+              ranges: number;
+              panels: number;
+            };
+          };
+        };
+      };
+      400: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      401: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      403: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      404: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      409: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      428: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      429: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      500: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+    };
+  };
   commitImport: {
     parameters: {
       query?: never;
@@ -499,6 +953,539 @@ export interface operations {
       };
     };
   };
+  commitPriceListImport: {
+    parameters: {
+      query?: never;
+      header: {
+        "Idempotency-Key": string;
+      };
+      path: {
+        batch_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": {
+          change_reason: string;
+        };
+      };
+    };
+    responses: {
+      201: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/json": {
+            id: string;
+            price_list_id: string;
+            version_no: number;
+            status: "draft" | "published" | "superseded" | "retired" | "discarded";
+            effective_from?: string;
+            effective_to?: string;
+            item_count: number;
+            source_import_id?: string;
+            change_reason?: string;
+            version: number;
+          };
+        };
+      };
+      400: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      401: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      403: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      404: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      409: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      422: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      429: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      500: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+    };
+  };
+  comparePriceLists: {
+    parameters: {
+      query: {
+        version_a_id: string;
+        version_b_id: string;
+        cursor?: string;
+        limit?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/json": {
+            data: {
+              orderable_id: string;
+              test_code: string;
+              test_name: string;
+              price_a_paisa?: number;
+              price_b_paisa?: number;
+              difference_paisa?: number;
+              percent_bp?: number;
+            }[];
+            page: {
+              next_cursor?: string;
+              limit: number;
+            };
+          };
+        };
+      };
+      400: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      401: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      403: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      404: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      429: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      500: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+    };
+  };
+  copyPriceList: {
+    parameters: {
+      query?: never;
+      header: {
+        "Idempotency-Key": string;
+      };
+      path: {
+        price_list_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": {
+          source_price_list_version_id: string;
+          mode: "replace" | "merge";
+          percent_bp?: number;
+          rounding?: "none" | "nearest_rupee" | "nearest_5" | "nearest_10";
+        };
+      };
+    };
+    responses: {
+      201: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/json": {
+            id: string;
+            price_list_id: string;
+            version_no: number;
+            status: "draft" | "published" | "superseded" | "retired" | "discarded";
+            effective_from?: string;
+            effective_to?: string;
+            item_count: number;
+            source_import_id?: string;
+            change_reason?: string;
+            version: number;
+          };
+        };
+      };
+      400: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      401: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      403: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      404: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      409: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      422: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      429: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      500: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+    };
+  };
   createAnalyte: {
     parameters: {
       query?: never;
@@ -519,13 +1506,27 @@ export interface operations {
           report_subheading?: string;
           sort_order?: number;
           is_reportable?: boolean;
+          trend_name?: string;
+          specimen_type_id?: string;
+          font?: string;
+          result_display_type?: "table" | "note_value_only" | "list_note" | "one_column" | "two_column" | "three_column" | "four_column" | "comment" | "hidden" | "table_with_subheader" | "merge_two_column";
+          print_on_negative?: boolean;
+          print_on_worksheet?: boolean;
+          send_in_sms?: boolean;
+          nabl?: boolean;
+          accab_logo?: boolean;
+          is_trend?: boolean;
           initial_version: {
-            result_type: "numeric" | "text" | "ordinal" | "coded" | "attachment" | "narrative";
+            result_type: "numeric" | "text" | "ordinal" | "coded" | "attachment" | "narrative" | "boolean" | "test_footer" | "space" | "graph" | "html_descriptive";
             unit_code?: string;
             decimals?: number;
             method_id?: string;
             value_set_code?: string;
             formula_expression?: string;
+            default_value?: string;
+            long_text_value?: string;
+            high_low?: string;
+            require_verification?: boolean;
           };
         };
       };
@@ -550,7 +1551,7 @@ export interface operations {
               analyte_id: string;
               version_no: number;
               status: "draft" | "published" | "superseded" | "retired" | "discarded";
-              result_type: "numeric" | "text" | "ordinal" | "coded" | "attachment" | "narrative";
+              result_type: "numeric" | "text" | "ordinal" | "coded" | "attachment" | "narrative" | "boolean" | "test_footer" | "space" | "graph" | "html_descriptive";
               unit_code?: string;
               decimals?: number;
               method_id?: string;
@@ -560,9 +1561,23 @@ export interface operations {
               effective_from?: string;
               effective_to?: string;
               change_reason?: string;
+              default_value?: string;
+              long_text_value?: string;
+              high_low?: string;
+              require_verification?: boolean;
               version: number;
             };
             draft_version_id?: string;
+            trend_name?: string;
+            specimen_type_id?: string;
+            font?: string;
+            result_display_type?: "table" | "note_value_only" | "list_note" | "one_column" | "two_column" | "three_column" | "four_column" | "comment" | "hidden" | "table_with_subheader" | "merge_two_column";
+            print_on_negative?: boolean;
+            print_on_worksheet?: boolean;
+            send_in_sms?: boolean;
+            nabl?: boolean;
+            accab_logo?: boolean;
+            is_trend?: boolean;
           };
         };
       };
@@ -747,7 +1762,7 @@ export interface operations {
             analyte_id: string;
             version_no: number;
             status: "draft" | "published" | "superseded" | "retired" | "discarded";
-            result_type: "numeric" | "text" | "ordinal" | "coded" | "attachment" | "narrative";
+            result_type: "numeric" | "text" | "ordinal" | "coded" | "attachment" | "narrative" | "boolean" | "test_footer" | "space" | "graph" | "html_descriptive";
             unit_code?: string;
             decimals?: number;
             method_id?: string;
@@ -757,6 +1772,10 @@ export interface operations {
             effective_from?: string;
             effective_to?: string;
             change_reason?: string;
+            default_value?: string;
+            long_text_value?: string;
+            high_low?: string;
+            require_verification?: boolean;
             version: number;
           };
         };
@@ -930,6 +1949,10 @@ export interface operations {
           code: string;
           department_id?: string;
           text: string;
+          category_id?: string;
+          result_type?: "numeric" | "text" | "ordinal" | "coded" | "attachment" | "narrative" | "boolean" | "test_footer" | "space" | "graph" | "html_descriptive";
+          is_default_template?: boolean;
+          text_format?: "plain" | "markdown";
         };
       };
     };
@@ -944,6 +1967,10 @@ export interface operations {
             text: string;
             is_active: boolean;
             version: number;
+            category_id?: string;
+            result_type?: "numeric" | "text" | "ordinal" | "coded" | "attachment" | "narrative" | "boolean" | "test_footer" | "space" | "graph" | "html_descriptive";
+            is_default_template?: boolean;
+            text_format?: "plain" | "markdown";
           };
         };
       };
@@ -1507,14 +2534,14 @@ export interface operations {
         "application/json": {
           copy_from_set_id?: string;
           bands?: ({
-            sex: "any" | "male" | "female";
+            sex: "any" | "male" | "female" | "third_gender";
             age_low?: {
               value: number;
-              unit: "day" | "week" | "month" | "year";
+              unit: "hour" | "day" | "week" | "month" | "year";
             };
             age_high?: {
               value: number;
-              unit: "day" | "week" | "month" | "year";
+              unit: "hour" | "day" | "week" | "month" | "year";
             };
             specimen_type_id?: string;
             low?: string;
@@ -1539,14 +2566,14 @@ export interface operations {
             effective_to?: string;
             change_reason?: string;
             bands: ({
-              sex: "any" | "male" | "female";
+              sex: "any" | "male" | "female" | "third_gender";
               age_low?: {
                 value: number;
-                unit: "day" | "week" | "month" | "year";
+                unit: "hour" | "day" | "week" | "month" | "year";
               };
               age_high?: {
                 value: number;
-                unit: "day" | "week" | "month" | "year";
+                unit: "hour" | "day" | "week" | "month" | "year";
               };
               specimen_type_id?: string;
               low?: string;
@@ -1922,6 +2949,9 @@ export interface operations {
           phone_e164?: string;
           email?: string;
           notes?: string;
+          speciality?: string;
+          hospital?: string;
+          national_id_number?: string;
           quick_add?: boolean;
         };
       };
@@ -1940,6 +2970,9 @@ export interface operations {
             phone_e164?: string;
             email?: string;
             notes?: string;
+            speciality?: string;
+            hospital?: string;
+            national_id_number?: string;
             is_verified: boolean;
             source: "back_office" | "quick_add" | "import";
             merged_into_id?: string;
@@ -2202,6 +3235,175 @@ export interface operations {
         };
       };
       404: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      409: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      422: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      429: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      500: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+    };
+  };
+  createIcdMasterCode: {
+    parameters: {
+      query?: never;
+      header: {
+        "Idempotency-Key": string;
+      };
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": {
+          code: string;
+          title: string;
+          chapter?: string;
+        };
+      };
+    };
+    responses: {
+      201: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/json": {
+            id: string;
+            code: string;
+            title: string;
+            chapter?: string;
+            is_active: boolean;
+            version: number;
+            created_at: string;
+            updated_at: string;
+          };
+        };
+      };
+      400: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      401: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      403: {
         headers: { [name: string]: unknown };
         content: {
           "application/problem+json": {
@@ -2974,6 +4176,10 @@ export interface operations {
             orderable_id: string;
             sort_order: number;
           })[];
+          barcode_text?: string;
+          loyalty_points?: number;
+          display_order?: number;
+          is_popular?: boolean;
         };
       };
     };
@@ -2994,6 +4200,10 @@ export interface operations {
             is_orderable: boolean;
             is_active: boolean;
             revision: number;
+            barcode_text?: string;
+            loyalty_points?: number;
+            display_order?: number;
+            is_popular?: boolean;
             members: ({
               kind: "test" | "panel";
               orderable_id: string;
@@ -3175,6 +4385,8 @@ export interface operations {
           falls_through?: boolean;
           assignments: {
             owner_id: string;
+            effective_from?: string;
+            effective_to?: string;
           }[];
         };
       };
@@ -3191,6 +4403,8 @@ export interface operations {
             falls_through: boolean;
             assignments: {
               owner_id: string;
+              effective_from?: string;
+              effective_to?: string;
             }[];
             current_version?: {
               id: string;
@@ -3568,14 +4782,14 @@ export interface operations {
         "application/json": {
           copy_from_set_id?: string;
           bands?: ({
-            sex: "any" | "male" | "female";
+            sex: "any" | "male" | "female" | "third_gender";
             age_low?: {
               value: number;
-              unit: "day" | "week" | "month" | "year";
+              unit: "hour" | "day" | "week" | "month" | "year";
             };
             age_high?: {
               value: number;
-              unit: "day" | "week" | "month" | "year";
+              unit: "hour" | "day" | "week" | "month" | "year";
             };
             specimen_type_id?: string;
             kind: "numeric" | "text" | "ordinal";
@@ -3583,6 +4797,12 @@ export interface operations {
             high?: string;
             normal_codes?: string[];
             display_text?: string;
+            instrument_id?: string;
+            laboratory_id?: string;
+            default_range?: boolean;
+            method_id?: string;
+            auto_approved_low?: string;
+            auto_approved_high?: string;
             sort_order: number;
           })[];
         };
@@ -3603,14 +4823,14 @@ export interface operations {
             effective_to?: string;
             change_reason?: string;
             bands: ({
-              sex: "any" | "male" | "female";
+              sex: "any" | "male" | "female" | "third_gender";
               age_low?: {
                 value: number;
-                unit: "day" | "week" | "month" | "year";
+                unit: "hour" | "day" | "week" | "month" | "year";
               };
               age_high?: {
                 value: number;
-                unit: "day" | "week" | "month" | "year";
+                unit: "hour" | "day" | "week" | "month" | "year";
               };
               specimen_type_id?: string;
               kind: "numeric" | "text" | "ordinal";
@@ -3618,6 +4838,12 @@ export interface operations {
               high?: string;
               normal_codes?: string[];
               display_text?: string;
+              instrument_id?: string;
+              laboratory_id?: string;
+              default_range?: boolean;
+              method_id?: string;
+              auto_approved_low?: string;
+              auto_approved_high?: string;
               sort_order: number;
             })[];
             version: number;
@@ -4580,6 +5806,30 @@ export interface operations {
             is_preferred: boolean;
             min_volume_ul?: number;
           }[];
+          short_name?: string;
+          display_name?: string;
+          tags?: string[];
+          barcode_text?: string;
+          loyalty_points?: number;
+          display_order?: number;
+          description?: string;
+          report_type?: "four_column" | "three_column" | "two_column" | "graph" | "template_based_html" | "micro_automated" | "cbc_four_column" | "micro_manual" | "histo" | "four_column_10_font";
+          processing_type?: "local" | "branch_transfer" | "outsource_branch";
+          template_ref?: string;
+          outsource_name?: string;
+          is_outsourced?: boolean;
+          is_popular?: boolean;
+          smart_report?: boolean;
+          print_category_wise?: boolean;
+          nabl?: boolean;
+          accab_logo?: boolean;
+          auto_approval_enabled?: boolean;
+          use_normal_range_for_auto_approval?: boolean;
+          template_test?: boolean;
+          nabl_processing_centres?: string[];
+          font?: string;
+          alert_before_expiry_minutes?: number;
+          category_id?: string;
         };
       };
     };
@@ -4624,7 +5874,7 @@ export interface operations {
                 analyte_id: string;
                 version_no: number;
                 status: "draft" | "published" | "superseded" | "retired" | "discarded";
-                result_type: "numeric" | "text" | "ordinal" | "coded" | "attachment" | "narrative";
+                result_type: "numeric" | "text" | "ordinal" | "coded" | "attachment" | "narrative" | "boolean" | "test_footer" | "space" | "graph" | "html_descriptive";
                 unit_code?: string;
                 decimals?: number;
                 method_id?: string;
@@ -4634,9 +5884,23 @@ export interface operations {
                 effective_from?: string;
                 effective_to?: string;
                 change_reason?: string;
+                default_value?: string;
+                long_text_value?: string;
+                high_low?: string;
+                require_verification?: boolean;
                 version: number;
               };
               draft_version_id?: string;
+              trend_name?: string;
+              specimen_type_id?: string;
+              font?: string;
+              result_display_type?: "table" | "note_value_only" | "list_note" | "one_column" | "two_column" | "three_column" | "four_column" | "comment" | "hidden" | "table_with_subheader" | "merge_two_column";
+              print_on_negative?: boolean;
+              print_on_worksheet?: boolean;
+              send_in_sms?: boolean;
+              nabl?: boolean;
+              accab_logo?: boolean;
+              is_trend?: boolean;
             })[];
             tat_targets: ({
               priority: "routine" | "urgent";
@@ -4645,6 +5909,225 @@ export interface operations {
               effective_from?: string;
               effective_to?: string;
             })[];
+            stage_targets?: ({
+              stage: "registration" | "sample_collection" | "accession" | "result" | "approval_1" | "approval_2" | "release";
+              target_minutes: number;
+            })[];
+            short_name?: string;
+            display_name?: string;
+            tags?: string[];
+            barcode_text?: string;
+            loyalty_points?: number;
+            display_order?: number;
+            description?: string;
+            report_type?: "four_column" | "three_column" | "two_column" | "graph" | "template_based_html" | "micro_automated" | "cbc_four_column" | "micro_manual" | "histo" | "four_column_10_font";
+            processing_type?: "local" | "branch_transfer" | "outsource_branch";
+            template_ref?: string;
+            outsource_name?: string;
+            is_outsourced?: boolean;
+            is_popular?: boolean;
+            smart_report?: boolean;
+            print_category_wise?: boolean;
+            nabl?: boolean;
+            accab_logo?: boolean;
+            auto_approval_enabled?: boolean;
+            use_normal_range_for_auto_approval?: boolean;
+            template_test?: boolean;
+            nabl_processing_centres?: string[];
+            font?: string;
+            alert_before_expiry_minutes?: number;
+            category_id?: string;
+            version: number;
+          };
+        };
+      };
+      400: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      401: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      403: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      404: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      409: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      422: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      429: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      500: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+    };
+  };
+  createTestCategory: {
+    parameters: {
+      query?: never;
+      header: {
+        "Idempotency-Key": string;
+      };
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": {
+          department_id: string;
+          name: string;
+          display_order?: number;
+          print_footer?: boolean;
+          footer_text?: string;
+          is_active?: boolean;
+        };
+      };
+    };
+    responses: {
+      201: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/json": {
+            id: string;
+            department_id: string;
+            name: string;
+            display_order: number;
+            print_footer: boolean;
+            footer_text?: string;
+            is_active: boolean;
             version: number;
           };
         };
@@ -5187,6 +6670,188 @@ export interface operations {
       };
     };
   };
+  deactivateIcdMasterCode: {
+    parameters: {
+      query?: never;
+      header: {
+        "If-Match": string;
+      };
+      path: {
+        icd_code_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/json": {
+            id: string;
+            code: string;
+            title: string;
+            chapter?: string;
+            is_active: boolean;
+            version: number;
+            created_at: string;
+            updated_at: string;
+          };
+        };
+      };
+      400: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      401: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      403: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      404: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      409: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      428: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      429: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      500: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+    };
+  };
   discardAnalyteVersionDraft: {
     parameters: {
       query?: never;
@@ -5208,7 +6873,7 @@ export interface operations {
             analyte_id: string;
             version_no: number;
             status: "draft" | "published" | "superseded" | "retired" | "discarded";
-            result_type: "numeric" | "text" | "ordinal" | "coded" | "attachment" | "narrative";
+            result_type: "numeric" | "text" | "ordinal" | "coded" | "attachment" | "narrative" | "boolean" | "test_footer" | "space" | "graph" | "html_descriptive";
             unit_code?: string;
             decimals?: number;
             method_id?: string;
@@ -5218,6 +6883,10 @@ export interface operations {
             effective_from?: string;
             effective_to?: string;
             change_reason?: string;
+            default_value?: string;
+            long_text_value?: string;
+            high_low?: string;
+            require_verification?: boolean;
             version: number;
           };
         };
@@ -5403,14 +7072,14 @@ export interface operations {
             effective_to?: string;
             change_reason?: string;
             bands: ({
-              sex: "any" | "male" | "female";
+              sex: "any" | "male" | "female" | "third_gender";
               age_low?: {
                 value: number;
-                unit: "day" | "week" | "month" | "year";
+                unit: "hour" | "day" | "week" | "month" | "year";
               };
               age_high?: {
                 value: number;
-                unit: "day" | "week" | "month" | "year";
+                unit: "hour" | "day" | "week" | "month" | "year";
               };
               specimen_type_id?: string;
               low?: string;
@@ -5982,14 +7651,14 @@ export interface operations {
             effective_to?: string;
             change_reason?: string;
             bands: ({
-              sex: "any" | "male" | "female";
+              sex: "any" | "male" | "female" | "third_gender";
               age_low?: {
                 value: number;
-                unit: "day" | "week" | "month" | "year";
+                unit: "hour" | "day" | "week" | "month" | "year";
               };
               age_high?: {
                 value: number;
-                unit: "day" | "week" | "month" | "year";
+                unit: "hour" | "day" | "week" | "month" | "year";
               };
               specimen_type_id?: string;
               kind: "numeric" | "text" | "ordinal";
@@ -5997,6 +7666,12 @@ export interface operations {
               high?: string;
               normal_codes?: string[];
               display_text?: string;
+              instrument_id?: string;
+              laboratory_id?: string;
+              default_range?: boolean;
+              method_id?: string;
+              auto_approved_low?: string;
+              auto_approved_high?: string;
               sort_order: number;
             })[];
             version: number;
@@ -6099,6 +7774,251 @@ export interface operations {
         };
       };
       428: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      429: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      500: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+    };
+  };
+  downloadCatalogImportErrors: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        batch_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": string;
+        };
+      };
+      400: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      401: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      403: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      404: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      429: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      500: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+    };
+  };
+  downloadCatalogImportTemplate: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": string;
+        };
+      };
+      400: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      401: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      403: {
         headers: { [name: string]: unknown };
         content: {
           "application/problem+json": {
@@ -6594,6 +8514,381 @@ export interface operations {
       };
     };
   };
+  downloadPriceListTemplate: {
+    parameters: {
+      query?: {
+        price_list_id?: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": string;
+        };
+      };
+      400: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      401: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      403: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      404: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      429: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      500: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+    };
+  };
+  dryRunPriceListImport: {
+    parameters: {
+      query?: never;
+      header: {
+        "Idempotency-Key": string;
+      };
+      path: {
+        price_list_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "multipart/form-data": {
+          file: string;
+        };
+      };
+    };
+    responses: {
+      201: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/json": {
+            batch: {
+              id: string;
+              price_list_id: string;
+              status: "dry_run" | "committed" | "failed" | "cancelled";
+              row_count: number;
+              error_count: number;
+              file_sha256: string;
+              summary: {
+                rows?: number;
+                added?: number;
+                changed?: number;
+                unchanged?: number;
+                errors?: number;
+              };
+              result_price_list_version_id?: string;
+              created_at: string;
+              created_by: string;
+            };
+            errors: {
+              row_no: number;
+              column: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      400: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      401: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      403: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      404: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      409: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      413: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      415: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      422: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      429: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      500: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+    };
+  };
   endSurchargeRule: {
     parameters: {
       query?: never;
@@ -7010,7 +9305,7 @@ export interface operations {
               analyte_id: string;
               version_no: number;
               status: "draft" | "published" | "superseded" | "retired" | "discarded";
-              result_type: "numeric" | "text" | "ordinal" | "coded" | "attachment" | "narrative";
+              result_type: "numeric" | "text" | "ordinal" | "coded" | "attachment" | "narrative" | "boolean" | "test_footer" | "space" | "graph" | "html_descriptive";
               unit_code?: string;
               decimals?: number;
               method_id?: string;
@@ -7020,15 +9315,29 @@ export interface operations {
               effective_from?: string;
               effective_to?: string;
               change_reason?: string;
+              default_value?: string;
+              long_text_value?: string;
+              high_low?: string;
+              require_verification?: boolean;
               version: number;
             };
             draft_version_id?: string;
+            trend_name?: string;
+            specimen_type_id?: string;
+            font?: string;
+            result_display_type?: "table" | "note_value_only" | "list_note" | "one_column" | "two_column" | "three_column" | "four_column" | "comment" | "hidden" | "table_with_subheader" | "merge_two_column";
+            print_on_negative?: boolean;
+            print_on_worksheet?: boolean;
+            send_in_sms?: boolean;
+            nabl?: boolean;
+            accab_logo?: boolean;
+            is_trend?: boolean;
             versions: ({
               id: string;
               analyte_id: string;
               version_no: number;
               status: "draft" | "published" | "superseded" | "retired" | "discarded";
-              result_type: "numeric" | "text" | "ordinal" | "coded" | "attachment" | "narrative";
+              result_type: "numeric" | "text" | "ordinal" | "coded" | "attachment" | "narrative" | "boolean" | "test_footer" | "space" | "graph" | "html_descriptive";
               unit_code?: string;
               decimals?: number;
               method_id?: string;
@@ -7038,6 +9347,10 @@ export interface operations {
               effective_from?: string;
               effective_to?: string;
               change_reason?: string;
+              default_value?: string;
+              long_text_value?: string;
+              high_low?: string;
+              require_verification?: boolean;
               version: number;
             })[];
           };
@@ -7179,6 +9492,159 @@ export interface operations {
             tax_default_configured: boolean;
             unmapped_formula_inputs: string[];
             truncated: boolean;
+          };
+        };
+      };
+      400: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      401: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      403: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      404: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      429: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      500: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+    };
+  };
+  getCatalogImport: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        batch_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/json": {
+            id: string;
+            file_name: string;
+            file_sha256: string;
+            template_version: string;
+            mode: "create_only" | "update";
+            status: "validated" | "rejected" | "committed" | "expired";
+            counts: {
+              tests: number;
+              analytes: number;
+              ranges: number;
+              panels: number;
+              errors: number;
+            };
+            created_by: string;
+            created_at: string;
+            validated_at?: string;
+            committed_at?: string;
+            committed_by?: string;
+            version: number;
           };
         };
       };
@@ -7603,14 +10069,14 @@ export interface operations {
             effective_to?: string;
             change_reason?: string;
             bands: ({
-              sex: "any" | "male" | "female";
+              sex: "any" | "male" | "female" | "third_gender";
               age_low?: {
                 value: number;
-                unit: "day" | "week" | "month" | "year";
+                unit: "hour" | "day" | "week" | "month" | "year";
               };
               age_high?: {
                 value: number;
-                unit: "day" | "week" | "month" | "year";
+                unit: "hour" | "day" | "week" | "month" | "year";
               };
               specimen_type_id?: string;
               low?: string;
@@ -7761,6 +10227,9 @@ export interface operations {
             phone_e164?: string;
             email?: string;
             notes?: string;
+            speciality?: string;
+            hospital?: string;
+            national_id_number?: string;
             is_verified: boolean;
             source: "back_office" | "quick_add" | "import";
             merged_into_id?: string;
@@ -8210,6 +10679,10 @@ export interface operations {
             is_orderable: boolean;
             is_active: boolean;
             revision: number;
+            barcode_text?: string;
+            loyalty_points?: number;
+            display_order?: number;
+            is_popular?: boolean;
             members: ({
               kind: "test" | "panel";
               orderable_id: string;
@@ -8357,6 +10830,8 @@ export interface operations {
             falls_through: boolean;
             assignments: {
               owner_id: string;
+              effective_from?: string;
+              effective_to?: string;
             }[];
             current_version?: {
               id: string;
@@ -8527,14 +11002,14 @@ export interface operations {
             effective_to?: string;
             change_reason?: string;
             bands: ({
-              sex: "any" | "male" | "female";
+              sex: "any" | "male" | "female" | "third_gender";
               age_low?: {
                 value: number;
-                unit: "day" | "week" | "month" | "year";
+                unit: "hour" | "day" | "week" | "month" | "year";
               };
               age_high?: {
                 value: number;
-                unit: "day" | "week" | "month" | "year";
+                unit: "hour" | "day" | "week" | "month" | "year";
               };
               specimen_type_id?: string;
               kind: "numeric" | "text" | "ordinal";
@@ -8542,6 +11017,12 @@ export interface operations {
               high?: string;
               normal_codes?: string[];
               display_text?: string;
+              instrument_id?: string;
+              laboratory_id?: string;
+              default_range?: boolean;
+              method_id?: string;
+              auto_approved_low?: string;
+              auto_approved_high?: string;
               sort_order: number;
             })[];
             version: number;
@@ -8717,7 +11198,7 @@ export interface operations {
                 analyte_id: string;
                 version_no: number;
                 status: "draft" | "published" | "superseded" | "retired" | "discarded";
-                result_type: "numeric" | "text" | "ordinal" | "coded" | "attachment" | "narrative";
+                result_type: "numeric" | "text" | "ordinal" | "coded" | "attachment" | "narrative" | "boolean" | "test_footer" | "space" | "graph" | "html_descriptive";
                 unit_code?: string;
                 decimals?: number;
                 method_id?: string;
@@ -8727,9 +11208,23 @@ export interface operations {
                 effective_from?: string;
                 effective_to?: string;
                 change_reason?: string;
+                default_value?: string;
+                long_text_value?: string;
+                high_low?: string;
+                require_verification?: boolean;
                 version: number;
               };
               draft_version_id?: string;
+              trend_name?: string;
+              specimen_type_id?: string;
+              font?: string;
+              result_display_type?: "table" | "note_value_only" | "list_note" | "one_column" | "two_column" | "three_column" | "four_column" | "comment" | "hidden" | "table_with_subheader" | "merge_two_column";
+              print_on_negative?: boolean;
+              print_on_worksheet?: boolean;
+              send_in_sms?: boolean;
+              nabl?: boolean;
+              accab_logo?: boolean;
+              is_trend?: boolean;
             })[];
             tat_targets: ({
               priority: "routine" | "urgent";
@@ -8738,6 +11233,34 @@ export interface operations {
               effective_from?: string;
               effective_to?: string;
             })[];
+            stage_targets?: ({
+              stage: "registration" | "sample_collection" | "accession" | "result" | "approval_1" | "approval_2" | "release";
+              target_minutes: number;
+            })[];
+            short_name?: string;
+            display_name?: string;
+            tags?: string[];
+            barcode_text?: string;
+            loyalty_points?: number;
+            display_order?: number;
+            description?: string;
+            report_type?: "four_column" | "three_column" | "two_column" | "graph" | "template_based_html" | "micro_automated" | "cbc_four_column" | "micro_manual" | "histo" | "four_column_10_font";
+            processing_type?: "local" | "branch_transfer" | "outsource_branch";
+            template_ref?: string;
+            outsource_name?: string;
+            is_outsourced?: boolean;
+            is_popular?: boolean;
+            smart_report?: boolean;
+            print_category_wise?: boolean;
+            nabl?: boolean;
+            accab_logo?: boolean;
+            auto_approval_enabled?: boolean;
+            use_normal_range_for_auto_approval?: boolean;
+            template_test?: boolean;
+            nabl_processing_centres?: string[];
+            font?: string;
+            alert_before_expiry_minutes?: number;
+            category_id?: string;
             version: number;
           };
         };
@@ -8858,11 +11381,11 @@ export interface operations {
       };
     };
   };
-  listCommentCodes: {
+  listCatalogImports: {
     parameters: {
       query?: {
-        department_id?: string;
-        code_prefix?: string;
+        status?: "validated" | "rejected" | "committed" | "expired";
+        mode?: "create_only" | "update";
         cursor?: string;
         limit?: number;
       };
@@ -8876,14 +11399,162 @@ export interface operations {
         headers: { [name: string]: unknown };
         content: {
           "application/json": {
-            data: {
+            data: ({
+              id: string;
+              file_name: string;
+              file_sha256: string;
+              template_version: string;
+              mode: "create_only" | "update";
+              status: "validated" | "rejected" | "committed" | "expired";
+              counts: {
+                tests: number;
+                analytes: number;
+                ranges: number;
+                panels: number;
+                errors: number;
+              };
+              created_by: string;
+              created_at: string;
+              validated_at?: string;
+              committed_at?: string;
+              committed_by?: string;
+              version: number;
+            })[];
+            page: {
+              next_cursor?: string;
+              limit: number;
+            };
+          };
+        };
+      };
+      400: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      401: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      403: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      429: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      500: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+    };
+  };
+  listCommentCodes: {
+    parameters: {
+      query?: {
+        department_id?: string;
+        code_prefix?: string;
+        is_active?: "true" | "false" | "all";
+        cursor?: string;
+        limit?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/json": {
+            data: ({
               id: string;
               code: string;
               department_id?: string;
               text: string;
               is_active: boolean;
               version: number;
-            }[];
+              category_id?: string;
+              result_type?: "numeric" | "text" | "ordinal" | "coded" | "attachment" | "narrative" | "boolean" | "test_footer" | "space" | "graph" | "html_descriptive";
+              is_default_template?: boolean;
+              text_format?: "plain" | "markdown";
+            })[];
             page: {
               next_cursor?: string;
               limit: number;
@@ -9346,14 +12017,14 @@ export interface operations {
               effective_to?: string;
               change_reason?: string;
               bands: ({
-                sex: "any" | "male" | "female";
+                sex: "any" | "male" | "female" | "third_gender";
                 age_low?: {
                   value: number;
-                  unit: "day" | "week" | "month" | "year";
+                  unit: "hour" | "day" | "week" | "month" | "year";
                 };
                 age_high?: {
                   value: number;
-                  unit: "day" | "week" | "month" | "year";
+                  unit: "hour" | "day" | "week" | "month" | "year";
                 };
                 specimen_type_id?: string;
                 low?: string;
@@ -9878,6 +12549,139 @@ export interface operations {
         };
       };
       404: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      429: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      500: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+    };
+  };
+  listIcdMasterCodes: {
+    parameters: {
+      query?: {
+        q?: string;
+        chapter?: string;
+        is_active?: boolean;
+        cursor?: string;
+        limit?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/json": {
+            data: {
+              id: string;
+              code: string;
+              title: string;
+              chapter?: string;
+              is_active: boolean;
+              version: number;
+              created_at: string;
+              updated_at: string;
+            }[];
+            page: {
+              next_cursor?: string;
+              limit: number;
+            };
+          };
+        };
+      };
+      400: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      401: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      403: {
         headers: { [name: string]: unknown };
         content: {
           "application/problem+json": {
@@ -10591,6 +13395,10 @@ export interface operations {
               is_orderable: boolean;
               is_active: boolean;
               revision: number;
+              barcode_text?: string;
+              loyalty_points?: number;
+              display_order?: number;
+              is_popular?: boolean;
               members: ({
                 kind: "test" | "panel";
                 orderable_id: string;
@@ -10663,6 +13471,146 @@ export interface operations {
         };
       };
       404: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      429: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      500: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+    };
+  };
+  listPriceListImportBatches: {
+    parameters: {
+      query?: {
+        price_list_id?: string;
+        status?: "dry_run" | "committed" | "failed" | "cancelled";
+        cursor?: string;
+        limit?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/json": {
+            data: ({
+              id: string;
+              price_list_id: string;
+              status: "dry_run" | "committed" | "failed" | "cancelled";
+              row_count: number;
+              error_count: number;
+              file_sha256: string;
+              summary: {
+                rows?: number;
+                added?: number;
+                changed?: number;
+                unchanged?: number;
+                errors?: number;
+              };
+              result_price_list_version_id?: string;
+              created_at: string;
+              created_by: string;
+            })[];
+            page: {
+              next_cursor?: string;
+              limit: number;
+            };
+          };
+        };
+      };
+      400: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      401: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      403: {
         headers: { [name: string]: unknown };
         content: {
           "application/problem+json": {
@@ -10901,6 +13849,8 @@ export interface operations {
               falls_through: boolean;
               assignments: {
                 owner_id: string;
+                effective_from?: string;
+                effective_to?: string;
               }[];
               current_version?: {
                 id: string;
@@ -11067,14 +14017,14 @@ export interface operations {
               effective_to?: string;
               change_reason?: string;
               bands: ({
-                sex: "any" | "male" | "female";
+                sex: "any" | "male" | "female" | "third_gender";
                 age_low?: {
                   value: number;
-                  unit: "day" | "week" | "month" | "year";
+                  unit: "hour" | "day" | "week" | "month" | "year";
                 };
                 age_high?: {
                   value: number;
-                  unit: "day" | "week" | "month" | "year";
+                  unit: "hour" | "day" | "week" | "month" | "year";
                 };
                 specimen_type_id?: string;
                 kind: "numeric" | "text" | "ordinal";
@@ -11082,6 +14032,12 @@ export interface operations {
                 high?: string;
                 normal_codes?: string[];
                 display_text?: string;
+                instrument_id?: string;
+                laboratory_id?: string;
+                default_range?: boolean;
+                method_id?: string;
+                auto_approved_low?: string;
+                auto_approved_high?: string;
                 sort_order: number;
               })[];
               version: number;
@@ -11801,12 +14757,165 @@ export interface operations {
       };
     };
   };
+  listTestCategories: {
+    parameters: {
+      query?: {
+        department_id?: string;
+        is_active?: "true" | "false" | "all";
+        sort?: "name" | "-name" | "display_order" | "-display_order";
+        cursor?: string;
+        limit?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/json": {
+            data: {
+              id: string;
+              department_id: string;
+              name: string;
+              display_order: number;
+              print_footer: boolean;
+              footer_text?: string;
+              is_active: boolean;
+              version: number;
+            }[];
+            page: {
+              next_cursor?: string;
+              limit: number;
+            };
+          };
+        };
+      };
+      400: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      401: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      403: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      404: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      429: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      500: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+    };
+  };
   listTests: {
     parameters: {
       query?: {
         department_id?: string;
         workflow_type?: "standard" | "narrative" | "microbiology" | "anatomic" | "molecular" | "attachment" | "outsourced";
         is_active?: "true" | "false" | "all";
+        category_id?: string;
         sort?: "code" | "-code" | "name" | "-name" | "report_order" | "-report_order";
         cursor?: string;
         limit?: number;
@@ -11834,6 +14943,11 @@ export interface operations {
               is_orderable: boolean;
               is_active: boolean;
               revision: number;
+              category_id?: string;
+              category_name?: string;
+              short_name?: string;
+              display_name?: string;
+              default_price_paisa?: number;
             })[];
             page: {
               next_cursor?: string;
@@ -12283,6 +15397,9 @@ export interface operations {
             phone_e164?: string;
             email?: string;
             notes?: string;
+            speciality?: string;
+            hospital?: string;
+            national_id_number?: string;
             is_verified: boolean;
             source: "back_office" | "quick_add" | "import";
             merged_into_id?: string;
@@ -12658,7 +15775,7 @@ export interface operations {
             analyte_id: string;
             version_no: number;
             status: "draft" | "published" | "superseded" | "retired" | "discarded";
-            result_type: "numeric" | "text" | "ordinal" | "coded" | "attachment" | "narrative";
+            result_type: "numeric" | "text" | "ordinal" | "coded" | "attachment" | "narrative" | "boolean" | "test_footer" | "space" | "graph" | "html_descriptive";
             unit_code?: string;
             decimals?: number;
             method_id?: string;
@@ -12668,6 +15785,10 @@ export interface operations {
             effective_from?: string;
             effective_to?: string;
             change_reason?: string;
+            default_value?: string;
+            long_text_value?: string;
+            high_low?: string;
+            require_verification?: boolean;
             version: number;
           };
         };
@@ -12880,14 +16001,14 @@ export interface operations {
             effective_to?: string;
             change_reason?: string;
             bands: ({
-              sex: "any" | "male" | "female";
+              sex: "any" | "male" | "female" | "third_gender";
               age_low?: {
                 value: number;
-                unit: "day" | "week" | "month" | "year";
+                unit: "hour" | "day" | "week" | "month" | "year";
               };
               age_high?: {
                 value: number;
-                unit: "day" | "week" | "month" | "year";
+                unit: "hour" | "day" | "week" | "month" | "year";
               };
               specimen_type_id?: string;
               low?: string;
@@ -13317,14 +16438,14 @@ export interface operations {
             effective_to?: string;
             change_reason?: string;
             bands: ({
-              sex: "any" | "male" | "female";
+              sex: "any" | "male" | "female" | "third_gender";
               age_low?: {
                 value: number;
-                unit: "day" | "week" | "month" | "year";
+                unit: "hour" | "day" | "week" | "month" | "year";
               };
               age_high?: {
                 value: number;
-                unit: "day" | "week" | "month" | "year";
+                unit: "hour" | "day" | "week" | "month" | "year";
               };
               specimen_type_id?: string;
               kind: "numeric" | "text" | "ordinal";
@@ -13332,6 +16453,12 @@ export interface operations {
               high?: string;
               normal_codes?: string[];
               display_text?: string;
+              instrument_id?: string;
+              laboratory_id?: string;
+              default_range?: boolean;
+              method_id?: string;
+              auto_approved_low?: string;
+              auto_approved_high?: string;
               sort_order: number;
             })[];
             version: number;
@@ -13883,14 +17010,14 @@ export interface operations {
       content: {
         "application/json": {
           bands: ({
-            sex: "any" | "male" | "female";
+            sex: "any" | "male" | "female" | "third_gender";
             age_low?: {
               value: number;
-              unit: "day" | "week" | "month" | "year";
+              unit: "hour" | "day" | "week" | "month" | "year";
             };
             age_high?: {
               value: number;
-              unit: "day" | "week" | "month" | "year";
+              unit: "hour" | "day" | "week" | "month" | "year";
             };
             specimen_type_id?: string;
             low?: string;
@@ -13915,14 +17042,14 @@ export interface operations {
             effective_to?: string;
             change_reason?: string;
             bands: ({
-              sex: "any" | "male" | "female";
+              sex: "any" | "male" | "female" | "third_gender";
               age_low?: {
                 value: number;
-                unit: "day" | "week" | "month" | "year";
+                unit: "hour" | "day" | "week" | "month" | "year";
               };
               age_high?: {
                 value: number;
-                unit: "day" | "week" | "month" | "year";
+                unit: "hour" | "day" | "week" | "month" | "year";
               };
               specimen_type_id?: string;
               low?: string;
@@ -14126,6 +17253,10 @@ export interface operations {
             is_orderable: boolean;
             is_active: boolean;
             revision: number;
+            barcode_text?: string;
+            loyalty_points?: number;
+            display_order?: number;
+            is_popular?: boolean;
             members: ({
               kind: "test" | "panel";
               orderable_id: string;
@@ -14323,6 +17454,8 @@ export interface operations {
       content: {
         "application/json": {
           owner_ids: string[];
+          effective_from?: string;
+          effective_to?: string;
         };
       };
     };
@@ -14338,6 +17471,8 @@ export interface operations {
             falls_through: boolean;
             assignments: {
               owner_id: string;
+              effective_from?: string;
+              effective_to?: string;
             }[];
             current_version?: {
               id: string;
@@ -14524,14 +17659,14 @@ export interface operations {
       content: {
         "application/json": {
           bands: ({
-            sex: "any" | "male" | "female";
+            sex: "any" | "male" | "female" | "third_gender";
             age_low?: {
               value: number;
-              unit: "day" | "week" | "month" | "year";
+              unit: "hour" | "day" | "week" | "month" | "year";
             };
             age_high?: {
               value: number;
-              unit: "day" | "week" | "month" | "year";
+              unit: "hour" | "day" | "week" | "month" | "year";
             };
             specimen_type_id?: string;
             kind: "numeric" | "text" | "ordinal";
@@ -14539,6 +17674,12 @@ export interface operations {
             high?: string;
             normal_codes?: string[];
             display_text?: string;
+            instrument_id?: string;
+            laboratory_id?: string;
+            default_range?: boolean;
+            method_id?: string;
+            auto_approved_low?: string;
+            auto_approved_high?: string;
             sort_order: number;
           })[];
         };
@@ -14559,14 +17700,14 @@ export interface operations {
             effective_to?: string;
             change_reason?: string;
             bands: ({
-              sex: "any" | "male" | "female";
+              sex: "any" | "male" | "female" | "third_gender";
               age_low?: {
                 value: number;
-                unit: "day" | "week" | "month" | "year";
+                unit: "hour" | "day" | "week" | "month" | "year";
               };
               age_high?: {
                 value: number;
-                unit: "day" | "week" | "month" | "year";
+                unit: "hour" | "day" | "week" | "month" | "year";
               };
               specimen_type_id?: string;
               kind: "numeric" | "text" | "ordinal";
@@ -14574,6 +17715,12 @@ export interface operations {
               high?: string;
               normal_codes?: string[];
               display_text?: string;
+              instrument_id?: string;
+              laboratory_id?: string;
+              default_range?: boolean;
+              method_id?: string;
+              auto_approved_low?: string;
+              auto_approved_high?: string;
               sort_order: number;
             })[];
             version: number;
@@ -14798,7 +17945,7 @@ export interface operations {
                 analyte_id: string;
                 version_no: number;
                 status: "draft" | "published" | "superseded" | "retired" | "discarded";
-                result_type: "numeric" | "text" | "ordinal" | "coded" | "attachment" | "narrative";
+                result_type: "numeric" | "text" | "ordinal" | "coded" | "attachment" | "narrative" | "boolean" | "test_footer" | "space" | "graph" | "html_descriptive";
                 unit_code?: string;
                 decimals?: number;
                 method_id?: string;
@@ -14808,9 +17955,23 @@ export interface operations {
                 effective_from?: string;
                 effective_to?: string;
                 change_reason?: string;
+                default_value?: string;
+                long_text_value?: string;
+                high_low?: string;
+                require_verification?: boolean;
                 version: number;
               };
               draft_version_id?: string;
+              trend_name?: string;
+              specimen_type_id?: string;
+              font?: string;
+              result_display_type?: "table" | "note_value_only" | "list_note" | "one_column" | "two_column" | "three_column" | "four_column" | "comment" | "hidden" | "table_with_subheader" | "merge_two_column";
+              print_on_negative?: boolean;
+              print_on_worksheet?: boolean;
+              send_in_sms?: boolean;
+              nabl?: boolean;
+              accab_logo?: boolean;
+              is_trend?: boolean;
             })[];
             tat_targets: ({
               priority: "routine" | "urgent";
@@ -14819,6 +17980,34 @@ export interface operations {
               effective_from?: string;
               effective_to?: string;
             })[];
+            stage_targets?: ({
+              stage: "registration" | "sample_collection" | "accession" | "result" | "approval_1" | "approval_2" | "release";
+              target_minutes: number;
+            })[];
+            short_name?: string;
+            display_name?: string;
+            tags?: string[];
+            barcode_text?: string;
+            loyalty_points?: number;
+            display_order?: number;
+            description?: string;
+            report_type?: "four_column" | "three_column" | "two_column" | "graph" | "template_based_html" | "micro_automated" | "cbc_four_column" | "micro_manual" | "histo" | "four_column_10_font";
+            processing_type?: "local" | "branch_transfer" | "outsource_branch";
+            template_ref?: string;
+            outsource_name?: string;
+            is_outsourced?: boolean;
+            is_popular?: boolean;
+            smart_report?: boolean;
+            print_category_wise?: boolean;
+            nabl?: boolean;
+            accab_logo?: boolean;
+            auto_approval_enabled?: boolean;
+            use_normal_range_for_auto_approval?: boolean;
+            template_test?: boolean;
+            nabl_processing_centres?: string[];
+            font?: string;
+            alert_before_expiry_minutes?: number;
+            category_id?: string;
             version: number;
           };
         };
@@ -15015,7 +18204,7 @@ export interface operations {
                 id: string;
                 code: string;
                 name: string;
-                result_type: "numeric" | "text" | "ordinal" | "coded" | "attachment" | "narrative";
+                result_type: "numeric" | "text" | "ordinal" | "coded" | "attachment" | "narrative" | "boolean" | "test_footer" | "space" | "graph" | "html_descriptive";
                 unit_code?: string;
                 decimals?: number;
                 method_name?: string;
@@ -15244,14 +18433,14 @@ export interface operations {
             effective_to?: string;
             change_reason?: string;
             bands: ({
-              sex: "any" | "male" | "female";
+              sex: "any" | "male" | "female" | "third_gender";
               age_low?: {
                 value: number;
-                unit: "day" | "week" | "month" | "year";
+                unit: "hour" | "day" | "week" | "month" | "year";
               };
               age_high?: {
                 value: number;
-                unit: "day" | "week" | "month" | "year";
+                unit: "hour" | "day" | "week" | "month" | "year";
               };
               specimen_type_id?: string;
               low?: string;
@@ -15470,14 +18659,14 @@ export interface operations {
             effective_to?: string;
             change_reason?: string;
             bands: ({
-              sex: "any" | "male" | "female";
+              sex: "any" | "male" | "female" | "third_gender";
               age_low?: {
                 value: number;
-                unit: "day" | "week" | "month" | "year";
+                unit: "hour" | "day" | "week" | "month" | "year";
               };
               age_high?: {
                 value: number;
-                unit: "day" | "week" | "month" | "year";
+                unit: "hour" | "day" | "week" | "month" | "year";
               };
               specimen_type_id?: string;
               kind: "numeric" | "text" | "ordinal";
@@ -15485,6 +18674,12 @@ export interface operations {
               high?: string;
               normal_codes?: string[];
               display_text?: string;
+              instrument_id?: string;
+              laboratory_id?: string;
+              default_range?: boolean;
+              method_id?: string;
+              auto_approved_low?: string;
+              auto_approved_high?: string;
               sort_order: number;
             })[];
             version: number;
@@ -15814,6 +19009,132 @@ export interface operations {
       };
     };
   };
+  searchIcdMasterCodes: {
+    parameters: {
+      query: {
+        q: string;
+        limit?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/json": {
+            data: {
+              id: string;
+              code: string;
+              title: string;
+              chapter?: string;
+              is_active: boolean;
+              version: number;
+              created_at: string;
+              updated_at: string;
+            }[];
+          };
+        };
+      };
+      400: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      401: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      403: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      429: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      500: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+    };
+  };
   searchOrderables: {
     parameters: {
       query: {
@@ -15848,6 +19169,11 @@ export interface operations {
               is_orderable: boolean;
               is_active: boolean;
               revision: number;
+              category_id?: string;
+              category_name?: string;
+              short_name?: string;
+              display_name?: string;
+              default_price_paisa?: number;
             })[];
           };
         };
@@ -15988,6 +19314,10 @@ export interface operations {
             target_seconds: number;
           })[];
           effective_from?: string;
+          stage_targets?: ({
+            stage: "registration" | "sample_collection" | "accession" | "result" | "approval_1" | "approval_2" | "release";
+            target_minutes: number;
+          })[];
         };
       };
     };
@@ -16032,7 +19362,7 @@ export interface operations {
                 analyte_id: string;
                 version_no: number;
                 status: "draft" | "published" | "superseded" | "retired" | "discarded";
-                result_type: "numeric" | "text" | "ordinal" | "coded" | "attachment" | "narrative";
+                result_type: "numeric" | "text" | "ordinal" | "coded" | "attachment" | "narrative" | "boolean" | "test_footer" | "space" | "graph" | "html_descriptive";
                 unit_code?: string;
                 decimals?: number;
                 method_id?: string;
@@ -16042,9 +19372,23 @@ export interface operations {
                 effective_from?: string;
                 effective_to?: string;
                 change_reason?: string;
+                default_value?: string;
+                long_text_value?: string;
+                high_low?: string;
+                require_verification?: boolean;
                 version: number;
               };
               draft_version_id?: string;
+              trend_name?: string;
+              specimen_type_id?: string;
+              font?: string;
+              result_display_type?: "table" | "note_value_only" | "list_note" | "one_column" | "two_column" | "three_column" | "four_column" | "comment" | "hidden" | "table_with_subheader" | "merge_two_column";
+              print_on_negative?: boolean;
+              print_on_worksheet?: boolean;
+              send_in_sms?: boolean;
+              nabl?: boolean;
+              accab_logo?: boolean;
+              is_trend?: boolean;
             })[];
             tat_targets: ({
               priority: "routine" | "urgent";
@@ -16053,6 +19397,34 @@ export interface operations {
               effective_from?: string;
               effective_to?: string;
             })[];
+            stage_targets?: ({
+              stage: "registration" | "sample_collection" | "accession" | "result" | "approval_1" | "approval_2" | "release";
+              target_minutes: number;
+            })[];
+            short_name?: string;
+            display_name?: string;
+            tags?: string[];
+            barcode_text?: string;
+            loyalty_points?: number;
+            display_order?: number;
+            description?: string;
+            report_type?: "four_column" | "three_column" | "two_column" | "graph" | "template_based_html" | "micro_automated" | "cbc_four_column" | "micro_manual" | "histo" | "four_column_10_font";
+            processing_type?: "local" | "branch_transfer" | "outsource_branch";
+            template_ref?: string;
+            outsource_name?: string;
+            is_outsourced?: boolean;
+            is_popular?: boolean;
+            smart_report?: boolean;
+            print_category_wise?: boolean;
+            nabl?: boolean;
+            accab_logo?: boolean;
+            auto_approval_enabled?: boolean;
+            use_normal_range_for_auto_approval?: boolean;
+            template_test?: boolean;
+            nabl_processing_centres?: string[];
+            font?: string;
+            alert_before_expiry_minutes?: number;
+            category_id?: string;
             version: number;
           };
         };
@@ -16231,6 +19603,17 @@ export interface operations {
           sort_order?: number;
           is_reportable?: boolean;
           is_active?: boolean;
+          trend_name?: string;
+          specimen_type_id?: string;
+          font?: string;
+          result_display_type?: "table" | "note_value_only" | "list_note" | "one_column" | "two_column" | "three_column" | "four_column" | "comment" | "hidden" | "table_with_subheader" | "merge_two_column";
+          print_on_negative?: boolean;
+          print_on_worksheet?: boolean;
+          send_in_sms?: boolean;
+          nabl?: boolean;
+          accab_logo?: boolean;
+          is_trend?: boolean;
+          unset?: ("trend_name" | "specimen_type_id" | "font" | "result_display_type")[];
         };
       };
     };
@@ -16254,7 +19637,7 @@ export interface operations {
               analyte_id: string;
               version_no: number;
               status: "draft" | "published" | "superseded" | "retired" | "discarded";
-              result_type: "numeric" | "text" | "ordinal" | "coded" | "attachment" | "narrative";
+              result_type: "numeric" | "text" | "ordinal" | "coded" | "attachment" | "narrative" | "boolean" | "test_footer" | "space" | "graph" | "html_descriptive";
               unit_code?: string;
               decimals?: number;
               method_id?: string;
@@ -16264,9 +19647,23 @@ export interface operations {
               effective_from?: string;
               effective_to?: string;
               change_reason?: string;
+              default_value?: string;
+              long_text_value?: string;
+              high_low?: string;
+              require_verification?: boolean;
               version: number;
             };
             draft_version_id?: string;
+            trend_name?: string;
+            specimen_type_id?: string;
+            font?: string;
+            result_display_type?: "table" | "note_value_only" | "list_note" | "one_column" | "two_column" | "three_column" | "four_column" | "comment" | "hidden" | "table_with_subheader" | "merge_two_column";
+            print_on_negative?: boolean;
+            print_on_worksheet?: boolean;
+            send_in_sms?: boolean;
+            nabl?: boolean;
+            accab_logo?: boolean;
+            is_trend?: boolean;
           };
         };
       };
@@ -16438,13 +19835,17 @@ export interface operations {
     requestBody: {
       content: {
         "application/json": {
-          result_type?: "numeric" | "text" | "ordinal" | "coded" | "attachment" | "narrative";
+          result_type?: "numeric" | "text" | "ordinal" | "coded" | "attachment" | "narrative" | "boolean" | "test_footer" | "space" | "graph" | "html_descriptive";
           unit_code?: string;
           decimals?: number;
           method_id?: string;
           value_set_code?: string;
           formula_expression?: string;
-          unset?: ("unit_code" | "decimals" | "method_id" | "value_set_code" | "formula_expression")[];
+          default_value?: string;
+          long_text_value?: string;
+          high_low?: string;
+          require_verification?: boolean;
+          unset?: ("unit_code" | "decimals" | "method_id" | "value_set_code" | "formula_expression" | "default_value" | "long_text_value" | "high_low")[];
         };
       };
     };
@@ -16457,7 +19858,7 @@ export interface operations {
             analyte_id: string;
             version_no: number;
             status: "draft" | "published" | "superseded" | "retired" | "discarded";
-            result_type: "numeric" | "text" | "ordinal" | "coded" | "attachment" | "narrative";
+            result_type: "numeric" | "text" | "ordinal" | "coded" | "attachment" | "narrative" | "boolean" | "test_footer" | "space" | "graph" | "html_descriptive";
             unit_code?: string;
             decimals?: number;
             method_id?: string;
@@ -16467,6 +19868,10 @@ export interface operations {
             effective_from?: string;
             effective_to?: string;
             change_reason?: string;
+            default_value?: string;
+            long_text_value?: string;
+            high_low?: string;
+            require_verification?: boolean;
             version: number;
           };
         };
@@ -16660,6 +20065,11 @@ export interface operations {
         "application/json": {
           text?: string;
           is_active?: boolean;
+          category_id?: string;
+          result_type?: "numeric" | "text" | "ordinal" | "coded" | "attachment" | "narrative" | "boolean" | "test_footer" | "space" | "graph" | "html_descriptive";
+          is_default_template?: boolean;
+          text_format?: "plain" | "markdown";
+          unset?: ("category_id" | "result_type")[];
         };
       };
     };
@@ -16674,6 +20084,10 @@ export interface operations {
             text: string;
             is_active: boolean;
             version: number;
+            category_id?: string;
+            result_type?: "numeric" | "text" | "ordinal" | "coded" | "attachment" | "narrative" | "boolean" | "test_footer" | "space" | "graph" | "html_descriptive";
+            is_default_template?: boolean;
+            text_format?: "plain" | "markdown";
           };
         };
       };
@@ -17438,8 +20852,11 @@ export interface operations {
           phone_e164?: string;
           email?: string;
           notes?: string;
+          speciality?: string;
+          hospital?: string;
+          national_id_number?: string;
           is_active?: boolean;
-          unset?: ("qualification" | "registration_council" | "registration_no" | "phone_e164" | "email" | "notes")[];
+          unset?: ("qualification" | "registration_council" | "registration_no" | "phone_e164" | "email" | "notes" | "speciality" | "hospital" | "national_id_number")[];
         };
       };
     };
@@ -17457,6 +20874,9 @@ export interface operations {
             phone_e164?: string;
             email?: string;
             notes?: string;
+            speciality?: string;
+            hospital?: string;
+            national_id_number?: string;
             is_verified: boolean;
             source: "back_office" | "quick_add" | "import";
             merged_into_id?: string;
@@ -17543,6 +20963,214 @@ export interface operations {
         };
       };
       409: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      428: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      429: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      500: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+    };
+  };
+  updateIcdMasterCode: {
+    parameters: {
+      query?: never;
+      header: {
+        "If-Match": string;
+      };
+      path: {
+        icd_code_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": {
+          title?: string;
+          chapter?: string;
+        };
+      };
+    };
+    responses: {
+      200: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/json": {
+            id: string;
+            code: string;
+            title: string;
+            chapter?: string;
+            is_active: boolean;
+            version: number;
+            created_at: string;
+            updated_at: string;
+          };
+        };
+      };
+      400: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      401: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      403: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      404: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      409: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      422: {
         headers: { [name: string]: unknown };
         content: {
           "application/problem+json": {
@@ -18021,7 +21649,11 @@ export interface operations {
         "application/json": {
           name?: string;
           sex_restriction?: "male" | "female";
-          unset?: ("sex_restriction" | "department_id")[];
+          barcode_text?: string;
+          loyalty_points?: number;
+          display_order?: number;
+          is_popular?: boolean;
+          unset?: ("sex_restriction" | "department_id" | "barcode_text")[];
           department_id?: string;
           is_active?: boolean;
         };
@@ -18044,6 +21676,10 @@ export interface operations {
             is_orderable: boolean;
             is_active: boolean;
             revision: number;
+            barcode_text?: string;
+            loyalty_points?: number;
+            display_order?: number;
+            is_popular?: boolean;
             members: ({
               kind: "test" | "panel";
               orderable_id: string;
@@ -18239,6 +21875,8 @@ export interface operations {
             falls_through: boolean;
             assignments: {
               owner_id: string;
+              effective_from?: string;
+              effective_to?: string;
             }[];
             current_version?: {
               id: string;
@@ -18813,6 +22451,31 @@ export interface operations {
           is_orderable?: boolean;
           uses_existing_material?: boolean;
           is_active?: boolean;
+          short_name?: string;
+          display_name?: string;
+          tags?: string[];
+          barcode_text?: string;
+          loyalty_points?: number;
+          display_order?: number;
+          description?: string;
+          report_type?: "four_column" | "three_column" | "two_column" | "graph" | "template_based_html" | "micro_automated" | "cbc_four_column" | "micro_manual" | "histo" | "four_column_10_font";
+          processing_type?: "local" | "branch_transfer" | "outsource_branch";
+          template_ref?: string;
+          outsource_name?: string;
+          is_outsourced?: boolean;
+          is_popular?: boolean;
+          smart_report?: boolean;
+          print_category_wise?: boolean;
+          nabl?: boolean;
+          accab_logo?: boolean;
+          auto_approval_enabled?: boolean;
+          use_normal_range_for_auto_approval?: boolean;
+          template_test?: boolean;
+          nabl_processing_centres?: string[];
+          font?: string;
+          alert_before_expiry_minutes?: number;
+          category_id?: string;
+          unset?: ("short_name" | "display_name" | "barcode_text" | "description" | "template_ref" | "outsource_name" | "nabl_processing_centres" | "font" | "alert_before_expiry_minutes" | "category_id" | "report_type" | "processing_type")[];
         };
       };
     };
@@ -18857,7 +22520,7 @@ export interface operations {
                 analyte_id: string;
                 version_no: number;
                 status: "draft" | "published" | "superseded" | "retired" | "discarded";
-                result_type: "numeric" | "text" | "ordinal" | "coded" | "attachment" | "narrative";
+                result_type: "numeric" | "text" | "ordinal" | "coded" | "attachment" | "narrative" | "boolean" | "test_footer" | "space" | "graph" | "html_descriptive";
                 unit_code?: string;
                 decimals?: number;
                 method_id?: string;
@@ -18867,9 +22530,23 @@ export interface operations {
                 effective_from?: string;
                 effective_to?: string;
                 change_reason?: string;
+                default_value?: string;
+                long_text_value?: string;
+                high_low?: string;
+                require_verification?: boolean;
                 version: number;
               };
               draft_version_id?: string;
+              trend_name?: string;
+              specimen_type_id?: string;
+              font?: string;
+              result_display_type?: "table" | "note_value_only" | "list_note" | "one_column" | "two_column" | "three_column" | "four_column" | "comment" | "hidden" | "table_with_subheader" | "merge_two_column";
+              print_on_negative?: boolean;
+              print_on_worksheet?: boolean;
+              send_in_sms?: boolean;
+              nabl?: boolean;
+              accab_logo?: boolean;
+              is_trend?: boolean;
             })[];
             tat_targets: ({
               priority: "routine" | "urgent";
@@ -18878,6 +22555,227 @@ export interface operations {
               effective_from?: string;
               effective_to?: string;
             })[];
+            stage_targets?: ({
+              stage: "registration" | "sample_collection" | "accession" | "result" | "approval_1" | "approval_2" | "release";
+              target_minutes: number;
+            })[];
+            short_name?: string;
+            display_name?: string;
+            tags?: string[];
+            barcode_text?: string;
+            loyalty_points?: number;
+            display_order?: number;
+            description?: string;
+            report_type?: "four_column" | "three_column" | "two_column" | "graph" | "template_based_html" | "micro_automated" | "cbc_four_column" | "micro_manual" | "histo" | "four_column_10_font";
+            processing_type?: "local" | "branch_transfer" | "outsource_branch";
+            template_ref?: string;
+            outsource_name?: string;
+            is_outsourced?: boolean;
+            is_popular?: boolean;
+            smart_report?: boolean;
+            print_category_wise?: boolean;
+            nabl?: boolean;
+            accab_logo?: boolean;
+            auto_approval_enabled?: boolean;
+            use_normal_range_for_auto_approval?: boolean;
+            template_test?: boolean;
+            nabl_processing_centres?: string[];
+            font?: string;
+            alert_before_expiry_minutes?: number;
+            category_id?: string;
+            version: number;
+          };
+        };
+      };
+      400: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      401: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      403: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      404: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      409: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      428: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      429: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      500: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+    };
+  };
+  updateTestCategory: {
+    parameters: {
+      query?: never;
+      header: {
+        "If-Match": string;
+      };
+      path: {
+        category_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": {
+          name?: string;
+          display_order?: number;
+          print_footer?: boolean;
+          footer_text?: string;
+          is_active?: boolean;
+          unset?: "footer_text"[];
+        };
+      };
+    };
+    responses: {
+      200: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/json": {
+            id: string;
+            department_id: string;
+            name: string;
+            display_order: number;
+            print_footer: boolean;
+            footer_text?: string;
+            is_active: boolean;
             version: number;
           };
         };
@@ -19811,6 +23709,241 @@ export interface operations {
       };
     };
   };
+  validateCatalogImport: {
+    parameters: {
+      query?: never;
+      header: {
+        "Idempotency-Key": string;
+      };
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "multipart/form-data": {
+          file: string;
+          mode?: "create_only" | "update";
+        };
+      };
+    };
+    responses: {
+      201: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/json": {
+            batch: {
+              id: string;
+              file_name: string;
+              file_sha256: string;
+              template_version: string;
+              mode: "create_only" | "update";
+              status: "validated" | "rejected" | "committed" | "expired";
+              counts: {
+                tests: number;
+                analytes: number;
+                ranges: number;
+                panels: number;
+                errors: number;
+              };
+              created_by: string;
+              created_at: string;
+              validated_at?: string;
+              committed_at?: string;
+              committed_by?: string;
+              version: number;
+            };
+            errors: {
+              sheet: string;
+              row: number;
+              column: string;
+              code: string;
+              message: string;
+            }[];
+            preview: {
+              tests: ({
+                code: string;
+                name: string;
+                action: "create" | "update";
+                analytes: number;
+                ranges: number;
+              })[];
+            };
+          };
+        };
+      };
+      400: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      401: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      403: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      409: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      413: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      415: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      422: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      429: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      500: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+    };
+  };
   validateFormula: {
     parameters: {
       query?: never;
@@ -19992,6 +24125,9 @@ export interface operations {
             phone_e164?: string;
             email?: string;
             notes?: string;
+            speciality?: string;
+            hospital?: string;
+            national_id_number?: string;
             is_verified: boolean;
             source: "back_office" | "quick_add" | "import";
             merged_into_id?: string;

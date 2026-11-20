@@ -3,7 +3,7 @@
 import { AuthError } from '../auth/errors.js';
 
 export interface DbErrorDeps {
-  readonly log?: { warn(obj: object, msg?: string): void } | undefined;
+  readonly log?: { warn(obj: object, msg?: string): void; error?(obj: object, msg?: string): void } | undefined;
   readonly metrics?: { inc(name: string): void } | undefined;
 }
 
@@ -23,8 +23,12 @@ export function mapDbError(err: unknown, deps: DbErrorDeps = {}): Error {
   }
   if (!SQLSTATE.test(code)) return err as Error; // non-DB error or an already-mapped `<module>.<name>` code
   switch (code) {
-    case 'P0001':
-      return new AuthError((err as Error).message === 'immutable_row' ? 'common.immutable_record' : 'common.internal');
+    case 'P0001': {
+      const m = (err as Error).message;
+      // T0B-ASYNC-1 (RS-10): app.enqueue_job found no active core.g_task_registry row -> the async path is down, not a server bug
+      if (m === 'unknown_task_identifier') return new AuthError('common.service_unavailable');
+      return new AuthError(m === 'immutable_row' ? 'common.immutable_record' : 'common.internal');
+    }
     case '42501':
       deps.metrics?.inc('lims_rls_denied_total');
       return new AuthError('common.not_found');

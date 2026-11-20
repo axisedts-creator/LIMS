@@ -5,6 +5,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { parse } from 'yaml';
+import { STAFF } from './admin-staff-codes';
 
 const ROOT = join(import.meta.dirname, '../../../../../../..');
 const DATA_FILE = join(import.meta.dirname, '../../role-packs/role-packs.data.yaml');
@@ -24,10 +25,11 @@ const registry = parse(readFileSync(join(ROOT, 'contracts/permissions.yaml'), 'u
 const PERM = new Map(registry.permissions.map((p) => [p.code, p.privileged]));
 const DEFAULT_ROLE_CODES = [...registry.roles, ...registry.partner_roles, ...registry.platform_roles].map((r) => r.code);
 
-// 11-ROLE-MATRIX §3.1 / §3.2: code -> [permissions, privileged]
+// 11-ROLE-MATRIX §3.1 / §3.2: code -> [permissions, privileged]. corp_admin: LD-310 (T0B-ADMINPERM-1) overrides the spec's [115, 39]:
+// admin gets every tenant staff code (176 permissions, 67 privileged; 155 / 59 + the 7 accounting codes of T0C-ACCT-1, LD-313 c, + the 5 MSGDESK codes of T0C-MSGDESK-1, LD-321, + the 2 sales codes of T0C-SALES-1, LD-321, + the 3 sync codes of T0C-SYNC-1, LD-322, + the 2 verification policy codes of T0C-VERLEVEL-1, LD-316, + the 2 portal content codes of T0C-CONTENT-1, LD-313 c).
 const EXPECTED: Record<string, Record<string, [number, number]>> = {
   elabcorp_default: {
-    corp_admin: [92, 33], corp_accession_user: [22, 0], corp_accounts: [18, 6], corp_franchise_user: [24, 0],
+    corp_admin: [184, 69], corp_accession_user: [22, 0], corp_accounts: [18, 6], corp_franchise_user: [24, 0], // corp_admin: + 2 codes of T0C-FINCTRL-1 (LD-321), 1 privileged (billing.discount_policy.manage); + 6 codes of T0C-PARTYSET-1 (LD-321), 1 privileged (partners.party_id_number.read); + 2 sales codes of T0C-SALES-1 (LD-321), 1 privileged; + 3 sync codes of T0C-SYNC-1 (LD-322), 2 privileged; + 2 verification policy codes of T0C-VERLEVEL-1 (LD-316), 1 privileged; + 2 portal content codes of T0C-CONTENT-1 (LD-313 c), none privileged
     corp_client_operator: [44, 8], corp_laboratory_admin: [11, 0], corp_laboratory_lab_user: [24, 0],
     corp_laboratory_user: [18, 0], corp_collection_center: [22, 1], corp_it_department: [5, 0],
     corp_junior_lab_user: [24, 0], corp_sr_lab_user: [51, 9], corp_sr_lab_user_t2: [51, 9], corp_pathologist: [45, 7],
@@ -35,7 +37,7 @@ const EXPECTED: Record<string, Record<string, [number, number]>> = {
     corp_senior_lab_user: [51, 9],
   },
   elabassist_standard: {
-    std_admin: [85, 30], std_reception: [18, 0], std_accession: [25, 0], std_lab_technician: [40, 0],
+    std_admin: [102, 35], std_reception: [18, 0], std_accession: [25, 0], std_lab_technician: [40, 0],
     std_consulting_pathologist: [20, 5], std_collection_center_user: [21, 0], std_collection_center_admin: [21, 0],
     std_collection_boy: [19, 0], std_affiliation_hospital_user: [17, 0], std_account: [25, 6],
   },
@@ -46,8 +48,32 @@ const SR_LAB = ['corp_sr_lab_user', 'corp_sr_lab_user_t2', 'corp_senior_lab_user
 const ACCOUNTS = ['corp_accounts', 'std_account'];
 
 describe('RM-T01 role-packs.data.yaml', () => {
-  it('equals spec/program/11-ROLE-MATRIX.data.yaml unchanged (LD-141; line endings ignored)', () => {
-    expect(lf(readFileSync(DATA_FILE, 'utf8'))).toBe(lf(readFileSync(SPEC_FILE, 'utf8')));
+  it('equals spec/program/11-ROLE-MATRIX.data.yaml (LD-141) in everything except the corp_admin permission list (LD-310, T0B-ADMINPERM-1)', () => {
+    const strip = (d: { packs: Pack[] }) => ({ ...d, packs: d.packs.map((p) => ({ ...p, roles: p.roles.map((r) => (r.code === 'corp_admin' ? { ...r, permissions: [] } : r)) })) });
+    expect(strip(data())).toEqual(strip(parse(readFileSync(SPEC_FILE, 'utf8'))));
+  });
+
+  it('equals the spec data role by role: same packs, same role fields, same permission lists (LD-254; names the first difference)', () => {
+    const spec = parse(readFileSync(SPEC_FILE, 'utf8')) as { packs: Pack[] };
+    const mine = data();
+    expect(mine.packs.map((p) => p.code)).toEqual(spec.packs.map((p) => p.code));
+    for (const sp of spec.packs) {
+      const mp = mine.packs.find((p) => p.code === sp.code)!;
+      expect(mp.roles.map((r) => r.code), sp.code).toEqual(sp.roles.map((r) => r.code));
+      for (const sr of sp.roles) {
+        const mr = mp.roles.find((r) => r.code === sr.code)!;
+        expect({ code: mr.code, name: mr.name, mfa: mr.mfa_required, base: mr.base_default_role }, sr.code).toEqual({ code: sr.code, name: sr.name, mfa: sr.mfa_required, base: sr.base_default_role });
+        if (sr.code === 'corp_admin') {
+          // LD-310 (T0B-ADMINPERM-1): spec set UNION every tenant staff code of contracts/permissions.yaml, sorted; nothing from the spec is dropped.
+          expect(sr.permissions.filter((c) => !mr.permissions.includes(c)), 'corp_admin: in the spec, not in the API pack').toEqual([]);
+          expect(mr.permissions, 'corp_admin: spec set + staff codes').toEqual([...new Set([...sr.permissions, ...STAFF])].sort());
+          continue;
+        }
+        expect(mr.permissions.filter((c) => !sr.permissions.includes(c)), `${sr.code}: in the API pack, not in the spec`).toEqual([]);
+        expect(sr.permissions.filter((c) => !mr.permissions.includes(c)), `${sr.code}: in the spec, not in the API pack`).toEqual([]);
+        expect(mr.permissions, `${sr.code} order`).toEqual(sr.permissions);
+      }
+    }
   });
 
   it('has the two packs with 19 + 10 roles and the exact template codes of §3', () => {
@@ -114,20 +140,19 @@ describe('RM-T01 role-packs.data.yaml', () => {
     }
   });
 
-  it('R2/R5: decision authorities come only from the overlay; Admin has no clinical sign-off', () => {
+  it('R2/R5: decision authorities come only from the overlay; std_admin has no clinical sign-off (corp_admin exempt: LD-310, T0B-ADMINPERM-1)', () => {
     const holders = (code: string) => roles().filter((r) => r.permissions.includes(code)).map((r) => r.code).sort();
     for (const code of ['lab.result.approve', 'lab.result.amend', 'reporting.narrative.sign', 'anatomic.case.signout']) {
-      expect(holders(code), code).toEqual([...PATHOLOGISTS].sort());
+      expect(holders(code), code).toEqual([...PATHOLOGISTS, 'corp_admin'].sort());
     }
-    expect(holders('lab.result.verify')).toEqual([...PATHOLOGISTS, ...SR_LAB, 'std_lab_technician'].sort());
+    expect(holders('lab.result.verify')).toEqual([...PATHOLOGISTS, ...SR_LAB, 'std_lab_technician', 'corp_admin'].sort());
     for (const code of ['billing.refund.approve', 'billing.payment.reverse', 'billing.invoice.cancel']) {
-      expect(holders(code), code).toEqual([...ACCOUNTS].sort());
+      expect(holders(code), code).toEqual([...ACCOUNTS, 'corp_admin'].sort());
     }
     expect(holders('frontdesk.discount.approve')).toEqual([...ACCOUNTS, ...ADMINS].sort());
-    for (const a of ADMINS) {
-      for (const code of ['lab.result.verify', 'lab.result.approve', 'lab.result.amend', 'reporting.narrative.sign', 'anatomic.case.signout']) {
-        expect(byCode(a).permissions, `${a} ${code}`).not.toContain(code);
-      }
+    for (const code of ['lab.result.verify', 'lab.result.approve', 'lab.result.amend', 'reporting.narrative.sign', 'anatomic.case.signout']) {
+      expect(byCode('std_admin').permissions, `std_admin ${code}`).not.toContain(code);
+      expect(byCode('corp_admin').permissions, `corp_admin ${code} (LD-310)`).toContain(code);
     }
   });
 });

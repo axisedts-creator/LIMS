@@ -1,0 +1,245 @@
+../../packages/shared-ts/src/bsdate/index.ts(2,48): error TS5097: An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled.
+../../packages/shared-ts/src/formula/index.ts(3,20): error TS5097: An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled.
+src/modules/billing/ports/BillingCommandPort.impl.ts(178,37): error TS2322: Type 'string' is not assignable to type 'Uuidv7'.
+  Type 'string' is not assignable to type '{ readonly __brand: "Uuidv7"; }'.
+src/modules/billing/ports/BillingCommandPort.impl.ts(194,24): error TS2352: Conversion of type '(ctx: Ctx, input: any) => Promise<{ voided: number; alreadyInvoiced: string[]; }>' to type '(ctx: RequestContext, input: { orderId: Uuidv7; orderItemIds?: readonly Uuidv7[]; reasonCode: string; }) => Promise<{ voided: number; alreadyInvoiced: readonly Uuidv7[]; }>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type 'Promise<{ voided: number; alreadyInvoiced: string[]; }>' is not comparable to type 'Promise<{ voided: number; alreadyInvoiced: readonly Uuidv7[]; }>'.
+    Type '{ voided: number; alreadyInvoiced: string[]; }' is not comparable to type '{ voided: number; alreadyInvoiced: readonly Uuidv7[]; }'.
+      Types of property 'alreadyInvoiced' are incompatible.
+        Type 'string[]' is not comparable to type 'readonly Uuidv7[]'.
+          Type 'string' is not comparable to type 'Uuidv7'.
+            Type 'string' is not comparable to type '{ readonly __brand: "Uuidv7"; }'.
+src/modules/billing/ports/BillingCommandPort.impl.ts(201,33): error TS2352: Conversion of type '(ctx: Ctx, input: any) => Promise<{ required: boolean; taskIds: string[]; }>' to type '(ctx: RequestContext, input: { orderId: Uuidv7; orderItemIds?: readonly Uuidv7[]; cause: "item_removed" | "order_cancelled"; reasonCode: string; }) => Promise<{ required: boolean; taskIds: readonly Uuidv7[]; }>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type 'Promise<{ required: boolean; taskIds: string[]; }>' is not comparable to type 'Promise<{ required: boolean; taskIds: readonly Uuidv7[]; }>'.
+    Type '{ required: boolean; taskIds: string[]; }' is not comparable to type '{ required: boolean; taskIds: readonly Uuidv7[]; }'.
+      Types of property 'taskIds' are incompatible.
+        Type 'string[]' is not comparable to type 'readonly Uuidv7[]'.
+          Type 'string' is not comparable to type 'Uuidv7'.
+            Type 'string' is not comparable to type '{ readonly __brand: "Uuidv7"; }'.
+src/modules/billing/ports/BillingCommandPort.impl.ts(202,29): error TS2352: Conversion of type '(ctx: Ctx, input: any) => Promise<{ invoiceIds: string[]; hasIssuedInvoice: boolean; creditChargeIds: string[]; balance: OrderBalance; }>' to type '(ctx: RequestContext, input: { orderId: Uuidv7; }) => Promise<{ invoiceIds: readonly Uuidv7[]; hasIssuedInvoice: boolean; creditChargeIds: readonly Uuidv7[]; balance: OrderBalance; }>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type 'Promise<{ invoiceIds: string[]; hasIssuedInvoice: boolean; creditChargeIds: string[]; balance: OrderBalance; }>' is not comparable to type 'Promise<{ invoiceIds: readonly Uuidv7[]; hasIssuedInvoice: boolean; creditChargeIds: readonly Uuidv7[]; balance: OrderBalance; }>'.
+    Type '{ invoiceIds: string[]; hasIssuedInvoice: boolean; creditChargeIds: string[]; balance: OrderBalance; }' is not comparable to type '{ invoiceIds: readonly Uuidv7[]; hasIssuedInvoice: boolean; creditChargeIds: readonly Uuidv7[]; balance: OrderBalance; }'.
+      Types of property 'invoiceIds' are incompatible.
+        Type 'string[]' is not comparable to type 'readonly Uuidv7[]'.
+          Type 'string' is not comparable to type 'Uuidv7'.
+            Type 'string' is not comparable to type '{ readonly __brand: "Uuidv7"; }'.
+src/modules/billing/ports/BillingPort.impl.ts(239,28): error TS2352: Conversion of type '(ctx: ReleaseCtx, input: unknown) => Promise<Eligibility>' to type '(ctx: RequestContext, input: { orderId: Uuidv7; }) => Promise<ReleaseEligibility>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type 'Promise<Eligibility>' is not comparable to type 'Promise<ReleaseEligibility>'.
+    Type 'Eligibility' is not comparable to type 'ReleaseEligibility'.
+      Types of property 'orderId' are incompatible.
+        Type 'string' is not comparable to type 'Uuidv7'.
+          Type 'string' is not comparable to type '{ readonly __brand: "Uuidv7"; }'.
+src/modules/billing/ports/BillingPort.impl.ts(240,27): error TS2352: Conversion of type '(ctx: ReleaseCtx, rawInput: unknown) => Promise<{ ledgerEntryId: string; duplicate: boolean; balance: OrderBalance; }>' to type '(ctx: RequestContext, input: GatewayPaymentInput) => Promise<{ ledgerEntryId: Uuidv7; duplicate: boolean; balance: OrderBalance; }>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type 'Promise<{ ledgerEntryId: string; duplicate: boolean; balance: OrderBalance; }>' is not comparable to type 'Promise<{ ledgerEntryId: Uuidv7; duplicate: boolean; balance: OrderBalance; }>'.
+    Type '{ ledgerEntryId: string; duplicate: boolean; balance: OrderBalance; }' is not comparable to type '{ ledgerEntryId: Uuidv7; duplicate: boolean; balance: OrderBalance; }'.
+      Types of property 'ledgerEntryId' are incompatible.
+        Type 'string' is not comparable to type 'Uuidv7'.
+          Type 'string' is not comparable to type '{ readonly __brand: "Uuidv7"; }'.
+src/modules/billing/ports/BillingPort.impl.ts(242,26): error TS2352: Conversion of type '(ctx: ReleaseCtx, rawInput: unknown) => Promise<{ ledgerEntryId: string; duplicate: boolean; balance: OrderBalance; }>' to type '(ctx: RequestContext, input: GatewayRefundInput) => Promise<{ ledgerEntryId: Uuidv7; duplicate: boolean; balance: OrderBalance; }>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type 'Promise<{ ledgerEntryId: string; duplicate: boolean; balance: OrderBalance; }>' is not comparable to type 'Promise<{ ledgerEntryId: Uuidv7; duplicate: boolean; balance: OrderBalance; }>'.
+    Type '{ ledgerEntryId: string; duplicate: boolean; balance: OrderBalance; }' is not comparable to type '{ ledgerEntryId: Uuidv7; duplicate: boolean; balance: OrderBalance; }'.
+      Types of property 'ledgerEntryId' are incompatible.
+        Type 'string' is not comparable to type 'Uuidv7'.
+          Type 'string' is not comparable to type '{ readonly __brand: "Uuidv7"; }'.
+src/modules/billing/service/invoice.service.ts(279,59): error TS2322: Type 'string' is not assignable to type 'IsoUtc'.
+  Type 'string' is not assignable to type '{ readonly __brand: "IsoUtc"; }'.
+src/modules/catalog/ports/CatalogPort.impl.ts(165,7): error TS2322: Type 'string' is not assignable to type 'Uuidv7'.
+  Type 'string' is not assignable to type '{ readonly __brand: "Uuidv7"; }'.
+src/modules/catalog/ports/CatalogPort.impl.ts(165,45): error TS2322: Type 'string' is not assignable to type 'Uuidv7'.
+  Type 'string' is not assignable to type '{ readonly __brand: "Uuidv7"; }'.
+src/modules/catalog/ports/CatalogPort.impl.ts(192,58): error TS2322: Type 'string' is not assignable to type 'Uuidv7'.
+  Type 'string' is not assignable to type '{ readonly __brand: "Uuidv7"; }'.
+src/modules/catalog/ports/CatalogPort.impl.ts(192,120): error TS2322: Type '{ kind: "panel" | "test"; id: string; }[]' is not assignable to type 'readonly { readonly kind: "panel" | "test"; readonly id: Uuidv7; }[]'.
+  Type '{ kind: 'test' | 'panel'; id: string; }' is not assignable to type '{ readonly kind: "panel" | "test"; readonly id: Uuidv7; }'.
+    Types of property 'id' are incompatible.
+      Type 'string' is not assignable to type 'Uuidv7'.
+        Type 'string' is not assignable to type '{ readonly __brand: "Uuidv7"; }'.
+src/modules/catalog/ports/CatalogPort.impl.ts(237,27): error TS2352: Conversion of type 'RequestContext' to type 'Ctx' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Types of property 'tx' are incompatible.
+    Property 'query' is missing in type 'DbTx' but required in type '{ query(text: string, values?: unknown[] | undefined): Promise<{ rows: any[]; }>; }'.
+src/modules/catalog/ports/CatalogPort.impl.ts(238,34): error TS2352: Conversion of type 'RequestContext' to type 'Ctx' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Types of property 'tx' are incompatible.
+    Property 'query' is missing in type 'DbTx' but required in type '{ query(text: string, values?: unknown[] | undefined): Promise<{ rows: any[]; }>; }'.
+src/modules/catalog/ports/CatalogPort.impl.ts(238,63): error TS2352: Conversion of type 'RequestContext' to type 'Ctx' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Types of property 'tx' are incompatible.
+    Property 'query' is missing in type 'DbTx' but required in type '{ query(text: string, values?: unknown[] | undefined): Promise<{ rows: any[]; }>; }'.
+src/modules/catalog/ports/CatalogPort.impl.ts(245,14): error TS2352: Conversion of type 'RequestContext' to type 'Ctx' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Types of property 'tx' are incompatible.
+    Property 'query' is missing in type 'DbTx' but required in type '{ query(text: string, values?: unknown[] | undefined): Promise<{ rows: any[]; }>; }'.
+src/modules/catalog/ports/CatalogPort.impl.ts(246,40): error TS2352: Conversion of type 'RequestContext' to type 'Ctx' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Types of property 'tx' are incompatible.
+    Property 'query' is missing in type 'DbTx' but required in type '{ query(text: string, values?: unknown[] | undefined): Promise<{ rows: any[]; }>; }'.
+src/modules/catalog/ports/CatalogPort.impl.ts(246,79): error TS2352: Conversion of type 'RequestContext' to type 'Ctx' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Types of property 'tx' are incompatible.
+    Property 'query' is missing in type 'DbTx' but required in type '{ query(text: string, values?: unknown[] | undefined): Promise<{ rows: any[]; }>; }'.
+src/modules/catalog/ports/CatalogPort.impl.ts(246,135): error TS2352: Conversion of type 'RequestContext' to type 'Ctx' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Types of property 'tx' are incompatible.
+    Property 'query' is missing in type 'DbTx' but required in type '{ query(text: string, values?: unknown[] | undefined): Promise<{ rows: any[]; }>; }'.
+src/modules/catalog/ports/CatalogPort.impl.ts(252,19): error TS2352: Conversion of type 'RequestContext' to type 'Ctx' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Types of property 'tx' are incompatible.
+    Property 'query' is missing in type 'DbTx' but required in type '{ query(text: string, values?: unknown[] | undefined): Promise<{ rows: any[]; }>; }'.
+src/modules/catalog/ports/CatalogPort.impl.ts(321,9): error TS2322: Type '{ orderableId: string; kind: "panel" | "test"; testIds: string[]; }[]' is not assignable to type 'readonly { readonly orderableId: Uuidv7; readonly kind: "panel" | "test"; readonly testIds: readonly Uuidv7[]; }[]'.
+  Type '{ orderableId: string; kind: "panel" | "test"; testIds: string[]; }' is not assignable to type '{ readonly orderableId: Uuidv7; readonly kind: "panel" | "test"; readonly testIds: readonly Uuidv7[]; }'.
+    Types of property 'orderableId' are incompatible.
+      Type 'string' is not assignable to type 'Uuidv7'.
+        Type 'string' is not assignable to type '{ readonly __brand: "Uuidv7"; }'.
+src/modules/catalog/ports/CatalogPort.impl.ts(323,9): error TS2322: Type '{ specimenTypeCode: string; containerCode?: string; testIds: string[]; }[]' is not assignable to type 'readonly { readonly specimenTypeCode: string; readonly containerCode?: string; readonly testIds: readonly Uuidv7[]; }[]'.
+  Type '{ specimenTypeCode: string; containerCode?: string; testIds: string[]; }' is not assignable to type '{ readonly specimenTypeCode: string; readonly containerCode?: string; readonly testIds: readonly Uuidv7[]; }' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+    Types of property 'testIds' are incompatible.
+      Type 'string[]' is not assignable to type 'readonly Uuidv7[]'.
+        Type 'string' is not assignable to type 'Uuidv7'.
+          Type 'string' is not assignable to type '{ readonly __brand: "Uuidv7"; }'.
+src/modules/catalog/ports/CatalogPort.impl.ts(351,19): error TS2352: Conversion of type 'RequestContext' to type 'Ctx' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Types of property 'tx' are incompatible.
+    Property 'query' is missing in type 'DbTx' but required in type '{ query(text: string, values?: unknown[] | undefined): Promise<{ rows: any[]; }>; }'.
+src/modules/catalog/ports/CatalogPort.impl.ts(370,19): error TS2352: Conversion of type 'RequestContext' to type 'Ctx' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Types of property 'tx' are incompatible.
+    Property 'query' is missing in type 'DbTx' but required in type '{ query(text: string, values?: unknown[] | undefined): Promise<{ rows: any[]; }>; }'.
+src/modules/catalog/ports/CatalogPort.impl.ts(380,44): error TS2352: Conversion of type 'RequestContext' to type 'Ctx' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Types of property 'tx' are incompatible.
+    Property 'query' is missing in type 'DbTx' but required in type '{ query(text: string, values?: unknown[] | undefined): Promise<{ rows: any[]; }>; }'.
+src/modules/catalog/ports/CatalogPort.impl.ts(384,14): error TS2352: Conversion of type '{ referenceRangeId: string; version: number; kind: string; normalCodes?: string[]; }' to type 'ReferenceRangeMatch' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Types of property 'referenceRangeId' are incompatible.
+    Type 'string' is not comparable to type 'Uuidv7'.
+      Type 'string' is not comparable to type '{ readonly __brand: "Uuidv7"; }'.
+src/modules/catalog/ports/CatalogPort.impl.ts(389,44): error TS2352: Conversion of type 'RequestContext' to type 'Ctx' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Types of property 'tx' are incompatible.
+    Property 'query' is missing in type 'DbTx' but required in type '{ query(text: string, values?: unknown[] | undefined): Promise<{ rows: any[]; }>; }'.
+src/modules/catalog/ports/CatalogPort.impl.ts(392,20): error TS2352: Conversion of type '{ criticalLimitId: string; version: number; abnormalCodes?: string[]; }' to type 'CriticalLimitsMatch' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Types of property 'criticalLimitId' are incompatible.
+    Type 'string' is not comparable to type 'Uuidv7'.
+      Type 'string' is not comparable to type '{ readonly __brand: "Uuidv7"; }'.
+src/modules/catalog/ports/CatalogPort.impl.ts(396,11): error TS2322: Type '(c: RequestContext, input: { referrerId: Uuidv7; purpose: "display" | "notification"; }) => Promise<{ referrerId: any; canonicalReferrerId: string; code: any; displayName: any; isVerified: boolean; isActive: boolean; contact?: {}; }>' is not assignable to type '(ctx: RequestContext, input: { referrerId: Uuidv7; purpose: "display" | "notification"; }) => Promise<ReferrerProfile>'.
+  Type 'Promise<{ referrerId: any; canonicalReferrerId: string; code: any; displayName: any; isVerified: boolean; isActive: boolean; contact?: {}; }>' is not assignable to type 'Promise<ReferrerProfile>'.
+    Type '{ referrerId: any; canonicalReferrerId: string; code: any; displayName: any; isVerified: boolean; isActive: boolean; contact?: {}; }' is not assignable to type 'ReferrerProfile' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+      Types of property 'canonicalReferrerId' are incompatible.
+        Type 'string' is not assignable to type 'Uuidv7'.
+          Type 'string' is not assignable to type '{ readonly __brand: "Uuidv7"; }'.
+src/modules/catalog/ports/CatalogPort.impl.ts(397,19): error TS2352: Conversion of type 'RequestContext' to type 'Ctx' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Types of property 'tx' are incompatible.
+    Property 'query' is missing in type 'DbTx' but required in type '{ query(text: string, values?: unknown[] | undefined): Promise<{ rows: any[]; }>; }'.
+src/modules/catalog/ports/CatalogPort.impl.ts(423,19): error TS2352: Conversion of type 'RequestContext' to type 'Ctx' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Types of property 'tx' are incompatible.
+    Property 'query' is missing in type 'DbTx' but required in type '{ query(text: string, values?: unknown[] | undefined): Promise<{ rows: any[]; }>; }'.
+src/modules/catalog/ports/CatalogPort.impl.ts(446,19): error TS2352: Conversion of type 'RequestContext' to type 'Ctx' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Types of property 'tx' are incompatible.
+    Property 'query' is missing in type 'DbTx' but required in type '{ query(text: string, values?: unknown[] | undefined): Promise<{ rows: any[]; }>; }'.
+src/modules/catalog/ports/CatalogPort.impl.ts(471,19): error TS2352: Conversion of type 'RequestContext' to type 'Ctx' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Types of property 'tx' are incompatible.
+    Property 'query' is missing in type 'DbTx' but required in type '{ query(text: string, values?: unknown[] | undefined): Promise<{ rows: any[]; }>; }'.
+src/modules/catalog/ports/CatalogPort.impl.ts(492,7): error TS2375: Type '{ mappingId: any; instrumentId: any; instrumentCode: any; analyteId: any; testId: any; unitConversion?: { fromUnitRaw: any; toUnitCode: any; factor: string; }; flagMap?: any; }' is not assignable to type 'InstrumentCodeMapping' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  The types of 'unitConversion.factor' are incompatible between these types.
+    Type 'string' is not assignable to type 'DecimalString'.
+      Type 'string' is not assignable to type '{ readonly __brand: "DecimalString"; }'.
+src/modules/frontdesk/service/order.service.ts(331,69): error TS2345: Argument of type 'ChangeCtx' is not assignable to parameter of type 'RequestContext'.
+  Types of property 'tenantId' are incompatible.
+    Type 'string' is not assignable to type 'Uuidv7'.
+      Type 'string' is not assignable to type '{ readonly __brand: "Uuidv7"; }'.
+src/modules/frontdesk/service/order.service.ts(366,62): error TS2345: Argument of type 'ChangeCtx' is not assignable to parameter of type 'RequestContext'.
+  Types of property 'tenantId' are incompatible.
+    Type 'string' is not assignable to type 'Uuidv7'.
+      Type 'string' is not assignable to type '{ readonly __brand: "Uuidv7"; }'.
+src/modules/frontdesk/service/order.service.ts(367,72): error TS2345: Argument of type 'ChangeCtx' is not assignable to parameter of type 'RequestContext'.
+  Types of property 'tenantId' are incompatible.
+    Type 'string' is not assignable to type 'Uuidv7'.
+      Type 'string' is not assignable to type '{ readonly __brand: "Uuidv7"; }'.
+src/modules/frontdesk/service/order.service.ts(375,43): error TS2345: Argument of type 'ChangeCtx' is not assignable to parameter of type 'RequestContext'.
+  Types of property 'tenantId' are incompatible.
+    Type 'string' is not assignable to type 'Uuidv7'.
+      Type 'string' is not assignable to type '{ readonly __brand: "Uuidv7"; }'.
+src/modules/frontdesk/service/order.service.ts(378,53): error TS2345: Argument of type 'ChangeCtx' is not assignable to parameter of type 'RequestContext'.
+  Types of property 'tenantId' are incompatible.
+    Type 'string' is not assignable to type 'Uuidv7'.
+      Type 'string' is not assignable to type '{ readonly __brand: "Uuidv7"; }'.
+src/modules/frontdesk/service/order.service.ts(380,39): error TS2345: Argument of type 'ChangeCtx' is not assignable to parameter of type 'RequestContext'.
+  Types of property 'tenantId' are incompatible.
+    Type 'string' is not assignable to type 'Uuidv7'.
+      Type 'string' is not assignable to type '{ readonly __brand: "Uuidv7"; }'.
+src/modules/frontdesk/service/order.service.ts(421,45): error TS2345: Argument of type 'ChangeCtx' is not assignable to parameter of type 'RequestContext'.
+  Types of property 'tenantId' are incompatible.
+    Type 'string' is not assignable to type 'Uuidv7'.
+      Type 'string' is not assignable to type '{ readonly __brand: "Uuidv7"; }'.
+src/modules/frontdesk/service/order.service.ts(429,86): error TS2345: Argument of type 'ChangeCtx' is not assignable to parameter of type 'RequestContext'.
+  Types of property 'tenantId' are incompatible.
+    Type 'string' is not assignable to type 'Uuidv7'.
+      Type 'string' is not assignable to type '{ readonly __brand: "Uuidv7"; }'.
+src/modules/frontdesk/service/order.service.ts(430,70): error TS2345: Argument of type 'ChangeCtx' is not assignable to parameter of type 'RequestContext'.
+  Types of property 'tenantId' are incompatible.
+    Type 'string' is not assignable to type 'Uuidv7'.
+      Type 'string' is not assignable to type '{ readonly __brand: "Uuidv7"; }'.
+src/modules/frontdesk/service/registration.service.ts(157,52): error TS2345: Argument of type 'QuoteCtx' is not assignable to parameter of type 'RequestContext'.
+  Types of property 'tenantId' are incompatible.
+    Type 'string' is not assignable to type 'Uuidv7'.
+      Type 'string' is not assignable to type '{ readonly __brand: "Uuidv7"; }'.
+src/modules/frontdesk/service/registration.service.ts(164,45): error TS2345: Argument of type 'QuoteCtx' is not assignable to parameter of type 'RequestContext'.
+  Types of property 'tenantId' are incompatible.
+    Type 'string' is not assignable to type 'Uuidv7'.
+      Type 'string' is not assignable to type '{ readonly __brand: "Uuidv7"; }'.
+src/modules/frontdesk/service/registration.service.ts(165,24): error TS2345: Argument of type 'QuoteCtx' is not assignable to parameter of type 'RequestContext'.
+  Types of property 'tenantId' are incompatible.
+    Type 'string' is not assignable to type 'Uuidv7'.
+      Type 'string' is not assignable to type '{ readonly __brand: "Uuidv7"; }'.
+src/modules/frontdesk/service/registration.service.ts(193,40): error TS2345: Argument of type 'QuoteCtx' is not assignable to parameter of type 'RequestContext'.
+  Types of property 'tenantId' are incompatible.
+    Type 'string' is not assignable to type 'Uuidv7'.
+      Type 'string' is not assignable to type '{ readonly __brand: "Uuidv7"; }'.
+src/modules/frontdesk/service/registration.service.ts(372,51): error TS2345: Argument of type 'CreateCtx' is not assignable to parameter of type 'RequestContext'.
+  Types of property 'tenantId' are incompatible.
+    Type 'string' is not assignable to type 'Uuidv7'.
+      Type 'string' is not assignable to type '{ readonly __brand: "Uuidv7"; }'.
+src/modules/frontdesk/service/registration.service.ts(379,69): error TS2345: Argument of type 'CreateCtx' is not assignable to parameter of type 'RequestContext'.
+  Types of property 'tenantId' are incompatible.
+    Type 'string' is not assignable to type 'Uuidv7'.
+      Type 'string' is not assignable to type '{ readonly __brand: "Uuidv7"; }'.
+src/modules/frontdesk/service/registration.service.ts(467,49): error TS2345: Argument of type 'CreateCtx' is not assignable to parameter of type 'RequestContext'.
+  Types of property 'tenantId' are incompatible.
+    Type 'string' is not assignable to type 'Uuidv7'.
+      Type 'string' is not assignable to type '{ readonly __brand: "Uuidv7"; }'.
+src/modules/frontdesk/service/registration.service.ts(473,47): error TS2345: Argument of type 'CreateCtx' is not assignable to parameter of type 'RequestContext'.
+  Types of property 'tenantId' are incompatible.
+    Type 'string' is not assignable to type 'Uuidv7'.
+      Type 'string' is not assignable to type '{ readonly __brand: "Uuidv7"; }'.
+src/modules/frontdesk/service/registration.service.ts(483,51): error TS2345: Argument of type 'CreateCtx' is not assignable to parameter of type 'RequestContext'.
+  Types of property 'tenantId' are incompatible.
+    Type 'string' is not assignable to type 'Uuidv7'.
+      Type 'string' is not assignable to type '{ readonly __brand: "Uuidv7"; }'.
+src/modules/frontdesk/service/registration.service.ts(492,65): error TS2345: Argument of type 'CreateCtx' is not assignable to parameter of type 'RequestContext'.
+  Types of property 'tenantId' are incompatible.
+    Type 'string' is not assignable to type 'Uuidv7'.
+      Type 'string' is not assignable to type '{ readonly __brand: "Uuidv7"; }'.
+src/modules/frontdesk/service/registration.service.ts(503,35): error TS2345: Argument of type 'CreateCtx' is not assignable to parameter of type 'RequestContext'.
+  Types of property 'tenantId' are incompatible.
+    Type 'string' is not assignable to type 'Uuidv7'.
+      Type 'string' is not assignable to type '{ readonly __brand: "Uuidv7"; }'.
+src/modules/frontdesk/service/registration.service.ts(573,41): error TS2345: Argument of type 'QuoteCtx' is not assignable to parameter of type 'RequestContext'.
+  Types of property 'tenantId' are incompatible.
+    Type 'string' is not assignable to type 'Uuidv7'.
+      Type 'string' is not assignable to type '{ readonly __brand: "Uuidv7"; }'.
+src/modules/partners/service/conversion.service.ts(36,9): error TS2322: Type '{ patientId: any; } | { newPatient: { fullName: any; sex: any; birthOn: string; phoneE164?: any; consents: { sms: boolean; whatsapp: boolean; email: boolean; shareWithReferrer: boolean; consentTextVersion: any; }; } | { ...; }; }' is not assignable to type '{ readonly patientId: Uuidv7; } | { readonly newPatient: { readonly fullName: string; readonly sex: Sex; readonly birthOn?: IsoDate; readonly ageYears?: number; readonly phoneE164?: string; readonly consents: { ...; }; }; }'.
+  Type '{ newPatient: { fullName: any; sex: any; birthOn: string; phoneE164?: any; consents: { sms: boolean; whatsapp: boolean; email: boolean; shareWithReferrer: boolean; consentTextVersion: any; }; } | { ...; }; }' is not assignable to type '{ readonly patientId: Uuidv7; } | { readonly newPatient: { readonly fullName: string; readonly sex: Sex; readonly birthOn?: IsoDate; readonly ageYears?: number; readonly phoneE164?: string; readonly consents: { ...; }; }; }'.
+    Types of property 'newPatient' are incompatible.
+      Type '{ fullName: any; sex: any; birthOn: string; phoneE164?: any; consents: { sms: boolean; whatsapp: boolean; email: boolean; shareWithReferrer: boolean; consentTextVersion: any; }; } | { fullName: any; sex: any; ageYears: number; phoneE164?: any; consents: { ...; }; }' is not assignable to type '{ readonly fullName: string; readonly sex: Sex; readonly birthOn?: IsoDate; readonly ageYears?: number; readonly phoneE164?: string; readonly consents: { readonly sms: boolean; readonly whatsapp: boolean; readonly email: boolean; readonly shareWithReferrer: boolean; readonly consentTextVersion: string; }; } | undefi...'.
+        Type '{ fullName: any; sex: any; birthOn: string; phoneE164?: any; consents: { sms: boolean; whatsapp: boolean; email: boolean; shareWithReferrer: boolean; consentTextVersion: any; }; }' is not assignable to type '{ readonly fullName: string; readonly sex: Sex; readonly birthOn?: IsoDate; readonly ageYears?: number; readonly phoneE164?: string; readonly consents: { readonly sms: boolean; readonly whatsapp: boolean; readonly email: boolean; readonly shareWithReferrer: boolean; readonly consentTextVersion: string; }; }'.
+          Types of property 'birthOn' are incompatible.
+            Type 'string' is not assignable to type 'IsoDate'.
+              Type 'string' is not assignable to type '{ readonly __brand: "IsoDate"; }'.
+src/modules/partners/service/conversion.service.ts(44,3): error TS2375: Type '{ source: "partner_manifest"; sourceRefId: any; patient: { readonly patientId: Uuidv7; } | { readonly newPatient: { readonly fullName: string; readonly sex: Sex; readonly birthOn?: IsoDate; readonly ageYears?: number; readonly phoneE164?: string; readonly consents: PatientDemographics['consents']; }; }; ... 8 more ....' is not assignable to type 'BookingOrderInput' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'referrerId' are incompatible.
+    Type 'string' is not assignable to type 'Uuidv7'.
+      Type 'string' is not assignable to type '{ readonly __brand: "Uuidv7"; }'.
+src/modules/quality/handlers/settings.handlers.ts(12,85): error TS2379: Argument of type '{ expectedVersion: number | undefined; body: unknown; }' is not assignable to parameter of type '{ expectedVersion?: number; body: unknown; }' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'expectedVersion' are incompatible.
+    Type 'number | undefined' is not assignable to type 'number'.
+      Type 'undefined' is not assignable to type 'number'.
+src/modules/quality/service/chart.service.ts(122,34): error TS2339: Property 'level_code' does not exist on type '{ points: { observation_id: string; observed_at: string; value: string; z?: string; status: string; qc_run_id?: string; rule_hits: string[]; }[]; targets: { target_id: string; effective_from: string; effective_to?: string; mean: string; sd: string; source: "established" | "manufacturer"; }[]; }'.
+src/modules/quality/service/chart.service.ts(122,48): error TS2339: Property 'level_code' does not exist on type '{ points: { observation_id: string; observed_at: string; value: string; z?: string; status: string; qc_run_id?: string; rule_hits: string[]; }[]; targets: { target_id: string; effective_from: string; effective_to?: string; mean: string; sd: string; source: "established" | "manufacturer"; }[]; }'.
+src/modules/quality/service/chart.service.ts(122,69): error TS2339: Property 'lot_no' does not exist on type '{ points: { observation_id: string; observed_at: string; value: string; z?: string; status: string; qc_run_id?: string; rule_hits: string[]; }[]; targets: { target_id: string; effective_from: string; effective_to?: string; mean: string; sd: string; source: "established" | "manufacturer"; }[]; }'.
+src/modules/quality/service/chart.service.ts(122,79): error TS2339: Property 'lot_no' does not exist on type '{ points: { observation_id: string; observed_at: string; value: string; z?: string; status: string; qc_run_id?: string; rule_hits: string[]; }[]; targets: { target_id: string; effective_from: string; effective_to?: string; mean: string; sd: string; source: "established" | "manufacturer"; }[]; }'.
+src/modules/quality/service/observation.service.ts(191,68): error TS2379: Argument of type '{ instrumentId: string; analyteId: string | undefined; statuses: string[]; observedFrom: string; }' is not assignable to parameter of type '{ instrumentId: string; analyteId?: string; statuses: string[]; observedFrom?: string; observedBefore?: string; }' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'analyteId' are incompatible.
+    Type 'string | undefined' is not assignable to type 'string'.
+      Type 'undefined' is not assignable to type 'string'.
+src/modules/quality/service/observation.service.ts(192,76): error TS2379: Argument of type '{ instrumentId: string; analyteId: string | undefined; statuses: string[]; observedBefore: string; }' is not assignable to parameter of type '{ instrumentId: string; analyteId?: string; statuses: string[]; observedFrom?: string; observedBefore?: string; }' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'analyteId' are incompatible.
+    Type 'string | undefined' is not assignable to type 'string'.
+      Type 'undefined' is not assignable to type 'string'.

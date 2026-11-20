@@ -14,6 +14,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 import { cleanup, screen } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
+import { expectErrorState } from '@/__tests__/uiset1.helpers';
 import { API, CENTRE, DEVICES, HV1, HV2, ORIGIN, P_DEVICE, P_RECEIVE, P_SETTINGS, SETTINGS, U, WIPE_REASONS, problem, recorder, wrap, type Call } from './hc-t20.helpers';
 
 const perms = vi.hoisted(() => ({ current: [] as string[] }));
@@ -53,7 +54,7 @@ const api = setupServer(
   http.get(`${API}/reasons`, async ({ request }) => { await rec(request); return reasons(); }),
   http.get(`${ORIGIN}/v1/identity/centres`, async ({ request }) => { await rec(request); return centres(); }),
 );
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 beforeEach(() => { vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(new Date('2026-11-14T04:00:00Z')); });
 afterEach(() => { vi.useRealTimers(); cleanup(); api.resetHandlers(); calls.length = 0; captured.props = undefined; perms.current = []; reset(); });
 afterAll(() => api.close());
@@ -61,7 +62,7 @@ afterAll(() => api.close());
 const page = async (folder: 'handovers' | 'devices' | 'settings', sp: Record<string, string | string[] | undefined> = {}) => {
   const path = `../../../app/(staff)/homecollection/${folder}/page`; // variable path: a missing file fails each test, not the whole suite
   const mod = (await import(/* @vite-ignore */ path)) as { default: (p: any) => Promise<any> };
-  wrap(await mod.default({ searchParams: Promise.resolve(sp) }));
+  return wrap(await mod.default({ searchParams: Promise.resolve(sp) }));
 };
 const to = (path: string) => calls.filter((c) => c.url.pathname.endsWith(path));
 const GATES = [['handovers', P_RECEIVE], ['devices', P_DEVICE], ['settings', P_SETTINGS]] as const;
@@ -92,10 +93,17 @@ describe('permission gate (privilege-escalation probe at the UI; 07-SECURITY §6
       cleanup();
     }
   });
-  it.each(GATES)('%s: API 500 is thrown to error.tsx with its request id (not swallowed into an empty view)', async (folder, own) => {
+  it.each(GATES.filter(([folder]) => folder !== 'settings'))('%s: API 500 is thrown to error.tsx with its request id (not swallowed into an empty view)', async (folder, own) => {
     perms.current = own as string[];
     handovers = devices = settings = () => problem('common.internal', 500);
     await expect(page(folder)).rejects.toMatchObject({ status: 500 });
+  });
+  it('settings: API 500 renders ErrorState in the page (title kept, reference, Retry; LD-353 rule 6), no settings form and no empty view', async () => {
+    perms.current = P_SETTINGS as unknown as string[];
+    settings = () => problem('common.internal', 500, { request_id: 'req-synthetic' });
+    const { container } = await page('settings');
+    expectErrorState(container, '/homecollection/settings');
+    expect(screen.queryByTestId('view')).toBeNull();
   });
 });
 

@@ -1,0 +1,1 @@
+pnpm --dir services/api exec vitest run src/core/__tests__/production-env.test.ts src/modules/reporting/__tests__/callbacks-prod-env.test.ts src/modules/payments/__tests__/unit/config-prod-env.test.ts && pnpm --dir services/worker exec vitest run src/jobs/reporting/__tests__/send_delivery.prod-env.test.ts

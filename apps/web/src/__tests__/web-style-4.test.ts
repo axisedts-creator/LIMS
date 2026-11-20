@@ -61,7 +61,10 @@ function addedCss(css: string, baseline: string): string {
 const cssViolations = (css: string): string[] => {
   const bad: string[] = [];
   if (/#[0-9a-fA-F]{3,8}\b/.test(css)) bad.push('hex colour');
-  if (/(?<![\w-])-?\d*\.?\d+px\b/.test(css)) bad.push('px value');
+  // px sizes fixed by 13-M-SERIES s3 (296 sidebar, 76 top bar, 46 pill, 20 icon, 3 px outline, 2 px offset) are exempt (ruling T0D-MSERIES-2); LD-251 bars raw colour, radius, font only.
+  // T0D-MSERIES-5 (LD-276): the board's 3D plate, chips, rings and their @keyframes are scene geometry (perspective, translateZ, bob distance): px is exempt on those lines only; colour and radius stay token-only.
+  const pxCss = css.split('\n').filter((l) => !/lims-auth-(plate|well|chip|scene|mark|rings|tagline|slab)|^\s*@keyframes\b/.test(l)).join('\n');
+  if (/(?<![\w.-])-?\d*\.?\d+px\b/.test(pxCss.replace(/(?<![\w.-])(?:296|76|46|20|3|2)px\b/g, ''))) bad.push('px value');
   if (/\b(rgb|rgba|hsl|hsla)\(/.test(css)) bad.push('rgb()/hsl() colour');
   if (/\burl\(/.test(css) || /@import\b/.test(css) || /https?:\/\//.test(css)) bad.push('url()/@import/remote URL');
   if (/(?<![\w-])-?\d*\.?\d+vw\b/.test(css)) bad.push('vw unit (horizontal scroll risk)');
@@ -440,7 +443,7 @@ function controlCssProblems(css: string): string[] {
   const input = rules.filter((r) => !RM.test(r.ctx) && sels(r).some((s) => /\.lims-auth-card(?: form)? \.lims-input$/.test(s))).map((r) => r.body).join(';');
   const h = decl(input, 'min-height') ?? decl(input, 'height');
   if (h !== 'var(--lims-touch-target-web)') bad.push(`input height is not var(--lims-touch-target-web) (got ${h ?? 'none'})`);
-  if (decl(input, 'border-radius') !== 'var(--lims-radius-md)') bad.push('input radius is not var(--lims-radius-md)');
+  if (decl(input, 'border-radius') !== 'var(--lims-radius-full)') bad.push('input radius is not var(--lims-radius-full)'); // T0D-MSERIES-2 (LD-251, 13 s2.3): single-line fields are fully round
   const tr = decl(input, 'transition') ?? '';
   if (!/var\(--lims-motion-duration-fast\)|150ms/.test(tr) || !/(border-color|box-shadow|outline)/.test(tr)) bad.push('input has no 150 ms transition on border-color/box-shadow');
   const hover = bodyOf(rules, /\.lims-auth-card(?: form)? \.lims-input:hover(:not\([^)]*\))?$|\.lims-input-wrap:hover \.lims-input$/);
@@ -536,24 +539,20 @@ export default function L({ children }) { return (<div className="lims-auth-page
 const GOOD_BAND = `.lims-auth-band { display: flex; background: var(--lims-accent); }\n.lims-auth-band .lims-art { width: 5rem; }\n@media (min-width: 64rem) { .lims-auth-band { display: none; } }`;
 
 describe('WEB-STYLE-4 (a) inline SVG art, mark and icons (AuthArt.tsx)', () => {
-  it('AuthArt.tsx exists and exports AuthArt, AuthMark and AuthIcon', () => {
+  // T0D-MSERIES-5 (LD-276): the AuthArt line art and the placeholder AuthMark are removed (board M1-entry.png); AuthIcon (form icons) stays.
+  it('AuthArt.tsx still exports AuthIcon; AuthArt and AuthMark are no longer used by the layout or any form', () => {
     expect(existsSync(artPath), 'features/admin/auth/AuthArt.tsx').toBe(true);
-    for (const n of ['AuthArt', 'AuthMark', 'AuthIcon']) expect(artSrc, n).toMatch(new RegExp(`export (function|const) ${n}\\b`));
+    expect(artSrc).toMatch(/export (function|const) AuthIcon\b/);
     for (const k of ['mail', 'lock', 'shield', 'arrow']) expect(artSrc, `icon kind ${k}`).toContain(`'${k}'`);
+    const users = [layoutPath, ...authFiles.filter((f) => /\.tsx$/.test(f) && f !== artPath)].filter((f) => /<AuthArt\b|<AuthMark\b/.test(stripJsComments(read(f)))).map(rel);
+    expect(users).toEqual([]);
   });
   it('every svg is aria-hidden + focusable=false + viewBox; no text/title/image/use/style/SMIL, no URL, no hex, no inline style, colours from currentColor|none|var(--lims-*)', () => {
     expect(svgProblems(artSrc)).toEqual([]);
   });
-  it('exactly one lime highlight element, the root has class lims-art, the mark has class lims-mark and is declared a placeholder', () => {
-    const code = stripJsComments(artSrc);
-    expect((code.match(/lims-art-accent/g) ?? []).length).toBe(1);
-    expect(code).toMatch(/className="lims-art"|className=\{?[`'"]lims-art[ `'"]/);
-    expect(code).toContain('lims-mark');
-    expect(artSrc).toMatch(/placeholder/i);
-    expect(artSrc).not.toMatch(/lims-wordmark/);
-  });
-  it('art css: strokes accent-fg/currentColor, rem/% size, one lime highlight via accent-brand, mark has a rem size', () => {
-    expect(artCssProblems(allCss)).toEqual([]);
+  // T0D-MSERIES-5 SUPERSEDED (real files only): "exactly one lime highlight / lims-art / lims-mark placeholder" and the art css rules described the removed line art.
+  it('the line-art classes are gone from the auth sources', () => {
+    expect(authFiles.filter((f) => /\.tsx$/.test(f) && /\blims-(art|art-accent|mark|lockup|wordmark)\b/.test(stripJsComments(read(f)))).map(rel)).toEqual([]);
   });
   it('planted failures fire', () => {
     expect(svgProblems(GOOD_SVG)).toEqual([]);
@@ -575,29 +574,25 @@ describe('WEB-STYLE-4 (b) layout: brand panel with art, slim band below 64rem, n
   it('all eight auth screens still sit under the one (auth)/layout.tsx', () => {
     for (const s of SCREENS) expect(existsSync(join(src, 'app', '(auth)', 'auth', ...s.split('/'), 'page.tsx')), `/auth/${s}`).toBe(true);
   });
-  it('layout: imports the art, panel aria-hidden with <AuthArt /> and the seven words in order, band header (aria-hidden) with lockup + small art, {children} kept', () => {
-    expect(layoutProblems(layoutSrc)).toEqual([]);
-  });
-  it('layout: no img/svg/media/link/script, no remote URL, no src/url()/external font, no inline style (CSP img-src self data:)', () => {
-    expect(layoutAssetProblems(layoutSrc)).toEqual([]);
+  // T0D-MSERIES-5 SUPERSEDED (real files only): panel with <AuthArt /> + seven words and the slim band were replaced by the board hero (m5.entry.test.tsx).
+  it('layout: keeps {children} and the Metro Labs logo <img>; no remote URL, no inline style (CSP img-src self data:); every other image is decoration', () => {
+    const code = stripJsComments(layoutSrc);
+    expect(code).toContain('{children}');
+    expect(/<img\b[^>]*alt=["']Metro Labs["']/.test(code), 'Metro Labs logo <img> in the auth layout').toBe(true);
+    expect(layoutAssetProblems(code).filter((p) => p === 'remote URL' || p === 'inline style')).toEqual([]);
+    for (const m of code.matchAll(/<img\b[^>]*>/g)) expect(/alt=["']Metro Labs["']|alt=""|alt=\{""\}/.test(m[0]), m[0]).toBe(true);
   });
   it('no remote URL, @import, url() or external font anywhere in the auth css or auth sources', () => {
     expect(/https?:\/\/|@import|@font-face|\burl\(/.test(stripComments(allCss))).toBe(false);
     for (const f of authFiles.filter((x) => /\.tsx$/.test(x))) {
       const c = stripJsComments(read(f));
       expect(/https?:\/\//.test(c), `${rel(f)} remote URL`).toBe(false);
-      expect(/<img\b|next\/image|dangerouslySetInnerHTML/.test(c), `${rel(f)} img / next/image / dangerouslySetInnerHTML`).toBe(false);
+      expect(/<img\b|next\/image|dangerouslySetInnerHTML/.test(c.replace(/<img\b[^>]*alt=["'](Metro Labs)?["'][^>]*\/?>/g, '')), `${rel(f)} img (other than the Metro Labs logo) / next/image / dangerouslySetInnerHTML`).toBe(false);
     }
   });
-  it('band css: shown below 64rem (green, rem-sized small art, no vh), hidden from 64rem', () => {
-    expect(bandCssProblems(allCss)).toEqual([]);
-  });
-  it('panel css: forest gradient accent -> accent-hover, lime glow (color-mix of accent-brand over transparent), dot/hairline grid, no display on pseudo rules, lime never text', () => {
-    expect(panelBrandProblems(allCss)).toEqual([]);
-  });
-  it('stepper: last step marked by its own rule; connector/dots from web-style-3 stay (that suite checks them)', () => {
-    const rules = parseRules(allCss);
-    expect(hasRule(rules, /^\.lims-auth-steps li:last-child(::before|::after)?$/)).toBe(true);
+  // T0D-MSERIES-5 SUPERSEDED (real css only): slim band, forest gradient + glow + dot grid, and the stepper last-step rule are gone with the old panel.
+  it('lime is never a text colour in the auth css', () => {
+    expect(limeAsText(allCss)).toBe(false);
   });
   it('planted failures fire', () => {
     expect(layoutProblems(GOOD_LAYOUT)).toEqual([]);
@@ -623,17 +618,14 @@ describe('WEB-STYLE-4 (b) layout: brand panel with art, slim band below 64rem, n
 });
 
 describe('WEB-STYLE-4 (c) wordmark lockup (placeholder mark + text) and form column', () => {
-  it('LoginForm: div.lims-lockup holds <AuthMark /> then the unchanged <p className="lims-wordmark">LIMS</p>', () => {
-    const l = blocks(authFile('LoginForm.tsx'), 'div', 'lims-lockup')[0];
-    expect(l, 'div.lims-lockup in LoginForm').toBeDefined();
-    expect(l?.inner.search(/<AuthMark\b/)).toBeGreaterThanOrEqual(0);
-    expect(l?.inner.search(/<AuthMark\b/)).toBeLessThan(l?.inner.search(/<p className="lims-wordmark">LIMS<\/p>/) ?? -1);
+  it('LoginForm: UPDATED by T0D-MSERIES-2 (LD-251): the placeholder mark + LIMS wordmark are gone from the card (the real Metro Labs logo sits in the auth layout)', () => {
+    const f = authFile('LoginForm.tsx');
+    expect(f).not.toMatch(/<AuthMark\b/);
+    expect(f).not.toMatch(/className="lims-wordmark"/);
   });
-  it('lockup css: flex, centred, token gap, mark accent/currentColor, light wordmark on the green band', () => {
-    expect(lockupProblems(allCss)).toEqual([]);
-  });
-  it('form column css: heading 2xl/3xl, muted subtitle (neutral-500/700), token rhythm, wide card without box border/heavy shadow', () => {
-    expect(formColumnProblems(allCss)).toEqual([]);
+  // T0D-MSERIES-5 SUPERSEDED (real css only): lockup css is gone; the form column follows the board (card removed, 16 px fields): m5.entry.test.tsx 'css contract'.
+  it('form column css: muted subtitle (neutral-500/700) under the heading', () => {
+    expect(formColumnProblems(allCss).filter((p) => /muted subtitle/.test(p))).toEqual([]);
   });
   it('planted failures fire', () => {
     const good = `.lims-lockup { display: flex; align-items: center; gap: var(--lims-space-2); }\n.lims-mark { width: 2rem; color: var(--lims-accent); }\n.lims-auth-band .lims-wordmark { color: var(--lims-accent-fg); }`;
@@ -649,12 +641,13 @@ describe('WEB-STYLE-4 (c) wordmark lockup (placeholder mark + text) and form col
 });
 
 describe('WEB-STYLE-4 (d) controls: icons, 44px inputs, pill button with arrow, code cells, error fade', () => {
-  it('login email, forgot email and the password field sit in div.lims-input-wrap after a leading AuthIcon (mail / mail / lock)', () => {
+  it('login email, forgot email and the password field sit in div.lims-input-wrap; a leading AuthIcon is optional (the M1 board fields carry none), but if present it comes before the input', () => {
+    const optionalIcon = (p: string) => !/no <AuthIcon/.test(p);
     expect([
       ...iconWrapProblems('LoginForm', authFile('LoginForm.tsx'), 'mail', /name="email"/),
       ...iconWrapProblems('ForgotPasswordForm', authFile('ForgotPasswordForm.tsx'), 'mail', /name="email"/),
       ...iconWrapProblems('PasswordField', authFile('PasswordField.tsx'), 'lock', /<input\b/),
-    ]).toEqual([]);
+    ].filter(optionalIcon)).toEqual([]);
   });
   it('the Show/Hide control stays inside the field wrapper, after the input, with its state and text (web-style-3 contract repeated)', () => {
     const w = blocks(authFile('PasswordField.tsx'), 'div', 'lims-input-wrap')[0]?.inner ?? '';
@@ -666,8 +659,8 @@ describe('WEB-STYLE-4 (d) controls: icons, 44px inputs, pill button with arrow, 
     expect(btn).toMatch(/'Hide'/);
     expect(btn).toMatch(/'Show'/);
   });
-  it('every primary submit button (login, forgot, set-password, mfa challenge, mfa enrol) ends with <AuthIcon kind="arrow" className="lims-btn-arrow" />', () => {
-    expect(['LoginForm.tsx', 'ForgotPasswordForm.tsx', 'SetPasswordForm.tsx', 'MfaChallengeForm.tsx', 'MfaEnrolment.tsx'].flatMap((f) => arrowProblems(f, authFile(f)))).toEqual([]);
+  it('primary submit buttons: the trailing arrow is optional (the board "Continue" has none); if present it is trailing', () => {
+    expect(['LoginForm.tsx', 'ForgotPasswordForm.tsx', 'SetPasswordForm.tsx', 'MfaChallengeForm.tsx', 'MfaEnrolment.tsx'].flatMap((f) => arrowProblems(f, authFile(f))).filter((p) => !/has no trailing/.test(p))).toEqual([]);
   });
   it('pending state is the existing one: submit buttons keep isLoading={pending} (kit Button gives spinner + aria-busy); no new pending logic', () => {
     for (const f of ['LoginForm.tsx', 'ForgotPasswordForm.tsx', 'SetPasswordForm.tsx', 'MfaChallengeForm.tsx', 'MfaEnrolment.tsx']) expect(stripJsComments(authFile(f)), f).toMatch(/<Button type="submit" variant="primary" isLoading=\{pending\}>/);
@@ -694,8 +687,11 @@ describe('WEB-STYLE-4 (d) controls: icons, 44px inputs, pill button with arrow, 
     expect(inner).toContain(`label="Can't scan? Enter this key"`);
     expect(inner.search(/<DataUriImage\b/)).toBeLessThan(inner.search(/<SecretRevealOnce\b/));
   });
-  it('controls css: 44px (touch token) inputs, radius-md, hover darkens, accent focus ring, 150 ms transitions, icon, pill button + arrow nudge + :active + disabled look, code cells, QR card, error fade', () => {
-    expect(controlCssProblems(allCss)).toEqual([]);
+  // T0D-MSERIES-5 SUPERSEDED (real css only): 44px / radius-md inputs and the arrow-nudge button became the board's 16 px (radius-lg) fields, 3 px focus ring and
+  // full-round Continue pill (m5.entry.test.tsx 'css contract'). The remaining pieces of the old rule set that still hold are checked here.
+  it('controls css: disabled look, code cells and QR card keep their rules', () => {
+    const keep = (p: string) => /disabled|otp|code cell|qr/i.test(p);
+    expect(controlCssProblems(allCss).filter(keep)).toEqual([]);
   });
   it('planted failures fire', () => {
     const btnSrc = (inner: string): string => `<Button type="submit" variant="primary" isLoading={pending}>${inner}</Button>`;
@@ -711,14 +707,13 @@ describe('WEB-STYLE-4 (d) controls: icons, 44px inputs, pill button with arrow, 
 });
 
 describe('WEB-STYLE-4 (e) motion: spec-bound (150/250 ms cap, once, reduced-motion)', () => {
-  it('no animation or transition duration above 250 ms, no infinite/looping animation, easing token, durations parseable', () => {
-    expect(motionProblems(allCss)).toEqual([]);
-  });
-  it('entrance: form block and panel body fade + rise 0.5rem in 150..250 ms; stepper items reveal one by one (<= 60 ms stagger, <= 8 items, fill-mode both); error alert fades in 150 ms', () => {
-    expect(entranceProblems(allCss)).toEqual([]);
-  });
-  it('exactly one @media (prefers-reduced-motion: reduce) rule zeroes animation/transition durations and delays on * and its pseudo-elements', () => {
-    expect(reducedMotionProblems(allCss)).toEqual([]);
+  // T0D-MSERIES-5 SUPERSEDED (real css only): the board's hero loops forever (plate sway, well wave, chip bob, pulse ring) and the stepper entrance is gone;
+  // the hero's reduced-motion rules are asserted in m5.entry.test.tsx. What stays here: nothing but the hero loops, none above 250 ms outside the hero, transitions short.
+  it('no transition above 250 ms; no infinite animation outside the hero (plate, wells, chips, mark ring)', () => {
+    const rules = parseRules(allCss);
+    const loops = rules.filter((r) => /infinite/.test(r.body) && !/lims-auth-(plate|well|chip|mark)/.test(r.sel)).map((r) => r.sel);
+    expect(loops).toEqual([]);
+    expect(motionProblems(allCss).filter((p) => /transition/.test(p) && /cap|unknown/.test(p))).toEqual([]);
   });
   it('planted failures fire', () => {
     expect(motionProblems(GOOD_MOTION)).toEqual([]);
@@ -745,7 +740,7 @@ describe('WEB-STYLE-4 (e) motion: spec-bound (150/250 ms cap, once, reduced-moti
 
 describe('WEB-STYLE-4 (f) hygiene: LD-140, contrast, class coverage, no copy/behaviour change', () => {
   it('shell.css gained the new rules (not vacuous)', () => {
-    for (const c of ['.lims-auth-band', '.lims-art', '.lims-mark', '.lims-lockup', '.lims-input-icon', '.lims-btn-arrow', '.lims-qr-card', '.lims-otp-cell']) expect(added, c).toContain(c);
+    for (const c of ['.lims-qr-card', '.lims-otp-cell']) expect(added, c).toContain(c);
   });
   it('new/changed css lines: no hex, px, rgb()/hsl(), url(), @import, remote URL, vw; query lengths in rem; tokens used', () => {
     expect(cssViolations(added)).toEqual([]);
@@ -757,7 +752,7 @@ describe('WEB-STYLE-4 (f) hygiene: LD-140, contrast, class coverage, no copy/beh
   });
   it('every lims-* class in the auth sources has a selector in kit.css or the auth css (exception list <= 3, reasoned)', () => {
     const used = classLiterals(authFiles);
-    for (const c of ['lims-auth-band', 'lims-art', 'lims-art-accent', 'lims-mark', 'lims-lockup', 'lims-input-icon', 'lims-btn-arrow', 'lims-qr-card']) expect(used.has(c), c).toBe(true);
+    for (const c of ['lims-qr-card']) expect(used.has(c), c).toBe(true);
     const keys = Object.keys(EXCEPTIONS);
     expect(keys.length).toBeLessThanOrEqual(3);
     for (const k of keys) expect((EXCEPTIONS[k] ?? '').length).toBeGreaterThan(10);
@@ -774,11 +769,22 @@ describe('WEB-STYLE-4 (f) hygiene: LD-140, contrast, class coverage, no copy/beh
     }
   });
   it('no copy, field, label or button text changed: JSX text and title/label/alt props equal the baseline for every auth page and form; the layout only adds', () => {
-    for (const f of copyFiles()) expect(copyTokens(read(f)), rel(f)).toEqual(copyBaseline[rel(f)] ?? []);
-    expect(Object.keys(copyBaseline).filter((k) => k !== 'app/(auth)/layout.tsx').sort()).toEqual(copyFiles().map(rel));
-    const base = copyBaseline['app/(auth)/layout.tsx'] ?? [];
-    const now = copyTokens(layoutSrc);
-    for (const t of base) expect(now, `layout lost "${t}"`).toContain(t);
+    // T0D-MSERIES-5 (LD-276): the ONLY copy changes are the sign-in screen's (board M1-entry.png): "Email" -> "Work email", "Log in" (heading and button) -> "Welcome back" / "Continue",
+    // plus the new pill and sentence. Every other file equals the baseline; new hero files may exist (their text is asserted by m5.entry.test.tsx).
+    const LOGIN = 'features/admin/auth/LoginForm.tsx';
+    const removed = new Set(['Email', 'Log in']);
+    const added2 = new Set(['Work email', 'Staff sign-in', 'Welcome back', 'Sign in with your work email. A one-time code confirms it is you.', 'Continue']);
+    for (const f of copyFiles()) {
+      const now = copyTokens(read(f));
+      if (rel(f) === LOGIN) {
+        const base = new Set((copyBaseline[LOGIN] ?? []).filter((t) => !removed.has(t)));
+        expect([...new Set(now)].sort(), LOGIN).toEqual([...new Set([...base, ...added2])].sort());
+      } else if (rel(f) in copyBaseline) expect(now, rel(f)).toEqual(copyBaseline[rel(f)]);
+    }
+    for (const k of Object.keys(copyBaseline).filter((x) => x !== 'app/(auth)/layout.tsx')) expect(copyFiles().map(rel), `${k} was deleted`).toContain(k);
+    // the layout: the stepper words are gone (the baseline listed them); nothing of the old panel copy survives
+    const nowLayout = copyTokens(layoutSrc);
+    for (const t of copyBaseline['app/(auth)/layout.tsx'] ?? []) expect(nowLayout, `layout still has the old panel text "${t}"`).not.toContain(t);
   });
   it('planted failures fire', () => {
     expect(cssViolations('.a { width: 100vw; }')).toContain('vw unit (horizontal scroll risk)');

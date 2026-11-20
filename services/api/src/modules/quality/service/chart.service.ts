@@ -99,7 +99,7 @@ export function createChartService(deps: { repo?: ChartRepo; maxPoints?: number 
         if (typeof analyte?.['code'] !== 'string' || !analyte['code']) throw new LimsError('common.internal');   // [CONV] unknown analyte: the DTO requires analyte_code, never guess
 
         const runOf = new Map(runs.map((r) => [r.id, r]));
-        const groups = new Map<string, { head: Row; obs: typeof kept }>();
+        const groups = new Map<string, { head: { level_id: string; level_code: string; lot_id: string; lot_no: string }; obs: typeof kept }>();
         for (const o of kept) {
           const k = `${o.level_id}|${o.lot_id}`;
           (groups.get(k) ?? groups.set(k, { head: { level_id: o.level_id, level_code: o.level_code, lot_id: o.lot_id, lot_no: o.lot_no }, obs: [] }).get(k)!).obs.push(o);

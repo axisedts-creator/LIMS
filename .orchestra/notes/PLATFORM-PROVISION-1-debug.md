@@ -1,0 +1,5 @@
+- Cause: 3 identity-openapi failures are pre-existing from RM-T05 (9fd800f65): role-packs ops lack examples and are missing from TRD §5. Not from PLATFORM-PROVISION-1.
+- Fix: none in impl code; any fix would break brief (1) or edit read-only spec. Wrote PLATFORM-PROVISION-1-dispute.md. Provision tests all green.
+- Re-check after LD-283: verify.log shows 950 of 953 pass, same 3 red cases (listRolePacks/applyRolePack, CR-C1-PROV-001). Ruling says not this task; no impl change, no new dispute.
+- Round 4 cause: wrapper C:\LIMS-state\verify-prov1.cmd line 11 findstr "Tests  *[0-3] failed" never matches: vitest output has ANSI codes between "Tests" and "3 failed" (log line 197: `Tests ^[[22m ^[[1m^[[31m3 failed`). Identity-openapi is the known 3 red / 926 pass, so the task code is fine; wrapper exits 1 anyway.
+- Fix NOT applied by me: wrapper is lead-owned, outside impl code. Lead fix: add `set NO_COLOR=1` and `set FORCE_COLOR=0` before line 7 (or findstr /R /C:"Tests.*[0-3] failed"). No impl change; no test touched.

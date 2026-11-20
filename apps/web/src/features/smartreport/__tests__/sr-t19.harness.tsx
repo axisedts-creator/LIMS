@@ -4,6 +4,7 @@
 //   vi.mock('server-only', () => ({}))
 //   vi.mock('@/core/session/server', async () => (await import('./sr-t20.harness')).sessionMock)
 // Synthetic data only. Fixtures follow contracts/openapi/smartreport.yaml (SmartSummaryView, CodedSet, Problem).
+import type { render } from '@testing-library/react';
 import { json, routes, show } from './sr-t20.harness';
 
 export * from './sr-t20.harness';
@@ -68,4 +69,4 @@ export function mountSummary(view: Record<string, unknown> = summaryView()) {
   routes[`GET ${SUMMARY_URL}`] = json(view);
   routes[`GET ${REASONS_URL}`] = json(REASONS);
 }
-export const showSummary = (id = SUMMARY_ID) => show(SUMMARY_PAGE, { summary_id: id });
+export const showSummary = (id = SUMMARY_ID): Promise<ReturnType<typeof render>> => show(SUMMARY_PAGE, { summary_id: id });

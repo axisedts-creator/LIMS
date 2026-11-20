@@ -4,17 +4,20 @@
 import { useId } from 'react';
 import { Banner } from '@lims/ui/components/Banner';
 import { BarChart } from '@lims/ui/components/BarChart';
-import { Card } from '@lims/ui/components/Card';
+import { ChartCard } from '@lims/ui/components/ChartCard';
 import { EmptyState } from '@lims/ui/components/EmptyState';
 import { FreshnessBadge } from '@lims/ui/components/FreshnessBadge';
-import { Grid } from '@lims/ui/components/Grid';
-import { Inline } from '@lims/ui/components/Inline';
 import { PageHeader } from '@lims/ui/components/PageHeader';
-import { StatTile } from '@lims/ui/components/StatTile';
+import { StatTile, StatTileRow } from '@lims/ui/components/StatTile';
 import { TimeSeriesChart } from '@lims/ui/components/TimeSeriesChart';
+import { t } from '@/core/i18n/messages';
 import type { DashboardDto, Tile } from '../server/dashboard.server';
 import { ScopeBanner } from './ScopeBanner';
 import { AutoRefresh, RefreshButton, ShowYesterday } from './DashboardActions';
+
+// T0D-WEBFIX-2 (LD-301): the API label_bs already carries " B.S." (shared-ts formatBs 'display'); add it only when missing.
+// Lives here, not in period.ts, because rs-c8.static pins period.ts bytes. Used by ReportView, ReportRunView, ScheduleEditor.
+export const bsLabel = (s: string) => (/\bB\.S\.\s*$/.test(s) ? s.trim() : s.trim() + ' B.S.');
 
 const NUM = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 });
 const RS = new Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -32,6 +35,12 @@ function delta(t: Tile): { value: string; direction: 'up' | 'down' | 'flat'; isG
 }
 
 type Cell = { key: string; label: string; href: string; family: string; extra: string[] };
+// C8 04-UI-UX:47 reason copy (same strings as the kit FreshnessBadge tooltip), repeated as the note's title so the reason is readable without hover.
+const REASON: Record<string, string> = {
+  refresh_lagging: 'Recent changes are still being processed',
+  refresh_failed: 'Last update failed — the team has been alerted',
+  never_refreshed: 'Not yet calculated',
+};
 const val = (d: DashboardDto, k: string) => d.tiles[k];
 const sub = (d: DashboardDto, k: string) => { const t = val(d, k); return t ? fmt(t) : '0'; };
 
@@ -49,39 +58,28 @@ export function DashboardView({ dto, query, readOnly = false }: { dto: Dashboard
   // family = freshness[].family feeding the tile (03-APP-FLOW §5 S1 stale badge per tile); report_backlog = snapshot tiles [CONV].
   const cells: Record<string, Cell> = {
     patient_visits: { key: 'patient_visits', label: 'Patient visits', href: '/analytics/reports/volume', family: 'orders', extra: [`New patients ${sub(dto, 'new_patients')}`] },
-    net_sales_paisa: { key: 'net_sales_paisa', label: 'Income (net sales)', href: '/analytics/reports/income', family: 'income', extra: [`Invoiced ${sub(dto, 'invoiced_paisa')}`, `Credit notes ${sub(dto, 'credit_notes_paisa')}`] },
+    net_sales_paisa: { key: 'net_sales_paisa', label: 'Net sales', href: '/analytics/reports/income', family: 'income', extra: [`Invoiced ${sub(dto, 'invoiced_paisa')}`, `Credit notes ${sub(dto, 'credit_notes_paisa')}`] },
     results_approved: { key: 'results_approved', label: 'Results approved', href: '/analytics/reports/tests-done', family: 'results', extra: [`Tests ordered ${sub(dto, 'tests_ordered')}`] },
     reports_pending: { key: 'reports_pending', label: 'Reports pending', href: '/analytics/reports/pending-tests', family: 'report_backlog', extra: [] },
     pending_tests: { key: 'pending_tests', label: 'Pending tests', href: '/analytics/reports/pending-tests', family: 'report_backlog', extra: [] },
-    net_collected_paisa: { key: 'net_collected_paisa', label: 'Cash collected (net)', href: '/analytics/collections', family: 'collections', extra: [] },
+    net_collected_paisa: { key: 'net_collected_paisa', label: 'Cash collected', href: '/analytics/collections', family: 'collections', extra: [] },
   };
   const shown = Object.values(cells).filter((c) => val(dto, c.key));
+  // T0D-UIDASH-1, LD-353 template 5: the tile row holds exactly these four tiles in this order (money tiles only when the API sent them).
+  const tileCells = ['patient_visits', 'reports_pending', 'net_sales_paisa', 'net_collected_paisa'].filter((k) => val(dto, k)).map((k) => cells[k]!);
   const anyDelta = shown.some((c) => delta(val(dto, c.key)!));
   const empty = Object.values(dto.tiles).every((t) => !t || t.value === 0);
   const sent = (k: string) => shown.some((c) => c.key === k);
 
-  // A tile's cell: tile + its stale badge + its sub-values (an-t18 binds the badge to the cell).
-  const extras = (c: Cell) => {
-    const f = freshness.find((x) => x.family === c.family && x.is_stale);
-    return (
-      <>
-        {f ? <FreshnessBadge isStale {...(f.refreshed_at ? { refreshedAt: f.refreshed_at } : {})} {...(f.stale_reason ? { reason: f.stale_reason } : {})} /> : null}
-        {/* sub-values as text, not a nested list: inside the pipeline they must not read as extra stages */}
-        {c.extra.map((e) => <p key={e}>{e}</p>)}
-      </>
-    );
-  };
-  const tileOf = (c: Cell, linked: boolean) => {
+  // T0D-UNSLOP-1 (C), LD-353 rules 5/8 and template 5: every tile sits in ONE row of equal cells; one freshness note for the page (header status),
+  // no badge per tile (overrides 03-APP-FLOW §5 S1 "stale badge per tile"); sub-values move to one line under the row.
+  const tileOf = (c: Cell) => {
     const t = val(dto, c.key)!;
     const d = delta(t);
-    return <StatTile label={c.label} value={fmt(t)} {...(linked ? { href: c.href } : {})} {...(d ? { delta: d } : {})} />;
+    // leading space: the kit StatTile puts label and value spans side by side with no text gap, so the link name read "Patient visits12" (kit fix: T0D-UIKIT-1)
+    return <StatTile key={c.key} label={c.label} value={` ${fmt(t)}`} href={c.href} {...(d ? { delta: d } : {})} />;
   };
-  const cell = (c: Cell) => (
-    <div key={c.key}>
-      {tileOf(c, true)}
-      {extras(c)}
-    </div>
-  );
+  const subValues = shown.flatMap((c) => (val(dto, c.key)!.unit === 'paisa' ? [] : c.extra));
 
   // LD-140 / 10-DESIGN-SYSTEM s4 "Today": one pipeline stepper. Only stages with an API tile get a count + filter link; the others show the label only
   // (no new data, no invented 0). Stage sources per RS-C8-ruling.md: In progress = pending_tests, Authorised = results_approved.
@@ -97,12 +95,15 @@ export function DashboardView({ dto, query, readOnly = false }: { dto: Dashboard
   ].filter((n) => (val(dto, n.key)?.value ?? 0) > 0);
   // Money strip (s4/s6): only when the API sent money (it applies the money permissions), always with currency (fmt) and period.
   const moneyCells = ['net_sales_paisa', 'net_collected_paisa'].filter(sent).map((k) => cells[k]!);
-  const others = ['patient_visits', 'reports_pending'].filter(sent).map((k) => cells[k]!);
+  const moneyLines = moneyCells.flatMap((c) => [`${c.label} ${fmt(val(dto, c.key)!)}`, ...c.extra]);
+  const canMoney = moneyCells.length > 0;
   const days = dto.series.days;
   const depts = dto.department_top;
   const status = (
     <>
-      <FreshnessBadge isStale={stale.length > 0} {...(oldest ? { refreshedAt: oldest } : {})} {...(reason ? { reason } : {})} />
+      <span {...(reason && REASON[reason] ? { title: REASON[reason] } : {})}>
+        <FreshnessBadge isStale={stale.length > 0} {...(oldest ? { refreshedAt: oldest } : {})} {...(reason ? { reason } : {})} />
+      </span>
       {stale.length > 0 && oldest ? <span> Updated {WHEN.format(Date.parse(oldest))}</span> : null}
     </>
   );
@@ -114,28 +115,26 @@ export function DashboardView({ dto, query, readOnly = false }: { dto: Dashboard
       ) : (
         <>
           <AutoRefresh />
-          <PageHeader title="Dashboard" helpKey="analytics.dashboard" status={status} actions={<RefreshButton />} />
+          <PageHeader title={t('analytics.nav.dashboard')} helpKey="analytics.dashboard" status={status} actions={<RefreshButton />} />
         </>
       )}
       <p>
-        {period.label_ad} · {period.label_bs} B.S.
+        {period.label_ad} · {bsLabel(period.label_bs)}
       </p>
       <ScopeBanner scope={dto.scope} />
       {period.timezone !== 'Asia/Kathmandu' ? <Banner tone="info" title="Business days are counted in Nepal time (UTC+05:45)." /> : null}
+      {tileCells.length > 0 ? <StatTileRow>{tileCells.map(tileOf)}</StatTileRow> : null}
+      {subValues.length > 0 ? <p>{subValues.join(' · ')}</p> : null}
       <ol className="lims-stepper-list" aria-label="Sample pipeline">
         {STAGES.map((s) => {
           const c = s.key && sent(s.key) ? cells[s.key]! : undefined;
           return (
             <li key={s.label} className="lims-step">
               {c ? (
-                <>
-                  {/* the stage link is the filter; the tile inside it is a plain div (StatTile without href) */}
-                  <a href={c.href}>
-                    <span className="lims-step-label">{s.label}</span>{' '}
-                    {tileOf(c, false)}
-                  </a>
-                  {extras(c)}
-                </>
+                // the stage link is the filter; its count is plain text (the tile itself lives in the one tile row)
+                <a href={c.href}>
+                  <span className="lims-step-label">{s.label}</span> {fmt(val(dto, c.key)!)}
+                </a>
               ) : (
                 <span className="lims-step-label">{s.label}</span>
               )}
@@ -162,10 +161,9 @@ export function DashboardView({ dto, query, readOnly = false }: { dto: Dashboard
       {moneyCells.length > 0 ? (
         <section aria-labelledby={moneyId}>
           <h2 id={moneyId}>Money, {period.label_ad}</h2>
-          <Inline gap={4} align="start">{moneyCells.map(cell)}</Inline>
+          <p>{moneyLines.join(' · ')}</p>
         </section>
       ) : null}
-      {others.length > 0 ? <Inline gap={4} align="start">{others.map(cell)}</Inline> : null}
       {anyDelta ? <p>{caption}</p> : null}
       <ul>
         <li>Counts each patient once per centre per day. Over several days the same person can be counted more than once.</li>
@@ -176,26 +174,26 @@ export function DashboardView({ dto, query, readOnly = false }: { dto: Dashboard
           <EmptyState title="No activity in this period" />
           {readOnly ? null : <ShowYesterday from={period.business_date_from} query={query} />}
         </>
-      ) : moneyCells.length === 0 ? null : (
-        // net-sales charts are money: shown only with the money strip (the API sent no money tile = this role may not read money)
-        <Grid columns={2}>
-          <Card>
-            <TimeSeriesChart
-              title="Net sales per day"
-              unit="Rs."
-              series={[{ id: 'net', label: 'Net sales', points: days.map((x) => ({ at: x.business_date, value: String(x.net_sales_paisa / 100) })) }]}
-            />
-          </Card>
-          <Card>
-            <BarChart
-              title="Top departments by net sales"
-              valueFormat="money"
-              categories={depts.map((x) => (x.is_multiple ? 'Multiple departments' : x.label))}
-              series={[{ id: 'net', label: 'Net sales', values: depts.map((x) => x.net_paisa) }]}
-            />
-          </Card>
-        </Grid>
-      )}
+      ) : null}
+      {/* T0D-UIDASH-1, LD-353 rule 10: both frames ALWAYS draw, with "No data yet" when the period is empty or the role may not read money
+          (the API sent no money tile). The charts then get no money data at all, so no amount or department name leaks. */}
+      <div className="lims-dash-charts">
+        <ChartCard title="Net sales per day" isEmpty={!canMoney || days.length === 0}>
+          <TimeSeriesChart
+            title="Net sales per day"
+            {...(canMoney ? { unit: 'Rs.' } : {})}
+            series={[{ id: 'net', label: 'Net sales', points: canMoney ? days.map((x) => ({ at: x.business_date, value: String(x.net_sales_paisa / 100) })) : [] }]}
+          />
+        </ChartCard>
+        <ChartCard title="Top departments" isEmpty={!canMoney || depts.length === 0}>
+          <BarChart
+            title="Top departments by net sales"
+            {...(canMoney ? { valueFormat: 'money' as const } : {})}
+            categories={canMoney ? depts.map((x) => (x.is_multiple ? 'Multiple departments' : x.label)) : []}
+            series={[{ id: 'net', label: 'Net sales', values: canMoney ? depts.map((x) => x.net_paisa) : [] }]}
+          />
+        </ChartCard>
+      </div>
     </>
   );
 }

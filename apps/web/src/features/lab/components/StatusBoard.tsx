@@ -6,7 +6,12 @@
 // Paging (review C5.T-27 #1, AC-18.1 "per order"): page.next_cursor shows "Load more", which appends the next page; a poll or filter change restarts at page 1..
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Badge } from '@lims/ui/components/Badge';
+import { BarChart } from '@lims/ui/components/BarChart';
 import { Button } from '@lims/ui/components/Button';
+import { ChartCard } from '@lims/ui/components/ChartCard';
+import { StatTileRow } from '@lims/ui/components/StatTile';
+import { t } from '@/core/i18n/messages';
+import { EmptyRow, PlaceholderRows } from '@lims/ui/components/DataTable';
 import { EmptyState } from '@lims/ui/components/EmptyState';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { StatusChip } from '@lims/ui/components/StatusChip';
@@ -78,8 +83,9 @@ function Board({ centres, initialRows, initialNextCursor, initialRange }: Status
   useEffect(() => { setUpdated(clock(new Date())); }, []);
   useEffect(() => {
     if (paused) return undefined;
-    const t = setInterval(() => { void refresh(); }, POLL_MS);
-    return () => clearInterval(t);
+    // LD-240: no request while the tab is hidden.
+    const timer = setInterval(() => { if (document.visibilityState !== 'hidden') void refresh(); }, POLL_MS);
+    return () => clearInterval(timer);
   }, [paused, refresh]);
 
   const toggleStatus = (s: BoardStatus) => {
@@ -98,10 +104,31 @@ function Board({ centres, initialRows, initialNextCursor, initialRange }: Status
   };
   const centreName = (id: string) => centres.find((c) => c.id === id)?.name ?? '—';
 
+  // T0D-UIDASH-1, LD-353 template 5: the tiles count the rows of the loaded page; each tile is the status filter (replaces the status chips).
+  const count = (s: BoardStatus) => rows.filter((r) => r.board_status === s).length;
+  // review item 1: the status filter runs on the server, so a status outside the filter is unknown ("—"), never a false 0; "+" while more pages exist.
+  const inFilter = (s: BoardStatus) => statuses.length === 0 || statuses.includes(s);
+  const shownCount = (s: BoardStatus) => (inFilter(s) ? String(count(s)) + (next ? '+' : '') : '—');
+
   return (
     <div>
-      <PageHeader title="Status board" helpKey="lab.status_board" />
-      <div className="lims-filter-bar" role="group" aria-label="Filters">
+      <PageHeader
+        title={t('lab.nav.status_board')}
+        helpKey="lab.status_board"
+        status={<span aria-live="off">Updated {updated}</span>}
+        actions={<Button size="sm" onPress={() => setPaused((p) => !p)}>{paused ? 'Resume updates' : 'Pause updates'}</Button>}
+      />
+      <StatTileRow>
+        {BOARD_STATUSES.map((s) => (
+          // the kit StatTile is a div or a link; a filter tile is a toggle button with the same parts (leading space keeps "Ready 1" readable)
+          <button key={s} type="button" className="lims-stat lims-stat-toggle" aria-pressed={statuses.includes(s)} aria-label={`${LABEL[s]} ${shownCount(s)}`} onClick={() => toggleStatus(s)}>
+            <span className="lims-stat-label">{LABEL[s]}</span>
+            <span className="lims-stat-value"> {shownCount(s)}</span>
+          </button>
+        ))}
+      </StatTileRow>
+      {/* T0D-UILIST-1 (LD-353 rule 2): the one filter row is a search landmark like the kit FilterBar */}
+      <div className="lims-filter-bar" role="search" aria-label="Filters">
         <label>From date <input type="date" className="lims-input" value={fromDay} onChange={(e) => changeDays(e.target.value, toDay)} aria-describedby={rangeErr ? 'board-range-err' : undefined} /></label>
         <label>To date <input type="date" className="lims-input" value={toDay} onChange={(e) => changeDays(fromDay, e.target.value)} aria-describedby={rangeErr ? 'board-range-err' : undefined} /></label>
         <label>Centre{' '}
@@ -110,24 +137,19 @@ function Board({ centres, initialRows, initialNextCursor, initialRange }: Status
             {centres.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
         </label>
-        <div role="group" aria-label="Status">
-          {BOARD_STATUSES.map((s) => (
-            <button key={s} type="button" className="lims-btn lims-btn-ghost lims-btn-sm" aria-pressed={statuses.includes(s)} onClick={() => toggleStatus(s)}>{LABEL[s]}</button>
-          ))}
-        </div>
-        <span aria-live="off">Updated {updated}</span>
-        <Button size="sm" onPress={() => setPaused((p) => !p)}>{paused ? 'Resume updates' : 'Pause updates'}</Button>
       </div>
       {rangeErr ? <p id="board-range-err" role="alert" className="lims-error">{rangeErr}</p> : null}
       {error ? <p role="alert" className="lims-error">{error}</p> : null}
-      {rows.length === 0 ? <EmptyState title="No registrations in this period." /> : (
-        <table className="lims-table" aria-label="Order status board">
+      {/* T0D-EMPTYTBL-1 (LD-310): headers always drawn; the empty message is a body row. T0D-UILIST-1 / LD-353 rule 5: full width, scrolls in its own box. */}
+      <div className="lims-data-table"><div className="lims-table-scroll">
+      <table className="lims-table" aria-label="Order status board">
           <thead>
             <tr>
               <th scope="col">Reg no</th><th scope="col">Patient</th><th scope="col">Centre</th><th scope="col">Status</th><th scope="col">Released at</th>
             </tr>
           </thead>
           <tbody>
+            {rows.length === 0 ? <EmptyRow colSpan={5}><EmptyState title="No registrations in this period." /></EmptyRow> : null}
             {rows.map((r) => (
               <tr key={r.order_id}>
                 <th scope="row">{r.registration_no}</th>
@@ -142,9 +164,18 @@ function Board({ centres, initialRows, initialNextCursor, initialRange }: Status
               </tr>
             ))}
           </tbody>
+          {rows.length === 0 ? <PlaceholderRows colSpan={5} /> : null}
         </table>
-      )}
+      </div></div>
       {next ? <Button size="sm" onPress={() => { void refresh({}, next); }}>Load more</Button> : null}
+      {/* merge of T0D-UILIST-1: the chart sits below the order table so the order table stays the page's first table */}
+      <ChartCard title="Samples by status" isEmpty={rows.length === 0}>
+        {/* [CONV] aria-hidden: the five tiles above carry the same counts to assistive tech, so the chart's hidden data table would only repeat them
+            (and make the order table no longer the page's one table) */}
+        <div aria-hidden="true">
+        <BarChart title="Samples by status" valueFormat="integer" categories={BOARD_STATUSES.map((s) => LABEL[s])} series={[{ id: 'n', label: 'Orders', values: BOARD_STATUSES.map((s) => (inFilter(s) ? count(s) : 0)) }]} />
+        </div>
+      </ChartCard>
     </div>
   );
 }

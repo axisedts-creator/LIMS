@@ -74,67 +74,82 @@ INSERT INTO core.memberships (id, tenant_id, user_id, actor_type, status, partne
 INSERT INTO core.roles (id, tenant_id, role_code, display_name, mfa_required, created_by, updated_by) VALUES
   (pg_temp.id(56), pg_temp.id(1), 'admin', 'Admin', true, pg_temp.id(99), pg_temp.id(99));
 INSERT INTO core.membership_roles (tenant_id, membership_id, role_id, created_by) VALUES (pg_temp.id(1), pg_temp.id(41), pg_temp.id(56), pg_temp.id(99));
-INSERT INTO identity.tenant_settings (tenant_id, retention_audit_years, idle_timeout_minutes, absolute_session_hours) VALUES
-  (pg_temp.id(1), 5, 20, 10), (pg_temp.id(2), 7, 30, 12);
+-- LD-230 (6): legal_name_snapshot / display_name / created_by / updated_by are NOT NULL without default (identity migration tenant_settings)
+INSERT INTO identity.tenant_settings (tenant_id, legal_name_snapshot, display_name, retention_audit_years, idle_timeout_minutes, absolute_session_hours, created_by, updated_by) VALUES
+  (pg_temp.id(1), 'Synthetic Lab One', 'Synthetic Lab One', 5, 20, 10, pg_temp.id(99), pg_temp.id(99)), (pg_temp.id(2), 'Synthetic Lab Two', 'Synthetic Lab Two', 7, 30, 12, pg_temp.id(99), pg_temp.id(99));
 INSERT INTO identity.platform_staff (id, user_id, email_normalized, display_name, role_code, is_active, created_by, updated_by) VALUES
-  (pg_temp.id(61), pg_temp.id(32), 'staff32@example.test', 'Staff 32', 'platform_admin', true,  pg_temp.id(99), pg_temp.id(99)),
-  (pg_temp.id(62), pg_temp.id(39), 'staff39@example.test', 'Staff 39', 'platform_admin', true,  pg_temp.id(99), pg_temp.id(99)),
-  (pg_temp.id(63), pg_temp.id(42), 'staff42@example.test', 'Staff 42', 'platform_admin', false, pg_temp.id(99), pg_temp.id(99));
-INSERT INTO identity.mfa_factors (id, tenant_id, user_id, status, created_by, updated_by) VALUES
-  (pg_temp.id(71), pg_temp.id(1), pg_temp.id(31), 'verified', pg_temp.id(99), pg_temp.id(99)),
-  (pg_temp.id(72), NULL,          pg_temp.id(32), 'verified', pg_temp.id(99), pg_temp.id(99)),
-  (pg_temp.id(73), NULL,          pg_temp.id(39), 'pending',  pg_temp.id(99), pg_temp.id(99)),
-  (pg_temp.id(74), pg_temp.id(1), pg_temp.id(39), 'verified', pg_temp.id(99), pg_temp.id(99));
-INSERT INTO identity.support_sessions (id, tenant_id, status, end_reason, scope, requested_at, decided_at, expires_at) VALUES
-  (pg_temp.id(91), pg_temp.id(3), 'active',    NULL,      'read_only', now() - interval '2 hours',  now() - interval '1 hour',    now() + interval '1 hour'),
-  (pg_temp.id(92), pg_temp.id(3), 'active',    NULL,      'read_only', now() - interval '3 hours',  now() - interval '2 hours',   now() - interval '1 hour'),
-  (pg_temp.id(93), pg_temp.id(3), 'expired',   'expired', 'read_only', now() - interval '5 hours',  now() - interval '4 hours',   now() - interval '3 hours'),
-  (pg_temp.id(94), pg_temp.id(3), 'requested', NULL,      'read_only', now() - interval '25 hours', NULL,                         NULL),
-  (pg_temp.id(95), pg_temp.id(3), 'approved',  NULL,      'read_only', now() - interval '3 hours',  now() - interval '61 minutes', NULL),
-  (pg_temp.id(96), pg_temp.id(3), 'requested', NULL,      'read_only', now() - interval '1 hour',   NULL,                         NULL);
+  (pg_temp.id(61), pg_temp.id(32), 'staff32@example.test', 'Staff 32', 'platform_support', true,  pg_temp.id(99), pg_temp.id(99)),
+  (pg_temp.id(62), pg_temp.id(39), 'staff39@example.test', 'Staff 39', 'platform_support', true,  pg_temp.id(99), pg_temp.id(99)),
+  (pg_temp.id(63), pg_temp.id(42), 'staff42@example.test', 'Staff 42', 'platform_support', false, pg_temp.id(99), pg_temp.id(99));
+-- HARNESS fix T0B-GREEN-3 (psql abort): identity.mfa_factors.gotrue_factor_id is NOT NULL (migration 20261105001300; unique per tenant) and status is unverified|verified|removed
+-- ('pending' was a stand-in value): 73 is the unverified tenant-less factor. If a later assertion reads the literal 'pending' it is reported below.
+INSERT INTO identity.mfa_factors (id, tenant_id, user_id, gotrue_factor_id, status, created_by, updated_by) VALUES
+  (pg_temp.id(71), pg_temp.id(1), pg_temp.id(31), pg_temp.id(171), 'verified',   pg_temp.id(99), pg_temp.id(99)),
+  (pg_temp.id(72), NULL,          pg_temp.id(32), pg_temp.id(172), 'verified',   pg_temp.id(99), pg_temp.id(99)),
+  (pg_temp.id(73), NULL,          pg_temp.id(39), pg_temp.id(173), 'unverified', pg_temp.id(99), pg_temp.id(99)),
+  (pg_temp.id(74), pg_temp.id(1), pg_temp.id(39), pg_temp.id(174), 'verified',   pg_temp.id(99), pg_temp.id(99));
+-- HARNESS fix T0B-GREEN-3 (psql abort): identity.support_sessions (migration 20261105001300) also needs platform_staff_id, reason_text (10..500), ticket_ref, duration_minutes (5..60) and created_by / updated_by NOT NULL, and
+-- support_sessions__active_times__ck wants started_at for an active row (= decided_at here); the stand-in table of the first version of this suite had none of these.
+INSERT INTO identity.support_sessions (id, tenant_id, platform_staff_id, reason_text, ticket_ref, duration_minutes, created_by, updated_by, status, end_reason, scope, requested_at, decided_at, started_at, expires_at) VALUES
+  (pg_temp.id(91), pg_temp.id(3), pg_temp.id(61), 'synthetic support reason', 'TCK-91', 60, pg_temp.id(99), pg_temp.id(99), 'active',    NULL,      'read_only', now() - interval '2 hours',  now() - interval '1 hour',    now() - interval '1 hour',  now() + interval '1 hour'),
+  (pg_temp.id(92), pg_temp.id(3), pg_temp.id(61), 'synthetic support reason', 'TCK-92', 60, pg_temp.id(99), pg_temp.id(99), 'active',    NULL,      'read_only', now() - interval '3 hours',  now() - interval '2 hours',   now() - interval '2 hours', now() - interval '1 hour'),
+  (pg_temp.id(93), pg_temp.id(3), pg_temp.id(61), 'synthetic support reason', 'TCK-93', 60, pg_temp.id(99), pg_temp.id(99), 'expired',   'expired', 'read_only', now() - interval '5 hours',  now() - interval '4 hours',   NULL,                       now() - interval '3 hours'),
+  (pg_temp.id(94), pg_temp.id(3), pg_temp.id(61), 'synthetic support reason', 'TCK-94', 60, pg_temp.id(99), pg_temp.id(99), 'requested', NULL,      'read_only', now() - interval '25 hours', NULL,                         NULL,                       NULL),
+  (pg_temp.id(95), pg_temp.id(3), pg_temp.id(61), 'synthetic support reason', 'TCK-95', 60, pg_temp.id(99), pg_temp.id(99), 'approved',  NULL,      'read_only', now() - interval '3 hours',  now() - interval '61 minutes', NULL,                      NULL),
+  (pg_temp.id(96), pg_temp.id(3), pg_temp.id(61), 'synthetic support reason', 'TCK-96', 60, pg_temp.id(99), pg_temp.id(99), 'requested', NULL,      'read_only', now() - interval '1 hour',   NULL,                         NULL,                       NULL);
+-- HARNESS fix T0B-GREEN-3 (psql abort): identity.sessions (20261105001300) also has refresh_token_enc, access_token_enc, enc_key_id, access_expires_at, idle_timeout_minutes NOT NULL without default; the rows below never carried them
+-- (stand-in table). Defaults for these five columns are set inside this rolled-back transaction only (schema, grants and policies are untouched; nothing in this suite reads them).
+ALTER TABLE identity.sessions ALTER COLUMN refresh_token_enc SET DEFAULT '\x01', ALTER COLUMN access_token_enc SET DEFAULT '\x01', ALTER COLUMN enc_key_id SET DEFAULT 'k1',
+  ALTER COLUMN access_expires_at SET DEFAULT now() + interval '1 hour', ALTER COLUMN idle_timeout_minutes SET DEFAULT 20;
 INSERT INTO identity.sessions (id, tenant_id, user_id, kind, state, aal, membership_id, platform_staff_id, support_session_id, gotrue_session_id,
                                token_sha256, previous_token_sha256, idle_expires_at, absolute_expires_at, expires_at, revoked_at, created_by, updated_by) VALUES
   (pg_temp.id(101), pg_temp.id(1), pg_temp.id(31), 'tenant_staff', 'active',  'aal1', pg_temp.id(41), NULL,            NULL,           pg_temp.id(201), pg_temp.h(1), pg_temp.h(2), now() + interval '20 minutes', now() + interval '10 hours', now() + interval '1 day', NULL, pg_temp.id(99), pg_temp.id(99)),
   (pg_temp.id(102), NULL,          pg_temp.id(32), 'platform',     'active',  'aal2', NULL,           pg_temp.id(61), pg_temp.id(91), pg_temp.id(202), pg_temp.h(3), NULL,         now() + interval '20 minutes', now() + interval '10 hours', now() + interval '1 day', NULL, pg_temp.id(99), pg_temp.id(99)),
   (pg_temp.id(103), NULL,          pg_temp.id(32), 'platform',     'active',  'aal2', NULL,           pg_temp.id(61), pg_temp.id(92), pg_temp.id(203), pg_temp.h(4), NULL,         now() + interval '20 minutes', now() + interval '10 hours', now() + interval '1 day', NULL, pg_temp.id(99), pg_temp.id(99)),
   (pg_temp.id(104), NULL,          pg_temp.id(32), 'platform',     'active',  'aal2', NULL,           pg_temp.id(61), pg_temp.id(93), pg_temp.id(204), pg_temp.h(11), NULL,        now() + interval '20 minutes', now() + interval '10 hours', now() + interval '1 day', NULL, pg_temp.id(99), pg_temp.id(99)),
-  (pg_temp.id(105), pg_temp.id(1), pg_temp.id(31), 'tenant_staff', 'revoked', 'aal1', pg_temp.id(41), NULL,            NULL,           pg_temp.id(205), pg_temp.h(5), pg_temp.h(6), now() + interval '20 minutes', now() + interval '10 hours', now() + interval '1 day', now(), pg_temp.id(99), pg_temp.id(99)),
+  (pg_temp.id(105), pg_temp.id(1), pg_temp.id(31), 'tenant_staff', 'active',  'aal1', pg_temp.id(41), NULL,            NULL,           pg_temp.id(205), pg_temp.h(5), pg_temp.h(6), now() + interval '20 minutes', now() + interval '10 hours', now() + interval '1 day', NULL, pg_temp.id(99), pg_temp.id(99)),   -- revoked by the UPDATE below (HARNESS T0B-GREEN-3: sessions__revoke__ck needs revoke_reason)
   (pg_temp.id(106), pg_temp.id(1), pg_temp.id(31), 'tenant_staff', 'expired', 'aal1', pg_temp.id(41), NULL,            NULL,           pg_temp.id(206), pg_temp.h(7), NULL,         now() - interval '1 hour',     now() + interval '10 hours', now() + interval '1 day', NULL, pg_temp.id(99), pg_temp.id(99)),
   (pg_temp.id(107), pg_temp.id(1), pg_temp.id(41), 'tenant_staff', 'active',  'aal1', pg_temp.id(54), NULL,            NULL,           pg_temp.id(207), pg_temp.h(8), NULL,         now() + interval '20 minutes', now() + interval '10 hours', now() + interval '1 day', NULL, pg_temp.id(99), pg_temp.id(99)),
   (pg_temp.id(108), pg_temp.id(2), pg_temp.id(33), 'tenant_staff', 'active',  'aal1', pg_temp.id(43), NULL,            NULL,           pg_temp.id(208), pg_temp.h(9), NULL,         now() + interval '20 minutes', now() + interval '10 hours', now() + interval '1 day', NULL, pg_temp.id(99), pg_temp.id(99)),
   (pg_temp.id(109), pg_temp.id(1), pg_temp.id(31), 'tenant_staff', 'expired', 'aal1', pg_temp.id(41), NULL,            NULL,           pg_temp.id(209), pg_temp.h(10), NULL,        now() - interval '2 days',     now() - interval '1 day',    now() - interval '1 day', NULL, pg_temp.id(99), pg_temp.id(99));
-INSERT INTO identity.admin_notices (id, tenant_id, kind, expires_at) VALUES
-  (pg_temp.id(301), pg_temp.id(1), 'info', now() - interval '1 day'), (pg_temp.id(302), pg_temp.id(1), 'info', now() + interval '1 day');
-INSERT INTO identity.invitations (id, tenant_id, user_id, email, status, expires_at, updated_at) VALUES
-  (pg_temp.id(311), pg_temp.id(1), NULL,           'a1@example.test', 'pending',  now() - interval '1 day',  now() - interval '1 day'),
-  (pg_temp.id(312), pg_temp.id(1), NULL,           'a2@example.test', 'sent',     now() - interval '2 days', now() - interval '2 days'),
-  (pg_temp.id(313), pg_temp.id(1), NULL,           'a3@example.test', 'pending',  now() + interval '5 days', now() - interval '1 day'),
-  (pg_temp.id(314), pg_temp.id(1), NULL,           'a4@example.test', 'accepted', now() + interval '1 day',  now() - interval '31 days'),
-  (pg_temp.id(315), pg_temp.id(1), NULL,           'a5@example.test', 'revoked',  now() + interval '1 day',  now() - interval '5 days'),
-  (pg_temp.id(316), pg_temp.id(1), NULL,           NULL,              'expired',  now() - interval '40 days', now() - interval '40 days'),
-  (pg_temp.id(317), NULL,          pg_temp.id(32), NULL,              'sent',     now() + interval '5 days', now() - interval '1 day');
-INSERT INTO identity.audit_exports (id, tenant_id, status, object_path, expires_at, downloads_remaining, created_at) VALUES
-  (pg_temp.id(321), pg_temp.id(1), 'ready',   'tenant-a/x1', now() - interval '1 hour',  3,    now()),
-  (pg_temp.id(322), pg_temp.id(1), 'ready',   'tenant-a/x2', now() + interval '1 day',   0,    now()),
-  (pg_temp.id(323), pg_temp.id(1), 'ready',   'tenant-a/x3', now() + interval '1 day',   3,    now()),
-  (pg_temp.id(324), pg_temp.id(1), 'expired', 'tenant-a/x4', now() - interval '2 years', 0,    now() - interval '2 years'),
-  (pg_temp.id(325), pg_temp.id(1), 'failed',  'tenant-a/x5', NULL,                       NULL, now() - interval '13 months'),
-  (pg_temp.id(326), pg_temp.id(1), 'expired', 'tenant-a/x6', now() - interval '1 month', 0,    now() - interval '1 month'),
-  (pg_temp.id(327), pg_temp.id(1), 'queued',  'tenant-a/x7', NULL,                       NULL, now() - interval '2 years');
+UPDATE identity.sessions SET state = 'revoked', revoked_at = now(), revoke_reason = 'logout' WHERE id = pg_temp.id(105);
+-- HARNESS fix T0B-GREEN-3 (psql abort, stand-in era fixtures; migration 20261105001300): admin_notices needs a valid kind + subject_type + subject_id (admin_notices__kind__ck / __subject__ck);
+-- invitations need user_id, invited_by, created_by / updated_by and the shape (tenant row: membership_id; platform row: platform_staff_id; a NULL email only on a terminal status);
+-- audit_exports need requested_by_membership_id, source, filters, a range <= 31 days, and a ready row needs sha256 + expires_at and an object_path that starts with the tenant id (audit_exports__path__ck);
+-- auth_events event types are the CHECK list ('login_ok' is 'login_succeeded').
+INSERT INTO identity.admin_notices (id, tenant_id, kind, subject_type, subject_id, expires_at, created_by, updated_by) VALUES
+  (pg_temp.id(301), pg_temp.id(1), 'access_review_due', 'access_review', pg_temp.id(351), now() - interval '1 day', pg_temp.id(99), pg_temp.id(99)),
+  (pg_temp.id(302), pg_temp.id(1), 'access_review_due', 'access_review', pg_temp.id(352), now() + interval '1 day', pg_temp.id(99), pg_temp.id(99));
+INSERT INTO identity.invitations (id, tenant_id, user_id, membership_id, platform_staff_id, invited_by, created_by, updated_by, email, status, expires_at, updated_at) VALUES
+  (pg_temp.id(311), pg_temp.id(1), pg_temp.id(31), pg_temp.id(41), NULL, pg_temp.id(99), pg_temp.id(99), pg_temp.id(99), 'a1@example.test', 'pending',  now() - interval '1 day',  now() - interval '1 day'),
+  (pg_temp.id(312), pg_temp.id(1), pg_temp.id(31), pg_temp.id(41), NULL, pg_temp.id(99), pg_temp.id(99), pg_temp.id(99), 'a2@example.test', 'sent',     now() - interval '2 days', now() - interval '2 days'),
+  (pg_temp.id(313), pg_temp.id(1), pg_temp.id(31), pg_temp.id(41), NULL, pg_temp.id(99), pg_temp.id(99), pg_temp.id(99), 'a3@example.test', 'pending',  now() + interval '5 days', now() - interval '1 day'),
+  (pg_temp.id(314), pg_temp.id(1), pg_temp.id(31), pg_temp.id(41), NULL, pg_temp.id(99), pg_temp.id(99), pg_temp.id(99), 'a4@example.test', 'accepted', now() + interval '1 day',  now() - interval '31 days'),
+  (pg_temp.id(315), pg_temp.id(1), pg_temp.id(31), pg_temp.id(41), NULL, pg_temp.id(99), pg_temp.id(99), pg_temp.id(99), 'a5@example.test', 'revoked',  now() + interval '1 day',  now() - interval '5 days'),
+  (pg_temp.id(316), pg_temp.id(1), pg_temp.id(31), pg_temp.id(41), NULL, pg_temp.id(99), pg_temp.id(99), pg_temp.id(99), NULL,              'expired',  now() - interval '40 days', now() - interval '40 days'),
+  (pg_temp.id(317), NULL,          pg_temp.id(32), NULL, pg_temp.id(61), pg_temp.id(99), pg_temp.id(99), pg_temp.id(99), 'p1@example.test', 'sent',     now() + interval '5 days', now() - interval '1 day');
+INSERT INTO identity.audit_exports (id, tenant_id, requested_by_membership_id, source, filters, range_from, range_to, created_by, updated_by, sha256, status, object_path, expires_at, downloads_remaining, created_at) VALUES
+  (pg_temp.id(321), pg_temp.id(1), pg_temp.id(41), 'audit_log', '{}', now() - interval '3 days', now() - interval '2 days', pg_temp.id(99), pg_temp.id(99), pg_temp.h(51), 'ready',   pg_temp.id(1)::text || '/x1', now() - interval '1 hour',  3,    now()),
+  (pg_temp.id(322), pg_temp.id(1), pg_temp.id(41), 'audit_log', '{}', now() - interval '3 days', now() - interval '2 days', pg_temp.id(99), pg_temp.id(99), pg_temp.h(52), 'ready',   pg_temp.id(1)::text || '/x2', now() + interval '1 day',   0,    now()),
+  (pg_temp.id(323), pg_temp.id(1), pg_temp.id(41), 'audit_log', '{}', now() - interval '3 days', now() - interval '2 days', pg_temp.id(99), pg_temp.id(99), pg_temp.h(53), 'ready',   pg_temp.id(1)::text || '/x3', now() + interval '1 day',   3,    now()),
+  (pg_temp.id(324), pg_temp.id(1), pg_temp.id(41), 'audit_log', '{}', now() - interval '3 days', now() - interval '2 days', pg_temp.id(99), pg_temp.id(99), NULL,          'expired', pg_temp.id(1)::text || '/x4', now() - interval '2 years', 0,    now() - interval '2 years'),
+  (pg_temp.id(325), pg_temp.id(1), pg_temp.id(41), 'audit_log', '{}', now() - interval '3 days', now() - interval '2 days', pg_temp.id(99), pg_temp.id(99), NULL,          'failed',  pg_temp.id(1)::text || '/x5', NULL,                       3,    now() - interval '13 months'),
+  (pg_temp.id(326), pg_temp.id(1), pg_temp.id(41), 'audit_log', '{}', now() - interval '3 days', now() - interval '2 days', pg_temp.id(99), pg_temp.id(99), NULL,          'expired', pg_temp.id(1)::text || '/x6', now() - interval '1 month', 0,    now() - interval '1 month'),
+  (pg_temp.id(327), pg_temp.id(1), pg_temp.id(41), 'audit_log', '{}', now() - interval '3 days', now() - interval '2 days', pg_temp.id(99), pg_temp.id(99), NULL,          'queued',  pg_temp.id(1)::text || '/x7', NULL,                       3,    now() - interval '2 years');
 INSERT INTO identity.auth_events (id, tenant_id, user_id, event_type, email_hmac, client_ip, occurred_at, created_by) VALUES
   (pg_temp.id(341), NULL,          NULL, 'login_failed', pg_temp.h(20), '10.0.0.9', now() - interval '6 years', pg_temp.id(99)),
   (pg_temp.id(342), NULL,          NULL, 'login_failed', pg_temp.h(21), '10.0.0.9', now() - interval '4 years', pg_temp.id(99)),
-  (pg_temp.id(343), pg_temp.id(1), NULL, 'login_ok',     NULL,          '10.0.0.9', now() - interval '6 years', pg_temp.id(99)),
-  (pg_temp.id(344), pg_temp.id(2), NULL, 'login_ok',     NULL,          '10.0.0.9', now() - interval '6 years', pg_temp.id(99)),
-  (pg_temp.id(345), pg_temp.id(2), NULL, 'login_ok',     NULL,          '10.0.0.9', now() - interval '8 years', pg_temp.id(99)),
-  (pg_temp.id(346), pg_temp.id(1), NULL, 'login_ok',     NULL,          '10.0.0.9', now() - interval '1 year',  pg_temp.id(99)),
+  (pg_temp.id(343), pg_temp.id(1), NULL, 'login_succeeded', NULL,       '10.0.0.9', now() - interval '6 years', pg_temp.id(99)),
+  (pg_temp.id(344), pg_temp.id(2), NULL, 'login_succeeded', NULL,       '10.0.0.9', now() - interval '6 years', pg_temp.id(99)),
+  (pg_temp.id(345), pg_temp.id(2), NULL, 'login_succeeded', NULL,       '10.0.0.9', now() - interval '8 years', pg_temp.id(99)),
+  (pg_temp.id(346), pg_temp.id(1), NULL, 'login_succeeded', NULL,       '10.0.0.9', now() - interval '1 year',  pg_temp.id(99)),
   (pg_temp.id(351), NULL,          NULL, 'login_failed', pg_temp.h(31), '10.0.0.7', now() - interval '1 hour',  pg_temp.id(99)),
   (pg_temp.id(352), NULL,          NULL, 'login_failed', pg_temp.h(31), '10.0.0.7', now() - interval '2 hours', pg_temp.id(99)),
   (pg_temp.id(353), NULL,          NULL, 'login_failed', pg_temp.h(32), '10.0.0.7', now() - interval '3 hours', pg_temp.id(99)),
   (pg_temp.id(354), NULL,          NULL, 'login_failed', pg_temp.h(33), '10.0.0.7', now() - interval '3 days',  pg_temp.id(99)),
   (pg_temp.id(355), NULL,          NULL, 'login_failed', pg_temp.h(34), '10.0.0.8', now() - interval '1 hour',  pg_temp.id(99)),
   (pg_temp.id(356), pg_temp.id(1), NULL, 'login_failed', pg_temp.h(35), '10.0.0.7', now() - interval '1 hour',  pg_temp.id(99)),
-  (pg_temp.id(357), NULL,          NULL, 'login_ok',     pg_temp.h(36), '10.0.0.7', now() - interval '1 hour',  pg_temp.id(99)),
+  (pg_temp.id(357), NULL,          NULL, 'login_succeeded', pg_temp.h(36), '10.0.0.7', now() - interval '1 hour',  pg_temp.id(99)),
   (pg_temp.id(358), NULL,          NULL, 'login_failed', NULL,          '10.0.0.7', now() - interval '1 hour',  pg_temp.id(99));
 SET LOCAL session_replication_role = origin;
 
@@ -153,7 +168,10 @@ INSERT INTO sigs VALUES
   ('identity_notify_ip_throttle_hmacs(inet,timestamptz)', 'lims_worker'),
   ('identity_session_actor(uuid,uuid,uuid)', 'lims_api'),   -- SESSION-ACTOR-1 (LD-208): additive, behaviour in SESSION-ACTOR-1_session_actor.test.sql
   ('identity_platform_auth_load_session(uuid,uuid)', 'lims_api'), ('identity_platform_auth_read_mfa_factors(uuid)', 'lims_api');   -- AUTH-PLATFORM-SESSION-1 (LD-216): additive reads, behaviour in AUTH-PLATFORM-SESSION-1_platform_reads.test.sql
-SELECT is((SELECT count(*) FROM sigs), 22::bigint, 'inventory: 22 identity DEFINERs of C2 05-SCHEMA §6/§10.3 + SESSION-ACTOR-1 + AUTH-PLATFORM-SESSION-1 (excl. identity_tenants_for_email_hmacs = T0B-05, identity_is_breached = INVOKER)');
+INSERT INTO sigs VALUES ('identity_platform_auth_write_mfa_enrolled_event(uuid,jsonb)', 'lims_api');   -- AUTH-MFA-COMPLETE-1 (LD-221): additive platform_mfa_enrolled write, behaviour in AUTH-MFA-COMPLETE-1_platform_event.test.sql
+-- STALE T0B-GREEN-3 (assertion 163): 08 A38-1 (T9-A38, migration 20261105000800) added two more lims_api DEFINERs after this inventory was written (db/tests/identity/T9-A38_platform_set_password.test.sql holds their behaviour)
+INSERT INTO sigs VALUES ('identity_platform_auth_write_invitation_accept_by_user(uuid)', 'lims_api'), ('identity_platform_auth_write_revoke_other_sessions(uuid,uuid,text)', 'lims_api');
+SELECT is((SELECT count(*) FROM sigs), 25::bigint, 'inventory: 25 identity DEFINERs of C2 05-SCHEMA §6/§10.3 + SESSION-ACTOR-1 + AUTH-PLATFORM-SESSION-1 + AUTH-MFA-COMPLETE-1 + T9-A38 (A38-1) (excl. identity_tenants_for_email_hmacs = T0B-05, identity_is_breached = INVOKER)');
 SELECT ok(to_regprocedure('app.' || sig) IS NOT NULL, 'exists: app.' || sig) FROM sigs ORDER BY sig;
 SELECT ok(p.prosecdef, 'prosecdef: app.' || s.sig) FROM sigs s JOIN pg_proc p ON p.oid = to_regprocedure('app.' || s.sig) ORDER BY s.sig;
 SELECT ok(pg_get_userbyid(p.proowner) = 'lims_owner', 'owner lims_owner: app.' || s.sig) FROM sigs s JOIN pg_proc p ON p.oid = to_regprocedure('app.' || s.sig) ORDER BY s.sig;
@@ -166,7 +184,9 @@ SELECT ok(NOT EXISTS (SELECT 1 FROM pg_roles r WHERE r.rolname IN ('anon', 'auth
   FROM sigs s JOIN pg_proc p ON p.oid = to_regprocedure('app.' || s.sig) ORDER BY s.sig;
 -- granted exactly to the §10.3 role: lims_api set vs lims_worker set are disjoint, and lims_app (whose members include both) holds none
 SELECT ok(has_function_privilege(s.grantee, p.oid, 'EXECUTE')
-          AND NOT has_function_privilege(CASE s.grantee WHEN 'lims_api' THEN 'lims_worker' ELSE 'lims_api' END, p.oid, 'EXECUTE')
+          -- STALE T0B-GREEN-3 (assertion 146): migration 20261116040000 (T0B-ASYNC-1, LD-277) deliberately grants app.identity_login_context(uuid) to lims_worker as well (send_recovery); every other function stays single-role
+          AND (CASE WHEN s.sig = 'identity_login_context(uuid)' THEN has_function_privilege('lims_worker', p.oid, 'EXECUTE')
+                    ELSE NOT has_function_privilege(CASE s.grantee WHEN 'lims_api' THEN 'lims_worker' ELSE 'lims_api' END, p.oid, 'EXECUTE') END)
           AND NOT has_function_privilege('lims_app', p.oid, 'EXECUTE')
           AND NOT has_function_privilege('lims_queue', p.oid, 'EXECUTE'),
           'EXECUTE only for ' || s.grantee || ': app.' || s.sig)
@@ -183,8 +203,9 @@ SELECT ok(pg_temp.wrk($$SELECT app.identity_user_exists('$$ || pg_temp.id(31) ||
 SELECT ok(pg_temp.x('lims_queue', NULL, NULL, $$SELECT app.identity_user_exists('$$ || pg_temp.id(31) || $$'::uuid)$$, 'v') LIKE 'E42501:%', 'lims_queue cannot call identity DEFINERs');
 
 -- ================================================================ owner policies are lims_owner-only (C0 §4.3 GUC rule; C2 §11 test 24 last sentence; schema test 17)
-SELECT ok(NOT EXISTS (SELECT 1 FROM pg_policies WHERE (qual ~ 'app\.(pre_|maintenance)' OR with_check ~ 'app\.(pre_|maintenance)') AND roles <> '{lims_owner}'),
-          'every policy mentioning app.pre_* / app.maintenance is TO lims_owner only');
+SELECT ok(NOT EXISTS (SELECT 1 FROM pg_policies WHERE (qual ~ 'app\.(pre_|maintenance)' OR with_check ~ 'app\.(pre_|maintenance)') AND roles <> '{lims_owner}'
+                      AND NOT (schemaname = 'reporting' AND roles = '{lims_reporting_lookup}')),   -- STALE T0B-GREEN-3: C6 lookup policies are TO lims_reporting_lookup (08-CR-REGISTER C6-002, A10.5, D-30; same exemption as db/tests/policy, T0B-GREEN-2)
+          'every policy mentioning app.pre_* / app.maintenance is TO lims_owner only (reporting lookup policies: TO lims_reporting_lookup only)');
 SELECT ok(EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'identity' AND tablename = 'platform_staff' AND policyname = 'platform_staff__select__owner_only' AND roles = '{lims_owner}' AND qual = 'true'),
           'platform_staff__select__owner_only TO lims_owner USING (true) (08 A10.5 - the single allowlisted USING (true))');
 SELECT is((SELECT count(*) FROM pg_policies WHERE qual = 'true' OR with_check = 'true'), 1::bigint, 'USING (true) / WITH CHECK (true) appears exactly once in the database (AC-0B-2.2)');
@@ -208,8 +229,13 @@ SELECT is(pg_temp.x('lims_api', pg_temp.pc(61, 32, 'aal1'), NULL, 'SELECT app.is
 SELECT is(pg_temp.x('lims_api', pg_temp.pc(61, 32, 'aal2', 'tenant'), NULL, 'SELECT app.is_platform_actor()', 'v'), 'false', 'is_platform_actor: scope <> platform -> false');
 SELECT is(pg_temp.x('lims_api', pg_temp.pc(61, 39), NULL, 'SELECT app.is_platform_actor()', 'v'), 'false', 'is_platform_actor: staff id of another user (sub mismatch) -> false');
 SELECT is(pg_temp.x('lims_api', NULL, NULL, 'SELECT app.is_platform_actor()', 'v'), 'false', 'is_platform_actor: no claims -> false');
-SELECT is(pg_temp.x('lims_api', pg_temp.pc(61, 32), NULL, 'SELECT count(*) FROM identity.platform_staff', 'v'), '0',
-          'platform_staff stays invisible to a lims_app session (owner policy is TO lims_owner only)');
+-- STALE T0B-GREEN-3 (assertion 182): since migration 20261115191000 (PLATFORM-DDL-1, 05-SCHEMA s5.3, LD-223) a verified PLATFORM actor reads identity.platform_staff through platform_staff__select__platform (TO lims_app), so the
+-- old "platform claims see 0" no longer holds. What stays true, and is asserted now: any session that is NOT the platform actor (tenant scope, aal1, wrong staff id / sub, no claims) sees 0 rows; the platform actor sees the 3 fixture rows.
+SELECT is(pg_temp.x('lims_api', pg_temp.pc(61, 32, 'aal2', 'tenant'), NULL, 'SELECT count(*) FROM identity.platform_staff', 'v'), '0',
+          'platform_staff stays invisible to a lims_app session that is not the platform actor (owner policy is TO lims_owner only)');
+SELECT is(pg_temp.x('lims_api', pg_temp.pc(61, 39), NULL, 'SELECT count(*) FROM identity.platform_staff', 'v'), '0', 'platform_staff is invisible to a session with a mismatched staff id / sub');
+SELECT is(pg_temp.x('lims_api', NULL, NULL, 'SELECT count(*) FROM identity.platform_staff', 'v'), '0', 'platform_staff is invisible to a session without claims');
+SELECT is(pg_temp.x('lims_api', pg_temp.pc(61, 32), NULL, 'SELECT count(*) FROM identity.platform_staff', 'v'), '3', 'the verified platform actor reads the platform_staff rows via platform_staff__select__platform (PLATFORM-DDL-1)');
 
 -- ================================================================ test 22 + plan: resolver cases (identity_resolve_session)
 CREATE TEMP TABLE res (k text PRIMARY KEY, j jsonb);
@@ -240,7 +266,7 @@ SELECT is(j -> 0 ->> 'state', 'expired', 'resolve: expired session is returned w
 SELECT is(j -> 0 ->> 'membership_locked', 'true', 'resolve: locked membership -> membership_locked = true (08 A3.4)') FROM res WHERE k = 'locked';
 SELECT is(j -> 0 ->> 'tenant_status', 'suspended', 'resolve: suspended tenant -> tenant_status suspended') FROM res WHERE k = 'suspended';
 SELECT is(j -> 0 ->> 'platform_staff_id', pg_temp.id(61)::text, 'resolve: platform session -> platform_staff_id') FROM res WHERE k = 'plat_sup';
-SELECT is(j -> 0 ->> 'platform_role', 'platform_admin', 'resolve: platform session -> platform_role') FROM res WHERE k = 'plat_sup';
+SELECT is(j -> 0 ->> 'platform_role', 'platform_support', 'resolve: platform session -> platform_role') FROM res WHERE k = 'plat_sup';
 SELECT is(j -> 0 ->> 'support_session_id', pg_temp.id(91)::text, 'resolve: active unexpired support session -> support_session_id (08 A15.1)') FROM res WHERE k = 'plat_sup';
 SELECT is(j -> 0 ->> 'support_tenant_id', pg_temp.id(3)::text, 'resolve: support_tenant_id') FROM res WHERE k = 'plat_sup';
 SELECT is(j -> 0 ->> 'support_scope', 'read_only', 'resolve: support_scope') FROM res WHERE k = 'plat_sup';
@@ -298,7 +324,7 @@ SELECT is(pg_temp.lc(37) -> 0 ->> 'tenant_id', pg_temp.id(2)::text, 'test 20: te
 SELECT is(jsonb_array_length(pg_temp.lc(36)), 1, 'login_context: exactly one row per user (no fan-out from the platform_staff left join)');
 -- platform staff with no membership (08 A15.2)
 SELECT is(pg_temp.lc(32) -> 0 ->> 'platform_staff_id', pg_temp.id(61)::text, 'login_context: platform staff user -> platform_staff_id');
-SELECT is(pg_temp.lc(32) -> 0 ->> 'platform_role', 'platform_admin', 'login_context: platform_role');
+SELECT is(pg_temp.lc(32) -> 0 ->> 'platform_role', 'platform_support', 'login_context: platform_role');
 SELECT is(pg_temp.lc(32) -> 0 ->> 'platform_active', 'true', 'login_context: platform_active');
 SELECT is(pg_temp.lc(32) -> 0 ->> 'membership_count', '0', 'login_context: platform staff, no membership -> membership_count 0');
 SELECT is(pg_temp.lc(32) -> 0 ->> 'tenant_id', NULL, 'login_context: platform staff -> tenant_id NULL');
@@ -417,7 +443,7 @@ SELECT is((SELECT status FROM identity.invitations WHERE id = pg_temp.id(317)), 
 SELECT is(pg_temp.guc('app.maintenance'), '', 'expire_invitations: app.maintenance empty on return');
 SELECT is(pg_temp.wrk('SELECT app.identity_expire_invitations()'), '0', 'expire_invitations: second run changes nothing (idempotent)');
 -- expire_audit_exports (+ test 31: 1-year purge)
-SELECT is(pg_temp.wrkj('SELECT * FROM app.identity_expire_audit_exports() ORDER BY 1'), '[{"object_path":"tenant-a/x1"},{"object_path":"tenant-a/x2"}]'::jsonb,
+SELECT is(pg_temp.wrkj('SELECT * FROM app.identity_expire_audit_exports() ORDER BY 1'), jsonb_build_array(jsonb_build_object('object_path', pg_temp.id(1)::text || '/x1'), jsonb_build_object('object_path', pg_temp.id(1)::text || '/x2')),   -- HARNESS T0B-GREEN-3: audit_exports__path__ck makes the path start with the tenant id
           'expire_audit_exports: returns exactly the object paths of the due ready rows');
 SELECT is((SELECT array_agg(id ORDER BY id) FROM identity.audit_exports), ARRAY[pg_temp.id(321), pg_temp.id(322), pg_temp.id(323), pg_temp.id(326), pg_temp.id(327)],
           'test 31: expired/failed rows older than 1 year deleted; younger and every queued/ready row kept');
@@ -472,6 +498,9 @@ SELECT ok(pg_temp.x('lims_api', pg_temp.sysclaims(), NULL, $$INSERT INTO identit
 SELECT is(pg_temp.x('lims_api', pg_temp.sysclaims(), NULL, $$SELECT app.identity_platform_auth_write_session_insert('$$ || pg_temp.id(32) || $$',
           jsonb_build_object('id', '$$ || pg_temp.id(410) || $$', 'user_id', '$$ || pg_temp.id(32) || $$', 'kind', 'platform', 'state', 'active', 'aal', 'aal1',
           'expires_at', (now() + interval '1 day')::text, 'mfa_failed_attempts', 0, 'version', 1, 'created_at', now()::text, 'updated_at', now()::text,
+          -- HARNESS T0B-GREEN-3 (360, 361, 365, 366): sessions__kind_shape__ck and the NOT NULL columns of migration 20261105001300 (platform_staff_id, gotrue_session_id, token_sha256, *_token_enc, enc_key_id, access_expires_at, idle_*, absolute_expires_at)
+          'platform_staff_id', '$$ || pg_temp.id(61) || $$', 'gotrue_session_id', '$$ || pg_temp.id(2410) || $$', 'token_sha256', '\x$$ || encode(pg_temp.h(41), 'hex') || $$', 'refresh_token_enc', '\x01', 'access_token_enc', '\x01', 'enc_key_id', 'k1',
+          'access_expires_at', (now() + interval '1 hour')::text, 'idle_timeout_minutes', 20, 'idle_expires_at', (now() + interval '20 minutes')::text, 'absolute_expires_at', (now() + interval '10 hours')::text, 'last_seen_at', now()::text,
           'created_by', '$$ || pg_temp.id(32) || $$', 'updated_by', '$$ || pg_temp.id(32) || $$'))::text$$, 'v'), '',
           'test 34: session_insert DEFINER inserts the platform session');
 SELECT is((SELECT count(*) FROM identity.sessions WHERE id = pg_temp.id(410) AND tenant_id IS NULL AND kind = 'platform'), 1::bigint, 'test 34: the platform session exists');
@@ -495,7 +524,8 @@ SELECT is(pg_temp.x('lims_api', pg_temp.sysclaims(), NULL, $$SELECT app.identity
           jsonb_build_object('aal', 'aal2'))$$, 'v'), '0', 'test 34: session_update cannot touch a tenant session (returns 0)');
 SELECT is(pg_temp.guc('app.pre_user_id'), '', 'test 34: app.pre_user_id empty after session_update');
 SELECT is(pg_temp.x('lims_api', pg_temp.sysclaims(), NULL, $$SELECT app.identity_platform_auth_write_mfa_factor('$$ || pg_temp.id(32) || $$', NULL,
-          jsonb_build_object('id', '$$ || pg_temp.id(420) || $$', 'user_id', '$$ || pg_temp.id(32) || $$', 'status', 'pending', 'is_active', true, 'version', 1,
+          -- HARNESS T0B-GREEN-3 (372, 373, 374): gotrue_factor_id is NOT NULL and the status set is unverified|verified|removed (mfa_factors__status__ck, 20261105001300); 'pending' was a stand-in value
+          jsonb_build_object('id', '$$ || pg_temp.id(420) || $$', 'user_id', '$$ || pg_temp.id(32) || $$', 'gotrue_factor_id', '$$ || pg_temp.id(2420) || $$', 'factor_type', 'totp', 'status', 'unverified', 'is_active', true, 'version', 1,
           'created_at', now()::text, 'updated_at', now()::text, 'created_by', '$$ || pg_temp.id(32) || $$', 'updated_by', '$$ || pg_temp.id(32) || $$'))$$, 'v'),
           '1', 'test 34: mfa_factor inserts a tenant-less factor');
 SELECT is(pg_temp.x('lims_api', pg_temp.sysclaims(), NULL, $$SELECT app.identity_platform_auth_write_mfa_factor('$$ || pg_temp.id(32) || $$', '$$ || pg_temp.id(420) || $$',
@@ -523,7 +553,10 @@ SELECT ok(pg_temp.x('lims_api', pg_temp.sysclaims(), $$SELECT set_config('app.pr
           $$INSERT INTO identity.sessions (id, user_id, kind, expires_at, created_by, updated_by) VALUES
           ('$$ || pg_temp.id(413) || $$', '$$ || pg_temp.id(32) || $$', 'platform', now() + interval '1 day', '$$ || pg_temp.id(99) || $$', '$$ || pg_temp.id(99) || $$')$$, 'w') LIKE 'E42501:%', 'test 34: lims_api setting app.pre_user_id itself still cannot insert a platform session (policies TO lims_owner)');
 SELECT ok(pg_temp.x('lims_api', pg_temp.sysclaims(), $$SELECT set_config('app.pre_user_id', '$$ || pg_temp.id(32) || $$', true)$$,
-          $$UPDATE identity.platform_staff SET last_login_at = NULL$$, 'w') LIKE 'E42501:%', 'test 34: lims_api setting app.pre_user_id itself cannot update platform_staff');
+          $$UPDATE identity.platform_staff SET last_login_at = NULL$$, 'w') = '0', 'test 34: lims_api setting app.pre_user_id itself cannot update platform_staff (0 rows updated)');
+-- STALE T0B-GREEN-3 (assertion 388): lims_app holds UPDATE on platform_staff since migration 20261105001300, so RLS (not the grant) is the wall: with no policy for the system actor the UPDATE matches 0 rows instead of raising 42501.
+-- Proved here: the staff row 61 keeps the last_login_at that staff_login wrote above, i.e. the attempted UPDATE changed nothing.
+SELECT ok((SELECT last_login_at IS NOT NULL FROM identity.platform_staff WHERE id = pg_temp.id(61)), 'test 34: the attempted UPDATE by lims_api changed no platform_staff row (last_login_at of staff 61 is still set)');
 
 -- ================================================================ AC-0D-2.3 (DB half): no GUC leaks into the next transaction
 -- (set_config(..., true) is transaction-local; verified by the grep of the migration in the static suite and by the '' checks above)

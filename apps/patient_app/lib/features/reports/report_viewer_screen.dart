@@ -11,6 +11,7 @@ import 'package:lims_ui/lims_ui.dart';
 
 import '../../app/providers.dart';
 import '../../core/lifecycle/secure_temp_files.dart';
+import '../orders/status_look.dart';
 import 'reports_api.dart';
 import 'reports_providers.dart';
 
@@ -101,7 +102,12 @@ class _ReportViewerScreenState extends ConsumerState<ReportViewerScreen> {
           child: Scaffold(
             appBar: AppBar(
               title: const Text('Report'),
-              actions: [if (_file != null) IconButton(icon: const Icon(Icons.ios_share), tooltip: 'Share or save report', onPressed: _share)],
+              actions: [if (_file != null) IconButton(
+                  icon: const Icon(Icons.ios_share, semanticLabel: 'Share or save report'), // the label on the button node itself, not only its tooltip
+                  tooltip: 'Share or save report',
+                  constraints: const BoxConstraints(minWidth: kMinInteractiveDimension, minHeight: kMinInteractiveDimension), // 48 dp touch target
+                  onPressed: _share,
+                ),],
             ),
             body: _body(),
           ),
@@ -115,11 +121,11 @@ class _ReportViewerScreenState extends ConsumerState<ReportViewerScreen> {
     if (e == null) {
       return const Center(child: Column(mainAxisSize: MainAxisSize.min, children: [CircularProgressIndicator(), SizedBox(height: LimsTokens.space3), Text('Downloading report…')]));
     }
-    return switch (e) {
+    return StateCard(switch (e) {
       LimsErrorCodes.commonDependencyUnavailable => LimsErrorState(title: "The report can't be downloaded right now", message: 'Please check your connection.', onRetry: _download),
       LimsErrorCodes.commonRateLimited => LimsErrorState(title: 'Too many downloads', message: 'You have reached the hourly download limit. Please wait before downloading again.', onRetry: _download),
       LimsErrorCodes.commonNotFound => const LimsErrorState(title: 'Report not found', message: 'This report is no longer available.'),
       _ => LimsErrorState(title: 'Download failed', message: 'The report could not be downloaded.', onRetry: _download),
-    };
+    });
   }
 }

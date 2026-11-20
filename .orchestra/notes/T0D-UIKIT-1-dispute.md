@@ -1,0 +1,4 @@
+TESTS_WRONG (writer, 2026-11-18, LD-362 snapshot regen) — not blocking T0D-UIKIT-1.
+`apps/web/src/features/payments/__tests__/rs-c15.screens.test.tsx:72` "Static QR worksheets" snapshots a business_date that defaults to the current day (no fake timers in the file). Baseline pins `13/11/2026` / `2083-07-27 B.S.`; a run on 2026-11-18 renders `17/11/2026` / `2083-08-01 B.S.`.
+LD-362 forbids accepting a .snap diff not caused by this task, so the writer kept the old date lines and committed only the `.lims-table-scroll` wrapper hunks. This one test stays red on any day other than the baseline day, independent of UIKIT-1.
+Fix (TESTER/owner of rs-c15): pin the clock in that test (`vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(...)`) or pass a fixed business date, then regenerate that one snapshot.

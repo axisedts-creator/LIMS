@@ -1,8 +1,8 @@
 // T0D-11 / AC-0D-8.2: tenant accent derivation (04-UI-UX §1.6).
 // ASSUMED API (name not in spec; see .orchestra/notes/T0D-11-tests.md):
 //   export function deriveAccent(input?: string | null): { accent: string; fg: string; subtle: string; link: string }  // '#RRGGBB' upper-case
-// T0D-UI-R01 (LD-140, 10-DESIGN-SYSTEM s2.1/s2.6): default accent is Metro green #0E4B3B; dark foreground is neutral.900 (#13241D);
-// the default and two tenant accents keep passing the s2.6 accent pairs.
+// T0D-MSERIES-1 (LD-246/LD-251, 13-M-SERIES s2.1): the Metro tenant default accent is #005A52; dark foreground is neutral.900 (#0A1A17);
+// the default and two tenant accents keep passing the accent pairs (accent.default on accent.highlight is no longer a pair: 13 puts #00362F text on the lime pill).
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -10,9 +10,8 @@ import { describe, expect, it } from 'vitest';
 import { DEFAULT_ACCENT, deriveAccent } from '../accent';
 
 const tokens = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', 'tokens', 'tokens.json'), 'utf8'));
-const DEFAULT = '#0E4B3B';
-const DARK = String(tokens.color.neutral['900']).toUpperCase(); // '#13241D' per s2.1; replaces the slate #0F172A
-const HIGHLIGHT = String(tokens.color.accent.highlight).toUpperCase(); // '#D9EE8C'
+const DEFAULT = '#005A52';
+const DARK = String(tokens.color.neutral['900']).toUpperCase(); // '#0A1A17' per 13 s2.1
 const PAGE = String(tokens.color.neutral['50']).toUpperCase();
 const lin = (c: number) => (c / 255 <= 0.03928 ? c / 255 / 12.92 : ((c / 255 + 0.055) / 1.055) ** 2.4);
 const lum = (hex: string) => {
@@ -29,7 +28,7 @@ describe('deriveAccent', () => {
   it('DEFAULT_ACCENT is the Metro default and matches tokens.json accent.default', () => {
     expect(DEFAULT_ACCENT).toBe(DEFAULT);
     expect(String(tokens.color.accent.default).toUpperCase()).toBe(DEFAULT);
-    expect(DARK).toBe('#13241D');
+    expect(DARK).toBe('#0A1A17');
   });
 
   it('default accent: white fg, link = accent, valid subtle', () => {
@@ -53,7 +52,7 @@ describe('deriveAccent', () => {
   });
 
   it('accepts lower-case hex and normalises to upper-case', () => {
-    expect(deriveAccent('#0e4b3b').accent).toBe(DEFAULT);
+    expect(deriveAccent('#005a52').accent).toBe(DEFAULT);
   });
 
   it('dark accent keeps itself and gets white fg', () => {
@@ -99,9 +98,22 @@ describe('deriveAccent', () => {
     expect(ratio(d.link, '#FFFFFF')).toBeGreaterThanOrEqual(4.5); // links on neutral.0
     expect(ratio(d.link, PAGE)).toBeGreaterThanOrEqual(3); // focus ring on neutral.50 (non-text)
     expect(ratio(d.accent, '#FFFFFF')).toBeGreaterThanOrEqual(3); // focus ring on neutral.0 (non-text)
-    expect(ratio(d.accent, HIGHLIGHT)).toBeGreaterThanOrEqual(4.5); // accent.default on accent.highlight
     expect(ratio(d.accent, d.subtle)).toBeGreaterThanOrEqual(4.5); // accent.default on accent.subtle
     expect(ratio(DARK, d.subtle)).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it('M series default #005A52: derivation keeps it (8.13:1 with white), and it is the tokens.json accent.default and accent.default alias target of focus.ring', () => {
+    expect(ratio('#FFFFFF', DEFAULT)).toBeCloseTo(8.13, 1);
+    expect(deriveAccent(DEFAULT)).toMatchObject({ accent: '#005A52', fg: '#FFFFFF', link: '#005A52' });
+    expect(deriveAccent(DEFAULT).subtle).toBe('#EBF2F1'); // 8% accent + 92% white, rounded per channel (the default uses token accent.subtle #ECF3D7)
+  });
+
+  it('tenant accents: derivation does not read any M series highlight/pop value (output depends on the input hex only)', () => {
+    for (const hex of ['#7B1E5A', '#9A3412']) {
+      const d = deriveAccent(hex);
+      expect(Object.keys(d).sort()).toEqual(['accent', 'fg', 'link', 'subtle']);
+      expect(d.accent).toBe(hex);
+    }
   });
 
   it('default accent keeps itself: link = accent, nothing darkened', () => {

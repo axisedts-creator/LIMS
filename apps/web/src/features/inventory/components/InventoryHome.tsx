@@ -6,6 +6,7 @@ import { Banner } from '@lims/ui/components/Banner';
 import { Button } from '@lims/ui/components/Button';
 import { Card } from '@lims/ui/components/Card';
 import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
+import { FilterBar } from '@lims/ui/components/FilterBar';
 import { Grid } from '@lims/ui/components/Grid';
 import { Inline } from '@lims/ui/components/Inline';
 import { PageHeader } from '@lims/ui/components/PageHeader';
@@ -13,7 +14,7 @@ import { Stack } from '@lims/ui/components/Stack';
 import { StatTile } from '@lims/ui/components/StatTile';
 import type { Alert } from '../server/types';
 import { ALERT_KIND_LABEL } from './codes';
-import { Chip, isoDate } from './shared';
+import { Chip, isoDate, useLocalFilters } from './shared';
 
 export interface HomeAlertRow { alert: Alert; store: string; item: string; lot: string }
 export interface HomeProps {
@@ -55,6 +56,8 @@ export function InventoryHome(p: HomeProps) {
     </Inline>
   );
   const allDone = p.checklist.every((c) => c.done);
+  // T0D-UILIST-3 (LD-353 template 1): the landing's alert list has the same one FilterBar as the other inventory lists; it offers the kinds shown.
+  const filters = useLocalFilters(p.rows, { kind: (r, v) => r.alert.alert_kind === v });
 
   return (
     <section aria-label="Inventory">
@@ -69,11 +72,18 @@ export function InventoryHome(p: HomeProps) {
         {p.consumptionOn ? null : (
           <Banner tone="warning" title={OFF_COPY} {...(p.canManageSettings ? { action: { label: 'Open settings', onPress: () => router.push('/inventory/settings') } } : {})} />
         )}
+        <FilterBar
+          filters={[{ id: 'kind', label: 'Kind', kind: 'select', options: [...new Set(p.rows.map((r) => r.alert.alert_kind))].map((value) => ({ value, label: ALERT_KIND_LABEL[value] })) }]}
+          value={filters.value}
+          onChange={filters.onChange}
+          onReset={filters.onReset}
+        />
         <DataTable
           caption="Newest open alerts"
           columns={columns}
-          rows={p.rows}
+          rows={filters.shown}
           getRowId={(r) => r.alert.id}
+          cellTitle
           emptyState={{ title: 'No open alerts.' }}
         />
         <a className="lims-link" href="/inventory/alerts">

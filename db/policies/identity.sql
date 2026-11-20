@@ -100,13 +100,15 @@ CREATE POLICY sessions__select__own_user ON identity.sessions FOR SELECT TO lims
 CREATE POLICY sessions__update__own_user ON identity.sessions FOR UPDATE TO lims_app
   USING (user_id = (SELECT app.current_actor_id()) AND tenant_id = (SELECT app.current_tenant_id()))
   WITH CHECK (user_id = (SELECT app.current_actor_id()) AND tenant_id = (SELECT app.current_tenant_id()));
+-- T0B-MFAPOL-1 (LD-252, CR-C0-T0B-REVIEW-1-003): __own covers tenant rows only (tenant-less IS NOT DISTINCT FROM branch removed;
+-- migration 20261116010000). Tenant-less rows: owner DEFINERs before aal2, mfa_factors__*__platform after.
 CREATE POLICY mfa_factors__select__own ON identity.mfa_factors FOR SELECT TO lims_app
-  USING (user_id = (SELECT app.current_actor_id()) AND tenant_id IS NOT DISTINCT FROM (SELECT app.current_tenant_id()));
+  USING (user_id = (SELECT app.current_actor_id()) AND tenant_id = (SELECT app.current_tenant_id()));
 CREATE POLICY mfa_factors__insert__own ON identity.mfa_factors FOR INSERT TO lims_app
-  WITH CHECK (user_id = (SELECT app.current_actor_id()) AND tenant_id IS NOT DISTINCT FROM (SELECT app.current_tenant_id()));
+  WITH CHECK (user_id = (SELECT app.current_actor_id()) AND tenant_id = (SELECT app.current_tenant_id()));
 CREATE POLICY mfa_factors__update__own ON identity.mfa_factors FOR UPDATE TO lims_app
-  USING (user_id = (SELECT app.current_actor_id()) AND tenant_id IS NOT DISTINCT FROM (SELECT app.current_tenant_id()))
-  WITH CHECK (user_id = (SELECT app.current_actor_id()) AND tenant_id IS NOT DISTINCT FROM (SELECT app.current_tenant_id()));
+  USING (user_id = (SELECT app.current_actor_id()) AND tenant_id = (SELECT app.current_tenant_id()))
+  WITH CHECK (user_id = (SELECT app.current_actor_id()) AND tenant_id = (SELECT app.current_tenant_id()));
 CREATE POLICY sessions__select__platform ON identity.sessions FOR SELECT TO lims_app
   USING (kind = 'platform' AND tenant_id IS NULL AND (SELECT app.is_platform_actor()));
 CREATE POLICY sessions__update__platform ON identity.sessions FOR UPDATE TO lims_app
@@ -132,6 +134,10 @@ CREATE POLICY platform_staff__insert__owner_only ON identity.platform_staff FOR 
   WITH CHECK (role_code = 'platform_superadmin');
 CREATE POLICY platform_events__insert__owner_only ON identity.platform_events FOR INSERT TO lims_owner
   WITH CHECK (event_type = 'bootstrap_admin_created');
+CREATE POLICY platform_events__insert__owner_mfa_enrolled ON identity.platform_events FOR INSERT TO lims_owner
+  WITH CHECK (event_type = 'platform_mfa_enrolled' AND target_type = 'platform_staff' AND target_id = actor_platform_staff_id
+    AND EXISTS (SELECT 1 FROM identity.platform_staff s
+                 WHERE s.id = target_id AND s.user_id = nullif(current_setting('app.pre_user_id', true), '')::uuid));
 CREATE POLICY auth_events__insert__owner_only ON identity.auth_events FOR INSERT TO lims_owner
   WITH CHECK (tenant_id IS NULL);
 CREATE POLICY auth_events__select__owner_only ON identity.auth_events FOR SELECT TO lims_owner
@@ -210,3 +216,49 @@ CREATE POLICY audit_exports__update__owner_only ON identity.audit_exports FOR UP
   USING (current_setting('app.maintenance', true) = 'identity_expire_audit_exports'
          AND status = 'ready' AND (expires_at <= now() OR downloads_remaining = 0))
   WITH CHECK (current_setting('app.maintenance', true) = 'identity_expire_audit_exports' AND status = 'expired');
+-- PLATFORM-DDL-1 (LD-223): C2 05-SCHEMA s5.3 __platform policies, copied 1:1 from db/migrations/20261115191000_identity__add_platform_policies.sql
+CREATE POLICY platform_staff__select__platform ON identity.platform_staff FOR SELECT TO lims_app
+  USING ((SELECT app.is_platform_actor()));
+CREATE POLICY platform_staff__insert__platform ON identity.platform_staff FOR INSERT TO lims_app
+  WITH CHECK ((SELECT app.is_platform_actor()));
+CREATE POLICY platform_staff__update__platform ON identity.platform_staff FOR UPDATE TO lims_app
+  USING ((SELECT app.is_platform_actor())) WITH CHECK ((SELECT app.is_platform_actor()));
+CREATE POLICY platform_events__select__platform ON identity.platform_events FOR SELECT TO lims_app
+  USING ((SELECT app.is_platform_actor()));
+CREATE POLICY platform_events__insert__platform ON identity.platform_events FOR INSERT TO lims_app
+  WITH CHECK ((SELECT app.is_platform_actor()));
+CREATE POLICY auth_events__select__platform ON identity.auth_events FOR SELECT TO lims_app
+  USING ((SELECT app.is_platform_actor()));
+CREATE POLICY feature_flags__select__platform ON identity.feature_flags FOR SELECT TO lims_app
+  USING ((SELECT app.is_platform_actor()));
+CREATE POLICY feature_flags__update__platform ON identity.feature_flags FOR UPDATE TO lims_app
+  USING ((SELECT app.is_platform_actor())) WITH CHECK ((SELECT app.is_platform_actor()));
+CREATE POLICY support_sessions__select__platform ON identity.support_sessions FOR SELECT TO lims_app
+  USING ((SELECT app.is_platform_actor()));
+CREATE POLICY support_sessions__insert__platform ON identity.support_sessions FOR INSERT TO lims_app
+  WITH CHECK ((SELECT app.is_platform_actor()));
+CREATE POLICY support_sessions__update__platform ON identity.support_sessions FOR UPDATE TO lims_app
+  USING ((SELECT app.is_platform_actor())) WITH CHECK ((SELECT app.is_platform_actor()));
+CREATE POLICY ird_annex_records__select__platform ON identity.ird_annex_records FOR SELECT TO lims_app
+  USING ((SELECT app.is_platform_actor()));
+CREATE POLICY ird_annex_records__insert__platform ON identity.ird_annex_records FOR INSERT TO lims_app
+  WITH CHECK ((SELECT app.is_platform_actor()));
+CREATE POLICY ird_annex_records__update__platform ON identity.ird_annex_records FOR UPDATE TO lims_app
+  USING ((SELECT app.is_platform_actor())) WITH CHECK ((SELECT app.is_platform_actor()));
+CREATE POLICY ird_annex_events__select__platform ON identity.ird_annex_events FOR SELECT TO lims_app
+  USING ((SELECT app.is_platform_actor()));
+CREATE POLICY ird_annex_events__insert__platform ON identity.ird_annex_events FOR INSERT TO lims_app
+  WITH CHECK ((SELECT app.is_platform_actor()));
+CREATE POLICY ird_annex_documents__select__platform ON identity.ird_annex_documents FOR SELECT TO lims_app
+  USING ((SELECT app.is_platform_actor()));
+CREATE POLICY ird_annex_documents__insert__platform ON identity.ird_annex_documents FOR INSERT TO lims_app
+  WITH CHECK ((SELECT app.is_platform_actor()));
+CREATE POLICY ird_annex_documents__update__platform ON identity.ird_annex_documents FOR UPDATE TO lims_app
+  USING ((SELECT app.is_platform_actor())) WITH CHECK ((SELECT app.is_platform_actor()));
+-- PLATFORM-DDL-1 (LD-223; CR C2.T22): copied 1:1 from db/migrations/20261115192000_identity__add_provisioning_schema.sql
+CREATE POLICY tenant_contract_acceptances__select__tenant ON identity.tenant_contract_acceptances FOR SELECT TO lims_app
+  USING (tenant_id=(SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+CREATE POLICY tenant_contract_acceptances__insert__tenant ON identity.tenant_contract_acceptances FOR INSERT TO lims_app
+  WITH CHECK (tenant_id=(SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+CREATE POLICY tenant_contract_acceptances__select__platform ON identity.tenant_contract_acceptances FOR SELECT TO lims_app
+  USING ((SELECT app.is_platform_actor()));

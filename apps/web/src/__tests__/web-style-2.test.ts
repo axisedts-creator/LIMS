@@ -59,7 +59,10 @@ function addedCss(css: string, baseline: string): string {
 const cssViolations = (css: string): string[] => {
   const bad: string[] = [];
   if (/#[0-9a-fA-F]{3,8}\b/.test(css)) bad.push('hex colour');
-  if (/(?<![\w-])-?\d*\.?\d+px\b/.test(css)) bad.push('px value');
+  // px sizes fixed by 13-M-SERIES s3 (296 sidebar, 76 top bar, 46 pill, 20 icon, 3 px outline, 2 px offset) are exempt (ruling T0D-MSERIES-2); LD-251 bars raw colour, radius, font only.
+  // T0D-MSERIES-5 (LD-276): the board's 3D plate, chips, rings and their @keyframes are scene geometry (perspective, translateZ, bob distance): px is exempt on those lines only; colour and radius stay token-only.
+  const pxCss = css.split('\n').filter((l) => !/lims-auth-(plate|well|chip|scene|mark|rings|tagline|slab)|^\s*@keyframes\b/.test(l)).join('\n');
+  if (/(?<![\w.-])-?\d*\.?\d+px\b/.test(pxCss.replace(/(?<![\w.-])(?:296|76|46|20|3|2)px\b/g, ''))) bad.push('px value');
   if (/\b(rgb|rgba|hsl|hsla)\(/.test(css)) bad.push('rgb()/hsl() colour');
   if (/\burl\(/.test(css) || /@import\b/.test(css) || /https?:\/\//.test(css)) bad.push('url()/@import/remote URL');
   // every media/container condition length must be rem (or % free): 64rem, never px/em/vw
@@ -209,11 +212,12 @@ describe('WEB-STYLE-2 (a) all seven auth screens use the one split layout', () =
 });
 
 describe('WEB-STYLE-2 (b) brand panel content', () => {
-  it('aria-hidden, plain heading, seven pipeline words in order in one list, no numbers, no h1', () => {
-    expect(layoutProblems(layoutSrc)).toEqual([]);
-  });
-  it('layout: no img, remote URL, url(), src or inline style; auth components: no remote URL or inline style', () => {
-    expect(assetProblems(layoutSrc)).toEqual([]);
+  // T0D-MSERIES-5 (LD-276) SUPERSEDED: "aria-hidden, plain heading, seven pipeline words in a list" described the From sample to report stepper panel, which the board M1-entry.png
+  // replaces (plate, chips, mark, tagline). The new panel content is asserted by features/admin/auth/__tests__/m5.entry.test.tsx ('hero panel', 'no stepper').
+  it('layout: no remote URL, no url() and no inline style in the layout source; auth components: no remote URL or inline style', () => {
+    // T0D-MSERIES-5: the layout may now hold images and svg of the board (logo, brand mark, rings); only remote URLs, url() and inline style stay barred.
+    const bad = assetProblems(layoutSrc).filter((x) => x === 'remote URL' || x === 'inline style' || x === 'src/srcSet/url()' && /url\(/.test(layoutSrc));
+    expect(bad).toEqual([]);
     // Components may keep what they have (MfaEnrolment shows the enrolment QR via DataUriImage, REQ-SEC-088): only remote URLs and inline style are barred there.
     const offenders = authFiles.filter((f) => /\.tsx$/.test(f)).map((f) => ({ f: rel(f), p: assetProblems(read(f)).filter((x) => x === 'remote URL' || x === 'inline style') })).filter((x) => x.p.length);
     expect(offenders).toEqual([]);
@@ -243,10 +247,9 @@ describe('WEB-STYLE-2 (c) the new CSS follows LD-140 and the design system', () 
   it('added lines use var(--lims-*) tokens', () => {
     expect(added).toMatch(/var\(--lims-/);
   });
-  it('panel = accent background with accent-fg text', () => {
+  it('panel background starts from the accent token (T0D-MSERIES-5: the 145deg green-to-lime gradient; text colours sit on the children)', () => {
     const body = parseRules(shellCss).filter((r) => hasClass(r.sel, 'lims-auth-panel') && !/\s/.test(r.sel.trim())).map((r) => r.body).join(';');
-    expect(decl(body, 'background') ?? decl(body, 'background-color') ?? '').toMatch(/var\(--lims-accent\)/);
-    expect(decl(body, 'color') ?? '').toMatch(/var\(--lims-accent-fg\)/);
+    expect(decl(body, 'background') ?? decl(body, 'background-image') ?? decl(body, 'background-color') ?? '').toMatch(/var\(--lims-accent\)/);
   });
   it('lime tokens (accent-brand / accent-highlight) are never a text colour', () => {
     expect(limeAsText(shellCss)).toBe(false);
@@ -263,12 +266,8 @@ describe('WEB-STYLE-2 (c) the new CSS follows LD-140 and the design system', () 
 });
 
 describe('WEB-STYLE-2 (d) responsive: panel hidden and one centred column below 64rem', () => {
-  it('panel is hidden below 64rem and shown from 64rem', () => {
-    expect(panelVisibilityProblems(shellCss)).toEqual([]);
-  });
-  it('two columns from 64rem, one centred column below', () => {
-    expect(columnProblems(shellCss)).toEqual([]);
-  });
+  // T0D-MSERIES-5 (LD-276) SUPERSEDED for the real css: the board wraps (flex-wrap, left column 30rem, hero flexible) instead of hiding the panel below 64rem;
+  // asserted by m5.entry.test.tsx 'css contract'. The two checkers below stay, proven by the planted-failure test.
   it('planted failures fire', () => {
     const okPanel = '.lims-auth-panel { display: none; }\n@media (min-width: 64rem) { .lims-auth-panel { display: flex; } }';
     expect(panelVisibilityProblems(okPanel)).toEqual([]);
@@ -288,7 +287,7 @@ describe('WEB-STYLE-2 (d) responsive: panel hidden and one centred column below 
 describe('WEB-STYLE-2 (e) every lims-* class in the auth sources has a CSS rule', () => {
   const used = classLiterals(authFiles);
   it('scans real sources incl. the new panel classes (not vacuous)', () => {
-    for (const c of ['lims-auth-page', 'lims-auth-main', 'lims-auth-panel', 'lims-auth-card', 'lims-wordmark']) expect(used.has(c), c).toBe(true);
+    for (const c of ['lims-auth-page', 'lims-auth-main', 'lims-auth-panel', 'lims-auth-card']) expect(used.has(c), c).toBe(true);
   });
   it('kit.css or shell.css has a selector for each (exception list <= 3, each with a reason)', () => {
     const keys = Object.keys(EXCEPTIONS);
@@ -332,7 +331,11 @@ describe('WEB-STYLE-2 (g) form fields and behaviour are unchanged', () => {
     expect(baseline['features/admin/auth/LoginForm.tsx']?.some((t) => /^name=/.test(t))).toBe(true);
   });
   it('per-file name/id/htmlFor/type/href/action/autoComplete/inputMode/maxLength/method/data-testid tokens match the baseline', () => {
-    expect(now).toEqual(baseline);
+    // T0D-MSERIES-5: order is not pinned (Forgot password? moves onto the password label row; the sign-in button may end the form earlier); the multiset is. New hero files hold no form field.
+    const sorted = (o: Record<string, string[]>) => Object.fromEntries(Object.entries(o).map(([k, v]) => [k, [...v].sort()]));
+    const b = sorted(baseline), n = sorted(now);
+    for (const k of Object.keys(b)) expect(n[k] ?? [], k).toEqual(b[k]);
+    for (const k of Object.keys(n).filter((x) => !(x in b))) expect((n[k] ?? []).filter((t) => /^(name|type|autoComplete|inputMode|maxLength|action|method)=/.test(t)), `new file ${k} must not hold a form field`).toEqual([]);
   });
   it('planted failure: a renamed field changes the signature', () => {
     const a = [...'<input name="email" type="email" />'.matchAll(SIG_ATTR)].map((m) => m[0]);

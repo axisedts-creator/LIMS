@@ -38,8 +38,8 @@ export const sessionMock = {
   getShellSession: async () => ({ actor: { permissions: state.permissions, displayName: 'Synthetic Owner', membershipId: OWNER_M, tenantCode: 'syn', roles: [] } }),
   getRequestPathname: async () => '/analytics',
 };
-export const router = { push: vi.fn(), replace: vi.fn(), refresh: vi.fn(), back: vi.fn() };
-export const navigationMock = {
+export const router: Record<'push' | 'replace' | 'refresh' | 'back', ReturnType<typeof vi.fn>> = { push: vi.fn(), replace: vi.fn(), refresh: vi.fn(), back: vi.fn() };
+export const navigationMock: { useRouter: () => typeof router; usePathname: () => string; useSearchParams: () => URLSearchParams; notFound: () => never; redirect: (to: string) => never } = {
   useRouter: () => router,
   usePathname: () => '/analytics',
   useSearchParams: () => new URLSearchParams(),
@@ -112,7 +112,7 @@ export const appFile = (...p: string[]) => join(APP, ...p);
 export async function importPage(rel: string) {
   return (await import(/* @vite-ignore */ `../../../app/(staff)/analytics/${rel}`)) as { default: (p: any) => Promise<any>; GET?: (req: Request, ctx: any) => Promise<Response> };
 }
-export async function show(rel: string, props: { searchParams?: SP; params?: Record<string, string> } = {}) {
+export async function show(rel: string, props: { searchParams?: SP; params?: Record<string, string> } = {}): Promise<ReturnType<typeof render>> {
   const { default: Page } = await importPage(rel);
   const el = await Page({ searchParams: Promise.resolve(props.searchParams ?? {}), params: Promise.resolve(props.params ?? {}) });
   return render(<ToastProvider>{el}</ToastProvider>);

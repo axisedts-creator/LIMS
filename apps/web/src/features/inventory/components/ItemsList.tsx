@@ -51,6 +51,7 @@ export function ItemsList({ items, nextCursor, hasPrevious, canManage, uom, tax 
         columns={columns}
         rows={items}
         getRowId={(i) => i.id}
+        cellTitle
         emptyState={{ title: 'No items yet.' }}
         onRowAction={(i) => router.push(`/inventory/items/${i.id}`)}
         page={{ hasNext: !!nextCursor, hasPrevious, onNext: goNext, onPrevious: () => router.back(), limit: 50 }}

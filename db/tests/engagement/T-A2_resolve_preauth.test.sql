@@ -52,7 +52,7 @@ SET LOCAL session_replication_role = origin;
 -- ---------------------------------------------------------------- the function: owner, DEFINER, search_path, grants (05-SCHEMA §6.6 inventory row)
 SELECT is((SELECT pg_get_userbyid(proowner) FROM pg_proc WHERE oid = 'app.engagement_resolve_preauth(text,bytea)'::regprocedure), 'lims_owner', 'resolve_preauth is owned by lims_owner');
 SELECT ok((SELECT prosecdef FROM pg_proc WHERE oid = 'app.engagement_resolve_preauth(text,bytea)'::regprocedure), 'resolve_preauth is SECURITY DEFINER');
-SELECT ok((SELECT proconfig @> ARRAY['search_path='] FROM pg_proc WHERE oid = 'app.engagement_resolve_preauth(text,bytea)'::regprocedure), 'resolve_preauth pins search_path = ''''');
+SELECT ok((SELECT proconfig @> ARRAY['search_path=""'] FROM pg_proc WHERE oid = 'app.engagement_resolve_preauth(text,bytea)'::regprocedure), 'resolve_preauth pins search_path = ''''');
 SELECT ok(has_function_privilege('lims_api', 'app.engagement_resolve_preauth(text,bytea)', 'EXECUTE'), 'lims_api may execute resolve_preauth');
 SELECT ok(NOT has_function_privilege('lims_app', 'app.engagement_resolve_preauth(text,bytea)', 'EXECUTE'), 'lims_app may NOT execute resolve_preauth (only the anonymous pre-tenant transaction, lims_api)');
 SELECT ok(NOT has_function_privilege('public', 'app.engagement_resolve_preauth(text,bytea)', 'EXECUTE'), 'PUBLIC may not execute resolve_preauth');
@@ -77,9 +77,13 @@ SELECT is(pg_temp.api('SELECT * FROM app.engagement_resolve_preauth(NULL, ' || p
 SELECT is(pg_temp.api('SELECT * FROM app.engagement_resolve_preauth(''tpa_a'', ''\x00''::bytea)', 'n'), '0', 'hash of the wrong length (1 byte) -> no row');
 SELECT is(pg_temp.api('SELECT * FROM app.engagement_resolve_preauth(''tpa_a'', ''\x' || repeat('ab', 33) || '''::bytea)', 'n'), '0', 'hash of the wrong length (33 bytes) -> no row');
 SELECT is(pg_temp.api('SELECT * FROM app.engagement_resolve_preauth(''tpa_a'', ''\x' || encode(pg_temp.h(1), 'hex') || '00''::bytea)', 'n'), '0', 'the right hash plus a trailing byte -> no row (no prefix matching)');
+-- LD-230 (4): the fixture UPDATE is row-audited (app.tg_row_audit needs a claims sub, audit_log__insert__owner_only the row tenant): tenant A system claims
+SELECT set_config('request.jwt.claims', jsonb_build_object('tenant_id', pg_temp.id(1), 'sub', pg_temp.id(99), 'actor_type', 'system')::text, true);
 UPDATE core.tenants SET status = 'suspended' WHERE id = pg_temp.id(1);
 SELECT is(pg_temp.api('SELECT * FROM app.engagement_resolve_preauth(''tpa_a'', ' || pg_temp.qh(1) || ')', 'n'), '0', 'the same credential stops resolving the moment its tenant is suspended');
+SELECT set_config('request.jwt.claims', jsonb_build_object('tenant_id', pg_temp.id(1), 'sub', pg_temp.id(99), 'actor_type', 'system')::text, true);
 UPDATE core.tenants SET status = 'active' WHERE id = pg_temp.id(1);
+SELECT set_config('request.jwt.claims', '', true);
 
 -- ---------------------------------------------------------------- (b) a lims_app / lims_api session that sets the GUC itself sees nothing (owner-only policies, FORCE RLS)
 SELECT is(pg_temp.x('lims_api', NULL, 'SELECT set_config(''app.pre_engagement_otp_token_sha256'', encode(' || pg_temp.qh(1) || ', ''hex''), true)',
@@ -132,11 +136,12 @@ SELECT ok(pg_temp.x('lims_app', pg_temp.cl('patient', 101, 1, NULL), NULL,
           'a challenge living > 10 minutes is refused by otp_challenges__ttl__ck (04 A9)');
 
 -- ---------------------------------------------------------------- number_counters: the daily-cap key (CR-C16-006, 02-TRD §4.1 step 1)
-SELECT lives_ok($$INSERT INTO engagement.number_counters (tenant_id, counter_key, last_value, expires_at) VALUES ('01950c16-0000-7000-8000-000000000001', 'otp_day:20260301', 1, now() + interval '2 days')$$,
+-- T0B-GREEN-3 (HARNESS): created_by is NOT NULL on class-M number_counters (05-SCHEMA §3 mandatory columns); the inserts omitted it, so 23502 fired before the CHECK.
+SELECT lives_ok($$INSERT INTO engagement.number_counters (tenant_id, counter_key, last_value, expires_at, created_by) VALUES ('01950c16-0000-7000-8000-000000000001', 'otp_day:20260301', 1, now() + interval '2 days', '01950c16-0000-7000-8000-000000000099')$$,
                 'counter_key otp_day:<yyyymmdd> satisfies number_counters__key__ck');
-SELECT throws_ok($$INSERT INTO engagement.number_counters (tenant_id, counter_key, last_value, expires_at) VALUES ('01950c16-0000-7000-8000-000000000001', 'otp_day:2026-03-01', 1, now() + interval '2 days')$$,
+SELECT throws_ok($$INSERT INTO engagement.number_counters (tenant_id, counter_key, last_value, expires_at, created_by) VALUES ('01950c16-0000-7000-8000-000000000001', 'otp_day:2026-03-01', 1, now() + interval '2 days', '01950c16-0000-7000-8000-000000000099')$$,
                  '23514', NULL, 'a dashed date is refused by number_counters__key__ck');
-SELECT throws_ok($$INSERT INTO engagement.number_counters (tenant_id, counter_key, last_value, expires_at) VALUES ('01950c16-0000-7000-8000-000000000001', 'otp_day:2026030', 1, now() + interval '2 days')$$,
+SELECT throws_ok($$INSERT INTO engagement.number_counters (tenant_id, counter_key, last_value, expires_at, created_by) VALUES ('01950c16-0000-7000-8000-000000000001', 'otp_day:2026030', 1, now() + interval '2 days', '01950c16-0000-7000-8000-000000000099')$$,
                  '23514', NULL, 'a 7-digit day is refused by number_counters__key__ck');
 
 SELECT * FROM finish();

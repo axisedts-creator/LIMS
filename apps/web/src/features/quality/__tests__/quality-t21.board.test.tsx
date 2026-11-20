@@ -23,7 +23,7 @@ const RUNS = '/v1/quality/qc-runs';
 const OBS = '/v1/quality/qc-observations';
 const DENIED = /You don't have access to this page/;
 
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 beforeEach(() => { resetApi(PERM_READ); routes[`GET ${STATUS}`] = json({ data: STATUS_ROWS, page: { limit: 50 } }); });
 afterEach(() => { cleanup(); api.resetHandlers(); });
 afterAll(() => api.close());

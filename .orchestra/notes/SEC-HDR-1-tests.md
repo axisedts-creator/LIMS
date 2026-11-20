@@ -1,0 +1,8 @@
+# SEC-HDR-1 tests (tester)
+- Files: `services/api/src/core/__tests__/sec-hdr1.api-headers.test.ts` (+ fixture `__tests__/fixtures/hdr1/`), `apps/web/src/__tests__/sec-hdr1.headers.test.ts`, `apps/portal/src/__tests__/sec-hdr1.headers.test.ts`, `apps/partner/tests/sec-hdr1/headers.test.ts`, one `vitest.sec-hdr1.config.ts` per app, shared `tests/security/sec-hdr1.helpers.ts`.
+- Run: `.orchestra/notes/SEC-HDR-1-verify.cmd` (api via `pnpm --dir services/api exec vitest`; apps via root vitest + each config).
+- Red now for the right reason: API 8, web 8, portal 7, partner 11 (no X-Frame-Options / Permissions-Policy / partner Referrer-Policy; API no nosniff / no-referrer / no-store). CSP golden-string tests already pass and must stay green (web report-only, portal enforced in production, partner report-only unless PARTNER_CSP_ENFORCE=true).
+- Contract: web and portal set the headers in `src/middleware.ts` (every response kind: next, redirect, rewrite, problem+json); partner may use middleware or `next.config.ts` headers(). Referrer-Policy: web stays `same-origin`, portal `no-referrer`, partner any of no-referrer / same-origin / strict-origin(-when-cross-origin).
+- Permissions-Policy is derived from code use (helper scans non-test src): web `camera=(self)` (NewPatientForm.tsx getUserMedia), the rest `()`; portal and partner all four `()`. If code starts using a feature, the test demands `(self)`.
+- API: nosniff + `no-referrer` on every response (200, 204, 401, 404, unknown route); `no-store` only on 2xx JSON of a non-public operation and only when the handler sent no Cache-Control; absent on public JSON; not asserted on 204 or errors.
+- Not covered: real `next build` output, the signed-in web page path (resolver ok), HSTS (edge), nginx.

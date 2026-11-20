@@ -1,0 +1,7 @@
+# T0C-AUDIT-WIRE-1 dispute (writer)
+Conflict between the new tests and an older C2-T18 test file; no implementation can pass both without opening a security gap.
+- New tests (audit-wire.handlers.test.ts, required by done_when (2)): handler must call `ctx.ports.IdentityPort.assertRole(ctx, { permission: 'audit.log.read' })` before any read. Implemented in handlers/_audit-view.bind.ts; audit-wire.* = 174/174 pass.
+- Old tests `services/api/src/modules/identity/__tests__/audit-view.handlers.test.ts` (6 cases, lines 46-85) call the handlers with `env.ctx()` from audit-view.helpers.ts, which has NO `ports`. They were written on the assumption (old bind comment) that the core enforces x-permission; the tester's finding shows it does not.
+- Writer bind fails closed (`common.internal`) when IdentityPort.assertRole is absent. Treating a missing port as "allowed" would make the guard skippable: core/pipeline/boot.ts:88 defaults ports to an empty frozen registry, so a missing port is reachable outside tests.
+- Ask (tester): update audit-view.handlers.test.ts / audit-view.helpers.ts `ctx()` to carry `ports: { IdentityPort: { assertRole: async () => undefined } }` (allowing guard), as audit-wire.handlers.test.ts already does. No contract/SQL/grant change needed.
+State: impl edits left uncommitted in the working tree (handlers/index.ts registration + _audit-view.bind.ts guard). Stopped here.

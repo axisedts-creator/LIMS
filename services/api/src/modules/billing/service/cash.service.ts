@@ -20,7 +20,7 @@ function authed(ctx: BalanceCtx): { tx: never; tenantId: string; actorId: string
   return { tx: ctx.tx as never, tenantId: ctx.tenantId, actorId: ctx.actor.id };
 }
 
-interface CloseInput { sessionId: string; expectedVersion: number | undefined; counted: Map<string, number>; note?: string }
+interface CloseInput { sessionId: string; expectedVersion: number | undefined; counted: Map<string, number>; note?: string; deposit: number }
 function checkClose(raw: unknown): CloseInput {
   if (!isRec(raw)) throw invalid(fieldError('/'));
   const errors: FieldError[] = [];
@@ -37,8 +37,11 @@ function checkClose(raw: unknown): CloseInput {
   });
   const note = raw['note'];
   if (note !== undefined && (typeof note !== 'string' || note.length > MAX_NOTE)) errors.push(fieldError('/note'));
+  // T0B-FINCTRL-1 (LD-321): optional deposit, integer paisa >= 0 (never a string, a float or null); absent = 0
+  const dep = raw['deposit'];
+  if (dep !== undefined && !(typeof dep === 'number' && Number.isSafeInteger(dep) && dep >= 0)) errors.push(fieldError('/deposit_paisa'));
   if (errors.length) throw invalid(...errors);
-  return { sessionId: raw['sessionId'] as string, expectedVersion: v as number | undefined, counted, ...(typeof note === 'string' ? { note } : {}) };
+  return { sessionId: raw['sessionId'] as string, expectedVersion: v as number | undefined, counted, ...(typeof note === 'string' ? { note } : {}), deposit: (dep as number | undefined) ?? 0 };
 }
 
 export function createCashService(deps: { repo?: Pick<BillingRepo, 'findOpenCashSession' | 'getCashSession' | 'sumLedgerBySession' | 'closeCashSession' | 'getPaymentMethod' | 'insertActivity'> } = {}) {
@@ -67,13 +70,19 @@ export function createCashService(deps: { repo?: Pick<BillingRepo, 'findOpenCash
     const expected = await expectedOf(tx, tenantId, i.sessionId);
     const methods = [...new Set([...expected.keys(), ...i.counted.keys()])].sort();
     let variancePaisa = 0;
+    let countedCash = 0;
     for (const m of methods) {
-      if ((await repo.getPaymentMethod(tx, { tenantId, code: m }))?.is_cash === true) variancePaisa += (i.counted.get(m) ?? 0) - (expected.get(m) ?? 0);
+      const pm = await repo.getPaymentMethod(tx, { tenantId, code: m });
+      if (pm?.is_cash === true) variancePaisa += (i.counted.get(m) ?? 0) - (expected.get(m) ?? 0);
+      // [CONV] T0B-FINCTRL-1: an unconfigured method code 'cash' is cash (same rule as the carry in cashSessions.repo.insertCashSession)
+      if (pm ? pm.is_cash === true : m === 'cash') countedCash += i.counted.get(m) ?? 0;
     }
+    // T0B-FINCTRL-1 done_when 6: the deposit cannot exceed the cash on hand = the carried amount + the counted CASH methods
+    if (i.deposit > toPaisa(String(s['previous_outstanding_cash_paisa'] ?? '0')) + countedCash) throw invalid(fieldError('/deposit_paisa'));
     const closed = await repo.closeCashSession(tx, {
       tenantId, sessionId: i.sessionId, expectedVersion: i.expectedVersion,
       expected: methods.map((m) => ({ method_code: m, amount_paisa: expected.get(m) ?? 0 })), counted: methods.map((m) => ({ method_code: m, amount_paisa: i.counted.get(m) ?? 0 })),
-      variancePaisa, ...(i.note === undefined ? {} : { note: i.note }), closedAt: ctx.now(), userId: actorId,
+      variancePaisa, ...(i.note === undefined ? {} : { note: i.note }), closedAt: ctx.now(), userId: actorId, depositPaisa: i.deposit,
     });
     if (!closed) throw new LimsError('common.version_conflict'); // moved between the read and the write
     await repo.insertActivity(tx, {

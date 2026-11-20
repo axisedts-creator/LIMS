@@ -455,6 +455,32 @@ CREATE POLICY number_counters__update__tenant ON engagement.number_counters FOR 
 CREATE POLICY number_counters__delete__tenant ON engagement.number_counters FOR DELETE TO lims_app
   USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system())
          AND (SELECT app.current_actor_type()) = 'system' AND expires_at IS NOT NULL AND expires_at < now());
+-- T0B-CNTPOL-1 (migration 20261116030000), LD-232 item 3 (CR-C0-T0B-REVIEW-1-002): non-staff actors only on their own rate / booking keys; no device access
+CREATE POLICY number_counters__select__nonstaff_keys ON engagement.number_counters AS RESTRICTIVE FOR SELECT TO lims_app
+  USING ((SELECT app.current_actor_type()) IN ('user','system')
+         OR ((SELECT app.current_actor_type()) = 'patient' AND counter_key ~ '^(booking_no:[0-9]{2}|otp_day:[0-9]{8}|linkfail:[0-9a-f-]{36}:[0-9]{10})$'));
+CREATE POLICY number_counters__insert__nonstaff_keys ON engagement.number_counters AS RESTRICTIVE FOR INSERT TO lims_app
+  WITH CHECK ((SELECT app.current_actor_type()) IN ('user','system')
+         OR ((SELECT app.current_actor_type()) = 'patient' AND counter_key ~ '^(booking_no:[0-9]{2}|otp_day:[0-9]{8}|linkfail:[0-9a-f-]{36}:[0-9]{10})$'));
+CREATE POLICY number_counters__update__nonstaff_keys ON engagement.number_counters AS RESTRICTIVE FOR UPDATE TO lims_app
+  USING ((SELECT app.current_actor_type()) IN ('user','system')
+         OR ((SELECT app.current_actor_type()) = 'patient' AND counter_key ~ '^(booking_no:[0-9]{2}|otp_day:[0-9]{8}|linkfail:[0-9a-f-]{36}:[0-9]{10})$'))
+  WITH CHECK ((SELECT app.current_actor_type()) IN ('user','system')
+         OR ((SELECT app.current_actor_type()) = 'patient' AND counter_key ~ '^(booking_no:[0-9]{2}|otp_day:[0-9]{8}|linkfail:[0-9a-f-]{36}:[0-9]{10})$'));
+
+-- LD-257: a patient actor can never lower a counter (OTP cap, link failure limit); equal or higher is fine.
+CREATE FUNCTION engagement.guard_counter_decrease() RETURNS trigger
+LANGUAGE plpgsql SET search_path = '' AS $$
+DECLARE
+  v_actor text := app.current_actor_type();
+BEGIN
+  IF v_actor = 'patient' AND NEW.last_value < OLD.last_value THEN
+    RAISE EXCEPTION USING ERRCODE = 'P0001', MESSAGE = 'immutable_row', DETAIL = TG_TABLE_SCHEMA || '.' || TG_TABLE_NAME;
+  END IF;
+  RETURN NEW;
+END $$;
+CREATE TRIGGER number_counters__patient_no_decrease BEFORE UPDATE ON engagement.number_counters
+  FOR EACH ROW EXECUTE FUNCTION engagement.guard_counter_decrease();
 CREATE POLICY enquiries__select__tenant ON engagement.enquiries FOR SELECT TO lims_app
   USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()) AND (SELECT app.current_actor_type()) IN ('user','system'));
 CREATE POLICY enquiries__select__patient_account ON engagement.enquiries FOR SELECT TO lims_app
@@ -547,3 +573,44 @@ CREATE POLICY queue_day_counters__delete__owner_only ON engagement.queue_day_cou
   USING (current_setting('app.maintenance', true) = 'engagement_purge_queue'
          AND tenant_id = (SELECT app.current_tenant_id())
          AND business_date < (now() AT TIME ZONE 'Asia/Kathmandu')::date - 365);
+-- T0C-MSGDESK-1 (LD-321): broadcast tables, staff only (migration 20261117240000_engagement__add_broadcast_and_tickets.sql).
+CREATE POLICY broadcast_template__select__tenant ON engagement.broadcast_template FOR SELECT TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()) AND (SELECT app.current_actor_type()) IN ('user','system'));
+CREATE POLICY broadcast_template__insert__tenant ON engagement.broadcast_template FOR INSERT TO lims_app
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()) AND (SELECT app.current_actor_type()) IN ('user','system'));
+CREATE POLICY broadcast_template__update__tenant ON engagement.broadcast_template FOR UPDATE TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()) AND (SELECT app.current_actor_type()) IN ('user','system'))
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()) AND (SELECT app.current_actor_type()) IN ('user','system'));
+CREATE POLICY broadcast__select__tenant ON engagement.broadcast FOR SELECT TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()) AND (SELECT app.current_actor_type()) IN ('user','system'));
+CREATE POLICY broadcast__insert__tenant ON engagement.broadcast FOR INSERT TO lims_app
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()) AND (SELECT app.current_actor_type()) IN ('user','system'));
+CREATE POLICY broadcast__update__tenant ON engagement.broadcast FOR UPDATE TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()) AND (SELECT app.current_actor_type()) IN ('user','system'))
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()) AND (SELECT app.current_actor_type()) IN ('user','system'));
+CREATE POLICY broadcast_recipient__select__tenant ON engagement.broadcast_recipient FOR SELECT TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()) AND (SELECT app.current_actor_type()) IN ('user','system'));
+CREATE POLICY broadcast_recipient__insert__tenant ON engagement.broadcast_recipient FOR INSERT TO lims_app
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()) AND (SELECT app.current_actor_type()) IN ('user','system'));
+CREATE POLICY broadcast_recipient__update__tenant ON engagement.broadcast_recipient FOR UPDATE TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()) AND (SELECT app.current_actor_type()) IN ('user','system'))
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()) AND (SELECT app.current_actor_type()) IN ('user','system'));
+-- T0C-CONTENT-1 (LD-313): portal content and profile images (migration 20261117130000_engagement__add_portal_content.sql). Staff read and write the tenant;
+-- a patient reads only active portal_content inside its starts_on / ends_on window; profile_image is staff only. No DELETE policy (deactivate).
+CREATE POLICY portal_content__select__tenant ON engagement.portal_content FOR SELECT TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()) AND (SELECT app.current_actor_type()) IN ('user','system'));
+CREATE POLICY portal_content__select__patient ON engagement.portal_content FOR SELECT TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.current_actor_type()) = 'patient' AND is_active
+         AND (starts_on IS NULL OR starts_on <= current_date) AND (ends_on IS NULL OR ends_on >= current_date));
+CREATE POLICY portal_content__insert__tenant ON engagement.portal_content FOR INSERT TO lims_app
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()) AND (SELECT app.current_actor_type()) IN ('user','system'));
+CREATE POLICY portal_content__update__tenant ON engagement.portal_content FOR UPDATE TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()) AND (SELECT app.current_actor_type()) IN ('user','system'))
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()) AND (SELECT app.current_actor_type()) IN ('user','system'));
+CREATE POLICY profile_image__select__tenant ON engagement.profile_image FOR SELECT TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()) AND (SELECT app.current_actor_type()) IN ('user','system'));
+CREATE POLICY profile_image__insert__tenant ON engagement.profile_image FOR INSERT TO lims_app
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()) AND (SELECT app.current_actor_type()) IN ('user','system'));
+CREATE POLICY profile_image__update__tenant ON engagement.profile_image FOR UPDATE TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()) AND (SELECT app.current_actor_type()) IN ('user','system'))
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()) AND (SELECT app.current_actor_type()) IN ('user','system'));

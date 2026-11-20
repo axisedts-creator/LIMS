@@ -21,9 +21,11 @@ export interface ReasonConfirmProps {
   isOpen: boolean;
   onClose: () => void;
   submit: (reasonCode: string, reasonText: string | undefined, key: string) => Promise<ActionResult>;
+  /** Called after a successful submit (HC-T19: the revisit page navigates to the new visit). */
+  onDone?: (res: Extract<ActionResult, { ok: true }>) => void;
 }
 
-export function ReasonConfirm({ title, confirmLabel, codedSet, reasons, body, doneTitle, tone = 'danger', isOpen, onClose, submit }: ReasonConfirmProps) {
+export function ReasonConfirm({ title, confirmLabel, codedSet, reasons, body, doneTitle, tone = 'danger', isOpen, onClose, submit, onDone }: ReasonConfirmProps) {
   const router = useRouter();
   const toast = useToast();
   const keyFor = useSubmissionKey();
@@ -42,6 +44,7 @@ export function ReasonConfirm({ title, confirmLabel, codedSet, reasons, body, do
     saved.current = true;
     toast.show({ tone: 'success', title: doneTitle });
     router.refresh();
+    onDone?.(res);
     onClose();
   };
 

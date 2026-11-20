@@ -35,8 +35,10 @@ export const uid = (): string => uuidv7();                            // unique 
 // ---------------------------------------------------------------- the contract (operations) - from lab.yaml, never from the handlers
 const spec: any = loadSpec(join(REPO_ROOT, 'contracts/openapi/lab.yaml'));
 export interface OpInfo { id: string; method: string; path: string; permission: string; idempotency: string; pathParams: string[]; queryParams: string[]; isList: boolean; operation: any }
+// T0C-VERLEVEL-1 (LD-316, LD-325(b)): the 3 verification level operations are pending until T0B-VERLEVEL-1 (pinned by contract/verlevel1.pending.test.ts); these probes keep covering the 55 original operations.
+export const VERLEVEL1_OPS: readonly string[] = ['listVerificationPolicies', 'upsertVerificationPolicy', 'getResultSignoffs'];
 export const OPS: OpInfo[] = Object.entries<any>(spec.paths).flatMap(([path, item]) =>
-  ['get', 'post', 'put', 'patch', 'delete'].filter((m) => item?.[m]?.operationId).map((method) => {
+  ['get', 'post', 'put', 'patch', 'delete'].filter((m) => item?.[m]?.operationId && !VERLEVEL1_OPS.includes(item[m].operationId)).map((method) => {
     const op = item[method];
     const params: any[] = [...(item.parameters ?? []), ...(op.parameters ?? [])];
     return { id: op.operationId as string, method, path, permission: op['x-permission'] as string, idempotency: String(op['x-idempotency'] ?? ''), operation: op,
@@ -106,6 +108,9 @@ export interface Who {
   tenant: string; membershipId: string; grants: readonly string[]; mfa: 'aal1' | 'aal2'; centreIds: readonly string[]; allCentres: boolean;
   /** IdentityPort refuses every assertRole with this code (locked account / membership revoked after token issue, 07 §4 re-validation) */ refuse?: string;
   type?: 'user' | 'device' | 'system';
+  // T0B-VERLEVEL-1 (LD-316): one real person per Who. userId = ctx.actor.id AND the claims `sub` (the sign-off chain tells people apart by user id); the rest is what the IdentityPort hands the service
+  // for the signer snapshot (getActor(): displayName, roles, signature{registrationNo, signatureImageRef}; getSignatories(): displayName, registrationNo, signatureAssetId - the same values on both).
+  userId?: string; displayName?: string; roleCode?: string; registrationNo?: string; signatureAssetId?: string;
 }
 export const mk = (side: 'a' | 'b', o: Partial<Who> = {}): Who => ({
   tenant: tenantOf(side), membershipId: MEM[side], grants: ALL_LAB_PERMS, mfa: 'aal2', centreIds: [CENTRE[side]], allCentres: false, type: 'user', ...o });
@@ -129,15 +134,20 @@ export function identityOf(w: Who) {
       if (r.centreId && !w.allCentres && !w.centreIds.includes(r.centreId)) throw new LimsError('auth.forbidden');
     },
     async getActor() {
-      return { actor: { type: w.type ?? 'user', id: SYS, membershipId: w.membershipId }, permissions: [...w.grants], roles: [], centreScope: { all: w.allCentres, centreIds: w.centreIds },
-        branchIds: [BRANCH.a], mfa: { enrolled: w.mfa === 'aal2', level: w.mfa }, isLocked: w.refuse === 'auth.account_locked' };
+      return { actor: { type: w.type ?? 'user', id: w.userId ?? SYS, membershipId: w.membershipId }, displayName: w.displayName ?? 'Probe User', permissions: [...w.grants], roles: w.roleCode ? [w.roleCode] : [],
+        centreScope: { all: w.allCentres, centreIds: w.centreIds }, branchIds: [BRANCH.a], mfa: { enrolled: w.mfa === 'aal2', level: w.mfa }, isLocked: w.refuse === 'auth.account_locked',
+        ...(w.registrationNo || w.signatureAssetId ? { signature: { displayTitle: 'Probe Title', ...(w.registrationNo ? { registrationNo: w.registrationNo } : {}), ...(w.signatureAssetId ? { signatureImageRef: w.signatureAssetId } : {}) } } : {}) };
+    },
+    async getSignatories(_c: unknown, a: { membershipIds: readonly string[] }) {
+      return a.membershipIds.filter((m) => m === w.membershipId).map((m) => ({ membershipId: m, displayName: w.displayName ?? 'Probe User', displayTitle: 'Probe Title', isActive: true,
+        ...(w.registrationNo ? { registrationNo: w.registrationNo } : {}), ...(w.signatureAssetId ? { signatureAssetId: w.signatureAssetId } : {}) }));
     },
     async getTenantSettings() { return { timezone: 'Asia/Kathmandu', numbering: {} }; },
   };
 }
 
 // ---------------------------------------------------------------- one request
-export interface Probe { logs: string[]; events: Array<{ type: string; input: any }>; accessCalls: any[]; writes: string[]; requestId: string; identity: ReturnType<typeof identityOf>; ctx: any }
+export interface Probe { logs: string[]; events: Array<{ type: string; input: any }>; accessCalls: any[]; writes: string[]; requestId: string; identity: ReturnType<typeof identityOf>; ctx: any; commitOnError: boolean }
 export interface Outcome { reply?: { status: number; body?: any; headers?: Record<string, string> }; error?: any; probe: Probe }
 export const req = (o: { params?: object; query?: object; headers?: object; body?: unknown } = {}) => ({ params: {}, query: {}, headers: {}, body: undefined as unknown, ...o });
 const WRITE = /^\s*(insert|update|delete|truncate)\b/i;
@@ -170,14 +180,15 @@ function frontdeskFake(tx: { query: (text: string, values?: unknown[]) => Promis
 /** One request = one committed tx under `who.tenant`'s claims (RLS on); on a throw the tx rolls back and the error is returned, never thrown. */
 export async function fire(operationId: string, r: ReturnType<typeof req>, who: Who, o: FireOpts = {}): Promise<Outcome> {
   const side = who.tenant === TENANT_B ? 'b' : 'a';
-  const probe: Probe = { logs: [], events: [], accessCalls: [], writes: [], requestId: uid(), identity: identityOf(who), ctx: undefined };
+  const probe: Probe = { logs: [], events: [], accessCalls: [], writes: [], requestId: uid(), identity: identityOf(who), ctx: undefined, commitOnError: false };
   const run = async (rawTx: pg.PoolClient) => {
     const tx = { query: async (text: string, values?: unknown[]) => { if (WRITE.test(text)) probe.writes.push(text); return rawTx.query(text, values as never); }, startedAt: NOW };
     const log = (lvl: string) => (obj: unknown, msg?: string) => { probe.logs.push(`${lvl} ${typeof obj === 'string' ? obj : JSON.stringify(obj)} ${msg ?? ''}`); };
     const ctx: any = {
       operationId, clientIp: '203.0.113.9', log: { info: log('info'), warn: log('warn'), error: log('error'), debug: log('debug') }, metrics: { inc: () => undefined },
       tenantId: who.tenant, tx, requestId: probe.requestId, now: () => o.now ?? NOW, centreId: CENTRE[side],
-      actor: { type: who.type ?? 'user', id: SYS, membershipId: who.membershipId },
+      actor: { type: who.type ?? 'user', id: who.userId ?? SYS, membershipId: who.membershipId },
+      commitOnError: () => { probe.commitOnError = true; },   // core pipeline: the handler keeps its audit row (outcome denied) when the request fails (core/audit/access.ts)
       ports: { IdentityPort: probe.identity, FrontdeskPort: frontdeskFake(tx), ...(o.ports ?? {}) },
       events: { publish: async (_c: unknown, type: string, input: unknown) => { probe.events.push({ type, input }); return { eventId: uid(), duplicate: false }; } },
       core: { centres: { list: async () => [{ id: CENTRE[side], branchId: BRANCH[side], branch_id: BRANCH[side] }, { id: CENTRE_A2, branchId: BRANCH_A2, branch_id: BRANCH_A2 }] } },
@@ -186,7 +197,19 @@ export async function fire(operationId: string, r: ReturnType<typeof req>, who: 
     probe.ctx = ctx;
     return H[operationId]!(r, ctx);
   };
-  try { return { reply: await withClaims(api(), claimsOf(who.tenant, o.claims), run), probe }; } catch (error) { return { error, probe }; }
+  const claims = claimsOf(who.tenant, { ...(who.userId ? { sub: who.userId } : {}), ...(o.claims ?? {}) });
+  let c: pg.PoolClient | undefined;
+  try {
+    c = await api().connect();
+    await c.query('BEGIN');
+    await c.query("SELECT set_config('request.jwt.claims', $1, true)", [claims]);
+    const reply = await run(c);
+    await c.query('COMMIT');
+    return { reply, probe };
+  } catch (error) {
+    await c?.query(probe.commitOnError ? 'COMMIT' : 'ROLLBACK').catch(() => undefined);   // ctx.commitOnError() = the denied audit row survives the error answer (as the core pipeline)
+    return { error, probe };
+  } finally { c?.release(); }
 }
 export const codeOf = (o: Outcome): string | undefined => (o.error instanceof LimsError ? (o.error as any).code : undefined);
 export const statusOf = (o: Outcome): number | undefined => o.reply?.status ?? (o.error as any)?.statusCode;
@@ -321,6 +344,10 @@ export function requestFor(id: string, S: Objs): ReturnType<typeof req> {
     case 'deactivateDeltaCheckRule': return req({ params: { rule_id: S.ruleId }, headers: ifm, body: {} });
     case 'listLabCodedSet': return req({ params: { set_name: 'rejection_reasons' } });
     case 'upsertLabCode': return req({ params: { set_name: 'rejection_reasons', code: S.codeOnlyHere }, headers: ifm, body: { display: 'Probe code (SYNTHETIC)', sort_order: 1, is_active: true } });
+    // T0B-VERLEVEL-1 (LD-316): the 3 verification level operations. S names the objects of ONE tenant; the policy request names S's test (a tenant-B test id for tenant A is the cross-tenant probe).
+    case 'listVerificationPolicies': return req();
+    case 'upsertVerificationPolicy': return req({ headers: idem, body: { scope: 'test', test_id: S.testId, required_verifiers: 2 } });
+    case 'getResultSignoffs': return req({ params: { result_id: S.resultId } });
     default: throw new Error(`no probe request for ${id}`);
   }
 }
@@ -329,7 +356,8 @@ export function requestFor(id: string, S: Objs): ReturnType<typeof req> {
 /** every tenant-scoped table of schema lab that the probes cover (a probe that must not touch tenant B compares these before and after). */
 export const LAB_TENANT_TABLES = ['lab_settings', 'barcode_counters', 'delta_check_rules', 'orders', 'specimens', 'specimen_transitions', 'order_tests', 'qc_holds', 'results', 'result_observations', 'result_versions',
   'result_attachments', 'verifications', 'approvals', 'critical_value_log', 'critical_notifications', 'order_readiness', 'report_releases', 'worksheets', 'worksheet_items', 'ingest_log', 'ingest_exceptions',
-  'qc_results', 'module_submissions', 'cs_rejection_reasons', 'cs_return_reasons', 'cs_amendment_reasons', 'cs_exception_discard_reasons'] as const;
+  'qc_results', 'module_submissions', 'cs_rejection_reasons', 'cs_return_reasons', 'cs_amendment_reasons', 'cs_exception_discard_reasons',
+  'verification_policy', 'result_signoff'] as const;   // + T0C-VERLEVEL-1 (migration 20261117150000): result_signoff is APPEND ONLY (SELECT + INSERT grants), verification_policy has no DELETE
 /** md5 over every row of every tenant table of `tenant` (superuser, no RLS) + the audit/event counters. */
 export async function snapshot(tenant: string): Promise<Record<string, string>> {
   const out: Record<string, string> = {};

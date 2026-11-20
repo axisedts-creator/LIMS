@@ -9,6 +9,7 @@ import { Banner } from '@lims/ui/components/Banner';
 import { BarChart } from '@lims/ui/components/BarChart';
 import { Button } from '@lims/ui/components/Button';
 import { Card } from '@lims/ui/components/Card';
+import { ChartCard } from '@lims/ui/components/ChartCard';
 import { Checkbox } from '@lims/ui/components/Checkbox';
 import { Combobox } from '@lims/ui/components/Combobox';
 import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
@@ -24,15 +25,18 @@ import { PageHeader } from '@lims/ui/components/PageHeader';
 import { periodError, PeriodPicker, type PeriodValue } from '@lims/ui/components/PeriodPicker';
 import { RadioGroup } from '@lims/ui/components/RadioGroup';
 import { Select } from '@lims/ui/components/Select';
-import { StatTile } from '@lims/ui/components/StatTile';
+import { StatTile, StatTileRow } from '@lims/ui/components/StatTile';
 import { Switch } from '@lims/ui/components/Switch';
 import { Tabs } from '@lims/ui/components/Tabs';
+import { TimeSeriesChart } from '@lims/ui/components/TimeSeriesChart';
+import { t } from '@/core/i18n/messages';
 import { shortcuts, type Shortcut } from '@/core/shortcuts/registry';
 import { searchReferrersAction } from '../server/actions';
 import { RefreshButton } from './DashboardActions';
 import { ExportDialog } from './ExportDialog';
+import { bsLabel } from './DashboardView';
 import { PRESETS, addDays, nepalToday, presetOf, presetRange } from './period';
-import type { Cell, Control, PageVM, Section, TableVM } from './report-types';
+import type { Cell, ChartVM, Control, PageVM, Section, TableVM } from './report-types';
 import { ScopeBanner } from './ScopeBanner';
 
 const NUM = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 });
@@ -82,6 +86,19 @@ function ReportTable({ vm, onNext, onPrevious }: { vm: TableVM; onNext: (cursor:
   );
 }
 
+/** LD-353 rule 10: the frame ALWAYS draws; "No data yet" when no value is there. `na` = the contract has no data for this chart (note says so, no alert). */
+function ReportChart({ c }: { c: ChartVM }) {
+  const money = c.format === 'money';
+  const empty = !c.series.some((x) => x.values.some((v) => Number.isFinite(v) && v !== 0));
+  const note = c.note ? { note: c.note } : {};
+  if (c.kind === 'line') {
+    const points = c.series.map((x) => ({ id: x.id, label: x.label, points: c.categories.map((at, i) => ({ at, value: String(money ? x.values[i]! / 100 : x.values[i]!) })) }));
+    return <ChartCard title={c.title} isEmpty={empty} {...note}><TimeSeriesChart title={c.title} series={points} {...(money ? { unit: 'Rs.' } : {})} /></ChartCard>;
+  }
+  if (c.kind === 'bar') return <ChartCard title={c.title} isEmpty={empty} {...note}><BarChart title={c.title} categories={c.categories} series={c.series} valueFormat={c.format} /></ChartCard>;
+  return <ChartCard title={c.title} {...note}><TimeSeriesChart title={c.title} series={[]} /></ChartCard>;
+}
+
 function Body({ s, many, onNext, onPrevious }: { s: Section; many: boolean; onNext: (c: string) => void; onPrevious: () => void }) {
   switch (s.t) {
     case 'table': {
@@ -90,6 +107,17 @@ function Body({ s, many, onNext, onPrevious }: { s: Section; many: boolean; onNe
     }
     case 'chart':
       return <Card><BarChart title={s.title} categories={s.categories} series={s.series} valueFormat={s.format} /></Card>;
+    case 'report':
+      // T0D-UIREPORT-2 (LD-353 template 5): equal tile row, then hero (two thirds) and side (one third); .lims-dash-charts is the shared 2:1 row [CONV]
+      return (
+        <>
+          <StatTileRow>{s.tiles.map((x) => <StatTile key={x.label} label={x.label} value={x.value} />)}</StatTileRow>
+          <div className="lims-dash-charts">
+            <ReportChart c={s.hero} />
+            <ReportChart c={s.side} />
+          </div>
+        </>
+      );
     case 'tiles':
       return <Grid columns={3}>{s.items.map((x) => <StatTile key={x.label} label={x.label} value={x.value} />)}</Grid>;
     case 'card':
@@ -111,6 +139,7 @@ export function ReportSections({ vm }: { vm: PageVM }) {
   return (
     <>
       {vm.sections.map((s, i) => {
+        if (s.t === 'report') return null; // T0D-UIREPORT-2: the run card keeps its sections only; the tiles and charts belong to the live page
         if (s.t !== 'table') return <Body key={i} s={s} many={false} onNext={noop} onPrevious={noop} />;
         const { pager: _pager, ...table } = s.vm; // eslint-disable-line @typescript-eslint/no-unused-vars -- first page only, no pager
         return <Body key={i} s={{ t: 'table', vm: table }} many={false} onNext={noop} onPrevious={noop} />;
@@ -262,21 +291,17 @@ export function ReportView({ vm }: { vm: PageVM }) {
     </>
   );
 
-  return (
-    <>
-      <PageHeader
-        title={vm.title}
-        helpKey={vm.helpKey}
-        status={
+  const head = {
+    helpKey: vm.helpKey,
+    status:
           oldest || stale.length > 0 ? (
             <>
               <FreshnessBadge isStale={stale.length > 0} {...(oldest ? { refreshedAt: oldest } : {})} {...(reason ? { reason } : {})} />
               {stale.length > 0 && oldest ? <span> Updated {WHEN.format(Date.parse(oldest))}</span> : null}
               {stale.length > 0 && reason ? <span> {REASON[reason]}</span> : null}
             </>
-          ) : null
-        }
-        actions={
+          ) : null,
+    actions:
           vm.canRefresh || vm.export ? (
             <>
               {vm.canRefresh ? <RefreshButton pageId={vm.pageId} /> : null}
@@ -288,10 +313,21 @@ export function ReportView({ vm }: { vm: PageVM }) {
                 />
               ) : null}
             </>
-          ) : null
-        }
-      />
-      {vm.period ? <p>{vm.period.labelAd} · {vm.period.labelBs} B.S.</p> : null}
+          ) : null,
+  };
+
+  return (
+    <>
+      {/* T0D-ELABMENU-3 (LD-340): a sidebar page shows its ElabAssist menu label; a report opened on its own path keeps its report name */}
+      {vm.basePath === '/analytics/reports' ? <PageHeader title={t('analytics.nav.reports')} {...head} />
+        : vm.basePath === '/analytics/collections' ? <PageHeader title={t('analytics.nav.collections')} {...head} />
+        : <PageHeader title={vm.title} {...head} />}
+      {vm.period ?<p>{vm.period.labelAd} · {bsLabel(vm.period.labelBs)}</p> : null}
+      {vm.more?.length ? (
+        <nav aria-label={t('analytics.mis.more')} className="lims-inline-links">
+          {vm.more.map((l, i) => <span key={l.href}>{i ? ' · ' : ''}<a href={l.href}>{l.label}</a></span>)}
+        </nav>
+      ) : null}
       {vm.tabs.length > 1 ? (
         <Tabs items={vm.tabs} selectedId={vm.tab} onChange={openTab} aria-label="Reports">
           {body}

@@ -25,7 +25,7 @@ const PL = '01a1a98a-ac40-7000-8000-0000000d0502';
 const XLSX = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 const MB15 = 15 * 1024 * 1024;
 
-const seen: { url: URL; method: string; headers: Headers; body?: any; form?: ParsedForm }[] = [];
+const seen: { url: URL; method: string; headers: Headers; body?: any; form?: ParsedForm | undefined }[] = [];
 const rec = async (r: Request) => {
   const ct = r.headers.get('content-type') ?? '';
   seen.push({
@@ -40,7 +40,7 @@ const server = setupServer(
   http.post(`${ORIGIN}/v1/catalog/imports`, async ({ request }) => { await rec(request); return HttpResponse.json(imp, { status: 201 }); }),
   http.post(`${ORIGIN}/v1/catalog/*`, async ({ request }) => { await rec(request); return HttpResponse.json({ ...imp, status: 'committing' }, { status: 202 }); }),
 );
-beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => server.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { server.resetHandlers(); seen.length = 0; tok.value = 'jwt-synthetic'; });
 afterAll(() => server.close());
 

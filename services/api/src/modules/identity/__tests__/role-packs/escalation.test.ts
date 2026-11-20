@@ -30,19 +30,22 @@ const USER_MANAGE = 'identity.user.manage';
 
 // R2 overlay (§3.1/§3.2 "Authority overlay" text and the §9 appendix): permission -> the ONLY roles that may hold it.
 // Clinical sign-off: pathologists only (verify: also Sr. Lab tiers and, ELabAssist, "Entry and first verification" for Lab technician, D2).
+// LD-310 (T0B-ADMINPERM-1, founder: admin gets all features): corp_admin is the one deliberate exception to the overlay and holds every
+// decision code besides the named roles; std_admin and every other role stay outside it (R2 unchanged for them).
+const LD310 = ['corp_admin'];
 const CLINICAL_ONLY: Record<string, string[]> = {
-  'lab.result.approve': PATHOLOGISTS,
-  'lab.result.amend': PATHOLOGISTS,
-  'reporting.narrative.sign': PATHOLOGISTS,
-  'anatomic.case.signout': PATHOLOGISTS,
+  'lab.result.approve': [...PATHOLOGISTS, ...LD310],
+  'lab.result.amend': [...PATHOLOGISTS, ...LD310],
+  'reporting.narrative.sign': [...PATHOLOGISTS, ...LD310],
+  'anatomic.case.signout': [...PATHOLOGISTS, ...LD310],
 };
 const OVERLAY: Record<string, string[]> = {
   ...CLINICAL_ONLY,
-  'lab.result.verify': [...PATHOLOGISTS, ...SR_LAB, 'std_lab_technician'],
+  'lab.result.verify': [...PATHOLOGISTS, ...SR_LAB, 'std_lab_technician', ...LD310],
   // Accounting authority "is added from the role name" for Accounts (§3.1, D3).
-  'billing.refund.approve': ACCOUNTS,
-  'billing.payment.reverse': ACCOUNTS,
-  'billing.invoice.cancel': ACCOUNTS,
+  'billing.refund.approve': [...ACCOUNTS, ...LD310],
+  'billing.payment.reverse': [...ACCOUNTS, ...LD310],
+  'billing.invoice.cancel': [...ACCOUNTS, ...LD310],
   // D3 default (11-ROLE-MATRIX.md:224, kept by LD-141): Accounts plus Admin, discount approve ONLY (RM-T04-ruling.md). Admin holds it via tenant_admin base (R5).
   'frontdesk.discount.approve': [...ACCOUNTS, ...ADMINS],
 };
@@ -148,14 +151,19 @@ describe('R2: decision authorities exist only on the roles named in the overlay'
   });
 });
 
-describe('R5: Admin holds no clinical sign-off', () => {
+describe('R5: std_admin holds no clinical sign-off (corp_admin exempt: LD-310, T0B-ADMINPERM-1)', () => {
   const CLINICAL = ['lab.result.verify', 'lab.result.approve', 'lab.result.amend', 'reporting.narrative.sign', 'anatomic.case.signout'];
-  it.each(ADMINS)('%s holds none of result verify/approve/amend, narrative sign, histopathology sign-out', (admin) => {
-    for (const p of CLINICAL) expect(byCode(admin).permissions, `${admin} ${p}`).not.toContain(p);
+  it('std_admin holds none of result verify/approve/amend, narrative sign, histopathology sign-out', () => {
+    for (const p of CLINICAL) expect(byCode('std_admin').permissions, `std_admin ${p}`).not.toContain(p);
   });
-  it.each(ADMINS)('%s is refused each clinical sign-off by the API (assertRole -> auth.forbidden), MFA enrolled', async (admin) => {
-    const port = portFor([{ code: admin }]);
-    for (const p of CLINICAL) expect(await outcome(port, admin, p), `${admin} ${p}`).toBe('auth.forbidden');
+  it('std_admin is refused each clinical sign-off by the API (assertRole -> auth.forbidden), MFA enrolled', async () => {
+    const port = portFor([{ code: 'std_admin' }]);
+    for (const p of CLINICAL) expect(await outcome(port, 'std_admin', p), `std_admin ${p}`).toBe('auth.forbidden');
+  });
+  it('corp_admin (LD-310) holds each of them and the API allows it: /lab/verification no longer answers You do not have access', async () => {
+    expect(CLINICAL.filter((p) => !byCode('corp_admin').permissions.includes(p))).toEqual([]);
+    const port = portFor([{ code: 'corp_admin' }]);
+    for (const p of CLINICAL) expect(await outcome(port, 'corp_admin', p), `corp_admin ${p}`).toBe('allow');
   });
   it('the Admin roles are full roles (tenant_admin base plus ticked screens), so the denial comes from the data, not an empty role', () => {
     for (const a of ADMINS) expect(byCode(a).permissions.length).toBeGreaterThan(80);

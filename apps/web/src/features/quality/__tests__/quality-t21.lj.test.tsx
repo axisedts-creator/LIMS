@@ -24,7 +24,7 @@ const LJ = '/v1/quality/lj-chart';
 const sp = (o: Record<string, string> = {}) => ({ searchParams: { plan_id: PLAN_1, level_id: LEVEL_1, ...o } });
 const CHART_KIT = existsSync(join(UI_SRC, 'ControlChart'));
 
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 beforeEach(() => { resetApi(PERM_READ); routes[`GET ${LJ}`] = json(ljDto()); });
 afterEach(() => { cleanup(); api.resetHandlers(); });
 afterAll(() => api.close());
@@ -139,9 +139,10 @@ describe('AC-08.1 / AC-08.5 — points, SD lines, hidden table', () => {
     expect(t).toMatch(/established/i);
   });
 
-  it.runIf(!CHART_KIT)('until CR-C9-007 merges: fallback note and the same points as a visible table', async () => {
+  // LD-353 rule 8 + done_when (6) (ruling T0D-UIDASH-1-ruling.md): no development note on the page; the same points stay shown.
+  it.runIf(!CHART_KIT)('until CR-C9-007 merges: no development note, the same points as a visible table', async () => {
     await show(PAGE, sp());
-    expect(pageText()).toContain('Chart component pending; showing values as a table.');
+    expect(pageText()).not.toContain('Chart component pending');
     expect(pointRows(pointsTable())).toHaveLength(6);
   });
 

@@ -1,8 +1,8 @@
 // Tenant accent derivation (04-UI-UX §1.6, AC-0D-8.2).
-// LD-140 (10-DESIGN-SYSTEM s2.1): Metro Green default; dark fg = tokens color.neutral.900.
-export const DEFAULT_ACCENT = '#0E4B3B';
+// LD-251 (13-M-SERIES s2.1): M series default #005A52; dark fg = tokens color.neutral.900.
+export const DEFAULT_ACCENT = '#005A52';
 const WHITE = '#FFFFFF';
-const DARK = '#13241D';
+const DARK = '#0A1A17';
 const HEX = /^#[0-9A-Fa-f]{6}$/;
 const STEP = 0.02;
 

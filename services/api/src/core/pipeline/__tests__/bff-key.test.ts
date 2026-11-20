@@ -24,6 +24,8 @@ vi.mock('pg', () => {
     if (/g_system_actors/i.test(t)) return { rows: [{ module: 'identity', actor_id: '0190a000-0000-7000-8000-00000000a5a5' }] };
     if (/set_config\(\s*'request\.jwt\.claims'/i.test(t) && /tx_started_at/i.test(t)) return { rows: [{ tx_started_at: new Date() }] };
     if (/ratelimit_hit/i.test(t)) return { rows: [{ allowed: true, retry_after_seconds: 0 }] };
+    if (/ratelimit_peek/i.test(t)) return { rows: [{ hits: 0, last_hit: null }] };
+    if (/ratelimit_clear/i.test(t)) return { rows: [{}] };
     return { rows: [] };
   };
   class Pool {
@@ -53,6 +55,15 @@ beforeAll(() => {
   files = { ratelimit: w('ratelimit.key', 'a'.repeat(64)), staff: w('staff.key', `${STAFF_KEY}\n`), partner: w('partner.key', `${PARTNER_KEY}\n`), portal: w('portal.key', `${PORTAL_KEY}\n`), empty: w('empty.key', '') };
 });
 afterAll(() => rmSync(scratch, { recursive: true, force: true }));
+// T0B-DEPFIX-1 (LD-312) flaky fix, at the cause: the first load() cold-imports fastify, config, boot, openapi and the identity module
+// (measured 6.6 s alone, 0.3-1.2 s per later test); under the parallel full run that cold import took a test past its 15 s limit.
+// Pay it once here, in a hook with its own generous budget, so no test timer includes a cold import. Per-test limits stay at 15 s.
+beforeAll(async () => {
+  await Promise.all([
+    import('fastify'), import('../../config.js'), import('../boot.js'), import('../../auth/bff-key.js'), import('../../auth/client-ip.js'),
+    import('../../errors.js'), import('../../openapi.js'), import('../../module.js'), import('../../../modules/identity/index.js'),
+  ]);
+}, 90_000);
 beforeEach(() => { h.signIn.length = 0; });
 
 // ---------------------------------------------------------------------------------------------------------------- 1. pipeline.run -> ctx

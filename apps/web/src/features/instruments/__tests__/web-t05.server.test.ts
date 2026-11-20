@@ -51,7 +51,7 @@ const server = setupServer(
   http.post(`${IM}/message-records/:id/rematch`, async ({ request }) => { await rec(request); return HttpResponse.json({ run: { ...run, kind: 'rematch' }, record: { id: REC } }); }),
   http.get(`${IM}/rejections`, async ({ request }) => { await rec(request); return HttpResponse.json({ data: [], page: { limit: 50 } }); }),
 );
-beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => server.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { server.resetHandlers(); seen.length = 0; session.token = 'jwt-synthetic'; });
 afterAll(() => server.close());
 

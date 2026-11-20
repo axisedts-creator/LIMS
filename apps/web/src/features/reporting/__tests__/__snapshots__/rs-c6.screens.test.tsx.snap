@@ -2,7 +2,6 @@
 
 exports[`RS-C6 key-screen outline snapshots (recorded once by the writer, LD-170; a baseline, not proof the look is right) > delivery detail 1`] = `
 "section Delivery
-a Delivery log
 h1 Delivery
 span Failed
 button Resend
@@ -15,7 +14,6 @@ span Failed"
 
 exports[`RS-C6 key-screen outline snapshots (recorded once by the writer, LD-170; a baseline, not proof the look is right) > report detail 1`] = `
 "section Report
-a Reports
 h1 Report · R2611050001
 span Ready to release
 button ReleaseAlt+R
@@ -42,7 +40,6 @@ a Open delivery log filtered to this report"
 
 exports[`RS-C6 key-screen outline snapshots (recorded once by the writer, LD-170; a baseline, not proof the look is right) > report detail, held for dues 1`] = `
 "section Report
-a Reports
 h1 Report · R2611050001
 span Held
 button ReleaseAlt+R
@@ -73,6 +70,7 @@ exports[`RS-C6 key-screen outline snapshots (recorded once by the writer, LD-170
 h1 Reports
 button Help
 button Search
+button Ready to release
 button Select an item
 button Select an item
 button Open calendar for From

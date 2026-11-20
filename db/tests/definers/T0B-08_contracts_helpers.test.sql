@@ -47,8 +47,8 @@ INSERT INTO core.memberships (id, tenant_id, user_id, actor_type, all_centres, c
   (pg_temp.id('42'), pg_temp.id('01'), pg_temp.id('32'), 'user', true,  pg_temp.id('99'), pg_temp.id('99'));
 INSERT INTO core.membership_centres (tenant_id, membership_id, centre_id, created_by) VALUES (pg_temp.id('01'), pg_temp.id('41'), pg_temp.id('21'), pg_temp.id('99'));
 INSERT INTO identity.platform_staff (id, user_id, email_normalized, display_name, role_code, is_active, created_by, updated_by) VALUES
-  (pg_temp.id('61'), pg_temp.id('81'), 'a@example.test', 'Staff A', 'platform_admin', true,  pg_temp.id('99'), pg_temp.id('99')),
-  (pg_temp.id('62'), pg_temp.id('82'), 'b@example.test', 'Staff B', 'platform_admin', false, pg_temp.id('99'), pg_temp.id('99'))
+  (pg_temp.id('61'), pg_temp.id('81'), 'a@example.test', 'Staff A', 'platform_superadmin', true,  pg_temp.id('99'), pg_temp.id('99')),
+  (pg_temp.id('62'), pg_temp.id('82'), 'b@example.test', 'Staff B', 'platform_superadmin', false, pg_temp.id('99'), pg_temp.id('99'))
   ON CONFLICT DO NOTHING;
 SET LOCAL session_replication_role = origin;
 
@@ -81,8 +81,16 @@ SELECT is(pg_temp.x('lims_api', jsonb_build_object('scope','platform','aal','aal
 SELECT is(pg_temp.x('lims_api', pg_temp.cl('user','01','31','41'), 'SELECT app.is_platform_actor()'), 'false', 'is_platform_actor = false for tenant claims');
 SELECT is(pg_temp.x('lims_api', NULL, 'SELECT app.is_platform_actor()'), 'false', 'is_platform_actor = false with no claims');
 -- lims_app cannot read platform_staff directly (policy is TO lims_owner only; 08 A10.5)
+-- STALE fix T0B-GREEN-3 (PLATFORM-DDL-1, LD-223, migration 20261115191000): platform_staff__select__platform (TO lims_app USING app.is_platform_actor()) lets an ACTIVE aal2 platform session
+-- read the table directly (the 2 fixture rows). Still proved: nobody else reads a row (tenant claims, inactive staff, aal1, no claims).
 SELECT is(pg_temp.x('lims_api', jsonb_build_object('scope','platform','aal','aal2','platform_staff_id',pg_temp.id('61'),'sub',pg_temp.id('81'))::text,
-                    'SELECT 1 FROM identity.platform_staff', 'n'), 'n=0', 'a platform session reads 0 identity.platform_staff rows directly (owner policy only)');
+                    'SELECT 1 FROM identity.platform_staff', 'n'), 'n=2', 'a platform session of an active aal2 staff row reads the 2 fixture identity.platform_staff rows via platform_staff__select__platform');
+SELECT is(pg_temp.x('lims_api', jsonb_build_object('scope','platform','aal','aal2','platform_staff_id',pg_temp.id('62'),'sub',pg_temp.id('82'))::text,
+                    'SELECT 1 FROM identity.platform_staff', 'n'), 'n=0', 'a platform session of an inactive staff row reads 0 identity.platform_staff rows');
+SELECT is(pg_temp.x('lims_api', jsonb_build_object('scope','platform','aal','aal1','platform_staff_id',pg_temp.id('61'),'sub',pg_temp.id('81'))::text,
+                    'SELECT 1 FROM identity.platform_staff', 'n'), 'n=0', 'a platform session at aal1 reads 0 identity.platform_staff rows');
+SELECT is(pg_temp.x('lims_api', pg_temp.cl('user','01','31','41'), 'SELECT 1 FROM identity.platform_staff', 'n'), 'n=0', 'tenant claims read 0 identity.platform_staff rows');
+SELECT is(pg_temp.x('lims_api', NULL, 'SELECT 1 FROM identity.platform_staff', 'n'), 'n=0', 'no claims read 0 identity.platform_staff rows');
 
 -- ---------- app.tg_row_audit (touches audit.audit_log INSERT via audit_log__insert__owner_only) ----------
 SELECT is(pg_temp.x('lims_api', pg_temp.cl('user','01','32','42'), format($$UPDATE core.branches SET name = 'Branch A2' WHERE id = %L$$, pg_temp.id('11')), 'w'), 'n=1',

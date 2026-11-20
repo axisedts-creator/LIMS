@@ -158,10 +158,14 @@ SELECT matches(pg_temp.ua(pg_temp.m('a50a'), 'INSERT INTO anatomic.parts (id, te
   || pg_temp.q(pg_temp.id('00000000a202')) || ', ' || pg_temp.q(pg_temp.uid(302)) || ', ''B'', 2, ' || pg_temp.q(pg_temp.sys()) || ', ' || pg_temp.q(pg_temp.sys()) || ')'), '^E42501\|', 'C11 check 10 / §11 item 2: centre-A1 staff cannot add a part to a centre A2 case (policy)');
 
 -- C11 check 11: non-staff actors (AC-0B-3.6), device actors and fail-closed without claims (AC-0B-3.7)
-SELECT is(pg_temp.x('lims_app', pg_temp.cl(pg_temp.ta(), k.t, pg_temp.m('a500')), 'SELECT 1 FROM ' || tt.q, 'n'), 'n=0', 'C11 check 11 / AC-0B-3.6: ' || k.t || ' actor sees 0 rows of ' || tt.q) FROM tt CROSS JOIN (VALUES ('partner'),('portal'),('patient'),('device')) k(t);
-SELECT is(pg_temp.x('lims_app', pg_temp.cl(pg_temp.ta(), 'portal', pg_temp.m('a500')), 'UPDATE anatomic.settings SET max_images_per_case = 5'), 'n=0', 'C11 check 11 / AC-0B-3.6: a portal actor updates 0 settings');
+SELECT is(pg_temp.x('lims_app', pg_temp.cl(pg_temp.ta(), k.t, pg_temp.m('a500')), 'SELECT 1 FROM ' || tt.q, 'n'), 'n=0', 'C11 check 11 / AC-0B-3.6: ' || k.t || ' actor sees 0 rows of ' || tt.q) FROM tt CROSS JOIN (VALUES ('partner'),('portal'),('patient')) k(t);
+-- T0B-GREEN-1 STALE (08 R10 item 5 / CR-C13-011: app.is_staff_or_system() = actor_type IN ('user','system','device'); same expectation as C12 check 11): a device actor passes the staff guard, so it reads the tenant's rows of tenant-scoped tables
+-- exactly as the system actor does; it never has all-centres scope (08 R3), so with no centre claim it reads 0 rows of every centre-scoped table. 01-PRD AC-0B-3.6a still says "device reads 0 rows": see CR T0B-GREEN-1-device-actor.
+SELECT is(pg_temp.x('lims_app', pg_temp.cl(pg_temp.ta(), 'device', pg_temp.m('a500')), 'SELECT 1 FROM ' || tt.q, 'n'), CASE WHEN tt.q IN (SELECT q FROM tc) THEN 'n=0' ELSE pg_temp.sa('SELECT 1 FROM ' || tt.q, 'n') END,
+  'C11 check 11 / AC-0B-3.6 / CR-C13-011: device actor reads what the system actor reads of tenant-scoped ' || tt.q || ' and 0 rows of centre-scoped ones (no all-centres scope)') FROM tt;
+SELECT is(pg_temp.x('lims_app', pg_temp.cl(pg_temp.ta(), 'portal', pg_temp.m('a500')), 'UPDATE anatomic.settings SET max_images_per_case = 5', 'w'), 'n=0', 'C11 check 11 / AC-0B-3.6: a portal actor updates 0 settings');
 SELECT matches(pg_temp.x('lims_app', pg_temp.cl(pg_temp.ta(), 'partner', pg_temp.m('a500')), 'INSERT INTO anatomic.accession_counters (tenant_id, series_key, year_ad, created_by, updated_by) VALUES (' || pg_temp.q(pg_temp.ta()) || ', ''cytology'', 2026, '
-  || pg_temp.q(pg_temp.sys()) || ', ' || pg_temp.q(pg_temp.sys()) || ')'), '^E42501\|', 'C11 check 11 / AC-0B-3.6: a partner actor cannot INSERT');
+  || pg_temp.q(pg_temp.sys()) || ', ' || pg_temp.q(pg_temp.sys()) || ')', 'w'), '^E42501\|', 'C11 check 11 / AC-0B-3.6: a partner actor cannot INSERT');
 SELECT is(pg_temp.x('lims_api', NULL, 'SELECT 1 FROM ' || q, 'n'), 'n=0', 'C11 check 11 / AC-0B-3.7: no claims -> lims_api sees 0 rows of ' || q) FROM tt;
 SELECT is(pg_temp.x('lims_api', '{}'::jsonb, 'SELECT 1 FROM ' || q, 'n'), 'n=0', 'C11 check 11 / AC-0B-3.7: empty claims -> 0 rows of ' || q) FROM tt;
 SELECT is(pg_temp.x('lims_api', NULL, 'SELECT 1 FROM anatomic.v_pub_report_content', 'n'), 'n=0', 'C11 check 11 / AC-0B-3.7: no claims -> the invoker view returns 0 rows');

@@ -1,0 +1,1 @@
+pnpm --dir services/worker exec vitest run src/core/__tests__/registry-sync.cli.test.ts src/core/__tests__/registry-sync.all.test.ts src/core/__tests__/registry-sync.test.ts src/core/__tests__/bootstrap.test.ts src/jobs/payments/__tests__/unit/manifest.test.ts

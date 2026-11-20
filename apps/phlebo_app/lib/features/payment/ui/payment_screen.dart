@@ -89,35 +89,43 @@ class _PaymentScreenState extends State<PaymentScreen> with SaveOnce<PaymentScre
       child: LimsScaffold(
         title: 'Payment',
         body: ListView(padding: const EdgeInsets.all(LimsTokens.space4), children: [
-          Text('Amount due: NPR ${formatPaisa(v.amountDuePaisa)} as of ${v.amountAsOf}', style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: LimsTokens.space3),
-          for (final m in widget.config.paymentMethods)
-            ChoiceTile(
-              title: m.display,
-              selected: method == m,
-              onTap: saving ? null : () => setState(() => _method = m),
-            ),
-          const SizedBox(height: LimsTokens.space3),
-          LimsMoneyField(
-            key: const ValueKey('payment.amount'),
-            label: 'Amount (NPR)',
-            controller: _amountText,
-            errorText: _amountError,
-            onChanged: (p) => setState(() {
-              _paisa = p;
-              _amountError = null;
-            }),
+          LimsCard(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              Text('Amount due: NPR ${formatPaisa(v.amountDuePaisa)} as of ${v.amountAsOf}', style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height: LimsTokens.space3),
+              for (final m in widget.config.paymentMethods)
+                ChoiceTile(
+                  title: m.display,
+                  selected: method == m,
+                  onTap: saving ? null : () => setState(() => _method = m),
+                ),
+            ]),
           ),
-          if (method != null && method.requiresReference)
-            LimsTextField(
-              key: const ValueKey('payment.reference'),
-              label: 'Transaction / QR reference',
-              maxLength: 100,
-              sensitive: true,
-              controller: _reference,
-              errorText: _referenceError,
-              onChanged: (_) => setState(() => _referenceError = null),
-            ),
+          const SizedBox(height: LimsTokens.space3),
+          LimsCard(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              LimsMoneyField(
+                key: const ValueKey('payment.amount'),
+                label: 'Amount (NPR)',
+                controller: _amountText,
+                errorText: _amountError,
+                onChanged: (p) => setState(() {
+                  _paisa = p;
+                  _amountError = null;
+                }),
+              ),
+              if (method != null && method.requiresReference)
+                LimsTextField(
+                  key: const ValueKey('payment.reference'),
+                  label: 'Transaction / QR reference',
+                  maxLength: 100,
+                  sensitive: true,
+                  controller: _reference,
+                  errorText: _referenceError,
+                  onChanged: (_) => setState(() => _referenceError = null),
+                ),
+            ]),
+          ),
           const SizedBox(height: LimsTokens.space3),
           saveErrorNotice(),
           const SizedBox(height: LimsTokens.space3),

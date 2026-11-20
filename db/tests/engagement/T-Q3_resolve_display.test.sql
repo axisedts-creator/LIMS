@@ -64,7 +64,7 @@ SET LOCAL session_replication_role = origin;
 -- ---------------------------------------------------------------- the function: owner, DEFINER, search_path, grants (05-SCHEMA §6.6 inventory row)
 SELECT is((SELECT pg_get_userbyid(proowner) FROM pg_proc WHERE oid = 'app.engagement_resolve_display(bytea)'::regprocedure), 'lims_owner', 'resolve_display is owned by lims_owner');
 SELECT ok((SELECT prosecdef FROM pg_proc WHERE oid = 'app.engagement_resolve_display(bytea)'::regprocedure), 'resolve_display is SECURITY DEFINER');
-SELECT ok((SELECT proconfig @> ARRAY['search_path='] FROM pg_proc WHERE oid = 'app.engagement_resolve_display(bytea)'::regprocedure), 'resolve_display pins search_path = ''''');
+SELECT ok((SELECT proconfig @> ARRAY['search_path=""'] FROM pg_proc WHERE oid = 'app.engagement_resolve_display(bytea)'::regprocedure), 'resolve_display pins search_path = ''''');
 SELECT ok(has_function_privilege('lims_api', 'app.engagement_resolve_display(bytea)', 'EXECUTE'), 'lims_api may execute resolve_display');
 SELECT ok(NOT has_function_privilege('public', 'app.engagement_resolve_display(bytea)', 'EXECUTE'), 'PUBLIC may not execute resolve_display');
 
@@ -79,9 +79,13 @@ SELECT is(pg_temp.api('SELECT * FROM app.engagement_resolve_display(' || pg_temp
 SELECT is(pg_temp.api('SELECT * FROM app.engagement_resolve_display(NULL)', 'n'), '0', 'NULL hash -> no row');
 SELECT is(pg_temp.api('SELECT * FROM app.engagement_resolve_display(''\x00''::bytea)', 'n'), '0', 'hash of the wrong length (1 byte) -> no row');
 SELECT is(pg_temp.api('SELECT * FROM app.engagement_resolve_display(''\x' || repeat('ab', 33) || '''::bytea)', 'n'), '0', 'hash of the wrong length (33 bytes) -> no row');
+-- LD-230 (4): the fixture UPDATE is row-audited (app.tg_row_audit needs a claims sub, audit_log__insert__owner_only the row tenant): tenant A system claims
+SELECT set_config('request.jwt.claims', jsonb_build_object('tenant_id', pg_temp.id(1), 'sub', pg_temp.id(99), 'actor_type', 'system')::text, true);
 UPDATE engagement.queue_displays SET status = 'revoked', revoked_at = now(), revoked_by = pg_temp.id(99) WHERE id = pg_temp.id(101);
 SELECT is(pg_temp.api('SELECT * FROM app.engagement_resolve_display(' || pg_temp.qh(1) || ')', 'n'), '0', 'the same hash stops resolving the moment the display is revoked');
+SELECT set_config('request.jwt.claims', jsonb_build_object('tenant_id', pg_temp.id(1), 'sub', pg_temp.id(99), 'actor_type', 'system')::text, true);
 UPDATE engagement.queue_displays SET status = 'active', revoked_at = NULL, revoked_by = NULL WHERE id = pg_temp.id(101);
+SELECT set_config('request.jwt.claims', '', true);
 
 -- ---------------------------------------------------------------- (b) a lims_app / lims_api session that sets the GUC itself sees nothing (owner-only policies, FORCE RLS)
 SELECT is(pg_temp.x('lims_api', NULL, 'SELECT set_config(''app.pre_engagement_display_token_sha256'', encode(' || pg_temp.qh(1) || ', ''hex''), true)',
@@ -119,8 +123,9 @@ SELECT is(pg_temp.x('lims_api', pg_temp.cl('device', 101, 21, 'queue_display'), 
 SELECT is(pg_temp.x('lims_api', pg_temp.cl('device', 101, 21, 'queue_display'), NULL, 'SELECT * FROM engagement.queue_displays WHERE tenant_id = ' || quote_literal(pg_temp.id(2)::text) || '::uuid', 'n'), '0', 'display 101 sees no tenant-B display');
 SELECT is(pg_temp.x('lims_api', pg_temp.cl('device', 101, 21, 'queue_display'), NULL, 'SELECT * FROM engagement.booking_centres', 'n'), '1', 'display 101 reads only the booking_centres row of its own centre (centre name for the board)');
 SELECT is(pg_temp.x('lims_api', pg_temp.cl('device', 101, 21, 'queue_display'), NULL, 'UPDATE engagement.queue_displays SET last_seen_at = now(), updated_at = now()', 'w'), '1', 'display may update last_seen_at / updated_at');
-SELECT like(pg_temp.x('lims_api', pg_temp.cl('device', 101, 21, 'queue_display'), NULL, 'UPDATE engagement.queue_displays SET display_name = ''renamed''', 'w'), 'EP0001:immutable_row%', 'display cannot change display_name (guard trigger immutable_row)');
-SELECT like(pg_temp.x('lims_api', pg_temp.cl('device', 101, 21, 'queue_display'), NULL, 'UPDATE engagement.queue_displays SET status = ''active'', token_sha256 = ' || pg_temp.qh(77), 'w'), 'EP0001:immutable_row%', 'display cannot swap its own token hash');
+-- LD-230 (3): pgTAP has no like()/unlike(); matches()/doesnt_match() with the anchored regex of the same LIKE pattern (% -> .*, _ -> .)
+SELECT matches(pg_temp.x('lims_api', pg_temp.cl('device', 101, 21, 'queue_display'), NULL, 'UPDATE engagement.queue_displays SET display_name = ''renamed''', 'w'), '^EP0001:immutable.row.*$', 'display cannot change display_name (guard trigger immutable_row)');
+SELECT matches(pg_temp.x('lims_api', pg_temp.cl('device', 101, 21, 'queue_display'), NULL, 'UPDATE engagement.queue_displays SET status = ''active'', token_sha256 = ' || pg_temp.qh(77), 'w'), '^EP0001:immutable.row.*$', 'display cannot swap its own token hash');
 SELECT ok(pg_temp.x('lims_api', pg_temp.cl('device', 101, 21, 'queue_display'), NULL, 'INSERT INTO engagement.queue_displays (id, tenant_id, centre_id, display_name, queue_ids, token_sha256, paired_at, paired_by, created_by, updated_by) SELECT gen_random_uuid(), tenant_id, centre_id, ''x'', queue_ids, ' || pg_temp.qh(78) || ', now(), id, id, id FROM engagement.queue_displays', 'w') ~ '^E', 'display cannot INSERT displays (RLS/privilege error)');
 
 SELECT * FROM finish();

@@ -30,7 +30,8 @@ fixed_actor_permissions:        # replaced by 08 §4.1
   partner:                      # by partner role (CR-C13-002)
     partner_member: [partners.order.read, partners.manifest.submit, partners.report.read, partners.statement.read,
                      partners.price_list.read, partners.pickup.request, partners.referrer.read,
-                     identity.self.manage]   # 08 A19 D-101 (partner self-service; partner_admin inherits)
+                     identity.self.manage,   # 08 A19 D-101 (partner self-service; partner_admin inherits)
+                     partners.ticket.read, partners.ticket.manage]   # T0C-MSGDESK-1 (LD-321): own tickets only (RLS)
     partner_admin:  [<partner_member set>, partners.referrer.manage, partners.partner_user.manage]
   system:  declared per worker manifest (02-CV §2.3), subset of tenant permissions, never platform.*
 permissions:
@@ -63,6 +64,8 @@ permissions:
   - { code: catalog.referrer.read, privileged: false, roles: [tenant_admin, lab_manager, front_desk, finance, centre_staff] }   # CR-C3-003
   - { code: catalog.reference_range.publish, privileged: true, roles: [pathologist, lab_manager] }   # clinical sign-off: analyte versions, ranges, critical limits (08 A13 D-18)   # CR-C3-003
   - { code: catalog.referrer.export, privileged: true, roles: [tenant_admin, lab_manager] }   # doctors' contacts (04 A4 data export)   # CR-C3-003
+  # T0C-PARTYSET-1 (LD-321): per tenant ICD master (catalog.icd_code); staff only
+  - { code: catalog.icd.manage, privileged: false, roles: [tenant_admin, lab_manager] }
   # frontdesk (C4)
   - { code: frontdesk.registration.create, privileged: false, roles: [front_desk, centre_staff] }
   - { code: frontdesk.patient.read,      privileged: false, roles: [front_desk, centre_staff, lab_technologist, pathologist, tenant_admin] }   # tenant_admin: 08 A13 D-28
@@ -92,6 +95,16 @@ permissions:
   - { code: billing.release.override,   privileged: true,  roles: [finance, tenant_admin] }  # hold-till-paid override (01 §1.4)
   # added by 08 §4.1
   - { code: billing.settings.manage, privileged: true, roles: [tenant_admin, finance] }   # "Billing settings: invoice series scope, CBMS retry, payment methods (tax rules live in C3)" (R18)   # CR-C4-008
+  # T0C-ACCT-1 (LD-313 c): lab accounting in the billing module (account groups / particulars / expense types, account ledger, expenses, cash transfers)
+  - { code: billing.account.read,          privileged: false, roles: [finance, tenant_admin] }
+  - { code: billing.account.manage,        privileged: true,  roles: [finance, tenant_admin] }   # account group / particular / expense type masters
+  - { code: billing.discount_policy.read,  privileged: false, roles: [finance, tenant_admin, front_desk] }   # T0C-FINCTRL-1 (LD-321): discount reasons, slabs, limits, authorities, my policy
+  - { code: billing.discount_policy.manage, privileged: true, roles: [finance, tenant_admin] }              # T0C-FINCTRL-1 (LD-321): discount masters (deactivate, never delete)
+  - { code: billing.account_entry.create,  privileged: false, roles: [finance] }
+  - { code: billing.account_entry.reverse, privileged: true,  roles: [finance] }                 # a correction is a reversal entry, never an edit (LD-313 b)
+  - { code: billing.expense.manage,        privileged: false, roles: [finance] }
+  - { code: billing.cash_transfer.manage,  privileged: false, roles: [finance] }
+  - { code: billing.cash_transfer.decide,  privileged: true,  roles: [finance] }                 # accept / reject; decider <> creator
   # lab (C5)
   - { code: lab.status_board.read,       privileged: false, roles: [front_desk, centre_staff, lab_technologist, pathologist, lab_manager] }
   - { code: lab.specimen.read,           privileged: false, roles: [centre_staff, lab_technologist, pathologist, lab_manager, front_desk, phlebotomist] }   # front_desk, phlebotomist: 08 A13 D-4 (RLS keeps centre scope)
@@ -112,6 +125,9 @@ permissions:
   - { code: lab.worksheet.manage, privileged: false, roles: [lab_technologist, lab_manager] }   # CR-C5-004
   - { code: lab.config.manage, privileged: true, roles: [lab_manager, pathologist] }   # CR-C5-004
   - { code: lab.qc_hold.release, privileged: true, roles: [lab_manager, pathologist] }   # CR-C5-004
+  # T0C-VERLEVEL-1 (LD-316): verification levels 1, 2, 3 (how many different people sign off a result); policy per lab, department or test
+  - { code: lab.verification_policy.read,   privileged: false, roles: [lab_technologist, pathologist, lab_manager] }   # every lab role (LD-316)
+  - { code: lab.verification_policy.manage, privileged: true,  roles: [lab_manager] }   # changes who may sign off a result (LD-316); corp_admin through its role pack
   # reporting (C6)
   - { code: reporting.report.read,       privileged: false, roles: [front_desk, centre_staff, lab_technologist, pathologist, lab_manager, tenant_admin, radiologist] }   # roles += CR-C6-003; radiologist 08 A21.3
   - { code: reporting.report.release,    privileged: false, roles: [pathologist, front_desk] }
@@ -207,6 +223,22 @@ permissions:
   - { code: partners.referrer.read, privileged: false, roles: [], phase: 2 }   # partner actors   # CR-C13-002
   - { code: partners.referrer.manage, privileged: false, roles: [], phase: 2 }   # partner_admin only   # CR-C13-002
   - { code: partners.partner_user.manage, privileged: true, roles: [], phase: 2 }   # partner_admin only   # CR-C13-002
+  # T0C-MSGDESK-1 (LD-321): partner message to lab tickets; staff on /admin/tickets, partner actors (fixed set) on /me/tickets, own tickets only (RLS)
+  - { code: partners.ticket.read,   privileged: false, roles: [tenant_admin, front_desk, lab_manager] }
+  - { code: partners.ticket.manage, privileged: false, roles: [tenant_admin, front_desk, lab_manager] }
+  # T0C-SALES-1 (LD-321): sales hierarchy (designations, representatives, manager tree, party assignment, service areas); staff only
+  - { code: partners.sales.read,   privileged: false, roles: [tenant_admin, finance, lab_manager] }
+  - { code: partners.sales.manage, privileged: true,  roles: [tenant_admin, finance, lab_manager] }
+  # T0C-PARTYSET-1 (LD-321): per party commercial settings, onboarding approval queue, non compliance penalties, government ID reveal; staff only
+  - { code: partners.party_setting.read,   privileged: false, roles: [tenant_admin, finance, lab_manager] }
+  - { code: partners.party_setting.manage, privileged: false, roles: [tenant_admin, finance] }
+  - { code: partners.onboarding.decide,    privileged: false, roles: [tenant_admin, lab_manager] }
+  - { code: partners.party_id_number.read, privileged: true,  roles: [tenant_admin, finance] }   # full PAN / national id number; every read audited
+  - { code: partners.penalty.manage,       privileged: false, roles: [tenant_admin, finance, lab_manager] }
+  # T0C-SYNC-1 (LD-322): offline sync (device registry, number blocks; conflict inbox in part 2); staff only. sync.use has two segments (named verbatim by LD-322)
+  - { code: sync.use,              privileged: false, roles: [tenant_admin, front_desk, finance, lab_technologist, pathologist, lab_manager, centre_staff, phlebotomist, owner_viewer, radiologist] }
+  - { code: sync.device.manage,    privileged: true,  roles: [tenant_admin] }
+  - { code: sync.conflict.resolve, privileged: true,  roles: [tenant_admin, lab_manager, finance] }
   - { code: smartreport.template.manage, privileged: false, roles: [pathologist, lab_manager], phase: 2 }   # CR-C14-003
   - { code: smartreport.summary.approve, privileged: true, roles: [pathologist], phase: 2 }   # per-summary approval (03-IC §4.10 invariant)   # CR-C14-003
   - { code: payments.intent.resolve, privileged: true, roles: [finance], phase: 1.5 }   # CR-C15-005
@@ -235,6 +267,13 @@ permissions:
   - { code: engagement.enquiry.read, privileged: false, roles: [front_desk], phase: 3 }   # CR-C16-002
   - { code: engagement.enquiry.respond, privileged: false, roles: [front_desk], phase: 3 }   # CR-C16-002
   - { code: engagement.settings.manage, privileged: true, roles: [tenant_admin], phase: 2 }   # CR-C16-002
+  # T0C-MSGDESK-1 (LD-321): broadcast messages to an audience; approve = the second person (approver <> requester), privileged (MFA)
+  - { code: engagement.broadcast.read,    privileged: false, roles: [tenant_admin, front_desk, lab_manager] }
+  - { code: engagement.broadcast.manage,  privileged: false, roles: [tenant_admin, front_desk, lab_manager] }
+  - { code: engagement.broadcast.approve, privileged: true,  roles: [tenant_admin, lab_manager] }
+  # T0C-CONTENT-1 (LD-313 c): portal content (news, banners, offers, contact us) and profile images; staff only, not privileged; the patient read reuses engagement.self.read
+  - { code: engagement.content.read,      privileged: false, roles: [tenant_admin, front_desk, lab_manager] }
+  - { code: engagement.content.manage,    privileged: false, roles: [tenant_admin, lab_manager] }
   - { code: homecollection.handover.receive, privileged: false, roles: [centre_staff, front_desk, lab_technologist], phase: 3 }   # CR-C17-008
   - { code: homecollection.device.manage, privileged: true, roles: [tenant_admin, lab_manager], phase: 3 }   # CR-C17-008
   - { code: homecollection.settings.manage, privileged: true, roles: [tenant_admin, lab_manager], phase: 3 }   # CR-C17-008

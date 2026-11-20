@@ -22,13 +22,18 @@ CREATE FUNCTION pg_temp.q(x uuid) RETURNS text LANGUAGE sql IMMUTABLE AS $$ SELE
 SELECT set_config('request.jwt.claims', jsonb_build_object('tenant_id', pg_temp.ta(), 'sub', pg_temp.sys(), 'actor_type', 'system')::text, true);
 
 CREATE FUNCTION pg_temp.ins(p_tbl regclass, p_row jsonb) RETURNS void LANGUAGE plpgsql AS $f$
-DECLARE r jsonb := p_row; a text; cols text;
+DECLARE r jsonb := p_row; a text; cols text; saved text := current_setting('request.jwt.claims', true);
 BEGIN
   FOREACH a IN ARRAY ARRAY['created_by', 'updated_by'] LOOP
     IF EXISTS (SELECT 1 FROM pg_attribute WHERE attrelid = p_tbl AND attname = a AND NOT attisdropped) AND NOT (r ? a) THEN r := r || jsonb_build_object(a, pg_temp.sys()); END IF;
   END LOOP;
   SELECT string_agg(quote_ident(k), ',') INTO cols FROM jsonb_object_keys(r) k;
+  -- LD-230 (2): audit_log__insert__owner_only needs tenant_id = the claims tenant; write each row under its own tenant (as db/seeds/010 does)
+  IF r ? 'tenant_id' THEN
+    PERFORM set_config('request.jwt.claims', jsonb_build_object('tenant_id', r ->> 'tenant_id', 'sub', pg_temp.sys(), 'actor_type', 'system')::text, true);
+  END IF;
   EXECUTE format('INSERT INTO %1$s (%2$s) SELECT %2$s FROM jsonb_populate_record(NULL::%1$s, %3$L::jsonb)', p_tbl, cols, r::text);
+  PERFORM set_config('request.jwt.claims', coalesce(saved, ''), true);
 END $f$;
 -- run p_sql as p_role with p_claims; mode n = count of a query, w = ROW_COUNT of a statement, s = the single scalar; errors -> 'E' || SQLSTATE || '|' || SQLERRM
 CREATE FUNCTION pg_temp.x(p_role text, p_claims jsonb, p_sql text, p_mode text DEFAULT 'n') RETURNS text LANGUAGE plpgsql AS $f$
@@ -63,9 +68,11 @@ CREATE FUNCTION pg_temp.lsql(p_id int, p_man int, p_partner int, p_centre text, 
 -- ===================================================================================================================================== fixtures (superuser; FKs, CHECKs and triggers all live)
 -- C13 check 8: tenant A: partners P1 (1001, centre a201 / branch a101), P2 (1002, centre a202 / a102); tenant B: PB (1003). P1 users: admin (mem 2), member (a50d, status invited); P2 admin (mem 3).
 -- manifests 1041 draft(P1), 1042 submitted(P1), 1043 draft(P2), 1044 draft on_submit(P1), 1045 submitted(P1), B 1046; lines 1051 (draft, 1041), 1052 (submitted, old, 1042), 1053 (draft, 1043), 1054 (draft, 1044), B 1056.
-INSERT INTO catalog.credit_parties (id, tenant_id, party_code, name, kind, created_by, updated_by) VALUES
-  (pg_temp.uid(1011), pg_temp.ta(), 'SYN-PARTNER-X', 'Synthetic partner X', 'partner_lab', pg_temp.sys(), pg_temp.sys()), (pg_temp.uid(1012), pg_temp.ta(), 'SYN-PARTNER-Y', 'Synthetic partner Y', 'clinic', pg_temp.sys(), pg_temp.sys()),
-  (pg_temp.uid(1013), pg_temp.tb(), 'SYN-PARTNER-B', 'Synthetic partner B', 'partner_lab', pg_temp.sys(), pg_temp.sys());
+-- HARNESS fix T0B-GREEN-2 (LD-230 (2) applied to the two raw INSERTs): the audit trigger writes audit.audit_log under audit_log__insert__owner_only, which needs tenant_id = the claims tenant,
+-- so a statement that mixes tenant A and tenant B rows aborted psql ("new row violates row-level security policy for table audit_log"). Tenant-B rows now go through pg_temp.ins (claims per row).
+SELECT pg_temp.ins('catalog.credit_parties', jsonb_build_object('id', pg_temp.uid(r.n), 'tenant_id', r.t, 'party_code', r.c, 'name', r.nm, 'kind', r.k))
+  FROM (VALUES (1011, pg_temp.ta(), 'SYN-PARTNER-X', 'Synthetic partner X', 'partner_lab'), (1012, pg_temp.ta(), 'SYN-PARTNER-Y', 'Synthetic partner Y', 'clinic'),
+               (1013, pg_temp.tb(), 'SYN-PARTNER-B', 'Synthetic partner B', 'partner_lab')) r(n, t, c, nm, k);
 SELECT pg_temp.ins('core.memberships', jsonb_build_object('id', pg_temp.mem(m), 'tenant_id', pg_temp.ta(), 'user_id', pg_temp.s(u), 'actor_type', 'partner', 'all_centres', false, 'status', 'active', 'partner_role', 'partner_admin'))
   FROM (VALUES (2, 'a30c'), (3, 'a30a'), (4, 'a309')) v(m, u);
 SELECT pg_temp.ins('partners.settings', jsonb_build_object('tenant_id', t)) FROM (VALUES (pg_temp.ta()), (pg_temp.tb())) v(t);
@@ -85,8 +92,12 @@ INSERT INTO partners.manifest_lines (id, tenant_id, partner_id, manifest_id, rec
   (pg_temp.uid(1051), pg_temp.ta(), pg_temp.uid(1001), pg_temp.uid(1041), pg_temp.s('a201'), 1, 'draft', 'Test Patient 0001', 'female', 30, true, 'partner-v1', ARRAY[pg_temp.uid(1101)], '[]', 'routine', now(), pg_temp.sys(), pg_temp.sys()),
   (pg_temp.uid(1052), pg_temp.ta(), pg_temp.uid(1001), pg_temp.uid(1042), pg_temp.s('a201'), 1, 'submitted', 'Test Patient 0002', 'male', 40, true, 'partner-v1', ARRAY[pg_temp.uid(1101)], '[{"orderable_id":"x"}]', 'routine', now() - interval '6 years', pg_temp.sys(), pg_temp.sys()),
   (pg_temp.uid(1053), pg_temp.ta(), pg_temp.uid(1002), pg_temp.uid(1043), pg_temp.s('a202'), 1, 'draft', 'Test Patient 0003', 'male', 50, true, 'partner-v1', ARRAY[pg_temp.uid(1101)], '[]', 'routine', now(), pg_temp.sys(), pg_temp.sys()),
-  (pg_temp.uid(1054), pg_temp.ta(), pg_temp.uid(1001), pg_temp.uid(1044), pg_temp.s('a201'), 1, 'draft', 'Test Patient 0004', 'male', 60, true, 'partner-v1', ARRAY[pg_temp.uid(1101)], '[]', 'routine', now(), pg_temp.sys(), pg_temp.sys()),
+  (pg_temp.uid(1054), pg_temp.ta(), pg_temp.uid(1001), pg_temp.uid(1044), pg_temp.s('a201'), 1, 'draft', 'Test Patient 0004', 'male', 60, true, 'partner-v1', ARRAY[pg_temp.uid(1101)], '[]', 'routine', now(), pg_temp.sys(), pg_temp.sys());
+-- tenant-B line under tenant-B claims (audit_log insert policy, see above)
+SELECT set_config('request.jwt.claims', jsonb_build_object('tenant_id', pg_temp.tb(), 'sub', pg_temp.sys(), 'actor_type', 'system')::text, true);
+INSERT INTO partners.manifest_lines (id, tenant_id, partner_id, manifest_id, receiving_centre_id, line_no, state, patient_full_name, patient_sex, patient_age_years, consent_attested, consent_text_version, orderable_ids, orderables_snapshot, priority, created_at, created_by, updated_by) VALUES
   (pg_temp.uid(1056), pg_temp.tb(), pg_temp.uid(1003), pg_temp.uid(1046), pg_temp.s('b201'), 1, 'draft', 'Test Patient 0005', 'male', 20, true, 'partner-v1', ARRAY[pg_temp.uid(1101)], '[]', 'routine', now(), pg_temp.sys(), pg_temp.sys());
+SELECT set_config('request.jwt.claims', jsonb_build_object('tenant_id', pg_temp.ta(), 'sub', pg_temp.sys(), 'actor_type', 'system')::text, true);
 SELECT pg_temp.ins('partners.pickup_requests', jsonb_build_object('id', pg_temp.uid(r.n), 'tenant_id', pg_temp.ta(), 'partner_id', pg_temp.uid(r.p), 'receiving_centre_id', pg_temp.s(r.ce), 'state', 'requested',
   'window_start', now() + interval '1 day', 'window_end', now() + interval '2 days', 'packages_count', 1))
   FROM (VALUES (1091, 1001, 'a201'), (1092, 1002, 'a202'), (1093, 1001, 'a201')) r(n, p, ce);

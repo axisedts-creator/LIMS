@@ -12,8 +12,11 @@ import { PageHeader } from '@lims/ui/components/PageHeader';
 import { RadioGroup } from '@lims/ui/components/RadioGroup';
 import { Switch } from '@lims/ui/components/Switch';
 import { useToast } from '@lims/ui/components/Toast';
-import { createPrintAction, getPrintAction, listCodesAction, listOverrideReasonsAction, recordOverrideAction, regenerateAction, releaseVersionAction, retryRenderAction, revokeQrAction } from '../server/actions';
-import type { ReportDetail, ReportItem, VersionSummary } from '../server/types';
+import { t } from '@/core/i18n/messages';
+import { isOnline, useOfflineFlows, useOfflineSnapshot } from '@/core/offline/ui/OfflineProvider';
+import { ReportOfflineMarker } from '@/core/offline/ui/OfflineParts';
+import { createPrintAction, getPrintAction, listCodesAction, listPrintProfilesAction, listOverrideReasonsAction, recordOverrideAction, regenerateAction, releaseVersionAction, retryRenderAction, revokeQrAction } from '../server/actions';
+import { PAPER_LABEL, type ReportDetail, type ReportItem, type VersionSummary } from '../server/types';
 import { Chip, When, errorText, formatNpr, hasPerm, humanize, newKey } from './format';
 import { NumberInput, rangeError } from './NumberInput';
 import { ReasonDialog } from './ReasonDialog';
@@ -22,6 +25,8 @@ import { useShortcuts } from './useShortcuts';
 import './report-preview.css';
 
 type Dlg = 'release' | 'print' | 'regenerate' | 'revoke' | 'override' | null;
+/** T0D-PRINTCFG-1 (LD-316): createReportPrint takes only variant letterhead | plain, so "Typed header and footer" sends plain and the saved print profile decides. */
+type Paper = 'letterhead' | 'plain' | 'typed';
 const AUDIENCE: Record<string, string> = { patient: 'Patient', referrer: 'Referring doctor', centre: 'Centre' };
 const KIND: Record<string, string> = { final: 'Final', amended: 'Amended', addendum: 'Addendum', partial: 'Partial', preliminary: 'Preliminary' };
 const BASIS: Record<string, string> = { paid_in_full: 'Paid in full', credit_party: 'Credit party', override: 'Override', no_dues: 'No dues' };
@@ -35,12 +40,27 @@ export interface ReportDetailViewProps { report: ReportDetail; permissions: read
 export function ReportDetailView({ report, permissions }: ReportDetailViewProps) {
   const router = useRouter();
   const toast = useToast();
+  const flows = useOfflineFlows();
+  const snap = useOfflineSnapshot();
+  const offline = !!flows?.printReport && !!snap && !isOnline(snap); // T0D-OFFLINE-4 (LD-322)
   const [dlg, setDlg] = useState<Dlg>(null);
   const [showDiscarded, setShowDiscarded] = useState(false);
   const [heldBalance, setHeldBalance] = useState<number | undefined | null>(null); // null = no blocked release seen in this session
   const [audiences, setAudiences] = useState<string[]>(report.computed_audiences ?? ['patient']);
   const [printOnly, setPrintOnly] = useState(false);
-  const [variant, setVariant] = useState<'letterhead' | 'plain'>('letterhead');
+  const [variant, setVariant] = useState<Paper>('letterhead');
+  const [applies, setApplies] = useState('checking…');
+  // T0D-PRINTCFG-1 done_when (3): show the lab default report profile; a refused read (no reporting.settings.manage) never blocks printing.
+  useEffect(() => {
+    if (dlg !== 'print') return;
+    let alive = true;
+    listPrintProfilesAction('report').then((r) => {
+      if (!alive) return;
+      const p = r.ok ? r.data.find((x) => !x.branch_id && !x.recipient_type) : undefined;
+      setApplies(!r.ok ? 'not known (the print settings could not be read)' : p ? `Lab default, ${PAPER_LABEL[p.paper_mode] ?? p.paper_mode}` : 'Lab default (no print settings saved yet)');
+    }, () => { if (alive) setApplies('not known (the print settings could not be read)'); });
+    return () => { alive = false; };
+  }, [dlg]);
   const [copies, setCopies] = useState<number | ''>(1);
   const [print, setPrint] = useState<{ id: string; state: string } | null>(null);
   const [printTicks, setPrintTicks] = useState(0);
@@ -108,7 +128,16 @@ export function ReportDetailView({ report, permissions }: ReportDetailViewProps)
     setBusy(true);
     setDlgError(undefined);
     try {
-      const r = await createPrintAction(latest.id, { variant, copies }, key.current);
+      if (offline) {
+        // T0D-OFFLINE-4 (LD-322 decision 2; done_when 4): allowed only when every sign-off is accepted by the server or captured on this device;
+        // queues the report.print_marker operation and prints this page with the issued offline, pending sync marker
+        const q = await flows!.printReport!({ report_version_id: latest.id, variant: variant === 'letterhead' ? 'letterhead' : 'plain', copies });
+        if (!q.ok) { setDlgError(q.message); return; }
+        setDlg(null); toast.show({ tone: 'success', title: t('offline.saved_offline') });
+        setTimeout(() => window.print(), 0);
+        return;
+      }
+      const r = await createPrintAction(latest.id, { variant: variant === 'letterhead' ? 'letterhead' : 'plain', copies }, key.current);
       if (r.ok) { rekey(); setDlg(null); setPrint(r.data); setPrintTicks(0); return; }
       setDlgError(errorText(r.code));
     } finally { setBusy(false); }
@@ -147,7 +176,6 @@ export function ReportDetailView({ report, permissions }: ReportDetailViewProps)
       <PageHeader
         title={`Report · ${report.registration_no}`}
         helpKey="reporting.report"
-        breadcrumbs={[{ label: 'Reports', href: '/reporting' }, { label: report.registration_no }]}
         status={<Chip status={report.display_status} />}
         actions={
           <>
@@ -159,6 +187,7 @@ export function ReportDetailView({ report, permissions }: ReportDetailViewProps)
         }
       />
 
+      {latest ? <ReportOfflineMarker reportVersionId={latest.id} /> : null}
       {held ? (
         <Banner tone="warning" title={balance !== undefined ? `Held for dues — ${formatNpr(balance)} outstanding` : 'Held for dues'} {...(canOverride ? { action: { label: 'Record override', onPress: () => setDlg('override') } } : {})} />
       ) : null}
@@ -234,8 +263,9 @@ export function ReportDetailView({ report, permissions }: ReportDetailViewProps)
         title="Print report" isOpen={dlg === 'print'} onClose={() => setDlg(null)} size="sm" isDismissable={false}
         footer={<><Button variant="ghost" onPress={() => setDlg(null)} isDisabled={busy}>Cancel</Button><Button variant="primary" onPress={() => void doPrint()} isLoading={busy}>Print</Button></>}
       >
-        <RadioGroup<'letterhead' | 'plain'> label="Paper" name="variant" value={variant} onChange={setVariant} options={[{ value: 'letterhead', label: 'With letterhead' }, { value: 'plain', label: 'Plain paper (pre-printed letterhead)' }]} />
+        <RadioGroup<Paper> label="Paper" name="variant" value={variant} onChange={setVariant} options={[{ value: 'letterhead', label: 'With letterhead' }, { value: 'plain', label: 'Plain paper (my own pre-printed pad)' }, { value: 'typed', label: 'Typed header and footer' }]} />
         <NumberInput label="Copies" name="copies" min={1} max={5} value={copies} onChange={setCopies} />
+        <p className="lims-description">Profile that applies: {applies}</p>
         {latest && latest.status !== 'released' ? <p className="lims-description">This version is not released yet; the print is stamped NOT RELEASED.</p> : null}
         {dlgError ? <p role="alert" className="lims-error">{dlgError}</p> : null}
       </Dialog>

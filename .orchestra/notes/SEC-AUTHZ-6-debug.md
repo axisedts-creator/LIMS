@@ -1,0 +1,6 @@
+# SEC-AUTHZ-6 debugger
+- Cause: all 7 node failures (tests 9,10,11,13,15,16,23) read tests/security/authz-classification.json, last committed at SEC-AUTHZ-5. Snapshot predates the guards: committed guarded-exact 838 / unguarded still listed, fresh classifier 931 / 0 unguarded in billing, payments, audit. Vitest authz6 suites pass (537/537 per impl note).
+- Fix: none in implementation code; guards are correct. Snapshot is tester-owned (writer/debugger cannot keep a change), so TESTER must run `node tests/security/classify-authz.mjs` to regenerate it and the lane commits it. Not a spec dispute.
+- Separate, not in verify cmd: existing billing/payments suites lack IdentityPort fixtures (~297 tests fail); needs a tester fixture round.
+- Round 2 (verify log 13:41:44): same 7 node failures, same cause (fresh classifier 931 guarded-exact vs stale committed snapshot). No implementation change; guards stay. Needs tester snapshot regen + lane commit, then re-verify.
+- Round 3: log tail unchanged (authz-classification.test.mjs:88 deepStrictEqual, actual guarded-exact 931 vs committed 838). Still no implementation defect; no code change. Blocked on tester regen of tests/security/authz-classification.json + lane commit.

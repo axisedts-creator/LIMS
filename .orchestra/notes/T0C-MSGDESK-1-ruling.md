@@ -1,0 +1,6 @@
+TESTS_WRONG — services/api/src/modules/partners/__tests__/contract/msgdesk1.pending.test.ts:28 pins the partners pendingOperations list to ONLY the MSGDESK ids; other merged LD-321 contract tasks legitimately add ids there.
+1. Binding lead decision LD-349 (inbox brief line 40) rules exactly this case TESTS_WRONG; no implementation change.
+2. LD-325(b) (brief line 34): every T0C contract task (incl. T0C-SALES-1) adds its new operationIds to its module pendingOperations; they stay until the matching T0B task (T0B-SALES-1) removes them. So main carries the 15 partners.sales ids (contracts/openapi/partners.yaml:6144, 6228, 6308, 6392, 6485 … x-permission partners.sales.*).
+3. Brief done_when (7) requires additive changes; it does not forbid other tasks' pending ids.
+Change in the test (replace line 28 only): assert every NEW_OPS id is in `pending`, and every other pending id is the operationId of a partners.yaml operation whose `x-permission` is `partners.sales.read` or `partners.sales.manage` — read from `spec`, no hard-coded count or id list.
+Lines 26, 27 and the coverage tests (21-24, 33-35) stay unchanged. Earlier rulings (items 1-4 of the previous ruling, commits 0503e1f3c and 9f8b59011) still stand.

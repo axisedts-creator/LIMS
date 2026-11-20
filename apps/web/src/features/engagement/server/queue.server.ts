@@ -4,6 +4,7 @@ import 'server-only';
 import { notFound } from 'next/navigation';
 import { serverFetch } from '@/core/api/server-fetch';
 import { getShellSession } from '@/core/session/server';
+import { isPending } from '@/core/shell/NotAvailable';
 import type { Queue, QueueCounter, QueueDisplayRow, QueueToken } from '../components/queue-model';
 
 export const OPERATE = 'engagement.queue.operate';
@@ -31,7 +32,8 @@ export async function requirePerm(perm: string) {
 /** Centre the console works on: ?centre_id=<uuid> when valid, else the first centre the actor can see. */
 export async function resolveCentre(requested: string | undefined): Promise<string | undefined> {
   if (requested && UUID_RE.test(requested)) return requested;
-  const c = await serverFetch<{ data?: { centre_id?: string; id?: string }[] }>('/v1/identity/centres').catch(() => undefined);
+  // T0D-UNSLOP-1: a pending centres read (501 operation_pending) is not "no centre"; the page loaders turn it into NotAvailable.
+  const c = await serverFetch<{ data?: { centre_id?: string; id?: string }[] }>('/v1/identity/centres').catch((e: unknown) => { if (isPending(e)) throw e; return undefined; });
   const first = rows(c)[0];
   return first?.centre_id ?? first?.id;
 }

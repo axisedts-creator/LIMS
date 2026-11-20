@@ -8,6 +8,7 @@ import 'order_detail_screen.dart';
 import 'orders_api.dart';
 import 'orders_format.dart';
 import 'orders_providers.dart';
+import 'status_look.dart';
 
 class OrdersListScreen extends ConsumerStatefulWidget {
   const OrdersListScreen({super.key});
@@ -64,9 +65,9 @@ class _OrdersListScreenState extends ConsumerState<OrdersListScreen> {
 
   Widget _body(BuildContext context) {
     if (_rows.isEmpty) {
-      if (_failed) return LimsErrorState(title: 'Something went wrong', message: 'We could not load your orders.', onRetry: _reload);
+      if (_failed) return StateCard(LimsErrorState(title: 'Something went wrong', message: 'We could not load your orders.', onRetry: _reload));
       if (!_loaded) return const Center(child: CircularProgressIndicator());
-      return const LimsEmptyState(title: 'No orders yet');
+      return const StateCard(LimsEmptyState(title: 'No orders yet'));
     }
     return RefreshIndicator(
       onRefresh: _reload,
@@ -101,7 +102,7 @@ class _OrderRow extends StatelessWidget {
         child: LimsCard(
           title: dateText(order['registered_at']),
           child: Wrap(spacing: LimsTokens.space2, runSpacing: LimsTokens.space1, crossAxisAlignment: WrapCrossAlignment.center, children: [
-            LimsStatusChip(kind: 'generic', status: order['stage'] is String ? order['stage']! as String : 'unknown', tone: tone, label: label),
+            ToneChip(LimsStatusChip(kind: 'generic', status: order['stage'] is String ? order['stage']! as String : 'unknown', tone: tone, label: label)),
             if (order['payment_due'] == true)
               Row(mainAxisSize: MainAxisSize.min, children: [
                 Icon(Icons.payments_outlined, color: warn.fg),

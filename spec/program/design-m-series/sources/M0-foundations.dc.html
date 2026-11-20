@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Metro Labs brand foundations</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap">
+<style>
+:root{--lime:#A0C032;--lime-soft:#ECF3D7;--green:#005A52;--forest:#014D3C;--ink:#0A1A17;--muted:#5C6A66;--bg:#F3F3F3;--line:#ECECEC}
+body{margin:0;font-family:'Poppins',system-ui,sans-serif;color:var(--ink);background:var(--bg)}
+@keyframes rise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+@keyframes sheen{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+.rise{animation:rise .6s cubic-bezier(.2,.7,.2,1) both}
+.sheen{background-size:200% 200%;animation:sheen 8s ease-in-out infinite}
+.card{background:#fff;border-radius:24px;padding:28px}
+.h{margin:0;font-weight:600;letter-spacing:-.01em}
+.sw{border-radius:16px;height:96px;display:flex;align-items:flex-end;padding:12px 14px;box-sizing:border-box;font-size:13px;font-weight:600}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:5px 12px;border-radius:999px;white-space:nowrap}
+.btn{min-height:48px;padding:0 24px;border:0;border-radius:999px;font:600 15px 'Poppins',system-ui,sans-serif;cursor:pointer;display:inline-flex;align-items:center;gap:8px}
+.btn:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+.tile{width:48px;height:48px;border-radius:16px;background:var(--lime-soft);display:grid;place-items:center;flex:none}
+@media (prefers-reduced-motion:reduce){.rise,.sheen{animation:none}}
+</style>
+</helmet>
+<div style="min-height:1000px;background:var(--bg);padding:48px;box-sizing:border-box;display:flex;flex-direction:column;gap:24px">
+  <div style="display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px">
+    <div style="display:flex;flex-direction:column;gap:8px;max-width:820px">
+      <span class="chip" style="align-self:flex-start;background:var(--lime-soft);color:var(--forest)">Foundations, measured from the current app</span>
+      <h1 class="h" style="font-size:44px;line-height:1.1;font-weight:700;letter-spacing:-.03em">Metro Labs design foundations</h1>
+      <p style="margin:0;font-size:16px;line-height:1.6;color:var(--muted)">Every colour below was sampled from the screenshot of the my health now app. Lime is a fill colour. It never carries text on white, because it only reaches 2.1 to 1 contrast there.</p>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start">
+    <div style="flex:3 1 640px;min-width:0;display:flex;flex-direction:column;gap:24px">
+    <section class="card rise" style="display:flex;flex-direction:column;gap:20px">
+      <h2 class="h" style="font-size:22px">Colour</h2>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px">
+        <sc-for list="{{brand}}" as="s" hint-placeholder-count="6">
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div class="sw" style="background:{{s.hex}};color:{{s.on}}">{{s.hex}}</div>
+            <div style="display:flex;flex-direction:column"><span style="font-weight:600;font-size:14px">{{s.name}}</span><span style="font-size:13px;color:var(--muted);line-height:1.4">{{s.use}}</span></div>
+          </div>
+        </sc-for>
+      </div>
+      <h3 class="h" style="font-size:16px">Gradients</h3>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px">
+        <div class="sw sheen" style="height:120px;background-image:linear-gradient(135deg,#1F6E4B 0%,#79AD3A 100%);color:#fff;flex-direction:column;align-items:flex-start;justify-content:flex-end;gap:2px"><span style="font-size:15px">Action gradient</span><span style="font-weight:400;opacity:.95">#1F6E4B to #79AD3A, as on the active tab</span></div>
+        <div class="sw sheen" style="height:120px;background-image:linear-gradient(135deg,#005A52 0%,#2F7D46 55%,#A0C032 100%);color:#fff;flex-direction:column;align-items:flex-start;justify-content:flex-end;gap:2px"><span style="font-size:15px">Hero gradient</span><span style="font-weight:400;opacity:.95">Deep green into lime, for banners and entry screens</span></div>
+      </div>
+      <h3 class="h" style="font-size:16px">Status colours (not in the app today)</h3>
+      <div style="display:flex;flex-wrap:wrap;gap:10px">
+        <sc-for list="{{status}}" as="t" hint-placeholder-count="5"><span class="chip" style="background:{{t.bg}};color:{{t.fg}}">{{t.label}}</span></sc-for>
+      </div>
+    </section>
+
+    <section class="card rise" style="animation-delay:.08s;display:flex;flex-direction:column;gap:18px">
+      <h2 class="h" style="font-size:22px">Logo</h2>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1.3fr;gap:14px">
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="height:112px;border-radius:16px;background:var(--bg);display:flex;align-items:center;justify-content:center">
+            <img src="/_blob/0babe020663924e19939fb8bdeb72484" alt="Metro Labs mark" style="height:64px;width:auto">
+          </div>
+          <span style="font-size:12px;color:var(--muted)">Square mark, light backgrounds</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="height:112px;border-radius:16px;background:var(--forest);display:flex;align-items:center;justify-content:center">
+            <img src="/_blob/fc5dceab92f2145d47d609e2807f0f99" alt="Metro Labs mark, white" style="height:64px;width:auto">
+          </div>
+          <span style="font-size:12px;color:var(--muted)">Square mark, on forest</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="height:112px;border-radius:16px;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:0 20px">
+            <img src="/_blob/2c5f4d9357fe0a0081e8f41e76b02e8f" alt="Metro Labs wordmark" style="height:44px;width:auto;max-width:100%">
+          </div>
+          <span style="font-size:12px;color:var(--muted)">Landscape wordmark, light backgrounds</span>
+        </div>
+      </div>
+    </section>
+    </div>
+
+    <div style="flex:2 1 420px;min-width:0;display:flex;flex-direction:column;gap:24px">
+      <section class="card rise" style="animation-delay:.08s;display:flex;flex-direction:column;gap:14px">
+        <h2 class="h" style="font-size:22px">Type: Poppins</h2>
+        <sc-for list="{{type}}" as="t" hint-placeholder-count="5">
+          <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;border-top:1px solid var(--line);padding-top:10px"><span style="font-size:{{t.size}};font-weight:{{t.weight}};letter-spacing:{{t.track}};line-height:1.1">{{t.sample}}</span><span style="font-size:12px;color:var(--muted);white-space:nowrap">{{t.spec}}</span></div>
+        </sc-for>
+      </section>
+
+      <section class="card rise" style="animation-delay:.16s;display:flex;flex-direction:column;gap:18px">
+        <h2 class="h" style="font-size:22px">Components</h2>
+        <div style="display:flex;flex-wrap:wrap;gap:12px">
+          <button class="btn" style="background:var(--green);color:#fff">Primary</button>
+          <button class="btn" style="background:var(--lime);color:#00362F">Lime action</button>
+          <button class="btn" style="background:#fff;color:var(--green);box-shadow:inset 0 0 0 2px var(--green)">Outline</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:16px;background:#fff;border-radius:20px;border:1px solid var(--line);padding:12px 16px">
+          <span class="tile"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#005A52" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6h14l-1.500 8H8zM6 6 5 3H2M9 19a1 1 0 1 0 0 .01M17 19a1 1 0 1 0 0 .01"/></svg></span>
+          <div style="flex:1;display:flex;flex-direction:column"><span style="font-weight:600;font-size:16px">My Bookings</span><span style="font-size:14px;color:var(--muted)">View your order history</span></div>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#5C6A66" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
+        </div>
+        <div style="display:flex;align-items:center;gap:14px">
+          <span style="width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#1F6E4B,#79AD3A);display:grid;place-items:center;box-shadow:0 8px 20px rgba(0,90,82,.3)"><svg width="28" height="28" viewBox="0 0 24 24" fill="#E4F239" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.400 3.600-7 8-7s8 2.600 8 7z"/></svg></span>
+          <span style="font-size:14px;color:var(--muted);line-height:1.5;max-width:260px">Active tab: gradient disc with a pale lime icon. Kept from the app.</span>
+        </div>
+      </section>
+
+      <section class="card rise" style="animation-delay:.24s;display:flex;flex-direction:column;gap:10px">
+        <h2 class="h" style="font-size:22px">Shape and motion</h2>
+        <p style="margin:0;font-size:14px;line-height:1.7;color:var(--muted)">Cards 24 px radius, icon tiles 16 px, buttons and chips fully round. White cards on a #F3F3F3 page, no hard borders. Motion: 450 ms ease-out when content enters, 150 ms on hover and press, one looping animation per screen at most, all of it off under reduced motion.</p>
+      </section>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1000}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      brand: [
+        { name: 'Metro green', hex: '#005A52', on: '#FFFFFF', use: 'Logo, primary buttons, navigation. 8.0 to 1 on white.' },
+        { name: 'Forest', hex: '#014D3C', on: '#FFFFFF', use: 'Headlines and brand text.' },
+        { name: 'Metro lime', hex: '#A0C032', on: '#00362F', use: 'Logo disc, highlights, fills. Dark text only.' },
+        { name: 'Pale lime', hex: '#ECF3D7', on: '#014D3C', use: 'Icon tiles, soft chips, selected rows.' },
+        { name: 'Pop', hex: '#E4F239', on: '#00362F', use: 'Icon on a green disc. Small touches only.' },
+        { name: 'Page grey', hex: '#F3F3F3', on: '#0A1A17', use: 'App background behind white cards.' },
+        { name: 'Ink', hex: '#0A1A17', on: '#FFFFFF', use: 'Body and titles.' },
+        { name: 'Muted', hex: '#5C6A66', on: '#FFFFFF', use: 'Secondary text. 5.6 to 1. The app uses #767676, too light on grey.' }
+      ],
+      status: [
+        { label: 'Ready, normal', bg: '#E4F4DE', fg: '#14612F' },
+        { label: 'In progress', bg: '#E3EEFB', fg: '#1A4F8B' },
+        { label: 'Waiting, urgent', bg: '#FFF1D0', fg: '#7A4B00' },
+        { label: 'STAT, overdue, critical', bg: '#FDE7E4', fg: '#9C1C12' },
+        { label: 'Not started', bg: '#EEF0EC', fg: '#46524E' }
+      ],
+      type: [
+        { sample: 'Every result', size: '40px', weight: '700', track: '-.03em', spec: 'Display 40 / 700' },
+        { sample: 'Worklist', size: '30px', weight: '600', track: '-.02em', spec: 'Page title 30 / 600' },
+        { sample: 'Needs verification', size: '20px', weight: '600', track: '-.01em', spec: 'Section 20 / 600' },
+        { sample: 'View your order history', size: '16px', weight: '400', track: '0', spec: 'Body 16 / 400' },
+        { sample: 'Collected 08:12', size: '13px', weight: '500', track: '0', spec: 'Caption 13 / 500' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -14,6 +14,7 @@ import { cleanup, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
+import { expectErrorState } from '@/__tests__/uilist1.helpers';
 import { ORIGIN, U, axeClean, isEnabled, noRawCodes, npr, pick, problem, recorder, wrap, type Call } from './pg-t19.helpers';
 
 const refresh = vi.hoisted(() => vi.fn());
@@ -91,7 +92,7 @@ const api = setupServer(
   http.get(`${ORIGIN}/v1/payments/coded-sets/finding_kinds`, () => HttpResponse.json({ data: codes.finding_kinds })),
   http.get(`${ORIGIN}/v1/payments/coded-sets/finding_resolutions`, () => HttpResponse.json({ data: codes.finding_resolutions })),
 );
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { cleanup(); api.resetHandlers(); calls.length = 0; refresh.mockReset(); perms.current = READ; reset(); });
 afterAll(() => api.close());
 
@@ -449,14 +450,15 @@ describe('reconciliation page.tsx — requests (P12 / P15 / P24 / P1)', () => {
     for (const c of calls) { expect(c.url.searchParams.get(key)).not.toBe(bad); expect(c.url.search).not.toMatch(/drop|x=1/); }
   });
 
-  it('API 403 shows no run / finding data; API 5xx rejects so error.tsx renders', async () => {
+  it('API 403 shows no run / finding data; API 5xx renders the in-page ErrorState (LD-353 rule 6: title and filters stay, reference, Retry)', async () => {
     perms.current = RESOLVE;
     listRuns = () => problem('auth.forbidden', 403);
     try { await show(); } catch { /* may reject or render a denied state */ }
     expect(document.body.textContent).not.toMatch(/Nightly|Provider refund not recorded/);
     cleanup();
-    listRuns = () => problem('common.dependency_unavailable', 503);
-    await expect(show()).rejects.toBeTruthy();
+    listRuns = () => problem('common.dependency_unavailable', 503, { request_id: 'req-synthetic-l2' });
+    const { container } = await show();
+    expectErrorState(container, '/payments/reconciliation', { filters: 1 });
   });
 
   it('axe: page output has no violations', async () => { perms.current = RESOLVE; await show(); await axeClean(); });

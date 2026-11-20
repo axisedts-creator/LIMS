@@ -85,6 +85,9 @@ export async function seedWorld(s: Side): Promise<World> {
   const transition = hc.transition(s, visit.id); await seed('homecollection.visit_transitions', transition);
   const assignment = hc.assignment(s, visit.id, route.id); await seed('homecollection.visit_assignments', assignment);
   const visitSpecimen = hc.visitSpecimen(s, { specimen, order }, visit.id); await seed('homecollection.visit_specimens', visitSpecimen);
+  // LD-356 isolation: seed is ON CONFLICT DO NOTHING, so a settings row left by an earlier file wins. Never delete it (audited table); re-read the real row id.
   const settings = hc.settings(s); await seed('homecollection.settings', settings);
+  const real = await superTx((tx) => tx.query('SELECT id FROM homecollection.settings WHERE tenant_id = $1', [TENANT[s]]));
+  if (real.rows[0]) settings.id = real.rows[0].id;
   return { patient, order, specimen, visit, bookingVisit, route, bookingRef, device, batch, mutation, collection, handover, handoverItem, flag, location, transition, assignment, visitSpecimen, settings };
 }

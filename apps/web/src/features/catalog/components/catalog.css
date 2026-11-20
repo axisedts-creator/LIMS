@@ -16,4 +16,31 @@
 .catalog-swatch-green { background: var(--lims-tone-success-fg); border-color: var(--lims-tone-success-fg); }
 .catalog-swatch-blue { background: var(--lims-tone-info-fg); border-color: var(--lims-tone-info-fg); }
 .catalog-swatch-grey { background: var(--lims-neutral-300); }
+/* T0D-TESTMGMT-1 (LD-318, T0D-DENSITY-1): dense test management forms, two panes, two list picker, report preview. */
+.catalog-dense-form { display: flex; flex-direction: column; gap: var(--lims-space-2); }
+.catalog-grid-section { display: flex; flex-direction: column; gap: var(--lims-space-1); }
+.catalog-grid-title { font-size: var(--lims-font-size-sm, inherit); font-weight: 600; margin: 0; }
+.catalog-grid { display: grid; gap: var(--lims-space-2); align-items: end; }
+.catalog-grid[data-columns="3"] { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.catalog-grid[data-columns="4"] { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.catalog-grid[data-columns="5"] { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.catalog-grid[data-columns="6"] { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+.catalog-check { display: inline-flex; align-items: center; gap: var(--lims-space-1); }
+.catalog-form-with-preview { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 1fr); gap: var(--lims-space-3); align-items: start; }
+.catalog-preview-header { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--lims-space-1); margin: 0; }
+.catalog-preview-header dd { margin: 0; }
+.catalog-mini-select { position: relative; }
+.catalog-mini-listbox { position: absolute; z-index: 10; inset-inline: 0; margin: 0; padding: 0; list-style: none; background: var(--lims-neutral-0); border: 1px solid var(--lims-neutral-300); }
+.catalog-option-active, .catalog-row-chosen { background: var(--lims-neutral-100, var(--lims-neutral-0)); outline: 1px solid var(--lims-neutral-300); }
+.catalog-two-pane { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: var(--lims-space-3); align-items: start; }
+.catalog-pane { display: flex; flex-direction: column; gap: var(--lims-space-2); }
+.catalog-pane-item { width: 100%; text-align: start; background: none; border: 0; padding: var(--lims-space-1); cursor: pointer; }
+.catalog-pane-item[aria-current="true"] { font-weight: 600; outline: 1px solid var(--lims-neutral-300); }
+.catalog-two-list { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: var(--lims-space-2); align-items: start; }
+.catalog-pick-list { max-block-size: 24rem; overflow-y: auto; margin: 0; border: 1px solid var(--lims-neutral-300); }
 .catalog-swatch-black { background: var(--lims-neutral-900); border-color: var(--lims-neutral-900); }
+/* T0D-UILIST-3, LD-353 template 6 ENTRY FORM (price simulator): two columns from 64rem, sticky footer with the submit button. */
+.lims-entry-form { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--lims-space-4); align-items: start; }
+@media (min-width: 64rem) { .lims-entry-form { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.lims-entry-col { display: flex; flex-direction: column; gap: var(--lims-space-2); min-width: 0; }
+.lims-entry-footer { grid-column: 1 / -1; position: sticky; bottom: 0; display: flex; justify-content: flex-start; gap: var(--lims-space-2); padding-block: var(--lims-space-3); border-top: 0.0625rem solid var(--lims-neutral-200); background: var(--lims-neutral-0); }

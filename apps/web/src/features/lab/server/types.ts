@@ -102,6 +102,11 @@ export interface QueueResult {
   unit_mismatch: boolean;
   instrument_flags?: string[];
   on_hold: boolean;
+  // T0D-VERLEVEL-1 (LD-316): ResultDto sign-off counters; absent on old rows
+  current_version_no?: number;
+  signoff_count?: number;
+  signoff_required?: number;
+  next_step?: 'verify' | 'approve' | 'none';
 }
 export interface QueueItem {
   result: QueueResult;

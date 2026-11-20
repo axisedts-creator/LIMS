@@ -14,7 +14,8 @@
 //      region says "Nothing needs you" (a sentence, not an empty box).
 //   3. Money strip: a region named /money/i, present ONLY when the API sent a paisa tile (it is the API that applies billing.cash_report.read / analytics scope;
 //      permissions are not changed here), containing every sent money tile with the currency "Rs." and the period label (A.D.). Pipeline and needs-you carry no money.
-//   4. No grid of equal KPI tiles (10-DESIGN-SYSTEM s4, s6): no `.lims-grid` of stat tiles; at most 3 per region and 2 outside (10-DESIGN-SYSTEM.md:101,125; RS-C8-ruling.md).
+//   4. ONE row of equal count tiles (T0D-UNSLOP-1 brief (C), LD-353 rule 8 and template 5; ruling T0D-UNSLOP-1-ruling.md overrides 10-DESIGN-SYSTEM.md:101,125 "no grid of equal KPI tiles"):
+//      no `.lims-grid`; every `.lims-stat` shares one parent that holds only tiles; pipeline stages and needs-you items are links/list items, never `.lims-stat`.
 //   5. DOM order: pipeline, then needs you, then money (reading and Tab order = the order of importance). One h1.
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen, within } from '@testing-library/react';
@@ -63,7 +64,7 @@ async function open(tiles: Record<string, unknown>) {
   return render(<ToastProvider>{el}</ToastProvider>);
 }
 
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 beforeEach(() => resetApi());
 afterEach(() => { cleanup(); api.resetHandlers(); });
 afterAll(() => api.close());
@@ -170,13 +171,18 @@ describe('RS-C8 dashboard — money strip only where the API sent money, with cu
 });
 
 describe('RS-C8 dashboard — arrangement (s6: no grid of equal KPI tiles, one container level)', () => {
-  it('no grid of stat tiles (at most 3 per region, 2 outside them) and one h1', async () => {
+  it('no .lims-grid; every .lims-stat shares one parent that holds only tiles; pipeline stages and needs-you items are not tiles; one h1', async () => {
     const { container } = await open(FULL);
     const stats = Array.from(container.querySelectorAll('.lims-stat'));
-    for (const e of stats) expect(e.closest('.lims-grid'), 'a .lims-stat inside a .lims-grid').toBeNull();
-    const regions = [pipeline(), needsYou(), moneyStrip()].filter((r): r is HTMLElement => r !== null);
-    for (const r of regions) expect(r.querySelectorAll('.lims-stat').length).toBeLessThanOrEqual(3);
-    expect(stats.filter((e) => !regions.some((r) => r.contains(e))).length).toBeLessThanOrEqual(2);
+    expect(container.querySelector('.lims-grid'), 'a .lims-grid on the page').toBeNull();
+    expect(stats.length).toBeGreaterThan(0);
+    const parents = new Set(stats.map((e) => e.parentElement));
+    expect(parents.size, 'tiles are spread over several containers').toBe(1);
+    expect([...[...parents][0]!.children].every((c) => stats.includes(c)), 'the tile row holds only tiles').toBe(true);
+    expect(pipeline().querySelectorAll('.lims-stat'), 'pipeline stage as a tile').toHaveLength(0);
+    for (const li of [...within(pipeline()).getAllByRole('listitem'), ...within(within(needsYou()).getByRole('list')).getAllByRole('listitem')]) {
+      expect(li.matches('.lims-stat') || li.querySelector('.lims-stat'), 'a list item that is a tile').toBeFalsy();
+    }
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
   });
 

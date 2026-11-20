@@ -15,6 +15,7 @@ import type { ChannelAccount, MessageTemplate, MessageText } from '../server/typ
 import { Chip, errorText, hasPerm, humanize } from './format';
 import { NativeSelect } from './ReasonDialog';
 import { SimpleTable, type Col } from './SimpleTable';
+import { t } from '@/core/i18n/messages';
 
 const CHANNEL: Record<string, string> = { whatsapp: 'WhatsApp', sms: 'SMS', email: 'Email' };
 const PROVIDERS: Record<string, [string, string][]> = {
@@ -45,7 +46,7 @@ export function MessagesChannels({ templates, accounts, permissions, productionM
   ];
   return (
     <section aria-label="Messages and channels">
-      <PageHeader title="Messages & channels" helpKey="reporting.messages" />
+      <PageHeader title={t('nav.reporting.messages')} helpKey="reporting.messages" />
       <div className="lims-card">
         <h2>Message templates</h2>
         <SimpleTable caption="Message templates" columns={cols} rows={templates} getRowId={(t) => t.code} empty={{ title: 'No message templates yet.' }} />

@@ -3,16 +3,24 @@
 // LD-140 (2026-11-13): list + dialogs; this screen has NO primary button (row actions are secondary); status = tone + icon + word.
 // Gating: the page needs inventory.item.read; "Post to store…" and "Dismiss" need inventory.master.manage (the API enforces it too).
 // The server posts the movements with the ORIGINAL business date; the screen only sends the store (or the reason) and re-reads the queue.
+// T0D-UICONSOLE-1 (LD-353 template 2 CONSOLE): PageHeader, one (empty) FilterBar, StatTiles (Waiting, Analysers affected, Oldest age) above a SplitConsole: queue at left
+// (Age first, API order), detail at right (the columns the table had, the reason chip, History), sticky bar = the row actions the table had, same gate, same dialogs.
 import { useRef, useState, type ComponentProps } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@lims/ui/components/Button';
-import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
+import { EmptyRow, PlaceholderRows } from '@lims/ui/components/DataTable';
 import { DateText } from '@lims/ui/components/DateText';
 import { Dialog } from '@lims/ui/components/Dialog';
+import { EmptyState } from '@lims/ui/components/EmptyState';
+import { FilterBar } from '@lims/ui/components/FilterBar';
 import { Inline } from '@lims/ui/components/Inline';
 import { PageHeader } from '@lims/ui/components/PageHeader';
+import { SplitConsole } from '@lims/ui/components/SplitConsole';
 import { Stack } from '@lims/ui/components/Stack';
+import { StatTile, StatTileRow } from '@lims/ui/components/StatTile';
 import { useToast } from '@lims/ui/components/Toast';
+import { t } from '@/core/i18n/messages';
+import { Facts, History, ShortcutKey, hhmm, itemProps, oldest, useNow } from './consoleParts';
 import { dismissFactAction, listFactsAction, resolveFactAction } from '../server/actions';
 import type { CodedValue, Fact, Instrument, Store, TestRef } from '../server/types';
 import { CONSUMPTION_HELP } from './RulesView';
@@ -20,6 +28,7 @@ import { Chip, Pick, ProblemBanner, useAttemptKey, type Failure } from './shared
 
 type IsoUtc = NonNullable<ComponentProps<typeof DateText>['value']>;
 const KIND: Record<string, string> = { test: 'Test result', analyte: 'Analyte result', rerun: 'Rerun', qc: 'QC result', calibration: 'Calibration', fixed: 'Analyser-day' };
+const HEADERS = ['Age', 'Occurred', 'Kind', 'Analyser', 'Test'];
 
 export interface UnresolvedViewProps {
   facts: readonly Fact[];
@@ -40,6 +49,8 @@ export function UnresolvedView(p: UnresolvedViewProps) {
   const [more, setMore] = useState<Failure>();
   const [loading, setLoading] = useState(false);
   const [acting, setActing] = useState<{ kind: 'post' | 'dismiss'; fact: Fact }>();
+  const [selectedId, setSelectedId] = useState<string>();
+  const now = useNow();
 
   const loadMore = async () => {
     if (!cursor) return;
@@ -58,33 +69,74 @@ export function UnresolvedView(p: UnresolvedViewProps) {
     router.refresh();
   };
 
-  const columns: ColumnDef<Fact>[] = [
-    { id: 'occurred', header: 'Occurred', isRowHeader: true, cell: (f) => (f.occurred_at ? <DateText value={f.occurred_at as IsoUtc} withTime /> : '—') },
-    { id: 'kind', header: 'Kind', cell: (f) => KIND[f.fact_kind] ?? f.fact_kind },
-    { id: 'analyser', header: 'Analyser', cell: (f) => p.instruments.find((i) => i.id === f.instrument_id)?.instrument_code ?? '—' },
-    { id: 'test', header: 'Test', cell: (f) => { const t = p.tests.find((x) => x.id === f.test_id); return t ? `${t.code} · ${t.name}` : '—'; } },
-    { id: 'reason', header: 'Reason', cell: () => <Chip tone="warning" label="No store found" /> },
-    ...(p.canManage
-      ? [{
-          id: 'actions',
-          header: 'Actions',
-          cell: (f: Fact) => (
-            <Inline gap={1}>
-              <Button size="sm" onPress={() => setActing({ kind: 'post', fact: f })}>Post to store…</Button>
-              <Button size="sm" variant="ghost" onPress={() => setActing({ kind: 'dismiss', fact: f })}>Dismiss</Button>
-            </Inline>
-          ),
-        }]
-      : []),
-  ];
+  const kind = (f: Fact) => KIND[f.fact_kind] ?? f.fact_kind;
+  const analyser = (f: Fact) => p.instruments.find((i) => i.id === f.instrument_id)?.instrument_code ?? '—';
+  const test = (f: Fact) => { const x = p.tests.find((y) => y.id === f.test_id); return x ? `${x.code} · ${x.name}` : '—'; };
+  const age = (f: Fact) => (f.occurred_at ? now - Date.parse(f.occurred_at) : 0);
+  const sel = rows.find((f) => f.id === selectedId);
+  const title = t('inventory.nav.unresolved');
+
+  const list = (
+    <div className="lims-data-table"><div className="lims-table-scroll">
+      <table className="lims-table">
+        <caption className="lims-visually-hidden">{title}</caption>
+        <thead><tr>{HEADERS.map((h) => <th key={h} scope="col">{h}</th>)}</tr></thead>
+        <tbody>
+          {rows.length === 0 ? <EmptyRow colSpan={HEADERS.length}><EmptyState title="Nothing waiting" /></EmptyRow> : null}
+          {rows.map((f) => (
+            <tr key={f.id} {...itemProps(f.id, selectedId, setSelectedId)}>
+              <td suppressHydrationWarning>{f.occurred_at ? hhmm(age(f)) : '—'}</td>
+              <td>{f.occurred_at ? <DateText value={f.occurred_at as IsoUtc} withTime /> : '—'}</td>
+              <td>{kind(f)}</td>
+              <td>{analyser(f)}</td>
+              <td>{test(f)}</td>
+            </tr>
+          ))}
+        </tbody>
+        {rows.length === 0 ? <PlaceholderRows colSpan={HEADERS.length} /> : null}
+      </table>
+    </div></div>
+  );
+
+  const detail = sel ? (
+    <>
+      <h2>{kind(sel)}</h2>
+      <Facts items={[
+        ['Occurred', sel.occurred_at ? <DateText key="o" value={sel.occurred_at as IsoUtc} withTime /> : '—'],
+        ['Kind', kind(sel)],
+        ['Analyser', analyser(sel)],
+        ['Test', test(sel)],
+        ['Reason', <Chip key="r" tone="warning" label="No store found" />],
+      ]} />
+      <History events={sel.occurred_at ? [['Occurred', sel.occurred_at] as const] : []} />
+    </>
+  ) : <p>Select a waiting record to see it here.</p>;
+
+  // T0D-UICONSOLE-1: the row actions the table had (inventory.master.manage only), now for the selected record; P runs the first one.
+  const post = sel ? () => setActing({ kind: 'post', fact: sel }) : undefined;
+  const bar = sel && p.canManage ? (
+    <Inline gap={1}>
+      <Button size="sm" onPress={post!}>Post to store… (P)</Button>
+      <Button size="sm" variant="ghost" onPress={() => setActing({ kind: 'dismiss', fact: sel })}>Dismiss</Button>
+    </Inline>
+  ) : undefined;
 
   return (
-    <section aria-label="Waiting consumption">
-      <PageHeader title="Waiting consumption" helpKey="inventory.help.consumption_model" />
+    <section aria-label={title}>
+      <PageHeader title={title} helpKey="inventory.help.consumption_model" />
       <Stack>
         <p>These deductions could not be posted because no store is linked to the analyser and no default store is set.</p>
         <a className="lims-link" href={CONSUMPTION_HELP}>Help: how automatic deduction works</a>
-        <DataTable caption="Waiting consumption" columns={columns} rows={rows} getRowId={(f) => f.id} emptyState={{ title: 'Nothing waiting' }} />
+        {/* the screen reads no filter today: the one FilterBar of the template stays empty (no invented filter) */}
+        <FilterBar filters={[]} value={{}} onChange={() => undefined} onReset={() => undefined} />
+        <StatTileRow>
+          <StatTile label="Waiting" value={String(rows.length)} />
+          <StatTile label="Analysers affected" value={String(new Set(rows.flatMap((f) => (f.instrument_id ? [f.instrument_id] : []))).size)} />
+          <StatTile label="Oldest age" value={oldest(rows.filter((f) => f.occurred_at).map(age))} />
+        </StatTileRow>
+        <ShortcutKey letter="P" run={bar ? post : undefined}>
+          <SplitConsole list={list} detail={detail} actions={bar} listLabel="Waiting records" detailLabel="Waiting record" />
+        </ShortcutKey>
         <ProblemBanner problem={more} />
         {cursor ? <div><Button isLoading={loading} onPress={() => void loadMore()}>Load more</Button></div> : null}
       </Stack>

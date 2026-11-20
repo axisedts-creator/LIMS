@@ -1,0 +1,9 @@
+# T0D-WAKE-1 tests (tester)
+Files (apps/web): `src/core/session/__tests__/wake1.c2.test.ts`, `src/__tests__/wake1.middleware.test.ts`, `src/features/admin/auth/__tests__/wake1.actions.test.ts`, `wake1.component.test.tsx`, `vitest.wake1.config.ts` (same dir).
+Run: `.orchestra/notes/T0D-WAKE-1-verify.cmd` (wake1 config + packages/ui no-raw-style-literals lint, as T0D-MSERIES-5).
+CONTRACT (tester-chosen, no new error code; writer follows or disputes here): no answer (fetch rejects: timeout or network) -> `waking: true` flag on `Resolution {ok:false,status:503,dependency_unavailable}` (c2.ts) and on the action `Fail` (actions.ts `call()`); HTTP answers never carry it.
+Middleware: document + waking -> `NextResponse.rewrite` to `/auth/waking` (new page `(auth)/auth/waking/page.tsx`, server component, renders `<WakingState/>`); JSON -> problem+json 503 as today; 401 -> 307 as today.
+`features/admin/auth/WakingState.tsx`: `WakingState({onRetry?})`, h1 "The server is waking up", "This can take up to a minute after a quiet period", button "Retry", one auto `onRetry` at 15000 ms (default = `useRouter().refresh()`). LoginForm / MfaChallengeForm / SetPasswordForm show it when the result has `waking`, and re-submit the same values on Retry and once at 15 s. `ActionResult`/`Fail` types gain `waking?: true`.
+Timeouts: AbortSignal.timeout in c2.ts and actions.ts must be > 0 and <= 8000 (guard; passes today at 5000).
+State now: 10 tests red for the right reason (no `waking` flag, no rewrite, no waking page); wake1.component fails to import `../WakingState`, so its 20+ tests (forms, timers, axe) have not run yet.
+NOT verified: fake-timer behaviour of the form tests (setTimeout/clearTimeout faked, userEvent delay:null) could not be exercised before the component exists; if a test is wrong once WakingState exists, the writer reports it to the arbiter.

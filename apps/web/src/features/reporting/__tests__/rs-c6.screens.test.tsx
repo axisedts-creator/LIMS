@@ -183,11 +183,18 @@ describe('RS-C6 delivery screens', () => {
 });
 
 describe('RS-C6 worklist', () => {
-  it('axe clean; one primary at most; tabs and filters keep working markup', async () => {
+  it('axe clean; one primary at most; the FilterBar status control offers the 6 statuses (LD-353 template 1, T0D-UILIST-1: replaces the tab bar)', async () => {
+    const u = userEvent.setup();
     const W = await loadWorklist();
     wrap(<W reports={[summary()] as never} tab="ready_to_release" permissions={BULK} centres={centres} />);
     expect(primaryButtons().length).toBeLessThanOrEqual(1);
-    expect(screen.getAllByRole('tab').length).toBe(6);
+    // LD-395: Status is a FilterBar select since LD-353, so count its options, not tabs.
+    expect(screen.queryAllByRole('tab').length).toBe(0);
+    await u.click(within(screen.getByRole('search')).getByRole('button', { name: /status/i }));
+    const names = (await screen.findAllByRole('option')).map((o) => o.textContent ?? '');
+    expect(names.length).toBe(6);
+    for (const l of [/awaiting content/i, /ready to release/i, /held/i, /render failed/i, /released today/i, /^all$/i]) expect(names.some((n) => l.test(n)), String(l)).toBe(true);
+    await u.keyboard('{Escape}');
     await noSeriousAxe();
   });
 });

@@ -78,7 +78,7 @@ const problem = (code: string, status: number, extra: Record<string, unknown> = 
   HttpResponse.json({ type: `urn:lims:error:${code}`, title: code, status, code, ...extra }, { status });
 const calls = (m: string, re: RegExp) => seen.filter((s) => s.method === m && re.test(s.url.pathname));
 const api = setupServer();
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { cleanup(); api.resetHandlers(); });
 afterAll(() => api.close());
 beforeEach(() => { seen = []; push.mockClear(); refresh.mockClear(); });
@@ -831,7 +831,7 @@ describe('SCR-08 ranges tab', () => {
 // ───────────────────────────── SCR-08 Preview panel (#51, AC-05.1–05.6, 05.10, 05.11) ─────────────────────────────
 describe('SCR-08 preview panel', () => {
   const match = (o: Record<string, unknown> = {}) => ({ reference_range_id: RS3, version: 3, low: '13.0', high: '17.0', unit_code: 'g_dl', kind: 'numeric', ...o });
-  const previewOk = (res: unknown) => http.post(`${ORIGIN}/v1/catalog/reference-ranges/preview`, rec(() => HttpResponse.json(res)));
+  const previewOk = (res: unknown) => http.post(`${ORIGIN}/v1/catalog/reference-ranges/preview`, rec(() => HttpResponse.json(res as Record<string, unknown>)));
   const fill = async (sex = /^sex/i, ageValue = '25') => { // Age unit Select defaults to "years" (ASSUMED)
     await userEvent.click(screen.getByLabelText(sex));
     await userEvent.click(await screen.findByRole('option', { name: /^male$/i }));

@@ -7,8 +7,8 @@ import { ApiError, serverFetch } from '@/core/api/server-fetch';
 import { problem } from '@/core/session/types';
 import {
   UUID_RE,
-  type CatalogOption, type Centre, type Coded, type CodedSetEntry, type CreditPartySummary, type DiscountApproval, type DoctorSummary,
-  type Order, type OrderBilling, type OrderFlag, type OrderSummary, type OrderableSummary, type Page, type Patient, type PatientSummary, type PossibleDuplicate,
+  type CatalogOption, type Centre, type Coded, type CodedSetEntry, type CreditPartySummary, type CustomFieldDefinition, type DiscountApproval, type DoctorSummary,
+  type DraftRecord, type DraftRecordSummary, type IcdCode, type NumberPreview, type PatientRewards, type Order, type OrderBilling, type OrderFlag, type OrderSummary, type OrderableSummary, type Page, type Patient, type PatientSummary, type PossibleDuplicate,
 } from './types';
 
 const bad = () => new ApiError(400, problem('common.validation_failed', 'Validation failed', 400));
@@ -44,14 +44,29 @@ export async function listDiscountReasons(): Promise<CodedSetEntry[]> {
 }
 /** Centres in scope (C2 listCentres), active only. Identity may refuse the read for some roles: callers treat a failure as "none" / "—". */
 export async function listCentres(): Promise<Centre[]> {
-  const r = await serverFetch<{ data: { centre_id?: string; id?: string; name: string; is_active?: boolean }[] }>('/v1/identity/centres');
-  return r.data.filter((c) => c.is_active !== false).map((c) => ({ id: (c.centre_id ?? c.id) as string, name: c.name }));
+  const r = await serverFetch<{ data: { centre_id?: string; id?: string; name: string; is_active?: boolean; kind?: Centre['kind'] }[] }>('/v1/identity/centres');
+  // kind: LD-310 / T0D-REGSCREEN-1 (Laboratory / Franchise centre selectors)
+  return r.data.filter((c) => c.is_active !== false).map((c) => ({ id: (c.centre_id ?? c.id) as string, name: c.name, ...(c.kind ? { kind: c.kind } : {}) }));
 }
+/** T0D-FINCTRL-1 (LD-321) getMyDiscountPolicy (billing.discount_policy.read): the signed in user's own limit and authority (absent = none) and the
+ *  active tenant discount reasons. The discount form falls back to the F25 coded set when this read fails. */
+export interface DiscountCeiling { max_discount_bp: number; max_discount_paisa: number }
+export interface MyDiscountPolicy { own_limit?: DiscountCeiling; authority?: DiscountCeiling; reasons: { code: string; name: string; display_order?: number }[] }
+export const getMyDiscountPolicy = () => serverFetch<MyDiscountPolicy>('/v1/billing/discount-policy/me');
 export async function getDiscountApproval(approvalId: string): Promise<{ id: string; status?: string; state?: string }> {
   return serverFetch(`/v1/frontdesk/discount-approvals/${id(approvalId)}`);
 }
 
-export const getOrder = (orderId: string) => serverFetch<Order>(`/v1/frontdesk/orders/${id(orderId)}`);
+// LD-310 / T0D-REGSCREEN-2 (T0B-REGAPI-1/2): registration screen reads. All need frontdesk.registration.create except rewards (frontdesk.patient.read).
+export const listIcdCodes = async () => (await serverFetch<Page<IcdCode>>('/v1/frontdesk/icd-codes?is_active=true&limit=200')).data.filter((c) => c.is_active);
+export const listCustomFieldDefinitions = async () => (await serverFetch<Page<CustomFieldDefinition>>('/v1/frontdesk/custom-field-definitions?limit=200')).data;
+export const previewRegistrationNumbers = (centreId: string) => serverFetch<NumberPreview>(`/v1/frontdesk/registrations/number-preview?centre_id=${id(centreId)}`);
+export const listRegistrationDrafts = async () => (await serverFetch<Page<DraftRecordSummary>>('/v1/frontdesk/registration-drafts?limit=200')).data;
+export const getRegistrationDraft = (draftId: string) => serverFetch<DraftRecord>(`/v1/frontdesk/registration-drafts/${id(draftId)}`);
+export const listFavouriteTests = async () => (await serverFetch<Page<{ orderable_id: string }>>('/v1/frontdesk/favourite-tests?limit=200')).data.map((f) => f.orderable_id);
+export const getPatientRewards = (patientId: string) => serverFetch<PatientRewards>(`/v1/frontdesk/patients/${id(patientId)}/rewards?limit=1`);
+
+export const getOrder =(orderId: string) => serverFetch<Order>(`/v1/frontdesk/orders/${id(orderId)}`);
 export const getOrderBilling = (orderId: string) => serverFetch<OrderBilling>(`/v1/billing/orders/${id(orderId)}`);
 export const getPatient = (patientId: string) => serverFetch<Patient>(`/v1/frontdesk/patients/${id(patientId)}`);
 export const listPatientOrders = (patientId: string) => serverFetch<Page<OrderSummary>>(`/v1/frontdesk/patients/${id(patientId)}/orders?limit=50`);
@@ -62,9 +77,9 @@ export const listPossibleDuplicates = () => serverFetch<Page<PossibleDuplicate>>
 export const listDiscountApprovals = () => serverFetch<Page<DiscountApproval>>('/v1/frontdesk/discount-approvals');
 
 /** Orderables the "Add tests" dialog offers. ponytail: first 200 active tests, no server-side search; add a Combobox over searchOrderables when the catalogue outgrows that. */
-export async function listCatalogOptions(): Promise<CatalogOption[]> {
-  try {
-    const r = await serverFetch<Page<{ id: string; code: string; name: string; is_active?: boolean; is_orderable?: boolean }>>('/v1/catalog/tests?limit=200');
+export async function listCatalogOptions(kind: 'tests' | 'panels' = 'tests'): Promise<CatalogOption[]> {
+  try { // T0D-REGSCREEN-2 ruling 4: panels (listPanels, catalog.yaml :4188) share the orderable id space, so favourites resolve both
+    const r = await serverFetch<Page<{ id: string; code: string; name: string; is_active?: boolean; is_orderable?: boolean }>>(`/v1/catalog/${kind}?limit=200`);
     return r.data.filter((t) => t.is_active !== false && t.is_orderable !== false).map(({ id: i, code, name }) => ({ id: i, code, name }));
   } catch (e) {
     if (e instanceof ApiError && (e.status === 403 || e.status === 404)) return []; // no catalog.test.read: the dialog simply offers nothing

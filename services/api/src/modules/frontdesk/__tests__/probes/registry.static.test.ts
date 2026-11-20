@@ -27,11 +27,28 @@ const EXPECT: Record<string, [string, boolean]> = {   // operationId -> [x-permi
   approveDiscount: [P('discount.approve'), true], rejectDiscount: [P('discount.approve'), true], uploadTrf: [P('trf.upload'), true], getTrfAttachment: [P('order.read'), false],
   getTrfAttachmentContent: [P('order.read'), false], listOrderFlags: [P('order.read'), false], resolveOrderFlag: [P('order.edit'), true],
   getFrontdeskSettings: [P('settings.manage'), false], updateFrontdeskSettings: [P('settings.manage'), false], listFrontdeskCodes: [P('order.read'), false],
+  // T0B-REGAPI-2 (LD-310): the 18 operations added by T0C-REGPARITY-2. No new permission code (done_when 6): registration.create for the user's own data, settings.manage for masters.
+  createRegistrationDraft: [P('registration.create'), true], listRegistrationDrafts: [P('registration.create'), false], getRegistrationDraft: [P('registration.create'), false],
+  deleteRegistrationDraft: [P('registration.create'), false], addFavouriteTest: [P('registration.create'), true], listFavouriteTests: [P('registration.create'), false],
+  removeFavouriteTest: [P('registration.create'), false], previewRegistrationNumbers: [P('registration.create'), false], listCustomFieldDefinitions: [P('registration.create'), false],
+  createCustomFieldDefinition: [P('settings.manage'), true], updateCustomFieldDefinition: [P('settings.manage'), false], listCoupons: [P('settings.manage'), false],
+  createCoupon: [P('settings.manage'), true], updateCoupon: [P('settings.manage'), false], listIcdCodes: [P('registration.create'), false], createIcdCode: [P('settings.manage'), true],
+  updateIcdCode: [P('settings.manage'), false], getPatientRewards: [P('patient.read'), false],
 };
 
 describe('contract <-> probes', () => {
-  it('the contract has exactly the 29 operations of 02-TRD §7.1 (F1-F26 incl. F8b, F21a, F24 get+put)', () => {
+  // LD-328 (3) style: the count is derived from the loaded contract spec, never hardcoded (later T0C tasks add operations; each must then be added to EXPECT with its permission).
+  it('every contract operation (the 29 of 02-TRD §7.1 + the 18 of T0C-REGPARITY-2 and any later one) has an EXPECT row, and EXPECT names no operation the contract lacks', () => {
     expect(OPS.map((o) => o.id).sort()).toEqual(Object.keys(EXPECT).sort());
+    expect(OPS).toHaveLength(Object.keys(EXPECT).length);
+    expect(OPS.length).toBeGreaterThanOrEqual(47);
+  });
+  it('LD-325 (b): the frontdesk module manifest lists none of the 18 REGAPI-2 operations as pending (they have real handlers)', () => {
+    const idx = text(`${MOD}/index.ts`);
+    const pending = /pendingOperations:\s*\[([^\]]*)\]/.exec(idx)?.[1] ?? '';
+    for (const op of ['listRegistrationDrafts', 'createRegistrationDraft', 'getRegistrationDraft', 'deleteRegistrationDraft', 'listFavouriteTests', 'addFavouriteTest', 'removeFavouriteTest',
+      'previewRegistrationNumbers', 'listCustomFieldDefinitions', 'createCustomFieldDefinition', 'updateCustomFieldDefinition', 'listCoupons', 'createCoupon', 'updateCoupon', 'listIcdCodes',
+      'createIcdCode', 'updateIcdCode', 'getPatientRewards']) expect(pending, op).not.toContain(op);
   });
   it('every operation has a probe request in kit.ts (requestFor) and is exercised by the cross-tenant suite', () => {
     const kit = text(`${MOD}/__tests__/probes/kit.ts`);
@@ -43,6 +60,13 @@ describe('contract <-> probes', () => {
     const probes = text(`${MOD}/__tests__/probes/kit.ts`) + text(`${MOD}/__tests__/probes/tables.live.test.ts`);
     for (const t of [...tables, 'event_inbox']) expect(probes, t).toContain(`'${t}'`);
     expect(tables).toHaveLength(13);
+  });
+  it('the six tables of migration 20261117110000 are named in the table probes (LD-315)', () => {
+    const probes = text(`${MOD}/__tests__/probes/kit.ts`) + text(`${MOD}/__tests__/probes/tables.live.test.ts`);
+    const mig = text('db/migrations/20261117110000_frontdesk__add_registration_parity_fields.sql');
+    const tables = [...mig.matchAll(/CREATE TABLE IF NOT EXISTS frontdesk\.([a-z_]+)/g)].map((m) => m[1]!).sort();
+    expect(tables).toEqual(['coupons', 'custom_field_definitions', 'favourite_tests', 'icd_codes', 'registration_drafts', 'reward_points_ledger']);
+    for (const t of tables) expect(probes, t).toContain(`'${t}'`);
   });
 });
 

@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:lims_shared/lims_shared.dart';
 import 'package:lims_ui/lims_ui.dart';
 
+import '../orders/status_look.dart';
+
 const closedNotice = 'This conversation is closed.';
 const _limitNotice = 'You have too many open messages. Wait for a reply first.';
 const _disabledNotice = 'Messages are turned off for now.';
@@ -46,6 +48,6 @@ class EnquiryStatusChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (word, tone, _) = _look(status);
-    return LimsStatusChip(kind: 'generic', status: status, label: word, tone: tone);
+    return ToneChip(LimsStatusChip(kind: 'generic', status: status, label: word, tone: tone)); // M4: words + tone icon
   }
 }

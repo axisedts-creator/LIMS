@@ -138,8 +138,9 @@ describe("homecollection.yaml (T0C-10.C17)", () => {
   const text = existsSync(FILE) ? readFileSync(FILE, "utf8") : "";
   const doc: any = text ? parse(text) : { paths: {}, components: {} };
   const ops: Record<string, { method: string; path: string; op: any }> = {};
+  // T0C-SALES-1 (LD-321): updateCollectorFlags is added after the TRD transcription and is pinned by sales1-openapi.test.ts; this file keeps testing exactly the 26 TRD operations.
   for (const [path, item] of Object.entries<any>(doc.paths ?? {}))
-    for (const m of METHODS) if (item?.[m]) ops[item[m].operationId] = { method: m.toUpperCase(), path, op: item[m] };
+    for (const m of METHODS) if (item?.[m] && item[m].operationId !== "updateCollectorFlags") ops[item[m].operationId] = { method: m.toUpperCase(), path, op: item[m] };
 
   const deref = (n: any): any => {
     if (!n?.$ref) return n;
@@ -721,7 +722,8 @@ describe("homecollection.yaml (T0C-10.C17)", () => {
       for (const id of ["listHomeRoutes", "listEligiblePhlebotomists", "listHomecollectionReasons"]) expect(sorted(okSchema(id)), id).toEqual(["data"]);
       expect(JSON.stringify(props(okSchema("listHomeRoutes")).data)).toContain("RouteDto");
       const ph = dataOf("listEligiblePhlebotomists");
-      expect(Object.keys(props(ph)).sort()).toEqual(["active_visits", "display_name", "membership_id", "route_full", "route_id"]);
+      // T0C-SALES-1, LD-321: collector Allow Collection / Allow Pickup are additive on the existing collector read.
+      expect(Object.keys(props(ph)).filter((k) => !["allow_collection", "allow_pickup"].includes(k)).sort()).toEqual(["active_visits", "display_name", "membership_id", "route_full", "route_id"]);
       expect(reqd(ph).sort()).toEqual(["active_visits", "display_name", "membership_id", "route_full"]);
       const rs = dataOf("listHomecollectionReasons");
       expect(Object.keys(props(rs)).sort()).toEqual(["code", "display", "is_active", "requires_text"]);

@@ -9,7 +9,8 @@
     "noEmit": true,
     "incremental": true,
     "plugins": [{ "name": "next" }],
-    "paths": { "@/*": ["./src/*"] }
+    // LD-405 (CR-C1-VG5 option a): portal fallback so rs-c6 portal pages type-check in the web program.
+    "paths": { "@/*": ["./src/*", "../portal/src/*"] }
   },
   "include": ["next-env.d.ts", "src/**/*.ts", "src/**/*.tsx", ".next/types/**/*.ts"],
   "exclude": ["node_modules"]

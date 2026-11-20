@@ -111,6 +111,10 @@ class HomecollectionApi {
   Future<Object?> unassignHomeVisit({required String visitId, Map<String, String>? headers, Object? body}) =>
       _send('POST', '/v1/homecollection/visits/${Uri.encodeComponent(visitId)}/unassign', headers: headers, body: body);
 
+  /// PATCH /v1/homecollection/phlebotomists/{membership_id}
+  Future<Object?> updateCollectorFlags({required String membershipId, Object? body}) =>
+      _send('PATCH', '/v1/homecollection/phlebotomists/${Uri.encodeComponent(membershipId)}', body: body);
+
   /// PUT /v1/homecollection/settings
   Future<Object?> updateHomecollectionSettings({Map<String, String>? headers, Object? body}) =>
       _send('PUT', '/v1/homecollection/settings', headers: headers, body: body);

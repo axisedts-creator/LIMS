@@ -123,6 +123,9 @@ const SPECS: Spec[] = [
   S("CB2", "verifyProviderCallback", "GET", "/provider-callbacks/{callback_token}", "public", N, 200, { ...PUB, err: [RP("callback_rejected")] }),
 ];
 const TOTAL = 68;
+// T0C-PRINTCFG-1 (LD-316) adds 5 operations after the TRD tables (printcfg1-openapi.test.ts pins them): the TRD inventory stays 68, the file now holds 68 + 5.
+const PRINTCFG_OPS = ["listPrintProfiles", "upsertPrintProfile", "previewPrintProfile", "listSignatoryProfiles", "upsertSignatoryProfile"];
+const FILE_TOTAL = TOTAL + PRINTCFG_OPS.length;
 const DOWNLOADS = ["downloadReportVersionPdf", "downloadReportPrintPdf", "downloadOutsourcedReport", "downloadPortalReportPdf", "getNarrativeImageContent"];
 const DTOS = ["ReportSummary", "ReportDetail", "ReportVersionSummary", "Delivery", "InputFile", "NarrativeReport", "NarrativeTemplate", "CriticalAlert",
   "PortalPaymentRequest", "PrintJob", "TemplateConfig", "ReportingSettings"];
@@ -236,7 +239,8 @@ describe("reporting.yaml (T0C-10.C6)", () => {
       expect(SPECS.length).toBe(TOTAL);
       expect(new Set(SPECS.map((s) => s.id)).size).toBe(TOTAL);
       expect(new Set(SPECS.map((s) => s.n)).size).toBe(TOTAL);
-      expect(Object.keys(ops).sort()).toEqual(SPECS.map((s) => s.id).sort());
+      expect(Object.keys(ops).filter((id) => !PRINTCFG_OPS.includes(id)).sort()).toEqual(SPECS.map((s) => s.id).sort());
+      for (const id of PRINTCFG_OPS) expect(ops[id], `${id} (T0C-PRINTCFG-1)`).toBeDefined();
     });
     it("every operationId named in the TRD tables §6.2–§6.7 is in the test table (TRD drift guard)", () => {
       const lines = readFileSync(TRD, "utf8").split("\n");
@@ -326,7 +330,7 @@ describe("reporting.yaml (T0C-10.C6)", () => {
       for (const n of DTOS) expect(schema(n), n).toBeDefined();
     });
     it("request bodies: JSON, or multipart for O1/N6 (x-upload), raw for CB1; no tenant_id / created_by in any JSON body (rule 7)", () => {
-      expect(Object.keys(ops).length, "no operations").toBe(TOTAL);
+      expect(Object.keys(ops).length, "no operations").toBe(FILE_TOTAL);
       for (const [id, { op }] of Object.entries(ops)) {
         const b = op.requestBody?.content ?? {};
         const allowed = ["uploadOutsourcedReport", "uploadNarrativeImage"].includes(id) ? ["multipart/form-data"] : id === "receiveProviderCallback" ? Object.keys(b) : ["application/json"];
@@ -734,7 +738,7 @@ describe("reporting.yaml (T0C-10.C6)", () => {
       expect(n).toBeGreaterThanOrEqual(TOTAL - 8);
     });
     it("every operation has a 2xx response with a servable example Prism can serve", () => {
-      expect(Object.keys(ops).length).toBe(TOTAL);
+      expect(Object.keys(ops).length).toBe(FILE_TOTAL);
       for (const { op, path, method } of Object.values(ops)) {
         const two = Object.entries<any>(op.responses ?? {}).filter(([c]) => /^2/.test(c));
         expect(two.length, `${method} ${path}: no 2xx`).toBeGreaterThan(0);

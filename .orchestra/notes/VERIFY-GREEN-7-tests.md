@@ -1,0 +1,6 @@
+# VERIFY-GREEN-7 tests (tester)
+- RED gate: `apps/web/src/__tests__/vg7.typecheck.test.ts` (config `vitest.vg7.config.ts`): `tsc -p apps/web` 0 errors under features/{instruments,inventory,partners,quality}. Run: `.orchestra\notes\VERIFY-GREEN-7-verify.cmd`.
+- LD-424 fix applied by tester (52 test files + quality-t22.harness): `onUnhandledRequest` -> `onUnhandledFrame` (msw 3.0.3 typings); `as never` -> `as unknown as ComponentProps<...>` (rs-c7.behaviour, web-t03.components); json() casts (web-t04/t06 components, t23.transfers, t16.receive); conditional spread `as object` (web-t04); `!` + `lots: [] as Record<string, unknown>[]` (quality-t22); page-arg cast `(p: unknown) => Promise<ReactNode>` (t23.counts, t24.unresolved); `store_kind: 'main' as const` (uiconsole1.inventory).
+- Result: in-scope tsc errors 78 -> 0 (plus 2 uiconsole1.inventory TS2322 fixed); vg7 7/7.
+- 18 feature configs: 15 green. 3 red BEFORE and AFTER my edit (re-ran each with the old msw key to prove it): web-t03.components 'renders one link card' (A5 columnheader conflict), rs-c7.static permission-literal list + rs-c7.screens messages snapshot (useId counter), t20.alerts 'API 500 -> page throws' (product no longer throws). Product/contract drift, not VG7; needs lead ruling.
+- No @ts-ignore/expect-error/`as any`/skipLibCheck added; no assertion changed; no product file touched.

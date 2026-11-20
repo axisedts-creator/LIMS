@@ -29,26 +29,26 @@ export interface RequestContext {
 }
 
 export interface PortRegistry {
-  readonly CatalogPort: import('./CatalogPort').CatalogPort;
-  readonly FrontdeskPort: import('./FrontdeskPort').FrontdeskPort;
-  readonly BillingPort: import('./BillingPort').BillingPort;
-  readonly LabPort: import('./LabPort').LabPort;
-  readonly ReportingPort: import('./ReportingPort').ReportingPort;
-  readonly IdentityPort: import('./IdentityPort').IdentityPort;
-  readonly NotificationPort: import('./NotificationPort').NotificationPort;
-  readonly PaymentProviderPort: import('./PaymentProviderPort').PaymentProviderPort;
-  readonly SmartReportPort: import('./SmartReportPort').SmartReportPort;
-  readonly QualityPort: import('./QualityPort').QualityPort;
-  readonly BillingCommandPort: import('./BillingCommandPort').BillingCommandPort;   // added by 08 (§4.15; consumer allowlist: frontdesk only)
-  readonly RenderPort: import('./RenderPort').RenderPort;                           // added by 08 (§4.16)
-  readonly EngagementPort: import('./EngagementPort').EngagementPort;               // added by 08 (§4.17)
+  readonly CatalogPort: import('./CatalogPort.js').CatalogPort;
+  readonly FrontdeskPort: import('./FrontdeskPort.js').FrontdeskPort;
+  readonly BillingPort: import('./BillingPort.js').BillingPort;
+  readonly LabPort: import('./LabPort.js').LabPort;
+  readonly ReportingPort: import('./ReportingPort.js').ReportingPort;
+  readonly IdentityPort: import('./IdentityPort.js').IdentityPort;
+  readonly NotificationPort: import('./NotificationPort.js').NotificationPort;
+  readonly PaymentProviderPort: import('./PaymentProviderPort.js').PaymentProviderPort;
+  readonly SmartReportPort: import('./SmartReportPort.js').SmartReportPort;
+  readonly QualityPort: import('./QualityPort.js').QualityPort;
+  readonly BillingCommandPort: import('./BillingCommandPort.js').BillingCommandPort;   // added by 08 (§4.15; consumer allowlist: frontdesk only)
+  readonly RenderPort: import('./RenderPort.js').RenderPort;                           // added by 08 (§4.16)
+  readonly EngagementPort: import('./EngagementPort.js').EngagementPort;               // added by 08 (§4.17)
 }
 // Reserved, DEFER (B4): LegacyPatientImportPort, LegacyResultImportPort, LegacyDocumentImportPort, legacy-common.ts (08 §4.14).
 
 export interface Page<T> { readonly items: readonly T[]; readonly nextCursor?: string }
 
 /** Generated from contracts/errors.yaml by tools/codegen (C0). */
-export type ErrorCode = import('./generated/error-codes').ErrorCode;
+export type ErrorCode = import('./generated/error-codes.js').ErrorCode;
 // LD-03: no TS parameter properties (Node type stripping); fields declared and assigned explicitly.
 export class LimsError extends Error {
   readonly code: ErrorCode;

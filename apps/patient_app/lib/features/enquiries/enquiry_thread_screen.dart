@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lims_shared/lims_shared.dart';
 import 'package:lims_ui/lims_ui.dart';
 
+import '../orders/status_look.dart' show StateCard;
 import '../profiles/profile_copy.dart' show ProfileNotice;
 import 'enquiries_providers.dart';
 import 'enquiry_copy.dart';
@@ -74,14 +75,23 @@ class _EnquiryThreadScreenState extends ConsumerState<EnquiryThreadScreen> {
   Widget _body(EnquiryThread t) {
     final closed = _closed || t.summary.isClosed;
     return Column(children: [
-      Padding(
-        padding: const EdgeInsets.all(LimsTokens.space4),
-        child: Row(children: [Expanded(child: Text(t.summary.subject, style: Theme.of(context).textTheme.titleMedium)), const SizedBox(width: LimsTokens.space2), EnquiryStatusChip(closed ? 'closed' : t.summary.status)]),
-      ),
       Expanded(
+        // M4: subject, status and the messages on one white card
         child: ListView(
-          padding: const EdgeInsets.symmetric(horizontal: LimsTokens.space4),
-          children: [for (final m in t.messages) _Bubble(m)],
+          padding: const EdgeInsets.all(LimsTokens.space4),
+          children: [
+            LimsCard(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                Row(children: [
+                  Expanded(child: Text(t.summary.subject, style: Theme.of(context).textTheme.titleMedium)),
+                  const SizedBox(width: LimsTokens.space2),
+                  Flexible(child: EnquiryStatusChip(closed ? 'closed' : t.summary.status)),
+                ]),
+                const SizedBox(height: LimsTokens.space2),
+                for (final m in t.messages) _Bubble(m),
+              ]),
+            ),
+          ],
         ),
       ),
       Padding(
@@ -108,7 +118,7 @@ class _EnquiryThreadScreenState extends ConsumerState<EnquiryThreadScreen> {
         body: t != null
             ? _body(t)
             : async.hasError
-                ? LimsErrorState(title: 'Could not load this conversation', message: 'Check your connection and try again.', onRetry: () => ref.invalidate(enquiryThreadProvider(widget.enquiryId)))
+                ? StateCard(LimsErrorState(title: 'Could not load this conversation', message: 'Check your connection and try again.', onRetry: () => ref.invalidate(enquiryThreadProvider(widget.enquiryId))))
                 : const LimsLoading(),
       ),
     );

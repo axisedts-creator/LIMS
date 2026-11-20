@@ -9,7 +9,7 @@ import { authenticateBearer, endpointFamilyOf, type ClaimsResolver } from './aut
 import type { DbClaims } from './auth/claims.js';
 import type { ClientIpResolver } from './auth/client-ip.js';
 import { AuthError } from './auth/errors.js';
-import { isRenderedProblem, LimsError } from './errors.js';
+import { isRenderedProblem, LimsError, pendingProblem } from './errors.js';
 import type { JwtVerifier } from './auth/jwt.js';
 import type { Handler } from './module.js';
 import { setErrorCode } from './observability/logging.js';
@@ -95,13 +95,32 @@ const RESPONSE_AJV_OPTIONS = { ...BODY_AJV_OPTIONS, useDefaults: false } as cons
 type ValidatorFactory = (ext: object, o: { customOptions: object }) => (c: { schema: object; httpPart?: string }) => any;
 const ajvPool = AjvCompiler() as unknown as ValidatorFactory;
 
+/**
+ * T0A-HEADERS-1 (LD-277, LD-278): a custom buildValidator makes Fastify skip its own header-schema lower-casing,
+ * so `required: [Idempotency-Key]` never matched Node's `idempotency-key`. Copy with top-level `properties` keys
+ * and `required` entries lower-cased (same as Fastify lowerCaseHeadersSchema); the input schema is not mutated.
+ */
+function lowerCaseHeaders(schema: any): object {
+  if (!schema || typeof schema !== 'object') return schema;
+  const out = { ...schema };
+  if (schema.properties && typeof schema.properties === 'object') {
+    out.properties = Object.fromEntries(Object.entries(schema.properties).map(([k, v]) => [k.toLowerCase(), v]));
+  }
+  if (Array.isArray(schema.required)) out.required = schema.required.map((n: unknown) => (typeof n === 'string' ? n.toLowerCase() : n));
+  return out;
+}
+
 /** Fastify `schemaController`: Fastify's own ajv compiler (formats included), body without coercion. */
 export const schemaController: NonNullable<FastifyServerOptions['schemaController']> = {
   compilersFactory: {
     buildValidator: ((ext: object) => {
       const coercing = ajvPool(ext, { customOptions: AJV_OPTIONS });
       const strict = ajvPool(ext, { customOptions: BODY_AJV_OPTIONS });
-      return (c: { schema: object; httpPart?: string }) => (c.httpPart === 'body' ? strict(c) : coercing(c));
+      return (c: { schema: object; httpPart?: string }) => {
+        if (c.httpPart === 'body') return strict(c);
+        if (c.httpPart === 'headers') return coercing({ ...c, schema: lowerCaseHeaders(c.schema) });
+        return coercing(c);
+      };
     }) as any,
   },
 };
@@ -188,6 +207,12 @@ function findOp(spec: any, operationId: string): { path: string; method: string;
   return undefined;
 }
 
+/** First security scheme name of an operation's (or the document's) `security` list; undefined when none. */
+function firstScheme(security: unknown): string | undefined {
+  const first = Array.isArray(security) ? security[0] : undefined;
+  return first && typeof first === 'object' ? Object.keys(first)[0] : undefined;
+}
+
 /** Pipeline view of one operation (x-public, x-context, x-idempotency, x-rate-limit-tier; 02-CV §4). */
 function pipelineOp(module: string, spec: any, operationId: string): PipelineOp {
   const f = findOp(spec, operationId);
@@ -197,6 +222,8 @@ function pipelineOp(module: string, spec: any, operationId: string): PipelineOp 
     module, operationId, method: (f?.method ?? '').toUpperCase(), routeTemplate: f?.path ?? '',
     public: op['x-public'] !== undefined, identityAuth: context === 'identity_auth', context,
     idempotency: op['x-idempotency'], rateLimitTier: op['x-rate-limit-tier'],
+    permission: typeof op['x-permission'] === 'string' ? op['x-permission'] : undefined, // SEC-AUTHZ-2: stage 8a
+    scheme: firstScheme(op.security ?? spec?.security),
   });
 }
 
@@ -227,6 +254,25 @@ function usesScheme(spec: any, scheme: string): boolean {
   return has(spec?.security) || Object.values<any>(spec?.paths ?? {}).some((item) => Object.values<any>(item ?? {}).some((op) => has(op?.security)));
 }
 
+const HTTP_METHODS = new Set(['get', 'put', 'post', 'delete', 'options', 'head', 'patch', 'trace']);
+
+/**
+ * T0C-SYNC-1 (LD-322, LD-325): copy of `spec` without the pending operations that require bearerJwt. Used only when no JWT
+ * verifier is configured: such an operation could never pass auth, so it gets no route at all (fail closed, 404) instead of
+ * blocking a boot that mounts the core health operations. A bearerJwt operation with a real handler still needs JWT config.
+ */
+export function withoutPendingBearer(spec: any, pending: readonly string[]): any {
+  if (!pending.length) return spec;
+  const needsBearer = (op: any) => (op?.security ?? spec?.security ?? []).some((r: any) => r && Object.hasOwn(r, 'bearerJwt'));
+  const paths: Record<string, any> = {};
+  for (const [p, item] of Object.entries<any>(spec?.paths ?? {})) {
+    const kept = Object.fromEntries(Object.entries<any>(item ?? {}).filter(([k, op]) =>
+      !(HTTP_METHODS.has(k) && pending.includes(op?.operationId) && needsBearer(op))));
+    if (Object.keys(kept).some((k) => HTTP_METHODS.has(k))) paths[p] = kept;
+  }
+  return { ...spec, paths };
+}
+
 /** Mount one spec. A missing handler throws in operationResolver, so register (and boot) fails (SP-8 O3). */
 export async function mountSpec(
   app: FastifyInstance,
@@ -235,7 +281,9 @@ export async function mountSpec(
   handlers: Readonly<Record<string, Handler>>,
   auth: CoreAuth,
   pipeline: Pipeline,
+  pending: readonly string[] = [],
 ): Promise<void> {
+  if (!auth.verifier) spec = withoutPendingBearer(spec, pending);
   if (!auth.verifier && usesScheme(spec, 'bearerJwt')) throw new Error(`module ${name}: bearerJwt operations need LIMS_CORE_JWT_* config`);
   await app.register(async (scope) => {
     // route config.module labels the stage-13 log line and metrics (observability/logging.ts).
@@ -244,9 +292,18 @@ export async function mountSpec(
       specification: spec,
       securityHandlers: securityHandlers(auth),
       operationResolver: (operationId: string) => {
-        const h = Object.hasOwn(handlers, operationId) ? handlers[operationId] : undefined;
+        const op = pipelineOp(name, spec, operationId);
+        let h = Object.hasOwn(handlers, operationId) ? handlers[operationId] : undefined;
+        // LD-325 (T0B-BOOTGATE-1): a pending id without a handler gets a 501 stub run inside the normal pipeline (auth,
+        // validation, permission, tenant unchanged). A real handler always wins over a stale entry.
+        if (typeof h !== 'function' && pending.includes(operationId)) {
+          h = async (_req, ctx) => ({
+            status: 501, headers: { 'content-type': 'application/problem+json' },
+            body: pendingProblem(operationId, op.routeTemplate, ctx.requestId),
+          });
+        }
         if (typeof h !== 'function') throw new Error(`module ${name}: missing handler for operationId ${operationId}`);
-        return wrap(pipelineOp(name, spec, operationId), h, findOp(spec, operationId)?.op?.['x-error-codes'] ?? [], pipeline);
+        return wrap(op, h, findOp(spec, operationId)?.op?.['x-error-codes'] ?? [], pipeline);
       },
     });
   });

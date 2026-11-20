@@ -12,7 +12,7 @@ vi.mock('next/navigation', async () => (await import('./sr-t18.harness')).naviga
 vi.mock('server-only', () => ({}));
 vi.mock('@/core/session/server', async () => (await import('./sr-t18.harness')).sessionMock);
 
-beforeAll(() => H.api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => H.api.listen({ onUnhandledFrame: 'error' }));
 afterAll(() => H.api.close());
 beforeEach(() => { H.resetApi(); H.mountList(); });
 afterEach(cleanup);

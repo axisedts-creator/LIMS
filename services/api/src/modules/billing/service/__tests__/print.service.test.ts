@@ -23,7 +23,8 @@ describe('US-BL-03.1 first print: original, no copy mark', () => {
   it('print_count 0 -> print_no 1, copy_mark key absent (top level and document), print_count 1, last_printed_at set', async () => {
     const { w, svc } = setup();
     const r = await printInv(w, svc);
-    expect(Object.keys(r).sort()).toEqual(['document', 'print_no']);
+    expect(Object.keys(r).sort()).toEqual(['document', 'print_no', 'style']);   // T0B-PRINTCFG-1 (LD-316): the style is always returned now; was ['document','print_no'] (key added, nothing loosened)
+    expect(r.style).toBe('full');
     expect(r.print_no).toBe(1);
     expect('copy_mark' in r).toBe(false);
     expect('copy_mark' in r.document).toBe(false);
@@ -126,7 +127,7 @@ describe('B6 printCreditNote: credit_note series, same rules', () => {
   it('first print -> print_no 1, no copy mark; credit_notes.print_count 1; print_log kind credit_note with the credit_note_no; the invoice counter is untouched', async () => {
     const { w, svc } = withCn();
     const r = await printCn(w, svc, { reasonCode: 'first_print' });
-    expect(Object.keys(r).sort()).toEqual(['document', 'print_no']);
+    expect(Object.keys(r).sort()).toEqual(['document', 'print_no', 'style']);   // T0B-PRINTCFG-1 (LD-316): the style is always returned now; was ['document','print_no'] (key added, nothing loosened)
     expect(r.print_no).toBe(1);
     expect('copy_mark' in r).toBe(false);
     expect(r.document).toMatchObject({ id: IDS.cn, credit_note_no: 'CN-083/84-000001', invoice_no: '083/84-000001', kind: 'cancellation', print_no: 1 });

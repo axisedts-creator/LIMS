@@ -251,8 +251,15 @@ describe('createCommentCode (#58) — AC-09.1', () => {
     for (const body of [null, 'HYPO', 7, [HYPO_TW]]) validation400(await rejection(create(db, svc, body as never)));
   });
 
-  it('REQ-SEC-088/089 data side: markup / quotes / SQL fragments / newlines are stored and returned verbatim (escaping is the UI\'s job) and never reach SQL text', { timeout: T }, async () => {
-    const nasty = "<img src=x onerror=alert(1)> & \"q\" ' ; DROP TABLE catalog.comment_codes; --\nLine 2\t🧪 é";
+  // T0B-TESTMGMT-1 (LD-318): raw HTML is refused; markup-free nasty text is still stored verbatim
+  it('REQ-SEC-088/089 data side: markup-free quotes / SQL fragments / newlines are stored and returned verbatim (escaping is the UI\'s job) and never reach SQL text; raw HTML is a 400 at /text', { timeout: T }, async () => {
+    const nasty = "img src=x onerror=alert(1) & \"q\" ' ; DROP TABLE catalog.comment_codes; --\nLine 2\t🧪 é < 5";
+    const { db: db0, svc: svc0 } = setup();
+    const html = await rejection(create(db0, svc0, { code: 'XSS', text: '<img src=x onerror=alert(1)> & "q" \' ; DROP TABLE catalog.comment_codes; --\nLine 2\t🧪 é' }));
+    validation400(html);
+    expect(html.code).toBe('common.validation_failed');
+    expect((html.errors ?? []).map((x: { path: string }) => x.path)).toContain('/text');
+    expect(db0.rows('comment_codes')).toHaveLength(0);
     const { db, svc } = setup();
     const out = await create(db, svc, { code: 'XSS', text: nasty });
     expect(out.text).toBe(nasty);
@@ -623,8 +630,15 @@ describe('updateCommentCode (#59) — AC-09.3, AC-09.2', () => {
     expect((await upd(db, svc, row.id, 1, { text: 't'.repeat(2000) }, { at: at(2) })).version).toBe(2);
   });
 
-  it('REQ-SEC-088/089 data side: an edited text is stored verbatim in the code AND in its history row', { timeout: T }, async () => {
-    const nasty = '<script>alert(1)</script> \' OR 1=1 --';
+  // T0B-TESTMGMT-1 (LD-318): raw HTML is refused; markup-free nasty text is still stored verbatim
+  it('REQ-SEC-088/089 data side: an edited markup-free text is stored verbatim in the code AND in its history row; raw HTML is a 400 at /text', { timeout: T }, async () => {
+    const nasty = "script alert(1) ' OR 1=1 -- a<5";
+    const bad = await made();
+    const html = await rejection(upd(bad.db, bad.svc, bad.row.id, 1, { text: '<script>alert(1)</script> \' OR 1=1 --' }, { at: at(2) }));
+    validation400(html);
+    expect(html.code).toBe('common.validation_failed');
+    expect((html.errors ?? []).map((x: { path: string }) => x.path)).toContain('/text');
+    expect(bad.db.row('comment_codes', bad.row.id)!.version).toBe(1);
     const { db, svc, row } = await made();
     const out = await upd(db, svc, row.id, 1, { text: nasty }, { at: at(2) });
     expect(out.text).toBe(nasty);

@@ -106,4 +106,61 @@ export interface SettingsDto {
 }
 export type SettingsBody = Omit<SettingsDto, 'version'>;
 export interface WipeCodes { wipe_reasons: readonly CodedValue[] }
+
+// ---- HC-T19: visit detail W2 (02-TRD §5.3 VisitDetailDto). Rebuilt from an allow-list in server/read.server.ts: no phone (H21 only), no device ids, no GPS. ----
+export interface SpecimenRow {
+  specimen_id: string;
+  specimen_type_code: string;
+  container_code?: string;
+  status: string;
+  collected_at?: string;
+  collection_status?: string;
+  scan_method?: string;
+  barcode_verified?: boolean;
+}
+export interface CollectionReview { decision: string; reason_code: string; by_display?: string; at?: string }
+export interface Collection {
+  id: string;
+  version: number;
+  specimen_id: string;
+  status: string;
+  hold_code?: string;
+  scan_method?: string;
+  barcode_verified?: boolean;
+  collected_at?: string;
+  collected_by?: { display_name: string };
+  review?: CollectionReview;
+}
+export interface VisitFlag {
+  id: string;
+  version: number;
+  kind: string;
+  status: string;
+  created_at: string;
+  resolved_at?: string;
+  resolution_code?: string;
+  resolved_by_display?: string;
+}
+export interface Assignment { display_name: string; route_date: string; assigned_at: string; assigned_by_display?: string }
+export interface Transition { from?: string; to: string; at: string; actor_display?: string }
+/** Money on the wire (Interface Catalog Money): integer paisa + currency. */
+export interface Payment { method_code: string; amount: { amount_paisa: number; currency: string }; captured_at?: string; outcome?: string }
+export interface VisitDetail extends VisitDto {
+  outcome?: string;
+  registration_no?: string;
+  last_device_ack_at?: string;
+  specimens: SpecimenRow[];
+  collections: Collection[];
+  flags: VisitFlag[];
+  assignments: Assignment[];
+  transitions: Transition[];
+  payments: Payment[];
+}
+export interface VisitCodes {
+  review_reasons: readonly CodedValue[];
+  flag_resolutions: readonly CodedValue[];
+  visit_cancel_reasons: readonly CodedValue[];
+  unassign_reasons: readonly CodedValue[];
+  revisit_reasons: readonly CodedValue[];
+}
 export interface BoardFilter { status: readonly string[]; kind?: string; has_open_flags?: boolean }

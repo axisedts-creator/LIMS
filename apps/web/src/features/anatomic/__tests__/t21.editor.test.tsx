@@ -14,7 +14,7 @@ vi.mock('next/navigation', async () => (await import('./t21.harness')).navigatio
 vi.mock('server-only', () => ({}));
 vi.mock('@/core/session/server', async () => (await import('./t21.harness')).sessionMock);
 
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 beforeEach(() => { resetHits(); router.push.mockReset(); router.refresh.mockReset(); api.use(...t21Defaults); });
 afterEach(() => { cleanup(); api.resetHandlers(); });
 afterAll(() => api.close());
@@ -294,7 +294,7 @@ describe('images in report (picker)', () => {
   });
 
   it('thumbnails/captions are text (REQ-SEC-088); image src is the same-origin BFF route only', async () => {
-    await open(reportCase({ images: [{ ...reportCase().images[0], caption: '<img src=x onerror=alert(1)>' }] }));
+    await open(reportCase({ images: [{ ...(reportCase().images[0] as unknown as Record<string, unknown>), caption: '<img src=x onerror=alert(1)>' }] }));
     expect(document.querySelector('img[src="x"]')).toBeNull();
     for (const i of Array.from(document.querySelectorAll('img'))) expect(i.getAttribute('src') ?? '').toMatch(/^\/anatomic\/images\//);
   });

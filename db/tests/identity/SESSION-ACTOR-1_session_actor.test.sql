@@ -71,7 +71,7 @@ INSERT INTO core.membership_roles (tenant_id, membership_id, role_id, created_by
 INSERT INTO core.membership_roles (tenant_id, membership_id, role_id, created_by)
   SELECT pg_temp.id(1), pg_temp.id(60), pg_temp.id(100 + n), pg_temp.id(99) FROM generate_series(1, 22) n;
 INSERT INTO identity.platform_staff (id, user_id, email_normalized, display_name, role_code, is_active, created_by, updated_by) VALUES
-  (pg_temp.id(61), pg_temp.id(32), 'staff32@example.test', 'Staff 32', 'platform_admin',   true,  pg_temp.id(99), pg_temp.id(99)),
+  (pg_temp.id(61), pg_temp.id(32), 'staff32@example.test', 'Staff 32', 'platform_superadmin',   true,  pg_temp.id(99), pg_temp.id(99)),
   (pg_temp.id(63), pg_temp.id(42), 'staff42@example.test', 'Staff 42', 'platform_support', false, pg_temp.id(99), pg_temp.id(99));
 SET LOCAL session_replication_role = origin;
 
@@ -87,8 +87,9 @@ SELECT ok(NOT EXISTS (SELECT 1 FROM pg_roles r WHERE r.rolname IN ('anon', 'auth
 SELECT ok(has_function_privilege('lims_api', p.oid, 'EXECUTE') AND NOT has_function_privilege('lims_worker', p.oid, 'EXECUTE')
           AND NOT has_function_privilege('lims_app', p.oid, 'EXECUTE') AND NOT has_function_privilege('lims_queue', p.oid, 'EXECUTE'),
           'EXECUTE only for lims_api (not lims_worker, lims_app, lims_queue)') FROM pg_proc p WHERE p.oid = to_regprocedure('app.identity_session_actor(uuid,uuid,uuid)');
-SELECT like(pg_temp.x('lims_worker', 'SELECT count(*) FROM app.identity_session_actor(' || pg_temp.q(31) || ',' || pg_temp.q(1) || ',' || pg_temp.q(41) || ')', 'v'), 'E42501:%', 'lims_worker cannot call it (42501)');
-SELECT like(pg_temp.x('lims_queue',  'SELECT count(*) FROM app.identity_session_actor(' || pg_temp.q(31) || ',' || pg_temp.q(1) || ',' || pg_temp.q(41) || ')', 'v'), 'E42501:%', 'lims_queue cannot call it (42501)');
+-- LD-230 (3): pgTAP has no like()/unlike(); matches()/doesnt_match() with the anchored regex of the same LIKE pattern (% -> .*, _ -> .)
+SELECT matches(pg_temp.x('lims_worker', 'SELECT count(*) FROM app.identity_session_actor(' || pg_temp.q(31) || ',' || pg_temp.q(1) || ',' || pg_temp.q(41) || ')', 'v'), '^E42501:.*$', 'lims_worker cannot call it (42501)');
+SELECT matches(pg_temp.x('lims_queue',  'SELECT count(*) FROM app.identity_session_actor(' || pg_temp.q(31) || ',' || pg_temp.q(1) || ',' || pg_temp.q(41) || ')', 'v'), '^E42501:.*$', 'lims_queue cannot call it (42501)');
 -- result shape: exactly (display_name text, role_codes text[], tenant_code text): nothing like an e-mail, an id or a token can leave the function
 SELECT is(pg_get_function_result(to_regprocedure('app.identity_session_actor(uuid,uuid,uuid)')), 'TABLE(display_name text, role_codes text[], tenant_code text)',
           'RETURNS TABLE (display_name text, role_codes text[], tenant_code text) and nothing else');
@@ -99,7 +100,9 @@ SELECT ok(pg_get_functiondef(p.oid) ~ 'app\.pre_user_id' AND pg_get_functiondef(
   FROM pg_proc p WHERE p.oid = to_regprocedure('app.identity_session_actor(uuid,uuid,uuid)');
 -- no RLS weakening: the single USING (true) of the database (platform_staff__select__owner_only) stays the only one; FORCE RLS everywhere the function reads
 SELECT is((SELECT count(*) FROM pg_policies WHERE qual = 'true' OR with_check = 'true'), 1::bigint, 'USING (true) / WITH CHECK (true) still appears exactly once (no policy was weakened)');
-SELECT ok(NOT EXISTS (SELECT 1 FROM pg_policies WHERE (qual ~ 'app\.(pre_|maintenance)' OR with_check ~ 'app\.(pre_|maintenance)') AND roles <> '{lims_owner}'), 'every policy mentioning app.pre_* is still TO lims_owner only');
+SELECT ok(NOT EXISTS (SELECT 1 FROM pg_policies WHERE (qual ~ 'app\.(pre_|maintenance)' OR with_check ~ 'app\.(pre_|maintenance)') AND roles <> '{lims_owner}'
+                      AND NOT (schemaname = 'reporting' AND roles = '{lims_reporting_lookup}')),   -- STALE T0B-GREEN-3: C6 lookup policies are TO lims_reporting_lookup (08-CR-REGISTER C6-002, A10.5, D-30; as db/tests/policy, T0B-GREEN-2)
+          'every policy mentioning app.pre_* is still TO lims_owner only (reporting lookup policies: TO lims_reporting_lookup only)');
 SELECT ok((SELECT bool_and(c.relforcerowsecurity AND c.relrowsecurity) FROM pg_class c WHERE c.oid IN
            ('identity.platform_staff'::regclass, 'core.users'::regclass, 'core.tenants'::regclass, 'core.memberships'::regclass, 'core.roles'::regclass, 'core.membership_roles'::regclass)),
           'FORCE + ENABLE RLS on every table the function reads');
@@ -107,7 +110,7 @@ SELECT ok((SELECT bool_and(c.relforcerowsecurity AND c.relrowsecurity) FROM pg_c
 -- ================================================================ platform staff (p_tenant_id NULL)
 SELECT is(jsonb_array_length(pg_temp.sa(32, 0, 0)), 1, 'platform: active staff user -> exactly one row');
 SELECT is(pg_temp.sa(32, 0, 0) -> 0 ->> 'display_name', 'Staff 32', 'platform: display_name from identity.platform_staff (the user has no core.users row)');
-SELECT is(pg_temp.sa(32, 0, 0) -> 0 -> 'role_codes', '["platform_admin"]'::jsonb, 'platform: role_codes = ARRAY[platform_staff.role_code]');
+SELECT is(pg_temp.sa(32, 0, 0) -> 0 -> 'role_codes', '["platform_superadmin"]'::jsonb, 'platform: role_codes = ARRAY[platform_staff.role_code]');
 SELECT is(pg_temp.sa(32, 0, 0) -> 0 -> 'tenant_code', 'null'::jsonb, 'platform: tenant_code is NULL (a platform session is not a tenant session)');
 SELECT is(jsonb_array_length(pg_temp.sa(42, 0, 0)), 0, 'platform: INACTIVE staff row -> no row');
 SELECT is(jsonb_array_length(pg_temp.sa(31, 0, 0)), 0, 'platform: a tenant user without a platform_staff row, NULL tenant -> no row (never falls back to core.users)');

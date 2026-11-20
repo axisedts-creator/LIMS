@@ -1,0 +1,8 @@
+TESTS_WRONG — the engagement counts/lists predate approved migration 20261117130000_engagement__add_portal_content.sql (T0C-CONTENT-1, LD-313/LD-325); the spec does not freeze these numbers, so update the expectations (cite 20261117130000) and keep each property:
+- db/tests/engagement/T0B-13.C16_schema.test.sql:32 (assert 1, and 2 if it lists tables): 43 -> 45, add portal_content and profile_image to the named list; still proves "exactly these tables, no extra".
+- :87 (assert 520): 51 -> 52, the one extra index is portal_content__tenant_id_kind_sort_order__idx (migration line 50); still proves "no unlisted index".
+- :100 (assert 642): 24 -> 26 audit triggers, add portal_content__audit and profile_image__audit (migration lines 112-113); still proves "none on class A/E/G".
+- :121-122 (assert 698): ARRAY['core','engagement','frontdesk'] -> ARRAY['core','engagement','frontdesk','identity']. Allowed: spec/program/01-CHUNK-MAP.md:227 (R3) only forbids upstream->downstream FKs; identity is C0 (upstream of engagement), and spec/chunks/C0-foundation-contracts/01-PRD.md:158 (AC-0B-6.2) asks DAG direction, not this exact list. The new FKs are composite (tenant_id, image_attachment_id) per 04 D8 (migration lines 41, 69), so :93 stays as is.
+- db/tests/engagement/T-SEC1_table_probes.test.sql:24-26 (asserts 1, 3): 43 -> 45 and add the 2 tables to the expected probe list.
+- Probe rows for the 2 tables: db/tests/fixtures/probe-rows/engagement.sql is harness-owned (LD-367: no fixture edits); if the probe suite needs rows there, file a CR, do not edit the fixture or drop the tables from the probe.
+No assertion may be deleted; :123 (nothing references engagement) and :91 (tenant FK per table) remain unchanged.

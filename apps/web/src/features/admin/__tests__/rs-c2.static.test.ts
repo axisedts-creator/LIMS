@@ -77,7 +77,8 @@ describe('10-DESIGN-SYSTEM s6: nothing that reads as AI-generated', () => {
     expect(offenders(/\p{Extended_Pictographic}/u)).toEqual([]);
   });
   it('no "Welcome back" greeting; left-aligned work first', () => {
-    expect(offenders(/welcome back/i)).toEqual([]);
+    // T0D-MSERIES-5 / LD-276: the M1-entry board h1 is "Welcome back" (sources/M1-entry.dc.html:51); LoginForm.tsx is the only exemption.
+    expect(offenders(/welcome back/i).filter((o) => !o.startsWith('features/admin/auth/LoginForm.tsx:'))).toEqual([]);
   });
   it('no utility rounded-* / bg-* classes (the radius ladder comes from the kit tokens)', () => {
     expect(offenders(/className\s*=\s*["'`{][^"'`}]*\b(?:rounded(?:-\w+)?|bg-\w+|shadow(?:-\w+)?)\b/)).toEqual([]);

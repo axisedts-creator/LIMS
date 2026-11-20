@@ -2,6 +2,7 @@
 // contracts/openapi/reporting.yaml; these map request -> service and fail closed without an authenticated request context.
 import { LimsError } from '../../../core/errors.js';
 import type { Handler, HandlerContext, HandlerRequest } from '../../../core/module.js';
+import { guarded } from './_guard.js';
 import { createSettingsService, type SettingsCtx, type SettingsDeps } from '../service/settings.service.js';
 
 type Svc = ReturnType<typeof createSettingsService>;
@@ -23,7 +24,7 @@ function ifMatch(req: HandlerRequest): number | undefined {
   return m ? Number(m[1]) : 0;
 }
 
-export const settingsHandlers: Readonly<Record<string, Handler>> = Object.freeze({
+const settingsRaw: Readonly<Record<string, Handler>> = Object.freeze({
   getReportingSettings: bind(async (s, ctx) => { const b = await s.getSettings(ctx); return { status: 200, body: b, version: b['version'] as number }; }),
   updateReportingSettings: bind(async (s, ctx, req) => {
     const b = await s.updateSettings(ctx, { expectedVersion: ifMatch(req), patch: req.body });
@@ -42,4 +43,17 @@ export const settingsHandlers: Readonly<Record<string, Handler>> = Object.freeze
     return { status: 200, body: await s.upsertReferrerPreference(ctx, { referrerId: obj(req.params)['referrer_id'], disabledChannels: body['disabled_channels'] }) };
   }),
   listReportingCodes: bind(async (s, ctx, req) => ({ status: 200, body: await s.listCodes(ctx, { setName: obj(req.params)['set_name'] }) })),
+});
+
+// SEC-AUTHZ-7 (LD-189, LD-261): each row below asks its contract x-permission through IdentityPort.assertRole before the wrapped handler runs (see _guard.ts).
+export const settingsHandlers: Readonly<Record<string, Handler>> = Object.freeze({
+  ...settingsRaw,
+  getReportingSettings: guarded('reporting.settings.manage', settingsRaw['getReportingSettings']!),
+  updateReportingSettings: guarded('reporting.settings.manage', settingsRaw['updateReportingSettings']!),
+  listCentreContacts: guarded('reporting.settings.manage', settingsRaw['listCentreContacts']!),
+  createCentreContact: guarded('reporting.settings.manage', settingsRaw['createCentreContact']!),
+  updateCentreContact: guarded('reporting.settings.manage', settingsRaw['updateCentreContact']!),
+  replaceStaffAssignments: guarded('reporting.settings.manage', settingsRaw['replaceStaffAssignments']!),
+  upsertReferrerPreference: guarded('reporting.settings.manage', settingsRaw['upsertReferrerPreference']!),
+  listReportingCodes: guarded('reporting.report.read', settingsRaw['listReportingCodes']!),
 });

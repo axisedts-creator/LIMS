@@ -67,7 +67,9 @@ describe('screen sources (apps/web/src/features/admin/roles/**, LD-140)', () => 
     expect(existsSync(page), `missing ${page}`).toBe(true);
     const src = readFileSync(page, 'utf8');
     expect(src).toMatch(/gate\(\s*['"]identity\.role\.manage['"]\s*\)/);
-    expect(src.indexOf('identity.role.manage')).toBeLessThan(src.search(/\bcall\s*[<(]/));
+    // LD-301: until the API exists the page makes no call at all; once it calls, the gate must come first.
+    const firstCall = src.search(/\bcall\s*[<(]/);
+    if (firstCall >= 0) expect(src.indexOf('identity.role.manage')).toBeLessThan(firstCall);
     expect(all + src).not.toMatch(/\b(corp|std)_[a-z_]+/); // pack contents come from the API, never copied into the web
   });
 });

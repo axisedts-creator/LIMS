@@ -25,7 +25,7 @@ vi.mock('next/cache', async () => (await import('./t26.harness')).cacheMock);
 vi.mock('server-only', () => ({}));
 vi.mock('@/core/session/server', async () => (await import('./t26.harness')).sessionMock);
 
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 beforeEach(() => resetApi(SUPER));
 afterEach(() => { cleanup(); api.resetHandlers(); });
 afterAll(() => api.close());
@@ -149,6 +149,11 @@ describe('PL-2 Provision tenant (AC-E1.1, AC-E1.2)', () => {
     await u.selectOptions(screen.getByLabelText(/centre type/i), 'own');
     await u.type(screen.getByLabelText(/administrator email/i), 'admin@synthetic-gamma.example.test');
     await u.type(screen.getByLabelText(/administrator full name/i), 'Synthetic Admin');
+    // PLATFORM-PROVISION-1 (LD-29): the Contract acceptance section is required; typed here so the cases below keep testing what they test.
+    await u.type(screen.getByLabelText(/tos version/i), 'SYNTH-TOS-A');
+    await u.type(screen.getByLabelText(/dpa version/i), 'SYNTH-DPA-B');
+    await u.type(screen.getByLabelText(/accepted by \(name\)/i), 'Synthetic Signer');
+    await u.type(screen.getByLabelText(/accepted by \(title\)/i), 'Managing Director');
     return u;
   }
   const submit = () => screen.getByRole('button', { name: /^provision tenant$/i });

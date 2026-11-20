@@ -1606,6 +1606,12 @@ paths:
               - all
             default: "true"
           description: Default true; `all` includes inactive rows [CONV].
+        - name: category_id
+          in: query
+          required: false
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+          description: Test category filter (T0C-TESTMGMT-1, LD-318; ElabAssist Complete Test List).
         - name: sort
           in: query
           required: false
@@ -1645,6 +1651,11 @@ paths:
                         is_orderable: true
                         is_active: true
                         revision: 1
+                        category_id: 0193c3a0-0000-7000-8000-0000000003a1
+                        category_name: Hematology
+                        short_name: CBC
+                        display_name: COMPLETE BLOOD COUNT, EDTA WB(CBC)
+                        default_price_paisa: 50000
                     page:
                       limit: 50
         "400":
@@ -1696,6 +1707,13 @@ paths:
                       container_id: 0193c3a0-0000-7000-8000-000000000051
                       is_preferred: true
                       min_volume_ul: 2000
+                  short_name: CBC
+                  display_name: COMPLETE BLOOD COUNT, EDTA WB(CBC)
+                  tags:
+                    - cbc
+                  category_id: 0193c3a0-0000-7000-8000-0000000003a1
+                  report_type: cbc_four_column
+                  processing_type: local
       responses:
         "201":
           description: Created.
@@ -1865,6 +1883,25 @@ paths:
                         target_seconds: 3600
                         effective_from: 2026-11-05T04:15:00.000Z
                         effective_to: 2026-11-05T04:15:00.000Z
+                    stage_targets:
+                      - stage: result
+                        target_minutes: 120
+                      - stage: release
+                        target_minutes: 240
+                    short_name: CBC
+                    display_name: COMPLETE BLOOD COUNT, EDTA WB(CBC)
+                    tags:
+                      - cbc
+                      - haematology
+                    barcode_text: CBC
+                    loyalty_points: 0
+                    display_order: 1
+                    report_type: cbc_four_column
+                    processing_type: local
+                    is_outsourced: false
+                    is_popular: true
+                    nabl: false
+                    category_id: 0193c3a0-0000-7000-8000-0000000003a1
                     version: 3
         "400":
           $ref: _common.yaml#/components/responses/BadRequest
@@ -2150,6 +2187,21 @@ paths:
                       segment: within_lab
                       target_seconds: 3600
                   effective_from: 2026-11-05T04:15:00.000Z
+                  stage_targets:
+                    - stage: registration
+                      target_minutes: 10
+                    - stage: sample_collection
+                      target_minutes: 30
+                    - stage: accession
+                      target_minutes: 45
+                    - stage: result
+                      target_minutes: 120
+                    - stage: approval_1
+                      target_minutes: 150
+                    - stage: approval_2
+                      target_minutes: 180
+                    - stage: release
+                      target_minutes: 240
       responses:
         "200":
           description: Success.
@@ -4531,6 +4583,18 @@ paths:
           schema:
             type: string
             maxLength: 16
+        - name: is_active
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 5
+            enum:
+              - "true"
+              - "false"
+              - all
+            default: "true"
+          description: Default true; `all` includes inactive rows (LD-333, a copy of listTestCategories).
         - $ref: _common.yaml#/components/parameters/Cursor
         - $ref: _common.yaml#/components/parameters/Limit
       responses:
@@ -4673,6 +4737,216 @@ paths:
                     text: Synthetic comment text
                     is_active: true
                     version: 3
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "428":
+          $ref: _common.yaml#/components/responses/PreconditionRequired
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/catalog/test-categories:
+    get:
+      operationId: listTestCategories
+      tags:
+        - catalog
+      summary: List test categories (T0C-TESTMGMT-1, LD-318)
+      security:
+        - bearerJwt: []
+      x-permission: catalog.test.read
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes: []
+      parameters:
+        - name: department_id
+          in: query
+          required: false
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - name: is_active
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 5
+            enum:
+              - "true"
+              - "false"
+              - all
+            default: "true"
+          description: Default true; `all` includes inactive rows [CONV].
+        - name: sort
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 40
+            enum:
+              - name
+              - -name
+              - display_order
+              - -display_order
+          description: Leading `-` = descending; `id` is always appended (02-CV §4.4).
+        - $ref: _common.yaml#/components/parameters/Cursor
+        - $ref: _common.yaml#/components/parameters/Limit
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TestCategoryPage"
+              examples:
+                synthetic:
+                  value:
+                    data:
+                      - id: 0193c3a0-0000-7000-8000-0000000003a1
+                        department_id: 0193c3a0-0000-7000-8000-0000000003a2
+                        name: Hematology
+                        display_order: 1
+                        print_footer: true
+                        footer_text: Synthetic category footer
+                        is_active: true
+                        version: 1
+                    page:
+                      limit: 50
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+    post:
+      operationId: createTestCategory
+      tags:
+        - catalog
+      summary: Create a test category under a department (T0C-TESTMGMT-1, LD-318)
+      security:
+        - bearerJwt: []
+      x-permission: catalog.test.manage
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - catalog.code_duplicate
+        - common.idempotency_key_reused
+      parameters:
+        - $ref: _common.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TestCategoryCreate"
+            examples:
+              synthetic:
+                value:
+                  department_id: 0193c3a0-0000-7000-8000-0000000003a2
+                  name: Hematology
+                  display_order: 1
+                  print_footer: true
+                  footer_text: Synthetic category footer
+      responses:
+        "201":
+          description: Created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TestCategory"
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c3a0-0000-7000-8000-0000000003a3
+                    department_id: 0193c3a0-0000-7000-8000-0000000003a2
+                    name: Hematology
+                    display_order: 1
+                    print_footer: true
+                    footer_text: Synthetic category footer
+                    is_active: true
+                    version: 1
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/catalog/test-categories/{category_id}:
+    patch:
+      operationId: updateTestCategory
+      tags:
+        - catalog
+      summary: Update or deactivate a test category (never deleted; T0C-TESTMGMT-1, LD-318)
+      security:
+        - bearerJwt: []
+      x-permission: catalog.test.manage
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - catalog.code_duplicate
+        - common.version_conflict
+        - common.precondition_required
+      parameters:
+        - name: category_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - $ref: _common.yaml#/components/parameters/IfMatch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TestCategoryUpdate"
+            examples:
+              synthetic:
+                value:
+                  name: Haematology
+                  is_active: false
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TestCategory"
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c3a0-0000-7000-8000-0000000003a4
+                    department_id: 0193c3a0-0000-7000-8000-0000000003a2
+                    name: Haematology
+                    display_order: 1
+                    print_footer: true
+                    footer_text: Synthetic category footer
+                    is_active: false
+                    version: 2
         "400":
           $ref: _common.yaml#/components/responses/BadRequest
         "401":
@@ -4866,6 +5140,9 @@ paths:
                   phone_e164: "+15555550100"
                   email: <synthetic-email>
                   notes: Synthetic notes
+                  speciality: Pathology (synthetic)
+                  hospital: Synthetic Hospital
+                  national_id_number: SYN-NID-0001
                   quick_add: false
       responses:
         "201":
@@ -4886,6 +5163,9 @@ paths:
                     phone_e164: "+15555550100"
                     email: <synthetic-email>
                     notes: Synthetic notes
+                    speciality: Pathology (synthetic)
+                    hospital: Synthetic Hospital
+                    national_id_number: "********0001"
                     is_verified: false
                     source: back_office
                     merged_into_id: 0193c3a0-0000-7000-8000-000000000229
@@ -4954,6 +5234,9 @@ paths:
                     phone_e164: "+15555550100"
                     email: <synthetic-email>
                     notes: Synthetic notes
+                    speciality: Pathology (synthetic)
+                    hospital: Synthetic Hospital
+                    national_id_number: "********0001"
                     is_verified: false
                     source: back_office
                     merged_into_id: 0193c3a0-0000-7000-8000-000000000234
@@ -5009,6 +5292,9 @@ paths:
                   phone_e164: "+15555550100"
                   email: <synthetic-email>
                   notes: Synthetic notes
+                  speciality: Pathology (synthetic)
+                  hospital: Synthetic Hospital
+                  national_id_number: SYN-NID-0001
                   is_active: true
                   unset:
                     - qualification
@@ -5031,6 +5317,9 @@ paths:
                     phone_e164: "+15555550100"
                     email: <synthetic-email>
                     notes: Synthetic notes
+                    speciality: Pathology (synthetic)
+                    hospital: Synthetic Hospital
+                    national_id_number: "********0001"
                     is_verified: false
                     source: back_office
                     merged_into_id: 0193c3a0-0000-7000-8000-000000000237
@@ -5265,7 +5554,7 @@ paths:
                         name: Demo Complete Blood Count
                         kind: hospital
                         allows_credit: false
-                        pan: "000000000"
+                        pan: "*****0000"
                         contact_phone_e164: "+15555550100"
                         contact_email: <synthetic-email>
                         billing_address: Synthetic billing_address
@@ -5334,7 +5623,7 @@ paths:
                     name: Demo Complete Blood Count
                     kind: hospital
                     allows_credit: false
-                    pan: "000000000"
+                    pan: "*****0000"
                     contact_phone_e164: "+15555550100"
                     contact_email: <synthetic-email>
                     billing_address: Synthetic billing_address
@@ -5391,7 +5680,7 @@ paths:
                     name: Demo Complete Blood Count
                     kind: hospital
                     allows_credit: false
-                    pan: "000000000"
+                    pan: "*****0000"
                     contact_phone_e164: "+15555550100"
                     contact_email: <synthetic-email>
                     billing_address: Synthetic billing_address
@@ -5465,7 +5754,7 @@ paths:
                     name: Demo Complete Blood Count
                     kind: hospital
                     allows_credit: false
-                    pan: "000000000"
+                    pan: "*****0000"
                     contact_phone_e164: "+15555550100"
                     contact_email: <synthetic-email>
                     billing_address: Synthetic billing_address
@@ -5804,6 +6093,10 @@ paths:
       tags:
         - catalog
       summary: Replace the owners assigned to a price list
+      description: >-
+        Sets the owners of the list for one period: effective_from (default now) and effective_to (absent = open ended) apply to every owner_id in the call.
+        T0C-PRICETOOLS-1 (LD-321): one party (credit party, referrer or centre) may hold several lists over time, but two assignments of one party never overlap
+        in time, whatever the list; an overlap is refused with 409 (catalog.code_duplicate) and nothing is changed. Periods with a gap between them are allowed.
       security:
         - bearerJwt: []
       x-permission: catalog.price_list.manage
@@ -6279,6 +6572,1070 @@ paths:
           $ref: _common.yaml#/components/responses/Conflict
         "428":
           $ref: _common.yaml#/components/responses/PreconditionRequired
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  # ---------- T0C-PRICETOOLS-1 (LD-321; ElabAssist Price Allocation): price list tools. Every write lands in a DRAFT version only; publishing stays publishPriceListVersion. ----------
+  /v1/catalog/price-list-import-template:
+    get:
+      operationId: downloadPriceListTemplate
+      tags:
+        - catalog
+      summary: Download the price list Excel template (xlsx with an instruction sheet)
+      description: >-
+        Returns an xlsx workbook with one sheet "Prices" holding every column of the price form: test code, test name (read only, filled from the catalogue),
+        price in rupees (at most 2 decimals) and effective from (YYYY-MM-DD); and a second sheet "Instructions" that states the import rules of dryRunPriceListImport.
+        With price_list_id the rows are prefilled with the active tests and the prices of that list's draft or current version. LD-321.
+      security:
+        - bearerJwt: []
+      x-permission: catalog.price_list.manage
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes: []
+      parameters:
+        - name: price_list_id
+          in: query
+          required: false
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+      responses:
+        "200":
+          description: xlsx attachment.
+          headers:
+            Content-Disposition:
+              description: attachment; filename=price-list-template.xlsx
+              schema:
+                type: string
+                maxLength: 255
+          content:
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema:
+                type: string
+                format: binary
+                maxLength: 5242880
+              examples:
+                synthetic:
+                  summary: Binary xlsx body
+                  value: <binary xlsx>
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/catalog/price-lists/{price_list_id}/import-dry-run:
+    post:
+      operationId: dryRunPriceListImport
+      tags:
+        - catalog
+      summary: Dry run a price list Excel upload (validates every row, writes no price)
+      description: >-
+        Validates the uploaded workbook and records a batch with status dry_run and every error; it writes no price (commitPriceListImport does, into a DRAFT).
+        IMPORT RULES: xlsx only, checked by magic bytes (a ZIP container with an OOXML workbook part); never xlsm, never xls, no macros (a vbaProject part is rejected);
+        external links are rejected; at most 5000 rows and 5 MB.
+        Every price is given in rupees with at most 2 decimals and is converted exactly to integer paisa (decimal string arithmetic, never floats); a price below 0 is rejected.
+        The test code exists and is active in this tenant; a duplicate test code in the file is rejected (every occurrence is reported).
+        Text cells starting with = + - or @ are rejected (formula injection). The test name column is read only and ignored.
+        All errors are returned together, each with its row and column; nothing is stopped at the first error. LD-321.
+      security:
+        - bearerJwt: []
+      x-permission: catalog.price_list.manage
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.payload_too_large
+        - common.unsupported_media_type
+        - common.rate_limited
+        - common.idempotency_key_reused
+      x-upload:
+        - application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+      parameters:
+        - name: price_list_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - $ref: _common.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/PriceListImportForm"
+            encoding:
+              file:
+                contentType: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+            examples:
+              synthetic:
+                value:
+                  file: <binary xlsx>
+      responses:
+        "201":
+          description: Created (batch in status dry_run, with every error).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PriceListImportDryRun"
+              examples:
+                clean:
+                  summary: Every row is valid; the batch can be committed
+                  value:
+                    batch:
+                      id: 0193c4a0-0000-7000-8000-000000000501
+                      price_list_id: 0193c4a0-0000-7000-8000-000000000502
+                      status: dry_run
+                      row_count: 120
+                      error_count: 0
+                      file_sha256: abababababababababababababababababababababababababababababababab
+                      summary:
+                        rows: 120
+                        added: 4
+                        changed: 10
+                        unchanged: 106
+                        errors: 0
+                      created_at: 2026-11-17T04:15:00.000Z
+                      created_by: 0193c4a0-0000-7000-8000-000000000503
+                    errors: []
+                with_errors:
+                  summary: Three errors in two rows, all returned together; the batch is not committable
+                  value:
+                    batch:
+                      id: 0193c4a0-0000-7000-8000-000000000504
+                      price_list_id: 0193c4a0-0000-7000-8000-000000000502
+                      status: dry_run
+                      row_count: 120
+                      error_count: 3
+                      file_sha256: cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd
+                      summary:
+                        rows: 120
+                        errors: 3
+                      created_at: 2026-11-17T04:20:00.000Z
+                      created_by: 0193c4a0-0000-7000-8000-000000000503
+                    errors:
+                      - row_no: 7
+                        column: test_code
+                        code: code_not_found
+                        message: Synthetic test code XX999 does not exist or is not active
+                      - row_no: 7
+                        column: price_rupees
+                        code: price_invalid
+                        message: More than 2 decimals
+                      - row_no: 12
+                        column: price_rupees
+                        code: formula_rejected
+                        message: Text cells starting with = + - or @ are rejected
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "413":
+          $ref: _common.yaml#/components/responses/PayloadTooLarge
+        "415":
+          $ref: _common.yaml#/components/responses/UnsupportedMediaType
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/catalog/price-list-import-batches:
+    get:
+      operationId: listPriceListImportBatches
+      tags:
+        - catalog
+      summary: List price list import batches (history, newest first)
+      security:
+        - bearerJwt: []
+      x-permission: catalog.price_list.read
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes: []
+      parameters:
+        - name: price_list_id
+          in: query
+          required: false
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 9
+            enum:
+              - dry_run
+              - committed
+              - failed
+              - cancelled
+        - $ref: _common.yaml#/components/parameters/Cursor
+        - $ref: _common.yaml#/components/parameters/Limit
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PriceListImportBatchPage"
+              examples:
+                synthetic:
+                  value:
+                    data:
+                      - id: 0193c4a0-0000-7000-8000-000000000501
+                        price_list_id: 0193c4a0-0000-7000-8000-000000000502
+                        status: committed
+                        row_count: 120
+                        error_count: 0
+                        file_sha256: abababababababababababababababababababababababababababababababab
+                        summary:
+                          rows: 120
+                          errors: 0
+                        result_price_list_version_id: 0193c4a0-0000-7000-8000-000000000505
+                        created_at: 2026-11-17T04:15:00.000Z
+                        created_by: 0193c4a0-0000-7000-8000-000000000503
+                    page:
+                      limit: 50
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/catalog/price-list-import-batches/{batch_id}/commit:
+    post:
+      operationId: commitPriceListImport
+      tags:
+        - catalog
+      summary: Commit a dry run batch into a new DRAFT version (never publishes)
+      description: >-
+        Writes the validated prices of a dry_run batch atomically into a new DRAFT version of the batch's price list and marks the batch committed.
+        It never publishes; publishing goes through publishPriceListVersion. A batch with errors is not committable (catalog.import_not_committable),
+        nor is a batch that is already committed, cancelled or failed. 409 when the list already has a draft version. The file is re-hashed and must match file_sha256. LD-321.
+      security:
+        - bearerJwt: []
+      x-permission: catalog.price_list.manage
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - catalog.import_not_committable
+        - common.version_conflict
+        - common.idempotency_key_reused
+      parameters:
+        - name: batch_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - $ref: _common.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PriceListImportCommit"
+            examples:
+              synthetic:
+                value:
+                  change_reason: Synthetic yearly rate revision
+      responses:
+        "201":
+          description: Created (a DRAFT version).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PriceListVersion"
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-000000000505
+                    price_list_id: 0193c4a0-0000-7000-8000-000000000502
+                    version_no: 4
+                    status: draft
+                    item_count: 120
+                    change_reason: Synthetic yearly rate revision
+                    version: 1
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/catalog/test-import-template:
+    get:
+      operationId: downloadCatalogImportTemplate
+      tags:
+        - catalog
+      summary: Download the Excel test import template (tests, parameters and reference ranges in one xlsx)
+      description: >-
+        Returns an xlsx workbook generated from the same field definitions as the Add Test, Add Test Parameter and Reference Range forms, so the header lists
+        cannot drift: one sheet "Tests", one sheet "Parameters", one sheet "Reference Ranges", one sheet "Panels" and an "Instructions" sheet (instruction text of every
+        column and the import rules of validateCatalogImport). The template version is written in the workbook; a file with another template version is rejected
+        (catalog.import_template_outdated). Download convention of the reporting module (Content-Disposition attachment). T0C-TESTIMPORT-1, LD-318.
+      security:
+        - bearerJwt: []
+      x-permission: catalog.test.manage
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes: []
+      responses:
+        "200":
+          description: xlsx attachment.
+          headers:
+            Content-Disposition:
+              description: attachment; filename=test-import-template.xlsx
+              schema:
+                type: string
+                maxLength: 255
+          content:
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema:
+                type: string
+                format: binary
+                maxLength: 5242880
+              examples:
+                synthetic:
+                  summary: Binary xlsx body
+                  value: <binary xlsx>
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/catalog/test-import-batches:
+    post:
+      operationId: validateCatalogImport
+      tags:
+        - catalog
+      summary: Upload and validate an Excel test import (dry run; writes no catalog row)
+      description: >-
+        The server parses and validates the workbook, never the browser, converts it to normalized JSON and records a batch: status validated when there is no error,
+        rejected otherwise. The dry run writes no catalog row (commitCatalogImport does, as DRAFTS only; the import never publishes). Upload convention of reporting uploadOutsourcedReport.
+        IMPORT RULES: xlsx only, checked by magic bytes (a ZIP container with an OOXML workbook part); never xlsm, never xls, no macros (a vbaProject part is rejected);
+        external links are rejected; a zip bomb is rejected (the uncompressed size is capped before parsing); at most 5 MB and at most 5000 rows per sheet
+        (catalog.import_too_large); a file that is not a readable workbook is catalog.import_invalid_file; a wrong template version is catalog.import_template_outdated.
+        Text cells starting with = + - or @ are rejected (formula injection). Test codes are unique per tenant and in the file; mode create_only refuses an existing code.
+        Parameter equations are written over the short names of other parameters of the same test and are mapped to formula_expression over analyte codes; unknown names,
+        self reference, cycles and division by a constant zero are rejected. Reference ranges: From >= To, overlapping bands for the same gender and laboratory,
+        Normal Low > Normal High and critical limits inside the normal range are rejected; gender Any is expanded; critical limits 0 and 0 mean none (LD-318 follow-up).
+        All errors are listed together, not only the first, each with its sheet, row and column; at most 1000 errors are kept. A batch can be committed within 24 hours.
+        T0C-TESTIMPORT-1, LD-318.
+      security:
+        - bearerJwt: []
+      x-permission: catalog.test.manage
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.payload_too_large
+        - common.unsupported_media_type
+        - common.rate_limited
+        - common.idempotency_key_reused
+        - catalog.import_invalid_file
+        - catalog.import_template_outdated
+        - catalog.import_too_large
+      x-upload:
+        - application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+      parameters:
+        - $ref: _common.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/CatalogImportForm"
+            encoding:
+              file:
+                contentType: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+            examples:
+              synthetic:
+                value:
+                  file: <binary xlsx>
+                  mode: create_only
+      responses:
+        "201":
+          description: Created (batch validated or rejected, with all errors and a preview; no catalog row written).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CatalogImportValidation"
+              examples:
+                clean:
+                  summary: Every row is valid; the batch can be committed within 24 hours
+                  value:
+                    batch:
+                      id: 0193c4a0-0000-7000-8000-000000000601
+                      file_name: tests-synthetic.xlsx
+                      file_sha256: abababababababababababababababababababababababababababababababab
+                      template_version: "1"
+                      mode: create_only
+                      status: validated
+                      counts:
+                        tests: 2
+                        analytes: 5
+                        ranges: 12
+                        panels: 1
+                        errors: 0
+                      created_by: 0193c4a0-0000-7000-8000-000000000603
+                      created_at: 2026-11-17T10:00:00.000Z
+                      validated_at: 2026-11-17T10:00:02.000Z
+                      version: 1
+                    errors: []
+                    preview:
+                      tests:
+                        - code: SYN01
+                          name: Synthetic Lipid Profile
+                          action: create
+                          analytes: 5
+                          ranges: 10
+                        - code: SYN02
+                          name: Synthetic Glucose
+                          action: create
+                          analytes: 0
+                          ranges: 2
+                rejected:
+                  summary: Two errors in two sheets, all listed together; the batch is rejected and cannot be committed
+                  value:
+                    batch:
+                      id: 0193c4a0-0000-7000-8000-000000000602
+                      file_name: tests-synthetic.xlsx
+                      file_sha256: cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd
+                      template_version: "1"
+                      mode: create_only
+                      status: rejected
+                      counts:
+                        tests: 2
+                        analytes: 5
+                        ranges: 12
+                        panels: 0
+                        errors: 2
+                      created_by: 0193c4a0-0000-7000-8000-000000000603
+                      created_at: 2026-11-17T10:05:00.000Z
+                      validated_at: 2026-11-17T10:05:02.000Z
+                      version: 1
+                    errors:
+                      - sheet: Tests
+                        row: 3
+                        column: Test Code
+                        code: code_duplicate
+                        message: Synthetic test code SYN01 appears twice in the file
+                      - sheet: Parameters
+                        row: 7
+                        column: Equation
+                        code: formula_cycle
+                        message: "Synthetic: VLDL uses TG, TG uses VLDL"
+                    preview:
+                      tests: []
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "413":
+          description: The file is larger than 5 MB or has more than 5000 rows per sheet.
+          content:
+            application/problem+json:
+              schema:
+                $ref: _common.yaml#/components/schemas/Problem
+              examples:
+                import_too_large:
+                  value:
+                    type: urn:lims:error:catalog.import_too_large
+                    title: Import file too large
+                    status: 413
+                    code: catalog.import_too_large
+                    request_id: 01933b6f-0a11-7e2b-8c55-1d2e3f405162
+        "415":
+          $ref: _common.yaml#/components/responses/UnsupportedMediaType
+        "422":
+          description: The file is not a valid xlsx workbook, or its template version is outdated.
+          content:
+            application/problem+json:
+              schema:
+                $ref: _common.yaml#/components/schemas/Problem
+              examples:
+                import_invalid_file:
+                  value:
+                    type: urn:lims:error:catalog.import_invalid_file
+                    title: Import file is not a valid workbook
+                    status: 422
+                    code: catalog.import_invalid_file
+                    request_id: 01933b6f-0a11-7e2b-8c55-1d2e3f405162
+                import_template_outdated:
+                  value:
+                    type: urn:lims:error:catalog.import_template_outdated
+                    title: Import template is outdated
+                    status: 422
+                    code: catalog.import_template_outdated
+                    request_id: 01933b6f-0a11-7e2b-8c55-1d2e3f405162
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+    get:
+      operationId: listCatalogImports
+      tags:
+        - catalog
+      summary: List Excel test import batches (history, newest first)
+      security:
+        - bearerJwt: []
+      x-permission: catalog.test.manage
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes: []
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 9
+            enum:
+              - validated
+              - rejected
+              - committed
+              - expired
+        - name: mode
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 11
+            enum:
+              - create_only
+              - update
+        - $ref: _common.yaml#/components/parameters/Cursor
+        - $ref: _common.yaml#/components/parameters/Limit
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CatalogImportBatchPage"
+              examples:
+                synthetic:
+                  value:
+                    data:
+                      - id: 0193c4a0-0000-7000-8000-000000000611
+                        file_name: tests-synthetic.xlsx
+                        file_sha256: abababababababababababababababababababababababababababababababab
+                        template_version: "1"
+                        mode: create_only
+                        status: committed
+                        counts:
+                          tests: 2
+                          analytes: 5
+                          ranges: 12
+                          panels: 1
+                          errors: 0
+                        created_by: 0193c4a0-0000-7000-8000-000000000603
+                        created_at: 2026-11-17T10:00:00.000Z
+                        validated_at: 2026-11-17T10:00:02.000Z
+                        committed_at: 2026-11-17T10:10:00.000Z
+                        committed_by: 0193c4a0-0000-7000-8000-000000000603
+                        version: 2
+                    page:
+                      limit: 50
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/catalog/test-import-batches/{batch_id}:
+    get:
+      operationId: getCatalogImport
+      tags:
+        - catalog
+      summary: Get one Excel test import batch (ETag = version, for If-Match on commit)
+      security:
+        - bearerJwt: []
+      x-permission: catalog.test.manage
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes: []
+      parameters:
+        - name: batch_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+      responses:
+        "200":
+          description: Success.
+          headers:
+            ETag:
+              description: '"<version>" of the batch (02-CV §4.2), sent back as If-Match on commitCatalogImport.'
+              schema:
+                type: string
+                maxLength: 12
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CatalogImportBatch"
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-000000000621
+                    file_name: tests-synthetic.xlsx
+                    file_sha256: abababababababababababababababababababababababababababababababab
+                    template_version: "1"
+                    mode: create_only
+                    status: validated
+                    counts:
+                      tests: 2
+                      analytes: 5
+                      ranges: 12
+                      panels: 1
+                      errors: 0
+                    created_by: 0193c4a0-0000-7000-8000-000000000603
+                    created_at: 2026-11-17T10:00:00.000Z
+                    validated_at: 2026-11-17T10:00:02.000Z
+                    version: 1
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/catalog/test-import-batches/{batch_id}/commit:
+    post:
+      operationId: commitCatalogImport
+      tags:
+        - catalog
+      summary: Commit a validated Excel test import atomically (all rows or none) as DRAFTS; never publishes
+      description: >-
+        Requires If-Match (the batch version) and the explicit confirm flag. Writes every row of the normalized workbook of a validated batch in one transaction:
+        all rows or none. Imported tests, analyte versions and reference range sets are created as DRAFTS only; the import never publishes, so the pathologist
+        sign-off (publish permission, publishAnalyteVersion and publishReferenceRangeSet) still decides what goes live (LD-318). A rejected batch (it has errors)
+        cannot be committed (catalog.import_has_errors); a batch older than 24 hours cannot be committed (catalog.import_batch_expired); a batch that is already committed
+        returns catalog.import_already_committed. T0C-TESTIMPORT-1.
+      security:
+        - bearerJwt: []
+      x-permission: catalog.test.manage
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.precondition_required
+        - common.version_conflict
+        - common.idempotency_key_reused
+        - catalog.import_has_errors
+        - catalog.import_batch_expired
+        - catalog.import_already_committed
+      parameters:
+        - name: batch_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - $ref: _common.yaml#/components/parameters/IfMatch
+        - $ref: _common.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CatalogImportCommit"
+            examples:
+              synthetic:
+                value:
+                  confirm: true
+      responses:
+        "201":
+          description: Created (DRAFTS only; nothing published).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CatalogImportCommitResult"
+              examples:
+                synthetic:
+                  value:
+                    batch:
+                      id: 0193c4a0-0000-7000-8000-000000000631
+                      file_name: tests-synthetic.xlsx
+                      file_sha256: abababababababababababababababababababababababababababababababab
+                      template_version: "1"
+                      mode: create_only
+                      status: committed
+                      counts:
+                        tests: 2
+                        analytes: 5
+                        ranges: 12
+                        panels: 1
+                        errors: 0
+                      created_by: 0193c4a0-0000-7000-8000-000000000603
+                      created_at: 2026-11-17T10:00:00.000Z
+                      validated_at: 2026-11-17T10:00:02.000Z
+                      committed_at: 2026-11-17T10:10:00.000Z
+                      committed_by: 0193c4a0-0000-7000-8000-000000000603
+                      version: 2
+                    created:
+                      tests: 2
+                      analytes: 5
+                      ranges: 12
+                      panels: 1
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          description: Version conflict, the batch has errors, is expired or is already committed.
+          content:
+            application/problem+json:
+              schema:
+                $ref: _common.yaml#/components/schemas/Problem
+              examples:
+                version_conflict:
+                  value:
+                    type: urn:lims:error:common.version_conflict
+                    title: Version conflict
+                    status: 409
+                    code: common.version_conflict
+                    request_id: 01933b6f-0a11-7e2b-8c55-1d2e3f405162
+                import_has_errors:
+                  value:
+                    type: urn:lims:error:catalog.import_has_errors
+                    title: Import batch has errors
+                    status: 409
+                    code: catalog.import_has_errors
+                    request_id: 01933b6f-0a11-7e2b-8c55-1d2e3f405162
+                import_batch_expired:
+                  value:
+                    type: urn:lims:error:catalog.import_batch_expired
+                    title: Import batch expired
+                    status: 409
+                    code: catalog.import_batch_expired
+                    request_id: 01933b6f-0a11-7e2b-8c55-1d2e3f405162
+                import_already_committed:
+                  value:
+                    type: urn:lims:error:catalog.import_already_committed
+                    title: Import batch already committed
+                    status: 409
+                    code: catalog.import_already_committed
+                    request_id: 01933b6f-0a11-7e2b-8c55-1d2e3f405162
+        "428":
+          $ref: _common.yaml#/components/responses/PreconditionRequired
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/catalog/test-import-batches/{batch_id}/errors-file:
+    get:
+      operationId: downloadCatalogImportErrors
+      tags:
+        - catalog
+      summary: Download the uploaded rows with an Errors column (xlsx)
+      description: >-
+        Returns the uploaded rows of the batch as an xlsx, each sheet with an extra Errors column holding the errors of that row, so the file can be fixed and
+        validated again. Download convention of the reporting module (Content-Disposition attachment). T0C-TESTIMPORT-1, LD-318.
+      security:
+        - bearerJwt: []
+      x-permission: catalog.test.manage
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes: []
+      parameters:
+        - name: batch_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+      responses:
+        "200":
+          description: xlsx attachment.
+          headers:
+            Content-Disposition:
+              description: attachment; filename=test-import-errors.xlsx
+              schema:
+                type: string
+                maxLength: 255
+          content:
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema:
+                type: string
+                format: binary
+                maxLength: 5242880
+              examples:
+                synthetic:
+                  summary: Binary xlsx body
+                  value: <binary xlsx>
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/catalog/price-list-versions/{price_list_version_id}/bulk-update:
+    post:
+      operationId: bulkUpdatePriceListDraft
+      tags:
+        - catalog
+      summary: Bulk update the prices of a DRAFT version by percent or fixed amount
+      description: >-
+        Changes the items of a draft version only (409 catalog.version_in_use when the version is not a draft). change_kind percent uses percent_bp (basis points,
+        negative = decrease); fixed_amount uses amount_paisa (signed integer paisa). Integer arithmetic only, never floats; rounding none, nearest_rupee, nearest_5
+        or nearest_10 (rupees, half up). Scope all, department (department_id) or listed_tests (orderable_ids). A result below 0 refuses the whole request
+        with 422 and changes nothing (no negative price). LD-321.
+      security:
+        - bearerJwt: []
+      x-permission: catalog.price_list.manage
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - catalog.version_in_use
+        - common.idempotency_key_reused
+      parameters:
+        - name: price_list_version_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - $ref: _common.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PriceListBulkUpdate"
+            examples:
+              percent_all:
+                value:
+                  change_kind: percent
+                  percent_bp: 1000
+                  rounding: nearest_10
+                  scope: all
+              fixed_department:
+                value:
+                  change_kind: fixed_amount
+                  amount_paisa: -5000
+                  rounding: none
+                  scope: department
+                  department_id: 0193c4a0-0000-7000-8000-000000000510
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PriceListBulkUpdateResult"
+              examples:
+                synthetic:
+                  value:
+                    price_list_version_id: 0193c4a0-0000-7000-8000-000000000505
+                    changed_count: 98
+                    unchanged_count: 22
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/catalog/price-lists/{price_list_id}/copy:
+    post:
+      operationId: copyPriceList
+      tags:
+        - catalog
+      summary: Copy a source version into a new DRAFT of the target list in the path
+      description: >-
+        Copies the items of source_price_list_version_id (any list of this tenant) into a new DRAFT version of the price list in the path. mode replace starts
+        the draft from the source items only; mode merge starts from the target's current version and overwrites or adds the source items. Optional percent_bp
+        and rounding adjust the copied prices (integer paisa, a result below 0 is refused with 422). 409 when the target already has a draft. Never publishes. LD-321.
+      security:
+        - bearerJwt: []
+      x-permission: catalog.price_list.manage
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.version_conflict
+        - common.idempotency_key_reused
+      parameters:
+        - name: price_list_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - $ref: _common.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PriceListCopy"
+            examples:
+              merge_plus_ten:
+                value:
+                  source_price_list_version_id: 0193c4a0-0000-7000-8000-000000000520
+                  mode: merge
+                  percent_bp: 1000
+                  rounding: nearest_rupee
+      responses:
+        "201":
+          description: Created (a DRAFT version on the target list).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PriceListVersion"
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-000000000521
+                    price_list_id: 0193c4a0-0000-7000-8000-000000000522
+                    version_no: 2
+                    status: draft
+                    item_count: 340
+                    version: 1
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/catalog/price-list-comparisons:
+    get:
+      operationId: comparePriceLists
+      tags:
+        - catalog
+      summary: Compare two price list versions (test, price A, price B, difference, percent)
+      description: >-
+        One row per orderable on either version, ordered by test code. difference_paisa = B - A; percent_bp = difference as basis points of A (absent when A is 0).
+        A price missing from one version is absent from the row, never zero. Read only. LD-321.
+      security:
+        - bearerJwt: []
+      x-permission: catalog.price_list.read
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes: []
+      parameters:
+        - name: version_a_id
+          in: query
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - name: version_b_id
+          in: query
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - $ref: _common.yaml#/components/parameters/Cursor
+        - $ref: _common.yaml#/components/parameters/Limit
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PriceListComparisonPage"
+              examples:
+                synthetic:
+                  value:
+                    data:
+                      - orderable_id: 0193c4a0-0000-7000-8000-000000000530
+                        test_code: CBC
+                        test_name: Synthetic Complete Blood Count
+                        price_a_paisa: 50000
+                        price_b_paisa: 55000
+                        difference_paisa: 5000
+                        percent_bp: 1000
+                      - orderable_id: 0193c4a0-0000-7000-8000-000000000531
+                        test_code: TSH
+                        test_name: Synthetic Thyroid Stimulating Hormone
+                        price_a_paisa: 80000
+                    page:
+                      limit: 50
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
         "429":
           $ref: _common.yaml#/components/responses/TooManyRequests
         "500":
@@ -8141,8 +9498,435 @@ paths:
           $ref: _common.yaml#/components/responses/TooManyRequests
         "500":
           $ref: _common.yaml#/components/responses/Internal
+  # ---- T0C-PARTYSET-1 (LD-321): per tenant ICD master (catalog.icd_code). Separate from the frontdesk registration pick list (frontdesk.icd_codes, listIcdCodes). ----
+  /v1/catalog/icd-master:
+    get:
+      operationId: listIcdMasterCodes
+      tags:
+        - catalog
+      summary: List the ICD master codes of the tenant (T0C-PARTYSET-1)
+      description: Ordered by code. q matches a code prefix or title words, case-insensitive; inactive codes are included unless is_active is given.
+      security:
+        - bearerJwt: []
+      x-permission: catalog.icd.manage
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.invalid_cursor
+      parameters:
+        - name: q
+          in: query
+          required: false
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 64
+        - name: chapter
+          in: query
+          required: false
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 120
+        - name: is_active
+          in: query
+          required: false
+          schema:
+            type: boolean
+        - $ref: _common.yaml#/components/parameters/Cursor
+        - $ref: _common.yaml#/components/parameters/Limit
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                  - data
+                  - page
+                properties:
+                  data:
+                    type: array
+                    maxItems: 200
+                    items:
+                      $ref: "#/components/schemas/IcdMasterCode"
+                  page:
+                    $ref: _common.yaml#/components/schemas/PageInfo
+              examples:
+                synthetic:
+                  value:
+                    data:
+                      - id: 0193c4a0-0000-7000-8000-0000005b6001
+                        code: E11.9
+                        title: "Synthetic: type 2 diabetes mellitus without complications"
+                        chapter: Chapter IV (synthetic)
+                        is_active: true
+                        version: 1
+                        created_at: '2026-11-17T05:10:00.000Z'
+                        updated_at: '2026-11-17T05:10:00.000Z'
+                    page:
+                      limit: 50
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+    post:
+      operationId: createIcdMasterCode
+      tags:
+        - catalog
+      summary: Add a code to the ICD master (T0C-PARTYSET-1)
+      description: The code is unique per tenant (a used code answers common.validation_failed); upper case letters, digits and dots, for example E11.9.
+      security:
+        - bearerJwt: []
+      x-permission: catalog.icd.manage
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.idempotency_key_required
+        - common.idempotency_key_reused
+        - common.idempotency_in_progress
+      parameters:
+        - $ref: _common.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - code
+                - title
+              properties:
+                code:
+                  type: string
+                  pattern: ^[0-9A-Z][0-9A-Z.]{0,15}$
+                  maxLength: 16
+                title:
+                  type: string
+                  minLength: 1
+                  maxLength: 500
+                chapter:
+                  type: string
+                  minLength: 1
+                  maxLength: 120
+            examples:
+              synthetic:
+                value:
+                  code: E11.9
+                  title: "Synthetic: type 2 diabetes mellitus without complications"
+                  chapter: Chapter IV (synthetic)
+      responses:
+        "201":
+          description: Created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IcdMasterCode"
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-0000005b7000
+                    code: E11.9
+                    title: "Synthetic: type 2 diabetes mellitus without complications"
+                    chapter: Chapter IV (synthetic)
+                    is_active: true
+                    version: 1
+                    created_at: '2026-11-17T05:10:00.000Z'
+                    updated_at: '2026-11-17T05:10:00.000Z'
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/catalog/icd-master/search:
+    get:
+      operationId: searchIcdMasterCodes
+      tags:
+        - catalog
+      summary: Search the ICD master for a picker (T0C-PARTYSET-1)
+      description: Matches a code prefix or title words (case-insensitive) and returns active codes only, best match first; no paging (at most limit rows).
+      security:
+        - bearerJwt: []
+      x-permission: catalog.icd.manage
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 64
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 20
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                  - data
+                properties:
+                  data:
+                    type: array
+                    maxItems: 50
+                    items:
+                      $ref: "#/components/schemas/IcdMasterCode"
+              examples:
+                synthetic:
+                  value:
+                    data:
+                      - id: 0193c4a0-0000-7000-8000-0000005b7001
+                        code: E11.9
+                        title: "Synthetic: type 2 diabetes mellitus without complications"
+                        chapter: Chapter IV (synthetic)
+                        is_active: true
+                        version: 1
+                        created_at: '2026-11-17T05:10:00.000Z'
+                        updated_at: '2026-11-17T05:10:00.000Z'
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/catalog/icd-master/{icd_code_id}:
+    patch:
+      operationId: updateIcdMasterCode
+      tags:
+        - catalog
+      summary: Update the title or chapter of an ICD master code (T0C-PARTYSET-1)
+      description: A code is never renamed; add a new code and deactivate the old one instead.
+      security:
+        - bearerJwt: []
+      x-permission: catalog.icd.manage
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.not_found
+        - common.version_conflict
+        - common.precondition_required
+      parameters:
+        - name: icd_code_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - $ref: _common.yaml#/components/parameters/IfMatch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              minProperties: 1
+              properties:
+                title:
+                  type: string
+                  minLength: 1
+                  maxLength: 500
+                chapter:
+                  type: string
+                  minLength: 1
+                  maxLength: 120
+            examples:
+              synthetic:
+                value:
+                  chapter: Chapter IV (synthetic)
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IcdMasterCode"
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-0000005b7002
+                    code: E11.9
+                    title: "Synthetic: type 2 diabetes mellitus without complications"
+                    chapter: Chapter IV (synthetic)
+                    is_active: true
+                    version: 2
+                    created_at: '2026-11-17T05:10:00.000Z'
+                    updated_at: '2026-11-17T05:10:00.000Z'
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "428":
+          $ref: _common.yaml#/components/responses/PreconditionRequired
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/catalog/icd-master/{icd_code_id}/deactivate:
+    post:
+      operationId: deactivateIcdMasterCode
+      tags:
+        - catalog
+      summary: Deactivate an ICD master code (T0C-PARTYSET-1)
+      description: Sets is_active false so the code is no longer offered in search; it stays on existing orders and in history. Nothing is deleted.
+      security:
+        - bearerJwt: []
+      x-permission: catalog.icd.manage
+      x-context: tenant
+      x-idempotency: optional
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.not_found
+        - common.version_conflict
+        - common.precondition_required
+      parameters:
+        - name: icd_code_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - $ref: _common.yaml#/components/parameters/IfMatch
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IcdMasterCode"
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-0000005b7003
+                    code: E11.9
+                    title: "Synthetic: type 2 diabetes mellitus without complications"
+                    chapter: Chapter IV (synthetic)
+                    is_active: false
+                    version: 3
+                    created_at: '2026-11-17T05:10:00.000Z'
+                    updated_at: '2026-11-17T05:10:00.000Z'
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "428":
+          $ref: _common.yaml#/components/responses/PreconditionRequired
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
 components:
   schemas:
+    IcdMasterCode:
+      description: One code of the per tenant ICD master (T0C-PARTYSET-1). Deactivate, never delete.
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - code
+        - title
+        - is_active
+        - version
+        - created_at
+        - updated_at
+      properties:
+        id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        code:
+          type: string
+          pattern: ^[0-9A-Z][0-9A-Z.]{0,15}$
+          maxLength: 16
+        title:
+          type: string
+          minLength: 1
+          maxLength: 500
+        chapter:
+          type: string
+          minLength: 1
+          maxLength: 120
+        is_active:
+          type: boolean
+        version:
+          $ref: _common.yaml#/components/schemas/Version
+        created_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        updated_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
     Department:
       type: object
       additionalProperties: false
@@ -8684,6 +10468,25 @@ components:
           type: integer
           minimum: 0
           maximum: 2147483647
+        category_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        category_name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        short_name:
+          type: string
+          minLength: 1
+          maxLength: 60
+        display_name:
+          type: string
+          minLength: 3
+          maxLength: 300
+        default_price_paisa:
+          type: integer
+          minimum: 0
+          maximum: 999999999
+          description: Unit price in paisa on the tenant default price list (published version in effect now); absent when the default price list has no price for this orderable (T0C-TESTMGMT-1, LD-318).
     SpecimenRequirement:
       type: object
       additionalProperties: false
@@ -8753,6 +10556,28 @@ components:
           type: integer
           minimum: 60
           maximum: 2592000
+    StageTatTarget:
+      type: object
+      additionalProperties: false
+      required:
+        - stage
+        - target_minutes
+      properties:
+        stage:
+          type: string
+          maxLength: 17
+          enum:
+            - registration
+            - sample_collection
+            - accession
+            - result
+            - approval_1
+            - approval_2
+            - release
+        target_minutes:
+          type: integer
+          minimum: 0
+          maximum: 43200
     AnalyteVersion:
       type: object
       additionalProperties: false
@@ -8783,7 +10608,7 @@ components:
             - discarded
         result_type:
           type: string
-          maxLength: 10
+          maxLength: 16
           enum:
             - numeric
             - text
@@ -8791,6 +10616,12 @@ components:
             - coded
             - attachment
             - narrative
+            - boolean
+            - test_footer
+            - space
+            - graph
+            - html_descriptive
+          description: "ElabAssist mapping (T0C-TESTMGMT-1, LD-318): Integer, Float, Equation = numeric (Equation sets formula_expression); List = coded; Long Text, Single Line Text = text; Descriptive = narrative; Image = attachment; Boolean, Test_Footer, Space, Graph, Html Descriptive = the values of the same name."
         unit_code:
           type: string
           minLength: 1
@@ -8826,6 +10657,18 @@ components:
         change_reason:
           type: string
           maxLength: 500
+        default_value:
+          type: string
+          minLength: 1
+          maxLength: 500
+        long_text_value:
+          type: string
+          minLength: 1
+          maxLength: 20000
+        high_low:
+          $ref: _common.yaml#/components/schemas/DecimalString
+        require_verification:
+          type: boolean
         version:
           $ref: _common.yaml#/components/schemas/Version
     AnalyteVersionDraftInput:
@@ -8836,7 +10679,7 @@ components:
       properties:
         result_type:
           type: string
-          maxLength: 10
+          maxLength: 16
           enum:
             - numeric
             - text
@@ -8844,6 +10687,12 @@ components:
             - coded
             - attachment
             - narrative
+            - boolean
+            - test_footer
+            - space
+            - graph
+            - html_descriptive
+          description: "ElabAssist mapping (T0C-TESTMGMT-1, LD-318): Integer, Float, Equation = numeric (Equation sets formula_expression); List = coded; Long Text, Single Line Text = text; Descriptive = narrative; Image = attachment; Boolean, Test_Footer, Space, Graph, Html Descriptive = the values of the same name."
         unit_code:
           type: string
           minLength: 1
@@ -8862,13 +10711,25 @@ components:
           type: string
           minLength: 1
           maxLength: 500
+        default_value:
+          type: string
+          minLength: 1
+          maxLength: 500
+        long_text_value:
+          type: string
+          minLength: 1
+          maxLength: 20000
+        high_low:
+          $ref: _common.yaml#/components/schemas/DecimalString
+        require_verification:
+          type: boolean
     AnalyteVersionDraftUpdate:
       type: object
       additionalProperties: false
       properties:
         result_type:
           type: string
-          maxLength: 10
+          maxLength: 16
           enum:
             - numeric
             - text
@@ -8876,6 +10737,12 @@ components:
             - coded
             - attachment
             - narrative
+            - boolean
+            - test_footer
+            - space
+            - graph
+            - html_descriptive
+          description: "ElabAssist mapping (T0C-TESTMGMT-1, LD-318): Integer, Float, Equation = numeric (Equation sets formula_expression); List = coded; Long Text, Single Line Text = text; Descriptive = narrative; Image = attachment; Boolean, Test_Footer, Space, Graph, Html Descriptive = the values of the same name."
         unit_code:
           type: string
           minLength: 1
@@ -8894,9 +10761,21 @@ components:
           type: string
           minLength: 1
           maxLength: 500
+        default_value:
+          type: string
+          minLength: 1
+          maxLength: 500
+        long_text_value:
+          type: string
+          minLength: 1
+          maxLength: 20000
+        high_low:
+          $ref: _common.yaml#/components/schemas/DecimalString
+        require_verification:
+          type: boolean
         unset:
           type: array
-          maxItems: 5
+          maxItems: 8
           items:
             type: string
             maxLength: 18
@@ -8906,6 +10785,9 @@ components:
               - method_id
               - value_set_code
               - formula_expression
+              - default_value
+              - long_text_value
+              - high_low
     AnalyteVersionDraftCreate:
       type: object
       additionalProperties: false
@@ -8978,6 +10860,44 @@ components:
           $ref: "#/components/schemas/AnalyteVersion"
         draft_version_id:
           $ref: _common.yaml#/components/schemas/Uuid
+        trend_name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        specimen_type_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        font:
+          type: string
+          minLength: 1
+          maxLength: 60
+        result_display_type:
+          type: string
+          maxLength: 20
+          enum:
+            - table
+            - note_value_only
+            - list_note
+            - one_column
+            - two_column
+            - three_column
+            - four_column
+            - comment
+            - hidden
+            - table_with_subheader
+            - merge_two_column
+        print_on_negative:
+          type: boolean
+          description: Default true (every existing analyte keeps printing negative values).
+        print_on_worksheet:
+          type: boolean
+        send_in_sms:
+          type: boolean
+        nabl:
+          type: boolean
+        accab_logo:
+          type: boolean
+        is_trend:
+          type: boolean
     AnalyteDetail:
       type: object
       additionalProperties: false
@@ -9025,6 +10945,44 @@ components:
           $ref: "#/components/schemas/AnalyteVersion"
         draft_version_id:
           $ref: _common.yaml#/components/schemas/Uuid
+        trend_name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        specimen_type_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        font:
+          type: string
+          minLength: 1
+          maxLength: 60
+        result_display_type:
+          type: string
+          maxLength: 20
+          enum:
+            - table
+            - note_value_only
+            - list_note
+            - one_column
+            - two_column
+            - three_column
+            - four_column
+            - comment
+            - hidden
+            - table_with_subheader
+            - merge_two_column
+        print_on_negative:
+          type: boolean
+          description: Default true (every existing analyte keeps printing negative values).
+        print_on_worksheet:
+          type: boolean
+        send_in_sms:
+          type: boolean
+        nabl:
+          type: boolean
+        accab_logo:
+          type: boolean
+        is_trend:
+          type: boolean
         versions:
           type: array
           maxItems: 50
@@ -9059,6 +11017,44 @@ components:
           maximum: 9999
         is_reportable:
           type: boolean
+        trend_name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        specimen_type_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        font:
+          type: string
+          minLength: 1
+          maxLength: 60
+        result_display_type:
+          type: string
+          maxLength: 20
+          enum:
+            - table
+            - note_value_only
+            - list_note
+            - one_column
+            - two_column
+            - three_column
+            - four_column
+            - comment
+            - hidden
+            - table_with_subheader
+            - merge_two_column
+        print_on_negative:
+          type: boolean
+          description: Default true (every existing analyte keeps printing negative values).
+        print_on_worksheet:
+          type: boolean
+        send_in_sms:
+          type: boolean
+        nabl:
+          type: boolean
+        accab_logo:
+          type: boolean
+        is_trend:
+          type: boolean
         initial_version:
           $ref: "#/components/schemas/AnalyteVersionDraftInput"
     AnalyteUpdate:
@@ -9083,6 +11079,55 @@ components:
           type: boolean
         is_active:
           type: boolean
+        trend_name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        specimen_type_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        font:
+          type: string
+          minLength: 1
+          maxLength: 60
+        result_display_type:
+          type: string
+          maxLength: 20
+          enum:
+            - table
+            - note_value_only
+            - list_note
+            - one_column
+            - two_column
+            - three_column
+            - four_column
+            - comment
+            - hidden
+            - table_with_subheader
+            - merge_two_column
+        print_on_negative:
+          type: boolean
+          description: Default true (every existing analyte keeps printing negative values).
+        print_on_worksheet:
+          type: boolean
+        send_in_sms:
+          type: boolean
+        nabl:
+          type: boolean
+        accab_logo:
+          type: boolean
+        is_trend:
+          type: boolean
+        unset:
+          type: array
+          maxItems: 4
+          items:
+            type: string
+            maxLength: 19
+            enum:
+              - trend_name
+              - specimen_type_id
+              - font
+              - result_display_type
     Test:
       type: object
       additionalProperties: false
@@ -9179,6 +11224,112 @@ components:
           maxItems: 2
           items:
             $ref: "#/components/schemas/TatTarget"
+        stage_targets:
+          type: array
+          maxItems: 7
+          items:
+            $ref: "#/components/schemas/StageTatTarget"
+          description: Seven stage TAT targets in minutes (registration to release; T0C-TESTMGMT-1, LD-318). Separate from tat_targets (routine / urgent, seconds).
+        short_name:
+          type: string
+          minLength: 1
+          maxLength: 60
+        display_name:
+          type: string
+          minLength: 3
+          maxLength: 300
+        tags:
+          type: array
+          maxItems: 20
+          uniqueItems: true
+          items:
+            type: string
+            minLength: 1
+            maxLength: 60
+          description: Search tags. At least one tag is required when the test is orderable (service rule, T0B-TESTMGMT-1; LD-318).
+        barcode_text:
+          type: string
+          minLength: 1
+          maxLength: 64
+        loyalty_points:
+          type: integer
+          minimum: 0
+          maximum: 1000000
+        display_order:
+          type: integer
+          minimum: 0
+          maximum: 9999
+        description:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        report_type:
+          type: string
+          maxLength: 19
+          enum:
+            - four_column
+            - three_column
+            - two_column
+            - graph
+            - template_based_html
+            - micro_automated
+            - cbc_four_column
+            - micro_manual
+            - histo
+            - four_column_10_font
+          description: "ElabAssist report types (LD-318); more values may be added later."
+        processing_type:
+          type: string
+          maxLength: 16
+          enum:
+            - local
+            - branch_transfer
+            - outsource_branch
+          description: "LD-318 follow-up (3): Local, Branch Transfer, Outsource To Other Branch."
+        template_ref:
+          type: string
+          minLength: 1
+          maxLength: 120
+        outsource_name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        is_outsourced:
+          type: boolean
+        is_popular:
+          type: boolean
+        smart_report:
+          type: boolean
+        print_category_wise:
+          type: boolean
+        nabl:
+          type: boolean
+        accab_logo:
+          type: boolean
+        auto_approval_enabled:
+          type: boolean
+        use_normal_range_for_auto_approval:
+          type: boolean
+        template_test:
+          type: boolean
+        nabl_processing_centres:
+          type: array
+          maxItems: 20
+          uniqueItems: true
+          items:
+            type: string
+            minLength: 1
+            maxLength: 200
+        font:
+          type: string
+          minLength: 1
+          maxLength: 60
+        alert_before_expiry_minutes:
+          type: integer
+          minimum: 0
+          maximum: 525600
+        category_id:
+          $ref: _common.yaml#/components/schemas/Uuid
         version:
           $ref: _common.yaml#/components/schemas/Version
     TestCreate:
@@ -9226,6 +11377,106 @@ components:
           maxItems: 10
           items:
             $ref: "#/components/schemas/SpecimenRequirement"
+        short_name:
+          type: string
+          minLength: 1
+          maxLength: 60
+        display_name:
+          type: string
+          minLength: 3
+          maxLength: 300
+        tags:
+          type: array
+          maxItems: 20
+          uniqueItems: true
+          items:
+            type: string
+            minLength: 1
+            maxLength: 60
+          description: Search tags. At least one tag is required when the test is orderable (service rule, T0B-TESTMGMT-1; LD-318).
+        barcode_text:
+          type: string
+          minLength: 1
+          maxLength: 64
+        loyalty_points:
+          type: integer
+          minimum: 0
+          maximum: 1000000
+        display_order:
+          type: integer
+          minimum: 0
+          maximum: 9999
+        description:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        report_type:
+          type: string
+          maxLength: 19
+          enum:
+            - four_column
+            - three_column
+            - two_column
+            - graph
+            - template_based_html
+            - micro_automated
+            - cbc_four_column
+            - micro_manual
+            - histo
+            - four_column_10_font
+          description: "ElabAssist report types (LD-318); more values may be added later."
+        processing_type:
+          type: string
+          maxLength: 16
+          enum:
+            - local
+            - branch_transfer
+            - outsource_branch
+          description: "LD-318 follow-up (3): Local, Branch Transfer, Outsource To Other Branch."
+        template_ref:
+          type: string
+          minLength: 1
+          maxLength: 120
+        outsource_name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        is_outsourced:
+          type: boolean
+        is_popular:
+          type: boolean
+        smart_report:
+          type: boolean
+        print_category_wise:
+          type: boolean
+        nabl:
+          type: boolean
+        accab_logo:
+          type: boolean
+        auto_approval_enabled:
+          type: boolean
+        use_normal_range_for_auto_approval:
+          type: boolean
+        template_test:
+          type: boolean
+        nabl_processing_centres:
+          type: array
+          maxItems: 20
+          uniqueItems: true
+          items:
+            type: string
+            minLength: 1
+            maxLength: 200
+        font:
+          type: string
+          minLength: 1
+          maxLength: 60
+        alert_before_expiry_minutes:
+          type: integer
+          minimum: 0
+          maximum: 525600
+        category_id:
+          $ref: _common.yaml#/components/schemas/Uuid
     TestUpdate:
       type: object
       additionalProperties: false
@@ -9257,6 +11508,125 @@ components:
           type: boolean
         is_active:
           type: boolean
+        short_name:
+          type: string
+          minLength: 1
+          maxLength: 60
+        display_name:
+          type: string
+          minLength: 3
+          maxLength: 300
+        tags:
+          type: array
+          maxItems: 20
+          uniqueItems: true
+          items:
+            type: string
+            minLength: 1
+            maxLength: 60
+          description: Search tags. At least one tag is required when the test is orderable (service rule, T0B-TESTMGMT-1; LD-318).
+        barcode_text:
+          type: string
+          minLength: 1
+          maxLength: 64
+        loyalty_points:
+          type: integer
+          minimum: 0
+          maximum: 1000000
+        display_order:
+          type: integer
+          minimum: 0
+          maximum: 9999
+        description:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        report_type:
+          type: string
+          maxLength: 19
+          enum:
+            - four_column
+            - three_column
+            - two_column
+            - graph
+            - template_based_html
+            - micro_automated
+            - cbc_four_column
+            - micro_manual
+            - histo
+            - four_column_10_font
+          description: "ElabAssist report types (LD-318); more values may be added later."
+        processing_type:
+          type: string
+          maxLength: 16
+          enum:
+            - local
+            - branch_transfer
+            - outsource_branch
+          description: "LD-318 follow-up (3): Local, Branch Transfer, Outsource To Other Branch."
+        template_ref:
+          type: string
+          minLength: 1
+          maxLength: 120
+        outsource_name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        is_outsourced:
+          type: boolean
+        is_popular:
+          type: boolean
+        smart_report:
+          type: boolean
+        print_category_wise:
+          type: boolean
+        nabl:
+          type: boolean
+        accab_logo:
+          type: boolean
+        auto_approval_enabled:
+          type: boolean
+        use_normal_range_for_auto_approval:
+          type: boolean
+        template_test:
+          type: boolean
+        nabl_processing_centres:
+          type: array
+          maxItems: 20
+          uniqueItems: true
+          items:
+            type: string
+            minLength: 1
+            maxLength: 200
+        font:
+          type: string
+          minLength: 1
+          maxLength: 60
+        alert_before_expiry_minutes:
+          type: integer
+          minimum: 0
+          maximum: 525600
+        category_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        unset:
+          type: array
+          maxItems: 12
+          items:
+            type: string
+            maxLength: 32
+            enum:
+              - short_name
+              - display_name
+              - barcode_text
+              - description
+              - template_ref
+              - outsource_name
+              - nabl_processing_centres
+              - font
+              - alert_before_expiry_minutes
+              - category_id
+              - report_type
+              - processing_type
     SpecimenRequirementsReplace:
       type: object
       additionalProperties: false
@@ -9282,6 +11652,12 @@ components:
             $ref: "#/components/schemas/TatTargetInput"
         effective_from:
           $ref: _common.yaml#/components/schemas/IsoUtc
+        stage_targets:
+          type: array
+          maxItems: 7
+          items:
+            $ref: "#/components/schemas/StageTatTarget"
+          description: Seven stage TAT targets in minutes, one per stage (T0C-TESTMGMT-1, LD-318). Absent = stage targets unchanged; the routine / urgent targets (seconds) stay in targets.
     FormulaValidateRequest:
       type: object
       additionalProperties: false
@@ -9371,6 +11747,7 @@ components:
           type: string
           maxLength: 5
           enum:
+            - hour
             - day
             - week
             - month
@@ -9385,11 +11762,12 @@ components:
       properties:
         sex:
           type: string
-          maxLength: 6
+          maxLength: 12
           enum:
             - any
             - male
             - female
+            - third_gender
         age_low:
           $ref: "#/components/schemas/AgeBound"
         age_high:
@@ -9418,6 +11796,18 @@ components:
         display_text:
           type: string
           maxLength: 500
+        instrument_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        laboratory_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        default_range:
+          type: boolean
+        method_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        auto_approved_low:
+          $ref: _common.yaml#/components/schemas/DecimalString
+        auto_approved_high:
+          $ref: _common.yaml#/components/schemas/DecimalString
         sort_order:
           type: integer
           minimum: 0
@@ -9430,11 +11820,12 @@ components:
       properties:
         sex:
           type: string
-          maxLength: 6
+          maxLength: 12
           enum:
             - any
             - male
             - female
+            - third_gender
         age_low:
           $ref: "#/components/schemas/AgeBound"
         age_high:
@@ -9837,6 +12228,20 @@ components:
           type: integer
           minimum: 0
           maximum: 2147483647
+        barcode_text:
+          type: string
+          minLength: 1
+          maxLength: 64
+        loyalty_points:
+          type: integer
+          minimum: 0
+          maximum: 1000000
+        display_order:
+          type: integer
+          minimum: 0
+          maximum: 9999
+        is_popular:
+          type: boolean
         members:
           type: array
           maxItems: 100
@@ -9882,6 +12287,20 @@ components:
           maxItems: 100
           items:
             $ref: "#/components/schemas/PanelMember"
+        barcode_text:
+          type: string
+          minLength: 1
+          maxLength: 64
+        loyalty_points:
+          type: integer
+          minimum: 0
+          maximum: 1000000
+        display_order:
+          type: integer
+          minimum: 0
+          maximum: 9999
+        is_popular:
+          type: boolean
     PanelUpdate:
       type: object
       additionalProperties: false
@@ -9896,15 +12315,30 @@ components:
           enum:
             - male
             - female
+        barcode_text:
+          type: string
+          minLength: 1
+          maxLength: 64
+        loyalty_points:
+          type: integer
+          minimum: 0
+          maximum: 1000000
+        display_order:
+          type: integer
+          minimum: 0
+          maximum: 9999
+        is_popular:
+          type: boolean
         unset:
           type: array
-          maxItems: 2
+          maxItems: 3
           items:
             type: string
             maxLength: 15
             enum:
               - sex_restriction
               - department_id
+              - barcode_text
         department_id:
           $ref: _common.yaml#/components/schemas/Uuid
         is_active:
@@ -9944,10 +12378,38 @@ components:
           type: string
           minLength: 1
           maxLength: 2000
+          description: Plain text or the safe Markdown subset (text_format). Never raw HTML; a < followed by a letter, / or ! is rejected (T0C-TESTMGMT-1, LD-318), so <5 mg/dL stays legal.
         is_active:
           type: boolean
         version:
           $ref: _common.yaml#/components/schemas/Version
+        category_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        result_type:
+          type: string
+          maxLength: 16
+          enum:
+            - numeric
+            - text
+            - ordinal
+            - coded
+            - attachment
+            - narrative
+            - boolean
+            - test_footer
+            - space
+            - graph
+            - html_descriptive
+          description: "Result type the note is offered for (ElabAssist Notes, Select Type)."
+        is_default_template:
+          type: boolean
+        text_format:
+          type: string
+          maxLength: 8
+          enum:
+            - plain
+            - markdown
+          description: Default plain.
     CommentCodeCreate:
       type: object
       additionalProperties: false
@@ -9966,6 +12428,34 @@ components:
           type: string
           minLength: 1
           maxLength: 2000
+          description: Plain text or the safe Markdown subset (text_format). Never raw HTML; a < followed by a letter, / or ! is rejected (T0C-TESTMGMT-1, LD-318), so <5 mg/dL stays legal.
+        category_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        result_type:
+          type: string
+          maxLength: 16
+          enum:
+            - numeric
+            - text
+            - ordinal
+            - coded
+            - attachment
+            - narrative
+            - boolean
+            - test_footer
+            - space
+            - graph
+            - html_descriptive
+          description: "Result type the note is offered for (ElabAssist Notes, Select Type)."
+        is_default_template:
+          type: boolean
+        text_format:
+          type: string
+          maxLength: 8
+          enum:
+            - plain
+            - markdown
+          description: Default plain.
     CommentCodeUpdate:
       type: object
       additionalProperties: false
@@ -9974,8 +12464,133 @@ components:
           type: string
           minLength: 1
           maxLength: 2000
+          description: Plain text or the safe Markdown subset (text_format). Never raw HTML; a < followed by a letter, / or ! is rejected (T0C-TESTMGMT-1, LD-318), so <5 mg/dL stays legal.
         is_active:
           type: boolean
+        category_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        result_type:
+          type: string
+          maxLength: 16
+          enum:
+            - numeric
+            - text
+            - ordinal
+            - coded
+            - attachment
+            - narrative
+            - boolean
+            - test_footer
+            - space
+            - graph
+            - html_descriptive
+          description: "Result type the note is offered for (ElabAssist Notes, Select Type)."
+        is_default_template:
+          type: boolean
+        text_format:
+          type: string
+          maxLength: 8
+          enum:
+            - plain
+            - markdown
+          description: Default plain.
+        unset:
+          type: array
+          maxItems: 2
+          items:
+            type: string
+            maxLength: 11
+            enum:
+              - category_id
+              - result_type
+    TestCategory:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - department_id
+        - name
+        - display_order
+        - print_footer
+        - is_active
+        - version
+      properties:
+        id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        department_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        display_order:
+          type: integer
+          minimum: 0
+          maximum: 9999
+        print_footer:
+          type: boolean
+        footer_text:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        is_active:
+          type: boolean
+        version:
+          $ref: _common.yaml#/components/schemas/Version
+    TestCategoryCreate:
+      type: object
+      additionalProperties: false
+      required:
+        - department_id
+        - name
+      properties:
+        department_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        display_order:
+          type: integer
+          minimum: 0
+          maximum: 9999
+        print_footer:
+          type: boolean
+        footer_text:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        is_active:
+          type: boolean
+    TestCategoryUpdate:
+      type: object
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        display_order:
+          type: integer
+          minimum: 0
+          maximum: 9999
+        print_footer:
+          type: boolean
+        footer_text:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        is_active:
+          type: boolean
+          description: false deactivates the category (never deleted); its tests stay linked.
+        unset:
+          type: array
+          maxItems: 1
+          items:
+            type: string
+            maxLength: 11
+            enum:
+              - footer_text
     Doctor:
       type: object
       additionalProperties: false
@@ -10020,6 +12635,16 @@ components:
         notes:
           type: string
           maxLength: 500
+        speciality:
+          type: string
+          maxLength: 120
+        hospital:
+          type: string
+          maxLength: 200
+        national_id_number:
+          description: National ID number, masked (last four characters only, for example ********0001); the full value needs partners.party_id_number.read (revealPartyIdNumber). T0C-PARTYSET-1.
+          type: string
+          maxLength: 64
         is_verified:
           type: boolean
         source:
@@ -10132,6 +12757,19 @@ components:
         notes:
           type: string
           maxLength: 500
+        speciality:
+          type: string
+          minLength: 1
+          maxLength: 120
+        hospital:
+          type: string
+          minLength: 1
+          maxLength: 200
+        national_id_number:
+          description: National ID number, full value (every read shows it masked). T0C-PARTYSET-1.
+          type: string
+          minLength: 1
+          maxLength: 32
         quick_add:
           type: boolean
     DoctorCreated:
@@ -10179,6 +12817,16 @@ components:
         notes:
           type: string
           maxLength: 500
+        speciality:
+          type: string
+          maxLength: 120
+        hospital:
+          type: string
+          maxLength: 200
+        national_id_number:
+          description: National ID number, masked (last four characters only, for example ********0001); the full value needs partners.party_id_number.read (revealPartyIdNumber). T0C-PARTYSET-1.
+          type: string
+          maxLength: 64
         is_verified:
           type: boolean
         source:
@@ -10230,11 +12878,24 @@ components:
         notes:
           type: string
           maxLength: 500
+        speciality:
+          type: string
+          minLength: 1
+          maxLength: 120
+        hospital:
+          type: string
+          minLength: 1
+          maxLength: 200
+        national_id_number:
+          description: National ID number, full value (every read shows it masked). T0C-PARTYSET-1.
+          type: string
+          minLength: 1
+          maxLength: 32
         is_active:
           type: boolean
         unset:
           type: array
-          maxItems: 6
+          maxItems: 9
           items:
             type: string
             maxLength: 20
@@ -10245,6 +12906,9 @@ components:
               - phone_e164
               - email
               - notes
+              - speciality
+              - hospital
+              - national_id_number
     DoctorMerge:
       type: object
       additionalProperties: false
@@ -10289,6 +12953,7 @@ components:
         allows_credit:
           type: boolean
         pan:
+          description: PAN, masked (last four characters only, for example ********0001); the full value needs partners.party_id_number.read (revealPartyIdNumber). T0C-PARTYSET-1.
           type: string
           maxLength: 20
         contact_phone_e164:
@@ -10424,6 +13089,10 @@ components:
       properties:
         owner_id:
           $ref: _common.yaml#/components/schemas/Uuid
+        effective_from:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        effective_to:
+          $ref: _common.yaml#/components/schemas/IsoUtc
     PriceList:
       type: object
       additionalProperties: false
@@ -10627,6 +13296,10 @@ components:
           maxItems: 500
           items:
             $ref: _common.yaml#/components/schemas/Uuid
+        effective_from:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        effective_to:
+          $ref: _common.yaml#/components/schemas/IsoUtc
     PriceListVersionDraftCreate:
       type: object
       additionalProperties: false
@@ -10635,6 +13308,581 @@ components:
           type: integer
           minimum: 1
           maximum: 2147483647
+    # ---------- T0C-PRICETOOLS-1 (LD-321) price list tools ----------
+    PriceListImportForm:
+      type: object
+      additionalProperties: false
+      description: "Multipart body of dryRunPriceListImport: one xlsx only file (magic bytes checked; never xlsm, xls or macros), at most 5 MB and 5000 rows."
+      required:
+        - file
+      properties:
+        file:
+          type: string
+          format: binary
+          minLength: 1
+          maxLength: 5242880
+          description: xlsx only, at most 5 MB (5242880 bytes)
+    PriceListImportSummary:
+      type: object
+      additionalProperties: false
+      description: Counts of a batch compared with the list's current version.
+      properties:
+        rows:
+          type: integer
+          minimum: 0
+          maximum: 5000
+        added:
+          type: integer
+          minimum: 0
+          maximum: 5000
+        changed:
+          type: integer
+          minimum: 0
+          maximum: 5000
+        unchanged:
+          type: integer
+          minimum: 0
+          maximum: 5000
+        errors:
+          type: integer
+          minimum: 0
+          maximum: 50000
+    PriceListImportBatch:
+      type: object
+      additionalProperties: false
+      description: One upload of a price list workbook (xlsx); history, never deleted. Prices are integer paisa, never floats.
+      required:
+        - id
+        - price_list_id
+        - status
+        - row_count
+        - error_count
+        - file_sha256
+        - summary
+        - created_at
+        - created_by
+      properties:
+        id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        price_list_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        status:
+          type: string
+          maxLength: 9
+          enum:
+            - dry_run
+            - committed
+            - failed
+            - cancelled
+        row_count:
+          type: integer
+          minimum: 0
+          maximum: 5000
+        error_count:
+          type: integer
+          minimum: 0
+          maximum: 50000
+        file_sha256:
+          type: string
+          minLength: 64
+          maxLength: 64
+          pattern: ^[0-9a-f]{64}$
+        summary:
+          $ref: "#/components/schemas/PriceListImportSummary"
+        result_price_list_version_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        created_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        created_by:
+          $ref: _common.yaml#/components/schemas/Uuid
+    PriceListImportError:
+      type: object
+      additionalProperties: false
+      description: One error of an xlsx price list upload, with its row and column; all errors are returned together.
+      required:
+        - row_no
+        - column
+        - code
+        - message
+      properties:
+        row_no:
+          type: integer
+          minimum: 1
+          maximum: 1048576
+        column:
+          type: string
+          minLength: 1
+          maxLength: 40
+        code:
+          type: string
+          minLength: 1
+          maxLength: 64
+        message:
+          type: string
+          minLength: 1
+          maxLength: 300
+    PriceListImportDryRun:
+      type: object
+      additionalProperties: false
+      description: The dry run batch of an xlsx upload and all errors together (row and column each); the dry run writes no price.
+      required:
+        - batch
+        - errors
+      properties:
+        batch:
+          $ref: "#/components/schemas/PriceListImportBatch"
+        errors:
+          type: array
+          maxItems: 50000
+          items:
+            $ref: "#/components/schemas/PriceListImportError"
+    CatalogImportForm:
+      type: object
+      additionalProperties: false
+      description: >-
+        Multipart body of validateCatalogImport (T0C-TESTIMPORT-1, LD-318): one xlsx only file (checked by magic bytes; never xlsm, never xls, no macros,
+        no external links), at most 5 MB and 5000 rows per sheet; the server parses and validates it, never the browser. mode create_only (default) refuses a test code
+        that already exists; update adds new DRAFT versions to existing tests.
+      required:
+        - file
+      properties:
+        file:
+          type: string
+          format: binary
+          minLength: 1
+          maxLength: 5242880
+          description: xlsx only, at most 5 MB (5242880 bytes), 5000 rows per sheet
+        mode:
+          type: string
+          maxLength: 11
+          enum:
+            - create_only
+            - update
+          default: create_only
+    CatalogImportCounts:
+      type: object
+      additionalProperties: false
+      description: Counts of an Excel test import batch (rows found per kind and the number of errors).
+      required:
+        - tests
+        - analytes
+        - ranges
+        - panels
+        - errors
+      properties:
+        tests:
+          type: integer
+          minimum: 0
+          maximum: 5000
+        analytes:
+          type: integer
+          minimum: 0
+          maximum: 5000
+        ranges:
+          type: integer
+          minimum: 0
+          maximum: 5000
+        panels:
+          type: integer
+          minimum: 0
+          maximum: 5000
+        errors:
+          type: integer
+          minimum: 0
+          maximum: 1000
+    CatalogImportBatch:
+      type: object
+      additionalProperties: false
+      description: >-
+        One upload of the Excel test import workbook (xlsx); history, never deleted. status validated (no error, committable within 24 hours), rejected (it has errors),
+        committed or expired (older than 24 hours, never committed). The normalized JSON of the workbook is kept by the server and not returned. version is the ETag for If-Match.
+      required:
+        - id
+        - file_name
+        - file_sha256
+        - template_version
+        - mode
+        - status
+        - counts
+        - created_by
+        - created_at
+        - version
+      properties:
+        id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        file_name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        file_sha256:
+          type: string
+          minLength: 64
+          maxLength: 64
+          pattern: ^[0-9a-f]{64}$
+        template_version:
+          type: string
+          minLength: 1
+          maxLength: 20
+        mode:
+          type: string
+          maxLength: 11
+          enum:
+            - create_only
+            - update
+        status:
+          type: string
+          maxLength: 9
+          enum:
+            - validated
+            - rejected
+            - committed
+            - expired
+        counts:
+          $ref: "#/components/schemas/CatalogImportCounts"
+        created_by:
+          $ref: _common.yaml#/components/schemas/Uuid
+        created_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        validated_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        committed_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        committed_by:
+          $ref: _common.yaml#/components/schemas/Uuid
+        version:
+          type: integer
+          minimum: 1
+          maximum: 2147483647
+    CatalogImportError:
+      type: object
+      additionalProperties: false
+      description: >-
+        One error of an xlsx test import with its sheet, row and column; all errors are listed together, not only the first, at most 1000 errors per batch.
+      required:
+        - sheet
+        - row
+        - column
+        - code
+        - message
+      properties:
+        sheet:
+          type: string
+          minLength: 1
+          maxLength: 40
+        row:
+          type: integer
+          minimum: 1
+          maximum: 1048576
+        column:
+          type: string
+          minLength: 1
+          maxLength: 60
+        code:
+          type: string
+          minLength: 1
+          maxLength: 64
+        message:
+          type: string
+          minLength: 1
+          maxLength: 300
+    CatalogImportPreviewTest:
+      type: object
+      additionalProperties: false
+      description: One test of the workbook as it would be imported (as DRAFTS).
+      required:
+        - code
+        - name
+        - action
+        - analytes
+        - ranges
+      properties:
+        code:
+          type: string
+          minLength: 1
+          maxLength: 32
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        action:
+          type: string
+          maxLength: 6
+          enum:
+            - create
+            - update
+        analytes:
+          type: integer
+          minimum: 0
+          maximum: 5000
+        ranges:
+          type: integer
+          minimum: 0
+          maximum: 5000
+    CatalogImportPreview:
+      type: object
+      additionalProperties: false
+      description: The first tests of the workbook as they would be imported; nothing is written by the dry run.
+      required:
+        - tests
+      properties:
+        tests:
+          type: array
+          maxItems: 100
+          items:
+            $ref: "#/components/schemas/CatalogImportPreviewTest"
+    CatalogImportValidation:
+      type: object
+      additionalProperties: false
+      description: >-
+        Result of the dry run of an xlsx test import: the batch, all errors (sheet, row and column each, at most 1000 errors) and a preview. The dry run writes no catalog row.
+      required:
+        - batch
+        - errors
+        - preview
+      properties:
+        batch:
+          $ref: "#/components/schemas/CatalogImportBatch"
+        errors:
+          type: array
+          maxItems: 1000
+          items:
+            $ref: "#/components/schemas/CatalogImportError"
+        preview:
+          $ref: "#/components/schemas/CatalogImportPreview"
+    CatalogImportCommit:
+      type: object
+      additionalProperties: false
+      description: Explicit confirmation of the commit; must be exactly true.
+      required:
+        - confirm
+      properties:
+        confirm:
+          type: boolean
+          enum:
+            - true
+    CatalogImportCommitResult:
+      type: object
+      additionalProperties: false
+      description: The committed batch and what was created (all as DRAFTS; nothing is published).
+      required:
+        - batch
+        - created
+      properties:
+        batch:
+          $ref: "#/components/schemas/CatalogImportBatch"
+        created:
+          type: object
+          additionalProperties: false
+          required:
+            - tests
+            - analytes
+            - ranges
+            - panels
+          properties:
+            tests:
+              type: integer
+              minimum: 0
+              maximum: 5000
+            analytes:
+              type: integer
+              minimum: 0
+              maximum: 5000
+            ranges:
+              type: integer
+              minimum: 0
+              maximum: 5000
+            panels:
+              type: integer
+              minimum: 0
+              maximum: 5000
+    CatalogImportBatchPage:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - page
+      properties:
+        data:
+          type: array
+          maxItems: 200
+          items:
+            $ref: "#/components/schemas/CatalogImportBatch"
+        page:
+          $ref: _common.yaml#/components/schemas/PageInfo
+    PriceListImportBatchPage:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - page
+      properties:
+        data:
+          type: array
+          maxItems: 200
+          items:
+            $ref: "#/components/schemas/PriceListImportBatch"
+        page:
+          $ref: _common.yaml#/components/schemas/PageInfo
+    PriceListImportCommit:
+      type: object
+      additionalProperties: false
+      required:
+        - change_reason
+      properties:
+        change_reason:
+          type: string
+          minLength: 1
+          maxLength: 500
+    PriceListBulkUpdate:
+      type: object
+      additionalProperties: false
+      description: "percent needs percent_bp, fixed_amount needs amount_paisa; department needs department_id, listed_tests needs orderable_ids (checked by the service, 422)."
+      required:
+        - change_kind
+        - rounding
+        - scope
+      properties:
+        change_kind:
+          type: string
+          maxLength: 12
+          enum:
+            - percent
+            - fixed_amount
+        percent_bp:
+          type: integer
+          minimum: -10000
+          maximum: 100000
+          description: Basis points (1000 = 10 %); negative = decrease.
+        amount_paisa:
+          type: integer
+          format: int64
+          minimum: -9007199254740991
+          maximum: 9007199254740991
+          description: Signed integer paisa added to every price in scope.
+        rounding:
+          type: string
+          maxLength: 13
+          enum:
+            - none
+            - nearest_rupee
+            - nearest_5
+            - nearest_10
+        scope:
+          type: string
+          maxLength: 12
+          enum:
+            - all
+            - department
+            - listed_tests
+        department_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        orderable_ids:
+          type: array
+          minItems: 1
+          maxItems: 5000
+          uniqueItems: true
+          items:
+            $ref: _common.yaml#/components/schemas/Uuid
+    PriceListBulkUpdateResult:
+      type: object
+      additionalProperties: false
+      required:
+        - price_list_version_id
+        - changed_count
+        - unchanged_count
+      properties:
+        price_list_version_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        changed_count:
+          type: integer
+          minimum: 0
+          maximum: 100000
+        unchanged_count:
+          type: integer
+          minimum: 0
+          maximum: 100000
+    PriceListCopy:
+      type: object
+      additionalProperties: false
+      required:
+        - source_price_list_version_id
+        - mode
+      properties:
+        source_price_list_version_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        mode:
+          type: string
+          maxLength: 7
+          enum:
+            - replace
+            - merge
+        percent_bp:
+          type: integer
+          minimum: -10000
+          maximum: 100000
+          description: Optional adjustment in basis points (1000 = 10 %); negative = decrease.
+        rounding:
+          type: string
+          maxLength: 13
+          enum:
+            - none
+            - nearest_rupee
+            - nearest_5
+            - nearest_10
+    PriceListComparisonRow:
+      type: object
+      additionalProperties: false
+      required:
+        - orderable_id
+        - test_code
+        - test_name
+      properties:
+        orderable_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        test_code:
+          type: string
+          minLength: 1
+          maxLength: 32
+        test_name:
+          type: string
+          minLength: 1
+          maxLength: 300
+        price_a_paisa:
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 9007199254740991
+        price_b_paisa:
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 9007199254740991
+        difference_paisa:
+          type: integer
+          format: int64
+          minimum: -9007199254740991
+          maximum: 9007199254740991
+          description: price_b_paisa - price_a_paisa; absent when either price is absent.
+        percent_bp:
+          type: integer
+          format: int64
+          minimum: -9007199254740991
+          maximum: 9007199254740991
+          description: difference as basis points of price A; absent when A is absent or 0.
+    PriceListComparisonPage:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - page
+      properties:
+        data:
+          type: array
+          maxItems: 200
+          items:
+            $ref: "#/components/schemas/PriceListComparisonRow"
+        page:
+          $ref: _common.yaml#/components/schemas/PageInfo
     PriceMoney:
       type: object
       additionalProperties: false
@@ -11680,7 +14928,7 @@ components:
           maxLength: 120
         result_type:
           type: string
-          maxLength: 10
+          maxLength: 16
           enum:
             - numeric
             - text
@@ -11688,6 +14936,12 @@ components:
             - coded
             - attachment
             - narrative
+            - boolean
+            - test_footer
+            - space
+            - graph
+            - html_descriptive
+          description: "ElabAssist mapping (T0C-TESTMGMT-1, LD-318): Integer, Float, Equation = numeric (Equation sets formula_expression); List = coded; Long Text, Single Line Text = text; Descriptive = narrative; Image = attachment; Boolean, Test_Footer, Space, Graph, Html Descriptive = the values of the same name."
         unit_code:
           type: string
           minLength: 1
@@ -12057,6 +15311,20 @@ components:
           maxItems: 200
           items:
             $ref: "#/components/schemas/CommentCode"
+        page:
+          $ref: _common.yaml#/components/schemas/PageInfo
+    TestCategoryPage:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - page
+      properties:
+        data:
+          type: array
+          maxItems: 200
+          items:
+            $ref: "#/components/schemas/TestCategory"
         page:
           $ref: _common.yaml#/components/schemas/PageInfo
     DoctorSummaryPage:

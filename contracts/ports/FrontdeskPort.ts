@@ -1,5 +1,5 @@
 // contracts/ports/FrontdeskPort.ts
-import type { RequestContext, Uuidv7, IsoUtc, IsoDate, Priority, Sex } from './common';
+import type { RequestContext, Uuidv7, IsoUtc, IsoDate, Priority, Sex } from './common.js';
 export const FRONTDESK_PORT_VERSION = 1 as const;
 
 export type OrderStatus = 'pre_registered' | 'registered' | 'in_progress' | 'completed' | 'cancelled';

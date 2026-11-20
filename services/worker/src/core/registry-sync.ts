@@ -1,6 +1,7 @@
 // Deploy-time core.g_task_registry sync (02-TRD §7.7). Run as lims_migrator (C1 pipeline step, `pnpm dev:up`), never at worker
 // runtime. Upserts every identifier and deactivates removed ones (is_active = false, never deleted, so queued jobs still resolve).
-import type { RegistryEntry } from './tasklist.js';
+import { pathToFileURL } from 'node:url';
+import type { RegistryEntry, WorkerDeps } from './tasklist.js';
 
 export interface SyncClient { query(text: string, values?: unknown[]): Promise<{ rows: any[] }> }
 
@@ -27,5 +28,46 @@ export async function syncRegistry(client: SyncClient, entries: readonly Registr
   } catch (e) {
     await client.query('ROLLBACK').catch(() => undefined);
     throw e;
+  }
+}
+
+// T0B-ASYNC-1 (audit RS-10; LD-277): the registry rows of EVERY worker manifest (the one list in ../manifests.ts) in one call.
+// Lazy import: loading every jobs module validates the payments config (LIMS_PAYMENTS_*), which a plain syncRegistry caller does not need.
+export async function syncAllManifests(client: SyncClient): Promise<{ upserted: number; deactivated: number }> {
+  const [{ MANIFESTS }, { buildTaskList }] = await Promise.all([import(/* @vite-ignore */ MANIFESTS_MODULE) as Promise<typeof import('../manifests.js')>, import('./tasklist.js')]);
+  return syncRegistry(client, buildTaskList(INERT_DEPS, MANIFESTS).registry);
+}
+
+const MANIFESTS_MODULE = '../manifests.js';   // not a static literal in import(): the bundler must not pull every jobs module into a plain syncRegistry import
+// buildTaskList only wraps the handlers; nothing here runs at sync time (no task executes).
+const noop = () => undefined;
+const refuse = () => Promise.reject(new Error('registry-sync: no task runs'));
+const INERT_DEPS: WorkerDeps = {
+  db: { tx: refuse }, withTenantScope: refuse,
+  systemActorOf: () => '', coreActorId: '',
+  metrics: { inc: noop, set: noop, observe: noop },
+  log: { child: () => INERT_DEPS.log, info: noop, warn: noop, error: noop },
+  now: () => new Date(),
+  events: undefined, core: undefined, storage: undefined, files: undefined, audit: undefined,
+};
+
+// CLI: `pnpm --filter @lims/worker registry-sync`. Connects as the migrator login (it must SET LOCAL ROLE lims_owner), never lims_worker.
+// [CONV] LIMS_MIGRATOR_DATABASE_URL (prefix of the existing LIMS_MIGRATOR_PASSWORD); unset -> pg reads PG* (PGHOST, PGUSER, PGSSLMODE, ...).
+// T0B-ASYNC-3 (LD-281): a plain pg Client, no job-queue library: its utils run their own schema migrate step first, which the migrator
+// login on Supabase may not do (42501). LD-282/LD-341: no module config is validated here; that check runs at worker start.
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  // @ts-expect-error TS7016: @types/pg is not declared in the worker package (brief: pg only, lockfile unchanged otherwise); Client is used untyped here.
+  const { default: pg } = await import('pg');
+  const connectionString = process.env.LIMS_MIGRATOR_DATABASE_URL || undefined;
+  const client = new pg.Client(connectionString ? { connectionString } : {});
+  try {
+    await client.connect();
+    const r = await syncAllManifests(client);
+    process.stdout.write(`registry-sync upserted ${r.upserted} deactivated ${r.deactivated}\n`);
+  } catch (e) {
+    process.exitCode = 1;
+    process.stderr.write(`registry-sync failed: ${String((e as { code?: unknown }).code ?? '')} ${(e as Error).message}\n`);
+  } finally {
+    await client.end().catch(() => undefined);
   }
 }

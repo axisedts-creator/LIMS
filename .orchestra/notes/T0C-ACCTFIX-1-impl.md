@@ -1,0 +1,6 @@
+# T0C-ACCTFIX-1 impl (writer)
+- contracts/openapi/billing.yaml: DailyCollectionRow.entry_count min -2147483648; DailyCollectionRow.total_paisa + DailyCollectionSummary.total_paisa min -9007199254740991 (int64, maximums unchanged); descriptions on the 3 fields + DailyCollectionRow ("net of refunds and reversals booked on that day, negative when refunds exceed collections", LD-334); new example refund_only_day (cash, -1, -50000, total -50000). No nullable/type arrays (X10).
+- Regenerated via `pnpm codegen`: packages/shared-ts/src/routes/generated.ts and packages/shared-dart/lib/src/routes.g.dart were stale baseline (account_* + pocket_ledger routes from earlier tasks) [CONV: committed regen output, no hand edits]. Generated client types carry no min bounds, so no type diff for these schemas.
+- Codegen also rewrote ~45 generated files with LF line endings only (no content diff under --ignore-cr-at-eol); restoring them needed approval, so they are left in the working tree: commit only the 3 files above.
+- Tests (verify set, round 2 after the tester dropped the stale migration pin per ruling): 1093 pass / 0 fail across acctfix1, lint-openapi (incl. lintRepo root = []), acct1, c4.
+- OPEN: none. Round 2 changed no implementation.

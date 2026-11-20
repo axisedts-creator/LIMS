@@ -16,7 +16,7 @@ vi.mock('next/navigation', async () => (await import('./t20.harness')).navigatio
 vi.mock('server-only', () => ({}));
 vi.mock('@/core/session/server', async () => (await import('./t20.harness')).sessionMock);
 
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 beforeEach(() => { resetHits(); router.push.mockReset(); router.refresh.mockReset(); api.use(...t20Defaults); });
 afterEach(() => { cleanup(); api.resetHandlers(); });
 afterAll(() => api.close());

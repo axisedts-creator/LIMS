@@ -85,7 +85,7 @@ const api = setupServer(
   http.get(`${ORIGIN}/v1/analytics/*`, () => problem('common.dependency_unavailable', 503)),
 );
 function setVisibility(v: 'visible' | 'hidden') { Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => v }); }
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { cleanup(); vi.useRealTimers(); routerRefresh.mockClear(); setVisibility('visible'); api.resetHandlers(); calls.length = 0; dash = () => HttpResponse.json(dashboard()); refresh = () => HttpResponse.json({}, { status: 202 }); });
 afterAll(() => api.close());
 
@@ -146,14 +146,17 @@ describe('S1 dashboard — request (US-01.1, 07-SECURITY)', () => {
 });
 
 describe('S1 dashboard — tiles (US-01.1, 04-UI-UX §3)', () => {
-  it('shows the six tiles with spec labels and values; money in lakh grouping; sub-values; period header in A.D. and B.S.', async () => {
+  // LD-353 template 5 + done_when (1) (ruling T0D-UIDASH-1-ruling.md): exactly four tiles; the Results approved (28) and Pending tests (9) values now live in the pipeline stepper.
+  it('shows the four tiles with their labels and values; money in lakh grouping; sub-values; period header in A.D. and B.S.', async () => {
     const { container } = await show();
     expect(norm(tileEl('Patient visits').textContent)).toContain('12');
-    expect(norm(tileEl('Income (net sales)').textContent)).toMatch(/2,25,000/);
-    expect(norm(tileEl('Results approved').textContent)).toContain('28');
+    expect(norm(tileEl('Net sales').textContent)).toMatch(/2,25,000/);
     expect(norm(tileEl('Reports pending').textContent)).toContain('5');
-    expect(norm(tileEl('Pending tests').textContent)).toContain('9');
+    const labels = Array.from(document.querySelectorAll('.lims-stat-label')).map((e) => e.textContent);
+    expect(labels).toEqual(['Patient visits', 'Reports pending', 'Net sales']);
     const text = norm(container.textContent);
+    expect(text).toMatch(/Authorised\s*28/);
+    expect(text).toMatch(/In progress\s*9/);
     for (const s of ['New patients 4', 'Tests ordered 31', 'Ready, not released 2', 'Overdue 1', '15 Jan 2026', '2082-10-01']) expect(text).toContain(s);
     expect(text).toMatch(/Invoiced.*2,30,000/);
     expect(text).toMatch(/Credit notes.*5,000/);
@@ -163,20 +166,18 @@ describe('S1 dashboard — tiles (US-01.1, 04-UI-UX §3)', () => {
     await show();
     const href = (l: string) => tileEl(l).closest('a')?.getAttribute('href');
     expect(href('Patient visits')).toBe('/analytics/reports/volume');
-    expect(href('Income (net sales)')).toBe('/analytics/reports/income');
-    expect(href('Results approved')).toBe('/analytics/reports/tests-done');
+    expect(href('Net sales')).toBe('/analytics/reports/income');
     expect(href('Reports pending')).toBe('/analytics/reports/pending-tests');
-    expect(href('Pending tests')).toBe('/analytics/reports/pending-tests');
   });
 
-  it('shows "Cash collected (net)" → /analytics/collections only when the API sent net_collected_paisa (omitted otherwise, never an empty tile)', async () => {
+  it('shows "Cash collected" → /analytics/collections only when the API sent net_collected_paisa (omitted otherwise, never an empty tile)', async () => {
     await show();
-    expect(Array.from(document.querySelectorAll('.lims-stat-label')).map((e) => e.textContent)).not.toContain('Cash collected (net)');
+    expect(Array.from(document.querySelectorAll('.lims-stat-label')).map((e) => e.textContent)).not.toContain('Cash collected');
     cleanup();
     dash = () => HttpResponse.json(dashboard({ tiles: { net_collected_paisa: tile(1234500, 'paisa', { previous: 1000000, delta: 234500, delta_bp: 2345 }) } }));
     await show();
-    expect(norm(tileEl('Cash collected (net)').textContent)).toMatch(/12,345/);
-    expect(tileEl('Cash collected (net)').closest('a')?.getAttribute('href')).toBe('/analytics/collections');
+    expect(norm(tileEl('Cash collected').textContent)).toMatch(/12,345/);
+    expect(tileEl('Cash collected').closest('a')?.getAttribute('href')).toBe('/analytics/collections');
   });
 
   it('explains T1 and T2 (help text from the copy catalogue)', async () => {
@@ -216,9 +217,9 @@ describe('S1 dashboard — deltas (US-01.2)', () => {
   });
 
   it('omits the percent when previous is 0 (no delta_bp) but keeps the absolute delta', async () => {
-    dash = () => HttpResponse.json(dashboard({ tiles: { results_approved: tile(28, 'count', { previous: 0, delta: 28 }) } }));
+    dash = () => HttpResponse.json(dashboard({ tiles: { patient_visits: tile(28, 'count', { previous: 0, delta: 28 }) } }));
     await show();
-    const t = norm(tileEl('Results approved').textContent);
+    const t = norm(tileEl('Patient visits').textContent);
     expect(t).toContain('+28');
     expect(t).not.toContain('%');
     expect(t).not.toContain('Infinity');
@@ -234,9 +235,9 @@ describe('S1 dashboard — deltas (US-01.2)', () => {
     expect(t).toContain('16.7%');
   });
 
-  it('shows no delta on the snapshot tiles (Reports pending, Pending tests)', async () => {
+  it('shows no delta on the snapshot tile (Reports pending)', async () => {
     await show();
-    for (const l of ['Reports pending', 'Pending tests']) {
+    for (const l of ['Reports pending']) {
       const t = norm(tileEl(l).textContent);
       expect(t).not.toMatch(/Up|Down|No change|%/);
     }
@@ -259,37 +260,39 @@ describe('S1 dashboard — freshness (US-01.4, 04-UI-UX §2)', () => {
     await show();
     expect(screen.getAllByText('Data may be out of date').length).toBeGreaterThan(0);
     expect(norm(document.body.textContent)).toMatch(/Updated /);
-    expect(norm(tileEl('Income (net sales)').textContent)).toMatch(/2,25,000/);
+    expect(norm(tileEl('Net sales').textContent)).toMatch(/2,25,000/);
   });
 
-  // review #1: 03-APP-FLOW §5 S1 "stale badge per tile", US-01.4. A tile's cell = the widest ancestor of the tile that holds no other tile (tile + its sub-values + badge).
-  const cellOf = (label: string) => {
-    let el: HTMLElement = tileEl(label);
-    while (el.parentElement && el.parentElement.querySelectorAll('.lims-stat').length === 1) el = el.parentElement;
-    return el;
-  };
+  // T0D-UNSLOP-1 (C), LD-353 rule 8, ruling T0D-UNSLOP-1-ruling.md: ONE freshness note per page replaces the old "stale badge per tile" (03-APP-FLOW §5 S1, overridden by LD-353).
+  // The stale reason stays reachable from that one note (its text or a title attribute); every last value stays shown.
   const STALE = 'Data may be out of date';
   const staleFresh = (family: string) => ['orders', 'income', 'results'].map((f) => (f === family
     ? { family: f, refreshed_at: '2026-01-15T03:45:00.000Z', is_stale: true, stale_reason: 'refresh_lagging', live: false }
     : { family: f, refreshed_at: '2026-01-15T04:30:00.000Z', is_stale: false, live: false }));
+  const notes = (root: HTMLElement) => [...root.querySelectorAll('*')].filter((e) => e.children.length === 0 && (e.textContent ?? '').includes(STALE));
+  const reachable = (note: Element) => norm([note.parentElement?.textContent, note.closest('[title]')?.getAttribute('title'), note.getAttribute('aria-label'), ...[...(note.parentElement?.querySelectorAll('[title]') ?? [])].map((e) => e.getAttribute('title'))].join(' '));
 
-  it('stale income: the stale marker sits in the "Income (net sales)" tile cell and NOT in "Patient visits"; last values still shown', async () => {
+  it('stale income: exactly one note on the page, not inside any tile nor a tile parent; reason reachable from it; last values still shown', async () => {
     dash = () => HttpResponse.json(dashboard({ freshness: staleFresh('income') }));
-    await show();
-    expect(norm(cellOf('Income (net sales)').textContent)).toContain(STALE);
-    expect(norm(cellOf('Income (net sales)').textContent)).toMatch(/2,25,000/);
-    expect(norm(cellOf('Patient visits').textContent)).not.toContain(STALE);
-    expect(norm(cellOf('Results approved').textContent)).not.toContain(STALE);
+    const { container } = await show();
+    const found = notes(container);
+    expect(found).toHaveLength(1);
+    expect(found[0]!.closest('.lims-stat')).toBeNull();
+    for (const stat of container.querySelectorAll('.lims-stat')) expect(norm(stat.parentElement!.textContent)).not.toContain(STALE);
+    expect(reachable(found[0]!)).toContain('Recent changes are still being processed');
+    expect(norm(tileEl('Net sales').textContent)).toMatch(/2,25,000/);
+    expect(norm(tileEl('Patient visits').textContent)).toMatch(/\b12\b/);
+    expect(norm(container.textContent)).toMatch(/Authorised\s*28/);
   });
 
-  it.each([
-    ['orders', 'Patient visits', ['Income (net sales)', 'Results approved']],
-    ['results', 'Results approved', ['Patient visits', 'Income (net sales)']],
-  ])('stale %s family marks only the "%s" tile', async (family, label, others) => {
+  it.each(['orders', 'results'])('stale %s family: still exactly one note on the page and none in a tile; last values shown', async (family) => {
     dash = () => HttpResponse.json(dashboard({ freshness: staleFresh(family) }));
-    await show();
-    expect(norm(cellOf(label).textContent)).toContain(STALE);
-    for (const o of others) expect(norm(cellOf(o).textContent)).not.toContain(STALE);
+    const { container } = await show();
+    const found = notes(container);
+    expect(found).toHaveLength(1);
+    expect(found[0]!.closest('.lims-stat')).toBeNull();
+    for (const l of ['Patient visits', 'Net sales', 'Reports pending']) expect(norm(tileEl(l).textContent)).not.toContain(STALE);
+    expect(norm(tileEl('Patient visits').textContent)).toMatch(/\b12\b/);
   });
 
   it('never_refreshed shows the marker without crashing when refreshed_at is absent', async () => {
@@ -320,7 +323,7 @@ describe('S1 dashboard — empty (03-APP-FLOW §5)', () => {
     dash = () => HttpResponse.json(dashboard({ tiles: zeros, series: { days: [] }, department_top: [] }));
     await show();
     expect(norm(tileEl('Patient visits').textContent)).toContain('0');
-    expect(norm(tileEl('Income (net sales)').textContent)).toMatch(/0\.00|0\b/);
+    expect(norm(tileEl('Net sales').textContent)).toMatch(/0\.00|0\b/);
     expect(screen.getByText('No activity in this period')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Show yesterday' })).toBeTruthy();
   });
@@ -351,14 +354,14 @@ describe('S1 dashboard — error / permission states (03-APP-FLOW §5)', () => {
     const o = await outcome(() => problem('auth.forbidden', 403));
     if (!o.threw) {
       expect(o.text).not.toContain('Patient visits');
-      expect(o.text).not.toContain('Income (net sales)');
+      expect(o.text).not.toContain('Net sales');
     }
   });
 
   it('secondary reads failing (live pending 503, X20) does not take the other tiles down', async () => {
     await show();
     expect(norm(tileEl('Patient visits').textContent)).toContain('12');
-    expect(norm(tileEl('Income (net sales)').textContent)).toMatch(/2,25,000/);
+    expect(norm(tileEl('Net sales').textContent)).toMatch(/2,25,000/);
   });
 });
 

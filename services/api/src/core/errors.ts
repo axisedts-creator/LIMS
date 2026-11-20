@@ -60,7 +60,8 @@ export function toProblem(err: unknown, instance: string, requestId: string): Pr
     type: `urn:lims:error:${code}`, title: m.title, status: m.http, code,
     instance: clamp(instance, 2048), request_id: isUuidv7(requestId) ? requestId : uuidv7(),
   };
-  if (typeof known?.detail === 'string') p.detail = clamp(known.detail, 2000);
+  // LD-236 (SEC-ERR-1, audit 5.6): Problem.detail is optional, so it is omitted on every 5xx; the real detail is logged by sendProblem.
+  if (typeof known?.detail === 'string' && m.http < 500) p.detail = clamp(known.detail, 2000);
   if (ERRORS_CODES.has(code) && known?.errors?.length) {
     // 02-CV §4.6 as amended by LD-153: errors[] only for ERRORS_CODES; sub-codes always from the registry.
     p.errors = known.errors.slice(0, 200).map((f) => ({
@@ -119,15 +120,36 @@ function normalise(err: unknown): unknown {
 const rendered = new WeakSet<object>();
 export const isRenderedProblem = (payload: unknown): boolean => typeof payload === 'object' && payload !== null && rendered.has(payload);
 
+/**
+ * LD-325 (T0B-BOOTGATE-1): 501 body of a pendingOperations stub. operation_pending is not a registry code (contracts/errors.yaml),
+ * so it is built here, not by toProblem; marked rendered so the stage-12 response check lets it through.
+ */
+export function pendingProblem(operationId: string, instance: string, requestId: string): object {
+  const p = {
+    type: 'urn:lims:error:operation_pending', title: 'Operation pending', status: 501, code: 'operation_pending',
+    detail: clamp(`operation ${operationId} is not implemented yet`, 2000), instance: clamp(instance, 2048),
+    request_id: isUuidv7(requestId) ? requestId : uuidv7(),
+  };
+  rendered.add(p);
+  return p;
+}
+
 const pathOf = (url: string): string => url.split('?', 1)[0]!; // REQ-SEC-098: never the query string
 
 export function sendProblem(err: unknown, req: FastifyRequest, reply: FastifyReply): FastifyReply {
   const e = normalise(err);
+  if (isLimsError(e, 'operation_pending')) { // LD-346: a pending report code thrown by a handler -> the same 501 body as a pending operation
+    const pp = pendingProblem(e.detail ?? 'unknown', pathOf(req.url), String(req.id));
+    setErrorCode(req, 'operation_pending');
+    return reply.code(501).type('application/problem+json').send(pp);
+  }
   const p = toProblem(e, pathOf(req.url), String(req.id));
   setErrorCode(req, p.code);
   if (p.status >= 500) {
-    // ponytail: name + code only (no message/stack: may carry SQL/PHI); full error logging is T0D-10.
-    req.log.error({ event: 'request_failed', error_code: p.code, err_name: (err as Error | null)?.name }, 'request_failed');
+    // ponytail: name + code + LimsError.detail only (no message/stack: may carry SQL/PHI); full error logging is T0D-10.
+    // LD-236: the detail withheld from the 5xx body stays here, in the scrubbed log line.
+    const detail = isLimsError(e) && typeof e.detail === 'string' ? clamp(e.detail, 2000) : undefined;
+    req.log.error({ event: 'request_failed', error_code: p.code, err_name: (err as Error | null)?.name, detail }, 'request_failed');
   }
   const retry = isLimsError(e) ? e.retryAfterSeconds : undefined;
   if (typeof retry === 'number' && Number.isFinite(retry) && retry > 0) reply.header('retry-after', String(Math.ceil(retry)));

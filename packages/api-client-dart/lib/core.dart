@@ -11,6 +11,10 @@ class CoreApi {
 
   final LimsTransport _send;
 
+  /// POST /v1/core/sync/devices/{device_id}/wipe-ack
+  Future<Object?> ackDeviceWipe({required String deviceId}) =>
+      _send('POST', '/v1/core/sync/devices/${Uri.encodeComponent(deviceId)}/wipe-ack');
+
   /// GET /v1/core/health/live
   Future<Object?> getLiveness() =>
       _send('GET', '/v1/core/health/live');
@@ -18,4 +22,48 @@ class CoreApi {
   /// GET /v1/core/health/ready
   Future<Object?> getReadiness() =>
       _send('GET', '/v1/core/health/ready');
+
+  /// GET /v1/core/sync/conflicts/{conflict_id}
+  Future<Object?> getSyncConflict({required String conflictId}) =>
+      _send('GET', '/v1/core/sync/conflicts/${Uri.encodeComponent(conflictId)}');
+
+  /// GET /v1/core/sync/status
+  Future<Object?> getSyncStatus({Map<String, Object?>? query}) =>
+      _send('GET', '/v1/core/sync/status', query: query);
+
+  /// GET /v1/core/sync/conflicts
+  Future<Object?> listSyncConflicts({Map<String, Object?>? query}) =>
+      _send('GET', '/v1/core/sync/conflicts', query: query);
+
+  /// GET /v1/core/sync/devices
+  Future<Object?> listSyncDevices({Map<String, Object?>? query}) =>
+      _send('GET', '/v1/core/sync/devices', query: query);
+
+  /// POST /v1/core/sync/pull
+  Future<Object?> pullChanges({Object? body}) =>
+      _send('POST', '/v1/core/sync/pull', body: body);
+
+  /// POST /v1/core/sync/batches
+  Future<Object?> pushSyncBatch({Object? body}) =>
+      _send('POST', '/v1/core/sync/batches', body: body);
+
+  /// POST /v1/core/sync/devices
+  Future<Object?> registerSyncDevice({Map<String, String>? headers, Object? body}) =>
+      _send('POST', '/v1/core/sync/devices', headers: headers, body: body);
+
+  /// POST /v1/core/sync/devices/{device_id}/wipe
+  Future<Object?> requestSyncDeviceWipe({required String deviceId}) =>
+      _send('POST', '/v1/core/sync/devices/${Uri.encodeComponent(deviceId)}/wipe');
+
+  /// POST /v1/core/sync/number-blocks
+  Future<Object?> reserveNumberBlock({Map<String, String>? headers, Object? body}) =>
+      _send('POST', '/v1/core/sync/number-blocks', headers: headers, body: body);
+
+  /// POST /v1/core/sync/conflicts/{conflict_id}/resolve
+  Future<Object?> resolveSyncConflict({required String conflictId, Map<String, String>? headers, Object? body}) =>
+      _send('POST', '/v1/core/sync/conflicts/${Uri.encodeComponent(conflictId)}/resolve', headers: headers, body: body);
+
+  /// POST /v1/core/sync/devices/{device_id}/revoke
+  Future<Object?> revokeSyncDevice({required String deviceId}) =>
+      _send('POST', '/v1/core/sync/devices/${Uri.encodeComponent(deviceId)}/revoke');
 }

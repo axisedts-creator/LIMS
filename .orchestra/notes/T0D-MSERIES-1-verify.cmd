@@ -1,0 +1,1 @@
+pnpm --dir packages/ui exec vitest run assets/fonts/__tests__ tokens/__tests__ src/theme/__tests__ scripts/__tests__/build-tokens.test.ts src/components/__tests__/m-series-kit.test.tsx src/components/__tests__/ui-r03-kit-pass.test.tsx src/components/__tests__/static-guards.test.ts && pnpm --dir apps/web exec vitest run src/features/reporting/__tests__/rs-c6.static.test.ts

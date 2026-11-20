@@ -60,7 +60,10 @@ function addedCss(css: string, baseline: string): string {
 const cssViolations = (css: string): string[] => {
   const bad: string[] = [];
   if (/#[0-9a-fA-F]{3,8}\b/.test(css)) bad.push('hex colour');
-  if (/(?<![\w-])-?\d*\.?\d+px\b/.test(css)) bad.push('px value');
+  // px sizes fixed by 13-M-SERIES s3 (296 sidebar, 76 top bar, 46 pill, 20 icon, 3 px outline, 2 px offset) are exempt (ruling T0D-MSERIES-2); LD-251 bars raw colour, radius, font only.
+  // T0D-MSERIES-5 (LD-276): the board's 3D plate, chips, rings and their @keyframes are scene geometry (perspective, translateZ, bob distance): px is exempt on those lines only; colour and radius stay token-only.
+  const pxCss = css.split('\n').filter((l) => !/lims-auth-(plate|well|chip|scene|mark|rings|tagline|slab)|^\s*@keyframes\b/.test(l)).join('\n');
+  if (/(?<![\w.-])-?\d*\.?\d+px\b/.test(pxCss.replace(/(?<![\w.-])(?:296|76|46|20|3|2)px\b/g, ''))) bad.push('px value');
   if (/\b(rgb|rgba|hsl|hsla)\(/.test(css)) bad.push('rgb()/hsl() colour');
   if (/\burl\(/.test(css) || /@import\b/.test(css) || /https?:\/\//.test(css)) bad.push('url()/@import/remote URL');
   for (const m of css.matchAll(/@(?:media|container)\b([^{]*)\{/g)) for (const len of (m[1] ?? '').matchAll(/(-?\d*\.?\d+)([a-z%]+)/g)) if (len[2] !== 'rem') bad.push(`query unit ${len[0]} is not rem`);
@@ -366,11 +369,8 @@ describe('WEB-STYLE-3 (a) viewport fill, no page scrollbar, flush full-height pa
     for (const s of SCREENS) expect(existsSync(join(src, 'app', '(auth)', 'auth', s, 'page.tsx')), `/auth/${s}`).toBe(true);
     expect(blocks(layoutSrc, 'div', 'lims-auth-main')[0]?.inner ?? '').toContain('{children}');
   });
-  it('body margin 0, page border-box with one 100dvh|100vh, wide: no padding/gap/margin and items stretch, panel flush, form column centred', () => {
-    expect(fillProblems(shellCss)).toEqual([]);
-  });
-  it('panel is still hidden below 64rem and shown from it (web-style-2 contract)', () => {
-    expect(panelVisibilityProblems(shellCss)).toEqual([]);
+  it('body margin 0 and the page is border-box (T0D-MSERIES-5: the viewport-fill / stretch / hidden-panel rules of the split grid are superseded by the wrapping flex of the board, see m5.entry.test.tsx and the Playwright check)', () => {
+    expect(fillProblems(shellCss).filter((p) => /^body margin|box-sizing/.test(p))).toEqual([]);
   });
   it('planted failures fire', () => {
     expect(fillProblems(GOOD_FILL)).toEqual([]);
@@ -386,17 +386,10 @@ describe('WEB-STYLE-3 (a) viewport fill, no page scrollbar, flush full-height pa
 });
 
 describe('WEB-STYLE-3 (b) brand panel: wrapper, larger heading, vertical stepper, aria-hidden', () => {
-  it('layout: aria-hidden aside > panel-body > title + ol.lims-auth-steps with the seven words unchanged, in order', () => {
-    expect(layoutProblems(layoutSrc)).toEqual([]);
-  });
-  it('layout: no img/svg/remote URL/url()/src/inline style (LD-205: no image, no remote URL, no claims)', () => {
-    expect(assetProblems(layoutSrc)).toEqual([]);
-  });
-  it('panel css: centred column, token padding, panel-body max-width in rem, title larger than md', () => {
-    expect(panelCssProblems(shellCss)).toEqual([]);
-  });
-  it('stepper css: round token dots joined by a thin token-coloured line that stops after the last step', () => {
-    expect(stepperProblems(shellCss)).toEqual([]);
+  // T0D-MSERIES-5 (LD-276) SUPERSEDED for the real files: the aria-hidden stepper panel (panel-body, title, ol.lims-auth-steps, seven words) is replaced by the
+  // board's hero (plate, chips, mark, tagline) asserted in m5.entry.test.tsx; the checkers below stay, proven by the planted-failure test.
+  it('layout: no remote URL, url() or inline style (images and svg of the board are allowed)', () => {
+    expect(/https?:\/\/|(?<![\w:])\/\/[a-z]|\burl\(|\bstyle=\{|\bstyle="/i.test(stripJsComments(layoutSrc))).toBe(false);
   });
   it('no page or component re-wraps itself in the layout/panel classes', () => {
     const offenders = authFiles.filter((f) => f !== layoutPath && /\blims-auth-(page|main|panel|panel-body|steps)\b/.test(stripJsComments(read(f)))).map(rel);
@@ -486,13 +479,9 @@ describe('WEB-STYLE-3 (d) Required stays text, moves onto the label row', () => 
 });
 
 describe('WEB-STYLE-3 (e) stronger typographic wordmark', () => {
-  it('wordmark is still text in the auth sources and the rule is larger, bold, letter-spaced', () => {
-    expect(classLiterals(authFiles).has('lims-wordmark')).toBe(true);
-    expect(wordmarkProblems(shellCss)).toEqual([]);
-  });
-  it('no logo image or invented symbol markup next to the wordmark', () => {
-    const code = authFiles.filter((f) => /\.tsx$/.test(f) && /lims-wordmark/.test(read(f))).map((f) => stripJsComments(read(f)));
-    for (const c of code) expect(c.match(/<p className="lims-wordmark">([^<]*)<\/p>/)?.[1]?.trim()).toBe('LIMS');
+  // T0D-MSERIES-5 (LD-276) SUPERSEDED: the LIMS text wordmark is gone; the Metro Labs logo image is the only brand mark (m2/m5 entry tests).
+  it('the LIMS wordmark is not used in the auth sources any more', () => {
+    expect(classLiterals(authFiles).has('lims-wordmark')).toBe(false);
   });
   it('planted failures fire', () => {
     expect(wordmarkProblems(GOOD_WORDMARK)).toEqual([]);
@@ -505,7 +494,7 @@ describe('WEB-STYLE-3 (e) stronger typographic wordmark', () => {
 
 describe('WEB-STYLE-3 (f) new CSS follows LD-140 and the design system', () => {
   it('shell.css gained the new rules (not vacuous)', () => {
-    for (const c of ['.lims-auth-panel-body', '.lims-label-row', '.lims-input-wrap', '.lims-input-toggle']) expect(added, c).toContain(c);
+    for (const c of ['.lims-label-row', '.lims-input-wrap', '.lims-input-toggle']) expect(added, c).toContain(c);
   });
   it('added lines: no hex, px, rgb()/hsl(), url(), @import, remote URL; query lengths in rem; tokens used', () => {
     expect(cssViolations(added)).toEqual([]);
@@ -516,7 +505,7 @@ describe('WEB-STYLE-3 (f) new CSS follows LD-140 and the design system', () => {
   });
   it('every lims-* class in the auth sources has a selector in kit.css or shell.css (exception list <= 3, reasoned)', () => {
     const used = classLiterals(authFiles);
-    for (const c of ['lims-auth-panel-body', 'lims-label-row', 'lims-input-wrap', 'lims-input-toggle', 'lims-auth-steps', 'lims-wordmark']) expect(used.has(c), c).toBe(true);
+    for (const c of ['lims-label-row', 'lims-input-wrap', 'lims-input-toggle']) expect(used.has(c), c).toBe(true);
     const keys = Object.keys(EXCEPTIONS);
     expect(keys.length).toBeLessThanOrEqual(3);
     for (const k of keys) expect((EXCEPTIONS[k] ?? '').length).toBeGreaterThan(10);

@@ -62,9 +62,9 @@ SELECT is((SELECT count(*)::int FROM pg_policies p WHERE p.schemaname = 'reporti
 SELECT is((SELECT count(*)::int FROM pg_policies p WHERE p.schemaname = 'reporting' AND p.tablename <> 'event_inbox'), 107, 'C6 check 5: exactly 107 reporting policies');
 SELECT is((SELECT count(*)::int FROM pg_policies p WHERE p.schemaname = 'reporting' AND p.tablename IN (SELECT t FROM rg)), 0, 'G tables carry no policy');
 SELECT is((SELECT count(*)::int FROM pg_policies p WHERE p.schemaname = 'reporting' AND p.tablename = 'delivery_attempts' AND p.cmd = 'UPDATE'), 0, 'C6 check 5: delivery_attempts has no UPDATE policy (class A)');
-SELECT is((SELECT array_agg(DISTINCT p.tablename::text ORDER BY p.tablename::text) FROM pg_policies p WHERE p.schemaname = 'reporting' AND p.cmd = 'DELETE'),
-  ARRAY['otp_challenges','portal_payment_requests','portal_sessions','print_jobs'], 'C6 check 5: DELETE policies only on the four E tables (purge_ephemeral)');
-SELECT is((SELECT count(*)::int FROM pg_policies p WHERE p.schemaname = 'reporting' AND p.cmd = 'DELETE' AND p.policyname !~ '__delete__tenant_expired$'), 0, 'C6 check 5: every DELETE policy is __tenant_expired');
+SELECT is((SELECT array_agg(DISTINCT p.tablename::text ORDER BY p.tablename::text) FROM pg_policies p WHERE p.schemaname = 'reporting' AND p.tablename <> 'event_inbox' AND p.cmd = 'DELETE'),
+  ARRAY['otp_challenges','portal_payment_requests','portal_sessions','print_jobs'], 'C6 check 5: DELETE policies only on the four E tables (purge_ephemeral); event_inbox is C0 (T0B-05) and excluded (HARNESS fix T0B-GREEN-2)');
+SELECT is((SELECT count(*)::int FROM pg_policies p WHERE p.schemaname = 'reporting' AND p.tablename <> 'event_inbox' AND p.cmd = 'DELETE' AND p.policyname !~ '__delete__tenant_expired$'), 0, 'C6 check 5: every DELETE policy is __tenant_expired');
 SELECT is((SELECT count(*)::int FROM pg_policies p WHERE p.schemaname = 'reporting' AND p.cmd = 'ALL'), 0, 'C6 check 5: no FOR ALL policy');
 SELECT is((SELECT array_agg(p.policyname::text ORDER BY p.policyname::text) FROM pg_policies p WHERE p.schemaname = 'reporting' AND p.roles = ARRAY['lims_reporting_lookup']::name[]),
   ARRAY['channel_accounts__select__lookup','deliveries__select__owner_only','portal_links__select__lookup','portal_links__select__owner_only','portal_links__update__owner_only','portal_sessions__select__lookup',

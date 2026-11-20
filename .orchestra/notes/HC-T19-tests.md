@@ -1,0 +1,7 @@
+# HC-T19 tests (web: visit detail W2 + review + flags; US-09-1/2/3/4, US-16-1/2)
+- Files: `apps/web/src/features/homecollection/__tests__/hc-t19.{source,page,detail,review}.test.*` + `hc-t19.helpers.tsx` + `vitest.hc-t19.config.ts`; E2E `apps/web/tests/e2e/homecollection/HC-T19.visit.spec.ts` (needs compose + LIMS_E2E_*; not in verify). Run: `.orchestra\notes\HC-T19-verify.cmd`.
+- Covers: page (`visits/[visit_id]/page.tsx`: notFound before any API call, uuid check, one H2 read, no phone, allow-list, H20 sets); view (cards, tone+icon+word, action matrix by state, Show phone H21, Resolve H8, Create revisit H7); Review dialog H9 (Apply/Discard, barcode_mismatch, superseded -> only Discard, not_held, Idempotency-Key reuse); static (LD-140, kit-only, help `visit.md`).
+- Contract ASSUMED: route param `[visit_id]`; `components/VisitDetailView({visit,permissions,codes})`; Show phone = button named /show phone/i; H8 If-Match = flag.version; H9 If-Match = collection.version; revisit navigates via router.push(`/homecollection/visits/<new id>`); Money wire = `{amount_paisa}`.
+- Spec silent, my choice: closed states hide Schedule/Assign/Unassign/Cancel; in_progress not asserted; `clock_suspect` chip not asserted (not in CollectionDto).
+- NOT asserted: Timeline wording, Alt-key shortcuts, real browser focus order, 428 handling.
+- RUN: 96 tests, 0 pass / 96 fail — all because implementation files are missing (page, VisitDetailView, help/visit.md, loading/error). E2E never run.

@@ -1,0 +1,6 @@
+# T0B-ACCT-1 tests, pass 2 (LD-328; tester). Fail now: 28 crossTenant (12 ACCT-2 ops still 503 stubs, not pending); accounts live files need PG17 + docker (not run here).
+- accounts/ (helpers, masters, entries, reversal, statement, accounts.static) unchanged except reversal.test.ts: new case = one audit.access_log row account_entry.reverse on the reversal id, original id in detail.reverses_entry_id, no free text (LD-324 c). entries.test.ts:97 untouched.
+- probes/probe.kit.ts: pendingIds/isPending/specOpCount (manifest.pendingOperations + spec). probes/crossTenant.handlers.test.ts: counts derived from the specs; pending ops exempt from the per-op block; new tests: pending ids have no handler key, 12 ACCT-2 ops pending with NO stub, 12 ACCT-1 ops have handlers and are not pending.
+- Writer: delete the 12 ACCT-2 503 stubs, list those 12 in billing pendingOperations; regenerate the access-action seed (no spec edits).
+- Run: `.orchestra\notes\T0B-ACCT-1-verify.cmd` = whole billing suite on PG17 (tests/billing/T0B-ACCT-1.pg.sh), then crossTenant + boot test alone (no timeout raised).
+- Not covered: permission-denied via the core pipeline, Idempotency-Key replay, corp_admin pack (T0C role-packs test).

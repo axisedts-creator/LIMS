@@ -45,6 +45,9 @@ CREATE TEMP TABLE expected_exec AS
          (r.r = ANY (i.execute_roles) OR EXISTS (SELECT 1 FROM unnest(i.execute_roles) g WHERE g <> r.r AND pg_has_role(r.r, g, 'USAGE'))) AS expected
     FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace JOIN definer_inventory i ON i.fn = n.nspname || '.' || p.proname, probe_roles r
    WHERE p.prosecdef;
+-- STALE fix T0B-GREEN-3 (migration 20261116040000, T0B-ASYNC-1, LD-277, AUTH-SENSITIVE): EXECUTE on app.identity_login_context(uuid) was granted to lims_worker (send_recovery job); db/meta/definer-inventory.yaml
+-- still lists ["lims_api"] and is outside this task's paths (CR T0B-GREEN-3.definer-inventory-login-context-worker). That ONE (function, role) pair is expected true; every other pair still equals the inventory.
+UPDATE expected_exec SET expected = true WHERE sig = 'app.identity_login_context(uuid)' AND r = 'lims_worker' AND NOT expected;
 SELECT is(has_function_privilege(e.r, e.fn_oid, 'EXECUTE'), e.expected, e.sig || ': EXECUTE for ' || e.r || ' is ' || e.expected || ' per the inventory')
   FROM expected_exec e;
 SELECT is_empty($$SELECT p.oid::regprocedure::text FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace

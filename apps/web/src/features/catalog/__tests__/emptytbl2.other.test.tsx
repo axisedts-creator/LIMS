@@ -138,11 +138,11 @@ describe('quality LjView (chart with no values)', () => {
     expectEmptyTable(tableOf(container), /No QC values in this period\./, ['Time', 'Value', 'z', 'Status', 'Rule hits']);
     expectNoCardOutsideTables(container);
   });
-  it('the heading, the legend and the "table instead of chart" notice stay', () => {
+  it('the heading and the legend stay', () => {
     view([]);
     expect(screen.getByRole('heading', { name: /Levey-Jennings chart · GLU/ })).toBeTruthy();
     expect(screen.getByRole('region', { name: /legend/i })).toBeTruthy();
-    expect(screen.getByText(/Chart component pending/)).toBeTruthy();
+    expect(screen.queryByText(/Chart component pending/)).toBeNull(); // LD-353 rule 8, T0D-UIDASH-1
   });
   it('a series with points: its table has the points and no placeholder rows, and the message is gone', () => {
     const point = { observation_id: 'o1', observed_at: '2026-11-16T05:00:00.000Z', value: '5.10', z: '0.5', status: 'accepted', rule_hits: [] };

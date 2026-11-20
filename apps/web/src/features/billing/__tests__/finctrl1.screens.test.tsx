@@ -939,6 +939,17 @@ describe('billing/daily-cash — Previous Outstanding Cash, Deposit, carried for
     expect(figure('billing.daily_summary.carried_forward')).not.toContain('-');
   });
 
+  it('sessions null (the read was refused, e.g. no billing.cash_report.read): the three figures show "—", never an invented 0.00 or a computed carried forward', async () => {
+    const S = await load();
+    wrap(<S {...props({ sessions: null })} />);
+    for (const k of ['previous_outstanding', 'deposited', 'carried_forward']) {
+      const txt = figure(`billing.daily_summary.${k}`);
+      expect(txt, k).toContain('—');
+      expect(txt, k).not.toMatch(/\d[\d,]*\.\d{2}/); // no money figure at all (cash total 4,000.00 must not leak into carried forward)
+    }
+    expect(screen.getByRole('heading', { name: t('billing.daily_summary.title') })).toBeTruthy();
+  });
+
   it('sessions is optional: the existing screen still renders without it (existing callers)', async () => {
     const S = await load();
     const p = props(); delete (p as Record<string, unknown>)['sessions'];

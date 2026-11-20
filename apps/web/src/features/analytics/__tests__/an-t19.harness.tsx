@@ -48,7 +48,7 @@ export const navigationMock: { useRouter: () => typeof router; usePathname: () =
 export const ALL = ['analytics.dashboard.read', 'analytics.collections.read', 'analytics.data.export', 'billing.cash_report.read', 'instruments.agent.read', 'lab.result.read'];
 
 // ---------------------------------------------------------------- fixtures
-export const problem = (code: string, status: number) => HttpResponse.json({ type: `urn:lims:error:${code}`, title: code, status, code }, { status });
+export const problem = (code: string, status: number, extra: Record<string, unknown> = {}) => HttpResponse.json({ type: `urn:lims:error:${code}`, title: code, status, code, ...extra }, { status });
 const FRESH = [{ family: 'income', refreshed_at: '2026-01-15T04:30:00.000Z', is_stale: false, live: false }];
 export const env = (code: string, over: Record<string, unknown> = {}) => ({
   report_code: code,

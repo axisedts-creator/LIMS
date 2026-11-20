@@ -21,6 +21,14 @@ const ACCOUNTING_2: SpecRow[] = ([
   { name: 'Cash transfers', path: '/billing/cash-transfers', permission: 'billing.account.read', group: 'billing', orderRange: [50, 60] },
 ] satisfies SpecRow[]).filter((r) => pageExists(r.path));
 
+// T0D-FINCTRL-1 (LD-321): four more additive entries (discount reasons, slabs, limits, authorities), orders inside 50-60; join once the page exists.
+const DISCOUNTS: SpecRow[] = ([
+  { name: 'Discount reasons', path: '/billing/discounts/reasons', permission: 'billing.discount_policy.read', group: 'billing', orderRange: [50, 60] },
+  { name: 'Discount slabs', path: '/billing/discounts/slabs', permission: 'billing.discount_policy.read', group: 'billing', orderRange: [50, 60] },
+  { name: 'Discount limits', path: '/billing/discounts/limits', permission: 'billing.discount_policy.read', group: 'billing', orderRange: [50, 60] },
+  { name: 'Discount authorities', path: '/billing/discounts/authorities', permission: 'billing.discount_policy.read', group: 'billing', orderRange: [50, 60] },
+] satisfies SpecRow[]).filter((r) => pageExists(r.path));
+
 specSuite({
   module: 'billing',
   owner: 'C4',
@@ -37,5 +45,6 @@ specSuite({
     { name: 'Billing settings', path: '/billing/settings', permission: 'billing.settings.manage', group: 'billing', order: 50 },
     ...ACCOUNTING,
     ...ACCOUNTING_2,
+    ...DISCOUNTS,
   ],
 });

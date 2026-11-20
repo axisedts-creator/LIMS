@@ -1,10 +1,11 @@
-TESTS_WRONG — emptytbl2.other.test.tsx:145 requires the development note "Chart component pending", which LD-353 rule 8 forbids on the page.
+TESTS_WRONG — four T0D-EMPTYTBL-1/2 assertions (LD-310, LD-336) conflict with binding LD-353 screen changes made by T0D-UILIST-1 and T0D-UISCAN-1. None of the four is a price tool file, and `git diff main...HEAD` shows no change under features/lab or features/anatomic.
 Reasons:
-1. LD-353 (binding, .orchestra/inbox/T0D-PRICETOOLS-1-arbiter.md:33) rule 8: "Copy: ... no development notes". The test requires one to be visible.
-2. Newer tests require the opposite: quality/__tests__/quality-t21.lj.test.tsx:142-151 (`not.toContain('Chart component pending')`, citing T0D-UIDASH-1-ruling.md) and quality/__tests__/uidash1.quality.test.tsx:7,99,127. The two cannot both pass.
-3. quality/components/LjView.tsx:4 says T0D-UIDASH-1 removed the banner under LD-353 rule 8. T0D-PRICETOOLS-1 did not do it. This failure is older than this task and does not block it.
-4. The rest of the T0D-EMPTYTBL-2 test still holds: headers when empty, the message row, the heading and the legend (lines 136-144).
-Change in the test (line 145) of apps/web/src/features/catalog/__tests__/emptytbl2.other.test.tsx:
-  replace `expect(screen.getByText(/Chart component pending/)).toBeTruthy();`
-  with    `expect(screen.queryByText(/Chart component pending/)).toBeNull(); // LD-353 rule 8, T0D-UIDASH-1`
-  and drop `and the "table instead of chart" notice` from the it() title on line 141. Leave lines 143-144 as they are.
+1. LD-353 rule 5 (.orchestra/inbox/T0D-PRICETOOLS-1-arbiter.md:33) wants the header row always drawn and the state inside the table. lab/components/shared.tsx:77-84 (ListTable) does exactly that: the EmptyState goes into `<EmptyRow>` in `<tbody>`. emptytbl1.source.test.ts:24 matches it only because the regex sees the `rows?.length === 0 ? <EmptyState` ternary. That is a false positive.
+2. lab/components/CollectDispatch.tsx:52-62 (T0D-UISCAN-1, LD-353 rule 5) now puts its EmptyState inside the table body, so the allow-list entry at emptytbl1.source.test.ts:33 is correctly stale.
+3. LD-353 rule 6 (arbiter.md:33) says an EmptyState has "at most one button", so the button is optional. Rule 4 asks for one primary button, and BatchesScreen.tsx:54 has it in the PageHeader. No spec line requires "New batch" to appear twice.
+4. LD-353 rule 6 sets what an ErrorState shows (message, reference, Retry). It says nothing against the inert placeholder rows that ListTable draws under any body state (rule 5 keeps the table drawn). emptytbl2.other.test.tsx:122 asserts something the spec does not require. Lines 120-121 still hold.
+Changes (tester, apps/web/src/features/catalog/__tests__/):
+  a. emptytbl1.source.test.ts:32-35: replace the CollectDispatch entry with `'lab/components/shared.tsx': 'ListTable (T0D-UILIST-1, LD-353 rule 5): the EmptyState is rendered inside <tbody> via EmptyRow, not instead of the table'`.
+  b. emptytbl1.source.test.ts:85: expect `['lab/components/shared.tsx']`, and change the comment to `// only the shared ListTable body state is left`.
+  c. emptytbl2.anatomic.test.tsx:71,75: drop `expectCreateTwice(...)` and the `in the message row` wording from the title. Instead assert that "New batch" appears exactly once: `expect(within(container).getAllByRole('button', { name: /^new batch$/i })).toHaveLength(1); // LD-353 rules 4, 6`.
+  d. emptytbl2.other.test.tsx:117,122: retitle to `after a failure: the error with Retry inside the table, no empty message`. Delete line 122 (the placeholder assertion) and leave lines 120-121 as they are.

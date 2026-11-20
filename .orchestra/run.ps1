@@ -1,4 +1,4 @@
-﻿<#
+<#
   LIMS agent orchestra: tester -> writer -> verify -> debugger -> reviewer, one task at a time per lane.
   Single lane :  powershell -ExecutionPolicy Bypass -File C:\LIMS\.orchestra\run.ps1 -Chunk C0-foundation-contracts
   Parallel    :  use supervisor.ps1 (it runs this script once per lane, each in its own git worktree).
@@ -303,7 +303,7 @@ try {
     if (-not $t) { Log "nothing runnable for '$Filter' right now (done, blocked, or waiting on other lanes)"; break }
     $tk = FK $t.id   # file key for notes/cr/inbox names ({TASK} in the role texts)
     Set-Status $t.id ($t.status)
-    if ($Integration) {   # start from everyone's latest work
+    if ($Integration -and $t.id -notin @('T0D-OFFLINE-3','T0D-PRINTCFG-1')) {   # lead 2026-11-20: isolate these two from re-merge, see LD-401/416/429 - stale snapshot keeps getting wiped by merge before commit
       git merge --no-edit main 2>&1 | Out-Null
       if ($LASTEXITCODE -ne 0) {
         # 2026-11-11 lead: a silent abort left lane C5c stale for hours (T-10 could not see BarcodeSymbol or the 300 s vitest timeout). Resolve with the merger agent as Integrate does; if it cannot, abort and say so in the log.

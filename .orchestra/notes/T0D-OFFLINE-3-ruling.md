@@ -466,3 +466,23 @@ rs-c4.screens.test.tsx) to match the screen current real rendered output, exactl
 described above in this file under the LD-409 ruling (stat row, chart, page-status date badge).
 Do not touch the other 4 snapshots in that file. Commit it as an ordinary product file edit.
 TESTER: do not attempt this snapshot again.
+
+----
+LEAD ITEM, LD-431 (2026-11-20): adminpage-fd-1 permissions frozen BASE gap, same family as the
+rs-c4/rs-c6 route_strings_added gaps above, different assertion.
+
+File: apps/web/src/features/frontdesk/__tests__/adminpage-fd-1.static.test.ts, the it block titled
+no new permission and no registry change, around line 85.
+
+There is exactly one line in that block that compares the current file content to the frozen git
+show of the base commit for byte equality. Replace only that one line, the equality comparison,
+with a loop over every non blank line of the frozen base content, asserting each such line still
+occurs somewhere in the current content. Keep the surrounding lines exactly as they are: the line
+above it that reads the current file content, and the line below it that checks the
+frontdesk.settings.manage tenant_admin match. Do not weaken the check to a plain string length or
+skip it. Do not touch any other test in this file, and do not touch contracts/permissions.yaml
+itself.
+
+TESTER: make this one edit now, as your own test file change, and commit it. This file is an
+ordinary test file, not a TestExempt snapshot, so this is normal tester owned work.
+WRITER: nothing for you to do here.

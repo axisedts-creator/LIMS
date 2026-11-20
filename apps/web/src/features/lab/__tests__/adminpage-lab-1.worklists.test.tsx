@@ -110,7 +110,7 @@ describe('department index (listDepartments)', () => {
     expect(links.map((a) => a.getAttribute('href'))).toEqual(DEPARTMENTS.map((d) => `/lab/worklists/${d.id}`));
     DEPARTMENTS.forEach((d, i) => {
       expect(links[i]!.textContent).toContain(d.name);
-      expect(within(links[i]!.closest('li,article,section,div') as HTMLElement).getByText(d.code, { exact: false })).toBeTruthy();
+      expect(within(links[i]!.closest('li,article,section,div') as HTMLElement).getByText((_c, el) => (el?.textContent ?? '').trim() === d.code && !Array.from(el?.children ?? []).some((k) => (k.textContent ?? '').trim() === d.code))).toBeTruthy();
     });
   });
 

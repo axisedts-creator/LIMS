@@ -316,7 +316,11 @@ export const api = setupServer(
     calls.push({ url, headers: request.headers, method: request.method, ...(request.method === 'POST' ? { body: await request.clone().text() } : {}) });
     const h = respond[url.pathname];
     if (h) return h();
-    const b = bodies[url.pathname];
+    let b = bodies[url.pathname];
+    // T0D-UIREPORT-2 ruling: group_by=day answers with date-keyed rows (synthetic A.D. date), any other group_by keeps the body as set (the `cash` row).
+    if (url.pathname === '/v1/analytics/reports/collections' && url.searchParams.get('group_by') === 'day' && b?.rows?.length) {
+      b = { ...b, rows: b.rows.map((r: any, i: number) => ({ ...r, key: `2026-01-0${i + 5}`, label: `2026-01-0${i + 5}` })) };
+    }
     return b !== undefined ? HttpResponse.json(b) : problem('common.dependency_unavailable', 503);
   }),
 );
